@@ -7,6 +7,7 @@ import Avatar from 'next/avatar/Avatar.vue';
 import SidebarProfileMenuStatus from './SidebarProfileMenuStatus.vue';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { useAlert } from 'dashboard/composables';
+import { useAdmin } from 'dashboard/composables/useAdmin';
 /* global axios */
 
 import {
@@ -32,6 +33,7 @@ const { t } = useI18n();
 const currentUser = useMapGetter('getCurrentUser');
 const currentUserAvailability = useMapGetter('getCurrentUserAvailability');
 const accountId = useMapGetter('getCurrentAccountId');
+const { isAdmin } = useAdmin();
 const globalConfig = useMapGetter('globalConfig/get');
 const isFeatureEnabledonAccount = useMapGetter(
   'accounts/isFeatureEnabledonAccount'
@@ -54,7 +56,9 @@ const toggleChatSupport = () => {
 
 const openPanelAi = async () => {
   try {
-    const { data } = await axios.post('/api/v1/profile/panel_ai_sso');
+    const { data } = await axios.post('/api/v1/profile/panel_ai_sso', {
+      account_id: accountId.value,
+    });
     if (data?.url) {
       window.open(data.url, '_blank', 'noopener');
     } else {
@@ -75,7 +79,7 @@ const menuItems = computed(() => {
       click: toggleChatSupport,
     },
     {
-      show: true,
+      show: isAdmin.value,
       showOnCustomBrandedInstance: true,
       label: t('SIDEBAR_ITEMS.PANEL_AI'),
       icon: 'i-lucide-sparkles',
