@@ -60,7 +60,7 @@ const openPanelAi = async () => {
       account_id: accountId.value,
     });
     if (data?.url) {
-      window.open(data.url, '_blank', 'noopener');
+      window.location.assign(data.url);
     } else {
       useAlert(t('SIDEBAR_ITEMS.PANEL_AI_ERROR'));
     }
