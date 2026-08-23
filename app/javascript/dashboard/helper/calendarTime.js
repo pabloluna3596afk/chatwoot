@@ -12,6 +12,61 @@ export function guayaquilParts(date = new Date()) {
   return { year, month, day, hour, minute, dateKey };
 }
 
+export function todayKey(date = new Date()) {
+  return guayaquilParts(date).dateKey;
+}
+
+export function eventInstant(iso) {
+  if (!iso) return 0;
+  if (iso.length <= 10) return new Date(`${iso}T00:00:00${OFFSET}`).getTime();
+  return new Date(iso).getTime();
+}
+
+export function compareEventsByStart(a, b) {
+  if (a.all_day && !b.all_day) return -1;
+  if (!a.all_day && b.all_day) return 1;
+  return eventInstant(a.start) - eventInstant(b.start);
+}
+
+export function eventDateKey(value) {
+  if (!value) return '';
+  if (value.length <= 10) return value;
+  return guayaquilParts(new Date(value)).dateKey;
+}
+
+export function isEventPast(event, now = Date.now()) {
+  if (!event) return true;
+  if (event.end) return eventInstant(event.end) <= now;
+  if (event.all_day) return eventDateKey(event.start) < todayKey(new Date(now));
+  return eventInstant(event.start) < now;
+}
+
+export function isEventCurrent(event, now = Date.now()) {
+  if (!event) return false;
+  if (event.all_day)
+    return eventDateKey(event.start) === todayKey(new Date(now));
+  const start = eventInstant(event.start);
+  const end = event.end ? eventInstant(event.end) : start + 60 * 60 * 1000;
+  return start <= now && now < end;
+}
+
+export function nowLinePercent(
+  hourStart = HOUR_START,
+  hourEnd = HOUR_END,
+  date = new Date()
+) {
+  const { hour, minute } = guayaquilParts(date);
+  const gridStart = hourStart * 60;
+  const gridSpan = Math.max((hourEnd - hourStart) * 60, 60);
+  const nowMin = hour * 60 + minute;
+  if (nowMin < gridStart || nowMin > gridStart + gridSpan) return null;
+  return ((nowMin - gridStart) / gridSpan) * 100;
+}
+
+export function dayNumberFromKey(dateKey) {
+  return Number(dateKey.split('-')[2]) || 0;
+}
+
 export function addDaysKey(dateKey, amount) {
   const [year, month, day] = dateKey.split('-').map(Number);
   const next = new Date(Date.UTC(year, month - 1, day + amount));
@@ -45,12 +100,6 @@ export function zonedDateTime(dateKey, hours, minutes) {
   return `${dateKey}T${hh}:${mm}:00${OFFSET}`;
 }
 
-export function eventDateKey(value) {
-  if (!value) return '';
-  if (value.length <= 10) return value;
-  return guayaquilParts(new Date(value)).dateKey;
-}
-
 export function formatTime(value) {
   if (!value || value.length <= 10) return '';
   const { hour, minute } = guayaquilParts(new Date(value));
@@ -65,6 +114,19 @@ export function formatDayLabel(dateKey, locale) {
     day: 'numeric',
     month: 'short',
   });
+}
+
+export function formatWeekdayMonth(dateKey, locale) {
+  const date = new Date(`${dateKey}T12:00:00${OFFSET}`);
+  const weekday = date.toLocaleDateString(locale, {
+    timeZone: TIMEZONE,
+    weekday: 'short',
+  });
+  const month = date.toLocaleDateString(locale, {
+    timeZone: TIMEZONE,
+    month: 'short',
+  });
+  return `${weekday}, ${month}`;
 }
 
 export function eventLayout(

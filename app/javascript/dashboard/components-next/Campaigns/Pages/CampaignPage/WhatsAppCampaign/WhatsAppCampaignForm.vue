@@ -13,6 +13,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import TagMultiSelectComboBox from 'dashboard/components-next/combobox/TagMultiSelectComboBox.vue';
 import ColorPicker from 'dashboard/components-next/colorpicker/ColorPicker.vue';
+import ColorTintPreview from 'dashboard/components-next/colorpicker/ColorTintPreview.vue';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
 import WhatsAppCampaignAttributionNotice from 'dashboard/components-next/Campaigns/Pages/CampaignPage/WhatsAppCampaign/WhatsAppCampaignAttributionNotice.vue';
 
@@ -273,11 +274,12 @@ watch(
       :message-type="formErrors.title ? 'error' : 'info'"
     />
 
-    <div class="flex flex-col gap-1">
+    <div class="flex flex-col gap-2">
       <label class="mb-0.5 text-sm font-medium text-n-slate-12">
         {{ t('CAMPAIGN.WHATSAPP.CREATE.FORM.COLOR.LABEL') }}
       </label>
       <ColorPicker v-model="state.color" />
+      <ColorTintPreview :color="state.color" :label="state.title" />
     </div>
 
     <div class="flex flex-col gap-1">

@@ -264,7 +264,14 @@
         }
       },
       "EDIT": {
-        "TITLE": "Edit WhatsApp campaign"
+        "TITLE": "Edit WhatsApp campaign",
+        "FORM": {
+          "SAVE_COLOR": "Save color",
+          "API": {
+            "SUCCESS_MESSAGE": "Campaign updated successfully",
+            "ERROR_MESSAGE": "Could not update the campaign. Please try again."
+          }
+        }
       },
       "LIST": {
         "COLUMNS": {

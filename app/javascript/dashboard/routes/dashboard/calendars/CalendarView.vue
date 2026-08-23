@@ -2,21 +2,26 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
+import { vOnClickOutside } from '@vueuse/components';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useAlert } from 'dashboard/composables';
 import Button from 'dashboard/components-next/button/Button.vue';
-import SelectInput from 'dashboard/components-next/select/Select.vue';
+import OutlinedAttributeField from 'dashboard/components-next/CustomAttributes/OutlinedAttributeField.vue';
+import OutlinedSelectField from 'dashboard/components-next/CustomAttributes/OutlinedSelectField.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 import WeekGrid from './WeekGrid.vue';
 import AgendaSidebar from './AgendaSidebar.vue';
 import EventModal from './EventModal.vue';
+import googleLogo from 'dashboard/assets/images/integrations/google.svg';
+import microsoftLogo from 'dashboard/assets/images/integrations/microsoft.svg';
 import {
   HOUR_END,
   HOUR_START,
   addDaysKey,
+  compareEventsByStart,
   eventDateKey,
   formatDayLabel,
   formatTime,
@@ -25,8 +30,8 @@ import {
   weekDays,
 } from 'dashboard/helper/calendarTime';
 import {
-  calendarSelectOptions,
-  connectionSelectOptions,
+  calendarDisplayName,
+  connectionDisplayName,
 } from 'dashboard/helper/calendarLabels';
 import { useCalendarCancelledVisibility } from 'dashboard/helper/useCalendarCancelledVisibility';
 
@@ -46,6 +51,7 @@ const selectedCalendarId = ref('');
 const weekStartKey = ref(startOfWeekKey());
 const modalRef = ref(null);
 const showMenu = ref(false);
+const showAccountMenu = ref(false);
 const { showCancelled } = useCalendarCancelledVisibility();
 
 const visibleEvents = computed(() =>
@@ -54,27 +60,53 @@ const visibleEvents = computed(() =>
     : events.value.filter(event => !event.deleted)
 );
 
-const connectionOptions = computed(() =>
-  connectionSelectOptions(connections.value, t)
+const calendarOutlineOptions = computed(() =>
+  calendars.value.map(item => ({
+    id: item.id,
+    name: calendarDisplayName(item, t),
+  }))
 );
 
-const calendarOptions = computed(() =>
-  calendarSelectOptions(calendars.value, t)
+const selectedCalendarItem = computed(
+  () =>
+    calendarOutlineOptions.value.find(
+      item => item.id === selectedCalendarId.value
+    ) || null
 );
+
+const onCalendarSelect = item => {
+  if (item?.id) selectedCalendarId.value = item.id;
+};
+
+const providerLogoFor = provider =>
+  provider === 'microsoft' ? microsoftLogo : googleLogo;
+
+const selectedConnection = computed(() =>
+  connections.value.find(item => String(item.id) === selectedConnectionId.value)
+);
+
+const selectedConnectionLabel = computed(() =>
+  connectionDisplayName(selectedConnection.value, t)
+);
+
+const selectConnection = connectionId => {
+  selectedConnectionId.value = String(connectionId);
+  showAccountMenu.value = false;
+};
 
 const weekLabel = computed(() => {
   const start = weekStartKey.value;
   const end = addDaysKey(start, 6);
-  return `${formatDayLabel(start, locale.value)} â€“ ${formatDayLabel(end, locale.value)}`;
+  return `${formatDayLabel(start, locale.value)} - ${formatDayLabel(end, locale.value)}`;
 });
 
 const groupedEvents = computed(() =>
   weekDays(weekStartKey.value).map(dateKey => ({
     key: dateKey,
     label: formatDayLabel(dateKey, locale.value),
-    events: visibleEvents.value.filter(
-      event => eventDateKey(event.start) === dateKey
-    ),
+    events: visibleEvents.value
+      .filter(event => eventDateKey(event.start) === dateKey)
+      .sort(compareEventsByStart),
   }))
 );
 
@@ -89,6 +121,7 @@ const hourStart = computed(() =>
 const hourEnd = computed(() =>
   Number(selectedCalendar.value?.hour_end ?? HOUR_END)
 );
+
 const showGrid = computed(() => !loading.value && calendarsReady.value);
 
 const loadConnections = async () => {
@@ -96,8 +129,8 @@ const loadConnections = async () => {
   calendarsReady.value = false;
   try {
     const { data } = await CalendarAPI.getConnections();
-    connections.value = (data.payload || []).filter(
-      item => item.provider === 'google'
+    connections.value = (data.payload || []).filter(item =>
+      ['google', 'microsoft'].includes(item.provider)
     );
     if (connections.value.length && !selectedConnectionId.value) {
       selectedConnectionId.value = String(connections.value[0].id);
@@ -224,46 +257,85 @@ onMounted(loadConnections);
 <template>
   <section class="flex flex-col w-full h-full min-w-0 bg-n-surface-1">
     <header
-      class="flex flex-wrap items-center gap-3 px-6 py-4 border-b border-n-weak"
+      class="flex items-start justify-between gap-4 px-6 py-3 border-b border-n-weak min-w-0"
     >
-      <div class="flex items-center gap-3 min-w-0">
-        <img
-          src="dashboard/assets/images/integrations/google-calendar.svg"
-          alt=""
-          class="h-8 w-8 rounded-md border border-n-weak"
-        />
-        <h1 class="text-lg font-medium text-n-slate-12 truncate">
-          {{ $t('SIDEBAR.CALENDAR_PAGE.TITLE') }}
-        </h1>
-      </div>
+      <h1 class="text-lg font-medium text-n-slate-12 shrink-0 pt-1">
+        {{ $t('SIDEBAR.CALENDAR_PAGE.TITLE') }}
+      </h1>
       <div
         v-if="hasConnections"
-        class="flex flex-wrap items-center gap-3 ml-auto"
+        class="ml-auto flex flex-wrap items-end justify-end gap-2 min-w-0 max-w-full"
       >
-        <div class="flex flex-col gap-1 min-w-[10rem]">
-          <span class="text-xs text-n-slate-11">
-            {{ $t('SIDEBAR.CALENDAR_PAGE.ACCOUNT') }}
-          </span>
-          <SelectInput
-            v-model="selectedConnectionId"
-            full-width
-            :options="connectionOptions"
-            :placeholder="$t('SIDEBAR.CALENDAR_PAGE.ACCOUNT')"
-          />
+        <div class="w-44 shrink-0">
+          <OutlinedAttributeField
+            :label="$t('SIDEBAR.CALENDAR_PAGE.ACCOUNT')"
+            filled
+            :focused="showAccountMenu"
+          >
+            <div
+              v-on-click-outside="() => (showAccountMenu = false)"
+              class="relative flex items-center w-full min-h-8 gap-1.5 cursor-pointer"
+              :class="{ 'z-50': showAccountMenu }"
+            >
+              <button
+                type="button"
+                class="flex w-full items-center gap-1.5 min-w-0"
+                :aria-expanded="showAccountMenu"
+                :aria-label="$t('SIDEBAR.CALENDAR_PAGE.ACCOUNT')"
+                @click="showAccountMenu = !showAccountMenu"
+              >
+                <img
+                  :src="providerLogoFor(selectedConnection?.provider)"
+                  alt=""
+                  class="size-4 shrink-0 rounded-sm"
+                />
+                <span class="flex-1 truncate text-left text-sm text-n-slate-12">
+                  {{ selectedConnectionLabel }}
+                </span>
+                <span
+                  class="i-lucide-chevron-down size-3.5 shrink-0 text-n-slate-11"
+                  :class="{ 'rotate-180': showAccountMenu }"
+                />
+              </button>
+              <div
+                v-if="showAccountMenu"
+                class="absolute z-50 mt-1 top-full ltr:left-0 rtl:right-0 w-full min-w-[14rem] overflow-hidden rounded-xl border border-n-weak bg-n-solid-2 py-1 shadow-lg"
+              >
+                <button
+                  v-for="connection in connections"
+                  :key="connection.id"
+                  type="button"
+                  class="flex w-full items-center gap-2 px-3 py-2 text-sm text-left text-n-slate-12 hover:bg-n-alpha-2"
+                  :class="{
+                    'bg-n-alpha-2':
+                      String(connection.id) === selectedConnectionId,
+                  }"
+                  @click="selectConnection(connection.id)"
+                >
+                  <img
+                    :src="providerLogoFor(connection.provider)"
+                    alt=""
+                    class="size-4 shrink-0 rounded-sm"
+                  />
+                  <span class="truncate">
+                    {{ connectionDisplayName(connection, t) }}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </OutlinedAttributeField>
         </div>
-        <div class="flex flex-col gap-1 min-w-[12rem]">
-          <span class="text-xs text-n-slate-11">
-            {{ $t('SIDEBAR.CALENDAR_PAGE.CALENDAR') }}
-          </span>
-          <SelectInput
-            v-model="selectedCalendarId"
-            full-width
-            :options="calendarOptions"
-            :placeholder="$t('SIDEBAR.CALENDAR_PAGE.CALENDAR')"
+        <div class="w-44 shrink-0">
+          <OutlinedSelectField
+            :label="$t('SIDEBAR.CALENDAR_PAGE.CALENDAR')"
+            :options="calendarOutlineOptions"
+            :selected-item="selectedCalendarItem"
+            :show-search="false"
             :disabled="!calendars.length"
+            @select="onCalendarSelect"
           />
         </div>
-        <div class="flex items-center gap-1 self-end">
+        <div class="flex items-center gap-1 shrink-0">
           <Button
             icon="i-lucide-chevron-left"
             faded
@@ -272,7 +344,7 @@ onMounted(loadConnections);
             :title="$t('SIDEBAR.CALENDAR_PAGE.PREV_WEEK')"
             @click="weekStartKey = addDaysKey(weekStartKey, -7)"
           />
-          <span class="px-2 text-sm text-n-slate-12 min-w-[9rem] text-center">
+          <span class="px-2 text-sm text-n-slate-12 whitespace-nowrap">
             {{ weekLabel }}
           </span>
           <Button
@@ -298,7 +370,7 @@ onMounted(loadConnections);
             :disabled="!selectedCalendarId"
             @click="openCreate({ dateKey: weekStartKey, hours: 9, minutes: 0 })"
           />
-          <div v-on-clickaway="() => (showMenu = false)" class="relative">
+          <div v-on-click-outside="() => (showMenu = false)" class="relative">
             <Button
               faded
               slate

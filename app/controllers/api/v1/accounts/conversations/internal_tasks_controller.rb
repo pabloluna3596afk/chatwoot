@@ -1,4 +1,6 @@
 class Api::V1::Accounts::Conversations::InternalTasksController < Api::V1::Accounts::Conversations::BaseController
+  include InternalTasksFeatureEnabled
+
   def index
     authorize InternalTask
     @internal_tasks = policy_scope(InternalTask)

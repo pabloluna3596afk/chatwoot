@@ -20,25 +20,28 @@ const campaignsRoutes = {
       children: [
         {
           path: '',
-          redirect: to => {
-            return { name: 'campaigns_ongoing_index', params: to.params };
-          },
+          redirect: to => ({
+            name: 'campaigns_whatsapp_index',
+            params: to.params,
+          }),
         },
         {
           path: 'ongoing',
           name: 'campaigns_ongoing_index',
           meta,
-          redirect: to => {
-            return { name: 'campaigns_livechat_index', params: to.params };
-          },
+          redirect: to => ({
+            name: 'campaigns_livechat_index',
+            params: to.params,
+          }),
         },
         {
           path: 'one_off',
           name: 'campaigns_one_off_index',
           meta,
-          redirect: to => {
-            return { name: 'campaigns_sms_index', params: to.params };
-          },
+          redirect: to => ({
+            name: 'campaigns_whatsapp_index',
+            params: to.params,
+          }),
         },
         {
           path: 'live_chat',

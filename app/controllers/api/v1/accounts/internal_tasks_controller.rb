@@ -1,4 +1,6 @@
 class Api::V1::Accounts::InternalTasksController < Api::V1::Accounts::BaseController
+  include InternalTasksFeatureEnabled
+
   rescue_from InternalTasks::AlreadyClaimedError, with: :render_already_claimed
   before_action :internal_task, except: [:index]
 

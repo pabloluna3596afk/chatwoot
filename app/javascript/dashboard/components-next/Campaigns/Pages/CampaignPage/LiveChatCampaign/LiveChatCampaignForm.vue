@@ -16,6 +16,7 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Editor from 'dashboard/components-next/Editor/Editor.vue';
 import InsertVariableButton from 'dashboard/components-next/variable/InsertVariableButton.vue';
 import ColorPicker from 'dashboard/components-next/colorpicker/ColorPicker.vue';
+import ColorTintPreview from 'dashboard/components-next/colorpicker/ColorTintPreview.vue';
 
 const props = defineProps({
   mode: {
@@ -235,6 +236,7 @@ const insertMessageVariable = liquid => {
         {{ t('CAMPAIGN.LIVE_CHAT.CREATE.FORM.COLOR.LABEL') }}
       </label>
       <ColorPicker v-model="state.color" />
+      <ColorTintPreview :color="state.color" :label="state.title" />
     </div>
 
     <div class="flex flex-col gap-1">
