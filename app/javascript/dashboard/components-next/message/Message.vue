@@ -553,7 +553,7 @@ provideMessageContext({
   <div
     v-if="shouldRenderMessage"
     :id="`message${props.id}`"
-    class="flex w-full mb-2 message-bubble-container"
+    class="flex w-full mb-0.5 message-bubble-container"
     :data-message-id="props.id"
     :class="[
       flexOrientationClass,
@@ -590,8 +590,8 @@ provideMessageContext({
       <div
         class="[grid-area:bubble] flex min-w-0"
         :class="{
-          'ltr:ml-8 rtl:mr-8 justify-end': orientation === ORIENTATION.RIGHT,
-          'ltr:mr-8 rtl:ml-8': orientation === ORIENTATION.LEFT,
+          'ltr:ml-1 rtl:mr-1 justify-end': orientation === ORIENTATION.RIGHT,
+          'ltr:mr-1 rtl:ml-1': orientation === ORIENTATION.LEFT,
           'flex-col items-start gap-2': shouldShowWhatsappReferral,
         }"
         @contextmenu="openContextMenu($event)"
@@ -628,6 +628,8 @@ provideMessageContext({
 
 <style lang="scss">
 .group-with-next + .message-bubble-container {
+  @apply mb-px;
+
   .left-bubble {
     @apply ltr:rounded-tl-sm rtl:rounded-tr-sm;
   }
