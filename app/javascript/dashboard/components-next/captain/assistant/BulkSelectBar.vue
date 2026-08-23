@@ -30,10 +30,13 @@ const modelValue = defineModel({
 });
 
 const selectedCount = computed(() => modelValue.value.size);
-const visibleItemIds = computed(() => props.allItems.map(item => item.id));
+const visibleItemIds = computed(() =>
+  props.allItems.map(item => Number(item.id))
+);
 const visibleItemCount = computed(() => visibleItemIds.value.length);
 const selectedVisibleCount = computed(
-  () => visibleItemIds.value.filter(id => modelValue.value.has(id)).length
+  () =>
+    visibleItemIds.value.filter(id => modelValue.value.has(Number(id))).length
 );
 const hasSelected = computed(() => selectedCount.value > 0);
 const isIndeterminate = computed(

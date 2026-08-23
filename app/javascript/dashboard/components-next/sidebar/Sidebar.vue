@@ -18,6 +18,7 @@ import SidebarProfileMenu from './SidebarProfileMenu.vue';
 import SidebarChangelogCard from './SidebarChangelogCard.vue';
 import SidebarChangelogButton from './SidebarChangelogButton.vue';
 import ChannelLeaf from './ChannelLeaf.vue';
+import LabelLeaf from './LabelLeaf.vue';
 import TemplatesSidebarLeaf from './TemplatesSidebarLeaf.vue';
 import ChannelIcon from 'next/icon/ChannelIcon.vue';
 import SidebarAccountSwitcher from './SidebarAccountSwitcher.vue';
@@ -44,12 +45,6 @@ const emit = defineEmits([
   'showCreateAccountModal',
   'closeMobileSidebar',
 ]);
-
-const labelSidebarIcon = color =>
-  h('span', {
-    class: 'size-3 shrink-0 rounded-sm',
-    style: { backgroundColor: color },
-  });
 
 const { accountScopedRoute, isOnChatwootCloud } = useAccount();
 const { isEnterprise } = useConfig();
@@ -481,6 +476,7 @@ const menuItems = computed(() => {
           badgeCount: hasFilteredUnreadCounts.value
             ? mentionsUnreadCount.value
             : 0,
+          badgeTone: 'attention',
           activeOn: ['conversation_through_mentions'],
           to: accountScopedRoute('conversation_mentions'),
         },
@@ -502,6 +498,7 @@ const menuItems = computed(() => {
           badgeCount: hasFilteredUnreadCounts.value
             ? unattendedUnreadCount.value
             : 0,
+          badgeTone: 'urgent',
           to: accountScopedRoute('conversation_unattended'),
         },
         {
@@ -571,10 +568,16 @@ const menuItems = computed(() => {
             name: `${label.title}-${label.id}`,
             label: label.title,
             badgeCount: getLabelUnreadCount.value(label.id),
-            icon: labelSidebarIcon(label.color),
             to: accountScopedRoute('label_conversations', {
               label: label.title,
             }),
+            component: leafProps =>
+              h(LabelLeaf, {
+                label: leafProps.label,
+                color: label.color,
+                active: leafProps.active,
+                badgeCount: leafProps.badgeCount,
+              }),
           })),
         },
       ],
@@ -722,7 +725,6 @@ const menuItems = computed(() => {
           children: labels.value.map(label => ({
             name: `${label.title}-${label.id}`,
             label: label.title,
-            icon: labelSidebarIcon(label.color),
             to: accountScopedRoute(
               'contacts_dashboard_labels_index',
               { label: label.title },
@@ -732,6 +734,13 @@ const menuItems = computed(() => {
               'contacts_dashboard_labels_index',
               'contacts_edit_label',
             ],
+            component: leafProps =>
+              h(LabelLeaf, {
+                label: leafProps.label,
+                color: label.color,
+                active: leafProps.active,
+                badgeCount: leafProps.badgeCount,
+              }),
           })),
         },
       ],
@@ -803,9 +812,9 @@ const menuItems = computed(() => {
       icon: 'i-lucide-megaphone',
       children: [
         {
-          name: 'Live chat',
-          label: t('SIDEBAR.LIVE_CHAT'),
-          to: accountScopedRoute('campaigns_livechat_index'),
+          name: 'WhatsApp',
+          label: t('SIDEBAR.WHATSAPP'),
+          to: accountScopedRoute('campaigns_whatsapp_index'),
         },
         {
           name: 'SMS',
@@ -813,9 +822,9 @@ const menuItems = computed(() => {
           to: accountScopedRoute('campaigns_sms_index'),
         },
         {
-          name: 'WhatsApp',
-          label: t('SIDEBAR.WHATSAPP'),
-          to: accountScopedRoute('campaigns_whatsapp_index'),
+          name: 'Live chat',
+          label: t('SIDEBAR.LIVE_CHAT'),
+          to: accountScopedRoute('campaigns_livechat_index'),
         },
       ],
     },

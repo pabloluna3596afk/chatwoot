@@ -47,6 +47,7 @@ import WhatsappReferral from './bubbles/Text/WhatsappReferral.vue';
 import MessageError from './MessageError.vue';
 import ContextMenu from 'dashboard/modules/conversations/components/MessageContextMenu.vue';
 import { useBranding } from 'shared/composables/useBranding';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
 /**
  * @typedef {Object} Attachment
@@ -150,7 +151,15 @@ const route = useRoute();
 const inboxGetter = useMapGetter('inboxes/getInbox');
 const inbox = computed(() => inboxGetter.value(props.inboxId) || {});
 const isOnChatwootCloud = useMapGetter('globalConfig/isOnChatwootCloud');
+const isFeatureEnabledonAccount = useMapGetter(
+  'accounts/isFeatureEnabledonAccount'
+);
 const { replaceInstallationName } = useBranding();
+
+const accountId = computed(() => Number(route.params.accountId));
+const hasInternalTasks = computed(() =>
+  isFeatureEnabledonAccount.value(accountId.value, FEATURE_FLAGS.INTERNAL_TASKS)
+);
 
 const isCaptainMessage = computed(() => {
   const senderType = props.sender?.type ?? props.senderType;
@@ -411,7 +420,10 @@ const contextMenuEnabledOptions = computed(() => {
     privateNote:
       !props.private && !isFailedOrProcessing && !isMessageDeleted.value,
     createTask:
-      !props.private && !isFailedOrProcessing && !isMessageDeleted.value,
+      hasInternalTasks.value &&
+      !props.private &&
+      !isFailedOrProcessing &&
+      !isMessageDeleted.value,
     report:
       isOnChatwootCloud.value &&
       isCaptainMessage.value &&

@@ -14,6 +14,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import TagMultiSelectComboBox from 'dashboard/components-next/combobox/TagMultiSelectComboBox.vue';
 import ColorPicker from 'dashboard/components-next/colorpicker/ColorPicker.vue';
+import ColorTintPreview from 'dashboard/components-next/colorpicker/ColorTintPreview.vue';
 
 const props = defineProps({
   selectedCampaign: {
@@ -214,6 +215,7 @@ watch(
         {{ t('CAMPAIGN.SMS.CREATE.FORM.COLOR.LABEL') }}
       </label>
       <ColorPicker v-model="state.color" />
+      <ColorTintPreview :color="state.color" :label="state.title" />
     </div>
 
     <TextArea

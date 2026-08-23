@@ -177,7 +177,10 @@ class Campaign < ApplicationRecord
   end
 
   def prevent_completed_campaign_from_update
-    errors.add :status, 'The campaign is already completed' if !campaign_status_changed? && completed?
+    return unless completed? && !will_save_change_to_campaign_status?
+    return if (changed_attribute_names_to_save - ['color']).empty?
+
+    errors.add :status, 'The campaign is already completed'
   end
 
   # creating db triggers

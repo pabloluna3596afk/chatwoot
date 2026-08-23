@@ -10,7 +10,13 @@
     "BETA_DESCRIPTION": "This feature is in beta and may change as we improve it.",
     "ACCEPT": "Accept",
     "DISCARD": "Discard",
-    "PREFERRED": "Preferred"
+    "PREFERRED": "Preferred",
+    "COLOR_PREVIEW": {
+      "TITLE": "Preview",
+      "LIGHT": "Light",
+      "DARK": "Dark",
+      "SAMPLE": "sample"
+    }
   },
   "CHOICE_TOGGLE": {
     "YES": "Yes",
