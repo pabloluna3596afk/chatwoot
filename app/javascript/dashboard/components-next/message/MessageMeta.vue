@@ -139,19 +139,17 @@ const showSourceIndicator = computed(
 </script>
 
 <template>
-  <div class="text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0">
-    <time v-tooltip.top="fullReadableTime" class="whitespace-nowrap">{{
-      readableTime
-    }}</time>
+  <div class="text-xs flex items-center gap-1.5">
+    <div class="inline">
+      <time v-tooltip.top="fullReadableTime" class="inline">{{
+        readableTime
+      }}</time>
+    </div>
     <MessageSourceIndicator
       v-if="showSourceIndicator"
       :content-attributes="contentAttributes"
     />
-    <Icon
-      v-if="isPrivate"
-      icon="i-lucide-lock-keyhole"
-      class="size-3 shrink-0"
-    />
+    <Icon v-if="isPrivate" icon="i-lucide-lock-keyhole" class="size-3" />
     <MessageStatus v-if="showStatusIndicator" :status="statusToShow" />
   </div>
 </template>

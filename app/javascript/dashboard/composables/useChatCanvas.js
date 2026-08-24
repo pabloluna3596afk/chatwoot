@@ -15,7 +15,7 @@ const i18nKeyPrefix = 'PROFILE_SETTINGS.FORM.INTERFACE_SECTION.CHAT_CANVAS';
 export function useChatCanvas() {
   const { uiSettings, updateUISettings } = useUISettings();
   const { t } = useI18n();
-  const { isDarkMode } = useDarkMode();
+  const { isDark } = useDarkMode();
 
   const currentCanvasId = computed(() =>
     resolveChatCanvasId(uiSettings.value?.chat_canvas)
@@ -30,7 +30,7 @@ export function useChatCanvas() {
         description: t(
           `${i18nKeyPrefix}.OPTIONS.${id.toUpperCase()}.DESCRIPTION`
         ),
-        preview: isDarkMode.value ? theme.previewDark : theme.preview,
+        preview: isDark.value ? theme.previewDark : theme.preview,
       };
     })
   );

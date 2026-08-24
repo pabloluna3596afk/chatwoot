@@ -87,19 +87,11 @@ const replyToPreview = computed(() => {
 
 <template>
   <div
-    class="text-sm"
+    class="text-sm min-w-0"
     :class="[
       messageClass,
       {
-        'w-full min-w-0': variant === MESSAGE_VARIANTS.EMAIL,
-        'relative inline-block align-top w-max max-w-[min(85%,42rem)]':
-          shouldShowMeta && variant !== MESSAGE_VARIANTS.EMAIL,
-        'min-w-0 max-w-[min(85%,42rem)]':
-          !shouldShowMeta &&
-          variant !== MESSAGE_VARIANTS.EMAIL &&
-          variant !== MESSAGE_VARIANTS.ACTIVITY,
-        'inline-flex w-fit max-w-[min(90%,42rem)]':
-          variant === MESSAGE_VARIANTS.ACTIVITY,
+        'max-w-lg': variant !== MESSAGE_VARIANTS.EMAIL,
       },
     ]"
   >
@@ -113,29 +105,16 @@ const replyToPreview = computed(() => {
         class="prose prose-bubble line-clamp-2"
       />
     </div>
-    <!-- ponytail: meta beside content (row) — short bubbles stay tight like WA; no fixed pe-* void -->
-    <div
-      v-if="shouldShowMeta && variant !== MESSAGE_VARIANTS.EMAIL"
-      class="flex max-w-full items-end gap-1.5"
-    >
-      <div class="min-w-0">
-        <slot />
-      </div>
-      <MessageMeta
-        class="shrink-0 pb-0.5"
-        :class="[
-          variant === MESSAGE_VARIANTS.PRIVATE
-            ? 'text-n-amber-12/50'
-            : 'text-n-slate-11',
-        ]"
-      />
-    </div>
-    <template v-else>
-      <slot />
-      <MessageMeta
-        v-if="shouldShowMeta"
-        class="px-3 pb-3 mt-1 justify-end text-n-slate-11"
-      />
-    </template>
+    <slot />
+    <MessageMeta
+      v-if="shouldShowMeta"
+      :class="[
+        variant === MESSAGE_VARIANTS.EMAIL ? 'px-3 pb-3' : '',
+        variant === MESSAGE_VARIANTS.PRIVATE
+          ? 'text-n-amber-12/50'
+          : 'text-n-slate-11',
+      ]"
+      class="mt-1 justify-end"
+    />
   </div>
 </template>
