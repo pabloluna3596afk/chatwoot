@@ -525,7 +525,13 @@
       "NEW": "New appointment",
       "EMPTY": "No appointments linked to this conversation",
       "DELETED": "Cancelled event",
-      "NOT_CONNECTED": "Connect Google Calendar in Settings → Integrations → Calendars."
+      "NOT_CONNECTED": "Connect Google Calendar in Settings → Integrations → Calendars.",
+      "STATUS": {
+        "PENDING_CONFIRMATION": "Pending confirmation",
+        "CONFIRMED": "Confirmed",
+        "CANCELLED": "Cancelled",
+        "RESCHEDULED": "Rescheduled"
+      }
     },
     "SHARED_FILES": {
       "EMPTY": "No attachments yet",

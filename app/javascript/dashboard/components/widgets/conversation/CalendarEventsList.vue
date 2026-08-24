@@ -71,7 +71,6 @@ const openCreate = () => {
       conversationId: props.conversationId,
       contactId: props.contactId,
       contactName: props.contactName,
-      sendToContact: true,
     },
   });
 };
@@ -149,6 +148,18 @@ onMounted(async () => {
             "
           >
             {{ event.summary }}
+          </p>
+          <p
+            v-if="
+              event.appointment_status && event.appointment_status !== 'none'
+            "
+            class="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-n-blue-11"
+          >
+            {{
+              $t(
+                `CONVERSATION_SIDEBAR.CALENDAR.STATUS.${String(event.appointment_status).toUpperCase()}`
+              )
+            }}
           </p>
           <p
             class="text-xs"

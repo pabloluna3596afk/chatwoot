@@ -81,7 +81,7 @@ export default {
 
 <template>
   <div
-    class="flex items-center justify-center h-12 gap-4 px-4 py-3 text-xs text-white banner dark:text-white woot-banner"
+    class="flex flex-wrap items-center justify-center min-h-12 h-auto gap-x-4 gap-y-2 px-4 py-2.5 text-xs banner woot-banner shadow-sm"
     :class="bannerClasses"
   >
     <span class="banner-message">
@@ -95,7 +95,7 @@ export default {
         {{ hrefLinkText }}
       </a>
     </span>
-    <div class="actions">
+    <div v-if="hasActionButton || hasCloseButton" class="actions">
       <NextButton
         v-if="hasActionButton"
         xs
@@ -121,18 +121,18 @@ export default {
 <style lang="scss" scoped>
 .banner {
   &.primary {
-    @apply bg-n-brand;
+    @apply bg-n-brand text-white;
   }
 
   &.secondary {
-    @apply bg-n-slate-3 dark:bg-n-solid-3 text-n-slate-12;
+    @apply bg-n-solid-1 dark:bg-n-solid-3 text-n-slate-12 border border-n-weak;
     a {
       @apply text-n-slate-12;
     }
   }
 
   &.alert {
-    @apply bg-n-ruby-3 text-n-ruby-12;
+    @apply bg-n-ruby-3 text-n-ruby-12 border border-n-ruby-6;
 
     a {
       @apply text-n-ruby-12;
@@ -140,7 +140,7 @@ export default {
   }
 
   &.warning {
-    @apply bg-n-amber-5 text-n-amber-12;
+    @apply bg-n-amber-3 text-n-amber-12 border border-n-amber-6;
     a {
       @apply text-n-amber-12;
     }
@@ -151,15 +151,16 @@ export default {
   }
 
   a {
-    @apply ml-1 underline text-n-amber-12 text-xs;
+    @apply ml-1 underline text-xs whitespace-nowrap;
+    color: inherit;
   }
 
   .banner-message {
-    @apply flex items-center;
+    @apply inline text-center leading-snug;
   }
 
   .actions {
-    @apply flex gap-1 right-3;
+    @apply flex gap-1 shrink-0;
   }
 }
 </style>

@@ -15,13 +15,17 @@ const readableTime = computed(() =>
 <template>
   <BaseBubble
     v-tooltip.top="readableTime"
-    class="px-3 py-1 !rounded-xl flex min-w-0 items-center gap-1.5"
+    class="px-3 py-1 !rounded-xl items-center gap-1.5"
     data-bubble-name="activity"
   >
     <MessageSourceIndicator
       :content-attributes="contentAttributes"
       icon-class="size-4 shrink-0 text-n-slate-11"
     />
-    <span v-dompurify-html="content" :title="content" />
+    <span
+      v-dompurify-html="content"
+      class="min-w-0 max-w-full truncate whitespace-nowrap text-start"
+      :title="content"
+    />
   </BaseBubble>
 </template>

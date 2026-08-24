@@ -107,69 +107,71 @@ const toggleContactSidebar = () => {
 <template>
   <div
     ref="conversationHeader"
-    class="flex flex-col gap-3 items-center justify-between shrink-0 w-full min-w-0 xl:flex-row px-3 pt-3 pb-2 h-24 xl:h-14"
+    class="flex flex-row gap-2 items-center justify-between shrink-0 w-full min-w-0 px-3 py-2 h-14"
   >
-    <div
-      class="flex items-center justify-start w-full xl:w-auto max-w-full min-w-0 xl:flex-1"
-    >
+    <div class="flex items-center justify-start max-w-full min-w-0 flex-1">
       <BackButton
         v-if="showBackButton"
         :back-url="backButtonUrl"
         class="me-2"
       />
-      <Avatar
-        :name="currentContact.name"
-        :src="currentContact.thumbnail"
-        :size="32"
-        :status="currentContact.availability_status"
-        rounded-full
-        hide-offline-status
-      />
-      <div class="flex flex-col items-start min-w-0 ms-2 overflow-hidden">
-        <div
-          class="flex flex-row items-center max-w-full gap-1.5 p-0 m-0 min-w-0"
-        >
-          <button
-            type="button"
-            class="text-sm font-medium truncate leading-tight text-n-slate-12 hover:text-n-brand cursor-pointer p-0 text-start"
-            @click="toggleContactSidebar"
-          >
-            {{ currentContact.name }}
-          </button>
-          <fluent-icon
-            v-if="!isHMACVerified"
-            v-tooltip="$t('CONVERSATION.UNVERIFIED_SESSION')"
-            size="14"
-            class="text-n-amber-10 my-0 mx-0 min-w-[14px] flex-shrink-0"
-            icon="warning"
-          />
-        </div>
-
-        <div
-          class="flex items-center gap-1 overflow-hidden text-xs conversation--header--actions text-n-slate-11 text-ellipsis whitespace-nowrap"
-        >
+      <button
+        type="button"
+        class="flex items-center min-w-0 max-w-full p-0 border-0 bg-transparent cursor-pointer rounded-lg text-start hover:bg-n-alpha-2"
+        @click="toggleContactSidebar"
+      >
+        <Avatar
+          :name="currentContact.name"
+          :src="currentContact.thumbnail"
+          :size="32"
+          :status="currentContact.availability_status"
+          rounded-full
+          hide-offline-status
+        />
+        <div class="flex flex-col items-start min-w-0 ms-2 overflow-hidden">
           <div
-            v-if="channelInbox"
-            class="flex items-center gap-1 min-w-0 truncate"
+            class="flex flex-row items-center max-w-full gap-1.5 p-0 m-0 min-w-0"
           >
-            <ChannelIcon
-              :inbox="channelInbox"
-              use-brand-icon
-              class="size-3.5 flex-shrink-0"
+            <span
+              class="text-sm font-medium truncate leading-tight text-n-slate-12"
+            >
+              {{ currentContact.name }}
+            </span>
+            <fluent-icon
+              v-if="!isHMACVerified"
+              v-tooltip="$t('CONVERSATION.UNVERIFIED_SESSION')"
+              size="14"
+              class="text-n-amber-10 my-0 mx-0 min-w-[14px] flex-shrink-0"
+              icon="warning"
             />
-            <span class="truncate text-label-small text-n-slate-11">
-              {{ channelInbox.name }}
+          </div>
+
+          <div
+            class="flex items-center gap-1 overflow-hidden text-xs conversation--header--actions text-n-slate-11 text-ellipsis whitespace-nowrap"
+          >
+            <div
+              v-if="channelInbox"
+              class="flex items-center gap-1 min-w-0 truncate"
+            >
+              <ChannelIcon
+                :inbox="channelInbox"
+                use-brand-icon
+                class="size-3.5 flex-shrink-0"
+              />
+              <span class="truncate text-label-small text-n-slate-11">
+                {{ channelInbox.name }}
+              </span>
+            </div>
+            <span v-if="isSnoozed">•</span>
+            <span v-if="isSnoozed" class="font-medium text-n-amber-10">
+              {{ snoozedDisplayText }}
             </span>
           </div>
-          <span v-if="isSnoozed">•</span>
-          <span v-if="isSnoozed" class="font-medium text-n-amber-10">
-            {{ snoozedDisplayText }}
-          </span>
         </div>
-      </div>
+      </button>
     </div>
     <div
-      class="flex flex-row items-center justify-start xl:justify-end flex-shrink-0 gap-2 w-full xl:w-auto header-actions-wrap"
+      class="flex flex-row items-center justify-end flex-shrink-0 gap-2 w-auto header-actions-wrap"
     >
       <SLACardLabel
         v-if="hasSlaPolicyId"

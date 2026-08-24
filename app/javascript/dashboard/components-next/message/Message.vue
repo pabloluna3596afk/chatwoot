@@ -5,12 +5,10 @@ import { provideMessageContext } from './provider.js';
 import { useTrack } from 'dashboard/composables';
 import { useMapGetter } from 'dashboard/composables/store';
 import { emitter } from 'shared/helpers/mitt';
-import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import { LocalStorage } from 'shared/helpers/localStorage';
 import { ACCOUNT_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
-import { getInboxIconByType } from 'dashboard/helper/inbox';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import {
   MESSAGE_TYPES,
@@ -21,8 +19,6 @@ import {
   MESSAGE_STATUS,
   CONTENT_TYPES,
 } from './constants';
-
-import Avatar from 'next/avatar/Avatar.vue';
 
 import TextBubble from './bubbles/Text/Index.vue';
 import ActivityBubble from './bubbles/Activity.vue';
@@ -46,7 +42,6 @@ import WhatsappReferral from './bubbles/Text/WhatsappReferral.vue';
 
 import MessageError from './MessageError.vue';
 import ContextMenu from 'dashboard/modules/conversations/components/MessageContextMenu.vue';
-import { useBranding } from 'shared/composables/useBranding';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
 /**
@@ -146,15 +141,11 @@ const emit = defineEmits(['retry']);
 const contextMenuPosition = ref({});
 const showBackgroundHighlight = ref(false);
 const showContextMenu = ref(false);
-const { t } = useI18n();
 const route = useRoute();
-const inboxGetter = useMapGetter('inboxes/getInbox');
-const inbox = computed(() => inboxGetter.value(props.inboxId) || {});
 const isOnChatwootCloud = useMapGetter('globalConfig/isOnChatwootCloud');
 const isFeatureEnabledonAccount = useMapGetter(
   'accounts/isFeatureEnabledonAccount'
 );
-const { replaceInstallationName } = useBranding();
 
 const accountId = computed(() => Number(route.params.accountId));
 const hasInternalTasks = computed(() =>
@@ -265,40 +256,21 @@ const flexOrientationClass = computed(() => {
 });
 
 const gridClass = computed(() => {
-  const map = {
-    [ORIENTATION.LEFT]: 'grid grid-cols-1fr',
-    [ORIENTATION.RIGHT]: 'grid grid-cols-[1fr_24px]',
-  };
-
-  return map[orientation.value];
+  // Avatar column removed — WA-style bubbles without sender circles
+  return 'grid grid-cols-1fr';
 });
 
 const gridTemplate = computed(() => {
-  const map = {
-    [ORIENTATION.LEFT]: `
+  return `
       "bubble"
       "meta"
-    `,
-    [ORIENTATION.RIGHT]: `
-      "bubble avatar"
-      "meta spacer"
-    `,
-  };
-
-  return map[orientation.value];
+    `;
 });
 
 const shouldGroupWithNext = computed(() => {
   if (props.status === MESSAGE_STATUS.FAILED) return false;
 
   return props.groupWithNext;
-});
-
-const shouldShowAvatar = computed(() => {
-  if (props.messageType === MESSAGE_TYPES.ACTIVITY) return false;
-  if (orientation.value === ORIENTATION.LEFT) return false;
-
-  return true;
 });
 
 const componentToRender = computed(() => {
@@ -487,55 +459,6 @@ function handleReplyTo() {
   emitter.emit(BUS_EVENTS.TOGGLE_REPLY_TO_MESSAGE, props);
 }
 
-const avatarInfo = computed(() => {
-  if (props.contentAttributes?.externalEcho) {
-    const { name, avatar_url, channel_type, medium, voice_enabled } =
-      inbox.value;
-    const iconName = avatar_url
-      ? null
-      : getInboxIconByType(channel_type, medium, 'fill', voice_enabled);
-    return {
-      name: iconName ? '' : name || t('CONVERSATION.NATIVE_APP'),
-      src: avatar_url || '',
-      iconName,
-    };
-  }
-
-  // If no sender, check for Slack (or other integration) sender info
-  if (!props.sender) {
-    const { senderName, senderAvatarUrl } = props.additionalAttributes || {};
-    if (senderName) {
-      return { name: senderName, src: senderAvatarUrl ?? '' };
-    }
-    return { name: t('CONVERSATION.BOT'), src: '' };
-  }
-
-  const { sender } = props;
-  const { name, type, avatarUrl, thumbnail } = sender || {};
-
-  // If sender type is agent bot, use avatarUrl
-  if ([SENDER_TYPES.AGENT_BOT, SENDER_TYPES.CAPTAIN_ASSISTANT].includes(type)) {
-    return {
-      name: name ?? '',
-      src: avatarUrl ?? '',
-    };
-  }
-
-  // For all other senders, use thumbnail
-  return {
-    name: name ?? '',
-    src: thumbnail ?? '',
-  };
-});
-
-const avatarTooltip = computed(() => {
-  if (props.contentAttributes?.externalEcho) {
-    return replaceInstallationName(t('CONVERSATION.NATIVE_APP_ADVISORY'));
-  }
-  if (avatarInfo.value.name === '') return '';
-  return `${t('CONVERSATION.SENT_BY')} ${avatarInfo.value.name}`;
-});
-
 const setupHighlightTimer = () => {
   if (Number(route.query.messageId) !== Number(props.id)) {
     return;
@@ -575,7 +498,10 @@ provideMessageContext({
       },
     ]"
   >
-    <div v-if="variant === MESSAGE_VARIANTS.ACTIVITY">
+    <div
+      v-if="variant === MESSAGE_VARIANTS.ACTIVITY"
+      class="flex w-full justify-center px-2"
+    >
       <ActivityBubble :content="content" />
     </div>
     <div
@@ -592,13 +518,6 @@ provideMessageContext({
         gridTemplateAreas: gridTemplate,
       }"
     >
-      <div
-        v-if="!shouldGroupWithNext && shouldShowAvatar"
-        v-tooltip.left-end="avatarTooltip"
-        class="[grid-area:avatar] flex items-end"
-      >
-        <Avatar v-bind="avatarInfo" :size="24" />
-      </div>
       <div
         class="[grid-area:bubble] flex min-w-0"
         :class="{

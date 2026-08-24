@@ -1,0 +1,30 @@
+<svg viewBox="0 0 1200 2400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="corazones" width="340" height="340" patternUnits="userSpaceOnUse">
+      <g stroke="#D1D7DB" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <g transform="translate(14,18) rotate(-14) scale(0.82)" opacity="0.26"><path d="M20,10 C20,0 6,0 6,12 C6,20 20,30 20,30 C20,30 34,20 34,12 C34,0 20,0 20,10 Z"/></g>
+        <g transform="translate(130,8) rotate(20) scale(0.58)" opacity="0.21"><path d="M20,0 L25,14 L40,14 L28,23 L33,38 L20,29 L7,38 L12,23 L0,14 L15,14 Z"/></g>
+        <g transform="translate(255,22) rotate(-8) scale(0.88)" opacity="0.25"><circle cx="6" cy="30" r="6"/><line x1="12" y1="30" x2="12" y2="4"/><path d="M12,4 L26,10 L26,16"/></g>
+        <g transform="translate(55,95) rotate(28) scale(0.7)" opacity="0.22"><line x1="12" y1="0" x2="12" y2="24"/><line x1="0" y1="12" x2="24" y2="12"/><line x1="4" y1="4" x2="20" y2="20"/><line x1="20" y1="4" x2="4" y2="20"/></g>
+        <g transform="translate(185,85) rotate(-22) scale(0.55)" opacity="0.19"><path d="M20,10 C20,0 6,0 6,12 C6,20 20,30 20,30 C20,30 34,20 34,12 C34,0 20,0 20,10 Z"/></g>
+        <g transform="translate(295,100) rotate(12) scale(0.48)" opacity="0.20"><path d="M20,0 L25,14 L40,14 L28,23 L33,38 L20,29 L7,38 L12,23 L0,14 L15,14 Z"/></g>
+        <g transform="translate(20,165) rotate(6) scale(0.75)" opacity="0.24"><circle cx="6" cy="30" r="6"/><line x1="12" y1="30" x2="12" y2="4"/><path d="M12,4 L26,10 L26,16"/></g>
+        <g transform="translate(145,160) rotate(-30) scale(0.9)" opacity="0.23"><path d="M20,10 C20,0 6,0 6,12 C6,20 20,30 20,30 C20,30 34,20 34,12 C34,0 20,0 20,10 Z"/></g>
+        <g transform="translate(265,155) rotate(18) scale(0.62)" opacity="0.21"><line x1="12" y1="0" x2="12" y2="24"/><line x1="0" y1="12" x2="24" y2="12"/><line x1="4" y1="4" x2="20" y2="20"/><line x1="20" y1="4" x2="4" y2="20"/></g>
+        <g transform="translate(80,230) rotate(-16) scale(0.5)" opacity="0.18"><path d="M20,0 L25,14 L40,14 L28,23 L33,38 L20,29 L7,38 L12,23 L0,14 L15,14 Z"/></g>
+        <g transform="translate(200,225) rotate(25) scale(0.72)" opacity="0.25"><circle cx="6" cy="30" r="6"/><line x1="12" y1="30" x2="12" y2="4"/><path d="M12,4 L26,10 L26,16"/></g>
+        <g transform="translate(300,235) rotate(-10) scale(0.6)" opacity="0.20"><path d="M20,10 C20,0 6,0 6,12 C6,20 20,30 20,30 C20,30 34,20 34,12 C34,0 20,0 20,10 Z"/></g>
+        <g transform="translate(35,290) rotate(32) scale(0.68)" opacity="0.22"><path d="M20,10 C20,0 6,0 6,12 C6,20 20,30 20,30 C20,30 34,20 34,12 C34,0 20,0 20,10 Z"/></g>
+        <g transform="translate(160,285) rotate(-5) scale(0.55)" opacity="0.19"><line x1="12" y1="0" x2="12" y2="24"/><line x1="0" y1="12" x2="24" y2="12"/><line x1="4" y1="4" x2="20" y2="20"/><line x1="20" y1="4" x2="4" y2="20"/></g>
+        <g transform="translate(270,295) rotate(8) scale(0.52)" opacity="0.19"><path d="M20,0 L25,14 L40,14 L28,23 L33,38 L20,29 L7,38 L12,23 L0,14 L15,14 Z"/></g>
+        <g transform="translate(100,55) rotate(40) scale(0.4)" opacity="0.16"><path d="M20,10 C20,0 6,0 6,12 C6,20 20,30 20,30 C20,30 34,20 34,12 C34,0 20,0 20,10 Z"/></g>
+        <g transform="translate(220,50) rotate(-35) scale(0.42)" opacity="0.17"><circle cx="6" cy="30" r="6"/><line x1="12" y1="30" x2="12" y2="4"/><path d="M12,4 L26,10 L26,16"/></g>
+        <g transform="translate(10,110) rotate(15) scale(0.45)" opacity="0.17"><path d="M20,0 L25,14 L40,14 L28,23 L33,38 L20,29 L7,38 L12,23 L0,14 L15,14 Z"/></g>
+        <g transform="translate(310,175) rotate(-22) scale(0.48)" opacity="0.18"><circle cx="6" cy="30" r="6"/><line x1="12" y1="30" x2="12" y2="4"/><path d="M12,4 L26,10 L26,16"/></g>
+        <g transform="translate(120,300) rotate(18) scale(0.72)" opacity="0.23"><circle cx="6" cy="30" r="6"/><line x1="12" y1="30" x2="12" y2="4"/><path d="M12,4 L26,10 L26,16"/></g>
+      </g>
+    </pattern>
+  </defs>
+  <rect width="1200" height="2400" fill="#0B141A"/>
+  <rect width="1200" height="2400" fill="url(#corazones)"/>
+</svg>

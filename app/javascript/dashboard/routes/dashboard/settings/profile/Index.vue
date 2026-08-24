@@ -12,6 +12,7 @@ import UserProfilePicture from './UserProfilePicture.vue';
 import UserBasicDetails from './UserBasicDetails.vue';
 import MessageSignature from './MessageSignature.vue';
 import FontSize from './FontSize.vue';
+import ChatCanvas from './ChatCanvas.vue';
 import UserLanguageSelect from './UserLanguageSelect.vue';
 import ChangePassword from './ChangePassword.vue';
 import NotificationPreferences from './NotificationPreferences.vue';
@@ -33,6 +34,7 @@ export default {
     MessageSignature,
     SectionLayout,
     FontSize,
+    ChatCanvas,
     UserLanguageSelect,
     UserProfilePicture,
     Policy,
@@ -265,6 +267,21 @@ export default {
           "
           @change="updateFontSize"
         />
+        <div class="flex flex-col gap-2 w-full">
+          <div>
+            <label class="text-n-gray-12 font-medium leading-6 text-sm">
+              {{
+                $t('PROFILE_SETTINGS.FORM.INTERFACE_SECTION.CHAT_CANVAS.TITLE')
+              }}
+            </label>
+            <p class="text-n-gray-11">
+              {{
+                $t('PROFILE_SETTINGS.FORM.INTERFACE_SECTION.CHAT_CANVAS.NOTE')
+              }}
+            </p>
+          </div>
+          <ChatCanvas />
+        </div>
         <UserLanguageSelect
           :label="$t('PROFILE_SETTINGS.FORM.INTERFACE_SECTION.LANGUAGE.TITLE')"
           :description="

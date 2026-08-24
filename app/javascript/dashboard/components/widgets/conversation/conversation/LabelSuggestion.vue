@@ -257,6 +257,7 @@ export default {
 
   .label-suggestion--container {
     max-width: 300px;
+    @apply bg-white dark:bg-n-solid-3 rounded-lg shadow-sm px-3 py-2;
   }
 
   .label-suggestion--options {

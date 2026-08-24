@@ -20,10 +20,14 @@ const showBanner = computed(
 </script>
 
 <template>
-  <Banner
+  <div
     v-if="showBanner"
-    color-scheme="secondary"
-    class="mx-2 mt-2 shrink-0 rounded-lg !py-2"
-    :banner-message="$t('CONVERSATION.PANEL_IA_HANDOFF_BANNER')"
-  />
+    class="relative z-20 shrink-0 border-b border-n-weak bg-n-surface-1"
+  >
+    <Banner
+      color-scheme="secondary"
+      class="!rounded-none !shadow-none !border-x-0 !border-t-0"
+      :banner-message="$t('CONVERSATION.PANEL_IA_HANDOFF_BANNER')"
+    />
+  </div>
 </template>

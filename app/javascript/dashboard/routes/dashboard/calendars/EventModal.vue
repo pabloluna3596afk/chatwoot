@@ -59,7 +59,10 @@ const time = ref('09:00');
 const endTime = ref('09:30');
 const tabIndex = ref(0);
 const includeMeet = ref(false);
-const sendToContact = ref(false);
+const botFollowupMode = ref('none');
+const botFollowupConfirmation = ref(true);
+const botFollowupReminder24h = ref(true);
+const botFollowupReminder30m = ref(true);
 const contactId = ref(null);
 const contactLabel = ref('');
 const contactQuery = ref('');
@@ -187,6 +190,10 @@ const confirmDisabled = computed(
 
 const payload = () => {
   const range = rangeFromStartEnd(date.value, time.value, endTime.value);
+  const reminders = [];
+  if (botFollowupReminder24h.value) reminders.push(1440);
+  if (botFollowupReminder30m.value) reminders.push(30);
+  const mode = botFollowupMode.value;
   return {
     connection_id: connectionId.value,
     calendar_id: calendarId.value,
@@ -197,7 +204,16 @@ const payload = () => {
     contact_id: contactId.value,
     conversation_id: conversationId.value || undefined,
     include_meet: includeMeet.value && !existingMeet.value,
-    send_to_contact: sendToContact.value,
+    send_to_contact: mode === 'notice_only',
+    bot_followup_policy:
+      mode === 'bot_followup'
+        ? {
+            enabled: true,
+            confirmation: botFollowupConfirmation.value,
+            reminders_minutes_before: reminders,
+            source: 'override',
+          }
+        : { enabled: false },
     attendee_email: attendeeEmail.value || undefined,
   };
 };
@@ -236,6 +252,33 @@ const startHeartbeat = () => {
   }, 60000);
 };
 
+const applyBotFollowupDefaults = (event, defaults) => {
+  const policy = event?.bot_followup_policy;
+  if (policy?.enabled) {
+    botFollowupMode.value = 'bot_followup';
+    botFollowupConfirmation.value = policy.confirmation !== false;
+    const reminders = Array.isArray(policy.reminders_minutes_before)
+      ? policy.reminders_minutes_before
+      : [];
+    botFollowupReminder24h.value = reminders.includes(1440);
+    botFollowupReminder30m.value = reminders.includes(30);
+    return;
+  }
+  const hasConversation = Boolean(resolveConversationId(event, defaults));
+  if (!event && hasConversation) {
+    botFollowupMode.value = 'bot_followup';
+    botFollowupConfirmation.value = true;
+    botFollowupReminder24h.value = true;
+    botFollowupReminder30m.value = true;
+    return;
+  }
+  if (defaults.sendToContact) {
+    botFollowupMode.value = 'notice_only';
+    return;
+  }
+  botFollowupMode.value = 'none';
+};
+
 const applyEvent = (event, defaults) => {
   isCreate.value = !event;
   eventId.value = event?.id || null;
@@ -256,7 +299,6 @@ const applyEvent = (event, defaults) => {
     : addMinutesToTime(parts.time, defaults.duration || SLOT_MINUTES);
   includeMeet.value = Boolean(event?.meet_link);
   existingMeet.value = Boolean(event?.meet_link);
-  sendToContact.value = Boolean(defaults.sendToContact);
   contactId.value = event?.contact?.id || defaults.contactId || null;
   contactLabel.value = event?.contact?.name || defaults.contactName || '';
   contactQuery.value = contactLabel.value;
@@ -264,6 +306,7 @@ const applyEvent = (event, defaults) => {
   conversationLocked.value = Boolean(defaults.conversationId);
   hideConversation.value =
     Boolean(defaults.hideConversation) && !defaults.conversationId;
+  applyBotFollowupDefaults(event, defaults);
   contactEmail.value = event?.contact?.email || defaults.contactEmail || '';
   inviteEmail.value = contactEmail.value;
   saveEmailOnContact.value = !contactEmail.value;
@@ -662,13 +705,64 @@ defineExpose({ open, close });
           />
           {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.MEET') }}
         </label>
-        <label
+        <fieldset
           v-if="conversationId"
-          class="flex items-center gap-2 text-sm text-n-slate-12"
+          class="flex flex-col gap-2 m-0 p-0 border-0"
         >
-          <Checkbox v-model="sendToContact" :disabled="readOnly" />
-          {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.SEND_TO_CONTACT') }}
-        </label>
+          <legend class="mb-0.5 text-sm font-medium text-n-slate-12">
+            {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_TITLE') }}
+          </legend>
+          <label class="flex items-center gap-2 text-sm text-n-slate-12">
+            <input
+              v-model="botFollowupMode"
+              type="radio"
+              value="none"
+              class="accent-n-brand"
+              :disabled="readOnly"
+            />
+            {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_NONE') }}
+          </label>
+          <label class="flex items-center gap-2 text-sm text-n-slate-12">
+            <input
+              v-model="botFollowupMode"
+              type="radio"
+              value="notice_only"
+              class="accent-n-brand"
+              :disabled="readOnly"
+            />
+            {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_NOTICE') }}
+          </label>
+          <label class="flex items-center gap-2 text-sm text-n-slate-12">
+            <input
+              v-model="botFollowupMode"
+              type="radio"
+              value="bot_followup"
+              class="accent-n-brand"
+              :disabled="readOnly"
+            />
+            {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_BOT') }}
+          </label>
+          <div
+            v-if="botFollowupMode === 'bot_followup'"
+            class="ml-6 flex flex-col gap-2"
+          >
+            <label class="flex items-center gap-2 text-sm text-n-slate-12">
+              <Checkbox
+                v-model="botFollowupConfirmation"
+                :disabled="readOnly"
+              />
+              {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_CONFIRMATION') }}
+            </label>
+            <label class="flex items-center gap-2 text-sm text-n-slate-12">
+              <Checkbox v-model="botFollowupReminder24h" :disabled="readOnly" />
+              {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_REMINDER_24H') }}
+            </label>
+            <label class="flex items-center gap-2 text-sm text-n-slate-12">
+              <Checkbox v-model="botFollowupReminder30m" :disabled="readOnly" />
+              {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_REMINDER_30M') }}
+            </label>
+          </div>
+        </fieldset>
       </template>
       <div v-else class="min-h-64 pt-1">
         <p v-if="createdBy || updatedBy" class="mb-4 text-sm text-n-slate-11">
