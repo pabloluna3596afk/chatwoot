@@ -92,6 +92,8 @@ class Integrations::GoogleCalendar::EventService
       deleted_by: record.deleted_by && { id: record.deleted_by.id, name: record.deleted_by.name },
       contact: record.contact && { id: record.contact.id, name: record.contact.name, email: record.contact.email },
       conversation: record.conversation && { id: record.conversation.display_id },
+      bot_followup_policy: record.bot_followup_policy.presence || {},
+      appointment_status: record.appointment_status.presence || 'none',
       activities: serialize_activities(record)
     }
   end
@@ -144,10 +146,10 @@ class Integrations::GoogleCalendar::EventService
       )
       record = upsert_local!(
         google_event, calendar_id, contact, conversation,
-        creating: true, idempotency_key: params[:idempotency_key]
+        creating: true, idempotency_key: params[:idempotency_key], params: params
       )
       notify_conversation!(conversation, :event_created, record)
-      send_to_contact!(conversation, record, google_event) if send_to_contact?(params, conversation)
+      notify_contact_or_bot!(params, conversation, record, google_event, 'created')
       serialize(google_event, record, calendar_id)
     end
   end
@@ -176,9 +178,9 @@ class Integrations::GoogleCalendar::EventService
         include_meet: ActiveModel::Type::Boolean.new.cast(params[:include_meet]),
         attendee_email: params[:attendee_email].presence || contact&.email
       )
-      record = upsert_local!(google_event, calendar_id, contact, conversation, creating: false)
+      record = upsert_local!(google_event, calendar_id, contact, conversation, creating: false, params: params)
       notify_conversation!(conversation, :event_updated, record)
-      send_to_contact!(conversation, record, google_event) if send_to_contact?(params, conversation)
+      notify_contact_or_bot!(params, conversation, record, google_event, 'updated')
       serialize(google_event, record, calendar_id)
     end
   end
@@ -337,7 +339,7 @@ class Integrations::GoogleCalendar::EventService
     parts.join(' · ')
   end
 
-  def upsert_local!(google_event, calendar_id, contact, conversation, creating:, idempotency_key: nil)
+  def upsert_local!(google_event, calendar_id, contact, conversation, creating:, idempotency_key: nil, params: {})
     record = connection.calendar_events.find_or_initialize_by(google_event_id: google_event['id'])
     was_new = record.new_record?
     before = snapshot(record) unless was_new
@@ -352,6 +354,7 @@ class Integrations::GoogleCalendar::EventService
       contact: contact,
       conversation: conversation
     }
+    attrs.merge!(followup_attrs_from(params, creating: creating || was_new, record: record))
     attrs[:updated_by] = actor_user if actor_user
     attrs[:idempotency_key] = idempotency_key if idempotency_key.present? && record.idempotency_key.blank?
     record.assign_attributes(attrs)
@@ -364,6 +367,37 @@ class Integrations::GoogleCalendar::EventService
       record_activity!(record, 'updated', details) if details.any?
     end
     record
+  end
+
+  def followup_attrs_from(params, creating:, record:)
+    attrs = {}
+    if params.key?(:bot_followup_policy) || params.key?('bot_followup_policy')
+      attrs[:bot_followup_policy] = normalize_bot_followup_policy(params[:bot_followup_policy])
+    end
+    if params[:appointment_status].present?
+      attrs[:appointment_status] = params[:appointment_status].to_s
+    elsif creating && attrs[:bot_followup_policy].is_a?(Hash) &&
+          ActiveModel::Type::Boolean.new.cast(attrs[:bot_followup_policy]['enabled']) &&
+          ActiveModel::Type::Boolean.new.cast(attrs[:bot_followup_policy].fetch('confirmation', true)) &&
+          (record.appointment_status.blank? || record.appointment_status == 'none')
+      attrs[:appointment_status] = 'pending_confirmation'
+    end
+    attrs
+  end
+
+  def normalize_bot_followup_policy(raw)
+    hash = case raw
+           when ActionController::Parameters then raw.to_unsafe_h
+           when Hash then raw
+           else {}
+           end
+    hash = hash.with_indifferent_access
+    {
+      'enabled' => ActiveModel::Type::Boolean.new.cast(hash[:enabled]),
+      'confirmation' => ActiveModel::Type::Boolean.new.cast(hash.fetch(:confirmation, true)),
+      'reminders_minutes_before' => Array(hash[:reminders_minutes_before]).map(&:to_i),
+      'source' => hash[:source].presence || 'override'
+    }
   end
 
   def find_by_idempotency_key(key)
@@ -491,6 +525,8 @@ class Integrations::GoogleCalendar::EventService
       deleted_by: user_payload(record&.deleted_by),
       contact: contact_payload(record&.contact),
       conversation: conversation_payload(record&.conversation),
+      bot_followup_policy: record&.bot_followup_policy.presence || {},
+      appointment_status: record&.appointment_status.presence || 'none',
       activities: self.class.serialize_activities(record)
     }
   end
@@ -526,6 +562,14 @@ class Integrations::GoogleCalendar::EventService
       user: user,
       event_data: { summary: record&.summary }
     ).perform
+  end
+
+  def notify_contact_or_bot!(params, conversation, record, google_event, event_name)
+    if record.bot_followup_enabled?
+      Calendar::NotifyPanelAiFollowupJob.perform_later(record.id, event_name)
+    elsif send_to_contact?(params, conversation)
+      send_to_contact!(conversation, record, google_event)
+    end
   end
 
   def send_to_contact?(params, conversation)

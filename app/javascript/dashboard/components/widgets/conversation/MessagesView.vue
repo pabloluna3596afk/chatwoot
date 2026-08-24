@@ -181,6 +181,12 @@ export default {
     isInstagramRestrictionBannerVisible() {
       return this.isMetaMessageSendingDisabled && this.isAnInstagramChannel;
     },
+    showReplyWindowBanner() {
+      return !this.currentChat.can_reply;
+    },
+    showDuplicateInstagramBanner() {
+      return this.hasDuplicateInstagramInbox;
+    },
     instagramRestrictionStatusUrl() {
       return META_RESTRICTION_STATUS_URL;
     },
@@ -466,33 +472,36 @@ export default {
     ref="messagesViewRef"
     class="flex flex-col justify-between flex-grow h-full min-w-0 m-0"
   >
-    <div ref="topBannerRef">
+    <div
+      ref="topBannerRef"
+      class="relative z-20 shrink-0 border-b border-n-weak bg-n-surface-1 empty:hidden"
+    >
       <Banner
         v-if="isInstagramRestrictionBannerVisible"
         color-scheme="warning"
-        class="mx-2 mt-2 min-h-12 !h-auto rounded-lg"
+        class="!rounded-none !shadow-none !border-x-0 !border-t-0"
         :banner-message="$t('CONVERSATION.INSTAGRAM_RESTRICTION_BANNER')"
         :href-link="instagramRestrictionStatusUrl"
         :href-link-text="$t('CONVERSATION.INSTAGRAM_RESTRICTION_STATUS_LINK')"
       />
       <Banner
-        v-if="!currentChat.can_reply"
+        v-if="showReplyWindowBanner"
         color-scheme="alert"
-        class="mx-2 mt-2 overflow-hidden rounded-lg"
+        class="!rounded-none !shadow-none !border-x-0 !border-t-0"
         :banner-message="replyWindowBannerMessage"
         :href-link="replyWindowLink"
         :href-link-text="replyWindowLinkText"
       />
       <Banner
-        v-if="hasDuplicateInstagramInbox"
+        v-if="showDuplicateInstagramBanner"
         color-scheme="alert"
-        class="mx-2 mt-2 overflow-hidden rounded-lg"
+        class="!rounded-none !shadow-none !border-x-0 !border-t-0"
         :banner-message="$t('CONVERSATION.OLD_INSTAGRAM_INBOX_REPLY_BANNER')"
       />
     </div>
     <MessageList
       ref="conversationPanelRef"
-      class="conversation-panel flex-shrink flex-grow basis-px flex flex-col overflow-y-auto relative h-full m-0 pb-4"
+      class="conversation-panel relative z-0 flex min-h-0 flex-shrink flex-grow basis-px flex-col overflow-y-auto m-0 pb-4"
       :current-user-id="currentUserId"
       :first-unread-id="unReadMessages[0]?.id"
       :is-an-email-channel="isAnEmailChannel"
@@ -532,7 +541,7 @@ export default {
         />
       </template>
     </MessageList>
-    <div class="flex relative flex-col bg-n-surface-1">
+    <div class="flex relative shrink-0 flex-col bg-n-surface-1 z-10">
       <div
         v-if="isAnyoneTyping"
         class="absolute flex items-center w-full h-0 -top-7"

@@ -44,8 +44,6 @@ watch(
   () => fetchAssignableAgents()
 );
 
-const canSelfAssign = computed(() => showSelfAssign.value);
-
 const displayName = computed(
   () => assignedAgent.value?.name || t('AGENT_MGMT.MULTI_SELECTOR.PLACEHOLDER')
 );
@@ -61,6 +59,11 @@ const onSelectAgent = agent => {
   onClickAssignAgent(agent);
   closeMenu();
 };
+
+const onClickSelfAssign = () => {
+  onSelfAssign();
+  closeMenu();
+};
 </script>
 
 <template>
@@ -70,18 +73,8 @@ const onSelectAgent = agent => {
       class="relative flex items-center h-8 min-w-0 max-w-[10rem] rounded-lg outline outline-1 outline-n-weak bg-n-background shrink-0"
     >
       <button
-        v-if="showSelfAssignButton && canSelfAssign"
         type="button"
-        class="flex-1 min-w-0 h-full px-2.5 text-left text-sm font-medium text-n-blue-11 truncate rounded-none border-0 bg-transparent hover:bg-n-alpha-2 disabled:opacity-50"
-        :disabled="isAssigning"
-        @click.stop="onSelfAssign"
-      >
-        {{ t('CONVERSATION_SIDEBAR.SELF_ASSIGN') }}
-      </button>
-      <button
-        v-else
-        type="button"
-        class="flex flex-1 min-w-0 items-center gap-1.5 h-full px-2 text-left border-0 bg-transparent hover:bg-n-alpha-2 rounded-none"
+        class="flex flex-1 min-w-0 items-center gap-1.5 h-full px-2.5 text-left border-0 bg-transparent hover:bg-n-alpha-2 rounded-lg"
         :disabled="isAssigning"
         @click="onTriggerClick"
       >
@@ -102,16 +95,6 @@ const onSelectAgent = agent => {
           {{ displayName }}
         </span>
       </button>
-      <div class="w-px h-4 bg-n-weak shrink-0" />
-      <NextButton
-        color="slate"
-        variant="ghost"
-        size="sm"
-        :disabled="isAssigning"
-        :icon="showMenu ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
-        class="!w-8 !h-8 !min-w-8 !rounded-none !outline-transparent"
-        @click.stop="onTriggerClick"
-      />
       <div
         v-if="showMenu"
         class="box-border border rounded-lg bg-n-alpha-3 backdrop-blur-[100px] absolute shadow-lg border-n-strong dark:border-n-strong p-2 z-[9999] top-9 ltr:right-0 rtl:left-0 min-w-[16rem] w-max"
@@ -130,6 +113,16 @@ const onSelectAgent = agent => {
             @click="closeMenu"
           />
         </div>
+        <button
+          v-if="showSelfAssignButton && showSelfAssign"
+          type="button"
+          class="flex w-full items-center gap-2 mb-1 px-2 py-1.5 rounded-md text-sm font-medium text-n-blue-11 hover:bg-n-alpha-2 border-0 bg-transparent cursor-pointer text-start disabled:opacity-50"
+          :disabled="isAssigning"
+          @click="onClickSelfAssign"
+        >
+          <span class="i-lucide-user-round-plus size-4 shrink-0" />
+          {{ t('CONVERSATION_SIDEBAR.SELF_ASSIGN') }}
+        </button>
         <MultiselectDropdownItems
           :options="agentsList"
           :selected-items="assignedAgent ? [assignedAgent] : []"

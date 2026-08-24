@@ -52,6 +52,34 @@
             "EXTRA_LARGE": "Extra Large"
           }
         },
+        "CHAT_CANVAS": {
+          "TITLE": "Chat background",
+          "NOTE": "Choose a subtle background pattern for the conversation panel. This applies to all inboxes.",
+          "UPDATE_SUCCESS": "Your chat background has been updated successfully",
+          "UPDATE_ERROR": "There is an error while updating the chat background, please try again",
+          "OPTIONS": {
+            "COMUNICACION": {
+              "LABEL": "Communication",
+              "DESCRIPTION": "Chat bubbles, phone, paper plane."
+            },
+            "CORAZONES": {
+              "LABEL": "Hearts",
+              "DESCRIPTION": "Hearts, stars, and music notes."
+            },
+            "ESTUDIO": {
+              "LABEL": "Study",
+              "DESCRIPTION": "Books, pencil, lamp, checklist."
+            },
+            "DOODLES": {
+              "LABEL": "Doodles",
+              "DESCRIPTION": "Cloud, moon, bolt, coffee."
+            },
+            "PLAIN": {
+              "LABEL": "Plain",
+              "DESCRIPTION": "Solid color, no pattern."
+            }
+          }
+        },
         "LANGUAGE": {
           "TITLE": "Preferred Language",
           "NOTE": "Choose the language you want to use.",
@@ -363,6 +391,13 @@
         "CONVERSATION_PLACEHOLDER": "Search by number or name",
         "MEET": "Add Google Meet",
         "SEND_TO_CONTACT": "Send this appointment to the customer",
+        "FOLLOWUP_TITLE": "Customer notification",
+        "FOLLOWUP_NONE": "Do not send",
+        "FOLLOWUP_NOTICE": "Notice only (agent message)",
+        "FOLLOWUP_BOT": "AI bot follow-up",
+        "FOLLOWUP_CONFIRMATION": "Ask for confirmation",
+        "FOLLOWUP_REMINDER_24H": "Reminder 24 hours before",
+        "FOLLOWUP_REMINDER_30M": "Reminder 30 minutes before",
         "SAVE": "Save",
         "DELETE": "Cancel appointment",
         "DELETE_CONFIRM": "Yes, cancel",
