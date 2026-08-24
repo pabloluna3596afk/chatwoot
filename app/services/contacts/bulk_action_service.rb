@@ -40,7 +40,11 @@ class Contacts::BulkActionService
   end
 
   def ids
-    Array(@params[:ids]).compact
+    Contacts::BulkSelectionResolver.new(
+      account: @account,
+      user: @user,
+      params: @params
+    ).contact_ids
   end
 
   def labels_to_add

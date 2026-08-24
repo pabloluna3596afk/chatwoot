@@ -255,7 +255,14 @@
         }
       },
       "EDIT": {
-        "TITLE": "Editar campaña de WhatsApp"
+        "TITLE": "Editar campaña de WhatsApp",
+        "FORM": {
+          "SAVE_COLOR": "Guardar color",
+          "API": {
+            "SUCCESS_MESSAGE": "Campaña actualizada correctamente",
+            "ERROR_MESSAGE": "No se pudo actualizar la campaña. Inténtalo de nuevo."
+          }
+        }
       },
       "LIST": {
         "COLUMNS": {

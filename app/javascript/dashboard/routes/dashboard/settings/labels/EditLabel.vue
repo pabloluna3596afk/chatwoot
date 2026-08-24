@@ -5,10 +5,12 @@ import validations, { getLabelTitleErrorMessage } from './validations';
 import { useVuelidate } from '@vuelidate/core';
 
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import ColorTintPreview from 'dashboard/components-next/colorpicker/ColorTintPreview.vue';
 
 export default {
   components: {
     NextButton,
+    ColorTintPreview,
   },
   props: {
     selectedResponse: {
@@ -101,11 +103,12 @@ export default {
         @blur="v$.description.$touch"
       />
 
-      <div class="w-full">
-        <label>
+      <div class="flex flex-col w-full gap-2">
+        <label class="text-sm font-medium text-n-slate-12">
           {{ $t('LABEL_MGMT.FORM.COLOR.LABEL') }}
-          <woot-color-picker v-model="color" />
         </label>
+        <woot-color-picker v-model="color" />
+        <ColorTintPreview :color="color" :label="title" />
       </div>
       <div class="flex items-center w-full gap-2">
         <input v-model="showOnSidebar" type="checkbox" :value="true" />

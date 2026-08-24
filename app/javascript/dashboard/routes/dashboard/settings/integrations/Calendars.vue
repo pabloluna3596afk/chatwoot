@@ -5,9 +5,9 @@ import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { useFunctionGetter, useStore } from 'dashboard/composables/store';
 
-import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
-import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
+import Label from 'dashboard/components-next/label/Label.vue';
+import Switch from 'dashboard/components-next/switch/Switch.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import SelectInput from 'dashboard/components-next/select/Select.vue';
@@ -15,6 +15,9 @@ import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
+import googleCalendarLogo from 'dashboard/assets/images/integrations/google-calendar.svg';
+import googleLogo from 'dashboard/assets/images/integrations/google.svg';
+import microsoftLogo from 'dashboard/assets/images/integrations/microsoft.svg';
 import {
   calendarDisplayName,
   connectionDisplayName,
@@ -39,6 +42,7 @@ const setupId = computed(() => Number(route.query.setup) || null);
 const calendarMap = ref({});
 const loadingCalendars = ref({});
 const savingCalendars = ref({});
+const calendarFilters = ref({});
 
 const googleConnections = computed(() =>
   connections.value.filter(item => item.provider === 'google')
@@ -81,13 +85,24 @@ const hourOptions = Array.from({ length: 24 }, (_, hour) => ({
   label: `${String(hour).padStart(2, '0')}:00`,
 }));
 
-const calendarFilter = ref('');
-
 const enabledCount = connectionId =>
   (calendarMap.value[connectionId] || []).filter(item => item.enabled).length;
 
+const filterQuery = connectionId =>
+  (calendarFilters.value[connectionId] || '').trim().toLowerCase();
+
+const getCalendarFilter = connectionId =>
+  calendarFilters.value[connectionId] || '';
+
+const setCalendarFilter = (connectionId, value) => {
+  calendarFilters.value = {
+    ...calendarFilters.value,
+    [connectionId]: value,
+  };
+};
+
 const filteredCalendars = connectionId => {
-  const query = calendarFilter.value.trim().toLowerCase();
+  const query = filterQuery(connectionId);
   const list = [...(calendarMap.value[connectionId] || [])].sort((a, b) => {
     if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
     if (a.primary !== b.primary) return a.primary ? -1 : 1;
@@ -218,30 +233,33 @@ onMounted(async () => {
       <div class="flex flex-col gap-4 max-w-3xl">
         <div
           v-if="!configured"
-          class="rounded-xl border border-n-amber-6 bg-n-amber-3/40 px-4 py-3 text-sm text-n-slate-12"
+          class="flex items-start gap-2 rounded-xl border border-n-amber-6 bg-n-amber-3/40 px-4 py-3 text-sm text-n-slate-12"
         >
-          {{ $t('INTEGRATION_SETTINGS.CALENDARS.NOT_CONFIGURED') }}
+          <span
+            class="i-lucide-triangle-alert size-4 shrink-0 text-n-amber-11 mt-0.5"
+          />
+          <span>{{ $t('INTEGRATION_SETTINGS.CALENDARS.NOT_CONFIGURED') }}</span>
         </div>
 
         <div
-          class="flex items-start gap-4 p-5 outline outline-n-container outline-1 bg-n-card rounded-xl"
+          class="flex flex-col gap-6 p-6 outline outline-n-container outline-1 bg-n-card rounded-xl lg:flex-row lg:items-center"
         >
-          <img
-            src="dashboard/assets/images/integrations/google-calendar.svg"
-            alt="Google Calendar"
-            class="h-12 w-12 rounded-md border border-n-weak bg-n-alpha-3"
-          />
+          <div
+            class="flex h-16 w-16 shrink-0 items-center justify-center rounded-md border border-n-weak bg-n-alpha-3"
+          >
+            <img :src="googleCalendarLogo" alt="" class="max-h-10 max-w-10" />
+          </div>
           <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2">
-              <h3 class="text-heading-3 text-n-slate-12">
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="text-heading-1 text-n-slate-12">
                 {{ $t('INTEGRATION_SETTINGS.CALENDARS.GOOGLE') }}
               </h3>
-              <span
+              <Label
                 v-if="googleConnections.length"
-                class="text-xs px-2 py-0.5 rounded-full bg-n-teal-3 text-n-teal-11"
-              >
-                {{ $t('INTEGRATION_APPS.STATUS.ENABLED') }}
-              </span>
+                :label="$t('INTEGRATION_APPS.STATUS.ENABLED')"
+                color="teal"
+                compact
+              />
             </div>
             <p class="mt-1 text-sm text-n-slate-11">
               {{ integration.description }}
@@ -250,6 +268,7 @@ onMounted(async () => {
           <Button
             faded
             blue
+            class="shrink-0"
             :label="$t('INTEGRATION_SETTINGS.CALENDARS.CONNECT_GOOGLE')"
             :disabled="!configured || connecting"
             :is-loading="connecting"
@@ -259,34 +278,32 @@ onMounted(async () => {
 
         <div
           v-if="googleConnections.length"
-          class="p-5 outline outline-n-container outline-1 bg-n-card rounded-xl"
+          class="p-6 outline outline-n-container outline-1 bg-n-card rounded-xl"
         >
-          <h4 class="mb-3 text-sm font-medium text-n-slate-12">
+          <h4 class="mb-1 text-sm font-medium text-n-slate-12">
             {{ $t('INTEGRATION_SETTINGS.CALENDARS.CONNECTED_ACCOUNTS') }}
           </h4>
-          <p class="mb-3 text-sm text-n-slate-11">
+          <p class="mb-4 text-sm text-n-slate-11">
             {{ $t('INTEGRATION_SETTINGS.CALENDARS.ENABLE_HINT') }}
           </p>
           <div
             v-if="setupId"
-            class="mb-3 rounded-lg border border-n-amber-6 bg-n-amber-3/40 px-3 py-2 text-sm text-n-amber-11"
+            class="mb-4 flex items-start gap-2 rounded-lg border border-n-amber-6 bg-n-amber-3/40 px-3 py-2 text-sm text-n-amber-11"
           >
-            {{ $t('INTEGRATION_SETTINGS.CALENDARS.TEAM_SHARE_WARNING') }}
+            <span class="i-lucide-triangle-alert size-4 shrink-0 mt-0.5" />
+            <span>{{
+              $t('INTEGRATION_SETTINGS.CALENDARS.TEAM_SHARE_WARNING')
+            }}</span>
           </div>
-          <div class="flex flex-col divide-y divide-n-weak">
+          <div class="flex flex-col gap-6">
             <div
-              v-for="connection in googleConnections"
+              v-for="(connection, connectionIndex) in googleConnections"
               :key="connection.id"
-              class="py-4 first:pt-0 last:pb-0"
+              :class="connectionIndex ? 'pt-6 border-t border-n-weak' : ''"
             >
               <div class="flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3 min-w-0">
-                  <Avatar
-                    :name="connectionDisplayName(connection, t)"
-                    :size="36"
-                    rounded-full
-                    class="shrink-0"
-                  />
+                  <img :src="googleLogo" alt="" class="size-8 shrink-0" />
                   <div class="min-w-0" :title="connection.email">
                     <p class="text-sm font-medium text-n-slate-12 truncate">
                       {{ connectionDisplayName(connection, t) }}
@@ -314,7 +331,7 @@ onMounted(async () => {
               <div class="mt-3">
                 <div
                   v-if="loadingCalendars[connection.id]"
-                  class="flex justify-center py-4"
+                  class="flex justify-center py-6"
                 >
                   <Spinner />
                 </div>
@@ -330,70 +347,50 @@ onMounted(async () => {
                       {{ $t('INTEGRATION_SETTINGS.CALENDARS.TEAM_ONLY_HINT') }}
                     </p>
                     <Input
-                      v-model="calendarFilter"
+                      :model-value="getCalendarFilter(connection.id)"
                       size="sm"
                       :placeholder="
                         $t('INTEGRATION_SETTINGS.CALENDARS.SEARCH_CALENDARS')
                       "
+                      @update:model-value="
+                        setCalendarFilter(connection.id, $event)
+                      "
                     />
-                    <div class="flex flex-col gap-2 max-h-80 overflow-auto">
+                    <div
+                      class="flex flex-col divide-y divide-n-weak max-h-80 overflow-auto"
+                    >
                       <div
                         v-for="calendar in filteredCalendars(connection.id)"
                         :key="calendar.id"
-                        class="flex flex-col gap-2 rounded-lg border px-3 py-2"
-                        :class="
-                          calendar.enabled
-                            ? 'border-n-teal-6 bg-n-teal-3/40'
-                            : 'border-n-weak bg-n-alpha-1'
-                        "
+                        class="flex flex-wrap lg:flex-nowrap items-center gap-x-3 gap-y-2 py-2.5 first:pt-0 last:pb-0"
                       >
-                        <div class="flex items-center gap-3">
-                          <Checkbox
-                            :model-value="calendar.enabled"
-                            :disabled="savingCalendars[connection.id]"
-                            @update:model-value="
-                              toggleCalendar(connection.id, calendar.id, $event)
-                            "
-                          />
-                          <div class="min-w-0 flex-1">
-                            <p class="text-sm text-n-slate-12 truncate">
-                              {{ calendarDisplayName(calendar, t) }}
-                            </p>
-                            <p class="text-xs text-n-slate-11">
-                              <span v-if="calendar.enabled">
-                                {{
-                                  $t(
-                                    'INTEGRATION_SETTINGS.CALENDARS.VISIBLE_TO_TEAM'
-                                  )
-                                }}
-                              </span>
-                              <span v-else>
-                                {{
-                                  $t(
-                                    'INTEGRATION_SETTINGS.CALENDARS.HIDDEN_FROM_TEAM'
-                                  )
-                                }}
-                              </span>
-                              <span v-if="calendar.primary">
-                                <!-- eslint-disable-next-line vue/no-bare-strings-in-template -->
-                                ·
-                                {{
-                                  $t('INTEGRATION_SETTINGS.CALENDARS.PRIMARY')
-                                }}
-                              </span>
-                            </p>
-                          </div>
-                        </div>
-                        <div
-                          v-if="calendar.enabled"
-                          class="flex items-center gap-2 pl-8"
+                        <Switch
+                          :model-value="calendar.enabled"
+                          :disabled="savingCalendars[connection.id]"
+                          @update:model-value="
+                            toggleCalendar(connection.id, calendar.id, $event)
+                          "
+                        />
+                        <p
+                          class="min-w-0 flex-1 text-sm text-n-slate-12 truncate"
+                          :class="calendar.enabled ? '' : 'text-n-slate-11'"
                         >
+                          {{ calendarDisplayName(calendar, t) }}
+                        </p>
+                        <Label
+                          v-if="calendar.primary"
+                          :label="$t('INTEGRATION_SETTINGS.CALENDARS.PRIMARY')"
+                          color="blue"
+                          compact
+                        />
+                        <template v-if="calendar.enabled">
                           <span class="text-xs text-n-slate-11 shrink-0">
                             {{ $t('INTEGRATION_SETTINGS.CALENDARS.HOURS') }}
                           </span>
                           <SelectInput
                             :model-value="String(calendar.hour_start ?? 8)"
                             :options="hourOptions"
+                            class="w-[5.5rem]"
                             :disabled="savingCalendars[connection.id]"
                             @update:model-value="
                               updateHours(
@@ -409,6 +406,7 @@ onMounted(async () => {
                           <SelectInput
                             :model-value="String(calendar.hour_end ?? 20)"
                             :options="hourOptions"
+                            class="w-[5.5rem]"
                             :disabled="savingCalendars[connection.id]"
                             @update:model-value="
                               updateHours(
@@ -419,7 +417,7 @@ onMounted(async () => {
                               )
                             "
                           />
-                        </div>
+                        </template>
                       </div>
                     </div>
                   </div>
@@ -433,23 +431,23 @@ onMounted(async () => {
         </p>
 
         <div
-          class="flex items-start gap-4 p-5 outline outline-n-container outline-1 bg-n-card rounded-xl opacity-70"
+          class="flex flex-col gap-6 p-6 outline outline-n-container outline-1 bg-n-card rounded-xl lg:flex-row lg:items-center opacity-80"
         >
-          <img
-            src="dashboard/assets/images/integrations/microsoft.svg"
-            alt="Microsoft"
-            class="h-12 w-12 rounded-md border border-n-weak bg-n-alpha-3"
-          />
+          <div
+            class="flex h-16 w-16 shrink-0 items-center justify-center rounded-md border border-n-weak bg-n-alpha-3"
+          >
+            <img :src="microsoftLogo" alt="" class="max-h-10 max-w-10" />
+          </div>
           <div class="flex-1">
-            <div class="flex items-center gap-2">
-              <h3 class="text-heading-3 text-n-slate-12">
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="text-heading-1 text-n-slate-12">
                 {{ $t('INTEGRATION_SETTINGS.CALENDARS.MICROSOFT') }}
               </h3>
-              <span
-                class="text-xs px-2 py-0.5 rounded-full bg-n-slate-3 text-n-slate-11"
-              >
-                {{ $t('INTEGRATION_SETTINGS.CALENDARS.COMING_SOON') }}
-              </span>
+              <Label
+                :label="$t('INTEGRATION_SETTINGS.CALENDARS.COMING_SOON')"
+                color="slate"
+                compact
+              />
             </div>
           </div>
         </div>

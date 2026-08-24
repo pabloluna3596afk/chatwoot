@@ -77,9 +77,14 @@ const hasMore = computed(() => meta.value?.hasMore ?? false);
 const isSearchView = computed(() => !!searchQuery.value);
 
 const selectedContactIds = ref([]);
+const selectAllMatching = ref(false);
 const isBulkActionLoading = ref(false);
 const bulkDeleteDialogRef = ref(null);
-const selectedCount = computed(() => selectedContactIds.value.length);
+const selectedCount = computed(() =>
+  selectAllMatching.value
+    ? Number(totalItems.value || 0)
+    : selectedContactIds.value.length
+);
 const bulkDeleteDialogTitle = computed(() =>
   selectedCount.value > 1
     ? t('CONTACTS_BULK_ACTIONS.DELETE_DIALOG.TITLE')
@@ -151,10 +156,17 @@ const visibleContactIds = computed(() =>
 
 const clearSelection = () => {
   selectedContactIds.value = [];
+  selectAllMatching.value = false;
 };
 
 const openBulkDeleteDialog = () => {
-  if (!selectedContactIds.value.length || isBulkActionLoading.value) return;
+  if (
+    !selectedContactIds.value.length ||
+    isBulkActionLoading.value ||
+    selectAllMatching.value
+  ) {
+    return;
+  }
   bulkDeleteDialogRef.value?.open?.();
 };
 
@@ -166,6 +178,7 @@ const normalizeContactId = id => {
 };
 
 const toggleSelectAll = shouldSelect => {
+  selectAllMatching.value = false;
   const currentSelection = new Set(
     selectedContactIds.value.map(id => normalizeContactId(id))
   );
@@ -177,7 +190,15 @@ const toggleSelectAll = shouldSelect => {
   selectedContactIds.value = Array.from(currentSelection);
 };
 
+const selectAllMatchingContacts = () => {
+  selectAllMatching.value = true;
+  selectedContactIds.value = visibleContactIds.value.map(id =>
+    normalizeContactId(id)
+  );
+};
+
 const toggleContactSelection = ({ id, value }) => {
+  selectAllMatching.value = false;
   const contactId = normalizeContactId(id);
   if (Number.isNaN(contactId)) return;
 
@@ -360,18 +381,53 @@ const scheduleContactsRefetchAfterBulk = () => {
   setTimeout(() => fetchContactsBasedOnContext(pageNumber.value), 3000);
 };
 
+const buildBulkLabelPayload = labelsPayload => {
+  const base = {
+    type: 'Contact',
+    labels: labelsPayload,
+  };
+
+  if (selectAllMatching.value) {
+    const payload = {
+      ...base,
+      select_all: true,
+      ids: [],
+    };
+
+    if (activeSegment.value?.query || hasAppliedFilters.value) {
+      const query =
+        activeSegment.value?.query ||
+        filterQueryGenerator(appliedFilters.value);
+      payload.payload = query?.payload || query;
+    } else if (activeLabel.value) {
+      payload.label = activeLabel.value;
+    } else if (searchQuery.value) {
+      payload.search = searchQuery.value;
+    } else if (isActiveView.value) {
+      payload.active = true;
+    }
+
+    return payload;
+  }
+
+  const ids = [
+    ...new Set(selectedContactIds.value.map(id => normalizeContactId(id))),
+  ].filter(id => !Number.isNaN(id));
+
+  return { ...base, ids };
+};
+
 const assignLabels = async labels => {
-  if (!labels.length || !selectedContactIds.value.length) {
+  if (
+    !labels.length ||
+    (!selectedContactIds.value.length && !selectAllMatching.value)
+  ) {
     return;
   }
 
   isBulkActionLoading.value = true;
   try {
-    await BulkActionsAPI.create({
-      type: 'Contact',
-      ids: selectedContactIds.value,
-      labels: { add: labels },
-    });
+    await BulkActionsAPI.create(buildBulkLabelPayload({ add: labels }));
     useAlert(t('CONTACTS_BULK_ACTIONS.ASSIGN_LABELS_SUCCESS'));
     clearSelection();
     scheduleContactsRefetchAfterBulk();
@@ -383,17 +439,16 @@ const assignLabels = async labels => {
 };
 
 const removeLabels = async labels => {
-  if (!labels.length || !selectedContactIds.value.length) {
+  if (
+    !labels.length ||
+    (!selectedContactIds.value.length && !selectAllMatching.value)
+  ) {
     return;
   }
 
   isBulkActionLoading.value = true;
   try {
-    await BulkActionsAPI.create({
-      type: 'Contact',
-      ids: selectedContactIds.value,
-      labels: { remove: labels },
-    });
+    await BulkActionsAPI.create(buildBulkLabelPayload({ remove: labels }));
     useAlert(t('CONTACTS_BULK_ACTIONS.REMOVE_LABELS_SUCCESS'));
     clearSelection();
     scheduleContactsRefetchAfterBulk();
@@ -599,8 +654,11 @@ onMounted(async () => {
             v-if="hasSelection"
             :visible-contact-ids="visibleContactIds"
             :selected-contact-ids="selectedContactIds"
+            :total-matching-count="Number(totalItems || 0)"
+            :select-all-matching="selectAllMatching"
             :is-loading="isBulkActionLoading"
             @toggle-all="toggleSelectAll"
+            @select-all-matching="selectAllMatchingContacts"
             @clear-selection="clearSelection"
             @assign-labels="assignLabels"
             @remove-labels="removeLabels"

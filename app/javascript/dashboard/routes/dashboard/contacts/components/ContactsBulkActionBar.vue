@@ -16,6 +16,14 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  totalMatchingCount: {
+    type: Number,
+    default: 0,
+  },
+  selectAllMatching: {
+    type: Boolean,
+    default: false,
+  },
   isLoading: {
     type: Boolean,
     default: false,
@@ -27,13 +35,26 @@ const emit = defineEmits([
   'assignLabels',
   'removeLabels',
   'toggleAll',
+  'selectAllMatching',
   'deleteSelected',
 ]);
 
 const { t } = useI18n();
 
-const selectedCount = computed(() => props.selectedContactIds.length);
+const normalizeId = id => Number(id);
+
+const selectedCount = computed(() =>
+  props.selectAllMatching
+    ? props.totalMatchingCount
+    : props.selectedContactIds.length
+);
 const totalVisibleContacts = computed(() => props.visibleContactIds.length);
+
+const showSelectAllMatching = computed(
+  () =>
+    props.totalMatchingCount > totalVisibleContacts.value &&
+    !props.selectAllMatching
+);
 
 const selectAllLabel = computed(() => {
   if (!totalVisibleContacts.value) {
@@ -53,19 +74,21 @@ const selectedCountLabel = computed(() =>
 
 const allItems = computed(() =>
   props.visibleContactIds.map(id => ({
-    id,
+    id: normalizeId(id),
   }))
 );
 
 const selectionModel = computed({
-  get: () => new Set(props.selectedContactIds),
+  get: () => new Set(props.selectedContactIds.map(normalizeId)),
   set: newSet => {
     if (!props.visibleContactIds.length) {
       emit('toggleAll', false);
       return;
     }
 
-    const shouldSelectAll = props.visibleContactIds.every(id => newSet.has(id));
+    const shouldSelectAll = props.visibleContactIds.every(id =>
+      newSet.has(normalizeId(id))
+    );
     emit('toggleAll', shouldSelectAll);
   },
 });
@@ -99,6 +122,19 @@ const handleRemoveLabels = labels => {
           class="!px-1"
           @click="emit('clearSelection')"
         />
+        <Button
+          v-if="showSelectAllMatching"
+          sm
+          ghost
+          blue
+          :label="
+            t('CONTACTS_BULK_ACTIONS.SELECT_ALL_MATCHING', {
+              count: totalMatchingCount,
+            })
+          "
+          class="!px-1"
+          @click="emit('selectAllMatching')"
+        />
       </template>
       <template #actions>
         <div class="flex items-center gap-2 ml-auto">
@@ -125,7 +161,7 @@ const handleRemoveLabels = labels => {
               icon="i-lucide-trash"
               :label="t('CONTACTS_BULK_ACTIONS.DELETE_CONTACTS')"
               :aria-label="t('CONTACTS_BULK_ACTIONS.DELETE_CONTACTS')"
-              :disabled="!selectedCount || isLoading"
+              :disabled="!selectedCount || isLoading || selectAllMatching"
               :is-loading="isLoading"
               class="!px-2 [&>span:nth-child(2)]:hidden md:[&>span:nth-child(2)]:inline-flex"
               @click="emit('deleteSelected')"

@@ -6,6 +6,7 @@ import EmptyState from './EmptyState/EmptyState.vue';
 import MessagesView from './MessagesView.vue';
 import PanelIaHandoffBanner from './PanelIaHandoffBanner.vue';
 import ConversationTaskForm from 'dashboard/components-next/InternalTasks/ConversationTaskForm.vue';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 
@@ -44,7 +45,14 @@ export default {
     ...mapGetters({
       currentChat: 'getSelectedChat',
       dashboardApps: 'dashboardApps/getRecords',
+      currentAccountId: 'getCurrentAccountId',
     }),
+    hasInternalTasks() {
+      return this.$store.getters['accounts/isFeatureEnabledonAccount'](
+        this.currentAccountId,
+        FEATURE_FLAGS.INTERNAL_TASKS
+      );
+    },
     dashboardAppTabs() {
       return [
         {
@@ -96,6 +104,8 @@ export default {
   },
   methods: {
     openTaskFormFromMessage(message) {
+      if (!this.hasInternalTasks) return;
+
       const conversationId = message.conversationId ?? message.conversation_id;
       this.$refs.conversationTaskForm?.open({
         conversationId,
@@ -161,7 +171,7 @@ export default {
       <slot />
     </div>
     <ConversationTaskForm
-      v-if="currentChat.id"
+      v-if="currentChat.id && hasInternalTasks"
       ref="conversationTaskForm"
       :conversation-id="currentChat.id"
     />
