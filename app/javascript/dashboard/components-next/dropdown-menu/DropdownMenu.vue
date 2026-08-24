@@ -52,6 +52,10 @@ const props = defineProps({
     type: String,
     default: 'DROPDOWN_MENU.EMPTY_STATE',
   },
+  compact: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits(['action', 'search', 'empty']);
@@ -137,11 +141,21 @@ onMounted(() => {
 
 <template>
   <div
-    class="bg-n-alpha-3 backdrop-blur-[100px] border-0 outline outline-1 outline-n-container absolute rounded-xl z-50 flex flex-col min-w-[136px] shadow-lg pt-2 overflow-hidden"
+    class="bg-n-alpha-3 backdrop-blur-[100px] border-0 outline outline-1 outline-n-container absolute z-50 flex flex-col min-w-[136px] shadow-lg overflow-hidden"
+    :class="compact ? 'rounded-lg pt-1' : 'rounded-xl pt-2'"
   >
-    <div v-if="showSearch" class="relative shrink-0 px-2 mb-2">
+    <div
+      v-if="showSearch"
+      class="relative shrink-0"
+      :class="compact ? 'px-1 mb-1' : 'px-2 mb-2'"
+    >
       <span
-        class="absolute i-lucide-search size-3.5 top-2 ltr:left-5 rtl:right-5"
+        class="absolute i-lucide-search size-3.5"
+        :class="
+          compact
+            ? 'top-1.5 ltr:left-3 rtl:right-3'
+            : 'top-2 ltr:left-5 rtl:right-5'
+        "
       />
       <input
         ref="searchInput"
@@ -150,11 +164,19 @@ onMounted(() => {
         :placeholder="
           searchPlaceholder || t('DROPDOWN_MENU.SEARCH_PLACEHOLDER')
         "
-        class="reset-base w-full h-8 py-2 ltr:pl-10 ltr:pr-2 rtl:pl-2 rtl:pr-10 text-sm focus:outline-none border-none rounded-lg bg-n-alpha-black2 dark:bg-n-solid-1 text-n-slate-12"
+        class="reset-base w-full focus:outline-none border-none rounded-md bg-n-alpha-black2 dark:bg-n-solid-1 text-n-slate-12"
+        :class="
+          compact
+            ? 'h-7 py-1 text-xs ltr:pl-8 ltr:pr-1.5 rtl:pl-1.5 rtl:pr-8'
+            : 'h-8 py-2 text-sm ltr:pl-10 ltr:pr-2 rtl:pl-2 rtl:pr-10 rounded-lg'
+        "
         @input="handleSearchInput"
       />
     </div>
-    <div class="flex flex-col gap-2 overflow-y-auto min-h-0 px-2 pb-2">
+    <div
+      class="flex flex-col overflow-y-auto min-h-0"
+      :class="compact ? 'gap-0.5 px-1 pb-1' : 'gap-2 px-2 pb-2'"
+    >
       <template v-if="hasSections">
         <div
           v-for="(section, sectionIndex) in filteredMenuSections"
@@ -183,12 +205,15 @@ onMounted(() => {
             v-for="(item, itemIndex) in section.items"
             :key="item.value || itemIndex"
             type="button"
-            class="inline-flex items-center justify-start w-full h-8 min-w-0 gap-2 px-2 py-1.5 transition-all duration-200 ease-in-out border-0 rounded-lg z-60 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-2 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
-            :class="{
-              'bg-n-alpha-1 dark:bg-n-solid-active': item.isSelected,
-              'text-n-ruby-11': item.action === 'delete',
-              'text-n-slate-12': item.action !== 'delete',
-            }"
+            class="inline-flex items-center justify-start w-full min-w-0 transition-all duration-200 ease-in-out border-0 rounded-lg z-60 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-2 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
+            :class="[
+              compact ? 'h-7 gap-1.5 px-1.5 py-1' : 'h-8 gap-2 px-2 py-1.5',
+              {
+                'bg-n-alpha-1 dark:bg-n-solid-active': item.isSelected,
+                'text-n-ruby-11': item.action === 'delete',
+                'text-n-slate-12': item.action !== 'delete',
+              },
+            ]"
             :disabled="item.disabled"
             @click="handleAction(item)"
           >
@@ -239,12 +264,15 @@ onMounted(() => {
           v-for="(item, index) in filteredMenuItems"
           :key="index"
           type="button"
-          class="inline-flex items-center justify-start w-full h-8 min-w-0 gap-2 px-2 py-1.5 transition-all duration-200 ease-in-out border-0 rounded-lg z-60 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-2 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
-          :class="{
-            'bg-n-alpha-1 dark:bg-n-solid-active': item.isSelected,
-            'text-n-ruby-11': item.action === 'delete',
-            'text-n-slate-12': item.action !== 'delete',
-          }"
+          class="inline-flex items-center justify-start w-full min-w-0 transition-all duration-200 ease-in-out border-0 rounded-lg z-60 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-2 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
+          :class="[
+            compact ? 'h-7 gap-1.5 px-1.5 py-1' : 'h-8 gap-2 px-2 py-1.5',
+            {
+              'bg-n-alpha-1 dark:bg-n-solid-active': item.isSelected,
+              'text-n-ruby-11': item.action === 'delete',
+              'text-n-slate-12': item.action !== 'delete',
+            },
+          ]"
           :disabled="item.disabled"
           @click="handleAction(item)"
         >

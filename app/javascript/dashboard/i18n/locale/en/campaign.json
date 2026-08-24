@@ -267,6 +267,7 @@
         "TITLE": "Edit WhatsApp campaign",
         "FORM": {
           "SAVE_COLOR": "Save color",
+          "SAVE_TITLE": "Save name",
           "API": {
             "SUCCESS_MESSAGE": "Campaign updated successfully",
             "ERROR_MESSAGE": "Could not update the campaign. Please try again."

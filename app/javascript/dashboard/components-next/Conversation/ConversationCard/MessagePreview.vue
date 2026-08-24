@@ -3,6 +3,8 @@ import { computed } from 'vue';
 import { MESSAGE_TYPE } from 'widget/helpers/constants';
 import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import MessageStatus from 'dashboard/components-next/message/MessageStatus.vue';
+import { MESSAGE_STATUS } from 'dashboard/components-next/message/constants';
 
 const props = defineProps({
   message: {
@@ -49,6 +51,23 @@ const isMessagePrivate = computed(() => {
   return isPrivate;
 });
 
+const deliveryStatus = computed(() => {
+  const status = props.message?.status;
+  if (status === MESSAGE_STATUS.FAILED || status === 3) return null;
+  if (
+    status === MESSAGE_STATUS.READ ||
+    status === MESSAGE_STATUS.DELIVERED ||
+    status === MESSAGE_STATUS.SENT ||
+    status === MESSAGE_STATUS.PROGRESS
+  ) {
+    return status;
+  }
+  if (status === 2) return MESSAGE_STATUS.READ;
+  if (status === 1) return MESSAGE_STATUS.DELIVERED;
+  if (status === 0) return MESSAGE_STATUS.SENT;
+  return MESSAGE_STATUS.SENT;
+});
+
 const parsedLastMessage = computed(() => {
   const { content_attributes: contentAttributes } = props.message;
   const { email: { subject } = {} } = contentAttributes || {};
@@ -88,9 +107,9 @@ const isMessageSticker = computed(() => {
         icon="i-lucide-lock-keyhole"
         class="size-3.5"
       />
-      <Icon
-        v-else-if="messageByAgent"
-        icon="i-lucide-undo-2"
+      <MessageStatus
+        v-else-if="messageByAgent && deliveryStatus"
+        :status="deliveryStatus"
         class="size-3.5"
       />
       <Icon
@@ -104,16 +123,15 @@ const isMessageSticker = computed(() => {
       class="min-w-0 text-body-main"
       :class="multiLine ? 'line-clamp-2' : 'truncate'"
     >
-      <!-- Case for previous and conversation conversation card -->
       <template v-if="showMessageType && multiLine">
         <Icon
           v-if="isMessagePrivate"
           icon="i-lucide-lock-keyhole"
           class="inline-block align-middle size-3.5 ltr:mr-1 rtl:ml-1"
         />
-        <Icon
-          v-else-if="messageByAgent"
-          icon="i-lucide-undo-2"
+        <MessageStatus
+          v-else-if="messageByAgent && deliveryStatus"
+          :status="deliveryStatus"
           class="inline-block align-middle size-3.5 ltr:mr-1 rtl:ml-1"
         />
         <Icon
@@ -143,9 +161,7 @@ const isMessageSticker = computed(() => {
           :icon="attachmentIcon"
           class="inline-block align-middle size-3.5 ltr:mr-1 rtl:ml-1"
         />
-        <span class="inline-block align-middle">
-          {{ $t(attachmentMessageContent) }}
-        </span>
+        {{ $t(attachmentMessageContent) }}
       </span>
 
       <template v-else>

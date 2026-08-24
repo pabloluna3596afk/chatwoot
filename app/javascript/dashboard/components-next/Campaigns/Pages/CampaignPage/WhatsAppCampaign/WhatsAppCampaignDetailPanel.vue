@@ -8,6 +8,7 @@ import { messageStamp } from 'shared/helpers/timeHelper';
 
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
+import Input from 'dashboard/components-next/input/Input.vue';
 import ColorPicker from 'dashboard/components-next/colorpicker/ColorPicker.vue';
 import ColorTintPreview from 'dashboard/components-next/colorpicker/ColorTintPreview.vue';
 import SidePanel from 'dashboard/components-next/side-panel/SidePanel.vue';
@@ -34,7 +35,9 @@ const { t } = useI18n();
 const store = useStore();
 const panelRef = ref(null);
 const colorDraft = ref('#1f93ff');
+const titleDraft = ref('');
 const savingColor = ref(false);
+const savingTitle = ref(false);
 const getFilteredWhatsAppTemplates = useMapGetter(
   'inboxes/getFilteredWhatsAppTemplates'
 );
@@ -77,10 +80,22 @@ const colorDirty = computed(
   () => colorDraft.value !== (props.campaign?.color || '#1f93ff')
 );
 
+const titleDirty = computed(
+  () => titleDraft.value.trim() !== (props.campaign?.title || '').trim()
+);
+
 watch(
   () => props.campaign?.color,
   next => {
     colorDraft.value = next || '#1f93ff';
+  },
+  { immediate: true }
+);
+
+watch(
+  () => props.campaign?.title,
+  next => {
+    titleDraft.value = next || '';
   },
   { immediate: true }
 );
@@ -101,6 +116,30 @@ const saveColor = async () => {
   }
 };
 
+const saveTitle = async () => {
+  const nextTitle = titleDraft.value.trim();
+  if (
+    !props.campaign?.id ||
+    !titleDirty.value ||
+    !nextTitle ||
+    savingTitle.value
+  ) {
+    return;
+  }
+  savingTitle.value = true;
+  try {
+    await store.dispatch('campaigns/update', {
+      id: props.campaign.id,
+      title: nextTitle,
+    });
+    useAlert(t('CAMPAIGN.WHATSAPP.EDIT.FORM.API.SUCCESS_MESSAGE'));
+  } catch {
+    useAlert(t('CAMPAIGN.WHATSAPP.EDIT.FORM.API.ERROR_MESSAGE'));
+  } finally {
+    savingTitle.value = false;
+  }
+};
+
 const open = () => panelRef.value?.open();
 const close = () => panelRef.value?.close();
 
@@ -116,11 +155,30 @@ defineExpose({ open, close });
   >
     <div v-if="campaign" class="flex flex-col gap-6">
       <div class="flex flex-col gap-2">
+        <Input
+          v-model="titleDraft"
+          :label="t('CAMPAIGN.WHATSAPP.CREATE.FORM.TITLE.LABEL')"
+          :placeholder="t('CAMPAIGN.WHATSAPP.CREATE.FORM.TITLE.PLACEHOLDER')"
+        />
+        <Button
+          v-if="titleDirty"
+          sm
+          :label="t('CAMPAIGN.WHATSAPP.EDIT.FORM.SAVE_TITLE')"
+          :is-loading="savingTitle || uiFlags.isUpdating"
+          :disabled="!titleDraft.trim()"
+          @click="saveTitle"
+        />
+      </div>
+
+      <div class="flex flex-col gap-2">
         <h3 class="text-sm font-medium text-n-slate-12">
           {{ t('CAMPAIGN.WHATSAPP.CREATE.FORM.COLOR.LABEL') }}
         </h3>
         <ColorPicker v-model="colorDraft" />
-        <ColorTintPreview :color="colorDraft" :label="campaign.title" />
+        <ColorTintPreview
+          :color="colorDraft"
+          :label="titleDraft || campaign.title"
+        />
         <Button
           v-if="colorDirty"
           sm

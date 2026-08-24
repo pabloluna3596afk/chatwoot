@@ -102,7 +102,7 @@ const handleUpdate = item => {
           { ignore: [containerRef] },
         ]"
         :menu-items="updateMenuItems"
-        class="ltr:-right-[4.5rem] rtl:-left-[4.5rem] ltr:2xl:right-0 rtl:2xl:left-0 bottom-8 w-36"
+        class="ltr:right-0 rtl:left-0 bottom-8 w-36"
         @action="handleUpdate"
       />
     </Transition>

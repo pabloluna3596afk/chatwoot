@@ -1,6 +1,7 @@
 <script setup>
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import { tintStylesFromHex } from 'dashboard/helper/colorHelper';
 
 defineProps({
   option: {
@@ -26,9 +27,11 @@ defineProps({
       v-if="
         (variant === 'label' || variant === 'label-assigned') && option.color
       "
-      class="label-pill flex-shrink-0"
-      :style="{ backgroundColor: option.color }"
-    />
+      class="inline-flex items-center flex-shrink-0 max-w-[9rem] truncate rounded-md border border-solid px-1.5 py-0.5 text-xxs font-medium"
+      :style="tintStylesFromHex(option.color)"
+    >
+      {{ option.label }}
+    </span>
     <Avatar
       v-if="variant === 'agent'"
       :name="option.label"
@@ -46,9 +49,13 @@ defineProps({
         </div>
       </template>
     </Avatar>
-    <p class="menu-label truncate min-w-0 flex-1">
+    <p
+      v-if="variant !== 'label' && variant !== 'label-assigned'"
+      class="menu-label truncate min-w-0 flex-1"
+    >
       {{ option.label }}
     </p>
+    <span v-else class="flex-1 min-w-0" />
     <Icon
       v-if="variant === 'label-assigned'"
       icon="i-lucide-check"
@@ -73,9 +80,5 @@ defineProps({
 
 .agent-thumbnail {
   margin-top: 0 !important;
-}
-
-.label-pill {
-  @apply w-4 h-4 rounded-full border border-n-strong border-solid flex-shrink-0;
 }
 </style>

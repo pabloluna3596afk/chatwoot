@@ -264,7 +264,7 @@ watch(
 
 <template>
   <form class="flex flex-col gap-4" @submit.prevent="handleSubmit">
-    <WhatsAppCampaignAttributionNotice />
+    <WhatsAppCampaignAttributionNotice v-if="state.inboxId" />
 
     <Input
       v-model="state.title"

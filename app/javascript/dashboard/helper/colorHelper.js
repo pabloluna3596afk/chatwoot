@@ -29,8 +29,8 @@ export const hexToRgba = (hex, alpha = 1) => {
  * @returns {{ backgroundColor?: string, borderColor?: string, color?: string }}
  */
 export const tintStylesFromHex = hex => {
-  const bg = hexToRgba(hex, 0.1);
-  const border = hexToRgba(hex, 0.3);
+  const bg = hexToRgba(hex, 0.16);
+  const border = hexToRgba(hex, 0.4);
   if (!bg || !border) return {};
 
   return {

@@ -110,10 +110,15 @@ export function chatPanelStyle(isDark, canvasId = DEFAULT_CHAT_CANVAS) {
   }
 
   const tile = isDark ? theme.tiles.dark : theme.tiles.light;
+  // Guard if a build still inlines SVGs as data-URLs (Vite # truncation).
+  const safeTile =
+    typeof tile === 'string' && tile.startsWith('data:')
+      ? tile.replace(/#/g, '%23')
+      : tile;
 
   return {
     backgroundColor: bg,
-    backgroundImage: `url(${tile})`,
+    backgroundImage: `url("${safeTile}")`,
     backgroundRepeat: 'repeat',
     backgroundSize: theme.tileSize,
   };
