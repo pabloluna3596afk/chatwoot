@@ -158,9 +158,9 @@ onUnmounted(() => {
         {{ $t('BULK_ACTION.ALL_CONVERSATIONS_SELECTED_ALERT') }}
       </div>
       <div
-        class="flex items-center justify-between gap-2 p-2 bg-n-solid-2/90 backdrop-blur-lg outline outline-1 -outline-offset-1 rounded-[10px] outline-n-weak shadow-[0_8px_24px_0_rgba(27,40,59,0.12)] min-w-0 transition-shadow duration-200"
+        class="flex items-start gap-2 p-2 bg-n-solid-2/90 backdrop-blur-lg outline outline-1 -outline-offset-1 rounded-[10px] outline-n-weak shadow-[0_8px_24px_0_rgba(27,40,59,0.12)] min-w-0 transition-shadow duration-200"
       >
-        <div class="ms-0.5 flex items-center gap-1 min-w-0 shrink">
+        <div class="flex flex-col gap-0.5 min-w-0 shrink">
           <label class="cursor-pointer flex items-center gap-1.5 min-w-0">
             <Checkbox
               v-model="allSelected"
@@ -169,56 +169,61 @@ onUnmounted(() => {
             />
             <span
               :title="selectedLabel"
-              class="cursor-pointer truncate whitespace-nowrap min-w-0"
+              class="cursor-pointer truncate whitespace-nowrap text-sm text-n-slate-12"
             >
               {{ selectedLabel }}
             </span>
           </label>
-          <div class="w-px h-3 bg-n-weak rounded-lg ms-1 flex-shrink-0" />
           <NextButton
             :label="$t('BULK_ACTION.CLEAR_SELECTION')"
             ghost
-            class="!text-n-blue-11 !px-1 !h-6 flex-shrink-0"
+            class="!text-n-blue-11 !px-1 !h-6 self-start ms-5"
             sm
             @click="allSelected = false"
           />
         </div>
-        <div
-          class="flex items-center gap-1 shrink-0 overflow-x-auto max-w-[55%] sm:max-w-none"
-        >
-          <BulkLabelActions @assign="onAssignLabels" />
-          <BulkLabelActions
-            action="remove"
-            :applied-labels="appliedLabelsForSelection"
-            @remove="onRemoveLabels"
-          />
-          <div class="w-px h-3 bg-n-weak rounded-lg flex-shrink-0" />
-          <BulkLabelActions
-            type="contact"
-            :show-button-label="false"
-            @assign="onAssignContactLabels"
-          />
-          <BulkLabelActions
-            type="contact"
-            action="remove"
-            :show-button-label="false"
-            @remove="onRemoveContactLabels"
-          />
-          <BulkUpdateActions
-            :show-resolve="!showResolvedAction"
-            :show-reopen="!showOpenAction"
-            :show-snooze="!showSnoozedAction"
-            @update="onUpdateConversations"
-          />
-          <BulkAgentActions
-            :selected-inboxes="selectedInboxes"
-            :conversation-count="conversations.length"
-            @select="onAssignAgent"
-          />
-          <BulkTeamActions
-            :conversation-count="conversations.length"
-            @select="onAssignTeam"
-          />
+        <!--
+          ponytail: no overflow-x-auto — clips absolute DropdownMenus.
+          Right: labels row, then status/assignee row.
+        -->
+        <div class="flex flex-col gap-1 min-w-0 flex-1 items-end">
+          <div class="flex items-center justify-end gap-1 min-w-0">
+            <BulkUpdateActions
+              :show-resolve="!showResolvedAction"
+              :show-reopen="!showOpenAction"
+              :show-snooze="!showSnoozedAction"
+              @update="onUpdateConversations"
+            />
+            <BulkAgentActions
+              :selected-inboxes="selectedInboxes"
+              :conversation-count="conversations.length"
+              @select="onAssignAgent"
+            />
+            <BulkTeamActions
+              :conversation-count="conversations.length"
+              @select="onAssignTeam"
+            />
+          </div>
+          <div class="flex items-center justify-end gap-1 min-w-0">
+            <BulkLabelActions @assign="onAssignLabels" />
+            <BulkLabelActions
+              action="remove"
+              :applied-labels="appliedLabelsForSelection"
+              @remove="onRemoveLabels"
+            />
+            <div class="w-px h-3 bg-n-weak rounded-lg flex-shrink-0" />
+            <BulkLabelActions
+              type="contact"
+              :show-button-label="false"
+              @assign="onAssignContactLabels"
+            />
+            <BulkLabelActions
+              type="contact"
+              action="remove"
+              :show-button-label="false"
+              @remove="onRemoveContactLabels"
+            />
+          </div>
         </div>
       </div>
     </div>

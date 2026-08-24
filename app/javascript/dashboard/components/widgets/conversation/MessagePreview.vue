@@ -2,9 +2,12 @@
 import { MESSAGE_TYPE } from 'widget/helpers/constants';
 import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 import { ATTACHMENT_ICONS } from 'shared/constants/messages';
+import MessageStatus from 'dashboard/components-next/message/MessageStatus.vue';
+import { MESSAGE_STATUS } from 'dashboard/components-next/message/constants';
 
 export default {
   name: 'MessagePreview',
+  components: { MessageStatus },
   props: {
     message: {
       type: Object,
@@ -23,6 +26,7 @@ export default {
     const { getPlainText } = useMessageFormatter();
     return {
       getPlainText,
+      MESSAGE_STATUS,
     };
   },
   computed: {
@@ -37,6 +41,22 @@ export default {
     isMessagePrivate() {
       const { private: isPrivate } = this.message;
       return isPrivate;
+    },
+    deliveryStatus() {
+      const status = this.message?.status;
+      if (status === MESSAGE_STATUS.FAILED || status === 3) return null;
+      if (
+        status === MESSAGE_STATUS.READ ||
+        status === MESSAGE_STATUS.DELIVERED ||
+        status === MESSAGE_STATUS.SENT ||
+        status === MESSAGE_STATUS.PROGRESS
+      ) {
+        return status;
+      }
+      if (status === 2) return MESSAGE_STATUS.READ;
+      if (status === 1) return MESSAGE_STATUS.DELIVERED;
+      if (status === 0) return MESSAGE_STATUS.SENT;
+      return MESSAGE_STATUS.SENT;
     },
     parsedLastMessage() {
       const { content_attributes: contentAttributes } = this.message;
@@ -69,11 +89,10 @@ export default {
         class="-mt-0.5 align-middle text-n-slate-11 inline-block"
         icon="lock-closed"
       />
-      <fluent-icon
-        v-else-if="messageByAgent"
-        size="16"
-        class="-mt-0.5 align-middle text-n-slate-11 inline-block"
-        icon="arrow-reply"
+      <MessageStatus
+        v-else-if="messageByAgent && deliveryStatus"
+        :status="deliveryStatus"
+        class="inline-block align-middle -mt-0.5"
       />
       <fluent-icon
         v-else-if="isMessageAnActivity"

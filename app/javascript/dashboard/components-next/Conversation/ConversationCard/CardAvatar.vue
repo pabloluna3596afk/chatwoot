@@ -42,6 +42,7 @@ const selectedModel = computed({
       :name="contact.name"
       :src="contact.thumbnail"
       :size="24"
+      :badge-ratio="0.48"
       :status="contact.availability_status"
       :inbox="inbox?.channel_type ? inbox : null"
       rounded-full

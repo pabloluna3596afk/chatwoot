@@ -178,7 +178,8 @@ class Campaign < ApplicationRecord
 
   def prevent_completed_campaign_from_update
     return unless completed? && !will_save_change_to_campaign_status?
-    return if (changed_attribute_names_to_save - ['color']).empty?
+    # Allow renaming / recoloring completed campaigns (badge display only).
+    return if (changed_attribute_names_to_save - %w[color title]).empty?
 
     errors.add :status, 'The campaign is already completed'
   end

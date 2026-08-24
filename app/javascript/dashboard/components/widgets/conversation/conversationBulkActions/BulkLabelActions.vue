@@ -7,6 +7,7 @@ import { vOnClickOutside } from '@vueuse/components';
 
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import Label from 'dashboard/components-next/label/Label.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 
 const props = defineProps({
@@ -141,7 +142,15 @@ const handleDismiss = () => {
     <NextButton
       v-tooltip="tooltipLabel"
       :label="shouldShowButtonLabel ? buttonLabel : ''"
-      :icon="isRemoveAction ? 'i-woot-tag-remove' : 'i-lucide-tag'"
+      :icon="
+        isTypeContact
+          ? isRemoveAction
+            ? 'i-lucide-user-round-x'
+            : 'i-lucide-contact'
+          : isRemoveAction
+            ? 'i-woot-tag-remove'
+            : 'i-lucide-tag'
+      "
       slate
       :size="shouldShowButtonLabel ? 'sm' : 'xs'"
       ghost
@@ -154,21 +163,13 @@ const handleDismiss = () => {
       }"
       :disabled="disabled || isLoading"
       :is-loading="isLoading"
-      @click="toggleDropdown()"
+      @click.stop="toggleDropdown()"
     />
     <Transition
-      :enter-active-class="
-        !isTypeContact
-          ? 'transition-all duration-150 ease-out origin-bottom'
-          : 'transition-all duration-150 ease-out origin-top'
-      "
+      enter-active-class="transition-all duration-150 ease-out origin-bottom"
       enter-from-class="opacity-0 scale-95"
       enter-to-class="opacity-100 scale-100"
-      :leave-active-class="
-        !isTypeContact
-          ? 'transition-all duration-100 ease-in origin-bottom'
-          : 'transition-all duration-100 ease-in origin-top'
-      "
+      leave-active-class="transition-all duration-100 ease-in origin-bottom"
       leave-from-class="opacity-100 scale-100"
       leave-to-class="opacity-0 scale-95"
     >
@@ -177,19 +178,16 @@ const handleDismiss = () => {
         v-on-click-outside="[handleDismiss, { ignore: [containerRef] }]"
         :menu-items="labelMenuItems"
         show-search
+        compact
         :search-placeholder="t('BULK_ACTION.SEARCH_INPUT_PLACEHOLDER')"
-        class="w-60 max-h-80"
-        :class="{
-          'ltr:-right-[6.5rem] rtl:-left-[6.5rem] ltr:2xl:right-0 rtl:2xl:left-0 bottom-8':
-            !isTypeContact,
-          'ltr:right-0 rtl:left-0 mb-1 top-10': isTypeContact,
-        }"
+        class="ltr:right-0 rtl:left-0 bottom-8 w-60 max-h-80"
         @action="item => toggleLabelSelection(item.value)"
       >
-        <template #thumbnail="{ item }">
-          <span
-            class="rounded-md h-3 w-3 flex-shrink-0 border border-solid border-n-weak"
-            :style="{ backgroundColor: item.color }"
+        <template #label="{ item }">
+          <Label
+            :label="{ title: item.label, color: item.color }"
+            compact
+            class="!min-w-0 !max-w-full !shrink [&>span]:truncate"
           />
         </template>
 
@@ -197,17 +195,17 @@ const handleDismiss = () => {
           <Icon
             v-if="isLabelSelected(item.value)"
             icon="i-lucide-check"
-            class="size-4 text-n-blue-11 flex-shrink-0"
+            class="size-3.5 text-n-blue-11 flex-shrink-0 ms-auto"
           />
         </template>
 
         <template #footer>
           <div
-            class="sticky bottom-0 rounded-b-md px-2 py-2 z-20 bg-n-alpha-3 backdrop-blur-[4px]"
+            class="sticky bottom-0 rounded-b-md px-1 py-1.5 z-20 bg-n-alpha-3 backdrop-blur-[4px]"
           >
             <NextButton
               sm
-              class="w-full [&>span:nth-child(2)]:hidden md:[&>span:nth-child(2)]:inline-flex"
+              class="w-full"
               :label="confirmLabel"
               :disabled="!selectedLabels.length"
               @click="handleApply"

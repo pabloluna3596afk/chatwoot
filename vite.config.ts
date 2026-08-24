@@ -14,4 +14,9 @@ export default defineConfig({
     },
   },
   resolve: { alias: aliases },
+  // ponytail: default 4kb inlines SVGs as data-URLs; bare # in strokes
+  // truncates CSS url() so chat canvas tiles render as blank paper.
+  build: {
+    assetsInlineLimit: 0,
+  },
 });
