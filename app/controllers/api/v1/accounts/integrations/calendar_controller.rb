@@ -268,7 +268,8 @@ class Api::V1::Accounts::Integrations::CalendarController < Api::V1::Accounts::I
     params.permit(
       :id, :connection_id, :calendar_id, :event_id, :time_min, :time_max, :heartbeat,
       :summary, :start, :end, :etag, :contact_id, :conversation_id, :include_meet, :send_to_contact,
-      :attendee_email, :all, :note, :idempotency_key
+      :attendee_email, :all, :note, :idempotency_key, :appointment_status,
+      bot_followup_policy: {}
     )
   end
 

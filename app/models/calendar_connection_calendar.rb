@@ -2,15 +2,18 @@
 #
 # Table name: calendar_connection_calendars
 #
-#  id                     :bigint           not null, primary key
-#  external_id            :string           not null
-#  is_enabled             :boolean          default(FALSE), not null
-#  is_primary             :boolean          default(FALSE), not null
-#  summary                :string           default(""), not null
-#  created_at             :datetime         not null
-#  updated_at             :datetime         not null
-#  account_id             :bigint           not null
-#  calendar_connection_id :bigint           not null
+#  id                          :bigint           not null, primary key
+#  default_bot_followup_policy :jsonb            not null
+#  external_id                 :string           not null
+#  hour_end                    :integer          default(20), not null
+#  hour_start                  :integer          default(8), not null
+#  is_enabled                  :boolean          default(FALSE), not null
+#  is_primary                  :boolean          default(FALSE), not null
+#  summary                     :string           default(""), not null
+#  created_at                  :datetime         not null
+#  updated_at                  :datetime         not null
+#  account_id                  :bigint           not null
+#  calendar_connection_id      :bigint           not null
 #
 class CalendarConnectionCalendar < ApplicationRecord
   belongs_to :account
