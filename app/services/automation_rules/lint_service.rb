@@ -156,7 +156,7 @@ class AutomationRules::LintService
   # has no ORDER BY), so the effective winner is whichever the DB returns last —
   # unpredictable enough to be worth surfacing.
   def cross_rule_warnings
-    active = @rules.select { |r| r.active? && r.event_name.present? }
+    active = candidate_rules.select { |r| r.active? && r.event_name.present? }
     return [] if active.size < 2
 
     warnings = []
@@ -164,12 +164,25 @@ class AutomationRules::LintService
       next if group.size < 2
 
       group.combination(2) do |left, right|
-        next if @subject && ![left.id, right.id].include?(@subject.id)
+        # Only the rule being saved is worth reporting on. Match by object
+        # identity: a rule that is still unsaved has no id, so comparing ids
+        # both missed the new rule entirely and paired unrelated unsaved rules
+        # with each other through `nil == nil`.
+        next if @subject && !(left.equal?(@subject) || right.equal?(@subject))
 
         warnings.concat(action_conflicts(left, right))
       end
     end
     warnings
+  end
+
+  # The rule being saved stands in for the version still in the database, so an
+  # edit is checked as it will be, not as it was.
+  def candidate_rules
+    return @rules unless @subject
+
+    others = @rules.reject { |r| r.equal?(@subject) || (@subject.id.present? && r.id == @subject.id) }
+    others + [@subject]
   end
 
   def action_conflicts(left, right)

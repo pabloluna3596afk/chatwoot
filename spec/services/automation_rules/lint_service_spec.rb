@@ -150,5 +150,49 @@ RSpec.describe AutomationRules::LintService do
       expect(result.ok?).to be(true)
       expect(result.warnings).not_to be_empty
     end
+
+    # A rule being created is not yet in the account's rules and has no id, so
+    # pairing by id skipped it entirely and the conflict went unreported.
+    it 'warns on a rule that is not saved yet and absent from the rule list' do
+      existing = create(:automation_rule, account: account, event_name: 'conversation_created',
+                                          conditions: conditions,
+                                          actions: [{ 'action_name' => 'open_conversation', 'action_params' => [] }])
+      subject_rule = build_rule(conditions: conditions,
+                                actions: [{ 'action_name' => 'resolve_conversation', 'action_params' => [] }])
+
+      result = described_class.new(account: account, rules: [existing], subject: subject_rule).perform
+
+      expect(result.warnings.map(&:code)).to include('contradictory_actions')
+    end
+
+    # Two unsaved rules both answer `nil` to `id`, which made them look like the
+    # same rule and paired unrelated drafts against each other.
+    it 'does not pair two unsaved rules that are not the subject' do
+      first = build_rule(conditions: conditions,
+                         actions: [{ 'action_name' => 'resolve_conversation', 'action_params' => [] }])
+      second = build_rule(conditions: conditions,
+                          actions: [{ 'action_name' => 'open_conversation', 'action_params' => [] }])
+      subject_rule = build_rule(conditions: conditions,
+                                actions: [{ 'action_name' => 'add_label', 'action_params' => ['vip'] }])
+
+      result = described_class.new(account: account, rules: [first, second], subject: subject_rule).perform
+
+      expect(result.warnings).to be_empty
+    end
+
+    it 'compares the edited version of a rule, not the one still in the database' do
+      stored = create(:automation_rule, account: account, event_name: 'conversation_created',
+                                        conditions: conditions,
+                                        actions: [{ 'action_name' => 'open_conversation', 'action_params' => [] }])
+      other = create(:automation_rule, account: account, event_name: 'conversation_created',
+                                       conditions: conditions,
+                                       actions: [{ 'action_name' => 'resolve_conversation', 'action_params' => [] }])
+      edited = AutomationRule.find(stored.id)
+      edited.actions = [{ 'action_name' => 'resolve_conversation', 'action_params' => [] }]
+
+      result = described_class.new(account: account, rules: [stored, other], subject: edited).perform
+
+      expect(result.warnings).to be_empty
+    end
   end
 end
