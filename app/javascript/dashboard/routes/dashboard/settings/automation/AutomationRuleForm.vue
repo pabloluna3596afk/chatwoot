@@ -80,7 +80,7 @@ const INPUT_TYPE_MAP = {
   multi_select: 'multiSelect',
   search_select: 'searchSelect',
   plain_text: 'plainText',
-  comma_separated_plain_text: 'plainText',
+  multi_text: 'multiText',
   date: 'date',
   datetime: 'datetime',
 };
@@ -398,7 +398,7 @@ defineExpose({ open, close });
 </script>
 
 <template>
-<SidePanel ref="panelRef" width="3xl" :title="$t(titleKey)">
+  <SidePanel ref="panelRef" width="3xl" :title="$t(titleKey)">
     <div v-if="automation" class="flex flex-col w-full gap-6">
       <div class="flex flex-col">
         <woot-input
