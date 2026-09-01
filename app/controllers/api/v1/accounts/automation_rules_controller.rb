@@ -22,8 +22,12 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
 
     return render_could_not_create_error(@automation_rule.errors.messages) unless @automation_rule.valid?
 
+    lint = lint_for(@automation_rule)
+    return render_lint_failed(lint) unless lint.ok?
+
     @automation_rule.save!
     blobs.each { |blob| @automation_rule.files.attach(blob) }
+    @lint_warnings = lint.warnings
   end
 
   def update
@@ -35,12 +39,67 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
       @automation_rule.actions = actions if params[:actions]
       @automation_rule.conditions = params[:conditions] if params[:conditions]
       @automation_rule.schedule = params[:schedule] if params.key?(:schedule)
+
+      lint = lint_for(@automation_rule)
+      unless lint.ok?
+        render_lint_failed(lint)
+        raise ActiveRecord::Rollback
+      end
+
       @automation_rule.save!
       blobs.each { |blob| @automation_rule.files.attach(blob) }
+      @lint_warnings = lint.warnings
+    rescue ActiveRecord::Rollback
+      raise
     rescue StandardError => e
       Rails.logger.error e
       render_could_not_create_error(@automation_rule.errors.messages)
     end
+  end
+
+  # Lint without saving — lets the editor surface problems while you type.
+  def lint
+    rule = Current.account.automation_rules.new(automation_rules_permit)
+    rule.actions = params[:actions] || []
+    rule.conditions = params[:conditions] || []
+    rule.schedule = params[:schedule] if params.key?(:schedule)
+    rule.id = params[:id] if params[:id].present?
+
+    result = lint_for(rule)
+    render json: {
+      ok: result.ok?,
+      errors: serialize_findings(result.errors),
+      warnings: serialize_findings(result.warnings)
+    }, status: :ok
+  end
+
+  # Dry run: which active rules would fire on this conversation, in what order.
+  # Executes nothing.
+  def simulate
+    conversation = Current.account.conversations.find_by(display_id: params[:conversation_display_id]) ||
+                   Current.account.conversations.find_by(id: params[:conversation_id])
+    return render json: { error: 'Conversation not found' }, status: :not_found if conversation.blank?
+
+    event_name = params[:event_name].to_s
+    unless AutomationRules::SimulationService::SIMULATABLE_EVENTS.include?(event_name)
+      return render json: {
+        error: 'Unsupported event_name',
+        supported: AutomationRules::SimulationService::SIMULATABLE_EVENTS
+      }, status: :unprocessable_entity
+    end
+
+    result = AutomationRules::SimulationService.new(
+      account: Current.account,
+      conversation: conversation,
+      event_name: event_name
+    ).perform
+
+    render json: {
+      event_name: result.event_name,
+      conversation_id: result.conversation_id,
+      evaluated_count: result.evaluated_count,
+      matches: result.matches.map { |m| { rule_id: m.rule_id, rule_name: m.rule_name, order: m.order, actions: m.actions } }
+    }, status: :ok
   end
 
   def destroy
@@ -85,6 +144,28 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
 
   def delayed_automations_enabled?
     Current.account.feature_enabled?('delayed_automations')
+  end
+
+  def lint_for(rule)
+    AutomationRules::LintService.new(
+      account: Current.account,
+      rules: Current.account.automation_rules.to_a,
+      subject: rule
+    ).perform
+  end
+
+  def render_lint_failed(lint)
+    render json: {
+      error: I18n.t('automation_rules.lint_failed', default: 'Automation rule failed validation'),
+      automation_rule_errors: serialize_findings(lint.errors),
+      automation_rule_warnings: serialize_findings(lint.warnings)
+    }, status: :unprocessable_entity
+  end
+
+  def serialize_findings(findings)
+    Array(findings).map do |f|
+      { rule_id: f.rule_id, rule_name: f.rule_name, code: f.code, message_key: f.message_key, meta: f.meta }
+    end
   end
 
   def fetch_automation_rule

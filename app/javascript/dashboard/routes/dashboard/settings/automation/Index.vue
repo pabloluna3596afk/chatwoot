@@ -234,6 +234,7 @@ const cloneAutomation = async ({ id }) => {
 };
 
 const submitAutomation = async (payload, mode) => {
+  const dialogRef = mode === 'edit' ? editDialogRef : addDialogRef;
   try {
     const action =
       mode === 'edit' ? 'automations/update' : 'automations/create';
@@ -241,11 +242,41 @@ const submitAutomation = async (payload, mode) => {
       mode === 'edit'
         ? t('AUTOMATION.EDIT.API.SUCCESS_MESSAGE')
         : t('AUTOMATION.ADD.API.SUCCESS_MESSAGE');
-    await store.dispatch(action, payload);
+    const saved = await store.dispatch(action, payload);
     useAlert(successMessage);
+
+    // Conflicts with other rules don't block the save, so surface them after
+    // it succeeded rather than swallowing them.
+    const warnings = saved?.automation_rule_warnings || [];
+    warnings.forEach(warning => {
+      // One alert per conflict, with the detail — a bare count tells the user
+      // nothing about which rule fights this one.
+      const key = `AUTOMATION.LINT.${String(warning.code || '').toUpperCase()}`;
+      const meta = { ...(warning.meta || {}) };
+      if (meta.action_name) {
+        // Show the dropdown label, not the raw identifier the server sends.
+        const actionKey = `AUTOMATION.ACTIONS.${String(meta.action_name).toUpperCase()}`;
+        const actionLabel = t(actionKey);
+        meta.action_name =
+          actionLabel === actionKey ? meta.action_name : actionLabel;
+      }
+      const detail = t(key, meta);
+      useAlert(detail === key ? warning.code : detail);
+    });
+
     hideAddPopup();
     hideEditPopup();
   } catch (error) {
+    // The server linter rejects rules that could never fire. Show exactly what
+    // it found, inline in the form, instead of a toast with the generic message.
+    const lintErrors = error?.response?.data?.automation_rule_errors;
+    if (lintErrors?.length) {
+      dialogRef.value?.setLintFindings({
+        errors: lintErrors,
+        warnings: error?.response?.data?.automation_rule_warnings || [],
+      });
+      return;
+    }
     const fallbackMessage =
       mode === 'edit'
         ? t('AUTOMATION.EDIT.API.ERROR_MESSAGE')

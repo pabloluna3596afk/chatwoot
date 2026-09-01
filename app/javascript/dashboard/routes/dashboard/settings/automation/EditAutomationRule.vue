@@ -83,7 +83,12 @@ watch(
   { immediate: true, deep: true }
 );
 
-defineExpose({ open, close });
+defineExpose({
+  open,
+  close,
+  // Forward server lint findings down to the form that renders them.
+  setLintFindings: findings => formRef.value?.setLintFindings(findings),
+});
 </script>
 
 <template>
