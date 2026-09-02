@@ -16,9 +16,7 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
     return render_could_not_create_error(error) if error
 
     @automation_rule = Current.account.automation_rules.new(automation_rules_permit)
-    @automation_rule.actions = actions
-    @automation_rule.conditions = params[:conditions] || []
-    @automation_rule.schedule = params[:schedule] if params.key?(:schedule)
+    assign_rule_payload(@automation_rule, actions: actions, conditions: params[:conditions] || [])
 
     return render_could_not_create_error(@automation_rule.errors.messages) unless @automation_rule.valid?
 
@@ -26,7 +24,7 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
     return render_lint_failed(lint) unless lint.ok?
 
     @automation_rule.save!
-    blobs.each { |blob| @automation_rule.files.attach(blob) }
+    attach_files(@automation_rule, blobs)
     @lint_warnings = lint.warnings
   end
 
@@ -34,35 +32,13 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
     blobs, actions, error = validate_and_prepare_attachments(params[:actions], @automation_rule)
     return render_could_not_create_error(error) if error
 
-    ActiveRecord::Base.transaction do
-      @automation_rule.assign_attributes(automation_rules_permit)
-      @automation_rule.actions = actions if params[:actions]
-      @automation_rule.conditions = params[:conditions] if params[:conditions]
-      @automation_rule.schedule = params[:schedule] if params.key?(:schedule)
-
-      lint = lint_for(@automation_rule)
-      unless lint.ok?
-        render_lint_failed(lint)
-        raise ActiveRecord::Rollback
-      end
-
-      @automation_rule.save!
-      blobs.each { |blob| @automation_rule.files.attach(blob) }
-      @lint_warnings = lint.warnings
-    rescue ActiveRecord::Rollback
-      raise
-    rescue StandardError => e
-      Rails.logger.error e
-      render_could_not_create_error(@automation_rule.errors.messages)
-    end
+    ActiveRecord::Base.transaction { save_updated_rule(blobs, actions) }
   end
 
   # Lint without saving — lets the editor surface problems while you type.
   def lint
     rule = Current.account.automation_rules.new(automation_rules_permit)
-    rule.actions = params[:actions] || []
-    rule.conditions = params[:conditions] || []
-    rule.schedule = params[:schedule] if params.key?(:schedule)
+    assign_rule_payload(rule, actions: params[:actions] || [], conditions: params[:conditions] || [])
     rule.id = params[:id] if params[:id].present?
 
     result = lint_for(rule)
@@ -76,17 +52,11 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
   # Dry run: which active rules would fire on this conversation, in what order.
   # Executes nothing.
   def simulate
-    conversation = Current.account.conversations.find_by(display_id: params[:conversation_display_id]) ||
-                   Current.account.conversations.find_by(id: params[:conversation_id])
+    conversation = conversation_to_simulate
     return render json: { error: 'Conversation not found' }, status: :not_found if conversation.blank?
 
     event_name = params[:event_name].to_s
-    unless AutomationRules::SimulationService::SIMULATABLE_EVENTS.include?(event_name)
-      return render json: {
-        error: 'Unsupported event_name',
-        supported: AutomationRules::SimulationService::SIMULATABLE_EVENTS
-      }, status: :unprocessable_entity
-    end
+    return render_unsupported_event unless AutomationRules::SimulationService::SIMULATABLE_EVENTS.include?(event_name)
 
     result = AutomationRules::SimulationService.new(
       account: Current.account,
@@ -94,12 +64,7 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
       event_name: event_name
     ).perform
 
-    render json: {
-      event_name: result.event_name,
-      conversation_id: result.conversation_id,
-      evaluated_count: result.evaluated_count,
-      matches: result.matches.map { |m| { rule_id: m.rule_id, rule_name: m.rule_name, order: m.order, actions: m.actions } }
-    }, status: :ok
+    render json: serialize_simulation(result), status: :ok
   end
 
   def destroy
@@ -118,6 +83,61 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
   end
 
   private
+
+  def save_updated_rule(blobs, actions)
+    @automation_rule.assign_attributes(automation_rules_permit)
+    # Only what the request actually sent: on an update a missing key means
+    # "unchanged", not "clear it".
+    assign_rule_payload(@automation_rule,
+                        actions: params[:actions] ? actions : nil,
+                        conditions: params[:conditions])
+
+    lint = lint_for(@automation_rule)
+    unless lint.ok?
+      render_lint_failed(lint)
+      raise ActiveRecord::Rollback
+    end
+
+    @automation_rule.save!
+    attach_files(@automation_rule, blobs)
+    @lint_warnings = lint.warnings
+  rescue ActiveRecord::Rollback
+    raise
+  rescue StandardError => e
+    Rails.logger.error e
+    render_could_not_create_error(@automation_rule.errors.messages)
+  end
+
+  def assign_rule_payload(rule, actions: nil, conditions: nil)
+    rule.actions = actions unless actions.nil?
+    rule.conditions = conditions unless conditions.nil?
+    rule.schedule = params[:schedule] if params.key?(:schedule)
+  end
+
+  def attach_files(rule, blobs)
+    blobs.each { |blob| rule.files.attach(blob) }
+  end
+
+  def conversation_to_simulate
+    Current.account.conversations.find_by(display_id: params[:conversation_display_id]) ||
+      Current.account.conversations.find_by(id: params[:conversation_id])
+  end
+
+  def render_unsupported_event
+    render json: {
+      error: 'Unsupported event_name',
+      supported: AutomationRules::SimulationService::SIMULATABLE_EVENTS
+    }, status: :unprocessable_entity
+  end
+
+  def serialize_simulation(result)
+    {
+      event_name: result.event_name,
+      conversation_id: result.conversation_id,
+      evaluated_count: result.evaluated_count,
+      matches: result.matches.map { |m| { rule_id: m.rule_id, rule_name: m.rule_name, order: m.order, actions: m.actions } }
+    }
+  end
 
   def automation_rules_permit
     permitted_attributes = [:name, :description, :event_name, :active]

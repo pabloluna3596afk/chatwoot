@@ -39,9 +39,9 @@ RSpec.describe AutomationRules::LintService do
 
     it 'flags equal_to and not_equal_to on the same value' do
       rule = build_rule(conditions: [
-        status_condition(['open'], joiner: 'AND'),
-        status_condition(['open'], operator: 'not_equal_to')
-      ])
+                          status_condition(['open'], joiner: 'AND'),
+                          status_condition(['open'], operator: 'not_equal_to')
+                        ])
 
       result = described_class.new(account: account, rules: [rule], subject: rule).perform
 
@@ -50,8 +50,8 @@ RSpec.describe AutomationRules::LintService do
 
     it 'flags an attribute that does not exist in the account' do
       rule = build_rule(conditions: [
-        { 'attribute_key' => 'nope_not_real', 'filter_operator' => 'equal_to', 'query_operator' => nil, 'values' => ['x'] }
-      ])
+                          { 'attribute_key' => 'nope_not_real', 'filter_operator' => 'equal_to', 'query_operator' => nil, 'values' => ['x'] }
+                        ])
 
       result = described_class.new(account: account, rules: [rule], subject: rule).perform
 
@@ -64,9 +64,9 @@ RSpec.describe AutomationRules::LintService do
              attribute_key: 'plan_tier',
              attribute_model: 'conversation_attribute')
       rule = build_rule(conditions: [
-        { 'attribute_key' => 'plan_tier', 'filter_operator' => 'equal_to', 'query_operator' => nil,
-          'values' => ['gold'], 'custom_attribute_type' => 'conversation_attribute' }
-      ])
+                          { 'attribute_key' => 'plan_tier', 'filter_operator' => 'equal_to', 'query_operator' => nil,
+                            'values' => ['gold'], 'custom_attribute_type' => 'conversation_attribute' }
+                        ])
 
       result = described_class.new(account: account, rules: [rule], subject: rule).perform
 
