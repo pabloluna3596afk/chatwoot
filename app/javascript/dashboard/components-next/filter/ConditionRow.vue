@@ -7,6 +7,7 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import FilterSelect from './inputs/FilterSelect.vue';
 import MultiSelect from './inputs/MultiSelect.vue';
 import SingleSelect from './inputs/SingleSelect.vue';
+import MultiTextInput from './inputs/MultiTextInput.vue';
 
 import { useSnakeCase } from 'dashboard/composables/useTransformKeys';
 import { validateSingleFilter } from 'dashboard/helper/validations.js';
@@ -149,7 +150,7 @@ const resetModelOnAttributeKeyChange = newAttributeKey => {
   const filter = getFilterFromFilterTypes(newAttributeKey);
   const newOperator = getOperator(filter, filterOperator.value);
   const newInputType = getInputType(newOperator, filter);
-  if (newInputType === 'multiSelect') {
+  if (['multiSelect', 'multiText'].includes(newInputType)) {
     values.value = [];
   } else if (
     ['searchSelect', 'asyncSearchSelect', 'booleanSelect'].includes(
@@ -183,9 +184,11 @@ defineExpose({ validate, resetValidation });
 <template>
   <li class="list-none">
     <div
-      class="flex items-center gap-2 rounded-md"
+      class="flex gap-2 rounded-md"
       :class="{
         'animate-wiggle': showErrors && validationError,
+        'items-start': inputType === 'multiText',
+        'items-center': inputType !== 'multiText',
       }"
     >
       <FilterSelect
@@ -235,6 +238,15 @@ defineExpose({ validate, resetValidation });
           v-model="values"
           disable-search
           :options="booleanOptions"
+        />
+        <MultiTextInput
+          v-else-if="inputType === 'multiText'"
+          v-model="values"
+          :placeholder="
+            values.length
+              ? t('FILTER.MULTI_VALUE_INPUT_PLACEHOLDER_SHORT')
+              : t('FILTER.MULTI_VALUE_INPUT_PLACEHOLDER')
+          "
         />
         <Input
           v-else

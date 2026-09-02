@@ -80,7 +80,7 @@ const INPUT_TYPE_MAP = {
   multi_select: 'multiSelect',
   search_select: 'searchSelect',
   plain_text: 'plainText',
-  comma_separated_plain_text: 'plainText',
+  multi_text: 'multiText',
   date: 'date',
   datetime: 'datetime',
 };

@@ -29,7 +29,9 @@ class Conversations::AssignmentService
         conversation.waiting_since = Time.current if conversation.waiting_since.blank?
       end
       conversation.assignee = assignee
-      conversation.assignee_agent_bot = nil
+      # `ai_assignee` replaces the direct `assignee_agent_bot` write: it clears the
+      # owner type alongside the id, so a handoff leaves no half-set ownership.
+      conversation.ai_assignee = nil
       clear_panel_ia_state_attrs if assignee.present?
       conversation.save!
     end
@@ -61,7 +63,7 @@ class Conversations::AssignmentService
 
     conversation.with_lock do
       conversation.assignee = nil
-      conversation.assignee_agent_bot = agent_bot
+      conversation.ai_assignee = agent_bot
       conversation.status = :pending
       conversation.save!
     end

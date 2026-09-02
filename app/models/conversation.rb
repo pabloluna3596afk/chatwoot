@@ -152,6 +152,11 @@ class Conversation < ApplicationRecord
   belongs_to :inbox
   belongs_to :assignee, class_name: 'User', optional: true, inverse_of: :assigned_conversations
   belongs_to :assignee_agent_bot, class_name: 'AgentBot', optional: true
+  belongs_to :ai_assignee,
+             polymorphic: true,
+             foreign_key: :assignee_agent_bot_id,
+             foreign_type: :ai_assignee_type,
+             optional: true
   belongs_to :contact
   belongs_to :contact_inbox
   belongs_to :team, optional: true
@@ -217,7 +222,7 @@ class Conversation < ApplicationRecord
 
   def bot_handoff!(dispatch_event: true)
     update(waiting_since: Time.current) if waiting_since.blank?
-    self.assignee_agent_bot = nil
+    self.ai_assignee = nil
     open!
     dispatch_bot_handoff_event if dispatch_event
   end
@@ -248,6 +253,12 @@ class Conversation < ApplicationRecord
     return false if self_assign?(assignee_id)
 
     true
+  end
+
+  # Keep legacy AgentBot reads coherent until they move to the typed association.
+  def ai_assignee=(owner)
+    super
+    association(:assignee_agent_bot).reset
   end
 
   # Virtual attribute till we switch completely to polymorphic assignee
@@ -374,9 +385,37 @@ class Conversation < ApplicationRecord
     self.additional_attributes = {} unless additional_attributes.is_a?(Hash)
   end
 
+  # A conversation has one owner: a human or an AI. Assigning a human clears the
+  # AI owner.
+  #
+  # The elsif reads as the mirror rule — "assigning an AI clears the human" — but
+  # it is inert: it only runs when assignee_id is already blank, and then assigns
+  # nil to it. This callback is therefore equivalent to upstream's
+  # reset_agent_bot_when_assignee_present, under a different name. It is kept so
+  # the intent stays written down where the rule lives.
+  #
+  # WHAT THIS MEANS TODAY: the human wins. Assigning a bot to a conversation that
+  # already has an agent drops the bot silently. Anything handing a conversation
+  # to Panel AI must clear the assignee first rather than set ai_assignee alone —
+  # AssignmentService does this on the handoff path; nothing else may skip it.
+  #
+  # WHEN THIS WILL CLASH: upstream made ai_assignee polymorphic as groundwork for
+  # making Captain assignable, and Captain is meant to work alongside an agent.
+  # Once that lands, this callback clears Captain the moment an agent is assigned.
+  # Narrow the rule by owner type then, rather than dropping it, so an autonomous
+  # bot stays exclusive while an assistant may coexist:
+  #
+  #   return if assignee_id.blank?
+  #   self.ai_assignee = nil unless ai_assignee_type == 'Captain::Assistant'
+  #
+  # If Panel AI ever needs to take a conversation over from an agent, that is the
+  # opposite change — making the elsif real — and it belongs in its own commit
+  # with its own tests, not folded into an upstream merge.
   def ensure_exclusive_assignee
     if assignee_id.present?
-      self.assignee_agent_bot_id = nil
+      # Clears the owner type alongside the id: assigning only the id would leave
+      # ai_assignee_type set and the polymorphic association pointing at nothing.
+      self.ai_assignee = nil
     elsif assignee_agent_bot_id.present?
       self.assignee_id = nil
     end
@@ -399,7 +438,7 @@ class Conversation < ApplicationRecord
     self.status = :pending
     return unless inbox.agent_bot_inbox&.active? && assignee_id.blank?
 
-    self.assignee_agent_bot = inbox.agent_bot
+    self.ai_assignee = inbox.agent_bot
   end
 
   def notify_conversation_creation
