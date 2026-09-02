@@ -1,3 +1,10 @@
 # Shell scripts must use LF for Linux containers (Docker on Windows).
 *.sh text eol=lf
 docker/entrypoints/** text eol=lf
+# bin/ holds executables with no extension, so *.sh never matched them. They are
+# committed with LF, but a Windows checkout under core.autocrlf=true rewrites
+# them to CRLF, and the Docker build copies the working tree — so the image ends
+# up with CRLF shebangs. bin/sync_i18n_file_change (#!/bin/bash) and
+# bin/validate_push (#!/bin/sh) then fail with "bad interpreter: /bin/bash^M";
+# the Ruby ones warn on every invocation.
+bin/* text eol=lf
