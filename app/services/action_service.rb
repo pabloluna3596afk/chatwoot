@@ -9,26 +9,38 @@ class ActionService
 
   def mute_conversation(_params)
     @conversation.mute!
+  rescue ActiveRecord::RecordInvalid => e
+    record_business_rule_block!(e)
   end
 
   def snooze_conversation(_params)
     @conversation.snoozed!
+  rescue ActiveRecord::RecordInvalid => e
+    record_business_rule_block!(e)
   end
 
   def resolve_conversation(_params)
     @conversation.resolved!
+  rescue ActiveRecord::RecordInvalid => e
+    record_business_rule_block!(e)
   end
 
   def open_conversation(_params)
     @conversation.open!
+  rescue ActiveRecord::RecordInvalid => e
+    record_business_rule_block!(e)
   end
 
   def pending_conversation(_params)
     @conversation.pending!
+  rescue ActiveRecord::RecordInvalid => e
+    record_business_rule_block!(e)
   end
 
   def change_status(status)
     @conversation.update!(status: status[0])
+  rescue ActiveRecord::RecordInvalid => e
+    record_business_rule_block!(e)
   end
 
   def change_priority(priority)
@@ -193,6 +205,94 @@ class ActionService
   end
 
   private
+
+  # A guard blocking this status change is invisible otherwise — the caller
+  # (automation, macro, or flow step) just silently fails to do what it was
+  # supposed to, and the actual reason lands only in the exception tracker,
+  # which nobody running the account ever sees. Leaves a private note on the
+  # conversation itself instead, where whoever works it next actually looks.
+  #
+  # Only fires when enforces_business_rules is on for that specific
+  # automation (see Conversations::BusinessRulesGuard#automation_exempt?) —
+  # every existing automation keeps its silent-exemption behavior unless an
+  # admin turns this on deliberately.
+  def record_business_rule_block!(exception)
+    return unless exception.record == @conversation
+
+    reason = Array(exception.record.errors[:status]).first
+    return if reason.blank?
+
+    # Conversations::SystemAuditNote already skips tweets and re-applies
+    # content_attributes after MessageBuilder would otherwise drop them
+    # whenever automation_rule_id is present (which ours always is) — reuse
+    # it rather than re-derive that the hard way.
+    Conversations::SystemAuditNote.perform(
+      conversation: @conversation,
+      content: business_rule_block_note(reason),
+      content_attributes: business_rule_block_source_attributes
+    )
+  end
+
+  def business_rule_block_note(reason)
+    locale = @account.locale.presence || I18n.default_locale
+    I18n.with_locale(locale) do
+      I18n.t(
+        'business_rules.blocked_automation.note',
+        source: business_rule_block_source_description,
+        reason: business_rule_block_reason_text(reason)
+      )
+    end
+  end
+
+  def business_rule_block_source_description
+    case Current.executed_by
+    when AutomationRule
+      I18n.t('business_rules.blocked_automation.source.automation', name: Current.executed_by.name)
+    when Macro
+      I18n.t('business_rules.blocked_automation.source.macro', name: Current.executed_by.name)
+    else
+      I18n.t('business_rules.blocked_automation.source.generic')
+    end
+  end
+
+  def business_rule_block_source_attributes
+    case Current.executed_by
+    when AutomationRule
+      MessageSourceAttributes.for_automation(Current.executed_by)
+    when Macro
+      MessageSourceAttributes.for_macro(Current.executed_by)
+    else
+      {}
+    end
+  end
+
+  # Mirrors app/javascript/dashboard/composables/useFormatBusinessRuleError.js
+  # (the human-facing version of the same codes) so an automation blocked by
+  # the same guard reads with the same meaning, just as a note instead of a
+  # toast. The attribute_key in these codes doesn't say which model it
+  # belongs to (Conversation#business_rule_error_message drops that too), so
+  # the display-name lookup checks both rather than guessing wrong.
+  def business_rule_block_reason_text(reason)
+    if (match = reason.match(/missing_attribute:(\S+)/))
+      I18n.t('business_rules.blocked_automation.reasons.missing_attribute', name: business_rule_attribute_name(match[1]))
+    elsif (match = reason.match(/missing_reason_attribute:(\S+)/))
+      I18n.t('business_rules.blocked_automation.reasons.missing_reason_attribute', name: business_rule_attribute_name(match[1]))
+    elsif reason.include?('missing_private_note')
+      I18n.t('business_rules.blocked_automation.reasons.missing_private_note')
+    elsif (match = reason.match(/forbidden_label:(\S+)/))
+      I18n.t('business_rules.blocked_automation.reasons.forbidden_label', label: match[1])
+    elsif reason.include?('missing_assignee')
+      I18n.t('business_rules.blocked_automation.reasons.missing_assignee')
+    else
+      I18n.t('business_rules.blocked_automation.reasons.generic')
+    end
+  end
+
+  def business_rule_attribute_name(key)
+    definition = @account.custom_attribute_definitions.find_by(attribute_key: key, attribute_model: :conversation_attribute) ||
+                 @account.custom_attribute_definitions.find_by(attribute_key: key, attribute_model: :contact_attribute)
+    definition&.attribute_display_name || key
+  end
 
   def legacy_automation_source(automation_rule_id, automation_rule_name)
     return if automation_rule_id.blank?

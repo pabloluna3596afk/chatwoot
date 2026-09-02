@@ -656,6 +656,19 @@ en:
       blank_liquid: 'Automation "%{name}" did not send a WhatsApp template (a template variable resolved to blank).'
   business_rules:
     lint_failed: 'Business rules failed validation. Fix or disable invalid enabled rules.'
+    blocked_automation:
+      note: '%{source} tried to change this conversation''s status, but a business rule blocked it: %{reason}.'
+      source:
+        automation: 'Automation "%{name}"'
+        macro: 'Macro "%{name}"'
+        generic: 'An automated process'
+      reasons:
+        missing_attribute: 'the "%{name}" attribute is not filled in'
+        missing_reason_attribute: 'the reason attribute "%{name}" is not filled in'
+        missing_private_note: 'a private note is required before changing status'
+        forbidden_label: 'status cannot change while the "%{label}" label is present'
+        missing_assignee: 'a team or agent must be assigned'
+        generic: 'the configured requirements are not met'
   automation_rules:
     lint_failed: 'This automation rule cannot work as configured. Fix the errors below.'
     lint:
