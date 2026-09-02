@@ -154,6 +154,9 @@ export const TIME_RULE_PRESETS = [
           'BUSINESS_RULES.PRESETS.POST_COMPRA_ATTRIBUTE_NAME',
         attributeModel: 'conversation_attribute',
         attributeDisplayType: 'date',
+        // A completed sale — groups with future commerce recipes (carrito
+        // abandonado, recompra, etc.) rather than sitting uncategorized.
+        categoryKey: 'BUSINESS_RULES.PRESETS.CATEGORY_VENTAS',
       },
     ],
     defaults: {
@@ -199,6 +202,9 @@ export const TIME_RULE_PRESETS = [
           'BUSINESS_RULES.PRESETS.SEGUIMIENTO_30D_ATTRIBUTE_NAME',
         attributeModel: 'conversation_attribute',
         attributeDisplayType: 'date',
+        // A general nudge on any open conversation, not tied to a completed
+        // sale — a distinct bucket from the post-purchase one above.
+        categoryKey: 'BUSINESS_RULES.PRESETS.CATEGORY_SEGUIMIENTO',
       },
     ],
     defaults: {

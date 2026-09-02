@@ -8,5 +8,6 @@ json.actions automation_rule.actions
 json.schedule automation_rule.schedule
 json.created_on automation_rule.created_at.to_i
 json.active automation_rule.active?
+json.preset_id automation_rule.preset_id
 json.execution_delay automation_rule.execution_delay
 json.files automation_rule.file_base_data if automation_rule.files.any?

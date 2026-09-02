@@ -107,7 +107,9 @@
       "FOLLOWUP_24H_DESC": "If the last agent message is older than 24h with no customer reply, send a nudge.",
       "SEGUIMIENTO_30D": "Follow-up every 30 days",
       "SEGUIMIENTO_30D_DESC": "When fecha_seguimiento is 30+ days old (open conversations), send a nudge, update the date, and notify the assignee.",
-      "SEGUIMIENTO_30D_ATTRIBUTE_NAME": "Follow-up date"
+      "SEGUIMIENTO_30D_ATTRIBUTE_NAME": "Follow-up date",
+      "CATEGORY_VENTAS": "Sales",
+      "CATEGORY_SEGUIMIENTO": "Follow-up"
     },
     "STATUS_ERRORS": {
       "missing_attribute": "Fill required attribute: {key}",

@@ -105,6 +105,7 @@ const onConfirm = async () => {
       attribute_key: newAttributeKey.value,
       attribute_model: requirement.value.attributeModel,
       attribute_display_type: requirement.value.attributeDisplayType,
+      category: requirement.value.category || '',
     });
     finish(newAttributeKey.value);
   } catch (error) {

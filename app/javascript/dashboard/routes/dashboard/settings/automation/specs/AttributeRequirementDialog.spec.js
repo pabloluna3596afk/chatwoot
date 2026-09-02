@@ -104,8 +104,24 @@ describe('AttributeRequirementDialog', () => {
       attribute_key: 'fecha_de_venta',
       attribute_model: 'conversation_attribute',
       attribute_display_type: 'date',
+      category: '',
     });
     await expect(resolved).resolves.toBe('fecha_de_venta');
+  });
+
+  it('passes through the suggested category when the requirement has one', async () => {
+    dispatch.mockResolvedValue({});
+    const wrapper = mountDialog();
+
+    wrapper.vm.resolve({ ...requirement, category: 'Ventas' });
+    await flushPromises();
+    await wrapper.find('[data-test="confirm"]').trigger('click');
+    await flushPromises();
+
+    expect(dispatch).toHaveBeenCalledWith(
+      'attributes/create',
+      expect.objectContaining({ category: 'Ventas' })
+    );
   });
 
   it('offers an existing attribute of the right model/type and resolves with it without creating one', async () => {

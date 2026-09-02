@@ -107,7 +107,9 @@
       "FOLLOWUP_24H_DESC": "Si el último mensaje del agente tiene más de 24h y el cliente no respondió, enviar un recordatorio.",
       "SEGUIMIENTO_30D": "Seguimiento cada 30 días",
       "SEGUIMIENTO_30D_DESC": "Si fecha_seguimiento tiene 30+ días (conversaciones abiertas), envía un mensaje, actualiza la fecha y notifica al asignado.",
-      "SEGUIMIENTO_30D_ATTRIBUTE_NAME": "Fecha de seguimiento"
+      "SEGUIMIENTO_30D_ATTRIBUTE_NAME": "Fecha de seguimiento",
+      "CATEGORY_VENTAS": "Ventas",
+      "CATEGORY_SEGUIMIENTO": "Seguimiento"
     },
     "STATUS_ERRORS": {
       "missing_attribute": "Completa el atributo obligatorio: {key}",

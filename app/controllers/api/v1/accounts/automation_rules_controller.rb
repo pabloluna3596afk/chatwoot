@@ -16,6 +16,10 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
     return render_could_not_create_error(error) if error
 
     @automation_rule = Current.account.automation_rules.new(automation_rules_permit)
+    # Only ever set at creation, and only by the preset that built this rule —
+    # never exposed on update, so editing a rule can't silently reassign which
+    # preset "owns" it.
+    @automation_rule.preset_id = params[:preset_id] if params[:preset_id].present?
     assign_rule_payload(@automation_rule, actions: actions, conditions: params[:conditions] || [])
 
     return render_could_not_create_error(@automation_rule.errors.messages) unless @automation_rule.valid?

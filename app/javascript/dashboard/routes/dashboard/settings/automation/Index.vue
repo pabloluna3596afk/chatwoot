@@ -16,6 +16,7 @@ import { BaseTable } from 'dashboard/components-next/table';
 import { TIME_RULE_PRESETS } from 'dashboard/components-next/ConversationWorkflow/businessRulesConstants';
 import { DEFAULT_DELAY_MINUTES } from './constants';
 import { replaceAttributeKey } from './presetAttributeSubstitution';
+import { filterUnactivatedPresets } from './unactivatedPresets';
 
 const getters = useStoreGetters();
 const store = useStore();
@@ -36,6 +37,10 @@ const toggleModalDescription = ref(
 );
 
 const records = computed(() => getters['automations/getAutomations'].value);
+
+const unactivatedTimePresets = computed(() =>
+  filterUnactivatedPresets(TIME_RULE_PRESETS, records.value)
+);
 
 const tabFilteredRecords = computed(() => {
   const all = records.value || [];
@@ -172,6 +177,7 @@ const resolveNextAttribute = async (requirements, resolvedKeys) => {
     attributeDisplayName: t(requirement.attributeDisplayNameKey),
     attributeModel: requirement.attributeModel,
     attributeDisplayType: requirement.attributeDisplayType,
+    category: requirement.categoryKey ? t(requirement.categoryKey) : '',
   });
   if (!resolvedKey) return null;
   return resolveNextAttribute(rest, {
@@ -218,6 +224,7 @@ const activateTimePreset = async preset => {
       conditions: conditions || [],
       actions,
       schedule,
+      preset_id: preset.id,
     };
     await store.dispatch('automations/create', payload);
     useAlert(t('AUTOMATION.ADD.API.SUCCESS_MESSAGE'));
@@ -429,7 +436,7 @@ const tableHeaders = computed(() => {
       </div>
 
       <div
-        v-if="eventTypeTab === 'time'"
+        v-if="eventTypeTab === 'time' && unactivatedTimePresets.length"
         class="flex flex-col gap-2 mb-4 rounded-lg border border-n-weak bg-n-solid-2 p-3"
       >
         <p class="m-0 text-xs font-medium uppercase text-n-slate-11">
@@ -437,10 +444,11 @@ const tableHeaders = computed(() => {
         </p>
         <div class="flex flex-wrap gap-2">
           <Button
-            v-for="preset in TIME_RULE_PRESETS"
+            v-for="preset in unactivatedTimePresets"
             :key="preset.id"
             sm
             faded
+            icon="i-lucide-sparkles"
             :label="$t(preset.nameKey)"
             @click="activateTimePreset(preset)"
           />
