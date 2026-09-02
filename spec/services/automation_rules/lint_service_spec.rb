@@ -7,6 +7,14 @@ RSpec.describe AutomationRules::LintService do
     create(:automation_rule, account: account, conditions: conditions, actions: actions, **attrs)
   end
 
+  # The linter also runs on rules that were never saved: the lint endpoint feeds
+  # it the editor's current state, and create feeds it the rule before save. Some
+  # cases only exist there — the model rejects an unknown attribute key outright,
+  # so a rule carrying one can never be persisted to lint.
+  def build_unsaved_rule(conditions:, actions: [{ 'action_name' => 'add_label', 'action_params' => ['urgent'] }], **attrs)
+    build(:automation_rule, account: account, conditions: conditions, actions: actions, **attrs)
+  end
+
   def status_condition(values, operator: 'equal_to', joiner: nil)
     { 'attribute_key' => 'status', 'filter_operator' => operator, 'query_operator' => joiner, 'values' => values }
   end
@@ -49,9 +57,10 @@ RSpec.describe AutomationRules::LintService do
     end
 
     it 'flags an attribute that does not exist in the account' do
-      rule = build_rule(conditions: [
-                          { 'attribute_key' => 'nope_not_real', 'filter_operator' => 'equal_to', 'query_operator' => nil, 'values' => ['x'] }
-                        ])
+      rule = build_unsaved_rule(conditions: [
+                                  { 'attribute_key' => 'nope_not_real', 'filter_operator' => 'equal_to', 'query_operator' => nil,
+                                    'values' => ['x'] }
+                                ])
 
       result = described_class.new(account: account, rules: [rule], subject: rule).perform
 
@@ -157,8 +166,8 @@ RSpec.describe AutomationRules::LintService do
       existing = create(:automation_rule, account: account, event_name: 'conversation_created',
                                           conditions: conditions,
                                           actions: [{ 'action_name' => 'open_conversation', 'action_params' => [] }])
-      subject_rule = build_rule(conditions: conditions,
-                                actions: [{ 'action_name' => 'resolve_conversation', 'action_params' => [] }])
+      subject_rule = build_unsaved_rule(conditions: conditions, event_name: 'conversation_created',
+                                        actions: [{ 'action_name' => 'resolve_conversation', 'action_params' => [] }])
 
       result = described_class.new(account: account, rules: [existing], subject: subject_rule).perform
 
@@ -168,12 +177,12 @@ RSpec.describe AutomationRules::LintService do
     # Two unsaved rules both answer `nil` to `id`, which made them look like the
     # same rule and paired unrelated drafts against each other.
     it 'does not pair two unsaved rules that are not the subject' do
-      first = build_rule(conditions: conditions,
-                         actions: [{ 'action_name' => 'resolve_conversation', 'action_params' => [] }])
-      second = build_rule(conditions: conditions,
-                          actions: [{ 'action_name' => 'open_conversation', 'action_params' => [] }])
-      subject_rule = build_rule(conditions: conditions,
-                                actions: [{ 'action_name' => 'add_label', 'action_params' => ['vip'] }])
+      first = build_unsaved_rule(conditions: conditions, event_name: 'conversation_created',
+                                 actions: [{ 'action_name' => 'resolve_conversation', 'action_params' => [] }])
+      second = build_unsaved_rule(conditions: conditions, event_name: 'conversation_created',
+                                  actions: [{ 'action_name' => 'open_conversation', 'action_params' => [] }])
+      subject_rule = build_unsaved_rule(conditions: conditions, event_name: 'conversation_created',
+                                        actions: [{ 'action_name' => 'add_label', 'action_params' => ['vip'] }])
 
       result = described_class.new(account: account, rules: [first, second], subject: subject_rule).perform
 
