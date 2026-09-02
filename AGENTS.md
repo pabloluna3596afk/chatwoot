@@ -19,6 +19,38 @@
 - **rbenv setup**: Before running any `bundle` or `rspec` commands, init rbenv in your shell (`eval "$(rbenv init -)"`) so the correct Ruby/Bundler versions are used
 - Always prefer `bundle exec` for Ruby CLI tasks (rspec, rake, rubocop, etc.)
 
+> **The list above is upstream's, and it assumes a native rbenv setup. This fork
+> runs in Docker.** There is no `bundle`, `rspec` or `rubocop` on the host, and
+> the production image is built with `BUNDLE_WITHOUT=development:test`, so the
+> container has no test gems until you install them. Read **`docs/TESTING.md`**
+> before running any test or linter — it also explains why `rails db:test:prepare`
+> would drop your real database, and how to avoid that.
+
+## Branch rule — read before touching anything
+
+**`develop` is the branch that is in production.** Everything reaches it through
+a PR. Work is done on a feature branch cut from `develop`, never from whatever
+branch happens to be checked out.
+
+```powershell
+git fetch origin
+git checkout -b feat/my-thing origin/develop
+```
+
+Other `feat/*` and `fix/*` branches in this repo are work in progress, and some
+are hundreds of commits behind. Basing work on one of them means re-fixing bugs
+`develop` already fixed, and a merge that fights the history. Before starting:
+
+```powershell
+git rev-parse --abbrev-ref HEAD              # where am I
+git log --oneline origin/develop..HEAD | wc -l   # ahead of develop
+git log --oneline HEAD..origin/develop | wc -l   # BEHIND develop -- if this is
+                                                 # not ~0, you are on the wrong base
+```
+
+Order to production: feature branch → PR → `develop` → GHCR `:develop` → Dokploy
+staging → production. See `docs/LOCAL_DEV.md`.
+
 ## Current Focus — Calendar module (Google Calendar integration)
 
 _Estado: branch `feat/panel-ai-admin-sso` con trabajo del módulo Calendar sin commitear (28 archivos nuevos, 5 migraciones)._
