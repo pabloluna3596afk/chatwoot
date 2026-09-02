@@ -61,13 +61,12 @@ export default function useAutomationValues() {
 
   const statusFilterOptions = computed(() => {
     const statusFilters = statusFilterItems.value;
-    return [
-      ...Object.keys(statusFilters).map(status => ({
-        id: status,
-        name: statusFilters[status].TEXT,
-      })),
-      { id: 'all', name: t('CHAT_LIST.FILTER_ALL') },
-    ];
+    // statusFilterItems already contains an `all` entry, so appending another
+    // one here rendered "All" twice in the status dropdown.
+    return Object.keys(statusFilters).map(status => ({
+      id: status,
+      name: statusFilters[status].TEXT,
+    }));
   });
 
   const messageTypeOptions = computed(() =>

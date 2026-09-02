@@ -36,22 +36,24 @@ export const actions = {
   },
   create: async function createAutomation({ commit }, automationObj) {
     commit(types.SET_AUTOMATION_UI_FLAG, { isCreating: true });
+    // No catch: the error propagates untouched. Wrapping it in
+    // `new Error(error)` discarded error.response, so callers could never
+    // read the server's validation detail.
     try {
       const response = await AutomationAPI.create(automationObj);
       commit(types.ADD_AUTOMATION, response.data);
-    } catch (error) {
-      throw new Error(error);
+      return response.data;
     } finally {
       commit(types.SET_AUTOMATION_UI_FLAG, { isCreating: false });
     }
   },
   update: async ({ commit }, { id, ...updateObj }) => {
     commit(types.SET_AUTOMATION_UI_FLAG, { isUpdating: true });
+    // No catch: see create above — the raw error must reach the caller.
     try {
       const response = await AutomationAPI.update(id, updateObj);
       commit(types.EDIT_AUTOMATION, response.data.payload);
-    } catch (error) {
-      throw new Error(error);
+      return response.data;
     } finally {
       commit(types.SET_AUTOMATION_UI_FLAG, { isUpdating: false });
     }

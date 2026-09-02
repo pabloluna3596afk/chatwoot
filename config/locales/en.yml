@@ -656,6 +656,15 @@ en:
       blank_liquid: 'Automation "%{name}" did not send a WhatsApp template (a template variable resolved to blank).'
   business_rules:
     lint_failed: 'Business rules failed validation. Fix or disable invalid enabled rules.'
+  automation_rules:
+    lint_failed: 'This automation rule cannot work as configured. Fix the errors below.'
+    lint:
+      impossible_and: 'Conditions on "%{attribute_key}" contradict each other (joined by AND), so this rule can never match.'
+      unknown_attribute_key: 'Attribute "%{attribute_key}" does not exist in this account.'
+      empty_actions: 'This rule has no actions, so it would do nothing.'
+      missing_schedule_kind: 'A time-triggered rule needs a schedule.'
+      contradictory_actions: 'Rule "%{other_rule_name}" runs on the same trigger and does the opposite (%{actions}). Whichever runs last wins.'
+      conflicting_action_values: 'Rule "%{other_rule_name}" also sets %{action_name} on the same trigger, with a different value. Whichever runs last wins.'
   crm:
     no_message: 'No messages in conversation'
     attachment: '[Attachment: %{type}]'

@@ -19,6 +19,14 @@ class AutomationRulePolicy < ApplicationPolicy
     @account_user.administrator?
   end
 
+  def lint?
+    @account_user.administrator?
+  end
+
+  def simulate?
+    @account_user.administrator?
+  end
+
   def destroy?
     @account_user.administrator?
   end

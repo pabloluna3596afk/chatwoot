@@ -1,5 +1,4 @@
 <script setup>
-
 import { ref, onMounted } from 'vue';
 
 import { useStore } from 'dashboard/composables/store';
@@ -8,16 +7,9 @@ import { useAutomation } from 'dashboard/composables/useAutomation';
 
 import AutomationRuleForm from './AutomationRuleForm.vue';
 
-import { DEFAULT_DELAY_MINUTES } from './constants';
-
-
-
 const emit = defineEmits(['saveAutomation']);
 
-
-
 const START_VALUE_EVENT = {
-
   name: null,
 
   description: null,
@@ -29,9 +21,7 @@ const START_VALUE_EVENT = {
   execution_delay: null,
 
   conditions: [
-
     {
-
       attribute_key: 'status',
 
       filter_operator: 'equal_to',
@@ -41,29 +31,19 @@ const START_VALUE_EVENT = {
       query_operator: 'and',
 
       custom_attribute_type: '',
-
     },
-
   ],
 
   actions: [
-
     {
-
       action_name: 'assign_agent',
 
       action_params: [],
-
     },
-
   ],
-
 };
 
-
-
 const START_VALUE_TIME = {
-
   name: null,
 
   description: null,
@@ -77,29 +57,19 @@ const START_VALUE_TIME = {
   conditions: [],
 
   actions: [
-
     {
-
       action_name: 'send_message',
 
       action_params: [],
-
     },
-
   ],
-
 };
-
-
 
 const store = useStore();
 
 const formRef = ref(null);
 
-
-
 const {
-
   automation,
 
   automationTypes,
@@ -121,29 +91,20 @@ const {
   getActionDropdownValues,
 
   manifestCustomAttributes,
-
 } = useAutomation(START_VALUE_EVENT);
 
-
-
 const open = async (modeOrDelay = null) => {
-
   if (modeOrDelay === 'time' || modeOrDelay === 'event') {
-
     automation.value = structuredClone(
-
       modeOrDelay === 'time' ? START_VALUE_TIME : START_VALUE_EVENT
-
     );
 
     await Promise.all([
-
       store.dispatch('attributes/get'),
 
       store.dispatch('macros/get'),
 
       store.dispatch('flows/get'),
-
     ]);
 
     manifestCustomAttributes();
@@ -151,39 +112,22 @@ const open = async (modeOrDelay = null) => {
     formRef.value?.open(null);
 
     return;
-
   }
-
-
 
   automation.value = structuredClone(START_VALUE_EVENT);
 
   manifestCustomAttributes();
 
-  formRef.value?.open(
-
-    typeof modeOrDelay === 'number' ? modeOrDelay : null
-
-  );
-
+  formRef.value?.open(typeof modeOrDelay === 'number' ? modeOrDelay : null);
 };
-
-
 
 const close = () => formRef.value?.close();
 
-
-
 const onSave = (payload, mode) => {
-
   emit('saveAutomation', payload, mode);
-
 };
 
-
-
 onMounted(() => {
-
   store.dispatch('inboxes/get');
 
   store.dispatch('agents/get');
@@ -199,49 +143,30 @@ onMounted(() => {
   store.dispatch('attributes/get');
 
   store.dispatch('macros/get');
-
 });
 
-
-
-defineExpose({ open, close });
-
+defineExpose({
+  open,
+  close,
+  // Forward server lint findings down to the form that renders them.
+  setLintFindings: findings => formRef.value?.setLintFindings(findings),
+});
 </script>
 
-
-
 <template>
-
   <AutomationRuleForm
-
     ref="formRef"
-
     v-model:automation="automation"
-
     mode="create"
-
     :automation-types="automationTypes"
-
     :get-condition-dropdown-values="getConditionDropdownValues"
-
     :get-action-dropdown-values="getActionDropdownValues"
-
     :append-new-condition="appendNewCondition"
-
     :append-new-action="appendNewAction"
-
     :remove-filter="removeFilter"
-
     :remove-action="removeAction"
-
     :reset-action="resetAction"
-
     :on-event-change="onEventChange"
-
     @save="onSave"
-
   />
-
 </template>
-
-

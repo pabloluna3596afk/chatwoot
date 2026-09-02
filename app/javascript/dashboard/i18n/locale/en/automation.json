@@ -1,6 +1,17 @@
 {
   "AUTOMATION": {
     "HEADER": "Automation",
+    "LINT": {
+      "ERRORS_TITLE": "This rule cannot work as configured",
+      "WARNINGS_TITLE": "Heads up: another rule may fight this one",
+      "SAVED_WITH_WARNINGS": "Saved, but {count} conflict(s) with other rules were found.",
+      "IMPOSSIBLE_AND": "The conditions on \"{attribute_key}\" contradict each other (joined by AND), so this rule can never match.",
+      "UNKNOWN_ATTRIBUTE_KEY": "The attribute \"{attribute_key}\" does not exist in this account.",
+      "EMPTY_ACTIONS": "This rule has no actions, so it would do nothing.",
+      "MISSING_SCHEDULE_KIND": "A time-triggered rule needs a schedule.",
+      "CONTRADICTORY_ACTIONS": "Rule \"{other_rule_name}\" runs on the same trigger and does the opposite. Whichever runs last wins.",
+      "CONFLICTING_ACTION_VALUES": "Rule \"{other_rule_name}\" also sets {action_name} on the same trigger, with a different value. Whichever runs last wins."
+    },
     "DESCRIPTION": "Automation can replace and streamline existing processes that require manual effort, such as adding labels and assigning conversations to the most suitable agent. This allows the team to focus on their strengths while reducing time spent on routine tasks.",
     "LEARN_MORE": "Learn more about automation",
     "COUNT": "{n} automation | {n} automations",

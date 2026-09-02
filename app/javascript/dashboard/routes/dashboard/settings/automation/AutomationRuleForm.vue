@@ -95,6 +95,10 @@ provideDropdownTeleport();
 const panelRef = ref(null);
 const instantTriggerRef = useTemplateRef('instantTriggerRef');
 const errors = ref({});
+// Findings from the server-side linter. Errors block the save (impossible
+// condition, unknown attribute); warnings do not (another rule fights this one).
+const lintErrors = ref([]);
+const lintWarnings = ref([]);
 
 const isEditMode = computed(() => props.mode === 'edit');
 
@@ -353,7 +357,36 @@ const isConditionsValid = () => instantTriggerRef.value?.validate() ?? true;
 
 const resetValidation = () => {
   errors.value = {};
+  lintErrors.value = [];
+  lintWarnings.value = [];
   instantTriggerRef.value?.resetValidation();
+};
+
+// Called by the parent after the API answers, so server-side findings land
+// next to the field-level validation the form already does.
+const setLintFindings = ({ errors: apiErrors = [], warnings = [] } = {}) => {
+  lintErrors.value = apiErrors;
+  lintWarnings.value = warnings;
+};
+
+// The server sends raw identifiers (assign_agent); show the same label the
+// user picked in the Actions dropdown instead.
+const translateActionName = actionName => {
+  if (!actionName) return actionName;
+  const key = `AUTOMATION.ACTIONS.${String(actionName).toUpperCase()}`;
+  const translated = t(key);
+  return translated === key ? actionName : translated;
+};
+
+const lintMessage = finding => {
+  const key = `AUTOMATION.LINT.${String(finding.code || '').toUpperCase()}`;
+  const meta = { ...(finding.meta || {}) };
+  if (meta.action_name)
+    meta.action_name = translateActionName(meta.action_name);
+  const translated = t(key, meta);
+  // Fall back to the raw code if this fork hasn't translated it yet — better
+  // than showing an empty banner.
+  return translated === key ? finding.code : translated;
 };
 
 const syncCustomAttributeTypes = () => {
@@ -380,6 +413,9 @@ const close = () => {
 };
 
 const emitSaveAutomation = () => {
+  // Previous server findings are stale the moment the user resubmits.
+  lintErrors.value = [];
+  lintWarnings.value = [];
   syncCustomAttributeTypes();
   const conditionsValid = isConditionsValid();
   errors.value = validateAutomation(automation.value);
@@ -394,11 +430,11 @@ const emitSaveAutomation = () => {
   }
 };
 
-defineExpose({ open, close });
+defineExpose({ open, close, setLintFindings });
 </script>
 
 <template>
-<SidePanel ref="panelRef" width="3xl" :title="$t(titleKey)">
+  <SidePanel ref="panelRef" width="3xl" :title="$t(titleKey)">
     <div v-if="automation" class="flex flex-col w-full gap-6">
       <div class="flex flex-col">
         <woot-input
@@ -566,6 +602,46 @@ defineExpose({ open, close });
         :remove-action="removeAction"
         :reset-action="resetAction"
       />
+      <!-- Server-side lint findings -->
+      <div
+        v-if="lintErrors.length || lintWarnings.length"
+        class="w-full mt-6 flex flex-col gap-2"
+      >
+        <div
+          v-if="lintErrors.length"
+          class="rounded-lg border border-n-ruby-8 bg-n-ruby-2 dark:bg-n-ruby-3/20 px-3 py-2.5"
+        >
+          <p class="text-sm font-medium text-n-ruby-11 mb-1">
+            {{ $t('AUTOMATION.LINT.ERRORS_TITLE') }}
+          </p>
+          <ul class="list-disc ltr:pl-5 rtl:pr-5 space-y-0.5">
+            <li
+              v-for="(finding, index) in lintErrors"
+              :key="`lint-error-${index}`"
+              class="text-sm text-n-ruby-11"
+            >
+              {{ lintMessage(finding) }}
+            </li>
+          </ul>
+        </div>
+        <div
+          v-if="lintWarnings.length"
+          class="rounded-lg border border-n-amber-8 bg-n-amber-2 dark:bg-n-amber-3/20 px-3 py-2.5"
+        >
+          <p class="text-sm font-medium text-n-amber-11 mb-1">
+            {{ $t('AUTOMATION.LINT.WARNINGS_TITLE') }}
+          </p>
+          <ul class="list-disc ltr:pl-5 rtl:pr-5 space-y-0.5">
+            <li
+              v-for="(finding, index) in lintWarnings"
+              :key="`lint-warning-${index}`"
+              class="text-sm text-n-amber-11"
+            >
+              {{ lintMessage(finding) }}
+            </li>
+          </ul>
+        </div>
+      </div>
     </div>
     <template #footer>
       <div class="flex flex-row justify-end w-full gap-2">
