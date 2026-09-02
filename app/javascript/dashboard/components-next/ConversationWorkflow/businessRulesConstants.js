@@ -143,6 +143,19 @@ export const TIME_RULE_PRESETS = [
     family: 'time',
     nameKey: 'BUSINESS_RULES.PRESETS.POST_COMPRA',
     descriptionKey: 'BUSINESS_RULES.PRESETS.POST_COMPRA_DESC',
+    // Without this, activating the preset created a rule pointing at
+    // `fecha_venta` with nothing to ever create that attribute — the rule
+    // looked active but could never fire. The admin now picks an existing
+    // date attribute or names a new one before the rule is created.
+    requiresAttributes: [
+      {
+        attributeKey: 'fecha_venta',
+        attributeDisplayNameKey:
+          'BUSINESS_RULES.PRESETS.POST_COMPRA_ATTRIBUTE_NAME',
+        attributeModel: 'conversation_attribute',
+        attributeDisplayType: 'date',
+      },
+    ],
     defaults: {
       event_name: 'time_triggered',
       schedule: {
@@ -176,6 +189,18 @@ export const TIME_RULE_PRESETS = [
     family: 'time',
     nameKey: 'BUSINESS_RULES.PRESETS.SEGUIMIENTO_30D',
     descriptionKey: 'BUSINESS_RULES.PRESETS.SEGUIMIENTO_30D_DESC',
+    // `fecha_seguimiento` appears both in the schedule and in the
+    // update_conversation_custom_attribute action below — activateTimePreset
+    // substitutes the resolved key everywhere it appears, not just here.
+    requiresAttributes: [
+      {
+        attributeKey: 'fecha_seguimiento',
+        attributeDisplayNameKey:
+          'BUSINESS_RULES.PRESETS.SEGUIMIENTO_30D_ATTRIBUTE_NAME',
+        attributeModel: 'conversation_attribute',
+        attributeDisplayType: 'date',
+      },
+    ],
     defaults: {
       event_name: 'time_triggered',
       schedule: {

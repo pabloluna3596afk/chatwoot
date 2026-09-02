@@ -12,6 +12,17 @@
       "CONTRADICTORY_ACTIONS": "Rule \"{other_rule_name}\" runs on the same trigger and does the opposite. Whichever runs last wins.",
       "CONFLICTING_ACTION_VALUES": "Rule \"{other_rule_name}\" also sets {action_name} on the same trigger, with a different value. Whichever runs last wins."
     },
+    "ATTRIBUTE_REQUIREMENT": {
+      "TITLE": "Choose the attribute",
+      "DESCRIPTION": "This recipe needs a date attribute for \"{name}\". Pick one that already exists or create a new one.",
+      "SELECT_LABEL": "Attribute",
+      "CREATE_NEW_OPTION": "+ Create new attribute",
+      "NEW_NAME_LABEL": "Attribute name",
+      "KEY_PREVIEW": "Key",
+      "CONFIRM": "Continue",
+      "CANCEL": "Cancel",
+      "CREATE_ERROR": "Could not create the attribute. Please try again."
+    },
     "DESCRIPTION": "Automation can replace and streamline existing processes that require manual effort, such as adding labels and assigning conversations to the most suitable agent. This allows the team to focus on their strengths while reducing time spent on routine tasks.",
     "LEARN_MORE": "Learn more about automation",
     "COUNT": "{n} automation | {n} automations",

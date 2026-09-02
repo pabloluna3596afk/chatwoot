@@ -102,10 +102,12 @@
       "REQUIRE_ASSIGNEE_ON_OPEN_DESC": "Opening requires a team or human agent (inbox bot does not count).",
       "POST_COMPRA": "Post-purchase follow-up (N days)",
       "POST_COMPRA_DESC": "After N days from a date attribute, run actions (label, message, etc.).",
+      "POST_COMPRA_ATTRIBUTE_NAME": "Sale date",
       "FOLLOWUP_24H": "Follow-up after 24h without reply",
       "FOLLOWUP_24H_DESC": "If the last agent message is older than 24h with no customer reply, send a nudge.",
       "SEGUIMIENTO_30D": "Follow-up every 30 days",
-      "SEGUIMIENTO_30D_DESC": "When fecha_seguimiento is 30+ days old (open conversations), send a nudge, update the date, and notify the assignee."
+      "SEGUIMIENTO_30D_DESC": "When fecha_seguimiento is 30+ days old (open conversations), send a nudge, update the date, and notify the assignee.",
+      "SEGUIMIENTO_30D_ATTRIBUTE_NAME": "Follow-up date"
     },
     "STATUS_ERRORS": {
       "missing_attribute": "Fill required attribute: {key}",
