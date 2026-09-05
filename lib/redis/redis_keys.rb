@@ -54,6 +54,13 @@ module Redis::RedisKeys
   # Time-based automation ledger: one fire per rule × conversation × window
   AUTOMATION_TIME_RULE_LEDGER = 'AUTOMATION_TIME_RULE::%<rule_id>d::%<conversation_id>d::%<window>s'.freeze
 
+  # Contact-based automation ledger: one fire per rule × contact × window (see
+  # Automations::ContactBasedRuleRunner)
+  AUTOMATION_CONTACT_RULE_LEDGER = 'AUTOMATION_CONTACT_RULE::%<rule_id>d::%<contact_id>d::%<window>s'.freeze
+
+  # Account-wide throttle for autonomous proactive sends (see Automations::ProactiveSendCap)
+  PROACTIVE_SEND_DAILY_COUNT = 'PROACTIVE_SEND_DAILY_COUNT::%<account_id>d::%<date>s'.freeze
+
   ## User Keys
   # SSO Auth Tokens
   USER_SSO_AUTH_TOKEN = 'USER_SSO_AUTH_TOKEN::%<user_id>d::%<token>s'.freeze
