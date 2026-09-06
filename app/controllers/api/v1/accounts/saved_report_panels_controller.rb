@@ -1,5 +1,6 @@
 class Api::V1::Accounts::SavedReportPanelsController < Api::V1::Accounts::BaseController
   before_action :check_authorization
+  before_action :ensure_report_download_enabled, only: [:export]
   before_action :fetch_panel, only: [:show, :update, :destroy, :run, :export]
 
   def index

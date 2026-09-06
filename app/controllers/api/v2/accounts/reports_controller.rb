@@ -3,6 +3,9 @@ class Api::V2::Accounts::ReportsController < Api::V1::Accounts::BaseController
   include Api::V2::Accounts::HeatmapHelper
 
   before_action :check_authorization
+  # These five actions only ever return an attachment (see #generate_export), so
+  # gating them blocks downloads without touching the on-screen reports.
+  before_action :ensure_report_download_enabled, only: [:agents, :inboxes, :labels, :teams, :conversations_summary]
 
   def index
     builder = V2::Reports::Conversations::ReportBuilder.new(Current.account, report_params)

@@ -1,6 +1,7 @@
 class Api::V1::Accounts::CampaignsController < Api::V1::Accounts::BaseController
   before_action :campaign, except: [:index, :create, :preview_audience]
   before_action :check_authorization
+  before_action :ensure_customer_data_download_enabled, only: [:export_recipients]
 
   RESULTS_PER_PAGE = 25
 

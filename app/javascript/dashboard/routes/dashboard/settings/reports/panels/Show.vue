@@ -12,6 +12,7 @@ import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import PanelWidgetCard from './components/PanelWidgetCard.vue';
 import SavedReportPanelsAPI from 'dashboard/api/savedReportPanels';
 import { generateFileName } from 'dashboard/helper/downloadHelper';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import WootDatePicker from 'dashboard/components/ui/DatePicker/DatePicker.vue';
 import { DATE_RANGE_TYPES } from 'dashboard/components/ui/DatePicker/helpers/DatePickerHelper';
 import { getUnixStartOfDay, getUnixEndOfDay } from 'helpers/DateHelper';
@@ -23,7 +24,14 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const store = useStore();
-const { accountScopedRoute, currentAccount } = useAccount();
+const { accountScopedRoute, currentAccount, isCloudFeatureEnabled } =
+  useAccount();
+
+// Super admin can turn report downloads off for this account; the panel itself
+// stays viewable, only taking it out of the tool is blocked.
+const canExportPanel = computed(() =>
+  isCloudFeatureEnabled(FEATURE_FLAGS.REPORT_EXPORT)
+);
 const contactAttributes = useMapGetter('attributes/getContactAttributes');
 const conversationAttributes = useMapGetter(
   'attributes/getConversationAttributes'
@@ -228,6 +236,7 @@ onMounted(load);
           @click="backToList"
         />
         <Button
+          v-if="canExportPanel"
           :label="t('REPORT_PANELS.EXPORT')"
           icon="i-ph-download-simple"
           size="sm"

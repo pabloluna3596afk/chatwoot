@@ -58,6 +58,8 @@ es:
     sessions:
       cannot_revoke_current: No puede revocar la sesión actual.
   errors:
+    downloads:
+      disabled: Las descargas están deshabilitadas para esta cuenta por el administrador del sistema.
     account:
       not_authorized: No está autorizado a acceder a esta cuenta
       email_limit_exceeded: Se ha alcanzado el límite diario de correos electrónicos de esta cuenta

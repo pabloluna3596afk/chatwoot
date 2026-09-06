@@ -51,6 +51,14 @@ export default {
         FEATURE_FLAGS.TEAM_MANAGEMENT
       );
     },
+    // CSAT answers are written by customers, so they fall under the customer
+    // data switch rather than the reporting one.
+    canDownloadCsat() {
+      return this.isFeatureEnabledOnAccount(
+        this.accountId,
+        FEATURE_FLAGS.CUSTOMER_DATA_EXPORT
+      );
+    },
   },
   mounted() {
     this.$store.dispatch('agents/get');
@@ -117,6 +125,7 @@ export default {
 <template>
   <ReportHeader :header-title="$t('CSAT_REPORTS.HEADER')">
     <V4Button
+      v-if="canDownloadCsat"
       :label="$t('CSAT_REPORTS.DOWNLOAD')"
       icon="i-ph-download-simple"
       size="sm"

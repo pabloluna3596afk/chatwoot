@@ -6,6 +6,7 @@ class Api::V1::Accounts::DataImportsController < Api::V1::Accounts::BaseControll
   before_action :ensure_data_import_feature_enabled
   before_action :set_data_import, only: [:show, :start, :retry_import, :abandon, :error_logs, :skip_logs]
   before_action :check_authorization
+  before_action :ensure_customer_data_download_enabled, only: [:error_logs, :skip_logs]
 
   def index
     @data_imports = policy_scope(Current.account.data_imports).includes(:initiated_by).order(created_at: :desc)
