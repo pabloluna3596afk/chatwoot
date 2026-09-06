@@ -4,6 +4,7 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   include HmacConcern
   include ConversationCustomAttributesConcern
 
+  before_action :ensure_customer_data_download_enabled, only: [:export]
   before_action :conversation, except: [:index, :meta, :search, :create, :filter, :export]
   before_action :inbox, :contact, :contact_inbox, only: [:create]
 

@@ -4,6 +4,8 @@ import { useI18n } from 'vue-i18n';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useStatusLabel } from 'dashboard/composables/useStatusLabel';
 import { usePolicy } from 'dashboard/composables/usePolicy';
+import { useAccount } from 'dashboard/composables/useAccount';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { formatNumber } from '@chatwoot/utils';
 import wootConstants from 'dashboard/constants/globals';
 
@@ -35,9 +37,12 @@ const { t } = useI18n();
 const { uiSettings, updateUISettings } = useUISettings();
 const { getStatusLabel } = useStatusLabel();
 const { checkPermissions } = usePolicy();
+const { isCloudFeatureEnabled } = useAccount();
 
-const canExportConversations = computed(() =>
-  checkPermissions(['administrator', 'conversation_manage'])
+const canExportConversations = computed(
+  () =>
+    checkPermissions(['administrator', 'conversation_manage']) &&
+    isCloudFeatureEnabled(FEATURE_FLAGS.CUSTOMER_DATA_EXPORT)
 );
 
 const onBasicFilterChange = (value, type) => {

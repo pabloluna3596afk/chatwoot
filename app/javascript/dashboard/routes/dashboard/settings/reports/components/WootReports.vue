@@ -5,6 +5,7 @@ import ReportFilters from './ReportFilters.vue';
 import ReportContainer from '../ReportContainer.vue';
 import { GROUP_BY_FILTER } from '../constants';
 import { generateFileName } from '../../../../../helper/downloadHelper';
+import { FEATURE_FLAGS } from '../../../../../featureFlags';
 import ReportHeader from './ReportHeader.vue';
 
 export default {
@@ -54,6 +55,14 @@ export default {
     };
   },
   computed: {
+    // Super admin can turn report downloads off per account; the report itself
+    // stays on screen, only the download leaves.
+    canDownloadReports() {
+      return this.$store.getters['accounts/isFeatureEnabledonAccount'](
+        this.$store.getters.getCurrentAccountId,
+        FEATURE_FLAGS.REPORT_EXPORT
+      );
+    },
     filterType() {
       const pluralMap = {
         agent: 'agents',
@@ -167,6 +176,7 @@ export default {
 <template>
   <ReportHeader :header-title="reportTitle" :has-back-button="hasBackButton">
     <V4Button
+      v-if="canDownloadReports"
       :label="downloadButtonLabel"
       icon="i-ph-download-simple"
       size="sm"

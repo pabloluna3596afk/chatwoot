@@ -18,6 +18,7 @@ class Api::V1::Accounts::ContactsController < Api::V1::Accounts::BaseController
   ALLOWED_PER_PAGE = [15, 25, 50, 100].freeze
 
   before_action :check_authorization
+  before_action :ensure_customer_data_download_enabled, only: [:export]
   before_action :set_current_page, only: [:index, :active, :search, :filter]
   before_action :set_results_per_page, only: [:index, :active, :search, :filter]
   before_action :fetch_contact, only: [:show, :update, :destroy, :avatar, :contactable_inboxes, :destroy_custom_attributes]

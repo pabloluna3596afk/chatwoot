@@ -418,3 +418,15 @@
   display_name: Delayed Automations
   enabled: false
   column: feature_flags_ext_1
+- name: customer_data_export
+  display_name: Customer Data Downloads
+  enabled: false
+  column: feature_flags_ext_1
+  category: contacts
+  description: Allow admins to download contacts, conversations, campaign recipients, CSAT responses and import logs. Turn off to keep customer data inside the tool.
+- name: report_export
+  display_name: Report Downloads
+  enabled: false
+  column: feature_flags_ext_1
+  category: reports
+  description: Allow admins to download reports and saved report panels as CSV or Excel. Reports can still be viewed on screen.
