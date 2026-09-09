@@ -16,6 +16,10 @@ import {
   emptyCondition,
 } from 'dashboard/components-next/ConversationWorkflow/businessRulesConstants';
 import AttributeRequirementPicker from 'dashboard/components-next/ConversationWorkflow/AttributeRequirementPicker.vue';
+import AttributeScopeSwitch from 'dashboard/components-next/ConversationWorkflow/AttributeScopeSwitch.vue';
+import Switch from 'dashboard/components-next/switch/Switch.vue';
+import Input from 'dashboard/components-next/Input/Input.vue';
+import OutlinedSelectField from 'dashboard/components-next/CustomAttributes/OutlinedSelectField.vue';
 import { AUTOMATIONS } from 'dashboard/routes/dashboard/settings/automation/constants';
 import {
   generateCustomAttributeTypes,
@@ -254,6 +258,8 @@ const labelOptions = computed(() =>
 const typeLabel = type => t(`BUSINESS_RULES.TYPES.${type}`);
 const typeHelp = computed(() => t(`BUSINESS_RULES.TYPE_HELP.${draft.type}`));
 
+const attributeScope = ref('conversation');
+
 const onTypeChange = type => {
   draft.type = type;
   draft.preset_id = null;
@@ -261,7 +267,26 @@ const onTypeChange = type => {
   draft.conditions =
     type === 'if_attribute_then_require' ? [emptyCondition()] : [];
   ensureArrays();
+  attributeScope.value = 'conversation';
 };
+
+const requireAttributesScopeCounts = computed(() => ({
+  conversation:
+    (draft.config.attribute_keys?.length || 0) +
+    (draft.config.attribute_category_keys?.length || 0),
+  contact:
+    (draft.config.contact_attribute_keys?.length || 0) +
+    (draft.config.contact_attribute_category_keys?.length || 0),
+}));
+
+const ifAttributeThenRequireScopeCounts = computed(() => ({
+  conversation:
+    (draft.config.require_attribute_keys?.length || 0) +
+    (draft.config.require_attribute_category_keys?.length || 0),
+  contact:
+    (draft.config.require_contact_attribute_keys?.length || 0) +
+    (draft.config.require_contact_attribute_category_keys?.length || 0),
+}));
 
 const appendCondition = () => {
   if (!draft.conditions.length) {
@@ -305,6 +330,63 @@ const toggleStatusInList = status => {
   else list.push(status);
   draft.config.statuses = list;
 };
+
+const typeSelectOptions = computed(() =>
+  GUARD_RULE_TYPES.map(type => ({ id: type, name: typeLabel(type) }))
+);
+const typeSelectedItem = computed(() => ({
+  id: draft.type,
+  name: typeLabel(draft.type),
+}));
+const onTypeSelect = item => {
+  if (item) onTypeChange(item.id);
+};
+
+const statusSelectOptions = computed(() =>
+  STATUS_OPTIONS.map(status => ({
+    id: status,
+    name: t(`BUSINESS_RULES.STATUSES.${status}`),
+  }))
+);
+const statusSelectedItem = computed(() => ({
+  id: statusModel.value,
+  name: t(`BUSINESS_RULES.STATUSES.${statusModel.value}`),
+}));
+const onStatusSelect = item => {
+  if (item) statusModel.value = item.id;
+};
+
+const reasonAttributeOptions = computed(() => [
+  { id: '', name: t('BUSINESS_RULES.FIELDS.NONE') },
+  ...conversationAttributes.value
+    .filter(a => !a.formula)
+    .map(attr => ({ id: attr.attributeKey, name: attr.attributeDisplayName })),
+]);
+const reasonAttributeSelectedItem = computed(() => {
+  const key = draft.config.reason_attribute_key;
+  return (
+    reasonAttributeOptions.value.find(o => o.id === key) ||
+    reasonAttributeOptions.value[0]
+  );
+});
+const onReasonAttributeSelect = item => {
+  draft.config.reason_attribute_key = item ? item.id : '';
+};
+
+const labelSelectOptions = computed(() => [
+  { id: '', name: t('BUSINESS_RULES.FIELDS.NONE') },
+  ...labelOptions.value.map(opt => ({ id: opt.value, name: opt.label })),
+]);
+const labelSelectedItem = computed(() => {
+  const key = draft.config.label;
+  return (
+    labelSelectOptions.value.find(o => o.id === key) ||
+    labelSelectOptions.value[0]
+  );
+});
+const onLabelSelect = item => {
+  draft.config.label = item ? item.id : '';
+};
 </script>
 
 <template>
@@ -313,33 +395,26 @@ const toggleStatusInList = status => {
       {{ $t('BUSINESS_RULES.FORM_HELP') }}
     </p>
 
-    <label class="text-xs text-n-slate-11">
-      {{ $t('BUSINESS_RULES.FIELDS.NAME') }}
-      <input
-        v-model="draft.name"
-        type="text"
-        class="mt-1 w-full"
-        :placeholder="$t('BUSINESS_RULES.FIELDS.NAME_PLACEHOLDER')"
-      />
-    </label>
+    <Input
+      v-model="draft.name"
+      :label="$t('BUSINESS_RULES.FIELDS.NAME')"
+      :placeholder="$t('BUSINESS_RULES.FIELDS.NAME_PLACEHOLDER')"
+    />
 
-    <label class="flex items-center gap-2 text-xs text-n-slate-11">
-      <input v-model="draft.enabled" type="checkbox" />
-      {{ $t('BUSINESS_RULES.FIELDS.ENABLED') }}
-    </label>
+    <div class="flex items-center gap-2">
+      <Switch v-model="draft.enabled" />
+      <span class="text-xs text-n-slate-11">
+        {{ $t('BUSINESS_RULES.FIELDS.ENABLED') }}
+      </span>
+    </div>
 
-    <label class="text-xs text-n-slate-11">
-      {{ $t('BUSINESS_RULES.FIELDS.TYPE') }}
-      <select
-        class="mt-1 w-full"
-        :value="draft.type"
-        @change="onTypeChange($event.target.value)"
-      >
-        <option v-for="type in GUARD_RULE_TYPES" :key="type" :value="type">
-          {{ typeLabel(type) }}
-        </option>
-      </select>
-    </label>
+    <OutlinedSelectField
+      :label="$t('BUSINESS_RULES.FIELDS.TYPE')"
+      :options="typeSelectOptions"
+      :selected-item="typeSelectedItem"
+      :show-search="false"
+      @select="onTypeSelect"
+    />
     <p class="m-0 -mt-2 text-xs text-n-slate-11">
       {{ typeHelp }}
     </p>
@@ -402,28 +477,26 @@ const toggleStatusInList = status => {
           draft.type === 'require_assignee_on_status'
         "
       >
-        <label class="text-xs text-n-slate-11">
-          {{ $t('BUSINESS_RULES.FIELDS.STATUS') }}
-          <select v-model="statusModel" class="mt-1 w-full">
-            <option
-              v-for="status in STATUS_OPTIONS"
-              :key="status"
-              :value="status"
-            >
-              {{ $t(`BUSINESS_RULES.STATUSES.${status}`) }}
-            </option>
-          </select>
-        </label>
+        <OutlinedSelectField
+          :label="$t('BUSINESS_RULES.FIELDS.STATUS')"
+          :options="statusSelectOptions"
+          :selected-item="statusSelectedItem"
+          :show-search="false"
+          @select="onStatusSelect"
+        />
       </template>
 
       <template v-if="draft.type === 'require_attributes_on_status'">
         <p class="m-0 text-xs text-n-slate-11">
           {{ $t('BUSINESS_RULES.FIELDS.ATTRIBUTES_HELP') }}
         </p>
-        <p class="mb-1 mt-1 text-xs font-medium text-n-slate-11">
-          {{ $t('BUSINESS_RULES.FIELDS.SECTION_CONVERSATION') }}
-        </p>
+        <AttributeScopeSwitch
+          v-model="attributeScope"
+          :conversation-count="requireAttributesScopeCounts.conversation"
+          :contact-count="requireAttributesScopeCounts.contact"
+        />
         <AttributeRequirementPicker
+          v-if="attributeScope === 'conversation'"
           :attributes="conversationAttributes"
           :selected-keys="draft.config.attribute_keys"
           :selected-categories="draft.config.attribute_category_keys"
@@ -433,10 +506,8 @@ const toggleStatusInList = status => {
             draft.config.attribute_category_keys = $event
           "
         />
-        <p class="mb-1 mt-2 text-xs font-medium text-n-slate-11">
-          {{ $t('BUSINESS_RULES.FIELDS.SECTION_CONTACT') }}
-        </p>
         <AttributeRequirementPicker
+          v-else
           :attributes="contactAttributes"
           :selected-keys="draft.config.contact_attribute_keys"
           :selected-categories="draft.config.contact_attribute_category_keys"
@@ -452,10 +523,13 @@ const toggleStatusInList = status => {
         <p class="m-0 text-xs text-n-slate-11">
           {{ $t('BUSINESS_RULES.FIELDS.REQUIRE_ATTRIBUTES') }}
         </p>
-        <p class="mb-1 mt-1 text-xs font-medium text-n-slate-11">
-          {{ $t('BUSINESS_RULES.FIELDS.SECTION_CONVERSATION') }}
-        </p>
+        <AttributeScopeSwitch
+          v-model="attributeScope"
+          :conversation-count="ifAttributeThenRequireScopeCounts.conversation"
+          :contact-count="ifAttributeThenRequireScopeCounts.contact"
+        />
         <AttributeRequirementPicker
+          v-if="attributeScope === 'conversation'"
           :attributes="conversationAttributes"
           :selected-keys="draft.config.require_attribute_keys"
           :selected-categories="draft.config.require_attribute_category_keys"
@@ -465,10 +539,8 @@ const toggleStatusInList = status => {
             draft.config.require_attribute_category_keys = $event
           "
         />
-        <p class="mb-1 mt-2 text-xs font-medium text-n-slate-11">
-          {{ $t('BUSINESS_RULES.FIELDS.SECTION_CONTACT') }}
-        </p>
         <AttributeRequirementPicker
+          v-else
           :attributes="contactAttributes"
           :selected-keys="draft.config.require_contact_attribute_keys"
           :selected-categories="
@@ -489,68 +561,52 @@ const toggleStatusInList = status => {
           <p class="mb-1 text-xs text-n-slate-11">
             {{ $t('BUSINESS_RULES.FIELDS.STATUSES') }}
           </p>
-          <div class="flex flex-wrap gap-2">
-            <label
+          <div class="flex flex-wrap gap-3">
+            <div
               v-for="status in STATUS_OPTIONS"
               :key="status"
-              class="flex items-center gap-1 text-sm text-n-slate-12"
+              class="flex items-center gap-2"
             >
-              <input
-                type="checkbox"
-                :checked="statusesMulti.includes(status)"
-                @change="toggleStatusInList(status)"
+              <Switch
+                :model-value="statusesMulti.includes(status)"
+                @update:model-value="toggleStatusInList(status)"
               />
-              {{ $t(`BUSINESS_RULES.STATUSES.${status}`) }}
-            </label>
+              <span class="text-sm text-n-slate-12">
+                {{ $t(`BUSINESS_RULES.STATUSES.${status}`) }}
+              </span>
+            </div>
           </div>
         </div>
-        <label class="flex items-center gap-2 text-xs text-n-slate-11">
-          <input v-model="draft.config.require_private_note" type="checkbox" />
-          {{ $t('BUSINESS_RULES.FIELDS.REQUIRE_PRIVATE_NOTE') }}
-        </label>
-        <label class="text-xs text-n-slate-11">
-          {{ $t('BUSINESS_RULES.FIELDS.REASON_ATTRIBUTE') }}
-          <select
-            v-model="draft.config.reason_attribute_key"
-            class="mt-1 w-full"
-          >
-            <option value="">
-              {{ $t('BUSINESS_RULES.FIELDS.NONE') }}
-            </option>
-            <option
-              v-for="attr in conversationAttributes.filter(a => !a.formula)"
-              :key="attr.attributeKey"
-              :value="attr.attributeKey"
-            >
-              {{ attr.attributeDisplayName }}
-            </option>
-          </select>
-        </label>
+        <div class="flex items-center gap-2">
+          <Switch v-model="draft.config.require_private_note" />
+          <span class="text-xs text-n-slate-11">
+            {{ $t('BUSINESS_RULES.FIELDS.REQUIRE_PRIVATE_NOTE') }}
+          </span>
+        </div>
+        <OutlinedSelectField
+          :label="$t('BUSINESS_RULES.FIELDS.REASON_ATTRIBUTE')"
+          :options="reasonAttributeOptions"
+          :selected-item="reasonAttributeSelectedItem"
+          @select="onReasonAttributeSelect"
+        />
       </template>
 
       <template v-else-if="draft.type === 'forbid_status_if'">
-        <label class="text-xs text-n-slate-11">
-          {{ $t('BUSINESS_RULES.FIELDS.LABEL') }}
-          <select v-model="draft.config.label" class="mt-1 w-full">
-            <option value="">
-              {{ $t('BUSINESS_RULES.FIELDS.NONE') }}
-            </option>
-            <option
-              v-for="opt in labelOptions"
-              :key="opt.value"
-              :value="opt.value"
-            >
-              {{ opt.label }}
-            </option>
-          </select>
-        </label>
+        <OutlinedSelectField
+          :label="$t('BUSINESS_RULES.FIELDS.LABEL')"
+          :options="labelSelectOptions"
+          :selected-item="labelSelectedItem"
+          @select="onLabelSelect"
+        />
       </template>
 
       <template v-else-if="draft.type === 'require_assignee_on_status'">
-        <label class="flex items-center gap-2 text-xs text-n-slate-11">
-          <input v-model="draft.config.require_team_or_agent" type="checkbox" />
-          {{ $t('BUSINESS_RULES.FIELDS.REQUIRE_TEAM_OR_AGENT') }}
-        </label>
+        <div class="flex items-center gap-2">
+          <Switch v-model="draft.config.require_team_or_agent" />
+          <span class="text-xs text-n-slate-11">
+            {{ $t('BUSINESS_RULES.FIELDS.REQUIRE_TEAM_OR_AGENT') }}
+          </span>
+        </div>
       </template>
     </section>
   </div>

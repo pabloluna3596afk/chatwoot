@@ -14,6 +14,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import { BaseTable } from 'dashboard/components-next/table';
 import { TIME_RULE_PRESETS } from 'dashboard/components-next/ConversationWorkflow/businessRulesConstants';
+import PresetActivationCard from 'dashboard/components-next/ConversationWorkflow/PresetActivationCard.vue';
 import { DEFAULT_DELAY_MINUTES } from './constants';
 import { replaceAttributeKey } from './presetAttributeSubstitution';
 import { filterUnactivatedPresets } from './unactivatedPresets';
@@ -117,6 +118,19 @@ const noDataMessage = computed(() => {
 
 const onTabChanged = tab => {
   runTypeTab.value = tab.key;
+};
+
+const eventTypeTabs = computed(() => [
+  { key: 'event', label: t('AUTOMATION.TAB_EVENT') },
+  { key: 'time', label: t('AUTOMATION.TAB_TIME') },
+]);
+
+const activeEventTypeTabIndex = computed(() =>
+  eventTypeTabs.value.findIndex(tab => tab.key === eventTypeTab.value)
+);
+
+const onEventTypeTabChanged = tab => {
+  eventTypeTab.value = tab.key;
 };
 
 const deleteConfirmText = computed(
@@ -418,20 +432,11 @@ const tableHeaders = computed(() => {
       >
         {{ $t('AUTOMATION.LIST.DELAY_DISABLED_BANNER') }}
       </div>
-      <div class="flex flex-wrap items-center gap-2 mb-4">
-        <Button
-          sm
-          :solid="eventTypeTab === 'event'"
-          :faded="eventTypeTab !== 'event'"
-          :label="$t('AUTOMATION.TAB_EVENT')"
-          @click="eventTypeTab = 'event'"
-        />
-        <Button
-          sm
-          :solid="eventTypeTab === 'time'"
-          :faded="eventTypeTab !== 'time'"
-          :label="$t('AUTOMATION.TAB_TIME')"
-          @click="eventTypeTab = 'time'"
+      <div class="mb-4">
+        <TabBar
+          :tabs="eventTypeTabs"
+          :initial-active-tab="activeEventTypeTabIndex"
+          @tab-changed="onEventTypeTabChanged"
         />
       </div>
 
@@ -442,15 +447,16 @@ const tableHeaders = computed(() => {
         <p class="m-0 text-xs font-medium uppercase text-n-slate-11">
           {{ $t('AUTOMATION.TIME_PRESETS_TITLE') }}
         </p>
-        <div class="flex flex-wrap gap-2">
-          <Button
+        <div class="flex flex-col gap-2">
+          <PresetActivationCard
             v-for="preset in unactivatedTimePresets"
             :key="preset.id"
-            sm
-            faded
-            icon="i-lucide-sparkles"
-            :label="$t(preset.nameKey)"
-            @click="activateTimePreset(preset)"
+            :name="$t(preset.nameKey)"
+            :description="
+              preset.descriptionKey ? $t(preset.descriptionKey) : ''
+            "
+            :activate-label="$t('BUSINESS_RULES.ACTIVATE_PRESET')"
+            @activate="activateTimePreset(preset)"
           />
         </div>
       </div>
