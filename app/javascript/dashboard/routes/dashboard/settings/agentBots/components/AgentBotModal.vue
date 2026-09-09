@@ -327,7 +327,7 @@ defineExpose({ dialogRef });
           message-type="error"
           @blur="v$.botUrl.$touch()"
         />
-        <p v-if="!botUrlError" class="-mt-1 text-label-small text-n-slate-11">
+        <p v-if="!botUrlError" class="-mt-1 text-label-small text-n-amber-11">
           {{ $t('AGENT_BOTS.FORM.WEBHOOK_URL.HELP') }}
         </p>
       </div>

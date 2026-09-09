@@ -117,7 +117,7 @@
       "TOGGLE": "Toggle secret visibility",
       "CREATED_DESC": "Usá el secreto de abajo para verificar la firma de los mensajes del webhook. Copialo ahora — después también lo vas a poder ver en la configuración del bot.",
       "DONE": "Done",
-      "HELP": "Firma los mensajes que Chatwoot le manda a la IA, para que ésta verifique que vienen de acá. Podés resetearlo cuando quieras: como mucho, algún mensaje que llegue justo en ese momento tarda hasta un minuto de más en responderse mientras se sincroniza — el bot no se rompe.",
+      "HELP": "Clave de seguridad interna entre Chatwoot y la IA. La podés reiniciar cuando quieras sin problema — a lo sumo, un mensaje que llegue justo en ese momento puede tardar un poco más en responderse, pero el bot sigue funcionando normal.",
       "RESET_SUCCESS": "Webhook secret regenerated successfully",
       "RESET_ERROR": "Unable to regenerate webhook secret. Please try again"
     },
@@ -138,7 +138,7 @@
         "LABEL": "URL de Webhook",
         "PLACEHOLDER": "https://example.com/webhook",
         "REQUIRED": "Dirección del webhook es requerida",
-        "HELP": "Ya viene con la de Panel AI. Cambiala solo si vas a conectar este bot a otra IA — si queda vacía o mal escrita, el bot deja de recibir mensajes."
+        "HELP": "Ya viene configurada, no hace falta tocarla. ⚠️ Si la cambiás o la borrás por error, el bot deja de recibir mensajes hasta que la corrijas."
       },
       "ERRORS": {
         "NAME": "El nombre del bot es obligatorio",

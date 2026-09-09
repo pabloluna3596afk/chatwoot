@@ -117,7 +117,7 @@
       "TOGGLE": "Toggle secret visibility",
       "CREATED_DESC": "Use the secret below to verify webhook signatures. Please copy it now, you can also find it later in the bot settings.",
       "DONE": "Done",
-      "HELP": "Signs the messages Chatwoot sends to the AI, so it can verify they really came from here. Safe to reset any time — at most, a message that arrives right then takes up to a minute longer to get a reply while it re-syncs. It won't break the bot.",
+      "HELP": "Internal security key between Chatwoot and the AI. Safe to reset any time — at most, a message that arrives right then may take a bit longer to get a reply, but the bot keeps working normally.",
       "RESET_SUCCESS": "Webhook secret regenerated successfully",
       "RESET_ERROR": "Unable to regenerate webhook secret. Please try again"
     },
@@ -138,7 +138,7 @@
         "LABEL": "Webhook URL",
         "PLACEHOLDER": "https://example.com/webhook",
         "REQUIRED": "Webhook URL is required",
-        "HELP": "Already set to Panel AI's default. Only change it if you're pointing this bot at a different AI — leaving it blank or wrong stops the bot from receiving messages."
+        "HELP": "Already set up — no need to touch it. ⚠️ If you change or delete it by mistake, the bot stops receiving messages until it's fixed."
       },
       "ERRORS": {
         "NAME": "Bot name is required",
