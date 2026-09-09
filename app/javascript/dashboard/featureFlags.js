@@ -58,6 +58,9 @@ export const FEATURE_FLAGS = {
   INTERNAL_CHATS: 'internal_chats',
   FLOWS_V1: 'flows_v1',
   CALENDAR: 'calendar_integration',
+  // Super admin controlled: whether this account may pull data out of the tool.
+  CUSTOMER_DATA_EXPORT: 'customer_data_export',
+  REPORT_EXPORT: 'report_export',
 };
 
 export const PREMIUM_FEATURES = [

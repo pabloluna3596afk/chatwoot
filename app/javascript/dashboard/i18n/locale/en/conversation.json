@@ -1,5 +1,11 @@
 {
   "CONVERSATION": {
+    "SUGGESTED_ATTRIBUTES": {
+      "APPLY": "Save this value",
+      "APPLIED": "Saved",
+      "NO_FIELD": "no field yet",
+      "APPLY_ERROR": "Could not save the value"
+    },
     "REFERRAL": {
       "AD_LABEL": "Ad",
       "POST_LABEL": "Post",

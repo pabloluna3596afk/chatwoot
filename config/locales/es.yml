@@ -58,6 +58,8 @@ es:
     sessions:
       cannot_revoke_current: No puede revocar la sesión actual.
   errors:
+    downloads:
+      disabled: Las descargas están deshabilitadas para esta cuenta por el administrador del sistema.
     account:
       not_authorized: No está autorizado a acceder a esta cuenta
       email_limit_exceeded: Se ha alcanzado el límite diario de correos electrónicos de esta cuenta
@@ -605,6 +607,19 @@ es:
       blank_liquid: 'Automatización «%{name}» no envió una plantilla de WhatsApp (una variable de la plantilla quedó vacía).'
   business_rules:
     lint_failed: 'Las reglas de negocio no pasaron validación. Corrige o desactiva las reglas inválidas activas.'
+    blocked_automation:
+      note: '%{source} intentó cambiar el estado de esta conversación, pero una regla de negocio lo bloqueó: %{reason}.'
+      source:
+        automation: 'La automatización «%{name}»'
+        macro: 'El macro «%{name}»'
+        generic: 'Un proceso automático'
+      reasons:
+        missing_attribute: 'falta completar el atributo «%{name}»'
+        missing_reason_attribute: 'falta completar el atributo de motivo «%{name}»'
+        missing_private_note: 'falta una nota privada antes de cambiar el estado'
+        forbidden_label: 'no se puede cambiar el estado mientras esté la etiqueta «%{label}»'
+        missing_assignee: 'falta asignar un equipo o agente'
+        generic: 'no se cumplen los requisitos configurados'
   crm:
     no_message: 'No messages in conversation'
     attachment: '[Attachment: %{type}]'

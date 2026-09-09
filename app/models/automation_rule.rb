@@ -27,6 +27,13 @@ class AutomationRule < ApplicationRecord
   # Conversation-level delayed rules key their episode on status; only status and attributes
   # that never change after the delay (inbox) are safe to also filter on.
   DELAYED_CONVERSATION_ATTRIBUTES = %w[status inbox_id].freeze
+  # Schedule kinds that scan contacts instead of conversations (see
+  # Automations::ContactBasedRuleRunner) — a birthday, a last purchase or a last
+  # activity lives on the contact, and TimeBasedRuleRunner can never reach a
+  # contact with no open conversation.
+  CONTACT_BASED_SCHEDULE_KINDS = %w[contact_date].freeze
+  CONTACT_DATE_SOURCES = %w[contact_attribute last_activity].freeze
+  CONTACT_DATE_RECURRENCES = %w[once yearly].freeze
 
   belongs_to :account
   has_many :pending_executions, class_name: 'AutomationRulePendingExecution', dependent: :delete_all
@@ -50,6 +57,10 @@ class AutomationRule < ApplicationRecord
 
   def time_triggered?
     event_name == 'time_triggered'
+  end
+
+  def contact_based_schedule?
+    CONTACT_BASED_SCHEDULE_KINDS.include?(schedule_value(:kind).to_s)
   end
 
   def conditions_attributes
@@ -85,8 +96,11 @@ class AutomationRule < ApplicationRecord
   def schedule_format
     kind = schedule_value(:kind).to_s
     errors.add(:schedule, 'kind is required for time_triggered rules') if kind.blank?
-    return unless kind == 'days_since_attribute'
+    return days_since_attribute_schedule_format if kind == 'days_since_attribute'
+    return contact_date_schedule_format if kind == 'contact_date'
+  end
 
+  def days_since_attribute_schedule_format
     relative_to = schedule_value(:relative_to).to_s.presence || 'after'
     unless %w[after on before].include?(relative_to)
       errors.add(:schedule, 'relative_to must be after, on, or before')
@@ -102,6 +116,75 @@ class AutomationRule < ApplicationRecord
 
     days = schedule_hash[:days] || schedule_hash['days']
     errors.add(:schedule, 'days must be 1 or greater') if days.to_i < 1
+  end
+
+  # Contact-based rules need an inbox to create a conversation in when the matching
+  # contact has none yet (see Automations::ContactBasedRuleRunner#resolve_conversation).
+  def contact_date_schedule_format
+    return unless contact_date_source_valid?
+    return unless contact_date_recurrence_valid?
+    return unless contact_date_relative_to_valid?
+    return unless contact_date_inbox_valid?
+
+    return if (schedule_value(:relative_to).to_s.presence || 'on') == 'on'
+
+    days = schedule_hash[:days] || schedule_hash['days']
+    errors.add(:schedule, 'days must be 1 or greater') if days.to_i < 1
+  end
+
+  def contact_date_source_valid?
+    source = schedule_value(:date_source).to_s.presence || 'contact_attribute'
+    unless CONTACT_DATE_SOURCES.include?(source)
+      errors.add(:schedule, "date_source must be one of #{CONTACT_DATE_SOURCES.join(', ')}")
+      return false
+    end
+
+    # last_activity reads a column; only an attribute source needs a key.
+    if source == 'contact_attribute' && schedule_value(:attribute_key).to_s.blank?
+      errors.add(:schedule, 'attribute_key is required')
+      return false
+    end
+
+    true
+  end
+
+  # Only a calendar date can come around again; last_activity moves forward on
+  # its own, so a yearly window there would never mean anything.
+  def contact_date_recurrence_valid?
+    recurrence = schedule_value(:recurrence).to_s.presence || 'once'
+    unless CONTACT_DATE_RECURRENCES.include?(recurrence)
+      errors.add(:schedule, "recurrence must be one of #{CONTACT_DATE_RECURRENCES.join(', ')}")
+      return false
+    end
+
+    source = schedule_value(:date_source).to_s.presence || 'contact_attribute'
+    if recurrence == 'yearly' && source != 'contact_attribute'
+      errors.add(:schedule, 'recurrence yearly requires a contact_attribute date_source')
+      return false
+    end
+
+    true
+  end
+
+  def contact_date_relative_to_valid?
+    relative_to = schedule_value(:relative_to).to_s.presence || 'on'
+    return true if %w[after on before].include?(relative_to)
+
+    errors.add(:schedule, 'relative_to must be after, on, or before')
+    false
+  end
+
+  def contact_date_inbox_valid?
+    target_inbox_id = schedule_value(:target_inbox_id)
+    if target_inbox_id.blank?
+      errors.add(:schedule, 'target_inbox_id is required')
+      return false
+    end
+
+    return true if account.inboxes.exists?(id: target_inbox_id)
+
+    errors.add(:schedule, 'target_inbox_id must belong to the account')
+    false
   end
 
   def schedule_hash

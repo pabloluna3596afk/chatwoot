@@ -281,7 +281,7 @@ RSpec.describe Conversations::BusinessRulesGuard do
       expect(result.errors).to include(hash_including(attribute_key: 'valor_venta'))
     end
 
-    it 'skips guards when status change is driven by an automation' do
+    it 'skips guards when status change is driven by an automation, by default' do
       set_rules([
                   {
                     'id' => 'r_reason',
@@ -300,6 +300,29 @@ RSpec.describe Conversations::BusinessRulesGuard do
 
       expect(result.ok?).to be(true)
       expect(result.errors).to be_empty
+    ensure
+      Current.reset
+    end
+
+    it 'applies guards to an automation that opted in via enforces_business_rules' do
+      set_rules([
+                  {
+                    'id' => 'r_reason',
+                    'type' => 'require_reason_on_status',
+                    'enabled' => true,
+                    'config' => {
+                      'statuses' => ['snoozed'],
+                      'reason_attribute_key' => 'motivo_posponer',
+                      'require_private_note' => true
+                    }
+                  }
+                ])
+
+      Current.executed_by = create(:automation_rule, account: account, enforces_business_rules: true)
+      result = described_class.new(conversation: conversation, new_status: 'snoozed').perform
+
+      expect(result.ok?).to be(false)
+      expect(result.errors).to include(hash_including(code: 'require_reason_attribute'))
     ensure
       Current.reset
     end

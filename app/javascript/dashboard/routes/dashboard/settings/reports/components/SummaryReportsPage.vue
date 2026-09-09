@@ -1,10 +1,12 @@
-﻿<script setup>
-import { ref } from 'vue';
+<script setup>
+import { computed, ref } from 'vue';
 import ReportHeader from './ReportHeader.vue';
 import SummaryReports from './SummaryReports.vue';
 import V4Button from 'dashboard/components-next/button/Button.vue';
+import { useAccount } from 'dashboard/composables/useAccount';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
-const props = defineProps({
+defineProps({
   headerTitle: { type: String, required: true },
   headerDescription: { type: String, required: true },
   downloadLabel: { type: String, required: true },
@@ -18,6 +20,11 @@ const props = defineProps({
 const summarReportsRef = ref(null);
 const isDownloadMenuOpen = ref(false);
 
+const { isCloudFeatureEnabled } = useAccount();
+const canDownloadReports = computed(() =>
+  isCloudFeatureEnabled(FEATURE_FLAGS.REPORT_EXPORT)
+);
+
 const onDownloadClick = exportFormat => {
   isDownloadMenuOpen.value = false;
   summarReportsRef.value?.downloadReports(exportFormat);
@@ -29,7 +36,7 @@ const onDownloadClick = exportFormat => {
     :header-title="headerTitle"
     :header-description="headerDescription"
   >
-    <div class="relative">
+    <div v-if="canDownloadReports" class="relative">
       <V4Button
         :label="downloadLabel"
         icon="i-ph-download-simple"
@@ -46,14 +53,14 @@ const onDownloadClick = exportFormat => {
           class="px-3 py-2 text-sm text-start text-n-slate-12 hover:bg-n-alpha-2"
           @click="onDownloadClick('csv')"
         >
-          CSV
+          {{ $t('REPORT.DOWNLOAD_FORMAT_CSV') }}
         </button>
         <button
           type="button"
           class="px-3 py-2 text-sm text-start text-n-slate-12 hover:bg-n-alpha-2"
           @click="onDownloadClick('xlsx')"
         >
-          Excel
+          {{ $t('REPORT.DOWNLOAD_FORMAT_EXCEL') }}
         </button>
       </div>
     </div>

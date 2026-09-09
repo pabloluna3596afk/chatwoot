@@ -1,5 +1,11 @@
 {
   "CONVERSATION": {
+    "SUGGESTED_ATTRIBUTES": {
+      "APPLY": "Guardar este dato",
+      "APPLIED": "Guardado",
+      "NO_FIELD": "sin campo aún",
+      "APPLY_ERROR": "No se pudo guardar el dato"
+    },
     "SELECT_A_CONVERSATION": "Por favor, selecciona una conversación del panel izquierdo",
     "CSAT_REPLY_MESSAGE": "Por favor, valora la conversación",
     "404": "Lo sentimos, no podemos encontrar la conversación. Por favor, inténtalo de nuevo",

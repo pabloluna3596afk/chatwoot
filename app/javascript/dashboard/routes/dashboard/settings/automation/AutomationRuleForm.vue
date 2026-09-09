@@ -25,6 +25,7 @@ import AutomationRunTypeSelector from './components/AutomationRunTypeSelector.vu
 import AutomationWaitCondition from './components/AutomationWaitCondition.vue';
 import AutomationInstantTrigger from './components/AutomationInstantTrigger.vue';
 import AutomationActions from './components/AutomationActions.vue';
+import Switch from 'dashboard/components-next/switch/Switch.vue';
 
 const props = defineProps({
   mode: {
@@ -343,6 +344,24 @@ const automationActionTypes = computed(() => {
   }));
 });
 
+// Business-rule guards (Configuración → Reglas de negocio) only ever gate a
+// status change — showing this toggle on a rule that only sends a message or
+// adds a label would be a setting that does nothing, so it only appears when
+// relevant.
+const STATUS_CHANGING_ACTIONS = [
+  'resolve_conversation',
+  'open_conversation',
+  'pending_conversation',
+  'mute_conversation',
+  'snooze_conversation',
+  'change_status',
+];
+const hasStatusChangingAction = computed(() =>
+  (automation.value.actions || []).some(action =>
+    STATUS_CHANGING_ACTIONS.includes(action.action_name)
+  )
+);
+
 watch(
   () => automation.value,
   () => {
@@ -602,6 +621,25 @@ defineExpose({ open, close, setLintFindings });
         :remove-action="removeAction"
         :reset-action="resetAction"
       />
+      <div
+        v-if="hasStatusChangingAction"
+        class="w-full mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-n-weak bg-n-solid-2 p-3"
+      >
+        <div>
+          <p class="m-0 text-sm font-medium text-n-slate-12">
+            {{ $t('AUTOMATION.ENFORCE_BUSINESS_RULES.LABEL') }}
+          </p>
+          <p class="mb-0 mt-1 text-xs text-n-slate-11">
+            {{ $t('AUTOMATION.ENFORCE_BUSINESS_RULES.HELP') }}
+          </p>
+        </div>
+        <Switch
+          :model-value="automation.enforces_business_rules"
+          @update:model-value="
+            value => (automation.enforces_business_rules = value)
+          "
+        />
+      </div>
       <!-- Server-side lint findings -->
       <div
         v-if="lintErrors.length || lintWarnings.length"

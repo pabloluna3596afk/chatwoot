@@ -5,11 +5,22 @@ import { useI18n } from 'vue-i18n';
 import Button from 'dashboard/components-next/button/Button.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import { usePolicy } from 'dashboard/composables/usePolicy';
+import { useAccount } from 'dashboard/composables/useAccount';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
 const emit = defineEmits(['add', 'import', 'export']);
 
 const { t } = useI18n();
 const { checkPermissions } = usePolicy();
+const { isCloudFeatureEnabled } = useAccount();
+
+// Importing is not a download, so it stays available even when the super admin
+// has turned customer data downloads off for this account.
+const canExportContacts = computed(
+  () =>
+    checkPermissions(['administrator', 'contact_manage']) &&
+    isCloudFeatureEnabled(FEATURE_FLAGS.CUSTOMER_DATA_EXPORT)
+);
 
 const contactMenuItems = computed(() => [
   {
@@ -18,7 +29,7 @@ const contactMenuItems = computed(() => [
     value: 'add',
     icon: 'i-lucide-plus',
   },
-  ...(checkPermissions(['administrator', 'contact_manage'])
+  ...(canExportContacts.value
     ? [
         {
           label: t(
