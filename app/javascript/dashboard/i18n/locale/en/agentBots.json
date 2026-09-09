@@ -117,15 +117,9 @@
       "TOGGLE": "Toggle secret visibility",
       "CREATED_DESC": "Use the secret below to verify webhook signatures. Please copy it now, you can also find it later in the bot settings.",
       "DONE": "Done",
+      "TOOLTIP": "Signs the messages Chatwoot sends to the AI, so it can verify they really came from here. Safe to reset any time — at most, a message that arrives right then takes up to a minute longer to get a reply while it re-syncs. It won't break the bot.",
       "RESET_SUCCESS": "Webhook secret regenerated successfully",
       "RESET_ERROR": "Unable to regenerate webhook secret. Please try again"
-    },
-    "ACCESS_TOKEN": {
-      "TITLE": "Access Token",
-      "DESCRIPTION": "Copy the access token and save it securely",
-      "COPY_SUCCESSFUL": "Access token copied to clipboard",
-      "RESET_SUCCESS": "Access token regenerated successfully",
-      "RESET_ERROR": "Unable to regenerate access token. Please try again"
     },
     "FORM": {
       "AVATAR": {
@@ -143,7 +137,8 @@
       "WEBHOOK_URL": {
         "LABEL": "Webhook URL",
         "PLACEHOLDER": "https://example.com/webhook",
-        "REQUIRED": "Webhook URL is required"
+        "REQUIRED": "Webhook URL is required",
+        "HELP": "Already set to Panel AI's default. Only change it if you're pointing this bot at a different AI — leaving it blank or wrong stops the bot from receiving messages."
       },
       "ERRORS": {
         "NAME": "Bot name is required",

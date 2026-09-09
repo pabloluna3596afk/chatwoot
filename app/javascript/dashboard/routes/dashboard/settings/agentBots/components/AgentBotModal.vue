@@ -53,8 +53,13 @@ const formState = reactive({
   botAvatarUrl: '',
 });
 
-const [showAccessToken, toggleAccessToken] = useToggle();
-const accessToken = ref('');
+// Only reveals the webhook secret after creation — the access token used to
+// be shown here too, but Panel AI never authenticates with a bot's own
+// token (every call back to Chatwoot uses one fixed CHATWOOT_API_TOKEN from
+// its own .env, verified by tracing every ChatwootClient(...) call site).
+// Showing "Reset" for a credential that does nothing here only invites
+// admins to break something for no real gain, so it was dropped entirely.
+const [showSecretReveal, toggleSecretReveal] = useToggle();
 const botSecret = ref('');
 
 const v$ = useVuelidate(
@@ -86,8 +91,8 @@ const isLoading = computed(() =>
 );
 
 const dialogTitle = computed(() => {
-  if (showAccessToken.value) {
-    return t('AGENT_BOTS.ACCESS_TOKEN.TITLE');
+  if (showSecretReveal.value) {
+    return t('AGENT_BOTS.SECRET.LABEL');
   }
 
   return props.type === MODAL_TYPES.CREATE
@@ -96,8 +101,8 @@ const dialogTitle = computed(() => {
 });
 
 const dialogDescription = computed(() => {
-  if (showAccessToken.value) {
-    return t('AGENT_BOTS.ACCESS_TOKEN.DESCRIPTION');
+  if (showSecretReveal.value) {
+    return t('AGENT_BOTS.SECRET.CREATED_DESC');
   }
   return '';
 });
@@ -116,11 +121,14 @@ const botUrlError = computed(() =>
   v$.value.botUrl.$error ? v$.value.botUrl.$errors[0]?.$message : ''
 );
 
-const showAccessTokenInput = computed(
-  () =>
-    showAccessToken.value ||
-    props.type === MODAL_TYPES.EDIT ||
-    accessToken.value
+// Always-visible caption instead of a hover-only tooltip — this is the one
+// field that can actually stop the bot from receiving messages, so the
+// warning shouldn't be easy to miss.
+const botUrlMessage = computed(
+  () => botUrlError.value || t('AGENT_BOTS.FORM.WEBHOOK_URL.HELP')
+);
+const botUrlMessageType = computed(() =>
+  botUrlError.value ? 'error' : 'info'
 );
 
 const resetForm = () => {
@@ -161,7 +169,7 @@ const handleAvatarDelete = async () => {
 const handleSubmit = async () => {
   v$.value.$touch();
   if (v$.value.$invalid) return;
-  if (showAccessToken.value) return;
+  if (showSecretReveal.value) return;
 
   const botData = {
     name: formState.botName,
@@ -188,20 +196,14 @@ const handleSubmit = async () => {
       : t('AGENT_BOTS.EDIT.API.SUCCESS_MESSAGE');
     useAlert(alertKey);
 
-    // Show access token and secret after creation
+    // Show the webhook secret once, right after creation
     if (isCreate) {
-      const {
-        access_token: responseAccessToken,
-        secret: responseSecret,
-        id,
-      } = response || {};
+      const { secret: responseSecret, id } = response || {};
 
-      if (id && responseAccessToken) {
-        accessToken.value = responseAccessToken;
-        botSecret.value = responseSecret || '';
-        toggleAccessToken(true);
+      if (id && responseSecret) {
+        botSecret.value = responseSecret;
+        toggleSecretReveal(true);
       } else {
-        accessToken.value = '';
         botSecret.value = '';
         dialogRef.value.close();
       }
@@ -226,7 +228,6 @@ const initializeForm = () => {
       outgoing_url: botUrl,
       thumbnail,
       bot_config: botConfig,
-      access_token: botAccessToken,
       secret: botSecretValue,
     } = props.selectedBot;
     formState.botName = name || '';
@@ -234,18 +235,12 @@ const initializeForm = () => {
     formState.botUrl = botUrl || botConfig?.webhook_url || '';
     formState.botAvatarUrl = thumbnail || '';
 
-    if (props.type === MODAL_TYPES.EDIT) {
-      if (botAccessToken) accessToken.value = botAccessToken;
-      if (botSecretValue) botSecret.value = botSecretValue;
+    if (props.type === MODAL_TYPES.EDIT && botSecretValue) {
+      botSecret.value = botSecretValue;
     }
   } else {
     resetForm();
   }
-};
-
-const onCopyToken = async value => {
-  await copyTextToClipboard(value);
-  useAlert(t('AGENT_BOTS.ACCESS_TOKEN.COPY_SUCCESSFUL'));
 };
 
 const onCopySecret = async value => {
@@ -266,24 +261,10 @@ const onResetSecret = async () => {
   }
 };
 
-const onResetToken = async () => {
-  const response = await store.dispatch(
-    'agentBots/resetAccessToken',
-    props.selectedBot.id
-  );
-  if (response) {
-    accessToken.value = response.access_token;
-    useAlert(t('AGENT_BOTS.ACCESS_TOKEN.RESET_SUCCESS'));
-  } else {
-    useAlert(t('AGENT_BOTS.ACCESS_TOKEN.RESET_ERROR'));
-  }
-};
-
 const closeModal = () => {
-  if (!showAccessToken.value) v$.value?.$reset();
-  accessToken.value = '';
+  if (!showSecretReveal.value) v$.value?.$reset();
   botSecret.value = '';
-  toggleAccessToken(false);
+  toggleSecretReveal(false);
 };
 
 const onClickClose = () => {
@@ -308,7 +289,7 @@ defineExpose({ dialogRef });
   >
     <form class="flex flex-col gap-4" @submit.prevent="handleSubmit">
       <div
-        v-if="!showAccessToken || type === MODAL_TYPES.EDIT"
+        v-if="!showSecretReveal || type === MODAL_TYPES.EDIT"
         class="flex flex-col gap-4"
       >
         <div class="mb-2 flex flex-col items-start">
@@ -348,8 +329,8 @@ defineExpose({ dialogRef });
           v-model="formState.botUrl"
           :label="$t('AGENT_BOTS.FORM.WEBHOOK_URL.LABEL')"
           :placeholder="$t('AGENT_BOTS.FORM.WEBHOOK_URL.PLACEHOLDER')"
-          :message="botUrlError"
-          :message-type="botUrlError ? 'error' : 'info'"
+          :message="botUrlMessage"
+          :message-type="botUrlMessageType"
           @blur="v$.botUrl.$touch()"
         />
       </div>
@@ -358,8 +339,14 @@ defineExpose({ dialogRef });
         v-if="botSecret && type === MODAL_TYPES.EDIT"
         class="flex flex-col gap-1"
       >
-        <label class="mb-0.5 text-sm font-medium text-n-slate-12">
+        <label
+          class="mb-0.5 flex items-center gap-1 text-sm font-medium text-n-slate-12"
+        >
           {{ $t('AGENT_BOTS.SECRET.LABEL') }}
+          <span
+            v-tooltip.top="$t('AGENT_BOTS.SECRET.TOOLTIP')"
+            class="i-lucide-info size-3.5 text-n-slate-9 cursor-help"
+          />
         </label>
         <AccessToken
           :value="botSecret"
@@ -368,29 +355,8 @@ defineExpose({ dialogRef });
         />
       </div>
 
-      <div v-if="showAccessTokenInput" class="flex flex-col gap-1">
-        <label
-          v-if="type === MODAL_TYPES.EDIT"
-          class="mb-0.5 text-sm font-medium text-n-slate-12"
-        >
-          {{ $t('AGENT_BOTS.ACCESS_TOKEN.TITLE') }}
-        </label>
-        <AccessToken
-          v-if="type === MODAL_TYPES.EDIT"
-          :value="accessToken"
-          @on-copy="onCopyToken"
-          @on-reset="onResetToken"
-        />
-        <AccessToken
-          v-else
-          :value="accessToken"
-          :show-reset-button="false"
-          @on-copy="onCopyToken"
-        />
-      </div>
-
       <div
-        v-if="botSecret && showAccessToken && type === MODAL_TYPES.CREATE"
+        v-if="botSecret && showSecretReveal && type === MODAL_TYPES.CREATE"
         class="flex flex-col gap-1"
       >
         <p class="text-sm text-n-slate-11">
@@ -415,7 +381,7 @@ defineExpose({ dialogRef });
           @click="onClickClose()"
         />
         <NextButton
-          v-if="!showAccessToken"
+          v-if="!showSecretReveal"
           type="submit"
           data-testid="label-submit"
           :label="confirmButtonLabel"

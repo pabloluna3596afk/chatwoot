@@ -115,17 +115,11 @@
       "COPY": "Copy secret to clipboard",
       "COPY_SUCCESS": "Secret copied to clipboard",
       "TOGGLE": "Toggle secret visibility",
-      "CREATED_DESC": "Use the secret below to verify webhook signatures. Please copy it now, you can also find it later in the bot settings.",
+      "CREATED_DESC": "Usá el secreto de abajo para verificar la firma de los mensajes del webhook. Copialo ahora — después también lo vas a poder ver en la configuración del bot.",
       "DONE": "Done",
+      "TOOLTIP": "Firma los mensajes que Chatwoot le manda a la IA, para que ésta verifique que vienen de acá. Podés resetearlo cuando quieras: como mucho, algún mensaje que llegue justo en ese momento tarda hasta un minuto de más en responderse mientras se sincroniza — el bot no se rompe.",
       "RESET_SUCCESS": "Webhook secret regenerated successfully",
       "RESET_ERROR": "Unable to regenerate webhook secret. Please try again"
-    },
-    "ACCESS_TOKEN": {
-      "TITLE": "Token de acceso",
-      "DESCRIPTION": "Copie el código de acceso y guardarlo seguro",
-      "COPY_SUCCESSFUL": "Código de acceso copiado en el portapapeles",
-      "RESET_SUCCESS": "Código de acceso regenerado exitosamente",
-      "RESET_ERROR": "Dirección del webhook es requerida"
     },
     "FORM": {
       "AVATAR": {
@@ -143,7 +137,8 @@
       "WEBHOOK_URL": {
         "LABEL": "URL de Webhook",
         "PLACEHOLDER": "https://example.com/webhook",
-        "REQUIRED": "Dirección del webhook es requerida"
+        "REQUIRED": "Dirección del webhook es requerida",
+        "HELP": "Ya viene con la de Panel AI. Cambiala solo si vas a conectar este bot a otra IA — si queda vacía o mal escrita, el bot deja de recibir mensajes."
       },
       "ERRORS": {
         "NAME": "El nombre del bot es obligatorio",
