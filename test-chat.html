@@ -21,8 +21,11 @@
   -->
   <script>
     (function (d, t) {
-      // URL del servidor Chatwoot (NO la de esta página)
-      var CHATWOOT_URL = 'http://localhost:3000';
+      // URL del servidor Chatwoot (NO la de esta página).
+      // Por defecto localhost:3000; pasa ?crm=https://tu-tunel.trycloudflare.com
+      // para pruebas remotas sin editar este archivo.
+      var params = new URLSearchParams(window.location.search);
+      var CHATWOOT_URL = params.get('crm') || 'http://localhost:3000';
       var WEBSITE_TOKEN = 'fkVfJ1vdPozPcrd8Bi9s83Jf';
 
       var g = d.createElement(t);

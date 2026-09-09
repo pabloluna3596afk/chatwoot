@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import BaseBubble from 'next/message/bubbles/Base.vue';
 import FormattedContent from './FormattedContent.vue';
 import AttachmentChips from 'next/message/chips/AttachmentChips.vue';
+import SuggestedAttributeChips from './SuggestedAttributeChips.vue';
 import TranslationToggle from 'dashboard/components-next/message/TranslationToggle.vue';
 import { MESSAGE_TYPES } from '../../constants';
 import { useMessageContext } from '../../provider.js';
@@ -40,6 +41,10 @@ const templateButtons = computed(() => {
   return contentAttributes.value?.templateButtons ?? [];
 });
 
+const suggestedAttributes = computed(() => {
+  return contentAttributes.value?.suggestedAttributes ?? [];
+});
+
 const buttonHint = button => {
   if (button.url) return button.url;
   if (button.phoneNumber) return button.phoneNumber;
@@ -66,6 +71,7 @@ const handleSeeOriginal = () => {
         @toggle="handleSeeOriginal"
       />
       <AttachmentChips :attachments="attachments" class="gap-2" />
+      <SuggestedAttributeChips :suggestions="suggestedAttributes" />
       <div
         v-if="templateButtons.length"
         class="flex flex-col gap-1.5 pt-1 border-t border-n-alpha-2"
