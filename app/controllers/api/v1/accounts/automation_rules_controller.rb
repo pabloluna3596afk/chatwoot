@@ -71,6 +71,16 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
     render json: serialize_simulation(result), status: :ok
   end
 
+  # Dry count: how many contacts a not-yet-saved contact-based schedule would
+  # reach right now — lets the activation dialog show "this would reach N
+  # contacts" before the admin confirms. Executes nothing.
+  def reach_preview
+    schedule = params.permit(schedule: {})[:schedule] || {}
+    rule = Current.account.automation_rules.new(schedule: schedule)
+    count = Automations::ContactBasedRuleRunner.new(rule).candidates_count
+    render json: { count: count }, status: :ok
+  end
+
   def destroy
     @automation_rule.destroy!
     head :ok
