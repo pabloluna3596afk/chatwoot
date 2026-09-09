@@ -11,6 +11,17 @@
       "CONTRADICTORY_ACTIONS": "La regla «{other_rule_name}» se ejecuta en el mismo disparador y hace lo contrario. Gana la que se ejecute última.",
       "CONFLICTING_ACTION_VALUES": "La regla «{other_rule_name}» también aplica {action_name} en el mismo disparador, con otro valor. Gana la que se ejecute última."
     },
+    "ATTRIBUTE_REQUIREMENT": {
+      "TITLE": "Elegí el atributo",
+      "DESCRIPTION": "Esta receta necesita un atributo de fecha para «{name}». Elegí uno que ya exista o creá uno nuevo.",
+      "SELECT_LABEL": "Atributo",
+      "CREATE_NEW_OPTION": "+ Crear nuevo atributo",
+      "NEW_NAME_LABEL": "Nombre del atributo",
+      "KEY_PREVIEW": "Clave",
+      "CONFIRM": "Continuar",
+      "CANCEL": "Cancelar",
+      "CREATE_ERROR": "No se pudo crear el atributo. Probá de nuevo."
+    },
     "ENFORCE_BUSINESS_RULES": {
       "LABEL": "Aplicar reglas de negocio a esta automatización",
       "HELP": "Por defecto, las automatizaciones cambian el estado de la conversación sin pasar por las reglas de negocio (Configuración → Reglas de negocio). Actívalo para que esta automatización respete esas reglas igual que un agente humano; si una regla la bloquea, se deja una nota en la conversación explicando qué faltó."

@@ -12,6 +12,17 @@
       "CONTRADICTORY_ACTIONS": "Rule \"{other_rule_name}\" runs on the same trigger and does the opposite. Whichever runs last wins.",
       "CONFLICTING_ACTION_VALUES": "Rule \"{other_rule_name}\" also sets {action_name} on the same trigger, with a different value. Whichever runs last wins."
     },
+    "ATTRIBUTE_REQUIREMENT": {
+      "TITLE": "Choose the attribute",
+      "DESCRIPTION": "This recipe needs a date attribute for \"{name}\". Pick one that already exists or create a new one.",
+      "SELECT_LABEL": "Attribute",
+      "CREATE_NEW_OPTION": "+ Create new attribute",
+      "NEW_NAME_LABEL": "Attribute name",
+      "KEY_PREVIEW": "Key",
+      "CONFIRM": "Continue",
+      "CANCEL": "Cancel",
+      "CREATE_ERROR": "Could not create the attribute. Please try again."
+    },
     "ENFORCE_BUSINESS_RULES": {
       "LABEL": "Apply business rules to this automation",
       "HELP": "By default, automations change a conversation's status without going through business rules (Settings → Business rules). Turn this on to make this automation respect those rules the same way an agent does; if a rule blocks it, a note is left on the conversation explaining what was missing."

@@ -315,6 +315,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_02_130000) do
     t.boolean "active", default: true, null: false
     t.jsonb "schedule", default: {}, null: false
     t.integer "execution_delay"
+    t.string "preset_id"
+    t.index ["account_id", "preset_id"], name: "index_automation_rules_on_account_id_and_preset_id"
     t.boolean "enforces_business_rules", default: false, null: false
     t.index ["account_id"], name: "index_automation_rules_on_account_id"
   end
@@ -985,8 +987,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_02_130000) do
     t.datetime "waiting_since"
     t.text "cached_label_list"
     t.bigint "assignee_agent_bot_id"
-    t.string "ai_assignee_type"
     t.datetime "status_changed_at"
+    t.string "ai_assignee_type"
     t.index ["account_id", "display_id"], name: "index_conversations_on_account_id_and_display_id", unique: true
     t.index ["account_id", "id"], name: "index_conversations_on_id_and_account_id"
     t.index ["account_id", "inbox_id", "status", "assignee_id"], name: "conv_acid_inbid_stat_asgnid_idx"

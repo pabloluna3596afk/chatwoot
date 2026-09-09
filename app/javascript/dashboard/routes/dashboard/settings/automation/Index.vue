@@ -2,6 +2,7 @@
 import { useAlert } from 'dashboard/composables';
 import AddAutomationRule from './AddAutomationRule.vue';
 import EditAutomationRule from './EditAutomationRule.vue';
+import AttributeRequirementDialog from './AttributeRequirementDialog.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import { computed, onMounted, ref } from 'vue';
@@ -14,6 +15,8 @@ import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import { BaseTable } from 'dashboard/components-next/table';
 import { TIME_RULE_PRESETS } from 'dashboard/components-next/ConversationWorkflow/businessRulesConstants';
 import { DEFAULT_DELAY_MINUTES } from './constants';
+import { replaceAttributeKey } from './presetAttributeSubstitution';
+import { filterUnactivatedPresets } from './unactivatedPresets';
 
 const getters = useStoreGetters();
 const store = useStore();
@@ -23,6 +26,7 @@ const confirmDialog = ref(null);
 const loading = ref({});
 const addDialogRef = ref(null);
 const editDialogRef = ref(null);
+const attributeRequirementDialogRef = ref(null);
 const showDeleteConfirmationPopup = ref(false);
 const selectedAutomation = ref({});
 const searchQuery = ref('');
@@ -33,6 +37,10 @@ const toggleModalDescription = ref(
 );
 
 const records = computed(() => getters['automations/getAutomations'].value);
+
+const unactivatedTimePresets = computed(() =>
+  filterUnactivatedPresets(TIME_RULE_PRESETS, records.value)
+);
 
 const tabFilteredRecords = computed(() => {
   const all = records.value || [];
@@ -156,7 +164,35 @@ const hideAddPopup = () => {
   addDialogRef.value?.close();
 };
 
+// One dialog instance is reused per requirement, so requirements must resolve
+// one at a time regardless of style rules — a second concurrent .resolve()
+// call would overwrite the first's pending state on the same dialog.
+// Returns null as soon as one step is cancelled, so activation aborts
+// cleanly instead of creating a half-wired rule.
+const resolveNextAttribute = async (requirements, resolvedKeys) => {
+  if (!requirements.length) return resolvedKeys;
+  const [requirement, ...rest] = requirements;
+  const resolvedKey = await attributeRequirementDialogRef.value?.resolve({
+    attributeKey: requirement.attributeKey,
+    attributeDisplayName: t(requirement.attributeDisplayNameKey),
+    attributeModel: requirement.attributeModel,
+    attributeDisplayType: requirement.attributeDisplayType,
+    category: requirement.categoryKey ? t(requirement.categoryKey) : '',
+  });
+  if (!resolvedKey) return null;
+  return resolveNextAttribute(rest, {
+    ...resolvedKeys,
+    [requirement.attributeKey]: resolvedKey,
+  });
+};
+
+const resolveRequiredAttributes = preset =>
+  resolveNextAttribute(preset.requiresAttributes || [], {});
+
 const activateTimePreset = async preset => {
+  const resolvedKeys = await resolveRequiredAttributes(preset);
+  if (preset.requiresAttributes?.length && !resolvedKeys) return;
+
   try {
     const schedule = { ...(preset.defaults.schedule || {}) };
     let conditions = preset.defaults.conditions;
@@ -173,14 +209,22 @@ const activateTimePreset = async preset => {
         },
       ];
     }
+    const actions = structuredClone(preset.defaults.actions || []);
+    Object.entries(resolvedKeys || {}).forEach(([oldKey, newKey]) => {
+      if (oldKey === newKey) return;
+      replaceAttributeKey(schedule, oldKey, newKey);
+      replaceAttributeKey(conditions, oldKey, newKey);
+      replaceAttributeKey(actions, oldKey, newKey);
+    });
     const payload = {
       name: t(preset.nameKey),
       description: t(preset.descriptionKey),
       event_name: 'time_triggered',
       active: true,
       conditions: conditions || [],
-      actions: preset.defaults.actions || [],
+      actions,
       schedule,
+      preset_id: preset.id,
     };
     await store.dispatch('automations/create', payload);
     useAlert(t('AUTOMATION.ADD.API.SUCCESS_MESSAGE'));
@@ -392,7 +436,7 @@ const tableHeaders = computed(() => {
       </div>
 
       <div
-        v-if="eventTypeTab === 'time'"
+        v-if="eventTypeTab === 'time' && unactivatedTimePresets.length"
         class="flex flex-col gap-2 mb-4 rounded-lg border border-n-weak bg-n-solid-2 p-3"
       >
         <p class="m-0 text-xs font-medium uppercase text-n-slate-11">
@@ -400,10 +444,11 @@ const tableHeaders = computed(() => {
         </p>
         <div class="flex flex-wrap gap-2">
           <Button
-            v-for="preset in TIME_RULE_PRESETS"
+            v-for="preset in unactivatedTimePresets"
             :key="preset.id"
             sm
             faded
+            icon="i-lucide-sparkles"
             :label="$t(preset.nameKey)"
             @click="activateTimePreset(preset)"
           />
@@ -431,6 +476,8 @@ const tableHeaders = computed(() => {
     </template>
 
     <AddAutomationRule ref="addDialogRef" @save-automation="submitAutomation" />
+
+    <AttributeRequirementDialog ref="attributeRequirementDialogRef" />
 
     <woot-delete-modal
       v-model:show="showDeleteConfirmationPopup"
