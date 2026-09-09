@@ -14,7 +14,7 @@ class PanelAi::AgentBotSummaryService
     signature = "sha256=#{OpenSSL::HMAC.hexdigest('SHA256', secret, '')}"
 
     response = HTTParty.get(
-      "#{base_url}/api/v1/inboxhub/agent-bots/#{@agent_bot.id}/summary",
+      "#{base_url}/api/inboxhub/agent-bots/#{@agent_bot.id}/summary",
       headers: { 'X-Panel-AI-Signature' => signature },
       timeout: 5
     )

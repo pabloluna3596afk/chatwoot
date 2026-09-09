@@ -11,6 +11,10 @@ class AgentBotPolicy < ApplicationPolicy
     @account_user.administrator? || @account_user.agent?
   end
 
+  def panel_ai_summary?
+    @account_user.administrator? || @account_user.agent?
+  end
+
   def create?
     @account_user.administrator?
   end
