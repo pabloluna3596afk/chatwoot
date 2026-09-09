@@ -22,7 +22,24 @@
       "DISCONNECTED_SUCCESS_MESSAGE": "Successfully disconnected the agent bot.",
       "ERROR_MESSAGE": "Could not update the agent bot. Please try again.",
       "DISCONNECTED_ERROR_MESSAGE": "Could not disconnect the agent bot. Please try again.",
-      "SELECT_PLACEHOLDER": "Select bot"
+      "SELECT_PLACEHOLDER": "Select bot",
+      "SCHEDULE": {
+        "TITLE": "When should this bot reply?",
+        "MODES": {
+          "always": {
+            "LABEL": "Whenever the inbox is open",
+            "DESCRIPTION": "The bot follows the inbox's own business hours. Default behavior."
+          },
+          "outside_inbox_hours": {
+            "LABEL": "Outside the inbox's hours",
+            "DESCRIPTION": "The bot covers exactly when your human agents are out of office."
+          },
+          "own_hours": {
+            "LABEL": "A schedule of its own",
+            "DESCRIPTION": "Set a weekly schedule for this bot, independent of the inbox."
+          }
+        }
+      }
     },
     "ADD": {
       "TITLE": "Add Bot",
@@ -39,6 +56,11 @@
         "DETAILS": "Bot Details",
         "URL": "Webhook URL",
         "ACTIONS": "Actions"
+      },
+      "PANEL_AI_SUMMARY": {
+        "TOOLS": "{n} tools",
+        "INBOXES": "{n} inboxes",
+        "CONFIGURED": "Setup complete"
       }
     },
     "DELETE": {

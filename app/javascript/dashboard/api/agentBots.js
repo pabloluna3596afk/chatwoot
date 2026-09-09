@@ -29,6 +29,10 @@ class AgentBotsAPI extends ApiClient {
   resetSecret(botId) {
     return axios.post(`${this.url}/${botId}/reset_secret`);
   }
+
+  fetchPanelAiSummary(botId) {
+    return axios.get(`${this.url}/${botId}/panel_ai_summary`);
+  }
 }
 
 export default new AgentBotsAPI();

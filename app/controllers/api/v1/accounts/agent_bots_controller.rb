@@ -37,6 +37,15 @@ class Api::V1::Accounts::AgentBotsController < Api::V1::Accounts::BaseController
     @agent_bot.reset_secret!
   end
 
+  def panel_ai_summary
+    summary = PanelAi::AgentBotSummaryService.new(@agent_bot).call
+    if summary
+      render json: summary
+    else
+      render json: { available: false }, status: :ok
+    end
+  end
+
   private
 
   def agent_bot

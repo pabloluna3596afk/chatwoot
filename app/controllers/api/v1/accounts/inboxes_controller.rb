@@ -71,7 +71,9 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
     if @agent_bot
       agent_bot_inbox = @inbox.agent_bot_inbox || AgentBotInbox.new(inbox: @inbox)
       agent_bot_inbox.agent_bot = @agent_bot
+      agent_bot_inbox.schedule_mode = params[:schedule_mode] if params[:schedule_mode].present?
       agent_bot_inbox.save!
+      update_bot_working_hours(agent_bot_inbox) if params[:bot_working_hours]
     elsif @inbox.agent_bot_inbox.present?
       @inbox.agent_bot_inbox.destroy!
     end
@@ -112,6 +114,21 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
 
   def update_inbox_working_hours
     @inbox.update_working_hours(params.permit(working_hours: Inbox::OFFISABLE_ATTRS)[:working_hours]) if params[:working_hours]
+  end
+
+  def update_bot_working_hours(agent_bot_inbox)
+    ActiveRecord::Base.transaction do
+      params.permit(bot_working_hours: Inbox::OFFISABLE_ATTRS)[:bot_working_hours].each do |working_hour|
+        day = working_hour['day_of_week'] || working_hour[:day_of_week]
+        record = agent_bot_inbox.bot_working_hours.find_by(day_of_week: day)
+        record ||= agent_bot_inbox.bot_working_hours.create!(
+          day_of_week: day,
+          closed_all_day: true,
+          open_all_day: false
+        )
+        record.update!(working_hour.slice(*Inbox::OFFISABLE_ATTRS))
+      end
+    end
   end
 
   def update_channel

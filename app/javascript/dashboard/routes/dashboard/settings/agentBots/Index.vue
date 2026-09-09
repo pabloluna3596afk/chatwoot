@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import { useI18n } from 'vue-i18n';
@@ -87,6 +87,17 @@ const confirmDeletion = () => {
   agentBotDeleteDialogRef.value.close();
 };
 
+const panelAiSummaries = useMapGetter('agentBots/getPanelAiSummary');
+const summaryFor = bot => panelAiSummaries.value(bot.id);
+
+const fetchSummaries = bots => {
+  bots
+    .filter(bot => !bot.system_bot && !panelAiSummaries.value(bot.id))
+    .forEach(bot => store.dispatch('agentBots/fetchPanelAiSummary', bot.id));
+};
+
+watch(agentBots, bots => fetchSummaries(bots || []), { immediate: true });
+
 onMounted(() => {
   store.dispatch('agentBots/get');
 });
@@ -157,6 +168,45 @@ onMounted(() => {
                     <span class="text-body-main text-n-slate-11 block truncate">
                       {{ bot.description }}
                     </span>
+                    <div
+                      v-if="
+                        !bot.system_bot && summaryFor(bot)?.available !== false
+                      "
+                      class="flex flex-wrap items-center gap-1.5 mt-1"
+                    >
+                      <template v-if="summaryFor(bot)">
+                        <span
+                          class="inline-flex items-center gap-1 rounded-full bg-n-blue-3 px-1.5 py-0.5 text-[10px] font-medium text-n-blue-11"
+                        >
+                          <span class="i-lucide-wrench size-2.5" />
+                          {{
+                            $t('AGENT_BOTS.LIST.PANEL_AI_SUMMARY.TOOLS', {
+                              n: summaryFor(bot).http_tool_count || 0,
+                            })
+                          }}
+                        </span>
+                        <span
+                          v-if="summaryFor(bot).inbox_count"
+                          class="inline-flex items-center gap-1 rounded-full bg-n-slate-3 px-1.5 py-0.5 text-[10px] font-medium text-n-slate-11"
+                        >
+                          <span class="i-lucide-inbox size-2.5" />
+                          {{
+                            $t('AGENT_BOTS.LIST.PANEL_AI_SUMMARY.INBOXES', {
+                              n: summaryFor(bot).inbox_count,
+                            })
+                          }}
+                        </span>
+                        <span
+                          v-if="summaryFor(bot).setup_wizard_completed_at"
+                          class="inline-flex items-center gap-1 rounded-full bg-n-teal-3 px-1.5 py-0.5 text-[10px] font-medium text-n-teal-11"
+                        >
+                          <span class="i-lucide-circle-check size-2.5" />
+                          {{
+                            $t('AGENT_BOTS.LIST.PANEL_AI_SUMMARY.CONFIGURED')
+                          }}
+                        </span>
+                      </template>
+                    </div>
                   </div>
                 </div>
               </BaseTableCell>

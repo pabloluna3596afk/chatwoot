@@ -22,7 +22,24 @@
       "DISCONNECTED_SUCCESS_MESSAGE": "Desconectado correctamente el bot agente.",
       "ERROR_MESSAGE": "No se pudo actualizar el bot de agente, por favor inténtalo de nuevo más tarde.",
       "DISCONNECTED_ERROR_MESSAGE": "No se pudo desconectar el bot de agente, por favor inténtalo de nuevo más tarde.",
-      "SELECT_PLACEHOLDER": "Seleccionar bot"
+      "SELECT_PLACEHOLDER": "Seleccionar bot",
+      "SCHEDULE": {
+        "TITLE": "¿Cuándo debería responder este bot?",
+        "MODES": {
+          "always": {
+            "LABEL": "Siempre que la bandeja esté abierta",
+            "DESCRIPTION": "El bot sigue el horario de atención de la bandeja. Comportamiento por defecto."
+          },
+          "outside_inbox_hours": {
+            "LABEL": "Fuera del horario de la bandeja",
+            "DESCRIPTION": "El bot cubre justo cuando tus agentes humanos están fuera de horario."
+          },
+          "own_hours": {
+            "LABEL": "Un horario propio",
+            "DESCRIPTION": "Definí un horario semanal para este bot, independiente del de la bandeja."
+          }
+        }
+      }
     },
     "ADD": {
       "TITLE": "Agregar Bot",
@@ -39,6 +56,11 @@
         "DETAILS": "Detalles del Bot",
         "URL": "URL de Webhook",
         "ACTIONS": "Acciones"
+      },
+      "PANEL_AI_SUMMARY": {
+        "TOOLS": "{n} herramientas",
+        "INBOXES": "{n} bandejas",
+        "CONFIGURED": "Configuración completa"
       }
     },
     "DELETE": {
