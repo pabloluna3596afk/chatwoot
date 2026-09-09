@@ -142,6 +142,83 @@ RSpec.describe AutomationRule do
       expect(rule).not_to be_valid
       expect(rule.errors[:schedule]).to include('relative_to must be after, on, or before')
     end
+
+    describe 'contact_date' do
+      let!(:inbox) { create(:inbox, account: account) }
+
+      def contact_rule(extra = {})
+        time_rule({ 'kind' => 'contact_date', 'target_inbox_id' => inbox.id }.merge(extra))
+      end
+
+      it 'allows a yearly attribute rule with no days (birthday)' do
+        rule = contact_rule('date_source' => 'contact_attribute', 'attribute_key' => 'cumpleanos',
+                            'recurrence' => 'yearly', 'relative_to' => 'on')
+        expect(rule).to be_valid
+      end
+
+      it 'allows a one-shot attribute rule with days (repurchase)' do
+        rule = contact_rule('date_source' => 'contact_attribute', 'attribute_key' => 'fecha_compra',
+                            'recurrence' => 'once', 'relative_to' => 'after', 'days' => 30)
+        expect(rule).to be_valid
+      end
+
+      it 'allows a last_activity rule with no attribute_key (win-back)' do
+        rule = contact_rule('date_source' => 'last_activity', 'relative_to' => 'after', 'days' => 60)
+        expect(rule).to be_valid
+      end
+
+      it 'defaults date_source, recurrence and relative_to when absent' do
+        rule = contact_rule('attribute_key' => 'cumpleanos')
+        expect(rule).to be_valid
+      end
+
+      it 'requires attribute_key for an attribute source' do
+        rule = contact_rule('date_source' => 'contact_attribute')
+        expect(rule).not_to be_valid
+        expect(rule.errors[:schedule]).to include('attribute_key is required')
+      end
+
+      it 'rejects an unknown date_source' do
+        rule = contact_rule('date_source' => 'astrologia', 'attribute_key' => 'x')
+        expect(rule).not_to be_valid
+        expect(rule.errors[:schedule].first).to include('date_source must be one of')
+      end
+
+      it 'rejects yearly recurrence on last_activity, which never comes around again' do
+        rule = contact_rule('date_source' => 'last_activity', 'recurrence' => 'yearly')
+        expect(rule).not_to be_valid
+        expect(rule.errors[:schedule]).to include('recurrence yearly requires a contact_attribute date_source')
+      end
+
+      it 'requires target_inbox_id' do
+        rule = time_rule('kind' => 'contact_date', 'attribute_key' => 'cumpleanos')
+        expect(rule).not_to be_valid
+        expect(rule.errors[:schedule]).to include('target_inbox_id is required')
+      end
+
+      it 'rejects a target_inbox_id from another account' do
+        other_inbox = create(:inbox, account: create(:account))
+        rule = time_rule('kind' => 'contact_date', 'attribute_key' => 'cumpleanos', 'target_inbox_id' => other_inbox.id)
+        expect(rule).not_to be_valid
+        expect(rule.errors[:schedule]).to include('target_inbox_id must belong to the account')
+      end
+
+      it 'rejects before/after when days is missing or zero' do
+        rule = contact_rule('attribute_key' => 'cumpleanos', 'relative_to' => 'before')
+        expect(rule).not_to be_valid
+        expect(rule.errors[:schedule]).to include('days must be 1 or greater')
+      end
+    end
+
+    it 'flags contact_based_schedule? only for contact-scoped kinds' do
+      contact_rule = time_rule(
+        'kind' => 'contact_date', 'attribute_key' => 'cumpleanos', 'target_inbox_id' => create(:inbox, account: account).id
+      )
+      days_rule = time_rule('kind' => 'days_since_attribute', 'attribute_key' => 'fecha_cita', 'relative_to' => 'on')
+
+      expect(contact_rule.contact_based_schedule?).to be(true)
+      expect(days_rule.contact_based_schedule?).to be(false)
+    end
   end
 
   describe 'reauthorizable' do
