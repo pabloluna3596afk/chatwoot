@@ -115,9 +115,11 @@
       "COPY": "Copy secret to clipboard",
       "COPY_SUCCESS": "Secret copied to clipboard",
       "TOGGLE": "Toggle secret visibility",
-      "CREATED_DESC": "Use the secret below to verify webhook signatures. Please copy it now, you can also find it later in the bot settings.",
+      "CREATED_DESC": "Copy this code and save it in your own system — it's what it'll use to confirm messages really came from here. You can also find it later in the bot settings.",
       "DONE": "Done",
-      "HELP": "Internal security key between Chatwoot and the AI. Safe to reset any time — at most, a message that arrives right then may take a bit longer to get a reply, but the bot keeps working normally.",
+      "HELP_DEFAULT": "This bot runs on our system's connection — no need to see or copy anything here. Safe to reset this code any time, no need to worry — the bot keeps working the same.",
+      "HELP_CUSTOM": "Your own system needs this code to confirm messages really came from here. Copy it and save it on your end.",
+      "HELP_PENDING_SAVE": "Save your changes to see the code your system will need.",
       "RESET_SUCCESS": "Webhook secret regenerated successfully",
       "RESET_ERROR": "Unable to regenerate webhook secret. Please try again"
     },
@@ -136,9 +138,10 @@
       },
       "WEBHOOK_URL": {
         "LABEL": "Webhook URL",
-        "PLACEHOLDER": "https://example.com/webhook",
+        "PLACEHOLDER": "Using our system's default",
         "REQUIRED": "Webhook URL is required",
-        "HELP": "Already set up — no need to touch it. ⚠️ If you change or delete it by mistake, the bot stops receiving messages until it's fixed."
+        "HELP_DEFAULT": "This bot already runs on our system's AI — no need to do anything here. If you'd rather connect your own AI, enter its address above (you'll stop using ours).",
+        "HELP_CUSTOM": "⚠️ You'll use this address instead of ours. If it's wrong or you clear it by mistake, the bot stops receiving messages until it's fixed."
       },
       "ERRORS": {
         "NAME": "Bot name is required",

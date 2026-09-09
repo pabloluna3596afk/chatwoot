@@ -14,6 +14,7 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import AccessToken from 'dashboard/routes/dashboard/settings/profile/AccessToken.vue';
+import ConfirmButton from 'dashboard/components-next/button/ConfirmButton.vue';
 
 const props = defineProps({
   type: {
@@ -36,14 +37,6 @@ const store = useStore();
 const { t } = useI18n();
 const dialogRef = ref(null);
 const uiFlags = useMapGetter('agentBots/getUIFlags');
-const globalConfig = useMapGetter('globalConfig/get');
-// Panel AI's webhook URL is generic for the whole installation (it resolves
-// which org/assistant a message belongs to from the payload, not the URL) —
-// prefilling it removes a manual copy-paste step for the common case, while
-// staying a normal editable field for anyone plugging in a different bot.
-const defaultWebhookUrl = computed(
-  () => globalConfig.value.panelAiDefaultWebhookUrl || ''
-);
 
 const formState = reactive({
   botName: '',
@@ -70,11 +63,9 @@ const v$ = useVuelidate(
         required
       ),
     },
+    // Blank is a valid, meaningful choice here — it means "use Panel AI's
+    // default" (see AgentBot#effective_outgoing_url) — so no `required`.
     botUrl: {
-      required: helpers.withMessage(
-        () => t('AGENT_BOTS.FORM.ERRORS.URL'),
-        required
-      ),
       url: helpers.withMessage(
         () => t('AGENT_BOTS.FORM.ERRORS.VALID_URL'),
         url
@@ -125,11 +116,22 @@ const botUrlError = computed(() =>
 // `message` slot, which truncates to one line — fine for a short validation
 // error, not for this full sentence.
 
+// Blank means "use Panel AI's default" — the client never sees that real
+// value (it never even reaches the browser, see the jbuilder secret gate
+// below), so this is the one signal the UI has for which mode it's in.
+const isUsingCustomAi = computed(() => !!formState.botUrl.trim());
+
+const botUrlHelp = computed(() =>
+  isUsingCustomAi.value
+    ? t('AGENT_BOTS.FORM.WEBHOOK_URL.HELP_CUSTOM')
+    : t('AGENT_BOTS.FORM.WEBHOOK_URL.HELP_DEFAULT')
+);
+
 const resetForm = () => {
   Object.assign(formState, {
     botName: '',
     botDescription: '',
-    botUrl: defaultWebhookUrl.value,
+    botUrl: '',
     botAvatar: null,
     botAvatarUrl: '',
   });
@@ -327,13 +329,44 @@ defineExpose({ dialogRef });
           message-type="error"
           @blur="v$.botUrl.$touch()"
         />
-        <p v-if="!botUrlError" class="-mt-1 text-label-small text-n-amber-11">
-          {{ $t('AGENT_BOTS.FORM.WEBHOOK_URL.HELP') }}
+        <p
+          v-if="!botUrlError"
+          class="-mt-1 text-label-small"
+          :class="isUsingCustomAi ? 'text-n-amber-11' : 'text-n-slate-11'"
+        >
+          {{ botUrlHelp }}
         </p>
       </div>
 
+      <!-- Using our default (blank URL): nothing to see or copy, only reset -->
       <div
-        v-if="botSecret && type === MODAL_TYPES.EDIT"
+        v-if="type === MODAL_TYPES.EDIT && !isUsingCustomAi"
+        class="flex flex-col gap-1"
+      >
+        <label class="mb-0.5 text-sm font-medium text-n-slate-12">
+          {{ $t('AGENT_BOTS.SECRET.LABEL') }}
+        </label>
+        <ConfirmButton
+          :label="$t('PROFILE_SETTINGS.FORM.ACCESS_TOKEN.RESET')"
+          :confirm-label="
+            $t('PROFILE_SETTINGS.FORM.ACCESS_TOKEN.CONFIRM_RESET')
+          "
+          :confirm-hint="$t('PROFILE_SETTINGS.FORM.ACCESS_TOKEN.CONFIRM_HINT')"
+          color="slate"
+          confirm-color="ruby"
+          variant="outline"
+          icon="i-lucide-key-round"
+          class="self-start rounded-xl"
+          @click="onResetSecret"
+        />
+        <p class="text-label-small text-n-slate-11">
+          {{ $t('AGENT_BOTS.SECRET.HELP_DEFAULT') }}
+        </p>
+      </div>
+
+      <!-- Own AI, secret already loaded from the server -->
+      <div
+        v-else-if="isUsingCustomAi && botSecret && type === MODAL_TYPES.EDIT"
         class="flex flex-col gap-1"
       >
         <label class="mb-0.5 text-sm font-medium text-n-slate-12">
@@ -345,9 +378,17 @@ defineExpose({ dialogRef });
           @on-reset="onResetSecret"
         />
         <p class="text-label-small text-n-slate-11">
-          {{ $t('AGENT_BOTS.SECRET.HELP') }}
+          {{ $t('AGENT_BOTS.SECRET.HELP_CUSTOM') }}
         </p>
       </div>
+
+      <!-- Own AI just typed, not saved yet -- server hasn't sent a secret -->
+      <p
+        v-else-if="isUsingCustomAi && type === MODAL_TYPES.EDIT"
+        class="text-label-small text-n-slate-11"
+      >
+        {{ $t('AGENT_BOTS.SECRET.HELP_PENDING_SAVE') }}
+      </p>
 
       <div
         v-if="botSecret && showSecretReveal && type === MODAL_TYPES.CREATE"

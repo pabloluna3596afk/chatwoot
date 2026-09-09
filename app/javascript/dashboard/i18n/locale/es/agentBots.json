@@ -115,9 +115,11 @@
       "COPY": "Copy secret to clipboard",
       "COPY_SUCCESS": "Secret copied to clipboard",
       "TOGGLE": "Toggle secret visibility",
-      "CREATED_DESC": "Usá el secreto de abajo para verificar la firma de los mensajes del webhook. Copialo ahora — después también lo vas a poder ver en la configuración del bot.",
+      "CREATED_DESC": "Copiá este código y guardalo en tu propio sistema — es lo que va a usar para confirmar que los mensajes vienen de acá. Después también lo vas a poder ver en la configuración del bot.",
       "DONE": "Done",
-      "HELP": "Clave de seguridad interna entre Chatwoot y la IA. La podés reiniciar cuando quieras sin problema — a lo sumo, un mensaje que llegue justo en ese momento puede tardar un poco más en responderse, pero el bot sigue funcionando normal.",
+      "HELP_DEFAULT": "Este bot usa la conexión de nuestro sistema — no hace falta que veas ni copies nada acá. Podés reiniciar este código cuando quieras, sin miedo: el bot sigue funcionando igual.",
+      "HELP_CUSTOM": "Tu propio sistema necesita este código para confirmar que los mensajes vienen de acá. Copialo y guardalo del otro lado.",
+      "HELP_PENDING_SAVE": "Guardá los cambios para ver el código que tu sistema va a necesitar.",
       "RESET_SUCCESS": "Webhook secret regenerated successfully",
       "RESET_ERROR": "Unable to regenerate webhook secret. Please try again"
     },
@@ -136,9 +138,10 @@
       },
       "WEBHOOK_URL": {
         "LABEL": "URL de Webhook",
-        "PLACEHOLDER": "https://example.com/webhook",
+        "PLACEHOLDER": "Se está usando la de nuestro sistema",
         "REQUIRED": "Dirección del webhook es requerida",
-        "HELP": "Ya viene configurada, no hace falta tocarla. ⚠️ Si la cambiás o la borrás por error, el bot deja de recibir mensajes hasta que la corrijas."
+        "HELP_DEFAULT": "Este bot ya funciona con la IA de nuestro sistema — no hace falta que hagas nada acá. Si preferís conectar tu propia IA, escribí su dirección arriba (vas a dejar de usar la nuestra).",
+        "HELP_CUSTOM": "⚠️ Vas a usar esta dirección en vez de la nuestra. Si está mal escrita o la borrás sin querer, el bot deja de recibir mensajes hasta que la corrijas."
       },
       "ERRORS": {
         "NAME": "El nombre del bot es obligatorio",

@@ -83,9 +83,10 @@ class AgentBotListener < BaseListener
   end
 
   def process_webhook_bot_event(agent_bot, payload)
-    return if agent_bot.outgoing_url.blank?
+    outgoing_url = agent_bot.effective_outgoing_url
+    return if outgoing_url.blank?
 
-    AgentBots::WebhookJob.perform_later(agent_bot.outgoing_url, payload, :agent_bot_webhook,
+    AgentBots::WebhookJob.perform_later(outgoing_url, payload, :agent_bot_webhook,
                                         secret: agent_bot.secret, delivery_id: SecureRandom.uuid)
   end
 end

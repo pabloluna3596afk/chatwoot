@@ -71,6 +71,14 @@ class AgentBot < ApplicationRecord
   def system_bot?
     account.nil?
   end
+
+  # Falls back to Panel AI's install-wide webhook when the bot has no URL of
+  # its own — the client never sees this value (see AgentBotModal.vue and the
+  # jbuilder secret gate below), so an admin who left it blank is genuinely
+  # using our default, not a broken bot.
+  def effective_outgoing_url
+    outgoing_url.presence || GlobalConfigService.load('PANEL_AI_DEFAULT_WEBHOOK_URL', ENV.fetch('PANEL_AI_DEFAULT_WEBHOOK_URL', ''))
+  end
 end
 
 AgentBot.include_mod_with('Audit::AgentBot')
