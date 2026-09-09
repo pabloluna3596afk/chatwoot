@@ -37,6 +37,14 @@ export default {
         this.currentInboxId
       );
     },
+    // Deactivated bots (see AGENT_BOTS.DEACTIVATE) drop out of "assign a new
+    // bot" pickers — except the one already assigned here, so this screen
+    // still shows what's connected instead of silently looking empty.
+    assignableAgentBots() {
+      return this.agentBots.filter(
+        bot => bot.active !== false || bot.id === this.selectedAgentBotId
+      );
+    },
   },
   watch: {
     activeAgentBot() {
@@ -95,7 +103,9 @@ export default {
         <SelectInput
           v-model="selectedAgentBotId"
           :placeholder="$t('AGENT_BOTS.BOT_CONFIGURATION.SELECT_PLACEHOLDER')"
-          :options="agentBots.map(bot => ({ value: bot.id, label: bot.name }))"
+          :options="
+            assignableAgentBots.map(bot => ({ value: bot.id, label: bot.name }))
+          "
         />
         <template #extra>
           <div class="grid grid-cols-1 lg:grid-cols-8 mt-3">

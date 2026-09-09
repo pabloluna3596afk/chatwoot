@@ -437,6 +437,10 @@ class Conversation < ApplicationRecord
     # TODO: make this an inbox config instead of assuming bot conversations should start as pending
     self.status = :pending
     return unless inbox.agent_bot_inbox&.active? && assignee_id.blank?
+    # A deactivated bot (AgentBot#active false) must never pick up a new
+    # conversation, but this only gates NEW assignment — a conversation this
+    # bot already has stays with it and keeps getting replies normally.
+    return unless inbox.agent_bot&.active?
 
     self.ai_assignee = inbox.agent_bot
   end

@@ -55,6 +55,27 @@
         "ERROR_MESSAGE": "Could not delete bot. Please try again."
       }
     },
+    "INACTIVE_BADGE": "Inactive",
+    "DEACTIVATE": {
+      "BUTTON_TEXT": "Deactivate",
+      "CONFIRM": {
+        "TITLE": "Deactivate this bot?",
+        "MESSAGE": "{name} won't be assignable to new conversations or inboxes. Anything it's already handling keeps working normally, and you can reactivate it anytime.",
+        "YES": "Yes, deactivate",
+        "NO": "No, keep active"
+      },
+      "API": {
+        "SUCCESS_MESSAGE": "Bot deactivated.",
+        "ERROR_MESSAGE": "Could not deactivate the bot. Please try again."
+      }
+    },
+    "ACTIVATE": {
+      "BUTTON_TEXT": "Activate",
+      "API": {
+        "SUCCESS_MESSAGE": "Bot activated.",
+        "ERROR_MESSAGE": "Could not activate the bot. Please try again."
+      }
+    },
     "EDIT": {
       "BUTTON_TEXT": "Edit",
       "TITLE": "Edit bot",

@@ -36,6 +36,14 @@ const store = useStore();
 const { t } = useI18n();
 const dialogRef = ref(null);
 const uiFlags = useMapGetter('agentBots/getUIFlags');
+const globalConfig = useMapGetter('globalConfig/get');
+// Panel AI's webhook URL is generic for the whole installation (it resolves
+// which org/assistant a message belongs to from the payload, not the URL) —
+// prefilling it removes a manual copy-paste step for the common case, while
+// staying a normal editable field for anyone plugging in a different bot.
+const defaultWebhookUrl = computed(
+  () => globalConfig.value.panelAiDefaultWebhookUrl || ''
+);
 
 const formState = reactive({
   botName: '',
@@ -119,7 +127,7 @@ const resetForm = () => {
   Object.assign(formState, {
     botName: '',
     botDescription: '',
-    botUrl: '',
+    botUrl: defaultWebhookUrl.value,
     botAvatar: null,
     botAvatarUrl: '',
   });

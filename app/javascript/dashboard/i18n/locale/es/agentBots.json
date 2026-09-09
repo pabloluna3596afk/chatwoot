@@ -55,6 +55,27 @@
         "ERROR_MESSAGE": "No se pudo eliminar el bot. Por favor, inténtalo de nuevo."
       }
     },
+    "INACTIVE_BADGE": "Inactivo",
+    "DEACTIVATE": {
+      "BUTTON_TEXT": "Desactivar",
+      "CONFIRM": {
+        "TITLE": "¿Desactivar este bot?",
+        "MESSAGE": "{name} no se podrá asignar a conversaciones ni bandejas nuevas. Lo que ya esté atendiendo sigue funcionando normal, y podés reactivarlo cuando quieras.",
+        "YES": "Sí, desactivar",
+        "NO": "No, dejarlo activo"
+      },
+      "API": {
+        "SUCCESS_MESSAGE": "Bot desactivado.",
+        "ERROR_MESSAGE": "No se pudo desactivar el bot. Probá de nuevo."
+      }
+    },
+    "ACTIVATE": {
+      "BUTTON_TEXT": "Activar",
+      "API": {
+        "SUCCESS_MESSAGE": "Bot activado.",
+        "ERROR_MESSAGE": "No se pudo activar el bot. Probá de nuevo."
+      }
+    },
     "EDIT": {
       "BUTTON_TEXT": "Editar",
       "TITLE": "Editar bot",
