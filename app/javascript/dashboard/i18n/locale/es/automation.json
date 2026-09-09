@@ -11,6 +11,10 @@
       "CONTRADICTORY_ACTIONS": "La regla «{other_rule_name}» se ejecuta en el mismo disparador y hace lo contrario. Gana la que se ejecute última.",
       "CONFLICTING_ACTION_VALUES": "La regla «{other_rule_name}» también aplica {action_name} en el mismo disparador, con otro valor. Gana la que se ejecute última."
     },
+    "ENFORCE_BUSINESS_RULES": {
+      "LABEL": "Aplicar reglas de negocio a esta automatización",
+      "HELP": "Por defecto, las automatizaciones cambian el estado de la conversación sin pasar por las reglas de negocio (Configuración → Reglas de negocio). Actívalo para que esta automatización respete esas reglas igual que un agente humano; si una regla la bloquea, se deja una nota en la conversación explicando qué faltó."
+    },
     "DESCRIPTION": "La automatización puede reemplazar y agilizar los procesos existentes que requieren esfuerzo manual, como añadir etiquetas y asignar conversaciones al agente más adecuado. Esto permite al equipo concentrarse en sus fortalezas, mientras que reduce el tiempo dedicado a las tareas de rutina.",
     "LEARN_MORE": "Aprende más sobre automatización",
     "COUNT": "{n} automation | {n} automations",

@@ -177,4 +177,71 @@ describe ActionService do
       expect(conversation.reload.assignee).to be_nil
     end
   end
+
+  describe 'business rule blocking' do
+    let(:conversation) { create(:conversation, account: account, status: :open) }
+    let(:action_service) { described_class.new(conversation) }
+
+    def set_rules(rules)
+      account.update!(settings: account.settings.merge('business_rules' => rules))
+    end
+
+    before do
+      set_rules([
+                  {
+                    'id' => 'r1',
+                    'type' => 'require_attributes_on_status',
+                    'enabled' => true,
+                    'config' => { 'status' => 'resolved', 'attribute_keys' => ['deal_stage'] }
+                  }
+                ])
+    end
+
+    context 'when the caller is an automation rule with enforces_business_rules disabled (default)' do
+      it 'resolves the conversation without leaving a note, unchanged from before this feature existed' do
+        Current.executed_by = create(:automation_rule, account: account)
+
+        action_service.resolve_conversation(nil)
+
+        expect(conversation.reload.status).to eq('resolved')
+        expect(conversation.messages.where(private: true)).to be_empty
+      ensure
+        Current.reset
+      end
+    end
+
+    context 'when the caller is an automation rule with enforces_business_rules enabled' do
+      it 'blocks the status change and leaves a private note explaining why' do
+        rule = create(:automation_rule, account: account, name: 'Auto-resolver', enforces_business_rules: true)
+        Current.executed_by = rule
+
+        action_service.resolve_conversation(nil)
+
+        expect(conversation.reload.status).to eq('open')
+        note = conversation.messages.where(private: true).last
+        expect(note).to be_present
+        expect(note.content).to include('Auto-resolver')
+        expect(note.content_attributes).to include('automation_rule_id' => rule.id)
+      ensure
+        Current.reset
+      end
+    end
+
+    context 'when the caller is a macro' do
+      it 'blocks the status change and attributes the note to the macro' do
+        macro = create(:macro, account: account, name: 'Cerrar todo')
+        Current.executed_by = macro
+
+        action_service.resolve_conversation(nil)
+
+        expect(conversation.reload.status).to eq('open')
+        note = conversation.messages.where(private: true).last
+        expect(note).to be_present
+        expect(note.content).to include('Cerrar todo')
+        expect(note.content_attributes).to include('macro_id' => macro.id)
+      ensure
+        Current.reset
+      end
+    end
+  end
 end

@@ -12,8 +12,6 @@ class Conversations::BusinessRulesGuard
   end
 
   def perform
-    # Automations change status without a human filling reason/attrs.
-    # Candados apply to agents; system actors skip the guard.
     return Result.new(ok?: true, errors: []) if system_status_change?
     return Result.new(ok?: true, errors: []) if business_rules_paused?
 
@@ -31,11 +29,21 @@ class Conversations::BusinessRulesGuard
   end
 
   def system_status_change?
-    return true if Current.executed_by.instance_of?(AutomationRule)
+    return true if automation_exempt?
     # Widget / public inbox: contact ends the chat and cannot fill agent candados.
     return true if Current.contact.present? && !Current.user.is_a?(User)
 
     false
+  end
+
+  # Guards apply to agents; an automation is exempt by default the same way
+  # every automation has always been — until its own enforces_business_rules
+  # flag turns that off. Opt-in, per rule, off by default: no existing
+  # automation's behavior changes the moment this ships. See migration
+  # 20260902130000 for why the default is false, not true.
+  def automation_exempt?
+    executed_by = Current.executed_by
+    executed_by.instance_of?(AutomationRule) && !executed_by.enforces_business_rules?
   end
 
   def legacy_required_on_resolve
