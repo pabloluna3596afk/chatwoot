@@ -23,6 +23,10 @@ class AgentBotPolicy < ApplicationPolicy
     @account_user.administrator?
   end
 
+  def activate?
+    @account_user.administrator?
+  end
+
   def avatar?
     @account_user.administrator?
   end

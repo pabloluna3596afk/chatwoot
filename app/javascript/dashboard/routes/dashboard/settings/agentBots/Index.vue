@@ -64,12 +64,14 @@ const openEditModal = bot => {
   agentBotModalRef.value.dialogRef.open();
 };
 
-const openDeletePopup = bot => {
+const openDeactivatePopup = bot => {
   selectedBot.value = bot;
   agentBotDeleteDialogRef.value.open();
 };
 
-const deleteAgentBot = async id => {
+// Deactivates, never deletes — see AgentBotsController#destroy and the
+// agentBots/delete action. The bot stays in this list with active: false.
+const deactivateAgentBot = async id => {
   try {
     await store.dispatch('agentBots/delete', id);
     useAlert(t('AGENT_BOTS.DELETE.API.SUCCESS_MESSAGE'));
@@ -81,9 +83,9 @@ const deleteAgentBot = async id => {
   }
 };
 
-const confirmDeletion = () => {
+const confirmDeactivation = () => {
   loading.value[selectedBot.value.id] = true;
-  deleteAgentBot(selectedBot.value.id);
+  deactivateAgentBot(selectedBot.value.id);
   agentBotDeleteDialogRef.value.close();
 };
 
@@ -97,6 +99,18 @@ const fetchSummaries = bots => {
 };
 
 watch(agentBots, bots => fetchSummaries(bots || []), { immediate: true });
+
+const activateAgentBot = async bot => {
+  loading.value[bot.id] = true;
+  try {
+    await store.dispatch('agentBots/activate', bot.id);
+    useAlert(t('AGENT_BOTS.ACTIVATE.API.SUCCESS_MESSAGE'));
+  } catch (error) {
+    useAlert(t('AGENT_BOTS.ACTIVATE.API.ERROR_MESSAGE'));
+  } finally {
+    loading.value[bot.id] = false;
+  }
+};
 
 onMounted(() => {
   store.dispatch('agentBots/get');
@@ -164,6 +178,12 @@ onMounted(() => {
                       >
                         {{ $t('AGENT_BOTS.GLOBAL_BOT_BADGE') }}
                       </span>
+                      <span
+                        v-if="bot.active === false"
+                        class="text-xs text-n-amber-12 bg-n-amber-5 rounded-md py-0.5 px-1 flex-shrink-0"
+                      >
+                        {{ $t('AGENT_BOTS.INACTIVE_BADGE') }}
+                      </span>
                     </div>
                     <span class="text-body-main text-n-slate-11 block truncate">
                       {{ bot.description }}
@@ -229,14 +249,24 @@ onMounted(() => {
                     @click="openEditModal(bot)"
                   />
                   <Button
-                    v-if="!bot.system_bot"
-                    v-tooltip.top="t('AGENT_BOTS.DELETE.BUTTON_TEXT')"
-                    icon="i-woot-bin"
+                    v-if="!bot.system_bot && bot.active !== false"
+                    v-tooltip.top="t('AGENT_BOTS.DEACTIVATE.BUTTON_TEXT')"
+                    icon="i-lucide-power-off"
                     slate
                     sm
                     class="hover:enabled:text-n-ruby-11 hover:enabled:bg-n-ruby-2"
                     :is-loading="loading[bot.id]"
-                    @click="openDeletePopup(bot)"
+                    @click="openDeactivatePopup(bot)"
+                  />
+                  <Button
+                    v-if="!bot.system_bot && bot.active === false"
+                    v-tooltip.top="t('AGENT_BOTS.ACTIVATE.BUTTON_TEXT')"
+                    icon="i-lucide-power"
+                    slate
+                    sm
+                    class="hover:enabled:text-n-teal-11 hover:enabled:bg-n-teal-2"
+                    :is-loading="loading[bot.id]"
+                    @click="activateAgentBot(bot)"
                   />
                 </div>
               </BaseTableCell>
@@ -255,14 +285,14 @@ onMounted(() => {
     <Dialog
       ref="agentBotDeleteDialogRef"
       type="alert"
-      :title="t('AGENT_BOTS.DELETE.CONFIRM.TITLE')"
+      :title="t('AGENT_BOTS.DEACTIVATE.CONFIRM.TITLE')"
       :description="
-        t('AGENT_BOTS.DELETE.CONFIRM.MESSAGE', { name: selectedBotName })
+        t('AGENT_BOTS.DEACTIVATE.CONFIRM.MESSAGE', { name: selectedBotName })
       "
       :is-loading="uiFlags.isDeleting"
-      :confirm-button-label="t('AGENT_BOTS.DELETE.CONFIRM.YES')"
-      :cancel-button-label="t('AGENT_BOTS.DELETE.CONFIRM.NO')"
-      @confirm="confirmDeletion"
+      :confirm-button-label="t('AGENT_BOTS.DEACTIVATE.CONFIRM.YES')"
+      :cancel-button-label="t('AGENT_BOTS.DEACTIVATE.CONFIRM.NO')"
+      @confirm="confirmDeactivation"
     />
   </SettingsLayout>
 </template>

@@ -127,6 +127,7 @@ Rails.application.routes.draw do
             post :reset_access_token, on: :member
             post :reset_secret, on: :member
             get :panel_ai_summary, on: :member
+            post :activate, on: :member
           end
           resources :contact_inboxes, only: [] do
             collection do

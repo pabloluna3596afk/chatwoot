@@ -11,6 +11,7 @@ export const state = {
     isFetchingItem: false,
     isCreating: false,
     isDeleting: false,
+    isActivating: false,
     isUpdating: false,
     isUpdatingAvatar: false,
     isFetchingAgentBot: false,
@@ -112,15 +113,30 @@ export const actions = {
     }
   },
 
+  // Deactivates, never deletes (see AgentBotsController#destroy) — the bot
+  // stays in the list with active: false instead of disappearing, so its
+  // history (messages, past conversations) stays visible and attributed.
   delete: async ({ commit }, id) => {
     commit(types.SET_AGENT_BOT_UI_FLAG, { isDeleting: true });
     try {
       await AgentBotsAPI.delete(id);
-      commit(types.DELETE_AGENT_BOT, id);
+      commit(types.SET_AGENT_BOT_ACTIVE, { id, active: false });
     } catch (error) {
       throwErrorMessage(error);
     } finally {
       commit(types.SET_AGENT_BOT_UI_FLAG, { isDeleting: false });
+    }
+  },
+
+  activate: async ({ commit }, id) => {
+    commit(types.SET_AGENT_BOT_UI_FLAG, { isActivating: true });
+    try {
+      await AgentBotsAPI.activate(id);
+      commit(types.SET_AGENT_BOT_ACTIVE, { id, active: true });
+    } catch (error) {
+      throwErrorMessage(error);
+    } finally {
+      commit(types.SET_AGENT_BOT_UI_FLAG, { isActivating: false });
     }
   },
 
@@ -279,6 +295,12 @@ export const mutations = {
     const botIndex = $state.records.findIndex(bot => bot.id === id);
     if (botIndex !== -1) {
       $state.records[botIndex].thumbnail = thumbnail || '';
+    }
+  },
+  [types.SET_AGENT_BOT_ACTIVE]($state, { id, active }) {
+    const botIndex = $state.records.findIndex(bot => bot.id === id);
+    if (botIndex !== -1) {
+      $state.records[botIndex].active = active;
     }
   },
 };

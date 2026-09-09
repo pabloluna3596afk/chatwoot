@@ -9,6 +9,7 @@
 #  name         :string
 #  outgoing_url :string
 #  secret       :string
+#  active       :boolean          default(TRUE), not null
 #  created_at   :datetime         not null
 #  updated_at   :datetime         not null
 #  account_id   :bigint
@@ -28,6 +29,10 @@ class AgentBot < ApplicationRecord
     account_id = account&.id
     where(account_id: [nil, account_id])
   }
+  # Deactivated bots stay around with their full history (see #destroy in
+  # AgentBotsController) — this scope is what keeps them out of "assign a
+  # bot" pickers without touching anything already assigned to them.
+  scope :active, -> { where(active: true) }
 
   has_many :agent_bot_inboxes, dependent: :destroy_async
   has_many :inboxes, through: :agent_bot_inboxes
