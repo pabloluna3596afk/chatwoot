@@ -492,7 +492,8 @@
       "NEW": "Nueva cita",
       "EMPTY": "No hay citas ligadas a esta conversación",
       "DELETED": "Evento cancelado",
-      "NOT_CONNECTED": "Conectá Google Calendar en Ajustes → Integraciones → Calendarios."
+      "NOT_CONNECTED": "Conectá Google Calendar en Ajustes → Integraciones → Calendarios.",
+      "AI_BOOKED": "IA"
     },
     "SHARED_FILES": {
       "EMPTY": "No hay archivos adjuntos aún",

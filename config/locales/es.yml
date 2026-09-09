@@ -451,6 +451,7 @@ es:
       delete_note_required: Escribí por qué se cancela esta cita.
       not_enabled: Este calendario no está habilitado para el equipo.
       invalid_range: La hora de fin debe ser posterior a la de inicio.
+      outside_bot_schedule: El bot no puede agendar fuera del horario configurado para esta bandeja.
       customer_message: 'Tu cita "%{title}" quedó agendada para el %{start_at}.'
     leadsquared:
       name: 'LeadSquared'
