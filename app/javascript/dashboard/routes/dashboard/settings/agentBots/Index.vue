@@ -9,7 +9,7 @@ import SettingsLayout from '../SettingsLayout.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
-import PanelIaStateLegend from 'dashboard/components-next/PanelIa/PanelIaStateLegend.vue';
+import PanelIaStateLegendTrigger from 'dashboard/components-next/PanelIa/PanelIaStateLegendTrigger.vue';
 import AgentBotModal from './components/AgentBotModal.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import {
@@ -39,7 +39,6 @@ const agentBotDeleteDialogRef = ref(null);
 const tableHeaders = computed(() => {
   return [
     t('AGENT_BOTS.LIST.TABLE_HEADER.DETAILS'),
-    t('AGENT_BOTS.LIST.TABLE_HEADER.URL'),
     t('AGENT_BOTS.LIST.TABLE_HEADER.ACTIONS'),
   ];
 });
@@ -92,6 +91,16 @@ const confirmDeactivation = () => {
 const panelAiSummaries = useMapGetter('agentBots/getPanelAiSummary');
 const summaryFor = bot => panelAiSummaries.value(bot.id);
 
+// One deterministic status per bot instead of a cluster of pills that
+// silently disappear — null summary means "still loading", `available:
+// false` means the panel_ai_summary fetch failed or the bot isn't linked.
+const panelAiStatus = bot => {
+  const summary = summaryFor(bot);
+  if (summary === null) return 'loading';
+  if (summary?.available === false) return 'not_connected';
+  return 'connected';
+};
+
 const fetchSummaries = bots => {
   bots
     .filter(bot => !bot.system_bot && !panelAiSummaries.value(bot.id))
@@ -139,6 +148,7 @@ onMounted(() => {
           </span>
         </template>
         <template #actions>
+          <PanelIaStateLegendTrigger />
           <Button
             :label="$t('AGENT_BOTS.ADD.TITLE')"
             size="sm"
@@ -146,7 +156,6 @@ onMounted(() => {
           />
         </template>
       </BaseSettingsHeader>
-      <PanelIaStateLegend class="mt-3" />
     </template>
     <template #body>
       <BaseTable
@@ -185,16 +194,76 @@ onMounted(() => {
                         {{ $t('AGENT_BOTS.INACTIVE_BADGE') }}
                       </span>
                     </div>
-                    <span class="text-body-main text-n-slate-11 block truncate">
+                    <span
+                      v-if="bot.system_bot"
+                      class="text-body-main text-n-slate-11 block truncate"
+                    >
+                      {{ $t('AGENT_BOTS.LIST.SYSTEM_BOT_NOTE') }}
+                    </span>
+                    <span
+                      v-else-if="bot.description"
+                      class="text-body-main text-n-slate-11 block truncate"
+                    >
                       {{ bot.description }}
                     </span>
+
                     <div
-                      v-if="
-                        !bot.system_bot && summaryFor(bot)?.available !== false
-                      "
+                      v-if="!bot.system_bot"
                       class="flex flex-wrap items-center gap-1.5 mt-1"
                     >
-                      <template v-if="summaryFor(bot)">
+                      <span
+                        v-if="panelAiStatus(bot) === 'loading'"
+                        class="text-[10px] font-medium text-n-slate-10"
+                      >
+                        {{ $t('AGENT_BOTS.LIST.PANEL_AI_SUMMARY.LOADING') }}
+                      </span>
+
+                      <span
+                        v-else-if="panelAiStatus(bot) === 'not_connected'"
+                        class="inline-flex items-center gap-1 rounded-full bg-n-ruby-3 px-1.5 py-0.5 text-[10px] font-medium text-n-ruby-11"
+                      >
+                        <span class="i-lucide-unplug size-2.5" />
+                        {{
+                          $t('AGENT_BOTS.LIST.PANEL_AI_SUMMARY.NOT_CONNECTED')
+                        }}
+                      </span>
+
+                      <template v-else>
+                        <span
+                          v-if="summaryFor(bot).setup_wizard_completed_at"
+                          class="inline-flex items-center gap-1 rounded-full bg-n-teal-3 px-1.5 py-0.5 text-[10px] font-medium text-n-teal-11"
+                        >
+                          <span class="i-lucide-circle-check size-2.5" />
+                          {{
+                            $t('AGENT_BOTS.LIST.PANEL_AI_SUMMARY.CONFIGURED')
+                          }}
+                        </span>
+                        <span
+                          v-else
+                          class="inline-flex items-center gap-1 rounded-full bg-n-amber-3 px-1.5 py-0.5 text-[10px] font-medium text-n-amber-11"
+                        >
+                          <span class="i-lucide-circle-dashed size-2.5" />
+                          {{
+                            $t('AGENT_BOTS.LIST.PANEL_AI_SUMMARY.PENDING_SETUP')
+                          }}
+                        </span>
+
+                        <span
+                          class="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                          :class="
+                            summaryFor(bot).inbox_count
+                              ? 'bg-n-slate-3 text-n-slate-11'
+                              : 'bg-n-amber-3 text-n-amber-11'
+                          "
+                        >
+                          <span class="i-lucide-inbox size-2.5" />
+                          {{
+                            $t('AGENT_BOTS.LIST.PANEL_AI_SUMMARY.INBOXES', {
+                              n: summaryFor(bot).inbox_count || 0,
+                            })
+                          }}
+                        </span>
+
                         <span
                           class="inline-flex items-center gap-1 rounded-full bg-n-blue-3 px-1.5 py-0.5 text-[10px] font-medium text-n-blue-11"
                         >
@@ -205,36 +274,10 @@ onMounted(() => {
                             })
                           }}
                         </span>
-                        <span
-                          v-if="summaryFor(bot).inbox_count"
-                          class="inline-flex items-center gap-1 rounded-full bg-n-slate-3 px-1.5 py-0.5 text-[10px] font-medium text-n-slate-11"
-                        >
-                          <span class="i-lucide-inbox size-2.5" />
-                          {{
-                            $t('AGENT_BOTS.LIST.PANEL_AI_SUMMARY.INBOXES', {
-                              n: summaryFor(bot).inbox_count,
-                            })
-                          }}
-                        </span>
-                        <span
-                          v-if="summaryFor(bot).setup_wizard_completed_at"
-                          class="inline-flex items-center gap-1 rounded-full bg-n-teal-3 px-1.5 py-0.5 text-[10px] font-medium text-n-teal-11"
-                        >
-                          <span class="i-lucide-circle-check size-2.5" />
-                          {{
-                            $t('AGENT_BOTS.LIST.PANEL_AI_SUMMARY.CONFIGURED')
-                          }}
-                        </span>
                       </template>
                     </div>
                   </div>
                 </div>
-              </BaseTableCell>
-
-              <BaseTableCell class="max-w-0">
-                <span class="text-body-main text-n-slate-11 truncate block">
-                  {{ bot.outgoing_url || bot.bot_config?.webhook_url }}
-                </span>
               </BaseTableCell>
 
               <BaseTableCell align="end" class="w-24">

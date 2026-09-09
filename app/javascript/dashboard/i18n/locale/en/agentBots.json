@@ -54,13 +54,17 @@
       "LOADING": "Fetching bots...",
       "TABLE_HEADER": {
         "DETAILS": "Bot Details",
-        "URL": "Webhook URL",
         "ACTIONS": "Actions"
       },
+      "SYSTEM_BOT_NOTE": "Built-in system bot — not configurable here.",
+      "STATE_LEGEND_HINT": "What do the colors in conversations mean?",
       "PANEL_AI_SUMMARY": {
         "TOOLS": "{n} tools",
         "INBOXES": "{n} inboxes",
-        "CONFIGURED": "Setup complete"
+        "CONFIGURED": "Setup complete",
+        "PENDING_SETUP": "Setup pending",
+        "NOT_CONNECTED": "Not connected to Panel AI",
+        "LOADING": "Checking status…"
       }
     },
     "DELETE": {

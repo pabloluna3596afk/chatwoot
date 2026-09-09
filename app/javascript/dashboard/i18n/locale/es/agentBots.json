@@ -54,13 +54,17 @@
       "LOADING": "Obteniendo bots...",
       "TABLE_HEADER": {
         "DETAILS": "Detalles del Bot",
-        "URL": "URL de Webhook",
         "ACTIONS": "Acciones"
       },
+      "SYSTEM_BOT_NOTE": "Bot integrado del sistema — no se configura desde acá.",
+      "STATE_LEGEND_HINT": "¿Qué significan los colores en las conversaciones?",
       "PANEL_AI_SUMMARY": {
         "TOOLS": "{n} herramientas",
         "INBOXES": "{n} bandejas",
-        "CONFIGURED": "Configuración completa"
+        "CONFIGURED": "Configuración completa",
+        "PENDING_SETUP": "Configuración pendiente",
+        "NOT_CONNECTED": "Sin conectar con Panel AI",
+        "LOADING": "Consultando estado…"
       }
     },
     "DELETE": {
