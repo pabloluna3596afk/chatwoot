@@ -117,7 +117,7 @@
       "TOGGLE": "Toggle secret visibility",
       "CREATED_DESC": "Usá el secreto de abajo para verificar la firma de los mensajes del webhook. Copialo ahora — después también lo vas a poder ver en la configuración del bot.",
       "DONE": "Done",
-      "TOOLTIP": "Firma los mensajes que Chatwoot le manda a la IA, para que ésta verifique que vienen de acá. Podés resetearlo cuando quieras: como mucho, algún mensaje que llegue justo en ese momento tarda hasta un minuto de más en responderse mientras se sincroniza — el bot no se rompe.",
+      "HELP": "Firma los mensajes que Chatwoot le manda a la IA, para que ésta verifique que vienen de acá. Podés resetearlo cuando quieras: como mucho, algún mensaje que llegue justo en ese momento tarda hasta un minuto de más en responderse mientras se sincroniza — el bot no se rompe.",
       "RESET_SUCCESS": "Webhook secret regenerated successfully",
       "RESET_ERROR": "Unable to regenerate webhook secret. Please try again"
     },

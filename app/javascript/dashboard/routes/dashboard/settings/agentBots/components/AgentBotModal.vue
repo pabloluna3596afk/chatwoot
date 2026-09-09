@@ -121,15 +121,9 @@ const botUrlError = computed(() =>
   v$.value.botUrl.$error ? v$.value.botUrl.$errors[0]?.$message : ''
 );
 
-// Always-visible caption instead of a hover-only tooltip — this is the one
-// field that can actually stop the bot from receiving messages, so the
-// warning shouldn't be easy to miss.
-const botUrlMessage = computed(
-  () => botUrlError.value || t('AGENT_BOTS.FORM.WEBHOOK_URL.HELP')
-);
-const botUrlMessageType = computed(() =>
-  botUrlError.value ? 'error' : 'info'
-);
+// Rendered as our own <p> below the Input rather than through its built-in
+// `message` slot, which truncates to one line — fine for a short validation
+// error, not for this full sentence.
 
 const resetForm = () => {
   Object.assign(formState, {
@@ -329,30 +323,30 @@ defineExpose({ dialogRef });
           v-model="formState.botUrl"
           :label="$t('AGENT_BOTS.FORM.WEBHOOK_URL.LABEL')"
           :placeholder="$t('AGENT_BOTS.FORM.WEBHOOK_URL.PLACEHOLDER')"
-          :message="botUrlMessage"
-          :message-type="botUrlMessageType"
+          :message="botUrlError"
+          message-type="error"
           @blur="v$.botUrl.$touch()"
         />
+        <p v-if="!botUrlError" class="-mt-1 text-label-small text-n-slate-11">
+          {{ $t('AGENT_BOTS.FORM.WEBHOOK_URL.HELP') }}
+        </p>
       </div>
 
       <div
         v-if="botSecret && type === MODAL_TYPES.EDIT"
         class="flex flex-col gap-1"
       >
-        <label
-          class="mb-0.5 flex items-center gap-1 text-sm font-medium text-n-slate-12"
-        >
+        <label class="mb-0.5 text-sm font-medium text-n-slate-12">
           {{ $t('AGENT_BOTS.SECRET.LABEL') }}
-          <span
-            v-tooltip.top="$t('AGENT_BOTS.SECRET.TOOLTIP')"
-            class="i-lucide-info size-3.5 text-n-slate-9 cursor-help"
-          />
         </label>
         <AccessToken
           :value="botSecret"
           @on-copy="onCopySecret"
           @on-reset="onResetSecret"
         />
+        <p class="text-label-small text-n-slate-11">
+          {{ $t('AGENT_BOTS.SECRET.HELP') }}
+        </p>
       </div>
 
       <div
