@@ -111,6 +111,43 @@
       "CATEGORY_VENTAS": "Sales",
       "CATEGORY_SEGUIMIENTO": "Follow-up"
     },
+    "CONTACT_PRESETS": {
+      "SECTION_TITLE": "Reach contacts, not just open chats",
+      "ACTIVATE": "Activate",
+      "ACTIVATE_SUCCESS": "Recipe activated",
+      "ACTIVATE_ERROR": "Could not activate the recipe. Please try again.",
+      "ATTRIBUTE_LABEL": "Date attribute",
+      "WHEN_LABEL": "When to send",
+      "TEST_MODE": "Try it first with a label",
+      "TEST_MODE_LABEL_PICKER": "Only contacts tagged",
+      "REACH_LOADING": "Checking how many contacts this would reach…",
+      "REACH_COUNT": "This would reach {count} contact right now | This would reach {count} contacts right now",
+      "REACH_UNKNOWN_NEW_ATTRIBUTE": "This attribute is new — no contact has it loaded yet.",
+      "CUMPLEANOS": {
+        "NAME": "Birthday with a discount",
+        "DESC": "Contacts get a WhatsApp greeting with a discount you choose, on their birthday.",
+        "ATTRIBUTE_NAME": "Birthday"
+      },
+      "ANIVERSARIO": {
+        "NAME": "Customer anniversary",
+        "DESC": "A yearly thank-you message on the day the contact first became a customer.",
+        "ATTRIBUTE_NAME": "Customer since"
+      },
+      "RECOMPRA": {
+        "NAME": "Repurchase reminder",
+        "DESC": "A nudge to reorder some time after a sale, before they think of going elsewhere.",
+        "ATTRIBUTE_NAME": "Sale date"
+      },
+      "REACTIVAR": {
+        "NAME": "Reactivate inactive contacts",
+        "DESC": "Reach out to contacts who went quiet, even if their conversation was closed long ago."
+      },
+      "DAY_OPTIONS": {
+        "SAME_DAY": "Same day",
+        "DAYS_BEFORE": "{count} day before | {count} days before",
+        "DAYS_AFTER": "{count} day | {count} days"
+      }
+    },
     "STATUS_ERRORS": {
       "missing_attribute": "Fill required attribute: {key}",
       "missing_reason_attribute": "Fill reason attribute: {key}",

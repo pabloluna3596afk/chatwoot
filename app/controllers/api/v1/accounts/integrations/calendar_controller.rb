@@ -229,6 +229,11 @@ class Api::V1::Accounts::Integrations::CalendarController < Api::V1::Accounts::I
       render json: { error: I18n.t('integration_apps.calendars.invalid_range') }, status: :unprocessable_entity
     when Integrations::GoogleCalendar::EventService::MissingDeleteNote
       render json: { error: I18n.t('integration_apps.calendars.delete_note_required') }, status: :unprocessable_entity
+    when Integrations::GoogleCalendar::EventService::OutsideBotSchedule
+      render json: {
+        error: I18n.t('integration_apps.calendars.outside_bot_schedule'),
+        code: 'outside_bot_schedule'
+      }, status: :unprocessable_entity
     else
       render json: { error: error.message }, status: :unprocessable_entity
     end

@@ -9,6 +9,7 @@
 #  name         :string
 #  outgoing_url :string
 #  secret       :string
+#  active       :boolean          default(TRUE), not null
 #  created_at   :datetime         not null
 #  updated_at   :datetime         not null
 #  account_id   :bigint
@@ -28,6 +29,10 @@ class AgentBot < ApplicationRecord
     account_id = account&.id
     where(account_id: [nil, account_id])
   }
+  # Deactivated bots stay around with their full history (see #destroy in
+  # AgentBotsController) — this scope is what keeps them out of "assign a
+  # bot" pickers without touching anything already assigned to them.
+  scope :active, -> { where(active: true) }
 
   has_many :agent_bot_inboxes, dependent: :destroy_async
   has_many :inboxes, through: :agent_bot_inboxes
@@ -65,6 +70,14 @@ class AgentBot < ApplicationRecord
 
   def system_bot?
     account.nil?
+  end
+
+  # Falls back to Panel AI's install-wide webhook when the bot has no URL of
+  # its own — the client never sees this value (see AgentBotModal.vue and the
+  # jbuilder secret gate below), so an admin who left it blank is genuinely
+  # using our default, not a broken bot.
+  def effective_outgoing_url
+    outgoing_url.presence || GlobalConfigService.load('PANEL_AI_DEFAULT_WEBHOOK_URL', ENV.fetch('PANEL_AI_DEFAULT_WEBHOOK_URL', ''))
   end
 end
 

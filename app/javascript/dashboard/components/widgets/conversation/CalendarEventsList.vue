@@ -142,12 +142,19 @@ onMounted(async () => {
             {{ $t('CONVERSATION_SIDEBAR.CALENDAR.DELETED') }}
           </p>
           <p
-            class="text-sm truncate"
+            class="flex items-center gap-1 text-sm truncate"
             :class="
               event.deleted ? 'text-n-ruby-11 line-through' : 'text-n-slate-12'
             "
           >
-            {{ event.summary }}
+            <span class="truncate">{{ event.summary }}</span>
+            <span
+              v-if="event.booking_source === 'ai'"
+              class="inline-flex items-center gap-0.5 shrink-0 rounded-full bg-n-teal-3 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-n-teal-11"
+            >
+              <span class="i-lucide-sparkles size-2.5" />
+              {{ $t('CONVERSATION_SIDEBAR.CALENDAR.AI_BOOKED') }}
+            </span>
           </p>
           <p
             v-if="

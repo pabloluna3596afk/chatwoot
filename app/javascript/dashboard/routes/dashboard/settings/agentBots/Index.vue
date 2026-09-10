@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import { useI18n } from 'vue-i18n';
@@ -9,7 +9,7 @@ import SettingsLayout from '../SettingsLayout.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
-import PanelIaStateLegend from 'dashboard/components-next/PanelIa/PanelIaStateLegend.vue';
+import PanelIaStateLegendTrigger from 'dashboard/components-next/PanelIa/PanelIaStateLegendTrigger.vue';
 import AgentBotModal from './components/AgentBotModal.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import {
@@ -39,7 +39,6 @@ const agentBotDeleteDialogRef = ref(null);
 const tableHeaders = computed(() => {
   return [
     t('AGENT_BOTS.LIST.TABLE_HEADER.DETAILS'),
-    t('AGENT_BOTS.LIST.TABLE_HEADER.URL'),
     t('AGENT_BOTS.LIST.TABLE_HEADER.ACTIONS'),
   ];
 });
@@ -64,12 +63,14 @@ const openEditModal = bot => {
   agentBotModalRef.value.dialogRef.open();
 };
 
-const openDeletePopup = bot => {
+const openDeactivatePopup = bot => {
   selectedBot.value = bot;
   agentBotDeleteDialogRef.value.open();
 };
 
-const deleteAgentBot = async id => {
+// Deactivates, never deletes — see AgentBotsController#destroy and the
+// agentBots/delete action. The bot stays in this list with active: false.
+const deactivateAgentBot = async id => {
   try {
     await store.dispatch('agentBots/delete', id);
     useAlert(t('AGENT_BOTS.DELETE.API.SUCCESS_MESSAGE'));
@@ -81,10 +82,43 @@ const deleteAgentBot = async id => {
   }
 };
 
-const confirmDeletion = () => {
+const confirmDeactivation = () => {
   loading.value[selectedBot.value.id] = true;
-  deleteAgentBot(selectedBot.value.id);
+  deactivateAgentBot(selectedBot.value.id);
   agentBotDeleteDialogRef.value.close();
+};
+
+const panelAiSummaries = useMapGetter('agentBots/getPanelAiSummary');
+const summaryFor = bot => panelAiSummaries.value(bot.id);
+
+// One deterministic status per bot instead of a cluster of pills that
+// silently disappear — null summary means "still loading", `available:
+// false` means the panel_ai_summary fetch failed or the bot isn't linked.
+const panelAiStatus = bot => {
+  const summary = summaryFor(bot);
+  if (summary === null) return 'loading';
+  if (summary?.available === false) return 'not_connected';
+  return 'connected';
+};
+
+const fetchSummaries = bots => {
+  bots
+    .filter(bot => !bot.system_bot && !panelAiSummaries.value(bot.id))
+    .forEach(bot => store.dispatch('agentBots/fetchPanelAiSummary', bot.id));
+};
+
+watch(agentBots, bots => fetchSummaries(bots || []), { immediate: true });
+
+const activateAgentBot = async bot => {
+  loading.value[bot.id] = true;
+  try {
+    await store.dispatch('agentBots/activate', bot.id);
+    useAlert(t('AGENT_BOTS.ACTIVATE.API.SUCCESS_MESSAGE'));
+  } catch (error) {
+    useAlert(t('AGENT_BOTS.ACTIVATE.API.ERROR_MESSAGE'));
+  } finally {
+    loading.value[bot.id] = false;
+  }
 };
 
 onMounted(() => {
@@ -114,6 +148,7 @@ onMounted(() => {
           </span>
         </template>
         <template #actions>
+          <PanelIaStateLegendTrigger />
           <Button
             :label="$t('AGENT_BOTS.ADD.TITLE')"
             size="sm"
@@ -121,7 +156,6 @@ onMounted(() => {
           />
         </template>
       </BaseSettingsHeader>
-      <PanelIaStateLegend class="mt-3" />
     </template>
     <template #body>
       <BaseTable
@@ -153,18 +187,97 @@ onMounted(() => {
                       >
                         {{ $t('AGENT_BOTS.GLOBAL_BOT_BADGE') }}
                       </span>
+                      <span
+                        v-if="bot.active === false"
+                        class="text-xs text-n-amber-12 bg-n-amber-5 rounded-md py-0.5 px-1 flex-shrink-0"
+                      >
+                        {{ $t('AGENT_BOTS.INACTIVE_BADGE') }}
+                      </span>
                     </div>
-                    <span class="text-body-main text-n-slate-11 block truncate">
+                    <span
+                      v-if="bot.system_bot"
+                      class="text-body-main text-n-slate-11 block truncate"
+                    >
+                      {{ $t('AGENT_BOTS.LIST.SYSTEM_BOT_NOTE') }}
+                    </span>
+                    <span
+                      v-else-if="bot.description"
+                      class="text-body-main text-n-slate-11 block truncate"
+                    >
                       {{ bot.description }}
                     </span>
+
+                    <div
+                      v-if="!bot.system_bot"
+                      class="flex flex-wrap items-center gap-1.5 mt-1"
+                    >
+                      <span
+                        v-if="panelAiStatus(bot) === 'loading'"
+                        class="text-[10px] font-medium text-n-slate-10"
+                      >
+                        {{ $t('AGENT_BOTS.LIST.PANEL_AI_SUMMARY.LOADING') }}
+                      </span>
+
+                      <span
+                        v-else-if="panelAiStatus(bot) === 'not_connected'"
+                        class="inline-flex items-center gap-1 rounded-full bg-n-ruby-3 px-1.5 py-0.5 text-[10px] font-medium text-n-ruby-11"
+                      >
+                        <span class="i-lucide-unplug size-2.5" />
+                        {{
+                          $t('AGENT_BOTS.LIST.PANEL_AI_SUMMARY.NOT_CONNECTED')
+                        }}
+                      </span>
+
+                      <template v-else>
+                        <span
+                          v-if="summaryFor(bot).setup_wizard_completed_at"
+                          class="inline-flex items-center gap-1 rounded-full bg-n-teal-3 px-1.5 py-0.5 text-[10px] font-medium text-n-teal-11"
+                        >
+                          <span class="i-lucide-circle-check size-2.5" />
+                          {{
+                            $t('AGENT_BOTS.LIST.PANEL_AI_SUMMARY.CONFIGURED')
+                          }}
+                        </span>
+                        <span
+                          v-else
+                          class="inline-flex items-center gap-1 rounded-full bg-n-amber-3 px-1.5 py-0.5 text-[10px] font-medium text-n-amber-11"
+                        >
+                          <span class="i-lucide-circle-dashed size-2.5" />
+                          {{
+                            $t('AGENT_BOTS.LIST.PANEL_AI_SUMMARY.PENDING_SETUP')
+                          }}
+                        </span>
+
+                        <span
+                          class="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                          :class="
+                            summaryFor(bot).inbox_count
+                              ? 'bg-n-slate-3 text-n-slate-11'
+                              : 'bg-n-amber-3 text-n-amber-11'
+                          "
+                        >
+                          <span class="i-lucide-inbox size-2.5" />
+                          {{
+                            $t('AGENT_BOTS.LIST.PANEL_AI_SUMMARY.INBOXES', {
+                              n: summaryFor(bot).inbox_count || 0,
+                            })
+                          }}
+                        </span>
+
+                        <span
+                          class="inline-flex items-center gap-1 rounded-full bg-n-blue-3 px-1.5 py-0.5 text-[10px] font-medium text-n-blue-11"
+                        >
+                          <span class="i-lucide-wrench size-2.5" />
+                          {{
+                            $t('AGENT_BOTS.LIST.PANEL_AI_SUMMARY.TOOLS', {
+                              n: summaryFor(bot).http_tool_count || 0,
+                            })
+                          }}
+                        </span>
+                      </template>
+                    </div>
                   </div>
                 </div>
-              </BaseTableCell>
-
-              <BaseTableCell class="max-w-0">
-                <span class="text-body-main text-n-slate-11 truncate block">
-                  {{ bot.outgoing_url || bot.bot_config?.webhook_url }}
-                </span>
               </BaseTableCell>
 
               <BaseTableCell align="end" class="w-24">
@@ -179,14 +292,24 @@ onMounted(() => {
                     @click="openEditModal(bot)"
                   />
                   <Button
-                    v-if="!bot.system_bot"
-                    v-tooltip.top="t('AGENT_BOTS.DELETE.BUTTON_TEXT')"
-                    icon="i-woot-bin"
+                    v-if="!bot.system_bot && bot.active !== false"
+                    v-tooltip.top="t('AGENT_BOTS.DEACTIVATE.BUTTON_TEXT')"
+                    icon="i-lucide-power-off"
                     slate
                     sm
                     class="hover:enabled:text-n-ruby-11 hover:enabled:bg-n-ruby-2"
                     :is-loading="loading[bot.id]"
-                    @click="openDeletePopup(bot)"
+                    @click="openDeactivatePopup(bot)"
+                  />
+                  <Button
+                    v-if="!bot.system_bot && bot.active === false"
+                    v-tooltip.top="t('AGENT_BOTS.ACTIVATE.BUTTON_TEXT')"
+                    icon="i-lucide-power"
+                    slate
+                    sm
+                    class="hover:enabled:text-n-teal-11 hover:enabled:bg-n-teal-2"
+                    :is-loading="loading[bot.id]"
+                    @click="activateAgentBot(bot)"
                   />
                 </div>
               </BaseTableCell>
@@ -205,14 +328,14 @@ onMounted(() => {
     <Dialog
       ref="agentBotDeleteDialogRef"
       type="alert"
-      :title="t('AGENT_BOTS.DELETE.CONFIRM.TITLE')"
+      :title="t('AGENT_BOTS.DEACTIVATE.CONFIRM.TITLE')"
       :description="
-        t('AGENT_BOTS.DELETE.CONFIRM.MESSAGE', { name: selectedBotName })
+        t('AGENT_BOTS.DEACTIVATE.CONFIRM.MESSAGE', { name: selectedBotName })
       "
       :is-loading="uiFlags.isDeleting"
-      :confirm-button-label="t('AGENT_BOTS.DELETE.CONFIRM.YES')"
-      :cancel-button-label="t('AGENT_BOTS.DELETE.CONFIRM.NO')"
-      @confirm="confirmDeletion"
+      :confirm-button-label="t('AGENT_BOTS.DEACTIVATE.CONFIRM.YES')"
+      :cancel-button-label="t('AGENT_BOTS.DEACTIVATE.CONFIRM.NO')"
+      @confirm="confirmDeactivation"
     />
   </SettingsLayout>
 </template>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_09_02_130000) do
+ActiveRecord::Schema[7.2].define(version: 2026_09_09_140000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -114,6 +114,20 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_02_130000) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "agent_bot_inbox_working_hours", force: :cascade do |t|
+    t.bigint "agent_bot_inbox_id", null: false
+    t.integer "day_of_week", null: false
+    t.integer "open_hour"
+    t.integer "open_minutes"
+    t.integer "close_hour"
+    t.integer "close_minutes"
+    t.boolean "closed_all_day", default: false
+    t.boolean "open_all_day", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["agent_bot_inbox_id"], name: "index_abi_working_hours_on_agent_bot_inbox_id"
+  end
+
   create_table "agent_bot_inboxes", force: :cascade do |t|
     t.integer "inbox_id"
     t.integer "agent_bot_id"
@@ -121,6 +135,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_02_130000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "account_id"
+    t.string "schedule_mode", default: "always", null: false
   end
 
   create_table "agent_bots", force: :cascade do |t|
@@ -133,6 +148,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_02_130000) do
     t.integer "bot_type", default: 0
     t.jsonb "bot_config", default: {}
     t.string "secret"
+    t.boolean "active", default: true, null: false
     t.index ["account_id"], name: "index_agent_bots_on_account_id"
   end
 
@@ -392,6 +408,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_02_130000) do
     t.string "idempotency_key"
     t.jsonb "bot_followup_policy", default: {}, null: false
     t.string "appointment_status", default: "none", null: false
+    t.string "booking_source", default: "manual", null: false
     t.index ["account_id", "contact_id"], name: "index_calendar_events_on_account_id_and_contact_id"
     t.index ["account_id", "conversation_id"], name: "index_calendar_events_on_account_id_and_conversation_id"
     t.index ["account_id", "idempotency_key"], name: "index_calendar_events_on_account_id_and_idempotency_key", unique: true, where: "(idempotency_key IS NOT NULL)"
@@ -1862,6 +1879,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_02_130000) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "agent_bot_inbox_working_hours", "agent_bot_inboxes"
   add_foreign_key "calendar_connection_calendars", "accounts"
   add_foreign_key "calendar_connection_calendars", "calendar_connections"
   add_foreign_key "calendar_connections", "accounts"

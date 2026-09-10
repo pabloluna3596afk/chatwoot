@@ -111,6 +111,43 @@
       "CATEGORY_VENTAS": "Ventas",
       "CATEGORY_SEGUIMIENTO": "Seguimiento"
     },
+    "CONTACT_PRESETS": {
+      "SECTION_TITLE": "Alcanzá contactos, no solo chats abiertos",
+      "ACTIVATE": "Activar",
+      "ACTIVATE_SUCCESS": "Receta activada",
+      "ACTIVATE_ERROR": "No se pudo activar la receta. Probá de nuevo.",
+      "ATTRIBUTE_LABEL": "Atributo de fecha",
+      "WHEN_LABEL": "Cuándo enviar",
+      "TEST_MODE": "Probar primero con una etiqueta",
+      "TEST_MODE_LABEL_PICKER": "Solo contactos con la etiqueta",
+      "REACH_LOADING": "Calculando a cuántos contactos alcanzaría…",
+      "REACH_COUNT": "Esto alcanzaría a {count} contacto ahora mismo | Esto alcanzaría a {count} contactos ahora mismo",
+      "REACH_UNKNOWN_NEW_ATTRIBUTE": "Este atributo es nuevo — todavía ningún contacto lo tiene cargado.",
+      "CUMPLEANOS": {
+        "NAME": "Cumpleaños con descuento",
+        "DESC": "Los contactos reciben un saludo por WhatsApp con un descuento que vos elegís, el día de su cumpleaños.",
+        "ATTRIBUTE_NAME": "Cumpleaños"
+      },
+      "ANIVERSARIO": {
+        "NAME": "Aniversario de cliente",
+        "DESC": "Un mensaje de agradecimiento cada año, en la fecha en que el contacto se volvió cliente.",
+        "ATTRIBUTE_NAME": "Cliente desde"
+      },
+      "RECOMPRA": {
+        "NAME": "Recordatorio de recompra",
+        "DESC": "Un empujón para volver a comprar un tiempo después de una venta, antes de que piense en otro lado.",
+        "ATTRIBUTE_NAME": "Fecha de venta"
+      },
+      "REACTIVAR": {
+        "NAME": "Reactivar contactos inactivos",
+        "DESC": "Volvé a escribirle a contactos que dejaron de responder, aunque su conversación se haya cerrado hace tiempo."
+      },
+      "DAY_OPTIONS": {
+        "SAME_DAY": "El mismo día",
+        "DAYS_BEFORE": "{count} día antes | {count} días antes",
+        "DAYS_AFTER": "{count} día | {count} días"
+      }
+    },
     "STATUS_ERRORS": {
       "missing_attribute": "Completa el atributo obligatorio: {key}",
       "missing_reason_attribute": "Completa el atributo de motivo: {key}",

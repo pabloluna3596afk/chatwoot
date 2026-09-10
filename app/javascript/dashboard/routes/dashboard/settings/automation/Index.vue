@@ -13,7 +13,12 @@ import AutomationRuleRow from './AutomationRuleRow.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import { BaseTable } from 'dashboard/components-next/table';
-import { TIME_RULE_PRESETS } from 'dashboard/components-next/ConversationWorkflow/businessRulesConstants';
+import {
+  TIME_RULE_PRESETS,
+  CONTACT_RULE_PRESETS,
+} from 'dashboard/components-next/ConversationWorkflow/businessRulesConstants';
+import PresetActivationCard from 'dashboard/components-next/ConversationWorkflow/PresetActivationCard.vue';
+import ContactRecipeDialog from 'dashboard/components-next/ConversationWorkflow/ContactRecipeDialog.vue';
 import { DEFAULT_DELAY_MINUTES } from './constants';
 import { replaceAttributeKey } from './presetAttributeSubstitution';
 import { filterUnactivatedPresets } from './unactivatedPresets';
@@ -27,6 +32,7 @@ const loading = ref({});
 const addDialogRef = ref(null);
 const editDialogRef = ref(null);
 const attributeRequirementDialogRef = ref(null);
+const contactRecipeDialogRef = ref(null);
 const showDeleteConfirmationPopup = ref(false);
 const selectedAutomation = ref({});
 const searchQuery = ref('');
@@ -41,6 +47,14 @@ const records = computed(() => getters['automations/getAutomations'].value);
 const unactivatedTimePresets = computed(() =>
   filterUnactivatedPresets(TIME_RULE_PRESETS, records.value)
 );
+
+const unactivatedContactPresets = computed(() =>
+  filterUnactivatedPresets(CONTACT_RULE_PRESETS, records.value)
+);
+
+const openContactRecipeDialog = preset => {
+  contactRecipeDialogRef.value?.open(preset);
+};
 
 const tabFilteredRecords = computed(() => {
   const all = records.value || [];
@@ -117,6 +131,19 @@ const noDataMessage = computed(() => {
 
 const onTabChanged = tab => {
   runTypeTab.value = tab.key;
+};
+
+const eventTypeTabs = computed(() => [
+  { key: 'event', label: t('AUTOMATION.TAB_EVENT') },
+  { key: 'time', label: t('AUTOMATION.TAB_TIME') },
+]);
+
+const activeEventTypeTabIndex = computed(() =>
+  eventTypeTabs.value.findIndex(tab => tab.key === eventTypeTab.value)
+);
+
+const onEventTypeTabChanged = tab => {
+  eventTypeTab.value = tab.key;
 };
 
 const deleteConfirmText = computed(
@@ -418,20 +445,11 @@ const tableHeaders = computed(() => {
       >
         {{ $t('AUTOMATION.LIST.DELAY_DISABLED_BANNER') }}
       </div>
-      <div class="flex flex-wrap items-center gap-2 mb-4">
-        <Button
-          sm
-          :solid="eventTypeTab === 'event'"
-          :faded="eventTypeTab !== 'event'"
-          :label="$t('AUTOMATION.TAB_EVENT')"
-          @click="eventTypeTab = 'event'"
-        />
-        <Button
-          sm
-          :solid="eventTypeTab === 'time'"
-          :faded="eventTypeTab !== 'time'"
-          :label="$t('AUTOMATION.TAB_TIME')"
-          @click="eventTypeTab = 'time'"
+      <div class="mb-4">
+        <TabBar
+          :tabs="eventTypeTabs"
+          :initial-active-tab="activeEventTypeTabIndex"
+          @tab-changed="onEventTypeTabChanged"
         />
       </div>
 
@@ -442,15 +460,37 @@ const tableHeaders = computed(() => {
         <p class="m-0 text-xs font-medium uppercase text-n-slate-11">
           {{ $t('AUTOMATION.TIME_PRESETS_TITLE') }}
         </p>
-        <div class="flex flex-wrap gap-2">
-          <Button
+        <div class="flex flex-col gap-2">
+          <PresetActivationCard
             v-for="preset in unactivatedTimePresets"
             :key="preset.id"
-            sm
-            faded
-            icon="i-lucide-sparkles"
-            :label="$t(preset.nameKey)"
-            @click="activateTimePreset(preset)"
+            :name="$t(preset.nameKey)"
+            :description="
+              preset.descriptionKey ? $t(preset.descriptionKey) : ''
+            "
+            :activate-label="$t('BUSINESS_RULES.ACTIVATE_PRESET')"
+            @activate="activateTimePreset(preset)"
+          />
+        </div>
+      </div>
+
+      <div
+        v-if="eventTypeTab === 'time' && unactivatedContactPresets.length"
+        class="flex flex-col gap-2 mb-4 rounded-lg border border-n-weak bg-n-solid-2 p-3"
+      >
+        <p class="m-0 text-xs font-medium uppercase text-n-slate-11">
+          {{ $t('BUSINESS_RULES.CONTACT_PRESETS.SECTION_TITLE') }}
+        </p>
+        <div class="flex flex-col gap-2">
+          <PresetActivationCard
+            v-for="preset in unactivatedContactPresets"
+            :key="preset.id"
+            :name="$t(preset.nameKey)"
+            :description="
+              preset.descriptionKey ? $t(preset.descriptionKey) : ''
+            "
+            :activate-label="$t('BUSINESS_RULES.ACTIVATE_PRESET')"
+            @activate="openContactRecipeDialog(preset)"
           />
         </div>
       </div>
@@ -478,6 +518,7 @@ const tableHeaders = computed(() => {
     <AddAutomationRule ref="addDialogRef" @save-automation="submitAutomation" />
 
     <AttributeRequirementDialog ref="attributeRequirementDialogRef" />
+    <ContactRecipeDialog ref="contactRecipeDialogRef" />
 
     <woot-delete-modal
       v-model:show="showDeleteConfirmationPopup"

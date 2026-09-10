@@ -23,6 +23,12 @@ class AutomationsAPI extends ApiClient {
       event_name: eventName,
     });
   }
+
+  // How many contacts a not-yet-saved contact-based schedule would reach
+  // right now. Executes nothing.
+  reachPreview(schedule) {
+    return axios.post(`${this.url}/reach_preview`, { schedule });
+  }
 }
 
 export default new AutomationsAPI();

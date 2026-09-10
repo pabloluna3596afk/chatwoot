@@ -374,6 +374,7 @@
         "CANCEL_CONFIRM_DESCRIPTION": "Se cancelará «{title}». El equipo podrá verlo si activa eventos cancelados.",
         "DELETED_BY": "Lo canceló {name}",
         "CREATED_BY": "Creado por {name}. ",
+        "AI_BOOKED": "Agendado por IA",
         "UPDATED_BY": "Última edición por {name}.",
         "LOCKED": "{name} está editando este evento",
         "LOCK_ERROR": "No se pudo empezar a editar este evento.",

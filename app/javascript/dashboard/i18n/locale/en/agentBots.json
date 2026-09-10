@@ -22,7 +22,24 @@
       "DISCONNECTED_SUCCESS_MESSAGE": "Successfully disconnected the agent bot.",
       "ERROR_MESSAGE": "Could not update the agent bot. Please try again.",
       "DISCONNECTED_ERROR_MESSAGE": "Could not disconnect the agent bot. Please try again.",
-      "SELECT_PLACEHOLDER": "Select bot"
+      "SELECT_PLACEHOLDER": "Select bot",
+      "SCHEDULE": {
+        "TITLE": "When should this bot reply?",
+        "MODES": {
+          "always": {
+            "LABEL": "Whenever the inbox is open",
+            "DESCRIPTION": "The bot follows the inbox's own business hours. Default behavior."
+          },
+          "outside_inbox_hours": {
+            "LABEL": "Outside the inbox's hours",
+            "DESCRIPTION": "The bot covers exactly when your human agents are out of office."
+          },
+          "own_hours": {
+            "LABEL": "A schedule of its own",
+            "DESCRIPTION": "Set a weekly schedule for this bot, independent of the inbox."
+          }
+        }
+      }
     },
     "ADD": {
       "TITLE": "Add Bot",
@@ -37,8 +54,17 @@
       "LOADING": "Fetching bots...",
       "TABLE_HEADER": {
         "DETAILS": "Bot Details",
-        "URL": "Webhook URL",
         "ACTIONS": "Actions"
+      },
+      "SYSTEM_BOT_NOTE": "Built-in system bot — not configurable here.",
+      "STATE_LEGEND_HINT": "What do the colors in conversations mean?",
+      "PANEL_AI_SUMMARY": {
+        "TOOLS": "{n} tools",
+        "INBOXES": "{n} inboxes",
+        "CONFIGURED": "Setup complete",
+        "PENDING_SETUP": "Setup pending",
+        "NOT_CONNECTED": "Not connected to Panel AI",
+        "LOADING": "Checking status…"
       }
     },
     "DELETE": {
@@ -55,6 +81,27 @@
         "ERROR_MESSAGE": "Could not delete bot. Please try again."
       }
     },
+    "INACTIVE_BADGE": "Inactive",
+    "DEACTIVATE": {
+      "BUTTON_TEXT": "Deactivate",
+      "CONFIRM": {
+        "TITLE": "Deactivate this bot?",
+        "MESSAGE": "{name} won't be assignable to new conversations or inboxes. Anything it's already handling keeps working normally, and you can reactivate it anytime.",
+        "YES": "Yes, deactivate",
+        "NO": "No, keep active"
+      },
+      "API": {
+        "SUCCESS_MESSAGE": "Bot deactivated.",
+        "ERROR_MESSAGE": "Could not deactivate the bot. Please try again."
+      }
+    },
+    "ACTIVATE": {
+      "BUTTON_TEXT": "Activate",
+      "API": {
+        "SUCCESS_MESSAGE": "Bot activated.",
+        "ERROR_MESSAGE": "Could not activate the bot. Please try again."
+      }
+    },
     "EDIT": {
       "BUTTON_TEXT": "Edit",
       "TITLE": "Edit bot",
@@ -68,17 +115,13 @@
       "COPY": "Copy secret to clipboard",
       "COPY_SUCCESS": "Secret copied to clipboard",
       "TOGGLE": "Toggle secret visibility",
-      "CREATED_DESC": "Use the secret below to verify webhook signatures. Please copy it now, you can also find it later in the bot settings.",
+      "CREATED_DESC": "Copy this code and save it in your own system — it's what it'll use to confirm messages really came from here. You can also find it later in the bot settings.",
       "DONE": "Done",
+      "HELP_DEFAULT": "This bot runs on our system's connection — no need to see or copy anything here. Safe to reset this code any time, no need to worry — the bot keeps working the same.",
+      "HELP_CUSTOM": "Your own system needs this code to confirm messages really came from here. Copy it and save it on your end.",
+      "HELP_PENDING_SAVE": "Save your changes to see the code your system will need.",
       "RESET_SUCCESS": "Webhook secret regenerated successfully",
       "RESET_ERROR": "Unable to regenerate webhook secret. Please try again"
-    },
-    "ACCESS_TOKEN": {
-      "TITLE": "Access Token",
-      "DESCRIPTION": "Copy the access token and save it securely",
-      "COPY_SUCCESSFUL": "Access token copied to clipboard",
-      "RESET_SUCCESS": "Access token regenerated successfully",
-      "RESET_ERROR": "Unable to regenerate access token. Please try again"
     },
     "FORM": {
       "AVATAR": {
@@ -95,8 +138,10 @@
       },
       "WEBHOOK_URL": {
         "LABEL": "Webhook URL",
-        "PLACEHOLDER": "https://example.com/webhook",
-        "REQUIRED": "Webhook URL is required"
+        "PLACEHOLDER": "Using our system's default",
+        "REQUIRED": "Webhook URL is required",
+        "HELP_DEFAULT": "This bot already runs on our system's AI — no need to do anything here. If you'd rather connect your own AI, enter its address above (you'll stop using ours).",
+        "HELP_CUSTOM": "⚠️ You'll use this address instead of ours. If it's wrong or you clear it by mistake, the bot stops receiving messages until it's fixed."
       },
       "ERRORS": {
         "NAME": "Bot name is required",

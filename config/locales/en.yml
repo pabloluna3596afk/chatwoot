@@ -500,6 +500,7 @@ en:
       delete_note_required: Write why this appointment is being cancelled.
       not_enabled: This calendar is not enabled for the team.
       invalid_range: The end time must be after the start time.
+      outside_bot_schedule: The bot cannot book outside of its configured schedule for this inbox.
       customer_message: 'Your appointment "%{title}" is scheduled for %{start_at}.'
     leadsquared:
       name: 'LeadSquared'

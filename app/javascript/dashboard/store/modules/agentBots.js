@@ -11,6 +11,7 @@ export const state = {
     isFetchingItem: false,
     isCreating: false,
     isDeleting: false,
+    isActivating: false,
     isUpdating: false,
     isUpdatingAvatar: false,
     isFetchingAgentBot: false,
@@ -18,6 +19,8 @@ export const state = {
     isDisconnecting: false,
   },
   agentBotInbox: {},
+  agentBotSchedule: {},
+  panelAiSummaries: {},
 };
 
 export const getters = {
@@ -34,6 +37,17 @@ export const getters = {
   getActiveAgentBot: $state => inboxId => {
     const associatedAgentBotId = $state.agentBotInbox[Number(inboxId)];
     return getters.getBot($state)(associatedAgentBotId);
+  },
+  getAgentBotSchedule: $state => inboxId => {
+    return (
+      $state.agentBotSchedule[Number(inboxId)] || {
+        scheduleMode: 'always',
+        botWorkingHours: [],
+      }
+    );
+  },
+  getPanelAiSummary: $state => botId => {
+    return $state.panelAiSummaries[Number(botId)] || null;
   },
 };
 
@@ -99,15 +113,30 @@ export const actions = {
     }
   },
 
+  // Deactivates, never deletes (see AgentBotsController#destroy) — the bot
+  // stays in the list with active: false instead of disappearing, so its
+  // history (messages, past conversations) stays visible and attributed.
   delete: async ({ commit }, id) => {
     commit(types.SET_AGENT_BOT_UI_FLAG, { isDeleting: true });
     try {
       await AgentBotsAPI.delete(id);
-      commit(types.DELETE_AGENT_BOT, id);
+      commit(types.SET_AGENT_BOT_ACTIVE, { id, active: false });
     } catch (error) {
       throwErrorMessage(error);
     } finally {
       commit(types.SET_AGENT_BOT_UI_FLAG, { isDeleting: false });
+    }
+  },
+
+  activate: async ({ commit }, id) => {
+    commit(types.SET_AGENT_BOT_UI_FLAG, { isActivating: true });
+    try {
+      await AgentBotsAPI.activate(id);
+      commit(types.SET_AGENT_BOT_ACTIVE, { id, active: true });
+    } catch (error) {
+      throwErrorMessage(error);
+    } finally {
+      commit(types.SET_AGENT_BOT_UI_FLAG, { isActivating: false });
     }
   },
 
@@ -140,8 +169,17 @@ export const actions = {
     commit(types.SET_AGENT_BOT_UI_FLAG, { isFetchingAgentBot: true });
     try {
       const { data } = await InboxesAPI.getAgentBot(inboxId);
-      const { agent_bot: agentBot = {} } = data || {};
+      const {
+        agent_bot: agentBot = {},
+        schedule_mode: scheduleMode = 'always',
+        bot_working_hours: botWorkingHours = [],
+      } = data || {};
       commit(types.SET_AGENT_BOT_INBOX, { agentBotId: agentBot.id, inboxId });
+      commit(types.SET_AGENT_BOT_SCHEDULE, {
+        inboxId,
+        scheduleMode,
+        botWorkingHours,
+      });
     } catch (error) {
       throwErrorMessage(error);
     } finally {
@@ -149,11 +187,22 @@ export const actions = {
     }
   },
 
-  setAgentBotInbox: async ({ commit }, { inboxId, botId }) => {
+  setAgentBotInbox: async (
+    { commit },
+    { inboxId, botId, scheduleMode, botWorkingHours }
+  ) => {
     commit(types.SET_AGENT_BOT_UI_FLAG, { isSettingAgentBot: true });
     try {
-      await InboxesAPI.setAgentBot(inboxId, botId);
+      await InboxesAPI.setAgentBot(inboxId, botId, {
+        scheduleMode,
+        botWorkingHours,
+      });
       commit(types.SET_AGENT_BOT_INBOX, { agentBotId: botId, inboxId });
+      commit(types.SET_AGENT_BOT_SCHEDULE, {
+        inboxId,
+        scheduleMode: scheduleMode || 'always',
+        botWorkingHours: botWorkingHours || [],
+      });
     } catch (error) {
       throwErrorMessage(error);
     } finally {
@@ -180,6 +229,20 @@ export const actions = {
       return response.data;
     } catch (error) {
       throwErrorMessage(error);
+      return null;
+    }
+  },
+
+  fetchPanelAiSummary: async ({ commit }, botId) => {
+    try {
+      const { data } = await AgentBotsAPI.fetchPanelAiSummary(botId);
+      commit(types.SET_PANEL_AI_SUMMARY, { botId, summary: data });
+      return data;
+    } catch (error) {
+      commit(types.SET_PANEL_AI_SUMMARY, {
+        botId,
+        summary: { available: false },
+      });
       return null;
     }
   },
@@ -213,10 +276,31 @@ export const mutations = {
       [inboxId]: agentBotId,
     };
   },
+  [types.SET_AGENT_BOT_SCHEDULE](
+    $state,
+    { inboxId, scheduleMode, botWorkingHours }
+  ) {
+    $state.agentBotSchedule = {
+      ...$state.agentBotSchedule,
+      [inboxId]: { scheduleMode, botWorkingHours },
+    };
+  },
+  [types.SET_PANEL_AI_SUMMARY]($state, { botId, summary }) {
+    $state.panelAiSummaries = {
+      ...$state.panelAiSummaries,
+      [botId]: summary,
+    };
+  },
   [types.UPDATE_AGENT_BOT_AVATAR]($state, { id, thumbnail }) {
     const botIndex = $state.records.findIndex(bot => bot.id === id);
     if (botIndex !== -1) {
       $state.records[botIndex].thumbnail = thumbnail || '';
+    }
+  },
+  [types.SET_AGENT_BOT_ACTIVE]($state, { id, active }) {
+    const botIndex = $state.records.findIndex(bot => bot.id === id);
+    if (botIndex !== -1) {
+      $state.records[botIndex].active = active;
     }
   },
 };

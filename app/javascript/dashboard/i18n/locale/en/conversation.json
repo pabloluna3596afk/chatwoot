@@ -532,6 +532,7 @@
       "EMPTY": "No appointments linked to this conversation",
       "DELETED": "Cancelled event",
       "NOT_CONNECTED": "Connect Google Calendar in Settings → Integrations → Calendars.",
+      "AI_BOOKED": "AI",
       "STATUS": {
         "PENDING_CONFIRMATION": "Pending confirmation",
         "CONFIRMED": "Confirmed",

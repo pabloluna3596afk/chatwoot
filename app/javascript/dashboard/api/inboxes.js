@@ -23,9 +23,11 @@ class Inboxes extends CacheEnabledApiClient {
     return axios.get(`${this.url}/${inboxId}/agent_bot`);
   }
 
-  setAgentBot(inboxId, botId) {
+  setAgentBot(inboxId, botId, { scheduleMode, botWorkingHours } = {}) {
     return axios.post(`${this.url}/${inboxId}/set_agent_bot`, {
       agent_bot: botId,
+      ...(scheduleMode ? { schedule_mode: scheduleMode } : {}),
+      ...(botWorkingHours ? { bot_working_hours: botWorkingHours } : {}),
     });
   }
 

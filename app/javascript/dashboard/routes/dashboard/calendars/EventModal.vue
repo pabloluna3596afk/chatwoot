@@ -72,6 +72,7 @@ const conversationQuery = ref('');
 const conversationResults = ref([]);
 const createdBy = ref('');
 const updatedBy = ref('');
+const bookingSource = ref('manual');
 const isDeleted = ref(false);
 const activities = ref([]);
 const existingMeet = ref(false);
@@ -312,6 +313,7 @@ const applyEvent = (event, defaults) => {
   saveEmailOnContact.value = !contactEmail.value;
   createdBy.value = event?.created_by?.name || '';
   updatedBy.value = event?.updated_by?.name || '';
+  bookingSource.value = event?.booking_source || 'manual';
   activities.value = event?.activities || [];
   isDeleted.value = Boolean(event?.deleted);
   deleteNote.value = event?.deleted_note || '';
@@ -765,7 +767,17 @@ defineExpose({ open, close });
         </fieldset>
       </template>
       <div v-else class="min-h-64 pt-1">
-        <p v-if="createdBy || updatedBy" class="mb-4 text-sm text-n-slate-11">
+        <p
+          v-if="createdBy || updatedBy || bookingSource === 'ai'"
+          class="mb-4 text-sm text-n-slate-11"
+        >
+          <span
+            v-if="bookingSource === 'ai'"
+            class="mb-1 inline-flex items-center gap-1 rounded-full bg-n-teal-3 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-n-teal-11"
+          >
+            <span class="i-lucide-sparkles size-2.5" />
+            {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.AI_BOOKED') }}
+          </span>
           <span v-if="createdBy" class="block">
             {{
               $t('SIDEBAR.CALENDAR_PAGE.MODAL.CREATED_BY', { name: createdBy })
