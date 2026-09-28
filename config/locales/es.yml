@@ -406,7 +406,7 @@ es:
       meeting_name: '%{agent_name} ha iniciado una reunión'
     slack:
       name: 'Slack'
-      short_description: 'Receive notifications and respond to conversations directly in Slack.'
+      short_description: 'Recibe notificaciones y responde a las conversaciones directamente desde Slack.'
       description: "Integra ChatHub con Slack para mantener a tu equipo sincronizado. Esta integración te permite recibir notificaciones de nuevas conversaciones y responder directamente desde la interfaz de Slack."
     webhooks:
       name: 'Webhook'

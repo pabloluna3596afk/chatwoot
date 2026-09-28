@@ -425,7 +425,7 @@
         "SLUG": {
           "LABEL": "Slug",
           "PLACEHOLDER": "Slug de categoría para urls",
-          "HELP_TEXT": "ayuda.tuempresa.com/hc/my-portal/es-es-ES/categories/my-slug",
+          "HELP_TEXT": "ayuda.tuempresa.com/hc/my-portal/es-ES/categories/my-slug",
           "ERROR": "Slug es requerido"
         },
         "DESCRIPTION": {
