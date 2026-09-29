@@ -112,10 +112,10 @@
       "CATEGORY_SEGUIMIENTO": "Seguimiento"
     },
     "CONTACT_PRESETS": {
-      "SECTION_TITLE": "Alcanzá contactos, no solo chats abiertos",
+      "SECTION_TITLE": "Alcanza contactos, no solo chats abiertos",
       "ACTIVATE": "Activar",
       "ACTIVATE_SUCCESS": "Receta activada",
-      "ACTIVATE_ERROR": "No se pudo activar la receta. Probá de nuevo.",
+      "ACTIVATE_ERROR": "No se pudo activar la receta. Prueba de nuevo.",
       "ATTRIBUTE_LABEL": "Atributo de fecha",
       "WHEN_LABEL": "Cuándo enviar",
       "TEST_MODE": "Probar primero con una etiqueta",
@@ -125,7 +125,7 @@
       "REACH_UNKNOWN_NEW_ATTRIBUTE": "Este atributo es nuevo — todavía ningún contacto lo tiene cargado.",
       "CUMPLEANOS": {
         "NAME": "Cumpleaños con descuento",
-        "DESC": "Los contactos reciben un saludo por WhatsApp con un descuento que vos elegís, el día de su cumpleaños.",
+        "DESC": "Los contactos reciben un saludo por WhatsApp con un descuento que eliges tú, el día de su cumpleaños.",
         "ATTRIBUTE_NAME": "Cumpleaños"
       },
       "ANIVERSARIO": {
@@ -140,7 +140,7 @@
       },
       "REACTIVAR": {
         "NAME": "Reactivar contactos inactivos",
-        "DESC": "Volvé a escribirle a contactos que dejaron de responder, aunque su conversación se haya cerrado hace tiempo."
+        "DESC": "Vuelve a escribirle a contactos que dejaron de responder, aunque su conversación se haya cerrado hace tiempo."
       },
       "DAY_OPTIONS": {
         "SAME_DAY": "El mismo día",

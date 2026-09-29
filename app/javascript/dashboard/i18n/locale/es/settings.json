@@ -37,7 +37,7 @@
       },
       "INTERFACE_SECTION": {
         "TITLE": "Interface",
-        "NOTE": "Customize the look and feel of your Chatwoot dashboard.",
+        "NOTE": "Personaliza el aspecto de tu panel de ChatHub.",
         "FONT_SIZE": {
           "TITLE": "Font size",
           "NOTE": "Adjust the text size across the dashboard based on your preference.",
@@ -252,7 +252,7 @@
     "APPEARANCE": "Cambiar apariencia",
     "SUPER_ADMIN_CONSOLE": "Consola SuperAdmin",
     "PANEL_AI": "Abrir Panel IA",
-    "PANEL_AI_ERROR": "No se pudo abrir Panel IA. Revisá PANEL_AI_PUBLIC_URL o reintentá.",
+    "PANEL_AI_ERROR": "No se pudo abrir Panel IA. Revisa PANEL_AI_PUBLIC_URL o reintenta.",
     "DOCS": "Leer la documentación",
     "CHANGELOG": "Notas de versión",
     "LOGOUT": "Cerrar sesión"
@@ -355,7 +355,7 @@
         "CONTACT": "Contacto",
         "CONTACT_PLACEHOLDER": "Buscar un contacto",
         "CONTACT_EMAIL": "La invitación se envía a",
-        "NO_EMAIL": "Este contacto no tiene correo. Agregá uno para guardarlo en el contacto, o escribí otro solo para esta invitación.",
+        "NO_EMAIL": "Este contacto no tiene correo. Agrega uno para guardarlo en el contacto, o escribe otro solo para esta invitación.",
         "INVITE_EMAIL": "Correo de la invitación",
         "INVITE_EMAIL_PLACEHOLDER": "nombre{'@'}correo.com",
         "SAVE_EMAIL_ON_CONTACT": "Guardar este correo en el contacto",
@@ -368,7 +368,7 @@
         "DELETE_CONFIRM": "Sí, cancelar",
         "DELETE_NOTE": "Motivo de la cancelación",
         "DELETE_NOTE_PLACEHOLDER": "Por qué se cancela esta cita",
-        "DELETE_NOTE_REQUIRED": "Escribí por qué se cancela.",
+        "DELETE_NOTE_REQUIRED": "Escribe por qué se cancela.",
         "CANCEL_BACK": "No, volver",
         "CANCEL_CONFIRM_TITLE": "¿Estás seguro de que deseas cancelar este evento?",
         "CANCEL_CONFIRM_DESCRIPTION": "Se cancelará «{title}». El equipo podrá verlo si activa eventos cancelados.",
@@ -380,7 +380,7 @@
         "LOCK_ERROR": "No se pudo empezar a editar este evento.",
         "CREATE_SUCCESS": "Cita creada",
         "UPDATE_SUCCESS": "Cita actualizada",
-        "DELETE_SUCCESS": "Cita cancelada. El registro queda en InboxHub.",
+        "DELETE_SUCCESS": "Cita cancelada. El registro queda en ChatHub.",
         "DELETED_BANNER": "Esta cita está cancelada. El historial queda aquí.",
         "SAVE_ERROR": "No se pudo guardar la cita.",
         "DELETE_ERROR": "No se pudo eliminar la cita.",
@@ -759,7 +759,7 @@
       "SP_ENTITY_ID": {
         "LABEL": "SP Entity ID",
         "HELP": "Unique identifier for this application as a service provider (auto-generated).",
-        "TOOLTIP": "Unique identifier for Chatwoot as the Service Provider - Configure this in your IdP settings"
+        "TOOLTIP": "Identificador único de ChatHub como proveedor de servicios: configúralo en los ajustes de tu IdP"
       },
       "IDP_ENTITY_ID": {
         "LABEL": "Identity Provider Entity ID",
@@ -869,7 +869,7 @@
     }
   },
   "CREATE_ACCOUNT": {
-    "NO_ACCOUNT_WARNING": "¡Oh oh! No hemos podido encontrar ninguna cuenta de \"Chatwoot\". Por favor, crea una nueva cuenta para continuar.",
+    "NO_ACCOUNT_WARNING": "¡Oh oh! No hemos podido encontrar ninguna cuenta de \"ChatHub\". Por favor, crea una nueva cuenta para continuar.",
     "NEW_ACCOUNT": "Nueva cuenta",
     "SELECTOR_SUBTITLE": "Crear nueva cuenta",
     "API": {

@@ -135,9 +135,9 @@
     },
     "UPDATE_CHATWOOT": "Hay una actualización {latestChatwootVersion} para Chatwoot disponible. Por favor, actualiza tu instancia.",
     "LEARN_MORE": "Más información",
-    "PAYMENT_PENDING": "Tu pago está pendiente. Por favor actualiza tu información de pago para seguir usando Chatwoot",
-    "UPGRADE": "Actualiza para seguir usando Chatwoot",
-    "LIMITS_UPGRADE": "Su cuenta ha excedido los límites de uso, por favor actualice su plan para seguir usando Chatwoot",
+    "PAYMENT_PENDING": "Tu pago está pendiente. Por favor actualiza tu información de pago para seguir usando ChatHub",
+    "UPGRADE": "Actualiza para seguir usando ChatHub",
+    "LIMITS_UPGRADE": "Su cuenta ha excedido los límites de uso, por favor actualice su plan para seguir usando ChatHub",
     "OPEN_BILLING": "Abrir facturación"
   },
   "FORMS": {
