@@ -60,12 +60,6 @@ json.display_status conversation.display_status
 json.captain_state conversation.captain_state
 json.captain_assistant conversation.captain_assistant_data
 json.captain_handed_off_at conversation.captain_handed_off_at&.to_i
-# Temporarily disable this action to avoid message-history lookups during conversation rendering.
-json.contact_info_request do
-  json.available false
-  json.reason nil
-  json.delivery_mode nil
-end
 json.contact_last_seen_at conversation.contact_last_seen_at.to_i
 json.custom_attributes conversation.custom_attributes
 if conversation.in_flow?
