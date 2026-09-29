@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_09_08_210000) do
+ActiveRecord::Schema[7.2].define(version: 2026_09_13_020000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -26,6 +26,28 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_08_210000) do
     t.datetime "updated_at", null: false
     t.index ["owner_type", "owner_id"], name: "index_access_tokens_on_owner_type_and_owner_id"
     t.index ["token"], name: "index_access_tokens_on_token", unique: true
+  end
+
+  create_table "account_plan_usages", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "plan_id"
+    t.datetime "period_start", null: false
+    t.datetime "period_end", null: false
+    t.integer "responses_consumed", default: 0, null: false
+    t.integer "documents_consumed", default: 0, null: false
+    t.integer "limit_responses"
+    t.integer "limit_documents"
+    t.datetime "closed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.boolean "warned_at_80_percent", default: false, null: false
+    t.boolean "warned_at_100_percent", default: false, null: false
+    t.bigint "storage_consumed", default: 0, null: false
+    t.bigint "limit_storage_bytes"
+    t.integer "copilot_responses_consumed", default: 0, null: false
+    t.index ["account_id", "period_start"], name: "index_account_plan_usages_on_account_and_period_start", unique: true
+    t.index ["account_id"], name: "index_account_plan_usages_on_account_id_open", where: "(closed_at IS NULL)"
+    t.index ["storage_consumed"], name: "index_account_plan_usages_on_storage_consumed"
   end
 
   create_table "account_saml_settings", force: :cascade do |t|
@@ -74,6 +96,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_08_210000) do
     t.jsonb "internal_attributes", default: {}, null: false
     t.jsonb "settings", default: {}
     t.bigint "feature_flags_ext_1", default: 0, null: false
+    t.bigint "plan_id"
+    t.datetime "plan_started_at"
+    t.index ["plan_id"], name: "index_accounts_on_plan_id"
     t.index ["status"], name: "index_accounts_on_status"
   end
 
@@ -1578,6 +1603,34 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_08_210000) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "plans", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "slug", null: false
+    t.string "description"
+    t.integer "monthly_messages", default: 0, null: false
+    t.integer "storage_mb", default: 100, null: false
+    t.integer "max_captain_assistants", default: 1, null: false
+    t.integer "max_human_agents", default: 3, null: false
+    t.decimal "price_monthly", precision: 10, scale: 2, default: "0.0", null: false
+    t.decimal "price_yearly", precision: 10, scale: 2, default: "0.0", null: false
+    t.integer "trial_days", default: 0, null: false
+    t.integer "trial_messages", default: 0, null: false
+    t.decimal "addon_agent_price", precision: 10, scale: 2, default: "0.0", null: false
+    t.decimal "addon_bot_price", precision: 10, scale: 2, default: "0.0", null: false
+    t.decimal "credit_unit_price", precision: 10, scale: 4, default: "0.0", null: false
+    t.boolean "is_active", default: true, null: false
+    t.boolean "is_public", default: true, null: false
+    t.integer "display_order", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "max_inboxes", default: 1, null: false
+    t.integer "max_emails_per_day", default: 0, null: false
+    t.integer "max_documents", default: 10, null: false
+    t.boolean "is_default_trial", default: false, null: false
+    t.index ["is_default_trial"], name: "index_plans_on_is_default_trial", unique: true, where: "is_default_trial"
+    t.index ["slug"], name: "index_plans_on_slug", unique: true
+  end
+
   create_table "portals", force: :cascade do |t|
     t.integer "account_id", null: false
     t.string "name", null: false
@@ -1861,6 +1914,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_08_210000) do
     t.index ["inbox_id"], name: "index_working_hours_on_inbox_id"
   end
 
+  add_foreign_key "account_plan_usages", "accounts", on_delete: :cascade
+  add_foreign_key "account_plan_usages", "plans"
+  add_foreign_key "accounts", "plans"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "calendar_connection_calendars", "accounts"

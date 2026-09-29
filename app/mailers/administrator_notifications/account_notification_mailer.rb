@@ -55,6 +55,14 @@ class AdministratorNotifications::AccountNotificationMailer < AdministratorNotif
     send_notification(subject, to: email_to, action_url: file_url)
   end
 
+  def usage_limit_warning(percent, total_count)
+    subject = "Your AI response usage is at #{percent}% of your plan limit"
+    action_url = settings_url('billing')
+    meta = { 'account_name' => Current.account.name, 'percent' => percent, 'total_count' => total_count }
+
+    send_notification(subject, action_url: action_url, meta: meta)
+  end
+
   def automation_rule_disabled(rule)
     subject = 'Automation rule disabled due to validation errors.'
     action_url = settings_url('automation/list')

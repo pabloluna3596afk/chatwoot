@@ -26,6 +26,8 @@ class Captain::Assistant < ApplicationRecord
   INACTIVITY_THRESHOLD_STEP_MINUTES = 5
   RESPONSE_WINDOWS = %w[always business_hours outside_business_hours].freeze
 
+  class LimitExceededError < StandardError; end
+
   include Avatarable
   include Concerns::CaptainToolsHelpers
   include Concerns::Agentable
@@ -53,6 +55,7 @@ class Captain::Assistant < ApplicationRecord
 
   before_validation :set_default_auto_resolve_mode, on: :create
   before_validation :normalize_auto_resolve_after
+  before_create :ensure_within_plan_limit
 
   validates :name, presence: true
   validates :description, presence: true, length: { maximum: DESCRIPTION_LENGTH_LIMIT }
@@ -180,6 +183,17 @@ class Captain::Assistant < ApplicationRecord
   end
 
   private
+
+  def ensure_within_plan_limit
+    # Guard: do not enforce limit for accounts without a plan (fallback to unlimited)
+    return if account.plan.blank?
+
+    # Lock the account row to serialize concurrent creates and prevent exceeding the cap
+    Account.lock.find(account_id)
+    return if account.captain_assistants.count < account.plan.max_captain_assistants
+
+    raise LimitExceededError, I18n.t('captain.assistant.limit_exceeded', limit: account.plan.max_captain_assistants)
+  end
 
   def normalize_auto_resolve_after
     threshold = Integer(auto_resolve_after.to_s, exception: false)

@@ -1,9 +1,11 @@
 <div class="field-unit__label">
   <%= f.label field.attribute %>
+  <p class="text-muted">Vacío = usa el límite del plan asignado (mostrado como placeholder). Completa un número solo para forzar una excepción en esta cuenta puntual.</p>
 </div>
 <div class="field-unit__field">
 
+  <% effective = JSON.parse(field.effective) %>
   <% JSON.parse(field.to_s).each do |key,val| %>
-    <%= key %>: <%= number_field "account[limits]", key, value: val %> </br>
+    <%= key %>: <%= number_field "account[limits]", key, value: val, placeholder: effective[key] %> </br>
   <% end %>
 </div>

@@ -668,7 +668,7 @@
     "DESCRIPTION": "Gestiona tu suscripción aquí, mejora tu plan y consigue más para tu equipo.",
     "CURRENT_PLAN": {
       "TITLE": "Plan actual",
-      "PLAN_NOTE": "Actualmente está suscrito al plan **{plan}** con **{quantity}** licencias",
+      "PLAN_NOTE": "Actualmente estás suscrito al plan **{plan}** con **{quantity}** licencias",
       "SEAT_COUNT": "Número de asientos",
       "RENEWS_ON": "Renueva el",
       "CURRENCY": "Moneda"
@@ -685,8 +685,8 @@
     },
     "VIEW_PRICING": "Ver precios",
     "MANAGE_SUBSCRIPTION": {
-      "TITLE": "Administre su suscripción",
-      "DESCRIPTION": "Vea sus facturas anteriores, edite sus datos de facturación o cancele su suscripción.",
+      "TITLE": "Administra tu suscripción",
+      "DESCRIPTION": "Consulta tus facturas anteriores, edita tus datos de facturación o cancela tu suscripción.",
       "BUTTON_TXT": "Ir al portal de facturación"
     },
     "CAPTAIN": {
@@ -694,7 +694,12 @@
       "DESCRIPTION": "Gestiona el uso y los créditos de Captain AI.",
       "BUTTON_TXT": "Comprar más créditos",
       "DOCUMENTS": "Documentos",
-      "RESPONSES": "Créditos",
+      "RESPONSES": "Respuestas",
+      "RESPONSES_CUSTOMER": "Captain (respuestas de clientes)",
+      "RESPONSES_COPILOT": "Copilot (uso de agentes)",
+      "STORAGE": "Almacenamiento",
+      "AGENTS": "Agentes",
+      "INBOXES": "Bandejas de entrada",
       "UPGRADE": "Captain no está disponible en el plan gratuito, actualiza tu plan para acceder a asistentes, Copilot y más.",
       "REFRESH_CREDITS": "Actualizar"
     },
@@ -706,26 +711,26 @@
     "NO_BILLING_USER": "Tu cuenta de facturación está siendo configurada. Por favor, actualiza la página e inténtalo de nuevo.",
     "TOPUP": {
       "BUY_CREDITS": "Comprar más créditos",
-      "MODAL_TITLE": "Buy AI Credits",
-      "MODAL_DESCRIPTION": "Purchase additional credits for Captain AI.",
-      "CREDITS": "CREDITS",
-      "ONE_TIME": "one-time",
-      "POPULAR": "Most Popular",
+      "MODAL_TITLE": "Comprar créditos de IA",
+      "MODAL_DESCRIPTION": "Compra créditos adicionales para Captain AI.",
+      "CREDITS": "CRÉDITOS",
+      "ONE_TIME": "pago único",
+      "POPULAR": "Más popular",
       "NOTE_TITLE": "Nota:",
-      "NOTE_DESCRIPTION": "Credits are added immediately and expire in 6 months. An active subscription is required to use credits. Purchased credits are consumed after your monthly plan credits.",
+      "NOTE_DESCRIPTION": "Los créditos se añaden al instante y vencen a los 6 meses. Necesitas una suscripción activa para usarlos. Los créditos comprados se consumen después de los créditos mensuales de tu plan.",
       "CANCEL": "Cancelar",
-      "PURCHASE": "Purchase Credits",
-      "LOADING": "Loading options...",
-      "FETCH_ERROR": "Failed to load credit options. Please try again.",
+      "PURCHASE": "Comprar créditos",
+      "LOADING": "Cargando opciones...",
+      "FETCH_ERROR": "No se pudieron cargar las opciones de créditos. Inténtalo de nuevo.",
       "RETRY": "Reintentar",
-      "PURCHASE_ERROR": "Failed to process purchase. Please try again.",
-      "PURCHASE_SUCCESS": "Successfully added {credits} credits to your account",
+      "PURCHASE_ERROR": "No se pudo procesar la compra. Inténtalo de nuevo.",
+      "PURCHASE_SUCCESS": "Se añadieron {credits} créditos a tu cuenta correctamente",
       "CONFIRM": {
-        "TITLE": "Confirm Purchase",
-        "DESCRIPTION": "You are about to purchase {credits} credits for {amount}.",
-        "INSTANT_DEDUCTION_NOTE": "Your saved card will be charged immediately upon confirmation.",
+        "TITLE": "Confirmar compra",
+        "DESCRIPTION": "Vas a comprar {credits} créditos por {amount}.",
+        "INSTANT_DEDUCTION_NOTE": "Tu tarjeta guardada se cobrará de inmediato al confirmar.",
         "GO_BACK": "Volver",
-        "CONFIRM_PURCHASE": "Confirm Purchase"
+        "CONFIRM_PURCHASE": "Confirmar compra"
       }
     }
   },

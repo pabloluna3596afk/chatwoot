@@ -1,4 +1,5 @@
 class Api::V1::Accounts::Captain::CopilotMessagesController < Api::V1::Accounts::BaseController
+  before_action :ensure_captain_integration_enabled
   before_action :set_copilot_thread
 
   def index
@@ -29,5 +30,13 @@ class Api::V1::Accounts::Captain::CopilotMessagesController < Api::V1::Accounts:
 
   def permitted_params
     params.permit(:page)
+  end
+
+  private
+
+  def ensure_captain_integration_enabled
+    return if Current.account.feature_enabled?('captain_integration')
+
+    render json: { error: 'Captain integration is not enabled for this account' }, status: :forbidden
   end
 end

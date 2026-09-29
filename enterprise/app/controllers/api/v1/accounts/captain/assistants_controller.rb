@@ -11,6 +11,8 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
 
   def create
     @assistant = account_assistants.create!(assistant_params)
+  rescue Captain::Assistant::LimitExceededError => e
+    render_could_not_create_error(e.message)
   end
 
   def update

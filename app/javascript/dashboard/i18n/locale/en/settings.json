@@ -730,6 +730,11 @@
       "BUTTON_TXT": "Buy more credits",
       "DOCUMENTS": "Documents",
       "RESPONSES": "Credits",
+      "RESPONSES_CUSTOMER": "Captain (customer replies)",
+      "RESPONSES_COPILOT": "Copilot (agent usage)",
+      "STORAGE": "Storage",
+      "AGENTS": "Agents",
+      "INBOXES": "Inboxes",
       "UPGRADE": "Captain is not available on the free plan, upgrade now to get access to assistants, copilot and more.",
       "REFRESH_CREDITS": "Refresh"
     },

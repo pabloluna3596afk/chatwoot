@@ -470,6 +470,7 @@ es:
       tool_not_available: 'Herramienta no disponible'
     documents:
       limit_exceeded: 'Document limit exceeded'
+      storage_limit_exceeded: 'Límite de almacenamiento excedido'
       pdf_format_error: 'must be a PDF file'
       pdf_size_error: 'must be less than 10MB'
       sync_not_supported_for_pdf: 'La sincronización no es compatible con documentos PDF'
@@ -494,6 +495,8 @@ es:
     custom_tool:
       slug_generation_failed: 'Unable to generate unique slug after 5 attempts'
       limit_exceeded: 'You can create a maximum of %{limit} custom tools per account'
+    assistant:
+      limit_exceeded: 'Puedes crear un máximo de %{limit} asistentes por cuenta'
   public_portal:
     search:
       search_placeholder: Buscar artículo por título o cuerpo...

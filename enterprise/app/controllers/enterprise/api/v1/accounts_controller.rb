@@ -3,7 +3,7 @@ class Enterprise::Api::V1::AccountsController < Api::BaseController
   before_action :fetch_account
   before_action :validate_token_api_access, if: :authenticate_by_access_token?
   before_action :check_authorization
-  before_action :check_cloud_env, only: [:limits, :toggle_deletion, :topup_options]
+  before_action :check_cloud_env, only: [:toggle_deletion, :topup_options]
 
   def subscription
     return render json: currency_selection_payload if @account.billing_currency_selection_required?
@@ -116,14 +116,34 @@ class Enterprise::Api::V1::AccountsController < Api::BaseController
   end
 
   def default_limits
+    usage_period = @account.current_usage_period
+    captain_limits = @account.usage_limits[:captain].dup
+    # Remove documents limit as per owner's decision - storage is the only limit now
+    captain_limits.delete(:documents)
+    responses_data = captain_limits[:responses]
+
+    # Add split responses data
+    responses_data[:copilot_consumed] = usage_period&.copilot_responses_consumed || 0
+    responses_data[:customer_consumed] = usage_period&.customer_responses_consumed || 0
+
+    # Captain keeps its full plan quota; Copilot gets a separate pool of half
+    # that size (Account#copilot_responses_available?). They do not share.
+    captain_total = responses_data[:total_count].to_i
+    responses_data[:customer_total_count] = captain_total
+    responses_data[:copilot_total_count] = (captain_total / 2).to_i
+
     {
       'conversation' => {},
       'non_web_inboxes' => {},
-      'agents' => {
-        'allowed' => @account.usage_limits[:agents],
-        'consumed' => agents(@account)
-      },
-      'captain' => @account.usage_limits[:captain]
+      'agents' => { 'allowed' => @account.usage_limits[:agents], 'consumed' => agents(@account) },
+      'inboxes' => { 'allowed' => @account.usage_limits[:inboxes], 'consumed' => @account.inboxes.count },
+      'captain' => captain_limits,
+      'plan' => @account.plan.present? ? {
+        'name' => @account.plan.name,
+        'price_monthly' => @account.plan.price_monthly,
+        'period_start' => usage_period&.period_start,
+        'period_end' => usage_period&.period_end
+      } : nil
     }
   end
 
