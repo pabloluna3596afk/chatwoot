@@ -177,4 +177,132 @@ RSpec.describe Conversation, type: :model do
       end
     end
   end
+
+  describe 'Captain ownership' do
+    let(:account) { create(:account) }
+    let(:inbox) { create(:inbox, account: account) }
+    let(:plain_inbox) { create(:inbox, account: account) }
+    let(:agent) { create(:user, account: account, role: :agent) }
+    let(:assistant) { create(:captain_assistant, account: account) }
+
+    before do
+      create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
+    end
+
+    describe '#captain_state' do
+      it "is 'ai' for a pending conversation in an inbox with an assistant" do
+        conversation = create(:conversation, account: account, inbox: inbox, status: :pending)
+
+        expect(conversation.captain_state).to eq('ai')
+      end
+
+      it 'is nil for a pending conversation in an inbox without an assistant' do
+        conversation = create(:conversation, account: account, inbox: plain_inbox, status: :pending)
+
+        expect(conversation.captain_state).to be_nil
+      end
+
+      it 'is nil for a pending conversation owned by an agent bot' do
+        agent_bot = create(:agent_bot, account: account)
+        conversation = create(:conversation, account: account, inbox: inbox, status: :pending, assignee_agent_bot: agent_bot)
+
+        expect(conversation.captain_state).to be_nil
+      end
+
+      it "is 'escalated' when Captain handed off and nobody took the conversation" do
+        conversation = create(:conversation, account: account, inbox: inbox, status: :pending)
+        conversation.bot_handoff!
+
+        expect(conversation.reload.captain_state).to eq('escalated')
+      end
+
+      it 'is nil after handoff when a human already owns the conversation' do
+        conversation = create(:conversation, account: account, inbox: inbox, status: :pending, assignee: agent)
+        conversation.bot_handoff!
+
+        expect(conversation.reload.captain_handed_off_at).to be_nil
+        expect(conversation.captain_state).to be_nil
+      end
+
+      it 'is nil for an open conversation that never went through Captain' do
+        conversation = create(:conversation, account: account, inbox: inbox, status: :open)
+
+        expect(conversation.captain_state).to be_nil
+      end
+    end
+
+    describe '#bot_handoff!' do
+      it 'marks the handoff in the same save that opens the conversation' do
+        conversation = create(:conversation, account: account, inbox: inbox, status: :pending)
+
+        conversation.bot_handoff!
+
+        expect(conversation.reload).to have_attributes(status: 'open')
+        expect(conversation.captain_handed_off_at).to be_present
+      end
+
+      it 'does not mark conversations Captain was not attending' do
+        conversation = create(:conversation, account: account, inbox: plain_inbox, status: :pending)
+
+        conversation.bot_handoff!
+
+        expect(conversation.reload.captain_handed_off_at).to be_nil
+      end
+    end
+
+    describe 'clearing the handoff mark' do
+      let(:conversation) do
+        create(:conversation, account: account, inbox: inbox, status: :pending).tap(&:bot_handoff!)
+      end
+
+      it 'clears it when an agent is assigned' do
+        conversation.update!(assignee: agent)
+
+        expect(conversation.reload.captain_handed_off_at).to be_nil
+      end
+
+      it 'clears it when the conversation is resolved' do
+        conversation.update!(status: :resolved)
+
+        expect(conversation.reload.captain_handed_off_at).to be_nil
+      end
+
+      it 'clears it when the conversation goes back to pending' do
+        conversation.update!(status: :pending)
+
+        expect(conversation.reload.captain_handed_off_at).to be_nil
+      end
+
+      it 'keeps it while the conversation stays open and unassigned' do
+        conversation.update!(priority: :high)
+
+        expect(conversation.reload.captain_handed_off_at).to be_present
+      end
+    end
+
+    describe 'queue scopes' do
+      let!(:ai_conversation) { create(:conversation, account: account, inbox: inbox, status: :pending) }
+      let!(:escalated_conversation) { create(:conversation, account: account, inbox: inbox, status: :pending).tap(&:bot_handoff!) }
+      let!(:open_conversation) { create(:conversation, account: account, inbox: inbox, status: :open) }
+      let!(:mine) { create(:conversation, account: account, inbox: inbox, status: :open, assignee: agent) }
+      let!(:pending_with_agent) { create(:conversation, account: account, inbox: inbox, status: :pending, assignee: agent) }
+      let!(:bot_owned) do
+        create(:conversation, account: account, inbox: inbox, status: :pending, assignee_agent_bot: create(:agent_bot, account: account))
+      end
+      let!(:plain_pending) { create(:conversation, account: account, inbox: plain_inbox, status: :pending) }
+
+      it 'attended_by_ai includes every pending conversation in a Captain inbox without a bot owner' do
+        expect(account.conversations.attended_by_ai).to contain_exactly(ai_conversation, pending_with_agent)
+      end
+
+      it 'queue_unassigned leaves out what Captain attends and what anybody owns' do
+        expect(account.conversations.queue_unassigned).to contain_exactly(escalated_conversation, open_conversation, plain_pending)
+      end
+
+      it 'keeps the upstream unassigned scope untouched' do
+        expect(account.conversations.unassigned).to include(ai_conversation, escalated_conversation, open_conversation, plain_pending)
+        expect(account.conversations.unassigned).not_to include(bot_owned, mine)
+      end
+    end
+  end
 end

@@ -13,6 +13,8 @@ class Conversations::EventDataPresenter < SimpleDelegator
       meta: push_meta,
       status: status,
       bot_handling: bot_handling?,
+      captain_state: captain_state,
+      captain_handed_off_at: captain_handed_off_at&.to_i,
       custom_attributes: custom_attributes,
       snoozed_until: snoozed_until,
       unread_count: unread_incoming_messages.count,

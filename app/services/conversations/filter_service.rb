@@ -9,7 +9,7 @@ class Conversations::FilterService < FilterService
   def set_count_for_all_conversations
     [
       @conversations.assigned_to(@user).count,
-      @conversations.without_human_assignee.count,
+      @conversations.queue_unassigned.count,
       @conversations.with_human_assignee.count,
       @conversations.count
     ]
@@ -81,3 +81,5 @@ class Conversations::FilterService < FilterService
     payload.any? { |query_hash| query_hash[:attribute_key] == 'labels' && query_hash[:filter_operator] == 'equal_to' }
   end
 end
+
+Conversations::FilterService.prepend_mod_with('Conversations::FilterService')
