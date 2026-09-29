@@ -187,6 +187,15 @@ RSpec.describe MessageTemplates::HookExecutionService do
         expect(handoff_message.content).not_to eq(I18n.t('conversations.captain.handoff', locale: :en))
       end
 
+      it 'prefers the assistant custom handoff message over the locale default' do
+        assistant.update!(config: (assistant.config || {}).merge('handoff_message' => 'Mensaje personalizado del asistente'))
+
+        create(:message, conversation: conversation, message_type: :incoming, account: account)
+
+        expect(conversation.messages.outgoing.pluck(:content)).to include('Mensaje personalizado del asistente')
+        expect(conversation.messages.outgoing.pluck(:content)).not_to include(I18n.t('conversations.captain.handoff'))
+      end
+
       it 'emits a usage limit handoff event' do
         expect(Captain::ConversationEvents).to receive(:handed_off)
           .with(conversation: conversation, assistant: assistant, source: 'usage_limit', reason_category: :usage_limit, at: kind_of(Time))
