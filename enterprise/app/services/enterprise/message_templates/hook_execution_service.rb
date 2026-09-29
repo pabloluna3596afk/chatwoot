@@ -54,7 +54,7 @@ module Enterprise::MessageTemplates::HookExecutionService
       message_type: :outgoing,
       account_id: conversation.account.id,
       inbox_id: conversation.inbox.id,
-      content: 'Transferring to another agent for further assistance.'
+      content: handoff_message_content
     )
     conversation.bot_handoff!
     Captain::ConversationEvents.handed_off(
@@ -65,6 +65,11 @@ module Enterprise::MessageTemplates::HookExecutionService
       at: Time.current
     )
     send_out_of_office_message_after_handoff
+  end
+
+  def handoff_message_content
+    inbox.captain_assistant&.config&.[]('handoff_message').presence ||
+      I18n.with_locale(conversation.account.locale) { I18n.t('conversations.captain.handoff') }
   end
 
   def send_out_of_office_message_after_handoff
