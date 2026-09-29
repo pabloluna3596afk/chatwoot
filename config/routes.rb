@@ -153,6 +153,7 @@ Rails.application.routes.draw do
             collection do
               post :lint
               post :simulate
+              post :reach_preview
             end
           end
           resources :macros, only: [:index, :create, :show, :update, :destroy] do

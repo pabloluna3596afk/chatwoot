@@ -245,6 +245,150 @@ export const TIME_RULE_PRESETS = [
   },
 ];
 
+// Contact-based recipes (Automations::ContactBasedRuleRunner) — reach
+// contacts with no open conversation via a WhatsApp template. Mirrors the
+// examples already documented in that runner's own file header.
+export const CONTACT_RULE_PRESETS = [
+  {
+    id: 'cumpleanos_descuento',
+    family: 'contact',
+    nameKey: 'BUSINESS_RULES.CONTACT_PRESETS.CUMPLEANOS.NAME',
+    descriptionKey: 'BUSINESS_RULES.CONTACT_PRESETS.CUMPLEANOS.DESC',
+    dateSource: 'contact_attribute',
+    recurrence: 'yearly',
+    attributeSuggestion: {
+      attributeKey: 'cumpleanos',
+      attributeDisplayNameKey:
+        'BUSINESS_RULES.CONTACT_PRESETS.CUMPLEANOS.ATTRIBUTE_NAME',
+      attributeModel: 'contact_attribute',
+      attributeDisplayType: 'date',
+    },
+    dayOptions: [
+      {
+        id: 'on',
+        days: 0,
+        relativeTo: 'on',
+        labelKey: 'BUSINESS_RULES.CONTACT_PRESETS.DAY_OPTIONS.SAME_DAY',
+      },
+      {
+        id: '3_before',
+        days: 3,
+        relativeTo: 'before',
+        labelKey: 'BUSINESS_RULES.CONTACT_PRESETS.DAY_OPTIONS.DAYS_BEFORE',
+        labelCount: 3,
+      },
+      {
+        id: '7_before',
+        days: 7,
+        relativeTo: 'before',
+        labelKey: 'BUSINESS_RULES.CONTACT_PRESETS.DAY_OPTIONS.DAYS_BEFORE',
+        labelCount: 7,
+      },
+    ],
+  },
+  {
+    id: 'aniversario_cliente',
+    family: 'contact',
+    nameKey: 'BUSINESS_RULES.CONTACT_PRESETS.ANIVERSARIO.NAME',
+    descriptionKey: 'BUSINESS_RULES.CONTACT_PRESETS.ANIVERSARIO.DESC',
+    dateSource: 'contact_attribute',
+    recurrence: 'yearly',
+    attributeSuggestion: {
+      attributeKey: 'fecha_alta',
+      attributeDisplayNameKey:
+        'BUSINESS_RULES.CONTACT_PRESETS.ANIVERSARIO.ATTRIBUTE_NAME',
+      attributeModel: 'contact_attribute',
+      attributeDisplayType: 'date',
+    },
+    dayOptions: [
+      {
+        id: 'on',
+        days: 0,
+        relativeTo: 'on',
+        labelKey: 'BUSINESS_RULES.CONTACT_PRESETS.DAY_OPTIONS.SAME_DAY',
+      },
+      {
+        id: '3_before',
+        days: 3,
+        relativeTo: 'before',
+        labelKey: 'BUSINESS_RULES.CONTACT_PRESETS.DAY_OPTIONS.DAYS_BEFORE',
+        labelCount: 3,
+      },
+    ],
+  },
+  {
+    id: 'recompra_reposicion',
+    family: 'contact',
+    nameKey: 'BUSINESS_RULES.CONTACT_PRESETS.RECOMPRA.NAME',
+    descriptionKey: 'BUSINESS_RULES.CONTACT_PRESETS.RECOMPRA.DESC',
+    dateSource: 'contact_attribute',
+    recurrence: 'once',
+    attributeSuggestion: {
+      attributeKey: 'fecha_venta',
+      attributeDisplayNameKey:
+        'BUSINESS_RULES.CONTACT_PRESETS.RECOMPRA.ATTRIBUTE_NAME',
+      attributeModel: 'contact_attribute',
+      attributeDisplayType: 'date',
+    },
+    dayOptions: [
+      {
+        id: '30_after',
+        days: 30,
+        relativeTo: 'after',
+        labelKey: 'BUSINESS_RULES.CONTACT_PRESETS.DAY_OPTIONS.DAYS_AFTER',
+        labelCount: 30,
+      },
+      {
+        id: '60_after',
+        days: 60,
+        relativeTo: 'after',
+        labelKey: 'BUSINESS_RULES.CONTACT_PRESETS.DAY_OPTIONS.DAYS_AFTER',
+        labelCount: 60,
+      },
+      {
+        id: '90_after',
+        days: 90,
+        relativeTo: 'after',
+        labelKey: 'BUSINESS_RULES.CONTACT_PRESETS.DAY_OPTIONS.DAYS_AFTER',
+        labelCount: 90,
+      },
+    ],
+  },
+  {
+    id: 'reactivar_inactivos',
+    family: 'contact',
+    nameKey: 'BUSINESS_RULES.CONTACT_PRESETS.REACTIVAR.NAME',
+    descriptionKey: 'BUSINESS_RULES.CONTACT_PRESETS.REACTIVAR.DESC',
+    dateSource: 'last_activity',
+    recurrence: 'once',
+    // No attributeSuggestion — last_activity reads a column, not a custom
+    // attribute, so the dialog skips the attribute picker for this one.
+    dayOptions: [
+      {
+        id: '30_after',
+        days: 30,
+        relativeTo: 'after',
+        labelKey: 'BUSINESS_RULES.CONTACT_PRESETS.DAY_OPTIONS.DAYS_AFTER',
+        labelCount: 30,
+      },
+      {
+        id: '60_after',
+        days: 60,
+        relativeTo: 'after',
+        labelKey: 'BUSINESS_RULES.CONTACT_PRESETS.DAY_OPTIONS.DAYS_AFTER',
+        labelCount: 60,
+      },
+      {
+        id: '90_after',
+        days: 90,
+        relativeTo: 'after',
+        labelKey: 'BUSINESS_RULES.CONTACT_PRESETS.DAY_OPTIONS.DAYS_AFTER',
+        labelCount: 90,
+      },
+    ],
+  },
+];
+
 export const newRuleId = () =>
   `br_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 

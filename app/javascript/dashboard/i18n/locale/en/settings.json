@@ -409,6 +409,7 @@
         "CANCEL_CONFIRM_DESCRIPTION": "“{title}” will be cancelled. The team can see it if they turn on cancelled events.",
         "DELETED_BY": "Cancelled by {name}",
         "CREATED_BY": "Created by {name}. ",
+        "AI_BOOKED": "Booked by AI",
         "UPDATED_BY": "Last edited by {name}.",
         "LOCKED": "{name} is editing this event",
         "LOCK_ERROR": "Could not start editing this event.",

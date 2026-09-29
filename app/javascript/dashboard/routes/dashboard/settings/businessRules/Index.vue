@@ -15,6 +15,7 @@ import {
   BaseTableCell,
 } from 'dashboard/components-next/table';
 import BusinessRuleForm from 'dashboard/components-next/ConversationWorkflow/BusinessRuleForm.vue';
+import PresetActivationCard from 'dashboard/components-next/ConversationWorkflow/PresetActivationCard.vue';
 import BusinessRulesDryRunDialog from 'dashboard/components-next/ConversationWorkflow/BusinessRulesDryRunDialog.vue';
 import {
   BUSINESS_RULE_PRESETS,
@@ -291,27 +292,17 @@ const dialogTitle = computed(() =>
           </p>
         </div>
         <div class="flex flex-col gap-2">
-          <div
+          <PresetActivationCard
             v-for="preset in unusedPresets"
             :key="preset.id"
-            class="flex flex-wrap items-center justify-between gap-2 rounded-md border border-n-weak bg-n-solid-1 p-3"
-          >
-            <div>
-              <p class="m-0 text-sm font-medium text-n-slate-12">
-                {{ $t(preset.nameKey) }}
-              </p>
-              <p class="mb-0 mt-1 text-xs text-n-slate-11">
-                {{ $t(preset.descriptionKey) }}
-              </p>
-            </div>
-            <Button
-              sm
-              faded
-              :label="$t('BUSINESS_RULES.ACTIVATE_PRESET')"
-              :is-loading="saving"
-              @click="activatePreset(preset)"
-            />
-          </div>
+            :name="$t(preset.nameKey)"
+            :description="
+              preset.descriptionKey ? $t(preset.descriptionKey) : ''
+            "
+            :activate-label="$t('BUSINESS_RULES.ACTIVATE_PRESET')"
+            :loading="saving"
+            @activate="activatePreset(preset)"
+          />
         </div>
       </div>
 

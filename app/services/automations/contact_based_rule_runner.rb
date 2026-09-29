@@ -58,6 +58,19 @@ class Automations::ContactBasedRuleRunner
     end
   end
 
+  # Read-only reach preview for the activation UI ("this would reach N
+  # contacts right now") — reuses the exact same candidate query `perform`
+  # runs, so the number shown never drifts from what the rule would actually
+  # do. Returns 0 for a schedule that's incomplete rather than raising, so a
+  # half-filled recipe dialog can call this on every keystroke.
+  def candidates_count
+    return 0 unless @schedule[:kind].to_s == 'contact_date'
+    return 0 if target_inbox.blank?
+    return 0 if date_source == 'contact_attribute' && attribute_key.blank?
+
+    candidates.count
+  end
+
   private
 
   def cap

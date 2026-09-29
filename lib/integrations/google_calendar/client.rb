@@ -61,16 +61,16 @@ class Integrations::GoogleCalendar::Client
     get(event_path(calendar_id, event_id))
   end
 
-  def create_event(calendar_id:, summary:, start_at:, end_at:, description: nil, extended_properties: {}, include_meet: false, attendee_email: nil)
-    body = event_body(summary:, start_at:, end_at:, description:, extended_properties:, include_meet:, attendee_email:)
+  def create_event(calendar_id:, summary:, start_at:, end_at:, description: nil, extended_properties: {}, include_meet: false, attendee_email: nil, timezone: TIMEZONE)
+    body = event_body(summary:, start_at:, end_at:, description:, extended_properties:, include_meet:, attendee_email:, timezone:)
     params = {}
     params[:conferenceDataVersion] = 1 if include_meet
     params[:sendUpdates] = 'all' if attendee_email.present?
     post(events_path(calendar_id), body, params)
   end
 
-  def update_event(calendar_id:, event_id:, etag:, summary:, start_at:, end_at:, description: nil, extended_properties: {}, include_meet: false, attendee_email: nil)
-    body = event_body(summary:, start_at:, end_at:, description:, extended_properties:, include_meet:, attendee_email:)
+  def update_event(calendar_id:, event_id:, etag:, summary:, start_at:, end_at:, description: nil, extended_properties: {}, include_meet: false, attendee_email: nil, timezone: TIMEZONE)
+    body = event_body(summary:, start_at:, end_at:, description:, extended_properties:, include_meet:, attendee_email:, timezone:)
     params = {}
     params[:conferenceDataVersion] = 1 if include_meet
     params[:sendUpdates] = 'all' if attendee_email.present?
@@ -85,11 +85,11 @@ class Integrations::GoogleCalendar::Client
 
   private
 
-  def event_body(summary:, start_at:, end_at:, description:, extended_properties:, include_meet:, attendee_email: nil)
+  def event_body(summary:, start_at:, end_at:, description:, extended_properties:, include_meet:, attendee_email: nil, timezone: TIMEZONE)
     body = {
       summary: summary,
-      start: { dateTime: start_at.iso8601, timeZone: TIMEZONE },
-      end: { dateTime: end_at.iso8601, timeZone: TIMEZONE }
+      start: { dateTime: start_at.iso8601, timeZone: timezone },
+      end: { dateTime: end_at.iso8601, timeZone: timezone }
     }
     body[:description] = description if description.present?
     body[:extendedProperties] = { private: extended_properties } if extended_properties.present?

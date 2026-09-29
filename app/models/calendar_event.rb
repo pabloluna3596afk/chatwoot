@@ -24,6 +24,7 @@
 #
 class CalendarEvent < ApplicationRecord
   APPOINTMENT_STATUSES = %w[none pending_confirmation confirmed cancelled rescheduled].freeze
+  BOOKING_SOURCES = %w[manual ai].freeze
 
   belongs_to :account
   belongs_to :calendar_connection
@@ -41,6 +42,7 @@ class CalendarEvent < ApplicationRecord
   validates :google_event_id, uniqueness: { scope: :calendar_connection_id }
   validates :idempotency_key, uniqueness: { scope: :account_id }, allow_nil: true
   validates :appointment_status, inclusion: { in: APPOINTMENT_STATUSES }
+  validates :booking_source, inclusion: { in: BOOKING_SOURCES }
 
   scope :kept, -> { where(deleted_at: nil) }
 
@@ -50,5 +52,9 @@ class CalendarEvent < ApplicationRecord
 
   def bot_followup_enabled?
     ActiveModel::Type::Boolean.new.cast(bot_followup_policy.is_a?(Hash) ? bot_followup_policy['enabled'] : enabled)
+  end
+
+  def ai_booked?
+    booking_source == 'ai'
   end
 end

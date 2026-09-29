@@ -33,6 +33,12 @@ class Integrations::GoogleCalendar::EventService
     @connection = connection
   end
 
+  # Falls back to the hardcoded default only for accounts that never set a
+  # reporting timezone — real accounts should configure Settings → Reports.
+  def account_timezone
+    account.reporting_timezone.presence || TIMEZONE
+  end
+
   def list(calendar_id:, time_min:, time_max:)
     ensure_calendar_enabled!(calendar_id)
     google_events = client.list_events(calendar_id: calendar_id, time_min: time_min, time_max: time_max)
@@ -94,6 +100,7 @@ class Integrations::GoogleCalendar::EventService
       conversation: record.conversation && { id: record.conversation.display_id },
       bot_followup_policy: record.bot_followup_policy.presence || {},
       appointment_status: record.appointment_status.presence || 'none',
+      booking_source: record.booking_source.presence || 'manual',
       activities: serialize_activities(record)
     }
   end
@@ -142,7 +149,8 @@ class Integrations::GoogleCalendar::EventService
         description: human_description(contact, conversation),
         extended_properties: private_properties(contact, conversation),
         include_meet: ActiveModel::Type::Boolean.new.cast(params[:include_meet]),
-        attendee_email: params[:attendee_email].presence || contact&.email
+        attendee_email: params[:attendee_email].presence || contact&.email,
+        timezone: account_timezone
       )
       record = upsert_local!(
         google_event, calendar_id, contact, conversation,
@@ -176,7 +184,8 @@ class Integrations::GoogleCalendar::EventService
         description: human_description(contact, conversation),
         extended_properties: private_properties(contact, conversation),
         include_meet: ActiveModel::Type::Boolean.new.cast(params[:include_meet]),
-        attendee_email: params[:attendee_email].presence || contact&.email
+        attendee_email: params[:attendee_email].presence || contact&.email,
+        timezone: account_timezone
       )
       record = upsert_local!(google_event, calendar_id, contact, conversation, creating: false, params: params)
       notify_conversation!(conversation, :event_updated, record)
@@ -303,7 +312,7 @@ class Integrations::GoogleCalendar::EventService
   end
 
   def parse_range(params)
-    zone = Time.find_zone!(TIMEZONE)
+    zone = Time.find_zone!(account_timezone)
     start_at = zone.parse(params[:start].to_s)
     end_at = params[:end].present? ? zone.parse(params[:end].to_s) : start_at + 30.minutes
     raise InvalidRange if start_at.blank? || end_at <= start_at
@@ -357,6 +366,10 @@ class Integrations::GoogleCalendar::EventService
     attrs.merge!(followup_attrs_from(params, creating: creating || was_new, record: record))
     attrs[:updated_by] = actor_user if actor_user
     attrs[:idempotency_key] = idempotency_key if idempotency_key.present? && record.idempotency_key.blank?
+    # actor_user is nil for bot/API-token requests (see actor_user comment below) —
+    # reused here so a booking's AI origin is derived from the same signal that
+    # already governs created_by, instead of trusting a client-supplied flag.
+    attrs[:booking_source] = actor_user ? 'manual' : 'ai' if creating || was_new
     record.assign_attributes(attrs)
     record.created_by ||= actor_user if actor_user && (creating || was_new)
     record.save!
@@ -527,6 +540,7 @@ class Integrations::GoogleCalendar::EventService
       conversation: conversation_payload(record&.conversation),
       bot_followup_policy: record&.bot_followup_policy.presence || {},
       appointment_status: record&.appointment_status.presence || 'none',
+      booking_source: record&.booking_source.presence || 'manual',
       activities: self.class.serialize_activities(record)
     }
   end
@@ -577,7 +591,7 @@ class Integrations::GoogleCalendar::EventService
   end
 
   def send_to_contact!(conversation, record, google_event)
-    zone = Time.find_zone!(TIMEZONE)
+    zone = Time.find_zone!(account_timezone)
     start_label = record.start_at&.in_time_zone(zone)&.strftime('%Y-%m-%d %H:%M')
     meet = meet_link(google_event)
     content = I18n.t('integration_apps.calendars.customer_message', title: record.summary, start_at: start_label)

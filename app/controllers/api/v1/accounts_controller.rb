@@ -130,7 +130,16 @@ class Api::V1::AccountsController < Api::BaseController
 
   def settings_params
     result = params.permit(*permitted_settings_attributes)
-    result[:business_rules] = sanitize_business_rules(params[:business_rules]) if params.key?(:business_rules)
+    if params.key?(:business_rules)
+      # Assigning a plain Hash/Array back into ActionController::Parameters
+      # re-wraps each element as its own (unpermitted) Parameters object, so
+      # the later `@account.settings.merge!(settings)` raises
+      # UnfilteredParameters even though sanitize_business_rules already
+      # built this from scratch with only known-safe keys. permit! here is
+      # safe precisely because nothing beyond that sanitized shape survives.
+      result[:business_rules] = sanitize_business_rules(params[:business_rules])
+      result.permit!
+    end
     result
   end
 
