@@ -1,6 +1,7 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useMapGetter } from 'dashboard/composables/store';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import MessageList from './MessageList.vue';
 import CaptainAssistant from 'dashboard/api/captain/assistant';
@@ -13,6 +14,10 @@ const { assistantId } = defineProps({
 });
 
 const { t } = useI18n();
+const assistants = useMapGetter('captainAssistants/getRecords');
+const assistant = computed(() =>
+  assistants.value?.find(({ id }) => id === assistantId)
+);
 const messages = ref([]);
 const newMessage = ref('');
 const isLoading = ref(false);
@@ -110,7 +115,11 @@ const handleEnterKey = event => {
       </p>
     </div>
 
-    <MessageList :messages="messages" :is-loading="isLoading" />
+    <MessageList
+      :messages="messages"
+      :is-loading="isLoading"
+      :assistant="assistant"
+    />
 
     <div
       class="flex items-center mx-6 bg-n-background outline outline-1 outline-n-weak rounded-xl p-3"

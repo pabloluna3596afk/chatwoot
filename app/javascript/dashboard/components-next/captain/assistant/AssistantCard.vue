@@ -8,6 +8,7 @@ import { usePolicy } from 'dashboard/composables/usePolicy';
 import CardLayout from 'dashboard/components-next/CardLayout.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
+import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 
 const props = defineProps({
   id: {
@@ -21,6 +22,10 @@ const props = defineProps({
   description: {
     type: String,
     required: true,
+  },
+  avatarUrl: {
+    type: String,
+    default: '',
   },
   updatedAt: {
     type: Number,
@@ -76,11 +81,14 @@ const handleAction = ({ action, value }) => {
 <template>
   <CardLayout>
     <div class="flex justify-between w-full gap-1">
-      <h6
-        class="text-base font-normal text-n-slate-12 line-clamp-1 hover:underline transition-colors"
-      >
-        {{ name }}
-      </h6>
+      <div class="flex items-center gap-2 min-w-0">
+        <Avatar :name="name" :src="avatarUrl" :size="24" rounded-full />
+        <h6
+          class="text-base font-normal text-n-slate-12 line-clamp-1 hover:underline transition-colors"
+        >
+          {{ name }}
+        </h6>
+      </div>
       <div class="flex items-center gap-2">
         <div
           v-on-clickaway="() => toggleDropdown(false)"

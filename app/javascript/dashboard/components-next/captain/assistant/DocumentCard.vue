@@ -11,6 +11,7 @@ import {
 } from 'shared/helpers/documentHelper';
 
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import CardLayout from 'dashboard/components-next/CardLayout.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -211,7 +212,12 @@ const handleRetry = () => {
       <span
         class="flex gap-1 items-center text-sm truncate shrink-0 text-n-slate-11"
       >
-        <Icon icon="i-woot-captain" />
+        <Avatar
+          :name="assistant?.name || ''"
+          :src="assistant?.avatar_url"
+          :size="16"
+          rounded-full
+        />
         {{ assistant?.name || '' }}
       </span>
       <a
