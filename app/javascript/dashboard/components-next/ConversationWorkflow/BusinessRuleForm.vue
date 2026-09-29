@@ -18,7 +18,7 @@ import {
 import AttributeRequirementPicker from 'dashboard/components-next/ConversationWorkflow/AttributeRequirementPicker.vue';
 import AttributeScopeSwitch from 'dashboard/components-next/ConversationWorkflow/AttributeScopeSwitch.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
-import Input from 'dashboard/components-next/Input/Input.vue';
+import Input from 'dashboard/components-next/input/Input.vue';
 import OutlinedSelectField from 'dashboard/components-next/CustomAttributes/OutlinedSelectField.vue';
 import { AUTOMATIONS } from 'dashboard/routes/dashboard/settings/automation/constants';
 import {
