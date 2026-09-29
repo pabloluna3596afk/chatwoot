@@ -407,15 +407,15 @@
     "ACTIVE": "Activo",
     "COMPANIES": "Empresas",
     "ALL_COMPANIES": "All Companies",
-    "CAPTAIN": "Capitán",
+    "CAPTAIN": "Captain",
     "CALLS": "Llamadas",
     "CAPTAIN_ASSISTANTS": "Asistentes",
     "CAPTAIN_OVERVIEW": "Resumen",
     "CAPTAIN_DOCUMENTS": "Documentos",
     "CAPTAIN_RESPONSES": "Preguntas frecuentes",
-    "CAPTAIN_TOOLS": "Tools",
-    "CAPTAIN_SCENARIOS": "Scenarios",
-    "CAPTAIN_PLAYGROUND": "Playground",
+    "CAPTAIN_TOOLS": "Herramientas",
+    "CAPTAIN_SCENARIOS": "Escenarios",
+    "CAPTAIN_PLAYGROUND": "Zona de pruebas",
     "CAPTAIN_INBOXES": "Entradas",
     "CAPTAIN_SETTINGS": "Ajustes",
     "HOME": "Inicio",
@@ -499,7 +499,7 @@
     },
     "DOCS": "Leer documentos",
     "SECURITY": "Seguridad",
-    "CAPTAIN_AI": "Capitán",
+    "CAPTAIN_AI": "Captain",
     "CONVERSATION_WORKFLOW": "Flujo de conversación"
   },
   "DATA_IMPORTS": {
@@ -614,11 +614,11 @@
     }
   },
   "CAPTAIN_SETTINGS": {
-    "TITLE": "Ajustes de Capitán",
-    "DESCRIPTION": "Configura los modelos de IA y las funciones de Capitán. Capitán usa facturación por créditos: se cobran créditos por cada acción según el modelo seleccionado.",
-    "LOADING": "Cargando configuración de Capitán...",
-    "LINK_TEXT": "Más información sobre créditos de Capitán",
-    "NOT_ENABLED": "Capitán no está habilitado en tu cuenta. Actualiza tu plan para acceder a las funciones de Capitán.",
+    "TITLE": "Ajustes de Captain",
+    "DESCRIPTION": "Configura los modelos de IA y las funciones de Captain. Captain usa facturación por créditos: se cobran créditos por cada acción según el modelo seleccionado.",
+    "LOADING": "Cargando configuración de Captain...",
+    "LINK_TEXT": "Más información sobre créditos de Captain",
+    "NOT_ENABLED": "Captain no está habilitado en tu cuenta. Actualiza tu plan para acceder a las funciones de Captain.",
     "MODEL_CONFIG": {
       "TITLE": "Configuración de modelos",
       "DESCRIPTION": "Selecciona modelos de IA para distintas funciones.",
@@ -626,41 +626,41 @@
       "CREDITS_PER_MESSAGE": "{credits} crédito/mensaje",
       "COMING_SOON": "Próximamente",
       "EDITOR": {
-        "TITLE": "Editor Features",
-        "DESCRIPTION": "Powers smart compose, grammar corrections, tone adjustments, and content enhancement in your message editor."
+        "TITLE": "Funciones del editor",
+        "DESCRIPTION": "Potencia la redacción inteligente, las correcciones gramaticales, los ajustes de tono y la mejora de contenido en tu editor de mensajes."
       },
       "ASSISTANT": {
         "TITLE": "Assistant",
-        "DESCRIPTION": "Handles automated responses, conversation summaries, and intelligent reply suggestions for customer interactions."
+        "DESCRIPTION": "Gestiona las respuestas automáticas, los resúmenes de conversaciones y las sugerencias de respuesta inteligentes en las interacciones con clientes."
       },
       "COPILOT": {
         "TITLE": "Co-pilot",
-        "DESCRIPTION": "Provides real-time contextual suggestions, knowledge base recommendations, and proactive insights during conversations."
+        "DESCRIPTION": "Ofrece sugerencias contextuales en tiempo real, recomendaciones de la base de conocimiento e ideas proactivas durante las conversaciones."
       }
     },
     "FEATURES": {
       "TITLE": "Características",
-      "DESCRIPTION": "Enable or disable AI-powered features.",
+      "DESCRIPTION": "Activa o desactiva las funciones con IA.",
       "AUDIO_TRANSCRIPTION": {
-        "TITLE": "Audio Transcription",
-        "DESCRIPTION": "Automatically convert voice messages and call recordings into searchable text transcripts.",
+        "TITLE": "Transcripción de audio",
+        "DESCRIPTION": "Convierte automáticamente los mensajes de voz y las grabaciones de llamadas en transcripciones de texto con búsqueda.",
         "MODEL_TITLE": "Modelo de Transcripción de Audio",
-        "MODEL_DESCRIPTION": "Seleccione el modelo de IA a utilizar para convertir mensajes de audio en transcripciones de texto"
+        "MODEL_DESCRIPTION": "Selecciona el modelo de IA que se usará para convertir los mensajes de audio en transcripciones de texto"
       },
       "HELP_CENTER_SEARCH": {
-        "TITLE": "Help Center Search Indexing",
-        "DESCRIPTION": "Use AI for context aware search inside your help center articles."
+        "TITLE": "Indexación de búsqueda del centro de ayuda",
+        "DESCRIPTION": "Usa IA para una búsqueda con contexto dentro de los artículos de tu centro de ayuda."
       },
       "LABEL_SUGGESTION": {
-        "TITLE": "Label Suggestion",
-        "DESCRIPTION": "Automatically suggest relevant labels and tags for conversations based on content analysis and context.",
-        "MODEL_TITLE": "Label Suggestion Model",
-        "MODEL_DESCRIPTION": "Select the AI model to use for analyzing conversations and suggesting appropriate labels"
+        "TITLE": "Sugerencia de etiquetas",
+        "DESCRIPTION": "Sugiere automáticamente etiquetas relevantes para las conversaciones según el análisis de su contenido y contexto.",
+        "MODEL_TITLE": "Modelo de sugerencia de etiquetas",
+        "MODEL_DESCRIPTION": "Selecciona el modelo de IA que se usará para analizar conversaciones y sugerir las etiquetas adecuadas"
       }
     },
     "API": {
-      "SUCCESS": "Captain settings updated successfully.",
-      "ERROR": "Failed to update Captain settings. Please try again."
+      "SUCCESS": "La configuración de Captain se actualizó correctamente.",
+      "ERROR": "No se pudo actualizar la configuración de Captain. Inténtalo de nuevo."
     }
   },
   "BILLING_SETTINGS": {
