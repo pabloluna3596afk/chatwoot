@@ -405,8 +405,6 @@ const tableHeaders = computed(() => {
   <SettingsLayout
     :is-loading="uiFlags.isFetching"
     :loading-message="$t('AUTOMATION.LOADING')"
-    :no-records-found="!records.length"
-    :no-records-message="$t('AUTOMATION.LIST.404')"
   >
     <template #header>
       <BaseSettingsHeader
