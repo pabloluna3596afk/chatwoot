@@ -92,8 +92,8 @@ class Conversation < ApplicationRecord
   # Plain SQL on captain_inboxes (shared schema) so it works per row without loading assistants or checking quota.
   CAPTAIN_ATTENDED_SQL = "(conversations.status = #{statuses[:pending]} AND conversations.assignee_agent_bot_id IS NULL AND " \
                          'EXISTS (SELECT 1 FROM captain_inboxes WHERE captain_inboxes.inbox_id = conversations.inbox_id))'.freeze
-  # The one definition of the dashboard "Sin asignar" queue: nobody owns it, and the AI is not attending it.
-  QUEUE_UNASSIGNED_SQL = "conversations.assignee_id IS NULL AND conversations.assignee_agent_bot_id IS NULL AND NOT #{CAPTAIN_ATTENDED_SQL}".freeze
+  # The dashboard "Sin asignar" queue: develop's without_human_assignee (AgentBot-owned rows stay in it) minus what Captain attends.
+  QUEUE_UNASSIGNED_SQL = "conversations.assignee_id IS NULL AND NOT #{CAPTAIN_ATTENDED_SQL}".freeze
 
   scope :unassigned, -> { where(assignee_id: nil, assignee_agent_bot_id: nil) }
   scope :attended_by_ai, -> { where(CAPTAIN_ATTENDED_SQL) }

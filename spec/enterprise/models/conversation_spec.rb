@@ -295,8 +295,10 @@ RSpec.describe Conversation, type: :model do
         expect(account.conversations.attended_by_ai).to contain_exactly(ai_conversation, pending_with_agent)
       end
 
-      it 'queue_unassigned leaves out what Captain attends and what anybody owns' do
-        expect(account.conversations.queue_unassigned).to contain_exactly(escalated_conversation, open_conversation, plain_pending)
+      it 'queue_unassigned leaves out what Captain attends and what a person owns, and keeps AgentBot-owned rows like develop' do
+        expect(account.conversations.queue_unassigned).to contain_exactly(escalated_conversation, open_conversation, plain_pending, bot_owned)
+        expect(account.conversations.queue_unassigned.pluck(:id))
+          .to match_array(account.conversations.without_human_assignee.where.not(id: ai_conversation.id).pluck(:id))
       end
 
       it 'keeps the upstream unassigned scope untouched' do

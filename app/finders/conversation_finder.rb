@@ -174,9 +174,11 @@ class ConversationFinder
   def set_count_for_all_conversations
     return legacy_count_for_all_conversations if @conversations.limit_value || @conversations.offset_value || @conversations.eager_loading?
 
+    # develop's fast count leaves AgentBot-owned rows out of unassigned_count (the list keeps them); only the Captain exclusion is new.
+    unassigned_sql = "conversations.assignee_agent_bot_id IS NULL AND #{Conversation::QUEUE_UNASSIGNED_SQL}"
     counts = @conversations.unscope(:order).pick(
       Arel.sql("COUNT(*) FILTER (WHERE assignee_id = #{current_user.id})"),
-      Arel.sql("COUNT(*) FILTER (WHERE #{Conversation::QUEUE_UNASSIGNED_SQL})"),
+      Arel.sql("COUNT(*) FILTER (WHERE #{unassigned_sql})"),
       Arel.sql('COUNT(*) FILTER (WHERE assignee_id IS NOT NULL)'),
       Arel.sql('COUNT(*)')
     )
