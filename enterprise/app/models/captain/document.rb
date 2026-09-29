@@ -89,6 +89,14 @@ class Captain::Document < ApplicationRecord
     pdf_file.blob.byte_size if pdf_file.attached?
   end
 
+  def effective_size_bytes
+    if pdf_file.attached?
+      pdf_file.blob.byte_size
+    else
+      content.to_s.bytesize
+    end
+  end
+
   def store_openai_file_id(file_id)
     update!(openai_file_id: file_id)
   end
@@ -186,8 +194,15 @@ class Captain::Document < ApplicationRecord
   end
 
   def ensure_within_plan_limit
-    limits = account.usage_limits[:captain][:documents]
-    raise LimitExceededError, I18n.t('captain.documents.limit_exceeded') unless limits[:current_available].positive?
+    # Check storage limit
+    storage_limits = account.usage_limits[:captain][:storage]
+    if storage_limits[:total_count].positive? # Only check if storage limit is set (> 0)
+      current_storage = storage_limits[:consumed]
+      new_storage = current_storage + effective_size_bytes
+      unless (storage_limits[:total_count] - new_storage) >= 0
+        raise LimitExceededError, I18n.t('captain.documents.storage_limit_exceeded')
+      end
+    end
   end
 
   def validate_pdf_format

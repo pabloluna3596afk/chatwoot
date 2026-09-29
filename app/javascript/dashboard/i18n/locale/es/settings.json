@@ -695,7 +695,12 @@
       "BUTTON_TXT": "Comprar más créditos",
       "DOCUMENTS": "Documentos",
       "RESPONSES": "Respuestas",
-      "UPGRADE": "Captain no está disponible en el plan gratuito, actualice su suscripción ahora para tener acceso a asistentes, copilot y más.",
+      "RESPONSES_CUSTOMER": "Captain (respuestas de clientes)",
+      "RESPONSES_COPILOT": "Copilot (uso de agentes)",
+      "STORAGE": "Almacenamiento",
+      "AGENTS": "Agentes",
+      "INBOXES": "Bandejas de entrada",
+      "UPGRADE": "Captain no está disponible en el plan gratuito, actualiza tu plan para acceder a asistentes, Copilot y más.",
       "REFRESH_CREDITS": "Actualizar"
     },
     "CHAT_WITH_US": {

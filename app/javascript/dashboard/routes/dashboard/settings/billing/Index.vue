@@ -1,6 +1,5 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
 import { useMapGetter, useStore } from 'dashboard/composables/store.js';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useCaptain } from 'dashboard/composables/useCaptain';
@@ -18,13 +17,12 @@ import ButtonV4 from 'next/button/Button.vue';
 import { getCurrencyConfig } from 'dashboard/constants/billing';
 import { useI18n } from 'vue-i18n';
 
-const router = useRouter();
 const { currentAccount, isOnChatwootCloud } = useAccount();
 const {
   captainEnabled,
   captainLimits,
-  documentLimits,
   responseLimits,
+  storageLimits,
   fetchLimits,
   isFetchingLimits,
 } = useCaptain();
@@ -52,6 +50,11 @@ const customAttributes = computed(() => {
  * @returns {string|undefined}
  */
 const planName = computed(() => {
+  // For self-hosted, read from limits.plan
+  if (!isOnChatwootCloud.value) {
+    return currentAccount.value.limits?.plan?.name;
+  }
+  // For cloud, read from custom_attributes (existing behavior)
   return customAttributes.value.plan_name;
 });
 
@@ -65,10 +68,20 @@ const canPurchaseCredits = computed(() => {
  * @returns {number|undefined}
  */
 const subscribedQuantity = computed(() => {
+  // For self-hosted, this field may not be relevant
+  if (!isOnChatwootCloud.value) {
+    return undefined;
+  }
+  // For cloud, read from custom_attributes (existing behavior)
   return customAttributes.value.subscribed_quantity;
 });
 
 const billingCurrency = computed(() => {
+  // For self-hosted, billing currency may not be relevant
+  if (!isOnChatwootCloud.value) {
+    return '';
+  }
+  // For cloud, read from custom_attributes (existing behavior)
   if (!customAttributes.value.billing_currency) return '';
   return t(
     getCurrencyConfig(customAttributes.value.billing_currency).i18nLabelKey
@@ -76,6 +89,15 @@ const billingCurrency = computed(() => {
 });
 
 const subscriptionRenewsOn = computed(() => {
+  // For self-hosted, read from limits.plan
+  if (!isOnChatwootCloud.value) {
+    const planEnd = currentAccount.value.limits?.plan?.period_end;
+    if (!planEnd) return '';
+    const endDate = new Date(planEnd);
+    // return date as 12 Jan, 2034
+    return format(endDate, 'dd MMM, yyyy');
+  }
+  // For cloud, read from custom_attributes (existing behavior)
   if (!customAttributes.value.subscription_ends_on) return '';
   const endDate = new Date(customAttributes.value.subscription_ends_on);
   // return date as 12 Jan, 2034
@@ -87,7 +109,26 @@ const subscriptionRenewsOn = computed(() => {
  * @returns {boolean}
  */
 const hasABillingPlan = computed(() => {
+  // For self-hosted, check if limits.plan exists
+  if (!isOnChatwootCloud.value) {
+    return !!currentAccount.value.limits?.plan;
+  }
+  // For cloud, check planName (existing behavior)
   return !!planName.value;
+});
+
+// Computed property for agents meter data
+const agentsMeterData = computed(() => {
+  const agents = currentAccount.value.limits?.agents;
+  if (!agents) return null;
+  return { consumed: agents.consumed ?? 0, totalCount: agents.allowed };
+});
+
+// Computed property for inboxes meter data
+const inboxesMeterData = computed(() => {
+  const inboxes = currentAccount.value.limits?.inboxes;
+  if (!inboxes) return null;
+  return { consumed: inboxes.consumed ?? 0, totalCount: inboxes.allowed };
 });
 
 const fetchAccountDetails = async () => {
@@ -101,9 +142,9 @@ const fetchAccountDetails = async () => {
 };
 
 const handleBillingPageLogic = async () => {
-  // If self-hosted, redirect to dashboard
+  // For self-hosted, just fetch limits and render
   if (!isOnChatwootCloud.value) {
-    router.push({ name: 'home' });
+    await fetchLimits();
     return;
   }
 
@@ -188,7 +229,11 @@ onMounted(handleBillingPageLogic);
       />
     </template>
     <template #body>
-      <section v-if="currencySelectionRequired" class="grid gap-4">
+      <!-- Currency Selection Section (Cloud only) -->
+      <section
+        v-if="isOnChatwootCloud && currencySelectionRequired"
+        class="grid gap-4"
+      >
         <BillingCard
           :title="$t('BILLING_SETTINGS.CURRENCY.SELECT.TITLE')"
           :description="$t('BILLING_SETTINGS.CURRENCY.SELECT.DESCRIPTION')"
@@ -211,26 +256,39 @@ onMounted(handleBillingPageLogic);
           </template>
         </BillingCard>
       </section>
+
+      <!-- Main Billing Section -->
       <section v-else class="grid gap-4">
+        <!-- Subscription Management Section -->
         <BillingCard
           :title="$t('BILLING_SETTINGS.MANAGE_SUBSCRIPTION.TITLE')"
           :description="$t('BILLING_SETTINGS.MANAGE_SUBSCRIPTION.DESCRIPTION')"
         >
+          <!-- Manage Subscription Button (Cloud only) -->
           <template #action>
-            <ButtonV4 sm solid blue @click="onClickBillingPortal">
+            <ButtonV4
+              v-if="isOnChatwootCloud"
+              sm
+              solid
+              blue
+              @click="onClickBillingPortal"
+            >
               {{ $t('BILLING_SETTINGS.MANAGE_SUBSCRIPTION.BUTTON_TXT') }}
             </ButtonV4>
           </template>
+
+          <!-- Plan Details -->
           <div
-            v-if="planName || subscribedQuantity || subscriptionRenewsOn"
+            v-if="planName || subscriptionRenewsOn"
             class="grid lg:grid-cols-4 sm:grid-cols-3 grid-cols-1 gap-2 divide-x divide-n-weak"
           >
             <DetailItem
               :label="$t('BILLING_SETTINGS.CURRENT_PLAN.TITLE')"
               :value="planName"
             />
+            <!-- Seat count (Cloud only) -->
             <DetailItem
-              v-if="subscribedQuantity"
+              v-if="isOnChatwootCloud && subscribedQuantity"
               :label="$t('BILLING_SETTINGS.CURRENT_PLAN.SEAT_COUNT')"
               :value="subscribedQuantity"
             />
@@ -239,13 +297,16 @@ onMounted(handleBillingPageLogic);
               :label="$t('BILLING_SETTINGS.CURRENT_PLAN.RENEWS_ON')"
               :value="subscriptionRenewsOn"
             />
+            <!-- Currency (Cloud only) -->
             <DetailItem
-              v-if="billingCurrency"
+              v-if="isOnChatwootCloud && billingCurrency"
               :label="$t('BILLING_SETTINGS.CURRENT_PLAN.CURRENCY')"
               :value="billingCurrency"
             />
           </div>
         </BillingCard>
+
+        <!-- Captain Section -->
         <BillingCard
           v-if="captainEnabled"
           :title="$t('BILLING_SETTINGS.CAPTAIN.TITLE')"
@@ -253,7 +314,9 @@ onMounted(handleBillingPageLogic);
         >
           <template #action>
             <div class="flex gap-2">
+              <!-- Refresh Credits Button (Cloud only) -->
               <ButtonV4
+                v-if="isOnChatwootCloud"
                 sm
                 flushed
                 slate
@@ -263,6 +326,7 @@ onMounted(handleBillingPageLogic);
               >
                 {{ $t('BILLING_SETTINGS.CAPTAIN.REFRESH_CREDITS') }}
               </ButtonV4>
+              <!-- Buy Credits Button -->
               <ButtonV4
                 v-if="canPurchaseCredits"
                 sm
@@ -274,26 +338,65 @@ onMounted(handleBillingPageLogic);
               </ButtonV4>
             </div>
           </template>
-          <div v-if="captainLimits && responseLimits" class="px-5">
-            <BillingMeter
-              :title="$t('BILLING_SETTINGS.CAPTAIN.RESPONSES')"
-              v-bind="responseLimits"
-            />
+
+          <!-- Captain Usage Section -->
+          <div v-if="captainLimits" class="space-y-4">
+            <div class="grid lg:grid-cols-2 gap-4">
+              <BillingMeter
+                v-if="responseLimits"
+                :title="$t('BILLING_SETTINGS.CAPTAIN.RESPONSES_CUSTOMER')"
+                :consumed="responseLimits.customerConsumed"
+                :total-count="responseLimits.customerTotalCount"
+              />
+              <BillingMeter
+                v-if="responseLimits"
+                :title="$t('BILLING_SETTINGS.CAPTAIN.RESPONSES_COPILOT')"
+                :consumed="responseLimits.copilotConsumed"
+                :total-count="responseLimits.copilotTotalCount"
+              />
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-4">
+              <BillingMeter
+                v-if="captainLimits && storageLimits"
+                :title="$t('BILLING_SETTINGS.CAPTAIN.STORAGE')"
+                v-bind="storageLimits"
+                unit="bytes"
+              />
+            </div>
           </div>
-          <div v-if="captainLimits && documentLimits" class="px-5">
-            <BillingMeter
-              :title="$t('BILLING_SETTINGS.CAPTAIN.DOCUMENTS')"
-              v-bind="documentLimits"
-            />
+
+          <!-- Account Usage Section -->
+          <div v-if="agentsMeterData || inboxesMeterData" class="space-y-4">
+            <div class="grid lg:grid-cols-2 gap-4">
+              <BillingMeter
+                v-if="agentsMeterData"
+                :title="$t('BILLING_SETTINGS.CAPTAIN.AGENTS')"
+                v-bind="agentsMeterData"
+              />
+              <BillingMeter
+                v-if="inboxesMeterData"
+                :title="$t('BILLING_SETTINGS.CAPTAIN.INBOXES')"
+                v-bind="inboxesMeterData"
+              />
+            </div>
           </div>
         </BillingCard>
+
+        <!-- Captain Upgrade Prompt (when not enabled) -->
         <BillingCard
           v-else
           :title="$t('BILLING_SETTINGS.CAPTAIN.TITLE')"
           :description="$t('BILLING_SETTINGS.CAPTAIN.UPGRADE')"
         >
           <template #action>
-            <ButtonV4 sm solid slate @click="onClickBillingPortal">
+            <ButtonV4
+              v-if="isOnChatwootCloud"
+              sm
+              solid
+              slate
+              @click="onClickBillingPortal"
+            >
               {{ $t('CAPTAIN.PAYWALL.UPGRADE_NOW') }}
             </ButtonV4>
           </template>

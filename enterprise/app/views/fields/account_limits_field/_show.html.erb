@@ -1,3 +1,4 @@
+<% effective = JSON.parse(field.effective) %>
 <% JSON.parse(field.to_s).each do |k,v| %>
-<%= k %>: <%= v %> </br>
+<%= k %>: <%= v.nil? ? "#{effective[k]} (del plan)" : v %> </br>
 <% end %>

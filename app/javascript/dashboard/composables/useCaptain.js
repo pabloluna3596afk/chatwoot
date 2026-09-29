@@ -55,6 +55,13 @@ export function useCaptain() {
     return null;
   });
 
+  const storageLimits = computed(() => {
+    if (captainLimits.value?.storage) {
+      return useCamelCase(captainLimits.value.storage);
+    }
+    return null;
+  });
+
   const isFetchingLimits = computed(() => uiFlags.value.isFetchingLimits);
 
   const fetchLimits = () => {
@@ -229,6 +236,7 @@ export function useCaptain() {
     captainLimits,
     documentLimits,
     responseLimits,
+    storageLimits,
     fetchLimits,
     isFetchingLimits,
 

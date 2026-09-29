@@ -521,6 +521,7 @@ en:
       reply_suggestion_failed: "Copilot couldn't generate a reply. Please try again."
     documents:
       limit_exceeded: 'Document limit exceeded'
+      storage_limit_exceeded: 'Storage limit exceeded'
       pdf_format_error: 'must be a PDF file'
       pdf_size_error: 'must be less than 10MB'
       sync_not_supported_for_pdf: 'Sync is not supported for PDF documents'
@@ -545,6 +546,8 @@ en:
     custom_tool:
       slug_generation_failed: 'Unable to generate unique slug after 5 attempts'
       limit_exceeded: 'You can create a maximum of %{limit} custom tools per account'
+    assistant:
+      limit_exceeded: 'You can create a maximum of %{limit} assistants per account'
   public_portal:
     search:
       search_placeholder: Search for article by title or body...

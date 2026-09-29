@@ -1,5 +1,7 @@
 <script setup>
 import { computed } from 'vue';
+import { formatBytes } from 'shared/helpers/FileHelper';
+
 const props = defineProps({
   title: {
     type: String,
@@ -13,7 +15,20 @@ const props = defineProps({
     type: Number,
     required: true,
   },
+  // 'bytes' renders the values as KB/MB/GB instead of a bare number
+  unit: {
+    type: String,
+    default: null,
+  },
 });
+
+const displayConsumed = computed(() =>
+  props.unit === 'bytes' ? formatBytes(props.consumed) : props.consumed
+);
+
+const displayTotal = computed(() =>
+  props.unit === 'bytes' ? formatBytes(props.totalCount) : props.totalCount
+);
 
 const percent = computed(() =>
   Math.round((props.consumed / props.totalCount) * 100)
@@ -31,15 +46,19 @@ const colorClass = computed(() => {
 </script>
 
 <template>
-  <div
-    class="flex gap-5 items-center justify-between text-xs uppercase text-n-slate-10"
-  >
-    <div class="font-medium tracking-wider">
-      {{ title }}
+  <div class="px-5">
+    <div class="text-n-slate-11 text-xs">{{ title }}</div>
+    <div class="mt-2 text-xs tabular-nums text-n-slate-10">
+      {{ displayConsumed }} / {{ displayTotal }}
     </div>
-    <div class="tabular-nums">{{ consumed }} / {{ totalCount }}</div>
-  </div>
-  <div class="rounded-full overflow-hidden h-2 w-full bg-n-slate-4 mt-2">
-    <div class="h-2" :class="colorClass" :style="{ width: `${percent}%` }" />
+    <div class="mt-2">
+      <div class="rounded-full overflow-hidden h-2.5 w-full bg-n-slate-4">
+        <div
+          class="h-2.5"
+          :class="colorClass"
+          :style="{ width: `${percent}%` }"
+        />
+      </div>
+    </div>
   </div>
 </template>

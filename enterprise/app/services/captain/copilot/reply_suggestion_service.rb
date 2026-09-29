@@ -23,6 +23,7 @@ class Captain::Copilot::ReplySuggestionService
   def generate_response
     conversation = accessible_conversation(account: @account, user: @user, display_id: @conversation_id)
     return persist_failure_response if conversation.blank?
+    return unless @account.copilot_responses_available?
 
     existing_response = completed_response
     return existing_response if existing_response
@@ -98,7 +99,7 @@ class Captain::Copilot::ReplySuggestionService
         reply_suggestion: true
       }.compact
     )
-    @account.increment_response_usage
+    @account.increment_response_usage(source: :copilot)
     @credit_used = true
 
     response

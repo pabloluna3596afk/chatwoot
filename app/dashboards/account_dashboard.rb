@@ -19,6 +19,7 @@ class AccountDashboard < Administrate::BaseDashboard
                                  # Add all_features last so it appears after manually_managed_features
                                  attributes[:all_features] = AccountFeaturesField
                                  attributes[:captain_models] = CaptainModelOverridesField
+                                 attributes[:plan] = Field::BelongsTo.with_options(searchable: true, searchable_field: 'name', order: 'display_order ASC')
 
                                  attributes
                                else
@@ -61,6 +62,7 @@ class AccountDashboard < Administrate::BaseDashboard
                                       attrs << :manually_managed_features if ChatwootApp.chatwoot_cloud?
                                       attrs << :all_features
                                       attrs << :captain_models
+                                      attrs << :plan
                                       attrs
                                     else
                                       []
@@ -86,6 +88,7 @@ class AccountDashboard < Administrate::BaseDashboard
                                  attrs << :manually_managed_features if ChatwootApp.chatwoot_cloud?
                                  attrs << :all_features
                                  attrs << :captain_models
+                                 attrs << :plan
                                  attrs
                                else
                                  []

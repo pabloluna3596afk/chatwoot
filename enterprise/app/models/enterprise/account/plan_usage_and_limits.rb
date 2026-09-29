@@ -1,32 +1,47 @@
 module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleLength
   CAPTAIN_RESPONSES = 'captain_responses'.freeze
   CAPTAIN_DOCUMENTS = 'captain_documents'.freeze
-  CAPTAIN_RESPONSES_USAGE = 'captain_responses_usage'.freeze
-  CAPTAIN_DOCUMENTS_USAGE = 'captain_documents_usage'.freeze
 
   def usage_limits
     {
       agents: agent_limits.to_i,
-      inboxes: get_limits(:inboxes).to_i,
+      inboxes: inbox_limits.to_i,
       captain: {
         documents: get_captain_limits(:documents),
-        responses: get_captain_limits(:responses)
+        responses: get_captain_limits(:responses),
+        storage: get_captain_limits(:storage)
       }
     }
   end
 
-  def increment_response_usage
-    return unless ChatwootApp.chatwoot_cloud?
-
-    increment_custom_attribute(CAPTAIN_RESPONSES_USAGE)
+  # Called once per Captain-generated reply (see AccountPlanUsage /
+  # Account#current_usage_period for the period/anchor mechanics). No-ops for
+  # an account with no plan — nothing to meter, usage_limits already falls
+  # back to ChatwootApp.max_limit for those.
+  def increment_response_usage(source: :customer)
+    current_usage_period&.increment_responses!(source: source)
   end
 
+  # Force-closes the open usage period and reanchors it to now. Historically
+  # only called from the Chatwoot Cloud Stripe webhook on subscription
+  # renewal; reused for that here via the same reanchor Account uses when an
+  # account's plan changes, so both paths can't collide on the same
+  # (account_id, period_start) unique index.
   def reset_response_usage
-    update_custom_attribute(CAPTAIN_RESPONSES_USAGE, 0)
+    restart_usage_period
   end
 
   def update_document_usage
-    update_custom_attribute(CAPTAIN_DOCUMENTS_USAGE, captain_documents.count)
+    return unless current_usage_period
+
+    # Update document count
+    current_usage_period.set_documents_consumed!(captain_documents.count)
+
+    # Update storage consumption (sum of all document sizes)
+    # Since we can't call a Ruby method directly in SQL, we need to calculate it differently
+    # Let's load the documents and sum their effective sizes
+    total_storage_bytes = captain_documents.reload.to_a.sum(&:effective_size_bytes)
+    current_usage_period.set_storage_consumed!(total_storage_bytes)
   end
 
   def email_transcript_enabled?
@@ -52,21 +67,30 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
 
     {
       documents: self[:limits][CAPTAIN_DOCUMENTS] || default_limits['documents'],
-      responses: self[:limits][CAPTAIN_RESPONSES] || default_limits['responses']
+      responses: self[:limits][CAPTAIN_RESPONSES] || default_limits['responses'],
+      storage: self[:limits]['captain_storage'] || default_limits['storage']
     }.with_indifferent_access
   end
 
   private
 
+  # `total_count` always reflects the LIVE plan/override configuration (an
+  # open period isn't a frozen snapshot); only closed historical periods keep
+  # their own limit_responses/limit_documents snapshot for reporting.
+  # `consumed` comes from the current usage period, not custom_attributes.
   def get_captain_limits(type)
     total_count = captain_monthly_limit[type.to_s].to_i
+    usage = current_usage_period
 
-    consumed = if type == :documents
-                 custom_attributes[CAPTAIN_DOCUMENTS_USAGE].to_i || 0
+    consumed = if usage.nil?
+                 0
+               elsif type == :documents
+                 usage.documents_consumed
+               elsif type == :storage
+                 captain_documents.reload.to_a.sum(&:effective_size_bytes)
                else
-                 custom_attributes[CAPTAIN_RESPONSES_USAGE].to_i || 0
+                 usage.responses_consumed
                end
-
     consumed = 0 if consumed.negative?
 
     {
@@ -77,6 +101,8 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
   end
 
   def plan_email_limit
+    return plan.max_emails_per_day if plan.present? && plan.max_emails_per_day.to_i.positive?
+
     base_limit = plan_base_email_limit
     return nil if base_limit.nil?
     return base_limit if free_plan?
@@ -100,66 +126,43 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
   end
 
   def default_captain_limits
-    max_limits = { documents: ChatwootApp.max_limit, responses: ChatwootApp.max_limit }.with_indifferent_access
-    zero_limits = { documents: 0, responses: 0 }.with_indifferent_access
-    plan_quota = InstallationConfig.find_by(name: 'CAPTAIN_CLOUD_PLAN_LIMITS')&.value
+    max_limits = { documents: ChatwootApp.max_limit, responses: ChatwootApp.max_limit, storage: ChatwootApp.max_limit.megabytes }.with_indifferent_access
 
-    # If there are no limits configured, we allow max usage
-    return max_limits if plan_quota.blank?
+    # No ChatHub plan assigned yet — don't block the account, fall back to max usage.
+    return max_limits if plan.blank?
 
-    # if there is plan_quota configred, but plan_name is not present, we return zero limits
-    return zero_limits if plan_name.blank?
-
-    begin
-      # Now we parse the plan_quota and return the limits for the plan name
-      # but if there's no plan_name present in the plan_quota, we return zero limits
-      plan_quota = JSON.parse(plan_quota) if plan_quota.present?
-      plan_quota[plan_name.downcase] || zero_limits
-    rescue StandardError
-      # if there's any error in parsing the plan_quota, we return max limits
-      # this is to ensure that we don't block the user from using the product
-      max_limits
-    end
+    {
+      documents: plan.max_documents,
+      responses: plan.monthly_messages,
+      storage: plan.storage_mb.megabytes
+    }.with_indifferent_access
   end
 
   def plan_name
-    custom_attributes['plan_name']
+    plan&.slug
   end
 
   def agent_limits
     subscribed_quantity = custom_attributes['subscribed_quantity']
-    subscribed_quantity || get_limits(:agents)
+    return subscribed_quantity if subscribed_quantity.present?
+
+    get_limits(:agents, plan_value: plan&.max_human_agents)
   end
 
-  def get_limits(limit_name)
-    config_name = "ACCOUNT_#{limit_name.to_s.upcase}_LIMIT"
+  def inbox_limits
+    get_limits(:inboxes, plan_value: plan&.max_inboxes)
+  end
+
+  def get_limits(limit_name, plan_value: nil)
     return self[:limits][limit_name.to_s] if self[:limits][limit_name.to_s].present?
 
+    return plan_value if plan_value.present?
+
+    config_name = "ACCOUNT_#{limit_name.to_s.upcase}_LIMIT"
     return GlobalConfig.get(config_name)[config_name] if GlobalConfig.get(config_name)[config_name].present?
 
     ChatwootApp.max_limit
   end
-
-  # Atomic jsonb_set to avoid clobbering concurrent writes to other custom_attributes keys.
-  # Goes through Account relation (rather than raw connection) so shard routing is respected.
-  # rubocop:disable Rails/SkipsModelValidations
-  def update_custom_attribute(key, value)
-    Account.where(id: id).update_all([
-                                       "custom_attributes = jsonb_set(COALESCE(custom_attributes, '{}'), ARRAY[:key], :value::jsonb)",
-                                       { key: key, value: value.to_json }
-                                     ])
-    custom_attributes[key] = value
-  end
-
-  def increment_custom_attribute(key)
-    Account.where(id: id).update_all([
-                                       "custom_attributes = jsonb_set(COALESCE(custom_attributes, '{}'), ARRAY[:key], " \
-                                       '(COALESCE((custom_attributes ->> :key)::int, 0) + 1)::text::jsonb)',
-                                       { key: key }
-                                     ])
-    custom_attributes[key] = custom_attributes[key].to_i + 1
-  end
-  # rubocop:enable Rails/SkipsModelValidations
 
   def validate_limit_keys
     errors.add(:limits, ': Invalid data') unless self[:limits].is_a? Hash
@@ -172,7 +175,8 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
         'agents' => { 'type': 'number' },
         'captain_responses' => { 'type': 'number' },
         'captain_documents' => { 'type': 'number' },
-        'emails' => { 'type': 'number' }
+        'emails' => { 'type': 'number' },
+        'captain_storage' => { 'type': 'number' }
       },
       'required' => [],
       'additionalProperties' => false

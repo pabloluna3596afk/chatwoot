@@ -17,10 +17,13 @@
 #  support_email         :string(100)
 #  created_at            :datetime         not null
 #  updated_at            :datetime         not null
+#  plan_id               :bigint
+#  plan_started_at       :datetime
 #
 # Indexes
 #
-#  index_accounts_on_status  (status)
+#  index_accounts_on_plan_id  (plan_id)
+#  index_accounts_on_status   (status)
 #
 
 class Account < ApplicationRecord
@@ -70,6 +73,8 @@ class Account < ApplicationRecord
   has_many :account_users, dependent: :destroy_async
   has_many :agent_bot_inboxes, dependent: :destroy_async
   has_many :agent_bots, dependent: :destroy_async
+  belongs_to :plan, optional: true
+  has_many :account_plan_usages, dependent: :destroy_async
   has_many :api_channels, dependent: :destroy_async, class_name: '::Channel::Api'
   has_many :articles, dependent: :destroy_async, class_name: '::Article'
   has_many :assignment_policies, dependent: :destroy_async
@@ -132,10 +137,12 @@ class Account < ApplicationRecord
   scope :with_auto_resolve, -> { where("(settings ->> 'auto_resolve_after')::int IS NOT NULL") }
 
   before_validation :validate_limit_keys
+  before_validation :assign_default_plan, on: :create
   after_create_commit :notify_creation
   after_create_commit :seed_default_task_templates
   after_create_commit :seed_default_report_panels
   after_update_commit :clear_unread_conversation_counts_cache, if: :saved_change_to_feature_conversation_unread_counts?
+  after_update_commit :restart_usage_period, if: :saved_change_to_plan_id?
   after_update :resume_delayed_automations, if: -> { saved_change_to_feature_delayed_automations? && feature_delayed_automations? }
   after_destroy :remove_account_sequences
 
@@ -184,6 +191,31 @@ class Account < ApplicationRecord
     }
   end
 
+  def copilot_responses_available?
+    captain_limit = (captain_monthly_limit[:responses] || 0) / 2
+    copilot_consumed = current_usage_period&.copilot_responses_consumed || 0
+    (captain_limit - copilot_consumed) > 0
+  end
+
+  # The account's current billing-period usage row (see AccountPlanUsage),
+  # anchored to `plan_started_at` and rolling monthly from there. Returns nil
+  # when the account has no plan (nothing to meter — usage_limits falls back
+  # to ChatwootApp.max_limit in that case).
+  #
+  # Lazily creates the row on first read of a new period. Safe under
+  # concurrent callers (e.g. two inbound messages racing on a boundary):
+  # `insert_all` + the unique index on (account_id, period_start) means only
+  # one row survives, and the loser's insert is just a no-op re-select.
+  def current_usage_period
+    window = current_period_window
+    return nil if window.nil?
+
+    now = Time.current
+    account_plan_usages.where(closed_at: nil)
+                        .where('period_start <= ? AND period_end > ?', now, now)
+                        .first || create_usage_period(window)
+  end
+
   def api_and_webhooks_enabled?
     true
   end
@@ -223,6 +255,51 @@ class Account < ApplicationRecord
   end
 
   private
+
+  def assign_default_plan
+    self.plan_id ||= Plan.active.find_by(is_default_trial: true)&.id
+    self.plan_started_at ||= Time.current if plan_id.present?
+  end
+
+  # Mid-period plan change: close the current period where it stands (no
+  # proration — there's no billing yet) and reanchor so the new plan's
+  # numbers apply from now. The next `current_usage_period` read lazily opens
+  # the fresh period against the new anchor.
+  def restart_usage_period
+    now = Time.current
+    account_plan_usages.where(closed_at: nil).where('period_start <= ?', now)
+                        .update_all(closed_at: now, period_end: now) # rubocop:disable Rails/SkipsModelValidations
+    update_column(:plan_started_at, now) # rubocop:disable Rails/SkipsModelValidations
+  end
+
+  # The [start, end) window (monthly, anchored to plan_started_at) that
+  # contains `now`. Runs a short loop only on a cache miss (new period, or an
+  # account whose usage row hasn't been touched in a while) — negligible cost
+  # since it's bounded by months-since-anchor, not by requests.
+  def current_period_window(now = Time.current)
+    return nil if plan_started_at.blank?
+
+    start = plan_started_at
+    start += 1.month while start + 1.month <= now
+    { start: start, end: start + 1.month }
+  end
+
+  def create_usage_period(window)
+    AccountPlanUsage.insert_all(
+      [{
+        account_id: id,
+        plan_id: plan_id,
+        period_start: window[:start],
+        period_end: window[:end],
+        limit_responses: plan&.monthly_messages,
+        limit_documents: plan&.max_documents,
+        created_at: Time.current,
+        updated_at: Time.current
+      }],
+      unique_by: :index_account_plan_usages_on_account_and_period_start
+    )
+    account_plan_usages.find_by(period_start: window[:start])
+  end
 
   def notify_creation
     Rails.configuration.dispatcher.dispatch(ACCOUNT_CREATED, Time.zone.now, account: self)
