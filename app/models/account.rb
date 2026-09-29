@@ -138,6 +138,7 @@ class Account < ApplicationRecord
 
   before_validation :validate_limit_keys
   before_validation :assign_default_plan, on: :create
+  before_save :enable_captain_features_for_plan, if: -> { plan_id.present? && will_save_change_to_plan_id? }
   after_create_commit :notify_creation
   after_create_commit :seed_default_task_templates
   after_create_commit :seed_default_report_panels
@@ -255,6 +256,13 @@ class Account < ApplicationRecord
   end
 
   private
+
+  # Same flags Enterprise::Account#enable_default_features turns on for
+  # self-hosted enterprise, and the ones the sidebar, billing card and Captain
+  # routes check. Removing a plan does not turn them off.
+  def enable_captain_features_for_plan
+    enable_features('captain_integration', 'captain_integration_v2')
+  end
 
   def assign_default_plan
     self.plan_id ||= Plan.active.find_by(is_default_trial: true)&.id

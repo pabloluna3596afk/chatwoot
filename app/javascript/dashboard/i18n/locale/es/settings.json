@@ -668,7 +668,7 @@
     "DESCRIPTION": "Gestiona tu suscripción aquí, mejora tu plan y consigue más para tu equipo.",
     "CURRENT_PLAN": {
       "TITLE": "Plan actual",
-      "PLAN_NOTE": "Actualmente está suscrito al plan **{plan}** con **{quantity}** licencias",
+      "PLAN_NOTE": "Actualmente estás suscrito al plan **{plan}** con **{quantity}** licencias",
       "SEAT_COUNT": "Número de asientos",
       "RENEWS_ON": "Renueva el",
       "CURRENCY": "Moneda"
@@ -685,13 +685,13 @@
     },
     "VIEW_PRICING": "Ver precios",
     "MANAGE_SUBSCRIPTION": {
-      "TITLE": "Administre su suscripción",
-      "DESCRIPTION": "Vea sus facturas anteriores, edite sus datos de facturación o cancele su suscripción.",
+      "TITLE": "Administra tu suscripción",
+      "DESCRIPTION": "Consulta tus facturas anteriores, edita tus datos de facturación o cancela tu suscripción.",
       "BUTTON_TXT": "Ir al portal de facturación"
     },
     "CAPTAIN": {
       "TITLE": "Capitán",
-      "DESCRIPTION": "Gestione el uso y los créditos para Captain AI.",
+      "DESCRIPTION": "Gestiona el uso y los créditos de Captain AI.",
       "BUTTON_TXT": "Comprar más créditos",
       "DOCUMENTS": "Documentos",
       "RESPONSES": "Respuestas",
