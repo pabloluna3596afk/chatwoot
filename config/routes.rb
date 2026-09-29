@@ -76,6 +76,7 @@ Rails.application.routes.draw do
             resources :assistants do
               member do
                 post :playground
+                delete :avatar
                 get :metrics
                 get :faq_stats
                 get :summary

@@ -1,10 +1,10 @@
 class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::BaseController
   before_action -> { check_authorization(Captain::Assistant) }
 
-  before_action :set_assistant, only: [:show, :update, :destroy, :playground, :metrics, :faq_stats, :summary, :drilldown]
+  before_action :set_assistant, only: [:show, :update, :destroy, :avatar, :playground, :metrics, :faq_stats, :summary, :drilldown]
 
   def index
-    @assistants = account_assistants.ordered
+    @assistants = account_assistants.ordered.with_attached_avatar
   end
 
   def show; end
@@ -27,6 +27,11 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
   def destroy
     @assistant.destroy
     head :no_content
+  end
+
+  def avatar
+    @assistant.avatar.purge if @assistant.avatar.attached?
+    @assistant
   end
 
   def playground
@@ -136,7 +141,7 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
       assistant_config_attributes += [:auto_resolve_after, :send_inactivity_resolution_message]
     end
 
-    permitted = params.require(:assistant).permit(:name, :description,
+    permitted = params.require(:assistant).permit(:name, :description, :avatar,
                                                   config: assistant_config_attributes)
 
     # Handle array parameters separately to allow partial updates

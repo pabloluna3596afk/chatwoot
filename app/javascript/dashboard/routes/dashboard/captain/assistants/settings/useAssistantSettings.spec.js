@@ -68,4 +68,44 @@ describe('useAssistantSettings', () => {
       'CAPTAIN.ASSISTANTS.EDIT.ERROR_MESSAGE'
     );
   });
+
+  it('uploads the avatar file for the current assistant', async () => {
+    const { uploadAvatar } = useAssistantSettings();
+    const file = new File(['x'], 'sofia.png');
+
+    await uploadAvatar({ file, url: 'blob:x' });
+
+    expect(mockStore.dispatch).toHaveBeenCalledWith(
+      'captainAssistants/updateAvatar',
+      { id: 7, file }
+    );
+    expect(useAlert).toHaveBeenCalledWith(
+      'CAPTAIN.ASSISTANTS.FORM.AVATAR.SUCCESS_UPLOAD'
+    );
+  });
+
+  it('alerts when the avatar upload fails', async () => {
+    mockStore.dispatch.mockRejectedValueOnce({});
+    const { uploadAvatar } = useAssistantSettings();
+
+    await uploadAvatar({ file: new File(['x'], 'sofia.png') });
+
+    expect(useAlert).toHaveBeenCalledWith(
+      'CAPTAIN.ASSISTANTS.FORM.AVATAR.ERROR_UPLOAD'
+    );
+  });
+
+  it('removes the avatar of the current assistant', async () => {
+    const { deleteAvatar } = useAssistantSettings();
+
+    await deleteAvatar();
+
+    expect(mockStore.dispatch).toHaveBeenCalledWith(
+      'captainAssistants/deleteAvatar',
+      7
+    );
+    expect(useAlert).toHaveBeenCalledWith(
+      'CAPTAIN.ASSISTANTS.FORM.AVATAR.SUCCESS_DELETE'
+    );
+  });
 });

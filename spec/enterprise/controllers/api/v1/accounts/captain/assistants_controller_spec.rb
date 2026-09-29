@@ -355,6 +355,72 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
     end
   end
 
+  describe 'assistant avatar' do
+    let(:assistant) { create(:captain_assistant, account: account) }
+    let(:avatar_file) { fixture_file_upload(Rails.root.join('spec/assets/avatar.png'), 'image/png') }
+
+    def attach_avatar(record)
+      record.avatar.attach(io: Rails.root.join('spec/assets/avatar.png').open, filename: 'avatar.png', content_type: 'image/png')
+    end
+
+    it 'serves the Captain logo as avatar_url while no photo is attached' do
+      get "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}",
+          headers: agent.create_new_auth_token,
+          as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(json_response[:avatar_url]).to end_with('/assets/images/dashboard/captain/logo.svg')
+    end
+
+    it 'lets an admin upload a photo through the update endpoint' do
+      patch "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}",
+            params: { assistant: { avatar: avatar_file } },
+            headers: admin.create_new_auth_token
+
+      expect(response).to have_http_status(:success)
+      expect(assistant.reload.avatar).to be_attached
+      expect(json_response[:avatar_url]).to include('avatar.png')
+    end
+
+    it 'does not let an agent upload a photo' do
+      patch "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}",
+            params: { assistant: { avatar: avatar_file } },
+            headers: agent.create_new_auth_token
+
+      expect(response).to have_http_status(:unauthorized)
+      expect(assistant.reload.avatar).not_to be_attached
+    end
+
+    context 'when deleting the photo' do
+      before { attach_avatar(assistant) }
+
+      it 'is unauthorized for an unauthenticated user' do
+        delete "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}/avatar", as: :json
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+
+      it 'is unauthorized for an agent' do
+        delete "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}/avatar",
+               headers: agent.create_new_auth_token,
+               as: :json
+
+        expect(response).to have_http_status(:unauthorized)
+        expect(assistant.reload.avatar).to be_attached
+      end
+
+      it 'purges the photo for an admin and falls back to the Captain logo' do
+        delete "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}/avatar",
+               headers: admin.create_new_auth_token,
+               as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(assistant.reload.avatar).not_to be_attached
+        expect(json_response[:avatar_url]).to end_with('/assets/images/dashboard/captain/logo.svg')
+      end
+    end
+  end
+
   describe 'DELETE /api/v1/accounts/{account.id}/captain/assistants/{id}' do
     let!(:assistant) { create(:captain_assistant, account: account) }
 

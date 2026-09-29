@@ -704,6 +704,14 @@
           "PLACEHOLDER": "Enter assistant name",
           "ERROR": "The name is required"
         },
+        "AVATAR": {
+          "LABEL": "Photo",
+          "DESCRIPTION": "Shown in the conversation list and inside conversations when this assistant is handling them.",
+          "SUCCESS_UPLOAD": "The assistant photo has been updated",
+          "ERROR_UPLOAD": "There was an error updating the photo, please try again.",
+          "SUCCESS_DELETE": "The assistant photo has been removed",
+          "ERROR_DELETE": "There was an error removing the photo, please try again."
+        },
         "DESCRIPTION": {
           "LABEL": "Description",
           "PLACEHOLDER": "Enter assistant description",
