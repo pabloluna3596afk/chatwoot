@@ -47,6 +47,7 @@ import {
   isOnMentionsView,
   isOnParticipatingView,
   isOnUnattendedView,
+  isOnCaptainView,
 } from '../store/modules/conversations/helpers/actionHelpers';
 import {
   getUserPermissions,
@@ -209,6 +210,19 @@ const inboxBot = computed(() => {
   return getInboxBotAgent(agents);
 });
 
+const isCaptainView = computed(
+  () => props.conversationType === wootConstants.CONVERSATION_TYPE.CAPTAIN
+);
+// The AI view ignores the assignee tabs and the status switcher.
+const effectiveAssigneeTab = computed(() =>
+  isCaptainView.value
+    ? wootConstants.ASSIGNEE_TYPE.ALL
+    : activeAssigneeTab.value
+);
+const effectiveStatus = computed(() =>
+  isCaptainView.value ? wootConstants.STATUS_TYPE.ALL : activeStatus.value
+);
+
 const assigneeTabItems = computed(() => {
   return filterItemsByPermission(
     ASSIGNEE_TYPE_TAB_PERMISSIONS,
@@ -230,20 +244,20 @@ const assigneeTabItems = computed(() => {
 const showAssigneeInConversationCard = computed(() => {
   return (
     hasAppliedFiltersOrActiveFolders.value ||
-    activeAssigneeTab.value === wootConstants.ASSIGNEE_TYPE.ALL
+    effectiveAssigneeTab.value === wootConstants.ASSIGNEE_TYPE.ALL
   );
 });
 
 const currentPageFilterKey = computed(() => {
   return hasAppliedFiltersOrActiveFolders.value
     ? 'appliedFilters'
-    : activeAssigneeTab.value;
+    : effectiveAssigneeTab.value;
 });
 
 const inbox = useFunctionGetter('inboxes/getInbox', activeInbox);
 const currentPage = useFunctionGetter(
   'conversationPage/getCurrentPageFilter',
-  activeAssigneeTab
+  effectiveAssigneeTab
 );
 const currentFiltersPage = useFunctionGetter(
   'conversationPage/getCurrentPageFilter',
@@ -260,6 +274,7 @@ const conversationCustomAttributes = useFunctionGetter(
 );
 
 const activeAssigneeTabCount = computed(() => {
+  if (isCaptainView.value) return conversationStats.value.aiCount || 0;
   const count = assigneeTabItems.value.find(
     item => item.key === activeAssigneeTab.value
   ).count;
@@ -289,8 +304,8 @@ const conversationListPagination = computed(() => {
 const conversationFilters = computed(() => {
   return {
     inboxId: activeInboxId.value || undefined,
-    assigneeType: activeAssigneeTab.value,
-    status: activeStatus.value,
+    assigneeType: effectiveAssigneeTab.value,
+    status: effectiveStatus.value,
     sortBy: activeSortBy.value,
     page: conversationListPagination.value,
     labels: props.label ? [props.label] : undefined,
@@ -343,6 +358,9 @@ const pageTitle = computed(() => {
   if (props.conversationType === wootConstants.CONVERSATION_TYPE.UNATTENDED) {
     return t('CHAT_LIST.UNATTENDED_HEADING');
   }
+  if (isCaptainView.value) {
+    return t('CHAT_LIST.CAPTAIN_HEADING');
+  }
   if (hasActiveFolders.value) {
     return activeFolder.value.name;
   }
@@ -382,9 +400,9 @@ const conversationList = computed(() => {
       localConversationList = filterByAssigneeTab(
         participatingChatsList.value(filters)
       );
-    } else if (activeAssigneeTab.value === 'me') {
+    } else if (effectiveAssigneeTab.value === 'me') {
       localConversationList = [...mineChatsList.value(filters)];
-    } else if (activeAssigneeTab.value === 'unassigned') {
+    } else if (effectiveAssigneeTab.value === 'unassigned') {
       localConversationList = [...unAssignedChatsList.value(filters)];
     } else {
       localConversationList = [...allChatList.value(filters)];
@@ -733,6 +751,8 @@ function redirectToConversationList() {
     conversationType = wootConstants.CONVERSATION_TYPE.PARTICIPATING;
   } else if (isOnUnattendedView({ route: { name } })) {
     conversationType = wootConstants.CONVERSATION_TYPE.UNATTENDED;
+  } else if (isOnCaptainView({ route: { name } })) {
+    conversationType = wootConstants.CONVERSATION_TYPE.CAPTAIN;
   }
   router.push(
     conversationListPageURL({
@@ -1063,6 +1083,7 @@ watch(conversationFilters, (newVal, oldVal) => {
       :has-applied-filters="hasAppliedFilters"
       :has-active-folders="hasActiveFolders"
       :active-status="activeStatus"
+      :is-captain-view="isCaptainView"
       :is-on-expanded-layout="isOnExpandedLayout"
       :conversation-stats="conversationStats"
       :is-list-loading="chatListLoading && !conversationList.length"
@@ -1097,7 +1118,7 @@ watch(conversationFilters, (newVal, oldVal) => {
     />
 
     <ChatTypeTabs
-      v-if="!hasAppliedFiltersOrActiveFolders"
+      v-if="!hasAppliedFiltersOrActiveFolders && !isCaptainView"
       :items="assigneeTabItems"
       :active-tab="activeAssigneeTab"
       is-compact

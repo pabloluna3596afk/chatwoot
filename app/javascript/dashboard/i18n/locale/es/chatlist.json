@@ -11,6 +11,7 @@
     "TAB_HEADING": "Conversaciones",
     "MENTION_HEADING": "Menciones",
     "UNATTENDED_HEADING": "Desatendido",
+    "CAPTAIN_HEADING": "Atendidas por IA",
     "SEARCH": {
       "INPUT": "Búsqueda de Personas, Chats, Respuestas Salvadas .."
     },

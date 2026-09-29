@@ -2,6 +2,7 @@ import {
   isOnMentionsView,
   isOnFoldersView,
   isOnParticipatingView,
+  isOnCaptainView,
 } from '../actionHelpers';
 
 describe('#isOnMentionsView', () => {
@@ -42,5 +43,17 @@ describe('#isOnParticipatingView', () => {
     expect(
       isOnParticipatingView({ route: { name: 'conversation_messages' } })
     ).toBe(false);
+  });
+});
+
+describe('#isOnCaptainView', () => {
+  it('returns true on the AI list and on a conversation opened from it', () => {
+    expect(isOnCaptainView({ route: { name: 'conversation_ai' } })).toBe(true);
+    expect(
+      isOnCaptainView({ route: { name: 'conversation_through_ai' } })
+    ).toBe(true);
+  });
+  it('returns false on any other route', () => {
+    expect(isOnCaptainView({ route: { name: 'home' } })).toBe(false);
   });
 });

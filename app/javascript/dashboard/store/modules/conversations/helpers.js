@@ -36,6 +36,9 @@ export const filterByLabel = (shouldFilter, labels, chatLabels) => {
 export const matchesUnassignedTab = (conversation, { inboxBotId } = {}) => {
   const { assignee } = conversation.meta || {};
 
+  // Threads the AI is still attending are not part of the human queue.
+  if (conversation.captain_state === 'ai') return false;
+
   if (inboxBotId) {
     return !assignee || isAgentBotAssigneeMeta(conversation.meta, inboxBotId);
   }
@@ -54,6 +57,15 @@ export const filterByUnattended = (
     : shouldFilter;
 };
 
+export const filterByCaptain = (
+  shouldFilter,
+  conversationType,
+  captainState
+) =>
+  conversationType === 'captain'
+    ? captainState === 'ai' && shouldFilter
+    : shouldFilter;
+
 export const applyPageFilters = (conversation, filters) => {
   const { inboxId, status, labels = [], teamId, conversationType } = filters;
   const {
@@ -63,11 +75,14 @@ export const applyPageFilters = (conversation, filters) => {
     meta = {},
     first_reply_created_at: firstReplyOn,
     waiting_since: waitingSince,
+    captain_state: captainState,
   } = conversation;
   const team = meta.team || {};
   const { id: chatTeamId } = team;
 
-  let shouldFilter = filterByStatus(chatStatus, status);
+  // The AI view lists by who is attending, whatever the status filter says.
+  let shouldFilter =
+    conversationType === 'captain' ? true : filterByStatus(chatStatus, status);
   shouldFilter = filterByInbox(shouldFilter, inboxId, chatInboxId);
   shouldFilter = filterByTeam(shouldFilter, teamId, chatTeamId);
   shouldFilter = filterByLabel(shouldFilter, labels, chatLabels);
@@ -77,6 +92,7 @@ export const applyPageFilters = (conversation, filters) => {
     firstReplyOn,
     waitingSince
   );
+  shouldFilter = filterByCaptain(shouldFilter, conversationType, captainState);
 
   return shouldFilter;
 };
