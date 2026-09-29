@@ -22,24 +22,7 @@
       "DISCONNECTED_SUCCESS_MESSAGE": "Desconectado correctamente el bot agente.",
       "ERROR_MESSAGE": "No se pudo actualizar el bot de agente, por favor inténtalo de nuevo más tarde.",
       "DISCONNECTED_ERROR_MESSAGE": "No se pudo desconectar el bot de agente, por favor inténtalo de nuevo más tarde.",
-      "SELECT_PLACEHOLDER": "Seleccionar bot",
-      "SCHEDULE": {
-        "TITLE": "¿Cuándo debería responder este bot?",
-        "MODES": {
-          "always": {
-            "LABEL": "Siempre que la bandeja esté abierta",
-            "DESCRIPTION": "El bot sigue el horario de atención de la bandeja. Comportamiento por defecto."
-          },
-          "outside_inbox_hours": {
-            "LABEL": "Fuera del horario de la bandeja",
-            "DESCRIPTION": "El bot cubre justo cuando tus agentes humanos están fuera de horario."
-          },
-          "own_hours": {
-            "LABEL": "Un horario propio",
-            "DESCRIPTION": "Define un horario semanal para este bot, independiente del de la bandeja."
-          }
-        }
-      }
+      "SELECT_PLACEHOLDER": "Seleccionar bot"
     },
     "ADD": {
       "TITLE": "Agregar Bot",
@@ -54,17 +37,8 @@
       "LOADING": "Obteniendo bots...",
       "TABLE_HEADER": {
         "DETAILS": "Detalles del Bot",
+        "URL": "URL de Webhook",
         "ACTIONS": "Acciones"
-      },
-      "SYSTEM_BOT_NOTE": "Bot integrado del sistema — no se configura desde aquí.",
-      "STATE_LEGEND_HINT": "¿Qué significan los colores en las conversaciones?",
-      "PANEL_AI_SUMMARY": {
-        "TOOLS": "{n} herramientas",
-        "INBOXES": "{n} bandejas",
-        "CONFIGURED": "Configuración completa",
-        "PENDING_SETUP": "Configuración pendiente",
-        "NOT_CONNECTED": "Sin conectar con Panel AI",
-        "LOADING": "Consultando estado…"
       }
     },
     "DELETE": {
@@ -81,27 +55,6 @@
         "ERROR_MESSAGE": "No se pudo eliminar el bot. Por favor, inténtalo de nuevo."
       }
     },
-    "INACTIVE_BADGE": "Inactivo",
-    "DEACTIVATE": {
-      "BUTTON_TEXT": "Desactivar",
-      "CONFIRM": {
-        "TITLE": "¿Desactivar este bot?",
-        "MESSAGE": "{name} no se podrá asignar a conversaciones ni bandejas nuevas. Lo que ya esté atendiendo sigue funcionando normal, y puedes reactivarlo cuando quieras.",
-        "YES": "Sí, desactivar",
-        "NO": "No, dejarlo activo"
-      },
-      "API": {
-        "SUCCESS_MESSAGE": "Bot desactivado.",
-        "ERROR_MESSAGE": "No se pudo desactivar el bot. Prueba de nuevo."
-      }
-    },
-    "ACTIVATE": {
-      "BUTTON_TEXT": "Activar",
-      "API": {
-        "SUCCESS_MESSAGE": "Bot activado.",
-        "ERROR_MESSAGE": "No se pudo activar el bot. Prueba de nuevo."
-      }
-    },
     "EDIT": {
       "BUTTON_TEXT": "Editar",
       "TITLE": "Editar bot",
@@ -115,13 +68,17 @@
       "COPY": "Copiar el código secreto al portapapeles",
       "COPY_SUCCESS": "Código secreto copiado al portapapeles",
       "TOGGLE": "Mostrar u ocultar el código secreto",
-      "CREATED_DESC": "Copia este código y guárdalo en tu propio sistema — es lo que va a usar para confirmar que los mensajes vienen de aquí. Después también lo podrás ver en la configuración del bot.",
+      "CREATED_DESC": "Use the secret below to verify webhook signatures. Please copy it now, you can also find it later in the bot settings.",
       "DONE": "Listo",
-      "HELP_DEFAULT": "Este bot usa la conexión de nuestro sistema — no hace falta que veas ni copies nada aquí. Puedes reiniciar este código cuando quieras, sin miedo: el bot sigue funcionando igual.",
-      "HELP_CUSTOM": "Tu propio sistema necesita este código para confirmar que los mensajes vienen de aquí. Cópialo y guárdalo del otro lado.",
-      "HELP_PENDING_SAVE": "Guarda los cambios para ver el código que tu sistema va a necesitar.",
       "RESET_SUCCESS": "El código secreto del webhook se regeneró correctamente",
       "RESET_ERROR": "No se pudo regenerar el código secreto del webhook. Inténtalo de nuevo"
+    },
+    "ACCESS_TOKEN": {
+      "TITLE": "Token de acceso",
+      "DESCRIPTION": "Copie el código de acceso y guardarlo seguro",
+      "COPY_SUCCESSFUL": "Código de acceso copiado en el portapapeles",
+      "RESET_SUCCESS": "Código de acceso regenerado exitosamente",
+      "RESET_ERROR": "Dirección del webhook es requerida"
     },
     "FORM": {
       "AVATAR": {
@@ -138,10 +95,8 @@
       },
       "WEBHOOK_URL": {
         "LABEL": "URL de Webhook",
-        "PLACEHOLDER": "Se está usando la de nuestro sistema",
-        "REQUIRED": "Dirección del webhook es requerida",
-        "HELP_DEFAULT": "Este bot ya funciona con la IA de nuestro sistema — no hace falta que hagas nada aquí. Si prefieres conectar tu propia IA, escribe su dirección arriba (vas a dejar de usar la nuestra).",
-        "HELP_CUSTOM": "⚠️ Vas a usar esta dirección en vez de la nuestra. Si está mal escrita o la borras sin querer, el bot deja de recibir mensajes hasta que la corrijas."
+        "PLACEHOLDER": "https://example.com/webhook",
+        "REQUIRED": "Dirección del webhook es requerida"
       },
       "ERRORS": {
         "NAME": "El nombre del bot es obligatorio",

@@ -23,17 +23,8 @@ class Api::V1::Accounts::AgentBotsController < Api::V1::Accounts::BaseController
     @agent_bot
   end
 
-  # Never a hard delete: destroying an AgentBot nulls out the sender on every
-  # message it sent and the assignee on every conversation it was handling
-  # (see the dependent: :nullify associations on AgentBot) — deactivating
-  # keeps that history intact and just stops it from taking on anything new.
   def destroy
-    @agent_bot.update!(active: false)
-    head :ok
-  end
-
-  def activate
-    @agent_bot.update!(active: true)
+    @agent_bot.destroy!
     head :ok
   end
 
@@ -44,15 +35,6 @@ class Api::V1::Accounts::AgentBotsController < Api::V1::Accounts::BaseController
 
   def reset_secret
     @agent_bot.reset_secret!
-  end
-
-  def panel_ai_summary
-    summary = PanelAi::AgentBotSummaryService.new(@agent_bot).call
-    if summary
-      render json: summary
-    else
-      render json: { available: false }, status: :ok
-    end
   end
 
   private

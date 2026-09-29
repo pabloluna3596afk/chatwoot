@@ -16,7 +16,6 @@ class Integrations::GoogleCalendar::EventService
     end
   end
   class MissingDeleteNote < StandardError; end
-  class OutsideBotSchedule < StandardError; end
   class CalendarNotEnabled < StandardError; end
   class InvalidRange < StandardError; end
   class EventLocked < StandardError
@@ -142,7 +141,6 @@ class Integrations::GoogleCalendar::EventService
       ensure_slot_available!(calendar_id, start_at, end_at)
       contact = find_contact(params[:contact_id])
       conversation = find_conversation(params[:conversation_id])
-      ensure_within_bot_schedule!(conversation, start_at)
       google_event = client.create_event(
         calendar_id: calendar_id,
         summary: params[:summary].presence || I18n.t('integration_apps.calendars.default_title'),
@@ -176,7 +174,6 @@ class Integrations::GoogleCalendar::EventService
       end
       contact = find_contact(params[:contact_id])
       conversation = find_conversation(params[:conversation_id])
-      ensure_within_bot_schedule!(conversation, start_at)
       google_event = client.update_event(
         calendar_id: calendar_id,
         event_id: event_id,
@@ -256,17 +253,6 @@ class Integrations::GoogleCalendar::EventService
 
     google_event = overlapping_google(calendar_id, start_at, end_at, except_event_id)
     raise_slot_busy_from_google(google_event) if google_event
-  end
-
-  # Only gates bot bookings (actor_user nil) — a human agent can always book
-  # manually regardless of the bot's own schedule.
-  def ensure_within_bot_schedule!(conversation, start_at)
-    return if actor_user
-    return if conversation&.inbox.blank?
-
-    agent_bot_inbox = conversation.inbox.agent_bot_inbox
-    active = agent_bot_inbox ? agent_bot_inbox.bot_active_at?(start_at) : !conversation.inbox.out_of_office?
-    raise OutsideBotSchedule unless active
   end
 
   def slot_changed?(record, start_at, end_at)
