@@ -64,14 +64,14 @@
       }
     },
     "SECRET": {
-      "LABEL": "Webhook Secret",
-      "COPY": "Copy secret to clipboard",
-      "COPY_SUCCESS": "Secret copied to clipboard",
-      "TOGGLE": "Toggle secret visibility",
+      "LABEL": "Código secreto del webhook",
+      "COPY": "Copiar el código secreto al portapapeles",
+      "COPY_SUCCESS": "Código secreto copiado al portapapeles",
+      "TOGGLE": "Mostrar u ocultar el código secreto",
       "CREATED_DESC": "Use the secret below to verify webhook signatures. Please copy it now, you can also find it later in the bot settings.",
-      "DONE": "Done",
-      "RESET_SUCCESS": "Webhook secret regenerated successfully",
-      "RESET_ERROR": "Unable to regenerate webhook secret. Please try again"
+      "DONE": "Listo",
+      "RESET_SUCCESS": "El código secreto del webhook se regeneró correctamente",
+      "RESET_ERROR": "No se pudo regenerar el código secreto del webhook. Inténtalo de nuevo"
     },
     "ACCESS_TOKEN": {
       "TITLE": "Token de acceso",

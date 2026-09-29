@@ -1,6 +1,6 @@
 {
   "LOGIN": {
-    "TITLE": "Login to InboxHub",
+    "TITLE": "Login to ChatHub",
     "EMAIL": {
       "LABEL": "Email",
       "PLACEHOLDER": "example{'@'}companyname.com",
