@@ -177,6 +177,16 @@ RSpec.describe MessageTemplates::HookExecutionService do
         expect(conversation.reload.status).to eq('open')
       end
 
+      it 'sends the handoff message in the account locale' do
+        account.update!(locale: 'es')
+
+        create(:message, conversation: conversation, message_type: :incoming, account: account)
+
+        handoff_message = conversation.messages.outgoing.find_by(content: I18n.t('conversations.captain.handoff', locale: :es))
+        expect(handoff_message).to be_present
+        expect(handoff_message.content).not_to eq(I18n.t('conversations.captain.handoff', locale: :en))
+      end
+
       it 'emits a usage limit handoff event' do
         expect(Captain::ConversationEvents).to receive(:handed_off)
           .with(conversation: conversation, assistant: assistant, source: 'usage_limit', reason_category: :usage_limit, at: kind_of(Time))
