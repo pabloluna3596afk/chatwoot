@@ -120,7 +120,9 @@
     "CARD": {
       "SHOW_LABELS": "Show labels",
       "HIDE_LABELS": "Hide labels",
-      "LABELS_COUNT": "{count} labels"
+      "LABELS_COUNT": "{count} labels",
+      "CAPTAIN_STATE_AI": "AI",
+      "CAPTAIN_STATE_ESCALATED": "Escalated"
     },
     "VOICE_CALL": {
       "INCOMING_CALL": "Incoming call",

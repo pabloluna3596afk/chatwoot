@@ -110,7 +110,9 @@
     "CARD": {
       "SHOW_LABELS": "Mostrar etiquetas",
       "HIDE_LABELS": "Ocultar etiquetas",
-      "LABELS_COUNT": "{count} etiquetas"
+      "LABELS_COUNT": "{count} etiquetas",
+      "CAPTAIN_STATE_AI": "IA",
+      "CAPTAIN_STATE_ESCALATED": "Escalada"
     },
     "VOICE_CALL": {
       "INCOMING_CALL": "Incoming call",

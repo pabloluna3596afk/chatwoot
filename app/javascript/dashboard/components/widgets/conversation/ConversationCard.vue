@@ -12,6 +12,7 @@ import SLACardLabel from './components/SLACardLabel.vue';
 import VoiceCallStatus from './VoiceCallStatus.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import PanelIaStateIndicator from './PanelIaStateIndicator.vue';
+import CaptainStateBadge from './CaptainStateBadge.vue';
 import CampaignCardBadge from 'dashboard/components-next/Conversation/ConversationCard/CampaignCardBadge.vue';
 
 const props = defineProps({
@@ -243,6 +244,9 @@ watch(
           :count="unreadCount"
           class="ltr:ml-auto rtl:mr-auto mt-1"
         />
+      </div>
+      <div v-if="chat.captain_state" class="mt-0.5 mx-2 mb-0">
+        <CaptainStateBadge :chat="chat" />
       </div>
       <div v-if="campaignMeta?.title" class="mt-0.5 mx-2 mb-0">
         <CampaignCardBadge
