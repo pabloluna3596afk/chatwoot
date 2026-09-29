@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref, toRef, watch } from 'vue';
 import { getLastMessage } from 'dashboard/helper/conversationHelper';
 import Avatar from 'next/avatar/Avatar.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
@@ -13,6 +13,7 @@ import VoiceCallStatus from './VoiceCallStatus.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import PanelIaStateIndicator from './PanelIaStateIndicator.vue';
 import CaptainStateBadge from './CaptainStateBadge.vue';
+import { useCaptainState } from 'dashboard/composables/useCaptainState';
 import CampaignCardBadge from 'dashboard/components-next/Conversation/ConversationCard/CampaignCardBadge.vue';
 
 const props = defineProps({
@@ -35,6 +36,14 @@ const emit = defineEmits([
 ]);
 
 const hovered = ref(false);
+
+const {
+  showAssistantAvatar,
+  assistant: captainAssistant,
+  ringClass: captainRingClass,
+  tooltip: captainTooltip,
+  isEscalated: isCaptainEscalated,
+} = useCaptainState(toRef(props, 'chat'));
 
 const unreadCount = computed(() => props.chat.unread_count);
 const hasUnread = computed(() => unreadCount.value > 0);
@@ -171,6 +180,29 @@ watch(
             : 'font-medium text-n-slate-12'
         "
       >
+        <span
+          v-if="showAssistantAvatar"
+          v-tooltip.top="{
+            content: captainTooltip,
+            delay: { show: 500, hide: 0 },
+          }"
+          class="inline-flex flex-shrink-0 rounded-full ring-2"
+          :class="captainRingClass"
+          data-testid="captain-assistant-avatar"
+        >
+          <Avatar
+            :name="captainAssistant.name"
+            :src="captainAssistant.thumbnail"
+            :size="16"
+            rounded-full
+            hide-offline-status
+          />
+        </span>
+        <Icon
+          v-if="showAssistantAvatar"
+          icon="i-lucide-chevron-right"
+          class="size-3 text-n-slate-10 flex-shrink-0"
+        />
         <Avatar
           v-if="showAssigneeAvatar"
           v-tooltip.top="{
@@ -245,7 +277,7 @@ watch(
           class="ltr:ml-auto rtl:mr-auto mt-1"
         />
       </div>
-      <div v-if="chat.captain_state" class="mt-0.5 mx-2 mb-0">
+      <div v-if="isCaptainEscalated" class="mt-0.5 mx-2 mb-0">
         <CaptainStateBadge :chat="chat" />
       </div>
       <div v-if="campaignMeta?.title" class="mt-0.5 mx-2 mb-0">

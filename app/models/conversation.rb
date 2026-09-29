@@ -304,6 +304,16 @@ class Conversation < ApplicationRecord
     'escalated' if captain_escalated?
   end
 
+  # Assistant shown on the card while Captain answers (nil once a person or another bot owns the conversation).
+  def captain_assistant_data
+    return unless captain_state == 'ai'
+
+    assistant = inbox.try(:captain_assistant)
+    return if assistant.blank?
+
+    { id: assistant.id, name: assistant.name, thumbnail: assistant.avatar_or_default_url }
+  end
+
   def tweet?
     inbox.inbox_type == 'Twitter' && additional_attributes['type'] == 'tweet'
   end

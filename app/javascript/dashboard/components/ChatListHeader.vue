@@ -12,6 +12,7 @@ import wootConstants from 'dashboard/constants/globals';
 import ConversationBasicFilter from './widgets/conversation/ConversationBasicFilter.vue';
 import SwitchLayout from 'dashboard/routes/dashboard/conversation/search/SwitchLayout.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import CaptainStateLegend from './widgets/conversation/CaptainStateLegend.vue';
 
 const props = defineProps({
   pageTitle: { type: String, required: true },
@@ -94,6 +95,7 @@ const toggleConversationLayout = () => {
       >
         {{ pageTitle }}
       </h1>
+      <CaptainStateLegend v-if="isCaptainView" class="mx-1" />
       <span
         v-if="
           allCount > 0 && hasAppliedFiltersOrActiveFolders && !isListLoading

@@ -14,6 +14,7 @@ class Conversations::EventDataPresenter < SimpleDelegator
       status: status,
       bot_handling: bot_handling?,
       captain_state: captain_state,
+      captain_assistant: captain_assistant_data,
       captain_handed_off_at: captain_handed_off_at&.to_i,
       custom_attributes: custom_attributes,
       snoozed_until: snoozed_until,
