@@ -57,7 +57,7 @@ class Api::V1::Accounts::Captain::DocumentsController < Api::V1::Accounts::BaseC
   private
 
   def set_documents
-    @documents = Current.account.captain_documents.with_attached_pdf_file.includes(:assistant)
+    @documents = Current.account.captain_documents.with_attached_pdf_file.includes(assistant: { avatar_attachment: :blob })
   end
 
   def filtered_documents

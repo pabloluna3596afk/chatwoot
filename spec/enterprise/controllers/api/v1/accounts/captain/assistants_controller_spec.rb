@@ -369,7 +369,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
           as: :json
 
       expect(response).to have_http_status(:success)
-      expect(json_response[:avatar_url]).to end_with('/assets/images/dashboard/captain/logo.svg')
+      expect(json_response[:avatar_url]).to end_with('/assets/images/dashboard/captain/avatar.svg')
     end
 
     it 'lets an admin upload a photo through the update endpoint' do
@@ -416,7 +416,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
 
         expect(response).to have_http_status(:success)
         expect(assistant.reload.avatar).not_to be_attached
-        expect(json_response[:avatar_url]).to end_with('/assets/images/dashboard/captain/logo.svg')
+        expect(json_response[:avatar_url]).to end_with('/assets/images/dashboard/captain/avatar.svg')
       end
     end
   end

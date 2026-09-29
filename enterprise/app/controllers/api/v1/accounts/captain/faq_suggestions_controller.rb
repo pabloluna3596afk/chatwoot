@@ -59,7 +59,7 @@ class Api::V1::Accounts::Captain::FaqSuggestionsController < Api::V1::Accounts::
   end
 
   def set_accessible_suggestions
-    @suggestions = Captain::FaqSuggestionFinder.new(Current.user, Current.account).perform.includes(:assistant).ordered
+    @suggestions = Captain::FaqSuggestionFinder.new(Current.user, Current.account).perform.includes(assistant: { avatar_attachment: :blob }).ordered
   end
 
   def set_suggestion
