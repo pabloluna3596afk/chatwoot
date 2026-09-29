@@ -29,9 +29,9 @@ module Enterprise::Conversations::PermissionFilterService
     end
   end
 
-  def filter_unassigned_and_mine
-    mine = accessible_conversations.assigned_to(user)
-    unassigned = accessible_conversations.without_human_assignee
+  def filter_participating_and_mine
+    conversations = accessible_conversations
+    participant_conversation_ids = ConversationParticipant.where(account_id: account.id, user_id: user.id).select(:conversation_id)
 
     conversations
       .where(assignee_id: user.id)
