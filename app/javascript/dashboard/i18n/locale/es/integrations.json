@@ -260,6 +260,7 @@
       "TEAM_ONLY_HINT": "Solo los calendarios que marques aquí aparecen en Calendarios y al crear citas. Los que no marques quedan privados.",
       "TEAM_SHARE_WARNING": "Los calendarios que habilites aquí los verá el equipo autorizado, no solo tú. Activa únicamente los que deban compartirse.",
       "HOURS": "Horario",
+      "DAYS": "Días",
       "SEARCH_CALENDARS": "Buscar calendarios",
       "ENABLED_COUNT": "{count} habilitados para el equipo",
       "VISIBLE_TO_TEAM": "Visible para el equipo",
@@ -817,6 +818,38 @@
             "DESC": "Captain responde solo cuando cada bandeja está cerrada."
           },
           "HINT": "Las bandejas sin horario laboral configurado están cubiertas siempre."
+        },
+        "APPOINTMENTS": {
+          "TOGGLE": "Agendar citas",
+          "TOGGLE_HELP": "Si está activado, Captain puede ofrecer horarios disponibles del calendario que elijas. Viene desactivado.",
+          "CONNECTION": "Cuenta de calendario",
+          "CONNECTION_PLACEHOLDER": "Selecciona una cuenta",
+          "CALENDAR": "Calendario",
+          "CALENDAR_PLACEHOLDER": "Selecciona un calendario",
+          "HOURS_HINT": "Horario del calendario: de {start} a {end}, {days}. Se cambia en Ajustes → Integraciones → Calendarios.",
+          "EVERY_DAY": "todos los días",
+          "DURATION": "Duración de la cita",
+          "NOTICE": "Aviso mínimo",
+          "WINDOW": "Agendar hasta",
+          "NO_NOTICE": "Sin aviso",
+          "MINUTES": "{count} min",
+          "HOURS": "{count} h",
+          "DAYS": "{count} d",
+          "REQUIRED_FIELDS": "Datos del cliente necesarios para agendar",
+          "FIELDS": {
+            "NAME": "Nombre",
+            "PHONE": "Teléfono",
+            "EMAIL": "Correo electrónico"
+          },
+          "FIELDS_HINT": "Captain solo pide los datos que falten en el contacto.",
+          "LOADING": "Cargando calendarios…",
+          "LOAD_ERROR": "No se pudieron cargar los calendarios. Inténtalo de nuevo.",
+          "NO_CALENDAR": "Esta cuenta aún no tiene un calendario conectado. Conecta un calendario de Google para que Captain pueda agendar citas.",
+          "CONNECT_CALENDAR": "Conectar un calendario",
+          "ERRORS": {
+            "CONNECTION": "Selecciona una cuenta de calendario.",
+            "CALENDAR": "Selecciona un calendario."
+          }
         }
       },
       "EDIT": {
@@ -843,6 +876,10 @@
         "SCHEDULE": {
           "TITLE": "Horario",
           "DESCRIPTION": "Elige cuándo responde Captain. Fuera de esta ventana, las conversaciones se transfieren a tu equipo."
+        },
+        "APPOINTMENTS": {
+          "TITLE": "Citas",
+          "DESCRIPTION": "Permite que este asistente ofrezca horarios libres y agende citas en un calendario."
         },
         "CONTROL_ITEMS": {
           "TITLE": "Lo interesante",
@@ -1418,6 +1455,12 @@
       "ADD_NEW": "Conectar una nueva bandeja",
       "OPTIONS": {
         "DISCONNECT": "Desconectar"
+      },
+      "APPOINTMENTS": {
+        "LABEL": "Citas en este canal",
+        "HELP": "Captain ofrece y agenda citas aquí. Desactívalo para que este canal no agende citas.",
+        "SAVED": "Se actualizó el ajuste de citas",
+        "ERROR": "No se pudo actualizar el ajuste de citas. Inténtalo de nuevo."
       },
       "DELETE": {
         "TITLE": "¿Seguro que quieres desconectar la bandeja?",

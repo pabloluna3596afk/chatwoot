@@ -3,7 +3,12 @@ class Api::V1::Accounts::Captain::InboxesController < Api::V1::Accounts::BaseCon
 
   before_action :set_assistant
   def index
-    @inboxes = @assistant.inboxes
+    @captain_inboxes = @assistant.captain_inboxes.includes(:inbox)
+  end
+
+  def update
+    @captain_inbox = @assistant.captain_inboxes.find_by!(inbox_id: permitted_params[:inbox_id])
+    @captain_inbox.update!(appointments_enabled: ActiveModel::Type::Boolean.new.cast(update_params[:appointments_enabled]))
   end
 
   def create
@@ -34,5 +39,9 @@ class Api::V1::Accounts::Captain::InboxesController < Api::V1::Accounts::BaseCon
 
   def assistant_params
     params.require(:inbox).permit(:inbox_id)
+  end
+
+  def update_params
+    params.require(:inbox).permit(:appointments_enabled)
   end
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_09_13_020000) do
+ActiveRecord::Schema[7.2].define(version: 2026_09_30_130000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -358,6 +358,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_13_020000) do
     t.integer "hour_start", default: 8, null: false
     t.integer "hour_end", default: 20, null: false
     t.jsonb "default_bot_followup_policy", default: {}, null: false
+    t.integer "working_days", default: [0, 1, 2, 3, 4, 5, 6], null: false, array: true
     t.index ["account_id"], name: "index_calendar_connection_calendars_on_account_id"
     t.index ["calendar_connection_id", "external_id"], name: "idx_cal_conn_cals_on_connection_and_external", unique: true
     t.index ["calendar_connection_id"], name: "index_calendar_connection_calendars_on_calendar_connection_id"
@@ -640,6 +641,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_13_020000) do
     t.bigint "inbox_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "appointments_enabled", default: true, null: false
     t.index ["captain_assistant_id", "inbox_id"], name: "index_captain_inboxes_on_captain_assistant_id_and_inbox_id", unique: true
     t.index ["captain_assistant_id"], name: "index_captain_inboxes_on_captain_assistant_id"
     t.index ["inbox_id"], name: "index_captain_inboxes_on_inbox_id"

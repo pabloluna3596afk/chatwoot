@@ -18,6 +18,7 @@ class Integrations::GoogleCalendar::EventService
   class MissingDeleteNote < StandardError; end
   class CalendarNotEnabled < StandardError; end
   class InvalidRange < StandardError; end
+  class OutsideHours < StandardError; end
   class EventLocked < StandardError
     attr_reader :holder_name
 
@@ -47,6 +48,23 @@ class Integrations::GoogleCalendar::EventService
     google_events.each { |event| sync_google_drift!(event, locals[event['id']]) }
     live = google_events.map { |event| serialize(event, locals[event['id']], calendar_id) }
     live + discarded_in_range(calendar_id, time_min, time_max, google_ids)
+  end
+
+  # Free slots inside the calendar's configured hours, back to back, in the account timezone.
+  # A slot is free when no kept local event and no busy Google event overlaps it (same rules
+  # ensure_slot_available! applies at booking time), and it respects the minimum notice.
+  def available_slots(calendar_id:, from:, to:, duration: 30, min_notice_minutes: 0)
+    ensure_calendar_enabled!(calendar_id)
+    zone = Time.find_zone!(account_timezone)
+    range_start = from.in_time_zone(zone)
+    range_end = to.in_time_zone(zone)
+    raise InvalidRange if range_end <= range_start || duration.to_i <= 0
+
+    earliest = [range_start, Time.current.in_time_zone(zone) + min_notice_minutes.to_i.minutes].max
+    busy = busy_intervals(calendar_id, range_start, range_end)
+    slots_in_hours(calendar_id, zone, range_start, range_end, duration.to_i.minutes)
+      .select { |slot_start, slot_end| slot_start >= earliest && !slot_busy?(busy, slot_start, slot_end) }
+      .map { |slot_start, slot_end| { start: slot_start.iso8601, end: slot_end.iso8601 } }
   end
 
   def self.conversation_payloads(conversation)
@@ -125,7 +143,9 @@ class Integrations::GoogleCalendar::EventService
     record.activities.sort_by(&:created_at).reverse.find { |item| item.action == 'deleted' }&.details&.[]('note').presence
   end
 
-  def create(params)
+  # enforce_hours: reject a slot outside the calendar's hour_start/hour_end. Off by default so
+  # agent and Panel AI bookings keep their current behavior; Captain turns it on.
+  def create(params, enforce_hours: false)
     if (existing = find_by_idempotency_key(params[:idempotency_key]))
       return self.class.payload_from_record(existing)
     end
@@ -133,6 +153,7 @@ class Integrations::GoogleCalendar::EventService
     calendar_id = params[:calendar_id]
     ensure_calendar_enabled!(calendar_id)
     start_at, end_at = parse_range(params)
+    ensure_within_hours!(calendar_id, start_at, end_at) if enforce_hours
     with_booking_lock(calendar_id) do
       if (existing = find_by_idempotency_key(params[:idempotency_key]))
         return self.class.payload_from_record(existing)
@@ -254,6 +275,55 @@ class Integrations::GoogleCalendar::EventService
 
     google_event = overlapping_google(calendar_id, start_at, end_at, except_event_id)
     raise_slot_busy_from_google(google_event) if google_event
+  end
+
+  def calendar_settings(calendar_id)
+    connection.connection_calendars.find_by!(external_id: calendar_id)
+  end
+
+  def ensure_within_hours!(calendar_id, start_at, end_at)
+    zone = Time.find_zone!(account_timezone)
+    local_start = start_at.in_time_zone(zone)
+    local_end = end_at.in_time_zone(zone)
+    calendar = calendar_settings(calendar_id)
+    same_day = local_start.to_date == local_end.to_date
+    inside = local_start.seconds_since_midnight >= calendar.hour_start * 3600 &&
+             local_end.seconds_since_midnight <= calendar.hour_end * 3600
+    raise OutsideHours unless same_day && inside && calendar.works_on?(local_start.wday)
+  end
+
+  # Every back-to-back slot of `duration` that fits in the calendar hours of each day in the range.
+  def slots_in_hours(calendar_id, zone, range_start, range_end, duration)
+    calendar = calendar_settings(calendar_id)
+    hour_start = calendar.hour_start
+    hour_end = calendar.hour_end
+    (range_start.to_date..range_end.to_date).select { |date| calendar.works_on?(date.wday) }.flat_map do |date|
+      day_start = zone.local(date.year, date.month, date.day, hour_start)
+      day_end = zone.local(date.year, date.month, date.day, hour_end)
+      seconds = duration.to_i
+      starts = (0...((day_end - day_start) / seconds).floor).map { |index| day_start + (index * seconds) }
+      starts.map { |slot_start| [slot_start, slot_start + seconds] }.select { |_, slot_end| slot_end <= range_end }
+    end
+  end
+
+  def busy_intervals(calendar_id, range_start, range_end)
+    locals = connection.calendar_events.kept
+                       .where(external_calendar_id: calendar_id)
+                       .where('start_at < ? AND end_at > ?', range_end, range_start)
+                       .to_a
+    googles = client.list_events(calendar_id: calendar_id, time_min: range_start.iso8601, time_max: range_end.iso8601)
+    { locals: locals, googles: googles }
+  end
+
+  def slot_busy?(busy, slot_start, slot_end)
+    busy[:locals].any? { |record| local_overlap?(record, slot_start, slot_end) } ||
+      busy[:googles].any? { |event| google_event_overlaps?(event, slot_start, slot_end, nil) }
+  end
+
+  def local_overlap?(record, slot_start, slot_end)
+    return false if record.start_at.blank? || record.end_at.blank?
+
+    record.start_at < slot_end && record.end_at > slot_start
   end
 
   def slot_changed?(record, start_at, end_at)

@@ -260,6 +260,7 @@
       "TEAM_ONLY_HINT": "Only calendars you enable here appear in Calendars and when creating appointments. Unchecked calendars stay private.",
       "TEAM_SHARE_WARNING": "Calendars you enable here are visible to the authorized team, not only to you. Turn on only the calendars that should be shared.",
       "HOURS": "Hours",
+      "DAYS": "Days",
       "SEARCH_CALENDARS": "Search calendars",
       "ENABLED_COUNT": "{count} enabled for the team",
       "VISIBLE_TO_TEAM": "Visible to the team",
@@ -817,6 +818,38 @@
             "DESC": "Captain responds only when each inbox is closed."
           },
           "HINT": "Inboxes without business hours configured are always covered."
+        },
+        "APPOINTMENTS": {
+          "TOGGLE": "Book appointments",
+          "TOGGLE_HELP": "When on, Captain can offer available times from the calendar you choose. It is off by default.",
+          "CONNECTION": "Calendar account",
+          "CONNECTION_PLACEHOLDER": "Select an account",
+          "CALENDAR": "Calendar",
+          "CALENDAR_PLACEHOLDER": "Select a calendar",
+          "HOURS_HINT": "Calendar hours: {start} to {end}, {days}. Change them in Settings → Integrations → Calendars.",
+          "EVERY_DAY": "every day",
+          "DURATION": "Appointment length",
+          "NOTICE": "Minimum notice",
+          "WINDOW": "Book up to",
+          "NO_NOTICE": "No notice",
+          "MINUTES": "{count} min",
+          "HOURS": "{count} h",
+          "DAYS": "{count} d",
+          "REQUIRED_FIELDS": "Customer details required to book",
+          "FIELDS": {
+            "NAME": "Name",
+            "PHONE": "Phone",
+            "EMAIL": "Email"
+          },
+          "FIELDS_HINT": "Captain only asks for the details that are missing from the contact.",
+          "LOADING": "Loading calendars…",
+          "LOAD_ERROR": "The calendars could not be loaded. Please try again.",
+          "NO_CALENDAR": "This account has no calendar connected yet. Connect a Google calendar to let Captain book appointments.",
+          "CONNECT_CALENDAR": "Connect a calendar",
+          "ERRORS": {
+            "CONNECTION": "Select a calendar account.",
+            "CALENDAR": "Select a calendar."
+          }
         }
       },
       "EDIT": {
@@ -843,6 +876,10 @@
         "SCHEDULE": {
           "TITLE": "Schedule",
           "DESCRIPTION": "Choose when Captain replies. Outside this window, conversations are handed to your team."
+        },
+        "APPOINTMENTS": {
+          "TITLE": "Appointments",
+          "DESCRIPTION": "Let this assistant offer free times and book appointments on a calendar."
         },
         "CONTROL_ITEMS": {
           "TITLE": "The Fun Stuff",
@@ -1418,6 +1455,12 @@
       "ADD_NEW": "Connect a new inbox",
       "OPTIONS": {
         "DISCONNECT": "Disconnect"
+      },
+      "APPOINTMENTS": {
+        "LABEL": "Appointments on this channel",
+        "HELP": "Captain offers and books appointments here. Turn it off to keep this channel without appointments.",
+        "SAVED": "Appointments setting updated",
+        "ERROR": "The appointments setting could not be updated. Please try again."
       },
       "DELETE": {
         "TITLE": "Are you sure to disconnect the inbox?",

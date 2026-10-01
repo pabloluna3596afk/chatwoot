@@ -23,7 +23,7 @@ import {
   connectionDisplayName,
 } from 'dashboard/helper/calendarLabels';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const route = useRoute();
 const store = useStore();
 const integration = useFunctionGetter(
@@ -80,6 +80,15 @@ const loadCalendarsFor = async connectionId => {
   }
 };
 
+const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
+// Monday first; the values are Date#wday (0 = Sunday), like the backend working_days.
+const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+// 2030-01-13 is a Sunday, so adding the weekday number lands on that weekday.
+const weekdayLabel = (day, weekday = 'short') =>
+  new Intl.DateTimeFormat(locale.value, { weekday }).format(
+    new Date(2030, 0, 13 + day)
+  );
+
 const hourOptions = Array.from({ length: 24 }, (_, hour) => ({
   value: String(hour),
   label: `${String(hour).padStart(2, '0')}:00`,
@@ -125,6 +134,7 @@ const saveCalendars = async (connectionId, { silent = false } = {}) => {
       is_enabled: item.enabled,
       hour_start: item.hour_start ?? 8,
       hour_end: item.hour_end ?? 20,
+      working_days: item.working_days ?? ALL_DAYS,
     }));
     const { data } = await CalendarAPI.updateCalendars(connectionId, calendars);
     calendarMap.value = {
@@ -205,6 +215,20 @@ const updateHours = async (connectionId, calendarId, field, value) => {
       next.hour_end = Math.min(23, next.hour_start + 1);
     }
     return next;
+  });
+  calendarMap.value = { ...calendarMap.value, [connectionId]: list };
+  await saveCalendars(connectionId, { silent: true });
+};
+
+const toggleDay = async (connectionId, calendarId, day) => {
+  const list = (calendarMap.value[connectionId] || []).map(item => {
+    if (item.id !== calendarId) return item;
+    const days = item.working_days ?? ALL_DAYS;
+    const next = days.includes(day)
+      ? days.filter(value => value !== day)
+      : [...days, day].sort((a, b) => a - b);
+    // A calendar always keeps at least one working day.
+    return next.length ? { ...item, working_days: next } : item;
   });
   calendarMap.value = { ...calendarMap.value, [connectionId]: list };
   await saveCalendars(connectionId, { silent: true });
@@ -417,6 +441,40 @@ onMounted(async () => {
                               )
                             "
                           />
+                          <div
+                            class="flex basis-full items-center gap-1 lg:basis-auto"
+                            role="group"
+                            :aria-label="
+                              $t('INTEGRATION_SETTINGS.CALENDARS.DAYS')
+                            "
+                          >
+                            <button
+                              v-for="day in DAY_ORDER"
+                              :key="day"
+                              type="button"
+                              :data-testid="`calendar-day-${day}`"
+                              :aria-pressed="
+                                (calendar.working_days ?? ALL_DAYS).includes(
+                                  day
+                                )
+                              "
+                              :title="weekdayLabel(day, 'long')"
+                              :disabled="savingCalendars[connection.id]"
+                              class="h-7 min-w-8 rounded-md px-1.5 text-xs font-medium capitalize transition-colors disabled:opacity-50"
+                              :class="
+                                (calendar.working_days ?? ALL_DAYS).includes(
+                                  day
+                                )
+                                  ? 'bg-n-brand text-white'
+                                  : 'bg-n-alpha-2 text-n-slate-11 hover:bg-n-alpha-3'
+                              "
+                              @click="
+                                toggleDay(connection.id, calendar.id, day)
+                              "
+                            >
+                              {{ weekdayLabel(day) }}
+                            </button>
+                          </div>
                         </template>
                       </div>
                     </div>

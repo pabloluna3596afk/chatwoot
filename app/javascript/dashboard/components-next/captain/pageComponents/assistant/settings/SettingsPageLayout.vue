@@ -54,6 +54,11 @@ const tabs = computed(() => {
       icon: 'i-lucide-calendar-clock',
       label: t('CAPTAIN.ASSISTANTS.SETTINGS.SCHEDULE.TITLE'),
     },
+    {
+      id: 'captain_assistants_settings_appointments_index',
+      icon: 'i-lucide-calendar-check',
+      label: t('CAPTAIN.ASSISTANTS.SETTINGS.APPOINTMENTS.TITLE'),
+    },
   ];
 
   if (isCaptainV2Enabled.value) {

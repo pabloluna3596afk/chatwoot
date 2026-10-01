@@ -7,6 +7,8 @@ import CardLayout from 'dashboard/components-next/CardLayout.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Policy from 'dashboard/components/policy.vue';
+import Switch from 'dashboard/components-next/switch/Switch.vue';
+import { usePolicy } from 'dashboard/composables/usePolicy';
 import { INBOX_TYPES, getInboxIconByType } from 'dashboard/helper/inbox';
 
 const props = defineProps({
@@ -18,9 +20,14 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  appointmentsAvailable: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(['action']);
+const emit = defineEmits(['action', 'toggleAppointments']);
+const { checkPermissions } = usePolicy();
 
 const { t } = useI18n();
 
@@ -66,6 +73,13 @@ const icon = computed(() => {
   return getInboxIconByType(type, medium, 'outline', voiceEnabled);
 });
 
+const appointmentsEnabled = computed(
+  () => props.inbox.appointments_enabled !== false
+);
+const canChangeAppointments = computed(() =>
+  checkPermissions(['administrator'])
+);
+
 const handleAction = ({ action, value }) => {
   toggleDropdown(false);
   emit('action', { action, value, id: props.id });
@@ -102,6 +116,26 @@ const handleAction = ({ action, value }) => {
           />
         </Policy>
       </div>
+    </div>
+    <div
+      v-if="appointmentsAvailable"
+      data-testid="inbox-appointments"
+      class="flex w-full items-center justify-between gap-4"
+    >
+      <div class="flex flex-col">
+        <span class="text-sm text-n-slate-12">
+          {{ t('CAPTAIN.INBOXES.APPOINTMENTS.LABEL') }}
+        </span>
+        <span class="text-xs text-n-slate-11">
+          {{ t('CAPTAIN.INBOXES.APPOINTMENTS.HELP') }}
+        </span>
+      </div>
+      <Switch
+        data-testid="inbox-appointments-switch"
+        :model-value="appointmentsEnabled"
+        :disabled="!canChangeAppointments"
+        @update:model-value="emit('toggleAppointments', { id, value: $event })"
+      />
     </div>
   </CardLayout>
 </template>

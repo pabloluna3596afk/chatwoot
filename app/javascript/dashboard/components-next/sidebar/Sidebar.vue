@@ -684,6 +684,7 @@ const menuItems = computed(() => {
             'captain_assistants_settings_system_index',
             'captain_assistants_settings_audience_index',
             'captain_assistants_settings_schedule_index',
+            'captain_assistants_settings_appointments_index',
             'captain_assistants_guidelines_index',
             'captain_assistants_guardrails_index',
           ],

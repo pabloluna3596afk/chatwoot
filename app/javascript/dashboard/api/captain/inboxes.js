@@ -17,6 +17,12 @@ class CaptainInboxes extends ApiClient {
     });
   }
 
+  updateAppointments({ assistantId, inboxId, appointmentsEnabled } = {}) {
+    return axios.patch(`${this.url}/${assistantId}/inboxes/${inboxId}`, {
+      inbox: { appointments_enabled: appointmentsEnabled },
+    });
+  }
+
   delete(params = {}) {
     const { assistantId, inboxId } = params;
     return axios.delete(`${this.url}/${assistantId}/inboxes/${inboxId}`);

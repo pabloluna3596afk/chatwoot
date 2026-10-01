@@ -1,6 +1,12 @@
 <script setup>
 import { computed, watch, ref, nextTick } from 'vue';
-import { useMapGetter, useStore } from 'dashboard/composables/store';
+import { useI18n } from 'vue-i18n';
+import { useAlert } from 'dashboard/composables';
+import {
+  useFunctionGetter,
+  useMapGetter,
+  useStore,
+} from 'dashboard/composables/store';
 import { useRoute } from 'vue-router';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
@@ -11,10 +17,15 @@ import InboxCard from 'dashboard/components-next/captain/assistant/InboxCard.vue
 import InboxPageEmptyState from 'dashboard/components-next/captain/pageComponents/emptyStates/InboxPageEmptyState.vue';
 
 const store = useStore();
+const { t } = useI18n();
 const dialogType = ref('');
 const route = useRoute();
 
 const assistantId = computed(() => route.params.assistantId);
+const assistant = useFunctionGetter('captainAssistants/getRecord', assistantId);
+const appointmentsAvailable = computed(
+  () => assistant.value?.config?.appointments?.enabled === true
+);
 const assistantUiFlags = useMapGetter('captainAssistants/getUIFlags');
 const uiFlags = useMapGetter('captainInboxes/getUIFlags');
 const isFetchingAssistant = computed(() => assistantUiFlags.value.fetchingItem);
@@ -42,6 +53,19 @@ const handleAction = ({ action, id }) => {
       handleDelete();
     }
   });
+};
+
+const handleToggleAppointments = async ({ id, value }) => {
+  try {
+    await store.dispatch('captainInboxes/setAppointments', {
+      assistantId: assistantId.value,
+      inboxId: id,
+      appointmentsEnabled: value,
+    });
+    useAlert(t('CAPTAIN.INBOXES.APPOINTMENTS.SAVED'));
+  } catch (error) {
+    useAlert(error?.message || t('CAPTAIN.INBOXES.APPOINTMENTS.ERROR'));
+  }
 };
 
 const handleCreateClose = () => {
@@ -83,7 +107,9 @@ watch(
           :id="captainInbox.id"
           :key="captainInbox.id"
           :inbox="captainInbox"
+          :appointments-available="appointmentsAvailable"
           @action="handleAction"
+          @toggle-appointments="handleToggleAppointments"
         />
       </div>
     </template>
