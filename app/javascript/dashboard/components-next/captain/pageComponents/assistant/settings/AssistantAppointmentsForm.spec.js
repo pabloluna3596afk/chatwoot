@@ -1,0 +1,199 @@
+import { flushPromises, mount } from '@vue/test-utils';
+import AssistantAppointmentsForm from './AssistantAppointmentsForm.vue';
+
+const { getConnections, getCalendars } = vi.hoisted(() => ({
+  getConnections: vi.fn(),
+  getCalendars: vi.fn(),
+}));
+
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    t: (key, params) => (params ? `${key} ${JSON.stringify(params)}` : key),
+  }),
+}));
+
+vi.mock('dashboard/composables/useAccount', () => ({
+  useAccount: () => ({ accountScopedRoute: name => ({ name }) }),
+}));
+
+vi.mock('dashboard/api/integrations/calendar', () => ({
+  default: { getConnections, getCalendars },
+}));
+
+const CONNECTIONS = [{ id: 7, email: 'agenda@example.com', name: 'Agenda' }];
+const CALENDARS = [
+  { id: 'cal-1', summary: 'Consultas', hour_start: 9, hour_end: 18 },
+  { id: 'cal-2', summary: 'Otro', hour_start: 8, hour_end: 20 },
+];
+
+const mountForm = async (
+  assistant = { config: { response_window: 'always' } }
+) => {
+  const wrapper = mount(AssistantAppointmentsForm, {
+    props: { assistant },
+    global: {
+      stubs: {
+        RouterLink: {
+          props: ['to'],
+          template: '<a data-testid="calendar-link"><slot /></a>',
+        },
+      },
+    },
+  });
+  await flushPromises();
+  return wrapper;
+};
+
+const toggle = wrapper => wrapper.get('button[role="switch"]').trigger('click');
+const select = (wrapper, testId) =>
+  wrapper.get(`[data-testid="${testId}"] select`);
+
+describe('AssistantAppointmentsForm', () => {
+  beforeEach(() => {
+    getConnections
+      .mockReset()
+      .mockResolvedValue({ data: { payload: CONNECTIONS } });
+    getCalendars
+      .mockReset()
+      .mockResolvedValue({ data: { payload: CALENDARS } });
+  });
+
+  it('points to the calendars integration when the account has no calendar connected', async () => {
+    getConnections.mockResolvedValue({ data: { payload: [] } });
+    const wrapper = await mountForm();
+
+    expect(
+      wrapper.find('[data-testid="appointments-no-calendar"]').exists()
+    ).toBe(true);
+    expect(wrapper.find('[data-testid="calendar-link"]').exists()).toBe(true);
+    expect(wrapper.find('button[role="switch"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="appointments-save"]').exists()).toBe(
+      false
+    );
+  });
+
+  it('is off by default and shows the fields only when switched on', async () => {
+    const wrapper = await mountForm();
+
+    expect(wrapper.find('[data-testid="appointments-fields"]').exists()).toBe(
+      false
+    );
+    await toggle(wrapper);
+
+    expect(wrapper.find('[data-testid="appointments-fields"]').exists()).toBe(
+      true
+    );
+  });
+
+  it('saves the disabled defaults and keeps the rest of the config', async () => {
+    const wrapper = await mountForm({
+      config: { response_window: 'always', product_name: 'Acme' },
+    });
+
+    await wrapper.get('[data-testid="appointments-save"]').trigger('click');
+
+    expect(wrapper.emitted('submit')[0][0]).toEqual({
+      config: {
+        response_window: 'always',
+        product_name: 'Acme',
+        appointments: {
+          enabled: false,
+          calendar_connection_id: null,
+          calendar_id: null,
+          slot_duration_minutes: 30,
+          required_contact_fields: ['name', 'phone', 'email'],
+          min_notice_minutes: 60,
+          booking_window_days: 14,
+        },
+      },
+    });
+  });
+
+  it('asks for an account and a calendar before saving an enabled configuration', async () => {
+    const wrapper = await mountForm();
+    await toggle(wrapper);
+
+    await wrapper.get('[data-testid="appointments-save"]').trigger('click');
+
+    expect(wrapper.emitted('submit')).toBeUndefined();
+    expect(wrapper.text()).toContain(
+      'CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.ERRORS.CONNECTION'
+    );
+    expect(wrapper.text()).toContain(
+      'CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.ERRORS.CALENDAR'
+    );
+  });
+
+  it('loads the calendars of the chosen account and shows the calendar hours', async () => {
+    const wrapper = await mountForm();
+    await toggle(wrapper);
+
+    await select(wrapper, 'appointments-connection').setValue(7);
+    await flushPromises();
+    expect(getCalendars).toHaveBeenCalledWith(7);
+
+    await select(wrapper, 'appointments-calendar').setValue('cal-1');
+
+    expect(
+      wrapper.get('[data-testid="appointments-hours-hint"]').text()
+    ).toContain('"start":"09:00","end":"18:00"');
+  });
+
+  it('saves a full enabled configuration with numeric values', async () => {
+    const wrapper = await mountForm();
+    await toggle(wrapper);
+    await select(wrapper, 'appointments-connection').setValue(7);
+    await flushPromises();
+    await select(wrapper, 'appointments-calendar').setValue('cal-2');
+    await select(wrapper, 'appointments-duration').setValue(45);
+    await select(wrapper, 'appointments-notice').setValue(120);
+    await select(wrapper, 'appointments-window').setValue(30);
+    await wrapper
+      .get('[data-testid="appointments-field-phone"] input')
+      .setValue(false);
+
+    await wrapper.get('[data-testid="appointments-save"]').trigger('click');
+
+    expect(wrapper.emitted('submit')[0][0].config.appointments).toEqual({
+      enabled: true,
+      calendar_connection_id: 7,
+      calendar_id: 'cal-2',
+      slot_duration_minutes: 45,
+      required_contact_fields: ['name', 'email'],
+      min_notice_minutes: 120,
+      booking_window_days: 30,
+    });
+  });
+
+  it('shows the saved configuration', async () => {
+    const wrapper = await mountForm({
+      config: {
+        appointments: {
+          enabled: true,
+          calendar_connection_id: 7,
+          calendar_id: 'cal-1',
+          slot_duration_minutes: 60,
+          required_contact_fields: ['phone'],
+          min_notice_minutes: 240,
+          booking_window_days: 7,
+        },
+      },
+    });
+
+    expect(getCalendars).toHaveBeenCalledWith(7);
+    expect(select(wrapper, 'appointments-calendar').element.value).toBe(
+      'cal-1'
+    );
+    expect(select(wrapper, 'appointments-duration').element.value).toBe('60');
+    expect(select(wrapper, 'appointments-notice').element.value).toBe('240');
+    expect(select(wrapper, 'appointments-window').element.value).toBe('7');
+    expect(
+      wrapper.get('[data-testid="appointments-field-phone"] input').element
+        .checked
+    ).toBe(true);
+    expect(
+      wrapper.get('[data-testid="appointments-field-name"] input').element
+        .checked
+    ).toBe(false);
+  });
+});

@@ -809,6 +809,37 @@
             "DESC": "Captain responds only when each inbox is closed."
           },
           "HINT": "Inboxes without business hours configured are always covered."
+        },
+        "APPOINTMENTS": {
+          "TOGGLE": "Book appointments",
+          "TOGGLE_HELP": "When on, Captain can offer available times from the calendar you choose. It is off by default.",
+          "CONNECTION": "Calendar account",
+          "CONNECTION_PLACEHOLDER": "Select an account",
+          "CALENDAR": "Calendar",
+          "CALENDAR_PLACEHOLDER": "Select a calendar",
+          "HOURS_HINT": "Calendar hours: {start} to {end}, every day. Change them in Settings → Integrations → Calendars.",
+          "DURATION": "Appointment length",
+          "NOTICE": "Minimum notice",
+          "WINDOW": "Book up to",
+          "NO_NOTICE": "No notice",
+          "MINUTES": "{count} min",
+          "HOURS": "{count} h",
+          "DAYS": "{count} d",
+          "REQUIRED_FIELDS": "Customer details required to book",
+          "FIELDS": {
+            "NAME": "Name",
+            "PHONE": "Phone",
+            "EMAIL": "Email"
+          },
+          "FIELDS_HINT": "Captain only asks for the details that are missing from the contact.",
+          "LOADING": "Loading calendars…",
+          "LOAD_ERROR": "The calendars could not be loaded. Please try again.",
+          "NO_CALENDAR": "This account has no calendar connected yet. Connect a Google calendar to let Captain book appointments.",
+          "CONNECT_CALENDAR": "Connect a calendar",
+          "ERRORS": {
+            "CONNECTION": "Select a calendar account.",
+            "CALENDAR": "Select a calendar."
+          }
         }
       },
       "EDIT": {
@@ -835,6 +866,10 @@
         "SCHEDULE": {
           "TITLE": "Schedule",
           "DESCRIPTION": "Choose when Captain replies. Outside this window, conversations are handed to your team."
+        },
+        "APPOINTMENTS": {
+          "TITLE": "Appointments",
+          "DESCRIPTION": "Let this assistant offer free times and book appointments on a calendar."
         },
         "CONTROL_ITEMS": {
           "TITLE": "The Fun Stuff",
@@ -1150,7 +1185,6 @@
         "SUCCESS_MESSAGE": "The document has been successfully deleted",
         "ERROR_MESSAGE": "There was an error deleting the document, please try again."
       },
-
       "OPTIONS": {
         "VIEW_DETAILS": "View details",
         "SYNC_NOW": "Refresh now",
