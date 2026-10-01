@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_09_30_140000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_01_160000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1939,51 +1939,51 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_30_140000) do
   add_foreign_key "accounts", "plans"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
-  add_foreign_key "calendar_connection_calendars", "accounts"
-  add_foreign_key "calendar_connection_calendars", "calendar_connections"
-  add_foreign_key "calendar_connections", "accounts"
+  add_foreign_key "calendar_connection_calendars", "accounts", on_delete: :cascade
+  add_foreign_key "calendar_connection_calendars", "calendar_connections", on_delete: :cascade
+  add_foreign_key "calendar_connections", "accounts", on_delete: :cascade
   add_foreign_key "calendar_connections", "users", column: "connected_by_id"
-  add_foreign_key "calendar_event_activities", "accounts"
-  add_foreign_key "calendar_event_activities", "calendar_events"
+  add_foreign_key "calendar_event_activities", "accounts", on_delete: :cascade
+  add_foreign_key "calendar_event_activities", "calendar_events", on_delete: :cascade
   add_foreign_key "calendar_event_activities", "users"
-  add_foreign_key "calendar_events", "accounts"
-  add_foreign_key "calendar_events", "calendar_connections"
-  add_foreign_key "calendar_events", "contacts"
-  add_foreign_key "calendar_events", "conversations"
+  add_foreign_key "calendar_events", "accounts", on_delete: :cascade
+  add_foreign_key "calendar_events", "calendar_connections", on_delete: :cascade
+  add_foreign_key "calendar_events", "contacts", on_delete: :nullify
+  add_foreign_key "calendar_events", "conversations", on_delete: :nullify
   add_foreign_key "calendar_events", "users", column: "created_by_id"
   add_foreign_key "calendar_events", "users", column: "deleted_by_id"
   add_foreign_key "calendar_events", "users", column: "updated_by_id"
-  add_foreign_key "campaign_recipients", "accounts"
-  add_foreign_key "campaign_recipients", "campaigns"
-  add_foreign_key "campaign_recipients", "contacts"
+  add_foreign_key "campaign_recipients", "accounts", on_delete: :cascade
+  add_foreign_key "campaign_recipients", "campaigns", on_delete: :cascade
+  add_foreign_key "campaign_recipients", "contacts", on_delete: :cascade
   add_foreign_key "campaign_recipients", "inboxes", on_delete: :cascade
   add_foreign_key "canned_responses", "users", column: "created_by_id"
   add_foreign_key "canned_responses", "users", column: "reviewed_by_id"
   add_foreign_key "contacts", "users", column: "assigned_agent_id"
-  add_foreign_key "flow_events", "flow_runs"
-  add_foreign_key "flow_runs", "accounts"
-  add_foreign_key "flow_runs", "conversations"
-  add_foreign_key "flow_runs", "flows"
-  add_foreign_key "flows", "accounts"
+  add_foreign_key "flow_events", "flow_runs", on_delete: :cascade
+  add_foreign_key "flow_runs", "accounts", on_delete: :cascade
+  add_foreign_key "flow_runs", "conversations", on_delete: :cascade
+  add_foreign_key "flow_runs", "flows", on_delete: :cascade
+  add_foreign_key "flows", "accounts", on_delete: :cascade
   add_foreign_key "inboxes", "portals"
-  add_foreign_key "internal_conversations", "accounts"
+  add_foreign_key "internal_conversations", "accounts", on_delete: :cascade
   add_foreign_key "internal_conversations", "teams"
-  add_foreign_key "internal_messages", "accounts"
-  add_foreign_key "internal_messages", "internal_conversations"
+  add_foreign_key "internal_messages", "accounts", on_delete: :cascade
+  add_foreign_key "internal_messages", "internal_conversations", on_delete: :cascade
   add_foreign_key "internal_messages", "users"
-  add_foreign_key "internal_task_events", "internal_tasks"
+  add_foreign_key "internal_task_events", "internal_tasks", on_delete: :cascade
   add_foreign_key "internal_task_events", "users"
-  add_foreign_key "internal_tasks", "accounts"
-  add_foreign_key "internal_tasks", "conversations"
-  add_foreign_key "internal_tasks", "internal_tasks", column: "depends_on_task_id"
-  add_foreign_key "internal_tasks", "messages", column: "source_message_id"
-  add_foreign_key "internal_tasks", "task_templates"
+  add_foreign_key "internal_tasks", "accounts", on_delete: :cascade
+  add_foreign_key "internal_tasks", "conversations", on_delete: :cascade
+  add_foreign_key "internal_tasks", "internal_tasks", column: "depends_on_task_id", on_delete: :nullify
+  add_foreign_key "internal_tasks", "messages", column: "source_message_id", on_delete: :nullify
+  add_foreign_key "internal_tasks", "task_templates", on_delete: :nullify
   add_foreign_key "internal_tasks", "teams"
   add_foreign_key "internal_tasks", "users", column: "assigned_to_id"
   add_foreign_key "internal_tasks", "users", column: "created_by_id"
-  add_foreign_key "saved_report_panels", "accounts"
+  add_foreign_key "saved_report_panels", "accounts", on_delete: :cascade
   add_foreign_key "saved_report_panels", "users", column: "created_by_id"
-  add_foreign_key "task_templates", "accounts"
+  add_foreign_key "task_templates", "accounts", on_delete: :cascade
   add_foreign_key "task_templates", "teams", column: "default_team_id"
   add_foreign_key "user_sessions", "users"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
