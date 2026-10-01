@@ -112,12 +112,13 @@ RSpec.describe Captain::AppointmentReminders do
     end
 
     it 'sends each due reminder once, even when it runs again' do
-      at(starts_at - 24.hours + 30.seconds) do
-        expect { described_class.new.perform }.to change(Message, :count).by(1)
-        expect { described_class.new.perform }.not_to change(Message, :count)
-      end
+      before_count = Message.count
+      at(starts_at - 24.hours + 30.seconds) { described_class.new.perform }
 
-      expect(reminder('reminder_24h')).to have_attributes(status: 'sent')
+      expect(reminder('reminder_24h')).to have_attributes(status: 'sent', skipped_reason: nil)
+      expect(Message.count).to eq(before_count + 1)
+      at(starts_at - 24.hours + 30.seconds) { described_class.new.perform }
+      expect(Message.count).to eq(before_count + 1)
       expect(reminder('reminder_2h')).to have_attributes(status: 'pending')
     end
 
@@ -152,7 +153,7 @@ RSpec.describe Captain::AppointmentReminders do
 
         message = conversation.messages.outgoing.last
         expect(message).to have_attributes(sender: assistant, private: false, content_type: 'input_select')
-        expect(message.content).to include('Asistente de Ventas', 'Ana Pérez', 'Consulta', 'mar 15/01 10:00')
+        expect(message.content).to include('Asistente de Ventas', 'Ana Pérez', 'Consulta', 'martes 15/01 10:00')
         expect(message.content_attributes['items'].pluck('title')).to eq(['Confirmo', 'Cambiar hora', 'Cancelar cita'])
       end
 
@@ -220,7 +221,7 @@ RSpec.describe Captain::AppointmentReminders do
           messages = conversation.messages.outgoing.where.not(id: conversation.messages.incoming)
           expect(messages.count).to eq(1)
           expect(messages.last).to have_attributes(private: true, sender: assistant)
-          expect(messages.last.content).to include('Asistente de Ventas', 'Recordatorio no enviado', 'plantillas de pago están desactivadas')
+          expect(messages.last.content).to include('Asistente de Ventas', 'recordatorio no enviado', 'plantillas de pago están desactivadas')
           expect(reminder('reminder_24h')).to have_attributes(status: 'skipped', skipped_reason: 'not_sent_window')
         end
       end
@@ -233,10 +234,10 @@ RSpec.describe Captain::AppointmentReminders do
 
           message = conversation.messages.outgoing.last
           expect(message.private).to be(false)
-          expect(message.content).to eq('Hola Ana Pérez, tu cita Consulta es el mar 15/01 a las 10:00.')
+          expect(message.content).to eq('Hola Ana Pérez, tu cita Consulta es el martes 15/01 a las 10:00.')
           expect(message.additional_attributes['template_params']).to include(
             'name' => 'recordatorio_cita', 'language' => 'es',
-            'processed_params' => { 'body' => { '1' => 'Ana Pérez', '2' => 'Consulta', '3' => 'mar 15/01', '4' => '10:00' } }
+            'processed_params' => { 'body' => { '1' => 'Ana Pérez', '2' => 'Consulta', '3' => 'martes 15/01', '4' => '10:00' } }
           )
           expect(reminder('reminder_24h')).to have_attributes(status: 'sent')
         end
