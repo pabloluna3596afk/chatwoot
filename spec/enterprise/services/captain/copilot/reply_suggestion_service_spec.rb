@@ -11,6 +11,8 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
   end
 
   let(:account) { create(:account) }
+
+  before { put_account_on_plan(account) }
   let(:user) { create(:user, account: account) }
   let(:assistant) { create(:captain_assistant, account: account) }
   let(:inbox) { create(:inbox, account: account) }
@@ -87,7 +89,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
 
     expect do
       expect(service.generate_response['discarded']).to be true
-    end.not_to(change { account.reload.custom_attributes['captain_responses_usage'].to_i })
+    end.not_to(change { copilot_responses_used(account) })
 
     expect(Captain::Assistant::AgentRunnerService).not_to have_received(:new)
     expect(runner).not_to have_received(:generate_response)
@@ -148,14 +150,14 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
   it 'increments response usage after persisting the suggestion' do
     expect do
       service.generate_response
-    end.to change { account.reload.custom_attributes['captain_responses_usage'].to_i }.by(1)
+    end.to change { copilot_responses_used(account) }.by(1)
   end
 
   it 'charges at most once if the same action is retried after completion' do
     expect do
       service.generate_response
       service.generate_response
-    end.to change { account.reload.custom_attributes['captain_responses_usage'].to_i }.by(1)
+    end.to change { copilot_responses_used(account) }.by(1)
 
     expect(copilot_thread.copilot_messages.assistant.count).to eq(1)
     expect(runner).to have_received(:generate_response).once
@@ -170,7 +172,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
 
     expect do
       expect(service.generate_response['discarded']).to be true
-    end.not_to(change { account.reload.custom_attributes['captain_responses_usage'].to_i })
+    end.not_to(change { copilot_responses_used(account) })
 
     message = copilot_thread.copilot_messages.last
     expect(message).to be_assistant
@@ -190,11 +192,11 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
         Captain::Copilot::ReplySuggestionService::GenerationError,
         'Temporary model failure.'
       )
-    end.not_to(change { account.reload.custom_attributes['captain_responses_usage'].to_i })
+    end.not_to(change { copilot_responses_used(account) })
 
     expect do
       service.generate_response
-    end.to change { account.reload.custom_attributes['captain_responses_usage'].to_i }.by(1)
+    end.to change { copilot_responses_used(account) }.by(1)
 
     expect(copilot_thread.copilot_messages.assistant.count).to eq(1)
   end
@@ -202,7 +204,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
   it 'persists a terminal failure response without charging' do
     expect do
       expect(service.persist_failure_response['discarded']).to be false
-    end.not_to(change { account.reload.custom_attributes['captain_responses_usage'].to_i })
+    end.not_to(change { copilot_responses_used(account) })
 
     message = copilot_thread.copilot_messages.last
     expect(message).to be_assistant
@@ -227,7 +229,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
 
     expect do
       expect(service.generate_response['discarded']).to be false
-    end.not_to(change { account.reload.custom_attributes['captain_responses_usage'].to_i })
+    end.not_to(change { copilot_responses_used(account) })
 
     expect(runner).not_to have_received(:generate_response)
     expect(copilot_thread.copilot_messages.last.message).to eq(
@@ -243,7 +245,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
 
     expect do
       expect(service.generate_response['discarded']).to be false
-    end.not_to(change { account.reload.custom_attributes['captain_responses_usage'].to_i })
+    end.not_to(change { copilot_responses_used(account) })
 
     expect(copilot_thread.copilot_messages.last.message).to eq(
       'content' => "Copilot couldn't generate a reply. Please try again."

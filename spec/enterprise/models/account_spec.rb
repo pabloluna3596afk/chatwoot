@@ -86,90 +86,60 @@ RSpec.describe Account, type: :model do
       create(:installation_config, name: 'ACCOUNT_AGENTS_LIMIT', value: 20)
     end
 
-    describe 'when captain limits are configured' do
-      before do
-        create_list(:captain_document, 3, account: account, assistant: assistant, status: :available)
-        create(:installation_config, name: 'CAPTAIN_CLOUD_PLAN_LIMITS', value: captain_limits.to_json)
-      end
-
-      ## Document
-      it 'updates document count accurately' do
-        account.update_document_usage
-        expect(account.custom_attributes['captain_documents_usage']).to eq(3)
-      end
-
-      it 'handles zero documents' do
-        account.captain_documents.destroy_all
-        account.update_document_usage
-        expect(account.custom_attributes['captain_documents_usage']).to eq(0)
-      end
-
-      it 'reflects document limits' do
-        document_limits = account.usage_limits[:captain][:documents]
-
-        expect(document_limits[:consumed]).to eq 3
-        expect(document_limits[:current_available]).to eq captain_limits[:startups][:documents] - 3
-      end
-
-      ## Responses
-      it 'incrementing responses updates usage_limits' do
+    # Captain quotas come from the plan and its usage period (AccountPlanUsage); an account with no plan is
+    # neither metered nor limited.
+    describe 'when the account has no plan' do
+      it 'is not limited and is not metered' do
         account.increment_response_usage
 
-        responses_limits = account.usage_limits[:captain][:responses]
-
-        expect(account.custom_attributes['captain_responses_usage']).to eq 1
-        expect(responses_limits[:consumed]).to eq 1
-        expect(responses_limits[:current_available]).to eq captain_limits[:startups][:responses] - 1
-      end
-
-      it 'reseting responses limits updates usage_limits' do
-        account.custom_attributes['captain_responses_usage'] = 30
-        account.save!
-
-        responses_limits = account.usage_limits[:captain][:responses]
-
-        expect(responses_limits[:consumed]).to eq 30
-        expect(responses_limits[:current_available]).to eq captain_limits[:startups][:responses] - 30
-
-        account.reset_response_usage
-        responses_limits = account.usage_limits[:captain][:responses]
-
-        expect(account.custom_attributes['captain_responses_usage']).to eq 0
-        expect(responses_limits[:consumed]).to eq 0
-        expect(responses_limits[:current_available]).to eq captain_limits[:startups][:responses]
-      end
-
-      it 'returns monthly limit accurately' do
-        %w[startups business enterprise].each do |plan|
-          account.custom_attributes = { 'plan_name': plan }
-          account.save!
-          expect(account.captain_monthly_limit).to eq captain_limits[plan]
-        end
-      end
-
-      it 'current_available is never out of bounds' do
-        account.custom_attributes['captain_responses_usage'] = 3000
-        account.save!
-
-        responses_limits = account.usage_limits[:captain][:responses]
-        expect(responses_limits[:consumed]).to eq 3000
-        expect(responses_limits[:current_available]).to eq 0
-
-        account.custom_attributes['captain_responses_usage'] = -100
-        account.save!
-
-        responses_limits = account.usage_limits[:captain][:responses]
-        expect(responses_limits[:consumed]).to eq 0
-        expect(responses_limits[:current_available]).to eq captain_limits[:startups][:responses]
+        expect(account.usage_limits[:captain][:responses]).to include(total_count: ChatwootApp.max_limit, consumed: 0)
+        expect(account.usage_limits[:captain][:documents]).to include(total_count: ChatwootApp.max_limit, consumed: 0)
       end
     end
 
-    describe 'when captain limits are not configured' do
-      it 'returns default values' do
-        account.custom_attributes = { 'plan_name': 'unknown' }
-        expect(account.captain_monthly_limit).to eq(
-          { documents: ChatwootApp.max_limit, responses: ChatwootApp.max_limit }.with_indifferent_access
-        )
+    describe 'when the account is on a plan' do
+      before { put_account_on_plan(account, monthly_messages: 100, max_documents: 50) }
+
+      it 'counts the responses of the current period against the plan' do
+        account.increment_response_usage
+
+        expect(account.usage_limits[:captain][:responses]).to include(total_count: 100, consumed: 1, current_available: 99)
+      end
+
+      it 'counts Copilot responses apart from the customer ones' do
+        account.increment_response_usage(source: :copilot)
+
+        expect(copilot_responses_used(account)).to eq(1)
+        expect(captain_responses_used(account)).to eq(0)
+      end
+
+      it 'keeps current_available inside its bounds' do
+        account.current_usage_period.update!(responses_consumed: 3000)
+
+        expect(account.usage_limits[:captain][:responses]).to include(consumed: 3000, current_available: 0)
+      end
+
+      it 'starts a fresh period when the usage is reset' do
+        account.current_usage_period.update!(responses_consumed: 30)
+        expect(account.usage_limits[:captain][:responses]).to include(consumed: 30, current_available: 70)
+
+        account.reset_response_usage
+
+        expect(account.usage_limits[:captain][:responses]).to include(consumed: 0, current_available: 100)
+      end
+
+      it 'counts the documents of the account against the plan' do
+        create_list(:captain_document, 3, account: account, assistant: assistant, status: :available)
+
+        account.update_document_usage
+
+        expect(account.usage_limits[:captain][:documents]).to include(total_count: 50, consumed: 3, current_available: 47)
+      end
+
+      it 'lets the limits of the account override the plan' do
+        account.update!(limits: { 'captain_responses' => 9999 })
+
+        expect(account.usage_limits[:captain][:responses][:total_count]).to eq(9999)
       end
     end
 
@@ -240,8 +210,7 @@ RSpec.describe Account, type: :model do
 
     context 'when plan_name is hacker' do
       it 'returns the features for the hacker plan' do
-        account.custom_attributes = { 'plan_name': 'hacker' }
-        account.save!
+        put_account_on_plan(account, slug: 'hacker')
 
         expect(account.subscribed_features).to eq(%w[feature1 feature2])
       end
@@ -249,8 +218,7 @@ RSpec.describe Account, type: :model do
 
     context 'when plan_name is startups' do
       it 'returns the features for the startups plan' do
-        account.custom_attributes = { 'plan_name': 'startups' }
-        account.save!
+        put_account_on_plan(account, slug: 'startups')
 
         expect(account.subscribed_features).to eq(%w[feature1 feature2 feature3 feature4])
       end

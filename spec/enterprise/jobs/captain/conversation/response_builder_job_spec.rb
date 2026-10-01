@@ -2,6 +2,8 @@ require 'rails_helper'
 
 RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
   let(:account) { create(:account, custom_attributes: { plan_name: 'startups' }) }
+
+  before { put_account_on_plan(account) }
   let(:inbox) { create(:inbox, account: account) }
   let(:assistant) { create(:captain_assistant, account: account) }
 

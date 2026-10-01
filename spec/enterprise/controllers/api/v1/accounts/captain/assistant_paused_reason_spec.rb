@@ -31,10 +31,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants paused_reason', type: :re
   end
 
   it 'reports exhausted responses' do
-    account.update!(
-      limits: { 'captain_responses' => 100 },
-      custom_attributes: account.custom_attributes.merge('captain_responses_usage' => 100)
-    )
+    put_account_on_plan(account, monthly_messages: 100, used: 100)
 
     get "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}", headers: admin.create_new_auth_token, as: :json
 

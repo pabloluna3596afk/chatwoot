@@ -2,6 +2,8 @@ require 'rails_helper'
 
 RSpec.describe Captain::Copilot::ChatService do
   let(:account) { create(:account, custom_attributes: { plan_name: 'startups' }) }
+
+  before { put_account_on_plan(account) }
   let(:user) { create(:user, account: account) }
   let(:inbox) { create(:inbox, account: account) }
   let(:assistant) { create(:captain_assistant, account: account) }
@@ -102,20 +104,9 @@ RSpec.describe Captain::Copilot::ChatService do
     it 'increments response usage for the account' do
       expect do
         service.generate_response('Hello')
-      end.to(change { account.reload.custom_attributes['captain_responses_usage'].to_i }.by(1))
+      end.to(change { copilot_responses_used(account) }.by(1))
     end
 
-    context 'when self-hosted' do
-      before do
-        allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(false)
-      end
-
-      it 'does not increment response usage' do
-        expect do
-          service.generate_response('Hello')
-        end.not_to(change { account.reload.custom_attributes['captain_responses_usage'].to_i })
-      end
-    end
   end
 
   describe 'user setup behavior' do

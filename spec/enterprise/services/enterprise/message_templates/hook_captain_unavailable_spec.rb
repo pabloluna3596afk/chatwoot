@@ -22,10 +22,7 @@ RSpec.describe MessageTemplates::HookExecutionService do
   end
 
   def exhaust_responses
-    account.update!(
-      limits: { 'captain_responses' => 100 },
-      custom_attributes: account.custom_attributes.merge('captain_responses_usage' => 100)
-    )
+    put_account_on_plan(account, monthly_messages: 100, used: 100)
   end
 
   before { create(:captain_inbox, captain_assistant: assistant, inbox: inbox) }
