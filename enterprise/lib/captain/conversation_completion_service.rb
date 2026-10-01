@@ -24,7 +24,7 @@ class Captain::ConversationCompletionService < Captain::BaseTaskService
       schema: RESPONSE_SCHEMA
     )
 
-    return default_incomplete_response(response[:error]) if response[:error].present?
+    return default_incomplete_response(response[:error], error: error_kind(response)) if response[:error].present?
 
     parse_response(response[:message])
   end
@@ -98,8 +98,13 @@ class Captain::ConversationCompletionService < Captain::BaseTaskService
     }
   end
 
-  def default_incomplete_response(reason)
-    { complete: false, reason: reason }
+  # 401 is the missing-key response of make_api_call; anything else is a generic failure.
+  def error_kind(response)
+    response[:error_code] == 401 ? :missing_key : :failed
+  end
+
+  def default_incomplete_response(reason, error: :failed)
+    { complete: false, reason: reason, error: error }
   end
 
   # This is an internal operational evaluation, not a customer-triggered feature,

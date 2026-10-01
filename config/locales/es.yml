@@ -308,12 +308,12 @@ es:
         error_code: 'Código de error: %{error_code}'
     activity:
       captain:
-        resolved: 'Conversation was marked resolved by %{user_name} due to inactivity'
-        resolved_with_reason: 'Conversation was marked resolved by %{user_name} (%{reason})'
-        resolved_by_tool: 'Conversation was marked resolved by %{user_name}: %{reason}'
-        open: 'Conversation was marked open by %{user_name}'
-        open_with_reason: 'Conversation was marked open by %{user_name} (%{reason})'
-        auto_opened_after_agent_reply: 'Conversation was marked open automatically after an agent reply'
+        resolved: 'La conversación fue marcada como resuelta por %{user_name} por inactividad'
+        resolved_with_reason: 'La conversación fue marcada como resuelta por %{user_name} (%{reason})'
+        resolved_by_tool: 'La conversación fue marcada como resuelta por %{user_name}: %{reason}'
+        open: 'La conversación fue marcada como abierta por %{user_name}'
+        open_with_reason: 'La conversación fue marcada como abierta por %{user_name} (%{reason})'
+        auto_opened_after_agent_reply: 'La conversación se marcó como abierta automáticamente tras la respuesta de un agente'
       agent_bot:
         error_moved_to_open: 'Conversation was marked open by system due to an error with the agent bot.'
       status:
@@ -463,6 +463,17 @@ es:
     upgrade: 'Actualiza tu plan para habilitar Captain AI'
     disabled: 'Captain AI está deshabilitado para esta cuenta.'
     api_key_missing: 'La clave API de Captain AI no está configurada.'
+    notes:
+      unavailable:
+        missing_key: '%{assistant} no pudo responder: falta configurar la llave de IA.'
+        quota_exhausted: '%{assistant} no pudo responder: se agotaron las respuestas del mes.'
+      auto_resolved: '%{assistant} cerró la conversación por inactividad.'
+      auto_resolved_with_reason: '%{assistant} cerró la conversación por inactividad (%{reason}).'
+      auto_handoff: '%{assistant} pasó la conversación al equipo (%{reason}).'
+      evaluation_failed: '%{assistant} no pudo revisar la conversación y la pasó al equipo.'
+    activity_reasons:
+      no_outstanding_questions: 'no quedan preguntas pendientes'
+      pending_clarification: 'se espera una aclaración del cliente'
     copilot:
       using_tool: 'Usando la herramienta %{function_name}'
       completed_tool_call: 'Se completó la llamada a la herramienta %{function_name}'
