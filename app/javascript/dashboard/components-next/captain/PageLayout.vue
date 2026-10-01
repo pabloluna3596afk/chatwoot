@@ -12,6 +12,7 @@ import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import Policy from 'dashboard/components/policy.vue';
 import AssistantSwitcher from 'dashboard/components-next/captain/pageComponents/switcher/AssistantSwitcher.vue';
 import CreateAssistantDialog from 'dashboard/components-next/captain/pageComponents/assistant/CreateAssistantDialog.vue';
+import CaptainPausedNotice from 'dashboard/components-next/captain/CaptainPausedNotice.vue';
 
 const props = defineProps({
   currentPage: {
@@ -212,6 +213,7 @@ const handleCreateAssistant = () => {
     </header>
     <main class="flex-1 px-6 overflow-y-auto">
       <div class="w-full h-full py-4 mx-auto" :class="containerClass">
+        <CaptainPausedNotice v-if="!showPaywall" />
         <slot v-if="!showPaywall" name="controls" />
         <div
           v-if="isFetching"

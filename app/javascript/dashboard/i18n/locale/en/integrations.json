@@ -1150,7 +1150,6 @@
         "SUCCESS_MESSAGE": "The document has been successfully deleted",
         "ERROR_MESSAGE": "There was an error deleting the document, please try again."
       },
-
       "OPTIONS": {
         "VIEW_DETAILS": "View details",
         "SYNC_NOW": "Refresh now",
@@ -1436,6 +1435,13 @@
         "TITLE": "No Connected Inboxes",
         "SUBTITLE": "Connecting an inbox allows the assistant to handle initial questions from your customers before transferring them to you."
       }
+    },
+    "PAUSED_NOTICE": {
+      "MISSING_KEY": "{name} is paused: the AI key is not configured.",
+      "QUOTA_EXHAUSTED": "{name} is paused: the monthly responses have run out.",
+      "CONFIGURE_KEY": "Configure the key",
+      "ASK_INSTALLATION_ADMIN": "Ask the installation administrator to set it up.",
+      "VIEW_BILLING": "View billing"
     }
   }
 }
