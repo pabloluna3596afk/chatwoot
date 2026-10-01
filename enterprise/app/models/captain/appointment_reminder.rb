@@ -42,6 +42,10 @@ class Captain::AppointmentReminder < ApplicationRecord
   scope :pending, -> { where(status: 'pending') }
   scope :due, ->(now = Time.current) { pending.where(scheduled_at: ..now) }
 
+  def pending?
+    status == 'pending'
+  end
+
   def lead_time
     LEAD_TIMES.fetch(kind)
   end
