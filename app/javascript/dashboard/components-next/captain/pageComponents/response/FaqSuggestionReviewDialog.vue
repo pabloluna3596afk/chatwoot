@@ -11,6 +11,7 @@ import CaptainFaqSuggestionsAPI from 'dashboard/api/captain/faqSuggestions';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 
@@ -181,7 +182,12 @@ defineExpose({ dialogRef });
           <span
             class="inline-flex items-center gap-1.5 rounded-full bg-n-alpha-2 px-2.5 py-1"
           >
-            <Icon icon="i-woot-captain" class="size-3.5" />
+            <Avatar
+              :name="suggestion.assistant?.name || ''"
+              :src="suggestion.assistant?.avatar_url"
+              :size="16"
+              rounded-full
+            />
             {{ suggestion.assistant?.name }}
           </span>
         </div>

@@ -11,6 +11,7 @@
     "TAB_HEADING": "Conversations",
     "MENTION_HEADING": "Mentions",
     "UNATTENDED_HEADING": "Unattended",
+    "CAPTAIN_HEADING": "Handled by Captain",
     "SEARCH": {
       "INPUT": "Search for People, Chats, Saved Replies .."
     },
@@ -204,6 +205,13 @@
       "FORMAT_CSV": "CSV (.csv)",
       "SUCCESS_MESSAGE": "Export is preparing. The download will start automatically when ready. You will also receive an email with the file link.",
       "ERROR_MESSAGE": "There was an error exporting conversations. Please try again."
+    },
+    "CAPTAIN_LEGEND": {
+      "TITLE": "Captain conversation status",
+      "ANSWERING": "Captain is answering",
+      "WAITING": "Waiting for the customer",
+      "ESCALATED": "Escalated: needs a person",
+      "TAKEN": "If a person takes it, the color disappears."
     }
   }
 }

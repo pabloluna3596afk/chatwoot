@@ -13,6 +13,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  assistant: {
+    type: Object,
+    default: null,
+  },
 });
 
 const messageContainer = ref(null);
@@ -31,7 +35,10 @@ const getMessageDirection = sender =>
 const getAvatarName = sender =>
   isUserMessage(sender)
     ? t('CAPTAIN.PLAYGROUND.USER')
-    : t('CAPTAIN.PLAYGROUND.ASSISTANT');
+    : props.assistant?.name || t('CAPTAIN.PLAYGROUND.ASSISTANT');
+
+const getAvatarSrc = sender =>
+  isUserMessage(sender) ? '' : props.assistant?.avatar_url || '';
 
 const getMessageStyle = sender =>
   isUserMessage(sender)
@@ -65,6 +72,7 @@ watch(() => props.messages.length, scrollToBottom);
       >
         <Avatar
           :name="getAvatarName(message.sender)"
+          :src="getAvatarSrc(message.sender)"
           rounded-full
           :size="24"
           class="shrink-0"
@@ -79,7 +87,12 @@ watch(() => props.messages.length, scrollToBottom);
     </div>
     <div v-if="isLoading" class="flex justify-start">
       <div class="flex items-start gap-1.5">
-        <Avatar :name="getAvatarName('assistant')" rounded-full :size="24" />
+        <Avatar
+          :name="getAvatarName('assistant')"
+          :src="getAvatarSrc('assistant')"
+          rounded-full
+          :size="24"
+        />
         <div
           class="max-w-sm rounded-lg p-3 text-sm bg-n-solid-iris text-n-slate-12"
         >

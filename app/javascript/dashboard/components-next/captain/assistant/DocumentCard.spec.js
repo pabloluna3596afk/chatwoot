@@ -90,4 +90,18 @@ describe('DocumentCard', () => {
       [{ action: 'viewDetails', id: 42 }],
     ]);
   });
+
+  it("shows the assistant's avatar next to its name", () => {
+    const wrapper = mountCard({
+      assistant: {
+        name: 'Acme assistant',
+        avatar_url: 'https://example.com/acme.png',
+      },
+    });
+    const avatar = wrapper.findComponent({ name: 'Avatar' });
+
+    expect(avatar.exists()).toBe(true);
+    expect(avatar.props('src')).toBe('https://example.com/acme.png');
+    expect(avatar.props('name')).toBe('Acme assistant');
+  });
 });

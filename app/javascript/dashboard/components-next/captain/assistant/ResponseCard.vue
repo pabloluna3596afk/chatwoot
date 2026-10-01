@@ -11,6 +11,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import Policy from 'dashboard/components/policy.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 
 const props = defineProps({
   id: {
@@ -249,7 +250,12 @@ const handleViewConversations = () => {
             v-if="status === 'approved'"
             class="text-sm shrink-0 truncate text-n-slate-11 inline-flex items-center gap-1"
           >
-            <Icon icon="i-woot-captain" class="size-3.5" />
+            <Avatar
+              :name="assistant?.name || ''"
+              :src="assistant?.avatar_url"
+              :size="16"
+              rounded-full
+            />
             {{ assistant?.name || '' }}
           </span>
           <div

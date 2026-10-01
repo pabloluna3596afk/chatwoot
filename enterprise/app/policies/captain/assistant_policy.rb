@@ -47,6 +47,10 @@ class Captain::AssistantPolicy < ApplicationPolicy
     @account_user.administrator?
   end
 
+  def avatar?
+    update?
+  end
+
   def sync?
     @account_user.administrator?
   end

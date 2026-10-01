@@ -856,6 +856,17 @@ describe Conversations::FilterService do
       )
     end
 
+    it 'leaves conversations Captain is attending out of the unassigned count' do
+      create(:captain_inbox, inbox: inbox, captain_assistant: create(:captain_assistant, account: account))
+      create(:conversation, account: account, inbox: inbox, status: :pending)
+      params[:payload] = payload
+
+      result = filter_service.new(params, user_1, account).perform
+
+      expect(result[:count]).to include(unassigned_count: 1, all_count: 6)
+      expect(result[:conversations].size).to eq(6)
+    end
+
     it 'returns zero counts when the permission scope resolves to no conversations' do
       params[:payload] = payload
       permission_filter = instance_double(Conversations::PermissionFilterService, perform: Conversation.none)

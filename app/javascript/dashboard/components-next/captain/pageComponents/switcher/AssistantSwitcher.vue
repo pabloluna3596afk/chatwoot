@@ -126,8 +126,8 @@ const openCreateAssistantDialog = () => {
         <Avatar
           v-if="assistant"
           :name="assistant.name"
+          :src="assistant.avatar_url"
           :size="20"
-          icon-name="i-lucide-bot"
           rounded-full
         />
       </Button>

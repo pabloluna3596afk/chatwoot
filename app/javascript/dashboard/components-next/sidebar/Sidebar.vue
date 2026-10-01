@@ -6,6 +6,7 @@ import { useConfig } from 'dashboard/composables/useConfig';
 import { useKbd } from 'dashboard/composables/utils/useKbd';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useStore } from 'vuex';
+import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useSidebarKeyboardShortcuts } from './useSidebarKeyboardShortcuts';
 import { vOnClickOutside } from '@vueuse/components';
@@ -90,6 +91,22 @@ const hasFilteredUnreadCounts = computed(() => {
     )
   );
 });
+
+const hasCaptain = computed(() => {
+  return isFeatureEnabledonAccount.value(
+    accountId.value,
+    FEATURE_FLAGS.CAPTAIN
+  );
+});
+
+const route = useRoute();
+const conversationStats = useMapGetter('conversationStats/getStats');
+// The stats only describe the list being shown, so the badge is only right on it.
+const aiConversationsCount = computed(() =>
+  ['conversation_ai', 'conversation_through_ai'].includes(route.name)
+    ? conversationStats.value.aiCount || 0
+    : 0
+);
 
 const hasDataImport = computed(() => {
   return isFeatureEnabledonAccount.value(
@@ -501,6 +518,18 @@ const menuItems = computed(() => {
           badgeTone: 'urgent',
           to: accountScopedRoute('conversation_unattended'),
         },
+        ...(hasCaptain.value
+          ? [
+              {
+                name: 'AiConversations',
+                label: t('SIDEBAR.AI_CONVERSATIONS'),
+                icon: 'i-woot-captain',
+                badgeCount: aiConversationsCount.value,
+                activeOn: ['conversation_through_ai'],
+                to: accountScopedRoute('conversation_ai'),
+              },
+            ]
+          : []),
         {
           name: 'Folders',
           label: t('SIDEBAR.CUSTOM_VIEWS_FOLDER'),

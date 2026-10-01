@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Button from 'dashboard/components-next/button/Button.vue';
+import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import DropdownContainer from 'next/dropdown-menu/base/DropdownContainer.vue';
 import DropdownSection from 'next/dropdown-menu/base/DropdownSection.vue';
 import DropdownBody from 'next/dropdown-menu/base/DropdownBody.vue';
@@ -35,14 +36,20 @@ const activeAssistantLabel = computed(() => {
     <DropdownContainer>
       <template #trigger="{ toggle, isOpen }">
         <Button
-          :label="activeAssistantLabel"
-          icon="i-woot-captain"
           ghost
           slate
           xs
           :class="{ 'bg-n-alpha-2': isOpen }"
           @click="toggle"
-        />
+        >
+          <Avatar
+            :name="activeAssistant?.name || activeAssistantLabel"
+            :src="activeAssistant?.avatar_url"
+            :size="16"
+            rounded-full
+          />
+          <span class="truncate">{{ activeAssistantLabel }}</span>
+        </Button>
       </template>
       <DropdownBody class="bottom-9 min-w-64 z-50" strong>
         <DropdownSection class="[&>ul]:max-h-80">
@@ -53,8 +60,15 @@ const activeAssistantLabel = computed(() => {
             @click="() => emit('setAssistant', assistant)"
           >
             <template #label>
-              <div class="flex gap-1 justify-between w-full">
-                <div class="items-start flex gap-1 flex-col">
+              <div class="flex gap-2 justify-between w-full">
+                <Avatar
+                  :name="assistant.name"
+                  :src="assistant.avatar_url"
+                  :size="24"
+                  rounded-full
+                  class="shrink-0"
+                />
+                <div class="items-start flex gap-1 flex-col flex-1 min-w-0">
                   <span class="text-n-slate-12 text-sm">
                     {{ assistant.name }}
                   </span>

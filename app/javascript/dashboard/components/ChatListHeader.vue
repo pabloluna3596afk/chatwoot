@@ -12,6 +12,7 @@ import wootConstants from 'dashboard/constants/globals';
 import ConversationBasicFilter from './widgets/conversation/ConversationBasicFilter.vue';
 import SwitchLayout from 'dashboard/routes/dashboard/conversation/search/SwitchLayout.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import CaptainStateLegend from './widgets/conversation/CaptainStateLegend.vue';
 
 const props = defineProps({
   pageTitle: { type: String, required: true },
@@ -22,6 +23,7 @@ const props = defineProps({
   conversationStats: { type: Object, required: true },
   isListLoading: { type: Boolean, required: true },
   isExporting: { type: Boolean, default: false },
+  isCaptainView: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -93,6 +95,7 @@ const toggleConversationLayout = () => {
       >
         {{ pageTitle }}
       </h1>
+      <CaptainStateLegend v-if="isCaptainView" class="mx-1" />
       <span
         v-if="
           allCount > 0 && hasAppliedFiltersOrActiveFolders && !isListLoading
@@ -103,7 +106,7 @@ const toggleConversationLayout = () => {
         {{ formattedAllCount }}
       </span>
       <span
-        v-if="!hasAppliedFiltersOrActiveFolders"
+        v-if="!hasAppliedFiltersOrActiveFolders && !isCaptainView"
         class="px-2 py-1 my-0.5 mx-1 rounded-md capitalize bg-n-slate-3 text-xxs text-n-slate-12 shrink-0"
       >
         {{ activeStatusLabel }}
@@ -192,6 +195,7 @@ const toggleConversationLayout = () => {
       <ConversationBasicFilter
         v-if="!hasAppliedFiltersOrActiveFolders"
         :is-on-expanded-layout="isOnExpandedLayout"
+        :hide-status="isCaptainView"
         @change-filter="onBasicFilterChange"
       />
       <SwitchLayout

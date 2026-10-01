@@ -5,6 +5,8 @@ import {
   filterByTeam,
   filterByLabel,
   filterByUnattended,
+  filterByCaptain,
+  matchesUnassignedTab,
 } from '../../conversations/helpers';
 
 const conversationList = [
@@ -170,5 +172,71 @@ describe('#filterByUnattended', () => {
   });
   it('returns true if conversation type is unattended and has first reply', () => {
     expect(filterByUnattended(true, 'mentions', 123)).toEqual(true);
+  });
+});
+
+describe('#filterByCaptain', () => {
+  it('keeps only conversations the AI is attending in the AI view', () => {
+    expect(filterByCaptain(true, 'captain', 'ai')).toEqual(true);
+    expect(filterByCaptain(true, 'captain', 'escalated')).toEqual(false);
+    expect(filterByCaptain(true, 'captain', null)).toEqual(false);
+  });
+  it('does not filter outside the AI view', () => {
+    expect(filterByCaptain(true, 'mention', null)).toEqual(true);
+    expect(filterByCaptain(true, undefined, 'ai')).toEqual(true);
+  });
+  it('never turns a rejected conversation into an accepted one', () => {
+    expect(filterByCaptain(false, 'captain', 'ai')).toEqual(false);
+  });
+});
+
+describe('#applyPageFilters in the AI view', () => {
+  const aiChat = { id: 1, inbox_id: 1, status: 'pending', captain_state: 'ai' };
+  const escalatedChat = {
+    id: 2,
+    inbox_id: 1,
+    status: 'open',
+    captain_state: 'escalated',
+  };
+
+  it('ignores the status filter', () => {
+    const filters = { status: 'open', conversationType: 'captain' };
+    expect(applyPageFilters(aiChat, filters)).toEqual(true);
+  });
+  it('drops escalated conversations', () => {
+    const filters = { status: 'all', conversationType: 'captain' };
+    expect(applyPageFilters(escalatedChat, filters)).toEqual(false);
+  });
+  it('still respects the inbox filter', () => {
+    const filters = {
+      status: 'all',
+      inboxId: 2,
+      conversationType: 'captain',
+    };
+    expect(applyPageFilters(aiChat, filters)).toEqual(false);
+  });
+  it('keeps applying the status filter in the other views', () => {
+    const filters = { status: 'open', conversationType: 'unattended' };
+    expect(applyPageFilters(aiChat, filters)).toEqual(false);
+  });
+});
+
+describe('#matchesUnassignedTab', () => {
+  it('leaves out conversations the AI is attending', () => {
+    const chat = { meta: {}, captain_state: 'ai' };
+    expect(matchesUnassignedTab(chat)).toEqual(false);
+  });
+  it('includes escalated conversations without a human assignee', () => {
+    const chat = { meta: {}, captain_state: 'escalated' };
+    expect(matchesUnassignedTab(chat)).toEqual(true);
+  });
+  it('includes plain unassigned conversations', () => {
+    expect(matchesUnassignedTab({ meta: {}, captain_state: null })).toEqual(
+      true
+    );
+  });
+  it('leaves out conversations with a human assignee', () => {
+    const chat = { meta: { assignee: { id: 1 } }, captain_state: null };
+    expect(matchesUnassignedTab(chat)).toEqual(false);
   });
 });

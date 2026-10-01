@@ -51,6 +51,7 @@ const backButtonUrl = computed(() => {
     conversation_through_mentions: 'mention',
     conversation_through_participating: 'participating',
     conversation_through_unattended: 'unattended',
+    conversation_through_ai: 'captain',
   };
   return conversationListPageURL({
     accountId: accountId.value,

@@ -705,6 +705,14 @@
           "PLACEHOLDER": "Escribe el nombre del asistente",
           "ERROR": "El nombre es obligatorio"
         },
+        "AVATAR": {
+          "LABEL": "Foto",
+          "DESCRIPTION": "Se muestra en la lista de conversaciones y dentro de ellas cuando este asistente las atiende.",
+          "SUCCESS_UPLOAD": "La foto del asistente se actualizó",
+          "ERROR_UPLOAD": "No se pudo actualizar la foto, inténtalo de nuevo.",
+          "SUCCESS_DELETE": "La foto del asistente se quitó",
+          "ERROR_DELETE": "No se pudo quitar la foto, inténtalo de nuevo."
+        },
         "DESCRIPTION": {
           "LABEL": "Descripción",
           "PLACEHOLDER": "Escribe la descripción del asistente",

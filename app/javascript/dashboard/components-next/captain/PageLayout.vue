@@ -10,6 +10,7 @@ import BackButton from 'dashboard/components/widgets/BackButton.vue';
 import PaginationFooter from 'dashboard/components-next/pagination/PaginationFooter.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import Policy from 'dashboard/components/policy.vue';
+import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import AssistantSwitcher from 'dashboard/components-next/captain/pageComponents/switcher/AssistantSwitcher.vue';
 import CreateAssistantDialog from 'dashboard/components-next/captain/pageComponents/assistant/CreateAssistantDialog.vue';
 
@@ -88,13 +89,16 @@ const uiFlags = useMapGetter('captainAssistants/getUIFlags');
 const currentAssistantId = computed(() => route.params.assistantId);
 const isFetchingAssistants = computed(() => uiFlags.value?.fetchingList);
 
-const activeAssistantName = computed(() => {
-  return (
-    assistants.value?.find(
-      assistant => assistant.id === Number(currentAssistantId.value)
-    )?.name || t('CAPTAIN.ASSISTANT_SWITCHER.NEW_ASSISTANT')
-  );
-});
+const activeAssistant = computed(() =>
+  assistants.value?.find(
+    assistant => assistant.id === Number(currentAssistantId.value)
+  )
+);
+
+const activeAssistantName = computed(
+  () =>
+    activeAssistant.value?.name || t('CAPTAIN.ASSISTANT_SWITCHER.NEW_ASSISTANT')
+);
 
 const showPaywall = computed(() => {
   return shouldShowPaywall(props.featureFlag);
@@ -132,6 +136,14 @@ const handleCreateAssistant = () => {
               class="flex items-center gap-2"
             >
               <div class="flex items-center gap-2">
+                <Avatar
+                  v-if="!isFetchingAssistants && activeAssistant"
+                  :name="activeAssistant.name"
+                  :src="activeAssistant.avatar_url"
+                  :size="32"
+                  rounded-full
+                  class="shrink-0"
+                />
                 <span
                   v-if="!isFetchingAssistants"
                   class="text-xl font-medium truncate text-n-slate-12"

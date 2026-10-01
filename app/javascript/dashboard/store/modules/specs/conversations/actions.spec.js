@@ -201,6 +201,32 @@ describe('#actions', () => {
       expect(dispatch.mock.calls).toEqual([]);
     });
 
+    it('adds only AI-attended conversations while on the AI view', () => {
+      const conversation = {
+        id: 1,
+        messages: [],
+        meta: { sender: { id: 1, name: 'john-doe' } },
+        inbox_id: 1,
+        captain_state: 'ai',
+      };
+      const state = { currentInbox: 1, appliedFilters: [] };
+      const rootState = { route: { name: 'conversation_ai' } };
+
+      actions.addConversation(
+        { commit, rootState, dispatch, state },
+        { ...conversation, captain_state: 'escalated' }
+      );
+      expect(commit.mock.calls).toEqual([]);
+
+      actions.addConversation(
+        { commit, rootState, dispatch, state },
+        conversation
+      );
+      expect(commit.mock.calls).toEqual([
+        [types.ADD_CONVERSATION, conversation],
+      ]);
+    });
+
     it('sends correct mutations', () => {
       const conversation = {
         id: 1,

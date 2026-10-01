@@ -151,11 +151,15 @@ class Captain::Assistant < ApplicationRecord
     available_agent_tools.pluck(:id)
   end
 
+  def avatar_or_default_url
+    avatar_url.presence || default_avatar_url
+  end
+
   def push_event_data
     {
       id: id,
       name: name,
-      avatar_url: avatar_url.presence || default_avatar_url,
+      avatar_url: avatar_or_default_url,
       description: description,
       created_at: created_at,
       type: 'captain_assistant'
@@ -166,7 +170,7 @@ class Captain::Assistant < ApplicationRecord
     {
       id: id,
       name: name,
-      avatar_url: avatar_url.presence || default_avatar_url,
+      avatar_url: avatar_or_default_url,
       description: description,
       created_at: created_at,
       type: 'captain_assistant'
@@ -263,6 +267,6 @@ class Captain::Assistant < ApplicationRecord
   end
 
   def default_avatar_url
-    "#{ENV.fetch('FRONTEND_URL', nil)}/assets/images/dashboard/captain/logo.svg"
+    "#{ENV.fetch('FRONTEND_URL', nil)}/assets/images/dashboard/captain/avatar-light.svg"
   end
 end

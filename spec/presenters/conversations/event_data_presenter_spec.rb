@@ -45,6 +45,20 @@ RSpec.describe Conversations::EventDataPresenter do
       expect(presenter.push_data.except(:applied_sla, :sla_events)).to include(expected_data)
     end
 
+    it 'exposes the Captain state so the dashboard can label the conversation in realtime' do
+      create(:captain_inbox, inbox: conversation.inbox, captain_assistant: create(:captain_assistant, account: conversation.account))
+      conversation.update!(status: :pending)
+
+      assistant = conversation.inbox.captain_assistant
+      expect(presenter.push_data).to include(captain_state: 'ai', captain_handed_off_at: nil)
+      expect(presenter.push_data[:captain_assistant]).to eq(id: assistant.id, name: assistant.name, thumbnail: assistant.avatar_or_default_url)
+
+      conversation.bot_handoff!
+
+      expect(presenter.push_data).to include(captain_state: 'escalated', captain_handed_off_at: conversation.captain_handed_off_at.to_i,
+                                             captain_assistant: nil)
+    end
+
     it 'includes campaign metadata when the conversation belongs to a campaign' do
       campaign = create(:campaign, account: conversation.account, inbox: conversation.inbox)
       conversation.update!(campaign_id: campaign.id)

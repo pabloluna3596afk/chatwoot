@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useVuelidate } from '@vuelidate/core';
 import { required, minLength } from '@vuelidate/validators';
 
+import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Editor from 'dashboard/components-next/Editor/Editor.vue';
@@ -15,7 +16,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['submit']);
+const emit = defineEmits(['submit', 'uploadAvatar', 'deleteAvatar']);
 
 const { t } = useI18n();
 
@@ -99,6 +100,25 @@ watch(
 
 <template>
   <div class="flex flex-col gap-6">
+    <div class="flex flex-col gap-2">
+      <span class="text-sm font-medium text-n-slate-12">
+        {{ t('CAPTAIN.ASSISTANTS.FORM.AVATAR.LABEL') }}
+      </span>
+      <div class="flex items-center gap-4">
+        <Avatar
+          :src="assistant.avatar_url"
+          :name="state.name"
+          :size="68"
+          allow-upload
+          @upload="emit('uploadAvatar', $event)"
+          @delete="emit('deleteAvatar')"
+        />
+        <span class="text-sm text-n-slate-11">
+          {{ t('CAPTAIN.ASSISTANTS.FORM.AVATAR.DESCRIPTION') }}
+        </span>
+      </div>
+    </div>
+
     <Input
       v-model="state.name"
       :label="t('CAPTAIN.ASSISTANTS.FORM.NAME.LABEL')"
