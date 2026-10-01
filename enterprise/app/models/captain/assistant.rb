@@ -99,6 +99,15 @@ class Captain::Assistant < ApplicationRecord
     APPOINTMENT_TOOL_IDS.map { |tool_id| self.class.resolve_tool_class(tool_id).new(self) }
   end
 
+  # Why this assistant cannot answer right now, or nil when it can. :missing_key means the
+  # installation has no AI key; :quota_exhausted means the account has no responses left.
+  def paused_reason
+    return :missing_key unless Llm::Config.api_key_configured?
+    return :quota_exhausted unless account.usage_limits[:captain][:responses][:current_available].positive?
+
+    nil
+  end
+
   def engages?(contact, conversation)
     responds_to_audience?(contact, conversation) && available_now?(conversation)
   end

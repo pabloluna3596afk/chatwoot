@@ -9,8 +9,8 @@ module Enterprise::MessageTemplates::HookExecutionService
     # otherwise the coverage denominator only ever contains conversations
     # Captain was already about to answer.
     track_captain_eligibility
+    return captain_unavailable unless inbox.captain_active?
     return unless conversation.pending?
-    return perform_handoff unless inbox.captain_active?
 
     Captain::Conversation::ResponseSchedulerService.new(message: message).perform
   end
@@ -48,6 +48,33 @@ module Enterprise::MessageTemplates::HookExecutionService
     message.captain_response_triggering? && captain_assistant_configured? && !inbox.external_bot_active?
   end
 
+  # Captain is paused (no AI key, or no responses left). A pending conversation is handed off; one
+  # that was never taken gets a single note on its first customer message so agents know why.
+  def captain_unavailable
+    return perform_handoff if conversation.pending?
+
+    create_unavailable_note if first_customer_message?
+  end
+
+  def first_customer_message?
+    conversation.messages.incoming.where(private: false).count == 1
+  end
+
+  def create_unavailable_note
+    assistant = inbox.captain_assistant
+    reason = inbox.captain_paused_reason
+    return if assistant.blank? || reason.blank?
+
+    conversation.messages.create!(
+      message_type: :outgoing,
+      private: true,
+      sender: assistant,
+      account_id: conversation.account.id,
+      inbox_id: conversation.inbox.id,
+      content: I18n.t("captain.notes.unavailable.#{reason}", assistant: assistant.name, locale: conversation.account.locale)
+    )
+  end
+
   def perform_handoff
     Rails.logger.info("Captain limit exceeded, performing handoff mid-conversation for conversation: #{conversation.id}")
     conversation.messages.create!(
@@ -56,6 +83,7 @@ module Enterprise::MessageTemplates::HookExecutionService
       inbox_id: conversation.inbox.id,
       content: handoff_message_content
     )
+    create_unavailable_note
     conversation.bot_handoff!
     Captain::ConversationEvents.handed_off(
       conversation: conversation,

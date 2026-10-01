@@ -70,6 +70,7 @@ class Captain::Assistant::ResponseRewriter
         temperature: 0,
         response_schema: Captain::ResponseSchema
       )
+      Llm::Config.refresh!
       Agents::Runner.with_agents(agent).tap { |runner| install_instrumentation(runner) }
     end
   end

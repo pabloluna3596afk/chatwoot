@@ -178,7 +178,7 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
       described_class.perform_now(inbox)
 
       private_note = resolvable_pending_conversation.messages.where(private: true).last
-      expect(private_note.content).to eq('Auto-resolved: Customer question was answered')
+      expect(private_note.content).to eq("#{captain_assistant.name} closed the conversation due to inactivity (Customer question was answered).")
     end
 
     it 'creates resolution message with configured content' do
@@ -264,7 +264,7 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
       described_class.perform_now(inbox)
 
       private_note = resolvable_pending_conversation.messages.where(private: true).last
-      expect(private_note.content).to eq("Auto-handoff: #{handoff_reason}")
+      expect(private_note.content).to eq("#{captain_assistant.name} passed the conversation to the team (#{handoff_reason}).")
     end
 
     it 'creates handoff message with configured content' do
