@@ -851,18 +851,38 @@
             "CONFIRMATION": "Send a confirmation when Captain books an appointment",
             "REMINDER_24H": "Remind the customer 24 hours before",
             "REMINDER_2H": "Remind the customer 2 hours before",
-            "PAID": "Allow paid templates outside the 24 h window",
-            "PAID_NOTE": "Outside the 24 h window, WhatsApp requires a template approved by Meta and it has a cost. If this is off, those reminders are not sent and a private note is left in the conversation.",
-            "TEMPLATE_PLACEHOLDER": "Select an approved template",
             "TEMPLATE_CONFIRMATION": "Confirmation template",
             "TEMPLATE_REMINDER": "Reminder template",
-            "TEMPLATE_CANCELLED": "Cancellation template"
+            "TEMPLATE_CANCELLED": "Cancellation template",
+            "PAID_HINT": "To send templates outside the 24 h window, turn on \"Paid messages (WhatsApp)\" for this assistant."
           },
-          
           "ERRORS": {
             "CONNECTION": "Select a calendar account.",
             "CALENDAR": "Select a calendar."
           }
+        },
+        "TEMPLATE_PLACEHOLDER": "Select an approved template",
+        "PAID_MESSAGES": {
+          "TOGGLE": "Allow paid messages (WhatsApp)",
+          "TOGGLE_HELP": "When on, this assistant can send an approved template outside the 24 h window: appointment reminders and re-engagement. It is off by default.",
+          "NOTE": "Outside the 24 h window, WhatsApp requires a template approved by Meta and it has a cost. If this is off, those messages are not sent and, for reminders, a private note is left in the conversation."
+        },
+        "FOLLOWUP": {
+          "TOGGLE": "Ask \"Are you still there?\"",
+          "TOGGLE_HELP": "When the customer stops answering, Captain sends one short message with buttons, inside the 24 h window and at no cost. With no answer, it closes the conversation for inactivity. It is on by default.",
+          "AFTER": "Ask after",
+          "NUDGES": "Follow-up messages",
+          "CLOSE": "Close if there is no answer after",
+          "HINT": "Only in conversations Captain is handling, never once a person took it and never outside the 24 h window. If the customer answers, the count starts over.",
+          "NUDGES_NONE": "None",
+          "NUDGES_ONE": "1 message",
+          "NUDGES_TWO": "2 messages",
+          "MINUTES": "{count} min",
+          "HOURS": "{count} h",
+          "REENGAGEMENT": "Re-engage with a template",
+          "REENGAGEMENT_HELP": "When Captain closed for inactivity and the 24 h window has closed, it sends one approved template, once per conversation and at most one every 7 days per customer. It has a cost. It is off by default.",
+          "PAID_HINT": "To send templates, turn on \"Paid messages (WhatsApp)\" for this assistant.",
+          "TEMPLATE": "Re-engagement template"
         }
       },
       "EDIT": {
@@ -912,6 +932,14 @@
           "TITLE": "Delete Assistant",
           "DESCRIPTION": "This action is permanent. Deleting this assistant will remove it from all connected inboxes and permanently erase all generated knowledge.",
           "BUTTON_TEXT": "Delete {assistantName}"
+        },
+        "FOLLOWUP": {
+          "TITLE": "Follow-up",
+          "DESCRIPTION": "What Captain does when the customer stops answering: ask if they are still there, close for inactivity and, if you turn it on, re-engage with a template."
+        },
+        "PAID_MESSAGES": {
+          "TITLE": "Paid messages (WhatsApp)",
+          "DESCRIPTION": "One switch for everything Captain sends as a paid template."
         }
       },
       "OPTIONS": {

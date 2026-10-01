@@ -851,18 +851,38 @@
             "CONFIRMATION": "Enviar una confirmación cuando Captain agenda una cita",
             "REMINDER_24H": "Recordar al cliente 24 horas antes",
             "REMINDER_2H": "Recordar al cliente 2 horas antes",
-            "PAID": "Permitir plantillas de pago fuera de las 24 h",
-            "PAID_NOTE": "Fuera de las 24 h, WhatsApp exige una plantilla aprobada por Meta y tiene coste. Si está desactivado, esos recordatorios no se envían y queda una nota privada en la conversación.",
-            "TEMPLATE_PLACEHOLDER": "Selecciona una plantilla aprobada",
             "TEMPLATE_CONFIRMATION": "Plantilla de confirmación",
             "TEMPLATE_REMINDER": "Plantilla de recordatorio",
-            "TEMPLATE_CANCELLED": "Plantilla de cancelación"
+            "TEMPLATE_CANCELLED": "Plantilla de cancelación",
+            "PAID_HINT": "Para enviar plantillas fuera de las 24 h, activa «Mensajes de pago (WhatsApp)» en este asistente."
           },
-          
           "ERRORS": {
             "CONNECTION": "Selecciona una cuenta de calendario.",
             "CALENDAR": "Selecciona un calendario."
           }
+        },
+        "TEMPLATE_PLACEHOLDER": "Selecciona una plantilla aprobada",
+        "PAID_MESSAGES": {
+          "TOGGLE": "Permitir mensajes de pago (WhatsApp)",
+          "TOGGLE_HELP": "Si está activado, este asistente puede enviar una plantilla aprobada fuera de las 24 h: recordatorios de citas y reenganche. Viene desactivado.",
+          "NOTE": "Fuera de las 24 h, WhatsApp exige una plantilla aprobada por Meta y tiene coste. Si está desactivado, esos mensajes no se envían y, en los recordatorios, queda una nota privada en la conversación."
+        },
+        "FOLLOWUP": {
+          "TOGGLE": "Preguntar «¿Sigues ahí?»",
+          "TOGGLE_HELP": "Si el cliente deja de responder, Captain le escribe un solo mensaje corto con botones, dentro de las 24 h y sin coste. Si no hay respuesta, cierra la conversación por inactividad. Viene activado.",
+          "AFTER": "Preguntar tras",
+          "NUDGES": "Mensajes de seguimiento",
+          "CLOSE": "Cerrar si no responde tras",
+          "HINT": "Solo en las conversaciones que atiende Captain, nunca si una persona la tomó y nunca fuera de las 24 h. Si el cliente responde, el conteo empieza de nuevo.",
+          "NUDGES_NONE": "Ninguno",
+          "NUDGES_ONE": "1 mensaje",
+          "NUDGES_TWO": "2 mensajes",
+          "MINUTES": "{count} min",
+          "HOURS": "{count} h",
+          "REENGAGEMENT": "Reenganchar con una plantilla",
+          "REENGAGEMENT_HELP": "Cuando Captain cerró por inactividad y la ventana de 24 h ya cerró, envía una plantilla aprobada, una sola vez por conversación y como máximo una cada 7 días por cliente. Tiene coste. Viene desactivado.",
+          "PAID_HINT": "Para enviar plantillas, activa «Mensajes de pago (WhatsApp)» en este asistente.",
+          "TEMPLATE": "Plantilla de reenganche"
         }
       },
       "EDIT": {
@@ -912,6 +932,14 @@
           "TITLE": "Eliminar asistente",
           "DESCRIPTION": "Esta acción es permanente. Eliminar este asistente lo sacará de todas las bandejas conectadas y borrará para siempre todo el conocimiento generado.",
           "BUTTON_TEXT": "Eliminar {assistantName}"
+        },
+        "FOLLOWUP": {
+          "TITLE": "Seguimiento",
+          "DESCRIPTION": "Qué hace Captain cuando el cliente deja de responder: preguntar si sigue ahí, cerrar por inactividad y, si lo activas, reenganchar con una plantilla."
+        },
+        "PAID_MESSAGES": {
+          "TITLE": "Mensajes de pago (WhatsApp)",
+          "DESCRIPTION": "Un solo interruptor para todo lo que Captain envía como plantilla de pago."
         }
       },
       "OPTIONS": {
