@@ -139,6 +139,7 @@ class Integrations::GoogleCalendar::EventService
       end
 
       ensure_slot_available!(calendar_id, start_at, end_at)
+      release_discarded_idempotency_key!(params[:idempotency_key])
       contact = find_contact(params[:contact_id])
       conversation = find_conversation(params[:conversation_id])
       google_event = client.create_event(
@@ -204,7 +205,7 @@ class Integrations::GoogleCalendar::EventService
 
     client.delete_event(calendar_id: calendar_id, event_id: event_id, etag: params[:etag])
     if record && !record.discarded?
-      attrs = { deleted_at: Time.current }
+      attrs = { deleted_at: Time.current, idempotency_key: nil }
       attrs[:deleted_by] = actor_user if actor_user
       attrs[:updated_by] = actor_user if actor_user
       record.update!(attrs)
@@ -417,6 +418,16 @@ class Integrations::GoogleCalendar::EventService
     return if key.blank?
 
     account.calendar_events.kept.find_by(idempotency_key: key)
+  end
+
+  # A cancelled booking no longer answers to its key (find_by_idempotency_key only sees kept rows), but rows
+  # cancelled before destroy cleared the key still hold it and would fail the unique index after Google
+  # already created the event. Free the key here, before any Google call.
+  def release_discarded_idempotency_key!(key)
+    return if key.blank?
+
+    account.calendar_events.where.not(deleted_at: nil).where(idempotency_key: key)
+           .update_all(idempotency_key: nil) # rubocop:disable Rails/SkipsModelValidations
   end
 
   # created_by/updated_by FKs point at users — AgentBot must not be assigned.

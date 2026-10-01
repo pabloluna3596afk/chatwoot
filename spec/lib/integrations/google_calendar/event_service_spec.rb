@@ -107,13 +107,45 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
         expect(service.send(:find_by_idempotency_key, 'key-2')).to be_nil
       end
 
-      it 'books again with the key of a cancelled event' do
-        pending 'KNOWN ISSUE: the cancelled row keeps its idempotency_key; the unique index rejects the new row ' \
-                'after the Google event was already created'
+      it 'clears the key when the event is cancelled' do
         service.create(create_params(idempotency_key: 'key-3'))
         service.destroy('g-1', calendar_id: 'cal-1', note: 'customer cancelled')
 
-        expect { service.create(create_params(idempotency_key: 'key-3')) }.not_to raise_error
+        expect(CalendarEvent.find_by(google_event_id: 'g-1')).to have_attributes(idempotency_key: nil, deleted_at: be_present)
+      end
+
+      it 'books a fresh event with the key of a cancelled event' do
+        service.create(create_params(idempotency_key: 'key-4'))
+        service.destroy('g-1', calendar_id: 'cal-1', note: 'customer cancelled')
+
+        result = service.create(create_params(idempotency_key: 'key-4'))
+
+        expect(result[:id]).to eq('g-2')
+        expect(created_calls.size).to eq(2)
+        expect(CalendarEvent.where(idempotency_key: 'key-4').pluck(:google_event_id)).to eq(['g-2'])
+      end
+
+      it 'frees a key still held by an event cancelled before the key was cleared, before calling Google' do
+        old = local_event(google_event_id: 'old-1', deleted_at: Time.current, idempotency_key: 'key-5')
+        key_when_google_was_called = :never_called
+        allow(client).to receive(:create_event) do |**kwargs|
+          key_when_google_was_called = CalendarEvent.find(old.id).idempotency_key
+          google_event_for('g-1', kwargs)
+        end
+
+        result = service.create(create_params(idempotency_key: 'key-5'))
+
+        expect(key_when_google_was_called).to be_nil
+        expect(result[:id]).to eq('g-1')
+        expect(CalendarEvent.where(idempotency_key: 'key-5').pluck(:google_event_id)).to eq(['g-1'])
+      end
+
+      it 'does not touch the key of a live event with a different key' do
+        service.create(create_params(idempotency_key: 'key-6'))
+
+        service.create(create_params(idempotency_key: 'key-7', start: '2030-01-15T14:00:00-05:00', end: '2030-01-15T14:30:00-05:00'))
+
+        expect(CalendarEvent.where(idempotency_key: %w[key-6 key-7]).count).to eq(2)
       end
     end
 
