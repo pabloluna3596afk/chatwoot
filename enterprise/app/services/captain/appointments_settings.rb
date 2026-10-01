@@ -7,12 +7,12 @@ class Captain::AppointmentsSettings
   MIN_NOTICE_RANGE = (0..10_080)
   BOOKING_WINDOW_RANGE = (1..90)
   INTEGER_KEYS = %w[calendar_connection_id slot_duration_minutes min_notice_minutes booking_window_days].freeze
-  BOOLEAN_KEYS = %w[enabled send_confirmation reminder_24h reminder_2h allow_paid_templates].freeze
+  BOOLEAN_KEYS = %w[enabled send_confirmation reminder_24h reminder_2h].freeze
   TEMPLATE_KEYS = %w[template_confirmation template_reminder template_cancelled].freeze
 
   # Messages: the confirmation (sent inside the free 24 h window right after the customer's yes) and the
   # 24 h / 2 h reminders are free-form by default. WhatsApp bills a template sent outside the 24 h window,
-  # so templates stay off until the owner turns allow_paid_templates on.
+  # so templates stay off until the owner turns on the assistant's allow_paid_templates.
   DEFAULTS = {
     'enabled' => false,
     'calendar_connection_id' => nil,
@@ -24,7 +24,6 @@ class Captain::AppointmentsSettings
     'send_confirmation' => true,
     'reminder_24h' => true,
     'reminder_2h' => true,
-    'allow_paid_templates' => false,
     'template_confirmation' => nil,
     'template_reminder' => nil,
     'template_cancelled' => nil
@@ -88,9 +87,6 @@ class Captain::AppointmentsSettings
     values['reminder_2h'] == true
   end
 
-  def allow_paid_templates?
-    values['allow_paid_templates'] == true
-  end
 
   def template_confirmation
     values['template_confirmation']

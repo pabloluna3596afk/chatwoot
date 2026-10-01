@@ -2,7 +2,11 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAccount } from 'dashboard/composables/useAccount';
-import { useMapGetter } from 'dashboard/composables/store';
+import {
+  useApprovedTemplates,
+  templateFromValue,
+  templateToValue,
+} from './useApprovedTemplates';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -49,7 +53,6 @@ const initialState = {
   sendConfirmation: true,
   reminder24h: true,
   reminder2h: true,
-  allowPaidTemplates: false,
   templates: { confirmation: '', reminder: '', cancelled: '' },
 };
 
@@ -57,7 +60,12 @@ const state = reactive({
   ...initialState,
   templates: { ...initialState.templates },
 });
-const inboxes = useMapGetter('inboxes/getInboxes');
+const { templateOptions } = useApprovedTemplates();
+
+// The one "paid templates" switch of the assistant lives in its own page; the pickers only matter once it is on.
+const paidEnabled = computed(
+  () => props.assistant?.config?.allow_paid_templates === true
+);
 const connections = ref([]);
 const calendars = ref([]);
 const isLoading = ref(true);
@@ -167,61 +175,6 @@ const windowOptions = computed(() =>
   }))
 );
 
-// Approved WhatsApp templates of the account's inboxes, as "name|language".
-const templateKey = template => `${template.name}|${template.language}`;
-
-const approvedTemplates = computed(() => {
-  const seen = new Map();
-  (inboxes.value || [])
-    .filter(inbox => inbox.channel_type === 'Channel::Whatsapp')
-    .forEach(inbox => {
-      (inbox.message_templates || [])
-        .filter(
-          template => String(template.status).toLowerCase() === 'approved'
-        )
-        .forEach(template => {
-          const key = templateKey(template);
-          if (!seen.has(key)) {
-            seen.set(key, {
-              value: key,
-              label: `${template.name} (${template.language})`,
-            });
-          }
-        });
-    });
-  return [...seen.values()];
-});
-
-const templateOptions = key => {
-  const current = state.templates[key];
-  const known = approvedTemplates.value.some(item => item.value === current);
-  const options =
-    current && !known
-      ? [
-          ...approvedTemplates.value,
-          { value: current, label: current.replace('|', ' (') + ')' },
-        ]
-      : approvedTemplates.value;
-  return [
-    {
-      value: '',
-      label: t(
-        'CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.TEMPLATE_PLACEHOLDER'
-      ),
-    },
-    ...options,
-  ];
-};
-
-const templateFromValue = value => {
-  if (!value) return null;
-  const [name, language] = value.split('|');
-  return { name, language };
-};
-
-const templateToValue = template =>
-  template?.name && template?.language ? templateKey(template) : '';
-
 const connectionError = computed(() =>
   showErrors.value && state.enabled && !state.connectionId
     ? t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.ERRORS.CONNECTION')
@@ -272,7 +225,6 @@ const updateStateFromAssistant = assistant => {
     sendConfirmation: settings.send_confirmation !== false,
     reminder24h: settings.reminder_24h !== false,
     reminder2h: settings.reminder_2h !== false,
-    allowPaidTemplates: settings.allow_paid_templates === true,
     templates: {
       confirmation: templateToValue(settings.template_confirmation),
       reminder: templateToValue(settings.template_reminder),
@@ -299,7 +251,6 @@ const handleSubmit = () => {
         send_confirmation: state.sendConfirmation,
         reminder_24h: state.reminder24h,
         reminder_2h: state.reminder2h,
-        allow_paid_templates: state.allowPaidTemplates,
         template_confirmation: templateFromValue(state.templates.confirmation),
         template_reminder: templateFromValue(state.templates.reminder),
         template_cancelled: templateFromValue(state.templates.cancelled),
@@ -493,24 +444,17 @@ onMounted(loadConnections);
                 )
               }}
             </label>
-            <label class="flex items-center gap-2 text-sm text-n-slate-12">
-              <Checkbox
-                data-testid="appointments-paid-templates"
-                :model-value="state.allowPaidTemplates"
-                @update:model-value="state.allowPaidTemplates = $event"
-              />
-              {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.PAID') }}
-            </label>
             <p
-              data-testid="appointments-paid-note"
+              v-if="!paidEnabled"
+              data-testid="appointments-paid-hint"
               class="mb-0 text-xs text-n-slate-11"
             >
               {{
-                t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.PAID_NOTE')
+                t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.PAID_HINT')
               }}
             </p>
             <div
-              v-if="state.allowPaidTemplates"
+              v-if="paidEnabled"
               data-testid="appointments-templates"
               class="grid gap-4 sm:grid-cols-3"
             >
@@ -530,7 +474,7 @@ onMounted(loadConnections);
                   v-model="state.templates[key]"
                   :data-testid="`appointments-template-${key}`"
                   full-width
-                  :options="templateOptions(key)"
+                  :options="templateOptions(state.templates[key])"
                 />
               </div>
             </div>

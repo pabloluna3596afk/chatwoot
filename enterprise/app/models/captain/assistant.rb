@@ -60,6 +60,7 @@ class Captain::Assistant < ApplicationRecord
   before_validation :set_default_auto_resolve_mode, on: :create
   before_validation :normalize_auto_resolve_after
   before_validation :normalize_appointments_config
+  before_validation :normalize_followup_config
   before_create :ensure_within_plan_limit
 
   validates :name, presence: true
@@ -67,6 +68,7 @@ class Captain::Assistant < ApplicationRecord
   validates :account_id, presence: true
   validates_with Captain::AudienceValidator
   validates_with Captain::AppointmentsValidator
+  validates_with Captain::FollowupValidator
   validate :validate_response_window
   validates :auto_resolve_mode, inclusion: { in: AUTO_RESOLVE_MODES }
   validates :send_inactivity_resolution_message, inclusion: { in: [true, false] }
@@ -88,6 +90,16 @@ class Captain::Assistant < ApplicationRecord
 
   def appointments
     Captain::AppointmentsSettings.new(config['appointments'])
+  end
+
+  def followup
+    Captain::FollowupSettings.new(config['followup'])
+  end
+
+  # One switch for every Captain message that, outside the 24 h window, has to be a paid WhatsApp template
+  # (appointment reminders, re-engagement). Off unless the owner turned it on.
+  def allow_paid_templates?
+    config['allow_paid_templates'] == true
   end
 
   def appointments_active_in?(inbox)
@@ -241,6 +253,12 @@ class Captain::Assistant < ApplicationRecord
     config['appointments'] = Captain::AppointmentsSettings.normalize(config['appointments'])
   end
 
+  def normalize_followup_config
+    return unless config['followup'].is_a?(Hash)
+
+    config['followup'] = Captain::FollowupSettings.normalize(config['followup'])
+  end
+
   def validate_response_window
     response_window = config['response_window']
     return if response_window.blank?
@@ -260,9 +278,20 @@ class Captain::Assistant < ApplicationRecord
 
   def runtime_prompt_context(state)
     inbox = account.inboxes.find_by(id: state.dig(:conversation, :inbox_id))
-    return {} unless inbox && appointments_active_in?(inbox)
+    return {} unless inbox
 
-    { appointments: appointments.to_h }
+    context = {}
+    context[:appointments] = appointments.to_h if appointments_active_in?(inbox)
+    context[:followup] = followup_prompt_context if followup.inactivity_enabled? && followup.max_nudges.positive?
+    context
+  end
+
+  # The texts of the two buttons of the "¿Sigues ahí?" message, so the model recognizes the customer's reply.
+  def followup_prompt_context
+    {
+      'continue_text' => I18n.t('captain.followup.continue_button', locale: account.locale),
+      'stop_text' => I18n.t('captain.followup.stop_button', locale: account.locale)
+    }
   end
 
   def agent_tools

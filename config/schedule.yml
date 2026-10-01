@@ -95,3 +95,10 @@ send_appointment_reminders_job:
   cron: '*/1 * * * *'
   class: 'Calendar::AppointmentRemindersJob'
   queue: scheduled_jobs
+
+# executed At every minute..
+# "¿Sigues ahí?" and the close for inactivity of the conversations Captain handles, and the paid re-engagement template (a no-op in the community edition)
+send_captain_followup_job:
+  cron: '*/1 * * * *'
+  class: 'Conversations::CaptainFollowupJob'
+  queue: scheduled_jobs

@@ -64,7 +64,6 @@ const REMINDER_DEFAULTS = {
   send_confirmation: true,
   reminder_24h: true,
   reminder_2h: true,
-  allow_paid_templates: false,
   template_confirmation: null,
   template_reminder: null,
   template_cancelled: null,
@@ -240,20 +239,22 @@ describe('AssistantAppointmentsForm', () => {
   });
 
   describe('confirmation and reminders', () => {
-    const openFields = async assistant => {
-      const wrapper = await mountForm(
-        assistant || {
-          config: {
-            appointments: { enabled: true, calendar_connection_id: 7 },
-          },
-        }
-      );
-      return wrapper;
+    const appointments = {
+      enabled: true,
+      calendar_connection_id: 7,
+      calendar_id: 'cal-1',
     };
+    const openFields = (config = {}) =>
+      mountForm({ config: { appointments, ...config } });
     const check = (wrapper, testId) =>
       wrapper.get(`[data-testid="${testId}"] input`);
 
-    it('turns confirmation and both reminders on and paid templates off by default', async () => {
+    const whatsappInbox = templates => ({
+      channel_type: 'Channel::Whatsapp',
+      message_templates: templates,
+    });
+
+    it('turns confirmation and both reminders on by default', async () => {
       const wrapper = await openFields();
 
       expect(
@@ -265,31 +266,28 @@ describe('AssistantAppointmentsForm', () => {
       expect(check(wrapper, 'appointments-reminder-2h').element.checked).toBe(
         true
       );
+    });
+
+    it('has no paid templates switch of its own: it points to the assistant one', async () => {
+      const wrapper = await openFields();
+
       expect(
-        check(wrapper, 'appointments-paid-templates').element.checked
+        wrapper.find('[data-testid="appointments-paid-templates"]').exists()
       ).toBe(false);
+      expect(wrapper.get('[data-testid="appointments-paid-hint"]').text()).toBe(
+        'CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.PAID_HINT'
+      );
       expect(
         wrapper.find('[data-testid="appointments-templates"]').exists()
       ).toBe(false);
     });
 
-    it('always shows the note that outside 24 h WhatsApp needs a paid template', async () => {
-      const wrapper = await openFields();
-
-      expect(wrapper.get('[data-testid="appointments-paid-note"]').text()).toBe(
-        'CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.PAID_NOTE'
-      );
-    });
-
-    it('lists only approved WhatsApp templates once paid templates are allowed', async () => {
+    it('lists only approved WhatsApp templates once the assistant allows paid templates', async () => {
       inboxes.value = [
-        {
-          channel_type: 'Channel::Whatsapp',
-          message_templates: [
-            { name: 'recordatorio', language: 'es', status: 'APPROVED' },
-            { name: 'borrador', language: 'es', status: 'PENDING' },
-          ],
-        },
+        whatsappInbox([
+          { name: 'recordatorio', language: 'es', status: 'APPROVED' },
+          { name: 'borrador', language: 'es', status: 'PENDING' },
+        ]),
         {
           channel_type: 'Channel::WebWidget',
           message_templates: [
@@ -297,9 +295,11 @@ describe('AssistantAppointmentsForm', () => {
           ],
         },
       ];
-      const wrapper = await openFields();
-      await check(wrapper, 'appointments-paid-templates').setValue(true);
+      const wrapper = await openFields({ allow_paid_templates: true });
 
+      expect(
+        wrapper.find('[data-testid="appointments-paid-hint"]').exists()
+      ).toBe(false);
       const options = wrapper
         .get('[data-testid="appointments-template-reminder"] select')
         .findAll('option')
@@ -307,43 +307,33 @@ describe('AssistantAppointmentsForm', () => {
       expect(options).toEqual(['', 'recordatorio|es']);
     });
 
-    it('saves the toggles and the chosen templates', async () => {
+    it('saves the toggles and the chosen templates, without the paid switch', async () => {
       inboxes.value = [
-        {
-          channel_type: 'Channel::Whatsapp',
-          message_templates: [
-            { name: 'recordatorio', language: 'es', status: 'approved' },
-          ],
-        },
+        whatsappInbox([
+          { name: 'recordatorio', language: 'es', status: 'approved' },
+        ]),
       ];
-      const wrapper = await openFields({
-        config: {
-          appointments: {
-            enabled: true,
-            calendar_connection_id: 7,
-            calendar_id: 'cal-1',
-          },
-        },
-      });
+      const wrapper = await openFields({ allow_paid_templates: true });
       await check(wrapper, 'appointments-reminder-2h').setValue(false);
-      await check(wrapper, 'appointments-paid-templates').setValue(true);
       await select(wrapper, 'appointments-template-reminder').setValue(
         'recordatorio|es'
       );
 
       await wrapper.get('[data-testid="appointments-save"]').trigger('click');
 
-      expect(wrapper.emitted('submit')[0][0].config.appointments).toMatchObject(
-        {
-          send_confirmation: true,
-          reminder_24h: true,
-          reminder_2h: false,
-          allow_paid_templates: true,
-          template_confirmation: null,
-          template_reminder: { name: 'recordatorio', language: 'es' },
-          template_cancelled: null,
-        }
+      const [payload] = wrapper.emitted('submit')[0];
+      expect(payload.config.appointments).toMatchObject({
+        send_confirmation: true,
+        reminder_24h: true,
+        reminder_2h: false,
+        template_confirmation: null,
+        template_reminder: { name: 'recordatorio', language: 'es' },
+        template_cancelled: null,
+      });
+      expect(payload.config.appointments).not.toHaveProperty(
+        'allow_paid_templates'
       );
+      expect(payload.config.allow_paid_templates).toBe(true);
     });
   });
 });

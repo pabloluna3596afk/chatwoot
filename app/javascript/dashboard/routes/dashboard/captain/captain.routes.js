@@ -16,6 +16,8 @@ import AssistantSystemSettingsIndex from './assistants/settings/System.vue';
 import AssistantAudienceSettingsIndex from './assistants/settings/Audience.vue';
 import AssistantScheduleSettingsIndex from './assistants/settings/Schedule.vue';
 import AssistantAppointmentsSettingsIndex from './assistants/settings/Appointments.vue';
+import AssistantFollowupSettingsIndex from './assistants/settings/Followup.vue';
+import AssistantPaidMessagesSettingsIndex from './assistants/settings/PaidMessages.vue';
 import AssistantInboxesIndex from './assistants/inboxes/Index.vue';
 import AssistantPlaygroundIndex from './assistants/playground/Index.vue';
 import AssistantGuardrailsIndex from './assistants/guardrails/Index.vue';
@@ -145,6 +147,22 @@ const assistantRoutes = [
     ),
     component: AssistantAppointmentsSettingsIndex,
     name: 'captain_assistants_settings_appointments_index',
+    meta,
+  },
+  {
+    path: frontendURL(
+      'accounts/:accountId/captain/:assistantId/settings/followup'
+    ),
+    component: AssistantFollowupSettingsIndex,
+    name: 'captain_assistants_settings_followup_index',
+    meta,
+  },
+  {
+    path: frontendURL(
+      'accounts/:accountId/captain/:assistantId/settings/paid-messages'
+    ),
+    component: AssistantPaidMessagesSettingsIndex,
+    name: 'captain_assistants_settings_paid_messages_index',
     meta,
   },
   {

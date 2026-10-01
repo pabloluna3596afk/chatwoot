@@ -2,7 +2,7 @@
 #
 # Inside the 24 h window it is a single free-form message with [Confirmo] [Cambiar hora] [Cancelar cita]
 # buttons (just the last two once the customer confirmed). Outside it, WhatsApp only accepts an approved
-# template and bills it, so the template goes out only when the assistant has allow_paid_templates on;
+# template and bills it, so the template goes out only when the assistant has "paid templates" on (one switch for every Captain message that needs a template);
 # otherwise the reminder is skipped and one private note says why. Every send counts against the account's
 # daily proactive cap, and a reminder over the cap waits (it is dropped if the appointment starts first).
 class Captain::AppointmentReminders::Sender
@@ -120,35 +120,20 @@ class Captain::AppointmentReminders::Sender
 
   def send_template
     return skip_with_note('not_sent_channel') unless conversation.inbox.channel_type == 'Channel::Whatsapp'
-    return skip_with_note('not_sent_window') unless settings.allow_paid_templates?
+    return skip_with_note('not_sent_window') unless assistant.allow_paid_templates?
     return skip_with_note('no_template') if settings.template_reminder.blank?
 
-    entry = approved_template(settings.template_reminder)
+    entry = Captain::TemplateMessage.approved(conversation.inbox, settings.template_reminder)
     return skip_with_note('template_unavailable') if entry.blank?
 
-    payload, text = template_message(entry)
+    payload, text = Captain::TemplateMessage.build(entry, template_values)
     create_message(text, additional_attributes: { template_params: payload })
     finish
   end
 
-  def approved_template(reference)
-    Array(conversation.inbox.channel.message_templates).find do |entry|
-      entry['name'] == reference['name'] &&
-        entry['language'].to_s.casecmp?(reference['language']) &&
-        entry['status'].to_s.casecmp?('approved')
-    end
-  end
-
-  # Fills the template body variables in order: 1 name, 2 title, 3 date, 4 time, 5 assistant name
-  # (the layout of the approved reminder templates); a variable we have no value for is sent as "-".
-  def template_message(entry)
-    body = Array(entry['components']).find { |component| component['type'].to_s.casecmp?('BODY') }
-    text = body&.dig('text').to_s
-    values = { '1' => contact.name, '2' => event.summary, '3' => date_label, '4' => time_label, '5' => assistant.name }
-    parameters = text.scan(/\{\{\s*([^}\s]+)\s*\}\}/).flatten.uniq.index_with { |key| values[key].presence || '-' }
-    payload = { name: entry['name'], namespace: entry['namespace'], language: entry['language'], category: entry['category'],
-                processed_params: { body: parameters } }
-    [payload, text.gsub(/\{\{\s*([^}\s]+)\s*\}\}/) { parameters[Regexp.last_match(1)] || '-' }.presence || entry['name']]
+  # The variables of the approved reminder templates: 1 name, 2 title, 3 date, 4 time, 5 assistant name.
+  def template_values
+    { '1' => contact.name, '2' => event.summary, '3' => date_label, '4' => time_label, '5' => assistant.name }
   end
 
   def create_message(content, **attributes)

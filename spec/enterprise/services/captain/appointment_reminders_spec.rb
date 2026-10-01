@@ -166,7 +166,7 @@ RSpec.describe Captain::AppointmentReminders do
       end
 
       it 'sends no template even when paid templates are on' do
-        assistant.update!(config: { 'appointments' => appointments_config.merge('allow_paid_templates' => true) })
+        assistant.update!(config: { 'appointments' => appointments_config, 'allow_paid_templates' => true })
         schedule
 
         send_reminder
@@ -197,7 +197,8 @@ RSpec.describe Captain::AppointmentReminders do
 
       before do
         create(:message, account: account, inbox: inbox, conversation: conversation, message_type: :incoming, created_at: now - 3.days)
-        assistant.update!(config: { 'appointments' => appointments_config.merge(paid_config) })
+        assistant.update!(config: { 'appointments' => appointments_config.merge(paid_config.except('allow_paid_templates')),
+                                  'allow_paid_templates' => paid_config['allow_paid_templates'] == true })
         schedule
       end
 

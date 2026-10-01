@@ -14,7 +14,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants appointments settings', t
   end
 
   let(:reminder_defaults) do
-    { send_confirmation: true, reminder_24h: true, reminder_2h: true, allow_paid_templates: false,
+    { send_confirmation: true, reminder_24h: true, reminder_2h: true,
       template_confirmation: nil, template_reminder: nil, template_cancelled: nil }
   end
 
@@ -44,7 +44,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants appointments settings', t
   end
 
   it 'saves the confirmation, reminder and template settings' do
-    settings = { send_confirmation: false, reminder_24h: true, reminder_2h: false, allow_paid_templates: true,
+    settings = { send_confirmation: false, reminder_24h: true, reminder_2h: false,
                  template_reminder: { name: 'recordatorio', language: 'es' } }
 
     patch url, params: { assistant: { config: { appointments: settings } } }, headers: admin.create_new_auth_token, as: :json
@@ -52,7 +52,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants appointments settings', t
     expect(response).to have_http_status(:success)
     expect(json_response[:config][:appointments]).to include(settings)
     expect(assistant.reload.appointments).to have_attributes(
-      send_confirmation?: false, reminder_2h?: false, allow_paid_templates?: true, template_reminder: { 'name' => 'recordatorio', 'language' => 'es' }
+      send_confirmation?: false, reminder_2h?: false, template_reminder: { 'name' => 'recordatorio', 'language' => 'es' }
     )
   end
 
