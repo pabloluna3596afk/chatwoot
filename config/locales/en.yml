@@ -548,6 +548,15 @@ en:
       limit_exceeded: 'You can create a maximum of %{limit} custom tools per account'
     assistant:
       limit_exceeded: 'You can create a maximum of %{limit} assistants per account'
+    followup:
+      nudge: '%{assistant}: Are you still there? If you still need help, just reply.'
+      nudge_hint: ' Reply "%{continue}" or "%{stop}".'
+      continue_button: "Yes, I'm here"
+      stop_button: 'No, thanks'
+      closed_note: '%{assistant} closed the conversation due to inactivity.'
+      reengagement_paid_off: '%{assistant}: re-engagement not sent: the 24 h window has closed and paid templates are turned off.'
+      reengagement_no_template: '%{assistant}: re-engagement not sent: the 24 h window has closed and no re-engagement template is selected.'
+      reengagement_template_unavailable: '%{assistant}: re-engagement not sent: the selected template is not approved in this inbox.'
     appointment_reminders:
       reminder_24h: '%{assistant}: hi %{name}, a reminder of your appointment "%{title}" on %{when}.'
       reminder_2h: '%{assistant}: hi %{name}, your appointment "%{title}" is in about 2 hours (%{when}).'

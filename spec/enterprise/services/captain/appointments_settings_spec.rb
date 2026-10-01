@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe Captain::AppointmentsSettings do
   let(:reminder_defaults) do
-    { 'send_confirmation' => true, 'reminder_24h' => true, 'reminder_2h' => true, 'allow_paid_templates' => false,
+    { 'send_confirmation' => true, 'reminder_24h' => true, 'reminder_2h' => true,
       'template_confirmation' => nil, 'template_reminder' => nil, 'template_cancelled' => nil }
   end
 
@@ -28,13 +28,13 @@ RSpec.describe Captain::AppointmentsSettings do
 
     it 'casts the confirmation and reminder toggles strictly and keeps only the name and language of a template' do
       result = described_class.normalize(
-        'send_confirmation' => 'false', 'reminder_24h' => '0', 'reminder_2h' => false, 'allow_paid_templates' => 'true',
+        'send_confirmation' => 'false', 'reminder_24h' => '0', 'reminder_2h' => false,
         'template_reminder' => { 'name' => 'recordatorio', 'language' => 'es', 'extra' => 'x' },
         'template_confirmation' => '', 'template_cancelled' => nil
       )
 
       expect(result).to include(
-        'send_confirmation' => false, 'reminder_24h' => false, 'reminder_2h' => false, 'allow_paid_templates' => true,
+        'send_confirmation' => false, 'reminder_24h' => false, 'reminder_2h' => false,
         'template_reminder' => { 'name' => 'recordatorio', 'language' => 'es' },
         'template_confirmation' => nil, 'template_cancelled' => nil
       )
