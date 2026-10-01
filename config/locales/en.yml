@@ -512,6 +512,17 @@ en:
     upgrade: 'Upgrade your plan to enable Captain AI'
     disabled: 'Captain AI is disabled for this account.'
     api_key_missing: 'Captain AI API key is not configured.'
+    notes:
+      unavailable:
+        missing_key: '%{assistant} could not respond: the AI key is not configured.'
+        quota_exhausted: '%{assistant} could not respond: the monthly responses have run out.'
+      auto_resolved: '%{assistant} closed the conversation due to inactivity.'
+      auto_resolved_with_reason: '%{assistant} closed the conversation due to inactivity (%{reason}).'
+      auto_handoff: '%{assistant} passed the conversation to the team (%{reason}).'
+      evaluation_failed: '%{assistant} could not review the conversation and passed it to the team.'
+    activity_reasons:
+      no_outstanding_questions: 'no outstanding questions'
+      pending_clarification: 'pending clarification from customer'
     copilot:
       using_tool: 'Using tool %{function_name}'
       completed_tool_call: 'Completed %{function_name} tool call'

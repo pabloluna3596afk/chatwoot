@@ -73,6 +73,11 @@ RSpec.configure do |config|
   # config.filter_gems_from_backtrace("gem name")
   config.include SlackStubs
   config.include FileUploadHelpers
+
+  # Enterprise specs run Captain as if the installation had its AI key. Specs about a missing key
+  # override this with `allow(Llm::Config).to receive(:api_key_configured?).and_call_original`.
+  config.define_derived_metadata(file_path: %r{/spec/enterprise/}) { |metadata| metadata[:captain_llm_key] = true }
+  config.before(:each, :captain_llm_key) { allow(Llm::Config).to receive(:api_key_configured?).and_return(true) }
   config.include CsvSpecHelpers
   config.include InstagramSpecHelpers
   config.include ConversationsUnreadCountsHelpers
