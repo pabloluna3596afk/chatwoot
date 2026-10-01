@@ -31,7 +31,7 @@ class Captain::Tools::BookAppointmentTool < Captain::Tools::BaseAppointmentTool
   private
 
   def book(conversation, contact, start, reason)
-    start_at = parse_time(start)
+    start_at = parse_time(start.to_s.sub(/\Ayes_book:/, ''))
     return translate('invalid_start') if start_at.blank?
     return translate('outside_window', days: settings.booking_window_days) unless within_booking_limits?(start_at)
 

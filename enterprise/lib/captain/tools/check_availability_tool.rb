@@ -8,7 +8,7 @@ class Captain::Tools::CheckAvailabilityTool < Captain::Tools::BaseAppointmentToo
   param :to_date, type: 'string', desc: 'Last day to look at, YYYY-MM-DD (optional, defaults to a week after from_date)', required: false
 
   def perform(tool_context, from_date: nil, to_date: nil)
-    _conversation, error = conversation_for(tool_context)
+    conversation, error = conversation_for(tool_context)
     return error if error
 
     range = search_range(from_date, to_date)
@@ -19,12 +19,21 @@ class Captain::Tools::CheckAvailabilityTool < Captain::Tools::BaseAppointmentToo
     return translate('slots_none') if options.empty?
 
     log_tool_usage('check_availability', assistant_id: @assistant.id, options: options.size)
-    [translate('slots_header', timezone: zone.tzinfo.name), *options.map { |slot| option_line(slot) }, translate('slots_hint')].join("\n")
+    slots_message(conversation, tool_context, options)
   rescue StandardError => e
     calendar_error_message(e)
   end
 
   private
+
+  # One button (or list row) per slot, valued with the exact start. Channels without buttons get
+  # a numbered list the model writes itself.
+  def slots_message(conversation, tool_context, options)
+    items = options.map { |slot| Captain::QuickReplies.item(short_time(Time.iso8601(slot[:start])), slot[:start]) }
+    buttons = offer_buttons(conversation, tool_context, items)
+    lines = options.each_with_index.map { |slot, index| option_line(slot, buttons ? nil : index + 1) }
+    [translate('slots_header', timezone: zone.tzinfo.name), *lines, translate(buttons ? 'slots_buttons_hint' : 'slots_numbered_hint')].join("\n")
+  end
 
   def available_slots(range_start, range_end)
     event_service.available_slots(
@@ -52,7 +61,7 @@ class Captain::Tools::CheckAvailabilityTool < Captain::Tools::BaseAppointmentToo
          .first(MAX_OPTIONS)
   end
 
-  def option_line(slot)
-    "- #{format_time(Time.iso8601(slot[:start]))} (start=#{slot[:start]})"
+  def option_line(slot, number = nil)
+    "#{number ? "#{number}." : '-'} #{format_time(Time.iso8601(slot[:start]))} (start=#{slot[:start]})"
   end
 end

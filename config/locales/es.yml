@@ -503,7 +503,6 @@ es:
       invalid_date: 'No se pudo leer esa fecha. Usa el formato AAAA-MM-DD.'
       slots_none: 'No hay horarios libres en ese periodo. Prueba otro periodo u ofrece comunicar al cliente con el equipo.'
       slots_header: 'Horarios libres (zona horaria %{timezone}):'
-      slots_hint: 'Ofrece UNO de estos al cliente, espera un sí explícito y luego agenda con el valor exacto de start.'
       confirm_required: 'Aún no se agendó. Propón el horario al cliente, espera un sí explícito y vuelve a llamar con customer_confirmed true.'
       missing_details: 'Aún no se agendó. Pide al cliente solo estos datos: %{fields}. Luego vuelve a llamar con ellos.'
       invalid_contact: 'No se pudieron guardar estos datos: %{fields}. Pide al cliente que los confirme (teléfono con código de país).'
@@ -527,6 +526,22 @@ es:
         phone: 'teléfono'
         email: 'correo electrónico'
       weekdays: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
+      weekdays_short: ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']
+      slots_buttons_hint: 'Las opciones se muestran al cliente como botones junto con tu respuesta. No las listes otra vez en tu texto: escribe una frase corta preguntando cuál le conviene.'
+      slots_numbered_hint: 'Este canal no tiene botones. Escribe las opciones como lista numerada (1., 2., ...) en tu respuesta y pide al cliente que responda con el número. Cuando responda, vuelve a llamar a check_availability si necesitas el valor exacto de start.'
+      propose_buttons: 'Pregunta al cliente: "¿Te reservo %{time}?". Los botones de confirmación (sí / otra hora) se adjuntan solos a tu respuesta, así que no escribas opciones. La respuesta "yes_book:<start>" es el sí explícito a ese start; "other_time" significa que quiere otra hora.'
+      propose_text: 'Pregunta al cliente: "¿Te reservo %{time}?" y dile que responda sí o que pida otra hora. Solo un sí explícito cuenta como confirmación.'
+      propose_reschedule_buttons: 'Pregunta al cliente: "¿Muevo tu cita a %{time}?". Los botones de confirmación se adjuntan solos a tu respuesta, así que no escribas opciones. La respuesta "yes_reschedule:<event_id>:<start>" es el sí explícito; "other_time" significa que quiere otra hora.'
+      propose_reschedule_text: 'Pregunta al cliente: "¿Muevo tu cita a %{time}?" y dile que responda sí o que pida otra hora. Solo un sí explícito cuenta como confirmación.'
+      manage_buttons_hint: 'Los botones (cambiar hora / cancelar / dejarla así) se adjuntan solos a tu respuesta. Escribe una frase corta preguntando qué quiere hacer con la cita. Las respuestas son "change_time:<event_id>", "cancel:<event_id>" (una petición explícita de cancelar) y "keep:<event_id>".'
+      manage_text_hint: 'Pregunta si quiere cambiar la hora, cancelar la cita o dejarla así.'
+      buttons:
+        yes_book: 'Sí, reservar'
+        other_time: 'Otra hora'
+        yes_reschedule: 'Sí, cambiarla'
+        change_time: 'Cambiar hora'
+        cancel: 'Cancelar cita'
+        keep: 'Dejarla así'
   public_portal:
     search:
       search_placeholder: Buscar artículo por título o cuerpo...

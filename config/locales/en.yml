@@ -554,7 +554,6 @@ en:
       invalid_date: 'That date could not be read. Use the format YYYY-MM-DD.'
       slots_none: 'There are no free times in that period. Try another period or offer to connect the customer with the team.'
       slots_header: 'Free times (timezone %{timezone}):'
-      slots_hint: 'Offer ONE of these to the customer, wait for an explicit yes, then book with the exact start value.'
       confirm_required: 'Not booked yet. Propose the time to the customer, wait for an explicit yes, then call again with customer_confirmed true.'
       missing_details: 'Not booked yet. Ask the customer only for these details: %{fields}. Then call again with them.'
       invalid_contact: 'These details could not be saved: %{fields}. Ask the customer to confirm them (phone with country code).'
@@ -578,6 +577,22 @@ en:
         phone: 'phone'
         email: 'email'
       weekdays: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+      weekdays_short: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+      slots_buttons_hint: 'The options are shown to the customer as buttons with your reply. Do not list them again in your text: write one short sentence asking which one suits them.'
+      slots_numbered_hint: 'This channel has no buttons. Write the options as a numbered list (1., 2., ...) in your reply and ask the customer to answer with the number. When they answer, call check_availability again if you need the exact start value.'
+      propose_buttons: 'Ask the customer: "Shall I book %{time}?". Confirmation buttons (yes / another time) are attached to your reply automatically, so do not write options. The reply "yes_book:<start>" is the explicit yes to that start; "other_time" means they want another time.'
+      propose_text: 'Ask the customer: "Shall I book %{time}?" and tell them to answer yes or ask for another time. Only an explicit yes counts as confirmation.'
+      propose_reschedule_buttons: 'Ask the customer: "Shall I move your appointment to %{time}?". Confirmation buttons are attached to your reply automatically, so do not write options. The reply "yes_reschedule:<event_id>:<start>" is the explicit yes; "other_time" means they want another time.'
+      propose_reschedule_text: 'Ask the customer: "Shall I move your appointment to %{time}?" and tell them to answer yes or ask for another time. Only an explicit yes counts as confirmation.'
+      manage_buttons_hint: 'Buttons (change time / cancel / keep it) are attached to your reply automatically. Write one short sentence asking what they want to do with the appointment. The replies are "change_time:<event_id>", "cancel:<event_id>" (an explicit request to cancel) and "keep:<event_id>".'
+      manage_text_hint: 'Ask whether they want to change the time, cancel the appointment or keep it.'
+      buttons:
+        yes_book: 'Yes, book it'
+        other_time: 'Another time'
+        yes_reschedule: 'Yes, move it'
+        change_time: 'Change time'
+        cancel: 'Cancel appointment'
+        keep: 'Keep it'
   public_portal:
     search:
       search_placeholder: Search for article by title or body...

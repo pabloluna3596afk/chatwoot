@@ -21,7 +21,7 @@ class Captain::Tools::RescheduleAppointmentTool < Captain::Tools::BaseAppointmen
   private
 
   def reschedule(conversation, event, new_start)
-    start_at = parse_time(new_start)
+    start_at = parse_time(new_start.to_s.sub(/\Ayes_reschedule:[^:]+:/, ''))
     return translate('invalid_start') if start_at.blank?
     return translate('outside_window', days: settings.booking_window_days) unless within_booking_limits?(start_at)
 

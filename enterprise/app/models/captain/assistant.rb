@@ -25,7 +25,9 @@ class Captain::Assistant < ApplicationRecord
   MAXIMUM_INACTIVITY_THRESHOLD_MINUTES = 1.day.in_minutes.to_i
   INACTIVITY_THRESHOLD_STEP_MINUTES = 5
   RESPONSE_WINDOWS = %w[always business_hours outside_business_hours].freeze
-  APPOINTMENT_TOOL_IDS = %w[check_availability book_appointment appointment_list reschedule_appointment cancel_appointment].freeze
+  APPOINTMENT_TOOL_IDS = %w[
+    check_availability propose_appointment book_appointment appointment_list reschedule_appointment cancel_appointment
+  ].freeze
 
   class LimitExceededError < StandardError; end
 

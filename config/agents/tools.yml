@@ -64,3 +64,8 @@
   title: 'Cancel Appointment'
   description: "Cancel one of the customer's appointments"
   icon: 'calendar-x'
+
+- id: propose_appointment
+  title: 'Propose Appointment'
+  description: 'Propose one time and attach the confirmation buttons'
+  icon: 'calendar-check'

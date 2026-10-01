@@ -55,6 +55,7 @@ RSpec.shared_context 'with an appointments conversation' do
       Redis::Alfred.delete(format(Redis::RedisKeys::CALENDAR_EVENT_LOCK, account_id: account.id, event_id: event_id))
     end
     Redis::Alfred.delete(format(Redis::RedisKeys::CALENDAR_BOOKING_LOCK, account_id: account.id, calendar_id: 'cal-1'))
+    Redis::Alfred.delete(format(Redis::RedisKeys::CAPTAIN_QUICK_REPLIES, conversation_id: conversation.id))
   end
 end
 
@@ -112,7 +113,56 @@ RSpec.describe Captain::Tools::CheckAvailabilityTool do
     expect(result.lines.first).to include('Horarios libres', 'America/Guayaquil')
     expect(result).to include('- martes 15/01 08:00 (start=2030-01-15T08:00:00-05:00)')
     expect(result).to include('- martes 15/01 14:00 (start=2030-01-15T14:00:00-05:00)')
-    expect(result.lines.last).to include('UNO de estos')
+    expect(result.lines.last).to include('botones')
+  end
+
+  context 'with a channel that renders buttons' do
+    it 'stashes one button per option, titled short and valued with the exact start' do
+      call(from_date: '2030-01-15', to_date: '2030-01-15')
+
+      expect(Captain::QuickReplies.take(conversation)).to eq(
+        [{ 'title' => 'mar 15 · 08:00', 'value' => '2030-01-15T08:00:00-05:00' },
+         { 'title' => 'mar 15 · 14:00', 'value' => '2030-01-15T14:00:00-05:00' }]
+      )
+    end
+
+    it 'keeps every title within the WhatsApp button limit' do
+      call(from_date: '2030-01-15', to_date: '2030-01-25')
+
+      titles = Captain::QuickReplies.take(conversation).pluck('title')
+      expect(titles.size).to eq(6)
+      expect(titles.map(&:length).max).to be <= 20
+    end
+
+    it 'tags the buttons with the customer message being answered' do
+      state = { conversation: { id: conversation.id }, responding_to_message_id: 77 }
+
+      tool.perform(Struct.new(:state).new(state), from_date: '2030-01-15', to_date: '2030-01-15')
+
+      expect(Captain::QuickReplies.take(conversation, responding_to: 76)).to be_nil
+      tool.perform(Struct.new(:state).new(state), from_date: '2030-01-15', to_date: '2030-01-15')
+      expect(Captain::QuickReplies.take(conversation, responding_to: 77)).to be_present
+    end
+
+    it 'sends no buttons when nothing is free' do
+      calendar.update!(working_days: [0])
+
+      call(from_date: '2030-01-15', to_date: '2030-01-16')
+
+      expect(Captain::QuickReplies.take(conversation)).to be_nil
+    end
+  end
+
+  context 'with a channel that has no buttons' do
+    let(:inbox) { create(:inbox, account: account, channel: create(:channel_api, account: account)) }
+
+    it 'numbers the options, keeps the start values and asks for the number' do
+      result = call(from_date: '2030-01-15', to_date: '2030-01-15')
+
+      expect(result).to include('1. martes 15/01 08:00 (start=2030-01-15T08:00:00-05:00)', '2. martes 15/01 14:00')
+      expect(result.lines.last).to include('lista numerada', 'número')
+      expect(Captain::QuickReplies.take(conversation)).to be_nil
+    end
   end
 
   it 'offers at most six options spread over the days' do
@@ -454,6 +504,159 @@ RSpec.describe Captain::Tools::CancelAppointmentTool do
   end
 end
 
+RSpec.describe Captain::Tools::ProposeAppointmentTool do
+  include_context 'with an appointments conversation'
+
+  let(:start) { '2030-01-15T10:00:00-05:00' }
+
+  def call(**params)
+    tool.perform(tool_context, **{ start: start }.merge(params))
+  end
+
+  it_behaves_like 'an appointment tool that needs the channel enabled'
+
+  it 'attaches yes / another time buttons and tells the model what to ask' do
+    result = call
+
+    expect(result).to include('¿Te reservo martes 15/01 10:00?', 'yes_book:<start>')
+    expect(Captain::QuickReplies.take(conversation)).to eq(
+      [{ 'title' => 'Sí, reservar', 'value' => 'yes_book:2030-01-15T10:00:00-05:00' },
+       { 'title' => 'Otra hora', 'value' => 'other_time' }]
+    )
+  end
+
+  it 'books nothing by itself' do
+    call
+
+    expect(client).not_to have_received(:create_event)
+    expect(CalendarEvent.count).to eq(0)
+  end
+
+  it 'proposes moving an existing appointment with its own confirmation button' do
+    local_event(google_event_id: 'own-1', contact: contact)
+
+    result = call(start: '2030-01-16T15:00:00-05:00', event_id: 'own-1')
+
+    expect(result).to include('¿Muevo tu cita a miércoles 16/01 15:00?', 'yes_reschedule:<event_id>:<start>')
+    expect(Captain::QuickReplies.take(conversation)).to eq(
+      [{ 'title' => 'Sí, cambiarla', 'value' => 'yes_reschedule:own-1:2030-01-16T15:00:00-05:00' },
+       { 'title' => 'Otra hora', 'value' => 'other_time' }]
+    )
+  end
+
+  it 'only proposes moving the appointments of this customer' do
+    local_event(google_event_id: 'other-1', contact: create(:contact, account: account))
+
+    expect(call(event_id: 'other-1')).to include('No se encontró esa cita')
+    expect(Captain::QuickReplies.take(conversation)).to be_nil
+  end
+
+  it 'keeps the button titles within the WhatsApp limit in both languages' do
+    call
+    spanish = Captain::QuickReplies.take(conversation).pluck('title')
+    account.update!(locale: 'en')
+    call
+    english = Captain::QuickReplies.take(conversation).pluck('title')
+
+    expect(english).to eq(['Yes, book it', 'Another time'])
+    expect((spanish + english).map(&:length).max).to be <= 20
+  end
+
+  it 'does not propose a time that is taken, outside the hours or outside the window' do
+    local_event(start_at: Time.zone.parse('2030-01-15T10:00:00-05:00'), end_at: Time.zone.parse('2030-01-15T10:30:00-05:00'))
+
+    expect(call).to include('ya no está disponible')
+    expect(call(start: '2030-01-15T07:00:00-05:00')).to include('ya no está disponible')
+    expect(call(start: '2030-03-01T10:00:00-05:00')).to include('fuera del plazo')
+    expect(call(start: 'cuando puedas')).to include('No se pudo leer ese horario')
+    expect(Captain::QuickReplies.take(conversation)).to be_nil
+  end
+
+  context 'with a channel that has no buttons' do
+    let(:inbox) { create(:inbox, account: account, channel: create(:channel_api, account: account)) }
+
+    it 'asks in text for a yes and stashes nothing' do
+      result = call
+
+      expect(result).to include('¿Te reservo martes 15/01 10:00?', 'responda sí')
+      expect(Captain::QuickReplies.take(conversation)).to be_nil
+    end
+  end
+end
+
+RSpec.describe Captain::Tools::AppointmentListTool, 'change buttons' do
+  include_context 'with an appointments conversation'
+
+  def call(**params)
+    tool.perform(tool_context, **params)
+  end
+
+  let!(:own_event) { local_event(google_event_id: 'own-1', summary: 'Cita con Ana Pérez', contact: contact) }
+
+  it 'attaches change / cancel / keep buttons when the customer asked to change something' do
+    result = call(offer_changes: true)
+
+    expect(result.lines.last).to include('cambiar hora / cancelar / dejarla así')
+    expect(Captain::QuickReplies.take(conversation)).to eq(
+      [{ 'title' => 'Cambiar hora', 'value' => 'change_time:own-1' },
+       { 'title' => 'Cancelar cita', 'value' => 'cancel:own-1' },
+       { 'title' => 'Dejarla así', 'value' => 'keep:own-1' }]
+    )
+  end
+
+  it 'attaches nothing when the customer only asked what they have' do
+    call
+
+    expect(Captain::QuickReplies.take(conversation)).to be_nil
+  end
+
+  it 'attaches nothing, and asks which one, when the customer has several appointments' do
+    local_event(google_event_id: 'other-1', contact: contact,
+                start_at: Time.zone.parse('2030-01-16T10:00:00-05:00'), end_at: Time.zone.parse('2030-01-16T10:30:00-05:00'))
+
+    result = call(offer_changes: true)
+
+    expect(result.lines.last).to include('cambiar la hora, cancelar la cita o dejarla así')
+    expect(Captain::QuickReplies.take(conversation)).to be_nil
+  end
+
+  context 'with a channel that has no buttons' do
+    let(:inbox) { create(:inbox, account: account, channel: create(:channel_api, account: account)) }
+
+    it 'asks in text what they want to do' do
+      result = call(offer_changes: true)
+
+      expect(result.lines.last).to include('cambiar la hora, cancelar la cita o dejarla así')
+      expect(Captain::QuickReplies.take(conversation)).to be_nil
+    end
+  end
+end
+
+RSpec.describe Captain::Tools::BookAppointmentTool, 'button replies' do
+  include_context 'with an appointments conversation'
+
+  it 'books from the start carried by a yes_book reply' do
+    result = tool.perform(tool_context, start: 'yes_book:2030-01-15T10:00:00-05:00', customer_confirmed: true)
+
+    expect(result).to start_with('Agendada: martes 15/01 10:00')
+    expect(CalendarEvent.find_by(google_event_id: 'g-1').start_at).to eq(Time.zone.parse('2030-01-15T10:00:00-05:00'))
+  end
+end
+
+RSpec.describe Captain::Tools::RescheduleAppointmentTool, 'button replies' do
+  include_context 'with an appointments conversation'
+
+  it 'moves the appointment from the start carried by a yes_reschedule reply' do
+    own = local_event(google_event_id: 'own-1', contact: contact)
+
+    result = tool.perform(tool_context, event_id: 'own-1', new_start: 'yes_reschedule:own-1:2030-01-16T15:00:00-05:00',
+                                        customer_confirmed: true)
+
+    expect(result).to eq('Reprogramada: miércoles 16/01 15:00.')
+    expect(own.reload.start_at).to eq(Time.zone.parse('2030-01-16T15:00:00-05:00'))
+  end
+end
+
 RSpec.describe Captain::Assistant, 'appointment tools exposure' do
   include_context 'with an appointments conversation'
 
@@ -462,10 +665,10 @@ RSpec.describe Captain::Assistant, 'appointment tools exposure' do
     Struct.new(:context).new({ state: { conversation: { id: conversation.id, inbox_id: inbox.id }, assistant_config: {}, timezone: 'UTC' } })
   end
 
-  it 'builds the five appointment tools' do
+  it 'builds the six appointment tools' do
     expect(assistant.appointment_tools.map(&:class)).to eq(
-      [Captain::Tools::CheckAvailabilityTool, Captain::Tools::BookAppointmentTool, Captain::Tools::AppointmentListTool,
-       Captain::Tools::RescheduleAppointmentTool, Captain::Tools::CancelAppointmentTool]
+      [Captain::Tools::CheckAvailabilityTool, Captain::Tools::ProposeAppointmentTool, Captain::Tools::BookAppointmentTool,
+       Captain::Tools::AppointmentListTool, Captain::Tools::RescheduleAppointmentTool, Captain::Tools::CancelAppointmentTool]
     )
   end
 
@@ -497,6 +700,7 @@ RSpec.describe Captain::Assistant, 'appointment tools exposure' do
     prompt = assistant.agent_instructions(instructions_context)
 
     expect(prompt).to include('# Appointments', 'captain--tools--book_appointment', 'explicit yes', 'customer_confirmed')
+    expect(prompt).to include('captain--tools--propose_appointment', 'yes_book:<start>', 'cancel:<event_id>', 'other_time')
     expect(prompt).to include('30 minutes', 'name, phone, email')
 
     captain_inbox.update!(appointments_enabled: false)
