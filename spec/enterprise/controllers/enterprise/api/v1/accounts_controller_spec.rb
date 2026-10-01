@@ -229,10 +229,18 @@ RSpec.describe 'Enterprise Billing APIs', type: :request do
               },
               'conversation' => {},
               'captain' => {
-                'documents' => { 'consumed' => 0, 'current_available' => ChatwootApp.max_limit, 'total_count' => ChatwootApp.max_limit },
-                'responses' => { 'consumed' => 0, 'current_available' => ChatwootApp.max_limit, 'total_count' => ChatwootApp.max_limit }
+                'responses' => {
+                  'consumed' => 0, 'copilot_consumed' => 0, 'copilot_total_count' => ChatwootApp.max_limit / 2,
+                  'current_available' => ChatwootApp.max_limit, 'customer_consumed' => 0,
+                  'customer_total_count' => ChatwootApp.max_limit, 'total_count' => ChatwootApp.max_limit
+                },
+                'storage' => {
+                  'consumed' => 0, 'current_available' => ChatwootApp.max_limit.megabytes, 'total_count' => ChatwootApp.max_limit.megabytes
+                }
               },
-              'non_web_inboxes' => {}
+              'inboxes' => { 'allowed' => ChatwootApp.max_limit, 'consumed' => account.inboxes.count },
+              'non_web_inboxes' => {},
+              'plan' => nil
             }
           }
 

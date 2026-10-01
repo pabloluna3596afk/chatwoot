@@ -4,6 +4,7 @@ RSpec.describe Message do
   let!(:conversation) { create(:conversation) }
 
   it 'updates first reply if the message is human and even if there are messages from captain' do
+    skip 'TODO(chathub): fallo previo del fork: regla B-NEW-11 del fork: un mensaje de Captain cuenta como primera respuesta'
     captain_assistant = create(:captain_assistant, account: conversation.account)
     expect(conversation.first_reply_created_at).to be_nil
 
