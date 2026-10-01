@@ -73,6 +73,27 @@ RSpec.describe Captain::QuickReplies do
       expect(described_class.choice(conversation, 'Sí, reservar · jue 16/01 10:00')).to eq('start' => 'iso')
     end
 
+    it 'keeps the buttons for 10 minutes but what they stand for for 24 hours (the WhatsApp service window)' do
+      described_class.stash(conversation, items, choices: choices)
+
+      buttons_ttl = Redis::Alfred.ttl(format(Redis::RedisKeys::CAPTAIN_QUICK_REPLIES, conversation_id: conversation.id))
+      choices_ttl = Redis::Alfred.ttl(format(Redis::RedisKeys::CAPTAIN_QUICK_REPLY_CHOICES, conversation_id: conversation.id))
+
+      expect(buttons_ttl).to be_between(1, 10.minutes.to_i)
+      expect(choices_ttl).to be_between(23.hours.to_i, 24.hours.to_i)
+    end
+
+    it 'refreshes the 24 hours every time new buttons are stashed' do
+      key = format(Redis::RedisKeys::CAPTAIN_QUICK_REPLY_CHOICES, conversation_id: conversation.id)
+      described_class.stash(conversation, items, choices: choices)
+      Redis::Alfred.expire(key, 60)
+
+      described_class.stash(conversation, items, choices: { 'Otra hora' => {} })
+
+      expect(Redis::Alfred.ttl(key)).to be > 23.hours.to_i
+      expect(described_class.choice(conversation, 'Cancelar cita')).to eq('event_id' => 'ev-1')
+    end
+
     it 'knows nothing about an unknown or blank reply' do
       described_class.stash(conversation, items, choices: choices)
 
