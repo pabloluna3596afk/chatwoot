@@ -2,19 +2,25 @@ class Captain::Tools::ProposeAppointmentTool < Captain::Tools::BaseAppointmentTo
   description 'Call it right before asking the customer to confirm ONE specific time, either to book it or to move an existing ' \
               'appointment. It checks the time is still free and attaches the confirmation buttons to your reply. It never books: ' \
               'only an explicit yes from the customer does, through book_appointment or reschedule_appointment.'
-  param :start, type: 'string', desc: 'The exact start value of the time you are proposing, from check_availability'
-  param :event_id, type: 'string', desc: 'Only when moving an existing appointment: its id from appointment_list', required: false
+  param :start, type: 'string',
+                desc: 'The time you are proposing: the exact start value from check_availability, or the customer\'s button reply text ' \
+                      'unchanged (e.g. "jue 16/01 · 10:00")'
+  param :event_id, type: 'string', required: false,
+                   desc: 'Only when moving an existing appointment: its id from appointment_list, or the reply "Cambiar hora" unchanged'
 
   def perform(tool_context, start:, event_id: nil)
     conversation, error = conversation_for(tool_context)
     return error if error
 
-    start_at = parse_time(start)
-    return translate('invalid_start') if start_at.blank?
+    resolved = resolve_start(conversation, start)
+    return start_error(start) if resolved.nil?
+
+    start_at = resolved[:start_at]
     return translate('outside_window', days: settings.booking_window_days) unless within_booking_limits?(start_at)
 
-    event = own_event(conversation, event_id)
-    return translate('not_found') if event_id.present? && event.blank?
+    event_ref = resolve_event_id(conversation, event_id) || resolved[:event_id]
+    event = own_event(conversation, event_ref)
+    return translate('not_found') if event_ref.present? && event.blank?
     return translate('slot_busy') unless free?(start_at, event)
 
     proposal(conversation, tool_context, start_at, event)
@@ -44,18 +50,13 @@ class Captain::Tools::ProposeAppointmentTool < Captain::Tools::BaseAppointmentTo
   end
 
   def proposal(conversation, tool_context, start_at, event)
-    buttons = offer_buttons(conversation, tool_context, confirmation_items(start_at, event))
-    kind = event ? 'propose_reschedule' : 'propose'
+    yes_button = event ? 'yes_reschedule' : 'yes_book'
+    yes_value = labelled_with_time(yes_button, start_at)
+    items = [button_item(yes_button, yes_value), button_item('other_time', translate('buttons.other_time'))]
+    choice = { 'start' => start_at.iso8601 }.merge(event ? { 'event_id' => event[:id] } : {})
+    buttons = offer_buttons(conversation, tool_context, items, { yes_value => choice })
     log_tool_usage('propose_appointment', conversation_id: conversation.id, start: start_at.iso8601)
-    translate("#{kind}_#{buttons ? 'buttons' : 'text'}", time: format_time(start_at))
-  end
-
-  def confirmation_items(start_at, event)
-    yes = if event
-            button_item('yes_reschedule', "yes_reschedule:#{event[:id]}:#{start_at.iso8601}")
-          else
-            button_item('yes_book', "yes_book:#{start_at.iso8601}")
-          end
-    [yes, button_item('other_time', 'other_time')]
+    translate("#{event ? 'propose_reschedule' : 'propose'}_#{buttons ? 'buttons' : 'text'}",
+              time: format_time(start_at), yes: translate("buttons.#{yes_button}"), other: translate('buttons.other_time'))
   end
 end

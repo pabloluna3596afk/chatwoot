@@ -26,11 +26,12 @@ class Captain::Tools::CheckAvailabilityTool < Captain::Tools::BaseAppointmentToo
 
   private
 
-  # One button (or list row) per slot, valued with the exact start. Channels without buttons get
-  # a numbered list the model writes itself.
+  # One button (or list row) per slot, titled and valued with its readable label ("jue 16/01 · 10:00"),
+  # which resolves back to the exact start. Channels without buttons get a numbered list the model writes itself.
   def slots_message(conversation, tool_context, options)
-    items = options.map { |slot| Captain::QuickReplies.item(short_time(Time.iso8601(slot[:start])), slot[:start]) }
-    buttons = offer_buttons(conversation, tool_context, items)
+    labels = options.to_h { |slot| [slot_label(Time.iso8601(slot[:start])), { 'start' => slot[:start] }] }
+    items = labels.keys.map { |label| Captain::QuickReplies.item(label, label) }
+    buttons = offer_buttons(conversation, tool_context, items, labels)
     lines = options.each_with_index.map { |slot, index| option_line(slot, buttons ? nil : index + 1) }
     [translate('slots_header', timezone: zone.tzinfo.name), *lines, translate(buttons ? 'slots_buttons_hint' : 'slots_numbered_hint')].join("\n")
   end

@@ -2,6 +2,8 @@
 # has appointments active for the assistant, talk to the assistant's own calendar, and answer
 # with short text (in the account language) that the model can relay to the customer.
 class Captain::Tools::BaseAppointmentTool < Captain::Tools::BasePublicTool
+  ISO_START = /\A\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/
+
   private
 
   def settings
@@ -93,10 +95,13 @@ class Captain::Tools::BaseAppointmentTool < Captain::Tools::BasePublicTool
 
   # Stashes buttons for the reply the model is about to write (the response job sends them with it).
   # Returns false when the channel has no interactive messages, so the caller falls back to text.
-  def offer_buttons(conversation, tool_context, items)
+  # `choices` maps each item's value to what it stands for ({'start' =>, 'event_id' =>}), so the reply resolves later.
+  def offer_buttons(conversation, tool_context, items, choices = {})
     return false unless Captain::QuickReplies.supported?(conversation.inbox)
 
-    Captain::QuickReplies.stash(conversation, items, responding_to: tool_context.state[:responding_to_message_id])
+    Captain::QuickReplies.stash(
+      conversation, items, responding_to: tool_context.state[:responding_to_message_id], choices: choices
+    )
     true
   end
 
@@ -104,10 +109,50 @@ class Captain::Tools::BaseAppointmentTool < Captain::Tools::BasePublicTool
     Captain::QuickReplies.item(translate("buttons.#{button}"), value)
   end
 
-  # "jue 16 · 10:00": short enough for a button (20 characters) in every language.
-  def short_time(time)
+  # "jue 16/01 10:00"
+  def short_date_time(time)
     local = time.in_time_zone(zone)
-    weekday = I18n.t('captain.appointments.weekdays_short', locale: @assistant.account.locale)[local.wday]
-    "#{weekday} #{local.day} · #{local.strftime('%H:%M')}"
+    format('%<weekday>s %<day>02d/%<month>02d %<hour>s', weekday: short_weekday(local), day: local.day, month: local.month,
+                                                         hour: local.strftime('%H:%M'))
+  end
+
+  # The title of a time button, which is also its value and so the text of the customer's reply:
+  # "jue 16/01 · 10:00" (17 characters, under the 20 WhatsApp allows for a title).
+  def slot_label(time)
+    local = time.in_time_zone(zone)
+    format('%<weekday>s %<day>02d/%<month>02d · %<hour>s', weekday: short_weekday(local), day: local.day, month: local.month,
+                                                           hour: local.strftime('%H:%M'))
+  end
+
+  # The value of a confirmation button, readable for the agents who see the reply: "Sí, reservar · jue 16/01 10:00".
+  def labelled_with_time(button, time)
+    "#{translate("buttons.#{button}")} · #{short_date_time(time)}"
+  end
+
+  def short_weekday(local_time)
+    I18n.t('captain.appointments.weekdays_short', locale: @assistant.account.locale)[local_time.wday]
+  end
+
+  # A start comes either as an ISO time or as the text of a button the customer tapped. Returns
+  # { start_at:, event_id: } or nil.
+  def resolve_start(conversation, value)
+    choice = Captain::QuickReplies.choice(conversation, value)
+    raw = choice&.dig('start') || value.to_s.strip
+    return unless choice&.dig('start') || raw.match?(ISO_START)
+
+    start_at = parse_time(raw)
+    start_at && { start_at: start_at, event_id: choice&.dig('event_id') }
+  end
+
+  # Why a start could not be resolved: an unreadable ISO time, or a reply that is no longer (or never
+  # was) one of the buttons, e.g. because the choices expired.
+  def start_error(value)
+    translate(value.to_s.strip.match?(ISO_START) ? 'invalid_start' : 'choice_expired')
+  end
+
+  # An appointment id, or the text of the change/cancel/keep button that stands for it.
+  def resolve_event_id(conversation, value)
+    choice = Captain::QuickReplies.choice(conversation, value)
+    choice ? choice['event_id'] : value.to_s.strip.presence
   end
 end

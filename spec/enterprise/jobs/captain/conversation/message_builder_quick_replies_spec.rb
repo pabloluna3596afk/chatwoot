@@ -6,7 +6,7 @@ RSpec.describe Captain::Conversation::MessageBuilder do
   let(:assistant) { create(:captain_assistant, account: account) }
   let(:conversation) { create(:conversation, account: account, inbox: inbox, status: :pending) }
   let(:items) do
-    [{ 'title' => 'Sí, reservar', 'value' => 'yes_book:2030-01-15T10:00:00-05:00' }, { 'title' => 'Otra hora', 'value' => 'other_time' }]
+    [{ 'title' => 'Sí, reservar', 'value' => 'Sí, reservar · mar 15/01 10:00' }, { 'title' => 'Otra hora', 'value' => 'Otra hora' }]
   end
   let(:host_class) do
     Class.new do
@@ -74,7 +74,7 @@ RSpec.describe Captain::Conversation::MessageBuilder do
     expect(payload[:type]).to eq('button')
     expect(payload[:body][:text]).to eq('¿Te reservo el martes 15 a las 10:00?')
     expect(payload[:action]['buttons'].map { |button| button['reply'] }).to eq(
-      [{ 'id' => 'yes_book:2030-01-15T10:00:00-05:00', 'title' => 'Sí, reservar' }, { 'id' => 'other_time', 'title' => 'Otra hora' }]
+      [{ 'id' => 'Sí, reservar · mar 15/01 10:00', 'title' => 'Sí, reservar' }, { 'id' => 'Otra hora', 'title' => 'Otra hora' }]
     )
   end
 

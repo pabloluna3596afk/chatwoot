@@ -4,7 +4,9 @@ class Captain::Tools::BookAppointmentTool < Captain::Tools::BaseAppointmentTool
   description 'Book an appointment for the customer. Only call it after the customer has explicitly said yes to ONE specific ' \
               'time that check_availability returned; then pass customer_confirmed true and that exact start value. If contact ' \
               'details are missing the tool says which to ask for.'
-  param :start, type: 'string', desc: 'The exact start value of the time the customer confirmed, from check_availability'
+  param :start, type: 'string',
+                desc: 'The start of the time the customer confirmed: the exact value from check_availability, or the customer\'s button ' \
+                      'reply text unchanged (e.g. "Sí, reservar · jue 16/01 10:00")'
   param :customer_confirmed, type: 'boolean', desc: 'true only if the customer explicitly confirmed this exact time', required: false
   param :name, type: 'string', desc: "The customer's full name, only if the tool asked for it", required: false
   param :phone, type: 'string', desc: "The customer's phone with country code, only if the tool asked for it", required: false
@@ -31,8 +33,10 @@ class Captain::Tools::BookAppointmentTool < Captain::Tools::BaseAppointmentTool
   private
 
   def book(conversation, contact, start, reason)
-    start_at = parse_time(start.to_s.sub(/\Ayes_book:/, ''))
-    return translate('invalid_start') if start_at.blank?
+    resolved = resolve_start(conversation, start)
+    return start_error(start) if resolved.nil?
+
+    start_at = resolved[:start_at]
     return translate('outside_window', days: settings.booking_window_days) unless within_booking_limits?(start_at)
 
     end_at = start_at + settings.slot_duration_minutes.minutes

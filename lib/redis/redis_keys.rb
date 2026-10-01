@@ -121,4 +121,6 @@ module Redis::RedisKeys
   CALENDAR_BOOKING_LOCK = 'CALENDAR_BOOKING_LOCK::%<account_id>d::%<calendar_id>s'.freeze
   # Buttons a Captain tool wants attached to the assistant's next reply in a conversation
   CAPTAIN_QUICK_REPLIES = 'CAPTAIN_QUICK_REPLIES::%<conversation_id>d'.freeze
+  # What each readable button id of a conversation stands for (start / event id), so replies can be resolved
+  CAPTAIN_QUICK_REPLY_CHOICES = 'CAPTAIN_QUICK_REPLY_CHOICES::%<conversation_id>d'.freeze
 end

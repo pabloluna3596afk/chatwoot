@@ -5,7 +5,10 @@ RSpec.describe Captain::QuickReplies do
   let(:conversation) { create(:conversation, account: account) }
   let(:items) { [described_class.item('Sí, reservar', 'yes_book:x'), described_class.item('Otra hora', 'other_time')] }
 
-  after { Redis::Alfred.delete(format(Redis::RedisKeys::CAPTAIN_QUICK_REPLIES, conversation_id: conversation.id)) }
+  after do
+    Redis::Alfred.delete(format(Redis::RedisKeys::CAPTAIN_QUICK_REPLIES, conversation_id: conversation.id))
+    Redis::Alfred.delete(format(Redis::RedisKeys::CAPTAIN_QUICK_REPLY_CHOICES, conversation_id: conversation.id))
+  end
 
   def inbox_double(channel_type, provider: nil)
     channel = provider ? instance_double(Channel::Whatsapp, provider: provider) : nil
@@ -36,6 +39,54 @@ RSpec.describe Captain::QuickReplies do
       expect(described_class.item('jue 16 · 10:00', '2030-01-16T10:00:00-05:00')).to eq(
         'title' => 'jue 16 · 10:00', 'value' => '2030-01-16T10:00:00-05:00'
       )
+    end
+  end
+
+  describe '.item value limit' do
+    it 'keeps a value within the 256 characters WhatsApp allows for an id' do
+      expect(described_class.item('Sí', 'x' * 400)['value'].length).to eq(256)
+    end
+  end
+
+  describe '.choice' do
+    let(:choices) { { 'jue 16/01 · 10:00' => { 'start' => '2030-01-16T10:00:00-05:00' }, 'Cancelar cita' => { 'event_id' => 'ev-1' } } }
+
+    it 'resolves a reply to what the button stands for' do
+      described_class.stash(conversation, items, choices: choices)
+
+      expect(described_class.choice(conversation, 'jue 16/01 · 10:00')).to eq('start' => '2030-01-16T10:00:00-05:00')
+      expect(described_class.choice(conversation, '  Cancelar cita ')).to eq('event_id' => 'ev-1')
+    end
+
+    it 'still resolves after the buttons were sent' do
+      described_class.stash(conversation, items, choices: choices)
+      described_class.take(conversation)
+
+      expect(described_class.choice(conversation, 'Cancelar cita')).to eq('event_id' => 'ev-1')
+    end
+
+    it 'keeps earlier choices when new buttons are stashed' do
+      described_class.stash(conversation, items, choices: choices)
+      described_class.stash(conversation, items, choices: { 'Sí, reservar · jue 16/01 10:00' => { 'start' => 'iso' } })
+
+      expect(described_class.choice(conversation, 'jue 16/01 · 10:00')).to be_present
+      expect(described_class.choice(conversation, 'Sí, reservar · jue 16/01 10:00')).to eq('start' => 'iso')
+    end
+
+    it 'knows nothing about an unknown or blank reply' do
+      described_class.stash(conversation, items, choices: choices)
+
+      expect(described_class.choice(conversation, 'hola')).to be_nil
+      expect(described_class.choice(conversation, '')).to be_nil
+      expect(described_class.choice(conversation, nil)).to be_nil
+    end
+
+    it 'does not mix conversations' do
+      other = create(:conversation, account: account)
+      described_class.stash(other, items, choices: choices)
+
+      expect(described_class.choice(conversation, 'Cancelar cita')).to be_nil
+      Redis::Alfred.delete(format(Redis::RedisKeys::CAPTAIN_QUICK_REPLY_CHOICES, conversation_id: other.id))
     end
   end
 

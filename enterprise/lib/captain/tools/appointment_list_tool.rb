@@ -27,15 +27,14 @@ class Captain::Tools::AppointmentListTool < Captain::Tools::BaseAppointmentTool
 
   # The buttons act on one appointment, so they are offered only when the customer has exactly one.
   def changes_hint(conversation, tool_context, appointments)
-    buttons = appointments.size == 1 && offer_buttons(conversation, tool_context, change_items(appointments.first[:id]))
-    translate(buttons ? 'manage_buttons_hint' : 'manage_text_hint')
+    buttons = appointments.size == 1 && offer_change_buttons(conversation, tool_context, appointments.first[:id])
+    translate(buttons ? 'manage_buttons_hint' : 'manage_text_hint',
+              change: translate('buttons.change_time'), cancel: translate('buttons.cancel'), keep: translate('buttons.keep'))
   end
 
-  def change_items(event_id)
-    [
-      button_item('change_time', "change_time:#{event_id}"),
-      button_item('cancel', "cancel:#{event_id}"),
-      button_item('keep', "keep:#{event_id}")
-    ]
+  # Titled and valued with the same readable text ("Cancelar cita"); the reply resolves to the appointment id.
+  def offer_change_buttons(conversation, tool_context, event_id)
+    items = %w[change_time cancel keep].map { |button| button_item(button, translate("buttons.#{button}")) }
+    offer_buttons(conversation, tool_context, items, items.to_h { |item| [item['value'], { 'event_id' => event_id }] })
   end
 end

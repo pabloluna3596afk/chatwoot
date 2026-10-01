@@ -4,9 +4,15 @@
 # response job posts the model's reply it takes them and sends one input_select message (the
 # model's text is the question, the items are the buttons). WhatsApp turns up to 3 items into
 # reply buttons and more into a list; the web widget renders them as buttons.
+#
+# A tapped button comes back as the customer's message, with the item's value as its text, so the
+# values are readable ("Sí, reservar · jue 16/01 10:00"). Each stash can also remember what a value
+# stands for (a start time, an appointment id); tools resolve a reply through .choice. That memory
+# outlives the buttons being sent and expires with the same TTL.
 class Captain::QuickReplies
   TTL = 10.minutes.to_i
   MAX_ITEMS = 10
+  MAX_VALUE_LENGTH = 256
   INTERACTIVE_CHANNELS = %w[Channel::WebWidget Channel::Telegram Channel::FacebookPage Channel::Line].freeze
 
   class << self
@@ -18,13 +24,15 @@ class Captain::QuickReplies
     end
 
     def item(title, value)
-      { 'title' => title, 'value' => value }
+      { 'title' => title, 'value' => value.to_s.truncate(MAX_VALUE_LENGTH, omission: '') }
     end
 
-    # Replaces anything already waiting: only the buttons of the latest tool call are sent.
-    def stash(conversation, items, responding_to: nil)
+    # Replaces the buttons waiting to be sent (only the latest tool call's buttons go out) and adds
+    # what their values stand for: { 'value' => { 'start' => iso, 'event_id' => id } }.
+    def stash(conversation, items, responding_to: nil, choices: {})
       payload = { 'responding_to' => responding_to, 'items' => items.first(MAX_ITEMS) }
       Redis::Alfred.setex(key(conversation), payload.to_json, TTL)
+      remember(conversation, choices) if choices.present?
     end
 
     # Returns the items for this run and clears them. Buttons stashed for a different customer
@@ -38,10 +46,31 @@ class Captain::QuickReplies
       payload['items'] if payload['responding_to'] == responding_to && payload['items'].present?
     end
 
+    # What a customer reply stands for, or nil when it is not one of the recent buttons (or expired).
+    def choice(conversation, value)
+      return if value.blank?
+
+      choices(conversation)[value.to_s.strip]
+    end
+
     private
+
+    def remember(conversation, new_choices)
+      merged = choices(conversation).merge(new_choices.transform_keys(&:to_s))
+      Redis::Alfred.setex(choices_key(conversation), merged.to_json, TTL)
+    end
+
+    def choices(conversation)
+      raw = Redis::Alfred.get(choices_key(conversation))
+      raw.present? ? JSON.parse(raw) : {}
+    end
 
     def key(conversation)
       format(Redis::RedisKeys::CAPTAIN_QUICK_REPLIES, conversation_id: conversation.id)
+    end
+
+    def choices_key(conversation)
+      format(Redis::RedisKeys::CAPTAIN_QUICK_REPLY_CHOICES, conversation_id: conversation.id)
     end
   end
 end
