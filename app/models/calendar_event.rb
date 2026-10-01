@@ -58,3 +58,5 @@ class CalendarEvent < ApplicationRecord
     booking_source == 'ai'
   end
 end
+
+CalendarEvent.prepend_mod_with('CalendarEvent')

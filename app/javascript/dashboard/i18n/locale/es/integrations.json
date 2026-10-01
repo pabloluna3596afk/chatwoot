@@ -846,6 +846,19 @@
           "LOAD_ERROR": "No se pudieron cargar los calendarios. Inténtalo de nuevo.",
           "NO_CALENDAR": "Esta cuenta aún no tiene un calendario conectado. Conecta un calendario de Google para que Captain pueda agendar citas.",
           "CONNECT_CALENDAR": "Conectar un calendario",
+          "REMINDERS": {
+            "TITLE": "Confirmación y recordatorios",
+            "CONFIRMATION": "Enviar una confirmación cuando Captain agenda una cita",
+            "REMINDER_24H": "Recordar al cliente 24 horas antes",
+            "REMINDER_2H": "Recordar al cliente 2 horas antes",
+            "PAID": "Permitir plantillas de pago fuera de las 24 h",
+            "PAID_NOTE": "Fuera de las 24 h, WhatsApp exige una plantilla aprobada por Meta y tiene coste. Si está desactivado, esos recordatorios no se envían y queda una nota privada en la conversación.",
+            "TEMPLATE_PLACEHOLDER": "Selecciona una plantilla aprobada",
+            "TEMPLATE_CONFIRMATION": "Plantilla de confirmación",
+            "TEMPLATE_REMINDER": "Plantilla de recordatorio",
+            "TEMPLATE_CANCELLED": "Plantilla de cancelación"
+          },
+          
           "ERRORS": {
             "CONNECTION": "Selecciona una cuenta de calendario.",
             "CALENDAR": "Selecciona un calendario."

@@ -559,6 +559,14 @@ en:
       limit_exceeded: 'You can create a maximum of %{limit} custom tools per account'
     assistant:
       limit_exceeded: 'You can create a maximum of %{limit} assistants per account'
+    appointment_reminders:
+      reminder_24h: '%{assistant}: hi %{name}, a reminder of your appointment "%{title}" on %{when}.'
+      reminder_2h: '%{assistant}: hi %{name}, your appointment "%{title}" is in about 2 hours (%{when}).'
+      reply_hint: ' Reply "%{confirm}", "%{change}" or "%{cancel}".'
+      not_sent_window: '%{assistant}: reminder not sent (%{when}): it is outside the 24 h window and paid templates are turned off.'
+      not_sent_channel: '%{assistant}: reminder not sent (%{when}): this channel cannot send outside its messaging window.'
+      no_template: '%{assistant}: reminder not sent (%{when}): it is outside the 24 h window and no template is selected for reminders.'
+      template_unavailable: '%{assistant}: reminder not sent (%{when}): the selected template is not approved in this inbox.'
     appointments:
       disabled: 'Appointments are not available in this channel. Offer to connect the customer with the team instead.'
       no_calendar: 'The appointments calendar is not available right now. Offer to connect the customer with the team.'
@@ -591,6 +599,9 @@ en:
       weekdays: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
       weekdays_short: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
       slots_buttons_hint: 'The options are shown to the customer as buttons with your reply. Do not list them again in your text: write one short sentence asking which one suits them. When they tap one, their reply is the option text (for example "jue 16/01 · 10:00"): pass it unchanged as start to propose_appointment.'
+      confirmation_buttons_hint: 'Write the confirmation for the customer in ONE message with the details of the booking. Buttons to change or cancel the appointment are attached to your reply automatically, so do not list options.'
+      confirmation_text_hint: 'Write the confirmation for the customer in ONE message with the details of the booking.'
+      confirmed: 'Confirmed: %{time}. Tell the customer in one short sentence that the appointment is confirmed.'
       slots_numbered_hint: 'This channel has no buttons. Write the options as a numbered list (1., 2., ...) in your reply and ask the customer to answer with the number. When they answer, call check_availability again if you need the exact start value.'
       propose_buttons: 'Ask the customer: "Shall I book %{time}?". Confirmation buttons ("%{yes}" and "%{other}") are attached to your reply automatically, so do not write options. A reply that starts with "%{yes} ·" is the explicit yes: call book_appointment with that exact reply text as start and customer_confirmed true. The reply "%{other}" means they want another time.'
       propose_text: 'Ask the customer: "Shall I book %{time}?" and tell them to answer yes or ask for another time. Only an explicit yes counts as confirmation.'
@@ -605,6 +616,7 @@ en:
         change_time: 'Change time'
         cancel: 'Cancel appointment'
         keep: 'Keep it'
+        confirm: 'I confirm'
   public_portal:
     search:
       search_placeholder: Search for article by title or body...

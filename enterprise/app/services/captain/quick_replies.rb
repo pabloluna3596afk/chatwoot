@@ -56,12 +56,14 @@ class Captain::QuickReplies
       choices(conversation)[value.to_s.strip]
     end
 
-    private
-
+    # Adds what button values stand for, without stashing buttons (used by messages that are posted directly,
+    # such as the appointment reminders). Keeps earlier choices and renews the 24 h.
     def remember(conversation, new_choices)
       merged = choices(conversation).merge(new_choices.transform_keys(&:to_s))
       Redis::Alfred.setex(choices_key(conversation), merged.to_json, CHOICES_TTL)
     end
+
+    private
 
     def choices(conversation)
       raw = Redis::Alfred.get(choices_key(conversation))

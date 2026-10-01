@@ -846,6 +846,19 @@
           "LOAD_ERROR": "The calendars could not be loaded. Please try again.",
           "NO_CALENDAR": "This account has no calendar connected yet. Connect a Google calendar to let Captain book appointments.",
           "CONNECT_CALENDAR": "Connect a calendar",
+          "REMINDERS": {
+            "TITLE": "Confirmation and reminders",
+            "CONFIRMATION": "Send a confirmation when Captain books an appointment",
+            "REMINDER_24H": "Remind the customer 24 hours before",
+            "REMINDER_2H": "Remind the customer 2 hours before",
+            "PAID": "Allow paid templates outside the 24 h window",
+            "PAID_NOTE": "Outside the 24 h window, WhatsApp requires a template approved by Meta and it has a cost. If this is off, those reminders are not sent and a private note is left in the conversation.",
+            "TEMPLATE_PLACEHOLDER": "Select an approved template",
+            "TEMPLATE_CONFIRMATION": "Confirmation template",
+            "TEMPLATE_REMINDER": "Reminder template",
+            "TEMPLATE_CANCELLED": "Cancellation template"
+          },
+          
           "ERRORS": {
             "CONNECTION": "Select a calendar account.",
             "CALENDAR": "Select a calendar."

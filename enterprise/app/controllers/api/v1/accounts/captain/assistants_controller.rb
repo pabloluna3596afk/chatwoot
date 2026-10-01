@@ -137,7 +137,10 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
       :resolution_message, :instructions, :temperature, :auto_resolve_mode,
       :response_window,
       { appointments: [:enabled, :calendar_connection_id, :calendar_id, :slot_duration_minutes,
-                       :min_notice_minutes, :booking_window_days, { required_contact_fields: [] }] }
+                       :min_notice_minutes, :booking_window_days, :send_confirmation, :reminder_24h, :reminder_2h,
+                       :allow_paid_templates, { required_contact_fields: [] },
+                       { template_confirmation: [:name, :language] }, { template_reminder: [:name, :language] },
+                       { template_cancelled: [:name, :language] }] }
     ]
     if Current.account.feature_enabled?('captain_integration_v2')
       assistant_config_attributes += [:auto_resolve_after, :send_inactivity_resolution_message]
