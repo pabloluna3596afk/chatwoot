@@ -33,7 +33,7 @@ class Captain::AppointmentReminder < ApplicationRecord
   belongs_to :account
   belongs_to :calendar_event
   belongs_to :captain_assistant, class_name: 'Captain::Assistant'
-  belongs_to :conversation
+  belongs_to :conversation, class_name: '::Conversation'
 
   validates :kind, inclusion: { in: KINDS }
   validates :status, inclusion: { in: STATUSES }
