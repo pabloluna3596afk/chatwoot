@@ -49,7 +49,7 @@ module Llm::Config
     private
 
     def settings
-      InstallationConfig.where(name: SETTING_NAMES).pluck(:name, :value).to_h
+      InstallationConfig.where(name: SETTING_NAMES).to_h { |config| [config.name, config.value] }
     end
 
     def configure_ruby_llm(current)
