@@ -112,6 +112,8 @@ RSpec.describe Captain::AppointmentReminders do
     end
 
     it 'sends each due reminder once, even when it runs again' do
+      # Let the error the dispatcher would swallow surface, so a failure here says why.
+      allow(ChatwootExceptionTracker).to receive(:new).and_wrap_original { |_original, error, **_options| raise error }
       before_count = Message.count
       at(starts_at - 24.hours + 30.seconds) { described_class.new.perform }
 
