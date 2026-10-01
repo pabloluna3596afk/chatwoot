@@ -1443,6 +1443,13 @@
         "TITLE": "No hay bandejas conectadas",
         "SUBTITLE": "Conectar una bandeja le permite al asistente resolver las preguntas iniciales de tus clientes antes de transferirlas a ti."
       }
+    },
+    "PAUSED_NOTICE": {
+      "MISSING_KEY": "{name} está pausado: falta la llave de IA.",
+      "QUOTA_EXHAUSTED": "{name} está pausado: se agotaron las respuestas del mes.",
+      "CONFIGURE_KEY": "Configurar la llave",
+      "ASK_INSTALLATION_ADMIN": "Pide al administrador de la instalación que la configure.",
+      "VIEW_BILLING": "Ver facturación"
     }
   }
 }
