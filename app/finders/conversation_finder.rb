@@ -34,7 +34,8 @@ class ConversationFinder
         mine_count: mine_count,
         assigned_count: assigned_count,
         unassigned_count: unassigned_count,
-        all_count: all_count
+        all_count: all_count,
+        ai_count: ai_count
       }
     }
   end
@@ -49,7 +50,8 @@ class ConversationFinder
         mine_count: mine_count,
         assigned_count: assigned_count,
         unassigned_count: unassigned_count,
-        all_count: all_count
+        all_count: all_count,
+        ai_count: ai_count
       }
     }
   end
@@ -101,6 +103,7 @@ class ConversationFinder
       current_user,
       current_account
     ).perform
+    @visible_conversations = @conversations
     filter_by_conversation_type if params[:conversation_type]
     @conversations
   end
@@ -110,7 +113,7 @@ class ConversationFinder
     when 'me'
       @conversations = @conversations.assigned_to(current_user)
     when 'unassigned'
-      @conversations = @conversations.without_human_assignee
+      @conversations = @conversations.queue_unassigned
     when 'assigned'
       @conversations = @conversations.with_human_assignee
     end
@@ -127,6 +130,8 @@ class ConversationFinder
       @conversations = @conversations.where(id: participant_conversation_ids)
     when 'unattended'
       @conversations = @conversations.unattended
+    when 'captain'
+      @conversations = @conversations.attended_by_ai
     end
     @conversations
   end
@@ -142,7 +147,7 @@ class ConversationFinder
   end
 
   def filter_by_status
-    return if params[:status] == 'all'
+    return if params[:status] == 'all' || params[:conversation_type] == 'captain'
 
     @conversations = @conversations.where(status: params[:status] || DEFAULT_STATUS)
   end
@@ -169,19 +174,26 @@ class ConversationFinder
   def set_count_for_all_conversations
     return legacy_count_for_all_conversations if @conversations.limit_value || @conversations.offset_value || @conversations.eager_loading?
 
+    # develop's fast count leaves AgentBot-owned rows out of unassigned_count (the list keeps them); only the Captain exclusion is new.
+    unassigned_sql = "conversations.assignee_agent_bot_id IS NULL AND #{Conversation::QUEUE_UNASSIGNED_SQL}"
     counts = @conversations.unscope(:order).pick(
       Arel.sql("COUNT(*) FILTER (WHERE assignee_id = #{current_user.id})"),
-      Arel.sql('COUNT(*) FILTER (WHERE assignee_id IS NULL AND assignee_agent_bot_id IS NULL)'),
+      Arel.sql("COUNT(*) FILTER (WHERE #{unassigned_sql})"),
       Arel.sql('COUNT(*) FILTER (WHERE assignee_id IS NOT NULL)'),
       Arel.sql('COUNT(*)')
     )
     counts || [0, 0, 0, 0]
   end
 
+  # Rows Captain is attending, independent of the status and view being browsed, so the sidebar entry matches the AI view.
+  def ai_count
+    @visible_conversations.attended_by_ai.count
+  end
+
   def legacy_count_for_all_conversations
     [
       @conversations.assigned_to(current_user).count,
-      @conversations.without_human_assignee.count,
+      @conversations.queue_unassigned.count,
       @conversations.with_human_assignee.count,
       @conversations.count
     ]

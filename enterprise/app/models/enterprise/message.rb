@@ -39,18 +39,21 @@ module Enterprise::Message
   end
 
   def mark_pending_conversation_as_open_for_human_response
-    return unless captain_pending_conversation?
+    return unless captain_pending_conversation? || captain_escalated_conversation?
     return unless human_response?
     return if bot_response?
     return if private?
     return if template_bootstrap_message?
 
+    author = sender
     previous_user = Current.user
     previous_executed_by = Current.executed_by
     Current.user = nil
     Current.executed_by = nil
 
     begin
+      # An agent's reply takes the conversation; assigning also clears the escalation mark.
+      conversation.assignee = author if author.is_a?(User) && conversation.assignee_id.blank?
       conversation.open!
       return unless conversation.saved_change_to_status?
 
@@ -65,6 +68,10 @@ module Enterprise::Message
     return false unless conversation.pending?
 
     ::CaptainInbox.exists?(inbox_id: conversation.inbox_id)
+  end
+
+  def captain_escalated_conversation?
+    conversation.captain_escalated?
   end
 
   def template_bootstrap_message?

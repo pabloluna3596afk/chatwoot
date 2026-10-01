@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { removeEmoji } from 'shared/helpers/emoji';
+import { resolveAssistantAvatar } from 'dashboard/helper/assistantAvatar';
 
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import ChannelIcon from 'dashboard/components-next/icon/ChannelIcon.vue';
@@ -91,6 +92,8 @@ const STATUS_CLASSES = computed(() => ({
 }));
 
 const showDefaultAvatar = computed(() => !props.src && !props.name);
+
+const resolvedSrc = computed(() => resolveAssistantAvatar(props.src));
 
 const initials = computed(() => {
   if (!props.name) return '';
@@ -256,7 +259,7 @@ watch(
       <!-- Avatar Content -->
       <img
         v-if="src && isImageValid"
-        :src="src"
+        :src="resolvedSrc"
         :alt="name"
         @error="invalidateCurrentImage"
       />

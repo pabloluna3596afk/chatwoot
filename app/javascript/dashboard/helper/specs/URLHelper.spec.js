@@ -49,6 +49,11 @@ describe('#URL Helpers', () => {
         })
       ).toBe('/app/accounts/1/participating/conversations');
     });
+    it('should return url to the AI conversations', () => {
+      expect(
+        conversationListPageURL({ accountId: 1, conversationType: 'captain' })
+      ).toBe('/app/accounts/1/ai/conversations');
+    });
   });
   describe('conversationUrl', () => {
     it('should return direct conversation URL if activeInbox is nil', () => {
@@ -70,6 +75,11 @@ describe('#URL Helpers', () => {
       expect(conversationUrl({ accountId: 1, teamId: 1, id: 1 })).toBe(
         'accounts/1/team/1/conversations/1'
       );
+    });
+    it('should return the AI view URL if the conversation type is captain', () => {
+      expect(
+        conversationUrl({ accountId: 1, id: 1, conversationType: 'captain' })
+      ).toBe('accounts/1/ai/conversations/1');
     });
   });
 

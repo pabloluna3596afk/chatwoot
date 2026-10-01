@@ -6,6 +6,7 @@ import { dynamicTime } from 'shared/helpers/timeHelper';
 import Button from 'dashboard/components-next/button/Button.vue';
 import CardLayout from 'dashboard/components-next/CardLayout.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 
 const props = defineProps({
   suggestion: {
@@ -82,7 +83,13 @@ const language = computed(() =>
         class="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 text-xs text-n-slate-10"
       >
         <span class="inline-flex min-w-0 items-center gap-1.5">
-          <Icon icon="i-woot-captain" class="size-3.5 shrink-0" />
+          <Avatar
+            :name="suggestion.assistant?.name || ''"
+            :src="suggestion.assistant?.avatar_url"
+            :size="16"
+            rounded-full
+            class="shrink-0"
+          />
           <span class="truncate">{{ suggestion.assistant?.name }}</span>
         </span>
         <span class="inline-flex items-center gap-1.5">

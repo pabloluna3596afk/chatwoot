@@ -27,5 +27,36 @@ export function useAssistantSettings() {
     }
   };
 
-  return { assistantId, assistant, updateAssistant };
+  const uploadAvatar = async ({ file }) => {
+    try {
+      await store.dispatch('captainAssistants/updateAvatar', {
+        id: assistantId.value,
+        file,
+      });
+      useAlert(t('CAPTAIN.ASSISTANTS.FORM.AVATAR.SUCCESS_UPLOAD'));
+    } catch (error) {
+      useAlert(
+        error?.message || t('CAPTAIN.ASSISTANTS.FORM.AVATAR.ERROR_UPLOAD')
+      );
+    }
+  };
+
+  const deleteAvatar = async () => {
+    try {
+      await store.dispatch('captainAssistants/deleteAvatar', assistantId.value);
+      useAlert(t('CAPTAIN.ASSISTANTS.FORM.AVATAR.SUCCESS_DELETE'));
+    } catch (error) {
+      useAlert(
+        error?.message || t('CAPTAIN.ASSISTANTS.FORM.AVATAR.ERROR_DELETE')
+      );
+    }
+  };
+
+  return {
+    assistantId,
+    assistant,
+    updateAssistant,
+    uploadAvatar,
+    deleteAvatar,
+  };
 }

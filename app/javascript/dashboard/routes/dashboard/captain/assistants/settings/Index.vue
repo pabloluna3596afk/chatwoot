@@ -12,7 +12,8 @@ import DeleteDialog from 'dashboard/components-next/captain/pageComponents/Delet
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
-const { assistantId, assistant, updateAssistant } = useAssistantSettings();
+const { assistantId, assistant, updateAssistant, uploadAvatar, deleteAvatar } =
+  useAssistantSettings();
 
 const deleteAssistantDialog = ref(null);
 const assistants = useMapGetter('captainAssistants/getRecords');
@@ -55,6 +56,8 @@ const handleDeleteSuccess = () => {
     <AssistantBasicSettingsForm
       :assistant="assistant"
       @submit="updateAssistant"
+      @upload-avatar="uploadAvatar"
+      @delete-avatar="deleteAvatar"
     />
     <span class="w-full h-px mt-2 bg-n-weak" />
     <div class="flex items-end justify-between w-full gap-4">

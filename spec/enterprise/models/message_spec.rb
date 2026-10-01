@@ -87,5 +87,62 @@ RSpec.describe Message do
 
       expect(conversation.reload.pending?).to be true
     end
+
+    it 'assigns the agent who replies to a conversation Captain was attending' do
+      agent = create(:user, account: conversation.account)
+
+      create(:message, message_type: :outgoing, conversation: conversation, sender: agent)
+
+      expect(conversation.reload).to have_attributes(status: 'open', assignee_id: agent.id)
+      expect(conversation.captain_state).to be_nil
+    end
+
+    it 'does not assign anyone when the reply has no user sender' do
+      message = build(:message, message_type: :outgoing, conversation: conversation, content_attributes: { external_echo: true })
+      message.sender = nil
+      message.save!
+
+      expect(conversation.reload).to have_attributes(status: 'open', assignee_id: nil)
+    end
+
+    it 'keeps the assignee of a conversation that already has a human' do
+      owner = create(:user, account: conversation.account)
+      other_agent = create(:user, account: conversation.account)
+      conversation.update!(assignee: owner)
+
+      create(:message, message_type: :outgoing, conversation: conversation, sender: other_agent)
+
+      expect(conversation.reload.assignee_id).to eq(owner.id)
+    end
+
+    context 'when the conversation was escalated by Captain' do
+      let(:agent) { create(:user, account: conversation.account) }
+
+      before do
+        conversation.update!(status: :open)
+        conversation.update!(captain_handed_off_at: Time.current)
+      end
+
+      it 'assigns the agent who replies and clears the escalation mark' do
+        expect(conversation.reload.captain_state).to eq('escalated')
+
+        create(:message, message_type: :outgoing, conversation: conversation, sender: agent)
+
+        expect(conversation.reload).to have_attributes(assignee_id: agent.id, captain_handed_off_at: nil)
+        expect(conversation.captain_state).to be_nil
+      end
+
+      it 'does not create the auto-open activity message because the conversation was already open' do
+        expect do
+          create(:message, message_type: :outgoing, conversation: conversation, sender: agent)
+        end.not_to have_enqueued_job(Conversations::ActivityMessageJob).with(conversation, hash_including(content: auto_open_activity_content))
+      end
+
+      it 'does not take the conversation for private notes' do
+        create(:message, message_type: :outgoing, conversation: conversation, sender: agent, private: true)
+
+        expect(conversation.reload).to have_attributes(assignee_id: nil, captain_state: 'escalated')
+      end
+    end
   end
 end

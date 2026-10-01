@@ -19,6 +19,16 @@ class CaptainAssistant extends ApiClient {
     });
   }
 
+  updateAvatar(assistantId, file) {
+    const formData = new FormData();
+    formData.append('assistant[avatar]', file);
+    return axios.patch(`${this.url}/${assistantId}`, formData);
+  }
+
+  deleteAvatar(assistantId) {
+    return axios.delete(`${this.url}/${assistantId}/avatar`);
+  }
+
   playground({ assistantId, messageContent, messageHistory }) {
     return axios.post(`${this.url}/${assistantId}/playground`, {
       message_content: messageContent,

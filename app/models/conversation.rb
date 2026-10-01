@@ -78,6 +78,7 @@ class Conversation < ApplicationRecord
   validates :contact_id, presence: true
   before_validation :validate_additional_attributes
   before_validation :ensure_exclusive_assignee
+  before_validation :clear_captain_handoff_mark
   validates :additional_attributes, jsonb_attributes_length: true
   validates :custom_attributes, jsonb_attributes_length: true
   validates :uuid, uniqueness: true
@@ -87,7 +88,16 @@ class Conversation < ApplicationRecord
   enum status: { open: 0, resolved: 1, pending: 2, snoozed: 3 }
   enum priority: { low: 0, medium: 1, high: 2, urgent: 3 }
 
+  # Captain answers a pending conversation in any inbox that has an assistant connected.
+  # Plain SQL on captain_inboxes (shared schema) so it works per row without loading assistants or checking quota.
+  CAPTAIN_ATTENDED_SQL = "(conversations.status = #{statuses[:pending]} AND conversations.assignee_agent_bot_id IS NULL AND " \
+                         'EXISTS (SELECT 1 FROM captain_inboxes WHERE captain_inboxes.inbox_id = conversations.inbox_id))'.freeze
+  # The dashboard "Sin asignar" queue: develop's without_human_assignee (AgentBot-owned rows stay in it) minus what Captain attends.
+  QUEUE_UNASSIGNED_SQL = "conversations.assignee_id IS NULL AND NOT #{CAPTAIN_ATTENDED_SQL}".freeze
+
   scope :unassigned, -> { where(assignee_id: nil, assignee_agent_bot_id: nil) }
+  scope :attended_by_ai, -> { where(CAPTAIN_ATTENDED_SQL) }
+  scope :queue_unassigned, -> { where(QUEUE_UNASSIGNED_SQL) }
   scope :assigned, -> { where.not(assignee_id: nil).or(where.not(assignee_agent_bot_id: nil)) }
   scope :without_human_assignee, -> { where(assignee_id: nil) }
   scope :with_human_assignee, -> { where.not(assignee_id: nil) }
@@ -222,6 +232,8 @@ class Conversation < ApplicationRecord
 
   def bot_handoff!(dispatch_event: true)
     update(waiting_since: Time.current) if waiting_since.blank?
+    # Set before open! so the mark and the status change travel in the same save and event.
+    self.captain_handed_off_at = Time.current if captain_attended? && assignee_id.blank?
     self.ai_assignee = nil
     open!
     dispatch_bot_handoff_event if dispatch_event
@@ -275,6 +287,31 @@ class Conversation < ApplicationRecord
 
   def bot_handling?
     assignee_agent_bot_id.present?
+  end
+
+  def captain_attended?
+    pending? && assignee_agent_bot_id.blank? && inbox.try(:captain_inbox).present?
+  end
+
+  def captain_escalated?
+    captain_handed_off_at.present? && open? && assignee_id.blank?
+  end
+
+  # 'ai' while Captain answers, 'escalated' after it handed off and nobody has taken it, nil otherwise.
+  def captain_state
+    return 'ai' if captain_attended?
+
+    'escalated' if captain_escalated?
+  end
+
+  # Assistant shown on the card while Captain answers (nil once a person or another bot owns the conversation).
+  def captain_assistant_data
+    return unless captain_state == 'ai'
+
+    assistant = inbox.try(:captain_assistant)
+    return if assistant.blank?
+
+    { id: assistant.id, name: assistant.name, thumbnail: assistant.avatar_or_default_url }
   end
 
   def tweet?
@@ -421,6 +458,10 @@ class Conversation < ApplicationRecord
     end
   end
 
+  def clear_captain_handoff_mark
+    self.captain_handed_off_at = nil if captain_handed_off_at.present? && (assignee_id.present? || resolved? || pending?)
+  end
+
   def determine_conversation_status
     self.status = :resolved and return if contact.blocked?
 
@@ -463,7 +504,7 @@ class Conversation < ApplicationRecord
 
   def list_of_keys
     %w[team_id assignee_id assignee_agent_bot_id status snoozed_until custom_attributes label_list waiting_since
-       first_reply_created_at priority]
+       first_reply_created_at priority captain_handed_off_at]
   end
 
   def allowed_keys?

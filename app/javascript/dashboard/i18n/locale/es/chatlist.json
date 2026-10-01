@@ -11,6 +11,7 @@
     "TAB_HEADING": "Conversaciones",
     "MENTION_HEADING": "Menciones",
     "UNATTENDED_HEADING": "Desatendido",
+    "CAPTAIN_HEADING": "Atendidas por Captain",
     "SEARCH": {
       "INPUT": "Búsqueda de Personas, Chats, Respuestas Salvadas .."
     },
@@ -198,6 +199,13 @@
       "FORMAT_CSV": "CSV (.csv)",
       "SUCCESS_MESSAGE": "La exportación se está preparando. La descarga iniciará automáticamente cuando esté lista. También recibirás un correo con el enlace.",
       "ERROR_MESSAGE": "Hubo un error al exportar las conversaciones. Inténtalo de nuevo."
+    },
+    "CAPTAIN_LEGEND": {
+      "TITLE": "Estado de las conversaciones de Captain",
+      "ANSWERING": "Captain está contestando",
+      "WAITING": "Esperando al cliente",
+      "ESCALATED": "Escalada: necesita a una persona",
+      "TAKEN": "Si una persona la toma, el color desaparece."
     }
   }
 }

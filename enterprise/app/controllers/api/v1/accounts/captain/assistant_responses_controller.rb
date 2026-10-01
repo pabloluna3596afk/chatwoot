@@ -84,7 +84,7 @@ class Api::V1::Accounts::Captain::AssistantResponsesController < Api::V1::Accoun
   end
 
   def set_responses
-    @responses = Current.account.captain_assistant_responses.includes(:assistant, :documentable).ordered
+    @responses = Current.account.captain_assistant_responses.includes({ assistant: { avatar_attachment: :blob } }, :documentable).ordered
   end
 
   def set_response

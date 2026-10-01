@@ -8,6 +8,7 @@ import {
   isOnMentionsView,
   isOnParticipatingView,
   isOnUnattendedView,
+  isOnCaptainView,
   isOnFoldersView,
 } from './helpers/actionHelpers';
 import messageReadActions from './actions/messageReadActions';
@@ -403,14 +404,14 @@ const actions = {
     const hasAppliedFilters = !!appliedFilters.length;
     const isMatchingInboxFilter =
       !currentInbox || Number(currentInbox) === inboxId;
-    if (
-      !hasAppliedFilters &&
-      !isOnFoldersView(rootState) &&
-      !isOnMentionsView(rootState) &&
-      !isOnParticipatingView(rootState) &&
-      !isOnUnattendedView(rootState) &&
-      isMatchingInboxFilter
-    ) {
+    const isOnCaptainList = isOnCaptainView(rootState);
+    const belongsToView = isOnCaptainList
+      ? conversation.captain_state === 'ai'
+      : !isOnFoldersView(rootState) &&
+        !isOnMentionsView(rootState) &&
+        !isOnParticipatingView(rootState) &&
+        !isOnUnattendedView(rootState);
+    if (!hasAppliedFilters && belongsToView && isMatchingInboxFilter) {
       commit(types.ADD_CONVERSATION, conversation);
       dispatch('contacts/setContact', sender);
     }
