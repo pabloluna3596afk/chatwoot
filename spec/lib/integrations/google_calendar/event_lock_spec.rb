@@ -38,10 +38,40 @@ RSpec.describe Integrations::GoogleCalendar::EventLock do
     let(:colliding_bot) { create(:agent_bot, id: user.id, account: account) }
 
     it 'does not treat a bot with the same numeric id as the user holding the lock' do
-      pending 'KNOWN ISSUE: EventLock keys the holder by user.id only, so an AgentBot with the same id as the holder takes over the lock'
       lock.acquire(user)
 
       expect(lock.acquire(colliding_bot)[:ok]).to be(false)
+      expect(lock.heartbeat(colliding_bot)[:ok]).to be(false)
+      expect(lock.release(colliding_bot)).to be(false)
+      expect(lock.holder).to include('holder_key' => "User:#{user.id}")
+    end
+
+    it 'does not let the user take over the lock of a bot with the same id' do
+      lock.acquire(colliding_bot)
+
+      expect(lock.acquire(user)[:ok]).to be(false)
+      expect(lock.holder).to include('holder_key' => "AgentBot:#{colliding_bot.id}", 'name' => colliding_bot.name)
+    end
+
+    it 'lets the same bot re-acquire its own lock' do
+      expect(lock.acquire(colliding_bot)[:ok]).to be(true)
+      expect(lock.acquire(colliding_bot)[:ok]).to be(true)
+    end
+  end
+
+  describe 'a lock written before holder_key existed' do
+    let(:key) { format(Redis::RedisKeys::CALENDAR_EVENT_LOCK, account_id: account.id, event_id: event_id) }
+
+    before { Redis::Alfred.setex(key, { user_id: user.id, name: user.name }.to_json, 180) }
+
+    it 'still belongs to the User with that id' do
+      expect(lock.acquire(user)[:ok]).to be(true)
+      expect(lock.acquire(other_user)[:ok]).to be(false)
+      expect(lock.holder).to include('name' => user.name, 'holder_key' => "User:#{user.id}")
+    end
+
+    it 'is not taken over by a bot with the same id' do
+      expect(lock.acquire(create(:agent_bot, id: user.id, account: account))[:ok]).to be(false)
     end
   end
 end

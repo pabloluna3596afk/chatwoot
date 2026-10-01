@@ -7,7 +7,7 @@ class Integrations::GoogleCalendar::EventLock
 
   def acquire(user)
     existing = holder
-    if existing && existing['user_id'] == user.id
+    if existing && same_holder?(existing, user)
       Redis::Alfred.setex(@key, serialize(user), TTL)
       return success(existing)
     end
@@ -22,7 +22,7 @@ class Integrations::GoogleCalendar::EventLock
   def heartbeat(user)
     existing = holder
     return acquire(user) if existing.blank?
-    return failure(existing) unless existing['user_id'] == user.id
+    return failure(existing) unless same_holder?(existing, user)
 
     Redis::Alfred.setex(@key, serialize(user), TTL)
     success(existing)
@@ -31,7 +31,7 @@ class Integrations::GoogleCalendar::EventLock
   def release(user)
     existing = holder
     return true if existing.blank?
-    return false unless existing['user_id'] == user.id
+    return false unless same_holder?(existing, user)
 
     Redis::Alfred.delete(@key)
     true
@@ -44,8 +44,18 @@ class Integrations::GoogleCalendar::EventLock
 
   private
 
+  # AgentBots (Panel AI bridge) and Users have separate id sequences, so an id alone is not an identity.
+  # Locks written before holder_key existed were always taken by a User.
+  def holder_key(user)
+    "#{user.class.name}:#{user.id}"
+  end
+
+  def same_holder?(existing, user)
+    (existing['holder_key'] || "User:#{existing['user_id']}") == holder_key(user)
+  end
+
   def serialize(user)
-    { user_id: user.id, name: user.name }.to_json
+    { user_id: user.id, holder_key: holder_key(user), name: user.name }.to_json
   end
 
   def success(holder_data)
