@@ -7,6 +7,8 @@ RSpec.describe 'Api::V1::Accounts::Captain::CopilotThreads', type: :request do
   let(:inbox) { create(:inbox, account: account) }
   let(:conversation) { create(:conversation, account: account, inbox: inbox) }
 
+  before { account.enable_features!('captain_integration') }
+
   def json_response
     JSON.parse(response.body, symbolize_names: true)
   end
@@ -88,9 +90,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::CopilotThreads', type: :request do
 
       context 'with valid params' do
         it 'returns error when usage limit is exceeded' do
-          account.limits = { captain_responses: 2 }
-          account.custom_attributes = { captain_responses_usage: 2 }
-          account.save!
+          put_account_on_plan(account, monthly_messages: 2, copilot_used: 1)
 
           post "/api/v1/accounts/#{account.id}/captain/copilot_threads",
                params: valid_params,
@@ -105,9 +105,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::CopilotThreads', type: :request do
         end
 
         it 'creates a new copilot thread with initial message' do
-          account.limits = { captain_responses: 2 }
-          account.custom_attributes = { captain_responses_usage: 0 }
-          account.save!
+          put_account_on_plan(account, monthly_messages: 2)
 
           expect do
             post "/api/v1/accounts/#{account.id}/captain/copilot_threads",
@@ -137,9 +135,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::CopilotThreads', type: :request do
         end
 
         it 'enqueues the dedicated reply suggestion job' do
-          account.limits = { captain_responses: 2 }
-          account.custom_attributes = { captain_responses_usage: 0 }
-          account.save!
+          put_account_on_plan(account, monthly_messages: 2)
           create(:inbox_member, user: agent, inbox: inbox)
 
           post "/api/v1/accounts/#{account.id}/captain/copilot_threads",
@@ -157,9 +153,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::CopilotThreads', type: :request do
         end
 
         it 'rejects an inaccessible reply suggestion before creating its thread' do
-          account.limits = { captain_responses: 2 }
-          account.custom_attributes = { captain_responses_usage: 0 }
-          account.save!
+          put_account_on_plan(account, monthly_messages: 2)
 
           expect do
             post "/api/v1/accounts/#{account.id}/captain/copilot_threads",

@@ -68,7 +68,7 @@ RSpec.describe Captain::Assistant, type: :model do
     end
 
     it 'does not take a conversation either when the account has no responses left' do
-      allow_any_instance_of(Account).to receive(:usage_limits).and_return(captain: { responses: { current_available: 0 } }) # rubocop:disable RSpec/AnyInstance
+      put_account_on_plan(account, monthly_messages: 100, used: 100)
 
       expect(create(:conversation, account: account, inbox: inbox, contact: contact).status).to eq('open')
     end

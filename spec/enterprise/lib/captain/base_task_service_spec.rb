@@ -2,6 +2,8 @@ require 'rails_helper'
 
 RSpec.describe Captain::BaseTaskService, type: :model do
   let(:account) { create(:account) }
+
+  before { put_account_on_plan(account) }
   let(:inbox) { create(:inbox, account: account) }
   let(:conversation) { create(:conversation, account: account, inbox: inbox) }
   let(:perform_result) { { message: 'Test response' } }
@@ -111,11 +113,11 @@ RSpec.describe Captain::BaseTaskService, type: :model do
       end
     end
 
-    it 'actually increments the usage counter in custom_attributes' do
+    it 'actually increments the Copilot usage of the current period' do
       expect do
         service.perform
         account.reload
-      end.to change { account.custom_attributes['captain_responses_usage'].to_i }.by(1)
+      end.to change { copilot_responses_used(account) }.by(1)
     end
 
     context 'when account has its own OpenAI hook key' do

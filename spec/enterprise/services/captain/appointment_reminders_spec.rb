@@ -22,7 +22,16 @@ RSpec.describe Captain::AppointmentReminders do
   end
   let(:now) { Time.zone.parse('2030-01-10T09:00:00-05:00') }
 
-  around { |example| travel_to(now) { example.run } }
+  before { travel_to(now) }
+  after { travel_back }
+
+  # Runs the block at another moment (travel_to with a block cannot be nested inside the one above).
+  def at(time)
+    travel_to(time)
+    yield
+  ensure
+    travel_to(now)
+  end
 
   before do
     connection.connection_calendars.create!(account: account, external_id: 'cal-1', summary: 'Main', is_enabled: true)
@@ -66,7 +75,7 @@ RSpec.describe Captain::AppointmentReminders do
     end
 
     it 'marks a reminder whose time already passed as skipped' do
-      travel_to(starts_at - 5.hours) { schedule }
+      at(starts_at - 5.hours) { schedule }
 
       expect(reminder('reminder_24h')).to have_attributes(status: 'skipped', skipped_reason: 'too_close')
       expect(reminder('reminder_2h')).to have_attributes(status: 'pending')
@@ -103,26 +112,29 @@ RSpec.describe Captain::AppointmentReminders do
     end
 
     it 'sends each due reminder once, even when it runs again' do
-      travel_to(starts_at - 24.hours + 30.seconds) do
-        expect { described_class.new.perform }.to change(Message, :count).by(1)
-        expect { described_class.new.perform }.not_to change(Message, :count)
-      end
+      # Let the error the dispatcher would swallow surface, so a failure here says why.
+      allow(ChatwootExceptionTracker).to receive(:new).and_wrap_original { |_original, error, **_options| raise error }
+      before_count = Message.count
+      at(starts_at - 24.hours + 30.seconds) { described_class.new.perform }
 
-      expect(reminder('reminder_24h')).to have_attributes(status: 'sent')
+      expect(reminder('reminder_24h')).to have_attributes(status: 'sent', skipped_reason: nil)
+      expect(Message.count).to eq(before_count + 1)
+      at(starts_at - 24.hours + 30.seconds) { described_class.new.perform }
+      expect(Message.count).to eq(before_count + 1)
       expect(reminder('reminder_2h')).to have_attributes(status: 'pending')
     end
 
     it 'does not send the reminders of a cancelled appointment' do
       event.update!(deleted_at: Time.current)
 
-      travel_to(starts_at - 2.hours) { expect { described_class.new.perform }.not_to change(Message, :count) }
+      at(starts_at - 2.hours) { expect { described_class.new.perform }.not_to change(Message, :count) }
     end
 
     it 'skips a reminder instead of failing the batch when sending raises' do
       allow_any_instance_of(Captain::AppointmentReminders::Sender).to receive(:perform).and_raise(StandardError, 'boom') # rubocop:disable RSpec/AnyInstance
       allow(ChatwootExceptionTracker).to receive(:new).and_return(instance_double(ChatwootExceptionTracker, capture_exception: nil))
 
-      travel_to(starts_at - 24.hours + 30.seconds) { described_class.new.perform }
+      at(starts_at - 24.hours + 30.seconds) { described_class.new.perform }
 
       expect(reminder('reminder_24h')).to have_attributes(status: 'skipped', skipped_reason: 'error')
     end
@@ -132,7 +144,7 @@ RSpec.describe Captain::AppointmentReminders do
     let(:due_at) { starts_at - 24.hours + 30.seconds }
 
     def send_reminder(kind = 'reminder_24h')
-      travel_to(due_at) { described_class.new(reminder(kind)).perform }
+      at(due_at) { described_class.new(reminder(kind)).perform }
     end
 
     context 'when the conversation can be answered freely' do
@@ -143,8 +155,22 @@ RSpec.describe Captain::AppointmentReminders do
 
         message = conversation.messages.outgoing.last
         expect(message).to have_attributes(sender: assistant, private: false, content_type: 'input_select')
-        expect(message.content).to include('Asistente de Ventas', 'Ana Pérez', 'Consulta', 'mar 15/01 10:00')
+        expect(message.content).to include('Ana Pérez', 'Consulta', 'martes 15/01 10:00')
+        expect(message.content).not_to start_with('Asistente')
+        expect(message.content).not_to include('Asistente de Ventas')
         expect(message.content_attributes['items'].pluck('title')).to eq(['Confirmo', 'Cambiar hora', 'Cancelar cita'])
+      end
+
+      it 'never puts the assistant name in front of what the customer receives (24 h and 2 h)' do
+        schedule
+
+        at(starts_at - 24.hours + 30.seconds) { described_class.new(reminder('reminder_24h')).perform }
+        at(starts_at - 2.hours + 30.seconds) { described_class.new(reminder('reminder_2h')).perform }
+
+        contents = conversation.messages.outgoing.where(private: false).order(:id).pluck(:content)
+        expect(contents.size).to eq(2)
+        expect(contents).to all(start_with('Hola Ana Pérez'))
+        expect(contents.join).not_to include('Asistente de Ventas')
       end
 
       it 'only offers to change or cancel once the customer confirmed' do
@@ -211,7 +237,7 @@ RSpec.describe Captain::AppointmentReminders do
           messages = conversation.messages.outgoing.where.not(id: conversation.messages.incoming)
           expect(messages.count).to eq(1)
           expect(messages.last).to have_attributes(private: true, sender: assistant)
-          expect(messages.last.content).to include('Asistente de Ventas', 'Recordatorio no enviado', 'plantillas de pago están desactivadas')
+          expect(messages.last.content).to include('Asistente de Ventas no envió el recordatorio', 'plantillas de pago están desactivadas')
           expect(reminder('reminder_24h')).to have_attributes(status: 'skipped', skipped_reason: 'not_sent_window')
         end
       end
@@ -224,10 +250,10 @@ RSpec.describe Captain::AppointmentReminders do
 
           message = conversation.messages.outgoing.last
           expect(message.private).to be(false)
-          expect(message.content).to eq('Hola Ana Pérez, tu cita Consulta es el mar 15/01 a las 10:00.')
+          expect(message.content).to eq('Hola Ana Pérez, tu cita Consulta es el martes 15/01 a las 10:00.')
           expect(message.additional_attributes['template_params']).to include(
             'name' => 'recordatorio_cita', 'language' => 'es',
-            'processed_params' => { 'body' => { '1' => 'Ana Pérez', '2' => 'Consulta', '3' => 'mar 15/01', '4' => '10:00' } }
+            'processed_params' => { 'body' => { '1' => 'Ana Pérez', '2' => 'Consulta', '3' => 'martes 15/01', '4' => '10:00' } }
           )
           expect(reminder('reminder_24h')).to have_attributes(status: 'sent')
         end
@@ -273,7 +299,7 @@ RSpec.describe Captain::AppointmentReminders do
       before { schedule }
 
       it 'skips a reminder of an appointment that already started' do
-        expect(travel_to(starts_at + 1.minute) { described_class.new(reminder('reminder_24h')).perform }).to eq(:skipped)
+        expect(at(starts_at + 1.minute) { described_class.new(reminder('reminder_24h')).perform }).to eq(:skipped)
         expect(reminder('reminder_24h').skipped_reason).to eq('event_gone')
       end
 

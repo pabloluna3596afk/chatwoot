@@ -48,7 +48,8 @@ RSpec.describe Captain::Followup do
 
       message = public_messages.order(:id).last
       expect(message).to have_attributes(sender: assistant, content_type: 'input_select')
-      expect(message.content).to eq('Asistente de Ventas: ¿Sigues ahí? Si todavía necesitas ayuda, solo responde.')
+      expect(message.content).to eq('¿Sigues ahí? Si todavía necesitas ayuda, solo responde.')
+      expect(message.content).not_to include('Asistente de Ventas')
       expect(message.content_attributes['items'].pluck('title')).to eq(['Sí, sigo aquí', 'Ya no, gracias'])
       expect(message.content_attributes['captain_followup']).to eq('nudge')
     end
@@ -314,7 +315,7 @@ RSpec.describe Captain::Followup do
 
         expect(public_messages.where(sender: assistant).count).to eq(1) # only the earlier message
         note = conversation.messages.where(private: true).last
-        expect(note.content).to include('Asistente de Ventas', 'reenganche no enviado', 'plantillas de pago están desactivadas')
+        expect(note.content).to include('Asistente de Ventas no envió el reenganche', 'plantillas de pago están desactivadas')
         expect(described_class.candidates(inbox, now: now)).to be_empty
       end
     end

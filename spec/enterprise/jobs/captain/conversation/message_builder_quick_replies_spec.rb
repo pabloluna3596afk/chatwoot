@@ -2,7 +2,9 @@ require 'rails_helper'
 
 RSpec.describe Captain::Conversation::MessageBuilder do
   let(:account) { create(:account) }
-  let(:inbox) { create(:inbox, account: account) }
+  let(:inbox) do
+    create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false, validate_provider_config: false).inbox
+  end
   let(:assistant) { create(:captain_assistant, account: account) }
   let(:conversation) { create(:conversation, account: account, inbox: inbox, status: :pending) }
   let(:items) do

@@ -34,7 +34,7 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
   private
 
   def build_copilot_response(copilot_message)
-    if Current.account.usage_limits[:captain][:responses][:current_available].positive?
+    if Current.account.copilot_responses_available?
       enqueue_copilot_response(copilot_message)
     else
       copilot_message.copilot_thread.copilot_messages.create!(

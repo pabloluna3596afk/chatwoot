@@ -2,6 +2,8 @@ require 'rails_helper'
 
 RSpec.describe 'Api::V1::Accounts::Captain::CopilotMessagesController', type: :request do
   let(:account) { create(:account) }
+
+  before { account.enable_features!('captain_integration') }
   let(:user) { create(:user, account: account, role: :administrator) }
   let(:copilot_thread) { create(:captain_copilot_thread, account: account, user: user) }
   let!(:copilot_message) { create(:captain_copilot_message, copilot_thread: copilot_thread, account: account) }

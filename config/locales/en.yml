@@ -560,22 +560,22 @@ en:
     assistant:
       limit_exceeded: 'You can create a maximum of %{limit} assistants per account'
     followup:
-      nudge: '%{assistant}: Are you still there? If you still need help, just reply.'
+      nudge: 'Are you still there? If you still need help, just reply.'
       nudge_hint: ' Reply "%{continue}" or "%{stop}".'
       continue_button: "Yes, I'm here"
       stop_button: 'No, thanks'
       closed_note: '%{assistant} closed the conversation due to inactivity.'
-      reengagement_paid_off: '%{assistant}: re-engagement not sent: the 24 h window has closed and paid templates are turned off.'
-      reengagement_no_template: '%{assistant}: re-engagement not sent: the 24 h window has closed and no re-engagement template is selected.'
-      reengagement_template_unavailable: '%{assistant}: re-engagement not sent: the selected template is not approved in this inbox.'
+      reengagement_paid_off: '%{assistant} did not send the re-engagement: the 24 h window has closed and paid templates are turned off.'
+      reengagement_no_template: '%{assistant} did not send the re-engagement: the 24 h window has closed and no re-engagement template is selected.'
+      reengagement_template_unavailable: '%{assistant} did not send the re-engagement: the selected template is not approved in this inbox.'
     appointment_reminders:
-      reminder_24h: '%{assistant}: hi %{name}, a reminder of your appointment "%{title}" on %{when}.'
-      reminder_2h: '%{assistant}: hi %{name}, your appointment "%{title}" is in about 2 hours (%{when}).'
+      reminder_24h: 'Hi %{name}, a reminder of your appointment "%{title}" on %{when}.'
+      reminder_2h: 'Hi %{name}, your appointment "%{title}" is in about 2 hours (%{when}).'
       reply_hint: ' Reply "%{confirm}", "%{change}" or "%{cancel}".'
-      not_sent_window: '%{assistant}: reminder not sent (%{when}): it is outside the 24 h window and paid templates are turned off.'
-      not_sent_channel: '%{assistant}: reminder not sent (%{when}): this channel cannot send outside its messaging window.'
-      no_template: '%{assistant}: reminder not sent (%{when}): it is outside the 24 h window and no template is selected for reminders.'
-      template_unavailable: '%{assistant}: reminder not sent (%{when}): the selected template is not approved in this inbox.'
+      not_sent_window: '%{assistant} did not send the reminder (%{when}): it is outside the 24 h window and paid templates are turned off.'
+      not_sent_channel: '%{assistant} did not send the reminder (%{when}): this channel cannot send outside its messaging window.'
+      no_template: '%{assistant} did not send the reminder (%{when}): it is outside the 24 h window and no template is selected for reminders.'
+      template_unavailable: '%{assistant} did not send the reminder (%{when}): the selected template is not approved in this inbox.'
     appointments:
       disabled: 'Appointments are not available in this channel. Offer to connect the customer with the team instead.'
       no_calendar: 'The appointments calendar is not available right now. Offer to connect the customer with the team.'

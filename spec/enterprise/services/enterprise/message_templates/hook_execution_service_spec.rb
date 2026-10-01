@@ -105,10 +105,7 @@ RSpec.describe MessageTemplates::HookExecutionService do
       end
 
       it 'performs captain handoff when quota is exceeded (OOO template will kick in after handoff)' do
-        account.update!(
-          limits: { 'captain_responses' => 100 },
-          custom_attributes: account.custom_attributes.merge('captain_responses_usage' => 100)
-        )
+        put_account_on_plan(account, monthly_messages: 100, used: 100)
 
         create(:message, conversation: conversation, message_type: :incoming, account: account)
 
@@ -165,10 +162,7 @@ RSpec.describe MessageTemplates::HookExecutionService do
           closed_all_day: false
         )
 
-        account.update!(
-          limits: { 'captain_responses' => 100 },
-          custom_attributes: account.custom_attributes.merge('captain_responses_usage' => 100)
-        )
+        put_account_on_plan(account, monthly_messages: 100, used: 100)
       end
 
       it 'performs handoff within business hours when quota exceeded' do
@@ -516,10 +510,7 @@ RSpec.describe MessageTemplates::HookExecutionService do
     end
 
     it 'does not send out of office template after handoff on campaign conversations when quota is exceeded' do
-      account.update!(
-        limits: { 'captain_responses' => 100 },
-        custom_attributes: account.custom_attributes.merge('captain_responses_usage' => 100)
-      )
+      put_account_on_plan(account, monthly_messages: 100, used: 100)
       inbox.update!(
         working_hours_enabled: true,
         out_of_office_message: 'We are currently closed'
@@ -537,10 +528,7 @@ RSpec.describe MessageTemplates::HookExecutionService do
 
   context 'when Captain quota is exceeded and handoff happens' do
     before do
-      account.update!(
-        limits: { 'captain_responses' => 100 },
-        custom_attributes: account.custom_attributes.merge('captain_responses_usage' => 100)
-      )
+      put_account_on_plan(account, monthly_messages: 100, used: 100)
     end
 
     context 'when outside business hours' do
