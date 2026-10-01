@@ -104,13 +104,20 @@ class Captain::Assistant::AgentRunnerService
   def build_and_wire_agents
     return [reply_suggestion_agent] if reply_suggestion?
 
-    assistant_agent = @assistant.agent
+    assistant_agent = with_appointment_tools(@assistant.agent)
     scenario_agents = @assistant.scenarios.enabled.map(&:agent)
 
     assistant_agent.register_handoffs(*scenario_agents) if scenario_agents.any?
     scenario_agents.each { |scenario_agent| scenario_agent.register_handoffs(assistant_agent) }
 
     [assistant_agent] + scenario_agents
+  end
+
+  # The appointment tools exist only in a conversation whose inbox has appointments active.
+  def with_appointment_tools(agent)
+    return agent unless @conversation && @assistant.appointments_active_in?(@conversation.inbox)
+
+    agent.clone(tools: agent.tools + @assistant.appointment_tools)
   end
 
   def reply_suggestion_agent

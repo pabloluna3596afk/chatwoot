@@ -39,3 +39,38 @@
   title: 'Handoff to Human'
   description: 'Hand off the conversation to a human agent'
   icon: 'user-switch'
+
+- id: check_availability
+  title: 'Check Availability'
+  description: 'Look up free appointment times in the assistant calendar'
+  icon: 'calendar-search'
+
+- id: book_appointment
+  title: 'Book Appointment'
+  description: 'Book an appointment after the customer confirms a time'
+  icon: 'calendar-plus'
+
+- id: appointment_list
+  title: 'List Appointments'
+  description: "List the customer's upcoming appointments"
+  icon: 'calendar-days'
+
+- id: reschedule_appointment
+  title: 'Reschedule Appointment'
+  description: "Move one of the customer's appointments to another time"
+  icon: 'calendar-clock'
+
+- id: cancel_appointment
+  title: 'Cancel Appointment'
+  description: "Cancel one of the customer's appointments"
+  icon: 'calendar-x'
+
+- id: propose_appointment
+  title: 'Propose Appointment'
+  description: 'Propose one time and attach the confirmation buttons'
+  icon: 'calendar-check'
+
+- id: confirm_appointment
+  title: 'Confirm Appointment'
+  description: "Mark one of the customer's appointments as confirmed"
+  icon: 'calendar-check'

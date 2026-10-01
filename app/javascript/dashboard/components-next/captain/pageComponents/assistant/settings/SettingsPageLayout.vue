@@ -59,6 +59,16 @@ const tabs = computed(() => {
       icon: 'i-lucide-calendar-check',
       label: t('CAPTAIN.ASSISTANTS.SETTINGS.APPOINTMENTS.TITLE'),
     },
+    {
+      id: 'captain_assistants_settings_followup_index',
+      icon: 'i-lucide-message-circle-question',
+      label: t('CAPTAIN.ASSISTANTS.SETTINGS.FOLLOWUP.TITLE'),
+    },
+    {
+      id: 'captain_assistants_settings_paid_messages_index',
+      icon: 'i-lucide-badge-dollar-sign',
+      label: t('CAPTAIN.ASSISTANTS.SETTINGS.PAID_MESSAGES.TITLE'),
+    },
   ];
 
   if (isCaptainV2Enabled.value) {

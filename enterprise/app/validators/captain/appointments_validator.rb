@@ -10,10 +10,21 @@ class Captain::AppointmentsValidator < ActiveModel::Validator
     settings = Settings.new(raw)
     validate_numbers(record, settings)
     validate_contact_fields(record, settings)
+    validate_templates(record, settings)
     validate_calendar(record, settings) if settings.enabled?
   end
 
   private
+
+  def validate_templates(record, settings)
+    Settings::TEMPLATE_KEYS.each do |key|
+      template = settings.values[key]
+      next if template.nil?
+      next if template.is_a?(Hash) && template['name'].present? && template['language'].present?
+
+      record.errors.add(:config, "appointments #{key} must have a name and a language")
+    end
+  end
 
   def changed?(record, raw)
     previous = record.new_record? ? nil : record.config_was&.dig('appointments')

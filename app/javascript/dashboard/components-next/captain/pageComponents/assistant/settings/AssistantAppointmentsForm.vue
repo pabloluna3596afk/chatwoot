@@ -2,6 +2,11 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAccount } from 'dashboard/composables/useAccount';
+import {
+  useApprovedTemplates,
+  templateFromValue,
+  templateToValue,
+} from './useApprovedTemplates';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -25,6 +30,17 @@ const CONTACT_FIELDS = ['name', 'phone', 'email'];
 const DURATION_OPTIONS = [15, 30, 45, 60, 90, 120];
 const NOTICE_OPTIONS = [0, 30, 60, 120, 240, 1440];
 const WINDOW_OPTIONS = [7, 14, 30, 60, 90];
+const TEMPLATE_KEYS = ['confirmation', 'reminder', 'cancelled'];
+
+const REMINDER_OPTIONS = [
+  {
+    key: 'sendConfirmation',
+    testId: 'send-confirmation',
+    label: 'CONFIRMATION',
+  },
+  { key: 'reminder24h', testId: 'reminder-24h', label: 'REMINDER_24H' },
+  { key: 'reminder2h', testId: 'reminder-2h', label: 'REMINDER_2H' },
+];
 
 const initialState = {
   enabled: false,
@@ -34,9 +50,22 @@ const initialState = {
   fields: [...CONTACT_FIELDS],
   minNotice: 60,
   windowDays: 14,
+  sendConfirmation: true,
+  reminder24h: true,
+  reminder2h: true,
+  templates: { confirmation: '', reminder: '', cancelled: '' },
 };
 
-const state = reactive({ ...initialState });
+const state = reactive({
+  ...initialState,
+  templates: { ...initialState.templates },
+});
+const { templateOptions } = useApprovedTemplates();
+
+// The one "paid templates" switch of the assistant lives in its own page; the pickers only matter once it is on.
+const paidEnabled = computed(
+  () => props.assistant?.config?.allow_paid_templates === true
+);
 const connections = ref([]);
 const calendars = ref([]);
 const isLoading = ref(true);
@@ -193,6 +222,14 @@ const updateStateFromAssistant = assistant => {
       : [...initialState.fields],
     minNotice: settings.min_notice_minutes ?? initialState.minNotice,
     windowDays: settings.booking_window_days ?? initialState.windowDays,
+    sendConfirmation: settings.send_confirmation !== false,
+    reminder24h: settings.reminder_24h !== false,
+    reminder2h: settings.reminder_2h !== false,
+    templates: {
+      confirmation: templateToValue(settings.template_confirmation),
+      reminder: templateToValue(settings.template_reminder),
+      cancelled: templateToValue(settings.template_cancelled),
+    },
   });
 };
 
@@ -211,6 +248,12 @@ const handleSubmit = () => {
         required_contact_fields: [...state.fields],
         min_notice_minutes: Number(state.minNotice),
         booking_window_days: Number(state.windowDays),
+        send_confirmation: state.sendConfirmation,
+        reminder_24h: state.reminder24h,
+        reminder_2h: state.reminder2h,
+        template_confirmation: templateFromValue(state.templates.confirmation),
+        template_reminder: templateFromValue(state.templates.reminder),
+        template_cancelled: templateFromValue(state.templates.cancelled),
       },
     },
   });
@@ -379,6 +422,62 @@ onMounted(loadConnections);
             <p class="mb-0 text-xs text-n-slate-11">
               {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.FIELDS_HINT') }}
             </p>
+          </div>
+
+          <div class="flex flex-col gap-2" data-testid="appointments-reminders">
+            <span class="text-sm font-medium text-n-slate-12">
+              {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.TITLE') }}
+            </span>
+            <label
+              v-for="option in REMINDER_OPTIONS"
+              :key="option.key"
+              class="flex items-center gap-2 text-sm text-n-slate-12"
+            >
+              <Checkbox
+                :data-testid="`appointments-${option.testId}`"
+                :model-value="state[option.key]"
+                @update:model-value="state[option.key] = $event"
+              />
+              {{
+                t(
+                  `CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.${option.label}`
+                )
+              }}
+            </label>
+            <p
+              v-if="!paidEnabled"
+              data-testid="appointments-paid-hint"
+              class="mb-0 text-xs text-n-slate-11"
+            >
+              {{
+                t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.PAID_HINT')
+              }}
+            </p>
+            <div
+              v-if="paidEnabled"
+              data-testid="appointments-templates"
+              class="grid gap-4 sm:grid-cols-3"
+            >
+              <div
+                v-for="key in TEMPLATE_KEYS"
+                :key="key"
+                class="flex flex-col gap-1"
+              >
+                <label class="text-sm font-medium text-n-slate-12">
+                  {{
+                    t(
+                      `CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.TEMPLATE_${key.toUpperCase()}`
+                    )
+                  }}
+                </label>
+                <Select
+                  v-model="state.templates[key]"
+                  :data-testid="`appointments-template-${key}`"
+                  full-width
+                  :options="templateOptions(state.templates[key])"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </SettingsToggleSection>

@@ -135,9 +135,14 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
       :product_name, :feature_faq, :feature_memory, :feature_citation,
       :feature_contact_attributes, :welcome_message, :handoff_message,
       :resolution_message, :instructions, :temperature, :auto_resolve_mode,
-      :response_window,
+      :response_window, :allow_paid_templates,
+      { followup: [:inactivity_enabled, :inactivity_after_minutes, :max_nudges, :close_after_minutes, :reengagement_enabled,
+                   { reengagement_template: [:name, :language] }] },
       { appointments: [:enabled, :calendar_connection_id, :calendar_id, :slot_duration_minutes,
-                       :min_notice_minutes, :booking_window_days, { required_contact_fields: [] }] }
+                       :min_notice_minutes, :booking_window_days, :send_confirmation, :reminder_24h, :reminder_2h,
+                       { required_contact_fields: [] },
+                       { template_confirmation: [:name, :language] }, { template_reminder: [:name, :language] },
+                       { template_cancelled: [:name, :language] }] }
     ]
     if Current.account.feature_enabled?('captain_integration_v2')
       assistant_config_attributes += [:auto_resolve_after, :send_inactivity_resolution_message]

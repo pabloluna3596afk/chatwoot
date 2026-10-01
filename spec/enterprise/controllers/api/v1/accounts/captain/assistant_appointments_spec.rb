@@ -13,6 +13,11 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants appointments settings', t
     JSON.parse(response.body, symbolize_names: true)
   end
 
+  let(:reminder_defaults) do
+    { send_confirmation: true, reminder_24h: true, reminder_2h: true,
+      template_confirmation: nil, template_reminder: nil, template_cancelled: nil }
+  end
+
   before { connection.connection_calendars.create!(account: account, external_id: 'cal-1', summary: 'Main', is_enabled: true) }
 
   it 'returns the defaults, disabled, for an assistant that never configured appointments' do
@@ -21,7 +26,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants appointments settings', t
     expect(response).to have_http_status(:success)
     expect(json_response[:config][:appointments]).to eq(
       enabled: false, calendar_connection_id: nil, calendar_id: nil, slot_duration_minutes: 30,
-      required_contact_fields: %w[name phone email], min_notice_minutes: 60, booking_window_days: 14
+      required_contact_fields: %w[name phone email], min_notice_minutes: 60, booking_window_days: 14, **reminder_defaults
     )
   end
 
@@ -34,8 +39,28 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants appointments settings', t
     patch url, params: { assistant: { config: { appointments: settings } } }, headers: admin.create_new_auth_token, as: :json
 
     expect(response).to have_http_status(:success)
-    expect(json_response[:config][:appointments]).to eq(settings)
+    expect(json_response[:config][:appointments]).to eq(settings.merge(reminder_defaults))
     expect(assistant.reload.appointments).to be_enabled
+  end
+
+  it 'saves the confirmation, reminder and template settings' do
+    settings = { send_confirmation: false, reminder_24h: true, reminder_2h: false,
+                 template_reminder: { name: 'recordatorio', language: 'es' } }
+
+    patch url, params: { assistant: { config: { appointments: settings } } }, headers: admin.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(json_response[:config][:appointments]).to include(settings)
+    expect(assistant.reload.appointments).to have_attributes(
+      send_confirmation?: false, reminder_2h?: false, template_reminder: { 'name' => 'recordatorio', 'language' => 'es' }
+    )
+  end
+
+  it 'rejects a template without a language' do
+    patch url, params: { assistant: { config: { appointments: { template_reminder: { name: 'recordatorio' } } } } },
+          headers: admin.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:unprocessable_entity)
   end
 
   it 'keeps the settings when another form saves the config it received' do
