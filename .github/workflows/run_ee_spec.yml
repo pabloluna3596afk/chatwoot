@@ -1,0 +1,99 @@
+name: Run ChatHub EE spec
+# Runs the enterprise specs (Captain, plans, calendar) that "Run Chatwoot CE spec" never sees,
+# because that workflow strips enterprise/ and spec/enterprise before running.
+permissions:
+  contents: read
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+  workflow_dispatch:
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ci_node_total: [8]
+        ci_node_index: [0, 1, 2, 3, 4, 5, 6, 7]
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ''
+          POSTGRES_DB: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --mount type=tmpfs,destination=/var/lib/postgresql/data
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: --entrypoint redis-server
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: Install pnpm dependencies
+        run: pnpm i
+
+      - name: Create database
+        run: bundle exec rake db:create
+
+      - name: Seed database
+        run: bundle exec rake db:schema:load
+
+      - name: Run enterprise backend tests (parallelized)
+        run: |
+          # The enterprise specs plus the app specs of the code they share with it
+          # (LLM config, calendar, automations, scheduled jobs). Round-robin split across the nodes.
+          SPEC_FILES=($(find spec/enterprise spec/lib/llm spec/lib/integrations spec/lib/captain spec/jobs/calendar spec/services/automations spec/configs -name '*_spec.rb' | sort))
+          TESTS=""
+
+          for i in "${!SPEC_FILES[@]}"; do
+            if [ $(( i % ${{ matrix.ci_node_total }} )) -eq ${{ matrix.ci_node_index }} ]; then
+              TESTS="$TESTS ${SPEC_FILES[$i]}"
+            fi
+          done
+
+          if [ -n "$TESTS" ]; then
+            bundle exec rspec --profile=10 --format progress --format json --out tmp/rspec_results.json $TESTS
+          fi
+        env:
+          NODE_OPTIONS: --openssl-legacy-provider
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ee-rspec-results-${{ matrix.ci_node_index }}
+          path: tmp/rspec_results.json
+
+      - name: Upload rails log folder
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ee-rails-log-folder-${{ matrix.ci_node_index }}
+          path: log
