@@ -34,7 +34,11 @@ module Captain::Conversation::MessageBuilder
     citation_urls = @assistant.trusted_citation_urls(@run_result)
     message_content = response_parts.customer_message_content(citation_urls: citation_urls)
     validate_message_content!(message_content)
-    create_outgoing_message(message_content, agent_name: @response['agent_name'], response_parts: response_parts.to_a)
+    create_outgoing_message(
+      message_content,
+      agent_name: @response['agent_name'], response_parts: response_parts.to_a,
+      quick_replies: Captain::QuickReplies.take(@conversation, responding_to: @responding_to_message_id)
+    )
   end
 
   def create_v1_message
@@ -46,7 +50,7 @@ module Captain::Conversation::MessageBuilder
     raise ArgumentError, 'Message content cannot be blank' if content.blank?
   end
 
-  def create_outgoing_message(message_content, agent_name: nil, response_parts: nil, preserve_waiting_since: false)
+  def create_outgoing_message(message_content, agent_name: nil, response_parts: nil, preserve_waiting_since: false, quick_replies: nil)
     additional_attrs = {}
     additional_attrs[:agent_name] = agent_name if agent_name.present?
     additional_attrs[Captain::Assistant::ResponseParts::MESSAGE_ATTRIBUTE_KEY] = response_parts unless response_parts.nil?
@@ -58,7 +62,15 @@ module Captain::Conversation::MessageBuilder
       sender: @assistant,
       content: message_content,
       additional_attributes: additional_attrs,
-      preserve_waiting_since: preserve_waiting_since
+      preserve_waiting_since: preserve_waiting_since,
+      **quick_reply_attributes(quick_replies)
     )
+  end
+
+  # The reply is sent as an input_select message when a tool asked for buttons.
+  def quick_reply_attributes(quick_replies)
+    return {} if quick_replies.blank?
+
+    { content_type: :input_select, content_attributes: { items: quick_replies } }
   end
 end

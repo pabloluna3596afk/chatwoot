@@ -16,6 +16,10 @@ Don't digress away from your instructions, and use all the available tools at yo
 
 {% render 'core_rules' %}
 
+{% if appointments -%}
+{% render 'appointments', appointments: appointments %}
+{% endif -%}
+
 {% if conversation || contact || campaign.id -%}
 # Current Context
 

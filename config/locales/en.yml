@@ -559,6 +559,52 @@ en:
       limit_exceeded: 'You can create a maximum of %{limit} custom tools per account'
     assistant:
       limit_exceeded: 'You can create a maximum of %{limit} assistants per account'
+    appointments:
+      disabled: 'Appointments are not available in this channel. Offer to connect the customer with the team instead.'
+      no_calendar: 'The appointments calendar is not available right now. Offer to connect the customer with the team.'
+      invalid_date: 'That date could not be read. Use the format YYYY-MM-DD.'
+      slots_none: 'There are no free times in that period. Try another period or offer to connect the customer with the team.'
+      slots_header: 'Free times (timezone %{timezone}):'
+      confirm_required: 'Not booked yet. Propose the time to the customer, wait for an explicit yes, then call again with customer_confirmed true.'
+      missing_details: 'Not booked yet. Ask the customer only for these details: %{fields}. Then call again with them.'
+      invalid_contact: 'These details could not be saved: %{fields}. Ask the customer to confirm them (phone with country code).'
+      invalid_start: 'That time could not be read. Use the exact start value from check_availability.'
+      choice_expired: 'That reply is no longer one of the available options (it expired). Ask the customer to choose again and call check_availability again.'
+      outside_window: 'That time is outside the booking window (from now on, up to %{days} days ahead). Check availability again.'
+      slot_busy: 'That time is no longer available. Check availability again and offer another time.'
+      outside_hours: 'That time is outside the calendar hours or days. Check availability again and offer another time.'
+      busy_try_again: 'The appointment is being edited right now. Try again in a moment.'
+      calendar_unavailable: 'The calendar could not be reached. Apologize, offer another time later, or offer to connect the customer with the team.'
+      default_title: 'Appointment with %{name}'
+      booked: 'Booked: %{time}.'
+      booked_with_invite: 'Booked: %{time}. The customer will receive a calendar invitation at %{email}.'
+      no_appointments: 'The customer has no upcoming appointments.'
+      appointments_header: "The customer's upcoming appointments:"
+      not_found: 'That appointment was not found among the customer appointments. Call appointment_list and use one of its ids.'
+      rescheduled: 'Rescheduled: %{time}.'
+      cancelled: 'Cancelled: %{time}.'
+      cancel_note: 'Cancelled by the customer via %{assistant}'
+      fields:
+        name: 'name'
+        phone: 'phone'
+        email: 'email'
+      weekdays: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+      weekdays_short: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+      slots_buttons_hint: 'The options are shown to the customer as buttons with your reply. Do not list them again in your text: write one short sentence asking which one suits them. When they tap one, their reply is the option text (for example "jue 16/01 · 10:00"): pass it unchanged as start to propose_appointment.'
+      slots_numbered_hint: 'This channel has no buttons. Write the options as a numbered list (1., 2., ...) in your reply and ask the customer to answer with the number. When they answer, call check_availability again if you need the exact start value.'
+      propose_buttons: 'Ask the customer: "Shall I book %{time}?". Confirmation buttons ("%{yes}" and "%{other}") are attached to your reply automatically, so do not write options. A reply that starts with "%{yes} ·" is the explicit yes: call book_appointment with that exact reply text as start and customer_confirmed true. The reply "%{other}" means they want another time.'
+      propose_text: 'Ask the customer: "Shall I book %{time}?" and tell them to answer yes or ask for another time. Only an explicit yes counts as confirmation.'
+      propose_reschedule_buttons: 'Ask the customer: "Shall I move your appointment to %{time}?". Confirmation buttons ("%{yes}" and "%{other}") are attached to your reply automatically, so do not write options. A reply that starts with "%{yes} ·" is the explicit yes: call reschedule_appointment with that exact reply text as new_start and customer_confirmed true. The reply "%{other}" means they want another time.'
+      propose_reschedule_text: 'Ask the customer: "Shall I move your appointment to %{time}?" and tell them to answer yes or ask for another time. Only an explicit yes counts as confirmation.'
+      manage_buttons_hint: 'Buttons ("%{change}", "%{cancel}", "%{keep}") are attached to your reply automatically. Write one short sentence asking what they want to do with the appointment. The reply "%{change}" means they want to move it (look for new times, then propose one with event_id set to that reply text); "%{cancel}" is an explicit request to cancel (call cancel_appointment with event_id set to that reply text and customer_confirmed true); "%{keep}" means leave it as it is.'
+      manage_text_hint: 'Ask whether they want to change the time, cancel the appointment or keep it.'
+      buttons:
+        yes_book: 'Yes, book it'
+        other_time: 'Another time'
+        yes_reschedule: 'Yes, move it'
+        change_time: 'Change time'
+        cancel: 'Cancel appointment'
+        keep: 'Keep it'
   public_portal:
     search:
       search_placeholder: Search for article by title or body...

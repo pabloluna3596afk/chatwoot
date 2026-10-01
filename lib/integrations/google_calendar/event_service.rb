@@ -184,11 +184,12 @@ class Integrations::GoogleCalendar::EventService
     end
   end
 
-  def update(event_id, params)
+  def update(event_id, params, enforce_hours: false)
     calendar_id = params[:calendar_id]
     ensure_calendar_enabled!(calendar_id)
-    ensure_lock!(event_id)
     start_at, end_at = parse_range(params)
+    ensure_within_hours!(calendar_id, start_at, end_at) if enforce_hours
+    ensure_lock!(event_id)
     record = connection.calendar_events.find_by(google_event_id: event_id)
     with_booking_lock(calendar_id) do
       if slot_changed?(record, start_at, end_at)
