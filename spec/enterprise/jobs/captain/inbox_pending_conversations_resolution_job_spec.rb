@@ -438,7 +438,7 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
       allow(conversation).to receive(:bot_handoff!).and_raise(StandardError, 'transition failed')
 
       expect do
-        job.send(:handoff_conversation, conversation, 'Customer needs an agent')
+        job.send(:handoff_conversation, conversation, { reason: 'Customer needs an agent' })
       end.to raise_error(StandardError, 'transition failed')
 
       expect(conversation.reload).to be_pending
@@ -452,7 +452,7 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
         expect(ActiveRecord::Base.connection.open_transactions).to eq(open_transactions_before_handoff)
       end
 
-      job.send(:handoff_conversation, conversation, 'Customer needs an agent')
+      job.send(:handoff_conversation, conversation, { reason: 'Customer needs an agent' })
     end
   end
 

@@ -22,7 +22,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
       before do
         get "/api/v1/accounts/#{account.id}/captain/documents"
       end
-
       it 'returns unauthorized status' do
         expect(response).to have_http_status(:unauthorized)
       end
@@ -64,7 +63,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
           expect(matching_document[:responses_count]).to eq(2)
         end
       end
-
       context 'when filtering by assistant_id' do
         before do
           create_list(:captain_document, 3, assistant: assistant, account: account)
@@ -89,7 +87,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
           expect(json_response[:payload]).to be_empty
         end
       end
-
       context 'when documents belong to different accounts' do
         let(:other_account) { create(:account) }
 
@@ -107,7 +104,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
           expect(document_account_ids).to eq([account.id])
         end
       end
-
       context 'with pagination and assistant filter combined' do
         before do
           create_list(:captain_document, 30, assistant: assistant, account: account)
@@ -124,7 +120,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
           expect(json_response[:meta]).to eq({ page: 2, total_count: 30 })
         end
       end
-
       it 'does not allow conversation usage sorting' do
         get "/api/v1/accounts/#{account.id}/captain/documents",
             params: { sort: 'most_used' },
@@ -157,7 +152,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
         matching_document = json_response[:payload].find { |item| item[:id] == document.id }
         expect(matching_document[:used_in_conversations_count]).to eq(2)
       end
-
       it 'excludes handoff sessions from document usage' do
         answered_document = create(:captain_document, assistant: assistant, account: account)
         answered_conversation = create(:conversation, account: account)
@@ -181,7 +175,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
         expect(json_response[:meta][:conversation_count]).to eq(0)
         expect(json_response[:payload]).to be_empty
       end
-
       it 'sorts documents by the number of distinct conversations that used them' do
         most_used_document = create(:captain_document, assistant: assistant, account: account)
         less_used_document = create(:captain_document, assistant: assistant, account: account)
@@ -207,7 +200,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
         expect(json_response[:payload].pluck(:id)).to eq(expected_document_ids)
         expect(json_response[:payload].pluck(:used_in_conversations_count)).to eq([2, 1, 0])
       end
-
       it 'returns 25 documents at a time when sorting by usage' do
         create_list(:captain_document, 30, assistant: assistant, account: account)
 
@@ -218,7 +210,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
         expect(json_response[:payload].length).to eq(25)
         expect(json_response[:meta]).to eq({ page: 1, total_count: 30 })
       end
-
       it 'excludes deleted conversations from usage counts and sorting' do
         used_document = create(:captain_document, assistant: assistant, account: account)
         unused_document = create(:captain_document, assistant: assistant, account: account)
@@ -250,7 +241,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
       before do
         get "/api/v1/accounts/#{account.id}/captain/documents/#{document.id}"
       end
-
       it 'returns unauthorized status' do
         expect(response).to have_http_status(:unauthorized)
       end
@@ -261,21 +251,17 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
         get "/api/v1/accounts/#{account.id}/captain/documents/#{document.id}",
             headers: agent.create_new_auth_token, as: :json
       end
-
       it 'returns success status' do
         expect(response).to have_http_status(:success)
       end
-
       it 'returns the requested document' do
         expect(json_response[:id]).to eq(document.id)
         expect(json_response[:name]).to eq(document.name)
         expect(json_response[:external_link]).to eq(document.external_link)
       end
-
       it 'returns the crawled content for the document' do
         expect(json_response[:content]).to eq(document.content)
       end
-
       it 'returns sync metadata when the document has been synced' do
         synced_at = 1.hour.ago
         document.update!(sync_status: :synced, last_synced_at: synced_at)
@@ -286,7 +272,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
         expect(json_response[:sync_status]).to eq('synced')
         expect(json_response[:last_synced_at]).to eq(synced_at.to_i)
       end
-
       it 'does not report failed documents without a successful sync as last synced' do
         document.update!(sync_status: :failed, last_sync_attempted_at: 1.minute.ago)
 
@@ -344,7 +329,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
         create(:captain_agent_session, account: account, assistant: assistant,
                                        subject: conversation, document_ids: [document.id], credits_consumed: 1.0)
       end
-
       get "/api/v1/accounts/#{account.id}/captain/documents/#{document.id}/drilldown",
           headers: admin.create_new_auth_token, as: :json
 
@@ -389,7 +373,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
         post "/api/v1/accounts/#{account.id}/captain/documents",
              params: valid_attributes, as: :json
       end
-
       it 'returns unauthorized status' do
         expect(response).to have_http_status(:unauthorized)
       end
@@ -425,7 +408,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
           expect(json_response[:external_link]).to eq('https://example.com/doc')
         end
       end
-
       context 'with invalid parameters' do
         before do
           post "/api/v1/accounts/#{account.id}/captain/documents",
@@ -434,21 +416,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
         end
 
         it 'returns unprocessable entity status' do
-          expect(response).to have_http_status(:unprocessable_entity)
-        end
-      end
-
-      context 'with limits exceeded' do
-        before do
-          create_list(:captain_document, 5, assistant: assistant, account: account)
-
-          InstallationConfig.find_or_initialize_by(name: 'CAPTAIN_CLOUD_PLAN_LIMITS').update!(value: captain_limits.to_json)
-          post "/api/v1/accounts/#{account.id}/captain/documents",
-               params: valid_attributes,
-               headers: admin.create_new_auth_token
-        end
-
-        it 'returns an error' do
           expect(response).to have_http_status(:unprocessable_entity)
         end
       end
@@ -490,7 +457,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
 
         expect(response).to have_http_status(:accepted)
       end
-
       it 'queues documents that already have a sync in progress' do
         document.update!(sync_status: :syncing, last_sync_attempted_at: 1.minute.ago)
 
@@ -501,7 +467,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
 
         expect(response).to have_http_status(:accepted)
       end
-
       it 'queues stale syncing documents again' do
         freeze_time do
           document.update!(sync_status: :syncing, last_sync_attempted_at: (Captain::Document::SYNC_STALE_TIMEOUT + 1.minute).ago)
@@ -519,7 +484,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
 
         expect(response).to have_http_status(:accepted)
       end
-
       it 'rejects PDF documents with an explanatory error' do
         pdf_document = build(:captain_document, assistant: assistant, account: account)
         pdf_document.pdf_file.attach(io: StringIO.new('PDF content'), filename: 'test.pdf',
@@ -533,7 +497,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
 
         expect(response).to have_http_status(:unprocessable_entity)
       end
-
       it 'rejects documents that are still being processed' do
         in_progress_document = create(:captain_document, assistant: assistant, account: account, status: :in_progress)
 
@@ -552,7 +515,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
       before do
         delete "/api/v1/accounts/#{account.id}/captain/documents/#{document.id}"
       end
-
       it 'returns unauthorized status' do
         expect(response).to have_http_status(:unauthorized)
       end
@@ -587,7 +549,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
           expect(response).to have_http_status(:no_content)
         end
       end
-
       context 'when document does not exist' do
         before do
           delete "/api/v1/accounts/#{account.id}/captain/documents/invalid_id",

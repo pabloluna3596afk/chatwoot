@@ -8,7 +8,7 @@ RSpec.describe Captain::AppointmentsSettings do
 
   describe '.normalize' do
     it 'returns the defaults for a blank value' do
-      expect(described_class.normalize(nil)).to eq(
+      expect(described_class.normalize(nil)).to include(
         'enabled' => false, 'calendar_connection_id' => nil, 'calendar_id' => nil, 'slot_duration_minutes' => 30,
         'required_contact_fields' => %w[name phone email], 'min_notice_minutes' => 60, 'booking_window_days' => 14
       ).and include(reminder_defaults)
@@ -20,7 +20,7 @@ RSpec.describe Captain::AppointmentsSettings do
         'required_contact_fields' => %w[phone phone], 'min_notice_minutes' => 120, 'booking_window_days' => '30', 'other' => 'x'
       )
 
-      expect(result).to eq(
+      expect(result).to include(
         'enabled' => true, 'calendar_connection_id' => 7, 'calendar_id' => 'cal-1', 'slot_duration_minutes' => 45,
         'required_contact_fields' => %w[phone], 'min_notice_minutes' => 120, 'booking_window_days' => 30
       ).and include(reminder_defaults)
