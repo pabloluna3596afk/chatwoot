@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_09_30_130000) do
+ActiveRecord::Schema[7.2].define(version: 2026_09_30_140000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -530,6 +530,23 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_30_130000) do
     t.index ["account_id", "category"], name: "index_canned_responses_on_account_id_and_category"
     t.index ["created_by_id"], name: "index_canned_responses_on_created_by_id"
     t.index ["reviewed_by_id"], name: "index_canned_responses_on_reviewed_by_id"
+  end
+
+  create_table "captain_appointment_reminders", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "calendar_event_id", null: false
+    t.bigint "captain_assistant_id", null: false
+    t.bigint "conversation_id", null: false
+    t.string "kind", null: false
+    t.datetime "scheduled_at", null: false
+    t.string "status", default: "pending", null: false
+    t.string "skipped_reason"
+    t.datetime "sent_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_captain_appointment_reminders_on_account_id"
+    t.index ["calendar_event_id", "kind"], name: "index_captain_reminders_on_event_and_kind", unique: true
+    t.index ["status", "scheduled_at"], name: "index_captain_reminders_on_status_and_scheduled_at"
   end
 
   create_table "captain_assistant_responses", force: :cascade do |t|
