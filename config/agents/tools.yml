@@ -69,3 +69,8 @@
   title: 'Propose Appointment'
   description: 'Propose one time and attach the confirmation buttons'
   icon: 'calendar-check'
+
+- id: confirm_appointment
+  title: 'Confirm Appointment'
+  description: "Mark one of the customer's appointments as confirmed"
+  icon: 'calendar-check'

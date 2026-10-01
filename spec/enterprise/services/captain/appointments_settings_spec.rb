@@ -1,12 +1,17 @@
 require 'rails_helper'
 
 RSpec.describe Captain::AppointmentsSettings do
+  let(:reminder_defaults) do
+    { 'send_confirmation' => true, 'reminder_24h' => true, 'reminder_2h' => true, 'allow_paid_templates' => false,
+      'template_confirmation' => nil, 'template_reminder' => nil, 'template_cancelled' => nil }
+  end
+
   describe '.normalize' do
     it 'returns the defaults for a blank value' do
       expect(described_class.normalize(nil)).to eq(
         'enabled' => false, 'calendar_connection_id' => nil, 'calendar_id' => nil, 'slot_duration_minutes' => 30,
         'required_contact_fields' => %w[name phone email], 'min_notice_minutes' => 60, 'booking_window_days' => 14
-      )
+      ).and include(reminder_defaults)
     end
 
     it 'casts strings, drops unknown keys and keeps provided values' do
@@ -18,6 +23,20 @@ RSpec.describe Captain::AppointmentsSettings do
       expect(result).to eq(
         'enabled' => true, 'calendar_connection_id' => 7, 'calendar_id' => 'cal-1', 'slot_duration_minutes' => 45,
         'required_contact_fields' => %w[phone], 'min_notice_minutes' => 120, 'booking_window_days' => 30
+      ).and include(reminder_defaults)
+    end
+
+    it 'casts the confirmation and reminder toggles strictly and keeps only the name and language of a template' do
+      result = described_class.normalize(
+        'send_confirmation' => 'false', 'reminder_24h' => '0', 'reminder_2h' => false, 'allow_paid_templates' => 'true',
+        'template_reminder' => { 'name' => 'recordatorio', 'language' => 'es', 'extra' => 'x' },
+        'template_confirmation' => '', 'template_cancelled' => nil
+      )
+
+      expect(result).to include(
+        'send_confirmation' => false, 'reminder_24h' => false, 'reminder_2h' => false, 'allow_paid_templates' => true,
+        'template_reminder' => { 'name' => 'recordatorio', 'language' => 'es' },
+        'template_confirmation' => nil, 'template_cancelled' => nil
       )
     end
 

@@ -27,6 +27,7 @@ class Captain::Assistant < ApplicationRecord
   RESPONSE_WINDOWS = %w[always business_hours outside_business_hours].freeze
   APPOINTMENT_TOOL_IDS = %w[
     check_availability propose_appointment book_appointment appointment_list reschedule_appointment cancel_appointment
+    confirm_appointment
   ].freeze
 
   class LimitExceededError < StandardError; end

@@ -7,7 +7,12 @@ class Captain::AppointmentsSettings
   MIN_NOTICE_RANGE = (0..10_080)
   BOOKING_WINDOW_RANGE = (1..90)
   INTEGER_KEYS = %w[calendar_connection_id slot_duration_minutes min_notice_minutes booking_window_days].freeze
+  BOOLEAN_KEYS = %w[enabled send_confirmation reminder_24h reminder_2h allow_paid_templates].freeze
+  TEMPLATE_KEYS = %w[template_confirmation template_reminder template_cancelled].freeze
 
+  # Messages: the confirmation (sent inside the free 24 h window right after the customer's yes) and the
+  # 24 h / 2 h reminders are free-form by default. WhatsApp bills a template sent outside the 24 h window,
+  # so templates stay off until the owner turns allow_paid_templates on.
   DEFAULTS = {
     'enabled' => false,
     'calendar_connection_id' => nil,
@@ -15,7 +20,14 @@ class Captain::AppointmentsSettings
     'slot_duration_minutes' => 30,
     'required_contact_fields' => CONTACT_FIELDS,
     'min_notice_minutes' => 60,
-    'booking_window_days' => 14
+    'booking_window_days' => 14,
+    'send_confirmation' => true,
+    'reminder_24h' => true,
+    'reminder_2h' => true,
+    'allow_paid_templates' => false,
+    'template_confirmation' => nil,
+    'template_reminder' => nil,
+    'template_cancelled' => nil
   }.freeze
 
   def self.normalize(raw)
@@ -26,9 +38,10 @@ class Captain::AppointmentsSettings
   end
 
   def self.cast(key, value, default)
-    return ActiveModel::Type::Boolean.new.cast(value) || false if key == 'enabled'
+    return ActiveModel::Type::Boolean.new.cast(value) || false if BOOLEAN_KEYS.include?(key)
     return cast_fields(value, default) if key == 'required_contact_fields'
     return value.to_s.presence if key == 'calendar_id'
+    return cast_template(value) if TEMPLATE_KEYS.include?(key)
     return (value.blank? ? default : cast_integer(value)) if INTEGER_KEYS.include?(key)
 
     value
@@ -44,6 +57,15 @@ class Captain::AppointmentsSettings
     Array(value).map(&:to_s).uniq
   end
 
+  # nil or { 'name' => ..., 'language' => ... }; anything else is kept for the validator to reject.
+  def self.cast_template(value)
+    return if value.blank?
+    return value unless value.respond_to?(:to_h) && !value.is_a?(Array)
+
+    template = value.to_h.stringify_keys
+    { 'name' => template['name'].to_s, 'language' => template['language'].to_s }
+  end
+
   attr_reader :values
 
   def initialize(raw = nil)
@@ -52,6 +74,34 @@ class Captain::AppointmentsSettings
 
   def enabled?
     values['enabled'] == true
+  end
+
+  def send_confirmation?
+    values['send_confirmation'] == true
+  end
+
+  def reminder_24h?
+    values['reminder_24h'] == true
+  end
+
+  def reminder_2h?
+    values['reminder_2h'] == true
+  end
+
+  def allow_paid_templates?
+    values['allow_paid_templates'] == true
+  end
+
+  def template_confirmation
+    values['template_confirmation']
+  end
+
+  def template_reminder
+    values['template_reminder']
+  end
+
+  def template_cancelled
+    values['template_cancelled']
   end
 
   def calendar_connection_id

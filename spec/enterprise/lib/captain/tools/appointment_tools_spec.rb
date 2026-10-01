@@ -237,11 +237,11 @@ RSpec.describe Captain::Tools::BookAppointmentTool do
   it 'books the confirmed time as an AI booking tied to the conversation and the contact' do
     result = call
 
-    expect(result).to eq('Agendada: martes 15/01 10:00. El cliente recibirá una invitación de calendario en ana@example.com.')
+    expect(result).to start_with('Agendada: martes 15/01 10:00. El cliente recibirá una invitación de calendario en ana@example.com.')
     event = CalendarEvent.find_by(google_event_id: 'g-1')
     expect(event).to have_attributes(
       booking_source: 'ai', contact_id: contact.id, conversation_id: conversation.id, summary: 'Cita con Ana Pérez',
-      appointment_status: 'none', bot_followup_policy: {}, created_by_id: nil
+      appointment_status: 'pending_confirmation', bot_followup_policy: {}, created_by_id: nil
     )
     expect(event.idempotency_key).to start_with('captain-')
   end
@@ -263,6 +263,46 @@ RSpec.describe Captain::Tools::BookAppointmentTool do
 
   it 'never sets a bot follow-up policy, so Panel AI is not notified' do
     expect { call }.not_to have_enqueued_job(Calendar::NotifyPanelAiFollowupJob)
+  end
+
+  describe 'confirmation and reminders' do
+    it 'asks the model for one confirmation message' do
+      expect(call).to include('UN solo mensaje')
+    end
+
+    it 'stashes the change and cancel buttons for the reply to this customer message' do
+      tool_context.state[:responding_to_message_id] = 55
+
+      call
+
+      items = Captain::QuickReplies.take(conversation, responding_to: 55)
+      expect(items.pluck('title')).to eq(['Cambiar hora', 'Cancelar cita'])
+      expect(items.pluck('value')).to eq(['Cambiar hora · mar 15/01 10:00', 'Cancelar cita · mar 15/01 10:00'])
+      expect(Captain::QuickReplies.choice(conversation, items.last['value'])).to eq('event_id' => 'g-1')
+    end
+
+    it 'schedules the 24 h and 2 h reminders of the booking once, even when the call is retried' do
+      call
+      call
+
+      expect(Captain::AppointmentReminder.order(:kind).pluck(:kind)).to eq(%w[reminder_2h reminder_24h].sort)
+      expect(Captain::AppointmentReminder.find_by(kind: 'reminder_2h').scheduled_at).to eq(Time.zone.parse('2030-01-15T08:00:00-05:00'))
+    end
+
+    context 'with confirmation and reminders turned off' do
+      let(:appointments_config) do
+        { 'enabled' => true, 'calendar_connection_id' => connection.id, 'calendar_id' => 'cal-1',
+          'send_confirmation' => false, 'reminder_24h' => false, 'reminder_2h' => false }
+      end
+
+      it 'books without buttons, reminders or a pending confirmation' do
+        result = call
+
+        expect(result).to eq('Agendada: martes 15/01 10:00. El cliente recibirá una invitación de calendario en ana@example.com.')
+        expect(Captain::AppointmentReminder.count).to eq(0)
+        expect(CalendarEvent.find_by(google_event_id: 'g-1').appointment_status).to eq('none')
+      end
+    end
   end
 
   context 'without the customer explicit confirmation' do
@@ -325,7 +365,7 @@ RSpec.describe Captain::Tools::BookAppointmentTool do
     let(:contact_attributes) { { name: 'Ana Pérez', email: nil, phone_number: nil } }
 
     it 'books without asking for the rest' do
-      expect(call).to eq('Agendada: martes 15/01 10:00.')
+      expect(call).to start_with('Agendada: martes 15/01 10:00.')
     end
   end
 
@@ -796,6 +836,50 @@ RSpec.describe Captain::Tools::CancelAppointmentTool, 'button replies' do
   end
 end
 
+RSpec.describe Captain::Tools::ConfirmAppointmentTool do
+  include_context 'with an appointments conversation'
+
+  let!(:own) { local_event(google_event_id: 'own-1', contact: contact, appointment_status: 'pending_confirmation') }
+
+  def call(**params)
+    tool.perform(tool_context, **{ event_id: 'own-1' }.merge(params))
+  end
+
+  it_behaves_like 'an appointment tool that needs the channel enabled'
+
+  it 'marks the own appointment as confirmed, without touching Google Calendar' do
+    result = tool.perform(tool_context, event_id: 'own-1')
+
+    expect(result).to include('Confirmada: martes 15/01 10:00')
+    expect(own.reload.appointment_status).to eq('confirmed')
+    expect(client).not_to have_received(:update_event)
+  end
+
+  it 'confirms from the text of the confirm button of a reminder' do
+    Captain::QuickReplies.remember(conversation, 'Confirmo · mar 15/01 10:00' => { 'event_id' => 'own-1' })
+
+    tool.perform(tool_context, event_id: 'Confirmo · mar 15/01 10:00')
+
+    expect(own.reload.appointment_status).to eq('confirmed')
+  end
+
+  it 'does not confirm an appointment of another contact' do
+    other = local_event(google_event_id: 'other-1', contact: create(:contact, account: account), appointment_status: 'pending_confirmation')
+
+    expect(tool.perform(tool_context, event_id: 'other-1')).to include('No se encontró esa cita')
+    expect(other.reload.appointment_status).to eq('pending_confirmation')
+  end
+
+  it 'finds nothing when the reply is no longer a known button' do
+    expect(tool.perform(tool_context, event_id: 'Confirmo · mar 15/01 10:00')).to include('No se encontró esa cita')
+    expect(own.reload.appointment_status).to eq('pending_confirmation')
+  end
+
+  it 'does not notify Panel AI' do
+    expect { tool.perform(tool_context, event_id: 'own-1') }.not_to have_enqueued_job(Calendar::NotifyPanelAiFollowupJob)
+  end
+end
+
 RSpec.describe Captain::Assistant, 'appointment tools exposure' do
   include_context 'with an appointments conversation'
 
@@ -804,10 +888,11 @@ RSpec.describe Captain::Assistant, 'appointment tools exposure' do
     Struct.new(:context).new({ state: { conversation: { id: conversation.id, inbox_id: inbox.id }, assistant_config: {}, timezone: 'UTC' } })
   end
 
-  it 'builds the six appointment tools' do
+  it 'builds the seven appointment tools' do
     expect(assistant.appointment_tools.map(&:class)).to eq(
       [Captain::Tools::CheckAvailabilityTool, Captain::Tools::ProposeAppointmentTool, Captain::Tools::BookAppointmentTool,
-       Captain::Tools::AppointmentListTool, Captain::Tools::RescheduleAppointmentTool, Captain::Tools::CancelAppointmentTool]
+       Captain::Tools::AppointmentListTool, Captain::Tools::RescheduleAppointmentTool, Captain::Tools::CancelAppointmentTool,
+       Captain::Tools::ConfirmAppointmentTool]
     )
   end
 

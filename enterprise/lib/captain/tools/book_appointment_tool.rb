@@ -25,14 +25,14 @@ class Captain::Tools::BookAppointmentTool < Captain::Tools::BaseAppointmentTool
     missing = missing_fields(contact)
     return translate('missing_details', fields: missing.map { |field| translate("fields.#{field}") }.join(', ')) if missing.any?
 
-    book(conversation, contact, start, reason)
+    book(conversation, tool_context, contact, start, reason)
   rescue StandardError => e
     calendar_error_message(e)
   end
 
   private
 
-  def book(conversation, contact, start, reason)
+  def book(conversation, tool_context, contact, start, reason)
     resolved = resolve_start(conversation, start)
     return start_error(start) if resolved.nil?
 
@@ -40,9 +40,31 @@ class Captain::Tools::BookAppointmentTool < Captain::Tools::BaseAppointmentTool
     return translate('outside_window', days: settings.booking_window_days) unless within_booking_limits?(start_at)
 
     end_at = start_at + settings.slot_duration_minutes.minutes
-    event_service.create(booking_params(conversation, contact, start_at, end_at, reason), enforce_hours: true)
+    booked = event_service.create(booking_params(conversation, contact, start_at, end_at, reason), enforce_hours: true)
     log_tool_usage('book_appointment', conversation_id: conversation.id, start: start_at.iso8601)
-    translate(contact.email.present? ? 'booked_with_invite' : 'booked', time: format_time(start_at), email: contact.email)
+    follow_up(conversation, booked[:id])
+    [translate(contact.email.present? ? 'booked_with_invite' : 'booked', time: format_time(start_at), email: contact.email),
+     confirmation_hint(conversation, tool_context, booked[:id], start_at)].compact.join(' ')
+  end
+
+  # Reminders (24 h and 2 h before) are scheduled in Chatwoot for what Captain books. Scheduling twice for the
+  # same event, as a retried call does, creates nothing new.
+  def follow_up(conversation, event_id)
+    return unless settings.reminder_24h? || settings.reminder_2h?
+
+    record = connection.calendar_events.find_by(google_event_id: event_id)
+    Captain::AppointmentReminders::Scheduler.schedule(record, assistant: @assistant, conversation: conversation) if record
+  end
+
+  # The confirmation is the model's own reply (one message, free inside the 24 h window), with [Cambiar hora]
+  # [Cancelar cita] buttons when the channel has them.
+  def confirmation_hint(conversation, tool_context, event_id, start_at)
+    return unless settings.send_confirmation?
+
+    values = %w[change_time cancel].index_with { |button| labelled_with_time(button, start_at) }
+    items = values.map { |button, value| button_item(button, value) }
+    buttons = offer_buttons(conversation, tool_context, items, values.values.index_with { { 'event_id' => event_id } })
+    translate(buttons ? 'confirmation_buttons_hint' : 'confirmation_text_hint')
   end
 
   # No bot_followup_policy on purpose: Captain bookings must not notify Panel AI.
@@ -56,7 +78,12 @@ class Captain::Tools::BookAppointmentTool < Captain::Tools::BaseAppointmentTool
       conversation_id: conversation.display_id,
       attendee_email: contact.email.presence,
       idempotency_key: idempotency_key(conversation, start_at, end_at)
-    }
+    }.merge(awaiting_confirmation? ? { appointment_status: 'pending_confirmation' } : {})
+  end
+
+  # Until the customer confirms (a button on the reminder), the appointment waits for it.
+  def awaiting_confirmation?
+    settings.send_confirmation? || settings.reminder_24h? || settings.reminder_2h?
   end
 
   # The same conversation booking the same slot twice is the same booking, so a retry of the
