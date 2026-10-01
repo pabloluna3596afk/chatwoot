@@ -90,7 +90,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::CopilotThreads', type: :request do
 
       context 'with valid params' do
         it 'returns error when usage limit is exceeded' do
-          put_account_on_plan(account, monthly_messages: 2, copilot_used: 1)
+          put_account_on_plan(account, monthly_messages: 2, used: 2)
 
           post "/api/v1/accounts/#{account.id}/captain/copilot_threads",
                params: valid_params,
