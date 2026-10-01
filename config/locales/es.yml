@@ -497,6 +497,36 @@ es:
       limit_exceeded: 'You can create a maximum of %{limit} custom tools per account'
     assistant:
       limit_exceeded: 'Puedes crear un máximo de %{limit} asistentes por cuenta'
+    appointments:
+      disabled: 'Las citas no están disponibles en este canal. Ofrece comunicar al cliente con el equipo.'
+      no_calendar: 'El calendario de citas no está disponible ahora. Ofrece comunicar al cliente con el equipo.'
+      invalid_date: 'No se pudo leer esa fecha. Usa el formato AAAA-MM-DD.'
+      slots_none: 'No hay horarios libres en ese periodo. Prueba otro periodo u ofrece comunicar al cliente con el equipo.'
+      slots_header: 'Horarios libres (zona horaria %{timezone}):'
+      slots_hint: 'Ofrece UNO de estos al cliente, espera un sí explícito y luego agenda con el valor exacto de start.'
+      confirm_required: 'Aún no se agendó. Propón el horario al cliente, espera un sí explícito y vuelve a llamar con customer_confirmed true.'
+      missing_details: 'Aún no se agendó. Pide al cliente solo estos datos: %{fields}. Luego vuelve a llamar con ellos.'
+      invalid_contact: 'No se pudieron guardar estos datos: %{fields}. Pide al cliente que los confirme (teléfono con código de país).'
+      invalid_start: 'No se pudo leer ese horario. Usa el valor exacto de start de check_availability.'
+      outside_window: 'Ese horario está fuera del plazo para agendar (desde ahora hasta %{days} días). Consulta la disponibilidad de nuevo.'
+      slot_busy: 'Ese horario ya no está disponible. Consulta la disponibilidad de nuevo y ofrece otro horario.'
+      outside_hours: 'Ese horario está fuera de los días u horas del calendario. Consulta la disponibilidad de nuevo y ofrece otro horario.'
+      busy_try_again: 'La cita se está editando en este momento. Inténtalo de nuevo en un momento.'
+      calendar_unavailable: 'No se pudo acceder al calendario. Ofrece una disculpa, propón otro horario más tarde u ofrece comunicar al cliente con el equipo.'
+      default_title: 'Cita con %{name}'
+      booked: 'Agendada: %{time}.'
+      booked_with_invite: 'Agendada: %{time}. El cliente recibirá una invitación de calendario en %{email}.'
+      no_appointments: 'El cliente no tiene citas próximas.'
+      appointments_header: 'Citas próximas del cliente:'
+      not_found: 'No se encontró esa cita entre las del cliente. Llama a appointment_list y usa uno de sus ids.'
+      rescheduled: 'Reprogramada: %{time}.'
+      cancelled: 'Cancelada: %{time}.'
+      cancel_note: 'Cancelada por el cliente vía %{assistant}'
+      fields:
+        name: 'nombre'
+        phone: 'teléfono'
+        email: 'correo electrónico'
+      weekdays: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
   public_portal:
     search:
       search_placeholder: Buscar artículo por título o cuerpo...

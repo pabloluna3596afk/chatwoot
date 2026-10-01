@@ -25,6 +25,7 @@ class Captain::Assistant < ApplicationRecord
   MAXIMUM_INACTIVITY_THRESHOLD_MINUTES = 1.day.in_minutes.to_i
   INACTIVITY_THRESHOLD_STEP_MINUTES = 5
   RESPONSE_WINDOWS = %w[always business_hours outside_business_hours].freeze
+  APPOINTMENT_TOOL_IDS = %w[check_availability book_appointment appointment_list reschedule_appointment cancel_appointment].freeze
 
   class LimitExceededError < StandardError; end
 
@@ -88,6 +89,11 @@ class Captain::Assistant < ApplicationRecord
 
   def appointments_active_in?(inbox)
     captain_inboxes.find_by(inbox_id: inbox.id)&.appointments_active? || false
+  end
+
+  # The tools Captain gets in a conversation whose inbox has appointments active (the runner adds them).
+  def appointment_tools
+    APPOINTMENT_TOOL_IDS.map { |tool_id| self.class.resolve_tool_class(tool_id).new(self) }
   end
 
   def engages?(contact, conversation)
@@ -238,6 +244,13 @@ class Captain::Assistant < ApplicationRecord
 
   def agent_name
     name.parameterize(separator: '_')
+  end
+
+  def runtime_prompt_context(state)
+    inbox = account.inboxes.find_by(id: state.dig(:conversation, :inbox_id))
+    return {} unless inbox && appointments_active_in?(inbox)
+
+    { appointments: appointments.to_h }
   end
 
   def agent_tools
