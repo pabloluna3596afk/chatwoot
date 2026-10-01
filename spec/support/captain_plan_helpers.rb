@@ -5,7 +5,7 @@ module CaptainPlanHelpers
   # account's plan callbacks (which also switch Captain features on) do not change what the spec sets up.
   def put_account_on_plan(account, monthly_messages: 100, used: 0, copilot_used: 0, **plan_attributes)
     plan = Plan.create!(
-      { name: 'Spec plan', slug: "spec-plan-#{SecureRandom.hex(4)}", monthly_messages: monthly_messages, max_documents: 100 }
+      { name: 'Spec plan', slug: "spec-plan-#{SecureRandom.hex(4)}", monthly_messages: monthly_messages, max_documents: 100, max_captain_assistants: 100, max_inboxes: 100, max_human_agents: 100 }
         .merge(plan_attributes)
     )
     account.update_columns(plan_id: plan.id, plan_started_at: Time.current) # rubocop:disable Rails/SkipsModelValidations

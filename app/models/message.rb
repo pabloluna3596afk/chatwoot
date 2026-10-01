@@ -386,7 +386,8 @@ class Message < ApplicationRecord
 
     if valid_first_reply?
       Rails.configuration.dispatcher.dispatch(FIRST_REPLY_CREATED, Time.zone.now, message: self, performed_by: Current.executed_by)
-      conversation.update(first_reply_created_at: created_at, waiting_since: nil)
+      # A bot message flagged preserve_waiting_since (a handoff message) must not stop the wait for a person.
+      conversation.update(first_reply_created_at: created_at, **(preserve_waiting_since ? {} : { waiting_since: nil }))
       assign_default_agent_from_first_reply
     else
       update_waiting_since
