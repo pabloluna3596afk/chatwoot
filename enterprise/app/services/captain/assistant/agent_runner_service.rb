@@ -138,6 +138,7 @@ class Captain::Assistant::AgentRunnerService
 
   def runner
     @runner ||= begin
+      Llm::Config.refresh!
       configured_runner = Agents::Runner.with_agents(*build_and_wire_agents)
       configured_runner = add_usage_metadata_callback(configured_runner)
       configured_runner = add_callbacks_to_runner(configured_runner) if @callbacks.any?
