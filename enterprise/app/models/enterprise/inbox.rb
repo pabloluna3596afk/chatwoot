@@ -12,15 +12,17 @@ module Enterprise::Inbox
     super || captain_active?
   end
 
+  # Captain only takes conversations it can answer: it needs the installation's AI key and
+  # responses left in the plan (see Captain::Assistant#paused_reason).
   def captain_active?
-    captain_assistant.present? && more_responses?
+    captain_assistant.present? && captain_assistant.paused_reason.nil?
+  end
+
+  def captain_paused_reason
+    captain_assistant&.paused_reason
   end
 
   private
-
-  def more_responses?
-    account.usage_limits[:captain][:responses][:current_available].positive?
-  end
 
   def get_agent_ids_over_assignment_limit(limit)
     conversations

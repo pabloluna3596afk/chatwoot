@@ -1,6 +1,4 @@
 class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
-  CAPTAIN_INFERENCE_RESOLVE_ACTIVITY_REASON = 'no outstanding questions'.freeze
-  CAPTAIN_INFERENCE_HANDOFF_ACTIVITY_REASON = 'pending clarification from customer'.freeze
   queue_as :low
 
   def perform(inbox)
@@ -44,7 +42,7 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
       if evaluation[:complete]
         resolve_conversation(conversation, inbox, evaluation[:reason])
       else
-        handoff_conversation(conversation, evaluation[:reason])
+        handoff_conversation(conversation, evaluation)
       end
     end
   end
@@ -94,10 +92,10 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   end
 
   def resolve_conversation(conversation, inbox, reason)
-    resolved = with_inference_activity_context(conversation, CAPTAIN_INFERENCE_RESOLVE_ACTIVITY_REASON) do
+    resolved = with_inference_activity_context(conversation, activity_reason(conversation, 'no_outstanding_questions')) do
       perform_locked_transition(conversation) do
         conversation.resolved!
-        create_private_note(conversation, "Auto-resolved: #{reason}")
+        create_private_note(conversation, resolution_note(conversation, reason))
         create_resolution_message(conversation, inbox)
       end
     end
@@ -115,11 +113,11 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
     )
   end
 
-  def handoff_conversation(conversation, reason)
-    handed_off = with_inference_activity_context(conversation, CAPTAIN_INFERENCE_HANDOFF_ACTIVITY_REASON) do
+  def handoff_conversation(conversation, evaluation)
+    handed_off = with_inference_activity_context(conversation, activity_reason(conversation, 'pending_clarification')) do
       perform_locked_transition(conversation) do
         conversation.bot_handoff!(dispatch_event: false)
-        create_private_note(conversation, "Auto-handoff: #{reason}")
+        create_private_note(conversation, handoff_note(conversation, evaluation))
         create_handoff_message(conversation)
       end
     end
@@ -154,6 +152,27 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
 
   def send_out_of_office_message_if_applicable(conversation)
     ::MessageTemplates::Template::OutOfOffice.perform_if_applicable(conversation) if conversation.campaign.blank?
+  end
+
+  def activity_reason(conversation, key)
+    translate(conversation, "captain.activity_reasons.#{key}")
+  end
+
+  def resolution_note(conversation, reason)
+    return translate(conversation, 'captain.notes.auto_resolved') if reason.blank?
+
+    translate(conversation, 'captain.notes.auto_resolved_with_reason', reason: reason)
+  end
+
+  def handoff_note(conversation, evaluation)
+    return translate(conversation, 'captain.notes.auto_handoff', reason: evaluation[:reason]) if evaluation[:error].blank?
+    return translate(conversation, 'captain.notes.unavailable.missing_key') if evaluation[:error] == :missing_key
+
+    translate(conversation, 'captain.notes.evaluation_failed')
+  end
+
+  def translate(conversation, key, **options)
+    I18n.t(key, assistant: captain_assistant.name, locale: conversation.account.locale, **options)
   end
 
   def create_private_note(conversation, content)
