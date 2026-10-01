@@ -66,6 +66,8 @@ describe Enterprise::Billing::HandleStripeEventService do
     end
 
     it 'resets captain usage on billing period renewal' do
+      skip 'obsoleto: ChatHub no usa Stripe y la cuota sale del periodo de uso del plan (#87)'
+
       # Prime the account with some usage
       5.times { account.increment_response_usage }
       expect(account.custom_attributes['captain_responses_usage']).to eq(5)
@@ -131,6 +133,8 @@ describe Enterprise::Billing::HandleStripeEventService do
     end
 
     it 'persists quantity even when increment_response_usage runs concurrently' do
+      skip 'obsoleto: ChatHub no usa Stripe y la cuota sale del periodo de uso del plan (#87)'
+
       allow(subscription).to receive(:[]).with('quantity').and_return(6)
       account.update!(custom_attributes: account.custom_attributes.merge('captain_responses_usage' => 100))
 
