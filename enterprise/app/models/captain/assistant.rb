@@ -86,6 +86,10 @@ class Captain::Assistant < ApplicationRecord
     Captain::AppointmentsSettings.new(config['appointments'])
   end
 
+  def appointments_active_in?(inbox)
+    captain_inboxes.find_by(inbox_id: inbox.id)&.appointments_active? || false
+  end
+
   def engages?(contact, conversation)
     responds_to_audience?(contact, conversation) && available_now?(conversation)
   end

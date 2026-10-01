@@ -1448,6 +1448,12 @@
       "OPTIONS": {
         "DISCONNECT": "Desconectar"
       },
+      "APPOINTMENTS": {
+        "LABEL": "Citas en este canal",
+        "HELP": "Captain ofrece y agenda citas aquí. Desactívalo para que este canal no agende citas.",
+        "SAVED": "Se actualizó el ajuste de citas",
+        "ERROR": "No se pudo actualizar el ajuste de citas. Inténtalo de nuevo."
+      },
       "DELETE": {
         "TITLE": "¿Seguro que quieres desconectar la bandeja?",
         "DESCRIPTION": "",

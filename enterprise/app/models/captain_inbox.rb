@@ -5,6 +5,7 @@
 #  id                   :bigint           not null, primary key
 #  created_at           :datetime         not null
 #  updated_at           :datetime         not null
+#  appointments_enabled :boolean          default(TRUE), not null
 #  captain_assistant_id :bigint           not null
 #  inbox_id             :bigint           not null
 #
@@ -19,4 +20,10 @@ class CaptainInbox < ApplicationRecord
   belongs_to :inbox
 
   validates :inbox_id, uniqueness: true
+
+  # Appointments run on this channel only when the assistant has them on and the channel's own
+  # switch is on (the switch defaults to on, so channels inherit the assistant setting).
+  def appointments_active?
+    appointments_enabled && captain_assistant.appointments.enabled?
+  end
 end

@@ -1448,6 +1448,12 @@
       "OPTIONS": {
         "DISCONNECT": "Disconnect"
       },
+      "APPOINTMENTS": {
+        "LABEL": "Appointments on this channel",
+        "HELP": "Captain offers and books appointments here. Turn it off to keep this channel without appointments.",
+        "SAVED": "Appointments setting updated",
+        "ERROR": "The appointments setting could not be updated. Please try again."
+      },
       "DELETE": {
         "TITLE": "Are you sure to disconnect the inbox?",
         "DESCRIPTION": "",
