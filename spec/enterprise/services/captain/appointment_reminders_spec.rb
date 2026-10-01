@@ -155,8 +155,22 @@ RSpec.describe Captain::AppointmentReminders do
 
         message = conversation.messages.outgoing.last
         expect(message).to have_attributes(sender: assistant, private: false, content_type: 'input_select')
-        expect(message.content).to include('Asistente de Ventas', 'Ana Pérez', 'Consulta', 'martes 15/01 10:00')
+        expect(message.content).to include('Ana Pérez', 'Consulta', 'martes 15/01 10:00')
+        expect(message.content).not_to start_with('Asistente')
+        expect(message.content).not_to include('Asistente de Ventas')
         expect(message.content_attributes['items'].pluck('title')).to eq(['Confirmo', 'Cambiar hora', 'Cancelar cita'])
+      end
+
+      it 'never puts the assistant name in front of what the customer receives (24 h and 2 h)' do
+        schedule
+
+        at(starts_at - 24.hours + 30.seconds) { described_class.new(reminder('reminder_24h')).perform }
+        at(starts_at - 2.hours + 30.seconds) { described_class.new(reminder('reminder_2h')).perform }
+
+        contents = conversation.messages.outgoing.where(private: false).order(:id).pluck(:content)
+        expect(contents.size).to eq(2)
+        expect(contents).to all(start_with('Hola Ana Pérez'))
+        expect(contents.join).not_to include('Asistente de Ventas')
       end
 
       it 'only offers to change or cancel once the customer confirmed' do
@@ -223,7 +237,7 @@ RSpec.describe Captain::AppointmentReminders do
           messages = conversation.messages.outgoing.where.not(id: conversation.messages.incoming)
           expect(messages.count).to eq(1)
           expect(messages.last).to have_attributes(private: true, sender: assistant)
-          expect(messages.last.content).to include('Asistente de Ventas', 'recordatorio no enviado', 'plantillas de pago están desactivadas')
+          expect(messages.last.content).to include('Asistente de Ventas no envió el recordatorio', 'plantillas de pago están desactivadas')
           expect(reminder('reminder_24h')).to have_attributes(status: 'skipped', skipped_reason: 'not_sent_window')
         end
       end
