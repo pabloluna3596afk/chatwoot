@@ -2,7 +2,8 @@ json.account_id resource.account_id
 json.config resource.config.merge(
   'auto_resolve_mode' => resource.auto_resolve_mode,
   'auto_resolve_after' => resource.inactivity_threshold_minutes,
-  'send_inactivity_resolution_message' => resource.send_inactivity_resolution_message?
+  'send_inactivity_resolution_message' => resource.send_inactivity_resolution_message?,
+  'appointments' => resource.appointments.to_h
 )
 json.created_at resource.created_at.to_i
 json.description resource.description

@@ -55,12 +55,14 @@ class Captain::Assistant < ApplicationRecord
 
   before_validation :set_default_auto_resolve_mode, on: :create
   before_validation :normalize_auto_resolve_after
+  before_validation :normalize_appointments_config
   before_create :ensure_within_plan_limit
 
   validates :name, presence: true
   validates :description, presence: true, length: { maximum: DESCRIPTION_LENGTH_LIMIT }
   validates :account_id, presence: true
   validates_with Captain::AudienceValidator
+  validates_with Captain::AppointmentsValidator
   validate :validate_response_window
   validates :auto_resolve_mode, inclusion: { in: AUTO_RESOLVE_MODES }
   validates :send_inactivity_resolution_message, inclusion: { in: [true, false] }
@@ -78,6 +80,10 @@ class Captain::Assistant < ApplicationRecord
 
   def available_name
     name
+  end
+
+  def appointments
+    Captain::AppointmentsSettings.new(config['appointments'])
   end
 
   def engages?(contact, conversation)
@@ -201,6 +207,12 @@ class Captain::Assistant < ApplicationRecord
 
     # Keep API values aligned with the five minute options available in the settings UI.
     self.auto_resolve_after = (threshold.fdiv(INACTIVITY_THRESHOLD_STEP_MINUTES).round * INACTIVITY_THRESHOLD_STEP_MINUTES)
+  end
+
+  def normalize_appointments_config
+    return unless config['appointments'].is_a?(Hash)
+
+    config['appointments'] = Captain::AppointmentsSettings.normalize(config['appointments'])
   end
 
   def validate_response_window
