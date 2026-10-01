@@ -8,6 +8,7 @@ const { getConnections, getCalendars } = vi.hoisted(() => ({
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
+    locale: { value: 'en' },
     t: (key, params) => (params ? `${key} ${JSON.stringify(params)}` : key),
   }),
 }));
@@ -22,7 +23,13 @@ vi.mock('dashboard/api/integrations/calendar', () => ({
 
 const CONNECTIONS = [{ id: 7, email: 'agenda@example.com', name: 'Agenda' }];
 const CALENDARS = [
-  { id: 'cal-1', summary: 'Consultas', hour_start: 9, hour_end: 18 },
+  {
+    id: 'cal-1',
+    summary: 'Consultas',
+    hour_start: 9,
+    hour_end: 18,
+    working_days: [1, 2, 3, 4, 5],
+  },
   { id: 'cal-2', summary: 'Otro', hour_start: 8, hour_end: 20 },
 ];
 
@@ -137,6 +144,23 @@ describe('AssistantAppointmentsForm', () => {
     expect(
       wrapper.get('[data-testid="appointments-hours-hint"]').text()
     ).toContain('"start":"09:00","end":"18:00"');
+  });
+
+  it('lists the working days of the calendar, or says every day', async () => {
+    const wrapper = await mountForm();
+    await toggle(wrapper);
+    await select(wrapper, 'appointments-connection').setValue(7);
+    await flushPromises();
+
+    await select(wrapper, 'appointments-calendar').setValue('cal-1');
+    expect(
+      wrapper.get('[data-testid="appointments-hours-hint"]').text()
+    ).toContain('"days":"Mon, Tue, Wed, Thu, Fri"');
+
+    await select(wrapper, 'appointments-calendar').setValue('cal-2');
+    expect(
+      wrapper.get('[data-testid="appointments-hours-hint"]').text()
+    ).toContain('"days":"CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.EVERY_DAY"');
   });
 
   it('saves a full enabled configuration with numeric values', async () => {

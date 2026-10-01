@@ -277,25 +277,27 @@ class Integrations::GoogleCalendar::EventService
     raise_slot_busy_from_google(google_event) if google_event
   end
 
-  def calendar_hours(calendar_id)
-    calendar = connection.connection_calendars.find_by!(external_id: calendar_id)
-    [calendar.hour_start, calendar.hour_end]
+  def calendar_settings(calendar_id)
+    connection.connection_calendars.find_by!(external_id: calendar_id)
   end
 
   def ensure_within_hours!(calendar_id, start_at, end_at)
     zone = Time.find_zone!(account_timezone)
     local_start = start_at.in_time_zone(zone)
     local_end = end_at.in_time_zone(zone)
-    hour_start, hour_end = calendar_hours(calendar_id)
+    calendar = calendar_settings(calendar_id)
     same_day = local_start.to_date == local_end.to_date
-    inside = local_start.seconds_since_midnight >= hour_start * 3600 && local_end.seconds_since_midnight <= hour_end * 3600
-    raise OutsideHours unless same_day && inside
+    inside = local_start.seconds_since_midnight >= calendar.hour_start * 3600 &&
+             local_end.seconds_since_midnight <= calendar.hour_end * 3600
+    raise OutsideHours unless same_day && inside && calendar.works_on?(local_start.wday)
   end
 
   # Every back-to-back slot of `duration` that fits in the calendar hours of each day in the range.
   def slots_in_hours(calendar_id, zone, range_start, range_end, duration)
-    hour_start, hour_end = calendar_hours(calendar_id)
-    (range_start.to_date..range_end.to_date).flat_map do |date|
+    calendar = calendar_settings(calendar_id)
+    hour_start = calendar.hour_start
+    hour_end = calendar.hour_end
+    (range_start.to_date..range_end.to_date).select { |date| calendar.works_on?(date.wday) }.flat_map do |date|
       day_start = zone.local(date.year, date.month, date.day, hour_start)
       day_end = zone.local(date.year, date.month, date.day, hour_end)
       seconds = duration.to_i

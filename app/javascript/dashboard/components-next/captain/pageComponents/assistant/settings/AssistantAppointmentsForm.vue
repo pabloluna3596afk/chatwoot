@@ -18,7 +18,7 @@ const props = defineProps({
 
 const emit = defineEmits(['submit']);
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const { accountScopedRoute } = useAccount();
 
 const CONTACT_FIELDS = ['name', 'phone', 'email'];
@@ -75,11 +75,31 @@ const selectedCalendar = computed(() =>
 
 const formatHour = hour => `${String(hour).padStart(2, '0')}:00`;
 
+// Monday first; the values are Date#wday (0 = Sunday), like the backend working_days.
+const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+
+// 2030-01-13 is a Sunday, so adding the weekday number lands on that weekday.
+const weekdayLabel = day =>
+  new Intl.DateTimeFormat(locale.value, { weekday: 'short' }).format(
+    new Date(2030, 0, 13 + day)
+  );
+
+const daysText = calendar => {
+  const days = calendar.working_days ?? DAY_ORDER;
+  if (days.length === DAY_ORDER.length) {
+    return t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.EVERY_DAY');
+  }
+  return DAY_ORDER.filter(day => days.includes(day))
+    .map(weekdayLabel)
+    .join(', ');
+};
+
 const hoursHint = computed(() => {
   if (!selectedCalendar.value) return '';
   return t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.HOURS_HINT', {
     start: formatHour(selectedCalendar.value.hour_start ?? 8),
     end: formatHour(selectedCalendar.value.hour_end ?? 20),
+    days: daysText(selectedCalendar.value),
   });
 });
 

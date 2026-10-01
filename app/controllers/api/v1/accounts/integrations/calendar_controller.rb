@@ -52,6 +52,7 @@ class Api::V1::Accounts::Integrations::CalendarController < Api::V1::Accounts::I
       record.is_enabled = ActiveModel::Type::Boolean.new.cast(item[:is_enabled])
       record.hour_start = item[:hour_start] unless item[:hour_start].nil?
       record.hour_end = item[:hour_end] unless item[:hour_end].nil?
+      record.working_days = item[:working_days].map(&:to_i) unless item[:working_days].nil?
       record.save!
     end
     render json: { payload: serialize_connection_calendars(all: true) }
@@ -189,7 +190,8 @@ class Api::V1::Accounts::Integrations::CalendarController < Api::V1::Accounts::I
         primary: calendar.is_primary,
         enabled: calendar.is_enabled,
         hour_start: calendar.hour_start,
-        hour_end: calendar.hour_end
+        hour_end: calendar.hour_end,
+        working_days: calendar.working_days
       }
     end
   end
@@ -278,6 +280,6 @@ class Api::V1::Accounts::Integrations::CalendarController < Api::V1::Accounts::I
   end
 
   def calendars_params
-    params.permit(calendars: [:external_id, :summary, :is_enabled, :hour_start, :hour_end])[:calendars]
+    params.permit(calendars: [:external_id, :summary, :is_enabled, :hour_start, :hour_end, { working_days: [] }])[:calendars]
   end
 end
