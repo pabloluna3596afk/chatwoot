@@ -1,4 +1,4 @@
-class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseService
+class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseService # rubocop:disable Metrics/ClassLength
   def send_message(phone_number, message)
     @message = message
 
@@ -289,3 +289,4 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
 end
 
 Whatsapp::Providers::WhatsappCloudService.prepend_mod_with('Whatsapp::Providers::WhatsappCloudService')
+# rubocop:enable Metrics/ClassLength
