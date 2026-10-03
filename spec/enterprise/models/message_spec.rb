@@ -160,7 +160,9 @@ RSpec.describe Message do
     it 'gives the conversation back to Captain when the customer writes again' do
       allow_any_instance_of(Captain::Assistant).to receive(:paused_reason).and_return(nil) # rubocop:disable RSpec/AnyInstance
 
-      create(:message, message_type: :incoming, conversation: conversation)
+      message = build(:message, message_type: :incoming, conversation: conversation)
+
+      message.send(:reopen_resolved_conversation)
 
       expect(conversation.reload).to have_attributes(
         status: 'pending', ai_assignee_type: 'Captain::Assistant', assignee_agent_bot_id: captain_assistant.id, captain_state: 'ai'
