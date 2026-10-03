@@ -15,6 +15,7 @@ import { useI18n } from 'vue-i18n';
 
 import { isWhatsAppComplete } from '@chatwoot/utils';
 import Input from 'dashboard/components-next/input/Input.vue';
+import InsertVariableButton from 'dashboard/components-next/variable/InsertVariableButton.vue';
 import {
   buildTemplateParameters,
   buildTemplateButtonsSnapshot,
@@ -41,9 +42,30 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // The values already chosen ({ body: { 1: '...' }, header: { ... } }), e.g. the ones a Captain setting saved.
+  modelValue: {
+    type: Object,
+    default: null,
+  },
+  // Variables the owner can insert into each field, as { key, label, description }; with none there is no button.
+  variableOptions: {
+    type: Array,
+    default: () => [],
+  },
+  // What each variable key is worth in the preview ({ 'appointment.date': 'jueves 1 de octubre' }), so the preview
+  // shows sample values and not the raw {{ variable }}.
+  previewValues: {
+    type: Object,
+    default: null,
+  },
 });
 
-const emit = defineEmits(['sendMessage', 'resetTemplate', 'back']);
+const emit = defineEmits([
+  'sendMessage',
+  'resetTemplate',
+  'back',
+  'update:modelValue',
+]);
 
 const { t } = useI18n();
 
@@ -100,17 +122,33 @@ const hasVariables = computed(
   () => hasBodyVariables.value || hasTextHeaderVariables.value
 );
 
+const LIQUID_VARIABLE = /{{\s*([\w.]+)\s*}}/g;
+
+// With preview values, {{ contact.name }} in a field shows its sample ("Ana Pérez") in the preview.
+const withSamples = values =>
+  Object.fromEntries(
+    Object.entries(values || {}).map(([key, value]) => [
+      key,
+      props.previewValues
+        ? String(value ?? '').replace(
+            LIQUID_VARIABLE,
+            (match, name) => props.previewValues[name] ?? match
+          )
+        : value,
+    ])
+  );
+
 const renderedHeader = computed(() => {
   return renderTemplatePreview(
     headerText.value,
-    processedParams.value.header || {}
+    withSamples(processedParams.value.header)
   );
 });
 
 const renderedTemplate = computed(() => {
   return renderTemplatePreview(
     bodyText.value,
-    processedParams.value.body || {}
+    withSamples(processedParams.value.body)
   );
 });
 
@@ -130,7 +168,20 @@ const v$ = useVuelidate(
 );
 
 const initializeTemplateParameters = () => {
-  processedParams.value = buildTemplateParameters(props.template);
+  const built = buildTemplateParameters(props.template);
+  ['header', 'body'].forEach(component => {
+    Object.keys(built[component] || {}).forEach(key => {
+      const saved = props.modelValue?.[component]?.[key];
+      if (saved !== undefined) built[component][key] = saved;
+    });
+  });
+  processedParams.value = built;
+};
+
+const insertVariable = (component, key, liquid) => {
+  const current = processedParams.value[component][key] || '';
+  processedParams.value[component][key] =
+    `${current}${current ? ' ' : ''}${liquid}`;
 };
 
 const updateMediaUrl = value => {
@@ -190,6 +241,14 @@ watch(
   () => {
     initializeTemplateParameters();
     v$.value.$reset();
+  },
+  { deep: true }
+);
+
+watch(
+  processedParams,
+  value => {
+    if (props.modelValue !== null) emit('update:modelValue', value);
   },
   { deep: true }
 );
@@ -298,6 +357,12 @@ defineExpose({
               })
             "
           />
+          <InsertVariableButton
+            v-if="variableOptions.length"
+            :variables="variableOptions"
+            :show-label="false"
+            @insert="insertVariable('header', key, $event)"
+          />
         </div>
       </div>
 
@@ -320,6 +385,12 @@ defineExpose({
                 variable: key,
               })
             "
+          />
+          <InsertVariableButton
+            v-if="variableOptions.length"
+            :variables="variableOptions"
+            :show-label="false"
+            @insert="insertVariable('body', key, $event)"
           />
         </div>
       </div>

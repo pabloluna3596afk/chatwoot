@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import AssistantAppointmentsForm from './AssistantAppointmentsForm.vue';
+import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
 
 const { getConnections, getCalendars, inboxes } = vi.hoisted(() => ({
   getConnections: vi.fn(),
@@ -44,7 +45,9 @@ const mountForm = async (
   const wrapper = mount(AssistantAppointmentsForm, {
     props: { assistant },
     global: {
+      mocks: { $t: key => key },
       stubs: {
+        InsertVariableButton: true,
         RouterLink: {
           props: ['to'],
           template: '<a data-testid="calendar-link"><slot /></a>',
@@ -61,9 +64,8 @@ const select = (wrapper, testId) =>
   wrapper.get(`[data-testid="${testId}"] select`);
 
 const REMINDER_DEFAULTS = {
-  send_confirmation: true,
-  reminder_24h: true,
-  reminder_2h: true,
+  reminder_1: { enabled: true, hours_before: 24 },
+  reminder_2: { enabled: true, hours_before: 3 },
   template_confirmation: null,
   template_reminder: null,
   template_cancelled: null,
@@ -254,17 +256,90 @@ describe('AssistantAppointmentsForm', () => {
       message_templates: templates,
     });
 
-    it('turns confirmation and both reminders on by default', async () => {
+    const hours = (wrapper, number) =>
+      wrapper.get(
+        `[data-testid="appointments-reminder-${number}-hours"] input`
+      );
+
+    it('has no confirmation switch: the confirmation is always the booking reply', async () => {
       const wrapper = await openFields();
 
       expect(
-        check(wrapper, 'appointments-send-confirmation').element.checked
-      ).toBe(true);
-      expect(check(wrapper, 'appointments-reminder-24h').element.checked).toBe(
+        wrapper.find('[data-testid="appointments-send-confirmation"]').exists()
+      ).toBe(false);
+      expect(
+        wrapper.get('[data-testid="appointments-confirmation-note"]').text()
+      ).toBe(
+        'CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.CONFIRMATION_NOTE'
+      );
+    });
+
+    it('turns both reminders on by default, at 24 h and 3 h', async () => {
+      const wrapper = await openFields();
+
+      expect(check(wrapper, 'appointments-reminder-1').element.checked).toBe(
         true
       );
-      expect(check(wrapper, 'appointments-reminder-2h').element.checked).toBe(
+      expect(check(wrapper, 'appointments-reminder-2').element.checked).toBe(
         true
+      );
+      expect(hours(wrapper, 1).element.value).toBe('24');
+      expect(hours(wrapper, 2).element.value).toBe('3');
+    });
+
+    it('explains next to each reminder that it is free only inside the 24 h window', async () => {
+      const wrapper = await openFields();
+
+      [1, 2].forEach(number => {
+        expect(
+          wrapper
+            .get(`[data-testid="appointments-reminder-${number}-hint"]`)
+            .text()
+        ).toBe('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.WINDOW_HINT');
+      });
+    });
+
+    it('shows the saved lead times, and reads the old 24 h / 2 h settings as they come from the API', async () => {
+      const wrapper = await openFields({
+        appointments: {
+          ...appointments,
+          reminder_1: { enabled: false, hours_before: 48 },
+          reminder_2: { enabled: true, hours_before: 6 },
+        },
+      });
+
+      expect(check(wrapper, 'appointments-reminder-1').element.checked).toBe(
+        false
+      );
+      expect(hours(wrapper, 1).element.value).toBe('48');
+      expect(hours(wrapper, 2).element.value).toBe('6');
+    });
+
+    it('saves the lead times of both reminders as numbers', async () => {
+      const wrapper = await openFields();
+      await hours(wrapper, 1).setValue('48');
+      await hours(wrapper, 2).setValue('2');
+      await check(wrapper, 'appointments-reminder-2').setValue(false);
+
+      await wrapper.get('[data-testid="appointments-save"]').trigger('click');
+
+      expect(wrapper.emitted('submit')[0][0].config.appointments).toMatchObject(
+        {
+          reminder_1: { enabled: true, hours_before: 48 },
+          reminder_2: { enabled: false, hours_before: 2 },
+        }
+      );
+    });
+
+    it('does not save a lead time outside 1 to 168 hours, and says so', async () => {
+      const wrapper = await openFields();
+      await hours(wrapper, 1).setValue('200');
+
+      await wrapper.get('[data-testid="appointments-save"]').trigger('click');
+
+      expect(wrapper.emitted('submit')).toBeUndefined();
+      expect(wrapper.text()).toContain(
+        'CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.HOURS_ERROR'
       );
     });
 
@@ -307,33 +382,170 @@ describe('AssistantAppointmentsForm', () => {
       expect(options).toEqual(['', 'recordatorio|es']);
     });
 
-    it('saves the toggles and the chosen templates, without the paid switch', async () => {
-      inboxes.value = [
-        whatsappInbox([
-          { name: 'recordatorio', language: 'es', status: 'approved' },
-        ]),
-      ];
-      const wrapper = await openFields({ allow_paid_templates: true });
-      await check(wrapper, 'appointments-reminder-2h').setValue(false);
+    const templateWithVariables = {
+      name: 'recordatorio',
+      language: 'es',
+      status: 'approved',
+      components: [
+        { type: 'HEADER', format: 'TEXT', text: 'Cita {{titulo}}' },
+        { type: 'BODY', text: 'Hola {{nombre}}, es el {{fecha}}.' },
+      ],
+      parameter_format: 'NAMED',
+    };
+
+    const parser = wrapper => wrapper.findComponent(WhatsAppTemplateParser);
+
+    const fillParser = async (wrapper, values) => {
+      const inputs = parser(wrapper).findAll('input[type="text"]');
+      for (let index = 0; index < values.length; index += 1) {
+        // eslint-disable-next-line no-await-in-loop
+        await inputs[index].setValue(values[index]);
+      }
+    };
+
+    const pickTemplate = async wrapper => {
       await select(wrapper, 'appointments-template-reminder').setValue(
         'recordatorio|es'
       );
+      await flushPromises();
+    };
+
+    it('saves the toggles and the chosen template with the text of each variable, without the paid switch', async () => {
+      inboxes.value = [whatsappInbox([templateWithVariables])];
+      const wrapper = await openFields({ allow_paid_templates: true });
+      await check(wrapper, 'appointments-reminder-2').setValue(false);
+      await pickTemplate(wrapper);
+      await fillParser(wrapper, [
+        '{{ appointment.title }}',
+        'Hola {{ contact.name }}',
+        '{{ appointment.date }}',
+      ]);
 
       await wrapper.get('[data-testid="appointments-save"]').trigger('click');
 
       const [payload] = wrapper.emitted('submit')[0];
       expect(payload.config.appointments).toMatchObject({
-        send_confirmation: true,
-        reminder_24h: true,
-        reminder_2h: false,
+        reminder_1: { enabled: true, hours_before: 24 },
+        reminder_2: { enabled: false, hours_before: 3 },
         template_confirmation: null,
-        template_reminder: { name: 'recordatorio', language: 'es' },
+        template_reminder: {
+          name: 'recordatorio',
+          language: 'es',
+          processed_params: {
+            header: { titulo: '{{ appointment.title }}' },
+            body: {
+              nombre: 'Hola {{ contact.name }}',
+              fecha: '{{ appointment.date }}',
+            },
+          },
+        },
         template_cancelled: null,
       });
       expect(payload.config.appointments).not.toHaveProperty(
         'allow_paid_templates'
       );
       expect(payload.config.allow_paid_templates).toBe(true);
+    });
+
+    it('offers the variables of the appointment, the assistant and the customer, and previews samples', async () => {
+      inboxes.value = [whatsappInbox([templateWithVariables])];
+      const wrapper = await openFields({ allow_paid_templates: true });
+      await pickTemplate(wrapper);
+
+      expect(
+        parser(wrapper)
+          .props('variableOptions')
+          .map(option => option.key)
+      ).toEqual([
+        'contact.name',
+        'contact.first_name',
+        'appointment.date',
+        'appointment.time',
+        'appointment.datetime',
+        'appointment.title',
+        'assistant.name',
+      ]);
+      expect(Object.keys(parser(wrapper).props('previewValues'))).toContain(
+        'appointment.date'
+      );
+    });
+
+    it('cannot be saved with a variable left empty, and says so', async () => {
+      inboxes.value = [whatsappInbox([templateWithVariables])];
+      const wrapper = await openFields({ allow_paid_templates: true });
+      await pickTemplate(wrapper);
+      await fillParser(wrapper, ['{{ appointment.title }}', 'Hola']);
+
+      await wrapper.get('[data-testid="appointments-save"]').trigger('click');
+
+      expect(wrapper.emitted('submit')).toBeUndefined();
+      expect(
+        wrapper
+          .get('[data-testid="appointments-template-reminder-error"]')
+          .text()
+      ).toBe('CAPTAIN.ASSISTANTS.FORM.TEMPLATE_VARIABLES.ERROR');
+    });
+
+    it('shows the saved text of each variable and saves it again as it was', async () => {
+      inboxes.value = [whatsappInbox([templateWithVariables])];
+      const saved = {
+        name: 'recordatorio',
+        language: 'es',
+        processed_params: {
+          header: { titulo: '{{ appointment.title }}' },
+          body: {
+            nombre: '{{ contact.name }}',
+            fecha: '{{ appointment.date }}',
+          },
+        },
+      };
+      const wrapper = await openFields({
+        allow_paid_templates: true,
+        appointments: { ...appointments, template_reminder: saved },
+      });
+
+      expect(
+        parser(wrapper)
+          .findAll('input[type="text"]')
+          .map(input => input.element.value)
+      ).toEqual([
+        '{{ appointment.title }}',
+        '{{ contact.name }}',
+        '{{ appointment.date }}',
+      ]);
+
+      await wrapper.get('[data-testid="appointments-save"]').trigger('click');
+
+      expect(
+        wrapper.emitted('submit')[0][0].config.appointments.template_reminder
+      ).toEqual(saved);
+    });
+
+    it('starts the variables over when another template is chosen', async () => {
+      inboxes.value = [
+        whatsappInbox([
+          templateWithVariables,
+          {
+            ...templateWithVariables,
+            name: 'otra',
+            components: [{ type: 'BODY', text: 'Hola {{1}}' }],
+          },
+        ]),
+      ];
+      const wrapper = await openFields({ allow_paid_templates: true });
+      await pickTemplate(wrapper);
+      await fillParser(wrapper, ['a', 'b', 'c']);
+
+      await select(wrapper, 'appointments-template-reminder').setValue(
+        'otra|es'
+      );
+      await flushPromises();
+
+      expect(
+        parser(wrapper)
+          .findAll('input[type="text"]')
+          .map(input => input.element.value)
+      ).toEqual(['']);
     });
   });
 });

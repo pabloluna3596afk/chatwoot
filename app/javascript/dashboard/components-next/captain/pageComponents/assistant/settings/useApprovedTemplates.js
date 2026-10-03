@@ -4,11 +4,13 @@ import { useMapGetter } from 'dashboard/composables/store';
 
 const templateKey = template => `${template.name}|${template.language}`;
 
-// A picked template travels as { name, language }; the select works with "name|language".
-export const templateFromValue = value => {
+// A picked template travels as { name, language, processed_params }; the select works with "name|language".
+// `processed_params` is the text of each variable ({ body: { 1: '{{ contact.name }}' }, header: { ... } }), the same
+// shape automations save.
+export const templateFromValue = (value, processedParams = {}) => {
   if (!value) return null;
   const [name, language] = value.split('|');
-  return { name, language };
+  return { name, language, processed_params: processedParams };
 };
 
 export const templateToValue = template =>
@@ -34,6 +36,7 @@ export function useApprovedTemplates() {
               seen.set(key, {
                 value: key,
                 label: `${template.name} (${template.language})`,
+                template,
               });
             }
           });
@@ -60,5 +63,9 @@ export function useApprovedTemplates() {
     ];
   };
 
-  return { approvedTemplates, templateOptions };
+  // The template (with its components) behind a "name|language" value, or undefined when no inbox has it approved.
+  const templateEntry = value =>
+    approvedTemplates.value.find(item => item.value === value)?.template;
+
+  return { approvedTemplates, templateOptions, templateEntry };
 }

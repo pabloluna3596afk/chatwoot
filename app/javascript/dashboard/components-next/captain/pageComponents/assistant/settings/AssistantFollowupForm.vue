@@ -1,11 +1,14 @@
 <script setup>
-import { computed, reactive, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import Select from 'dashboard/components-next/select/Select.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
+import { isWhatsAppComplete } from '@chatwoot/utils';
+import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
+import { useTemplateVariables } from './useTemplateVariables';
 import {
   useApprovedTemplates,
   templateFromValue,
@@ -22,7 +25,10 @@ const props = defineProps({
 const emit = defineEmits(['submit']);
 
 const { t } = useI18n();
-const { templateOptions } = useApprovedTemplates();
+const { templateOptions, templateEntry } = useApprovedTemplates();
+const { variableOptions, previewValues } = useTemplateVariables({
+  appointment: false,
+});
 
 const AFTER_OPTIONS = [10, 15, 30, 45, 60, 120, 240];
 const CLOSE_OPTIONS = [30, 60, 120, 240, 480, 1440];
@@ -34,9 +40,11 @@ const initialState = {
   closeAfter: 120,
   reengagementEnabled: false,
   template: '',
+  params: {},
 };
 
-const state = reactive({ ...initialState });
+const state = reactive({ ...initialState, params: {} });
+const showErrors = ref(false);
 
 // The one "paid templates" switch of the assistant lives in its own page.
 const paidEnabled = computed(
@@ -83,10 +91,28 @@ const updateStateFromAssistant = assistant => {
     closeAfter: settings.close_after_minutes ?? initialState.closeAfter,
     reengagementEnabled: settings.reengagement_enabled === true,
     template: templateToValue(settings.reengagement_template),
+    params: settings.reengagement_template?.processed_params || {},
   });
 };
 
+// A template with a variable left empty cannot be saved.
+const templateComplete = computed(
+  () =>
+    !state.reengagementEnabled ||
+    !state.template ||
+    !templateEntry(state.template) ||
+    isWhatsAppComplete(templateEntry(state.template), state.params)
+);
+
+const selectTemplate = value => {
+  state.template = value;
+  state.params = {};
+};
+
 const handleSubmit = () => {
+  showErrors.value = true;
+  if (!templateComplete.value) return;
+
   emit('submit', {
     config: {
       ...props.assistant.config,
@@ -96,7 +122,7 @@ const handleSubmit = () => {
         max_nudges: Number(state.maxNudges),
         close_after_minutes: Number(state.closeAfter),
         reengagement_enabled: state.reengagementEnabled,
-        reengagement_template: templateFromValue(state.template),
+        reengagement_template: templateFromValue(state.template, state.params),
       },
     },
   });
@@ -195,12 +221,29 @@ watch(
             {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.TEMPLATE') }}
           </label>
           <Select
-            v-model="state.template"
+            :model-value="state.template"
             data-testid="followup-template"
             full-width
             :options="templateOptions(state.template)"
             :aria-label="t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.TEMPLATE')"
+            @update:model-value="selectTemplate"
           />
+          <WhatsAppTemplateParser
+            v-if="state.template && templateEntry(state.template)"
+            :key="state.template"
+            :template="templateEntry(state.template)"
+            :model-value="state.params"
+            :variable-options="variableOptions"
+            :preview-values="previewValues"
+            @update:model-value="state.params = $event"
+          />
+          <p
+            v-if="showErrors && !templateComplete"
+            data-testid="followup-template-error"
+            class="mb-0 text-xs text-n-ruby-9"
+          >
+            {{ t('CAPTAIN.ASSISTANTS.FORM.TEMPLATE_VARIABLES.ERROR') }}
+          </p>
         </div>
       </template>
     </div>

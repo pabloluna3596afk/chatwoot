@@ -11,8 +11,12 @@ import CalendarAPI from 'dashboard/api/integrations/calendar';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
+import Input from 'dashboard/components-next/input/Input.vue';
 import Select from 'dashboard/components-next/select/Select.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
+import { isWhatsAppComplete } from '@chatwoot/utils';
+import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
+import { useTemplateVariables } from './useTemplateVariables';
 
 const props = defineProps({
   assistant: {
@@ -32,14 +36,12 @@ const NOTICE_OPTIONS = [0, 30, 60, 120, 240, 1440];
 const WINDOW_OPTIONS = [7, 14, 30, 60, 90];
 const TEMPLATE_KEYS = ['confirmation', 'reminder', 'cancelled'];
 
-const REMINDER_OPTIONS = [
-  {
-    key: 'sendConfirmation',
-    testId: 'send-confirmation',
-    label: 'CONFIRMATION',
-  },
-  { key: 'reminder24h', testId: 'reminder-24h', label: 'REMINDER_24H' },
-  { key: 'reminder2h', testId: 'reminder-2h', label: 'REMINDER_2H' },
+// Two reminders, each with its own lead time (1 to 168 hours before the appointment).
+const REMINDER_KEYS = ['reminder_1', 'reminder_2'];
+const REMINDER_HOURS = { min: 1, max: 168 };
+const DEFAULT_REMINDERS = [
+  { enabled: true, hours: 24 },
+  { enabled: true, hours: 3 },
 ];
 
 const initialState = {
@@ -50,17 +52,21 @@ const initialState = {
   fields: [...CONTACT_FIELDS],
   minNotice: 60,
   windowDays: 14,
-  sendConfirmation: true,
-  reminder24h: true,
-  reminder2h: true,
+  reminders: DEFAULT_REMINDERS.map(reminder => ({ ...reminder })),
   templates: { confirmation: '', reminder: '', cancelled: '' },
+  params: { confirmation: {}, reminder: {}, cancelled: {} },
 };
 
 const state = reactive({
   ...initialState,
+  reminders: DEFAULT_REMINDERS.map(reminder => ({ ...reminder })),
   templates: { ...initialState.templates },
+  params: { confirmation: {}, reminder: {}, cancelled: {} },
 });
-const { templateOptions } = useApprovedTemplates();
+const { templateOptions, templateEntry } = useApprovedTemplates();
+const { variableOptions, previewValues } = useTemplateVariables({
+  appointment: true,
+});
 
 // The one "paid templates" switch of the assistant lives in its own page; the pickers only matter once it is on.
 const paidEnabled = computed(
@@ -222,20 +228,54 @@ const updateStateFromAssistant = assistant => {
       : [...initialState.fields],
     minNotice: settings.min_notice_minutes ?? initialState.minNotice,
     windowDays: settings.booking_window_days ?? initialState.windowDays,
-    sendConfirmation: settings.send_confirmation !== false,
-    reminder24h: settings.reminder_24h !== false,
-    reminder2h: settings.reminder_2h !== false,
+    reminders: REMINDER_KEYS.map((key, index) => ({
+      enabled: settings[key]?.enabled !== false,
+      hours: settings[key]?.hours_before ?? DEFAULT_REMINDERS[index].hours,
+    })),
     templates: {
       confirmation: templateToValue(settings.template_confirmation),
       reminder: templateToValue(settings.template_reminder),
       cancelled: templateToValue(settings.template_cancelled),
     },
+    params: {
+      confirmation: settings.template_confirmation?.processed_params || {},
+      reminder: settings.template_reminder?.processed_params || {},
+      cancelled: settings.template_cancelled?.processed_params || {},
+    },
   });
 };
+
+const hoursValid = hours =>
+  Number.isInteger(Number(hours)) &&
+  Number(hours) >= REMINDER_HOURS.min &&
+  Number(hours) <= REMINDER_HOURS.max;
+
+const hoursError = index =>
+  showErrors.value && !hoursValid(state.reminders[index].hours)
+    ? t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.HOURS_ERROR')
+    : '';
+
+// A template with a variable left empty cannot be saved.
+const templateComplete = key =>
+  !state.templates[key] ||
+  !templateEntry(state.templates[key]) ||
+  isWhatsAppComplete(templateEntry(state.templates[key]), state.params[key]);
+
+const selectTemplate = (key, value) => {
+  state.templates[key] = value;
+  state.params[key] = {};
+};
+
+const reminderPayload = reminder => ({
+  enabled: reminder.enabled,
+  hours_before: Number(reminder.hours),
+});
 
 const handleSubmit = () => {
   showErrors.value = true;
   if (state.enabled && (!state.connectionId || !state.calendarId)) return;
+  if (!state.reminders.every(reminder => hoursValid(reminder.hours))) return;
+  if (!TEMPLATE_KEYS.every(templateComplete)) return;
 
   emit('submit', {
     config: {
@@ -248,12 +288,20 @@ const handleSubmit = () => {
         required_contact_fields: [...state.fields],
         min_notice_minutes: Number(state.minNotice),
         booking_window_days: Number(state.windowDays),
-        send_confirmation: state.sendConfirmation,
-        reminder_24h: state.reminder24h,
-        reminder_2h: state.reminder2h,
-        template_confirmation: templateFromValue(state.templates.confirmation),
-        template_reminder: templateFromValue(state.templates.reminder),
-        template_cancelled: templateFromValue(state.templates.cancelled),
+        reminder_1: reminderPayload(state.reminders[0]),
+        reminder_2: reminderPayload(state.reminders[1]),
+        template_confirmation: templateFromValue(
+          state.templates.confirmation,
+          state.params.confirmation
+        ),
+        template_reminder: templateFromValue(
+          state.templates.reminder,
+          state.params.reminder
+        ),
+        template_cancelled: templateFromValue(
+          state.templates.cancelled,
+          state.params.cancelled
+        ),
       },
     },
   });
@@ -428,22 +476,68 @@ onMounted(loadConnections);
             <span class="text-sm font-medium text-n-slate-12">
               {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.TITLE') }}
             </span>
-            <label
-              v-for="option in REMINDER_OPTIONS"
-              :key="option.key"
-              class="flex items-center gap-2 text-sm text-n-slate-12"
+            <p
+              data-testid="appointments-confirmation-note"
+              class="mb-0 text-xs text-n-slate-11"
             >
-              <Checkbox
-                :data-testid="`appointments-${option.testId}`"
-                :model-value="state[option.key]"
-                @update:model-value="state[option.key] = $event"
-              />
               {{
                 t(
-                  `CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.${option.label}`
+                  'CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.CONFIRMATION_NOTE'
                 )
               }}
-            </label>
+            </p>
+            <div
+              v-for="(reminder, index) in state.reminders"
+              :key="REMINDER_KEYS[index]"
+              class="flex flex-col gap-1"
+            >
+              <div
+                class="flex flex-wrap items-center gap-2 text-sm text-n-slate-12"
+              >
+                <Checkbox
+                  :data-testid="`appointments-reminder-${index + 1}`"
+                  :model-value="reminder.enabled"
+                  @update:model-value="reminder.enabled = $event"
+                />
+                <span>
+                  {{
+                    t(
+                      'CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.REMINDER_LABEL',
+                      { number: index + 1 }
+                    )
+                  }}
+                </span>
+                <Input
+                  v-model="reminder.hours"
+                  type="number"
+                  size="sm"
+                  :min="String(REMINDER_HOURS.min)"
+                  :max="String(REMINDER_HOURS.max)"
+                  :disabled="!reminder.enabled"
+                  :data-testid="`appointments-reminder-${index + 1}-hours`"
+                  :message="hoursError(index)"
+                  message-type="error"
+                  class="w-24"
+                />
+                <span>
+                  {{
+                    t(
+                      'CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.HOURS_BEFORE'
+                    )
+                  }}
+                </span>
+              </div>
+              <p
+                :data-testid="`appointments-reminder-${index + 1}-hint`"
+                class="mb-0 text-xs text-n-slate-11"
+              >
+                {{
+                  t(
+                    'CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.REMINDERS.WINDOW_HINT'
+                  )
+                }}
+              </p>
+            </div>
             <p
               v-if="!paidEnabled"
               data-testid="appointments-paid-hint"
@@ -456,7 +550,7 @@ onMounted(loadConnections);
             <div
               v-if="paidEnabled"
               data-testid="appointments-templates"
-              class="grid gap-4 sm:grid-cols-3"
+              class="flex flex-col gap-4"
             >
               <div
                 v-for="key in TEMPLATE_KEYS"
@@ -471,11 +565,30 @@ onMounted(loadConnections);
                   }}
                 </label>
                 <Select
-                  v-model="state.templates[key]"
+                  :model-value="state.templates[key]"
                   :data-testid="`appointments-template-${key}`"
                   full-width
                   :options="templateOptions(state.templates[key])"
+                  @update:model-value="selectTemplate(key, $event)"
                 />
+                <WhatsAppTemplateParser
+                  v-if="
+                    state.templates[key] && templateEntry(state.templates[key])
+                  "
+                  :key="state.templates[key]"
+                  :template="templateEntry(state.templates[key])"
+                  :model-value="state.params[key]"
+                  :variable-options="variableOptions"
+                  :preview-values="previewValues"
+                  @update:model-value="state.params[key] = $event"
+                />
+                <p
+                  v-if="showErrors && !templateComplete(key)"
+                  :data-testid="`appointments-template-${key}-error`"
+                  class="mb-0 text-xs text-n-ruby-9"
+                >
+                  {{ t('CAPTAIN.ASSISTANTS.FORM.TEMPLATE_VARIABLES.ERROR') }}
+                </p>
               </div>
             </div>
           </div>
