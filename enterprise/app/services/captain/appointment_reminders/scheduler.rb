@@ -8,14 +8,15 @@ class Captain::AppointmentReminders::Scheduler
       return if event.start_at.blank?
 
       settings = assistant.appointments
-      Captain::AppointmentReminder::KINDS.each do |kind|
-        next unless settings.public_send("#{kind}?")
+      settings.reminders.each do |reminder|
+        next unless reminder['enabled']
 
-        create_reminder(event, assistant, conversation, kind)
+        create_reminder(event, assistant, conversation, reminder['kind'], reminder['hours_before'])
       end
     end
 
-    # The appointment moved: every reminder gets its new time, including ones already sent for the old one.
+    # The appointment moved: every reminder gets its new time (from the lead time the assistant has now), including
+    # ones already sent for the old one.
     def reschedule(event)
       return if event.start_at.blank?
 
@@ -32,8 +33,8 @@ class Captain::AppointmentReminders::Scheduler
 
     private
 
-    def create_reminder(event, assistant, conversation, kind)
-      scheduled_at = event.start_at - Captain::AppointmentReminder::LEAD_TIMES.fetch(kind)
+    def create_reminder(event, assistant, conversation, kind, hours_before)
+      scheduled_at = event.start_at - hours_before.hours
       Captain::AppointmentReminder.create!(
         account_id: event.account_id, calendar_event_id: event.id, captain_assistant_id: assistant.id,
         conversation_id: conversation.id, kind: kind, scheduled_at: scheduled_at, **initial_state(scheduled_at)

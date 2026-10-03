@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe Captain::AppointmentsSettings do
   let(:reminder_defaults) do
-    { 'send_confirmation' => true, 'reminder_24h' => true, 'reminder_2h' => true,
+    { 'reminder_1' => { 'enabled' => true, 'hours_before' => 24 }, 'reminder_2' => { 'enabled' => true, 'hours_before' => 3 },
       'template_confirmation' => nil, 'template_reminder' => nil, 'template_cancelled' => nil }
   end
 
@@ -26,16 +26,48 @@ RSpec.describe Captain::AppointmentsSettings do
       ).and include(reminder_defaults)
     end
 
-    it 'casts the confirmation and reminder toggles strictly and keeps only the name and language of a template' do
+    it 'has no send_confirmation setting: the confirmation is always the booking reply' do
+      expect(described_class.normalize('send_confirmation' => false)).not_to have_key('send_confirmation')
+    end
+
+    it 'casts the reminders strictly: the switch ("no" is off) and the hours' do
       result = described_class.normalize(
-        'send_confirmation' => 'false', 'reminder_24h' => '0', 'reminder_2h' => false,
-        'template_reminder' => { 'name' => 'recordatorio', 'language' => 'es', 'extra' => 'x' },
+        'reminder_1' => { 'enabled' => 'no', 'hours_before' => '48' }, 'reminder_2' => { 'enabled' => 'true', 'hours_before' => '' }
+      )
+
+      expect(result).to include('reminder_1' => { 'enabled' => false, 'hours_before' => 48 },
+                                'reminder_2' => { 'enabled' => true, 'hours_before' => 3 })
+    end
+
+    it 'keeps hours that are not numbers so the validator can reject them' do
+      expect(described_class.normalize('reminder_1' => { 'hours_before' => 'soon' })['reminder_1']['hours_before']).to eq('soon')
+    end
+
+    it 'reads the old 24 h / 2 h switches as the two reminders, with their old lead times' do
+      result = described_class.normalize('reminder_24h' => true, 'reminder_2h' => false)
+
+      expect(result).to include('reminder_1' => { 'enabled' => true, 'hours_before' => 24 },
+                                'reminder_2' => { 'enabled' => false, 'hours_before' => 2 })
+    end
+
+    it 'prefers the new reminder over the old switch' do
+      result = described_class.normalize('reminder_1' => { 'enabled' => true, 'hours_before' => 12 }, 'reminder_24h' => false)
+
+      expect(result['reminder_1']).to eq('enabled' => true, 'hours_before' => 12)
+    end
+
+    it 'keeps the name, the language and the texts of the variables of a template, and nothing else' do
+      result = described_class.normalize(
+        'template_reminder' => { 'name' => 'recordatorio', 'language' => 'es', 'extra' => 'x',
+                                 'processed_params' => { 'body' => { '1' => '{{ contact.name }}', 'nombre' => 'Consulta' },
+                                                         'header' => { 'titulo' => '{{ appointment.title }}' }, 'footer' => { 'x' => 'y' } } },
         'template_confirmation' => '', 'template_cancelled' => nil
       )
 
       expect(result).to include(
-        'send_confirmation' => false, 'reminder_24h' => false, 'reminder_2h' => false,
-        'template_reminder' => { 'name' => 'recordatorio', 'language' => 'es' },
+        'template_reminder' => { 'name' => 'recordatorio', 'language' => 'es',
+                                 'processed_params' => { 'body' => { '1' => '{{ contact.name }}', 'nombre' => 'Consulta' },
+                                                         'header' => { 'titulo' => '{{ appointment.title }}' } } },
         'template_confirmation' => nil, 'template_cancelled' => nil
       )
     end

@@ -6,6 +6,8 @@
 class Captain::Followup::Reengager
   STATE_KEY = 'captain_followup'.freeze
   COOLDOWN = 7.days
+  # The texts of a template saved before the variables could be chosen: 1 the customer, 2 the assistant.
+  LEGACY_TEMPLATE_PARAMS = { 'body' => { '1' => '{{ contact.name }}', '2' => '{{ assistant.name }}' } }.freeze
   STATE_PATH = "conversations.additional_attributes -> '#{STATE_KEY}'".freeze
 
   # Closed by Captain in the last 7 days and not attempted yet.
@@ -78,11 +80,15 @@ class Captain::Followup::Reengager
   end
 
   def send_template(entry)
-    payload, text = Captain::TemplateMessage.build(entry, { '1' => contact.name, '2' => assistant.name })
+    drops = Captain::TemplateMessage.drops(conversation, assistant)
+    payload, text = Captain::TemplateMessage.build(entry, settings.reengagement_template['processed_params'], drops,
+                                                   fallback: LEGACY_TEMPLATE_PARAMS)
     create_message(text, additional_attributes: { template_params: payload })
     cap.increment!
     record('at' => now.utc.iso8601, 'status' => 'sent')
     :sent
+  rescue Captain::TemplateMessage::MappingMismatch
+    skip_with_note('reengagement_template_changed', 'template_changed')
   end
 
   def skip(reason)
