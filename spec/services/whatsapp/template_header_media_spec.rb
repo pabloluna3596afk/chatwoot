@@ -23,11 +23,15 @@ describe Whatsapp::TemplateHeaderMedia do
     end
 
     it 'refuses another type, too big a file, an empty one and an unknown format' do
-      expect { described_class.validate!('IMAGE', 'image/gif', 10) }.to raise_error(described_class::InvalidFile) { |e| expect(e.reason).to eq('invalid_type') }
-      expect { described_class.validate!('IMAGE', 'image/png', 5.megabytes + 1) }.to raise_error(described_class::InvalidFile) { |e| expect(e.reason).to eq('too_large') }
-      expect { described_class.validate!('VIDEO', 'video/mp4', 16.megabytes + 1) }.to raise_error(described_class::InvalidFile) { |e| expect(e.reason).to eq('too_large') }
-      expect { described_class.validate!('IMAGE', 'image/png', 0) }.to raise_error(described_class::InvalidFile) { |e| expect(e.reason).to eq('empty') }
-      expect { described_class.validate!('AUDIO', 'audio/mpeg', 10) }.to raise_error(described_class::InvalidFile) { |e| expect(e.reason).to eq('invalid_format') }
+      {
+        ['IMAGE', 'image/gif', 10] => 'invalid_type',
+        ['IMAGE', 'image/png', 5.megabytes + 1] => 'too_large',
+        ['VIDEO', 'video/mp4', 16.megabytes + 1] => 'too_large',
+        ['IMAGE', 'image/png', 0] => 'empty',
+        ['AUDIO', 'audio/mpeg', 10] => 'invalid_format'
+      }.each do |arguments, reason|
+        expect { described_class.validate!(*arguments) }.to raise_error(described_class::InvalidFile) { |error| expect(error.reason).to eq(reason) }
+      end
     end
   end
 
