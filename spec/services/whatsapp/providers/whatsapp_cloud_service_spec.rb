@@ -695,4 +695,75 @@ describe Whatsapp::Providers::WhatsappCloudService do
       end
     end
   end
+  describe '#send_template with a header media id Meta refuses' do
+    let(:messages_url) { 'https://graph.facebook.com/v13.0/123456789/messages' }
+    let(:blob) do
+      ActiveStorage::Blob.create_and_upload!(
+        io: Rails.root.join('spec/assets/avatar.png').open, filename: 'avatar.png', content_type: 'image/png',
+        metadata: { 'account_id' => whatsapp_channel.account_id }
+      )
+    end
+    let(:header) do
+      { 'media_id' => 'old_id', 'media_blob' => blob.signed_id, 'media_url' => 'https://example.com/avatar.png',
+        'media_phone_number_id' => whatsapp_channel.provider_config['phone_number_id'].to_s, 'media_uploaded_at' => 1.day.ago.iso8601 }
+    end
+    let(:template_info) do
+      { name: 'promo', namespace: 'ns', lang_code: 'es',
+        parameters: [{ type: 'header', parameters: [{ type: 'image', image: { id: 'old_id' } }] }] }
+    end
+    let(:refused) { { error: { message: 'Media download error', code: 131_053 } }.to_json }
+    let(:accepted) { { messages: [{ id: 'wamid.ok' }] }.to_json }
+
+    def header_of(request)
+      JSON.parse(request.body).dig('template', 'components', 0, 'parameters', 0, 'image')
+    end
+
+    before do
+      allow(Rails).to receive(:cache).and_return(ActiveSupport::Cache::MemoryStore.new)
+      Whatsapp::TemplateHeaderMedia.media_id_for(whatsapp_channel, header) # remembers the copy and the link
+      stub_request(:post, media_upload_url)
+        .to_return(status: 200, body: { id: 'new_id' }.to_json, headers: response_headers)
+    end
+
+    it 'uploads the stored copy again and resends once' do
+      stub_request(:post, messages_url)
+        .with { |request| header_of(request) == { 'id' => 'old_id' } }
+        .to_return(status: 400, body: refused, headers: response_headers)
+      stub_request(:post, messages_url)
+        .with { |request| header_of(request) == { 'id' => 'new_id' } }
+        .to_return(status: 200, body: accepted, headers: response_headers)
+
+      expect(service.send_template('+123456789', template_info, nil)).to eq('wamid.ok')
+      expect(WebMock).to have_requested(:post, media_upload_url).once
+    end
+
+    it 'sends the link when the new id is refused too' do
+      stub_request(:post, messages_url)
+        .with { |request| header_of(request).key?('id') }
+        .to_return(status: 400, body: refused, headers: response_headers)
+      stub_request(:post, messages_url)
+        .with { |request| header_of(request) == { 'link' => 'https://example.com/avatar.png' } }
+        .to_return(status: 200, body: accepted, headers: response_headers)
+
+      expect(service.send_template('+123456789', template_info, nil)).to eq('wamid.ok')
+    end
+
+    it 'does not retry an error that is not about the media' do
+      stub_request(:post, messages_url)
+        .to_return(status: 400, body: { error: { message: 'Template paused', code: 132_015 } }.to_json, headers: response_headers)
+
+      expect(service.send_template('+123456789', template_info, nil)).to be_nil
+      expect(WebMock).to have_requested(:post, messages_url).once
+      expect(WebMock).not_to have_requested(:post, media_upload_url)
+    end
+
+    it 'fails as before when nothing is known about the refused id' do
+      other = template_info.deep_dup
+      other[:parameters][0][:parameters][0][:image][:id] = 'unknown_id'
+      stub_request(:post, messages_url).to_return(status: 400, body: refused, headers: response_headers)
+
+      expect(service.send_template('+123456789', other, nil)).to be_nil
+      expect(WebMock).to have_requested(:post, messages_url).once
+    end
+  end
 end

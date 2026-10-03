@@ -6,6 +6,10 @@
 #   media_type, media_uploaded_at, media_phone_number_id.
 # A media_id belongs to the number that uploaded it and Meta drops it after 30 days: past REFRESH_AFTER (or for another
 # number) the stored copy is uploaded again.
+#
+# When Meta still refuses a media_id as expired or invalid, the provider re-uploads the stored copy once and resends,
+# then falls back to the link (see Whatsapp::Providers::WhatsappCloudService#send_template). The id handed out is
+# remembered with its copy and link for that (REMEMBER_FOR).
 class Whatsapp::TemplateHeaderMedia
   # Template header limits: https://developers.facebook.com/docs/whatsapp/cloud-api/reference/media#supported-media-types
   FORMATS = {
@@ -14,6 +18,10 @@ class Whatsapp::TemplateHeaderMedia
     'DOCUMENT' => { content_types: %w[application/pdf], max_bytes: 100.megabytes }
   }.freeze
   REFRESH_AFTER = 25.days
+  REMEMBER_FOR = 32.days
+  # Cloud API errors for a media that cannot be downloaded or was not uploaded (the id may still be refused with a
+  # generic error that names the media, see .media_error?).
+  MEDIA_ERROR_CODES = [131_052, 131_053].freeze
 
   # The file does not fit the header: `reason` is a stable code the API returns (invalid_type, too_large, empty).
   class InvalidFile < StandardError
@@ -69,6 +77,48 @@ class Whatsapp::TemplateHeaderMedia
     def media_id_for(channel, header)
       media_id = header['media_id']
       return if media_id.blank?
+
+      id = usable_media_id(channel, header, media_id)
+      remember(channel, id, header) if id.present?
+      id
+    end
+
+    # Whether Meta's error response says the header media was refused.
+    def media_error?(parsed_response)
+      error = parsed_response.is_a?(Hash) ? parsed_response['error'] : nil
+      return false unless error.is_a?(Hash)
+
+      MEDIA_ERROR_CODES.include?(error['code'].to_i) || error.values_at('message', 'error_data').join(' ').match?(/media/i)
+    end
+
+    # The header media parameter of the template components ({ type: 'image', image: { id: } }), or nil.
+    def header_media_parameter(components)
+      header = Array(components).find { |component| component[:type].to_s == 'header' }
+      Array(header&.dig(:parameters)).find { |parameter| parameter.is_a?(Hash) && parameter.dig(parameter[:type]&.to_sym, :id).present? }
+    end
+
+    # A new media_id for a refused one, uploaded again from the stored copy; nil when there is no copy or the upload fails.
+    def reupload(channel, media_id)
+      entry = Rails.cache.read(cache_key(channel, media_id))
+      blob = entry && stored_blob(channel, entry['blob'])
+      return if blob.nil?
+
+      new_id = Whatsapp::MediaUploadService.upload_blob!(channel, blob)
+      Rails.cache.write(cache_key(channel, new_id), entry, expires_in: REMEMBER_FOR)
+      new_id
+    rescue Whatsapp::MediaUploadService::UploadError => e
+      Rails.logger.warn("[WHATSAPP] Header media re-upload failed for channel #{channel.id}: #{e.message}")
+      nil
+    end
+
+    # The link of the stored copy of a refused media_id (the last resort), or nil.
+    def link_for(channel, media_id)
+      Rails.cache.read(cache_key(channel, media_id))&.dig('url').presence
+    end
+
+    private
+
+    def usable_media_id(channel, header, media_id)
       return media_id if fresh?(channel, header)
 
       blob = stored_blob(channel, header['media_blob'])
@@ -77,7 +127,14 @@ class Whatsapp::TemplateHeaderMedia
       refreshed_media_id(channel, blob)
     end
 
-    private
+    def remember(channel, media_id, header)
+      entry = { 'blob' => header['media_blob'], 'url' => header['media_url'] }
+      Rails.cache.write(cache_key(channel, media_id), entry, expires_in: REMEMBER_FOR, unless_exist: true)
+    end
+
+    def cache_key(channel, media_id)
+      "whatsapp_header_media_entry:#{channel.id}:#{media_id}"
+    end
 
     def fresh?(channel, header)
       uploaded_at = Time.zone.parse(header['media_uploaded_at'].to_s)
