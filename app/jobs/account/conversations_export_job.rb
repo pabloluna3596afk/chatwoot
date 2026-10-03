@@ -68,7 +68,7 @@ class Account::ConversationsExportJob < ApplicationJob
     when 'last_activity_at' then format_datetime(conversation.last_activity_at)
     when 'status' then conversation.status
     when 'status_label' then status_label(conversation)
-    when 'assignee' then conversation.assignee&.name || conversation.assignee_agent_bot&.name
+    when 'assignee' then conversation.assignee&.name || conversation.ai_assignee&.name
     when 'team' then conversation.team&.name
     when 'inbox' then conversation.inbox&.name
     when 'channel' then conversation.inbox&.channel_type.to_s.delete_prefix('Channel::')
@@ -129,7 +129,7 @@ class Account::ConversationsExportJob < ApplicationJob
   end
 
   def conversations_to_export
-    scope = conversations.includes(:assignee, :assignee_agent_bot, :team, :inbox, :contact)
+    scope = conversations.includes(:assignee, :ai_assignee, :team, :inbox, :contact)
     records = scope.to_a
     preload_conversation_labels(records)
     records

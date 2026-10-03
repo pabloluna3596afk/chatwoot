@@ -376,6 +376,7 @@
 - name: whatsapp_reconfigure
   display_name: WhatsApp Reconfigure
   enabled: false
+  deprecated: true
   column: feature_flags_ext_1
   category: channels
   description: Reconfigure WhatsApp Cloud API inbox credentials.
@@ -430,3 +431,9 @@
   column: feature_flags_ext_1
   category: reports
   description: Allow admins to download reports and saved report panels as CSV or Excel. Reports can still be viewed on screen.
+- name: audit_log_ip_address
+  display_name: Audit Log IP Address
+  help_url: https://chwt.app/hc/audit-logs
+  enabled: false
+  premium: true
+  column: feature_flags_ext_1

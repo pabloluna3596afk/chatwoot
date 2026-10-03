@@ -111,3 +111,4 @@ graphify-out/
 .graphify_*.json
 .graphify_root
 .graphify_labels.json
+.nodeterm/project.json

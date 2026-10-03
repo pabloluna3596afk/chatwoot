@@ -30,6 +30,7 @@ const ERROR_MESSAGES = {
 
 const IMPERSONATION_URL_SEARCH_KEY = 'impersonation';
 const USER_NOT_CONFIRMED_ERROR_CODE = 'user_not_confirmed';
+const AUTH_ERROR_TOAST_DURATION = 6000;
 
 export default {
   components: {
@@ -114,16 +115,21 @@ export default {
     if (this.ssoAuthToken) {
       this.submitLogin();
     }
+  },
+  mounted() {
     if (this.authError) {
-      const messageKey = ERROR_MESSAGES[this.authError] ?? 'LOGIN.API.UNAUTH';
-      // Use a method to get the translated text to avoid dynamic key warning
-      const translatedMessage = this.getTranslatedMessage(messageKey);
-      useAlert(translatedMessage);
-      // wait for idle state
-      this.requestIdleCallbackPolyfill(() => {
-        // Remove the error query param from the url
-        const { query } = this.$route;
-        this.$router.replace({ query: { ...query, error: undefined } });
+      // Wait for the sibling snackbar to mount and subscribe to toast events.
+      this.$nextTick(() => {
+        const messageKey = ERROR_MESSAGES[this.authError] ?? 'LOGIN.API.UNAUTH';
+        // Use a method to get the translated text to avoid dynamic key warning
+        const translatedMessage = this.getTranslatedMessage(messageKey);
+        useAlert(translatedMessage, { duration: AUTH_ERROR_TOAST_DURATION });
+        // wait for idle state
+        this.requestIdleCallbackPolyfill(() => {
+          // Remove the error query param from the url
+          const { query } = this.$route;
+          this.$router.replace({ query: { ...query, error: undefined } });
+        });
       });
     }
   },
@@ -310,9 +316,14 @@ export default {
       <h2 class="mt-6 text-3xl font-medium text-center text-n-slate-12">
         {{ replaceInstallationName($t('LOGIN.TITLE')) }}
       </h2>
-      <p v-if="isStaging" class="mt-2 text-xs font-medium text-center text-amber-600">
+      <!-- eslint-disable vue/no-bare-strings-in-template -->
+      <p
+        v-if="isStaging"
+        class="mt-2 text-xs font-medium text-center text-amber-600"
+      >
         Entorno de pruebas — InboxHub
       </p>
+      <!-- eslint-enable vue/no-bare-strings-in-template -->
       <p v-if="showSignupLink" class="mt-3 text-sm text-center text-n-slate-11">
         {{ $t('COMMON.OR') }}
         <router-link to="auth/signup" class="lowercase text-link text-n-brand">

@@ -3,10 +3,10 @@ module Concerns::Agentable
 
   DEFAULT_TEMPERATURE = 0.5
 
-  def agent
+  def agent(runtime_configuration: nil, runtime_agent_name: nil)
     Agents::Agent.new(
-      name: agent_name,
-      instructions: ->(context) { agent_instructions(context) },
+      name: runtime_agent_name || agent_name,
+      instructions: ->(context) { agent_instructions(context, runtime_configuration: runtime_configuration) },
       tools: agent_tools,
       model: agent_model,
       temperature: temperature.presence&.to_f || DEFAULT_TEMPERATURE,
@@ -14,8 +14,8 @@ module Concerns::Agentable
     )
   end
 
-  def agent_instructions(context = nil, prompt_template: template_name)
-    enhanced_context = prompt_context
+  def agent_instructions(context = nil, prompt_template: template_name, runtime_configuration: nil)
+    enhanced_context = runtime_prompt_context(prompt_context, runtime_configuration)
 
     if context
       state = context.context[:state] || {}
@@ -26,7 +26,7 @@ module Concerns::Agentable
         contact: config['feature_contact_attributes'].present? ? state[:contact] : nil,
         campaign: state[:campaign] || {},
         message_length_limit: state[:message_length_limit]
-      ).merge(runtime_prompt_context(state))
+      ).merge(conversation_prompt_context(state))
     end
 
     Captain::PromptRenderer.render(prompt_template, enhanced_context.with_indifferent_access)
@@ -40,6 +40,12 @@ module Concerns::Agentable
   end
 
   private
+
+  def runtime_prompt_context(context, runtime_configuration)
+    return context unless runtime_configuration
+
+    runtime_configuration.prompt_context_for(self, context)
+  end
 
   def agent_name
     raise NotImplementedError, "#{self.class} must implement agent_name"
@@ -72,7 +78,7 @@ module Concerns::Agentable
   end
 
   # Extra prompt variables that depend on the conversation being handled; override when needed.
-  def runtime_prompt_context(_state)
+  def conversation_prompt_context(_state)
     {}
   end
 end

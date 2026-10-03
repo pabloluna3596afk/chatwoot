@@ -8,8 +8,8 @@ const state = {
   },
 };
 
-const recordKey = (inboxId, { includeAgentBots = false } = {}) =>
-  includeAgentBots ? `${inboxId}:with_agent_bots` : inboxId;
+const recordKey = (inboxId, { includeAIAssignees = false } = {}) =>
+  includeAIAssignees ? `${inboxId}:with_ai_assignees` : inboxId;
 
 export const types = {
   SET_INBOX_ASSIGNABLE_AGENTS_UI_FLAG: 'SET_INBOX_ASSIGNABLE_AGENTS_UI_FLAG',
@@ -17,13 +17,20 @@ export const types = {
 };
 
 export const getters = {
-  getAssignableAgents: $state => inboxId => {
-    if (inboxId == null || inboxId === '') return [];
-    const key = String(inboxId);
-    const allAgents = $state.records[key] || $state.records[inboxId] || [];
-    const verifiedAgents = allAgents.filter(record => record.confirmed);
-    return verifiedAgents;
-  },
+  getAssignableAgents:
+    $state =>
+    (inboxId, options = {}) => {
+      if (inboxId == null || inboxId === '') return [];
+      const includeAIAssignees = options.includeAIAssignees || false;
+      const allAgents = $state.records[recordKey(inboxId, options)] || [];
+      const verifiedAgents = allAgents.filter(
+        record =>
+          record.confirmed ||
+          (includeAIAssignees && record.assignee_type === 'AgentBot') ||
+          (includeAIAssignees && record.assignee_type === 'Captain::Assistant')
+      );
+      return verifiedAgents;
+    },
   getUIFlags($state) {
     return $state.uiFlags;
   },
@@ -34,21 +41,25 @@ export const actions = {
     const inboxIds = Array.isArray(actionPayload)
       ? actionPayload
       : actionPayload.inboxIds;
-    const includeAgentBots =
-      !Array.isArray(actionPayload) && actionPayload.includeAgentBots;
+    const includeAIAssignees =
+      !Array.isArray(actionPayload) && actionPayload.includeAIAssignees;
     commit(types.SET_INBOX_ASSIGNABLE_AGENTS_UI_FLAG, { isFetching: true });
     try {
       const {
         data: { payload },
-      } = await AssignableAgentsAPI.get(inboxIds, { includeAgentBots });
-      if (includeAgentBots) {
+      } = await AssignableAgentsAPI.get(inboxIds, {
+        includeAIAssignees,
+      });
+      if (includeAIAssignees) {
         commit(types.SET_INBOX_ASSIGNABLE_AGENTS, {
           inboxId: inboxIds.join(','),
           members: payload,
         });
       }
       commit(types.SET_INBOX_ASSIGNABLE_AGENTS, {
-        inboxId: recordKey(inboxIds.join(','), { includeAgentBots }),
+        inboxId: recordKey(inboxIds.join(','), {
+          includeAIAssignees,
+        }),
         members: payload,
       });
     } catch (error) {

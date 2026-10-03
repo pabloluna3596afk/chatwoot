@@ -179,11 +179,16 @@ RSpec.describe Conversation, type: :model do
   end
 
   describe 'Captain ownership' do
-    # Captain starts every new conversation of its inboxes as pending whatever status is asked for, so the
-    # status the scenario needs is set afterwards.
-    def create_conversation(status:, **attributes)
+    # Captain starts every new conversation of its inboxes as pending and owns it, whatever status is asked for, so the
+    # status and the owner the scenario needs are set afterwards.
+    def create_conversation(status:, ai_assignee: nil, **attributes)
       create(:conversation, status: status, **attributes).tap do |conversation|
-        conversation.update_columns(status: Conversation.statuses.fetch(status.to_s)) # rubocop:disable Rails/SkipsModelValidations
+        conversation.update_columns( # rubocop:disable Rails/SkipsModelValidations
+          status: Conversation.statuses.fetch(status.to_s),
+          ai_assignee_type: ai_assignee&.class&.name,
+          assignee_agent_bot_id: ai_assignee&.id
+        )
+        conversation.reload
       end
     end
     let(:account) { create(:account) }
@@ -197,10 +202,17 @@ RSpec.describe Conversation, type: :model do
     end
 
     describe '#captain_state' do
-      it "is 'ai' for a pending conversation in an inbox with an assistant" do
-        conversation = create_conversation(account: account, inbox: inbox, status: :pending)
+      it "is 'ai' for a pending conversation Captain owns" do
+        conversation = create_conversation(account: account, inbox: inbox, status: :pending, ai_assignee: assistant)
 
         expect(conversation.captain_state).to eq('ai')
+      end
+
+      it 'is nil for a pending conversation nobody owns, even in an inbox with an assistant' do
+        conversation = create_conversation(account: account, inbox: inbox, status: :pending, ai_assignee: nil)
+        conversation.update!(ai_assignee: nil)
+
+        expect(conversation.captain_state).to be_nil
       end
 
       it 'is nil for a pending conversation in an inbox without an assistant' do
@@ -211,13 +223,13 @@ RSpec.describe Conversation, type: :model do
 
       it 'is nil for a pending conversation owned by an agent bot' do
         agent_bot = create(:agent_bot, account: account)
-        conversation = create_conversation(account: account, inbox: inbox, status: :pending, assignee_agent_bot: agent_bot)
+        conversation = create_conversation(account: account, inbox: inbox, status: :pending, ai_assignee: agent_bot)
 
         expect(conversation.captain_state).to be_nil
       end
 
       it "is 'escalated' when Captain handed off and nobody took the conversation" do
-        conversation = create_conversation(account: account, inbox: inbox, status: :pending)
+        conversation = create_conversation(account: account, inbox: inbox, status: :pending, ai_assignee: assistant)
         conversation.bot_handoff!
 
         expect(conversation.reload.captain_state).to eq('escalated')
@@ -228,6 +240,7 @@ RSpec.describe Conversation, type: :model do
         conversation.bot_handoff!
 
         expect(conversation.reload.captain_handed_off_at).to be_nil
+        expect(conversation.ai_assignee).to be_nil
         expect(conversation.captain_state).to be_nil
       end
 
@@ -239,12 +252,12 @@ RSpec.describe Conversation, type: :model do
     end
 
     describe '#bot_handoff!' do
-      it 'marks the handoff in the same save that opens the conversation' do
-        conversation = create_conversation(account: account, inbox: inbox, status: :pending)
+      it 'marks the handoff in the same save that opens the conversation and releases Captain as owner' do
+        conversation = create_conversation(account: account, inbox: inbox, status: :pending, ai_assignee: assistant)
 
         conversation.bot_handoff!
 
-        expect(conversation.reload).to have_attributes(status: 'open')
+        expect(conversation.reload).to have_attributes(status: 'open', ai_assignee_type: nil, assignee_agent_bot_id: nil)
         expect(conversation.captain_handed_off_at).to be_present
       end
 
@@ -259,7 +272,7 @@ RSpec.describe Conversation, type: :model do
 
     describe 'clearing the handoff mark' do
       let(:conversation) do
-        create_conversation(account: account, inbox: inbox, status: :pending).tap(&:bot_handoff!)
+        create_conversation(account: account, inbox: inbox, status: :pending, ai_assignee: assistant).tap(&:bot_handoff!)
       end
 
       it 'clears it when an agent is assigned' do
@@ -280,6 +293,17 @@ RSpec.describe Conversation, type: :model do
         expect(conversation.reload.captain_handed_off_at).to be_nil
       end
 
+      it 'clears it when an agent hands the conversation back to Captain' do
+        account.enable_features!('captain_integration')
+
+        Conversations::AssignmentService.new(
+          conversation: conversation, assignee_id: assistant.id, assignee_type: 'Captain::Assistant'
+        ).perform
+
+        expect(conversation.reload).to have_attributes(status: 'pending', captain_handed_off_at: nil, captain_state: 'ai')
+        expect(conversation.ai_assignee).to eq(assistant)
+      end
+
       it 'keeps it while the conversation stays open and unassigned' do
         conversation.update!(priority: :high)
 
@@ -288,18 +312,21 @@ RSpec.describe Conversation, type: :model do
     end
 
     describe 'queue scopes' do
-      let!(:ai_conversation) { create_conversation(account: account, inbox: inbox, status: :pending) }
-      let!(:escalated_conversation) { create_conversation(account: account, inbox: inbox, status: :pending).tap(&:bot_handoff!) }
+      let!(:ai_conversation) { create_conversation(account: account, inbox: inbox, status: :pending, ai_assignee: assistant) }
+      let!(:escalated_conversation) do
+        create_conversation(account: account, inbox: inbox, status: :pending, ai_assignee: assistant).tap(&:bot_handoff!)
+      end
       let!(:open_conversation) { create_conversation(account: account, inbox: inbox, status: :open) }
       let!(:mine) { create_conversation(account: account, inbox: inbox, status: :open, assignee: agent) }
       let!(:pending_with_agent) { create_conversation(account: account, inbox: inbox, status: :pending, assignee: agent) }
       let!(:bot_owned) do
-        create_conversation(account: account, inbox: inbox, status: :pending, assignee_agent_bot: create(:agent_bot, account: account))
+        create_conversation(account: account, inbox: inbox, status: :pending, ai_assignee: create(:agent_bot, account: account))
       end
       let!(:plain_pending) { create_conversation(account: account, inbox: plain_inbox, status: :pending) }
 
-      it 'attended_by_ai includes every pending conversation in a Captain inbox without a bot owner' do
-        expect(account.conversations.attended_by_ai).to contain_exactly(ai_conversation, pending_with_agent)
+      it 'attended_by_ai includes the pending conversations Captain owns, not those a person or a bot owns' do
+        expect(account.conversations.attended_by_ai).to contain_exactly(ai_conversation)
+        expect(pending_with_agent.reload.ai_assignee).to be_nil
       end
 
       it 'queue_unassigned leaves out what Captain attends and what a person owns, and keeps AgentBot-owned rows like develop' do
@@ -309,8 +336,8 @@ RSpec.describe Conversation, type: :model do
       end
 
       it 'keeps the upstream unassigned scope untouched' do
-        expect(account.conversations.unassigned).to include(ai_conversation, escalated_conversation, open_conversation, plain_pending)
-        expect(account.conversations.unassigned).not_to include(bot_owned, mine)
+        expect(account.conversations.unassigned).to include(escalated_conversation, open_conversation, plain_pending)
+        expect(account.conversations.unassigned).not_to include(ai_conversation, bot_owned, mine)
       end
     end
   end

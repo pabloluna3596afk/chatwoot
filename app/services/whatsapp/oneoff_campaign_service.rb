@@ -26,7 +26,7 @@ class Whatsapp::OneoffCampaignService
   end
 
   def validate_provider!
-    raise 'WhatsApp Cloud provider required' if channel.provider != 'whatsapp_cloud'
+    raise 'WhatsApp Cloud provider required' unless whatsapp_cloud_channel?
   end
 
   def validate_feature_flag!
@@ -59,9 +59,10 @@ class Whatsapp::OneoffCampaignService
     Rails.logger.info "Processing contact: #{contact.name} (#{contact.phone_number})"
     recipient = build_recipient(contact)
 
-    if contact.phone_number.blank?
-      Rails.logger.info "Skipping contact #{contact.name} - no phone number"
-      recipient.mark_skipped!('no phone number')
+    destination, destination_error = campaign_destination(contact)
+    if destination.blank?
+      Rails.logger.warn "Skipping campaign recipient contact_id=#{contact.id}: #{destination_error}"
+      recipient.mark_skipped!(destination_error)
       return
     end
 
@@ -79,7 +80,7 @@ class Whatsapp::OneoffCampaignService
 
     send_whatsapp_template_message(
       recipient: recipient,
-      to: contact.phone_number,
+      to: destination,
       template_params: processed_template_params
     )
   end
@@ -106,6 +107,11 @@ class Whatsapp::OneoffCampaignService
   end
 
   def send_whatsapp_template_message(recipient:, to:, template_params:)
+    if (blocked_reason = authentication_template_block_reason(to, template_params))
+      recipient.mark_skipped!(blocked_reason)
+      return
+    end
+
     processor = Whatsapp::TemplateProcessorService.new(
       channel: channel,
       template_params: template_params
@@ -135,6 +141,45 @@ class Whatsapp::OneoffCampaignService
     Rails.logger.error "Backtrace: #{e.backtrace.first(5).join('\n')}"
     recipient.mark_failed!(e.message)
     nil
+  end
+
+  def authentication_template_block_reason(destination, params)
+    error = Whatsapp::AuthenticationTemplateGuard.new(channel: channel, recipient: destination, template_params: params).error
+    return unless error
+
+    Rails.logger.warn "Skipping BSUID campaign recipient: #{error}"
+    error
+  end
+
+  # Phone number first; contacts known only by a WhatsApp BSUID are reached through that identity.
+  def campaign_destination(contact)
+    return [contact.phone_number, nil] if contact.phone_number.present?
+
+    bsuid_contact_inboxes = bsuid_contact_inboxes_for(contact)
+    return [nil, 'no phone number'] if bsuid_contact_inboxes.empty?
+
+    bsuid_recipient = preferred_bsuid_recipient(bsuid_contact_inboxes)
+    return [bsuid_recipient, nil] if bsuid_recipient.present?
+
+    [nil, 'multiple WhatsApp identities found']
+  end
+
+  def bsuid_contact_inboxes_for(contact)
+    contact.contact_inboxes.where(inbox_id: inbox.id).select do |contact_inbox|
+      bsuid_source_id?(contact_inbox.source_id)
+    end
+  end
+
+  def preferred_bsuid_recipient(contact_inboxes)
+    return contact_inboxes.first.source_id if contact_inboxes.one?
+  end
+
+  def bsuid_source_id?(source_id)
+    source_id.to_s.delete_prefix('whatsapp:').match?(RegexHelper::WHATSAPP_BSUID_REGEX)
+  end
+
+  def whatsapp_cloud_channel?
+    channel.is_a?(Channel::Whatsapp) && channel.provider == 'whatsapp_cloud'
   end
 end
 

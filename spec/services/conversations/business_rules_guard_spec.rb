@@ -366,7 +366,7 @@ RSpec.describe Conversations::BusinessRulesGuard do
 
     it 'does not treat inbox bot assignee as satisfying require_assignee_on_status' do
       bot = create(:agent_bot, account: account)
-      conversation.update!(assignee_agent_bot: bot, status: :pending)
+      conversation.update!(ai_assignee: bot, status: :pending)
       set_rules([
                   {
                     'id' => 'r_assignee',

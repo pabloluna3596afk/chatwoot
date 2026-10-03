@@ -7,7 +7,9 @@ RSpec.describe Captain::Followup do
   let(:assistant) { create(:captain_assistant, account: account, name: 'Asistente de Ventas', config: assistant_config) }
   let(:inbox) { create(:inbox, account: account) }
   let(:contact) { create(:contact, account: account, name: 'Ana Pérez') }
-  let(:conversation) { create(:conversation, account: account, inbox: inbox, contact: contact, status: :pending) }
+  let(:conversation) do
+    create(:conversation, account: account, inbox: inbox, contact: contact, status: :pending).tap { |c| c.update!(ai_assignee: assistant) }
+  end
   let(:now) { Time.zone.parse('2030-01-15T10:00:00-05:00') }
 
   around { |example| travel_to(now) { example.run } }
@@ -100,6 +102,7 @@ RSpec.describe Captain::Followup do
       api_inbox = create(:inbox, account: account, channel: create(:channel_api, account: account))
       create(:captain_inbox, captain_assistant: assistant, inbox: api_inbox)
       api_conversation = create(:conversation, account: account, inbox: api_inbox, contact: contact, status: :pending)
+      api_conversation.update!(ai_assignee: assistant)
       create(:message, account: account, inbox: api_inbox, conversation: api_conversation, message_type: :outgoing, sender: assistant,
                        created_at: now - 31.minutes)
 
@@ -212,7 +215,7 @@ RSpec.describe Captain::Followup do
     end
 
     it 'leaves alone a conversation that an agent bot (Panel AI) handles' do
-      conversation.update!(assignee_agent_bot: create(:agent_bot, account: account))
+      conversation.update!(ai_assignee: create(:agent_bot, account: account))
 
       expect { described_class.new(now: now).perform }.not_to(change { conversation.messages.count })
     end

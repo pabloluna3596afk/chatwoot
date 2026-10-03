@@ -22,6 +22,7 @@ import ChannelLeaf from './ChannelLeaf.vue';
 import LabelLeaf from './LabelLeaf.vue';
 import TemplatesSidebarLeaf from './TemplatesSidebarLeaf.vue';
 import ChannelIcon from 'next/icon/ChannelIcon.vue';
+import EmojiIcon from 'next/emoji-icon-picker/EmojiIcon.vue';
 import SidebarAccountSwitcher from './SidebarAccountSwitcher.vue';
 import Logo from 'next/icon/Logo.vue';
 import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
@@ -559,6 +560,13 @@ const menuItems = computed(() => {
             name: `${team.name}-${team.id}`,
             label: team.name,
             badgeCount: getTeamUnreadCount.value(team.id),
+            icon: team.icon
+              ? h(EmojiIcon, {
+                  value: team.icon,
+                  color: team.icon_color,
+                  class: 'size-3.5',
+                })
+              : undefined,
             to: accountScopedRoute('team_conversations', { teamId: team.id }),
           })),
         },

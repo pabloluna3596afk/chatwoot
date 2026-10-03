@@ -29,7 +29,8 @@
     },
     "CONVERSATIONS": {
       "NO_RECORDS_FOUND": "There are no previous conversations associated to this contact.",
-      "TITLE": "Previous Conversations"
+      "TITLE": "Previous Conversations",
+      "VIEW_ALL": "View all conversations"
     },
     "LABELS": {
       "CONTACT": {
@@ -60,7 +61,8 @@
       "CONTACT_LABELS": "Contact Labels",
       "PREVIOUS_CONVERSATIONS": "Previous Conversations",
       "NO_RECORDS_FOUND": "No attributes found"
-    }
+    },
+    "WHATSAPP_USERNAME": "WhatsApp username"
   },
   "EDIT_CONTACT": {
     "BUTTON_LABEL": "Edit Contact",
@@ -298,7 +300,6 @@
       "ID": "(ID: {identifier})"
     }
   },
-
   "CONTACTS_LAYOUT": {
     "HEADER": {
       "TITLE": "Contacts",
@@ -525,6 +526,9 @@
           },
           "INSTAGRAM": {
             "PLACEHOLDER": "Add Instagram"
+          },
+          "WHATSAPP": {
+            "PLACEHOLDER": "Add WhatsApp"
           },
           "TELEGRAM": {
             "PLACEHOLDER": "Add Telegram"
@@ -756,7 +760,6 @@
       "CONFIRM_SINGLE": "Delete contact"
     }
   },
-
   "COMPOSE_NEW_CONVERSATION": {
     "CONTACT_SEARCH": {
       "ERROR_MESSAGE": "We couldn’t complete the search. Please try again."

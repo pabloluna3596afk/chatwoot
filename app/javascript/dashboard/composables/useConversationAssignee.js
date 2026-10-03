@@ -12,7 +12,9 @@ import {
 export function useConversationAssignee() {
   const store = useStore();
   const { t } = useI18n();
-  const { agentsList, inboxBotAgent } = useAgentsList();
+  const { agentsList, inboxBotAgent } = useAgentsList(true, {
+    includeAIAssignees: true,
+  });
   const isAssigning = ref(false);
 
   const currentChat = computed(() => store.getters.getSelectedChat);

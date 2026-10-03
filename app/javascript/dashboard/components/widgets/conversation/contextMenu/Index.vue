@@ -2,6 +2,7 @@
 import { mapGetters } from 'vuex';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useAlert } from 'dashboard/composables';
+import { isAIAssigneeType } from 'dashboard/helper/assigneeHelper';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import {
   getSortedAgentsByAvailability,
@@ -194,12 +195,12 @@ export default {
     filteredAgentOnAvailability() {
       const agents = this.$store.getters[
         'inboxAssignableAgents/getAssignableAgents'
-      ](this.inboxId);
+      ](this.inboxId, { includeAIAssignees: true });
       const humanAgents = agents.filter(
-        agent => agent.assignee_type !== 'AgentBot'
+        agent => !isAIAssigneeType(agent.assignee_type)
       );
-      const botAgents = agents.filter(
-        agent => agent.assignee_type === 'AgentBot'
+      const botAgents = agents.filter(agent =>
+        isAIAssigneeType(agent.assignee_type)
       );
       const agentsByUpdatedPresence = getAgentsByUpdatedPresence(
         humanAgents,
@@ -246,7 +247,10 @@ export default {
     },
   },
   mounted() {
-    this.$store.dispatch('inboxAssignableAgents/fetch', [this.inboxId]);
+    this.$store.dispatch('inboxAssignableAgents/fetch', {
+      inboxIds: [this.inboxId],
+      includeAIAssignees: true,
+    });
   },
   methods: {
     isAllowed(keys) {

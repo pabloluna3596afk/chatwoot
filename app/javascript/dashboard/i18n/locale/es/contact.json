@@ -60,7 +60,8 @@
       "CONTACT_LABELS": "Etiqueta de Contacto",
       "PREVIOUS_CONVERSATIONS": "Conversaciones anteriores",
       "NO_RECORDS_FOUND": "No se encontraron atributos"
-    }
+    },
+    "WHATSAPP_USERNAME": "Nombre de usuario WhatsApp"
   },
   "EDIT_CONTACT": {
     "BUTTON_LABEL": "Editar Contacto",
@@ -524,6 +525,9 @@
           },
           "INSTAGRAM": {
             "PLACEHOLDER": "Agregar Instagram"
+          },
+          "WHATSAPP": {
+            "PLACEHOLDER": "Añadir WhatsApp"
           },
           "TELEGRAM": {
             "PLACEHOLDER": "Add Telegram"

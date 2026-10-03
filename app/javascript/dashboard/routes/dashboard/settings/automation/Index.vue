@@ -5,9 +5,14 @@ import EditAutomationRule from './EditAutomationRule.vue';
 import AttributeRequirementDialog from './AttributeRequirementDialog.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { until } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
-import { useStoreGetters, useStore } from 'dashboard/composables/store';
+import {
+  useMapGetter,
+  useStoreGetters,
+  useStore,
+} from 'dashboard/composables/store';
 import { picoSearch } from '@chatwoot/pico-search';
 import AutomationRuleRow from './AutomationRuleRow.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -72,6 +77,7 @@ const filteredRecords = computed(() => {
 
 const uiFlags = computed(() => getters['automations/getUIFlags'].value);
 const accountId = computed(() => getters.getCurrentAccountId.value);
+const accountUiFlags = useMapGetter('accounts/getUIFlags');
 
 const isDelayedAutomationsEnabled = computed(() =>
   getters['accounts/isFeatureEnabledonAccount'].value(
@@ -160,6 +166,20 @@ const isSLAEnabled = computed(() =>
   getters['accounts/isFeatureEnabledonAccount'].value(accountId.value, 'sla')
 );
 
+let slaFetchPromise;
+
+// Account feature flags may load after this page mounts, so watch the SLA flag
+// to ensure its options are fetched after a hard refresh.
+watch(
+  isSLAEnabled,
+  isEnabled => {
+    if (isEnabled) {
+      slaFetchPromise = store.dispatch('sla/get');
+    }
+  },
+  { immediate: true }
+);
+
 const showDelayDisabledBanner = computed(
   () =>
     !isDelayedAutomationsEnabled.value &&
@@ -177,9 +197,6 @@ onMounted(() => {
   store.dispatch('attributes/get');
   store.dispatch('macros/get');
   store.dispatch('flows/get');
-  if (isSLAEnabled.value) {
-    store.dispatch('sla/get');
-  }
 });
 
 const openAddPopup = () => {
@@ -261,8 +278,13 @@ const activateTimePreset = async preset => {
   }
 };
 
-const openEditPopup = response => {
+const openEditPopup = async response => {
   selectedAutomation.value = JSON.parse(JSON.stringify(response));
+  await until(() => accountUiFlags.value.isFetchingItem).toBe(false);
+  if (isSLAEnabled.value) {
+    slaFetchPromise ||= store.dispatch('sla/get');
+    await slaFetchPromise;
+  }
   editDialogRef.value?.open(response);
 };
 const hideEditPopup = () => {

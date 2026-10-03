@@ -1,5 +1,8 @@
 import { MESSAGE_TYPE } from 'shared/constants/messages';
-import { getInboxBotAgent, isHumanAssigneeMeta } from 'dashboard/helper/assigneeHelper';
+import {
+  getInboxBotAgent,
+  isHumanAssigneeMeta,
+} from 'dashboard/helper/assigneeHelper';
 import {
   applyPageFilters,
   applyRoleFilter,
@@ -25,7 +28,7 @@ const getters = {
     return allConversations.sort((a, b) => sortComparator(a, b, sortKey));
   },
   getFilteredConversations: (
-    { allConversations, chatSortFilter, appliedFilters },
+    { allConversations, chatSortFilter, appliedFilters, appliedFiltersSortBy },
     _,
     __,
     rootGetters
@@ -52,7 +55,9 @@ const getters = {
 
         return matchesFilterResult && allowedForRole;
       })
-      .sort((a, b) => sortComparator(a, b, chatSortFilter));
+      .sort((a, b) =>
+        sortComparator(a, b, appliedFiltersSortBy || chatSortFilter)
+      );
   },
   getSelectedChat: ({ selectedChatId, allConversations }) => {
     const selectedChat = allConversations.find(
@@ -84,7 +89,8 @@ const getters = {
     const currentUserID = rootGetters.getCurrentUser?.id;
 
     return _state.allConversations.filter(conversation => {
-      const isAssignedToMe = isHumanAssigneeMeta(conversation.meta) &&
+      const isAssignedToMe =
+        isHumanAssigneeMeta(conversation.meta) &&
         Number(conversation.meta.assignee.id) === Number(currentUserID);
       const shouldFilter = applyPageFilters(conversation, activeFilters);
       const isChatMine = isAssignedToMe && shouldFilter;
@@ -99,6 +105,12 @@ const getters = {
   getAppliedConversationFilters: _state => {
     return _state.appliedFilters;
   },
+  getAppliedContactFilter: ({ appliedFilters }) => {
+    const [filter, ...rest] = appliedFilters;
+    if (rest.length || filter?.attribute_key !== 'contact_id') return null;
+
+    return filter.values?.[0] ?? null;
+  },
   getAppliedConversationFiltersQuery: _state => {
     const hasAppliedFilters = _state.appliedFilters.length !== 0;
     return hasAppliedFilters ? filterQueryGenerator(_state.appliedFilters) : [];
@@ -107,7 +119,9 @@ const getters = {
     const inboxId = activeFilters.inboxId;
     const inboxBotId = inboxId
       ? getInboxBotAgent(
-          rootGetters['inboxAssignableAgents/getAssignableAgents'](inboxId)
+          rootGetters['inboxAssignableAgents/getAssignableAgents'](inboxId, {
+            includeAIAssignees: true,
+          })
         )?.id
       : null;
 

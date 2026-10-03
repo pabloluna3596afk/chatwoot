@@ -45,6 +45,7 @@ const {
   conversationSidebarItemsOrder,
   conversationSidebarVisibleItems,
   toggleSidebarUIState,
+  isOnExpandedLayout,
 } = useUISettings();
 
 const dragging = ref(false);
@@ -138,6 +139,14 @@ const contactAdditionalAttributes = computed(
     contact.value.additionalAttributes ||
     contact.value.additional_attributes ||
     {}
+);
+
+const appliedContactFilter = useMapGetter('getAppliedContactFilter');
+
+const isListScopedToContact = computed(
+  () =>
+    !isOnExpandedLayout.value &&
+    appliedContactFilter.value?.id === contactId.value
 );
 
 const getContactDetails = () => {
@@ -310,6 +319,7 @@ onMounted(() => {
               v-else-if="
                 element.name === 'previous_conversation' &&
                 isVisible('previous_conversation') &&
+                !isListScopedToContact &&
                 contact.id
               "
             >

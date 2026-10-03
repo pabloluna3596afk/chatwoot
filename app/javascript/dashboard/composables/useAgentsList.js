@@ -5,19 +5,22 @@ import {
   getAgentsByUpdatedPresence,
   getSortedAgentsByAvailability,
 } from 'dashboard/helper/agentHelper';
-import { getInboxBotAgent } from 'dashboard/helper/assigneeHelper';
+import {
+  getInboxBotAgent,
+  isAIAssigneeType,
+} from 'dashboard/helper/assigneeHelper';
 
 /**
  * A composable function that provides a list of agents for assignment.
  *
  * @param {boolean} [includeNoneAgent=true] - Whether to include a 'None' agent option.
  * @param {Object} [options] - Options for the assignable agents list.
- * @param {boolean} [options.includeAgentBots=false] - Whether to include AgentBot assignees. Only pass this from surfaces that thread `assignee_type` through the assignment request.
+ * @param {boolean} [options.includeAIAssignees=false] - Whether to include Agent Bots and the connected Captain assistant.
  * @returns {Object} An object containing the agents list and assignable agents.
  */
 export function useAgentsList(
   includeNoneAgent = true,
-  { includeAgentBots = false } = {}
+  { includeAIAssignees = false } = {}
 ) {
   const { t } = useI18n();
   const currentUser = useMapGetter('getCurrentUser');
@@ -46,7 +49,9 @@ export function useAgentsList(
    */
   const assignableAgents = computed(() => {
     return inboxId.value
-      ? assignable.value(inboxId.value, { includeAgentBots })
+      ? assignable.value(inboxId.value, {
+          includeAIAssignees,
+        })
       : [];
   });
 
@@ -64,10 +69,10 @@ export function useAgentsList(
   const agentsList = computed(() => {
     const agents = assignableAgents.value || [];
     const humanAgents = agents.filter(
-      agent => agent.assignee_type !== 'AgentBot'
+      agent => !isAIAssigneeType(agent.assignee_type)
     );
-    const botAgents = agents.filter(
-      agent => agent.assignee_type === 'AgentBot'
+    const botAgents = agents.filter(agent =>
+      isAIAssigneeType(agent.assignee_type)
     );
     const agentsByUpdatedPresence = getAgentsByUpdatedPresence(
       humanAgents,

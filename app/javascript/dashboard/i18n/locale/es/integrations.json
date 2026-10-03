@@ -135,7 +135,8 @@
       "HELP_TEXT": {
         "TITLE": "¿Cómo utilizar la Integración Slack?",
         "BODY": "Con esta integración, todas tus conversaciones entrantes serán sincronizadas con el canal ***{selectedChannelName}*** en tu espacio de trabajo en Slack. Puedes administrar todas tus conversaciones con los clientes directamente en tu canal y nunca perder un mensaje.\n\nEstas son las principales características de la integración:\n\n**Responde a conversaciones desde Slack:** Para responder a una conversación en el canal Slack ***{selectedChannelName}***, simplemente escribe el mensaje y envíalo como un hilo. Esto creará una respuesta que se enviará al cliente mediante ChatHub. ¡Es así de simple!\n\n**Crea notas privadas:** Si quieres crear una nota privada en lugar de una respuesta, comienza tu mensaje con ***`note:`***. Esto asegurará que tu mensaje se mantenga privado y no será visible al cliente.\n\n**Asociar un perfil de agente:** Si la persona que responde en Slack tiene un agente de perfil en ChatHub bajo el mismo correo electrónico, las respuestas serán asociadas con ese perfil de agente automáticamente. Esto quiere decir que puedes fácilmente estar al tanto de quién dijo qué y cuándo. Por el otro lado, cuando la persona que responde no tiene un perfil de agente, las respuestas aparecerán desde el perfil de bot al cliente.",
-        "SELECTED": "seleccionado"
+        "SELECTED": "seleccionado",
+        "BODY_ALERT": "Con esta integración, todas tus conversaciones entrantes se sincronizarán con el canal ***{selectedChannelName}*** en tu espacio de trabajo de Slack, para que tu equipo pueda verlas en cuanto lleguen. Esta integración está configurada para **Solo alertas**, lo que significa que el hilo de Slack es un espacio seguro para la discusión interna. Todo lo que tu equipo publique allí permanece en Slack y nunca se envía al cliente. **Responder al cliente desde ChatHub:** Abre la conversación desde el enlace compartido en el hilo y responde desde el panel de control de ChatHub. Las respuestas y las notas privadas añadidas en ChatHub siguen apareciendo en el hilo de Slack, para que todos estén al tanto."
       },
       "SELECT_CHANNEL": {
         "OPTION_LABEL": "Selecciona un canal",
@@ -147,7 +148,22 @@
       },
       "UPDATE_ERROR": "Se produjo un error al actualizar la integración, inténtalo de nuevo",
       "UPDATE_SUCCESS": "El canal está conectado correctamente",
-      "FAILED_TO_FETCH_CHANNELS": "Hubo un error obteniendo los canales de Slack, por favor inténtalo de nuevo"
+      "FAILED_TO_FETCH_CHANNELS": "Hubo un error obteniendo los canales de Slack, por favor inténtalo de nuevo",
+      "MESSAGE_MODE": {
+        "TITLE": "Comportamiento del hilo de Slack",
+        "DESCRIPTION": "Decida si las respuestas en el hilo de Slack llegan al cliente o permanecen internas.",
+        "OPTIONS": {
+          "TWO_WAY": {
+            "LABEL": "Sincronización bidireccional",
+            "DESCRIPTION": "Las respuestas en el hilo Slack se envían al cliente. Comienza un mensaje con `note:` para mantenerlo interno."
+          },
+          "ALERT": {
+            "LABEL": "Sólo alertas",
+            "DESCRIPTION": "Las conversaciones se publican en Slack sólo para discusiones internas. Nada en el hilo llega al cliente."
+          }
+        },
+        "UPDATE_SUCCESS": "El comportamiento del hilo Slack se ha actualizado correctamente"
+      }
     },
     "DYTE": {
       "CLICK_HERE_TO_JOIN": "Haz clic aquí para unirte",
@@ -1147,7 +1163,17 @@
           "DELETE": {
             "SUCCESS": "Escenarios eliminados correctamente",
             "ERROR": "Hubo un error al eliminar los escenarios, inténtalo de nuevo."
+          },
+          "TOGGLE": {
+            "ENABLED": "Escenario habilitado con éxito",
+            "DISABLED": "Escenario desactivado con éxito",
+            "ERROR": "Hubo un error al actualizar el estado del escenario, por favor inténtelo de nuevo."
           }
+        },
+        "STATUS": {
+          "ENABLED": "Activado",
+          "DISABLED": "Deshabilitado",
+          "TOGGLE": "Alternar {title}"
         }
       }
     },
@@ -1421,6 +1447,22 @@
         "ERRORS": {
           "PARAM_NAME_REQUIRED": "El nombre del parámetro es obligatorio"
         }
+      },
+      "STATUS": {
+        "ENABLED": "Activado",
+        "DISABLED": "Deshabilitado",
+        "TOGGLE": "Alternar {title}"
+      },
+      "TOGGLE": {
+        "ENABLED": "Herramienta activada correctamente",
+        "DISABLED": "Herramienta desactivada correctamente",
+        "ERROR": "Error al actualizar el estado de la herramienta"
+      },
+      "DISABLE_CONFIRMATION": {
+        "TITLE": "¿Desactivar {title}?",
+        "DESCRIPTION_ONE": "Esta herramienta es utilizada por {count} escenario habilitado. Desactivarla puede hacer que ese escenario deje de funcionar como se esperaba.",
+        "DESCRIPTION_OTHER": "Esta herramienta es utilizada por {count} escenarios habilitados. Desactivarla puede hacer que esos escenarios dejen de funcionar como se esperaba.",
+        "CONFIRM": "Desactivar herramienta"
       }
     },
     "RESPONSES": {

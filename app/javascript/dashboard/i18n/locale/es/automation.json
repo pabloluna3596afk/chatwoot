@@ -139,13 +139,13 @@
       }
     },
     "LIST": {
+      "404": "No se encontraron reglas de automatización",
       "TABLE_HEADER": {
         "NAME": "Nombre",
         "ACTIVE": "Activo",
         "CREATED_ON": "Creado el",
         "ACTIONS": "Acciones"
       },
-      "404": "No se encontraron reglas de automatización",
       "404_DELAYED": "Aún no hay reglas que se ejecuten después de una espera",
       "TABS": {
         "INSTANT": "Se ejecutan al instante",
@@ -234,7 +234,8 @@
       },
       "DELAY_SECONDS_LABEL": "Espera (segundos)",
       "MARK_READ_TYPING_LABEL": "Marcar como leído y mostrar escribiendo",
-      "DELIVERY_HINT": "Leído/escribiendo solo en WhatsApp. Requiere espera de 1–25 s. En otros canales solo aplica la espera."
+      "DELIVERY_HINT": "Leído/escribiendo solo en WhatsApp. Requiere espera de 1–25 s. En otros canales solo aplica la espera.",
+      "INSERT_CONTACT_EMAIL": "Usar correo electrónico del contacto"
     },
     "TOGGLE": {
       "ACTIVATION_TITLE": "Activar regla de automatización",
@@ -316,7 +317,7 @@
     "ATTRIBUTES": {
       "MESSAGE_TYPE": "Tipo de mensaje",
       "PRIVATE_NOTE": "Nota privada",
-      "MESSAGE_CONTAINS": "El mensaje contiene",
+      "MESSAGE_CONTAINS": "Contenido del mensaje",
       "EMAIL": "E-mail",
       "INBOX": "Bandeja de entrada",
       "CONVERSATION_LANGUAGE": "Idioma de la conversación",

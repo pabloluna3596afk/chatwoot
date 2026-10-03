@@ -1,10 +1,13 @@
+const KNOWN_ASSIGNEE_TYPES = ['AgentBot', 'Captain::Assistant', 'User'];
+
+// Owners that are not people: the inbox's Panel AI bot and its Captain assistant.
+export const isAIAssigneeType = assigneeType =>
+  assigneeType === 'AgentBot' || assigneeType === 'Captain::Assistant';
+
 export const inferAssigneeType = assignee => {
   if (!assignee?.id) return null;
 
-  if (
-    assignee.assignee_type === 'AgentBot' ||
-    assignee.assignee_type === 'User'
-  ) {
+  if (KNOWN_ASSIGNEE_TYPES.includes(assignee.assignee_type)) {
     return assignee.assignee_type;
   }
 
@@ -22,7 +25,7 @@ export const inferAssigneeType = assignee => {
 export const getConversationAssigneeType = meta => {
   if (!meta?.assignee?.id) return null;
 
-  if (meta.assignee_type === 'AgentBot' || meta.assignee_type === 'User') {
+  if (KNOWN_ASSIGNEE_TYPES.includes(meta.assignee_type)) {
     return meta.assignee_type;
   }
 
