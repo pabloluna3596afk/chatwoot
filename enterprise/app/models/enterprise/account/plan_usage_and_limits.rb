@@ -45,6 +45,8 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
   end
 
   def email_transcript_enabled?
+    return current_billing_plan.present? if shopify_billing?
+
     default_plan = InstallationConfig.find_by(name: 'CHATWOOT_CLOUD_PLANS')&.value&.first
     return true if default_plan.blank?
 
@@ -56,6 +58,8 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
   end
 
   def subscribed_features
+    return current_billing_plan&.fetch('features', []) || [] if shopify_billing?
+
     plan_features = InstallationConfig.find_by(name: 'CHATWOOT_CLOUD_PLAN_FEATURES')&.value
     return [] if plan_features.blank?
 
@@ -102,6 +106,7 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
 
   def plan_email_limit
     return plan.max_emails_per_day if plan.present? && plan.max_emails_per_day.to_i.positive?
+    return shopify_plan_limits.fetch('emails', 0) if shopify_billing?
 
     base_limit = plan_base_email_limit
     return nil if base_limit.nil?
@@ -121,11 +126,15 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
   end
 
   def free_plan?
+    return false if shopify_billing?
+
     default_plan = InstallationConfig.find_by(name: 'CHATWOOT_CLOUD_PLANS')&.value&.first
     default_plan.present? && plan_name&.downcase == default_plan['name']&.downcase
   end
 
   def default_captain_limits
+    return shopify_captain_limits if shopify_billing?
+
     max_limits = { documents: ChatwootApp.max_limit, responses: ChatwootApp.max_limit, storage: ChatwootApp.max_limit.megabytes }.with_indifferent_access
 
     # No ChatHub plan assigned yet — don't block the account, fall back to max usage.
@@ -138,12 +147,19 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
     }.with_indifferent_access
   end
 
+  def shopify_captain_limits
+    {
+      documents: shopify_plan_limits.fetch('captain_documents', 0),
+      responses: shopify_plan_limits.fetch('captain_responses', 0)
+    }.with_indifferent_access
+  end
+
   def plan_name
     plan&.slug
   end
 
   def agent_limits
-    subscribed_quantity = custom_attributes['subscribed_quantity']
+    subscribed_quantity = custom_attributes['subscribed_quantity'] unless shopify_billing?
     return subscribed_quantity if subscribed_quantity.present?
 
     get_limits(:agents, plan_value: plan&.max_human_agents)
@@ -155,6 +171,7 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
 
   def get_limits(limit_name, plan_value: nil)
     return self[:limits][limit_name.to_s] if self[:limits][limit_name.to_s].present?
+    return shopify_plan_limits.fetch(limit_name.to_s, 0) if shopify_billing?
 
     return plan_value if plan_value.present?
 
@@ -163,6 +180,40 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
 
     ChatwootApp.max_limit
   end
+
+  def shopify_billing?
+    billing_provider == 'shopify'
+  end
+
+  def current_billing_plan
+    Enterprise::Billing::PlanConfiguration.current_plan(self)
+  end
+
+  def shopify_plan_limits
+    current_billing_plan&.fetch('limits', {}) || {}
+  end
+
+  # Atomic jsonb_set to avoid clobbering concurrent writes to other custom_attributes keys.
+  # Goes through Account relation (rather than raw connection) so shard routing is respected.
+  # rubocop:disable Rails/SkipsModelValidations
+  def update_custom_attribute(key, value)
+    Account.where(id: id).update_all([
+                                       "custom_attributes = jsonb_set(COALESCE(custom_attributes, '{}'), ARRAY[:key], :value::jsonb)",
+                                       { key: key, value: value.to_json }
+                                     ])
+    custom_attributes[key] = value
+  end
+
+  def increment_custom_attribute(key)
+    Account.where(id: id).update_all([
+                                       "custom_attributes = jsonb_set(COALESCE(custom_attributes, '{}'), ARRAY[:key], " \
+                                       '(COALESCE((custom_attributes ->> :key)::int, 0) + 1)::text::jsonb)',
+                                       { key: key }
+                                     ])
+    custom_attributes[key] = custom_attributes[key].to_i + 1
+  end
+
+  # rubocop:enable Rails/SkipsModelValidations
 
   def validate_limit_keys
     errors.add(:limits, ': Invalid data') unless self[:limits].is_a? Hash

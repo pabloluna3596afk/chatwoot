@@ -421,6 +421,44 @@
       "UNMUTE": "Reactivar micrófono",
       "VIEW_CHAT_HISTORY": "Ver historial de chat",
       "GO_TO_CONVERSATION": "Ir al hilo de conversación"
+    },
+    "REFERRAL": {
+      "AD_LABEL": "Anuncio",
+      "POST_LABEL": "Publicación",
+      "VIEW_AD": "Ver anuncio",
+      "WELCOME_MESSAGE_LABEL": "Mensaje prellenado: ",
+      "REPLIED_BELOW": "El cliente respondió a continuación"
+    },
+    "WHATSAPP_REFERRAL": {
+      "AD": "Publicidad"
+    },
+    "PICKER": {
+      "VARIABLE": {
+        "SEARCH_PLACEHOLDER": "Buscar variables",
+        "DESCRIPTION": "Descripción",
+        "VALUE": "Valor",
+        "NO_VALUE": "No hay valor para esta conversación"
+      },
+      "EMOJI": {
+        "SEARCH_PLACEHOLDER": "Buscar emojis",
+        "EMPTY_STATE": "Escribe para buscar emojis"
+      },
+      "MACRO": {
+        "SEARCH_PLACEHOLDER": "Buscar macros",
+        "ACTION_COUNT": "1 acción | {count} acciones"
+      },
+      "MENTION": {
+        "SEARCH_PLACEHOLDER": "Buscar agentes y equipos",
+        "FILTER": {
+          "ALL": "Todos"
+        },
+        "AVAILABILITY": "Disponibilidad",
+        "ROLE": "Tipo de agente",
+        "AUTO_ASSIGN": "Auto asignar",
+        "ENABLED": "Activado",
+        "DISABLED": "Deshabilitado",
+        "YOU_ARE_A_MEMBER": "Eres un miembro de este equipo"
+      }
     }
   },
   "EMAIL_TRANSCRIPT": {
@@ -569,7 +607,7 @@
     "REMANING_PARTICIPANT_TEXT": "+{count} más",
     "TOTAL_PARTICIPANTS_TEXT": "{count} personas están participando.",
     "TOTAL_PARTICIPANT_TEXT": "{count} personas están participando.",
-    "NO_PARTICIPANTS_TEXT": "Nadie está participando!.",
+    "NO_PARTICIPANTS_TEXT": "Nadie está participando!",
     "WATCH_CONVERSATION": "Abrir conversación",
     "YOU_ARE_WATCHING": "Estás participando",
     "API": {

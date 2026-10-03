@@ -53,6 +53,8 @@ class Captain::Assistant < ApplicationRecord
   has_many :scenarios, class_name: 'Captain::Scenario', dependent: :destroy_async
   has_many :agent_sessions, class_name: 'Captain::AgentSession', dependent: :destroy_async
   has_many :conversation_outcomes, dependent: :destroy_async
+  has_many :assigned_conversations, as: :ai_assignee, class_name: '::Conversation', foreign_key: :assignee_agent_bot_id,
+                                    dependent: :nullify, inverse_of: :ai_assignee
 
   store_accessor :config, :temperature, :feature_faq, :feature_memory, :feature_contact_attributes, :product_name,
                  :auto_resolve_mode, :auto_resolve_after, :send_inactivity_resolution_message, :response_window
@@ -177,8 +179,10 @@ class Captain::Assistant < ApplicationRecord
     tools
   end
 
-  def available_tool_ids
-    available_agent_tools.pluck(:id)
+  def available_tool_ids = available_agent_tools.pluck(:id)
+
+  def known_tool_ids
+    self.class.built_in_tool_ids + account.captain_custom_tools.pluck(:slug)
   end
 
   def avatar_or_default_url
@@ -186,25 +190,11 @@ class Captain::Assistant < ApplicationRecord
   end
 
   def push_event_data
-    {
-      id: id,
-      name: name,
-      avatar_url: avatar_or_default_url,
-      description: description,
-      created_at: created_at,
-      type: 'captain_assistant'
-    }
+    assistant_event_data
   end
 
   def webhook_data
-    {
-      id: id,
-      name: name,
-      avatar_url: avatar_or_default_url,
-      description: description,
-      created_at: created_at,
-      type: 'captain_assistant'
-    }
+    assistant_event_data
   end
 
   def customer_visible_citation_urls(citation_document_ids)
@@ -237,6 +227,15 @@ class Captain::Assistant < ApplicationRecord
     return if account.captain_assistants.count < account.plan.max_captain_assistants
 
     raise LimitExceededError, I18n.t('captain.assistant.limit_exceeded', limit: account.plan.max_captain_assistants)
+  def assistant_event_data
+    {
+      id: id,
+      name: name,
+      avatar_url: avatar_or_default_url,
+      description: description,
+      created_at: created_at,
+      type: 'captain_assistant'
+    }
   end
 
   def normalize_auto_resolve_after

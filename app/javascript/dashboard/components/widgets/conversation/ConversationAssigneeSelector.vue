@@ -33,7 +33,10 @@ const [showMenu, toggleMenu] = useToggle(false);
 const fetchAssignableAgents = () => {
   const inboxId = store.getters.getSelectedChat?.inbox_id;
   if (inboxId) {
-    store.dispatch('inboxAssignableAgents/fetch', [inboxId]);
+    store.dispatch('inboxAssignableAgents/fetch', {
+      inboxIds: [inboxId],
+      includeAIAssignees: true,
+    });
   }
 };
 

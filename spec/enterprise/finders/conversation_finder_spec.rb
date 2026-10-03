@@ -41,11 +41,16 @@ RSpec.describe ConversationFinder do
   end
 
   describe 'Captain views' do
-    # Captain starts every new conversation of its inboxes as pending whatever status is asked for, so the
-    # status the scenario needs is set afterwards.
-    def create_conversation(status:, **attributes)
+    # Captain starts every new conversation of its inboxes as pending and owns it, whatever status is asked for, so the
+    # status and the owner the scenario needs are set afterwards.
+    def create_conversation(status:, ai_assignee: nil, **attributes)
       create(:conversation, status: status, **attributes).tap do |conversation|
-        conversation.update_columns(status: Conversation.statuses.fetch(status.to_s)) # rubocop:disable Rails/SkipsModelValidations
+        conversation.update_columns( # rubocop:disable Rails/SkipsModelValidations
+          status: Conversation.statuses.fetch(status.to_s),
+          ai_assignee_type: ai_assignee&.class&.name,
+          assignee_agent_bot_id: ai_assignee&.id
+        )
+        conversation.reload
       end
     end
     let(:account) { create(:account) }
@@ -60,13 +65,15 @@ RSpec.describe ConversationFinder do
       create(:captain_inbox, inbox: captain_inbox, captain_assistant: assistant)
     end
 
-    let!(:ai_conversation) { create_conversation(account: account, inbox: captain_inbox, status: :pending) }
+    let!(:ai_conversation) { create_conversation(account: account, inbox: captain_inbox, status: :pending, ai_assignee: assistant) }
     let!(:ai_with_owner) { create_conversation(account: account, inbox: captain_inbox, status: :pending, assignee: other_agent) }
-    let!(:escalated) { create_conversation(account: account, inbox: captain_inbox, status: :pending).tap(&:bot_handoff!) }
+    let!(:escalated) do
+      create_conversation(account: account, inbox: captain_inbox, status: :pending, ai_assignee: assistant).tap(&:bot_handoff!)
+    end
     let!(:open_unassigned) { create_conversation(account: account, inbox: plain_inbox, status: :open) }
     let!(:mine) { create_conversation(account: account, inbox: captain_inbox, status: :open, assignee: admin) }
     let!(:others) { create_conversation(account: account, inbox: plain_inbox, status: :open, assignee: other_agent) }
-    let!(:bot_owned) { create_conversation(account: account, inbox: captain_inbox, status: :pending, assignee_agent_bot: agent_bot) }
+    let!(:bot_owned) { create_conversation(account: account, inbox: captain_inbox, status: :pending, ai_assignee: agent_bot) }
     let!(:resolved_one) { create_conversation(account: account, inbox: captain_inbox, status: :resolved) }
 
     def ids(result)
@@ -79,8 +86,8 @@ RSpec.describe ConversationFinder do
     it 'lists what Captain is attending in the AI view whatever status is asked for' do
       result = described_class.new(admin, { conversation_type: 'captain', status: 'open' }).perform
 
-      expect(ids(result)).to contain_exactly(ai_conversation.id, ai_with_owner.id)
-      expect(result[:count][:ai_count]).to eq(2)
+      expect(ids(result)).to contain_exactly(ai_conversation.id)
+      expect(result[:count][:ai_count]).to eq(1)
     end
 
     it 'keeps what Captain attends out of Sin asignar and lists it once it is escalated' do
@@ -96,7 +103,7 @@ RSpec.describe ConversationFinder do
     end
 
     context 'when an AgentBot owns the conversation (Panel AI inboxes stay as on develop)' do
-      let!(:plain_bot_owned) { create_conversation(account: account, inbox: plain_inbox, status: :open, assignee_agent_bot: agent_bot) }
+      let!(:plain_bot_owned) { create_conversation(account: account, inbox: plain_inbox, status: :open, ai_assignee: agent_bot) }
 
       it 'keeps it in the unassigned list, as without_human_assignee does on develop' do
         result = described_class.new(admin, { assignee_type: 'unassigned', status: 'open' }).perform

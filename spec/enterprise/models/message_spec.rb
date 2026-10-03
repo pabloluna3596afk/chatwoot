@@ -34,10 +34,12 @@ RSpec.describe Message do
       create(:captain_inbox, inbox: conversation.inbox, captain_assistant: captain_assistant)
     end
 
-    it 'marks the conversation open when a human sends a public outgoing message' do
+    it 'opens the conversation and clears Captain ownership when a human sends a public outgoing message' do
+      conversation.update!(ai_assignee: captain_assistant)
+
       create(:message, message_type: :outgoing, conversation: conversation)
 
-      expect(conversation.reload.open?).to be true
+      expect(conversation.reload).to have_attributes(status: 'open', ai_assignee: nil, ai_assignee_type: nil)
     end
 
     it 'creates an activity message when a human sends a public outgoing message' do
@@ -144,6 +146,23 @@ RSpec.describe Message do
 
         expect(conversation.reload).to have_attributes(assignee_id: nil, captain_state: 'escalated')
       end
+    end
+  end
+  describe 'reopening a resolved conversation that predates Captain ownership' do
+    let(:conversation) { create(:conversation, status: :resolved) }
+    let(:captain_assistant) { create(:captain_assistant, account: conversation.account) }
+
+    before do
+      create(:captain_inbox, inbox: conversation.inbox, captain_assistant: captain_assistant)
+      conversation.update_columns(status: Conversation.statuses[:resolved], ai_assignee_type: nil, assignee_agent_bot_id: nil) # rubocop:disable Rails/SkipsModelValidations
+    end
+
+    it 'gives the conversation back to Captain when the customer writes again' do
+      create(:message, message_type: :incoming, conversation: conversation)
+
+      expect(conversation.reload).to have_attributes(
+        status: 'pending', ai_assignee_type: 'Captain::Assistant', assignee_agent_bot_id: captain_assistant.id, captain_state: 'ai'
+      )
     end
   end
 end

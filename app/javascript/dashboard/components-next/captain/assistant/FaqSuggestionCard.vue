@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { dynamicTime } from 'shared/helpers/timeHelper';
+import { useExactTimestamp } from 'shared/composables/useExactTimestamp';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 import CardLayout from 'dashboard/components-next/CardLayout.vue';
@@ -20,6 +21,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['approve', 'dismiss', 'review']);
+
+const exactTimestamp = useExactTimestamp();
+
 const { t } = useI18n();
 
 const sourceLabel = computed(() =>
@@ -92,7 +96,15 @@ const language = computed(() =>
           />
           <span class="truncate">{{ suggestion.assistant?.name }}</span>
         </span>
-        <span class="inline-flex items-center gap-1.5">
+        <span
+          v-tooltip.top="{
+            content: exactTimestamp(
+              suggestion.updated_at || suggestion.created_at
+            ),
+            delay: { show: 500, hide: 0 },
+          }"
+          class="inline-flex items-center gap-1.5"
+        >
           <Icon icon="i-lucide-clock-3" class="size-3.5" />
           {{ updatedAt }}
         </span>

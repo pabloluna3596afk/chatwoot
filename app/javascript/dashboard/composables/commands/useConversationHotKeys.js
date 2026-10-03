@@ -148,7 +148,7 @@ export function useConversationHotKeys() {
   } = useConversationLabels();
 
   const { captainTasksEnabled } = useCaptain();
-  const { agentsList } = useAgentsList();
+  const { agentsList } = useAgentsList(true, { includeAIAssignees: true });
 
   const currentChat = useMapGetter('getSelectedChat');
   const replyMode = useMapGetter('draftMessages/getReplyEditorMode');

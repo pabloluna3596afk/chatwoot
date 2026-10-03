@@ -66,16 +66,24 @@ const channelInbox = computed(() =>
   props.inbox?.channel_type ? props.inbox : null
 );
 
-const showAssigneeAvatar = computed(
-  () => props.showAssignee && !!props.assignee?.name
+const isAIAssignee = computed(() =>
+  ['AgentBot', 'Captain::Assistant'].includes(props.chat?.meta?.assignee_type)
 );
 
-const isAgentBotAssignee = computed(
-  () => props.chat?.meta?.assignee_type === 'AgentBot'
+// While Captain answers, its avatar (with the state ring) already tells who owns the conversation.
+const isCaptainAssignee = computed(
+  () => props.chat?.meta?.assignee_type === 'Captain::Assistant'
+);
+
+const showAssigneeAvatar = computed(
+  () =>
+    props.showAssignee &&
+    !!props.assignee?.name &&
+    !(showAssistantAvatar.value && isCaptainAssignee.value)
 );
 
 const assigneeAvatarIcon = computed(() => {
-  if (isAgentBotAssignee.value && !props.assignee?.thumbnail) {
+  if (isAIAssignee.value && !props.assignee?.thumbnail) {
     return 'i-lucide-bot';
   }
   return null;

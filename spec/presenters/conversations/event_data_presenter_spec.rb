@@ -46,10 +46,10 @@ RSpec.describe Conversations::EventDataPresenter do
     end
 
     it 'exposes the Captain state so the dashboard can label the conversation in realtime' do
-      create(:captain_inbox, inbox: conversation.inbox, captain_assistant: create(:captain_assistant, account: conversation.account))
-      conversation.update!(status: :pending)
+      assistant = create(:captain_assistant, account: conversation.account)
+      create(:captain_inbox, inbox: conversation.inbox, captain_assistant: assistant)
+      conversation.update!(status: :pending, ai_assignee: assistant)
 
-      assistant = conversation.inbox.captain_assistant
       expect(presenter.push_data).to include(captain_state: 'ai', captain_handed_off_at: nil)
       expect(presenter.push_data[:captain_assistant]).to eq(id: assistant.id, name: assistant.name, thumbnail: assistant.avatar_or_default_url)
 

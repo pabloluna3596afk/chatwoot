@@ -36,6 +36,15 @@ module Enterprise::Message
     return conversation.open! unless assistant.engages?(conversation.contact, conversation)
 
     super
+    own_reopened_conversation(assistant)
+  end
+
+  # A conversation that predates Captain ownership is reopened as pending (Captain answers first) without an owner:
+  # give it one, so it shows as Captain's like any other.
+  def own_reopened_conversation(assistant)
+    return unless conversation.pending? && conversation.assignee_id.blank? && conversation.ai_assignee_type.blank?
+
+    conversation.update!(ai_assignee: assistant)
   end
 
   def mark_pending_conversation_as_open_for_human_response
@@ -52,7 +61,9 @@ module Enterprise::Message
     Current.executed_by = nil
 
     begin
-      # An agent's reply takes the conversation; assigning also clears the escalation mark.
+      # An agent's reply takes the conversation: Captain's ownership is cleared and the agent becomes the assignee,
+      # which also clears the escalation mark.
+      conversation.ai_assignee = nil if conversation.ai_assignee_type == 'Captain::Assistant'
       conversation.assignee = author if author.is_a?(User) && conversation.assignee_id.blank?
       conversation.open!
       return unless conversation.saved_change_to_status?

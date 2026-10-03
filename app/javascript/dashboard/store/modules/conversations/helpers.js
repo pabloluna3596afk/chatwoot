@@ -154,6 +154,7 @@ const SORT_OPTIONS = {
   priority_desc_created_at_asc: ['sortOnPriorityCreatedAt', 'desc'],
   last_message_from_asc: ['sortOnLastMessageFrom', 'asc'],
   last_message_from_desc: ['sortOnLastMessageFrom', 'desc'],
+  unread: ['sortOnUnread', 'desc'],
 };
 
 const CUSTOM_SORT_REGEX = /^(-?)custom:(.+)$/;
@@ -215,15 +216,18 @@ const sortConfig = {
     getSortOrderFunction(sortDirection)(a.last_activity_at, b.last_activity_at),
 
   sortOnCreatedAt: (a, b, sortDirection) =>
-    getSortOrderFunction(sortDirection)(a.created_at, b.created_at),
+    getSortOrderFunction(sortDirection)(a.created_at, b.created_at) ||
+    getSortOrderFunction(sortDirection)(a.id, b.id),
 
   sortOnPriority: (a, b, sortDirection) => {
     const DEFAULT_FOR_NULL = sortDirection === 'asc' ? 5 : 0;
 
     const p1 = CONVERSATION_PRIORITY_ORDER[a.priority] || DEFAULT_FOR_NULL;
     const p2 = CONVERSATION_PRIORITY_ORDER[b.priority] || DEFAULT_FOR_NULL;
+    const priorityDiff = getSortOrderFunction(sortDirection)(p1, p2);
+    if (priorityDiff !== 0) return priorityDiff;
 
-    return getSortOrderFunction(sortDirection)(p1, p2);
+    return sortDescending(a.last_activity_at, b.last_activity_at);
   },
 
   sortOnPriorityCreatedAt: (a, b) => {
@@ -238,9 +242,9 @@ const sortConfig = {
     const sortFunc = getSortOrderFunction(sortDirection);
     if (!a.waiting_since || !b.waiting_since) {
       if (!a.waiting_since && !b.waiting_since) {
-        return sortFunc(a.created_at, b.created_at);
+        return sortAscending(a.created_at, b.created_at);
       }
-      return sortFunc(a.waiting_since ? 0 : 1, b.waiting_since ? 0 : 1);
+      return a.waiting_since ? -1 : 1;
     }
 
     return sortFunc(a.waiting_since, b.waiting_since);
@@ -251,6 +255,12 @@ const sortConfig = {
       lastMessageFromRank(a),
       lastMessageFromRank(b)
     ),
+  sortOnUnread: (a, b) => {
+    const unreadCountDiff = (b.unread_count || 0) - (a.unread_count || 0);
+    if (unreadCountDiff !== 0) return unreadCountDiff;
+
+    return (b.last_activity_at || 0) - (a.last_activity_at || 0);
+  },
 };
 
 export const sortComparator = (a, b, sortKey) => {

@@ -11,7 +11,7 @@ describe Conversations::AssignmentService do
       before do
         inbox = conversation.inbox
         create(:agent_bot_inbox, inbox: inbox, agent_bot: agent_bot)
-        conversation.update!(assignee: agent, assignee_agent_bot: nil)
+        conversation.update!(assignee: agent, ai_assignee: nil)
       end
 
       it 'clears the human and assigns the inbox bot' do
@@ -25,7 +25,7 @@ describe Conversations::AssignmentService do
 
     context 'when assignee_id is blank and inbox has no bot' do
       before do
-        conversation.update!(assignee: agent, assignee_agent_bot: agent_bot)
+        conversation.update!(assignee: agent, ai_assignee: agent_bot)
       end
 
       it 'clears both human and bot assignees' do
@@ -49,7 +49,7 @@ describe Conversations::AssignmentService do
     context 'when assigning a user' do
       before do
         conversation.update!(
-          assignee_agent_bot: agent_bot,
+          ai_assignee: agent_bot,
           assignee: nil,
           status: :pending,
           custom_attributes: {
@@ -83,7 +83,7 @@ describe Conversations::AssignmentService do
       end
 
       it 'preserves status for ordinary human assignment changes' do
-        conversation.update!(assignee_agent_bot: nil, status: :resolved)
+        conversation.update!(ai_assignee: nil, status: :resolved)
 
         described_class.new(conversation: conversation, assignee_id: agent.id).perform
 
@@ -91,7 +91,7 @@ describe Conversations::AssignmentService do
       end
 
       it 'preserves status when taking over a bot-owned non-pending conversation' do
-        conversation.update!(assignee_agent_bot: agent_bot, status: :resolved)
+        conversation.update!(ai_assignee: agent_bot, status: :resolved)
 
         described_class.new(conversation: conversation, assignee_id: agent.id).perform
 
@@ -122,7 +122,7 @@ describe Conversations::AssignmentService do
         create(:agent_bot_inbox, inbox: conversation.inbox, agent_bot: agent_bot)
         conversation.update!(
           assignee: agent,
-          assignee_agent_bot: nil,
+          ai_assignee: nil,
           custom_attributes: {
             'panel_ia_estado' => 'activo',
             'panel_ia_estado_label' => 'AI responding'
@@ -169,7 +169,7 @@ describe Conversations::AssignmentService do
 
       it 'does not assign an inactive inbox bot' do
         conversation.inbox.agent_bot_inbox.update!(status: :inactive)
-        conversation.update!(assignee: agent, assignee_agent_bot: nil)
+        conversation.update!(assignee: agent, ai_assignee: nil)
 
         result = service.perform
 

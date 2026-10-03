@@ -11,7 +11,7 @@ const defaultChat = {
   created_at: 1700000000,
 };
 
-const mountComponent = (chat, currentContact = {}) =>
+const mountComponent = (chat, currentContact = {}, props = {}) =>
   shallowMount(ConversationCard, {
     props: {
       chat: { ...defaultChat, ...chat },
@@ -22,6 +22,7 @@ const mountComponent = (chat, currentContact = {}) =>
         ...currentContact,
       },
       inbox: { id: 1 },
+      ...props,
     },
     global: {
       stubs: {
@@ -56,5 +57,38 @@ describe('ConversationCard', () => {
     );
 
     expect(wrapper.findComponent({ name: 'CardLabels' }).exists()).toBe(false);
+  });
+
+  it('uses the bot icon for a Captain assignee', () => {
+    const wrapper = mountComponent(
+      { meta: { assignee_type: 'Captain::Assistant' } },
+      {},
+      { showAssignee: true, assignee: { name: 'Captain' } }
+    );
+
+    const icons = wrapper
+      .findAllComponents({ name: 'Avatar' })
+      .map(avatar => avatar.props('iconName'));
+    expect(icons).toContain('i-lucide-bot');
+  });
+
+  it('shows Captain once, through its state avatar, while it owns the conversation', () => {
+    const wrapper = mountComponent(
+      {
+        captain_state: 'ai',
+        captain_assistant: { id: 1, name: 'Captain', thumbnail: '' },
+        meta: { assignee_type: 'Captain::Assistant' },
+      },
+      {},
+      { showAssignee: true, assignee: { name: 'Captain' } }
+    );
+
+    expect(
+      wrapper.find('[data-testid="captain-assistant-avatar"]').exists()
+    ).toBe(true);
+    const names = wrapper
+      .findAllComponents({ name: 'Avatar' })
+      .map(avatar => avatar.props('name'));
+    expect(names.filter(name => name === 'Captain')).toHaveLength(1);
   });
 });

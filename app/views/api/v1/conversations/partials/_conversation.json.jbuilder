@@ -12,12 +12,13 @@ json.meta do
       json.partial! 'api/v1/models/agent_bot_slim', formats: [:json], resource: conversation.assigned_entity
     end
     json.assignee_type 'AgentBot'
-  elsif conversation.assigned_entity&.account
+  elsif conversation.assignee_type == 'User'
     json.assignee do
       json.partial! 'api/v1/models/agent', formats: [:json], resource: conversation.assigned_entity
     end
     json.assignee_type 'User'
   end
+  json.partial! 'enterprise/api/v1/conversations/partials/assignee', conversation: conversation if ChatwootApp.enterprise?
   if conversation.team.present?
     json.team do
       json.partial! 'api/v1/models/team', formats: [:json], resource: conversation.team
@@ -34,13 +35,18 @@ json.meta do
 end
 
 json.id conversation.display_id
-if conversation.messages.where(account_id: conversation.account_id).last.blank?
+# The dashboard seeds the message thread from this array and then paginates BACKWARD
+# by id (before: messages[0].id). Keep the seed as the chronologically latest message,
+# but add an id tiebreaker: without it, same-second siblings (e.g. the input_csat survey
+# created alongside activity messages during an auto-resolve burst) could resolve to a
+# lower-id activity, and backward pagination would then never load the higher-id survey.
+last_message = conversation.messages.where(account_id: conversation.account_id)
+                           .includes([{ attachments: [{ file_attachment: [:blob] }] }])
+                           .reorder(created_at: :desc, id: :desc).first
+if last_message.blank?
   json.messages []
 else
-  json.messages [
-    conversation.messages.where(account_id: conversation.account_id)
-                .includes([{ attachments: [{ file_attachment: [:blob] }] }]).last.try(:push_event_data)
-  ]
+  json.messages [last_message.try(:push_event_data)]
 end
 
 json.account_id conversation.account_id
@@ -53,6 +59,12 @@ json.bot_handling conversation.bot_handling?
 json.captain_state conversation.captain_state
 json.captain_assistant conversation.captain_assistant_data
 json.captain_handed_off_at conversation.captain_handed_off_at&.to_i
+# Temporarily disable this action to avoid message-history lookups during conversation rendering.
+json.contact_info_request do
+  json.available false
+  json.reason nil
+  json.delivery_mode nil
+end
 json.contact_last_seen_at conversation.contact_last_seen_at.to_i
 json.custom_attributes conversation.custom_attributes
 if conversation.in_flow?

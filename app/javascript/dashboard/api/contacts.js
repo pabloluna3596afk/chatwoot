@@ -1,13 +1,7 @@
 /* global axios */
 import ApiClient from './ApiClient';
 
-export const buildContactParams = (
-  page,
-  sortAttr,
-  label,
-  search,
-  perPage
-) => {
+export const buildContactParams = (page, sortAttr, label, search, perPage) => {
   const params = {
     include_contact_inboxes: false,
     page,
@@ -45,10 +39,11 @@ class ContactAPI extends ApiClient {
     return axios.patch(`${this.url}/${id}?include_contact_inboxes=false`, data);
   }
 
-  getConversations(contactId, { inboxId, sortBy } = {}) {
+  getConversations(contactId, { inboxId, sortBy, conversationId } = {}) {
     const params = {};
     if (inboxId) params.inbox_id = inboxId;
     if (sortBy) params.sort_by = sortBy;
+    if (conversationId) params.conversation_id = conversationId;
     return axios.get(`${this.url}/${contactId}/conversations`, { params });
   }
 

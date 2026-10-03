@@ -212,7 +212,7 @@ RSpec.describe Captain::Followup do
     end
 
     it 'leaves alone a conversation that an agent bot (Panel AI) handles' do
-      conversation.update!(assignee_agent_bot: create(:agent_bot, account: account))
+      conversation.update!(ai_assignee: create(:agent_bot, account: account))
 
       expect { described_class.new(now: now).perform }.not_to(change { conversation.messages.count })
     end

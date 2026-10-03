@@ -4,6 +4,7 @@
 #
 #  id                     :integer          not null, primary key
 #  additional_attributes  :jsonb
+#  ai_assignee_type       :string
 #  agent_last_seen_at     :datetime
 #  assignee_last_seen_at  :datetime
 #  cached_label_list      :text
@@ -88,10 +89,10 @@ class Conversation < ApplicationRecord
   enum status: { open: 0, resolved: 1, pending: 2, snoozed: 3 }
   enum priority: { low: 0, medium: 1, high: 2, urgent: 3 }
 
-  # Captain answers a pending conversation in any inbox that has an assistant connected.
-  # Plain SQL on captain_inboxes (shared schema) so it works per row without loading assistants or checking quota.
-  CAPTAIN_ATTENDED_SQL = "(conversations.status = #{statuses[:pending]} AND conversations.assignee_agent_bot_id IS NULL AND " \
-                         'EXISTS (SELECT 1 FROM captain_inboxes WHERE captain_inboxes.inbox_id = conversations.inbox_id))'.freeze
+  # Captain answers a pending conversation it owns: upstream's typed AI assignee (assigned automatically when Captain
+  # engages a new conversation, or by an agent from the assignment dropdown).
+  CAPTAIN_ATTENDED_SQL = "(conversations.status = #{statuses[:pending]} AND " \
+                         "conversations.ai_assignee_type = 'Captain::Assistant')".freeze
   # The dashboard "Sin asignar" queue: develop's without_human_assignee (AgentBot-owned rows stay in it) minus what Captain attends.
   QUEUE_UNASSIGNED_SQL = "conversations.assignee_id IS NULL AND NOT #{CAPTAIN_ATTENDED_SQL}".freeze
 
@@ -161,7 +162,6 @@ class Conversation < ApplicationRecord
   belongs_to :account
   belongs_to :inbox
   belongs_to :assignee, class_name: 'User', optional: true, inverse_of: :assigned_conversations
-  belongs_to :assignee_agent_bot, class_name: 'AgentBot', optional: true
   belongs_to :ai_assignee,
              polymorphic: true,
              foreign_key: :assignee_agent_bot_id,
@@ -267,30 +267,29 @@ class Conversation < ApplicationRecord
     true
   end
 
-  # Keep legacy AgentBot reads coherent until they move to the typed association.
-  def ai_assignee=(owner)
-    super
-    association(:assignee_agent_bot).reset
-  end
-
   # Virtual attribute till we switch completely to polymorphic assignee
   def assignee_type
-    return 'AgentBot' if assignee_agent_bot_id.present?
+    return ai_assignee_type if ai_assignee_type.present?
     return 'User' if assignee_id.present?
 
     nil
   end
 
   def assigned_entity
-    assignee_agent_bot || assignee
+    ai_assignee || assignee
   end
 
+  # An external AgentBot (Panel AI) owns the conversation; Captain ownership is reported by captain_state.
   def bot_handling?
-    assignee_agent_bot_id.present?
+    ai_assignee_type == 'AgentBot'
+  end
+
+  def captain_assigned?
+    ai_assignee_type == 'Captain::Assistant'
   end
 
   def captain_attended?
-    pending? && assignee_agent_bot_id.blank? && inbox.try(:captain_inbox).present?
+    pending? && captain_assigned?
   end
 
   def captain_escalated?
@@ -308,7 +307,7 @@ class Conversation < ApplicationRecord
   def captain_assistant_data
     return unless captain_state == 'ai'
 
-    assistant = inbox.try(:captain_assistant)
+    assistant = ai_assignee
     return if assistant.blank?
 
     { id: assistant.id, name: assistant.name, thumbnail: assistant.avatar_or_default_url }
@@ -503,7 +502,7 @@ class Conversation < ApplicationRecord
   end
 
   def list_of_keys
-    %w[team_id assignee_id assignee_agent_bot_id status snoozed_until custom_attributes label_list waiting_since
+    %w[team_id assignee_id assignee_agent_bot_id ai_assignee_type status snoozed_until custom_attributes label_list waiting_since
        first_reply_created_at priority captain_handed_off_at]
   end
 

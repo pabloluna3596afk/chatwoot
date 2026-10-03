@@ -33,14 +33,16 @@
         "DESC": "( Media )",
         "INFO_TEXT": "Número total de conversaciones utilizadas en el cálculo:",
         "TOOLTIP_TEXT": "Tiempo de primera respuesta es {metricValue} (basado en {conversationCount} conversaciones)",
-        "HELP": "Tiempo promedio desde el primer mensaje del cliente hasta la primera respuesta del agente."
+        "HELP": "Tiempo promedio desde el primer mensaje del cliente hasta la primera respuesta del agente.",
+        "TOOLTIP_DESCRIPTION": "Basado en {count} conversación| Basado en {count} conversaciones"
       },
       "RESOLUTION_TIME": {
         "NAME": "Tiempo de resolución",
         "DESC": "( Media )",
         "INFO_TEXT": "Número total de conversaciones utilizadas en el cálculo:",
         "TOOLTIP_TEXT": "El tiempo de resolución es {metricValue} (basado en {conversationCount} conversaciones)",
-        "HELP": "Tiempo promedio desde el inicio de la conversación hasta que se marca como resuelta."
+        "HELP": "Tiempo promedio desde el inicio de la conversación hasta que se marca como resuelta.",
+        "TOOLTIP_DESCRIPTION": "Basado en {count} conversación| Basado en {count} conversaciones"
       },
       "RESOLUTION_COUNT": {
         "NAME": "Número de resoluciones",
@@ -61,7 +63,9 @@
         "NAME": "Tiempo de espera del cliente",
         "TOOLTIP_TEXT": "El tiempo de espera es {metricValue} (basado en {conversationCount} respuestas)",
         "DESC": "",
-        "HELP": "Tiempo promedio que espera el cliente entre su mensaje y la siguiente respuesta del agente."
+        "HELP": "Tiempo promedio que espera el cliente entre su mensaje y la siguiente respuesta del agente.",
+        "TOOLTIP_LABEL": "Tiempo de espera",
+        "TOOLTIP_DESCRIPTION": "Basado en {count} respuesta | Basado en {count} respuestas"
       }
     },
     "DATE_RANGE_OPTIONS": {
@@ -631,7 +635,8 @@
         "BUSY": "Agentes marcados actualmente como ocupados.",
         "OFFLINE": "Agentes marcados actualmente como fuera de línea."
       }
-    }
+    },
+    "HEATMAP_ARIA_LABEL": "{metric} por día y hora"
   },
   "DAYS_OF_WEEK": {
     "SUNDAY": "Domingo",
