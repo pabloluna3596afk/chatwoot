@@ -57,8 +57,8 @@ RSpec.describe Captain::TemplateMessage do
 
       expect(text).to eq('Hola Ana Pérez, es el martes 15 de enero a las 10:00.')
       expect(payload).to include(name: 'cita', language: 'es')
-      expect(payload[:processed_params]).to eq(header: { 'titulo' => 'Consulta' },
-                                               body: { 'nombre' => 'Ana Pérez', 'fecha' => 'martes 15 de enero a las 10:00' })
+      expect(payload[:processed_params]).to eq('header' => { 'titulo' => 'Consulta' },
+                                               'body' => { 'nombre' => 'Ana Pérez', 'fecha' => 'martes 15 de enero a las 10:00' })
     end
 
     it 'fills numbered variables, and a fixed text is just a text without Liquid' do
@@ -68,7 +68,7 @@ RSpec.describe Captain::TemplateMessage do
 
       expect(text).to eq('Hola Consulta, tu cita Ana Pérez es el 10:00 a las hoy. Hasta Consulta.')
       expect(payload).to include(namespace: 'ns', category: 'UTILITY')
-      expect(payload[:processed_params]).to eq(body: { '1' => 'Consulta', '2' => 'Ana Pérez', '3' => '10:00', '4' => 'hoy' })
+      expect(payload[:processed_params]).to eq('body' => { '1' => 'Consulta', '2' => 'Ana Pérez', '3' => '10:00', '4' => 'hoy' })
     end
 
     it 'sends "-" for a text that renders empty (Meta rejects empty variables)' do
@@ -76,7 +76,7 @@ RSpec.describe Captain::TemplateMessage do
 
       payload, = described_class.build(numbered, params, drops)
 
-      expect(payload[:processed_params][:body]).to eq('1' => 'Ana Pérez', '2' => '-', '3' => 'martes 15 de enero', '4' => 'x')
+      expect(payload[:processed_params]['body']).to eq('1' => 'Ana Pérez', '2' => '-', '3' => 'martes 15 de enero', '4' => 'x')
     end
 
     it 'raises when a variable of the template has no text (the template changed in Meta)' do

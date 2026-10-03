@@ -855,8 +855,8 @@ RSpec.describe Captain::Tools::BookAppointmentTool, 'button replies' do
   end
 
   it 'books again from the same reply after asking for a missing detail' do
-    contact.update!(phone_number: nil)
     propose('2030-01-15T10:00:00-05:00')
+    contact.update!(phone_number: nil)
     reply = 'Sí, reservar · mar 15 ene · 10:00'
 
     expect(tool.perform(tool_context, start: reply, customer_confirmed: true)).to include('teléfono')
@@ -1028,7 +1028,7 @@ RSpec.describe Captain::Assistant, 'appointment tools exposure' do
 
     expect(prompt).to include('# Appointments', 'captain--tools--book_appointment', 'explicit yes', 'customer_confirmed')
     expect(prompt).to include('captain--tools--propose_appointment', 'UNCHANGED', 'Sí, reservar · jue 1 oct · 11:30', 'expired')
-    expect(prompt).to include('30 minutes', 'name, phone, email', 'part_of_day', 'BEFORE')
+    expect(prompt).to include('30 minutes', 'name, phone, email', 'part_of_day', 'Before proposing a time')
 
     captain_inbox.update!(appointments_enabled: false)
     expect(assistant.agent_instructions(instructions_context)).not_to include('# Appointments')
