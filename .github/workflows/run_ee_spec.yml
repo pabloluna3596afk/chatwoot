@@ -71,6 +71,15 @@ jobs:
           # The enterprise specs plus the app specs of the code they share with it
           # (LLM config, calendar, automations, scheduled jobs). Round-robin split across the nodes.
           SPEC_FILES=($(find spec/enterprise spec/lib/llm spec/lib/integrations spec/lib/captain spec/jobs/calendar spec/services/automations spec/configs -name '*_spec.rb' | sort))
+          # Core specs of ChatHub changes, by file: "Run Chatwoot CE spec" is disabled and the directories around them
+          # (spec/services/whatsapp, spec/controllers) have failures that are not ours.
+          SPEC_FILES+=(
+            spec/controllers/api/v1/accounts/inbox_whatsapp_template_media_controller_spec.rb
+            spec/services/whatsapp/media_upload_service_spec.rb
+            spec/services/whatsapp/providers/whatsapp_cloud_service_spec.rb
+            spec/services/whatsapp/template_header_media_spec.rb
+            spec/services/whatsapp/template_processor_service_spec.rb
+          )
           TESTS=""
 
           for i in "${!SPEC_FILES[@]}"; do
@@ -98,3 +107,20 @@ jobs:
         with:
           name: ee-rails-log-folder-${{ matrix.ci_node_index }}
           path: log
+
+  # Rubocop on the Ruby files the change touches (the whole-repo run belongs to the disabled CE workflow).
+  rubocop-changed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Rubocop on changed files
+        run: |
+          git fetch origin develop
+          git diff --name-only --diff-filter=d origin/develop...HEAD -- '*.rb' | xargs -r bundle exec rubocop --force-exclusion
