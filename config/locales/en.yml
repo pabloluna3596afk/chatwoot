@@ -565,12 +565,15 @@ en:
       continue_button: "Yes, I'm here"
       stop_button: 'No, thanks'
       closed_note: '%{assistant} closed the conversation due to inactivity.'
+      reengagement_template_changed: '%{assistant} did not send the re-engagement: the template changed in Meta and the saved variables no longer match. Pick the template again in the Follow-up settings.'
       reengagement_paid_off: '%{assistant} did not send the re-engagement: the 24 h window has closed and paid templates are turned off.'
       reengagement_no_template: '%{assistant} did not send the re-engagement: the 24 h window has closed and no re-engagement template is selected.'
       reengagement_template_unavailable: '%{assistant} did not send the re-engagement: the selected template is not approved in this inbox.'
     appointment_reminders:
-      reminder_24h: 'Hi %{name}, a reminder of your appointment "%{title}" on %{when}.'
-      reminder_2h: 'Hi %{name}, your appointment "%{title}" is in about 2 hours (%{when}).'
+      reminder_far: 'Hi %{name}, a reminder of your appointment "%{title}" on %{when}.'
+      reminder_near: 'Hi %{name}, your appointment "%{title}" is in about %{hours} hours (%{when}).'
+      reminder_near_one: 'Hi %{name}, your appointment "%{title}" is in about an hour (%{when}).'
+      template_changed: '%{assistant} did not send the reminder (%{when}): the template changed in Meta and the saved variables no longer match. Pick the template again in the Appointments settings.'
       reply_hint: ' Reply "%{confirm}", "%{change}" or "%{cancel}".'
       not_sent_window: '%{assistant} did not send the reminder (%{when}): it is outside the 24 h window and paid templates are turned off.'
       not_sent_channel: '%{assistant} did not send the reminder (%{when}): this channel cannot send outside its messaging window.'
@@ -607,7 +610,13 @@ en:
         email: 'email'
       weekdays: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
       weekdays_short: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-      slots_buttons_hint: 'The options are shown to the customer as buttons with your reply. Do not list them again in your text: write one short sentence asking which one suits them. When they tap one, their reply is the option text (for example "jue 16/01 · 10:00"): pass it unchanged as start to propose_appointment.'
+      months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+      months_short: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      date_long: '%{weekday}, %{month} %{day}, %{time}'
+      date_only: '%{weekday}, %{month} %{day}'
+      date_short: '%{weekday}, %{month} %{day} · %{time}'
+      missing_before_proposing: 'Before proposing a time, these customer details are missing: %{fields}. Ask for them now, in one message, and propose the time once you have them. Then call propose_appointment again with them.'
+      slots_buttons_hint: 'The options are shown to the customer as buttons with your reply. Do not list them again in your text: write one short sentence asking which one suits them. When they tap one, their reply is the option text (for example "Thu, Jan 16 · 10:00"): pass it unchanged as start to propose_appointment.'
       confirmation_buttons_hint: 'Write the confirmation for the customer in ONE message with the details of the booking. Buttons to change or cancel the appointment are attached to your reply automatically, so do not list options.'
       confirmation_text_hint: 'Write the confirmation for the customer in ONE message with the details of the booking.'
       confirmed: 'Confirmed: %{time}. Tell the customer in one short sentence that the appointment is confirmed.'

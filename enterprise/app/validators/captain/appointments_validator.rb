@@ -10,19 +10,34 @@ class Captain::AppointmentsValidator < ActiveModel::Validator
     settings = Settings.new(raw)
     validate_numbers(record, settings)
     validate_contact_fields(record, settings)
+    validate_reminders(record, settings)
     validate_templates(record, settings)
     validate_calendar(record, settings) if settings.enabled?
   end
 
   private
 
+  def validate_reminders(record, settings)
+    Settings::REMINDER_KEYS.each do |key|
+      reminder = settings.values[key]
+      unless reminder.is_a?(Hash) && [true, false].include?(reminder['enabled'])
+        record.errors.add(:config, "appointments #{key} must have enabled and hours_before")
+        next
+      end
+
+      hours = reminder['hours_before']
+      next if hours.is_a?(Integer) && Settings::REMINDER_HOURS_RANGE.cover?(hours)
+
+      record.errors.add(:config, "appointments #{key} hours_before must be between #{Settings::REMINDER_HOURS_RANGE.min} and " \
+                                 "#{Settings::REMINDER_HOURS_RANGE.max}")
+    end
+  end
+
   def validate_templates(record, settings)
     Settings::TEMPLATE_KEYS.each do |key|
-      template = settings.values[key]
-      next if template.nil?
-      next if template.is_a?(Hash) && template['name'].present? && template['language'].present?
-
-      record.errors.add(:config, "appointments #{key} must have a name and a language")
+      Captain::TemplateReference.errors(settings.values[key], record.account).each do |error|
+        record.errors.add(:config, "appointments #{key} #{error}")
+      end
     end
   end
 

@@ -43,10 +43,9 @@ class Captain::Tools::BaseAppointmentTool < Captain::Tools::BasePublicTool
     I18n.t("captain.appointments.#{key}", locale: @assistant.account.locale, **options)
   end
 
+  # "jueves 1 de octubre, 11:30" (account language and timezone, no zero padding)
   def format_time(time)
-    local = time.in_time_zone(zone)
-    weekday = I18n.t('captain.appointments.weekdays', locale: @assistant.account.locale)[local.wday]
-    format('%<weekday>s %<day>02d/%<month>02d %<hour>s', weekday: weekday, day: local.day, month: local.month, hour: local.strftime('%H:%M'))
+    Captain::AppointmentFormat.long(time, locale: @assistant.account.locale, zone: zone)
   end
 
   def parse_time(value)
@@ -109,28 +108,20 @@ class Captain::Tools::BaseAppointmentTool < Captain::Tools::BasePublicTool
     Captain::QuickReplies.item(translate("buttons.#{button}"), value)
   end
 
-  # "jue 16/01 10:00"
+  # "jue 1 oct · 11:30"
   def short_date_time(time)
-    local = time.in_time_zone(zone)
-    format('%<weekday>s %<day>02d/%<month>02d %<hour>s', weekday: short_weekday(local), day: local.day, month: local.month,
-                                                         hour: local.strftime('%H:%M'))
+    Captain::AppointmentFormat.short(time, locale: @assistant.account.locale, zone: zone)
   end
 
   # The title of a time button, which is also its value and so the text of the customer's reply:
-  # "jue 16/01 · 10:00" (17 characters, under the 20 WhatsApp allows for a title).
+  # "jue 1 oct · 11:30" (at most 19 characters, under the 20 WhatsApp allows for a title).
   def slot_label(time)
-    local = time.in_time_zone(zone)
-    format('%<weekday>s %<day>02d/%<month>02d · %<hour>s', weekday: short_weekday(local), day: local.day, month: local.month,
-                                                           hour: local.strftime('%H:%M'))
+    short_date_time(time)
   end
 
-  # The value of a confirmation button, readable for the agents who see the reply: "Sí, reservar · jue 16/01 10:00".
+  # The value of a confirmation button, readable for the agents who see the reply: "Sí, reservar · jue 1 oct · 11:30".
   def labelled_with_time(button, time)
     "#{translate("buttons.#{button}")} · #{short_date_time(time)}"
-  end
-
-  def short_weekday(local_time)
-    I18n.t('captain.appointments.weekdays_short', locale: @assistant.account.locale)[local_time.wday]
   end
 
   # A start comes either as an ISO time or as the text of a button the customer tapped. Returns
@@ -148,6 +139,51 @@ class Captain::Tools::BaseAppointmentTool < Captain::Tools::BasePublicTool
   # was) one of the buttons, e.g. because the choices expired.
   def start_error(value)
     translate(value.to_s.strip.match?(ISO_START) ? 'invalid_start' : 'choice_expired')
+  end
+
+  CONTACT_READERS = { 'name' => :name, 'phone' => :phone_number, 'email' => :email }.freeze
+
+  # The contact details the assistant requires that the contact still lacks.
+  def missing_contact_fields(contact)
+    settings.required_contact_fields.select { |field| contact.public_send(CONTACT_READERS.fetch(field)).blank? }
+  end
+
+  def missing_fields_text(fields)
+    fields.map { |field| translate("fields.#{field}") }.join(', ')
+  end
+
+  # Fills only the details the contact lacks; it never overwrites what is already known. Returns a message for the
+  # model when a value cannot be saved, nil otherwise.
+  def fill_contact(contact, name:, phone:, email:)
+    attributes = {}
+    attributes[:name] = name.strip if contact.name.blank? && name.present?
+    attributes[:email] = email.strip.downcase if contact.email.blank? && email.present?
+    attributes[:phone_number] = normalize_phone(phone) if contact.phone_number.blank? && phone.present?
+    return if attributes.empty?
+
+    contact.update!(attributes)
+    nil
+  rescue ActiveRecord::RecordInvalid => e
+    translate('invalid_contact', fields: field_labels(e.record.errors.attribute_names))
+  end
+
+  def normalize_phone(phone)
+    phone.to_s.gsub(/[\s\-().]/, '')
+  end
+
+  def field_labels(attributes)
+    attributes.map do |attribute|
+      key = attribute == :phone_number ? 'phone' : attribute.to_s
+      translate("fields.#{key}", default: key)
+    end.join(', ')
+  end
+
+  # What went wrong AFTER the event exists is not a calendar failure: the booking stands. It is reported (so it gets
+  # looked at) and the reply carries on.
+  def report_side_failure(error)
+    Rails.logger.error("#{self.class.name}: #{error.class} #{error.message}")
+    ChatwootExceptionTracker.new(error, account: @assistant.account).capture_exception
+    nil
   end
 
   # An appointment id, or the text of the change/cancel/keep button that stands for it.

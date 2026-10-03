@@ -1,5 +1,6 @@
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import AssistantFollowupForm from './AssistantFollowupForm.vue';
+import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
 
 const { inboxes } = vi.hoisted(() => ({ inboxes: { value: [] } }));
 
@@ -16,6 +17,10 @@ vi.mock('dashboard/composables/store', () => ({
 const mountForm = (config = {}) =>
   mount(AssistantFollowupForm, {
     props: { assistant: { config: { response_window: 'always', ...config } } },
+    global: {
+      mocks: { $t: key => key },
+      stubs: { InsertVariableButton: true },
+    },
   });
 
 const select = (wrapper, testId) =>
@@ -126,16 +131,31 @@ describe('AssistantFollowupForm', () => {
       );
     });
 
-    it('lists the approved templates once paid messages are on and saves the pick', async () => {
+    const volver = {
+      name: 'volver',
+      language: 'es',
+      status: 'approved',
+      components: [{ type: 'BODY', text: 'Hola {{1}}, soy {{2}}.' }],
+    };
+    const parser = wrapper => wrapper.findComponent(WhatsAppTemplateParser);
+    const fill = async (wrapper, values) => {
+      const inputs = parser(wrapper).findAll('input[type="text"]');
+      for (let index = 0; index < values.length; index += 1) {
+        // eslint-disable-next-line no-await-in-loop
+        await inputs[index].setValue(values[index]);
+      }
+    };
+    const withTemplates = templates => {
       inboxes.value = [
-        {
-          channel_type: 'Channel::Whatsapp',
-          message_templates: [
-            { name: 'volver', language: 'es', status: 'approved' },
-            { name: 'borrador', language: 'es', status: 'pending' },
-          ],
-        },
+        { channel_type: 'Channel::Whatsapp', message_templates: templates },
       ];
+    };
+
+    it('lists the approved templates once paid messages are on and saves the pick with the text of each variable', async () => {
+      withTemplates([
+        volver,
+        { ...volver, name: 'borrador', status: 'pending' },
+      ]);
       const wrapper = mountForm({ allow_paid_templates: true });
       await enable(wrapper);
 
@@ -145,13 +165,82 @@ describe('AssistantFollowupForm', () => {
       expect(options).toEqual(['', 'volver|es']);
 
       await select(wrapper, 'followup-template').setValue('volver|es');
+      await fill(wrapper, ['{{ contact.name }}', 'Soy {{ assistant.name }}']);
       await save(wrapper);
 
       expect(submitted(wrapper).followup).toMatchObject({
         reengagement_enabled: true,
-        reengagement_template: { name: 'volver', language: 'es' },
+        reengagement_template: {
+          name: 'volver',
+          language: 'es',
+          processed_params: {
+            body: { 1: '{{ contact.name }}', 2: 'Soy {{ assistant.name }}' },
+          },
+        },
       });
       expect(submitted(wrapper).allow_paid_templates).toBe(true);
+    });
+
+    it('offers only what the customer and the assistant can fill in, with samples for the preview', async () => {
+      withTemplates([volver]);
+      const wrapper = mountForm({ allow_paid_templates: true });
+      await enable(wrapper);
+      await select(wrapper, 'followup-template').setValue('volver|es');
+
+      expect(
+        parser(wrapper)
+          .props('variableOptions')
+          .map(option => option.key)
+      ).toEqual([
+        'contact.name',
+        'contact.first_name',
+        'assistant.name',
+        'account.name',
+      ]);
+      expect(Object.keys(parser(wrapper).props('previewValues'))).toContain(
+        'assistant.name'
+      );
+    });
+
+    it('cannot be saved with a variable left empty, and says so', async () => {
+      withTemplates([volver]);
+      const wrapper = mountForm({ allow_paid_templates: true });
+      await enable(wrapper);
+      await select(wrapper, 'followup-template').setValue('volver|es');
+      await fill(wrapper, ['{{ contact.name }}']);
+
+      await save(wrapper);
+
+      expect(wrapper.emitted('submit')).toBeUndefined();
+      expect(
+        wrapper.get('[data-testid="followup-template-error"]').text()
+      ).toBe('CAPTAIN.ASSISTANTS.FORM.TEMPLATE_VARIABLES.ERROR');
+    });
+
+    it('shows the saved texts and saves them again as they were', async () => {
+      withTemplates([volver]);
+      const saved = {
+        name: 'volver',
+        language: 'es',
+        processed_params: {
+          body: { 1: '{{ contact.name }}', 2: '{{ assistant.name }}' },
+        },
+      };
+      const wrapper = mountForm({
+        allow_paid_templates: true,
+        followup: { reengagement_enabled: true, reengagement_template: saved },
+      });
+      await flushPromises();
+
+      expect(
+        parser(wrapper)
+          .findAll('input[type="text"]')
+          .map(input => input.element.value)
+      ).toEqual(['{{ contact.name }}', '{{ assistant.name }}']);
+
+      await save(wrapper);
+
+      expect(submitted(wrapper).followup.reengagement_template).toEqual(saved);
     });
   });
 });

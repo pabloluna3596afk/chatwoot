@@ -514,12 +514,15 @@ es:
       continue_button: 'Sí, sigo aquí'
       stop_button: 'Ya no, gracias'
       closed_note: '%{assistant} cerró la conversación por inactividad.'
+      reengagement_template_changed: '%{assistant} no envió el reenganche: la plantilla cambió en Meta y las variables guardadas ya no coinciden. Vuelve a elegir la plantilla en los ajustes de Seguimiento.'
       reengagement_paid_off: '%{assistant} no envió el reenganche: la ventana de 24 h ya cerró y las plantillas de pago están desactivadas.'
       reengagement_no_template: '%{assistant} no envió el reenganche: la ventana de 24 h ya cerró y no hay una plantilla elegida para el reenganche.'
       reengagement_template_unavailable: '%{assistant} no envió el reenganche: la plantilla elegida no está aprobada en esta bandeja.'
     appointment_reminders:
-      reminder_24h: 'Hola %{name}, te recordamos tu cita "%{title}" para el %{when}.'
-      reminder_2h: 'Hola %{name}, tu cita "%{title}" es en unas 2 horas (%{when}).'
+      reminder_far: 'Hola %{name}, te recordamos tu cita "%{title}" para el %{when}.'
+      reminder_near: 'Hola %{name}, tu cita "%{title}" es en unas %{hours} horas (%{when}).'
+      reminder_near_one: 'Hola %{name}, tu cita "%{title}" es en aproximadamente una hora (%{when}).'
+      template_changed: '%{assistant} no envió el recordatorio (%{when}): la plantilla cambió en Meta y las variables guardadas ya no coinciden. Vuelve a elegir la plantilla en los ajustes de Citas.'
       reply_hint: ' Responde "%{confirm}", "%{change}" o "%{cancel}".'
       not_sent_window: '%{assistant} no envió el recordatorio (%{when}): fuera de la ventana de 24 h y las plantillas de pago están desactivadas.'
       not_sent_channel: '%{assistant} no envió el recordatorio (%{when}): este canal no puede enviar fuera de su ventana de mensajes.'
@@ -556,7 +559,13 @@ es:
         email: 'correo electrónico'
       weekdays: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
       weekdays_short: ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']
-      slots_buttons_hint: 'Las opciones se muestran al cliente como botones junto con tu respuesta. No las listes otra vez en tu texto: escribe una frase corta preguntando cuál le conviene. Cuando toque una, su respuesta es el texto de la opción (por ejemplo "jue 16/01 · 10:00"): pásalo sin cambios como start a propose_appointment.'
+      months: ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+      months_short: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+      date_long: '%{weekday} %{day} de %{month}, %{time}'
+      date_only: '%{weekday} %{day} de %{month}'
+      date_short: '%{weekday} %{day} %{month} · %{time}'
+      missing_before_proposing: 'Antes de proponer un horario faltan estos datos del cliente: %{fields}. Pídeselos ahora, en un solo mensaje, y propón el horario cuando los tenga. Vuelve a llamar a propose_appointment con ellos.'
+      slots_buttons_hint: 'Las opciones se muestran al cliente como botones junto con tu respuesta. No las listes otra vez en tu texto: escribe una frase corta preguntando cuál le conviene. Cuando toque una, su respuesta es el texto de la opción (por ejemplo "jue 16 ene · 10:00"): pásalo sin cambios como start a propose_appointment.'
       confirmation_buttons_hint: 'Escribe la confirmación para el cliente en UN solo mensaje con los datos de la cita. Los botones para cambiarla o cancelarla se adjuntan solos a tu respuesta, así que no listes opciones.'
       confirmation_text_hint: 'Escribe la confirmación para el cliente en UN solo mensaje con los datos de la cita.'
       confirmed: 'Confirmada: %{time}. Dile al cliente en una frase corta que la cita está confirmada.'

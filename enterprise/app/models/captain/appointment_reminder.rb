@@ -26,8 +26,9 @@
 class Captain::AppointmentReminder < ApplicationRecord
   self.table_name = 'captain_appointment_reminders'
 
-  LEAD_TIMES = { 'reminder_24h' => 24.hours, 'reminder_2h' => 2.hours }.freeze
-  KINDS = LEAD_TIMES.keys.freeze
+  KINDS = Captain::AppointmentsSettings::REMINDER_KEYS
+  # Rows scheduled before the reminders were editable keep their old kind.
+  ALL_KINDS = (KINDS + Captain::AppointmentsSettings::LEGACY_KINDS.keys).freeze
   STATUSES = %w[pending sent skipped cancelled].freeze
 
   belongs_to :account
@@ -35,7 +36,7 @@ class Captain::AppointmentReminder < ApplicationRecord
   belongs_to :captain_assistant, class_name: 'Captain::Assistant'
   belongs_to :conversation, class_name: '::Conversation'
 
-  validates :kind, inclusion: { in: KINDS }
+  validates :kind, inclusion: { in: ALL_KINDS }
   validates :status, inclusion: { in: STATUSES }
   validates :kind, uniqueness: { scope: :calendar_event_id }
 
@@ -46,7 +47,8 @@ class Captain::AppointmentReminder < ApplicationRecord
     status == 'pending'
   end
 
+  # How long before the appointment this reminder goes out, from what the assistant has configured now.
   def lead_time
-    LEAD_TIMES.fetch(kind)
+    captain_assistant.appointments.hours_before(kind).hours
   end
 end

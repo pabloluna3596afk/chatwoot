@@ -240,7 +240,8 @@ RSpec.describe Captain::Followup do
                                 message_templates: templates)
     end
     let(:inbox) { channel.inbox }
-    let(:template) { { 'name' => 'volver_a_hablar', 'language' => 'es' } }
+    let(:mapping) { { 'body' => { '1' => '{{ contact.name }}', '2' => '{{ assistant.name }}' } } }
+    let(:template) { { 'name' => 'volver_a_hablar', 'language' => 'es', 'processed_params' => mapping } }
     let(:followup_config) { { 'reengagement_enabled' => true, 'reengagement_template' => template } }
     let(:assistant_config) { { 'followup' => followup_config, 'allow_paid_templates' => true } }
     let(:closed_at) { now - 2.days }
@@ -276,6 +277,32 @@ RSpec.describe Captain::Followup do
         'name' => 'volver_a_hablar', 'language' => 'es', 'processed_params' => { 'body' => { '1' => 'Ana Pérez', '2' => 'Asistente de Ventas' } }
       )
       expect(conversation.reload.additional_attributes['captain_followup']['reengagement']).to include('status' => 'sent')
+    end
+
+    context 'when the mapping puts other things in the variables' do
+      let(:mapping) { { 'body' => { '1' => 'amigo', '2' => '{{ contact.name }}' } } }
+
+      it 'fills them as mapped' do
+        reengage
+
+        expect(public_messages.order(:id).last.content).to eq('Hola amigo, soy Ana Pérez. ¿Seguimos?')
+      end
+    end
+
+    context 'when the template changed in Meta and a variable is no longer mapped' do
+      # Saved settings cannot be like this (the validator rejects them), which is the point: the template changed after.
+      before do
+        broken = template.merge('processed_params' => { 'body' => { '1' => '{{ contact.name }}' } })
+        assistant.update_columns(config: assistant_config.merge('followup' => followup_config.merge('reengagement_template' => broken))) # rubocop:disable Rails/SkipsModelValidations
+      end
+
+      it 'sends nothing and leaves a private note, once' do
+        expect(reengage).to eq(:skipped)
+
+        expect(conversation.messages.where(private: true).last.content).to include('la plantilla cambió en Meta')
+        expect(conversation.reload.additional_attributes['captain_followup']['reengagement']).to include('reason' => 'template_changed')
+        expect(described_class.candidates(inbox, now: now)).to be_empty
+      end
     end
 
     it 'tries only once' do
