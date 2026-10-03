@@ -6,13 +6,18 @@ class Captain::AppointmentsSettings
   SLOT_DURATION_RANGE = (5..240)
   MIN_NOTICE_RANGE = (0..10_080)
   BOOKING_WINDOW_RANGE = (1..90)
+  REMINDER_HOURS_RANGE = (1..168)
   INTEGER_KEYS = %w[calendar_connection_id slot_duration_minutes min_notice_minutes booking_window_days].freeze
-  BOOLEAN_KEYS = %w[enabled send_confirmation reminder_24h reminder_2h].freeze
+  REMINDER_KEYS = %w[reminder_1 reminder_2].freeze
   TEMPLATE_KEYS = %w[template_confirmation template_reminder template_cancelled].freeze
+  # Settings (and reminder rows) saved before the reminders were editable: a switch each, 24 h and 2 h.
+  LEGACY_REMINDERS = { 'reminder_1' => ['reminder_24h', 24], 'reminder_2' => ['reminder_2h', 2] }.freeze
+  LEGACY_KINDS = { 'reminder_24h' => 'reminder_1', 'reminder_2h' => 'reminder_2' }.freeze
 
-  # Messages: the confirmation (sent inside the free 24 h window right after the customer's yes) and the
-  # 24 h / 2 h reminders are free-form by default. WhatsApp bills a template sent outside the 24 h window,
-  # so templates stay off until the owner turns on the assistant's allow_paid_templates.
+  # The confirmation is always Captain's own reply right after the customer's yes (free, inside the 24 h window).
+  # Two reminders, each with its own lead time, are free-form when the customer wrote in the last 24 h; WhatsApp
+  # bills a template sent outside that window, so templates stay off until the owner turns on the assistant's
+  # allow_paid_templates.
   DEFAULTS = {
     'enabled' => false,
     'calendar_connection_id' => nil,
@@ -21,29 +26,57 @@ class Captain::AppointmentsSettings
     'required_contact_fields' => CONTACT_FIELDS,
     'min_notice_minutes' => 60,
     'booking_window_days' => 14,
-    'send_confirmation' => true,
-    'reminder_24h' => true,
-    'reminder_2h' => true,
+    'reminder_1' => { 'enabled' => true, 'hours_before' => 24 },
+    'reminder_2' => { 'enabled' => true, 'hours_before' => 3 },
     'template_confirmation' => nil,
     'template_reminder' => nil,
     'template_cancelled' => nil
   }.freeze
 
   def self.normalize(raw)
-    raw = (raw.respond_to?(:to_h) ? raw.to_h : {}).stringify_keys.slice(*DEFAULTS.keys)
+    raw = (raw.respond_to?(:to_h) ? raw.to_h : {}).stringify_keys
     DEFAULTS.to_h do |key, default|
-      [key, raw.key?(key) ? cast(key, raw[key], default) : default.dup]
+      [key, key_given?(raw, key) ? cast(key, given_value(raw, key), default) : default.deep_dup]
     end
   end
 
+  def self.key_given?(raw, key)
+    raw.key?(key) || (REMINDER_KEYS.include?(key) && raw.key?(LEGACY_REMINDERS[key].first))
+  end
+
+  # A reminder saved the old way (a boolean under reminder_24h / reminder_2h) keeps its old lead time.
+  def self.given_value(raw, key)
+    return raw[key] if raw.key?(key)
+
+    legacy_key, hours = LEGACY_REMINDERS[key]
+    { 'enabled' => raw[legacy_key], 'hours_before' => hours }
+  end
+
   def self.cast(key, value, default)
-    return ActiveModel::Type::Boolean.new.cast(value) || false if BOOLEAN_KEYS.include?(key)
+    return cast_reminder(value, default) if REMINDER_KEYS.include?(key)
+    return strict_boolean(value) if key == 'enabled'
     return cast_fields(value, default) if key == 'required_contact_fields'
     return value.to_s.presence if key == 'calendar_id'
-    return cast_template(value) if TEMPLATE_KEYS.include?(key)
+    return Captain::TemplateReference.cast(value) if TEMPLATE_KEYS.include?(key)
     return (value.blank? ? default : cast_integer(value)) if INTEGER_KEYS.include?(key)
 
     value
+  end
+
+  # { 'enabled' => bool, 'hours_before' => Integer }; anything else is kept for the validator to reject.
+  def self.cast_reminder(value, default)
+    return value unless value.respond_to?(:to_h) && !value.is_a?(Array) && !value.is_a?(String)
+
+    reminder = value.to_h.stringify_keys
+    {
+      'enabled' => reminder.key?('enabled') ? strict_boolean(reminder['enabled']) : default['enabled'],
+      'hours_before' => reminder['hours_before'].blank? ? default['hours_before'] : cast_integer(reminder['hours_before'])
+    }
+  end
+
+  # Only true / "true" / "1" / 1 count: ActiveModel would read "no" as true.
+  def self.strict_boolean(value)
+    [true, 'true', '1', 1].include?(value)
   end
 
   def self.cast_integer(value)
@@ -56,15 +89,6 @@ class Captain::AppointmentsSettings
     Array(value).map(&:to_s).uniq
   end
 
-  # nil or { 'name' => ..., 'language' => ... }; anything else is kept for the validator to reject.
-  def self.cast_template(value)
-    return if value.blank?
-    return value unless value.respond_to?(:to_h) && !value.is_a?(Array)
-
-    template = value.to_h.stringify_keys
-    { 'name' => template['name'].to_s, 'language' => template['language'].to_s }
-  end
-
   attr_reader :values
 
   def initialize(raw = nil)
@@ -75,18 +99,27 @@ class Captain::AppointmentsSettings
     values['enabled'] == true
   end
 
-  def send_confirmation?
-    values['send_confirmation'] == true
+  # The reminders in order: [{ 'kind' => 'reminder_1', 'enabled' => true, 'hours_before' => 24 }, ...]
+  def reminders
+    REMINDER_KEYS.map { |kind| { 'kind' => kind }.merge(values[kind]) }
   end
 
-  def reminder_24h?
-    values['reminder_24h'] == true
+  # `kind` is a reminder_1 / reminder_2 (or a legacy reminder_24h / reminder_2h of a row scheduled before).
+  def reminder(kind)
+    values[LEGACY_KINDS.fetch(kind, kind)]
   end
 
-  def reminder_2h?
-    values['reminder_2h'] == true
+  def reminder_enabled?(kind)
+    reminder(kind)['enabled'] == true
   end
 
+  def hours_before(kind)
+    reminder(kind)['hours_before']
+  end
+
+  def any_reminder_enabled?
+    REMINDER_KEYS.any? { |kind| reminder_enabled?(kind) }
+  end
 
   def template_confirmation
     values['template_confirmation']

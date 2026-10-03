@@ -36,10 +36,8 @@ class Captain::FollowupValidator < ActiveModel::Validator
   end
 
   def validate_template(record, settings)
-    template = settings.reengagement_template
-    return if template.nil?
-    return if template.is_a?(Hash) && template['name'].present? && template['language'].present?
-
-    record.errors.add(:config, 'followup reengagement_template must have a name and a language')
+    Captain::TemplateReference.errors(settings.reengagement_template, record.account).each do |error|
+      record.errors.add(:config, "followup reengagement_template #{error}")
+    end
   end
 end

@@ -864,9 +864,11 @@
           "CONNECT_CALENDAR": "Conectar un calendario",
           "REMINDERS": {
             "TITLE": "Confirmación y recordatorios",
-            "CONFIRMATION": "Enviar una confirmación cuando Captain agenda una cita",
-            "REMINDER_24H": "Recordar al cliente 24 horas antes",
-            "REMINDER_2H": "Recordar al cliente 2 horas antes",
+            "CONFIRMATION_NOTE": "La confirmación de la cita siempre la escribe Captain al agendar, con los botones para cambiarla o cancelarla.",
+            "REMINDER_LABEL": "Recordatorio {number}:",
+            "HOURS_BEFORE": "horas antes de la cita",
+            "HOURS_ERROR": "Usa un número entero de 1 a 168.",
+            "WINDOW_HINT": "Saldrá gratis solo si el cliente escribió en las 24 h anteriores; si no, necesita plantilla.",
             "TEMPLATE_CONFIRMATION": "Plantilla de confirmación",
             "TEMPLATE_REMINDER": "Plantilla de recordatorio",
             "TEMPLATE_CANCELLED": "Plantilla de cancelación",
@@ -899,6 +901,45 @@
           "REENGAGEMENT_HELP": "Cuando Captain cerró por inactividad y la ventana de 24 h ya cerró, envía una plantilla aprobada, una sola vez por conversación y como máximo una cada 7 días por cliente. Tiene coste. Viene desactivado.",
           "PAID_HINT": "Para enviar plantillas, activa «Mensajes de pago (WhatsApp)» en este asistente.",
           "TEMPLATE": "Plantilla de reenganche"
+        },
+        "TEMPLATE_VARIABLES": {
+          "ERROR": "Completa todas las variables de la plantilla antes de guardar.",
+          "LABELS": {
+            "contact": {
+              "name": "Nombre del cliente",
+              "first_name": "Primer nombre del cliente"
+            },
+            "appointment": {
+              "date": "Fecha de la cita",
+              "time": "Hora de la cita",
+              "datetime": "Fecha y hora de la cita",
+              "title": "Título de la cita"
+            },
+            "assistant": {
+              "name": "Nombre del asistente"
+            },
+            "account": {
+              "name": "Nombre de la empresa"
+            }
+          },
+          "SAMPLES": {
+            "contact": {
+              "name": "Ana Pérez",
+              "first_name": "Ana"
+            },
+            "appointment": {
+              "date": "jueves 1 de octubre",
+              "time": "11:30",
+              "datetime": "jueves 1 de octubre, 11:30",
+              "title": "Consulta"
+            },
+            "assistant": {
+              "name": "Aurora"
+            },
+            "account": {
+              "name": "Mi empresa"
+            }
+          }
         }
       },
       "EDIT": {

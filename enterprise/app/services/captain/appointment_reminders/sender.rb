@@ -7,6 +7,11 @@
 # daily proactive cap, and a reminder over the cap waits (it is dropped if the appointment starts first).
 class Captain::AppointmentReminders::Sender
   CONFIRMED = 'confirmed'.freeze
+  # The texts of a template saved before the variables could be chosen: numbered variables in a fixed order.
+  LEGACY_TEMPLATE_PARAMS = {
+    'body' => { '1' => '{{ contact.name }}', '2' => '{{ appointment.title }}', '3' => '{{ appointment.date }}',
+                '4' => '{{ appointment.time }}', '5' => '{{ assistant.name }}' }
+  }.freeze
 
   def initialize(reminder, now: Time.current)
     @reminder = reminder
@@ -39,7 +44,7 @@ class Captain::AppointmentReminders::Sender
   end
 
   def active?
-    settings.public_send("#{reminder.kind}?") && assistant.appointments_active_in?(conversation.inbox)
+    settings.reminder_enabled?(reminder.kind) && assistant.appointments_active_in?(conversation.inbox)
   end
 
   def cap
@@ -66,25 +71,19 @@ class Captain::AppointmentReminders::Sender
     I18n.t("captain.appointments.buttons.#{button}", locale: locale)
   end
 
-  def local_start
-    @local_start ||= event.start_at.in_time_zone(zone)
-  end
-
-  def date_label
-    weekday = I18n.t('captain.appointments.weekdays', locale: locale)[local_start.wday]
-    format('%<weekday>s %<day>02d/%<month>02d', weekday: weekday, day: local_start.day, month: local_start.month)
-  end
-
-  def time_label
-    local_start.strftime('%H:%M')
-  end
-
+  # "jueves 1 de octubre, 11:30"
   def when_label
-    "#{date_label} #{time_label}"
+    Captain::AppointmentFormat.long(event.start_at, locale: locale, zone: zone)
   end
 
+  # Far ahead: "te recordamos tu cita ... para el jueves 1 de octubre, 11:30"; close: "tu cita es en unas 3 horas (...)".
   def reminder_text
-    translate(reminder.kind, name: contact.name, title: event.summary, when: when_label)
+    hours = settings.hours_before(reminder.kind)
+    key = if hours >= 24 then 'reminder_far'
+          elsif hours == 1 then 'reminder_near_one'
+          else 'reminder_near'
+          end
+    translate(key, name: contact.name, title: event.summary, when: when_label, hours: hours)
   end
 
   def send_free_form
@@ -98,7 +97,7 @@ class Captain::AppointmentReminders::Sender
   end
 
   # The value of each button carries the time, so a reply is unambiguous even if the customer has more than
-  # one appointment ("Cancelar cita · jue 16/01 10:00"); the choices resolve it back to this appointment.
+  # one appointment ("Cancelar cita · jue 1 oct · 11:30"); the choices resolve it back to this appointment.
   def button_attributes(buttons)
     return {} unless buttons
 
@@ -113,9 +112,9 @@ class Captain::AppointmentReminders::Sender
     names.index_with { |name| { title: button_label(name), value: "#{button_label(name)} · #{short_date_time}" } }
   end
 
+  # "jue 1 oct · 11:30"
   def short_date_time
-    weekday = I18n.t('captain.appointments.weekdays_short', locale: locale)[local_start.wday]
-    format('%<weekday>s %<day>02d/%<month>02d %<hour>s', weekday: weekday, day: local_start.day, month: local_start.month, hour: time_label)
+    Captain::AppointmentFormat.short(event.start_at, locale: locale, zone: zone)
   end
 
   def send_template
@@ -126,14 +125,24 @@ class Captain::AppointmentReminders::Sender
     entry = Captain::TemplateMessage.approved(conversation.inbox, settings.template_reminder)
     return skip_with_note('template_unavailable') if entry.blank?
 
-    payload, text = Captain::TemplateMessage.build(entry, template_values)
+    drops = Captain::TemplateMessage.drops(conversation, assistant, appointment: appointment_drop)
+    payload, text = Captain::TemplateMessage.build(entry, settings.template_reminder['processed_params'], drops,
+                                                   fallback: LEGACY_TEMPLATE_PARAMS)
     create_message(text, additional_attributes: { template_params: payload })
     finish
+  rescue Captain::TemplateMessage::MappingMismatch
+    skip_with_note('template_changed')
   end
 
-  # The variables of the approved reminder templates: 1 name, 2 title, 3 date, 4 time, 5 assistant name.
-  def template_values
-    { '1' => contact.name, '2' => event.summary, '3' => date_label, '4' => time_label, '5' => assistant.name }
+  # {{ appointment.date }} "jueves 1 de octubre", {{ appointment.time }} "11:30", {{ appointment.datetime }}
+  # "jueves 1 de octubre, 11:30" and {{ appointment.title }}, in the language and timezone of the account.
+  def appointment_drop
+    {
+      'date' => Captain::AppointmentFormat.day(event.start_at, locale: locale, zone: zone),
+      'time' => Captain::AppointmentFormat.clock(event.start_at, zone: zone),
+      'datetime' => when_label,
+      'title' => event.summary
+    }
   end
 
   def create_message(content, **attributes)

@@ -33,7 +33,7 @@ class Captain::FollowupSettings
 
   def self.cast(key, value, default)
     return strict_boolean(value) if BOOLEAN_KEYS.include?(key)
-    return cast_template(value) if key == 'reengagement_template'
+    return Captain::TemplateReference.cast(value) if key == 'reengagement_template'
     return (value.blank? ? default : cast_integer(value)) if INTEGER_KEYS.include?(key)
 
     value
@@ -48,14 +48,6 @@ class Captain::FollowupSettings
     Integer(value.to_s, exception: false) || value
   end
 
-  # nil or { 'name' => ..., 'language' => ... }; anything else is kept for the validator to reject.
-  def self.cast_template(value)
-    return if value.blank?
-    return value unless value.respond_to?(:to_h) && !value.is_a?(Array)
-
-    template = value.to_h.stringify_keys
-    { 'name' => template['name'].to_s, 'language' => template['language'].to_s }
-  end
 
   attr_reader :values
 

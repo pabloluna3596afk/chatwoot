@@ -23,6 +23,12 @@ const props = defineProps({
     type: String,
     default: 'sm',
   },
+  // A fixed list of { key, label, description } instead of the message or campaign variables (Captain templates
+  // offer the appointment and the assistant ones).
+  variables: {
+    type: Array,
+    default: null,
+  },
   showLabel: {
     type: Boolean,
     default: true,
@@ -42,8 +48,10 @@ const resolveLabel = variable => {
   return te(labelKey) ? t(labelKey) : variable.label;
 };
 
-const liquidVariables = computed(() =>
-  buildLiquidVariables(customAttributes.value || [], props.context)
+const liquidVariables = computed(
+  () =>
+    props.variables ||
+    buildLiquidVariables(customAttributes.value || [], props.context)
 );
 
 const menuItems = computed(() =>
@@ -72,7 +80,7 @@ const handleAction = ({ value }) => {
 };
 
 onMounted(() => {
-  if (!customAttributes.value?.length) {
+  if (!props.variables && !customAttributes.value?.length) {
     store.dispatch('attributes/get');
   }
 });
