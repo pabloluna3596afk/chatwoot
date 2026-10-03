@@ -69,6 +69,7 @@ describe Whatsapp::MediaUploadService do
       expect(WebMock).not_to have_requested(:post, upload_url)
     end
   end
+
   describe '.upload_blob!' do
     let(:blob) { attachment.file.blob }
 

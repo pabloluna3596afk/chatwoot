@@ -97,7 +97,7 @@ class Whatsapp::PopulateTemplateParametersService
 
     media = { id: media_id }
     media[:filename] = media_name if media_type == 'document' && media_name.present?
-    { type: media_type, media_type.to_sym => media }
+    { type: media_type }.merge(media_type.to_sym => media)
   end
 
   def build_media_type_parameter(sanitized_url, media_type, media_name = nil)

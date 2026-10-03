@@ -267,6 +267,7 @@ describe Whatsapp::TemplateProcessorService do
       end
     end
   end
+
   describe 'an uploaded media header' do
     subject(:processed_components) do
       described_class.new(channel: channel, template_params: template_params).call.last

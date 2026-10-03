@@ -150,6 +150,7 @@ RSpec.describe Captain::TemplateMessage do
       expect(described_class.find_in_account(create(:account), { 'name' => 'recordatorio', 'language' => 'es' })).to be_nil
     end
   end
+
   describe 'a template with an image, video or document header' do
     let(:media_template) do
       { 'name' => 'promo', 'language' => 'es', 'status' => 'approved', 'namespace' => 'ns',

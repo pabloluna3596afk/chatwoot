@@ -231,7 +231,7 @@ describe Whatsapp::Providers::WhatsappCloudService do
               end
             }
           ]
-        }.to_json
+        }
 
         stub_request(:post, 'https://graph.facebook.com/v13.0/123456789/messages')
           .with(
@@ -269,7 +269,7 @@ describe Whatsapp::Providers::WhatsappCloudService do
               end
             }
           ]
-        }.to_json
+        }
 
         stub_request(:post, 'https://graph.facebook.com/v13.0/123456789/messages')
           .with(
@@ -695,6 +695,7 @@ describe Whatsapp::Providers::WhatsappCloudService do
       end
     end
   end
+
   describe '#send_template with a header media id Meta refuses' do
     let(:messages_url) { 'https://graph.facebook.com/v13.0/123456789/messages' }
     let(:blob) do

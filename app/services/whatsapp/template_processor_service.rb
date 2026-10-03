@@ -121,7 +121,7 @@ class Whatsapp::TemplateProcessorService
   end
 
   # URL / copy_code buttons that need runtime parameters from the agent UI.
-  def process_parameterized_button_components(processed_params)
+  def process_parameterized_button_components(processed_params) # rubocop:disable Metrics/CyclomaticComplexity
     return [] if processed_params['buttons'].blank?
 
     processed_params['buttons'].filter_map.with_index do |button, index|

@@ -55,21 +55,8 @@ class Whatsapp::TemplateHeaderMedia
       content_type = Marcel::MimeType.for(file.tempfile, name: file.original_filename, declared_type: file.content_type).to_s
       validate!(format, content_type, file.size)
 
-      blob = ActiveStorage::Blob.create_and_upload!(
-        io: file.tempfile, filename: file.original_filename, content_type: content_type,
-        metadata: { 'account_id' => channel.account_id, 'whatsapp_header_media' => true }
-      )
-      media_id = Whatsapp::MediaUploadService.upload_blob!(channel, blob)
-
-      {
-        'media_id' => media_id,
-        'media_blob' => blob.signed_id,
-        'media_url' => Rails.application.routes.url_helpers.url_for(blob, **FrontendUrl.default_url_options),
-        'media_name' => blob.filename.to_s,
-        'media_type' => format.to_s.downcase,
-        'media_uploaded_at' => Time.current.iso8601,
-        'media_phone_number_id' => channel.provider_config['phone_number_id'].to_s
-      }
+      blob = store(channel, file, content_type)
+      header_params(channel, blob, Whatsapp::MediaUploadService.upload_blob!(channel, blob), format)
     end
 
     # The media_id to send: the saved one while it is valid for this number, a new one from the stored copy when it
@@ -117,6 +104,25 @@ class Whatsapp::TemplateHeaderMedia
     end
 
     private
+
+    def store(channel, file, content_type)
+      ActiveStorage::Blob.create_and_upload!(
+        io: file.tempfile, filename: file.original_filename, content_type: content_type,
+        metadata: { 'account_id' => channel.account_id, 'whatsapp_header_media' => true }
+      )
+    end
+
+    def header_params(channel, blob, media_id, format)
+      {
+        'media_id' => media_id,
+        'media_blob' => blob.signed_id,
+        'media_url' => Rails.application.routes.url_helpers.rails_blob_url(blob, **FrontendUrl.default_url_options),
+        'media_name' => blob.filename.to_s,
+        'media_type' => format.to_s.downcase,
+        'media_uploaded_at' => Time.current.iso8601,
+        'media_phone_number_id' => channel.provider_config['phone_number_id'].to_s
+      }
+    end
 
     def usable_media_id(channel, header, media_id)
       return media_id if fresh?(channel, header)

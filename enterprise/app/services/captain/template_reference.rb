@@ -44,12 +44,16 @@ module Captain::TemplateReference
     return ['processed_params must be an object'] unless params.is_a?(Hash) && params.values.all?(Hash)
 
     params.flat_map do |component, texts|
-      texts.filter_map do |name, text|
-        next if component == 'header' && Captain::TemplateMessage::MEDIA_KEYS.include?(name)
-
-        "variable #{component}.#{name} is not valid Liquid" unless Captain::TemplateMessage.valid_liquid?(text)
-      end
+      texts.filter_map { |name, text| liquid_error(component, name, text) }
     end
+  end
+
+  # The file of a media header (its media_* keys) is not text with variables.
+  def liquid_error(component, name, text)
+    return if component == 'header' && Captain::TemplateMessage::MEDIA_KEYS.include?(name)
+    return if Captain::TemplateMessage.valid_liquid?(text)
+
+    "variable #{component}.#{name} is not valid Liquid"
   end
 
   def coverage_errors(reference, account)

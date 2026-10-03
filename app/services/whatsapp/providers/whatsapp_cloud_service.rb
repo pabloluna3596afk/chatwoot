@@ -24,7 +24,8 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
     }
 
     response = post_template(request_body)
-    response = retry_refused_header_media(request_body, response)
+    media_retry = Whatsapp::TemplateMediaRetry.new(channel: whatsapp_channel, request_body: request_body, response: response)
+    response = media_retry.perform { |body| post_template(body) }
 
     process_response(response, message)
   end
@@ -186,34 +187,6 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
 
   def post_template(request_body)
     HTTParty.post("#{phone_id_path}/messages", headers: api_headers, body: request_body.to_json)
-  end
-
-  # Meta refused the media_id of the header (expired or invalid): upload the stored copy again and resend once, then send
-  # the link of that copy. Anything else is returned as it came.
-  def retry_refused_header_media(request_body, response)
-    components = request_body.dig(:template, :components)
-    parameter = Whatsapp::TemplateHeaderMedia.header_media_parameter(components)
-    return response if response.success? || parameter.nil? || !Whatsapp::TemplateHeaderMedia.media_error?(response.parsed_response)
-
-    refused_id = parameter.dig(parameter[:type].to_sym, :id)
-    new_id = Whatsapp::TemplateHeaderMedia.reupload(whatsapp_channel, refused_id)
-    if new_id.present?
-      retried = post_template(with_header_media(request_body, parameter, id: new_id))
-      return retried if retried.success? || !Whatsapp::TemplateHeaderMedia.media_error?(retried.parsed_response)
-    end
-
-    link = Whatsapp::TemplateHeaderMedia.link_for(whatsapp_channel, refused_id)
-    link.present? ? post_template(with_header_media(request_body, parameter, link: link)) : response
-  end
-
-  def with_header_media(request_body, parameter, id: nil, link: nil)
-    type = parameter[:type].to_sym
-    media = parameter[type].except(:id).merge(id.present? ? { id: id } : { link: link })
-    swapped = parameter.merge(type => media)
-    request_body.deep_dup.tap do |body|
-      header = body[:template][:components].find { |component| component[:type].to_s == 'header' }
-      header[:parameters] = header[:parameters].map { |item| item.equal?(parameter) || item == parameter ? swapped : item }
-    end
   end
 
   def error_message(response)
