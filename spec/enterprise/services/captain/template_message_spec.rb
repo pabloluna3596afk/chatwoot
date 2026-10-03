@@ -150,4 +150,40 @@ RSpec.describe Captain::TemplateMessage do
       expect(described_class.find_in_account(create(:account), { 'name' => 'recordatorio', 'language' => 'es' })).to be_nil
     end
   end
+  describe 'a template with an image, video or document header' do
+    let(:media_template) do
+      { 'name' => 'promo', 'language' => 'es', 'status' => 'approved', 'namespace' => 'ns',
+        'components' => [{ 'type' => 'HEADER', 'format' => 'IMAGE' }, { 'type' => 'BODY', 'text' => 'Hola {{1}}' }] }
+    end
+    let(:file) do
+      { 'media_id' => '555', 'media_blob' => 'signed', 'media_url' => 'https://example.com/promo.png', 'media_name' => 'promo.png',
+        'media_uploaded_at' => '2030-01-01T00:00:00Z', 'media_phone_number_id' => '123', 'media_type' => 'image' }
+    end
+
+    it 'knows the format of the header' do
+      expect(described_class.media_header_format(media_template)).to eq('IMAGE')
+      expect(described_class.media_header_format(named)).to be_nil
+      expect(described_class.media_header_format(numbered)).to be_nil
+    end
+
+    it 'reports a missing file as header.media' do
+      params = { 'body' => { '1' => 'Ana' } }
+
+      expect(described_class.unmapped(media_template, params)).to eq(['header.media'])
+      expect(described_class.unmapped(media_template, params.merge('header' => file))).to be_empty
+      expect(described_class.unmapped(media_template, params.merge('header' => { 'media_url' => 'https://example.com/a.png' }))).to be_empty
+    end
+
+    it 'refuses to build a message without the file' do
+      expect { described_class.build(media_template, { 'body' => { '1' => 'Ana' } }, drops) }
+        .to raise_error(described_class::MappingMismatch, /header.media/)
+    end
+
+    it 'keeps the file in the payload next to the texts' do
+      payload, = described_class.build(media_template, { 'body' => { '1' => '{{ contact.name }}' }, 'header' => file.merge('x' => 'ignored') }, drops)
+
+      expect(payload[:processed_params]['body']).to eq('1' => 'Ana Pérez')
+      expect(payload[:processed_params]['header']).to eq(file)
+    end
+  end
 end

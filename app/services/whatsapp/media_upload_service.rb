@@ -9,9 +9,28 @@ class Whatsapp::MediaUploadService
   OPEN_TIMEOUT = 60
   TIMEOUT = 300
 
-  def initialize(whatsapp_channel, attachment)
+  # Raised by #upload_blob! (template header media): the caller shows the reason, there is no link to fall back to.
+  class UploadError < StandardError; end
+
+  def initialize(whatsapp_channel, attachment = nil, blob: nil)
     @whatsapp_channel = whatsapp_channel
     @attachment = attachment
+    @blob = blob
+  end
+
+  # Uploads a blob that is not a message attachment (a template header file) and returns its media_id.
+  def self.upload_blob!(whatsapp_channel, blob)
+    new(whatsapp_channel, blob: blob).upload_blob!
+  end
+
+  def upload_blob!
+    response = upload
+    media_id = response.body['id'] if response.body.is_a?(Hash)
+    return media_id if response.success? && media_id.present?
+
+    raise UploadError, "HTTP #{response.status} #{error_message(response)}"
+  rescue Faraday::Error, ActiveStorage::FileNotFoundError, ActiveStorage::IntegrityError => e
+    raise UploadError, "#{e.class.name} #{e.message}"
   end
 
   # Returns the media object to send ({ 'id' => media_id }), or nil when the upload is disabled or fails.
@@ -35,7 +54,7 @@ class Whatsapp::MediaUploadService
   end
 
   def upload
-    blob = @attachment.file.blob
+    blob = @blob || @attachment.file.blob
 
     blob.open do |file|
       connection.post(upload_url) do |request|

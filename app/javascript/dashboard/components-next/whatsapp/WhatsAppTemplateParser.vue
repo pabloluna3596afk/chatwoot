@@ -12,9 +12,20 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useVuelidate } from '@vuelidate/core';
 import { requiredIf } from '@vuelidate/validators';
 import { useI18n } from 'vue-i18n';
+import { useMapGetter } from 'dashboard/composables/store';
+import InboxesAPI from 'dashboard/api/inboxes';
 
 import { isWhatsAppComplete } from '@chatwoot/utils';
 import Input from 'dashboard/components-next/input/Input.vue';
+import NextButton from 'dashboard/components-next/button/Button.vue';
+import {
+  headerMediaAccept,
+  headerMediaMaxMegabytes,
+  isUploadedHeaderMedia,
+  UPLOADED_MEDIA_KEYS,
+  validateHeaderMediaFile,
+  withoutUploadedMedia,
+} from 'dashboard/helper/templateHeaderMedia';
 import InsertVariableButton from 'dashboard/components-next/variable/InsertVariableButton.vue';
 import {
   buildTemplateParameters,
@@ -56,6 +67,12 @@ const props = defineProps({
   // shows sample values and not the raw {{ variable }}.
   previewValues: {
     type: Object,
+    default: null,
+  },
+  // The inbox whose number uploads the header file. With none, or when it is not a WhatsApp Cloud inbox, only the
+  // link can be given.
+  mediaInboxId: {
+    type: [Number, String],
     default: null,
   },
 });
@@ -175,6 +192,11 @@ const initializeTemplateParameters = () => {
       if (saved !== undefined) built[component][key] = saved;
     });
   });
+  // The uploaded header file travels with the saved values (it is not one of the template's own keys).
+  UPLOADED_MEDIA_KEYS.forEach(key => {
+    const saved = props.modelValue?.header?.[key];
+    if (saved !== undefined && built.header) built.header[key] = saved;
+  });
   processedParams.value = built;
 };
 
@@ -185,8 +207,86 @@ const insertVariable = (component, key, liquid) => {
 };
 
 const updateMediaUrl = value => {
-  processedParams.value.header ??= {};
-  processedParams.value.header.media_url = value;
+  // A link typed by hand replaces the uploaded file.
+  processedParams.value.header = {
+    ...withoutUploadedMedia(processedParams.value.header),
+    media_url: value,
+  };
+};
+
+const getInboxById = useMapGetter('inboxes/getInboxById');
+const canUploadMedia = computed(
+  () =>
+    hasMediaHeader.value &&
+    !!props.mediaInboxId &&
+    getInboxById.value(props.mediaInboxId)?.provider === 'whatsapp_cloud'
+);
+
+const mediaFileInput = ref(null);
+const isUploadingMedia = ref(false);
+const mediaError = ref('');
+const uploadedMedia = computed(() =>
+  isUploadedHeaderMedia(processedParams.value.header)
+    ? processedParams.value.header
+    : null
+);
+const isImageUpload = computed(
+  () => uploadedMedia.value && uploadedMedia.value.media_type === 'image'
+);
+const mediaLimitsHint = computed(() => {
+  const format = headerComponent.value?.format?.toUpperCase();
+  return t(`WHATSAPP_TEMPLATES.PARSER.MEDIA_HINT_${format}`, {
+    max: headerMediaMaxMegabytes(format),
+  });
+});
+
+const chooseMediaFile = () => mediaFileInput.value?.click();
+
+const uploadMedia = async file => {
+  const format = headerComponent.value?.format;
+  mediaError.value = '';
+  const invalid = validateHeaderMediaFile(format, file);
+  if (invalid) {
+    mediaError.value = t(`WHATSAPP_TEMPLATES.PARSER.MEDIA_ERROR_${invalid}`, {
+      max: headerMediaMaxMegabytes(format),
+    });
+    return;
+  }
+  isUploadingMedia.value = true;
+  try {
+    const { data } = await InboxesAPI.uploadTemplateMedia(props.mediaInboxId, {
+      format: format.toUpperCase(),
+      file,
+    });
+    processedParams.value.header = {
+      ...processedParams.value.header,
+      ...data,
+    };
+  } catch (error) {
+    const reason = error?.response?.data?.error;
+    const known = ['invalid_type', 'too_large', 'empty'].includes(reason);
+    mediaError.value = t(
+      `WHATSAPP_TEMPLATES.PARSER.MEDIA_ERROR_${known ? reason.toUpperCase() : 'UPLOAD_FAILED'}`,
+      { max: headerMediaMaxMegabytes(format) }
+    );
+  } finally {
+    isUploadingMedia.value = false;
+  }
+};
+
+const onMediaFileChange = event => {
+  const [file] = event.target.files || [];
+  event.target.value = '';
+  if (file) uploadMedia(file);
+};
+
+const removeUploadedMedia = () => {
+  mediaError.value = '';
+  processedParams.value.header = {
+    ...withoutUploadedMedia(processedParams.value.header),
+    media_url: '',
+    media_name: '',
+  };
 };
 
 const updateMediaName = value => {
@@ -265,6 +365,10 @@ defineExpose({
   v$,
   updateMediaUrl,
   updateMediaName,
+  canUploadMedia,
+  uploadMedia,
+  removeUploadedMedia,
+  mediaError,
   sendMessage,
   resetTemplate,
   goBack,
@@ -323,6 +427,60 @@ defineExpose({
             "
             @update:model-value="updateMediaUrl"
           />
+        </div>
+        <div v-if="canUploadMedia" class="flex flex-col gap-1.5 mb-2.5">
+          <input
+            ref="mediaFileInput"
+            type="file"
+            class="hidden"
+            data-testid="template-media-input"
+            :accept="headerMediaAccept(headerComponent?.format)"
+            @change="onMediaFileChange"
+          />
+          <div v-if="uploadedMedia" class="flex items-center gap-2">
+            <img
+              v-if="isImageUpload"
+              :src="uploadedMedia.media_url"
+              :alt="uploadedMedia.media_name"
+              class="object-cover rounded-lg size-12"
+            />
+            <span class="flex-1 min-w-0 text-sm truncate text-n-slate-12">
+              {{
+                t('WHATSAPP_TEMPLATES.PARSER.MEDIA_UPLOADED', {
+                  name: uploadedMedia.media_name,
+                })
+              }}
+            </span>
+            <NextButton
+              type="button"
+              sm
+              faded
+              slate
+              :label="t('WHATSAPP_TEMPLATES.PARSER.MEDIA_REMOVE')"
+              @click="removeUploadedMedia"
+            />
+          </div>
+          <div v-else class="flex items-center gap-2">
+            <NextButton
+              type="button"
+              sm
+              faded
+              slate
+              icon="i-lucide-upload"
+              :is-loading="isUploadingMedia"
+              :disabled="isUploadingMedia"
+              :label="
+                isUploadingMedia
+                  ? t('WHATSAPP_TEMPLATES.PARSER.MEDIA_UPLOADING')
+                  : t('WHATSAPP_TEMPLATES.PARSER.MEDIA_UPLOAD')
+              "
+              @click="chooseMediaFile"
+            />
+            <span class="text-xs text-n-slate-11">{{ mediaLimitsHint }}</span>
+          </div>
+          <p v-if="mediaError" class="mb-0 text-xs text-n-ruby-11">
+            {{ mediaError }}
+          </p>
         </div>
         <div v-if="isDocumentTemplate" class="flex items-center mb-2.5">
           <Input

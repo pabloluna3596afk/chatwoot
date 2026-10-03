@@ -8,6 +8,19 @@ vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key }),
 }));
 
+const { inboxState, uploadTemplateMedia } = vi.hoisted(() => ({
+  inboxState: { provider: 'whatsapp_cloud' },
+  uploadTemplateMedia: vi.fn(),
+}));
+
+vi.mock('dashboard/composables/store', () => ({
+  useMapGetter: () => ({ value: () => inboxState }),
+}));
+
+vi.mock('dashboard/api/inboxes', () => ({
+  default: { uploadTemplateMedia },
+}));
+
 const template = {
   name: 'token_values',
   category: 'UTILITY',
@@ -191,5 +204,126 @@ describe('WhatsAppTemplateParser with the options of a Captain setting', () => {
     await nextTick();
 
     expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+  });
+});
+
+describe('WhatsAppTemplateParser with a media header', () => {
+  const mediaTemplate = {
+    name: 'promo',
+    category: 'MARKETING',
+    language: 'es',
+    components: [
+      { type: 'HEADER', format: 'IMAGE', example: { header_handle: ['x'] } },
+      { type: 'BODY', text: 'Hola' },
+    ],
+  };
+  const uploaded = {
+    media_id: '555',
+    media_blob: 'signed',
+    media_url: 'https://example.com/promo.png',
+    media_name: 'promo.png',
+    media_type: 'image',
+    media_uploaded_at: '2030-01-01T00:00:00Z',
+    media_phone_number_id: '123',
+  };
+  const mountMedia = (props = {}) =>
+    shallowMount(WhatsAppTemplateParser, {
+      props: { template: mediaTemplate, ...props },
+      global: { mocks: { $t: key => key } },
+    });
+  const file = (type, size = 1024) => {
+    const f = new File(['x'], 'promo', { type });
+    Object.defineProperty(f, 'size', { value: size });
+    return f;
+  };
+
+  beforeEach(() => {
+    uploadTemplateMedia.mockReset();
+    inboxState.provider = 'whatsapp_cloud';
+  });
+
+  it('offers the upload only for a WhatsApp Cloud inbox', () => {
+    expect(mountMedia().vm.canUploadMedia).toBe(false);
+    expect(mountMedia({ mediaInboxId: 7 }).vm.canUploadMedia).toBe(true);
+
+    inboxState.provider = 'default';
+    expect(mountMedia({ mediaInboxId: 7 }).vm.canUploadMedia).toBe(false);
+  });
+
+  it('keeps the uploaded file in the header params and sends them', async () => {
+    uploadTemplateMedia.mockResolvedValue({ data: uploaded });
+    const wrapper = mountMedia({ mediaInboxId: 7 });
+
+    await wrapper.vm.uploadMedia(file('image/png'));
+
+    expect(uploadTemplateMedia).toHaveBeenCalledWith(7, {
+      format: 'IMAGE',
+      file: expect.any(File),
+    });
+    expect(wrapper.vm.processedParams.header).toMatchObject(uploaded);
+
+    wrapper.vm.sendMessage();
+    expect(
+      wrapper.emitted('sendMessage')[0][0].templateParams.processed_params
+        .header
+    ).toMatchObject({ media_id: '555', media_blob: 'signed' });
+  });
+
+  it('refuses a file the header does not accept without calling the API', async () => {
+    const wrapper = mountMedia({ mediaInboxId: 7 });
+
+    await wrapper.vm.uploadMedia(file('application/pdf'));
+    expect(wrapper.vm.mediaError).toBe(
+      'WHATSAPP_TEMPLATES.PARSER.MEDIA_ERROR_INVALID_TYPE'
+    );
+
+    await wrapper.vm.uploadMedia(file('image/png', 6 * 1024 * 1024));
+    expect(wrapper.vm.mediaError).toBe(
+      'WHATSAPP_TEMPLATES.PARSER.MEDIA_ERROR_TOO_LARGE'
+    );
+    expect(uploadTemplateMedia).not.toHaveBeenCalled();
+  });
+
+  it('shows the upload error when Meta or the server refuses the file', async () => {
+    uploadTemplateMedia.mockRejectedValue({
+      response: { data: { error: 'upload_failed' } },
+    });
+    const wrapper = mountMedia({ mediaInboxId: 7 });
+
+    await wrapper.vm.uploadMedia(file('image/png'));
+
+    expect(wrapper.vm.mediaError).toBe(
+      'WHATSAPP_TEMPLATES.PARSER.MEDIA_ERROR_UPLOAD_FAILED'
+    );
+    expect(wrapper.vm.processedParams.header.media_id).toBeUndefined();
+  });
+
+  it('drops the uploaded file when a link is typed or the file is removed', async () => {
+    uploadTemplateMedia.mockResolvedValue({ data: uploaded });
+    const wrapper = mountMedia({ mediaInboxId: 7 });
+    await wrapper.vm.uploadMedia(file('image/png'));
+
+    wrapper.vm.updateMediaUrl('https://example.com/other.png');
+    expect(wrapper.vm.processedParams.header).toMatchObject({
+      media_url: 'https://example.com/other.png',
+    });
+    expect(wrapper.vm.processedParams.header.media_id).toBeUndefined();
+
+    await wrapper.vm.uploadMedia(file('image/png'));
+    wrapper.vm.removeUploadedMedia();
+    expect(wrapper.vm.processedParams.header.media_id).toBeUndefined();
+    expect(wrapper.vm.processedParams.header.media_url).toBe('');
+  });
+
+  it('restores the uploaded file of a saved value', () => {
+    const wrapper = mountMedia({
+      mediaInboxId: 7,
+      modelValue: { header: { ...uploaded } },
+    });
+
+    expect(wrapper.vm.processedParams.header).toMatchObject({
+      media_id: '555',
+      media_blob: 'signed',
+    });
   });
 });

@@ -45,6 +45,8 @@ module Captain::TemplateReference
 
     params.flat_map do |component, texts|
       texts.filter_map do |name, text|
+        next if component == 'header' && Captain::TemplateMessage::MEDIA_KEYS.include?(name)
+
         "variable #{component}.#{name} is not valid Liquid" unless Captain::TemplateMessage.valid_liquid?(text)
       end
     end
@@ -54,7 +56,9 @@ module Captain::TemplateReference
     entry = Captain::TemplateMessage.find_in_account(account, reference)
     return [] if entry.blank?
 
-    Captain::TemplateMessage.unmapped(entry, reference['processed_params']).map { |key| "variable #{key} is empty" }
+    Captain::TemplateMessage.unmapped(entry, reference['processed_params']).map do |key|
+      key == Captain::TemplateMessage::MEDIA_MISSING ? 'the header needs a file (image, video or document)' : "variable #{key} is empty"
+    end
   end
 
   def hash_like?(value)
