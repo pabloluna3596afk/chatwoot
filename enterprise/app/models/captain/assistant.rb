@@ -227,6 +227,8 @@ class Captain::Assistant < ApplicationRecord
     return if account.captain_assistants.count < account.plan.max_captain_assistants
 
     raise LimitExceededError, I18n.t('captain.assistant.limit_exceeded', limit: account.plan.max_captain_assistants)
+  end
+
   def assistant_event_data
     {
       id: id,
