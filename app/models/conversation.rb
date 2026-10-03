@@ -92,7 +92,7 @@ class Conversation < ApplicationRecord
   # Captain answers a pending conversation it owns: upstream's typed AI assignee (assigned automatically when Captain
   # engages a new conversation, or by an agent from the assignment dropdown).
   CAPTAIN_ATTENDED_SQL = "(conversations.status = #{statuses[:pending]} AND " \
-                         "conversations.ai_assignee_type = 'Captain::Assistant')".freeze
+                         "COALESCE(conversations.ai_assignee_type, '') = 'Captain::Assistant')".freeze
   # The dashboard "Sin asignar" queue: develop's without_human_assignee (AgentBot-owned rows stay in it) minus what Captain attends.
   QUEUE_UNASSIGNED_SQL = "conversations.assignee_id IS NULL AND NOT #{CAPTAIN_ATTENDED_SQL}".freeze
 

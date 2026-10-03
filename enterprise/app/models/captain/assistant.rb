@@ -277,7 +277,7 @@ class Captain::Assistant < ApplicationRecord
     name.parameterize(separator: '_')
   end
 
-  def runtime_prompt_context(state)
+  def conversation_prompt_context(state)
     inbox = account.inboxes.find_by(id: state.dig(:conversation, :inbox_id))
     return {} unless inbox
 

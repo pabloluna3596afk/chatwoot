@@ -158,6 +158,8 @@ RSpec.describe Message do
     end
 
     it 'gives the conversation back to Captain when the customer writes again' do
+      allow_any_instance_of(Inbox).to receive(:captain_active?).and_return(true) # rubocop:disable RSpec/AnyInstance
+
       create(:message, message_type: :incoming, conversation: conversation)
 
       expect(conversation.reload).to have_attributes(

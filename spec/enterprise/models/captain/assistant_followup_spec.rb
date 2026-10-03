@@ -98,15 +98,15 @@ RSpec.describe Captain::Assistant, 'follow-up settings', type: :model do
     before { create(:captain_inbox, captain_assistant: assistant, inbox: inbox) }
 
     it 'tells the model the texts of the follow-up buttons in the account language' do
-      expect(assistant.send(:runtime_prompt_context, state)[:followup]).to eq('continue_text' => 'Sí, sigo aquí', 'stop_text' => 'Ya no, gracias')
+      expect(assistant.send(:conversation_prompt_context, state)[:followup]).to eq('continue_text' => 'Sí, sigo aquí', 'stop_text' => 'Ya no, gracias')
     end
 
     it 'leaves it out when the follow-up is off or sends no nudges' do
       assign('inactivity_enabled' => false)
-      expect(assistant.send(:runtime_prompt_context, state)).not_to have_key(:followup)
+      expect(assistant.send(:conversation_prompt_context, state)).not_to have_key(:followup)
 
       assign('max_nudges' => 0)
-      expect(assistant.send(:runtime_prompt_context, state)).not_to have_key(:followup)
+      expect(assistant.send(:conversation_prompt_context, state)).not_to have_key(:followup)
     end
   end
 end

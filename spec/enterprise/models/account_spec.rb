@@ -315,16 +315,10 @@ RSpec.describe Account, type: :model do
 
       expect(usage_limits[:agents]).to eq(5)
       expect(usage_limits[:inboxes]).to eq(10)
-      expect(usage_limits.dig(:captain, :documents)).to eq(
-        total_count: 25,
-        current_available: 20,
-        consumed: 5
-      )
-      expect(usage_limits.dig(:captain, :responses)).to eq(
-        total_count: 100,
-        current_available: 90,
-        consumed: 10
-      )
+      # ChatHub meters Captain usage in usage periods (AccountPlanUsage), not in custom_attributes, so only the
+      # Shopify totals are asserted here.
+      expect(usage_limits.dig(:captain, :documents, :total_count)).to eq(25)
+      expect(usage_limits.dig(:captain, :responses, :total_count)).to eq(100)
       expect(account.email_rate_limit).to eq(500)
     end
 

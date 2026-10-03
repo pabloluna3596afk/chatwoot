@@ -26,7 +26,7 @@ module Concerns::Agentable
         contact: config['feature_contact_attributes'].present? ? state[:contact] : nil,
         campaign: state[:campaign] || {},
         message_length_limit: state[:message_length_limit]
-      ).merge(runtime_prompt_context(state))
+      ).merge(conversation_prompt_context(state))
     end
 
     Captain::PromptRenderer.render(prompt_template, enhanced_context.with_indifferent_access)
@@ -78,7 +78,7 @@ module Concerns::Agentable
   end
 
   # Extra prompt variables that depend on the conversation being handled; override when needed.
-  def runtime_prompt_context(_state)
+  def conversation_prompt_context(_state)
     {}
   end
 end
