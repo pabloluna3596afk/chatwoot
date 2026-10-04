@@ -13,10 +13,15 @@ class Captain::Tools::CheckAvailabilityTool < Captain::Tools::BaseAppointmentToo
                   desc: 'Last day to look at, YYYY-MM-DD (optional; leave it out to get the next day with availability)', required: false
   param :part_of_day, type: 'string', required: false,
                       desc: 'morning (before 12:00), afternoon (12:00 to 18:00) or evening (after 18:00), when the customer asked for one'
+  param :at_time, type: 'string', required: false,
+                  desc: 'The exact time the customer asked for, HH:MM in 24 hours (for example "10:15"), together with from_date. ' \
+                        'Any start on a 15 minute grid is accepted when it is free; when it is not, the answer says why in one line ' \
+                        'and lists the closest times.'
 
-  def perform(tool_context, from_date: nil, to_date: nil, part_of_day: nil)
+  def perform(tool_context, from_date: nil, to_date: nil, part_of_day: nil, at_time: nil)
     conversation, error = conversation_for(tool_context)
     return error if error
+    return requested_time_message(conversation, tool_context, from_date, at_time) if at_time.present?
 
     range = search_range(from_date, to_date)
     return translate('invalid_date') if range.nil?
@@ -32,6 +37,48 @@ class Captain::Tools::CheckAvailabilityTool < Captain::Tools::BaseAppointmentToo
   end
 
   private
+
+  # The customer asked for an exact time: it is offered as it is when it is free (and on the 15 minute grid); when it is
+  # not, one line says why and the closest free times follow.
+  def requested_time_message(conversation, tool_context, from_date, at_time)
+    start_at = requested_start(from_date, at_time)
+    return translate('invalid_time') if start_at.nil?
+
+    reason, reason_options = unavailable_reason(start_at, settings.slot_duration_minutes)
+    return exact_time_message(conversation, tool_context, start_at) if reason.nil?
+
+    options = closest_options(start_at)
+    return translate(reason, **reason_options) + "\n" + translate('slots_none') if options.empty?
+
+    [translate(reason, **reason_options), translate('closest_header'), slots_message(conversation, tool_context, options)].join("\n")
+  end
+
+  def requested_start(from_date, at_time)
+    day = Date.iso8601(from_date.to_s.strip)
+    hour, minute = at_time.to_s.strip.match(/\A(\d{1,2}):(\d{2})\z/)&.captures&.map(&:to_i)
+    return if hour.nil? || hour > 23 || minute > 59
+
+    zone.local(day.year, day.month, day.day, hour, minute)
+  rescue ArgumentError
+    nil
+  end
+
+  def exact_time_message(conversation, tool_context, start_at)
+    option = { start: start_at.iso8601 }
+    log_tool_usage('check_availability', assistant_id: @assistant.id, options: 1, exact: true)
+    [translate('exact_time_free', time: format_time(start_at)), slots_message(conversation, tool_context, [option])].join("\n")
+  end
+
+  # The 3 free times nearest to the requested one that day; when the day has none, the next days that have.
+  def closest_options(start_at)
+    day = available_slots(start_at.beginning_of_day, start_at.end_of_day)
+    if day.any?
+      return day.min_by(MAX_OPTIONS) { |slot| (Time.iso8601(slot[:start]) - start_at).abs }.sort_by { |slot| slot[:start] }
+    end
+
+    earliest, latest = booking_limits
+    pick_options(available_slots([start_at.beginning_of_day, earliest].max, latest))
+  end
 
   # One button (or list row) per slot, titled and valued with its readable label ("jue 16/01 · 10:00"),
   # which resolves back to the exact start. Channels without buttons get a numbered list the model writes itself.

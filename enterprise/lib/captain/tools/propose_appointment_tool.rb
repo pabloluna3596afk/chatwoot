@@ -32,7 +32,8 @@ class Captain::Tools::ProposeAppointmentTool < Captain::Tools::BaseAppointmentTo
 
     missing = event_ref.present? ? [] : missing_contact_fields(conversation.contact)
     return translate('missing_before_proposing', fields: missing_fields_text(missing)) if missing.any?
-    return translate('slot_busy') unless free?(start_at, event)
+    reason, options = unavailable_reason(start_at, minutes(event))
+    return translate(reason, **options) if reason
 
     proposal(conversation, tool_context, start_at, event)
   rescue StandardError => e
@@ -51,13 +52,6 @@ class Captain::Tools::ProposeAppointmentTool < Captain::Tools::BaseAppointmentTo
     return settings.slot_duration_minutes if event.blank?
 
     ((Time.iso8601(event[:end]) - Time.iso8601(event[:start])) / 60).to_i
-  end
-
-  def free?(start_at, event)
-    event_service.available_slots(
-      calendar_id: calendar_id, from: start_at, to: start_at + minutes(event).minutes,
-      duration: minutes(event), min_notice_minutes: settings.min_notice_minutes
-    ).any? { |slot| slot[:start] == start_at.in_time_zone(zone).iso8601 }
   end
 
   def proposal(conversation, tool_context, start_at, event)

@@ -53,7 +53,9 @@ class Integrations::GoogleCalendar::EventService
   # Free slots inside the calendar's configured hours, back to back, in the account timezone.
   # A slot is free when no kept local event and no busy Google event overlaps it (same rules
   # ensure_slot_available! applies at booking time), and it respects the minimum notice.
-  def available_slots(calendar_id:, from:, to:, duration: 30, min_notice_minutes: 0)
+  # Slots follow the calendar hours back to back (`step_minutes` defaults to the duration); a smaller step also offers the
+  # times in between (a 30 minute appointment at 10:15).
+  def available_slots(calendar_id:, from:, to:, duration: 30, min_notice_minutes: 0, step_minutes: nil)
     ensure_calendar_enabled!(calendar_id)
     zone = Time.find_zone!(account_timezone)
     range_start = from.in_time_zone(zone)
@@ -62,9 +64,21 @@ class Integrations::GoogleCalendar::EventService
 
     earliest = [range_start, Time.current.in_time_zone(zone) + min_notice_minutes.to_i.minutes].max
     busy = busy_intervals(calendar_id, range_start, range_end)
-    slots_in_hours(calendar_id, zone, range_start, range_end, duration.to_i.minutes)
+    slots_in_hours(calendar_id, zone, range_start, range_end, duration.to_i.minutes, (step_minutes || duration).to_i.minutes)
       .select { |slot_start, slot_end| slot_start >= earliest && !slot_busy?(busy, slot_start, slot_end) }
       .map { |slot_start, slot_end| { start: slot_start.iso8601, end: slot_end.iso8601 } }
+  end
+
+  # Whether the appointment is on a working day and inside the calendar hours.
+  def within_hours?(calendar_id, start_at, end_at)
+    zone = Time.find_zone!(account_timezone)
+    local_start = start_at.in_time_zone(zone)
+    local_end = end_at.in_time_zone(zone)
+    calendar = calendar_settings(calendar_id)
+    same_day = local_start.to_date == local_end.to_date
+    inside = local_start.seconds_since_midnight >= calendar.hour_start * 3600 &&
+             local_end.seconds_since_midnight <= calendar.hour_end * 3600
+    same_day && inside && calendar.works_on?(local_start.wday)
   end
 
   def self.conversation_payloads(conversation)
@@ -283,27 +297,20 @@ class Integrations::GoogleCalendar::EventService
   end
 
   def ensure_within_hours!(calendar_id, start_at, end_at)
-    zone = Time.find_zone!(account_timezone)
-    local_start = start_at.in_time_zone(zone)
-    local_end = end_at.in_time_zone(zone)
-    calendar = calendar_settings(calendar_id)
-    same_day = local_start.to_date == local_end.to_date
-    inside = local_start.seconds_since_midnight >= calendar.hour_start * 3600 &&
-             local_end.seconds_since_midnight <= calendar.hour_end * 3600
-    raise OutsideHours unless same_day && inside && calendar.works_on?(local_start.wday)
+    raise OutsideHours unless within_hours?(calendar_id, start_at, end_at)
   end
 
   # Every back-to-back slot of `duration` that fits in the calendar hours of each day in the range.
-  def slots_in_hours(calendar_id, zone, range_start, range_end, duration)
+  def slots_in_hours(calendar_id, zone, range_start, range_end, duration, step)
     calendar = calendar_settings(calendar_id)
     hour_start = calendar.hour_start
     hour_end = calendar.hour_end
     (range_start.to_date..range_end.to_date).select { |date| calendar.works_on?(date.wday) }.flat_map do |date|
       day_start = zone.local(date.year, date.month, date.day, hour_start)
       day_end = zone.local(date.year, date.month, date.day, hour_end)
-      seconds = duration.to_i
-      starts = (0...((day_end - day_start) / seconds).floor).map { |index| day_start + (index * seconds) }
-      starts.map { |slot_start| [slot_start, slot_start + seconds] }.select { |_, slot_end| slot_end <= range_end }
+      starts = (0...((day_end - day_start) / step.to_i).floor).map { |index| day_start + (index * step.to_i) }
+      starts.map { |slot_start| [slot_start, slot_start + duration.to_i] }
+            .select { |_, slot_end| slot_end <= day_end && slot_end <= range_end }
     end
   end
 

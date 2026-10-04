@@ -3,6 +3,8 @@
 # with short text (in the account language) that the model can relay to the customer.
 class Captain::Tools::BaseAppointmentTool < Captain::Tools::BasePublicTool
   ISO_START = /\A\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/
+  # A customer may ask for any start on this grid (10:15), not only for the back-to-back times the calendar lists.
+  TIME_GRID_MINUTES = 15
 
   private
 
@@ -63,6 +65,26 @@ class Captain::Tools::BaseAppointmentTool < Captain::Tools::BasePublicTool
   def within_booking_limits?(start_at)
     earliest, latest = booking_limits
     start_at >= earliest && start_at <= latest
+  end
+
+  # Whether an appointment of `minutes` starting at start_at is free in the calendar (hours, notice and busy times).
+  def slot_free?(start_at, minutes)
+    event_service.available_slots(
+      calendar_id: calendar_id, from: start_at, to: start_at + minutes.minutes, duration: minutes,
+      min_notice_minutes: settings.min_notice_minutes, step_minutes: TIME_GRID_MINUTES
+    ).any? { |slot| slot[:start] == start_at.in_time_zone(zone).iso8601 }
+  end
+
+  # Why a time cannot be booked, as a key of captain.appointments (and its options), nil when it can.
+  def unavailable_reason(start_at, minutes)
+    return [:time_grid, {}] unless (start_at.min % TIME_GRID_MINUTES).zero?
+
+    earliest, latest = booking_limits
+    return [:too_soon, { minutes: settings.min_notice_minutes }] if start_at < earliest
+    return [:outside_window, { days: settings.booking_window_days }] if start_at > latest
+    return [:outside_hours, {}] unless event_service.within_hours?(calendar_id, start_at, start_at + minutes.minutes)
+
+    [:slot_busy, {}] unless slot_free?(start_at, minutes)
   end
 
   def own_appointments(conversation, contact)

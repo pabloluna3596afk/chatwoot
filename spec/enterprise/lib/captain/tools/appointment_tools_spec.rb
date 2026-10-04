@@ -1034,3 +1034,59 @@ RSpec.describe Captain::Assistant, 'appointment tools exposure' do
     expect(assistant.agent_instructions(instructions_context)).not_to include('# Appointments')
   end
 end
+
+RSpec.describe Captain::Tools::CheckAvailabilityTool, 'exact times' do
+  include_context 'with an appointments conversation'
+
+  def call(**params)
+    tool.perform(tool_context, **params)
+  end
+
+  it 'offers a free time of the 15 minute grid exactly as asked' do
+    result = call(from_date: '2030-01-15', at_time: '10:15')
+
+    expect(result).to include('Esa hora está libre', 'martes 15 de enero, 10:15')
+    expect(Captain::QuickReplies.choice(conversation, 'mar 15 ene · 10:15')).to eq('start' => '2030-01-15T10:15:00-05:00')
+  end
+
+  it 'says in one line that the time is taken and lists the closest free times' do
+    local_event(start_at: Time.zone.parse('2030-01-15T10:00:00-05:00'), end_at: Time.zone.parse('2030-01-15T10:30:00-05:00'))
+    result = call(from_date: '2030-01-15', at_time: '10:15')
+
+    expect(result.lines.first).to include('ya no está disponible')
+    expect(result).to include('Horarios libres más cercanos')
+    offered = result.lines.grep(/\A- /).map { |line| line[/(\d{2}:\d{2}) \(start/, 1] }
+    expect(offered.size).to eq(3)
+    expect(offered).to all(satisfy { |time| time >= '10:30' || time <= '09:45' })
+    expect(offered).not_to include('10:15')
+  end
+
+  it 'explains a time off the 15 minute grid' do
+    expect(call(from_date: '2030-01-15', at_time: '10:20')).to include('cada 15 minutos')
+  end
+
+  it 'explains a time that is too soon, outside the hours or outside the booking window' do
+    expect(call(from_date: '2030-01-14', at_time: '12:15').lines.first).to include('demasiado pronto', '60 minutos')
+    expect(call(from_date: '2030-01-15', at_time: '23:00').lines.first).to include('fuera de los días u horas')
+    expect(call(from_date: '2030-03-15', at_time: '10:00').lines.first).to include('fuera del plazo')
+  end
+
+  it 'asks for a readable time' do
+    expect(call(from_date: '2030-01-15', at_time: 'por la tarde')).to include('HH:MM')
+  end
+end
+
+RSpec.describe Captain::Tools::ProposeAppointmentTool, 'exact times' do
+  include_context 'with an appointments conversation'
+
+  it 'proposes a start of the 15 minute grid that is free' do
+    result = tool.perform(tool_context, start: '2030-01-15T10:15:00-05:00')
+
+    expect(result).to include('10:15')
+    expect(result).not_to include('no está disponible')
+  end
+
+  it 'does not propose a start off the grid' do
+    expect(tool.perform(tool_context, start: '2030-01-15T10:20:00-05:00')).to include('cada 15 minutos')
+  end
+end
