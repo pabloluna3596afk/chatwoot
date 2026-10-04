@@ -869,7 +869,6 @@
             "HOURS_BEFORE": "horas antes de la cita",
             "HOURS_ERROR": "Usa un número entero de 1 a 168.",
             "WINDOW_HINT": "Saldrá gratis solo si el cliente escribió en las 24 h anteriores; si no, necesita plantilla.",
-            "TEMPLATE_CONFIRMATION": "Plantilla de confirmación",
             "TEMPLATE_REMINDER": "Plantilla de recordatorio",
             "TEMPLATE_CANCELLED": "Plantilla de cancelación",
             "PAID_HINT": "Para enviar plantillas fuera de las 24 h, activa «Mensajes de pago (WhatsApp)» en este asistente."

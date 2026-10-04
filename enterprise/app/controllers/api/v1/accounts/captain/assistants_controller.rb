@@ -143,7 +143,6 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
                        :min_notice_minutes, :booking_window_days,
                        { reminder_1: [:enabled, :hours_before] }, { reminder_2: [:enabled, :hours_before] },
                        { required_contact_fields: [] },
-                       { template_confirmation: [:name, :language, { processed_params: {} }] },
                        { template_reminder: [:name, :language, { processed_params: {} }] },
                        { template_cancelled: [:name, :language, { processed_params: {} }] }] }
     ]

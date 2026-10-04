@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe Captain::AppointmentsSettings do
   let(:reminder_defaults) do
     { 'reminder_1' => { 'enabled' => true, 'hours_before' => 24 }, 'reminder_2' => { 'enabled' => true, 'hours_before' => 3 },
-      'template_confirmation' => nil, 'template_reminder' => nil, 'template_cancelled' => nil }
+      'template_reminder' => nil, 'template_cancelled' => nil }
   end
 
   describe '.normalize' do
@@ -56,19 +56,25 @@ RSpec.describe Captain::AppointmentsSettings do
       expect(result['reminder_1']).to eq('enabled' => true, 'hours_before' => 12)
     end
 
+    it 'has no confirmation template: the confirmation is always the booking reply, free inside the 24 h window' do
+      result = described_class.normalize('template_confirmation' => { 'name' => 'confirmacion', 'language' => 'es' })
+
+      expect(result).not_to have_key('template_confirmation')
+    end
+
     it 'keeps the name, the language and the texts of the variables of a template, and nothing else' do
       result = described_class.normalize(
         'template_reminder' => { 'name' => 'recordatorio', 'language' => 'es', 'extra' => 'x',
                                  'processed_params' => { 'body' => { '1' => '{{ contact.name }}', 'nombre' => 'Consulta' },
                                                          'header' => { 'titulo' => '{{ appointment.title }}' }, 'footer' => { 'x' => 'y' } } },
-        'template_confirmation' => '', 'template_cancelled' => nil
+        'template_cancelled' => nil
       )
 
       expect(result).to include(
         'template_reminder' => { 'name' => 'recordatorio', 'language' => 'es',
                                  'processed_params' => { 'body' => { '1' => '{{ contact.name }}', 'nombre' => 'Consulta' },
                                                          'header' => { 'titulo' => '{{ appointment.title }}' } } },
-        'template_confirmation' => nil, 'template_cancelled' => nil
+        'template_cancelled' => nil
       )
     end
 
