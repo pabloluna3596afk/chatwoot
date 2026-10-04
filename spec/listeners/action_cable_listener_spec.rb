@@ -9,6 +9,8 @@ describe ActionCableListener do
 
   before do
     create(:inbox_member, inbox: inbox, user: agent)
+    # Creating the conversation already loaded (empty) inbox.members; the broadcast reads them again.
+    inbox.members.reset
     Current.user = nil
     Current.account = nil
   end
