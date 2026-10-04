@@ -405,34 +405,39 @@ onDeactivated(abortTemplateRequest);
           </span>
         </template>
         <template #tabs>
-          <TabBar
-            v-if="showTabs"
-            :tabs="tabs"
-            :initial-active-tab="tabIndex"
-            @tab-changed="onTabChanged"
-          />
-          <div
-            v-if="hasTemplates && showTemplates"
-            v-on-click-outside="closeFilterMenu"
-            class="flex items-center gap-2"
-          >
-            <div v-for="menu in filterMenus" :key="menu.key" class="relative">
-              <Button
-                :icon="menu.icon"
-                color="slate"
-                size="sm"
-                :class="{ 'bg-n-slate-9/10': openFilterMenu === menu.key }"
-                @click="toggleFilterMenu(menu.key)"
-              >
-                <span class="min-w-0 truncate">{{ menu.selected.label }}</span>
-                <Icon icon="i-lucide-chevron-down" class="shrink-0 size-4" />
-              </Button>
-              <DropdownMenu
-                v-if="openFilterMenu === menu.key"
-                :menu-items="menu.items"
-                class="mt-2 min-w-52 top-full ltr:left-0 rtl:right-0"
-                @action="handleFilterAction"
-              />
+          <div class="flex flex-wrap items-center min-w-0 gap-2">
+            <TabBar
+              v-if="showTabs"
+              :tabs="tabs"
+              :initial-active-tab="tabIndex"
+              @tab-changed="onTabChanged"
+            />
+            <div
+              v-if="hasTemplates && showTemplates"
+              v-on-click-outside="closeFilterMenu"
+              class="flex flex-wrap items-center min-w-0 gap-2"
+            >
+              <div v-for="menu in filterMenus" :key="menu.key" class="relative">
+                <Button
+                  :icon="menu.icon"
+                  color="slate"
+                  size="sm"
+                  class="max-w-44"
+                  :class="{ 'bg-n-slate-9/10': openFilterMenu === menu.key }"
+                  @click="toggleFilterMenu(menu.key)"
+                >
+                  <span class="min-w-0 truncate">{{
+                    menu.selected.label
+                  }}</span>
+                  <Icon icon="i-lucide-chevron-down" class="shrink-0 size-4" />
+                </Button>
+                <DropdownMenu
+                  v-if="openFilterMenu === menu.key"
+                  :menu-items="menu.items"
+                  class="mt-2 min-w-52 top-full ltr:left-0 rtl:right-0"
+                  @action="handleFilterAction"
+                />
+              </div>
             </div>
           </div>
         </template>
