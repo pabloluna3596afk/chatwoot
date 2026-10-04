@@ -106,7 +106,7 @@ class Reports::PanelExportService
     title = widget[:title].presence || widget[:metric].presence || widget[:table_kind].presence || "Widget #{index + 1}"
     sheet_name = sanitize_sheet_name("#{index + 1}. #{title}")
 
-    workbook.add_worksheet(name: sheet_name) do |worksheet|
+    workbook.add_worksheet(name: sheet_name) do |worksheet| # rubocop:disable Metrics/BlockLength
       sheet = Exports::SafeCell.sheet(worksheet)
       case widget[:type].to_s
       when 'metric'

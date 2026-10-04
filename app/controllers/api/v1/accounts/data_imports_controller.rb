@@ -185,7 +185,7 @@ class Api::V1::Accounts::DataImportsController < Api::V1::Accounts::BaseControll
       csv << %w[created_at kind source_object_type source_object_id error_code message details]
 
       logs.order(:created_at).find_each do |log|
-        csv << Exports::SafeCell.row([
+        row = [
           log.created_at.iso8601,
           log.details['kind'],
           log.source_object_type,
@@ -193,7 +193,8 @@ class Api::V1::Accounts::DataImportsController < Api::V1::Accounts::BaseControll
           log.error_code,
           log.message,
           log.details.to_json
-        ])
+        ]
+        csv << Exports::SafeCell.row(row)
       end
     end
   end

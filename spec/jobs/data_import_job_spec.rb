@@ -69,7 +69,7 @@ RSpec.describe DataImportJob do
         data = [
           %w[id first_name last_name email phone_number],
           ['1', 'Clarice', 'Uzzell', 'cuzzell0@mozilla.org', '+918484848484'],
-          ['2', '=HYPERLINK(http://evil.example)', 'Windibank', 'cuzzell0@mozilla.org', '+918484848485']
+          ['2', '=HYPERLINK(http://evil.example)', 'Windibank', 'not-an-email', '+918484848485']
         ]
         data_import = create(:data_import, import_file: generate_csv_file(data))
 
