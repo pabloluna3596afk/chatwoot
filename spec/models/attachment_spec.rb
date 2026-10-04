@@ -346,4 +346,43 @@ RSpec.describe Attachment do
       expect(attachment.errors[:file]).to include('size is too big')
     end
   end
+
+  describe 'destroying the attachment of a template header file' do
+    let(:message) { create(:message) }
+
+    def attach(metadata)
+      blob = ActiveStorage::Blob.create_and_upload!(
+        io: StringIO.new('%PDF-1.4'), filename: 'oferta.pdf', content_type: 'application/pdf', metadata: metadata
+      )
+      attachment = message.attachments.build(account_id: message.account_id, file_type: :file)
+      attachment.file.attach(blob)
+      attachment.save!
+      [attachment, blob]
+    end
+
+    it 'keeps the stored copy: only the cleanup job purges it' do
+      attachment, blob = attach('account_id' => message.account_id, Whatsapp::TemplateHeaderMedia::METADATA_KEY => true)
+
+      perform_enqueued_jobs { attachment.destroy! }
+
+      expect(ActiveStorage::Blob.exists?(blob.id)).to be true
+      expect(ActiveStorage::Attachment.where(blob_id: blob.id)).to be_empty
+    end
+
+    it 'keeps the copy when the whole message is destroyed' do
+      _attachment, blob = attach('account_id' => message.account_id, Whatsapp::TemplateHeaderMedia::METADATA_KEY => true)
+
+      perform_enqueued_jobs { message.destroy! }
+
+      expect(ActiveStorage::Blob.exists?(blob.id)).to be true
+    end
+
+    it 'still purges any other file' do
+      attachment, blob = attach('account_id' => message.account_id)
+
+      perform_enqueued_jobs { attachment.destroy! }
+
+      expect(ActiveStorage::Blob.exists?(blob.id)).to be false
+    end
+  end
 end

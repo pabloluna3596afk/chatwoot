@@ -893,11 +893,6 @@ en:
         button: 'Resend confirmation email'
         sent: 'Confirmation email sent.'
         already_confirmed: 'User is already confirmed.'
-
-helpers:
-  label:
-    account:
-      web_widget_branding: 'Branding by channel'
   whatsapp_templates:
     errors:
       unknown: 'The template action could not be completed. Please try again.'
@@ -953,3 +948,8 @@ helpers:
       library_unavailable: 'The Meta library could not be read for this channel.'
       library_name_required: 'The library template is missing.'
       meta_error: 'Meta rejected the request: %{detail}'
+
+helpers:
+  label:
+    account:
+      web_widget_branding: 'Branding by channel'

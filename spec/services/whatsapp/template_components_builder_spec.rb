@@ -112,7 +112,7 @@ RSpec.describe Whatsapp::TemplateComponentsBuilder do
   describe 'the rules Meta enforces' do
     it 'asks for a body, an example per variable and variables in order' do
       expect(error_code { build(body: { text: ' ' }) }).to eq('body_required')
-      expect(error_code { build(body: { text: 'Hola {{1}} y {{2}}', examples: ['Ana'] }) }).to eq('example_required')
+      expect(error_code { build(body: { text: 'Hola {{1}} y {{2}} gracias', examples: ['Ana'] }) }).to eq('example_required')
       expect(error_code { build(body: { text: 'Hola {{2}} adiós', examples: %w[a b] }) }).to eq('variables_not_sequential')
     end
 

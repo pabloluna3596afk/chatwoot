@@ -133,8 +133,13 @@ class Whatsapp::TemplateComponentsBuilder
   def validate_body!(text, tokens)
     raise Invalid, 'body_required' if text.blank?
     raise Invalid.new('body_too_long', limit: LIMITS[:body]) if text.length > LIMITS[:body]
-    raise Invalid, 'variables_not_sequential' if !named_variables? && tokens != (1..tokens.size).map(&:to_s)
+    raise Invalid, 'variables_not_sequential' unless sequential_variables?(tokens)
     raise Invalid, 'variable_at_edge' if tokens.any? && text.match?(EDGE_VARIABLE)
+  end
+
+  # Numbered variables must be {{1}}, {{2}}… in order; named ones have no order.
+  def sequential_variables?(tokens)
+    named_variables? || tokens == (1..tokens.size).map(&:to_s)
   end
 
   # The sample values Meta asks for: a list for numbered variables, { param_name, example } pairs for named ones.

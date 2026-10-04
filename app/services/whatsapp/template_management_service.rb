@@ -77,8 +77,9 @@ class Whatsapp::TemplateManagementService
 
   # Meta's Template Library: ready-made utility templates (fixed text, only their parameters change).
   # Returns { templates: [...], next: cursor or nil }.
-  def library(search: nil, language: nil, topic: nil, usecase: nil, industry: nil, after: nil, limit: LIBRARY_PAGE)
-    query = { search: search, language: language, topic: topic, usecase: usecase, industry: industry, after: after, limit: limit }.compact_blank
+  # `filters` are search, language, topic, usecase, industry and after (the cursor).
+  def library(limit: LIBRARY_PAGE, **filters)
+    query = filters.slice(:search, :language, :topic, :usecase, :industry, :after).merge(limit: limit).compact_blank
     response = request(:get, "#{waba_path}/message_template_library", query: query)
     raise_failure(response) unless response.success? && response.parsed_response.is_a?(Hash)
 
