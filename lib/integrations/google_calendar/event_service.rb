@@ -83,10 +83,14 @@ class Integrations::GoogleCalendar::EventService
     same_day && inside && calendar.works_on?(local_start.wday)
   end
 
+  # The event as Google has it now (attendees included).
+  def google_event_for(record)
+    client.get_event(calendar_id: record.external_calendar_id, event_id: record.google_event_id)
+  end
+
   # Reads the invite answer of an appointment from Google and keeps it. A failure leaves what was known.
   def refresh_invitation_status!(record)
-    google_event = client.get_event(calendar_id: record.external_calendar_id, event_id: record.google_event_id)
-    sync_invitation_status!(google_event, record)
+    sync_invitation_status!(google_event_for(record), record)
     record
   rescue StandardError => e
     Rails.logger.warn("Google Calendar invitation refresh failed for event #{record.id}: #{e.class} #{e.message}")
