@@ -65,6 +65,7 @@ class Message < ApplicationRecord
 
   before_validation :ensure_content_type
   before_validation :prevent_message_flooding
+  before_validation :attach_template_header_media, on: :create
   before_save :ensure_processed_message_content
   before_save :ensure_in_reply_to
 
@@ -455,6 +456,18 @@ class Message < ApplicationRecord
 
   def execute_message_template_hooks
     ::MessageTemplates::HookExecutionService.new(message: self).perform
+  end
+
+  # A template sent with a header file shows that file in the chat, like any attachment (it is the stored copy that
+  # was uploaded to Meta; sending is not affected, a template message is sent from its template_params).
+  def attach_template_header_media
+    return if attachments.any? || additional_attributes.blank?
+
+    blob = Whatsapp::TemplateHeaderMedia.blob_for_message(additional_attributes['template_params'], account_id)
+    return if blob.nil?
+
+    attachment = attachments.build(account_id: account_id, file_type: Whatsapp::TemplateHeaderMedia.attachment_file_type(blob))
+    attachment.file.attach(blob)
   end
 
   def validate_attachments_limit(_attachment)
