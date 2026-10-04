@@ -6,6 +6,10 @@ class Account::ContactsExportJob < ApplicationJob
   VIRTUAL_COLUMNS = %w[assigned_agent company_name city country].freeze
   # Force spreadsheet apps to treat these as text (avoid scientific notation).
   TEXT_FORCE_HEADERS = %w[phone_number document_number identifier contact_phone contact_document_number].freeze
+  # A cell that starts with one of these is read as a formula by spreadsheet apps (CSV injection).
+  FORMULA_PREFIX = /\A[=+\-@\t\r]/
+  # For text-forced columns a tab is enough, except when the text itself starts with a formula character.
+  FORMULA_START = /\A[=+\-@\r]/
   LABELS_DELIMITER = ','.freeze
   EXPORT_FORMATS = %w[csv xlsx].freeze
 
@@ -52,14 +56,19 @@ class Account::ContactsExportJob < ApplicationJob
     TEXT_FORCE_HEADERS.include?(header)
   end
 
-  # Leading tab keeps Excel/Sheets from coercing long digit strings to numbers in CSV.
+  # Leading tab keeps Excel/Sheets from coercing long digit strings to numbers in CSV; a leading apostrophe does
+  # the same and also defuses text that starts like a formula (a "+" phone number, "=cmd").
   def spreadsheet_text(value)
     return '' if value.nil?
 
     text = value.to_s
     return '' if text.blank?
 
-    "\t#{text}"
+    text.match?(FORMULA_START) ? "'#{text}" : "\t#{text}"
+  end
+
+  def formula_safe(value)
+    value.is_a?(String) && value.match?(FORMULA_PREFIX) ? "'#{value}" : value
   end
 
   def assigned_agent_name(contact)
@@ -141,7 +150,7 @@ class Account::ContactsExportJob < ApplicationJob
       csv << headers
       rows.each do |row|
         csv << row.map.with_index do |cell, index|
-          force_text_header?(headers[index]) ? spreadsheet_text(cell) : cell
+          force_text_header?(headers[index]) ? spreadsheet_text(cell) : formula_safe(cell)
         end
       end
     end
@@ -166,7 +175,9 @@ class Account::ContactsExportJob < ApplicationJob
       sheet.add_row headers
       rows.each do |row|
         cells = row.map { |cell| cell.nil? ? '' : cell }
-        sheet.add_row cells, types: types
+        # Strings are typed as text: untyped strings that start with "=" would be stored as formulas.
+        cell_types = cells.each_with_index.map { |cell, index| types[index] || (cell.is_a?(String) ? :string : nil) }
+        sheet.add_row cells, types: cell_types
       end
     end
 
