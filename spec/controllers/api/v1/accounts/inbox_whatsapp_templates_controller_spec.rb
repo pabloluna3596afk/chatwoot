@@ -163,12 +163,12 @@ RSpec.describe 'Inbox WhatsApp templates API', type: :request do
     end
 
     it 'says whether the channel can use media headers' do
-      handles = instance_double(Whatsapp::TemplateHeaderHandleService, available?: false)
+      handles = instance_double(Whatsapp::TemplateHeaderHandleService, available?: false, unavailable_reason: 'upload_refused')
       allow(Whatsapp::TemplateHeaderHandleService).to receive(:new).and_return(handles)
 
       get "#{base_url}/capabilities", headers: admin.create_new_auth_token
 
-      expect(response.parsed_body).to eq('media_header' => false)
+      expect(response.parsed_body).to eq('media_header' => false, 'reason' => 'upload_refused')
     end
   end
 

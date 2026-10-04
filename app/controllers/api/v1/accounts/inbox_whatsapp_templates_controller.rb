@@ -16,7 +16,8 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
 
   # What the form may offer for this channel: media headers need the app behind the channel token.
   def capabilities
-    render json: { media_header: header_handle_service.available? }
+    available = header_handle_service.available?
+    render json: { media_header: available, reason: available ? nil : header_handle_service.unavailable_reason }
   end
 
   # Meta's Template Library, searchable (search, language, topic, usecase, industry) and paginated (after).
