@@ -2,6 +2,7 @@ import {
   buildFlowResponseEntries,
   formatFlowResponseLabel,
   formatFlowResponseValue,
+  flowResponseToText,
 } from '../whatsappFlowResponse';
 
 describe('whatsappFlowResponse', () => {
@@ -52,12 +53,29 @@ describe('whatsappFlowResponse', () => {
         })
       ).toEqual([
         { key: 'rating', label: 'Rating', value: 'excellent' },
-        {
-          key: 'appointment',
-          label: 'Appointment',
-          value: '{\n  "day": "Monday"\n}',
-        },
+        { key: 'appointment_day', label: 'Appointment Day', value: 'Monday' },
       ]);
+    });
+
+    it('hides secrets and shows an empty answer as a dash', () => {
+      expect(
+        buildFlowResponseEntries({
+          city: 'Quito',
+          otp_code: '1234',
+          notes: '',
+        }).map(({ label, value }) => [label, value])
+      ).toEqual([
+        ['City', 'Quito'],
+        ['Notes', '—'],
+      ]);
+    });
+
+    it('writes the answers as one "Label: value" line each', () => {
+      expect(
+        flowResponseToText(
+          buildFlowResponseEntries({ rating: 'excellent', city: 'Quito' })
+        )
+      ).toBe('Rating: excellent\nCity: Quito');
     });
 
     it('displays a raw response as a single readable entry', () => {

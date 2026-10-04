@@ -97,6 +97,10 @@
     "UNSUPPORTED_MESSAGE_TIKTOK": "This message is unsupported. You can view this message on the TikTok app.",
     "UNSUPPORTED_MESSAGE_WHATSAPP": "This message is unsupported. You can view this message on the WhatsApp app.",
     "WHATSAPP_FLOW_RESPONSE": "Submitted a flow response",
+    "WHATSAPP_FLOW_COMPLETED": "Form completed",
+    "WHATSAPP_FLOW_COPY": "Copy data",
+    "WHATSAPP_FLOW_COPIED": "Data copied",
+    "WHATSAPP_FLOW_COPY_ERROR": "Could not copy the data",
     "WHATSAPP_REFERRAL": {
       "AD": "Ad"
     },
