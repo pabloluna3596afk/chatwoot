@@ -747,6 +747,7 @@
       "BUTTON_TXT": "Chat with us"
     },
     "NO_BILLING_USER": "Your billing account is being configured. Please refresh the page and try again.",
+    "NO_PLAN_ASSIGNED": "You do not have a plan assigned yet. Ask your provider to assign one.",
     "SHOPIFY": {
       "TITLE": "Billing through Shopify",
       "DESCRIPTION": "Your ChatHub subscription is billed and managed securely through Shopify.",
