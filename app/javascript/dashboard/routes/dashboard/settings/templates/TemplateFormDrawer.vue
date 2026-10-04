@@ -34,15 +34,13 @@ import {
   variableTokens,
 } from './templateForm';
 import { formatTemplateLabel, templateStatusClasses } from './templateUtils';
-import {
-  defaultLanguage,
-  languageOptions,
-  rememberLanguage,
-} from './whatsappLanguages';
+import { defaultLanguage, languageOptions } from './whatsappLanguages';
 
 const props = defineProps({
   // The WhatsApp Cloud inboxes the template can be created in.
   inboxes: { type: Array, default: () => [] },
+  // The templates of the page: a new one starts in the language most of its channel's templates use.
+  templates: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['saved']);
@@ -62,6 +60,7 @@ const isUploading = ref(false);
 const mediaHeaderAvailable = ref(false);
 const headerPreviewUrl = ref('');
 const fileInput = ref(null);
+const languageTouched = ref(false);
 
 const isEdit = computed(() => Boolean(editing.value));
 const errors = computed(() => validateForm(form, { isEdit: isEdit.value }));
@@ -111,6 +110,7 @@ const apiError = error =>
   error?.response?.data?.message || t('WHATSAPP_TEMPLATE_MGMT.FORM.SAVE_ERROR');
 
 const resetForm = () => {
+  languageTouched.value = false;
   Object.assign(form, emptyForm());
   headerPreviewUrl.value = '';
   liveState.value = null;
@@ -140,6 +140,14 @@ const loadLiveState = async template => {
   }
 };
 
+const setDefaultLanguage = () => {
+  form.language = defaultLanguage(
+    currentAccount.value?.locale,
+    props.templates,
+    form.inboxId
+  );
+};
+
 // Opens the form to create a template, or to edit `template` (a synced template of a Cloud inbox).
 const open = async (template = null, prefill = null) => {
   resetForm();
@@ -157,7 +165,7 @@ const open = async (template = null, prefill = null) => {
   } else {
     form.inboxId = props.inboxes.length === 1 ? props.inboxes[0].id : null;
   }
-  if (!template) form.language = defaultLanguage(currentAccount.value?.locale);
+  if (!template) setDefaultLanguage();
   panelRef.value?.open();
   await loadCapabilities();
 };
@@ -167,7 +175,9 @@ const close = () => panelRef.value?.close();
 watch(
   () => form.inboxId,
   (value, previous) => {
-    if (value !== previous) loadCapabilities();
+    if (value === previous) return;
+    loadCapabilities();
+    if (!isEdit.value && !languageTouched.value) setDefaultLanguage();
   }
 );
 
@@ -263,7 +273,6 @@ const save = async () => {
           : 'WHATSAPP_TEMPLATE_MGMT.FORM.CREATED'
       )
     );
-    if (!isEdit.value) rememberLanguage(form.language);
     emit('saved');
     close();
   } catch (error) {
@@ -295,7 +304,9 @@ const chooseInbox = value => {
   if (value) form.inboxId = value;
 };
 const chooseLanguage = value => {
-  if (value) form.language = value;
+  if (!value) return;
+  form.language = value;
+  languageTouched.value = true;
 };
 const chooseHeaderFormat = value => {
   if (value) form.header.format = value;

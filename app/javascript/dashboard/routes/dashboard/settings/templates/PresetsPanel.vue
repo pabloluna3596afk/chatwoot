@@ -9,6 +9,7 @@ import { variableTokens } from './templateForm';
 defineProps({
   // The WhatsApp Cloud inboxes a template can be created in.
   inboxes: { type: Array, default: () => [] },
+  templates: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['use', 'created']);
@@ -109,6 +110,10 @@ const grouped = computed(() =>
       </div>
     </section>
 
-    <LibraryPanel :inboxes="inboxes" @created="emit('created')" />
+    <LibraryPanel
+      :inboxes="inboxes"
+      :templates="templates"
+      @created="emit('created')"
+    />
   </div>
 </template>

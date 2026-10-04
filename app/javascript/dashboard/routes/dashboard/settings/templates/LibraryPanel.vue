@@ -22,6 +22,8 @@ import { defaultLanguage, languageOptions } from './whatsappLanguages';
 const props = defineProps({
   // The WhatsApp Cloud inboxes a template can be created in.
   inboxes: { type: Array, default: () => [] },
+  // The templates of the page, to start in the language most of the channel's templates use.
+  templates: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['created']);
@@ -33,8 +35,9 @@ const LANGUAGE_OPTIONS = computed(() => languageOptions(locale.value));
 const SEARCH_DELAY = 400;
 
 const search = ref('');
-const language = ref(defaultLanguage(currentAccount.value?.locale));
+const language = ref('es');
 const inboxId = ref(props.inboxes[0]?.id ?? null);
+const languageTouched = ref(false);
 const items = ref([]);
 const nextCursor = ref(null);
 const isLoading = ref(false);
@@ -51,6 +54,17 @@ watch(
     if (!inboxId.value && list[0]) inboxId.value = list[0].id;
   }
 );
+
+const applyDefaultLanguage = () => {
+  if (languageTouched.value) return;
+  language.value = defaultLanguage(
+    currentAccount.value?.locale,
+    props.templates,
+    inboxId.value
+  );
+};
+applyDefaultLanguage();
+watch([() => props.templates, inboxId], applyDefaultLanguage);
 
 const humanName = name => String(name || '').replaceAll('_', ' ');
 
@@ -148,7 +162,9 @@ const create = async () => {
 
 // The combobox clears its value when the chosen option is clicked again: a library search always needs one.
 const chooseLanguage = value => {
-  if (value) language.value = value;
+  if (!value) return;
+  language.value = value;
+  languageTouched.value = true;
 };
 const chooseInbox = value => {
   if (value) inboxId.value = value;

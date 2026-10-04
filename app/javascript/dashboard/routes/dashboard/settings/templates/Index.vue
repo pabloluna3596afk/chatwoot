@@ -476,6 +476,7 @@ onDeactivated(abortTemplateRequest);
       <PresetsPanel
         v-if="!showTemplates"
         :inboxes="cloudInboxes"
+        :templates="templates"
         @use="applyPreset"
         @created="onLibraryCreated"
       />
@@ -507,6 +508,7 @@ onDeactivated(abortTemplateRequest);
       v-if="isAdmin"
       ref="formDrawerRef"
       :inboxes="cloudInboxes"
+      :templates="templates"
       @saved="fetchTemplates"
     />
     <Dialog

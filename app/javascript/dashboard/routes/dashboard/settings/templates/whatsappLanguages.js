@@ -82,8 +82,6 @@ export const META_LANGUAGES = [
   'zu',
 ];
 
-const STORAGE_KEY = 'whatsapp_template_language';
-
 const upperFirst = text => text.charAt(0).toUpperCase() + text.slice(1);
 
 // "Español (Ecuador)", the way Meta lists a language; the name is written in the language of the screen.
@@ -107,23 +105,28 @@ export const languageOptions = (uiLocale = 'es') =>
     label: languageLabel(code, uiLocale),
   })).sort((first, second) => first.label.localeCompare(second.label));
 
-// What a new template starts in: the language used last, else the account's language when Meta supports it, else Spanish.
-export const defaultLanguage = accountLocale => {
-  try {
-    const remembered = window.localStorage.getItem(STORAGE_KEY);
-    if (META_LANGUAGES.includes(remembered)) return remembered;
-  } catch {
-    // no storage: fall through
-  }
-  const own = String(accountLocale || '').replace('-', '_');
-  if (META_LANGUAGES.includes(own)) return own;
-  return 'es';
-};
+// What a new template starts in: the language most of the channel's templates are written in, else the account's
+// language when Meta supports it, else Spanish. `templates` are the grouped templates of the page.
+export const defaultLanguage = (
+  accountLocale,
+  templates = [],
+  inboxId = null
+) => {
+  const counts = {};
+  templates
+    .filter(
+      template =>
+        !inboxId || template.inboxes?.some(owner => owner.id === inboxId)
+    )
+    .forEach(template => {
+      if (META_LANGUAGES.includes(template.language))
+        counts[template.language] = (counts[template.language] || 0) + 1;
+    });
+  const [mostUsed] = Object.entries(counts).sort(
+    (first, second) => second[1] - first[1]
+  )[0] || [null];
+  if (mostUsed) return mostUsed;
 
-export const rememberLanguage = code => {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, code);
-  } catch {
-    // no storage: nothing to remember
-  }
+  const own = String(accountLocale || '').replace('-', '_');
+  return META_LANGUAGES.includes(own) ? own : 'es';
 };
