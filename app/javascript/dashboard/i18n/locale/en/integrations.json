@@ -1037,6 +1037,12 @@
               "name": "My company"
             }
           }
+        },
+        "MAX_REPLIES": {
+          "TITLE": "Reply limit",
+          "DESCRIPTION": "How many replies Captain can send in one conversation. At the limit it says goodbye with the handoff message and the team takes over.",
+          "LABEL": "Replies per conversation",
+          "HINT": "20 by default. Use 0 for no limit."
         }
       },
       "EDIT": {

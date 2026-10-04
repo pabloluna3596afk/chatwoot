@@ -940,6 +940,12 @@
               "name": "Mi empresa"
             }
           }
+        },
+        "MAX_REPLIES": {
+          "TITLE": "Límite de respuestas",
+          "DESCRIPTION": "Cuántas respuestas puede enviar Captain en una conversación. Al llegar al límite se despide con el mensaje de transferencia y el equipo toma la conversación.",
+          "LABEL": "Respuestas por conversación",
+          "HINT": "20 por defecto. Usa 0 para no tener límite."
         }
       },
       "EDIT": {

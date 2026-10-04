@@ -136,7 +136,7 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
       :product_name, :feature_faq, :feature_memory, :feature_citation,
       :feature_contact_attributes, :welcome_message, :handoff_message,
       :resolution_message, :instructions, :temperature, :auto_resolve_mode,
-      :response_window, :allow_paid_templates,
+      :response_window, :allow_paid_templates, :max_replies_per_conversation,
       { followup: [:inactivity_enabled, :inactivity_after_minutes, :max_nudges, :close_after_minutes, :reengagement_enabled,
                    { reengagement_template: [:name, :language, { processed_params: {} }] }] },
       { appointments: [:enabled, :calendar_connection_id, :calendar_id, :slot_duration_minutes,

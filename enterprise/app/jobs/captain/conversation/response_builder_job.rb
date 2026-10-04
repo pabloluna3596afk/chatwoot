@@ -18,6 +18,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
     return log_non_pending unless conversation_pending?
 
     Current.executed_by = @assistant
+    return process_reply_limit if @assistant.reply_limit_reached?(conversation)
 
     return generate_and_process_response unless captain_v2_enabled?
 
@@ -80,6 +81,16 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
     elsif conversation_pending?
       process_standard_response
     end
+  end
+
+  # The assistant has said all it may in this conversation: one goodbye (its handoff message) and the team takes over.
+  def process_reply_limit
+    @response = { 'action_source' => 'reply_limit', 'action_reason' => 'max_replies_per_conversation' }
+    process_v1_handoff
+    Captain::ConversationEvents.handed_off(
+      conversation: @conversation, assistant: @assistant, source: Captain::ConversationEvents::Sources::REPLY_LIMIT,
+      reason_category: :policy_restriction, at: Time.current
+    )
   end
 
   def process_v1_handoff_request
