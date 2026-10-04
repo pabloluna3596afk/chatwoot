@@ -721,6 +721,7 @@
       "BUTTON_TXT": "Chatea con nosotros"
     },
     "NO_BILLING_USER": "Tu cuenta de facturación está siendo configurada. Por favor, actualiza la página e inténtalo de nuevo.",
+    "NO_PLAN_ASSIGNED": "Todavía no tienes un plan asignado. Pide a tu proveedor que te asigne uno.",
     "TOPUP": {
       "BUY_CREDITS": "Comprar más créditos",
       "MODAL_TITLE": "Comprar créditos de IA",

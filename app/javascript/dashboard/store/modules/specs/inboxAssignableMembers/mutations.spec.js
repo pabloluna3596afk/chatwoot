@@ -10,7 +10,9 @@ describe('#mutations', () => {
         inboxId: 1,
       });
 
-      expect(state.records).toEqual({ 1: agentsData });
+      expect(state.records).toEqual({
+        1: agentsData.map(agent => ({ ...agent, assignee_type: 'User' })),
+      });
     });
   });
 });

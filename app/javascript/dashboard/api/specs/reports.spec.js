@@ -141,6 +141,7 @@ describe('#Reports API', () => {
           until: 1621621800,
           business_hours: true,
         },
+        responseType: 'text',
       });
     });
 
@@ -151,6 +152,7 @@ describe('#Reports API', () => {
           since: 1621103400,
           until: 1621621800,
         },
+        responseType: 'text',
       });
     });
 
@@ -161,6 +163,7 @@ describe('#Reports API', () => {
           since: 1621103400,
           until: 1621621800,
         },
+        responseType: 'text',
       });
     });
 
@@ -171,6 +174,7 @@ describe('#Reports API', () => {
           since: 1621103400,
           until: 1621621800,
         },
+        responseType: 'text',
       });
     });
 

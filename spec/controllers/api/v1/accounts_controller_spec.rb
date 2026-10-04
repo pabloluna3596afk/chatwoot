@@ -312,6 +312,18 @@ RSpec.describe 'Accounts API', type: :request do
         expect(response).to conform_schema(200)
       end
 
+      it 'saves the account time zone, and rejects one that does not exist' do
+        patch "/api/v1/accounts/#{account.id}", params: { reporting_timezone: 'America/Guayaquil' },
+                                                headers: admin.create_new_auth_token, as: :json
+        expect(response).to have_http_status(:success)
+        expect(account.reload.reporting_timezone).to eq('America/Guayaquil')
+
+        patch "/api/v1/accounts/#{account.id}", params: { reporting_timezone: 'Mars/Olympus' },
+                                                headers: admin.create_new_auth_token, as: :json
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(account.reload.reporting_timezone).to eq('America/Guayaquil')
+      end
+
       it 'modifies an account' do
         patch "/api/v1/accounts/#{account.id}",
               params: params,

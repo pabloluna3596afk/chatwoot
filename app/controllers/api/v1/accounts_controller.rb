@@ -172,7 +172,7 @@ class Api::V1::AccountsController < Api::BaseController
 
   def permitted_settings_attributes
     [:auto_resolve_after, :auto_resolve_message, :auto_resolve_ignore_waiting, :audio_transcriptions, :auto_resolve_label,
-     :resolved_label_key, :business_rules_paused, {
+     :resolved_label_key, :business_rules_paused, :reporting_timezone, {
        business_rules: [:id, :preset_id, :type, :enabled, :name, { config: {} },
                         { conditions: [:attribute_key, :filter_operator, :query_operator, :custom_attribute_type,
                                        { values: [] }] }]

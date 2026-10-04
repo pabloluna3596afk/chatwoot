@@ -15,7 +15,8 @@ const NUMERIC_TYPES = new Set([
 
 export const attributeBlank = (attrs, key, type) => {
   if (type === ATTRIBUTE_TYPES.CHECKBOX || type === 'checkbox') {
-    return !(key in attrs);
+    // The backend reads nil as missing, so a key set to null counts as blank too.
+    return attrs[key] == null;
   }
   const value = attrs[key];
   if (Array.isArray(value)) return value.length === 0;

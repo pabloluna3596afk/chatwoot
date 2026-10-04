@@ -40,7 +40,9 @@ describe('#actions', () => {
     });
     it('sends correct actions if API is error', async () => {
       axios.post.mockRejectedValue({ message: 'Incorrect header' });
-      await expect(actions.create({ commit })).rejects.toThrow(Error);
+      await expect(actions.create({ commit })).rejects.toEqual({
+        message: 'Incorrect header',
+      });
       expect(commit.mock.calls).toEqual([
         [types.default.SET_AUTOMATION_UI_FLAG, { isCreating: true }],
         [types.default.SET_AUTOMATION_UI_FLAG, { isCreating: false }],
@@ -64,7 +66,7 @@ describe('#actions', () => {
       axios.patch.mockRejectedValue({ message: 'Incorrect header' });
       await expect(
         actions.update({ commit }, automationsList[0])
-      ).rejects.toThrow(Error);
+      ).rejects.toEqual({ message: 'Incorrect header' });
       expect(commit.mock.calls).toEqual([
         [types.default.SET_AUTOMATION_UI_FLAG, { isUpdating: true }],
         [types.default.SET_AUTOMATION_UI_FLAG, { isUpdating: false }],

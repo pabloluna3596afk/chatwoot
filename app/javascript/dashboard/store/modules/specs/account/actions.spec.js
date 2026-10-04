@@ -65,7 +65,7 @@ describe('#actions', () => {
       axios.patch.mockRejectedValue({ message: 'Incorrect header' });
       await expect(
         actions.update({ commit, getters }, accountData)
-      ).rejects.toThrow(Error);
+      ).rejects.toEqual({ message: 'Incorrect header' });
       expect(commit.mock.calls).toEqual([
         [types.default.SET_ACCOUNT_UI_FLAG, { isUpdating: true }],
         [types.default.SET_ACCOUNT_UI_FLAG, { isUpdating: false }],

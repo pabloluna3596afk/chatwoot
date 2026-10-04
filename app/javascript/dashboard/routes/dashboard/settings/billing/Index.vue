@@ -225,7 +225,11 @@ onMounted(handleBillingPageLogic);
     :no-records-found="
       !hasABillingPlan && !isWaitingForBilling && !currencySelectionRequired
     "
-    :no-records-message="$t('BILLING_SETTINGS.NO_BILLING_USER')"
+    :no-records-message="
+      isOnChatwootCloud
+        ? $t('BILLING_SETTINGS.NO_BILLING_USER')
+        : $t('BILLING_SETTINGS.NO_PLAN_ASSIGNED')
+    "
   >
     <template #header>
       <BaseSettingsHeader

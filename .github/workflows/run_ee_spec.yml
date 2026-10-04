@@ -74,6 +74,7 @@ jobs:
           # Core specs of ChatHub changes, by file: "Run Chatwoot CE spec" is disabled and the directories around them
           # (spec/services/whatsapp, spec/controllers) have failures that are not ours.
           SPEC_FILES+=(
+            spec/controllers/api/v1/accounts_controller_spec.rb
             spec/controllers/api/v1/accounts/contacts/calendar_events_controller_spec.rb
             spec/controllers/api/v1/accounts/integrations/calendar_panel_ai_spec.rb
             spec/controllers/api/v1/accounts/inbox_whatsapp_template_media_controller_spec.rb
@@ -126,3 +127,23 @@ jobs:
         run: |
           git fetch origin develop
           bundle exec ruby .github/scripts/rubocop_changed_lines.rb origin/develop
+
+  # The dashboard (Vue) specs. Nothing else in this repo runs vitest.
+  frontend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: Install pnpm dependencies
+        run: pnpm i
+
+      - name: Run vitest
+        run: pnpm test
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
