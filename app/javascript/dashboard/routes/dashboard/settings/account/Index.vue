@@ -17,6 +17,11 @@ import AccountDelete from './components/AccountDelete.vue';
 import AudioTranscription from './components/AudioTranscription.vue';
 import ResolvedStatusLabel from './components/ResolvedStatusLabel.vue';
 import SectionLayout from './components/SectionLayout.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import {
+  DEFAULT_ACCOUNT_TIMEZONE,
+  accountTimeZoneOptions,
+} from 'dashboard/helper/timeZoneOptions';
 
 export default {
   components: {
@@ -30,6 +35,7 @@ export default {
     SectionLayout,
     WithLabel,
     NextInput,
+    ComboBox,
   },
   setup() {
     const { updateUISettings, uiSettings } = useUISettings();
@@ -46,6 +52,7 @@ export default {
       locale: 'en',
       domain: '',
       supportEmail: '',
+      reportingTimezone: DEFAULT_ACCOUNT_TIMEZONE,
       features: {},
     };
   },
@@ -95,6 +102,9 @@ export default {
     currentAccount() {
       return this.getAccount(this.accountId) || {};
     },
+    timeZoneOptions() {
+      return accountTimeZoneOptions(this.reportingTimezone);
+    },
   },
   watch: {
     'currentAccount.id'(id) {
@@ -112,7 +122,7 @@ export default {
   methods: {
     async initializeAccount() {
       try {
-        const { name, locale, id, domain, support_email, features } =
+        const { name, locale, id, domain, support_email, features, settings } =
           this.getAccount(this.accountId);
 
         const effectiveLocale = this.uiSettings?.locale || locale;
@@ -124,6 +134,8 @@ export default {
         this.id = id;
         this.domain = domain;
         this.supportEmail = support_email;
+        this.reportingTimezone =
+          settings?.reporting_timezone || DEFAULT_ACCOUNT_TIMEZONE;
         this.features = features;
       } catch (error) {
         // Ignore error
@@ -142,6 +154,7 @@ export default {
           name: this.name,
           domain: this.domain,
           support_email: this.supportEmail,
+          reporting_timezone: this.reportingTimezone,
         });
         // If user locale is set, update the locale with user locale
         const updatedLocale = this.uiSettings?.locale || this.locale;
@@ -201,6 +214,20 @@ export default {
                 {{ lang.name }}
               </option>
             </select>
+          </WithLabel>
+          <WithLabel
+            name="reporting-timezone"
+            :label="$t('GENERAL_SETTINGS.FORM.TIMEZONE.LABEL')"
+          >
+            <ComboBox
+              v-model="reportingTimezone"
+              :options="timeZoneOptions"
+              :placeholder="$t('GENERAL_SETTINGS.FORM.TIMEZONE.LABEL')"
+              class="[&>div>button]:!bg-n-alpha-black2"
+            />
+            <template #help>
+              {{ $t('GENERAL_SETTINGS.FORM.TIMEZONE.NOTE') }}
+            </template>
           </WithLabel>
           <WithLabel
             v-if="featureCustomReplyDomainEnabled"

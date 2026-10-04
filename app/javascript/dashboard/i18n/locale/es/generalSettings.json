@@ -82,6 +82,10 @@
         "PLACEHOLDER": "Tu nombre de cuenta",
         "ERROR": ""
       },
+      "TIMEZONE": {
+        "LABEL": "Zona horaria",
+        "NOTE": "La usan las citas del calendario, Captain y los reportes. Por defecto: America/Guayaquil."
+      },
       "DOMAIN": {
         "LABEL": "Dominio",
         "PLACEHOLDER": "El dominio donde recibirá los emails",

@@ -82,6 +82,10 @@
         "PLACEHOLDER": "Your account name",
         "ERROR": ""
       },
+      "TIMEZONE": {
+        "LABEL": "Time zone",
+        "NOTE": "Used by calendar appointments, Captain and reports. Default: America/Guayaquil."
+      },
       "DOMAIN": {
         "LABEL": "Incoming Email Domain",
         "PLACEHOLDER": "The domain where you will receive the emails",
