@@ -7,7 +7,7 @@ RSpec.describe 'Data Imports API', type: :request do
   let(:freshdesk_validator) { instance_double(DataImports::Freshdesk::CredentialsValidator, perform: {}) }
 
   before do
-    account.enable_features!('data_import')
+    account.enable_features!('data_import', 'customer_data_export')
     allow(DataImports::Intercom::CredentialsValidator).to receive(:new).and_return(validator)
     allow(DataImports::Freshdesk::CredentialsValidator).to receive(:new).and_return(freshdesk_validator)
   end

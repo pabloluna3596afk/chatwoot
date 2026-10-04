@@ -240,6 +240,8 @@ RSpec.describe 'Contacts API', type: :request do
     context 'when it is an authenticated user' do
       let(:admin) { create(:user, account: account, role: :administrator) }
 
+      before { account.enable_features!('customer_data_export') }
+
       it 'enqueues a contact export job' do
         expect(Account::ContactsExportJob).to receive(:perform_later).with(account.id, admin.id, nil,
                                                                            { :payload => nil, :label => nil, :export_format => nil }).once
