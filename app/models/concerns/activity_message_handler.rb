@@ -10,12 +10,24 @@ module ActivityMessageHandler
   private
 
   def create_activity
-    user_name = determine_user_name
+    with_account_locale do
+      user_name = determine_user_name
 
-    handle_status_change(user_name)
-    handle_priority_change(user_name)
-    handle_label_change(user_name)
-    handle_sla_policy_change(user_name)
+      handle_status_change(user_name)
+      handle_priority_change(user_name)
+      handle_label_change(user_name)
+      handle_sla_policy_change(user_name)
+    end
+  end
+
+  # The activity text is written once, when the event happens, and everyone reads it afterwards: it is worded in the
+  # language of the account. Jobs and webhooks run in the default locale (English), not in the account's.
+  def with_account_locale(&)
+    code = account&.locale.to_s
+    available = I18n.available_locales.map(&:to_s)
+    locale = [code, code.split('_').first].find { |candidate| available.include?(candidate) }
+
+    locale ? I18n.with_locale(locale, &) : yield
   end
 
   def determine_user_name
@@ -159,7 +171,7 @@ module ActivityMessageHandler
   def create_mute_change_activity(change_type)
     return unless Current.user
 
-    content = I18n.t("conversations.activity.#{change_type}", user_name: Current.user.name)
+    content = with_account_locale { I18n.t("conversations.activity.#{change_type}", user_name: Current.user.name) }
     ::Conversations::ActivityMessageJob.perform_later(self, activity_message_params(content)) if content
   end
 end
