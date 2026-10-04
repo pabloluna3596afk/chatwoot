@@ -26,8 +26,8 @@ RSpec.describe Macros::ExecutionService, type: :service do
       it 'executes the actions' do
         expect(service).to receive(:assign_agent).with(['self']).and_call_original
         expect(service).to receive(:add_private_note).with(['Test note']).and_call_original
-        expect(service).to receive(:send_message).with(['Test message']).and_call_original
-        expect(service).to receive(:send_attachment).with([1, 2]).and_call_original
+        expect(service).to receive(:send_message).with(['Test message'], nil).and_call_original
+        expect(service).to receive(:send_attachment).with([1, 2], nil).and_call_original
 
         service.perform
       end

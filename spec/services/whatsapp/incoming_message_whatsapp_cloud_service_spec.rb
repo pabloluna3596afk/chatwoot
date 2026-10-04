@@ -141,7 +141,7 @@ describe Whatsapp::IncomingMessageWhatsappCloudService do
         flow_response = message.content_attributes['whatsapp_flow_response']
 
         expect(message).to have_attributes(
-          content: 'Submitted a flow response',
+          content: a_string_starting_with('Formulario completado'),
           content_type: 'text',
           message_type: 'incoming',
           source_id: 'wamid.flow-response-message'
@@ -167,7 +167,7 @@ describe Whatsapp::IncomingMessageWhatsappCloudService do
 
           message = whatsapp_channel.inbox.messages.last
 
-          expect(message.content).to eq('Submitted a flow response')
+          expect(message.content).to eq('Formulario completado.')
           expect(message.content_attributes.dig('whatsapp_flow_response', 'response_json')).to eq('{invalid-json')
           expect(message.webhook_data[:content_attributes].dig('whatsapp_flow_response', 'response_json')).to eq('{invalid-json')
         end
@@ -181,7 +181,7 @@ describe Whatsapp::IncomingMessageWhatsappCloudService do
 
           message = whatsapp_channel.inbox.messages.last
 
-          expect(message.content).to eq('Submitted a flow response')
+          expect(message.content).to eq('Formulario completado.')
           expect(message.content_attributes['whatsapp_flow_response']).to eq(
             'name' => 'flow',
             'body' => 'Sent'

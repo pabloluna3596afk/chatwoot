@@ -83,7 +83,8 @@ RSpec.describe Campaign do
     let!(:campaign) { create(:campaign, account: account, inbox: web_widget.inbox, campaign_status: :completed, trigger_rules: { url: 'https://test.com' }) }
 
     it 'would prevent further updates' do
-      campaign.title = 'new name'
+      # Renaming and recolouring a completed campaign is allowed (badge display only); other changes are not.
+      campaign.message = 'new message'
       expect(campaign.save).to be false
       expect(campaign.errors.full_messages.first).to eq 'Status The campaign is already completed'
     end
