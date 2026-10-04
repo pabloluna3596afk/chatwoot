@@ -35,7 +35,7 @@ describe('TemplateCard', () => {
     });
 
     expect(wrapper.get('[data-testid="template-category"]').text()).toContain(
-      'MARKETING'
+      'Marketing'
     );
   });
 
