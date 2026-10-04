@@ -6,9 +6,12 @@ import { vOnClickOutside } from '@vueuse/components';
 
 import { useAlert } from 'dashboard/composables';
 import { useStore } from 'dashboard/composables/store';
+import { usePolicy } from 'dashboard/composables/usePolicy';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import { useWhatsAppTemplateSync } from 'dashboard/composables/useWhatsAppTemplateSync';
 import InboxesAPI from 'dashboard/api/inboxes';
+import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
+import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
@@ -16,6 +19,8 @@ import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import TemplateCard from './TemplateCard.vue';
 import TemplatePreviewDrawer from './TemplatePreviewDrawer.vue';
+import TemplateFormDrawer from './TemplateFormDrawer.vue';
+import { isEditable } from './templateForm';
 import {
   formatTemplateDate,
   formatTemplateLanguage,
@@ -35,8 +40,21 @@ const FUZZY_SEARCH_KEYS = [
 const store = useStore();
 const { t } = useI18n();
 
+const { checkPermissions } = usePolicy();
 const { isSyncing, canSync, whatsappInboxes, syncTemplates } =
   useWhatsAppTemplateSync();
+
+// Templates are managed (created, edited, deleted) only by administrators, only on WhatsApp Cloud channels.
+const isAdmin = computed(() => checkPermissions(['administrator']));
+const cloudInboxes = computed(() =>
+  whatsappInboxes.value.filter(inbox => inbox.provider === 'whatsapp_cloud')
+);
+const cloudInboxFor = template =>
+  cloudInboxes.value.find(inbox =>
+    template.inboxes.some(owner => owner.id === inbox.id)
+  );
+const canManage = template => isAdmin.value && Boolean(cloudInboxFor(template));
+const canEdit = template => canManage(template) && isEditable(template);
 
 const templates = ref([]);
 const searchQuery = ref('');
@@ -46,6 +64,10 @@ const selectedType = ref('all');
 const selectedTemplate = ref(null);
 const openFilterMenu = ref(null);
 const previewPanelRef = ref(null);
+const formDrawerRef = ref(null);
+const deleteDialogRef = ref(null);
+const templateToDelete = ref(null);
+const isDeleting = ref(false);
 const templateRecordsByInboxId = new Map();
 const lastSyncAttemptsByInboxId = ref({});
 const {
@@ -161,6 +183,13 @@ const toggleFilterMenu = key => {
 const openPreview = template => {
   selectedTemplate.value = template;
   previewPanelRef.value?.open();
+};
+
+const openCreate = () => formDrawerRef.value?.open();
+const openEdit = template => formDrawerRef.value?.open(template);
+const askDelete = template => {
+  templateToDelete.value = template;
+  deleteDialogRef.value?.open();
 };
 
 const handleFilterAction = ({ action, value }) => {
@@ -291,6 +320,31 @@ const fetchTemplates = async () => {
   }
 };
 
+const confirmDelete = async () => {
+  const template = templateToDelete.value;
+  const inbox = template && cloudInboxFor(template);
+  if (!inbox) return;
+
+  isDeleting.value = true;
+  try {
+    await WhatsappTemplatesAPI.deleteTemplate(
+      inbox.id,
+      template.id,
+      template.name
+    );
+    useAlert(t('WHATSAPP_TEMPLATE_MGMT.DELETE_DIALOG.DELETED'));
+    deleteDialogRef.value?.close();
+    await fetchTemplates();
+  } catch (error) {
+    useAlert(
+      error?.response?.data?.message ||
+        t('WHATSAPP_TEMPLATE_MGMT.DELETE_DIALOG.ERROR')
+    );
+  } finally {
+    isDeleting.value = false;
+  }
+};
+
 onActivated(fetchTemplates);
 onDeactivated(abortTemplateRequest);
 </script>
@@ -359,6 +413,14 @@ onDeactivated(abortTemplateRequest);
         </template>
         <template #actions>
           <Button
+            v-if="isAdmin && cloudInboxes.length"
+            :label="$t('WHATSAPP_TEMPLATE_MGMT.NEW_TEMPLATE')"
+            icon="i-lucide-plus"
+            size="sm"
+            data-testid="template-new"
+            @click="openCreate"
+          />
+          <Button
             :label="$t('WHATSAPP_TEMPLATE_MGMT.SYNC_TEMPLATES')"
             icon="i-lucide-refresh-cw"
             color="slate"
@@ -386,11 +448,44 @@ onDeactivated(abortTemplateRequest);
           v-for="template in filteredTemplates"
           :key="template.key"
           :template="template"
+          :can-manage="canManage(template)"
+          :can-edit="canEdit(template)"
           @preview="openPreview(template)"
+          @edit="openEdit(template)"
+          @delete="askDelete(template)"
         />
       </div>
     </template>
 
     <TemplatePreviewDrawer ref="previewPanelRef" :template="selectedTemplate" />
+    <TemplateFormDrawer
+      v-if="isAdmin"
+      ref="formDrawerRef"
+      :inboxes="cloudInboxes"
+      @saved="fetchTemplates"
+    />
+    <Dialog
+      v-if="isAdmin"
+      ref="deleteDialogRef"
+      type="alert"
+      :title="$t('WHATSAPP_TEMPLATE_MGMT.DELETE_DIALOG.TITLE')"
+      :confirm-button-label="$t('WHATSAPP_TEMPLATE_MGMT.DELETE_DIALOG.CONFIRM')"
+      :is-loading="isDeleting"
+      @confirm="confirmDelete"
+    >
+      <div v-if="templateToDelete" class="grid gap-3 text-sm text-n-slate-11">
+        <p>
+          {{
+            $t('WHATSAPP_TEMPLATE_MGMT.DELETE_DIALOG.DESCRIPTION', {
+              name: templateToDelete.name,
+              language: formatTemplateLanguage(templateToDelete.language),
+            })
+          }}
+        </p>
+        <p class="text-n-amber-11">
+          {{ $t('WHATSAPP_TEMPLATE_MGMT.DELETE_DIALOG.LOCK_NOTE') }}
+        </p>
+      </div>
+    </Dialog>
   </SettingsLayout>
 </template>

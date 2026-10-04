@@ -1,7 +1,7 @@
 {
   "WHATSAPP_TEMPLATE_MGMT": {
     "TITLE": "Templates",
-    "DESCRIPTION": "View the message templates synced from your WhatsApp inboxes. To create or edit a template, manage it with your provider.",
+    "DESCRIPTION": "View the message templates of your WhatsApp inboxes. Administrators can create, edit and delete templates on WhatsApp Cloud channels.",
     "COUNT": "{n} template | {n} templates",
     "LEARN_MORE": "Learn more about WhatsApp templates",
     "SYNC_TEMPLATES": "Sync templates",
@@ -48,6 +48,128 @@
       "CATEGORY": "Category",
       "LANGUAGE": "Language",
       "INBOXES": "Inboxes"
+    },
+    "NEW_TEMPLATE": "New template",
+    "EDIT": "Edit template",
+    "DELETE": "Delete template",
+    "NO_CLOUD_CHANNEL": "You need a WhatsApp Cloud channel to create templates.",
+    "STATUS": {
+      "PENDING": "In review",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected",
+      "PAUSED": "Paused",
+      "DISABLED": "Disabled",
+      "IN_APPEAL": "In appeal",
+      "FLAGGED": "Flagged",
+      "LIMIT_EXCEEDED": "Limit exceeded"
+    },
+    "FORM": {
+      "NEW_TITLE": "New WhatsApp template",
+      "EDIT_TITLE": "Edit template",
+      "DESCRIPTION": "Meta reviews every template before it can be used. The preview updates as you type.",
+      "STATUS": "Status in Meta:",
+      "REJECTED_REASON": "Rejection reason: {reason}",
+      "CANNOT_EDIT_NOW": "Meta only allows editing approved, rejected or paused templates. Wait for the review to finish.",
+      "CHANNEL": "WhatsApp channel",
+      "CHANNEL_PLACEHOLDER": "Choose a channel",
+      "NAME": "Name",
+      "NAME_PLACEHOLDER": "appointment_reminder",
+      "NAME_SAVED_AS": "Saved as: {name}",
+      "LANGUAGE": "Language",
+      "LANGUAGES": {
+        "es": "Spanish",
+        "es_MX": "Spanish (Mexico)",
+        "es_AR": "Spanish (Argentina)",
+        "es_ES": "Spanish (Spain)",
+        "en": "English",
+        "en_US": "English (United States)",
+        "pt_BR": "Portuguese (Brazil)"
+      },
+      "CATEGORY": "Category",
+      "CATEGORIES": {
+        "UTILITY": {
+          "LABEL": "Utility",
+          "HELP": "Confirmations, reminders and notices about something the customer already did or asked for."
+        },
+        "MARKETING": {
+          "LABEL": "Marketing",
+          "HELP": "Promotions, news and re-engagement. Meta usually charges more per message. Meta may change the category when it reviews."
+        }
+      },
+      "CATEGORY_LOCKED": "An approved template cannot change category.",
+      "HEADER": "Header (optional)",
+      "HEADER_FORMATS": {
+        "NONE": "No header",
+        "TEXT": "Text",
+        "IMAGE": "Image",
+        "VIDEO": "Video",
+        "DOCUMENT": "Document"
+      },
+      "MEDIA_HEADER_UNAVAILABLE": "Image, video or document headers are not available on this channel from ChatHub. You can use a text header.",
+      "HEADER_TEXT": "Header text",
+      "EXAMPLE_FOR": "Example for variable {n}",
+      "UPLOAD_EXAMPLE": "Upload example file",
+      "BODY": "Message body",
+      "BODY_PLACEHOLDER": "Hi, a reminder of your appointment tomorrow.",
+      "ADD_VARIABLE": "Add variable",
+      "FOOTER": "Footer (optional)",
+      "FOOTER_PLACEHOLDER": "Thanks for choosing us",
+      "BUTTONS": "Buttons (optional)",
+      "BUTTON_TYPES": {
+        "QUICK_REPLY": "Quick reply",
+        "URL": "Link",
+        "PHONE_NUMBER": "Call"
+      },
+      "BUTTON_TEXT": "Button text",
+      "URL_EXAMPLE": "Example of the full URL",
+      "REMOVE_BUTTON": "Remove button",
+      "RULES": {
+        "TITLE": "Meta rules",
+        "REVIEW": "Every new or edited template goes back to review before it can be used.",
+        "EDIT_LIMITS": "An approved template can be edited up to 10 times in 30 days and once every 24 hours.",
+        "CATEGORY": "The category cannot be changed once the template is approved.",
+        "DELETE_LOCK": "When you delete it, the name and language stay locked for 30 days.",
+        "LIMIT": "There is a limit of 250 templates per account while the business is not verified."
+      },
+      "CANCEL": "Cancel",
+      "CREATE": "Create template",
+      "SAVE_CHANGES": "Save changes",
+      "CREATED": "Template sent to Meta for review.",
+      "UPDATED": "Changes sent to Meta for review.",
+      "SAVE_ERROR": "The template could not be saved. Please try again.",
+      "ERRORS": {
+        "CHANNEL_REQUIRED": "Choose a WhatsApp channel.",
+        "NAME_INVALID": "The name can only contain lowercase letters, numbers and underscores.",
+        "LANGUAGE_REQUIRED": "Choose a language.",
+        "CATEGORY_INVALID": "Choose Utility or Marketing.",
+        "HEADER_TEXT_REQUIRED": "Enter the header text.",
+        "HEADER_TEXT_TOO_LONG": "The header can have up to {headerLimit} characters.",
+        "HEADER_ONE_VARIABLE": "The header supports a single variable: {variable}.",
+        "EXAMPLE_REQUIRED": "Every variable needs an example.",
+        "HEADER_MEDIA_REQUIRED": "Upload the example file for the header.",
+        "BODY_REQUIRED": "Enter the message body.",
+        "BODY_TOO_LONG": "The body can have up to {bodyLimit} characters.",
+        "VARIABLES_NOT_SEQUENTIAL": "Variables must be in order: {sequence}",
+        "VARIABLE_AT_EDGE": "The body cannot start or end with a variable.",
+        "FOOTER_TOO_LONG": "The footer can have up to {footerLimit} characters.",
+        "FOOTER_NO_VARIABLES": "The footer does not support variables.",
+        "BUTTON_TEXT_REQUIRED": "Every button needs a text.",
+        "BUTTON_TEXT_TOO_LONG": "A button text can have up to {buttonLimit} characters.",
+        "URL_INVALID": "The URL must start with http:// or https://.",
+        "URL_VARIABLE_AT_END": "The URL only supports one {variable} variable, at the end.",
+        "PHONE_INVALID": "The phone must look like +593999999999.",
+        "TOO_MANY_BUTTONS": "You can add up to {buttonsLimit} buttons.",
+        "TOO_MANY_URL_BUTTONS": "You can add up to {urlLimit} link buttons.",
+        "TOO_MANY_PHONE_BUTTONS": "You can add only {phoneLimit} call button."
+      }
+    },
+    "DELETE_DIALOG": {
+      "TITLE": "Delete template",
+      "DESCRIPTION": "Delete the template {name} ({language})? It is deleted only in that language; the other versions of the same name are kept.",
+      "LOCK_NOTE": "Meta locks that name and language for 30 days: you will not be able to create the same template until then.",
+      "CONFIRM": "Delete",
+      "DELETED": "Template deleted.",
+      "ERROR": "The template could not be deleted. Please try again."
     }
   }
 }
