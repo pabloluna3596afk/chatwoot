@@ -554,7 +554,12 @@
         "CONFIRMED": "Confirmed",
         "CANCELLED": "Cancelled",
         "RESCHEDULED": "Rescheduled"
-      }
+      },
+      "UPCOMING": "Upcoming",
+      "PAST": "Past",
+      "PAST_BADGE": "Past",
+      "NEXT": "Next appointment",
+      "CREATED_BY": "Created by {name}"
     },
     "SHARED_FILES": {
       "EMPTY": "No attachments yet",

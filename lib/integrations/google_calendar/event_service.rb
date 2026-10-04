@@ -126,6 +126,7 @@ class Integrations::GoogleCalendar::EventService
       connection_id: record.calendar_connection_id,
       calendar_id: record.external_calendar_id,
       created_by: record.created_by && { id: record.created_by.id, name: record.created_by.name },
+      creator: creator_payload(record),
       updated_by: record.updated_by && { id: record.updated_by.id, name: record.updated_by.name },
       deleted_by: record.deleted_by && { id: record.deleted_by.id, name: record.deleted_by.name },
       contact: record.contact && { id: record.contact.id, name: record.contact.name, email: record.contact.email },
@@ -135,6 +136,20 @@ class Integrations::GoogleCalendar::EventService
       booking_source: record.booking_source.presence || 'manual',
       activities: serialize_activities(record)
     }
+  end
+
+  # Who made the appointment, for the avatar the panels show: the assistant (with its photo) for what Captain booked,
+  # the person otherwise.
+  def self.creator_payload(record)
+    return if record.blank?
+
+    if record.ai_booked?
+      assistant = record.conversation&.inbox&.try(:captain_assistant)
+      return { type: 'captain', name: assistant&.name || 'Captain', thumbnail: assistant&.avatar_or_default_url }
+    end
+
+    person = record.created_by
+    person && { type: 'user', id: person.id, name: person.name, thumbnail: person.avatar_url }
   end
 
   def self.serialize_activities(record)
@@ -623,6 +638,7 @@ class Integrations::GoogleCalendar::EventService
       deleted: record&.discarded? || false,
       deleted_note: self.class.deleted_note_for(record),
       created_by: user_payload(record&.created_by),
+      creator: self.class.creator_payload(record),
       updated_by: user_payload(record&.updated_by),
       deleted_by: user_payload(record&.deleted_by),
       contact: contact_payload(record&.contact),

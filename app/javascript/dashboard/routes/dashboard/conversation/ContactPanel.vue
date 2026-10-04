@@ -27,6 +27,7 @@ import LinearIssuesList from 'dashboard/components/widgets/conversation/linear/I
 import LinearSetupCTA from 'dashboard/components/widgets/conversation/linear/LinearSetupCTA.vue';
 import ConversationTasksPanel from 'dashboard/components-next/InternalTasks/ConversationTasksPanel.vue';
 import CalendarEventsList from 'dashboard/components/widgets/conversation/CalendarEventsList.vue';
+import NextAppointmentCard from 'dashboard/components/widgets/conversation/NextAppointmentCard.vue';
 
 const props = defineProps({
   conversationId: {
@@ -196,6 +197,10 @@ onMounted(() => {
     </SidebarActionsHeader>
     <div class="flex-1 min-h-0 overflow-y-auto">
       <ContactInfo :contact="contact" :channel-type="channelType" />
+      <NextAppointmentCard
+        v-if="isCalendarConnected && contact.id"
+        :contact-id="contact.id"
+      />
       <div class="px-3 pb-6 list-group">
         <div
           v-if="!hasVisibleItems"

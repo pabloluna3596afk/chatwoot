@@ -362,4 +362,29 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
       expect(service.list_by_contact(contact_id: contact.id).pluck(:id)).to eq(service.list_for_contact(contact_id: contact.id).pluck(:id))
     end
   end
+
+  describe '.creator_payload' do
+    let(:assistant) { create(:captain_assistant, account: account) }
+    let(:conversation) { create(:conversation, account: account) }
+
+    before { create(:captain_inbox, captain_assistant: assistant, inbox: conversation.inbox) }
+
+    it 'is the assistant with its photo for what Captain booked' do
+      record = local_event(booking_source: 'ai', conversation: conversation)
+
+      expect(described_class.creator_payload(record)).to include(type: 'captain', name: assistant.name, thumbnail: assistant.avatar_or_default_url)
+    end
+
+    it 'is the person for what a person created, and nothing without a creator' do
+      expect(described_class.creator_payload(local_event(created_by: user))).to include(type: 'user', id: user.id, name: user.name)
+      expect(described_class.creator_payload(local_event)).to be_nil
+    end
+
+    it 'goes in the payload of the event' do
+      payload = described_class.payload_from_record(local_event(created_by: user))
+
+      expect(payload[:creator]).to include(type: 'user', name: user.name)
+    end
+  end
+
 end
