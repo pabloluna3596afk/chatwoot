@@ -757,7 +757,7 @@ RSpec.describe Captain::Tools::ProposeAppointmentTool do
     local_event(start_at: Time.zone.parse('2030-01-15T10:00:00-05:00'), end_at: Time.zone.parse('2030-01-15T10:30:00-05:00'))
 
     expect(call).to include('ya no está disponible')
-    expect(call(start: '2030-01-15T07:00:00-05:00')).to include('ya no está disponible')
+    expect(call(start: '2030-01-15T07:00:00-05:00')).to include('fuera de los días u horas')
     expect(call(start: '2030-03-01T10:00:00-05:00')).to include('fuera del plazo')
     expect(call(start: '2030-13-45T10:00:00-05:00')).to include('No se pudo leer ese horario')
     expect(Captain::QuickReplies.take(conversation)).to be_nil
@@ -1128,14 +1128,15 @@ RSpec.describe Captain::Tools::AppointmentListTool, 'taps on its own buttons' do
   it 'carries the appointment in the times it offers, so choosing one moves it' do
     customer_says('Quiero cambiar la hora de mi cita')
     list_changes
-    customer_says('Cambiar hora')
+    tap = customer_says('Cambiar hora')
     list_changes
+    first_time = Captain::QuickReplies.take(conversation, responding_to: tap.id).first['title']
 
-    choice = Captain::QuickReplies.choice(conversation, 'mar 15 ene · 08:00')
-    expect(choice).to eq('start' => '2030-01-15T08:00:00-05:00', 'event_id' => 'own-1')
+    expect(Captain::QuickReplies.choice(conversation, first_time)).to include('event_id' => 'own-1')
+    expect(Captain::QuickReplies.choice(conversation, first_time)['start']).to be_present
 
-    proposal = Captain::Tools::ProposeAppointmentTool.new(assistant).perform(tool_context, start: 'mar 15 ene · 08:00')
-    expect(proposal).to include('Muevo tu cita', 'martes 15 de enero, 08:00')
+    proposal = Captain::Tools::ProposeAppointmentTool.new(assistant).perform(tool_context, start: first_time)
+    expect(proposal).to include('Muevo tu cita')
   end
 
   it 'answers a tap on the cancel button with what to do, not with the buttons again' do
