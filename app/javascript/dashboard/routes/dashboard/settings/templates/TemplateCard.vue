@@ -16,19 +16,33 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  // Administrators of a WhatsApp Cloud template can edit and delete it from here.
+  canManage: {
+    type: Boolean,
+    default: false,
+  },
+  canEdit: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(['preview']);
-const { t } = useI18n();
+const emit = defineEmits(['preview', 'edit', 'delete']);
+const { t, te } = useI18n();
 
 const showStatus = computed(
   () => props.template.status?.toLowerCase() !== 'approved'
 );
-const statusLabel = computed(() =>
-  props.template.status?.toLowerCase() === 'unsubmitted'
-    ? t('WHATSAPP_TEMPLATE_MGMT.STATUSES.UNSUBMITTED')
-    : formatTemplateLabel(props.template.status)
+const statusKey = computed(() =>
+  String(props.template.status || '').toUpperCase()
 );
+const statusLabel = computed(() => {
+  if (props.template.status?.toLowerCase() === 'unsubmitted')
+    return t('WHATSAPP_TEMPLATE_MGMT.STATUSES.UNSUBMITTED');
+  return te(`WHATSAPP_TEMPLATE_MGMT.STATUS.${statusKey.value}`)
+    ? t(`WHATSAPP_TEMPLATE_MGMT.STATUS.${statusKey.value}`)
+    : formatTemplateLabel(props.template.status);
+});
 </script>
 
 <template>
@@ -77,16 +91,37 @@ const statusLabel = computed(() =>
         </div>
       </div>
     </div>
-    <Button
-      v-tooltip.top="$t('WHATSAPP_TEMPLATE_MGMT.PREVIEW.TITLE')"
-      icon="i-lucide-eye"
-      color="slate"
-      size="sm"
-      class="shrink-0"
-      :aria-label="
-        $t('WHATSAPP_TEMPLATE_MGMT.PREVIEW.OPEN', { name: template.name })
-      "
-      @click.stop="emit('preview')"
-    />
+    <div class="flex items-center gap-1 shrink-0">
+      <Button
+        v-if="canManage && canEdit"
+        v-tooltip.top="$t('WHATSAPP_TEMPLATE_MGMT.EDIT')"
+        icon="i-lucide-pencil"
+        color="slate"
+        size="sm"
+        data-testid="template-edit"
+        :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.EDIT')"
+        @click.stop="emit('edit')"
+      />
+      <Button
+        v-if="canManage"
+        v-tooltip.top="$t('WHATSAPP_TEMPLATE_MGMT.DELETE')"
+        icon="i-lucide-trash-2"
+        color="ruby"
+        size="sm"
+        data-testid="template-delete"
+        :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.DELETE')"
+        @click.stop="emit('delete')"
+      />
+      <Button
+        v-tooltip.top="$t('WHATSAPP_TEMPLATE_MGMT.PREVIEW.TITLE')"
+        icon="i-lucide-eye"
+        color="slate"
+        size="sm"
+        :aria-label="
+          $t('WHATSAPP_TEMPLATE_MGMT.PREVIEW.OPEN', { name: template.name })
+        "
+        @click.stop="emit('preview')"
+      />
+    </div>
   </div>
 </template>

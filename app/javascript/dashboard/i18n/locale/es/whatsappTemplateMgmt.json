@@ -1,7 +1,7 @@
 {
   "WHATSAPP_TEMPLATE_MGMT": {
     "TITLE": "Plantillas",
-    "DESCRIPTION": "Consulta las plantillas de mensajes sincronizadas desde tus bandejas de entrada de WhatsApp. Para crear o editar una plantilla, gestiónala con tu proveedor.",
+    "DESCRIPTION": "Consulta las plantillas de mensajes de tus bandejas de WhatsApp. Los administradores pueden crear, editar y borrar plantillas en canales de WhatsApp Cloud.",
     "COUNT": "{n} plantilla | {n} plantillas",
     "SYNC_TEMPLATES": "Sincronizar plantillas",
     "SYNC_SUCCESS": "Se inició la sincronización de plantillas en todas las bandejas de WhatsApp. Puede tardar un par de minutos.",
@@ -48,6 +48,128 @@
     "LEARN_MORE": "Aprenda más sobre las plantillas de WhatsApp",
     "STATUSES": {
       "UNSUBMITTED": "No enviado para aprobación de WhatsApp"
+    },
+    "NEW_TEMPLATE": "Nueva plantilla",
+    "EDIT": "Editar plantilla",
+    "DELETE": "Borrar plantilla",
+    "NO_CLOUD_CHANNEL": "Para crear plantillas necesitas un canal de WhatsApp Cloud.",
+    "STATUS": {
+      "PENDING": "En revisión",
+      "APPROVED": "Aprobada",
+      "REJECTED": "Rechazada",
+      "PAUSED": "Pausada",
+      "DISABLED": "Desactivada",
+      "IN_APPEAL": "En apelación",
+      "FLAGGED": "Marcada",
+      "LIMIT_EXCEEDED": "Límite excedido"
+    },
+    "FORM": {
+      "NEW_TITLE": "Nueva plantilla de WhatsApp",
+      "EDIT_TITLE": "Editar plantilla",
+      "DESCRIPTION": "Meta revisa cada plantilla antes de que se pueda usar. La vista previa se actualiza mientras escribes.",
+      "STATUS": "Estado en Meta:",
+      "REJECTED_REASON": "Motivo del rechazo: {reason}",
+      "CANNOT_EDIT_NOW": "Meta solo permite editar plantillas aprobadas, rechazadas o pausadas. Espera a que termine la revisión.",
+      "CHANNEL": "Canal de WhatsApp",
+      "CHANNEL_PLACEHOLDER": "Elige un canal",
+      "NAME": "Nombre",
+      "NAME_PLACEHOLDER": "recordatorio_de_cita",
+      "NAME_SAVED_AS": "Se guarda como: {name}",
+      "LANGUAGE": "Idioma",
+      "LANGUAGES": {
+        "es": "Español",
+        "es_MX": "Español (México)",
+        "es_AR": "Español (Argentina)",
+        "es_ES": "Español (España)",
+        "en": "Inglés",
+        "en_US": "Inglés (Estados Unidos)",
+        "pt_BR": "Portugués (Brasil)"
+      },
+      "CATEGORY": "Categoría",
+      "CATEGORIES": {
+        "UTILITY": {
+          "LABEL": "Utilidad",
+          "HELP": "Confirmaciones, recordatorios y avisos sobre algo que el cliente ya hizo o pidió."
+        },
+        "MARKETING": {
+          "LABEL": "Marketing",
+          "HELP": "Promociones, novedades y reenganche. Meta suele cobrarlo más caro por mensaje. Meta puede cambiar la categoría al revisar."
+        }
+      },
+      "CATEGORY_LOCKED": "Una plantilla aprobada no puede cambiar de categoría.",
+      "HEADER": "Encabezado (opcional)",
+      "HEADER_FORMATS": {
+        "NONE": "Sin encabezado",
+        "TEXT": "Texto",
+        "IMAGE": "Imagen",
+        "VIDEO": "Video",
+        "DOCUMENT": "Documento"
+      },
+      "MEDIA_HEADER_UNAVAILABLE": "Los encabezados con imagen, video o documento no están disponibles en este canal desde ChatHub. Puedes usar un encabezado de texto.",
+      "HEADER_TEXT": "Texto del encabezado",
+      "EXAMPLE_FOR": "Ejemplo para la variable {n}",
+      "UPLOAD_EXAMPLE": "Subir archivo de ejemplo",
+      "BODY": "Cuerpo del mensaje",
+      "BODY_PLACEHOLDER": "Hola, te recordamos tu cita de mañana.",
+      "ADD_VARIABLE": "Agregar variable",
+      "FOOTER": "Pie (opcional)",
+      "FOOTER_PLACEHOLDER": "Gracias por elegirnos",
+      "BUTTONS": "Botones (opcional)",
+      "BUTTON_TYPES": {
+        "QUICK_REPLY": "Respuesta rápida",
+        "URL": "Enlace",
+        "PHONE_NUMBER": "Llamada"
+      },
+      "BUTTON_TEXT": "Texto del botón",
+      "URL_EXAMPLE": "Ejemplo de la URL completa",
+      "REMOVE_BUTTON": "Quitar botón",
+      "RULES": {
+        "TITLE": "Reglas de Meta",
+        "REVIEW": "Cada plantilla nueva o editada vuelve a revisión antes de poder usarse.",
+        "EDIT_LIMITS": "Una plantilla aprobada se puede editar hasta 10 veces en 30 días y una vez cada 24 horas.",
+        "CATEGORY": "La categoría no se puede cambiar cuando la plantilla ya está aprobada.",
+        "DELETE_LOCK": "Al borrar, el nombre y el idioma quedan bloqueados 30 días.",
+        "LIMIT": "Hay un límite de 250 plantillas por cuenta si el negocio no está verificado."
+      },
+      "CANCEL": "Cancelar",
+      "CREATE": "Crear plantilla",
+      "SAVE_CHANGES": "Guardar cambios",
+      "CREATED": "Plantilla enviada a Meta para revisión.",
+      "UPDATED": "Cambios enviados a Meta para revisión.",
+      "SAVE_ERROR": "No se pudo guardar la plantilla. Inténtalo de nuevo.",
+      "ERRORS": {
+        "CHANNEL_REQUIRED": "Elige un canal de WhatsApp.",
+        "NAME_INVALID": "El nombre solo puede tener minúsculas, números y guion bajo.",
+        "LANGUAGE_REQUIRED": "Elige un idioma.",
+        "CATEGORY_INVALID": "Elige Utilidad o Marketing.",
+        "HEADER_TEXT_REQUIRED": "Escribe el texto del encabezado.",
+        "HEADER_TEXT_TOO_LONG": "El encabezado puede tener hasta {headerLimit} caracteres.",
+        "HEADER_ONE_VARIABLE": "El encabezado admite una sola variable: {variable}.",
+        "EXAMPLE_REQUIRED": "Cada variable necesita un ejemplo.",
+        "HEADER_MEDIA_REQUIRED": "Sube el archivo de ejemplo del encabezado.",
+        "BODY_REQUIRED": "Escribe el cuerpo del mensaje.",
+        "BODY_TOO_LONG": "El cuerpo puede tener hasta {bodyLimit} caracteres.",
+        "VARIABLES_NOT_SEQUENTIAL": "Las variables deben ir en orden: {sequence}",
+        "VARIABLE_AT_EDGE": "El cuerpo no puede empezar ni terminar con una variable.",
+        "FOOTER_TOO_LONG": "El pie puede tener hasta {footerLimit} caracteres.",
+        "FOOTER_NO_VARIABLES": "El pie no admite variables.",
+        "BUTTON_TEXT_REQUIRED": "Cada botón necesita un texto.",
+        "BUTTON_TEXT_TOO_LONG": "El texto de un botón puede tener hasta {buttonLimit} caracteres.",
+        "URL_INVALID": "La URL debe empezar con http:// o https://.",
+        "URL_VARIABLE_AT_END": "La URL solo admite una variable {variable} y al final.",
+        "PHONE_INVALID": "El teléfono debe tener el formato +593999999999.",
+        "TOO_MANY_BUTTONS": "Puedes poner hasta {buttonsLimit} botones.",
+        "TOO_MANY_URL_BUTTONS": "Puedes poner hasta {urlLimit} botones con enlace.",
+        "TOO_MANY_PHONE_BUTTONS": "Puedes poner solo {phoneLimit} botón de llamada."
+      }
+    },
+    "DELETE_DIALOG": {
+      "TITLE": "Borrar plantilla",
+      "DESCRIPTION": "¿Borrar la plantilla {name} ({language})? Se borra solo en ese idioma; las demás versiones del mismo nombre se conservan.",
+      "LOCK_NOTE": "Meta bloquea ese nombre e idioma durante 30 días: no podrás crear otra plantilla igual hasta entonces.",
+      "CONFIRM": "Borrar",
+      "DELETED": "Plantilla borrada.",
+      "ERROR": "No se pudo borrar la plantilla. Inténtalo de nuevo."
     }
   }
 }
