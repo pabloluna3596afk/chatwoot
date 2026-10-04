@@ -64,31 +64,54 @@ module ActivityMessageHandler
   end
 
   def status_change_activity(user_name)
-    content = captain_status_change_activity_content || standard_status_change_activity_content(user_name)
+    captain_content = captain_status_change_activity_content(user_name)
+    content = captain_content || standard_status_change_activity_content(user_name)
 
     return if content.blank?
 
-    ::Conversations::ActivityMessageJob.perform_later(
-      self,
-      activity_message_params(
-        content,
-        content_attributes: {
-          activity: {
-            type: 'conversation_status_changed',
-            status: status
-          }
-        }
-      )
-    )
+    activity = { type: 'conversation_status_changed', status: status }
+    activity[:source] = captain_activity_source(user_name) if captain_content.present?
+    ::Conversations::ActivityMessageJob.perform_later(self, activity_message_params(content, content_attributes: { activity: activity }))
   end
 
-  # Captain taking a conversation, or letting it go to the team, says so in plain words instead of "marked as pending".
-  def captain_status_change_activity_content
+  # Captain taking a conversation, or letting it go to the team, says so in plain words instead of "marked as pending",
+  # and says who gave it to Captain.
+  def captain_status_change_activity_content(user_name)
     if captain_attended?
-      I18n.t('conversations.activity.status.captain_attending', assistant: ai_assignee.name)
+      I18n.t('conversations.activity.status.captain_attending', assistant: ai_assignee.name, actor: activity_actor_name(user_name))
     elsif open? && saved_change_to_captain_handed_off_at? && captain_handed_off_at.present?
-      I18n.t('conversations.activity.status.captain_handed_off', assistant: inbox.try(:captain_assistant)&.name || 'Captain')
+      I18n.t('conversations.activity.status.captain_handed_off', assistant: captain_assistant_name)
     end
+  end
+
+  def captain_assistant_name
+    inbox.try(:captain_assistant)&.name || 'Captain'
+  end
+
+  # Where a Captain activity comes from: the assistant itself when it hands the conversation over, else whoever
+  # (or whatever) assigned it.
+  def captain_activity_source(user_name)
+    return { type: 'captain', name: captain_assistant_name } if open? && captain_handed_off_at.present?
+
+    activity_source(user_name)
+  end
+
+  # Who made a change: a person, an automation rule, an assignment policy (or the inbox's default one) or the system.
+  # The activity keeps it as content_attributes.activity.source so the dashboard can show it.
+  def activity_source(user_name)
+    return { type: 'user', name: user_name } if user_name.present?
+
+    case Current.executed_by
+    when AutomationRule then { type: 'automation_rule', name: Current.executed_by.name }
+    when AssignmentPolicy then { type: 'assignment_policy', name: Current.executed_by.name }
+    when Inbox then { type: 'assignment_policy', name: I18n.t('auto_assignment.default_policy_name') }
+    else { type: 'system' }
+    end
+  end
+
+  # The same, worded for a sentence ("Pablo", "la automatización «X»", "la política de asignación «Y»", "el sistema").
+  def activity_actor_name(user_name)
+    AutomationRuleActor.activity_owner(user_name) || I18n.t('automation.system_name')
   end
 
   def standard_status_change_activity_content(user_name)

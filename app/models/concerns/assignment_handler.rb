@@ -50,6 +50,8 @@ module AssignmentHandler
         create_team_change_activity(user_name)
       elsif saved_change_to_assignee_id?
         create_assignee_change_activity(user_name)
+      elsif saved_change_to_assignee_agent_bot_id? || saved_change_to_ai_assignee_type?
+        create_ai_assignee_change_activity(user_name)
       end
     end
   end

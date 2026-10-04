@@ -318,9 +318,64 @@ RSpec.describe Conversation, type: :model do
 
       it 'says Captain is taking care of the conversation, not that it was marked pending' do
         conversation = create_conversation(account: account, inbox: inbox, status: :open)
-        content = I18n.t('conversations.activity.status.captain_attending', assistant: assistant.name)
+        content = I18n.t('conversations.activity.status.captain_attending', assistant: assistant.name,
+                                                                            actor: I18n.t('automation.system_name'))
 
         expect { conversation.update!(status: :pending, ai_assignee: assistant) }.to activity_content(conversation) { content }
+      end
+
+      it 'says who gave the conversation to Captain, and keeps the source: a person' do
+        user = create(:user, account: account, name: 'Pablo')
+        conversation = create_conversation(account: account, inbox: inbox, status: :open)
+        Current.user = user
+
+        expect { conversation.update!(status: :pending, ai_assignee: assistant) }
+          .to have_enqueued_job(Conversations::ActivityMessageJob).with(
+            conversation,
+            hash_including(content: "Pablo assigned the conversation to #{assistant.name}, who is now handling it",
+                           content_attributes: { activity: { type: 'conversation_status_changed', status: 'pending',
+                                                             source: { type: 'user', name: 'Pablo' } } })
+          )
+      ensure
+        Current.reset
+      end
+
+      it 'keeps the source when an automation rule or the assignment policy gave it to Captain' do
+        conversation = create_conversation(account: account, inbox: inbox, status: :open)
+        rule = create(:automation_rule, account: account, name: 'Derivar a Aurora')
+        Current.executed_by = rule
+
+        expect { conversation.update!(status: :pending, ai_assignee: assistant) }
+          .to have_enqueued_job(Conversations::ActivityMessageJob).with(
+            conversation,
+            hash_including(content_attributes: hash_including(
+              activity: { type: 'conversation_status_changed', status: 'pending', source: { type: 'automation_rule', name: 'Derivar a Aurora' } }
+            ))
+          )
+      ensure
+        Current.reset
+      end
+
+      it 'says it too when Captain is given a conversation that was already pending' do
+        conversation = create_conversation(account: account, inbox: inbox, status: :pending)
+
+        expect { conversation.update!(ai_assignee: assistant) }
+          .to have_enqueued_job(Conversations::ActivityMessageJob).with(
+            conversation,
+            hash_including(content: "#{I18n.t('automation.system_name')} assigned the conversation to #{assistant.name}",
+                           content_attributes: { activity: { type: 'ai_assignee_changed', source: { type: 'system' } } })
+          )
+      end
+
+      it 'words the actor in Spanish for an account in Spanish' do
+        account.update!(locale: 'es')
+        conversation = create_conversation(account: account, inbox: inbox, status: :open)
+
+        expect { conversation.update!(status: :pending, ai_assignee: assistant) }
+          .to have_enqueued_job(Conversations::ActivityMessageJob).with(
+            conversation,
+            hash_including(content: "el sistema asignó la conversación a #{assistant.name}, que ahora la atiende")
+          )
       end
 
       it 'says Captain handed the conversation over to the team' do
