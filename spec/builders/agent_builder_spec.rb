@@ -4,6 +4,7 @@ RSpec.describe AgentBuilder, type: :model do
   subject(:agent_builder) { described_class.new(params) }
 
   let(:account) { create(:account) }
+  let(:plan) { Plan.create!(name: 'Email limit plan', slug: "email-limit-#{SecureRandom.hex(4)}") }
   let!(:current_user) { create(:user, account: account) }
   let(:email) { 'test@example.com' }
   let(:name) { 'Test User' }
@@ -46,6 +47,7 @@ RSpec.describe AgentBuilder, type: :model do
 
       it 'reserves email capacity and enqueues the invitation' do
         allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(true)
+        account.update!(plan: plan)
 
         expect { agent_builder.perform }.to have_enqueued_mail(Devise::Mailer, :confirmation_instructions)
         expect(account.emails_sent_today).to eq(1)
@@ -54,7 +56,7 @@ RSpec.describe AgentBuilder, type: :model do
       context 'when the account email limit is exhausted' do
         before do
           allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(true)
-          account.update!(limits: { 'emails' => 0 })
+          account.update!(plan: plan, limits: { 'emails' => 0 })
         end
 
         it 'does not create the user or enqueue an invitation' do
