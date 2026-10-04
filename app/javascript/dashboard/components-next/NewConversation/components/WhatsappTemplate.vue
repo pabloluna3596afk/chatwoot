@@ -8,6 +8,10 @@ defineProps({
     type: Object,
     default: () => ({}),
   },
+  inboxId: {
+    type: Number,
+    default: null,
+  },
 });
 
 const emit = defineEmits(['sendMessage', 'back']);
@@ -28,6 +32,7 @@ const handleBack = () => {
     <div class="w-full">
       <WhatsAppTemplateParser
         :template="template"
+        :media-inbox-id="inboxId"
         @send-message="handleSendMessage"
         @back="handleBack"
       >

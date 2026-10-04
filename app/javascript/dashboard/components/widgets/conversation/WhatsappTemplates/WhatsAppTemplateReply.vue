@@ -11,6 +11,10 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  inboxId: {
+    type: Number,
+    default: null,
+  },
 });
 
 const emit = defineEmits(['sendMessage', 'resetTemplate']);
@@ -29,6 +33,7 @@ const handleResetTemplate = () => {
     <WhatsAppTemplateParser
       :template="template"
       :send-rendered-content="sendRenderedContent"
+      :media-inbox-id="inboxId"
       @send-message="handleSendMessage"
       @reset-template="handleResetTemplate"
     >

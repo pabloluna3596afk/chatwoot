@@ -63,7 +63,8 @@ const state = reactive({
   templates: { ...initialState.templates },
   params: { reminder: {}, cancelled: {} },
 });
-const { templateOptions, templateEntry } = useApprovedTemplates();
+const { templateOptions, templateEntry, templateInboxId } =
+  useApprovedTemplates();
 const { variableOptions, previewValues } = useTemplateVariables({
   appointment: true,
 });
@@ -571,6 +572,7 @@ onMounted(loadConnections);
                   "
                   :key="state.templates[key]"
                   :template="templateEntry(state.templates[key])"
+                  :media-inbox-id="templateInboxId(state.templates[key])"
                   :model-value="state.params[key]"
                   :variable-options="variableOptions"
                   :preview-values="previewValues"

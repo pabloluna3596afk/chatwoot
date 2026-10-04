@@ -30,7 +30,9 @@ class Whatsapp::PopulateTemplateParametersService
     end
   end
 
-  def build_media_parameter(url, media_type, media_name = nil)
+  # An uploaded file is sent by its media_id; otherwise by link.
+  def build_media_parameter(url, media_type, media_name = nil, media_id: nil)
+    return build_media_id_parameter(media_id, media_type.downcase, media_name) if media_id.present?
     return nil if url.blank?
 
     sanitized_url = sanitize_parameter(url)
@@ -88,6 +90,14 @@ class Whatsapp::PopulateTemplateParametersService
         year: value['year']
       }
     }
+  end
+
+  def build_media_id_parameter(media_id, media_type, media_name = nil)
+    raise ArgumentError, "Unsupported media type: #{media_type}" unless %w[image video document].include?(media_type)
+
+    media = { id: media_id }
+    media[:filename] = media_name if media_type == 'document' && media_name.present?
+    { type: media_type }.merge(media_type.to_sym => media)
   end
 
   def build_media_type_parameter(sanitized_url, media_type, media_name = nil)

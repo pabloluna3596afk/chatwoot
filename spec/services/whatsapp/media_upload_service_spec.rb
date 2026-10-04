@@ -69,4 +69,23 @@ describe Whatsapp::MediaUploadService do
       expect(WebMock).not_to have_requested(:post, upload_url)
     end
   end
+
+  describe '.upload_blob!' do
+    let(:blob) { attachment.file.blob }
+
+    it 'uploads a blob that is not a message attachment and returns its media id' do
+      stub_request(:post, upload_url)
+        .to_return(status: 200, body: { id: 'media_header_1' }.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      expect(described_class.upload_blob!(whatsapp_channel, blob)).to eq('media_header_1')
+    end
+
+    it 'raises with the reason Meta gives when the upload is refused' do
+      stub_request(:post, upload_url)
+        .to_return(status: 400, body: { error: { message: 'bad media' } }.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      expect { described_class.upload_blob!(whatsapp_channel, blob) }
+        .to raise_error(described_class::UploadError, /400 bad media/)
+    end
+  end
 end

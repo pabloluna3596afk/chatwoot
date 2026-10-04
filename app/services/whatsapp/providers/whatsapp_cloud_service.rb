@@ -1,4 +1,4 @@
-class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseService
+class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseService # rubocop:disable Metrics/ClassLength
   def send_message(phone_number, message)
     @message = message
 
@@ -23,11 +23,9 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
       template: template_body
     }
 
-    response = HTTParty.post(
-      "#{phone_id_path}/messages",
-      headers: api_headers,
-      body: request_body.to_json
-    )
+    response = post_template(request_body)
+    media_retry = Whatsapp::TemplateMediaRetry.new(channel: whatsapp_channel, request_body: request_body, response: response)
+    response = media_retry.perform { |body| post_template(body) }
 
     process_response(response, message)
   end
@@ -185,6 +183,10 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
     )
 
     process_response(response, message)
+  end
+
+  def post_template(request_body)
+    HTTParty.post("#{phone_id_path}/messages", headers: api_headers, body: request_body.to_json)
   end
 
   def error_message(response)

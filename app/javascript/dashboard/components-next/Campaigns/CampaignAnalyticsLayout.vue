@@ -20,7 +20,10 @@ const emit = defineEmits(['breadcrumbClick']);
             :items="breadcrumbItems"
             @click="(item, index) => emit('breadcrumbClick', item, index)"
           />
-          <div v-if="$slots['header-actions']" class="flex items-center gap-2 shrink-0">
+          <div
+            v-if="$slots['header-actions']"
+            class="flex items-center gap-2 shrink-0"
+          >
             <slot name="header-actions" />
           </div>
         </div>

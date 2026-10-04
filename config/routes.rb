@@ -379,6 +379,7 @@ Rails.application.routes.draw do
             end
             resources :whatsapp_template_blueprints, only: [:create],
                                                      controller: 'inbox_whatsapp_template_blueprints'
+            resource :whatsapp_template_media, only: [:create], controller: 'inbox_whatsapp_template_media'
           end
 
           resources :inbox_members, only: [:create, :show], param: :inbox_id do

@@ -73,9 +73,7 @@ defineExpose({ dialogRef });
     ref="dialogRef"
     width="2xl"
     :title="
-      isEdit()
-        ? t('CAMPAIGN.SMS.EDIT.TITLE')
-        : t('CAMPAIGN.SMS.CREATE.TITLE')
+      isEdit() ? t('CAMPAIGN.SMS.EDIT.TITLE') : t('CAMPAIGN.SMS.CREATE.TITLE')
     "
     :show-cancel-button="false"
     :show-confirm-button="false"

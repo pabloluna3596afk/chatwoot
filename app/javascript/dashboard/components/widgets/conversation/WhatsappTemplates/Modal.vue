@@ -88,6 +88,7 @@ export default {
       <WhatsAppTemplateReply
         v-else
         :template="selectedWaTemplate"
+        :inbox-id="inboxId"
         :send-rendered-content="sendRenderedContent"
         @reset-template="onResetTemplate"
         @send-message="onSendMessage"

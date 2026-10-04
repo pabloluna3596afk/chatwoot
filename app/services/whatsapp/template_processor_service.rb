@@ -70,9 +70,13 @@ class Whatsapp::TemplateProcessorService
   end
 
   def build_media_header_params(header_data)
-    return [] if header_data['media_url'].blank? || header_data['media_type'].blank?
+    return [] if header_data['media_type'].blank?
 
-    media_param = parameter_builder.build_media_parameter(header_data['media_url'], header_data['media_type'], header_data['media_name'])
+    media_id = Whatsapp::TemplateHeaderMedia.media_id_for(channel, header_data)
+    return [] if media_id.blank? && header_data['media_url'].blank?
+
+    media_param = parameter_builder.build_media_parameter(header_data['media_url'], header_data['media_type'], header_data['media_name'],
+                                                          media_id: media_id)
     media_param ? [media_param] : []
   end
 
@@ -117,7 +121,7 @@ class Whatsapp::TemplateProcessorService
   end
 
   # URL / copy_code buttons that need runtime parameters from the agent UI.
-  def process_parameterized_button_components(processed_params)
+  def process_parameterized_button_components(processed_params) # rubocop:disable Metrics/CyclomaticComplexity
     return [] if processed_params['buttons'].blank?
 
     processed_params['buttons'].filter_map.with_index do |button, index|

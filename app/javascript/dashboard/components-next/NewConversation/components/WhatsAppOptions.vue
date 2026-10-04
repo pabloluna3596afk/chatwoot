@@ -125,6 +125,7 @@ const handleSendMessage = (template, hide) => {
       <WhatsappTemplate
         v-else
         :template="selectedTemplate"
+        :inbox-id="inboxId"
         @send-message="payload => handleSendMessage(payload, hide)"
         @back="handleBack"
       />
