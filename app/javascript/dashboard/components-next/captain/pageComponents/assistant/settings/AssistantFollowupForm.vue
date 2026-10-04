@@ -8,7 +8,10 @@ import Select from 'dashboard/components-next/select/Select.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
 import { isWhatsAppComplete } from '@chatwoot/utils';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
-import { useTemplateVariables } from './useTemplateVariables';
+import {
+  CONTACT_DEFAULT_VALUES,
+  useTemplateVariables,
+} from './useTemplateVariables';
 import {
   useApprovedTemplates,
   templateFromValue,
@@ -236,6 +239,7 @@ watch(
             :media-inbox-id="templateInboxId(state.template)"
             :model-value="state.params"
             :variable-options="variableOptions"
+            :default-values="CONTACT_DEFAULT_VALUES"
             :preview-values="previewValues"
             @update:model-value="state.params = $event"
           />

@@ -17,6 +17,9 @@ class Whatsapp::TemplateHeaderMedia
     'VIDEO' => { content_types: %w[video/mp4 video/3gpp], max_bytes: 16.megabytes },
     'DOCUMENT' => { content_types: %w[application/pdf], max_bytes: 100.megabytes }
   }.freeze
+  # Blob metadata: marks a stored copy as a header file, and when it was last chosen (see Whatsapp::HeaderMediaCleanupService).
+  METADATA_KEY = 'whatsapp_header_media'.freeze
+  LAST_USED_KEY = 'whatsapp_header_last_used_at'.freeze
   REFRESH_AFTER = 25.days
   REMEMBER_FOR = 32.days
   # Cloud API errors for a media that cannot be downloaded or was not uploaded (the id may still be refused with a
@@ -49,13 +52,14 @@ class Whatsapp::TemplateHeaderMedia
       raise InvalidFile.new('too_large', "the file exceeds #{rules[:max_bytes] / 1.megabyte} MB") if byte_size > rules[:max_bytes]
     end
 
-    # Validates the file, keeps a copy and uploads it to Meta. Returns the header params to save. Raises InvalidFile
-    # or Whatsapp::MediaUploadService::UploadError.
+    # Validates the file, keeps a copy (the one already kept when the same file was chosen before: one copy per file,
+    # not one per upload) and uploads it to Meta. Returns the header params to save. Raises InvalidFile or
+    # Whatsapp::MediaUploadService::UploadError.
     def store_and_upload!(channel, format:, file:)
       content_type = Marcel::MimeType.for(file.tempfile, name: file.original_filename, declared_type: file.content_type).to_s
       validate!(format, content_type, file.size)
 
-      blob = store(channel, file, content_type)
+      blob = reusable_blob(channel, file) || store(channel, file, content_type)
       header_params(channel, blob, Whatsapp::MediaUploadService.upload_blob!(channel, blob), format)
     end
 
@@ -68,6 +72,30 @@ class Whatsapp::TemplateHeaderMedia
       id = usable_media_id(channel, header, media_id)
       remember(channel, id, header) if id.present?
       id
+    end
+
+    # The stored copy of the header file of a template message (its template_params), or nil: the chat shows it
+    # as the attachment of that message, sharing the blob (no second copy).
+    def blob_for_message(template_params, account_id)
+      signed_id = dig_hash(template_params, 'processed_params', 'header', 'media_blob')
+      return if signed_id.blank?
+
+      blob = ActiveStorage::Blob.find_signed(signed_id)
+      blob if blob&.metadata&.dig('account_id') == account_id
+    end
+
+    # Like Hash#dig, but nil when a step is not a Hash (params come from the API and may be any JSON).
+    def dig_hash(value, *keys)
+      keys.reduce(value) { |current, key| current.is_a?(Hash) ? current[key] : (return nil) }
+    end
+
+    # How the chat shows a header file: as an image, a video or a document.
+    def attachment_file_type(blob)
+      case blob.content_type.to_s.split('/').first
+      when 'image' then :image
+      when 'video' then :video
+      else :file
+      end
     end
 
     # Whether Meta's error response says the header media was refused.
@@ -108,8 +136,17 @@ class Whatsapp::TemplateHeaderMedia
     def store(channel, file, content_type)
       ActiveStorage::Blob.create_and_upload!(
         io: file.tempfile, filename: file.original_filename, content_type: content_type,
-        metadata: { 'account_id' => channel.account_id, 'whatsapp_header_media' => true }
+        metadata: { 'account_id' => channel.account_id, METADATA_KEY => true, LAST_USED_KEY => Time.current.iso8601 }
       )
+    end
+
+    # The copy of this same file (same bytes and name) of the account, marked as used now so it is not cleaned up.
+    def reusable_blob(channel, file)
+      checksum = Digest::MD5.file(file.tempfile.path).base64digest
+      blob = ActiveStorage::Blob.where(checksum: checksum, filename: file.original_filename).find do |candidate|
+        candidate.metadata['account_id'] == channel.account_id && candidate.metadata[METADATA_KEY]
+      end
+      blob&.tap { |found| found.update!(metadata: found.metadata.merge(LAST_USED_KEY => Time.current.iso8601)) }
     end
 
     def header_params(channel, blob, media_id, format)

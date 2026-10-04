@@ -284,6 +284,19 @@ RSpec.describe Conversation do
                               content: "Assigned to #{new_assignee.name} by #{old_assignee.name}" }))
     end
 
+    it 'words the activities in the language of the account, whatever the language of the process is' do
+      account.update!(locale: 'es')
+
+      I18n.with_locale(:en) { conversation.update(status: :resolved, assignee: new_assignee) }
+
+      expect(Conversations::ActivityMessageJob)
+        .to(have_been_enqueued.at_least(:once)
+        .with(conversation, hash_including(content: "La conversación fue marcada como resuelta por #{old_assignee.name}")))
+      expect(Conversations::ActivityMessageJob)
+        .to(have_been_enqueued.at_least(:once)
+        .with(conversation, hash_including(content: "Asignado a #{new_assignee.name} por #{old_assignee.name}")))
+    end
+
     it 'adds a message for system auto resolution if marked resolved by system' do
       account.update(auto_resolve_after: 40 * 24 * 60)
       conversation2 = create(:conversation, status: 'open', account: account, assignee: old_assignee)

@@ -36,6 +36,19 @@ class WhatsappTemplatesAPI extends ApiClient {
     });
   }
 
+  // Meta's Template Library (ready-made utility templates): search, language, topic, usecase, industry, after.
+  library(inboxId, params = {}) {
+    return axios.get(this.path(inboxId, '/library'), { params });
+  }
+
+  // Creates a template from the library by its name (attributes: library_template_name, name, language, category,
+  // button_inputs).
+  createFromLibrary(inboxId, libraryTemplate) {
+    return axios.post(this.path(inboxId, '/library'), {
+      library_template: libraryTemplate,
+    });
+  }
+
   // The example file of a media header; returns { handle, format, name }.
   uploadHeaderExample(inboxId, headerFormat, file) {
     const body = new FormData();

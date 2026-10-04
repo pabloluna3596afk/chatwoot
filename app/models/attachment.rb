@@ -41,6 +41,8 @@ class Attachment < ApplicationRecord
   belongs_to :account
   belongs_to :message
   has_one_attached :file
+  # Declared first so it runs before Active Storage's own cleanup of the file.
+  before_destroy :keep_template_header_blob, prepend: true
   before_save :set_extension
   after_create_commit :normalize_opus_audio_content_type!
   validate :acceptable_file
@@ -81,6 +83,15 @@ class Attachment < ApplicationRecord
   end
 
   private
+
+  # The stored copy of a template's header file is shared with campaigns, automations and Captain settings: deleting the
+  # message (or the conversation, or the account) must not purge it. Whatsapp::HeaderMediaCleanupService is the only
+  # thing that does, once nothing points to it any more.
+  def keep_template_header_blob
+    return unless file.attached? && file.blob.metadata[Whatsapp::TemplateHeaderMedia::METADATA_KEY]
+
+    file.detach
+  end
 
   def metadata_for_file_type
     case file_type.to_sym

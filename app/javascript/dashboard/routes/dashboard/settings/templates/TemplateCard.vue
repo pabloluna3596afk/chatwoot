@@ -43,6 +43,21 @@ const statusLabel = computed(() => {
     ? t(`WHATSAPP_TEMPLATE_MGMT.STATUS.${statusKey.value}`)
     : formatTemplateLabel(props.template.status);
 });
+
+// The category Meta assigned (it can differ from the one asked for): it decides the price of each message.
+const categoryKey = computed(() =>
+  String(props.template.category || '').toUpperCase()
+);
+const categoryLabel = computed(() =>
+  te(`WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.${categoryKey.value}.LABEL`)
+    ? t(`WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.${categoryKey.value}.LABEL`)
+    : formatTemplateLabel(categoryKey.value)
+);
+const categoryClasses = computed(() =>
+  categoryKey.value === 'MARKETING'
+    ? 'bg-n-amber-3 text-n-amber-11'
+    : 'bg-n-teal-3 text-n-teal-11'
+);
 </script>
 
 <template>
@@ -74,6 +89,14 @@ const statusLabel = computed(() => {
             :class="templateStatusClasses(template.status)"
           >
             {{ statusLabel }}
+          </span>
+          <span
+            v-if="categoryKey"
+            class="inline-flex shrink-0 px-2 py-0.5 text-xs font-medium rounded-md"
+            :class="categoryClasses"
+            data-testid="template-category"
+          >
+            {{ categoryLabel }}
           </span>
         </div>
         <div

@@ -26,6 +26,19 @@ const mountCard = props =>
   });
 
 describe('TemplateCard', () => {
+  it('shows the category Meta assigned', () => {
+    expect(mountCard().find('[data-testid="template-category"]').exists()).toBe(
+      false
+    );
+    const wrapper = mountCard({
+      template: { ...template, category: 'MARKETING' },
+    });
+
+    expect(wrapper.get('[data-testid="template-category"]').text()).toContain(
+      'Marketing'
+    );
+  });
+
   it('shows no edit or delete button to someone who cannot manage templates', () => {
     const wrapper = mountCard();
 

@@ -4,6 +4,7 @@ import {
   PLATFORMS,
   TEMPLATE_TYPES,
 } from 'dashboard/services/TemplateConstants';
+import { languageLabel } from './whatsappLanguages';
 
 const TEMPLATE_TYPE_KEYS = {
   [TEMPLATE_TYPES.WHATSAPP_TEXT]: 'TEXT',
@@ -96,17 +97,8 @@ export const formatTemplateLabel = value => {
     .replace(/\b\w/g, character => character.toUpperCase());
 };
 
-export const formatTemplateLanguage = language => {
-  if (!language) return '—';
-
-  const locale = language.replace('_', '-');
-  const languageCode = locale.split('-')[0];
-  const displayName = new Intl.DisplayNames([locale], {
-    type: 'language',
-  }).of(languageCode);
-
-  return `${displayName} (${locale})`;
-};
+export const formatTemplateLanguage = language =>
+  languageLabel(language, document?.documentElement?.lang || 'es');
 
 export const formatTemplateDate = value => {
   if (!value) return '—';

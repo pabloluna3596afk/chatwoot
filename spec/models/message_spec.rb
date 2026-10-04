@@ -868,4 +868,44 @@ RSpec.describe Message do
       end
     end
   end
+
+  describe 'the header file of a template message' do
+    let(:message_account) { create(:account) }
+    let(:blob) do
+      ActiveStorage::Blob.create_and_upload!(
+        io: StringIO.new('%PDF-1.4'), filename: 'oferta.pdf', content_type: 'application/pdf',
+        metadata: { 'account_id' => message_account.id, 'whatsapp_header_media' => true }
+      )
+    end
+    let(:conversation) { create(:conversation, account: message_account) }
+
+    def template_message(signed_id)
+      template_params = { 'name' => 'oferta', 'processed_params' => { 'header' => { 'media_blob' => signed_id } } }
+      create(:message, account: message_account, conversation: conversation, inbox: conversation.inbox, message_type: :outgoing,
+                       additional_attributes: { 'template_params' => template_params })
+    end
+
+    it 'is shown as the attachment of the message, sharing the stored copy' do
+      message = template_message(blob.signed_id)
+
+      attachment = message.attachments.first
+      expect(attachment.file.blob).to eq(blob)
+      expect(attachment.file_type).to eq('file')
+      expect(ActiveStorage::Blob.where(filename: 'oferta.pdf').count).to eq(1)
+    end
+
+    it 'does not attach a stored copy that belongs to another account' do
+      other = ActiveStorage::Blob.create_and_upload!(
+        io: StringIO.new('%PDF-1.4'), filename: 'ajeno.pdf', content_type: 'application/pdf', metadata: { 'account_id' => message_account.id + 1 }
+      )
+
+      expect(template_message(other.signed_id).attachments).to be_empty
+    end
+
+    it 'does nothing for a message without a header file' do
+      message = create(:message, additional_attributes: { 'template_params' => { 'name' => 'saludo', 'processed_params' => {} } })
+
+      expect(message.attachments).to be_empty
+    end
+  end
 end

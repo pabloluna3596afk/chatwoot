@@ -5,11 +5,15 @@ import {
   formFromTemplate,
   isEditable,
   newButton,
+  promoWarnings,
   previewTemplate,
   previewVariables,
   toSnakeCase,
   validateForm,
   variableNumbers,
+  variableTokens,
+  hasNamedVariables,
+  isValidVariableName,
 } from '../templateForm';
 
 const validForm = () => {
@@ -170,6 +174,7 @@ describe('buildPayload', () => {
         },
         { type: 'PHONE_NUMBER', text: 'Llamar', phone_number: '+593999999999' },
       ],
+      preserved: { components: [], buttons: [] },
     });
   });
 });
@@ -188,6 +193,89 @@ describe('preview', () => {
       'FOOTER',
     ]);
     expect(previewVariables(form)).toEqual({ 1: 'Ana', 2: 'lunes' });
+  });
+});
+
+describe('named variables', () => {
+  it('reads the variables of a text, named or numbered', () => {
+    expect(variableTokens('Hola {{nombre}}, {{ fecha }} y {{nombre}}')).toEqual(
+      ['nombre', 'fecha']
+    );
+    expect(hasNamedVariables('Hola {{nombre}}')).toBe(true);
+    expect(hasNamedVariables('Hola {{1}}')).toBe(false);
+    expect(hasNamedVariables('sin variables')).toBe(false);
+  });
+
+  it('accepts lowercase names with digits and underscores that start with a letter', () => {
+    expect(isValidVariableName('nombre_cliente2')).toBe(true);
+    expect(isValidVariableName('Nombre')).toBe(false);
+    expect(isValidVariableName('2fecha')).toBe(false);
+    expect(isValidVariableName('con-guion')).toBe(false);
+  });
+
+  it('validates a named body: one example per name, no mix, no bad name, no edge variable', () => {
+    const form = validForm();
+
+    form.body.text = 'Hola {{nombre}}, tu cita es el {{fecha}}.';
+    form.body.examples = ['Ana', ''];
+    expect(validateForm(form)['body.examples']).toBe('EXAMPLE_REQUIRED');
+    form.body.examples = ['Ana', 'lunes'];
+    expect(validateForm(form)).toEqual({});
+
+    form.body.text = 'Hola {{nombre}} y {{2}} fin';
+    expect(validateForm(form)['body.text']).toBe('VARIABLES_MIXED');
+    form.body.text = 'Hola {{Nombre}} fin';
+    expect(validateForm(form)['body.text']).toBe('VARIABLE_NAME_INVALID');
+    form.body.text = '{{nombre}} hola';
+    expect(validateForm(form)['body.text']).toBe('VARIABLE_AT_EDGE');
+  });
+
+  it('allows one named variable in the header, with its example', () => {
+    const form = validForm();
+    form.header.format = 'TEXT';
+    form.header.text = 'Cita de {{nombre}}';
+    form.header.examples = [''];
+
+    expect(validateForm(form)['header.example']).toBe('EXAMPLE_REQUIRED');
+    form.header.examples = ['Ana'];
+    expect(validateForm(form)).toEqual({});
+    form.header.text = '{{nombre}} {{fecha}}';
+    expect(validateForm(form)['header.text']).toBe('HEADER_ONE_VARIABLE');
+  });
+
+  it('builds the payload and the preview values by name', () => {
+    const form = validForm();
+    form.body.text = 'Hola {{nombre}}, tu cita es el {{fecha}}.';
+    form.body.examples = ['Ana', 'lunes', 'sobra'];
+
+    expect(buildPayload(form).body.examples).toEqual(['Ana', 'lunes']);
+    expect(previewVariables(form)).toEqual({ nombre: 'Ana', fecha: 'lunes' });
+  });
+
+  it('reads the named examples of a synced template back in the order of its variables', () => {
+    const form = formFromTemplate(
+      {
+        name: 'cita',
+        language: 'es',
+        parameter_format: 'NAMED',
+        components: [
+          {
+            type: 'BODY',
+            text: 'Hola {{nombre}}, es el {{fecha}}.',
+            example: {
+              body_text_named_params: [
+                { param_name: 'fecha', example: 'lunes' },
+                { param_name: 'nombre', example: 'Ana' },
+              ],
+            },
+          },
+        ],
+      },
+      3
+    );
+
+    expect(form.body.examples).toEqual(['Ana', 'lunes']);
+    expect(validateForm(form, { isEdit: true })).toEqual({});
   });
 });
 
@@ -252,11 +340,84 @@ describe('editing a synced template', () => {
           { type: 'BUTTONS', buttons: [{ type: 'FLOW', text: 'Abrir' }] },
         ],
       })
-    ).toBe(false);
+    ).toBe(true);
     expect(isEditable({ components: [{ type: 'CAROUSEL', cards: [] }] })).toBe(
       false
     );
+    expect(
+      isEditable({
+        category: 'AUTHENTICATION',
+        components: [{ type: 'BODY', add_security_recommendation: true }],
+      })
+    ).toBe(false);
     expect(isEditable({})).toBe(false);
+  });
+
+  it('reads a copy-code template and keeps what the form cannot express', () => {
+    const template = {
+      name: 'promo',
+      language: 'es_EC',
+      category: 'MARKETING',
+      components: [
+        { type: 'HEADER', format: 'IMAGE' },
+        { type: 'LIMITED_TIME_OFFER', limited_time_offer: { text: 'Oferta' } },
+        { type: 'BODY', text: 'Hola {{1}}', example: { body_text: [['Ana']] } },
+        {
+          type: 'BUTTONS',
+          buttons: [
+            { type: 'FLOW', text: 'Abrir', flow_id: '1' },
+            { type: 'COPY_CODE', example: 'PALU21' },
+          ],
+        },
+      ],
+    };
+    expect(isEditable(template)).toBe(true);
+
+    const form = formFromTemplate(template, 4);
+    expect(form.buttons).toHaveLength(1);
+    expect(form.buttons[0]).toMatchObject({
+      type: 'COPY_CODE',
+      code: 'PALU21',
+    });
+    expect(form.preserved.components).toEqual([
+      { position: 1, component: template.components[1] },
+    ]);
+    expect(form.preserved.buttons).toEqual([
+      { position: 0, button: template.components[3].buttons[0] },
+    ]);
+    expect(buildPayload(form).buttons).toEqual([
+      { type: 'COPY_CODE', code: 'PALU21' },
+    ]);
+  });
+
+  it('only allows the copy-code button in Marketing, once, with a code', () => {
+    const form = validForm();
+    form.buttons = [{ ...newButton('COPY_CODE'), code: 'PALU21' }];
+    expect(validateForm(form)['buttons.0.code']).toBe(
+      'COPY_CODE_MARKETING_ONLY'
+    );
+    form.category = 'MARKETING';
+    expect(validateForm(form)).toEqual({});
+    form.buttons[0].code = '';
+    expect(validateForm(form)['buttons.0.code']).toBe('COPY_CODE_REQUIRED');
+    form.buttons = [
+      { ...newButton('COPY_CODE'), code: 'A' },
+      { ...newButton('COPY_CODE'), code: 'B' },
+    ];
+    expect(validateForm(form).buttons).toBe('TOO_MANY_COPY_CODE');
+  });
+
+  it('warns about promotional wording in a Utility template only', () => {
+    const form = validForm();
+    form.body.text = 'Aprovecha nuestro descuento, tu compra viene con regalo';
+    expect(promoWarnings(form)).toEqual(
+      expect.arrayContaining(['aprovecha', 'descuento', 'compra', 'regalo'])
+    );
+    form.body.text = 'Tu cita queda confirmada para mañana.';
+    expect(promoWarnings(form)).toEqual([]);
+    form.body.text = 'oferta';
+    form.category = 'MARKETING';
+    expect(promoWarnings(form)).toEqual([]);
   });
 
   it('follows the Meta rules for each status', () => {

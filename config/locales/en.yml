@@ -358,7 +358,6 @@ en:
       whatsapp:
         list_button_label: 'Choose an item'
         call_permission_request_body: 'We would like to call you regarding your conversation.'
-        flow_response: 'Submitted a flow response'
         request_contact_info: 'Would you like to share your phone number with us?'
         unsupported_message: 'This message is unavailable.'
         flow_response:
@@ -894,11 +893,6 @@ en:
         button: 'Resend confirmation email'
         sent: 'Confirmation email sent.'
         already_confirmed: 'User is already confirmed.'
-
-helpers:
-  label:
-    account:
-      web_widget_branding: 'Branding by channel'
   whatsapp_templates:
     errors:
       unknown: 'The template action could not be completed. Please try again.'
@@ -944,4 +938,18 @@ helpers:
       rate_limited: 'Meta asks you to wait a moment. Try again in a few minutes.'
       meta_unreachable: 'Could not reach Meta. Please try again.'
       not_found: 'The template no longer exists in Meta.'
+      variables_mixed: 'Do not mix named ({{name}}) and numbered ({{1}}) variables.'
+      copy_code_marketing_only: 'The copy code button can only be used in Marketing templates.'
+      copy_code_required: 'Enter the code the button copies.'
+      copy_code_too_long: 'The code can have up to %{limit} characters.'
+      too_many_copy_code: 'You can only add one copy code button.'
+      preserved_invalid: 'The template has a part that could not be kept. Edit it in WhatsApp Manager.'
+      variable_name_invalid: 'The variable name %{name} is not valid: use lowercase letters, numbers and underscores, starting with a letter.'
+      library_unavailable: 'The Meta library could not be read for this channel.'
+      library_name_required: 'The library template is missing.'
       meta_error: 'Meta rejected the request: %{detail}'
+
+helpers:
+  label:
+    account:
+      web_widget_branding: 'Branding by channel'

@@ -16,7 +16,29 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
 
   # What the form may offer for this channel: media headers need the app behind the channel token.
   def capabilities
-    render json: { media_header: header_handle_service.available? }
+    available = header_handle_service.available?
+    render json: { media_header: available, reason: available ? nil : header_handle_service.unavailable_reason }
+  end
+
+  # Meta's Template Library, searchable (search, language, topic, usecase, industry) and paginated (after).
+  def library
+    render json: management_service.library(**library_filters)
+  rescue Whatsapp::TemplateManagementService::Error => e
+    render_meta_error(e)
+  end
+
+  # Creates a template from the library: the text is Meta's, the admin only chooses the name, language and the
+  # values its buttons ask for.
+  def create_from_library
+    attributes = library_template_params
+    return render_error('library_name_required') if attributes[:library_template_name].blank?
+    return render_error('invalid_name') unless Whatsapp::TemplateComponentsBuilder.valid_name?(attributes[:name])
+    return render_error('invalid_language') unless attributes[:language].to_s.match?(LANGUAGE_FORMAT)
+    return render_error('invalid_category') unless Whatsapp::TemplateComponentsBuilder::CATEGORIES.include?(attributes[:category])
+
+    render json: management_service.create_from_library(**attributes.to_h.symbolize_keys), status: :created
+  rescue Whatsapp::TemplateManagementService::Error => e
+    render_meta_error(e)
   end
 
   def create
@@ -25,7 +47,8 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
     return render_error('invalid_category') unless Whatsapp::TemplateComponentsBuilder::CATEGORIES.include?(template_params[:category])
 
     created = management_service.create(
-      name: template_params[:name], language: template_params[:language], category: template_params[:category], components: components
+      name: template_params[:name], language: template_params[:language], category: template_params[:category],
+      components: components_builder.components, parameter_format: components_builder.parameter_format
     )
     render json: created, status: :created
   rescue Whatsapp::TemplateComponentsBuilder::Invalid => e
@@ -39,7 +62,7 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
     category = template_params[:category]
     return render_error('invalid_category') if category.present? && Whatsapp::TemplateComponentsBuilder::CATEGORIES.exclude?(category)
 
-    render json: management_service.update(params[:id], components: components, category: category)
+    render json: management_service.update(params[:id], components: components_builder.components, category: category)
   rescue Whatsapp::TemplateComponentsBuilder::Invalid => e
     render_invalid(e)
   rescue Whatsapp::TemplateManagementService::Error => e
@@ -98,14 +121,31 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
       header: [:format, :text, :handle, { examples: [] }],
       body: [:text, { examples: [] }],
       footer: [:text],
-      buttons: [:type, :text, :url, :phone_number, { examples: [] }]
+      buttons: [:type, :text, :url, :phone_number, :code, { examples: [] }]
     )
   end
 
-  def components
-    Whatsapp::TemplateComponentsBuilder.new(
-      header: template_params[:header], body: template_params[:body], footer: template_params[:footer], buttons: template_params[:buttons]
-    ).components
+  def library_filters
+    params.permit(:search, :language, :topic, :usecase, :industry, :after).to_h.symbolize_keys
+  end
+
+  def library_template_params
+    params.require(:library_template).permit(
+      :library_template_name, :name, :language, :category, button_inputs: [:type, :phone_number, { url: [:base_url, :url_suffix_example] }]
+    )
+  end
+
+  def components_builder
+    @components_builder ||= Whatsapp::TemplateComponentsBuilder.new(
+      header: template_params[:header], body: template_params[:body], footer: template_params[:footer], buttons: template_params[:buttons],
+      category: template_params[:category], preserved: preserved_params
+    )
+  end
+
+  # The components and buttons the form cannot express, returned as they came from Meta and sent back untouched.
+  def preserved_params
+    preserved = params.dig(:template, :preserved)
+    preserved.respond_to?(:to_unsafe_h) ? preserved.to_unsafe_h : {}
   end
 
   def render_invalid(error)

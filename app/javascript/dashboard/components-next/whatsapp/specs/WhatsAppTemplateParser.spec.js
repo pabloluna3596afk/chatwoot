@@ -116,6 +116,27 @@ describe('WhatsAppTemplateParser with the options of a Captain setting', () => {
       global: { mocks: { $t: key => key } },
     });
 
+  it('fills a named variable in by its name when nothing was saved, and keeps what was saved', async () => {
+    const defaultValues = {
+      nombre: '{{ contact.name }}',
+      fecha: '{{ appointment.date }}',
+    };
+
+    const fresh = mountParser({ defaultValues });
+    await nextTick();
+    expect(fresh.vm.processedParams.body.nombre).toBe('{{ contact.name }}');
+    expect(fresh.vm.processedParams.body.fecha).toBe('{{ appointment.date }}');
+    expect(fresh.vm.processedParams.header.titulo).toBe('');
+
+    const saved = mountParser({
+      defaultValues,
+      modelValue: { body: { nombre: 'Ana', fecha: '' }, header: {} },
+    });
+    await nextTick();
+    expect(saved.vm.processedParams.body.nombre).toBe('Ana');
+    expect(saved.vm.processedParams.body.fecha).toBe('');
+  });
+
   it('shows no insert button when no variables are offered (the default)', () => {
     const wrapper = mountParser();
 
