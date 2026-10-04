@@ -109,7 +109,8 @@
       "BUTTON_TYPES": {
         "QUICK_REPLY": "Respuesta rápida",
         "URL": "Enlace",
-        "PHONE_NUMBER": "Llamada"
+        "PHONE_NUMBER": "Llamada",
+        "COPY_CODE": "Copiar código"
       },
       "BUTTON_TEXT": "Texto del botón",
       "URL_EXAMPLE": "Ejemplo de la URL completa",
@@ -153,10 +154,34 @@
         "TOO_MANY_URL_BUTTONS": "Puedes poner hasta {urlLimit} botones con enlace.",
         "TOO_MANY_PHONE_BUTTONS": "Puedes poner solo {phoneLimit} botón de llamada.",
         "VARIABLES_MIXED": "No mezcles variables con nombre y variables numeradas.",
-        "VARIABLE_NAME_INVALID": "El nombre de la variable solo puede tener minúsculas, números y guion bajo, y debe empezar con una letra."
+        "VARIABLE_NAME_INVALID": "El nombre de la variable solo puede tener minúsculas, números y guion bajo, y debe empezar con una letra.",
+        "COPY_CODE_MARKETING_ONLY": "El botón de copiar código solo se puede usar en plantillas de Marketing.",
+        "COPY_CODE_REQUIRED": "Escribe el código que se copia con el botón.",
+        "COPY_CODE_TOO_LONG": "El código puede tener hasta {codeLimit} caracteres.",
+        "TOO_MANY_COPY_CODE": "Solo puedes poner un botón de copiar código."
       },
       "CUSTOM_VARIABLE": "Otra variable (ej. producto)",
-      "ADD": "Agregar"
+      "ADD": "Agregar",
+      "PROMO_WARNING": "Este texto suena a promoción ({words}). Meta probablemente la clasificará como Marketing, que se cobra más caro por mensaje. Si es una promoción, elige Marketing; si no, quita esas palabras.",
+      "CATEGORY_CHANGED": "Meta clasificó la plantilla como {assigned} en lugar de {requested}. Cambia el precio por mensaje.",
+      "VARIABLES_AS": "Las variables se escriben",
+      "VARIABLES_NAMED": "Con nombre (nombre, fecha…)",
+      "VARIABLES_POSITIONAL": "Numeradas (1, 2, 3…)",
+      "VARIABLES_NAMED_HELP": "Recomendado: cada variable dice qué es, y Captain las completa por su nombre.",
+      "VARIABLES_POSITIONAL_HELP": "Variables numeradas, en orden. Úsalas si la plantilla ya existe así en Meta.",
+      "CHANGE_FILE": "Cambiar",
+      "REMOVE_FILE": "Quitar archivo",
+      "COPY_CODE_PLACEHOLDER": "Código que se copia (por ejemplo PALU21)",
+      "COPY_CODE_HELP": "Meta escribe el texto del botón (\"Copiar código de oferta\"). Hasta 15 caracteres.",
+      "PRESERVED": "Se conservará tal como está en Meta: {parts}. No se puede editar desde aquí.",
+      "EXAMPLES": "Ejemplo de cada variable (Meta lo pide para revisar la plantilla)",
+      "PREVIEW": "Vista previa",
+      "PREVIEW_HELP": "Así lo verá el cliente, con los ejemplos de las variables.",
+      "CLOSE": "Cerrar",
+      "MEDIA_HEADER_REASONS": {
+        "app_not_found": "No se encontró la aplicación de Meta de este canal, así que no se pueden subir imágenes, videos ni documentos al encabezado. Puedes usar un encabezado de texto.",
+        "upload_refused": "Meta no permite que el acceso de este canal suba archivos de ejemplo. Puedes usar un encabezado de texto."
+      }
     },
     "DELETE_DIALOG": {
       "TITLE": "Borrar plantilla",

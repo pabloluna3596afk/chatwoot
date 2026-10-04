@@ -109,7 +109,8 @@
       "BUTTON_TYPES": {
         "QUICK_REPLY": "Quick reply",
         "URL": "Link",
-        "PHONE_NUMBER": "Call"
+        "PHONE_NUMBER": "Call",
+        "COPY_CODE": "Copy code"
       },
       "BUTTON_TEXT": "Button text",
       "URL_EXAMPLE": "Example of the full URL",
@@ -153,10 +154,34 @@
         "TOO_MANY_URL_BUTTONS": "You can add up to {urlLimit} link buttons.",
         "TOO_MANY_PHONE_BUTTONS": "You can add only {phoneLimit} call button.",
         "VARIABLES_MIXED": "Do not mix named and numbered variables.",
-        "VARIABLE_NAME_INVALID": "A variable name can only have lowercase letters, numbers and underscores, and must start with a letter."
+        "VARIABLE_NAME_INVALID": "A variable name can only have lowercase letters, numbers and underscores, and must start with a letter.",
+        "COPY_CODE_MARKETING_ONLY": "The copy code button can only be used in Marketing templates.",
+        "COPY_CODE_REQUIRED": "Enter the code the button copies.",
+        "COPY_CODE_TOO_LONG": "The code can have up to {codeLimit} characters.",
+        "TOO_MANY_COPY_CODE": "You can only add one copy code button."
       },
       "CUSTOM_VARIABLE": "Another variable (e.g. product)",
-      "ADD": "Add"
+      "ADD": "Add",
+      "PROMO_WARNING": "This text sounds promotional ({words}). Meta will probably classify it as Marketing, which costs more per message. If it is a promotion, choose Marketing; if not, remove those words.",
+      "CATEGORY_CHANGED": "Meta classified the template as {assigned} instead of {requested}. The price per message changes.",
+      "VARIABLES_AS": "Variables are written",
+      "VARIABLES_NAMED": "Named (name, date…)",
+      "VARIABLES_POSITIONAL": "Numbered (1, 2, 3…)",
+      "VARIABLES_NAMED_HELP": "Recommended: each variable says what it is, and Captain fills them in by name.",
+      "VARIABLES_POSITIONAL_HELP": "Numbered variables, in order. Use them if the template already exists that way in Meta.",
+      "CHANGE_FILE": "Change",
+      "REMOVE_FILE": "Remove file",
+      "COPY_CODE_PLACEHOLDER": "Code that gets copied (for example PALU21)",
+      "COPY_CODE_HELP": "Meta writes the button label (\"Copy offer code\"). Up to 15 characters.",
+      "PRESERVED": "Kept exactly as it is in Meta: {parts}. It cannot be edited from here.",
+      "EXAMPLES": "Example of each variable (Meta asks for it to review the template)",
+      "PREVIEW": "Preview",
+      "PREVIEW_HELP": "This is how the customer will see it, with the variable examples.",
+      "CLOSE": "Close",
+      "MEDIA_HEADER_REASONS": {
+        "app_not_found": "The Meta app of this channel could not be found, so images, videos and documents cannot be uploaded to the header. You can use a text header.",
+        "upload_refused": "Meta does not let this channel access upload example files. You can use a text header."
+      }
     },
     "DELETE_DIALOG": {
       "TITLE": "Delete template",
