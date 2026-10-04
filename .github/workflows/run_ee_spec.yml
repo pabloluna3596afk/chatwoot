@@ -74,10 +74,21 @@ jobs:
           # Core specs of ChatHub changes, by file: "Run Chatwoot CE spec" is disabled and the directories around them
           # (spec/services/whatsapp, spec/controllers) have failures that are not ours.
           SPEC_FILES+=(
-            spec/controllers/api/v1/accounts_controller_spec.rb
             spec/controllers/api/v1/accounts/contacts/calendar_events_controller_spec.rb
-            spec/controllers/api/v1/accounts/integrations/calendar_panel_ai_spec.rb
+            spec/controllers/api/v1/accounts/conversations_controller_spec.rb
             spec/controllers/api/v1/accounts/inbox_whatsapp_template_media_controller_spec.rb
+            spec/controllers/api/v1/accounts/integrations/calendar_panel_ai_spec.rb
+            spec/controllers/api/v1/accounts_controller_spec.rb
+            spec/controllers/widgets_controller_spec.rb
+            spec/initializers/rack_attack_spec.rb
+            spec/jobs/action_cable_handoff_assignment_spec.rb
+            spec/lib/global_config_service_spec.rb
+            spec/listeners/action_cable_listener_spec.rb
+            spec/models/conversation_spec.rb
+            spec/services/auto_assignment/assignment_service_spec.rb
+            spec/services/facebook/send_on_facebook_service_spec.rb
+            spec/services/instagram/messenger/send_on_instagram_service_spec.rb
+            spec/services/instagram/send_on_instagram_service_spec.rb
             spec/services/whatsapp/media_upload_service_spec.rb
             spec/services/whatsapp/providers/whatsapp_cloud_service_spec.rb
             spec/services/whatsapp/template_header_media_spec.rb
