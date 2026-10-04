@@ -944,4 +944,8 @@ helpers:
       rate_limited: 'Meta asks you to wait a moment. Try again in a few minutes.'
       meta_unreachable: 'Could not reach Meta. Please try again.'
       not_found: 'The template no longer exists in Meta.'
+      variables_mixed: 'Do not mix named ({{name}}) and numbered ({{1}}) variables.'
+      variable_name_invalid: 'The variable name %{name} is not valid: use lowercase letters, numbers and underscores, starting with a letter.'
+      library_unavailable: 'The Meta library could not be read for this channel.'
+      library_name_required: 'The library template is missing.'
       meta_error: 'Meta rejected the request: %{detail}'

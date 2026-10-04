@@ -383,6 +383,8 @@ Rails.application.routes.draw do
             resources :whatsapp_templates, only: [:show, :create, :update, :destroy], controller: 'inbox_whatsapp_templates' do
               collection do
                 get :capabilities
+                get :library
+                post :library, action: :create_from_library
                 post :header_handle
               end
             end

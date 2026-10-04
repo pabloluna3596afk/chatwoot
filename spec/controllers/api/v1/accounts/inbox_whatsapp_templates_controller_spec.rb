@@ -61,12 +61,30 @@ RSpec.describe 'Inbox WhatsApp templates API', type: :request do
       expect(response).to have_http_status(:created)
       expect(response.parsed_body).to include('id' => '999', 'status' => 'PENDING')
       expect(service).to have_received(:create).with(
-        name: 'recordatorio_cita', language: 'es', category: 'UTILITY',
+        name: 'recordatorio_cita', language: 'es', category: 'UTILITY', parameter_format: 'POSITIONAL',
         components: [
           { type: 'BODY', text: 'Hola {{1}}, tu cita es el {{2}}.', example: { body_text: [%w[Ana lunes]] } },
           { type: 'FOOTER', text: 'Gracias' },
           { type: 'BUTTONS', buttons: [{ type: 'QUICK_REPLY', text: 'Confirmar' }] }
         ]
+      )
+    end
+
+    it 'creates a named template (the default for new ones) and tells Meta its format' do
+      allow(service).to receive(:create).and_return(id: '999', status: 'PENDING', category: 'UTILITY')
+      named = template.merge(body: { text: 'Hola {{nombre}}, tu cita es el {{fecha}}.', examples: %w[Ana lunes] }, buttons: [])
+
+      post base_url, params: { template: named }, headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:created)
+      expect(service).to have_received(:create).with(
+        hash_including(
+          parameter_format: 'NAMED',
+          components: array_including(
+            { type: 'BODY', text: 'Hola {{nombre}}, tu cita es el {{fecha}}.',
+              example: { body_text_named_params: [{ param_name: 'nombre', example: 'Ana' }, { param_name: 'fecha', example: 'lunes' }] } }
+          )
+        )
       )
     end
 
@@ -183,6 +201,45 @@ RSpec.describe 'Inbox WhatsApp templates API', type: :request do
 
       expect(response).to have_http_status(:unprocessable_entity)
       expect(response.parsed_body['error']).to eq('media_header_unavailable')
+    end
+  end
+
+  describe 'the Meta library' do
+    it 'lists it with the filters' do
+      allow(service).to receive(:library).and_return(templates: [{ 'name' => 'appointment_reminder' }], next: nil)
+
+      get "#{base_url}/library", params: { search: 'cita', language: 'es' }, headers: admin.create_new_auth_token
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body['templates'].first['name']).to eq('appointment_reminder')
+      expect(service).to have_received(:library).with(search: 'cita', language: 'es')
+    end
+
+    it 'creates a template from it' do
+      allow(service).to receive(:create_from_library).and_return(id: '7', status: 'APPROVED', category: 'UTILITY')
+
+      post "#{base_url}/library", params: { library_template: { library_template_name: 'appointment_reminder', name: 'recordatorio',
+                                                                language: 'es', category: 'UTILITY' } },
+                                  headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:created)
+      expect(service).to have_received(:create_from_library).with(
+        library_template_name: 'appointment_reminder', name: 'recordatorio', language: 'es', category: 'UTILITY'
+      )
+    end
+
+    it 'refuses authentication templates and bad names, and agents' do
+      allow(service).to receive(:create_from_library)
+      attributes = { library_template_name: 'x', name: 'ok_name', language: 'es', category: 'AUTHENTICATION' }
+
+      post "#{base_url}/library", params: { library_template: attributes }, headers: admin.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:unprocessable_entity)
+
+      post "#{base_url}/library", params: { library_template: attributes.merge(category: 'UTILITY') }, headers: agent.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:unauthorized)
+      get "#{base_url}/library", headers: agent.create_new_auth_token
+      expect(response).to have_http_status(:unauthorized)
+      expect(service).not_to have_received(:create_from_library)
     end
   end
 end

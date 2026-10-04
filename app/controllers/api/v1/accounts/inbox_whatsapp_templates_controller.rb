@@ -19,13 +19,35 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
     render json: { media_header: header_handle_service.available? }
   end
 
+  # Meta's Template Library, searchable (search, language, topic, usecase, industry) and paginated (after).
+  def library
+    render json: management_service.library(**library_filters)
+  rescue Whatsapp::TemplateManagementService::Error => e
+    render_meta_error(e)
+  end
+
+  # Creates a template from the library: the text is Meta's, the admin only chooses the name, language and the
+  # values its buttons ask for.
+  def create_from_library
+    attributes = library_template_params
+    return render_error('library_name_required') if attributes[:library_template_name].blank?
+    return render_error('invalid_name') unless Whatsapp::TemplateComponentsBuilder.valid_name?(attributes[:name])
+    return render_error('invalid_language') unless attributes[:language].to_s.match?(LANGUAGE_FORMAT)
+    return render_error('invalid_category') unless Whatsapp::TemplateComponentsBuilder::CATEGORIES.include?(attributes[:category])
+
+    render json: management_service.create_from_library(**attributes.to_h.symbolize_keys), status: :created
+  rescue Whatsapp::TemplateManagementService::Error => e
+    render_meta_error(e)
+  end
+
   def create
     return render_error('invalid_name') unless Whatsapp::TemplateComponentsBuilder.valid_name?(template_params[:name])
     return render_error('invalid_language') unless template_params[:language].to_s.match?(LANGUAGE_FORMAT)
     return render_error('invalid_category') unless Whatsapp::TemplateComponentsBuilder::CATEGORIES.include?(template_params[:category])
 
     created = management_service.create(
-      name: template_params[:name], language: template_params[:language], category: template_params[:category], components: components
+      name: template_params[:name], language: template_params[:language], category: template_params[:category],
+      components: components_builder.components, parameter_format: components_builder.parameter_format
     )
     render json: created, status: :created
   rescue Whatsapp::TemplateComponentsBuilder::Invalid => e
@@ -39,7 +61,7 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
     category = template_params[:category]
     return render_error('invalid_category') if category.present? && Whatsapp::TemplateComponentsBuilder::CATEGORIES.exclude?(category)
 
-    render json: management_service.update(params[:id], components: components, category: category)
+    render json: management_service.update(params[:id], components: components_builder.components, category: category)
   rescue Whatsapp::TemplateComponentsBuilder::Invalid => e
     render_invalid(e)
   rescue Whatsapp::TemplateManagementService::Error => e
@@ -102,10 +124,20 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
     )
   end
 
-  def components
-    Whatsapp::TemplateComponentsBuilder.new(
+  def library_filters
+    params.permit(:search, :language, :topic, :usecase, :industry, :after).to_h.symbolize_keys
+  end
+
+  def library_template_params
+    params.require(:library_template).permit(
+      :library_template_name, :name, :language, :category, button_inputs: [:type, :phone_number, { url: [:base_url, :url_suffix_example] }]
+    )
+  end
+
+  def components_builder
+    @components_builder ||= Whatsapp::TemplateComponentsBuilder.new(
       header: template_params[:header], body: template_params[:body], footer: template_params[:footer], buttons: template_params[:buttons]
-    ).components
+    )
   end
 
   def render_invalid(error)

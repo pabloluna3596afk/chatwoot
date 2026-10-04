@@ -42,6 +42,26 @@ RSpec.describe Whatsapp::TemplateManagementService do
       expect(provider_service).to have_received(:sync_templates)
     end
 
+    it 'asks Meta for a named template when the form uses named variables' do
+      stub = stub_request(:post, "#{base}/#{waba}/message_templates")
+             .with(body: hash_including('parameter_format' => 'NAMED'))
+             .to_return(status: 200, body: { id: '1', status: 'PENDING', category: 'UTILITY' }.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      service.create(name: 'a', language: 'es', category: 'UTILITY', components: components, parameter_format: 'NAMED')
+
+      expect(stub).to have_been_requested
+    end
+
+    it 'does not send parameter_format for numbered templates' do
+      stub = stub_request(:post, "#{base}/#{waba}/message_templates")
+             .with { |request| JSON.parse(request.body).exclude?('parameter_format') }
+             .to_return(status: 200, body: { id: '1', status: 'PENDING', category: 'UTILITY' }.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      service.create(name: 'a', language: 'es', category: 'UTILITY', components: components, parameter_format: 'POSITIONAL')
+
+      expect(stub).to have_been_requested
+    end
+
     it 'turns the Meta errors it knows into stable codes' do
       cases = {
         [2_388_024, 'x'] => 'name_exists',
@@ -154,6 +174,45 @@ RSpec.describe Whatsapp::TemplateManagementService do
                                                           quality_score: { score: 'GREEN' }, components: components }.to_json)
 
       expect(service.fetch('555')).to include(id: '555', status: 'REJECTED', rejected_reason: 'INVALID_FORMAT', quality_score: 'GREEN')
+    end
+  end
+
+  describe '#library' do
+    it 'lists the Meta library with the filters and the next page' do
+      stub = stub_request(:get, "#{base}/#{waba}/message_template_library")
+             .with(query: { search: 'cita', language: 'es', limit: described_class::LIBRARY_PAGE })
+             .to_return(status: 200, headers: { 'Content-Type' => 'application/json' },
+                        body: { data: [{ id: '1', name: 'appointment_reminder', language: 'es', category: 'UTILITY', body: 'Hola', extra: 'x' }],
+                                paging: { cursors: { after: 'abc' } } }.to_json)
+
+      result = service.library(search: 'cita', language: 'es')
+
+      expect(stub).to have_been_requested
+      expect(result[:next]).to eq('abc')
+      expect(result[:templates]).to eq([{ 'id' => '1', 'name' => 'appointment_reminder', 'language' => 'es', 'category' => 'UTILITY', 'body' => 'Hola' }])
+    end
+
+    it 'raises what Meta refuses' do
+      stub_request(:get, "#{base}/#{waba}/message_template_library").with(query: hash_including({})).to_return(meta_error(code: 190, message: 'expired'))
+
+      expect(error_of { service.library }.code).to eq('token_invalid')
+    end
+  end
+
+  describe '#create_from_library' do
+    it 'creates by the library name with the button inputs and refreshes the list' do
+      inputs = [{ type: 'PHONE_NUMBER', phone_number: '+593999999999' }]
+      stub = stub_request(:post, "#{base}/#{waba}/message_templates")
+             .with(body: { name: 'recordatorio', language: 'es', category: 'UTILITY', library_template_name: 'appointment_reminder',
+                           library_template_button_inputs: inputs }.to_json)
+             .to_return(status: 200, headers: { 'Content-Type' => 'application/json' }, body: { id: '7', status: 'APPROVED', category: 'UTILITY' }.to_json)
+
+      result = service.create_from_library(library_template_name: 'appointment_reminder', name: 'recordatorio', language: 'es',
+                                           category: 'UTILITY', button_inputs: inputs)
+
+      expect(result).to eq(id: '7', status: 'APPROVED', category: 'UTILITY')
+      expect(stub).to have_been_requested
+      expect(provider_service).to have_received(:sync_templates)
     end
   end
 end

@@ -13,6 +13,8 @@ class Whatsapp::TemplateManagementService
   API_VERSION = 'v22.0'.freeze
   FIELDS = 'id,name,status,category,language,components,rejected_reason,quality_score'.freeze
   TIMEOUT = 60
+  LIBRARY_PAGE = 25
+  LIBRARY_FIELDS = %w[id name language category topic usecase industry header body body_params buttons].freeze
 
   # Meta error subcodes / messages -> our code. Anything else is `meta_error` (Meta's own text is kept as `detail`).
   SUBCODES = { 2_388_023 => 'name_locked', 2_388_024 => 'name_exists' }.freeze
@@ -44,8 +46,9 @@ class Whatsapp::TemplateManagementService
   end
 
   # Returns { id:, status:, category: }. `components` come from TemplateComponentsBuilder.
-  def create(name:, language:, category:, components:)
+  def create(name:, language:, category:, components:, parameter_format: nil)
     body = { name: name, language: language, category: category, components: components }
+    body[:parameter_format] = parameter_format if parameter_format == 'NAMED'
     response = request(:post, "#{waba_path}/message_templates", body: body)
     finish(response, 'id', 'status', 'category')
   end
@@ -70,6 +73,26 @@ class Whatsapp::TemplateManagementService
 
     sync
     { deleted: true }
+  end
+
+  # Meta's Template Library: ready-made utility templates (fixed text, only their parameters change).
+  # Returns { templates: [...], next: cursor or nil }.
+  def library(search: nil, language: nil, topic: nil, usecase: nil, industry: nil, after: nil, limit: LIBRARY_PAGE)
+    query = { search: search, language: language, topic: topic, usecase: usecase, industry: industry, after: after, limit: limit }.compact_blank
+    response = request(:get, "#{waba_path}/message_template_library", query: query)
+    raise_failure(response) unless response.success? && response.parsed_response.is_a?(Hash)
+
+    data = response.parsed_response
+    { templates: Array(data['data']).map { |entry| entry.slice(*LIBRARY_FIELDS) }, next: data.dig('paging', 'cursors', 'after') }
+  end
+
+  # Creates a template from the library by its name; `button_inputs` are the values some of its buttons ask for
+  # (a phone number, a URL), as Meta takes them in library_template_button_inputs.
+  def create_from_library(library_template_name:, name:, language:, category:, button_inputs: [])
+    body = { name: name, language: language, category: category, library_template_name: library_template_name }
+    body[:library_template_button_inputs] = button_inputs if button_inputs.present?
+    response = request(:post, "#{waba_path}/message_templates", body: body)
+    finish(response, 'id', 'status', 'category')
   end
 
   # The live state of one template, with the rejection reason the synced list does not carry.

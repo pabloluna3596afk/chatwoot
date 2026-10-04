@@ -866,4 +866,8 @@ es:
       rate_limited: 'Meta pide esperar un momento. Inténtalo de nuevo en unos minutos.'
       meta_unreachable: 'No se pudo conectar con Meta. Inténtalo de nuevo.'
       not_found: 'La plantilla ya no existe en Meta.'
+      variables_mixed: 'No mezcles variables con nombre ({{nombre}}) y numeradas ({{1}}).'
+      variable_name_invalid: 'El nombre de la variable %{name} no es válido: usa minúsculas, números y guion bajo, y empieza con una letra.'
+      library_unavailable: 'No se pudo consultar la biblioteca de Meta para este canal.'
+      library_name_required: 'Falta la plantilla de la biblioteca.'
       meta_error: 'Meta rechazó la solicitud: %{detail}'
