@@ -319,6 +319,7 @@ watch(
       v-if="selectedTemplate"
       ref="templateParserRef"
       :template="selectedTemplate"
+      :media-inbox-id="state.inboxId"
       variable-context="campaign"
     />
 

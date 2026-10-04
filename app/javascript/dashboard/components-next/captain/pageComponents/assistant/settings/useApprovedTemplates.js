@@ -67,5 +67,21 @@ export function useApprovedTemplates() {
   const templateEntry = value =>
     approvedTemplates.value.find(item => item.value === value)?.template;
 
-  return { approvedTemplates, templateOptions, templateEntry };
+  // The WhatsApp Cloud inbox that reports a "name|language" template as approved: the number that uploads the file of
+  // its header (the sender uploads it again through the number it sends from).
+  const templateInboxId = value => {
+    const inbox = (inboxes.value || []).find(
+      item =>
+        item.channel_type === 'Channel::Whatsapp' &&
+        item.provider === 'whatsapp_cloud' &&
+        (item.message_templates || []).some(
+          template =>
+            templateKey(template) === value &&
+            String(template.status).toLowerCase() === 'approved'
+        )
+    );
+    return inbox?.id ?? null;
+  };
+
+  return { approvedTemplates, templateOptions, templateEntry, templateInboxId };
 }

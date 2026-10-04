@@ -42,7 +42,18 @@
       "COUPON_CODE": "Enter coupon code (max 15 chars)",
       "MEDIA_URL_LABEL": "Enter {type} URL",
       "DOCUMENT_NAME_PLACEHOLDER": "Enter document filename (e.g., Invoice_2025.pdf)",
-      "BUTTON_PARAMETER": "Enter button parameter"
+      "BUTTON_PARAMETER": "Enter button parameter",
+      "MEDIA_UPLOAD": "Upload file",
+      "MEDIA_UPLOADING": "Uploading...",
+      "MEDIA_UPLOADED": "File ready: {name}",
+      "MEDIA_REMOVE": "Remove file",
+      "MEDIA_HINT_IMAGE": "JPEG or PNG, up to {max} MB",
+      "MEDIA_HINT_VIDEO": "MP4 or 3GP, up to {max} MB",
+      "MEDIA_HINT_DOCUMENT": "PDF, up to {max} MB",
+      "MEDIA_ERROR_EMPTY": "The file is empty.",
+      "MEDIA_ERROR_INVALID_TYPE": "This file type is not accepted for this header.",
+      "MEDIA_ERROR_TOO_LARGE": "The file is larger than {max} MB.",
+      "MEDIA_ERROR_UPLOAD_FAILED": "The file could not be uploaded to WhatsApp. Try again."
     }
   }
 }

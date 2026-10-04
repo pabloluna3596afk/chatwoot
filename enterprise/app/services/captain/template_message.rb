@@ -7,9 +7,16 @@
 # ({{1}}) or named ({{nombre}}): { 'body' => { '1' => '{{ contact.name }}' }, 'header' => { 'titulo' => '{{ appointment.title }}' } }.
 # A text may carry Liquid; it is rendered when the message is sent. Chatwoot's WhatsApp sender turns the result into the
 # components Meta wants (named parameters for NAMED templates, header parameters for text headers).
+#
+# A template whose header is an image, a video or a document also needs that file: it is uploaded once when the
+# template is picked (see Whatsapp::TemplateHeaderMedia) and the reference keeps the media keys (MEDIA_KEYS) in its
+# header, next to the texts. A reference without the file is not saved and is not sent.
 class Captain::TemplateMessage
   VARIABLE = /\{\{\s*([^}\s]+)\s*\}\}/
   COMPONENTS = { 'BODY' => 'body', 'HEADER' => 'header' }.freeze
+  MEDIA_FORMATS = %w[IMAGE VIDEO DOCUMENT].freeze
+  MEDIA_KEYS = %w[media_id media_blob media_url media_name media_type media_uploaded_at media_phone_number_id].freeze
+  MEDIA_MISSING = 'header.media'.freeze
 
   # Raised when the saved texts no longer cover the variables of the template (it changed in Meta).
   class MappingMismatch < StandardError; end
@@ -47,13 +54,27 @@ class Captain::TemplateMessage
       end
     end
 
-    # Keys ("body.1", "header.titulo") of the variables that have no text.
+    # The format (IMAGE, VIDEO, DOCUMENT) of a media header, nil when the header is text or there is none.
+    def media_header_format(entry)
+      header = Array(entry['components']).find { |component| component['type'].to_s.upcase == 'HEADER' }
+      format = header&.dig('format').to_s.upcase
+      format if MEDIA_FORMATS.include?(format)
+    end
+
+    # Keys ("body.1", "header.titulo") of the variables that have no text, plus "header.media" when the header needs
+    # a file and has none.
     def unmapped(entry, processed_params)
       params = processed_params.is_a?(Hash) ? processed_params : {}
-      variables(entry).map(&:key).select do |key|
+      keys = variables(entry).map(&:key).select do |key|
         component, name = key.split('.', 2)
         params.dig(component, name).to_s.strip.blank?
       end
+      keys << MEDIA_MISSING if media_header_format(entry) && !media?(params['header'])
+      keys
+    end
+
+    def media?(header)
+      header.is_a?(Hash) && (header['media_id'].present? || header['media_url'].present?)
     end
 
     # [template_params payload, text shown in the conversation]. `drops` are the Liquid objects the texts can use
@@ -65,7 +86,7 @@ class Captain::TemplateMessage
       raise MappingMismatch, missing.join(', ') if missing.any?
 
       texts = variables(entry).to_h { |variable| [variable.key, render(params.dig(variable.component, variable.name), drops)] }
-      [payload(entry, texts), rendered_body(entry, texts)]
+      [payload(entry, texts, params), rendered_body(entry, texts)]
     end
 
     # What the texts of a message about an appointment can use: {{ contact.name }}, {{ appointment.date }}...
@@ -107,12 +128,18 @@ class Captain::TemplateMessage
       text.to_s.strip.presence || '-'
     end
 
-    def payload(entry, texts)
+    def payload(entry, texts, saved_params)
       params = %w[body header].index_with do |component|
         texts.select { |key, _| key.start_with?("#{component}.") }.transform_keys { |key| key.delete_prefix("#{component}.") }
-      end.compact_blank
+      end
+      params['header'] = params['header'].to_h.merge(media_params(entry, saved_params)) if media_header_format(entry)
       { name: entry['name'], namespace: entry['namespace'], language: entry['language'], category: entry['category'],
-        processed_params: params }
+        processed_params: params.compact_blank }
+    end
+
+    def media_params(entry, saved_params)
+      header = saved_params.is_a?(Hash) ? saved_params['header'].to_h : {}
+      header.slice(*MEDIA_KEYS).compact_blank.merge('media_type' => media_header_format(entry).downcase)
     end
 
     def rendered_body(entry, texts)

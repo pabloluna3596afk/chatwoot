@@ -29,6 +29,17 @@ class Inboxes extends CacheEnabledApiClient {
     });
   }
 
+  // Uploads the file of a template header to Meta; returns the header params to keep with the template.
+  uploadTemplateMedia(inboxId, { format, file }) {
+    const formData = new FormData();
+    formData.append('header_format', format);
+    formData.append('file', file);
+    return axios.post(
+      `${this.url}/${inboxId}/whatsapp_template_media`,
+      formData
+    );
+  }
+
   syncTemplates(inboxId) {
     return axios.post(`${this.url}/${inboxId}/sync_templates`);
   }

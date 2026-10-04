@@ -267,4 +267,42 @@ describe Whatsapp::TemplateProcessorService do
       end
     end
   end
+
+  describe 'an uploaded media header' do
+    subject(:processed_components) do
+      described_class.new(channel: channel, template_params: template_params).call.last
+    end
+
+    let(:channel) do
+      instance_double(Channel::Whatsapp, message_templates: [template], provider_config: { 'phone_number_id' => '123' }, id: 1, account_id: 1)
+    end
+    let(:template) do
+      { 'name' => 'promo', 'language' => 'es', 'status' => 'APPROVED', 'parameter_format' => 'POSITIONAL',
+        'components' => [{ 'type' => 'HEADER', 'format' => header_format }] }
+    end
+    let(:header_format) { 'IMAGE' }
+    let(:header_params) do
+      { 'media_id' => 'media_9', 'media_type' => header_format.downcase, 'media_url' => 'https://example.com/promo.png',
+        'media_name' => 'promo.png', 'media_uploaded_at' => 1.day.ago.iso8601, 'media_phone_number_id' => '123' }
+    end
+    let(:template_params) { { 'name' => 'promo', 'language' => 'es', 'processed_params' => { 'header' => header_params } } }
+
+    it 'sends the media id, not the link' do
+      expect(processed_components).to eq([{ type: 'header', parameters: [{ type: 'image', image: { id: 'media_9' } }] }])
+    end
+
+    it 'sends a document by id with its file name' do
+      header_params['media_type'] = 'document'
+      template['components'] = [{ 'type' => 'HEADER', 'format' => 'DOCUMENT' }]
+
+      expect(processed_components).to eq([{ type: 'header', parameters: [{ type: 'document', document: { id: 'media_9', filename: 'promo.png' } }] }])
+    end
+
+    it 'sends the link when the id cannot be used' do
+      header_params['media_phone_number_id'] = 'another-number'
+      header_params['media_uploaded_at'] = 30.days.ago.iso8601
+
+      expect(processed_components).to eq([{ type: 'header', parameters: [{ type: 'image', image: { link: 'https://example.com/promo.png' } }] }])
+    end
+  end
 end

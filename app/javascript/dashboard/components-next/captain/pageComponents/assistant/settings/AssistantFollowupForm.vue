@@ -25,7 +25,8 @@ const props = defineProps({
 const emit = defineEmits(['submit']);
 
 const { t } = useI18n();
-const { templateOptions, templateEntry } = useApprovedTemplates();
+const { templateOptions, templateEntry, templateInboxId } =
+  useApprovedTemplates();
 const { variableOptions, previewValues } = useTemplateVariables({
   appointment: false,
 });
@@ -232,6 +233,7 @@ watch(
             v-if="state.template && templateEntry(state.template)"
             :key="state.template"
             :template="templateEntry(state.template)"
+            :media-inbox-id="templateInboxId(state.template)"
             :model-value="state.params"
             :variable-options="variableOptions"
             :preview-values="previewValues"
