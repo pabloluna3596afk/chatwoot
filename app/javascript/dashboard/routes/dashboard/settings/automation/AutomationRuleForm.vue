@@ -13,7 +13,7 @@ import {
 } from 'dashboard/helper/automationHelper';
 import { getAttributeIcon } from 'dashboard/components-next/filter/helper/filterAttributeIcons';
 import { provideDropdownTeleport } from 'dashboard/components-next/dropdown-menu/base/provider';
-import { validateAutomation } from 'dashboard/helper/validations';
+import { isEmptyValue, validateAutomation } from 'dashboard/helper/validations';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { DURATION_UNITS } from 'dashboard/components-next/input/constants';
 import {
@@ -374,7 +374,9 @@ const hasAutomationMutated = computed(() => {
           Object.keys(firstActionParams).length
       );
 
-  return Boolean(automation.value?.conditions[0]?.values || hasActionParams);
+  return Boolean(
+    !isEmptyValue(automation.value?.conditions[0]?.values) || hasActionParams
+  );
 });
 
 const automationActionTypes = computed(() => {

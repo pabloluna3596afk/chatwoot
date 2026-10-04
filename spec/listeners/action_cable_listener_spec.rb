@@ -9,8 +9,35 @@ describe ActionCableListener do
 
   before do
     create(:inbox_member, inbox: inbox, user: agent)
+    # Creating the conversation already loaded (empty) inbox.members; the broadcast reads them again.
+    inbox.members.reset
     Current.user = nil
     Current.account = nil
+  end
+
+  describe '#conversation_bot_handoff' do
+    let(:event) { Events::Base.new(:'conversation.bot_handoff', Time.zone.now, conversation: conversation) }
+
+    it 'broadcasts the handoff to inbox agents and account admins only' do
+      expect(ActionCableBroadcastJob).to receive(:perform_later).with(
+        a_collection_containing_exactly(agent.pubsub_token, admin.pubsub_token),
+        'conversation.bot_handoff',
+        conversation.push_event_data.merge(account_id: account.id)
+      )
+
+      listener.conversation_bot_handoff(event)
+    end
+
+    it 'includes the performer so dashboards can distinguish human takeovers' do
+      Current.user = agent
+      expect(ActionCableBroadcastJob).to receive(:perform_later).with(
+        a_collection_containing_exactly(agent.pubsub_token, admin.pubsub_token),
+        'conversation.bot_handoff',
+        conversation.push_event_data.merge(account_id: account.id, performer: agent.push_event_data)
+      )
+
+      listener.conversation_bot_handoff(event)
+    end
   end
 
   describe '#account_cache_invalidated' do
