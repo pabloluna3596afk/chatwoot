@@ -10,7 +10,7 @@ RSpec.describe 'Calendar connections and the Panel AI follow-up', type: :request
     get url, headers: agent.create_new_auth_token
 
     expect(response).to have_http_status(:ok)
-    expect(response.parsed_response['panel_ai_active']).to be(false)
+    expect(response.parsed_body['panel_ai_active']).to be(false)
   end
 
   it 'says an AI bot is active when an inbox has one active' do
@@ -19,7 +19,7 @@ RSpec.describe 'Calendar connections and the Panel AI follow-up', type: :request
 
     get url, headers: agent.create_new_auth_token
 
-    expect(response.parsed_response['panel_ai_active']).to be(true)
+    expect(response.parsed_body['panel_ai_active']).to be(true)
   end
 
   it 'ignores an AI bot that is switched off' do
@@ -28,6 +28,6 @@ RSpec.describe 'Calendar connections and the Panel AI follow-up', type: :request
 
     get url, headers: agent.create_new_auth_token
 
-    expect(response.parsed_response['panel_ai_active']).to be(false)
+    expect(response.parsed_body['panel_ai_active']).to be(false)
   end
 end

@@ -37,7 +37,7 @@ RSpec.describe 'Contact calendar events API', type: :request do
     get url, headers: agent.create_new_auth_token
 
     expect(response).to have_http_status(:ok)
-    payload = response.parsed_response['payload']
+    payload = response.parsed_body['payload']
     expect(payload.pluck('id')).to eq(%w[soon later])
     expect(payload.first['creator']).to include('type' => 'captain')
     expect(payload.last['creator']).to include('type' => 'user', 'name' => agent.name)
