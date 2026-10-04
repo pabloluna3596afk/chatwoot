@@ -133,6 +133,7 @@ describe('useConversationRequiredAttributes', () => {
         attributeKey: 'priority',
         attributeDisplayName: 'Priority',
         attributeDisplayType: 'list',
+        attributeModel: 'conversation',
         attributeValues: ['High', 'Medium', 'Low'],
         value: 'priority',
         label: 'Priority',

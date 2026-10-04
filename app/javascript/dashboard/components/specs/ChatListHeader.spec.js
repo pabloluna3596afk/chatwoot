@@ -11,6 +11,18 @@ vi.mock('dashboard/composables/useUISettings', async () => {
   };
 });
 
+vi.mock('dashboard/composables/useStatusLabel', () => ({
+  useStatusLabel: () => ({ getStatusLabel: status => status }),
+}));
+
+vi.mock('dashboard/composables/useAccount', () => ({
+  useAccount: () => ({ isCloudFeatureEnabled: () => false }),
+}));
+
+vi.mock('dashboard/composables/usePolicy', () => ({
+  usePolicy: () => ({ checkPermissions: () => true }),
+}));
+
 const mountHeader = props =>
   shallowMount(ChatListHeader, {
     props: {

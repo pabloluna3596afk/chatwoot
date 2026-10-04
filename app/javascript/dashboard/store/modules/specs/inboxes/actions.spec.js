@@ -26,8 +26,8 @@ describe('#actions', () => {
       await actions.get({ commit });
       expect(commit.mock.calls).toEqual([
         [types.default.SET_INBOXES_UI_FLAG, { isFetching: true }],
-        [types.default.SET_INBOXES_UI_FLAG, { isFetching: false }],
         [types.default.SET_INBOXES, inboxList],
+        [types.default.SET_INBOXES_UI_FLAG, { isFetching: false }],
       ]);
     });
     it('sends correct actions if API is error', async () => {
