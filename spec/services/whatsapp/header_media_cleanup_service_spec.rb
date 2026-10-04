@@ -51,7 +51,7 @@ describe Whatsapp::HeaderMediaCleanupService do
     rule_blob = header_blob(name: 'regla.pdf')
     assistant_blob = header_blob(name: 'captain.pdf')
     header_blob(name: 'libre.pdf')
-    campaign = create(:campaign, :whatsapp, account: account)
+    campaign = create(:campaign, account: account)
     campaign.update_columns(template_params: header_params(campaign_blob)) # rubocop:disable Rails/SkipsModelValidations
     create(:automation_rule, account: account,
                              actions: [{ 'action_name' => 'send_message', 'action_params' => [header_params(rule_blob)] }])

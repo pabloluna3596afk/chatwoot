@@ -63,11 +63,17 @@ class Whatsapp::TemplateHeaderHandleService
   end
 
   def discover
-    candidates = [token_app_id, configured_app_id, *subscribed_app_ids].compact_blank.uniq
-    return { 'reason' => 'app_not_found' } if candidates.empty?
+    tried = []
+    # Each source is only asked when the ones before it gave no app that can upload.
+    [-> { token_app_id }, -> { configured_app_id }, -> { subscribed_app_ids }].each do |source|
+      Array(source.call).compact_blank.each do |candidate|
+        next if tried.include?(candidate)
 
-    found = candidates.find { |candidate| session_opens?(candidate) }
-    found ? { 'app_id' => found } : { 'reason' => 'upload_refused' }
+        tried << candidate
+        return { 'app_id' => candidate } if session_opens?(candidate)
+      end
+    end
+    { 'reason' => tried.empty? ? 'app_not_found' : 'upload_refused' }
   end
 
   def token_app_id

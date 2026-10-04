@@ -35,7 +35,7 @@ class Whatsapp::HeaderMediaCleanupService
 
   def referenced?(blob)
     pattern = "%#{ActiveRecord::Base.sanitize_sql_like(blob.signed_id)}%"
-    holders.any? { |scope, column| scope.where("#{column}::text LIKE ?", pattern).exists? }
+    holders.any? { |scope, column| scope.exists?(["#{column}::text LIKE ?", pattern]) }
   end
 
   # Where a header file can be named by its signed id.

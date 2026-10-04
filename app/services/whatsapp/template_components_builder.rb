@@ -44,13 +44,14 @@ class Whatsapp::TemplateComponentsBuilder
     end
   end
 
-  def initialize(header: nil, body: nil, footer: nil, buttons: nil, category: nil, preserved: nil)
+  # `options`: category (for the copy-code rule) and preserved (see above).
+  def initialize(header: nil, body: nil, footer: nil, buttons: nil, **options)
     @header = (header || {}).to_h.with_indifferent_access
     @body = (body || {}).to_h.with_indifferent_access
     @footer = (footer || {}).to_h.with_indifferent_access
     @buttons = Array(buttons).map { |button| button.to_h.with_indifferent_access }
-    @category = category.to_s.upcase.presence
-    @preserved = (preserved || {}).to_h.with_indifferent_access
+    @category = options[:category].to_s.upcase.presence
+    @preserved = (options[:preserved] || {}).to_h.with_indifferent_access
   end
 
   def self.valid_name?(name)
