@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_02_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_03_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -422,6 +422,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_02_120000) do
     t.jsonb "bot_followup_policy", default: {}, null: false
     t.string "appointment_status", default: "none", null: false
     t.string "booking_source", default: "manual", null: false
+    t.string "invitation_status"
     t.index ["account_id", "contact_id"], name: "index_calendar_events_on_account_id_and_contact_id"
     t.index ["account_id", "conversation_id"], name: "index_calendar_events_on_account_id_and_conversation_id"
     t.index ["account_id", "idempotency_key"], name: "index_calendar_events_on_account_id_and_idempotency_key", unique: true, where: "(idempotency_key IS NOT NULL)"
