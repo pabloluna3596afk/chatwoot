@@ -46,6 +46,7 @@
       "MEDIA_UPLOAD": "Upload file",
       "MEDIA_UPLOADING": "Uploading...",
       "MEDIA_UPLOADED": "File ready: {name}",
+      "MEDIA_CHANGE": "Change",
       "MEDIA_REMOVE": "Remove file",
       "MEDIA_HINT_IMAGE": "JPEG or PNG, up to {max} MB",
       "MEDIA_HINT_VIDEO": "MP4 or 3GP, up to {max} MB",
