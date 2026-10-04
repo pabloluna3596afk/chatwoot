@@ -102,3 +102,10 @@ send_captain_followup_job:
   cron: '*/1 * * * *'
   class: 'Conversations::CaptainFollowupJob'
   queue: scheduled_jobs
+
+# executed daily at 0330 UTC
+# purges the stored copies of WhatsApp template header files that no message, campaign, automation or Captain setting uses
+whatsapp_header_media_cleanup_job:
+  cron: '30 3 * * *'
+  class: 'Whatsapp::HeaderMediaCleanupJob'
+  queue: purgable

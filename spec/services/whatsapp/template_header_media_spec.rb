@@ -48,6 +48,27 @@ describe Whatsapp::TemplateHeaderMedia do
       expect(ActiveStorage::Blob.find_signed(header['media_blob']).metadata).to include('account_id' => channel.account_id)
     end
 
+    it 'keeps one copy when the same file is chosen again, uploading it to Meta each time' do
+      allow(Whatsapp::MediaUploadService).to receive(:upload_blob!).and_return('media_1', 'media_2')
+
+      first = described_class.store_and_upload!(channel, format: 'IMAGE', file: upload(png_path, 'image/png'))
+      second = described_class.store_and_upload!(channel, format: 'IMAGE', file: upload(png_path, 'image/png'))
+
+      expect(second['media_blob']).to eq(first['media_blob'])
+      expect(second['media_id']).to eq('media_2')
+      expect(ActiveStorage::Blob.where(filename: 'avatar.png').count).to eq(1)
+    end
+
+    it 'does not reuse the copy of another account' do
+      allow(Whatsapp::MediaUploadService).to receive(:upload_blob!).and_return('media_1')
+      other = create(:channel_whatsapp, provider: 'whatsapp_cloud', validate_provider_config: false, sync_templates: false)
+
+      first = described_class.store_and_upload!(channel, format: 'IMAGE', file: upload(png_path, 'image/png'))
+      second = described_class.store_and_upload!(other, format: 'IMAGE', file: upload(png_path, 'image/png'))
+
+      expect(second['media_blob']).not_to eq(first['media_blob'])
+    end
+
     it 'does not upload a file the header does not accept' do
       allow(Whatsapp::MediaUploadService).to receive(:upload_blob!)
 
