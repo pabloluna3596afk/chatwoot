@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe Captain::Assistant, '#reply_limit_reached? and #max_replies' do
+RSpec.describe Captain::Assistant, '#reply_limit' do
   let(:account) { create(:account) }
   let(:assistant) { create(:captain_assistant, account: account) }
   let(:conversation) { create(:conversation, account: account) }

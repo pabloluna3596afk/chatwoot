@@ -9,6 +9,11 @@ RSpec.describe Conversations::FilterService do
   let(:assistant) { create(:captain_assistant, account: account) }
   let(:contact) { create(:contact, account: account) }
 
+  let!(:attended) { conversation(inbox: inbox, status: :pending, ai_assignee: assistant) }
+  let!(:plain_open) { conversation(inbox: plain_inbox, status: :open) }
+  let!(:plain_pending) { conversation(inbox: plain_inbox, status: :pending) }
+  let!(:resolved) { conversation(inbox: plain_inbox, status: :resolved) }
+
   def conversation(inbox:, status:, ai_assignee: nil)
     create(:conversation, account: account, inbox: inbox, contact: contact, status: :open).tap do |record|
       record.update_columns( # rubocop:disable Rails/SkipsModelValidations
@@ -21,11 +26,6 @@ RSpec.describe Conversations::FilterService do
     payload = [{ attribute_key: 'status', filter_operator: operator, values: values, query_operator: nil }.with_indifferent_access]
     described_class.new({ payload: payload }, admin, account).perform[:conversations].map(&:id)
   end
-
-  let!(:attended) { conversation(inbox: inbox, status: :pending, ai_assignee: assistant) }
-  let!(:plain_open) { conversation(inbox: plain_inbox, status: :open) }
-  let!(:plain_pending) { conversation(inbox: plain_inbox, status: :pending) }
-  let!(:resolved) { conversation(inbox: plain_inbox, status: :resolved) }
 
   before do
     create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
