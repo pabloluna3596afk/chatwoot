@@ -124,3 +124,23 @@ jobs:
         run: |
           git fetch origin develop
           git diff --name-only --diff-filter=d origin/develop...HEAD -- '*.rb' | xargs -r bundle exec rubocop --force-exclusion
+
+  # The dashboard (Vue) specs. Nothing else in this repo runs vitest.
+  frontend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: Install pnpm dependencies
+        run: pnpm i
+
+      - name: Run vitest
+        run: pnpm test
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
