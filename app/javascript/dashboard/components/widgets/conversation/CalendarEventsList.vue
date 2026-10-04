@@ -30,6 +30,7 @@ const props = defineProps({
 const { t, locale } = useI18n();
 const events = ref([]);
 const connections = ref([]);
+const panelAiActive = ref(false);
 const calendars = ref([]);
 const isLoading = ref(false);
 const modalRef = ref(null);
@@ -46,6 +47,7 @@ const pastEvents = computed(() =>
 
 const loadConnections = async () => {
   const { data } = await CalendarAPI.getConnections();
+  panelAiActive.value = Boolean(data.panel_ai_active);
   connections.value = (data.payload || []).filter(
     item => item.provider === 'google'
   );
@@ -226,6 +228,7 @@ onMounted(async () => {
       ref="modalRef"
       :connections="connections"
       :calendars="calendars"
+      :panel-ai-active="panelAiActive"
       @saved="loadEvents"
     />
   </div>
