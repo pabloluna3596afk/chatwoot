@@ -77,13 +77,16 @@ class Whatsapp::TemplateHeaderMedia
     # The stored copy of the header file of a template message (its template_params), or nil: the chat shows it
     # as the attachment of that message, sharing the blob (no second copy).
     def blob_for_message(template_params, account_id)
-      processed = template_params.is_a?(Hash) ? template_params['processed_params'] : nil
-      header = processed.is_a?(Hash) ? processed['header'] : nil
-      signed_id = header.is_a?(Hash) ? header['media_blob'] : nil
+      signed_id = dig_hash(template_params, 'processed_params', 'header', 'media_blob')
       return if signed_id.blank?
 
       blob = ActiveStorage::Blob.find_signed(signed_id)
       blob if blob&.metadata&.dig('account_id') == account_id
+    end
+
+    # Like Hash#dig, but nil when a step is not a Hash (params come from the API and may be any JSON).
+    def dig_hash(value, *keys)
+      keys.reduce(value) { |current, key| current.is_a?(Hash) ? current[key] : (return nil) }
     end
 
     # How the chat shows a header file: as an image, a video or a document.
