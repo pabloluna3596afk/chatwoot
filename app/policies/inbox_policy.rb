@@ -66,6 +66,11 @@ class InboxPolicy < ApplicationPolicy
     @account_user.administrator?
   end
 
+  # Creating, editing and deleting WhatsApp templates in Meta: agents use templates, they do not manage them.
+  def manage_whatsapp_templates?
+    @account_user.administrator?
+  end
+
   def whatsapp_business_management_token?
     @account_user.administrator?
   end
