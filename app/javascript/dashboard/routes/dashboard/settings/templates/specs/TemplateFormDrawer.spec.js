@@ -14,7 +14,18 @@ vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 vi.mock('dashboard/composables/store', () => ({
   useStore: () => ({ dispatch: vi.fn() }),
   useMapGetter: () => ({
-    value: () => [{ attribute_key: 'plan', attribute_display_name: 'Plan' }],
+    value: [
+      {
+        attribute_key: 'plan',
+        attribute_model: 'contact_attribute',
+        attribute_display_name: 'Plan',
+      },
+      {
+        attribute_key: 'estado',
+        attribute_model: 'conversation_attribute',
+        attribute_display_name: 'Estado',
+      },
+    ],
   }),
 }));
 vi.mock('dashboard/api/whatsappTemplates', () => ({
@@ -159,13 +170,24 @@ describe('TemplateFormDrawer', () => {
     expect(wrapper.find('[data-testid="examples"]').exists()).toBe(true);
   });
 
-  it('offers the contact attributes and the names Captain fills in in the variable menu', async () => {
+  it('offers the CRM names, the contact and conversation attributes and the Captain names, grouped', async () => {
     const wrapper = await mountDrawer();
 
     await wrapper.get('[data-testid="variable-menu-toggle"]').trigger('click');
 
-    expect(wrapper.text()).toContain('nombre');
-    expect(wrapper.text()).toContain('Plan (plan)');
+    const text = wrapper.text();
+    [
+      'WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_GROUPS.SYSTEM',
+      'WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_GROUPS.CONTACT',
+      'WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_GROUPS.CONVERSATION',
+      'WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_GROUPS.CAPTAIN',
+      '(nombre)',
+      '(correo)',
+      '(empresa)',
+      'Plan (plan)',
+      'Estado (conversacion_estado)',
+      'cita',
+    ].forEach(expected => expect(text).toContain(expected));
   });
 
   it('warns when a Utility template reads as promotional, and not for Marketing', async () => {

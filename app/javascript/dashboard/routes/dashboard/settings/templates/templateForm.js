@@ -27,7 +27,7 @@ export const MEDIA_ACCEPT = {
   DOCUMENT: 'application/pdf',
 };
 // The variables the form offers with one click: the ones Captain's appointment messages fill in by name.
-export const SUGGESTED_VARIABLES = ['nombre', 'cita', 'fecha', 'hora', 'tema'];
+export const CAPTAIN_VARIABLES = ['cita', 'fecha', 'hora', 'tema', 'asistente'];
 
 const VARIABLE = /\{\{\s*([^{}\s]+)\s*\}\}/g;
 const NUMBER_TOKEN = /^\d+$/;

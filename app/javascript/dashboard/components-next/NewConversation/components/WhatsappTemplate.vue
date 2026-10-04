@@ -1,9 +1,12 @@
 <script setup>
+import { computed } from 'vue';
+import { useMapGetter } from 'dashboard/composables/store';
+import { useTemplateBindings } from 'dashboard/composables/useTemplateBindings';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import { useI18n } from 'vue-i18n';
 
-defineProps({
+const props = defineProps({
   template: {
     type: Object,
     default: () => ({}),
@@ -12,9 +15,20 @@ defineProps({
     type: Number,
     default: null,
   },
+  // The contact the conversation is started with, to fill the variables in.
+  contact: {
+    type: Object,
+    default: null,
+  },
 });
 
 const emit = defineEmits(['sendMessage', 'back']);
+const { defaultValues } = useTemplateBindings('message');
+const currentUser = useMapGetter('getCurrentUser');
+const resolveContext = computed(() => ({
+  contact: props.contact,
+  agent: currentUser.value,
+}));
 
 const { t } = useI18n();
 
@@ -33,6 +47,8 @@ const handleBack = () => {
       <WhatsAppTemplateParser
         :template="template"
         :media-inbox-id="inboxId"
+        :default-values="defaultValues"
+        :resolve-context="resolveContext"
         @send-message="handleSendMessage"
         @back="handleBack"
       >
