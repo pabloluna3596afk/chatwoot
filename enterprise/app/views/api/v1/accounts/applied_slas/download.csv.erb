@@ -8,7 +8,7 @@
   I18n.t('reports.sla_csv.conversation_link'),
   I18n.t('reports.sla_csv.breached_events')
 ] %>
-<%= CSVSafe.generate_line headers %>
+<%= CSVSafe.generate_line(headers).html_safe %>
 
 <% @missed_applied_slas.each do |sla| %>
   <% missed_events = sla.sla_events.map(&:event_type).join(', ') %>
@@ -22,5 +22,5 @@
     conversation.cached_label_list,
     app_account_conversation_url(account_id: conversation.account_id, id: conversation.display_id),
     missed_events
-  ]) %>
+  ]).html_safe %>
 <% end %>

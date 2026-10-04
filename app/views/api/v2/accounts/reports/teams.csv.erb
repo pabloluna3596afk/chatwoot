@@ -1,4 +1,4 @@
-<%= CSVSafe.generate_line [I18n.t('reports.period', since: Date.strptime(params[:since], '%s'), until: Date.strptime(params[:until], '%s'))] %>
+<%= CSVSafe.generate_line([I18n.t('reports.period', since: Date.strptime(params[:since], '%s'), until: Date.strptime(params[:until], '%s'))]).html_safe %>
 
 <% headers = [
     I18n.t('reports.team_csv.team_name'),
@@ -10,7 +10,7 @@
     I18n.t('reports.export_share')
   ]
 %>
-<%= CSVSafe.generate_line headers -%>
+<%= CSVSafe.generate_line(headers).html_safe -%>
 <% @report_data.each do |row| %>
-<%= CSVSafe.generate_line row -%>
+<%= CSVSafe.generate_line(row).html_safe -%>
 <% end %>
