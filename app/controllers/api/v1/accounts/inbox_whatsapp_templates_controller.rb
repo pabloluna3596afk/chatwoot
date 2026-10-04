@@ -37,9 +37,7 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
   # An edit sends the components again (Meta replaces them) and, for a template that is not approved, the category.
   def update
     category = template_params[:category]
-    if category.present? && Whatsapp::TemplateComponentsBuilder::CATEGORIES.exclude?(category)
-      return render_error('invalid_category')
-    end
+    return render_error('invalid_category') if category.present? && Whatsapp::TemplateComponentsBuilder::CATEGORIES.exclude?(category)
 
     render json: management_service.update(params[:id], components: components, category: category)
   rescue Whatsapp::TemplateComponentsBuilder::Invalid => e

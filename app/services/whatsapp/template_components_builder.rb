@@ -57,11 +57,11 @@ class Whatsapp::TemplateComponentsBuilder
 
   def text_header
     text = @header[:text].to_s.strip
-    raise Invalid.new('header_text_required') if text.blank?
+    raise Invalid, 'header_text_required' if text.blank?
     raise Invalid.new('header_text_too_long', limit: LIMITS[:header_text]) if text.length > LIMITS[:header_text]
 
     numbers = variable_numbers(text)
-    raise Invalid.new('header_one_variable') if numbers.size > 1 || (numbers.any? && numbers != [1])
+    raise Invalid, 'header_one_variable' if numbers.size > 1 || (numbers.any? && numbers != [1])
 
     component = { type: 'HEADER', format: 'TEXT', text: text }
     component[:example] = { header_text: [required_example(@header[:examples], 1, 'header')[0]] } if numbers.any?
@@ -77,23 +77,26 @@ class Whatsapp::TemplateComponentsBuilder
 
   def body_component
     text = @body[:text].to_s.strip
-    raise Invalid.new('body_required') if text.blank?
-    raise Invalid.new('body_too_long', limit: LIMITS[:body]) if text.length > LIMITS[:body]
-
     numbers = variable_numbers(text)
-    raise Invalid.new('variables_not_sequential') unless numbers == (1..numbers.size).to_a
-    raise Invalid.new('variable_at_edge') if numbers.any? && text.match?(/\A\{\{\d+\}\}|\{\{\d+\}\}\z/)
+    validate_body!(text, numbers)
 
     component = { type: 'BODY', text: text }
     component[:example] = { body_text: [required_example(@body[:examples], numbers.size, 'body')] } if numbers.any?
     component
   end
 
+  def validate_body!(text, numbers)
+    raise Invalid, 'body_required' if text.blank?
+    raise Invalid.new('body_too_long', limit: LIMITS[:body]) if text.length > LIMITS[:body]
+    raise Invalid, 'variables_not_sequential' unless numbers == (1..numbers.size).to_a
+    raise Invalid, 'variable_at_edge' if numbers.any? && text.match?(/\A\{\{\d+\}\}|\{\{\d+\}\}\z/)
+  end
+
   def footer_component
     text = @footer[:text].to_s.strip
     return if text.blank?
     raise Invalid.new('footer_too_long', limit: LIMITS[:footer]) if text.length > LIMITS[:footer]
-    raise Invalid.new('footer_no_variables') if text.match?(VARIABLE)
+    raise Invalid, 'footer_no_variables' if text.match?(VARIABLE)
 
     { type: 'FOOTER', text: text }
   end
@@ -113,7 +116,7 @@ class Whatsapp::TemplateComponentsBuilder
     raise Invalid.new('invalid_button_type', type: type) unless BUTTON_TYPES.include?(type)
 
     text = button[:text].to_s.strip
-    raise Invalid.new('button_text_required') if text.blank?
+    raise Invalid, 'button_text_required' if text.blank?
     raise Invalid.new('button_text_too_long', limit: LIMITS[:button_text]) if text.length > LIMITS[:button_text]
 
     case type
@@ -125,10 +128,10 @@ class Whatsapp::TemplateComponentsBuilder
 
   def url_button(text, button)
     url = button[:url].to_s.strip
-    raise Invalid.new('url_invalid') unless url.match?(%r{\Ahttps?://\S+\z}) && url.length <= LIMITS[:url]
+    raise Invalid, 'url_invalid' unless url.match?(%r{\Ahttps?://\S+\z}) && url.length <= LIMITS[:url]
 
     numbers = variable_numbers(url)
-    raise Invalid.new('url_variable_at_end') if numbers.size > 1 || (numbers.any? && !url.end_with?('{{1}}'))
+    raise Invalid, 'url_variable_at_end' if numbers.size > 1 || (numbers.any? && !url.end_with?('{{1}}'))
 
     built = { type: 'URL', text: text, url: url }
     built[:example] = [required_example(button[:examples], 1, 'url')[0]] if numbers.any?
@@ -137,7 +140,7 @@ class Whatsapp::TemplateComponentsBuilder
 
   def phone_button(text, button)
     phone = button[:phone_number].to_s.strip
-    raise Invalid.new('phone_invalid') unless phone.match?(/\A\+\d{6,18}\z/)
+    raise Invalid, 'phone_invalid' unless phone.match?(/\A\+\d{6,18}\z/)
 
     { type: 'PHONE_NUMBER', text: text, phone_number: phone }
   end

@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe Whatsapp::TemplateComponentsBuilder do
   def build(**parts)
-    described_class.new(**{ body: { text: 'Hola' } }.merge(parts)).components
+    described_class.new(body: { text: 'Hola' }, **parts).components
   end
 
   def error_code
@@ -94,7 +94,8 @@ RSpec.describe Whatsapp::TemplateComponentsBuilder do
       expect(error_code { build(buttons: [{ type: 'FLOW', text: 'Abrir' }]) }).to eq('invalid_button_type')
       expect(error_code { build(buttons: [{ type: 'QUICK_REPLY', text: '' }]) }).to eq('button_text_required')
       expect(error_code { build(buttons: [{ type: 'URL', text: 'Ver', url: 'ftp://x' }]) }).to eq('url_invalid')
-      expect(error_code { build(buttons: [{ type: 'URL', text: 'Ver', url: 'https://x.com/{{1}}/y', examples: ['a'] }]) }).to eq('url_variable_at_end')
+      middle_variable = { type: 'URL', text: 'Ver', url: 'https://x.com/{{1}}/y', examples: ['a'] }
+      expect(error_code { build(buttons: [middle_variable]) }).to eq('url_variable_at_end')
       expect(error_code { build(buttons: [{ type: 'PHONE_NUMBER', text: 'Llamar', phone_number: '0999' }]) }).to eq('phone_invalid')
     end
 
