@@ -370,7 +370,8 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
     before { create(:captain_inbox, captain_assistant: assistant, inbox: conversation.inbox) }
 
     it 'is the assistant with its photo for what Captain booked' do
-      record = local_event(booking_source: 'ai', conversation: conversation)
+      # a fresh load, as in a request: the factory's inbox cached that it had no assistant before the Captain inbox existed
+      record = local_event(booking_source: 'ai', conversation: Conversation.find(conversation.id))
 
       expect(described_class.creator_payload(record)).to include(type: 'captain', name: assistant.name, thumbnail: assistant.avatar_or_default_url)
     end

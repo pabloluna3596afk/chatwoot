@@ -342,13 +342,13 @@ RSpec.describe Captain::Tools::BookAppointmentTool do
           'reminder_1' => { 'enabled' => false, 'hours_before' => 24 }, 'reminder_2' => { 'enabled' => false, 'hours_before' => 3 } }
       end
 
-      it 'books with no reminders and no pending confirmation, and still confirms with the change and cancel buttons' do
+      it 'books with no reminders, confirmed by the customer yes, and still confirms with the change and cancel buttons' do
         result = call
 
         expect(result).to start_with('Agendada: martes 15 de enero, 10:00. El cliente recibirá una invitación de calendario en ana@example.com.')
         expect(result).to include('UN solo mensaje')
         expect(Captain::AppointmentReminder.count).to eq(0)
-        expect(CalendarEvent.find_by(google_event_id: 'g-1').appointment_status).to eq('none')
+        expect(CalendarEvent.find_by(google_event_id: 'g-1').appointment_status).to eq('confirmed')
       end
     end
 

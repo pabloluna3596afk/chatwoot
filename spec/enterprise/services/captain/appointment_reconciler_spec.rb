@@ -6,7 +6,11 @@ RSpec.describe Captain::AppointmentReconciler do
     CalendarConnection.create!(account: account, provider: 'google', email: 'agenda@example.com', refresh_token: 'refresh',
                                access_token: 'access', access_token_expires_at: 1.hour.from_now)
   end
-  let(:assistant) { create(:captain_assistant, account: account, config: { 'appointments' => { 'enabled' => true } }) }
+  let!(:calendar) { connection.connection_calendars.create!(account: account, external_id: 'cal-1', summary: 'Main', is_enabled: true) }
+  let(:assistant) do
+    create(:captain_assistant, account: account,
+                               config: { 'appointments' => { 'enabled' => true, 'calendar_connection_id' => connection.id, 'calendar_id' => 'cal-1' } })
+  end
   let(:conversation) { create(:conversation, account: account) }
   let(:client) { instance_double(Integrations::GoogleCalendar::Client) }
   let(:lines) { [] }
