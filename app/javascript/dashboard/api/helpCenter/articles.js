@@ -17,6 +17,7 @@ class ArticlesAPI extends PortalsAPI {
     categorySlug,
     sort,
     query,
+    signal,
   }) {
     const url = getArticleSearchURL({
       pageNumber,
