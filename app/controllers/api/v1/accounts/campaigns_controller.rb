@@ -67,7 +67,7 @@ class Api::V1::Accounts::CampaignsController < Api::V1::Accounts::BaseController
       package.workbook.add_worksheet(name: 'Recipients') do |sheet|
         types = Array.new(headers.length, :string)
         sheet.add_row headers
-        rows.each { |row| sheet.add_row row, types: types }
+        rows.each { |row| Exports::SafeCell.sheet(sheet).add_row row, types: types }
       end
       send_data(
         package.to_stream.read,
@@ -79,7 +79,7 @@ class Api::V1::Accounts::CampaignsController < Api::V1::Accounts::BaseController
       csv = CSV.generate do |out|
         out << headers
         rows.each do |row|
-          out << [row[0], "\t#{row[1]}", *row[2..]]
+          out << [Exports::SafeCell.value(row[0]), Exports::SafeCell.text(row[1]), *Exports::SafeCell.row(row[2..])]
         end
       end
       send_data(

@@ -62,12 +62,12 @@ RSpec.describe '/api/v1/accounts/{account.id}/contacts/:id/conversations', type:
       end
 
       it 'returns only the most recent conversations' do
-        create_list(:conversation, 25, account: account, inbox: inbox_1, contact: contact, contact_inbox: contact_inbox_1)
+        create_list(:conversation, 55, account: account, inbox: inbox_1, contact: contact, contact_inbox: contact_inbox_1)
 
         get "/api/v1/accounts/#{account.id}/contacts/#{contact.id}/conversations", headers: admin.create_new_auth_token
 
         expect(response).to have_http_status(:success)
-        expect(response.parsed_body['payload'].length).to eq 25
+        expect(response.parsed_body['payload'].length).to eq 50
       end
     end
   end

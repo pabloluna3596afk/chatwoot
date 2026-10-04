@@ -14,6 +14,7 @@ RSpec.describe 'Reports API', type: :request do
   let(:new_account) { create(:account) }
 
   before do
+    account.enable_features!('report_export')
     create_list(:conversation, 10, account: account, inbox: inbox,
                                    assignee: user, created_at: Time.current.in_time_zone(default_timezone).to_date)
   end
@@ -365,6 +366,19 @@ RSpec.describe 'Reports API', type: :request do
             headers: admin.create_new_auth_token
 
         expect(response).to have_http_status(:success)
+      end
+
+      it 'never stores an agent name that starts like a formula as a formula in the xlsx' do
+        user.update!(name: '=HYPERLINK(http://evil.example)')
+
+        get "/api/v2/accounts/#{account.id}/reports/agents.csv",
+            params: params.merge(export_format: 'xlsx'),
+            headers: admin.create_new_auth_token
+
+        expect(response).to have_http_status(:success)
+        xml = xlsx_xml(response.body)
+        expect(xml[:sheets]).not_to include('<f>')
+        expect(xml[:all]).to include('HYPERLINK')
       end
     end
 

@@ -141,20 +141,17 @@ describe Whatsapp::IncomingMessageWhatsappCloudService do
         flow_response = message.content_attributes['whatsapp_flow_response']
 
         expect(message).to have_attributes(
-          content: 'Submitted a flow response',
+          content: a_string_starting_with('Formulario completado'),
           content_type: 'text',
           message_type: 'incoming',
           source_id: 'wamid.flow-response-message'
         )
+        # ChatHub stores the answers of the flow itself (the parsed response_json), not the name/body wrapper.
         expect(flow_response).to eq(
-          'name' => 'flow',
-          'body' => 'Sent',
-          'response_json' => {
-            'flow_token' => 'flow-correlation-token',
-            'rating' => 'excellent',
-            'comments' => 'Great support',
-            'appointment' => { 'day' => 'Monday', 'windows' => %w[morning afternoon] }
-          }
+          'flow_token' => 'flow-correlation-token',
+          'rating' => 'excellent',
+          'comments' => 'Great support',
+          'appointment' => { 'day' => 'Monday', 'windows' => %w[morning afternoon] }
         )
         expect(message.webhook_data[:content_attributes]['whatsapp_flow_response']).to eq(flow_response)
       end
@@ -167,9 +164,9 @@ describe Whatsapp::IncomingMessageWhatsappCloudService do
 
           message = whatsapp_channel.inbox.messages.last
 
-          expect(message.content).to eq('Submitted a flow response')
-          expect(message.content_attributes.dig('whatsapp_flow_response', 'response_json')).to eq('{invalid-json')
-          expect(message.webhook_data[:content_attributes].dig('whatsapp_flow_response', 'response_json')).to eq('{invalid-json')
+          expect(message.content).to eq('Formulario completado.')
+          expect(message.content_attributes['whatsapp_flow_response']).to be_nil
+          expect(message.webhook_data[:content_attributes]['whatsapp_flow_response']).to be_nil
         end
       end
 
@@ -181,11 +178,8 @@ describe Whatsapp::IncomingMessageWhatsappCloudService do
 
           message = whatsapp_channel.inbox.messages.last
 
-          expect(message.content).to eq('Submitted a flow response')
-          expect(message.content_attributes['whatsapp_flow_response']).to eq(
-            'name' => 'flow',
-            'body' => 'Sent'
-          )
+          expect(message.content).to eq('Formulario completado.')
+          expect(message.content_attributes['whatsapp_flow_response']).to be_nil
         end
       end
     end

@@ -1,6 +1,6 @@
 name: Run ChatHub EE spec
-# Runs the enterprise specs (Captain, plans, calendar) that "Run Chatwoot CE spec" never sees,
-# because that workflow strips enterprise/ and spec/enterprise before running.
+# Runs the whole backend spec/ tree with enterprise on (the CE workflow strips enterprise/ and spec/enterprise
+# before running, and is disabled), plus rubocop on the changed lines and the dashboard vitest suite.
 permissions:
   contents: read
 on:
@@ -19,8 +19,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ci_node_total: [8]
-        ci_node_index: [0, 1, 2, 3, 4, 5, 6, 7]
+        ci_node_total: [16]
+        ci_node_index: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 
     services:
       postgres:
@@ -66,34 +66,11 @@ jobs:
       - name: Seed database
         run: bundle exec rake db:schema:load
 
-      - name: Run enterprise backend tests (parallelized)
+      - name: Run backend tests with enterprise (parallelized)
         run: |
-          # The enterprise specs plus the app specs of the code they share with it
-          # (LLM config, calendar, automations, scheduled jobs). Round-robin split across the nodes.
-          SPEC_FILES=($(find spec/enterprise spec/lib/llm spec/lib/integrations spec/lib/captain spec/jobs/calendar spec/services/automations spec/configs -name '*_spec.rb' | sort))
-          # Core specs of ChatHub changes, by file: "Run Chatwoot CE spec" is disabled and the directories around them
-          # (spec/services/whatsapp, spec/controllers) have failures that are not ours.
-          SPEC_FILES+=(
-            spec/controllers/api/v1/accounts/contacts/calendar_events_controller_spec.rb
-            spec/controllers/api/v1/accounts/conversations_controller_spec.rb
-            spec/controllers/api/v1/accounts/inbox_whatsapp_template_media_controller_spec.rb
-            spec/controllers/api/v1/accounts/integrations/calendar_panel_ai_spec.rb
-            spec/controllers/api/v1/accounts_controller_spec.rb
-            spec/controllers/widgets_controller_spec.rb
-            spec/initializers/rack_attack_spec.rb
-            spec/jobs/action_cable_handoff_assignment_spec.rb
-            spec/lib/global_config_service_spec.rb
-            spec/listeners/action_cable_listener_spec.rb
-            spec/models/conversation_spec.rb
-            spec/services/auto_assignment/assignment_service_spec.rb
-            spec/services/facebook/send_on_facebook_service_spec.rb
-            spec/services/instagram/messenger/send_on_instagram_service_spec.rb
-            spec/services/instagram/send_on_instagram_service_spec.rb
-            spec/services/whatsapp/media_upload_service_spec.rb
-            spec/services/whatsapp/providers/whatsapp_cloud_service_spec.rb
-            spec/services/whatsapp/template_header_media_spec.rb
-            spec/services/whatsapp/template_processor_service_spec.rb
-          )
+          # The whole spec/ tree, enterprise included (the CE workflow strips enterprise/ and is disabled).
+          # Round-robin split across the nodes, so slow files spread evenly.
+          SPEC_FILES=($(find spec -name '*_spec.rb' | sort))
           TESTS=""
 
           for i in "${!SPEC_FILES[@]}"; do

@@ -66,7 +66,7 @@ RSpec.describe Conversations::EventDataPresenter do
       data = presenter.push_data
 
       expect(data[:campaign_id]).to eq(campaign.id)
-      expect(data[:meta][:campaign]).to eq(id: campaign.display_id, title: campaign.title)
+      expect(data[:meta][:campaign]).to eq(id: campaign.display_id, title: campaign.title, color: campaign.color)
     end
   end
 

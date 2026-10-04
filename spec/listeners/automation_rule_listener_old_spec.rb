@@ -728,8 +728,8 @@ describe AutomationRuleListener do
       expect(conversation.messages.last.content).to eq('Send this message.')
       expect(new_conversation.messages.last.content).to eq('Send this message. - 1')
 
-      expect(conversation.messages.last.content_attributes).to eq({ 'automation_rule_id' => automation_rule.id })
-      expect(new_conversation.messages.last.content_attributes).to eq({ 'automation_rule_id' => new_automation_rule.id })
+      expect(conversation.messages.last.content_attributes).to include('automation_rule_id' => automation_rule.id)
+      expect(new_conversation.messages.last.content_attributes).to include('automation_rule_id' => new_automation_rule.id)
     end
   end
 

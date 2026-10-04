@@ -4,6 +4,7 @@ RSpec.describe 'Agents API', type: :request do
   include ActiveJob::TestHelper
 
   let(:account) { create(:account) }
+  let(:plan) { Plan.create!(name: 'Email limit plan', slug: "email-limit-#{SecureRandom.hex(4)}", max_human_agents: 100) }
   let!(:admin) { create(:user, custom_attributes: { test: 'test' }, account: account, role: :administrator) }
   let!(:agent) { create(:user, account: account, email: 'exists@example.com', role: :agent) }
 
@@ -181,7 +182,7 @@ RSpec.describe 'Agents API', type: :request do
       context 'when the account email limit is exhausted' do
         before do
           allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(true)
-          account.update!(limits: { 'emails' => 0 })
+          account.update!(plan: plan, limits: { 'emails' => 0 })
         end
 
         it 'does not create an agent' do
@@ -231,7 +232,7 @@ RSpec.describe 'Agents API', type: :request do
       context 'when the account email limit is exhausted' do
         before do
           allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(true)
-          account.update!(limits: { 'emails' => 0 })
+          account.update!(plan: plan, limits: { 'emails' => 0 })
         end
 
         it 'does not create new agents' do
@@ -277,7 +278,7 @@ RSpec.describe 'Agents API', type: :request do
       context 'when the account has capacity for only part of the batch' do
         before do
           allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(true)
-          account.update!(limits: { 'emails' => 1 })
+          account.update!(plan: plan, limits: { 'emails' => 1 })
         end
 
         it 'persists the successful invitation without leaking email capacity' do

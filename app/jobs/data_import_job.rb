@@ -171,7 +171,7 @@ class DataImportJob < ApplicationJob
     CSV.generate do |csv|
       csv << headers
       rejected_contacts.each do |record|
-        csv << record
+        csv << Exports::SafeCell.row(record.fields, allow_numeric: true)
       end
     end
   end

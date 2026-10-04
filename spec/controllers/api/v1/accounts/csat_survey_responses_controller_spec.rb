@@ -6,6 +6,8 @@ RSpec.describe 'CSAT Survey Responses API', type: :request do
   let(:administrator) { create(:user, account: account, role: :administrator) }
   let(:agent) { create(:user, account: account, role: :agent) }
 
+  before { account.enable_features!('customer_data_export') }
+
   describe 'GET /api/v1/accounts/{account.id}/csat_survey_responses' do
     context 'when it is an unauthenticated user' do
       it 'returns unauthorized' do

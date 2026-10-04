@@ -55,7 +55,7 @@ RSpec.describe Conversations::InheritContactLabelsService do
 
   describe 'hooks' do
     it 'registers create callback on Conversation' do
-      filter = Conversation._commit_callbacks.select { |cb| cb.kind == :after && cb.name == :inherit_contact_labels }
+      filter = Conversation._commit_callbacks.select { |cb| cb.kind == :after && cb.filter == :inherit_contact_labels }
       expect(filter).to be_present
     end
 

@@ -52,16 +52,6 @@ class Account::ContactsExportJob < ApplicationJob
     TEXT_FORCE_HEADERS.include?(header)
   end
 
-  # Leading tab keeps Excel/Sheets from coercing long digit strings to numbers in CSV.
-  def spreadsheet_text(value)
-    return '' if value.nil?
-
-    text = value.to_s
-    return '' if text.blank?
-
-    "\t#{text}"
-  end
-
   def assigned_agent_name(contact)
     agent = contact.assigned_agent
     return '' unless agent
@@ -141,7 +131,7 @@ class Account::ContactsExportJob < ApplicationJob
       csv << headers
       rows.each do |row|
         csv << row.map.with_index do |cell, index|
-          force_text_header?(headers[index]) ? spreadsheet_text(cell) : cell
+          force_text_header?(headers[index]) ? Exports::SafeCell.text(cell) : Exports::SafeCell.value(cell)
         end
       end
     end
@@ -166,7 +156,7 @@ class Account::ContactsExportJob < ApplicationJob
       sheet.add_row headers
       rows.each do |row|
         cells = row.map { |cell| cell.nil? ? '' : cell }
-        sheet.add_row cells, types: types
+        Exports::SafeCell.sheet(sheet).add_row cells, types: types
       end
     end
 

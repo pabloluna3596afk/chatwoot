@@ -10,6 +10,12 @@ RSpec.describe Conversations::BusinessRulesGuard do
     account.update!(settings: account.settings.merge('business_rules' => rules))
   end
 
+  # The settings schema rejects a non-hash config on save, so legacy data like this is written past validation.
+  def write_rules_unvalidated(rules)
+    account.settings = account.settings.merge('business_rules' => rules)
+    account.save!(validate: false)
+  end
+
   describe '#perform' do
     it 'blocks resolve when required attributes are missing' do
       set_rules([
@@ -152,7 +158,7 @@ RSpec.describe Conversations::BusinessRulesGuard do
     end
 
     it 'ignores rules with non-hash config instead of raising' do
-      set_rules([
+      write_rules_unvalidated([
                   {
                     'id' => 'r3',
                     'type' => 'require_attributes_on_status',

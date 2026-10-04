@@ -2,6 +2,7 @@ require 'rails_helper'
 
 RSpec.describe AccountEmailRateLimitable do
   let(:account) { create(:account) }
+  let(:plan) { Plan.create!(name: 'Email limit plan', slug: "email-limit-#{SecureRandom.hex(4)}") }
 
   describe '#email_rate_limit' do
     it 'returns account-level override when set' do
@@ -32,6 +33,7 @@ RSpec.describe AccountEmailRateLimitable do
     end
 
     it 'returns false when at limit' do
+      account.update!(plan: plan)
       2.times { account.increment_email_sent_count }
       expect(account).not_to be_within_email_rate_limit
     end
@@ -50,6 +52,7 @@ RSpec.describe AccountEmailRateLimitable do
     context 'when chatwoot cloud' do
       before do
         allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(true)
+        account.update!(plan: plan)
         2.times { account.increment_email_sent_count }
       end
 
@@ -88,7 +91,7 @@ RSpec.describe AccountEmailRateLimitable do
     context 'when chatwoot cloud' do
       before do
         allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(true)
-        account.update!(limits: { 'emails' => 2 })
+        account.update!(plan: plan, limits: { 'emails' => 2 })
       end
 
       it 'atomically reserves capacity without exceeding the limit' do
