@@ -35,6 +35,11 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  // An AI bot (Panel AI) is active in some inbox of the account: only then is its follow-up offered.
+  panelAiActive: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits(['saved']);
@@ -60,6 +65,11 @@ const endTime = ref('09:30');
 const tabIndex = ref(0);
 const includeMeet = ref(false);
 const botFollowupMode = ref('none');
+// An event that already carries the bot follow-up keeps showing it, whatever the account has now.
+const savedBotFollowup = ref(false);
+const showBotFollowup = computed(
+  () => props.panelAiActive || savedBotFollowup.value
+);
 const botFollowupConfirmation = ref(true);
 const botFollowupReminder24h = ref(true);
 const botFollowupReminder30m = ref(true);
@@ -255,6 +265,7 @@ const startHeartbeat = () => {
 
 const applyBotFollowupDefaults = (event, defaults) => {
   const policy = event?.bot_followup_policy;
+  savedBotFollowup.value = Boolean(policy?.enabled);
   if (policy?.enabled) {
     botFollowupMode.value = 'bot_followup';
     botFollowupConfirmation.value = policy.confirmation !== false;
@@ -266,7 +277,8 @@ const applyBotFollowupDefaults = (event, defaults) => {
     return;
   }
   const hasConversation = Boolean(resolveConversationId(event, defaults));
-  if (!event && hasConversation) {
+  // Panel AI accounts keep the bot follow-up as the default of a new appointment; without Panel AI nothing is sent.
+  if (!event && hasConversation && props.panelAiActive) {
     botFollowupMode.value = 'bot_followup';
     botFollowupConfirmation.value = true;
     botFollowupReminder24h.value = true;
@@ -714,38 +726,59 @@ defineExpose({ open, close });
           <legend class="mb-0.5 text-sm font-medium text-n-slate-12">
             {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_TITLE') }}
           </legend>
-          <label class="flex items-center gap-2 text-sm text-n-slate-12">
+          <p class="m-0 text-xs text-n-slate-11">
+            {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_CAPTAIN_NOTE') }}
+          </p>
+          <label class="flex items-start gap-2 text-sm text-n-slate-12">
             <input
               v-model="botFollowupMode"
               type="radio"
               value="none"
-              class="accent-n-brand"
+              class="mt-1 accent-n-brand"
               :disabled="readOnly"
             />
-            {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_NONE') }}
+            <span class="flex flex-col">
+              {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_NONE') }}
+              <span class="text-xs text-n-slate-11">
+                {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_NONE_HELP') }}
+              </span>
+            </span>
           </label>
-          <label class="flex items-center gap-2 text-sm text-n-slate-12">
+          <label class="flex items-start gap-2 text-sm text-n-slate-12">
             <input
               v-model="botFollowupMode"
               type="radio"
               value="notice_only"
-              class="accent-n-brand"
+              class="mt-1 accent-n-brand"
               :disabled="readOnly"
             />
-            {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_NOTICE') }}
+            <span class="flex flex-col">
+              {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_NOTICE') }}
+              <span class="text-xs text-n-slate-11">
+                {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_NOTICE_HELP') }}
+              </span>
+            </span>
           </label>
-          <label class="flex items-center gap-2 text-sm text-n-slate-12">
+          <label
+            v-if="showBotFollowup"
+            class="flex items-start gap-2 text-sm text-n-slate-12"
+          >
             <input
               v-model="botFollowupMode"
               type="radio"
               value="bot_followup"
-              class="accent-n-brand"
+              class="mt-1 accent-n-brand"
               :disabled="readOnly"
             />
-            {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_BOT') }}
+            <span class="flex flex-col">
+              {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_BOT') }}
+              <span class="text-xs text-n-slate-11">
+                {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.FOLLOWUP_BOT_HELP') }}
+              </span>
+            </span>
           </label>
           <div
-            v-if="botFollowupMode === 'bot_followup'"
+            v-if="showBotFollowup && botFollowupMode === 'bot_followup'"
             class="ml-6 flex flex-col gap-2"
           >
             <label class="flex items-center gap-2 text-sm text-n-slate-12">

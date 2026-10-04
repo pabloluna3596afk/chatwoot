@@ -66,7 +66,6 @@ const select = (wrapper, testId) =>
 const REMINDER_DEFAULTS = {
   reminder_1: { enabled: true, hours_before: 24 },
   reminder_2: { enabled: true, hours_before: 3 },
-  template_confirmation: null,
   template_reminder: null,
   template_cancelled: null,
 };
@@ -382,6 +381,22 @@ describe('AssistantAppointmentsForm', () => {
       expect(options).toEqual(['', 'recordatorio|es']);
     });
 
+    it('has no confirmation template picker: the confirmation is free and never a template', async () => {
+      const wrapper = await openFields({ allow_paid_templates: true });
+
+      expect(
+        wrapper
+          .find('[data-testid="appointments-template-confirmation"]')
+          .exists()
+      ).toBe(false);
+      expect(
+        wrapper.find('[data-testid="appointments-template-reminder"]').exists()
+      ).toBe(true);
+      expect(
+        wrapper.find('[data-testid="appointments-template-cancelled"]').exists()
+      ).toBe(true);
+    });
+
     const templateWithVariables = {
       name: 'recordatorio',
       language: 'es',
@@ -427,7 +442,6 @@ describe('AssistantAppointmentsForm', () => {
       expect(payload.config.appointments).toMatchObject({
         reminder_1: { enabled: true, hours_before: 24 },
         reminder_2: { enabled: false, hours_before: 3 },
-        template_confirmation: null,
         template_reminder: {
           name: 'recordatorio',
           language: 'es',

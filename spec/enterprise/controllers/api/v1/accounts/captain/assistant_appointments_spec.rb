@@ -15,7 +15,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants appointments settings', t
 
   let(:reminder_defaults) do
     { reminder_1: { enabled: true, hours_before: 24 }, reminder_2: { enabled: true, hours_before: 3 },
-      template_confirmation: nil, template_reminder: nil, template_cancelled: nil }
+      template_reminder: nil, template_cancelled: nil }
   end
 
   before { connection.connection_calendars.create!(account: account, external_id: 'cal-1', summary: 'Main', is_enabled: true) }

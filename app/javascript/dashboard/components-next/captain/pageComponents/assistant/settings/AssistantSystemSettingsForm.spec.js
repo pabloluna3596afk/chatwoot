@@ -2,6 +2,7 @@ import { nextTick } from 'vue';
 import { flushPromises, shallowMount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import Button from 'dashboard/components-next/button/Button.vue';
+import Input from 'dashboard/components-next/input/Input.vue';
 import RadioCard from 'dashboard/components-next/radioCard/RadioCard.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import AssistantSystemSettingsForm from './AssistantSystemSettingsForm.vue';
@@ -71,6 +72,7 @@ describe('AssistantSystemSettingsForm', () => {
     expect(wrapper.emitted('submit')[0][0]).toEqual({
       config: {
         ...assistant.config,
+        max_replies_per_conversation: 20,
         auto_resolve_mode: 'disabled',
       },
     });
@@ -89,6 +91,7 @@ describe('AssistantSystemSettingsForm', () => {
     expect(wrapper.emitted('submit')[0][0]).toEqual({
       config: {
         ...assistant.config,
+        max_replies_per_conversation: 20,
         auto_resolve_after: 130,
       },
     });
@@ -105,5 +108,28 @@ describe('AssistantSystemSettingsForm', () => {
     expect(wrapper.text()).toContain(
       'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.ALWAYS_WARNING'
     );
+  });
+
+  it('saves the reply limit, 20 by default and 0 for no limit', async () => {
+    const wrapper = mountComponent();
+    expect(wrapper.findComponent(Input).props('modelValue')).toBe(20);
+
+    wrapper.findComponent(Input).vm.$emit('update:modelValue', '0');
+    await nextTick();
+    await submitForm(wrapper);
+
+    expect(
+      wrapper.emitted('submit')[0][0].config.max_replies_per_conversation
+    ).toBe(0);
+  });
+
+  it('does not save a negative reply limit', async () => {
+    const wrapper = mountComponent();
+
+    wrapper.findComponent(Input).vm.$emit('update:modelValue', '-3');
+    await nextTick();
+    await submitForm(wrapper);
+
+    expect(wrapper.emitted('submit')).toBeUndefined();
   });
 });

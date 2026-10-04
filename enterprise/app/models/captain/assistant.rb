@@ -25,6 +25,7 @@ class Captain::Assistant < ApplicationRecord
   MAXIMUM_INACTIVITY_THRESHOLD_MINUTES = 1.day.in_minutes.to_i
   INACTIVITY_THRESHOLD_STEP_MINUTES = 5
   RESPONSE_WINDOWS = %w[always business_hours outside_business_hours].freeze
+  DEFAULT_MAX_REPLIES = 20
   APPOINTMENT_TOOL_IDS = %w[
     check_availability propose_appointment book_appointment appointment_list reschedule_appointment cancel_appointment
     confirm_appointment
@@ -57,7 +58,8 @@ class Captain::Assistant < ApplicationRecord
                                     dependent: :nullify, inverse_of: :ai_assignee
 
   store_accessor :config, :temperature, :feature_faq, :feature_memory, :feature_contact_attributes, :product_name,
-                 :auto_resolve_mode, :auto_resolve_after, :send_inactivity_resolution_message, :response_window
+                 :auto_resolve_mode, :auto_resolve_after, :send_inactivity_resolution_message, :response_window,
+                 :max_replies_per_conversation
 
   before_validation :set_default_auto_resolve_mode, on: :create
   before_validation :normalize_auto_resolve_after
@@ -72,6 +74,7 @@ class Captain::Assistant < ApplicationRecord
   validates_with Captain::AppointmentsValidator
   validates_with Captain::FollowupValidator
   validate :validate_response_window
+  validate :validate_max_replies_per_conversation
   validates :auto_resolve_mode, inclusion: { in: AUTO_RESOLVE_MODES }
   validates :send_inactivity_resolution_message, inclusion: { in: [true, false] }
   validates :auto_resolve_after,
@@ -120,6 +123,18 @@ class Captain::Assistant < ApplicationRecord
     return :quota_exhausted unless account.usage_limits[:captain][:responses][:current_available].positive?
 
     nil
+  end
+
+  # Replies Captain may send in one conversation before it says goodbye and hands off. 0 means no limit.
+  def max_replies
+    value = config['max_replies_per_conversation']
+    value.blank? ? DEFAULT_MAX_REPLIES : value.to_i
+  end
+
+  def reply_limit_reached?(conversation)
+    return false unless max_replies.positive?
+
+    conversation.messages.where(sender: self, private: false, message_type: :outgoing).count >= max_replies
   end
 
   def engages?(contact, conversation)
@@ -258,6 +273,13 @@ class Captain::Assistant < ApplicationRecord
     return unless config['followup'].is_a?(Hash)
 
     config['followup'] = Captain::FollowupSettings.normalize(config['followup'])
+  end
+
+  def validate_max_replies_per_conversation
+    value = config['max_replies_per_conversation']
+    return if value.blank?
+
+    errors.add(:config, 'invalid max_replies_per_conversation') unless value.to_s.match?(/\A\d{1,4}\z/)
   end
 
   def validate_response_window

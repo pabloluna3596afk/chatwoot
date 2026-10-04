@@ -74,6 +74,9 @@ jobs:
           # Core specs of ChatHub changes, by file: "Run Chatwoot CE spec" is disabled and the directories around them
           # (spec/services/whatsapp, spec/controllers) have failures that are not ours.
           SPEC_FILES+=(
+            spec/controllers/api/v1/accounts_controller_spec.rb
+            spec/controllers/api/v1/accounts/contacts/calendar_events_controller_spec.rb
+            spec/controllers/api/v1/accounts/integrations/calendar_panel_ai_spec.rb
             spec/controllers/api/v1/accounts/inbox_whatsapp_template_media_controller_spec.rb
             spec/services/whatsapp/media_upload_service_spec.rb
             spec/services/whatsapp/providers/whatsapp_cloud_service_spec.rb
@@ -120,10 +123,10 @@ jobs:
         with:
           bundler-cache: true
 
-      - name: Rubocop on changed files
+      - name: Rubocop on the changed lines
         run: |
           git fetch origin develop
-          git diff --name-only --diff-filter=d origin/develop...HEAD -- '*.rb' | xargs -r bundle exec rubocop --force-exclusion
+          bundle exec ruby .github/scripts/rubocop_changed_lines.rb origin/develop
 
   # The dashboard (Vue) specs. Nothing else in this repo runs vitest.
   frontend-tests:

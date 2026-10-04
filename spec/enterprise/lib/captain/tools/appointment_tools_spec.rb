@@ -274,7 +274,7 @@ RSpec.describe Captain::Tools::BookAppointmentTool do
     event = CalendarEvent.find_by(google_event_id: 'g-1')
     expect(event).to have_attributes(
       booking_source: 'ai', contact_id: contact.id, conversation_id: conversation.id, summary: 'Cita con Ana Pérez',
-      appointment_status: 'pending_confirmation', bot_followup_policy: {}, created_by_id: nil
+      appointment_status: 'confirmed', bot_followup_policy: {}, created_by_id: nil
     )
     expect(event.idempotency_key).to start_with('captain-')
   end
@@ -311,7 +311,7 @@ RSpec.describe Captain::Tools::BookAppointmentTool do
       items = Captain::QuickReplies.take(conversation, responding_to: 55)
       expect(items.pluck('title')).to eq(['Cambiar hora', 'Cancelar cita'])
       expect(items.pluck('value')).to eq(['Cambiar hora · mar 15 ene · 10:00', 'Cancelar cita · mar 15 ene · 10:00'])
-      expect(Captain::QuickReplies.choice(conversation, items.last['value'])).to eq('event_id' => 'g-1')
+      expect(Captain::QuickReplies.choice(conversation, items.last['value'])).to eq('event_id' => 'g-1', 'action' => 'cancel')
     end
 
     it 'schedules the two reminders of the booking (24 h and 3 h by default) once, even when the call is retried' do
@@ -342,13 +342,13 @@ RSpec.describe Captain::Tools::BookAppointmentTool do
           'reminder_1' => { 'enabled' => false, 'hours_before' => 24 }, 'reminder_2' => { 'enabled' => false, 'hours_before' => 3 } }
       end
 
-      it 'books with no reminders and no pending confirmation, and still confirms with the change and cancel buttons' do
+      it 'books with no reminders, confirmed by the customer yes, and still confirms with the change and cancel buttons' do
         result = call
 
         expect(result).to start_with('Agendada: martes 15 de enero, 10:00. El cliente recibirá una invitación de calendario en ana@example.com.')
         expect(result).to include('UN solo mensaje')
         expect(Captain::AppointmentReminder.count).to eq(0)
-        expect(CalendarEvent.find_by(google_event_id: 'g-1').appointment_status).to eq('none')
+        expect(CalendarEvent.find_by(google_event_id: 'g-1').appointment_status).to eq('confirmed')
       end
     end
 
@@ -757,7 +757,7 @@ RSpec.describe Captain::Tools::ProposeAppointmentTool do
     local_event(start_at: Time.zone.parse('2030-01-15T10:00:00-05:00'), end_at: Time.zone.parse('2030-01-15T10:30:00-05:00'))
 
     expect(call).to include('ya no está disponible')
-    expect(call(start: '2030-01-15T07:00:00-05:00')).to include('ya no está disponible')
+    expect(call(start: '2030-01-15T07:00:00-05:00')).to include('fuera de los días u horas')
     expect(call(start: '2030-03-01T10:00:00-05:00')).to include('fuera del plazo')
     expect(call(start: '2030-13-45T10:00:00-05:00')).to include('No se pudo leer ese horario')
     expect(Captain::QuickReplies.take(conversation)).to be_nil
@@ -798,8 +798,8 @@ RSpec.describe Captain::Tools::AppointmentListTool, 'change buttons' do
   it 'remembers the appointment each change button stands for' do
     call(offer_changes: true)
 
-    ['Cambiar hora', 'Cancelar cita', 'Dejarla así'].each do |reply|
-      expect(Captain::QuickReplies.choice(conversation, reply)).to eq('event_id' => 'own-1')
+    { 'Cambiar hora' => 'change_time', 'Cancelar cita' => 'cancel', 'Dejarla así' => 'keep' }.each do |reply, action|
+      expect(Captain::QuickReplies.choice(conversation, reply)).to eq('event_id' => 'own-1', 'action' => action)
     end
   end
 
@@ -1032,5 +1032,147 @@ RSpec.describe Captain::Assistant, 'appointment tools exposure' do
 
     captain_inbox.update!(appointments_enabled: false)
     expect(assistant.agent_instructions(instructions_context)).not_to include('# Appointments')
+  end
+end
+
+RSpec.describe Captain::Tools::CheckAvailabilityTool, '#perform with an exact time' do
+  include_context 'with an appointments conversation'
+
+  def call(**params)
+    tool.perform(tool_context, **params)
+  end
+
+  it 'offers a free time of the 15 minute grid exactly as asked' do
+    result = call(from_date: '2030-01-15', at_time: '10:15')
+
+    expect(result).to include('Esa hora está libre', 'martes 15 de enero, 10:15')
+    expect(Captain::QuickReplies.choice(conversation, 'mar 15 ene · 10:15')).to eq('start' => '2030-01-15T10:15:00-05:00')
+  end
+
+  it 'says in one line that the time is taken and lists the closest free times' do
+    local_event(start_at: Time.zone.parse('2030-01-15T10:00:00-05:00'), end_at: Time.zone.parse('2030-01-15T10:30:00-05:00'))
+    result = call(from_date: '2030-01-15', at_time: '10:15')
+
+    expect(result.lines.first).to include('ya no está disponible')
+    expect(result).to include('Horarios libres más cercanos')
+    offered = result.lines.grep(/\A- /).map { |line| line[/(\d{2}:\d{2}) \(start/, 1] }
+    expect(offered.size).to eq(3)
+    expect(offered).to all(satisfy { |time| time >= '10:30' || time <= '09:45' })
+    expect(offered).not_to include('10:15')
+  end
+
+  it 'explains a time off the 15 minute grid' do
+    expect(call(from_date: '2030-01-15', at_time: '10:20')).to include('cada 15 minutos')
+  end
+
+  it 'explains a time that is too soon, outside the hours or outside the booking window' do
+    expect(call(from_date: '2030-01-14', at_time: '12:15').lines.first).to include('demasiado pronto', '60 minutos')
+    expect(call(from_date: '2030-01-15', at_time: '23:00').lines.first).to include('fuera de los días u horas')
+    expect(call(from_date: '2030-03-15', at_time: '10:00').lines.first).to include('fuera del plazo')
+  end
+
+  it 'asks for a readable time' do
+    expect(call(from_date: '2030-01-15', at_time: 'por la tarde')).to include('HH:MM')
+  end
+end
+
+RSpec.describe Captain::Tools::ProposeAppointmentTool, '#perform with an exact time' do
+  include_context 'with an appointments conversation'
+
+  it 'proposes a start of the 15 minute grid that is free' do
+    result = tool.perform(tool_context, start: '2030-01-15T10:15:00-05:00')
+
+    expect(result).to include('10:15')
+    expect(result).not_to include('no está disponible')
+  end
+
+  it 'does not propose a start off the grid' do
+    expect(tool.perform(tool_context, start: '2030-01-15T10:20:00-05:00')).to include('cada 15 minutos')
+  end
+end
+
+# Replays the conversation of production (conversation 2109): the customer tapped "Cambiar hora" three times and
+# the assistant asked the same three-button question each time, because every tap was read as a new request to change.
+RSpec.describe Captain::Tools::AppointmentListTool, '#perform on a tap of its own buttons' do
+  include_context 'with an appointments conversation'
+
+  before { local_event(google_event_id: 'own-1', summary: 'Cita con Ana Pérez', contact: contact) }
+
+  def customer_says(text)
+    message = create(:message, conversation: conversation, account: account, inbox: inbox, message_type: :incoming, content: text)
+    tool_context.state[:responding_to_message_id] = message.id
+    message
+  end
+
+  def list_changes
+    tool.perform(tool_context, offer_changes: true)
+  end
+
+  it 'offers the three buttons once and then answers every "Cambiar hora" with new times for that appointment' do
+    first = customer_says('Quiero cambiar la hora de mi cita')
+    expect(list_changes).to include('Cambiar hora')
+    expect(Captain::QuickReplies.take(conversation, responding_to: first.id).pluck('title')).to eq(['Cambiar hora', 'Cancelar cita', 'Dejarla así'])
+
+    3.times do
+      tap = customer_says('Cambiar hora')
+      result = list_changes
+
+      expect(result).to include('mover su cita', 'Horarios libres')
+      expect(result).not_to include('Cancelar cita')
+      buttons = Captain::QuickReplies.take(conversation, responding_to: tap.id)
+      expect(buttons.pluck('title')).to all(match(/\A\w{3} \d{1,2} \w{3} · \d{2}:\d{2}\z/))
+      expect(buttons.pluck('title')).not_to include('Cambiar hora', 'Cancelar cita', 'Dejarla así')
+    end
+  end
+
+  it 'carries the appointment in the times it offers, so choosing one moves it' do
+    customer_says('Quiero cambiar la hora de mi cita')
+    list_changes
+    tap = customer_says('Cambiar hora')
+    list_changes
+    first_time = Captain::QuickReplies.take(conversation, responding_to: tap.id).first['title']
+
+    expect(Captain::QuickReplies.choice(conversation, first_time)).to include('event_id' => 'own-1')
+    expect(Captain::QuickReplies.choice(conversation, first_time)['start']).to be_present
+
+    proposal = Captain::Tools::ProposeAppointmentTool.new(assistant).perform(tool_context, start: first_time)
+    expect(proposal).to include('Muevo tu cita')
+  end
+
+  it 'answers a tap on the cancel button with what to do, not with the buttons again' do
+    customer_says('Quiero cancelar')
+    list_changes
+    customer_says('Cancelar cita')
+
+    result = list_changes
+
+    expect(result).to include('cancel_appointment', 'event_id', '"Cancelar cita"', 'customer_confirmed true')
+    expect(Captain::QuickReplies.take(conversation, responding_to: tool_context.state[:responding_to_message_id])).to be_nil
+  end
+
+  it 'answers a tap on keep without offering anything else' do
+    customer_says('Quiero cambiar')
+    list_changes
+    customer_says('Dejarla así')
+
+    expect(list_changes).to include('dejar la cita como está')
+  end
+
+  it 'offers the buttons again for a new request typed in words' do
+    customer_says('Quiero cambiar la hora de mi cita')
+    list_changes
+    customer_says('mejor cancélala')
+
+    expect(list_changes).to include('Cambiar hora')
+  end
+
+  it 'moves the appointment of the "Cambiar hora" reply when check_availability is asked directly' do
+    customer_says('Quiero cambiar la hora de mi cita')
+    list_changes
+
+    result = Captain::Tools::CheckAvailabilityTool.new(assistant).perform(tool_context, event_id: 'Cambiar hora')
+
+    expect(result).to include('mover su cita', 'Horarios libres')
+    expect(Captain::Tools::CheckAvailabilityTool.new(assistant).perform(tool_context, event_id: 'no-existe')).to include('No se encontró esa cita')
   end
 end

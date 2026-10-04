@@ -12,6 +12,7 @@ class Conversations::EventDataPresenter < SimpleDelegator
       labels: label_list,
       meta: push_meta,
       status: status,
+      display_status: display_status,
       bot_handling: bot_handling?,
       captain_state: captain_state,
       captain_assistant: captain_assistant_data,

@@ -1,5 +1,7 @@
 class Integrations::GoogleCalendar::EventService
   TIMEZONE = Integrations::GoogleCalendar::Client::TIMEZONE
+  INVITATION_REFRESH_LIMIT = 5
+  INVITATION_REFRESH_EVERY = 5.minutes
 
   class SlotBusy < StandardError
     attr_reader :conflict
@@ -53,7 +55,9 @@ class Integrations::GoogleCalendar::EventService
   # Free slots inside the calendar's configured hours, back to back, in the account timezone.
   # A slot is free when no kept local event and no busy Google event overlaps it (same rules
   # ensure_slot_available! applies at booking time), and it respects the minimum notice.
-  def available_slots(calendar_id:, from:, to:, duration: 30, min_notice_minutes: 0)
+  # Slots follow the calendar hours back to back (`step_minutes` defaults to the duration); a smaller step also offers the
+  # times in between (a 30 minute appointment at 10:15).
+  def available_slots(calendar_id:, from:, to:, duration: 30, min_notice_minutes: 0, step_minutes: nil) # rubocop:disable Metrics/AbcSize, Metrics/ParameterLists
     ensure_calendar_enabled!(calendar_id)
     zone = Time.find_zone!(account_timezone)
     range_start = from.in_time_zone(zone)
@@ -62,9 +66,48 @@ class Integrations::GoogleCalendar::EventService
 
     earliest = [range_start, Time.current.in_time_zone(zone) + min_notice_minutes.to_i.minutes].max
     busy = busy_intervals(calendar_id, range_start, range_end)
-    slots_in_hours(calendar_id, zone, range_start, range_end, duration.to_i.minutes)
+    slots_in_hours(calendar_id, zone, range_start, range_end, duration.to_i.minutes, (step_minutes || duration).to_i.minutes)
       .select { |slot_start, slot_end| slot_start >= earliest && !slot_busy?(busy, slot_start, slot_end) }
       .map { |slot_start, slot_end| { start: slot_start.iso8601, end: slot_end.iso8601 } }
+  end
+
+  # Whether the appointment is on a working day and inside the calendar hours.
+  def within_hours?(calendar_id, start_at, end_at)
+    zone = Time.find_zone!(account_timezone)
+    local_start = start_at.in_time_zone(zone)
+    local_end = end_at.in_time_zone(zone)
+    calendar = calendar_settings(calendar_id)
+    same_day = local_start.to_date == local_end.to_date
+    inside = local_start.seconds_since_midnight >= calendar.hour_start * 3600 &&
+             local_end.seconds_since_midnight <= calendar.hour_end * 3600
+    same_day && inside && calendar.works_on?(local_start.wday)
+  end
+
+  # The event as Google has it now (attendees included).
+  def google_event_for(record)
+    client.get_event(calendar_id: record.external_calendar_id, event_id: record.google_event_id)
+  end
+
+  # Reads the invite answer of an appointment from Google and keeps it. A failure leaves what was known.
+  def refresh_invitation_status!(record)
+    sync_invitation_status!(google_event_for(record), record)
+    record
+  rescue StandardError => e
+    Rails.logger.warn("Google Calendar invitation refresh failed for event #{record.id}: #{e.class} #{e.message}")
+    record
+  end
+
+  # Keeps the invite answers of the upcoming appointments of a panel fresh: a few at a time, and each one at most every
+  # few minutes (a customer answers by email, Google does not tell us).
+  def self.refresh_upcoming_invitations(account, scope, user: nil)
+    scope.kept.where(start_at: Time.current..).where(invitation_status: [nil, 'needs_action', 'tentative'])
+         .includes(:calendar_connection).order(:start_at).limit(INVITATION_REFRESH_LIMIT).each do |record|
+      key = "calendar_invitation_refresh:#{record.id}"
+      next if Rails.cache.exist?(key)
+
+      Rails.cache.write(key, true, expires_in: INVITATION_REFRESH_EVERY)
+      new(account: account, user: user, connection: record.calendar_connection).refresh_invitation_status!(record)
+    end
   end
 
   def self.conversation_payloads(conversation)
@@ -112,15 +155,42 @@ class Integrations::GoogleCalendar::EventService
       connection_id: record.calendar_connection_id,
       calendar_id: record.external_calendar_id,
       created_by: record.created_by && { id: record.created_by.id, name: record.created_by.name },
+      creator: creator_payload(record),
       updated_by: record.updated_by && { id: record.updated_by.id, name: record.updated_by.name },
       deleted_by: record.deleted_by && { id: record.deleted_by.id, name: record.deleted_by.name },
       contact: record.contact && { id: record.contact.id, name: record.contact.name, email: record.contact.email },
       conversation: record.conversation && { id: record.conversation.display_id },
       bot_followup_policy: record.bot_followup_policy.presence || {},
       appointment_status: record.appointment_status.presence || 'none',
+      invitation_status: record.invitation_status,
       booking_source: record.booking_source.presence || 'manual',
       activities: serialize_activities(record)
     }
+  end
+
+  # What the invited customer answered, from the attendee's responseStatus (the organizer and the calendar itself are not
+  # the customer). nil without attendees or with an answer we do not know.
+  def self.invitation_status_from(google_event)
+    attendee = Array(google_event['attendees']).find { |item| !item['self'] && !item['organizer'] && !item['resource'] }
+    status = attendee&.dig('responseStatus').to_s.underscore
+    status if CalendarEvent::INVITATION_STATUSES.include?(status)
+  end
+
+  # Who made the appointment, for the avatar the panels show: the assistant (with its photo) for what Captain booked,
+  # the person otherwise.
+  def self.creator_payload(record)
+    return if record.blank?
+
+    record.ai_booked? ? captain_creator_payload(record) : user_creator_payload(record.created_by)
+  end
+
+  def self.captain_creator_payload(record)
+    assistant = record.conversation&.inbox&.try(:captain_assistant)
+    { type: 'captain', name: assistant&.name || 'Captain', thumbnail: assistant&.avatar_or_default_url }
+  end
+
+  def self.user_creator_payload(person)
+    person && { type: 'user', id: person.id, name: person.name, thumbnail: person.avatar_url }
   end
 
   def self.serialize_activities(record)
@@ -283,27 +353,20 @@ class Integrations::GoogleCalendar::EventService
   end
 
   def ensure_within_hours!(calendar_id, start_at, end_at)
-    zone = Time.find_zone!(account_timezone)
-    local_start = start_at.in_time_zone(zone)
-    local_end = end_at.in_time_zone(zone)
-    calendar = calendar_settings(calendar_id)
-    same_day = local_start.to_date == local_end.to_date
-    inside = local_start.seconds_since_midnight >= calendar.hour_start * 3600 &&
-             local_end.seconds_since_midnight <= calendar.hour_end * 3600
-    raise OutsideHours unless same_day && inside && calendar.works_on?(local_start.wday)
+    raise OutsideHours unless within_hours?(calendar_id, start_at, end_at)
   end
 
   # Every back-to-back slot of `duration` that fits in the calendar hours of each day in the range.
-  def slots_in_hours(calendar_id, zone, range_start, range_end, duration)
+  def slots_in_hours(calendar_id, zone, range_start, range_end, duration, step) # rubocop:disable Metrics/AbcSize, Metrics/ParameterLists
     calendar = calendar_settings(calendar_id)
     hour_start = calendar.hour_start
     hour_end = calendar.hour_end
     (range_start.to_date..range_end.to_date).select { |date| calendar.works_on?(date.wday) }.flat_map do |date|
       day_start = zone.local(date.year, date.month, date.day, hour_start)
       day_end = zone.local(date.year, date.month, date.day, hour_end)
-      seconds = duration.to_i
-      starts = (0...((day_end - day_start) / seconds).floor).map { |index| day_start + (index * seconds) }
-      starts.map { |slot_start| [slot_start, slot_start + seconds] }.select { |_, slot_end| slot_end <= range_end }
+      starts = (0...((day_end - day_start) / step.to_i).floor).map { |index| day_start + (index * step.to_i) }
+      starts.map { |slot_start| [slot_start, slot_start + duration.to_i] }
+            .select { |_, slot_end| slot_end <= day_end && slot_end <= range_end }
     end
   end
 
@@ -432,6 +495,7 @@ class Integrations::GoogleCalendar::EventService
       start_at: parse_google_time(google_event['start']),
       end_at: parse_google_time(google_event['end']),
       html_link: google_event['htmlLink'],
+      invitation_status: self.class.invitation_status_from(google_event),
       contact: contact,
       conversation: conversation
     }
@@ -527,6 +591,7 @@ class Integrations::GoogleCalendar::EventService
     return if record.blank? || record.discarded?
     return if google_event.dig('start', 'dateTime').blank?
 
+    sync_invitation_status!(google_event, record)
     google_start = parse_google_time(google_event['start'])
     google_end = parse_google_time(google_event['end'])
     after = {
@@ -545,6 +610,11 @@ class Integrations::GoogleCalendar::EventService
       html_link: google_event['htmlLink']
     )
     record_activity!(record, 'moved_in_google', details)
+  end
+
+  def sync_invitation_status!(google_event, record)
+    status = self.class.invitation_status_from(google_event)
+    record.update!(invitation_status: status) if record.invitation_status != status
   end
 
   def record_activity!(record, action, details = {})
@@ -616,12 +686,14 @@ class Integrations::GoogleCalendar::EventService
       deleted: record&.discarded? || false,
       deleted_note: self.class.deleted_note_for(record),
       created_by: user_payload(record&.created_by),
+      creator: self.class.creator_payload(record),
       updated_by: user_payload(record&.updated_by),
       deleted_by: user_payload(record&.deleted_by),
       contact: contact_payload(record&.contact),
       conversation: conversation_payload(record&.conversation),
       bot_followup_policy: record&.bot_followup_policy.presence || {},
       appointment_status: record&.appointment_status.presence || 'none',
+      invitation_status: record&.invitation_status,
       booking_source: record&.booking_source.presence || 'manual',
       activities: self.class.serialize_activities(record)
     }

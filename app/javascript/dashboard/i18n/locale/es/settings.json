@@ -394,7 +394,18 @@
           "updated": "{name} actualizó esta cita",
           "deleted": "{name} canceló esta cita",
           "moved_in_google": "Se modificó en Google Calendar"
-        }
+        },
+        "FOLLOWUP_TITLE": "Aviso al cliente",
+        "FOLLOWUP_CAPTAIN_NOTE": "Las citas que agenda Captain las gestiona Captain (confirmación y recordatorios). Esta sección es para citas que crea una persona.",
+        "FOLLOWUP_NONE": "No avisar",
+        "FOLLOWUP_NONE_HELP": "No se envía ningún mensaje al cliente.",
+        "FOLLOWUP_NOTICE": "Solo un aviso",
+        "FOLLOWUP_NOTICE_HELP": "Se escribe un único mensaje en la conversación con los datos de la cita, sin recordatorios.",
+        "FOLLOWUP_BOT": "Seguimiento del bot de IA",
+        "FOLLOWUP_BOT_HELP": "El bot de IA conectado confirma la cita y envía recordatorios.",
+        "FOLLOWUP_CONFIRMATION": "Pedir confirmación",
+        "FOLLOWUP_REMINDER_24H": "Recordatorio 24 horas antes",
+        "FOLLOWUP_REMINDER_30M": "Recordatorio 30 minutos antes"
       }
     },
     "ALL_CONVERSATIONS": "Todas las conversaciones",

@@ -108,7 +108,10 @@ const previewContent = content => {
     <div
       class="bg-n-background outline-n-container outline outline-1 rounded-lg max-h-[18.75rem] overflow-y-auto p-2.5"
     >
-      <div v-for="(item, i) in filteredResponses" :key="item.id || item.short_code">
+      <div
+        v-for="(item, i) in filteredResponses"
+        :key="item.id || item.short_code"
+      >
         <button
           type="button"
           class="block p-2.5 w-full text-left rounded-lg cursor-pointer hover:bg-n-alpha-2 dark:hover:bg-n-solid-2"

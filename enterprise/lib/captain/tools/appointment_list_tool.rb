@@ -8,6 +8,9 @@ class Captain::Tools::AppointmentListTool < Captain::Tools::BaseAppointmentTool
     conversation, error = conversation_for(tool_context)
     return error if error
 
+    tapped = tapped_button(conversation, tool_context)
+    return answer_tap(tool_context, *tapped) if tapped
+
     appointments = own_appointments(conversation, conversation.contact)
     return translate('no_appointments') if appointments.empty?
 
@@ -20,6 +23,20 @@ class Captain::Tools::AppointmentListTool < Captain::Tools::BaseAppointmentTool
   end
 
   private
+
+  # The customer tapped one of the change / cancel / keep buttons: the answer is the next step, never the same three
+  # buttons again (a tap that is read as "the customer wants to change something" would loop).
+  def answer_tap(tool_context, text, choice)
+    log_tool_usage('appointment_list_tap', action: choice['action'])
+    case choice['action']
+    when 'change_time'
+      Captain::Tools::CheckAvailabilityTool.new(@assistant).perform(tool_context, event_id: choice['event_id'])
+    when 'cancel'
+      translate('tap_cancel', text: text)
+    else
+      translate('tap_keep')
+    end
+  end
 
   def appointment_line(event)
     "- #{format_time(Time.iso8601(event[:start]))} | #{event[:summary]} | id=#{event[:id]}"
@@ -35,6 +52,7 @@ class Captain::Tools::AppointmentListTool < Captain::Tools::BaseAppointmentTool
   # Titled and valued with the same readable text ("Cancelar cita"); the reply resolves to the appointment id.
   def offer_change_buttons(conversation, tool_context, event_id)
     items = %w[change_time cancel keep].map { |button| button_item(button, translate("buttons.#{button}")) }
-    offer_buttons(conversation, tool_context, items, items.to_h { |item| [item['value'], { 'event_id' => event_id }] })
+    choices = %w[change_time cancel keep].zip(items).to_h { |button, item| [item['value'], appointment_choice(event_id, button)] }
+    offer_buttons(conversation, tool_context, items, choices)
   end
 end

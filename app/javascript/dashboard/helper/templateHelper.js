@@ -9,7 +9,13 @@ import {
 
 // Re-export shared helpers for dashboard consumers (must also import above —
 // `export { X } from` alone does not bind X in this module's scope).
-export { MEDIA_FORMATS, COMPONENT_TYPES, findComponentByType, processVariable, renderTemplatePreview };
+export {
+  MEDIA_FORMATS,
+  COMPONENT_TYPES,
+  findComponentByType,
+  processVariable,
+  renderTemplatePreview,
+};
 
 export const DEFAULT_LANGUAGE = 'en';
 export const DEFAULT_CATEGORY = 'UTILITY';

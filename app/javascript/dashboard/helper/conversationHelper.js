@@ -46,6 +46,16 @@ export const filterDuplicateSourceMessages = (messages = []) => {
  * @param {Object} m - The conversation object containing messages.
  * @returns {Object} The last message of the conversation.
  */
+// The status the agent sees: a conversation Captain attends is pending for the system and open for the agent.
+// Only what is shown (labels, icons, the status filter) reads this; whatever acts on the status keeps using chat.status.
+export const getDisplayStatus = chat => {
+  if (!chat) return undefined;
+  if (chat.display_status) return chat.display_status;
+  return chat.captain_state === 'ai' && chat.status === 'pending'
+    ? 'open'
+    : chat.status;
+};
+
 export const getLastMessage = m => {
   const lastMessageIncludingActivity = m.messages[m.messages.length - 1];
 

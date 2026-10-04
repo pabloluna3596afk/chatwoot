@@ -32,8 +32,14 @@ class Api::V1::Accounts::Integrations::CalendarController < Api::V1::Accounts::I
 
     render json: {
       payload: items,
-      configured: Integrations::GoogleCalendar::Oauth.configured?
+      configured: Integrations::GoogleCalendar::Oauth.configured?,
+      panel_ai_active: panel_ai_active?
     }
+  end
+
+  # The AI bot follow-up of an appointment (Panel AI) only makes sense when an AgentBot is active in some inbox.
+  def panel_ai_active?
+    Current.account.inboxes.joins(:agent_bot_inbox).merge(AgentBotInbox.active).exists?
   end
 
   def calendars
