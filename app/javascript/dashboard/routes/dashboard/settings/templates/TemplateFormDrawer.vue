@@ -3,8 +3,10 @@ import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useAlert } from 'dashboard/composables';
+import { useAccount } from 'dashboard/composables/useAccount';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import Button from 'dashboard/components-next/button/Button.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import SidePanel from 'dashboard/components-next/side-panel/SidePanel.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
@@ -32,6 +34,11 @@ import {
   variableTokens,
 } from './templateForm';
 import { formatTemplateLabel, templateStatusClasses } from './templateUtils';
+import {
+  defaultLanguage,
+  languageOptions,
+  rememberLanguage,
+} from './whatsappLanguages';
 
 const props = defineProps({
   // The WhatsApp Cloud inboxes the template can be created in.
@@ -40,9 +47,10 @@ const props = defineProps({
 
 const emit = defineEmits(['saved']);
 
-const { t, te } = useI18n();
+const { t, te, locale } = useI18n();
+const { currentAccount } = useAccount();
 
-const LANGUAGES = ['es', 'es_MX', 'es_AR', 'es_ES', 'en', 'en_US', 'pt_BR'];
+const LANGUAGE_OPTIONS = computed(() => languageOptions(locale.value));
 
 const panelRef = ref(null);
 const form = reactive(emptyForm());
@@ -149,6 +157,7 @@ const open = async (template = null, prefill = null) => {
   } else {
     form.inboxId = props.inboxes.length === 1 ? props.inboxes[0].id : null;
   }
+  if (!template) form.language = defaultLanguage(currentAccount.value?.locale);
   panelRef.value?.open();
   await loadCapabilities();
 };
@@ -254,6 +263,7 @@ const save = async () => {
           : 'WHATSAPP_TEMPLATE_MGMT.FORM.CREATED'
       )
     );
+    if (!isEdit.value) rememberLanguage(form.language);
     emit('saved');
     close();
   } catch (error) {
@@ -269,8 +279,27 @@ onBeforeUnmount(() => {
 
 defineExpose({ open, close });
 
-const selectClass =
-  'w-full px-3 py-2 text-sm rounded-lg bg-n-alpha-black2 text-n-slate-12 outline outline-1 outline-n-weak disabled:opacity-60';
+// The combobox clears its value when the chosen option is clicked again: these fields always keep one.
+const inboxOptions = computed(() =>
+  props.inboxes.map(inbox => ({ value: inbox.id, label: inbox.name }))
+);
+const headerOptions = computed(() =>
+  HEADER_FORMATS.filter(
+    format => !MEDIA_FORMATS.includes(format) || mediaHeaderAvailable.value
+  ).map(format => ({
+    value: format,
+    label: t(`WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.${format}`),
+  }))
+);
+const chooseInbox = value => {
+  if (value) form.inboxId = value;
+};
+const chooseLanguage = value => {
+  if (value) form.language = value;
+};
+const chooseHeaderFormat = value => {
+  if (value) form.header.format = value;
+};
 </script>
 
 <template>
@@ -316,29 +345,27 @@ const selectClass =
           </p>
         </div>
 
-        <label
+        <div
           v-if="inboxes.length > 1 || visibleErrors.inboxId"
           class="grid gap-1"
         >
           <span class="text-sm font-medium text-n-slate-12">
             {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL') }}
           </span>
-          <select
-            v-model="form.inboxId"
-            :class="selectClass"
+          <ComboBox
+            :model-value="form.inboxId ?? ''"
+            :options="inboxOptions"
+            :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL_PLACEHOLDER')"
             :disabled="isEdit"
-          >
-            <option :value="null" disabled>
-              {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL_PLACEHOLDER') }}
-            </option>
-            <option v-for="inbox in inboxes" :key="inbox.id" :value="inbox.id">
-              {{ inbox.name }}
-            </option>
-          </select>
+            :has-error="Boolean(fieldError('inboxId'))"
+            teleport
+            data-testid="template-inbox"
+            @update:model-value="chooseInbox"
+          />
           <span v-if="fieldError('inboxId')" class="text-xs text-n-ruby-9">
             {{ fieldError('inboxId') }}
           </span>
-        </label>
+        </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="grid gap-1">
@@ -359,20 +386,20 @@ const selectClass =
               @blur="form.name = generatedName"
             />
           </div>
-          <label class="grid gap-1 content-start">
+          <div class="grid gap-1 content-start">
             <span class="text-sm font-medium text-n-slate-12">
               {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE') }}
             </span>
-            <select
-              v-model="form.language"
-              :class="selectClass"
+            <ComboBox
+              :model-value="form.language"
+              :options="LANGUAGE_OPTIONS"
               :disabled="isEdit"
-            >
-              <option v-for="code in LANGUAGES" :key="code" :value="code">
-                {{ $t(`WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGES.${code}`) }}
-              </option>
-            </select>
-          </label>
+              :search-placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE')"
+              teleport
+              data-testid="template-language"
+              @update:model-value="chooseLanguage"
+            />
+          </div>
         </div>
 
         <fieldset class="grid gap-2">
@@ -411,23 +438,18 @@ const selectClass =
         </fieldset>
 
         <div class="grid gap-3">
-          <label class="grid gap-1">
+          <div class="grid gap-1">
             <span class="text-sm font-medium text-n-slate-12">
               {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER') }}
             </span>
-            <select v-model="form.header.format" :class="selectClass">
-              <option
-                v-for="format in HEADER_FORMATS"
-                :key="format"
-                :value="format"
-                :disabled="
-                  MEDIA_FORMATS.includes(format) && !mediaHeaderAvailable
-                "
-              >
-                {{ $t(`WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.${format}`) }}
-              </option>
-            </select>
-          </label>
+            <ComboBox
+              :model-value="form.header.format"
+              :options="headerOptions"
+              teleport
+              data-testid="template-header-format"
+              @update:model-value="chooseHeaderFormat"
+            />
+          </div>
           <p
             v-if="!mediaHeaderAvailable"
             class="text-xs text-n-slate-11"

@@ -76,15 +76,6 @@
       "NAME_PLACEHOLDER": "recordatorio_de_cita",
       "NAME_SAVED_AS": "Se guarda como: {name}",
       "LANGUAGE": "Idioma",
-      "LANGUAGES": {
-        "es": "Español",
-        "es_MX": "Español (México)",
-        "es_AR": "Español (Argentina)",
-        "es_ES": "Español (España)",
-        "en": "Inglés",
-        "en_US": "Inglés (Estados Unidos)",
-        "pt_BR": "Portugués (Brasil)"
-      },
       "CATEGORY": "Categoría",
       "CATEGORIES": {
         "UTILITY": {

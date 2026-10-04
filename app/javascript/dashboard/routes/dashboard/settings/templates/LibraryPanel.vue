@@ -10,11 +10,14 @@ import {
 import { useI18n } from 'vue-i18n';
 
 import { useAlert } from 'dashboard/composables';
+import { useAccount } from 'dashboard/composables/useAccount';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import Button from 'dashboard/components-next/button/Button.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import { toSnakeCase } from './templateForm';
+import { defaultLanguage, languageOptions } from './whatsappLanguages';
 
 const props = defineProps({
   // The WhatsApp Cloud inboxes a template can be created in.
@@ -23,13 +26,14 @@ const props = defineProps({
 
 const emit = defineEmits(['created']);
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
+const { currentAccount } = useAccount();
 
-const LANGUAGES = ['es', 'es_MX', 'es_AR', 'es_ES', 'en', 'en_US', 'pt_BR'];
+const LANGUAGE_OPTIONS = computed(() => languageOptions(locale.value));
 const SEARCH_DELAY = 400;
 
 const search = ref('');
-const language = ref('es');
+const language = ref(defaultLanguage(currentAccount.value?.locale));
 const inboxId = ref(props.inboxes[0]?.id ?? null);
 const items = ref([]);
 const nextCursor = ref(null);
@@ -142,8 +146,17 @@ const create = async () => {
   }
 };
 
-const selectClass =
-  'px-3 py-2 text-sm rounded-lg bg-n-alpha-black2 text-n-slate-12 outline outline-1 outline-n-weak';
+// The combobox clears its value when the chosen option is clicked again: a library search always needs one.
+const chooseLanguage = value => {
+  if (value) language.value = value;
+};
+const chooseInbox = value => {
+  if (value) inboxId.value = value;
+};
+
+const inboxOptions = computed(() =>
+  props.inboxes.map(inbox => ({ value: inbox.id, label: inbox.name }))
+);
 </script>
 
 <template>
@@ -165,25 +178,24 @@ const selectClass =
         :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.SEARCH')"
         data-testid="library-search"
       />
-      <select
-        v-model="language"
-        :class="selectClass"
-        :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.LANGUAGE')"
-      >
-        <option v-for="code in LANGUAGES" :key="code" :value="code">
-          {{ $t(`WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGES.${code}`) }}
-        </option>
-      </select>
-      <select
+      <ComboBox
+        :model-value="language"
+        :options="LANGUAGE_OPTIONS"
+        :search-placeholder="
+          $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.LANGUAGE')
+        "
+        class="w-56 shrink-0"
+        data-testid="library-language"
+        @update:model-value="chooseLanguage"
+      />
+      <ComboBox
         v-if="inboxes.length > 1"
-        v-model="inboxId"
-        :class="selectClass"
-        :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL')"
-      >
-        <option v-for="inbox in inboxes" :key="inbox.id" :value="inbox.id">
-          {{ inbox.name }}
-        </option>
-      </select>
+        :model-value="inboxId"
+        :options="inboxOptions"
+        class="w-56 shrink-0"
+        data-testid="library-inbox"
+        @update:model-value="chooseInbox"
+      />
     </div>
 
     <p v-if="failed" class="text-sm text-n-ruby-11" data-testid="library-error">

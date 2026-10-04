@@ -4,7 +4,10 @@ import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import { PRESETS, presetToForm } from '../presets';
 
 vi.mock('vue-i18n', () => ({
-  useI18n: () => ({ t: key => key, te: () => false }),
+  useI18n: () => ({ t: key => key, te: () => false, locale: { value: 'es' } }),
+}));
+vi.mock('dashboard/composables/useAccount', () => ({
+  useAccount: () => ({ currentAccount: { value: { locale: 'es' } } }),
 }));
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 vi.mock('dashboard/api/whatsappTemplates', () => ({

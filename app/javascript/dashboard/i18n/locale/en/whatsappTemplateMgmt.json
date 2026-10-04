@@ -76,15 +76,6 @@
       "NAME_PLACEHOLDER": "appointment_reminder",
       "NAME_SAVED_AS": "Saved as: {name}",
       "LANGUAGE": "Language",
-      "LANGUAGES": {
-        "es": "Spanish",
-        "es_MX": "Spanish (Mexico)",
-        "es_AR": "Spanish (Argentina)",
-        "es_ES": "Spanish (Spain)",
-        "en": "English",
-        "en_US": "English (United States)",
-        "pt_BR": "Portuguese (Brazil)"
-      },
       "CATEGORY": "Category",
       "CATEGORIES": {
         "UTILITY": {
