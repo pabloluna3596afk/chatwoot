@@ -215,8 +215,8 @@ describe('#applyPageFilters in the AI view', () => {
     };
     expect(applyPageFilters(aiChat, filters)).toEqual(false);
   });
-  it('keeps applying the status filter in the other views', () => {
-    const filters = { status: 'open', conversationType: 'unattended' };
+  it('keeps applying the status filter in the other views (Captain attending reads as open, not pending)', () => {
+    const filters = { status: 'pending', conversationType: 'unattended' };
     expect(applyPageFilters(aiChat, filters)).toEqual(false);
   });
 });
@@ -238,5 +238,22 @@ describe('#matchesUnassignedTab', () => {
   it('leaves out conversations with a human assignee', () => {
     const chat = { meta: { assignee: { id: 1 } }, captain_state: null };
     expect(matchesUnassignedTab(chat)).toEqual(false);
+  });
+});
+
+describe('#applyPageFilters with Captain attending', () => {
+  const attended = {
+    id: 99,
+    status: 'pending',
+    display_status: 'open',
+    captain_state: 'ai',
+    inbox_id: 1,
+    meta: {},
+    labels: [],
+  };
+
+  it('lists it under open and not under pending', () => {
+    expect(applyPageFilters(attended, { status: 'open' })).toBe(true);
+    expect(applyPageFilters(attended, { status: 'pending' })).toBe(false);
   });
 });

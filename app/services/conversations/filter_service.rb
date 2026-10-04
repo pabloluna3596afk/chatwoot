@@ -6,6 +6,31 @@ class Conversations::FilterService < FilterService
     super(params, user)
   end
 
+  # The status filter follows what the agent sees: a conversation Captain attends counts as open (Conversation.displayed_as).
+  def default_filter(query_hash, filter_operator_value)
+    return super unless query_hash[:attribute_key] == 'status' && %w[equal_to not_equal_to].include?(query_hash[:filter_operator])
+
+    displayed = Array(query_hash['values']).map { |status| displayed_status_condition(status.to_s) }.join(' OR ')
+    condition = query_hash[:filter_operator] == 'equal_to' ? "(#{displayed})" : "NOT (#{displayed})"
+    "#{condition} #{query_hash[:query_operator]}"
+  end
+
+  def displayed_status_condition(status)
+    case status
+    when 'all' then 'TRUE'
+    when 'open' then "(conversations.status = #{Conversation.statuses[:open]} OR #{Conversation::CAPTAIN_ATTENDED_SQL})"
+    when 'pending' then "(conversations.status = #{Conversation.statuses[:pending]} AND NOT #{Conversation::CAPTAIN_ATTENDED_SQL})"
+    else plain_status_condition(status)
+    end
+  end
+
+  def plain_status_condition(status)
+    value = Conversation.statuses[status]
+    raise CustomExceptions::CustomFilter::InvalidValue.new(attribute_name: 'status') if value.nil?
+
+    "conversations.status = #{value}"
+  end
+
   def set_count_for_all_conversations
     [
       @conversations.assigned_to(@user).count,

@@ -18,6 +18,10 @@ vi.mock('dashboard/api/captain/assistant', () => ({
   default: { playground: mocks.playground },
 }));
 
+vi.mock('dashboard/composables/store', () => ({
+  useMapGetter: () => ref([]),
+}));
+
 vi.mock('dashboard/composables/usePolicy', () => ({
   usePolicy: () => ({ isFeatureFlagEnabled: mocks.isFeatureFlagEnabled }),
 }));

@@ -102,6 +102,21 @@ RSpec.describe ConversationFinder do
       expect(ids(result)).to contain_exactly(bot_owned.id)
     end
 
+    it 'lists what Captain attends as open, and not as pending' do
+      open_ids = ids(described_class.new(admin, { assignee_type: 'all', status: 'open' }).perform)
+      pending_ids = ids(described_class.new(admin, { assignee_type: 'all', status: 'pending' }).perform)
+
+      expect(open_ids).to include(ai_conversation.id, mine.id)
+      expect(pending_ids).not_to include(ai_conversation.id)
+      expect(pending_ids).to include(bot_owned.id)
+    end
+
+    it 'counts what Captain attends with the open conversations' do
+      counts = described_class.new(admin, { status: 'open' }).perform_meta_only[:count]
+
+      expect(counts[:all_count]).to eq(account.conversations.displayed_as('open').count)
+    end
+
     context 'when an AgentBot owns the conversation (Panel AI inboxes stay as on develop)' do
       let!(:plain_bot_owned) { create_conversation(account: account, inbox: plain_inbox, status: :open, ai_assignee: agent_bot) }
 
@@ -114,7 +129,7 @@ RSpec.describe ConversationFinder do
 
       it 'keeps it out of unassigned_count and inside all_count, as the fast count does on develop' do
         counts = described_class.new(admin, { status: 'open' }).perform_meta_only[:count]
-        open_rows = account.conversations.open
+        open_rows = account.conversations.displayed_as('open')
 
         expect(counts[:unassigned_count]).to eq(open_rows.where(assignee_id: nil, assignee_agent_bot_id: nil).count)
         expect(counts[:all_count]).to eq(open_rows.count)

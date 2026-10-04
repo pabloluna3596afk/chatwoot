@@ -149,7 +149,7 @@ class ConversationFinder
   def filter_by_status
     return if params[:status] == 'all' || params[:conversation_type] == 'captain'
 
-    @conversations = @conversations.where(status: params[:status] || DEFAULT_STATUS)
+    @conversations = @conversations.displayed_as(params[:status] || DEFAULT_STATUS)
   end
 
   def filter_by_team

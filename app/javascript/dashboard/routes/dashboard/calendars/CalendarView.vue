@@ -111,6 +111,7 @@ const groupedEvents = computed(() =>
 );
 
 const hasConnections = computed(() => connections.value.length > 0);
+const panelAiActive = ref(false);
 const hasEnabledCalendars = computed(() => calendars.value.length > 0);
 const selectedCalendar = computed(() =>
   calendars.value.find(item => item.id === selectedCalendarId.value)
@@ -129,6 +130,7 @@ const loadConnections = async () => {
   calendarsReady.value = false;
   try {
     const { data } = await CalendarAPI.getConnections();
+    panelAiActive.value = Boolean(data.panel_ai_active);
     connections.value = (data.payload || []).filter(item =>
       ['google', 'microsoft'].includes(item.provider)
     );
@@ -526,6 +528,7 @@ onMounted(loadConnections);
       ref="modalRef"
       :connections="connections"
       :calendars="calendars"
+      :panel-ai-active="panelAiActive"
       @saved="onSaved"
     />
   </section>

@@ -3,6 +3,7 @@ import {
   isAgentBotAssigneeMeta,
   isHumanAssigneeMeta,
 } from 'dashboard/helper/assigneeHelper';
+import { getDisplayStatus } from 'dashboard/helper/conversationHelper';
 import { lastMessageFromRank } from 'dashboard/helper/contactConversationTableColumns';
 
 export const findPendingMessageIndex = (chat, message) => {
@@ -68,8 +69,8 @@ export const filterByCaptain = (
 
 export const applyPageFilters = (conversation, filters) => {
   const { inboxId, status, labels = [], teamId, conversationType } = filters;
+  const chatStatus = getDisplayStatus(conversation);
   const {
-    status: chatStatus,
     inbox_id: chatInboxId,
     labels: chatLabels = [],
     meta = {},

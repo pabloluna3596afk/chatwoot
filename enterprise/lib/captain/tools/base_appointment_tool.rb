@@ -3,6 +3,8 @@
 # with short text (in the account language) that the model can relay to the customer.
 class Captain::Tools::BaseAppointmentTool < Captain::Tools::BasePublicTool
   ISO_START = /\A\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/
+  # A customer may ask for any start on this grid (10:15), not only for the back-to-back times the calendar lists.
+  TIME_GRID_MINUTES = 15
 
   private
 
@@ -63,6 +65,26 @@ class Captain::Tools::BaseAppointmentTool < Captain::Tools::BasePublicTool
   def within_booking_limits?(start_at)
     earliest, latest = booking_limits
     start_at >= earliest && start_at <= latest
+  end
+
+  # Whether an appointment of `minutes` starting at start_at is free in the calendar (hours, notice and busy times).
+  def slot_free?(start_at, minutes)
+    event_service.available_slots(
+      calendar_id: calendar_id, from: start_at, to: start_at + minutes.minutes, duration: minutes,
+      min_notice_minutes: settings.min_notice_minutes, step_minutes: TIME_GRID_MINUTES
+    ).any? { |slot| slot[:start] == start_at.in_time_zone(zone).iso8601 }
+  end
+
+  # Why a time cannot be booked, as a key of captain.appointments (and its options), nil when it can.
+  def unavailable_reason(start_at, minutes)
+    return [:time_grid, {}] unless (start_at.min % TIME_GRID_MINUTES).zero?
+
+    earliest, latest = booking_limits
+    return [:too_soon, { minutes: settings.min_notice_minutes }] if start_at < earliest
+    return [:outside_window, { days: settings.booking_window_days }] if start_at > latest
+    return [:outside_hours, {}] unless event_service.within_hours?(calendar_id, start_at, start_at + minutes.minutes)
+
+    [:slot_busy, {}] unless slot_free?(start_at, minutes)
   end
 
   def own_appointments(conversation, contact)
@@ -190,5 +212,20 @@ class Captain::Tools::BaseAppointmentTool < Captain::Tools::BasePublicTool
   def resolve_event_id(conversation, value)
     choice = Captain::QuickReplies.choice(conversation, value)
     choice ? choice['event_id'] : value.to_s.strip.presence
+  end
+
+  # What a button of this tool stands for: the appointment it acts on and what the tap means (change_time, cancel,
+  # keep), so a tap is answered by the code and not left to the model to interpret.
+  def appointment_choice(event_id, action)
+    { 'event_id' => event_id, 'action' => action.to_s }
+  end
+
+  # The customer's current message, when it is the tap of one of the buttons this tool offered earlier: [text, choice].
+  def tapped_button(conversation, tool_context)
+    message_id = tool_context.state[:responding_to_message_id]
+    message = message_id ? conversation.messages.find_by(id: message_id) : conversation.messages.incoming.last
+    text = message&.content.to_s.strip
+    choice = Captain::QuickReplies.choice(conversation, text)
+    [text, choice] if choice&.dig('action').present?
   end
 end

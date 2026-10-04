@@ -1227,4 +1227,24 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       end
     end
   end
+
+  describe 'the reply limit' do
+    let(:conversation) { create(:conversation, inbox: inbox, account: account, status: :open) }
+
+    before do
+      assistant.update!(config: assistant.config.merge('max_replies_per_conversation' => 2))
+      conversation.update!(status: :pending, ai_assignee: assistant)
+      2.times { create(:message, conversation: conversation, message_type: :outgoing, sender: assistant, content: 'respuesta') }
+      create(:message, conversation: conversation, content: 'otra pregunta', message_type: :incoming)
+      allow(Captain::Llm::AssistantChatService).to receive(:new).and_raise('Captain must not generate past its limit')
+      allow(Captain::Assistant::AgentRunnerService).to receive(:new).and_raise('Captain must not generate past its limit')
+    end
+
+    it 'says goodbye with the handoff message once and leaves the conversation to the team' do
+      expect { described_class.perform_now(conversation, assistant) }.to change { conversation.messages.outgoing.count }.by(1)
+
+      expect(conversation.messages.outgoing.last.content).to eq(I18n.t('conversations.captain.handoff'))
+      expect(conversation.reload).to have_attributes(status: 'open', captain_state: 'escalated')
+    end
+  end
 end

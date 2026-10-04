@@ -2,13 +2,20 @@
 import { computed, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useVuelidate } from '@vuelidate/core';
-import { maxValue, minLength, minValue, required } from '@vuelidate/validators';
+import {
+  integer,
+  maxValue,
+  minLength,
+  minValue,
+  required,
+} from '@vuelidate/validators';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { useAccount } from 'dashboard/composables/useAccount';
 
 import Banner from 'dashboard/components-next/banner/Banner.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Editor from 'dashboard/components-next/Editor/Editor.vue';
+import Input from 'dashboard/components-next/input/Input.vue';
 import RadioCard from 'dashboard/components-next/radioCard/RadioCard.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
@@ -32,6 +39,8 @@ const isCaptainV2Enabled = computed(() =>
 
 const MIN_INACTIVITY_MINUTES = 5;
 const MAX_INACTIVITY_MINUTES = 24 * 60;
+const DEFAULT_MAX_REPLIES = 20;
+const MAX_REPLIES_LIMIT = 1000;
 
 const initialState = {
   handoffMessage: '',
@@ -40,6 +49,7 @@ const initialState = {
   autoResolveMode: 'evaluated',
   inactivityThresholdMinutes: 60,
   sendInactivityResolutionMessage: true,
+  maxReplies: DEFAULT_MAX_REPLIES,
 };
 
 const state = reactive({ ...initialState });
@@ -87,6 +97,12 @@ const validationRules = {
   handoffMessage: { minLength: minLength(1) },
   resolutionMessage: { minLength: minLength(1) },
   instructions: { minLength: minLength(1) },
+  maxReplies: {
+    required,
+    integer,
+    minValue: minValue(0),
+    maxValue: maxValue(MAX_REPLIES_LIMIT),
+  },
   inactivityThresholdMinutes: {
     required,
     minValue: minValue(MIN_INACTIVITY_MINUTES),
@@ -104,6 +120,7 @@ const formErrors = computed(() => ({
   handoffMessage: getErrorMessage('handoffMessage'),
   resolutionMessage: getErrorMessage('resolutionMessage'),
   instructions: getErrorMessage('instructions'),
+  maxReplies: getErrorMessage('maxReplies'),
   inactivityThresholdMinutes: getErrorMessage('inactivityThresholdMinutes'),
 }));
 
@@ -116,14 +133,20 @@ const updateStateFromAssistant = assistant => {
   state.inactivityThresholdMinutes = config.auto_resolve_after ?? 60;
   state.sendInactivityResolutionMessage =
     config.send_inactivity_resolution_message ?? true;
+  state.maxReplies = config.max_replies_per_conversation ?? DEFAULT_MAX_REPLIES;
 };
 
 const fieldsToValidate = () => {
   if (!isCaptainV2Enabled.value) {
-    return ['handoffMessage', 'resolutionMessage', 'instructions'];
+    return [
+      'handoffMessage',
+      'resolutionMessage',
+      'instructions',
+      'maxReplies',
+    ];
   }
 
-  const fields = ['handoffMessage'];
+  const fields = ['handoffMessage', 'maxReplies'];
   if (shouldShowInactivityDuration.value) {
     fields.push('inactivityThresholdMinutes');
     if (state.sendInactivityResolutionMessage) fields.push('resolutionMessage');
@@ -141,6 +164,7 @@ const handleSystemMessagesUpdate = async () => {
     config: {
       ...props.assistant.config,
       handoff_message: state.handoffMessage,
+      max_replies_per_conversation: Number(state.maxReplies),
     },
   };
 
@@ -323,6 +347,28 @@ watch(
           class="z-0 [&_.editor-wrapper]:!min-h-32 [&_.editor-wrapper]:!border-0 [&_.editor-wrapper]:!bg-transparent [&_.editor-wrapper]:!p-0"
         />
       </template>
+    </SettingsToggleSection>
+
+    <SettingsToggleSection
+      hide-toggle
+      :header="t('CAPTAIN.ASSISTANTS.FORM.MAX_REPLIES.TITLE')"
+      :description="t('CAPTAIN.ASSISTANTS.FORM.MAX_REPLIES.DESCRIPTION')"
+    >
+      <div class="flex w-full flex-col gap-2 px-4 pb-1 pt-3">
+        <Input
+          v-model="state.maxReplies"
+          type="number"
+          min="0"
+          :max="MAX_REPLIES_LIMIT"
+          :label="t('CAPTAIN.ASSISTANTS.FORM.MAX_REPLIES.LABEL')"
+          :message="
+            formErrors.maxReplies ||
+            t('CAPTAIN.ASSISTANTS.FORM.MAX_REPLIES.HINT')
+          "
+          :message-type="formErrors.maxReplies ? 'error' : 'info'"
+          class="max-w-xs"
+        />
+      </div>
     </SettingsToggleSection>
 
     <Editor

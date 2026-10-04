@@ -966,7 +966,6 @@
             "HOURS_BEFORE": "hours before the appointment",
             "HOURS_ERROR": "Use a whole number from 1 to 168.",
             "WINDOW_HINT": "It goes out free only if the customer wrote in the previous 24 h; otherwise it needs a template.",
-            "TEMPLATE_CONFIRMATION": "Confirmation template",
             "TEMPLATE_REMINDER": "Reminder template",
             "TEMPLATE_CANCELLED": "Cancellation template",
             "PAID_HINT": "To send templates outside the 24 h window, turn on \"Paid messages (WhatsApp)\" for this assistant."
@@ -1037,6 +1036,12 @@
               "name": "My company"
             }
           }
+        },
+        "MAX_REPLIES": {
+          "TITLE": "Reply limit",
+          "DESCRIPTION": "How many replies Captain can send in one conversation. At the limit it says goodbye with the handoff message and the team takes over.",
+          "LABEL": "Replies per conversation",
+          "HINT": "20 by default. Use 0 for no limit."
         }
       },
       "EDIT": {

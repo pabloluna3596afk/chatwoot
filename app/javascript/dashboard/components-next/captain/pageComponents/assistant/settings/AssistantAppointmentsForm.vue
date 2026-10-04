@@ -34,7 +34,7 @@ const CONTACT_FIELDS = ['name', 'phone', 'email'];
 const DURATION_OPTIONS = [15, 30, 45, 60, 90, 120];
 const NOTICE_OPTIONS = [0, 30, 60, 120, 240, 1440];
 const WINDOW_OPTIONS = [7, 14, 30, 60, 90];
-const TEMPLATE_KEYS = ['confirmation', 'reminder', 'cancelled'];
+const TEMPLATE_KEYS = ['reminder', 'cancelled'];
 
 // Two reminders, each with its own lead time (1 to 168 hours before the appointment).
 const REMINDER_KEYS = ['reminder_1', 'reminder_2'];
@@ -53,15 +53,15 @@ const initialState = {
   minNotice: 60,
   windowDays: 14,
   reminders: DEFAULT_REMINDERS.map(reminder => ({ ...reminder })),
-  templates: { confirmation: '', reminder: '', cancelled: '' },
-  params: { confirmation: {}, reminder: {}, cancelled: {} },
+  templates: { reminder: '', cancelled: '' },
+  params: { reminder: {}, cancelled: {} },
 };
 
 const state = reactive({
   ...initialState,
   reminders: DEFAULT_REMINDERS.map(reminder => ({ ...reminder })),
   templates: { ...initialState.templates },
-  params: { confirmation: {}, reminder: {}, cancelled: {} },
+  params: { reminder: {}, cancelled: {} },
 });
 const { templateOptions, templateEntry, templateInboxId } =
   useApprovedTemplates();
@@ -234,12 +234,10 @@ const updateStateFromAssistant = assistant => {
       hours: settings[key]?.hours_before ?? DEFAULT_REMINDERS[index].hours,
     })),
     templates: {
-      confirmation: templateToValue(settings.template_confirmation),
       reminder: templateToValue(settings.template_reminder),
       cancelled: templateToValue(settings.template_cancelled),
     },
     params: {
-      confirmation: settings.template_confirmation?.processed_params || {},
       reminder: settings.template_reminder?.processed_params || {},
       cancelled: settings.template_cancelled?.processed_params || {},
     },
@@ -291,10 +289,6 @@ const handleSubmit = () => {
         booking_window_days: Number(state.windowDays),
         reminder_1: reminderPayload(state.reminders[0]),
         reminder_2: reminderPayload(state.reminders[1]),
-        template_confirmation: templateFromValue(
-          state.templates.confirmation,
-          state.params.confirmation
-        ),
         template_reminder: templateFromValue(
           state.templates.reminder,
           state.params.reminder

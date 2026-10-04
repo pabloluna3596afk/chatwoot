@@ -393,8 +393,8 @@
         "MEET": "Add Google Meet",
         "SEND_TO_CONTACT": "Send this appointment to the customer",
         "FOLLOWUP_TITLE": "Customer notification",
-        "FOLLOWUP_NONE": "Do not send",
-        "FOLLOWUP_NOTICE": "Notice only (agent message)",
+        "FOLLOWUP_NONE": "Do not notify",
+        "FOLLOWUP_NOTICE": "Notice only",
         "FOLLOWUP_BOT": "AI bot follow-up",
         "FOLLOWUP_CONFIRMATION": "Ask for confirmation",
         "FOLLOWUP_REMINDER_24H": "Reminder 24 hours before",
@@ -430,7 +430,11 @@
           "updated": "{name} updated this appointment",
           "deleted": "{name} cancelled this appointment",
           "moved_in_google": "Changed in Google Calendar"
-        }
+        },
+        "FOLLOWUP_CAPTAIN_NOTE": "Appointments that Captain books are handled by Captain (confirmation and reminders). This section is for appointments a person creates.",
+        "FOLLOWUP_NONE_HELP": "No message is sent to the customer.",
+        "FOLLOWUP_NOTICE_HELP": "One message with the appointment details is written in the conversation, without reminders.",
+        "FOLLOWUP_BOT_HELP": "The connected AI bot confirms the appointment and sends reminders."
       }
     },
     "ALL_CONVERSATIONS": "All Conversations",

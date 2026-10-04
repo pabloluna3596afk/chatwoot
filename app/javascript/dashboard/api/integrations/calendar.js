@@ -71,6 +71,13 @@ class CalendarAPI extends ApiClient {
     );
   }
 
+  // The upcoming appointments of a contact, across all its conversations.
+  getContactEvents(contactId) {
+    return axios.get(
+      `${this.apiVersion}/accounts/${this.accountIdFromRoute}/contacts/${contactId}/calendar_events`
+    );
+  }
+
   getConversationEvents(conversationId) {
     return axios.get(
       `${this.apiVersion}/accounts/${this.accountIdFromRoute}/conversations/${conversationId}/calendar_events`

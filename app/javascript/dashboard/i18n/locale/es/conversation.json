@@ -534,7 +534,25 @@
       "EMPTY": "No hay citas ligadas a esta conversación",
       "DELETED": "Evento cancelado",
       "NOT_CONNECTED": "Conecta Google Calendar en Ajustes → Integraciones → Calendarios.",
-      "AI_BOOKED": "IA"
+      "AI_BOOKED": "IA",
+      "UPCOMING": "Próximas",
+      "PAST": "Pasadas",
+      "PAST_BADGE": "Pasada",
+      "NEXT": "Próxima cita",
+      "CREATED_BY": "Creada por {name}",
+      "STATUS": {
+        "PENDING_CONFIRMATION": "Pendiente de confirmar",
+        "CONFIRMED": "Confirmada",
+        "CONFIRMED_CHAT": "Confirmada (por chat)",
+        "CANCELLED": "Cancelada",
+        "RESCHEDULED": "Reprogramada"
+      },
+      "INVITATION": {
+        "NEEDS_ACTION": "Invitación: pendiente de aceptar por correo",
+        "ACCEPTED": "Invitación: aceptada",
+        "DECLINED": "Invitación: rechazada",
+        "TENTATIVE": "Invitación: quizá"
+      }
     },
     "SHARED_FILES": {
       "EMPTY": "No hay archivos adjuntos aún",

@@ -1,5 +1,6 @@
 import {
   filterDuplicateSourceMessages,
+  getDisplayStatus,
   getLastMessage,
   getReadMessages,
   getUnreadMessages,
@@ -97,5 +98,27 @@ describe('conversationHelper', () => {
         testConversation.messages[1]
       );
     });
+  });
+});
+
+describe('getDisplayStatus', () => {
+  it('reads open while Captain attends a pending conversation', () => {
+    expect(
+      getDisplayStatus({ status: 'pending', display_status: 'open' })
+    ).toBe('open');
+    expect(getDisplayStatus({ status: 'pending', captain_state: 'ai' })).toBe(
+      'open'
+    );
+  });
+
+  it('is the real status otherwise', () => {
+    expect(getDisplayStatus({ status: 'pending' })).toBe('pending');
+    expect(getDisplayStatus({ status: 'resolved', captain_state: 'ai' })).toBe(
+      'resolved'
+    );
+    expect(getDisplayStatus({ status: 'open', display_status: 'open' })).toBe(
+      'open'
+    );
+    expect(getDisplayStatus(undefined)).toBeUndefined();
   });
 });

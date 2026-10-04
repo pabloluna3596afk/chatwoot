@@ -116,6 +116,20 @@ export function formatDayLabel(dateKey, locale) {
   });
 }
 
+// "mar, 15 ene · 10:15" in the calendar's timezone.
+export function formatEventWhen(value, locale) {
+  if (!value) return '';
+  const { dateKey } = guayaquilParts(new Date(value));
+  const time = formatTime(value);
+  return time
+    ? `${formatDayLabel(dateKey, locale)} · ${time}`
+    : formatDayLabel(dateKey, locale);
+}
+
+export function isUpcomingEvent(event, now = Date.now()) {
+  return !event.deleted && eventInstant(event.end || event.start) >= now;
+}
+
 export function formatWeekdayMonth(dateKey, locale) {
   const date = new Date(`${dateKey}T12:00:00${OFFSET}`);
   const weekday = date.toLocaleDateString(locale, {

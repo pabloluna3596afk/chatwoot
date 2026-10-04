@@ -227,4 +227,28 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
       expect { book('2030-01-15T07:30:00-05:00', '2030-01-15T08:00:00-05:00', enforce_hours: true) }.not_to raise_error
     end
   end
+
+  describe 'a step smaller than the duration' do
+    it 'offers the times in between, still inside the calendar hours' do
+      result = starts(slots(step_minutes: 15))
+
+      expect(result).to include('10:00', '10:15', '10:30', '19:30')
+      expect(result).not_to include('19:45')
+      expect(result.size).to eq(47)
+    end
+
+    it 'keeps back-to-back slots without a step' do
+      expect(starts(slots)).to include('10:00', '10:30')
+      expect(starts(slots)).not_to include('10:15')
+    end
+  end
+
+  describe '#within_hours?' do
+    let(:start_at) { Time.zone.parse('2030-01-15T10:15:00-05:00') }
+
+    it 'is true inside the hours of a working day and false outside them' do
+      expect(service.within_hours?('cal-1', start_at, start_at + 30.minutes)).to be(true)
+      expect(service.within_hours?('cal-1', Time.zone.parse('2030-01-15T23:00:00-05:00'), Time.zone.parse('2030-01-15T23:30:00-05:00'))).to be(false)
+    end
+  end
 end
