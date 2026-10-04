@@ -111,7 +111,7 @@
       "UPLOAD_EXAMPLE": "Upload example file",
       "BODY": "Message body",
       "BODY_PLACEHOLDER": "Hi, a reminder of your appointment tomorrow.",
-      "ADD_VARIABLE": "Add variable",
+      "ADD_VARIABLE": "Add a variable to the body",
       "FOOTER": "Footer (optional)",
       "FOOTER_PLACEHOLDER": "Thanks for choosing us",
       "BUTTONS": "Buttons (optional)",
@@ -160,8 +160,12 @@
         "PHONE_INVALID": "The phone must look like +593999999999.",
         "TOO_MANY_BUTTONS": "You can add up to {buttonsLimit} buttons.",
         "TOO_MANY_URL_BUTTONS": "You can add up to {urlLimit} link buttons.",
-        "TOO_MANY_PHONE_BUTTONS": "You can add only {phoneLimit} call button."
-      }
+        "TOO_MANY_PHONE_BUTTONS": "You can add only {phoneLimit} call button.",
+        "VARIABLES_MIXED": "Do not mix named and numbered variables.",
+        "VARIABLE_NAME_INVALID": "A variable name can only have lowercase letters, numbers and underscores, and must start with a letter."
+      },
+      "CUSTOM_VARIABLE": "Another variable (e.g. product)",
+      "ADD": "Add"
     },
     "DELETE_DIALOG": {
       "TITLE": "Delete template",
@@ -170,6 +174,83 @@
       "CONFIRM": "Delete",
       "DELETED": "Template deleted.",
       "ERROR": "The template could not be deleted. Please try again."
+    },
+    "TABS": {
+      "TEMPLATES": "Templates",
+      "PRESETS": "Presets"
+    },
+    "PRESETS": {
+      "TITLE": "Preset templates",
+      "DESCRIPTION": "Pick one, adjust it if you like and send it to Meta for review. Nothing is sent until you save it.",
+      "USE": "Use",
+      "GROUPS": {
+        "APPOINTMENTS": "Appointments",
+        "FOLLOWUP": "Re-engagement and follow-up",
+        "CUSTOMER_DATA": "Customer data"
+      },
+      "CATEGORY_NOTE": {
+        "UTILITY": "Utility: notifies or confirms something the customer already asked for.",
+        "MARKETING": "Marketing: invites the customer back or to continue; Meta charges more per message."
+      },
+      "DISABLED_FORMS": "Available once you can create WhatsApp forms.",
+      "VARIABLES": "Variables: {variables}",
+      "ITEMS": {
+        "recordatorio_cita": {
+          "TITLE": "Appointment reminder",
+          "DESCRIPTION": "Reminds of the appointment and asks to confirm, change the time or cancel."
+        },
+        "confirmar_asistencia_cita": {
+          "TITLE": "Confirm attendance",
+          "DESCRIPTION": "Asks whether the customer can attend the appointment."
+        },
+        "cita_cancelada": {
+          "TITLE": "Appointment cancelled",
+          "DESCRIPTION": "Tells the appointment was cancelled and offers to book another."
+        },
+        "cita_cambiada": {
+          "TITLE": "Appointment changed",
+          "DESCRIPTION": "Tells the new day and time of the appointment."
+        },
+        "reenganche_conversacion": {
+          "TITLE": "Resume a conversation",
+          "DESCRIPTION": "Invites the customer to continue a pending conversation."
+        },
+        "seguimiento_cotizacion": {
+          "TITLE": "Information or quote follow-up",
+          "DESCRIPTION": "Asks whether the customer reviewed what you sent."
+        },
+        "seguimiento_servicio": {
+          "TITLE": "Follow-up after the service",
+          "DESCRIPTION": "Asks for the customer's opinion after the service."
+        },
+        "datos_cliente": {
+          "TITLE": "Customer data",
+          "DESCRIPTION": "Asks for the customer's data with a WhatsApp form."
+        }
+      },
+      "LIBRARY": {
+        "TITLE": "Meta library",
+        "DESCRIPTION": "Utility templates already written by Meta. The text is fixed; you only choose the name and the data their buttons ask for.",
+        "SEARCH": "Search the library...",
+        "LANGUAGE": "Language",
+        "EMPTY": "No library templates for this search or language.",
+        "LOAD_MORE": "Load more",
+        "USE": "Use",
+        "ERROR": "The Meta library could not be read. Please try again.",
+        "CATEGORY": "Category: {category}",
+        "DIALOG": {
+          "TITLE": "Create from the library",
+          "DESCRIPTION": "It is created with Meta's text and goes to review.",
+          "NAME": "Template name",
+          "CHANNEL": "WhatsApp channel",
+          "PHONE": "Phone for the call button ({text})",
+          "URL": "Link for the \"{text}\" button",
+          "URL_SUFFIX": "Example of the variable part of the link",
+          "CREATE": "Create template",
+          "CREATED": "Template sent to Meta.",
+          "ERROR": "The template could not be created. Please try again."
+        }
+      }
     }
   }
 }

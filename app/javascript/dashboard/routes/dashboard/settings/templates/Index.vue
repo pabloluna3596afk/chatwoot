@@ -12,6 +12,7 @@ import { useWhatsAppTemplateSync } from 'dashboard/composables/useWhatsAppTempla
 import InboxesAPI from 'dashboard/api/inboxes';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
@@ -20,7 +21,9 @@ import SettingsLayout from '../SettingsLayout.vue';
 import TemplateCard from './TemplateCard.vue';
 import TemplatePreviewDrawer from './TemplatePreviewDrawer.vue';
 import TemplateFormDrawer from './TemplateFormDrawer.vue';
+import PresetsPanel from './PresetsPanel.vue';
 import { isEditable } from './templateForm';
+import { presetToForm } from './presets';
 import {
   formatTemplateDate,
   formatTemplateLanguage,
@@ -186,6 +189,26 @@ const openPreview = template => {
 };
 
 const openCreate = () => formDrawerRef.value?.open();
+
+// Templates and ready-made presets are two tabs of the page; only administrators with a WhatsApp Cloud channel see
+// the presets (they create templates).
+const activeTab = ref('templates');
+const showTabs = computed(() => isAdmin.value && cloudInboxes.value.length > 0);
+const showTemplates = computed(
+  () => !showTabs.value || activeTab.value === 'templates'
+);
+const tabs = computed(() => [
+  { key: 'templates', label: t('WHATSAPP_TEMPLATE_MGMT.TABS.TEMPLATES') },
+  { key: 'presets', label: t('WHATSAPP_TEMPLATE_MGMT.TABS.PRESETS') },
+]);
+const tabIndex = computed(() =>
+  tabs.value.findIndex(tab => tab.key === activeTab.value)
+);
+const onTabChanged = tab => {
+  activeTab.value = tab.key;
+};
+const applyPreset = preset =>
+  formDrawerRef.value?.open(null, presetToForm(preset));
 const openEdit = template => formDrawerRef.value?.open(template);
 const askDelete = template => {
   templateToDelete.value = template;
@@ -345,15 +368,20 @@ const confirmDelete = async () => {
   }
 };
 
+const onLibraryCreated = () => {
+  activeTab.value = 'templates';
+  fetchTemplates();
+};
+
 onActivated(fetchTemplates);
 onDeactivated(abortTemplateRequest);
 </script>
 
 <template>
   <SettingsLayout
-    :is-loading="isLoading"
+    :is-loading="showTemplates && isLoading"
     :loading-message="$t('WHATSAPP_TEMPLATE_MGMT.LOADING')"
-    :no-records-found="!templates.length"
+    :no-records-found="showTemplates && !templates.length"
     :no-records-message="$t('WHATSAPP_TEMPLATE_MGMT.EMPTY')"
   >
     <template #header>
@@ -377,8 +405,14 @@ onDeactivated(abortTemplateRequest);
           </span>
         </template>
         <template #tabs>
+          <TabBar
+            v-if="showTabs"
+            :tabs="tabs"
+            :initial-active-tab="tabIndex"
+            @tab-changed="onTabChanged"
+          />
           <div
-            v-if="hasTemplates"
+            v-if="hasTemplates && showTemplates"
             v-on-click-outside="closeFilterMenu"
             class="flex items-center gap-2"
           >
@@ -434,8 +468,14 @@ onDeactivated(abortTemplateRequest);
     </template>
 
     <template #body>
+      <PresetsPanel
+        v-if="!showTemplates"
+        :inboxes="cloudInboxes"
+        @use="applyPreset"
+        @created="onLibraryCreated"
+      />
       <div
-        v-if="!filteredTemplates.length"
+        v-else-if="!filteredTemplates.length"
         class="flex items-center justify-center p-8"
       >
         <span class="text-base text-n-slate-11">

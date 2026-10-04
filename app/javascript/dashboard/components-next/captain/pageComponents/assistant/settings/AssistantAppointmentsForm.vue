@@ -16,7 +16,10 @@ import Select from 'dashboard/components-next/select/Select.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
 import { isWhatsAppComplete } from '@chatwoot/utils';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
-import { useTemplateVariables } from './useTemplateVariables';
+import {
+  APPOINTMENT_DEFAULT_VALUES,
+  useTemplateVariables,
+} from './useTemplateVariables';
 
 const props = defineProps({
   assistant: {
@@ -575,6 +578,7 @@ onMounted(loadConnections);
                   :media-inbox-id="templateInboxId(state.templates[key])"
                   :model-value="state.params[key]"
                   :variable-options="variableOptions"
+                  :default-values="APPOINTMENT_DEFAULT_VALUES"
                   :preview-values="previewValues"
                   @update:model-value="state.params[key] = $event"
                 />

@@ -10,6 +10,9 @@ import {
   toSnakeCase,
   validateForm,
   variableNumbers,
+  variableTokens,
+  hasNamedVariables,
+  isValidVariableName,
 } from '../templateForm';
 
 const validForm = () => {
@@ -188,6 +191,89 @@ describe('preview', () => {
       'FOOTER',
     ]);
     expect(previewVariables(form)).toEqual({ 1: 'Ana', 2: 'lunes' });
+  });
+});
+
+describe('named variables', () => {
+  it('reads the variables of a text, named or numbered', () => {
+    expect(variableTokens('Hola {{nombre}}, {{ fecha }} y {{nombre}}')).toEqual(
+      ['nombre', 'fecha']
+    );
+    expect(hasNamedVariables('Hola {{nombre}}')).toBe(true);
+    expect(hasNamedVariables('Hola {{1}}')).toBe(false);
+    expect(hasNamedVariables('sin variables')).toBe(false);
+  });
+
+  it('accepts lowercase names with digits and underscores that start with a letter', () => {
+    expect(isValidVariableName('nombre_cliente2')).toBe(true);
+    expect(isValidVariableName('Nombre')).toBe(false);
+    expect(isValidVariableName('2fecha')).toBe(false);
+    expect(isValidVariableName('con-guion')).toBe(false);
+  });
+
+  it('validates a named body: one example per name, no mix, no bad name, no edge variable', () => {
+    const form = validForm();
+
+    form.body.text = 'Hola {{nombre}}, tu cita es el {{fecha}}.';
+    form.body.examples = ['Ana', ''];
+    expect(validateForm(form)['body.examples']).toBe('EXAMPLE_REQUIRED');
+    form.body.examples = ['Ana', 'lunes'];
+    expect(validateForm(form)).toEqual({});
+
+    form.body.text = 'Hola {{nombre}} y {{2}} fin';
+    expect(validateForm(form)['body.text']).toBe('VARIABLES_MIXED');
+    form.body.text = 'Hola {{Nombre}} fin';
+    expect(validateForm(form)['body.text']).toBe('VARIABLE_NAME_INVALID');
+    form.body.text = '{{nombre}} hola';
+    expect(validateForm(form)['body.text']).toBe('VARIABLE_AT_EDGE');
+  });
+
+  it('allows one named variable in the header, with its example', () => {
+    const form = validForm();
+    form.header.format = 'TEXT';
+    form.header.text = 'Cita de {{nombre}}';
+    form.header.examples = [''];
+
+    expect(validateForm(form)['header.example']).toBe('EXAMPLE_REQUIRED');
+    form.header.examples = ['Ana'];
+    expect(validateForm(form)).toEqual({});
+    form.header.text = '{{nombre}} {{fecha}}';
+    expect(validateForm(form)['header.text']).toBe('HEADER_ONE_VARIABLE');
+  });
+
+  it('builds the payload and the preview values by name', () => {
+    const form = validForm();
+    form.body.text = 'Hola {{nombre}}, tu cita es el {{fecha}}.';
+    form.body.examples = ['Ana', 'lunes', 'sobra'];
+
+    expect(buildPayload(form).body.examples).toEqual(['Ana', 'lunes']);
+    expect(previewVariables(form)).toEqual({ nombre: 'Ana', fecha: 'lunes' });
+  });
+
+  it('reads the named examples of a synced template back in the order of its variables', () => {
+    const form = formFromTemplate(
+      {
+        name: 'cita',
+        language: 'es',
+        parameter_format: 'NAMED',
+        components: [
+          {
+            type: 'BODY',
+            text: 'Hola {{nombre}}, es el {{fecha}}.',
+            example: {
+              body_text_named_params: [
+                { param_name: 'fecha', example: 'lunes' },
+                { param_name: 'nombre', example: 'Ana' },
+              ],
+            },
+          },
+        ],
+      },
+      3
+    );
+
+    expect(form.body.examples).toEqual(['Ana', 'lunes']);
+    expect(validateForm(form, { isEdit: true })).toEqual({});
   });
 });
 

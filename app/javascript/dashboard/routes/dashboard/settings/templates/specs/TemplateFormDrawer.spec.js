@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import TemplateFormDrawer from '../TemplateFormDrawer.vue';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
+import { PRESETS, presetToForm } from '../presets';
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key, te: () => false }),
@@ -95,5 +96,51 @@ describe('TemplateFormDrawer', () => {
       body: { text: 'Tu cita queda confirmada.' },
     });
     expect(wrapper.emitted('saved')).toHaveLength(1);
+  });
+
+  it('opens filled in with a preset and creates it with named variables', async () => {
+    WhatsappTemplatesAPI.createTemplate.mockResolvedValue({
+      data: { id: '9' },
+    });
+    const wrapper = mount(TemplateFormDrawer, {
+      props: { inboxes },
+      global: {
+        mocks: { $t: key => key },
+        stubs: { SidePanel: SidePanelStub, TemplatePreview: true },
+      },
+    });
+    await wrapper.vm.open(null, presetToForm(PRESETS[0]));
+    await flushPromises();
+
+    expect(wrapper.get('input[type="text"]').element.value).toBe(
+      'recordatorio_cita'
+    );
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+
+    const [inboxId, payload] =
+      WhatsappTemplatesAPI.createTemplate.mock.calls[0];
+    expect(inboxId).toBe(7);
+    expect(payload.body.text).toContain('{{nombre}}');
+    expect(payload.body.examples).toEqual([
+      'Ana',
+      'Consulta',
+      'jueves 8 de octubre',
+      '10:30',
+    ]);
+    expect(payload.category).toBe('UTILITY');
+  });
+
+  it('adds a named variable to the body with one click and asks for its example', async () => {
+    const wrapper = await mountDrawer();
+
+    await typeInto(wrapper, 'textarea', 'Hola ');
+    await wrapper.get('[data-testid="add-variable-nombre"]').trigger('click');
+
+    expect(wrapper.get('textarea').element.value).toBe('Hola {{nombre}}');
+    expect(wrapper.find('[data-testid="add-variable-nombre"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.text()).toContain('WHATSAPP_TEMPLATE_MGMT.FORM.EXAMPLE_FOR');
   });
 });

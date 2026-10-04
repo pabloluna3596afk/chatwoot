@@ -26,7 +26,10 @@ import {
   previewVariables,
   toSnakeCase,
   validateForm,
+  SUGGESTED_VARIABLES,
+  isValidVariableName,
   variableNumbers,
+  variableTokens,
 } from './templateForm';
 import { formatTemplateLabel, templateStatusClasses } from './templateUtils';
 
@@ -62,9 +65,9 @@ const categoryLocked = computed(
 const isMediaHeader = computed(() =>
   MEDIA_FORMATS.includes(form.header.format)
 );
-const bodyVariables = computed(() => variableNumbers(form.body.text));
+const bodyVariables = computed(() => variableTokens(form.body.text));
 const headerHasVariable = computed(
-  () => variableNumbers(form.header.text).length > 0
+  () => variableTokens(form.header.text).length > 0
 );
 const generatedName = computed(() => toSnakeCase(form.name));
 const preview = computed(() => previewTemplate(form, headerPreviewUrl.value));
@@ -130,10 +133,14 @@ const loadLiveState = async template => {
 };
 
 // Opens the form to create a template, or to edit `template` (a synced template of a Cloud inbox).
-const open = async (template = null) => {
+const open = async (template = null, prefill = null) => {
   resetForm();
   editing.value = template;
-  if (template) {
+  if (prefill) {
+    Object.assign(form, prefill);
+    if (!form.inboxId)
+      form.inboxId = props.inboxes.length === 1 ? props.inboxes[0].id : null;
+  } else if (template) {
     const inbox = props.inboxes.find(item =>
       template.inboxes?.some(owner => owner.id === item.id)
     );
@@ -171,9 +178,24 @@ watch(bodyVariables, numbers => {
   form.body.examples = examples.slice(0, Math.max(numbers.length, 0));
 });
 
-const addBodyVariable = () => {
-  const next = Math.max(0, ...bodyVariables.value) + 1;
-  form.body.text = `${form.body.text}{{${next}}}`;
+// Named variables ({{nombre}}) are added at the end of the body; the ones already in it are not offered again.
+const customVariable = ref('');
+const offeredVariables = computed(() =>
+  SUGGESTED_VARIABLES.filter(name => !bodyVariables.value.includes(name))
+);
+const customVariableInvalid = computed(
+  () => customVariable.value && !isValidVariableName(customVariable.value)
+);
+
+const addVariable = name => {
+  form.body.text = `${form.body.text}{{${name}}}`;
+};
+
+const addCustomVariable = () => {
+  const name = customVariable.value.trim();
+  if (!isValidVariableName(name)) return;
+  addVariable(name);
+  customVariable.value = '';
 };
 
 const addButton = type => {
@@ -423,7 +445,11 @@ const selectClass =
             <Input
               v-if="headerHasVariable"
               v-model="form.header.examples[0]"
-              :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.EXAMPLE_FOR', { n: 1 })"
+              :label="
+                $t('WHATSAPP_TEMPLATE_MGMT.FORM.EXAMPLE_FOR', {
+                  n: variableTokens(form.header.text)[0],
+                })
+              "
               :message="fieldError('header.example')"
               message-type="error"
             />
@@ -467,15 +493,48 @@ const selectClass =
             :message="fieldError('body.text')"
             message-type="error"
           />
-          <div>
-            <Button
-              type="button"
-              slate
-              xs
-              icon="i-lucide-braces"
-              :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
-              @click="addBodyVariable"
-            />
+          <div class="grid gap-2" data-testid="variable-picker">
+            <span class="text-xs text-n-slate-11">
+              {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE') }}
+            </span>
+            <div class="flex flex-wrap items-center gap-2">
+              <Button
+                v-for="name in offeredVariables"
+                :key="name"
+                type="button"
+                slate
+                xs
+                icon="i-lucide-plus"
+                :label="name"
+                :data-testid="`add-variable-${name}`"
+                @click="addVariable(name)"
+              />
+            </div>
+            <div class="flex items-start gap-2">
+              <Input
+                v-model="customVariable"
+                size="sm"
+                class="flex-1"
+                :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CUSTOM_VARIABLE')"
+                :message="
+                  customVariableInvalid
+                    ? $t(
+                        'WHATSAPP_TEMPLATE_MGMT.FORM.ERRORS.VARIABLE_NAME_INVALID'
+                      )
+                    : ''
+                "
+                message-type="error"
+                @enter="addCustomVariable"
+              />
+              <Button
+                type="button"
+                slate
+                sm
+                :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD')"
+                :disabled="!customVariable || customVariableInvalid"
+                @click="addCustomVariable"
+              />
+            </div>
           </div>
           <div v-if="bodyVariables.length" class="grid gap-2">
             <Input

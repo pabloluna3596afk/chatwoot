@@ -488,7 +488,8 @@ describe('AssistantAppointmentsForm', () => {
       inboxes.value = [whatsappInbox([templateWithVariables])];
       const wrapper = await openFields({ allow_paid_templates: true });
       await pickTemplate(wrapper);
-      await fillParser(wrapper, ['{{ appointment.title }}', 'Hola']);
+      // nombre and fecha fill themselves in by name; the owner empties one
+      await fillParser(wrapper, ['{{ appointment.title }}', '']);
 
       await wrapper.get('[data-testid="appointments-save"]').trigger('click');
 

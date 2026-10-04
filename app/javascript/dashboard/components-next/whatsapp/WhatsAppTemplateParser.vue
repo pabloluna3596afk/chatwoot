@@ -63,6 +63,12 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  // The text a variable starts with when nothing was saved for it, by the variable's name
+  // ({ nombre: '{{ contact.name }}' }): a named template picked in a Captain setting fills itself in.
+  defaultValues: {
+    type: Object,
+    default: () => ({}),
+  },
   // What each variable key is worth in the preview ({ 'appointment.date': 'jueves 1 de octubre' }), so the preview
   // shows sample values and not the raw {{ variable }}.
   previewValues: {
@@ -190,6 +196,8 @@ const initializeTemplateParameters = () => {
     Object.keys(built[component] || {}).forEach(key => {
       const saved = props.modelValue?.[component]?.[key];
       if (saved !== undefined) built[component][key] = saved;
+      else if (!built[component][key] && props.defaultValues[key])
+        built[component][key] = props.defaultValues[key];
     });
   });
   // The uploaded header file travels with the saved values (it is not one of the template's own keys).

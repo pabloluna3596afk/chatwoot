@@ -1,5 +1,8 @@
 // The WhatsApp template form (create / edit): its limits, validation, the payload for the API and the way back from a
 // Meta template to a form. The limits are the ones Whatsapp::TemplateComponentsBuilder enforces on the server.
+//
+// Variables are named ({{nombre}}) or numbered ({{1}}); a template uses one of them. New templates are named, so it is
+// obvious what each variable is; numbered ones are still accepted (and kept when an existing template is edited).
 
 export const LIMITS = {
   body: 1024,
@@ -20,8 +23,12 @@ export const MEDIA_ACCEPT = {
   VIDEO: 'video/mp4,video/3gpp',
   DOCUMENT: 'application/pdf',
 };
+// The variables the form offers with one click: the ones Captain's appointment messages fill in by name.
+export const SUGGESTED_VARIABLES = ['nombre', 'cita', 'fecha', 'hora', 'tema'];
 
-const VARIABLE = /\{\{(\d+)\}\}/g;
+const VARIABLE = /\{\{\s*([^{}\s]+)\s*\}\}/g;
+const NUMBER_TOKEN = /^\d+$/;
+const VARIABLE_NAME = /^[a-z][a-z0-9_]*$/;
 const NAME_FORMAT = /^[a-z0-9_]{1,512}$/;
 const URL_FORMAT = /^https?:\/\/\S+$/;
 const PHONE_FORMAT = /^\+\d{6,18}$/;
@@ -52,30 +59,59 @@ export const toSnakeCase = value =>
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '');
 
-// The variable numbers in a text, in order of appearance and without repeats: "{{1}} y {{2}} y {{1}}" -> [1, 2]
-export const variableNumbers = text => {
-  const numbers = [...String(text || '').matchAll(VARIABLE)].map(match =>
-    Number(match[1])
+// The variables of a text, in order of first appearance and without repeats: "{{nombre}} y {{1}} y {{nombre}}" ->
+// ['nombre', '1']
+export const variableTokens = text => [
+  ...new Set([...String(text || '').matchAll(VARIABLE)].map(match => match[1])),
+];
+
+// The numbered variables only, as numbers (a button URL takes {{1}}): "{{1}} y {{2}} y {{1}}" -> [1, 2]
+export const variableNumbers = text =>
+  variableTokens(text)
+    .filter(token => NUMBER_TOKEN.test(token))
+    .map(Number);
+
+export const isValidVariableName = name => VARIABLE_NAME.test(String(name));
+
+// A text (or the header and body together) uses named variables when any variable is not a number.
+export const hasNamedVariables = (...texts) =>
+  texts.some(text =>
+    variableTokens(text).some(token => !NUMBER_TOKEN.test(token))
   );
-  return [...new Set(numbers)];
+
+// How many examples a field needs: one per variable (the header and the URL have at most one).
+export const bodyExampleCount = text => variableTokens(text).length;
+
+const hasVariableAtEdge = text =>
+  /^\{\{[^{}]+\}\}|\{\{[^{}]+\}\}$/.test(text.trim());
+
+// Mixing {{nombre}} with {{1}}, or a name Meta would refuse, in the header or the body.
+const validateVariableKinds = (form, errors) => {
+  const tokens = [
+    ...variableTokens(form.header.format === 'TEXT' ? form.header.text : ''),
+    ...variableTokens(form.body.text),
+  ];
+  const numbered = tokens.filter(token => NUMBER_TOKEN.test(token));
+  const named = tokens.filter(token => !NUMBER_TOKEN.test(token));
+  if (numbered.length && named.length) errors['body.text'] = 'VARIABLES_MIXED';
+  else if (named.some(token => !isValidVariableName(token)))
+    errors['body.text'] = 'VARIABLE_NAME_INVALID';
 };
-
-// How many examples a field needs: one per variable (header and URL have at most one).
-export const bodyExampleCount = text => variableNumbers(text).length;
-
-const hasVariableAtEdge = text => /^\{\{\d+\}\}|\{\{\d+\}\}$/.test(text.trim());
-const isSequential = numbers => numbers.every((n, index) => n === index + 1);
 
 const validateHeader = (header, errors) => {
   if (header.format === 'TEXT') {
     const text = header.text.trim();
-    const numbers = variableNumbers(text);
+    const tokens = variableTokens(text);
+    const named = hasNamedVariables(text);
     if (!text) errors['header.text'] = 'HEADER_TEXT_REQUIRED';
     else if (text.length > LIMITS.headerText)
       errors['header.text'] = 'HEADER_TEXT_TOO_LONG';
-    else if (numbers.length > 1 || (numbers.length && numbers[0] !== 1))
+    else if (
+      tokens.length > 1 ||
+      (tokens.length && !named && tokens[0] !== '1')
+    )
       errors['header.text'] = 'HEADER_ONE_VARIABLE';
-    else if (numbers.length && !String(header.examples?.[0] || '').trim())
+    else if (tokens.length && !String(header.examples?.[0] || '').trim())
       errors['header.example'] = 'EXAMPLE_REQUIRED';
   } else if (MEDIA_FORMATS.includes(header.format) && !header.handle) {
     errors['header.media'] = 'HEADER_MEDIA_REQUIRED';
@@ -84,17 +120,20 @@ const validateHeader = (header, errors) => {
 
 const validateBody = (body, errors) => {
   const text = body.text.trim();
-  const numbers = variableNumbers(text);
+  const tokens = variableTokens(text);
+  const sequential = tokens.every(
+    (token, index) => token === String(index + 1)
+  );
   if (!text) {
     errors['body.text'] = 'BODY_REQUIRED';
   } else if (text.length > LIMITS.body) {
     errors['body.text'] = 'BODY_TOO_LONG';
-  } else if (!isSequential(numbers)) {
+  } else if (!hasNamedVariables(text) && !sequential) {
     errors['body.text'] = 'VARIABLES_NOT_SEQUENTIAL';
-  } else if (numbers.length && hasVariableAtEdge(text)) {
+  } else if (tokens.length && hasVariableAtEdge(text)) {
     errors['body.text'] = 'VARIABLE_AT_EDGE';
   } else if (
-    numbers.some((_, index) => !String(body.examples?.[index] || '').trim())
+    tokens.some((_, index) => !String(body.examples?.[index] || '').trim())
   ) {
     errors['body.examples'] = 'EXAMPLE_REQUIRED';
   }
@@ -103,8 +142,7 @@ const validateBody = (body, errors) => {
 const validateFooter = (footer, errors) => {
   const text = footer.text.trim();
   if (text.length > LIMITS.footer) errors['footer.text'] = 'FOOTER_TOO_LONG';
-  else if (variableNumbers(text).length)
-    errors['footer.text'] = 'FOOTER_NO_VARIABLES';
+  else if (text.includes('{{')) errors['footer.text'] = 'FOOTER_NO_VARIABLES';
 };
 
 const validateButton = (button, index, errors) => {
@@ -118,7 +156,10 @@ const validateButton = (button, index, errors) => {
     const url = button.url.trim();
     const numbers = variableNumbers(url);
     if (!URL_FORMAT.test(url)) errors[`${key}.url`] = 'URL_INVALID';
-    else if (numbers.length > 1 || (numbers.length && !url.endsWith('{{1}}')))
+    else if (
+      url.includes('{{') &&
+      (numbers.length !== 1 || !url.endsWith('{{1}}'))
+    )
       errors[`${key}.url`] = 'URL_VARIABLE_AT_END';
     else if (numbers.length && !String(button.examples?.[0] || '').trim())
       errors[`${key}.example`] = 'EXAMPLE_REQUIRED';
@@ -153,6 +194,7 @@ export const validateForm = (form, { isEdit = false } = {}) => {
   if (!CATEGORIES.includes(form.category)) errors.category = 'CATEGORY_INVALID';
   validateHeader(form.header, errors);
   validateBody(form.body, errors);
+  validateVariableKinds(form, errors);
   validateFooter(form.footer, errors);
   validateButtons(form.buttons, errors);
   return errors;
@@ -177,7 +219,8 @@ const buttonPayload = button => {
   return { type: 'QUICK_REPLY', text: button.text.trim() };
 };
 
-// The body of POST / PATCH .../whatsapp_templates ({ template: ... }).
+// The body of POST / PATCH .../whatsapp_templates ({ template: ... }). The server decides named or numbered from the
+// variables in the texts.
 export const buildPayload = form => {
   const count = bodyExampleCount(form.body.text);
   return {
@@ -187,7 +230,7 @@ export const buildPayload = form => {
     header: {
       format: form.header.format,
       text: form.header.text.trim(),
-      examples: variableNumbers(form.header.text).length
+      examples: variableTokens(form.header.text).length
         ? [form.header.examples[0]]
         : [],
       handle: form.header.handle,
@@ -240,14 +283,16 @@ export const previewTemplate = (form, headerPreviewUrl = '') => {
   };
 };
 
-// The values the preview shows in place of {{n}}.
+// The values the preview shows in place of each variable ({{nombre}} -> "Ana").
 export const previewVariables = form => {
   const variables = {};
-  variableNumbers(form.body.text).forEach((number, index) => {
-    variables[String(number)] = form.body.examples[index] || '';
+  variableTokens(form.body.text).forEach((token, index) => {
+    variables[token] = form.body.examples[index] || '';
   });
-  if (variableNumbers(form.header.text).length)
-    variables['1'] = form.header.examples[0] || variables['1'] || '';
+  const [headerToken] = variableTokens(form.header.text);
+  if (headerToken)
+    variables[headerToken] =
+      form.header.examples[0] || variables[headerToken] || '';
   return variables;
 };
 
@@ -268,6 +313,20 @@ export const isEditable = template => {
   });
 };
 
+// The examples of a text, in the order its variables appear: from `body_text` ([[...]]) / `header_text` ([...]) for
+// numbered templates, from the { param_name, example } pairs for named ones.
+const examplesFor = (component, tokens, kind) => {
+  const named = component.example?.[`${kind}_text_named_params`];
+  if (Array.isArray(named)) {
+    return tokens.map(
+      token => named.find(item => item.param_name === token)?.example || ''
+    );
+  }
+  const positional = component.example?.[`${kind}_text`];
+  if (!Array.isArray(positional)) return [];
+  return kind === 'body' ? [...(positional[0] || [])] : [positional[0] || ''];
+};
+
 // A form from a Meta template, to edit it. Media headers keep no handle: a new example file is needed to save.
 export const formFromTemplate = (template, inboxId) => {
   const form = emptyForm();
@@ -280,10 +339,17 @@ export const formFromTemplate = (template, inboxId) => {
     if (component.type === 'HEADER') {
       form.header.format = component.format;
       form.header.text = component.text || '';
-      form.header.examples = [component.example?.header_text?.[0] || ''];
+      form.header.examples = [
+        examplesFor(component, variableTokens(component.text), 'header')[0] ||
+          '',
+      ];
     } else if (component.type === 'BODY') {
       form.body.text = component.text || '';
-      form.body.examples = [...(component.example?.body_text?.[0] || [])];
+      form.body.examples = examplesFor(
+        component,
+        variableTokens(component.text),
+        'body'
+      );
     } else if (component.type === 'FOOTER') {
       form.footer.text = component.text || '';
     } else if (component.type === 'BUTTONS') {

@@ -16,6 +16,21 @@ const CONTACT_KEYS = [
   'account.name',
 ];
 
+// What a template variable is filled with by its name, so a template made with named variables
+// ({{nombre}}, {{cita}}, {{fecha}}, {{hora}}) needs no setup when it is picked.
+export const APPOINTMENT_DEFAULT_VALUES = {
+  nombre: '{{ contact.name }}',
+  cita: '{{ appointment.title }}',
+  fecha: '{{ appointment.date }}',
+  hora: '{{ appointment.time }}',
+  asistente: '{{ assistant.name }}',
+};
+export const CONTACT_DEFAULT_VALUES = {
+  nombre: '{{ contact.name }}',
+  asistente: '{{ assistant.name }}',
+  empresa: '{{ account.name }}',
+};
+
 // The variables the owner can put in the fields of a Captain template, with friendly labels, and a sample value of
 // each for the preview. The key is the Liquid expression the backend renders when the message is sent
 // (Captain::TemplateMessage.drops).

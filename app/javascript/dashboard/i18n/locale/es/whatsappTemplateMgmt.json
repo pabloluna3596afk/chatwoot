@@ -111,7 +111,7 @@
       "UPLOAD_EXAMPLE": "Subir archivo de ejemplo",
       "BODY": "Cuerpo del mensaje",
       "BODY_PLACEHOLDER": "Hola, te recordamos tu cita de mañana.",
-      "ADD_VARIABLE": "Agregar variable",
+      "ADD_VARIABLE": "Agregar una variable al cuerpo",
       "FOOTER": "Pie (opcional)",
       "FOOTER_PLACEHOLDER": "Gracias por elegirnos",
       "BUTTONS": "Botones (opcional)",
@@ -160,8 +160,12 @@
         "PHONE_INVALID": "El teléfono debe tener el formato +593999999999.",
         "TOO_MANY_BUTTONS": "Puedes poner hasta {buttonsLimit} botones.",
         "TOO_MANY_URL_BUTTONS": "Puedes poner hasta {urlLimit} botones con enlace.",
-        "TOO_MANY_PHONE_BUTTONS": "Puedes poner solo {phoneLimit} botón de llamada."
-      }
+        "TOO_MANY_PHONE_BUTTONS": "Puedes poner solo {phoneLimit} botón de llamada.",
+        "VARIABLES_MIXED": "No mezcles variables con nombre y variables numeradas.",
+        "VARIABLE_NAME_INVALID": "El nombre de la variable solo puede tener minúsculas, números y guion bajo, y debe empezar con una letra."
+      },
+      "CUSTOM_VARIABLE": "Otra variable (ej. producto)",
+      "ADD": "Agregar"
     },
     "DELETE_DIALOG": {
       "TITLE": "Borrar plantilla",
@@ -170,6 +174,83 @@
       "CONFIRM": "Borrar",
       "DELETED": "Plantilla borrada.",
       "ERROR": "No se pudo borrar la plantilla. Inténtalo de nuevo."
+    },
+    "TABS": {
+      "TEMPLATES": "Plantillas",
+      "PRESETS": "Predefinidas"
+    },
+    "PRESETS": {
+      "TITLE": "Plantillas predefinidas",
+      "DESCRIPTION": "Elige una, ajústala si quieres y envíala a Meta para revisión. No se envía nada hasta que la guardes.",
+      "USE": "Usar",
+      "GROUPS": {
+        "APPOINTMENTS": "Citas",
+        "FOLLOWUP": "Reenganche y seguimiento",
+        "CUSTOMER_DATA": "Datos del cliente"
+      },
+      "CATEGORY_NOTE": {
+        "UTILITY": "Utilidad: avisa o confirma algo que el cliente ya pidió.",
+        "MARKETING": "Marketing: invita a volver o a continuar; Meta lo cobra más caro por mensaje."
+      },
+      "DISABLED_FORMS": "Disponible cuando puedas crear formularios de WhatsApp.",
+      "VARIABLES": "Variables: {variables}",
+      "ITEMS": {
+        "recordatorio_cita": {
+          "TITLE": "Recordatorio de cita",
+          "DESCRIPTION": "Recuerda la cita y pide confirmar, cambiar la hora o cancelar."
+        },
+        "confirmar_asistencia_cita": {
+          "TITLE": "Confirmar asistencia",
+          "DESCRIPTION": "Pregunta si el cliente podrá asistir a su cita."
+        },
+        "cita_cancelada": {
+          "TITLE": "Cita cancelada",
+          "DESCRIPTION": "Avisa que la cita se canceló y ofrece agendar otra."
+        },
+        "cita_cambiada": {
+          "TITLE": "Cita cambiada",
+          "DESCRIPTION": "Avisa del nuevo día y hora de la cita."
+        },
+        "reenganche_conversacion": {
+          "TITLE": "Retomar una conversación",
+          "DESCRIPTION": "Invita a continuar una conversación que quedó pendiente."
+        },
+        "seguimiento_cotizacion": {
+          "TITLE": "Seguimiento de información o cotización",
+          "DESCRIPTION": "Pregunta si el cliente revisó lo que le enviaste."
+        },
+        "seguimiento_servicio": {
+          "TITLE": "Seguimiento después del servicio",
+          "DESCRIPTION": "Pide la opinión del cliente después de atenderlo."
+        },
+        "datos_cliente": {
+          "TITLE": "Datos del cliente",
+          "DESCRIPTION": "Pide los datos del cliente con un formulario de WhatsApp."
+        }
+      },
+      "LIBRARY": {
+        "TITLE": "Biblioteca de Meta",
+        "DESCRIPTION": "Plantillas de utilidad ya escritas por Meta. El texto es fijo; solo eliges el nombre y los datos que piden sus botones.",
+        "SEARCH": "Buscar en la biblioteca...",
+        "LANGUAGE": "Idioma",
+        "EMPTY": "No hay plantillas de la biblioteca para esta búsqueda o idioma.",
+        "LOAD_MORE": "Ver más",
+        "USE": "Usar",
+        "ERROR": "No se pudo consultar la biblioteca de Meta. Inténtalo de nuevo.",
+        "CATEGORY": "Categoría: {category}",
+        "DIALOG": {
+          "TITLE": "Crear desde la biblioteca",
+          "DESCRIPTION": "Se crea con el texto de Meta y pasa a revisión.",
+          "NAME": "Nombre de la plantilla",
+          "CHANNEL": "Canal de WhatsApp",
+          "PHONE": "Teléfono para el botón de llamada ({text})",
+          "URL": "Enlace para el botón \"{text}\"",
+          "URL_SUFFIX": "Ejemplo de la parte variable del enlace",
+          "CREATE": "Crear plantilla",
+          "CREATED": "Plantilla enviada a Meta.",
+          "ERROR": "No se pudo crear la plantilla. Inténtalo de nuevo."
+        }
+      }
     }
   }
 }
