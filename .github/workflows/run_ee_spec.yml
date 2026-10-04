@@ -122,7 +122,7 @@ jobs:
         with:
           bundler-cache: true
 
-      - name: Rubocop on changed files
+      - name: Rubocop on the changed lines
         run: |
           git fetch origin develop
-          git diff --name-only --diff-filter=d origin/develop...HEAD -- '*.rb' | xargs -r bundle exec rubocop --force-exclusion
+          bundle exec ruby .github/scripts/rubocop_changed_lines.rb origin/develop
