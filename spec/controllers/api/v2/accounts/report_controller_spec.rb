@@ -14,11 +14,10 @@ RSpec.describe 'Reports API', type: :request do
   let(:new_account) { create(:account) }
 
   before do
+    account.enable_features!('report_export')
     create_list(:conversation, 10, account: account, inbox: inbox,
                                    assignee: user, created_at: Time.current.in_time_zone(default_timezone).to_date)
   end
-
-  before { account.enable_features!('report_export') }
 
   describe 'GET /api/v2/accounts/:account_id/reports' do
     context 'when it is an unauthenticated user' do

@@ -4,7 +4,7 @@ RSpec.describe 'Agents API', type: :request do
   include ActiveJob::TestHelper
 
   let(:account) { create(:account) }
-  let(:plan) { Plan.create!(name: 'Email limit plan', slug: "email-limit-#{SecureRandom.hex(4)}") }
+  let(:plan) { Plan.create!(name: 'Email limit plan', slug: "email-limit-#{SecureRandom.hex(4)}", max_human_agents: 100) }
   let!(:admin) { create(:user, custom_attributes: { test: 'test' }, account: account, role: :administrator) }
   let!(:agent) { create(:user, account: account, email: 'exists@example.com', role: :agent) }
 
