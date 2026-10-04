@@ -311,6 +311,54 @@ RSpec.describe Conversation, type: :model do
       end
     end
 
+    describe 'the status activity message' do
+      def activity_content(conversation)
+        have_enqueued_job(Conversations::ActivityMessageJob).with(conversation, hash_including(content: yield))
+      end
+
+      it 'says Captain is taking care of the conversation, not that it was marked pending' do
+        conversation = create_conversation(account: account, inbox: inbox, status: :open)
+        content = I18n.t('conversations.activity.status.captain_attending', assistant: assistant.name)
+
+        expect { conversation.update!(status: :pending, ai_assignee: assistant) }.to activity_content(conversation) { content }
+      end
+
+      it 'says Captain handed the conversation over to the team' do
+        conversation = create_conversation(account: account, inbox: inbox, status: :pending, ai_assignee: assistant)
+        content = I18n.t('conversations.activity.status.captain_handed_off', assistant: assistant.name)
+
+        expect { conversation.bot_handoff! }.to activity_content(conversation) { content }
+      end
+    end
+
+    describe '#display_status' do
+      it 'reads open while Captain attends a pending conversation' do
+        conversation = create_conversation(account: account, inbox: inbox, status: :pending, ai_assignee: assistant)
+
+        expect(conversation.display_status).to eq('open')
+        expect(conversation.status).to eq('pending')
+      end
+
+      it 'is the real status otherwise' do
+        pending = create_conversation(account: account, inbox: plain_inbox, status: :pending)
+        resolved = create_conversation(account: account, inbox: inbox, status: :resolved, ai_assignee: assistant)
+
+        expect(pending.display_status).to eq('pending')
+        expect(resolved.display_status).to eq('resolved')
+      end
+
+      it 'selects with displayed_as: open adds what Captain attends, pending leaves it out' do
+        attended = create_conversation(account: account, inbox: inbox, status: :pending, ai_assignee: assistant)
+        plain_pending = create_conversation(account: account, inbox: plain_inbox, status: :pending)
+        plain_open = create_conversation(account: account, inbox: plain_inbox, status: :open)
+        resolved = create_conversation(account: account, inbox: plain_inbox, status: :resolved)
+
+        expect(account.conversations.displayed_as('open')).to contain_exactly(attended, plain_open)
+        expect(account.conversations.displayed_as('pending')).to contain_exactly(plain_pending)
+        expect(account.conversations.displayed_as('resolved')).to contain_exactly(resolved)
+      end
+    end
+
     describe 'queue scopes' do
       let!(:ai_conversation) { create_conversation(account: account, inbox: inbox, status: :pending, ai_assignee: assistant) }
       let!(:escalated_conversation) do

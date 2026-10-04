@@ -5,6 +5,7 @@ import { useEmitter } from 'dashboard/composables/emitter';
 import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
 import { useConversationStatusActions } from 'dashboard/composables/useConversationStatusActions';
 import wootConstants from 'dashboard/constants/globals';
+import { getDisplayStatus } from 'dashboard/helper/conversationHelper';
 import {
   CMD_REOPEN_CONVERSATION,
   CMD_RESOLVE_CONVERSATION,
@@ -22,14 +23,16 @@ const {
   handleResolveWithAttributes,
 } = useConversationStatusActions();
 
+// A conversation Captain attends reads as open: the agent can resolve it, there is nothing to reopen.
 const isOpen = computed(
-  () => currentChat.value?.status === wootConstants.STATUS_TYPE.OPEN
+  () => getDisplayStatus(currentChat.value) === wootConstants.STATUS_TYPE.OPEN
 );
 const isResolved = computed(
-  () => currentChat.value?.status === wootConstants.STATUS_TYPE.RESOLVED
+  () =>
+    getDisplayStatus(currentChat.value) === wootConstants.STATUS_TYPE.RESOLVED
 );
 const showOpenButton = computed(() => {
-  const status = currentChat.value?.status;
+  const status = getDisplayStatus(currentChat.value);
   return (
     status === wootConstants.STATUS_TYPE.PENDING ||
     status === wootConstants.STATUS_TYPE.SNOOZED

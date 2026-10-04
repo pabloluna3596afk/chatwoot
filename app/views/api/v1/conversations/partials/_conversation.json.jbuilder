@@ -56,6 +56,7 @@ json.agent_last_seen_at conversation.agent_last_seen_at.to_i
 json.assignee_last_seen_at conversation.assignee_last_seen_at.to_i
 json.can_reply conversation.can_reply?
 json.bot_handling conversation.bot_handling?
+json.display_status conversation.display_status
 json.captain_state conversation.captain_state
 json.captain_assistant conversation.captain_assistant_data
 json.captain_handed_off_at conversation.captain_handed_off_at&.to_i

@@ -52,11 +52,7 @@ module ActivityMessageHandler
   end
 
   def status_change_activity(user_name)
-    content = if Current.executed_by.present?
-                automation_status_change_activity_content
-              else
-                user_status_change_activity_content(user_name)
-              end
+    content = captain_status_change_activity_content || standard_status_change_activity_content(user_name)
 
     return if content.blank?
 
@@ -72,6 +68,21 @@ module ActivityMessageHandler
         }
       )
     )
+  end
+
+  # Captain taking a conversation, or letting it go to the team, says so in plain words instead of "marked as pending".
+  def captain_status_change_activity_content
+    if captain_attended?
+      I18n.t('conversations.activity.status.captain_attending', assistant: ai_assignee.name)
+    elsif open? && saved_change_to_captain_handed_off_at? && captain_handed_off_at.present?
+      I18n.t('conversations.activity.status.captain_handed_off', assistant: inbox.try(:captain_assistant)&.name || 'Captain')
+    end
+  end
+
+  def standard_status_change_activity_content(user_name)
+    return automation_status_change_activity_content if Current.executed_by.present?
+
+    user_status_change_activity_content(user_name)
   end
 
   def auto_resolve_message_key(minutes)

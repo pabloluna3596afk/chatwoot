@@ -98,6 +98,15 @@ class Conversation < ApplicationRecord
 
   scope :unassigned, -> { where(assignee_id: nil, assignee_agent_bot_id: nil) }
   scope :attended_by_ai, -> { where(CAPTAIN_ATTENDED_SQL) }
+  # The status an agent sees: a conversation Captain attends reads as open (see #display_status). The real status of
+  # those rows stays pending, so "open" also lists them and "pending" leaves them out.
+  scope :displayed_as, lambda { |status|
+    case status.to_s
+    when 'open' then where("conversations.status = #{statuses[:open]} OR #{CAPTAIN_ATTENDED_SQL}")
+    when 'pending' then where(status: :pending).where.not(CAPTAIN_ATTENDED_SQL)
+    else where(status: status)
+    end
+  }
   scope :queue_unassigned, -> { where(QUEUE_UNASSIGNED_SQL) }
   scope :assigned, -> { where.not(assignee_id: nil).or(where.not(assignee_agent_bot_id: nil)) }
   scope :without_human_assignee, -> { where(assignee_id: nil) }
@@ -290,6 +299,12 @@ class Conversation < ApplicationRecord
 
   def captain_attended?
     pending? && captain_assigned?
+  end
+
+  # What the dashboard shows as the status: Captain answering a conversation is, for the agent, an open conversation.
+  # Everything that acts on the status (reply box, take-over, jobs) keeps using #status.
+  def display_status
+    captain_attended? ? 'open' : status
   end
 
   def captain_escalated?

@@ -6,6 +6,7 @@ import MultiselectDropdownItems from 'shared/components/ui/MultiselectDropdownIt
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import Avatar from 'next/avatar/Avatar.vue';
 import { useConversationAssignee } from 'dashboard/composables/useConversationAssignee';
+import { useCaptainState } from 'dashboard/composables/useCaptainState';
 import { useI18n } from 'vue-i18n';
 import { OnClickOutside } from '@vueuse/components';
 
@@ -29,6 +30,18 @@ const {
 } = useConversationAssignee();
 
 const [showMenu, toggleMenu] = useToggle(false);
+
+// While Captain answers, the chip shows the assistant's own photo inside the state ring (as the conversation card does).
+const {
+  showAssistantAvatar,
+  assistant: captainAssistant,
+  ringClass: captainRingClass,
+} = useCaptainState(computed(() => store.getters.getSelectedChat));
+const chipThumbnail = computed(() =>
+  showAssistantAvatar.value
+    ? captainAssistant.value.thumbnail || assignedAgent.value?.thumbnail
+    : assignedAgent.value?.thumbnail
+);
 
 const fetchAssignableAgents = () => {
   const inboxId = store.getters.getSelectedChat?.inbox_id;
@@ -81,16 +94,21 @@ const onClickSelfAssign = () => {
         :disabled="isAssigning"
         @click="onTriggerClick"
       >
-        <Avatar
+        <span
           v-if="assignedAgent"
-          :name="assignedAgent.name"
-          :src="assignedAgent.thumbnail"
-          :status="assignedAgent.availability_status"
-          :size="18"
-          hide-offline-status
-          rounded-full
-          class="shrink-0"
-        />
+          class="inline-flex shrink-0 rounded-full"
+          :class="showAssistantAvatar ? ['ring-2', captainRingClass] : ''"
+          data-testid="assignee-chip-avatar"
+        >
+          <Avatar
+            :name="assignedAgent.name"
+            :src="chipThumbnail"
+            :status="assignedAgent.availability_status"
+            :size="18"
+            hide-offline-status
+            rounded-full
+          />
+        </span>
         <span
           class="min-w-0 text-sm text-n-slate-12 truncate"
           :title="displayName"

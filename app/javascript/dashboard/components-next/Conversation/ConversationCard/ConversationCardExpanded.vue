@@ -1,6 +1,9 @@
 <script setup>
 import { computed, useTemplateRef } from 'vue';
-import { getLastMessage } from 'dashboard/helper/conversationHelper';
+import {
+  getDisplayStatus,
+  getLastMessage,
+} from 'dashboard/helper/conversationHelper';
 import CardAvatar from './CardAvatar.vue';
 import CardContent from './CardContent.vue';
 import CardLabels from './CardLabelsV5.vue';
@@ -120,7 +123,7 @@ const selectedModel = computed({
       </div>
 
       <div class="w-4 flex items-center justify-center flex-shrink-0">
-        <CardStatusIcon :status="chat.status" show-empty />
+        <CardStatusIcon :status="getDisplayStatus(chat)" show-empty />
       </div>
 
       <div class="w-px h-3 bg-n-slate-6 flex-shrink-0" />
