@@ -157,4 +157,47 @@ RSpec.describe Whatsapp::TemplateComponentsBuilder do
       expect(error_code { build(buttons: phones) }).to eq('too_many_phone_buttons')
     end
   end
+
+  describe 'copy code button' do
+    it 'builds the coupon button of a marketing template without a label' do
+      components = described_class.new(body: { text: 'Hola' }, category: 'MARKETING', buttons: [{ type: 'COPY_CODE', code: ' PALU21 ' }]).components
+
+      expect(components.last).to eq(type: 'BUTTONS', buttons: [{ type: 'COPY_CODE', example: 'PALU21' }])
+    end
+
+    it 'is refused outside marketing, without a code, too long, or twice' do
+      copy = { type: 'COPY_CODE', code: 'PALU21' }
+
+      utility = described_class.new(body: { text: 'Hola' }, category: 'UTILITY', buttons: [copy])
+      expect(error_code { utility.components }).to eq('copy_code_marketing_only')
+      expect(error_code { build(buttons: [{ type: 'COPY_CODE', code: '' }]) }).to eq('copy_code_required')
+      expect(error_code { build(buttons: [{ type: 'COPY_CODE', code: 'A' * 16 }]) }).to eq('copy_code_too_long')
+      expect(error_code { build(buttons: [copy, copy]) }).to eq('too_many_copy_code')
+    end
+  end
+
+  describe 'preserved parts' do
+    let(:offer) { { type: 'LIMITED_TIME_OFFER', limited_time_offer: { text: 'Oferta', has_expiration: true } } }
+    let(:flow) { { type: 'FLOW', text: 'Abrir', flow_id: '123' } }
+
+    it 'puts back what the form cannot express, where it stood' do
+      components = build(
+        header: { format: 'TEXT', text: 'Hola' }, buttons: [{ type: 'QUICK_REPLY', text: 'Ok' }],
+        preserved: { components: [{ position: 1, component: offer }], buttons: [{ position: 1, button: flow }] }
+      )
+
+      expect(components.pluck(:type)).to eq(%w[HEADER LIMITED_TIME_OFFER BODY BUTTONS])
+      expect(components.last[:buttons]).to eq([{ type: 'QUICK_REPLY', text: 'Ok' }, flow])
+      expect(components[1]).to eq(offer)
+    end
+
+    it 'keeps a template whose only button is a preserved one' do
+      expect(build(preserved: { buttons: [{ position: 0, button: flow }] }).last).to eq(type: 'BUTTONS', buttons: [flow])
+    end
+
+    it 'refuses a preserved part the form builds itself, or without a type' do
+      expect(error_code { build(preserved: { components: [{ position: 0, component: { type: 'BODY', text: 'x' } }] }) }).to eq('preserved_invalid')
+      expect(error_code { build(preserved: { buttons: [{ position: 0, button: { text: 'x' } }] }) }).to eq('preserved_invalid')
+    end
+  end
 end

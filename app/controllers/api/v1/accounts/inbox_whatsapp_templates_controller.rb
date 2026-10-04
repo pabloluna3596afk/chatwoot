@@ -121,7 +121,7 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
       header: [:format, :text, :handle, { examples: [] }],
       body: [:text, { examples: [] }],
       footer: [:text],
-      buttons: [:type, :text, :url, :phone_number, { examples: [] }]
+      buttons: [:type, :text, :url, :phone_number, :code, { examples: [] }]
     )
   end
 
@@ -137,8 +137,15 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
 
   def components_builder
     @components_builder ||= Whatsapp::TemplateComponentsBuilder.new(
-      header: template_params[:header], body: template_params[:body], footer: template_params[:footer], buttons: template_params[:buttons]
+      header: template_params[:header], body: template_params[:body], footer: template_params[:footer], buttons: template_params[:buttons],
+      category: template_params[:category], preserved: preserved_params
     )
+  end
+
+  # The components and buttons the form cannot express, returned as they came from Meta and sent back untouched.
+  def preserved_params
+    preserved = params.dig(:template, :preserved)
+    preserved.respond_to?(:to_unsafe_h) ? preserved.to_unsafe_h : {}
   end
 
   def render_invalid(error)
