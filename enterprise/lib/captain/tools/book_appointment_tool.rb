@@ -91,8 +91,10 @@ class Captain::Tools::BookAppointmentTool < Captain::Tools::BaseAppointmentTool
       contact_id: contact.id,
       conversation_id: conversation.display_id,
       attendee_email: contact.email.presence,
-      idempotency_key: idempotency_key(conversation, start_at, end_at)
-    }.merge(settings.any_reminder_enabled? ? { appointment_status: 'pending_confirmation' } : {})
+      idempotency_key: idempotency_key(conversation, start_at, end_at),
+      # The customer said yes to this exact time in the chat, so it is confirmed (the reminders then only offer to change or cancel).
+      appointment_status: 'confirmed'
+    }
   end
 
   # The same conversation booking the same slot twice is the same booking, so a retry of the

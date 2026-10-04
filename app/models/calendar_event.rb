@@ -21,10 +21,12 @@
 #  created_by_id          :bigint
 #  updated_by_id          :bigint
 #  idempotency_key        :string
+#  invitation_status      :string
 #
 class CalendarEvent < ApplicationRecord
   APPOINTMENT_STATUSES = %w[none pending_confirmation confirmed cancelled rescheduled].freeze
   BOOKING_SOURCES = %w[manual ai].freeze
+  INVITATION_STATUSES = %w[needs_action accepted declined tentative].freeze
 
   belongs_to :account
   belongs_to :calendar_connection
@@ -43,6 +45,7 @@ class CalendarEvent < ApplicationRecord
   validates :idempotency_key, uniqueness: { scope: :account_id }, allow_nil: true
   validates :appointment_status, inclusion: { in: APPOINTMENT_STATUSES }
   validates :booking_source, inclusion: { in: BOOKING_SOURCES }
+  validates :invitation_status, inclusion: { in: INVITATION_STATUSES }, allow_nil: true
 
   scope :kept, -> { where(deleted_at: nil) }
 

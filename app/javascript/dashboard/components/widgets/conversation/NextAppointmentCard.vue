@@ -7,6 +7,10 @@ import {
   formatEventWhen,
   isUpcomingEvent,
 } from 'dashboard/helper/calendarTime';
+import {
+  appointmentStatusKey,
+  invitationStatusKey,
+} from 'dashboard/helper/appointmentStatus';
 
 // The next upcoming appointment of the contact, pinned under its details whatever conversation it was made in.
 const props = defineProps({
@@ -27,11 +31,13 @@ const nextEvent = computed(
 );
 
 const statusLabel = computed(() => {
-  const status = nextEvent.value?.appointment_status;
-  if (!status || status === 'none') return '';
-  return t(
-    `CONVERSATION_SIDEBAR.CALENDAR.STATUS.${String(status).toUpperCase()}`
-  );
+  const key = appointmentStatusKey(nextEvent.value);
+  return key ? t(`CONVERSATION_SIDEBAR.CALENDAR.STATUS.${key}`) : '';
+});
+
+const invitationLabel = computed(() => {
+  const key = invitationStatusKey(nextEvent.value);
+  return key ? t(`CONVERSATION_SIDEBAR.CALENDAR.INVITATION.${key}`) : '';
 });
 
 const load = async () => {
@@ -67,6 +73,13 @@ watch(() => props.contactId, load, { immediate: true });
       </span>
       <span v-if="statusLabel" class="text-xs text-n-blue-11">
         {{ statusLabel }}
+      </span>
+      <span
+        v-if="invitationLabel"
+        class="text-xs text-n-slate-11"
+        data-testid="next-appointment-invitation"
+      >
+        {{ invitationLabel }}
       </span>
     </div>
     <AppointmentCreatorAvatar :creator="nextEvent.creator" />

@@ -274,7 +274,7 @@ RSpec.describe Captain::Tools::BookAppointmentTool do
     event = CalendarEvent.find_by(google_event_id: 'g-1')
     expect(event).to have_attributes(
       booking_source: 'ai', contact_id: contact.id, conversation_id: conversation.id, summary: 'Cita con Ana Pérez',
-      appointment_status: 'pending_confirmation', bot_followup_policy: {}, created_by_id: nil
+      appointment_status: 'confirmed', bot_followup_policy: {}, created_by_id: nil
     )
     expect(event.idempotency_key).to start_with('captain-')
   end

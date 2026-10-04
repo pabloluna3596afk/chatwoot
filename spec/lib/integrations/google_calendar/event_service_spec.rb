@@ -387,4 +387,62 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
     end
   end
 
+  describe 'the invite answer of the customer' do
+    def google_event(attendees)
+      { 'id' => 'g-1', 'etag' => '"e"', 'summary' => 'Consulta', 'start' => { 'dateTime' => slot_start }, 'end' => { 'dateTime' => slot_end },
+        'attendees' => attendees }
+    end
+
+    it 'reads the responseStatus of the invited customer, not of the organizer or the calendar' do
+      attendees = [{ 'email' => 'agenda@example.com', 'organizer' => true, 'self' => true, 'responseStatus' => 'accepted' },
+                   { 'email' => 'ana@example.com', 'responseStatus' => 'needsAction' }]
+
+      expect(described_class.invitation_status_from(google_event(attendees))).to eq('needs_action')
+      %w[accepted declined tentative].each do |answer|
+        expect(described_class.invitation_status_from(google_event([{ 'email' => 'ana@example.com', 'responseStatus' => answer }]))).to eq(answer)
+      end
+    end
+
+    it 'is nil without a customer attendee or with an answer it does not know' do
+      expect(described_class.invitation_status_from(google_event([]))).to be_nil
+      expect(described_class.invitation_status_from('id' => 'g-1')).to be_nil
+      expect(described_class.invitation_status_from(google_event([{ 'email' => 'ana@example.com', 'responseStatus' => 'raro' }]))).to be_nil
+    end
+
+    it 'is kept when the event is created, and goes in the payload' do
+      allow(client).to receive(:create_event) do |**kwargs|
+        google_event_for('g-1', kwargs).merge('attendees' => [{ 'email' => 'ana@example.com', 'responseStatus' => 'needsAction' }])
+      end
+
+      payload = service.create(create_params(attendee_email: 'ana@example.com'))
+
+      expect(payload[:invitation_status]).to eq('needs_action')
+      expect(CalendarEvent.find_by(google_event_id: 'g-1').invitation_status).to eq('needs_action')
+    end
+
+    it 'is refreshed from Google, and a failure leaves what was known' do
+      record = local_event(google_event_id: 'g-9', invitation_status: 'needs_action')
+      allow(client).to receive(:get_event).and_return(google_event([{ 'email' => 'ana@example.com', 'responseStatus' => 'accepted' }]))
+
+      expect(service.refresh_invitation_status!(record).invitation_status).to eq('accepted')
+
+      allow(client).to receive(:get_event).and_raise(StandardError, 'down')
+      expect(service.refresh_invitation_status!(record).invitation_status).to eq('accepted')
+    end
+
+    it 'refreshes only the upcoming appointments that are still unanswered, each one at most every few minutes' do
+      allow(Rails).to receive(:cache).and_return(ActiveSupport::Cache::MemoryStore.new)
+      soon = local_event(google_event_id: 'g-1', start_at: Time.zone.parse('2030-02-01T10:00:00-05:00'), end_at: Time.zone.parse('2030-02-01T10:30:00-05:00'))
+      local_event(google_event_id: 'g-2', invitation_status: 'accepted', start_at: Time.zone.parse('2030-02-02T10:00:00-05:00'),
+                  end_at: Time.zone.parse('2030-02-02T10:30:00-05:00'))
+      local_event(google_event_id: 'g-3', start_at: Time.zone.parse('2020-01-01T10:00:00-05:00'), end_at: Time.zone.parse('2020-01-01T10:30:00-05:00'))
+      allow(client).to receive(:get_event).and_return(google_event([{ 'email' => 'ana@example.com', 'responseStatus' => 'declined' }]))
+
+      2.times { described_class.refresh_upcoming_invitations(account, account.calendar_events, user: user) }
+
+      expect(client).to have_received(:get_event).once
+      expect(soon.reload.invitation_status).to eq('declined')
+    end
+  end
+
 end

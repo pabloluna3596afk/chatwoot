@@ -77,4 +77,26 @@ describe('NextAppointmentCard', () => {
       (await mountCard()).find('[data-testid="next-appointment"]').exists()
     ).toBe(false);
   });
+
+  it('says how the customer answered the invite, and confirms what Captain booked by chat', async () => {
+    getContactEvents.mockResolvedValue({
+      data: {
+        payload: [
+          event('soon', future(2), {
+            booking_source: 'ai',
+            invitation_status: 'needs_action',
+          }),
+        ],
+      },
+    });
+
+    const wrapper = await mountCard();
+
+    expect(wrapper.text()).toContain(
+      'CONVERSATION_SIDEBAR.CALENDAR.STATUS.CONFIRMED_CHAT'
+    );
+    expect(
+      wrapper.get('[data-testid="next-appointment-invitation"]').text()
+    ).toBe('CONVERSATION_SIDEBAR.CALENDAR.INVITATION.NEEDS_ACTION');
+  });
 });

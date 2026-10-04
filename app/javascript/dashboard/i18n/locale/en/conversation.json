@@ -552,6 +552,7 @@
       "STATUS": {
         "PENDING_CONFIRMATION": "Pending confirmation",
         "CONFIRMED": "Confirmed",
+        "CONFIRMED_CHAT": "Confirmed (by chat)",
         "CANCELLED": "Cancelled",
         "RESCHEDULED": "Rescheduled"
       },
@@ -559,7 +560,13 @@
       "PAST": "Past",
       "PAST_BADGE": "Past",
       "NEXT": "Next appointment",
-      "CREATED_BY": "Created by {name}"
+      "CREATED_BY": "Created by {name}",
+      "INVITATION": {
+        "NEEDS_ACTION": "Invite: waiting to be accepted by email",
+        "ACCEPTED": "Invite: accepted",
+        "DECLINED": "Invite: declined",
+        "TENTATIVE": "Invite: maybe"
+      }
     },
     "SHARED_FILES": {
       "EMPTY": "No attachments yet",

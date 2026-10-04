@@ -1,5 +1,7 @@
 class Integrations::GoogleCalendar::EventService
   TIMEZONE = Integrations::GoogleCalendar::Client::TIMEZONE
+  INVITATION_REFRESH_LIMIT = 5
+  INVITATION_REFRESH_EVERY = 5.minutes
 
   class SlotBusy < StandardError
     attr_reader :conflict
@@ -81,6 +83,29 @@ class Integrations::GoogleCalendar::EventService
     same_day && inside && calendar.works_on?(local_start.wday)
   end
 
+  # Reads the invite answer of an appointment from Google and keeps it. A failure leaves what was known.
+  def refresh_invitation_status!(record)
+    google_event = client.get_event(calendar_id: record.external_calendar_id, event_id: record.google_event_id)
+    sync_invitation_status!(google_event, record)
+    record
+  rescue StandardError => e
+    Rails.logger.warn("Google Calendar invitation refresh failed for event #{record.id}: #{e.class} #{e.message}")
+    record
+  end
+
+  # Keeps the invite answers of the upcoming appointments of a panel fresh: a few at a time, and each one at most every
+  # few minutes (a customer answers by email, Google does not tell us).
+  def self.refresh_upcoming_invitations(account, scope, user: nil)
+    scope.kept.where(start_at: Time.current..).where(invitation_status: [nil, 'needs_action', 'tentative'])
+         .includes(:calendar_connection).order(:start_at).limit(INVITATION_REFRESH_LIMIT).each do |record|
+      key = "calendar_invitation_refresh:#{record.id}"
+      next if Rails.cache.exist?(key)
+
+      Rails.cache.write(key, true, expires_in: INVITATION_REFRESH_EVERY)
+      new(account: account, user: user, connection: record.calendar_connection).refresh_invitation_status!(record)
+    end
+  end
+
   def self.conversation_payloads(conversation)
     conversation.account.calendar_events
                 .where(conversation_id: conversation.id)
@@ -133,9 +158,18 @@ class Integrations::GoogleCalendar::EventService
       conversation: record.conversation && { id: record.conversation.display_id },
       bot_followup_policy: record.bot_followup_policy.presence || {},
       appointment_status: record.appointment_status.presence || 'none',
+      invitation_status: record.invitation_status,
       booking_source: record.booking_source.presence || 'manual',
       activities: serialize_activities(record)
     }
+  end
+
+  # What the invited customer answered, from the attendee's responseStatus (the organizer and the calendar itself are not
+  # the customer). nil without attendees or with an answer we do not know.
+  def self.invitation_status_from(google_event)
+    attendee = Array(google_event['attendees']).find { |item| !item['self'] && !item['organizer'] && !item['resource'] }
+    status = attendee&.dig('responseStatus').to_s.underscore
+    status if CalendarEvent::INVITATION_STATUSES.include?(status)
   end
 
   # Who made the appointment, for the avatar the panels show: the assistant (with its photo) for what Captain booked,
@@ -454,6 +488,7 @@ class Integrations::GoogleCalendar::EventService
       start_at: parse_google_time(google_event['start']),
       end_at: parse_google_time(google_event['end']),
       html_link: google_event['htmlLink'],
+      invitation_status: self.class.invitation_status_from(google_event),
       contact: contact,
       conversation: conversation
     }
@@ -549,6 +584,7 @@ class Integrations::GoogleCalendar::EventService
     return if record.blank? || record.discarded?
     return if google_event.dig('start', 'dateTime').blank?
 
+    sync_invitation_status!(google_event, record)
     google_start = parse_google_time(google_event['start'])
     google_end = parse_google_time(google_event['end'])
     after = {
@@ -567,6 +603,11 @@ class Integrations::GoogleCalendar::EventService
       html_link: google_event['htmlLink']
     )
     record_activity!(record, 'moved_in_google', details)
+  end
+
+  def sync_invitation_status!(google_event, record)
+    status = self.class.invitation_status_from(google_event)
+    record.update!(invitation_status: status) if record.invitation_status != status
   end
 
   def record_activity!(record, action, details = {})
@@ -645,6 +686,7 @@ class Integrations::GoogleCalendar::EventService
       conversation: conversation_payload(record&.conversation),
       bot_followup_policy: record&.bot_followup_policy.presence || {},
       appointment_status: record&.appointment_status.presence || 'none',
+      invitation_status: record&.invitation_status,
       booking_source: record&.booking_source.presence || 'manual',
       activities: self.class.serialize_activities(record)
     }

@@ -17,6 +17,8 @@ RSpec.describe 'Contact calendar events API', type: :request do
     )
   end
 
+  before { allow(Integrations::GoogleCalendar::EventService).to receive(:refresh_upcoming_invitations) }
+
   around { |example| travel_to(Time.zone.parse('2030-01-14T12:00:00-05:00')) { example.run } }
 
   it 'requires authentication' do
@@ -39,6 +41,15 @@ RSpec.describe 'Contact calendar events API', type: :request do
     expect(payload.pluck('id')).to eq(%w[soon later])
     expect(payload.first['creator']).to include('type' => 'captain')
     expect(payload.last['creator']).to include('type' => 'user', 'name' => agent.name)
+  end
+
+  it 'refreshes the invite answers of the contact before answering' do
+    event('soon', Time.zone.parse('2030-01-15T10:00:00-05:00'))
+
+    get url, headers: agent.create_new_auth_token
+
+    expect(Integrations::GoogleCalendar::EventService).to have_received(:refresh_upcoming_invitations)
+      .with(account, anything, user: agent)
   end
 
   it 'does not read the contacts of another account' do

@@ -11,6 +11,10 @@ import {
   formatEventWhen,
   isUpcomingEvent,
 } from 'dashboard/helper/calendarTime';
+import {
+  appointmentStatusKey,
+  invitationStatusKey,
+} from 'dashboard/helper/appointmentStatus';
 
 const props = defineProps({
   conversationId: {
@@ -157,15 +161,23 @@ onMounted(async () => {
                 <AppointmentCreatorAvatar :creator="event.creator" />
               </p>
               <p
-                v-if="
-                  event.appointment_status &&
-                  event.appointment_status !== 'none'
-                "
+                v-if="appointmentStatusKey(event)"
                 class="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-n-blue-11"
               >
                 {{
                   $t(
-                    `CONVERSATION_SIDEBAR.CALENDAR.STATUS.${String(event.appointment_status).toUpperCase()}`
+                    `CONVERSATION_SIDEBAR.CALENDAR.STATUS.${appointmentStatusKey(event)}`
+                  )
+                }}
+              </p>
+              <p
+                v-if="invitationStatusKey(event)"
+                class="text-[10px] text-n-slate-11"
+                data-testid="invitation-status"
+              >
+                {{
+                  $t(
+                    `CONVERSATION_SIDEBAR.CALENDAR.INVITATION.${invitationStatusKey(event)}`
                   )
                 }}
               </p>
