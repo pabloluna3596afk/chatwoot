@@ -368,6 +368,19 @@ RSpec.describe 'Reports API', type: :request do
 
         expect(response).to have_http_status(:success)
       end
+
+      it 'never stores an agent name that starts like a formula as a formula in the xlsx' do
+        user.update!(name: '=HYPERLINK(http://evil.example)')
+
+        get "/api/v2/accounts/#{account.id}/reports/agents.csv",
+            params: params.merge(export_format: 'xlsx'),
+            headers: admin.create_new_auth_token
+
+        expect(response).to have_http_status(:success)
+        xml = xlsx_xml(response.body)
+        expect(xml[:sheets]).not_to include('<f>')
+        expect(xml[:all]).to include('HYPERLINK')
+      end
     end
 
     context 'when an agent has access to multiple accounts' do

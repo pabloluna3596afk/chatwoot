@@ -122,7 +122,7 @@ class Api::V2::Accounts::ReportsController < Api::V1::Accounts::BaseController
     rows = CSV.parse(csv_string.to_s)
     package = Axlsx::Package.new
     package.workbook.add_worksheet(name: 'Report') do |sheet|
-      rows.each { |row| sheet.add_row(Array(row)) }
+      rows.each { |row| Exports::SafeCell.sheet(sheet).add_row(Array(row)) }
     end
     package.to_stream.read
   end

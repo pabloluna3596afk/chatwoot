@@ -65,6 +65,22 @@ RSpec.describe DataImportJob do
         expect(invalid_data_import.reload.processed_records).to eq(csv_length)
       end
 
+      it 'escapes formula characters in the rejected rows file but keeps phone numbers as they are' do
+        data = [
+          %w[id first_name last_name email phone_number],
+          ['1', 'Clarice', 'Uzzell', 'cuzzell0@mozilla.org', '+918484848484'],
+          ['2', '=HYPERLINK(http://evil.example)', 'Windibank', 'cuzzell0@mozilla.org', '+918484848485']
+        ]
+        data_import = create(:data_import, import_file: generate_csv_file(data))
+
+        described_class.perform_now(data_import)
+
+        failed = data_import.reload.failed_records.download.force_encoding('UTF-8')
+        expect(failed).to include("'=HYPERLINK(http://evil.example)")
+        expect(failed).to include('+918484848485')
+        expect(failed).not_to include("'+918484848485")
+      end
+
       it 'will preserve emojis' do
         data_import = create(:data_import,
                              import_file: Rack::Test::UploadedFile.new(Rails.root.join('spec/fixtures/data_import/with_emoji.csv'),

@@ -589,6 +589,27 @@ RSpec.describe 'Data Imports API', type: :request do
     end
   end
 
+  describe 'formula characters in the downloaded logs' do
+    let(:data_import) { create(:data_import, :intercom, account: account, initiated_by: admin) }
+
+    it 'escapes them so the CSV is safe to open in a spreadsheet' do
+      data_import.import_errors.create!(
+        error_code: 'Intercom::RateLimited',
+        message: '=HYPERLINK(http://evil.example)',
+        source_object_type: 'conversation',
+        source_object_id: '=1+1',
+        details: { kind: 'run_error' }
+      )
+
+      get error_logs_api_v1_account_data_import_url(account_id: account.id, id: data_import.id, format: :csv),
+          headers: admin.create_new_auth_token
+
+      row = CSV.parse(response.body, headers: true).first
+      expect(row['message']).to eq("'=HYPERLINK(http://evil.example)")
+      expect(row['source_object_id']).to eq("'=1+1")
+    end
+  end
+
   describe 'GET /api/v1/accounts/:account_id/data_imports/:id/skip_logs.csv' do
     let(:data_import) do
       create(

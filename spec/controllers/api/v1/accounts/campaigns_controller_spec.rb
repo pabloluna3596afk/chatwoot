@@ -227,4 +227,40 @@ RSpec.describe 'Campaigns API', type: :request do
       end
     end
   end
+
+  describe 'GET /api/v1/accounts/{account.id}/campaigns/{id}/export_recipients' do
+    let(:administrator) { create(:user, account: account, role: :administrator) }
+    let(:inbox) { create(:inbox, account: account) }
+    let(:campaign) { create(:campaign, account: account, inbox: inbox, trigger_rules: { url: 'https://test.com' }) }
+    let(:contact) { create(:contact, account: account, name: '=HYPERLINK(http://evil.example)', phone_number: '+593999999999') }
+
+    before do
+      account.enable_features!('customer_data_export')
+      create(:campaign_recipient, account: account, campaign: campaign, inbox: inbox, contact: contact,
+                                  phone_number: '+593999999999', error_message: '=1+1')
+    end
+
+    it 'escapes formula characters in the CSV' do
+      get "/api/v1/accounts/#{account.id}/campaigns/#{campaign.display_id}/export_recipients",
+          headers: administrator.create_new_auth_token
+
+      expect(response).to have_http_status(:success)
+      csv_content = response.body.force_encoding('UTF-8').delete_prefix("\xEF\xBB\xBF")
+      row = CSV.parse(csv_content, headers: true).first
+      expect(row['contact_name']).to eq("'=HYPERLINK(http://evil.example)")
+      expect(row['phone_number']).to eq("'+593999999999")
+      expect(row['error_message']).to eq("'=1+1")
+    end
+
+    it 'never stores a value as a formula in the XLSX' do
+      get "/api/v1/accounts/#{account.id}/campaigns/#{campaign.display_id}/export_recipients",
+          params: { export_format: 'xlsx' },
+          headers: administrator.create_new_auth_token
+
+      expect(response).to have_http_status(:success)
+      xml = xlsx_xml(response.body)
+      expect(xml[:sheets]).not_to include('<f>')
+      expect(xml[:all]).to include('HYPERLINK')
+    end
+  end
 end

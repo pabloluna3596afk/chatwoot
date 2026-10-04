@@ -92,15 +92,6 @@ class Account::ConversationsExportJob < ApplicationJob
     TEXT_FORCE_HEADERS.include?(header)
   end
 
-  def spreadsheet_text(value)
-    return '' if value.nil?
-
-    text = value.to_s
-    return '' if text.blank?
-
-    "\t#{text}"
-  end
-
   def custom_attribute_value(conversation, header)
     if conversation_attribute_keys.include?(header)
       return conversation.custom_attributes.to_h[header]
@@ -204,7 +195,7 @@ class Account::ConversationsExportJob < ApplicationJob
       csv << headers
       rows.each do |row|
         csv << row.map.with_index do |cell, index|
-          force_text_header?(headers[index]) ? spreadsheet_text(cell) : cell
+          force_text_header?(headers[index]) ? Exports::SafeCell.text(cell) : Exports::SafeCell.value(cell)
         end
       end
     end
@@ -225,7 +216,7 @@ class Account::ConversationsExportJob < ApplicationJob
       sheet.add_row headers
       rows.each do |row|
         cells = row.map { |cell| cell.nil? ? '' : cell }
-        sheet.add_row cells, types: types
+        Exports::SafeCell.sheet(sheet).add_row cells, types: types
       end
     end
 
