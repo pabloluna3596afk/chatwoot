@@ -586,7 +586,10 @@ es:
       propose_text: 'Pregunta al cliente: "¿Te reservo %{time}?" y dile que responda sí o que pida otra hora. Solo un sí explícito cuenta como confirmación.'
       propose_reschedule_buttons: 'Pregunta al cliente: "¿Muevo tu cita a %{time}?". Los botones de confirmación ("%{yes}" y "%{other}") se adjuntan solos a tu respuesta, así que no escribas opciones. Una respuesta que empieza con "%{yes} ·" es el sí explícito: llama a reschedule_appointment con ese texto exacto como new_start y customer_confirmed true. La respuesta "%{other}" significa que quiere otra hora.'
       propose_reschedule_text: 'Pregunta al cliente: "¿Muevo tu cita a %{time}?" y dile que responda sí o que pida otra hora. Solo un sí explícito cuenta como confirmación.'
-      manage_buttons_hint: 'Los botones ("%{change}", "%{cancel}", "%{keep}") se adjuntan solos a tu respuesta. Escribe una frase corta preguntando qué quiere hacer con la cita. La respuesta "%{change}" significa que quiere moverla (busca nuevos horarios y propón uno con event_id igual a ese texto); "%{cancel}" es una petición explícita de cancelar (llama a cancel_appointment con event_id igual a ese texto y customer_confirmed true); "%{keep}" significa dejarla como está.'
+      moving_header: 'El cliente quiere mover su cita de %{time}. Los horarios siguientes mueven ESA cita.'
+      tap_cancel: 'El cliente tocó el botón de cancelar: es una petición explícita. Llama a cancel_appointment con event_id igual a "%{text}" sin cambios y customer_confirmed true, y díselo en una frase corta.'
+      tap_keep: 'El cliente quiere dejar la cita como está. Confírmalo en una frase corta y no ofrezcas nada más.'
+      manage_buttons_hint: 'Los botones ("%{change}", "%{cancel}", "%{keep}") se adjuntan solos a tu respuesta. Escribe una frase corta preguntando qué quiere hacer con la cita. Cuando el cliente toque uno, llama de nuevo a appointment_list: te devuelve el siguiente paso (los horarios para mover la cita, o qué hacer al cancelar o dejarla). No vuelvas a preguntar lo mismo.'
       manage_text_hint: 'Pregunta si quiere cambiar la hora, cancelar la cita o dejarla así.'
       buttons:
         yes_book: 'Sí, reservar'

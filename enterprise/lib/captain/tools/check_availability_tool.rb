@@ -13,14 +13,20 @@ class Captain::Tools::CheckAvailabilityTool < Captain::Tools::BaseAppointmentToo
                   desc: 'Last day to look at, YYYY-MM-DD (optional; leave it out to get the next day with availability)', required: false
   param :part_of_day, type: 'string', required: false,
                       desc: 'morning (before 12:00), afternoon (12:00 to 18:00) or evening (after 18:00), when the customer asked for one'
+  param :event_id, type: 'string', required: false,
+                   desc: 'Only when the customer wants to move an existing appointment: its id from appointment_list, or the reply ' \
+                         '"Cambiar hora" unchanged. The times offered then move THAT appointment.'
   param :at_time, type: 'string', required: false,
                   desc: 'The exact time the customer asked for, HH:MM in 24 hours (for example "10:15"), together with from_date. ' \
                         'Any start on a 15 minute grid is accepted when it is free; when it is not, the answer says why in one line ' \
                         'and lists the closest times.'
 
-  def perform(tool_context, from_date: nil, to_date: nil, part_of_day: nil, at_time: nil)
+  def perform(tool_context, from_date: nil, to_date: nil, part_of_day: nil, at_time: nil, event_id: nil)
     conversation, error = conversation_for(tool_context)
     return error if error
+
+    @moving, missing = moved_appointment(conversation, event_id)
+    return missing if missing
     return requested_time_message(conversation, tool_context, from_date, at_time) if at_time.present?
 
     range = search_range(from_date, to_date)
@@ -37,6 +43,15 @@ class Captain::Tools::CheckAvailabilityTool < Captain::Tools::BaseAppointmentToo
   end
 
   private
+
+  # [the customer's appointment being moved, nil] / [nil, message for the model] / [nil, nil] when none is moved.
+  def moved_appointment(conversation, event_id)
+    return [nil, nil] if event_id.blank?
+
+    ref = resolve_event_id(conversation, event_id)
+    event = own_appointments(conversation, conversation.contact).find { |item| item[:id] == ref.to_s }
+    event ? [event, nil] : [nil, translate('not_found')]
+  end
 
   # The customer asked for an exact time: it is offered as it is when it is free (and on the 15 minute grid); when it is
   # not, one line says why and the closest free times follow.
@@ -83,11 +98,21 @@ class Captain::Tools::CheckAvailabilityTool < Captain::Tools::BaseAppointmentToo
   # One button (or list row) per slot, titled and valued with its readable label ("jue 16/01 · 10:00"),
   # which resolves back to the exact start. Channels without buttons get a numbered list the model writes itself.
   def slots_message(conversation, tool_context, options)
-    labels = options.to_h { |slot| [slot_label(Time.iso8601(slot[:start])), { 'start' => slot[:start] }] }
+    labels = options.to_h { |slot| [slot_label(Time.iso8601(slot[:start])), slot_choice(slot)] }
     items = labels.keys.map { |label| Captain::QuickReplies.item(label, label) }
     buttons = offer_buttons(conversation, tool_context, items, labels)
     lines = options.each_with_index.map { |slot, index| option_line(slot, buttons ? nil : index + 1) }
-    [translate('slots_header', timezone: zone.tzinfo.name), *lines, translate(buttons ? 'slots_buttons_hint' : 'slots_numbered_hint')].join("\n")
+    [moving_line, translate('slots_header', timezone: zone.tzinfo.name), *lines,
+     translate(buttons ? 'slots_buttons_hint' : 'slots_numbered_hint')].compact.join("\n")
+  end
+
+  # The button of a time carries the appointment being moved, so choosing it leads to "move it to ...".
+  def slot_choice(slot)
+    { 'start' => slot[:start] }.merge(@moving ? { 'event_id' => @moving[:id] } : {})
+  end
+
+  def moving_line
+    translate('moving_header', time: format_time(Time.iso8601(@moving[:start]))) if @moving
   end
 
   def available_slots(range_start, range_end)

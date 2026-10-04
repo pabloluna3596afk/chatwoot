@@ -74,7 +74,8 @@ class Captain::Tools::BookAppointmentTool < Captain::Tools::BaseAppointmentTool
   def confirmation_hint(conversation, tool_context, event_id, start_at)
     values = %w[change_time cancel].index_with { |button| labelled_with_time(button, start_at) }
     items = values.map { |button, value| button_item(button, value) }
-    buttons = offer_buttons(conversation, tool_context, items, values.values.index_with { { 'event_id' => event_id } })
+    choices = values.to_h { |button, value| [value, appointment_choice(event_id, button)] }
+    buttons = offer_buttons(conversation, tool_context, items, choices)
     translate(buttons ? 'confirmation_buttons_hint' : 'confirmation_text_hint')
   rescue StandardError => e
     report_side_failure(e)

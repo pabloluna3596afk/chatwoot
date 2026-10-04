@@ -213,4 +213,19 @@ class Captain::Tools::BaseAppointmentTool < Captain::Tools::BasePublicTool
     choice = Captain::QuickReplies.choice(conversation, value)
     choice ? choice['event_id'] : value.to_s.strip.presence
   end
+
+  # What a button of this tool stands for: the appointment it acts on and what the tap means (change_time, cancel,
+  # keep), so a tap is answered by the code and not left to the model to interpret.
+  def appointment_choice(event_id, action)
+    { 'event_id' => event_id, 'action' => action.to_s }
+  end
+
+  # The customer's current message, when it is the tap of one of the buttons this tool offered earlier: [text, choice].
+  def tapped_button(conversation, tool_context)
+    message_id = tool_context.state[:responding_to_message_id]
+    message = message_id ? conversation.messages.find_by(id: message_id) : conversation.messages.incoming.last
+    text = message&.content.to_s.strip
+    choice = Captain::QuickReplies.choice(conversation, text)
+    [text, choice] if choice&.dig('action').present?
+  end
 end
