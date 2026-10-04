@@ -21,7 +21,8 @@ class Captain::Tools::CheckAvailabilityTool < Captain::Tools::BaseAppointmentToo
                         'Any start on a 15 minute grid is accepted when it is free; when it is not, the answer says why in one line ' \
                         'and lists the closest times.'
 
-  def perform(tool_context, from_date: nil, to_date: nil, part_of_day: nil, at_time: nil, event_id: nil)
+  # The signature is the tool's parameters, so the long list cannot be shortened.
+  def perform(tool_context, from_date: nil, to_date: nil, part_of_day: nil, at_time: nil, event_id: nil) # rubocop:disable Metrics/ParameterLists
     conversation, error = conversation_for(tool_context)
     return error if error
 
@@ -29,6 +30,14 @@ class Captain::Tools::CheckAvailabilityTool < Captain::Tools::BaseAppointmentToo
     return missing if missing
     return requested_time_message(conversation, tool_context, from_date, at_time) if at_time.present?
 
+    listed_times_message(conversation, tool_context, from_date, to_date, part_of_day)
+  rescue StandardError => e
+    calendar_error_message(e)
+  end
+
+  private
+
+  def listed_times_message(conversation, tool_context, from_date, to_date, part_of_day)
     range = search_range(from_date, to_date)
     return translate('invalid_date') if range.nil?
     return translate('slots_none') if range.last <= range.first
@@ -38,11 +47,7 @@ class Captain::Tools::CheckAvailabilityTool < Captain::Tools::BaseAppointmentToo
 
     log_tool_usage('check_availability', assistant_id: @assistant.id, options: options.size)
     slots_message(conversation, tool_context, options)
-  rescue StandardError => e
-    calendar_error_message(e)
   end
-
-  private
 
   # [the customer's appointment being moved, nil] / [nil, message for the model] / [nil, nil] when none is moved.
   def moved_appointment(conversation, event_id)
@@ -63,19 +68,23 @@ class Captain::Tools::CheckAvailabilityTool < Captain::Tools::BaseAppointmentToo
     return exact_time_message(conversation, tool_context, start_at) if reason.nil?
 
     options = closest_options(start_at)
-    return translate(reason, **reason_options) + "\n" + translate('slots_none') if options.empty?
+    return "#{translate(reason, **reason_options)}\n#{translate('slots_none')}" if options.empty?
 
     [translate(reason, **reason_options), translate('closest_header'), slots_message(conversation, tool_context, options)].join("\n")
   end
 
   def requested_start(from_date, at_time)
     day = Date.iso8601(from_date.to_s.strip)
-    hour, minute = at_time.to_s.strip.match(/\A(\d{1,2}):(\d{2})\z/)&.captures&.map(&:to_i)
-    return if hour.nil? || hour > 23 || minute > 59
-
-    zone.local(day.year, day.month, day.day, hour, minute)
+    hour, minute = clock_parts(at_time)
+    zone.local(day.year, day.month, day.day, hour, minute) if hour
   rescue ArgumentError
     nil
+  end
+
+  # [hour, minute] of "HH:MM" (24 hours), nil when it is not a time.
+  def clock_parts(at_time)
+    hour, minute = at_time.to_s.strip.match(/\A(\d{1,2}):(\d{2})\z/)&.captures&.map(&:to_i)
+    [hour, minute] if hour&.<=(23) && minute <= 59
   end
 
   def exact_time_message(conversation, tool_context, start_at)
@@ -87,9 +96,7 @@ class Captain::Tools::CheckAvailabilityTool < Captain::Tools::BaseAppointmentToo
   # The 3 free times nearest to the requested one that day; when the day has none, the next days that have.
   def closest_options(start_at)
     day = available_slots(start_at.beginning_of_day, start_at.end_of_day)
-    if day.any?
-      return day.min_by(MAX_OPTIONS) { |slot| (Time.iso8601(slot[:start]) - start_at).abs }.sort_by { |slot| slot[:start] }
-    end
+    return day.min_by(MAX_OPTIONS) { |slot| (Time.iso8601(slot[:start]) - start_at).abs }.sort_by { |slot| slot[:start] } if day.any?
 
     earliest, latest = booking_limits
     pick_options(available_slots([start_at.beginning_of_day, earliest].max, latest))

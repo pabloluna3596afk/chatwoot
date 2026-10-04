@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe 'Captain core rules prompt' do
+RSpec.describe Captain::PromptRenderer do
   let(:rules) { Rails.root.join('enterprise/lib/captain/prompts/snippets/core_rules.liquid').read }
 
   it 'asks for short, non-repeating replies' do

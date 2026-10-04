@@ -57,7 +57,7 @@ class Integrations::GoogleCalendar::EventService
   # ensure_slot_available! applies at booking time), and it respects the minimum notice.
   # Slots follow the calendar hours back to back (`step_minutes` defaults to the duration); a smaller step also offers the
   # times in between (a 30 minute appointment at 10:15).
-  def available_slots(calendar_id:, from:, to:, duration: 30, min_notice_minutes: 0, step_minutes: nil)
+  def available_slots(calendar_id:, from:, to:, duration: 30, min_notice_minutes: 0, step_minutes: nil) # rubocop:disable Metrics/AbcSize, Metrics/ParameterLists
     ensure_calendar_enabled!(calendar_id)
     zone = Time.find_zone!(account_timezone)
     range_start = from.in_time_zone(zone)
@@ -181,12 +181,15 @@ class Integrations::GoogleCalendar::EventService
   def self.creator_payload(record)
     return if record.blank?
 
-    if record.ai_booked?
-      assistant = record.conversation&.inbox&.try(:captain_assistant)
-      return { type: 'captain', name: assistant&.name || 'Captain', thumbnail: assistant&.avatar_or_default_url }
-    end
+    record.ai_booked? ? captain_creator_payload(record) : user_creator_payload(record.created_by)
+  end
 
-    person = record.created_by
+  def self.captain_creator_payload(record)
+    assistant = record.conversation&.inbox&.try(:captain_assistant)
+    { type: 'captain', name: assistant&.name || 'Captain', thumbnail: assistant&.avatar_or_default_url }
+  end
+
+  def self.user_creator_payload(person)
     person && { type: 'user', id: person.id, name: person.name, thumbnail: person.avatar_url }
   end
 
@@ -354,7 +357,7 @@ class Integrations::GoogleCalendar::EventService
   end
 
   # Every back-to-back slot of `duration` that fits in the calendar hours of each day in the range.
-  def slots_in_hours(calendar_id, zone, range_start, range_end, duration, step)
+  def slots_in_hours(calendar_id, zone, range_start, range_end, duration, step) # rubocop:disable Metrics/AbcSize, Metrics/ParameterLists
     calendar = calendar_settings(calendar_id)
     hour_start = calendar.hour_start
     hour_end = calendar.hour_end

@@ -1247,5 +1247,4 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       expect(conversation.reload).to have_attributes(status: 'open', captain_state: 'escalated')
     end
   end
-
 end

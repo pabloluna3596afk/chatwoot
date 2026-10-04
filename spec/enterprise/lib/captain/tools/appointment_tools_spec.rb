@@ -1035,7 +1035,7 @@ RSpec.describe Captain::Assistant, 'appointment tools exposure' do
   end
 end
 
-RSpec.describe Captain::Tools::CheckAvailabilityTool, 'exact times' do
+RSpec.describe Captain::Tools::CheckAvailabilityTool, '#perform with an exact time' do
   include_context 'with an appointments conversation'
 
   def call(**params)
@@ -1076,7 +1076,7 @@ RSpec.describe Captain::Tools::CheckAvailabilityTool, 'exact times' do
   end
 end
 
-RSpec.describe Captain::Tools::ProposeAppointmentTool, 'exact times' do
+RSpec.describe Captain::Tools::ProposeAppointmentTool, '#perform with an exact time' do
   include_context 'with an appointments conversation'
 
   it 'proposes a start of the 15 minute grid that is free' do
@@ -1093,10 +1093,10 @@ end
 
 # Replays the conversation of production (conversation 2109): the customer tapped "Cambiar hora" three times and
 # the assistant asked the same three-button question each time, because every tap was read as a new request to change.
-RSpec.describe Captain::Tools::AppointmentListTool, 'taps on its own buttons' do
+RSpec.describe Captain::Tools::AppointmentListTool, '#perform on a tap of its own buttons' do
   include_context 'with an appointments conversation'
 
-  let!(:own_event) { local_event(google_event_id: 'own-1', summary: 'Cita con Ana Pérez', contact: contact) }
+  before { local_event(google_event_id: 'own-1', summary: 'Cita con Ana Pérez', contact: contact) }
 
   def customer_says(text)
     message = create(:message, conversation: conversation, account: account, inbox: inbox, message_type: :incoming, content: text)

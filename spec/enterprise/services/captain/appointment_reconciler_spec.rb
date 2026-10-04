@@ -6,10 +6,9 @@ RSpec.describe Captain::AppointmentReconciler do
     CalendarConnection.create!(account: account, provider: 'google', email: 'agenda@example.com', refresh_token: 'refresh',
                                access_token: 'access', access_token_expires_at: 1.hour.from_now)
   end
-  let!(:calendar) { connection.connection_calendars.create!(account: account, external_id: 'cal-1', summary: 'Main', is_enabled: true) }
+  let(:appointments_config) { { 'enabled' => true, 'calendar_connection_id' => connection.id, 'calendar_id' => 'cal-1' } }
   let(:assistant) do
-    create(:captain_assistant, account: account,
-                               config: { 'appointments' => { 'enabled' => true, 'calendar_connection_id' => connection.id, 'calendar_id' => 'cal-1' } })
+    create(:captain_assistant, account: account, config: { 'appointments' => appointments_config })
   end
   let(:conversation) { create(:conversation, account: account) }
   let(:client) { instance_double(Integrations::GoogleCalendar::Client) }
@@ -33,6 +32,7 @@ RSpec.describe Captain::AppointmentReconciler do
   end
 
   before do
+    connection.connection_calendars.create!(account: account, external_id: 'cal-1', summary: 'Main', is_enabled: true)
     create(:captain_inbox, captain_assistant: assistant, inbox: conversation.inbox)
     allow(Integrations::GoogleCalendar::Client).to receive(:new).and_return(client)
     allow(client).to receive(:get_event).and_return(google_event(answer: 'accepted'))
@@ -40,7 +40,7 @@ RSpec.describe Captain::AppointmentReconciler do
 
   around { |example| travel_to(Time.zone.parse('2030-01-14T12:00:00-05:00')) { example.run } }
 
-  context 'as a dry run' do
+  context 'when running as a dry run' do
     it 'reports what it would do and writes nothing' do
       event = booking('g-1')
 
@@ -105,7 +105,7 @@ RSpec.describe Captain::AppointmentReconciler do
       result = reconcile(apply: true)
 
       expect(result.failed.size).to eq(1)
-      expect([first, second].map { |item| item.reload.invitation_status }.compact).to eq(['declined'])
+      expect([first, second].filter_map { |item| item.reload.invitation_status }).to eq(['declined'])
     end
   end
 end

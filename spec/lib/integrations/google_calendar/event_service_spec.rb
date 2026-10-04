@@ -389,6 +389,10 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
   end
 
   describe 'the invite answer of the customer' do
+    def at(start)
+      { start_at: Time.zone.parse(start), end_at: Time.zone.parse(start) + 30.minutes }
+    end
+
     def google_event(attendees)
       { 'id' => 'g-1', 'etag' => '"e"', 'summary' => 'Consulta', 'start' => { 'dateTime' => slot_start }, 'end' => { 'dateTime' => slot_end },
         'attendees' => attendees }
@@ -433,10 +437,9 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
 
     it 'refreshes only the upcoming appointments that are still unanswered, each one at most every few minutes' do
       allow(Rails).to receive(:cache).and_return(ActiveSupport::Cache::MemoryStore.new)
-      soon = local_event(google_event_id: 'g-1', start_at: Time.zone.parse('2030-02-01T10:00:00-05:00'), end_at: Time.zone.parse('2030-02-01T10:30:00-05:00'))
-      local_event(google_event_id: 'g-2', invitation_status: 'accepted', start_at: Time.zone.parse('2030-02-02T10:00:00-05:00'),
-                  end_at: Time.zone.parse('2030-02-02T10:30:00-05:00'))
-      local_event(google_event_id: 'g-3', start_at: Time.zone.parse('2020-01-01T10:00:00-05:00'), end_at: Time.zone.parse('2020-01-01T10:30:00-05:00'))
+      soon = local_event(google_event_id: 'g-1', **at('2030-02-01T10:00:00-05:00'))
+      local_event(google_event_id: 'g-2', invitation_status: 'accepted', **at('2030-02-02T10:00:00-05:00'))
+      local_event(google_event_id: 'g-3', **at('2020-01-01T10:00:00-05:00'))
       allow(client).to receive(:get_event).and_return(google_event([{ 'email' => 'ana@example.com', 'responseStatus' => 'declined' }]))
 
       2.times { described_class.refresh_upcoming_invitations(account, account.calendar_events, user: user) }
@@ -445,5 +448,4 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
       expect(soon.reload.invitation_status).to eq('declined')
     end
   end
-
 end
