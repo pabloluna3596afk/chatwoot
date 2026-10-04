@@ -12,12 +12,15 @@ export const LIMITS = {
   buttons: 10,
   urlButtons: 2,
   phoneButtons: 1,
+  copyCode: 15,
 };
 
 export const CATEGORIES = ['UTILITY', 'MARKETING'];
 export const HEADER_FORMATS = ['NONE', 'TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'];
 export const MEDIA_FORMATS = ['IMAGE', 'VIDEO', 'DOCUMENT'];
-export const BUTTON_TYPES = ['QUICK_REPLY', 'URL', 'PHONE_NUMBER'];
+export const BUTTON_TYPES = ['QUICK_REPLY', 'URL', 'PHONE_NUMBER', 'COPY_CODE'];
+// What Meta can hold that this form cannot express: kept as it is when a template is edited.
+const PRESERVABLE_COMPONENTS = ['LIMITED_TIME_OFFER'];
 export const MEDIA_ACCEPT = {
   IMAGE: 'image/jpeg,image/png',
   VIDEO: 'video/mp4,video/3gpp',
@@ -48,6 +51,8 @@ export const emptyForm = () => ({
   body: { text: '', examples: [] },
   footer: { text: '' },
   buttons: [],
+  // Parts of an edited template the form cannot express, kept as Meta returned them: { components, buttons }.
+  preserved: { components: [], buttons: [] },
 });
 
 // "Recordatorio de cita" -> "recordatorio_de_cita"
@@ -145,8 +150,17 @@ const validateFooter = (footer, errors) => {
   else if (text.includes('{{')) errors['footer.text'] = 'FOOTER_NO_VARIABLES';
 };
 
-const validateButton = (button, index, errors) => {
+const validateButton = (button, index, errors, category) => {
   const key = `buttons.${index}`;
+  if (button.type === 'COPY_CODE') {
+    const code = button.code.trim();
+    if (category !== 'MARKETING')
+      errors[`${key}.code`] = 'COPY_CODE_MARKETING_ONLY';
+    else if (!code) errors[`${key}.code`] = 'COPY_CODE_REQUIRED';
+    else if (code.length > LIMITS.copyCode)
+      errors[`${key}.code`] = 'COPY_CODE_TOO_LONG';
+    return;
+  }
   const text = button.text.trim();
   if (!text) errors[`${key}.text`] = 'BUTTON_TEXT_REQUIRED';
   else if (text.length > LIMITS.buttonText)
@@ -171,9 +185,14 @@ const validateButton = (button, index, errors) => {
   }
 };
 
-const validateButtons = (buttons, errors) => {
-  if (buttons.length > LIMITS.buttons) errors.buttons = 'TOO_MANY_BUTTONS';
-  buttons.forEach((button, index) => validateButton(button, index, errors));
+const validateButtons = (buttons, errors, category, preservedCount = 0) => {
+  if (buttons.length + preservedCount > LIMITS.buttons)
+    errors.buttons = 'TOO_MANY_BUTTONS';
+  buttons.forEach((button, index) =>
+    validateButton(button, index, errors, category)
+  );
+  if (buttons.filter(b => b.type === 'COPY_CODE').length > 1)
+    errors.buttons = 'TOO_MANY_COPY_CODE';
   if (buttons.filter(b => b.type === 'URL').length > LIMITS.urlButtons)
     errors.buttons = 'TOO_MANY_URL_BUTTONS';
   if (
@@ -196,11 +215,18 @@ export const validateForm = (form, { isEdit = false } = {}) => {
   validateBody(form.body, errors);
   validateVariableKinds(form, errors);
   validateFooter(form.footer, errors);
-  validateButtons(form.buttons, errors);
+  validateButtons(
+    form.buttons,
+    errors,
+    form.category,
+    form.preserved?.buttons?.length
+  );
   return errors;
 };
 
 const buttonPayload = button => {
+  if (button.type === 'COPY_CODE')
+    return { type: 'COPY_CODE', code: button.code.trim() };
   if (button.type === 'URL') {
     return {
       type: 'URL',
@@ -241,6 +267,7 @@ export const buildPayload = form => {
     },
     footer: { text: form.footer.text.trim() },
     buttons: form.buttons.map(buttonPayload),
+    preserved: form.preserved,
   };
 };
 
@@ -268,7 +295,8 @@ export const previewTemplate = (form, headerPreviewUrl = '') => {
       type: 'BUTTONS',
       buttons: form.buttons.map(button => ({
         type: button.type,
-        text: button.text || '…',
+        text:
+          button.type === 'COPY_CODE' ? 'Copiar código' : button.text || '…',
         url: button.url,
         phone_number: button.phoneNumber,
       })),
@@ -296,20 +324,19 @@ export const previewVariables = form => {
   return variables;
 };
 
-// Whether a synced template can be edited here: only the kinds this form can express (text/media header, body,
-// footer, quick reply / URL / phone buttons). Anything else (carousels, flow or copy-code buttons...) is managed in Meta.
+// Whether a synced template can be edited here: text/media header, body, footer and quick reply / URL / phone /
+// copy-code buttons are edited; a limited-time offer or a Flow/catalog button is kept as it is (see `preserved`).
+// Anything else (carousels, authentication templates...) is managed in Meta.
 export const isEditable = template => {
   const components = template?.components;
   if (!Array.isArray(components)) return false;
+  if (!CATEGORIES.includes(template.category || 'UTILITY')) return false;
 
   return components.every(component => {
     if (component.type === 'HEADER')
       return ['TEXT', ...MEDIA_FORMATS].includes(component.format);
-    if (component.type === 'BUTTONS')
-      return (component.buttons || []).every(button =>
-        BUTTON_TYPES.includes(button.type)
-      );
-    return ['BODY', 'FOOTER'].includes(component.type);
+    if (PRESERVABLE_COMPONENTS.includes(component.type)) return true;
+    return ['BODY', 'FOOTER', 'BUTTONS'].includes(component.type);
   });
 };
 
@@ -335,8 +362,10 @@ export const formFromTemplate = (template, inboxId) => {
   form.language = template.language;
   form.category = template.category || 'UTILITY';
 
-  (template.components || []).forEach(component => {
-    if (component.type === 'HEADER') {
+  (template.components || []).forEach((component, position) => {
+    if (PRESERVABLE_COMPONENTS.includes(component.type)) {
+      form.preserved.components.push({ position, component });
+    } else if (component.type === 'HEADER') {
       form.header.format = component.format;
       form.header.text = component.text || '';
       form.header.examples = [
@@ -353,13 +382,21 @@ export const formFromTemplate = (template, inboxId) => {
     } else if (component.type === 'FOOTER') {
       form.footer.text = component.text || '';
     } else if (component.type === 'BUTTONS') {
-      form.buttons = (component.buttons || []).map(button => ({
-        type: button.type,
-        text: button.text || '',
-        url: button.url || '',
-        phoneNumber: button.phone_number || '',
-        examples: [button.example?.[0] || ''],
-      }));
+      (component.buttons || []).forEach((button, buttonPosition) => {
+        if (!BUTTON_TYPES.includes(button.type)) {
+          form.preserved.buttons.push({ position: buttonPosition, button });
+          return;
+        }
+        const [example] = [button.example].flat();
+        form.buttons.push({
+          type: button.type,
+          text: button.text || '',
+          url: button.url || '',
+          phoneNumber: button.phone_number || '',
+          code: button.type === 'COPY_CODE' ? example || '' : '',
+          examples: [button.type === 'COPY_CODE' ? '' : example || ''],
+        });
+      });
     }
   });
   return form;
@@ -370,6 +407,7 @@ export const newButton = type => ({
   text: '',
   url: '',
   phoneNumber: '',
+  code: '',
   examples: [''],
 });
 
@@ -381,4 +419,65 @@ export const editRules = status => {
     canEdit: ['APPROVED', 'REJECTED', 'PAUSED'].includes(state),
     categoryLocked: state === 'APPROVED',
   };
+};
+
+// Words that make Meta read a message as Marketing. A UTILITY template has to confirm or update something the
+// customer asked for, so these in one are likely to get it re-categorised (and billed as Marketing).
+const PROMO_WORDS = [
+  'promo',
+  'promoción',
+  'promocion',
+  'oferta',
+  'descuento',
+  'rebaja',
+  'gratis',
+  'regalo',
+  'cupón',
+  'cupon',
+  'aprovecha',
+  'no te pierdas',
+  'última oportunidad',
+  'ultima oportunidad',
+  'compra',
+  'ven a',
+  'visítanos',
+  'visitanos',
+  'nuevo',
+  'novedad',
+  'baja si no',
+  'dejar de recibir',
+  'unsubscribe',
+  'discount',
+  'sale',
+  'free',
+  'offer',
+  'coupon',
+];
+
+const textOf = form =>
+  [
+    form.name,
+    form.header.format === 'TEXT' ? form.header.text : '',
+    form.body.text,
+    form.footer.text,
+    ...form.buttons.map(button => button.text),
+  ]
+    .join(' ')
+    .toLowerCase();
+
+// The promotional words found in a UTILITY template (none for MARKETING, which is expected to promote).
+export const promoWarnings = form => {
+  if (form.category !== 'UTILITY') return [];
+  const text = textOf(form);
+  const hasCopyCode = form.buttons.some(button => button.type === 'COPY_CODE');
+  const found = PROMO_WORDS.filter(word => {
+    const at = text.indexOf(word);
+    if (at < 0) return false;
+    // whole words only ("sale" is not "salent")
+    const before = text[at - 1];
+    const after = text[at + word.length];
+    return !/\p{L}/u.test(before || ' ') && !/\p{L}/u.test(after || ' ');
+  });
+  if (hasCopyCode) found.push('copy-code');
+  return [...new Set(found)];
 };

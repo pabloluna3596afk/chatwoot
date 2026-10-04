@@ -5,6 +5,7 @@ import {
   formFromTemplate,
   isEditable,
   newButton,
+  promoWarnings,
   previewTemplate,
   previewVariables,
   toSnakeCase,
@@ -173,6 +174,7 @@ describe('buildPayload', () => {
         },
         { type: 'PHONE_NUMBER', text: 'Llamar', phone_number: '+593999999999' },
       ],
+      preserved: { components: [], buttons: [] },
     });
   });
 });
@@ -338,11 +340,84 @@ describe('editing a synced template', () => {
           { type: 'BUTTONS', buttons: [{ type: 'FLOW', text: 'Abrir' }] },
         ],
       })
-    ).toBe(false);
+    ).toBe(true);
     expect(isEditable({ components: [{ type: 'CAROUSEL', cards: [] }] })).toBe(
       false
     );
+    expect(
+      isEditable({
+        category: 'AUTHENTICATION',
+        components: [{ type: 'BODY', add_security_recommendation: true }],
+      })
+    ).toBe(false);
     expect(isEditable({})).toBe(false);
+  });
+
+  it('reads a copy-code template and keeps what the form cannot express', () => {
+    const template = {
+      name: 'promo',
+      language: 'es_EC',
+      category: 'MARKETING',
+      components: [
+        { type: 'HEADER', format: 'IMAGE' },
+        { type: 'LIMITED_TIME_OFFER', limited_time_offer: { text: 'Oferta' } },
+        { type: 'BODY', text: 'Hola {{1}}', example: { body_text: [['Ana']] } },
+        {
+          type: 'BUTTONS',
+          buttons: [
+            { type: 'FLOW', text: 'Abrir', flow_id: '1' },
+            { type: 'COPY_CODE', example: 'PALU21' },
+          ],
+        },
+      ],
+    };
+    expect(isEditable(template)).toBe(true);
+
+    const form = formFromTemplate(template, 4);
+    expect(form.buttons).toHaveLength(1);
+    expect(form.buttons[0]).toMatchObject({
+      type: 'COPY_CODE',
+      code: 'PALU21',
+    });
+    expect(form.preserved.components).toEqual([
+      { position: 1, component: template.components[1] },
+    ]);
+    expect(form.preserved.buttons).toEqual([
+      { position: 0, button: template.components[3].buttons[0] },
+    ]);
+    expect(buildPayload(form).buttons).toEqual([
+      { type: 'COPY_CODE', code: 'PALU21' },
+    ]);
+  });
+
+  it('only allows the copy-code button in Marketing, once, with a code', () => {
+    const form = validForm();
+    form.buttons = [{ ...newButton('COPY_CODE'), code: 'PALU21' }];
+    expect(validateForm(form)['buttons.0.code']).toBe(
+      'COPY_CODE_MARKETING_ONLY'
+    );
+    form.category = 'MARKETING';
+    expect(validateForm(form)).toEqual({});
+    form.buttons[0].code = '';
+    expect(validateForm(form)['buttons.0.code']).toBe('COPY_CODE_REQUIRED');
+    form.buttons = [
+      { ...newButton('COPY_CODE'), code: 'A' },
+      { ...newButton('COPY_CODE'), code: 'B' },
+    ];
+    expect(validateForm(form).buttons).toBe('TOO_MANY_COPY_CODE');
+  });
+
+  it('warns about promotional wording in a Utility template only', () => {
+    const form = validForm();
+    form.body.text = 'Aprovecha nuestro descuento, tu compra viene con regalo';
+    expect(promoWarnings(form)).toEqual(
+      expect.arrayContaining(['aprovecha', 'descuento', 'compra', 'regalo'])
+    );
+    form.body.text = 'Tu cita queda confirmada para mañana.';
+    expect(promoWarnings(form)).toEqual([]);
+    form.body.text = 'oferta';
+    form.category = 'MARKETING';
+    expect(promoWarnings(form)).toEqual([]);
   });
 
   it('follows the Meta rules for each status', () => {
