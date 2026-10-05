@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onActivated, onDeactivated, ref } from 'vue';
 import { picoSearch } from '@chatwoot/pico-search';
+import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { vOnClickOutside } from '@vueuse/components';
 
@@ -42,6 +43,7 @@ const FUZZY_SEARCH_KEYS = [
 ];
 
 const store = useStore();
+const route = useRoute();
 const { t } = useI18n();
 
 const { checkPermissions } = usePolicy();
@@ -191,9 +193,12 @@ const openPreview = template => {
 
 const openCreate = () => formDrawerRef.value?.open();
 
-// Templates, ready-made presets and forms are the tabs of the page. Only administrators see the tabs: the presets need
-// a WhatsApp Cloud channel (they create templates); the forms are ChatHub's own and do not.
-const activeTab = ref('templates');
+// Templates, ready-made presets and flows are the tabs of the page. Only administrators see the tabs: the presets need
+// a WhatsApp Cloud channel (they create templates); the flows are ChatHub's own and do not.
+// The builder's back arrow comes back to the Flows tab (?tab=flows).
+const activeTab = ref(
+  isAdmin.value && route.query.tab === 'flows' ? 'flows' : 'templates'
+);
 const showTabs = computed(() => isAdmin.value);
 const showTemplates = computed(
   () => !showTabs.value || activeTab.value === 'templates'

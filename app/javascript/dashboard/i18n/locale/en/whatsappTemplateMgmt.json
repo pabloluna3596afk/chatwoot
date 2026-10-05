@@ -1,6 +1,6 @@
 {
   "WHATSAPP_TEMPLATE_MGMT": {
-    "TITLE": "Templates",
+    "TITLE": "Templates & Flows",
     "DESCRIPTION": "View the message templates of your WhatsApp inboxes. Administrators can create, edit and delete templates on WhatsApp Cloud channels.",
     "COUNT": "{n} template | {n} templates",
     "LEARN_MORE": "Learn more about WhatsApp templates",
