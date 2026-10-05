@@ -448,6 +448,17 @@ es:
       short_description: 'Conectá Google Calendar y mirá los eventos en el panel.'
       description: 'Conectá cuentas de Google Calendar para que el equipo vea los eventos. Microsoft Calendar llega pronto.'
       default_title: Cita
+      invitation_unknown_tokens: 'Hay variables que no existen: %{tokens}.'
+      invitation_too_long: 'El texto puede tener hasta %{limit} caracteres.'
+      invitation_default: |-
+        Hola {{primer_nombre}}, te esperamos en tu cita con {{agente}} de {{empresa}}.
+
+        Fecha: {{fecha}}
+        Hora: {{hora}}
+        Lugar: {{direccion}}
+        Videollamada: {{enlace_meet}}
+
+        Si necesitas cambiar la cita, responde a este mensaje.
       untitled: '(Sin título)'
       stale: Alguien más cambió este evento. Recargá e intentá de nuevo.
       locked: '%{name} está editando este evento'

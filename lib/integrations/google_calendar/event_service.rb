@@ -233,17 +233,20 @@ class Integrations::GoogleCalendar::EventService
       release_discarded_idempotency_key!(params[:idempotency_key])
       contact = find_contact(params[:contact_id])
       conversation = find_conversation(params[:conversation_id])
+      summary = params[:summary].presence || I18n.t('integration_apps.calendars.default_title')
+      invitation = invitation_for(params, start_at, [contact, conversation], summary: summary)
       google_event = client.create_event(
         calendar_id: calendar_id,
-        summary: params[:summary].presence || I18n.t('integration_apps.calendars.default_title'),
+        summary: summary,
         start_at: start_at,
         end_at: end_at,
-        description: human_description(contact, conversation),
+        description: invitation[:text],
         extended_properties: private_properties(contact, conversation),
         include_meet: ActiveModel::Type::Boolean.new.cast(params[:include_meet]),
         attendee_email: params[:attendee_email].presence || contact&.email,
         timezone: account_timezone
       )
+      google_event = complete_meet_link(calendar_id, google_event, invitation)
       record = upsert_local!(
         google_event, calendar_id, contact, conversation,
         creating: true, idempotency_key: params[:idempotency_key], params: params
@@ -267,19 +270,22 @@ class Integrations::GoogleCalendar::EventService
       end
       contact = find_contact(params[:contact_id])
       conversation = find_conversation(params[:conversation_id])
+      summary = params[:summary].presence || I18n.t('integration_apps.calendars.default_title')
+      invitation = invitation_for(params, start_at, [contact, conversation], summary: summary, record: record)
       google_event = client.update_event(
         calendar_id: calendar_id,
         event_id: event_id,
         etag: params[:etag],
-        summary: params[:summary].presence || I18n.t('integration_apps.calendars.default_title'),
+        summary: summary,
         start_at: start_at,
         end_at: end_at,
-        description: human_description(contact, conversation),
+        description: invitation[:text],
         extended_properties: private_properties(contact, conversation),
         include_meet: ActiveModel::Type::Boolean.new.cast(params[:include_meet]),
         attendee_email: params[:attendee_email].presence || contact&.email,
         timezone: account_timezone
       )
+      google_event = complete_meet_link(calendar_id, google_event, invitation)
       record = upsert_local!(google_event, calendar_id, contact, conversation, creating: false, params: params)
       notify_conversation!(conversation, :event_updated, record)
       notify_contact_or_bot!(params, conversation, record, google_event, 'updated')
@@ -476,11 +482,34 @@ class Integrations::GoogleCalendar::EventService
     }.compact_blank
   end
 
-  def human_description(contact, conversation)
-    parts = ['Cita InboxHub', user.name]
-    parts << "Conversación ##{conversation.display_id}" if conversation
-    parts << contact.name if contact
-    parts.join(' · ')
+  # The invitation of an appointment: the text the agent wrote for it (kept with the appointment, it wins) or the account's
+  # text, with the variables filled in. Creating or changing with `description` sets the agent's text, sending it empty
+  # clears it; not sending it keeps what the appointment has. { text:, template:, values: }
+  def invitation_for(params, start_at, people, summary:, record: nil)
+    contact, conversation = people
+    own = if params.key?(:description)
+            params[:description].to_s.strip.presence
+          else
+            record&.invitation_text
+          end
+    template = own || Integrations::GoogleCalendar::InvitationText.template_for(account)
+    values = Integrations::GoogleCalendar::InvitationText.values_for(
+      account: account, start_at: start_at, timezone: account_timezone, contact: contact, conversation: conversation,
+      agent_name: user.try(:available_name).presence || user.try(:name), summary: summary
+    )
+    { text: Integrations::GoogleCalendar::InvitationText.render(template, values), template: template, values: values, own: own }
+  end
+
+  # Google creates the Meet link with the event, so a text that holds {{enlace_meet}} is written again once it exists
+  # (and only then: no second call otherwise).
+  def complete_meet_link(calendar_id, google_event, invitation)
+    link = meet_link(google_event)
+    return google_event if link.blank? || !Integrations::GoogleCalendar::InvitationText.uses?(invitation[:template], 'enlace_meet')
+
+    text = Integrations::GoogleCalendar::InvitationText.render(invitation[:template], invitation[:values].merge('enlace_meet' => link))
+    return google_event if text == google_event['description']
+
+    google_event.merge(client.update_description(calendar_id: calendar_id, event_id: google_event['id'], description: text))
   end
 
   def upsert_local!(google_event, calendar_id, contact, conversation, creating:, idempotency_key: nil, params: {})
@@ -500,6 +529,7 @@ class Integrations::GoogleCalendar::EventService
       conversation: conversation
     }
     attrs.merge!(followup_attrs_from(params, creating: creating || was_new, record: record))
+    attrs[:invitation_text] = params[:description].to_s.strip.presence if params.key?(:description)
     attrs[:updated_by] = actor_user if actor_user
     attrs[:idempotency_key] = idempotency_key if idempotency_key.present? && record.idempotency_key.blank?
     # actor_user is nil for bot/API-token requests (see actor_user comment below) —
@@ -680,6 +710,7 @@ class Integrations::GoogleCalendar::EventService
       status: event['status'],
       etag: event['etag'],
       description: event['description'],
+      invitation_text: record&.invitation_text,
       meet_link: meet_link(event),
       connection_id: connection.id,
       calendar_id: calendar_id,

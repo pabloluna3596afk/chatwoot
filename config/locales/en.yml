@@ -507,6 +507,17 @@ en:
       short_description: 'Connect Google calendars and view events in the dashboard.'
       description: 'Connect Google Calendar accounts so your team can see upcoming events. Microsoft Calendar is coming soon.'
       default_title: Appointment
+      invitation_unknown_tokens: 'These variables do not exist: %{tokens}.'
+      invitation_too_long: 'The text can have up to %{limit} characters.'
+      invitation_default: |-
+        Hi {{primer_nombre}}, we look forward to seeing you at your appointment with {{agente}} from {{empresa}}.
+
+        Date: {{fecha}}
+        Time: {{hora}}
+        Place: {{direccion}}
+        Video call: {{enlace_meet}}
+
+        If you need to change the appointment, reply to this message.
       untitled: '(No title)'
       stale: This event was changed by someone else. Reload and try again.
       locked: '%{name} is editing this event'

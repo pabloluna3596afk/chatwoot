@@ -60,6 +60,7 @@ class Account < ApplicationRecord
   store_accessor :settings, :audio_transcriptions, :auto_resolve_label
   store_accessor :settings, :captain_models, :captain_features
   store_accessor :settings, :reporting_timezone
+  store_accessor :settings, :appointment_invitation_template, :appointment_location
   store_accessor :settings, :keep_pending_on_bot_failure
   store_accessor :settings, :captain_auto_resolve_mode, :captain_false_promise_harness_enabled
   store_accessor :settings, :resolved_label_key
