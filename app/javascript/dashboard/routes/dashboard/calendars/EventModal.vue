@@ -2,10 +2,13 @@
 import { computed, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
+import { useMapGetter } from 'dashboard/composables/store';
+import { useAccount } from 'dashboard/composables/useAccount';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import SelectInput from 'dashboard/components-next/select/Select.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
+import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
@@ -21,6 +24,10 @@ import {
   formatTime,
   rangeFromStartEnd,
 } from 'dashboard/helper/calendarTime';
+import {
+  invitationValues,
+  renderInvitation,
+} from 'dashboard/helper/invitationText';
 import {
   calendarSelectOptions,
   connectionSelectOptions,
@@ -44,6 +51,8 @@ const props = defineProps({
 
 const emit = defineEmits(['saved']);
 const { t, locale } = useI18n();
+const currentUser = useMapGetter('getCurrentUser');
+const { currentAccount } = useAccount();
 const searchContacts = createContactSearcher();
 
 const dialogRef = ref(null);
@@ -91,6 +100,13 @@ const hideConversation = ref(true);
 const contactEmail = ref('');
 const inviteEmail = ref('');
 const saveEmailOnContact = ref(true);
+// The invitation the customer reads: the account's text (settings) unless this appointment has its own. `invitationOwn`
+// is set once the agent writes one (or the appointment already had it): only then is it sent with the appointment.
+const invitationAccount = ref({ template: '', location: '' });
+const invitationText = ref('');
+const invitationOwn = ref(false);
+const invitationSaved = ref(false);
+const meetLink = ref('');
 let heartbeatTimer = null;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -199,6 +215,43 @@ const confirmDisabled = computed(
     invalidRange.value
 );
 
+const invitationShown = computed(() =>
+  invitationOwn.value ? invitationText.value : invitationAccount.value.template
+);
+const invitationPreview = computed(() =>
+  renderInvitation(
+    invitationShown.value,
+    invitationValues({
+      contactName: contactLabel.value,
+      contactEmail: contactEmail.value,
+      agentName: currentUser.value?.name,
+      accountName: currentAccount.value?.name,
+      date: date.value,
+      time: time.value,
+      summary: summary.value.trim(),
+      location: invitationAccount.value.location,
+      meetLink: meetLink.value,
+      conversationId: conversationId.value,
+      locale: locale.value,
+    })
+  )
+);
+const onInvitationInput = value => {
+  invitationText.value = value;
+  invitationOwn.value = true;
+};
+const useAccountInvitation = () => {
+  invitationText.value = '';
+  invitationOwn.value = false;
+};
+
+// Only a text written for this appointment travels; nothing means the account's text (which follows a new time).
+// Dropping a text it already had sends it empty, which clears it.
+const invitationPayload = () => {
+  if (invitationOwn.value) return { description: invitationText.value.trim() };
+  return invitationSaved.value ? { description: '' } : {};
+};
+
 const payload = () => {
   const range = rangeFromStartEnd(date.value, time.value, endTime.value);
   const reminders = [];
@@ -226,6 +279,7 @@ const payload = () => {
           }
         : { enabled: false },
     attendee_email: attendeeEmail.value || undefined,
+    ...invitationPayload(),
   };
 };
 
@@ -312,6 +366,10 @@ const applyEvent = (event, defaults) => {
     : addMinutesToTime(parts.time, defaults.duration || SLOT_MINUTES);
   includeMeet.value = Boolean(event?.meet_link);
   existingMeet.value = Boolean(event?.meet_link);
+  meetLink.value = event?.meet_link || '';
+  invitationText.value = event?.invitation_text || '';
+  invitationOwn.value = Boolean(event?.invitation_text);
+  invitationSaved.value = Boolean(event?.invitation_text);
   contactId.value = event?.contact?.id || defaults.contactId || null;
   contactLabel.value = event?.contact?.name || defaults.contactName || '';
   contactQuery.value = contactLabel.value;
@@ -356,8 +414,21 @@ const acquireLock = async () => {
   }
 };
 
+const loadInvitation = async () => {
+  try {
+    const { data } = await CalendarAPI.getInvitation();
+    invitationAccount.value = {
+      template: data.template || data.default_template || '',
+      location: data.location || '',
+    };
+  } catch {
+    invitationAccount.value = { template: '', location: '' };
+  }
+};
+
 const open = async ({ event = null, defaults = {} } = {}) => {
   applyEvent(event, defaults);
+  loadInvitation();
   if (defaults.dateKey) {
     date.value = defaults.dateKey;
     time.value = `${String(defaults.hours ?? 9).padStart(2, '0')}:${String(defaults.minutes ?? 0).padStart(2, '0')}`;
@@ -719,6 +790,46 @@ defineExpose({ open, close });
           />
           {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.MEET') }}
         </label>
+        <div class="flex flex-col gap-1.5" data-testid="invitation-section">
+          <span class="text-sm font-medium text-n-slate-12">
+            {{ $t('CALENDAR_INVITATION.MODAL.LABEL') }}
+          </span>
+          <p class="m-0 text-xs text-n-slate-11">
+            {{ $t('CALENDAR_INVITATION.MODAL.HELP') }}
+          </p>
+          <TextArea
+            :model-value="invitationShown"
+            :disabled="readOnly"
+            :max-length="4000"
+            @update:model-value="onInvitationInput"
+          />
+          <div v-if="invitationOwn" class="flex items-center gap-2">
+            <span class="text-xs text-n-slate-11">
+              {{ $t('CALENDAR_INVITATION.MODAL.CUSTOM') }}
+            </span>
+            <Button
+              type="button"
+              ghost
+              slate
+              xs
+              :label="$t('CALENDAR_INVITATION.MODAL.USE_ACCOUNT')"
+              :disabled="readOnly"
+              data-testid="invitation-use-account"
+              @click="useAccountInvitation"
+            />
+          </div>
+          <span class="text-xs font-medium text-n-slate-11">
+            {{ $t('CALENDAR_INVITATION.MODAL.PREVIEW') }}
+          </span>
+          <pre
+            class="p-2.5 m-0 text-sm whitespace-pre-wrap border rounded-lg font-sans border-n-weak bg-n-alpha-2 text-n-slate-12"
+            data-testid="invitation-preview"
+            >{{ invitationPreview }}</pre
+          >
+          <span v-if="includeMeet && !meetLink" class="text-xs text-n-slate-11">
+            {{ $t('CALENDAR_INVITATION.MODAL.MEET_NOTE') }}
+          </span>
+        </div>
         <fieldset
           v-if="conversationId"
           class="flex flex-col gap-2 m-0 p-0 border-0"

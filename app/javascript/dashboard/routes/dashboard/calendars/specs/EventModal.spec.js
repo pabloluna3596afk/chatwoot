@@ -7,8 +7,19 @@ vi.mock('vue-i18n', () => ({
 
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 
+vi.mock('dashboard/composables/store', () => ({
+  useMapGetter: () => ({ value: { name: 'Pablo' } }),
+}));
+vi.mock('dashboard/composables/useAccount', () => ({
+  useAccount: () => ({ currentAccount: { value: { name: 'Clínica Sol' } } }),
+}));
+
 vi.mock('dashboard/api/integrations/calendar', () => ({
-  default: { lockEvent: vi.fn().mockResolvedValue({}), unlockEvent: vi.fn() },
+  default: {
+    lockEvent: vi.fn().mockResolvedValue({}),
+    unlockEvent: vi.fn(),
+    getInvitation: vi.fn().mockResolvedValue({ data: {} }),
+  },
 }));
 
 const mountModal = (props = {}) =>
