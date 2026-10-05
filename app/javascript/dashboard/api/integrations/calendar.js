@@ -40,6 +40,15 @@ class CalendarAPI extends ApiClient {
     });
   }
 
+  // The text of the invitation of an appointment (account-wide): { template, location, default_template, tokens, max_length }.
+  getInvitation() {
+    return axios.get(`${this.url}/invitation`);
+  }
+
+  updateInvitation({ template, location }) {
+    return axios.patch(`${this.url}/invitation`, { template, location });
+  }
+
   createEvent(payload) {
     return axios.post(`${this.url}/events`, payload);
   }

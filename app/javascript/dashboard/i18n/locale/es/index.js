@@ -6,6 +6,7 @@ import auditLogs from './auditLogs.json';
 import automation from './automation.json';
 import bulkActions from './bulkActions.json';
 import businessRules from './businessRules.json';
+import calendarInvitation from './calendarInvitation.json';
 import calls from './calls.json';
 import campaign from './campaign.json';
 import cannedMgmt from './cannedMgmt.json';
@@ -55,6 +56,7 @@ export default {
   ...auditLogs,
   ...automation,
   ...bulkActions,
+  ...calendarInvitation,
   ...businessRules,
   ...calls,
   ...campaign,
