@@ -39,7 +39,7 @@ const makeApi = () => ({
 });
 
 const sampleFlow = (extra = {}) => ({
-  id: null,
+  id: 7,
   name: 'Datos',
   categories: ['LEAD_GENERATION'],
   definition: {
@@ -345,7 +345,7 @@ describe('FlowBuilderPage', () => {
   });
 
   describe('header', () => {
-    it('has the name, a status chip and the "JSON de Meta" and "Guardar" buttons, and no channel choice', async () => {
+    it('has the back arrow, the name, one category select and a status chip on the left, and "JSON de Meta" and "Guardar" on the right', async () => {
       const { wrapper } = await mountPage();
 
       expect(
@@ -362,7 +362,30 @@ describe('FlowBuilderPage', () => {
         true
       );
       expect(wrapper.find('input[type="checkbox"]').exists()).toBe(false);
-      expect(wrapper.find('select').exists()).toBe(false);
+      expect(wrapper.findAll('select')).toHaveLength(1);
+      expect(
+        wrapper.get('[data-testid="flow-editor-category"] select').element.value
+      ).toBe('LEAD_GENERATION');
+      expect(wrapper.find('[data-testid="flow-details-open"]').exists()).toBe(
+        false
+      );
+    });
+
+    it('orders the header: back, name, category, status, then the buttons on the right', async () => {
+      const { wrapper } = await mountPage();
+
+      const ids = [
+        'flow-editor-back',
+        'flow-editor-name',
+        'flow-editor-category',
+        'flow-editor-status',
+        'flow-json-toggle',
+        'flow-editor-save',
+      ];
+      const html = wrapper.html();
+      const positions = ids.map(id => html.indexOf(`data-testid="${id}"`));
+      expect(positions.every(position => position > -1)).toBe(true);
+      expect(positions).toEqual([...positions].sort((x, y) => x - y));
     });
 
     it('opens the JSON Meta will get in a modal, not inside the page', async () => {
@@ -444,26 +467,129 @@ describe('FlowBuilderPage', () => {
     });
   });
 
-  describe('saving', () => {
-    it('saves a new flow with its name, categories and definition, then updates it', async () => {
-      const { wrapper, api } = await mountPage();
+  const newFlow = () => ({
+    id: null,
+    name: '',
+    categories: [],
+    definition: {
+      schema_version: 1,
+      screens: [{ title: 'Pantalla 1', button: '', blocks: [] }],
+    },
+  });
+  const nameInput = wrapper =>
+    wrapper.get('[data-testid="flow-editor-name"] input');
+  const categorySelect = wrapper =>
+    wrapper.get('[data-testid="flow-editor-category"] select');
+  const save = async wrapper => {
+    await wrapper.get('[data-testid="flow-editor-save"]').trigger('click');
+    await flushPromises();
+  };
+  const chooser = wrapper => wrapper.find('[data-testid="flow-starting"]');
 
-      await wrapper.get('[data-testid="flow-editor-save"]').trigger('click');
-      await flushPromises();
+  describe('the starting models, inside the editor', () => {
+    it('shows "En blanco" first and the 4 models on a new flow', async () => {
+      const { wrapper } = await mountPage(newFlow());
+
+      const options = wrapper
+        .get('[data-testid="flow-starting"]')
+        .findAll('button');
+      expect(options).toHaveLength(5);
+      expect(options[0].attributes('data-testid')).toBe('flow-starting-blank');
+    });
+
+    it('never shows them on a saved flow', async () => {
+      const { wrapper } = await mountPage();
+
+      expect(chooser(wrapper).exists()).toBe(false);
+    });
+
+    it('fills the screens with the picked model and hides the chooser', async () => {
+      const { wrapper } = await mountPage(newFlow());
+
+      await wrapper
+        .get('[data-testid="flow-starting-survey"]')
+        .trigger('click');
+
+      expect(chooser(wrapper).exists()).toBe(false);
+      expect(tabs(wrapper).length).toBeGreaterThan(1);
+      expect(canvasBlocks(wrapper).length).toBeGreaterThan(0);
+    });
+
+    it('"En blanco" keeps the empty screen and hides the chooser', async () => {
+      const { wrapper } = await mountPage(newFlow());
+
+      await wrapper.get('[data-testid="flow-starting-blank"]').trigger('click');
+
+      expect(chooser(wrapper).exists()).toBe(false);
+      expect(tabs(wrapper)).toHaveLength(1);
+      expect(canvasBlocks(wrapper)).toHaveLength(0);
+    });
+
+    it('hides the chooser as soon as a block is added', async () => {
+      const { wrapper } = await mountPage(newFlow());
+
+      await wrapper.get('[data-testid="flow-add-heading"]').trigger('click');
+
+      expect(chooser(wrapper).exists()).toBe(false);
+      expect(canvasBlocks(wrapper)).toHaveLength(1);
+    });
+  });
+
+  describe('saving', () => {
+    it('marks the name, the category and the starting choice in place when they are missing', async () => {
+      const { wrapper, api } = await mountPage(newFlow());
+      expect(wrapper.find('[data-testid="flow-starting-error"]').exists()).toBe(
+        false
+      );
+
+      await save(wrapper);
+
+      expect(api.create).not.toHaveBeenCalled();
+      const text = wrapper.get('[data-testid="flow-builder"]').text();
+      expect(text).toContain('WHATSAPP_FLOWS.EDITOR.NAME_REQUIRED');
+      expect(text).toContain('WHATSAPP_FLOWS.EDITOR.CATEGORY_REQUIRED');
+      expect(wrapper.get('[data-testid="flow-starting-error"]').text()).toBe(
+        'WHATSAPP_FLOWS.EDITOR.START_REQUIRED'
+      );
+      expect(
+        wrapper.get('[data-testid="flow-editor-save"]').attributes('disabled')
+      ).toBeUndefined();
+    });
+
+    it('clears each mark once that field is filled', async () => {
+      const { wrapper } = await mountPage(newFlow());
+      await save(wrapper);
+
+      await nameInput(wrapper).setValue('Datos');
+      await categorySelect(wrapper).setValue('SURVEY');
+      await wrapper.get('[data-testid="flow-starting-blank"]').trigger('click');
+
+      const text = wrapper.get('[data-testid="flow-builder"]').text();
+      expect(text).not.toContain('NAME_REQUIRED');
+      expect(text).not.toContain('CATEGORY_REQUIRED');
+      expect(text).not.toContain('START_REQUIRED');
+    });
+
+    it('saves a new flow with its name, [category] and definition, then updates it', async () => {
+      const { wrapper, api } = await mountPage(newFlow());
+      await nameInput(wrapper).setValue('Datos');
+      await categorySelect(wrapper).setValue('LEAD_GENERATION');
+      await wrapper
+        .get('[data-testid="flow-starting-survey"]')
+        .trigger('click');
+
+      await save(wrapper);
 
       const [payload] = api.create.mock.calls[0];
       expect(payload).toMatchObject({
         name: 'Datos',
         categories: ['LEAD_GENERATION'],
       });
-      expect(payload.definition.screens).toHaveLength(2);
+      expect(payload.definition.screens.length).toBeGreaterThan(1);
       expect(wrapper.emitted('saved')[0][0]).toMatchObject({ id: 9 });
 
-      await wrapper
-        .get('[data-testid="flow-editor-name"] input')
-        .setValue('Datos 2');
-      await wrapper.get('[data-testid="flow-editor-save"]').trigger('click');
-      await flushPromises();
+      await nameInput(wrapper).setValue('Datos 2');
+      await save(wrapper);
 
       expect(api.update).toHaveBeenCalledWith(
         9,
@@ -471,40 +597,38 @@ describe('FlowBuilderPage', () => {
       );
     });
 
-    it('does not save without a name', async () => {
-      const { wrapper, api } = await mountPage(sampleFlow({ name: '' }));
-
-      await wrapper.get('[data-testid="flow-editor-save"]').trigger('click');
-
-      expect(api.create).not.toHaveBeenCalled();
-    });
-
-    it('has no categories in the right column, only behind "Detalles del flow"', async () => {
-      const { wrapper } = await mountPage();
-
-      expect(
-        wrapper.get('[data-testid="flow-properties"]').text()
-      ).not.toContain('WHATSAPP_FLOWS.EDITOR.CATEGORIES');
-      expect(
-        wrapper.find('[data-testid="flow-category-LEAD_GENERATION"]').exists()
-      ).toBe(false);
-    });
-
-    it('changes the categories in the "Detalles del flow" modal', async () => {
+    it('saves a saved flow without changes (the button is never disabled for that)', async () => {
       const { wrapper, api } = await mountPage();
 
-      await wrapper.get('[data-testid="flow-details-open"]').trigger('click');
-      const modal = wrapper.get('[data-testid="flow-details-dialog"]');
-      expect(
-        modal.findAll('button[data-testid^="flow-category-"]')
-      ).not.toHaveLength(0);
-      await modal
-        .findAll('button[data-testid^="flow-category-"]')[1]
-        .trigger('click');
-      await wrapper.get('[data-testid="flow-editor-save"]').trigger('click');
-      await flushPromises();
+      await save(wrapper);
 
-      expect(api.create.mock.calls[0][0].categories).toHaveLength(2);
+      expect(api.update).toHaveBeenCalledWith(7, expect.any(Object));
+    });
+
+    it('asks for a category on a saved flow that has none', async () => {
+      const { wrapper, api } = await mountPage(sampleFlow({ categories: [] }));
+
+      await save(wrapper);
+
+      expect(api.update).not.toHaveBeenCalled();
+      expect(wrapper.get('[data-testid="flow-builder"]').text()).toContain(
+        'WHATSAPP_FLOWS.EDITOR.CATEGORY_REQUIRED'
+      );
+    });
+
+    it('keeps the other categories of a saved flow when the shown one is changed', async () => {
+      const { wrapper, api } = await mountPage(
+        sampleFlow({ categories: ['LEAD_GENERATION', 'SURVEY', 'OTHER'] })
+      );
+      expect(categorySelect(wrapper).element.value).toBe('LEAD_GENERATION');
+
+      await categorySelect(wrapper).setValue('SURVEY');
+      await save(wrapper);
+
+      expect(api.update.mock.calls[0][1].categories).toEqual([
+        'SURVEY',
+        'OTHER',
+      ]);
     });
 
     it('goes back', async () => {

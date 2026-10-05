@@ -1,7 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import FlowPage from '../FlowPage.vue';
 import FlowBuilderPage from '../FlowBuilderPage.vue';
-import FlowStart from '../FlowStart.vue';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 
 const { route, push, replace } = vi.hoisted(() => ({
@@ -64,39 +63,21 @@ describe('FlowPage', () => {
     });
   });
 
-  it('shows the start step on /flows/new and turns into the builder in the same page', async () => {
+  it('opens the same builder on /flows/new, with an empty flow and nothing created', async () => {
     const wrapper = await mountPage({ name: 'settings_flow_new', params: {} });
-    expect(wrapper.findComponent(FlowStart).exists()).toBe(true);
-    expect(wrapper.findComponent(FlowBuilderPage).exists()).toBe(false);
 
-    wrapper.findComponent(FlowStart).vm.$emit('create', {
+    const builder = wrapper.findComponent(FlowBuilderPage);
+    expect(builder.exists()).toBe(true);
+    expect(builder.props('flow')).toMatchObject({
       id: null,
-      name: 'Nuevo',
+      name: '',
       categories: [],
-      definition: savedFlow.definition,
     });
-    await flushPromises();
-
-    expect(wrapper.findComponent(FlowStart).exists()).toBe(false);
-    expect(wrapper.findComponent(FlowBuilderPage).props('flow').name).toBe(
-      'Nuevo'
-    );
+    expect(builder.props('flow').definition.screens).toHaveLength(1);
+    expect(wrapper.find('[data-testid="flow-starting"]').exists()).toBe(true);
+    expect(WhatsappFlowsAPI.create).not.toHaveBeenCalled();
     expect(push).not.toHaveBeenCalled();
     expect(replace).not.toHaveBeenCalled();
-  });
-
-  it('shows the start step again on a reload of /flows/new', async () => {
-    const wrapper = await mountPage({ name: 'settings_flow_new', params: {} });
-    expect(wrapper.findComponent(FlowStart).exists()).toBe(true);
-    expect(wrapper.findComponent(FlowBuilderPage).exists()).toBe(false);
-  });
-
-  it('cancelling the start screen goes back to the Flows tab', async () => {
-    const wrapper = await mountPage({ name: 'settings_flow_new', params: {} });
-
-    wrapper.findComponent(FlowStart).vm.$emit('cancel');
-
-    expect(push).toHaveBeenCalledWith(list);
   });
 
   it('loads a saved flow into the builder', async () => {
@@ -127,12 +108,6 @@ describe('FlowPage', () => {
 
   it('gives a new flow its own address the first time it is saved', async () => {
     const wrapper = await mountPage({ name: 'settings_flow_new', params: {} });
-    wrapper.findComponent(FlowStart).vm.$emit('create', {
-      ...savedFlow,
-      id: null,
-    });
-    await flushPromises();
-
     wrapper.findComponent(FlowBuilderPage).vm.$emit('saved', { id: 8 });
 
     expect(replace).toHaveBeenCalledWith({
