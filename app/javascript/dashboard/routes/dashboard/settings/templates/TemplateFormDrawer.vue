@@ -4,7 +4,8 @@ import { useI18n } from 'vue-i18n';
 import { vOnClickOutside } from '@vueuse/components';
 
 import { useAlert } from 'dashboard/composables';
-import { useMapGetter, useStore } from 'dashboard/composables/store';
+import { useStore } from 'dashboard/composables/store';
+import { useTemplateBindings } from 'dashboard/composables/useTemplateBindings';
 import { useAccount } from 'dashboard/composables/useAccount';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -23,7 +24,7 @@ import {
   LIMITS,
   MEDIA_ACCEPT,
   MEDIA_FORMATS,
-  SUGGESTED_VARIABLES,
+  CAPTAIN_VARIABLES,
   buildPayload,
   editRules,
   emptyForm,
@@ -54,7 +55,7 @@ const emit = defineEmits(['saved']);
 const { t, te, locale } = useI18n();
 const store = useStore();
 const { currentAccount } = useAccount();
-const attributesByModel = useMapGetter('attributes/getAttributesByModel');
+const { bindings } = useTemplateBindings('message');
 
 const LANGUAGE_OPTIONS = computed(() => languageOptions(locale.value));
 
@@ -237,41 +238,57 @@ watch(bodyVariables, numbers => {
   form.body.examples = examples.slice(0, Math.max(numbers.length, 0));
 });
 
-// What can be put in the message with one click: the names Captain fills in, the contact's custom attributes, or the
-// next number when the message uses numbered variables.
-const attributeVariables = computed(() =>
-  (attributesByModel.value?.('contact_attribute') || [])
-    .filter(attribute => isValidVariableName(attribute.attribute_key))
-    .map(attribute => ({
-      name: attribute.attribute_key,
-      label: attribute.attribute_display_name || attribute.attribute_key,
-    }))
-);
-
 const nextNumber = computed(
   () => Math.max(0, ...variableNumbers(form.body.text)) + 1
 );
 
-const variableMenuItems = computed(() => {
+const bindingLabel = binding => {
+  const key = `VARIABLES.LABELS.${binding.key}`;
+  const label = binding.label || (te(key) ? t(key) : binding.name);
+  return `${label} (${binding.name})`;
+};
+
+// What can be put in the message with one click: the CRM / system names (and the contact's and the conversation's
+// custom attributes, which the send dialog fills in by name), then the names Captain fills in for appointments; or the
+// next number when the message uses numbered variables.
+const variableMenuSections = computed(() => {
   if (variableMode.value === 'POSITIONAL') {
     return [
       {
-        label: `{{${nextNumber.value}}}`,
-        action: 'insert',
-        value: String(nextNumber.value),
+        items: [
+          {
+            label: `{{${nextNumber.value}}}`,
+            action: 'insert',
+            value: String(nextNumber.value),
+          },
+        ],
       },
     ];
   }
   const taken = new Set(bodyVariables.value);
-  const suggested = SUGGESTED_VARIABLES.map(name => ({ name, label: name }));
-  return [...suggested, ...attributeVariables.value]
-    .filter(item => !taken.has(item.name))
-    .map(item => ({
-      label:
-        item.label === item.name ? item.name : `${item.label} (${item.name})`,
-      action: 'insert',
-      value: item.name,
-    }));
+  const section = (group, title) => ({
+    title: t(`WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_GROUPS.${title}`),
+    items: bindings.value
+      .filter(binding => binding.group === group && !taken.has(binding.name))
+      .map(binding => ({
+        label: bindingLabel(binding),
+        action: 'insert',
+        value: binding.name,
+      })),
+  });
+  const known = new Set(bindings.value.map(binding => binding.name));
+  const captain = {
+    title: t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_GROUPS.CAPTAIN'),
+    items: CAPTAIN_VARIABLES.filter(
+      name => !known.has(name) && !taken.has(name)
+    ).map(name => ({ label: name, action: 'insert', value: name })),
+  };
+  return [
+    section('system', 'SYSTEM'),
+    section('contact', 'CONTACT'),
+    section('conversation', 'CONVERSATION'),
+    captain,
+  ].filter(item => item.items.length);
 });
 
 const customVariableInvalid = computed(
@@ -773,7 +790,11 @@ const buttonChoices = computed(() =>
                 />
                 <DropdownMenu
                   v-if="showVariableMenu"
-                  :menu-items="variableMenuItems"
+                  :menu-sections="variableMenuSections"
+                  show-search
+                  :search-placeholder="
+                    $t('WHATSAPP_TEMPLATE_MGMT.FORM.SEARCH_VARIABLE')
+                  "
                   class="mt-1 min-w-52 max-h-64 overflow-y-auto top-full ltr:left-0 rtl:right-0"
                   @action="item => insertVariable(item.value)"
                 />

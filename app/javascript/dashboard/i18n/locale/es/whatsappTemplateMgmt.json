@@ -181,7 +181,14 @@
       "MEDIA_HEADER_REASONS": {
         "app_not_found": "No se encontró la aplicación de Meta de este canal, así que no se pueden subir imágenes, videos ni documentos al encabezado. Puedes usar un encabezado de texto.",
         "upload_refused": "Meta no permite que el acceso de este canal suba archivos de ejemplo. Puedes usar un encabezado de texto."
-      }
+      },
+      "VARIABLE_GROUPS": {
+        "SYSTEM": "Datos del contacto y del sistema",
+        "CONTACT": "Atributos personalizados del contacto",
+        "CONVERSATION": "Atributos personalizados de la conversación",
+        "CAPTAIN": "Citas de Captain"
+      },
+      "SEARCH_VARIABLE": "Buscar variable..."
     },
     "DELETE_DIALOG": {
       "TITLE": "Borrar plantilla",

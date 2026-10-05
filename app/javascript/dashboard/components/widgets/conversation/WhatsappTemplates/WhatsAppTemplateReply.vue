@@ -1,4 +1,7 @@
 <script setup>
+import { computed } from 'vue';
+import { useMapGetter } from 'dashboard/composables/store';
+import { useTemplateBindings } from 'dashboard/composables/useTemplateBindings';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 
@@ -19,6 +22,16 @@ defineProps({
 
 const emit = defineEmits(['sendMessage', 'resetTemplate']);
 
+// The variables start with the CRM value their name stands for, resolved for this conversation.
+const { defaultValues } = useTemplateBindings('message');
+const chat = useMapGetter('getSelectedChat');
+const currentUser = useMapGetter('getCurrentUser');
+const resolveContext = computed(() => ({
+  contact: chat.value?.meta?.sender,
+  conversation: chat.value,
+  agent: currentUser.value,
+}));
+
 const handleSendMessage = payload => {
   emit('sendMessage', payload);
 };
@@ -34,6 +47,8 @@ const handleResetTemplate = () => {
       :template="template"
       :send-rendered-content="sendRenderedContent"
       :media-inbox-id="inboxId"
+      :default-values="defaultValues"
+      :resolve-context="resolveContext"
       @send-message="handleSendMessage"
       @reset-template="handleResetTemplate"
     >

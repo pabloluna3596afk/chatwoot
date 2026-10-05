@@ -324,7 +324,7 @@ es:
         contact_resolved: 'La conversación fue %{status_label} por %{contact_name}'
         open: 'La conversación fue reabierta por %{user_name}'
         pending: 'La conversación fue marcada como pendiente por %{user_name}'
-        captain_attending: '%{assistant} atiende la conversación'
+        captain_attending: '%{actor} asignó la conversación a %{assistant}, que ahora la atiende'
         captain_handed_off: '%{assistant} pasó la conversación al equipo'
         snoozed: 'La conversación fue pospuesta por %{user_name}'
         auto_resolved_days: 'La conversación fue marcada como %{status_label} por el sistema debido a %{count} días de inactividad'
@@ -343,6 +343,8 @@ es:
         added: '%{user_name} estableció la prioridad a %{new_priority}'
         updated: '%{user_name} cambió la prioridad de %{old_priority} a %{new_priority}'
         removed: '%{user_name} eliminó la prioridad'
+      ai_assignee:
+        assigned: '%{actor} asignó la conversación a %{assistant}'
       assignee:
         self_assigned: '%{user_name} auto-asignado a esta conversación'
         assigned: 'Asignado a %{assignee_name} por %{user_name}'
@@ -698,11 +700,11 @@ es:
       one: '%{count} segundo'
       other: '%{count} segundos'
   auto_assignment:
-    default_policy_name: 'Default Policy'
-    policy_actor: 'Automation System via %{policy_name}'
+    default_policy_name: 'la política de asignación predeterminada'
+    policy_actor: 'la política de asignación «%{policy_name}»'
   automation:
-    system_name: 'Automation System'
-    activity_actor: 'automatización «%{name}»'
+    system_name: 'el sistema'
+    activity_actor: 'la automatización «%{name}»'
     audit_note: 'Automatización «%{name}» ejecutada.'
     message_skipped_messaging_window: 'Automatización «%{name}» no envió mensaje al cliente (ventana de mensajería cerrada).'
     template_skipped:

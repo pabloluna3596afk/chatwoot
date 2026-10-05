@@ -181,7 +181,14 @@
       "MEDIA_HEADER_REASONS": {
         "app_not_found": "The Meta app of this channel could not be found, so images, videos and documents cannot be uploaded to the header. You can use a text header.",
         "upload_refused": "Meta does not let this channel access upload example files. You can use a text header."
-      }
+      },
+      "VARIABLE_GROUPS": {
+        "SYSTEM": "Contact and system data",
+        "CONTACT": "Contact custom attributes",
+        "CONVERSATION": "Conversation custom attributes",
+        "CAPTAIN": "Captain appointments"
+      },
+      "SEARCH_VARIABLE": "Search variable..."
     },
     "DELETE_DIALOG": {
       "TITLE": "Delete template",

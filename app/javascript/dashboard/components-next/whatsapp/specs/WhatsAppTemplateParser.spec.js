@@ -347,4 +347,117 @@ describe('WhatsAppTemplateParser with a media header', () => {
       media_blob: 'signed',
     });
   });
+
+  it('hides the link and shows the file once it is uploaded, with a way to change it', async () => {
+    const wrapper = mountMedia({
+      mediaInboxId: 7,
+      modelValue: { header: { ...uploaded } },
+    });
+    await nextTick();
+
+    expect(wrapper.find('[data-testid="template-media-url"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.html()).toContain('WHATSAPP_TEMPLATES.PARSER.MEDIA_CHANGE');
+  });
+
+  it('keeps no link field when the inbox can upload, and offers it when it cannot', () => {
+    expect(
+      mountMedia({ mediaInboxId: 7 })
+        .find('[data-testid="template-media-url"]')
+        .exists()
+    ).toBe(false);
+    expect(
+      mountMedia().find('[data-testid="template-media-url"]').exists()
+    ).toBe(true);
+  });
+});
+
+describe('WhatsAppTemplateParser with CRM values', () => {
+  const named = {
+    name: 'saludo',
+    category: 'UTILITY',
+    language: 'es',
+    parameter_format: 'NAMED',
+    components: [
+      {
+        type: 'BODY',
+        text: 'Hola {{nombre}}, tu plan es {{plan}} gracias',
+        example: {
+          body_text_named_params: [
+            { param_name: 'nombre', example: 'Ana' },
+            { param_name: 'plan', example: 'Pro' },
+          ],
+        },
+      },
+    ],
+  };
+  const defaultValues = {
+    nombre: '{{ contact.first_name }}',
+    plan: '{{ contact.custom_attribute.plan }}',
+  };
+  const mountCrm = resolveContext =>
+    shallowMount(WhatsAppTemplateParser, {
+      props: { template: named, defaultValues, resolveContext },
+      global: { mocks: { $t: key => key } },
+    });
+
+  it('shows the resolved value and sends the Liquid while the agent leaves it alone', async () => {
+    const wrapper = mountCrm({
+      contact: { name: 'ana pérez', custom_attributes: { plan: 'Pro' } },
+    });
+    await nextTick();
+
+    expect(wrapper.vm.renderedTemplate).toBe(
+      'Hola Ana, tu plan es Pro gracias'
+    );
+    wrapper.vm.sendMessage();
+    expect(
+      wrapper.emitted('sendMessage')[0][0].templateParams.processed_params.body
+    ).toEqual({
+      nombre: '{{ contact.first_name }}',
+      plan: '{{ contact.custom_attribute.plan }}',
+    });
+  });
+
+  it('sends what the agent typed once a field is edited', async () => {
+    const wrapper = mountCrm({
+      contact: { name: 'ana pérez', custom_attributes: { plan: 'Pro' } },
+    });
+    await nextTick();
+
+    wrapper.vm.setValue('body', 'plan', 'Premium');
+    await nextTick();
+
+    expect(wrapper.vm.renderedTemplate).toBe(
+      'Hola Ana, tu plan es Premium gracias'
+    );
+    wrapper.vm.sendMessage();
+    expect(
+      wrapper.emitted('sendMessage')[0][0].templateParams.processed_params.body
+    ).toEqual({
+      nombre: '{{ contact.first_name }}',
+      plan: 'Premium',
+    });
+  });
+
+  it('leaves empty the field the contact has no value for, so the agent types it', async () => {
+    const wrapper = mountCrm({ contact: { name: 'ana pérez' } });
+    await nextTick();
+
+    expect(wrapper.vm.processedParams.body.plan).toBe('');
+    expect(wrapper.vm.processedParams.body.nombre).toBe(
+      '{{ contact.first_name }}'
+    );
+    expect(wrapper.vm.isFormInvalid).toBe(true);
+  });
+
+  it('shows the Liquid itself when there are no records to resolve it with (a campaign)', async () => {
+    const wrapper = mountCrm(null);
+    await nextTick();
+
+    expect(wrapper.vm.renderedTemplate).toBe(
+      'Hola {{ contact.first_name }}, tu plan es {{ contact.custom_attribute.plan }} gracias'
+    );
+  });
 });

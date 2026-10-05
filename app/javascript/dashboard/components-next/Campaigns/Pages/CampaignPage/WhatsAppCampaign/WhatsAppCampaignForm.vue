@@ -14,6 +14,7 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import TagMultiSelectComboBox from 'dashboard/components-next/combobox/TagMultiSelectComboBox.vue';
 import ColorPicker from 'dashboard/components-next/colorpicker/ColorPicker.vue';
 import ColorTintPreview from 'dashboard/components-next/colorpicker/ColorTintPreview.vue';
+import { useTemplateBindings } from 'dashboard/composables/useTemplateBindings';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
 import WhatsAppCampaignAttributionNotice from 'dashboard/components-next/Campaigns/Pages/CampaignPage/WhatsAppCampaign/WhatsAppCampaignAttributionNotice.vue';
 
@@ -25,6 +26,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['submit', 'cancel']);
+
+const { defaultValues: campaignDefaultValues } =
+  useTemplateBindings('campaign');
 
 const { t } = useI18n();
 
@@ -321,6 +325,7 @@ watch(
       :template="selectedTemplate"
       :media-inbox-id="state.inboxId"
       variable-context="campaign"
+      :default-values="campaignDefaultValues"
     />
 
     <div class="flex flex-col gap-1">

@@ -459,6 +459,7 @@ useKeyboardEvents({
       :disable-send-button="isCreating"
       :has-selected-inbox="!!targetInbox"
       :inbox-id="targetInbox?.id"
+      :contact="selectedContact"
       :has-no-inbox="showNoInboxAlert"
       :is-dropdown-active="isAnyDropdownActive"
       :message-signature="messageSignature"

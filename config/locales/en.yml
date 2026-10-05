@@ -383,7 +383,7 @@ en:
         contact_resolved: 'Conversation was %{status_label} by %{contact_name}'
         open: 'Conversation was reopened by %{user_name}'
         pending: 'Conversation was marked as pending by %{user_name}'
-        captain_attending: '%{assistant} is taking care of the conversation'
+        captain_attending: '%{actor} assigned the conversation to %{assistant}, who is now handling it'
         captain_handed_off: '%{assistant} handed the conversation over to the team'
         snoozed: 'Conversation was snoozed by %{user_name}'
         auto_resolved_days: 'Conversation was marked %{status_label} by system due to %{count} days of inactivity'
@@ -402,6 +402,8 @@ en:
         added: '%{user_name} set the priority to %{new_priority}'
         updated: '%{user_name} changed the priority from %{old_priority} to %{new_priority}'
         removed: '%{user_name} removed the priority'
+      ai_assignee:
+        assigned: '%{actor} assigned the conversation to %{assistant}'
       assignee:
         self_assigned: '%{user_name} self-assigned this conversation'
         assigned: 'Assigned to %{assignee_name} by %{user_name}'

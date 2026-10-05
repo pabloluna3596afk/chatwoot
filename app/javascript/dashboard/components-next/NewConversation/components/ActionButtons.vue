@@ -28,6 +28,7 @@ const props = defineProps({
   isDropdownActive: { type: Boolean, default: false },
   messageSignature: { type: String, default: '' },
   inboxId: { type: Number, default: null },
+  contact: { type: Object, default: null },
   voiceEnabled: { type: Boolean, default: false },
 });
 
@@ -197,6 +198,7 @@ useEventListener(document, 'paste', onPaste);
       <WhatsAppOptions
         v-if="isWhatsappInbox"
         :inbox-id="inboxId"
+        :contact="contact"
         @send-message="emit('sendWhatsappMessage', $event)"
       />
       <ContentTemplateSelector

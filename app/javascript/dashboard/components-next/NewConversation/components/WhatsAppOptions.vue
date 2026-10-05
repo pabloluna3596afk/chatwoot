@@ -13,6 +13,10 @@ const props = defineProps({
     type: Number,
     required: true,
   },
+  contact: {
+    type: Object,
+    default: null,
+  },
 });
 
 const emit = defineEmits(['sendMessage']);
@@ -126,6 +130,7 @@ const handleSendMessage = (template, hide) => {
         v-else
         :template="selectedTemplate"
         :inbox-id="inboxId"
+        :contact="contact"
         @send-message="payload => handleSendMessage(payload, hide)"
         @back="handleBack"
       />

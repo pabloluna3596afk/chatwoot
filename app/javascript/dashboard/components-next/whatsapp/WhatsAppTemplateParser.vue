@@ -27,6 +27,7 @@ import {
   withoutUploadedMedia,
 } from 'dashboard/helper/templateHeaderMedia';
 import InsertVariableButton from 'dashboard/components-next/variable/InsertVariableButton.vue';
+import { resolveLiquid } from 'dashboard/helper/templateVariableBindings';
 import {
   buildTemplateParameters,
   buildTemplateButtonsSnapshot,
@@ -69,6 +70,13 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
+  // The records the Liquid of a default value is resolved with ({ contact, conversation, agent }): the field then
+  // shows the value ("Ana") and the Liquid is what is sent while the agent leaves it alone. With none, the field
+  // shows the Liquid itself.
+  resolveContext: {
+    type: Object,
+    default: null,
+  },
   // What each variable key is worth in the preview ({ 'appointment.date': 'jueves 1 de octubre' }), so the preview
   // shows sample values and not the raw {{ variable }}.
   previewValues: {
@@ -93,6 +101,8 @@ const emit = defineEmits([
 const { t } = useI18n();
 
 const processedParams = ref({});
+// The fields the agent typed in: the others keep the Liquid they started with.
+const edited = ref({});
 
 const languageLabel = computed(() => {
   return `${t('WHATSAPP_TEMPLATES.PARSER.LANGUAGE')}: ${props.template.language || DEFAULT_LANGUAGE}`;
@@ -161,18 +171,37 @@ const withSamples = values =>
     ])
   );
 
+// What a field shows: the value of an untouched default (its Liquid resolved for this contact), else what is stored.
+const displayValue = (component, key) => {
+  const value = processedParams.value[component]?.[key] ?? '';
+  if (!props.resolveContext || edited.value[`${component}.${key}`])
+    return value;
+  const resolved = resolveLiquid(value, props.resolveContext);
+  return resolved === undefined ? value : resolved;
+};
+
+const setValue = (component, key, value) => {
+  processedParams.value[component][key] = value;
+  edited.value[`${component}.${key}`] = true;
+};
+
+const displayed = component =>
+  Object.fromEntries(
+    Object.keys(processedParams.value[component] || {}).map(key => [
+      key,
+      displayValue(component, key),
+    ])
+  );
+
 const renderedHeader = computed(() => {
   return renderTemplatePreview(
     headerText.value,
-    withSamples(processedParams.value.header)
+    withSamples(displayed('header'))
   );
 });
 
 const renderedTemplate = computed(() => {
-  return renderTemplatePreview(
-    bodyText.value,
-    withSamples(processedParams.value.body)
-  );
+  return renderTemplatePreview(bodyText.value, withSamples(displayed('body')));
 });
 
 // Completeness validation is shared with the mobile app via @chatwoot/utils.
@@ -190,14 +219,23 @@ const v$ = useVuelidate(
   { processedParams }
 );
 
+// A default whose value is empty for this contact (no email) is not filled in: the agent has to type it.
+const defaultFor = liquid => {
+  const resolved = props.resolveContext
+    ? resolveLiquid(liquid, props.resolveContext)
+    : undefined;
+  return resolved === '' ? '' : liquid;
+};
+
 const initializeTemplateParameters = () => {
+  edited.value = {};
   const built = buildTemplateParameters(props.template);
   ['header', 'body'].forEach(component => {
     Object.keys(built[component] || {}).forEach(key => {
       const saved = props.modelValue?.[component]?.[key];
       if (saved !== undefined) built[component][key] = saved;
       else if (!built[component][key] && props.defaultValues[key])
-        built[component][key] = props.defaultValues[key];
+        built[component][key] = defaultFor(props.defaultValues[key]);
     });
   });
   // The uploaded header file travels with the saved values (it is not one of the template's own keys).
@@ -423,7 +461,11 @@ defineExpose({
             }) || `${formatType} Header`
           }}
         </p>
-        <div class="flex items-center mb-2.5">
+        <div
+          v-if="!uploadedMedia && !canUploadMedia"
+          data-testid="template-media-url"
+          class="flex items-center mb-2.5"
+        >
           <Input
             :model-value="processedParams.header?.media_url || ''"
             type="url"
@@ -459,6 +501,15 @@ defineExpose({
                 })
               }}
             </span>
+            <NextButton
+              type="button"
+              sm
+              faded
+              slate
+              :label="t('WHATSAPP_TEMPLATES.PARSER.MEDIA_CHANGE')"
+              data-testid="template-media-change"
+              @click="chooseMediaFile"
+            />
             <NextButton
               type="button"
               sm
@@ -514,7 +565,7 @@ defineExpose({
           class="flex items-center mb-2.5"
         >
           <Input
-            v-model="processedParams.header[key]"
+            :model-value="displayValue('header', key)"
             type="text"
             class="flex-1"
             :placeholder="
@@ -522,6 +573,7 @@ defineExpose({
                 variable: key,
               })
             "
+            @update:model-value="setValue('header', key, $event)"
           />
           <InsertVariableButton
             v-if="variableOptions.length"
@@ -543,7 +595,7 @@ defineExpose({
           class="flex items-center mb-2.5"
         >
           <Input
-            v-model="processedParams.body[key]"
+            :model-value="displayValue('body', key)"
             type="text"
             class="flex-1"
             :placeholder="
@@ -551,6 +603,7 @@ defineExpose({
                 variable: key,
               })
             "
+            @update:model-value="setValue('body', key, $event)"
           />
           <InsertVariableButton
             v-if="variableOptions.length"

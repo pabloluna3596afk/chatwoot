@@ -46,6 +46,7 @@
       "MEDIA_UPLOAD": "Subir archivo",
       "MEDIA_UPLOADING": "Subiendo...",
       "MEDIA_UPLOADED": "Archivo listo: {name}",
+      "MEDIA_CHANGE": "Cambiar",
       "MEDIA_REMOVE": "Quitar archivo",
       "MEDIA_HINT_IMAGE": "JPEG o PNG, hasta {max} MB",
       "MEDIA_HINT_VIDEO": "MP4 o 3GP, hasta {max} MB",
