@@ -65,7 +65,7 @@ const create = () => {
             ? $t('WHATSAPP_FLOWS.EDITOR.NAME_REQUIRED')
             : ''
         "
-        message-type="error"
+        :message-type="showError && !name.trim() ? 'error' : 'info'"
         data-testid="flow-start-name"
       />
 
@@ -123,7 +123,7 @@ const create = () => {
         />
         <Button
           type="button"
-          :label="$t('WHATSAPP_FLOWS.START.CREATE')"
+          :label="$t('WHATSAPP_FLOWS.START.CONTINUE')"
           data-testid="flow-start-create"
           @click="create"
         />

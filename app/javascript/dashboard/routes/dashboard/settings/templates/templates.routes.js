@@ -31,7 +31,6 @@ export default {
     },
     // The flow builder is a full page (wider than the settings column), so it is not inside SettingsWrapper.
     flowRoute('new', 'settings_flow_new'),
-    flowRoute('draft', 'settings_flow_draft'),
     flowRoute(':flowId', 'settings_flow_edit'),
   ],
 };

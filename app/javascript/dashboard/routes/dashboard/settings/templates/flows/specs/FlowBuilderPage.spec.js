@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import FlowBuilderPage from '../FlowBuilderPage.vue';
 import FlowPhoneCanvas from '../FlowPhoneCanvas.vue';
+import Draggable from 'vuedraggable';
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
@@ -12,6 +13,22 @@ vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 vi.mock('dashboard/api/whatsappFlows', () => ({
   default: { validate: vi.fn(), create: vi.fn(), update: vi.fn() },
 }));
+
+const DialogStub = {
+  name: 'Dialog',
+  props: ['title'],
+  data: () => ({ isOpen: false }),
+  methods: {
+    open() {
+      this.isOpen = true;
+    },
+    close() {
+      this.isOpen = false;
+    },
+  },
+  template:
+    '<div v-if="isOpen" :data-title="title"><slot /><slot name="footer" /><button data-testid="stub-confirm" @click="$emit(\'confirm\')" /></div>',
+};
 
 const makeApi = () => ({
   validate: vi.fn().mockResolvedValue({
@@ -70,7 +87,7 @@ const sampleFlow = (extra = {}) => ({
 const mountPage = async (flow = sampleFlow(), api = makeApi()) => {
   const wrapper = mount(FlowBuilderPage, {
     props: { flow, api },
-    global: { mocks: { $t: key => key } },
+    global: { mocks: { $t: key => key }, stubs: { Dialog: DialogStub } },
   });
   await flushPromises();
   return { wrapper, api };
@@ -114,6 +131,7 @@ describe('FlowBuilderPage', () => {
 
       expect(tabs(wrapper)).toHaveLength(3);
       expect(tabs(wrapper)[2].attributes('aria-selected')).toBe('true');
+      expect(tabs(wrapper)[2].text()).toContain('Pantalla 3');
     });
 
     it('removes a screen with its × and keeps at least one', async () => {
@@ -137,22 +155,73 @@ describe('FlowBuilderPage', () => {
       );
     });
 
-    it('moves a screen left or right with labelled buttons', async () => {
+    it('has no "Move screen" buttons any more', async () => {
       const { wrapper } = await mountPage();
-      const left = wrapper.get('[data-testid="flow-screen-left"]');
-      const right = wrapper.get('[data-testid="flow-screen-right"]');
 
-      expect(left.attributes('aria-label')).toBe(
-        'WHATSAPP_FLOWS.EDITOR.MOVE_LEFT'
+      expect(wrapper.find('[data-testid="flow-screen-left"]').exists()).toBe(
+        false
       );
-      expect(left.attributes('title')).toBe('WHATSAPP_FLOWS.EDITOR.MOVE_LEFT');
-      expect(left.text()).toContain('WHATSAPP_FLOWS.EDITOR.MOVE_LEFT_SHORT');
-      expect(left.attributes('disabled')).toBeDefined();
+      expect(wrapper.find('[data-testid="flow-screen-right"]').exists()).toBe(
+        false
+      );
+    });
 
-      await right.trigger('click');
+    it('reorders the tabs when one is dragged, and the selected screen stays selected', async () => {
+      const { wrapper } = await mountPage();
+      const draggable = wrapper.findComponent(Draggable);
+      const [first, second] = draggable.props('modelValue');
+
+      draggable.vm.$emit('update:modelValue', [second, first]);
+      await flushPromises();
+
+      expect(tabs(wrapper)[0].text()).toContain('Tu cita');
+      expect(tabs(wrapper)[1].text()).toContain('Tus datos');
+      expect(tabs(wrapper)[1].attributes('aria-selected')).toBe('true');
+    });
+
+    it('keeps "+ Pantalla" after the tabs and out of the drag list', async () => {
+      const { wrapper } = await mountPage();
+
+      const draggable = wrapper.findComponent(Draggable);
+      expect(draggable.find('[data-testid="flow-screen-add"]').exists()).toBe(
+        false
+      );
+      expect(
+        wrapper.get('[data-testid="flow-screen-add"]').element
+          .previousElementSibling
+      ).toBe(draggable.element);
+    });
+
+    it('moves the focused tab with Alt + arrow keys and announces it', async () => {
+      const { wrapper } = await mountPage();
+      const first = tabs(wrapper)[0];
+
+      expect(first.attributes('aria-keyshortcuts')).toContain('Alt+ArrowRight');
+      await first.trigger('keydown', { key: 'ArrowRight', altKey: true });
 
       expect(tabs(wrapper)[1].text()).toContain('Tus datos');
       expect(tabs(wrapper)[1].attributes('aria-selected')).toBe('true');
+      expect(wrapper.get('[role="status"]').text()).toContain(
+        'WHATSAPP_FLOWS.EDITOR.TAB_MOVED'
+      );
+
+      await tabs(wrapper)[1].trigger('keydown', {
+        key: 'ArrowLeft',
+        ctrlKey: true,
+      });
+      expect(tabs(wrapper)[0].text()).toContain('Tus datos');
+    });
+
+    it('ignores the arrow keys at the ends and without a modifier', async () => {
+      const { wrapper } = await mountPage();
+
+      await tabs(wrapper)[0].trigger('keydown', {
+        key: 'ArrowLeft',
+        altKey: true,
+      });
+      await tabs(wrapper)[0].trigger('keydown', { key: 'ArrowRight' });
+
+      expect(tabs(wrapper)[0].text()).toContain('Tus datos');
     });
   });
 
@@ -288,6 +357,7 @@ describe('FlowBuilderPage', () => {
       expect(wrapper.get('[data-testid="flow-json-toggle"]').text()).toBe(
         'WHATSAPP_FLOWS.EDITOR.SHOW_JSON'
       );
+      expect(wrapper.find('[data-testid="flow-json"]').exists()).toBe(false);
       expect(wrapper.find('[data-testid="flow-editor-save"]').exists()).toBe(
         true
       );
@@ -295,12 +365,48 @@ describe('FlowBuilderPage', () => {
       expect(wrapper.find('select').exists()).toBe(false);
     });
 
-    it('shows the JSON Meta will get', async () => {
+    it('opens the JSON Meta will get in a modal, not inside the page', async () => {
       const { wrapper } = await mountPage();
+      expect(wrapper.find('[data-testid="flow-json"]').exists()).toBe(false);
 
       await wrapper.get('[data-testid="flow-json-toggle"]').trigger('click');
 
-      expect(wrapper.get('[data-testid="flow-json"]').text()).toContain('7.3');
+      const modal = wrapper.get('[data-testid="flow-json-dialog"]');
+      expect(modal.get('[data-testid="flow-json"]').text()).toContain('7.3');
+      expect(modal.get('[data-testid="flow-json"]').classes()).toContain(
+        'font-mono'
+      );
+    });
+
+    it('copies the JSON and says "Copiado"', async () => {
+      const writeText = vi.fn().mockResolvedValue();
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText },
+        configurable: true,
+      });
+      const { wrapper } = await mountPage();
+      await wrapper.get('[data-testid="flow-json-toggle"]').trigger('click');
+      const copy = wrapper.get('[data-testid="flow-json-copy"]');
+      expect(copy.text()).toBe('WHATSAPP_FLOWS.EDITOR.JSON_COPY');
+
+      await copy.trigger('click');
+      await flushPromises();
+
+      expect(writeText).toHaveBeenCalledWith(
+        JSON.stringify({ version: '7.3' }, null, 2)
+      );
+      expect(wrapper.get('[data-testid="flow-json-copy"]').text()).toBe(
+        'WHATSAPP_FLOWS.EDITOR.JSON_COPIED'
+      );
+    });
+
+    it('closes the JSON modal', async () => {
+      const { wrapper } = await mountPage();
+      await wrapper.get('[data-testid="flow-json-toggle"]').trigger('click');
+
+      await wrapper.get('[data-testid="flow-json-close"]').trigger('click');
+
+      expect(wrapper.find('[data-testid="flow-json"]').exists()).toBe(false);
     });
 
     it('says how many mistakes there are and shows them where they belong', async () => {
@@ -373,12 +479,27 @@ describe('FlowBuilderPage', () => {
       expect(api.create).not.toHaveBeenCalled();
     });
 
-    it('changes the categories from the "Flow" section when nothing is selected', async () => {
+    it('has no categories in the right column, only behind "Detalles del flow"', async () => {
+      const { wrapper } = await mountPage();
+
+      expect(
+        wrapper.get('[data-testid="flow-properties"]').text()
+      ).not.toContain('WHATSAPP_FLOWS.EDITOR.CATEGORIES');
+      expect(
+        wrapper.find('[data-testid="flow-category-LEAD_GENERATION"]').exists()
+      ).toBe(false);
+    });
+
+    it('changes the categories in the "Detalles del flow" modal', async () => {
       const { wrapper, api } = await mountPage();
 
-      await wrapper
-        .get('[data-testid="flow-form-props"]')
-        .findAll('button')[1]
+      await wrapper.get('[data-testid="flow-details-open"]').trigger('click');
+      const modal = wrapper.get('[data-testid="flow-details-dialog"]');
+      expect(
+        modal.findAll('button[data-testid^="flow-category-"]')
+      ).not.toHaveLength(0);
+      await modal
+        .findAll('button[data-testid^="flow-category-"]')[1]
         .trigger('click');
       await wrapper.get('[data-testid="flow-editor-save"]').trigger('click');
       await flushPromises();

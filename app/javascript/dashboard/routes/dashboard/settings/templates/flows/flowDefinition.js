@@ -190,7 +190,12 @@ export const newBlock = (type, definition = { screens: [] }) => {
   return block;
 };
 
-export const newScreen = () => ({ title: '', button: '', blocks: [] });
+// `number` is the position of the new screen, which names it until the user gives it a title.
+export const newScreen = number => ({
+  title: `Pantalla ${number}`,
+  button: '',
+  blocks: [],
+});
 
 export const newOption = block => {
   const taken = (block.options || []).map(option => option.id);
@@ -247,7 +252,7 @@ export const STARTING_POINTS = {
     schema_version: 1,
     screens: [
       {
-        title: 'Formulario',
+        title: 'Pantalla 1',
         button: 'Enviar',
         blocks: [{ type: 'heading', text: 'Escribe aquí tu pregunta' }],
       },

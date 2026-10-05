@@ -10,6 +10,7 @@ import {
   groupErrors,
   isVisible,
   newBlock,
+  newScreen,
   newOption,
   optionIdFor,
   slugify,
@@ -234,5 +235,12 @@ describe('errors', () => {
         expect(item).toMatchObject({ type: 'short_text', input: id });
       });
     });
+  });
+});
+
+describe('default screen titles', () => {
+  it('names the blank start and new screens by position, never "Formulario"', () => {
+    expect(STARTING_POINTS.blank().screens[0].title).toBe('Pantalla 1');
+    expect(newScreen(3).title).toBe('Pantalla 3');
   });
 });
