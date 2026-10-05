@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_03_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_04_190000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1925,6 +1925,19 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_03_120000) do
     t.index ["account_id", "url"], name: "index_webhooks_on_account_id_and_url", unique: true
   end
 
+  create_table "whatsapp_flows", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.jsonb "categories", default: [], null: false
+    t.jsonb "definition", default: {}, null: false
+    t.bigint "created_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "name"], name: "index_whatsapp_flows_on_account_id_and_name"
+    t.index ["account_id"], name: "index_whatsapp_flows_on_account_id"
+    t.index ["created_by_id"], name: "index_whatsapp_flows_on_created_by_id"
+  end
+
   create_table "working_hours", force: :cascade do |t|
     t.bigint "inbox_id"
     t.bigint "account_id"
@@ -1993,6 +2006,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_03_120000) do
   add_foreign_key "task_templates", "accounts", on_delete: :cascade
   add_foreign_key "task_templates", "teams", column: "default_team_id"
   add_foreign_key "user_sessions", "users"
+  add_foreign_key "whatsapp_flows", "accounts", on_delete: :cascade
+  add_foreign_key "whatsapp_flows", "users", column: "created_by_id", on_delete: :nullify
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").
       after(:insert).

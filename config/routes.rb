@@ -162,6 +162,9 @@ Rails.application.routes.draw do
             post :execute, on: :member
           end
           resources :flows, only: [:index, :create, :show, :update, :destroy]
+          resources :whatsapp_flows, only: [:index, :create, :show, :update, :destroy] do
+            post :validate, on: :collection
+          end
           resources :task_templates, only: [:index, :create, :show, :update, :destroy]
           resources :internal_tasks, only: [:index, :show, :update, :destroy] do
             member do
