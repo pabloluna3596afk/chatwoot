@@ -46,6 +46,7 @@ import teamsSettings from './teamsSettings.json';
 import variables from './variables.json';
 import whatsappTemplates from './whatsappTemplates.json';
 import whatsappTemplateMgmt from './whatsappTemplateMgmt.json';
+import whatsappFlows from './whatsappFlows.json';
 
 export default {
   ...advancedFilters,
@@ -96,4 +97,5 @@ export default {
   ...variables,
   ...whatsappTemplates,
   ...whatsappTemplateMgmt,
+  ...whatsappFlows,
 };

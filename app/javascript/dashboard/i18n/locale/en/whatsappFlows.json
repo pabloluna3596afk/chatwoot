@@ -1,0 +1,176 @@
+{
+  "WHATSAPP_FLOWS": {
+    "TAB": "Forms",
+    "CATEGORIES": {
+      "LEAD_GENERATION": "Lead generation",
+      "SIGN_UP": "Sign up",
+      "SIGN_IN": "Sign in",
+      "APPOINTMENT_BOOKING": "Appointments",
+      "CONTACT_US": "Contact us",
+      "CUSTOMER_SUPPORT": "Customer support",
+      "SURVEY": "Survey",
+      "OTHER": "Other"
+    },
+    "BLOCKS": {
+      "heading": "Heading",
+      "subheading": "Subheading",
+      "text": "Text",
+      "caption": "Small note",
+      "short_text": "Short answer",
+      "long_text": "Long answer",
+      "dropdown": "Dropdown",
+      "radio": "Single choice",
+      "checkbox": "Multiple choice",
+      "date": "Date",
+      "optin": "Opt-in checkbox",
+      "photo": "Photo",
+      "document": "Document"
+    },
+    "PREVIEW": {
+      "DONE_TITLE": "Sent",
+      "DONE_BODY": "This is how you will receive the answers",
+      "RESTART": "Try again",
+      "ADD_PHOTO": "Upload a photo",
+      "ADD_DOCUMENT": "Upload a document",
+      "DEFAULT_BUTTON": "Continue"
+    },
+    "START": {
+      "TITLE": "New form",
+      "DESCRIPTION": "Give it a name, pick the categories and a starting point. On the right you see how it starts.",
+      "STARTING_POINT": "Starting point",
+      "CANCEL": "Cancel",
+      "CREATE": "Create form",
+      "POINTS": {
+        "blank": {
+          "TITLE": "Blank",
+          "DESCRIPTION": "An empty screen to build yourself."
+        },
+        "interests": {
+          "TITLE": "Collect interests",
+          "DESCRIPTION": "Ask which topics the customer is interested in."
+        },
+        "feedback": {
+          "TITLE": "Get feedback",
+          "DESCRIPTION": "A rating and a comment."
+        },
+        "survey": {
+          "TITLE": "Survey",
+          "DESCRIPTION": "Two screens: details and experience."
+        },
+        "support": {
+          "TITLE": "Customer support",
+          "DESCRIPTION": "Name, email, topic and message, with a field that appears depending on the topic."
+        }
+      }
+    },
+    "LIST": {
+      "TITLE": "Forms",
+      "DESCRIPTION": "Questions the customer answers inside the chat. The answers arrive in the conversation.",
+      "NEW": "New form",
+      "EMPTY": "There are no forms yet.",
+      "SCREENS": "{n} screens",
+      "EDIT": "Edit",
+      "DELETE": "Delete",
+      "DELETE_TITLE": "Delete form",
+      "DELETE_BODY": "«{name}» will be deleted. This cannot be undone.",
+      "DELETED": "Form deleted.",
+      "DELETE_ERROR": "The form could not be deleted.",
+      "LOAD_ERROR": "The forms could not be loaded."
+    },
+    "EDITOR": {
+      "BACK": "Back",
+      "READY": "Ready to publish",
+      "TO_FIX": "{n} things to fix",
+      "SAVE": "Save",
+      "SAVED": "Form saved.",
+      "SAVE_ERROR": "The form could not be saved.",
+      "NAME": "Form name",
+      "NAME_PLACEHOLDER": "Customer details",
+      "NAME_REQUIRED": "Enter a name for the form.",
+      "CATEGORIES": "Categories",
+      "SCREEN_TITLE": "Screen title",
+      "MOVE_UP": "Move up",
+      "MOVE_DOWN": "Move down",
+      "REMOVE_SCREEN": "Remove screen",
+      "REMOVE_BLOCK": "Remove block",
+      "ADD_BLOCK": "Add block",
+      "ADD_SCREEN": "Add screen",
+      "BUTTON": "Button text",
+      "BUTTON_NEXT": "Continue",
+      "BUTTON_LAST": "Send",
+      "PREVIEW_NOTE": "Live preview. On the phone, WhatsApp shows it with small differences.",
+      "SHOW_JSON": "See Meta's JSON",
+      "HIDE_JSON": "Hide the JSON",
+      "CHECKING": "Checking…",
+      "GROUPS": {
+        "text": "Texts",
+        "answer": "Questions",
+        "file": "Files"
+      },
+      "TEXT_PLACEHOLDER": "Write the text",
+      "LABEL_PLACEHOLDER": "Question or field title",
+      "HELPER_PLACEHOLDER": "Help under the field (optional)",
+      "INPUT_KIND": "Answer type",
+      "KINDS": {
+        "text": "Text",
+        "email": "Email",
+        "phone": "Phone",
+        "number": "Number"
+      },
+      "OPTIONS": "Options",
+      "OPTION_PLACEHOLDER": "Option text",
+      "REMOVE_OPTION": "Remove option",
+      "ADD_OPTION": "Add option",
+      "MIN_CHOICES": "Minimum to choose",
+      "MAX_CHOICES": "Maximum to choose",
+      "MAX_FILES": "How many files can be uploaded",
+      "REQUIRED": "Required",
+      "KEY": "Data name",
+      "KEY_HELP": "This is how the answer arrives. It is written from the question.",
+      "CONDITION": "Show only if…",
+      "CONDITION_NEEDS_ANSWER": "First add, before this block, a short answer, dropdown, single choice or checkbox question.",
+      "OPS": {
+        "equals": "is equal to",
+        "not_equals": "is different from"
+      },
+      "CHECKED": "Checked",
+      "UNCHECKED": "Unchecked"
+    },
+    "ERRORS": {
+      "screens_required": "Add at least one screen.",
+      "too_many_screens": "You can have up to {limit} screens.",
+      "screen_title_required": "Enter the screen title.",
+      "screen_title_too_long": "The screen title can have up to {limit} characters.",
+      "button_required": "Enter the button text.",
+      "button_too_long": "The button can have up to {limit} characters.",
+      "button_no_emoji": "The button does not accept emojis.",
+      "blocks_required": "The screen needs at least one block.",
+      "too_many_components": "A screen can have up to {limit} blocks.",
+      "too_many_optins": "A screen can have up to {limit} opt-in checkboxes.",
+      "too_many_file_blocks": "A screen can have {limit} block of this kind of file.",
+      "block_invalid": "This block is not valid.",
+      "text_required": "Enter the text.",
+      "text_too_long": "The text can have up to {limit} characters.",
+      "helper_too_long": "The help can have up to {limit} characters.",
+      "input_invalid": "The answer type is not valid.",
+      "label_required": "Enter the question.",
+      "label_too_long": "The question can have up to {limit} characters.",
+      "options_required": "Add at least one option.",
+      "too_many_options": "You can add up to {limit} options.",
+      "option_invalid": "An option is not valid.",
+      "option_id_invalid": "An option has an invalid identifier.",
+      "option_title_required": "Every option needs a text.",
+      "option_title_too_long": "An option text can have up to {limit} characters.",
+      "option_ids_duplicate": "Two options have the same name.",
+      "selection_range_invalid": "The minimum and maximum to choose are not valid.",
+      "files_range_invalid": "The number of files must be between 1 and {limit}.",
+      "key_invalid": "The data name uses lowercase letters, numbers and underscores, and starts with a letter.",
+      "key_duplicate": "Another field of the form has the same name.",
+      "condition_invalid": "The condition is not valid.",
+      "condition_unknown_field": "The condition looks at a question that no longer exists.",
+      "condition_not_earlier": "The condition can only look at a question that comes before.",
+      "condition_field_unsupported": "The condition cannot look at this kind of question.",
+      "condition_value_invalid": "The value of the condition is not valid."
+    }
+  }
+}

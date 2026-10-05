@@ -1,0 +1,176 @@
+{
+  "WHATSAPP_FLOWS": {
+    "TAB": "Formularios",
+    "CATEGORIES": {
+      "LEAD_GENERATION": "Captar clientes",
+      "SIGN_UP": "Registro",
+      "SIGN_IN": "Inicio de sesión",
+      "APPOINTMENT_BOOKING": "Citas",
+      "CONTACT_US": "Contacto",
+      "CUSTOMER_SUPPORT": "Atención al cliente",
+      "SURVEY": "Encuesta",
+      "OTHER": "Otro"
+    },
+    "BLOCKS": {
+      "heading": "Título",
+      "subheading": "Subtítulo",
+      "text": "Texto",
+      "caption": "Nota pequeña",
+      "short_text": "Respuesta corta",
+      "long_text": "Respuesta larga",
+      "dropdown": "Lista desplegable",
+      "radio": "Una opción",
+      "checkbox": "Varias opciones",
+      "date": "Fecha",
+      "optin": "Casilla de aceptación",
+      "photo": "Foto",
+      "document": "Documento"
+    },
+    "PREVIEW": {
+      "DONE_TITLE": "Enviado",
+      "DONE_BODY": "Así recibirás las respuestas",
+      "RESTART": "Probar de nuevo",
+      "ADD_PHOTO": "Subir una foto",
+      "ADD_DOCUMENT": "Subir un documento",
+      "DEFAULT_BUTTON": "Continuar"
+    },
+    "START": {
+      "TITLE": "Nuevo formulario",
+      "DESCRIPTION": "Ponle un nombre, elige las categorías y un punto de partida. A la derecha ves cómo empieza.",
+      "STARTING_POINT": "Punto de partida",
+      "CANCEL": "Cancelar",
+      "CREATE": "Crear formulario",
+      "POINTS": {
+        "blank": {
+          "TITLE": "En blanco",
+          "DESCRIPTION": "Una pantalla vacía para armarlo tú."
+        },
+        "interests": {
+          "TITLE": "Recolectar intereses",
+          "DESCRIPTION": "Pregunta qué temas le interesan al cliente."
+        },
+        "feedback": {
+          "TITLE": "Recibir comentarios",
+          "DESCRIPTION": "Una calificación y un comentario."
+        },
+        "survey": {
+          "TITLE": "Encuesta",
+          "DESCRIPTION": "Dos pantallas: datos y experiencia."
+        },
+        "support": {
+          "TITLE": "Atención al cliente",
+          "DESCRIPTION": "Nombre, correo, tema y mensaje, con un campo que aparece según el tema."
+        }
+      }
+    },
+    "LIST": {
+      "TITLE": "Formularios",
+      "DESCRIPTION": "Preguntas que el cliente responde dentro del chat. Las respuestas llegan a la conversación.",
+      "NEW": "Nuevo formulario",
+      "EMPTY": "Aún no hay formularios.",
+      "SCREENS": "{n} pantallas",
+      "EDIT": "Editar",
+      "DELETE": "Borrar",
+      "DELETE_TITLE": "Borrar formulario",
+      "DELETE_BODY": "Se borrará «{name}». No se puede deshacer.",
+      "DELETED": "Formulario borrado.",
+      "DELETE_ERROR": "No se pudo borrar el formulario.",
+      "LOAD_ERROR": "No se pudieron cargar los formularios."
+    },
+    "EDITOR": {
+      "BACK": "Volver",
+      "READY": "Listo para publicar",
+      "TO_FIX": "Faltan {n} cosas por corregir",
+      "SAVE": "Guardar",
+      "SAVED": "Formulario guardado.",
+      "SAVE_ERROR": "No se pudo guardar el formulario.",
+      "NAME": "Nombre del formulario",
+      "NAME_PLACEHOLDER": "Datos del cliente",
+      "NAME_REQUIRED": "Escribe un nombre para el formulario.",
+      "CATEGORIES": "Categorías",
+      "SCREEN_TITLE": "Título de la pantalla",
+      "MOVE_UP": "Subir",
+      "MOVE_DOWN": "Bajar",
+      "REMOVE_SCREEN": "Quitar pantalla",
+      "REMOVE_BLOCK": "Quitar bloque",
+      "ADD_BLOCK": "Añadir bloque",
+      "ADD_SCREEN": "Añadir pantalla",
+      "BUTTON": "Texto del botón",
+      "BUTTON_NEXT": "Continuar",
+      "BUTTON_LAST": "Enviar",
+      "PREVIEW_NOTE": "Vista previa en vivo. En el teléfono, WhatsApp lo muestra con pequeñas diferencias.",
+      "SHOW_JSON": "Ver el JSON de Meta",
+      "HIDE_JSON": "Ocultar el JSON",
+      "CHECKING": "Revisando…",
+      "GROUPS": {
+        "text": "Textos",
+        "answer": "Preguntas",
+        "file": "Archivos"
+      },
+      "TEXT_PLACEHOLDER": "Escribe el texto",
+      "LABEL_PLACEHOLDER": "Pregunta o título del campo",
+      "HELPER_PLACEHOLDER": "Ayuda debajo del campo (opcional)",
+      "INPUT_KIND": "Tipo de respuesta",
+      "KINDS": {
+        "text": "Texto",
+        "email": "Correo",
+        "phone": "Teléfono",
+        "number": "Número"
+      },
+      "OPTIONS": "Opciones",
+      "OPTION_PLACEHOLDER": "Texto de la opción",
+      "REMOVE_OPTION": "Quitar opción",
+      "ADD_OPTION": "Añadir opción",
+      "MIN_CHOICES": "Mínimo a elegir",
+      "MAX_CHOICES": "Máximo a elegir",
+      "MAX_FILES": "Cuántos archivos se pueden subir",
+      "REQUIRED": "Obligatorio",
+      "KEY": "Nombre del dato",
+      "KEY_HELP": "Así llega la respuesta. Se escribe solo a partir de la pregunta.",
+      "CONDITION": "Mostrar solo si…",
+      "CONDITION_NEEDS_ANSWER": "Primero añade antes una pregunta de respuesta corta, lista, una opción o casilla.",
+      "OPS": {
+        "equals": "es igual a",
+        "not_equals": "es distinto de"
+      },
+      "CHECKED": "Marcada",
+      "UNCHECKED": "Sin marcar"
+    },
+    "ERRORS": {
+      "screens_required": "Añade al menos una pantalla.",
+      "too_many_screens": "Puedes tener hasta {limit} pantallas.",
+      "screen_title_required": "Escribe el título de la pantalla.",
+      "screen_title_too_long": "El título de la pantalla puede tener hasta {limit} caracteres.",
+      "button_required": "Escribe el texto del botón.",
+      "button_too_long": "El botón puede tener hasta {limit} caracteres.",
+      "button_no_emoji": "El botón no admite emojis.",
+      "blocks_required": "La pantalla necesita al menos un bloque.",
+      "too_many_components": "Una pantalla puede tener hasta {limit} bloques.",
+      "too_many_optins": "Una pantalla puede tener hasta {limit} casillas de aceptación.",
+      "too_many_file_blocks": "Una pantalla puede tener {limit} bloque de este tipo de archivo.",
+      "block_invalid": "Este bloque no es válido.",
+      "text_required": "Escribe el texto.",
+      "text_too_long": "El texto puede tener hasta {limit} caracteres.",
+      "helper_too_long": "La ayuda puede tener hasta {limit} caracteres.",
+      "input_invalid": "El tipo de respuesta no es válido.",
+      "label_required": "Escribe la pregunta.",
+      "label_too_long": "La pregunta puede tener hasta {limit} caracteres.",
+      "options_required": "Añade al menos una opción.",
+      "too_many_options": "Puedes poner hasta {limit} opciones.",
+      "option_invalid": "Una opción no es válida.",
+      "option_id_invalid": "Una opción tiene un identificador no válido.",
+      "option_title_required": "Cada opción necesita un texto.",
+      "option_title_too_long": "El texto de una opción puede tener hasta {limit} caracteres.",
+      "option_ids_duplicate": "Dos opciones se llaman igual.",
+      "selection_range_invalid": "El mínimo y el máximo a elegir no son válidos.",
+      "files_range_invalid": "La cantidad de archivos debe estar entre 1 y {limit}.",
+      "key_invalid": "El nombre del dato usa minúsculas, números y guion bajo, y empieza con una letra.",
+      "key_duplicate": "Otro dato del formulario tiene el mismo nombre.",
+      "condition_invalid": "La condición no es válida.",
+      "condition_unknown_field": "La condición mira una pregunta que ya no existe.",
+      "condition_not_earlier": "La condición solo puede mirar una pregunta que va antes.",
+      "condition_field_unsupported": "La condición no puede mirar este tipo de pregunta.",
+      "condition_value_invalid": "El valor de la condición no es válido."
+    }
+  }
+}

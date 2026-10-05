@@ -22,6 +22,7 @@ import TemplateCard from './TemplateCard.vue';
 import TemplatePreviewDrawer from './TemplatePreviewDrawer.vue';
 import TemplateFormDrawer from './TemplateFormDrawer.vue';
 import PresetsPanel from './PresetsPanel.vue';
+import FlowsPanel from './flows/FlowsPanel.vue';
 import { isEditable } from './templateForm';
 import { presetToForm } from './presets';
 import {
@@ -190,16 +191,23 @@ const openPreview = template => {
 
 const openCreate = () => formDrawerRef.value?.open();
 
-// Templates and ready-made presets are two tabs of the page; only administrators with a WhatsApp Cloud channel see
-// the presets (they create templates).
+// Templates, ready-made presets and forms are the tabs of the page. Only administrators see the tabs: the presets need
+// a WhatsApp Cloud channel (they create templates); the forms are ChatHub's own and do not.
 const activeTab = ref('templates');
-const showTabs = computed(() => isAdmin.value && cloudInboxes.value.length > 0);
+const showTabs = computed(() => isAdmin.value);
 const showTemplates = computed(
   () => !showTabs.value || activeTab.value === 'templates'
 );
+const showPresets = computed(
+  () => showTabs.value && activeTab.value === 'presets'
+);
+const showFlows = computed(() => showTabs.value && activeTab.value === 'flows');
 const tabs = computed(() => [
   { key: 'templates', label: t('WHATSAPP_TEMPLATE_MGMT.TABS.TEMPLATES') },
-  { key: 'presets', label: t('WHATSAPP_TEMPLATE_MGMT.TABS.PRESETS') },
+  ...(cloudInboxes.value.length
+    ? [{ key: 'presets', label: t('WHATSAPP_TEMPLATE_MGMT.TABS.PRESETS') }]
+    : []),
+  { key: 'flows', label: t('WHATSAPP_FLOWS.TAB') },
 ]);
 const tabIndex = computed(() =>
   tabs.value.findIndex(tab => tab.key === activeTab.value)
@@ -450,7 +458,7 @@ onDeactivated(abortTemplateRequest);
             }}
           </span>
         </template>
-        <template #actions>
+        <template v-if="!showFlows" #actions>
           <Button
             v-if="isAdmin && cloudInboxes.length"
             :label="$t('WHATSAPP_TEMPLATE_MGMT.NEW_TEMPLATE')"
@@ -473,8 +481,9 @@ onDeactivated(abortTemplateRequest);
     </template>
 
     <template #body>
+      <FlowsPanel v-if="showFlows" />
       <PresetsPanel
-        v-if="!showTemplates"
+        v-else-if="showPresets"
         :inboxes="cloudInboxes"
         :templates="templates"
         @use="applyPreset"
