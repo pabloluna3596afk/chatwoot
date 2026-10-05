@@ -24,7 +24,10 @@
       "date": "Date",
       "optin": "Opt-in checkbox",
       "photo": "Upload photo",
-      "document": "Upload document", "email": "Email", "phone": "Phone", "number": "Number"
+      "document": "Upload document",
+      "email": "Email",
+      "phone": "Phone",
+      "number": "Number"
     },
     "PREVIEW": {
       "PICK_ONE": "Choose an option ▾",
@@ -36,11 +39,7 @@
       "DEFAULT_BUTTON": "Continue"
     },
     "START": {
-      "TITLE": "New flow",
-      "DESCRIPTION": "Give it a name, pick the categories and a starting point. On the right you see how it starts.",
       "STARTING_POINT": "Starting point",
-      "CANCEL": "Cancel",
-      "CONTINUE": "Continue",
       "POINTS": {
         "blank": {
           "TITLE": "Blank",
@@ -62,7 +61,8 @@
           "TITLE": "Customer support",
           "DESCRIPTION": "Name, email, topic and message, with a field that appears depending on the topic."
         }
-      }
+      },
+      "HINT": "Pick a starting point, or add a block to start from scratch."
     },
     "LIST": {
       "TITLE": "Flows",
@@ -86,9 +86,8 @@
       "SAVED": "Flow saved.",
       "SAVE_ERROR": "The flow could not be saved.",
       "NAME": "Flow name",
-      "NAME_PLACEHOLDER": "Customer details",
+      "NAME_PLACEHOLDER": "Flow name",
       "NAME_REQUIRED": "Enter a name for the flow.",
-      "CATEGORIES": "Categories",
       "SCREEN_TITLE": "Screen title",
       "MOVE_UP": "Move up",
       "MOVE_DOWN": "Move down",
@@ -100,10 +99,6 @@
       "BUTTON_NEXT": "Continue",
       "BUTTON_LAST": "Send",
       "PREVIEW_NOTE": "Live preview. On the phone, WhatsApp shows it with small differences.",
-      "DETAILS": "Flow details",
-      "DETAILS_TITLE": "Flow details",
-      "DETAILS_DESCRIPTION": "The categories Meta files this flow under.",
-      "DETAILS_DONE": "Done",
       "TAB_HINT": "Drag a screen to reorder it, or select it and press Alt + ← or Alt + → .",
       "TAB_MOVED": "Screen moved to position {n} of {total}.",
       "JSON_TITLE": "Meta JSON",
@@ -168,7 +163,10 @@
       "BACK_TO_LIST": "Back to Flows",
       "ERRORS_COUNT": "{n} to fix",
       "SCREEN_ERRORS": "On this screen",
-      "FLOW_ERRORS": "In the flow"
+      "FLOW_ERRORS": "In the flow",
+      "CATEGORY": "Category",
+      "CATEGORY_REQUIRED": "Choose a category.",
+      "START_REQUIRED": "Choose a starting point."
     },
     "ERRORS": {
       "screens_required": "Add at least one screen.",
