@@ -18,10 +18,72 @@ export const BLOCK_TYPES = [
   { type: 'document', group: 'file', icon: 'i-lucide-file-text' },
 ];
 
+// The buttons of the builder's "add to the screen" column, in the order of the page. `id` names the button (and its
+// label); email, phone and number are a short text with that kind of answer.
+export const PALETTE = [
+  {
+    group: 'text',
+    items: [
+      { id: 'heading', type: 'heading', icon: 'i-lucide-heading-1' },
+      { id: 'subheading', type: 'subheading', icon: 'i-lucide-heading-2' },
+      { id: 'text', type: 'text', icon: 'i-lucide-text' },
+      { id: 'caption', type: 'caption', icon: 'i-lucide-text-quote' },
+    ],
+  },
+  {
+    group: 'answer',
+    items: [
+      {
+        id: 'short_text',
+        type: 'short_text',
+        icon: 'i-lucide-text-cursor-input',
+      },
+      {
+        id: 'email',
+        type: 'short_text',
+        input: 'email',
+        icon: 'i-lucide-at-sign',
+      },
+      {
+        id: 'phone',
+        type: 'short_text',
+        input: 'phone',
+        icon: 'i-lucide-phone',
+      },
+      {
+        id: 'number',
+        type: 'short_text',
+        input: 'number',
+        icon: 'i-lucide-hash',
+      },
+      { id: 'long_text', type: 'long_text', icon: 'i-lucide-align-left' },
+      { id: 'date', type: 'date', icon: 'i-lucide-calendar' },
+    ],
+  },
+  {
+    group: 'options',
+    items: [
+      { id: 'radio', type: 'radio', icon: 'i-lucide-circle-dot' },
+      { id: 'checkbox', type: 'checkbox', icon: 'i-lucide-square-check' },
+      { id: 'dropdown', type: 'dropdown', icon: 'i-lucide-chevrons-up-down' },
+      { id: 'optin', type: 'optin', icon: 'i-lucide-badge-check' },
+    ],
+  },
+  {
+    group: 'file',
+    items: [
+      { id: 'photo', type: 'photo', icon: 'i-lucide-image' },
+      { id: 'document', type: 'document', icon: 'i-lucide-file-text' },
+    ],
+  },
+];
+
 export const TEXT_TYPES = ['heading', 'subheading', 'text', 'caption'];
 export const OPTION_TYPES = ['dropdown', 'radio', 'checkbox'];
 export const FILE_TYPES = ['photo', 'document'];
 export const INPUT_KINDS = ['text', 'email', 'phone', 'number'];
+// What the builder offers as the question of a new condition: pick-one questions.
+export const SINGLE_CHOICE_TYPES = ['dropdown', 'radio'];
 // What a condition can look at: one answer, not a list or a file.
 export const CONDITION_TYPES = ['short_text', 'dropdown', 'radio', 'optin'];
 export const CATEGORIES = [

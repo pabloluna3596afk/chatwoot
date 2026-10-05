@@ -80,40 +80,119 @@ describe('FlowBlockEditor', () => {
     expect(lastUpdate(wrapper).options).toHaveLength(3);
   });
 
-  it('turns a condition on with the first earlier answer and its first option, and off again', async () => {
-    const wrapper = mountBlock(1);
+  describe('"Mostrar este campo" (the condition)', () => {
+    const comboOf = (wrapper, testid) =>
+      wrapper.findComponent(`[data-testid="${testid}"]`);
 
-    await wrapper.get('[data-testid="flow-condition-toggle"]').trigger('click');
-    expect(lastUpdate(wrapper).visible_when).toEqual({
-      key: 'tipo',
-      op: 'equals',
-      value: 'a',
+    it('offers "Siempre" and one "Solo si ..." per earlier pick-one question', () => {
+      const wrapper = mountBlock(1);
+
+      const options = comboOf(wrapper, 'flow-show').props('options');
+      expect(options.map(option => option.value)).toEqual(['', 'tipo']);
+      expect(options[0].label).toBe('WHATSAPP_FLOWS.EDITOR.SHOW_ALWAYS');
+      expect(options[1].label).toBe('WHATSAPP_FLOWS.EDITOR.SHOW_IF');
+      expect(wrapper.find('[data-testid="flow-condition-hint"]').exists()).toBe(
+        false
+      );
     });
 
-    const on = mountBlock(1, {
-      modelValue: {
-        ...definition.screens[0].blocks[1],
+    it('with no earlier pick-one question only offers "Siempre" and says what to add', () => {
+      const wrapper = mountBlock(0);
+
+      const options = comboOf(wrapper, 'flow-show').props('options');
+      expect(options.map(option => option.value)).toEqual(['']);
+      expect(wrapper.get('[data-testid="flow-condition-hint"]').text()).toBe(
+        'WHATSAPP_FLOWS.EDITOR.SHOW_NEEDS_QUESTION'
+      );
+      expect(wrapper.find('[data-testid="flow-show-value"]').exists()).toBe(
+        false
+      );
+    });
+
+    it('does not offer a short text as the question of a condition', () => {
+      const wrapper = mountBlock(1, {
+        definition: {
+          screens: [
+            {
+              blocks: [
+                { type: 'short_text', key: 'nombre', label: 'Nombre' },
+                { type: 'short_text', key: 'detalle', label: 'Detalle' },
+              ],
+            },
+          ],
+        },
+      });
+
+      expect(
+        comboOf(wrapper, 'flow-show')
+          .props('options')
+          .map(option => option.value)
+      ).toEqual(['']);
+    });
+
+    it('picking a question starts the condition with its first option and makes the field optional', async () => {
+      const wrapper = mountBlock(1, {
+        modelValue: { ...definition.screens[0].blocks[1], required: true },
+      });
+
+      comboOf(wrapper, 'flow-show').vm.$emit('update:modelValue', 'tipo');
+
+      expect(lastUpdate(wrapper)).toMatchObject({
+        required: false,
         visible_when: { key: 'tipo', op: 'equals', value: 'a' },
-      },
+      });
     });
-    expect(on.find('[data-testid="flow-condition"]').exists()).toBe(true);
-    await on.get('[data-testid="flow-condition-toggle"]').trigger('click');
-    expect(lastUpdate(on)).not.toHaveProperty('visible_when');
+
+    it('shows the value select once a question is picked and writes the value', async () => {
+      const wrapper = mountBlock(1, {
+        modelValue: {
+          ...definition.screens[0].blocks[1],
+          visible_when: { key: 'tipo', op: 'equals', value: 'a' },
+        },
+      });
+
+      expect(
+        comboOf(wrapper, 'flow-show-value')
+          .props('options')
+          .map(option => option.value)
+      ).toEqual(['a', 'otro']);
+      comboOf(wrapper, 'flow-show-value').vm.$emit('update:modelValue', 'otro');
+      expect(lastUpdate(wrapper).visible_when).toEqual({
+        key: 'tipo',
+        op: 'equals',
+        value: 'otro',
+      });
+    });
+
+    it('picking "Siempre" takes the condition away', async () => {
+      const wrapper = mountBlock(1, {
+        modelValue: {
+          ...definition.screens[0].blocks[1],
+          visible_when: { key: 'tipo', op: 'equals', value: 'a' },
+        },
+      });
+
+      comboOf(wrapper, 'flow-show').vm.$emit('update:modelValue', '');
+
+      expect(lastUpdate(wrapper)).not.toHaveProperty('visible_when');
+    });
   });
 
-  it('cannot start a condition with no earlier answer to look at', () => {
-    const wrapper = mountBlock(0);
-
-    expect(wrapper.text()).toContain(
-      'WHATSAPP_FLOWS.EDITOR.CONDITION_NEEDS_ANSWER'
-    );
-  });
-
-  it('asks the page to remove or move the block', async () => {
+  it('lets the helper of the answer name wrap instead of truncating it', () => {
     const wrapper = mountBlock(1);
 
-    await wrapper.get('[data-testid="flow-block-remove"]').trigger('click');
-    expect(wrapper.emitted('remove')).toHaveLength(1);
+    expect(
+      wrapper.get('[data-testid="flow-key-help"]').classes()
+    ).not.toContain('truncate');
+  });
+
+  it('is only the settings: no card header with the type name or move and remove buttons', () => {
+    const wrapper = mountBlock(1);
+
+    expect(wrapper.find('[data-testid="flow-block-remove"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.text()).not.toContain('WHATSAPP_FLOWS.BLOCKS.');
   });
 
   it('edits a text block with its text only and shows the errors of the block', () => {

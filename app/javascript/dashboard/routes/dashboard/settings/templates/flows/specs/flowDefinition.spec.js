@@ -1,5 +1,6 @@
 import {
   BLOCK_TYPES,
+  PALETTE,
   STARTING_POINTS,
   conditionSources,
   defaultCondition,
@@ -208,5 +209,30 @@ describe('errors', () => {
     expect(grouped.form).toHaveLength(1);
     expect(grouped.screen[0]).toHaveLength(1);
     expect(grouped.block['0.1']).toHaveLength(2);
+  });
+
+  describe('the builder palette', () => {
+    const items = PALETTE.flatMap(group => group.items);
+
+    it('groups the buttons as text, answers, options and files', () => {
+      expect(PALETTE.map(group => group.group)).toEqual([
+        'text',
+        'answer',
+        'options',
+        'file',
+      ]);
+    });
+
+    it('offers every block type of the definition', () => {
+      const offered = new Set(items.map(item => item.type));
+      BLOCK_TYPES.forEach(({ type }) => expect(offered.has(type)).toBe(true));
+    });
+
+    it('turns email, phone and number into a short text of that kind', () => {
+      ['email', 'phone', 'number'].forEach(id => {
+        const item = items.find(entry => entry.id === id);
+        expect(item).toMatchObject({ type: 'short_text', input: id });
+      });
+    });
   });
 });

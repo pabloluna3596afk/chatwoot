@@ -1,6 +1,7 @@
 <script setup>
-// One block of a screen: its text or question, the options of a choice, the files allowed and the condition that shows
-// it. It never changes the block it receives: every edit goes out as a new block.
+// The settings of the selected block (the right column of the builder): its text or question, the options of a choice,
+// the files allowed and the condition that shows it. It never changes the block it receives: every edit goes out as a
+// new block.
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -10,10 +11,10 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import {
-  BLOCK_TYPES,
   INPUT_KINDS,
   LIMITS,
   OPTION_TYPES,
+  SINGLE_CHOICE_TYPES,
   TEXT_TYPES,
   conditionSources,
   defaultCondition,
@@ -31,18 +32,13 @@ const props = defineProps({
   definition: { type: Object, required: true },
   screenIndex: { type: Number, required: true },
   blockIndex: { type: Number, required: true },
-  isFirst: { type: Boolean, default: false },
-  isLast: { type: Boolean, default: false },
   errors: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(['update:modelValue', 'remove', 'move']);
+const emit = defineEmits(['update:modelValue']);
 
 const { t, te } = useI18n();
 
-const icon = computed(
-  () => BLOCK_TYPES.find(item => item.type === props.modelValue.type)?.icon
-);
 const isText = computed(() => TEXT_TYPES.includes(props.modelValue.type));
 const hasOptions = computed(() => OPTION_TYPES.includes(props.modelValue.type));
 const isFile = computed(() =>
@@ -97,8 +93,17 @@ const removeOption = index =>
     ),
   });
 
+// The questions a condition can look at: the pick-one questions before this block (and the one it already uses).
 const sources = computed(() =>
-  conditionSources(props.definition, props.screenIndex, props.blockIndex)
+  conditionSources(
+    props.definition,
+    props.screenIndex,
+    props.blockIndex
+  ).filter(
+    field =>
+      SINGLE_CHOICE_TYPES.includes(field.type) ||
+      field.key === props.modelValue.visible_when?.key
+  )
 );
 const hasCondition = computed(() => Boolean(props.modelValue.visible_when));
 const condition = computed(() => props.modelValue.visible_when || {});
@@ -106,45 +111,44 @@ const source = computed(() =>
   sources.value.find(field => field.key === condition.value.key)
 );
 
-const toggleCondition = enabled => {
-  if (!enabled) {
+const showOptions = computed(() => [
+  { value: '', label: t('WHATSAPP_FLOWS.EDITOR.SHOW_ALWAYS') },
+  ...sources.value.map(field => ({
+    value: field.key,
+    label: t('WHATSAPP_FLOWS.EDITOR.SHOW_IF', {
+      question: field.definition.label || field.key,
+    }),
+  })),
+]);
+
+const setShow = key => {
+  if (!key) {
     const rest = { ...props.modelValue };
     delete rest.visible_when;
     emit('update:modelValue', rest);
-  } else if (sources.value.length) {
-    patch({ visible_when: defaultCondition(sources.value[0]) });
+    return;
   }
-};
-
-const setConditionField = key => {
   const field = sources.value.find(item => item.key === key);
-  if (field) patch({ visible_when: defaultCondition(field) });
+  // A field that can be hidden cannot be required (Meta refuses it).
+  if (field)
+    patch({
+      visible_when: defaultCondition(field),
+      ...(hasCondition.value ? {} : { required: false }),
+    });
 };
 const setCondition = changes =>
   patch({ visible_when: { ...condition.value, ...changes } });
 
-const sourceOptions = computed(() =>
-  sources.value.map(field => ({
-    value: field.key,
-    label: field.definition.label || field.key,
-  }))
-);
 const operatorOptions = computed(() => [
   { value: 'equals', label: t('WHATSAPP_FLOWS.EDITOR.OPS.equals') },
   { value: 'not_equals', label: t('WHATSAPP_FLOWS.EDITOR.OPS.not_equals') },
 ]);
-const valueOptions = computed(() => {
-  if (source.value?.type === 'optin')
-    return [
-      { value: 'true', label: t('WHATSAPP_FLOWS.EDITOR.CHECKED') },
-      { value: 'false', label: t('WHATSAPP_FLOWS.EDITOR.UNCHECKED') },
-    ];
-  return (source.value?.definition.options || []).map(option => ({
+const valueOptions = computed(() =>
+  (source.value?.definition.options || []).map(option => ({
     value: option.id,
     label: option.title || option.id,
-  }));
-});
-const valueIsFree = computed(() => source.value?.type === 'short_text');
+  }))
+);
 const kindOptions = computed(() =>
   INPUT_KINDS.map(kind => ({
     value: kind,
@@ -163,48 +167,7 @@ const keepValue = (apply, value) => {
 </script>
 
 <template>
-  <div
-    class="flex flex-col gap-3 p-3 border rounded-xl border-n-weak bg-n-solid-1"
-    :class="{ 'outline outline-1 outline-n-ruby-8': errors.length }"
-    data-testid="flow-block"
-  >
-    <div class="flex items-center gap-2">
-      <span :class="icon" class="size-4 text-n-slate-11" />
-      <span class="flex-1 text-sm font-medium text-n-slate-12">
-        {{ $t(`WHATSAPP_FLOWS.BLOCKS.${modelValue.type}`) }}
-      </span>
-      <Button
-        type="button"
-        ghost
-        slate
-        xs
-        icon="i-lucide-arrow-up"
-        :disabled="isFirst"
-        :aria-label="$t('WHATSAPP_FLOWS.EDITOR.MOVE_UP')"
-        @click="emit('move', -1)"
-      />
-      <Button
-        type="button"
-        ghost
-        slate
-        xs
-        icon="i-lucide-arrow-down"
-        :disabled="isLast"
-        :aria-label="$t('WHATSAPP_FLOWS.EDITOR.MOVE_DOWN')"
-        @click="emit('move', 1)"
-      />
-      <Button
-        type="button"
-        ghost
-        ruby
-        xs
-        icon="i-lucide-trash-2"
-        :aria-label="$t('WHATSAPP_FLOWS.EDITOR.REMOVE_BLOCK')"
-        data-testid="flow-block-remove"
-        @click="emit('remove')"
-      />
-    </div>
-
+  <div class="flex flex-col gap-3" data-testid="flow-block">
     <TextArea
       v-if="isText"
       :model-value="modelValue.text"
@@ -327,62 +290,50 @@ const keepValue = (apply, value) => {
         size="sm"
         :model-value="modelValue.key"
         :label="$t('WHATSAPP_FLOWS.EDITOR.KEY')"
-        :message="$t('WHATSAPP_FLOWS.EDITOR.KEY_HELP')"
         data-testid="flow-block-key"
         @update:model-value="patch({ key: $event })"
       />
+      <p class="m-0 -mt-2 text-xs text-n-slate-11" data-testid="flow-key-help">
+        {{ $t('WHATSAPP_FLOWS.EDITOR.KEY_HELP') }}
+      </p>
     </template>
 
-    <div class="grid gap-2">
-      <div class="flex items-center gap-2">
-        <Switch
-          :model-value="hasCondition"
-          :disabled="!hasCondition && !sources.length"
-          data-testid="flow-condition-toggle"
-          @update:model-value="toggleCondition"
-        />
-        <span class="text-sm text-n-slate-12">
-          {{ $t('WHATSAPP_FLOWS.EDITOR.CONDITION') }}
-        </span>
-      </div>
+    <div class="grid gap-2" data-testid="flow-condition">
+      <span class="text-sm font-medium text-n-slate-12">
+        {{ $t('WHATSAPP_FLOWS.EDITOR.SHOW_FIELD') }}
+      </span>
+      <ComboBox
+        :model-value="condition.key || ''"
+        :options="showOptions"
+        data-testid="flow-show"
+        @update:model-value="setShow($event || '')"
+      />
       <p
-        v-if="!hasCondition && !sources.length"
+        v-if="!sources.length"
         class="text-xs text-n-slate-11"
+        data-testid="flow-condition-hint"
       >
-        {{ $t('WHATSAPP_FLOWS.EDITOR.CONDITION_NEEDS_ANSWER') }}
+        {{ $t('WHATSAPP_FLOWS.EDITOR.SHOW_NEEDS_QUESTION') }}
       </p>
-      <div
-        v-if="hasCondition"
-        class="grid gap-2 sm:grid-cols-3"
-        data-testid="flow-condition"
-      >
-        <ComboBox
-          :model-value="condition.key"
-          :options="sourceOptions"
-          @update:model-value="keepValue(setConditionField, $event)"
-        />
-        <ComboBox
-          :model-value="condition.op"
-          :options="operatorOptions"
-          @update:model-value="
-            keepValue(value => setCondition({ op: value }), $event)
-          "
-        />
-        <Input
-          v-if="valueIsFree"
-          size="sm"
-          :model-value="condition.value"
-          @update:model-value="setCondition({ value: $event })"
-        />
-        <ComboBox
-          v-else
-          :model-value="condition.value"
-          :options="valueOptions"
-          @update:model-value="
-            keepValue(value => setCondition({ value }), $event)
-          "
-        />
-      </div>
+      <template v-if="hasCondition">
+        <div class="grid grid-cols-2 gap-2">
+          <ComboBox
+            :model-value="condition.op"
+            :options="operatorOptions"
+            @update:model-value="
+              keepValue(value => setCondition({ op: value }), $event)
+            "
+          />
+          <ComboBox
+            :model-value="condition.value"
+            :options="valueOptions"
+            data-testid="flow-show-value"
+            @update:model-value="
+              keepValue(value => setCondition({ value }), $event)
+            "
+          />
+        </div>
+      </template>
     </div>
 
     <ul v-if="errors.length" class="grid gap-1 text-xs text-n-ruby-11">

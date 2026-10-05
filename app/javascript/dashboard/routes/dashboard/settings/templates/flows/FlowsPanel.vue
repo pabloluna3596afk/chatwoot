@@ -1,6 +1,7 @@
 <script setup>
-// The "Formularios" tab of the templates page: the forms of the account, a new one (start screen) and the builder.
-import { computed, onMounted, ref } from 'vue';
+// The "Flows" tab of Templates & Flows: the flows of the account. A new one and the builder are full pages (own routes).
+import { computed, onActivated, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 
 import { useAlert } from 'dashboard/composables';
@@ -8,19 +9,15 @@ import { usePolicy } from 'dashboard/composables/usePolicy';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
-import FlowEditor from './FlowEditor.vue';
-import FlowStart from './FlowStart.vue';
 
 const { t } = useI18n();
+const router = useRouter();
 const { checkPermissions } = usePolicy();
 
 const isAdmin = computed(() => checkPermissions(['administrator']));
 
-// list | start | edit
-const view = ref('list');
 const flows = ref([]);
 const isLoading = ref(false);
-const editing = ref(null);
 const toDelete = ref(null);
 const deleteDialogRef = ref(null);
 const isDeleting = ref(false);
@@ -37,32 +34,18 @@ const load = async () => {
   }
 };
 
+// The page is kept alive: coming back from the builder shows the flows as they are now.
+let firstActivation = true;
 onMounted(load);
+onActivated(() => {
+  if (firstActivation) firstActivation = false;
+  else load();
+});
 
-const startNew = () => {
-  view.value = 'start';
-};
+const startNew = () => router.push({ name: 'settings_flow_new' });
 
-const created = flow => {
-  editing.value = flow;
-  view.value = 'edit';
-};
-
-const edit = async summary => {
-  try {
-    const { data } = await WhatsappFlowsAPI.show(summary.id);
-    editing.value = data;
-    view.value = 'edit';
-  } catch {
-    useAlert(t('WHATSAPP_FLOWS.LIST.LOAD_ERROR'));
-  }
-};
-
-const backToList = () => {
-  view.value = 'list';
-  editing.value = null;
-  load();
-};
+const edit = flow =>
+  router.push({ name: 'settings_flow_edit', params: { flowId: flow.id } });
 
 const askDelete = flow => {
   toDelete.value = flow;
@@ -88,19 +71,7 @@ const dateOf = seconds => new Date(seconds * 1000).toLocaleDateString();
 
 <template>
   <div data-testid="flows-panel">
-    <FlowStart
-      v-if="view === 'start'"
-      @create="created"
-      @cancel="view = 'list'"
-    />
-    <FlowEditor
-      v-else-if="view === 'edit' && editing"
-      :flow="editing"
-      @back="backToList"
-      @saved="editing = { ...editing, ...$event }"
-    />
-
-    <div v-else class="flex flex-col gap-4">
+    <div class="flex flex-col gap-4">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="text-heading-2 text-n-slate-12">

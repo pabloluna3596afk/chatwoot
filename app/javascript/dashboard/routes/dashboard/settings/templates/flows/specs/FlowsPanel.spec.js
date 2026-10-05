@@ -1,10 +1,13 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import FlowsPanel from '../FlowsPanel.vue';
-import FlowStart from '../FlowStart.vue';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 
-const { permissions } = vi.hoisted(() => ({ permissions: { admin: true } }));
+const { permissions, push } = vi.hoisted(() => ({
+  permissions: { admin: true },
+  push: vi.fn(),
+}));
 
+vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }));
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key, te: () => false }),
 }));
@@ -50,6 +53,7 @@ const mountPanel = async () => {
 describe('FlowsPanel', () => {
   beforeEach(() => {
     permissions.admin = true;
+    push.mockReset();
     Object.values(WhatsappFlowsAPI).forEach(fn => fn.mockReset());
     WhatsappFlowsAPI.list.mockResolvedValue({ data: { payload: flows } });
     WhatsappFlowsAPI.validate.mockResolvedValue({
@@ -57,7 +61,7 @@ describe('FlowsPanel', () => {
     });
   });
 
-  it('lists the forms with their screens and categories', async () => {
+  it('lists the flows with their screens and categories', async () => {
     const wrapper = await mountPanel();
 
     const rows = wrapper.findAll('[data-testid="flow-row"]');
@@ -69,7 +73,7 @@ describe('FlowsPanel', () => {
     );
   });
 
-  it('says there are no forms yet', async () => {
+  it('says there are no flows yet', async () => {
     WhatsappFlowsAPI.list.mockResolvedValue({ data: { payload: [] } });
     const wrapper = await mountPanel();
 
@@ -86,59 +90,26 @@ describe('FlowsPanel', () => {
     expect(wrapper.findAll('[data-testid="flow-row"]')).toHaveLength(1);
   });
 
-  it('starts a form from the start screen: needs a name, then opens the builder', async () => {
+  it('"Nuevo flow" opens the full page of a new flow', async () => {
     const wrapper = await mountPanel();
 
     await wrapper.get('[data-testid="flow-new"]').trigger('click');
-    expect(wrapper.findComponent(FlowStart).exists()).toBe(true);
 
-    await wrapper.get('[data-testid="flow-start-create"]').trigger('click');
-    expect(wrapper.find('[data-testid="flow-editor"]').exists()).toBe(false);
-
-    await wrapper
-      .get('[data-testid="flow-start-name"] input')
-      .setValue('Mi formulario');
-    await wrapper.get('[data-testid="flow-starting-survey"]').trigger('click');
-    await wrapper.get('[data-testid="flow-start-create"]').trigger('click');
-    await flushPromises();
-
-    expect(wrapper.find('[data-testid="flow-editor"]').exists()).toBe(true);
-    expect(wrapper.findAll('[data-testid="flow-screen"]')).toHaveLength(2);
-    expect(
-      wrapper.get('[data-testid="flow-editor-name"] input').element.value
-    ).toBe('Mi formulario');
+    expect(push).toHaveBeenCalledWith({ name: 'settings_flow_new' });
   });
 
-  it('opens a saved form in the builder and goes back to the refreshed list', async () => {
-    WhatsappFlowsAPI.show.mockResolvedValue({
-      data: {
-        ...flows[0],
-        definition: {
-          schema_version: 1,
-          screens: [
-            {
-              title: 'Uno',
-              button: 'Enviar',
-              blocks: [{ type: 'heading', text: 'Hola' }],
-            },
-          ],
-        },
-      },
-    });
+  it('editing a flow opens its own full page', async () => {
     const wrapper = await mountPanel();
 
     await wrapper.get('[data-testid="flow-edit"]').trigger('click');
-    await flushPromises();
-    expect(wrapper.find('[data-testid="flow-editor"]').exists()).toBe(true);
 
-    await wrapper.get('[data-testid="flow-editor-back"]').trigger('click');
-    await flushPromises();
-
-    expect(wrapper.find('[data-testid="flow-editor"]').exists()).toBe(false);
-    expect(WhatsappFlowsAPI.list).toHaveBeenCalledTimes(2);
+    expect(push).toHaveBeenCalledWith({
+      name: 'settings_flow_edit',
+      params: { flowId: 1 },
+    });
   });
 
-  it('deletes a form after asking', async () => {
+  it('deletes a flow after asking', async () => {
     WhatsappFlowsAPI.remove.mockResolvedValue({});
     const wrapper = await mountPanel();
 
