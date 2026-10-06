@@ -164,6 +164,12 @@ Rails.application.routes.draw do
           resources :flows, only: [:index, :create, :show, :update, :destroy]
           resources :whatsapp_flows, only: [:index, :create, :show, :update, :destroy] do
             post :validate, on: :collection
+            member do
+              post :publish
+              get :publication_status
+              post :test
+              post 'publications/:waba_id/retry', action: :retry_publish
+            end
           end
           resources :task_templates, only: [:index, :create, :show, :update, :destroy]
           resources :internal_tasks, only: [:index, :show, :update, :destroy] do

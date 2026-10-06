@@ -9,6 +9,8 @@ import { usePolicy } from 'dashboard/composables/usePolicy';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import FlowPublicationBadges from './FlowPublicationBadges.vue';
+import { buildRow } from './useFlowPublications';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -22,11 +24,39 @@ const toDelete = ref(null);
 const deleteDialogRef = ref(null);
 const isDeleting = ref(false);
 
+// What Meta says about each flow, by flow id: the rows of its WhatsApp Cloud WABAs. Only administrators can see it, and
+// a failure here leaves the flow without badges instead of breaking the list.
+const metaRows = ref({});
+
+const loadMeta = async list => {
+  if (!isAdmin.value) return;
+  const entries = await Promise.all(
+    list.map(async flow => {
+      try {
+        const { data } = await WhatsappFlowsAPI.publicationStatus(flow.id);
+        const rows = (data.wabas || []).map(waba =>
+          buildRow(
+            waba,
+            (data.publications || []).find(
+              item => item.waba_id === waba.waba_id
+            )
+          )
+        );
+        return [flow.id, rows];
+      } catch {
+        return [flow.id, []];
+      }
+    })
+  );
+  metaRows.value = Object.fromEntries(entries);
+};
+
 const load = async () => {
   isLoading.value = true;
   try {
     const { data } = await WhatsappFlowsAPI.list();
     flows.value = data.payload || [];
+    loadMeta(flows.value);
   } catch {
     useAlert(t('WHATSAPP_FLOWS.LIST.LOAD_ERROR'));
   } finally {
@@ -126,6 +156,12 @@ const dateOf = seconds => new Date(seconds * 1000).toLocaleDateString();
               </span>
               <span>{{ dateOf(flow.updated_at) }}</span>
             </span>
+            <FlowPublicationBadges
+              v-if="metaRows[flow.id]?.length"
+              class="mt-1"
+              :rows="metaRows[flow.id]"
+              data-testid="flow-row-meta"
+            />
           </div>
           <div v-if="isAdmin" class="flex items-center gap-1 shrink-0">
             <Button

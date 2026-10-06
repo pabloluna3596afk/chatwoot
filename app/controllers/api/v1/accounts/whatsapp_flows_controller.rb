@@ -2,7 +2,7 @@
 # to Meta's Flow JSON. Everyone in the account can read them; only administrators create, change, delete or check them.
 class Api::V1::Accounts::WhatsappFlowsController < Api::V1::Accounts::BaseController
   before_action :check_admin_authorization?, except: [:index, :show]
-  before_action :fetch_flow, only: [:show, :update, :destroy]
+  before_action :fetch_flow, only: [:show, :update, :destroy, :publish, :publication_status, :test, :retry_publish]
 
   def index
     render json: { payload: Current.account.whatsapp_flows.order(updated_at: :desc).map { |flow| summary(flow) } }
@@ -38,7 +38,50 @@ class Api::V1::Accounts::WhatsappFlowsController < Api::V1::Accounts::BaseContro
     render json: { valid: result.valid?, errors: result.errors, warnings: result.warnings, flow_json: result.valid? ? export(definition) : nil }
   end
 
+  # Sends the flow to Meta on every WhatsApp Cloud WABA of the account, in the background; the dashboard polls
+  # publication_status for the per-WABA result.
+  def publish
+    return render json: { error: 'no_cloud_channels' }, status: :unprocessable_entity if cloud_channels.empty?
+
+    Whatsapp::PublishFlowToMetaJob.perform_later(@flow.id, Current.account.id)
+    render json: publication_payload, status: :accepted
+  end
+
+  def publication_status
+    render json: publication_payload
+  end
+
+  # "Probar": sends the flow to a phone number through one Cloud channel without publishing it.
+  def test
+    channel = cloud_channels.find { |candidate| candidate.id == params.require(:channel_id).to_i }
+    return render json: { success: false, error: 'channel_not_found' }, status: :not_found if channel.nil?
+
+    result = Whatsapp::Flows::TestFlowService.new(@flow, channel, params.require(:phone_number)).perform
+    render json: result, status: result[:success] ? :ok : :unprocessable_entity
+  end
+
+  def retry_publish
+    publication = @flow.whatsapp_flow_publications.find_by!(waba_id: params[:waba_id])
+    Whatsapp::PublishFlowToMetaJob.perform_later(@flow.id, Current.account.id, publication.waba_id)
+    render json: publication_payload, status: :accepted
+  end
+
   private
+
+  def cloud_channels
+    @cloud_channels ||= Whatsapp::Flows::CloudChannels.for(Current.account)
+  end
+
+  def publication_payload
+    publications = @flow.whatsapp_flow_publications.order(:waba_id).map do |publication|
+      publication.slice(:waba_id, :status, :meta_flow_id, :validation_errors, :published_version, :published_at)
+    end
+    wabas = cloud_channels.map do |channel|
+      { waba_id: channel.provider_config['business_account_id'], channel_id: channel.id, phone_number: channel.phone_number,
+        inbox_name: channel.inbox&.name }
+    end
+    { flow_id: @flow.id, wabas: wabas, publications: publications }
+  end
 
   def fetch_flow
     @flow = Current.account.whatsapp_flows.find(params[:id])

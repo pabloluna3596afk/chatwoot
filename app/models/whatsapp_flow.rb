@@ -25,6 +25,7 @@ class WhatsappFlow < ApplicationRecord
 
   belongs_to :account
   belongs_to :created_by, class_name: 'User', optional: true
+  has_many :whatsapp_flow_publications, dependent: :destroy
 
   before_validation :normalize
 

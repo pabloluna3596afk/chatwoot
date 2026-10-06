@@ -23,6 +23,7 @@ vi.mock('dashboard/api/whatsappFlows', () => ({
     update: vi.fn(),
     remove: vi.fn(),
     validate: vi.fn(),
+    publicationStatus: vi.fn(),
   },
 }));
 
@@ -71,6 +72,43 @@ describe('FlowsPanel', () => {
     expect(rows[0].text()).toContain(
       'WHATSAPP_FLOWS.CATEGORIES.LEAD_GENERATION'
     );
+  });
+
+  it('shows what Meta says about each flow, per WABA, to administrators', async () => {
+    WhatsappFlowsAPI.publicationStatus.mockResolvedValue({
+      data: {
+        flow_id: 1,
+        wabas: [
+          { waba_id: '111', channel_id: 7, phone_number: '+593990001' },
+          { waba_id: '222', channel_id: 8, phone_number: '+593990002' },
+        ],
+        publications: [{ waba_id: '111', status: 'published' }],
+      },
+    });
+    const wrapper = await mountPanel();
+
+    expect(WhatsappFlowsAPI.publicationStatus).toHaveBeenCalledWith(1);
+    const badges = wrapper.findAll('[data-testid="flow-meta-badge"]');
+    expect(badges.map(badge => badge.attributes('data-state'))).toEqual([
+      'published',
+      'none',
+    ]);
+  });
+
+  it('shows no Meta badges to an agent, and does not ask Meta for them', async () => {
+    permissions.admin = false;
+    const wrapper = await mountPanel();
+
+    expect(WhatsappFlowsAPI.publicationStatus).not.toHaveBeenCalled();
+    expect(wrapper.find('[data-testid="flow-row-meta"]').exists()).toBe(false);
+  });
+
+  it('keeps the list when the Meta status cannot be read', async () => {
+    WhatsappFlowsAPI.publicationStatus.mockRejectedValue(new Error('x'));
+    const wrapper = await mountPanel();
+
+    expect(wrapper.findAll('[data-testid="flow-row"]')).toHaveLength(1);
+    expect(wrapper.find('[data-testid="flow-meta"]').exists()).toBe(false);
   });
 
   it('says there are no flows yet', async () => {

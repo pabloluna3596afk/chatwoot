@@ -23,6 +23,10 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import Select from 'dashboard/components-next/select/Select.vue';
 import FlowBlockEditor from './FlowBlockEditor.vue';
 import FlowPhoneCanvas from './FlowPhoneCanvas.vue';
+import FlowPublicationBadges from './FlowPublicationBadges.vue';
+import FlowPublishDialog from './FlowPublishDialog.vue';
+import FlowTestDialog from './FlowTestDialog.vue';
+import { useFlowPublications } from './useFlowPublications';
 import {
   CATEGORIES,
   LIMITS,
@@ -77,7 +81,36 @@ let timer = null;
 let controller = null;
 let copiedTimer = null;
 
+// What Meta says about the saved flow, per WhatsApp Cloud WABA (nothing shows for an account without one).
+const {
+  rows: metaRows,
+  wabas: metaWabas,
+  hasCloud,
+  isPublishing,
+  load: loadMeta,
+  publish: publishToMeta,
+  retry: retryMeta,
+  stop: stopMeta,
+} = useFlowPublications(props.api, () => flowId.value);
+const publishDialog = ref(null);
+const testDialog = ref(null);
+
+// What was last saved (or loaded); anything different is a change Meta would not see yet.
+const snapshot = () =>
+  JSON.stringify([name.value.trim(), categories.value, definition]);
+const savedSnapshot = ref(snapshot());
+const dirty = computed(() => snapshot() !== savedSnapshot.value);
+
 const grouped = computed(() => groupErrors(errors.value));
+// Publishing and testing send what is saved, so the flow has to be saved and free of mistakes first.
+const metaBlocked = computed(
+  () => !flowId.value || dirty.value || errors.value.length > 0
+);
+const metaHint = computed(() => {
+  if (!flowId.value || dirty.value) return t('WHATSAPP_FLOWS.META.SAVE_FIRST');
+  if (errors.value.length) return t('WHATSAPP_FLOWS.META.FIX_FIRST');
+  return '';
+});
 const screen = computed(() => definition.screens[currentScreen.value]);
 const block = computed(() =>
   selected.value === null ? null : screen.value?.blocks[selected.value]
@@ -111,8 +144,10 @@ watch(
   { deep: true }
 );
 check();
+if (flowId.value) loadMeta();
 
 onBeforeUnmount(() => {
+  stopMeta();
   clearTimeout(timer);
   clearTimeout(copiedTimer);
   controller?.abort();
@@ -280,8 +315,10 @@ const save = async () => {
       ? await props.api.update(flowId.value, payload)
       : await props.api.create(payload);
     flowId.value = data.id;
+    savedSnapshot.value = snapshot();
     useAlert(t('WHATSAPP_FLOWS.EDITOR.SAVED'));
     emit('saved', data);
+    loadMeta();
   } catch (error) {
     useAlert(
       error?.response?.data?.message || t('WHATSAPP_FLOWS.EDITOR.SAVE_ERROR')
@@ -290,6 +327,42 @@ const save = async () => {
     isSaving.value = false;
   }
 };
+
+const openPublish = async () => {
+  await loadMeta();
+  publishDialog.value?.open();
+};
+
+const startPublish = async () => {
+  try {
+    await publishToMeta();
+  } catch (error) {
+    stopMeta();
+    publishDialog.value?.close();
+    useAlert(
+      error?.response?.data?.error === 'no_cloud_channels'
+        ? t('WHATSAPP_FLOWS.META.NO_CLOUD')
+        : t('WHATSAPP_FLOWS.META.PUBLISH_ERROR')
+    );
+  }
+};
+
+const retryPublish = async wabaId => {
+  try {
+    await retryMeta(wabaId);
+  } catch {
+    stopMeta();
+    useAlert(t('WHATSAPP_FLOWS.META.PUBLISH_ERROR'));
+  }
+};
+
+const openTest = async () => {
+  await loadMeta();
+  testDialog.value?.open();
+};
+
+const sendTest = ({ channelId, phoneNumber }) =>
+  props.api.test(flowId.value, { channelId, phoneNumber });
 
 defineExpose({ save });
 </script>
@@ -361,6 +434,17 @@ defineExpose({ save });
           @click="openJson"
         />
         <Button
+          v-if="hasCloud"
+          type="button"
+          slate
+          icon="i-lucide-flask-conical"
+          :label="$t('WHATSAPP_FLOWS.META.TEST')"
+          :disabled="metaBlocked"
+          :title="metaHint"
+          data-testid="flow-test-open"
+          @click="openTest"
+        />
+        <Button
           type="button"
           :label="$t('WHATSAPP_FLOWS.EDITOR.SAVE')"
           :is-loading="isSaving"
@@ -368,8 +452,46 @@ defineExpose({ save });
           data-testid="flow-editor-save"
           @click="save"
         />
+        <Button
+          v-if="hasCloud"
+          type="button"
+          icon="i-lucide-send"
+          :label="$t('WHATSAPP_FLOWS.META.PUBLISH')"
+          :disabled="metaBlocked || isPublishing"
+          :title="metaHint"
+          data-testid="flow-publish-open"
+          @click="openPublish"
+        />
       </div>
     </div>
+
+    <section
+      v-if="hasCloud"
+      class="p-3 border rounded-2xl border-n-weak bg-n-solid-1"
+      data-testid="flow-meta-status"
+    >
+      <h2
+        class="mb-2 text-xs font-semibold tracking-wider uppercase text-n-slate-11"
+      >
+        {{ $t('WHATSAPP_FLOWS.META.STATUS_TITLE') }}
+      </h2>
+      <FlowPublicationBadges
+        :rows="metaRows"
+        detailed
+        can-retry
+        :sending="isPublishing"
+        @retry="retryPublish"
+      />
+    </section>
+
+    <FlowPublishDialog
+      ref="publishDialog"
+      :rows="metaRows"
+      :busy="isPublishing"
+      @publish="startPublish"
+      @retry="retryPublish"
+    />
+    <FlowTestDialog ref="testDialog" :wabas="metaWabas" :send="sendTest" />
 
     <Dialog
       ref="jsonDialog"

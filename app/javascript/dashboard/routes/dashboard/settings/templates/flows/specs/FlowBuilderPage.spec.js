@@ -639,4 +639,153 @@ describe('FlowBuilderPage', () => {
       expect(wrapper.emitted('back')).toHaveLength(1);
     });
   });
+
+  describe('publishing to Meta and testing', () => {
+    const waba = { waba_id: '111', channel_id: 7, phone_number: '+593990001' };
+    const metaApi = (publications = []) => ({
+      ...makeApi(),
+      publicationStatus: vi.fn().mockResolvedValue({
+        data: { flow_id: 9, wabas: [waba], publications },
+      }),
+      publish: vi.fn().mockResolvedValue({ data: {} }),
+      retryPublication: vi.fn().mockResolvedValue({ data: {} }),
+      test: vi.fn().mockResolvedValue({ data: { success: true } }),
+    });
+    const saved = () => sampleFlow({ id: 9 });
+
+    it('shows no Publicar, Probar or status for an account without a Cloud channel', async () => {
+      const api = metaApi();
+      api.publicationStatus.mockResolvedValue({
+        data: { flow_id: 9, wabas: [], publications: [] },
+      });
+      const { wrapper } = await mountPage(saved(), api);
+
+      expect(wrapper.find('[data-testid="flow-publish-open"]').exists()).toBe(
+        false
+      );
+      expect(wrapper.find('[data-testid="flow-test-open"]').exists()).toBe(
+        false
+      );
+      expect(wrapper.find('[data-testid="flow-meta-status"]').exists()).toBe(
+        false
+      );
+    });
+
+    it('shows the Meta status per WABA in the editor', async () => {
+      const { wrapper } = await mountPage(
+        saved(),
+        metaApi([{ waba_id: '111', status: 'published', meta_flow_id: 'm1' }])
+      );
+
+      const badge = wrapper.get('[data-testid="flow-meta-badge"]');
+      expect(badge.attributes('data-state')).toBe('published');
+    });
+
+    it('does not offer Publicar or Probar until the flow is saved and has no mistakes', async () => {
+      const { wrapper, api } = await mountPage(
+        sampleFlow({ id: null }),
+        metaApi()
+      );
+      // a new flow has no WABAs to show until it is saved
+      expect(api.publicationStatus).not.toHaveBeenCalled();
+
+      await wrapper.get('[data-testid="flow-starting-blank"]').trigger('click');
+      await wrapper.get('[data-testid="flow-editor-save"]').trigger('click');
+      await flushPromises();
+      const publish = () => wrapper.get('[data-testid="flow-publish-open"]');
+      expect(publish().attributes('disabled')).toBeUndefined();
+
+      await wrapper
+        .get('[data-testid="flow-editor-name"] input')
+        .setValue('Otro');
+      expect(publish().attributes('disabled')).toBeDefined();
+      // the tooltip says why: save first
+      expect(publish().attributes('title')).toBe(
+        'WHATSAPP_FLOWS.META.SAVE_FIRST'
+      );
+      expect(
+        wrapper.get('[data-testid="flow-test-open"]').attributes('disabled')
+      ).toBeDefined();
+
+      // saving brings it back
+      await wrapper.get('[data-testid="flow-editor-save"]').trigger('click');
+      await flushPromises();
+      expect(publish().attributes('disabled')).toBeUndefined();
+      expect(publish().attributes('title')).toBeFalsy();
+    });
+
+    it('blocks Publicar with a tooltip while the flow has mistakes of its own', async () => {
+      const api = metaApi();
+      api.validate.mockResolvedValue({
+        data: {
+          valid: false,
+          errors: [{ code: 'form_empty' }],
+          flow_json: null,
+        },
+      });
+      const { wrapper } = await mountPage(saved(), api);
+
+      const publish = wrapper.get('[data-testid="flow-publish-open"]');
+      expect(publish.attributes('disabled')).toBeDefined();
+      expect(publish.attributes('title')).toBe('WHATSAPP_FLOWS.META.FIX_FIRST');
+    });
+
+    it('asks, then publishes and shows the result without leaving the page', async () => {
+      const { wrapper, api } = await mountPage(saved(), metaApi());
+
+      await wrapper.get('[data-testid="flow-publish-open"]').trigger('click');
+      await flushPromises();
+      expect(api.publish).not.toHaveBeenCalled();
+      await wrapper
+        .get('[data-testid="flow-publish-confirm-button"]')
+        .trigger('click');
+      await flushPromises();
+
+      expect(api.publish).toHaveBeenCalledWith(9);
+      expect(
+        wrapper.find('[data-testid="flow-publish-progress"]').exists()
+      ).toBe(true);
+    });
+
+    it('retries a WABA that failed', async () => {
+      const { wrapper, api } = await mountPage(
+        saved(),
+        metaApi([
+          {
+            waba_id: '111',
+            status: 'draft',
+            validation_errors: [{ error: 'X', message: 'bad value' }],
+          },
+        ])
+      );
+
+      expect(wrapper.get('[data-testid="flow-meta-errors"]').text()).toContain(
+        'bad value'
+      );
+      await wrapper.get('[data-testid="flow-meta-retry"]').trigger('click');
+      await flushPromises();
+
+      expect(api.retryPublication).toHaveBeenCalledWith(9, '111');
+    });
+
+    it('sends a test through the chosen channel to the number', async () => {
+      const { wrapper, api } = await mountPage(saved(), metaApi());
+
+      await wrapper.get('[data-testid="flow-test-open"]').trigger('click');
+      await flushPromises();
+      await wrapper
+        .get('[data-testid="flow-test-number"] input')
+        .setValue('593991234567');
+      await wrapper.get('[data-testid="flow-test-send"]').trigger('click');
+      await flushPromises();
+
+      expect(api.test).toHaveBeenCalledWith(9, {
+        channelId: 7,
+        phoneNumber: '593991234567',
+      });
+      expect(wrapper.find('[data-testid="flow-test-success"]').exists()).toBe(
+        true
+      );
+    });
+  });
 });
