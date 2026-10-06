@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_04_190000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_05_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1925,6 +1925,28 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_04_190000) do
     t.index ["account_id", "url"], name: "index_webhooks_on_account_id_and_url", unique: true
   end
 
+  create_table "whatsapp_flow_publications", force: :cascade do |t|
+    t.bigint "whatsapp_flow_id", null: false
+    t.bigint "account_id", null: false
+    t.string "waba_id", null: false
+    t.string "meta_flow_id"
+    t.string "status", default: "draft", null: false
+    t.jsonb "validation_errors", default: [], null: false
+    t.integer "published_version", default: 0
+    t.string "old_meta_flow_id"
+    t.string "draft_meta_flow_id"
+    t.datetime "published_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "status"], name: "idx_flow_pub_account_status"
+    t.index ["account_id"], name: "index_whatsapp_flow_publications_on_account_id"
+    t.index ["meta_flow_id"], name: "index_whatsapp_flow_publications_on_meta_flow_id"
+    t.index ["status"], name: "index_whatsapp_flow_publications_on_status"
+    t.index ["waba_id"], name: "index_whatsapp_flow_publications_on_waba_id"
+    t.index ["whatsapp_flow_id", "waba_id"], name: "idx_flow_pub_flow_waba_unique", unique: true
+    t.index ["whatsapp_flow_id"], name: "index_whatsapp_flow_publications_on_whatsapp_flow_id"
+  end
+
   create_table "whatsapp_flows", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.string "name", null: false
@@ -2006,6 +2028,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_04_190000) do
   add_foreign_key "task_templates", "accounts", on_delete: :cascade
   add_foreign_key "task_templates", "teams", column: "default_team_id"
   add_foreign_key "user_sessions", "users"
+  add_foreign_key "whatsapp_flow_publications", "accounts"
+  add_foreign_key "whatsapp_flow_publications", "whatsapp_flows"
   add_foreign_key "whatsapp_flows", "accounts", on_delete: :cascade
   add_foreign_key "whatsapp_flows", "users", column: "created_by_id", on_delete: :nullify
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
