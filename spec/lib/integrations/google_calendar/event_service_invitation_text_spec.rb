@@ -2,7 +2,10 @@ require 'rails_helper'
 
 RSpec.describe Integrations::GoogleCalendar::EventService do
   let(:account) { create(:account, name: 'Clínica Sol', locale: 'es') }
-  let(:user) { create(:user, account: account, role: :administrator, name: 'Pablo Luna', display_name: 'Pablo Luna') }
+  let(:user) do
+    create(:user, account: account, role: :administrator, name: 'Pablo Luna', display_name: 'Pablo Luna',
+                  email: "pablo.luna@#{SecureRandom.uuid}.com")
+  end
   let(:contact) { create(:contact, account: account, name: 'Ana Pérez') }
   let(:connection) do
     CalendarConnection.create!(
