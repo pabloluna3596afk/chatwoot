@@ -76,7 +76,10 @@ class Api::V1::Accounts::WhatsappFlowsController < Api::V1::Accounts::BaseContro
     publications = @flow.whatsapp_flow_publications.order(:waba_id).map do |publication|
       publication.slice(:waba_id, :status, :meta_flow_id, :validation_errors, :published_version, :published_at)
     end
-    wabas = cloud_channels.map { |channel| { waba_id: channel.provider_config['business_account_id'], phone_number: channel.phone_number } }
+    wabas = cloud_channels.map do |channel|
+      { waba_id: channel.provider_config['business_account_id'], channel_id: channel.id, phone_number: channel.phone_number,
+        inbox_name: channel.inbox&.name }
+    end
     { flow_id: @flow.id, wabas: wabas, publications: publications }
   end
 

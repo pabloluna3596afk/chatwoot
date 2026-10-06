@@ -18,7 +18,8 @@ RSpec.describe 'WhatsApp flows to Meta API', type: :request do
       expect(response).to have_http_status(:accepted)
       body = response.parsed_body
       expect(body).to include('flow_id' => flow.id, 'publications' => [])
-      expect(body['wabas']).to eq([{ 'waba_id' => channel.provider_config['business_account_id'], 'phone_number' => channel.phone_number }])
+      expect(body['wabas']).to eq([{ 'waba_id' => channel.provider_config['business_account_id'], 'channel_id' => channel.id,
+                                     'phone_number' => channel.phone_number, 'inbox_name' => channel.inbox&.name }])
     end
 
     it 'refuses when the account has no Cloud channel' do

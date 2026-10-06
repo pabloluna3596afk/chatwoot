@@ -203,6 +203,47 @@
       "condition_not_earlier": "La condición solo puede mirar una pregunta que va antes.",
       "condition_field_unsupported": "La condición no puede mirar este tipo de pregunta.",
       "condition_value_invalid": "El valor de la condición no es válido."
+    },
+    "META": {
+      "STATE": {
+        "none": "Sin enviar a Meta",
+        "draft": "Borrador en Meta",
+        "sending": "Enviando a Meta…",
+        "published": "Publicado",
+        "deprecated": "Retirado",
+        "error": "Error",
+        "blocked": "Bloqueado",
+        "throttled": "Limitado"
+      },
+      "STATUS_TITLE": "Estado en WhatsApp (Meta)",
+      "RETRY": "Reintentar",
+      "CANCEL": "Cancelar",
+      "CLOSE": "Cerrar",
+      "PUBLISH": "Publicar",
+      "PUBLISH_TITLE": "Publicar flow",
+      "PUBLISH_PROGRESS_TITLE": "Publicando flow",
+      "PUBLISH_BODY": "El flow queda disponible y se envía a Meta.",
+      "PUBLISH_POINT_INBOXES": "Estará disponible en todas las bandejas de ChatHub.",
+      "PUBLISH_POINT_META": "Se envía a Meta en cada cuenta de WhatsApp Cloud de esta cuenta. Los demás canales lo mantienen interno.",
+      "PUBLISH_POINT_VERSION": "Un flow ya publicado en Meta no se edita: un cambio crea una versión nueva y retira la anterior. Aún no hay plantillas vinculadas a flows, así que ninguna se ve afectada.",
+      "PUBLISH_CONFIRM": "Publicar",
+      "PUBLISH_WORKING": "Enviando a Meta…",
+      "PUBLISH_FAILED": "Meta no aceptó el flow en algunas cuentas. Corrige lo que indica y reintenta.",
+      "PUBLISH_DONE": "El flow está publicado.",
+      "PUBLISH_ERROR": "No se pudo enviar el flow a Meta.",
+      "NO_CLOUD": "Esta cuenta no tiene un canal de WhatsApp Cloud donde publicar.",
+      "SAVE_FIRST": "Guarda el flow primero: se envía la versión guardada.",
+      "FIX_FIRST": "Corrige primero los errores del flow.",
+      "TEST": "Probar",
+      "TEST_TITLE": "Probar flow",
+      "TEST_DESCRIPTION": "Envía el flow guardado a un número como mensaje, sin publicarlo.",
+      "TEST_CHANNEL": "Enviar desde",
+      "TEST_NUMBER": "Número de teléfono",
+      "TEST_NUMBER_PLACEHOLDER": "593991234567",
+      "TEST_WINDOW": "El número debe haber escrito a tu negocio en las últimas 24 h; si no, WhatsApp no lo entregará.",
+      "TEST_SEND": "Enviar prueba",
+      "TEST_SENT": "Flow enviado a {number}.",
+      "TEST_FAILED": "No se pudo enviar."
     }
   }
 }
