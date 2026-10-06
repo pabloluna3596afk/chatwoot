@@ -2,10 +2,11 @@ class WhatsappFlowPublication < ApplicationRecord
   belongs_to :whatsapp_flow
   belongs_to :account
 
-  enum status: { draft: 'draft', published: 'published', deprecated: 'deprecated', blocked: 'blocked', throttled: 'throttled' }
+  VALID_STATUSES = %w[draft published deprecated blocked throttled].freeze
 
-  validates :whatsapp_flow_id, :account_id, :waba_id, presence: true
+  validates :whatsapp_flow_id, :account_id, :waba_id, :status, presence: true
   validates :whatsapp_flow_id, uniqueness: { scope: :waba_id, message: 'should have only one publication per WABA' }
+  validates :status, inclusion: { in: VALID_STATUSES, message: 'must be one of: draft, published, deprecated, blocked, throttled' }
   validate :waba_id_format
 
   scope :by_waba, ->(waba_id) { where(waba_id: waba_id) }
