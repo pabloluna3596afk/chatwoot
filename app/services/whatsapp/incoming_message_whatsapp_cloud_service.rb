@@ -8,6 +8,18 @@ class Whatsapp::IncomingMessageWhatsappCloudService < Whatsapp::IncomingMessageB
     @processed_params ||= params[:entry].try(:first).try(:[], 'changes').try(:first).try(:[], 'value')
   end
 
+  def update_message_with_status(message, status)
+    super
+    return unless message.outgoing? && status[:pricing].present?
+
+    pricing = status[:pricing].slice(:billable, :pricing_model, :type, :category).stringify_keys
+    pricing['status'] = status[:status]
+    pricing['at'] = status[:timestamp].to_i if status[:timestamp].present?
+    return if message.additional_attributes['whatsapp_pricing'] == pricing
+
+    message.update!(additional_attributes: message.additional_attributes.merge('whatsapp_pricing' => pricing))
+  end
+
   def download_attachment_file(attachment_payload)
     url_response = HTTParty.get(
       inbox.channel.media_url(attachment_payload[:id]),
