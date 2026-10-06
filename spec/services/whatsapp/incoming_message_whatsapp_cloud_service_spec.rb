@@ -148,7 +148,6 @@ describe Whatsapp::IncomingMessageWhatsappCloudService do
         )
         # ChatHub stores the answers of the flow itself (the parsed response_json), not the name/body wrapper.
         expect(flow_response).to eq(
-          'flow_token' => 'flow-correlation-token',
           'rating' => 'excellent',
           'comments' => 'Great support',
           'appointment' => { 'day' => 'Monday', 'windows' => %w[morning afternoon] }

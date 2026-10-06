@@ -49,7 +49,13 @@ module Whatsapp::IncomingMessageServiceHelpers
   def flow_response_payload(message)
     return unless Whatsapp::FlowResponseFormatter.nfm_reply?(message)
 
-    Whatsapp::FlowResponseFormatter.parse_response_json(message)
+    Whatsapp::FlowResponseFormatter.parse_response_json(message).except('flow_token')
+  end
+
+  def save_flow_response(message)
+    return unless Whatsapp::FlowResponseFormatter.nfm_reply?(message)
+
+    Whatsapp::Flows::SaveResponseService.new(@message, Whatsapp::FlowResponseFormatter.parse_response_json(message)).perform
   end
 
   def file_content_type(file_type)
