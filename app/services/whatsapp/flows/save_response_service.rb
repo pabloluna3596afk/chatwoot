@@ -49,15 +49,26 @@ class Whatsapp::Flows::SaveResponseService
     reason = invalid_reason(field, target, value)
     return skip(target, reason) if reason
 
+    value = converted_value(field, target, value)
+    return skip(target, 'invalid') unless assign_valid_attributes(contact_attributes(target, value))
+
+    @saved << "#{target}: #{value}"
+    true
+  end
+
+  def converted_value(field, target, value)
     value = value.join(', ') if field['type'] == 'checkbox'
     value = BigDecimal(value.to_s) if field['input'] == 'number' && custom_attribute(target)&.number?
-    previous = @contact.attributes.slice(*contact_attributes(target, value).keys.map(&:to_s))
-    @contact.assign_attributes(contact_attributes(target, value))
+    value
+  end
+
+  def assign_valid_attributes(attributes)
+    previous = @contact.attributes.slice(*attributes.keys.map(&:to_s))
+    @contact.assign_attributes(attributes)
     unless @contact.valid?
       @contact.assign_attributes(previous)
-      return skip(target, 'invalid')
+      return false
     end
-    @saved << "#{target}: #{value}"
     true
   end
 
@@ -71,31 +82,49 @@ class Whatsapp::Flows::SaveResponseService
     return 'invalid' unless Whatsapp::Flows::SaveTargets.compatible?(field, target, @contact.account)
     return 'invalid' unless valid_value?(field, value)
 
+    return 'used' if used_by_another_contact?(target, value)
+
+    nil
+  end
+
+  def used_by_another_contact?(target, value)
     column = target.delete_prefix('contact.')
     column = 'phone_number' if column == 'phone'
-    if %w[email phone_number document_number].include?(column)
-      others = @contact.account.contacts.where.not(id: @contact.id)
-      used = column == 'email' ? others.where('LOWER(email) = ?', value.downcase).exists? : others.where(column => value).exists?
-      return 'used' if used
-    end
-    nil
+    return false unless %w[email phone_number document_number].include?(column)
+
+    others = @contact.account.contacts.where.not(id: @contact.id)
+    column == 'email' ? others.exists?(['LOWER(email) = ?', value.downcase]) : others.exists?(column => value)
   end
 
   def valid_value?(field, value)
     case field['type']
     when 'optin' then [true, false].include?(value)
-    when 'checkbox' then value.is_a?(Array) && value.all? { |item| field.fetch('options').any? { |option| option['id'] == item } }
-    when 'dropdown', 'radio' then value.is_a?(String) && field.fetch('options').any? { |option| option['id'] == value }
-    when 'date'
-      value.is_a?(String) && value.match?(/\A\d{4}-\d{2}-\d{2}\z/) && Date.iso8601(value)
-    else
-      return false unless value.is_a?(String)
-      return true unless field['input'] == 'number'
-
-      BigDecimal(value).finite?
+    when 'checkbox' then valid_choices?(field, value)
+    when 'dropdown', 'radio' then value.is_a?(String) && valid_choice?(field, value)
+    when 'date' then valid_date?(value)
+    else valid_text?(field, value)
     end
   rescue ArgumentError
     false
+  end
+
+  def valid_choices?(field, value)
+    value.is_a?(Array) && value.all? { |item| valid_choice?(field, item) }
+  end
+
+  def valid_choice?(field, value)
+    field.fetch('options').any? { |option| option['id'] == value }
+  end
+
+  def valid_date?(value)
+    value.is_a?(String) && value.match?(/\A\d{4}-\d{2}-\d{2}\z/) && Date.iso8601(value)
+  end
+
+  def valid_text?(field, value)
+    return false unless value.is_a?(String)
+    return true unless field['input'] == 'number'
+
+    BigDecimal(value).finite?
   end
 
   def custom_attribute(target)
@@ -118,7 +147,7 @@ class Whatsapp::Flows::SaveResponseService
      (@skipped.any? ? translate('skipped', fields: @skipped.join('; ')) : nil)].compact.join("\n")
   end
 
-  def translate(key, **options)
-    I18n.t("conversations.messages.whatsapp.flow_save.#{key}", **options)
+  def translate(key, **)
+    I18n.t("conversations.messages.whatsapp.flow_save.#{key}", **)
   end
 end

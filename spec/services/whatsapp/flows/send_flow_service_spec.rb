@@ -43,7 +43,7 @@ RSpec.describe Whatsapp::Flows::SendFlowService do
   it 'shows Meta errors and preserves provider response logging' do
     message = service.perform
     url = "https://graph.facebook.com/v22.0/#{channel.provider_config['phone_number_id']}/messages"
-    error_body = { error: { code: 131047, message: 'Meta refused' } }.to_json
+    error_body = { error: { code: 131_047, message: 'Meta refused' } }.to_json
     stub_request(:post, url).to_return(status: 400, body: error_body,
                                        headers: { 'Content-Type' => 'application/json' })
     expect(Rails.logger).to receive(:error).with(error_body)

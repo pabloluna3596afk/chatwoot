@@ -96,9 +96,7 @@ class Whatsapp::Flows::DefinitionValidator
     return add('save_to_invalid', "#{path}.save_to") unless mapping.is_a?(Hash) && mapping.keys == ['target']
 
     target = mapping['target']
-    unless Whatsapp::Flows::SaveTargets.compatible?(block, target, @account)
-      return add('save_to_incompatible', "#{path}.save_to")
-    end
+    return add('save_to_incompatible', "#{path}.save_to") unless Whatsapp::Flows::SaveTargets.compatible?(block, target, @account)
 
     add('save_to_duplicate', "#{path}.save_to") if @save_targets.include?(target)
     @save_targets << target
