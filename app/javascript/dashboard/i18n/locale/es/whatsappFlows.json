@@ -24,7 +24,10 @@
       "date": "Fecha",
       "optin": "Casilla de aceptación",
       "photo": "Subir foto",
-      "document": "Subir documento", "email": "Correo", "phone": "Teléfono", "number": "Número"
+      "document": "Subir documento",
+      "email": "Correo",
+      "phone": "Teléfono",
+      "number": "Número"
     },
     "PREVIEW": {
       "PICK_ONE": "Elegir una opción ▾",
@@ -36,11 +39,7 @@
       "DEFAULT_BUTTON": "Continuar"
     },
     "START": {
-      "TITLE": "Nuevo flow",
-      "DESCRIPTION": "Ponle un nombre, elige las categorías y un punto de partida. A la derecha ves cómo empieza.",
       "STARTING_POINT": "Punto de partida",
-      "CANCEL": "Cancelar",
-      "CONTINUE": "Continuar",
       "POINTS": {
         "blank": {
           "TITLE": "En blanco",
@@ -62,7 +61,8 @@
           "TITLE": "Atención al cliente",
           "DESCRIPTION": "Nombre, correo, tema y mensaje, con un campo que aparece según el tema."
         }
-      }
+      },
+      "HINT": "Elige un punto de partida, o agrega un bloque para empezar de cero."
     },
     "LIST": {
       "TITLE": "Flows",
@@ -86,9 +86,8 @@
       "SAVED": "Flow guardado.",
       "SAVE_ERROR": "No se pudo guardar el flow.",
       "NAME": "Nombre del flow",
-      "NAME_PLACEHOLDER": "Datos del cliente",
+      "NAME_PLACEHOLDER": "Nombre del flow",
       "NAME_REQUIRED": "Escribe un nombre para el flow.",
-      "CATEGORIES": "Categorías",
       "SCREEN_TITLE": "Título de la pantalla",
       "MOVE_UP": "Subir",
       "MOVE_DOWN": "Bajar",
@@ -100,10 +99,6 @@
       "BUTTON_NEXT": "Continuar",
       "BUTTON_LAST": "Enviar",
       "PREVIEW_NOTE": "Vista previa en vivo. En el teléfono, WhatsApp lo muestra con pequeñas diferencias.",
-      "DETAILS": "Detalles del flow",
-      "DETAILS_TITLE": "Detalles del flow",
-      "DETAILS_DESCRIPTION": "Las categorías con las que Meta clasifica este flow.",
-      "DETAILS_DONE": "Listo",
       "TAB_HINT": "Arrastra una pantalla para reordenarla, o selecciónala y pulsa Alt + ← o Alt + →.",
       "TAB_MOVED": "Pantalla movida a la posición {n} de {total}.",
       "JSON_TITLE": "JSON de Meta",
@@ -168,7 +163,10 @@
       "BACK_TO_LIST": "Volver a Flows",
       "ERRORS_COUNT": "{n} por corregir",
       "SCREEN_ERRORS": "En esta pantalla",
-      "FLOW_ERRORS": "En el flow"
+      "FLOW_ERRORS": "En el flow",
+      "CATEGORY": "Categoría",
+      "CATEGORY_REQUIRED": "Elige una categoría.",
+      "START_REQUIRED": "Elige un punto de partida."
     },
     "ERRORS": {
       "screens_required": "Añade al menos una pantalla.",

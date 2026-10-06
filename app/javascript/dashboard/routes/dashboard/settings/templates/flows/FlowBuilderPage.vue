@@ -1,7 +1,8 @@
 <script setup>
 // The flow builder as a full page: the screens as tabs, the blocks to add on the left, the phone in the middle (blocks
 // are edited by clicking them there) and the settings of the selected screen and block on the right. The mistakes Meta
-// would refuse are shown while typing and the draft is saved on demand.
+// would refuse are shown while typing and the draft is saved on demand. A new flow is built in this same page: its
+// name and category are in the header and its starting model is chosen inside the phone, or skipped by adding a block.
 import {
   computed,
   nextTick,
@@ -19,19 +20,22 @@ import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
+import Select from 'dashboard/components-next/select/Select.vue';
 import FlowBlockEditor from './FlowBlockEditor.vue';
 import FlowPhoneCanvas from './FlowPhoneCanvas.vue';
 import {
   CATEGORIES,
   LIMITS,
   PALETTE,
+  STARTING_POINTS,
   groupErrors,
   newBlock,
   newScreen,
+  startingDefinition,
 } from './flowDefinition';
 
 const props = defineProps({
-  // { id (null while it is new), name, categories, definition }
+  // { id (null while it is new), name, categories, definition }; a new one comes with an empty screen
   flow: { type: Object, required: true },
   // The API the page talks to; only tests and the story give another one.
   api: { type: Object, default: () => WhatsappFlowsAPI },
@@ -42,6 +46,7 @@ const emit = defineEmits(['back', 'saved']);
 const { t, te } = useI18n();
 
 const VALIDATE_DELAY = 500;
+const MODELS = Object.keys(STARTING_POINTS).filter(id => id !== 'blank');
 // A short press before a drag starts on a touch screen, so scrolling the page with a finger still works.
 const DRAG_OPTIONS = {
   animation: 150,
@@ -57,11 +62,12 @@ const definition = reactive(JSON.parse(JSON.stringify(props.flow.definition)));
 const flowId = ref(props.flow.id || null);
 const isSaving = ref(false);
 const isChecking = ref(false);
-const dirty = ref(!props.flow.id);
+// A saved flow never offers the starting models; a new one does until one is picked or a block is added.
+const starting = ref(props.flow.id ? 'saved' : null);
+const triedToSave = ref(false);
 const errors = ref([]);
 const flowJson = ref(null);
 const jsonDialog = ref(null);
-const detailsDialog = ref(null);
 const tabsRef = ref(null);
 const jsonCopied = ref(false);
 const announcement = ref('');
@@ -99,15 +105,11 @@ const check = async () => {
 watch(
   definition,
   () => {
-    dirty.value = true;
     clearTimeout(timer);
     timer = setTimeout(check, VALIDATE_DELAY);
   },
   { deep: true }
 );
-watch([name, categories], () => {
-  dirty.value = true;
-});
 check();
 
 onBeforeUnmount(() => {
@@ -116,10 +118,36 @@ onBeforeUnmount(() => {
   controller?.abort();
 });
 
-const toggleCategory = category => {
-  categories.value = categories.value.includes(category)
-    ? categories.value.filter(item => item !== category)
-    : [...categories.value, category];
+// The header has one category. A flow saved with more keeps the others unless the one shown is changed to one of them.
+const category = computed({
+  get: () => categories.value[0] || '',
+  set: value => {
+    const extras = categories.value.slice(1).filter(item => item !== value);
+    categories.value = value ? [value, ...extras] : extras;
+  },
+});
+const categoryOptions = computed(() =>
+  CATEGORIES.map(item => ({
+    value: item,
+    label: t(`WHATSAPP_FLOWS.CATEGORIES.${item}`),
+  }))
+);
+
+const missing = computed(() => ({
+  name: !name.value.trim(),
+  category: !categories.value.length,
+  starting: !starting.value,
+}));
+const showMissing = key => triedToSave.value && missing.value[key];
+
+const pickStarting = id => {
+  starting.value = id;
+  // "Blank" keeps the empty screen; a model replaces the screens.
+  if (id === 'blank') return;
+  const picked = startingDefinition(id);
+  definition.screens.splice(0, definition.screens.length, ...picked.screens);
+  currentScreen.value = 0;
+  selected.value = null;
 };
 
 const goToScreen = index => {
@@ -192,6 +220,7 @@ const addBlock = item => {
   const created = newBlock(item.type, definition);
   if (item.input) created.input = item.input;
   screen.value.blocks.push(created);
+  starting.value = starting.value || 'blank';
   selected.value = screen.value.blocks.length - 1;
 };
 const updateBlock = value => {
@@ -238,10 +267,8 @@ const errorText = error => {
 };
 
 const save = async () => {
-  if (!name.value.trim()) {
-    useAlert(t('WHATSAPP_FLOWS.EDITOR.NAME_REQUIRED'));
-    return;
-  }
+  triedToSave.value = true;
+  if (Object.values(missing.value).some(Boolean)) return;
   isSaving.value = true;
   const payload = {
     name: name.value.trim(),
@@ -253,7 +280,6 @@ const save = async () => {
       ? await props.api.update(flowId.value, payload)
       : await props.api.create(payload);
     flowId.value = data.id;
-    dirty.value = false;
     useAlert(t('WHATSAPP_FLOWS.EDITOR.SAVED'));
     emit('saved', data);
   } catch (error) {
@@ -270,13 +296,14 @@ defineExpose({ save });
 
 <template>
   <div class="flex flex-col gap-4" data-testid="flow-builder">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div class="flex items-center flex-1 min-w-0 gap-3">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div class="flex flex-wrap items-start flex-1 min-w-0 gap-3">
         <Button
           type="button"
           ghost
           slate
           sm
+          class="mt-0.5"
           icon="i-lucide-arrow-left"
           :aria-label="$t('WHATSAPP_FLOWS.EDITOR.BACK_TO_LIST')"
           data-testid="flow-editor-back"
@@ -287,27 +314,38 @@ defineExpose({ save });
           class="flex-1 min-w-48 max-w-md"
           :placeholder="$t('WHATSAPP_FLOWS.EDITOR.NAME_PLACEHOLDER')"
           :aria-label="$t('WHATSAPP_FLOWS.EDITOR.NAME')"
+          :message="
+            showMissing('name') ? $t('WHATSAPP_FLOWS.EDITOR.NAME_REQUIRED') : ''
+          "
+          :message-type="showMissing('name') ? 'error' : 'info'"
           data-testid="flow-editor-name"
         />
-        <Button
-          type="button"
-          ghost
-          slate
-          sm
-          icon="i-lucide-settings-2"
-          :label="$t('WHATSAPP_FLOWS.EDITOR.DETAILS')"
-          data-testid="flow-details-open"
-          @click="detailsDialog?.open()"
-        />
+        <div class="min-w-48" data-testid="flow-editor-category">
+          <Select
+            v-model="category"
+            full-width
+            :options="categoryOptions"
+            :placeholder="$t('WHATSAPP_FLOWS.EDITOR.CATEGORY')"
+            :aria-label="$t('WHATSAPP_FLOWS.EDITOR.CATEGORY')"
+            :error="showMissing('category') ? 'required' : ''"
+          />
+          <p
+            v-if="showMissing('category')"
+            class="m-0 mt-1 text-xs text-n-ruby-11"
+            data-testid="flow-category-error"
+          >
+            {{ $t('WHATSAPP_FLOWS.EDITOR.CATEGORY_REQUIRED') }}
+          </p>
+        </div>
         <span
-          class="inline-flex px-2.5 py-0.5 text-xs font-semibold rounded-full bg-n-alpha-2 text-n-slate-11"
+          class="inline-flex mt-2 px-2.5 py-0.5 text-xs font-semibold rounded-full bg-n-alpha-2 text-n-slate-11"
           data-testid="flow-editor-status"
         >
           {{ $t('WHATSAPP_FLOWS.EDITOR.STATE_DRAFT') }}
         </span>
         <span
           v-if="errors.length"
-          class="inline-flex px-2.5 py-0.5 text-xs font-semibold rounded-full bg-n-amber-3 text-n-amber-11"
+          class="inline-flex mt-2 px-2.5 py-0.5 text-xs font-semibold rounded-full bg-n-amber-3 text-n-amber-11"
           data-testid="flow-editor-state"
         >
           {{ $t('WHATSAPP_FLOWS.EDITOR.ERRORS_COUNT', { n: errors.length }) }}
@@ -326,7 +364,7 @@ defineExpose({ save });
           type="button"
           :label="$t('WHATSAPP_FLOWS.EDITOR.SAVE')"
           :is-loading="isSaving"
-          :disabled="isSaving || !dirty"
+          :disabled="isSaving"
           data-testid="flow-editor-save"
           @click="save"
         />
@@ -370,35 +408,6 @@ defineExpose({ save });
           />
         </div>
       </template>
-    </Dialog>
-
-    <Dialog
-      ref="detailsDialog"
-      width="md"
-      :title="$t('WHATSAPP_FLOWS.EDITOR.DETAILS_TITLE')"
-      :description="$t('WHATSAPP_FLOWS.EDITOR.DETAILS_DESCRIPTION')"
-      :show-cancel-button="false"
-      :confirm-button-label="$t('WHATSAPP_FLOWS.EDITOR.DETAILS_DONE')"
-      data-testid="flow-details-dialog"
-      @confirm="detailsDialog?.close()"
-    >
-      <div class="grid gap-2">
-        <span class="text-sm font-medium text-n-slate-12">
-          {{ $t('WHATSAPP_FLOWS.EDITOR.CATEGORIES') }}
-        </span>
-        <div class="flex flex-wrap gap-2">
-          <Button
-            v-for="category in CATEGORIES"
-            :key="category"
-            type="button"
-            xs
-            :slate="!categories.includes(category)"
-            :label="$t(`WHATSAPP_FLOWS.CATEGORIES.${category}`)"
-            :data-testid="`flow-category-${category}`"
-            @click="toggleCategory(category)"
-          />
-        </div>
-      </div>
     </Dialog>
 
     <div
@@ -510,7 +519,41 @@ defineExpose({ save });
         @select="selected = $event"
         @remove="removeBlock"
         @move="moveBlock"
-      />
+      >
+        <div v-if="!starting" class="grid gap-1.5" data-testid="flow-starting">
+          <p class="m-0 text-xs text-n-slate-11">
+            {{ $t('WHATSAPP_FLOWS.START.HINT') }}
+          </p>
+          <button
+            type="button"
+            class="px-3 py-2 text-sm font-semibold border-[1.5px] rounded-xl border-n-brand bg-n-brand/10 text-n-blue-text hover:bg-n-brand/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
+            data-testid="flow-starting-blank"
+            @click="pickStarting('blank')"
+          >
+            {{ $t('WHATSAPP_FLOWS.START.POINTS.blank.TITLE') }}
+          </button>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button
+              v-for="id in MODELS"
+              :key="id"
+              type="button"
+              class="px-2.5 py-2 text-xs font-semibold leading-tight border-[1.5px] rounded-xl text-start border-n-strong bg-n-solid-1 text-n-slate-12 hover:border-n-brand hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
+              :title="$t(`WHATSAPP_FLOWS.START.POINTS.${id}.DESCRIPTION`)"
+              :data-testid="`flow-starting-${id}`"
+              @click="pickStarting(id)"
+            >
+              {{ $t(`WHATSAPP_FLOWS.START.POINTS.${id}.TITLE`) }}
+            </button>
+          </div>
+          <p
+            v-if="showMissing('starting')"
+            class="m-0 text-xs text-n-ruby-11"
+            data-testid="flow-starting-error"
+          >
+            {{ $t('WHATSAPP_FLOWS.EDITOR.START_REQUIRED') }}
+          </p>
+        </div>
+      </FlowPhoneCanvas>
 
       <aside
         class="flex flex-col min-w-0 gap-5 p-4 border rounded-2xl border-n-weak bg-n-solid-1"
