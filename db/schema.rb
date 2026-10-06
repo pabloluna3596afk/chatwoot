@@ -423,6 +423,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_05_120000) do
     t.string "appointment_status", default: "none", null: false
     t.string "booking_source", default: "manual", null: false
     t.string "invitation_status"
+    t.text "invitation_text"
     t.index ["account_id", "contact_id"], name: "index_calendar_events_on_account_id_and_contact_id"
     t.index ["account_id", "conversation_id"], name: "index_calendar_events_on_account_id_and_conversation_id"
     t.index ["account_id", "idempotency_key"], name: "index_calendar_events_on_account_id_and_idempotency_key", unique: true, where: "(idempotency_key IS NOT NULL)"

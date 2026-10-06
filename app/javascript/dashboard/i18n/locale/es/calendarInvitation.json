@@ -1,0 +1,44 @@
+{
+  "CALENDAR_INVITATION": {
+    "TITLE": "Texto de la invitación",
+    "DESCRIPTION": "Es lo que lee el cliente en la invitación de su cita. Se usa en todas las citas, las de los agentes y las de Captain; cada cita puede cambiarlo al crearla.",
+    "TEXT_LABEL": "Texto",
+    "TEXT_PLACEHOLDER": "Escribe el texto de la invitación",
+    "LOCATION_LABEL": "Dirección o indicaciones",
+    "LOCATION_PLACEHOLDER": "Av. Amazonas 123, piso 2. Pregunta por recepción.",
+    "LOCATION_HELP": "Se usa donde pongas la variable de dirección. Si la dejas vacía, esa línea no aparece.",
+    "INSERT_VARIABLE": "Insertar variable",
+    "SEARCH_VARIABLE": "Buscar variable...",
+    "PREVIEW": "Así lo verá el cliente",
+    "PREVIEW_NOTE": "Con datos de ejemplo. Las líneas cuyas variables están vacías no aparecen.",
+    "RESTORE": "Usar el texto por defecto",
+    "SAVE": "Guardar",
+    "SAVED": "Texto de la invitación guardado.",
+    "SAVE_ERROR": "No se pudo guardar el texto de la invitación.",
+    "LOAD_ERROR": "No se pudo cargar el texto de la invitación.",
+    "UNKNOWN": "Hay variables que no existen: {tokens}.",
+    "USING_DEFAULT": "Se está usando el texto por defecto.",
+    "VARIABLES": {
+      "nombre": "Nombre del cliente",
+      "primer_nombre": "Primer nombre del cliente",
+      "telefono": "Teléfono del cliente",
+      "correo": "Correo del cliente",
+      "agente": "Nombre del agente (o del asistente)",
+      "empresa": "Nombre de la empresa",
+      "fecha": "Fecha de la cita",
+      "hora": "Hora de la cita",
+      "motivo": "Título de la cita",
+      "direccion": "Dirección o indicaciones",
+      "enlace_meet": "Enlace de Google Meet",
+      "conversacion": "Número de la conversación"
+    },
+    "MODAL": {
+      "LABEL": "Texto de la invitación",
+      "HELP": "Si no lo cambias, se usa el texto de la cuenta. Las variables se llenan con los datos de esta cita.",
+      "CUSTOM": "Texto propio de esta cita",
+      "USE_ACCOUNT": "Usar el texto de la cuenta",
+      "PREVIEW": "Así lo verá el cliente",
+      "MEET_NOTE": "El enlace de Meet se añade cuando se crea la cita."
+    }
+  }
+}

@@ -69,6 +69,12 @@ class Integrations::GoogleCalendar::Client
     post(events_path(calendar_id), body, params)
   end
 
+  # Only the description of the event (the Meet link of an event exists once Google has created it, so a text that holds it
+  # is completed after). Nobody is notified again.
+  def update_description(calendar_id:, event_id:, description:)
+    patch(event_path(calendar_id, event_id), { description: description }, { sendUpdates: 'none' })
+  end
+
   def update_event(calendar_id:, event_id:, etag:, summary:, start_at:, end_at:, description: nil, extended_properties: {}, include_meet: false, attendee_email: nil, timezone: TIMEZONE)
     body = event_body(summary:, start_at:, end_at:, description:, extended_properties:, include_meet:, attendee_email:, timezone:)
     params = {}

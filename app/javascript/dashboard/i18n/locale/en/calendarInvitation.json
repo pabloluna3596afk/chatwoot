@@ -1,0 +1,44 @@
+{
+  "CALENDAR_INVITATION": {
+    "TITLE": "Invitation text",
+    "DESCRIPTION": "This is what the customer reads in the invitation to their appointment. It is used in every appointment, the agents' and Captain's; each appointment can change it when it is created.",
+    "TEXT_LABEL": "Text",
+    "TEXT_PLACEHOLDER": "Write the invitation text",
+    "LOCATION_LABEL": "Address or instructions",
+    "LOCATION_PLACEHOLDER": "123 Main St, floor 2. Ask for reception.",
+    "LOCATION_HELP": "Used where you put the address variable. If you leave it empty, that line is left out.",
+    "INSERT_VARIABLE": "Insert variable",
+    "SEARCH_VARIABLE": "Search variable...",
+    "PREVIEW": "How the customer will see it",
+    "PREVIEW_NOTE": "With sample data. Lines whose variables are empty are left out.",
+    "RESTORE": "Use the default text",
+    "SAVE": "Save",
+    "SAVED": "Invitation text saved.",
+    "SAVE_ERROR": "The invitation text could not be saved.",
+    "LOAD_ERROR": "The invitation text could not be loaded.",
+    "UNKNOWN": "These variables do not exist: {tokens}.",
+    "USING_DEFAULT": "The default text is in use.",
+    "VARIABLES": {
+      "nombre": "Customer's name",
+      "primer_nombre": "Customer's first name",
+      "telefono": "Customer's phone",
+      "correo": "Customer's email",
+      "agente": "Agent's (or assistant's) name",
+      "empresa": "Company name",
+      "fecha": "Appointment date",
+      "hora": "Appointment time",
+      "motivo": "Appointment title",
+      "direccion": "Address or instructions",
+      "enlace_meet": "Google Meet link",
+      "conversacion": "Conversation number"
+    },
+    "MODAL": {
+      "LABEL": "Invitation text",
+      "HELP": "If you do not change it, the account's text is used. The variables are filled in with this appointment's data.",
+      "CUSTOM": "Text of this appointment",
+      "USE_ACCOUNT": "Use the account's text",
+      "PREVIEW": "How the customer will see it",
+      "MEET_NOTE": "The Meet link is added when the appointment is created."
+    }
+  }
+}

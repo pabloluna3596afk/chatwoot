@@ -1290,6 +1290,15 @@ reasignar bot → vuelve según estado. Settings Bots/Flows muestran leyenda.
 
 ---
 
+### B-NEW-44 — Calendar: fixtures de invitación desactualizados tras merge de develop
+
+- **Archivo:** `spec/lib/integrations/google_calendar/event_service_invitation_text_spec.rb`.
+- **Causa:** nombre visible aleatorio en la fábrica de usuarios, asistente simulado sin `id` y stub de `update_description` que devolvía `nil`.
+- **Fix:** fijar `display_name`, usar la fábrica real de Captain y devolver descripción/etag como hash del cliente. Sin cambios de código de producto.
+- **Test:** ejecutar el spec completo; verificar nombre visible humano, nombre del asistente y completar la invitación con el enlace Meet.
+
+---
+
 ## 5b. UX fijados (reply / plantillas WA)
 
 ### UX-001 — Preview reply-to en notas privadas

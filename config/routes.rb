@@ -517,6 +517,8 @@ Rails.application.routes.draw do
               collection do
                 get :oauth
                 get :events
+                get :invitation
+                patch :invitation, action: :update_invitation
                 post :events, action: :create_event
                 patch 'events/:event_id', action: :update_event
                 delete 'events/:event_id', action: :destroy_event

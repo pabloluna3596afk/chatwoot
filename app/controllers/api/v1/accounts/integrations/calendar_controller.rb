@@ -3,7 +3,7 @@ class Api::V1::Accounts::Integrations::CalendarController < Api::V1::Accounts::I
 
   wrap_parameters format: []
 
-  before_action :check_admin_authorization?, only: [:oauth, :destroy, :update_calendars]
+  before_action :check_admin_authorization?, only: [:oauth, :destroy, :update_calendars, :update_invitation]
   before_action :ensure_google_configured, only: [:oauth]
   before_action :fetch_connection, only: [:calendars, :update_calendars, :destroy]
   before_action :fetch_connection_for_events, only: [:events, :create_event, :update_event, :destroy_event, :lock_event, :unlock_event]
@@ -40,6 +40,23 @@ class Api::V1::Accounts::Integrations::CalendarController < Api::V1::Accounts::I
   # The AI bot follow-up of an appointment (Panel AI) only makes sense when an AgentBot is active in some inbox.
   def panel_ai_active?
     Current.account.inboxes.joins(:agent_bot_inbox).merge(AgentBotInbox.active).exists?
+  end
+
+  # The text of the invitation of an appointment, for the settings and for the appointment modal (everyone reads it).
+  def invitation
+    render json: invitation_payload
+  end
+
+  def update_invitation
+    template = params[:template].to_s.strip
+    unknown = Integrations::GoogleCalendar::InvitationText.unknown_tokens(template)
+    return render_invitation_error('invitation_unknown_tokens', tokens: unknown.map { |token| "{{#{token}}}" }.join(', ')) if unknown.any?
+
+    limit = Integrations::GoogleCalendar::InvitationText::MAX_LENGTH
+    return render_invitation_error('invitation_too_long', limit: limit) if template.length > limit
+
+    Current.account.update!(appointment_invitation_template: template.presence, appointment_location: params[:location].to_s.strip.presence)
+    render json: invitation_payload
   end
 
   def calendars
@@ -272,11 +289,28 @@ class Api::V1::Accounts::Integrations::CalendarController < Api::V1::Accounts::I
     value.to_s
   end
 
+  def invitation_payload
+    account = Current.account
+    {
+      template: account.appointment_invitation_template,
+      location: account.appointment_location,
+      default_template: Integrations::GoogleCalendar::InvitationText.default_template(
+        Integrations::GoogleCalendar::InvitationText.locale_for(account)
+      ),
+      tokens: Integrations::GoogleCalendar::InvitationText::TOKENS,
+      max_length: Integrations::GoogleCalendar::InvitationText::MAX_LENGTH
+    }
+  end
+
+  def render_invitation_error(key, options = {})
+    render json: { error: key, message: I18n.t("integration_apps.calendars.#{key}", **options) }, status: :unprocessable_entity
+  end
+
   def permitted_params
     params.permit(
       :id, :connection_id, :calendar_id, :event_id, :time_min, :time_max, :heartbeat,
       :summary, :start, :end, :etag, :contact_id, :conversation_id, :include_meet, :send_to_contact,
-      :attendee_email, :all, :note, :idempotency_key, :appointment_status,
+      :attendee_email, :all, :note, :idempotency_key, :appointment_status, :description,
       bot_followup_policy: {}
     )
   end
