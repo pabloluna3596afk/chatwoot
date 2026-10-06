@@ -46,7 +46,7 @@ RSpec.describe Whatsapp::Flows::SaveResponseService do
   it 'saves and notes on the original conversation after it was resolved' do
     conversation.resolved!
     reopened = create(:conversation, account: conversation.account, inbox: conversation.inbox, contact: contact,
-                                       contact_inbox: conversation.contact_inbox)
+                                     contact_inbox: conversation.contact_inbox)
     incoming.update!(conversation: reopened)
     described_class.new(incoming, payload).perform
     expect(conversation.messages.where(private: true).count).to eq(1)

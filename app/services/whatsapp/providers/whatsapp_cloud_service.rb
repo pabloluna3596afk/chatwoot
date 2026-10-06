@@ -301,8 +301,8 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
     }
     interactive[:header] = { type: 'text', text: flow['header'] } if flow['header'].present?
     response = HTTParty.post("#{phone_id_path('v22.0')}/messages", headers: api_headers,
-                            body: { messaging_product: 'whatsapp', **recipient_params(phone_number),
-                                    type: 'interactive', interactive: interactive }.to_json)
+                                                                   body: { messaging_product: 'whatsapp', **recipient_params(phone_number),
+                                                                           type: 'interactive', interactive: interactive }.to_json)
     process_response(response, message)
   end
 end

@@ -13,8 +13,8 @@ RSpec.describe Whatsapp::Flows::SendFlowService do
     flow.definition['screens'][0]['blocks'][0]['save_to'] = { 'target' => 'contact.name' }
     flow.save!
     WhatsappFlowPublication.create!(whatsapp_flow: flow, account: account,
-                                       waba_id: channel.provider_config['business_account_id'], status: 'published',
-                                       meta_flow_id: '1234567', published_at: Time.current)
+                                    waba_id: channel.provider_config['business_account_id'], status: 'published',
+                                    meta_flow_id: '1234567', published_at: Time.current)
     allow(conversation).to receive(:can_reply?).and_return(true)
   end
 
@@ -30,7 +30,7 @@ RSpec.describe Whatsapp::Flows::SendFlowService do
     message = service.perform
     url = "https://graph.facebook.com/v22.0/#{channel.provider_config['phone_number_id']}/messages"
     stub_request(:post, url).to_return(status: 200, body: { messages: [{ id: 'wamid.sent' }] }.to_json,
-                                    headers: { 'Content-Type' => 'application/json' })
+                                       headers: { 'Content-Type' => 'application/json' })
     provider = Whatsapp::Providers::WhatsappCloudService.new(whatsapp_channel: channel)
     expect(provider.send_message('593991234567', message)).to eq('wamid.sent')
     expect(WebMock).to(have_requested(:post, url).with do |request|
@@ -45,7 +45,7 @@ RSpec.describe Whatsapp::Flows::SendFlowService do
     url = "https://graph.facebook.com/v22.0/#{channel.provider_config['phone_number_id']}/messages"
     error_body = { error: { code: 131047, message: 'Meta refused' } }.to_json
     stub_request(:post, url).to_return(status: 400, body: error_body,
-                                    headers: { 'Content-Type' => 'application/json' })
+                                       headers: { 'Content-Type' => 'application/json' })
     expect(Rails.logger).to receive(:error).with(error_body)
     Whatsapp::Providers::WhatsappCloudService.new(whatsapp_channel: channel).send_message('593991234567', message)
     expect(message.reload).to be_failed
