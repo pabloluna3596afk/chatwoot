@@ -360,6 +360,15 @@ en:
         call_permission_request_body: 'We would like to call you regarding your conversation.'
         request_contact_info: 'Would you like to share your phone number with us?'
         unsupported_message: 'This message is unavailable.'
+        flow_send:
+          open: 'Open'
+        flow_save:
+          completed: 'Formulario completado: %{name}'
+          saved: 'Saved: %{fields}'
+          skipped: 'Skipped: %{fields}'
+          blank: 'blank value'
+          invalid: 'invalid value or destination'
+          used: 'used by another contact'
         flow_response:
           received: "Formulario completado:\n%{details}"
           empty: 'Formulario completado.'

@@ -15,7 +15,9 @@ class Whatsapp::Flows::DefinitionValidator
 
   Spec = Whatsapp::Flows::Spec
 
-  def initialize(definition)
+  def initialize(definition, account: nil)
+    @account = account
+    @save_targets = []
     @definition = Spec.string_keys(definition.is_a?(Hash) ? definition : {})
     @errors = []
     @warnings = []
@@ -80,11 +82,26 @@ class Whatsapp::Flows::DefinitionValidator
   def check_block(block, path)
     return add('block_invalid', path) unless block.is_a?(Hash) && Spec::BLOCK_TYPES.include?(block['type'])
 
+    check_save_to(block, path) if block.key?('save_to')
+
     if Spec::TEXT_BLOCKS.include?(block['type'])
       check_text(block, path)
     else
       check_input(block, path)
     end
+  end
+
+  def check_save_to(block, path)
+    mapping = block['save_to']
+    return add('save_to_invalid', "#{path}.save_to") unless mapping.is_a?(Hash) && mapping.keys == ['target']
+
+    target = mapping['target']
+    unless Whatsapp::Flows::SaveTargets.compatible?(block, target, @account)
+      return add('save_to_incompatible', "#{path}.save_to")
+    end
+
+    add('save_to_duplicate', "#{path}.save_to") if @save_targets.include?(target)
+    @save_targets << target
   end
 
   def check_text(block, path)

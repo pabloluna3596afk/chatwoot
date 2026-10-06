@@ -34,7 +34,7 @@ class Api::V1::Accounts::WhatsappFlowsController < Api::V1::Accounts::BaseContro
   # none, the Flow JSON it becomes.
   def validate
     definition = params[:definition].respond_to?(:to_unsafe_h) ? params[:definition].to_unsafe_h : {}
-    result = Whatsapp::Flows::DefinitionValidator.new(definition).call
+    result = Whatsapp::Flows::DefinitionValidator.new(definition, account: Current.account).call
     render json: { valid: result.valid?, errors: result.errors, warnings: result.warnings, flow_json: result.valid? ? export(definition) : nil }
   end
 
