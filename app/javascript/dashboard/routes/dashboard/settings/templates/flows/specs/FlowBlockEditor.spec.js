@@ -39,6 +39,58 @@ const mountBlock = (blockIndex, props = {}) =>
 const lastUpdate = wrapper => wrapper.emitted('update:modelValue').at(-1)[0];
 
 describe('FlowBlockEditor', () => {
+  it('groups writable targets, saves the Liquid path and removes the optional mapping', async () => {
+    const wrapper = mountBlock(1, {
+      attributes: [
+        {
+          attribute_key: 'cedula',
+          attribute_display_name: 'Cedula',
+          attribute_model: 'contact_attribute',
+          attribute_display_type: 'text',
+        },
+        {
+          attribute_key: 'secret',
+          attribute_model: 'conversation_attribute',
+          attribute_display_type: 'text',
+        },
+      ],
+    });
+    const select = wrapper.get('[data-testid="flow-save-to"]');
+    expect(select.findAll('optgroup')).toHaveLength(2);
+    expect(select.html()).toContain('contact.custom_attribute.cedula');
+    expect(select.html()).not.toContain('conversation.custom_attribute');
+    expect(select.html()).not.toContain('contact.first_name');
+    await select.setValue('contact.email');
+    expect(lastUpdate(wrapper).save_to).toEqual({ target: 'contact.email' });
+    await select.setValue('');
+    expect(lastUpdate(wrapper)).not.toHaveProperty('save_to');
+  });
+
+  it('restricts optin to checkbox attributes and does not offer destinations for files', () => {
+    const attributes = [
+      {
+        attribute_key: 'accept',
+        attribute_model: 'contact_attribute',
+        attribute_display_type: 'checkbox',
+      },
+    ];
+    const optin = mountBlock(1, {
+      modelValue: { type: 'optin', key: 'accept', label: 'Accept' },
+      attributes,
+    });
+    expect(
+      optin
+        .findAll('[data-testid="flow-save-to"] option')
+        .map(option => option.attributes('value'))
+    ).toEqual(['', 'contact.custom_attribute.accept']);
+    expect(
+      mountBlock(1, {
+        modelValue: { type: 'photo', key: 'photo', label: 'Photo' },
+      })
+        .find('[data-testid="flow-save-to"]')
+        .exists()
+    ).toBe(false);
+  });
   it('writes the name of the answer from the label until the name is set by hand', async () => {
     const wrapper = mountBlock(1, {
       modelValue: { type: 'short_text', key: 'short_text', label: '' },
