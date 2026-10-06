@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe Integrations::GoogleCalendar::EventService do
   let(:account) { create(:account, name: 'Clínica Sol', locale: 'es') }
-  let(:user) { create(:user, account: account, role: :administrator, name: 'Pablo Luna') }
+  let(:user) { create(:user, account: account, role: :administrator, name: 'Pablo Luna', display_name: 'Pablo Luna') }
   let(:contact) { create(:contact, account: account, name: 'Ana Pérez') }
   let(:connection) do
     CalendarConnection.create!(
@@ -40,7 +40,7 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
       google_event_for("g-#{created_calls.size}", kwargs)
     end
     allow(client).to receive(:update_event) { |**kwargs| google_event_for(kwargs[:event_id], kwargs) }
-    allow(client).to receive(:update_description)
+    allow(client).to receive(:update_description) { |**kwargs| { 'description' => kwargs[:description], 'etag' => '"etag-2"' } }
   end
 
   after do
@@ -74,7 +74,7 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
   end
 
   it 'names the assistant as the agent when Captain books' do
-    assistant = Struct.new(:name).new('Aurora')
+    assistant = create(:captain_assistant, account: account, name: 'Aurora')
     captain = described_class.new(account: account, user: assistant, connection: connection)
 
     captain.create(params)
