@@ -77,7 +77,7 @@ describe Whatsapp::IncomingMessageWhatsappCloudService do
 
     it 'does nothing for an unknown source id' do
       params[:entry][0][:changes][0][:value][:statuses][0][:id] = 'wamid.unknown-pricing-message'
-      stored_attributes = message.attributes
+      stored_attributes = message.reload.attributes
 
       expect { service.perform }.not_to change(Message, :count)
       expect(message.reload.attributes).to eq(stored_attributes)
