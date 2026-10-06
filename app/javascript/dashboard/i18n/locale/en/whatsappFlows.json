@@ -166,7 +166,19 @@
       "FLOW_ERRORS": "In the flow",
       "CATEGORY": "Category",
       "CATEGORY_REQUIRED": "Choose a category.",
-      "START_REQUIRED": "Choose a starting point."
+      "START_REQUIRED": "Choose a starting point.",
+      "SAVE_TO": "Save to",
+      "NO_SAVE": "Do not save",
+      "CONTACT": "Contact",
+      "CUSTOM_ATTRIBUTES": "Custom attributes",
+      "TARGETS": {
+        "nombre": "Name",
+        "correo": "Email",
+        "telefono": "Phone",
+        "empresa": "Company",
+        "ciudad": "City",
+        "documento": "Document number"
+      }
     },
     "ERRORS": {
       "screens_required": "Add at least one screen.",
@@ -202,7 +214,10 @@
       "condition_unknown_field": "The condition looks at a question that no longer exists.",
       "condition_not_earlier": "The condition can only look at a question that comes before.",
       "condition_field_unsupported": "The condition cannot look at this kind of question.",
-      "condition_value_invalid": "The value of the condition is not valid."
+      "condition_value_invalid": "The value of the condition is not valid.",
+      "save_to_invalid": "Choose a valid save destination.",
+      "save_to_incompatible": "This field cannot save to that destination.",
+      "save_to_duplicate": "Another field already saves to this destination."
     },
     "META": {
       "STATE": {
@@ -244,6 +259,17 @@
       "TEST_SEND": "Send test",
       "TEST_SENT": "Flow sent to {number}.",
       "TEST_FAILED": "It could not be sent."
+    },
+    "SEND": {
+      "TITLE": "Send form",
+      "DESCRIPTION": "Send one published form in this WhatsApp conversation.",
+      "FLOW": "Form",
+      "EMPTY": "No current published forms are available for this inbox.",
+      "HEADER": "Header (optional)",
+      "BODY": "Message",
+      "CTA": "Button text",
+      "OPEN": "Open",
+      "OUTSIDE_WINDOW": "Forms can only be sent within 24 hours of the latest customer message."
     }
   }
 }

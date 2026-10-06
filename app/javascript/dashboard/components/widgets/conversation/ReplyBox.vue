@@ -29,6 +29,7 @@ import {
   replaceVariablesInMessage,
 } from '@chatwoot/utils';
 import WhatsappTemplates from './WhatsappTemplates/Modal.vue';
+import WhatsappFlowSend from './WhatsappFlowSend.vue';
 import CannedResponsesModal from './CannedResponses/CannedResponsesModal.vue';
 import ContentTemplates from './ContentTemplates/ContentTemplatesModal.vue';
 import { MESSAGE_MAX_LENGTH } from 'shared/helpers/MessageTypeHelper';
@@ -82,6 +83,7 @@ export default {
     ReplyTopPanel,
     ContentTemplates,
     WhatsappTemplates,
+    WhatsappFlowSend,
     CannedResponsesModal,
     WootMessageEditor,
     QuotedEmailPreview,
@@ -1419,6 +1421,12 @@ export default {
 <template>
   <ReplyBoxBanner :message="message" :is-on-private-note="isOnPrivateNote" />
   <div class="reply-box" :class="replyBoxClass">
+    <WhatsappFlowSend
+      v-if="isAWhatsAppCloudChannel && !isPrivate"
+      :key="conversationId"
+      :conversation-id="conversationId"
+      :can-reply="Boolean(currentChat.can_reply)"
+    />
     <ReplyTopPanel
       :mode="replyType"
       :conversation-id="conversationId"

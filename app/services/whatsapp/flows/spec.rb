@@ -22,6 +22,7 @@
 # licensed projects gokapso/flowso (validator, Copyright (c) 2026 Kapso) and ANGELBERRIOS23/whatsapp-flow-studio
 # (builder and gotchas, Copyright (c) 2026 Angel Berríos); see the notice in Whatsapp::Flows::FlowJsonValidator.
 module Whatsapp::Flows::Spec
+  # Input blocks may have save_to: { 'target' => 'contact.email' }. This CRM metadata is never exported to Meta.
   SCHEMA_VERSION = 1
   FLOW_JSON_VERSION = '7.3'.freeze
 

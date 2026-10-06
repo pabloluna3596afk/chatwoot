@@ -34,7 +34,7 @@ class WhatsappFlow < ApplicationRecord
   validate :definition_shape
 
   def definition_check
-    Whatsapp::Flows::DefinitionValidator.new(definition).call
+    Whatsapp::Flows::DefinitionValidator.new(definition, account: account).call
   end
 
   def flow_json

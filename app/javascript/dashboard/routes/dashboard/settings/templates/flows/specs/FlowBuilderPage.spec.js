@@ -2,6 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import FlowBuilderPage from '../FlowBuilderPage.vue';
 import FlowPhoneCanvas from '../FlowPhoneCanvas.vue';
 import Draggable from 'vuedraggable';
+import { createStore } from 'vuex';
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
@@ -87,7 +88,21 @@ const sampleFlow = (extra = {}) => ({
 const mountPage = async (flow = sampleFlow(), api = makeApi()) => {
   const wrapper = mount(FlowBuilderPage, {
     props: { flow, api },
-    global: { mocks: { $t: key => key }, stubs: { Dialog: DialogStub } },
+    global: {
+      plugins: [
+        createStore({
+          modules: {
+            attributes: {
+              namespaced: true,
+              getters: { getAttributes: () => [] },
+              actions: { get: vi.fn() },
+            },
+          },
+        }),
+      ],
+      mocks: { $t: key => key },
+      stubs: { Dialog: DialogStub },
+    },
   });
   await flushPromises();
   return { wrapper, api };

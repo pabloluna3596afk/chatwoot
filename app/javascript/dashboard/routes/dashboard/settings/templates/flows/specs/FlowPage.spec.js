@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils';
+import { createStore } from 'vuex';
 import FlowPage from '../FlowPage.vue';
 import FlowBuilderPage from '../FlowBuilderPage.vue';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
@@ -45,7 +46,21 @@ const savedFlow = {
 const mountPage = async routeState => {
   Object.assign(route, routeState);
   const wrapper = mount(FlowPage, {
-    global: { mocks: { $t: key => key }, stubs: { Dialog: true } },
+    global: {
+      plugins: [
+        createStore({
+          modules: {
+            attributes: {
+              namespaced: true,
+              getters: { getAttributes: () => [] },
+              actions: { get: vi.fn() },
+            },
+          },
+        }),
+      ],
+      mocks: { $t: key => key },
+      stubs: { Dialog: true },
+    },
   });
   await flushPromises();
   return wrapper;

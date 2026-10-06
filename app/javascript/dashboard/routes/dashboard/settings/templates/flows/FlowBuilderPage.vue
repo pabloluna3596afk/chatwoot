@@ -14,6 +14,7 @@ import {
 } from 'vue';
 import Draggable from 'vuedraggable';
 import { useI18n } from 'vue-i18n';
+import { useStore } from 'vuex';
 
 import { useAlert } from 'dashboard/composables';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
@@ -48,6 +49,9 @@ const props = defineProps({
 const emit = defineEmits(['back', 'saved']);
 
 const { t, te } = useI18n();
+const store = useStore();
+const attributes = computed(() => store.getters['attributes/getAttributes']);
+store.dispatch('attributes/get');
 
 const VALIDATE_DELAY = 500;
 const MODELS = Object.keys(STARTING_POINTS).filter(id => id !== 'blank');
@@ -734,6 +738,7 @@ defineExpose({ save });
           <FlowBlockEditor
             :key="`${currentScreen}-${selected}`"
             :model-value="block"
+            :attributes="attributes"
             :definition="definition"
             :screen-index="currentScreen"
             :block-index="selected"

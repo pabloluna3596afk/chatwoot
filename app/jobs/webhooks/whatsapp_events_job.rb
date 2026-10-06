@@ -1,4 +1,6 @@
 class Webhooks::WhatsappEventsJob < MutexApplicationJob
+  # ActiveJob's argument logger does not apply Rails' parameter filters to serialized response_json.
+  self.log_arguments = false
   queue_as :low
   # Retry budget (19 × 2s = 38s) must exceed the 30s lock TTL set in `perform`, otherwise
   # a webhook that arrives just after the lock is acquired can exhaust retries before the

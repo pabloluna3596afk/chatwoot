@@ -10,6 +10,7 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
+import { saveTargets } from './flowSaveTargets';
 import {
   INPUT_KINDS,
   LIMITS,
@@ -33,6 +34,7 @@ const props = defineProps({
   screenIndex: { type: Number, required: true },
   blockIndex: { type: Number, required: true },
   errors: { type: Array, default: () => [] },
+  attributes: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -50,6 +52,14 @@ const hasHelper = computed(
 
 const patch = changes =>
   emit('update:modelValue', { ...props.modelValue, ...changes });
+
+const targets = computed(() => saveTargets(props.modelValue, props.attributes));
+const setSaveTo = target => {
+  const block = { ...props.modelValue };
+  if (target) block.save_to = { target };
+  else delete block.save_to;
+  emit('update:modelValue', block);
+};
 
 const otherKeys = computed(() =>
   fieldsOf(props.definition)
@@ -296,6 +306,35 @@ const keepValue = (apply, value) => {
       <p class="m-0 -mt-2 text-xs text-n-slate-11" data-testid="flow-key-help">
         {{ $t('WHATSAPP_FLOWS.EDITOR.KEY_HELP') }}
       </p>
+      <label v-if="!isFile" class="grid gap-1.5 text-sm text-n-slate-12">
+        {{ $t('WHATSAPP_FLOWS.EDITOR.SAVE_TO') }}
+        <select
+          :value="modelValue.save_to?.target || ''"
+          class="h-8 px-2 text-sm border rounded-lg border-n-weak bg-n-solid-1"
+          data-testid="flow-save-to"
+          @change="setSaveTo($event.target.value)"
+        >
+          <option value="">{{ $t('WHATSAPP_FLOWS.EDITOR.NO_SAVE') }}</option>
+          <optgroup :label="$t('WHATSAPP_FLOWS.EDITOR.CONTACT')">
+            <option
+              v-for="target in targets.filter(item => item.group === 'system')"
+              :key="target.key"
+              :value="target.key"
+            >
+              {{ $t(`WHATSAPP_FLOWS.EDITOR.TARGETS.${target.name}`) }}
+            </option>
+          </optgroup>
+          <optgroup :label="$t('WHATSAPP_FLOWS.EDITOR.CUSTOM_ATTRIBUTES')">
+            <option
+              v-for="target in targets.filter(item => item.group === 'contact')"
+              :key="target.key"
+              :value="target.key"
+            >
+              {{ target.label }}
+            </option>
+          </optgroup>
+        </select>
+      </label>
     </template>
 
     <div class="grid gap-2" data-testid="flow-condition">

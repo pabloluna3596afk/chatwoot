@@ -12,6 +12,19 @@ class WhatsappFlowsAPI extends ApiClient {
     return axios.get(this.url);
   }
 
+  conversationFlows(conversationId) {
+    return axios.get(
+      `${this.baseUrl()}/conversations/${conversationId}/whatsapp_flows`
+    );
+  }
+
+  sendToConversation(conversationId, payload) {
+    return axios.post(
+      `${this.baseUrl()}/conversations/${conversationId}/whatsapp_flows`,
+      payload
+    );
+  }
+
   show(id) {
     return axios.get(`${this.url}/${id}`);
   }

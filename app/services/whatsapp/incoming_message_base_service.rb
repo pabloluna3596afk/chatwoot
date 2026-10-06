@@ -95,6 +95,7 @@ class Whatsapp::IncomingMessageBaseService
     attach_files
     attach_location if message_type == 'location'
     @message.save!
+    save_flow_response(message) unless outgoing_echo
   end
 
   def set_contact

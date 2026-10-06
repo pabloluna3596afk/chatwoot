@@ -2,7 +2,9 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
   def send_message(phone_number, message)
     @message = message
 
-    if message.attachments.present?
+    if message.additional_attributes['whatsapp_flow']
+      send_flow_message(phone_number, message)
+    elsif message.attachments.present?
       send_attachment_message(phone_number, message)
     elsif message.content_type == 'input_select'
       send_interactive_text_message(phone_number, message)
@@ -284,6 +286,23 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
       }.to_json
     )
 
+    process_response(response, message)
+  end
+
+  def send_flow_message(phone_number, message)
+    flow = message.additional_attributes.fetch('whatsapp_flow')
+    interactive = {
+      type: 'flow', body: { text: flow.fetch('body') },
+      action: { name: 'flow', parameters: {
+        flow_message_version: '3', mode: 'published', flow_id: flow.fetch('meta_flow_id'), flow_cta: flow.fetch('cta'),
+        flow_token: Whatsapp::Flows::ResponseToken.generate(message), flow_action: 'navigate',
+        flow_action_payload: { screen: flow.fetch('screen') }
+      } }
+    }
+    interactive[:header] = { type: 'text', text: flow['header'] } if flow['header'].present?
+    response = HTTParty.post("#{phone_id_path('v22.0')}/messages", headers: api_headers,
+                                                                   body: { messaging_product: 'whatsapp', **recipient_params(phone_number),
+                                                                           type: 'interactive', interactive: interactive }.to_json)
     process_response(response, message)
   end
 end
