@@ -1,111 +1,110 @@
-﻿module Api
-  module V1
-    module Accounts
-      class WhatsappFlowsController < Api::V1::Accounts::BaseController
-        before_action :set_whatsapp_flow, only: [:show, :update, :publish, :publication_status, :test, :retry_publish]
-        before_action :admin_only_for_writes, only: [:create, :update, :publish, :test, :retry_publish]
+# The forms ("flows") built in ChatHub: saved as drafts in the neutral format of Whatsapp::Flows::Spec, checked and exported
+# to Meta's Flow JSON. Everyone in the account can read them; only administrators create, change, delete or check them.
+class Api::V1::Accounts::WhatsappFlowsController < Api::V1::Accounts::BaseController
+  before_action :check_admin_authorization?, except: [:index, :show]
+  before_action :fetch_flow, only: [:show, :update, :destroy, :publish, :publication_status, :test, :retry_publish]
 
-        def index
-          @whatsapp_flows = @account.whatsapp_flows.includes(:whatsapp_flow_publications)
-          render json: @whatsapp_flows
-        end
+  def index
+    render json: { payload: Current.account.whatsapp_flows.order(updated_at: :desc).map { |flow| summary(flow) } }
+  end
 
-        def show
-          render json: @whatsapp_flow
-        end
+  def show
+    render json: detail(@flow)
+  end
 
-        def create
-          @whatsapp_flow = @account.whatsapp_flows.build(whatsapp_flow_params)
+  def create
+    flow = Current.account.whatsapp_flows.new(flow_params.merge(created_by: Current.user))
+    return render_errors(flow) unless flow.save
 
-          if @whatsapp_flow.save
-            render json: @whatsapp_flow, status: :created
-          else
-            render json: { errors: @whatsapp_flow.errors }, status: :unprocessable_entity
-          end
-        end
+    render json: detail(flow), status: :created
+  end
 
-        def update
-          if @whatsapp_flow.update(whatsapp_flow_params)
-            render json: @whatsapp_flow
-          else
-            render json: { errors: @whatsapp_flow.errors }, status: :unprocessable_entity
-          end
-        end
+  def update
+    return render_errors(@flow) unless @flow.update(flow_params)
 
-        def publish
-          Whatsapp::PublishFlowToMetaJob.perform_later(@whatsapp_flow.id, @account.id)
-          render json: publication_status_response, status: :accepted
-        end
+    render json: detail(@flow)
+  end
 
-        def publication_status
-          render json: publication_status_response
-        end
+  def destroy
+    @flow.destroy!
+    head :no_content
+  end
 
-        def test
-          phone_number = params.require(:phone_number)
-          channel_id = params.require(:channel_id)
-          channel = @account.channels.find(channel_id)
+  # Checks a definition that is still being edited (nothing is saved): the mistakes Meta would refuse and, when there are
+  # none, the Flow JSON it becomes.
+  def validate
+    definition = params[:definition].respond_to?(:to_unsafe_h) ? params[:definition].to_unsafe_h : {}
+    result = Whatsapp::Flows::DefinitionValidator.new(definition).call
+    render json: { valid: result.valid?, errors: result.errors, warnings: result.warnings, flow_json: result.valid? ? export(definition) : nil }
+  end
 
-          service = Whatsapp::Flows::TestFlowService.new(@whatsapp_flow, channel, phone_number)
-          result = service.perform
+  # Sends the flow to Meta on every WhatsApp Cloud WABA of the account, in the background; the dashboard polls
+  # publication_status for the per-WABA result.
+  def publish
+    return render json: { error: 'no_cloud_channels' }, status: :unprocessable_entity if cloud_channels.empty?
 
-          if result[:success]
-            render json: { success: true, message_id: result[:message_id] }
-          else
-            render json: { success: false, error: result[:error] }, status: :bad_request
-          end
-        end
+    Whatsapp::PublishFlowToMetaJob.perform_later(@flow.id, Current.account.id)
+    render json: publication_payload, status: :accepted
+  end
 
-        def retry_publish
-          waba_id = params.require(:waba_id)
-          publication = @whatsapp_flow.whatsapp_flow_publications.find_by(waba_id: waba_id)
+  def publication_status
+    render json: publication_payload
+  end
 
-          return render json: { error: 'Publication not found' }, status: :not_found unless publication
+  # "Probar": sends the flow to a phone number through one Cloud channel without publishing it.
+  def test
+    channel = cloud_channels.find { |candidate| candidate.id == params.require(:channel_id).to_i }
+    return render json: { success: false, error: 'channel_not_found' }, status: :not_found if channel.nil?
 
-          channel = find_channel_for_waba(waba_id)
-          return render json: { error: 'Channel not found for this WABA' }, status: :not_found unless channel
+    result = Whatsapp::Flows::TestFlowService.new(@flow, channel, params.require(:phone_number)).perform
+    render json: result, status: result[:success] ? :ok : :unprocessable_entity
+  end
 
-          service = Whatsapp::Flows::PublishToMetaService.new(@whatsapp_flow, channel)
-          result = service.perform
+  def retry_publish
+    publication = @flow.whatsapp_flow_publications.find_by!(waba_id: params[:waba_id])
+    Whatsapp::PublishFlowToMetaJob.perform_later(@flow.id, Current.account.id, publication.waba_id)
+    render json: publication_payload, status: :accepted
+  end
 
-          render json: publication_status_response
-        end
+  private
 
-        private
+  def cloud_channels
+    @cloud_channels ||= Whatsapp::Flows::CloudChannels.for(Current.account)
+  end
 
-        def set_whatsapp_flow
-          @whatsapp_flow = @account.whatsapp_flows.find(params[:id])
-        end
-
-        def whatsapp_flow_params
-          params.require(:whatsapp_flow).permit(:name, :flow_json, flow_categories: [])
-        end
-
-        def publication_status_response
-          publications = @whatsapp_flow.whatsapp_flow_publications.map do |pub|
-            {
-              waba_id: pub.waba_id,
-              status: pub.status,
-              meta_flow_id: pub.meta_flow_id,
-              validation_errors: pub.validation_errors,
-              published_at: pub.published_at
-            }
-          end
-
-          { flow_id: @whatsapp_flow.id, publications: publications }
-        end
-
-        def find_channel_for_waba(waba_id)
-          @account.channels.where(provider: 'whatsapp').find do |ch|
-            ch.provider_config&.dig('business_account_id') == waba_id
-          end
-        end
-
-        def admin_only_for_writes
-          return if @current_user&.admin?
-          render json: { error: 'Unauthorized' }, status: :unauthorized
-        end
-      end
+  def publication_payload
+    publications = @flow.whatsapp_flow_publications.order(:waba_id).map do |publication|
+      publication.slice(:waba_id, :status, :meta_flow_id, :validation_errors, :published_version, :published_at)
     end
+    wabas = cloud_channels.map { |channel| { waba_id: channel.provider_config['business_account_id'], phone_number: channel.phone_number } }
+    { flow_id: @flow.id, wabas: wabas, publications: publications }
+  end
+
+  def fetch_flow
+    @flow = Current.account.whatsapp_flows.find(params[:id])
+  end
+
+  def flow_params
+    attributes = params.require(:whatsapp_flow).permit(:name, categories: [])
+    definition = params[:whatsapp_flow][:definition]
+    attributes[:definition] = definition.to_unsafe_h if definition.respond_to?(:to_unsafe_h)
+    attributes
+  end
+
+  def export(definition)
+    Whatsapp::Flows::Exporter.new(definition).call
+  end
+
+  def summary(flow)
+    { id: flow.id, name: flow.name, categories: flow.categories, screens: flow.definition['screens'].to_a.size,
+      updated_at: flow.updated_at.to_i, created_at: flow.created_at.to_i }
+  end
+
+  def detail(flow)
+    summary(flow).merge(definition: flow.definition)
+  end
+
+  def render_errors(flow)
+    render json: { error: 'invalid', message: flow.errors.full_messages.to_sentence, details: flow.errors.to_hash }, status: :unprocessable_entity
   end
 end
