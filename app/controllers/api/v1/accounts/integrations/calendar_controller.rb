@@ -294,7 +294,9 @@ class Api::V1::Accounts::Integrations::CalendarController < Api::V1::Accounts::I
     {
       template: account.appointment_invitation_template,
       location: account.appointment_location,
-      default_template: Integrations::GoogleCalendar::InvitationText.default_template(Integrations::GoogleCalendar::InvitationText.locale_for(account)),
+      default_template: Integrations::GoogleCalendar::InvitationText.default_template(
+        Integrations::GoogleCalendar::InvitationText.locale_for(account)
+      ),
       tokens: Integrations::GoogleCalendar::InvitationText::TOKENS,
       max_length: Integrations::GoogleCalendar::InvitationText::MAX_LENGTH
     }
