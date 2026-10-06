@@ -1,4 +1,4 @@
-class CreateWhatsappFlowPublications < ActiveRecord::Migration[6.1]
+class CreateWhatsappFlowPublications < ActiveRecord::Migration[7.2]
   def change
     create_table :whatsapp_flow_publications, id: :bigint do |t|
       t.references :whatsapp_flow, null: false, foreign_key: { to_table: :whatsapp_flows }
