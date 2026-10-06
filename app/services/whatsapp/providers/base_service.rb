@@ -42,7 +42,7 @@ class Whatsapp::Providers::BaseService
   end
 
   def handle_error(response, message)
-    Rails.logger.error("WhatsApp request failed: HTTP #{response.code}")
+    Rails.logger.error response.body
     return if message.blank?
 
     # https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes/#sample-response
