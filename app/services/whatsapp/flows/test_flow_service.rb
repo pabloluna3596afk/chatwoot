@@ -1,118 +1,50 @@
-module Whatsapp
-  module Flows
-    class TestFlowService
-      GRAPH_VERSION = 'v22.0'
-      GRAPH_HOST = 'https://graph.facebook.com'
+# "Probar": sends the flow as an interactive flow message to a phone number through one Cloud channel, without publishing.
+# A flow that is still a draft in Meta is sent with mode=draft (the current Flow JSON is uploaded first); one already
+# published and unchanged is sent as it is; one published and changed since is sent from a draft clone (see
+# PublishToMetaService#prepare_for_test). Testing never requires publishing.
+#
+# Meta only delivers it inside the 24 h window of that number; its refusal (e.g. 131047) comes back as the error.
+class Whatsapp::Flows::TestFlowService
+  def initialize(flow, channel, phone_number)
+    @flow = flow
+    @channel = channel
+    @phone_number = phone_number.to_s.delete('^0-9')
+    @client = Whatsapp::Flows::MetaClient.new(channel)
+  end
 
-      def initialize(flow, channel, phone_number)
-        @flow = flow
-        @channel = channel
-        @phone_number = phone_number
-        @publication = WhatsappFlowPublication.find_by(whatsapp_flow_id: flow.id, waba_id: channel.provider_config['business_account_id'])
-        @access_token = channel.provider_config['access_token']
-      end
+  def perform
+    return failure('Phone number required') if @phone_number.blank?
 
-      def perform
-        validate_inputs!
-        ensure_flow_draft_in_meta
-        send_test_flow
-      rescue StandardError => e
-        { success: false, error: e.message }
-      end
+    publication, meta_flow_id, mode = Whatsapp::Flows::PublishToMetaService.new(@flow, @channel).prepare_for_test
+    return failure(error_text(publication)) if meta_flow_id.blank? || publication.validation_errors?
 
-      private
+    response = @client.send_message(payload(meta_flow_id, mode))
+    { success: true, message_id: response['messages']&.first&.dig('id') }
+  rescue Whatsapp::Flows::MetaClient::Error => e
+    failure(e.message)
+  end
 
-      def validate_inputs!
-        raise 'Flow not found' if @flow.blank?
-        raise 'Channel not found' if @channel.blank?
-        raise 'Phone number required' if @phone_number.blank?
-        raise 'Access token not found' if @access_token.blank?
-      end
+  private
 
-      def ensure_flow_draft_in_meta
-        return if @publication&.meta_flow_id.present?
+  def payload(meta_flow_id, mode)
+    { messaging_product: 'whatsapp', recipient_type: 'individual', to: @phone_number, type: 'interactive',
+      interactive: { type: 'flow', body: { text: @flow.name },
+                     action: { name: 'flow', parameters: { flow_message_version: '3', flow_id: meta_flow_id, flow_cta: 'Abrir', mode: mode,
+                                                           flow_action: 'navigate', flow_action_payload: { screen: first_screen_id } } } } }
+  end
 
-        # If flow doesn't have a publication record yet, create one in draft
-        @publication ||= WhatsappFlowPublication.create!(
-          whatsapp_flow_id: @flow.id,
-          account_id: @channel.account_id,
-          waba_id: @channel.provider_config['business_account_id'],
-          status: 'draft'
-        )
+  # The screen ids are the ones the exporter gives them (SCREEN_ + letters), so read them from the exported JSON.
+  def first_screen_id
+    @flow.flow_json['screens'].first['id']
+  end
 
-        # Create flow in Meta if not already present
-        unless @publication.meta_flow_id.present?
-          service = PublishToMetaService.new(@flow, @channel)
-          service.perform
-          @publication.reload
-        end
-      end
+  def error_text(publication)
+    return 'Meta did not accept the flow' if publication.validation_errors.empty?
 
-      def send_test_flow
-        first_screen_id = extract_first_screen_id
-        url = "#{GRAPH_HOST}/#{GRAPH_VERSION}/#{@channel.provider_config['business_account_id']}/messages"
+    publication.validation_errors.map { |error| [error['path'], error['message'] || error['error']].compact.join(': ') }.join('; ')
+  end
 
-        payload = {
-          messaging_product: 'whatsapp',
-          to: @phone_number,
-          type: 'interactive',
-          interactive: {
-            type: 'flow',
-            action: {
-              name: 'flow',
-              parameters: {
-                flow_message_version: '3',
-                flow_id: @publication.meta_flow_id,
-                flow_cta: 'Abrir',
-                mode: 'draft',
-                flow_action: 'navigate',
-                flow_action_payload: {
-                  screen: first_screen_id
-                }
-              }
-            }
-          }
-        }
-
-        response = make_request(url, payload)
-
-        if response['messages']
-          { success: true, message_id: response['messages'].first['id'] }
-        else
-          { success: false, error: response['error']&.dig('message') || 'Failed to send test flow' }
-        end
-      end
-
-      def extract_first_screen_id
-        flow_json = @flow.flow_json.is_a?(String) ? JSON.parse(@flow.flow_json) : @flow.flow_json
-        flow_json['screens']&.first&.dig('id') || 'screen_0'
-      end
-
-      def make_request(url, payload)
-        uri = URI.parse(url)
-        http = Net::HTTP.new(uri.host, uri.port)
-        http.use_ssl = true
-
-        request = Net::HTTP::Post.new(uri.request_uri)
-        request['Authorization'] = "Bearer #{@access_token}"
-        request['Content-Type'] = 'application/json'
-        request.body = payload.to_json
-
-        response = http.request(request)
-        parse_response(response)
-      end
-
-      def parse_response(response)
-        case response.code.to_i
-        when 200..299
-          JSON.parse(response.body)
-        when 400..599
-          error_body = JSON.parse(response.body) rescue { 'error' => { 'message' => response.body } }
-          raise "Meta API error (#{response.code}): #{error_body['error']&.dig('message') || error_body}"
-        else
-          raise "Unexpected response code: #{response.code}"
-        end
-      end
-    end
+  def failure(message)
+    { success: false, error: message }
   end
 end

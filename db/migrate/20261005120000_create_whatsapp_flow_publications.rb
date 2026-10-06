@@ -6,9 +6,10 @@ class CreateWhatsappFlowPublications < ActiveRecord::Migration[6.1]
       t.string :waba_id, null: false, index: true
       t.string :meta_flow_id, index: true
       t.string :status, default: 'draft', null: false, index: true
-      t.json :validation_errors
+      t.jsonb :validation_errors, null: false, default: []
       t.integer :published_version, default: 0
       t.string :old_meta_flow_id
+      t.string :draft_meta_flow_id
       t.datetime :published_at
       t.timestamps
     end
