@@ -14,10 +14,14 @@ const props = defineProps({
       value.every(option => 'value' in option && 'label' in option),
   },
   placeholder: { type: String, default: '' },
+  ariaLabel: { type: String, default: '' },
   // Fallback label shown when the selected value is not in `options` yet
   // (e.g. API-backed lists that load lazily on open).
   displayLabel: { type: String, default: '' },
-  modelValue: { type: [String, Number], default: '' },
+  modelValue: { type: [String, Number, Array], default: '' },
+  multiple: { type: Boolean, default: false },
+  allowDeselect: { type: Boolean, default: true },
+  groups: { type: Array, default: () => [] },
   disabled: { type: Boolean, default: false },
   searchPlaceholder: { type: String, default: '' },
   emptyState: { type: String, default: '' },
@@ -30,6 +34,7 @@ const props = defineProps({
   showSearch: { type: Boolean, default: undefined },
 });
 const emit = defineEmits(['update:modelValue', 'search', 'open']);
+const slots = defineSlots();
 const SEARCH_ROW_PX = 41;
 const OPTION_ROW_PX = 36;
 const LIST_PAD_PX = 8;
@@ -73,6 +78,14 @@ const selectPlaceholder = computed(() => {
   return props.placeholder || t('COMBOBOX.PLACEHOLDER');
 });
 const selectedLabel = computed(() => {
+  if (props.multiple) {
+    const labels = props.options
+      .filter(option => selectedValue.value.includes(option.value))
+      .map(option => option.label);
+    return labels.length
+      ? `${labels[0]}${labels.length > 1 ? ` +${labels.length - 1}` : ''}`
+      : selectPlaceholder.value;
+  }
   const selected = props.options.find(
     option => option.value === selectedValue.value
   );
@@ -82,10 +95,34 @@ const selectedLabel = computed(() => {
 const estimateMenuHeight = () => {
   const count = Math.max(filteredOptions.value.length, 1);
   const listH = Math.min(count, 8) * OPTION_ROW_PX + LIST_PAD_PX;
-  return (showSearchField.value ? SEARCH_ROW_PX : 0) + listH;
+  const emptyGroups = search.value
+    ? 0
+    : props.groups.filter(
+        group =>
+          group.emptyState &&
+          !filteredOptions.value.some(option => option.group === group.key)
+      ).length;
+  return (
+    (showSearchField.value ? SEARCH_ROW_PX : 0) +
+    listH +
+    (props.groups.length + emptyGroups) * OPTION_ROW_PX +
+    (slots.footer ? OPTION_ROW_PX + LIST_PAD_PX : 0)
+  );
 };
 
 const selectOption = option => {
+  if (props.multiple) {
+    selectedValue.value = selectedValue.value.includes(option.value)
+      ? selectedValue.value.filter(value => value !== option.value)
+      : [...selectedValue.value, option.value];
+    emit('update:modelValue', selectedValue.value);
+    return;
+  }
+  if (selectedValue.value === option.value && !props.allowDeselect) {
+    open.value = false;
+    search.value = '';
+    return;
+  }
   if (selectedValue.value === option.value) {
     selectedValue.value = '';
     emit('update:modelValue', '');
@@ -230,6 +267,9 @@ onBeforeUnmount(() => {
         :label="selectedLabel"
         trailing-icon
         :disabled="disabled"
+        aria-haspopup="listbox"
+        :aria-label="ariaLabel || undefined"
+        :aria-expanded="open"
         no-animation
         class="justify-between w-full !px-3 !py-2.5 text-n-slate-12 font-normal group-hover/combobox:border-n-slate-6 focus:outline-n-brand"
         :class="{
@@ -248,6 +288,8 @@ onBeforeUnmount(() => {
         v-model:search-value="search"
         :open="open"
         :options="filteredOptions"
+        :groups="groups"
+        :multiple="multiple"
         :search-placeholder="searchPlaceholder"
         :empty-state="emptyState"
         :selected-values="selectedValue"
@@ -256,7 +298,15 @@ onBeforeUnmount(() => {
         :style="teleport ? dropdownStyle : undefined"
         @search="emit('search', $event)"
         @select="selectOption"
-      />
+        @close="
+          open = false;
+          triggerRef?.querySelector('button')?.focus();
+        "
+      >
+        <template v-if="$slots.footer" #footer="{ close }">
+          <slot name="footer" :close="close" />
+        </template>
+      </ComboBoxDropdown>
     </Teleport>
 
     <p
