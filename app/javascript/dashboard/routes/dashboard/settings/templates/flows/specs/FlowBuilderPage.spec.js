@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils';
+import { startingDefinition } from '../flowDefinition';
 import FlowBuilderPage from '../FlowBuilderPage.vue';
 import FlowPhoneCanvas from '../FlowPhoneCanvas.vue';
 import Draggable from 'vuedraggable';
@@ -183,20 +184,10 @@ describe('FlowBuilderPage', () => {
     );
   });
 
-  it('keeps starting models outside the phone and preserves customer screens', async () => {
+  it('never presents the starting chooser inside an editor', async () => {
     const { wrapper } = await mountPage(sampleFlow({ id: null }));
-    expect(wrapper.find('[data-testid="flow-starting"]').exists()).toBe(true);
-    expect(
-      wrapper
-        .get('[data-testid="flow-canvas"]')
-        .find('[data-testid="flow-starting"]')
-        .exists()
-    ).toBe(false);
-    await wrapper.get('[data-testid="flow-starting-support"]').trigger('click');
-    expect(wrapper.get('[data-testid="flow-canvas"]').text()).toContain(
-      'Tu nombre'
-    );
     expect(wrapper.find('[data-testid="flow-starting"]').exists()).toBe(false);
+    expect(canvasBlocks(wrapper)).toHaveLength(2);
   });
 
   describe('screens as tabs above the phone', () => {
@@ -388,11 +379,14 @@ describe('FlowBuilderPage', () => {
       ]);
     });
 
-    it('uses a slim single-column palette from 960px up', async () => {
+    it('keeps two palette columns and a wider properties panel', async () => {
       const { wrapper } = await mountPage();
 
       const group = wrapper.get('[data-testid="flow-palette"] > div');
-      expect(group.classes()).toContain('min-[960px]:grid-cols-1');
+      expect(group.classes()).toContain('grid-cols-2');
+      expect(wrapper.html()).toContain(
+        'min-[1100px]:grid-cols-[16rem_minmax(0,1fr)_22.5rem]'
+      );
     });
 
     it('removes the selected block from the phone', async () => {
@@ -486,9 +480,9 @@ describe('FlowBuilderPage', () => {
       const ids = [
         'flow-editor-back',
         'flow-editor-status',
+        'flow-editor-category',
         'flow-actions',
         'flow-editor-save',
-        'flow-editor-category',
         'flow-editor-name',
       ];
       const html = wrapper.html();
@@ -569,6 +563,11 @@ describe('FlowBuilderPage', () => {
       });
       const { wrapper } = await mountPage(sampleFlow(), api);
 
+      expect(wrapper.find('[data-testid="flow-screen-errors"]').exists()).toBe(
+        false
+      );
+      await wrapper.get('[data-testid="flow-editor-save"]').trigger('click');
+      await flushPromises();
       expect(wrapper.get('[data-testid="flow-editor-state"]').text()).toContain(
         'ERRORS_COUNT'
       );
@@ -601,57 +600,63 @@ describe('FlowBuilderPage', () => {
   };
   const chooser = wrapper => wrapper.find('[data-testid="flow-starting"]');
 
-  describe('the starting models, inside the editor', () => {
-    it('shows "En blanco" first and the 4 models on a new flow', async () => {
-      const { wrapper } = await mountPage(newFlow());
-
-      const options = wrapper
-        .get('[data-testid="flow-starting"]')
-        .findAll('button');
-      expect(options).toHaveLength(5);
-      expect(options[0].attributes('data-testid')).toBe('flow-starting-blank');
+  describe('the creation template never reappears', () => {
+    it('hides blank validation until interaction and reveals only the touched field', async () => {
+      const api = makeApi();
+      api.validate.mockResolvedValue({
+        data: {
+          valid: false,
+          flow_json: null,
+          errors: [
+            { code: 'button_required', path: 'screens.0.button', details: {} },
+            { code: 'blocks_required', path: 'screens.0.blocks', details: {} },
+          ],
+        },
+      });
+      const { wrapper } = await mountPage(
+        {
+          ...newFlow(),
+          name: 'Empty',
+          definition: startingDefinition('blank'),
+        },
+        api
+      );
+      expect(wrapper.text()).not.toContain('ERRORS_COUNT');
+      expect(wrapper.text()).not.toContain('button_required');
+      expect(wrapper.text()).not.toContain('blocks_required');
+      await wrapper
+        .get('[data-testid="flow-screen-button"] input')
+        .setValue(' ');
+      expect(wrapper.text()).toContain('button_required');
+      expect(wrapper.text()).not.toContain('blocks_required');
+      await save(wrapper);
+      expect(wrapper.text()).toContain('blocks_required');
     });
-
-    it('never shows them on a saved flow', async () => {
-      const { wrapper } = await mountPage();
-
+    it('keeps a truly empty screen without a chooser', async () => {
+      const { wrapper } = await mountPage({
+        ...newFlow(),
+        definition: startingDefinition('blank'),
+      });
+      expect(chooser(wrapper).exists()).toBe(false);
+      expect(tabs(wrapper)).toHaveLength(1);
+      expect(canvasBlocks(wrapper)).toHaveLength(0);
+      await wrapper.get('[data-testid="flow-add-heading"]').trigger('click');
+      await wrapper.get('[data-testid="flow-canvas-remove"]').trigger('click');
       expect(chooser(wrapper).exists()).toBe(false);
     });
-
-    it('fills the screens with the picked model and hides the chooser', async () => {
-      const { wrapper } = await mountPage(newFlow());
-
-      await wrapper
-        .get('[data-testid="flow-starting-survey"]')
-        .trigger('click');
-
+    it('loads the selected template directly', async () => {
+      const { wrapper } = await mountPage({
+        ...newFlow(),
+        definition: startingDefinition('survey'),
+      });
       expect(chooser(wrapper).exists()).toBe(false);
       expect(tabs(wrapper).length).toBeGreaterThan(1);
       expect(canvasBlocks(wrapper).length).toBeGreaterThan(0);
     });
-
-    it('"En blanco" keeps the empty screen and hides the chooser', async () => {
-      const { wrapper } = await mountPage(newFlow());
-
-      await wrapper.get('[data-testid="flow-starting-blank"]').trigger('click');
-
-      expect(chooser(wrapper).exists()).toBe(false);
-      expect(tabs(wrapper)).toHaveLength(1);
-      expect(canvasBlocks(wrapper)).toHaveLength(0);
-    });
-
-    it('hides the chooser as soon as a block is added', async () => {
-      const { wrapper } = await mountPage(newFlow());
-
-      await wrapper.get('[data-testid="flow-add-heading"]').trigger('click');
-
-      expect(chooser(wrapper).exists()).toBe(false);
-      expect(canvasBlocks(wrapper)).toHaveLength(1);
-    });
   });
 
   describe('saving', () => {
-    it('marks the name, the category and the starting choice in place when they are missing', async () => {
+    it('requires a name on save without requiring a category or another template choice', async () => {
       const { wrapper, api } = await mountPage(newFlow());
       expect(wrapper.find('[data-testid="flow-starting-error"]').exists()).toBe(
         false
@@ -662,9 +667,9 @@ describe('FlowBuilderPage', () => {
       expect(api.create).not.toHaveBeenCalled();
       const text = wrapper.get('[data-testid="flow-builder"]').text();
       expect(text).toContain('WHATSAPP_FLOWS.EDITOR.NAME_REQUIRED');
-      expect(text).toContain('WHATSAPP_FLOWS.EDITOR.CATEGORY_REQUIRED');
-      expect(wrapper.get('[data-testid="flow-starting-error"]').text()).toBe(
-        'WHATSAPP_FLOWS.EDITOR.START_REQUIRED'
+      expect(text).not.toContain('WHATSAPP_FLOWS.EDITOR.CATEGORY_REQUIRED');
+      expect(wrapper.find('[data-testid="flow-starting-error"]').exists()).toBe(
+        false
       );
       expect(
         wrapper.get('[data-testid="flow-editor-save"]').attributes('disabled')
@@ -678,7 +683,6 @@ describe('FlowBuilderPage', () => {
       await nameInput(wrapper).setValue('Datos');
       categorySelect(wrapper).vm.$emit('update:modelValue', ['SURVEY']);
       await wrapper.vm.$nextTick();
-      await wrapper.get('[data-testid="flow-starting-blank"]').trigger('click');
 
       const text = wrapper.get('[data-testid="flow-builder"]').text();
       expect(text).not.toContain('NAME_REQUIRED');
@@ -687,15 +691,15 @@ describe('FlowBuilderPage', () => {
     });
 
     it('saves a new flow with its name, [category] and definition, then updates it', async () => {
-      const { wrapper, api } = await mountPage(newFlow());
+      const { wrapper, api } = await mountPage({
+        ...newFlow(),
+        definition: startingDefinition('survey'),
+      });
       await nameInput(wrapper).setValue('Datos');
       categorySelect(wrapper).vm.$emit('update:modelValue', [
         'LEAD_GENERATION',
       ]);
       await wrapper.vm.$nextTick();
-      await wrapper
-        .get('[data-testid="flow-starting-survey"]')
-        .trigger('click');
 
       await save(wrapper);
 
@@ -724,14 +728,14 @@ describe('FlowBuilderPage', () => {
       expect(api.update).toHaveBeenCalledWith(7, expect.any(Object));
     });
 
-    it('asks for a category on a saved flow that has none', async () => {
+    it('defaults an empty category array to OTHER on save', async () => {
       const { wrapper, api } = await mountPage(sampleFlow({ categories: [] }));
 
       await save(wrapper);
 
-      expect(api.update).not.toHaveBeenCalled();
-      expect(wrapper.get('[data-testid="flow-builder"]').text()).toContain(
-        'WHATSAPP_FLOWS.EDITOR.CATEGORY_REQUIRED'
+      expect(api.update).toHaveBeenCalledWith(
+        7,
+        expect.objectContaining({ categories: ['OTHER'] })
       );
     });
 
@@ -840,7 +844,6 @@ describe('FlowBuilderPage', () => {
       // a new flow has no WABAs to show until it is saved
       expect(api.publicationStatus).not.toHaveBeenCalled();
 
-      await wrapper.get('[data-testid="flow-starting-blank"]').trigger('click');
       await wrapper.get('[data-testid="flow-editor-save"]').trigger('click');
       await flushPromises();
       const publish = () => wrapper.get('[data-testid="flow-publish-open"]');

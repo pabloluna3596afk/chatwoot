@@ -1,6 +1,12 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { createStore } from 'vuex';
 import FlowPage from '../FlowPage.vue';
+import FlowNewDialog from '../FlowNewDialog.vue';
+const NewDialogStub = {
+  template: '<div/>',
+  methods: { open: vi.fn() },
+  emits: ['create', 'cancel'],
+};
 import FlowBuilderPage from '../FlowBuilderPage.vue';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 
@@ -59,7 +65,7 @@ const mountPage = async routeState => {
         }),
       ],
       mocks: { $t: key => key },
-      stubs: { Dialog: true },
+      stubs: { Dialog: true, FlowNewDialog: NewDialogStub },
     },
   });
   await flushPromises();
@@ -78,21 +84,25 @@ describe('FlowPage', () => {
     });
   });
 
-  it('opens the same builder on /flows/new, with an empty flow and nothing created', async () => {
+  it('opens the dialog before creating a builder or persisting anything', async () => {
     const wrapper = await mountPage({ name: 'settings_flow_new', params: {} });
-
-    const builder = wrapper.findComponent(FlowBuilderPage);
-    expect(builder.exists()).toBe(true);
-    expect(builder.props('flow')).toMatchObject({
+    expect(wrapper.findComponent(FlowBuilderPage).exists()).toBe(false);
+    wrapper
+      .findComponent(FlowNewDialog)
+      .vm.$emit('create', { ...savedFlow, id: null });
+    await flushPromises();
+    expect(wrapper.findComponent(FlowBuilderPage).props('flow')).toEqual({
+      ...savedFlow,
       id: null,
-      name: '',
-      categories: [],
     });
-    expect(builder.props('flow').definition.screens).toHaveLength(1);
-    expect(wrapper.find('[data-testid="flow-starting"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="flow-starting"]').exists()).toBe(false);
     expect(WhatsappFlowsAPI.create).not.toHaveBeenCalled();
-    expect(push).not.toHaveBeenCalled();
-    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it('returns to the Flows tab when the creation dialog is cancelled', async () => {
+    const wrapper = await mountPage({ name: 'settings_flow_new', params: {} });
+    wrapper.findComponent(FlowNewDialog).vm.$emit('cancel');
+    expect(push).toHaveBeenCalledWith(list);
   });
 
   it('loads a saved flow into the builder', async () => {
@@ -123,6 +133,10 @@ describe('FlowPage', () => {
 
   it('gives a new flow its own address the first time it is saved', async () => {
     const wrapper = await mountPage({ name: 'settings_flow_new', params: {} });
+    wrapper
+      .findComponent(FlowNewDialog)
+      .vm.$emit('create', { ...savedFlow, id: null });
+    await flushPromises();
     wrapper.findComponent(FlowBuilderPage).vm.$emit('saved', { id: 8 });
 
     expect(replace).toHaveBeenCalledWith({
