@@ -1360,6 +1360,20 @@ docker compose -f docker-compose.dokploy.yml -f docker-compose.dokploy.fork.yml 
 
 ---
 
+### B-NEW-55 — Flow catalog CI: Rails parameters and reactive filters
+
+`app/controllers/api/v1/accounts/whatsapp_flows_controller.rb`: filter validation called `any?` on `ActionController::Parameters`, which is not a Hash/Enumerable. Iterate its `each_pair` enumerator instead. This fixes the 500 before both index and paginated publication_status, including invalid filters; missing `payload`/`rows` in failing assertions were downstream effects. Preserve the payload wrapper, newest-first ordering and legacy publication_status response. Request regressions cover empty accounts/WABAs and nested invalid filter objects.
+
+`FlowsPanel.vue` and `FlowPublicationPanel.vue`: use Vue's `watch` with `useDebounceFn` instead of VueUse's external `watchDebounced`. The latter missed changes with CI's dependency loading; the previous local harness inlined VueUse and masked that difference. Before: six failures in the two panel suites using CI dependency settings; after: all 17 panel tests pass without changing their expectations.
+
+`spec/services/whatsapp/flows/publication_catalog_spec.rb`: use numeric WABA fixtures, including the disconnected WABA; `"removed"` violates the real publication model's numeric-ID validation and raised RecordInvalid. No production validation was relaxed. RSpec cannot run locally; PM verifies Rails requests and RuboCop/CI.
+
+### B-NEW-54 — ComboBox viewport anchoring and dialog Escape
+
+`components-next/combobox/ComboBox.vue` uses the shared `useDropdownPosition` for local and teleported menus, including viewport flipping and scroll/resize tracking. `ComboBoxDropdown.vue` prevents Escape's native dialog cancellation while closing the menu. The original Flow control was placed directly above the properties panel; moving it to the header removes that overlap (the reported displacement was not reproduced).
+
+Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multiselect, footer/group empty states, numeric values, keyboard focus and viewport anchoring/flip. Open header categories and scroll/resize; Escape closes the menu and keeps the creation dialog open.
+
 ### B-NEW-53 — WhatsApp forms: stale publication and editor preview clarity
 
 - Files: `WhatsappFlowSendDialog.vue`, `WhatsappFlowSend.vue`, `WhatsappFlowsController`, `FlowsPanel.vue`,

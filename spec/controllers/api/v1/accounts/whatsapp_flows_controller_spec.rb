@@ -82,6 +82,45 @@ RSpec.describe 'WhatsApp flows (forms) API', type: :request do
   end
 
   describe 'GET index' do
+    it 'preserves the payload wrapper for an empty account without WABAs or publications' do
+      get base_url, headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body).to include('payload' => [])
+      expect(response.parsed_body['meta']).to include('total_count' => 0)
+    end
+
+    it 'rejects nested filter objects through the real Rails parameter parser' do
+      get base_url, params: { search: { value: 'invalid' } }, headers: admin.create_new_auth_token
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['error']).to eq('invalid')
+    end
+
+    it 'paginates and filters by name and category without leaking another account' do
+      create(:whatsapp_flow, account: account, name: 'Encuesta uno', categories: ['SURVEY'])
+      second = create(:whatsapp_flow, account: account, name: 'Encuesta dos', categories: ['SURVEY'], updated_at: 1.day.ago)
+      create(:whatsapp_flow, account: account, name: 'Otro', categories: ['OTHER'])
+      create(:whatsapp_flow, name: 'Encuesta ajena', categories: ['SURVEY'])
+
+      get base_url, params: { search: 'Encuesta', category: 'SURVEY', state: 'none', page: '2', per_page: '1' },
+                    headers: admin.create_new_auth_token
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body['payload'].pluck('id')).to eq([second.id])
+      expect(response.parsed_body['meta']).to eq('current_page' => 2, 'per_page' => 1, 'total_count' => 2)
+      expect(response.parsed_body['payload'].first['publication_summary']).to include('state' => 'none', 'total' => 0)
+    end
+
+    [{ page: '0' }, { page: '1.5' }, { per_page: '101' }, { state: 'unknown' }, { category: 'UNKNOWN' },
+     { search: ['invalid'] }].each do |filters|
+      it "rejects invalid catalog filters #{filters.keys.join(', ')}" do
+        get base_url, params: filters, headers: admin.create_new_auth_token
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body['error']).to eq('invalid')
+      end
+    end
+
     it 'lists the forms of the account, newest change first, without the definition' do
       older = create(:whatsapp_flow, account: account, name: 'Antiguo', updated_at: 2.days.ago)
       newer = create(:whatsapp_flow, account: account, name: 'Nuevo')

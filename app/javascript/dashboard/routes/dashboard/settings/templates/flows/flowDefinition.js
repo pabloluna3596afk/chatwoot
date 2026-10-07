@@ -250,13 +250,7 @@ const optionList = titles =>
 export const STARTING_POINTS = {
   blank: () => ({
     schema_version: 1,
-    screens: [
-      {
-        title: 'Pantalla 1',
-        button: 'Enviar',
-        blocks: [{ type: 'heading', text: 'Escribe aquí tu pregunta' }],
-      },
-    ],
+    screens: [newScreen(1)],
   }),
   interests: () => ({
     schema_version: 1,

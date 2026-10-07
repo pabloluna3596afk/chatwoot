@@ -76,7 +76,24 @@
       "DELETE_BODY": "«{name}» will be deleted. This cannot be undone.",
       "DELETED": "Flow deleted.",
       "DELETE_ERROR": "The Flow could not be deleted.",
-      "LOAD_ERROR": "The Flows could not be loaded."
+      "LOAD_ERROR": "The Flows could not be loaded.",
+      "SEARCH": "Search Flows",
+      "ALL_STATES": "All states",
+      "ALL_CATEGORIES": "All categories",
+      "STATE": "Publication state",
+      "NAME": "Name",
+      "CATEGORIES": "Categories",
+      "SCREENS_HEADER": "Screens",
+      "UPDATED": "Updated",
+      "PUBLICATION": "Publication",
+      "ACTIONS": "Actions",
+      "NO_RESULTS": "No Flows match your filters.",
+      "STATES": {
+        "published": "Published",
+        "partial": "Partial",
+        "error": "With errors",
+        "none": "Not sent"
+      }
     },
     "EDITOR": {
       "BACK": "Back",
@@ -268,7 +285,25 @@
       "TEST_SENT": "Flow sent to {number}.",
       "TEST_FAILED": "It could not be sent.",
       "UNPUBLISHED_CHANGES_BANNER": "You changed this Flow after publishing it. Publish it again so customers receive the new version.",
-      "UNPUBLISHED_CHANGES_BADGE": "Flow with unpublished changes"
+      "UNPUBLISHED_CHANGES_BADGE": "Flow with unpublished changes",
+      "SUMMARY": {
+        "published": "Published · {published} of {total}",
+        "partial": "Partial · {published} of {total}",
+        "error": "With errors · {count}",
+        "none": "Not sent"
+      },
+      "DETAIL": {
+        "TITLE": "WhatsApp publication",
+        "OPEN": "View publication details: {status}",
+        "COUNTS": "{published} published · {errors} with errors · {total} WABAs",
+        "UNIT": "One row per WhatsApp business account (WABA). Its numbers share the publication.",
+        "SEARCH": "Search account, number or ID",
+        "WABA_ID": "WABA {id}",
+        "EMPTY": "No WhatsApp business accounts match your filters.",
+        "ALL_WABAS": "Publishing includes every WhatsApp Cloud WABA.",
+        "REFRESH": "Refresh",
+        "RETRY_QUEUED": "Retry queued. Refresh to see the result."
+      }
     },
     "SEND": {
       "TITLE": "Send Flow",
@@ -283,6 +318,15 @@
       "CUSTOMIZE": "Customize the message",
       "PREVIEW": "WhatsApp chat bubble preview",
       "REPUBLISH_HINT": "If you edited a Flow, publish it again to send it."
+    },
+    "NEW": {
+      "TITLE": "New Flow",
+      "DESCRIPTION": "Choose how to start. You can edit every question afterward.",
+      "CONFIRM": "Create Flow",
+      "CANCEL": "Cancel",
+      "CATEGORIES": "Categories",
+      "CATEGORIES_HINT": "Choose more than one. If left empty, Other will be used.",
+      "TEMPLATE": "Starting template"
     }
   }
 }

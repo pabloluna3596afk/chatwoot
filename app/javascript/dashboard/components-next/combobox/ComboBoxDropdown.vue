@@ -43,6 +43,7 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  placement: { type: String, default: 'top-full start-0 mt-1' },
 });
 
 const emit = defineEmits(['select', 'search', 'close']);
@@ -69,6 +70,7 @@ const sections = computed(() =>
 );
 const onKeydown = event => {
   if (event.key === 'Escape') {
+    event.preventDefault();
     event.stopPropagation();
     emit('close');
     return;
@@ -107,7 +109,7 @@ defineExpose({
     tabindex="-1"
     data-combobox-dropdown
     class="z-50 w-full transition-opacity duration-200 border rounded-md shadow-lg bg-n-solid-1 border-n-strong flex flex-col overflow-hidden"
-    :class="portal ? 'fixed' : 'absolute mt-1'"
+    :class="portal ? 'fixed' : ['absolute', placement]"
     @keydown="onKeydown"
   >
     <div v-if="showSearch" class="relative border-b border-n-strong shrink-0">

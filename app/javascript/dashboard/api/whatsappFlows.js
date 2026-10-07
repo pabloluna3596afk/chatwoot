@@ -8,8 +8,8 @@ class WhatsappFlowsAPI extends ApiClient {
     super('whatsapp_flows', { accountScoped: true });
   }
 
-  list() {
-    return axios.get(this.url);
+  list(params = {}, { signal } = {}) {
+    return axios.get(this.url, { params, signal });
   }
 
   conversationFlows(conversationId) {
@@ -48,8 +48,11 @@ class WhatsappFlowsAPI extends ApiClient {
 
   // { flow_id, wabas: [{ waba_id, channel_id, phone_number }], publications: [{ waba_id, status, meta_flow_id,
   // validation_errors, published_version, published_at }] }
-  publicationStatus(id) {
-    return axios.get(`${this.url}/${id}/publication_status`);
+  publicationStatus(id, params = {}, { signal } = {}) {
+    return axios.get(`${this.url}/${id}/publication_status`, {
+      params,
+      signal,
+    });
   }
 
   // "Probar": sends the flow to a phone number through one Cloud channel, without publishing it.

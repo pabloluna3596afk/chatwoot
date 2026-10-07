@@ -1,32 +1,31 @@
 <script setup>
 // The full page of a flow, under Settings → Templates & Flows: a new flow and a saved one open the same builder (nothing
 // is created until it is saved). Back goes to the Flows tab of the list.
-import { ref, watch } from 'vue';
+import { nextTick, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 
 import { useAlert } from 'dashboard/composables';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 import FlowBuilderPage from './FlowBuilderPage.vue';
-import { newScreen } from './flowDefinition';
+import FlowNewDialog from './FlowNewDialog.vue';
 
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
 
 const flow = ref(null);
+const newDialog = ref(null);
 // A new builder is mounted for each flow that is loaded, not for the first save of a new one.
 const builderKey = ref(0);
 
 const toList = () =>
   router.push({ name: 'settings_templates', query: { tab: 'flows' } });
 
-const blankFlow = () => ({
-  id: null,
-  name: '',
-  categories: [],
-  definition: { schema_version: 1, screens: [newScreen(1)] },
-});
+const onCreated = created => {
+  flow.value = created;
+  builderKey.value += 1;
+};
 
 const onSaved = saved => {
   // The first save gives the new flow its own address, so a reload opens the saved flow.
@@ -53,8 +52,9 @@ const load = async () => {
       toList();
     }
   } else {
-    flow.value = blankFlow();
-    builderKey.value += 1;
+    flow.value = null;
+    await nextTick();
+    newDialog.value.open();
   }
 };
 
@@ -67,6 +67,7 @@ watch(() => [route.name, route.params.flowId], load, { immediate: true });
     data-testid="flow-page"
   >
     <div class="w-full mx-auto max-w-[80rem]">
+      <FlowNewDialog ref="newDialog" @create="onCreated" @cancel="toList" />
       <FlowBuilderPage
         v-if="flow"
         :key="builderKey"

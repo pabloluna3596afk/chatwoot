@@ -76,7 +76,24 @@
       "DELETE_BODY": "Se borrará «{name}». No se puede deshacer.",
       "DELETED": "Flow borrado.",
       "DELETE_ERROR": "No se pudo borrar el Flow.",
-      "LOAD_ERROR": "No se pudieron cargar los Flows."
+      "LOAD_ERROR": "No se pudieron cargar los Flows.",
+      "SEARCH": "Buscar Flows",
+      "ALL_STATES": "Todos los estados",
+      "ALL_CATEGORIES": "Todas las categorías",
+      "STATE": "Estado de publicación",
+      "NAME": "Nombre",
+      "CATEGORIES": "Categorías",
+      "SCREENS_HEADER": "Pantallas",
+      "UPDATED": "Actualizado",
+      "PUBLICATION": "Publicación",
+      "ACTIONS": "Acciones",
+      "NO_RESULTS": "No hay Flows que coincidan con los filtros.",
+      "STATES": {
+        "published": "Publicado",
+        "partial": "Parcial",
+        "error": "Con errores",
+        "none": "Sin enviar"
+      }
     },
     "EDITOR": {
       "BACK": "Volver",
@@ -268,7 +285,25 @@
       "TEST_SENT": "Flow enviado a {number}.",
       "TEST_FAILED": "No se pudo enviar.",
       "UNPUBLISHED_CHANGES_BANNER": "Cambiaste este Flow después de publicarlo. Publícalo de nuevo para que los clientes reciban la versión nueva.",
-      "UNPUBLISHED_CHANGES_BADGE": "Flow con cambios sin publicar"
+      "UNPUBLISHED_CHANGES_BADGE": "Flow con cambios sin publicar",
+      "SUMMARY": {
+        "published": "Publicado · {published} de {total}",
+        "partial": "Parcial · {published} de {total}",
+        "error": "Con errores · {count}",
+        "none": "Sin enviar"
+      },
+      "DETAIL": {
+        "TITLE": "Publicación en WhatsApp",
+        "OPEN": "Ver detalle de publicación: {status}",
+        "COUNTS": "{published} publicadas · {errors} con errores · {total} WABAs",
+        "UNIT": "Una fila por cuenta de WhatsApp (WABA). Sus números comparten la publicación.",
+        "SEARCH": "Buscar cuenta, número o ID",
+        "WABA_ID": "WABA {id}",
+        "EMPTY": "No hay cuentas de WhatsApp que coincidan con los filtros.",
+        "ALL_WABAS": "Publicar incluye todas las WABAs de WhatsApp Cloud.",
+        "REFRESH": "Actualizar",
+        "RETRY_QUEUED": "Reintento en cola. Actualiza para ver el resultado."
+      }
     },
     "SEND": {
       "TITLE": "Enviar Flow",
@@ -283,6 +318,15 @@
       "CUSTOMIZE": "Personalizar el mensaje",
       "PREVIEW": "Vista previa de la burbuja en WhatsApp",
       "REPUBLISH_HINT": "Si editaste un Flow, vuelve a publicarlo para poder enviarlo."
+    },
+    "NEW": {
+      "TITLE": "Nuevo Flow",
+      "DESCRIPTION": "Elige cómo empezar. Después podrás editar todas las preguntas.",
+      "CONFIRM": "Crear Flow",
+      "CANCEL": "Cancelar",
+      "CATEGORIES": "Categorías",
+      "CATEGORIES_HINT": "Puedes elegir más de una. Si no eliges ninguna, se usará Otro.",
+      "TEMPLATE": "Plantilla inicial"
     }
   }
 }
