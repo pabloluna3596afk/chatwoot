@@ -6,7 +6,8 @@ import DropdownFloating from './DropdownFloating.vue';
 import { provideDropdownContext, useDropdownTeleport } from './provider.js';
 
 const emit = defineEmits(['close']);
-const [isOpen, toggle] = useToggle(false);
+const isOpen = ref(false);
+const toggle = useToggle(isOpen);
 
 const teleport = useDropdownTeleport();
 const containerRef = ref(null);

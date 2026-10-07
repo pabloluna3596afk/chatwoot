@@ -451,6 +451,9 @@ describe('FlowBuilderPage', () => {
     it('keeps Save visible, groups secondary actions and uses a compact category multiselect', async () => {
       const { wrapper } = await mountPage();
 
+      expect(wrapper.find('[data-testid="flow-json-toggle"]').exists()).toBe(
+        false
+      );
       expect(
         wrapper.get('[data-testid="flow-editor-name"] input').element.value
       ).toBe('Datos');
@@ -501,6 +504,9 @@ describe('FlowBuilderPage', () => {
       await wrapper.get('[data-testid="flow-actions"]').trigger('click');
       await wrapper.get('[data-testid="flow-json-toggle"]').trigger('click');
 
+      expect(wrapper.find('[data-testid="flow-json-toggle"]').exists()).toBe(
+        false
+      );
       const modal = wrapper.get('[data-testid="flow-json-dialog"]');
       expect(modal.get('[data-testid="flow-json"]').text()).toContain('7.3');
       expect(modal.get('[data-testid="flow-json"]').classes()).toContain(
