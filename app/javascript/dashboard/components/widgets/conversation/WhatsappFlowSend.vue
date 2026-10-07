@@ -40,12 +40,8 @@ const send = payload =>
       :label="$t('WHATSAPP_FLOWS.SEND.TITLE')"
       :is-loading="isLoading"
       :disabled="!canReply"
-      :title="!canReply ? $t('WHATSAPP_FLOWS.SEND.OUTSIDE_WINDOW') : ''"
       @click="open"
     />
-    <p v-if="!canReply" class="m-0 text-xs text-n-slate-11">
-      {{ $t('WHATSAPP_FLOWS.SEND.OUTSIDE_WINDOW') }}
-    </p>
     <WhatsappFlowSendDialog
       ref="dialog"
       :flows="flows"

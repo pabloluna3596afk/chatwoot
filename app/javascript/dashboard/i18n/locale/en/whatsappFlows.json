@@ -240,7 +240,7 @@
       "PUBLISH_BODY": "The flow becomes available and is sent to Meta.",
       "PUBLISH_POINT_INBOXES": "It will be available in every inbox of ChatHub.",
       "PUBLISH_POINT_META": "It is sent to Meta on every WhatsApp Cloud account of this account. Other channels keep it internal.",
-      "PUBLISH_POINT_VERSION": "A flow already published in Meta is not edited: a change creates a new version and retires the old one. No templates are linked to flows yet, so none are affected.",
+      "PUBLISH_POINT_VERSION": "Meta does not allow changes to the content of a published form. When you publish changes, ChatHub creates a new version and requests retirement of the previous one.",
       "PUBLISH_CONFIRM": "Publish",
       "PUBLISH_WORKING": "Sending to Meta…",
       "PUBLISH_FAILED": "Meta did not accept the flow on some accounts. Fix what it says and retry.",
@@ -258,7 +258,9 @@
       "TEST_WINDOW": "The number must have written to your business in the last 24 hours, or WhatsApp will not deliver it.",
       "TEST_SEND": "Send test",
       "TEST_SENT": "Flow sent to {number}.",
-      "TEST_FAILED": "It could not be sent."
+      "TEST_FAILED": "It could not be sent.",
+      "UNPUBLISHED_CHANGES_BANNER": "You changed this Flow after publishing it. Publish it again so customers receive the new version.",
+      "UNPUBLISHED_CHANGES_BADGE": "Flow with unpublished changes"
     },
     "SEND": {
       "TITLE": "Send form",
@@ -266,10 +268,13 @@
       "FLOW": "Form",
       "EMPTY": "No current published forms are available for this inbox.",
       "HEADER": "Header (optional)",
-      "BODY": "Message",
-      "CTA": "Button text",
+      "BODY": "Chat bubble text",
+      "CTA": "Chat bubble button text",
       "OPEN": "Open",
-      "OUTSIDE_WINDOW": "Forms can only be sent within 24 hours of the latest customer message."
+      "OUTSIDE_WINDOW": "Forms can only be sent within 24 hours of the latest customer message.",
+      "CUSTOMIZE": "Customize the message",
+      "PREVIEW": "WhatsApp chat bubble preview",
+      "REPUBLISH_HINT": "If you edited a form, publish it again to send it."
     }
   }
 }

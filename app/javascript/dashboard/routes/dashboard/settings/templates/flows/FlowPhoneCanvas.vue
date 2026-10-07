@@ -201,8 +201,6 @@ const isFile = block => FILE_TYPES.includes(block.type);
           </div>
         </div>
 
-        <slot />
-
         <div
           class="mt-auto py-2.5 text-sm font-bold text-center text-white rounded-full bg-[#1f9d6a]"
         >

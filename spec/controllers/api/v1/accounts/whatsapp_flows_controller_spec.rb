@@ -48,6 +48,39 @@ RSpec.describe 'WhatsApp flows (forms) API', type: :request do
     end
   end
 
+  describe 'unpublished changes' do
+    let(:flow) { create(:whatsapp_flow, account: account) }
+    let(:publication) do
+      flow.whatsapp_flow_publications.create!(account: account, waba_id: '123456789', status: 'published', published_at: flow.updated_at)
+    end
+
+    it 'marks edits even within the same second in index and detail' do
+      publication.update!(published_at: flow.updated_at - 0.001.seconds)
+
+      get base_url, headers: agent.create_new_auth_token, as: :json
+      expect(response.parsed_body['payload'].first['unpublished_changes']).to be true
+      get "#{base_url}/#{flow.id}", headers: agent.create_new_auth_token, as: :json
+      expect(response.parsed_body['unpublished_changes']).to be true
+      get "#{base_url}/#{flow.id}/publication_status", headers: admin.create_new_auth_token, as: :json
+      expect(response.parsed_body['unpublished_changes']).to be true
+    end
+
+    it 'does not mark a publication equal to or newer than the saved form' do
+      publication
+      get "#{base_url}/#{flow.id}", headers: admin.create_new_auth_token, as: :json
+      expect(response.parsed_body['unpublished_changes']).to be false
+      publication.update!(published_at: flow.updated_at + 1.second)
+      get "#{base_url}/#{flow.id}", headers: admin.create_new_auth_token, as: :json
+      expect(response.parsed_body['unpublished_changes']).to be false
+    end
+
+    it 'does not mark a form that has never been published' do
+      flow
+      get "#{base_url}/#{flow.id}", headers: agent.create_new_auth_token, as: :json
+      expect(response.parsed_body['unpublished_changes']).to be false
+    end
+  end
+
   describe 'GET index' do
     it 'lists the forms of the account, newest change first, without the definition' do
       older = create(:whatsapp_flow, account: account, name: 'Antiguo', updated_at: 2.days.ago)

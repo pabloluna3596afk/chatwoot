@@ -1339,6 +1339,19 @@ docker compose -f docker-compose.dokploy.yml -f docker-compose.dokploy.fork.yml 
 
 ---
 
+### B-NEW-53 — WhatsApp forms: stale publication and editor preview clarity
+
+- Files: `WhatsappFlowSendDialog.vue`, `WhatsappFlowSend.vue`, `WhatsappFlowsController`, `FlowsPanel.vue`,
+  `FlowBuilderPage.vue`, `FlowPhoneCanvas.vue`, `useFlowPublications.js`, and English/Spanish `whatsappFlows.json`.
+- Sending uses the first eligible form and default bubble text, with collapsed customization and a live bubble preview.
+  The composer no longer repeats the closed 24-hour-window notice. Bubble text limits and emoji restrictions apply before sending.
+- The API derives `unpublished_changes` from publication timestamps without a migration; the list and builder expose it.
+  Publishing explains Meta's immutable form content and ChatHub's replacement version and deprecation request.
+- Starting models belong to the editor, outside the customer phone canvas. Actual definition screens remain intact.
+- Verify: open the send dialog, expand customization and edit all three bubble fields; check the closed-window notice once.
+  Edit and save a published form, check the list badge and builder banner, republish and refresh publication status.
+  On a new form, choose a starting model outside the phone and verify its customer fields appear inside the phone.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)
