@@ -136,7 +136,11 @@ describe('FlowBuilderPage', () => {
   it('explains unpublished changes without duplicating the publish action', async () => {
     const api = makeApi();
     api.publicationStatus = vi.fn().mockResolvedValue({
-      data: { unpublished_changes: true, wabas: [], publications: [] },
+      data: {
+        unpublished_changes: true,
+        wabas: [{ waba_id: '111', channel_id: 7, phone_number: '+593990001' }],
+        publications: [],
+      },
     });
     const { wrapper } = await mountPage(
       sampleFlow({ unpublished_changes: true }),
