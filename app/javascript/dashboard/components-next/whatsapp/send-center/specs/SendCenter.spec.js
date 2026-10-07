@@ -96,6 +96,37 @@ describe('unified send center', () => {
   });
   afterEach(() => wrapper?.unmount());
 
+  it('keeps native dialog close synchronized while a send is pending', async () => {
+    let resolveSend;
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: { id: 3, channel_type: 'Channel::Api' },
+        conversationId: 5,
+        canReply: true,
+        templates: [templates[1]],
+        sendTemplate: () =>
+          new Promise(resolve => {
+            resolveSend = resolve;
+          }),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    await wrapper.get('[data-testid="center-send"]').trigger('click');
+    wrapper.findComponent(DialogStub).vm.$emit('close');
+    expect(wrapper.emitted('close')).toHaveLength(1);
+    resolveSend(false);
+    await flushPromises();
+  });
+
+  it('preserves Spanish accents in the new source strings', () => {
+    const labels = es.WHATSAPP_TEMPLATES.SEND_CENTER;
+    expect(labels.DESCRIPTION).toContain('conversaci\u00f3n');
+    expect(labels.REASONS.template_PENDING).toContain('aprobaci\u00f3n');
+    expect(JSON.stringify(labels)).not.toContain('?');
+  });
+
   it.each([
     'PENDING',
     'REJECTED',

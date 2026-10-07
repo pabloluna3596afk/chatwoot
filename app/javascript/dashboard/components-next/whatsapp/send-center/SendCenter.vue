@@ -177,7 +177,7 @@ const canSend = computed(
       : parser.value && !parser.value.isFormInvalid)
 );
 const close = () => {
-  if (!isSending.value) emit('close');
+  emit('close');
 };
 const loadFlows = async () => {
   error.value = '';
