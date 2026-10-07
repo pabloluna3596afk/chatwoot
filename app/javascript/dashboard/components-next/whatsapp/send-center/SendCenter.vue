@@ -286,7 +286,11 @@ watch(
             }}
           </h2>
           <p class="mt-1 text-sm text-n-slate-11">
-            {{ $t(`${prefix}.DESCRIPTION`) }}
+            {{
+              $t(
+                `${prefix}.${hasFlows ? 'DESCRIPTION' : 'TEMPLATE_DESCRIPTION'}`
+              )
+            }}
           </p>
         </div>
         <Button

@@ -133,6 +133,12 @@
         "flow_throttled": "Flow limited by Meta",
         "outside_window": "Outside the 24-hour messaging window",
         "unavailable": "This Flow is unavailable for sending"
+      },
+      "TEMPLATE_DESCRIPTION": "Choose a template for this conversation.",
+      "MEDIA_FORMATS": {
+        "IMAGE": "Image",
+        "VIDEO": "Video",
+        "DOCUMENT": "Document"
       }
     }
   }

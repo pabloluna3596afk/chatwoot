@@ -194,7 +194,13 @@ const refreshTemplates = async () => {
               <p class="text-xs font-medium text-n-slate-11">
                 {{ t('WHATSAPP_TEMPLATES.PICKER.CATEGORY') || 'CATEGORY' }}
               </p>
-              <p class="text-sm">{{ template.category }}</p>
+              <p class="text-sm">
+                {{
+                  t(
+                    `WHATSAPP_TEMPLATES.SEND_CENTER.CATEGORY.${template.category}`
+                  )
+                }}
+              </p>
             </div>
           </div>
         </button>

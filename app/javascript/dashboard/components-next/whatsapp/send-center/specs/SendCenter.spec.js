@@ -54,7 +54,21 @@ const ParserStub = {
 
 describe('unified send center', () => {
   let wrapper;
+  let globalOptions;
   beforeEach(() => {
+    globalOptions = {
+      plugins: [
+        createI18n({ legacy: false, locale: 'es', messages: { es } }),
+        createStore({
+          getters: {
+            'attributes/getAttributes': () => [1],
+            getSelectedChat: () => ({}),
+            getCurrentUser: () => ({}),
+          },
+        }),
+      ],
+      stubs: { Dialog: DialogStub, WhatsAppTemplateParser: ParserStub },
+    };
     API.conversationFlows.mockResolvedValue({
       data: {
         can_reply: true,
@@ -81,6 +95,172 @@ describe('unified send center', () => {
     API.sendToConversation.mockResolvedValue({});
   });
   afterEach(() => wrapper?.unmount());
+
+  it.each([
+    'PENDING',
+    'REJECTED',
+    'PAUSED',
+    'DISABLED',
+    'IN_APPEAL',
+    'FLAGGED',
+    'LIMIT_EXCEEDED',
+  ])(
+    'shows the %s template preview and translated reason but cannot send it',
+    async templateStatus => {
+      const send = vi.fn();
+      wrapper = mount(SendCenter, {
+        props: {
+          show: true,
+          inbox: { id: 3, channel_type: 'Channel::Api' },
+          conversationId: 5,
+          canReply: true,
+          templates: [{ ...templates[0], status: templateStatus }],
+          sendTemplate: send,
+        },
+        global: globalOptions,
+      });
+      await flushPromises();
+      expect(wrapper.get('[data-testid="center-list"]').text()).toContain(
+        'rejected'
+      );
+      expect(wrapper.get('[data-testid="center-reason"]').text()).toBe(
+        es.WHATSAPP_TEMPLATES.SEND_CENTER.REASONS[`template_${templateStatus}`]
+      );
+      expect(
+        wrapper.get('[data-testid="send-center-preview"]').text()
+      ).toContain('Rejected body');
+      expect(
+        wrapper.get('[data-testid="center-send"]').attributes('disabled')
+      ).toBeDefined();
+      await wrapper.get('[data-testid="center-send"]').trigger('click');
+      expect(send).not.toHaveBeenCalled();
+      expect(wrapper.find('.i-lucide-layout-template').exists()).toBe(true);
+    }
+  );
+
+  it.each([
+    ['none', false, true, 'no_publication'],
+    ['draft', false, true, 'flow_draft'],
+    ['published', true, true, 'changes'],
+    ['published', false, false, 'outside_window'],
+    ['deprecated', false, true, 'flow_deprecated'],
+    ['blocked', false, true, 'flow_blocked'],
+    ['throttled', false, true, 'flow_throttled'],
+  ])(
+    'consults a %s Flow with changes=%s and window=%s without sending',
+    async (flowStatus, changes, window, reason) => {
+      API.conversationFlows.mockResolvedValue({
+        data: {
+          can_reply: window,
+          payload: [
+            {
+              id: 12,
+              name: 'Contact',
+              categories: [],
+              status: flowStatus,
+              unpublished_changes: changes,
+              can_send: false,
+              screens: 1,
+            },
+          ],
+        },
+      });
+      wrapper = mount(SendCenter, {
+        props: {
+          show: true,
+          inbox: {
+            id: 3,
+            channel_type: 'Channel::Whatsapp',
+            provider: 'whatsapp_cloud',
+          },
+          conversationId: 5,
+          canReply: window,
+          templates: [],
+          sendTemplate: vi.fn(),
+        },
+        global: globalOptions,
+      });
+      await flushPromises();
+      expect(wrapper.get('[data-testid="center-reason"]').text()).toBe(
+        es.WHATSAPP_TEMPLATES.SEND_CENTER.REASONS[reason]
+      );
+      expect(
+        wrapper.get('[data-testid="center-send"]').attributes('disabled')
+      ).toBeDefined();
+      await wrapper.get('[data-testid="center-send"]').trigger('click');
+      expect(API.sendToConversation).not.toHaveBeenCalled();
+    }
+  );
+
+  it('waits for template delivery, prevents duplicate sends and remains open when delivery fails', async () => {
+    let resolveSend;
+    const send = vi.fn(
+      () =>
+        new Promise(resolve => {
+          resolveSend = resolve;
+        })
+    );
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: { id: 3, channel_type: 'Channel::Api' },
+        conversationId: 5,
+        canReply: false,
+        templates: [templates[1]],
+        sendTemplate: send,
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    await wrapper.get('[data-testid="center-send"]').trigger('click');
+    expect(
+      wrapper.get('[data-testid="center-send"]').attributes('disabled')
+    ).toBeDefined();
+    await wrapper.get('[data-testid="center-send"]').trigger('click');
+    expect(send).toHaveBeenCalledExactlyOnceWith({
+      message: 'Your appointment',
+      templateParams: { name: 'appointment' },
+    });
+    resolveSend(false);
+    await flushPromises();
+    expect(wrapper.emitted('close')).toBeUndefined();
+  });
+
+  it('switches between template and Flow tabs without a second send dialog', async () => {
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: 'whatsapp_cloud',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates,
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 2 });
+    await flushPromises();
+    expect(wrapper.get('[data-testid="center-list"]').text()).toContain(
+      'Contact'
+    );
+    expect(wrapper.get('[data-testid="center-list"]').text()).not.toContain(
+      'appointment'
+    );
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    expect(wrapper.get('[data-testid="center-list"]').text()).toContain(
+      'appointment'
+    );
+    expect(wrapper.get('[data-testid="center-list"]').text()).not.toContain(
+      'Contact'
+    );
+    expect(wrapper.findAllComponents(DialogStub)).toHaveLength(1);
+  });
 
   it('defaults to Todos, puts usable items first, and searches template content', async () => {
     wrapper = mount(SendCenter, {
@@ -283,7 +463,7 @@ describe('unified send center', () => {
     const english = en.WHATSAPP_TEMPLATES.SEND_CENTER;
     const spanish = es.WHATSAPP_TEMPLATES.SEND_CENTER;
     expect(Object.keys(english)).toEqual(Object.keys(spanish));
-    ['CATEGORY', 'STATUS', 'REASONS'].forEach(key =>
+    ['CATEGORY', 'STATUS', 'REASONS', 'MEDIA_FORMATS'].forEach(key =>
       expect(Object.keys(english[key])).toEqual(Object.keys(spanish[key]))
     );
   });

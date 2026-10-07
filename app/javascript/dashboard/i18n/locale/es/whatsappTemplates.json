@@ -34,7 +34,7 @@
       "GO_BACK_LABEL": "Volver",
       "SEND_MESSAGE_LABEL": "Enviar mensaje",
       "FORM_ERROR_MESSAGE": "Por favor, rellene todas las variables antes de enviar",
-      "MEDIA_HEADER_LABEL": "{type} Header",
+      "MEDIA_HEADER_LABEL": "Encabezado: {type}",
       "OTP_CODE": "Enter 4-8 digit OTP",
       "EXPIRY_MINUTES": "Enter expiry minutes",
       "BUTTON_PARAMETERS": "Button Parameters",
@@ -133,6 +133,12 @@
         "flow_throttled": "Flow limitado por Meta",
         "outside_window": "Fuera de la ventana de 24 h",
         "unavailable": "Este Flow no est? disponible para enviar"
+      },
+      "TEMPLATE_DESCRIPTION": "Elige una plantilla para esta conversaci?n.",
+      "MEDIA_FORMATS": {
+        "IMAGE": "Imagen",
+        "VIDEO": "Video",
+        "DOCUMENT": "Documento"
       }
     }
   }

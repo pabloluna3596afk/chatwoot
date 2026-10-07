@@ -376,7 +376,11 @@ export default {
       />
       <NextButton
         v-if="enableWhatsAppTemplates && !enableContentTemplates"
-        v-tooltip.top-end="$t('WHATSAPP_TEMPLATES.SEND_CENTER.TITLE')"
+        v-tooltip.top-end="
+          $t(
+            `WHATSAPP_TEMPLATES.SEND_CENTER.${templateButtonIcon === 'i-ph-whatsapp-logo' ? 'TITLE' : 'TEMPLATE_TITLE'}`
+          )
+        "
         :icon="templateButtonIcon"
         slate
         faded

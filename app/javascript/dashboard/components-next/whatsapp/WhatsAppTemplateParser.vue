@@ -136,7 +136,9 @@ const hasMediaHeader = computed(() =>
 
 const formatType = computed(() => {
   const format = headerComponent.value?.format;
-  return format ? format.charAt(0) + format.slice(1).toLowerCase() : '';
+  return format
+    ? t(`WHATSAPP_TEMPLATES.SEND_CENTER.MEDIA_FORMATS.${format}`)
+    : '';
 });
 
 const isDocumentTemplate = computed(() => {
