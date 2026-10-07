@@ -44,8 +44,8 @@ RSpec.describe Whatsapp::Flows::SaveResponseService do
   it 'stores metadata for a Flow without contact save targets' do
     response_fields = [{ 'key' => 'city', 'label' => 'Ciudad', 'type' => 'short_text' }]
     outgoing.update!(additional_attributes: { 'whatsapp_flow' => {
-      'name' => 'Consulta', 'fields' => [], 'response_fields' => response_fields
-    } })
+                       'name' => 'Consulta', 'fields' => [], 'response_fields' => response_fields
+                     } })
     described_class.new(incoming, { 'flow_token' => token, 'city' => 'Quito' }).perform
     expect(incoming.reload.content_attributes.fetch('whatsapp_flow_meta')).to eq('name' => 'Consulta', 'fields' => response_fields)
     expect(contact.reload.name).not_to eq('Updated')

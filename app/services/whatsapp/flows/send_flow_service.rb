@@ -58,7 +58,7 @@ class Whatsapp::Flows::SendFlowService
 
   def snapshot(flow, texts)
     publication = flow.whatsapp_flow_publications.find_by!(waba_id: @conversation.inbox.channel.provider_config.fetch('business_account_id'))
-    answer_fields = Whatsapp::Flows::Spec.fields(flow.definition).map { |field| field[:definition] }
+    answer_fields = Whatsapp::Flows::Spec.fields(flow.definition).pluck(:definition)
     fields = answer_fields.select { |field| field['save_to'] }
     response_fields = answer_fields.reject { |field| field.fetch('key').match?(/flow_token|password|passcode|otp|secret/i) }.map do |field|
       metadata = field.slice('key', 'label', 'type')

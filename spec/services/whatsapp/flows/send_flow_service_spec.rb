@@ -37,10 +37,11 @@ RSpec.describe Whatsapp::Flows::SendFlowService do
     snapshot = message.additional_attributes.fetch('whatsapp_flow')
     expect(snapshot.fetch('fields').map { |field| field.fetch('key') }).to eq(['nombre'])
     expect(snapshot.fetch('response_fields')).to eq([
-      { 'key' => 'nombre', 'label' => 'Nombre', 'type' => 'short_text' },
-      { 'key' => 'interests', 'label' => 'Intereses', 'type' => 'checkbox',
-        'options' => [{ 'id' => 'news', 'title' => 'Novedades' }, { 'id' => 'advice', 'title' => 'Asesoría' }] }
-    ])
+                                                      { 'key' => 'nombre', 'label' => 'Nombre', 'type' => 'short_text' },
+                                                      { 'key' => 'interests', 'label' => 'Intereses', 'type' => 'checkbox',
+                                                        'options' => [{ 'id' => 'news', 'title' => 'Novedades' },
+                                                                      { 'id' => 'advice', 'title' => 'Asesoría' }] }
+                                                    ])
   end
 
   it 'uses Cloud v22.0, one interactive request and a signed token' do
