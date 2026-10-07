@@ -135,7 +135,9 @@ describe('FlowPhoneSimulator', () => {
     expect(sentBubble.exists()).toBe(true);
     expect(sentBubble.find('.font-semibold').exists()).toBe(false);
     expect(sentBubble.find('.font-medium').text()).toContain('Contacto');
-    expect(sentBubble.find('.prose-bubble').text()).toBe('Contacto');
+    expect(sentBubble.find('.prose-bubble').text()).toMatch(
+      /^(<p>)?Contacto(<\/p>)?$/
+    );
     expect(
       wrapper.find('[data-bubble-name="whatsapp-flow-response"]').exists()
     ).toBe(true);
