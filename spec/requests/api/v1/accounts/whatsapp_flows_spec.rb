@@ -48,8 +48,8 @@ RSpec.describe 'WhatsApp flows to Meta API', type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(response.parsed_body).to include('rows' => [], 'publication_summary' => {
-        'state' => 'none', 'total' => 0, 'published' => 0, 'errors' => 0
-      })
+                                                'state' => 'none', 'total' => 0, 'published' => 0, 'errors' => 0
+                                              })
       expect(response.parsed_body['meta']['total_count']).to eq(0)
     end
 
