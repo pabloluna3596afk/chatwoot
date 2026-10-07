@@ -4,8 +4,20 @@ class Api::V1::Accounts::Conversations::WhatsappFlowsController < Api::V1::Accou
   end
 
   def index
-    flows = Whatsapp::Flows::SendFlowService.new(conversation: @conversation, sender: Current.user).eligible_flows
-    render json: { payload: flows.map { |flow| flow.slice(:id, :name) }, can_reply: @conversation.can_reply? }
+    eligible_ids = Whatsapp::Flows::SendFlowService.new(conversation: @conversation, sender: Current.user).eligible_flows.ids
+    waba_id = @conversation.inbox.channel.provider_config.fetch('business_account_id')
+    can_reply = @conversation.can_reply?
+    flows = @conversation.account.whatsapp_flows.includes(:whatsapp_flow_publications).order(:name)
+    payload = flows.map do |flow|
+      publication = flow.whatsapp_flow_publications.find { |item| item.waba_id == waba_id }
+      flow.slice(:id, :name, :categories).merge(
+        status: publication&.status || 'none',
+        unpublished_changes: publication&.published_at.present? && publication.published_at < flow.updated_at,
+        screens: flow.definition.fetch('screens').size,
+        can_send: can_reply && eligible_ids.include?(flow.id)
+      )
+    end
+    render json: { payload: payload, can_reply: can_reply }
   end
 
   def create
