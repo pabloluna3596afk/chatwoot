@@ -482,15 +482,8 @@ defineExpose({ save });
       data-testid="flow-unpublished-banner"
     >
       <span class="text-sm">{{
-        $t('WHATSAPP_FLOWS.META.UNPUBLISHED_CHANGES')
+        $t('WHATSAPP_FLOWS.META.UNPUBLISHED_CHANGES_BANNER')
       }}</span>
-      <Button
-        :label="$t('WHATSAPP_FLOWS.META.PUBLISH')"
-        :disabled="metaBlocked || isPublishing"
-        :title="metaHint"
-        data-testid="flow-unpublished-publish"
-        @click="openPublish"
-      />
     </div>
     <section
       v-if="hasCloud"

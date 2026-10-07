@@ -161,7 +161,7 @@ const dateOf = seconds => new Date(seconds * 1000).toLocaleDateString();
               class="self-start px-2.5 py-0.5 text-xs font-semibold rounded-full bg-n-amber-3 text-n-amber-11"
               data-testid="flow-unpublished-badge"
             >
-              {{ $t('WHATSAPP_FLOWS.META.UNPUBLISHED_CHANGES') }}
+              {{ $t('WHATSAPP_FLOWS.META.UNPUBLISHED_CHANGES_BADGE') }}
             </span>
             <FlowPublicationBadges
               v-if="metaRows[flow.id]?.length"

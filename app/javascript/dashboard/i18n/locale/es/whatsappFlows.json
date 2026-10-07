@@ -259,7 +259,8 @@
       "TEST_SEND": "Enviar prueba",
       "TEST_SENT": "Flow enviado a {number}.",
       "TEST_FAILED": "No se pudo enviar.",
-      "UNPUBLISHED_CHANGES": "Cambios sin publicar"
+      "UNPUBLISHED_CHANGES_BANNER": "Cambiaste este Flow después de publicarlo. Publícalo de nuevo para que los clientes reciban la versión nueva.",
+      "UNPUBLISHED_CHANGES_BADGE": "Flow con cambios sin publicar"
     },
     "SEND": {
       "TITLE": "Enviar formulario",

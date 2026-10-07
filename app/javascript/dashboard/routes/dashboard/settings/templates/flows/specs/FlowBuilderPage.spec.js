@@ -133,7 +133,7 @@ describe('FlowBuilderPage', () => {
     ).toBe(true);
   });
 
-  it('offers publishing in the stale banner and clears it after refreshed publication', async () => {
+  it('explains unpublished changes without duplicating the publish action', async () => {
     const api = makeApi();
     api.publicationStatus = vi.fn().mockResolvedValue({
       data: { unpublished_changes: true, wabas: [], publications: [] },
@@ -144,24 +144,13 @@ describe('FlowBuilderPage', () => {
     );
     expect(
       wrapper.get('[data-testid="flow-unpublished-banner"]').text()
-    ).toContain('UNPUBLISHED_CHANGES');
-    await wrapper
-      .get('[data-testid="flow-unpublished-publish"]')
-      .trigger('click');
-    await flushPromises();
-    expect(wrapper.find('[data-testid="flow-publish-confirm"]').exists()).toBe(
-      true
-    );
-    api.publicationStatus.mockResolvedValue({
-      data: { unpublished_changes: false, wabas: [], publications: [] },
-    });
-    await wrapper
-      .get('[data-testid="flow-unpublished-publish"]')
-      .trigger('click');
-    await flushPromises();
+    ).toContain('UNPUBLISHED_CHANGES_BANNER');
     expect(
-      wrapper.find('[data-testid="flow-unpublished-banner"]').exists()
+      wrapper.find('[data-testid="flow-unpublished-publish"]').exists()
     ).toBe(false);
+    expect(wrapper.findAll('[data-testid="flow-publish-open"]')).toHaveLength(
+      1
+    );
   });
 
   it('keeps starting models outside the phone and preserves customer screens', async () => {

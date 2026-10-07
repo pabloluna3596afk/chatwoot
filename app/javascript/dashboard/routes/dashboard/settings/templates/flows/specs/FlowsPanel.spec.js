@@ -69,7 +69,7 @@ describe('FlowsPanel', () => {
     });
     const wrapper = await mountPanel();
     expect(wrapper.get('[data-testid="flow-unpublished-badge"]').text()).toBe(
-      'WHATSAPP_FLOWS.META.UNPUBLISHED_CHANGES'
+      'WHATSAPP_FLOWS.META.UNPUBLISHED_CHANGES_BADGE'
     );
   });
 
