@@ -2,7 +2,7 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { createStore } from 'vuex';
 import { createI18n } from 'vue-i18n';
 import SendCenter from '../SendCenter.vue';
-import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import API from 'dashboard/api/whatsappFlows';
 import en from 'dashboard/i18n/locale/en/whatsappTemplates.json';
@@ -371,17 +371,57 @@ describe('unified send center', () => {
       },
     });
     await flushPromises();
+    const [categoryFilter, statusFilter] =
+      wrapper.findAllComponents(FilterDropdown);
+    expect(
+      categoryFilter.props('options').find(option => option.value === 'ALL')
+        .count
+    ).toBe(5);
+    expect(
+      statusFilter.props('options').find(option => option.value === 'ALL').count
+    ).toBe(5);
+    expect(
+      categoryFilter
+        .props('options')
+        .find(option => option.value === 'template:AUTHENTICATION').count
+    ).toBe(0);
     wrapper
-      .findAllComponents(ComboBox)[0]
+      .findAllComponents(FilterDropdown)[0]
       .vm.$emit('update:modelValue', 'template:UTILITY');
     await flushPromises();
     expect(wrapper.get('[data-testid="center-list"]').text()).not.toContain(
       'offer'
     );
+    expect(
+      statusFilter.props('options').find(option => option.value === 'ALL').count
+    ).toBe(2);
+    expect(
+      statusFilter.props('options').find(option => option.value === 'APPROVED')
+        .count
+    ).toBe(1);
     wrapper
-      .findAllComponents(ComboBox)[1]
+      .findAllComponents(FilterDropdown)[1]
       .vm.$emit('update:modelValue', 'REJECTED');
     await flushPromises();
+    expect(
+      categoryFilter.props('options').find(option => option.value === 'ALL')
+        .count
+    ).toBe(1);
+    expect(
+      statusFilter.props('options').find(option => option.value === 'ALL').count
+    ).toBe(2);
+    await wrapper
+      .get('[data-testid="center-search"] input')
+      .setValue('appointment');
+    expect(
+      categoryFilter.props('options').find(option => option.value === 'ALL')
+        .count
+    ).toBe(0);
+    expect(
+      statusFilter.props('options').find(option => option.value === 'APPROVED')
+        .count
+    ).toBe(1);
+    await wrapper.get('[data-testid="center-search"] input').setValue('');
     expect(wrapper.get('[data-testid="center-reason"]').text()).toBe(
       'Rechazada por Meta'
     );
