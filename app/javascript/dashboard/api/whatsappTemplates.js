@@ -37,8 +37,8 @@ class WhatsappTemplatesAPI extends ApiClient {
   }
 
   // Meta's Template Library (ready-made utility templates): search, language, topic, usecase, industry, after.
-  library(inboxId, params = {}) {
-    return axios.get(this.path(inboxId, '/library'), { params });
+  library(inboxId, params = {}, config = {}) {
+    return axios.get(this.path(inboxId, '/library'), { ...config, params });
   }
 
   // Creates a template from the library by its name (attributes: library_template_name, name, language, category,

@@ -1,19 +1,13 @@
 <script setup>
-import {
-  computed,
-  onBeforeUnmount,
-  onMounted,
-  reactive,
-  ref,
-  watch,
-} from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useAlert } from 'dashboard/composables';
 import { useAccount } from 'dashboard/composables/useAccount';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import Button from 'dashboard/components-next/button/Button.vue';
-import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
+import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import { toSnakeCase } from './templateForm';
@@ -31,36 +25,27 @@ const emit = defineEmits(['created']);
 const { t, locale } = useI18n();
 const { currentAccount } = useAccount();
 
-const LANGUAGE_OPTIONS = computed(() => languageOptions(locale.value));
-const SEARCH_DELAY = 400;
+const PAGE_SIZE = 12;
 
 const search = ref('');
 const language = ref('es');
-const inboxId = ref(props.inboxes[0]?.id ?? null);
+const inboxId = ref(props.inboxes[0]?.id ?? 'all');
 const languageTouched = ref(false);
-const items = ref([]);
-const nextCursor = ref(null);
-const isLoading = ref(false);
+const catalog = ref([]);
+const visibleCount = ref(PAGE_SIZE);
+const { run, isPending: isLoading } = useAbortableRequest();
 const failed = ref(false);
 const dialogRef = ref(null);
 const picked = ref(null);
 const isCreating = ref(false);
 const form = reactive({ name: '', buttonInputs: [] });
-let searchTimer = null;
-
-watch(
-  () => props.inboxes,
-  list => {
-    if (!inboxId.value && list[0]) inboxId.value = list[0].id;
-  }
-);
 
 const applyDefaultLanguage = () => {
   if (languageTouched.value) return;
   language.value = defaultLanguage(
     currentAccount.value?.locale,
     props.templates,
-    inboxId.value
+    inboxId.value === 'all' ? null : inboxId.value
   );
 };
 applyDefaultLanguage();
@@ -68,33 +53,79 @@ watch([() => props.templates, inboxId], applyDefaultLanguage);
 
 const humanName = name => String(name || '').replaceAll('_', ' ');
 
-const load = async ({ append = false } = {}) => {
-  if (!inboxId.value) return;
-  isLoading.value = true;
+// Fetch every page, without language/search filters, so facets count the complete
+// library available in each inbox rather than just its first visible page.
+const readInbox = async (inbox, signal, after, entries = []) => {
+  const { data } = await WhatsappTemplatesAPI.library(
+    inbox.id,
+    { after },
+    { signal }
+  );
+  if (signal.aborted) return entries;
+  entries.push(
+    ...data.templates.map(template => ({ ...template, inboxId: inbox.id }))
+  );
+  // Meta can include an end cursor even when the next page is empty.
+  if (data.templates.length && data.next)
+    return readInbox(inbox, signal, data.next, entries);
+  return entries;
+};
+const load = async () => {
+  catalog.value = [];
   failed.value = false;
   try {
-    const { data } = await WhatsappTemplatesAPI.library(inboxId.value, {
-      search: search.value.trim() || undefined,
-      language: language.value,
-      after: append ? nextCursor.value : undefined,
+    const result = await run(async signal => {
+      const entries = await Promise.all(
+        props.inboxes.map(inbox => readInbox(inbox, signal))
+      );
+      return signal.aborted ? undefined : entries.flat();
     });
-    items.value = append ? [...items.value, ...data.templates] : data.templates;
-    nextCursor.value = data.next || null;
+    if (result) catalog.value = result;
   } catch {
     failed.value = true;
-    if (!append) items.value = [];
-  } finally {
-    isLoading.value = false;
   }
 };
-
+watch(() => props.inboxes, load, { immediate: true });
 watch([search, language, inboxId], () => {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => load(), SEARCH_DELAY);
+  visibleCount.value = PAGE_SIZE;
 });
-
-onMounted(() => load());
-onBeforeUnmount(() => clearTimeout(searchTimer));
+const searched = computed(() =>
+  catalog.value.filter(template =>
+    `${humanName(template.name)} ${template.body}`
+      .toLocaleLowerCase()
+      .includes(search.value.trim().toLocaleLowerCase())
+  )
+);
+const languageRows = computed(() =>
+  searched.value.filter(
+    template => inboxId.value === 'all' || template.inboxId === inboxId.value
+  )
+);
+const inboxRows = computed(() =>
+  searched.value.filter(
+    template => language.value === 'all' || template.language === language.value
+  )
+);
+const filtered = computed(() =>
+  languageRows.value.filter(
+    template => language.value === 'all' || template.language === language.value
+  )
+);
+const items = computed(() => filtered.value.slice(0, visibleCount.value));
+const hasMore = computed(() => visibleCount.value < filtered.value.length);
+const languageFilterOptions = computed(() => [
+  {
+    value: 'all',
+    label: t('WHATSAPP_TEMPLATE_MGMT.FILTERS.ALL_LANGUAGES'),
+    count: languageRows.value.length,
+  },
+  ...languageOptions(locale.value).map(option => ({
+    ...option,
+    count: languageRows.value.filter(
+      template => template.language === option.value
+    ).length,
+  })),
+]);
 
 // The inputs some library buttons ask for: a phone number for a call button, a link for a URL button.
 const inputsFor = template =>
@@ -132,7 +163,7 @@ const buttonInputsPayload = () =>
 
 const canCreate = computed(
   () =>
-    Boolean(picked.value && inboxId.value && form.name) &&
+    Boolean(picked.value && form.name) &&
     form.buttonInputs.every(input => input.value.trim())
 );
 
@@ -140,10 +171,10 @@ const create = async () => {
   if (!canCreate.value) return;
   isCreating.value = true;
   try {
-    await WhatsappTemplatesAPI.createFromLibrary(inboxId.value, {
+    await WhatsappTemplatesAPI.createFromLibrary(picked.value.inboxId, {
       library_template_name: picked.value.name,
       name: toSnakeCase(form.name),
-      language: picked.value.language || language.value,
+      language: picked.value.language,
       category: picked.value.category,
       button_inputs: buttonInputsPayload(),
     });
@@ -160,19 +191,23 @@ const create = async () => {
   }
 };
 
-// The combobox clears its value when the chosen option is clicked again: a library search always needs one.
 const chooseLanguage = value => {
-  if (!value) return;
   language.value = value;
   languageTouched.value = true;
 };
-const chooseInbox = value => {
-  if (value) inboxId.value = value;
-};
-
-const inboxOptions = computed(() =>
-  props.inboxes.map(inbox => ({ value: inbox.id, label: inbox.name }))
-);
+const inboxOptions = computed(() => [
+  {
+    value: 'all',
+    label: t('WHATSAPP_TEMPLATE_MGMT.FILTERS.ALL_INBOXES'),
+    count: inboxRows.value.length,
+  },
+  ...props.inboxes.map(inbox => ({
+    value: inbox.id,
+    label: inbox.name,
+    count: inboxRows.value.filter(template => template.inboxId === inbox.id)
+      .length,
+  })),
+]);
 </script>
 
 <template>
@@ -194,23 +229,23 @@ const inboxOptions = computed(() =>
         :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.SEARCH')"
         data-testid="library-search"
       />
-      <ComboBox
+      <FilterDropdown
         :model-value="language"
-        :options="LANGUAGE_OPTIONS"
-        :search-placeholder="
-          $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.LANGUAGE')
-        "
+        :options="languageFilterOptions"
+        icon="i-lucide-languages"
+        :label="$t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.LANGUAGE')"
         class="w-56 shrink-0"
         data-testid="library-language"
         @update:model-value="chooseLanguage"
       />
-      <ComboBox
+      <FilterDropdown
         v-if="inboxes.length > 1"
-        :model-value="inboxId"
+        v-model="inboxId"
         :options="inboxOptions"
+        icon="i-lucide-inbox"
+        :label="$t('WHATSAPP_TEMPLATE_MGMT.FILTERS.ALL_INBOXES')"
         class="w-56 shrink-0"
         data-testid="library-inbox"
-        @update:model-value="chooseInbox"
       />
     </div>
 
@@ -228,7 +263,7 @@ const inboxOptions = computed(() =>
     <div class="grid gap-3 sm:grid-cols-2">
       <article
         v-for="template in items"
-        :key="`${template.name}-${template.language}`"
+        :key="`${template.inboxId}-${template.name}-${template.language}`"
         class="flex flex-col gap-2 p-4 border rounded-xl border-n-weak"
         data-testid="library-item"
       >
@@ -237,6 +272,12 @@ const inboxOptions = computed(() =>
         </h4>
         <p class="p-2 text-xs rounded-lg text-n-slate-12 bg-n-alpha-2">
           {{ template.body }}
+        </p>
+        <p
+          v-if="inboxId === 'all' && inboxes.length > 1"
+          class="text-xs text-n-slate-11"
+        >
+          {{ inboxes.find(inbox => inbox.id === template.inboxId).name }}
         </p>
         <p class="text-xs text-n-slate-10">
           {{
@@ -257,14 +298,14 @@ const inboxOptions = computed(() =>
       </article>
     </div>
 
-    <div v-if="nextCursor">
+    <div v-if="hasMore">
       <Button
         slate
         sm
         :is-loading="isLoading"
         :label="$t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.LOAD_MORE')"
         data-testid="library-more"
-        @click="load({ append: true })"
+        @click="visibleCount += PAGE_SIZE"
       />
     </div>
 
