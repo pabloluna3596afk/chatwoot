@@ -46,7 +46,7 @@ class Whatsapp::Flows::PublicationCatalog
     state_counts = states.group(Arel.sql(summary_state)).count(:all)
     categories = filter_flows(search: search, state: state).unscope(:select)
     category_counts = categories
-                      .joins("CROSS JOIN LATERAL jsonb_array_elements_text(whatsapp_flows.categories) AS facet_categories(value)")
+                      .joins('CROSS JOIN LATERAL jsonb_array_elements_text(whatsapp_flows.categories) AS facet_categories(value)')
                       .group('facet_categories.value').count(Arel.sql('DISTINCT whatsapp_flows.id'))
     { state: { 'all' => state_counts.values.sum }.merge(%w[published partial error none].index_with { |value| state_counts.fetch(value, 0) }),
       category: { 'all' => categories.count(:all) }.merge(Whatsapp::Flows::Spec::CATEGORIES.index_with { |value| category_counts.fetch(value, 0) }) }

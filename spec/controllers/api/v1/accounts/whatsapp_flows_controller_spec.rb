@@ -91,8 +91,8 @@ RSpec.describe 'WhatsApp flows (forms) API', type: :request do
       body = response.parsed_body
       expect(body['payload'].length).to eq(1)
       expect(body['payload'].first).to include('name' => 'Survey', 'categories' => ['SURVEY'], 'publication_summary' => {
-                                               'state' => 'none', 'total' => 0, 'published' => 0, 'errors' => 0
-                                             })
+                                                 'state' => 'none', 'total' => 0, 'published' => 0, 'errors' => 0
+                                               })
       expect(body['meta']).to eq('current_page' => 2, 'per_page' => 1, 'total_count' => 3)
       expect(body['facets']['state']).to include('all' => 3, 'none' => 3, 'published' => 0)
       expect(body['facets']['category']).to include('all' => 3, 'SURVEY' => 3, 'OTHER' => 0)
