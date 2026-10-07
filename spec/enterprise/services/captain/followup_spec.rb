@@ -279,6 +279,7 @@ RSpec.describe Captain::Followup do
       expect(message.additional_attributes['template_params']).to include(
         'name' => 'volver_a_hablar', 'language' => 'es', 'processed_params' => { 'body' => { '1' => 'Ana Pérez', '2' => 'Asistente de Ventas' } }
       )
+      expect(message.content_attributes.fetch('whatsapp_template')).to include('name' => 'volver_a_hablar', 'category' => 'MARKETING')
       expect(conversation.reload.additional_attributes['captain_followup']['reengagement']).to include('status' => 'sent')
     end
 

@@ -328,6 +328,7 @@ RSpec.describe Captain::AppointmentReminders do
             'name' => 'recordatorio_cita', 'language' => 'es',
             'processed_params' => { 'body' => { '1' => 'Ana Pérez', '2' => 'Consulta', '3' => 'martes 15 de enero', '4' => '10:00' } }
           )
+          expect(message.content_attributes.fetch('whatsapp_template')).to include('name' => 'recordatorio_cita', 'category' => 'UTILITY')
           expect(reminder('reminder_1')).to have_attributes(status: 'sent')
         end
       end
@@ -346,6 +347,7 @@ RSpec.describe Captain::AppointmentReminders do
 
           message = conversation.messages.outgoing.last
           expect(message.content).to eq('Hola Ana Pérez, te esperamos el martes 15 de enero a las 10:00. Te atiende el equipo de Asistente de Ventas.')
+          expect(message.content_attributes.dig('whatsapp_template', 'header')).to eq('format' => 'TEXT', 'text' => 'Cita: Consulta')
           expect(message.additional_attributes['template_params']['processed_params']).to eq(
             'header' => { 'titulo' => 'Consulta' },
             'body' => { 'nombre' => 'Ana Pérez', 'fecha' => 'martes 15 de enero', 'hora' => '10:00',

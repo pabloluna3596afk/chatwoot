@@ -68,6 +68,7 @@ class Message < ApplicationRecord
   before_validation :attach_template_header_media, on: :create
   before_save :ensure_processed_message_content
   before_save :ensure_in_reply_to
+  before_create :snapshot_whatsapp_template
 
   validates :account_id, presence: true
   validates :inbox_id, presence: true
@@ -147,6 +148,7 @@ class Message < ApplicationRecord
 
   def push_event_data
     data = attributes.symbolize_keys.merge(
+      additional_attributes: dashboard_additional_attributes,
       created_at: created_at.to_i,
       message_type: message_type_before_type_cast,
       conversation_id: conversation&.display_id,
@@ -155,6 +157,18 @@ class Message < ApplicationRecord
     data[:echo_id] = echo_id if echo_id.present?
     data[:attachments] = attachments.map(&:push_event_data) if attachments.present?
     merge_sender_attributes(data)
+  end
+
+  # Only the visual template/Flow metadata belongs in dashboard payloads.
+  def dashboard_additional_attributes
+    return additional_attributes unless inbox.channel_type == 'Channel::Whatsapp'
+
+    data = additional_attributes.except('template_params', 'whatsapp_flow')
+    template = additional_attributes['template_params']
+    flow = additional_attributes['whatsapp_flow']
+    data['template_params'] = template.slice('name', 'language', 'category') if template.present?
+    data['whatsapp_flow'] = flow.slice('name', 'header', 'body', 'cta') if flow.present?
+    data
   end
 
   def conversation_push_event_data
@@ -456,6 +470,14 @@ class Message < ApplicationRecord
 
   def execute_message_template_hooks
     ::MessageTemplates::HookExecutionService.new(message: self).perform
+  end
+
+  def snapshot_whatsapp_template
+    return unless outgoing? && !private? && inbox.channel_type == 'Channel::Whatsapp' && content_type == 'text'
+    return if additional_attributes['template_params'].blank?
+
+    snapshot = Whatsapp::TemplateMessageSnapshotService.new(self).perform
+    self.content_attributes = content_attributes.merge('whatsapp_template' => snapshot) if snapshot
   end
 
   # A template sent with a header file shows that file in the chat, like any attachment (it is the stored copy that

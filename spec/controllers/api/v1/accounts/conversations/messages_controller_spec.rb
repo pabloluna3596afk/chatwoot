@@ -200,6 +200,30 @@ RSpec.describe 'Conversation Messages API', type: :request do
         create(:inbox_member, inbox: conversation.inbox, user: agent)
       end
 
+      it 'exposes visual snapshots on reload without template parameters or Flow tokens' do
+        channel = create(:channel_whatsapp, account: account, sync_templates: false, validate_provider_config: false)
+        whatsapp_conversation = create(:conversation, account: account, inbox: channel.inbox)
+        create(:inbox_member, inbox: channel.inbox, user: agent)
+        message = create(:message, account: account, inbox: channel.inbox, conversation: whatsapp_conversation, message_type: :outgoing,
+                                   additional_attributes: {
+                                     'whatsapp_flow' => { 'name' => 'Booking', 'header' => 'Appointment', 'body' => 'Choose a time',
+                                                          'cta' => 'Open', 'flow_token' => 'private-test-value', 'fields' => [] },
+                                     'template_params' => { 'name' => 'old_template', 'category' => 'UTILITY', 'language' => 'en',
+                                                            'processed_params' => { 'buttons' => [{ 'type' => 'flow', 'flow_token' => 'private-test-value' }] } }
+                                   })
+        get "/api/v1/accounts/#{account.id}/conversations/#{whatsapp_conversation.display_id}/messages",
+            headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:success)
+        payload = response.parsed_body.fetch('payload').find { |item| item['id'] == message.id }
+        expect(payload.fetch('additional_attributes')).to eq(
+          'whatsapp_flow' => { 'name' => 'Booking', 'header' => 'Appointment', 'body' => 'Choose a time', 'cta' => 'Open' },
+          'template_params' => { 'name' => 'old_template', 'category' => 'UTILITY', 'language' => 'en' }
+        )
+        expect(payload.to_json).not_to include('flow_token', 'private-test-value', 'processed_params')
+        expect(message.push_event_data[:additional_attributes]).to eq(payload['additional_attributes'])
+      end
+
       it 'shows the conversation' do
         get "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/messages",
             headers: agent.create_new_auth_token,
