@@ -96,11 +96,12 @@
     "UNSUPPORTED_MESSAGE_INSTAGRAM": "This message is unsupported. You can view this message on the Instagram app.",
     "UNSUPPORTED_MESSAGE_TIKTOK": "This message is unsupported. You can view this message on the TikTok app.",
     "UNSUPPORTED_MESSAGE_WHATSAPP": "This message is unsupported. You can view this message on the WhatsApp app.",
-    "WHATSAPP_FLOW_RESPONSE": "Submitted a flow response",
-    "WHATSAPP_FLOW_COMPLETED": "Form completed",
-    "WHATSAPP_FLOW_COPY": "Copy data",
-    "WHATSAPP_FLOW_COPIED": "Data copied",
-    "WHATSAPP_FLOW_COPY_ERROR": "Could not copy the data",
+    "WHATSAPP_FLOW_RESPONSE": "Submitted a Flow response",
+    "WHATSAPP_FLOW_COMPLETED": "Flow",
+    "WHATSAPP_FLOW_COPY": "Copy answers",
+    "WHATSAPP_FLOW_COPIED": "Copied",
+    "WHATSAPP_FLOW_COPY_ERROR": "Could not copy the answers",
+    "WHATSAPP_FLOW_FILE_RECEIVED": "File received",
     "WHATSAPP_REFERRAL": {
       "AD": "Ad"
     },

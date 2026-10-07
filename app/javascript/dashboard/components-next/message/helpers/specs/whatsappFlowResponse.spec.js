@@ -6,86 +6,99 @@ import {
 } from '../whatsappFlowResponse';
 
 describe('whatsappFlowResponse', () => {
-  describe('formatFlowResponseLabel', () => {
-    it('formats snake case and generated Flow field names', () => {
-      expect(formatFlowResponseLabel('flow_token')).toBe('Flow Token');
-      expect(formatFlowResponseLabel('screen_0_Rating_0')).toBe(
-        'Screen 0 Rating 0'
-      );
-    });
-
-    it('formats camel case labels', () => {
-      expect(formatFlowResponseLabel('appointmentDate')).toBe(
-        'Appointment Date'
-      );
-    });
+  it('humanizes original snake case and camel case keys', () => {
+    expect(formatFlowResponseLabel('home_city')).toBe('Home City');
+    expect(formatFlowResponseLabel('appointmentDate')).toBe('Appointment Date');
   });
 
-  describe('formatFlowResponseValue', () => {
-    it('formats primitive values', () => {
-      expect(formatFlowResponseValue('excellent')).toBe('excellent');
-      expect(formatFlowResponseValue(false)).toBe('false');
-      expect(formatFlowResponseValue(3)).toBe('3');
-    });
-
-    it('formats empty values', () => {
-      expect(formatFlowResponseValue(null)).toBe('—');
-      expect(formatFlowResponseValue('')).toBe('—');
-    });
-
-    it('formats structured values without losing data', () => {
-      expect(formatFlowResponseValue({ day: 'Monday' })).toBe(
-        '{\n  "day": "Monday"\n}'
-      );
-      expect(formatFlowResponseValue(['morning', 'afternoon'])).toBe(
-        '[\n  "morning",\n  "afternoon"\n]'
-      );
-    });
+  it('formats empty and primitive answers and arrays', () => {
+    expect(formatFlowResponseValue(null)).toBe('\u2014');
+    expect(formatFlowResponseValue('')).toBe('\u2014');
+    expect(formatFlowResponseValue(false)).toBe('false');
+    expect(formatFlowResponseValue(3)).toBe('3');
+    expect(formatFlowResponseValue(['morning', 'afternoon'])).toBe(
+      'morning, afternoon'
+    );
   });
 
-  describe('buildFlowResponseEntries', () => {
-    it('builds readable answer entries while keeping the flow token as metadata', () => {
-      expect(
-        buildFlowResponseEntries({
-          flow_token: 'correlation-token',
-          rating: 'excellent',
-          appointment: { day: 'Monday' },
-        })
-      ).toEqual([
-        { key: 'rating', label: 'Rating', value: 'excellent' },
-        { key: 'appointment_day', label: 'Appointment Day', value: 'Monday' },
-      ]);
-    });
-
-    it('hides secrets and shows an empty answer as a dash', () => {
-      expect(
-        buildFlowResponseEntries({
-          city: 'Quito',
-          otp_code: '1234',
-          notes: '',
-        }).map(({ label, value }) => [label, value])
-      ).toEqual([
-        ['City', 'Quito'],
-        ['Notes', '—'],
-      ]);
-    });
-
-    it('writes the answers as one "Label: value" line each', () => {
-      expect(
-        flowResponseToText(
-          buildFlowResponseEntries({ rating: 'excellent', city: 'Quito' })
-        )
-      ).toBe('Rating: excellent\nCity: Quito');
-    });
-
-    it('displays a raw response as a single readable entry', () => {
-      expect(buildFlowResponseEntries('{invalid-json')).toEqual([
+  it('uses metadata titles for scalar and multiple choices', () => {
+    const metadata = {
+      fields: [
         {
-          key: 'response',
-          label: 'Response',
-          value: '{invalid-json',
+          key: 'interests',
+          label: 'Interests',
+          type: 'checkbox',
+          options: [{ id: 'a', title: 'Advice' }],
         },
-      ]);
+        {
+          key: 'channel',
+          label: 'Contact via',
+          type: 'radio',
+          options: [{ id: 'wa', title: 'WhatsApp' }],
+        },
+      ],
+    };
+    expect(
+      buildFlowResponseEntries(
+        { interests: ['a', 'other'], channel: 'wa' },
+        metadata
+      )
+    ).toEqual([
+      {
+        key: 'interests',
+        label: 'Interests',
+        value: 'Advice, other',
+        chips: ['Advice', 'other'],
+      },
+      { key: 'channel', label: 'Contact via', value: 'WhatsApp' },
+    ]);
+  });
+
+  it('hides sensitive keys at every depth, including objects within arrays', () => {
+    const entries = buildFlowResponseEntries({
+      flow_token: 'hidden',
+      flowToken: 'hidden',
+      otp_code: 'hidden',
+      password: 'hidden',
+      appointment: { day: 'Monday', secret: 'hidden' },
+      list: [{ value: 'ok', passcode: 'hidden' }],
     });
+    expect(entries.map(entry => entry.key)).toEqual([
+      'appointment_day',
+      'list',
+    ]);
+    expect(flowResponseToText(entries)).not.toContain('hidden');
+  });
+
+  it('replaces photos and documents with localized plain rows', () => {
+    const fields = ['photo', 'document'].map(type => ({
+      key: type,
+      label: type,
+      type,
+    }));
+    const entries = buildFlowResponseEntries(
+      { photo: [{ media_id: 'hidden' }], document: { url: 'hidden' } },
+      { fields },
+      'File received'
+    );
+    expect(entries.map(entry => entry.value)).toEqual([
+      'File received',
+      'File received',
+    ]);
+    expect(flowResponseToText(entries, 'Sales')).toBe(
+      'Sales\nphoto: File received\ndocument: File received'
+    );
+  });
+
+  it('copies without a name when metadata is absent', () => {
+    expect(
+      flowResponseToText(
+        buildFlowResponseEntries({ home_city: 'Quito', consent: false })
+      )
+    ).toBe('Home City: Quito\nConsent: false');
+  });
+
+  it('has no structured entries for old messages', () => {
+    expect(buildFlowResponseEntries(undefined)).toEqual([]);
   });
 });
