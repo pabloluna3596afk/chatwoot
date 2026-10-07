@@ -60,6 +60,8 @@ const handleKey = async event => {
     return;
   }
   if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+  if (event.target.tagName === 'INPUT' && ['Home', 'End'].includes(event.key))
+    return;
   event.preventDefault();
   if (!isOpen.value) {
     isOpen.value = true;
@@ -119,6 +121,7 @@ const handleFocusOut = event => {
       <template #label="{ item }">
         <span
           class="min-w-0 truncate text-sm font-420"
+          :aria-current="item.isSelected ? 'true' : undefined"
           :class="{ 'text-n-slate-11': item.count === 0 }"
           >{{ item.label }}</span
         >

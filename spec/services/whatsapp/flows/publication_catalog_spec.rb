@@ -123,4 +123,28 @@ RSpec.describe Whatsapp::Flows::PublicationCatalog do
     result = catalog.facets(search: 'missing')
     expect(result.values.flat_map(&:values)).to all(eq(0))
   end
+
+  it 'counts all four summary states without loading the catalog rows' do
+    flow
+    published = create(:whatsapp_flow, account: account)
+    partial = create(:whatsapp_flow, account: account)
+    failed = create(:whatsapp_flow, account: account)
+    %w[111 222].each do |waba|
+      published.whatsapp_flow_publications.create!(account: account, waba_id: waba, status: 'published')
+    end
+    partial.whatsapp_flow_publications.create!(account: account, waba_id: '111', status: 'published')
+    failed.whatsapp_flow_publications.create!(account: account, waba_id: '111', status: 'blocked')
+    catalog
+    queries = []
+    result = nil
+    subscriber = lambda do |_name, _start, _finish, _id, payload|
+      queries << payload[:sql] if payload[:sql].start_with?('SELECT')
+    end
+    ActiveSupport::Notifications.subscribed(subscriber, 'sql.active_record') do
+      result = catalog.facets(state: 'published')
+    end
+    expect(queries.length).to eq(3)
+    expect(result[:state]).to eq('all' => 4, 'published' => 1, 'partial' => 1, 'error' => 1, 'none' => 1)
+    expect(result[:category]).to include('all' => 1, 'LEAD_GENERATION' => 1)
+  end
 end

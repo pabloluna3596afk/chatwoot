@@ -50,6 +50,8 @@ describe('FilterDropdown', () => {
       'Error0',
     ]);
     expect(rows[0].find('.i-lucide-check').exists()).toBe(true);
+    expect(rows[0].find('[aria-current="true"]').exists()).toBe(true);
+    expect(rows[2].find('[aria-current]').exists()).toBe(false);
     expect(rows[2].attributes('disabled')).toBeUndefined();
     expect(rows[2].find('.text-n-slate-11').exists()).toBe(true);
     await rows[2].trigger('click');

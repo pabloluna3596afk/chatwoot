@@ -7,6 +7,7 @@ import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import API from 'dashboard/api/whatsappFlows';
 import en from 'dashboard/i18n/locale/en/whatsappTemplates.json';
 import es from 'dashboard/i18n/locale/es/whatsappTemplates.json';
+import esFlows from 'dashboard/i18n/locale/es/whatsappFlows.json';
 
 vi.mock('dashboard/api/whatsappFlows', () => ({
   default: { conversationFlows: vi.fn(), sendToConversation: vi.fn() },
@@ -58,7 +59,11 @@ describe('unified send center', () => {
   beforeEach(() => {
     globalOptions = {
       plugins: [
-        createI18n({ legacy: false, locale: 'es', messages: { es } }),
+        createI18n({
+          legacy: false,
+          locale: 'es',
+          messages: { es: { ...es, ...esFlows } },
+        }),
         createStore({
           getters: {
             'attributes/getAttributes': () => [1],
@@ -274,8 +279,15 @@ describe('unified send center', () => {
       global: globalOptions,
     });
     await flushPromises();
+    const filters = wrapper.findAllComponents(FilterDropdown);
+    expect(filters.map(filter => filter.props('options')[0].count)).toEqual([
+      5, 5,
+    ]);
     wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 2 });
     await flushPromises();
+    expect(filters.map(filter => filter.props('options')[0].count)).toEqual([
+      2, 2,
+    ]);
     expect(wrapper.get('[data-testid="center-list"]').text()).toContain(
       'Contact'
     );
@@ -290,6 +302,9 @@ describe('unified send center', () => {
     expect(wrapper.get('[data-testid="center-list"]').text()).not.toContain(
       'Contact'
     );
+    expect(filters.map(filter => filter.props('options')[0].count)).toEqual([
+      3, 3,
+    ]);
     expect(wrapper.findAllComponents(DialogStub)).toHaveLength(1);
   });
 
@@ -309,7 +324,11 @@ describe('unified send center', () => {
       },
       global: {
         plugins: [
-          createI18n({ legacy: false, locale: 'es', messages: { es } }),
+          createI18n({
+            legacy: false,
+            locale: 'es',
+            messages: { es: { ...es, ...esFlows } },
+          }),
           createStore({
             getters: {
               'attributes/getAttributes': () => [1],
@@ -358,7 +377,11 @@ describe('unified send center', () => {
       },
       global: {
         plugins: [
-          createI18n({ legacy: false, locale: 'es', messages: { es } }),
+          createI18n({
+            legacy: false,
+            locale: 'es',
+            messages: { es: { ...es, ...esFlows } },
+          }),
           createStore({
             getters: {
               'attributes/getAttributes': () => [1],
@@ -457,7 +480,11 @@ describe('unified send center', () => {
       },
       global: {
         plugins: [
-          createI18n({ legacy: false, locale: 'es', messages: { es } }),
+          createI18n({
+            legacy: false,
+            locale: 'es',
+            messages: { es: { ...es, ...esFlows } },
+          }),
           createStore({
             getters: {
               'attributes/getAttributes': () => [1],
@@ -499,7 +526,11 @@ describe('unified send center', () => {
       },
       global: {
         plugins: [
-          createI18n({ legacy: false, locale: 'es', messages: { es } }),
+          createI18n({
+            legacy: false,
+            locale: 'es',
+            messages: { es: { ...es, ...esFlows } },
+          }),
           createStore({
             getters: {
               'attributes/getAttributes': () => [1],
