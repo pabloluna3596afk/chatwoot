@@ -131,9 +131,11 @@ describe('FlowPhoneSimulator', () => {
     );
     await wrapper.get('input[type="checkbox"]').setValue(true);
     await wrapper.get('form').trigger('submit');
-    expect(
-      wrapper.find('[data-bubble-name="whatsapp-flow-sent"]').exists()
-    ).toBe(true);
+    const sentBubble = wrapper.find('[data-bubble-name="whatsapp-flow-sent"]');
+    expect(sentBubble.exists()).toBe(true);
+    expect(sentBubble.find('.font-semibold').exists()).toBe(false);
+    expect(sentBubble.find('.font-medium').text()).toContain('Contacto');
+    expect(sentBubble.find('.prose-bubble').text()).toBe('Contacto');
     expect(
       wrapper.find('[data-bubble-name="whatsapp-flow-response"]').exists()
     ).toBe(true);

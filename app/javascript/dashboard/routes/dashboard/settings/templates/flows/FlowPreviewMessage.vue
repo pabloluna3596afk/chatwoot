@@ -42,7 +42,7 @@ provideMessageContext({
   additionalAttributes: computed(() => ({
     whatsappFlow: {
       name: props.flowName,
-      header: props.flowName,
+      header: undefined,
       body: props.flowName,
       cta: t('WHATSAPP_FLOWS.SIMULATOR.OPEN_FLOW'),
     },
