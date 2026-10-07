@@ -1,6 +1,12 @@
 import { mount } from '@vue/test-utils';
 import FlowDetail from '../FlowDetail.vue';
 
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    t: key => (key.endsWith('OPEN_FLOW') ? 'Open Flow' : key),
+  }),
+}));
+
 describe('Flow message customization', () => {
   it('starts collapsed, updates its live preview and resets when choosing another Flow', async () => {
     const wrapper = mount(FlowDetail, {
