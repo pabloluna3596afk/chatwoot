@@ -206,10 +206,14 @@ RSpec.describe 'Conversation Messages API', type: :request do
         create(:inbox_member, inbox: channel.inbox, user: agent)
         message = create(:message, account: account, inbox: channel.inbox, conversation: whatsapp_conversation, message_type: :outgoing,
                                    additional_attributes: {
-                                     'whatsapp_flow' => { 'name' => 'Booking', 'header' => 'Appointment', 'body' => 'Choose a time',
-                                                          'cta' => 'Open', 'flow_token' => 'private-test-value', 'fields' => [] },
+                                     'whatsapp_flow' => {
+                                       'name' => 'Booking', 'header' => 'Appointment', 'body' => 'Choose a time',
+                                       'cta' => 'Open', 'flow_token' => 'private-test-value', 'fields' => []
+                                     },
                                      'template_params' => { 'name' => 'old_template', 'category' => 'UTILITY', 'language' => 'en',
-                                                            'processed_params' => { 'buttons' => [{ 'type' => 'flow', 'flow_token' => 'private-test-value' }] } }
+                                                            'processed_params' => {
+                                                              'buttons' => [{ 'type' => 'flow', 'flow_token' => 'private-test-value' }]
+                                                            } }
                                    })
         get "/api/v1/accounts/#{account.id}/conversations/#{whatsapp_conversation.display_id}/messages",
             headers: agent.create_new_auth_token, as: :json
