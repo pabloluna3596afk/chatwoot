@@ -166,7 +166,19 @@
       "FLOW_ERRORS": "En el flow",
       "CATEGORY": "Categoría",
       "CATEGORY_REQUIRED": "Elige una categoría.",
-      "START_REQUIRED": "Elige un punto de partida."
+      "START_REQUIRED": "Elige un punto de partida.",
+      "SAVE_TO": "Guardar respuesta en",
+      "NO_SAVE": "No guardar en el contacto",
+      "CONTACT": "Contacto",
+      "CUSTOM_ATTRIBUTES": "Atributos personalizados",
+      "TARGETS": {
+        "nombre": "Nombre",
+        "correo": "Correo",
+        "telefono": "Teléfono",
+        "empresa": "Empresa",
+        "ciudad": "Ciudad",
+        "documento": "Número de documento"
+      }
     },
     "ERRORS": {
       "screens_required": "Añade al menos una pantalla.",
@@ -202,7 +214,10 @@
       "condition_unknown_field": "La condición mira una pregunta que ya no existe.",
       "condition_not_earlier": "La condición solo puede mirar una pregunta que va antes.",
       "condition_field_unsupported": "La condición no puede mirar este tipo de pregunta.",
-      "condition_value_invalid": "El valor de la condición no es válido."
+      "condition_value_invalid": "El valor de la condición no es válido.",
+      "save_to_duplicate": "Otro campo ya guarda su respuesta en este dato.",
+      "save_to_incompatible": "Este tipo de respuesta no es compatible con el dato seleccionado.",
+      "save_to_invalid": "El dato seleccionado para guardar la respuesta no es válido."
     },
     "META": {
       "STATE": {
@@ -225,7 +240,7 @@
       "PUBLISH_BODY": "El flow queda disponible y se envía a Meta.",
       "PUBLISH_POINT_INBOXES": "Estará disponible en todas las bandejas de ChatHub.",
       "PUBLISH_POINT_META": "Se envía a Meta en cada cuenta de WhatsApp Cloud de esta cuenta. Los demás canales lo mantienen interno.",
-      "PUBLISH_POINT_VERSION": "Un flow ya publicado en Meta no se edita: un cambio crea una versión nueva y retira la anterior. Aún no hay plantillas vinculadas a flows, así que ninguna se ve afectada.",
+      "PUBLISH_POINT_VERSION": "Meta no permite editar el contenido de un formulario publicado. Al publicar los cambios, ChatHub crea una versión nueva y solicita retirar la anterior.",
       "PUBLISH_CONFIRM": "Publicar",
       "PUBLISH_WORKING": "Enviando a Meta…",
       "PUBLISH_FAILED": "Meta no aceptó el flow en algunas cuentas. Corrige lo que indica y reintenta.",
@@ -243,7 +258,22 @@
       "TEST_WINDOW": "El número debe haber escrito a tu negocio en las últimas 24 h; si no, WhatsApp no lo entregará.",
       "TEST_SEND": "Enviar prueba",
       "TEST_SENT": "Flow enviado a {number}.",
-      "TEST_FAILED": "No se pudo enviar."
+      "TEST_FAILED": "No se pudo enviar.",
+      "UNPUBLISHED_CHANGES": "Cambios sin publicar"
+    },
+    "SEND": {
+      "TITLE": "Enviar formulario",
+      "DESCRIPTION": "Envía un formulario publicado en esta conversación de WhatsApp.",
+      "FLOW": "Formulario",
+      "EMPTY": "No hay formularios publicados vigentes para esta bandeja.",
+      "HEADER": "Encabezado (opcional)",
+      "BODY": "Texto de la burbuja",
+      "CTA": "Texto del botón de la burbuja",
+      "OPEN": "Abrir",
+      "OUTSIDE_WINDOW": "Solo puedes enviar formularios dentro de las 24 h desde el último mensaje del cliente.",
+      "CUSTOMIZE": "Personalizar el mensaje",
+      "PREVIEW": "Vista previa de la burbuja en WhatsApp",
+      "REPUBLISH_HINT": "Si editaste un formulario, vuelve a publicarlo para poder enviarlo."
     }
   }
 }
