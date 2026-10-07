@@ -113,6 +113,30 @@ const canvasBlocks = wrapper =>
   wrapper.findAll('[data-testid="flow-canvas-block"]');
 
 describe('FlowBuilderPage', () => {
+  it('shows Saved only for a saved snapshot and Unsaved changes until a successful save', async () => {
+    const { wrapper, api } = await mountPage();
+    const subtitle = () =>
+      wrapper.get('[data-testid="flow-save-state"]').text();
+    expect(subtitle()).toBe('WHATSAPP_FLOWS.EDITOR.SAVE_STATE');
+    await wrapper
+      .get('[data-testid="flow-editor-name"] input')
+      .setValue('New name');
+    expect(subtitle()).toBe('WHATSAPP_FLOWS.EDITOR.UNSAVED');
+    expect(wrapper.get('[data-testid="flow-editor-save"]').exists()).toBe(true);
+    api.update.mockRejectedValueOnce(new Error('Failed'));
+    await wrapper.get('[data-testid="flow-editor-save"]').trigger('click');
+    await flushPromises();
+    expect(subtitle()).toBe('WHATSAPP_FLOWS.EDITOR.UNSAVED');
+    await wrapper.get('[data-testid="flow-editor-save"]').trigger('click');
+    await flushPromises();
+    expect(subtitle()).toBe('WHATSAPP_FLOWS.EDITOR.SAVE_STATE');
+    wrapper.unmount();
+    const fresh = await mountPage(sampleFlow({ id: null }));
+    expect(fresh.wrapper.get('[data-testid="flow-save-state"]').text()).toBe(
+      'WHATSAPP_FLOWS.EDITOR.UNSAVED'
+    );
+  });
+
   it('shows saved unpublished changes immediately after saving an edit', async () => {
     const api = makeApi();
     api.publicationStatus = vi.fn().mockResolvedValue({
@@ -128,6 +152,7 @@ describe('FlowBuilderPage', () => {
     api.publicationStatus.mockReturnValue(new Promise(() => {}));
     await wrapper.get('[data-testid="flow-editor-save"]').trigger('click');
     await flushPromises();
+    await wrapper.get('[data-testid="flow-editor-status"]').trigger('click');
     expect(
       wrapper.find('[data-testid="flow-unpublished-banner"]').exists()
     ).toBe(true);
@@ -146,6 +171,7 @@ describe('FlowBuilderPage', () => {
       sampleFlow({ unpublished_changes: true }),
       api
     );
+    await wrapper.get('[data-testid="flow-editor-status"]').trigger('click');
     expect(
       wrapper.get('[data-testid="flow-unpublished-banner"]').text()
     ).toContain('UNPUBLISHED_CHANGES_BANNER');
@@ -181,9 +207,11 @@ describe('FlowBuilderPage', () => {
       expect(tabs(wrapper)[0].text()).toContain('Tus datos');
       expect(tabs(wrapper)[0].text()).toContain('"n":1');
       const row = wrapper.get('[data-testid="flow-screen-tabs"]');
-      expect(row.element.lastElementChild.getAttribute('data-testid')).toBe(
-        'flow-screen-add'
-      );
+      expect(
+        row
+          .get('[data-testid="flow-screen-add"]')
+          .element.previousElementSibling.getAttribute('data-testid')
+      ).toBe('flow-screen-draggable');
     });
 
     it('shows the screen of the tab clicked in the phone', async () => {
@@ -360,11 +388,11 @@ describe('FlowBuilderPage', () => {
       ]);
     });
 
-    it('lays the block buttons out in two columns from 960px up', async () => {
+    it('uses a slim single-column palette from 960px up', async () => {
       const { wrapper } = await mountPage();
 
       const group = wrapper.get('[data-testid="flow-palette"] > div');
-      expect(group.classes()).toContain('min-[960px]:grid-cols-2');
+      expect(group.classes()).toContain('min-[960px]:grid-cols-1');
     });
 
     it('removes the selected block from the phone', async () => {
@@ -420,7 +448,7 @@ describe('FlowBuilderPage', () => {
   });
 
   describe('header', () => {
-    it('has the back arrow, the name, one category select and a status chip on the left, and "JSON de Meta" and "Guardar" on the right', async () => {
+    it('keeps Save visible, groups secondary actions and uses a compact category multiselect', async () => {
       const { wrapper } = await mountPage();
 
       expect(
@@ -429,6 +457,7 @@ describe('FlowBuilderPage', () => {
       expect(wrapper.find('[data-testid="flow-editor-status"]').exists()).toBe(
         true
       );
+      await wrapper.get('[data-testid="flow-actions"]').trigger('click');
       expect(wrapper.get('[data-testid="flow-json-toggle"]').text()).toBe(
         'WHATSAPP_FLOWS.EDITOR.SHOW_JSON'
       );
@@ -437,25 +466,27 @@ describe('FlowBuilderPage', () => {
         true
       );
       expect(wrapper.find('input[type="checkbox"]').exists()).toBe(false);
-      expect(wrapper.findAll('select')).toHaveLength(1);
+      expect(wrapper.findAll('select')).toHaveLength(0);
       expect(
-        wrapper.get('[data-testid="flow-editor-category"] select').element.value
-      ).toBe('LEAD_GENERATION');
+        wrapper
+          .findComponent('[data-testid="flow-category-select"]')
+          .props('modelValue')
+      ).toEqual(['LEAD_GENERATION']);
       expect(wrapper.find('[data-testid="flow-details-open"]').exists()).toBe(
         false
       );
     });
 
-    it('orders the header: back, name, category, status, then the buttons on the right', async () => {
+    it('keeps the header slim and moves categories and name into the editor', async () => {
       const { wrapper } = await mountPage();
 
       const ids = [
         'flow-editor-back',
-        'flow-editor-name',
-        'flow-editor-category',
         'flow-editor-status',
-        'flow-json-toggle',
+        'flow-actions',
         'flow-editor-save',
+        'flow-editor-category',
+        'flow-editor-name',
       ];
       const html = wrapper.html();
       const positions = ids.map(id => html.indexOf(`data-testid="${id}"`));
@@ -467,6 +498,7 @@ describe('FlowBuilderPage', () => {
       const { wrapper } = await mountPage();
       expect(wrapper.find('[data-testid="flow-json"]').exists()).toBe(false);
 
+      await wrapper.get('[data-testid="flow-actions"]').trigger('click');
       await wrapper.get('[data-testid="flow-json-toggle"]').trigger('click');
 
       const modal = wrapper.get('[data-testid="flow-json-dialog"]');
@@ -483,6 +515,7 @@ describe('FlowBuilderPage', () => {
         configurable: true,
       });
       const { wrapper } = await mountPage();
+      await wrapper.get('[data-testid="flow-actions"]').trigger('click');
       await wrapper.get('[data-testid="flow-json-toggle"]').trigger('click');
       const copy = wrapper.get('[data-testid="flow-json-copy"]');
       expect(copy.text()).toBe('WHATSAPP_FLOWS.EDITOR.JSON_COPY');
@@ -500,6 +533,7 @@ describe('FlowBuilderPage', () => {
 
     it('closes the JSON modal', async () => {
       const { wrapper } = await mountPage();
+      await wrapper.get('[data-testid="flow-actions"]').trigger('click');
       await wrapper.get('[data-testid="flow-json-toggle"]').trigger('click');
 
       await wrapper.get('[data-testid="flow-json-close"]').trigger('click');
@@ -554,7 +588,7 @@ describe('FlowBuilderPage', () => {
   const nameInput = wrapper =>
     wrapper.get('[data-testid="flow-editor-name"] input');
   const categorySelect = wrapper =>
-    wrapper.get('[data-testid="flow-editor-category"] select');
+    wrapper.findComponent('[data-testid="flow-category-select"]');
   const save = async wrapper => {
     await wrapper.get('[data-testid="flow-editor-save"]').trigger('click');
     await flushPromises();
@@ -636,7 +670,8 @@ describe('FlowBuilderPage', () => {
       await save(wrapper);
 
       await nameInput(wrapper).setValue('Datos');
-      await categorySelect(wrapper).setValue('SURVEY');
+      categorySelect(wrapper).vm.$emit('update:modelValue', ['SURVEY']);
+      await wrapper.vm.$nextTick();
       await wrapper.get('[data-testid="flow-starting-blank"]').trigger('click');
 
       const text = wrapper.get('[data-testid="flow-builder"]').text();
@@ -648,7 +683,10 @@ describe('FlowBuilderPage', () => {
     it('saves a new flow with its name, [category] and definition, then updates it', async () => {
       const { wrapper, api } = await mountPage(newFlow());
       await nameInput(wrapper).setValue('Datos');
-      await categorySelect(wrapper).setValue('LEAD_GENERATION');
+      categorySelect(wrapper).vm.$emit('update:modelValue', [
+        'LEAD_GENERATION',
+      ]);
+      await wrapper.vm.$nextTick();
       await wrapper
         .get('[data-testid="flow-starting-survey"]')
         .trigger('click');
@@ -691,13 +729,21 @@ describe('FlowBuilderPage', () => {
       );
     });
 
-    it('keeps the other categories of a saved flow when the shown one is changed', async () => {
+    it('edits multiple categories and exports the chosen array unchanged', async () => {
       const { wrapper, api } = await mountPage(
         sampleFlow({ categories: ['LEAD_GENERATION', 'SURVEY', 'OTHER'] })
       );
-      expect(categorySelect(wrapper).element.value).toBe('LEAD_GENERATION');
+      expect(categorySelect(wrapper).props('modelValue')).toEqual([
+        'LEAD_GENERATION',
+        'SURVEY',
+        'OTHER',
+      ]);
 
-      await categorySelect(wrapper).setValue('SURVEY');
+      categorySelect(wrapper).vm.$emit('update:modelValue', [
+        'SURVEY',
+        'OTHER',
+      ]);
+      await wrapper.vm.$nextTick();
       await save(wrapper);
 
       expect(api.update.mock.calls[0][1].categories).toEqual([
@@ -752,8 +798,32 @@ describe('FlowBuilderPage', () => {
         metaApi([{ waba_id: '111', status: 'published', meta_flow_id: 'm1' }])
       );
 
+      await wrapper.get('[data-testid="flow-editor-status"]').trigger('click');
       const badge = wrapper.get('[data-testid="flow-meta-badge"]');
       expect(badge.attributes('data-state')).toBe('published');
+    });
+
+    it('surfaces a failed publication in the compact status chip', async () => {
+      const { wrapper } = await mountPage(
+        saved(),
+        metaApi([
+          {
+            waba_id: '111',
+            status: 'draft',
+            validation_errors: [{ message: 'Fix a field' }],
+          },
+        ])
+      );
+      expect(wrapper.get('[data-testid="flow-editor-status"]').text()).toBe(
+        'WHATSAPP_FLOWS.META.STATE.error'
+      );
+      expect(wrapper.find('[data-testid="flow-meta-errors"]').exists()).toBe(
+        false
+      );
+      await wrapper.get('[data-testid="flow-editor-status"]').trigger('click');
+      expect(wrapper.get('[data-testid="flow-meta-errors"]').text()).toContain(
+        'Fix a field'
+      );
     });
 
     it('does not offer Publicar or Probar until the flow is saved and has no mistakes', async () => {
@@ -778,6 +848,7 @@ describe('FlowBuilderPage', () => {
       expect(publish().attributes('title')).toBe(
         'WHATSAPP_FLOWS.META.SAVE_FIRST'
       );
+      await wrapper.get('[data-testid="flow-actions"]').trigger('click');
       expect(
         wrapper.get('[data-testid="flow-test-open"]').attributes('disabled')
       ).toBeDefined();
@@ -834,6 +905,7 @@ describe('FlowBuilderPage', () => {
         ])
       );
 
+      await wrapper.get('[data-testid="flow-editor-status"]').trigger('click');
       expect(wrapper.get('[data-testid="flow-meta-errors"]').text()).toContain(
         'bad value'
       );
@@ -846,6 +918,7 @@ describe('FlowBuilderPage', () => {
     it('sends a test through the chosen channel to the number', async () => {
       const { wrapper, api } = await mountPage(saved(), metaApi());
 
+      await wrapper.get('[data-testid="flow-actions"]').trigger('click');
       await wrapper.get('[data-testid="flow-test-open"]').trigger('click');
       await flushPromises();
       await wrapper

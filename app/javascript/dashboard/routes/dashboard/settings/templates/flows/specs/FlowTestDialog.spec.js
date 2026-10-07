@@ -1,6 +1,8 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import FlowTestDialog from '../FlowTestDialog.vue';
 
+vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: key => key }) }));
+
 const DialogStub = {
   name: 'Dialog',
   props: ['title'],
@@ -54,11 +56,13 @@ describe('FlowTestDialog', () => {
     const { wrapper } = mountDialog();
     await wrapper.vm.$nextTick();
 
-    const options = wrapper.findAll('[data-testid="flow-test-channel"] option');
+    const options = wrapper
+      .findComponent('[data-testid="flow-test-channel"]')
+      .props('options');
     expect(options).toHaveLength(2);
     // the inbox and its number, never the WABA id
-    expect(options[0].text()).toBe('Ventas · +593990000001');
-    expect(options[1].text()).toBe('+593990000002');
+    expect(options[0].label).toBe('Ventas · +593990000001');
+    expect(options[1].label).toBe('+593990000002');
     expect(wrapper.text()).not.toContain('WABA');
     expect(wrapper.get('[data-testid="flow-test-window"]').text()).toContain(
       'WHATSAPP_FLOWS.META.TEST_WINDOW'
@@ -82,7 +86,9 @@ describe('FlowTestDialog', () => {
     const { wrapper, send } = mountDialog();
     await wrapper.vm.$nextTick();
 
-    await wrapper.get('[data-testid="flow-test-channel"]').setValue(8);
+    wrapper
+      .findComponent('[data-testid="flow-test-channel"]')
+      .vm.$emit('update:modelValue', 8);
     await type(wrapper, ' 593991234567 ');
     await wrapper.get('[data-testid="flow-test-send"]').trigger('click');
     await flushPromises();

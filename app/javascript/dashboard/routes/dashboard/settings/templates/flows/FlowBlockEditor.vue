@@ -2,9 +2,11 @@
 // The settings of the selected block (the right column of the builder): its text or question, the options of a choice,
 // the files allowed and the condition that shows it. It never changes the block it receives: every edit goes out as a
 // new block.
-import { computed } from 'vue';
+import { computed, defineAsyncComponent, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { useMapGetter } from 'dashboard/composables/store';
+import { useStore } from 'vuex';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -40,6 +42,18 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const { t, te } = useI18n();
+const AddAttribute = defineAsyncComponent(
+  () =>
+    import('dashboard/routes/dashboard/settings/attributes/AddAttribute.vue')
+);
+const currentRole = useMapGetter('getCurrentRole');
+const isAdmin = computed(() => currentRole.value === 'administrator');
+const store = useStore();
+const showAddAttribute = ref(false);
+const closeAddAttribute = async () => {
+  showAddAttribute.value = false;
+  await store.dispatch('attributes/get');
+};
 
 const isText = computed(() => TEXT_TYPES.includes(props.modelValue.type));
 const hasOptions = computed(() => OPTION_TYPES.includes(props.modelValue.type));
@@ -54,6 +68,31 @@ const patch = changes =>
   emit('update:modelValue', { ...props.modelValue, ...changes });
 
 const targets = computed(() => saveTargets(props.modelValue, props.attributes));
+const targetOptions = computed(() => [
+  { value: '', label: t('WHATSAPP_FLOWS.EDITOR.NO_SAVE') },
+  ...targets.value.map(target => ({
+    value: target.key,
+    label:
+      target.group === 'system'
+        ? t(`WHATSAPP_FLOWS.EDITOR.TARGETS.${target.name}`)
+        : target.label,
+    group: target.group,
+  })),
+]);
+const targetGroups = computed(() => [
+  { key: 'system', label: t('WHATSAPP_FLOWS.EDITOR.CONTACT') },
+  {
+    key: 'contact',
+    label: t('WHATSAPP_FLOWS.EDITOR.CUSTOM_ATTRIBUTES'),
+    emptyState: t(
+      props.attributes.some(
+        attribute => attribute.attribute_model === 'contact_attribute'
+      )
+        ? 'WHATSAPP_FLOWS.EDITOR.NO_COMPATIBLE_ATTRIBUTES'
+        : 'WHATSAPP_FLOWS.EDITOR.NO_CUSTOM_ATTRIBUTES'
+    ),
+  },
+]);
 const setSaveTo = target => {
   const block = { ...props.modelValue };
   if (target) block.save_to = { target };
@@ -194,6 +233,37 @@ const keepValue = (apply, value) => {
         data-testid="flow-block-label"
         @update:model-value="onLabel"
       />
+      <div v-if="!isFile" class="grid gap-1.5 text-sm text-n-slate-12">
+        <span>{{ $t('WHATSAPP_FLOWS.EDITOR.SAVE_TO') }}</span>
+        <ComboBox
+          :model-value="modelValue.save_to?.target || ''"
+          :options="targetOptions"
+          :aria-label="$t('WHATSAPP_FLOWS.EDITOR.SAVE_TO')"
+          :groups="targetGroups"
+          teleport
+          show-search
+          :search-placeholder="$t('WHATSAPP_FLOWS.EDITOR.SEARCH_SAVE_TARGETS')"
+          data-testid="flow-save-to"
+          @update:model-value="setSaveTo"
+        >
+          <template v-if="isAdmin" #footer="{ close }">
+            <Button
+              type="button"
+              ghost
+              slate
+              sm
+              class="w-full justify-start"
+              icon="i-lucide-plus"
+              :label="$t('WHATSAPP_FLOWS.EDITOR.CREATE_CUSTOM_ATTRIBUTE')"
+              data-testid="flow-create-attribute"
+              @click="
+                close();
+                showAddAttribute = true;
+              "
+            />
+          </template>
+        </ComboBox>
+      </div>
       <div v-if="hasHelper" class="grid gap-1">
         <Input
           :model-value="modelValue.helper || ''"
@@ -306,35 +376,6 @@ const keepValue = (apply, value) => {
       <p class="m-0 -mt-2 text-xs text-n-slate-11" data-testid="flow-key-help">
         {{ $t('WHATSAPP_FLOWS.EDITOR.KEY_HELP') }}
       </p>
-      <label v-if="!isFile" class="grid gap-1.5 text-sm text-n-slate-12">
-        {{ $t('WHATSAPP_FLOWS.EDITOR.SAVE_TO') }}
-        <select
-          :value="modelValue.save_to?.target || ''"
-          class="h-8 px-2 text-sm border rounded-lg border-n-weak bg-n-solid-1"
-          data-testid="flow-save-to"
-          @change="setSaveTo($event.target.value)"
-        >
-          <option value="">{{ $t('WHATSAPP_FLOWS.EDITOR.NO_SAVE') }}</option>
-          <optgroup :label="$t('WHATSAPP_FLOWS.EDITOR.CONTACT')">
-            <option
-              v-for="target in targets.filter(item => item.group === 'system')"
-              :key="target.key"
-              :value="target.key"
-            >
-              {{ $t(`WHATSAPP_FLOWS.EDITOR.TARGETS.${target.name}`) }}
-            </option>
-          </optgroup>
-          <optgroup :label="$t('WHATSAPP_FLOWS.EDITOR.CUSTOM_ATTRIBUTES')">
-            <option
-              v-for="target in targets.filter(item => item.group === 'contact')"
-              :key="target.key"
-              :value="target.key"
-            >
-              {{ target.label }}
-            </option>
-          </optgroup>
-        </select>
-      </label>
     </template>
 
     <div class="grid gap-2" data-testid="flow-condition">
@@ -380,5 +421,10 @@ const keepValue = (apply, value) => {
         {{ errorText(error) }}
       </li>
     </ul>
+    <AddAttribute
+      v-if="showAddAttribute"
+      :selected-attribute-model-tab="1"
+      :on-close="closeAddAttribute"
+    />
   </div>
 </template>
