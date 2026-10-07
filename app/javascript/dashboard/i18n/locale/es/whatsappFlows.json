@@ -166,7 +166,19 @@
       "FLOW_ERRORS": "En el flow",
       "CATEGORY": "Categoría",
       "CATEGORY_REQUIRED": "Elige una categoría.",
-      "START_REQUIRED": "Elige un punto de partida."
+      "START_REQUIRED": "Elige un punto de partida.",
+      "SAVE_TO": "Guardar en",
+      "NO_SAVE": "No guardar",
+      "CONTACT": "Contacto",
+      "CUSTOM_ATTRIBUTES": "Atributos personalizados",
+      "TARGETS": {
+        "nombre": "Nombre",
+        "correo": "Correo",
+        "telefono": "Teléfono",
+        "empresa": "Empresa",
+        "ciudad": "Ciudad",
+        "documento": "Número de documento"
+      }
     },
     "ERRORS": {
       "screens_required": "Añade al menos una pantalla.",
@@ -202,7 +214,10 @@
       "condition_unknown_field": "La condición mira una pregunta que ya no existe.",
       "condition_not_earlier": "La condición solo puede mirar una pregunta que va antes.",
       "condition_field_unsupported": "La condición no puede mirar este tipo de pregunta.",
-      "condition_value_invalid": "El valor de la condición no es válido."
+      "condition_value_invalid": "El valor de la condición no es válido.",
+      "save_to_invalid": "Elige un destino válido para guardar.",
+      "save_to_incompatible": "Este campo no se puede guardar en ese destino.",
+      "save_to_duplicate": "Otro campo ya se guarda en este destino."
     },
     "META": {
       "STATE": {
@@ -244,6 +259,17 @@
       "TEST_SEND": "Enviar prueba",
       "TEST_SENT": "Flow enviado a {number}.",
       "TEST_FAILED": "No se pudo enviar."
+    },
+    "SEND": {
+      "TITLE": "Enviar formulario",
+      "DESCRIPTION": "Envía un formulario publicado en esta conversación de WhatsApp.",
+      "FLOW": "Formulario",
+      "EMPTY": "No hay formularios publicados disponibles para esta bandeja.",
+      "HEADER": "Encabezado (opcional)",
+      "BODY": "Mensaje",
+      "CTA": "Texto del botón",
+      "OPEN": "Abrir",
+      "OUTSIDE_WINDOW": "Los formularios solo se pueden enviar durante las 24 horas posteriores al último mensaje del cliente."
     }
   }
 }
