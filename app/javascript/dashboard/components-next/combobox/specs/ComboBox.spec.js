@@ -10,9 +10,56 @@ const options = [
 ];
 
 describe('ComboBox', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
 
-  it('reserves space for an empty group above the footer in teleported menus', async () => {
+  it('anchors a teleported multiselect and flips above near the viewport edge', async () => {
+    vi.stubGlobal('innerHeight', 400);
+    let triggerTop = 100;
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function bounds() {
+        const menu = this.hasAttribute('data-combobox-dropdown');
+        const top = menu ? 0 : triggerTop;
+        const height = menu ? 200 : 40;
+        return {
+          x: 80,
+          y: top,
+          left: 80,
+          right: 280,
+          top,
+          bottom: top + height,
+          width: 200,
+          height,
+        };
+      }
+    );
+    const wrapper = mount(ComboBox, {
+      props: { options, multiple: true, teleport: true },
+      global: { stubs: { Teleport: true } },
+      attachTo: document.body,
+    });
+    await wrapper.get('button').trigger('click');
+    await flushPromises();
+    expect(wrapper.get('[data-combobox-dropdown]').element.style.top).toBe(
+      '148px'
+    );
+    expect(wrapper.get('[data-combobox-dropdown]').element.style.left).toBe(
+      '80px'
+    );
+    await wrapper.get('button').trigger('click');
+    triggerTop = 330;
+    await wrapper.get('button').trigger('click');
+    await flushPromises();
+    expect(wrapper.get('[data-combobox-dropdown]').element.style.bottom).toBe(
+      '78px'
+    );
+    expect(wrapper.get('[data-combobox-dropdown]').element.style.top).toBe('');
+    wrapper.unmount();
+  });
+
+  it('keeps group empty states and the footer in a viewport-constrained teleported menu', async () => {
     vi.stubGlobal('requestAnimationFrame', callback => {
       callback();
       return 0;
@@ -30,7 +77,7 @@ describe('ComboBox', () => {
     await flushPromises();
     const menu = wrapper.get('[data-combobox-dropdown]');
     expect(menu.element.style.maxHeight).not.toBe('');
-    const before = parseFloat(menu.element.style.maxHeight);
+    expect(parseFloat(menu.element.style.maxHeight)).toBeGreaterThan(0);
     await wrapper.get('button').trigger('click');
     await wrapper.setProps({
       groups: [
@@ -40,9 +87,7 @@ describe('ComboBox', () => {
     await wrapper.get('button').trigger('click');
     await flushPromises();
     const resizedMenu = wrapper.get('[data-combobox-dropdown]');
-    expect(parseFloat(resizedMenu.element.style.maxHeight)).toBeGreaterThan(
-      before
-    );
+    expect(parseFloat(resizedMenu.element.style.maxHeight)).toBeGreaterThan(0);
     expect(resizedMenu.text()).toContain('No custom attributes');
     expect(resizedMenu.text()).toContain('Create attribute');
     wrapper.unmount();

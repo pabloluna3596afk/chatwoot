@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed, watch, nextTick, onBeforeUnmount, inject } from 'vue';
-import { onClickOutside } from '@vueuse/core';
+import { ref, computed, watch, nextTick, inject } from 'vue';
+import { onClickOutside, useElementSize } from '@vueuse/core';
+import { useDropdownPosition } from 'dashboard/composables/useDropdownPosition';
 import { useI18n } from 'vue-i18n';
 
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -34,12 +35,6 @@ const props = defineProps({
   showSearch: { type: Boolean, default: undefined },
 });
 const emit = defineEmits(['update:modelValue', 'search', 'open']);
-const slots = defineSlots();
-const SEARCH_ROW_PX = 41;
-const OPTION_ROW_PX = 36;
-const LIST_PAD_PX = 8;
-const MENU_GAP_PX = 4;
-const VIEWPORT_PAD_PX = 12;
 const SEARCH_OPTION_THRESHOLD = 6;
 
 const { t } = useI18n();
@@ -52,7 +47,20 @@ const search = ref('');
 const dropdownRef = ref(null);
 const comboboxRef = ref(null);
 const triggerRef = ref(null);
-const dropdownStyle = ref({});
+const menuElement = computed(() => dropdownRef.value?.$el);
+const { width: triggerWidth } = useElementSize(triggerRef);
+const { position, fixedPosition, updatePosition } = useDropdownPosition(
+  triggerRef,
+  menuElement,
+  open,
+  { align: 'start' }
+);
+const dropdownStyle = computed(() => ({
+  ...fixedPosition.value.style,
+  position: 'fixed',
+  width: `${triggerWidth.value}px`,
+  zIndex: 10050,
+}));
 
 const teleportTarget = computed(() => {
   if (!props.teleport) return 'body';
@@ -92,24 +100,6 @@ const selectedLabel = computed(() => {
   return selected?.label ?? (props.displayLabel || selectPlaceholder.value);
 });
 
-const estimateMenuHeight = () => {
-  const count = Math.max(filteredOptions.value.length, 1);
-  const listH = Math.min(count, 8) * OPTION_ROW_PX + LIST_PAD_PX;
-  const emptyGroups = search.value
-    ? 0
-    : props.groups.filter(
-        group =>
-          group.emptyState &&
-          !filteredOptions.value.some(option => option.group === group.key)
-      ).length;
-  return (
-    (showSearchField.value ? SEARCH_ROW_PX : 0) +
-    listH +
-    (props.groups.length + emptyGroups) * OPTION_ROW_PX +
-    (slots.footer ? OPTION_ROW_PX + LIST_PAD_PX : 0)
-  );
-};
-
 const selectOption = option => {
   if (props.multiple) {
     selectedValue.value = selectedValue.value.includes(option.value)
@@ -134,93 +124,15 @@ const selectOption = option => {
   search.value = '';
 };
 
-const getScrollParent = el => {
-  let node = el?.parentElement;
-  while (node && node !== document.body) {
-    const { overflowY } = window.getComputedStyle(node);
-    if (
-      /(auto|scroll|overlay)/.test(overflowY) &&
-      node.scrollHeight > node.clientHeight
-    ) {
-      return node;
-    }
-    node = node.parentElement;
-  }
-  return null;
-};
-
-/** Prefer opening downward: scroll the field up if the menu wouldn't fit. */
-const ensureRoomBelow = neededPx => {
-  const el = triggerRef.value;
-  if (!el) return;
-  const rect = el.getBoundingClientRect();
-  const spaceBelow = window.innerHeight - rect.bottom - VIEWPORT_PAD_PX;
-  if (spaceBelow >= neededPx) return;
-
-  const deficit = neededPx - spaceBelow;
-  const scroller = getScrollParent(el);
-  if (scroller) {
-    scroller.scrollTop += deficit;
-  } else {
-    el.scrollIntoView({ block: 'center', inline: 'nearest' });
-  }
-};
-
-const updateDropdownPosition = () => {
-  if (!props.teleport || !open.value) return;
-  const el = triggerRef.value;
-  if (!el?.getBoundingClientRect) return;
-  const rect = el.getBoundingClientRect();
-  const spaceBelow = Math.max(
-    96,
-    window.innerHeight - rect.bottom - MENU_GAP_PX - VIEWPORT_PAD_PX
-  );
-  const ideal = estimateMenuHeight();
-  const maxHeight = Math.min(ideal, spaceBelow);
-
-  // Always open downward — never flip up (avoids the clipped "corte" look).
-  dropdownStyle.value = {
-    position: 'fixed',
-    top: `${rect.bottom + MENU_GAP_PX}px`,
-    left: `${rect.left}px`,
-    width: `${rect.width}px`,
-    maxHeight: `${maxHeight}px`,
-    zIndex: 10050,
-  };
-};
-
-const stopPositionListeners = () => {
-  window.removeEventListener('scroll', updateDropdownPosition, true);
-  window.removeEventListener('resize', updateDropdownPosition);
-};
-
-const startPositionListeners = () => {
-  stopPositionListeners();
-  window.addEventListener('scroll', updateDropdownPosition, true);
-  window.addEventListener('resize', updateDropdownPosition);
-};
-
 const toggleDropdown = async () => {
   if (props.disabled) return;
   open.value = !open.value;
-  if (open.value) {
-    search.value = '';
-    emit('open');
-    if (props.teleport) {
-      ensureRoomBelow(estimateMenuHeight());
-      await nextTick();
-      await new Promise(resolve => {
-        requestAnimationFrame(() => resolve());
-      });
-      updateDropdownPosition();
-      startPositionListeners();
-    } else {
-      await nextTick();
-    }
-    dropdownRef.value?.focus();
-  } else {
-    stopPositionListeners();
-  }
+  if (!open.value) return;
+  search.value = '';
+  emit('open');
+  await nextTick();
+  updatePosition();
+  dropdownRef.value?.focus();
 };
 
 watch(
@@ -230,24 +142,13 @@ watch(
   }
 );
 
-watch(open, isOpen => {
-  if (!isOpen) stopPositionListeners();
-});
-
 onClickOutside(
   comboboxRef,
   () => {
     open.value = false;
-    stopPositionListeners();
   },
-  {
-    ignore: [dropdownRef],
-  }
+  { ignore: [dropdownRef] }
 );
-
-onBeforeUnmount(() => {
-  stopPositionListeners();
-});
 </script>
 
 <template>
@@ -295,7 +196,8 @@ onBeforeUnmount(() => {
         :selected-values="selectedValue"
         :portal="teleport"
         :show-search="showSearchField"
-        :style="teleport ? dropdownStyle : undefined"
+        :placement="position.class"
+        :style="teleport ? dropdownStyle : position.style"
         @search="emit('search', $event)"
         @select="selectOption"
         @close="

@@ -1360,6 +1360,12 @@ docker compose -f docker-compose.dokploy.yml -f docker-compose.dokploy.fork.yml 
 
 ---
 
+### B-NEW-54 — ComboBox viewport anchoring and dialog Escape
+
+`components-next/combobox/ComboBox.vue` uses the shared `useDropdownPosition` for local and teleported menus, including viewport flipping and scroll/resize tracking. `ComboBoxDropdown.vue` prevents Escape's native dialog cancellation while closing the menu. The original Flow control was placed directly above the properties panel; moving it to the header removes that overlap (the reported displacement was not reproduced).
+
+Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multiselect, footer/group empty states, numeric values, keyboard focus and viewport anchoring/flip. Open header categories and scroll/resize; Escape closes the menu and keeps the creation dialog open.
+
 ### B-NEW-53 — WhatsApp forms: stale publication and editor preview clarity
 
 - Files: `WhatsappFlowSendDialog.vue`, `WhatsappFlowSend.vue`, `WhatsappFlowsController`, `FlowsPanel.vue`,
