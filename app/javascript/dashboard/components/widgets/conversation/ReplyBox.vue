@@ -29,9 +29,8 @@ import {
   replaceVariablesInMessage,
 } from '@chatwoot/utils';
 import WhatsappTemplates from './WhatsappTemplates/Modal.vue';
-import WhatsappFlowSend from './WhatsappFlowSend.vue';
+import SendCenter from 'dashboard/components-next/whatsapp/send-center/SendCenter.vue';
 import CannedResponsesModal from './CannedResponses/CannedResponsesModal.vue';
-import ContentTemplates from './ContentTemplates/ContentTemplatesModal.vue';
 import { MESSAGE_MAX_LENGTH } from 'shared/helpers/MessageTypeHelper';
 import inboxMixin, { INBOX_FEATURES } from 'shared/mixins/inboxMixin';
 import { trimContent, debounce, getRecipients } from '@chatwoot/utils';
@@ -81,9 +80,8 @@ export default {
     ReplyEmailHead,
     ReplyToMessage,
     ReplyTopPanel,
-    ContentTemplates,
     WhatsappTemplates,
-    WhatsappFlowSend,
+    SendCenter,
     CannedResponsesModal,
     WootMessageEditor,
     QuotedEmailPreview,
@@ -226,10 +224,25 @@ export default {
       const templates = this.$store.getters['inboxes/getWhatsAppTemplates'](
         this.inboxId
       );
-      return !!(templates && templates.length) && !this.isPrivate;
+      return (
+        (this.isAWhatsAppCloudChannel || !!templates?.length) && !this.isPrivate
+      );
     },
     showContentTemplates() {
       return this.isATwilioWhatsAppChannel && !this.isPrivate;
+    },
+    showSendCenter() {
+      return (
+        (this.showWhatsAppTemplatesModal &&
+          !this.requestContactInfoTemplatesOnly) ||
+        this.showContentTemplatesModal
+      );
+    },
+    sendCenterTemplates() {
+      return this.isATwilioWhatsAppChannel
+        ? this.inbox.content_templates?.templates || []
+        : this.$store.getters['inboxes/getWhatsAppTemplates'](this.inboxId) ||
+            [];
     },
     isWithinMessagingWindow() {
       return !!(
@@ -1072,10 +1085,12 @@ export default {
           editorMessage,
           copilotAcceptedMessage,
         });
+        return true;
       } catch (error) {
         const errorMessage =
           error?.response?.data?.error || this.$t('CONVERSATION.MESSAGE_ERROR');
         useAlert(errorMessage);
+        return false;
       }
     },
     async onSendWhatsAppReply(messagePayload) {
@@ -1085,11 +1100,14 @@ export default {
       });
       this.hideWhatsappTemplatesModal();
     },
-    async onSendContentTemplateReply(messagePayload) {
-      this.sendMessage({
+    onSendCenterTemplate(messagePayload) {
+      return this.sendMessage({
         conversationId: this.currentChat.id,
         ...messagePayload,
       });
+    },
+    closeSendCenter() {
+      this.hideWhatsappTemplatesModal();
       this.hideContentTemplatesModal();
     },
     setReplyMode(mode = REPLY_EDITOR_MODES.REPLY) {
@@ -1421,12 +1439,6 @@ export default {
 <template>
   <ReplyBoxBanner :message="message" :is-on-private-note="isOnPrivateNote" />
   <div class="reply-box" :class="replyBoxClass">
-    <WhatsappFlowSend
-      v-if="isAWhatsAppCloudChannel && !isPrivate"
-      :key="conversationId"
-      :conversation-id="conversationId"
-      :can-reply="Boolean(currentChat.can_reply)"
-    />
     <ReplyTopPanel
       :mode="replyType"
       :conversation-id="conversationId"
@@ -1625,7 +1637,7 @@ export default {
 
     <WhatsappTemplates
       :inbox-id="inbox.id"
-      :show="showWhatsAppTemplatesModal"
+      :show="showWhatsAppTemplatesModal && requestContactInfoTemplatesOnly"
       :send-rendered-content="isAPIInbox"
       :request-contact-info-only="requestContactInfoTemplatesOnly"
       @close="hideWhatsappTemplatesModal"
@@ -1640,12 +1652,14 @@ export default {
       @update:show="showCannedResponsesModal = $event"
     />
 
-    <ContentTemplates
-      :inbox-id="inbox.id"
-      :show="showContentTemplatesModal"
-      @close="hideContentTemplatesModal"
-      @on-send="onSendContentTemplateReply"
-      @cancel="hideContentTemplatesModal"
+    <SendCenter
+      :inbox="inbox"
+      :show="showSendCenter"
+      :conversation-id="conversationId"
+      :can-reply="Boolean(currentChat.can_reply)"
+      :templates="sendCenterTemplates"
+      :send-template="onSendCenterTemplate"
+      @close="closeSendCenter"
     />
 
     <ConversationResolveAttributesModal

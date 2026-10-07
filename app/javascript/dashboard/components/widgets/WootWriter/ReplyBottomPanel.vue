@@ -12,6 +12,7 @@ import RequestContactInfoButton from '../RequestContactInfoButton.vue';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
 import { mapGetters } from 'vuex';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import { sendCenterIcon } from 'dashboard/components-next/whatsapp/send-center/helpers';
 
 export default {
   name: 'ReplyBottomPanel',
@@ -178,6 +179,9 @@ export default {
     };
   },
   computed: {
+    templateButtonIcon() {
+      return sendCenterIcon(this.inbox);
+    },
     ...mapGetters({
       accountId: 'getCurrentAccountId',
       isFeatureEnabledonAccount: 'accounts/isFeatureEnabledonAccount',
@@ -371,9 +375,9 @@ export default {
         @click="$emit('selectCannedResponse')"
       />
       <NextButton
-        v-if="enableWhatsAppTemplates"
-        v-tooltip.top-end="$t('CONVERSATION.FOOTER.WHATSAPP_TEMPLATES')"
-        icon="i-ph-whatsapp-logo"
+        v-if="enableWhatsAppTemplates && !enableContentTemplates"
+        v-tooltip.top-end="$t('WHATSAPP_TEMPLATES.SEND_CENTER.TITLE')"
+        :icon="templateButtonIcon"
         slate
         faded
         sm
@@ -385,8 +389,8 @@ export default {
       />
       <NextButton
         v-if="enableContentTemplates"
-        v-tooltip.top-end="'Content Templates'"
-        icon="i-ph-whatsapp-logo"
+        v-tooltip.top-end="$t('WHATSAPP_TEMPLATES.SEND_CENTER.TITLE')"
+        :icon="templateButtonIcon"
         slate
         faded
         sm
