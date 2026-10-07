@@ -41,6 +41,28 @@ RSpec.describe 'WhatsApp flows to Meta API', type: :request do
   end
 
   describe 'GET publication_status' do
+    it 'adds paginated WABA detail on demand without changing the legacy response' do
+      get "#{base_path}/publication_status", params: { page: '1', per_page: '5' }, headers: admin.create_new_auth_token
+
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body
+      expect(body['rows'].pluck('waba_id')).to eq([channel.provider_config['business_account_id']])
+      expect(body['rows'].first['numbers']).to include(a_hash_including('channel_id' => channel.id, 'phone_number' => channel.phone_number))
+      expect(body['meta']).to eq('current_page' => 1, 'per_page' => 5, 'total_count' => 1)
+      expect(body.to_json).not_to include('provider_config', 'api_key', 'test_key')
+
+      get "#{base_path}/publication_status", headers: admin.create_new_auth_token
+      expect(response.parsed_body).to include('wabas', 'publications')
+      expect(response.parsed_body).not_to have_key('rows')
+    end
+
+    it 'restricts paginated WABA details to admins and validates filters' do
+      get "#{base_path}/publication_status", params: { page: '1' }, headers: agent.create_new_auth_token
+      expect(response).to have_http_status(:unauthorized)
+      get "#{base_path}/publication_status", params: { page: '1', state: 'partial' }, headers: admin.create_new_auth_token
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
     it 'lists what Meta said for each WABA, with the errors' do
       WhatsappFlowPublication.create!(whatsapp_flow_id: flow.id, account_id: account.id, waba_id: '123456789', status: 'draft',
                                       meta_flow_id: 'meta_1', validation_errors: [{ 'error' => 'X', 'message' => 'bad' }])

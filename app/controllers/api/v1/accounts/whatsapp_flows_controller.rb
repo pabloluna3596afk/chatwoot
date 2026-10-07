@@ -3,10 +3,22 @@
 class Api::V1::Accounts::WhatsappFlowsController < Api::V1::Accounts::BaseController
   before_action :check_admin_authorization?, except: [:index, :show]
   before_action :fetch_flow, only: [:show, :update, :destroy, :publish, :publication_status, :test, :retry_publish]
+  before_action :validate_catalog_filters, only: [:index, :publication_status]
+
+  LIST_STATES = %w[published partial error none].freeze
+  DETAIL_STATES = %w[published error none draft deprecated blocked throttled].freeze
+  DEFAULT_PER_PAGE = 20
+  MAX_PER_PAGE = 100
 
   def index
-    flows = Current.account.whatsapp_flows.includes(:whatsapp_flow_publications).order(updated_at: :desc)
-    render json: { payload: flows.map { |flow| summary(flow) } }
+    catalog = Whatsapp::Flows::PublicationCatalog.new(Current.account)
+    flows = catalog.filter_flows(search: params[:search], category: params[:category], state: params[:state])
+    total = flows.count(:all)
+    page = catalog_page
+    per_page = catalog_per_page
+    rows = flows.order(updated_at: :desc, id: :desc).offset((page - 1) * per_page).limit(per_page)
+    payload = rows.map { |flow| summary(flow, unpublished: flow.catalog_unpublished).merge(publication_summary: catalog.summary(flow)) }
+    render json: { payload: payload, meta: { current_page: page, per_page: per_page, total_count: total } }
   end
 
   def show
@@ -49,7 +61,12 @@ class Api::V1::Accounts::WhatsappFlowsController < Api::V1::Accounts::BaseContro
   end
 
   def publication_status
-    render json: publication_payload
+    if params.key?(:page)
+      catalog = Whatsapp::Flows::PublicationCatalog.new(Current.account)
+      render json: catalog.detail(@flow, page: catalog_page, per_page: catalog_per_page, search: params[:search], state: params[:state])
+    else
+      render json: publication_payload
+    end
   end
 
   # "Probar": sends the flow to a phone number through one Cloud channel without publishing it.
@@ -68,6 +85,34 @@ class Api::V1::Accounts::WhatsappFlowsController < Api::V1::Accounts::BaseContro
   end
 
   private
+
+  def validate_catalog_filters
+    invalid = params.slice(:page, :per_page, :search, :state, :category).any? { |key, value| !valid_catalog_filter?(key, value) }
+    render json: { error: 'invalid', message: 'Invalid catalog filters' }, status: :unprocessable_entity if invalid
+  end
+
+  def valid_catalog_filter?(key, value)
+    return false unless value.is_a?(String)
+
+    case key
+    when 'page', 'per_page' then valid_catalog_page?(key, value)
+    when 'search' then value.length <= 200
+    when 'state' then (action_name == 'index' ? LIST_STATES : DETAIL_STATES).include?(value)
+    when 'category' then Whatsapp::Flows::Spec::CATEGORIES.include?(value)
+    end
+  end
+
+  def valid_catalog_page?(key, value)
+    value.match?(/\A[1-9]\d*\z/) && (key == 'page' || value.to_i <= MAX_PER_PAGE)
+  end
+
+  def catalog_page
+    params.fetch(:page, '1').to_i
+  end
+
+  def catalog_per_page
+    params.fetch(:per_page, DEFAULT_PER_PAGE.to_s).to_i
+  end
 
   def cloud_channels
     @cloud_channels ||= Whatsapp::Flows::CloudChannels.for(Current.account)
@@ -99,10 +144,10 @@ class Api::V1::Accounts::WhatsappFlowsController < Api::V1::Accounts::BaseContro
     Whatsapp::Flows::Exporter.new(definition).call
   end
 
-  def summary(flow)
+  def summary(flow, unpublished: unpublished_changes?(flow))
     { id: flow.id, name: flow.name, categories: flow.categories, screens: flow.definition['screens'].to_a.size,
       updated_at: flow.updated_at.to_i, created_at: flow.created_at.to_i,
-      unpublished_changes: unpublished_changes?(flow) }
+      unpublished_changes: unpublished }
   end
 
   def unpublished_changes?(flow)
