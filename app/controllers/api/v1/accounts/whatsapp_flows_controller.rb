@@ -5,7 +5,8 @@ class Api::V1::Accounts::WhatsappFlowsController < Api::V1::Accounts::BaseContro
   before_action :fetch_flow, only: [:show, :update, :destroy, :publish, :publication_status, :test, :retry_publish]
 
   def index
-    render json: { payload: Current.account.whatsapp_flows.order(updated_at: :desc).map { |flow| summary(flow) } }
+    flows = Current.account.whatsapp_flows.includes(:whatsapp_flow_publications).order(updated_at: :desc)
+    render json: { payload: flows.map { |flow| summary(flow) } }
   end
 
   def show
@@ -80,7 +81,7 @@ class Api::V1::Accounts::WhatsappFlowsController < Api::V1::Accounts::BaseContro
       { waba_id: channel.provider_config['business_account_id'], channel_id: channel.id, phone_number: channel.phone_number,
         inbox_name: channel.inbox&.name }
     end
-    { flow_id: @flow.id, wabas: wabas, publications: publications }
+    { flow_id: @flow.id, wabas: wabas, publications: publications, unpublished_changes: unpublished_changes?(@flow) }
   end
 
   def fetch_flow
@@ -100,7 +101,14 @@ class Api::V1::Accounts::WhatsappFlowsController < Api::V1::Accounts::BaseContro
 
   def summary(flow)
     { id: flow.id, name: flow.name, categories: flow.categories, screens: flow.definition['screens'].to_a.size,
-      updated_at: flow.updated_at.to_i, created_at: flow.created_at.to_i }
+      updated_at: flow.updated_at.to_i, created_at: flow.created_at.to_i,
+      unpublished_changes: unpublished_changes?(flow) }
+  end
+
+  def unpublished_changes?(flow)
+    flow.whatsapp_flow_publications.any? do |publication|
+      publication.published_at.present? && publication.published_at < flow.updated_at
+    end
   end
 
   def detail(flow)

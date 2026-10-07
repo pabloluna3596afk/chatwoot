@@ -113,6 +113,66 @@ const canvasBlocks = wrapper =>
   wrapper.findAll('[data-testid="flow-canvas-block"]');
 
 describe('FlowBuilderPage', () => {
+  it('shows saved unpublished changes immediately after saving an edit', async () => {
+    const api = makeApi();
+    api.publicationStatus = vi.fn().mockResolvedValue({
+      data: { unpublished_changes: false, wabas: [], publications: [] },
+    });
+    api.update.mockResolvedValue({
+      data: { id: 7, unpublished_changes: true },
+    });
+    const { wrapper } = await mountPage(sampleFlow(), api);
+    await wrapper
+      .get('[data-testid="flow-editor-name"] input')
+      .setValue('Updated form');
+    api.publicationStatus.mockReturnValue(new Promise(() => {}));
+    await wrapper.get('[data-testid="flow-editor-save"]').trigger('click');
+    await flushPromises();
+    expect(
+      wrapper.find('[data-testid="flow-unpublished-banner"]').exists()
+    ).toBe(true);
+  });
+
+  it('explains unpublished changes without duplicating the publish action', async () => {
+    const api = makeApi();
+    api.publicationStatus = vi.fn().mockResolvedValue({
+      data: {
+        unpublished_changes: true,
+        wabas: [{ waba_id: '111', channel_id: 7, phone_number: '+593990001' }],
+        publications: [],
+      },
+    });
+    const { wrapper } = await mountPage(
+      sampleFlow({ unpublished_changes: true }),
+      api
+    );
+    expect(
+      wrapper.get('[data-testid="flow-unpublished-banner"]').text()
+    ).toContain('UNPUBLISHED_CHANGES_BANNER');
+    expect(
+      wrapper.find('[data-testid="flow-unpublished-publish"]').exists()
+    ).toBe(false);
+    expect(wrapper.findAll('[data-testid="flow-publish-open"]')).toHaveLength(
+      1
+    );
+  });
+
+  it('keeps starting models outside the phone and preserves customer screens', async () => {
+    const { wrapper } = await mountPage(sampleFlow({ id: null }));
+    expect(wrapper.find('[data-testid="flow-starting"]').exists()).toBe(true);
+    expect(
+      wrapper
+        .get('[data-testid="flow-canvas"]')
+        .find('[data-testid="flow-starting"]')
+        .exists()
+    ).toBe(false);
+    await wrapper.get('[data-testid="flow-starting-support"]').trigger('click');
+    expect(wrapper.get('[data-testid="flow-canvas"]').text()).toContain(
+      'Tu nombre'
+    );
+    expect(wrapper.find('[data-testid="flow-starting"]').exists()).toBe(false);
+  });
+
   describe('screens as tabs above the phone', () => {
     it('has a tab per screen and the "+ Pantalla" tab at the end of the row', async () => {
       const { wrapper } = await mountPage();

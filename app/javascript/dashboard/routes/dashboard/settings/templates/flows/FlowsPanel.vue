@@ -156,6 +156,13 @@ const dateOf = seconds => new Date(seconds * 1000).toLocaleDateString();
               </span>
               <span>{{ dateOf(flow.updated_at) }}</span>
             </span>
+            <span
+              v-if="flow.unpublished_changes"
+              class="self-start px-2.5 py-0.5 text-xs font-semibold rounded-full bg-n-amber-3 text-n-amber-11"
+              data-testid="flow-unpublished-badge"
+            >
+              {{ $t('WHATSAPP_FLOWS.META.UNPUBLISHED_CHANGES_BADGE') }}
+            </span>
             <FlowPublicationBadges
               v-if="metaRows[flow.id]?.length"
               class="mt-1"
