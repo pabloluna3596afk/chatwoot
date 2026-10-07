@@ -7,7 +7,7 @@ import {
   ref,
   watch,
 } from 'vue';
-import { watchDebounced } from '@vueuse/core';
+import { useDebounceFn } from '@vueuse/core';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
@@ -101,7 +101,7 @@ watch(
   },
   { flush: 'sync' }
 );
-watchDebounced([page, search, state, category], load, { debounce: 200 });
+watch([page, search, state, category], useDebounceFn(load, 200));
 onMounted(load);
 let firstActivation = true;
 onActivated(() => {

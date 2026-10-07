@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { watchDebounced } from '@vueuse/core';
+import { useDebounceFn } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
@@ -82,7 +82,7 @@ watch(
   },
   { flush: 'sync' }
 );
-watchDebounced([flow, page, search, state, refresh], load, { debounce: 200 });
+watch([flow, page, search, state, refresh], useDebounceFn(load, 200));
 const open = selected => {
   rows.value = [];
   total.value = 0;
