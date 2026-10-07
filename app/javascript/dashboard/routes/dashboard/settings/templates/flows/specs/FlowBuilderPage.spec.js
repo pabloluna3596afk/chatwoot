@@ -114,6 +114,35 @@ const canvasBlocks = wrapper =>
   wrapper.findAll('[data-testid="flow-canvas-block"]');
 
 describe('FlowBuilderPage', () => {
+  it('dims the existing panels in Try, resets on mode exit and never sends simulator answers to the API', async () => {
+    const { wrapper, api } = await mountPage();
+    const original = JSON.stringify(
+      wrapper.findComponent(FlowPhoneCanvas).props('definition')
+    );
+    const calls = api.validate.mock.calls.length;
+    await wrapper.get('[data-testid="flow-preview-try"]').trigger('click');
+    expect(
+      wrapper.get('[data-testid="flow-palette"]').attributes()
+    ).toHaveProperty('inert');
+    expect(
+      wrapper.get('[data-testid="flow-properties"]').attributes()
+    ).toHaveProperty('inert');
+    expect(
+      wrapper.get('[data-testid="flow-editor-save"]').attributes()
+    ).toHaveProperty('disabled');
+    await wrapper.get('#flow-preview-nombre').setValue('Local only');
+    await wrapper.get('[data-testid="flow-preview-edit"]').trigger('click');
+    expect(
+      JSON.stringify(wrapper.findComponent(FlowPhoneCanvas).props('definition'))
+    ).toBe(original);
+    await wrapper.get('[data-testid="flow-preview-try"]').trigger('click');
+    expect(wrapper.get('#flow-preview-nombre').element.value).toBe('');
+    expect(api.validate).toHaveBeenCalledTimes(calls);
+    expect(api.create).not.toHaveBeenCalled();
+    expect(api.update).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
   it('shows Saved only for a saved snapshot and Unsaved changes until a successful save', async () => {
     const { wrapper, api } = await mountPage();
     const subtitle = () =>

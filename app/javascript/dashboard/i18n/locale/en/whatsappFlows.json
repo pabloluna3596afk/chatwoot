@@ -29,6 +29,31 @@
       "phone": "Phone",
       "number": "Number"
     },
+    "SIMULATOR": {
+      "MODE": "Flow preview mode",
+      "EDIT": "Edit",
+      "TRY": "Try",
+      "RESET": "Restart",
+      "BACK_TO_EDIT": "Back to editing",
+      "NOTE": "Simulation: WhatsApp may look different",
+      "RESULT": "Test result",
+      "DESTINATIONS": "Will be saved to…",
+      "DESTINATION": "{field} → {target}",
+      "LOCAL_ONLY": "Local test. Nothing was sent or saved.",
+      "OPEN_FLOW": "Open Flow",
+      "YES": "Yes",
+      "NO": "No",
+      "ACCEPT": "I agree",
+      "TEST_FILE": "Test file",
+      "ADD_TEST_FILE": "Add test file",
+      "REMOVE_FILE": "Remove test file",
+      "ERRORS": {
+        "REQUIRED": "Complete this field to continue",
+        "EMAIL": "Enter a valid email address",
+        "NUMBER": "Enter a valid number",
+        "SELECTION": "Check the number of selected options or files"
+      }
+    },
     "PREVIEW": {
       "PICK_ONE": "Choose an option ▾",
       "DONE_TITLE": "Sent",

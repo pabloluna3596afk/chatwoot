@@ -1,0 +1,5 @@
+{
+  "types": ["short_text", "dropdown", "radio", "optin"],
+  "operators": { "equals": "==", "not_equals": "!=" },
+  "boolean_type": "optin"
+}

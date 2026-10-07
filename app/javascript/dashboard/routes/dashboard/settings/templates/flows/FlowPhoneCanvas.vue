@@ -5,6 +5,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { FILE_TYPES, OPTION_TYPES, TEXT_TYPES } from './flowDefinition';
+import FlowPhoneFrame from './FlowPhoneFrame.vue';
 
 const props = defineProps({
   definition: { type: Object, required: true },
@@ -58,18 +59,12 @@ const isFile = block => FILE_TYPES.includes(block.type);
 
 <template>
   <div class="flex flex-col items-center gap-2" data-testid="flow-canvas">
-    <div
-      class="w-full max-w-[21rem] overflow-hidden border-8 border-slate-800 rounded-[2rem] bg-[#e8dfd2] dark:bg-[#1b2630]"
+    <FlowPhoneFrame
+      :title="screen?.title || ''"
+      :screen-index="screenIndex"
+      :screen-count="definition.screens.length"
     >
-      <div
-        class="flex justify-between px-4 py-2.5 text-sm font-semibold text-white bg-[#1f9d6a]"
-      >
-        <span class="truncate">{{ screen?.title }}</span>
-        <span>{{ screenIndex + 1 }} / {{ definition.screens.length }}</span>
-      </div>
-      <div
-        class="flex flex-col gap-2 p-4 mt-8 min-h-[25rem] rounded-t-[1.1rem] bg-n-solid-1 text-n-slate-12"
-      >
+      <div class="flex flex-col flex-1 gap-2 p-4">
         <h3 class="m-0 text-base font-semibold">{{ screen?.title }}</h3>
 
         <div
@@ -212,7 +207,7 @@ const isFile = block => FILE_TYPES.includes(block.type);
           }}
         </div>
       </div>
-    </div>
+    </FlowPhoneFrame>
     <p class="text-xs text-center text-n-slate-11">
       {{ $t('WHATSAPP_FLOWS.EDITOR.CANVAS_HINT') }}
     </p>

@@ -28,6 +28,7 @@ import DropdownBody from 'dashboard/components-next/dropdown-menu/base/DropdownB
 import DropdownItem from 'dashboard/components-next/dropdown-menu/base/DropdownItem.vue';
 import FlowBlockEditor from './FlowBlockEditor.vue';
 import FlowPhoneCanvas from './FlowPhoneCanvas.vue';
+import FlowPhoneSimulator from './FlowPhoneSimulator.vue';
 import FlowPublicationBadges from './FlowPublicationBadges.vue';
 import FlowPublishDialog from './FlowPublishDialog.vue';
 import FlowTestDialog from './FlowTestDialog.vue';
@@ -80,6 +81,7 @@ const jsonCopied = ref(false);
 const announcement = ref('');
 const currentScreen = ref(0);
 const selected = ref(null);
+const isTrying = ref(false);
 let timer = null;
 const { run: runValidation } = useAbortableRequest();
 const touched = ref(new Set());
@@ -428,6 +430,7 @@ defineExpose({ save });
               icon="i-lucide-chevron-down"
               :label="statusLabel"
               data-testid="flow-editor-status"
+              :disabled="isTrying"
               @click="toggle"
             />
           </template>
@@ -475,6 +478,7 @@ defineExpose({ save });
             :aria-label="$t('WHATSAPP_FLOWS.NEW.CATEGORIES')"
             :placeholder="$t('WHATSAPP_FLOWS.CATEGORIES.OTHER')"
             data-testid="flow-category-select"
+            :disabled="isTrying"
           />
         </div>
         <DropdownContainer>
@@ -488,6 +492,7 @@ defineExpose({ save });
               icon="i-lucide-chevron-down"
               :label="$t('WHATSAPP_FLOWS.EDITOR.ACTIONS')"
               data-testid="flow-actions"
+              :disabled="isTrying"
               @click="toggle"
             />
           </template>
@@ -516,7 +521,7 @@ defineExpose({ save });
           sm
           :label="$t('WHATSAPP_FLOWS.EDITOR.SAVE')"
           :is-loading="isSaving"
-          :disabled="isSaving"
+          :disabled="isSaving || isTrying"
           data-testid="flow-editor-save"
           @click="save"
         />
@@ -526,7 +531,7 @@ defineExpose({ save });
           sm
           icon="i-lucide-send"
           :label="$t('WHATSAPP_FLOWS.META.PUBLISH')"
-          :disabled="metaBlocked || isPublishing"
+          :disabled="metaBlocked || isPublishing || isTrying"
           :title="metaHint"
           data-testid="flow-publish-open"
           @click="openPublish"
@@ -585,6 +590,8 @@ defineExpose({ save });
     <div
       class="flex flex-wrap items-center gap-2"
       data-testid="flow-screen-tabs"
+      :inert="isTrying"
+      :class="{ 'opacity-50': isTrying }"
     >
       <span id="flow-tabs-hint" class="sr-only">
         {{ $t('WHATSAPP_FLOWS.EDITOR.TAB_HINT') }}
@@ -650,6 +657,8 @@ defineExpose({ save });
       <section
         class="min-w-0 pe-3 border-e border-n-weak"
         data-testid="flow-palette"
+        :inert="isTrying"
+        :class="{ 'opacity-50': isTrying }"
       >
         <h2
           class="mb-3 text-xs font-semibold tracking-wider uppercase text-n-slate-11"
@@ -683,7 +692,41 @@ defineExpose({ save });
       </section>
 
       <div class="grid gap-4">
+        <div
+          class="flex justify-center"
+          role="group"
+          :aria-label="$t('WHATSAPP_FLOWS.SIMULATOR.MODE')"
+        >
+          <div class="flex gap-1 p-1 rounded-lg bg-n-alpha-2">
+            <Button
+              size="sm"
+              :variant="isTrying ? 'ghost' : 'solid'"
+              :color="isTrying ? 'slate' : 'blue'"
+              :label="$t('WHATSAPP_FLOWS.SIMULATOR.EDIT')"
+              :aria-pressed="!isTrying"
+              data-testid="flow-preview-edit"
+              @click="isTrying = false"
+            />
+            <Button
+              size="sm"
+              :variant="isTrying ? 'solid' : 'ghost'"
+              :color="isTrying ? 'blue' : 'slate'"
+              :label="$t('WHATSAPP_FLOWS.SIMULATOR.TRY')"
+              :aria-pressed="isTrying"
+              data-testid="flow-preview-try"
+              @click="isTrying = true"
+            />
+          </div>
+        </div>
+        <FlowPhoneSimulator
+          v-if="isTrying"
+          :definition="definition"
+          :flow-name="name"
+          :attributes="attributes"
+          @edit="isTrying = false"
+        />
         <FlowPhoneCanvas
+          v-else
           :definition="definition"
           :screen-index="currentScreen"
           :selected="selected"
@@ -696,6 +739,8 @@ defineExpose({ save });
       <aside
         class="flex flex-col min-w-0 gap-5 ps-4 border-s border-n-weak"
         data-testid="flow-properties"
+        :inert="isTrying"
+        :class="{ 'opacity-50': isTrying }"
       >
         <div
           v-if="block"

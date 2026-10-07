@@ -29,6 +29,31 @@
       "phone": "Teléfono",
       "number": "Número"
     },
+    "SIMULATOR": {
+      "MODE": "Modo de vista del Flow",
+      "EDIT": "Editar",
+      "TRY": "Probar",
+      "RESET": "Reiniciar",
+      "BACK_TO_EDIT": "Volver a editar",
+      "NOTE": "Simulación: WhatsApp puede verse distinto",
+      "RESULT": "Resultado de la prueba",
+      "DESTINATIONS": "Se guardará en…",
+      "DESTINATION": "{field} → {target}",
+      "LOCAL_ONLY": "Prueba local. No se envió ni guardó nada.",
+      "OPEN_FLOW": "Abrir Flow",
+      "YES": "Sí",
+      "NO": "No",
+      "ACCEPT": "Acepto",
+      "TEST_FILE": "Archivo de prueba",
+      "ADD_TEST_FILE": "Añadir archivo de prueba",
+      "REMOVE_FILE": "Quitar archivo de prueba",
+      "ERRORS": {
+        "REQUIRED": "Completa este campo para continuar",
+        "EMAIL": "Introduce un correo válido",
+        "NUMBER": "Introduce un número válido",
+        "SELECTION": "Revisa la cantidad de opciones o archivos seleccionados"
+      }
+    },
     "PREVIEW": {
       "PICK_ONE": "Elegir una opción ▾",
       "DONE_TITLE": "Enviado",

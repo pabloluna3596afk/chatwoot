@@ -2,6 +2,8 @@
 // the show/hide conditions. The shape is the one of Whatsapp::Flows::Spec (the server checks it and exports it to
 // Meta's Flow JSON); the limits are only used here to keep the inputs honest.
 
+import { CONDITION_TYPES } from 'shared/helpers/flowAnswers';
+
 export const BLOCK_TYPES = [
   { type: 'heading', group: 'text', icon: 'i-lucide-heading-1' },
   { type: 'subheading', group: 'text', icon: 'i-lucide-heading-2' },
@@ -85,7 +87,7 @@ export const INPUT_KINDS = ['text', 'email', 'phone', 'number'];
 // What the builder offers as the question of a new condition: pick-one questions.
 export const SINGLE_CHOICE_TYPES = ['dropdown', 'radio'];
 // What a condition can look at: one answer, not a list or a file.
-export const CONDITION_TYPES = ['short_text', 'dropdown', 'radio', 'optin'];
+export { CONDITION_TYPES } from 'shared/helpers/flowAnswers';
 export const CATEGORIES = [
   'LEAD_GENERATION',
   'SIGN_UP',
@@ -234,14 +236,7 @@ export const defaultCondition = source => {
 };
 
 // Whether a block shows, given the answers filled in so far (the preview and the CRM render use the same rule).
-export const isVisible = (block, answers) => {
-  const condition = block.visible_when;
-  if (!condition || !condition.key) return true;
-  const answer = answers[condition.key];
-  const text = typeof answer === 'boolean' ? String(answer) : (answer ?? '');
-  const matches = String(text) === String(condition.value);
-  return condition.op === 'not_equals' ? !matches : matches;
-};
+export { evaluateVisibility as isVisible } from 'shared/helpers/flowAnswers';
 
 // Meta's starting points of a new form, in ChatHub's words. `definition` is what the preview shows before creating.
 const optionList = titles =>
