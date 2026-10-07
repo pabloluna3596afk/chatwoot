@@ -167,8 +167,8 @@
       "CATEGORY": "Categoría",
       "CATEGORY_REQUIRED": "Elige una categoría.",
       "START_REQUIRED": "Elige un punto de partida.",
-      "SAVE_TO": "Guardar respuesta en",
-      "NO_SAVE": "No guardar en el contacto",
+      "SAVE_TO": "Guardar en",
+      "NO_SAVE": "No guardar",
       "CONTACT": "Contacto",
       "CUSTOM_ATTRIBUTES": "Atributos personalizados",
       "TARGETS": {
@@ -215,9 +215,9 @@
       "condition_not_earlier": "La condición solo puede mirar una pregunta que va antes.",
       "condition_field_unsupported": "La condición no puede mirar este tipo de pregunta.",
       "condition_value_invalid": "El valor de la condición no es válido.",
-      "save_to_duplicate": "Otro campo ya guarda su respuesta en este dato.",
-      "save_to_incompatible": "Este tipo de respuesta no es compatible con el dato seleccionado.",
-      "save_to_invalid": "El dato seleccionado para guardar la respuesta no es válido."
+      "save_to_invalid": "Elige un destino válido para guardar.",
+      "save_to_incompatible": "Este campo no se puede guardar en ese destino.",
+      "save_to_duplicate": "Otro campo ya se guarda en este destino."
     },
     "META": {
       "STATE": {

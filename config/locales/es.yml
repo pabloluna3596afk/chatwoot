@@ -303,6 +303,18 @@ es:
         list_button_label: 'Choose an item'
         call_permission_request_body: 'Nos gustaría llamarte en relación con tu conversación.'
         flow_response: 'Envió una respuesta de flujo'
+        flow_send:
+          open: 'Abrir'
+        flow_save:
+          completed: 'Formulario completado: %{name}'
+          saved: 'Guardado: %{fields}'
+          skipped: 'Omitido: %{fields}'
+          blank: 'valor vacío'
+          invalid: 'valor o destino no válido'
+          used: 'usado por otro contacto'
+        flow_response:
+          received: "Formulario completado:\n%{details}"
+          empty: 'Formulario completado.'
         unsupported_message: 'Este mensaje no está disponible.'
       voice_call:
         twilio: 'Llamada de voz'
