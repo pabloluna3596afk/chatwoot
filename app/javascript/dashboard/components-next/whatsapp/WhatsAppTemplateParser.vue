@@ -109,7 +109,7 @@ const languageLabel = computed(() => {
 });
 
 const categoryLabel = computed(() => {
-  return `${t('WHATSAPP_TEMPLATES.PARSER.CATEGORY')}: ${props.template.category || DEFAULT_CATEGORY}`;
+  return `${t('WHATSAPP_TEMPLATES.PARSER.CATEGORY')}: ${t(`WHATSAPP_TEMPLATES.SEND_CENTER.CATEGORY.${props.template.category || DEFAULT_CATEGORY}`)}`;
 });
 
 const headerComponent = computed(() => {
@@ -136,7 +136,9 @@ const hasMediaHeader = computed(() =>
 
 const formatType = computed(() => {
   const format = headerComponent.value?.format;
-  return format ? format.charAt(0) + format.slice(1).toLowerCase() : '';
+  return format
+    ? t(`WHATSAPP_TEMPLATES.SEND_CENTER.MEDIA_FORMATS.${format}`)
+    : '';
 });
 
 const isDocumentTemplate = computed(() => {
@@ -423,35 +425,36 @@ defineExpose({
 
 <template>
   <div>
-    <div class="flex flex-col gap-4 p-4 mb-4 rounded-lg bg-n-alpha-black2">
-      <div class="flex justify-between items-center">
-        <h3 class="text-sm font-medium text-n-slate-12">
-          {{ template.name }}
-        </h3>
-        <span class="text-xs text-n-slate-11">
-          {{ languageLabel }}
-        </span>
-      </div>
+    <slot name="preview" :header="renderedHeader" :body="renderedTemplate">
+      <div class="flex flex-col gap-4 p-4 mb-4 rounded-lg bg-n-alpha-black2">
+        <div class="flex justify-between items-center">
+          <h3 class="text-sm font-medium text-n-slate-12">
+            {{ template.name }}
+          </h3>
+          <span class="text-xs text-n-slate-11">
+            {{ languageLabel }}
+          </span>
+        </div>
 
-      <div class="flex flex-col gap-2">
-        <div class="rounded-md">
-          <div
-            v-if="renderedHeader"
-            class="mb-2 text-sm font-medium whitespace-pre-wrap text-n-slate-12"
-          >
-            {{ renderedHeader }}
-          </div>
-          <div class="text-sm whitespace-pre-wrap text-n-slate-12">
-            {{ renderedTemplate }}
+        <div class="flex flex-col gap-2">
+          <div class="rounded-md">
+            <div
+              v-if="renderedHeader"
+              class="mb-2 text-sm font-medium whitespace-pre-wrap text-n-slate-12"
+            >
+              {{ renderedHeader }}
+            </div>
+            <div class="text-sm whitespace-pre-wrap text-n-slate-12">
+              {{ renderedTemplate }}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="text-xs text-n-slate-11">
-        {{ categoryLabel }}
+        <div class="text-xs text-n-slate-11">
+          {{ categoryLabel }}
+        </div>
       </div>
-    </div>
-
+    </slot>
     <div v-if="hasVariables || hasMediaHeader">
       <div v-if="hasMediaHeader" class="mb-4">
         <p class="mb-2.5 text-sm font-semibold">

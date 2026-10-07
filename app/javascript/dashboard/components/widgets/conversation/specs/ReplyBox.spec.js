@@ -4,6 +4,7 @@ import { nextTick } from 'vue';
 import { createStore } from 'vuex';
 import ReplyBox from '../ReplyBox.vue';
 import WhatsappTemplates from '../WhatsappTemplates/Modal.vue';
+import SendCenter from 'dashboard/components-next/whatsapp/send-center/SendCenter.vue';
 
 const CHANNELS = [
   { name: 'WhatsApp Cloud', inbox: { channel_type: 'Channel::Whatsapp' } },
@@ -124,6 +125,38 @@ const editor = wrapper =>
   wrapper.findComponent({ name: 'WootMessageEditor' }).props();
 
 describe('ReplyBox', () => {
+  it('opens the shared center on Cloud with no templates and removes the loose Flow entry', async () => {
+    const { wrapper } = mountWith({
+      inbox: { channel_type: 'Channel::Whatsapp', provider: 'whatsapp_cloud' },
+      templates: [],
+    });
+    expect(bottomPanel(wrapper).enableWhatsAppTemplates).toBe(true);
+    wrapper
+      .findComponent({ name: 'ReplyBottomPanel' })
+      .vm.$emit('selectWhatsappTemplate');
+    await nextTick();
+    expect(wrapper.findComponent(SendCenter).props('show')).toBe(true);
+    expect(wrapper.findComponent({ name: 'WhatsappFlowSend' }).exists()).toBe(
+      false
+    );
+    expect(wrapper.findComponent(WhatsappTemplates).props('show')).toBe(false);
+  });
+
+  it('keeps the request-contact-info picker separate from the unified toolbar action', async () => {
+    const { wrapper } = mountWith({
+      inbox: { channel_type: 'Channel::Whatsapp', provider: 'whatsapp_cloud' },
+      templates: [],
+    });
+    wrapper
+      .findComponent({ name: 'ReplyBottomPanel' })
+      .vm.$emit('requestContactInfoTemplate');
+    await nextTick();
+    expect(wrapper.findComponent(SendCenter).props('show')).toBe(false);
+    expect(wrapper.findComponent(WhatsappTemplates).props()).toMatchObject({
+      show: true,
+      requestContactInfoOnly: true,
+    });
+  });
   describe('Instagram incident restriction', () => {
     it('opens in note mode and restores only the private-note draft', async () => {
       const { wrapper, store } = mountWith({
@@ -374,7 +407,7 @@ describe('ReplyBox', () => {
         .findComponent({ name: 'ReplyBottomPanel' })
         .vm.$emit('selectWhatsappTemplate');
       await nextTick();
-      expect(wrapper.findComponent(WhatsappTemplates).props('show')).toBe(true);
+      expect(wrapper.findComponent(SendCenter).props('show')).toBe(true);
 
       store.commit('selectChat', {
         ...REPLIABLE,
@@ -383,9 +416,7 @@ describe('ReplyBox', () => {
       });
       await nextTick();
 
-      expect(wrapper.findComponent(WhatsappTemplates).props('show')).toBe(
-        false
-      );
+      expect(wrapper.findComponent(SendCenter).props('show')).toBe(false);
     });
 
     it('returns to reply mode once the agent takes over', async () => {
