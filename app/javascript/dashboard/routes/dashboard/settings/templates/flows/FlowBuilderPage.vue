@@ -2,7 +2,7 @@
 // The flow builder as a full page: the screens as tabs, the blocks to add on the left, the phone in the middle (blocks
 // are edited by clicking them there) and the settings of the selected screen and block on the right. The mistakes Meta
 // would refuse are shown while typing and the draft is saved on demand. A new flow is built in this same page: its
-// name and category are in the header and its starting model is chosen inside the phone, or skipped by adding a block.
+// name and category are in the header and its starting model is chosen beside the phone, or skipped by adding a block.
 import {
   computed,
   nextTick,
@@ -68,6 +68,7 @@ const name = ref(props.flow.name || '');
 const categories = ref([...(props.flow.categories || [])]);
 const definition = reactive(JSON.parse(JSON.stringify(props.flow.definition)));
 const flowId = ref(props.flow.id || null);
+const savedUnpublishedChanges = ref(props.flow.unpublished_changes || false);
 const isSaving = ref(false);
 const isChecking = ref(false);
 // A saved flow never offers the starting models; a new one does until one is picked or a block is added.
@@ -88,6 +89,7 @@ let copiedTimer = null;
 // What Meta says about the saved flow, per WhatsApp Cloud WABA (nothing shows for an account without one).
 const {
   rows: metaRows,
+  unpublishedChanges: metaUnpublishedChanges,
   wabas: metaWabas,
   hasCloud,
   isPublishing,
@@ -96,6 +98,9 @@ const {
   retry: retryMeta,
   stop: stopMeta,
 } = useFlowPublications(props.api, () => flowId.value);
+const unpublishedChanges = computed(
+  () => metaUnpublishedChanges.value ?? savedUnpublishedChanges.value
+);
 const publishDialog = ref(null);
 const testDialog = ref(null);
 
@@ -319,6 +324,8 @@ const save = async () => {
       ? await props.api.update(flowId.value, payload)
       : await props.api.create(payload);
     flowId.value = data.id;
+    savedUnpublishedChanges.value = data.unpublished_changes;
+    metaUnpublishedChanges.value = data.unpublished_changes;
     savedSnapshot.value = snapshot();
     useAlert(t('WHATSAPP_FLOWS.EDITOR.SAVED'));
     emit('saved', data);
@@ -469,6 +476,22 @@ defineExpose({ save });
       </div>
     </div>
 
+    <div
+      v-if="unpublishedChanges"
+      class="flex items-center justify-between gap-3 p-3 rounded-xl bg-n-amber-3 text-n-amber-11"
+      data-testid="flow-unpublished-banner"
+    >
+      <span class="text-sm">{{
+        $t('WHATSAPP_FLOWS.META.UNPUBLISHED_CHANGES')
+      }}</span>
+      <Button
+        :label="$t('WHATSAPP_FLOWS.META.PUBLISH')"
+        :disabled="metaBlocked || isPublishing"
+        :title="metaHint"
+        data-testid="flow-unpublished-publish"
+        @click="openPublish"
+      />
+    </div>
     <section
       v-if="hasCloud"
       class="p-3 border rounded-2xl border-n-weak bg-n-solid-1"
@@ -638,15 +661,12 @@ defineExpose({ save });
         </div>
       </section>
 
-      <FlowPhoneCanvas
-        :definition="definition"
-        :screen-index="currentScreen"
-        :selected="selected"
-        @select="selected = $event"
-        @remove="removeBlock"
-        @move="moveBlock"
-      >
-        <div v-if="!starting" class="grid gap-1.5" data-testid="flow-starting">
+      <div class="grid gap-4">
+        <div
+          v-if="!starting"
+          class="grid gap-1.5 p-4 border rounded-2xl border-n-weak bg-n-solid-1"
+          data-testid="flow-starting"
+        >
           <p class="m-0 text-xs text-n-slate-11">
             {{ $t('WHATSAPP_FLOWS.START.HINT') }}
           </p>
@@ -679,7 +699,15 @@ defineExpose({ save });
             {{ $t('WHATSAPP_FLOWS.EDITOR.START_REQUIRED') }}
           </p>
         </div>
-      </FlowPhoneCanvas>
+        <FlowPhoneCanvas
+          :definition="definition"
+          :screen-index="currentScreen"
+          :selected="selected"
+          @select="selected = $event"
+          @remove="removeBlock"
+          @move="moveBlock"
+        />
+      </div>
 
       <aside
         class="flex flex-col min-w-0 gap-5 p-4 border rounded-2xl border-n-weak bg-n-solid-1"

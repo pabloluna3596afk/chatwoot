@@ -113,6 +113,73 @@ const canvasBlocks = wrapper =>
   wrapper.findAll('[data-testid="flow-canvas-block"]');
 
 describe('FlowBuilderPage', () => {
+  it('shows saved unpublished changes immediately after saving an edit', async () => {
+    const api = makeApi();
+    api.publicationStatus = vi.fn().mockResolvedValue({
+      data: { unpublished_changes: false, wabas: [], publications: [] },
+    });
+    api.update.mockResolvedValue({
+      data: { id: 7, unpublished_changes: true },
+    });
+    const { wrapper } = await mountPage(sampleFlow(), api);
+    await wrapper
+      .get('[data-testid="flow-editor-name"] input')
+      .setValue('Updated form');
+    api.publicationStatus.mockReturnValue(new Promise(() => {}));
+    await wrapper.get('[data-testid="flow-editor-save"]').trigger('click');
+    await flushPromises();
+    expect(
+      wrapper.find('[data-testid="flow-unpublished-banner"]').exists()
+    ).toBe(true);
+  });
+
+  it('offers publishing in the stale banner and clears it after refreshed publication', async () => {
+    const api = makeApi();
+    api.publicationStatus = vi.fn().mockResolvedValue({
+      data: { unpublished_changes: true, wabas: [], publications: [] },
+    });
+    const { wrapper } = await mountPage(
+      sampleFlow({ unpublished_changes: true }),
+      api
+    );
+    expect(
+      wrapper.get('[data-testid="flow-unpublished-banner"]').text()
+    ).toContain('UNPUBLISHED_CHANGES');
+    await wrapper
+      .get('[data-testid="flow-unpublished-publish"]')
+      .trigger('click');
+    await flushPromises();
+    expect(wrapper.find('[data-testid="flow-publish-confirm"]').exists()).toBe(
+      true
+    );
+    api.publicationStatus.mockResolvedValue({
+      data: { unpublished_changes: false, wabas: [], publications: [] },
+    });
+    await wrapper
+      .get('[data-testid="flow-unpublished-publish"]')
+      .trigger('click');
+    await flushPromises();
+    expect(
+      wrapper.find('[data-testid="flow-unpublished-banner"]').exists()
+    ).toBe(false);
+  });
+
+  it('keeps starting models outside the phone and preserves customer screens', async () => {
+    const { wrapper } = await mountPage(sampleFlow({ id: null }));
+    expect(wrapper.find('[data-testid="flow-starting"]').exists()).toBe(true);
+    expect(
+      wrapper
+        .get('[data-testid="flow-canvas"]')
+        .find('[data-testid="flow-starting"]')
+        .exists()
+    ).toBe(false);
+    await wrapper.get('[data-testid="flow-starting-support"]').trigger('click');
+    expect(wrapper.get('[data-testid="flow-canvas"]').text()).toContain(
+      'Tu nombre'
+    );
+    expect(wrapper.find('[data-testid="flow-starting"]').exists()).toBe(false);
+  });
+
   describe('screens as tabs above the phone', () => {
     it('has a tab per screen and the "+ Pantalla" tab at the end of the row', async () => {
       const { wrapper } = await mountPage();

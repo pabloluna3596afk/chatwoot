@@ -62,6 +62,24 @@ describe('FlowsPanel', () => {
     });
   });
 
+  it('marks edited published forms, including for agents', async () => {
+    permissions.admin = false;
+    WhatsappFlowsAPI.list.mockResolvedValue({
+      data: { payload: [{ ...flows[0], unpublished_changes: true }] },
+    });
+    const wrapper = await mountPanel();
+    expect(wrapper.get('[data-testid="flow-unpublished-badge"]').text()).toBe(
+      'WHATSAPP_FLOWS.META.UNPUBLISHED_CHANGES'
+    );
+  });
+
+  it('does not mark a current publication or a never published draft', async () => {
+    const wrapper = await mountPanel();
+    expect(
+      wrapper.find('[data-testid="flow-unpublished-badge"]').exists()
+    ).toBe(false);
+  });
+
   it('lists the flows with their screens and categories', async () => {
     const wrapper = await mountPanel();
 

@@ -43,6 +43,7 @@ const isFinal = row =>
 
 export function useFlowPublications(api, getFlowId) {
   const wabas = ref([]);
+  const unpublishedChanges = ref(null);
   const publications = ref([]);
   const isLoading = ref(false);
   const isPublishing = ref(false);
@@ -75,6 +76,7 @@ export function useFlowPublications(api, getFlowId) {
     try {
       const { data } = await api.publicationStatus(id);
       wabas.value = data.wabas || [];
+      unpublishedChanges.value = data.unpublished_changes;
       publications.value = data.publications || [];
       loadFailed.value = false;
       return true;
@@ -129,6 +131,7 @@ export function useFlowPublications(api, getFlowId) {
 
   return {
     rows,
+    unpublishedChanges,
     wabas,
     hasCloud,
     isLoading,
