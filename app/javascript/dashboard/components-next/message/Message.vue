@@ -41,6 +41,8 @@ import LocationBubble from './bubbles/Location.vue';
 import CSATBubble from './bubbles/CSAT.vue';
 import FormBubble from './bubbles/Form.vue';
 import VoiceCallBubble from './bubbles/VoiceCall.vue';
+import WhatsappFlowSentBubble from './bubbles/WhatsappFlowSent.vue';
+import WhatsappTemplateBubble from './bubbles/WhatsappTemplate.vue';
 import WhatsappFlowResponseBubble from './bubbles/WhatsappFlowResponse.vue';
 import WhatsappReferral from './bubbles/Text/WhatsappReferral.vue';
 
@@ -335,6 +337,22 @@ const componentToRender = computed(() => {
 
   if (props.contentAttributes.type === 'dyte') {
     return DyteBubble;
+  }
+
+  if (
+    props.messageType === MESSAGE_TYPES.OUTGOING &&
+    !props.private &&
+    !props.contentAttributes.deleted &&
+    props.contentType === CONTENT_TYPES.TEXT &&
+    inbox.value.channel_type === 'Channel::Whatsapp'
+  ) {
+    if (props.additionalAttributes.whatsappFlow) return WhatsappFlowSentBubble;
+    if (
+      props.contentAttributes.whatsappTemplate ||
+      props.additionalAttributes.templateParams?.name
+    ) {
+      return WhatsappTemplateBubble;
+    }
   }
 
   const instagramSharedTypes = [

@@ -1,5 +1,12 @@
 {
   "CONVERSATION": {
+    "WHATSAPP_FLOW_SENT": "Flow · {name}",
+    "WHATSAPP_TEMPLATE_SENT": "Plantilla · {name}",
+    "WHATSAPP_TEMPLATE_CATEGORIES": {
+      "UTILITY": "Utilidad",
+      "MARKETING": "Marketing",
+      "AUTHENTICATION": "Autenticación"
+    },
     "404": "Lo sentimos, no podemos encontrar la conversación. Por favor, inténtalo de nuevo",
     "SUGGESTED_ATTRIBUTES": {
       "APPLY": "Guardar este dato",

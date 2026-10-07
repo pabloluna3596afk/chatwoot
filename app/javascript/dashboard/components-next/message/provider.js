@@ -68,6 +68,7 @@ const MessageControl = Symbol('MessageControl');
  * @property {string|null} [bccEmail] - BCC email addresses
  * @property {Record<string, unknown>} [whatsappFlowResponse] - Flat answers with original field keys
  * @property {{name: string, fields: Object[]}} [whatsappFlowMeta] - Labels and options from the validated outgoing snapshot
+ * @property {{name: string, category?: string, header?: Object, footer?: string, buttons?: Object[]}} [whatsappTemplate] - Stored outgoing template visual definition
  * @property {Object} [referral] - WhatsApp click-to-chat ad metadata
  * @property {string} [referral.sourceUrl] - URL of the originating ad
  * @property {string} [referral.headline] - Headline of the originating ad

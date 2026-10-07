@@ -1,5 +1,12 @@
 {
   "CONVERSATION": {
+    "WHATSAPP_FLOW_SENT": "Flow \u00b7 {name}",
+    "WHATSAPP_TEMPLATE_SENT": "Template \u00b7 {name}",
+    "WHATSAPP_TEMPLATE_CATEGORIES": {
+      "UTILITY": "UTILITY",
+      "MARKETING": "MARKETING",
+      "AUTHENTICATION": "AUTHENTICATION"
+    },
     "404": "Sorry, we cannot find the conversation. Please try again",
     "SUGGESTED_ATTRIBUTES": {
       "APPLY": "Save this value",

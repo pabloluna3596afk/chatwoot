@@ -1373,6 +1373,19 @@ docker compose -f docker-compose.dokploy.yml -f docker-compose.dokploy.fork.yml 
   Edit and save a published form, check the list badge and builder banner, republish and refresh publication status.
   On a new form, choose a starting model outside the phone and verify its customer fields appear inside the phone.
 
+### B-NEW-54 - Outgoing WhatsApp Flow/template identity
+
+- Files: `components-next/message/Message.vue`, `bubbles/WhatsappFlowSent.vue`, `bubbles/WhatsappTemplate.vue`,
+  `Message`, `Whatsapp::TemplateMessageSnapshotService`, and the message JSON partial.
+- Outgoing Meta Flows show their stored name, header/body and CTA. WhatsApp templates show identity/category,
+  header, body, footer and informative buttons. Private/deleted/CSAT/Twilio messages keep their existing selection.
+- New template messages store an additive visual snapshot after Liquid rendering at the common Message creation callback,
+  including manual sends, automations and direct Captain sends. HTTP and dashboard events expose only visual template/Flow metadata.
+  Internal template parameters and Flow tokens are excluded from that projection. No migration or backfill.
+- Verify: send a Flow or approved template, reload the conversation, compare manual and automation sends, and check light/dark.
+  Check a template with an image header and quick-reply/URL/Flow buttons; labels have no actions. Historical plain text stays plain.
+- Coverage: Vitest bubbles/selection plus RSpec snapshots, Captain reminder/reengagement and HTTP projection examples.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)
