@@ -3,6 +3,7 @@
 // publishing it. Meta only delivers it inside the 24 h window of that number; if it refuses, its reason is shown here.
 import { computed, ref, watch } from 'vue';
 
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -81,22 +82,18 @@ defineExpose({ open, close });
   >
     <div class="grid gap-4">
       <label class="grid gap-1.5">
-        <span class="text-sm font-medium text-n-slate-12">
+        <span class="text-heading-3 text-n-slate-12">
           {{ $t('WHATSAPP_FLOWS.META.TEST_CHANNEL') }}
         </span>
-        <select
-          v-model="channelId"
-          class="h-8 px-2 text-sm border rounded-lg border-n-weak bg-n-solid-1 text-n-slate-12"
+        <ComboBox
+          :model-value="channelId ?? ''"
+          :options="channelOptions"
+          :aria-label="$t('WHATSAPP_FLOWS.META.TEST_CHANNEL')"
+          :allow-deselect="false"
+          teleport
           data-testid="flow-test-channel"
-        >
-          <option
-            v-for="option in channelOptions"
-            :key="option.value"
-            :value="option.value"
-          >
-            {{ option.label }}
-          </option>
-        </select>
+          @update:model-value="channelId = $event"
+        />
       </label>
       <Input
         v-model="phoneNumber"

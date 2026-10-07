@@ -27,10 +27,15 @@ describe('conversation flow dialog', () => {
         { id: 13, name: 'Appointment' },
       ],
     });
-    expect(wrapper.get('[data-testid="flow-send-choice"]').element.value).toBe(
-      '12'
-    );
-    await wrapper.get('[data-testid="flow-send-choice"]').setValue('13');
+    expect(
+      wrapper
+        .findComponent('[data-testid="flow-send-choice"]')
+        .props('modelValue')
+    ).toBe(12);
+    wrapper
+      .findComponent('[data-testid="flow-send-choice"]')
+      .vm.$emit('update:modelValue', 13);
+    await wrapper.vm.$nextTick();
     await wrapper.get('[data-testid="flow-send-submit"]').trigger('click');
     expect(send).toHaveBeenCalledExactlyOnceWith({
       whatsapp_flow_id: 13,

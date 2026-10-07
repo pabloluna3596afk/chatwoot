@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
@@ -13,6 +13,7 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  groups: { type: Array, default: () => [] },
   searchPlaceholder: {
     type: String,
     default: '',
@@ -44,7 +45,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['select', 'search']);
+const emit = defineEmits(['select', 'search', 'close']);
 
 const { t } = useI18n();
 
@@ -54,6 +55,33 @@ const searchValue = defineModel('searchValue', {
 });
 
 const searchInput = ref(null);
+const menu = ref(null);
+const sections = computed(() =>
+  props.groups.length
+    ? [
+        { key: '', options: props.options.filter(option => !option.group) },
+        ...props.groups.map(group => ({
+          ...group,
+          options: props.options.filter(option => option.group === group.key),
+        })),
+      ]
+    : [{ key: '', options: props.options }]
+);
+const onKeydown = event => {
+  if (event.key === 'Escape') {
+    event.stopPropagation();
+    emit('close');
+    return;
+  }
+  if (!['ArrowDown', 'ArrowUp'].includes(event.key)) return;
+  event.preventDefault();
+  const options = [...menu.value.querySelectorAll('[role="option"]')];
+  const index = options.indexOf(document.activeElement);
+  let next = index + 1;
+  if (event.key === 'ArrowUp')
+    next = index < 0 ? options.length - 1 : index - 1;
+  options[(next + options.length) % options.length]?.focus();
+};
 
 const isSelected = option => {
   if (Array.isArray(props.selectedValues)) {
@@ -68,16 +96,19 @@ const onInputSearch = event => {
 };
 
 defineExpose({
-  focus: () => searchInput.value?.focus(),
+  focus: () => (searchInput.value || menu.value)?.focus(),
 });
 </script>
 
 <template>
   <div
     v-show="open"
+    ref="menu"
+    tabindex="-1"
     data-combobox-dropdown
     class="z-50 w-full transition-opacity duration-200 border rounded-md shadow-lg bg-n-solid-1 border-n-strong flex flex-col overflow-hidden"
     :class="portal ? 'fixed' : 'absolute mt-1'"
+    @keydown="onKeydown"
   >
     <div v-if="showSearch" class="relative border-b border-n-strong shrink-0">
       <Spinner
@@ -105,33 +136,56 @@ defineExpose({
       role="listbox"
       :aria-multiselectable="multiple"
     >
-      <li
-        v-for="(option, index) in options"
-        :key="`${option.value}-${index}`"
-        class="flex items-center justify-between w-full gap-2 px-3 py-2 text-sm transition-colors duration-150 cursor-pointer hover:bg-n-alpha-2"
-        :class="{
-          'bg-n-alpha-2': isSelected(option),
-        }"
-        role="option"
-        :aria-selected="isSelected(option)"
-        @click.stop="emit('select', option)"
-      >
-        <span
-          :class="{
-            'font-medium': isSelected(option),
-          }"
-          class="text-n-slate-12"
+      <template v-for="section in sections" :key="section.key">
+        <li
+          v-if="
+            section.label &&
+            (section.options.length || (!searchValue && section.emptyState))
+          "
+          role="presentation"
+          class="px-3 pt-2 pb-1 text-xs font-medium text-n-slate-11"
         >
-          {{ option.label }}
-        </span>
-        <span
-          v-if="isSelected(option)"
-          class="flex-shrink-0 i-lucide-check size-4 text-n-slate-11"
-        />
-      </li>
-      <li v-if="options.length === 0" class="px-3 py-2 text-sm text-n-slate-11">
+          {{ section.label }}
+        </li>
+        <li
+          v-for="(option, index) in section.options"
+          :key="`${option.value}-${index}`"
+          class="flex items-center justify-between w-full gap-2 px-3 py-2 text-sm transition-colors duration-150 cursor-pointer hover:bg-n-alpha-2 focus:bg-n-alpha-2 focus:outline-none"
+          :class="{ 'bg-n-alpha-2': isSelected(option) }"
+          role="option"
+          tabindex="0"
+          :aria-selected="isSelected(option)"
+          @click.stop="emit('select', option)"
+          @keydown.enter.prevent="emit('select', option)"
+          @keydown.space.prevent="emit('select', option)"
+        >
+          <span
+            :class="{ 'font-medium': isSelected(option) }"
+            class="text-n-slate-12"
+            >{{ option.label }}</span
+          >
+          <span
+            v-if="isSelected(option)"
+            class="flex-shrink-0 i-lucide-check size-4 text-n-slate-11"
+          />
+        </li>
+        <li
+          v-if="!section.options.length && section.emptyState && !searchValue"
+          role="presentation"
+          class="px-3 py-2 text-xs text-n-slate-11"
+        >
+          {{ section.emptyState }}
+        </li>
+      </template>
+      <li
+        v-if="options.length === 0 && (!groups.length || searchValue)"
+        class="px-3 py-2 text-sm text-n-slate-11"
+      >
         {{ emptyState || t('COMBOBOX.EMPTY_STATE') }}
       </li>
     </ul>
+    <div v-if="$slots.footer" class="p-2 border-t border-n-weak shrink-0">
+      <slot name="footer" :close="() => emit('close')" />
+    </div>
   </div>
 </template>

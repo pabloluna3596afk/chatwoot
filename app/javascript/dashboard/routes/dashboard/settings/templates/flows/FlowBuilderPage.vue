@@ -2,7 +2,7 @@
 // The flow builder as a full page: the screens as tabs, the blocks to add on the left, the phone in the middle (blocks
 // are edited by clicking them there) and the settings of the selected screen and block on the right. The mistakes Meta
 // would refuse are shown while typing and the draft is saved on demand. A new flow is built in this same page: its
-// name and category are in the header and its starting model is chosen beside the phone, or skipped by adding a block.
+// name is in the properties panel, categories beside the tabs, and its starting model is chosen beside the phone.
 import {
   computed,
   nextTick,
@@ -21,7 +21,10 @@ import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
-import Select from 'dashboard/components-next/select/Select.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import DropdownContainer from 'dashboard/components-next/dropdown-menu/base/DropdownContainer.vue';
+import DropdownBody from 'dashboard/components-next/dropdown-menu/base/DropdownBody.vue';
+import DropdownItem from 'dashboard/components-next/dropdown-menu/base/DropdownItem.vue';
 import FlowBlockEditor from './FlowBlockEditor.vue';
 import FlowPhoneCanvas from './FlowPhoneCanvas.vue';
 import FlowPublicationBadges from './FlowPublicationBadges.vue';
@@ -101,6 +104,21 @@ const {
 const unpublishedChanges = computed(
   () => metaUnpublishedChanges.value ?? savedUnpublishedChanges.value
 );
+const statusLabel = computed(() => {
+  if (isPublishing.value) return t('WHATSAPP_FLOWS.META.STATE.sending');
+  const problem = metaRows.value.find(row =>
+    ['error', 'blocked', 'throttled'].includes(row.state)
+  );
+  if (problem) return t(`WHATSAPP_FLOWS.META.STATE.${problem.state}`);
+  if (unpublishedChanges.value)
+    return t('WHATSAPP_FLOWS.META.UNPUBLISHED_CHANGES_BADGE');
+  if (
+    metaRows.value.length &&
+    metaRows.value.every(row => row.state === 'published')
+  )
+    return t('WHATSAPP_FLOWS.META.STATE.published');
+  return t('WHATSAPP_FLOWS.EDITOR.STATE_DRAFT');
+});
 const publishDialog = ref(null);
 const testDialog = ref(null);
 
@@ -162,14 +180,6 @@ onBeforeUnmount(() => {
   controller?.abort();
 });
 
-// The header has one category. A flow saved with more keeps the others unless the one shown is changed to one of them.
-const category = computed({
-  get: () => categories.value[0] || '',
-  set: value => {
-    const extras = categories.value.slice(1).filter(item => item !== value);
-    categories.value = value ? [value, ...extras] : extras;
-  },
-});
 const categoryOptions = computed(() =>
   CATEGORIES.map(item => ({
     value: item,
@@ -380,83 +390,118 @@ defineExpose({ save });
 
 <template>
   <div class="flex flex-col gap-4" data-testid="flow-builder">
-    <div class="flex flex-wrap items-start justify-between gap-3">
-      <div class="flex flex-wrap items-start flex-1 min-w-0 gap-3">
+    <header
+      class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-n-weak"
+    >
+      <div class="flex items-center min-w-0 gap-3">
         <Button
           type="button"
           ghost
           slate
           sm
-          class="mt-0.5"
           icon="i-lucide-arrow-left"
           :aria-label="$t('WHATSAPP_FLOWS.EDITOR.BACK_TO_LIST')"
           data-testid="flow-editor-back"
           @click="emit('back')"
         />
-        <Input
-          v-model="name"
-          class="flex-1 min-w-48 max-w-md"
-          :placeholder="$t('WHATSAPP_FLOWS.EDITOR.NAME_PLACEHOLDER')"
-          :aria-label="$t('WHATSAPP_FLOWS.EDITOR.NAME')"
-          :message="
-            showMissing('name') ? $t('WHATSAPP_FLOWS.EDITOR.NAME_REQUIRED') : ''
-          "
-          :message-type="showMissing('name') ? 'error' : 'info'"
-          data-testid="flow-editor-name"
-        />
-        <div class="min-w-48" data-testid="flow-editor-category">
-          <Select
-            v-model="category"
-            full-width
-            :options="categoryOptions"
-            :placeholder="$t('WHATSAPP_FLOWS.EDITOR.CATEGORY')"
-            :aria-label="$t('WHATSAPP_FLOWS.EDITOR.CATEGORY')"
-            :error="showMissing('category') ? 'required' : ''"
-          />
-          <p
-            v-if="showMissing('category')"
-            class="m-0 mt-1 text-xs text-n-ruby-11"
-            data-testid="flow-category-error"
-          >
-            {{ $t('WHATSAPP_FLOWS.EDITOR.CATEGORY_REQUIRED') }}
+        <div class="min-w-0">
+          <h1 class="m-0 text-heading-2 text-n-slate-12 truncate max-w-64">
+            {{ name || $t('WHATSAPP_FLOWS.EDITOR.NAME_PLACEHOLDER') }}
+          </h1>
+          <p class="m-0 text-xs text-n-slate-11" data-testid="flow-save-state">
+            {{
+              $t(
+                dirty || !flowId
+                  ? 'WHATSAPP_FLOWS.EDITOR.UNSAVED'
+                  : 'WHATSAPP_FLOWS.EDITOR.SAVE_STATE'
+              )
+            }}
           </p>
         </div>
-        <span
-          class="inline-flex mt-2 px-2.5 py-0.5 text-xs font-semibold rounded-full bg-n-alpha-2 text-n-slate-11"
-          data-testid="flow-editor-status"
-        >
-          {{ $t('WHATSAPP_FLOWS.EDITOR.STATE_DRAFT') }}
-        </span>
+        <DropdownContainer>
+          <template #trigger="{ toggle }">
+            <Button
+              type="button"
+              slate
+              faded
+              sm
+              trailing-icon
+              icon="i-lucide-chevron-down"
+              :label="statusLabel"
+              data-testid="flow-editor-status"
+              @click="toggle"
+            />
+          </template>
+          <DropdownBody class="z-50">
+            <li class="w-72 p-2" data-testid="flow-meta-status">
+              <p
+                v-if="unpublishedChanges"
+                class="m-0 mb-3 text-xs text-n-amber-11"
+                data-testid="flow-unpublished-banner"
+              >
+                {{ $t('WHATSAPP_FLOWS.META.UNPUBLISHED_CHANGES_BANNER') }}
+              </p>
+              <FlowPublicationBadges
+                v-if="hasCloud"
+                :rows="metaRows"
+                detailed
+                can-retry
+                :sending="isPublishing"
+                @retry="retryPublish"
+              />
+              <p v-else class="m-0 text-xs text-n-slate-11">
+                {{ $t('WHATSAPP_FLOWS.META.NO_CLOUD') }}
+              </p>
+            </li>
+          </DropdownBody>
+        </DropdownContainer>
         <span
           v-if="errors.length"
-          class="inline-flex mt-2 px-2.5 py-0.5 text-xs font-semibold rounded-full bg-n-amber-3 text-n-amber-11"
+          class="text-xs text-n-amber-11"
           data-testid="flow-editor-state"
+          >{{
+            $t('WHATSAPP_FLOWS.EDITOR.ERRORS_COUNT', { n: errors.length })
+          }}</span
         >
-          {{ $t('WHATSAPP_FLOWS.EDITOR.ERRORS_COUNT', { n: errors.length }) }}
-        </span>
       </div>
       <div class="flex items-center gap-2">
+        <DropdownContainer>
+          <template #trigger="{ toggle }">
+            <Button
+              type="button"
+              ghost
+              slate
+              sm
+              trailing-icon
+              icon="i-lucide-chevron-down"
+              :label="$t('WHATSAPP_FLOWS.EDITOR.ACTIONS')"
+              data-testid="flow-actions"
+              @click="toggle"
+            />
+          </template>
+          <DropdownBody class="z-50 end-0 w-44">
+            <DropdownItem
+              v-if="hasCloud"
+              icon="i-lucide-flask-conical"
+              :label="$t('WHATSAPP_FLOWS.META.TEST')"
+              :disabled="metaBlocked"
+              :title="metaHint"
+              data-testid="flow-test-open"
+              :click="openTest"
+            />
+            <DropdownItem
+              icon="i-lucide-code"
+              :label="$t('WHATSAPP_FLOWS.EDITOR.SHOW_JSON')"
+              :disabled="!flowJson"
+              data-testid="flow-json-toggle"
+              :click="openJson"
+            />
+          </DropdownBody>
+        </DropdownContainer>
         <Button
           type="button"
           slate
-          :label="$t('WHATSAPP_FLOWS.EDITOR.SHOW_JSON')"
-          :disabled="!flowJson"
-          data-testid="flow-json-toggle"
-          @click="openJson"
-        />
-        <Button
-          v-if="hasCloud"
-          type="button"
-          slate
-          icon="i-lucide-flask-conical"
-          :label="$t('WHATSAPP_FLOWS.META.TEST')"
-          :disabled="metaBlocked"
-          :title="metaHint"
-          data-testid="flow-test-open"
-          @click="openTest"
-        />
-        <Button
-          type="button"
+          sm
           :label="$t('WHATSAPP_FLOWS.EDITOR.SAVE')"
           :is-loading="isSaving"
           :disabled="isSaving"
@@ -466,6 +511,7 @@ defineExpose({ save });
         <Button
           v-if="hasCloud"
           type="button"
+          sm
           icon="i-lucide-send"
           :label="$t('WHATSAPP_FLOWS.META.PUBLISH')"
           :disabled="metaBlocked || isPublishing"
@@ -474,35 +520,7 @@ defineExpose({ save });
           @click="openPublish"
         />
       </div>
-    </div>
-
-    <div
-      v-if="unpublishedChanges"
-      class="flex items-center justify-between gap-3 p-3 rounded-xl bg-n-amber-3 text-n-amber-11"
-      data-testid="flow-unpublished-banner"
-    >
-      <span class="text-sm">{{
-        $t('WHATSAPP_FLOWS.META.UNPUBLISHED_CHANGES_BANNER')
-      }}</span>
-    </div>
-    <section
-      v-if="hasCloud"
-      class="p-3 border rounded-2xl border-n-weak bg-n-solid-1"
-      data-testid="flow-meta-status"
-    >
-      <h2
-        class="mb-2 text-xs font-semibold tracking-wider uppercase text-n-slate-11"
-      >
-        {{ $t('WHATSAPP_FLOWS.META.STATUS_TITLE') }}
-      </h2>
-      <FlowPublicationBadges
-        :rows="metaRows"
-        detailed
-        can-retry
-        :sending="isPublishing"
-        @retry="retryPublish"
-      />
-    </section>
+    </header>
 
     <FlowPublishDialog
       ref="publishDialog"
@@ -612,15 +630,30 @@ defineExpose({ save });
       >
         {{ $t('WHATSAPP_FLOWS.EDITOR.ADD_SCREEN_TAB') }}
       </button>
+      <div class="ms-auto w-48" data-testid="flow-editor-category">
+        <ComboBox
+          v-model="categories"
+          multiple
+          :options="categoryOptions"
+          :aria-label="$t('WHATSAPP_FLOWS.EDITOR.CATEGORY')"
+          :placeholder="$t('WHATSAPP_FLOWS.EDITOR.CATEGORY')"
+          :has-error="showMissing('category')"
+          data-testid="flow-category-select"
+        />
+        <p
+          v-if="showMissing('category')"
+          class="m-0 mt-1 text-xs text-n-ruby-11"
+          data-testid="flow-category-error"
+        >
+          {{ $t('WHATSAPP_FLOWS.EDITOR.CATEGORY_REQUIRED') }}
+        </p>
+      </div>
     </div>
 
     <div
-      class="grid items-start gap-4 min-[960px]:grid-cols-[16.5rem_minmax(0,1fr)_19.5rem]"
+      class="grid items-start gap-4 min-[960px]:grid-cols-[12rem_minmax(0,1fr)_19rem]"
     >
-      <section
-        class="p-4 border rounded-2xl border-n-weak bg-n-solid-1"
-        data-testid="flow-palette"
-      >
+      <section class="pe-4 border-e border-n-weak" data-testid="flow-palette">
         <h2
           class="mb-3 text-xs font-semibold tracking-wider uppercase text-n-slate-11"
         >
@@ -629,23 +662,21 @@ defineExpose({ save });
         <div
           v-for="group in PALETTE"
           :key="group.group"
-          class="grid grid-cols-2 gap-1.5 sm:grid-cols-3 min-[960px]:grid-cols-2"
+          class="grid grid-cols-2 gap-1 sm:grid-cols-3 min-[960px]:grid-cols-1"
         >
-          <p
-            class="mt-3 mb-0 text-[11px] font-semibold tracking-wider uppercase col-span-full first:mt-0 text-n-slate-11"
-          >
+          <p class="sr-only">
             {{ $t(`WHATSAPP_FLOWS.EDITOR.GROUPS.${group.group}`) }}
           </p>
           <button
             v-for="item in group.items"
             :key="item.id"
             type="button"
-            class="flex items-center gap-2 px-1.5 py-1.5 text-xs font-medium leading-tight text-start border rounded-[10px] border-n-weak bg-n-solid-1 text-n-slate-12 hover:bg-n-alpha-2"
+            class="flex items-center gap-2 px-2 py-2 text-sm text-start rounded-lg text-n-slate-12 hover:bg-n-alpha-2"
             :data-testid="`flow-add-${item.id}`"
             @click="addBlock(item)"
           >
             <span
-              class="grid rounded-lg size-6 shrink-0 place-items-center bg-n-brand/10 text-n-blue-text"
+              class="grid size-5 shrink-0 place-items-center text-n-slate-11"
             >
               <span :class="item.icon" class="size-3.5" />
             </span>
@@ -703,45 +734,9 @@ defineExpose({ save });
       </div>
 
       <aside
-        class="flex flex-col min-w-0 gap-5 p-4 border rounded-2xl border-n-weak bg-n-solid-1"
+        class="flex flex-col min-w-0 gap-5 ps-4 border-s border-n-weak"
         data-testid="flow-properties"
       >
-        <div v-if="screen" class="grid gap-3 grid-cols-[minmax(0,1fr)]">
-          <h2
-            class="m-0 text-xs font-semibold tracking-wider uppercase text-n-slate-11"
-          >
-            {{ $t('WHATSAPP_FLOWS.EDITOR.SCREEN_PROPS') }}
-          </h2>
-          <Input
-            v-model="screen.title"
-            size="sm"
-            :label="$t('WHATSAPP_FLOWS.EDITOR.SCREEN_TITLE')"
-            :max-length="LIMITS.screenTitle"
-            data-testid="flow-screen-title"
-          />
-          <Input
-            v-model="screen.button"
-            size="sm"
-            :label="$t('WHATSAPP_FLOWS.EDITOR.BUTTON')"
-            :placeholder="
-              currentScreen === definition.screens.length - 1
-                ? $t('WHATSAPP_FLOWS.EDITOR.BUTTON_LAST')
-                : $t('WHATSAPP_FLOWS.EDITOR.BUTTON_NEXT')
-            "
-            :max-length="LIMITS.footer"
-            data-testid="flow-screen-button"
-          />
-          <ul
-            v-if="screenErrors"
-            class="grid gap-1 m-0 text-xs list-none text-n-ruby-11"
-            data-testid="flow-screen-errors"
-          >
-            <li v-for="error in screenErrors" :key="error.code">
-              {{ errorText(error) }}
-            </li>
-          </ul>
-        </div>
-
         <div
           v-if="block"
           class="grid gap-3 grid-cols-[minmax(0,1fr)]"
@@ -784,6 +779,61 @@ defineExpose({ save });
           <p class="m-0 text-sm text-n-slate-11">
             {{ $t('WHATSAPP_FLOWS.EDITOR.PICK_HINT') }}
           </p>
+        </div>
+        <div class="grid gap-3">
+          <h2
+            class="m-0 text-xs font-semibold tracking-wider uppercase text-n-slate-11"
+          >
+            {{ $t('WHATSAPP_FLOWS.EDITOR.FLOW_PROPS') }}
+          </h2>
+          <Input
+            v-model="name"
+            size="sm"
+            :label="$t('WHATSAPP_FLOWS.EDITOR.NAME')"
+            :placeholder="$t('WHATSAPP_FLOWS.EDITOR.NAME_PLACEHOLDER')"
+            :message="
+              showMissing('name')
+                ? $t('WHATSAPP_FLOWS.EDITOR.NAME_REQUIRED')
+                : ''
+            "
+            :message-type="showMissing('name') ? 'error' : 'info'"
+            data-testid="flow-editor-name"
+          />
+        </div>
+        <div v-if="screen" class="grid gap-3 grid-cols-[minmax(0,1fr)]">
+          <h2
+            class="m-0 text-xs font-semibold tracking-wider uppercase text-n-slate-11"
+          >
+            {{ $t('WHATSAPP_FLOWS.EDITOR.SCREEN_PROPS') }}
+          </h2>
+          <Input
+            v-model="screen.title"
+            size="sm"
+            :label="$t('WHATSAPP_FLOWS.EDITOR.SCREEN_TITLE')"
+            :max-length="LIMITS.screenTitle"
+            data-testid="flow-screen-title"
+          />
+          <Input
+            v-model="screen.button"
+            size="sm"
+            :label="$t('WHATSAPP_FLOWS.EDITOR.BUTTON')"
+            :placeholder="
+              currentScreen === definition.screens.length - 1
+                ? $t('WHATSAPP_FLOWS.EDITOR.BUTTON_LAST')
+                : $t('WHATSAPP_FLOWS.EDITOR.BUTTON_NEXT')
+            "
+            :max-length="LIMITS.footer"
+            data-testid="flow-screen-button"
+          />
+          <ul
+            v-if="screenErrors"
+            class="grid gap-1 m-0 text-xs list-none text-n-ruby-11"
+            data-testid="flow-screen-errors"
+          >
+            <li v-for="error in screenErrors" :key="error.code">
+              {{ errorText(error) }}
+            </li>
+          </ul>
         </div>
       </aside>
     </div>

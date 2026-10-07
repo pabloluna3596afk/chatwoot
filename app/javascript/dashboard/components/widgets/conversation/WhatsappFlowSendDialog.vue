@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -12,6 +13,9 @@ const props = defineProps({
   send: { type: Function, required: true },
 });
 const { t } = useI18n();
+const flowOptions = computed(() =>
+  props.flows.map(flow => ({ value: flow.id, label: flow.name }))
+);
 const dialog = ref(null);
 const flowId = ref(null);
 const header = ref('');
@@ -88,15 +92,15 @@ defineExpose({ open });
     <div class="grid gap-4">
       <label class="grid gap-1.5 text-sm text-n-slate-12">
         {{ $t('WHATSAPP_FLOWS.SEND.FLOW') }}
-        <select
-          v-model="flowId"
-          class="h-8 px-2 text-sm border rounded-lg border-n-weak bg-n-solid-1"
+        <ComboBox
+          :model-value="flowId ?? ''"
+          :options="flowOptions"
+          :aria-label="$t('WHATSAPP_FLOWS.SEND.FLOW')"
+          :allow-deselect="false"
+          teleport
           data-testid="flow-send-choice"
-        >
-          <option v-for="flow in flows" :key="flow.id" :value="flow.id">
-            {{ flow.name }}
-          </option>
-        </select>
+          @update:model-value="flowId = $event"
+        />
       </label>
       <p v-if="!flows.length" class="text-sm text-n-slate-11">
         {{ $t('WHATSAPP_FLOWS.SEND.EMPTY') }}

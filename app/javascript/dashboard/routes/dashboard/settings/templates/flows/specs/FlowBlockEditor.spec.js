@@ -1,9 +1,21 @@
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
+import { createStore } from 'vuex';
 import FlowBlockEditor from '../FlowBlockEditor.vue';
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key, te: () => false }),
 }));
+
+vi.mock(
+  'dashboard/routes/dashboard/settings/attributes/AddAttribute.vue',
+  () => ({
+    default: {
+      name: 'AddAttribute',
+      props: ['onClose', 'selectedAttributeModelTab'],
+      template: '<div />',
+    },
+  })
+);
 
 const definition = {
   screens: [
@@ -24,7 +36,12 @@ const definition = {
   ],
 };
 
-const mountBlock = (blockIndex, props = {}) =>
+const mountBlock = (
+  blockIndex,
+  props = {},
+  role = 'administrator',
+  refresh = vi.fn()
+) =>
   mount(FlowBlockEditor, {
     props: {
       modelValue: definition.screens[0].blocks[blockIndex],
@@ -33,12 +50,123 @@ const mountBlock = (blockIndex, props = {}) =>
       blockIndex,
       ...props,
     },
-    global: { mocks: { $t: key => key } },
+    global: {
+      plugins: [
+        createStore({
+          getters: { getCurrentRole: () => role },
+          modules: {
+            attributes: { namespaced: true, actions: { get: refresh } },
+          },
+        }),
+      ],
+      mocks: { $t: key => key },
+      stubs: {
+        Teleport: true,
+        AddAttribute: {
+          name: 'AddAttribute',
+          props: ['onClose', 'selectedAttributeModelTab'],
+          template: '<div />',
+        },
+      },
+    },
   });
 
 const lastUpdate = wrapper => wrapper.emitted('update:modelValue').at(-1)[0];
 
 describe('FlowBlockEditor', () => {
+  it('explains missing and incompatible attributes, with an admin CTA in both cases', async () => {
+    const wrapper = mountBlock(1);
+    const combo = wrapper.findComponent('[data-testid="flow-save-to"]');
+    expect(combo.props('groups')[1].emptyState).toBe(
+      'WHATSAPP_FLOWS.EDITOR.NO_CUSTOM_ATTRIBUTES'
+    );
+    expect(wrapper.find('[data-testid="flow-create-attribute"]').exists()).toBe(
+      true
+    );
+    await wrapper.setProps({
+      attributes: [
+        {
+          attribute_model: 'contact_attribute',
+          attribute_key: 'date',
+          attribute_display_type: 'date',
+        },
+      ],
+    });
+    expect(combo.props('groups')[1].emptyState).toBe(
+      'WHATSAPP_FLOWS.EDITOR.NO_COMPATIBLE_ATTRIBUTES'
+    );
+    expect(
+      combo.props('options').some(option => option.value.endsWith('.date'))
+    ).toBe(false);
+    expect(wrapper.find('[data-testid="flow-create-attribute"]').exists()).toBe(
+      true
+    );
+  });
+
+  it('keeps the CTA for admins with compatible attributes, opens the existing contact modal and refreshes on close', async () => {
+    const refresh = vi.fn();
+    const wrapper = mountBlock(
+      1,
+      {
+        attributes: [
+          {
+            attribute_model: 'contact_attribute',
+            attribute_key: 'identity',
+            attribute_display_type: 'text',
+          },
+        ],
+      },
+      'administrator',
+      refresh
+    );
+    expect(wrapper.find('[data-testid="flow-create-attribute"]').exists()).toBe(
+      true
+    );
+    await wrapper.get('[data-testid="flow-create-attribute"]').trigger('click');
+    await flushPromises();
+    const modal = wrapper.findComponent({ name: 'AddAttribute' });
+    expect(modal.exists()).toBe(true);
+    expect(modal.props('selectedAttributeModelTab')).toBe(1);
+    await modal.props('onClose')();
+    expect(refresh).toHaveBeenCalledOnce();
+    await wrapper.setProps({
+      attributes: [
+        {
+          attribute_model: 'contact_attribute',
+          attribute_key: 'new_attribute',
+          attribute_display_name: 'New attribute',
+          attribute_display_type: 'text',
+        },
+      ],
+    });
+    const combo = wrapper.findComponent('[data-testid="flow-save-to"]');
+    expect(
+      combo
+        .props('options')
+        .some(
+          option => option.value === 'contact.custom_attribute.new_attribute'
+        )
+    ).toBe(true);
+    combo.vm.$emit(
+      'update:modelValue',
+      'contact.custom_attribute.new_attribute'
+    );
+    expect(lastUpdate(wrapper).save_to.target).toBe(
+      'contact.custom_attribute.new_attribute'
+    );
+  });
+
+  it('keeps the empty-state text but hides the CTA for agents', () => {
+    const wrapper = mountBlock(1, {}, 'agent');
+    expect(
+      wrapper.findComponent('[data-testid="flow-save-to"]').props('groups')[1]
+        .emptyState
+    ).toBe('WHATSAPP_FLOWS.EDITOR.NO_CUSTOM_ATTRIBUTES');
+    expect(wrapper.find('[data-testid="flow-create-attribute"]').exists()).toBe(
+      false
+    );
+  });
+
   it('groups writable targets, saves the Liquid path and removes the optional mapping', async () => {
     const wrapper = mountBlock(1, {
       attributes: [
@@ -55,14 +183,16 @@ describe('FlowBlockEditor', () => {
         },
       ],
     });
-    const select = wrapper.get('[data-testid="flow-save-to"]');
-    expect(select.findAll('optgroup')).toHaveLength(2);
-    expect(select.html()).toContain('contact.custom_attribute.cedula');
+    const select = wrapper.findComponent('[data-testid="flow-save-to"]');
+    expect(select.props('groups')).toHaveLength(2);
+    expect(select.props('options').map(option => option.value)).toContain(
+      'contact.custom_attribute.cedula'
+    );
     expect(select.html()).not.toContain('conversation.custom_attribute');
     expect(select.html()).not.toContain('contact.first_name');
-    await select.setValue('contact.email');
+    select.vm.$emit('update:modelValue', 'contact.email');
     expect(lastUpdate(wrapper).save_to).toEqual({ target: 'contact.email' });
-    await select.setValue('');
+    select.vm.$emit('update:modelValue', '');
     expect(lastUpdate(wrapper)).not.toHaveProperty('save_to');
   });
 
@@ -80,8 +210,9 @@ describe('FlowBlockEditor', () => {
     });
     expect(
       optin
-        .findAll('[data-testid="flow-save-to"] option')
-        .map(option => option.attributes('value'))
+        .findComponent('[data-testid="flow-save-to"]')
+        .props('options')
+        .map(option => option.value)
     ).toEqual(['', 'contact.custom_attribute.accept']);
     expect(
       mountBlock(1, {
