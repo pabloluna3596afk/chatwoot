@@ -72,4 +72,28 @@ RSpec.describe Whatsapp::Flows::PublicationCatalog do
     expect(catalog.summary(catalog.flows.find(flow.id))).to eq(state: 'none', total: 2, published: 0, errors: 0)
     expect(catalog.detail(flow, page: 1, per_page: 5)[:meta][:total_count]).to eq(2)
   end
+
+  it 'keeps a 120-WABA catalog bounded to the requested page' do
+    create_list(:channel_whatsapp, 118, account: account, provider: 'whatsapp_cloud', validate_provider_config: false, sync_templates: false)
+      .each_with_index do |record, index|
+        record.update!(provider_config: record.provider_config.merge('business_account_id' => "waba-#{index}"))
+      end
+    result = catalog.detail(flow, page: 20, per_page: 5)
+    expect(result[:meta][:total_count]).to eq(120)
+    expect(result[:rows].length).to eq(5)
+    expect(result[:publication_summary][:total]).to eq(120)
+  end
+
+  it 'filters the Flow list by escaped name, category and summary state' do
+    flow.update!(name: 'Encuesta 100%', categories: ['SURVEY'])
+    create(:whatsapp_flow, account: account, name: 'Encuesta 100 datos', categories: ['SURVEY'])
+    expect(catalog.filter_flows(search: '100%', category: 'SURVEY', state: 'none').pluck(:id)).to eq([flow.id])
+    expect(catalog.filter_flows(category: 'OTHER')).to be_empty
+  end
+
+  it 'reports none sent when the account has no Cloud WABAs' do
+    account.whatsapp_channels.update_all(provider: 'default') # rubocop:disable Rails/SkipsModelValidations
+    expect(catalog.summary(catalog.flows.find(flow.id))).to eq(state: 'none', total: 0, published: 0, errors: 0)
+    expect(catalog.detail(flow, page: 1, per_page: 5)[:rows]).to be_empty
+  end
 end
