@@ -1339,7 +1339,7 @@ docker compose -f docker-compose.dokploy.yml -f docker-compose.dokploy.fork.yml 
 
 ---
 
-### B-NEW-45 — WhatsApp forms: stale publication and editor preview clarity
+### B-NEW-53 — WhatsApp forms: stale publication and editor preview clarity
 
 - Files: `WhatsappFlowSendDialog.vue`, `WhatsappFlowSend.vue`, `WhatsappFlowsController`, `FlowsPanel.vue`,
   `FlowBuilderPage.vue`, `FlowPhoneCanvas.vue`, `useFlowPublications.js`, and English/Spanish `whatsappFlows.json`.
