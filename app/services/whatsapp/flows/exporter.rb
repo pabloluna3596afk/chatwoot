@@ -145,8 +145,8 @@ class Whatsapp::Flows::Exporter
   def expression(condition, screen_index)
     field = @fields.find { |item| item[:key] == condition['key'].to_s }
     source = field && field[:screen] == screen_index ? 'form' : 'data'
-    operator = condition['op'] == 'not_equals' ? '!=' : '=='
-    value = field && field[:type] == 'optin' ? condition['value'].to_s : "'#{condition['value']}'"
+    operator = Spec::CONDITIONS.fetch('operators').fetch(condition.fetch('op'))
+    value = field && field[:type] == Spec::CONDITIONS.fetch('boolean_type') ? condition['value'].to_s : "'#{condition['value']}'"
     "${#{source}.#{condition['key']}} #{operator} #{value}"
   end
 end

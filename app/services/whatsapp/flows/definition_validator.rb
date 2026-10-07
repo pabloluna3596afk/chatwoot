@@ -200,7 +200,7 @@ class Whatsapp::Flows::DefinitionValidator
   end
 
   def check_condition(condition, path, position, fields)
-    return add('condition_invalid', path) unless condition.is_a?(Hash) && %w[equals not_equals].include?(condition['op'])
+    return add('condition_invalid', path) unless condition.is_a?(Hash) && Spec::CONDITIONS.fetch('operators').key?(condition['op'])
 
     source = fields.find { |field| field[:key] == condition['key'].to_s }
     return add('condition_unknown_field', "#{path}.key") if source.nil?
@@ -214,7 +214,7 @@ class Whatsapp::Flows::DefinitionValidator
     value = condition['value'].to_s
     valid = case source[:type]
             when 'dropdown', 'radio' then option_ids(source[:definition]).include?(value)
-            when 'optin' then %w[true false].include?(value)
+            when Spec::CONDITIONS.fetch('boolean_type') then %w[true false].include?(value)
             else value.match?(Spec::CONDITION_VALUE_FORMAT)
             end
     add('condition_value_invalid', "#{path}.value") unless valid

@@ -32,7 +32,8 @@ module Whatsapp::Flows::Spec
   FILE_BLOCKS = %w[photo document].freeze
   BLOCK_TYPES = (TEXT_BLOCKS + INPUT_BLOCKS).freeze
   # What a `visible_when` can look at: a single answer (not a list or a file).
-  CONDITION_KINDS = %w[short_text dropdown radio optin].freeze
+  CONDITIONS = JSON.parse(Rails.root.join('config/whatsapp_flow_conditions.json').read).freeze
+  CONDITION_KINDS = CONDITIONS.fetch('types').freeze
   TEXT_INPUTS = %w[text email phone number].freeze
   # Meta's categories for a flow.
   CATEGORIES = %w[SIGN_UP SIGN_IN APPOINTMENT_BOOKING LEAD_GENERATION CONTACT_US CUSTOMER_SUPPORT SURVEY OTHER].freeze
