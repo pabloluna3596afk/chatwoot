@@ -17,7 +17,7 @@ import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
-import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import BaseTable from 'dashboard/components-next/table/BaseTable.vue';
 import BaseTableRow from 'dashboard/components-next/table/BaseTableRow.vue';
@@ -36,6 +36,7 @@ const isAdmin = computed(() => checkPermissions(['administrator']));
 const { run, abort, isPending } = useAbortableRequest();
 const flows = ref([]);
 const total = ref(0);
+const facets = ref({ state: {}, category: {} });
 const search = ref('');
 const state = ref('all');
 const category = ref('all');
@@ -46,17 +47,27 @@ const deleteDialog = ref(null);
 const publicationPanel = ref(null);
 const isDeleting = ref(false);
 const stateOptions = computed(() => [
-  { value: 'all', label: t('WHATSAPP_FLOWS.LIST.ALL_STATES') },
+  {
+    value: 'all',
+    label: t('WHATSAPP_FLOWS.LIST.ALL_STATES'),
+    count: facets.value.state.all ?? 0,
+  },
   ...STATES.map(value => ({
     value,
     label: t(`WHATSAPP_FLOWS.LIST.STATES.${value}`),
+    count: facets.value.state[value] ?? 0,
   })),
 ]);
 const categoryOptions = computed(() => [
-  { value: 'all', label: t('WHATSAPP_FLOWS.LIST.ALL_CATEGORIES') },
+  {
+    value: 'all',
+    label: t('WHATSAPP_FLOWS.LIST.ALL_CATEGORIES'),
+    count: facets.value.category.all ?? 0,
+  },
   ...CATEGORIES.map(value => ({
     value,
     label: t(`WHATSAPP_FLOWS.CATEGORIES.${value}`),
+    count: facets.value.category[value] ?? 0,
   })),
 ]);
 const headers = computed(() =>
@@ -86,6 +97,7 @@ const load = async () => {
       if (signal.aborted) return;
       flows.value = data.payload;
       total.value = data.meta.total_count;
+      facets.value = data.facets;
       if (!flows.value.length && total.value && page.value > 1)
         page.value = Math.ceil(total.value / PAGE_SIZE);
     });
@@ -169,22 +181,20 @@ const categoryLabel = flow => {
         data-testid="flows-search"
       />
       <div class="w-48">
-        <ComboBox
+        <FilterDropdown
           v-model="state"
-          teleport
           :options="stateOptions"
-          :allow-deselect="false"
-          :aria-label="$t('WHATSAPP_FLOWS.LIST.STATE')"
+          :label="$t('WHATSAPP_FLOWS.LIST.STATE')"
+          icon="i-lucide-circle-check"
           data-testid="flows-state"
         />
       </div>
       <div class="w-48">
-        <ComboBox
+        <FilterDropdown
           v-model="category"
-          teleport
           :options="categoryOptions"
-          :allow-deselect="false"
-          :aria-label="$t('WHATSAPP_FLOWS.NEW.CATEGORIES')"
+          :label="$t('WHATSAPP_FLOWS.NEW.CATEGORIES')"
+          icon="i-lucide-folder"
           data-testid="flows-category"
         />
       </div>

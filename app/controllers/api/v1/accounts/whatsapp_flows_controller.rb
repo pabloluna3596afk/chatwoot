@@ -18,7 +18,8 @@ class Api::V1::Accounts::WhatsappFlowsController < Api::V1::Accounts::BaseContro
     per_page = catalog_per_page
     rows = flows.order(updated_at: :desc, id: :desc).offset((page - 1) * per_page).limit(per_page)
     payload = rows.map { |flow| summary(flow, unpublished: flow.catalog_unpublished).merge(publication_summary: catalog.summary(flow)) }
-    render json: { payload: payload, meta: { current_page: page, per_page: per_page, total_count: total } }
+    facets = catalog.facets(search: params[:search], category: params[:category], state: params[:state])
+    render json: { payload: payload, meta: { current_page: page, per_page: per_page, total_count: total }, facets: facets }
   end
 
   def show

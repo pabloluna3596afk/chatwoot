@@ -3,7 +3,7 @@ const openDetail = vi.fn();
 const DetailStub = { template: '<div/>', methods: { open: openDetail } };
 import FlowsPanel from '../FlowsPanel.vue';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
-import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import PaginationFooter from 'dashboard/components-next/pagination/PaginationFooter.vue';
 
 const { permissions, push } = vi.hoisted(() => ({
@@ -68,9 +68,35 @@ describe('FlowsPanel', () => {
   it('sends search, category and summary filters to the server and resets pagination', async () => {
     vi.useFakeTimers();
     WhatsappFlowsAPI.list.mockResolvedValue({
-      data: { payload: flows, meta: { total_count: 120 } },
+      data: {
+        payload: flows,
+        meta: { total_count: 120 },
+        facets: {
+          state: { all: 120, partial: 108 },
+          category: { all: 120, SURVEY: 12 },
+        },
+      },
     });
     const wrapper = await mountPanel();
+    const filters = wrapper.findAllComponents(FilterDropdown);
+    expect(
+      filters[0].props('options').find(option => option.value === 'partial')
+        .count
+    ).toBe(108);
+    expect(
+      filters[1].props('options').find(option => option.value === 'SURVEY')
+        .count
+    ).toBe(12);
+    WhatsappFlowsAPI.list.mockResolvedValue({
+      data: {
+        payload: flows,
+        meta: { total_count: 5 },
+        facets: {
+          state: { all: 9, partial: 5 },
+          category: { all: 17, SURVEY: 5 },
+        },
+      },
+    });
     wrapper.findComponent(PaginationFooter).vm.$emit('update:currentPage', 2);
     await flushPromises();
     await vi.advanceTimersByTimeAsync(201);
@@ -80,10 +106,10 @@ describe('FlowsPanel', () => {
     );
     await wrapper.get('[data-testid="flows-search"] input').setValue('Datos');
     wrapper
-      .findAllComponents(ComboBox)[0]
+      .findAllComponents(FilterDropdown)[0]
       .vm.$emit('update:modelValue', 'partial');
     wrapper
-      .findAllComponents(ComboBox)[1]
+      .findAllComponents(FilterDropdown)[1]
       .vm.$emit('update:modelValue', 'SURVEY');
     await flushPromises();
     await vi.advanceTimersByTimeAsync(201);
@@ -97,6 +123,15 @@ describe('FlowsPanel', () => {
       },
       expect.any(Object)
     );
+    expect(
+      filters[0].props('options').find(option => option.value === 'all').count
+    ).toBe(9);
+    expect(
+      filters[1].props('options').find(option => option.value === 'all').count
+    ).toBe(17);
+    expect(
+      filters[1].props('options').find(option => option.value === 'OTHER').count
+    ).toBe(0);
     wrapper.unmount();
     vi.useRealTimers();
   });
@@ -105,7 +140,14 @@ describe('FlowsPanel', () => {
     push.mockReset();
     Object.values(WhatsappFlowsAPI).forEach(fn => fn.mockReset());
     WhatsappFlowsAPI.list.mockResolvedValue({
-      data: { payload: flows, meta: { total_count: 1 } },
+      data: {
+        payload: flows,
+        meta: { total_count: 1 },
+        facets: {
+          state: { all: 1, partial: 1 },
+          category: { all: 1, LEAD_GENERATION: 1 },
+        },
+      },
     });
     WhatsappFlowsAPI.validate.mockResolvedValue({
       data: { valid: true, errors: [], flow_json: {} },
@@ -118,6 +160,10 @@ describe('FlowsPanel', () => {
       data: {
         payload: [{ ...flows[0], unpublished_changes: true }],
         meta: { total_count: 1 },
+        facets: {
+          state: { all: 1, partial: 1 },
+          category: { all: 1, LEAD_GENERATION: 1 },
+        },
       },
     });
     const wrapper = await mountPanel();
@@ -175,7 +221,11 @@ describe('FlowsPanel', () => {
 
   it('says there are no flows yet', async () => {
     WhatsappFlowsAPI.list.mockResolvedValue({
-      data: { payload: [], meta: { total_count: 0 } },
+      data: {
+        payload: [],
+        meta: { total_count: 0 },
+        facets: { state: { all: 0 }, category: { all: 0 } },
+      },
     });
     const wrapper = await mountPanel();
 
