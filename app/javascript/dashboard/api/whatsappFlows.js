@@ -12,9 +12,10 @@ class WhatsappFlowsAPI extends ApiClient {
     return axios.get(this.url);
   }
 
-  conversationFlows(conversationId) {
+  conversationFlows(conversationId, config = {}) {
     return axios.get(
-      `${this.baseUrl()}/conversations/${conversationId}/whatsapp_flows`
+      `${this.baseUrl()}/conversations/${conversationId}/whatsapp_flows`,
+      config
     );
   }
 

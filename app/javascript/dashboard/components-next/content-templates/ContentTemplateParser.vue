@@ -38,7 +38,7 @@ const languageLabel = computed(() => {
 });
 
 const categoryLabel = computed(() => {
-  return `${t('CONTENT_TEMPLATES.PARSER.CATEGORY')}: ${props.template.category || 'utility'}`;
+  return `${t('CONTENT_TEMPLATES.PARSER.CATEGORY')}: ${t(`WHATSAPP_TEMPLATES.SEND_CENTER.CATEGORY.${(props.template.category || 'utility').toUpperCase()}`)}`;
 });
 
 const templateBody = computed(() => {
@@ -158,6 +158,7 @@ defineExpose({
   hasVariables,
   hasMediaTemplate,
   renderedTemplate,
+  isFormInvalid,
   v$,
   sendMessage,
   resetTemplate,
