@@ -12,7 +12,7 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
-import { saveTargets } from './flowSaveTargets';
+import { saveTargets, saveTargetLabel } from './flowSaveTargets';
 import {
   INPUT_KINDS,
   LIMITS,
@@ -72,10 +72,7 @@ const targetOptions = computed(() => [
   { value: '', label: t('WHATSAPP_FLOWS.EDITOR.NO_SAVE') },
   ...targets.value.map(target => ({
     value: target.key,
-    label:
-      target.group === 'system'
-        ? t(`WHATSAPP_FLOWS.EDITOR.TARGETS.${target.name}`)
-        : target.label,
+    label: saveTargetLabel(target, t),
     group: target.group,
   })),
 ]);
