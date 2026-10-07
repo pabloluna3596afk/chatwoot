@@ -17,13 +17,47 @@ RSpec.describe 'Conversation WhatsApp flows', type: :request do
                                     status: 'published', meta_flow_id: '123456', published_at: Time.current)
   end
 
-  it 'lets an inbox agent list and send one currently published form' do
+  it 'lets an inbox agent list and send one currently published Flow' do
     get url, headers: headers
     expect(response).to have_http_status(:ok)
     expect(response.parsed_body['payload'].pluck('id')).to eq([flow.id])
+    expect(response.parsed_body['payload'].first).to include('status' => 'published', 'can_send' => true, 'unpublished_changes' => false)
     expect { post url, params: { whatsapp_flow_id: flow.id }, headers: headers, as: :json }.to change(Message, :count).by(1)
     expect(response).to have_http_status(:ok)
     expect(conversation.messages.last.additional_attributes.dig('whatsapp_flow', 'id')).to eq(flow.id)
+  end
+
+  it 'includes every local Flow using only the current WABA publication without exposing credentials' do
+    draft = create(:whatsapp_flow, account: account)
+    other_waba = create(:whatsapp_flow, account: account)
+    WhatsappFlowPublication.create!(whatsapp_flow: draft, account: account, waba_id: channel.provider_config['business_account_id'],
+                                    status: 'draft', meta_flow_id: '234567')
+    WhatsappFlowPublication.create!(whatsapp_flow: other_waba, account: account, waba_id: '999999',
+                                    status: 'published', meta_flow_id: '345678', published_at: Time.current)
+    create(:whatsapp_flow)
+
+    get url, headers: headers
+    rows = response.parsed_body['payload'].index_by { |row| row['id'] }
+    expect(rows.keys).to contain_exactly(flow.id, draft.id, other_waba.id)
+    expect(rows[draft.id]).to include('status' => 'draft', 'can_send' => false)
+    expect(rows[other_waba.id]).to include('status' => 'none', 'can_send' => false)
+    expect(rows[flow.id].keys).to contain_exactly('id', 'name', 'categories', 'status', 'unpublished_changes', 'screens', 'can_send')
+  end
+
+  it 'lists changes needing publication and keeps their send endpoint blocked' do
+    flow.update!(name: 'Updated Flow')
+    get url, headers: headers
+    expect(response.parsed_body['payload'].first).to include('status' => 'published', 'unpublished_changes' => true, 'can_send' => false)
+    expect { post url, params: { whatsapp_flow_id: flow.id }, headers: headers, as: :json }.not_to change(Message, :count)
+    expect(response).to have_http_status(:unprocessable_entity)
+  end
+
+  it 'allows consulting the catalog outside the messaging window with sending disabled' do
+    conversation.messages.incoming.update_all(created_at: 2.days.ago) # rubocop:disable Rails/SkipsModelValidations
+    get url, headers: headers
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body).to include('can_reply' => false)
+    expect(response.parsed_body['payload'].first).to include('status' => 'published', 'can_send' => false)
   end
 
   it 'denies an agent without access and another account' do
