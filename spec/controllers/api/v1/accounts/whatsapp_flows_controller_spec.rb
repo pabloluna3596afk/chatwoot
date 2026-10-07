@@ -82,6 +82,21 @@ RSpec.describe 'WhatsApp flows (forms) API', type: :request do
   end
 
   describe 'GET index' do
+    it 'preserves the payload wrapper for an empty account without WABAs or publications' do
+      get base_url, headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body).to include('payload' => [])
+      expect(response.parsed_body['meta']).to include('total_count' => 0)
+    end
+
+    it 'rejects nested filter objects through the real Rails parameter parser' do
+      get base_url, params: { search: { value: 'invalid' } }, headers: admin.create_new_auth_token
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['error']).to eq('invalid')
+    end
+
     it 'paginates and filters by name and category without leaking another account' do
       create(:whatsapp_flow, account: account, name: 'Encuesta uno', categories: ['SURVEY'])
       second = create(:whatsapp_flow, account: account, name: 'Encuesta dos', categories: ['SURVEY'], updated_at: 1.day.ago)

@@ -87,7 +87,7 @@ class Api::V1::Accounts::WhatsappFlowsController < Api::V1::Accounts::BaseContro
   private
 
   def validate_catalog_filters
-    invalid = params.slice(:page, :per_page, :search, :state, :category).any? { |key, value| !valid_catalog_filter?(key, value) }
+    invalid = params.slice(:page, :per_page, :search, :state, :category).each_pair.any? { |key, value| !valid_catalog_filter?(key, value) }
     render json: { error: 'invalid', message: 'Invalid catalog filters' }, status: :unprocessable_entity if invalid
   end
 

@@ -68,7 +68,7 @@ RSpec.describe Whatsapp::Flows::PublicationCatalog do
   it 'excludes other accounts, removed WABAs and non-Cloud numbers' do
     create(:channel_whatsapp, provider: 'whatsapp_cloud', validate_provider_config: false, sync_templates: false)
     create(:channel_whatsapp, account: account, provider: 'default', validate_provider_config: false, sync_templates: false)
-    flow.whatsapp_flow_publications.create!(account: account, waba_id: 'removed', status: 'blocked')
+    flow.whatsapp_flow_publications.create!(account: account, waba_id: '999999', status: 'blocked')
     expect(catalog.summary(catalog.flows.find(flow.id))).to eq(state: 'none', total: 2, published: 0, errors: 0)
     expect(catalog.detail(flow, page: 1, per_page: 5)[:meta][:total_count]).to eq(2)
   end
@@ -76,7 +76,7 @@ RSpec.describe Whatsapp::Flows::PublicationCatalog do
   it 'keeps a 120-WABA catalog bounded to the requested page' do
     create_list(:channel_whatsapp, 118, account: account, provider: 'whatsapp_cloud', validate_provider_config: false, sync_templates: false)
       .each_with_index do |record, index|
-        record.update!(provider_config: record.provider_config.merge('business_account_id' => "waba-#{index}"))
+        record.update!(provider_config: record.provider_config.merge('business_account_id' => (1000 + index).to_s))
       end
     result = catalog.detail(flow, page: 20, per_page: 5)
     expect(result[:meta][:total_count]).to eq(120)

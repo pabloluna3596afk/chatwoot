@@ -41,6 +41,18 @@ RSpec.describe 'WhatsApp flows to Meta API', type: :request do
   end
 
   describe 'GET publication_status' do
+    it 'returns an empty paginated detail when there are no Cloud WABAs' do
+      channel.update_columns(provider: 'default') # rubocop:disable Rails/SkipsModelValidations
+
+      get "#{base_path}/publication_status", params: { page: '1', per_page: '5' }, headers: admin.create_new_auth_token
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body).to include('rows' => [], 'publication_summary' => {
+        'state' => 'none', 'total' => 0, 'published' => 0, 'errors' => 0
+      })
+      expect(response.parsed_body['meta']['total_count']).to eq(0)
+    end
+
     it 'adds paginated WABA detail on demand without changing the legacy response' do
       get "#{base_path}/publication_status", params: { page: '1', per_page: '5' }, headers: admin.create_new_auth_token
 
