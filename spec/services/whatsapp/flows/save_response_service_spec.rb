@@ -19,6 +19,38 @@ RSpec.describe Whatsapp::Flows::SaveResponseService do
   let(:token) { Whatsapp::Flows::ResponseToken.generate(outgoing) }
   let(:payload) { { 'flow_token' => token, 'name' => 'Updated', 'email' => '', 'phone' => 'invalid', 'document' => '' } }
 
+  it 'stores only display metadata from the validated snapshot and still saves contact fields' do
+    response_fields = [
+      { 'key' => 'name', 'label' => 'Nombre', 'type' => 'short_text' },
+      { 'key' => 'interests', 'label' => 'Intereses', 'type' => 'checkbox', 'options' => [{ 'id' => 'news', 'title' => 'Novedades' }] }
+    ]
+    outgoing.update!(additional_attributes: { 'whatsapp_flow' => outgoing.additional_attributes.fetch('whatsapp_flow')
+                                                                                   .merge('response_fields' => response_fields) })
+    answers = payload.merge('interests' => ['news'])
+    incoming.update!(content_attributes: { 'whatsapp_flow_response' => answers.except('flow_token') })
+    described_class.new(incoming, answers).perform
+    expect(incoming.reload.content_attributes.fetch('whatsapp_flow_meta')).to eq('name' => 'Datos', 'fields' => response_fields)
+    expect(incoming.content_attributes.fetch('whatsapp_flow_response')).to eq(answers.except('flow_token'))
+    expect(incoming.content_attributes.fetch('whatsapp_flow_meta').to_json).not_to include(token, 'save_to', 'flow_token')
+    expect(contact.reload.name).to eq('Updated')
+  end
+
+  it 'supports outgoing snapshots created before display metadata was added' do
+    described_class.new(incoming, payload).perform
+    expect(incoming.reload.content_attributes.fetch('whatsapp_flow_meta')).to eq('name' => 'Datos', 'fields' => [])
+    expect(contact.reload.name).to eq('Updated')
+  end
+
+  it 'stores metadata for a Flow without contact save targets' do
+    response_fields = [{ 'key' => 'city', 'label' => 'Ciudad', 'type' => 'short_text' }]
+    outgoing.update!(additional_attributes: { 'whatsapp_flow' => {
+      'name' => 'Consulta', 'fields' => [], 'response_fields' => response_fields
+    } })
+    described_class.new(incoming, { 'flow_token' => token, 'city' => 'Quito' }).perform
+    expect(incoming.reload.content_attributes.fetch('whatsapp_flow_meta')).to eq('name' => 'Consulta', 'fields' => response_fields)
+    expect(contact.reload.name).not_to eq('Updated')
+  end
+
   it 'saves valid answers, skips invalid/blank fields and notes exactly once' do
     2.times { described_class.new(incoming, payload).perform }
     expect(contact.reload.name).to eq('Updated')
@@ -33,6 +65,7 @@ RSpec.describe Whatsapp::Flows::SaveResponseService do
     ["#{token}x", 'unknown'].each { |value| described_class.new(incoming, payload.merge('flow_token' => value)).perform }
     expect(contact.reload.name).not_to eq('Updated')
     expect(conversation.messages.where(private: true)).to be_empty
+    expect(incoming.reload.content_attributes['whatsapp_flow_meta']).to be_nil
   end
 
   it 'rejects other accounts and other sender identities' do
