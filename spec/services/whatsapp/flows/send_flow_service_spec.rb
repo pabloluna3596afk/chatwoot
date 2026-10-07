@@ -26,6 +26,24 @@ RSpec.describe Whatsapp::Flows::SendFlowService do
     expect(message.additional_attributes.dig('whatsapp_flow', 'fields', 0, 'save_to', 'target')).to eq('contact.name')
   end
 
+  it 'snapshots every answer label and option without changing the save mapping' do
+    flow.definition['screens'][0]['blocks'] << {
+      'type' => 'checkbox', 'key' => 'interests', 'label' => 'Intereses',
+      'options' => [{ 'id' => 'news', 'title' => 'Novedades', 'secret' => 'private' }, { 'id' => 'advice', 'title' => 'Asesoría' }]
+    }
+    flow.save!
+    flow.whatsapp_flow_publications.sole.update!(published_at: Time.current)
+    message = service.perform
+    snapshot = message.additional_attributes.fetch('whatsapp_flow')
+    expect(snapshot.fetch('fields').map { |field| field.fetch('key') }).to eq(['nombre'])
+    expect(snapshot.fetch('response_fields')).to eq([
+                                                      { 'key' => 'nombre', 'label' => 'Nombre', 'type' => 'short_text' },
+                                                      { 'key' => 'interests', 'label' => 'Intereses', 'type' => 'checkbox',
+                                                        'options' => [{ 'id' => 'news', 'title' => 'Novedades' },
+                                                                      { 'id' => 'advice', 'title' => 'Asesoría' }] }
+                                                    ])
+  end
+
   it 'uses Cloud v22.0, one interactive request and a signed token' do
     message = service.perform
     url = "https://graph.facebook.com/v22.0/#{channel.provider_config['phone_number_id']}/messages"

@@ -18,7 +18,8 @@ class Whatsapp::Flows::SaveResponseService
       @contact.with_lock { save_fields(flow.fetch('fields')) }
       outgoing.conversation.messages.create!(account_id: outgoing.account_id, inbox_id: outgoing.inbox_id,
                                              message_type: :outgoing, private: true, content: note(flow.fetch('name')))
-      @incoming.update!(content_attributes: @incoming.content_attributes.merge('whatsapp_flow_saved' => true))
+      metadata = { 'name' => flow.fetch('name'), 'fields' => flow.fetch('response_fields', []) }
+      @incoming.update!(content_attributes: @incoming.content_attributes.merge('whatsapp_flow_saved' => true, 'whatsapp_flow_meta' => metadata))
     end
   end
 

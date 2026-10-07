@@ -3,6 +3,27 @@
 > Documento vivo. Cada bug tiene ID, severidad, archivo, descripción, fix aplicado
 > y cómo probarlo. Trazabilidad cruzando con `INTERNAL_TASKS_AND_ALERTS.md`.
 
+### B-NEW-53 — Flow: tarjeta vacía por contrato de respuestas incorrecto (2026-10-07)
+
+**Archivos:** `components-next/message/MessageList.vue`,
+`bubbles/WhatsappFlowResponse.vue`, `helpers/whatsappFlowResponse.js`,
+`whatsapp/flows/send_flow_service.rb`, `whatsapp/flows/save_response_service.rb`.
+
+**Síntoma:** la tarjeta esperaba `responseJson`, pero el backend entrega
+`content_attributes.whatsapp_flow_response` plano; no mostraba filas ni copia.
+
+**Fix:** conservar las claves originales del payload plano y agregar metadata
+separada desde el snapshot saliente validado. Mostrar etiquetas, títulos de
+opciones y archivos como texto; copiar respuestas con nombre del Flow y feedback.
+El mapeo `save_to` y el fallback TextBubble de mensajes antiguos se conservan.
+
+**Cómo probar:** completar un Flow con selección múltiple, texto largo y archivo;
+verificar seis filas legibles en claro/oscuro, “Archivo recibido” sin enlace,
+“Copiar respuestas” con texto `Etiqueta: valor` y “Copiado”. Sin metadata, esperar
+encabezado Flow y etiquetas humanizadas; mensajes antiguos siguen como texto.
+Vitest: 3 archivos, 12 pruebas aprobadas. Specs de metadata y guardado agregados;
+RSpec pendiente de CI porque el contenedor local no tiene el ejecutable.
+
 **Última actualización:** feature `B-NEW-52` time automations before/on/after
 (2026-08-14). Antes: feature `B-NEW-51` `contacts.chat_bot` + Panel reclaim AgentBot
 (2026-07-29). Antes: feature `B-NEW-50` business rules lint + dry-run + kill switch
