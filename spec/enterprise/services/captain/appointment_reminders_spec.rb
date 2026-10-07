@@ -80,7 +80,10 @@ RSpec.describe Captain::AppointmentReminders do
     end
 
     it 'does not schedule anything when both reminders are off' do
-      assistant.update!(config: { 'appointments' => appointments_config.merge('reminder_2' => { 'enabled' => false, 'hours_before' => 3 }, 'reminder_1' => { 'enabled' => false, 'hours_before' => 24 }) })
+      assistant.update!(config: { 'appointments' => appointments_config.merge('reminder_2' => { 'enabled' => false, 'hours_before' => 3 },
+                                                                              'reminder_1' => {
+                                                                                'enabled' => false, 'hours_before' => 24
+                                                                              }) })
 
       expect { schedule }.not_to change(Captain::AppointmentReminder, :count)
     end
@@ -297,7 +300,7 @@ RSpec.describe Captain::AppointmentReminders do
       before do
         create(:message, account: account, inbox: inbox, conversation: conversation, message_type: :incoming, created_at: now - 3.days)
         assistant.update!(config: { 'appointments' => appointments_config.merge(paid_config.except('allow_paid_templates')),
-                                  'allow_paid_templates' => paid_config['allow_paid_templates'] == true })
+                                    'allow_paid_templates' => paid_config['allow_paid_templates'] == true })
         schedule
       end
 

@@ -8,8 +8,8 @@ RSpec.describe Whatsapp::TemplateMessageSnapshotService do
     { 'name' => 'appointment', 'language' => 'en', 'status' => 'APPROVED', 'category' => 'UTILITY',
       'components' => [header, { 'type' => 'BODY', 'text' => 'Hello {{1}}' }, { 'type' => 'FOOTER', 'text' => 'Thank you' },
                        { 'type' => 'BUTTONS', 'buttons' => [{ 'type' => 'QUICK_REPLY', 'text' => 'Confirm' },
-                                                         { 'type' => 'URL', 'text' => 'Location', 'url' => 'https://example.com/{{1}}' },
-                                                         { 'type' => 'FLOW', 'text' => 'Open Flow', 'flow_id' => 'internal-id' }] }] }
+                                                            { 'type' => 'URL', 'text' => 'Location', 'url' => 'https://example.com/{{1}}' },
+                                                            { 'type' => 'FLOW', 'text' => 'Open Flow', 'flow_id' => 'internal-id' }] }] }
   end
   let(:channel) do
     create(:channel_whatsapp, account: account, sync_templates: false, validate_provider_config: false, message_templates: [entry])
@@ -29,7 +29,7 @@ RSpec.describe Whatsapp::TemplateMessageSnapshotService do
     expect(snapshot).to include('name' => 'appointment', 'category' => 'UTILITY', 'footer' => 'Thank you')
     expect(snapshot['header']).to eq('format' => 'TEXT', 'text' => "For #{conversation.contact.name}")
     expect(snapshot['buttons']).to eq([{ 'type' => 'QUICK_REPLY', 'text' => 'Confirm' }, { 'type' => 'URL', 'text' => 'Location' },
-                                     { 'type' => 'FLOW', 'text' => 'Open Flow' }])
+                                       { 'type' => 'FLOW', 'text' => 'Open Flow' }])
     expect(snapshot.to_json).not_to include('flow_token', 'internal-id', 'private-test-value')
     channel.update!(message_templates: [])
     expect(message.reload.content_attributes['whatsapp_template']).to eq(snapshot)
