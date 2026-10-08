@@ -61,6 +61,32 @@ describe('FilterDropdown', () => {
     wrapper.unmount();
   });
 
+  it('uses an optional short trigger label while retaining full menu labels, counts and selected titles', async () => {
+    const longLabel =
+      'Changes awaiting publication on the connected WhatsApp account';
+    const wrapper = mountFilter({
+      options: [
+        {
+          value: 'all',
+          label: 'All states',
+          triggerLabel: 'States',
+          count: 12,
+        },
+        { value: 'changes', label: longLabel, count: 2 },
+      ],
+    });
+    expect(wrapper.get('button').text()).toBe('States');
+    expect(wrapper.get('button').attributes('title')).toBe('All states');
+    await wrapper.get('button').trigger('click');
+    expect(
+      wrapper.findAll('[role="dialog"] button').map(row => row.text())
+    ).toEqual(['All states12', `${longLabel}2`]);
+    await wrapper.setProps({ modelValue: 'changes' });
+    expect(wrapper.get('button').text()).toBe(longLabel);
+    expect(wrapper.get('button').attributes('title')).toBe(longLabel);
+    wrapper.unmount();
+  });
+
   it('supports arrows, Home, End, Enter selection and Escape with focus restoration', async () => {
     const wrapper = mountFilter();
     await wrapper.get('button').trigger('keydown', { key: 'ArrowDown' });

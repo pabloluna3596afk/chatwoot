@@ -63,6 +63,8 @@
       "TEMPLATES": "Templates",
       "FLOWS": "Flows",
       "SEARCH": "Search by name or content?",
+      "FILTER_CATEGORY": "Categories",
+      "FILTER_STATUS": "Status",
       "ALL_CATEGORIES": "All categories",
       "ALL_STATUSES": "All statuses",
       "CATEGORY_GROUP": "Template categories",

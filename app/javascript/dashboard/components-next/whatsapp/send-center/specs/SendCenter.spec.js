@@ -291,6 +291,13 @@ describe('unified send center', () => {
       wrapper.get('[data-testid="center-search"]').element.nextElementSibling
     ).toBe(filterRow.element);
     const filters = wrapper.findAllComponents(FilterDropdown);
+    expect(filters.map(filter => filter.get('button').text())).toEqual([
+      'Categor\u00edas',
+      'Estados',
+    ]);
+    expect(
+      filters.map(filter => filter.get('button').attributes('title'))
+    ).toEqual(['Todas las categor\u00edas', 'Todos los estados']);
     expect(filters.map(filter => filter.props('options')[0].count)).toEqual([
       3, 3,
     ]);
@@ -510,6 +517,8 @@ describe('unified send center', () => {
     expect(wrapper.get('[data-testid="center-list"]').text()).not.toContain(
       'offer'
     );
+    expect(categoryFilter.get('button').text()).toBe('Utilidad');
+    expect(categoryFilter.get('button').attributes('title')).toBe('Utilidad');
     expect(
       statusFilter.props('options').find(option => option.value === 'ALL').count
     ).toBe(2);

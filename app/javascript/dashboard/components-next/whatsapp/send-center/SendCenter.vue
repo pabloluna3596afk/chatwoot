@@ -173,6 +173,7 @@ const categoryOptions = computed(() => [
   {
     value: 'ALL',
     label: t(`${prefix}.ALL_CATEGORIES`),
+    triggerLabel: t(`${prefix}.FILTER_CATEGORY`),
     count: categoryRows.value.length,
   },
   ...(tab.value === 0
@@ -193,6 +194,7 @@ const statusOptions = computed(() => [
   {
     value: 'ALL',
     label: t(`${prefix}.ALL_STATUSES`),
+    triggerLabel: t(`${prefix}.FILTER_STATUS`),
     count: statusRows.value.length,
   },
   ...(tab.value === 0 ? TEMPLATE_STATUSES : FLOW_STATUSES).map(value => ({
@@ -379,7 +381,7 @@ watch(
         />
       </div>
       <div
-        class="grid min-h-0 flex-1 gap-6 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,2fr)]"
+        class="grid min-h-0 flex-1 gap-6 sm:grid-cols-[20rem_minmax(0,1fr)] lg:grid-cols-[22rem_minmax(0,1fr)]"
         data-testid="center-columns"
       >
         <section class="flex flex-col min-h-0 min-w-0 gap-3">
@@ -398,16 +400,18 @@ watch(
           >
             <FilterDropdown
               v-model="category"
+              class="[&>button]:w-full"
               icon="i-lucide-folder"
-              :label="$t(`${prefix}.ALL_CATEGORIES`)"
+              :label="$t(`${prefix}.FILTER_CATEGORY`)"
               :options="categoryOptions"
               :groups="categoryGroups"
               data-testid="center-category"
             />
             <FilterDropdown
               v-model="status"
+              class="[&>button]:w-full"
               icon="i-lucide-circle-check"
-              :label="$t(`${prefix}.ALL_STATUSES`)"
+              :label="$t(`${prefix}.FILTER_STATUS`)"
               :options="statusOptions"
               :groups="statusGroups"
               data-testid="center-status"

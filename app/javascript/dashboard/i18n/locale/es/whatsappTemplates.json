@@ -63,6 +63,8 @@
       "TEMPLATES": "Plantillas",
       "FLOWS": "Flows",
       "SEARCH": "Buscar por nombre o contenido\u2026",
+      "FILTER_CATEGORY": "Categorías",
+      "FILTER_STATUS": "Estados",
       "ALL_CATEGORIES": "Todas las categor\u00edas",
       "ALL_STATUSES": "Todos los estados",
       "CATEGORY_GROUP": "Categor\u00edas de plantillas",
