@@ -1437,6 +1437,27 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
 - Production counted filters, inbox destinations, language reporting and Meta errors remain unchanged.
 - Verify: run the LibraryPanel Vitest suite; all backend shards and RuboCop passed in the failing CI run.
 
+### B-NEW-59 -- Editing positional WhatsApp templates changed their Meta structure
+
+- Files: `settings/templates/TemplateFormDrawer.vue`, `templateForm.js`, `Index.vue`,
+  `Whatsapp::TemplateManagementService`, `Whatsapp::TemplateComponentsBuilder`,
+  `Whatsapp::TemplateEditValidator`, `inbox_whatsapp_templates_controller.rb`, en/es translations and related specs.
+- Regression: editing `test_utility_envio` replaced four POSITIONAL variables with three NAMED variables,
+  added a header and encoded the dynamic URL placeholder, leading to a Meta 422.
+- Load the live Meta components, format, examples and update time. Keep edit identity, component types,
+  button types and the full parameter sequence; reject structural changes before a write to Meta.
+  Create a separate NAMED copy through explicit system-variable ComboBoxes and a different editable name.
+- Keep `https://paluhub.com/track/{{2}}` unencoded and require a complete matching example URL.
+  Return the original Meta message/code/subcode/user message, show it in the drawer and warn-log only
+  whitelisted fields with credentials and submitted text/examples redacted.
+- Verify: edit the approved positional preset without a header/footer; check all four examples, the single
+  approval warning and the raw URL. Try adding/removing/reordering parameters. Open the system copy,
+  complete each mapping and confirm only the new template is created. Reject a save and check the inline Meta error.
+- Local validation: 60 isolated RSpec/WebMock service/builder examples pass; the full template Vitest folder
+  and subsequent drawer regressions pass. CI RuboCop changed-line filtering passes on all seven Ruby files.
+  The real-controller Rails request specs are authored but cannot run in the available production-only image.
+  Full Vite build is blocked by the documented old `@chatwoot/prosemirror-schema` missing `imagePastePlugin` export.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)
