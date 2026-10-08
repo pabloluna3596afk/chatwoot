@@ -7,9 +7,10 @@ import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDrop
 import InboxesAPI from 'dashboard/api/inboxes';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 
-const { openForm, openPreview } = vi.hoisted(() => ({
+const { openForm, openPreview, openSystemCopy } = vi.hoisted(() => ({
   openForm: vi.fn(),
   openPreview: vi.fn(),
+  openSystemCopy: vi.fn(),
 }));
 vi.mock('vue-router', () => ({
   useRoute: () => ({ query: {} }),
@@ -50,7 +51,7 @@ vi.mock('dashboard/api/whatsappTemplates', () => ({
   default: { createTemplate: vi.fn() },
 }));
 vi.mock('../TemplateFormDrawer.vue', () => ({
-  default: { template: '<div/>', methods: { open: openForm } },
+  default: { template: '<div/>', methods: { open: openForm, openSystemCopy } },
 }));
 vi.mock('../TemplatePreviewDrawer.vue', () => ({
   default: { template: '<div/>', methods: { open: openPreview } },
@@ -134,6 +135,27 @@ describe('Templates page', () => {
         inboxId: 7,
         category: 'UTILITY',
         body: expect.objectContaining({ text: 'Hello' }),
+      })
+    );
+    expect(WhatsappTemplatesAPI.createTemplate).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('opens the system mapping view from Duplicate for a positional template', async () => {
+    const wrapper = await render();
+    const table = wrapper.findComponent(TemplatesTable);
+    const template = {
+      ...table.props('items')[0],
+      parameter_format: 'POSITIONAL',
+    };
+    // Row actions forward the source template to the shared drawer entry point.
+    const actions = wrapper.findComponent(TemplateRowActions);
+    table.props('items')[0].parameter_format = 'POSITIONAL';
+    await actions.get('[data-action="duplicate"]').trigger('click');
+    expect(openSystemCopy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: template.name,
+        parameter_format: 'POSITIONAL',
       })
     );
     expect(WhatsappTemplatesAPI.createTemplate).not.toHaveBeenCalled();

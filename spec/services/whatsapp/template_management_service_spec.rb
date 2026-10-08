@@ -168,6 +168,24 @@ RSpec.describe Whatsapp::TemplateManagementService do
       expect(a_request(:post, "#{base}/555")).not_to have_been_made
     end
 
+    it 'sends the exact positional components, including all four examples and the unencoded URL' do
+      original = { id: '555', name: 'test_utility_envio', language: 'es_EC', category: 'UTILITY', status: 'APPROVED',
+                   parameter_format: 'POSITIONAL', components: [
+                     { type: 'BODY', text: 'Hola {{1}}, pedido {{2}}, fecha {{3}}, agente {{4}}.',
+                       example: { body_text: [%w[Ana 123 lunes Luis]] } },
+                     { type: 'BUTTONS', buttons: [{ type: 'URL', text: 'Seguir', url: 'https://paluhub.com/track/{{2}}',
+                                                    example: ['https://paluhub.com/track/123'] }] }
+                   ] }
+      stub_request(:get, "#{base}/555").with(query: { fields: described_class::FIELDS })
+                                       .to_return(status: 200, headers: json, body: original.to_json)
+      edit = stub_request(:post, "#{base}/555").with(body: { components: original[:components] }.to_json)
+                                               .to_return(status: 200, headers: json, body: { success: true }.to_json)
+
+      service.update('555', components: original[:components], name: original[:name], language: 'es_EC', parameter_format: 'POSITIONAL')
+
+      expect(edit).to have_been_requested.once
+    end
+
     it 'raises the edit limit as a code' do
       stub_request(:post, "#{base}/555").to_return(meta_error(code: 100, message: 'Too many edits: 10 times in 30 days'))
 
