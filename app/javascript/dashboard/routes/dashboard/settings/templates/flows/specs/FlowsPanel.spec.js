@@ -189,6 +189,9 @@ describe('FlowsPanel', () => {
     expect(panel.findComponent(PaginationFooter).props('currentPage')).toBe(2);
     expect(panel.findAll('[data-testid="flow-row"]')).toHaveLength(1);
     expect(panel.find('[data-testid="flows-skeleton"]').exists()).toBe(false);
+    await vi.advanceTimersByTimeAsync(250);
+    expect(panel.findAll('[data-testid="flow-row"]')).toHaveLength(1);
+    expect(panel.find('[data-testid="flows-skeleton"]').exists()).toBe(false);
     expect(WhatsappFlowsAPI.list).toHaveBeenLastCalledWith(
       {
         page: 2,
@@ -236,6 +239,29 @@ describe('FlowsPanel', () => {
         .find(option => option.value === 'published').count
     ).toBe(1);
     wrapper.unmount();
+  });
+
+  it('loads newly created flows and their counts when returning from the editor', async () => {
+    const wrapper = await mountPanel();
+    await wrapper.get('[data-testid="flow-new"]').trigger('click');
+    wrapper.unmount();
+    WhatsappFlowsAPI.list.mockResolvedValueOnce({
+      data: {
+        payload: [...flows, { ...flows[0], id: 2, name: 'Nuevo Flow' }],
+        meta: { total_count: 2 },
+        facets: {
+          state: { all: 2, partial: 2 },
+          category: { all: 2, LEAD_GENERATION: 2 },
+        },
+      },
+    });
+    const returned = await mountPanel();
+    expect(returned.findAll('[data-testid="flow-row"]')).toHaveLength(2);
+    expect(returned.text()).toContain('Nuevo Flow');
+    expect(
+      returned.findAllComponents(FilterDropdown)[0].props('options')[0].count
+    ).toBe(2);
+    returned.unmount();
   });
   it('sends search, category and summary filters to the server and resets pagination', async () => {
     vi.useFakeTimers();
