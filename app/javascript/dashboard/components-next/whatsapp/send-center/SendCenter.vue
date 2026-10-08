@@ -315,13 +315,15 @@ watch(
   <Dialog
     ref="dialog"
     width="3xl"
-    class="[&_dialog]:!w-[min(100vw-2rem,68.75rem)] [&_form>div:last-child]:!border-0 [&_form>div:last-child]:!pt-0"
     body-scroll
     :show-confirm-button="false"
     :show-cancel-button="false"
     @close="close"
   >
-    <div class="flex h-[min(38rem,calc(90vh-11rem))] min-h-0 flex-col gap-5">
+    <div
+      class="flex h-[min(38rem,calc(90vh-11rem))] min-h-0 flex-col gap-5 [dialog:has(&)]:!w-[min(100vw-2rem,68.75rem)] [form:has(&)>div:last-child]:!border-0 [form:has(&)>div:last-child]:!pt-0"
+      data-testid="center-body"
+    >
       <div class="flex shrink-0 justify-between items-start gap-3">
         <div>
           <h2
