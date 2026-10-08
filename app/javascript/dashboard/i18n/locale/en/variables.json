@@ -63,7 +63,7 @@
       "asistente": "Assistant name"
     },
     "PLACEHOLDER": "Choose a variable",
-    "SEARCH": "Search variables?",
+    "SEARCH": "Search variables…",
     "EMPTY": "No variables found",
     "NONE": "Do not save",
     "CREATE_ATTRIBUTE": "Create new attribute",

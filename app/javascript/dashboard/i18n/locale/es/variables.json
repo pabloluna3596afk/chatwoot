@@ -41,21 +41,21 @@
     "GROUPS": {
       "SYSTEM": "Sistema",
       "CONTACT": "Atributos del contacto",
-      "CONVERSATION": "Atributos de la conversaci?n",
+      "CONVERSATION": "Atributos de la conversación",
       "APPOINTMENT": "Citas de Captain"
     },
     "LABELS": {
       "nombre": "Nombre del contacto",
       "primer_nombre": "Nombre",
       "apellido": "Apellido",
-      "correo": "Correo electr?nico",
-      "telefono": "Tel?fono",
+      "correo": "Correo electrónico",
+      "telefono": "Teléfono",
       "empresa": "Empresa",
       "ciudad": "Ciudad",
-      "pais": "C?digo de pa?s",
-      "documento": "N?mero de documento",
+      "pais": "Código de país",
+      "documento": "Número de documento",
       "agente": "Nombre del agente",
-      "numero_conversacion": "N?mero de conversaci?n",
+      "numero_conversacion": "Número de conversación",
       "cita": "Cita",
       "fecha": "Fecha de la cita",
       "hora": "Hora de la cita",
@@ -63,11 +63,11 @@
       "asistente": "Nombre del asistente"
     },
     "PLACEHOLDER": "Elegir variable",
-    "SEARCH": "Buscar variables?",
+    "SEARCH": "Buscar variables…",
     "EMPTY": "No se encontraron variables",
     "NONE": "No guardar",
     "CREATE_ATTRIBUTE": "Crear atributo nuevo",
-    "NO_ATTRIBUTES": "Todav?a no hay atributos",
+    "NO_ATTRIBUTES": "Todavía no hay atributos",
     "NO_COMPATIBLE": "No hay variables compatibles"
   }
 }

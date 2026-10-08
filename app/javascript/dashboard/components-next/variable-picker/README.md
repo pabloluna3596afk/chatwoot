@@ -1,6 +1,6 @@
 # VariablePicker
 
-Use this thin ComboBox wrapper whenever a feature chooses one CRM variable. P1 consumers are Flow ?Guardar en? and template ?Crear copia con variables? mappings. Other pickers remain unchanged until their planned migration.
+Use this thin ComboBox wrapper whenever a feature chooses one CRM variable. P1 consumers are Flow "Guardar en" and template "Crear copia con variables" mappings. Other pickers remain unchanged until their planned migration.
 
 ```vue
 <VariablePicker mode="read" v-model="metaAlias" />
@@ -16,11 +16,11 @@ Use this thin ComboBox wrapper whenever a feature chooses one CRM variable. P1 c
 ```
 
 - `read` emits the existing Meta alias (`name`), displaying the human label and alias. `write` emits `canonicalPath` and displays only the human label. Never use the alias as a write target.
-- `scopes` restricts the ordered system/contact/conversation/appointment groups. `filter(binding)` adds the caller?s eligibility rules; Flow uses catalog `writableFor(binding, block)`, including numeric inputs, options and formulas.
+- `scopes` restricts the ordered system/contact/conversation/appointment groups. `filter(binding)` adds the caller's eligibility rules; Flow uses catalog `writableFor(binding, block)`, including numeric inputs, options and formulas.
 - `allowNone` adds an empty value, with optional `allowNoneLabel`. `disabled` and `hasError` forward to ComboBox. Other attributes (ARIA label, test ID) forward to ComboBox.
 - Account definitions load through `useTemplateBindings`. A caller that already owns definitions can pass reactive `attributes`; it remains responsible for updating them after the modal refreshes the store.
-- An administrator gets the shared ?Create new attribute? footer and existing AddAttribute modal. Closing it refreshes definitions. Formula attributes remain readable and cannot be selected for writing.
-- The teleported menu targets a local portal in the consumer?s scroll area. It participates in layout, is capped at 20rem, and scrolls its options before the consumer?s fixed footer.
+- An administrator gets the shared "Create new attribute" footer and existing AddAttribute modal. Closing it refreshes definitions. Formula attributes remain readable and cannot be selected for writing.
+- The teleported menu targets a local portal in the consumer's scroll area. It participates in layout, is capped at 20rem, and scrolls its options before the consumer's fixed footer.
 
 ## Catalog and future consumers
 

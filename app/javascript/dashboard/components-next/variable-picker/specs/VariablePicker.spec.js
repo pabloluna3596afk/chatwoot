@@ -19,9 +19,12 @@ vi.mock(
   })
 );
 
-config.global.plugins = [
-  createI18n({ legacy: false, locale: 'en', messages: { en, es } }),
-];
+const pickerI18n = createI18n({
+  legacy: false,
+  locale: 'en',
+  messages: { en, es },
+});
+config.global.plugins = [pickerI18n];
 
 const attributes = [
   {
@@ -64,6 +67,23 @@ const mountPicker = (props = {}, role = 'administrator', refresh = vi.fn()) =>
   });
 
 describe('VariablePicker', () => {
+  it('renders neutral Spanish labels and search text without encoding loss', async () => {
+    pickerI18n.global.locale.value = 'es';
+    const wrapper = mountPicker();
+    const combo = wrapper.getComponent(ComboBox);
+    expect(combo.props('groups')[2].label).toBe('Atributos de la conversación');
+    expect(combo.props('options')).toContainEqual({
+      value: 'telefono',
+      label: 'Teléfono (telefono)',
+      group: 'system',
+    });
+    await combo.get('button').trigger('click');
+    expect(combo.get('input[type="search"]').attributes('placeholder')).toBe(
+      'Buscar variables…'
+    );
+    wrapper.unmount();
+    pickerI18n.global.locale.value = 'en';
+  });
   it('keeps en/es keys identical', () => {
     expect(Object.keys(es.VARIABLE_PICKER)).toEqual(
       Object.keys(en.VARIABLE_PICKER)
