@@ -96,6 +96,8 @@ describe Whatsapp::IncomingMessageWhatsappCloudService do
     end
 
     context 'when a contact submits a WhatsApp Flow response' do
+      around { |example| I18n.with_locale(:es) { example.run } }
+
       let(:response_json) do
         {
           flow_token: 'flow-correlation-token',
@@ -141,7 +143,7 @@ describe Whatsapp::IncomingMessageWhatsappCloudService do
         flow_response = message.content_attributes['whatsapp_flow_response']
 
         expect(message).to have_attributes(
-          content: a_string_starting_with('Formulario completado'),
+          content: a_string_starting_with('Flow completado'),
           content_type: 'text',
           message_type: 'incoming',
           source_id: 'wamid.flow-response-message'
@@ -163,7 +165,7 @@ describe Whatsapp::IncomingMessageWhatsappCloudService do
 
           message = whatsapp_channel.inbox.messages.last
 
-          expect(message.content).to eq('Formulario completado.')
+          expect(message.content).to eq('Flow completado.')
           expect(message.content_attributes['whatsapp_flow_response']).to be_nil
           expect(message.webhook_data[:content_attributes]['whatsapp_flow_response']).to be_nil
         end
@@ -177,7 +179,7 @@ describe Whatsapp::IncomingMessageWhatsappCloudService do
 
           message = whatsapp_channel.inbox.messages.last
 
-          expect(message.content).to eq('Formulario completado.')
+          expect(message.content).to eq('Flow completado.')
           expect(message.content_attributes['whatsapp_flow_response']).to be_nil
         end
       end
@@ -740,6 +742,8 @@ describe Whatsapp::IncomingMessageWhatsappCloudService do
     end
 
     context 'when WhatsApp Flow nfm_reply is received' do
+      around { |example| I18n.with_locale(:es) { example.run } }
+
       let(:flow_params) do
         {
           phone_number: whatsapp_channel.phone_number,
@@ -778,7 +782,7 @@ describe Whatsapp::IncomingMessageWhatsappCloudService do
         messages = whatsapp_channel.inbox.messages.order(:id)
         incoming = messages.find(&:incoming?)
 
-        expect(incoming.content).to include('Formulario completado')
+        expect(incoming.content).to include('Flow completado')
         expect(incoming.content).to include('Nombre: Ana')
         expect(incoming.content_attributes['whatsapp_flow_response']['ciudad']).to eq('Quito')
         expect(messages.none?(&:outgoing?)).to be true

@@ -119,6 +119,26 @@ describe('TemplateFormDrawer', () => {
     expect(wrapper.emitted('saved')).toHaveLength(1);
   });
 
+  it('keeps the language of a duplicated template instead of the account default', async () => {
+    WhatsappTemplatesAPI.createTemplate.mockResolvedValue({
+      data: { id: 'copy' },
+    });
+    const wrapper = await mountDrawer();
+    const prefill = presetToForm(PRESETS[0]);
+    prefill.name = 'template_copia';
+    prefill.language = 'en';
+    await wrapper.vm.open(null, prefill);
+    await flushPromises();
+    expect(WhatsappTemplatesAPI.createTemplate).not.toHaveBeenCalled();
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+    expect(WhatsappTemplatesAPI.createTemplate).toHaveBeenCalledWith(
+      7,
+      expect.objectContaining({ name: 'template_copia', language: 'en' })
+    );
+    wrapper.unmount();
+  });
+
   it('opens filled in with a preset and creates it with named variables', async () => {
     WhatsappTemplatesAPI.createTemplate.mockResolvedValue({
       data: { id: '9' },

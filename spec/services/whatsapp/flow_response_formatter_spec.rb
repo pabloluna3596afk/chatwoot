@@ -21,9 +21,11 @@ describe Whatsapp::FlowResponseFormatter do
   end
 
   describe '.format_for_agent' do
+    around { |example| I18n.with_locale(:es) { example.run } }
+
     it 'builds a readable agent summary from flow answers' do
       text = described_class.format_for_agent(payload)
-      expect(text).to include('Formulario completado')
+      expect(text).to include('Flow completado')
       expect(text).to include('Nombre: Diego')
       expect(text).to include('Direccion: Av. Amazonas 123')
       expect(text).not_to include('cw_1_2')

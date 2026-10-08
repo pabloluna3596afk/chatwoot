@@ -190,6 +190,7 @@ const open = async (template = null, prefill = null) => {
   editing.value = template;
   store.dispatch('attributes/get');
   if (prefill) {
+    languageTouched.value = Boolean(prefill.language);
     Object.assign(form, prefill);
     if (!form.inboxId)
       form.inboxId = props.inboxes.length === 1 ? props.inboxes[0].id : null;
@@ -202,7 +203,7 @@ const open = async (template = null, prefill = null) => {
   } else {
     form.inboxId = props.inboxes.length === 1 ? props.inboxes[0].id : null;
   }
-  if (!template) setDefaultLanguage();
+  if (!template && !languageTouched.value) setDefaultLanguage();
   variableMode.value = hasNamedVariables(form.header.text, form.body.text)
     ? 'NAMED'
     : (bodyVariables.value.length && 'POSITIONAL') || 'NAMED';

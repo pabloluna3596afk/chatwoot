@@ -16,12 +16,11 @@ import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
-import Input from 'dashboard/components-next/input/Input.vue';
+import TemplatesToolbar from '../TemplatesToolbar.vue';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
-import BaseTable from 'dashboard/components-next/table/BaseTable.vue';
-import BaseTableRow from 'dashboard/components-next/table/BaseTableRow.vue';
-import BaseTableCell from 'dashboard/components-next/table/BaseTableCell.vue';
-import PaginationFooter from 'dashboard/components-next/pagination/PaginationFooter.vue';
+import TemplatesTable from '../TemplatesTable.vue';
+import { templateTableColumns } from '../templateTableColumns';
+import TemplateRowActions from '../TemplateRowActions.vue';
 import FlowPublicationSummary from './FlowPublicationSummary.vue';
 import FlowPublicationPanel from './FlowPublicationPanel.vue';
 import { CATEGORIES } from './flowDefinition';
@@ -32,6 +31,14 @@ const { t, locale } = useI18n();
 const router = useRouter();
 const { checkPermissions } = usePolicy();
 const isAdmin = computed(() => checkPermissions(['administrator']));
+const createAction = computed(() =>
+  isAdmin.value
+    ? {
+        label: t('WHATSAPP_FLOWS.LIST.NEW'),
+        run: () => router.push({ name: 'settings_flow_new' }),
+      }
+    : null
+);
 const { run, abort, isPending } = useAbortableRequest();
 const flows = ref([]);
 const total = ref(0);
@@ -46,6 +53,18 @@ const toDelete = ref(null);
 const deleteDialog = ref(null);
 const publicationPanel = ref(null);
 const isDeleting = ref(false);
+const toDuplicate = ref(null);
+const duplicateDialog = ref(null);
+const isDuplicating = ref(false);
+const actionLabels = computed(() => ({
+  edit: t('WHATSAPP_FLOWS.LIST.EDIT'),
+  duplicate: t('WHATSAPP_TEMPLATE_MGMT.DUPLICATE'),
+  delete: t('WHATSAPP_FLOWS.LIST.DELETE'),
+}));
+const askDuplicate = flow => {
+  toDuplicate.value = flow;
+  duplicateDialog.value.open();
+};
 const stateOptions = computed(() => [
   {
     value: 'all',
@@ -70,16 +89,7 @@ const categoryOptions = computed(() => [
     count: facets.value.category[value] ?? 0,
   })),
 ]);
-const headers = computed(() =>
-  [
-    'NAME',
-    'CATEGORIES',
-    'SCREENS_HEADER',
-    'UPDATED',
-    'PUBLICATION',
-    'ACTIONS',
-  ].map(key => t(`WHATSAPP_FLOWS.LIST.${key}`))
-);
+const columns = computed(() => templateTableColumns(t, ['SCREENS']));
 const load = async () => {
   failed.value = false;
   try {
@@ -122,7 +132,6 @@ onActivated(() => {
   else load();
 });
 onDeactivated(abort);
-const startNew = () => router.push({ name: 'settings_flow_new' });
 const edit = flow =>
   router.push({ name: 'settings_flow_edit', params: { flowId: flow.id } });
 const askDelete = flow => {
@@ -142,6 +151,19 @@ const confirmDelete = async () => {
     isDeleting.value = false;
   }
 };
+const confirmDuplicate = async () => {
+  isDuplicating.value = true;
+  try {
+    await WhatsappFlowsAPI.duplicate(toDuplicate.value.id);
+    duplicateDialog.value.close();
+    page.value = 1;
+    await load();
+  } catch {
+    useAlert(t('WHATSAPP_TEMPLATE_MGMT.DUPLICATE_ERROR'));
+  } finally {
+    isDuplicating.value = false;
+  }
+};
 const dateOf = seconds =>
   new Date(seconds * 1000).toLocaleDateString(locale.value);
 const categoryLabel = flow => {
@@ -152,54 +174,34 @@ const categoryLabel = flow => {
 </script>
 
 <template>
-  <div class="grid gap-4" data-testid="flows-panel">
-    <div class="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h2 class="text-heading-2 text-n-slate-12">
-          {{ $t('WHATSAPP_FLOWS.LIST.TITLE') }}
-        </h2>
-        <p class="mt-1 mb-0 text-body-main text-n-slate-11">
-          {{ $t('WHATSAPP_FLOWS.LIST.DESCRIPTION') }}
-        </p>
-      </div>
-      <Button
-        v-if="isAdmin"
-        type="button"
-        sm
-        icon="i-lucide-plus"
-        :label="$t('WHATSAPP_FLOWS.LIST.NEW')"
-        data-testid="flow-new"
-        @click="startNew"
-      />
-    </div>
-    <div class="flex flex-wrap gap-3">
-      <Input
-        v-model="search"
-        type="search"
-        class="flex-1 min-w-48"
-        :placeholder="$t('WHATSAPP_FLOWS.LIST.SEARCH')"
-        :aria-label="$t('WHATSAPP_FLOWS.LIST.SEARCH')"
-        data-testid="flows-search"
-      />
-      <div class="w-48">
-        <FilterDropdown
-          v-model="state"
-          :options="stateOptions"
-          :label="$t('WHATSAPP_FLOWS.LIST.STATE')"
-          icon="i-lucide-circle-check"
-          data-testid="flows-state"
-        />
-      </div>
-      <div class="w-48">
-        <FilterDropdown
-          v-model="category"
-          :options="categoryOptions"
-          :label="$t('WHATSAPP_FLOWS.NEW.CATEGORIES')"
-          icon="i-lucide-folder"
-          data-testid="flows-category"
-        />
-      </div>
-    </div>
+  <div data-testid="flows-panel">
+    <TemplatesToolbar
+      v-model="search"
+      :placeholder="$t('WHATSAPP_FLOWS.LIST.SEARCH')"
+      :primary-action="createAction"
+      data-testid="flows-toolbar"
+    >
+      <template #filters>
+        <div>
+          <FilterDropdown
+            v-model="state"
+            :options="stateOptions"
+            :label="$t('WHATSAPP_FLOWS.LIST.STATE')"
+            icon="i-lucide-circle-check"
+            data-testid="flows-state"
+          />
+        </div>
+        <div>
+          <FilterDropdown
+            v-model="category"
+            :options="categoryOptions"
+            :label="$t('WHATSAPP_FLOWS.NEW.CATEGORIES')"
+            icon="i-lucide-folder"
+            data-testid="flows-category"
+          />
+        </div>
+      </template>
+    </TemplatesToolbar>
     <div
       v-if="isPending && !hasLoaded"
       class="grid gap-3 animate-pulse"
@@ -234,93 +236,79 @@ const categoryLabel = flow => {
         )
       }}
     </p>
-    <div v-else class="overflow-x-auto">
-      <BaseTable :headers="headers" :items="flows">
-        <template #row>
-          <BaseTableRow
-            v-for="flow in flows"
-            :key="flow.id"
-            :item="flow"
-            data-testid="flow-row"
-          >
-            <BaseTableCell>
-              <span
-                class="block max-w-56 truncate text-heading-3 text-n-slate-12"
-                >{{ flow.name }}</span
-              >
-              <span
-                v-if="flow.unpublished_changes"
-                class="block mt-1 text-xs text-n-amber-11"
-                data-testid="flow-unpublished-badge"
-                >{{ $t('WHATSAPP_FLOWS.META.UNPUBLISHED_CHANGES_BADGE') }}</span
-              >
-            </BaseTableCell>
-            <BaseTableCell>
-              <span
-                class="px-2 py-1 text-xs rounded-md whitespace-nowrap bg-n-alpha-2"
-                :title="
-                  flow.categories
-                    .map(value => $t(`WHATSAPP_FLOWS.CATEGORIES.${value}`))
-                    .join(', ')
-                "
-                >{{ categoryLabel(flow) }}</span
-              >
-            </BaseTableCell>
-            <BaseTableCell align="center">
-              <span
-                :aria-label="
-                  $t('WHATSAPP_FLOWS.LIST.SCREENS', { n: flow.screens })
-                "
-                >{{ flow.screens }}</span
-              >
-            </BaseTableCell>
-            <BaseTableCell>
-              <span class="text-xs whitespace-nowrap">{{
-                dateOf(flow.updated_at)
-              }}</span>
-            </BaseTableCell>
-            <BaseTableCell>
-              <FlowPublicationSummary
-                v-if="isAdmin"
-                :summary="flow.publication_summary"
-                @details="publicationPanel.open(flow)"
-              />
-            </BaseTableCell>
-            <BaseTableCell>
-              <div v-if="isAdmin" class="flex gap-1">
-                <Button
-                  type="button"
-                  ghost
-                  slate
-                  sm
-                  icon="i-lucide-pencil"
-                  :aria-label="$t('WHATSAPP_FLOWS.LIST.EDIT')"
-                  data-testid="flow-edit"
-                  @click="edit(flow)"
-                />
-                <Button
-                  type="button"
-                  ghost
-                  slate
-                  sm
-                  icon="i-lucide-trash-2"
-                  :aria-label="$t('WHATSAPP_FLOWS.LIST.DELETE')"
-                  data-testid="flow-delete"
-                  @click="askDelete(flow)"
-                />
-              </div>
-            </BaseTableCell>
-          </BaseTableRow>
-        </template>
-      </BaseTable>
-    </div>
-    <PaginationFooter
-      v-if="total"
-      v-model:current-page="page"
-      :total-items="total"
-      :items-per-page="PAGE_SIZE"
-      class="!px-0"
-    />
+    <TemplatesTable
+      v-else
+      v-model:page="page"
+      :columns="columns"
+      :items="flows"
+      :total="total"
+      :page-size="PAGE_SIZE"
+      @open="edit"
+    >
+      <template #NAME="{ item: flow }">
+        <span class="block max-w-56 truncate text-heading-3 text-n-slate-12">{{
+          flow.name
+        }}</span>
+        <span
+          v-if="flow.unpublished_changes"
+          class="block mt-1 text-xs text-n-amber-11"
+          data-testid="flow-unpublished-badge"
+          >{{ $t('WHATSAPP_FLOWS.META.UNPUBLISHED_CHANGES_BADGE') }}</span
+        >
+      </template>
+      <template #CATEGORY="{ item: flow }">
+        <span
+          class="px-2 py-1 text-xs rounded-md whitespace-nowrap bg-n-alpha-2"
+          >{{ categoryLabel(flow) }}</span
+        >
+      </template>
+      <template #SCREENS="{ item: flow }">
+        <span
+          :aria-label="$t('WHATSAPP_FLOWS.LIST.SCREENS', { n: flow.screens })"
+          >{{ flow.screens }}</span
+        >
+      </template>
+      <template #INBOX>
+        <span>{{ $t('WHATSAPP_TEMPLATE_MGMT.FILTERS.ALL_INBOXES') }}</span>
+      </template>
+      <template #UPDATED="{ item: flow }">
+        {{ dateOf(flow.updated_at) }}
+      </template>
+      <template #STATUS="{ item: flow }">
+        <FlowPublicationSummary
+          v-if="isAdmin"
+          :summary="flow.publication_summary"
+          @click.stop
+          @details="publicationPanel.open(flow)"
+        />
+      </template>
+      <template #ACTIONS="{ item: flow }">
+        <TemplateRowActions
+          :labels="actionLabels"
+          :can-manage="isAdmin"
+          :can-edit="isAdmin"
+          @edit="edit(flow)"
+          @duplicate="askDuplicate(flow)"
+          @delete="askDelete(flow)"
+        />
+      </template>
+    </TemplatesTable>
+    <Dialog
+      v-if="isAdmin"
+      ref="duplicateDialog"
+      :title="$t('WHATSAPP_TEMPLATE_MGMT.DUPLICATE')"
+      :confirm-button-label="$t('WHATSAPP_TEMPLATE_MGMT.DUPLICATE')"
+      :is-loading="isDuplicating"
+      @confirm="confirmDuplicate"
+    >
+      <p v-if="toDuplicate" class="text-sm text-n-slate-11">
+        {{
+          $t('WHATSAPP_TEMPLATE_MGMT.DUPLICATE_FLOW_BODY', {
+            name: toDuplicate.name.slice(0, 92) + ' (copia)',
+          })
+        }}
+      </p>
+    </Dialog>
     <FlowPublicationPanel
       v-if="isAdmin"
       ref="publicationPanel"
