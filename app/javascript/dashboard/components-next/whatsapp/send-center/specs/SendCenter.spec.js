@@ -282,6 +282,23 @@ describe('unified send center', () => {
     });
     await flushPromises();
     const toolbar = wrapper.get('[data-testid="center-toolbar"]');
+    const columns = wrapper.get('[data-testid="center-columns"]');
+    expect(toolbar.element.parentElement.parentElement).toBe(columns.element);
+    expect(
+      wrapper.get('[data-testid="center-detail"]').element.parentElement
+    ).toBe(columns.element);
+    expect(toolbar.classes()).not.toContain('justify-between');
+    expect(toolbar.findAll('button').map(button => button.text())).toEqual([
+      'Plantillas',
+      'Flows',
+      '',
+    ]);
+    expect(
+      wrapper.get('[data-testid="center-refresh"]').attributes('title')
+    ).toBe('Actualizar cat\u00e1logo');
+    expect(
+      wrapper.get('[data-testid="center-refresh"]').attributes('aria-label')
+    ).toBe('Actualizar cat\u00e1logo');
     expect(toolbar.findComponent(TabBar).exists()).toBe(true);
     expect(toolbar.find('[data-testid="center-refresh"]').exists()).toBe(true);
     const filterRow = wrapper.get('[data-testid="center-filters"]');
@@ -324,6 +341,66 @@ describe('unified send center', () => {
       3, 3,
     ]);
     expect(wrapper.findAllComponents(DialogStub)).toHaveLength(1);
+  });
+
+  it('keeps refresh spinning and disabled during template synchronization and Flow loading', async () => {
+    let resolveSync;
+    let resolveFlows;
+    const sync = vi.fn(
+      () =>
+        new Promise(resolve => {
+          resolveSync = resolve;
+        })
+    );
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: 'whatsapp_cloud',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates,
+        sendTemplate: vi.fn(),
+      },
+      global: {
+        ...globalOptions,
+        plugins: [
+          ...globalOptions.plugins,
+          createStore({
+            getters: {
+              'attributes/getAttributes': () => [1],
+              getSelectedChat: () => ({}),
+              getCurrentUser: () => ({}),
+            },
+            actions: { 'inboxes/syncTemplates': sync },
+          }),
+        ],
+      },
+    });
+    await flushPromises();
+    API.conversationFlows.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          resolveFlows = resolve;
+        })
+    );
+    const refresh = wrapper.get('[data-testid="center-refresh"]');
+    await refresh.trigger('click');
+    expect(refresh.attributes('disabled')).toBeDefined();
+    expect(refresh.find('.animate-spin').exists()).toBe(true);
+    await refresh.trigger('click');
+    expect(sync).toHaveBeenCalledTimes(1);
+    resolveSync();
+    await flushPromises();
+    expect(refresh.attributes('disabled')).toBeDefined();
+    expect(refresh.find('.animate-spin').exists()).toBe(true);
+    resolveFlows({ data: { payload: [], can_reply: true } });
+    await flushPromises();
+    expect(refresh.attributes('disabled')).toBeUndefined();
+    expect(refresh.find('.animate-spin').exists()).toBe(false);
   });
 
   it('retains each tab search, category, status and selection with counts only from that tab', async () => {

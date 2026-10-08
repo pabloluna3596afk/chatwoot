@@ -53,6 +53,7 @@ const flowDetail = ref(null);
 const flows = ref([]);
 const serverCanReply = ref(true);
 const isSending = ref(false);
+const isRefreshing = ref(false);
 const error = ref('');
 const tab = ref(0);
 const newTabState = () => ({
@@ -248,12 +249,15 @@ const loadFlows = async () => {
   }
 };
 const refresh = async () => {
+  isRefreshing.value = true;
   error.value = '';
   try {
     await store.dispatch('inboxes/syncTemplates', props.inbox.id);
     if (hasFlows.value) await loadFlows();
   } catch (e) {
     error.value = e.response?.data?.error || t(`${prefix}.LOAD_ERROR`);
+  } finally {
+    isRefreshing.value = false;
   }
 };
 const sendTemplatePayload = async payload => {
@@ -359,32 +363,34 @@ watch(
         />
       </div>
       <div
-        class="flex shrink-0 items-center justify-between gap-3"
-        data-testid="center-toolbar"
-      >
-        <TabBar
-          :tabs="tabs"
-          :initial-active-tab="tab"
-          @tab-changed="tab = $event.index"
-        />
-        <Button
-          type="button"
-          icon="i-lucide-refresh-cw"
-          ghost
-          slate
-          sm
-          :is-loading="isPending"
-          :disabled="isSending"
-          :aria-label="$t(`${prefix}.REFRESH`)"
-          data-testid="center-refresh"
-          @click="refresh"
-        />
-      </div>
-      <div
         class="grid min-h-0 flex-1 gap-6 sm:grid-cols-[20rem_minmax(0,1fr)] lg:grid-cols-[22rem_minmax(0,1fr)]"
         data-testid="center-columns"
       >
         <section class="flex flex-col min-h-0 min-w-0 gap-3">
+          <div
+            class="flex shrink-0 items-center gap-3"
+            data-testid="center-toolbar"
+          >
+            <TabBar
+              :tabs="tabs"
+              :initial-active-tab="tab"
+              @tab-changed="tab = $event.index"
+            />
+            <Button
+              type="button"
+              icon="i-lucide-refresh-cw"
+              ghost
+              slate
+              sm
+              :is-loading="isRefreshing || isPending"
+              :disabled="isSending || isRefreshing || isPending"
+              :aria-label="$t(`${prefix}.REFRESH`)"
+              :title="$t(`${prefix}.REFRESH`)"
+              data-testid="center-refresh"
+              @click="refresh"
+            />
+          </div>
+
           <Input
             v-model="query"
             type="search"
