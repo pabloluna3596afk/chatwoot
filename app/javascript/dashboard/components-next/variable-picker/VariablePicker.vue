@@ -100,7 +100,6 @@ provide('dialogPortalTarget', portal);
       :groups="groups"
       :disabled="disabled"
       :has-error="hasError"
-      :allow-deselect="allowNone"
       :placeholder="$t('VARIABLE_PICKER.PLACEHOLDER')"
       :search-placeholder="$t('VARIABLE_PICKER.SEARCH')"
       :empty-state="$t('VARIABLE_PICKER.EMPTY')"

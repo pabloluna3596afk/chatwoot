@@ -198,7 +198,11 @@ const keepValue = (apply, value) => {
         <VariablePicker
           mode="write"
           :model-value="modelValue.save_to?.target || ''"
-          :attributes="attributes"
+          :attributes="
+            attributes.filter(
+              attribute => attribute.attribute_model === 'contact_attribute'
+            )
+          "
           :scopes="['system', 'contact']"
           :filter="binding => writableFor(binding, modelValue)"
           :aria-label="$t('WHATSAPP_FLOWS.EDITOR.SAVE_TO')"

@@ -174,6 +174,11 @@ describe('FlowBlockEditor', () => {
       attributes: [
         {
           attribute_key: 'cedula',
+          attribute_model: 'company_attribute',
+          attribute_display_type: 'text',
+        },
+        {
+          attribute_key: 'cedula',
           attribute_display_name: 'Cedula',
           attribute_model: 'contact_attribute',
           attribute_display_type: 'text',
