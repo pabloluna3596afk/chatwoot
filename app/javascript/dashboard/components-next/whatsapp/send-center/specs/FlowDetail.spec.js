@@ -36,6 +36,27 @@ describe('Flow message customization', () => {
     expect(wrapper.vm.payload.header).toBe('');
     expect(wrapper.find('[data-testid="flow-send-body"]').exists()).toBe(false);
   });
+  it('opens customization beside the preview within two independently scrolling columns', async () => {
+    const wrapper = mount(FlowDetail, {
+      props: { flow: { id: 12, name: 'Appointment' } },
+    });
+    const columns = wrapper.get('[data-testid="flow-send-columns"]');
+    expect(columns.classes()).toContain('grid-cols-1');
+    await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
+    expect(columns.classes()).toContain('grid-cols-2');
+    const preview = wrapper.get('[data-testid="flow-send-preview-column"]');
+    const fields = wrapper.get('[data-testid="flow-send-fields-column"]');
+    expect(preview.element.parentElement).toBe(columns.element);
+    expect(fields.element.parentElement).toBe(columns.element);
+    expect(preview.classes()).toContain('overflow-y-auto');
+    expect(fields.classes()).toContain('overflow-y-auto');
+    expect(
+      wrapper
+        .get('[data-testid="flow-send-customize"]')
+        .attributes('aria-expanded')
+    ).toBe('true');
+  });
+
   it('enforces the existing body/button limits and rejects emoji without changing the send contract', async () => {
     const wrapper = mount(FlowDetail, {
       props: { flow: { id: 12, name: 'Appointment' } },

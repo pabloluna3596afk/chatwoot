@@ -10,7 +10,7 @@ defineProps({
 </script>
 
 <template>
-  <div class="p-4 rounded-xl border border-n-weak bg-n-solid-2">
+  <div class="min-w-0 p-4 rounded-xl bg-n-solid-2">
     <p class="mb-3 text-xs text-n-slate-11">
       {{ $t('WHATSAPP_TEMPLATES.SEND_CENTER.PREVIEW') }}
     </p>

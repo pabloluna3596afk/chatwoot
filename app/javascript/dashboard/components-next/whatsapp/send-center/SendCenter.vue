@@ -315,13 +315,14 @@ watch(
   <Dialog
     ref="dialog"
     width="3xl"
+    class="[&_dialog]:!w-[min(100vw-2rem,68.75rem)] [&_form>div:last-child]:!border-0 [&_form>div:last-child]:!pt-0"
     body-scroll
     :show-confirm-button="false"
     :show-cancel-button="false"
     @close="close"
   >
-    <div class="flex flex-col gap-4">
-      <div class="flex justify-between items-start gap-3">
+    <div class="flex h-[min(38rem,calc(90vh-11rem))] min-h-0 flex-col gap-5">
+      <div class="flex shrink-0 justify-between items-start gap-3">
         <div>
           <h2
             class="flex items-center gap-2 text-lg font-semibold text-n-slate-12"
@@ -353,54 +354,68 @@ watch(
           @click="close"
         />
       </div>
-      <TabBar
-        :tabs="tabs"
-        :initial-active-tab="tab"
-        @tab-changed="tab = $event.index"
-      />
-      <div class="grid gap-5 sm:grid-cols-[17rem_1fr]">
-        <section class="flex flex-col min-w-0 gap-3">
-          <div class="flex gap-2">
-            <Input
-              v-model="query"
-              type="search"
-              size="sm"
-              class="flex-1"
-              :placeholder="$t(`${prefix}.SEARCH`)"
-              :aria-label="$t(`${prefix}.SEARCH`)"
-              data-testid="center-search"
-            /><Button
-              icon="i-lucide-refresh-cw"
-              ghost
-              slate
-              sm
-              :is-loading="isPending"
-              :disabled="isSending"
-              :aria-label="$t(`${prefix}.REFRESH`)"
-              @click="refresh"
+      <div
+        class="flex shrink-0 items-center justify-between gap-3"
+        data-testid="center-toolbar"
+      >
+        <TabBar
+          :tabs="tabs"
+          :initial-active-tab="tab"
+          @tab-changed="tab = $event.index"
+        />
+        <Button
+          type="button"
+          icon="i-lucide-refresh-cw"
+          ghost
+          slate
+          sm
+          :is-loading="isPending"
+          :disabled="isSending"
+          :aria-label="$t(`${prefix}.REFRESH`)"
+          data-testid="center-refresh"
+          @click="refresh"
+        />
+      </div>
+      <div
+        class="grid min-h-0 flex-1 gap-6 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,2fr)]"
+        data-testid="center-columns"
+      >
+        <section class="flex flex-col min-h-0 min-w-0 gap-3">
+          <Input
+            v-model="query"
+            type="search"
+            size="sm"
+            class="w-full shrink-0"
+            :placeholder="$t(`${prefix}.SEARCH`)"
+            :aria-label="$t(`${prefix}.SEARCH`)"
+            data-testid="center-search"
+          />
+          <div
+            class="grid shrink-0 grid-cols-2 gap-2"
+            data-testid="center-filters"
+          >
+            <FilterDropdown
+              v-model="category"
+              icon="i-lucide-folder"
+              :label="$t(`${prefix}.ALL_CATEGORIES`)"
+              :options="categoryOptions"
+              :groups="categoryGroups"
+              data-testid="center-category"
+            />
+            <FilterDropdown
+              v-model="status"
+              icon="i-lucide-circle-check"
+              :label="$t(`${prefix}.ALL_STATUSES`)"
+              :options="statusOptions"
+              :groups="statusGroups"
+              data-testid="center-status"
             />
           </div>
-          <FilterDropdown
-            v-model="category"
-            icon="i-lucide-folder"
-            :label="$t(`${prefix}.ALL_CATEGORIES`)"
-            :options="categoryOptions"
-            :groups="categoryGroups"
-            data-testid="center-category"
-          />
-          <FilterDropdown
-            v-model="status"
-            icon="i-lucide-circle-check"
-            :label="$t(`${prefix}.ALL_STATUSES`)"
-            :options="statusOptions"
-            :groups="statusGroups"
-            data-testid="center-status"
-          />
           <p v-if="isPending" class="text-xs text-n-slate-11">
             {{ $t(`${prefix}.LOADING`) }}
           </p>
           <div
-            class="overflow-y-auto max-h-[21rem] flex flex-col gap-1"
+            class="min-h-0 flex-1 overflow-y-auto overscroll-contain flex flex-col gap-2"
             role="list"
             data-testid="center-list"
           >
@@ -410,11 +425,9 @@ watch(
               type="button"
               ghost
               slate
-              class="!h-auto !p-2 !justify-start text-start"
+              class="!h-auto !p-3 !justify-start shrink-0 text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
               :class="
-                row.key === selectedKey
-                  ? '!bg-n-blue-3 outline outline-1 !outline-n-blue-6'
-                  : ''
+                row.key === selectedKey ? '!bg-n-alpha-2 !text-n-slate-12' : ''
               "
               :disabled="isSending"
               :aria-pressed="row.key === selectedKey"
@@ -454,7 +467,7 @@ watch(
         </section>
         <section
           v-if="selected"
-          class="min-w-0 sm:border-s border-n-weak sm:ps-5 flex flex-col gap-4"
+          class="min-h-0 min-w-0 overflow-y-auto overscroll-contain flex flex-col gap-4"
           data-testid="center-detail"
         >
           <div>

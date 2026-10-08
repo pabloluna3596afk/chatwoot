@@ -60,7 +60,6 @@
       "TITLE": "Send via WhatsApp",
       "TEMPLATE_TITLE": "Send a template",
       "DESCRIPTION": "Choose a template or a Flow for this conversation.",
-      "ALL": "All",
       "TEMPLATES": "Templates",
       "FLOWS": "Flows",
       "SEARCH": "Search by name or content?",

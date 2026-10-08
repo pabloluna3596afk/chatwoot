@@ -45,21 +45,36 @@ defineExpose({ isValid, payload });
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
-    <MessagePreview :header="header" :body="body" :buttons="[cta]" flow />
-    <Button
-      type="button"
-      slate
-      ghost
-      sm
-      icon="i-lucide-sliders-horizontal"
-      :label="$t('WHATSAPP_TEMPLATES.SEND_CENTER.CUSTOMIZE')"
-      :aria-expanded="customizing"
-      aria-controls="flow-send-customization"
-      data-testid="flow-send-customize"
-      @click="customizing = !customizing"
-    />
-    <div v-if="customizing" id="flow-send-customization" class="grid gap-3">
+  <div
+    class="grid min-h-0 min-w-0 flex-1 items-start gap-4"
+    :class="customizing ? 'grid-cols-2' : 'grid-cols-1'"
+    data-testid="flow-send-columns"
+  >
+    <div
+      class="min-h-0 min-w-0 max-h-full overflow-y-auto overscroll-contain flex flex-col gap-3"
+      data-testid="flow-send-preview-column"
+    >
+      <MessagePreview :header="header" :body="body" :buttons="[cta]" flow />
+      <Button
+        class="w-full !h-auto whitespace-normal text-start"
+        type="button"
+        slate
+        ghost
+        sm
+        icon="i-lucide-sliders-horizontal"
+        :label="$t('WHATSAPP_TEMPLATES.SEND_CENTER.CUSTOMIZE')"
+        :aria-expanded="customizing"
+        aria-controls="flow-send-customization"
+        data-testid="flow-send-customize"
+        @click="customizing = !customizing"
+      />
+    </div>
+    <div
+      v-if="customizing"
+      id="flow-send-customization"
+      class="grid min-h-0 min-w-0 max-h-full overflow-y-auto overscroll-contain gap-3 rounded-xl bg-n-alpha-1 p-4"
+      data-testid="flow-send-fields-column"
+    >
       <Input
         v-model="header"
         :label="$t('WHATSAPP_TEMPLATES.SEND_CENTER.HEADER')"

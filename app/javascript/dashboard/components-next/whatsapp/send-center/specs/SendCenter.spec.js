@@ -281,6 +281,15 @@ describe('unified send center', () => {
       global: globalOptions,
     });
     await flushPromises();
+    const toolbar = wrapper.get('[data-testid="center-toolbar"]');
+    expect(toolbar.findComponent(TabBar).exists()).toBe(true);
+    expect(toolbar.find('[data-testid="center-refresh"]').exists()).toBe(true);
+    const filterRow = wrapper.get('[data-testid="center-filters"]');
+    expect(filterRow.findAllComponents(FilterDropdown)).toHaveLength(2);
+    expect(filterRow.classes()).toContain('grid-cols-2');
+    expect(
+      wrapper.get('[data-testid="center-search"]').element.nextElementSibling
+    ).toBe(filterRow.element);
     const filters = wrapper.findAllComponents(FilterDropdown);
     expect(filters.map(filter => filter.props('options')[0].count)).toEqual([
       3, 3,
