@@ -4,6 +4,7 @@ import { createI18n } from 'vue-i18n';
 import SendCenter from '../SendCenter.vue';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
+import { SEND_CENTER_COLUMN_UNIT_CLASS } from '../helpers';
 import API from 'dashboard/api/whatsappFlows';
 import en from 'dashboard/i18n/locale/en/whatsappTemplates.json';
 import es from 'dashboard/i18n/locale/es/whatsappTemplates.json';
@@ -402,6 +403,100 @@ describe('unified send center', () => {
     expect(refresh.attributes('disabled')).toBeUndefined();
     expect(refresh.find('.animate-spin').exists()).toBe(false);
   });
+
+  it('uses one width unit for two or three columns and shrinks again when customization closes', async () => {
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: 'whatsapp_cloud',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates,
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    const body = wrapper.get('[data-testid="center-body"]');
+    expect(body.classes()).toContain(SEND_CENTER_COLUMN_UNIT_CLASS);
+    expect(body.attributes('data-columns')).toBe('2');
+    expect(body.classes()).toContain(
+      '[dialog:has(&)]:!w-[calc(2*var(--send-center-unit)+4.5rem)]'
+    );
+    expect(body.classes()).toContain('[dialog:has(&)]:!transition-[width]');
+    expect(body.classes()).toContain(
+      'motion-reduce:[dialog:has(&)]:!transition-none'
+    );
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
+    expect(body.attributes('data-columns')).toBe('3');
+    expect(body.classes()).toContain(
+      'xl:[dialog:has(&)]:!w-[calc(3*var(--send-center-unit)+6rem)]'
+    );
+    expect(body.classes()).toContain(
+      'max-xl:[dialog:has(&)]:!w-[calc(100vw-2rem)]'
+    );
+    expect(
+      wrapper.get('[data-testid="flow-send-preview-column"]').classes()
+    ).toContain('max-xl:hidden');
+    await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
+    expect(body.attributes('data-columns')).toBe('2');
+  });
+
+  it.each([
+    [
+      { id: 3, channel_type: 'Channel::Whatsapp', provider: 'whatsapp_cloud' },
+      {
+        name: 'editable',
+        language: 'es',
+        status: 'APPROVED',
+        category: 'UTILITY',
+        components: [{ type: 'BODY', text: 'Hello {{1}}' }],
+      },
+    ],
+    [
+      { id: 3, channel_type: 'Channel::TwilioSms', medium: 'whatsapp' },
+      {
+        friendly_name: 'editable',
+        language: 'es',
+        status: 'APPROVED',
+        category: 'UTILITY',
+        body: 'Hello {{1}}',
+      },
+    ],
+  ])(
+    'allocates a third unit for editable template fields on %j',
+    async (inbox, template) => {
+      wrapper = mount(SendCenter, {
+        props: {
+          show: true,
+          inbox,
+          conversationId: 5,
+          canReply: true,
+          templates: [template],
+          sendTemplate: vi.fn(),
+        },
+        global: { ...globalOptions, stubs: { Dialog: DialogStub } },
+      });
+      await flushPromises();
+      expect(
+        wrapper.get('[data-testid="center-body"]').attributes('data-columns')
+      ).toBe('3');
+      expect(wrapper.get('[data-testid="center-body"]').classes()).toContain(
+        'xl:[dialog:has(&)]:!w-[calc(3*var(--send-center-unit)+6rem)]'
+      );
+      const input = wrapper.get('[data-testid="center-detail"] input');
+      await input.setValue('Ana');
+      expect(wrapper.get('[data-testid="center-detail"]').text()).toContain(
+        'Hello Ana'
+      );
+    }
+  );
 
   it('retains each tab search, category, status and selection with counts only from that tab', async () => {
     wrapper = mount(SendCenter, {

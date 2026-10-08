@@ -16,6 +16,7 @@ import ContentTemplateParser from 'dashboard/components-next/content-templates/C
 import FlowDetail from './FlowDetail.vue';
 import MessagePreview from './MessagePreview.vue';
 import {
+  SEND_CENTER_COLUMN_UNIT_CLASS,
   supportsFlows,
   usesContentTemplates,
   sendCenterIcon,
@@ -213,6 +214,22 @@ const statusGroups = computed(() => [
     ),
   },
 ]);
+const hasCustomization = computed(() => {
+  if (!selected.value || selected.value.reason) return false;
+  if (selected.value.type === 'flow') return !!flowDetail.value?.customizing;
+  if (content.value)
+    return Object.keys(parser.value?.processedParams || {}).length > 0;
+  return !!(
+    parser.value?.hasVariables ||
+    parser.value?.hasMediaHeader ||
+    Object.keys(parser.value?.processedParams?.buttons || {}).length
+  );
+});
+const parserColumns = computed(() =>
+  hasCustomization.value
+    ? 'grid-cols-1 xl:grid-cols-[repeat(2,var(--send-center-unit))] max-xl:[&>div:first-child]:hidden'
+    : 'grid-cols-1'
+);
 const component = type =>
   selected.value?.data.components?.find(c => c.type === type);
 const header = computed(() => component('HEADER')?.text || '');
@@ -327,7 +344,14 @@ watch(
     @close="close"
   >
     <div
-      class="flex h-[min(38rem,calc(90vh-11rem))] min-h-0 flex-col gap-5 [dialog:has(&)]:!w-[min(100vw-2rem,68.75rem)] [form:has(&)>div:last-child]:!border-0 [form:has(&)>div:last-child]:!pt-0"
+      class="flex h-[min(38rem,calc(90vh-11rem))] min-h-0 flex-col gap-5 [dialog:has(&)]:!max-w-[calc(100vw-2rem)] [dialog:has(&)]:!left-[max(1rem,calc((100vw-(3*var(--send-center-unit)+6rem))/2))] [dialog:has(&)]:!right-auto [dialog:has(&)]:!mx-0 [dialog:has(&)]:!transition-[width] [dialog:has(&)]:!duration-300 [dialog:has(&)]:!ease-in-out motion-reduce:[dialog:has(&)]:!transition-none max-xl:[dialog:has(&)]:[--send-center-unit:calc((100vw-6.5rem)/2)] max-xl:[dialog:has(&)]:!left-4 [form:has(&)>div:last-child]:!border-0 [form:has(&)>div:last-child]:!pt-0"
+      :class="[
+        SEND_CENTER_COLUMN_UNIT_CLASS,
+        hasCustomization
+          ? 'xl:[dialog:has(&)]:!w-[calc(3*var(--send-center-unit)+6rem)] max-xl:[dialog:has(&)]:!w-[calc(100vw-2rem)]'
+          : '[dialog:has(&)]:!w-[calc(2*var(--send-center-unit)+4.5rem)]',
+      ]"
+      :data-columns="hasCustomization ? 3 : 2"
       data-testid="center-body"
     >
       <div class="flex shrink-0 justify-between items-start gap-3">
@@ -363,7 +387,7 @@ watch(
         />
       </div>
       <div
-        class="grid min-h-0 flex-1 gap-6 sm:grid-cols-[20rem_minmax(0,1fr)] lg:grid-cols-[22rem_minmax(0,1fr)]"
+        class="grid min-h-0 flex-1 gap-6 grid-cols-[var(--send-center-unit)_minmax(0,1fr)]"
         data-testid="center-columns"
       >
         <section class="flex flex-col min-h-0 min-w-0 gap-3">
@@ -479,7 +503,7 @@ watch(
         </section>
         <section
           v-if="selected"
-          class="min-h-0 min-w-0 overflow-y-auto overscroll-contain flex flex-col gap-4"
+          class="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain flex flex-col gap-4"
           data-testid="center-detail"
         >
           <div>
@@ -516,6 +540,8 @@ watch(
               v-if="content"
               :key="selected.key"
               ref="parser"
+              class="grid min-h-0 min-w-0 flex-1 items-start gap-6 overflow-hidden [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto"
+              :class="parserColumns"
               :template="selected.data"
               @send-message="sendTemplatePayload"
             >
@@ -525,6 +551,8 @@ watch(
               v-else
               :key="selected.key"
               ref="parser"
+              class="grid min-h-0 min-w-0 flex-1 items-start gap-6 overflow-hidden [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto"
+              :class="parserColumns"
               :template="selected.data"
               :media-inbox-id="inbox.id"
               :send-rendered-content="inbox.channel_type === 'Channel::Api'"

@@ -43,12 +43,16 @@ describe('Flow message customization', () => {
     const columns = wrapper.get('[data-testid="flow-send-columns"]');
     expect(columns.classes()).toContain('grid-cols-1');
     await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
-    expect(columns.classes()).toContain('grid-cols-2');
+    expect(columns.classes()).toContain(
+      'xl:grid-cols-[repeat(2,var(--send-center-unit))]'
+    );
     const preview = wrapper.get('[data-testid="flow-send-preview-column"]');
     const fields = wrapper.get('[data-testid="flow-send-fields-column"]');
     expect(preview.element.parentElement).toBe(columns.element);
     expect(fields.element.parentElement).toBe(columns.element);
     expect(preview.classes()).toContain('overflow-y-auto');
+    expect(preview.classes()).toContain('max-xl:hidden');
+    expect(wrapper.vm.customizing).toBe(true);
     expect(fields.classes()).toContain('overflow-y-auto');
     expect(
       wrapper

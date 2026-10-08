@@ -1,5 +1,9 @@
 import { isSendableTemplate } from '@chatwoot/utils';
 
+// 352 px per desktop column: three columns plus gaps/padding fit comfortably at 1440 px.
+export const SEND_CENTER_COLUMN_UNIT_CLASS =
+  '[dialog:has(&)]:[--send-center-unit:22rem]';
+
 export const TEMPLATE_CATEGORIES = ['UTILITY', 'MARKETING', 'AUTHENTICATION'];
 export const TEMPLATE_STATUSES = [
   'APPROVED',
