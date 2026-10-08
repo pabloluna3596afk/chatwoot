@@ -1,6 +1,7 @@
 <script setup>
 import { nextTick, computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useLocale } from 'shared/composables/useLocale';
 import { vOnClickOutside } from '@vueuse/components';
 
 import { useAlert } from 'dashboard/composables';
@@ -57,6 +58,7 @@ const props = defineProps({
 const emit = defineEmits(['saved']);
 
 const { t, te, locale } = useI18n();
+const { resolvedLocale } = useLocale();
 const store = useStore();
 const { currentAccount } = useAccount();
 const { bindings } = useTemplateBindings('message');
@@ -73,6 +75,19 @@ const saveError = ref('');
 const isLoading = ref(false);
 const liveLoaded = ref(false);
 const liveState = ref(null);
+const lastUpdatedTime = computed(() => {
+  const timestamp = liveState.value?.last_updated_time;
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat(resolvedLocale.value, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+});
 const showErrors = ref(false);
 const isSaving = ref(false);
 const isUploading = ref(false);
@@ -652,10 +667,10 @@ const buttonChoices = computed(() =>
         >
           {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.APPROVED_WARNING') }}
         </p>
-        <p v-if="liveState?.last_updated_time" class="text-xs text-n-slate-11">
+        <p v-if="lastUpdatedTime" class="text-xs text-n-slate-11">
           {{
             $t('WHATSAPP_TEMPLATE_MGMT.FORM.LAST_EDIT', {
-              time: liveState.last_updated_time,
+              time: lastUpdatedTime,
             })
           }}
         </p>

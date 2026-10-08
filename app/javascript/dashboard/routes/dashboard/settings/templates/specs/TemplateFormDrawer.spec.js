@@ -5,11 +5,13 @@ import { PRESETS, presetToForm } from '../presets';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import { useAlert } from 'dashboard/composables';
 
+const userLocale = vi.hoisted(() => ({ value: 'es' }));
+
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
     t: (key, values) => (values?.message ? `${key}: ${values.message}` : key),
     te: () => false,
-    locale: { value: 'es' },
+    locale: userLocale,
   }),
 }));
 vi.mock('dashboard/composables/useAccount', () => ({
@@ -54,7 +56,9 @@ const mountDrawer = async (props = {}) => {
   const wrapper = mount(TemplateFormDrawer, {
     props: { inboxes, ...props },
     global: {
-      mocks: { $t: key => key },
+      mocks: {
+        $t: (key, values) => (values?.time ? `${key}: ${values.time}` : key),
+      },
       stubs: { SidePanel: SidePanelStub, TemplatePreview: true },
     },
   });
@@ -70,6 +74,7 @@ const typeInto = async (wrapper, selector, value) => {
 
 describe('TemplateFormDrawer', () => {
   beforeEach(() => {
+    userLocale.value = 'es';
     WhatsappTemplatesAPI.updateTemplate.mockReset();
     WhatsappTemplatesAPI.getTemplate.mockReset();
     WhatsappTemplatesAPI.capabilities.mockReset();
@@ -281,6 +286,44 @@ describe('TemplateFormDrawer', () => {
       },
     ],
   };
+
+  it.each(['es', 'en', 'pt_BR'])(
+    'formats the last edit in the user locale %s and local timezone',
+    async locale => {
+      userLocale.value = locale;
+      WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
+      const wrapper = await mountDrawer();
+      await wrapper.vm.open(positional);
+      const expected = new Intl.DateTimeFormat(locale.replace('_', '-'), {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(new Date(positional.last_updated_time));
+      expect(wrapper.text()).toContain(
+        `WHATSAPP_TEMPLATE_MGMT.FORM.LAST_EDIT: ${expected}`
+      );
+      expect(wrapper.text()).not.toContain(positional.last_updated_time);
+      wrapper.unmount();
+    }
+  );
+
+  it.each([undefined, null, '', 'invalid-date'])(
+    'hides the last edit when the timestamp is %s',
+    async timestamp => {
+      WhatsappTemplatesAPI.getTemplate.mockResolvedValue({
+        data: { ...positional, last_updated_time: timestamp },
+      });
+      const wrapper = await mountDrawer();
+      await wrapper.vm.open(positional);
+      expect(wrapper.text()).not.toContain(
+        'WHATSAPP_TEMPLATE_MGMT.FORM.LAST_EDIT'
+      );
+      expect(wrapper.text()).not.toContain('Invalid Date');
+      wrapper.unmount();
+    }
+  );
 
   it('loads live positional structure, keeps all examples and locks absent components and format', async () => {
     WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });

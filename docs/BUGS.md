@@ -1458,6 +1458,13 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
   The real-controller Rails request specs are authored but cannot run in the available production-only image.
   Full Vite build is blocked by the documented old `@chatwoot/prosemirror-schema` missing `imagePastePlugin` export.
 
+### B-NEW-60 -- Template last edit displayed a raw ISO timestamp
+
+- Files: `settings/templates/TemplateFormDrawer.vue` and its drawer spec.
+- Format the live last edit with the user's resolved locale and local timezone; hide missing or invalid dates.
+- Verify: open the positional edit preset in Spanish/Guayaquil and check `7 oct 2026, 05:00`;
+  check the Meta error state too. Template Vitest folder: 277 tests pass; ESLint and Prettier pass.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)
