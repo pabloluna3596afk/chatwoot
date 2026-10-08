@@ -63,6 +63,9 @@ describe('Flow message customization', () => {
     expect(fields.get('[data-testid="flow-send-restore"]').classes()).toContain(
       'justify-self-start'
     );
+    expect(fields.get('[data-testid="flow-send-restore"]').classes()).toContain(
+      '!w-fit'
+    );
     expect(wrapper.find('[data-testid="flow-send-customize"]').exists()).toBe(
       false
     );

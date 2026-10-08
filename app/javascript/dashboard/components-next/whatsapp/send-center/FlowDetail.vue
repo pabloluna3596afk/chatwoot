@@ -167,7 +167,8 @@ defineExpose({
           ghost
           slate
           sm
-          class="justify-self-start !justify-start text-start !px-0"
+          class="justify-self-start !w-fit !justify-start text-start !px-0 !text-xs"
+          icon="i-lucide-rotate-ccw"
           :label="$t('WHATSAPP_TEMPLATES.SEND_CENTER.RESTORE')"
           :disabled="!isModified"
           data-testid="flow-send-restore"
