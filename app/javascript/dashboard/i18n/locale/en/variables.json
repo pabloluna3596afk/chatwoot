@@ -36,5 +36,38 @@
         "timezone": "Account timezone"
       }
     }
+  },
+  "VARIABLE_PICKER": {
+    "GROUPS": {
+      "SYSTEM": "System",
+      "CONTACT": "Contact attributes",
+      "CONVERSATION": "Conversation attributes",
+      "APPOINTMENT": "Captain appointments"
+    },
+    "LABELS": {
+      "nombre": "Contact name",
+      "primer_nombre": "First name",
+      "apellido": "Last name",
+      "correo": "Email",
+      "telefono": "Phone",
+      "empresa": "Company",
+      "ciudad": "City",
+      "pais": "Country code",
+      "documento": "Document number",
+      "agente": "Agent name",
+      "numero_conversacion": "Conversation number",
+      "cita": "Appointment",
+      "fecha": "Appointment date",
+      "hora": "Appointment time",
+      "tema": "Appointment topic",
+      "asistente": "Assistant name"
+    },
+    "PLACEHOLDER": "Choose a variable",
+    "SEARCH": "Search variables?",
+    "EMPTY": "No variables found",
+    "NONE": "Do not save",
+    "CREATE_ATTRIBUTE": "Create new attribute",
+    "NO_ATTRIBUTES": "No attributes yet",
+    "NO_COMPATIBLE": "No compatible variables"
   }
 }
