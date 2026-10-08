@@ -8,7 +8,7 @@
     "SYNC_SUCCESS": "Template sync started for all WhatsApp inboxes. Updates may take a couple of minutes.",
     "PARTIAL_SYNC_ERROR": "Template sync started for some WhatsApp inboxes, but others could not be synced.",
     "SYNC_ERROR": "Unable to start template sync. Please try again.",
-    "SEARCH_PLACEHOLDER": "Search by content or name...",
+    "SEARCH_PLACEHOLDER": "Search templates",
     "MANAGE_IN_META": "Manage in Meta",
     "MANAGE_IN_TWILIO": "Manage in Twilio",
     "LOADING": "Loading WhatsApp templates...",

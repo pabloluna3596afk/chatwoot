@@ -7,7 +7,7 @@
     "SYNC_SUCCESS": "Se inició la sincronización de plantillas en todas las bandejas de WhatsApp. Puede tardar un par de minutos.",
     "PARTIAL_SYNC_ERROR": "Se inició la sincronización en algunas bandejas de WhatsApp, pero otras no se pudieron sincronizar.",
     "SYNC_ERROR": "No se pudo iniciar la sincronización de plantillas. Inténtalo de nuevo.",
-    "SEARCH_PLACEHOLDER": "Buscar por contenido o nombre...",
+    "SEARCH_PLACEHOLDER": "Buscar plantillas",
     "MANAGE_IN_META": "Gestionar en Meta",
     "MANAGE_IN_TWILIO": "Gestionar en Twilio",
     "LOADING": "Cargando plantillas de WhatsApp...",

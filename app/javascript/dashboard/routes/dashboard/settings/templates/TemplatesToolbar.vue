@@ -30,7 +30,7 @@ const search = defineModel({ type: String, default: '' });
       </Input>
       <slot name="filters" />
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 ms-auto shrink-0">
       <slot name="actions" />
       <TemplatesCreateButton v-if="primaryAction" :action="primaryAction" />
     </div>
