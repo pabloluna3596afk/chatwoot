@@ -28,7 +28,7 @@ class Whatsapp::TemplateComponentsBuilder
   VARIABLE = /\{\{\s*([^{}\s]+)\s*\}\}/
   NUMBER = /\A\d+\z/
   NAMED_VARIABLE = /\A[a-z][a-z0-9_]*\z/
-  URL_VARIABLE = /\{\{(\d+)\}\}/
+  URL_VARIABLE = /\{\{([a-z0-9_]+)\}\}/
   EDGE_VARIABLE = /\A\s*\{\{[^{}]+\}\}|\{\{[^{}]+\}\}\s*\z/
   LIMITS = { body: 1024, header_text: 60, footer: 60, button_text: 25, url: 2000, phone: 20, buttons: 10, url_buttons: 2, phone_buttons: 1,
              copy_code: 15 }.freeze
@@ -210,11 +210,19 @@ class Whatsapp::TemplateComponentsBuilder
     raise Invalid, 'url_invalid' unless url.match?(%r{\Ahttps?://\S+\z}) && url.length <= LIMITS[:url]
 
     numbers = url.scan(URL_VARIABLE).flatten.uniq
-    raise Invalid, 'url_variable_at_end' if url.include?('{{') && (numbers.size != 1 || !url.end_with?('{{1}}'))
+    raise Invalid, 'url_variable_at_end' if url.include?('{{') && (numbers.size != 1 || !url.end_with?("{{#{numbers.first}}}"))
 
     built = { type: 'URL', text: text, url: url }
-    built[:example] = [required_example(button[:examples], 1, 'url')[0]] if numbers.any?
+    built[:example] = [url_example(button, url, numbers.first)] if numbers.any?
     built
+  end
+
+  def url_example(button, url, token)
+    example = required_example(button[:examples], 1, 'url')[0]
+    prefix = url.delete_suffix("{{#{token}}}")
+    return example if example.start_with?(prefix) && example.length > prefix.length && example.exclude?('{{')
+
+    raise Invalid, 'url_example_invalid'
   end
 
   # The coupon code the customer copies (Meta writes the button's label): marketing only.

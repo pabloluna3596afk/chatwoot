@@ -110,6 +110,17 @@ RSpec.describe 'Inbox WhatsApp templates API', type: :request do
       expect(response.parsed_body['message']).to be_present
     end
 
+    it 'returns the original Meta message, code, subcode and user message' do
+      error = Whatsapp::TemplateManagementService::Error.new('meta_error', meta_message: 'Invalid parameter', meta_code: 100,
+                                                                           error_subcode: 123, error_user_msg: 'No se permite editar')
+      allow(service).to receive(:create).and_raise(error)
+      post base_url, params: { template: template }, headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body).to include('message' => 'Invalid parameter', 'code' => 100, 'error_subcode' => 123,
+                                              'error_user_msg' => 'No se permite editar')
+    end
+
     it 'answers what Meta refuses with a plain message' do
       allow(service).to receive(:create).and_raise(Whatsapp::TemplateManagementService::Error.new('name_locked', meta_code: 100))
 
