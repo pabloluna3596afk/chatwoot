@@ -154,7 +154,7 @@
         "BUTTON_TEXT_REQUIRED": "Cada botón necesita un texto.",
         "BUTTON_TEXT_TOO_LONG": "El texto de un botón puede tener hasta {buttonLimit} caracteres.",
         "URL_INVALID": "La URL debe empezar con http:// o https://.",
-        "URL_VARIABLE_AT_END": "La URL solo admite una variable {variable} y al final.",
+        "URL_VARIABLE_AT_END": "La URL admite una sola variable al final.",
         "PHONE_INVALID": "El teléfono debe tener el formato +593999999999.",
         "TOO_MANY_BUTTONS": "Puedes poner hasta {buttonsLimit} botones.",
         "TOO_MANY_URL_BUTTONS": "Puedes poner hasta {urlLimit} botones con enlace.",
@@ -164,7 +164,11 @@
         "COPY_CODE_MARKETING_ONLY": "El botón de copiar código solo se puede usar en plantillas de Marketing.",
         "COPY_CODE_REQUIRED": "Escribe el código que se copia con el botón.",
         "COPY_CODE_TOO_LONG": "El código puede tener hasta {codeLimit} caracteres.",
-        "TOO_MANY_COPY_CODE": "Solo puedes poner un botón de copiar código."
+        "TOO_MANY_COPY_CODE": "Solo puedes poner un botón de copiar código.",
+        "EDIT_STRUCTURE_LOCKED": "Conserva los componentes y la cantidad y el orden de las variables. Para cambiarlos, crea una copia.",
+        "SYSTEM_MAPPING_REQUIRED": "Asigna una variable del sistema diferente a cada n?mero antes de crear la copia.",
+        "COPY_NAME_REQUIRED": "La copia necesita un nombre diferente al de la plantilla original.",
+        "URL_EXAMPLE_INVALID": "Usa una URL completa con el mismo inicio y un valor en lugar de la variable."
       },
       "CUSTOM_VARIABLE": "Otra variable (ej. producto)",
       "ADD": "Agregar",
@@ -194,7 +198,14 @@
         "CONVERSATION": "Atributos personalizados de la conversación",
         "CAPTAIN": "Citas de Captain"
       },
-      "SEARCH_VARIABLE": "Buscar variable..."
+      "SEARCH_VARIABLE": "Buscar variable...",
+      "SYSTEM_COPY": "Crear copia con variables del sistema",
+      "SYSTEM_COPY_HELP": "Asigna cada variable a un dato del sistema; la plantilla anterior sigue funcionando hasta que Meta apruebe la copia.",
+      "MAP_VARIABLE": "Elige una variable del sistema",
+      "APPROVED_WARNING": "Meta permite 1 edici?n cada 24 h y 10 en 30 d?as. El nombre y el idioma no pueden cambiar; al guardar, la plantilla vuelve a revisi?n y puede quedar pendiente o pausada.",
+      "LAST_EDIT": "?ltima edici?n: {time}",
+      "EDIT_STRUCTURE_HELP": "Puedes editar los textos conservando los componentes y las variables en el mismo orden.",
+      "META_ERROR": "Meta rechaz? la solicitud: {message}"
     },
     "DELETE_DIALOG": {
       "TITLE": "Borrar plantilla",

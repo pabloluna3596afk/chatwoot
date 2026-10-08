@@ -1,5 +1,8 @@
 import {
   buildPayload,
+  copyWithSystemVariables,
+  suggestSystemMapping,
+  systemMappingValid,
   editRules,
   emptyForm,
   formFromTemplate,
@@ -433,5 +436,84 @@ describe('editing a synced template', () => {
       canEdit: false,
       categoryLocked: false,
     });
+  });
+});
+
+describe('positional edit regression', () => {
+  const template = {
+    name: 'test_utility_envio',
+    language: 'es_EC',
+    category: 'UTILITY',
+    parameter_format: 'POSITIONAL',
+    components: [
+      {
+        type: 'BODY',
+        text: 'Hola {{1}}, pedido {{2}}, fecha {{3}}, agente {{4}}.',
+        example: { body_text: [['Ana', '123', 'lunes', 'Luis']] },
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Seguir',
+            url: 'https://paluhub.com/track/{{2}}',
+            example: ['https://paluhub.com/track/123'],
+          },
+        ],
+      },
+    ],
+  };
+  it('round trips the exact failing URL and complete examples', () => {
+    const form = formFromTemplate(template, 7);
+    expect(validateForm(form, { isEdit: true, original: template })).toEqual(
+      {}
+    );
+    expect(buildPayload(form)).toMatchObject({
+      parameter_format: 'POSITIONAL',
+      body: { examples: ['Ana', '123', 'lunes', 'Luis'] },
+      buttons: [
+        {
+          url: 'https://paluhub.com/track/{{2}}',
+          examples: ['https://paluhub.com/track/123'],
+        },
+      ],
+    });
+  });
+  it('requires a full dynamic URL example', () => {
+    const form = formFromTemplate(template, 7);
+    form.buttons[0].examples = ['123'];
+    expect(validateForm(form)['buttons.0.example']).toBe('URL_EXAMPLE_INVALID');
+  });
+  it('suggests only clear system meanings and preserves every variable in a named copy', () => {
+    const form = formFromTemplate(template, 7);
+    expect(suggestSystemMapping(form)).toEqual({
+      1: 'nombre',
+      2: '',
+      3: '',
+      4: 'agente',
+    });
+    expect(systemMappingValid(form, { 1: 'nombre' })).toBe(false);
+    expect(
+      systemMappingValid(form, {
+        1: 'nombre',
+        2: 'nombre',
+        3: 'ciudad',
+        4: 'agente',
+      })
+    ).toBe(false);
+    const mapping = {
+      1: 'nombre',
+      2: 'numero_conversacion',
+      3: 'ciudad',
+      4: 'agente',
+    };
+    expect(systemMappingValid(form, mapping)).toBe(true);
+    const copy = copyWithSystemVariables(form, mapping);
+    expect(buildPayload(copy).parameter_format).toBe('NAMED');
+    expect(copy.buttons[0].url).toBe(
+      'https://paluhub.com/track/{{numero_conversacion}}'
+    );
+    expect(form.body.text).toBe(template.components[0].text);
   });
 });
