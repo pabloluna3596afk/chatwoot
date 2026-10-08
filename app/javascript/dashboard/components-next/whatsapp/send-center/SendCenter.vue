@@ -394,7 +394,9 @@ watch(
       >
         <section
           class="flex flex-col min-h-0 min-w-0 gap-3"
-          :class="{ 'max-xl:invisible': hasCustomization }"
+          :class="{
+            'max-xl:[&>:not(:first-child)]:invisible': hasCustomization,
+          }"
         >
           <div
             class="flex shrink-0 items-center gap-3"
