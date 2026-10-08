@@ -331,9 +331,10 @@ RSpec.describe Whatsapp::TemplateManagementService do
                                                                      .to_return(meta_error(code: 100, message: 'Invalid parameter',
                                                                                            user_msg: 'Nombre no disponible'))
 
-      expect do
+      expectation = expect do
         service.create_from_library(library_template_name: 'appointment_reminder', name: 'reminder', language: 'es_MX', category: 'UTILITY')
-      end.to raise_error do |error|
+      end
+      expectation.to raise_error do |error|
         expect(error.detail).to eq('Nombre no disponible')
       end
       expect(stub).to have_been_requested.once

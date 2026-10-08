@@ -116,13 +116,21 @@ class Whatsapp::TemplateManagementService
 
   def library_response(query)
     [query[:language], 'en_US', nil].uniq.each do |language|
-      response = request(:get, "#{base}/message_template_library", query: query.merge(language: language).compact)
-      raise_failure(response) unless response.success? && response.parsed_response.is_a?(Hash)
-
-      return [response.parsed_response, language]
+      return [request_library(query, language), language]
     rescue Error => e
-      raise unless language && e.meta_code == 100 && e.detail.to_s.match?(LIBRARY_LANGUAGE_ERROR)
+      raise unless language && library_language_error?(e)
     end
+  end
+
+  def request_library(query, language)
+    response = request(:get, "#{base}/message_template_library", query: query.merge(language: language).compact)
+    raise_failure(response) unless response.success? && response.parsed_response.is_a?(Hash)
+
+    response.parsed_response
+  end
+
+  def library_language_error?(error)
+    error.meta_code == 100 && error.detail.to_s.match?(LIBRARY_LANGUAGE_ERROR)
   end
 
   def finish(response, *keys)
