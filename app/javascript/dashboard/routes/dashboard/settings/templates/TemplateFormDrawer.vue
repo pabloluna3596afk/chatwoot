@@ -173,7 +173,7 @@ const apiError = error => {
   const data = error?.response?.data;
   const texts = [
     ...new Set([data?.error_user_msg, data?.message].filter(Boolean)),
-  ].join(' ? ');
+  ].join(' \u2014 ');
   return texts
     ? t('WHATSAPP_TEMPLATE_MGMT.FORM.META_ERROR', { message: texts })
     : t('WHATSAPP_TEMPLATE_MGMT.FORM.SAVE_ERROR');
@@ -843,7 +843,7 @@ const buttonChoices = computed(() =>
                 :disabled="Boolean(copySource)"
                 :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_TEXT')"
                 :message="fieldError('header.text')"
-                message-type="error"
+                :message-type="fieldError('header.text') ? 'error' : 'info'"
                 @update:model-value="value => (form.header.text = value)"
               />
               <Input
@@ -855,7 +855,7 @@ const buttonChoices = computed(() =>
                   })
                 "
                 :message="fieldError('header.example')"
-                message-type="error"
+                :message-type="fieldError('header.example') ? 'error' : 'info'"
               />
             </template>
             <div v-if="isMediaHeader" class="grid gap-1">
@@ -932,7 +932,7 @@ const buttonChoices = computed(() =>
               :max-length="LIMITS.body"
               show-character-count
               :message="fieldError('body.text')"
-              message-type="error"
+              :message-type="fieldError('body.text') ? 'error' : 'info'"
               @update:model-value="value => (form.body.text = value)"
             />
             <div
@@ -982,7 +982,7 @@ const buttonChoices = computed(() =>
                         )
                       : ''
                   "
-                  message-type="error"
+                  :message-type="customVariableInvalid ? 'error' : 'info'"
                   @enter="addCustomVariable"
                 />
                 <Button
@@ -1002,7 +1002,7 @@ const buttonChoices = computed(() =>
             v-model="form.footer.text"
             :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.FOOTER_PLACEHOLDER')"
             :message="fieldError('footer.text')"
-            message-type="error"
+            :message-type="fieldError('footer.text') ? 'error' : 'info'"
           />
         </div>
 
@@ -1050,7 +1050,9 @@ const buttonChoices = computed(() =>
               size="sm"
               :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.BUTTON_TEXT')"
               :message="fieldError(`buttons.${index}.text`)"
-              message-type="error"
+              :message-type="
+                fieldError(`buttons.${index}.text`) ? 'error' : 'info'
+              "
             />
             <template v-if="button.type === 'URL'">
               <Input
@@ -1059,7 +1061,9 @@ const buttonChoices = computed(() =>
                 size="sm"
                 placeholder="https://ejemplo.com/pedido/{{1}}"
                 :message="fieldError(`buttons.${index}.url`)"
-                message-type="error"
+                :message-type="
+                  fieldError(`buttons.${index}.url`) ? 'error' : 'info'
+                "
                 @update:model-value="value => (button.url = value)"
               />
               <Input
@@ -1068,7 +1072,9 @@ const buttonChoices = computed(() =>
                 size="sm"
                 :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.URL_EXAMPLE')"
                 :message="fieldError(`buttons.${index}.example`)"
-                message-type="error"
+                :message-type="
+                  fieldError(`buttons.${index}.example`) ? 'error' : 'info'
+                "
               />
             </template>
             <Input
@@ -1077,7 +1083,9 @@ const buttonChoices = computed(() =>
               size="sm"
               placeholder="+593999999999"
               :message="fieldError(`buttons.${index}.phone`)"
-              message-type="error"
+              :message-type="
+                fieldError(`buttons.${index}.phone`) ? 'error' : 'info'
+              "
             />
           </div>
           <p

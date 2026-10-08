@@ -170,14 +170,14 @@ RSpec.describe 'Inbox WhatsApp templates API', type: :request do
       edit = stub_request(:post, "#{graph}/555").with(body: { components: original[:components] }.to_json)
                                                 .to_return(status: 400, headers: { 'Content-Type' => 'application/json' }, body: {
                                                   error: { message: 'Invalid parameter', code: 100, error_subcode: 123,
-                                                           error_user_msg: 'Solo una edici?n cada 24 horas' }
+                                                           error_user_msg: 'Solo una edición cada 24 horas' }
                                                 }.to_json)
       patch "#{base_url}/555", params: { template: edit_form }, headers: admin.create_new_auth_token, as: :json
 
       expect(edit).to have_been_requested.once
       expect(response).to have_http_status(:unprocessable_entity)
       expect(response.parsed_body).to include('message' => 'Invalid parameter', 'code' => 100, 'error_subcode' => 123,
-                                              'error_user_msg' => 'Solo una edici?n cada 24 horas')
+                                              'error_user_msg' => 'Solo una edición cada 24 horas')
       expect(Rails.logger).to have_received(:warn).with(include('template=test_utility_envio HTTP 400'))
       expect(Rails.logger).not_to have_received(:warn).with(include(channel.template_access_token))
     end

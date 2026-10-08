@@ -328,6 +328,26 @@ describe('TemplateFormDrawer', () => {
     wrapper.unmount();
   });
 
+  it('uses neutral borders for valid fields and error borders only after failed validation', async () => {
+    WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
+    const wrapper = await mountDrawer();
+    await wrapper.vm.open(positional);
+    expect(
+      wrapper.get('textarea').element.parentElement.className
+    ).not.toContain('border-n-ruby');
+    expect(
+      wrapper
+        .findAll('input')
+        .some(input => input.classes().includes('outline-n-ruby-8'))
+    ).toBe(false);
+    await wrapper.get('textarea').setValue('');
+    await wrapper.get('form').trigger('submit');
+    expect(wrapper.get('textarea').element.parentElement.className).toContain(
+      'border-n-ruby'
+    );
+    wrapper.unmount();
+  });
+
   it('keeps an existing media header visible and retains its example while its format is locked', async () => {
     const source = {
       ...positional,
@@ -450,7 +470,7 @@ describe('TemplateFormDrawer', () => {
       response: {
         data: {
           message: 'Invalid parameter',
-          error_user_msg: 'Solo una edici?n cada 24 horas',
+          error_user_msg: 'Solo una edición cada 24 horas',
           code: 100,
           error_subcode: 123,
         },
@@ -462,7 +482,7 @@ describe('TemplateFormDrawer', () => {
     await flushPromises();
     // The translated framing receives the original text as interpolation.
     expect(wrapper.get('[data-testid="meta-error"]').text()).toContain(
-      'Solo una edici?n cada 24 horas ? Invalid parameter'
+      'Solo una edición cada 24 horas — Invalid parameter'
     );
     expect(wrapper.emitted('saved')).toBeUndefined();
     wrapper.unmount();

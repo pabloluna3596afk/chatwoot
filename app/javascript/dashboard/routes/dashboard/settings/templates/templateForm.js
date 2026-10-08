@@ -544,12 +544,12 @@ export const suggestSystemMapping = form =>
       const clues = {
         nombre: /(?:hola|estimad[oa]|nombre)\s*$/,
         correo: /(?:correo|email)\s*:?\s*$/,
-        telefono: /tel[e?]fono\s*:?\s*$/,
+        telefono: /tel[e\u00e9]fono\s*:?\s*$/,
         empresa: /empresa\s*:?\s*$/,
         ciudad: /ciudad\s*:?\s*$/,
         documento: /documento\s*:?\s*$/,
         agente: /agente\s*:?\s*$/,
-        numero_conversacion: /conversaci[o?]n\s*#?\s*$/,
+        numero_conversacion: /conversaci[o\u00f3]n\s*#?\s*$/,
       };
       return [
         token,

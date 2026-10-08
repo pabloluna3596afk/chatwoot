@@ -160,9 +160,9 @@ RSpec.describe Whatsapp::TemplateComponentsBuilder do
 
   describe 'explicit parameter format' do
     it 'keeps NAMED for a new system copy with no text variables' do
-      builder = described_class.new(body: { text: 'Tu pedido est? listo.' }, parameter_format: 'NAMED')
+      builder = described_class.new(body: { text: 'Tu pedido está listo.' }, parameter_format: 'NAMED')
 
-      expect(builder.components).to eq([{ type: 'BODY', text: 'Tu pedido est? listo.' }])
+      expect(builder.components).to eq([{ type: 'BODY', text: 'Tu pedido está listo.' }])
       expect(builder.parameter_format).to eq('NAMED')
     end
 
