@@ -38,6 +38,10 @@ class WhatsappFlowsAPI extends ApiClient {
     return axios.patch(`${this.url}/${id}`, { whatsapp_flow: flow });
   }
 
+  duplicate(id) {
+    return axios.post(`${this.url}/${id}/duplicate`);
+  }
+
   remove(id) {
     return axios.delete(`${this.url}/${id}`);
   }
