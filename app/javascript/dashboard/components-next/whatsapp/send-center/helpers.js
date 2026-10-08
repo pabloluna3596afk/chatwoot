@@ -31,7 +31,7 @@ export const usesContentTemplates = inbox =>
 
 export const sendCenterIcon = inbox =>
   inbox.channel_type === 'Channel::Whatsapp' || usesContentTemplates(inbox)
-    ? 'i-ph-whatsapp-logo'
+    ? 'i-woot-whatsapp'
     : 'i-lucide-layout-template';
 
 export const templateReason = (template, content = false) => {

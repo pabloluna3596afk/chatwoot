@@ -54,18 +54,45 @@ const flows = ref([]);
 const serverCanReply = ref(true);
 const isSending = ref(false);
 const error = ref('');
-const query = ref('');
-const category = ref('ALL');
-const status = ref('ALL');
 const tab = ref(0);
-const selectedKey = ref('');
+const newTabState = () => ({
+  query: '',
+  category: 'ALL',
+  status: 'ALL',
+  selectedKey: '',
+});
+const tabStates = ref([newTabState(), newTabState()]);
+const activeState = computed(() => tabStates.value[tab.value]);
+const query = computed({
+  get: () => activeState.value.query,
+  set: value => {
+    activeState.value.query = value;
+  },
+});
+const category = computed({
+  get: () => activeState.value.category,
+  set: value => {
+    activeState.value.category = value;
+  },
+});
+const status = computed({
+  get: () => activeState.value.status,
+  set: value => {
+    activeState.value.status = value;
+  },
+});
+const selectedKey = computed({
+  get: () => activeState.value.selectedKey,
+  set: value => {
+    activeState.value.selectedKey = value;
+  },
+});
 const { run, abort, isPending } = useAbortableRequest();
 const hasFlows = computed(() => supportsFlows(props.inbox));
 const content = computed(() => usesContentTemplates(props.inbox));
 const tabs = computed(() => [
-  { label: t(`${prefix}.ALL`), index: 0 },
-  { label: t(`${prefix}.TEMPLATES`), index: 1 },
-  ...(hasFlows.value ? [{ label: t(`${prefix}.FLOWS`), index: 2 }] : []),
+  { label: t(`${prefix}.TEMPLATES`), index: 0 },
+  ...(hasFlows.value ? [{ label: t(`${prefix}.FLOWS`), index: 1 }] : []),
 ]);
 const statusLabel = value =>
   t(`${prefix}.STATUS.${te(`${prefix}.STATUS.${value}`) ? value : 'UNKNOWN'}`);
@@ -105,8 +132,7 @@ const rows = computed(() =>
 const searchedRows = computed(() =>
   rows.value.filter(
     row =>
-      (tab.value === 0 ||
-        row.type === (tab.value === 1 ? 'template' : 'flow')) &&
+      row.type === (tab.value === 0 ? 'template' : 'flow') &&
       `${row.name} ${row.data.body || ''} ${(row.data.components || []).map(c => c.text || '').join(' ')}`
         .toLocaleLowerCase()
         .includes(query.value.toLocaleLowerCase())
@@ -134,11 +160,14 @@ const statusCount = value =>
 const selected = computed(() =>
   filtered.value.find(row => row.key === selectedKey.value)
 );
+const filterGroup = computed(() => (tab.value === 0 ? 'templates' : 'flows'));
 const categoryGroups = computed(() => [
-  { key: 'templates', label: t(`${prefix}.CATEGORY_GROUP`) },
-  ...(hasFlows.value
-    ? [{ key: 'flows', label: t(`${prefix}.FLOW_CATEGORY_GROUP`) }]
-    : []),
+  {
+    key: filterGroup.value,
+    label: t(
+      `${prefix}.${tab.value === 0 ? 'CATEGORY_GROUP' : 'FLOW_CATEGORY_GROUP'}`
+    ),
+  },
 ]);
 const categoryOptions = computed(() => [
   {
@@ -146,18 +175,19 @@ const categoryOptions = computed(() => [
     label: t(`${prefix}.ALL_CATEGORIES`),
     count: categoryRows.value.length,
   },
-  ...TEMPLATE_CATEGORIES.map(value => ({
-    value: `template:${value}`,
-    label: categoryLabel(value),
-    count: categoryCount(`template:${value}`),
-    group: 'templates',
-  })),
-  ...[...new Set(flows.value.flatMap(flow => flow.categories))].map(value => ({
-    value: `flow:${value}`,
-    label: t(`WHATSAPP_FLOWS.CATEGORIES.${value}`),
-    count: categoryCount(`flow:${value}`),
-    group: 'flows',
-  })),
+  ...(tab.value === 0
+    ? TEMPLATE_CATEGORIES.map(value => ({
+        value: `template:${value}`,
+        label: categoryLabel(value),
+        count: categoryCount(`template:${value}`),
+        group: 'templates',
+      }))
+    : [...new Set(flows.value.flatMap(flow => flow.categories))].map(value => ({
+        value: `flow:${value}`,
+        label: t(`WHATSAPP_FLOWS.CATEGORIES.${value}`),
+        count: categoryCount(`flow:${value}`),
+        group: 'flows',
+      }))),
 ]);
 const statusOptions = computed(() => [
   {
@@ -165,26 +195,20 @@ const statusOptions = computed(() => [
     label: t(`${prefix}.ALL_STATUSES`),
     count: statusRows.value.length,
   },
-  ...TEMPLATE_STATUSES.map(value => ({
+  ...(tab.value === 0 ? TEMPLATE_STATUSES : FLOW_STATUSES).map(value => ({
     value,
     label: statusLabel(value),
     count: statusCount(value),
-    group: 'templates',
+    group: filterGroup.value,
   })),
-  ...(hasFlows.value
-    ? FLOW_STATUSES.map(value => ({
-        value,
-        label: statusLabel(value),
-        count: statusCount(value),
-        group: 'flows',
-      }))
-    : []),
 ]);
 const statusGroups = computed(() => [
-  { key: 'templates', label: t(`${prefix}.STATUS_GROUP`) },
-  ...(hasFlows.value
-    ? [{ key: 'flows', label: t(`${prefix}.FLOW_STATUS_GROUP`) }]
-    : []),
+  {
+    key: filterGroup.value,
+    label: t(
+      `${prefix}.${tab.value === 0 ? 'STATUS_GROUP' : 'FLOW_STATUS_GROUP'}`
+    ),
+  },
 ]);
 const component = type =>
   selected.value?.data.components?.find(c => c.type === type);
@@ -277,10 +301,7 @@ watch(
       return;
     }
     tab.value = 0;
-    query.value = '';
-    category.value = 'ALL';
-    status.value = 'ALL';
-    selectedKey.value = '';
+    tabStates.value = [newTabState(), newTabState()];
     selectedKey.value = filtered.value[0]?.key || '';
     await nextTick();
     dialog.value.open();
@@ -310,7 +331,7 @@ watch(
               class="size-6 text-n-teal-11"
             />{{
               $t(
-                `${prefix}.${sendCenterIcon(inbox) === 'i-ph-whatsapp-logo' ? 'TITLE' : 'TEMPLATE_TITLE'}`
+                `${prefix}.${sendCenterIcon(inbox) === 'i-woot-whatsapp' ? 'TITLE' : 'TEMPLATE_TITLE'}`
               )
             }}
           </h2>

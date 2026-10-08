@@ -217,6 +217,8 @@ describe('unified send center', () => {
         global: globalOptions,
       });
       await flushPromises();
+      wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+      await flushPromises();
       expect(wrapper.get('[data-testid="center-reason"]').text()).toBe(
         es.WHATSAPP_TEMPLATES.SEND_CENTER.REASONS[reason]
       );
@@ -281,9 +283,9 @@ describe('unified send center', () => {
     await flushPromises();
     const filters = wrapper.findAllComponents(FilterDropdown);
     expect(filters.map(filter => filter.props('options')[0].count)).toEqual([
-      5, 5,
+      3, 3,
     ]);
-    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 2 });
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
     await flushPromises();
     expect(filters.map(filter => filter.props('options')[0].count)).toEqual([
       2, 2,
@@ -294,7 +296,7 @@ describe('unified send center', () => {
     expect(wrapper.get('[data-testid="center-list"]').text()).not.toContain(
       'appointment'
     );
-    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 0 });
     await flushPromises();
     expect(wrapper.get('[data-testid="center-list"]').text()).toContain(
       'appointment'
@@ -308,7 +310,84 @@ describe('unified send center', () => {
     expect(wrapper.findAllComponents(DialogStub)).toHaveLength(1);
   });
 
-  it('defaults to Todos, puts usable items first, and searches template content', async () => {
+  it('retains each tab search, category, status and selection with counts only from that tab', async () => {
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: 'whatsapp_cloud',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates,
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    const [categoryFilter, statusFilter] =
+      wrapper.findAllComponents(FilterDropdown);
+    await wrapper
+      .get('[data-testid="center-search"] input')
+      .setValue('appointment');
+    categoryFilter.vm.$emit('update:modelValue', 'template:UTILITY');
+    statusFilter.vm.$emit('update:modelValue', 'APPROVED');
+    await flushPromises();
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    expect(
+      wrapper.get('[data-testid="center-search"] input').element.value
+    ).toBe('');
+    expect(categoryFilter.props('modelValue')).toBe('ALL');
+    expect(statusFilter.props('modelValue')).toBe('ALL');
+    expect(categoryFilter.props('options')[0].count).toBe(2);
+    expect(statusFilter.props('options')[0].count).toBe(2);
+    expect(categoryFilter.props('groups').map(group => group.key)).toEqual([
+      'flows',
+    ]);
+    expect(
+      statusFilter.props('options').some(option => option.value === 'APPROVED')
+    ).toBe(false);
+    expect(
+      categoryFilter
+        .props('options')
+        .some(option => option.value.startsWith('template:'))
+    ).toBe(false);
+    await wrapper.get('[data-testid="center-search"] input').setValue('Draft');
+    categoryFilter.vm.$emit('update:modelValue', 'flow:CONTACT_US');
+    statusFilter.vm.$emit('update:modelValue', 'none');
+    await flushPromises();
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 0 });
+    await flushPromises();
+    expect(
+      wrapper.get('[data-testid="center-search"] input').element.value
+    ).toBe('appointment');
+    expect(categoryFilter.props('modelValue')).toBe('template:UTILITY');
+    expect(statusFilter.props('modelValue')).toBe('APPROVED');
+    expect(categoryFilter.props('options')[0].count).toBe(1);
+    expect(
+      wrapper
+        .get('[data-testid="center-row-template:appointment:es"]')
+        .attributes('aria-pressed')
+    ).toBe('true');
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    expect(
+      wrapper.get('[data-testid="center-search"] input').element.value
+    ).toBe('Draft');
+    expect(categoryFilter.props('modelValue')).toBe('flow:CONTACT_US');
+    expect(statusFilter.props('modelValue')).toBe('none');
+    expect(categoryFilter.props('options')[0].count).toBe(1);
+    expect(
+      wrapper
+        .get('[data-testid="center-row-flow:13"]')
+        .attributes('aria-pressed')
+    ).toBe('true');
+  });
+
+  it('defaults to Plantillas, puts usable items first, and searches template content', async () => {
     wrapper = mount(SendCenter, {
       props: {
         show: true,
@@ -345,8 +424,15 @@ describe('unified send center', () => {
     expect(
       wrapper.get('[data-testid="center-list"]').findAll('button')[0].text()
     ).toContain('appointment');
-    expect(wrapper.text()).toContain('Contact');
-    expect(wrapper.text()).toContain('Sin publicar en esta cuenta');
+    expect(
+      wrapper
+        .findComponent(TabBar)
+        .props('tabs')
+        .map(item => item.label)
+    ).toEqual(['Plantillas', 'Flows']);
+    expect(wrapper.get('[data-testid="center-list"]').text()).not.toContain(
+      'Contact'
+    );
     await wrapper
       .get('[data-testid="center-search"] input')
       .setValue('Discount');
@@ -399,10 +485,10 @@ describe('unified send center', () => {
     expect(
       categoryFilter.props('options').find(option => option.value === 'ALL')
         .count
-    ).toBe(5);
+    ).toBe(3);
     expect(
       statusFilter.props('options').find(option => option.value === 'ALL').count
-    ).toBe(5);
+    ).toBe(3);
     expect(
       categoryFilter
         .props('options')
@@ -503,8 +589,8 @@ describe('unified send center', () => {
         .findComponent(TabBar)
         .props('tabs')
         .map(tab => tab.label)
-    ).toEqual(['Todos', 'Plantillas']);
-    expect(wrapper.find('.i-ph-whatsapp-logo').exists()).toBe(true);
+    ).toEqual(['Plantillas']);
+    expect(wrapper.find('.i-woot-whatsapp').exists()).toBe(true);
     expect(
       wrapper.get('[data-testid="center-send"]').attributes('disabled')
     ).toBeUndefined();
@@ -542,6 +628,8 @@ describe('unified send center', () => {
         stubs: { Dialog: DialogStub },
       },
     });
+    await flushPromises();
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
     await flushPromises();
     API.sendToConversation.mockRejectedValueOnce({
       response: { data: { error: 'Meta refused' } },

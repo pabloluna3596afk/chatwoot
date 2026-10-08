@@ -55,7 +55,7 @@ describe('send center eligibility', () => {
     expect(supportsFlows(twilio)).toBe(false);
     expect(usesContentTemplates(twilio)).toBe(true);
     [cloud, dialog, twilio].forEach(inbox =>
-      expect(sendCenterIcon(inbox)).toBe('i-ph-whatsapp-logo')
+      expect(sendCenterIcon(inbox)).toBe('i-woot-whatsapp')
     );
     expect(sendCenterIcon({ channel_type: 'Channel::Api' })).toBe(
       'i-lucide-layout-template'

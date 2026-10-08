@@ -378,7 +378,7 @@ export default {
         v-if="enableWhatsAppTemplates && !enableContentTemplates"
         v-tooltip.top-end="
           $t(
-            `WHATSAPP_TEMPLATES.SEND_CENTER.${templateButtonIcon === 'i-ph-whatsapp-logo' ? 'TITLE' : 'TEMPLATE_TITLE'}`
+            `WHATSAPP_TEMPLATES.SEND_CENTER.${templateButtonIcon === 'i-woot-whatsapp' ? 'TITLE' : 'TEMPLATE_TITLE'}`
           )
         "
         :icon="templateButtonIcon"
