@@ -194,8 +194,8 @@
       },
       "VARIABLE_GROUPS": {
         "SYSTEM": "System",
-        "CONTACT": "Contact attributes",
-        "CONVERSATION": "Conversation attributes",
+        "CONTACT": "Attributes of the contact",
+        "CONVERSATION": "Attributes of the conversation",
         "CAPTAIN": "Captain appointments"
       },
       "SEARCH_VARIABLE": "Search variable...",

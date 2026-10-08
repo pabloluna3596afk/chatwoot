@@ -194,8 +194,8 @@
       },
       "VARIABLE_GROUPS": {
         "SYSTEM": "Sistema",
-        "CONTACT": "Contacto atributos",
-        "CONVERSATION": "Conversación atributos",
+        "CONTACT": "Atributos del contacto",
+        "CONVERSATION": "Atributos de la conversación",
         "CAPTAIN": "Citas de Captain"
       },
       "SEARCH_VARIABLE": "Buscar variable...",

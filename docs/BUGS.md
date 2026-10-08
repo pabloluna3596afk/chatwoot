@@ -1474,6 +1474,15 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
 - Verify: map a positional copy to system, contact, conversation and appointment variables; submit creates only the NAMED copy.
   Search the grouped picker, open/close the attribute modal, and check the CTA is absent for agents.
 
+### B-NEW-62 -- Template variable picker differed from Flow and long menus covered the footer
+
+- Files: `settings/templates/TemplateFormDrawer.vue`, local `TemplateComboBox.vue`, drawer specs and en/es group labels.
+- Replace the remaining variable `DropdownMenu` with ChatHub's ComboBox. Give every drawer selector a local teleport
+  target, explicit placeholders, consistent search behavior and shared trigger/list styling. Long menus scroll inside
+  the panel body; search and the attribute CTA stay visible above the drawer footer.
+- Verify: new/edit/copy selector specs; 285 template tests pass. Actual Flow/drawer browser comparison verifies matching
+  trigger, option and group appearance and no footer overlap. See `docs/TEMPLATE_PICKER_AUDIT.md` for the audit table.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)

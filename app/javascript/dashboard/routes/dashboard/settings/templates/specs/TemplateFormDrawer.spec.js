@@ -239,7 +239,10 @@ describe('TemplateFormDrawer', () => {
   it('offers the CRM names, the contact and conversation attributes and the Captain names, grouped', async () => {
     const wrapper = await mountDrawer();
 
-    await wrapper.get('[data-testid="variable-menu-toggle"]').trigger('click');
+    const picker = wrapper.findComponent(
+      '[data-testid="variable-menu-toggle"]'
+    );
+    await picker.get('button').trigger('click');
 
     const text = wrapper.text();
     [
@@ -254,6 +257,15 @@ describe('TemplateFormDrawer', () => {
       'Estado (conversacion_estado)',
       'cita',
     ].forEach(expected => expect(text).toContain(expected));
+    await picker
+      .findAll('[role="option"]')
+      .find(option => option.text() === 'Plan (plan)')
+      .trigger('click');
+    expect(wrapper.get('textarea').element.value).toContain('{{plan}}');
+    expect(
+      picker.props('options').some(option => option.value === 'plan')
+    ).toBe(false);
+    wrapper.unmount();
   });
 
   it('warns when a Utility template reads as promotional, and not for Marketing', async () => {
@@ -320,6 +332,43 @@ describe('TemplateFormDrawer', () => {
       },
     ],
   };
+
+  it.each(['new', 'edit', 'copy'])(
+    'uses the Flow ComboBox trigger and panel-local portals for every %s selector',
+    async mode => {
+      WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
+      const wrapper = await mountDrawer({
+        inboxes: [...inboxes, { id: 8, name: 'Ventas' }],
+      });
+      if (mode !== 'new') await wrapper.vm.open(positional);
+      if (mode === 'copy') await wrapper.vm.openSystemCopy(positional);
+      await flushPromises();
+      const selectors = ['template-inbox', 'template-language'];
+      if (mode !== 'edit') selectors.push('template-header-format');
+      if (mode === 'new') selectors.push('variable-menu-toggle');
+      if (mode === 'copy')
+        selectors.push(
+          ...['1', '2', '3', '4'].map(token => `map-variable-${token}`)
+        );
+      selectors.forEach(testId => {
+        const selector = wrapper.findComponent(`[data-testid="${testId}"]`);
+        expect(selector.props('teleport')).toBe(true);
+        expect(selector.props('placeholder')).toBeTruthy();
+        expect(selector.get('button').classes()).toContain('!py-2.5');
+        expect(selector.get('button').classes()).toContain('font-normal');
+        const portal = selector.element.parentElement.querySelector(
+          '[data-template-picker-portal]'
+        );
+        expect(portal.className).toContain('!static');
+        expect(portal.className).toContain('!max-h-80');
+      });
+      expect(wrapper.find('select').exists()).toBe(false);
+      expect(wrapper.findComponent({ name: 'DropdownMenu' }).exists()).toBe(
+        false
+      );
+      wrapper.unmount();
+    }
+  );
 
   it.each(['es', 'en', 'pt_BR'])(
     'formats the last edit in the user locale %s and local timezone',

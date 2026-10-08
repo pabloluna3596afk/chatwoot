@@ -10,7 +10,6 @@ import {
 } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useLocale } from 'shared/composables/useLocale';
-import { vOnClickOutside } from '@vueuse/components';
 
 import { useAlert } from 'dashboard/composables';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
@@ -18,9 +17,8 @@ import { useTemplateBindings } from 'dashboard/composables/useTemplateBindings';
 import { useAccount } from 'dashboard/composables/useAccount';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import Button from 'dashboard/components-next/button/Button.vue';
-import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import TemplateComboBox from './TemplateComboBox.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
-import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import SidePanel from 'dashboard/components-next/side-panel/SidePanel.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
@@ -120,7 +118,6 @@ const languageTouched = ref(false);
 // How the variables of the message are written: {{nombre}} or {{1}}. A template uses one of them.
 const variableMode = ref('NAMED');
 const customVariable = ref('');
-const showVariableMenu = ref(false);
 
 const bindingLabel = binding => {
   const key = `VARIABLES.LABELS.${binding.key}`;
@@ -262,7 +259,6 @@ const resetForm = () => {
   languageTouched.value = false;
   variableMode.value = 'NAMED';
   customVariable.value = '';
-  showVariableMenu.value = false;
 };
 
 const loadCapabilities = async () => {
@@ -360,35 +356,14 @@ const nextNumber = computed(
 // What can be put in the message with one click: the CRM / system names (and the contact's and the conversation's
 // custom attributes, which the send dialog fills in by name), then the names Captain fills in for appointments; or the
 // next number when the message uses numbered variables.
-const variableMenuSections = computed(() => {
+const insertionOptions = computed(() => {
   if (variableMode.value === 'POSITIONAL') {
     return [
-      {
-        items: [
-          {
-            label: `{{${nextNumber.value}}}`,
-            action: 'insert',
-            value: String(nextNumber.value),
-          },
-        ],
-      },
+      { value: String(nextNumber.value), label: `{{${nextNumber.value}}}` },
     ];
   }
   const taken = new Set(bodyVariables.value);
-  return variableGroups.value
-    .map(group => ({
-      title: group.label,
-      items: variableOptions.value
-        .filter(
-          option => option.group === group.key && !taken.has(option.value)
-        )
-        .map(option => ({
-          label: option.label,
-          action: 'insert',
-          value: option.value,
-        })),
-    }))
-    .filter(item => item.items.length);
+  return variableOptions.value.filter(option => !taken.has(option.value));
 });
 
 const customVariableInvalid = computed(
@@ -402,7 +377,6 @@ const insertVariable = token => {
   const start = field?.selectionStart ?? text.length;
   const end = field?.selectionEnd ?? text.length;
   form.body.text = `${text.slice(0, start)}{{${token}}}${text.slice(end)}`;
-  showVariableMenu.value = false;
 };
 
 const addCustomVariable = () => {
@@ -632,7 +606,7 @@ const buttonChoices = computed(() =>
           <span class="text-sm text-n-slate-12">{{
             variableLabel(token)
           }}</span>
-          <ComboBox
+          <TemplateComboBox
             :aria-label="
               $t('WHATSAPP_TEMPLATE_MGMT.FORM.MAP_VARIABLE') +
               ' ' +
@@ -647,25 +621,11 @@ const buttonChoices = computed(() =>
             :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.MAP_VARIABLE')"
             teleport
             :data-testid="`map-variable-${token}`"
+            show-search
+            :show-create-attribute="isAdmin"
+            @create-attribute="showAddAttribute = true"
             @update:model-value="value => (systemMapping[token] = value)"
-          >
-            <template v-if="isAdmin" #footer="{ close }">
-              <Button
-                type="button"
-                ghost
-                slate
-                sm
-                class="w-full justify-start"
-                icon="i-lucide-plus"
-                :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CREATE_ATTRIBUTE')"
-                data-testid="copy-create-attribute"
-                @click="
-                  close();
-                  showAddAttribute = true;
-                "
-              />
-            </template>
-          </ComboBox>
+          />
         </div>
         <p
           v-if="fieldError('mapping')"
@@ -755,10 +715,12 @@ const buttonChoices = computed(() =>
           <span class="text-sm font-medium text-n-slate-12">
             {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL') }}
           </span>
-          <ComboBox
+          <TemplateComboBox
             :model-value="form.inboxId ?? ''"
             :options="inboxOptions"
             :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL_PLACEHOLDER')"
+            :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL')"
+            :search-placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL')"
             :disabled="isEdit"
             :has-error="Boolean(fieldError('inboxId'))"
             teleport
@@ -789,10 +751,13 @@ const buttonChoices = computed(() =>
           <span class="text-sm font-medium text-n-slate-12">
             {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE') }}
           </span>
-          <ComboBox
+          <TemplateComboBox
             :model-value="form.language"
             :options="LANGUAGE_OPTIONS"
             :disabled="isEdit"
+            :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE')"
+            :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE')"
+            show-search
             :search-placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE')"
             teleport
             data-testid="template-language"
@@ -892,10 +857,16 @@ const buttonChoices = computed(() =>
             v-if="!isEdit || hasOriginalComponent('HEADER')"
             class="grid gap-2"
           >
-            <ComboBox
+            <TemplateComboBox
               :disabled="isEdit"
               :model-value="form.header.format"
               :options="headerOptions"
+              :placeholder="
+                $t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.NONE')
+              "
+              :aria-label="
+                $t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.NONE')
+              "
               teleport
               data-testid="template-header-format"
               @update:model-value="chooseHeaderFormat"
@@ -1010,31 +981,21 @@ const buttonChoices = computed(() =>
               class="flex flex-wrap items-start gap-2"
               data-testid="variable-picker"
             >
-              <div
-                v-on-click-outside="() => (showVariableMenu = false)"
-                class="relative"
-              >
-                <Button
-                  v-if="!isEdit && !copySource"
-                  type="button"
-                  slate
-                  xs
-                  icon="i-lucide-braces"
-                  :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
-                  data-testid="variable-menu-toggle"
-                  @click="showVariableMenu = !showVariableMenu"
-                />
-                <DropdownMenu
-                  v-if="showVariableMenu"
-                  :menu-sections="variableMenuSections"
-                  show-search
-                  :search-placeholder="
-                    $t('WHATSAPP_TEMPLATE_MGMT.FORM.SEARCH_VARIABLE')
-                  "
-                  class="mt-1 min-w-52 max-h-64 overflow-y-auto top-full ltr:left-0 rtl:right-0"
-                  @action="item => insertVariable(item.value)"
-                />
-              </div>
+              <TemplateComboBox
+                model-value=""
+                :options="insertionOptions"
+                :groups="variableMode === 'NAMED' ? variableGroups : []"
+                :show-search="variableMode === 'NAMED'"
+                :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
+                :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
+                :search-placeholder="
+                  $t('WHATSAPP_TEMPLATE_MGMT.FORM.SEARCH_VARIABLE')
+                "
+                :show-create-attribute="isAdmin && variableMode === 'NAMED'"
+                data-testid="variable-menu-toggle"
+                @create-attribute="showAddAttribute = true"
+                @update:model-value="insertVariable"
+              />
               <div
                 v-if="!isEdit && !copySource && variableMode === 'NAMED'"
                 class="flex items-start gap-2"
