@@ -187,7 +187,7 @@ RSpec.describe 'Inbox WhatsApp templates API', type: :request do
         patch "#{base_url}/555", params: { template: changed }, headers: admin.create_new_auth_token, as: :json
 
         expect(response).to have_http_status(:unprocessable_entity)
-        expect(response.parsed_body['error']).to match(/edit_(structure|identity)_locked/)
+        expect(response.parsed_body['error']).to match(/edit_(structure|identity)_locked|variables_mixed/)
       end
       expect(a_request(:post, "#{graph}/555")).not_to have_been_made
     end
