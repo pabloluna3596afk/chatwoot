@@ -260,6 +260,9 @@
         "LOAD_MORE": "Load more",
         "USE": "Use",
         "ERROR": "The Meta library could not be read. Please try again.",
+        "ERROR_DETAIL": "The Meta library could not be read: {message}",
+        "LANGUAGE_USED": "Library language: {language}",
+        "ALL_LANGUAGES": "Showing library templates in all available languages.",
         "CATEGORY": "Category: {category}",
         "DIALOG": {
           "TITLE": "Create from the library",
@@ -271,6 +274,7 @@
           "URL_SUFFIX": "Example of the variable part of the link",
           "CREATE": "Create template",
           "CREATED": "Template sent to Meta.",
+          "CREATED_LANGUAGE": "Template sent to Meta in {language}.",
           "ERROR": "The template could not be created. Please try again."
         }
       }

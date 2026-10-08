@@ -1400,6 +1400,23 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
   Check a template with an image header and quick-reply/URL/Flow buttons; labels have no actions. Historical plain text stays plain.
 - Coverage: Vitest bubbles/selection plus RSpec snapshots, Captain reminder/reengagement and HTTP projection examples.
 
+### B-NEW-56 — Meta template library root endpoint and language fallback
+
+- Files: `app/services/whatsapp/template_management_service.rb`, `inbox_whatsapp_templates_controller.rb`,
+  `settings/templates/LibraryPanel.vue`, English/Spanish `whatsappTemplateMgmt.json`, and their service/request/Vitest specs.
+- The Predefinidas tab called the WABA's `/message_template_library`, which Graph v22.0 rejects as a nonexistent field.
+  The library now uses the Graph root endpoint, with the same token, filters and `after` cursor.
+- Regional Spanish requests map to `es`; supported regional library codes `en_US` and `pt_BR` are preserved.
+  A GET rejected with Meta's specific unavailable-library-language error retries in `en_US`, then without language.
+  Other errors propagate immediately. The response exposes `language_used` (`null` means all available languages).
+- Creation stays at the WABA's `/message_templates`, uses the same language mapping and reports `language_used`.
+  Writes are never retried. Meta's `error_user_msg` or `message` reaches the UI, with a Spanish/English library error context.
+- Verify: open Predefinidas with an `es_EC` inbox, check Spanish results and the actual language label, load another page,
+  then create a library template and check the Spanish creation confirmation. Force a Meta refusal and check its real text.
+- Regression coverage: WebMock root/auth/filters/cursor, mapping/fallback order/final errors and creation; request response/status
+  contracts; LibraryPanel actual language, creation confirmation and Meta error text. Rails/RuboCop require PM CI verification
+  because the host has no Ruby and this task forbids Docker.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)

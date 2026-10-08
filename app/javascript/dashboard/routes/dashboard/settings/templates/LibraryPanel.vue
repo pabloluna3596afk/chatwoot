@@ -17,7 +17,11 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import { toSnakeCase } from './templateForm';
-import { defaultLanguage, languageOptions } from './whatsappLanguages';
+import {
+  defaultLanguage,
+  languageLabel,
+  languageOptions,
+} from './whatsappLanguages';
 
 const props = defineProps({
   // The WhatsApp Cloud inboxes a template can be created in.
@@ -42,6 +46,8 @@ const items = ref([]);
 const nextCursor = ref(null);
 const isLoading = ref(false);
 const failed = ref(false);
+const errorMessage = ref('');
+const languageUsed = ref(null);
 const dialogRef = ref(null);
 const picked = ref(null);
 const isCreating = ref(false);
@@ -72,6 +78,7 @@ const load = async ({ append = false } = {}) => {
   if (!inboxId.value) return;
   isLoading.value = true;
   failed.value = false;
+  errorMessage.value = '';
   try {
     const { data } = await WhatsappTemplatesAPI.library(inboxId.value, {
       search: search.value.trim() || undefined,
@@ -80,8 +87,10 @@ const load = async ({ append = false } = {}) => {
     });
     items.value = append ? [...items.value, ...data.templates] : data.templates;
     nextCursor.value = data.next || null;
-  } catch {
+    languageUsed.value = data.language_used;
+  } catch (error) {
     failed.value = true;
+    errorMessage.value = error?.response?.data?.message || '';
     if (!append) items.value = [];
   } finally {
     isLoading.value = false;
@@ -140,14 +149,21 @@ const create = async () => {
   if (!canCreate.value) return;
   isCreating.value = true;
   try {
-    await WhatsappTemplatesAPI.createFromLibrary(inboxId.value, {
-      library_template_name: picked.value.name,
-      name: toSnakeCase(form.name),
-      language: picked.value.language || language.value,
-      category: picked.value.category,
-      button_inputs: buttonInputsPayload(),
-    });
-    useAlert(t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.DIALOG.CREATED'));
+    const { data } = await WhatsappTemplatesAPI.createFromLibrary(
+      inboxId.value,
+      {
+        library_template_name: picked.value.name,
+        name: toSnakeCase(form.name),
+        language: picked.value.language || languageUsed.value || language.value,
+        category: picked.value.category,
+        button_inputs: buttonInputsPayload(),
+      }
+    );
+    useAlert(
+      t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.DIALOG.CREATED_LANGUAGE', {
+        language: languageLabel(data.language_used, locale.value),
+      })
+    );
     dialogRef.value?.close();
     emit('created');
   } catch (error) {
@@ -215,14 +231,34 @@ const inboxOptions = computed(() =>
     </div>
 
     <p v-if="failed" class="text-sm text-n-ruby-11" data-testid="library-error">
-      {{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.ERROR') }}
+      {{
+        errorMessage
+          ? $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.ERROR_DETAIL', {
+              message: errorMessage,
+            })
+          : $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.ERROR')
+      }}
     </p>
+
     <p
       v-else-if="!isLoading && !items.length"
       class="text-sm text-n-slate-11"
       data-testid="library-empty"
     >
       {{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.EMPTY') }}
+    </p>
+    <p
+      v-if="!failed && !isLoading"
+      class="text-sm text-n-slate-11"
+      data-testid="library-language-used"
+    >
+      {{
+        languageUsed
+          ? $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.LANGUAGE_USED', {
+              language: languageLabel(languageUsed, locale),
+            })
+          : $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.ALL_LANGUAGES')
+      }}
     </p>
 
     <div class="grid gap-3 sm:grid-cols-2">
