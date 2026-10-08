@@ -29,7 +29,23 @@ const summary = ref(null);
 const page = ref(1);
 const search = ref('');
 const state = ref('all');
-const refresh = ref(0);
+const hasLoaded = ref(false);
+const cache = new Map();
+let opening = false;
+const cacheKey = () =>
+  JSON.stringify([
+    flow.value?.id,
+    page.value,
+    search.value.trim(),
+    state.value,
+  ]);
+const restoreCache = () => {
+  const data = cache.get(cacheKey());
+  rows.value = data?.rows || [];
+  total.value = data?.meta.total_count || 0;
+  summary.value = data?.publication_summary || flow.value?.publication_summary;
+  hasLoaded.value = Boolean(data);
+};
 const failed = ref(false);
 const retrying = ref(null);
 const { run, abort, isPending } = useAbortableRequest();
@@ -52,6 +68,7 @@ const tones = {
 const load = async () => {
   if (!flow.value) return;
   failed.value = false;
+  const key = cacheKey();
   try {
     await run(async signal => {
       const { data } = await props.api.publicationStatus(
@@ -65,6 +82,8 @@ const load = async () => {
         { signal }
       );
       if (signal.aborted) return;
+      cache.set(key, data);
+      hasLoaded.value = true;
       rows.value = data.rows;
       total.value = data.meta.total_count;
       summary.value = data.publication_summary;
@@ -83,17 +102,27 @@ watch(
   },
   { flush: 'sync' }
 );
-watch([flow, page, search, state, refresh], useDebounceFn(load, 200));
+const debouncedLoad = useDebounceFn(load, 200);
+watch(
+  [page, search, state],
+  () => {
+    if (opening || !flow.value) return;
+    restoreCache();
+    debouncedLoad();
+  },
+  { flush: 'sync' }
+);
 const open = selected => {
-  rows.value = [];
-  total.value = 0;
-  summary.value = selected.publication_summary;
+  opening = true;
   search.value = '';
   state.value = 'all';
   page.value = 1;
   flow.value = selected;
-  refresh.value += 1;
+  restoreCache();
+  failed.value = false;
+  opening = false;
   panel.value.open();
+  load();
 };
 const close = () => {
   flow.value = null;
@@ -149,8 +178,8 @@ defineExpose({ open });
           />
         </div>
       </div>
-      <Spinner v-if="isPending" class="text-n-slate-11" />
-      <div v-else-if="failed" class="grid gap-3">
+      <Spinner v-if="isPending && !hasLoaded" class="text-n-slate-11" />
+      <div v-else-if="failed && !hasLoaded" class="grid gap-3">
         <p class="m-0 text-sm text-n-ruby-11">
           {{ $t('WHATSAPP_FLOWS.LIST.LOAD_ERROR') }}
         </p>

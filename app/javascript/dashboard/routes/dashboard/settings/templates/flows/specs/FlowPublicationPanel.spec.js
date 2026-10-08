@@ -54,6 +54,42 @@ afterEach(() => {
   wrapper.unmount();
 });
 describe('FlowPublicationPanel', () => {
+  it('shows cached rows immediately while refreshing, without a spinner or debounce on open', async () => {
+    let finish;
+    api.publicationStatus.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          finish = resolve;
+        })
+    );
+    const calls = api.publicationStatus.mock.calls.length;
+    wrapper.vm.open(flow);
+    expect(api.publicationStatus).toHaveBeenCalledTimes(calls + 1);
+    await flushPromises();
+    expect(wrapper.findAll('[data-testid="waba-row"]')).toHaveLength(1);
+    expect(wrapper.findComponent({ name: 'Spinner' }).exists()).toBe(false);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(wrapper.get('[data-testid="waba-row"]').text()).toContain('Quito');
+    finish({
+      data: {
+        rows: [
+          { ...row, numbers: [{ ...row.numbers[0], inbox_name: 'Updated' }] },
+        ],
+        meta: { total_count: 1 },
+        publication_summary: flow.publication_summary,
+      },
+    });
+    await flushPromises();
+    expect(wrapper.get('[data-testid="waba-row"]').text()).toContain('Updated');
+  });
+
+  it('never displays cached rows belonging to a different Flow', async () => {
+    api.publicationStatus.mockImplementationOnce(() => new Promise(() => {}));
+    wrapper.vm.open({ ...flow, id: 99 });
+    await flushPromises();
+    expect(wrapper.findAll('[data-testid="waba-row"]')).toHaveLength(0);
+  });
+
   it('loads one WABA page on demand and displays numbers, state and reason', () => {
     expect(api.publicationStatus).toHaveBeenCalledWith(
       4,
