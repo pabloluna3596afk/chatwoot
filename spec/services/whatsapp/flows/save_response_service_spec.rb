@@ -90,19 +90,23 @@ RSpec.describe Whatsapp::Flows::SaveResponseService do
 
   it 'skips email, phone and document already used by another contact' do
     other = create(:contact, account: conversation.account, email: 'used@example.com', phone_number: '+593991234567', document_number: '123')
-    described_class.new(incoming, payload.merge('email' => other.email, 'phone' => other.phone_number, 'document' => other.document_number)).perform
+    message = incoming
+    answers = payload.merge('email' => other.email, 'phone' => other.phone_number, 'document' => other.document_number)
+    I18n.with_locale(:es) { described_class.new(message, answers).perform }
     expect(contact.reload.email).not_to eq(other.email)
     expect(contact.phone_number).not_to eq(other.phone_number)
     expect(contact.document_number).not_to eq(other.document_number)
-    expect(conversation.messages.find_by!(private: true).content).to include('used by another contact')
+    expect(conversation.messages.find_by!(private: true).content).to include('usado por otro contacto')
   end
 
   it 'skips invalid email and phone without dropping other answers' do
-    described_class.new(incoming, payload.merge('email' => 'not-an-email', 'phone' => '123')).perform
+    message = incoming
+    answers = payload.merge('email' => 'not-an-email', 'phone' => '123')
+    I18n.with_locale(:es) { described_class.new(message, answers).perform }
     expect(contact.reload.name).to eq('Updated')
     expect(contact.email).not_to eq('not-an-email')
     expect(contact.phone_number).not_to eq('123')
-    expect(conversation.messages.find_by!(private: true).content).to include('invalid value')
+    expect(conversation.messages.find_by!(private: true).content).to include('valor o destino no válido')
   end
 
   it 'preserves custom attributes, saves false and converts multiple checkbox answers to text' do
