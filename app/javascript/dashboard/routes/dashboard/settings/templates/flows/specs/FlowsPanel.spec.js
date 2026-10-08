@@ -5,13 +5,46 @@ import FlowsPanel from '../FlowsPanel.vue';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import PaginationFooter from 'dashboard/components-next/pagination/PaginationFooter.vue';
+import TemplatesIndex from '../../Index.vue';
+
+vi.mock('../../TemplateCard.vue', () => ({ default: { template: '<div />' } }));
+vi.mock('../../../SettingsLayout.vue', () => ({
+  default: {
+    template: '<div><slot name="header"/><slot name="body"/><slot/></div>',
+  },
+}));
+vi.mock('../../../components/BaseSettingsHeader.vue', () => ({
+  default: { template: '<div><slot name="tabs"/></div>' },
+}));
+
+vi.mock('../../TemplateFormDrawer.vue', () => ({
+  default: { template: '<div />' },
+}));
+vi.mock('../../TemplatePreviewDrawer.vue', () => ({
+  default: { template: '<div />' },
+}));
+vi.mock('../../PresetsPanel.vue', () => ({ default: { template: '<div />' } }));
+vi.mock('dashboard/composables/store', () => ({
+  useStore: () => ({ dispatch: vi.fn().mockResolvedValue(true) }),
+}));
+vi.mock('dashboard/composables/useWhatsAppTemplateSync', () => ({
+  useWhatsAppTemplateSync: () => ({
+    whatsappInboxes: { value: [] },
+    isSyncing: false,
+    canSync: false,
+    syncTemplates: vi.fn(),
+  }),
+}));
 
 const { permissions, push } = vi.hoisted(() => ({
   permissions: { admin: true },
   push: vi.fn(),
 }));
 
-vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }));
+vi.mock('vue-router', () => ({
+  useRouter: () => ({ push }),
+  useRoute: () => ({ query: { tab: 'flows' } }),
+}));
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key, te: () => false, locale: { value: 'en' } }),
 }));
@@ -65,6 +98,145 @@ const mountPanel = async () => {
 };
 
 describe('FlowsPanel', () => {
+  it('shows a skeleton only until the first successful load', async () => {
+    let resolve;
+    const response = await WhatsappFlowsAPI.list();
+    WhatsappFlowsAPI.list.mockClear();
+    WhatsappFlowsAPI.list.mockImplementation(
+      () =>
+        new Promise(done => {
+          resolve = done;
+        })
+    );
+    const wrapper = mount(FlowsPanel, {
+      global: {
+        mocks: { $t: key => key },
+        stubs: { Dialog: DialogStub, FlowPublicationPanel: DetailStub },
+      },
+    });
+    await flushPromises();
+    expect(wrapper.find('[data-testid="flows-skeleton"]').exists()).toBe(true);
+    resolve(response);
+    await flushPromises();
+    expect(wrapper.find('[data-testid="flows-skeleton"]').exists()).toBe(false);
+    expect(wrapper.findAll('[data-testid="flow-row"]')).toHaveLength(1);
+    wrapper.unmount();
+  });
+
+  it('keeps search, both filters and page across actual page tabs and refreshes silently', async () => {
+    vi.useFakeTimers();
+    const response = {
+      data: {
+        payload: flows,
+        meta: { total_count: 24 },
+        facets: {
+          state: { all: 24, partial: 24 },
+          category: { all: 24, SURVEY: 24 },
+        },
+      },
+    };
+    WhatsappFlowsAPI.list.mockResolvedValue(response);
+    const wrapper = mount(TemplatesIndex, {
+      global: {
+        mocks: { $t: key => key },
+        stubs: {
+          SettingsLayout: {
+            template:
+              '<div><slot name="header"/><slot name="body"/><slot/></div>',
+          },
+          BaseSettingsHeader: { template: '<div><slot name="tabs"/></div>' },
+          Dialog: DialogStub,
+          FlowPublicationPanel: DetailStub,
+        },
+      },
+    });
+    await flushPromises();
+    expect(WhatsappFlowsAPI.list).toHaveBeenCalledTimes(1);
+    const panel = wrapper.findComponent(FlowsPanel);
+    await panel.get('[data-testid="flows-search"] input').setValue('Datos');
+    const filters = panel.findAllComponents(FilterDropdown);
+    filters[0].vm.$emit('update:modelValue', 'partial');
+    filters[1].vm.$emit('update:modelValue', 'SURVEY');
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(201);
+    panel.findComponent(PaginationFooter).vm.$emit('update:currentPage', 2);
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(201);
+    wrapper
+      .findComponent({ name: 'TabBar' })
+      .vm.$emit('tabChanged', { key: 'templates' });
+    await flushPromises();
+    expect(wrapper.find('[data-testid="flows-panel"]').exists()).toBe(false);
+    let resolve;
+    WhatsappFlowsAPI.list.mockImplementationOnce(
+      () =>
+        new Promise(done => {
+          resolve = done;
+        })
+    );
+    wrapper
+      .findComponent({ name: 'TabBar' })
+      .vm.$emit('tabChanged', { key: 'flows' });
+    await flushPromises();
+    expect(wrapper.findComponent(FlowsPanel).element).toBe(panel.element);
+    expect(panel.get('[data-testid="flows-search"] input').element.value).toBe(
+      'Datos'
+    );
+    expect(filters.map(filter => filter.props('modelValue'))).toEqual([
+      'partial',
+      'SURVEY',
+    ]);
+    expect(panel.findComponent(PaginationFooter).props('currentPage')).toBe(2);
+    expect(panel.findAll('[data-testid="flow-row"]')).toHaveLength(1);
+    expect(panel.find('[data-testid="flows-skeleton"]').exists()).toBe(false);
+    expect(WhatsappFlowsAPI.list).toHaveBeenLastCalledWith(
+      {
+        page: 2,
+        per_page: 8,
+        search: 'Datos',
+        state: 'partial',
+        category: 'SURVEY',
+      },
+      expect.any(Object)
+    );
+    resolve({
+      data: {
+        ...response.data,
+        facets: {
+          state: { all: 25, partial: 25 },
+          category: { all: 25, SURVEY: 25 },
+        },
+      },
+    });
+    await flushPromises();
+    expect(filters[0].props('options')[0].count).toBe(25);
+    wrapper.unmount();
+    vi.useRealTimers();
+  });
+
+  it('refreshes facet counts after publication updates', async () => {
+    const wrapper = await mountPanel();
+    WhatsappFlowsAPI.list.mockResolvedValue({
+      data: {
+        payload: flows,
+        meta: { total_count: 1 },
+        facets: {
+          state: { all: 1, published: 1, partial: 0 },
+          category: { all: 1 },
+        },
+      },
+    });
+    wrapper.findComponent(DetailStub).vm.$emit('updated');
+    await flushPromises();
+    expect(WhatsappFlowsAPI.list).toHaveBeenCalledTimes(2);
+    expect(
+      wrapper
+        .findAllComponents(FilterDropdown)[0]
+        .props('options')
+        .find(option => option.value === 'published').count
+    ).toBe(1);
+    wrapper.unmount();
+  });
   it('sends search, category and summary filters to the server and resets pagination', async () => {
     vi.useFakeTimers();
     WhatsappFlowsAPI.list.mockResolvedValue({
@@ -264,6 +436,13 @@ describe('FlowsPanel', () => {
   it('deletes a flow after asking', async () => {
     WhatsappFlowsAPI.remove.mockResolvedValue({});
     const wrapper = await mountPanel();
+    WhatsappFlowsAPI.list.mockResolvedValue({
+      data: {
+        payload: [],
+        meta: { total_count: 0 },
+        facets: { state: { all: 0 }, category: { all: 0 } },
+      },
+    });
 
     await wrapper.get('[data-testid="flow-delete"]').trigger('click');
     wrapper.findComponent(DialogStub).vm.$emit('confirm');
@@ -271,5 +450,9 @@ describe('FlowsPanel', () => {
 
     expect(WhatsappFlowsAPI.remove).toHaveBeenCalledWith(1);
     expect(WhatsappFlowsAPI.list).toHaveBeenCalledTimes(2);
+    expect(wrapper.find('[data-testid="flows-empty"]').exists()).toBe(true);
+    expect(
+      wrapper.findAllComponents(FilterDropdown)[0].props('options')[0].count
+    ).toBe(0);
   });
 });

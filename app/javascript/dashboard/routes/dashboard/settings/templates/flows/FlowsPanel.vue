@@ -18,7 +18,6 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
-import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import BaseTable from 'dashboard/components-next/table/BaseTable.vue';
 import BaseTableRow from 'dashboard/components-next/table/BaseTableRow.vue';
 import BaseTableCell from 'dashboard/components-next/table/BaseTableCell.vue';
@@ -42,6 +41,7 @@ const state = ref('all');
 const category = ref('all');
 const page = ref(1);
 const failed = ref(false);
+const hasLoaded = ref(false);
 const toDelete = ref(null);
 const deleteDialog = ref(null);
 const publicationPanel = ref(null);
@@ -98,6 +98,7 @@ const load = async () => {
       flows.value = data.payload;
       total.value = data.meta.total_count;
       facets.value = data.facets;
+      hasLoaded.value = true;
       if (!flows.value.length && total.value && page.value > 1)
         page.value = Math.ceil(total.value / PAGE_SIZE);
     });
@@ -199,8 +200,19 @@ const categoryLabel = flow => {
         />
       </div>
     </div>
-    <Spinner v-if="isPending" class="text-n-slate-11" />
-    <div v-else-if="failed">
+    <div
+      v-if="isPending && !hasLoaded"
+      class="grid gap-3 animate-pulse"
+      data-testid="flows-skeleton"
+      aria-busy="true"
+    >
+      <div
+        v-for="row in PAGE_SIZE"
+        :key="row"
+        class="h-12 rounded bg-n-alpha-2"
+      />
+    </div>
+    <div v-else-if="failed && !hasLoaded">
       <Button
         type="button"
         faded
