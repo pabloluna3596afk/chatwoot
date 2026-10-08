@@ -15,6 +15,8 @@ class Whatsapp::TemplateManagementService
   TIMEOUT = 60
   LIBRARY_PAGE = 25
   LIBRARY_FIELDS = %w[id name language category topic usecase industry header body body_params buttons].freeze
+  LIBRARY_REGIONAL_LANGUAGES = %w[en_US pt_BR].freeze
+  LIBRARY_LANGUAGE_ERROR = /language.*not available for using library templates/i
 
   # Meta error subcodes / messages -> our code. Anything else is `meta_error` (Meta's own text is kept as `detail`).
   SUBCODES = { 2_388_023 => 'name_locked', 2_388_024 => 'name_exists' }.freeze
@@ -76,24 +78,24 @@ class Whatsapp::TemplateManagementService
   end
 
   # Meta's Template Library: ready-made utility templates (fixed text, only their parameters change).
-  # Returns { templates: [...], next: cursor or nil }.
+  # Returns { templates: [...], next: cursor or nil, language_used: locale or nil (all languages) }.
   # `filters` are search, language, topic, usecase, industry and after (the cursor).
   def library(limit: LIBRARY_PAGE, **filters)
     query = filters.slice(:search, :language, :topic, :usecase, :industry, :after).merge(limit: limit).compact_blank
-    response = request(:get, "#{waba_path}/message_template_library", query: query)
-    raise_failure(response) unless response.success? && response.parsed_response.is_a?(Hash)
-
-    data = response.parsed_response
-    { templates: Array(data['data']).map { |entry| entry.slice(*LIBRARY_FIELDS) }, next: data.dig('paging', 'cursors', 'after') }
+    query[:language] = library_language(query[:language]) if query[:language]
+    data, language = library_response(query)
+    { templates: Array(data['data']).map { |entry| entry.slice(*LIBRARY_FIELDS) },
+      next: data.dig('paging', 'cursors', 'after'), language_used: language }
   end
 
   # Creates a template from the library by its name; `button_inputs` are the values some of its buttons ask for
   # (a phone number, a URL), as Meta takes them in library_template_button_inputs.
   def create_from_library(library_template_name:, name:, language:, category:, button_inputs: [])
+    language = library_language(language)
     body = { name: name, language: language, category: category, library_template_name: library_template_name }
     body[:library_template_button_inputs] = button_inputs if button_inputs.present?
     response = request(:post, "#{waba_path}/message_templates", body: body)
-    finish(response, 'id', 'status', 'category')
+    finish(response, 'id', 'status', 'category').merge(language_used: language)
   end
 
   # The live state of one template, with the rejection reason the synced list does not carry.
@@ -107,6 +109,29 @@ class Whatsapp::TemplateManagementService
   end
 
   private
+
+  def library_language(language)
+    LIBRARY_REGIONAL_LANGUAGES.include?(language) ? language : language.split('_').first
+  end
+
+  def library_response(query)
+    [query[:language], 'en_US', nil].uniq.each do |language|
+      return [request_library(query, language), language]
+    rescue Error => e
+      raise unless language && library_language_error?(e)
+    end
+  end
+
+  def request_library(query, language)
+    response = request(:get, "#{base}/message_template_library", query: query.merge(language: language).compact)
+    raise_failure(response) unless response.success? && response.parsed_response.is_a?(Hash)
+
+    response.parsed_response
+  end
+
+  def library_language_error?(error)
+    error.meta_code == 100 && error.detail.to_s.match?(LIBRARY_LANGUAGE_ERROR)
+  end
 
   def finish(response, *keys)
     raise_failure(response) unless response.success? && response.parsed_response.is_a?(Hash)
