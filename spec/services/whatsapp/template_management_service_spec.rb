@@ -235,7 +235,7 @@ RSpec.describe Whatsapp::TemplateManagementService do
     it 'retries a language rejection in US English, preserving filters and pagination' do
       filters = { search: 'cita', topic: 'ORDER_MANAGEMENT', usecase: 'DELIVERY_UPDATE', industry: 'E_COMMERCE', after: 'abc' }
       languages = []
-      stub_request(:get, "#{base}/message_template_library").with(query: hash_including(filters.merge(limit: described_class::LIBRARY_PAGE)))
+      stub_request(:get, "#{base}/message_template_library").with(query: hash_including(filters.merge(limit: described_class::LIBRARY_PAGE.to_s)))
                                                             .to_return do |request|
         language = URI.decode_www_form(request.uri.query).to_h['language']
         languages << language
@@ -248,7 +248,7 @@ RSpec.describe Whatsapp::TemplateManagementService do
 
     it 'retries without language last and reports all languages' do
       languages = []
-      stub_request(:get, "#{base}/message_template_library").with(query: hash_including(limit: described_class::LIBRARY_PAGE))
+      stub_request(:get, "#{base}/message_template_library").with(query: hash_including(limit: described_class::LIBRARY_PAGE.to_s))
                                                             .to_return do |request|
         language = URI.decode_www_form(request.uri.query).to_h['language']
         languages << language

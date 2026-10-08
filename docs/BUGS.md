@@ -1417,6 +1417,16 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
   contracts; LibraryPanel actual language, creation confirmation and Meta error text. Rails/RuboCop require PM CI verification
   because the host has no Ruby and this task forbids Docker.
 
+### B-NEW-57 — Template library CI query matcher types
+
+- File: `spec/services/whatsapp/template_management_service_spec.rb`.
+- CI run `37707033360`, job `backend-tests (16, 5)`, failed both library fallback examples before the first response:
+  WebMock's partial query matchers expected integer `limit: 25`, while the decoded HTTP query contained string `"25"`.
+- Match the serialized limit as a string in both partial query stubs. Production behavior stays unchanged;
+  the examples still check preserved filters/pagination and the Spanish → US English → all-languages retry order.
+- Verify: rerun the two `#library` fallback examples at lines 235 and 249 in CI. RSpec cannot run locally;
+  check the changed Ruby file with the CI RuboCop Docker image.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)
