@@ -241,7 +241,9 @@ describe('LibraryPanel', () => {
         })
     );
     const wrapper = await mountPanel();
-    await wrapper.setProps({ inboxes: [{ id: 6, name: 'Ventas' }] });
+    await wrapper.setProps({
+      inboxes: [{ id: 5, name: 'Soporte actualizado' }],
+    });
     await flushPromises();
     resolveOld({
       data: {
@@ -254,6 +256,8 @@ describe('LibraryPanel', () => {
     wrapper
       .findAllComponents(FilterDropdown)[0]
       .vm.$emit('update:modelValue', 'all');
+    await flushPromises();
+    expect(wrapper.findAll('[data-testid="library-item"]')).toHaveLength(1);
     expect(wrapper.text()).not.toContain('stale');
     expect(wrapper.get('[data-testid="library-language-used"]').text()).toBe(
       translate('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.LANGUAGE_USED', {

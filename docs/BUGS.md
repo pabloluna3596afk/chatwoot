@@ -1427,6 +1427,16 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
 - Verify: rerun the two `#library` fallback examples at lines 235 and 249 in CI. RSpec cannot run locally;
   check the changed Ruby file with the CI RuboCop Docker image.
 
+### B-NEW-58 — Library cancellation spec retained a removed inbox selection
+
+- File: `settings/templates/specs/LibraryPanel.spec.js`.
+- CI run `37722942084` failed only the superseded-response frontend example. It replaced inbox 5 with inbox 6
+  while the selected inbox remained 5, then expected inbox 6's response language to be displayed.
+- Refresh the same selected inbox instead, and wait for the filter update before asserting one current row,
+  no stale rows, and the current Spanish language rather than the superseded US English response.
+- Production counted filters, inbox destinations, language reporting and Meta errors remain unchanged.
+- Verify: run the LibraryPanel Vitest suite; all backend shards and RuboCop passed in the failing CI run.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)
