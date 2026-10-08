@@ -92,7 +92,7 @@ provide('dialogPortalTarget', portal);
 </script>
 
 <template>
-  <div class="w-full min-w-0">
+  <div class="w-full min-w-0 text-n-slate-12">
     <ComboBox
       v-bind="$attrs"
       :model-value="modelValue"
