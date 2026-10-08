@@ -93,12 +93,13 @@ const mappedForm = computed(() =>
   copySource.value ? copyWithSystemVariables(form, systemMapping) : form
 );
 const errors = computed(() => {
-  const result = validateForm(mappedForm.value, {
+  const mappingReady =
+    !copySource.value || systemMappingValid(form, systemMapping);
+  const result = validateForm(mappingReady ? mappedForm.value : form, {
     isEdit: isEdit.value,
     original: editing.value,
   });
-  if (copySource.value && !systemMappingValid(form, systemMapping))
-    result.mapping = 'SYSTEM_MAPPING_REQUIRED';
+  if (!mappingReady) result.mapping = 'SYSTEM_MAPPING_REQUIRED';
   if (copySource.value && form.name === copySource.value.name)
     result.name = 'COPY_NAME_REQUIRED';
   return result;
@@ -236,6 +237,7 @@ const open = async (template = null, prefill = null) => {
   isLoading.value = true;
   resetForm();
   editing.value = template;
+  panelRef.value?.open();
   store.dispatch('attributes/get');
   if (prefill) {
     languageTouched.value = Boolean(prefill.language);
@@ -542,9 +544,12 @@ const buttonChoices = computed(() =>
         ? $t('WHATSAPP_TEMPLATE_MGMT.FORM.EDIT_TITLE')
         : $t('WHATSAPP_TEMPLATE_MGMT.FORM.NEW_TITLE')
     "
-    :description="$t('WHATSAPP_TEMPLATE_MGMT.FORM.DESCRIPTION')"
+    :description="isEdit ? '' : $t('WHATSAPP_TEMPLATE_MGMT.FORM.DESCRIPTION')"
   >
-    <form class="flex flex-col gap-5" @submit.prevent="save">
+    <p v-if="isLoading" class="text-sm text-n-slate-11" role="status">
+      {{ $t('WHATSAPP_TEMPLATE_MGMT.LOADING') }}
+    </p>
+    <form v-else class="flex flex-col gap-5" @submit.prevent="save">
       <p
         v-if="saveError"
         role="alert"
@@ -576,6 +581,11 @@ const buttonChoices = computed(() =>
             variableLabel(token)
           }}</span>
           <ComboBox
+            :aria-label="
+              $t('WHATSAPP_TEMPLATE_MGMT.FORM.MAP_VARIABLE') +
+              ' ' +
+              variableLabel(token)
+            "
             :model-value="systemMapping[token] || ''"
             :options="systemOptions"
             :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.MAP_VARIABLE')"
@@ -718,7 +728,7 @@ const buttonChoices = computed(() =>
         </div>
       </div>
 
-      <fieldset class="grid gap-2">
+      <fieldset v-if="!categoryLocked" class="grid gap-2">
         <legend class="text-sm font-medium text-n-slate-12">
           {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORY') }}
         </legend>
