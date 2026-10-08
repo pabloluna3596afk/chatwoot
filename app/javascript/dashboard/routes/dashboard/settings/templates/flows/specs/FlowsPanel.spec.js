@@ -59,6 +59,7 @@ vi.mock('dashboard/api/whatsappFlows', () => ({
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn(),
+    duplicate: vi.fn(),
     validate: vi.fn(),
     publicationStatus: vi.fn(),
   },
@@ -119,7 +120,7 @@ describe('FlowsPanel', () => {
     resolve(response);
     await flushPromises();
     expect(wrapper.find('[data-testid="flows-skeleton"]').exists()).toBe(false);
-    expect(wrapper.findAll('[data-testid="flow-row"]')).toHaveLength(1);
+    expect(wrapper.findAll('tbody tr')).toHaveLength(1);
     wrapper.unmount();
   });
 
@@ -153,7 +154,7 @@ describe('FlowsPanel', () => {
     await flushPromises();
     expect(WhatsappFlowsAPI.list).toHaveBeenCalledTimes(1);
     const panel = wrapper.findComponent(FlowsPanel);
-    await panel.get('[data-testid="flows-search"] input').setValue('Datos');
+    await panel.get('[data-testid="flows-toolbar"] input').setValue('Datos');
     const filters = panel.findAllComponents(FilterDropdown);
     filters[0].vm.$emit('update:modelValue', 'partial');
     filters[1].vm.$emit('update:modelValue', 'SURVEY');
@@ -179,7 +180,7 @@ describe('FlowsPanel', () => {
       .vm.$emit('tabChanged', { key: 'flows' });
     await flushPromises();
     expect(wrapper.findComponent(FlowsPanel).element).toBe(panel.element);
-    expect(panel.get('[data-testid="flows-search"] input').element.value).toBe(
+    expect(panel.get('[data-testid="flows-toolbar"] input').element.value).toBe(
       'Datos'
     );
     expect(filters.map(filter => filter.props('modelValue'))).toEqual([
@@ -187,10 +188,10 @@ describe('FlowsPanel', () => {
       'SURVEY',
     ]);
     expect(panel.findComponent(PaginationFooter).props('currentPage')).toBe(2);
-    expect(panel.findAll('[data-testid="flow-row"]')).toHaveLength(1);
+    expect(panel.findAll('tbody tr')).toHaveLength(1);
     expect(panel.find('[data-testid="flows-skeleton"]').exists()).toBe(false);
     await vi.advanceTimersByTimeAsync(250);
-    expect(panel.findAll('[data-testid="flow-row"]')).toHaveLength(1);
+    expect(panel.findAll('tbody tr')).toHaveLength(1);
     expect(panel.find('[data-testid="flows-skeleton"]').exists()).toBe(false);
     expect(WhatsappFlowsAPI.list).toHaveBeenLastCalledWith(
       {
@@ -256,7 +257,7 @@ describe('FlowsPanel', () => {
       },
     });
     const returned = await mountPanel();
-    expect(returned.findAll('[data-testid="flow-row"]')).toHaveLength(2);
+    expect(returned.findAll('tbody tr')).toHaveLength(2);
     expect(returned.text()).toContain('Nuevo Flow');
     expect(
       returned.findAllComponents(FilterDropdown)[0].props('options')[0].count
@@ -302,7 +303,7 @@ describe('FlowsPanel', () => {
       { page: 2, per_page: 8 },
       expect.any(Object)
     );
-    await wrapper.get('[data-testid="flows-search"] input').setValue('Datos');
+    await wrapper.get('[data-testid="flows-toolbar"] input').setValue('Datos');
     wrapper
       .findAllComponents(FilterDropdown)[0]
       .vm.$emit('update:modelValue', 'partial');
@@ -380,7 +381,7 @@ describe('FlowsPanel', () => {
   it('lists the flows with their screens and categories', async () => {
     const wrapper = await mountPanel();
 
-    const rows = wrapper.findAll('[data-testid="flow-row"]');
+    const rows = wrapper.findAll('tbody tr');
     expect(rows).toHaveLength(1);
     expect(rows[0].text()).toContain('Datos del cliente');
     expect(wrapper.text()).toContain('WHATSAPP_FLOWS.LIST.SCREENS_HEADER');
@@ -413,7 +414,7 @@ describe('FlowsPanel', () => {
     WhatsappFlowsAPI.publicationStatus.mockRejectedValue(new Error('x'));
     const wrapper = await mountPanel();
 
-    expect(wrapper.findAll('[data-testid="flow-row"]')).toHaveLength(1);
+    expect(wrapper.findAll('tbody tr')).toHaveLength(1);
     expect(wrapper.find('[data-testid="flow-meta"]').exists()).toBe(false);
   });
 
@@ -435,9 +436,13 @@ describe('FlowsPanel', () => {
     const wrapper = await mountPanel();
 
     expect(wrapper.find('[data-testid="flow-new"]').exists()).toBe(false);
-    expect(wrapper.find('[data-testid="flow-edit"]').exists()).toBe(false);
-    expect(wrapper.find('[data-testid="flow-delete"]').exists()).toBe(false);
-    expect(wrapper.findAll('[data-testid="flow-row"]')).toHaveLength(1);
+    expect(
+      wrapper.get('[data-action="edit"]').attributes('disabled')
+    ).toBeDefined();
+    expect(
+      wrapper.get('[data-action="delete"]').attributes('disabled')
+    ).toBeDefined();
+    expect(wrapper.findAll('tbody tr')).toHaveLength(1);
   });
 
   it('"Nuevo flow" opens the full page of a new flow', async () => {
@@ -451,12 +456,24 @@ describe('FlowsPanel', () => {
   it('editing a flow opens its own full page', async () => {
     const wrapper = await mountPanel();
 
-    await wrapper.get('[data-testid="flow-edit"]').trigger('click');
+    await wrapper.get('[data-action="edit"]').trigger('click');
 
     expect(push).toHaveBeenCalledWith({
       name: 'settings_flow_edit',
       params: { flowId: 1 },
     });
+  });
+
+  it('duplicates only after confirmation and reloads the catalog', async () => {
+    WhatsappFlowsAPI.duplicate.mockResolvedValue({ data: { id: 2 } });
+    const wrapper = await mountPanel();
+    await wrapper.get('[data-action="duplicate"]').trigger('click');
+    expect(WhatsappFlowsAPI.duplicate).not.toHaveBeenCalled();
+    wrapper.findAllComponents(DialogStub)[0].vm.$emit('confirm');
+    await flushPromises();
+    expect(WhatsappFlowsAPI.duplicate).toHaveBeenCalledWith(1);
+    expect(WhatsappFlowsAPI.list).toHaveBeenCalledTimes(2);
+    wrapper.unmount();
   });
 
   it('deletes a flow after asking', async () => {
@@ -470,8 +487,8 @@ describe('FlowsPanel', () => {
       },
     });
 
-    await wrapper.get('[data-testid="flow-delete"]').trigger('click');
-    wrapper.findComponent(DialogStub).vm.$emit('confirm');
+    await wrapper.get('[data-action="delete"]').trigger('click');
+    wrapper.findAllComponents(DialogStub).at(-1).vm.$emit('confirm');
     await flushPromises();
 
     expect(WhatsappFlowsAPI.remove).toHaveBeenCalledWith(1);

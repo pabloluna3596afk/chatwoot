@@ -289,7 +289,7 @@
       "PUBLISH_PROGRESS_TITLE": "Publicando Flow",
       "PUBLISH_BODY": "El Flow queda disponible y se envía a Meta.",
       "PUBLISH_POINT_INBOXES": "Estará disponible en todas las bandejas de ChatHub.",
-      "PUBLISH_POINT_META": "Se envía a Meta en cada cuenta de WhatsApp Cloud de esta cuenta. Los demás canales lo mantienen interno.",
+      "PUBLISH_POINT_META": "Se envía a Meta en cada cuenta de WhatsApp Cloud de esta cuenta. Las demás bandejas lo mantienen interno.",
       "PUBLISH_POINT_VERSION": "Meta no permite editar el contenido de un Flow publicado. Al publicar los cambios, ChatHub crea una versión nueva y solicita retirar la anterior.",
       "PUBLISH_CONFIRM": "Publicar",
       "PUBLISH_WORKING": "Enviando a Meta…",

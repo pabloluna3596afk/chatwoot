@@ -1,9 +1,8 @@
 <script setup>
-import { computed, onActivated, onDeactivated, ref } from 'vue';
+import { computed, onActivated, onDeactivated, ref, watch } from 'vue';
 import { picoSearch } from '@chatwoot/pico-search';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { vOnClickOutside } from '@vueuse/components';
 
 import { useAlert } from 'dashboard/composables';
 import { useStore } from 'dashboard/composables/store';
@@ -15,19 +14,23 @@ import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
-import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
-import Icon from 'dashboard/components-next/icon/Icon.vue';
+import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
-import TemplateCard from './TemplateCard.vue';
+import TemplatesTable from './TemplatesTable.vue';
+import TemplatesToolbar from './TemplatesToolbar.vue';
+import ChannelIcon from 'dashboard/components-next/icon/ChannelIcon.vue';
+import TemplateRowActions from './TemplateRowActions.vue';
 import TemplatePreviewDrawer from './TemplatePreviewDrawer.vue';
 import TemplateFormDrawer from './TemplateFormDrawer.vue';
 import PresetsPanel from './PresetsPanel.vue';
 import FlowsPanel from './flows/FlowsPanel.vue';
-import { isEditable } from './templateForm';
+import { isEditable, formFromTemplate } from './templateForm';
 import { presetToForm } from './presets';
 import {
   formatTemplateDate,
+  formatTemplateLabel,
+  templateStatusClasses,
   formatTemplateLanguage,
   groupTemplates,
   templateTypeKey,
@@ -67,8 +70,35 @@ const searchQuery = ref('');
 const selectedInboxId = ref('all');
 const selectedLanguage = ref('all');
 const selectedType = ref('all');
+const selectedCategory = ref('all');
+const templatePage = ref(1);
+const templatePageSize = ref(10);
+const categoryOptions = computed(() => [
+  {
+    value: 'all',
+    label: t('WHATSAPP_TEMPLATE_MGMT.FILTERS.ALL_CATEGORIES'),
+    count: templates.value.length,
+  },
+  ...['UTILITY', 'MARKETING', 'AUTHENTICATION'].map(value => ({
+    value,
+    label: t('WHATSAPP_TEMPLATE_MGMT.FILTERS.CATEGORIES.' + value),
+    count: templates.value.filter(
+      item => item.category?.toUpperCase() === value
+    ).length,
+  })),
+]);
+const columns = computed(() =>
+  ['NAME', 'CATEGORY', 'LANGUAGE', 'TYPE', 'INBOX', 'STATUS', 'ACTIONS'].map(
+    key => ({ key, label: t('WHATSAPP_TEMPLATE_MGMT.TABLE.' + key) })
+  )
+);
+const actionLabels = computed(() => ({
+  edit: t('WHATSAPP_TEMPLATE_MGMT.EDIT'),
+  duplicate: t('WHATSAPP_TEMPLATE_MGMT.DUPLICATE'),
+  delete: t('WHATSAPP_TEMPLATE_MGMT.DELETE'),
+  view: t('WHATSAPP_TEMPLATE_MGMT.TABLE.VIEW'),
+}));
 const selectedTemplate = ref(null);
-const openFilterMenu = ref(null);
 const previewPanelRef = ref(null);
 const formDrawerRef = ref(null);
 const deleteDialogRef = ref(null);
@@ -143,49 +173,6 @@ const typeOptions = computed(() => [
     .sort((first, second) => first.label.localeCompare(second.label)),
 ]);
 
-const filterMenus = computed(() =>
-  [
-    {
-      key: 'inbox',
-      icon: 'i-lucide-inbox',
-      options: inboxOptions.value,
-      active: selectedInboxId.value,
-    },
-    {
-      key: 'language',
-      icon: 'i-lucide-languages',
-      options: languageOptions.value,
-      active: selectedLanguage.value,
-    },
-    {
-      key: 'type',
-      icon: 'i-lucide-layout-template',
-      options: typeOptions.value,
-      active: selectedType.value,
-    },
-  ].map(menu => {
-    const items = menu.options.map(option => ({
-      ...option,
-      action: menu.key,
-      isSelected: option.value === menu.active,
-    }));
-
-    return {
-      ...menu,
-      items,
-      selected: items.find(item => item.isSelected) || items[0],
-    };
-  })
-);
-
-const closeFilterMenu = () => {
-  openFilterMenu.value = null;
-};
-
-const toggleFilterMenu = key => {
-  openFilterMenu.value = openFilterMenu.value === key ? null : key;
-};
-
 const openPreview = template => {
   selectedTemplate.value = template;
   previewPanelRef.value?.open();
@@ -222,17 +209,15 @@ const onTabChanged = tab => {
 };
 const applyPreset = preset =>
   formDrawerRef.value?.open(null, presetToForm(preset));
+const duplicateTemplate = template => {
+  const prefill = formFromTemplate(template, cloudInboxFor(template)?.id);
+  prefill.name = template.name.slice(0, 506) + '_copia';
+  formDrawerRef.value?.open(null, prefill);
+};
 const openEdit = template => formDrawerRef.value?.open(template);
 const askDelete = template => {
   templateToDelete.value = template;
   deleteDialogRef.value?.open();
-};
-
-const handleFilterAction = ({ action, value }) => {
-  closeFilterMenu();
-  if (action === 'inbox') selectedInboxId.value = value;
-  else if (action === 'language') selectedLanguage.value = value;
-  else selectedType.value = value;
 };
 
 const filteredTemplates = computed(() => {
@@ -256,6 +241,10 @@ const filteredTemplates = computed(() => {
     );
   }
 
+  if (selectedCategory.value !== 'all')
+    records = records.filter(
+      template => template.category?.toUpperCase() === selectedCategory.value
+    );
   const query = searchQuery.value.trim();
   if (!query) return records;
 
@@ -270,8 +259,33 @@ const filteredTemplates = computed(() => {
   return picoSearch(records, query, FUZZY_SEARCH_KEYS);
 });
 
-const showSearch = computed(() =>
-  Boolean(filteredTemplates.value.length || searchQuery.value)
+const pagedTemplates = computed(() =>
+  filteredTemplates.value.slice(
+    (templatePage.value - 1) * templatePageSize.value,
+    templatePage.value * templatePageSize.value
+  )
+);
+watch(
+  [
+    searchQuery,
+    selectedInboxId,
+    selectedLanguage,
+    selectedType,
+    selectedCategory,
+    templatePageSize,
+  ],
+  () => {
+    templatePage.value = 1;
+  }
+);
+watch(
+  () => filteredTemplates.value.length,
+  count => {
+    templatePage.value = Math.min(
+      templatePage.value,
+      Math.max(1, Math.ceil(count / templatePageSize.value))
+    );
+  }
 );
 
 const fetchTemplates = async () => {
@@ -399,71 +413,23 @@ onDeactivated(abortTemplateRequest);
   >
     <template #header>
       <BaseSettingsHeader
-        v-model:search-query="searchQuery"
         :title="$t('WHATSAPP_TEMPLATE_MGMT.TITLE')"
         :description="$t('WHATSAPP_TEMPLATE_MGMT.DESCRIPTION')"
         :link-text="$t('WHATSAPP_TEMPLATE_MGMT.LEARN_MORE')"
         feature-name="whatsapp_templates"
-        :search-placeholder="
-          showSearch ? $t('WHATSAPP_TEMPLATE_MGMT.SEARCH_PLACEHOLDER') : ''
-        "
       >
-        <template v-if="lastSyncAttemptAt" #meta>
-          <span class="text-xs text-n-slate-10">
-            {{
-              $t('WHATSAPP_TEMPLATE_MGMT.LAST_SYNC_ATTEMPT', {
-                date: formatTemplateDate(lastSyncAttemptAt),
-              })
-            }}
-          </span>
-        </template>
-        <template #tabs>
-          <div class="flex flex-wrap items-center min-w-0 gap-2">
-            <TabBar
-              v-if="showTabs"
-              :tabs="tabs"
-              :initial-active-tab="tabIndex"
-              @tab-changed="onTabChanged"
+        <template #title>
+          <div class="flex items-center gap-3">
+            <ChannelIcon
+              :inbox="{ channel_type: 'Channel::Whatsapp' }"
+              class="size-8"
             />
-            <div
-              v-if="hasTemplates && showTemplates"
-              v-on-click-outside="closeFilterMenu"
-              class="flex flex-wrap items-center min-w-0 gap-2"
-            >
-              <div v-for="menu in filterMenus" :key="menu.key" class="relative">
-                <Button
-                  :icon="menu.icon"
-                  color="slate"
-                  size="sm"
-                  class="max-w-44"
-                  :class="{ 'bg-n-slate-9/10': openFilterMenu === menu.key }"
-                  @click="toggleFilterMenu(menu.key)"
-                >
-                  <span class="min-w-0 truncate">{{
-                    menu.selected.label
-                  }}</span>
-                  <Icon icon="i-lucide-chevron-down" class="shrink-0 size-4" />
-                </Button>
-                <DropdownMenu
-                  v-if="openFilterMenu === menu.key"
-                  :menu-items="menu.items"
-                  class="mt-2 min-w-52 top-full ltr:left-0 rtl:right-0"
-                  @action="handleFilterAction"
-                />
-              </div>
-            </div>
+            <h1 class="text-heading-1 text-n-slate-12">
+              {{ $t('WHATSAPP_TEMPLATE_MGMT.TITLE') }}
+            </h1>
           </div>
         </template>
-        <template v-if="filteredTemplates.length" #count>
-          <span class="text-body-main text-n-slate-11">
-            {{
-              $t('WHATSAPP_TEMPLATE_MGMT.COUNT', {
-                n: filteredTemplates.length,
-              })
-            }}
-          </span>
-        </template>
-        <template v-if="!showFlows" #actions>
+        <template v-if="showPresets" #actions>
           <Button
             v-if="isAdmin && cloudInboxes.length"
             :label="$t('WHATSAPP_TEMPLATE_MGMT.NEW_TEMPLATE')"
@@ -482,10 +448,85 @@ onDeactivated(abortTemplateRequest);
             @click="syncTemplates"
           />
         </template>
+        <template v-if="lastSyncAttemptAt && !showFlows" #meta>
+          <span class="text-xs text-n-slate-10">
+            {{
+              $t('WHATSAPP_TEMPLATE_MGMT.LAST_SYNC_ATTEMPT', {
+                date: formatTemplateDate(lastSyncAttemptAt),
+              })
+            }}
+          </span>
+        </template>
+        <template #tabs>
+          <div class="flex flex-wrap items-center min-w-0 gap-2">
+            <TabBar
+              v-if="showTabs"
+              :tabs="tabs"
+              :initial-active-tab="tabIndex"
+              @tab-changed="onTabChanged"
+            />
+          </div>
+        </template>
       </BaseSettingsHeader>
     </template>
 
     <template #body>
+      <TemplatesToolbar
+        v-if="showTemplates"
+        v-model="searchQuery"
+        :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.SEARCH_PLACEHOLDER')"
+      >
+        <template #filters>
+          <div
+            v-if="hasTemplates && showTemplates"
+            class="flex flex-wrap items-center gap-2"
+          >
+            <FilterDropdown
+              v-model="selectedInboxId"
+              :options="inboxOptions"
+              :label="$t('WHATSAPP_TEMPLATE_MGMT.TABLE.INBOX')"
+              icon="i-lucide-inbox"
+            />
+            <FilterDropdown
+              v-model="selectedLanguage"
+              :options="languageOptions"
+              :label="$t('WHATSAPP_TEMPLATE_MGMT.TABLE.LANGUAGE')"
+              icon="i-lucide-languages"
+            />
+            <FilterDropdown
+              v-model="selectedType"
+              :options="typeOptions"
+              :label="$t('WHATSAPP_TEMPLATE_MGMT.TABLE.TYPE')"
+              icon="i-lucide-layout-template"
+            />
+            <FilterDropdown
+              v-model="selectedCategory"
+              :options="categoryOptions"
+              :label="$t('WHATSAPP_TEMPLATE_MGMT.TABLE.CATEGORY')"
+              icon="i-lucide-folder"
+            />
+          </div>
+        </template>
+        <template #actions>
+          <Button
+            v-if="isAdmin && cloudInboxes.length"
+            :label="$t('WHATSAPP_TEMPLATE_MGMT.NEW_TEMPLATE')"
+            icon="i-lucide-plus"
+            size="sm"
+            data-testid="template-new"
+            @click="openCreate"
+          />
+          <Button
+            :label="$t('WHATSAPP_TEMPLATE_MGMT.SYNC_COMPACT')"
+            icon="i-lucide-refresh-cw"
+            color="slate"
+            size="sm"
+            :is-loading="isSyncing"
+            :disabled="!canSync || isSyncing"
+            @click="syncTemplates"
+          />
+        </template>
+      </TemplatesToolbar>
       <KeepAlive>
         <FlowsPanel v-if="showFlows" />
       </KeepAlive>
@@ -505,21 +546,68 @@ onDeactivated(abortTemplateRequest);
         </span>
       </div>
 
-      <div
+      <TemplatesTable
         v-else-if="showTemplates"
-        class="border-t divide-y divide-n-weak border-n-weak"
+        v-model:page="templatePage"
+        v-model:page-size="templatePageSize"
+        :columns="columns"
+        :items="pagedTemplates"
+        :total="filteredTemplates.length"
+        :page-size="templatePageSize"
+        :per-page-options="[10, 25, 50]"
       >
-        <TemplateCard
-          v-for="template in filteredTemplates"
-          :key="template.key"
-          :template="template"
-          :can-manage="canManage(template)"
-          :can-edit="canEdit(template)"
-          @preview="openPreview(template)"
-          @edit="openEdit(template)"
-          @delete="askDelete(template)"
-        />
-      </div>
+        <template #NAME="{ item }">
+          <span class="text-heading-3 text-n-slate-12">{{ item.name }}</span>
+        </template>
+        <template #CATEGORY="{ item }">
+          <span
+            class="px-2 py-1 text-xs rounded-md"
+            :class="
+              item.category?.toUpperCase() === 'MARKETING'
+                ? 'bg-n-amber-3 text-n-amber-11'
+                : 'bg-n-teal-3 text-n-teal-11'
+            "
+            >{{
+              $t(
+                'WHATSAPP_TEMPLATE_MGMT.FILTERS.CATEGORIES.' +
+                  item.category?.toUpperCase()
+              )
+            }}</span
+          >
+        </template>
+        <template #LANGUAGE="{ item }">
+          {{ formatTemplateLanguage(item.language) }}
+        </template>
+        <template #TYPE="{ item }">
+          {{ typeLabels[templateTypeKey(item)] }}
+        </template>
+        <template #INBOX="{ item }">{{ item.inboxNames }}</template>
+        <template #STATUS="{ item }">
+          <span
+            class="px-2 py-1 text-xs rounded-md"
+            :class="templateStatusClasses(item.status)"
+            >{{
+              $te('WHATSAPP_TEMPLATE_MGMT.STATUS.' + item.status?.toUpperCase())
+                ? $t(
+                    'WHATSAPP_TEMPLATE_MGMT.STATUS.' +
+                      item.status?.toUpperCase()
+                  )
+                : formatTemplateLabel(item.status)
+            }}</span
+          >
+        </template>
+        <template #ACTIONS="{ item }">
+          <TemplateRowActions
+            :labels="actionLabels"
+            :can-manage="canManage(item)"
+            :can-edit="canEdit(item)"
+            @edit="openEdit(item)"
+            @duplicate="duplicateTemplate(item)"
+            @delete="askDelete(item)"
+            @view="openPreview(item)"
+          />
+        </template>
+      </TemplatesTable>
     </template>
 
     <TemplatePreviewDrawer ref="previewPanelRef" :template="selectedTemplate" />

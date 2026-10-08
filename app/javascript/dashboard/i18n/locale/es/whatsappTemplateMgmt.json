@@ -271,7 +271,7 @@
           "TITLE": "Crear desde la biblioteca",
           "DESCRIPTION": "Se crea con el texto de Meta y pasa a revisión.",
           "NAME": "Nombre de la plantilla",
-          "CHANNEL": "Bandeja de WhatsApp",
+          "CHANNEL": "Canal de WhatsApp",
           "PHONE": "Teléfono para el botón de llamada ({text})",
           "URL": "Enlace para el botón \"{text}\"",
           "URL_SUFFIX": "Ejemplo de la parte variable del enlace",
