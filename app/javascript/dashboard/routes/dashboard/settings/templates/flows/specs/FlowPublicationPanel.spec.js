@@ -97,8 +97,30 @@ describe('FlowPublicationPanel', () => {
     await flushPromises();
     expect(api.retryPublication).toHaveBeenCalledWith(4, '111');
     expect(api.publicationStatus).toHaveBeenCalledTimes(2);
-    expect(wrapper.emitted('updated')).toHaveLength(1);
+    expect(wrapper.emitted('updated')).toHaveLength(2);
     expect(useAlert).toHaveBeenCalled();
+  });
+  it('notifies the catalog after reading the latest publication state', async () => {
+    api.publicationStatus.mockResolvedValueOnce({
+      data: {
+        rows: [{ ...row, state: 'published' }],
+        meta: { total_count: 1 },
+        publication_summary: {
+          state: 'published',
+          total: 1,
+          published: 1,
+          errors: 0,
+        },
+      },
+    });
+    wrapper.vm.open(flow);
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(201);
+    await flushPromises();
+    expect(wrapper.emitted('updated')).toHaveLength(2);
+    expect(wrapper.get('[data-testid="waba-row"]').text()).toContain(
+      'WHATSAPP_FLOWS.META.STATE.published'
+    );
   });
   it('includes retired WABAs only in detail and offers retry for blocked/throttled', async () => {
     api.publicationStatus.mockResolvedValueOnce({

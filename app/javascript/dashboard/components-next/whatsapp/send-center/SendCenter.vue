@@ -9,7 +9,7 @@ import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
-import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import WhatsAppTemplateParser from '../WhatsAppTemplateParser.vue';
 import ContentTemplateParser from 'dashboard/components-next/content-templates/ContentTemplateParser.vue';
@@ -102,18 +102,35 @@ const rows = computed(() =>
       Number(!!a.reason) - Number(!!b.reason) || a.name.localeCompare(b.name)
   )
 );
-const filtered = computed(() =>
+const searchedRows = computed(() =>
   rows.value.filter(
     row =>
       (tab.value === 0 ||
         row.type === (tab.value === 1 ? 'template' : 'flow')) &&
-      (category.value === 'ALL' || row.categories.includes(category.value)) &&
-      (status.value === 'ALL' || row.status === status.value) &&
       `${row.name} ${row.data.body || ''} ${(row.data.components || []).map(c => c.text || '').join(' ')}`
         .toLocaleLowerCase()
         .includes(query.value.toLocaleLowerCase())
   )
 );
+const categoryRows = computed(() =>
+  searchedRows.value.filter(
+    row => status.value === 'ALL' || row.status === status.value
+  )
+);
+const statusRows = computed(() =>
+  searchedRows.value.filter(
+    row => category.value === 'ALL' || row.categories.includes(category.value)
+  )
+);
+const filtered = computed(() =>
+  statusRows.value.filter(
+    row => status.value === 'ALL' || row.status === status.value
+  )
+);
+const categoryCount = value =>
+  categoryRows.value.filter(row => row.categories.includes(value)).length;
+const statusCount = value =>
+  statusRows.value.filter(row => row.status === value).length;
 const selected = computed(() =>
   filtered.value.find(row => row.key === selectedKey.value)
 );
@@ -124,29 +141,41 @@ const categoryGroups = computed(() => [
     : []),
 ]);
 const categoryOptions = computed(() => [
-  { value: 'ALL', label: t(`${prefix}.ALL_CATEGORIES`) },
+  {
+    value: 'ALL',
+    label: t(`${prefix}.ALL_CATEGORIES`),
+    count: categoryRows.value.length,
+  },
   ...TEMPLATE_CATEGORIES.map(value => ({
     value: `template:${value}`,
     label: categoryLabel(value),
+    count: categoryCount(`template:${value}`),
     group: 'templates',
   })),
   ...[...new Set(flows.value.flatMap(flow => flow.categories))].map(value => ({
     value: `flow:${value}`,
     label: t(`WHATSAPP_FLOWS.CATEGORIES.${value}`),
+    count: categoryCount(`flow:${value}`),
     group: 'flows',
   })),
 ]);
 const statusOptions = computed(() => [
-  { value: 'ALL', label: t(`${prefix}.ALL_STATUSES`) },
+  {
+    value: 'ALL',
+    label: t(`${prefix}.ALL_STATUSES`),
+    count: statusRows.value.length,
+  },
   ...TEMPLATE_STATUSES.map(value => ({
     value,
     label: statusLabel(value),
+    count: statusCount(value),
     group: 'templates',
   })),
   ...(hasFlows.value
     ? FLOW_STATUSES.map(value => ({
         value,
         label: statusLabel(value),
+        count: statusCount(value),
         group: 'flows',
       }))
     : []),
@@ -330,35 +359,21 @@ watch(
               @click="refresh"
             />
           </div>
-          <ComboBox
+          <FilterDropdown
             v-model="category"
+            icon="i-lucide-folder"
+            :label="$t(`${prefix}.ALL_CATEGORIES`)"
             :options="categoryOptions"
             :groups="categoryGroups"
-            :allow-deselect="false"
-            teleport
-            :aria-label="$t(`${prefix}.ALL_CATEGORIES`)"
-          >
-            <template #footer="{ close: closeMenu }">
-              <Button
-                :label="$t(`${prefix}.RESET_FILTER`)"
-                ghost
-                slate
-                sm
-                class="w-full"
-                @click="
-                  category = 'ALL';
-                  closeMenu();
-                "
-              />
-            </template>
-          </ComboBox>
-          <ComboBox
+            data-testid="center-category"
+          />
+          <FilterDropdown
             v-model="status"
+            icon="i-lucide-circle-check"
+            :label="$t(`${prefix}.ALL_STATUSES`)"
             :options="statusOptions"
             :groups="statusGroups"
-            :allow-deselect="false"
-            teleport
-            :aria-label="$t(`${prefix}.ALL_STATUSES`)"
+            data-testid="center-status"
           />
           <p v-if="isPending" class="text-xs text-n-slate-11">
             {{ $t(`${prefix}.LOADING`) }}

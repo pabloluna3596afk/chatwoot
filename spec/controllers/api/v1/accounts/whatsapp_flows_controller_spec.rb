@@ -82,6 +82,22 @@ RSpec.describe 'WhatsApp flows (forms) API', type: :request do
   end
 
   describe 'GET index' do
+    it 'adds whole-catalog facets while preserving the paginated wrapper and row contract' do
+      create_list(:whatsapp_flow, 3, account: account, name: 'Survey', categories: ['SURVEY'])
+      get base_url, params: { search: 'Survey', category: 'SURVEY', state: 'none', page: '2', per_page: '1' },
+                    headers: admin.create_new_auth_token
+
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body
+      expect(body['payload'].length).to eq(1)
+      expect(body['payload'].first).to include('name' => 'Survey', 'categories' => ['SURVEY'], 'publication_summary' => {
+                                                 'state' => 'none', 'total' => 0, 'published' => 0, 'errors' => 0
+                                               })
+      expect(body['meta']).to eq('current_page' => 2, 'per_page' => 1, 'total_count' => 3)
+      expect(body['facets']['state']).to include('all' => 3, 'none' => 3, 'published' => 0)
+      expect(body['facets']['category']).to include('all' => 3, 'SURVEY' => 3, 'OTHER' => 0)
+    end
+
     it 'preserves the payload wrapper for an empty account without WABAs or publications' do
       get base_url, headers: admin.create_new_auth_token, as: :json
 

@@ -486,16 +486,18 @@ onDeactivated(abortTemplateRequest);
     </template>
 
     <template #body>
-      <FlowsPanel v-if="showFlows" />
+      <KeepAlive>
+        <FlowsPanel v-if="showFlows" />
+      </KeepAlive>
       <PresetsPanel
-        v-else-if="showPresets"
+        v-if="showPresets"
         :inboxes="cloudInboxes"
         :templates="templates"
         @use="applyPreset"
         @created="onLibraryCreated"
       />
       <div
-        v-else-if="!filteredTemplates.length"
+        v-else-if="showTemplates && !filteredTemplates.length"
         class="flex items-center justify-center p-8"
       >
         <span class="text-base text-n-slate-11">
@@ -503,7 +505,10 @@ onDeactivated(abortTemplateRequest);
         </span>
       </div>
 
-      <div v-else class="border-t divide-y divide-n-weak border-n-weak">
+      <div
+        v-else-if="showTemplates"
+        class="border-t divide-y divide-n-weak border-n-weak"
+      >
         <TemplateCard
           v-for="template in filteredTemplates"
           :key="template.key"
