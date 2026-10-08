@@ -164,6 +164,9 @@ describe('Flow message customization', () => {
     expect(wrapper.get('[data-testid="flow-send-customize"]').text()).toContain(
       'CUSTOMIZED'
     );
+    expect(wrapper.get('[data-testid="flow-send-customize"]').text()).toContain(
+      '\u00b7'
+    );
     expect(wrapper.get('[data-testid="send-center-preview"]').text()).toContain(
       'Choose a time'
     );

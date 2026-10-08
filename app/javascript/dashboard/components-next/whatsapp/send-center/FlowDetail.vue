@@ -117,7 +117,7 @@ defineExpose({
       ghost
       sm
       icon="i-lucide-sliders-horizontal"
-      :label="`${t('WHATSAPP_TEMPLATES.SEND_CENTER.CUSTOMIZE')}${isModified ? ` ? ${t('WHATSAPP_TEMPLATES.SEND_CENTER.CUSTOMIZED')}` : ''}`"
+      :label="`${t('WHATSAPP_TEMPLATES.SEND_CENTER.CUSTOMIZE')}${isModified ? ` \u00b7 ${t('WHATSAPP_TEMPLATES.SEND_CENTER.CUSTOMIZED')}` : ''}`"
       :aria-expanded="customizing"
       aria-controls="flow-send-customization"
       data-testid="flow-send-customize"
