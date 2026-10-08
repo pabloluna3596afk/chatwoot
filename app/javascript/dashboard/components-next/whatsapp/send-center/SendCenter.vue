@@ -15,6 +15,7 @@ import WhatsAppTemplateParser from '../WhatsAppTemplateParser.vue';
 import ContentTemplateParser from 'dashboard/components-next/content-templates/ContentTemplateParser.vue';
 import { PHONE_PREVIEW_WIDTH } from '../phonePreview';
 import FlowDetail from './FlowDetail.vue';
+import { lastSendCenterTab } from './session';
 import MessagePreview from './MessagePreview.vue';
 import {
   SEND_CENTER_COLUMN_UNIT_CLASS,
@@ -310,6 +311,15 @@ const submit = async () => {
     isSending.value = false;
   }
 };
+watch(tab, value => {
+  if (hasFlows.value) lastSendCenterTab.value = value;
+});
+const handleEscape = event => {
+  if (!flowDetail.value?.customizing) return;
+  event.preventDefault();
+  event.stopPropagation();
+  flowDetail.value.closeCustomization();
+};
 watch(filtered, list => {
   if (!list.some(row => row.key === selectedKey.value))
     selectedKey.value = list[0]?.key || '';
@@ -324,7 +334,7 @@ watch(
       dialog.value?.close();
       return;
     }
-    tab.value = 0;
+    tab.value = hasFlows.value ? lastSendCenterTab.value : 0;
     tabStates.value = [newTabState(), newTabState()];
     selectedKey.value = filtered.value[0]?.key || '';
     await nextTick();
@@ -355,6 +365,7 @@ watch(
       ]"
       :data-columns="hasCustomization ? 3 : 2"
       data-testid="center-body"
+      @keydown.esc="handleEscape"
     >
       <div class="flex shrink-0 justify-between items-start gap-3">
         <div>
@@ -532,7 +543,7 @@ watch(
               {{
                 selected.type === 'flow'
                   ? $t(`${prefix}.SCREENS`, { count: selected.data.screens })
-                  : `${categoryLabel(selected.data.category?.toUpperCase())} · ${selected.data.language}`
+                  : `${categoryLabel(selected.data.category?.toUpperCase())} Â· ${selected.data.language}`
               }}
             </p>
           </div>
@@ -601,10 +612,21 @@ watch(
       </div>
     </div>
     <template #footer>
-      <div class="flex items-center justify-between gap-3">
+      <div
+        class="flex items-center justify-between gap-3"
+        @keydown.esc="handleEscape"
+      >
         <div class="min-w-0">
           <p v-if="error" role="alert" class="text-sm text-n-ruby-11">
             {{ error }}
+          </p>
+          <p
+            v-else-if="selected?.type === 'flow' && flowDetail?.invalidReason"
+            class="text-xs text-n-ruby-11"
+            role="status"
+            data-testid="center-invalid-reason"
+          >
+            {{ flowDetail.invalidReason }}
           </p>
           <p v-else class="text-xs text-n-slate-11">
             {{ $t(`${prefix}.${canSend ? 'READY' : 'UNAVAILABLE'}`) }}

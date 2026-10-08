@@ -57,6 +57,12 @@
       "MEDIA_ERROR_UPLOAD_FAILED": "No se pudo subir el archivo a WhatsApp. Inténtalo de nuevo."
     },
     "SEND_CENTER": {
+      "CUSTOMIZED": "Personalizado",
+      "CLOSE_CUSTOMIZE": "Cerrar personalizaci\u00f3n",
+      "RESTORE": "Restaurar texto original",
+      "BODY_REQUIRED": "Escribe el cuerpo del mensaje.",
+      "BUTTON_REQUIRED": "Escribe el texto del bot\u00f3n.",
+      "TEXT_LIMITS": "Respeta los l\u00edmites de caracteres del mensaje.",
       "TITLE": "Enviar por WhatsApp",
       "TEMPLATE_TITLE": "Enviar una plantilla",
       "DESCRIPTION": "Elige una plantilla o un Flow para esta conversaci\u00f3n.",

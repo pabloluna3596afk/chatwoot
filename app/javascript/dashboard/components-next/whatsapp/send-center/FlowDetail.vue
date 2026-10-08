@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -12,6 +12,40 @@ const customizing = ref(false);
 const header = ref('');
 const body = ref('');
 const cta = ref('');
+const columns = ref(null);
+const fields = ref(null);
+const originalCta = computed(() =>
+  t('WHATSAPP_TEMPLATES.SEND_CENTER.OPEN_FLOW')
+);
+const isModified = computed(
+  () =>
+    header.value !== '' ||
+    body.value !== props.flow.name ||
+    cta.value !== originalCta.value
+);
+const restore = () => {
+  header.value = '';
+  body.value = props.flow.name;
+  cta.value = originalCta.value;
+};
+const openCustomization = async () => {
+  customizing.value = true;
+  await nextTick();
+  fields.value.querySelector('input, textarea').focus({ preventScroll: true });
+};
+const closeCustomization = async () => {
+  customizing.value = false;
+  await nextTick();
+  columns.value
+    .querySelector('[data-testid="flow-send-customize"]')
+    .focus({ preventScroll: true });
+};
+const handleEscape = event => {
+  if (!customizing.value) return;
+  event.preventDefault();
+  event.stopPropagation();
+  closeCustomization();
+};
 const LIMITS = { header: 60, body: 1024, cta: 20 };
 const buttonHasEmoji = computed(() =>
   /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]|\uFE0F|\u20e3/u.test(cta.value)
@@ -35,17 +69,31 @@ watch(
   () => props.flow.id,
   () => {
     customizing.value = false;
-    header.value = '';
-    body.value = props.flow.name;
-    cta.value = t('WHATSAPP_TEMPLATES.SEND_CENTER.OPEN_FLOW');
+    restore();
   },
   { immediate: true }
 );
-defineExpose({ isValid, payload, customizing });
+const invalidReason = computed(() => {
+  if (!body.value.trim())
+    return t('WHATSAPP_TEMPLATES.SEND_CENTER.BODY_REQUIRED');
+  if (!cta.value.trim())
+    return t('WHATSAPP_TEMPLATES.SEND_CENTER.BUTTON_REQUIRED');
+  if (buttonHasEmoji.value) return t('WHATSAPP_FLOWS.ERRORS.button_no_emoji');
+  if (!isValid.value) return t('WHATSAPP_TEMPLATES.SEND_CENTER.TEXT_LIMITS');
+  return '';
+});
+defineExpose({
+  isValid,
+  payload,
+  customizing,
+  closeCustomization,
+  invalidReason,
+});
 </script>
 
 <template>
   <div
+    ref="columns"
     class="relative grid min-h-0 min-w-0 flex-1 grid-rows-[minmax(0,1fr)_auto] items-start gap-6"
     :class="
       customizing
@@ -53,6 +101,7 @@ defineExpose({ isValid, payload, customizing });
         : 'grid-cols-[var(--phone-preview-width)]'
     "
     data-testid="flow-send-columns"
+    @keydown.esc="handleEscape"
   >
     <div
       class="min-h-0 min-w-0 max-h-full overflow-y-auto overscroll-contain flex flex-col gap-3"
@@ -61,24 +110,59 @@ defineExpose({ isValid, payload, customizing });
       <MessagePreview :header="header" :body="body" :buttons="[cta]" flow />
     </div>
     <Button
+      v-if="!customizing"
       class="col-start-1 row-start-2 w-full !h-auto whitespace-normal text-start"
       type="button"
       slate
       ghost
       sm
       icon="i-lucide-sliders-horizontal"
-      :label="$t('WHATSAPP_TEMPLATES.SEND_CENTER.CUSTOMIZE')"
+      :label="`${t('WHATSAPP_TEMPLATES.SEND_CENTER.CUSTOMIZE')}${isModified ? ` ? ${t('WHATSAPP_TEMPLATES.SEND_CENTER.CUSTOMIZED')}` : ''}`"
       :aria-expanded="customizing"
       aria-controls="flow-send-customization"
       data-testid="flow-send-customize"
-      @click="customizing = !customizing"
+      @click="openCustomization"
     />
     <div
       v-if="customizing"
       id="flow-send-customization"
+      ref="fields"
+      role="region"
+      aria-labelledby="flow-send-panel-title"
       class="grid min-h-0 min-w-0 max-h-full overflow-y-auto overscroll-contain gap-3 rounded-xl bg-n-solid-2 p-4 max-xl:absolute max-xl:top-0 max-xl:left-[calc(-1*var(--send-center-unit)-1.5rem)] max-xl:w-[var(--send-center-unit)] max-xl:z-10"
       data-testid="flow-send-fields-column"
     >
+      <div class="flex flex-col gap-2" data-testid="flow-send-panel-header">
+        <div class="flex items-center justify-between gap-2">
+          <h3
+            id="flow-send-panel-title"
+            class="text-sm font-semibold text-n-slate-12"
+          >
+            {{ $t('WHATSAPP_TEMPLATES.SEND_CENTER.CUSTOMIZE') }}
+          </h3>
+          <Button
+            type="button"
+            ghost
+            slate
+            sm
+            icon="i-lucide-x"
+            :aria-label="$t('WHATSAPP_TEMPLATES.SEND_CENTER.CLOSE_CUSTOMIZE')"
+            :title="$t('WHATSAPP_TEMPLATES.SEND_CENTER.CLOSE_CUSTOMIZE')"
+            data-testid="flow-send-close-customize"
+            @click="closeCustomization"
+          />
+        </div>
+        <Button
+          type="button"
+          ghost
+          slate
+          sm
+          :label="$t('WHATSAPP_TEMPLATES.SEND_CENTER.RESTORE')"
+          :disabled="!isModified"
+          data-testid="flow-send-restore"
+          @click="restore"
+        />
+      </div>
       <Input
         v-model="header"
         :label="$t('WHATSAPP_TEMPLATES.SEND_CENTER.HEADER')"

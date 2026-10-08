@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils';
+import { mount, flushPromises } from '@vue/test-utils';
 import FlowDetail from '../FlowDetail.vue';
 import { PHONE_PREVIEW_WIDTH } from '../../phonePreview';
 import FlowPhoneFrame from 'dashboard/routes/dashboard/settings/templates/flows/FlowPhoneFrame.vue';
@@ -58,11 +58,15 @@ describe('Flow message customization', () => {
     expect(preview.classes()).not.toContain('max-xl:hidden');
     expect(wrapper.vm.customizing).toBe(true);
     expect(fields.classes()).toContain('overflow-y-auto');
+    expect(wrapper.find('[data-testid="flow-send-customize"]').exists()).toBe(
+      false
+    );
+    expect(fields.get('[data-testid="flow-send-panel-header"]').element).toBe(
+      fields.element.firstElementChild
+    );
     expect(
-      wrapper
-        .get('[data-testid="flow-send-customize"]')
-        .attributes('aria-expanded')
-    ).toBe('true');
+      fields.get('[data-testid="flow-send-close-customize"]').exists()
+    ).toBe(true);
   });
 
   it.each([
@@ -111,6 +115,85 @@ describe('Flow message customization', () => {
       vi.unstubAllGlobals();
     }
   );
+
+  it('focuses the first field, closes only the panel with Esc, and returns focus', async () => {
+    const wrapper = mount(FlowDetail, {
+      attachTo: document.body,
+      props: { flow: { id: 12, name: 'Appointment' } },
+    });
+    const bubbled = vi.fn();
+    document.body.addEventListener('keydown', bubbled);
+    await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
+    await flushPromises();
+    const first = wrapper.get('[data-testid="flow-send-header"] input');
+    expect(document.activeElement).toBe(first.element);
+    await first.trigger('keydown', { key: 'Escape' });
+    await flushPromises();
+    expect(
+      wrapper.find('[data-testid="flow-send-fields-column"]').exists()
+    ).toBe(false);
+    expect(bubbled).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(
+      wrapper.get('[data-testid="flow-send-customize"]').element
+    );
+    document.body.removeEventListener('keydown', bubbled);
+    wrapper.unmount();
+  });
+
+  it('retains edits while closed, indicates customization, restores defaults and resets on selection', async () => {
+    const wrapper = mount(FlowDetail, {
+      props: { flow: { id: 12, name: 'Appointment' } },
+    });
+    await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
+    expect(
+      wrapper.get('[data-testid="flow-send-restore"]').attributes('disabled')
+    ).toBeDefined();
+    await wrapper
+      .get('[data-testid="flow-send-header"] input')
+      .setValue('Hello');
+    await wrapper
+      .get('[data-testid="flow-send-body"] textarea')
+      .setValue('Choose a time');
+    await wrapper.get('[data-testid="flow-send-cta"] input').setValue('Choose');
+    expect(
+      wrapper.get('[data-testid="flow-send-restore"]').attributes('disabled')
+    ).toBeUndefined();
+    await wrapper
+      .get('[data-testid="flow-send-close-customize"]')
+      .trigger('click');
+    expect(wrapper.get('[data-testid="flow-send-customize"]').text()).toContain(
+      'CUSTOMIZED'
+    );
+    expect(wrapper.get('[data-testid="send-center-preview"]').text()).toContain(
+      'Choose a time'
+    );
+    await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
+    expect(
+      wrapper.get('[data-testid="flow-send-header"] input').element.value
+    ).toBe('Hello');
+    expect(
+      wrapper.get('[data-testid="flow-send-body"] textarea').element.value
+    ).toBe('Choose a time');
+    await wrapper.get('[data-testid="flow-send-restore"]').trigger('click');
+    expect(wrapper.vm.payload).toEqual({
+      whatsapp_flow_id: 12,
+      header: '',
+      body: 'Appointment',
+      cta: 'Open Flow',
+    });
+    expect(
+      wrapper.get('[data-testid="flow-send-restore"]').attributes('disabled')
+    ).toBeDefined();
+    await wrapper
+      .get('[data-testid="flow-send-body"] textarea')
+      .setValue('Again');
+    await wrapper.setProps({ flow: { id: 13, name: 'Contact' } });
+    expect(wrapper.vm.payload.body).toBe('Contact');
+    expect(
+      wrapper.get('[data-testid="flow-send-customize"]').text()
+    ).not.toContain('CUSTOMIZED');
+    wrapper.unmount();
+  });
 
   it('enforces the existing body/button limits and rejects emoji without changing the send contract', async () => {
     const wrapper = mount(FlowDetail, {

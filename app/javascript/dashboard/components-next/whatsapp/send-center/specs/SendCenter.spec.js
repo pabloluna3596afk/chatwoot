@@ -2,6 +2,7 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { createStore } from 'vuex';
 import { createI18n } from 'vue-i18n';
 import SendCenter from '../SendCenter.vue';
+import { lastSendCenterTab } from '../session';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import { SEND_CENTER_COLUMN_UNIT_CLASS } from '../helpers';
@@ -58,6 +59,7 @@ describe('unified send center', () => {
   let wrapper;
   let globalOptions;
   beforeEach(() => {
+    lastSendCenterTab.value = 0;
     globalOptions = {
       plugins: [
         createI18n({
@@ -444,7 +446,9 @@ describe('unified send center', () => {
     expect(
       wrapper.get('[data-testid="flow-send-preview-column"]').classes()
     ).not.toContain('max-xl:hidden');
-    await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
+    await wrapper
+      .get('[data-testid="flow-send-close-customize"]')
+      .trigger('click');
     expect(body.attributes('data-columns')).toBe('2');
   });
 
@@ -837,6 +841,97 @@ describe('unified send center', () => {
       cta: 'Abrir Flow',
     });
     expect(wrapper.emitted('close')).toHaveLength(1);
+  });
+
+  it('remembers the last tab across dialog instances without sharing filters, and keeps Twilio templates-only', async () => {
+    const props = {
+      show: true,
+      inbox: {
+        id: 3,
+        channel_type: 'Channel::Whatsapp',
+        provider: 'whatsapp_cloud',
+      },
+      conversationId: 5,
+      canReply: true,
+      templates,
+      sendTemplate: vi.fn(),
+    };
+    wrapper = mount(SendCenter, { props, global: globalOptions });
+    await flushPromises();
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    await wrapper
+      .get('[data-testid="center-search"] input')
+      .setValue('Contact');
+    wrapper.unmount();
+    wrapper = mount(SendCenter, { props, global: globalOptions });
+    await flushPromises();
+    expect(wrapper.findComponent(TabBar).props('initialActiveTab')).toBe(1);
+    expect(
+      wrapper.get('[data-testid="center-search"] input').element.value
+    ).toBe('');
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 0 });
+    await flushPromises();
+    expect(
+      wrapper.get('[data-testid="center-search"] input').element.value
+    ).toBe('');
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    wrapper.unmount();
+    wrapper = mount(SendCenter, {
+      props: {
+        ...props,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::TwilioSms',
+          medium: 'whatsapp',
+        },
+      },
+      global: {
+        ...globalOptions,
+        stubs: { Dialog: DialogStub, ContentTemplateParser: ParserStub },
+      },
+    });
+    await flushPromises();
+    expect(wrapper.findComponent(TabBar).props('initialActiveTab')).toBe(0);
+    expect(lastSendCenterTab.value).toBe(1);
+  });
+
+  it('keeps invalid Flow send disabled with a reason and Esc from the footer closes only customization', async () => {
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: 'whatsapp_cloud',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates,
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
+    await wrapper.get('[data-testid="flow-send-body"] textarea').setValue('');
+    expect(
+      wrapper.get('[data-testid="center-send"]').attributes('disabled')
+    ).toBeDefined();
+    expect(wrapper.get('[data-testid="center-invalid-reason"]').text()).toBe(
+      es.WHATSAPP_TEMPLATES.SEND_CENTER.BODY_REQUIRED
+    );
+    await wrapper
+      .get('[data-testid="center-body"]')
+      .trigger('keydown', { key: 'Escape' });
+    await flushPromises();
+    expect(
+      wrapper.find('[data-testid="flow-send-fields-column"]').exists()
+    ).toBe(false);
+    expect(wrapper.emitted('close')).toBeUndefined();
   });
 
   it('ships matching English and Spanish send-center keys', () => {

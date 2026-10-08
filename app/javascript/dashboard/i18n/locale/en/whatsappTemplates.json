@@ -57,6 +57,12 @@
       "MEDIA_ERROR_UPLOAD_FAILED": "The file could not be uploaded to WhatsApp. Try again."
     },
     "SEND_CENTER": {
+      "CUSTOMIZED": "Customized",
+      "CLOSE_CUSTOMIZE": "Close customization",
+      "RESTORE": "Restore original text",
+      "BODY_REQUIRED": "Enter the message body.",
+      "BUTTON_REQUIRED": "Enter the button text.",
+      "TEXT_LIMITS": "Keep the message within the character limits.",
       "TITLE": "Send via WhatsApp",
       "TEMPLATE_TITLE": "Send a template",
       "DESCRIPTION": "Choose a template or a Flow for this conversation.",
