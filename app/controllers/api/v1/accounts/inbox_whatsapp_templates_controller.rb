@@ -140,7 +140,7 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
   def components_builder
     @components_builder ||= Whatsapp::TemplateComponentsBuilder.new(
       header: template_params[:header], body: template_params[:body], footer: template_params[:footer], buttons: template_params[:buttons],
-      category: template_params[:category], preserved: preserved_params
+      parameter_format: template_params[:parameter_format], category: template_params[:category], preserved: preserved_params
     )
   end
 

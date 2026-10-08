@@ -50,6 +50,9 @@ class Whatsapp::TemplateComponentsBuilder
     @body = (body || {}).to_h.with_indifferent_access
     @footer = (footer || {}).to_h.with_indifferent_access
     @buttons = Array(buttons).map { |button| button.to_h.with_indifferent_access }
+    @parameter_format = options[:parameter_format]
+    raise Invalid, 'invalid_parameter_format' unless [nil, 'NAMED', 'POSITIONAL'].include?(@parameter_format)
+
     @category = options[:category].to_s.upcase.presence
     @preserved = (options[:preserved] || {}).to_h.with_indifferent_access
   end
@@ -65,9 +68,7 @@ class Whatsapp::TemplateComponentsBuilder
   end
 
   # 'NAMED' when the header or body use {{nombre}}-style variables, 'POSITIONAL' for {{1}} or none.
-  def parameter_format
-    named_variables? ? 'NAMED' : 'POSITIONAL'
-  end
+  def parameter_format = @parameter_format || (named_variables? ? 'NAMED' : 'POSITIONAL')
 
   private
 
@@ -75,14 +76,15 @@ class Whatsapp::TemplateComponentsBuilder
     (variable_tokens(header_text_value) + variable_tokens(@body[:text].to_s)).uniq
   end
 
-  def named_variables?
-    all_tokens.any? { |token| !token.match?(NUMBER) }
-  end
+  def named_variables? = @parameter_format == 'NAMED' || all_tokens.grep_v(NUMBER).any?
 
   # A template cannot mix {{1}} and {{nombre}}; named variables need a valid name.
   def check_parameter_format
-    numbered, named = all_tokens.partition { |token| token.match?(NUMBER) }
-    raise Invalid, 'variables_mixed' if numbered.any? && named.any?
+    formats = all_tokens.map { |token| token.match?(NUMBER) ? 'POSITIONAL' : 'NAMED' }.uniq
+    formats |= [@parameter_format].compact
+    raise Invalid, 'variables_mixed' if formats.size > 1
+
+    named = all_tokens.grep_v(NUMBER)
 
     invalid = named.find { |token| !token.match?(NAMED_VARIABLE) }
     raise Invalid.new('variable_name_invalid', name: invalid) if invalid

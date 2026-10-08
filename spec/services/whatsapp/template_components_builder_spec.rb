@@ -158,6 +158,21 @@ RSpec.describe Whatsapp::TemplateComponentsBuilder do
     end
   end
 
+  describe 'explicit parameter format' do
+    it 'keeps NAMED for a new system copy with no text variables' do
+      builder = described_class.new(body: { text: 'Tu pedido est? listo.' }, parameter_format: 'NAMED')
+
+      expect(builder.components).to eq([{ type: 'BODY', text: 'Tu pedido est? listo.' }])
+      expect(builder.parameter_format).to eq('NAMED')
+    end
+
+    it 'refuses a declared format that conflicts with the text' do
+      builder = described_class.new(body: { text: 'Hola {{1}}, gracias.', examples: ['Ana'] }, parameter_format: 'NAMED')
+
+      expect { builder.components }.to raise_error(described_class::Invalid) { |error| expect(error.code).to eq('variables_mixed') }
+    end
+  end
+
   describe 'dynamic URL regression' do
     it 'keeps the exact positional URL from the approved template' do
       components = build(buttons: [{ type: 'URL', text: 'Seguir pedido', url: 'https://paluhub.com/track/{{2}}',
