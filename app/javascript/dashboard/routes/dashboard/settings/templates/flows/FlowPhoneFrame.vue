@@ -1,4 +1,5 @@
 <script setup>
+import { PHONE_PREVIEW_WIDTH } from 'dashboard/components-next/whatsapp/phonePreview';
 defineProps({
   title: { type: String, required: true },
   screenIndex: { type: Number, required: true },
@@ -8,7 +9,8 @@ defineProps({
 
 <template>
   <div
-    class="flex flex-col w-[22.5rem] h-[46.25rem] shrink-0 overflow-hidden border-8 border-slate-800 rounded-[2rem] bg-[#e8dfd2] dark:bg-[#1b2630]"
+    class="flex flex-col w-[var(--phone-preview-width)] h-[46.25rem] shrink-0 overflow-hidden border-8 border-slate-800 rounded-[2rem] bg-[#e8dfd2] dark:bg-[#1b2630]"
+    :class="PHONE_PREVIEW_WIDTH"
     data-testid="flow-phone-frame"
   >
     <div

@@ -2,8 +2,10 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { createStore } from 'vuex';
 import { createI18n } from 'vue-i18n';
 import SendCenter from '../SendCenter.vue';
+import { lastSendCenterTab } from '../session';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
+import { SEND_CENTER_COLUMN_UNIT_CLASS } from '../helpers';
 import API from 'dashboard/api/whatsappFlows';
 import en from 'dashboard/i18n/locale/en/whatsappTemplates.json';
 import es from 'dashboard/i18n/locale/es/whatsappTemplates.json';
@@ -57,6 +59,7 @@ describe('unified send center', () => {
   let wrapper;
   let globalOptions;
   beforeEach(() => {
+    lastSendCenterTab.value = 0;
     globalOptions = {
       plugins: [
         createI18n({
@@ -217,6 +220,8 @@ describe('unified send center', () => {
         global: globalOptions,
       });
       await flushPromises();
+      wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+      await flushPromises();
       expect(wrapper.get('[data-testid="center-reason"]').text()).toBe(
         es.WHATSAPP_TEMPLATES.SEND_CENTER.REASONS[reason]
       );
@@ -279,11 +284,46 @@ describe('unified send center', () => {
       global: globalOptions,
     });
     await flushPromises();
-    const filters = wrapper.findAllComponents(FilterDropdown);
-    expect(filters.map(filter => filter.props('options')[0].count)).toEqual([
-      5, 5,
+    const toolbar = wrapper.get('[data-testid="center-toolbar"]');
+    const columns = wrapper.get('[data-testid="center-columns"]');
+    expect(toolbar.element.parentElement.parentElement.parentElement).toBe(
+      columns.element
+    );
+    expect(
+      wrapper.get('[data-testid="center-detail"]').element.parentElement
+    ).toBe(columns.element);
+    expect(toolbar.classes()).not.toContain('justify-between');
+    expect(toolbar.findAll('button').map(button => button.text())).toEqual([
+      'Plantillas',
+      'Flows',
+      '',
     ]);
-    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 2 });
+    expect(
+      wrapper.get('[data-testid="center-refresh"]').attributes('title')
+    ).toBe('Actualizar cat\u00e1logo');
+    expect(
+      wrapper.get('[data-testid="center-refresh"]').attributes('aria-label')
+    ).toBe('Actualizar cat\u00e1logo');
+    expect(toolbar.findComponent(TabBar).exists()).toBe(true);
+    expect(toolbar.find('[data-testid="center-refresh"]').exists()).toBe(true);
+    const filterRow = wrapper.get('[data-testid="center-filters"]');
+    expect(filterRow.findAllComponents(FilterDropdown)).toHaveLength(2);
+    expect(filterRow.classes()).toContain('grid-cols-2');
+    expect(
+      wrapper.get('[data-testid="center-search"]').element.nextElementSibling
+    ).toBe(filterRow.element);
+    const filters = wrapper.findAllComponents(FilterDropdown);
+    expect(filters.map(filter => filter.get('button').text())).toEqual([
+      'Categor\u00edas',
+      'Estados',
+    ]);
+    expect(
+      filters.map(filter => filter.get('button').attributes('title'))
+    ).toEqual(['Todas las categor\u00edas', 'Todos los estados']);
+    expect(filters.map(filter => filter.props('options')[0].count)).toEqual([
+      3, 3,
+    ]);
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
     await flushPromises();
     expect(filters.map(filter => filter.props('options')[0].count)).toEqual([
       2, 2,
@@ -294,7 +334,7 @@ describe('unified send center', () => {
     expect(wrapper.get('[data-testid="center-list"]').text()).not.toContain(
       'appointment'
     );
-    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 0 });
     await flushPromises();
     expect(wrapper.get('[data-testid="center-list"]').text()).toContain(
       'appointment'
@@ -308,7 +348,240 @@ describe('unified send center', () => {
     expect(wrapper.findAllComponents(DialogStub)).toHaveLength(1);
   });
 
-  it('defaults to Todos, puts usable items first, and searches template content', async () => {
+  it('keeps refresh spinning and disabled during template synchronization and Flow loading', async () => {
+    let resolveSync;
+    let resolveFlows;
+    const sync = vi.fn(
+      () =>
+        new Promise(resolve => {
+          resolveSync = resolve;
+        })
+    );
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: 'whatsapp_cloud',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates,
+        sendTemplate: vi.fn(),
+      },
+      global: {
+        ...globalOptions,
+        plugins: [
+          ...globalOptions.plugins,
+          createStore({
+            getters: {
+              'attributes/getAttributes': () => [1],
+              getSelectedChat: () => ({}),
+              getCurrentUser: () => ({}),
+            },
+            actions: { 'inboxes/syncTemplates': sync },
+          }),
+        ],
+      },
+    });
+    await flushPromises();
+    API.conversationFlows.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          resolveFlows = resolve;
+        })
+    );
+    const refresh = wrapper.get('[data-testid="center-refresh"]');
+    await refresh.trigger('click');
+    expect(refresh.attributes('disabled')).toBeDefined();
+    expect(refresh.find('.animate-spin').exists()).toBe(true);
+    await refresh.trigger('click');
+    expect(sync).toHaveBeenCalledTimes(1);
+    resolveSync();
+    await flushPromises();
+    expect(refresh.attributes('disabled')).toBeDefined();
+    expect(refresh.find('.animate-spin').exists()).toBe(true);
+    resolveFlows({ data: { payload: [], can_reply: true } });
+    await flushPromises();
+    expect(refresh.attributes('disabled')).toBeUndefined();
+    expect(refresh.find('.animate-spin').exists()).toBe(false);
+  });
+
+  it('uses one width unit for two or three columns and shrinks again when customization closes', async () => {
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: 'whatsapp_cloud',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates,
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    const body = wrapper.get('[data-testid="center-body"]');
+    expect(body.classes()).toContain(SEND_CENTER_COLUMN_UNIT_CLASS);
+    expect(body.attributes('data-columns')).toBe('2');
+    expect(body.classes()).toContain(
+      '[dialog:has(&)]:!w-[calc(var(--send-center-unit)+var(--phone-preview-width)+4.5rem)]'
+    );
+    expect(body.classes()).toContain('[dialog:has(&)]:!transition-[width]');
+    expect(body.classes()).toContain(
+      'motion-reduce:[dialog:has(&)]:!transition-none'
+    );
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
+    expect(body.attributes('data-columns')).toBe('3');
+    expect(body.classes()).toContain(
+      'xl:[dialog:has(&)]:!w-[calc(2*var(--send-center-unit)+var(--phone-preview-width)+6rem)]'
+    );
+    expect(body.classes()).toContain(
+      'max-xl:[dialog:has(&)]:!w-[calc(100vw-2rem)]'
+    );
+    expect(
+      wrapper.get('[data-testid="flow-send-preview-column"]').classes()
+    ).not.toContain('max-xl:hidden');
+    await wrapper
+      .get('[data-testid="flow-send-close-customize"]')
+      .trigger('click');
+    expect(body.attributes('data-columns')).toBe('2');
+  });
+
+  it.each([
+    [
+      { id: 3, channel_type: 'Channel::Whatsapp', provider: 'whatsapp_cloud' },
+      {
+        name: 'editable',
+        language: 'es',
+        status: 'APPROVED',
+        category: 'UTILITY',
+        components: [{ type: 'BODY', text: 'Hello {{1}}' }],
+      },
+    ],
+    [
+      { id: 3, channel_type: 'Channel::TwilioSms', medium: 'whatsapp' },
+      {
+        friendly_name: 'editable',
+        language: 'es',
+        status: 'APPROVED',
+        category: 'UTILITY',
+        body: 'Hello {{1}}',
+      },
+    ],
+  ])(
+    'allocates a third unit for editable template fields on %j',
+    async (inbox, template) => {
+      wrapper = mount(SendCenter, {
+        props: {
+          show: true,
+          inbox,
+          conversationId: 5,
+          canReply: true,
+          templates: [template],
+          sendTemplate: vi.fn(),
+        },
+        global: { ...globalOptions, stubs: { Dialog: DialogStub } },
+      });
+      await flushPromises();
+      expect(
+        wrapper.get('[data-testid="center-body"]').attributes('data-columns')
+      ).toBe('3');
+      expect(wrapper.get('[data-testid="center-body"]').classes()).toContain(
+        'xl:[dialog:has(&)]:!w-[calc(2*var(--send-center-unit)+var(--phone-preview-width)+6rem)]'
+      );
+      const input = wrapper.get('[data-testid="center-detail"] input');
+      await input.setValue('Ana');
+      expect(wrapper.get('[data-testid="center-detail"]').text()).toContain(
+        'Hello Ana'
+      );
+    }
+  );
+
+  it('retains each tab search, category, status and selection with counts only from that tab', async () => {
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: 'whatsapp_cloud',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates,
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    const [categoryFilter, statusFilter] =
+      wrapper.findAllComponents(FilterDropdown);
+    await wrapper
+      .get('[data-testid="center-search"] input')
+      .setValue('appointment');
+    categoryFilter.vm.$emit('update:modelValue', 'template:UTILITY');
+    statusFilter.vm.$emit('update:modelValue', 'APPROVED');
+    await flushPromises();
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    expect(
+      wrapper.get('[data-testid="center-search"] input').element.value
+    ).toBe('');
+    expect(categoryFilter.props('modelValue')).toBe('ALL');
+    expect(statusFilter.props('modelValue')).toBe('ALL');
+    expect(categoryFilter.props('options')[0].count).toBe(2);
+    expect(statusFilter.props('options')[0].count).toBe(2);
+    expect(categoryFilter.props('groups').map(group => group.key)).toEqual([
+      'flows',
+    ]);
+    expect(
+      statusFilter.props('options').some(option => option.value === 'APPROVED')
+    ).toBe(false);
+    expect(
+      categoryFilter
+        .props('options')
+        .some(option => option.value.startsWith('template:'))
+    ).toBe(false);
+    await wrapper.get('[data-testid="center-search"] input').setValue('Draft');
+    categoryFilter.vm.$emit('update:modelValue', 'flow:CONTACT_US');
+    statusFilter.vm.$emit('update:modelValue', 'none');
+    await flushPromises();
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 0 });
+    await flushPromises();
+    expect(
+      wrapper.get('[data-testid="center-search"] input').element.value
+    ).toBe('appointment');
+    expect(categoryFilter.props('modelValue')).toBe('template:UTILITY');
+    expect(statusFilter.props('modelValue')).toBe('APPROVED');
+    expect(categoryFilter.props('options')[0].count).toBe(1);
+    expect(
+      wrapper
+        .get('[data-testid="center-row-template:appointment:es"]')
+        .attributes('aria-pressed')
+    ).toBe('true');
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    expect(
+      wrapper.get('[data-testid="center-search"] input').element.value
+    ).toBe('Draft');
+    expect(categoryFilter.props('modelValue')).toBe('flow:CONTACT_US');
+    expect(statusFilter.props('modelValue')).toBe('none');
+    expect(categoryFilter.props('options')[0].count).toBe(1);
+    expect(
+      wrapper
+        .get('[data-testid="center-row-flow:13"]')
+        .attributes('aria-pressed')
+    ).toBe('true');
+  });
+
+  it('defaults to Plantillas, puts usable items first, and searches template content', async () => {
     wrapper = mount(SendCenter, {
       props: {
         show: true,
@@ -345,8 +618,15 @@ describe('unified send center', () => {
     expect(
       wrapper.get('[data-testid="center-list"]').findAll('button')[0].text()
     ).toContain('appointment');
-    expect(wrapper.text()).toContain('Contact');
-    expect(wrapper.text()).toContain('Sin publicar en esta cuenta');
+    expect(
+      wrapper
+        .findComponent(TabBar)
+        .props('tabs')
+        .map(item => item.label)
+    ).toEqual(['Plantillas', 'Flows']);
+    expect(wrapper.get('[data-testid="center-list"]').text()).not.toContain(
+      'Contact'
+    );
     await wrapper
       .get('[data-testid="center-search"] input')
       .setValue('Discount');
@@ -399,10 +679,10 @@ describe('unified send center', () => {
     expect(
       categoryFilter.props('options').find(option => option.value === 'ALL')
         .count
-    ).toBe(5);
+    ).toBe(3);
     expect(
       statusFilter.props('options').find(option => option.value === 'ALL').count
-    ).toBe(5);
+    ).toBe(3);
     expect(
       categoryFilter
         .props('options')
@@ -415,6 +695,8 @@ describe('unified send center', () => {
     expect(wrapper.get('[data-testid="center-list"]').text()).not.toContain(
       'offer'
     );
+    expect(categoryFilter.get('button').text()).toBe('Utilidad');
+    expect(categoryFilter.get('button').attributes('title')).toBe('Utilidad');
     expect(
       statusFilter.props('options').find(option => option.value === 'ALL').count
     ).toBe(2);
@@ -503,8 +785,8 @@ describe('unified send center', () => {
         .findComponent(TabBar)
         .props('tabs')
         .map(tab => tab.label)
-    ).toEqual(['Todos', 'Plantillas']);
-    expect(wrapper.find('.i-ph-whatsapp-logo').exists()).toBe(true);
+    ).toEqual(['Plantillas']);
+    expect(wrapper.find('.i-woot-whatsapp').exists()).toBe(true);
     expect(
       wrapper.get('[data-testid="center-send"]').attributes('disabled')
     ).toBeUndefined();
@@ -543,6 +825,8 @@ describe('unified send center', () => {
       },
     });
     await flushPromises();
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
     API.sendToConversation.mockRejectedValueOnce({
       response: { data: { error: 'Meta refused' } },
     });
@@ -559,6 +843,148 @@ describe('unified send center', () => {
       cta: 'Abrir Flow',
     });
     expect(wrapper.emitted('close')).toHaveLength(1);
+  });
+
+  it('remembers the last tab across dialog instances without sharing filters, and keeps Twilio templates-only', async () => {
+    const props = {
+      show: true,
+      inbox: {
+        id: 3,
+        channel_type: 'Channel::Whatsapp',
+        provider: 'whatsapp_cloud',
+      },
+      conversationId: 5,
+      canReply: true,
+      templates,
+      sendTemplate: vi.fn(),
+    };
+    wrapper = mount(SendCenter, { props, global: globalOptions });
+    await flushPromises();
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    await wrapper
+      .get('[data-testid="center-search"] input')
+      .setValue('Contact');
+    wrapper.unmount();
+    wrapper = mount(SendCenter, { props, global: globalOptions });
+    await flushPromises();
+    expect(wrapper.findComponent(TabBar).props('initialActiveTab')).toBe(1);
+    expect(
+      wrapper.get('[data-testid="center-search"] input').element.value
+    ).toBe('');
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 0 });
+    await flushPromises();
+    expect(
+      wrapper.get('[data-testid="center-search"] input').element.value
+    ).toBe('');
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    wrapper.unmount();
+    wrapper = mount(SendCenter, {
+      props: {
+        ...props,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::TwilioSms',
+          medium: 'whatsapp',
+        },
+      },
+      global: {
+        ...globalOptions,
+        stubs: { Dialog: DialogStub, ContentTemplateParser: ParserStub },
+      },
+    });
+    await flushPromises();
+    expect(wrapper.findComponent(TabBar).props('initialActiveTab')).toBe(0);
+    expect(lastSendCenterTab.value).toBe(1);
+  });
+
+  it('keeps invalid Flow send disabled with a reason and Esc from the footer closes only customization', async () => {
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: 'whatsapp_cloud',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates,
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
+    await wrapper.get('[data-testid="flow-send-body"] textarea').setValue('');
+    expect(
+      wrapper.get('[data-testid="center-send"]').attributes('disabled')
+    ).toBeDefined();
+    expect(wrapper.get('[data-testid="center-invalid-reason"]').text()).toBe(
+      es.WHATSAPP_TEMPLATES.SEND_CENTER.BODY_REQUIRED
+    );
+    await wrapper
+      .get('[data-testid="center-body"]')
+      .trigger('keydown', { key: 'Escape' });
+    await flushPromises();
+    expect(
+      wrapper.find('[data-testid="flow-send-fields-column"]').exists()
+    ).toBe(false);
+    expect(wrapper.emitted('close')).toBeUndefined();
+  });
+
+  it('keeps status only in list rows and places the compact title above the preview without inheriting the list controls height', async () => {
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: 'whatsapp_cloud',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates,
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    expect(wrapper.get('[data-testid="center-list"]').text()).toContain(
+      'Publicado'
+    );
+    const detail = wrapper.get('[data-testid="center-detail"]');
+    expect(detail.text()).not.toContain('Publicado');
+    expect(
+      detail.get('[data-testid="center-detail-header"]').find('h3').text()
+    ).toBe('Contact');
+    expect(detail.classes()).toContain('flex-col');
+    expect(detail.classes()).toContain('gap-6');
+    expect(
+      detail.get('[data-testid="center-detail-header"]').classes()
+    ).toContain('shrink-0');
+    expect(
+      wrapper
+        .get('[data-testid="center-list"]')
+        .element.parentElement.classList.contains('grid-rows-subgrid')
+    ).toBe(true);
+    expect(wrapper.get('[data-testid="center-columns"]').classes()).toContain(
+      'grid-rows-[auto_minmax(0,1fr)]'
+    );
+    await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
+    expect(
+      wrapper.get('[data-testid="flow-send-fields-column"]').element
+        .parentElement
+    ).toBe(
+      wrapper.get('[data-testid="flow-send-preview-column"]').element
+        .parentElement
+    );
+    expect(wrapper.text()).not.toContain('Listo para enviar');
   });
 
   it('ships matching English and Spanish send-center keys', () => {

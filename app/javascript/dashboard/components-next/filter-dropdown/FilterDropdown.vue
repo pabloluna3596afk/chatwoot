@@ -100,11 +100,14 @@ const handleFocusOut = event => {
       class="max-w-full"
       :class="{ 'bg-n-slate-9/10': isOpen }"
       :aria-label="label"
+      :title="selected?.label || label"
       aria-haspopup="dialog"
       :aria-expanded="isOpen"
       @click="isOpen = !isOpen"
     >
-      <span class="min-w-0 truncate">{{ selected?.label || label }}</span>
+      <span class="min-w-0 truncate">{{
+        selected?.triggerLabel || selected?.label || label
+      }}</span>
       <Icon icon="i-lucide-chevron-down" class="shrink-0 size-4" />
     </Button>
     <DropdownMenu

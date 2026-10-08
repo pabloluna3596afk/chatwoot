@@ -13,9 +13,12 @@ import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDrop
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import WhatsAppTemplateParser from '../WhatsAppTemplateParser.vue';
 import ContentTemplateParser from 'dashboard/components-next/content-templates/ContentTemplateParser.vue';
+import { PHONE_PREVIEW_WIDTH } from '../phonePreview';
 import FlowDetail from './FlowDetail.vue';
+import { lastSendCenterTab } from './session';
 import MessagePreview from './MessagePreview.vue';
 import {
+  SEND_CENTER_COLUMN_UNIT_CLASS,
   supportsFlows,
   usesContentTemplates,
   sendCenterIcon,
@@ -53,19 +56,47 @@ const flowDetail = ref(null);
 const flows = ref([]);
 const serverCanReply = ref(true);
 const isSending = ref(false);
+const isRefreshing = ref(false);
 const error = ref('');
-const query = ref('');
-const category = ref('ALL');
-const status = ref('ALL');
 const tab = ref(0);
-const selectedKey = ref('');
+const newTabState = () => ({
+  query: '',
+  category: 'ALL',
+  status: 'ALL',
+  selectedKey: '',
+});
+const tabStates = ref([newTabState(), newTabState()]);
+const activeState = computed(() => tabStates.value[tab.value]);
+const query = computed({
+  get: () => activeState.value.query,
+  set: value => {
+    activeState.value.query = value;
+  },
+});
+const category = computed({
+  get: () => activeState.value.category,
+  set: value => {
+    activeState.value.category = value;
+  },
+});
+const status = computed({
+  get: () => activeState.value.status,
+  set: value => {
+    activeState.value.status = value;
+  },
+});
+const selectedKey = computed({
+  get: () => activeState.value.selectedKey,
+  set: value => {
+    activeState.value.selectedKey = value;
+  },
+});
 const { run, abort, isPending } = useAbortableRequest();
 const hasFlows = computed(() => supportsFlows(props.inbox));
 const content = computed(() => usesContentTemplates(props.inbox));
 const tabs = computed(() => [
-  { label: t(`${prefix}.ALL`), index: 0 },
-  { label: t(`${prefix}.TEMPLATES`), index: 1 },
-  ...(hasFlows.value ? [{ label: t(`${prefix}.FLOWS`), index: 2 }] : []),
+  { label: t(`${prefix}.TEMPLATES`), index: 0 },
+  ...(hasFlows.value ? [{ label: t(`${prefix}.FLOWS`), index: 1 }] : []),
 ]);
 const statusLabel = value =>
   t(`${prefix}.STATUS.${te(`${prefix}.STATUS.${value}`) ? value : 'UNKNOWN'}`);
@@ -105,8 +136,7 @@ const rows = computed(() =>
 const searchedRows = computed(() =>
   rows.value.filter(
     row =>
-      (tab.value === 0 ||
-        row.type === (tab.value === 1 ? 'template' : 'flow')) &&
+      row.type === (tab.value === 0 ? 'template' : 'flow') &&
       `${row.name} ${row.data.body || ''} ${(row.data.components || []).map(c => c.text || '').join(' ')}`
         .toLocaleLowerCase()
         .includes(query.value.toLocaleLowerCase())
@@ -134,58 +164,74 @@ const statusCount = value =>
 const selected = computed(() =>
   filtered.value.find(row => row.key === selectedKey.value)
 );
+const filterGroup = computed(() => (tab.value === 0 ? 'templates' : 'flows'));
 const categoryGroups = computed(() => [
-  { key: 'templates', label: t(`${prefix}.CATEGORY_GROUP`) },
-  ...(hasFlows.value
-    ? [{ key: 'flows', label: t(`${prefix}.FLOW_CATEGORY_GROUP`) }]
-    : []),
+  {
+    key: filterGroup.value,
+    label: t(
+      `${prefix}.${tab.value === 0 ? 'CATEGORY_GROUP' : 'FLOW_CATEGORY_GROUP'}`
+    ),
+  },
 ]);
 const categoryOptions = computed(() => [
   {
     value: 'ALL',
     label: t(`${prefix}.ALL_CATEGORIES`),
+    triggerLabel: t(`${prefix}.FILTER_CATEGORY`),
     count: categoryRows.value.length,
   },
-  ...TEMPLATE_CATEGORIES.map(value => ({
-    value: `template:${value}`,
-    label: categoryLabel(value),
-    count: categoryCount(`template:${value}`),
-    group: 'templates',
-  })),
-  ...[...new Set(flows.value.flatMap(flow => flow.categories))].map(value => ({
-    value: `flow:${value}`,
-    label: t(`WHATSAPP_FLOWS.CATEGORIES.${value}`),
-    count: categoryCount(`flow:${value}`),
-    group: 'flows',
-  })),
+  ...(tab.value === 0
+    ? TEMPLATE_CATEGORIES.map(value => ({
+        value: `template:${value}`,
+        label: categoryLabel(value),
+        count: categoryCount(`template:${value}`),
+        group: 'templates',
+      }))
+    : [...new Set(flows.value.flatMap(flow => flow.categories))].map(value => ({
+        value: `flow:${value}`,
+        label: t(`WHATSAPP_FLOWS.CATEGORIES.${value}`),
+        count: categoryCount(`flow:${value}`),
+        group: 'flows',
+      }))),
 ]);
 const statusOptions = computed(() => [
   {
     value: 'ALL',
     label: t(`${prefix}.ALL_STATUSES`),
+    triggerLabel: t(`${prefix}.FILTER_STATUS`),
     count: statusRows.value.length,
   },
-  ...TEMPLATE_STATUSES.map(value => ({
+  ...(tab.value === 0 ? TEMPLATE_STATUSES : FLOW_STATUSES).map(value => ({
     value,
     label: statusLabel(value),
     count: statusCount(value),
-    group: 'templates',
+    group: filterGroup.value,
   })),
-  ...(hasFlows.value
-    ? FLOW_STATUSES.map(value => ({
-        value,
-        label: statusLabel(value),
-        count: statusCount(value),
-        group: 'flows',
-      }))
-    : []),
 ]);
 const statusGroups = computed(() => [
-  { key: 'templates', label: t(`${prefix}.STATUS_GROUP`) },
-  ...(hasFlows.value
-    ? [{ key: 'flows', label: t(`${prefix}.FLOW_STATUS_GROUP`) }]
-    : []),
+  {
+    key: filterGroup.value,
+    label: t(
+      `${prefix}.${tab.value === 0 ? 'STATUS_GROUP' : 'FLOW_STATUS_GROUP'}`
+    ),
+  },
 ]);
+const hasCustomization = computed(() => {
+  if (!selected.value || selected.value.reason) return false;
+  if (selected.value.type === 'flow') return !!flowDetail.value?.customizing;
+  if (content.value)
+    return Object.keys(parser.value?.processedParams || {}).length > 0;
+  return !!(
+    parser.value?.hasVariables ||
+    parser.value?.hasMediaHeader ||
+    Object.keys(parser.value?.processedParams?.buttons || {}).length
+  );
+});
+const parserColumns = computed(() =>
+  hasCustomization.value
+    ? 'grid-cols-[var(--phone-preview-width)] xl:grid-cols-[var(--phone-preview-width)_var(--send-center-unit)] max-xl:[&>div:nth-child(2)]:absolute max-xl:[&>div:nth-child(2)]:top-0 max-xl:[&>div:nth-child(2)]:left-[calc(-1*var(--send-center-unit)-1.5rem)] max-xl:[&>div:nth-child(2)]:w-[var(--send-center-unit)] max-xl:[&>div:nth-child(2)]:z-10 max-xl:[&>div:nth-child(2)]:bg-n-solid-1'
+    : 'grid-cols-[var(--phone-preview-width)]'
+);
 const component = type =>
   selected.value?.data.components?.find(c => c.type === type);
 const header = computed(() => component('HEADER')?.text || '');
@@ -222,12 +268,15 @@ const loadFlows = async () => {
   }
 };
 const refresh = async () => {
+  isRefreshing.value = true;
   error.value = '';
   try {
     await store.dispatch('inboxes/syncTemplates', props.inbox.id);
     if (hasFlows.value) await loadFlows();
   } catch (e) {
     error.value = e.response?.data?.error || t(`${prefix}.LOAD_ERROR`);
+  } finally {
+    isRefreshing.value = false;
   }
 };
 const sendTemplatePayload = async payload => {
@@ -262,6 +311,15 @@ const submit = async () => {
     isSending.value = false;
   }
 };
+watch(tab, value => {
+  if (hasFlows.value) lastSendCenterTab.value = value;
+});
+const handleEscape = event => {
+  if (!flowDetail.value?.customizing) return;
+  event.preventDefault();
+  event.stopPropagation();
+  flowDetail.value.closeCustomization();
+};
 watch(filtered, list => {
   if (!list.some(row => row.key === selectedKey.value))
     selectedKey.value = list[0]?.key || '';
@@ -276,11 +334,8 @@ watch(
       dialog.value?.close();
       return;
     }
-    tab.value = 0;
-    query.value = '';
-    category.value = 'ALL';
-    status.value = 'ALL';
-    selectedKey.value = '';
+    tab.value = hasFlows.value ? lastSendCenterTab.value : 0;
+    tabStates.value = [newTabState(), newTabState()];
     selectedKey.value = filtered.value[0]?.key || '';
     await nextTick();
     dialog.value.open();
@@ -299,8 +354,20 @@ watch(
     :show-cancel-button="false"
     @close="close"
   >
-    <div class="flex flex-col gap-4">
-      <div class="flex justify-between items-start gap-3">
+    <div
+      class="flex h-[min(38rem,calc(90vh-11rem))] min-h-0 flex-col gap-5 [dialog:has(&)]:!max-w-[calc(100vw-2rem)] [dialog:has(&)]:!left-[max(1rem,calc((100vw-(2*var(--send-center-unit)+var(--phone-preview-width)+6rem))/2))] [dialog:has(&)]:!right-auto [dialog:has(&)]:!mx-0 [dialog:has(&)]:!transition-[width] [dialog:has(&)]:!duration-300 [dialog:has(&)]:!ease-in-out motion-reduce:[dialog:has(&)]:!transition-none max-xl:[dialog:has(&)]:[--send-center-unit:calc(100vw-var(--phone-preview-width)-6.5rem)] max-xl:[dialog:has(&)]:!left-4 [form:has(&)>div:last-child]:!border-0 [form:has(&)>div:last-child]:!pt-0"
+      :class="[
+        SEND_CENTER_COLUMN_UNIT_CLASS,
+        PHONE_PREVIEW_WIDTH,
+        hasCustomization
+          ? 'xl:[dialog:has(&)]:!w-[calc(2*var(--send-center-unit)+var(--phone-preview-width)+6rem)] max-xl:[dialog:has(&)]:!w-[calc(100vw-2rem)]'
+          : '[dialog:has(&)]:!w-[calc(var(--send-center-unit)+var(--phone-preview-width)+4.5rem)]',
+      ]"
+      :data-columns="hasCustomization ? 3 : 2"
+      data-testid="center-body"
+      @keydown.esc="handleEscape"
+    >
+      <div class="flex shrink-0 justify-between items-start gap-3">
         <div>
           <h2
             class="flex items-center gap-2 text-lg font-semibold text-n-slate-12"
@@ -310,7 +377,7 @@ watch(
               class="size-6 text-n-teal-11"
             />{{
               $t(
-                `${prefix}.${sendCenterIcon(inbox) === 'i-ph-whatsapp-logo' ? 'TITLE' : 'TEMPLATE_TITLE'}`
+                `${prefix}.${sendCenterIcon(inbox) === 'i-woot-whatsapp' ? 'TITLE' : 'TEMPLATE_TITLE'}`
               )
             }}
           </h2>
@@ -332,54 +399,81 @@ watch(
           @click="close"
         />
       </div>
-      <TabBar
-        :tabs="tabs"
-        :initial-active-tab="tab"
-        @tab-changed="tab = $event.index"
-      />
-      <div class="grid gap-5 sm:grid-cols-[17rem_1fr]">
-        <section class="flex flex-col min-w-0 gap-3">
-          <div class="flex gap-2">
+      <div
+        class="grid min-h-0 flex-1 gap-x-6 gap-y-3 grid-rows-[auto_minmax(0,1fr)] grid-cols-[var(--send-center-unit)_minmax(0,1fr)]"
+        data-testid="center-columns"
+      >
+        <section class="row-span-2 grid grid-rows-subgrid min-h-0 min-w-0">
+          <div
+            class="flex flex-col gap-3"
+            data-testid="center-controls"
+            :class="{
+              'max-xl:[&>:not(:first-child)]:invisible': hasCustomization,
+            }"
+          >
+            <div
+              class="flex shrink-0 items-center gap-3"
+              data-testid="center-toolbar"
+            >
+              <TabBar
+                :tabs="tabs"
+                :initial-active-tab="tab"
+                @tab-changed="tab = $event.index"
+              />
+              <Button
+                type="button"
+                icon="i-lucide-refresh-cw"
+                ghost
+                slate
+                sm
+                :is-loading="isRefreshing || isPending"
+                :disabled="isSending || isRefreshing || isPending"
+                :aria-label="$t(`${prefix}.REFRESH`)"
+                :title="$t(`${prefix}.REFRESH`)"
+                data-testid="center-refresh"
+                @click="refresh"
+              />
+            </div>
+
             <Input
               v-model="query"
               type="search"
               size="sm"
-              class="flex-1"
+              class="w-full shrink-0"
               :placeholder="$t(`${prefix}.SEARCH`)"
               :aria-label="$t(`${prefix}.SEARCH`)"
               data-testid="center-search"
-            /><Button
-              icon="i-lucide-refresh-cw"
-              ghost
-              slate
-              sm
-              :is-loading="isPending"
-              :disabled="isSending"
-              :aria-label="$t(`${prefix}.REFRESH`)"
-              @click="refresh"
             />
+            <div
+              class="grid shrink-0 grid-cols-2 gap-2"
+              data-testid="center-filters"
+            >
+              <FilterDropdown
+                v-model="category"
+                class="[&>button]:w-full"
+                icon="i-lucide-folder"
+                :label="$t(`${prefix}.FILTER_CATEGORY`)"
+                :options="categoryOptions"
+                :groups="categoryGroups"
+                data-testid="center-category"
+              />
+              <FilterDropdown
+                v-model="status"
+                class="[&>button]:w-full"
+                icon="i-lucide-circle-check"
+                :label="$t(`${prefix}.FILTER_STATUS`)"
+                :options="statusOptions"
+                :groups="statusGroups"
+                data-testid="center-status"
+              />
+            </div>
+            <p v-if="isPending" class="text-xs text-n-slate-11">
+              {{ $t(`${prefix}.LOADING`) }}
+            </p>
           </div>
-          <FilterDropdown
-            v-model="category"
-            icon="i-lucide-folder"
-            :label="$t(`${prefix}.ALL_CATEGORIES`)"
-            :options="categoryOptions"
-            :groups="categoryGroups"
-            data-testid="center-category"
-          />
-          <FilterDropdown
-            v-model="status"
-            icon="i-lucide-circle-check"
-            :label="$t(`${prefix}.ALL_STATUSES`)"
-            :options="statusOptions"
-            :groups="statusGroups"
-            data-testid="center-status"
-          />
-          <p v-if="isPending" class="text-xs text-n-slate-11">
-            {{ $t(`${prefix}.LOADING`) }}
-          </p>
           <div
-            class="overflow-y-auto max-h-[21rem] flex flex-col gap-1"
+            :class="{ 'max-xl:invisible': hasCustomization }"
+            class="min-h-0 flex-1 overflow-y-auto overscroll-contain flex flex-col gap-2"
             role="list"
             data-testid="center-list"
           >
@@ -389,11 +483,9 @@ watch(
               type="button"
               ghost
               slate
-              class="!h-auto !p-2 !justify-start text-start"
+              class="!h-auto !p-3 !justify-start shrink-0 text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
               :class="
-                row.key === selectedKey
-                  ? '!bg-n-blue-3 outline outline-1 !outline-n-blue-6'
-                  : ''
+                row.key === selectedKey ? '!bg-n-alpha-2 !text-n-slate-12' : ''
               "
               :disabled="isSending"
               :aria-pressed="row.key === selectedKey"
@@ -433,31 +525,26 @@ watch(
         </section>
         <section
           v-if="selected"
-          class="min-w-0 sm:border-s border-n-weak sm:ps-5 flex flex-col gap-4"
+          class="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto max-xl:overflow-visible overscroll-contain row-span-2 flex flex-col gap-6"
           data-testid="center-detail"
         >
-          <div>
-            <div class="flex items-start justify-between gap-2">
-              <h3 class="text-sm font-semibold break-words text-n-slate-12">
-                {{ selected.name }}
-              </h3>
-              <span
-                class="shrink-0 rounded px-2 py-1 text-xs"
-                :class="
-                  selected.reason
-                    ? 'bg-n-amber-3 text-n-amber-11'
-                    : 'bg-n-teal-3 text-n-teal-11'
-                "
-                >{{ statusLabel(selected.status) }}</span
-              >
-            </div>
-            <p class="text-xs mt-1 text-n-slate-11">
-              {{
-                selected.type === 'flow'
-                  ? $t(`${prefix}.SCREENS`, { count: selected.data.screens })
-                  : `${categoryLabel(selected.data.category?.toUpperCase())} · ${selected.data.language}`
-              }}
-            </p>
+          <div
+            class="flex w-[var(--phone-preview-width)] shrink-0 min-w-0 items-start gap-2"
+            data-testid="center-detail-header"
+          >
+            <h3
+              class="truncate text-sm font-semibold text-n-slate-12"
+              :title="selected.name"
+            >
+              {{ selected.name }}
+            </h3>
+            <span
+              v-if="selected.type === 'flow'"
+              class="shrink-0 text-xs leading-5 text-n-slate-11"
+              >{{
+                $t(`${prefix}.SCREENS`, { count: selected.data.screens })
+              }}</span
+            >
           </div>
           <FlowDetail
             v-if="selected.type === 'flow'"
@@ -470,6 +557,8 @@ watch(
               v-if="content"
               :key="selected.key"
               ref="parser"
+              class="relative grid min-h-0 min-w-0 flex-1 items-start gap-6 [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto"
+              :class="parserColumns"
               :template="selected.data"
               @send-message="sendTemplatePayload"
             >
@@ -479,6 +568,8 @@ watch(
               v-else
               :key="selected.key"
               ref="parser"
+              class="relative grid min-h-0 min-w-0 flex-1 items-start gap-6 [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto"
+              :class="parserColumns"
               :template="selected.data"
               :media-inbox-id="inbox.id"
               :send-rendered-content="inbox.channel_type === 'Channel::Api'"
@@ -503,16 +594,6 @@ watch(
             :footer="footer"
             :buttons="buttons"
           />
-          <p
-            v-if="selected.reason"
-            class="flex gap-2 items-start text-sm text-n-slate-12"
-            data-testid="center-reason"
-          >
-            <Icon
-              icon="i-lucide-lock-keyhole"
-              class="size-4 mt-0.5 shrink-0"
-            />{{ reasonLabel(selected.reason) }}
-          </p>
         </section>
         <p v-else class="text-sm text-n-slate-11">
           {{ $t(`${prefix}.NO_SELECTION`) }}
@@ -520,13 +601,32 @@ watch(
       </div>
     </div>
     <template #footer>
-      <div class="flex items-center justify-between gap-3">
+      <div
+        class="flex items-center justify-between gap-3"
+        data-testid="center-footer"
+        @keydown.esc="handleEscape"
+      >
         <div class="min-w-0">
           <p v-if="error" role="alert" class="text-sm text-n-ruby-11">
             {{ error }}
           </p>
-          <p v-else class="text-xs text-n-slate-11">
-            {{ $t(`${prefix}.${canSend ? 'READY' : 'UNAVAILABLE'}`) }}
+          <p
+            v-else-if="selected?.type === 'flow' && flowDetail?.invalidReason"
+            class="text-xs text-n-ruby-11"
+            role="status"
+            data-testid="center-invalid-reason"
+          >
+            {{ flowDetail.invalidReason }}
+          </p>
+          <p
+            v-else-if="selected?.reason"
+            class="flex gap-2 items-start text-sm text-n-slate-12"
+            data-testid="center-reason"
+          >
+            <Icon
+              icon="i-lucide-lock-keyhole"
+              class="size-4 mt-0.5 shrink-0"
+            />{{ reasonLabel(selected.reason) }}
           </p>
         </div>
         <Button
