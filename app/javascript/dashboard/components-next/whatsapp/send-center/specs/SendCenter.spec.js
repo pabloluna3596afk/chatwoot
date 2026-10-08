@@ -2,11 +2,12 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { createStore } from 'vuex';
 import { createI18n } from 'vue-i18n';
 import SendCenter from '../SendCenter.vue';
-import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import API from 'dashboard/api/whatsappFlows';
 import en from 'dashboard/i18n/locale/en/whatsappTemplates.json';
 import es from 'dashboard/i18n/locale/es/whatsappTemplates.json';
+import esFlows from 'dashboard/i18n/locale/es/whatsappFlows.json';
 
 vi.mock('dashboard/api/whatsappFlows', () => ({
   default: { conversationFlows: vi.fn(), sendToConversation: vi.fn() },
@@ -58,7 +59,11 @@ describe('unified send center', () => {
   beforeEach(() => {
     globalOptions = {
       plugins: [
-        createI18n({ legacy: false, locale: 'es', messages: { es } }),
+        createI18n({
+          legacy: false,
+          locale: 'es',
+          messages: { es: { ...es, ...esFlows } },
+        }),
         createStore({
           getters: {
             'attributes/getAttributes': () => [1],
@@ -274,8 +279,15 @@ describe('unified send center', () => {
       global: globalOptions,
     });
     await flushPromises();
+    const filters = wrapper.findAllComponents(FilterDropdown);
+    expect(filters.map(filter => filter.props('options')[0].count)).toEqual([
+      5, 5,
+    ]);
     wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 2 });
     await flushPromises();
+    expect(filters.map(filter => filter.props('options')[0].count)).toEqual([
+      2, 2,
+    ]);
     expect(wrapper.get('[data-testid="center-list"]').text()).toContain(
       'Contact'
     );
@@ -290,6 +302,9 @@ describe('unified send center', () => {
     expect(wrapper.get('[data-testid="center-list"]').text()).not.toContain(
       'Contact'
     );
+    expect(filters.map(filter => filter.props('options')[0].count)).toEqual([
+      3, 3,
+    ]);
     expect(wrapper.findAllComponents(DialogStub)).toHaveLength(1);
   });
 
@@ -309,7 +324,11 @@ describe('unified send center', () => {
       },
       global: {
         plugins: [
-          createI18n({ legacy: false, locale: 'es', messages: { es } }),
+          createI18n({
+            legacy: false,
+            locale: 'es',
+            messages: { es: { ...es, ...esFlows } },
+          }),
           createStore({
             getters: {
               'attributes/getAttributes': () => [1],
@@ -358,7 +377,11 @@ describe('unified send center', () => {
       },
       global: {
         plugins: [
-          createI18n({ legacy: false, locale: 'es', messages: { es } }),
+          createI18n({
+            legacy: false,
+            locale: 'es',
+            messages: { es: { ...es, ...esFlows } },
+          }),
           createStore({
             getters: {
               'attributes/getAttributes': () => [1],
@@ -371,17 +394,57 @@ describe('unified send center', () => {
       },
     });
     await flushPromises();
+    const [categoryFilter, statusFilter] =
+      wrapper.findAllComponents(FilterDropdown);
+    expect(
+      categoryFilter.props('options').find(option => option.value === 'ALL')
+        .count
+    ).toBe(5);
+    expect(
+      statusFilter.props('options').find(option => option.value === 'ALL').count
+    ).toBe(5);
+    expect(
+      categoryFilter
+        .props('options')
+        .find(option => option.value === 'template:AUTHENTICATION').count
+    ).toBe(0);
     wrapper
-      .findAllComponents(ComboBox)[0]
+      .findAllComponents(FilterDropdown)[0]
       .vm.$emit('update:modelValue', 'template:UTILITY');
     await flushPromises();
     expect(wrapper.get('[data-testid="center-list"]').text()).not.toContain(
       'offer'
     );
+    expect(
+      statusFilter.props('options').find(option => option.value === 'ALL').count
+    ).toBe(2);
+    expect(
+      statusFilter.props('options').find(option => option.value === 'APPROVED')
+        .count
+    ).toBe(1);
     wrapper
-      .findAllComponents(ComboBox)[1]
+      .findAllComponents(FilterDropdown)[1]
       .vm.$emit('update:modelValue', 'REJECTED');
     await flushPromises();
+    expect(
+      categoryFilter.props('options').find(option => option.value === 'ALL')
+        .count
+    ).toBe(1);
+    expect(
+      statusFilter.props('options').find(option => option.value === 'ALL').count
+    ).toBe(2);
+    await wrapper
+      .get('[data-testid="center-search"] input')
+      .setValue('appointment');
+    expect(
+      categoryFilter.props('options').find(option => option.value === 'ALL')
+        .count
+    ).toBe(0);
+    expect(
+      statusFilter.props('options').find(option => option.value === 'APPROVED')
+        .count
+    ).toBe(1);
+    await wrapper.get('[data-testid="center-search"] input').setValue('');
     expect(wrapper.get('[data-testid="center-reason"]').text()).toBe(
       'Rechazada por Meta'
     );
@@ -417,7 +480,11 @@ describe('unified send center', () => {
       },
       global: {
         plugins: [
-          createI18n({ legacy: false, locale: 'es', messages: { es } }),
+          createI18n({
+            legacy: false,
+            locale: 'es',
+            messages: { es: { ...es, ...esFlows } },
+          }),
           createStore({
             getters: {
               'attributes/getAttributes': () => [1],
@@ -459,7 +526,11 @@ describe('unified send center', () => {
       },
       global: {
         plugins: [
-          createI18n({ legacy: false, locale: 'es', messages: { es } }),
+          createI18n({
+            legacy: false,
+            locale: 'es',
+            messages: { es: { ...es, ...esFlows } },
+          }),
           createStore({
             getters: {
               'attributes/getAttributes': () => [1],

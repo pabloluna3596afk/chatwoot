@@ -96,4 +96,55 @@ RSpec.describe Whatsapp::Flows::PublicationCatalog do
     expect(catalog.summary(catalog.flows.find(flow.id))).to eq(state: 'none', total: 0, published: 0, errors: 0)
     expect(catalog.detail(flow, page: 1, per_page: 5)[:rows]).to be_empty
   end
+
+  it 'counts each state under search and category, ignoring the selected state' do
+    flow.update!(name: 'Encuesta 100%', categories: ['SURVEY'])
+    flow.whatsapp_flow_publications.create!(account: account, waba_id: '111', status: 'published')
+    create(:whatsapp_flow, account: account, name: 'Encuesta 100% draft', categories: ['SURVEY'])
+    create(:whatsapp_flow, account: account, name: 'Encuesta 100% other', categories: ['OTHER'])
+    create(:whatsapp_flow, account: account, name: 'Encuesta 100 datos', categories: ['SURVEY'])
+    create(:whatsapp_flow, name: 'Encuesta 100%', categories: ['SURVEY'])
+
+    result = catalog.facets(search: '100%', category: 'SURVEY', state: 'partial')
+    expect(result[:state]).to eq('all' => 2, 'partial' => 1, 'none' => 1, 'published' => 0, 'error' => 0)
+    expect(result[:category]).to include('all' => 1, 'SURVEY' => 1, 'OTHER' => 0)
+  end
+
+  it 'counts multi-category Flows once per option and once in all, ignoring the selected category' do
+    flow.update!(categories: %w[SURVEY OTHER])
+    create(:whatsapp_flow, account: account, categories: [])
+    result = catalog.facets(category: 'SURVEY', state: 'none')
+    expect(result[:category]).to include('all' => 2, 'SURVEY' => 1, 'OTHER' => 1, 'LEAD_GENERATION' => 0)
+    expect(result[:state]['all']).to eq(1)
+  end
+
+  it 'returns zero for every option when the search has no matches' do
+    flow
+    result = catalog.facets(search: 'missing')
+    expect(result.values.flat_map(&:values)).to all(eq(0))
+  end
+
+  it 'counts all four summary states without loading the catalog rows' do
+    flow
+    published = create(:whatsapp_flow, account: account)
+    partial = create(:whatsapp_flow, account: account)
+    failed = create(:whatsapp_flow, account: account)
+    %w[111 222].each do |waba|
+      published.whatsapp_flow_publications.create!(account: account, waba_id: waba, status: 'published')
+    end
+    partial.whatsapp_flow_publications.create!(account: account, waba_id: '111', status: 'published')
+    failed.whatsapp_flow_publications.create!(account: account, waba_id: '111', status: 'blocked')
+    catalog
+    queries = []
+    result = nil
+    subscriber = lambda do |_name, _start, _finish, _id, payload|
+      queries << payload[:sql] if payload[:sql].start_with?('SELECT')
+    end
+    ActiveSupport::Notifications.subscribed(subscriber, 'sql.active_record') do
+      result = catalog.facets(state: 'published')
+    end
+    expect(queries.length).to eq(3)
+    expect(result[:state]).to eq('all' => 4, 'published' => 1, 'partial' => 1, 'error' => 1, 'none' => 1)
+    expect(result[:category]).to include('all' => 1, 'LEAD_GENERATION' => 1)
+  end
 end

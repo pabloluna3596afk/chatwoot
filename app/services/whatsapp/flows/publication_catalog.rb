@@ -39,6 +39,19 @@ class Whatsapp::Flows::PublicationCatalog
     { state: flow.catalog_state, total: @waba_ids.length, published: flow.catalog_published, errors: flow.catalog_errors }
   end
 
+  # Each facet keeps the search and the other facet, but ignores its own selection.
+  # Aggregates run in SQL over the whole catalog, before pagination.
+  def facets(search: nil, category: nil, state: nil)
+    states = filter_flows(search: search, category: category).unscope(:select)
+    state_counts = states.group(Arel.sql(summary_state)).count(:all)
+    categories = filter_flows(search: search, state: state).unscope(:select)
+    category_counts = categories
+                      .joins('CROSS JOIN LATERAL jsonb_array_elements_text(whatsapp_flows.categories) AS facet_categories(value)')
+                      .group('facet_categories.value').count(Arel.sql('DISTINCT whatsapp_flows.id'))
+    { state: { 'all' => state_counts.values.sum }.merge(%w[published partial error none].index_with { |value| state_counts.fetch(value, 0) }),
+      category: { 'all' => categories.count(:all) }.merge(Whatsapp::Flows::Spec::CATEGORIES.index_with { |value| category_counts.fetch(value, 0) }) }
+  end
+
   def detail(flow, page:, per_page:, search: nil, state: nil)
     scope, row_state = waba_rows(flow)
     if search.present?

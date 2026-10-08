@@ -42,12 +42,13 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
   end
 
   def create
-    return render_error('invalid_name') unless Whatsapp::TemplateComponentsBuilder.valid_name?(template_params[:name])
-    return render_error('invalid_language') unless template_params[:language].to_s.match?(LANGUAGE_FORMAT)
-    return render_error('invalid_category') unless Whatsapp::TemplateComponentsBuilder::CATEGORIES.include?(template_params[:category])
+    attributes = template_params
+    return render_error('invalid_name') unless Whatsapp::TemplateComponentsBuilder.valid_name?(attributes[:name])
+    return render_error('invalid_language') unless attributes[:language].to_s.match?(LANGUAGE_FORMAT)
+    return render_error('invalid_category') unless Whatsapp::TemplateComponentsBuilder::CATEGORIES.include?(attributes[:category])
 
     created = management_service.create(
-      name: template_params[:name], language: template_params[:language], category: template_params[:category],
+      name: attributes[:name], language: attributes[:language], category: attributes[:category],
       components: components_builder.components, parameter_format: components_builder.parameter_format
     )
     render json: created, status: :created

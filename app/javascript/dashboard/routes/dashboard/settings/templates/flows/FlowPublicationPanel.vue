@@ -68,6 +68,7 @@ const load = async () => {
       rows.value = data.rows;
       total.value = data.meta.total_count;
       summary.value = data.publication_summary;
+      emit('updated');
       if (!rows.value.length && total.value && page.value > 1)
         page.value = Math.ceil(total.value / PAGE_SIZE);
     });
@@ -104,7 +105,6 @@ const retry = async row => {
     await props.api.retryPublication(flow.value.id, row.waba_id);
     useAlert(t('WHATSAPP_FLOWS.META.DETAIL.RETRY_QUEUED'));
     await load();
-    emit('updated');
   } catch {
     useAlert(t('WHATSAPP_FLOWS.META.PUBLISH_ERROR'));
   } finally {

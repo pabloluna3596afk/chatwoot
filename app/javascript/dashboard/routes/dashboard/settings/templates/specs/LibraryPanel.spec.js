@@ -1,5 +1,6 @@
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils';
 import LibraryPanel from '../LibraryPanel.vue';
+import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import { useAlert } from 'dashboard/composables';
 import spanish from 'dashboard/i18n/locale/es/whatsappTemplateMgmt.json';
@@ -61,23 +62,217 @@ enableAutoUnmount(afterEach);
 
 describe('LibraryPanel', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     WhatsappTemplatesAPI.library.mockReset();
     WhatsappTemplatesAPI.createFromLibrary.mockReset();
+    WhatsappTemplatesAPI.createFromLibrary.mockResolvedValue({
+      data: { id: '1', language_used: 'es' },
+    });
     WhatsappTemplatesAPI.library.mockResolvedValue({
-      data: { templates: entries, next: 'abc', language_used: 'es' },
+      data: { templates: entries, next: null, language_used: 'es' },
     });
   });
 
-  it('lists the library in the chosen language and offers more', async () => {
+  it('loads all pages before counting and paginates only the visible rows', async () => {
+    WhatsappTemplatesAPI.library
+      .mockResolvedValueOnce({
+        data: {
+          templates: Array.from({ length: 12 }, (_, index) => ({
+            ...entries[0],
+            name: `reminder_${index}`,
+          })),
+          next: 'abc',
+          language_used: 'es',
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          templates: [{ ...entries[0], name: 'last_reminder' }],
+          next: null,
+          language_used: 'es',
+        },
+      });
+    const wrapper = await mountPanel();
+    expect(WhatsappTemplatesAPI.library).toHaveBeenNthCalledWith(
+      1,
+      5,
+      { after: undefined },
+      { signal: expect.any(AbortSignal) }
+    );
+    expect(WhatsappTemplatesAPI.library).toHaveBeenNthCalledWith(
+      2,
+      5,
+      { after: 'abc' },
+      { signal: expect.any(AbortSignal) }
+    );
+    expect(wrapper.get('[data-testid="library-language-used"]').text()).toBe(
+      translate('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.LANGUAGE_USED', {
+        language: 'Espa\u00f1ol',
+      })
+    );
+    const filter = wrapper.findComponent(FilterDropdown);
+    expect(
+      filter.props('options').find(option => option.value === 'es').count
+    ).toBe(13);
+    expect(wrapper.findAll('[data-testid="library-item"]')).toHaveLength(12);
+    await wrapper.get('[data-testid="library-more"]').trigger('click');
+    expect(wrapper.findAll('[data-testid="library-item"]')).toHaveLength(13);
+    expect(WhatsappTemplatesAPI.library).toHaveBeenCalledTimes(2);
+    wrapper.unmount();
+  });
+
+  it('counts both filters under search and the other selection, keeps zeros and all totals', async () => {
+    WhatsappTemplatesAPI.library.mockImplementation(async id => ({
+      data: {
+        templates:
+          id === 5
+            ? [
+                ...entries,
+                { ...entries[0], name: 'appointment_english', language: 'en' },
+                {
+                  ...entries[0],
+                  name: 'delivery',
+                  language: 'en',
+                  body: 'Delivery',
+                },
+              ]
+            : [{ ...entries[0], name: 'appointment_sales' }],
+        next: null,
+      },
+    }));
+    const wrapper = await mountPanel({
+      inboxes: [
+        { id: 5, name: 'Soporte' },
+        { id: 6, name: 'Ventas' },
+      ],
+    });
+    const [languages, inboxes] = wrapper.findAllComponents(FilterDropdown);
+    expect(
+      languages.props('options').find(option => option.value === 'all').count
+    ).toBe(3);
+    expect(
+      languages.props('options').find(option => option.value === 'en').count
+    ).toBe(2);
+    expect(
+      languages.props('options').find(option => option.value === 'fr').count
+    ).toBe(0);
+    expect(inboxes.props('options').map(option => option.count)).toEqual([
+      2, 1, 1,
+    ]);
+    inboxes.vm.$emit('update:modelValue', 6);
+    await flushPromises();
+    expect(
+      languages.props('options').find(option => option.value === 'all').count
+    ).toBe(1);
+    expect(
+      languages.props('options').find(option => option.value === 'en').count
+    ).toBe(0);
+    expect(inboxes.props('options').map(option => option.count)).toEqual([
+      2, 1, 1,
+    ]);
+    languages.vm.$emit('update:modelValue', 'all');
+    await flushPromises();
+    expect(inboxes.props('options').map(option => option.count)).toEqual([
+      4, 3, 1,
+    ]);
+    inboxes.vm.$emit('update:modelValue', 'all');
+    await wrapper
+      .get('[data-testid="library-search"] input')
+      .setValue('appointment');
+    expect(
+      languages.props('options').find(option => option.value === 'all').count
+    ).toBe(3);
+    expect(
+      languages.props('options').find(option => option.value === 'en').count
+    ).toBe(1);
+    expect(inboxes.props('options').map(option => option.count)).toEqual([
+      3, 2, 1,
+    ]);
+    expect(wrapper.findAll('[data-testid="library-item"]')).toHaveLength(3);
+    expect(WhatsappTemplatesAPI.library).toHaveBeenCalledTimes(2);
+    await wrapper
+      .get('[data-testid="library-search"] input')
+      .setValue('not found');
+    expect(languages.props('options').every(option => option.count === 0)).toBe(
+      true
+    );
+    expect(inboxes.props('options').every(option => option.count === 0)).toBe(
+      true
+    );
+    wrapper.unmount();
+  });
+
+  it('keeps the selected template destination when all inboxes are visible', async () => {
+    WhatsappTemplatesAPI.library.mockImplementation(async id => ({
+      data: {
+        templates: [{ ...entries[0], name: `reminder_${id}`, buttons: [] }],
+        next: null,
+      },
+    }));
+    const wrapper = await mountPanel({
+      inboxes: [
+        { id: 5, name: 'Soporte' },
+        { id: 6, name: 'Ventas' },
+      ],
+    });
+    wrapper
+      .findAllComponents(FilterDropdown)[1]
+      .vm.$emit('update:modelValue', 'all');
+    await flushPromises();
+    await wrapper.findAll('[data-testid="library-use"]')[1].trigger('click');
+    wrapper.findComponent(DialogStub).vm.$emit('confirm');
+    await flushPromises();
+    expect(WhatsappTemplatesAPI.createFromLibrary).toHaveBeenCalledWith(
+      6,
+      expect.objectContaining({
+        library_template_name: 'reminder_6',
+        language: 'es',
+      })
+    );
+    wrapper.unmount();
+  });
+
+  it('does not replace a new catalog with a superseded response', async () => {
+    let resolveOld;
+    WhatsappTemplatesAPI.library.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          resolveOld = resolve;
+        })
+    );
+    const wrapper = await mountPanel();
+    await wrapper.setProps({ inboxes: [{ id: 6, name: 'Ventas' }] });
+    await flushPromises();
+    resolveOld({
+      data: {
+        templates: [{ ...entries[0], name: 'stale' }],
+        next: null,
+        language_used: 'en_US',
+      },
+    });
+    await flushPromises();
+    wrapper
+      .findAllComponents(FilterDropdown)[0]
+      .vm.$emit('update:modelValue', 'all');
+    expect(wrapper.text()).not.toContain('stale');
+    expect(wrapper.get('[data-testid="library-language-used"]').text()).toBe(
+      translate('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.LANGUAGE_USED', {
+        language: 'Espa\u00f1ol',
+      })
+    );
+    wrapper.unmount();
+  });
+
+  it('lists the complete catalog and displays the response language', async () => {
     const wrapper = await mountPanel();
 
-    expect(WhatsappTemplatesAPI.library).toHaveBeenCalledWith(5, {
-      search: undefined,
-      language: 'es',
-      after: undefined,
-    });
+    expect(WhatsappTemplatesAPI.library).toHaveBeenCalledWith(
+      5,
+      { after: undefined },
+      { signal: expect.any(AbortSignal) }
+    );
     expect(wrapper.findAll('[data-testid="library-item"]')).toHaveLength(1);
-    expect(wrapper.find('[data-testid="library-more"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="library-more"]').exists()).toBe(false);
     expect(wrapper.get('[data-testid="library-language-used"]').text()).toBe(
       'Idioma de la biblioteca: Español'
     );
@@ -90,37 +285,16 @@ describe('LibraryPanel', () => {
 
     expect(WhatsappTemplatesAPI.library).toHaveBeenCalledWith(
       5,
-      expect.objectContaining({ language: 'es_EC' })
+      { after: undefined },
+      { signal: expect.any(AbortSignal) }
+    );
+    expect(wrapper.findComponent(FilterDropdown).props('modelValue')).toBe(
+      'es_EC'
     );
     expect(wrapper.get('[data-testid="library-language-used"]').text()).toBe(
       'Idioma de la biblioteca: Español'
     );
     wrapper.unmount();
-  });
-
-  it('keeps the next cursor and actual language when loading another page', async () => {
-    const wrapper = await mountPanel();
-    WhatsappTemplatesAPI.library.mockResolvedValueOnce({
-      data: {
-        templates: [{ ...entries[0], name: 'second_reminder' }],
-        next: null,
-        language_used: 'es',
-      },
-    });
-
-    await wrapper.get('[data-testid="library-more"]').trigger('click');
-    await flushPromises();
-
-    expect(WhatsappTemplatesAPI.library).toHaveBeenLastCalledWith(5, {
-      search: undefined,
-      language: 'es',
-      after: 'abc',
-    });
-    expect(wrapper.findAll('[data-testid="library-item"]')).toHaveLength(2);
-    expect(wrapper.find('[data-testid="library-more"]').exists()).toBe(false);
-    expect(wrapper.get('[data-testid="library-language-used"]').text()).toBe(
-      'Idioma de la biblioteca: Español'
-    );
   });
 
   it('shows the US English fallback returned by Meta', async () => {
@@ -143,6 +317,36 @@ describe('LibraryPanel', () => {
     expect(wrapper.get('[data-testid="library-language-used"]').text()).toBe(
       'Se muestran plantillas de la biblioteca en todos los idiomas disponibles.'
     );
+  });
+
+  it('keeps the response language for each inbox when changing the counted inbox filter', async () => {
+    WhatsappTemplatesAPI.library.mockImplementation(async id => ({
+      data: {
+        templates: entries,
+        next: null,
+        language_used: id === 5 ? 'es' : 'en_US',
+      },
+    }));
+    const wrapper = await mountPanel({
+      inboxes: [
+        { id: 5, name: 'Soporte' },
+        { id: 6, name: 'Ventas' },
+      ],
+    });
+    const inboxes = wrapper.findAllComponents(FilterDropdown)[1];
+    inboxes.vm.$emit('update:modelValue', 6);
+    await flushPromises();
+    expect(wrapper.get('[data-testid="library-language-used"]').text()).toBe(
+      translate('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.LANGUAGE_USED', {
+        language: 'Ingl\u00e9s estadounidense',
+      })
+    );
+    inboxes.vm.$emit('update:modelValue', 'all');
+    await flushPromises();
+    expect(wrapper.get('[data-testid="library-language-used"]').text()).toBe(
+      translate('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.ALL_LANGUAGES')
+    );
+    expect(WhatsappTemplatesAPI.library).toHaveBeenCalledTimes(2);
   });
 
   it('shows the real Meta error in Spanish context', async () => {
@@ -231,6 +435,8 @@ describe('LibraryPanel', () => {
       data: { id: '1', language_used: 'en_US' },
     });
     const wrapper = await mountPanel();
+    wrapper.findComponent(FilterDropdown).vm.$emit('update:modelValue', 'all');
+    await flushPromises();
     await wrapper.get('[data-testid="library-use"]').trigger('click');
     wrapper.findComponent(DialogStub).vm.$emit('confirm');
     await flushPromises();
