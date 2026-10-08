@@ -63,7 +63,8 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
     category = template_params[:category]
     return render_error('invalid_category') if category.present? && Whatsapp::TemplateComponentsBuilder::CATEGORIES.exclude?(category)
 
-    render json: management_service.update(params[:id], components: components_builder.components, category: category)
+    render json: management_service.update(params[:id], components: components_builder.components, category: category,
+                                                        **template_params.slice(:name, :language, :parameter_format).to_h.symbolize_keys)
   rescue Whatsapp::TemplateComponentsBuilder::Invalid => e
     render_invalid(e)
   rescue Whatsapp::TemplateManagementService::Error => e
@@ -118,7 +119,7 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
 
   def template_params
     @template_params ||= params.fetch(:template, {}).permit(
-      :name, :language, :category,
+      :name, :language, :category, :parameter_format,
       header: [:format, :text, :handle, { examples: [] }],
       body: [:text, { examples: [] }],
       footer: [:text],
@@ -139,7 +140,7 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
   def components_builder
     @components_builder ||= Whatsapp::TemplateComponentsBuilder.new(
       header: template_params[:header], body: template_params[:body], footer: template_params[:footer], buttons: template_params[:buttons],
-      category: template_params[:category], preserved: preserved_params
+      parameter_format: template_params[:parameter_format], category: template_params[:category], preserved: preserved_params
     )
   end
 
@@ -155,7 +156,9 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
 
   def render_meta_error(error)
     status = META_ERROR_STATUS.fetch(error.code, :unprocessable_entity)
-    render json: { error: error.code, message: error.detail.presence || translate_error(error.code), meta_code: error.meta_code }, status: status
+    render json: { error: error.code, message: error.meta_message.presence || error.detail.presence || translate_error(error.code),
+                   code: error.meta_code, meta_code: error.meta_code, error_subcode: error.error_subcode,
+                   error_user_msg: error.error_user_msg }, status: status
   end
 
   def render_error(code, status: :unprocessable_entity)

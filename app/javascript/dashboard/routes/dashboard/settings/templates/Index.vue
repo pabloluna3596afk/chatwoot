@@ -211,6 +211,15 @@ const onTabChanged = tab => {
 const applyPreset = preset =>
   formDrawerRef.value?.open(null, presetToForm(preset));
 const duplicateTemplate = template => {
+  const positional =
+    template.parameter_format === 'POSITIONAL' ||
+    template.components?.some(component =>
+      /\{\{\d+\}\}/.test(component.text || '')
+    );
+  if (positional) {
+    formDrawerRef.value?.openSystemCopy(template);
+    return;
+  }
   const prefill = formFromTemplate(template, cloudInboxFor(template)?.id);
   prefill.name = template.name.slice(0, 506) + '_copia';
   formDrawerRef.value?.open(null, prefill);

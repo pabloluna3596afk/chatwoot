@@ -158,6 +158,37 @@ RSpec.describe Whatsapp::TemplateComponentsBuilder do
     end
   end
 
+  describe 'explicit parameter format' do
+    it 'keeps NAMED for a new system copy with no text variables' do
+      builder = described_class.new(body: { text: 'Tu pedido está listo.' }, parameter_format: 'NAMED')
+
+      expect(builder.components).to eq([{ type: 'BODY', text: 'Tu pedido está listo.' }])
+      expect(builder.parameter_format).to eq('NAMED')
+    end
+
+    it 'refuses a declared format that conflicts with the text' do
+      builder = described_class.new(body: { text: 'Hola {{1}}, gracias.', examples: ['Ana'] }, parameter_format: 'NAMED')
+
+      expect { builder.components }.to raise_error(described_class::Invalid) { |error| expect(error.code).to eq('variables_mixed') }
+    end
+  end
+
+  describe 'dynamic URL regression' do
+    it 'keeps the exact positional URL from the approved template' do
+      components = build(buttons: [{ type: 'URL', text: 'Seguir pedido', url: 'https://paluhub.com/track/{{2}}',
+                                     examples: ['https://paluhub.com/track/123'] }])
+
+      expect(components.last[:buttons].first).to eq(type: 'URL', text: 'Seguir pedido', url: 'https://paluhub.com/track/{{2}}',
+                                                    example: ['https://paluhub.com/track/123'])
+    end
+
+    it 'requires a complete example with the same URL prefix' do
+      expect do
+        build(buttons: [{ type: 'URL', text: 'Seguir', url: 'https://paluhub.com/track/{{2}}', examples: ['123'] }])
+      end.to raise_error(described_class::Invalid) { |error| expect(error.code).to eq('url_example_invalid') }
+    end
+  end
+
   describe 'copy code button' do
     it 'builds the coupon button of a marketing template without a label' do
       components = described_class.new(body: { text: 'Hola' }, category: 'MARKETING', buttons: [{ type: 'COPY_CODE', code: ' PALU21 ' }]).components

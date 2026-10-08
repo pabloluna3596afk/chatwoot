@@ -1,17 +1,24 @@
 <script setup>
-import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
+import {
+  nextTick,
+  computed,
+  defineAsyncComponent,
+  onBeforeUnmount,
+  reactive,
+  ref,
+  watch,
+} from 'vue';
 import { useI18n } from 'vue-i18n';
-import { vOnClickOutside } from '@vueuse/components';
+import { useLocale } from 'shared/composables/useLocale';
 
 import { useAlert } from 'dashboard/composables';
-import { useStore } from 'dashboard/composables/store';
+import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { useTemplateBindings } from 'dashboard/composables/useTemplateBindings';
 import { useAccount } from 'dashboard/composables/useAccount';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import Button from 'dashboard/components-next/button/Button.vue';
-import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import TemplateComboBox from './TemplateComboBox.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
-import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import SidePanel from 'dashboard/components-next/side-panel/SidePanel.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
@@ -26,6 +33,10 @@ import {
   MEDIA_FORMATS,
   CAPTAIN_VARIABLES,
   buildPayload,
+  copyVariableTokens,
+  copyWithSystemVariables,
+  suggestSystemMapping,
+  systemMappingValid,
   editRules,
   emptyForm,
   formFromTemplate,
@@ -53,9 +64,21 @@ const props = defineProps({
 const emit = defineEmits(['saved']);
 
 const { t, te, locale } = useI18n();
+const { resolvedLocale } = useLocale();
 const store = useStore();
 const { currentAccount } = useAccount();
 const { bindings } = useTemplateBindings('message');
+const currentRole = useMapGetter('getCurrentRole');
+const isAdmin = computed(() => currentRole.value === 'administrator');
+const AddAttribute = defineAsyncComponent(
+  () =>
+    import('dashboard/routes/dashboard/settings/attributes/AddAttribute.vue')
+);
+const showAddAttribute = ref(false);
+const closeAddAttribute = async () => {
+  showAddAttribute.value = false;
+  await store.dispatch('attributes/get');
+};
 
 const LANGUAGE_OPTIONS = computed(() => languageOptions(locale.value));
 
@@ -63,7 +86,25 @@ const panelRef = ref(null);
 const previewDialogRef = ref(null);
 const form = reactive(emptyForm());
 const editing = ref(null);
+const copySource = ref(null);
+const systemMapping = reactive({});
+const saveError = ref('');
+const isLoading = ref(false);
+const liveLoaded = ref(false);
 const liveState = ref(null);
+const lastUpdatedTime = computed(() => {
+  const timestamp = liveState.value?.last_updated_time;
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat(resolvedLocale.value, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+});
 const showErrors = ref(false);
 const isSaving = ref(false);
 const isUploading = ref(false);
@@ -77,12 +118,68 @@ const languageTouched = ref(false);
 // How the variables of the message are written: {{nombre}} or {{1}}. A template uses one of them.
 const variableMode = ref('NAMED');
 const customVariable = ref('');
-const showVariableMenu = ref(false);
+
+const bindingLabel = binding => {
+  const key = `VARIABLES.LABELS.${binding.key}`;
+  const label = binding.label || (te(key) ? t(key) : binding.name);
+  return `${label} (${binding.name})`;
+};
+
+const variableGroups = computed(() =>
+  ['system', 'contact', 'conversation', 'captain'].map(key => ({
+    key,
+    label: t(
+      `WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_GROUPS.${key.toUpperCase()}`
+    ),
+  }))
+);
+const variableOptions = computed(() => {
+  const known = new Set(bindings.value.map(binding => binding.name));
+  return [
+    ...bindings.value.map(binding => ({
+      value: binding.name,
+      label: bindingLabel(binding),
+      group: binding.group,
+    })),
+    ...CAPTAIN_VARIABLES.filter(name => !known.has(name)).map(name => ({
+      value: name,
+      label: name,
+      group: 'captain',
+    })),
+  ];
+});
 
 const isEdit = computed(() => Boolean(editing.value));
-const errors = computed(() => validateForm(form, { isEdit: isEdit.value }));
+const mappedForm = computed(() =>
+  copySource.value ? copyWithSystemVariables(form, systemMapping) : form
+);
+const errors = computed(() => {
+  const mappingReady =
+    !copySource.value ||
+    systemMappingValid(
+      form,
+      systemMapping,
+      variableOptions.value.map(option => option.value)
+    );
+  const result = validateForm(mappingReady ? mappedForm.value : form, {
+    isEdit: isEdit.value,
+    original: editing.value,
+  });
+  if (!mappingReady) result.mapping = 'SYSTEM_MAPPING_REQUIRED';
+  if (copySource.value && form.name === copySource.value.name)
+    result.name = 'COPY_NAME_REQUIRED';
+  return result;
+});
+const variableLabel = token => `{{${token}}}`;
+const mappingTokens = computed(() =>
+  copySource.value ? copyVariableTokens(form) : []
+);
+const hasOriginalComponent = type =>
+  editing.value?.components?.some(component => component.type === type);
 const visibleErrors = computed(() => (showErrors.value ? errors.value : {}));
-const rules = computed(() => editRules(editing.value?.status));
+const rules = computed(() =>
+  editRules(liveState.value?.status || editing.value?.status)
+);
 const categoryLocked = computed(
   () => isEdit.value && rules.value.categoryLocked
 );
@@ -91,8 +188,10 @@ const isMediaHeader = computed(() =>
 );
 const bodyVariables = computed(() => variableTokens(form.body.text));
 const generatedName = computed(() => toSnakeCase(form.name));
-const preview = computed(() => previewTemplate(form, headerPreviewUrl.value));
-const variables = computed(() => previewVariables(form));
+const preview = computed(() =>
+  previewTemplate(mappedForm.value, headerPreviewUrl.value)
+);
+const variables = computed(() => previewVariables(mappedForm.value));
 const promoWords = computed(() => promoWarnings(form));
 const statusKey = computed(() =>
   String(liveState.value?.status || editing.value?.status || '').toUpperCase()
@@ -136,11 +235,23 @@ const mediaUnavailableText = computed(() => {
     : t('WHATSAPP_TEMPLATE_MGMT.FORM.MEDIA_HEADER_UNAVAILABLE');
 });
 
-const apiError = error =>
-  error?.response?.data?.message || t('WHATSAPP_TEMPLATE_MGMT.FORM.SAVE_ERROR');
+const apiError = error => {
+  const data = error?.response?.data;
+  const texts = [
+    ...new Set([data?.error_user_msg, data?.message].filter(Boolean)),
+  ].join(' \u2014 ');
+  return texts
+    ? t('WHATSAPP_TEMPLATE_MGMT.FORM.META_ERROR', { message: texts })
+    : t('WHATSAPP_TEMPLATE_MGMT.FORM.SAVE_ERROR');
+};
 
 const resetForm = () => {
+  delete form.parameterFormat;
   Object.assign(form, emptyForm());
+  copySource.value = null;
+  Object.keys(systemMapping).forEach(key => delete systemMapping[key]);
+  saveError.value = '';
+  liveLoaded.value = false;
   headerPreviewUrl.value = '';
   headerFileSize.value = 0;
   liveState.value = null;
@@ -148,7 +259,6 @@ const resetForm = () => {
   languageTouched.value = false;
   variableMode.value = 'NAMED';
   customVariable.value = '';
-  showVariableMenu.value = false;
 };
 
 const loadCapabilities = async () => {
@@ -171,8 +281,11 @@ const loadLiveState = async template => {
       template.id
     );
     liveState.value = data;
-  } catch {
-    liveState.value = null;
+    editing.value = { ...template, ...data };
+    Object.assign(form, formFromTemplate(editing.value, form.inboxId));
+    liveLoaded.value = true;
+  } catch (error) {
+    saveError.value = apiError(error);
   }
 };
 
@@ -186,8 +299,10 @@ const setDefaultLanguage = () => {
 
 // Opens the form to create a template, or to edit `template` (a synced template of a Cloud inbox).
 const open = async (template = null, prefill = null) => {
+  isLoading.value = true;
   resetForm();
   editing.value = template;
+  panelRef.value?.open();
   store.dispatch('attributes/get');
   if (prefill) {
     languageTouched.value = Boolean(prefill.language);
@@ -199,15 +314,19 @@ const open = async (template = null, prefill = null) => {
       template.inboxes?.some(owner => owner.id === item.id)
     );
     Object.assign(form, formFromTemplate(template, inbox?.id));
-    loadLiveState(template);
+    await loadLiveState(template);
   } else {
     form.inboxId = props.inboxes.length === 1 ? props.inboxes[0].id : null;
   }
   if (!template && !languageTouched.value) setDefaultLanguage();
-  variableMode.value = hasNamedVariables(form.header.text, form.body.text)
-    ? 'NAMED'
-    : (bodyVariables.value.length && 'POSITIONAL') || 'NAMED';
+  variableMode.value =
+    form.parameterFormat ||
+    (hasNamedVariables(form.header.text, form.body.text)
+      ? 'NAMED'
+      : (bodyVariables.value.length && 'POSITIONAL') || 'NAMED');
   panelRef.value?.open();
+  await nextTick();
+  isLoading.value = false;
   await loadCapabilities();
 };
 
@@ -222,18 +341,9 @@ watch(
   }
 );
 
-watch(
-  () => form.header.format,
-  () => {
-    form.header.handle = '';
-    form.header.fileName = '';
-    headerFileSize.value = 0;
-    headerPreviewUrl.value = '';
-  }
-);
-
 // The body variables need one example each: keep the list the same length as the variables.
 watch(bodyVariables, numbers => {
+  if (isEdit.value) return;
   const examples = [...form.body.examples];
   while (examples.length < numbers.length) examples.push('');
   form.body.examples = examples.slice(0, Math.max(numbers.length, 0));
@@ -243,53 +353,17 @@ const nextNumber = computed(
   () => Math.max(0, ...variableNumbers(form.body.text)) + 1
 );
 
-const bindingLabel = binding => {
-  const key = `VARIABLES.LABELS.${binding.key}`;
-  const label = binding.label || (te(key) ? t(key) : binding.name);
-  return `${label} (${binding.name})`;
-};
-
 // What can be put in the message with one click: the CRM / system names (and the contact's and the conversation's
 // custom attributes, which the send dialog fills in by name), then the names Captain fills in for appointments; or the
 // next number when the message uses numbered variables.
-const variableMenuSections = computed(() => {
+const insertionOptions = computed(() => {
   if (variableMode.value === 'POSITIONAL') {
     return [
-      {
-        items: [
-          {
-            label: `{{${nextNumber.value}}}`,
-            action: 'insert',
-            value: String(nextNumber.value),
-          },
-        ],
-      },
+      { value: String(nextNumber.value), label: `{{${nextNumber.value}}}` },
     ];
   }
   const taken = new Set(bodyVariables.value);
-  const section = (group, title) => ({
-    title: t(`WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_GROUPS.${title}`),
-    items: bindings.value
-      .filter(binding => binding.group === group && !taken.has(binding.name))
-      .map(binding => ({
-        label: bindingLabel(binding),
-        action: 'insert',
-        value: binding.name,
-      })),
-  });
-  const known = new Set(bindings.value.map(binding => binding.name));
-  const captain = {
-    title: t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_GROUPS.CAPTAIN'),
-    items: CAPTAIN_VARIABLES.filter(
-      name => !known.has(name) && !taken.has(name)
-    ).map(name => ({ label: name, action: 'insert', value: name })),
-  };
-  return [
-    section('system', 'SYSTEM'),
-    section('contact', 'CONTACT'),
-    section('conversation', 'CONVERSATION'),
-    captain,
-  ].filter(item => item.items.length);
+  return variableOptions.value.filter(option => !taken.has(option.value));
 });
 
 const customVariableInvalid = computed(
@@ -303,7 +377,6 @@ const insertVariable = token => {
   const start = field?.selectionStart ?? text.length;
   const end = field?.selectionEnd ?? text.length;
   form.body.text = `${text.slice(0, start)}{{${token}}}${text.slice(end)}`;
-  showVariableMenu.value = false;
 };
 
 const addCustomVariable = () => {
@@ -380,19 +453,27 @@ const chooseLanguage = value => {
   languageTouched.value = true;
 };
 const chooseHeaderFormat = value => {
-  if (value) form.header.format = value;
+  if (!value || isEdit.value) return;
+  form.header.format = value;
+  removeFile();
 };
 
 const openPreview = () => previewDialogRef.value?.open();
 
 const save = async () => {
+  if (
+    isLoading.value ||
+    (isEdit.value && (!liveLoaded.value || !rules.value.canEdit))
+  )
+    return;
+  saveError.value = '';
   if (!isEdit.value) form.name = generatedName.value;
   showErrors.value = true;
   if (Object.keys(errors.value).length) return;
 
   isSaving.value = true;
   try {
-    const payload = buildPayload(form);
+    const payload = buildPayload(mappedForm.value);
     let created = null;
     if (isEdit.value) {
       await WhatsappTemplatesAPI.updateTemplate(
@@ -432,7 +513,7 @@ const save = async () => {
     emit('saved');
     close();
   } catch (error) {
-    useAlert(apiError(error));
+    saveError.value = apiError(error);
   } finally {
     isSaving.value = false;
   }
@@ -442,7 +523,19 @@ onBeforeUnmount(() => {
   if (headerPreviewUrl.value) URL.revokeObjectURL(headerPreviewUrl.value);
 });
 
-defineExpose({ open, close });
+const openSystemCopy = async template => {
+  const inbox = props.inboxes.find(item =>
+    template.inboxes?.some(owner => owner.id === item.id)
+  );
+  const prefill = formFromTemplate(template, inbox?.id || form.inboxId);
+  prefill.name = `${template.name.slice(0, 509)}_v2`;
+  await open(null, prefill);
+  copySource.value = template;
+  Object.assign(systemMapping, suggestSystemMapping(form));
+  variableMode.value = 'NAMED';
+};
+
+defineExpose({ open, close, openSystemCopy });
 
 // The combobox clears its value when the chosen option is clicked again: these fields always keep one.
 const inboxOptions = computed(() =>
@@ -450,7 +543,10 @@ const inboxOptions = computed(() =>
 );
 const headerOptions = computed(() =>
   HEADER_FORMATS.filter(
-    format => !MEDIA_FORMATS.includes(format) || mediaHeaderAvailable.value
+    format =>
+      format === form.header.format ||
+      !MEDIA_FORMATS.includes(format) ||
+      mediaHeaderAvailable.value
   ).map(format => ({
     value: format,
     label: t(`WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.${format}`),
@@ -474,9 +570,71 @@ const buttonChoices = computed(() =>
         ? $t('WHATSAPP_TEMPLATE_MGMT.FORM.EDIT_TITLE')
         : $t('WHATSAPP_TEMPLATE_MGMT.FORM.NEW_TITLE')
     "
-    :description="$t('WHATSAPP_TEMPLATE_MGMT.FORM.DESCRIPTION')"
+    :description="isEdit ? '' : $t('WHATSAPP_TEMPLATE_MGMT.FORM.DESCRIPTION')"
   >
-    <form class="flex flex-col gap-5" @submit.prevent="save">
+    <p v-if="isLoading" class="text-sm text-n-slate-11" role="status">
+      {{ $t('WHATSAPP_TEMPLATE_MGMT.LOADING') }}
+    </p>
+    <form v-else class="flex flex-col gap-5" @submit.prevent="save">
+      <p
+        v-if="saveError"
+        role="alert"
+        class="p-3 rounded-lg bg-n-ruby-3 text-sm text-n-ruby-11 break-words"
+        data-testid="meta-error"
+      >
+        {{ saveError }}
+      </p>
+      <p
+        v-if="visibleErrors.structure"
+        role="alert"
+        class="text-sm text-n-ruby-11"
+      >
+        {{ fieldError('structure') }}
+      </p>
+      <div
+        v-if="copySource"
+        class="grid gap-3 p-3 rounded-lg border border-n-weak"
+        data-testid="system-copy"
+      >
+        <h3 class="text-sm font-medium text-n-slate-12">
+          {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.SYSTEM_COPY') }}
+        </h3>
+        <p class="text-xs text-n-slate-11">
+          {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.SYSTEM_COPY_HELP') }}
+        </p>
+        <div v-for="token in mappingTokens" :key="token" class="grid gap-1">
+          <span class="text-sm text-n-slate-12">{{
+            variableLabel(token)
+          }}</span>
+          <TemplateComboBox
+            :aria-label="
+              $t('WHATSAPP_TEMPLATE_MGMT.FORM.MAP_VARIABLE') +
+              ' ' +
+              variableLabel(token)
+            "
+            :model-value="systemMapping[token] || ''"
+            :options="variableOptions"
+            :groups="variableGroups"
+            :search-placeholder="
+              $t('WHATSAPP_TEMPLATE_MGMT.FORM.SEARCH_VARIABLE')
+            "
+            :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.MAP_VARIABLE')"
+            teleport
+            :data-testid="`map-variable-${token}`"
+            show-search
+            :show-create-attribute="isAdmin"
+            @create-attribute="showAddAttribute = true"
+            @update:model-value="value => (systemMapping[token] = value)"
+          />
+        </div>
+        <p
+          v-if="fieldError('mapping')"
+          role="alert"
+          class="text-xs text-n-ruby-11"
+        >
+          {{ fieldError('mapping') }}
+        </p>
+      </div>
       <div
         v-if="isEdit"
         class="flex flex-col gap-1 p-3 rounded-lg bg-n-alpha-2"
@@ -517,6 +675,33 @@ const buttonChoices = computed(() =>
             })
           }}
         </p>
+        <p
+          v-if="statusKey === 'APPROVED'"
+          class="text-xs text-n-amber-11"
+          data-testid="approved-warning"
+        >
+          {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.APPROVED_WARNING') }}
+        </p>
+        <p v-if="lastUpdatedTime" class="text-xs text-n-slate-11">
+          {{
+            $t('WHATSAPP_TEMPLATE_MGMT.FORM.LAST_EDIT', {
+              time: lastUpdatedTime,
+            })
+          }}
+        </p>
+        <p class="text-xs text-n-slate-11">
+          {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.EDIT_STRUCTURE_HELP') }}
+        </p>
+        <Button
+          v-if="form.parameterFormat === 'POSITIONAL' && liveLoaded"
+          type="button"
+          slate
+          outline
+          sm
+          :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.SYSTEM_COPY')"
+          data-testid="system-copy-open"
+          @click="openSystemCopy(editing)"
+        />
         <p v-if="!rules.canEdit" class="text-sm text-n-amber-11">
           {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.CANNOT_EDIT_NOW') }}
         </p>
@@ -530,10 +715,12 @@ const buttonChoices = computed(() =>
           <span class="text-sm font-medium text-n-slate-12">
             {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL') }}
           </span>
-          <ComboBox
+          <TemplateComboBox
             :model-value="form.inboxId ?? ''"
             :options="inboxOptions"
             :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL_PLACEHOLDER')"
+            :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL')"
+            :search-placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL')"
             :disabled="isEdit"
             :has-error="Boolean(fieldError('inboxId'))"
             teleport
@@ -551,7 +738,7 @@ const buttonChoices = computed(() =>
           :disabled="isEdit"
           :message="
             fieldError('name') ||
-            (generatedName
+            (!isEdit && generatedName
               ? $t('WHATSAPP_TEMPLATE_MGMT.FORM.NAME_SAVED_AS', {
                   name: generatedName,
                 })
@@ -564,10 +751,13 @@ const buttonChoices = computed(() =>
           <span class="text-sm font-medium text-n-slate-12">
             {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE') }}
           </span>
-          <ComboBox
+          <TemplateComboBox
             :model-value="form.language"
             :options="LANGUAGE_OPTIONS"
             :disabled="isEdit"
+            :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE')"
+            :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE')"
+            show-search
             :search-placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE')"
             teleport
             data-testid="template-language"
@@ -576,7 +766,7 @@ const buttonChoices = computed(() =>
         </div>
       </div>
 
-      <fieldset class="grid gap-2">
+      <fieldset v-if="!categoryLocked" class="grid gap-2">
         <legend class="text-sm font-medium text-n-slate-12">
           {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORY') }}
         </legend>
@@ -624,7 +814,7 @@ const buttonChoices = computed(() =>
         </p>
       </fieldset>
 
-      <div class="grid gap-1">
+      <div v-if="!isEdit && !copySource" class="grid gap-1">
         <span class="text-sm font-medium text-n-slate-12">
           {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLES_AS') }}
         </span>
@@ -663,16 +853,26 @@ const buttonChoices = computed(() =>
         <div
           class="grid gap-3 p-3 rounded-lg shadow-sm bg-n-solid-1 outline outline-1 outline-n-weak"
         >
-          <div class="grid gap-2">
-            <ComboBox
+          <div
+            v-if="!isEdit || hasOriginalComponent('HEADER')"
+            class="grid gap-2"
+          >
+            <TemplateComboBox
+              :disabled="isEdit"
               :model-value="form.header.format"
               :options="headerOptions"
+              :placeholder="
+                $t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.NONE')
+              "
+              :aria-label="
+                $t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.NONE')
+              "
               teleport
               data-testid="template-header-format"
               @update:model-value="chooseHeaderFormat"
             />
             <p
-              v-if="!mediaHeaderAvailable"
+              v-if="!isEdit && !mediaHeaderAvailable"
               class="text-xs text-n-slate-11"
               data-testid="media-header-unavailable"
             >
@@ -680,10 +880,12 @@ const buttonChoices = computed(() =>
             </p>
             <template v-if="form.header.format === 'TEXT'">
               <Input
-                v-model="form.header.text"
+                :model-value="mappedForm.header.text"
+                :disabled="Boolean(copySource)"
                 :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_TEXT')"
                 :message="fieldError('header.text')"
-                message-type="error"
+                :message-type="fieldError('header.text') ? 'error' : 'info'"
+                @update:model-value="value => (form.header.text = value)"
               />
               <Input
                 v-if="variableTokens(form.header.text).length"
@@ -694,7 +896,7 @@ const buttonChoices = computed(() =>
                   })
                 "
                 :message="fieldError('header.example')"
-                message-type="error"
+                :message-type="fieldError('header.example') ? 'error' : 'info'"
               />
             </template>
             <div v-if="isMediaHeader" class="grid gap-1">
@@ -765,43 +967,37 @@ const buttonChoices = computed(() =>
 
           <div ref="bodyBox" class="grid gap-2">
             <TextArea
-              v-model="form.body.text"
+              :model-value="mappedForm.body.text"
+              :disabled="Boolean(copySource)"
               :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.BODY_PLACEHOLDER')"
               :max-length="LIMITS.body"
               show-character-count
               :message="fieldError('body.text')"
-              message-type="error"
+              :message-type="fieldError('body.text') ? 'error' : 'info'"
+              @update:model-value="value => (form.body.text = value)"
             />
             <div
+              v-if="!isEdit && !copySource"
               class="flex flex-wrap items-start gap-2"
               data-testid="variable-picker"
             >
+              <TemplateComboBox
+                model-value=""
+                :options="insertionOptions"
+                :groups="variableMode === 'NAMED' ? variableGroups : []"
+                :show-search="variableMode === 'NAMED'"
+                :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
+                :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
+                :search-placeholder="
+                  $t('WHATSAPP_TEMPLATE_MGMT.FORM.SEARCH_VARIABLE')
+                "
+                :show-create-attribute="isAdmin && variableMode === 'NAMED'"
+                data-testid="variable-menu-toggle"
+                @create-attribute="showAddAttribute = true"
+                @update:model-value="insertVariable"
+              />
               <div
-                v-on-click-outside="() => (showVariableMenu = false)"
-                class="relative"
-              >
-                <Button
-                  type="button"
-                  slate
-                  xs
-                  icon="i-lucide-braces"
-                  :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
-                  data-testid="variable-menu-toggle"
-                  @click="showVariableMenu = !showVariableMenu"
-                />
-                <DropdownMenu
-                  v-if="showVariableMenu"
-                  :menu-sections="variableMenuSections"
-                  show-search
-                  :search-placeholder="
-                    $t('WHATSAPP_TEMPLATE_MGMT.FORM.SEARCH_VARIABLE')
-                  "
-                  class="mt-1 min-w-52 max-h-64 overflow-y-auto top-full ltr:left-0 rtl:right-0"
-                  @action="item => insertVariable(item.value)"
-                />
-              </div>
-              <div
-                v-if="variableMode === 'NAMED'"
+                v-if="!isEdit && !copySource && variableMode === 'NAMED'"
                 class="flex items-start gap-2"
               >
                 <Input
@@ -817,7 +1013,7 @@ const buttonChoices = computed(() =>
                         )
                       : ''
                   "
-                  message-type="error"
+                  :message-type="customVariableInvalid ? 'error' : 'info'"
                   @enter="addCustomVariable"
                 />
                 <Button
@@ -833,10 +1029,11 @@ const buttonChoices = computed(() =>
           </div>
 
           <Input
+            v-if="!isEdit || hasOriginalComponent('FOOTER')"
             v-model="form.footer.text"
             :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.FOOTER_PLACEHOLDER')"
             :message="fieldError('footer.text')"
-            message-type="error"
+            :message-type="fieldError('footer.text') ? 'error' : 'info'"
           />
         </div>
 
@@ -858,6 +1055,7 @@ const buttonChoices = computed(() =>
                 slate
                 xs
                 icon="i-lucide-trash-2"
+                :disabled="isEdit"
                 :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.REMOVE_BUTTON')"
                 @click="removeButton(index)"
               />
@@ -883,23 +1081,31 @@ const buttonChoices = computed(() =>
               size="sm"
               :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.BUTTON_TEXT')"
               :message="fieldError(`buttons.${index}.text`)"
-              message-type="error"
+              :message-type="
+                fieldError(`buttons.${index}.text`) ? 'error' : 'info'
+              "
             />
             <template v-if="button.type === 'URL'">
               <Input
-                v-model="button.url"
+                :model-value="mappedForm.buttons[index].url"
+                :disabled="Boolean(copySource)"
                 size="sm"
                 placeholder="https://ejemplo.com/pedido/{{1}}"
                 :message="fieldError(`buttons.${index}.url`)"
-                message-type="error"
+                :message-type="
+                  fieldError(`buttons.${index}.url`) ? 'error' : 'info'
+                "
+                @update:model-value="value => (button.url = value)"
               />
               <Input
-                v-if="variableNumbers(button.url).length"
+                v-if="variableTokens(button.url).length"
                 v-model="button.examples[0]"
                 size="sm"
                 :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.URL_EXAMPLE')"
                 :message="fieldError(`buttons.${index}.example`)"
-                message-type="error"
+                :message-type="
+                  fieldError(`buttons.${index}.example`) ? 'error' : 'info'
+                "
               />
             </template>
             <Input
@@ -908,7 +1114,9 @@ const buttonChoices = computed(() =>
               size="sm"
               placeholder="+593999999999"
               :message="fieldError(`buttons.${index}.phone`)"
-              message-type="error"
+              :message-type="
+                fieldError(`buttons.${index}.phone`) ? 'error' : 'info'
+              "
             />
           </div>
           <p
@@ -922,7 +1130,7 @@ const buttonChoices = computed(() =>
               })
             }}
           </p>
-          <div class="flex flex-wrap gap-2">
+          <div v-if="!isEdit" class="flex flex-wrap gap-2">
             <Button
               v-for="type in buttonChoices"
               :key="type"
@@ -954,7 +1162,7 @@ const buttonChoices = computed(() =>
             v-for="(number, index) in bodyVariables"
             :key="number"
             v-model="form.body.examples[index]"
-            :label="`{{${number}}}`"
+            :label="`{{${copySource ? systemMapping[number] || number : number}}}`"
             size="sm"
           />
         </div>
@@ -963,7 +1171,11 @@ const buttonChoices = computed(() =>
         </span>
       </div>
 
-      <div class="p-3 rounded-lg bg-n-alpha-2" data-testid="meta-rules">
+      <div
+        v-if="!isEdit && !copySource"
+        class="p-3 rounded-lg bg-n-alpha-2"
+        data-testid="meta-rules"
+      >
         <h3 class="text-sm font-medium text-n-slate-12">
           {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.RULES.TITLE') }}
         </h3>
@@ -1004,6 +1216,7 @@ const buttonChoices = computed(() =>
         <Button
           type="button"
           slate
+          outline
           class="flex-1"
           :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CANCEL')"
           @click="close"
@@ -1011,6 +1224,7 @@ const buttonChoices = computed(() =>
         <Button
           type="button"
           slate
+          outline
           class="flex-1"
           icon="i-lucide-eye"
           :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.PREVIEW')"
@@ -1020,8 +1234,11 @@ const buttonChoices = computed(() =>
         <Button
           type="button"
           class="flex-1"
+          outline
           :is-loading="isSaving"
-          :disabled="isSaving || (isEdit && !rules.canEdit)"
+          :disabled="
+            isSaving || isLoading || (isEdit && (!liveLoaded || !rules.canEdit))
+          "
           :label="
             isEdit
               ? $t('WHATSAPP_TEMPLATE_MGMT.FORM.SAVE_CHANGES')
@@ -1032,4 +1249,9 @@ const buttonChoices = computed(() =>
       </div>
     </template>
   </SidePanel>
+  <AddAttribute
+    v-if="showAddAttribute"
+    :selected-attribute-model-tab="1"
+    :on-close="closeAddAttribute"
+  />
 </template>

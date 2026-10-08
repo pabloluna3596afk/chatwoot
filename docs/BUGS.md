@@ -1437,6 +1437,52 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
 - Production counted filters, inbox destinations, language reporting and Meta errors remain unchanged.
 - Verify: run the LibraryPanel Vitest suite; all backend shards and RuboCop passed in the failing CI run.
 
+### B-NEW-59 -- Editing positional WhatsApp templates changed their Meta structure
+
+- Files: `settings/templates/TemplateFormDrawer.vue`, `templateForm.js`, `Index.vue`,
+  `Whatsapp::TemplateManagementService`, `Whatsapp::TemplateComponentsBuilder`,
+  `Whatsapp::TemplateEditValidator`, `inbox_whatsapp_templates_controller.rb`, en/es translations and related specs.
+- Regression: editing `test_utility_envio` replaced four POSITIONAL variables with three NAMED variables,
+  added a header and encoded the dynamic URL placeholder, leading to a Meta 422.
+- Load the live Meta components, format, examples and update time. Keep edit identity, component types,
+  button types and the full parameter sequence; reject structural changes before a write to Meta.
+  Create a separate NAMED copy through explicit system-variable ComboBoxes and a different editable name.
+- Keep `https://paluhub.com/track/{{2}}` unencoded and require a complete matching example URL.
+  Return the original Meta message/code/subcode/user message, show it in the drawer and warn-log only
+  whitelisted fields with credentials and submitted text/examples redacted.
+- Verify: edit the approved positional preset without a header/footer; check all four examples, the single
+  approval warning and the raw URL. Try adding/removing/reordering parameters. Open the system copy,
+  complete each mapping and confirm only the new template is created. Reject a save and check the inline Meta error.
+- Local validation: 60 isolated RSpec/WebMock service/builder examples pass; the full template Vitest folder
+  and subsequent drawer regressions pass. CI RuboCop changed-line filtering passes on all seven Ruby files.
+  The real-controller Rails request specs are authored but cannot run in the available production-only image.
+  Full Vite build is blocked by the documented old `@chatwoot/prosemirror-schema` missing `imagePastePlugin` export.
+
+### B-NEW-60 -- Template last edit displayed a raw ISO timestamp
+
+- Files: `settings/templates/TemplateFormDrawer.vue` and its drawer spec.
+- Format the live last edit with the user's resolved locale and local timezone; hide missing or invalid dates.
+- Verify: open the positional edit preset in Spanish/Guayaquil and check `7 oct 2026, 05:00`;
+  check the Meta error state too. Template Vitest folder: 277 tests pass; ESLint and Prettier pass.
+
+### B-NEW-61 -- Template copy mapping excluded attributes and Captain variables
+
+- Files: `settings/templates/TemplateFormDrawer.vue`, `templateForm.js`, drawer specs and en/es template strings.
+- Reuse the editor's grouped variable source for copy mappings, including contact/conversation attributes and Captain.
+  Validate against those available names, preserving distinct mappings. Rename the action to "Create copy with variables".
+- Reuse the Flow picker's ComboBox footer and existing attribute modal for administrators; refresh bindings on close.
+- Verify: map a positional copy to system, contact, conversation and appointment variables; submit creates only the NAMED copy.
+  Search the grouped picker, open/close the attribute modal, and check the CTA is absent for agents.
+
+### B-NEW-62 -- Template variable picker differed from Flow and long menus covered the footer
+
+- Files: `settings/templates/TemplateFormDrawer.vue`, local `TemplateComboBox.vue`, drawer specs and en/es group labels.
+- Replace the remaining variable `DropdownMenu` with ChatHub's ComboBox. Give every drawer selector a local teleport
+  target, explicit placeholders, consistent search behavior and shared trigger/list styling. Long menus scroll inside
+  the panel body; search and the attribute CTA stay visible above the drawer footer.
+- Verify: new/edit/copy selector specs; 285 template tests pass. Actual Flow/drawer browser comparison verifies matching
+  trigger, option and group appearance and no footer overlap. See `docs/TEMPLATE_PICKER_AUDIT.md` for the audit table.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)

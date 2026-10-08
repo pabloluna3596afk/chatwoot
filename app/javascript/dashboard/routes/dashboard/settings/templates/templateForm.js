@@ -1,3 +1,5 @@
+import { SYSTEM_BINDINGS } from 'dashboard/helper/templateVariableBindings';
+
 // The WhatsApp template form (create / edit): its limits, validation, the payload for the API and the way back from a
 // Meta template to a form. The limits are the ones Whatsapp::TemplateComponentsBuilder enforces on the server.
 //
@@ -70,7 +72,7 @@ export const variableTokens = text => [
   ...new Set([...String(text || '').matchAll(VARIABLE)].map(match => match[1])),
 ];
 
-// The numbered variables only, as numbers (a button URL takes {{1}}): "{{1}} y {{2}} y {{1}}" -> [1, 2]
+// The numbered variables only, as numbers (including URL placeholders): "{{1}} y {{2}} y {{1}}" -> [1, 2]
 export const variableNumbers = text =>
   variableTokens(text)
     .filter(token => NUMBER_TOKEN.test(token))
@@ -168,15 +170,24 @@ const validateButton = (button, index, errors, category) => {
 
   if (button.type === 'URL') {
     const url = button.url.trim();
-    const numbers = variableNumbers(url);
+    const numbers = variableTokens(url);
     if (!URL_FORMAT.test(url)) errors[`${key}.url`] = 'URL_INVALID';
     else if (
       url.includes('{{') &&
-      (numbers.length !== 1 || !url.endsWith('{{1}}'))
+      (numbers.length !== 1 || !url.endsWith(`{{${numbers[0]}}}`))
     )
       errors[`${key}.url`] = 'URL_VARIABLE_AT_END';
-    else if (numbers.length && !String(button.examples?.[0] || '').trim())
-      errors[`${key}.example`] = 'EXAMPLE_REQUIRED';
+    else if (numbers.length) {
+      const example = String(button.examples?.[0] || '').trim();
+      const prefix = url.slice(0, url.lastIndexOf('{{'));
+      if (!example) errors[`${key}.example`] = 'EXAMPLE_REQUIRED';
+      else if (
+        !example.startsWith(prefix) ||
+        example.length <= prefix.length ||
+        example.includes('{{')
+      )
+        errors[`${key}.example`] = 'URL_EXAMPLE_INVALID';
+    }
   } else if (
     button.type === 'PHONE_NUMBER' &&
     !PHONE_FORMAT.test(button.phoneNumber.trim())
@@ -201,29 +212,6 @@ const validateButtons = (buttons, errors, category, preservedCount = 0) => {
     errors.buttons = 'TOO_MANY_PHONE_BUTTONS';
 };
 
-// Returns { 'field.path': 'ERROR_KEY' } (keys of WHATSAPP_TEMPLATE_MGMT.FORM.ERRORS); empty when the form is valid.
-// `isEdit` skips the name and language (they cannot change once the template exists).
-export const validateForm = (form, { isEdit = false } = {}) => {
-  const errors = {};
-  if (!isEdit) {
-    if (!form.inboxId) errors.inboxId = 'CHANNEL_REQUIRED';
-    if (!NAME_FORMAT.test(form.name)) errors.name = 'NAME_INVALID';
-    if (!form.language) errors.language = 'LANGUAGE_REQUIRED';
-  }
-  if (!CATEGORIES.includes(form.category)) errors.category = 'CATEGORY_INVALID';
-  validateHeader(form.header, errors);
-  validateBody(form.body, errors);
-  validateVariableKinds(form, errors);
-  validateFooter(form.footer, errors);
-  validateButtons(
-    form.buttons,
-    errors,
-    form.category,
-    form.preserved?.buttons?.length
-  );
-  return errors;
-};
-
 const buttonPayload = button => {
   if (button.type === 'COPY_CODE')
     return { type: 'COPY_CODE', code: button.code.trim() };
@@ -232,7 +220,7 @@ const buttonPayload = button => {
       type: 'URL',
       text: button.text.trim(),
       url: button.url.trim(),
-      examples: variableNumbers(button.url).length ? [button.examples[0]] : [],
+      examples: variableTokens(button.url).length ? [button.examples[0]] : [],
     };
   }
   if (button.type === 'PHONE_NUMBER') {
@@ -250,6 +238,7 @@ const buttonPayload = button => {
 export const buildPayload = form => {
   const count = bodyExampleCount(form.body.text);
   return {
+    ...(form.parameterFormat ? { parameter_format: form.parameterFormat } : {}),
     name: form.name,
     language: form.language,
     category: form.category,
@@ -354,12 +343,17 @@ const examplesFor = (component, tokens, kind) => {
   return kind === 'body' ? [...(positional[0] || [])] : [positional[0] || ''];
 };
 
-// A form from a Meta template, to edit it. Media headers keep no handle: a new example file is needed to save.
+// A form from a Meta template, to edit it. Existing media example handles are retained.
 export const formFromTemplate = (template, inboxId) => {
   const form = emptyForm();
   form.inboxId = inboxId;
   form.name = template.name;
   form.language = template.language;
+  form.parameterFormat =
+    template.parameter_format ||
+    (hasNamedVariables(...(template.components || []).map(item => item.text))
+      ? 'NAMED'
+      : 'POSITIONAL');
   form.category = template.category || 'UTILITY';
 
   (template.components || []).forEach((component, position) => {
@@ -368,6 +362,7 @@ export const formFromTemplate = (template, inboxId) => {
     } else if (component.type === 'HEADER') {
       form.header.format = component.format;
       form.header.text = component.text || '';
+      form.header.handle = component.example?.header_handle?.[0] || '';
       form.header.examples = [
         examplesFor(component, variableTokens(component.text), 'header')[0] ||
           '',
@@ -400,6 +395,53 @@ export const formFromTemplate = (template, inboxId) => {
     }
   });
   return form;
+};
+
+const editSignature = form =>
+  JSON.stringify({
+    header: form.header.format,
+    headerTokens: [...form.header.text.matchAll(VARIABLE)].map(
+      match => match[1]
+    ),
+    bodyTokens: [...form.body.text.matchAll(VARIABLE)].map(match => match[1]),
+    footer: Boolean(form.footer.text.trim()),
+    buttons: form.buttons.map(button => ({
+      type: button.type,
+      tokens: [...button.url.matchAll(VARIABLE)].map(match => match[1]),
+    })),
+    preserved: form.preserved,
+  });
+
+// Returns { 'field.path': 'ERROR_KEY' } (keys of WHATSAPP_TEMPLATE_MGMT.FORM.ERRORS); empty when the form is valid.
+// `isEdit` skips the name and language (they cannot change once the template exists).
+export const validateForm = (
+  form,
+  { isEdit = false, original = null } = {}
+) => {
+  const errors = {};
+  if (!isEdit) {
+    if (!form.inboxId) errors.inboxId = 'CHANNEL_REQUIRED';
+    if (!NAME_FORMAT.test(form.name)) errors.name = 'NAME_INVALID';
+    if (!form.language) errors.language = 'LANGUAGE_REQUIRED';
+  }
+  if (!CATEGORIES.includes(form.category)) errors.category = 'CATEGORY_INVALID';
+  validateHeader(form.header, errors);
+  validateBody(form.body, errors);
+  validateVariableKinds(form, errors);
+  validateFooter(form.footer, errors);
+  validateButtons(
+    form.buttons,
+    errors,
+    form.category,
+    form.preserved?.buttons?.length
+  );
+  if (
+    original &&
+    editSignature(form) !==
+      editSignature(formFromTemplate(original, form.inboxId))
+  )
+    errors.structure = 'EDIT_STRUCTURE_LOCKED';
+  return errors;
 };
 
 export const newButton = type => ({
@@ -480,4 +522,63 @@ export const promoWarnings = form => {
   });
   if (hasCopyCode) found.push('copy-code');
   return [...new Set(found)];
+};
+
+// Each old number is mapped explicitly; guesses are limited to clear wording near the placeholder.
+export const copyVariableTokens = form => [
+  ...new Set([
+    ...variableTokens(form.header.text),
+    ...variableTokens(form.body.text),
+    ...form.buttons.flatMap(button => variableTokens(button.url)),
+  ]),
+];
+
+export const suggestSystemMapping = form =>
+  Object.fromEntries(
+    copyVariableTokens(form).map(token => {
+      const context = [form.header.text, form.body.text]
+        .join(' ')
+        .split(`{{${token}}}`)[0]
+        .slice(-40)
+        .toLowerCase();
+      const clues = {
+        nombre: /(?:hola|estimad[oa]|nombre)\s*$/,
+        correo: /(?:correo|email)\s*:?\s*$/,
+        telefono: /tel[e\u00e9]fono\s*:?\s*$/,
+        empresa: /empresa\s*:?\s*$/,
+        ciudad: /ciudad\s*:?\s*$/,
+        documento: /documento\s*:?\s*$/,
+        agente: /agente\s*:?\s*$/,
+        numero_conversacion: /conversaci[o\u00f3]n\s*#?\s*$/,
+      };
+      return [
+        token,
+        Object.keys(clues).find(name => clues[name].test(context)) || '',
+      ];
+    })
+  );
+
+export const systemMappingValid = (
+  form,
+  mapping,
+  variableNames = SYSTEM_BINDINGS.map(binding => binding.name)
+) => {
+  const names = copyVariableTokens(form).map(token => mapping[token]);
+  return (
+    names.every(name => variableNames.includes(name)) &&
+    new Set(names).size === names.length
+  );
+};
+
+export const copyWithSystemVariables = (form, mapping) => {
+  const copy = JSON.parse(JSON.stringify(form));
+  const replace = text =>
+    text.replace(VARIABLE, (_, token) => `{{${mapping[token] || token}}}`);
+  copy.header.text = replace(copy.header.text);
+  copy.body.text = replace(copy.body.text);
+  copy.buttons.forEach(button => {
+    button.url = replace(button.url);
+  });
+  copy.parameterFormat = 'NAMED';
+  return copy;
 };

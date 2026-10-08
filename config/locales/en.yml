@@ -917,6 +917,11 @@ en:
         already_confirmed: 'User is already confirmed.'
   whatsapp_templates:
     errors:
+      invalid_parameter_format: 'Parameter format must be NAMED or POSITIONAL.'
+      edit_identity_locked: 'Name, language and parameter format cannot change during an edit.'
+      edit_structure_locked: 'Keep the components and the number and order of variables when editing. Create a copy to change them.'
+      edit_status_locked: 'Wait for Meta to finish reviewing before editing.'
+      url_example_invalid: 'The example must be a full URL with the same prefix and a value replacing the variable.'
       unknown: 'The template action could not be completed. Please try again.'
       invalid_name: 'The name can only contain lowercase letters, numbers and underscores.'
       invalid_language: 'The language is not valid.'

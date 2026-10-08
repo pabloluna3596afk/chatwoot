@@ -11,7 +11,7 @@
 #   builder.parameter_format  # 'NAMED' ({{nombre}}) or 'POSITIONAL' ({{1}}): a template uses one of them
 #
 # Variables are named ({{nombre}}: lowercase letters, digits and underscores) or numbered ({{1}}, {{2}}, in order). The
-# examples come in the order the variables first appear. Button URLs only take a numbered {{1}} at the end (Meta).
+# examples come in the order the variables first appear. Button URLs keep one placeholder at the end and a complete example URL.
 # A copy-code button ({ type: 'COPY_CODE', code: 'PALU21' }) is for MARKETING templates, one per template; Meta writes its
 # label. What the form cannot express (a limited-time-offer component, a Flow or catalog button...) is carried through
 # untouched in `preserved`, so editing a template does not drop it:
@@ -28,7 +28,7 @@ class Whatsapp::TemplateComponentsBuilder
   VARIABLE = /\{\{\s*([^{}\s]+)\s*\}\}/
   NUMBER = /\A\d+\z/
   NAMED_VARIABLE = /\A[a-z][a-z0-9_]*\z/
-  URL_VARIABLE = /\{\{(\d+)\}\}/
+  URL_VARIABLE = /\{\{([a-z0-9_]+)\}\}/
   EDGE_VARIABLE = /\A\s*\{\{[^{}]+\}\}|\{\{[^{}]+\}\}\s*\z/
   LIMITS = { body: 1024, header_text: 60, footer: 60, button_text: 25, url: 2000, phone: 20, buttons: 10, url_buttons: 2, phone_buttons: 1,
              copy_code: 15 }.freeze
@@ -50,6 +50,9 @@ class Whatsapp::TemplateComponentsBuilder
     @body = (body || {}).to_h.with_indifferent_access
     @footer = (footer || {}).to_h.with_indifferent_access
     @buttons = Array(buttons).map { |button| button.to_h.with_indifferent_access }
+    @parameter_format = options[:parameter_format]
+    raise Invalid, 'invalid_parameter_format' unless [nil, 'NAMED', 'POSITIONAL'].include?(@parameter_format)
+
     @category = options[:category].to_s.upcase.presence
     @preserved = (options[:preserved] || {}).to_h.with_indifferent_access
   end
@@ -65,9 +68,7 @@ class Whatsapp::TemplateComponentsBuilder
   end
 
   # 'NAMED' when the header or body use {{nombre}}-style variables, 'POSITIONAL' for {{1}} or none.
-  def parameter_format
-    named_variables? ? 'NAMED' : 'POSITIONAL'
-  end
+  def parameter_format = @parameter_format || (named_variables? ? 'NAMED' : 'POSITIONAL')
 
   private
 
@@ -75,14 +76,15 @@ class Whatsapp::TemplateComponentsBuilder
     (variable_tokens(header_text_value) + variable_tokens(@body[:text].to_s)).uniq
   end
 
-  def named_variables?
-    all_tokens.any? { |token| !token.match?(NUMBER) }
-  end
+  def named_variables? = @parameter_format == 'NAMED' || all_tokens.grep_v(NUMBER).any?
 
   # A template cannot mix {{1}} and {{nombre}}; named variables need a valid name.
   def check_parameter_format
-    numbered, named = all_tokens.partition { |token| token.match?(NUMBER) }
-    raise Invalid, 'variables_mixed' if numbered.any? && named.any?
+    formats = all_tokens.map { |token| token.match?(NUMBER) ? 'POSITIONAL' : 'NAMED' }.uniq
+    formats |= [@parameter_format].compact
+    raise Invalid, 'variables_mixed' if formats.size > 1
+
+    named = all_tokens.grep_v(NUMBER)
 
     invalid = named.find { |token| !token.match?(NAMED_VARIABLE) }
     raise Invalid.new('variable_name_invalid', name: invalid) if invalid
@@ -210,11 +212,19 @@ class Whatsapp::TemplateComponentsBuilder
     raise Invalid, 'url_invalid' unless url.match?(%r{\Ahttps?://\S+\z}) && url.length <= LIMITS[:url]
 
     numbers = url.scan(URL_VARIABLE).flatten.uniq
-    raise Invalid, 'url_variable_at_end' if url.include?('{{') && (numbers.size != 1 || !url.end_with?('{{1}}'))
+    raise Invalid, 'url_variable_at_end' if url.include?('{{') && (numbers.size != 1 || !url.end_with?("{{#{numbers.first}}}"))
 
     built = { type: 'URL', text: text, url: url }
-    built[:example] = [required_example(button[:examples], 1, 'url')[0]] if numbers.any?
+    built[:example] = [url_example(button, url, numbers.first)] if numbers.any?
     built
+  end
+
+  def url_example(button, url, token)
+    example = required_example(button[:examples], 1, 'url')[0]
+    prefix = url.delete_suffix("{{#{token}}}")
+    return example if example.start_with?(prefix) && example.length > prefix.length && example.exclude?('{{')
+
+    raise Invalid, 'url_example_invalid'
   end
 
   # The coupon code the customer copies (Meta writes the button's label): marketing only.

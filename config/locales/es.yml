@@ -848,6 +848,11 @@ es:
         already_confirmed: 'El usuario ya está confirmado.'
   whatsapp_templates:
     errors:
+      invalid_parameter_format: 'El formato de variables debe ser NAMED o POSITIONAL.'
+      edit_identity_locked: 'El nombre, el idioma y el formato de variables no pueden cambiar al editar.'
+      edit_structure_locked: 'Al editar, conserva los componentes y la cantidad y el orden de las variables. Para cambiarlos, crea una copia.'
+      edit_status_locked: 'Espera a que Meta termine la revisión antes de editar.'
+      url_example_invalid: 'El ejemplo debe ser una URL completa con el mismo inicio y un valor en lugar de la variable.'
       unknown: 'No se pudo completar la acción con la plantilla. Inténtalo de nuevo.'
       invalid_name: 'El nombre solo puede tener minúsculas, números y guion bajo.'
       invalid_language: 'El idioma no es válido.'

@@ -110,6 +110,17 @@ RSpec.describe 'Inbox WhatsApp templates API', type: :request do
       expect(response.parsed_body['message']).to be_present
     end
 
+    it 'returns the original Meta message, code, subcode and user message' do
+      error = Whatsapp::TemplateManagementService::Error.new('meta_error', meta_message: 'Invalid parameter', meta_code: 100,
+                                                                           error_subcode: 123, error_user_msg: 'No se permite editar')
+      allow(service).to receive(:create).and_raise(error)
+      post base_url, params: { template: template }, headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body).to include('message' => 'Invalid parameter', 'code' => 100, 'error_subcode' => 123,
+                                              'error_user_msg' => 'No se permite editar')
+    end
+
     it 'answers what Meta refuses with a plain message' do
       allow(service).to receive(:create).and_raise(Whatsapp::TemplateManagementService::Error.new('name_locked', meta_code: 100))
 
@@ -129,6 +140,56 @@ RSpec.describe 'Inbox WhatsApp templates API', type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(service).to have_received(:update).with('555', components: anything, category: nil)
+    end
+  end
+
+  describe 'PATCH edit with the real service and Meta responses' do
+    let(:graph) { "https://graph.facebook.com/#{Whatsapp::TemplateManagementService::API_VERSION}" }
+    let(:original) do
+      { id: '555', name: 'test_utility_envio', language: 'es_EC', category: 'UTILITY', status: 'APPROVED',
+        parameter_format: 'POSITIONAL', components: [
+          { type: 'BODY', text: 'Hola {{1}}, pedido {{2}}, fecha {{3}}, agente {{4}}.', example: { body_text: [%w[Ana 123 lunes Luis]] } },
+          { type: 'BUTTONS', buttons: [{ type: 'URL', text: 'Seguir', url: 'https://paluhub.com/track/{{2}}',
+                                         example: ['https://paluhub.com/track/123'] }] }
+        ] }
+    end
+    let(:edit_form) do
+      { name: original[:name], language: 'es_EC', parameter_format: 'POSITIONAL', header: { format: 'NONE' },
+        body: { text: original[:components].first[:text], examples: %w[Ana 123 lunes Luis] }, footer: { text: '' },
+        buttons: [{ type: 'URL', text: 'Seguir', url: 'https://paluhub.com/track/{{2}}', examples: ['https://paluhub.com/track/123'] }] }
+    end
+
+    before do
+      allow(Whatsapp::TemplateManagementService).to receive(:new).and_call_original
+      stub_request(:get, "#{graph}/555").with(query: { fields: Whatsapp::TemplateManagementService::FIELDS })
+                                        .to_return(status: 200, headers: { 'Content-Type' => 'application/json' }, body: original.to_json)
+    end
+
+    it 'passes the complete original structure to Meta and returns every error field' do
+      allow(Rails.logger).to receive(:warn)
+      edit = stub_request(:post, "#{graph}/555").with(body: { components: original[:components] }.to_json)
+                                                .to_return(status: 400, headers: { 'Content-Type' => 'application/json' }, body: {
+                                                  error: { message: 'Invalid parameter', code: 100, error_subcode: 123,
+                                                           error_user_msg: 'Solo una edición cada 24 horas' }
+                                                }.to_json)
+      patch "#{base_url}/555", params: { template: edit_form }, headers: admin.create_new_auth_token, as: :json
+
+      expect(edit).to have_been_requested.once
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body).to include('message' => 'Invalid parameter', 'code' => 100, 'error_subcode' => 123,
+                                              'error_user_msg' => 'Solo una edición cada 24 horas')
+      expect(Rails.logger).to have_received(:warn).with(include('template=test_utility_envio HTTP 400'))
+      expect(Rails.logger).not_to have_received(:warn).with(include(channel.template_access_token))
+    end
+
+    it 'blocks new components and parameter format changes before posting to Meta' do
+      [edit_form.merge(header: { format: 'TEXT', text: 'Hola' }), edit_form.merge(parameter_format: 'NAMED')].each do |changed|
+        patch "#{base_url}/555", params: { template: changed }, headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body['error']).to match(/edit_(structure|identity)_locked|variables_mixed/)
+      end
+      expect(a_request(:post, "#{graph}/555")).not_to have_been_made
     end
   end
 

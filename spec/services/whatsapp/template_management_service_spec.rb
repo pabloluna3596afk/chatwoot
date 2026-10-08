@@ -94,6 +94,31 @@ RSpec.describe Whatsapp::TemplateManagementService do
       expect(error).to have_attributes(code: 'meta_error', detail: 'El cuerpo tiene un formato no permitido', meta_code: 100)
     end
 
+    it 'returns all Meta error fields and logs only sanitized error data' do
+      allow(Rails.logger).to receive(:warn)
+      stub_request(:post, "#{base}/#{waba}/message_templates")
+        .to_return(meta_error(code: 100, subcode: 123, message: 'Invalid parameter', user_msg: 'No se permite editar'))
+      error = error_of { service.create(name: 'test_utility_envio', language: 'es_EC', category: 'UTILITY', components: components) }
+
+      expect(error).to have_attributes(meta_message: 'Invalid parameter', meta_code: 100, error_subcode: 123,
+                                       error_user_msg: 'No se permite editar')
+      expect(Rails.logger).to have_received(:warn).with(include('template=test_utility_envio HTTP 400', 'No se permite editar'))
+    end
+
+    it 'redacts credentials and submitted customer samples from error logs' do
+      allow(Rails.logger).to receive(:warn)
+      detail = "Invalid #{channel.template_access_token} sample Ana Privada"
+      stub_request(:post, "#{base}/#{waba}/message_templates").to_return(meta_error(code: 100, message: detail))
+      error_of do
+        service.create(name: 'test', language: 'es', category: 'UTILITY',
+                       components: [{ type: 'BODY', text: 'Hola {{1}}.', example: { body_text: [['Ana Privada']] } }])
+      end
+
+      expect(Rails.logger).to have_received(:warn).with(include('[REDACTED]'))
+      expect(Rails.logger).not_to have_received(:warn).with(include(channel.template_access_token))
+      expect(Rails.logger).not_to have_received(:warn).with(include('Ana Privada'))
+    end
+
     it 'reports a Meta that cannot be reached' do
       stub_request(:post, "#{base}/#{waba}/message_templates").to_timeout
 
@@ -110,6 +135,12 @@ RSpec.describe Whatsapp::TemplateManagementService do
   end
 
   describe '#update' do
+    before do
+      original = { name: 'test', status: 'REJECTED', category: 'UTILITY', parameter_format: 'POSITIONAL', components: components }
+      stub_request(:get, "#{base}/555").with(query: { fields: described_class::FIELDS })
+                                       .to_return(status: 200, headers: json, body: original.to_json)
+    end
+
     it 'edits through the template id and sends the category only when given' do
       stub = stub_request(:post, "#{base}/555").with(body: { components: components }.to_json)
                                                .to_return(status: 200, body: { success: true }.to_json,
@@ -128,6 +159,31 @@ RSpec.describe Whatsapp::TemplateManagementService do
       service.update('555', components: components, category: 'MARKETING')
 
       expect(stub).to have_been_requested
+    end
+
+    it 'blocks a change of parameters before sending an edit to Meta' do
+      expect do
+        service.update('555', components: [{ type: 'BODY', text: 'Hola {{nombre}}.' }])
+      end.to raise_error(Whatsapp::TemplateComponentsBuilder::Invalid) { |error| expect(error.code).to eq('edit_structure_locked') }
+      expect(a_request(:post, "#{base}/555")).not_to have_been_made
+    end
+
+    it 'sends the exact positional components, including all four examples and the unencoded URL' do
+      original = { id: '555', name: 'test_utility_envio', language: 'es_EC', category: 'UTILITY', status: 'APPROVED',
+                   parameter_format: 'POSITIONAL', components: [
+                     { type: 'BODY', text: 'Hola {{1}}, pedido {{2}}, fecha {{3}}, agente {{4}}.',
+                       example: { body_text: [%w[Ana 123 lunes Luis]] } },
+                     { type: 'BUTTONS', buttons: [{ type: 'URL', text: 'Seguir', url: 'https://paluhub.com/track/{{2}}',
+                                                    example: ['https://paluhub.com/track/123'] }] }
+                   ] }
+      stub_request(:get, "#{base}/555").with(query: { fields: described_class::FIELDS })
+                                       .to_return(status: 200, headers: json, body: original.to_json)
+      edit = stub_request(:post, "#{base}/555").with(body: { components: original[:components] }.to_json)
+                                               .to_return(status: 200, headers: json, body: { success: true }.to_json)
+
+      service.update('555', components: original[:components], name: original[:name], language: 'es_EC', parameter_format: 'POSITIONAL')
+
+      expect(edit).to have_been_requested.once
     end
 
     it 'raises the edit limit as a code' do

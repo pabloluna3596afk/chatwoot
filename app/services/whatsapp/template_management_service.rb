@@ -11,7 +11,7 @@
 # Errors are raised as Error with a stable `code` (an i18n key under whatsapp_templates.errors) and the Meta detail.
 class Whatsapp::TemplateManagementService
   API_VERSION = 'v22.0'.freeze
-  FIELDS = 'id,name,status,category,language,components,rejected_reason,quality_score'.freeze
+  FIELDS = 'id,name,status,category,language,components,parameter_format,last_updated_time,rejected_reason,quality_score'.freeze
   TIMEOUT = 60
   LIBRARY_PAGE = 25
   LIBRARY_FIELDS = %w[id name language category topic usecase industry header body body_params buttons].freeze
@@ -32,13 +32,16 @@ class Whatsapp::TemplateManagementService
   ].freeze
 
   class Error < StandardError
-    attr_reader :code, :detail, :meta_code, :http_status
+    attr_reader :code, :detail, :meta_code, :http_status, :meta_message, :error_subcode, :error_user_msg
 
-    def initialize(code, detail: nil, meta_code: nil, http_status: nil)
+    def initialize(code, detail: nil, meta_code: nil, http_status: nil, **meta)
       @code = code
       @detail = detail
       @meta_code = meta_code
       @http_status = http_status
+      @meta_message = meta[:meta_message]
+      @error_subcode = meta[:error_subcode]
+      @error_user_msg = meta[:error_user_msg]
       super("#{code}#{detail ? ": #{detail}" : ''}")
     end
   end
@@ -49,6 +52,7 @@ class Whatsapp::TemplateManagementService
 
   # Returns { id:, status:, category: }. `components` come from TemplateComponentsBuilder.
   def create(name:, language:, category:, components:, parameter_format: nil)
+    @template_name = name
     body = { name: name, language: language, category: category, components: components }
     body[:parameter_format] = parameter_format if parameter_format == 'NAMED'
     response = request(:post, "#{waba_path}/message_templates", body: body)
@@ -56,7 +60,10 @@ class Whatsapp::TemplateManagementService
   end
 
   # An edit sends the components (and the category, which Meta only accepts while the template is not approved).
-  def update(template_id, components:, category: nil)
+  def update(template_id, components:, category: nil, **identity)
+    original = fetch(template_id)
+    @template_name = original[:name]
+    Whatsapp::TemplateEditValidator.new(original).validate!(components, category: category, **identity)
     body = { components: components }
     body[:category] = category if category.present?
     response = request(:post, "#{base}/#{template_id}", body: body)
@@ -105,6 +112,7 @@ class Whatsapp::TemplateManagementService
 
     data = response.parsed_response
     { id: data['id'], name: data['name'], status: data['status'], category: data['category'], language: data['language'],
+      parameter_format: data['parameter_format'], last_updated_time: data['last_updated_time'],
       rejected_reason: data['rejected_reason'], quality_score: data.dig('quality_score', 'score'), components: data['components'] }
   end
 
@@ -141,6 +149,7 @@ class Whatsapp::TemplateManagementService
   end
 
   def request(verb, url, body: nil, query: nil)
+    @request_body = body
     options = { headers: headers, timeout: TIMEOUT }
     options[:body] = body.to_json if body
     options[:query] = query if query
@@ -153,9 +162,32 @@ class Whatsapp::TemplateManagementService
   def raise_failure(response)
     error = response.parsed_response.is_a?(Hash) ? response.parsed_response['error'] : nil
     error = {} unless error.is_a?(Hash)
-    detail = error['error_user_msg'].presence || error['message'].presence
-    Rails.logger.warn("[WHATSAPP] template change refused: HTTP #{response.code} code=#{error['code']} subcode=#{error['error_subcode']}")
-    raise Error.new(error_code_for(error, detail), detail: detail, meta_code: error['code'], http_status: response.code)
+    safe = error.slice('message', 'code', 'error_subcode', 'error_user_msg').transform_values do |value|
+      value.is_a?(String) ? redact_error_text(value) : value
+    end
+    detail = safe['error_user_msg'].presence || safe['message'].presence
+    Rails.logger.warn("[WHATSAPP] template=#{@template_name} HTTP #{response.code} error=#{safe.to_json}")
+    raise Error.new(
+      error_code_for(error, detail), detail: detail, meta_code: safe['code'], http_status: response.code,
+                                     meta_message: safe['message'], error_subcode: safe['error_subcode'], error_user_msg: safe['error_user_msg']
+    )
+  end
+
+  # Meta can echo a submitted value in an error. Never log template text, sample data or credentials.
+  def redact_error_text(text)
+    values = [@channel.template_access_token, *request_values(@request_body)].compact_blank
+    values.sort_by { |value| -value.length }.reduce(text) { |result, value| result.gsub(value, '[REDACTED]') }
+          .gsub(/Bearer\s+\S+|(?:access_token|appsecret_proof|client_secret)=\S+/i, '[REDACTED]')
+  end
+
+  def request_values(value)
+    case value
+    when Hash
+      value.except(:name, :language, :category, :type, :format, :parameter_format).values.flat_map { |item| request_values(item) }
+    when Array then value.flat_map { |item| request_values(item) }
+    when String then [value]
+    else []
+    end
   end
 
   def error_code_for(error, detail)
