@@ -95,3 +95,18 @@ Rubocop: read-only chathub-rubocop-ci, repository configuration, all three local
 spec files: three inspected, zero offenses. The image's direct installed Rubocop
 is used because Bundler rejects its Ruby 3.4.11 against this Gemfile's 3.4.4.
 RSpec cannot run locally. No authenticated live API or Meta submission is claimed.
+
+Final browser session: Vite warmed before starting one headless Chrome; all
+states loaded from preset URLs with 120-second timeouts. Reopening a cached Flow
+detail rendered its row in 20.6 ms while a second fixture response was delayed
+1,000 ms. Three action buttons measured 32×32 px with identical 1 px outlines
+on both real tabs; no page overflow at 1280 px. At 900 px, the four template
+filters wrap earlier than the two Flow filters; markup, gaps, button heights and
+primary-action slot are identical, with no Flow-specific toolbar spacing.
+
+Saved in docs-crm/capturas: pagina-real-flows-boton.png,
+pagina-real-plantillas.png, pagina-real-comparacion.png (both widths stacked),
+plantillas-agrupadas-1.png and plantillas-agrupadas-2.png. Grouped images are
+design studies; real-page images render the actual application components with
+fixture records. Browser/Vite listeners were closed and temporary page sources
+deleted. DOM/timing evidence remains in .codex/owner-capture-evidence.json.

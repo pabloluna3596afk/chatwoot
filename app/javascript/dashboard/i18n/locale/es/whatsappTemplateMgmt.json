@@ -298,7 +298,9 @@
       "STATUS": "Estado",
       "ACTIONS": "Acciones",
       "VIEW": "Ver",
-      "COUNT": "{startItem}–{endItem} de {totalItems}"
+      "COUNT": "{startItem}–{endItem} de {totalItems}",
+      "UPDATED": "Actualizado",
+      "SCREENS": "Pantallas"
     }
   }
 }

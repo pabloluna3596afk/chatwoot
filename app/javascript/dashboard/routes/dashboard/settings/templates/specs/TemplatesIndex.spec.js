@@ -7,8 +7,14 @@ import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDrop
 import InboxesAPI from 'dashboard/api/inboxes';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 
-const { openForm } = vi.hoisted(() => ({ openForm: vi.fn() }));
-vi.mock('vue-router', () => ({ useRoute: () => ({ query: {} }) }));
+const { openForm, openPreview } = vi.hoisted(() => ({
+  openForm: vi.fn(),
+  openPreview: vi.fn(),
+}));
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ query: {} }),
+  useRouter: () => ({ push: vi.fn() }),
+}));
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key, te: () => false, locale: { value: 'en' } }),
 }));
@@ -47,13 +53,14 @@ vi.mock('../TemplateFormDrawer.vue', () => ({
   default: { template: '<div/>', methods: { open: openForm } },
 }));
 vi.mock('../TemplatePreviewDrawer.vue', () => ({
-  default: { template: '<div/>' },
+  default: { template: '<div/>', methods: { open: openPreview } },
 }));
 vi.mock('../PresetsPanel.vue', () => ({ default: { template: '<div/>' } }));
 vi.mock('../flows/FlowsPanel.vue', () => ({ default: { template: '<div/>' } }));
 vi.mock('../../SettingsLayout.vue', () => ({
   default: {
-    template: '<div><slot name="header"/><slot name="body"/><slot/></div>',
+    template:
+      '<div><slot name="header"/><slot name="preBody"/><slot name="body"/><slot/></div>',
   },
 }));
 vi.mock('../../components/BaseSettingsHeader.vue', () => ({
@@ -130,6 +137,20 @@ describe('Templates page', () => {
       })
     );
     expect(WhatsappTemplatesAPI.createTemplate).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('uses the toolbar create slot and opens preview from a row', async () => {
+    const wrapper = await render();
+    expect(wrapper.findAll('[data-testid="page-create"]')).toHaveLength(1);
+    expect(
+      wrapper.get('header').find('[data-testid="page-create"]').exists()
+    ).toBe(false);
+    await wrapper.get('[data-testid="page-create"]').trigger('click');
+    expect(openForm).toHaveBeenCalled();
+    await wrapper.get('tbody tr').trigger('click');
+    expect(openPreview).toHaveBeenCalled();
+    expect(wrapper.find('[data-action="view"]').exists()).toBe(false);
     wrapper.unmount();
   });
 });

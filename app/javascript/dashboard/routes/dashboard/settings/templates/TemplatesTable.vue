@@ -13,7 +13,7 @@ defineProps({
   pageSize: { type: Number, required: true },
   perPageOptions: { type: Array, default: () => [] },
 });
-const emit = defineEmits(['update:page', 'update:pageSize']);
+const emit = defineEmits(['update:page', 'update:pageSize', 'open']);
 </script>
 
 <template>
@@ -28,6 +28,10 @@ const emit = defineEmits(['update:page', 'update:pageSize']);
             v-for="item in items"
             :key="item.key || item.id"
             :item="item"
+            tabindex="0"
+            class="cursor-pointer hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-n-brand"
+            @click="emit('open', item)"
+            @keydown.enter.self="emit('open', item)"
           >
             <BaseTableCell>
               <span

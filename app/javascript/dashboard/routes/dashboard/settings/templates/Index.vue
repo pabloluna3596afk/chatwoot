@@ -19,6 +19,7 @@ import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import TemplatesTable from './TemplatesTable.vue';
 import TemplatesToolbar from './TemplatesToolbar.vue';
+import { templateTableColumns } from './templateTableColumns';
 import ChannelIcon from 'dashboard/components-next/icon/ChannelIcon.vue';
 import TemplateRowActions from './TemplateRowActions.vue';
 import TemplatePreviewDrawer from './TemplatePreviewDrawer.vue';
@@ -87,16 +88,11 @@ const categoryOptions = computed(() => [
     ).length,
   })),
 ]);
-const columns = computed(() =>
-  ['NAME', 'CATEGORY', 'LANGUAGE', 'TYPE', 'INBOX', 'STATUS', 'ACTIONS'].map(
-    key => ({ key, label: t('WHATSAPP_TEMPLATE_MGMT.TABLE.' + key) })
-  )
-);
+const columns = computed(() => templateTableColumns(t, ['LANGUAGE', 'TYPE']));
 const actionLabels = computed(() => ({
   edit: t('WHATSAPP_TEMPLATE_MGMT.EDIT'),
   duplicate: t('WHATSAPP_TEMPLATE_MGMT.DUPLICATE'),
   delete: t('WHATSAPP_TEMPLATE_MGMT.DELETE'),
-  view: t('WHATSAPP_TEMPLATE_MGMT.TABLE.VIEW'),
 }));
 const selectedTemplate = ref(null);
 const previewPanelRef = ref(null);
@@ -194,6 +190,11 @@ const showPresets = computed(
   () => showTabs.value && activeTab.value === 'presets'
 );
 const showFlows = computed(() => showTabs.value && activeTab.value === 'flows');
+const createAction = computed(() => {
+  return isAdmin.value && cloudInboxes.value.length
+    ? { label: t('WHATSAPP_TEMPLATE_MGMT.NEW_TEMPLATE'), run: openCreate }
+    : null;
+});
 const tabs = computed(() => [
   { key: 'templates', label: t('WHATSAPP_TEMPLATE_MGMT.TABS.TEMPLATES') },
   ...(cloudInboxes.value.length
@@ -429,25 +430,6 @@ onDeactivated(abortTemplateRequest);
             </h1>
           </div>
         </template>
-        <template v-if="showPresets" #actions>
-          <Button
-            v-if="isAdmin && cloudInboxes.length"
-            :label="$t('WHATSAPP_TEMPLATE_MGMT.NEW_TEMPLATE')"
-            icon="i-lucide-plus"
-            size="sm"
-            data-testid="template-new"
-            @click="openCreate"
-          />
-          <Button
-            :label="$t('WHATSAPP_TEMPLATE_MGMT.SYNC_TEMPLATES')"
-            icon="i-lucide-refresh-cw"
-            color="slate"
-            size="sm"
-            :is-loading="isSyncing"
-            :disabled="!canSync || isSyncing"
-            @click="syncTemplates"
-          />
-        </template>
         <template v-if="lastSyncAttemptAt && !showFlows" #meta>
           <span class="text-xs text-n-slate-10">
             {{
@@ -470,11 +452,12 @@ onDeactivated(abortTemplateRequest);
       </BaseSettingsHeader>
     </template>
 
-    <template #body>
+    <template #preBody>
       <TemplatesToolbar
-        v-if="showTemplates"
+        v-if="showTemplates || showPresets"
         v-model="searchQuery"
         :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.SEARCH_PLACEHOLDER')"
+        :primary-action="createAction"
       >
         <template #filters>
           <div
@@ -509,14 +492,6 @@ onDeactivated(abortTemplateRequest);
         </template>
         <template #actions>
           <Button
-            v-if="isAdmin && cloudInboxes.length"
-            :label="$t('WHATSAPP_TEMPLATE_MGMT.NEW_TEMPLATE')"
-            icon="i-lucide-plus"
-            size="sm"
-            data-testid="template-new"
-            @click="openCreate"
-          />
-          <Button
             :label="$t('WHATSAPP_TEMPLATE_MGMT.SYNC_COMPACT')"
             icon="i-lucide-refresh-cw"
             color="slate"
@@ -527,6 +502,8 @@ onDeactivated(abortTemplateRequest);
           />
         </template>
       </TemplatesToolbar>
+    </template>
+    <template #body>
       <KeepAlive>
         <FlowsPanel v-if="showFlows" />
       </KeepAlive>
@@ -555,6 +532,7 @@ onDeactivated(abortTemplateRequest);
         :total="filteredTemplates.length"
         :page-size="templatePageSize"
         :per-page-options="[10, 25, 50]"
+        @open="openPreview"
       >
         <template #NAME="{ item }">
           <span class="text-heading-3 text-n-slate-12">{{ item.name }}</span>
@@ -582,9 +560,16 @@ onDeactivated(abortTemplateRequest);
           {{ typeLabels[templateTypeKey(item)] }}
         </template>
         <template #INBOX="{ item }">{{ item.inboxNames }}</template>
+        <template #UPDATED="{ item }">
+          {{
+            item.lastUpdatedAt
+              ? formatTemplateDate(item.lastUpdatedAt)
+              : formatTemplateLabel(null)
+          }}
+        </template>
         <template #STATUS="{ item }">
           <span
-            class="px-2 py-1 text-xs rounded-md"
+            class="px-2.5 py-1 text-xs rounded-full whitespace-nowrap"
             :class="templateStatusClasses(item.status)"
             >{{
               $te('WHATSAPP_TEMPLATE_MGMT.STATUS.' + item.status?.toUpperCase())
@@ -604,7 +589,6 @@ onDeactivated(abortTemplateRequest);
             @edit="openEdit(item)"
             @duplicate="duplicateTemplate(item)"
             @delete="askDelete(item)"
-            @view="openPreview(item)"
           />
         </template>
       </TemplatesTable>

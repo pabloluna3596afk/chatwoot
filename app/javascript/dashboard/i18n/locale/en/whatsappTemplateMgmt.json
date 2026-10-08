@@ -298,7 +298,9 @@
       "STATUS": "Status",
       "ACTIONS": "Actions",
       "VIEW": "View",
-      "COUNT": "{startItem}–{endItem} of {totalItems}"
+      "COUNT": "{startItem}–{endItem} of {totalItems}",
+      "UPDATED": "Updated",
+      "SCREENS": "Screens"
     }
   }
 }

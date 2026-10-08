@@ -19,6 +19,7 @@ import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import TemplatesToolbar from '../TemplatesToolbar.vue';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import TemplatesTable from '../TemplatesTable.vue';
+import { templateTableColumns } from '../templateTableColumns';
 import TemplateRowActions from '../TemplateRowActions.vue';
 import FlowPublicationSummary from './FlowPublicationSummary.vue';
 import FlowPublicationPanel from './FlowPublicationPanel.vue';
@@ -30,6 +31,14 @@ const { t, locale } = useI18n();
 const router = useRouter();
 const { checkPermissions } = usePolicy();
 const isAdmin = computed(() => checkPermissions(['administrator']));
+const createAction = computed(() =>
+  isAdmin.value
+    ? {
+        label: t('WHATSAPP_FLOWS.LIST.NEW'),
+        run: () => router.push({ name: 'settings_flow_new' }),
+      }
+    : null
+);
 const { run, abort, isPending } = useAbortableRequest();
 const flows = ref([]);
 const total = ref(0);
@@ -51,7 +60,6 @@ const actionLabels = computed(() => ({
   edit: t('WHATSAPP_FLOWS.LIST.EDIT'),
   duplicate: t('WHATSAPP_TEMPLATE_MGMT.DUPLICATE'),
   delete: t('WHATSAPP_FLOWS.LIST.DELETE'),
-  view: t('WHATSAPP_TEMPLATE_MGMT.TABLE.VIEW'),
 }));
 const askDuplicate = flow => {
   toDuplicate.value = flow;
@@ -81,16 +89,7 @@ const categoryOptions = computed(() => [
     count: facets.value.category[value] ?? 0,
   })),
 ]);
-const columns = computed(() =>
-  [
-    'NAME',
-    'CATEGORIES',
-    'SCREENS_HEADER',
-    'UPDATED',
-    'PUBLICATION',
-    'ACTIONS',
-  ].map(key => ({ key, label: t(`WHATSAPP_FLOWS.LIST.${key}`) }))
-);
+const columns = computed(() => templateTableColumns(t, ['SCREENS']));
 const load = async () => {
   failed.value = false;
   try {
@@ -133,7 +132,6 @@ onActivated(() => {
   else load();
 });
 onDeactivated(abort);
-const startNew = () => router.push({ name: 'settings_flow_new' });
 const edit = flow =>
   router.push({ name: 'settings_flow_edit', params: { flowId: flow.id } });
 const askDelete = flow => {
@@ -176,10 +174,11 @@ const categoryLabel = flow => {
 </script>
 
 <template>
-  <div class="grid gap-4" data-testid="flows-panel">
+  <div data-testid="flows-panel">
     <TemplatesToolbar
       v-model="search"
       :placeholder="$t('WHATSAPP_FLOWS.LIST.SEARCH')"
+      :primary-action="createAction"
       data-testid="flows-toolbar"
     >
       <template #filters>
@@ -201,17 +200,6 @@ const categoryLabel = flow => {
             data-testid="flows-category"
           />
         </div>
-      </template>
-      <template #actions>
-        <Button
-          v-if="isAdmin"
-          type="button"
-          sm
-          icon="i-lucide-plus"
-          :label="$t('WHATSAPP_FLOWS.LIST.NEW')"
-          data-testid="flow-new"
-          @click="startNew"
-        />
       </template>
     </TemplatesToolbar>
     <div
@@ -255,6 +243,7 @@ const categoryLabel = flow => {
       :items="flows"
       :total="total"
       :page-size="PAGE_SIZE"
+      @open="edit"
     >
       <template #NAME="{ item: flow }">
         <span class="block max-w-56 truncate text-heading-3 text-n-slate-12">{{
@@ -267,25 +256,29 @@ const categoryLabel = flow => {
           >{{ $t('WHATSAPP_FLOWS.META.UNPUBLISHED_CHANGES_BADGE') }}</span
         >
       </template>
-      <template #CATEGORIES="{ item: flow }">
+      <template #CATEGORY="{ item: flow }">
         <span
           class="px-2 py-1 text-xs rounded-md whitespace-nowrap bg-n-alpha-2"
           >{{ categoryLabel(flow) }}</span
         >
       </template>
-      <template #SCREENS_HEADER="{ item: flow }">
+      <template #SCREENS="{ item: flow }">
         <span
           :aria-label="$t('WHATSAPP_FLOWS.LIST.SCREENS', { n: flow.screens })"
           >{{ flow.screens }}</span
         >
       </template>
+      <template #INBOX>
+        <span>{{ $t('WHATSAPP_TEMPLATE_MGMT.FILTERS.ALL_INBOXES') }}</span>
+      </template>
       <template #UPDATED="{ item: flow }">
         {{ dateOf(flow.updated_at) }}
       </template>
-      <template #PUBLICATION="{ item: flow }">
+      <template #STATUS="{ item: flow }">
         <FlowPublicationSummary
           v-if="isAdmin"
           :summary="flow.publication_summary"
+          @click.stop
           @details="publicationPanel.open(flow)"
         />
       </template>
@@ -297,7 +290,6 @@ const categoryLabel = flow => {
           @edit="edit(flow)"
           @duplicate="askDuplicate(flow)"
           @delete="askDelete(flow)"
-          @view="publicationPanel.open(flow)"
         />
       </template>
     </TemplatesTable>

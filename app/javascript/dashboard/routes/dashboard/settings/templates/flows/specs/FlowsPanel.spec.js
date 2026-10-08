@@ -10,11 +10,12 @@ import TemplatesIndex from '../../Index.vue';
 vi.mock('../../TemplateCard.vue', () => ({ default: { template: '<div />' } }));
 vi.mock('../../../SettingsLayout.vue', () => ({
   default: {
-    template: '<div><slot name="header"/><slot name="body"/><slot/></div>',
+    template:
+      '<div><slot name="header"/><slot name="preBody"/><slot name="body"/><slot/></div>',
   },
 }));
 vi.mock('../../../components/BaseSettingsHeader.vue', () => ({
-  default: { template: '<div><slot name="tabs"/></div>' },
+  default: { template: '<div><slot name="tabs"/><slot name="actions"/></div>' },
 }));
 
 vi.mock('../../TemplateFormDrawer.vue', () => ({
@@ -143,9 +144,11 @@ describe('FlowsPanel', () => {
         stubs: {
           SettingsLayout: {
             template:
-              '<div><slot name="header"/><slot name="body"/><slot/></div>',
+              '<div><slot name="header"/><slot name="preBody"/><slot name="body"/><slot/></div>',
           },
-          BaseSettingsHeader: { template: '<div><slot name="tabs"/></div>' },
+          BaseSettingsHeader: {
+            template: '<div><slot name="tabs"/><slot name="actions"/></div>',
+          },
           Dialog: DialogStub,
           FlowPublicationPanel: DetailStub,
         },
@@ -244,7 +247,6 @@ describe('FlowsPanel', () => {
 
   it('loads newly created flows and their counts when returning from the editor', async () => {
     const wrapper = await mountPanel();
-    await wrapper.get('[data-testid="flow-new"]').trigger('click');
     wrapper.unmount();
     WhatsappFlowsAPI.list.mockResolvedValueOnce({
       data: {
@@ -384,7 +386,7 @@ describe('FlowsPanel', () => {
     const rows = wrapper.findAll('tbody tr');
     expect(rows).toHaveLength(1);
     expect(rows[0].text()).toContain('Datos del cliente');
-    expect(wrapper.text()).toContain('WHATSAPP_FLOWS.LIST.SCREENS_HEADER');
+    expect(wrapper.text()).toContain('WHATSAPP_TEMPLATE_MGMT.TABLE.SCREENS');
     expect(rows[0].text()).toContain(
       'WHATSAPP_FLOWS.CATEGORIES.LEAD_GENERATION'
     );
@@ -446,11 +448,30 @@ describe('FlowsPanel', () => {
   });
 
   it('"Nuevo flow" opens the full page of a new flow', async () => {
-    const wrapper = await mountPanel();
+    const wrapper = mount(TemplatesIndex, {
+      global: {
+        mocks: { $t: key => key },
+        stubs: { Dialog: DialogStub, FlowPublicationPanel: DetailStub },
+      },
+    });
+    await flushPromises();
 
-    await wrapper.get('[data-testid="flow-new"]').trigger('click');
+    await wrapper.get('[data-testid="page-create"]').trigger('click');
 
     expect(push).toHaveBeenCalledWith({ name: 'settings_flow_new' });
+    wrapper.unmount();
+  });
+
+  it('opens the editor when a row is clicked or receives Enter', async () => {
+    const wrapper = await mountPanel();
+    await wrapper.get('tbody tr').trigger('click');
+    await wrapper.get('tbody tr').trigger('keydown', { key: 'Enter' });
+    expect(push).toHaveBeenCalledTimes(2);
+    expect(push).toHaveBeenCalledWith({
+      name: 'settings_flow_edit',
+      params: { flowId: 1 },
+    });
+    wrapper.unmount();
   });
 
   it('editing a flow opens its own full page', async () => {

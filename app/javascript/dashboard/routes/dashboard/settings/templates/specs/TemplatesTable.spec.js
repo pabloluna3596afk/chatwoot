@@ -36,7 +36,7 @@ describe('shared templates table', () => {
     expect(footer.props('perPageOptions')).toEqual([10, 25, 50]);
   });
 
-  it('gives all four actions exactly the same Button props and emits distinct actions', async () => {
+  it('gives all three actions exactly the same Button props and emits distinct actions', async () => {
     const wrapper = mount(TemplateRowActions, {
       props: {
         canManage: true,
@@ -54,7 +54,6 @@ describe('shared templates table', () => {
       'i-lucide-pencil',
       'i-lucide-copy',
       'i-lucide-trash',
-      'i-lucide-eye',
     ]);
     await Promise.all(
       buttons.map(async button => {
@@ -66,11 +65,31 @@ describe('shared templates table', () => {
         await button.trigger('click');
       })
     );
-    ['edit', 'duplicate', 'delete', 'view'].forEach(action =>
+    ['edit', 'duplicate', 'delete'].forEach(action =>
       expect(wrapper.emitted(action)).toHaveLength(1)
     );
     expect(buttons[2].classes()).toContain('hover:enabled:text-n-ruby-11');
     expect(buttons[2].classes()).not.toContain('bg-n-ruby-9');
+  });
+
+  it('opens rows on click and Enter, without opening for action clicks', async () => {
+    const wrapper = mount(TemplatesTable, {
+      props: {
+        columns: [{ key: 'name', label: 'Name' }],
+        items: [{ id: 1, name: 'Test' }],
+        total: 1,
+        page: 1,
+        pageSize: 10,
+      },
+      slots: { name: '<button @click.stop>Action</button>' },
+    });
+    const row = wrapper.get('tbody tr');
+    await row.trigger('click');
+    await row.trigger('keydown.enter');
+    expect(wrapper.emitted('open')).toHaveLength(2);
+    await row.get('button').trigger('click');
+    expect(wrapper.emitted('open')).toHaveLength(2);
+    wrapper.unmount();
   });
 
   it('keeps Spanish and English additions aligned and uses Bandeja', () => {

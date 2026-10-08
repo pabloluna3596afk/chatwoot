@@ -1,8 +1,12 @@
 <script setup>
 import Input from 'dashboard/components-next/input/Input.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import TemplatesCreateButton from './TemplatesCreateButton.vue';
 
-defineProps({ placeholder: { type: String, required: true } });
+defineProps({
+  placeholder: { type: String, required: true },
+  primaryAction: { type: Object, default: null },
+});
 const search = defineModel({ type: String, default: '' });
 </script>
 
@@ -26,6 +30,9 @@ const search = defineModel({ type: String, default: '' });
       </Input>
       <slot name="filters" />
     </div>
-    <div class="flex items-center gap-2"><slot name="actions" /></div>
+    <div class="flex items-center gap-2">
+      <slot name="actions" />
+      <TemplatesCreateButton v-if="primaryAction" :action="primaryAction" />
+    </div>
   </div>
 </template>
