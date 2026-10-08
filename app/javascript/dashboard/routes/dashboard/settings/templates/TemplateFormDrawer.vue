@@ -18,6 +18,7 @@ import { useAccount } from 'dashboard/composables/useAccount';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TemplateComboBox from './TemplateComboBox.vue';
+import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import SidePanel from 'dashboard/components-next/side-panel/SidePanel.vue';
@@ -606,24 +607,15 @@ const buttonChoices = computed(() =>
           <span class="text-sm text-n-slate-12">{{
             variableLabel(token)
           }}</span>
-          <TemplateComboBox
+          <VariablePicker
+            mode="read"
             :aria-label="
               $t('WHATSAPP_TEMPLATE_MGMT.FORM.MAP_VARIABLE') +
               ' ' +
               variableLabel(token)
             "
             :model-value="systemMapping[token] || ''"
-            :options="variableOptions"
-            :groups="variableGroups"
-            :search-placeholder="
-              $t('WHATSAPP_TEMPLATE_MGMT.FORM.SEARCH_VARIABLE')
-            "
-            :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.MAP_VARIABLE')"
-            teleport
             :data-testid="`map-variable-${token}`"
-            show-search
-            :show-create-attribute="isAdmin"
-            @create-attribute="showAddAttribute = true"
             @update:model-value="value => (systemMapping[token] = value)"
           />
         </div>

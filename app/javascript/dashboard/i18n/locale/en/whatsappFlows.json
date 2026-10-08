@@ -210,9 +210,6 @@
       "CATEGORY_REQUIRED": "Choose a category.",
       "START_REQUIRED": "Choose a starting point.",
       "SAVE_TO": "Save to",
-      "NO_SAVE": "Do not save",
-      "CONTACT": "Contact",
-      "CUSTOM_ATTRIBUTES": "Custom attributes",
       "TARGETS": {
         "nombre": "Name",
         "correo": "Email",
@@ -224,11 +221,7 @@
       "ACTIONS": "Actions",
       "UNSAVED": "Unsaved changes",
       "SAVE_STATE": "Saved",
-      "FLOW_PROPS": "Flow",
-      "NO_CUSTOM_ATTRIBUTES": "No custom attributes",
-      "NO_COMPATIBLE_ATTRIBUTES": "No compatible attributes for this field",
-      "CREATE_CUSTOM_ATTRIBUTE": "Create custom attribute",
-      "SEARCH_SAVE_TARGETS": "Search destinations"
+      "FLOW_PROPS": "Flow"
     },
     "ERRORS": {
       "screens_required": "Add at least one screen.",

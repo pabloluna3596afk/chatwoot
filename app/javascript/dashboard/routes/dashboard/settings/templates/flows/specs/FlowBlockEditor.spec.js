@@ -78,11 +78,11 @@ describe('FlowBlockEditor', () => {
     const wrapper = mountBlock(1);
     const combo = wrapper.findComponent('[data-testid="flow-save-to"]');
     expect(combo.props('groups')[1].emptyState).toBe(
-      'WHATSAPP_FLOWS.EDITOR.NO_CUSTOM_ATTRIBUTES'
+      'VARIABLE_PICKER.NO_ATTRIBUTES'
     );
-    expect(wrapper.find('[data-testid="flow-create-attribute"]').exists()).toBe(
-      true
-    );
+    expect(
+      wrapper.find('[data-testid="variable-create-attribute"]').exists()
+    ).toBe(true);
     await wrapper.setProps({
       attributes: [
         {
@@ -93,14 +93,14 @@ describe('FlowBlockEditor', () => {
       ],
     });
     expect(combo.props('groups')[1].emptyState).toBe(
-      'WHATSAPP_FLOWS.EDITOR.NO_COMPATIBLE_ATTRIBUTES'
+      'VARIABLE_PICKER.NO_COMPATIBLE'
     );
     expect(
       combo.props('options').some(option => option.value.endsWith('.date'))
     ).toBe(false);
-    expect(wrapper.find('[data-testid="flow-create-attribute"]').exists()).toBe(
-      true
-    );
+    expect(
+      wrapper.find('[data-testid="variable-create-attribute"]').exists()
+    ).toBe(true);
   });
 
   it('keeps the CTA for admins with compatible attributes, opens the existing contact modal and refreshes on close', async () => {
@@ -119,10 +119,12 @@ describe('FlowBlockEditor', () => {
       'administrator',
       refresh
     );
-    expect(wrapper.find('[data-testid="flow-create-attribute"]').exists()).toBe(
-      true
-    );
-    await wrapper.get('[data-testid="flow-create-attribute"]').trigger('click');
+    expect(
+      wrapper.find('[data-testid="variable-create-attribute"]').exists()
+    ).toBe(true);
+    await wrapper
+      .get('[data-testid="variable-create-attribute"]')
+      .trigger('click');
     await flushPromises();
     const modal = wrapper.findComponent({ name: 'AddAttribute' });
     expect(modal.exists()).toBe(true);
@@ -161,10 +163,10 @@ describe('FlowBlockEditor', () => {
     expect(
       wrapper.findComponent('[data-testid="flow-save-to"]').props('groups')[1]
         .emptyState
-    ).toBe('WHATSAPP_FLOWS.EDITOR.NO_CUSTOM_ATTRIBUTES');
-    expect(wrapper.find('[data-testid="flow-create-attribute"]').exists()).toBe(
-      false
-    );
+    ).toBe('VARIABLE_PICKER.NO_ATTRIBUTES');
+    expect(
+      wrapper.find('[data-testid="variable-create-attribute"]').exists()
+    ).toBe(false);
   });
 
   it('groups writable targets, saves the Liquid path and removes the optional mapping', async () => {

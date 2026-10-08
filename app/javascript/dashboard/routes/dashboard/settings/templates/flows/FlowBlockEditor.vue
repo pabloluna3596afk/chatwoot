@@ -2,17 +2,16 @@
 // The settings of the selected block (the right column of the builder): its text or question, the options of a choice,
 // the files allowed and the condition that shows it. It never changes the block it receives: every edit goes out as a
 // new block.
-import { computed, defineAsyncComponent, ref } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { useMapGetter } from 'dashboard/composables/store';
-import { useStore } from 'vuex';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
-import { saveTargets, saveTargetLabel } from './flowSaveTargets';
+import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
+import { writableFor } from 'dashboard/helper/templateVariableBindings';
 import {
   INPUT_KINDS,
   LIMITS,
@@ -42,19 +41,6 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const { t, te } = useI18n();
-const AddAttribute = defineAsyncComponent(
-  () =>
-    import('dashboard/routes/dashboard/settings/attributes/AddAttribute.vue')
-);
-const currentRole = useMapGetter('getCurrentRole');
-const isAdmin = computed(() => currentRole.value === 'administrator');
-const store = useStore();
-const showAddAttribute = ref(false);
-const closeAddAttribute = async () => {
-  showAddAttribute.value = false;
-  await store.dispatch('attributes/get');
-};
-
 const isText = computed(() => TEXT_TYPES.includes(props.modelValue.type));
 const hasOptions = computed(() => OPTION_TYPES.includes(props.modelValue.type));
 const isFile = computed(() =>
@@ -67,29 +53,6 @@ const hasHelper = computed(
 const patch = changes =>
   emit('update:modelValue', { ...props.modelValue, ...changes });
 
-const targets = computed(() => saveTargets(props.modelValue, props.attributes));
-const targetOptions = computed(() => [
-  { value: '', label: t('WHATSAPP_FLOWS.EDITOR.NO_SAVE') },
-  ...targets.value.map(target => ({
-    value: target.key,
-    label: saveTargetLabel(target, t),
-    group: target.group,
-  })),
-]);
-const targetGroups = computed(() => [
-  { key: 'system', label: t('WHATSAPP_FLOWS.EDITOR.CONTACT') },
-  {
-    key: 'contact',
-    label: t('WHATSAPP_FLOWS.EDITOR.CUSTOM_ATTRIBUTES'),
-    emptyState: t(
-      props.attributes.some(
-        attribute => attribute.attribute_model === 'contact_attribute'
-      )
-        ? 'WHATSAPP_FLOWS.EDITOR.NO_COMPATIBLE_ATTRIBUTES'
-        : 'WHATSAPP_FLOWS.EDITOR.NO_CUSTOM_ATTRIBUTES'
-    ),
-  },
-]);
 const setSaveTo = target => {
   const block = { ...props.modelValue };
   if (target) block.save_to = { target };
@@ -232,34 +195,17 @@ const keepValue = (apply, value) => {
       />
       <div v-if="!isFile" class="grid gap-1.5 text-sm text-n-slate-12">
         <span>{{ $t('WHATSAPP_FLOWS.EDITOR.SAVE_TO') }}</span>
-        <ComboBox
+        <VariablePicker
+          mode="write"
           :model-value="modelValue.save_to?.target || ''"
-          :options="targetOptions"
+          :attributes="attributes"
+          :scopes="['system', 'contact']"
+          :filter="binding => writableFor(binding, modelValue)"
           :aria-label="$t('WHATSAPP_FLOWS.EDITOR.SAVE_TO')"
-          :groups="targetGroups"
-          teleport
-          show-search
-          :search-placeholder="$t('WHATSAPP_FLOWS.EDITOR.SEARCH_SAVE_TARGETS')"
+          allow-none
           data-testid="flow-save-to"
           @update:model-value="setSaveTo"
-        >
-          <template v-if="isAdmin" #footer="{ close }">
-            <Button
-              type="button"
-              ghost
-              slate
-              sm
-              class="w-full justify-start"
-              icon="i-lucide-plus"
-              :label="$t('WHATSAPP_FLOWS.EDITOR.CREATE_CUSTOM_ATTRIBUTE')"
-              data-testid="flow-create-attribute"
-              @click="
-                close();
-                showAddAttribute = true;
-              "
-            />
-          </template>
-        </ComboBox>
+        />
       </div>
       <div v-if="hasHelper" class="grid gap-1">
         <Input
@@ -418,10 +364,5 @@ const keepValue = (apply, value) => {
         {{ errorText(error) }}
       </li>
     </ul>
-    <AddAttribute
-      v-if="showAddAttribute"
-      :selected-attribute-model-tab="1"
-      :on-close="closeAddAttribute"
-    />
   </div>
 </template>

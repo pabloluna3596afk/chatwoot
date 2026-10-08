@@ -210,9 +210,6 @@
       "CATEGORY_REQUIRED": "Elige una categoría.",
       "START_REQUIRED": "Elige un punto de partida.",
       "SAVE_TO": "Guardar en",
-      "NO_SAVE": "No guardar",
-      "CONTACT": "Contacto",
-      "CUSTOM_ATTRIBUTES": "Atributos personalizados",
       "TARGETS": {
         "nombre": "Nombre",
         "correo": "Correo",
@@ -224,11 +221,7 @@
       "ACTIONS": "Acciones",
       "UNSAVED": "Cambios sin guardar",
       "SAVE_STATE": "Guardado",
-      "FLOW_PROPS": "Flow",
-      "NO_CUSTOM_ATTRIBUTES": "No hay atributos personalizados",
-      "NO_COMPATIBLE_ATTRIBUTES": "No hay atributos compatibles con este campo",
-      "CREATE_CUSTOM_ATTRIBUTE": "Crear atributo personalizado",
-      "SEARCH_SAVE_TARGETS": "Buscar destino"
+      "FLOW_PROPS": "Flow"
     },
     "ERRORS": {
       "screens_required": "Añade al menos una pantalla.",

@@ -357,7 +357,7 @@ describe('TemplateFormDrawer', () => {
         expect(selector.get('button').classes()).toContain('!py-2.5');
         expect(selector.get('button').classes()).toContain('font-normal');
         const portal = selector.element.parentElement.querySelector(
-          '[data-template-picker-portal]'
+          '[data-template-picker-portal], [data-variable-picker-portal]'
         );
         expect(portal.className).toContain('!static');
         expect(portal.className).toContain('!max-h-80');
@@ -544,9 +544,10 @@ describe('TemplateFormDrawer', () => {
     await flushPromises();
     const select = wrapper.findComponent('[data-testid="map-variable-1"]');
     expect(select.props('groups')).toEqual(
-      ['system', 'contact', 'conversation', 'captain'].map(key => ({
+      ['system', 'contact', 'conversation', 'appointment'].map(key => ({
         key,
-        label: `WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_GROUPS.${key.toUpperCase()}`,
+        label: `VARIABLE_PICKER.GROUPS.${key.toUpperCase()}`,
+        emptyState: 'VARIABLE_PICKER.NO_COMPATIBLE',
       }))
     );
     expect(select.props('options')).toEqual(
@@ -559,14 +560,14 @@ describe('TemplateFormDrawer', () => {
         },
         ...CAPTAIN_VARIABLES.map(name => ({
           value: name,
-          label: name,
-          group: 'captain',
+          label: `VARIABLE_PICKER.LABELS.${name} (${name})`,
+          group: 'appointment',
         })),
       ])
     );
     await select.get('button').trigger('click');
     expect(select.get('input[type="search"]').attributes('placeholder')).toBe(
-      'WHATSAPP_TEMPLATE_MGMT.FORM.SEARCH_VARIABLE'
+      'VARIABLE_PICKER.SEARCH'
     );
     await select.get('input[type="search"]').setValue('Plan');
     expect(
@@ -590,7 +591,9 @@ describe('TemplateFormDrawer', () => {
     await flushPromises();
     const select = wrapper.findComponent('[data-testid="map-variable-1"]');
     await select.get('button').trigger('click');
-    await select.get('[data-testid="copy-create-attribute"]').trigger('click');
+    await select
+      .get('[data-testid="variable-create-attribute"]')
+      .trigger('click');
     await flushPromises();
     const modal = wrapper.findComponent({ name: 'AddAttribute' });
     expect(modal.props('selectedAttributeModelTab')).toBe(1);
@@ -623,9 +626,9 @@ describe('TemplateFormDrawer', () => {
     await wrapper.vm.open(positional);
     await wrapper.get('[data-testid="system-copy-open"]').trigger('click');
     await flushPromises();
-    expect(wrapper.find('[data-testid="copy-create-attribute"]').exists()).toBe(
-      false
-    );
+    expect(
+      wrapper.find('[data-testid="variable-create-attribute"]').exists()
+    ).toBe(false);
     wrapper.unmount();
   });
 
