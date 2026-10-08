@@ -166,7 +166,7 @@
         "COPY_CODE_TOO_LONG": "The code can have up to {codeLimit} characters.",
         "TOO_MANY_COPY_CODE": "You can only add one copy code button.",
         "EDIT_STRUCTURE_LOCKED": "Keep the components and the number and order of variables. Create a copy to change them.",
-        "SYSTEM_MAPPING_REQUIRED": "Map each number to a different system variable before creating the copy.",
+        "SYSTEM_MAPPING_REQUIRED": "Map each number to a different variable before creating the copy.",
         "COPY_NAME_REQUIRED": "The copy needs a different name from the original template.",
         "URL_EXAMPLE_INVALID": "Use a full URL with the same prefix and a value replacing the variable."
       },
@@ -193,15 +193,16 @@
         "upload_refused": "Meta does not let this channel access upload example files. You can use a text header."
       },
       "VARIABLE_GROUPS": {
-        "SYSTEM": "Contact and system data",
-        "CONTACT": "Contact custom attributes",
-        "CONVERSATION": "Conversation custom attributes",
+        "SYSTEM": "System",
+        "CONTACT": "Contact attributes",
+        "CONVERSATION": "Conversation attributes",
         "CAPTAIN": "Captain appointments"
       },
       "SEARCH_VARIABLE": "Search variable...",
-      "SYSTEM_COPY": "Create copy with system variables",
-      "SYSTEM_COPY_HELP": "Map each variable to system data; the old template keeps working until Meta approves the copy.",
-      "MAP_VARIABLE": "Choose a system variable",
+      "SYSTEM_COPY": "Create copy with variables",
+      "SYSTEM_COPY_HELP": "Choose a variable for each number; the old template keeps working until Meta approves the copy.",
+      "MAP_VARIABLE": "Choose a variable",
+      "CREATE_ATTRIBUTE": "Create new attribute",
       "APPROVED_WARNING": "Meta allows 1 edit per 24 hours and 10 in 30 days. Name and language cannot change; saving sends the template back to review and it may become pending or paused.",
       "LAST_EDIT": "Last edit: {time}",
       "EDIT_STRUCTURE_HELP": "You can edit text while keeping the components and variables in the same order.",

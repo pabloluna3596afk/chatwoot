@@ -558,12 +558,15 @@ export const suggestSystemMapping = form =>
     })
   );
 
-export const systemMappingValid = (form, mapping) => {
+export const systemMappingValid = (
+  form,
+  mapping,
+  variableNames = SYSTEM_BINDINGS.map(binding => binding.name)
+) => {
   const names = copyVariableTokens(form).map(token => mapping[token]);
   return (
-    names.every(name =>
-      SYSTEM_BINDINGS.some(binding => binding.name === name)
-    ) && new Set(names).size === names.length
+    names.every(name => variableNames.includes(name)) &&
+    new Set(names).size === names.length
   );
 };
 

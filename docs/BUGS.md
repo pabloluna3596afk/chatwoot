@@ -1465,6 +1465,15 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
 - Verify: open the positional edit preset in Spanish/Guayaquil and check `7 oct 2026, 05:00`;
   check the Meta error state too. Template Vitest folder: 277 tests pass; ESLint and Prettier pass.
 
+### B-NEW-61 -- Template copy mapping excluded attributes and Captain variables
+
+- Files: `settings/templates/TemplateFormDrawer.vue`, `templateForm.js`, drawer specs and en/es template strings.
+- Reuse the editor's grouped variable source for copy mappings, including contact/conversation attributes and Captain.
+  Validate against those available names, preserving distinct mappings. Rename the action to "Create copy with variables".
+- Reuse the Flow picker's ComboBox footer and existing attribute modal for administrators; refresh bindings on close.
+- Verify: map a positional copy to system, contact, conversation and appointment variables; submit creates only the NAMED copy.
+  Search the grouped picker, open/close the attribute modal, and check the CTA is absent for agents.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)

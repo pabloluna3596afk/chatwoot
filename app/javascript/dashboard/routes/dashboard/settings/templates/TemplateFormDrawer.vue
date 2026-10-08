@@ -1,11 +1,19 @@
 <script setup>
-import { nextTick, computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
+import {
+  nextTick,
+  computed,
+  defineAsyncComponent,
+  onBeforeUnmount,
+  reactive,
+  ref,
+  watch,
+} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useLocale } from 'shared/composables/useLocale';
 import { vOnClickOutside } from '@vueuse/components';
 
 import { useAlert } from 'dashboard/composables';
-import { useStore } from 'dashboard/composables/store';
+import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { useTemplateBindings } from 'dashboard/composables/useTemplateBindings';
 import { useAccount } from 'dashboard/composables/useAccount';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
@@ -62,6 +70,17 @@ const { resolvedLocale } = useLocale();
 const store = useStore();
 const { currentAccount } = useAccount();
 const { bindings } = useTemplateBindings('message');
+const currentRole = useMapGetter('getCurrentRole');
+const isAdmin = computed(() => currentRole.value === 'administrator');
+const AddAttribute = defineAsyncComponent(
+  () =>
+    import('dashboard/routes/dashboard/settings/attributes/AddAttribute.vue')
+);
+const showAddAttribute = ref(false);
+const closeAddAttribute = async () => {
+  showAddAttribute.value = false;
+  await store.dispatch('attributes/get');
+};
 
 const LANGUAGE_OPTIONS = computed(() => languageOptions(locale.value));
 
@@ -103,13 +122,48 @@ const variableMode = ref('NAMED');
 const customVariable = ref('');
 const showVariableMenu = ref(false);
 
+const bindingLabel = binding => {
+  const key = `VARIABLES.LABELS.${binding.key}`;
+  const label = binding.label || (te(key) ? t(key) : binding.name);
+  return `${label} (${binding.name})`;
+};
+
+const variableGroups = computed(() =>
+  ['system', 'contact', 'conversation', 'captain'].map(key => ({
+    key,
+    label: t(
+      `WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_GROUPS.${key.toUpperCase()}`
+    ),
+  }))
+);
+const variableOptions = computed(() => {
+  const known = new Set(bindings.value.map(binding => binding.name));
+  return [
+    ...bindings.value.map(binding => ({
+      value: binding.name,
+      label: bindingLabel(binding),
+      group: binding.group,
+    })),
+    ...CAPTAIN_VARIABLES.filter(name => !known.has(name)).map(name => ({
+      value: name,
+      label: name,
+      group: 'captain',
+    })),
+  ];
+});
+
 const isEdit = computed(() => Boolean(editing.value));
 const mappedForm = computed(() =>
   copySource.value ? copyWithSystemVariables(form, systemMapping) : form
 );
 const errors = computed(() => {
   const mappingReady =
-    !copySource.value || systemMappingValid(form, systemMapping);
+    !copySource.value ||
+    systemMappingValid(
+      form,
+      systemMapping,
+      variableOptions.value.map(option => option.value)
+    );
   const result = validateForm(mappingReady ? mappedForm.value : form, {
     isEdit: isEdit.value,
     original: editing.value,
@@ -303,17 +357,6 @@ const nextNumber = computed(
   () => Math.max(0, ...variableNumbers(form.body.text)) + 1
 );
 
-const bindingLabel = binding => {
-  const key = `VARIABLES.LABELS.${binding.key}`;
-  const label = binding.label || (te(key) ? t(key) : binding.name);
-  return `${label} (${binding.name})`;
-};
-
-const systemOptions = computed(() =>
-  bindings.value
-    .filter(binding => binding.group === 'system')
-    .map(binding => ({ value: binding.name, label: bindingLabel(binding) }))
-);
 // What can be put in the message with one click: the CRM / system names (and the contact's and the conversation's
 // custom attributes, which the send dialog fills in by name), then the names Captain fills in for appointments; or the
 // next number when the message uses numbered variables.
@@ -332,29 +375,20 @@ const variableMenuSections = computed(() => {
     ];
   }
   const taken = new Set(bodyVariables.value);
-  const section = (group, title) => ({
-    title: t(`WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_GROUPS.${title}`),
-    items: bindings.value
-      .filter(binding => binding.group === group && !taken.has(binding.name))
-      .map(binding => ({
-        label: bindingLabel(binding),
-        action: 'insert',
-        value: binding.name,
-      })),
-  });
-  const known = new Set(bindings.value.map(binding => binding.name));
-  const captain = {
-    title: t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_GROUPS.CAPTAIN'),
-    items: CAPTAIN_VARIABLES.filter(
-      name => !known.has(name) && !taken.has(name)
-    ).map(name => ({ label: name, action: 'insert', value: name })),
-  };
-  return [
-    section('system', 'SYSTEM'),
-    section('contact', 'CONTACT'),
-    section('conversation', 'CONVERSATION'),
-    captain,
-  ].filter(item => item.items.length);
+  return variableGroups.value
+    .map(group => ({
+      title: group.label,
+      items: variableOptions.value
+        .filter(
+          option => option.group === group.key && !taken.has(option.value)
+        )
+        .map(option => ({
+          label: option.label,
+          action: 'insert',
+          value: option.value,
+        })),
+    }))
+    .filter(item => item.items.length);
 });
 
 const customVariableInvalid = computed(
@@ -605,12 +639,33 @@ const buttonChoices = computed(() =>
               variableLabel(token)
             "
             :model-value="systemMapping[token] || ''"
-            :options="systemOptions"
+            :options="variableOptions"
+            :groups="variableGroups"
+            :search-placeholder="
+              $t('WHATSAPP_TEMPLATE_MGMT.FORM.SEARCH_VARIABLE')
+            "
             :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.MAP_VARIABLE')"
             teleport
             :data-testid="`map-variable-${token}`"
             @update:model-value="value => (systemMapping[token] = value)"
-          />
+          >
+            <template v-if="isAdmin" #footer="{ close }">
+              <Button
+                type="button"
+                ghost
+                slate
+                sm
+                class="w-full justify-start"
+                icon="i-lucide-plus"
+                :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CREATE_ATTRIBUTE')"
+                data-testid="copy-create-attribute"
+                @click="
+                  close();
+                  showAddAttribute = true;
+                "
+              />
+            </template>
+          </ComboBox>
         </div>
         <p
           v-if="fieldError('mapping')"
@@ -1233,4 +1288,9 @@ const buttonChoices = computed(() =>
       </div>
     </template>
   </SidePanel>
+  <AddAttribute
+    v-if="showAddAttribute"
+    :selected-attribute-model-tab="1"
+    :on-close="closeAddAttribute"
+  />
 </template>
