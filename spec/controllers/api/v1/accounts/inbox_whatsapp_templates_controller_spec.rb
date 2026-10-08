@@ -206,26 +206,60 @@ RSpec.describe 'Inbox WhatsApp templates API', type: :request do
 
   describe 'the Meta library' do
     it 'lists it with the filters' do
-      allow(service).to receive(:library).and_return(templates: [{ 'name' => 'appointment_reminder' }], next: nil)
+      allow(service).to receive(:library).and_return(templates: [{ 'name' => 'appointment_reminder' }], next: 'abc', language_used: 'es')
 
-      get "#{base_url}/library", params: { search: 'cita', language: 'es' }, headers: admin.create_new_auth_token
+      get "#{base_url}/library", params: { search: 'cita', language: 'es_EC', after: 'previous' }, headers: admin.create_new_auth_token
 
       expect(response).to have_http_status(:ok)
       expect(response.parsed_body['templates'].first['name']).to eq('appointment_reminder')
-      expect(service).to have_received(:library).with(search: 'cita', language: 'es')
+      expect(response.parsed_body).to include('language_used' => 'es', 'next' => 'abc')
+      expect(service).to have_received(:library).with(search: 'cita', language: 'es_EC', after: 'previous')
     end
 
     it 'creates a template from it' do
-      allow(service).to receive(:create_from_library).and_return(id: '7', status: 'APPROVED', category: 'UTILITY')
+      allow(service).to receive(:create_from_library).and_return(id: '7', status: 'APPROVED', category: 'UTILITY', language_used: 'es')
 
       post "#{base_url}/library", params: { library_template: { library_template_name: 'appointment_reminder', name: 'recordatorio',
-                                                                language: 'es', category: 'UTILITY' } },
+                                                                language: 'es_EC', category: 'UTILITY' } },
                                   headers: admin.create_new_auth_token, as: :json
 
       expect(response).to have_http_status(:created)
+      expect(response.parsed_body['language_used']).to eq('es')
       expect(service).to have_received(:create_from_library).with(
-        library_template_name: 'appointment_reminder', name: 'recordatorio', language: 'es', category: 'UTILITY'
+        library_template_name: 'appointment_reminder', name: 'recordatorio', language: 'es_EC', category: 'UTILITY'
       )
+    end
+
+    it 'returns the real Meta error from the library' do
+      error = Whatsapp::TemplateManagementService::Error.new('meta_error', detail: 'Invalid topic', meta_code: 100, http_status: 400)
+      allow(service).to receive(:library).and_raise(error)
+
+      get "#{base_url}/library", params: { language: 'es_EC' }, headers: admin.create_new_auth_token
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body).to include('error' => 'meta_error', 'message' => 'Invalid topic', 'meta_code' => 100)
+    end
+
+    it 'returns the real Meta user message when creation fails' do
+      error = Whatsapp::TemplateManagementService::Error.new('name_exists', detail: 'Este nombre ya existe.', meta_code: 100)
+      allow(service).to receive(:create_from_library).and_raise(error)
+
+      post "#{base_url}/library", params: { library_template: { library_template_name: 'appointment_reminder', name: 'recordatorio',
+                                                                language: 'es_EC', category: 'UTILITY' } },
+                                  headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body).to include('error' => 'name_exists', 'message' => 'Este nombre ya existe.', 'meta_code' => 100)
+    end
+
+    it 'preserves the status mapping for rate errors' do
+      error = Whatsapp::TemplateManagementService::Error.new('rate_limited', detail: 'Too many requests', meta_code: 4)
+      allow(service).to receive(:library).and_raise(error)
+
+      get "#{base_url}/library", headers: admin.create_new_auth_token
+
+      expect(response).to have_http_status(:bad_gateway)
+      expect(response.parsed_body['message']).to eq('Too many requests')
     end
 
     it 'refuses authentication templates and bad names, and agents' do

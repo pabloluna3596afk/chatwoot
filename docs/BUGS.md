@@ -1400,6 +1400,43 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
   Check a template with an image header and quick-reply/URL/Flow buttons; labels have no actions. Historical plain text stays plain.
 - Coverage: Vitest bubbles/selection plus RSpec snapshots, Captain reminder/reengagement and HTTP projection examples.
 
+### B-NEW-56 — Meta template library root endpoint and language fallback
+
+- Files: `app/services/whatsapp/template_management_service.rb`, `inbox_whatsapp_templates_controller.rb`,
+  `settings/templates/LibraryPanel.vue`, English/Spanish `whatsappTemplateMgmt.json`, and their service/request/Vitest specs.
+- The Predefinidas tab called the WABA's `/message_template_library`, which Graph v22.0 rejects as a nonexistent field.
+  The library now uses the Graph root endpoint, with the same token, filters and `after` cursor.
+- Regional Spanish requests map to `es`; supported regional library codes `en_US` and `pt_BR` are preserved.
+  A GET rejected with Meta's specific unavailable-library-language error retries in `en_US`, then without language.
+  Other errors propagate immediately. The response exposes `language_used` (`null` means all available languages).
+- Creation stays at the WABA's `/message_templates`, uses the same language mapping and reports `language_used`.
+  Writes are never retried. Meta's `error_user_msg` or `message` reaches the UI, with a Spanish/English library error context.
+- Verify: open Predefinidas with an `es_EC` inbox, check Spanish results and the actual language label, load another page,
+  then create a library template and check the Spanish creation confirmation. Force a Meta refusal and check its real text.
+- Regression coverage: WebMock root/auth/filters/cursor, mapping/fallback order/final errors and creation; request response/status
+  contracts; LibraryPanel actual language, creation confirmation and Meta error text. Rails/RuboCop require PM CI verification
+  because the host has no Ruby and this task forbids Docker.
+
+### B-NEW-57 — Template library CI query matcher types
+
+- File: `spec/services/whatsapp/template_management_service_spec.rb`.
+- CI run `37707033360`, job `backend-tests (16, 5)`, failed both library fallback examples before the first response:
+  WebMock's partial query matchers expected integer `limit: 25`, while the decoded HTTP query contained string `"25"`.
+- Match the serialized limit as a string in both partial query stubs. Production behavior stays unchanged;
+  the examples still check preserved filters/pagination and the Spanish → US English → all-languages retry order.
+- Verify: rerun the two `#library` fallback examples at lines 235 and 249 in CI. RSpec cannot run locally;
+  check the changed Ruby file with the CI RuboCop Docker image.
+
+### B-NEW-58 — Library cancellation spec retained a removed inbox selection
+
+- File: `settings/templates/specs/LibraryPanel.spec.js`.
+- CI run `37722942084` failed only the superseded-response frontend example. It replaced inbox 5 with inbox 6
+  while the selected inbox remained 5, then expected inbox 6's response language to be displayed.
+- Refresh the same selected inbox instead, and wait for the filter update before asserting one current row,
+  no stale rows, and the current Spanish language rather than the superseded US English response.
+- Production counted filters, inbox destinations, language reporting and Meta errors remain unchanged.
+- Verify: run the LibraryPanel Vitest suite; all backend shards and RuboCop passed in the failing CI run.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)

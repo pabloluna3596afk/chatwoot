@@ -179,27 +179,124 @@ RSpec.describe Whatsapp::TemplateManagementService do
   end
 
   describe '#library' do
+    let(:language_error) do
+      meta_error(code: 100, message: 'Invalid parameter',
+                 user_msg: "Content can't be added for this language because it is not available for using library templates.")
+    end
+
     it 'lists the Meta library with the filters and the next page' do
-      stub = stub_request(:get, "#{base}/#{waba}/message_template_library")
-             .with(query: { search: 'cita', language: 'es', limit: described_class::LIBRARY_PAGE })
+      filters = { search: 'cita', language: 'es', topic: 'ORDER_MANAGEMENT', usecase: 'DELIVERY_UPDATE', industry: 'E_COMMERCE', after: 'previous' }
+      stub = stub_request(:get, "#{base}/message_template_library")
+             .with(query: filters.merge(limit: described_class::LIBRARY_PAGE),
+                   headers: { 'Authorization' => "Bearer #{channel.template_access_token}" })
              .to_return(status: 200, headers: json,
                         body: { data: [{ id: '1', name: 'appointment_reminder', language: 'es', category: 'UTILITY', body: 'Hola', extra: 'x' }],
                                 paging: { cursors: { after: 'abc' } } }.to_json)
 
-      result = service.library(search: 'cita', language: 'es')
+      result = service.library(**filters)
 
       expect(stub).to have_been_requested
       expect(result[:next]).to eq('abc')
+      expect(result[:language_used]).to eq('es')
       expect(result[:templates]).to eq(
         [{ 'id' => '1', 'name' => 'appointment_reminder', 'language' => 'es', 'category' => 'UTILITY', 'body' => 'Hola' }]
       )
     end
 
     it 'raises what Meta refuses' do
-      stub_request(:get, "#{base}/#{waba}/message_template_library").with(query: hash_including({}))
-                                                                    .to_return(meta_error(code: 190, message: 'expired'))
+      stub = stub_request(:get, "#{base}/message_template_library").with(query: { language: 'es', limit: described_class::LIBRARY_PAGE })
+                                                                   .to_return(meta_error(code: 190, message: 'expired'))
 
-      expect(error_of { service.library }.code).to eq('token_invalid')
+      expect(error_of { service.library(language: 'es') }.code).to eq('token_invalid')
+      expect(stub).to have_been_requested.once
+    end
+
+    %w[es_EC es_ES es_MX].each do |language|
+      it "maps #{language} to Spanish before requesting the library" do
+        stub = stub_request(:get, "#{base}/message_template_library")
+               .with(query: { language: 'es', limit: described_class::LIBRARY_PAGE })
+               .to_return(status: 200, headers: json, body: { data: [] }.to_json)
+
+        expect(service.library(language: language)[:language_used]).to eq('es')
+        expect(stub).to have_been_requested.once
+      end
+    end
+
+    %w[en_US pt_BR].each do |language|
+      it "keeps the supported regional language #{language}" do
+        stub_request(:get, "#{base}/message_template_library")
+          .with(query: { language: language, limit: described_class::LIBRARY_PAGE })
+          .to_return(status: 200, headers: json, body: { data: [] }.to_json)
+
+        expect(service.library(language: language)[:language_used]).to eq(language)
+      end
+    end
+
+    it 'retries a language rejection in US English, preserving filters and pagination' do
+      filters = { search: 'cita', topic: 'ORDER_MANAGEMENT', usecase: 'DELIVERY_UPDATE', industry: 'E_COMMERCE', after: 'abc' }
+      languages = []
+      stub_request(:get, "#{base}/message_template_library").with(query: hash_including(filters.merge(limit: described_class::LIBRARY_PAGE.to_s)))
+                                                            .to_return do |request|
+        language = URI.decode_www_form(request.uri.query).to_h['language']
+        languages << language
+        language == 'es' ? language_error : { status: 200, headers: json, body: { data: [] }.to_json }
+      end
+
+      expect(service.library(language: 'es_EC', **filters)[:language_used]).to eq('en_US')
+      expect(languages).to eq(%w[es en_US])
+    end
+
+    it 'retries without language last and reports all languages' do
+      languages = []
+      stub_request(:get, "#{base}/message_template_library").with(query: hash_including(limit: described_class::LIBRARY_PAGE.to_s))
+                                                            .to_return do |request|
+        language = URI.decode_www_form(request.uri.query).to_h['language']
+        languages << language
+        language ? language_error : { status: 200, headers: json, body: { data: [] }.to_json }
+      end
+
+      expect(service.library(language: 'es_EC')[:language_used]).to be_nil
+      expect(languages).to eq(['es', 'en_US', nil])
+    end
+
+    it 'does not retry US English twice' do
+      english = stub_request(:get, "#{base}/message_template_library")
+                .with(query: { language: 'en_US', limit: described_class::LIBRARY_PAGE }).to_return(language_error)
+      all = stub_request(:get, "#{base}/message_template_library").with(query: { limit: described_class::LIBRARY_PAGE })
+                                                                  .to_return(status: 200, headers: json, body: { data: [] }.to_json)
+
+      expect(service.library(language: 'en_US')[:language_used]).to be_nil
+      expect(english).to have_been_requested.once
+      expect(all).to have_been_requested.once
+    end
+
+    it 'requests all languages directly when none was requested' do
+      stub = stub_request(:get, "#{base}/message_template_library").with(query: { limit: described_class::LIBRARY_PAGE })
+                                                                   .to_return(status: 200, headers: json, body: { data: [] }.to_json)
+
+      expect(service.library[:language_used]).to be_nil
+      expect(stub).to have_been_requested.once
+    end
+
+    it 'propagates the final language rejection after exhausting the fallbacks' do
+      stub_request(:get, "#{base}/message_template_library").with(query: hash_including({})).to_return(language_error)
+
+      expect { service.library(language: 'es_EC') }.to raise_error do |error|
+        expect(error.class.name).to eq('Whatsapp::TemplateManagementService::Error')
+        expect(error.detail).to include('not available for using library templates')
+        expect(error.meta_code).to eq(100)
+      end
+      expect(a_request(:get, "#{base}/message_template_library").with(query: hash_including({}))).to have_been_made.times(3)
+    end
+
+    it 'propagates other parameter errors without retrying' do
+      stub = stub_request(:get, "#{base}/message_template_library").with(query: { language: 'es', limit: described_class::LIBRARY_PAGE })
+                                                                   .to_return(meta_error(code: 100, message: 'Invalid topic'))
+
+      expect { service.library(language: 'es') }.to raise_error do |error|
+        expect(error.detail).to eq('Invalid topic')
+      end
+      expect(stub).to have_been_requested.once
     end
   end
 
@@ -211,12 +308,37 @@ RSpec.describe Whatsapp::TemplateManagementService do
                            library_template_button_inputs: inputs }.to_json)
              .to_return(status: 200, headers: json, body: { id: '7', status: 'APPROVED', category: 'UTILITY' }.to_json)
 
-      result = service.create_from_library(library_template_name: 'appointment_reminder', name: 'recordatorio', language: 'es',
+      result = service.create_from_library(library_template_name: 'appointment_reminder', name: 'recordatorio', language: 'es_EC',
                                            category: 'UTILITY', button_inputs: inputs)
 
-      expect(result).to eq(id: '7', status: 'APPROVED', category: 'UTILITY')
+      expect(result).to eq(id: '7', status: 'APPROVED', category: 'UTILITY', language_used: 'es')
       expect(stub).to have_been_requested
       expect(provider_service).to have_received(:sync_templates)
+    end
+
+    it 'preserves a supported regional language on creation' do
+      stub_request(:post, "#{base}/#{waba}/message_templates").with(body: hash_including('language' => 'en_US'))
+                                                              .to_return(status: 200, headers: json, body: { id: '7', status: 'APPROVED',
+                                                                                                             category: 'UTILITY' }.to_json)
+
+      result = service.create_from_library(library_template_name: 'appointment_reminder', name: 'reminder', language: 'en_US', category: 'UTILITY')
+
+      expect(result[:language_used]).to eq('en_US')
+    end
+
+    it 'propagates a creation rejection without retrying a write' do
+      stub = stub_request(:post, "#{base}/#{waba}/message_templates").with(body: hash_including('language' => 'es'))
+                                                                     .to_return(meta_error(code: 100, message: 'Invalid parameter',
+                                                                                           user_msg: 'Nombre no disponible'))
+
+      expectation = expect do
+        service.create_from_library(library_template_name: 'appointment_reminder', name: 'reminder', language: 'es_MX', category: 'UTILITY')
+      end
+      expectation.to raise_error do |error|
+        expect(error.detail).to eq('Nombre no disponible')
+      end
+      expect(stub).to have_been_requested.once
+      expect(provider_service).not_to have_received(:sync_templates)
     end
   end
 end

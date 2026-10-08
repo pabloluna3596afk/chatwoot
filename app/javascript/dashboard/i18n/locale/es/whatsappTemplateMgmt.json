@@ -266,6 +266,9 @@
         "LOAD_MORE": "Ver más",
         "USE": "Usar",
         "ERROR": "No se pudo consultar la biblioteca de Meta. Inténtalo de nuevo.",
+        "ERROR_DETAIL": "No se pudo consultar la biblioteca de Meta: {message}",
+        "LANGUAGE_USED": "Idioma de la biblioteca: {language}",
+        "ALL_LANGUAGES": "Se muestran plantillas de la biblioteca en todos los idiomas disponibles.",
         "CATEGORY": "Categoría: {category}",
         "DIALOG": {
           "TITLE": "Crear desde la biblioteca",
@@ -277,6 +280,7 @@
           "URL_SUFFIX": "Ejemplo de la parte variable del enlace",
           "CREATE": "Crear plantilla",
           "CREATED": "Plantilla enviada a Meta.",
+          "CREATED_LANGUAGE": "Plantilla enviada a Meta en {language}.",
           "ERROR": "No se pudo crear la plantilla. Inténtalo de nuevo."
         }
       }

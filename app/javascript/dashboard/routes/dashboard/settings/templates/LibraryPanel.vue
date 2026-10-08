@@ -11,7 +11,11 @@ import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import { toSnakeCase } from './templateForm';
-import { defaultLanguage, languageOptions } from './whatsappLanguages';
+import {
+  defaultLanguage,
+  languageLabel,
+  languageOptions,
+} from './whatsappLanguages';
 
 const props = defineProps({
   // The WhatsApp Cloud inboxes a template can be created in.
@@ -35,6 +39,13 @@ const catalog = ref([]);
 const visibleCount = ref(PAGE_SIZE);
 const { run, isPending: isLoading } = useAbortableRequest();
 const failed = ref(false);
+const errorMessage = ref('');
+const inboxLanguages = ref({});
+const languageUsed = computed(() => {
+  if (inboxId.value !== 'all') return inboxLanguages.value[inboxId.value];
+  const languages = [...new Set(Object.values(inboxLanguages.value))];
+  return languages.length === 1 ? languages[0] : null;
+});
 const dialogRef = ref(null);
 const picked = ref(null);
 const isCreating = ref(false);
@@ -61,28 +72,44 @@ const readInbox = async (inbox, signal, after, entries = []) => {
     { after },
     { signal }
   );
-  if (signal.aborted) return entries;
+  if (signal.aborted) return undefined;
   entries.push(
-    ...data.templates.map(template => ({ ...template, inboxId: inbox.id }))
+    ...data.templates.map(template => ({
+      ...template,
+      language: template.language || data.language_used,
+      inboxId: inbox.id,
+    }))
   );
   // Meta can include an end cursor even when the next page is empty.
   if (data.templates.length && data.next)
     return readInbox(inbox, signal, data.next, entries);
-  return entries;
+  return {
+    templates: entries,
+    languageUsed: data.language_used,
+    inboxId: inbox.id,
+  };
 };
 const load = async () => {
   catalog.value = [];
   failed.value = false;
+  errorMessage.value = '';
+  inboxLanguages.value = {};
   try {
     const result = await run(async signal => {
       const entries = await Promise.all(
         props.inboxes.map(inbox => readInbox(inbox, signal))
       );
-      return signal.aborted ? undefined : entries.flat();
+      return signal.aborted ? undefined : entries;
     });
-    if (result) catalog.value = result;
-  } catch {
+    if (result) {
+      catalog.value = result.flatMap(inbox => inbox.templates);
+      inboxLanguages.value = Object.fromEntries(
+        result.map(inbox => [inbox.inboxId, inbox.languageUsed])
+      );
+    }
+  } catch (error) {
     failed.value = true;
+    errorMessage.value = error?.response?.data?.message || '';
   }
 };
 watch(() => props.inboxes, load, { immediate: true });
@@ -171,14 +198,21 @@ const create = async () => {
   if (!canCreate.value) return;
   isCreating.value = true;
   try {
-    await WhatsappTemplatesAPI.createFromLibrary(picked.value.inboxId, {
-      library_template_name: picked.value.name,
-      name: toSnakeCase(form.name),
-      language: picked.value.language,
-      category: picked.value.category,
-      button_inputs: buttonInputsPayload(),
-    });
-    useAlert(t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.DIALOG.CREATED'));
+    const { data } = await WhatsappTemplatesAPI.createFromLibrary(
+      picked.value.inboxId,
+      {
+        library_template_name: picked.value.name,
+        name: toSnakeCase(form.name),
+        language: picked.value.language || languageUsed.value || language.value,
+        category: picked.value.category,
+        button_inputs: buttonInputsPayload(),
+      }
+    );
+    useAlert(
+      t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.DIALOG.CREATED_LANGUAGE', {
+        language: languageLabel(data.language_used, locale.value),
+      })
+    );
     dialogRef.value?.close();
     emit('created');
   } catch (error) {
@@ -250,14 +284,34 @@ const inboxOptions = computed(() => [
     </div>
 
     <p v-if="failed" class="text-sm text-n-ruby-11" data-testid="library-error">
-      {{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.ERROR') }}
+      {{
+        errorMessage
+          ? $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.ERROR_DETAIL', {
+              message: errorMessage,
+            })
+          : $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.ERROR')
+      }}
     </p>
+
     <p
       v-else-if="!isLoading && !items.length"
       class="text-sm text-n-slate-11"
       data-testid="library-empty"
     >
       {{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.EMPTY') }}
+    </p>
+    <p
+      v-if="!failed && !isLoading"
+      class="text-sm text-n-slate-11"
+      data-testid="library-language-used"
+    >
+      {{
+        languageUsed
+          ? $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.LANGUAGE_USED', {
+              language: languageLabel(languageUsed, locale),
+            })
+          : $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.LIBRARY.ALL_LANGUAGES')
+      }}
     </p>
 
     <div class="grid gap-3 sm:grid-cols-2">
