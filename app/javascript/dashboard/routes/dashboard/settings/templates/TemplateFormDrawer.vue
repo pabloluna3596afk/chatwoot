@@ -520,7 +520,10 @@ const inboxOptions = computed(() =>
 );
 const headerOptions = computed(() =>
   HEADER_FORMATS.filter(
-    format => !MEDIA_FORMATS.includes(format) || mediaHeaderAvailable.value
+    format =>
+      format === form.header.format ||
+      !MEDIA_FORMATS.includes(format) ||
+      mediaHeaderAvailable.value
   ).map(format => ({
     value: format,
     label: t(`WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.${format}`),

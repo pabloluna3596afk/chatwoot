@@ -328,6 +328,47 @@ describe('TemplateFormDrawer', () => {
     wrapper.unmount();
   });
 
+  it('keeps an existing media header visible and retains its example while its format is locked', async () => {
+    const source = {
+      ...positional,
+      components: [
+        {
+          type: 'HEADER',
+          format: 'IMAGE',
+          example: { header_handle: ['existing-media-handle'] },
+        },
+        ...positional.components,
+      ],
+    };
+    WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: source });
+    WhatsappTemplatesAPI.updateTemplate.mockResolvedValue({ data: {} });
+    const wrapper = await mountDrawer();
+    await wrapper.vm.open(source);
+    const header = wrapper
+      .findAllComponents(ComboBox)
+      .find(
+        combo => combo.attributes('data-testid') === 'template-header-format'
+      );
+    expect(header.props('modelValue')).toBe('IMAGE');
+    expect(header.props('options')).toContainEqual(
+      expect.objectContaining({ value: 'IMAGE' })
+    );
+    expect(header.props('disabled')).toBe(true);
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+    expect(WhatsappTemplatesAPI.updateTemplate).toHaveBeenCalledWith(
+      7,
+      '555',
+      expect.objectContaining({
+        header: expect.objectContaining({
+          format: 'IMAGE',
+          handle: 'existing-media-handle',
+        }),
+      })
+    );
+    wrapper.unmount();
+  });
+
   it.each([
     'Hola {{1}}, pedido {{2}} con el agente {{4}}.',
     'Hola {{1}}, pedido {{2}}, fecha {{3}}, agente {{4}}, dato {{5}}.',
