@@ -24,7 +24,13 @@
     "FILTERS": {
       "ALL_INBOXES": "All inboxes",
       "ALL_LANGUAGES": "All languages",
-      "ALL_TYPES": "All types"
+      "ALL_TYPES": "All types",
+      "ALL_CATEGORIES": "All categories",
+      "CATEGORIES": {
+        "UTILITY": "Utility",
+        "MARKETING": "Marketing",
+        "AUTHENTICATION": "Authentication"
+      }
     },
     "TYPES": {
       "TEXT": "Text",
@@ -70,8 +76,8 @@
       "STATUS": "Status in Meta:",
       "REJECTED_REASON": "Rejection reason: {reason}",
       "CANNOT_EDIT_NOW": "Meta only allows editing approved, rejected or paused templates. Wait for the review to finish.",
-      "CHANNEL": "WhatsApp channel",
-      "CHANNEL_PLACEHOLDER": "Choose a channel",
+      "CHANNEL": "WhatsApp inbox",
+      "CHANNEL_PLACEHOLDER": "Choose an inbox",
       "NAME": "Name",
       "NAME_PLACEHOLDER": "appointment_reminder",
       "NAME_SAVED_AS": "Saved as: {name}",
@@ -274,6 +280,21 @@
           "ERROR": "The template could not be created. Please try again."
         }
       }
+    },
+    "SYNC_COMPACT": "Sync",
+    "DUPLICATE": "Duplicate",
+    "DUPLICATE_ERROR": "Could not duplicate the Flow.",
+    "DUPLICATE_FLOW_BODY": "Create \"{name}\" as a draft without publications.",
+    "TABLE": {
+      "NAME": "Name",
+      "CATEGORY": "Category",
+      "LANGUAGE": "Language",
+      "TYPE": "Type",
+      "INBOX": "Inbox",
+      "STATUS": "Status",
+      "ACTIONS": "Actions",
+      "VIEW": "View",
+      "COUNT": "{startItem}–{endItem} of {totalItems}"
     }
   }
 }

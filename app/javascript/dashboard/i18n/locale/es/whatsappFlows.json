@@ -296,7 +296,7 @@
       "PUBLISH_FAILED": "Meta no aceptó el Flow en algunas cuentas. Corrige lo que indica y reintenta.",
       "PUBLISH_DONE": "El Flow está publicado.",
       "PUBLISH_ERROR": "No se pudo enviar el Flow a Meta.",
-      "NO_CLOUD": "Esta cuenta no tiene un canal de WhatsApp Cloud donde publicar.",
+      "NO_CLOUD": "Esta cuenta no tiene una bandeja de WhatsApp Cloud donde publicar.",
       "SAVE_FIRST": "Guarda el Flow primero: se envía la versión guardada.",
       "FIX_FIRST": "Corrige primero los errores del Flow.",
       "TEST": "Probar",
