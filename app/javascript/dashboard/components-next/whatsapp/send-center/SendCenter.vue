@@ -13,6 +13,7 @@ import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDrop
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import WhatsAppTemplateParser from '../WhatsAppTemplateParser.vue';
 import ContentTemplateParser from 'dashboard/components-next/content-templates/ContentTemplateParser.vue';
+import { PHONE_PREVIEW_WIDTH } from '../phonePreview';
 import FlowDetail from './FlowDetail.vue';
 import MessagePreview from './MessagePreview.vue';
 import {
@@ -227,8 +228,8 @@ const hasCustomization = computed(() => {
 });
 const parserColumns = computed(() =>
   hasCustomization.value
-    ? 'grid-cols-1 xl:grid-cols-[repeat(2,var(--send-center-unit))] max-xl:[&>div:first-child]:hidden'
-    : 'grid-cols-1'
+    ? 'grid-cols-[var(--phone-preview-width)] xl:grid-cols-[var(--phone-preview-width)_var(--send-center-unit)] max-xl:[&>div:nth-child(2)]:absolute max-xl:[&>div:nth-child(2)]:top-0 max-xl:[&>div:nth-child(2)]:left-[calc(-1*var(--send-center-unit)-1.5rem)] max-xl:[&>div:nth-child(2)]:w-[var(--send-center-unit)] max-xl:[&>div:nth-child(2)]:z-10 max-xl:[&>div:nth-child(2)]:bg-n-solid-1'
+    : 'grid-cols-[var(--phone-preview-width)]'
 );
 const component = type =>
   selected.value?.data.components?.find(c => c.type === type);
@@ -344,12 +345,13 @@ watch(
     @close="close"
   >
     <div
-      class="flex h-[min(38rem,calc(90vh-11rem))] min-h-0 flex-col gap-5 [dialog:has(&)]:!max-w-[calc(100vw-2rem)] [dialog:has(&)]:!left-[max(1rem,calc((100vw-(3*var(--send-center-unit)+6rem))/2))] [dialog:has(&)]:!right-auto [dialog:has(&)]:!mx-0 [dialog:has(&)]:!transition-[width] [dialog:has(&)]:!duration-300 [dialog:has(&)]:!ease-in-out motion-reduce:[dialog:has(&)]:!transition-none max-xl:[dialog:has(&)]:[--send-center-unit:calc((100vw-6.5rem)/2)] max-xl:[dialog:has(&)]:!left-4 [form:has(&)>div:last-child]:!border-0 [form:has(&)>div:last-child]:!pt-0"
+      class="flex h-[min(38rem,calc(90vh-11rem))] min-h-0 flex-col gap-5 [dialog:has(&)]:!max-w-[calc(100vw-2rem)] [dialog:has(&)]:!left-[max(1rem,calc((100vw-(2*var(--send-center-unit)+var(--phone-preview-width)+6rem))/2))] [dialog:has(&)]:!right-auto [dialog:has(&)]:!mx-0 [dialog:has(&)]:!transition-[width] [dialog:has(&)]:!duration-300 [dialog:has(&)]:!ease-in-out motion-reduce:[dialog:has(&)]:!transition-none max-xl:[dialog:has(&)]:[--send-center-unit:calc(100vw-var(--phone-preview-width)-6.5rem)] max-xl:[dialog:has(&)]:!left-4 [form:has(&)>div:last-child]:!border-0 [form:has(&)>div:last-child]:!pt-0"
       :class="[
         SEND_CENTER_COLUMN_UNIT_CLASS,
+        PHONE_PREVIEW_WIDTH,
         hasCustomization
-          ? 'xl:[dialog:has(&)]:!w-[calc(3*var(--send-center-unit)+6rem)] max-xl:[dialog:has(&)]:!w-[calc(100vw-2rem)]'
-          : '[dialog:has(&)]:!w-[calc(2*var(--send-center-unit)+4.5rem)]',
+          ? 'xl:[dialog:has(&)]:!w-[calc(2*var(--send-center-unit)+var(--phone-preview-width)+6rem)] max-xl:[dialog:has(&)]:!w-[calc(100vw-2rem)]'
+          : '[dialog:has(&)]:!w-[calc(var(--send-center-unit)+var(--phone-preview-width)+4.5rem)]',
       ]"
       :data-columns="hasCustomization ? 3 : 2"
       data-testid="center-body"
@@ -390,7 +392,10 @@ watch(
         class="grid min-h-0 flex-1 gap-6 grid-cols-[var(--send-center-unit)_minmax(0,1fr)]"
         data-testid="center-columns"
       >
-        <section class="flex flex-col min-h-0 min-w-0 gap-3">
+        <section
+          class="flex flex-col min-h-0 min-w-0 gap-3"
+          :class="{ 'max-xl:invisible': hasCustomization }"
+        >
           <div
             class="flex shrink-0 items-center gap-3"
             data-testid="center-toolbar"
@@ -503,7 +508,7 @@ watch(
         </section>
         <section
           v-if="selected"
-          class="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain flex flex-col gap-4"
+          class="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto max-xl:overflow-visible overscroll-contain flex flex-col gap-4"
           data-testid="center-detail"
         >
           <div>
@@ -540,7 +545,7 @@ watch(
               v-if="content"
               :key="selected.key"
               ref="parser"
-              class="grid min-h-0 min-w-0 flex-1 items-start gap-6 overflow-hidden [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto"
+              class="relative grid min-h-0 min-w-0 flex-1 items-start gap-6 [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto"
               :class="parserColumns"
               :template="selected.data"
               @send-message="sendTemplatePayload"
@@ -551,7 +556,7 @@ watch(
               v-else
               :key="selected.key"
               ref="parser"
-              class="grid min-h-0 min-w-0 flex-1 items-start gap-6 overflow-hidden [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto"
+              class="relative grid min-h-0 min-w-0 flex-1 items-start gap-6 [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto"
               :class="parserColumns"
               :template="selected.data"
               :media-inbox-id="inbox.id"

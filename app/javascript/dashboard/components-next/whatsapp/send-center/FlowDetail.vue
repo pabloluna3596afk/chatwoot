@@ -46,17 +46,16 @@ defineExpose({ isValid, payload, customizing });
 
 <template>
   <div
-    class="grid min-h-0 min-w-0 flex-1 grid-rows-[minmax(0,1fr)_auto] items-start gap-6 overflow-hidden"
+    class="relative grid min-h-0 min-w-0 flex-1 grid-rows-[minmax(0,1fr)_auto] items-start gap-6"
     :class="
       customizing
-        ? 'grid-cols-1 xl:grid-cols-[repeat(2,var(--send-center-unit))]'
-        : 'grid-cols-1'
+        ? 'grid-cols-[var(--phone-preview-width)] xl:grid-cols-[var(--phone-preview-width)_var(--send-center-unit)]'
+        : 'grid-cols-[var(--phone-preview-width)]'
     "
     data-testid="flow-send-columns"
   >
     <div
       class="min-h-0 min-w-0 max-h-full overflow-y-auto overscroll-contain flex flex-col gap-3"
-      :class="{ 'max-xl:hidden': customizing }"
       data-testid="flow-send-preview-column"
     >
       <MessagePreview :header="header" :body="body" :buttons="[cta]" flow />
@@ -77,7 +76,7 @@ defineExpose({ isValid, payload, customizing });
     <div
       v-if="customizing"
       id="flow-send-customization"
-      class="grid min-h-0 min-w-0 max-h-full overflow-y-auto overscroll-contain gap-3 rounded-xl bg-n-alpha-1 p-4"
+      class="grid min-h-0 min-w-0 max-h-full overflow-y-auto overscroll-contain gap-3 rounded-xl bg-n-solid-2 p-4 max-xl:absolute max-xl:top-0 max-xl:left-[calc(-1*var(--send-center-unit)-1.5rem)] max-xl:w-[var(--send-center-unit)] max-xl:z-10"
       data-testid="flow-send-fields-column"
     >
       <Input

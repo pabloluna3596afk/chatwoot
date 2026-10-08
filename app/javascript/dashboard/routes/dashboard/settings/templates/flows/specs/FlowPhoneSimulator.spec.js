@@ -170,7 +170,7 @@ describe('FlowPhoneSimulator', () => {
     const edit = canvas.get('[data-testid="flow-phone-frame"]');
     const trying = wrapper.get('[data-testid="flow-phone-frame"]');
     expect(trying.attributes('class')).toBe(edit.attributes('class'));
-    expect(trying.classes()).toContain('w-[22.5rem]');
+    expect(trying.classes()).toContain('w-[var(--phone-preview-width)]');
     expect(trying.classes()).toContain('h-[46.25rem]');
     expect(
       wrapper.get('[data-testid="flow-phone-scroll"]').classes()

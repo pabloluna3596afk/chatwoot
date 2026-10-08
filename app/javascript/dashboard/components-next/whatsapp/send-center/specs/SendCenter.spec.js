@@ -425,7 +425,7 @@ describe('unified send center', () => {
     expect(body.classes()).toContain(SEND_CENTER_COLUMN_UNIT_CLASS);
     expect(body.attributes('data-columns')).toBe('2');
     expect(body.classes()).toContain(
-      '[dialog:has(&)]:!w-[calc(2*var(--send-center-unit)+4.5rem)]'
+      '[dialog:has(&)]:!w-[calc(var(--send-center-unit)+var(--phone-preview-width)+4.5rem)]'
     );
     expect(body.classes()).toContain('[dialog:has(&)]:!transition-[width]');
     expect(body.classes()).toContain(
@@ -436,14 +436,14 @@ describe('unified send center', () => {
     await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
     expect(body.attributes('data-columns')).toBe('3');
     expect(body.classes()).toContain(
-      'xl:[dialog:has(&)]:!w-[calc(3*var(--send-center-unit)+6rem)]'
+      'xl:[dialog:has(&)]:!w-[calc(2*var(--send-center-unit)+var(--phone-preview-width)+6rem)]'
     );
     expect(body.classes()).toContain(
       'max-xl:[dialog:has(&)]:!w-[calc(100vw-2rem)]'
     );
     expect(
       wrapper.get('[data-testid="flow-send-preview-column"]').classes()
-    ).toContain('max-xl:hidden');
+    ).not.toContain('max-xl:hidden');
     await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
     expect(body.attributes('data-columns')).toBe('2');
   });
@@ -488,7 +488,7 @@ describe('unified send center', () => {
         wrapper.get('[data-testid="center-body"]').attributes('data-columns')
       ).toBe('3');
       expect(wrapper.get('[data-testid="center-body"]').classes()).toContain(
-        'xl:[dialog:has(&)]:!w-[calc(3*var(--send-center-unit)+6rem)]'
+        'xl:[dialog:has(&)]:!w-[calc(2*var(--send-center-unit)+var(--phone-preview-width)+6rem)]'
       );
       const input = wrapper.get('[data-testid="center-detail"] input');
       await input.setValue('Ana');

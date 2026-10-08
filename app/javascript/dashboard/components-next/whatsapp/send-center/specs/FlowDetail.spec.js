@@ -1,5 +1,7 @@
 import { mount } from '@vue/test-utils';
 import FlowDetail from '../FlowDetail.vue';
+import { PHONE_PREVIEW_WIDTH } from '../../phonePreview';
+import FlowPhoneFrame from 'dashboard/routes/dashboard/settings/templates/flows/FlowPhoneFrame.vue';
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
@@ -41,17 +43,19 @@ describe('Flow message customization', () => {
       props: { flow: { id: 12, name: 'Appointment' } },
     });
     const columns = wrapper.get('[data-testid="flow-send-columns"]');
-    expect(columns.classes()).toContain('grid-cols-1');
+    expect(columns.classes()).toContain(
+      'grid-cols-[var(--phone-preview-width)]'
+    );
     await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
     expect(columns.classes()).toContain(
-      'xl:grid-cols-[repeat(2,var(--send-center-unit))]'
+      'xl:grid-cols-[var(--phone-preview-width)_var(--send-center-unit)]'
     );
     const preview = wrapper.get('[data-testid="flow-send-preview-column"]');
     const fields = wrapper.get('[data-testid="flow-send-fields-column"]');
     expect(preview.element.parentElement).toBe(columns.element);
     expect(fields.element.parentElement).toBe(columns.element);
     expect(preview.classes()).toContain('overflow-y-auto');
-    expect(preview.classes()).toContain('max-xl:hidden');
+    expect(preview.classes()).not.toContain('max-xl:hidden');
     expect(wrapper.vm.customizing).toBe(true);
     expect(fields.classes()).toContain('overflow-y-auto');
     expect(
@@ -60,6 +64,53 @@ describe('Flow message customization', () => {
         .attributes('aria-expanded')
     ).toBe('true');
   });
+
+  it.each([
+    [1440, false],
+    [1440, true],
+    [900, true],
+  ])(
+    'keeps the shared 360px preview track at viewport %i with customization %s',
+    async (viewport, expanded) => {
+      vi.stubGlobal('innerWidth', viewport);
+      const wrapper = mount(FlowDetail, {
+        props: { flow: { id: 12, name: 'Appointment' } },
+      });
+      if (expanded)
+        await wrapper
+          .get('[data-testid="flow-send-customize"]')
+          .trigger('click');
+      const columns = wrapper.get('[data-testid="flow-send-columns"]');
+      expect(columns.classes()).toContain(
+        'grid-cols-[var(--phone-preview-width)]'
+      );
+      expect(
+        columns
+          .classes()
+          .filter(c => c.includes('grid-cols') && c.includes('xl:'))
+      ).toEqual(
+        expanded
+          ? [
+              'xl:grid-cols-[var(--phone-preview-width)_var(--send-center-unit)]',
+            ]
+          : []
+      );
+      expect(
+        wrapper.get('[data-testid="flow-send-preview-column"]').classes()
+      ).not.toContain('max-xl:hidden');
+      const simulator = mount(FlowPhoneFrame, {
+        props: { title: 'Appointment', screenIndex: 0, screenCount: 1 },
+      });
+      PHONE_PREVIEW_WIDTH.split(' ').forEach(token =>
+        expect(simulator.classes()).toContain(token)
+      );
+      expect(PHONE_PREVIEW_WIDTH).toContain('[--phone-preview-width:22.5rem]');
+      expect(simulator.classes()).toContain('w-[var(--phone-preview-width)]');
+      simulator.unmount();
+      wrapper.unmount();
+      vi.unstubAllGlobals();
+    }
+  );
 
   it('enforces the existing body/button limits and rejects emoji without changing the send contract', async () => {
     const wrapper = mount(FlowDetail, {
