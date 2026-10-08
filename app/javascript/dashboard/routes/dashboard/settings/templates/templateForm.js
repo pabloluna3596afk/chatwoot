@@ -72,7 +72,7 @@ export const variableTokens = text => [
   ...new Set([...String(text || '').matchAll(VARIABLE)].map(match => match[1])),
 ];
 
-// The numbered variables only, as numbers (a button URL takes {{1}}): "{{1}} y {{2}} y {{1}}" -> [1, 2]
+// The numbered variables only, as numbers (including URL placeholders): "{{1}} y {{2}} y {{1}}" -> [1, 2]
 export const variableNumbers = text =>
   variableTokens(text)
     .filter(token => NUMBER_TOKEN.test(token))
@@ -343,7 +343,7 @@ const examplesFor = (component, tokens, kind) => {
   return kind === 'body' ? [...(positional[0] || [])] : [positional[0] || ''];
 };
 
-// A form from a Meta template, to edit it. Media headers keep no handle: a new example file is needed to save.
+// A form from a Meta template, to edit it. Existing media example handles are retained.
 export const formFromTemplate = (template, inboxId) => {
   const form = emptyForm();
   form.inboxId = inboxId;

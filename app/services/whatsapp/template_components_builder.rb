@@ -11,7 +11,7 @@
 #   builder.parameter_format  # 'NAMED' ({{nombre}}) or 'POSITIONAL' ({{1}}): a template uses one of them
 #
 # Variables are named ({{nombre}}: lowercase letters, digits and underscores) or numbered ({{1}}, {{2}}, in order). The
-# examples come in the order the variables first appear. Button URLs only take a numbered {{1}} at the end (Meta).
+# examples come in the order the variables first appear. Button URLs keep one placeholder at the end and a complete example URL.
 # A copy-code button ({ type: 'COPY_CODE', code: 'PALU21' }) is for MARKETING templates, one per template; Meta writes its
 # label. What the form cannot express (a limited-time-offer component, a Flow or catalog button...) is carried through
 # untouched in `preserved`, so editing a template does not drop it:
