@@ -21,6 +21,68 @@ export const SYSTEM_BINDINGS = [
   { name: 'numero_conversacion', key: 'conversation.id' },
 ];
 
+const FLOW_WRITABLE_KEYS = new Set([
+  'contact.name',
+  'contact.email',
+  'contact.phone',
+  'contact.company_name',
+  'contact.city',
+  'contact.document_number',
+]);
+
+// Metadata describes capabilities; server Drops remain the authority for values.
+const metadata = (binding, attribute) => ({
+  ...binding,
+  scope: binding.group,
+  canonicalPath: binding.key,
+  type: attribute?.attribute_display_type || 'text',
+  options: attribute?.attribute_values || [],
+  readable: true,
+  writable: attribute
+    ? ['contact_attribute', 'conversation_attribute'].includes(
+        attribute.attribute_model
+      ) && !Object.keys(attribute.formula || {}).length
+    : FLOW_WRITABLE_KEYS.has(binding.key),
+  formula: attribute?.formula || null,
+  requiresContext: [binding.key.split('.')[0]],
+});
+
+// Existing Captain aliases, offered only when requested; never added to message defaults in P1.
+export const APPOINTMENT_BINDINGS = [
+  { name: 'cita', key: 'appointment.title' },
+  { name: 'fecha', key: 'appointment.date' },
+  { name: 'hora', key: 'appointment.time' },
+  { name: 'tema', key: 'appointment.title' },
+  { name: 'asistente', key: 'assistant.name' },
+].map(binding => metadata({ ...binding, group: 'appointment' }));
+
+// Flow compatibility lives in the catalog, including its input and option constraints.
+export const writableFor = (binding, block) => {
+  if (!binding.writable || !['system', 'contact'].includes(binding.scope))
+    return false;
+  const { type, options } = binding;
+  switch (block.type) {
+    case 'short_text':
+      return type === 'text' || (block.input === 'number' && type === 'number');
+    case 'long_text':
+    case 'checkbox':
+      return type === 'text';
+    case 'date':
+      return ['date', 'text'].includes(type);
+    case 'optin':
+      return type === 'checkbox';
+    case 'dropdown':
+    case 'radio':
+      return (
+        type === 'text' ||
+        (type === 'list' &&
+          (block.options || []).every(option => options.includes(option.id)))
+      );
+    default:
+      return false;
+  }
+};
+
 const VARIABLE_NAME = /^[a-z][a-z0-9_]*$/;
 const CONVERSATION_PREFIX = 'conversacion_';
 
@@ -31,7 +93,7 @@ export const buildBindings = (attributes = [], context = 'message') => {
   const isCampaign = context === 'campaign';
   const bindings = SYSTEM_BINDINGS.filter(
     binding => !(isCampaign && binding.key.startsWith('conversation.'))
-  ).map(binding => ({ ...binding, group: 'system' }));
+  ).map(binding => metadata({ ...binding, group: 'system' }));
   const taken = new Set(bindings.map(binding => binding.name));
 
   (attributes || []).forEach(attribute => {
@@ -45,12 +107,17 @@ export const buildBindings = (attributes = [], context = 'message') => {
     if (!VARIABLE_NAME.test(name) || taken.has(name)) return;
 
     taken.add(name);
-    bindings.push({
-      name,
-      key: `${isConversation ? 'conversation' : 'contact'}.custom_attribute.${attribute.attribute_key}`,
-      group: isConversation ? 'conversation' : 'contact',
-      label: attribute.attribute_display_name || attribute.attribute_key,
-    });
+    bindings.push(
+      metadata(
+        {
+          name,
+          key: `${isConversation ? 'conversation' : 'contact'}.custom_attribute.${attribute.attribute_key}`,
+          group: isConversation ? 'conversation' : 'contact',
+          label: attribute.attribute_display_name || attribute.attribute_key,
+        },
+        attribute
+      )
+    );
   });
   return bindings;
 };

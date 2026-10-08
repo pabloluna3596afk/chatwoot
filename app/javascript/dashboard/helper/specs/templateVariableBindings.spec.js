@@ -1,5 +1,7 @@
 import {
   SYSTEM_BINDINGS,
+  APPOINTMENT_BINDINGS,
+  writableFor,
   buildBindings,
   defaultValuesFor,
   resolveLiquid,
@@ -119,5 +121,69 @@ describe('resolveLiquid', () => {
     expect(resolveLiquid('{{ contact.email }}', { contact: {} })).toBe('');
     expect(resolveLiquid('{{ appointment.date }}', records)).toBeUndefined();
     expect(resolveLiquid('Hola {{ contact.name }}', records)).toBeUndefined();
+  });
+});
+
+describe('catalog metadata', () => {
+  it('preserves paths and aliases, with explicit capabilities and required context', () => {
+    const bindings = buildBindings(attributes);
+    expect(bindings.find(item => item.name === 'nombre')).toMatchObject({
+      scope: 'system',
+      canonicalPath: 'contact.name',
+      type: 'text',
+      options: [],
+      readable: true,
+      writable: true,
+      formula: null,
+      requiresContext: ['contact'],
+    });
+    expect(
+      bindings.find(item => item.name === 'conversacion_estado')
+    ).toMatchObject({
+      scope: 'conversation',
+      writable: true,
+      requiresContext: ['conversation'],
+    });
+    expect(bindings.find(item => item.name === 'agente').writable).toBe(false);
+    expect(
+      APPOINTMENT_BINDINGS.every(
+        item => item.scope === 'appointment' && item.readable && !item.writable
+      )
+    ).toBe(true);
+    expect(defaultValuesFor(bindings)).not.toHaveProperty('cita');
+  });
+
+  it('exposes list options and keeps formulas readable but never writable', () => {
+    const bindings = buildBindings([
+      {
+        attribute_key: 'tier',
+        attribute_model: 'contact_attribute',
+        attribute_display_type: 'list',
+        attribute_values: ['pro'],
+      },
+      {
+        attribute_key: 'total',
+        attribute_model: 'contact_attribute',
+        attribute_display_type: 'number',
+        formula: { op: 'sum' },
+      },
+    ]);
+    const tier = bindings.find(item => item.name === 'tier');
+    const total = bindings.find(item => item.name === 'total');
+    expect(tier.options).toEqual(['pro']);
+    expect(writableFor(tier, { type: 'radio', options: [{ id: 'pro' }] })).toBe(
+      true
+    );
+    expect(
+      writableFor(tier, { type: 'radio', options: [{ id: 'free' }] })
+    ).toBe(false);
+    expect(total).toMatchObject({
+      readable: true,
+      writable: false,
+      formula: { op: 'sum' },
+    });
+    expect(writableFor(total, { type: 'short_text', input: 'number' })).toBe(
+      false
+    );
   });
 });

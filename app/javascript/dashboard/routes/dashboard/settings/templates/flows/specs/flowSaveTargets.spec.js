@@ -80,3 +80,45 @@ describe('writable template bindings for flow answers', () => {
     );
   });
 });
+
+// Fixed expected results cover every Flow block kind; metadata must not change the destinations.
+describe('Flow destination matrix regression', () => {
+  const textKeys = [
+    'contact.name',
+    'contact.email',
+    'contact.phone',
+    'contact.company_name',
+    'contact.city',
+    'contact.document_number',
+  ];
+  it.each([
+    [{ type: 'short_text' }, []],
+    [
+      { type: 'short_text', input: 'number' },
+      ['contact.custom_attribute.count'],
+    ],
+    [{ type: 'long_text' }, []],
+    [{ type: 'checkbox' }, []],
+    [{ type: 'date' }, ['contact.custom_attribute.birthday']],
+    [
+      { type: 'dropdown', options: [{ id: 'a' }] },
+      ['contact.custom_attribute.choices'],
+    ],
+    [
+      { type: 'radio', options: [{ id: 'a' }] },
+      ['contact.custom_attribute.choices'],
+    ],
+    [{ type: 'radio', options: [{ id: 'b' }] }, []],
+  ])(
+    'preserves ordered text and compatible custom targets for %j',
+    (block, extra) => {
+      expect(keys(block)).toEqual([...textKeys, ...extra]);
+    }
+  );
+  it.each(['photo', 'document', 'heading', 'body', 'unknown'])(
+    'never offers a target for %s',
+    type => {
+      expect(keys({ type })).toEqual([]);
+    }
+  );
+});

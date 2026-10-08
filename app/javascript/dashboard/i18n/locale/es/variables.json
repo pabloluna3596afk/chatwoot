@@ -36,5 +36,38 @@
         "timezone": "Zona horaria de la cuenta"
       }
     }
+  },
+  "VARIABLE_PICKER": {
+    "GROUPS": {
+      "SYSTEM": "Sistema",
+      "CONTACT": "Atributos del contacto",
+      "CONVERSATION": "Atributos de la conversación",
+      "APPOINTMENT": "Citas de Captain"
+    },
+    "LABELS": {
+      "nombre": "Nombre del contacto",
+      "primer_nombre": "Nombre",
+      "apellido": "Apellido",
+      "correo": "Correo electrónico",
+      "telefono": "Teléfono",
+      "empresa": "Empresa",
+      "ciudad": "Ciudad",
+      "pais": "Código de país",
+      "documento": "Número de documento",
+      "agente": "Nombre del agente",
+      "numero_conversacion": "Número de conversación",
+      "cita": "Cita",
+      "fecha": "Fecha de la cita",
+      "hora": "Hora de la cita",
+      "tema": "Tema de la cita",
+      "asistente": "Nombre del asistente"
+    },
+    "PLACEHOLDER": "Elegir variable",
+    "SEARCH": "Buscar variables…",
+    "EMPTY": "No se encontraron variables",
+    "NONE": "No guardar",
+    "CREATE_ATTRIBUTE": "Crear atributo nuevo",
+    "NO_ATTRIBUTES": "Todavía no hay atributos",
+    "NO_COMPATIBLE": "No hay variables compatibles"
   }
 }
