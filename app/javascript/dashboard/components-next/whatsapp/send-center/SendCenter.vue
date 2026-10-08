@@ -525,11 +525,11 @@ watch(
         </section>
         <section
           v-if="selected"
-          class="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto max-xl:overflow-visible overscroll-contain row-span-2 grid grid-rows-subgrid"
+          class="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto max-xl:overflow-visible overscroll-contain row-span-2 flex flex-col gap-6"
           data-testid="center-detail"
         >
           <div
-            class="flex min-w-0 items-start gap-2"
+            class="flex w-[var(--phone-preview-width)] shrink-0 min-w-0 items-start gap-2"
             data-testid="center-detail-header"
           >
             <h3
@@ -603,6 +603,7 @@ watch(
     <template #footer>
       <div
         class="flex items-center justify-between gap-3"
+        data-testid="center-footer"
         @keydown.esc="handleEscape"
       >
         <div class="min-w-0">

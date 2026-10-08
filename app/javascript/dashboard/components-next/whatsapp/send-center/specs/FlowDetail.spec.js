@@ -58,6 +58,11 @@ describe('Flow message customization', () => {
     expect(preview.classes()).not.toContain('max-xl:hidden');
     expect(wrapper.vm.customizing).toBe(true);
     expect(fields.classes()).toContain('overflow-y-auto');
+    expect(fields.classes()).toContain('xl:-mt-11');
+    expect(fields.classes()).toContain('xl:max-h-[calc(100%+2.75rem)]');
+    expect(fields.get('[data-testid="flow-send-restore"]').classes()).toContain(
+      'justify-self-start'
+    );
     expect(wrapper.find('[data-testid="flow-send-customize"]').exists()).toBe(
       false
     );

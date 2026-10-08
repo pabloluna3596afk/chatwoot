@@ -936,7 +936,7 @@ describe('unified send center', () => {
     expect(wrapper.emitted('close')).toBeUndefined();
   });
 
-  it('keeps status only in list rows and aligns the preview and customization with the list content row', async () => {
+  it('keeps status only in list rows and places the compact title above the preview without inheriting the list controls height', async () => {
     wrapper = mount(SendCenter, {
       props: {
         show: true,
@@ -963,7 +963,11 @@ describe('unified send center', () => {
     expect(
       detail.get('[data-testid="center-detail-header"]').find('h3').text()
     ).toBe('Contact');
-    expect(detail.classes()).toContain('grid-rows-subgrid');
+    expect(detail.classes()).toContain('flex-col');
+    expect(detail.classes()).toContain('gap-6');
+    expect(
+      detail.get('[data-testid="center-detail-header"]').classes()
+    ).toContain('shrink-0');
     expect(
       wrapper
         .get('[data-testid="center-list"]')
