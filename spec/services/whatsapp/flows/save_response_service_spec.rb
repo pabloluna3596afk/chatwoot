@@ -57,7 +57,7 @@ RSpec.describe Whatsapp::Flows::SaveResponseService do
     expect(contact.email).to be_present
     expect(conversation.messages.where(private: true).count).to eq(1)
     note = conversation.messages.find_by!(private: true).content
-    expect(note).to include('Formulario completado: Datos', 'contact.name', 'contact.email', 'contact.phone')
+    expect(note).to include('Flow completado: Datos', 'contact.name', 'contact.email', 'contact.phone')
     expect(note).not_to include(token)
   end
 

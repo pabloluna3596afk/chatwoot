@@ -306,15 +306,15 @@ es:
         flow_send:
           open: 'Abrir'
         flow_save:
-          completed: 'Formulario completado: %{name}'
+          completed: 'Flow completado: %{name}'
           saved: 'Guardado: %{fields}'
           skipped: 'Omitido: %{fields}'
           blank: 'valor vacío'
           invalid: 'valor o destino no válido'
           used: 'usado por otro contacto'
         flow_response:
-          received: "Formulario completado:\n%{details}"
-          empty: 'Formulario completado.'
+          received: "Flow completado:\n%{details}"
+          empty: 'Flow completado.'
         unsupported_message: 'Este mensaje no está disponible.'
       voice_call:
         twilio: 'Llamada de voz'

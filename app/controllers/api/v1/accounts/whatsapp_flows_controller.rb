@@ -2,7 +2,7 @@
 # to Meta's Flow JSON. Everyone in the account can read them; only administrators create, change, delete or check them.
 class Api::V1::Accounts::WhatsappFlowsController < Api::V1::Accounts::BaseController
   before_action :check_admin_authorization?, except: [:index, :show]
-  before_action :fetch_flow, only: [:show, :update, :destroy, :publish, :publication_status, :test, :retry_publish]
+  before_action :fetch_flow, only: [:show, :update, :destroy, :duplicate, :publish, :publication_status, :test, :retry_publish]
   before_action :validate_catalog_filters, only: [:index, :publication_status]
 
   LIST_STATES = %w[published partial error none].freeze
@@ -37,6 +37,16 @@ class Api::V1::Accounts::WhatsappFlowsController < Api::V1::Accounts::BaseContro
     return render_errors(@flow) unless @flow.update(flow_params)
 
     render json: detail(@flow)
+  end
+
+  def duplicate
+    flow = Current.account.whatsapp_flows.new(
+      name: "#{@flow.name.first(92)} (copia)", definition: @flow.definition.deep_dup,
+      categories: @flow.categories.dup, created_by: Current.user
+    )
+    return render_errors(flow) unless flow.save
+
+    render json: detail(flow), status: :created
   end
 
   def destroy

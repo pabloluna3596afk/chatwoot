@@ -165,6 +165,7 @@ Rails.application.routes.draw do
           resources :whatsapp_flows, only: [:index, :create, :show, :update, :destroy] do
             post :validate, on: :collection
             member do
+              post :duplicate
               post :publish
               get :publication_status
               post :test

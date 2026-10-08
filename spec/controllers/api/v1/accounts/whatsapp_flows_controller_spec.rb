@@ -48,6 +48,36 @@ RSpec.describe 'WhatsApp flows (forms) API', type: :request do
     end
   end
 
+  describe 'POST duplicate' do
+    let(:flow) { create(:whatsapp_flow, account: account, name: 'Datos', categories: ['SURVEY']) }
+
+    it 'copies the definition and categories without publications' do
+      flow.whatsapp_flow_publications.create!(account: account, waba_id: '123456789', status: 'published')
+      expect do
+        post "#{base_url}/#{flow.id}/duplicate", headers: admin.create_new_auth_token, as: :json
+      end.to change(account.whatsapp_flows, :count).by(1)
+
+      expect(response).to have_http_status(:created)
+      copy = account.whatsapp_flows.find(response.parsed_body['id'])
+      expect(copy.name).to eq('Datos (copia)')
+      expect(copy.definition).to eq(flow.definition)
+      expect(copy.categories).to eq(flow.categories)
+      expect(copy.created_by).to eq(admin)
+      expect(copy.whatsapp_flow_publications).to be_empty
+    end
+
+    it 'does not allow agents to duplicate' do
+      post "#{base_url}/#{flow.id}/duplicate", headers: agent.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'does not duplicate another account flow' do
+      other = create(:whatsapp_flow)
+      post "#{base_url}/#{other.id}/duplicate", headers: admin.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
   describe 'unpublished changes' do
     let(:flow) { create(:whatsapp_flow, account: account) }
     let(:publication) do
