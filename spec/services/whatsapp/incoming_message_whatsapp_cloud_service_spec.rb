@@ -96,6 +96,8 @@ describe Whatsapp::IncomingMessageWhatsappCloudService do
     end
 
     context 'when a contact submits a WhatsApp Flow response' do
+      around { |example| I18n.with_locale(:es) { example.run } }
+
       let(:response_json) do
         {
           flow_token: 'flow-correlation-token',
@@ -740,6 +742,8 @@ describe Whatsapp::IncomingMessageWhatsappCloudService do
     end
 
     context 'when WhatsApp Flow nfm_reply is received' do
+      around { |example| I18n.with_locale(:es) { example.run } }
+
       let(:flow_params) do
         {
           phone_number: whatsapp_channel.phone_number,

@@ -1,6 +1,8 @@
 require 'rails_helper'
 
 RSpec.describe Whatsapp::Flows::SaveResponseService do
+  around { |example| I18n.with_locale(:es) { example.run } }
+
   let(:conversation) { create(:conversation) }
   let(:contact) { conversation.contact }
   let(:fields) do
