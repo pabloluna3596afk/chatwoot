@@ -286,7 +286,9 @@ describe('unified send center', () => {
     await flushPromises();
     const toolbar = wrapper.get('[data-testid="center-toolbar"]');
     const columns = wrapper.get('[data-testid="center-columns"]');
-    expect(toolbar.element.parentElement.parentElement).toBe(columns.element);
+    expect(toolbar.element.parentElement.parentElement.parentElement).toBe(
+      columns.element
+    );
     expect(
       wrapper.get('[data-testid="center-detail"]').element.parentElement
     ).toBe(columns.element);
@@ -932,6 +934,53 @@ describe('unified send center', () => {
       wrapper.find('[data-testid="flow-send-fields-column"]').exists()
     ).toBe(false);
     expect(wrapper.emitted('close')).toBeUndefined();
+  });
+
+  it('keeps status only in list rows and aligns the preview and customization with the list content row', async () => {
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: 'whatsapp_cloud',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates,
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    expect(wrapper.get('[data-testid="center-list"]').text()).toContain(
+      'Publicado'
+    );
+    const detail = wrapper.get('[data-testid="center-detail"]');
+    expect(detail.text()).not.toContain('Publicado');
+    expect(
+      detail.get('[data-testid="center-detail-header"]').find('h3').text()
+    ).toBe('Contact');
+    expect(detail.classes()).toContain('grid-rows-subgrid');
+    expect(
+      wrapper
+        .get('[data-testid="center-list"]')
+        .element.parentElement.classList.contains('grid-rows-subgrid')
+    ).toBe(true);
+    expect(wrapper.get('[data-testid="center-columns"]').classes()).toContain(
+      'grid-rows-[auto_minmax(0,1fr)]'
+    );
+    await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
+    expect(
+      wrapper.get('[data-testid="flow-send-fields-column"]').element
+        .parentElement
+    ).toBe(
+      wrapper.get('[data-testid="flow-send-preview-column"]').element
+        .parentElement
+    );
+    expect(wrapper.text()).not.toContain('Listo para enviar');
   });
 
   it('ships matching English and Spanish send-center keys', () => {

@@ -116,6 +116,26 @@ describe('Flow message customization', () => {
     }
   );
 
+  it('keeps the closed customization button directly after the bubble without caption or field labels', () => {
+    const wrapper = mount(FlowDetail, {
+      props: { flow: { id: 12, name: 'Appointment' } },
+    });
+    const preview = wrapper.get('[data-testid="flow-send-preview-column"]');
+    const button = wrapper.get('[data-testid="flow-send-customize"]');
+    expect(button.element.parentElement).toBe(preview.element);
+    expect(
+      button.element.previousElementSibling.contains(
+        wrapper.get('[data-testid="send-center-preview"]').element
+      )
+    ).toBe(true);
+    expect(preview.text()).not.toContain('SEND_CENTER.PREVIEW');
+    expect(preview.text()).not.toContain('SEND_CENTER.BODY');
+    expect(
+      wrapper.find('[data-testid="flow-send-modified-dot"]').exists()
+    ).toBe(false);
+    wrapper.unmount();
+  });
+
   it('focuses the first field, closes only the panel with Esc, and returns focus', async () => {
     const wrapper = mount(FlowDetail, {
       attachTo: document.body,
@@ -161,12 +181,17 @@ describe('Flow message customization', () => {
     await wrapper
       .get('[data-testid="flow-send-close-customize"]')
       .trigger('click');
-    expect(wrapper.get('[data-testid="flow-send-customize"]').text()).toContain(
-      'CUSTOMIZED'
+    expect(wrapper.get('[data-testid="flow-send-customize"]').text()).toBe(
+      'WHATSAPP_TEMPLATES.SEND_CENTER.CUSTOMIZE'
     );
-    expect(wrapper.get('[data-testid="flow-send-customize"]').text()).toContain(
-      '\u00b7'
-    );
+    expect(
+      wrapper
+        .get('[data-testid="flow-send-modified-dot"]')
+        .attributes('aria-label')
+    ).toBe('WHATSAPP_TEMPLATES.SEND_CENTER.CUSTOMIZED_MESSAGE');
+    expect(
+      wrapper.get('[data-testid="flow-send-modified-dot"]').attributes('title')
+    ).toBe('WHATSAPP_TEMPLATES.SEND_CENTER.CUSTOMIZED_MESSAGE');
     expect(wrapper.get('[data-testid="send-center-preview"]').text()).toContain(
       'Choose a time'
     );
@@ -220,7 +245,7 @@ describe('Flow message customization', () => {
       .get('[data-testid="flow-send-cta"] input')
       .setValue('Open 😀');
     expect(wrapper.vm.isValid).toBe(false);
-    expect(wrapper.get('[role="alert"]').text()).toContain('button_no_emoji');
+    expect(wrapper.vm.invalidReason).toContain('button_no_emoji');
     await wrapper.get('[data-testid="flow-send-cta"] input').setValue('Open');
     expect(wrapper.vm.isValid).toBe(true);
   });

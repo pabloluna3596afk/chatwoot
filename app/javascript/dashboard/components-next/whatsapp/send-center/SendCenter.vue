@@ -400,75 +400,79 @@ watch(
         />
       </div>
       <div
-        class="grid min-h-0 flex-1 gap-6 grid-cols-[var(--send-center-unit)_minmax(0,1fr)]"
+        class="grid min-h-0 flex-1 gap-x-6 gap-y-3 grid-rows-[auto_minmax(0,1fr)] grid-cols-[var(--send-center-unit)_minmax(0,1fr)]"
         data-testid="center-columns"
       >
-        <section
-          class="flex flex-col min-h-0 min-w-0 gap-3"
-          :class="{
-            'max-xl:[&>:not(:first-child)]:invisible': hasCustomization,
-          }"
-        >
+        <section class="row-span-2 grid grid-rows-subgrid min-h-0 min-w-0">
           <div
-            class="flex shrink-0 items-center gap-3"
-            data-testid="center-toolbar"
+            class="flex flex-col gap-3"
+            data-testid="center-controls"
+            :class="{
+              'max-xl:[&>:not(:first-child)]:invisible': hasCustomization,
+            }"
           >
-            <TabBar
-              :tabs="tabs"
-              :initial-active-tab="tab"
-              @tab-changed="tab = $event.index"
-            />
-            <Button
-              type="button"
-              icon="i-lucide-refresh-cw"
-              ghost
-              slate
-              sm
-              :is-loading="isRefreshing || isPending"
-              :disabled="isSending || isRefreshing || isPending"
-              :aria-label="$t(`${prefix}.REFRESH`)"
-              :title="$t(`${prefix}.REFRESH`)"
-              data-testid="center-refresh"
-              @click="refresh"
-            />
-          </div>
+            <div
+              class="flex shrink-0 items-center gap-3"
+              data-testid="center-toolbar"
+            >
+              <TabBar
+                :tabs="tabs"
+                :initial-active-tab="tab"
+                @tab-changed="tab = $event.index"
+              />
+              <Button
+                type="button"
+                icon="i-lucide-refresh-cw"
+                ghost
+                slate
+                sm
+                :is-loading="isRefreshing || isPending"
+                :disabled="isSending || isRefreshing || isPending"
+                :aria-label="$t(`${prefix}.REFRESH`)"
+                :title="$t(`${prefix}.REFRESH`)"
+                data-testid="center-refresh"
+                @click="refresh"
+              />
+            </div>
 
-          <Input
-            v-model="query"
-            type="search"
-            size="sm"
-            class="w-full shrink-0"
-            :placeholder="$t(`${prefix}.SEARCH`)"
-            :aria-label="$t(`${prefix}.SEARCH`)"
-            data-testid="center-search"
-          />
-          <div
-            class="grid shrink-0 grid-cols-2 gap-2"
-            data-testid="center-filters"
-          >
-            <FilterDropdown
-              v-model="category"
-              class="[&>button]:w-full"
-              icon="i-lucide-folder"
-              :label="$t(`${prefix}.FILTER_CATEGORY`)"
-              :options="categoryOptions"
-              :groups="categoryGroups"
-              data-testid="center-category"
+            <Input
+              v-model="query"
+              type="search"
+              size="sm"
+              class="w-full shrink-0"
+              :placeholder="$t(`${prefix}.SEARCH`)"
+              :aria-label="$t(`${prefix}.SEARCH`)"
+              data-testid="center-search"
             />
-            <FilterDropdown
-              v-model="status"
-              class="[&>button]:w-full"
-              icon="i-lucide-circle-check"
-              :label="$t(`${prefix}.FILTER_STATUS`)"
-              :options="statusOptions"
-              :groups="statusGroups"
-              data-testid="center-status"
-            />
+            <div
+              class="grid shrink-0 grid-cols-2 gap-2"
+              data-testid="center-filters"
+            >
+              <FilterDropdown
+                v-model="category"
+                class="[&>button]:w-full"
+                icon="i-lucide-folder"
+                :label="$t(`${prefix}.FILTER_CATEGORY`)"
+                :options="categoryOptions"
+                :groups="categoryGroups"
+                data-testid="center-category"
+              />
+              <FilterDropdown
+                v-model="status"
+                class="[&>button]:w-full"
+                icon="i-lucide-circle-check"
+                :label="$t(`${prefix}.FILTER_STATUS`)"
+                :options="statusOptions"
+                :groups="statusGroups"
+                data-testid="center-status"
+              />
+            </div>
+            <p v-if="isPending" class="text-xs text-n-slate-11">
+              {{ $t(`${prefix}.LOADING`) }}
+            </p>
           </div>
-          <p v-if="isPending" class="text-xs text-n-slate-11">
-            {{ $t(`${prefix}.LOADING`) }}
-          </p>
           <div
+            :class="{ 'max-xl:invisible': hasCustomization }"
             class="min-h-0 flex-1 overflow-y-auto overscroll-contain flex flex-col gap-2"
             role="list"
             data-testid="center-list"
@@ -521,31 +525,26 @@ watch(
         </section>
         <section
           v-if="selected"
-          class="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto max-xl:overflow-visible overscroll-contain flex flex-col gap-4"
+          class="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto max-xl:overflow-visible overscroll-contain row-span-2 grid grid-rows-subgrid"
           data-testid="center-detail"
         >
-          <div>
-            <div class="flex items-start justify-between gap-2">
-              <h3 class="text-sm font-semibold break-words text-n-slate-12">
-                {{ selected.name }}
-              </h3>
-              <span
-                class="shrink-0 rounded px-2 py-1 text-xs"
-                :class="
-                  selected.reason
-                    ? 'bg-n-amber-3 text-n-amber-11'
-                    : 'bg-n-teal-3 text-n-teal-11'
-                "
-                >{{ statusLabel(selected.status) }}</span
-              >
-            </div>
-            <p class="text-xs mt-1 text-n-slate-11">
-              {{
-                selected.type === 'flow'
-                  ? $t(`${prefix}.SCREENS`, { count: selected.data.screens })
-                  : `${categoryLabel(selected.data.category?.toUpperCase())} Â· ${selected.data.language}`
-              }}
-            </p>
+          <div
+            class="flex min-w-0 items-start gap-2"
+            data-testid="center-detail-header"
+          >
+            <h3
+              class="truncate text-sm font-semibold text-n-slate-12"
+              :title="selected.name"
+            >
+              {{ selected.name }}
+            </h3>
+            <span
+              v-if="selected.type === 'flow'"
+              class="shrink-0 text-xs leading-5 text-n-slate-11"
+              >{{
+                $t(`${prefix}.SCREENS`, { count: selected.data.screens })
+              }}</span
+            >
           </div>
           <FlowDetail
             v-if="selected.type === 'flow'"
@@ -595,16 +594,6 @@ watch(
             :footer="footer"
             :buttons="buttons"
           />
-          <p
-            v-if="selected.reason"
-            class="flex gap-2 items-start text-sm text-n-slate-12"
-            data-testid="center-reason"
-          >
-            <Icon
-              icon="i-lucide-lock-keyhole"
-              class="size-4 mt-0.5 shrink-0"
-            />{{ reasonLabel(selected.reason) }}
-          </p>
         </section>
         <p v-else class="text-sm text-n-slate-11">
           {{ $t(`${prefix}.NO_SELECTION`) }}
@@ -628,8 +617,15 @@ watch(
           >
             {{ flowDetail.invalidReason }}
           </p>
-          <p v-else class="text-xs text-n-slate-11">
-            {{ $t(`${prefix}.${canSend ? 'READY' : 'UNAVAILABLE'}`) }}
+          <p
+            v-else-if="selected?.reason"
+            class="flex gap-2 items-start text-sm text-n-slate-12"
+            data-testid="center-reason"
+          >
+            <Icon
+              icon="i-lucide-lock-keyhole"
+              class="size-4 mt-0.5 shrink-0"
+            />{{ reasonLabel(selected.reason) }}
           </p>
         </div>
         <Button

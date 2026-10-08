@@ -94,7 +94,7 @@ defineExpose({
 <template>
   <div
     ref="columns"
-    class="relative grid min-h-0 min-w-0 flex-1 grid-rows-[minmax(0,1fr)_auto] items-start gap-6"
+    class="relative grid min-h-0 min-w-0 flex-1 items-start gap-6"
     :class="
       customizing
         ? 'grid-cols-[var(--phone-preview-width)] xl:grid-cols-[var(--phone-preview-width)_var(--send-center-unit)]'
@@ -108,21 +108,31 @@ defineExpose({
       data-testid="flow-send-preview-column"
     >
       <MessagePreview :header="header" :body="body" :buttons="[cta]" flow />
+      <Button
+        v-if="!customizing"
+        class="w-full !h-auto whitespace-normal text-start"
+        type="button"
+        slate
+        ghost
+        sm
+        icon="i-lucide-sliders-horizontal"
+        :label="$t('WHATSAPP_TEMPLATES.SEND_CENTER.CUSTOMIZE')"
+        :aria-expanded="customizing"
+        aria-controls="flow-send-customization"
+        data-testid="flow-send-customize"
+        @click="openCustomization"
+      >
+        <span>{{ $t('WHATSAPP_TEMPLATES.SEND_CENTER.CUSTOMIZE') }}</span>
+        <span
+          v-if="isModified"
+          class="size-2 shrink-0 rounded-full bg-n-teal-9"
+          role="img"
+          :aria-label="$t('WHATSAPP_TEMPLATES.SEND_CENTER.CUSTOMIZED_MESSAGE')"
+          :title="$t('WHATSAPP_TEMPLATES.SEND_CENTER.CUSTOMIZED_MESSAGE')"
+          data-testid="flow-send-modified-dot"
+        />
+      </Button>
     </div>
-    <Button
-      v-if="!customizing"
-      class="col-start-1 row-start-2 w-full !h-auto whitespace-normal text-start"
-      type="button"
-      slate
-      ghost
-      sm
-      icon="i-lucide-sliders-horizontal"
-      :label="`${t('WHATSAPP_TEMPLATES.SEND_CENTER.CUSTOMIZE')}${isModified ? ` \u00b7 ${t('WHATSAPP_TEMPLATES.SEND_CENTER.CUSTOMIZED')}` : ''}`"
-      :aria-expanded="customizing"
-      aria-controls="flow-send-customization"
-      data-testid="flow-send-customize"
-      @click="openCustomization"
-    />
     <div
       v-if="customizing"
       id="flow-send-customization"
@@ -182,9 +192,6 @@ defineExpose({
         :maxlength="LIMITS.cta"
         data-testid="flow-send-cta"
       />
-      <p v-if="buttonHasEmoji" role="alert" class="text-xs text-n-ruby-11">
-        {{ $t('WHATSAPP_FLOWS.ERRORS.button_no_emoji') }}
-      </p>
     </div>
   </div>
 </template>

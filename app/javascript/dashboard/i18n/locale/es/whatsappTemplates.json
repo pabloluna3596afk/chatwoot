@@ -57,7 +57,7 @@
       "MEDIA_ERROR_UPLOAD_FAILED": "No se pudo subir el archivo a WhatsApp. Inténtalo de nuevo."
     },
     "SEND_CENTER": {
-      "CUSTOMIZED": "Personalizado",
+      "CUSTOMIZED_MESSAGE": "Mensaje personalizado",
       "CLOSE_CUSTOMIZE": "Cerrar personalizaci\u00f3n",
       "RESTORE": "Restaurar texto original",
       "BODY_REQUIRED": "Escribe el cuerpo del mensaje.",
