@@ -154,7 +154,7 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
 
   def render_meta_error(error)
     status = META_ERROR_STATUS.fetch(error.code, :unprocessable_entity)
-    render json: { error: error.code, message: translate_error(error.code, detail: error.detail), meta_code: error.meta_code }, status: status
+    render json: { error: error.code, message: error.detail.presence || translate_error(error.code), meta_code: error.meta_code }, status: status
   end
 
   def render_error(code, status: :unprocessable_entity)
