@@ -1,8 +1,6 @@
 require 'rails_helper'
 
 RSpec.describe Whatsapp::Flows::SaveResponseService do
-  around { |example| I18n.with_locale(:es) { example.run } }
-
   let(:conversation) { create(:conversation) }
   let(:contact) { conversation.contact }
   let(:fields) do
@@ -54,7 +52,9 @@ RSpec.describe Whatsapp::Flows::SaveResponseService do
   end
 
   it 'saves valid answers, skips invalid/blank fields and notes exactly once' do
-    2.times { described_class.new(incoming, payload).perform }
+    message = incoming
+    answers = payload
+    I18n.with_locale(:es) { 2.times { described_class.new(message, answers).perform } }
     expect(contact.reload.name).to eq('Updated')
     expect(contact.email).to be_present
     expect(conversation.messages.where(private: true).count).to eq(1)

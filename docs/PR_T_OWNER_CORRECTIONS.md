@@ -8,6 +8,13 @@ whose existing strings remain `Formulario completado`. Commit c31e81313b scopes
 the relevant formatter, save-response and incoming-response examples with
 `I18n.with_locale(:es)`; production English strings are preserved.
 
+Follow-up run 37789637072 passed shards 16/4 and 16/2 but exposed two failures in
+16/9: the suite-wide Spanish scope made an English skip-reason assertion fail,
+and also changed Faker's locale while the outgoing-message user factory built
+its email. Scope Spanish only to the completion-note service execution, after
+fixtures and payload have been initialized. All other examples retain English;
+the random sender factory no longer runs under the Spanish scope.
+
 ## Shared presentation
 
 - Rows open preview (templates) or editor (Flows), including Enter on a focused
