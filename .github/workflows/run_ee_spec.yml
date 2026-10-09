@@ -47,9 +47,9 @@ jobs:
             ruby=false
             git diff --name-only "$BASE_SHA...$HEAD_SHA" > "$RUNNER_TEMP/changed-paths"
             while IFS= read -r path; do
-              # Backend paths-ignore: frontend trees, documentation trees and all Markdown.
+              # Backend paths-ignore: frontend trees, documentation trees, workflow files and all Markdown.
               case "$path" in
-                app/javascript/*|docs/*|docs-crm/*|*.md) ;;
+                app/javascript/*|docs/*|docs-crm/*|.github/*|*.md) ;;
                 *) backend=true ;;
               esac
               # Keep dashboard tests for frontend source and package dependency changes.
