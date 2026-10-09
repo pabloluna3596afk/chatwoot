@@ -1,5 +1,6 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import FilterDropdown from '../FilterDropdown.vue';
+import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: key => key }) }));
 
@@ -30,10 +31,17 @@ describe('FilterDropdown', () => {
         })),
       });
       await wrapper.get('button').trigger('click');
-      expect(wrapper.find('input[type="search"]').exists()).toBe(size > 6);
+      expect(
+        wrapper.getComponent(DropdownMenu).find('input[type="search"]').exists()
+      ).toBe(size > 6);
       if (size > 6) {
-        await wrapper.get('input').setValue('Option 2');
-        expect(wrapper.findAll('[role="dialog"] button')).toHaveLength(1);
+        await wrapper
+          .getComponent(DropdownMenu)
+          .get('input')
+          .setValue('Option 2');
+        expect(
+          wrapper.getComponent(DropdownMenu).findAll('button')
+        ).toHaveLength(1);
       }
       wrapper.unmount();
     }
@@ -43,7 +51,7 @@ describe('FilterDropdown', () => {
     const wrapper = mountFilter();
     expect(wrapper.get('button').text()).toBe('All states');
     await wrapper.get('button').trigger('click');
-    const rows = wrapper.findAll('[role="dialog"] button');
+    const rows = wrapper.getComponent(DropdownMenu).findAll('button');
     expect(rows.map(row => row.text())).toEqual([
       'All states12',
       'Published12',
@@ -79,7 +87,10 @@ describe('FilterDropdown', () => {
     expect(wrapper.get('button').attributes('title')).toBe('All states');
     await wrapper.get('button').trigger('click');
     expect(
-      wrapper.findAll('[role="dialog"] button').map(row => row.text())
+      wrapper
+        .getComponent(DropdownMenu)
+        .findAll('button')
+        .map(row => row.text())
     ).toEqual(['All states12', `${longLabel}2`]);
     await wrapper.setProps({ modelValue: 'changes' });
     expect(wrapper.get('button').text()).toBe(longLabel);
@@ -91,7 +102,7 @@ describe('FilterDropdown', () => {
     const wrapper = mountFilter();
     await wrapper.get('button').trigger('keydown', { key: 'ArrowDown' });
     await flushPromises();
-    const rows = wrapper.findAll('[role="dialog"] button');
+    const rows = wrapper.getComponent(DropdownMenu).findAll('button');
     expect(document.activeElement).toBe(rows[0].element);
     await rows[0].trigger('keydown', { key: 'ArrowUp' });
     expect(document.activeElement).toBe(rows[2].element);
@@ -104,7 +115,9 @@ describe('FilterDropdown', () => {
     expect(wrapper.emitted('update:modelValue')).toEqual([['error']]);
     await wrapper.get('button').trigger('keydown', { key: 'ArrowUp' });
     await flushPromises();
-    await wrapper.get('[role="dialog"]').trigger('keydown', { key: 'Escape' });
+    await wrapper
+      .getComponent(DropdownMenu)
+      .trigger('keydown', { key: 'Escape' });
     await flushPromises();
     expect(wrapper.get('button').attributes('aria-expanded')).toBe('false');
     expect(document.activeElement).toBe(wrapper.get('button').element);
@@ -119,11 +132,12 @@ describe('FilterDropdown', () => {
     });
     expect(
       wrapper
-        .findAll('[role="dialog"] button')
+        .getComponent(DropdownMenu)
+        .findAll('button')
         .every(row => row.text().endsWith('0'))
     ).toBe(true);
     await wrapper
-      .get('[role="dialog"]')
+      .getComponent(DropdownMenu)
       .trigger('focusout', { relatedTarget: document.body });
     expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
     wrapper.unmount();

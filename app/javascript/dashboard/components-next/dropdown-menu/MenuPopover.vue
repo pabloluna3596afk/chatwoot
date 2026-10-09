@@ -27,7 +27,7 @@ const { fixedPosition } = useDropdownPosition(trigger, menuElement, open, {
 const MENU_MAX_HEIGHT = 320;
 const panelStyle = computed(() => ({
   ...fixedPosition.value.style,
-  maxHeight: `${Math.max(0, Math.min(MENU_MAX_HEIGHT, parseFloat(fixedPosition.value.style.maxHeight) || MENU_MAX_HEIGHT))}px`,
+  maxHeight: `${Math.max(0, Math.min(MENU_MAX_HEIGHT, parseFloat(fixedPosition.value.style.maxHeight ?? MENU_MAX_HEIGHT)))}px`,
   width: props.matchWidth ? `${triggerWidth.value}px` : undefined,
   zIndex: 9999,
 }));
