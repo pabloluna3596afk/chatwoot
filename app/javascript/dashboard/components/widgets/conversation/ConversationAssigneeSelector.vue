@@ -1,14 +1,17 @@
 <script setup>
-import { computed, onMounted, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useStore } from 'vuex';
-import { useToggle } from '@vueuse/core';
-import MultiselectDropdownItems from 'shared/components/ui/MultiselectDropdownItems.vue';
-import NextButton from 'dashboard/components-next/button/Button.vue';
+import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
+
 import Avatar from 'next/avatar/Avatar.vue';
+import Icon from 'dashboard/components-next/icon/Icon.vue';
+import {
+  getAssigneeSelectionKey,
+  isSameAssignee,
+} from 'dashboard/helper/assigneeHelper';
 import { useConversationAssignee } from 'dashboard/composables/useConversationAssignee';
 import { useCaptainState } from 'dashboard/composables/useCaptainState';
 import { useI18n } from 'vue-i18n';
-import { OnClickOutside } from '@vueuse/components';
 
 defineProps({
   showSelfAssignButton: {
@@ -29,7 +32,7 @@ const {
   onSelfAssign,
 } = useConversationAssignee();
 
-const [showMenu, toggleMenu] = useToggle(false);
+const showMenu = ref(false);
 
 // While Captain answers, the chip shows the assistant's own photo inside the state ring (as the conversation card does).
 const {
@@ -60,19 +63,32 @@ watch(
   () => fetchAssignableAgents()
 );
 
+const menuItems = computed(() =>
+  agentsList.value.map(agent => ({
+    label: agent.name,
+    value: getAssigneeSelectionKey(agent),
+    action: 'assign',
+    agent,
+    isSelected:
+      !!assignedAgent.value && isSameAssignee(assignedAgent.value, agent),
+    disabled: isAssigning.value,
+  }))
+);
 const displayName = computed(
   () => assignedAgent.value?.name || t('AGENT_MGMT.MULTI_SELECTOR.PLACEHOLDER')
 );
 
-const closeMenu = () => toggleMenu(false);
+const closeMenu = () => {
+  showMenu.value = false;
+};
 
 const onTriggerClick = () => {
   if (isAssigning.value) return;
-  toggleMenu();
+  showMenu.value = !showMenu.value;
 };
 
-const onSelectAgent = agent => {
-  onClickAssignAgent(agent);
+const onSelectAgent = item => {
+  onClickAssignAgent(item.agent);
   closeMenu();
 };
 
@@ -83,80 +99,89 @@ const onClickSelfAssign = () => {
 </script>
 
 <template>
-  <OnClickOutside @trigger="closeMenu">
-    <div
-      v-tooltip="t('CONVERSATION.HEADER.ASSIGNEE')"
-      class="relative flex items-center h-8 min-w-0 max-w-[10rem] rounded-lg outline outline-1 outline-n-weak bg-n-background shrink-0"
-    >
-      <button
-        type="button"
-        class="flex flex-1 min-w-0 items-center gap-1.5 h-full px-2.5 text-left border-0 bg-transparent hover:bg-n-alpha-2 rounded-lg"
-        :disabled="isAssigning"
-        @click="onTriggerClick"
-      >
-        <span
-          v-if="assignedAgent"
-          class="inline-flex shrink-0 rounded-full"
-          :class="showAssistantAvatar ? ['ring-2', captainRingClass] : ''"
-          data-testid="assignee-chip-avatar"
-        >
-          <Avatar
-            :name="assignedAgent.name"
-            :src="chipThumbnail"
-            :status="assignedAgent.availability_status"
-            :size="18"
-            hide-offline-status
-            rounded-full
-          />
-        </span>
-        <span
-          class="min-w-0 text-sm text-n-slate-12 truncate"
-          :title="displayName"
-        >
-          {{ displayName }}
-        </span>
-      </button>
+  <MenuPopover
+    v-model:open="showMenu"
+    :menu-items="menuItems"
+    show-search
+    :search-placeholder="
+      t('AGENT_MGMT.MULTI_SELECTOR.SEARCH.PLACEHOLDER.AGENT')
+    "
+    :label="t('CONVERSATION.HEADER.ASSIGNEE')"
+    panel-class="w-64 max-w-[calc(100vw-2rem)]"
+    @action="onSelectAgent"
+  >
+    <template #trigger>
       <div
-        v-if="showMenu"
-        class="box-border border rounded-lg bg-n-alpha-3 backdrop-blur-[100px] absolute shadow-lg border-n-strong dark:border-n-strong p-2 z-[9999] top-9 ltr:right-0 rtl:left-0 min-w-[16rem] w-max"
+        v-tooltip="t('CONVERSATION.HEADER.ASSIGNEE')"
+        class="relative flex items-center h-8 min-w-0 max-w-[10rem] rounded-lg outline outline-1 outline-n-weak bg-n-background shrink-0"
       >
-        <div class="flex items-center justify-between mb-1">
-          <h4
-            class="m-0 overflow-hidden text-sm text-n-slate-11 whitespace-nowrap text-ellipsis"
-          >
-            {{ $t('AGENT_MGMT.MULTI_SELECTOR.TITLE.AGENT') }}
-          </h4>
-          <NextButton
-            variant="ghost"
-            color="slate"
-            size="xs"
-            icon="i-lucide-x"
-            @click="closeMenu"
-          />
-        </div>
         <button
-          v-if="showSelfAssignButton && showSelfAssign"
           type="button"
-          class="flex w-full items-center gap-2 mb-1 px-2 py-1.5 rounded-md text-sm font-medium text-n-blue-11 hover:bg-n-alpha-2 border-0 bg-transparent cursor-pointer text-start disabled:opacity-50"
+          class="flex flex-1 min-w-0 items-center gap-1.5 h-full px-2.5 text-left border-0 bg-transparent hover:bg-n-alpha-2 rounded-lg"
           :disabled="isAssigning"
-          @click="onClickSelfAssign"
+          @click="onTriggerClick"
         >
-          <span class="i-lucide-user-round-plus size-4 shrink-0" />
-          {{ t('CONVERSATION_SIDEBAR.SELF_ASSIGN') }}
+          <span
+            v-if="assignedAgent"
+            class="inline-flex shrink-0 rounded-full"
+            :class="showAssistantAvatar ? ['ring-2', captainRingClass] : ''"
+            data-testid="assignee-chip-avatar"
+          >
+            <Avatar
+              :name="assignedAgent.name"
+              :src="chipThumbnail"
+              :status="assignedAgent.availability_status"
+              :size="18"
+              hide-offline-status
+              rounded-full
+            />
+          </span>
+          <span
+            class="min-w-0 text-sm text-n-slate-12 truncate"
+            :title="displayName"
+          >
+            {{ displayName }}
+          </span>
         </button>
-        <MultiselectDropdownItems
-          :options="agentsList"
-          :selected-items="assignedAgent ? [assignedAgent] : []"
-          has-thumbnail
-          :input-placeholder="
-            $t('AGENT_MGMT.MULTI_SELECTOR.SEARCH.PLACEHOLDER.AGENT')
-          "
-          :no-search-result="
-            $t('AGENT_MGMT.MULTI_SELECTOR.SEARCH.NO_RESULTS.AGENT')
-          "
-          @select="onSelectAgent"
-        />
       </div>
-    </div>
-  </OnClickOutside>
+    </template>
+    <template #thumbnail="{ item }">
+      <Avatar
+        v-if="!item.agent.icon || item.agent.assignee_type === 'AgentBot'"
+        :name="item.agent.name"
+        :src="item.agent.thumbnail"
+        :status="item.agent.availability_status"
+        :icon-name="
+          item.agent.assignee_type === 'AgentBot' ? 'i-lucide-bot' : undefined
+        "
+        :size="24"
+        hide-offline-status
+        rounded-full
+      >
+        <template
+          v-if="item.agent.assignee_type === 'AgentBot' && item.agent.thumbnail"
+          #badge
+        >
+          <div
+            class="absolute z-20 flex items-center justify-center rounded-full outline outline-1 outline-n-weak bg-n-solid-1 -bottom-0.5 ltr:-right-0.5 rtl:-left-0.5 size-3.5"
+          >
+            <Icon icon="i-lucide-bot" class="text-n-slate-11 size-2.5" />
+          </div>
+        </template>
+      </Avatar>
+      <Icon v-else :icon="item.agent.icon" class="size-5 text-n-slate-11" />
+    </template>
+    <template v-if="showSelfAssignButton && showSelfAssign" #footer>
+      <button
+        v-if="showSelfAssignButton && showSelfAssign"
+        type="button"
+        class="flex w-full items-center gap-2 mb-1 px-2 py-1.5 rounded-md text-sm font-medium text-n-blue-11 hover:bg-n-alpha-2 border-0 bg-transparent cursor-pointer text-start disabled:opacity-50"
+        :disabled="isAssigning"
+        @click="onClickSelfAssign"
+      >
+        <span class="i-lucide-user-round-plus size-4 shrink-0" />
+        {{ t('CONVERSATION_SIDEBAR.SELF_ASSIGN') }}
+      </button>
+    </template>
+  </MenuPopover>
 </template>
