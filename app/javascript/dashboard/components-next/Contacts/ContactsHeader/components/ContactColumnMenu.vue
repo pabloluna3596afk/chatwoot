@@ -1,4 +1,5 @@
 <script setup>
+import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
 import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store';
@@ -12,7 +13,6 @@ import {
 import Draggable from 'vuedraggable';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
-import Input from 'dashboard/components-next/input/Input.vue';
 
 const { t } = useI18n();
 const { uiSettings, updateUISettings } = useUISettings();
@@ -192,12 +192,6 @@ const selectAll = () => {
   persist(current);
 };
 
-const closeMenu = () => {
-  if (dragging.value) return;
-  isMenuOpen.value = false;
-  searchQuery.value = '';
-};
-
 const onDragStart = () => {
   dragging.value = true;
 };
@@ -222,135 +216,136 @@ const hasListItems = computed(
 </script>
 
 <template>
-  <div class="relative">
-    <Button
-      icon="i-lucide-columns-3"
-      color="slate"
-      size="sm"
-      variant="ghost"
-      :class="isMenuOpen ? 'bg-n-alpha-2' : ''"
-      :title="t('CONTACTS_LAYOUT.HEADER.ACTIONS.COLUMNS.LABEL')"
-      @click="isMenuOpen = !isMenuOpen"
-    />
-    <div
-      v-if="isMenuOpen"
-      v-on-clickaway="closeMenu"
-      class="absolute top-full mt-1.5 ltr:right-0 rtl:left-0 flex flex-col gap-3 bg-n-alpha-3 backdrop-blur-[100px] border border-n-weak w-[24rem] max-h-[min(32rem,75vh)] rounded-xl p-3.5 z-50 shadow-lg"
-    >
-      <div class="flex items-start justify-between gap-2 shrink-0">
-        <div class="min-w-0">
-          <p class="text-sm font-medium text-n-slate-12">
-            {{ t('CONTACTS_LAYOUT.HEADER.ACTIONS.COLUMNS.LABEL') }}
-          </p>
-          <p class="text-xs text-n-slate-11 mt-0.5">
-            {{
-              t('CONTACTS_LAYOUT.HEADER.ACTIONS.COLUMNS.VISIBLE_COUNT', {
-                count: visibleCount,
-              })
-            }}
-          </p>
-        </div>
-        <div class="flex items-center gap-0.5 shrink-0">
-          <Button
-            size="xs"
-            variant="ghost"
-            color="slate"
-            :label="t('CONTACTS_LAYOUT.HEADER.ACTIONS.COLUMNS.DEFAULTS')"
-            @click="selectDefaults"
-          />
-          <Button
-            size="xs"
-            variant="ghost"
-            color="slate"
-            :label="t('CONTACTS_LAYOUT.HEADER.ACTIONS.COLUMNS.ALL')"
-            @click="selectAll"
-          />
-        </div>
-      </div>
-
-      <p class="text-xs text-n-slate-11 -mt-1">
-        {{ t('CONTACTS_LAYOUT.HEADER.ACTIONS.COLUMNS.ORDER_HINT') }}
-      </p>
-
-      <Input
-        v-model="searchQuery"
-        type="search"
+  <MenuPopover
+    v-model:open="isMenuOpen"
+    :dismissible="!dragging"
+    :label="t('CONTACTS_LAYOUT.HEADER.ACTIONS.COLUMNS.LABEL')"
+    panel-class="w-96 max-w-[calc(100vw-2rem)]"
+    show-search
+    :search-placeholder="t('CONTACTS_LAYOUT.HEADER.ACTIONS.COLUMNS.SEARCH')"
+    @update:open="searchQuery = ''"
+    @search="searchQuery = $event"
+  >
+    <template #trigger>
+      <Button
+        icon="i-lucide-columns-3"
+        color="slate"
         size="sm"
-        :placeholder="t('CONTACTS_LAYOUT.HEADER.ACTIONS.COLUMNS.SEARCH')"
-        class="w-full shrink-0"
+        variant="ghost"
+        :class="isMenuOpen ? 'bg-n-alpha-2' : ''"
+        :title="t('CONTACTS_LAYOUT.HEADER.ACTIONS.COLUMNS.LABEL')"
+        @click="isMenuOpen = !isMenuOpen"
       />
+    </template>
+    <template #content>
+      <div class="flex flex-col gap-3 px-2 pb-2 overflow-y-auto min-h-0">
+        <div class="flex items-start justify-between gap-2 shrink-0">
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-n-slate-12">
+              {{ t('CONTACTS_LAYOUT.HEADER.ACTIONS.COLUMNS.LABEL') }}
+            </p>
+            <p class="text-xs text-n-slate-11 mt-0.5">
+              {{
+                t('CONTACTS_LAYOUT.HEADER.ACTIONS.COLUMNS.VISIBLE_COUNT', {
+                  count: visibleCount,
+                })
+              }}
+            </p>
+          </div>
+          <div class="flex items-center gap-0.5 shrink-0">
+            <Button
+              size="xs"
+              variant="ghost"
+              color="slate"
+              :label="t('CONTACTS_LAYOUT.HEADER.ACTIONS.COLUMNS.DEFAULTS')"
+              @click="selectDefaults"
+            />
+            <Button
+              size="xs"
+              variant="ghost"
+              color="slate"
+              :label="t('CONTACTS_LAYOUT.HEADER.ACTIONS.COLUMNS.ALL')"
+              @click="selectAll"
+            />
+          </div>
+        </div>
 
-      <div
-        class="flex flex-col gap-0.5 overflow-y-auto min-h-0 pr-0.5 -mr-0.5 border border-n-weak rounded-lg p-1.5 bg-n-alpha-1"
-      >
-        <!-- Name stays pinned: always first, not draggable / not hideable -->
-        <label
-          v-if="showNameRow"
-          class="flex items-center gap-2 rounded-lg px-1.5 py-1.5 opacity-60 cursor-not-allowed"
-        >
-          <span
-            class="inline-flex size-5 shrink-0 items-center justify-center text-n-slate-10"
-            aria-hidden="true"
-          >
-            <span class="i-lucide-pin size-3.5" />
-          </span>
-          <Checkbox :model-value="true" disabled />
-          <span class="truncate text-sm text-n-slate-12">
-            {{ nameColumn.label }}
-          </span>
-        </label>
-
-        <Draggable
-          v-model="dragList"
-          item-key="key"
-          :disabled="isFiltering"
-          :animation="200"
-          :force-fallback="true"
-          filter=".column-no-drag"
-          :prevent-on-filter="false"
-          ghost-class="opacity-50"
-          class="flex flex-col gap-0.5"
-          @start="onDragStart"
-          @end="onDragEnd"
-        >
-          <template #item="{ element: column }">
-            <div
-              class="flex items-center gap-2 rounded-lg px-1.5 py-1.5 hover:bg-n-alpha-2 select-none"
-              :class="
-                isFiltering
-                  ? 'cursor-default'
-                  : 'cursor-grab active:cursor-grabbing'
-              "
-            >
-              <span
-                class="inline-flex size-5 shrink-0 items-center justify-center text-n-slate-11"
-                :class="isFiltering ? 'opacity-40' : ''"
-                aria-hidden="true"
-              >
-                <span class="i-lucide-grip-vertical size-3.5" />
-              </span>
-              <label
-                class="column-no-drag flex min-w-0 flex-1 items-center gap-2.5 text-sm text-n-slate-12 cursor-pointer"
-              >
-                <Checkbox
-                  :model-value="isChecked(column.key)"
-                  @change="
-                    event => toggleColumn(column.key, event.target.checked)
-                  "
-                />
-                <span class="truncate">{{ column.label }}</span>
-              </label>
-            </div>
-          </template>
-        </Draggable>
-
-        <p
-          v-if="!hasListItems"
-          class="text-sm text-n-slate-11 text-center py-6"
-        >
-          {{ t('CONTACTS_LAYOUT.HEADER.ACTIONS.COLUMNS.EMPTY_SEARCH') }}
+        <p class="text-xs text-n-slate-11 -mt-1">
+          {{ t('CONTACTS_LAYOUT.HEADER.ACTIONS.COLUMNS.ORDER_HINT') }}
         </p>
+
+        <div
+          class="flex flex-col gap-0.5 overflow-y-auto min-h-0 pr-0.5 -mr-0.5 p-1"
+        >
+          <!-- Name stays pinned: always first, not draggable / not hideable -->
+          <label
+            v-if="showNameRow"
+            class="flex items-center gap-2 rounded-lg px-1.5 py-1.5 opacity-60 cursor-not-allowed"
+          >
+            <span
+              class="inline-flex size-5 shrink-0 items-center justify-center text-n-slate-10"
+              aria-hidden="true"
+            >
+              <span class="i-lucide-pin size-3.5" />
+            </span>
+            <Checkbox model-value disabled />
+            <span class="truncate text-sm text-n-slate-12">
+              {{ nameColumn.label }}
+            </span>
+          </label>
+
+          <Draggable
+            v-model="dragList"
+            item-key="key"
+            :disabled="isFiltering"
+            :animation="200"
+            force-fallback
+            filter=".column-no-drag"
+            :prevent-on-filter="false"
+            ghost-class="opacity-50"
+            class="flex flex-col gap-0.5"
+            @start="onDragStart"
+            @end="onDragEnd"
+          >
+            <template #item="{ element: column }">
+              <div
+                class="flex items-center gap-2 rounded-lg px-1.5 py-1.5 hover:bg-n-alpha-2 select-none"
+                :class="
+                  isFiltering
+                    ? 'cursor-default'
+                    : 'cursor-grab active:cursor-grabbing'
+                "
+              >
+                <span
+                  class="inline-flex size-5 shrink-0 items-center justify-center text-n-slate-11"
+                  :class="isFiltering ? 'opacity-40' : ''"
+                  aria-hidden="true"
+                >
+                  <span class="i-lucide-grip-vertical size-3.5" />
+                </span>
+                <label
+                  class="column-no-drag flex min-w-0 flex-1 items-center gap-2.5 text-sm text-n-slate-12 cursor-pointer"
+                >
+                  <Checkbox
+                    :model-value="isChecked(column.key)"
+                    @change="
+                      event => toggleColumn(column.key, event.target.checked)
+                    "
+                  />
+                  <span class="truncate">{{ column.label }}</span>
+                </label>
+              </div>
+            </template>
+          </Draggable>
+
+          <p
+            v-if="!hasListItems"
+            class="text-sm text-n-slate-11 text-center py-6"
+          >
+            {{ t('CONTACTS_LAYOUT.HEADER.ACTIONS.COLUMNS.EMPTY_SEARCH') }}
+          </p>
+        </div>
       </div>
-    </div>
-  </div>
+    </template>
+  </MenuPopover>
 </template>

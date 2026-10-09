@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Button from 'dashboard/components-next/button/Button.vue';
-import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
+import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
 import ConfirmContactDeleteDialog from 'dashboard/components-next/Contacts/ContactsForm/ConfirmContactDeleteDialog.vue';
 import ContactMergeDialog from 'dashboard/components-next/Contacts/ContactMergeDialog.vue';
 import { usePolicy } from 'dashboard/composables/usePolicy';
@@ -60,21 +60,25 @@ const handleContactAction = ({ action }) => {
 </script>
 
 <template>
-  <div v-on-clickaway="() => (showActionsDropdown = false)" class="relative">
-    <Button
-      icon="i-lucide-ellipsis-vertical"
-      color="slate"
-      variant="ghost"
-      size="sm"
-      :class="showActionsDropdown ? 'bg-n-alpha-2' : ''"
-      @click="showActionsDropdown = !showActionsDropdown"
-    />
-    <DropdownMenu
-      v-if="showActionsDropdown"
+  <div>
+    <MenuPopover
+      v-model:open="showActionsDropdown"
       :menu-items="menuItems"
-      class="ltr:right-0 rtl:left-0 mt-1 w-52 top-full"
+      panel-class="w-52 max-w-[calc(100vw-2rem)]"
+      :restore-focus-on-select="false"
       @action="handleContactAction($event)"
-    />
+    >
+      <template #trigger>
+        <Button
+          icon="i-lucide-ellipsis-vertical"
+          color="slate"
+          variant="ghost"
+          size="sm"
+          :class="showActionsDropdown ? 'bg-n-alpha-2' : ''"
+          @click="showActionsDropdown = !showActionsDropdown"
+        />
+      </template>
+    </MenuPopover>
 
     <ContactMergeDialog
       ref="contactMergeDialogRef"
