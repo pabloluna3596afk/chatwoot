@@ -13,6 +13,8 @@ const props = defineProps({
   align: { type: String, default: 'end' },
   label: { type: String, default: '' },
   matchWidth: { type: Boolean, default: false },
+  dismissible: { type: Boolean, default: true },
+  restoreFocusOnSelect: { type: Boolean, default: true },
 });
 const emit = defineEmits(['action', 'search']);
 const open = defineModel('open', { type: Boolean, default: false });
@@ -37,6 +39,7 @@ const direction = computed(() =>
     : undefined
 );
 const close = async (restoreFocus = false) => {
+  if (!props.dismissible) return;
   open.value = false;
   if (restoreFocus) {
     await nextTick();
@@ -46,10 +49,13 @@ const close = async (restoreFocus = false) => {
 onClickOutside(root, () => close(), { ignore: [menuElement] });
 const onAction = item => {
   emit('action', item);
-  close(true);
+  close(props.restoreFocusOnSelect);
 };
-const onFocusOut = event => {
+const onFocusOut = async event => {
+  // Native search focuses on mount, before the parent receives its menu ref.
+  await nextTick();
   if (
+    event.relatedTarget &&
     !root.value?.contains(event.relatedTarget) &&
     !menuElement.value?.contains(event.relatedTarget)
   )
@@ -70,7 +76,9 @@ const onKeydown = async event => {
   open.value = true;
   await nextTick();
   const buttons = [
-    ...menuElement.value.querySelectorAll('button:not(:disabled)'),
+    ...menuElement.value.querySelectorAll(
+      'button:not(:disabled), input[type="checkbox"]:not(:disabled)'
+    ),
   ];
   const current = wasOpen ? buttons.indexOf(event.target) : -1;
   let index;
@@ -126,8 +134,13 @@ defineExpose({ close });
         <template v-if="$slots.thumbnail" #thumbnail="slotProps">
           <slot name="thumbnail" v-bind="slotProps" />
         </template>
-        <template v-if="$slots['trailing-icon']" #trailing-icon="slotProps">
-          <slot name="trailing-icon" v-bind="slotProps" />
+        <template #trailing-icon="slotProps">
+          <slot name="trailing-icon" v-bind="slotProps">
+            <span
+              v-if="slotProps.item.isSelected"
+              class="i-lucide-check size-4 shrink-0 ms-auto"
+            />
+          </slot>
         </template>
         <template v-if="$slots.footer" #footer>
           <slot name="footer" :close="close" />

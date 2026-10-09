@@ -37,6 +37,7 @@ const props = defineProps({
   teleport: { type: Boolean, default: false },
   // undefined = auto (hide search when few options)
   showSearch: { type: Boolean, default: undefined },
+  dropdownMaxHeight: { type: String, default: '' },
 });
 const emit = defineEmits(['update:modelValue', 'search', 'open']);
 const SEARCH_OPTION_THRESHOLD = 6;
@@ -224,6 +225,7 @@ onClickOutside(
         :selected-values="selectedValue"
         :portal="teleport"
         :show-search="showSearchField"
+        :scroll-class="dropdownMaxHeight"
         :placement="position.class"
         :style="teleport ? dropdownStyle : position.style"
         @search="emit('search', $event)"

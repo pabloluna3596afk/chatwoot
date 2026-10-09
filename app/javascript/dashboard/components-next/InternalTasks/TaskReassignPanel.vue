@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import Button from 'dashboard/components-next/button/Button.vue';
-import MultiselectDropdown from 'shared/components/ui/MultiselectDropdown.vue';
+import OutlinedSelectField from 'dashboard/components-next/CustomAttributes/OutlinedSelectField.vue';
 
 const props = defineProps({
   task: { type: Object, required: true },
@@ -104,19 +104,11 @@ onMounted(() => {
       <label class="text-xs text-n-slate-11">{{
         $t('INTERNAL_TASKS.FORM.TEAM')
       }}</label>
-      <MultiselectDropdown
+      <OutlinedSelectField
+        :label="$t('AGENT_MGMT.MULTI_SELECTOR.TITLE.TEAM')"
         :options="teamOptions"
         :selected-item="selectedTeam"
-        :has-thumbnail="false"
-        compact
-        :multiselector-title="$t('AGENT_MGMT.MULTI_SELECTOR.TITLE.TEAM')"
-        :multiselector-placeholder="$t('INTERNAL_TASKS.FORM.NO_TEAM')"
-        :no-search-result="
-          $t('AGENT_MGMT.MULTI_SELECTOR.SEARCH.NO_RESULTS.TEAM')
-        "
-        :input-placeholder="
-          $t('AGENT_MGMT.MULTI_SELECTOR.SEARCH.PLACEHOLDER.TEAM')
-        "
+        :placeholder="$t('INTERNAL_TASKS.FORM.NO_TEAM')"
         @select="onTeamSelect"
       />
     </div>
@@ -125,18 +117,12 @@ onMounted(() => {
       <label class="text-xs text-n-slate-11">{{
         $t('INTERNAL_TASKS.FORM.AGENT')
       }}</label>
-      <MultiselectDropdown
+      <OutlinedSelectField
+        :label="$t('AGENT_MGMT.MULTI_SELECTOR.TITLE.AGENT')"
         :options="agents"
         :selected-item="selectedAgent"
-        compact
-        :multiselector-title="$t('AGENT_MGMT.MULTI_SELECTOR.TITLE.AGENT')"
-        :multiselector-placeholder="$t('INTERNAL_TASKS.FORM.SELECT_AGENT')"
-        :no-search-result="
-          $t('AGENT_MGMT.MULTI_SELECTOR.SEARCH.NO_RESULTS.AGENT')
-        "
-        :input-placeholder="
-          $t('AGENT_MGMT.MULTI_SELECTOR.SEARCH.PLACEHOLDER.AGENT')
-        "
+        :placeholder="$t('INTERNAL_TASKS.FORM.SELECT_AGENT')"
+        has-thumbnail
         @select="onAgentSelect"
       />
     </div>

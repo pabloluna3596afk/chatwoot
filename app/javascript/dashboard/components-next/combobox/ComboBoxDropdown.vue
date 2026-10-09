@@ -44,6 +44,7 @@ const props = defineProps({
     default: true,
   },
   placement: { type: String, default: 'top-full start-0 mt-1' },
+  scrollClass: { type: String, default: '' },
 });
 
 const emit = defineEmits(['select', 'search', 'close']);
@@ -137,7 +138,7 @@ defineExpose({
     :multiple="multiple"
     :auto-focus="false"
     :show-section-dividers="false"
-    :scroll-class="portal ? 'max-h-none' : 'max-h-60'"
+    :scroll-class="scrollClass || (portal ? 'max-h-none' : 'max-h-60')"
     disable-local-filtering
     listbox
     @search="onInputSearch"

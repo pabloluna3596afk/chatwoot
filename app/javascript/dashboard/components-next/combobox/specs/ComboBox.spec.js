@@ -10,6 +10,16 @@ const options = [
 ];
 
 describe('ComboBox', () => {
+  it('forwards a caller height limit to the real panel scroll body', async () => {
+    const wrapper = mount(ComboBox, {
+      props: { options, dropdownMaxHeight: 'max-h-20' },
+    });
+    await wrapper.get('button').trigger('click');
+    expect(
+      wrapper.getComponent(ComboBoxDropdown).get('[role="listbox"]').classes()
+    ).toContain('max-h-20');
+    wrapper.unmount();
+  });
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();

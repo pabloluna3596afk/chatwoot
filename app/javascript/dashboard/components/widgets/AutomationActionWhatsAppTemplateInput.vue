@@ -10,8 +10,6 @@ const props = defineProps({
     type: [Object, Array],
     default: () => ({}),
   },
-  // Kept for callers; floating panels now use the shared viewport height cap.
-  // eslint-disable-next-line vue/no-unused-properties
   dropdownMaxHeight: {
     type: String,
     default: 'max-h-80',
@@ -198,6 +196,7 @@ watch(
       <ComboBox
         v-if="inboxOptions.length"
         :model-value="inboxId"
+        :dropdown-max-height="dropdownMaxHeight"
         :options="
           inboxOptions.map(option => ({ value: option.id, label: option.name }))
         "
@@ -222,6 +221,7 @@ watch(
       <ComboBox
         v-if="inboxId"
         :model-value="templateId"
+        :dropdown-max-height="dropdownMaxHeight"
         :options="
           templateOptions.map(option => ({
             value: option.id,

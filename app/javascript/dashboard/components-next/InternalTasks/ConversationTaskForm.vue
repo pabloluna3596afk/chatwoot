@@ -7,7 +7,8 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
-import MultiselectDropdown from 'shared/components/ui/MultiselectDropdown.vue';
+import OutlinedSelectField from 'dashboard/components-next/CustomAttributes/OutlinedSelectField.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import MessagePreview from 'dashboard/components/widgets/conversation/MessagePreview.vue';
 import { templateIcon } from 'dashboard/helper/internalTaskUi';
 
@@ -239,18 +240,12 @@ store.dispatch('agents/get');
           <label class="text-xs text-n-slate-11">
             {{ $t('INTERNAL_TASKS.FORM.TEAM') }}
           </label>
-          <select
+          <ComboBox
             v-model="teamId"
-            class="block w-full h-10 px-3 text-sm rounded-lg bg-n-alpha-black2 outline outline-1 outline-n-weak text-n-slate-12"
-          >
-            <option
-              v-for="option in teamOptions"
-              :key="option.label"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
+            :options="teamOptions"
+            teleport
+            :allow-deselect="false"
+          />
           <p class="text-xxs text-n-slate-11">
             {{ $t('INTERNAL_TASKS.FORM.ASSIGNMENT_TEAM_HINT') }}
           </p>
@@ -260,17 +255,12 @@ store.dispatch('agents/get');
           <label class="text-xs text-n-slate-11">
             {{ $t('INTERNAL_TASKS.FORM.AGENT') }}
           </label>
-          <MultiselectDropdown
+          <OutlinedSelectField
+            :label="$t('AGENT_MGMT.MULTI_SELECTOR.TITLE.AGENT')"
             :options="agents"
             :selected-item="selectedAgent"
-            :multiselector-title="$t('AGENT_MGMT.MULTI_SELECTOR.TITLE.AGENT')"
-            :multiselector-placeholder="$t('INTERNAL_TASKS.FORM.SELECT_AGENT')"
-            :no-search-result="
-              $t('AGENT_MGMT.MULTI_SELECTOR.SEARCH.NO_RESULTS.AGENT')
-            "
-            :input-placeholder="
-              $t('AGENT_MGMT.MULTI_SELECTOR.SEARCH.PLACEHOLDER.AGENT')
-            "
+            :placeholder="$t('INTERNAL_TASKS.FORM.SELECT_AGENT')"
+            has-thumbnail
             @select="onAgentSelect"
           />
           <p class="text-xxs text-n-slate-11">
