@@ -12,6 +12,27 @@ const options = [
 ];
 
 describe('ComboBoxDropdown adapter', () => {
+  it.each(['ltr', 'rtl'])(
+    'preserves the app %s direction in body portals',
+    direction => {
+      const app = document.createElement('div');
+      app.id = 'app';
+      app.dir = direction;
+      document.body.appendChild(app);
+      const wrapper = mount(ComboBoxDropdown, {
+        props: { open: true, options, portal: true },
+      });
+      try {
+        expect(wrapper.getComponent(DropdownMenu).attributes('dir')).toBe(
+          direction
+        );
+      } finally {
+        wrapper.unmount();
+        app.remove();
+      }
+    }
+  );
+
   it('renders the real DropdownMenu panel, with listbox semantics and selected checks', async () => {
     const wrapper = mount(ComboBoxDropdown, {
       props: {

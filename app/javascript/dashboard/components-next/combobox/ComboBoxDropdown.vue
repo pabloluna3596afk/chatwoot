@@ -56,6 +56,12 @@ const searchValue = defineModel('searchValue', {
 });
 
 const menu = ref(null);
+// Body portals leave the app's direction context used by native menu utilities.
+const portalDirection = computed(() =>
+  props.portal
+    ? document.querySelector('#app[dir]')?.getAttribute('dir')
+    : undefined
+);
 const onKeydown = event => {
   if (event.key === 'Escape') {
     event.preventDefault();
@@ -116,6 +122,7 @@ defineExpose({
     v-show="open"
     ref="menu"
     data-combobox-dropdown
+    :dir="portalDirection"
     class="w-full"
     :class="portal ? '' : placement"
     :menu-items="groups.length ? [] : menuItems"
