@@ -1,5 +1,27 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-63 — Template drawer picker lists displaced the form (PR Z)
+
+**Files:** `settings/templates/TemplateFormDrawer.vue`, `TemplateComboBox.vue`,
+`components-next/combobox/ComboBox.vue` and their specs.
+
+**Symptom:** opening language, header, inbox or variable lists inserted a static
+menu into the drawer's scroll area and pushed subsequent fields down.
+
+**Fix:** remove the template wrapper's in-scroll portal. The drawer provides its
+scroll viewport as a shared ComboBox boundary; its pickers (including nested copy
+mappings) teleport fixed lists to the body. Lists flip above when more space is
+available there and scroll internally within a 320px cap, above the fixed footer.
+Escape restores trigger focus without scrolling. Consumers without a drawer
+boundary retain their existing portal behavior; the create-attribute CTA remains.
+
+**How to check:** open a fully populated, scrolled new/copy/edit drawer at
+1440x900 and 1100x700 in light/dark themes. Compare the next field's
+`getBoundingClientRect().top` before/after opening each enabled picker: unchanged.
+Check the footer stays clickable, Escape/outside close the list without changing
+scroll, and creating an attribute still opens the existing modal. Regression
+specs assert the portal is outside the scroll area and the list is fixed.
+
 > Documento vivo. Cada bug tiene ID, severidad, archivo, descripción, fix aplicado
 > y cómo probarlo. Trazabilidad cruzando con `INTERNAL_TASKS_AND_ALERTS.md`.
 

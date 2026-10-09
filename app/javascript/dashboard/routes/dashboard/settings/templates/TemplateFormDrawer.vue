@@ -4,6 +4,7 @@ import {
   computed,
   defineAsyncComponent,
   onBeforeUnmount,
+  provide,
   reactive,
   ref,
   watch,
@@ -63,6 +64,13 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['saved']);
+
+const formRef = ref(null);
+// Bound floating pickers to the scroll viewport, leaving the fixed footer free.
+provide(
+  'comboboxBoundary',
+  computed(() => formRef.value?.parentElement)
+);
 
 const { t, te, locale } = useI18n();
 const { resolvedLocale } = useLocale();
@@ -576,7 +584,12 @@ const buttonChoices = computed(() =>
     <p v-if="isLoading" class="text-sm text-n-slate-11" role="status">
       {{ $t('WHATSAPP_TEMPLATE_MGMT.LOADING') }}
     </p>
-    <form v-else class="flex flex-col gap-5" @submit.prevent="save">
+    <form
+      v-else
+      ref="formRef"
+      class="flex flex-col gap-5"
+      @submit.prevent="save"
+    >
       <p
         v-if="saveError"
         role="alert"
