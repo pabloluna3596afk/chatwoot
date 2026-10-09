@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, ref } from 'vue';
+import { computed, inject, nextTick, ref } from 'vue';
 import { onClickOutside, useElementSize } from '@vueuse/core';
 import { useDropdownPosition } from 'dashboard/composables/useDropdownPosition';
 import DropdownMenu from './DropdownMenu.vue';
@@ -22,6 +22,8 @@ const root = ref(null);
 const trigger = ref(null);
 const { width: triggerWidth } = useElementSize(trigger);
 const menu = ref(null);
+const dialogPortalTarget = inject('dialogPortalTarget', null);
+const teleportTarget = computed(() => dialogPortalTarget?.value || 'body');
 const menuElement = computed(() => menu.value?.$el);
 const { fixedPosition } = useDropdownPosition(trigger, menuElement, open, {
   align: props.align,
@@ -31,7 +33,7 @@ const panelStyle = computed(() => ({
   ...fixedPosition.value.style,
   maxHeight: `${Math.max(0, Math.min(MENU_MAX_HEIGHT, parseFloat(fixedPosition.value.style.maxHeight ?? MENU_MAX_HEIGHT)))}px`,
   width: props.matchWidth ? `${triggerWidth.value}px` : undefined,
-  zIndex: 9999,
+  zIndex: 10050,
 }));
 const direction = computed(() =>
   open.value
@@ -105,7 +107,7 @@ defineExpose({ close });
     <div ref="trigger" class="flex items-center">
       <slot name="trigger" :open="open" :toggle="() => (open = !open)" />
     </div>
-    <Teleport to="body">
+    <Teleport :to="teleportTarget">
       <DropdownMenu
         v-if="open"
         ref="menu"

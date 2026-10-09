@@ -1,8 +1,26 @@
 import { mount, flushPromises } from '@vue/test-utils';
+import { ref } from 'vue';
 import MenuPopover from '../MenuPopover.vue';
 import DropdownMenu from '../DropdownMenu.vue';
 
 describe('MenuPopover', () => {
+  it('keeps the menu in the native dialog top layer when a dialog provides its portal', () => {
+    const dialog = document.createElement('dialog');
+    document.body.appendChild(dialog);
+    const wrapper = mount(MenuPopover, {
+      props: { open: true, menuItems: [{ label: 'All', value: 'all' }] },
+      global: { provide: { dialogPortalTarget: ref(dialog) } },
+    });
+    try {
+      expect(wrapper.getComponent(DropdownMenu).element.parentElement).toBe(
+        dialog
+      );
+    } finally {
+      wrapper.unmount();
+      dialog.remove();
+    }
+  });
+
   it('portals the real menu, skips disabled actions and restores focus on Escape and selection', async () => {
     const wrapper = mount(MenuPopover, {
       attachTo: document.body,
@@ -27,6 +45,7 @@ describe('MenuPopover', () => {
       const menu = wrapper.getComponent(DropdownMenu);
       expect(menu.element.parentElement).toBe(document.body);
       expect(menu.classes()).toContain('fixed');
+      expect(Number(menu.element.style.zIndex)).toBeGreaterThan(10000);
       expect(menu.props('showSectionDividers')).toBe(false);
       expect(menu.get('button').attributes('title')).toBe('Save first');
       expect(document.activeElement).toBe(

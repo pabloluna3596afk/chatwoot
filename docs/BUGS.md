@@ -1505,6 +1505,14 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
 - Verify: new/edit/copy selector specs; 285 template tests pass. Actual Flow/drawer browser comparison verifies matching
   trigger, option and group appearance and no footer overlap. See `docs/TEMPLATE_PICKER_AUDIT.md` for the audit table.
 
+### B-NEW-63 -- Shared filter menus stayed behind native dialogs
+
+- Files: `components-next/dropdown-menu/MenuPopover.vue` and its spec.
+- Use the existing dialog portal target so the real DropdownMenu remains in the native top layer.
+  Keep fixed positioning and the same stacking level as ComboBox; body portals remain the default.
+- Verify: open category/status filters in the send center and assignment menus in a task dialog.
+  Confirm the menu receives clicks, does not move the trigger, and Escape restores focus.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)
