@@ -274,57 +274,51 @@ onMounted(loadConnections);
             filled
             :focused="showAccountMenu"
           >
-            <div
-              v-on-click-outside="() => (showAccountMenu = false)"
-              class="relative flex items-center w-full min-h-8 gap-1.5 cursor-pointer"
-              :class="{ 'z-50': showAccountMenu }"
+            <MenuPopover
+              v-model:open="showAccountMenu"
+              :label="$t('SIDEBAR.CALENDAR_PAGE.ACCOUNT')"
+              :menu-items="
+                connections.map(connection => ({
+                  label: connectionDisplayName(connection, t),
+                  value: connection.id,
+                  connection,
+                  isSelected: String(connection.id) === selectedConnectionId,
+                }))
+              "
+              @action="selectConnection($event.value)"
             >
-              <button
-                type="button"
-                class="flex w-full items-center gap-1.5 min-w-0"
-                :aria-expanded="showAccountMenu"
-                :aria-label="$t('SIDEBAR.CALENDAR_PAGE.ACCOUNT')"
-                @click="showAccountMenu = !showAccountMenu"
-              >
-                <img
-                  :src="providerLogoFor(selectedConnection?.provider)"
-                  alt=""
-                  class="size-4 shrink-0 rounded-sm"
-                />
-                <span class="flex-1 truncate text-left text-sm text-n-slate-12">
-                  {{ selectedConnectionLabel }}
-                </span>
-                <span
-                  class="i-lucide-chevron-down size-3.5 shrink-0 text-n-slate-11"
-                  :class="{ 'rotate-180': showAccountMenu }"
-                />
-              </button>
-              <div
-                v-if="showAccountMenu"
-                class="absolute z-50 mt-1 top-full ltr:left-0 rtl:right-0 w-full min-w-[14rem] overflow-hidden rounded-xl border border-n-weak bg-n-solid-2 py-1 shadow-lg"
-              >
+              <template #trigger>
                 <button
-                  v-for="connection in connections"
-                  :key="connection.id"
                   type="button"
-                  class="flex w-full items-center gap-2 px-3 py-2 text-sm text-left text-n-slate-12 hover:bg-n-alpha-2"
-                  :class="{
-                    'bg-n-alpha-2':
-                      String(connection.id) === selectedConnectionId,
-                  }"
-                  @click="selectConnection(connection.id)"
+                  class="flex w-full items-center gap-1.5 min-w-0"
+                  :aria-expanded="showAccountMenu"
+                  :aria-label="$t('SIDEBAR.CALENDAR_PAGE.ACCOUNT')"
+                  @click="showAccountMenu = !showAccountMenu"
                 >
                   <img
-                    :src="providerLogoFor(connection.provider)"
+                    :src="providerLogoFor(selectedConnection?.provider)"
                     alt=""
                     class="size-4 shrink-0 rounded-sm"
                   />
-                  <span class="truncate">
-                    {{ connectionDisplayName(connection, t) }}
+                  <span
+                    class="flex-1 truncate text-left text-sm text-n-slate-12"
+                  >
+                    {{ selectedConnectionLabel }}
                   </span>
+                  <span
+                    class="i-lucide-chevron-down size-3.5 shrink-0 text-n-slate-11"
+                    :class="{ 'rotate-180': showAccountMenu }"
+                  />
                 </button>
-              </div>
-            </div>
+              </template>
+              <template #thumbnail="{ item }">
+                <img
+                  :src="providerLogoFor(item.connection.provider)"
+                  alt=""
+                  class="size-4 shrink-0 rounded-sm"
+                />
+              </template>
+            </MenuPopover>
           </OutlinedAttributeField>
         </div>
         <div class="w-44 shrink-0">
