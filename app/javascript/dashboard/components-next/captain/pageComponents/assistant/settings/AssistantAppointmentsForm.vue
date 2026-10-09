@@ -12,7 +12,7 @@ import CalendarAPI from 'dashboard/api/integrations/calendar';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
-import Select from 'dashboard/components-next/select/Select.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
 import { isWhatsAppComplete } from '@chatwoot/utils';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
@@ -367,12 +367,13 @@ onMounted(loadConnections);
             <label class="text-sm font-medium text-n-slate-12">
               {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.CONNECTION') }}
             </label>
-            <Select
+            <ComboBox
               v-model="state.connectionId"
               data-testid="appointments-connection"
-              full-width
+              teleport
+              :allow-deselect="false"
               :options="connectionOptions"
-              :error="connectionError"
+              :has-error="!!connectionError"
               :aria-label="t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.CONNECTION')"
               @update:model-value="handleConnectionChange"
             />
@@ -385,13 +386,14 @@ onMounted(loadConnections);
             <label class="text-sm font-medium text-n-slate-12">
               {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.CALENDAR') }}
             </label>
-            <Select
+            <ComboBox
               v-model="state.calendarId"
               data-testid="appointments-calendar"
-              full-width
+              teleport
+              :allow-deselect="false"
               :disabled="!state.connectionId"
               :options="calendarOptions"
-              :error="calendarError"
+              :has-error="!!calendarError"
               :aria-label="t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.CALENDAR')"
             />
             <p v-if="calendarError" class="mb-0 text-xs text-n-ruby-9">
@@ -411,10 +413,11 @@ onMounted(loadConnections);
               <label class="text-sm font-medium text-n-slate-12">
                 {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.DURATION') }}
               </label>
-              <Select
+              <ComboBox
                 v-model.number="state.duration"
                 data-testid="appointments-duration"
-                full-width
+                teleport
+                :allow-deselect="false"
                 :options="durationOptions"
                 :aria-label="t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.DURATION')"
               />
@@ -423,10 +426,11 @@ onMounted(loadConnections);
               <label class="text-sm font-medium text-n-slate-12">
                 {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.NOTICE') }}
               </label>
-              <Select
+              <ComboBox
                 v-model.number="state.minNotice"
                 data-testid="appointments-notice"
-                full-width
+                teleport
+                :allow-deselect="false"
                 :options="noticeOptions"
                 :aria-label="t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.NOTICE')"
               />
@@ -435,10 +439,11 @@ onMounted(loadConnections);
               <label class="text-sm font-medium text-n-slate-12">
                 {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.WINDOW') }}
               </label>
-              <Select
+              <ComboBox
                 v-model.number="state.windowDays"
                 data-testid="appointments-window"
-                full-width
+                teleport
+                :allow-deselect="false"
                 :options="windowOptions"
                 :aria-label="t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.WINDOW')"
               />
@@ -562,10 +567,11 @@ onMounted(loadConnections);
                     )
                   }}
                 </label>
-                <Select
+                <ComboBox
                   :model-value="state.templates[key]"
                   :data-testid="`appointments-template-${key}`"
-                  full-width
+                  teleport
+                  :allow-deselect="false"
                   :options="templateOptions(state.templates[key])"
                   @update:model-value="selectTemplate(key, $event)"
                 />
