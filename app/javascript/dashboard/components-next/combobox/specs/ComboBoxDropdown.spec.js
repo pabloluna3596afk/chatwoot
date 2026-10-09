@@ -34,10 +34,15 @@ describe('ComboBoxDropdown adapter', () => {
   );
 
   it('renders the real DropdownMenu panel, with listbox semantics and selected checks', async () => {
+    const pickerOptions = options.map(option => ({
+      ...option,
+      icon: { unicode: '1f600' },
+      thumbnail: { name: 'Consumer metadata' },
+    }));
     const wrapper = mount(ComboBoxDropdown, {
       props: {
         open: true,
-        options,
+        options: pickerOptions,
         selectedValues: ['es'],
         multiple: true,
         portal: true,
@@ -51,6 +56,8 @@ describe('ComboBoxDropdown adapter', () => {
       expect(menu.props('multiple')).toBe(true);
       expect(menu.props('autoFocus')).toBe(false);
       expect(menu.props('showSectionDividers')).toBe(false);
+      expect(menu.props('menuItems')[0]).not.toHaveProperty('icon');
+      expect(menu.props('menuItems')[0]).not.toHaveProperty('thumbnail');
       expect(menu.classes()).toContain('fixed');
       expect(
         menu.get('[role="listbox"]').attributes('aria-multiselectable')
@@ -62,7 +69,7 @@ describe('ComboBoxDropdown adapter', () => {
         menu.findAll('[role="option"]')[0].find('.i-lucide-check').exists()
       ).toBe(true);
       await menu.findAll('[role="option"]')[1].trigger('click');
-      expect(wrapper.emitted('select')).toEqual([[options[1]]]);
+      expect(wrapper.emitted('select')).toEqual([[pickerOptions[1]]]);
     } finally {
       wrapper.unmount();
     }

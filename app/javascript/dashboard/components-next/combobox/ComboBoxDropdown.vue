@@ -88,7 +88,9 @@ const isSelected = option => {
 
 const menuItems = computed(() =>
   props.options.map(option => ({
-    ...option,
+    label: option.label,
+    value: option.value,
+    group: option.group,
     action: 'select',
     option,
     isSelected: isSelected(option),
