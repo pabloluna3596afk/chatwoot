@@ -1,6 +1,10 @@
 <script setup>
 import { ref, computed, watch, nextTick, inject } from 'vue';
-import { onClickOutside, useElementSize } from '@vueuse/core';
+import {
+  onClickOutside,
+  useElementBounding,
+  useElementSize,
+} from '@vueuse/core';
 import { useDropdownPosition } from 'dashboard/composables/useDropdownPosition';
 import { useI18n } from 'vue-i18n';
 
@@ -36,10 +40,15 @@ const props = defineProps({
 });
 const emit = defineEmits(['update:modelValue', 'search', 'open']);
 const SEARCH_OPTION_THRESHOLD = 6;
+const MENU_MAX_HEIGHT = 320;
+const MENU_GAP = 8;
 
 const { t } = useI18n();
 
 const dialogPortalTarget = inject('dialogPortalTarget', null);
+// A drawer can constrain all its pickers, including nested VariablePickers.
+const dropdownBoundary = inject('comboboxBoundary', null);
+const boundaryBounds = useElementBounding(dropdownBoundary);
 
 const selectedValue = ref(props.modelValue);
 const open = ref(false);
@@ -55,15 +64,33 @@ const { position, fixedPosition, updatePosition } = useDropdownPosition(
   open,
   { align: 'start' }
 );
-const dropdownStyle = computed(() => ({
-  ...fixedPosition.value.style,
-  position: 'fixed',
-  width: `${triggerWidth.value}px`,
-  zIndex: 10050,
-}));
+const dropdownStyle = computed(() => {
+  const style = {
+    ...fixedPosition.value.style,
+    position: 'fixed',
+    width: `${triggerWidth.value}px`,
+    zIndex: 10050,
+  };
+  if (!dropdownBoundary?.value || !open.value) return style;
+
+  const trigger = triggerRef.value.getBoundingClientRect();
+  const spaceAbove = trigger.top - boundaryBounds.top.value - MENU_GAP;
+  const spaceBelow = boundaryBounds.bottom.value - trigger.bottom - MENU_GAP;
+  // Use a stable height cap so resizing the list cannot oscillate its placement.
+  const placeAbove = spaceBelow < MENU_MAX_HEIGHT && spaceAbove > spaceBelow;
+  delete style.top;
+  delete style.bottom;
+  style.top = placeAbove ? undefined : `${trigger.bottom + MENU_GAP}px`;
+  style.bottom = placeAbove
+    ? `calc(100vh - ${trigger.top - MENU_GAP}px)`
+    : undefined;
+  style.maxHeight = `${Math.max(0, Math.min(MENU_MAX_HEIGHT, placeAbove ? spaceAbove : spaceBelow))}px`;
+  return style;
+});
 
 const teleportTarget = computed(() => {
   if (!props.teleport) return 'body';
+  if (dropdownBoundary) return 'body';
   return dialogPortalTarget?.value || 'body';
 });
 
@@ -187,6 +214,7 @@ onClickOutside(
       <ComboBoxDropdown
         ref="dropdownRef"
         v-model:search-value="search"
+        class="text-n-slate-12"
         :open="open"
         :options="filteredOptions"
         :groups="groups"
@@ -202,7 +230,7 @@ onClickOutside(
         @select="selectOption"
         @close="
           open = false;
-          triggerRef?.querySelector('button')?.focus();
+          triggerRef?.querySelector('button')?.focus({ preventScroll: true });
         "
       >
         <template v-if="$slots.footer" #footer="{ close }">
