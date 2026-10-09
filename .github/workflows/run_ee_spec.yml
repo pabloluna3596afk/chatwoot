@@ -7,20 +7,78 @@ on:
   push:
     branches:
       - develop
-      - 'ci/**'
+      # Feature changes run through PRs only; keep the develop push run.
   pull_request:
     branches:
       - develop
   workflow_dispatch:
 
+# Replace superseded runs per ref, while letting develop runs finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/develop' }}
+
 jobs:
+  # Filter jobs rather than workflow triggers so skipped jobs still pass PR checks.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      ruby: ${{ steps.filter.outputs.ruby }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Detect changed paths
+        id: filter
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Preserve full test runs for develop pushes and manual dispatches.
+          backend=true
+          frontend=true
+          ruby=true
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            backend=false
+            frontend=false
+            ruby=false
+            git diff --name-only "$BASE_SHA...$HEAD_SHA" > "$RUNNER_TEMP/changed-paths"
+            while IFS= read -r path; do
+              # Backend paths-ignore: frontend trees, documentation trees, workflow files and all Markdown.
+              case "$path" in
+                app/javascript/*|docs/*|docs-crm/*|.github/*|*.md) ;;
+                *) backend=true ;;
+              esac
+              # Keep dashboard tests for frontend source and package dependency changes.
+              case "$path" in
+                app/javascript/*|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|*/package.json) frontend=true ;;
+              esac
+              # Ruby changes alone enable the existing changed-lines Rubocop job.
+              case "$path" in
+                *.rb) ruby=true ;;
+              esac
+            done < "$RUNNER_TEMP/changed-paths"
+          fi
+          {
+            echo "backend=$backend"
+            echo "frontend=$frontend"
+            echo "ruby=$ruby"
+          } >> "$GITHUB_OUTPUT"
+
   backend-tests:
+    # Avoid provisioning backend services for frontend/documentation-only PRs.
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        ci_node_total: [16]
-        ci_node_index: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        # Halve runner usage while retaining the existing round-robin split.
+        ci_node_total: [8]
+        ci_node_index: [0, 1, 2, 3, 4, 5, 6, 7]
 
     services:
       postgres:
@@ -87,7 +145,8 @@ jobs:
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
-        if: always()
+        # Store test results only when needed to investigate failures, like Rails logs.
+        if: failure()
         with:
           name: ee-rspec-results-${{ matrix.ci_node_index }}
           path: tmp/rspec_results.json
@@ -101,6 +160,9 @@ jobs:
 
   # Rubocop on the Ruby files the change touches (the whole-repo run belongs to the disabled CE workflow).
   rubocop-changed:
+    # Skip Ruby setup when the PR changes no Ruby files.
+    needs: changes
+    if: needs.changes.outputs.ruby == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -118,6 +180,9 @@ jobs:
 
   # The dashboard (Vue) specs. Nothing else in this repo runs vitest.
   frontend-tests:
+    # Skip Node setup when the PR changes no frontend source or package files.
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
