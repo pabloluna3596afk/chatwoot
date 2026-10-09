@@ -1,4 +1,5 @@
 <script setup>
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store';
@@ -94,31 +95,35 @@ const close = () => {
 
       <label class="flex flex-col gap-1 text-sm text-n-slate-12">
         {{ t('BUSINESS_RULES.DRY_RUN.TARGET_STATUS') }}
-        <select v-model="targetStatus" class="m-0 w-full">
-          <option
-            v-for="status in STATUS_OPTIONS"
-            :key="status"
-            :value="status"
-          >
-            {{ t(`BUSINESS_RULES.STATUSES.${status}`) }}
-          </option>
-        </select>
+        <ComboBox
+          v-model="targetStatus"
+          class="m-0 w-full"
+          teleport
+          :allow-deselect="false"
+          :options="[
+            ...STATUS_OPTIONS.map(status => ({
+              value: status,
+              label: t(`BUSINESS_RULES.STATUSES.${status}`),
+            })),
+          ]"
+        />
       </label>
 
       <label class="flex flex-col gap-1 text-sm text-n-slate-12">
         {{ t('BUSINESS_RULES.DRY_RUN.INBOX') }}
-        <select v-model="inboxId" class="m-0 w-full">
-          <option :value="null">
-            {{ t('BUSINESS_RULES.DRY_RUN.INBOX_ANY') }}
-          </option>
-          <option
-            v-for="inbox in inboxes || []"
-            :key="inbox.id"
-            :value="inbox.id"
-          >
-            {{ inbox.name }}
-          </option>
-        </select>
+        <ComboBox
+          v-model="inboxId"
+          class="m-0 w-full"
+          teleport
+          :allow-deselect="false"
+          :options="[
+            { value: null, label: t('BUSINESS_RULES.DRY_RUN.INBOX_ANY') },
+            ...(inboxes || []).map(inbox => ({
+              value: inbox.id,
+              label: inbox.name,
+            })),
+          ]"
+        />
       </label>
 
       <div
@@ -134,18 +139,17 @@ const close = () => {
           class="flex flex-col gap-1 text-sm text-n-slate-12"
         >
           {{ attr.attributeDisplayName || attr.attribute_display_name }}
-          <select
+          <ComboBox
             v-if="isListAttr(attr)"
             v-model="draftAttrs[attrKey(attr)]"
             class="m-0 w-full"
-          >
-            <option value="">
-              {{ t('BUSINESS_RULES.DRY_RUN.ATTR_EMPTY') }}
-            </option>
-            <option v-for="opt in attrOptions(attr)" :key="opt" :value="opt">
-              {{ opt }}
-            </option>
-          </select>
+            teleport
+            :allow-deselect="false"
+            :options="[
+              { value: '', label: t('BUSINESS_RULES.DRY_RUN.ATTR_EMPTY') },
+              ...attrOptions(attr).map(opt => ({ value: opt, label: opt })),
+            ]"
+          />
           <input
             v-else
             v-model="draftAttrs[attrKey(attr)]"

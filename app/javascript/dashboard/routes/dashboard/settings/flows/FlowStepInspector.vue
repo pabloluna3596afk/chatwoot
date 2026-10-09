@@ -1,4 +1,5 @@
 <script setup>
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 /* eslint-disable vue/no-mutating-props -- shared mutable step from parent */
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -207,15 +208,18 @@ const removeButton = index => {
           <span class="mb-0.5 block text-xs text-n-slate-11">
             {{ t('FLOWS.EDIT.AFTER_ACTIONS') }}
           </span>
-          <select v-model="selectedStep.next" class="mb-0">
-            <option
-              v-for="opt in nextTargetsForStep"
-              :key="opt.id"
-              :value="opt.id"
-            >
-              {{ opt.label }}
-            </option>
-          </select>
+          <ComboBox
+            v-model="selectedStep.next"
+            class="mb-0"
+            teleport
+            :allow-deselect="false"
+            :options="[
+              ...nextTargetsForStep.map(opt => ({
+                value: opt.id,
+                label: opt.label,
+              })),
+            ]"
+          />
         </label>
       </template>
       <p v-else class="mb-2 text-[11px] leading-snug text-n-slate-11">
@@ -291,15 +295,18 @@ const removeButton = index => {
                 <span class="mb-0.5 block text-[11px] text-n-slate-11">
                   {{ t('FLOWS.EDIT.BRANCH_TO') }}
                 </span>
-                <select v-model="selectedStep.branches[bIndex]" class="mb-0">
-                  <option
-                    v-for="opt in branchTargetsForStep"
-                    :key="opt.id"
-                    :value="opt.id"
-                  >
-                    {{ opt.label }}
-                  </option>
-                </select>
+                <ComboBox
+                  v-model="selectedStep.branches[bIndex]"
+                  class="mb-0"
+                  teleport
+                  :allow-deselect="false"
+                  :options="[
+                    ...branchTargetsForStep.map(opt => ({
+                      value: opt.id,
+                      label: opt.label,
+                    })),
+                  ]"
+                />
               </label>
             </div>
             <NextButton

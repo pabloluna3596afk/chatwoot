@@ -1,4 +1,5 @@
 <script>
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import { useMapGetter } from 'dashboard/composables/store';
 import NextInput from 'dashboard/components-next/input/Input.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
@@ -9,6 +10,7 @@ const MAX_RELATIVE_DAYS = 365;
 
 export default {
   components: {
+    ComboBox,
     NextInput,
     NextButton,
     InsertVariableButton,
@@ -170,16 +172,6 @@ export default {
         this.selectedKey && !this.isListAttribute && !this.isCheckboxAttribute
       );
     },
-    selectClass() {
-      // Override global `select` styles (custom SVG arrow + bg-origin-content)
-      // which collide with native OS arrows and look broken at h-8.
-      return [
-        'block w-full reset-base appearance-none text-sm !mb-0 h-8',
-        'pl-3 pr-9 py-1.5 border-none outline outline-1 outline-offset-[-1px] rounded-lg',
-        'bg-n-alpha-black2 !bg-none text-n-slate-12',
-        'outline-n-weak hover:outline-n-slate-6 focus:outline-n-brand',
-      ].join(' ');
-    },
   },
   watch: {
     modelValue: {
@@ -310,23 +302,20 @@ export default {
         {{ $t('AUTOMATION.ACTION.CUSTOM_ATTRIBUTE_LABEL') }}
       </label>
       <div class="relative">
-        <select v-model="selectedKey" :class="selectClass">
-          <option disabled value="">
-            {{ $t('AUTOMATION.ACTION.CUSTOM_ATTRIBUTE_SELECT_PLACEHOLDER') }}
-          </option>
-          <option
-            v-for="attr in attributeOptions"
-            :key="attr.id"
-            :value="attr.id"
-          >
-            {{ attr.name }}
-          </option>
-        </select>
-        <span
-          class="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-n-slate-11"
-        >
-          <span class="i-lucide-chevron-down size-3.5" />
-        </span>
+        <ComboBox
+          v-model="selectedKey"
+          teleport
+          :allow-deselect="false"
+          :options="[
+            ...attributeOptions.map(attr => ({
+              value: attr.id,
+              label: attr.name,
+            })),
+          ]"
+          :placeholder="
+            $t('AUTOMATION.ACTION.CUSTOM_ATTRIBUTE_SELECT_PLACEHOLDER')
+          "
+        />
       </div>
       <p v-if="!attributeOptions.length" class="text-xs text-n-ruby-11 m-0">
         {{ $t('AUTOMATION.ACTION.CUSTOM_ATTRIBUTE_EMPTY') }}
@@ -339,39 +328,32 @@ export default {
       </label>
 
       <div v-if="isListAttribute" class="relative">
-        <select v-model="selectedValue" :class="selectClass">
-          <option disabled value="">
-            {{ $t('AUTOMATION.ACTION.CUSTOM_ATTRIBUTE_SELECT_PLACEHOLDER') }}
-          </option>
-          <option
-            v-for="option in selectedAttribute?.values || []"
-            :key="option"
-            :value="option"
-          >
-            {{ option }}
-          </option>
-        </select>
-        <span
-          class="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-n-slate-11"
-        >
-          <span class="i-lucide-chevron-down size-3.5" />
-        </span>
+        <ComboBox
+          v-model="selectedValue"
+          teleport
+          :allow-deselect="false"
+          :options="[
+            ...(selectedAttribute?.values || []).map(option => ({
+              value: option,
+              label: option,
+            })),
+          ]"
+          :placeholder="
+            $t('AUTOMATION.ACTION.CUSTOM_ATTRIBUTE_SELECT_PLACEHOLDER')
+          "
+        />
       </div>
 
       <div v-else-if="isCheckboxAttribute" class="relative">
-        <select v-model="selectedValue" :class="selectClass">
-          <option value="true">
-            {{ $t('FILTER.ATTRIBUTE_LABELS.TRUE') }}
-          </option>
-          <option value="false">
-            {{ $t('FILTER.ATTRIBUTE_LABELS.FALSE') }}
-          </option>
-        </select>
-        <span
-          class="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-n-slate-11"
-        >
-          <span class="i-lucide-chevron-down size-3.5" />
-        </span>
+        <ComboBox
+          v-model="selectedValue"
+          teleport
+          :allow-deselect="false"
+          :options="[
+            { value: 'true', label: $t('FILTER.ATTRIBUTE_LABELS.TRUE') },
+            { value: 'false', label: $t('FILTER.ATTRIBUTE_LABELS.FALSE') },
+          ]"
+        />
       </div>
 
       <template

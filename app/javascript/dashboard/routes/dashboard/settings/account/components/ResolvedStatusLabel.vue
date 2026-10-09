@@ -1,4 +1,5 @@
 <script setup>
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAccount } from 'dashboard/composables/useAccount';
@@ -48,22 +49,27 @@ const handleSubmit = async () => {
       <WithLabel
         :label="t('GENERAL_SETTINGS.FORM.RESOLVED_STATUS_LABEL.LABEL')"
       >
-        <select v-model="selectedKey" class="!mb-0 text-sm w-full">
-          <option
-            v-for="key in RESOLVED_LABEL_KEYS"
-            :key="key"
-            :value="key"
-          >
-            {{ t(`CHAT_LIST.RESOLVED_STATUS_LABELS.${key}`) }}
-          </option>
-        </select>
+        <ComboBox
+          v-model="selectedKey"
+          class="!mb-0 text-sm w-full"
+          teleport
+          :allow-deselect="false"
+          :options="[
+            ...RESOLVED_LABEL_KEYS.map(key => ({
+              value: key,
+              label: t(`CHAT_LIST.RESOLVED_STATUS_LABELS.${key}`),
+            })),
+          ]"
+        />
       </WithLabel>
       <div>
         <NextButton
           blue
           type="submit"
           :is-loading="isSubmitting"
-          :label="t('GENERAL_SETTINGS.FORM.RESOLVED_STATUS_LABEL.UPDATE_BUTTON')"
+          :label="
+            t('GENERAL_SETTINGS.FORM.RESOLVED_STATUS_LABEL.UPDATE_BUTTON')
+          "
         />
       </div>
     </form>

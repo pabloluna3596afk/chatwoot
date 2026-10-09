@@ -1,4 +1,5 @@
 <script>
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import { useVuelidate } from '@vuelidate/core';
 import { required, minLength } from '@vuelidate/validators';
 import { mapGetters } from 'vuex';
@@ -12,6 +13,7 @@ import TagInput from 'dashboard/components-next/taginput/TagInput.vue';
 
 export default {
   components: {
+    ComboBox,
     NextButton,
     TagInput,
   },
@@ -356,26 +358,35 @@ export default {
             <template v-if="formulaEnabled">
               <label>
                 {{ $t('ATTRIBUTES_MGMT.FORMULA.OP.LABEL') }}
-                <select v-model="formulaOp">
-                  <option v-for="op in formulaOps" :key="op.id" :value="op.id">
-                    {{ op.option }}
-                  </option>
-                </select>
+                <ComboBox
+                  v-model="formulaOp"
+                  teleport
+                  :allow-deselect="false"
+                  :options="[
+                    ...formulaOps.map(op => ({
+                      value: op.id,
+                      label: op.option,
+                    })),
+                  ]"
+                />
               </label>
               <label>
                 {{ $t('ATTRIBUTES_MGMT.FORMULA.SOURCE.LABEL') }}
-                <select v-model="formulaSourceKey">
-                  <option value="">
-                    {{ $t('ATTRIBUTES_MGMT.FORMULA.SOURCE.PLACEHOLDER') }}
-                  </option>
-                  <option
-                    v-for="attr in conversationNumericAttributes"
-                    :key="attr.attribute_key"
-                    :value="attr.attribute_key"
-                  >
-                    {{ attr.attribute_display_name }}
-                  </option>
-                </select>
+                <ComboBox
+                  v-model="formulaSourceKey"
+                  teleport
+                  :allow-deselect="false"
+                  :options="[
+                    {
+                      value: '',
+                      label: $t('ATTRIBUTES_MGMT.FORMULA.SOURCE.PLACEHOLDER'),
+                    },
+                    ...conversationNumericAttributes.map(attr => ({
+                      value: attr.attribute_key,
+                      label: attr.attribute_display_name,
+                    })),
+                  ]"
+                />
               </label>
             </template>
           </div>
