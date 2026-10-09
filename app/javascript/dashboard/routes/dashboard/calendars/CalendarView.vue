@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
-import { vOnClickOutside } from '@vueuse/components';
+import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useAlert } from 'dashboard/composables';
@@ -372,27 +372,32 @@ onMounted(loadConnections);
             :disabled="!selectedCalendarId"
             @click="openCreate({ dateKey: weekStartKey, hours: 9, minutes: 0 })"
           />
-          <div v-on-click-outside="() => (showMenu = false)" class="relative">
-            <Button
-              faded
-              slate
-              sm
-              icon="i-lucide-ellipsis-vertical"
-              :title="$t('SIDEBAR.CALENDAR_PAGE.SHOW_CANCELLED')"
-              @click="showMenu = !showMenu"
-            />
-            <div
-              v-if="showMenu"
-              class="absolute z-50 mt-1 ltr:right-0 rtl:left-0 w-64 rounded-xl border border-n-weak bg-n-solid-2 p-3 shadow-lg"
-            >
-              <label
-                class="flex items-center justify-between gap-3 text-sm text-n-slate-12"
-              >
-                {{ $t('SIDEBAR.CALENDAR_PAGE.SHOW_CANCELLED') }}
-                <Switch v-model="showCancelled" />
-              </label>
-            </div>
-          </div>
+          <MenuPopover
+            v-model:open="showMenu"
+            :label="$t('SIDEBAR.CALENDAR_PAGE.SHOW_CANCELLED')"
+            panel-class="w-64 max-w-[calc(100vw-2rem)]"
+          >
+            <template #trigger>
+              <Button
+                faded
+                slate
+                sm
+                icon="i-lucide-ellipsis-vertical"
+                :title="$t('SIDEBAR.CALENDAR_PAGE.SHOW_CANCELLED')"
+                @click="showMenu = !showMenu"
+              />
+            </template>
+            <template #content>
+              <div class="px-2 pb-2">
+                <label
+                  class="flex items-center justify-between gap-3 text-sm text-n-slate-12"
+                >
+                  {{ $t('SIDEBAR.CALENDAR_PAGE.SHOW_CANCELLED') }}
+                  <Switch v-model="showCancelled" />
+                </label>
+              </div>
+            </template>
+          </MenuPopover>
         </div>
       </div>
     </header>

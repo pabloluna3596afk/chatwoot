@@ -3,12 +3,11 @@
 // the customer reads in the Google Calendar event, for the appointments of the agents and of Captain alike.
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { vOnClickOutside } from '@vueuse/components';
 
 import { useAlert } from 'dashboard/composables';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 import Button from 'dashboard/components-next/button/Button.vue';
-import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
+import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import {
   INVITATION_TOKENS,
@@ -150,25 +149,28 @@ const save = async () => {
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-          <div v-on-click-outside="() => (showMenu = false)" class="relative">
-            <Button
-              type="button"
-              slate
-              xs
-              icon="i-lucide-braces"
-              :label="$t('CALENDAR_INVITATION.INSERT_VARIABLE')"
-              data-testid="invitation-variables"
-              @click="showMenu = !showMenu"
-            />
-            <DropdownMenu
-              v-if="showMenu"
-              :menu-items="menuItems"
-              show-search
-              :search-placeholder="$t('CALENDAR_INVITATION.SEARCH_VARIABLE')"
-              class="mt-1 w-72 max-h-64 overflow-y-auto top-full ltr:left-0 rtl:right-0"
-              @action="item => insertVariable(item.value)"
-            />
-          </div>
+          <MenuPopover
+            v-model:open="showMenu"
+            :menu-items="menuItems"
+            show-search
+            :search-placeholder="$t('CALENDAR_INVITATION.SEARCH_VARIABLE')"
+            panel-class="w-72 max-w-[calc(100vw-2rem)]"
+            :restore-focus-on-select="false"
+            align="start"
+            @action="item => insertVariable(item.value)"
+          >
+            <template #trigger>
+              <Button
+                type="button"
+                slate
+                xs
+                icon="i-lucide-braces"
+                :label="$t('CALENDAR_INVITATION.INSERT_VARIABLE')"
+                data-testid="invitation-variables"
+                @click="showMenu = !showMenu"
+              />
+            </template>
+          </MenuPopover>
           <Button
             type="button"
             ghost

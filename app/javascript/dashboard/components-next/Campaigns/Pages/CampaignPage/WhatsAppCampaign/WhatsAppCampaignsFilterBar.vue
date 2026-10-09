@@ -1,12 +1,11 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { OnClickOutside } from '@vueuse/components';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
-import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
+import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 
 const props = defineProps({
@@ -138,29 +137,28 @@ const handleInboxSelect = ({ value }) => {
             />
           </template>
         </Input>
-        <OnClickOutside
+        <MenuPopover
           v-if="showInboxFilter"
-          class="relative shrink-0"
-          @trigger="inboxMenuOpen = false"
+          v-model:open="inboxMenuOpen"
+          :menu-items="inboxMenuItems"
+          panel-class="min-w-48 max-w-[calc(100vw-2rem)]"
+          align="start"
+          @action="handleInboxSelect"
         >
-          <Button
-            variant="outline"
-            color="slate"
-            size="sm"
-            icon="i-lucide-inbox"
-            class="!h-8"
-            :class="inboxId ? 'text-n-slate-12' : 'text-n-slate-11'"
-            @click="inboxMenuOpen = !inboxMenuOpen"
-          >
-            {{ selectedInboxLabel }}
-          </Button>
-          <DropdownMenu
-            v-if="inboxMenuOpen"
-            :menu-items="inboxMenuItems"
-            class="absolute z-20 mt-1 min-w-48 ltr:left-0 rtl:right-0"
-            @action="handleInboxSelect"
-          />
-        </OnClickOutside>
+          <template #trigger>
+            <Button
+              variant="outline"
+              color="slate"
+              size="sm"
+              icon="i-lucide-inbox"
+              class="!h-8"
+              :class="inboxId ? 'text-n-slate-12' : 'text-n-slate-11'"
+              @click="inboxMenuOpen = !inboxMenuOpen"
+            >
+              {{ selectedInboxLabel }}
+            </Button>
+          </template>
+        </MenuPopover>
         <Button
           v-if="hasActiveFilters"
           variant="ghost"
