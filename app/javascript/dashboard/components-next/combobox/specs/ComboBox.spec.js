@@ -72,7 +72,7 @@ describe('ComboBox', () => {
         expect(menu.element.style.bottom).toBe(geometry.bottom);
         expect(menu.element.style.maxHeight).toBe(geometry.maxHeight);
         expect(menu.get('[role="listbox"]').classes()).toContain(
-          'overflow-auto'
+          'overflow-y-auto'
         );
         await menu.trigger('keydown', { key: 'Escape' });
         expect(wrapper.get('button').attributes('aria-expanded')).toBe('false');

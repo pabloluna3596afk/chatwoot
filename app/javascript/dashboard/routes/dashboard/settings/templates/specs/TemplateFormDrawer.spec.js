@@ -382,9 +382,15 @@ describe('TemplateFormDrawer', () => {
         document.querySelector('[data-template-picker-portal]')
       ).toBeNull();
       expect(wrapper.find('select').exists()).toBe(false);
-      expect(wrapper.findComponent({ name: 'DropdownMenu' }).exists()).toBe(
-        false
-      );
+      selectors.forEach(testId => {
+        expect(
+          wrapper
+            .findComponent(`[data-testid="${testId}"]`)
+            .findComponent(ComboBoxDropdown)
+            .findComponent({ name: 'DropdownMenu' })
+            .exists()
+        ).toBe(true);
+      });
       wrapper.unmount();
     }
   );
