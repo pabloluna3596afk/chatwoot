@@ -1,10 +1,10 @@
 <script setup>
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 import { MESSAGE_VARIABLES } from 'shared/constants/messages';
 import NextButton from 'dashboard/components-next/button/Button.vue';
-import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
+import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
 import { useMapGetter } from 'dashboard/composables/store';
 
 defineProps({
@@ -70,42 +70,34 @@ const onAction = item => {
   closeMenu();
 };
 
-const onDocumentClick = event => {
-  if (!event.target.closest?.('[data-insert-variable]')) {
-    closeMenu();
-  }
-};
-
 onMounted(() => {
-  document.addEventListener('click', onDocumentClick);
   if (!customAttributes.value?.length) {
     store.dispatch('attributes/get');
   }
 });
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', onDocumentClick);
-});
 </script>
 
 <template>
-  <div data-insert-variable class="relative inline-flex">
-    <NextButton
-      type="button"
-      sm
-      slate
-      faded
-      icon="i-lucide-braces"
-      :label="label || t('VARIABLES.INSERT')"
-      @click.prevent="toggleMenu"
-    />
-    <DropdownMenu
-      v-if="showMenu"
-      :menu-items="menuItems"
-      show-search
-      :search-placeholder="t('VARIABLES.SEARCH_PLACEHOLDER')"
-      class="left-0 z-50 mt-1 top-full min-w-[16rem]"
-      @action="onAction"
-    />
-  </div>
+  <MenuPopover
+    v-model:open="showMenu"
+    :menu-items="menuItems"
+    show-search
+    :search-placeholder="t('VARIABLES.SEARCH_PLACEHOLDER')"
+    panel-class="min-w-[16rem] max-w-[calc(100vw-2rem)]"
+    :restore-focus-on-select="false"
+    align="start"
+    @action="onAction"
+  >
+    <template #trigger>
+      <NextButton
+        type="button"
+        sm
+        slate
+        faded
+        icon="i-lucide-braces"
+        :label="label || t('VARIABLES.INSERT')"
+        @click.prevent="toggleMenu"
+      />
+    </template>
+  </MenuPopover>
 </template>

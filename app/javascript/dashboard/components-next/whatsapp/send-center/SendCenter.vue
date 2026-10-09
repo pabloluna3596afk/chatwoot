@@ -450,7 +450,7 @@ watch(
             >
               <FilterDropdown
                 v-model="category"
-                class="[&>button]:w-full"
+                class="[&_button]:w-full"
                 icon="i-lucide-folder"
                 :label="$t(`${prefix}.FILTER_CATEGORY`)"
                 :options="categoryOptions"
@@ -459,7 +459,7 @@ watch(
               />
               <FilterDropdown
                 v-model="status"
-                class="[&>button]:w-full"
+                class="[&_button]:w-full"
                 icon="i-lucide-circle-check"
                 :label="$t(`${prefix}.FILTER_STATUS`)"
                 :options="statusOptions"

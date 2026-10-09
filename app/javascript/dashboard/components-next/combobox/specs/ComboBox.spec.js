@@ -1,5 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils';
-import { h } from 'vue';
+import { h, ref } from 'vue';
 import ComboBox from '../ComboBox.vue';
 import ComboBoxDropdown from '../ComboBoxDropdown.vue';
 import TagMultiSelectComboBox from '../TagMultiSelectComboBox.vue';
@@ -10,10 +10,90 @@ const options = [
 ];
 
 describe('ComboBox', () => {
+  it('forwards a caller height limit to the real panel scroll body', async () => {
+    const wrapper = mount(ComboBox, {
+      props: { options, dropdownMaxHeight: 'max-h-20' },
+    });
+    await wrapper.get('button').trigger('click');
+    expect(
+      wrapper.getComponent(ComboBoxDropdown).get('[role="listbox"]').classes()
+    ).toContain('max-h-20');
+    wrapper.unmount();
+  });
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
+
+  it.each([
+    { triggerTop: 140, top: '188px', bottom: '', maxHeight: '312px' },
+    {
+      triggerTop: 430,
+      top: '',
+      bottom: 'calc(100vh - 422px)',
+      maxHeight: '320px',
+    },
+  ])(
+    'constrains a drawer menu above its footer at $triggerTop',
+    async geometry => {
+      vi.stubGlobal('innerHeight', 700);
+      const boundary = document.createElement('div');
+      boundary.setAttribute('data-boundary', '');
+      const localPortal = document.createElement('div');
+      boundary.append(localPortal);
+      document.body.append(boundary);
+      boundary.scrollTop = 75;
+      vi.spyOn(
+        HTMLElement.prototype,
+        'getBoundingClientRect'
+      ).mockImplementation(function bounds() {
+        const isBoundary = this === boundary;
+        const top = isBoundary ? 100 : geometry.triggerTop;
+        const height = isBoundary ? 400 : 40;
+        return {
+          x: 80,
+          y: top,
+          left: 80,
+          right: 280,
+          top,
+          bottom: top + height,
+          width: 200,
+          height,
+        };
+      });
+      const wrapper = mount(ComboBox, {
+        props: { options, teleport: true },
+        global: {
+          provide: {
+            comboboxBoundary: ref(boundary),
+            dialogPortalTarget: ref(localPortal),
+          },
+        },
+        attachTo: boundary,
+      });
+      try {
+        await wrapper.get('button').trigger('click');
+        await flushPromises();
+        const menu = wrapper.findComponent(ComboBoxDropdown);
+        expect(menu.element.parentElement).toBe(document.body);
+        expect(boundary.contains(menu.element)).toBe(false);
+        expect(menu.element.style.position).toBe('fixed');
+        expect(menu.element.style.top).toBe(geometry.top);
+        expect(menu.element.style.bottom).toBe(geometry.bottom);
+        expect(menu.element.style.maxHeight).toBe(geometry.maxHeight);
+        expect(menu.get('[role="listbox"]').classes()).toContain(
+          'overflow-y-auto'
+        );
+        await menu.trigger('keydown', { key: 'Escape' });
+        expect(wrapper.get('button').attributes('aria-expanded')).toBe('false');
+        expect(document.activeElement).toBe(wrapper.get('button').element);
+        expect(boundary.scrollTop).toBe(75);
+      } finally {
+        wrapper.unmount();
+        boundary.remove();
+      }
+    }
+  );
 
   it('anchors a teleported multiselect and flips above near the viewport edge', async () => {
     vi.stubGlobal('innerHeight', 400);

@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
+import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
+import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useUISettings } from 'dashboard/composables/useUISettings';
@@ -13,8 +14,6 @@ import {
 import Draggable from 'vuedraggable';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
-import Input from 'dashboard/components-next/input/Input.vue';
-import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirection.vue';
 
 const { t } = useI18n();
 const { uiSettings, updateUISettings } = useUISettings();
@@ -26,40 +25,6 @@ const dragging = ref(false);
 const draftKeys = ref([]);
 const orderedAllKeys = ref([]);
 const dragList = ref([]);
-const triggerRef = ref(null);
-const menuStyle = ref({});
-
-const updateMenuPosition = () => {
-  const el = triggerRef.value;
-  if (!el?.getBoundingClientRect) return;
-  const rect = el.getBoundingClientRect();
-  const width = 384; // w-[24rem]
-  const gap = 6;
-  const maxHeight = Math.min(window.innerHeight * 0.75, 512);
-  let top = rect.bottom + gap;
-  if (top + Math.min(maxHeight, 320) > window.innerHeight - 8) {
-    top = Math.max(8, rect.top - gap - maxHeight);
-  }
-  let left = rect.right - width;
-  left = Math.min(Math.max(8, left), window.innerWidth - width - 8);
-  menuStyle.value = {
-    position: 'fixed',
-    top: `${top}px`,
-    left: `${left}px`,
-    width: `${width}px`,
-    maxHeight: `${maxHeight}px`,
-    zIndex: 100,
-  };
-};
-
-const openMenu = async () => {
-  isMenuOpen.value = !isMenuOpen.value;
-  if (isMenuOpen.value) {
-    await nextTick();
-    updateMenuPosition();
-  }
-};
-
 const filterText = computed(() => searchQuery.value.trim().toLowerCase());
 const isFiltering = computed(() => Boolean(filterText.value));
 
@@ -210,12 +175,6 @@ const selectAll = () => {
   persist(current);
 };
 
-const closeMenu = () => {
-  if (dragging.value) return;
-  isMenuOpen.value = false;
-  searchQuery.value = '';
-};
-
 const onDragStart = () => {
   dragging.value = true;
 };
@@ -240,8 +199,17 @@ const hasListItems = computed(
 </script>
 
 <template>
-  <div class="relative">
-    <div ref="triggerRef" class="inline-flex">
+  <MenuPopover
+    v-model:open="isMenuOpen"
+    :dismissible="!dragging"
+    :label="t('CONTACTS_LAYOUT.SIDEBAR.HISTORY.COLUMNS_MENU.LABEL')"
+    panel-class="w-96 max-w-[calc(100vw-2rem)]"
+    show-search
+    :search-placeholder="t('CONTACTS_LAYOUT.HEADER.ACTIONS.COLUMNS.SEARCH')"
+    @update:open="searchQuery = ''"
+    @search="searchQuery = $event"
+  >
+    <template #trigger>
       <Button
         icon="i-lucide-columns-3"
         color="slate"
@@ -249,15 +217,11 @@ const hasListItems = computed(
         variant="ghost"
         :class="isMenuOpen ? 'bg-n-alpha-2' : ''"
         :title="t('CONTACTS_LAYOUT.SIDEBAR.HISTORY.COLUMNS_MENU.LABEL')"
-        @click="openMenu"
+        @click="isMenuOpen = !isMenuOpen"
       />
-    </div>
-    <TeleportWithDirection v-if="isMenuOpen">
-      <div
-        v-on-clickaway="closeMenu"
-        class="flex flex-col gap-3 bg-n-alpha-3 backdrop-blur-[100px] border border-n-weak rounded-xl p-3.5 shadow-lg overflow-hidden"
-        :style="menuStyle"
-      >
+    </template>
+    <template #content>
+      <div class="flex flex-col gap-3 px-2 pb-2 overflow-y-auto min-h-0">
         <div class="flex items-start justify-between gap-2 shrink-0">
           <div class="min-w-0">
             <p class="text-sm font-medium text-n-slate-12">
@@ -296,16 +260,8 @@ const hasListItems = computed(
           {{ t('CONTACTS_LAYOUT.SIDEBAR.HISTORY.COLUMNS_MENU.ORDER_HINT') }}
         </p>
 
-        <Input
-          v-model="searchQuery"
-          type="search"
-          size="sm"
-          :placeholder="t('CONTACTS_LAYOUT.HEADER.ACTIONS.COLUMNS.SEARCH')"
-          class="w-full shrink-0"
-        />
-
         <div
-          class="flex flex-col gap-0.5 overflow-y-auto min-h-0 flex-1 pr-0.5 -mr-0.5 border border-n-weak rounded-lg p-1.5 bg-n-alpha-1"
+          class="flex flex-col gap-0.5 overflow-y-auto min-h-0 flex-1 pr-0.5 -mr-0.5 p-1"
         >
           <label
             v-if="showIdRow"
@@ -375,6 +331,6 @@ const hasListItems = computed(
           </p>
         </div>
       </div>
-    </TeleportWithDirection>
-  </div>
+    </template>
+  </MenuPopover>
 </template>

@@ -3,6 +3,7 @@ import TemplateFormDrawer from '../TemplateFormDrawer.vue';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import { PRESETS, presetToForm } from '../presets';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import ComboBoxDropdown from 'dashboard/components-next/combobox/ComboBoxDropdown.vue';
 import { useAlert } from 'dashboard/composables';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { CAPTAIN_VARIABLES } from '../templateForm';
@@ -69,17 +70,17 @@ const SidePanelStub = {
   methods: { open: vi.fn(), close: vi.fn() },
 };
 
-const mountDrawer = async (props = {}) => {
+const mountDrawer = async (props = {}, realPanel = false) => {
   const wrapper = mount(TemplateFormDrawer, {
     props: { inboxes, ...props },
+    attachTo: realPanel ? document.body : undefined,
     global: {
       mocks: {
         $t: (key, values) => (values?.time ? `${key}: ${values.time}` : key),
       },
       stubs: {
-        SidePanel: SidePanelStub,
+        ...(realPanel ? {} : { SidePanel: SidePanelStub, Teleport: true }),
         TemplatePreview: true,
-        Teleport: true,
       },
     },
   });
@@ -334,12 +335,13 @@ describe('TemplateFormDrawer', () => {
   };
 
   it.each(['new', 'edit', 'copy'])(
-    'uses the Flow ComboBox trigger and panel-local portals for every %s selector',
+    'keeps every %s picker fixed outside the drawer scroll container',
     async mode => {
       WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
-      const wrapper = await mountDrawer({
-        inboxes: [...inboxes, { id: 8, name: 'Ventas' }],
-      });
+      const wrapper = await mountDrawer(
+        { inboxes: [...inboxes, { id: 8, name: 'Ventas' }] },
+        true
+      );
       if (mode !== 'new') await wrapper.vm.open(positional);
       if (mode === 'copy') await wrapper.vm.openSystemCopy(positional);
       await flushPromises();
@@ -356,16 +358,39 @@ describe('TemplateFormDrawer', () => {
         expect(selector.props('placeholder')).toBeTruthy();
         expect(selector.get('button').classes()).toContain('!py-2.5');
         expect(selector.get('button').classes()).toContain('font-normal');
-        const portal = selector.element.parentElement.querySelector(
-          '[data-template-picker-portal], [data-variable-picker-portal]'
-        );
-        expect(portal.className).toContain('!static');
-        expect(portal.className).toContain('!max-h-80');
       });
-      expect(wrapper.find('select').exists()).toBe(false);
-      expect(wrapper.findComponent({ name: 'DropdownMenu' }).exists()).toBe(
-        false
+      const scrollContainer = document.querySelector(
+        'aside > .overflow-y-auto'
       );
+      expect(scrollContainer).not.toBeNull();
+      expect(
+        scrollContainer.querySelector('[data-combobox-dropdown]')
+      ).toBeNull();
+      const menus = selectors.map(
+        testId =>
+          wrapper
+            .findComponent(`[data-testid="${testId}"]`)
+            .findComponent(ComboBoxDropdown).element
+      );
+      expect(menus).toHaveLength(selectors.length);
+      menus.forEach(menu => {
+        expect(menu.parentElement).toBe(document.body);
+        // Fixed positioning excludes the list from the document's layout flow.
+        expect(menu.style.position).toBe('fixed');
+      });
+      expect(
+        document.querySelector('[data-template-picker-portal]')
+      ).toBeNull();
+      expect(wrapper.find('select').exists()).toBe(false);
+      selectors.forEach(testId => {
+        expect(
+          wrapper
+            .findComponent(`[data-testid="${testId}"]`)
+            .findComponent(ComboBoxDropdown)
+            .findComponent({ name: 'DropdownMenu' })
+            .exists()
+        ).toBe(true);
+      });
       wrapper.unmount();
     }
   );

@@ -1,9 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { vOnClickOutside } from '@vueuse/components';
 
 import Button from 'dashboard/components-next/button/Button.vue';
-import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
+import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 
 const props = defineProps({
@@ -42,37 +41,32 @@ const selectedLabel = computed(() => {
   return selected?.label || menuItems.value[0]?.label || '';
 });
 
-const close = () => {
-  isOpen.value = false;
-};
-
-const toggle = () => {
-  isOpen.value = !isOpen.value;
-};
-
 const handleAction = ({ value }) => {
-  close();
   emit('update:modelValue', value);
 };
 </script>
 
 <template>
-  <div v-on-click-outside="close" class="relative">
-    <Button
-      :icon="icon || undefined"
-      color="slate"
-      size="sm"
-      :class="{ 'bg-n-slate-9/10': isOpen }"
-      @click="toggle"
-    >
-      <span class="min-w-0 truncate">{{ selectedLabel }}</span>
-      <Icon icon="i-lucide-chevron-down" class="shrink-0 size-4" />
-    </Button>
-    <DropdownMenu
-      v-if="isOpen"
-      :menu-items="menuItems"
-      class="mt-2 min-w-52 top-full ltr:left-0 rtl:right-0"
-      @action="handleAction"
-    />
-  </div>
+  <MenuPopover
+    v-model:open="isOpen"
+    :menu-items="menuItems"
+    :show-search="options.length > 6"
+    :label="selectedLabel"
+    panel-class="min-w-52 max-w-80"
+    align="start"
+    @action="handleAction"
+  >
+    <template #trigger="{ toggle }">
+      <Button
+        :icon="icon || undefined"
+        color="slate"
+        size="sm"
+        :class="{ 'bg-n-slate-9/10': isOpen }"
+        @click="toggle"
+      >
+        <span class="min-w-0 truncate">{{ selectedLabel }}</span>
+        <Icon icon="i-lucide-chevron-down" class="shrink-0 size-4" />
+      </Button>
+    </template>
+  </MenuPopover>
 </template>

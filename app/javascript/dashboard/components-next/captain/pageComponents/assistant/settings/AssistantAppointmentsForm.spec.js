@@ -1,5 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import AssistantAppointmentsForm from './AssistantAppointmentsForm.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import { nextTick } from 'vue';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
 
 const { getConnections, getCalendars, inboxes } = vi.hoisted(() => ({
@@ -61,7 +63,9 @@ const mountForm = async (
 
 const toggle = wrapper => wrapper.get('button[role="switch"]').trigger('click');
 const select = (wrapper, testId) =>
-  wrapper.get(`[data-testid="${testId}"] select`);
+  wrapper
+    .findAllComponents(ComboBox)
+    .find(component => component.attributes('data-testid') === testId);
 
 const REMINDER_DEFAULTS = {
   reminder_1: { enabled: true, hours_before: 24 },
@@ -152,11 +156,16 @@ describe('AssistantAppointmentsForm', () => {
     const wrapper = await mountForm();
     await toggle(wrapper);
 
-    await select(wrapper, 'appointments-connection').setValue(7);
+    select(wrapper, 'appointments-connection').vm.$emit('update:modelValue', 7);
+    await nextTick();
     await flushPromises();
     expect(getCalendars).toHaveBeenCalledWith(7);
 
-    await select(wrapper, 'appointments-calendar').setValue('cal-1');
+    select(wrapper, 'appointments-calendar').vm.$emit(
+      'update:modelValue',
+      'cal-1'
+    );
+    await nextTick();
 
     expect(
       wrapper.get('[data-testid="appointments-hours-hint"]').text()
@@ -166,15 +175,24 @@ describe('AssistantAppointmentsForm', () => {
   it('lists the working days of the calendar, or says every day', async () => {
     const wrapper = await mountForm();
     await toggle(wrapper);
-    await select(wrapper, 'appointments-connection').setValue(7);
+    select(wrapper, 'appointments-connection').vm.$emit('update:modelValue', 7);
+    await nextTick();
     await flushPromises();
 
-    await select(wrapper, 'appointments-calendar').setValue('cal-1');
+    select(wrapper, 'appointments-calendar').vm.$emit(
+      'update:modelValue',
+      'cal-1'
+    );
+    await nextTick();
     expect(
       wrapper.get('[data-testid="appointments-hours-hint"]').text()
     ).toContain('"days":"Mon, Tue, Wed, Thu, Fri"');
 
-    await select(wrapper, 'appointments-calendar').setValue('cal-2');
+    select(wrapper, 'appointments-calendar').vm.$emit(
+      'update:modelValue',
+      'cal-2'
+    );
+    await nextTick();
     expect(
       wrapper.get('[data-testid="appointments-hours-hint"]').text()
     ).toContain('"days":"CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.EVERY_DAY"');
@@ -183,12 +201,20 @@ describe('AssistantAppointmentsForm', () => {
   it('saves a full enabled configuration with numeric values', async () => {
     const wrapper = await mountForm();
     await toggle(wrapper);
-    await select(wrapper, 'appointments-connection').setValue(7);
+    select(wrapper, 'appointments-connection').vm.$emit('update:modelValue', 7);
+    await nextTick();
     await flushPromises();
-    await select(wrapper, 'appointments-calendar').setValue('cal-2');
-    await select(wrapper, 'appointments-duration').setValue(45);
-    await select(wrapper, 'appointments-notice').setValue(120);
-    await select(wrapper, 'appointments-window').setValue(30);
+    select(wrapper, 'appointments-calendar').vm.$emit(
+      'update:modelValue',
+      'cal-2'
+    );
+    await nextTick();
+    select(wrapper, 'appointments-duration').vm.$emit('update:modelValue', 45);
+    await nextTick();
+    select(wrapper, 'appointments-notice').vm.$emit('update:modelValue', 120);
+    await nextTick();
+    select(wrapper, 'appointments-window').vm.$emit('update:modelValue', 30);
+    await nextTick();
     await wrapper
       .get('[data-testid="appointments-field-phone"] input')
       .setValue(false);
@@ -223,12 +249,16 @@ describe('AssistantAppointmentsForm', () => {
     });
 
     expect(getCalendars).toHaveBeenCalledWith(7);
-    expect(select(wrapper, 'appointments-calendar').element.value).toBe(
+    expect(select(wrapper, 'appointments-calendar').props('modelValue')).toBe(
       'cal-1'
     );
-    expect(select(wrapper, 'appointments-duration').element.value).toBe('60');
-    expect(select(wrapper, 'appointments-notice').element.value).toBe('240');
-    expect(select(wrapper, 'appointments-window').element.value).toBe('7');
+    expect(select(wrapper, 'appointments-duration').props('modelValue')).toBe(
+      60
+    );
+    expect(select(wrapper, 'appointments-notice').props('modelValue')).toBe(
+      240
+    );
+    expect(select(wrapper, 'appointments-window').props('modelValue')).toBe(7);
     expect(
       wrapper.get('[data-testid="appointments-field-phone"] input').element
         .checked
@@ -374,10 +404,9 @@ describe('AssistantAppointmentsForm', () => {
       expect(
         wrapper.find('[data-testid="appointments-paid-hint"]').exists()
       ).toBe(false);
-      const options = wrapper
-        .get('[data-testid="appointments-template-reminder"] select')
-        .findAll('option')
-        .map(option => option.element.value);
+      const options = select(wrapper, 'appointments-template-reminder')
+        .props('options')
+        .map(option => option.value);
       expect(options).toEqual(['', 'recordatorio|es']);
     });
 
@@ -419,9 +448,11 @@ describe('AssistantAppointmentsForm', () => {
     };
 
     const pickTemplate = async wrapper => {
-      await select(wrapper, 'appointments-template-reminder').setValue(
+      select(wrapper, 'appointments-template-reminder').vm.$emit(
+        'update:modelValue',
         'recordatorio|es'
       );
+      await nextTick();
       await flushPromises();
     };
 
@@ -551,9 +582,11 @@ describe('AssistantAppointmentsForm', () => {
       await pickTemplate(wrapper);
       await fillParser(wrapper, ['a', 'b', 'c']);
 
-      await select(wrapper, 'appointments-template-reminder').setValue(
+      select(wrapper, 'appointments-template-reminder').vm.$emit(
+        'update:modelValue',
         'otra|es'
       );
+      await nextTick();
       await flushPromises();
 
       expect(

@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
-import Select from 'dashboard/components-next/select/Select.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
 import { isWhatsAppComplete } from '@chatwoot/utils';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
@@ -157,10 +157,11 @@ watch(
           <label class="text-sm font-medium text-n-slate-12">
             {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.AFTER') }}
           </label>
-          <Select
+          <ComboBox
             v-model.number="state.afterMinutes"
             data-testid="followup-after"
-            full-width
+            teleport
+            :allow-deselect="false"
             :options="afterOptions"
             :aria-label="t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.AFTER')"
           />
@@ -169,10 +170,11 @@ watch(
           <label class="text-sm font-medium text-n-slate-12">
             {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.NUDGES') }}
           </label>
-          <Select
+          <ComboBox
             v-model.number="state.maxNudges"
             data-testid="followup-nudges"
-            full-width
+            teleport
+            :allow-deselect="false"
             :options="nudgeOptions"
             :aria-label="t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.NUDGES')"
           />
@@ -181,10 +183,11 @@ watch(
           <label class="text-sm font-medium text-n-slate-12">
             {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.CLOSE') }}
           </label>
-          <Select
+          <ComboBox
             v-model.number="state.closeAfter"
             data-testid="followup-close"
-            full-width
+            teleport
+            :allow-deselect="false"
             :options="closeOptions"
             :aria-label="t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.CLOSE')"
           />
@@ -224,10 +227,11 @@ watch(
           <label class="text-sm font-medium text-n-slate-12">
             {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.TEMPLATE') }}
           </label>
-          <Select
+          <ComboBox
             :model-value="state.template"
             data-testid="followup-template"
-            full-width
+            teleport
+            :allow-deselect="false"
             :options="templateOptions(state.template)"
             :aria-label="t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.TEMPLATE')"
             @update:model-value="selectTemplate"

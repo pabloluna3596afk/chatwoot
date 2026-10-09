@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Icon from 'dashboard/components-next/icon/Icon.vue';
@@ -56,6 +56,15 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // Optional form-picker behavior; action menus keep their existing defaults.
+  portal: { type: Boolean, default: false },
+  listbox: { type: Boolean, default: false },
+  multiple: { type: Boolean, default: false },
+  searchValue: { type: String, default: undefined },
+  emptyState: { type: String, default: '' },
+  scrollClass: { type: String, default: '' },
+  showSectionDividers: { type: Boolean, default: true },
+  autoFocus: { type: Boolean, default: true },
 });
 
 const emit = defineEmits(['action', 'search', 'empty']);
@@ -63,7 +72,14 @@ const emit = defineEmits(['action', 'search', 'empty']);
 const { t } = useI18n();
 
 const searchInput = ref(null);
-const searchQuery = ref('');
+const menuRef = ref(null);
+const searchQuery = ref(props.searchValue ?? '');
+watch(
+  () => props.searchValue,
+  value => {
+    if (value !== undefined) searchQuery.value = value;
+  }
+);
 
 const hasSections = computed(() => props.menuSections.length > 0);
 
@@ -124,6 +140,12 @@ const handleAction = item => {
   emit('action', { action, value, ...rest });
 };
 
+const handleItemKeydown = (event, item) => {
+  if (!props.listbox || !['Enter', ' '].includes(event.key)) return;
+  event.preventDefault();
+  handleAction(item);
+};
+
 const shouldShowEmptyState = computed(() => {
   if (hasSections.value) {
     return filteredMenuSections.value.length === 0;
@@ -133,30 +155,42 @@ const shouldShowEmptyState = computed(() => {
 });
 
 onMounted(() => {
-  if (searchInput.value && props.showSearch) {
+  if (props.autoFocus && searchInput.value && props.showSearch) {
     searchInput.value.focus();
   }
+});
+
+defineExpose({
+  focus: () =>
+    (searchInput.value || menuRef.value)?.focus({ preventScroll: true }),
 });
 </script>
 
 <template>
   <div
-    class="bg-n-alpha-3 backdrop-blur-[100px] border-0 outline outline-1 outline-n-container absolute z-50 flex flex-col min-w-[136px] shadow-lg overflow-hidden"
-    :class="compact ? 'rounded-lg pt-1' : 'rounded-xl pt-2'"
+    ref="menuRef"
+    :tabindex="listbox ? -1 : undefined"
+    class="bg-n-alpha-3 backdrop-blur-[100px] border-0 outline outline-1 outline-n-container z-50 flex flex-col min-w-[136px] shadow-lg overflow-hidden"
+    :class="[
+      portal ? 'fixed' : 'absolute',
+      compact ? 'rounded-lg pt-1' : 'rounded-xl pt-2',
+    ]"
   >
     <div
       v-if="showSearch"
       class="relative shrink-0"
       :class="compact ? 'px-1 mb-1' : 'px-2 mb-2'"
     >
-      <span
-        class="absolute i-lucide-search size-3.5"
-        :class="
-          compact
-            ? 'top-1.5 ltr:left-3 rtl:right-3'
-            : 'top-2 ltr:left-5 rtl:right-5'
-        "
-      />
+      <slot name="search-icon">
+        <span
+          class="absolute i-lucide-search size-3.5"
+          :class="
+            compact
+              ? 'top-1.5 ltr:left-3 rtl:right-3'
+              : 'top-2 ltr:left-5 rtl:right-5'
+          "
+        />
+      </slot>
       <input
         ref="searchInput"
         v-model="searchQuery"
@@ -174,36 +208,106 @@ onMounted(() => {
       />
     </div>
     <div
+      :role="listbox ? 'listbox' : undefined"
+      :aria-multiselectable="listbox ? multiple : undefined"
       class="flex flex-col overflow-y-auto min-h-0"
-      :class="compact ? 'gap-0.5 px-1 pb-1' : 'gap-2 px-2 pb-2'"
+      :class="[compact ? 'gap-0.5 px-1 pb-1' : 'gap-2 px-2 pb-2', scrollClass]"
     >
-      <template v-if="hasSections">
-        <div
-          v-for="(section, sectionIndex) in filteredMenuSections"
-          :key="section.title || sectionIndex"
-          class="flex flex-col gap-1"
-        >
-          <p
-            v-if="section.title"
-            class="px-2 py-2 text-xs mb-0 font-medium text-n-slate-11 uppercase tracking-wide sticky top-0 z-10 bg-n-alpha-3 backdrop-blur-sm truncate min-w-0"
-          >
-            {{ section.title }}
-          </p>
+      <slot name="content">
+        <template v-if="hasSections">
           <div
-            v-if="section.isLoading"
-            class="flex items-center justify-center py-2"
+            v-for="(section, sectionIndex) in filteredMenuSections"
+            :key="section.title || sectionIndex"
+            class="flex flex-col gap-1"
           >
+            <p
+              v-if="section.title"
+              class="px-2 py-2 text-xs mb-0 font-medium text-n-slate-11 uppercase tracking-wide sticky top-0 z-10 bg-n-alpha-3 backdrop-blur-sm truncate min-w-0"
+            >
+              {{ section.title }}
+            </p>
+            <div
+              v-if="section.isLoading"
+              class="flex items-center justify-center py-2"
+            >
+              <Spinner :size="24" />
+            </div>
+            <div
+              v-else-if="!section.items.length && section.emptyState"
+              class="text-sm text-n-slate-11 px-2 py-1.5"
+            >
+              {{ section.emptyState }}
+            </div>
+            <button
+              v-for="(item, itemIndex) in section.items"
+              :key="item.value || itemIndex"
+              type="button"
+              class="inline-flex items-center justify-start w-full min-w-0 transition-all duration-200 ease-in-out border-0 rounded-lg z-60 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-2 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
+              :class="[
+                compact ? 'h-7 gap-1.5 px-1.5 py-1' : 'h-8 gap-2 px-2 py-1.5',
+                {
+                  'bg-n-alpha-1 dark:bg-n-solid-active': item.isSelected,
+                  'text-n-ruby-11': item.action === 'delete',
+                  'text-n-slate-12': item.action !== 'delete',
+                },
+              ]"
+              :disabled="item.disabled"
+              :title="item.title"
+              :data-testid="item.testId"
+              :role="listbox ? 'option' : undefined"
+              :aria-selected="listbox ? Boolean(item.isSelected) : undefined"
+              @click="handleAction(item)"
+              @keydown="handleItemKeydown($event, item)"
+            >
+              <slot name="thumbnail" :item="item">
+                <Avatar
+                  v-if="item.thumbnail"
+                  :name="item.thumbnail.name"
+                  :src="item.thumbnail.src"
+                  :size="thumbnailSize"
+                  :rounded-full="roundedThumbnail"
+                />
+              </slot>
+              <slot name="icon" :item="item">
+                <Icon
+                  v-if="item.icon"
+                  :icon="item.icon"
+                  class="flex-shrink-0 size-3.5"
+                />
+              </slot>
+              <EmojiIcon
+                v-if="item.emoji"
+                :value="item.emoji"
+                :color="item.iconColor"
+                class="flex-shrink-0 size-4"
+              />
+              <slot name="label" :item="item">
+                <span
+                  v-if="item.label"
+                  class="min-w-0 text-sm font-420 truncate"
+                  :class="labelClass"
+                >
+                  {{ item.label }}
+                </span>
+              </slot>
+              <slot name="trailing-icon" :item="item" />
+            </button>
+            <div
+              v-if="
+                showSectionDividers &&
+                sectionIndex < filteredMenuSections.length - 1
+              "
+              class="h-px bg-n-alpha-2 mx-2 my-1"
+            />
+          </div>
+        </template>
+        <template v-else>
+          <div v-if="isLoading" class="flex items-center justify-center py-2">
             <Spinner :size="24" />
           </div>
-          <div
-            v-else-if="!section.items.length && section.emptyState"
-            class="text-sm text-n-slate-11 px-2 py-1.5"
-          >
-            {{ section.emptyState }}
-          </div>
           <button
-            v-for="(item, itemIndex) in section.items"
-            :key="item.value || itemIndex"
+            v-for="(item, index) in filteredMenuItems"
+            :key="index"
             type="button"
             class="inline-flex items-center justify-start w-full min-w-0 transition-all duration-200 ease-in-out border-0 rounded-lg z-60 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-2 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
             :class="[
@@ -215,7 +319,12 @@ onMounted(() => {
               },
             ]"
             :disabled="item.disabled"
+            :title="item.title"
+            :data-testid="item.testId"
+            :role="listbox ? 'option' : undefined"
+            :aria-selected="listbox ? Boolean(item.isSelected) : undefined"
             @click="handleAction(item)"
+            @keydown="handleItemKeydown($event, item)"
           >
             <slot name="thumbnail" :item="item">
               <Avatar
@@ -250,78 +359,21 @@ onMounted(() => {
             </slot>
             <slot name="trailing-icon" :item="item" />
           </button>
-          <div
-            v-if="sectionIndex < filteredMenuSections.length - 1"
-            class="h-px bg-n-alpha-2 mx-2 my-1"
-          />
-        </div>
-      </template>
-      <template v-else>
-        <div v-if="isLoading" class="flex items-center justify-center py-2">
-          <Spinner :size="24" />
-        </div>
-        <button
-          v-for="(item, index) in filteredMenuItems"
-          :key="index"
-          type="button"
-          class="inline-flex items-center justify-start w-full min-w-0 transition-all duration-200 ease-in-out border-0 rounded-lg z-60 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-2 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
-          :class="[
-            compact ? 'h-7 gap-1.5 px-1.5 py-1' : 'h-8 gap-2 px-2 py-1.5',
-            {
-              'bg-n-alpha-1 dark:bg-n-solid-active': item.isSelected,
-              'text-n-ruby-11': item.action === 'delete',
-              'text-n-slate-12': item.action !== 'delete',
-            },
-          ]"
-          :disabled="item.disabled"
-          @click="handleAction(item)"
+        </template>
+        <div
+          v-if="shouldShowEmptyState"
+          class="text-sm text-n-slate-11 px-2 py-1.5"
         >
-          <slot name="thumbnail" :item="item">
-            <Avatar
-              v-if="item.thumbnail"
-              :name="item.thumbnail.name"
-              :src="item.thumbnail.src"
-              :size="thumbnailSize"
-              :rounded-full="roundedThumbnail"
-            />
-          </slot>
-          <slot name="icon" :item="item">
-            <Icon
-              v-if="item.icon"
-              :icon="item.icon"
-              class="flex-shrink-0 size-3.5"
-            />
-          </slot>
-          <EmojiIcon
-            v-if="item.emoji"
-            :value="item.emoji"
-            :color="item.iconColor"
-            class="flex-shrink-0 size-4"
-          />
-          <slot name="label" :item="item">
-            <span
-              v-if="item.label"
-              class="min-w-0 text-sm font-420 truncate"
-              :class="labelClass"
-            >
-              {{ item.label }}
-            </span>
-          </slot>
-          <slot name="trailing-icon" :item="item" />
-        </button>
-      </template>
-      <div
-        v-if="shouldShowEmptyState"
-        class="text-sm text-n-slate-11 px-2 py-1.5"
-      >
-        {{
-          isSearching
-            ? t('DROPDOWN_MENU.SEARCHING')
-            : searchQuery
-              ? t('DROPDOWN_MENU.EMPTY_STATE')
-              : t(emptyStateMessage)
-        }}
-      </div>
+          {{
+            emptyState ||
+            (isSearching
+              ? t('DROPDOWN_MENU.SEARCHING')
+              : searchQuery
+                ? t('DROPDOWN_MENU.EMPTY_STATE')
+                : t(emptyStateMessage))
+          }}
+        </div>
+      </slot>
     </div>
     <div v-if="$slots.footer" class="shrink-0">
       <slot name="footer" />

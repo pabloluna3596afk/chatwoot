@@ -2,7 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store';
-import SingleSelect from 'dashboard/components-next/filter/inputs/SingleSelect.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
 
 const props = defineProps({
@@ -106,31 +106,6 @@ const onTemplateChange = value => {
   });
 };
 
-const selectedInbox = computed({
-  get() {
-    if (!inboxId.value) return null;
-    return (
-      inboxOptions.value.find(option => option.id === inboxId.value) || null
-    );
-  },
-  set(value) {
-    onInboxChange(value?.id || null);
-  },
-});
-
-const selectedTemplateOption = computed({
-  get() {
-    if (!templateId.value) return null;
-    return (
-      templateOptions.value.find(option => option.id === templateId.value) ||
-      null
-    );
-  },
-  set(value) {
-    onTemplateChange(value?.id || null);
-  },
-});
-
 const emitParams = (partial, processedParams) => {
   const template = selectedTemplate.value;
   emit('update:modelValue', {
@@ -218,15 +193,19 @@ watch(
       <label class="mb-0 text-xs font-medium text-n-slate-12">
         {{ t('AUTOMATION.ACTION.WHATSAPP_TEMPLATE.INBOX_LABEL') }}
       </label>
-      <SingleSelect
+      <ComboBox
         v-if="inboxOptions.length"
-        v-model="selectedInbox"
-        :options="inboxOptions"
+        :model-value="inboxId"
         :dropdown-max-height="dropdownMaxHeight"
+        :options="
+          inboxOptions.map(option => ({ value: option.id, label: option.name }))
+        "
         :placeholder="
           t('AUTOMATION.ACTION.WHATSAPP_TEMPLATE.INBOX_PLACEHOLDER')
         "
-        disable-deselect
+        teleport
+        :allow-deselect="false"
+        @update:model-value="onInboxChange"
       />
       <p v-else class="mb-0 text-xs text-n-slate-11">
         {{ t('AUTOMATION.ACTION.WHATSAPP_TEMPLATE.INBOX_EMPTY') }}
@@ -239,15 +218,22 @@ watch(
       <label class="mb-0 text-xs font-medium text-n-slate-12">
         {{ t('AUTOMATION.ACTION.WHATSAPP_TEMPLATE.TEMPLATE_LABEL') }}
       </label>
-      <SingleSelect
+      <ComboBox
         v-if="inboxId"
-        v-model="selectedTemplateOption"
-        :options="templateOptions"
+        :model-value="templateId"
         :dropdown-max-height="dropdownMaxHeight"
+        :options="
+          templateOptions.map(option => ({
+            value: option.id,
+            label: option.name,
+          }))
+        "
         :placeholder="
           t('AUTOMATION.ACTION.WHATSAPP_TEMPLATE.TEMPLATE_PLACEHOLDER')
         "
-        disable-deselect
+        teleport
+        :allow-deselect="false"
+        @update:model-value="onTemplateChange"
       />
       <p v-else class="mb-0 text-xs text-n-slate-11">
         {{ t('AUTOMATION.ACTION.WHATSAPP_TEMPLATE.TEMPLATE_DISABLED') }}

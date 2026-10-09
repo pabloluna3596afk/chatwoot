@@ -1,4 +1,5 @@
 <script setup>
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 /* eslint-disable vue/no-mutating-props -- exitPolicy is shared mutable from parent */
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -57,47 +58,59 @@ const showPrivateNote = eventKey =>
           <span class="mb-1 block text-xs text-n-slate-11">
             {{ t('FLOWS.EXIT.STATUS') }}
           </span>
-          <select v-model="exitPolicy[eventKey].status" class="mb-0">
-            <option v-for="s in statusOptions" :key="s.id" :value="s.id">
-              {{ s.label }}
-            </option>
-          </select>
+          <ComboBox
+            v-model="exitPolicy[eventKey].status"
+            class="mb-0"
+            teleport
+            :allow-deselect="false"
+            :options="[
+              ...statusOptions.map(s => ({ value: s.id, label: s.label })),
+            ]"
+          />
         </label>
         <label class="mb-2 block">
           <span class="mb-1 block text-xs text-n-slate-11">
             {{ t('FLOWS.EXIT.ASSIGNEE') }}
           </span>
-          <select v-model="exitPolicy[eventKey].assignee_mode" class="mb-0">
-            <option v-for="m in assigneeModes" :key="m.id" :value="m.id">
-              {{ m.label }}
-            </option>
-          </select>
+          <ComboBox
+            v-model="exitPolicy[eventKey].assignee_mode"
+            class="mb-0"
+            teleport
+            :allow-deselect="false"
+            :options="[
+              ...assigneeModes.map(m => ({ value: m.id, label: m.label })),
+            ]"
+          />
         </label>
         <label v-if="showTeamPicker(eventKey)" class="mb-2 block">
           <span class="mb-1 block text-xs text-n-slate-11">
             {{ t('FLOWS.EXIT.TEAM') }}
           </span>
-          <select v-model="exitPolicy[eventKey].team_id" class="mb-0">
-            <option :value="null">
-              {{ t('FLOWS.EXIT.PICK_TEAM') }}
-            </option>
-            <option v-for="team in teams" :key="team.id" :value="team.id">
-              {{ team.name }}
-            </option>
-          </select>
+          <ComboBox
+            v-model="exitPolicy[eventKey].team_id"
+            class="mb-0"
+            teleport
+            :allow-deselect="false"
+            :options="[
+              { value: null, label: t('FLOWS.EXIT.PICK_TEAM') },
+              ...teams.map(team => ({ value: team.id, label: team.name })),
+            ]"
+          />
         </label>
         <label v-if="showAgentPicker(eventKey)" class="mb-2 block">
           <span class="mb-1 block text-xs text-n-slate-11">
             {{ t('FLOWS.EXIT.AGENT') }}
           </span>
-          <select v-model="exitPolicy[eventKey].agent_id" class="mb-0">
-            <option :value="null">
-              {{ t('FLOWS.EXIT.PICK_AGENT') }}
-            </option>
-            <option v-for="agent in agents" :key="agent.id" :value="agent.id">
-              {{ agent.name }}
-            </option>
-          </select>
+          <ComboBox
+            v-model="exitPolicy[eventKey].agent_id"
+            class="mb-0"
+            teleport
+            :allow-deselect="false"
+            :options="[
+              { value: null, label: t('FLOWS.EXIT.PICK_AGENT') },
+              ...agents.map(agent => ({ value: agent.id, label: agent.name })),
+            ]"
+          />
         </label>
         <label
           v-if="showPrivateNote(eventKey)"

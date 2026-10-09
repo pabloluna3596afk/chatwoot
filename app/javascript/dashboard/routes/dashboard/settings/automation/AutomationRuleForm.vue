@@ -1,4 +1,5 @@
 <script setup>
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import { ref, computed, h, shallowRef, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAccount } from 'dashboard/composables/useAccount';
@@ -532,38 +533,52 @@ defineExpose({ open, close, setLintFindings });
         >
           <label class="text-sm text-n-slate-11">
             {{ $t('AUTOMATION.ADD.FORM.SCHEDULE.KIND') }}
-            <select v-model="automation.schedule.kind" class="mt-1 w-full m-0">
-              <option value="days_since_attribute">
-                {{ $t('AUTOMATION.ADD.FORM.SCHEDULE.KINDS.DAYS_SINCE') }}
-              </option>
-              <option value="hours_since_last_outgoing">
-                {{ $t('AUTOMATION.ADD.FORM.SCHEDULE.KINDS.HOURS_OUTGOING') }}
-              </option>
-              <option value="hours_since_last_incoming">
-                {{ $t('AUTOMATION.ADD.FORM.SCHEDULE.KINDS.HOURS_INCOMING') }}
-              </option>
-            </select>
+            <ComboBox
+              v-model="automation.schedule.kind"
+              class="mt-1 w-full m-0"
+              teleport
+              :allow-deselect="false"
+              :options="[
+                {
+                  value: 'days_since_attribute',
+                  label: $t('AUTOMATION.ADD.FORM.SCHEDULE.KINDS.DAYS_SINCE'),
+                },
+                {
+                  value: 'hours_since_last_outgoing',
+                  label: $t(
+                    'AUTOMATION.ADD.FORM.SCHEDULE.KINDS.HOURS_OUTGOING'
+                  ),
+                },
+                {
+                  value: 'hours_since_last_incoming',
+                  label: $t(
+                    'AUTOMATION.ADD.FORM.SCHEDULE.KINDS.HOURS_INCOMING'
+                  ),
+                },
+              ]"
+            />
           </label>
           <label
             v-if="automation.schedule.kind === 'days_since_attribute'"
             class="text-sm text-n-slate-11"
           >
             {{ $t('AUTOMATION.ADD.FORM.SCHEDULE.ATTRIBUTE_KEY') }}
-            <select
+            <ComboBox
               v-model="automation.schedule.attribute_key"
               class="mt-1 w-full m-0"
-            >
-              <option value="">
-                {{ $t('AUTOMATION.ADD.FORM.SCHEDULE.ATTRIBUTE_KEY_EMPTY') }}
-              </option>
-              <option
-                v-for="attr in scheduleDateAttributeOptions"
-                :key="attr.key"
-                :value="attr.key"
-              >
-                {{ attr.label }}
-              </option>
-            </select>
+              teleport
+              :allow-deselect="false"
+              :options="[
+                {
+                  value: '',
+                  label: $t('AUTOMATION.ADD.FORM.SCHEDULE.ATTRIBUTE_KEY_EMPTY'),
+                },
+                ...scheduleDateAttributeOptions.map(attr => ({
+                  value: attr.key,
+                  label: attr.label,
+                })),
+              ]"
+            />
             <p
               v-if="!scheduleDateAttributeOptions.length"
               class="m-0 mt-1 text-xs text-n-slate-10"
@@ -576,17 +591,26 @@ defineExpose({ open, close, setLintFindings });
             class="text-sm text-n-slate-11"
           >
             {{ $t('AUTOMATION.ADD.FORM.SCHEDULE.RELATIVE_TO') }}
-            <select v-model="scheduleRelativeTo" class="mt-1 w-full m-0">
-              <option value="after">
-                {{ $t('AUTOMATION.ADD.FORM.SCHEDULE.RELATIVE_TO_AFTER') }}
-              </option>
-              <option value="on">
-                {{ $t('AUTOMATION.ADD.FORM.SCHEDULE.RELATIVE_TO_ON') }}
-              </option>
-              <option value="before">
-                {{ $t('AUTOMATION.ADD.FORM.SCHEDULE.RELATIVE_TO_BEFORE') }}
-              </option>
-            </select>
+            <ComboBox
+              v-model="scheduleRelativeTo"
+              class="mt-1 w-full m-0"
+              teleport
+              :allow-deselect="false"
+              :options="[
+                {
+                  value: 'after',
+                  label: $t('AUTOMATION.ADD.FORM.SCHEDULE.RELATIVE_TO_AFTER'),
+                },
+                {
+                  value: 'on',
+                  label: $t('AUTOMATION.ADD.FORM.SCHEDULE.RELATIVE_TO_ON'),
+                },
+                {
+                  value: 'before',
+                  label: $t('AUTOMATION.ADD.FORM.SCHEDULE.RELATIVE_TO_BEFORE'),
+                },
+              ]"
+            />
           </label>
           <label v-if="showScheduleDays" class="text-sm text-n-slate-11">
             {{ $t('AUTOMATION.ADD.FORM.SCHEDULE.DAYS') }}

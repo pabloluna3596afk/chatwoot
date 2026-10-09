@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils';
 import CaptainStateLegend from '../CaptainStateLegend.vue';
+import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 
 describe('CaptainStateLegend', () => {
   const mountLegend = () =>
@@ -21,7 +22,9 @@ describe('CaptainStateLegend', () => {
     await wrapper
       .find('[data-testid="captain-legend-toggle"]')
       .trigger('click');
-    const legend = wrapper.find('[data-testid="captain-legend"]');
+    const legend = wrapper
+      .getComponent(DropdownMenu)
+      .find('[data-testid="captain-legend"]');
 
     expect(legend.exists()).toBe(true);
     expect(legend.findAll('li')).toHaveLength(3);

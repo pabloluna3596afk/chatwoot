@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
-import { vOnClickOutside } from '@vueuse/components';
+import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useAlert } from 'dashboard/composables';
@@ -274,57 +274,51 @@ onMounted(loadConnections);
             filled
             :focused="showAccountMenu"
           >
-            <div
-              v-on-click-outside="() => (showAccountMenu = false)"
-              class="relative flex items-center w-full min-h-8 gap-1.5 cursor-pointer"
-              :class="{ 'z-50': showAccountMenu }"
+            <MenuPopover
+              v-model:open="showAccountMenu"
+              :label="$t('SIDEBAR.CALENDAR_PAGE.ACCOUNT')"
+              :menu-items="
+                connections.map(connection => ({
+                  label: connectionDisplayName(connection, t),
+                  value: connection.id,
+                  connection,
+                  isSelected: String(connection.id) === selectedConnectionId,
+                }))
+              "
+              @action="selectConnection($event.value)"
             >
-              <button
-                type="button"
-                class="flex w-full items-center gap-1.5 min-w-0"
-                :aria-expanded="showAccountMenu"
-                :aria-label="$t('SIDEBAR.CALENDAR_PAGE.ACCOUNT')"
-                @click="showAccountMenu = !showAccountMenu"
-              >
-                <img
-                  :src="providerLogoFor(selectedConnection?.provider)"
-                  alt=""
-                  class="size-4 shrink-0 rounded-sm"
-                />
-                <span class="flex-1 truncate text-left text-sm text-n-slate-12">
-                  {{ selectedConnectionLabel }}
-                </span>
-                <span
-                  class="i-lucide-chevron-down size-3.5 shrink-0 text-n-slate-11"
-                  :class="{ 'rotate-180': showAccountMenu }"
-                />
-              </button>
-              <div
-                v-if="showAccountMenu"
-                class="absolute z-50 mt-1 top-full ltr:left-0 rtl:right-0 w-full min-w-[14rem] overflow-hidden rounded-xl border border-n-weak bg-n-solid-2 py-1 shadow-lg"
-              >
+              <template #trigger>
                 <button
-                  v-for="connection in connections"
-                  :key="connection.id"
                   type="button"
-                  class="flex w-full items-center gap-2 px-3 py-2 text-sm text-left text-n-slate-12 hover:bg-n-alpha-2"
-                  :class="{
-                    'bg-n-alpha-2':
-                      String(connection.id) === selectedConnectionId,
-                  }"
-                  @click="selectConnection(connection.id)"
+                  class="flex w-full items-center gap-1.5 min-w-0"
+                  :aria-expanded="showAccountMenu"
+                  :aria-label="$t('SIDEBAR.CALENDAR_PAGE.ACCOUNT')"
+                  @click="showAccountMenu = !showAccountMenu"
                 >
                   <img
-                    :src="providerLogoFor(connection.provider)"
+                    :src="providerLogoFor(selectedConnection?.provider)"
                     alt=""
                     class="size-4 shrink-0 rounded-sm"
                   />
-                  <span class="truncate">
-                    {{ connectionDisplayName(connection, t) }}
+                  <span
+                    class="flex-1 truncate text-left text-sm text-n-slate-12"
+                  >
+                    {{ selectedConnectionLabel }}
                   </span>
+                  <span
+                    class="i-lucide-chevron-down size-3.5 shrink-0 text-n-slate-11"
+                    :class="{ 'rotate-180': showAccountMenu }"
+                  />
                 </button>
-              </div>
-            </div>
+              </template>
+              <template #thumbnail="{ item }">
+                <img
+                  :src="providerLogoFor(item.connection.provider)"
+                  alt=""
+                  class="size-4 shrink-0 rounded-sm"
+                />
+              </template>
+            </MenuPopover>
           </OutlinedAttributeField>
         </div>
         <div class="w-44 shrink-0">
@@ -372,27 +366,32 @@ onMounted(loadConnections);
             :disabled="!selectedCalendarId"
             @click="openCreate({ dateKey: weekStartKey, hours: 9, minutes: 0 })"
           />
-          <div v-on-click-outside="() => (showMenu = false)" class="relative">
-            <Button
-              faded
-              slate
-              sm
-              icon="i-lucide-ellipsis-vertical"
-              :title="$t('SIDEBAR.CALENDAR_PAGE.SHOW_CANCELLED')"
-              @click="showMenu = !showMenu"
-            />
-            <div
-              v-if="showMenu"
-              class="absolute z-50 mt-1 ltr:right-0 rtl:left-0 w-64 rounded-xl border border-n-weak bg-n-solid-2 p-3 shadow-lg"
-            >
-              <label
-                class="flex items-center justify-between gap-3 text-sm text-n-slate-12"
-              >
-                {{ $t('SIDEBAR.CALENDAR_PAGE.SHOW_CANCELLED') }}
-                <Switch v-model="showCancelled" />
-              </label>
-            </div>
-          </div>
+          <MenuPopover
+            v-model:open="showMenu"
+            :label="$t('SIDEBAR.CALENDAR_PAGE.SHOW_CANCELLED')"
+            panel-class="w-64 max-w-[calc(100vw-2rem)]"
+          >
+            <template #trigger>
+              <Button
+                faded
+                slate
+                sm
+                icon="i-lucide-ellipsis-vertical"
+                :title="$t('SIDEBAR.CALENDAR_PAGE.SHOW_CANCELLED')"
+                @click="showMenu = !showMenu"
+              />
+            </template>
+            <template #content>
+              <div class="px-2 pb-2">
+                <label
+                  class="flex items-center justify-between gap-3 text-sm text-n-slate-12"
+                >
+                  {{ $t('SIDEBAR.CALENDAR_PAGE.SHOW_CANCELLED') }}
+                  <Switch v-model="showCancelled" />
+                </label>
+              </div>
+            </template>
+          </MenuPopover>
         </div>
       </div>
     </header>

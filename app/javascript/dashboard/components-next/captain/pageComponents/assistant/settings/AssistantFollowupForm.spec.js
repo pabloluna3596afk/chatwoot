@@ -1,5 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import AssistantFollowupForm from './AssistantFollowupForm.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import { nextTick } from 'vue';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
 
 const { inboxes } = vi.hoisted(() => ({ inboxes: { value: [] } }));
@@ -24,7 +26,9 @@ const mountForm = (config = {}) =>
   });
 
 const select = (wrapper, testId) =>
-  wrapper.get(`[data-testid="${testId}"] select`);
+  wrapper
+    .findAllComponents(ComboBox)
+    .find(component => component.attributes('data-testid') === testId);
 const save = wrapper =>
   wrapper.get('[data-testid="followup-save"]').trigger('click');
 const submitted = wrapper => wrapper.emitted('submit')[0][0].config;
@@ -63,22 +67,25 @@ describe('AssistantFollowupForm', () => {
       },
     });
 
-    expect(select(wrapper, 'followup-after').element.value).toBe('60');
-    expect(select(wrapper, 'followup-nudges').element.value).toBe('2');
-    expect(select(wrapper, 'followup-close').element.value).toBe('240');
+    expect(select(wrapper, 'followup-after').props('modelValue')).toBe(60);
+    expect(select(wrapper, 'followup-nudges').props('modelValue')).toBe(2);
+    expect(select(wrapper, 'followup-close').props('modelValue')).toBe(240);
   });
 
   it('keeps a saved value that is not one of the options', () => {
     const wrapper = mountForm({ followup: { inactivity_after_minutes: 25 } });
 
-    expect(select(wrapper, 'followup-after').element.value).toBe('25');
+    expect(select(wrapper, 'followup-after').props('modelValue')).toBe(25);
   });
 
   it('saves numeric values and 0 nudges', async () => {
     const wrapper = mountForm();
-    await select(wrapper, 'followup-after').setValue(15);
-    await select(wrapper, 'followup-nudges').setValue(0);
-    await select(wrapper, 'followup-close').setValue(60);
+    select(wrapper, 'followup-after').vm.$emit('update:modelValue', 15);
+    await nextTick();
+    select(wrapper, 'followup-nudges').vm.$emit('update:modelValue', 0);
+    await nextTick();
+    select(wrapper, 'followup-close').vm.$emit('update:modelValue', 60);
+    await nextTick();
 
     await save(wrapper);
 
@@ -160,11 +167,15 @@ describe('AssistantFollowupForm', () => {
       await enable(wrapper);
 
       const options = select(wrapper, 'followup-template')
-        .findAll('option')
-        .map(option => option.element.value);
+        .props('options')
+        .map(option => option.value);
       expect(options).toEqual(['', 'volver|es']);
 
-      await select(wrapper, 'followup-template').setValue('volver|es');
+      select(wrapper, 'followup-template').vm.$emit(
+        'update:modelValue',
+        'volver|es'
+      );
+      await nextTick();
       await fill(wrapper, ['{{ contact.name }}', 'Soy {{ assistant.name }}']);
       await save(wrapper);
 
@@ -185,7 +196,11 @@ describe('AssistantFollowupForm', () => {
       withTemplates([volver]);
       const wrapper = mountForm({ allow_paid_templates: true });
       await enable(wrapper);
-      await select(wrapper, 'followup-template').setValue('volver|es');
+      select(wrapper, 'followup-template').vm.$emit(
+        'update:modelValue',
+        'volver|es'
+      );
+      await nextTick();
 
       expect(
         parser(wrapper)
@@ -206,7 +221,11 @@ describe('AssistantFollowupForm', () => {
       withTemplates([volver]);
       const wrapper = mountForm({ allow_paid_templates: true });
       await enable(wrapper);
-      await select(wrapper, 'followup-template').setValue('volver|es');
+      select(wrapper, 'followup-template').vm.$emit(
+        'update:modelValue',
+        'volver|es'
+      );
+      await nextTick();
       await fill(wrapper, ['{{ contact.name }}']);
 
       await save(wrapper);

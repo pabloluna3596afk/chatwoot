@@ -2,7 +2,7 @@
 import { format, parseISO } from 'date-fns';
 import { required, url } from '@vuelidate/validators';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
-import { useToggle } from '@vueuse/core';
+import { ref } from 'vue';
 import { isValidURL } from '../helper/URLHelper';
 import { getRegexp } from 'shared/helpers/Validators';
 import { useVuelidate } from '@vuelidate/core';
@@ -10,7 +10,7 @@ import { emitter } from 'shared/helpers/mitt';
 
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import OutlinedAttributeField from 'dashboard/components-next/CustomAttributes/OutlinedAttributeField.vue';
-import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
+import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
 
 const DATE_FORMAT = 'yyyy-MM-dd';
 
@@ -25,7 +25,7 @@ export default {
   components: {
     NextButton,
     OutlinedAttributeField,
-    DropdownMenu,
+    MenuPopover,
   },
   props: {
     label: { type: String, required: true },
@@ -45,7 +45,10 @@ export default {
   },
   emits: ['update', 'delete', 'copy'],
   setup() {
-    const [showListDropdown, toggleListDropdown] = useToggle(false);
+    const showListDropdown = ref(false);
+    const toggleListDropdown = (value = !showListDropdown.value) => {
+      showListDropdown.value = value;
+    };
     return { v$: useVuelidate(), showListDropdown, toggleListDropdown };
   },
   data() {
@@ -341,27 +344,35 @@ export default {
       :filled="shellFilled"
       :focused="shellFocused"
     >
-      <div
-        v-on-clickaway="closeListDropdown"
-        class="relative flex items-center w-full min-h-8"
-        :class="{ 'cursor-pointer': !readOnly }"
-        @click="!readOnly && openListDropdown()"
+      <MenuPopover
+        v-model:open="showListDropdown"
+        :menu-items="listMenuItems"
+        :label="label"
+        show-search
+        match-width
+        align="start"
+        panel-class="min-w-[12rem] max-w-[calc(100vw-2rem)]"
+        @action="onSelectListValue"
       >
-        <span
-          class="text-sm text-n-slate-12 truncate"
-          :class="{ 'opacity-0': !hasValue }"
-        >
-          {{ value || '\u00A0' }}
-        </span>
-        <DropdownMenu
-          v-if="showListDropdown"
-          :menu-items="listMenuItems"
-          show-search
-          class="w-full min-w-[12rem] mt-1 top-full ltr:left-0 rtl:right-0 z-[100]"
-          @click.stop
-          @action="onSelectListValue"
-        />
-      </div>
+        <template #trigger>
+          <button
+            type="button"
+            :disabled="readOnly"
+            aria-haspopup="menu"
+            :aria-expanded="showListDropdown"
+            class="relative flex items-center w-full min-h-8"
+            :class="{ 'cursor-pointer': !readOnly }"
+            @click="!readOnly && openListDropdown()"
+          >
+            <span
+              class="text-sm text-n-slate-12 truncate"
+              :class="{ 'opacity-0': !hasValue }"
+            >
+              {{ value || '\u00A0' }}
+            </span>
+          </button>
+        </template>
+      </MenuPopover>
       <template v-if="showActions && hasValue && !readOnly" #trailing>
         <NextButton
           v-tooltip.left="$t('CUSTOM_ATTRIBUTES.ACTIONS.DELETE')"
