@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Icon from 'dashboard/components-next/icon/Icon.vue';
@@ -56,6 +56,15 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // Optional form-picker behavior; action menus keep their existing defaults.
+  portal: { type: Boolean, default: false },
+  listbox: { type: Boolean, default: false },
+  multiple: { type: Boolean, default: false },
+  searchValue: { type: String, default: undefined },
+  emptyState: { type: String, default: '' },
+  scrollClass: { type: String, default: '' },
+  showSectionDividers: { type: Boolean, default: true },
+  autoFocus: { type: Boolean, default: true },
 });
 
 const emit = defineEmits(['action', 'search', 'empty']);
@@ -63,7 +72,14 @@ const emit = defineEmits(['action', 'search', 'empty']);
 const { t } = useI18n();
 
 const searchInput = ref(null);
-const searchQuery = ref('');
+const menuRef = ref(null);
+const searchQuery = ref(props.searchValue ?? '');
+watch(
+  () => props.searchValue,
+  value => {
+    if (value !== undefined) searchQuery.value = value;
+  }
+);
 
 const hasSections = computed(() => props.menuSections.length > 0);
 
@@ -124,6 +140,12 @@ const handleAction = item => {
   emit('action', { action, value, ...rest });
 };
 
+const handleItemKeydown = (event, item) => {
+  if (!props.listbox || !['Enter', ' '].includes(event.key)) return;
+  event.preventDefault();
+  handleAction(item);
+};
+
 const shouldShowEmptyState = computed(() => {
   if (hasSections.value) {
     return filteredMenuSections.value.length === 0;
@@ -133,30 +155,42 @@ const shouldShowEmptyState = computed(() => {
 });
 
 onMounted(() => {
-  if (searchInput.value && props.showSearch) {
+  if (props.autoFocus && searchInput.value && props.showSearch) {
     searchInput.value.focus();
   }
+});
+
+defineExpose({
+  focus: () =>
+    (searchInput.value || menuRef.value)?.focus({ preventScroll: true }),
 });
 </script>
 
 <template>
   <div
-    class="bg-n-alpha-3 backdrop-blur-[100px] border-0 outline outline-1 outline-n-container absolute z-50 flex flex-col min-w-[136px] shadow-lg overflow-hidden"
-    :class="compact ? 'rounded-lg pt-1' : 'rounded-xl pt-2'"
+    ref="menuRef"
+    :tabindex="listbox ? -1 : undefined"
+    class="bg-n-alpha-3 backdrop-blur-[100px] border-0 outline outline-1 outline-n-container z-50 flex flex-col min-w-[136px] shadow-lg overflow-hidden"
+    :class="[
+      portal ? 'fixed' : 'absolute',
+      compact ? 'rounded-lg pt-1' : 'rounded-xl pt-2',
+    ]"
   >
     <div
       v-if="showSearch"
       class="relative shrink-0"
       :class="compact ? 'px-1 mb-1' : 'px-2 mb-2'"
     >
-      <span
-        class="absolute i-lucide-search size-3.5"
-        :class="
-          compact
-            ? 'top-1.5 ltr:left-3 rtl:right-3'
-            : 'top-2 ltr:left-5 rtl:right-5'
-        "
-      />
+      <slot name="search-icon">
+        <span
+          class="absolute i-lucide-search size-3.5"
+          :class="
+            compact
+              ? 'top-1.5 ltr:left-3 rtl:right-3'
+              : 'top-2 ltr:left-5 rtl:right-5'
+          "
+        />
+      </slot>
       <input
         ref="searchInput"
         v-model="searchQuery"
@@ -174,8 +208,10 @@ onMounted(() => {
       />
     </div>
     <div
+      :role="listbox ? 'listbox' : undefined"
+      :aria-multiselectable="listbox ? multiple : undefined"
       class="flex flex-col overflow-y-auto min-h-0"
-      :class="compact ? 'gap-0.5 px-1 pb-1' : 'gap-2 px-2 pb-2'"
+      :class="[compact ? 'gap-0.5 px-1 pb-1' : 'gap-2 px-2 pb-2', scrollClass]"
     >
       <template v-if="hasSections">
         <div
@@ -215,7 +251,10 @@ onMounted(() => {
               },
             ]"
             :disabled="item.disabled"
+            :role="listbox ? 'option' : undefined"
+            :aria-selected="listbox ? Boolean(item.isSelected) : undefined"
             @click="handleAction(item)"
+            @keydown="handleItemKeydown($event, item)"
           >
             <slot name="thumbnail" :item="item">
               <Avatar
@@ -251,7 +290,10 @@ onMounted(() => {
             <slot name="trailing-icon" :item="item" />
           </button>
           <div
-            v-if="sectionIndex < filteredMenuSections.length - 1"
+            v-if="
+              showSectionDividers &&
+              sectionIndex < filteredMenuSections.length - 1
+            "
             class="h-px bg-n-alpha-2 mx-2 my-1"
           />
         </div>
@@ -274,7 +316,10 @@ onMounted(() => {
             },
           ]"
           :disabled="item.disabled"
+          :role="listbox ? 'option' : undefined"
+          :aria-selected="listbox ? Boolean(item.isSelected) : undefined"
           @click="handleAction(item)"
+          @keydown="handleItemKeydown($event, item)"
         >
           <slot name="thumbnail" :item="item">
             <Avatar
@@ -315,11 +360,12 @@ onMounted(() => {
         class="text-sm text-n-slate-11 px-2 py-1.5"
       >
         {{
-          isSearching
+          emptyState ||
+          (isSearching
             ? t('DROPDOWN_MENU.SEARCHING')
             : searchQuery
               ? t('DROPDOWN_MENU.EMPTY_STATE')
-              : t(emptyStateMessage)
+              : t(emptyStateMessage))
         }}
       </div>
     </div>
