@@ -3,6 +3,8 @@ import { startingDefinition } from '../flowDefinition';
 import FlowBuilderPage from '../FlowBuilderPage.vue';
 import FlowPhoneCanvas from '../FlowPhoneCanvas.vue';
 import Draggable from 'vuedraggable';
+import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
+import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
 import { createStore } from 'vuex';
 
 vi.mock('vue-i18n', () => ({
@@ -112,6 +114,12 @@ const mountPage = async (flow = sampleFlow(), api = makeApi()) => {
 const tabs = wrapper => wrapper.findAll('[data-testid="flow-screen-tab"]');
 const canvasBlocks = wrapper =>
   wrapper.findAll('[data-testid="flow-canvas-block"]');
+// Portal content is intentionally outside the page's DOM subtree.
+const popover = wrapper =>
+  wrapper
+    .findAllComponents(MenuPopover)
+    .find(menu => menu.findComponent(DropdownMenu).exists())
+    .getComponent(DropdownMenu);
 
 describe('FlowBuilderPage', () => {
   it('dims the existing panels in Try, resets on mode exit and never sends simulator answers to the API', async () => {
@@ -184,7 +192,7 @@ describe('FlowBuilderPage', () => {
     await flushPromises();
     await wrapper.get('[data-testid="flow-editor-status"]').trigger('click');
     expect(
-      wrapper.find('[data-testid="flow-unpublished-banner"]').exists()
+      popover(wrapper).find('[data-testid="flow-unpublished-banner"]').exists()
     ).toBe(true);
   });
 
@@ -203,7 +211,7 @@ describe('FlowBuilderPage', () => {
     );
     await wrapper.get('[data-testid="flow-editor-status"]').trigger('click');
     expect(
-      wrapper.get('[data-testid="flow-unpublished-banner"]').text()
+      popover(wrapper).get('[data-testid="flow-unpublished-banner"]').text()
     ).toContain('UNPUBLISHED_CHANGES_BANNER');
     expect(
       wrapper.find('[data-testid="flow-unpublished-publish"]').exists()
@@ -484,9 +492,9 @@ describe('FlowBuilderPage', () => {
         true
       );
       await wrapper.get('[data-testid="flow-actions"]').trigger('click');
-      expect(wrapper.get('[data-testid="flow-json-toggle"]').text()).toBe(
-        'WHATSAPP_FLOWS.EDITOR.SHOW_JSON'
-      );
+      expect(
+        popover(wrapper).get('[data-testid="flow-json-toggle"]').text()
+      ).toBe('WHATSAPP_FLOWS.EDITOR.SHOW_JSON');
       expect(wrapper.find('[data-testid="flow-json"]').exists()).toBe(false);
       expect(wrapper.find('[data-testid="flow-editor-save"]').exists()).toBe(
         true
@@ -525,7 +533,9 @@ describe('FlowBuilderPage', () => {
       expect(wrapper.find('[data-testid="flow-json"]').exists()).toBe(false);
 
       await wrapper.get('[data-testid="flow-actions"]').trigger('click');
-      await wrapper.get('[data-testid="flow-json-toggle"]').trigger('click');
+      await popover(wrapper)
+        .get('[data-testid="flow-json-toggle"]')
+        .trigger('click');
 
       expect(wrapper.find('[data-testid="flow-json-toggle"]').exists()).toBe(
         false
@@ -545,7 +555,9 @@ describe('FlowBuilderPage', () => {
       });
       const { wrapper } = await mountPage();
       await wrapper.get('[data-testid="flow-actions"]').trigger('click');
-      await wrapper.get('[data-testid="flow-json-toggle"]').trigger('click');
+      await popover(wrapper)
+        .get('[data-testid="flow-json-toggle"]')
+        .trigger('click');
       const copy = wrapper.get('[data-testid="flow-json-copy"]');
       expect(copy.text()).toBe('WHATSAPP_FLOWS.EDITOR.JSON_COPY');
 
@@ -563,7 +575,9 @@ describe('FlowBuilderPage', () => {
     it('closes the JSON modal', async () => {
       const { wrapper } = await mountPage();
       await wrapper.get('[data-testid="flow-actions"]').trigger('click');
-      await wrapper.get('[data-testid="flow-json-toggle"]').trigger('click');
+      await popover(wrapper)
+        .get('[data-testid="flow-json-toggle"]')
+        .trigger('click');
 
       await wrapper.get('[data-testid="flow-json-close"]').trigger('click');
 
@@ -838,7 +852,7 @@ describe('FlowBuilderPage', () => {
       );
 
       await wrapper.get('[data-testid="flow-editor-status"]').trigger('click');
-      const badge = wrapper.get('[data-testid="flow-meta-badge"]');
+      const badge = popover(wrapper).get('[data-testid="flow-meta-badge"]');
       expect(badge.attributes('data-state')).toBe('published');
     });
 
@@ -860,9 +874,9 @@ describe('FlowBuilderPage', () => {
         false
       );
       await wrapper.get('[data-testid="flow-editor-status"]').trigger('click');
-      expect(wrapper.get('[data-testid="flow-meta-errors"]').text()).toContain(
-        'Fix a field'
-      );
+      expect(
+        popover(wrapper).get('[data-testid="flow-meta-errors"]').text()
+      ).toContain('Fix a field');
     });
 
     it('does not offer Publicar or Probar until the flow is saved and has no mistakes', async () => {
@@ -888,7 +902,9 @@ describe('FlowBuilderPage', () => {
       );
       await wrapper.get('[data-testid="flow-actions"]').trigger('click');
       expect(
-        wrapper.get('[data-testid="flow-test-open"]').attributes('disabled')
+        popover(wrapper)
+          .get('[data-testid="flow-test-open"]')
+          .attributes('disabled')
       ).toBeDefined();
 
       // saving brings it back
@@ -944,10 +960,12 @@ describe('FlowBuilderPage', () => {
       );
 
       await wrapper.get('[data-testid="flow-editor-status"]').trigger('click');
-      expect(wrapper.get('[data-testid="flow-meta-errors"]').text()).toContain(
-        'bad value'
-      );
-      await wrapper.get('[data-testid="flow-meta-retry"]').trigger('click');
+      expect(
+        popover(wrapper).get('[data-testid="flow-meta-errors"]').text()
+      ).toContain('bad value');
+      await popover(wrapper)
+        .get('[data-testid="flow-meta-retry"]')
+        .trigger('click');
       await flushPromises();
 
       expect(api.retryPublication).toHaveBeenCalledWith(9, '111');
@@ -957,7 +975,9 @@ describe('FlowBuilderPage', () => {
       const { wrapper, api } = await mountPage(saved(), metaApi());
 
       await wrapper.get('[data-testid="flow-actions"]').trigger('click');
-      await wrapper.get('[data-testid="flow-test-open"]').trigger('click');
+      await popover(wrapper)
+        .get('[data-testid="flow-test-open"]')
+        .trigger('click');
       await flushPromises();
       await wrapper
         .get('[data-testid="flow-test-number"] input')

@@ -23,9 +23,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
-import DropdownContainer from 'dashboard/components-next/dropdown-menu/base/DropdownContainer.vue';
-import DropdownBody from 'dashboard/components-next/dropdown-menu/base/DropdownBody.vue';
-import DropdownItem from 'dashboard/components-next/dropdown-menu/base/DropdownItem.vue';
+import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
 import FlowBlockEditor from './FlowBlockEditor.vue';
 import FlowPhoneCanvas from './FlowPhoneCanvas.vue';
 import FlowPhoneSimulator from './FlowPhoneSimulator.vue';
@@ -146,6 +144,27 @@ const metaHint = computed(() => {
   if (errors.value.length) return t('WHATSAPP_FLOWS.META.FIX_FIRST');
   return '';
 });
+const actionItems = computed(() => [
+  ...(hasCloud.value
+    ? [
+        {
+          action: 'test',
+          label: t('WHATSAPP_FLOWS.META.TEST'),
+          icon: 'i-lucide-flask-conical',
+          disabled: metaBlocked.value,
+          title: metaHint.value,
+          testId: 'flow-test-open',
+        },
+      ]
+    : []),
+  {
+    action: 'json',
+    label: t('WHATSAPP_FLOWS.EDITOR.SHOW_JSON'),
+    icon: 'i-lucide-code',
+    disabled: !flowJson.value,
+    testId: 'flow-json-toggle',
+  },
+]);
 const screen = computed(() => definition.screens[currentScreen.value]);
 const block = computed(() =>
   selected.value === null ? null : screen.value?.blocks[selected.value]
@@ -382,6 +401,10 @@ const openTest = async () => {
   await loadMeta();
   testDialog.value?.open();
 };
+const onMenuAction = item => {
+  if (item.action === 'test') openTest();
+  else openJson();
+};
 
 const sendTest = ({ channelId, phoneNumber }) =>
   props.api.test(flowId.value, { channelId, phoneNumber });
@@ -419,7 +442,7 @@ defineExpose({ save });
             }}
           </p>
         </div>
-        <DropdownContainer>
+        <MenuPopover panel-class="w-72 max-w-[calc(100vw-2rem)]">
           <template #trigger="{ toggle }">
             <Button
               type="button"
@@ -434,8 +457,8 @@ defineExpose({ save });
               @click="toggle"
             />
           </template>
-          <DropdownBody class="z-50">
-            <li class="w-72 p-2" data-testid="flow-meta-status">
+          <template #content>
+            <div class="py-2" data-testid="flow-meta-status">
               <p
                 v-if="unpublishedChanges"
                 class="m-0 mb-3 text-xs text-n-amber-11"
@@ -454,9 +477,9 @@ defineExpose({ save });
               <p v-else class="m-0 text-xs text-n-slate-11">
                 {{ $t('WHATSAPP_FLOWS.META.NO_CLOUD') }}
               </p>
-            </li>
-          </DropdownBody>
-        </DropdownContainer>
+            </div>
+          </template>
+        </MenuPopover>
         <span
           v-if="visibleErrors.length"
           class="text-xs text-n-amber-11"
@@ -481,7 +504,11 @@ defineExpose({ save });
             :disabled="isTrying"
           />
         </div>
-        <DropdownContainer>
+        <MenuPopover
+          :menu-items="actionItems"
+          :label="$t('WHATSAPP_FLOWS.EDITOR.ACTIONS')"
+          @action="onMenuAction"
+        >
           <template #trigger="{ toggle }">
             <Button
               type="button"
@@ -496,25 +523,7 @@ defineExpose({ save });
               @click="toggle"
             />
           </template>
-          <DropdownBody class="z-50 end-0 w-44">
-            <DropdownItem
-              v-if="hasCloud"
-              icon="i-lucide-flask-conical"
-              :label="$t('WHATSAPP_FLOWS.META.TEST')"
-              :disabled="metaBlocked"
-              :title="metaHint"
-              data-testid="flow-test-open"
-              :click="openTest"
-            />
-            <DropdownItem
-              icon="i-lucide-code"
-              :label="$t('WHATSAPP_FLOWS.EDITOR.SHOW_JSON')"
-              :disabled="!flowJson"
-              data-testid="flow-json-toggle"
-              :click="openJson"
-            />
-          </DropdownBody>
-        </DropdownContainer>
+        </MenuPopover>
         <Button
           type="button"
           slate
