@@ -45,7 +45,9 @@ const close = async (restoreFocus = false) => {
   open.value = false;
   if (restoreFocus) {
     await nextTick();
-    trigger.value?.querySelector('button')?.focus({ preventScroll: true });
+    trigger.value
+      ?.querySelector('button, input')
+      ?.focus({ preventScroll: true });
   }
 };
 onClickOutside(root, () => close(), { ignore: [menuElement] });

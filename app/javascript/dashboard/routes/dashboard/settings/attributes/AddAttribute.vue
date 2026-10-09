@@ -1,4 +1,5 @@
 <script>
+import AttributeCategoryInput from './AttributeCategoryInput.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import { useVuelidate } from '@vuelidate/core';
 import { required, minLength } from '@vuelidate/validators';
@@ -13,6 +14,7 @@ import TagInput from 'dashboard/components-next/taginput/TagInput.vue';
 
 export default {
   components: {
+    AttributeCategoryInput,
     ComboBox,
     NextButton,
     TagInput,
@@ -320,21 +322,13 @@ export default {
             type="text"
             :placeholder="$t('ATTRIBUTES_MGMT.ADD.FORM.REGEX_CUE.PLACEHOLDER')"
           />
-          <woot-input
+          <AttributeCategoryInput
             v-model="category"
             class="mb-2"
             :label="$t('ATTRIBUTES_MGMT.FORM.CATEGORY.LABEL')"
-            type="text"
             :placeholder="$t('ATTRIBUTES_MGMT.FORM.CATEGORY.PLACEHOLDER')"
-            list="attribute-category-suggestions"
+            :options="categoryOptions"
           />
-          <datalist id="attribute-category-suggestions">
-            <option
-              v-for="option in categoryOptions"
-              :key="option"
-              :value="option"
-            />
-          </datalist>
           <p class="text-sm text-n-slate-11 mb-4 mt-0">
             {{ $t('ATTRIBUTES_MGMT.FORM.CATEGORY.HELP') }}
           </p>
