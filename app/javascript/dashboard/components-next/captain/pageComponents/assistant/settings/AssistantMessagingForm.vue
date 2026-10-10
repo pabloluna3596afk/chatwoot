@@ -10,7 +10,17 @@ import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
-import { isSupportedForCaptain, templateKey } from './captainTemplates';
+import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
+import {
+  isSupportedForCaptain,
+  templateKey,
+  templateVariables,
+  variablesFilled,
+} from './captainTemplates';
+import {
+  CONTACT_DEFAULT_VALUES,
+  useTemplateVariables,
+} from './useTemplateVariables';
 
 // What Captain may send, per inbox: the Flows and templates the owner allows, each with a purpose Captain reads to
 // decide when to use it. Everything starts off. This page only stores the permission (assistant.config.messaging);
@@ -23,6 +33,10 @@ const emit = defineEmits(['submit']);
 const { t } = useI18n();
 const route = useRoute();
 const store = useStore();
+// The same variables (and the same selector) Follow-up uses: what the template says is filled in by name, never by the model.
+const { variableOptions, previewValues } = useTemplateVariables({
+  appointment: false,
+});
 const captainInboxes = useMapGetter('captainInboxes/getRecords');
 const inboxes = useMapGetter('inboxes/getInboxes');
 
@@ -92,7 +106,12 @@ const hydrate = () => {
     permissions[entry.inbox_id] = {
       enabled: entry.enabled === true,
       flows: (entry.flows || []).map(flow => ({ ...flow })),
-      templates: (entry.templates || []).map(template => ({ ...template })),
+      templates: (entry.templates || []).map(template => ({
+        ...template,
+        processed_params: JSON.parse(
+          JSON.stringify(template.processed_params || {})
+        ),
+      })),
     };
   });
 };
@@ -134,6 +153,10 @@ const templateRows = computed(() =>
       ...entry,
       category: found?.category,
       available: Boolean(found),
+      found,
+      hasVariables: templateVariables(found).length > 0,
+      complete:
+        Boolean(found) && variablesFilled(found, entry.processed_params),
     };
   })
 );
@@ -159,11 +182,31 @@ const templateChoices = computed(() =>
 
 const flowDialog = ref(null);
 const templateDialog = ref(null);
-const draft = reactive({ resource: '', purpose: '' });
+// editIndex is set while the variables of a template that is already allowed are being changed.
+const draft = reactive({
+  resource: '',
+  purpose: '',
+  params: {},
+  editIndex: null,
+});
 const resetDraft = () => {
   draft.resource = '';
   draft.purpose = '';
+  draft.params = {};
+  draft.editIndex = null;
 };
+const draftTemplate = computed(() =>
+  draft.editIndex === null
+    ? approvedTemplates.value.find(
+        template => templateKey(template) === draft.resource
+      )
+    : templateRows.value[draft.editIndex]?.found
+);
+const draftComplete = computed(
+  () =>
+    Boolean(draftTemplate.value) &&
+    variablesFilled(draftTemplate.value, draft.params)
+);
 const openFlowDialog = () => {
   resetDraft();
   flowDialog.value.open();
@@ -181,14 +224,34 @@ const addFlow = () => {
   flowDialog.value.close();
 };
 const addTemplate = () => {
-  if (!draft.resource) return;
+  if (!draftComplete.value) return;
+  if (draft.editIndex !== null) {
+    current.value.templates[draft.editIndex].processed_params = draft.params;
+    templateDialog.value.close();
+    return;
+  }
   const [name, language] = draft.resource.split('|');
   ensureEntry(selectedInboxId.value).templates.push({
     name,
     language,
     purpose: draft.purpose.trim(),
+    processed_params: draft.params,
   });
   templateDialog.value.close();
+};
+const openVariablesDialog = index => {
+  resetDraft();
+  draft.editIndex = index;
+  draft.params = JSON.parse(
+    JSON.stringify(current.value.templates[index].processed_params || {})
+  );
+  templateDialog.value.open();
+};
+const templateStatus = row => {
+  if (!row.available) return t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.UNAVAILABLE');
+  if (!row.complete)
+    return t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.MISSING_VARIABLES');
+  return row.category;
 };
 const removeFlow = index => current.value.flows.splice(index, 1);
 const removeTemplate = index => current.value.templates.splice(index, 1);
@@ -429,17 +492,23 @@ onMounted(async () => {
               "
               class="px-2 py-0.5 text-xs font-medium rounded-md shrink-0"
               :class="
-                row.available
+                row.available && row.complete
                   ? 'bg-n-alpha-2 text-n-slate-11'
                   : 'bg-n-amber-3 text-n-amber-11'
               "
             >
-              {{
-                row.available
-                  ? row.category
-                  : t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.UNAVAILABLE')
-              }}
+              {{ templateStatus(row) }}
             </span>
+            <Button
+              v-if="row.hasVariables"
+              slate
+              outline
+              sm
+              icon="i-lucide-braces"
+              :aria-label="t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.VARIABLES')"
+              data-testid="messaging-template-variables"
+              @click="openVariablesDialog(index)"
+            />
             <Button
               slate
               outline
@@ -522,18 +591,29 @@ onMounted(async () => {
 
     <Dialog
       ref="templateDialog"
-      :title="t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.ADD_TEMPLATE_TITLE')"
-      :confirm-button-label="t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.ADD')"
+      :title="
+        draft.editIndex === null
+          ? t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.ADD_TEMPLATE_TITLE')
+          : t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.VARIABLES')
+      "
+      :confirm-button-label="
+        draft.editIndex === null
+          ? t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.ADD')
+          : t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.SAVE_VARIABLES')
+      "
       :cancel-button-label="t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.CANCEL')"
-      :disable-confirm-button="!draft.resource"
+      :disable-confirm-button="!draftComplete"
       @confirm="addTemplate"
     >
       <div class="flex flex-col gap-4">
-        <p v-if="!templateChoices.length" class="mb-0 text-sm text-n-slate-11">
+        <p
+          v-if="draft.editIndex === null && !templateChoices.length"
+          class="mb-0 text-sm text-n-slate-11"
+        >
           {{ t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.NO_TEMPLATES_LEFT') }}
         </p>
         <ComboBox
-          v-else
+          v-else-if="draft.editIndex === null"
           v-model="draft.resource"
           :options="templateChoices"
           :placeholder="
@@ -541,8 +621,20 @@ onMounted(async () => {
           "
           teleport
           data-testid="messaging-template-choice"
+          @update:model-value="draft.params = {}"
+        />
+        <WhatsAppTemplateParser
+          v-if="draftTemplate"
+          :key="draft.resource || draft.editIndex"
+          :template="draftTemplate"
+          :model-value="draft.params"
+          :variable-options="variableOptions"
+          :default-values="CONTACT_DEFAULT_VALUES"
+          :preview-values="previewValues"
+          @update:model-value="draft.params = $event"
         />
         <Input
+          v-if="draft.editIndex === null"
           v-model="draft.purpose"
           :label="t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.PURPOSE')"
           :placeholder="

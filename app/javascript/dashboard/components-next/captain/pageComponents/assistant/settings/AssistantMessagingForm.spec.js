@@ -65,6 +65,7 @@ const mountForm = (assistant = { config: {} }) =>
         Dialog: DialogStub,
         ComboBox: ComboStub,
         SettingsToggleSection: true,
+        WhatsAppTemplateParser: true,
         RouterLink: { template: '<a><slot /></a>' },
       },
     },
@@ -221,6 +222,54 @@ describe('AssistantMessagingForm', () => {
         },
       ],
     });
+  });
+
+  it('does not add a template until every variable has its value', async () => {
+    const wrapper = mountForm();
+    await flushPromises();
+    wrapper.vm.draft.resource = 'reserva|es';
+    wrapper.vm.draft.purpose = 'Confirmar';
+    expect(wrapper.vm.draftComplete).toBe(false);
+    wrapper.vm.addTemplate();
+    expect(wrapper.vm.current.templates).toHaveLength(0);
+
+    wrapper.vm.draft.params = { body: { nombre: '{{ contact.first_name }}' } };
+    expect(wrapper.vm.draftComplete).toBe(true);
+    wrapper.vm.addTemplate();
+    await wrapper.get('[data-testid="messaging-save"]').trigger('click');
+    expect(
+      wrapper.emitted('submit')[0][0].config.messaging.inboxes[0].templates
+    ).toEqual([
+      {
+        name: 'reserva',
+        language: 'es',
+        purpose: 'Confirmar',
+        processed_params: { body: { nombre: '{{ contact.first_name }}' } },
+      },
+    ]);
+  });
+
+  it('flags a saved template whose variables are not filled and lets the owner fix them', async () => {
+    const wrapper = mountForm({
+      config: {
+        messaging: {
+          inboxes: [
+            {
+              inbox_id: 10,
+              enabled: true,
+              flows: [],
+              templates: [{ name: 'reserva', language: 'es', purpose: '' }],
+            },
+          ],
+        },
+      },
+    });
+    await flushPromises();
+    expect(wrapper.vm.templateRows[0].complete).toBe(false);
+    wrapper.vm.openVariablesDialog(0);
+    wrapper.vm.draft.params = { body: { nombre: '{{ contact.name }}' } };
+    wrapper.vm.addTemplate();
+    expect(wrapper.vm.templateRows[0].complete).toBe(true);
   });
 
   it('removes what was allowed', async () => {
