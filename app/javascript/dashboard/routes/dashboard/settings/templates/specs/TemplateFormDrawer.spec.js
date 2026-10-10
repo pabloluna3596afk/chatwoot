@@ -66,7 +66,7 @@ vi.mock('dashboard/api/whatsappTemplates', () => ({
 const inboxes = [{ id: 7, name: 'Soporte' }];
 
 const SidePanelStub = {
-  template: '<div><slot /><slot name="footer" /></div>',
+  template: '<div><slot name="header" /><slot /><slot name="footer" /></div>',
   methods: { open: vi.fn(), close: vi.fn() },
 };
 
@@ -126,6 +126,25 @@ describe('TemplateFormDrawer', () => {
     expect(
       wrapper.find('[data-testid="media-header-unavailable"]').exists()
     ).toBe(true);
+  });
+
+  it('keeps explanations in tooltips, lets the body grow and puts Agregar variable by the counter', async () => {
+    const wrapper = await mountDrawer();
+
+    // The long description and each category help are info icons now, not repeated paragraphs.
+    expect(wrapper.find('[data-testid="form-info"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="category-info-UTILITY"]').exists()).toBe(
+      true
+    );
+    expect(wrapper.text()).not.toContain(
+      'WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.UTILITY.HELP'
+    );
+    // The body is user-resizable and the variable button sits inside the same relative box as the counter.
+    const body = wrapper.findComponent({ name: 'TextArea' });
+    expect(body.props('resize')).toBe(true);
+    const picker = wrapper.get('[data-testid="variable-picker"]');
+    expect(picker.classes()).toContain('absolute');
+    expect(picker.element.parentElement.contains(body.element)).toBe(true);
   });
 
   it('does not call Meta while the form has mistakes', async () => {
@@ -302,7 +321,9 @@ describe('TemplateFormDrawer', () => {
     const wrapper = await mountDrawer();
 
     expect(
-      wrapper.get('[data-testid="media-header-unavailable"]').text()
+      wrapper
+        .get('[data-testid="media-header-unavailable"]')
+        .attributes('aria-label')
     ).toContain('WHATSAPP_TEMPLATE_MGMT.FORM');
   });
   const positional = {

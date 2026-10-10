@@ -24,8 +24,8 @@ import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import SidePanel from 'dashboard/components-next/side-panel/SidePanel.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
-import { TemplatePreview } from 'dashboard/components-next/template-preview';
-import { PLATFORMS } from 'dashboard/services/TemplateConstants';
+import WhatsAppBubble from 'dashboard/components-next/whatsapp/WhatsAppBubble.vue';
+import { bubbleFromTemplate } from 'dashboard/components-next/whatsapp/bubbleFromTemplate';
 import {
   BUTTON_TYPES,
   CATEGORIES,
@@ -358,6 +358,12 @@ watch(bodyVariables, numbers => {
   form.body.examples = examples.slice(0, Math.max(numbers.length, 0));
 });
 
+const variablesHelp = computed(() =>
+  variableMode.value === 'NAMED'
+    ? t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLES_NAMED_HELP')
+    : t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLES_POSITIONAL_HELP')
+);
+
 const nextNumber = computed(
   () => Math.max(0, ...variableNumbers(form.body.text)) + 1
 );
@@ -579,8 +585,26 @@ const buttonChoices = computed(() =>
         ? $t('WHATSAPP_TEMPLATE_MGMT.FORM.EDIT_TITLE')
         : $t('WHATSAPP_TEMPLATE_MGMT.FORM.NEW_TITLE')
     "
-    :description="isEdit ? '' : $t('WHATSAPP_TEMPLATE_MGMT.FORM.DESCRIPTION')"
   >
+    <template #header>
+      <div class="flex items-center min-w-0 gap-2">
+        <h3 class="text-base font-medium truncate text-n-slate-12">
+          {{
+            isEdit
+              ? $t('WHATSAPP_TEMPLATE_MGMT.FORM.EDIT_TITLE')
+              : $t('WHATSAPP_TEMPLATE_MGMT.FORM.NEW_TITLE')
+          }}
+        </h3>
+        <span
+          v-if="!isEdit"
+          v-tooltip.bottom="$t('WHATSAPP_TEMPLATE_MGMT.FORM.DESCRIPTION')"
+          class="i-lucide-info size-4 shrink-0 text-n-slate-10"
+          role="img"
+          :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.DESCRIPTION')"
+          data-testid="form-info"
+        />
+      </div>
+    </template>
     <p v-if="isLoading" class="text-sm text-n-slate-11" role="status">
       {{ $t('WHATSAPP_TEMPLATE_MGMT.LOADING') }}
     </p>
@@ -790,15 +814,27 @@ const buttonChoices = computed(() =>
               class="mt-1"
             />
             <span class="grid gap-0.5">
-              <span class="text-sm font-medium text-n-slate-12">
+              <span
+                class="flex items-center gap-1.5 text-sm font-medium text-n-slate-12"
+              >
                 {{
                   $t(`WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.${category}.LABEL`)
                 }}
-              </span>
-              <span class="text-xs text-n-slate-11">
-                {{
-                  $t(`WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.${category}.HELP`)
-                }}
+                <span
+                  v-tooltip.top="
+                    $t(
+                      `WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.${category}.HELP`
+                    )
+                  "
+                  class="i-lucide-info size-3.5 shrink-0 text-n-slate-10"
+                  role="img"
+                  :aria-label="
+                    $t(
+                      `WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.${category}.HELP`
+                    )
+                  "
+                  :data-testid="`category-info-${category}`"
+                />
               </span>
             </span>
           </label>
@@ -820,8 +856,17 @@ const buttonChoices = computed(() =>
       </fieldset>
 
       <div v-if="!isEdit && !copySource" class="grid gap-1">
-        <span class="text-sm font-medium text-n-slate-12">
+        <span
+          class="flex items-center gap-1.5 text-sm font-medium text-n-slate-12"
+        >
           {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLES_AS') }}
+          <span
+            v-tooltip.top="variablesHelp"
+            class="i-lucide-info size-3.5 shrink-0 text-n-slate-10"
+            role="img"
+            :aria-label="variablesHelp"
+            data-testid="variables-info"
+          />
         </span>
         <div class="flex flex-wrap items-center gap-2">
           <Button
@@ -841,13 +886,6 @@ const buttonChoices = computed(() =>
             @click="variableMode = 'POSITIONAL'"
           />
         </div>
-        <span class="text-xs text-n-slate-11">
-          {{
-            variableMode === 'NAMED'
-              ? $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLES_NAMED_HELP')
-              : $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLES_POSITIONAL_HELP')
-          }}
-        </span>
       </div>
 
       <!-- The message as the customer will read it, edited in place -->
@@ -862,27 +900,30 @@ const buttonChoices = computed(() =>
             v-if="!isEdit || hasOriginalComponent('HEADER')"
             class="grid gap-2"
           >
-            <TemplateComboBox
-              :disabled="isEdit"
-              :model-value="form.header.format"
-              :options="headerOptions"
-              :placeholder="
-                $t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.NONE')
-              "
-              :aria-label="
-                $t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.NONE')
-              "
-              teleport
-              data-testid="template-header-format"
-              @update:model-value="chooseHeaderFormat"
-            />
-            <p
-              v-if="!isEdit && !mediaHeaderAvailable"
-              class="text-xs text-n-slate-11"
-              data-testid="media-header-unavailable"
-            >
-              {{ mediaUnavailableText }}
-            </p>
+            <div class="flex items-center gap-2">
+              <TemplateComboBox
+                :disabled="isEdit"
+                :model-value="form.header.format"
+                :options="headerOptions"
+                :placeholder="
+                  $t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.NONE')
+                "
+                :aria-label="
+                  $t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.NONE')
+                "
+                teleport
+                data-testid="template-header-format"
+                @update:model-value="chooseHeaderFormat"
+              />
+              <span
+                v-if="!isEdit && !mediaHeaderAvailable"
+                v-tooltip.top="mediaUnavailableText"
+                class="i-lucide-info size-3.5 shrink-0 text-n-slate-10"
+                role="img"
+                :aria-label="mediaUnavailableText"
+                data-testid="media-header-unavailable"
+              />
+            </div>
             <template v-if="form.header.format === 'TEXT'">
               <Input
                 :model-value="mappedForm.header.text"
@@ -971,36 +1012,49 @@ const buttonChoices = computed(() =>
           </div>
 
           <div ref="bodyBox" class="grid gap-2">
-            <TextArea
-              :model-value="mappedForm.body.text"
-              :disabled="Boolean(copySource)"
-              :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.BODY_PLACEHOLDER')"
-              :max-length="LIMITS.body"
-              show-character-count
-              :message="fieldError('body.text')"
-              :message-type="fieldError('body.text') ? 'error' : 'info'"
-              @update:model-value="value => (form.body.text = value)"
-            />
-            <div
-              v-if="!isEdit && !copySource"
-              class="flex flex-wrap items-start gap-2"
-              data-testid="variable-picker"
-            >
-              <TemplateComboBox
-                model-value=""
-                :options="insertionOptions"
-                :groups="variableMode === 'NAMED' ? variableGroups : []"
-                :show-search="variableMode === 'NAMED'"
-                :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
-                :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
-                :search-placeholder="
-                  $t('WHATSAPP_TEMPLATE_MGMT.FORM.SEARCH_VARIABLE')
+            <div class="relative">
+              <TextArea
+                :model-value="mappedForm.body.text"
+                :disabled="Boolean(copySource)"
+                resize
+                class="[&_textarea]:min-h-32"
+                :placeholder="
+                  $t('WHATSAPP_TEMPLATE_MGMT.FORM.BODY_PLACEHOLDER')
                 "
-                :show-create-attribute="isAdmin && variableMode === 'NAMED'"
-                data-testid="variable-menu-toggle"
-                @create-attribute="showAddAttribute = true"
-                @update:model-value="insertVariable"
+                :max-length="LIMITS.body"
+                show-character-count
+                :message="fieldError('body.text')"
+                :message-type="fieldError('body.text') ? 'error' : 'info'"
+                @update:model-value="value => (form.body.text = value)"
               />
+              <!-- Next to the character counter, inside the text box: a small button, not a full-width field. -->
+              <div
+                v-if="!isEdit && !copySource"
+                class="absolute bottom-2.5 end-24 w-40"
+                data-testid="variable-picker"
+              >
+                <TemplateComboBox
+                  model-value=""
+                  :options="insertionOptions"
+                  :groups="variableMode === 'NAMED' ? variableGroups : []"
+                  :show-search="variableMode === 'NAMED'"
+                  :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
+                  :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
+                  :search-placeholder="
+                    $t('WHATSAPP_TEMPLATE_MGMT.FORM.SEARCH_VARIABLE')
+                  "
+                  :show-create-attribute="isAdmin && variableMode === 'NAMED'"
+                  class="[&_button]:!h-6 [&_button]:!py-0 [&_button]:!px-2 [&_button]:text-xs"
+                  data-testid="variable-menu-toggle"
+                  @create-attribute="showAddAttribute = true"
+                  @update:model-value="insertVariable"
+                />
+              </div>
+            </div>
+            <div
+              v-if="!isEdit && !copySource && variableMode === 'NAMED'"
+              class="flex flex-wrap items-start gap-2"
+            >
               <div
                 v-if="!isEdit && !copySource && variableMode === 'NAMED'"
                 class="flex items-start gap-2"
@@ -1205,15 +1259,11 @@ const buttonChoices = computed(() =>
       :cancel-button-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CLOSE')"
       overflow-y-auto
     >
-      <div
-        class="flex items-center justify-center px-4 py-8 border rounded-xl border-n-weak bg-n-alpha-1"
-      >
-        <TemplatePreview
-          :template="preview"
-          :variables="variables"
-          :platform="PLATFORMS.WHATSAPP"
-        />
-      </div>
+      <WhatsAppBubble
+        v-bind="bubbleFromTemplate(preview, variables)"
+        class="w-full max-w-sm mx-auto"
+        data-testid="form-preview"
+      />
     </Dialog>
 
     <template #footer>

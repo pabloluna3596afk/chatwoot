@@ -15,8 +15,9 @@ import WhatsAppTemplateParser from '../WhatsAppTemplateParser.vue';
 import ContentTemplateParser from 'dashboard/components-next/content-templates/ContentTemplateParser.vue';
 import { PHONE_PREVIEW_WIDTH } from '../phonePreview';
 import FlowDetail from './FlowDetail.vue';
+import SyncStatus from '../sync-status/SyncStatus.vue';
 import { lastSendCenterTab } from './session';
-import MessagePreview from './MessagePreview.vue';
+import MessagePreview from '../WhatsAppBubble.vue';
 import {
   SEND_CENTER_COLUMN_UNIT_CLASS,
   supportsFlows,
@@ -239,9 +240,18 @@ const body = computed(
   () => component('BODY')?.text || selected.value?.data.body || ''
 );
 const footer = computed(() => component('FOOTER')?.text || '');
-const buttons = computed(
-  () => component('BUTTONS')?.buttons?.map(button => button.text) || []
+const buttons = computed(() =>
+  (component('BUTTONS')?.buttons || []).map(button => ({
+    text: button.text,
+    type: button.type,
+  }))
 );
+const headerMedia = computed(() => {
+  const format = component('HEADER')?.format;
+  return ['IMAGE', 'VIDEO', 'DOCUMENT', 'LOCATION'].includes(format)
+    ? format
+    : '';
+});
 const canSend = computed(
   () =>
     selected.value &&
@@ -267,12 +277,14 @@ const loadFlows = async () => {
     error.value = e.response?.data?.error || t(`${prefix}.LOAD_ERROR`);
   }
 };
+const lastRefreshedAt = ref(new Date());
 const refresh = async () => {
   isRefreshing.value = true;
   error.value = '';
   try {
     await store.dispatch('inboxes/syncTemplates', props.inbox.id);
     if (hasFlows.value) await loadFlows();
+    lastRefreshedAt.value = new Date();
   } catch (e) {
     error.value = e.response?.data?.error || t(`${prefix}.LOAD_ERROR`);
   } finally {
@@ -355,7 +367,7 @@ watch(
     @close="close"
   >
     <div
-      class="flex h-[min(38rem,calc(90vh-11rem))] min-h-0 flex-col gap-5 [dialog:has(&)]:!max-w-[calc(100vw-2rem)] [dialog:has(&)]:!left-[max(1rem,calc((100vw-(2*var(--send-center-unit)+var(--phone-preview-width)+6rem))/2))] [dialog:has(&)]:!right-auto [dialog:has(&)]:!mx-0 [dialog:has(&)]:!transition-[width] [dialog:has(&)]:!duration-300 [dialog:has(&)]:!ease-in-out motion-reduce:[dialog:has(&)]:!transition-none max-xl:[dialog:has(&)]:[--send-center-unit:calc(100vw-var(--phone-preview-width)-6.5rem)] max-xl:[dialog:has(&)]:!left-4 [form:has(&)>div:last-child]:!border-0 [form:has(&)>div:last-child]:!pt-0"
+      class="flex h-[min(52rem,calc(90dvh-11rem))] [div:has(>&)]:!overflow-visible min-h-0 flex-col gap-5 [dialog:has(&)]:!max-w-[calc(100vw-2rem)] [dialog:has(&)]:!left-[max(1rem,calc((100vw-(2*var(--send-center-unit)+var(--phone-preview-width)+6rem))/2))] [dialog:has(&)]:!right-auto [dialog:has(&)]:!mx-0 [dialog:has(&)]:!transition-[width] [dialog:has(&)]:!duration-300 [dialog:has(&)]:!ease-in-out motion-reduce:[dialog:has(&)]:!transition-none max-xl:[dialog:has(&)]:[--send-center-unit:calc(100vw-var(--phone-preview-width)-6.5rem)] max-xl:[dialog:has(&)]:!left-4 [form:has(&)>div:last-child]:!border-0 [form:has(&)>div:last-child]:!pt-0"
       :class="[
         SEND_CENTER_COLUMN_UNIT_CLASS,
         PHONE_PREVIEW_WIDTH,
@@ -420,18 +432,15 @@ watch(
                 :initial-active-tab="tab"
                 @tab-changed="tab = $event.index"
               />
-              <Button
-                type="button"
-                icon="i-lucide-refresh-cw"
-                ghost
-                slate
-                sm
+              <SyncStatus
+                short
+                label-key="WHATSAPP_TEMPLATE_MGMT.UPDATED_AT"
+                :date="lastRefreshedAt"
                 :is-loading="isRefreshing || isPending"
-                :disabled="isSending || isRefreshing || isPending"
-                :aria-label="$t(`${prefix}.REFRESH`)"
-                :title="$t(`${prefix}.REFRESH`)"
-                data-testid="center-refresh"
-                @click="refresh"
+                :disabled="isSending"
+                :button-label="$t(`${prefix}.REFRESH`)"
+                button-testid="center-refresh"
+                @refresh="refresh"
               />
             </div>
 
@@ -525,39 +534,22 @@ watch(
         </section>
         <section
           v-if="selected"
-          class="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto max-xl:overflow-visible overscroll-contain row-span-2 flex flex-col gap-6"
+          class="min-h-0 min-w-0 overflow-hidden max-xl:overflow-visible row-span-2 flex flex-col gap-6"
           data-testid="center-detail"
         >
-          <div
-            class="flex w-[var(--phone-preview-width)] shrink-0 min-w-0 items-start gap-2"
-            data-testid="center-detail-header"
-          >
-            <h3
-              class="truncate text-sm font-semibold text-n-slate-12"
-              :title="selected.name"
-            >
-              {{ selected.name }}
-            </h3>
-            <span
-              v-if="selected.type === 'flow'"
-              class="shrink-0 text-xs leading-5 text-n-slate-11"
-              >{{
-                $t(`${prefix}.SCREENS`, { count: selected.data.screens })
-              }}</span
-            >
-          </div>
           <FlowDetail
             v-if="selected.type === 'flow'"
             :key="selected.key"
             ref="flowDetail"
             :flow="selected.data"
+            :readonly="!!selected.reason"
           />
           <template v-else-if="!selected.reason">
             <ContentTemplateParser
               v-if="content"
               :key="selected.key"
               ref="parser"
-              class="relative grid min-h-0 min-w-0 flex-1 items-start gap-6 [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto"
+              class="relative grid min-h-0 min-w-0 flex-1 items-start gap-6 [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto [&_input]:!h-8 [&_input]:!py-1.5"
               :class="parserColumns"
               :template="selected.data"
               @send-message="sendTemplatePayload"
@@ -568,7 +560,7 @@ watch(
               v-else
               :key="selected.key"
               ref="parser"
-              class="relative grid min-h-0 min-w-0 flex-1 items-start gap-6 [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto"
+              class="relative grid min-h-0 min-w-0 flex-1 items-start gap-6 [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto [&_input]:!h-8 [&_input]:!py-1.5"
               :class="parserColumns"
               :template="selected.data"
               :media-inbox-id="inbox.id"
@@ -583,6 +575,7 @@ watch(
                   :body="preview.body"
                   :footer="footer"
                   :buttons="buttons"
+                  :header-media="headerMedia"
                 /> </template
               ><template #actions />
             </WhatsAppTemplateParser>
@@ -593,6 +586,7 @@ watch(
             :body="body"
             :footer="footer"
             :buttons="buttons"
+            :header-media="headerMedia"
           />
         </section>
         <p v-else class="text-sm text-n-slate-11">

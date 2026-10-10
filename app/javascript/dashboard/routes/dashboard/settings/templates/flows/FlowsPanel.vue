@@ -23,6 +23,7 @@ import { templateTableColumns } from '../templateTableColumns';
 import TemplateRowActions from '../TemplateRowActions.vue';
 import FlowPublicationSummary from './FlowPublicationSummary.vue';
 import FlowPublicationPanel from './FlowPublicationPanel.vue';
+import FlowPreviewDrawer from './FlowPreviewDrawer.vue';
 import { CATEGORIES } from './flowDefinition';
 
 const PAGE_SIZE = 8;
@@ -49,9 +50,11 @@ const category = ref('all');
 const page = ref(1);
 const failed = ref(false);
 const hasLoaded = ref(false);
+const loadedAt = ref(null);
 const toDelete = ref(null);
 const deleteDialog = ref(null);
 const publicationPanel = ref(null);
+const previewDrawer = ref(null);
 const isDeleting = ref(false);
 const toDuplicate = ref(null);
 const duplicateDialog = ref(null);
@@ -109,6 +112,7 @@ const load = async () => {
       total.value = data.meta.total_count;
       facets.value = data.facets;
       hasLoaded.value = true;
+      loadedAt.value = new Date();
       if (!flows.value.length && total.value && page.value > 1)
         page.value = Math.ceil(total.value / PAGE_SIZE);
     });
@@ -171,6 +175,7 @@ const categoryLabel = flow => {
   const first = t(`WHATSAPP_FLOWS.CATEGORIES.${values[0]}`);
   return values.length > 1 ? `${first} +${values.length - 1}` : first;
 };
+defineExpose({ reload: load, loadedAt, isPending });
 </script>
 
 <template>
@@ -243,7 +248,7 @@ const categoryLabel = flow => {
       :items="flows"
       :total="total"
       :page-size="PAGE_SIZE"
-      @open="edit"
+      @open="previewDrawer.open"
     >
       <template #NAME="{ item: flow }">
         <span class="block max-w-56 truncate text-heading-3 text-n-slate-12">{{
@@ -309,6 +314,7 @@ const categoryLabel = flow => {
         }}
       </p>
     </Dialog>
+    <FlowPreviewDrawer ref="previewDrawer" @edit="edit" />
     <FlowPublicationPanel
       v-if="isAdmin"
       ref="publicationPanel"

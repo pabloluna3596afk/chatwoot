@@ -145,12 +145,21 @@ const metaHint = computed(() => {
   return '';
 });
 const actionItems = computed(() => [
+  // Probar = try the Flow right here in the phone; Enviar = send the saved Flow to a number (the old "Probar").
+  {
+    action: 'try',
+    label: isTrying.value
+      ? t('WHATSAPP_FLOWS.SIMULATOR.BACK_TO_EDIT')
+      : t('WHATSAPP_FLOWS.EDITOR.ACTION_TRY'),
+    icon: isTrying.value ? 'i-lucide-pencil' : 'i-lucide-play',
+    testId: 'flow-preview-try',
+  },
   ...(hasCloud.value
     ? [
         {
           action: 'test',
-          label: t('WHATSAPP_FLOWS.META.TEST'),
-          icon: 'i-lucide-flask-conical',
+          label: t('WHATSAPP_FLOWS.EDITOR.ACTION_SEND'),
+          icon: 'i-lucide-send',
           disabled: metaBlocked.value,
           title: metaHint.value,
           testId: 'flow-test-open',
@@ -402,7 +411,8 @@ const openTest = async () => {
   testDialog.value?.open();
 };
 const onMenuAction = item => {
-  if (item.action === 'test') openTest();
+  if (item.action === 'try') isTrying.value = !isTrying.value;
+  else if (item.action === 'test') openTest();
   else openJson();
 };
 
@@ -519,7 +529,6 @@ defineExpose({ save });
               icon="i-lucide-chevron-down"
               :label="$t('WHATSAPP_FLOWS.EDITOR.ACTIONS')"
               data-testid="flow-actions"
-              :disabled="isTrying"
               @click="toggle"
             />
           </template>
@@ -661,7 +670,7 @@ defineExpose({ save });
     </div>
 
     <div
-      class="grid items-start gap-4 min-[1100px]:grid-cols-[16rem_minmax(0,1fr)_22.5rem]"
+      class="grid items-start gap-4 min-[1100px]:grid-cols-[16rem_minmax(0,1fr)_22.5rem] min-[1360px]:grid-cols-[19rem_minmax(0,1fr)_27rem]"
     >
       <section
         class="min-w-0 pe-3 border-e border-n-weak"
@@ -701,32 +710,6 @@ defineExpose({ save });
       </section>
 
       <div class="grid gap-4">
-        <div
-          class="flex justify-center"
-          role="group"
-          :aria-label="$t('WHATSAPP_FLOWS.SIMULATOR.MODE')"
-        >
-          <div class="flex gap-1 p-1 rounded-lg bg-n-alpha-2">
-            <Button
-              size="sm"
-              :variant="isTrying ? 'ghost' : 'solid'"
-              :color="isTrying ? 'slate' : 'blue'"
-              :label="$t('WHATSAPP_FLOWS.SIMULATOR.EDIT')"
-              :aria-pressed="!isTrying"
-              data-testid="flow-preview-edit"
-              @click="isTrying = false"
-            />
-            <Button
-              size="sm"
-              :variant="isTrying ? 'solid' : 'ghost'"
-              :color="isTrying ? 'blue' : 'slate'"
-              :label="$t('WHATSAPP_FLOWS.SIMULATOR.TRY')"
-              :aria-pressed="isTrying"
-              data-testid="flow-preview-try"
-              @click="isTrying = true"
-            />
-          </div>
-        </div>
         <FlowPhoneSimulator
           v-if="isTrying"
           :definition="definition"

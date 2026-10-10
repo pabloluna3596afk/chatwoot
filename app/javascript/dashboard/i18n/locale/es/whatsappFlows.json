@@ -95,6 +95,8 @@
       "NEW": "Nuevo Flow",
       "EMPTY": "Aún no hay Flows.",
       "SCREENS": "{n} pantallas",
+      "PREVIEW_DESCRIPTION": "Pruébalo aquí como lo vería el cliente.",
+      "PREVIEW_LOADING": "Cargando el Flow…",
       "EDIT": "Editar",
       "DELETE": "Borrar",
       "DELETE_TITLE": "Borrar Flow",
@@ -121,6 +123,8 @@
       }
     },
     "EDITOR": {
+      "ACTION_TRY": "Probar",
+      "ACTION_SEND": "Enviar",
       "BACK": "Volver",
       "READY": "Listo para publicar",
       "TO_FIX": "Faltan {n} cosas por corregir",

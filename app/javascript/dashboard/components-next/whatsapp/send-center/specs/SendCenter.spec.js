@@ -225,6 +225,10 @@ describe('unified send center', () => {
       expect(wrapper.get('[data-testid="center-reason"]').text()).toBe(
         es.WHATSAPP_TEMPLATES.SEND_CENTER.REASONS[reason]
       );
+      // A Flow that cannot be sent has nothing to customize: no dead Personalizar button.
+      expect(wrapper.find('[data-testid="flow-send-customize"]').exists()).toBe(
+        false
+      );
       expect(
         wrapper.get('[data-testid="center-send"]').attributes('disabled')
       ).toBeDefined();
@@ -960,14 +964,12 @@ describe('unified send center', () => {
     );
     const detail = wrapper.get('[data-testid="center-detail"]');
     expect(detail.text()).not.toContain('Publicado');
-    expect(
-      detail.get('[data-testid="center-detail-header"]').find('h3').text()
-    ).toBe('Contact');
+    // The selected name already shows in the list: the detail column starts at the top, with no title.
+    expect(detail.find('[data-testid="center-detail-header"]').exists()).toBe(
+      false
+    );
     expect(detail.classes()).toContain('flex-col');
     expect(detail.classes()).toContain('gap-6');
-    expect(
-      detail.get('[data-testid="center-detail-header"]').classes()
-    ).toContain('shrink-0');
     expect(
       wrapper
         .get('[data-testid="center-list"]')
