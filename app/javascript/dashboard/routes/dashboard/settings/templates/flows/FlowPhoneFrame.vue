@@ -9,7 +9,7 @@ defineProps({
 
 <template>
   <div
-    class="flex flex-col w-[var(--phone-preview-width)] h-[46.25rem] shrink-0 overflow-hidden border-8 border-slate-800 rounded-[2rem] bg-[#e8dfd2] dark:bg-[#1b2630]"
+    class="flex flex-col w-[var(--phone-preview-width)] h-[var(--phone-height,46.25rem)] shrink-0 overflow-hidden border-8 border-slate-800 rounded-[2rem] bg-[#e8dfd2] dark:bg-[#1b2630]"
     :class="PHONE_PREVIEW_WIDTH"
     data-testid="flow-phone-frame"
   >
