@@ -158,6 +158,8 @@ describe('VariablePicker', () => {
     const combo = wrapper.getComponent(ComboBox);
     expect(combo.props('hasError')).toBe(true);
     expect(combo.props('teleport')).toBe(true);
+    // A compact trigger (a small button) still opens a list wide enough to read the names.
+    expect(combo.props('menuMinWidth')).toBe('17rem');
     // The list floats over the screen: no portal inside the form that would push the fields below it.
     expect(wrapper.find('[data-variable-picker-portal]').exists()).toBe(false);
     await combo.get('button').trigger('click');

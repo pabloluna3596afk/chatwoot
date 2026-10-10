@@ -106,6 +106,7 @@ const placeholder = computed(
       :search-placeholder="$t('VARIABLE_PICKER.SEARCH')"
       :empty-state="$t('VARIABLE_PICKER.EMPTY')"
       teleport
+      menu-min-width="17rem"
       show-search
       @update:model-value="emit('update:modelValue', $event)"
     >
