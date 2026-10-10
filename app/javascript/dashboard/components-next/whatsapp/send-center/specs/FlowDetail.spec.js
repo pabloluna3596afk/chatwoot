@@ -70,8 +70,9 @@ describe('Flow message customization', () => {
     expect(preview.classes()).not.toContain('max-xl:hidden');
     expect(wrapper.vm.customizing).toBe(true);
     expect(fields.classes()).toContain('overflow-y-auto');
-    expect(fields.classes()).toContain('xl:-mt-11');
-    expect(fields.classes()).toContain('xl:max-h-[calc(100%+2.75rem)]');
+    // No title above the columns anymore: the panel starts at the same top as the preview.
+    expect(fields.classes()).not.toContain('xl:-mt-11');
+    expect(fields.classes()).toContain('xl:max-h-full');
     expect(fields.get('[data-testid="flow-send-restore"]').classes()).toContain(
       'justify-self-start'
     );

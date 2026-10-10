@@ -143,7 +143,7 @@ defineExpose({
       ref="fields"
       role="region"
       aria-labelledby="flow-send-panel-title"
-      class="grid min-h-0 min-w-0 max-h-full overflow-y-auto overscroll-contain gap-3 rounded-xl bg-n-solid-2 p-4 xl:-mt-11 xl:max-h-[calc(100%+2.75rem)] max-xl:absolute max-xl:top-0 max-xl:left-[calc(-1*var(--send-center-unit)-1.5rem)] max-xl:w-[var(--send-center-unit)] max-xl:z-10"
+      class="grid min-h-0 min-w-0 max-h-full overflow-y-auto overscroll-contain gap-3 rounded-xl bg-n-solid-2 p-4 xl:max-h-full max-xl:absolute max-xl:top-0 max-xl:left-[calc(-1*var(--send-center-unit)-1.5rem)] max-xl:w-[var(--send-center-unit)] max-xl:z-10"
       data-testid="flow-send-fields-column"
     >
       <div class="flex flex-col gap-2" data-testid="flow-send-panel-header">

@@ -528,24 +528,6 @@ watch(
           class="min-h-0 min-w-0 overflow-hidden max-xl:overflow-visible row-span-2 flex flex-col gap-6"
           data-testid="center-detail"
         >
-          <div
-            class="flex w-[var(--phone-preview-width)] shrink-0 min-w-0 items-start gap-2"
-            data-testid="center-detail-header"
-          >
-            <h3
-              class="truncate text-sm font-semibold text-n-slate-12"
-              :title="selected.name"
-            >
-              {{ selected.name }}
-            </h3>
-            <span
-              v-if="selected.type === 'flow'"
-              class="shrink-0 text-xs leading-5 text-n-slate-11"
-              >{{
-                $t(`${prefix}.SCREENS`, { count: selected.data.screens })
-              }}</span
-            >
-          </div>
           <FlowDetail
             v-if="selected.type === 'flow'"
             :key="selected.key"
@@ -558,7 +540,7 @@ watch(
               v-if="content"
               :key="selected.key"
               ref="parser"
-              class="relative grid min-h-0 min-w-0 flex-1 items-start gap-6 [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto"
+              class="relative grid min-h-0 min-w-0 flex-1 items-start gap-6 [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto [&_input]:!h-8 [&_input]:!py-1.5"
               :class="parserColumns"
               :template="selected.data"
               @send-message="sendTemplatePayload"
@@ -569,7 +551,7 @@ watch(
               v-else
               :key="selected.key"
               ref="parser"
-              class="relative grid min-h-0 min-w-0 flex-1 items-start gap-6 [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto"
+              class="relative grid min-h-0 min-w-0 flex-1 items-start gap-6 [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto [&_input]:!h-8 [&_input]:!py-1.5"
               :class="parserColumns"
               :template="selected.data"
               :media-inbox-id="inbox.id"
