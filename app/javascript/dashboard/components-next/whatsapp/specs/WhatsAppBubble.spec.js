@@ -1,6 +1,10 @@
 import { mount } from '@vue/test-utils';
 import WhatsAppBubble from '../WhatsAppBubble.vue';
-import { bubbleFromTemplate, fillVariables } from '../bubbleFromTemplate';
+import {
+  bubbleFromTemplate,
+  fillVariables,
+  variablesFromTemplate,
+} from '../bubbleFromTemplate';
 
 describe('WhatsAppBubble', () => {
   it('draws header, body with small gaps for blank lines, footer and typed buttons', () => {
@@ -66,6 +70,36 @@ describe('bubbleFromTemplate', () => {
     expect(props.body).toBe('Pedido Ana\n\nLlega viernes');
     expect(props.footer).toBe('Gracias');
     expect(props.buttons).toEqual([{ text: 'Seguir', type: 'URL' }]);
+  });
+
+  it('takes examples from the body and header, not from a button URL', () => {
+    const variables = variablesFromTemplate({
+      components: [
+        {
+          type: 'HEADER',
+          format: 'TEXT',
+          text: 'Hola {{1}}',
+          example: { header_text: ['Ana'] },
+        },
+        {
+          type: 'BODY',
+          text: '{{1}} {{2}}',
+          example: { body_text: [['uno', 'dos']] },
+        },
+        {
+          type: 'BUTTONS',
+          buttons: [
+            {
+              type: 'URL',
+              text: 'Ver',
+              url: 'https://x/{{2}}',
+              example: ['https://x/123'],
+            },
+          ],
+        },
+      ],
+    });
+    expect(variables).toEqual({ 1: 'uno', 2: 'dos' });
   });
 
   it('flags a media header instead of printing its text', () => {

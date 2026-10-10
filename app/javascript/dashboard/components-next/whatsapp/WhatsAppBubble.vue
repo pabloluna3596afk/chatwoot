@@ -42,7 +42,9 @@ const items = computed(() =>
 
 <template>
   <div class="min-w-0" data-testid="send-center-preview">
-    <div class="p-3 rounded-xl bg-[#efeae2] dark:bg-[#0b141a]">
+    <div
+      class="flex flex-col gap-1 p-3 rounded-xl bg-[#efeae2] dark:bg-[#0b141a]"
+    >
       <div
         class="overflow-hidden rounded-lg rounded-tl-none shadow-sm bg-white dark:bg-[#202c33] text-[#111b21] dark:text-[#e9edef]"
       >
@@ -75,15 +77,15 @@ const items = computed(() =>
             {{ footer }}
           </p>
         </div>
-        <div
-          v-for="(item, index) in items"
-          :key="index"
-          class="flex items-center justify-center gap-2 px-3 py-1.5 text-sm border-t border-black/10 dark:border-white/10 text-[#027eb5] dark:text-[#53bdeb]"
-          data-testid="bubble-button"
-        >
-          <Icon v-if="item.icon" :icon="item.icon" class="size-4" />
-          {{ item.text }}
-        </div>
+      </div>
+      <div
+        v-for="(item, index) in items"
+        :key="index"
+        class="flex items-center justify-center gap-2 px-3 py-1.5 text-sm rounded-lg shadow-sm bg-white dark:bg-[#202c33] text-[#027eb5] dark:text-[#53bdeb]"
+        data-testid="bubble-button"
+      >
+        <Icon v-if="item.icon" :icon="item.icon" class="size-4" />
+        {{ item.text }}
       </div>
     </div>
   </div>

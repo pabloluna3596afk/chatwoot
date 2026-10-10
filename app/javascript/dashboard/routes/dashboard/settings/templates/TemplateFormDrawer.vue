@@ -1259,15 +1259,11 @@ const buttonChoices = computed(() =>
       :cancel-button-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CLOSE')"
       overflow-y-auto
     >
-      <div
-        class="flex items-center justify-center px-4 py-8 border rounded-xl border-n-weak bg-n-alpha-1"
-      >
-        <WhatsAppBubble
-          v-bind="bubbleFromTemplate(preview, variables)"
-          class="w-full max-w-sm"
-          data-testid="form-preview"
-        />
-      </div>
+      <WhatsAppBubble
+        v-bind="bubbleFromTemplate(preview, variables)"
+        class="w-full max-w-sm mx-auto"
+        data-testid="form-preview"
+      />
     </Dialog>
 
     <template #footer>

@@ -15,6 +15,30 @@ export const fillVariables = (text, variables = {}) =>
       )
     : '';
 
+// The example values a template already carries: positional [a, b] -> {1: a, 2: b}, named [{param_name, example}].
+export const variablesFromTemplate = template => {
+  const result = {};
+  (template?.components || []).forEach(component => {
+    if (component.type === 'BODY') {
+      const example = component.example || {};
+      (example.body_text?.[0] || []).forEach((value, index) => {
+        result[index + 1] = value;
+      });
+      (example.body_text_named_params || []).forEach(param => {
+        result[param.param_name] = param.example;
+      });
+    }
+    if (component.type === 'HEADER' && component.format === 'TEXT') {
+      const example = component.example || {};
+      if (example.header_text?.[0]) result[1] = example.header_text[0];
+      (example.header_text_named_params || []).forEach(param => {
+        result[param.param_name] = param.example;
+      });
+    }
+  });
+  return result;
+};
+
 // A WhatsApp template (Meta shape) as the props of WhatsAppBubble.vue.
 export const bubbleFromTemplate = (template, variables = {}) => {
   const normalized = TemplateNormalizer.normalize(template, PLATFORMS.WHATSAPP);

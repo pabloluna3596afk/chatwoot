@@ -10,7 +10,10 @@ import {
 } from 'dashboard/components-next/template-preview';
 import { PLATFORMS } from 'dashboard/services/TemplateConstants';
 import WhatsAppBubble from 'dashboard/components-next/whatsapp/WhatsAppBubble.vue';
-import { bubbleFromTemplate } from 'dashboard/components-next/whatsapp/bubbleFromTemplate';
+import {
+  bubbleFromTemplate,
+  variablesFromTemplate,
+} from 'dashboard/components-next/whatsapp/bubbleFromTemplate';
 import {
   formatTemplateLabel,
   formatTemplateLanguage,
@@ -42,7 +45,7 @@ const normalizedTemplate = computed(() =>
 const variables = computed(() => normalizedTemplate.value?.variables || {});
 const bubble = computed(() =>
   props.template && platform.value === PLATFORMS.WHATSAPP
-    ? bubbleFromTemplate(props.template, variables.value)
+    ? bubbleFromTemplate(props.template, variablesFromTemplate(props.template))
     : null
 );
 const managementUrl = computed(() => {
@@ -80,12 +83,16 @@ defineExpose({ open, close });
     :description="$t('WHATSAPP_TEMPLATE_MGMT.PREVIEW.DESCRIPTION')"
   >
     <div v-if="template" class="flex flex-col gap-6">
+      <WhatsAppBubble
+        v-if="bubble"
+        v-bind="bubble"
+        class="w-full max-w-sm mx-auto"
+      />
       <div
+        v-else
         class="flex items-center justify-center px-6 py-10 border rounded-xl min-h-80 border-n-weak bg-n-alpha-1"
       >
-        <WhatsAppBubble v-if="bubble" v-bind="bubble" class="w-full max-w-sm" />
         <TemplatePreview
-          v-else
           :template="template"
           :variables="variables"
           :platform="platform"
