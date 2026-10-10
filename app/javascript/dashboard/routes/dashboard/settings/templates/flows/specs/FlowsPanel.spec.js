@@ -1,6 +1,10 @@
 import { flushPromises, mount } from '@vue/test-utils';
 const openDetail = vi.fn();
 const DetailStub = { template: '<div/>', methods: { open: openDetail } };
+const PreviewStub = {
+  template: '<div data-testid="preview-stub" />',
+  methods: { open: openDetail },
+};
 import FlowsPanel from '../FlowsPanel.vue';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
@@ -92,7 +96,11 @@ const mountPanel = async () => {
   const wrapper = mount(FlowsPanel, {
     global: {
       mocks: { $t: key => key },
-      stubs: { Dialog: DialogStub, FlowPublicationPanel: DetailStub },
+      stubs: {
+        Dialog: DialogStub,
+        FlowPublicationPanel: DetailStub,
+        FlowPreviewDrawer: PreviewStub,
+      },
     },
   });
   await flushPromises();
@@ -113,7 +121,11 @@ describe('FlowsPanel', () => {
     const wrapper = mount(FlowsPanel, {
       global: {
         mocks: { $t: key => key },
-        stubs: { Dialog: DialogStub, FlowPublicationPanel: DetailStub },
+        stubs: {
+          Dialog: DialogStub,
+          FlowPublicationPanel: DetailStub,
+          FlowPreviewDrawer: PreviewStub,
+        },
       },
     });
     await flushPromises();
@@ -151,6 +163,7 @@ describe('FlowsPanel', () => {
           },
           Dialog: DialogStub,
           FlowPublicationPanel: DetailStub,
+          FlowPreviewDrawer: PreviewStub,
         },
       },
     });
@@ -451,7 +464,11 @@ describe('FlowsPanel', () => {
     const wrapper = mount(TemplatesIndex, {
       global: {
         mocks: { $t: key => key },
-        stubs: { Dialog: DialogStub, FlowPublicationPanel: DetailStub },
+        stubs: {
+          Dialog: DialogStub,
+          FlowPublicationPanel: DetailStub,
+          FlowPreviewDrawer: PreviewStub,
+        },
       },
     });
     await flushPromises();
@@ -462,11 +479,20 @@ describe('FlowsPanel', () => {
     wrapper.unmount();
   });
 
-  it('opens the editor when a row is clicked or receives Enter', async () => {
+  it('opens the preview (not the editor) when a row is clicked or receives Enter', async () => {
+    openDetail.mockClear();
     const wrapper = await mountPanel();
     await wrapper.get('tbody tr').trigger('click');
     await wrapper.get('tbody tr').trigger('keydown', { key: 'Enter' });
-    expect(push).toHaveBeenCalledTimes(2);
+    expect(openDetail).toHaveBeenCalledTimes(2);
+    expect(openDetail).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }));
+    expect(push).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('goes to the editor when the preview asks to edit', async () => {
+    const wrapper = await mountPanel();
+    wrapper.findComponent(PreviewStub).vm.$emit('edit', { id: 1 });
     expect(push).toHaveBeenCalledWith({
       name: 'settings_flow_edit',
       params: { flowId: 1 },
