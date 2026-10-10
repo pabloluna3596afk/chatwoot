@@ -17,7 +17,7 @@ import { PHONE_PREVIEW_WIDTH } from '../phonePreview';
 import FlowDetail from './FlowDetail.vue';
 import SyncStatus from '../sync-status/SyncStatus.vue';
 import { lastSendCenterTab } from './session';
-import MessagePreview from './MessagePreview.vue';
+import MessagePreview from '../WhatsAppBubble.vue';
 import {
   SEND_CENTER_COLUMN_UNIT_CLASS,
   supportsFlows,
@@ -240,9 +240,18 @@ const body = computed(
   () => component('BODY')?.text || selected.value?.data.body || ''
 );
 const footer = computed(() => component('FOOTER')?.text || '');
-const buttons = computed(
-  () => component('BUTTONS')?.buttons?.map(button => button.text) || []
+const buttons = computed(() =>
+  (component('BUTTONS')?.buttons || []).map(button => ({
+    text: button.text,
+    type: button.type,
+  }))
 );
+const headerMedia = computed(() => {
+  const format = component('HEADER')?.format;
+  return ['IMAGE', 'VIDEO', 'DOCUMENT', 'LOCATION'].includes(format)
+    ? format
+    : '';
+});
 const canSend = computed(
   () =>
     selected.value &&
@@ -566,6 +575,7 @@ watch(
                   :body="preview.body"
                   :footer="footer"
                   :buttons="buttons"
+                  :header-media="headerMedia"
                 /> </template
               ><template #actions />
             </WhatsAppTemplateParser>
@@ -576,6 +586,7 @@ watch(
             :body="body"
             :footer="footer"
             :buttons="buttons"
+            :header-media="headerMedia"
           />
         </section>
         <p v-else class="text-sm text-n-slate-11">

@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
-import MessagePreview from './MessagePreview.vue';
+import MessagePreview from '../WhatsAppBubble.vue';
 
 // A Flow that cannot be sent (not published, outside the window...) is shown for reference only: no Personalizar.
 const props = defineProps({

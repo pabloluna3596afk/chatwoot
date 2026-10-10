@@ -24,8 +24,8 @@ import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import SidePanel from 'dashboard/components-next/side-panel/SidePanel.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
-import { TemplatePreview } from 'dashboard/components-next/template-preview';
-import { PLATFORMS } from 'dashboard/services/TemplateConstants';
+import WhatsAppBubble from 'dashboard/components-next/whatsapp/WhatsAppBubble.vue';
+import { bubbleFromTemplate } from 'dashboard/components-next/whatsapp/bubbleFromTemplate';
 import {
   BUTTON_TYPES,
   CATEGORIES,
@@ -1262,10 +1262,10 @@ const buttonChoices = computed(() =>
       <div
         class="flex items-center justify-center px-4 py-8 border rounded-xl border-n-weak bg-n-alpha-1"
       >
-        <TemplatePreview
-          :template="preview"
-          :variables="variables"
-          :platform="PLATFORMS.WHATSAPP"
+        <WhatsAppBubble
+          v-bind="bubbleFromTemplate(preview, variables)"
+          class="w-full max-w-sm"
+          data-testid="form-preview"
         />
       </div>
     </Dialog>
