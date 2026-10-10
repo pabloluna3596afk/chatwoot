@@ -20,6 +20,7 @@ import TemplatesToolbar from '../TemplatesToolbar.vue';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import TemplatesTable from '../TemplatesTable.vue';
 import { templateTableColumns } from '../templateTableColumns';
+import { formatTemplateDate } from '../templateUtils';
 import TemplateRowActions from '../TemplateRowActions.vue';
 import FlowPublicationSummary from './FlowPublicationSummary.vue';
 import FlowPublicationPanel from './FlowPublicationPanel.vue';
@@ -28,7 +29,7 @@ import { CATEGORIES } from './flowDefinition';
 
 const PAGE_SIZE = 8;
 const STATES = ['published', 'partial', 'error', 'none'];
-const { t, locale } = useI18n();
+const { t } = useI18n();
 const router = useRouter();
 const { checkPermissions } = usePolicy();
 const isAdmin = computed(() => checkPermissions(['administrator']));
@@ -168,8 +169,8 @@ const confirmDuplicate = async () => {
     isDuplicating.value = false;
   }
 };
-const dateOf = seconds =>
-  new Date(seconds * 1000).toLocaleDateString(locale.value);
+// Same date format as the Plantillas columns (e.g. "8 oct 2026").
+const dateOf = seconds => formatTemplateDate(seconds * 1000);
 const categoryLabel = flow => {
   const values = flow.categories.length ? flow.categories : ['OTHER'];
   const first = t(`WHATSAPP_FLOWS.CATEGORIES.${values[0]}`);

@@ -479,6 +479,15 @@ describe('FlowsPanel', () => {
     wrapper.unmount();
   });
 
+  it('shows the updated date in the same format as the Plantillas columns', async () => {
+    const wrapper = await mountPanel();
+    const expected = new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+    }).format(new Date(flows[0].updated_at * 1000));
+    expect(wrapper.get('tbody tr').text()).toContain(expected);
+    wrapper.unmount();
+  });
+
   it('opens the preview (not the editor) when a row is clicked or receives Enter', async () => {
     openDetail.mockClear();
     const wrapper = await mountPanel();
