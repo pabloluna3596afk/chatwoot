@@ -363,15 +363,15 @@ en:
         flow_send:
           open: 'Open'
         flow_save:
-          completed: 'Formulario completado: %{name}'
+          completed: 'Flow completed: %{name}'
           saved: 'Saved: %{fields}'
           skipped: 'Skipped: %{fields}'
           blank: 'blank value'
           invalid: 'invalid value or destination'
           used: 'used by another contact'
         flow_response:
-          received: "Formulario completado:\n%{details}"
-          empty: 'Formulario completado.'
+          received: "Flow completed:\n%{details}"
+          empty: 'Flow completed.'
       voice_call:
         twilio: 'Voice Call'
         whatsapp: 'WhatsApp Call'
