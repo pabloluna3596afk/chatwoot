@@ -26,6 +26,7 @@
       }
     },
     "PARSER": {
+      "NO_VALUE": "Este contacto no tiene este dato: escríbelo para poder enviar.",
       "VARIABLES_LABEL": "Variables",
       "HEADER_VARIABLES_LABEL": "Variables del encabezado",
       "LANGUAGE": "Idioma",

@@ -450,6 +450,12 @@ describe('WhatsAppTemplateParser with CRM values', () => {
       '{{ contact.first_name }}'
     );
     expect(wrapper.vm.isFormInvalid).toBe(true);
+    // The empty field says why, only that one, and only while it stays empty.
+    expect(wrapper.vm.missingMessage('body', 'plan')).not.toBe('');
+    expect(wrapper.vm.missingMessage('body', 'nombre')).toBe('');
+    wrapper.vm.setValue('body', 'plan', 'Pro');
+    await nextTick();
+    expect(wrapper.vm.missingMessage('body', 'plan')).toBe('');
   });
 
   it('shows the Liquid itself when there are no records to resolve it with (a campaign)', async () => {
