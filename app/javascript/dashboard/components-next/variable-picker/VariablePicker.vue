@@ -1,5 +1,5 @@
 <script setup>
-import { computed, defineAsyncComponent, provide, ref } from 'vue';
+import { computed, defineAsyncComponent, ref, useAttrs } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { useTemplateBindings } from 'dashboard/composables/useTemplateBindings';
@@ -86,9 +86,11 @@ const groups = computed(() =>
     ),
   }))
 );
-const portal = ref(null);
-// Keep the list within the consumer's scroll area, before its fixed footer.
-provide('dialogPortalTarget', portal);
+// The list floats over the screen like every ChatHub menu: it never takes room in the form nor covers its footer.
+const attrs = useAttrs();
+const placeholder = computed(
+  () => attrs.placeholder || t('VARIABLE_PICKER.PLACEHOLDER')
+);
 </script>
 
 <template>
@@ -100,7 +102,7 @@ provide('dialogPortalTarget', portal);
       :groups="groups"
       :disabled="disabled"
       :has-error="hasError"
-      :placeholder="$t('VARIABLE_PICKER.PLACEHOLDER')"
+      :placeholder="placeholder"
       :search-placeholder="$t('VARIABLE_PICKER.SEARCH')"
       :empty-state="$t('VARIABLE_PICKER.EMPTY')"
       teleport
@@ -124,11 +126,6 @@ provide('dialogPortalTarget', portal);
         />
       </template>
     </ComboBox>
-    <div
-      ref="portal"
-      data-variable-picker-portal
-      class="[&>[data-combobox-dropdown]]:!static [&>[data-combobox-dropdown]]:!mt-2 [&>[data-combobox-dropdown]]:!w-full [&>[data-combobox-dropdown]]:!max-h-80"
-    />
     <AddAttribute
       v-if="showAddAttribute"
       :selected-attribute-model-tab="1"

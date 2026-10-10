@@ -2,7 +2,6 @@
 import {
   nextTick,
   computed,
-  defineAsyncComponent,
   onBeforeUnmount,
   provide,
   reactive,
@@ -13,12 +12,13 @@ import { useI18n } from 'vue-i18n';
 import { useLocale } from 'shared/composables/useLocale';
 
 import { useAlert } from 'dashboard/composables';
-import { useMapGetter, useStore } from 'dashboard/composables/store';
+import { useStore } from 'dashboard/composables/store';
 import { useTemplateBindings } from 'dashboard/composables/useTemplateBindings';
 import { useAccount } from 'dashboard/composables/useAccount';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TemplateComboBox from './TemplateComboBox.vue';
+import { APPOINTMENT_BINDINGS } from 'dashboard/helper/templateVariableBindings';
 import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -33,7 +33,6 @@ import {
   LIMITS,
   MEDIA_ACCEPT,
   MEDIA_FORMATS,
-  CAPTAIN_VARIABLES,
   buildPayload,
   copyVariableTokens,
   copyWithSystemVariables,
@@ -77,17 +76,6 @@ const { resolvedLocale } = useLocale();
 const store = useStore();
 const { currentAccount } = useAccount();
 const { bindings } = useTemplateBindings('message');
-const currentRole = useMapGetter('getCurrentRole');
-const isAdmin = computed(() => currentRole.value === 'administrator');
-const AddAttribute = defineAsyncComponent(
-  () =>
-    import('dashboard/routes/dashboard/settings/attributes/AddAttribute.vue')
-);
-const showAddAttribute = ref(false);
-const closeAddAttribute = async () => {
-  showAddAttribute.value = false;
-  await store.dispatch('attributes/get');
-};
 
 const LANGUAGE_OPTIONS = computed(() => languageOptions(locale.value));
 
@@ -128,35 +116,13 @@ const languageTouched = ref(false);
 const variableMode = ref('NAMED');
 const customVariable = ref('');
 
-const bindingLabel = binding => {
-  const key = `VARIABLES.LABELS.${binding.key}`;
-  const label = binding.label || (te(key) ? t(key) : binding.name);
-  return `${label} (${binding.name})`;
-};
-
-const variableGroups = computed(() =>
-  ['system', 'contact', 'conversation', 'captain'].map(key => ({
-    key,
-    label: t(
-      `WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_GROUPS.${key.toUpperCase()}`
-    ),
-  }))
-);
-const variableOptions = computed(() => {
-  const known = new Set(bindings.value.map(binding => binding.name));
-  return [
-    ...bindings.value.map(binding => ({
-      value: binding.name,
-      label: bindingLabel(binding),
-      group: binding.group,
-    })),
-    ...CAPTAIN_VARIABLES.filter(name => !known.has(name)).map(name => ({
-      value: name,
-      label: name,
-      group: 'captain',
-    })),
-  ];
-});
+// The names a variable can have: the same catalog the VariablePicker offers (CRM, attributes and appointments).
+const knownVariableNames = computed(() => [
+  ...new Set([
+    ...bindings.value.map(binding => binding.name),
+    ...APPOINTMENT_BINDINGS.map(binding => binding.name),
+  ]),
+]);
 
 const isEdit = computed(() => Boolean(editing.value));
 const mappedForm = computed(() =>
@@ -165,11 +131,7 @@ const mappedForm = computed(() =>
 const errors = computed(() => {
   const mappingReady =
     !copySource.value ||
-    systemMappingValid(
-      form,
-      systemMapping,
-      variableOptions.value.map(option => option.value)
-    );
+    systemMappingValid(form, systemMapping, knownVariableNames.value);
   const result = validateForm(mappingReady ? mappedForm.value : form, {
     isEdit: isEdit.value,
     original: editing.value,
@@ -368,18 +330,8 @@ const nextNumber = computed(
   () => Math.max(0, ...variableNumbers(form.body.text)) + 1
 );
 
-// What can be put in the message with one click: the CRM / system names (and the contact's and the conversation's
-// custom attributes, which the send dialog fills in by name), then the names Captain fills in for appointments; or the
-// next number when the message uses numbered variables.
-const insertionOptions = computed(() => {
-  if (variableMode.value === 'POSITIONAL') {
-    return [
-      { value: String(nextNumber.value), label: `{{${nextNumber.value}}}` },
-    ];
-  }
-  const taken = new Set(bodyVariables.value);
-  return variableOptions.value.filter(option => !taken.has(option.value));
-});
+// Named variables already in the message are not offered again.
+const isFreeVariable = binding => !bodyVariables.value.includes(binding.name);
 
 const customVariableInvalid = computed(
   () => customVariable.value && !isValidVariableName(customVariable.value)
@@ -1033,21 +985,26 @@ const buttonChoices = computed(() =>
                 class="absolute bottom-2.5 end-24 w-40"
                 data-testid="variable-picker"
               >
-                <TemplateComboBox
-                  model-value=""
-                  :options="insertionOptions"
-                  :groups="variableMode === 'NAMED' ? variableGroups : []"
-                  :show-search="variableMode === 'NAMED'"
+                <VariablePicker
+                  v-if="variableMode === 'NAMED'"
+                  :filter="isFreeVariable"
                   :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
                   :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
-                  :search-placeholder="
-                    $t('WHATSAPP_TEMPLATE_MGMT.FORM.SEARCH_VARIABLE')
-                  "
-                  :show-create-attribute="isAdmin && variableMode === 'NAMED'"
                   class="[&_button]:!h-6 [&_button]:!py-0 [&_button]:!px-2 [&_button]:text-xs"
                   data-testid="variable-menu-toggle"
-                  @create-attribute="showAddAttribute = true"
                   @update:model-value="insertVariable"
+                />
+                <Button
+                  v-else
+                  type="button"
+                  slate
+                  outline
+                  xs
+                  class="w-full"
+                  :label="`{{${nextNumber}}}`"
+                  :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
+                  data-testid="variable-menu-toggle"
+                  @click="insertVariable(String(nextNumber))"
                 />
               </div>
             </div>
@@ -1304,9 +1261,4 @@ const buttonChoices = computed(() =>
       </div>
     </template>
   </SidePanel>
-  <AddAttribute
-    v-if="showAddAttribute"
-    :selected-attribute-model-tab="1"
-    :on-close="closeAddAttribute"
-  />
 </template>
