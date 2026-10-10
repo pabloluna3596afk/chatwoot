@@ -60,12 +60,12 @@
       "FORM": {
         "NAME": {
           "LABEL": "Mostrar nombre",
-          "PLACEHOLDER": "Introduzca el nombre de atributo personalizado",
+          "PLACEHOLDER": "Nombre visible del atributo",
           "ERROR": "El nombre es requerido"
         },
         "DESC": {
           "LABEL": "Descripción",
-          "PLACEHOLDER": "Introducir descripcion del atributo personalizado",
+          "PLACEHOLDER": "Para qué sirve este atributo",
           "ERROR": "Descripción requerida"
         },
         "MODEL": {
@@ -84,8 +84,8 @@
           }
         },
         "KEY": {
-          "LABEL": "Llave",
-          "PLACEHOLDER": "Introducir clave de atributo personalizado",
+          "LABEL": "Clave",
+          "PLACEHOLDER": "clave_del_atributo",
           "ERROR": "Clave es requerida",
           "IN_VALID": "Llave Invalida"
         },

@@ -216,40 +216,50 @@ export default {
 
       <form class="flex w-full" @submit.prevent="addAttributes">
         <div class="w-full">
-          <label :class="{ error: v$.attributeModel.$error }">
+          <label
+            class="block mb-4"
+            :class="{ error: v$.attributeModel.$error }"
+          >
             {{ $t('ATTRIBUTES_MGMT.ADD.FORM.MODEL.LABEL') }}
-            <select v-model="attributeModel">
-              <option v-for="model in models" :key="model.id" :value="model.id">
-                {{ model.option }}
-              </option>
-            </select>
+            <ComboBox
+              v-model="attributeModel"
+              teleport
+              :allow-deselect="false"
+              :has-error="v$.attributeModel.$error"
+              :options="
+                models.map(model => ({ value: model.id, label: model.option }))
+              "
+              data-testid="attribute-model"
+            />
             <span v-if="v$.attributeModel.$error" class="message">
               {{ $t('ATTRIBUTES_MGMT.ADD.FORM.MODEL.ERROR') }}
             </span>
           </label>
-          <woot-input
-            v-model="displayName"
-            :label="$t('ATTRIBUTES_MGMT.ADD.FORM.NAME.LABEL')"
-            type="text"
-            :class="{ error: v$.displayName.$error }"
-            :error="
-              v$.displayName.$error
-                ? $t('ATTRIBUTES_MGMT.ADD.FORM.NAME.ERROR')
-                : ''
-            "
-            :placeholder="$t('ATTRIBUTES_MGMT.ADD.FORM.NAME.PLACEHOLDER')"
-            @update:model-value="onDisplayNameChange"
-            @blur="v$.displayName.$touch"
-          />
-          <woot-input
-            v-model="attributeKey"
-            :label="$t('ATTRIBUTES_MGMT.ADD.FORM.KEY.LABEL')"
-            type="text"
-            :class="{ error: v$.attributeKey.$error }"
-            :error="v$.attributeKey.$error ? keyErrorMessage : ''"
-            :placeholder="$t('ATTRIBUTES_MGMT.ADD.FORM.KEY.PLACEHOLDER')"
-            @blur="v$.attributeKey.$touch"
-          />
+          <div class="grid gap-x-3 sm:grid-cols-2">
+            <woot-input
+              v-model="displayName"
+              :label="$t('ATTRIBUTES_MGMT.ADD.FORM.NAME.LABEL')"
+              type="text"
+              :class="{ error: v$.displayName.$error }"
+              :error="
+                v$.displayName.$error
+                  ? $t('ATTRIBUTES_MGMT.ADD.FORM.NAME.ERROR')
+                  : ''
+              "
+              :placeholder="$t('ATTRIBUTES_MGMT.ADD.FORM.NAME.PLACEHOLDER')"
+              @update:model-value="onDisplayNameChange"
+              @blur="v$.displayName.$touch"
+            />
+            <woot-input
+              v-model="attributeKey"
+              :label="$t('ATTRIBUTES_MGMT.ADD.FORM.KEY.LABEL')"
+              type="text"
+              :class="{ error: v$.attributeKey.$error }"
+              :error="v$.attributeKey.$error ? keyErrorMessage : ''"
+              :placeholder="$t('ATTRIBUTES_MGMT.ADD.FORM.KEY.PLACEHOLDER')"
+              @blur="v$.attributeKey.$touch"
+            />
+          </div>
           <label :class="{ error: v$.description.$error }">
             {{ $t('ATTRIBUTES_MGMT.ADD.FORM.DESC.LABEL') }}
             <textarea
@@ -263,13 +273,18 @@ export default {
               {{ $t('ATTRIBUTES_MGMT.ADD.FORM.DESC.ERROR') }}
             </span>
           </label>
-          <label :class="{ error: v$.attributeType.$error }">
+          <label class="block mb-4" :class="{ error: v$.attributeType.$error }">
             {{ $t('ATTRIBUTES_MGMT.ADD.FORM.TYPE.LABEL') }}
-            <select v-model="attributeType">
-              <option v-for="type in types" :key="type.id" :value="type.id">
-                {{ type.option }}
-              </option>
-            </select>
+            <ComboBox
+              v-model="attributeType"
+              teleport
+              :allow-deselect="false"
+              :has-error="v$.attributeType.$error"
+              :options="
+                types.map(type => ({ value: type.id, label: type.option }))
+              "
+              data-testid="attribute-type"
+            />
             <span v-if="v$.attributeType.$error" class="message">
               {{ $t('ATTRIBUTES_MGMT.ADD.FORM.TYPE.ERROR') }}
             </span>
@@ -298,13 +313,15 @@ export default {
               {{ $t('ATTRIBUTES_MGMT.ADD.FORM.TYPE.LIST.ERROR') }}
             </label>
           </div>
-          <div v-if="isAttributeTypeText">
-            <input
-              v-model="regexEnabled"
-              type="checkbox"
-              @input="toggleRegexEnabled"
-            />
-            {{ $t('ATTRIBUTES_MGMT.ADD.FORM.ENABLE_REGEX.LABEL') }}
+          <div v-if="isAttributeTypeText" class="mb-4">
+            <label class="flex items-center gap-2">
+              <input
+                v-model="regexEnabled"
+                type="checkbox"
+                @input="toggleRegexEnabled"
+              />
+              {{ $t('ATTRIBUTES_MGMT.ADD.FORM.ENABLE_REGEX.LABEL') }}
+            </label>
           </div>
           <woot-input
             v-if="isAttributeTypeText && isRegexEnabled"
@@ -326,29 +343,33 @@ export default {
             v-model="category"
             class="mb-2"
             :label="$t('ATTRIBUTES_MGMT.FORM.CATEGORY.LABEL')"
+            :help="$t('ATTRIBUTES_MGMT.FORM.CATEGORY.HELP')"
             :placeholder="$t('ATTRIBUTES_MGMT.FORM.CATEGORY.PLACEHOLDER')"
             :options="categoryOptions"
           />
-          <p class="text-sm text-n-slate-11 mb-4 mt-0">
-            {{ $t('ATTRIBUTES_MGMT.FORM.CATEGORY.HELP') }}
-          </p>
           <div class="mb-4">
             <label class="flex items-center gap-2">
               <input v-model="featured" type="checkbox" />
               {{ $t('ATTRIBUTES_MGMT.FEATURED.LABEL') }}
+              <span
+                v-tooltip.top="$t('ATTRIBUTES_MGMT.FEATURED.HELP')"
+                class="i-lucide-info size-3.5 shrink-0 text-n-slate-10"
+                role="img"
+                :aria-label="$t('ATTRIBUTES_MGMT.FEATURED.HELP')"
+              />
             </label>
-            <p class="text-sm text-n-slate-11 mb-0 mt-1">
-              {{ $t('ATTRIBUTES_MGMT.FEATURED.HELP') }}
-            </p>
           </div>
           <div v-if="isContactModel" class="mb-4">
-            <label class="flex items-center gap-2">
+            <label class="flex items-center gap-2 mb-2">
               <input v-model="formulaEnabled" type="checkbox" />
               {{ $t('ATTRIBUTES_MGMT.FORMULA.ENABLE') }}
+              <span
+                v-tooltip.top="$t('ATTRIBUTES_MGMT.FORMULA.HELP')"
+                class="i-lucide-info size-3.5 shrink-0 text-n-slate-10"
+                role="img"
+                :aria-label="$t('ATTRIBUTES_MGMT.FORMULA.HELP')"
+              />
             </label>
-            <p class="text-sm text-n-slate-11 mb-2 mt-1">
-              {{ $t('ATTRIBUTES_MGMT.FORMULA.HELP') }}
-            </p>
             <template v-if="formulaEnabled">
               <label>
                 {{ $t('ATTRIBUTES_MGMT.FORMULA.OP.LABEL') }}
