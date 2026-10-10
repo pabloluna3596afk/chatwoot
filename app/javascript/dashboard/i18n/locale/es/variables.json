@@ -59,8 +59,10 @@
       "cita": "Cita",
       "fecha": "Fecha de la cita",
       "hora": "Hora de la cita",
+      "fecha_hora": "Fecha y hora de la cita",
       "tema": "Tema de la cita",
-      "asistente": "Nombre del asistente"
+      "asistente": "Nombre del asistente",
+      "cuenta": "Nombre de tu cuenta"
     },
     "PLACEHOLDER": "Elegir variable",
     "SEARCH": "Buscar variables…",

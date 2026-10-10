@@ -16,10 +16,7 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
 import { isWhatsAppComplete } from '@chatwoot/utils';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
-import {
-  APPOINTMENT_DEFAULT_VALUES,
-  useTemplateVariables,
-} from './useTemplateVariables';
+import { useTemplateVariables } from './useTemplateVariables';
 
 const props = defineProps({
   assistant: {
@@ -68,7 +65,7 @@ const state = reactive({
 });
 const { templateOptions, templateEntry, templateInboxId } =
   useApprovedTemplates();
-const { variableOptions, previewValues } = useTemplateVariables({
+const { variableOptions, defaultValues, previewValues } = useTemplateVariables({
   appointment: true,
 });
 
@@ -584,7 +581,7 @@ onMounted(loadConnections);
                   :media-inbox-id="templateInboxId(state.templates[key])"
                   :model-value="state.params[key]"
                   :variable-options="variableOptions"
-                  :default-values="APPOINTMENT_DEFAULT_VALUES"
+                  :default-values="defaultValues"
                   :preview-values="previewValues"
                   @update:model-value="state.params[key] = $event"
                 />

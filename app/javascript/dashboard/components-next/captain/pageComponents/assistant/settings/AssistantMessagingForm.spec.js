@@ -32,6 +32,7 @@ vi.mock('dashboard/composables/store', () => ({
   useMapGetter: name =>
     ref(
       {
+        'attributes/getAttributes': [],
         'captainInboxes/getRecords': [{ id: 10 }],
         'inboxes/getInboxes': [inbox],
       }[name]

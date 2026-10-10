@@ -13,7 +13,9 @@ vi.mock('vue-i18n', () => ({
 }));
 
 vi.mock('dashboard/composables/store', () => ({
-  useMapGetter: () => inboxes,
+  useStore: () => ({ dispatch: vi.fn() }),
+  useMapGetter: name =>
+    name === 'attributes/getAttributes' ? { value: [] } : inboxes,
 }));
 
 const mountForm = (config = {}) =>
@@ -209,6 +211,15 @@ describe('AssistantFollowupForm', () => {
       ).toEqual([
         'contact.name',
         'contact.first_name',
+        'contact.last_name',
+        'contact.email',
+        'contact.phone',
+        'contact.company_name',
+        'contact.city',
+        'contact.country_code',
+        'contact.document_number',
+        'agent.name',
+        'conversation.id',
         'assistant.name',
         'account.name',
       ]);

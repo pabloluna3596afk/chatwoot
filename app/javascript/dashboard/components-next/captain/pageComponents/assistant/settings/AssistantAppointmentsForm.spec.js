@@ -11,7 +11,9 @@ const { getConnections, getCalendars, inboxes } = vi.hoisted(() => ({
 }));
 
 vi.mock('dashboard/composables/store', () => ({
-  useMapGetter: () => inboxes,
+  useStore: () => ({ dispatch: vi.fn() }),
+  useMapGetter: name =>
+    name === 'attributes/getAttributes' ? { value: [] } : inboxes,
 }));
 
 vi.mock('vue-i18n', () => ({
@@ -504,11 +506,21 @@ describe('AssistantAppointmentsForm', () => {
       ).toEqual([
         'contact.name',
         'contact.first_name',
+        'contact.last_name',
+        'contact.email',
+        'contact.phone',
+        'contact.company_name',
+        'contact.city',
+        'contact.country_code',
+        'contact.document_number',
+        'agent.name',
+        'conversation.id',
+        'appointment.title',
         'appointment.date',
         'appointment.time',
         'appointment.datetime',
-        'appointment.title',
         'assistant.name',
+        'account.name',
       ]);
       expect(Object.keys(parser(wrapper).props('previewValues'))).toContain(
         'appointment.date'

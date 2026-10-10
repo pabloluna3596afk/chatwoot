@@ -1000,28 +1000,23 @@
         },
         "TEMPLATE_VARIABLES": {
           "ERROR": "Fill in every variable of the template before saving.",
-          "LABELS": {
-            "contact": {
-              "name": "Customer name",
-              "first_name": "Customer first name"
-            },
-            "appointment": {
-              "date": "Appointment date",
-              "time": "Appointment time",
-              "datetime": "Appointment date and time",
-              "title": "Appointment title"
-            },
-            "assistant": {
-              "name": "Assistant name"
-            },
-            "account": {
-              "name": "Company name"
-            }
-          },
           "SAMPLES": {
             "contact": {
-              "name": "Ana Pérez",
-              "first_name": "Ana"
+              "name": "Ana Perez",
+              "first_name": "Ana",
+              "last_name": "Perez",
+              "email": "ana@mail.com",
+              "phone": "+593 99 123 4567",
+              "company_name": "Sun Cafe",
+              "city": "Quito",
+              "country_code": "EC",
+              "document_number": "1712345678"
+            },
+            "agent": {
+              "name": "Luis"
+            },
+            "conversation": {
+              "id": "1024"
             },
             "appointment": {
               "date": "Thursday, October 1",

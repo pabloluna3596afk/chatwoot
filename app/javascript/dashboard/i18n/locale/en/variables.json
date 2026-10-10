@@ -59,8 +59,10 @@
       "cita": "Appointment",
       "fecha": "Appointment date",
       "hora": "Appointment time",
+      "fecha_hora": "Appointment date and time",
       "tema": "Appointment topic",
-      "asistente": "Assistant name"
+      "asistente": "Assistant name",
+      "cuenta": "Your account name"
     },
     "PLACEHOLDER": "Choose a variable",
     "SEARCH": "Search variables…",
