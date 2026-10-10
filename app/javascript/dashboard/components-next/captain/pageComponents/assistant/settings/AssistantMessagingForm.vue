@@ -6,6 +6,7 @@ import { useMapGetter, useStore } from 'dashboard/composables/store';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
@@ -25,8 +26,7 @@ const store = useStore();
 const captainInboxes = useMapGetter('captainInboxes/getRecords');
 const inboxes = useMapGetter('inboxes/getInboxes');
 
-const enabled = ref(false);
-// { [inboxId]: { flows: [{ flow_id, purpose }], templates: [{ name, language, purpose }] } }
+// { [inboxId]: { enabled, flows: [{ flow_id, purpose }], templates: [{ name, language, purpose }] } }
 const permissions = reactive({});
 const selectedInboxId = ref(null);
 const publishedFlows = ref([]);
@@ -39,19 +39,58 @@ const whatsappInboxes = computed(() =>
 const inboxOptions = computed(() =>
   whatsappInboxes.value.map(inbox => ({ value: inbox.id, label: inbox.name }))
 );
-const current = computed(
-  () => permissions[selectedInboxId.value] || { flows: [], templates: [] }
+// One tab per WhatsApp inbox, each with its own Flows and templates.
+const inboxTabs = computed(() =>
+  inboxOptions.value.map(option => ({ label: option.label }))
 );
+const activeTabIndex = computed(() =>
+  Math.max(
+    0,
+    inboxOptions.value.findIndex(
+      option => option.value === selectedInboxId.value
+    )
+  )
+);
+const selectInboxTab = ({ index }) => {
+  selectedInboxId.value = inboxOptions.value[index]?.value ?? null;
+};
+const limits = [
+  'LIMIT_FLOW_GAP',
+  'LIMIT_FLOWS',
+  'LIMIT_TEMPLATES',
+  'LIMIT_PENDING',
+];
+const current = computed(
+  () =>
+    permissions[selectedInboxId.value] || {
+      enabled: false,
+      flows: [],
+      templates: [],
+    }
+);
+const ensureEntry = inboxId => {
+  if (!permissions[inboxId])
+    permissions[inboxId] = { enabled: false, flows: [], templates: [] };
+  return permissions[inboxId];
+};
+
+// The switch is per inbox: each WhatsApp inbox decides on its own whether Captain may send there.
+const inboxEnabled = computed({
+  get: () => current.value.enabled === true,
+  set: value => {
+    ensureEntry(selectedInboxId.value).enabled = value;
+  },
+});
 const paidEnabled = computed(
   () => props.assistant?.config?.allow_paid_templates === true
 );
 
 const hydrate = () => {
   const saved = props.assistant?.config?.messaging;
-  enabled.value = saved?.enabled === true;
   Object.keys(permissions).forEach(key => delete permissions[key]);
   (saved?.inboxes || []).forEach(entry => {
     permissions[entry.inbox_id] = {
+      enabled: entry.enabled === true,
       flows: (entry.flows || []).map(flow => ({ ...flow })),
       templates: (entry.templates || []).map(template => ({ ...template })),
     };
@@ -66,12 +105,6 @@ watch(
   },
   { immediate: true }
 );
-
-const ensureEntry = inboxId => {
-  if (!permissions[inboxId])
-    permissions[inboxId] = { flows: [], templates: [] };
-  return permissions[inboxId];
-};
 
 const flowById = id => publishedFlows.value.find(flow => flow.id === id);
 const flowRows = computed(() =>
@@ -164,14 +197,17 @@ const submit = () => {
   const entries = Object.entries(permissions)
     .map(([inboxId, entry]) => ({
       inbox_id: Number(inboxId),
+      enabled: entry.enabled,
       flows: entry.flows,
       templates: entry.templates,
     }))
-    .filter(entry => entry.flows.length || entry.templates.length);
+    .filter(
+      entry => entry.enabled || entry.flows.length || entry.templates.length
+    );
   emit('submit', {
     config: {
       ...props.assistant.config,
-      messaging: { enabled: enabled.value, inboxes: entries },
+      messaging: { inboxes: entries },
     },
   });
 };
@@ -200,38 +236,49 @@ onMounted(async () => {
 
 <template>
   <div class="flex flex-col gap-5" data-testid="messaging-form">
-    <SettingsToggleSection
-      v-model="enabled"
-      :header="t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.TOGGLE')"
-      :description="t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.TOGGLE_HELP')"
-    />
-
     <p v-if="!whatsappInboxes.length" class="mb-0 text-sm text-n-slate-11">
       {{ t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.NO_INBOXES') }}
     </p>
 
     <template v-else>
-      <div class="flex flex-col gap-1 max-w-sm">
-        <span class="text-heading-3 text-n-slate-12">
-          {{ t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.INBOX') }}
-        </span>
-        <ComboBox
-          v-model="selectedInboxId"
-          :options="inboxOptions"
-          :allow-deselect="false"
-          :placeholder="
-            t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.INBOX_PLACEHOLDER')
-          "
-          teleport
-          data-testid="messaging-inbox"
+      <!-- One tab per WhatsApp inbox: Flows and templates belong to the WhatsApp account of each inbox. -->
+      <div class="flex">
+        <TabBar
+          :tabs="inboxTabs"
+          :initial-active-tab="activeTabIndex"
+          data-testid="messaging-inbox-tabs"
+          @tab-changed="selectInboxTab"
         />
       </div>
 
-      <section class="flex flex-col gap-3" data-testid="messaging-flows">
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex flex-col gap-1">
-            <h3 class="mb-0 text-heading-3 text-n-slate-12">
+      <SettingsToggleSection
+        v-model="inboxEnabled"
+        :header="t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.TOGGLE')"
+        :description="t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.TOGGLE_HELP')"
+        data-testid="messaging-inbox-toggle"
+      />
+
+      <section
+        class="flex flex-col gap-3 p-4 rounded-xl bg-n-alpha-1"
+        data-testid="messaging-flows"
+      >
+        <div class="flex items-start gap-3">
+          <span
+            class="grid shrink-0 size-9 place-items-center rounded-lg bg-n-teal-3 text-n-teal-11"
+          >
+            <span class="i-lucide-workflow size-5" />
+          </span>
+          <div class="flex flex-col min-w-0 gap-0.5 grow">
+            <h3
+              class="flex items-center gap-2 mb-0 text-heading-3 text-n-slate-12"
+            >
               {{ t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.FLOWS') }}
+              <span
+                class="px-1.5 text-xs rounded-md bg-n-alpha-2 text-n-slate-11"
+                data-testid="messaging-flows-count"
+              >
+                {{ flowRows.length }}
+              </span>
             </h3>
             <p class="mb-0 text-sm text-n-slate-11">
               {{ t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.FLOWS_HELP') }}
@@ -241,6 +288,7 @@ onMounted(async () => {
             slate
             outline
             sm
+            class="shrink-0 !w-fit whitespace-nowrap"
             icon="i-lucide-plus"
             :label="t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.ADD_FLOW')"
             data-testid="messaging-add-flow"
@@ -258,20 +306,36 @@ onMounted(async () => {
           <li
             v-for="(row, index) in flowRows"
             :key="row.flow_id"
-            class="flex items-center gap-3 p-3 rounded-xl outline outline-1 -outline-offset-1 outline-n-weak"
+            class="flex items-center gap-3 p-3 rounded-lg bg-n-solid-2"
             data-testid="messaging-flow-row"
           >
-            <div class="flex flex-col min-w-0 gap-0.5 grow">
+            <div class="flex flex-col min-w-0 gap-1.5 grow">
               <span class="text-sm font-medium truncate text-n-slate-12">
                 {{ row.name }}
               </span>
-              <span class="text-xs text-n-slate-11">
-                {{ row.purpose || '—' }}
-              </span>
+              <Input
+                :model-value="row.purpose"
+                size="sm"
+                :placeholder="
+                  t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.PURPOSE_PLACEHOLDER')
+                "
+                @update:model-value="
+                  value => (current.flows[index].purpose = value)
+                "
+              />
             </div>
             <span
-              class="text-xs shrink-0"
-              :class="row.available ? 'text-n-teal-11' : 'text-n-amber-11'"
+              v-tooltip.top="
+                row.available
+                  ? ''
+                  : t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.UNAVAILABLE_FLOW')
+              "
+              class="px-2 py-0.5 text-xs font-medium rounded-md shrink-0"
+              :class="
+                row.available
+                  ? 'bg-n-teal-3 text-n-teal-11'
+                  : 'bg-n-amber-3 text-n-amber-11'
+              "
             >
               {{
                 row.available
@@ -280,8 +344,8 @@ onMounted(async () => {
               }}
             </span>
             <Button
-              ghost
               slate
+              outline
               sm
               icon="i-lucide-trash-2"
               :aria-label="t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.REMOVE')"
@@ -291,11 +355,27 @@ onMounted(async () => {
         </ul>
       </section>
 
-      <section class="flex flex-col gap-3" data-testid="messaging-templates">
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex flex-col gap-1">
-            <h3 class="mb-0 text-heading-3 text-n-slate-12">
+      <section
+        class="flex flex-col gap-3 p-4 rounded-xl bg-n-alpha-1"
+        data-testid="messaging-templates"
+      >
+        <div class="flex items-start gap-3">
+          <span
+            class="grid shrink-0 size-9 place-items-center rounded-lg bg-n-blue-3 text-n-blue-11"
+          >
+            <span class="i-lucide-layout-template size-5" />
+          </span>
+          <div class="flex flex-col min-w-0 gap-0.5 grow">
+            <h3
+              class="flex items-center gap-2 mb-0 text-heading-3 text-n-slate-12"
+            >
               {{ t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.TEMPLATES') }}
+              <span
+                class="px-1.5 text-xs rounded-md bg-n-alpha-2 text-n-slate-11"
+                data-testid="messaging-templates-count"
+              >
+                {{ templateRows.length }}
+              </span>
             </h3>
             <p class="mb-0 text-sm text-n-slate-11">
               {{ t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.TEMPLATES_HELP') }}
@@ -305,6 +385,7 @@ onMounted(async () => {
             slate
             outline
             sm
+            class="shrink-0 !w-fit whitespace-nowrap"
             icon="i-lucide-plus"
             :label="t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.ADD_TEMPLATE')"
             data-testid="messaging-add-template"
@@ -322,20 +403,36 @@ onMounted(async () => {
           <li
             v-for="(row, index) in templateRows"
             :key="`${row.name}|${row.language}`"
-            class="flex items-center gap-3 p-3 rounded-xl outline outline-1 -outline-offset-1 outline-n-weak"
+            class="flex items-center gap-3 p-3 rounded-lg bg-n-solid-2"
             data-testid="messaging-template-row"
           >
-            <div class="flex flex-col min-w-0 gap-0.5 grow">
+            <div class="flex flex-col min-w-0 gap-1.5 grow">
               <span class="text-sm font-medium truncate text-n-slate-12">
                 {{ row.name }} ({{ row.language }})
               </span>
-              <span class="text-xs text-n-slate-11">
-                {{ row.purpose || '—' }}
-              </span>
+              <Input
+                :model-value="row.purpose"
+                size="sm"
+                :placeholder="
+                  t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.PURPOSE_PLACEHOLDER')
+                "
+                @update:model-value="
+                  value => (current.templates[index].purpose = value)
+                "
+              />
             </div>
             <span
-              class="text-xs shrink-0"
-              :class="row.available ? 'text-n-slate-11' : 'text-n-amber-11'"
+              v-tooltip.top="
+                row.available
+                  ? ''
+                  : t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.UNAVAILABLE_TEMPLATE')
+              "
+              class="px-2 py-0.5 text-xs font-medium rounded-md shrink-0"
+              :class="
+                row.available
+                  ? 'bg-n-alpha-2 text-n-slate-11'
+                  : 'bg-n-amber-3 text-n-amber-11'
+              "
             >
               {{
                 row.available
@@ -344,8 +441,8 @@ onMounted(async () => {
               }}
             </span>
             <Button
-              ghost
               slate
+              outline
               sm
               icon="i-lucide-trash-2"
               :aria-label="t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.REMOVE')"
@@ -365,25 +462,20 @@ onMounted(async () => {
         </p>
       </section>
 
-      <section
-        class="flex flex-col gap-1 p-3 rounded-xl bg-n-alpha-2"
-        data-testid="messaging-limits"
-      >
-        <h3 class="mb-1 text-heading-3 text-n-slate-12">
+      <section class="flex flex-col gap-2" data-testid="messaging-limits">
+        <h3 class="mb-0 text-heading-3 text-n-slate-12">
           {{ t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.LIMITS') }}
         </h3>
-        <span class="text-sm text-n-slate-11">
-          {{ t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.LIMIT_FLOW_GAP') }}
-        </span>
-        <span class="text-sm text-n-slate-11">
-          {{ t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.LIMIT_FLOWS') }}
-        </span>
-        <span class="text-sm text-n-slate-11">
-          {{ t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.LIMIT_TEMPLATES') }}
-        </span>
-        <span class="text-sm text-n-slate-11">
-          {{ t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.LIMIT_PENDING') }}
-        </span>
+        <ul class="flex flex-wrap gap-2 p-0 m-0 list-none">
+          <li
+            v-for="limit in limits"
+            :key="limit"
+            class="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-full bg-n-alpha-2 text-n-slate-11"
+          >
+            <span class="i-lucide-clock size-3.5 shrink-0" />
+            {{ t(`CAPTAIN.ASSISTANTS.FORM.MESSAGING.${limit}`) }}
+          </li>
+        </ul>
       </section>
     </template>
 

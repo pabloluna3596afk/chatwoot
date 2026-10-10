@@ -106,10 +106,10 @@ describe('AssistantMessagingForm', () => {
     const wrapper = mountForm({
       config: {
         messaging: {
-          enabled: true,
           inboxes: [
             {
               inbox_id: 10,
+              enabled: true,
               flows: [
                 { flow_id: 7, purpose: 'Pedir datos' },
                 { flow_id: 99, purpose: 'Borrado' },
@@ -144,10 +144,10 @@ describe('AssistantMessagingForm', () => {
     const [payload] = wrapper.emitted('submit')[0];
     expect(payload.config.allow_paid_templates).toBe(true);
     expect(payload.config.messaging).toEqual({
-      enabled: false,
       inboxes: [
         {
           inbox_id: 10,
+          enabled: false,
           flows: [{ flow_id: 7, purpose: 'Pedir datos' }],
           templates: [],
         },
@@ -163,14 +163,74 @@ describe('AssistantMessagingForm', () => {
     ]);
   });
 
+  it('lets the owner change the purpose of what is already allowed', async () => {
+    const wrapper = mountForm({
+      config: {
+        messaging: {
+          inboxes: [
+            {
+              inbox_id: 10,
+              enabled: true,
+              flows: [{ flow_id: 7, purpose: 'Antes' }],
+              templates: [],
+            },
+          ],
+        },
+      },
+    });
+    await flushPromises();
+    wrapper
+      .get('[data-testid="messaging-flow-row"]')
+      .findComponent({ name: 'Input' })
+      .vm.$emit('update:modelValue', 'Después');
+    await wrapper.get('[data-testid="messaging-save"]').trigger('click');
+    expect(
+      wrapper.emitted('submit')[0][0].config.messaging.inboxes[0].flows[0]
+        .purpose
+    ).toBe('Después');
+  });
+
+  it('keeps a separate switch for every inbox', async () => {
+    const wrapper = mountForm({
+      config: {
+        messaging: {
+          inboxes: [
+            {
+              inbox_id: 10,
+              enabled: true,
+              flows: [{ flow_id: 7, purpose: '' }],
+              templates: [],
+            },
+          ],
+        },
+      },
+    });
+    await flushPromises();
+    const toggle = () =>
+      wrapper.findComponent({ name: 'SettingsToggleSection' });
+    expect(toggle().props('modelValue')).toBe(true);
+    toggle().vm.$emit('update:modelValue', false);
+    await wrapper.get('[data-testid="messaging-save"]').trigger('click');
+    expect(wrapper.emitted('submit')[0][0].config.messaging).toEqual({
+      inboxes: [
+        {
+          inbox_id: 10,
+          enabled: false,
+          flows: [{ flow_id: 7, purpose: '' }],
+          templates: [],
+        },
+      ],
+    });
+  });
+
   it('removes what was allowed', async () => {
     const wrapper = mountForm({
       config: {
         messaging: {
-          enabled: true,
           inboxes: [
             {
               inbox_id: 10,
+              enabled: true,
               flows: [{ flow_id: 7, purpose: '' }],
               templates: [],
             },
@@ -181,9 +241,9 @@ describe('AssistantMessagingForm', () => {
     await flushPromises();
     wrapper.vm.removeFlow(0);
     await wrapper.get('[data-testid="messaging-save"]').trigger('click');
-    expect(wrapper.emitted('submit')[0][0].config.messaging.inboxes).toEqual(
-      []
-    );
+    expect(wrapper.emitted('submit')[0][0].config.messaging.inboxes).toEqual([
+      { inbox_id: 10, enabled: true, flows: [], templates: [] },
+    ]);
   });
 });
 

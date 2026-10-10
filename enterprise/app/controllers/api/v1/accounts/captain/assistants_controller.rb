@@ -159,6 +159,7 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
     permitted[:guardrails] = params[:assistant][:guardrails] if params[:assistant].key?(:guardrails)
 
     permit_audience_config(permitted)
+    permit_messaging_config(permitted)
 
     permitted
   end
@@ -171,6 +172,17 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
 
     audience = config[:audience]
     permitted[:config][:audience] = audience.respond_to?(:permit!) ? audience.permit!.to_h : audience
+  end
+
+  # Which Flows and templates Captain may send, per inbox. Nested lists of objects: pass it through raw and let
+  # Captain::MessagingValidator enforce its shape. The whole block is replaced, never merged, so a permission the
+  # owner removed cannot come back.
+  def permit_messaging_config(permitted)
+    config = params[:assistant][:config]
+    return unless config.try(:key?, :messaging)
+
+    messaging = config[:messaging]
+    permitted[:config][:messaging] = messaging.respond_to?(:permit!) ? messaging.permit!.to_h : messaging
   end
 
   def playground_params

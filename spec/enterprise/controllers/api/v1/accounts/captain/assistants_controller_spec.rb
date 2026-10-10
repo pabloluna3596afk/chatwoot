@@ -337,6 +337,42 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
         expect(stored['conditions'].last['conditions'].first['values']).to eq(['paid'])
       end
 
+      it 'stores the messaging permissions and replaces the block on every save' do
+        channel = create(:channel_whatsapp, provider: 'whatsapp_cloud', account: account,
+                                            sync_templates: false, validate_provider_config: false)
+        flow = create(:whatsapp_flow, account: account)
+        messaging = { inboxes: [{ inbox_id: channel.inbox.id, enabled: true, flows: [{ flow_id: flow.id, purpose: 'Datos' }],
+                                  templates: [{ name: 'reserva', language: 'es', purpose: 'Confirmar' }] }] }
+
+        patch "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}",
+              params: { assistant: { config: { messaging: messaging } } },
+              headers: admin.create_new_auth_token,
+              as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(assistant.reload.config['messaging']['inboxes'].first['flows']).to eq([{ 'flow_id' => flow.id, 'purpose' => 'Datos' }])
+
+        patch "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}",
+              params: { assistant: { config: { messaging: { inboxes: [] } } } },
+              headers: admin.create_new_auth_token,
+              as: :json
+
+        expect(assistant.reload.config['messaging']).to eq('inboxes' => [])
+      end
+
+      it 'rejects messaging permissions for an inbox or Flow of another account' do
+        other = create(:channel_whatsapp, provider: 'whatsapp_cloud', account: create(:account),
+                                          sync_templates: false, validate_provider_config: false)
+
+        patch "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}",
+              params: { assistant: { config: { messaging: { inboxes: [{ inbox_id: other.inbox.id, enabled: true }] } } } },
+              headers: admin.create_new_auth_token,
+              as: :json
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(assistant.reload.config['messaging']).to be_nil
+      end
+
       it 'rejects invalid audience attributes and operators' do
         invalid_audiences = [
           { attribute_key: 'missing_attribute', filter_operator: 'not_equal_to', values: ['known'] },

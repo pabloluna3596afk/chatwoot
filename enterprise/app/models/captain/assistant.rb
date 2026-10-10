@@ -73,6 +73,7 @@ class Captain::Assistant < ApplicationRecord
   validates_with Captain::AudienceValidator
   validates_with Captain::AppointmentsValidator
   validates_with Captain::FollowupValidator
+  validates_with Captain::MessagingValidator
   validate :validate_response_window
   validate :validate_max_replies_per_conversation
   validates :auto_resolve_mode, inclusion: { in: AUTO_RESOLVE_MODES }

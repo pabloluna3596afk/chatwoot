@@ -1044,8 +1044,8 @@
           "HINT": "20 by default. Use 0 for no limit."
         },
         "MESSAGING": {
-          "TOGGLE": "Let Captain send Flows and templates",
-          "TOGGLE_HELP": "If you turn it off, Captain stops sending them even if you have resources allowed below.",
+          "TOGGLE": "Let Captain send Flows and templates in this inbox",
+          "TOGGLE_HELP": "When off, Captain sends none here, but the list below is kept. Each inbox has its own switch.",
           "INBOX": "Inbox",
           "INBOX_PLACEHOLDER": "Choose an inbox",
           "NO_INBOXES": "This assistant has no connected WhatsApp inboxes.",
@@ -1081,7 +1081,9 @@
           "LIMIT_PENDING": "An unanswered Flow blocks a new one for 24 h, unless the customer asks to resend it",
           "UNAVAILABLE": "Unavailable",
           "STATE_PUBLISHED": "Published",
-          "SAVE": "Save"
+          "SAVE": "Save",
+          "UNAVAILABLE_TEMPLATE": "It is no longer approved, or has a header file or per-customer buttons: Captain does not send it.",
+          "UNAVAILABLE_FLOW": "It is no longer published: Captain does not send it."
         }
       },
       "EDIT": {
