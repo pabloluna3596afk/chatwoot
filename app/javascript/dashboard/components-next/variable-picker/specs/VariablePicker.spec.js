@@ -153,12 +153,15 @@ describe('VariablePicker', () => {
     wrapper.unmount();
   });
 
-  it('shows empty search results, forwards disabled/errors and uses the local portal', async () => {
+  it('shows empty search results, forwards disabled/errors and floats instead of taking room in the form', async () => {
     const wrapper = mountPicker({ hasError: true });
     const combo = wrapper.getComponent(ComboBox);
     expect(combo.props('hasError')).toBe(true);
     expect(combo.props('teleport')).toBe(true);
-    expect(wrapper.find('[data-variable-picker-portal]').exists()).toBe(true);
+    // A compact trigger (a small button) still opens a list wide enough to read the names.
+    expect(combo.props('menuMinWidth')).toBe('17rem');
+    // The list floats over the screen: no portal inside the form that would push the fields below it.
+    expect(wrapper.find('[data-variable-picker-portal]').exists()).toBe(false);
     await combo.get('button').trigger('click');
     await combo.get('input[type="search"]').setValue('missing-variable');
     expect(combo.findAll('[role="option"]')).toHaveLength(0);

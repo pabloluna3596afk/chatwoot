@@ -6,7 +6,7 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import ComboBoxDropdown from 'dashboard/components-next/combobox/ComboBoxDropdown.vue';
 import { useAlert } from 'dashboard/composables';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
-import { CAPTAIN_VARIABLES } from '../templateForm';
+import { APPOINTMENT_BINDINGS } from 'dashboard/helper/templateVariableBindings';
 
 const userLocale = vi.hoisted(() => ({ value: 'es' }));
 const currentRole = vi.hoisted(() => ({ value: 'administrator' }));
@@ -266,10 +266,10 @@ describe('TemplateFormDrawer', () => {
 
     const text = wrapper.text();
     [
-      'WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_GROUPS.SYSTEM',
-      'WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_GROUPS.CONTACT',
-      'WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_GROUPS.CONVERSATION',
-      'WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_GROUPS.CAPTAIN',
+      'VARIABLE_PICKER.GROUPS.SYSTEM',
+      'VARIABLE_PICKER.GROUPS.CONTACT',
+      'VARIABLE_PICKER.GROUPS.CONVERSATION',
+      'VARIABLE_PICKER.GROUPS.APPOINTMENT',
       '(nombre)',
       '(correo)',
       '(empresa)',
@@ -285,6 +285,19 @@ describe('TemplateFormDrawer', () => {
     expect(
       picker.props('options').some(option => option.value === 'plan')
     ).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('numbered variables add the next {{n}} with one button, no list to choose from', async () => {
+    const wrapper = await mountDrawer();
+    await wrapper.get('[data-testid="mode-positional"]').trigger('click');
+    const add = wrapper.get('[data-testid="variable-menu-toggle"]');
+    expect(add.text()).toBe('{{1}}');
+    await add.trigger('click');
+    expect(wrapper.get('textarea').element.value).toContain('{{1}}');
+    expect(wrapper.get('[data-testid="variable-menu-toggle"]').text()).toBe(
+      '{{2}}'
+    );
     wrapper.unmount();
   });
 
@@ -604,7 +617,7 @@ describe('TemplateFormDrawer', () => {
           label: 'Estado (conversacion_estado)',
           group: 'conversation',
         },
-        ...CAPTAIN_VARIABLES.map(name => ({
+        ...APPOINTMENT_BINDINGS.map(({ name }) => ({
           value: name,
           label: `VARIABLE_PICKER.LABELS.${name} (${name})`,
           group: 'appointment',

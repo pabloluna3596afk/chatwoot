@@ -26,6 +26,7 @@
       }
     },
     "PARSER": {
+      "NO_VALUE": "This contact has no value for this: type it to be able to send.",
       "VARIABLES_LABEL": "Variables",
       "HEADER_VARIABLES_LABEL": "Header variables",
       "LANGUAGE": "Language",

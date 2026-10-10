@@ -38,6 +38,8 @@ const props = defineProps({
   // undefined = auto (hide search when few options)
   showSearch: { type: Boolean, default: undefined },
   dropdownMaxHeight: { type: String, default: '' },
+  // The list is as wide as its trigger; a small trigger (a compact button) can ask for a wider list, e.g. '17rem'.
+  menuMinWidth: { type: String, default: '' },
 });
 const emit = defineEmits(['update:modelValue', 'search', 'open']);
 const SEARCH_OPTION_THRESHOLD = 6;
@@ -70,6 +72,7 @@ const dropdownStyle = computed(() => {
     ...fixedPosition.value.style,
     position: 'fixed',
     width: `${triggerWidth.value}px`,
+    minWidth: props.menuMinWidth || undefined,
     zIndex: 10050,
   };
   if (!dropdownBoundary?.value || !open.value) return style;

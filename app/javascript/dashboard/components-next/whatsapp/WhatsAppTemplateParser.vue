@@ -229,15 +229,26 @@ const defaultFor = liquid => {
   return resolved === '' ? '' : liquid;
 };
 
+// Variables whose default came out empty for this contact: the field says why it is empty (see the README policy table).
+const missing = ref({});
+const isMissing = (component, key) =>
+  Boolean(missing.value[`${component}.${key}`]) &&
+  !displayValue(component, key);
+const missingMessage = (component, key) =>
+  isMissing(component, key) ? t('WHATSAPP_TEMPLATES.PARSER.NO_VALUE') : '';
+
 const initializeTemplateParameters = () => {
   edited.value = {};
+  missing.value = {};
   const built = buildTemplateParameters(props.template);
   ['header', 'body'].forEach(component => {
     Object.keys(built[component] || {}).forEach(key => {
       const saved = props.modelValue?.[component]?.[key];
       if (saved !== undefined) built[component][key] = saved;
-      else if (!built[component][key] && props.defaultValues[key])
+      else if (!built[component][key] && props.defaultValues[key]) {
         built[component][key] = defaultFor(props.defaultValues[key]);
+        if (!built[component][key]) missing.value[`${component}.${key}`] = true;
+      }
     });
   });
   // The uploaded header file travels with the saved values (it is not one of the template's own keys).
@@ -571,6 +582,7 @@ defineExpose({
             :model-value="displayValue('header', key)"
             type="text"
             class="flex-1"
+            :message="missingMessage('header', key)"
             :placeholder="
               t('WHATSAPP_TEMPLATES.PARSER.VARIABLE_PLACEHOLDER', {
                 variable: key,
@@ -601,6 +613,7 @@ defineExpose({
             :model-value="displayValue('body', key)"
             type="text"
             class="flex-1"
+            :message="missingMessage('body', key)"
             :placeholder="
               t('WHATSAPP_TEMPLATES.PARSER.VARIABLE_PLACEHOLDER', {
                 variable: key,

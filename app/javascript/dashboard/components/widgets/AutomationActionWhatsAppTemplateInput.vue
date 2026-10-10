@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store';
+import { useTemplateBindings } from 'dashboard/composables/useTemplateBindings';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
 
@@ -22,6 +23,23 @@ const { t } = useI18n();
 const whatsAppInboxes = useMapGetter('inboxes/getWhatsAppInboxes');
 const getFilteredWhatsAppTemplates = useMapGetter(
   'inboxes/getFilteredWhatsAppTemplates'
+);
+
+// The same variables the manual send offers, but only the ones an automation can fill when it runs: the contact, the
+// conversation and the account (no appointment values: there is no appointment here).
+const { bindings, defaultValues } = useTemplateBindings('message');
+const variableOptions = computed(() =>
+  bindings.value
+    .filter(
+      binding =>
+        binding.readable &&
+        ['system', 'contact', 'conversation'].includes(binding.scope)
+    )
+    .map(binding => ({
+      key: binding.canonicalPath,
+      label: binding.label || t(`VARIABLE_PICKER.LABELS.${binding.name}`),
+      description: binding.name,
+    }))
 );
 
 const templateParserRef = ref(null);
@@ -243,6 +261,8 @@ watch(
       v-if="selectedTemplate"
       ref="templateParserRef"
       :template="selectedTemplate"
+      :default-values="defaultValues"
+      :variable-options="variableOptions"
     />
     <p class="mb-0 text-xs text-n-slate-11">
       {{ t('AUTOMATION.ACTION.WHATSAPP_TEMPLATE.VARIABLES_HINT') }}
