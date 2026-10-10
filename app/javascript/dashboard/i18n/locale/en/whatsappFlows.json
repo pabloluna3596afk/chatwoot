@@ -121,6 +121,8 @@
       }
     },
     "EDITOR": {
+      "ACTION_TRY": "Try",
+      "ACTION_SEND": "Send",
       "BACK": "Back",
       "READY": "Ready to publish",
       "TO_FIX": "{n} things to fix",

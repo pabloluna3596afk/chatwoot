@@ -121,6 +121,8 @@
       }
     },
     "EDITOR": {
+      "ACTION_TRY": "Probar",
+      "ACTION_SEND": "Enviar",
       "BACK": "Volver",
       "READY": "Listo para publicar",
       "TO_FIX": "Faltan {n} cosas por corregir",

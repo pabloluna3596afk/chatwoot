@@ -121,14 +121,43 @@ const popover = wrapper =>
     .find(menu => menu.findComponent(DropdownMenu).exists())
     .getComponent(DropdownMenu);
 
+// Probar now lives in the Acciones menu: the same item starts the test and, while testing, goes back to editing.
+const toggleTry = async wrapper => {
+  await wrapper.get('[data-testid="flow-actions"]').trigger('click');
+  await popover(wrapper)
+    .get('[data-testid="flow-preview-try"]')
+    .trigger('click');
+  await flushPromises();
+};
+
 describe('FlowBuilderPage', () => {
+  it('has no Editar/Probar switch: Probar and Enviar are Acciones items', async () => {
+    const { wrapper } = await mountPage();
+    expect(wrapper.find('[role="group"][aria-label]').exists()).toBe(false);
+    await wrapper.get('[data-testid="flow-actions"]').trigger('click');
+    const items = popover(wrapper)
+      .findAll('[data-testid]')
+      .map(el => el.attributes('data-testid'));
+    expect(items).toContain('flow-preview-try');
+    expect(items).toContain('flow-json-toggle');
+    // Enviar (the old Probar) appears only with a WhatsApp Cloud inbox; its own specs cover it.
+    // Acciones stays usable while testing so the same item can go back to editing.
+    await popover(wrapper)
+      .get('[data-testid="flow-preview-try"]')
+      .trigger('click');
+    await flushPromises();
+    expect(
+      wrapper.get('[data-testid="flow-actions"]').attributes('disabled')
+    ).toBeUndefined();
+  });
+
   it('dims the existing panels in Try, resets on mode exit and never sends simulator answers to the API', async () => {
     const { wrapper, api } = await mountPage();
     const original = JSON.stringify(
       wrapper.findComponent(FlowPhoneCanvas).props('definition')
     );
     const calls = api.validate.mock.calls.length;
-    await wrapper.get('[data-testid="flow-preview-try"]').trigger('click');
+    await toggleTry(wrapper);
     expect(
       wrapper.get('[data-testid="flow-palette"]').attributes()
     ).toHaveProperty('inert');
@@ -139,11 +168,11 @@ describe('FlowBuilderPage', () => {
       wrapper.get('[data-testid="flow-editor-save"]').attributes()
     ).toHaveProperty('disabled');
     await wrapper.get('#flow-preview-nombre').setValue('Local only');
-    await wrapper.get('[data-testid="flow-preview-edit"]').trigger('click');
+    await toggleTry(wrapper);
     expect(
       JSON.stringify(wrapper.findComponent(FlowPhoneCanvas).props('definition'))
     ).toBe(original);
-    await wrapper.get('[data-testid="flow-preview-try"]').trigger('click');
+    await toggleTry(wrapper);
     expect(wrapper.get('#flow-preview-nombre').element.value).toBe('');
     expect(api.validate).toHaveBeenCalledTimes(calls);
     expect(api.create).not.toHaveBeenCalled();
