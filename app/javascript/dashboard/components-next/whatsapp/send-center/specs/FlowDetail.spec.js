@@ -10,6 +10,15 @@ vi.mock('vue-i18n', () => ({
 }));
 
 describe('Flow message customization', () => {
+  it('lets the customized body grow: it is resizable and starts taller', async () => {
+    const wrapper = mount(FlowDetail, {
+      props: { flow: { id: 12, name: 'Appointment' } },
+    });
+    await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
+    const body = wrapper.get('[data-testid="flow-send-body"]');
+    expect(body.find('textarea').classes()).not.toContain('resize-none');
+  });
+
   it('readonly Flows still preview but offer no Personalizar button', () => {
     const wrapper = mount(FlowDetail, {
       props: { flow: { id: 12, name: 'Appointment' }, readonly: true },

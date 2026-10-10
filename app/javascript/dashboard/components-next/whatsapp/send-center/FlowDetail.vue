@@ -187,6 +187,8 @@ defineExpose({
       />
       <TextArea
         v-model="body"
+        resize
+        class="[&_textarea]:min-h-32"
         :label="$t('WHATSAPP_TEMPLATES.SEND_CENTER.BODY')"
         :max-length="LIMITS.body"
         show-character-count
