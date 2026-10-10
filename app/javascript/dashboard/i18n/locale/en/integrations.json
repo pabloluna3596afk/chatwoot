@@ -1042,6 +1042,46 @@
           "DESCRIPTION": "How many replies Captain can send in one conversation. At the limit it says goodbye with the handoff message and the team takes over.",
           "LABEL": "Replies per conversation",
           "HINT": "20 by default. Use 0 for no limit."
+        },
+        "MESSAGING": {
+          "TOGGLE": "Let Captain send Flows and templates",
+          "TOGGLE_HELP": "If you turn it off, Captain stops sending them even if you have resources allowed below.",
+          "INBOX": "Inbox",
+          "INBOX_PLACEHOLDER": "Choose an inbox",
+          "NO_INBOXES": "This assistant has no connected WhatsApp inboxes.",
+          "FLOWS": "Allowed Flows",
+          "FLOWS_HELP": "Captain can only send a Flow published on the WhatsApp account of that inbox, within 24 h.",
+          "FLOWS_EMPTY": "Captain will not send any Flow on this inbox.",
+          "ADD_FLOW": "Add Flow",
+          "ADD_FLOW_TITLE": "Add a Flow",
+          "ADD_FLOW_PICK": "Flow",
+          "ADD_FLOW_PLACEHOLDER": "Choose a published Flow",
+          "NO_FLOWS_LEFT": "There are no more published Flows to add.",
+          "TEMPLATES": "Allowed templates",
+          "TEMPLATES_HELP": "Approved, text-only templates without buttons that change per customer. Every send is a paid message.",
+          "TEMPLATES_EMPTY": "Captain will not send any template on this inbox.",
+          "ADD_TEMPLATE": "Add template",
+          "ADD_TEMPLATE_TITLE": "Add a template",
+          "ADD_TEMPLATE_PICK": "Template",
+          "ADD_TEMPLATE_PLACEHOLDER": "Choose an approved template",
+          "NO_TEMPLATES_LEFT": "There are no more approved templates to add.",
+          "PURPOSE": "What it is for",
+          "PURPOSE_PLACEHOLDER": "E.g. Ask for the booking details",
+          "PURPOSE_HELP": "Captain reads it to decide when to use it.",
+          "REMOVE": "Remove",
+          "ADD": "Add",
+          "CANCEL": "Cancel",
+          "PAID_OFF": "Paid messages are off: Captain can send Flows but not templates.",
+          "PAID_ON": "Paid messages are on: Captain can send allowed templates.",
+          "PAID_LINK": "Go to Paid messages",
+          "LIMITS": "Limits per conversation",
+          "LIMIT_FLOW_GAP": "10 minutes between Flows",
+          "LIMIT_FLOWS": "Up to 3 Flows every 24 h",
+          "LIMIT_TEMPLATES": "1 template every 24 h",
+          "LIMIT_PENDING": "An unanswered Flow blocks a new one for 24 h, unless the customer asks to resend it",
+          "UNAVAILABLE": "Unavailable",
+          "STATE_PUBLISHED": "Published",
+          "SAVE": "Save"
         }
       },
       "EDIT": {
@@ -1099,6 +1139,10 @@
         "PAID_MESSAGES": {
           "TITLE": "Paid messages (WhatsApp)",
           "DESCRIPTION": "One switch for everything Captain sends as a paid template."
+        },
+        "MESSAGING": {
+          "TITLE": "Templates and Flows",
+          "DESCRIPTION": "Which Flows and templates Captain may send to a customer on WhatsApp. Everything starts off: it only sends what you allow here."
         }
       },
       "OPTIONS": {
