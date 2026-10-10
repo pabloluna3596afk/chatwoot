@@ -1,9 +1,15 @@
 import { mount } from '@vue/test-utils';
+
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    t: (key, params) => `Updated: ${params.date}`,
+  }),
+}));
 import SyncStatus from '../SyncStatus.vue';
 
 const mountIt = props =>
   mount(SyncStatus, {
-    props: { label: 'Updated: {date}', buttonLabel: 'Sync', ...props },
+    props: { labelKey: 'X.UPDATED', buttonLabel: 'Sync', ...props },
   });
 
 describe('SyncStatus', () => {

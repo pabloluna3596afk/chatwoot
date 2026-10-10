@@ -358,7 +358,7 @@ watch(
     @close="close"
   >
     <div
-      class="flex h-[min(38rem,calc(90vh-11rem))] min-h-0 flex-col gap-5 [dialog:has(&)]:!max-w-[calc(100vw-2rem)] [dialog:has(&)]:!left-[max(1rem,calc((100vw-(2*var(--send-center-unit)+var(--phone-preview-width)+6rem))/2))] [dialog:has(&)]:!right-auto [dialog:has(&)]:!mx-0 [dialog:has(&)]:!transition-[width] [dialog:has(&)]:!duration-300 [dialog:has(&)]:!ease-in-out motion-reduce:[dialog:has(&)]:!transition-none max-xl:[dialog:has(&)]:[--send-center-unit:calc(100vw-var(--phone-preview-width)-6.5rem)] max-xl:[dialog:has(&)]:!left-4 [form:has(&)>div:last-child]:!border-0 [form:has(&)>div:last-child]:!pt-0"
+      class="flex h-[min(52rem,calc(90dvh-11rem))] min-h-0 flex-col gap-5 [dialog:has(&)]:!max-w-[calc(100vw-2rem)] [dialog:has(&)]:!left-[max(1rem,calc((100vw-(2*var(--send-center-unit)+var(--phone-preview-width)+6rem))/2))] [dialog:has(&)]:!right-auto [dialog:has(&)]:!mx-0 [dialog:has(&)]:!transition-[width] [dialog:has(&)]:!duration-300 [dialog:has(&)]:!ease-in-out motion-reduce:[dialog:has(&)]:!transition-none max-xl:[dialog:has(&)]:[--send-center-unit:calc(100vw-var(--phone-preview-width)-6.5rem)] max-xl:[dialog:has(&)]:!left-4 [form:has(&)>div:last-child]:!border-0 [form:has(&)>div:last-child]:!pt-0"
       :class="[
         SEND_CENTER_COLUMN_UNIT_CLASS,
         PHONE_PREVIEW_WIDTH,
@@ -425,7 +425,7 @@ watch(
               />
               <SyncStatus
                 short
-                :label="$t('WHATSAPP_TEMPLATE_MGMT.UPDATED_AT')"
+                label-key="WHATSAPP_TEMPLATE_MGMT.UPDATED_AT"
                 :date="lastRefreshedAt"
                 :is-loading="isRefreshing || isPending"
                 :disabled="isSending"
@@ -525,7 +525,7 @@ watch(
         </section>
         <section
           v-if="selected"
-          class="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto max-xl:overflow-visible overscroll-contain row-span-2 flex flex-col gap-6"
+          class="min-h-0 min-w-0 overflow-hidden max-xl:overflow-visible row-span-2 flex flex-col gap-6"
           data-testid="center-detail"
         >
           <div

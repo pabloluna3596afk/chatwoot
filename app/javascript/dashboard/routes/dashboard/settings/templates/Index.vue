@@ -450,7 +450,7 @@ onDeactivated(abortTemplateRequest);
             />
             <SyncStatus
               v-if="showFlows"
-              :label="$t('WHATSAPP_TEMPLATE_MGMT.UPDATED_AT')"
+              label-key="WHATSAPP_TEMPLATE_MGMT.UPDATED_AT"
               :date="flowsPanel?.loadedAt"
               :is-loading="flowsPanel?.isPending"
               :button-label="$t('WHATSAPP_TEMPLATE_MGMT.SYNC_COMPACT')"
@@ -458,7 +458,7 @@ onDeactivated(abortTemplateRequest);
             />
             <SyncStatus
               v-else-if="showTemplates"
-              :label="$t('WHATSAPP_TEMPLATE_MGMT.LAST_SYNC_ATTEMPT')"
+              label-key="WHATSAPP_TEMPLATE_MGMT.LAST_SYNC_ATTEMPT"
               :date="lastSyncAttemptAt"
               :is-loading="isSyncing"
               :disabled="!canSync"
