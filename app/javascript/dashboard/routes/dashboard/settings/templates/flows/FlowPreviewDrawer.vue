@@ -66,7 +66,7 @@ defineExpose({ open, close });
     </p>
     <div
       v-else-if="flow"
-      class="flex justify-center [--phone-height:min(46.25rem,calc(100dvh_-_16rem))]"
+      class="flex justify-center [--phone-height:min(46.25rem,calc(100dvh_-_17.5rem))]"
       data-testid="flow-preview"
     >
       <FlowPhoneSimulator
