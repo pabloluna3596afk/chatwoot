@@ -900,28 +900,30 @@ const buttonChoices = computed(() =>
             v-if="!isEdit || hasOriginalComponent('HEADER')"
             class="grid gap-2"
           >
-            <TemplateComboBox
-              :disabled="isEdit"
-              :model-value="form.header.format"
-              :options="headerOptions"
-              :placeholder="
-                $t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.NONE')
-              "
-              :aria-label="
-                $t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.NONE')
-              "
-              teleport
-              data-testid="template-header-format"
-              @update:model-value="chooseHeaderFormat"
-            />
-            <span
-              v-if="!isEdit && !mediaHeaderAvailable"
-              v-tooltip.top="mediaUnavailableText"
-              class="i-lucide-info size-3.5 shrink-0 text-n-slate-10"
-              role="img"
-              :aria-label="mediaUnavailableText"
-              data-testid="media-header-unavailable"
-            />
+            <div class="flex items-center gap-2">
+              <TemplateComboBox
+                :disabled="isEdit"
+                :model-value="form.header.format"
+                :options="headerOptions"
+                :placeholder="
+                  $t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.NONE')
+                "
+                :aria-label="
+                  $t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.NONE')
+                "
+                teleport
+                data-testid="template-header-format"
+                @update:model-value="chooseHeaderFormat"
+              />
+              <span
+                v-if="!isEdit && !mediaHeaderAvailable"
+                v-tooltip.top="mediaUnavailableText"
+                class="i-lucide-info size-3.5 shrink-0 text-n-slate-10"
+                role="img"
+                :aria-label="mediaUnavailableText"
+                data-testid="media-header-unavailable"
+              />
+            </div>
             <template v-if="form.header.format === 'TEXT'">
               <Input
                 :model-value="mappedForm.header.text"
