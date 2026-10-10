@@ -945,6 +945,48 @@
           "DESCRIPTION": "Cuántas respuestas puede enviar Captain en una conversación. Al llegar al límite se despide con el mensaje de transferencia y el equipo toma la conversación.",
           "LABEL": "Respuestas por conversación",
           "HINT": "20 por defecto. Usa 0 para no tener límite."
+        },
+        "MESSAGING": {
+          "TOGGLE": "Permitir que Captain envíe Flows y plantillas en esta bandeja",
+          "TOGGLE_HELP": "Si lo apagas, Captain no envía nada aquí, pero la lista de abajo se conserva. Cada bandeja tiene su propio interruptor.",
+          "INBOX": "Bandeja",
+          "INBOX_PLACEHOLDER": "Elige una bandeja",
+          "NO_INBOXES": "Este asistente no tiene bandejas de WhatsApp conectadas.",
+          "FLOWS": "Flows permitidos",
+          "FLOWS_HELP": "Captain solo puede enviar un Flow publicado en la cuenta de WhatsApp de esa bandeja, dentro de las 24 h.",
+          "FLOWS_EMPTY": "Captain no enviará ningún Flow en esta bandeja.",
+          "ADD_FLOW": "Agregar Flow",
+          "ADD_FLOW_TITLE": "Agregar un Flow",
+          "ADD_FLOW_PICK": "Flow",
+          "ADD_FLOW_PLACEHOLDER": "Elige un Flow publicado",
+          "NO_FLOWS_LEFT": "No hay más Flows publicados para agregar.",
+          "TEMPLATES": "Plantillas permitidas",
+          "TEMPLATES_HELP": "Solo plantillas aprobadas, de texto y sin botones que cambien por cliente. Cada envío es un mensaje de pago.",
+          "TEMPLATES_EMPTY": "Captain no enviará ninguna plantilla en esta bandeja.",
+          "ADD_TEMPLATE": "Agregar plantilla",
+          "ADD_TEMPLATE_TITLE": "Agregar una plantilla",
+          "ADD_TEMPLATE_PICK": "Plantilla",
+          "ADD_TEMPLATE_PLACEHOLDER": "Elige una plantilla aprobada",
+          "NO_TEMPLATES_LEFT": "No hay más plantillas aprobadas para agregar.",
+          "PURPOSE": "Para qué sirve",
+          "PURPOSE_PLACEHOLDER": "Ej.: Pedir los datos para reservar",
+          "PURPOSE_HELP": "Captain lo lee para decidir cuándo usarlo.",
+          "REMOVE": "Quitar",
+          "ADD": "Agregar",
+          "CANCEL": "Cancelar",
+          "PAID_OFF": "Los mensajes de pago están desactivados: Captain puede enviar Flows, pero no plantillas.",
+          "PAID_ON": "Los mensajes de pago están activados: Captain puede enviar plantillas autorizadas.",
+          "PAID_LINK": "Ir a Mensajes de pago",
+          "LIMITS": "Límites por conversación",
+          "LIMIT_FLOW_GAP": "10 minutos entre un Flow y otro",
+          "LIMIT_FLOWS": "Hasta 3 Flows cada 24 h",
+          "LIMIT_TEMPLATES": "1 plantilla cada 24 h",
+          "LIMIT_PENDING": "Un Flow sin responder bloquea otro nuevo durante 24 h, salvo que el cliente pida reenviarlo",
+          "UNAVAILABLE": "No disponible",
+          "STATE_PUBLISHED": "Publicado",
+          "SAVE": "Guardar",
+          "UNAVAILABLE_TEMPLATE": "Ya no está aprobada, o tiene archivo en el encabezado o botones que cambian por cliente: Captain no la envía.",
+          "UNAVAILABLE_FLOW": "Ya no está publicado: Captain no lo envía."
         }
       },
       "EDIT": {
@@ -1002,6 +1044,10 @@
         "PAID_MESSAGES": {
           "TITLE": "Mensajes de pago (WhatsApp)",
           "DESCRIPTION": "Un solo interruptor para todo lo que Captain envía como plantilla de pago."
+        },
+        "MESSAGING": {
+          "TITLE": "Plantillas y Flows",
+          "DESCRIPTION": "Qué Flows y plantillas puede enviar Captain a un cliente por WhatsApp. Todo empieza apagado: solo envía lo que autorices aquí."
         }
       },
       "OPTIONS": {
