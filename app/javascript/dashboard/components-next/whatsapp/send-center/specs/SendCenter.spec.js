@@ -225,6 +225,10 @@ describe('unified send center', () => {
       expect(wrapper.get('[data-testid="center-reason"]').text()).toBe(
         es.WHATSAPP_TEMPLATES.SEND_CENTER.REASONS[reason]
       );
+      // A Flow that cannot be sent has nothing to customize: no dead Personalizar button.
+      expect(wrapper.find('[data-testid="flow-send-customize"]').exists()).toBe(
+        false
+      );
       expect(
         wrapper.get('[data-testid="center-send"]').attributes('disabled')
       ).toBeDefined();

@@ -551,6 +551,7 @@ watch(
             :key="selected.key"
             ref="flowDetail"
             :flow="selected.data"
+            :readonly="!!selected.reason"
           />
           <template v-else-if="!selected.reason">
             <ContentTemplateParser

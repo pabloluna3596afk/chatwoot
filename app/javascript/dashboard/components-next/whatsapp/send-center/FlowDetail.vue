@@ -6,7 +6,11 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import MessagePreview from './MessagePreview.vue';
 
-const props = defineProps({ flow: { type: Object, required: true } });
+// A Flow that cannot be sent (not published, outside the window...) is shown for reference only: no Personalizar.
+const props = defineProps({
+  flow: { type: Object, required: true },
+  readonly: { type: Boolean, default: false },
+});
 const { t } = useI18n();
 const customizing = ref(false);
 const header = ref('');
@@ -109,7 +113,7 @@ defineExpose({
     >
       <MessagePreview :header="header" :body="body" :buttons="[cta]" flow />
       <Button
-        v-if="!customizing"
+        v-if="!customizing && !readonly"
         class="w-full !h-auto whitespace-normal text-start"
         type="button"
         slate
@@ -134,7 +138,7 @@ defineExpose({
       </Button>
     </div>
     <div
-      v-if="customizing"
+      v-if="customizing && !readonly"
       id="flow-send-customization"
       ref="fields"
       role="region"

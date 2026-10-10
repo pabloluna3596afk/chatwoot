@@ -10,6 +10,18 @@ vi.mock('vue-i18n', () => ({
 }));
 
 describe('Flow message customization', () => {
+  it('readonly Flows still preview but offer no Personalizar button', () => {
+    const wrapper = mount(FlowDetail, {
+      props: { flow: { id: 12, name: 'Appointment' }, readonly: true },
+    });
+    expect(wrapper.find('[data-testid="send-center-preview"]').exists()).toBe(
+      true
+    );
+    expect(wrapper.find('[data-testid="flow-send-customize"]').exists()).toBe(
+      false
+    );
+  });
+
   it('starts collapsed, updates its live preview and resets when choosing another Flow', async () => {
     const wrapper = mount(FlowDetail, {
       props: { flow: { id: 12, name: 'Appointment' } },
