@@ -109,7 +109,7 @@
       "UPLOAD_EXAMPLE": "Upload example file",
       "BODY": "Message body",
       "BODY_PLACEHOLDER": "Hi, a reminder of your appointment tomorrow.",
-      "ADD_VARIABLE": "Add a variable to the body",
+      "ADD_VARIABLE": "Add variable",
       "FOOTER": "Footer (optional)",
       "FOOTER_PLACEHOLDER": "Thanks for choosing us",
       "BUTTONS": "Buttons (optional)",

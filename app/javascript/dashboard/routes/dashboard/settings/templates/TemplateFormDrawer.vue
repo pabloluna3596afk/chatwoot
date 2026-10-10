@@ -358,6 +358,12 @@ watch(bodyVariables, numbers => {
   form.body.examples = examples.slice(0, Math.max(numbers.length, 0));
 });
 
+const variablesHelp = computed(() =>
+  variableMode.value === 'NAMED'
+    ? t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLES_NAMED_HELP')
+    : t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLES_POSITIONAL_HELP')
+);
+
 const nextNumber = computed(
   () => Math.max(0, ...variableNumbers(form.body.text)) + 1
 );
@@ -850,8 +856,17 @@ const buttonChoices = computed(() =>
       </fieldset>
 
       <div v-if="!isEdit && !copySource" class="grid gap-1">
-        <span class="text-sm font-medium text-n-slate-12">
+        <span
+          class="flex items-center gap-1.5 text-sm font-medium text-n-slate-12"
+        >
           {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLES_AS') }}
+          <span
+            v-tooltip.top="variablesHelp"
+            class="i-lucide-info size-3.5 shrink-0 text-n-slate-10"
+            role="img"
+            :aria-label="variablesHelp"
+            data-testid="variables-info"
+          />
         </span>
         <div class="flex flex-wrap items-center gap-2">
           <Button
@@ -871,13 +886,6 @@ const buttonChoices = computed(() =>
             @click="variableMode = 'POSITIONAL'"
           />
         </div>
-        <span class="text-xs text-n-slate-11">
-          {{
-            variableMode === 'NAMED'
-              ? $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLES_NAMED_HELP')
-              : $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLES_POSITIONAL_HELP')
-          }}
-        </span>
       </div>
 
       <!-- The message as the customer will read it, edited in place -->
@@ -906,13 +914,14 @@ const buttonChoices = computed(() =>
               data-testid="template-header-format"
               @update:model-value="chooseHeaderFormat"
             />
-            <p
+            <span
               v-if="!isEdit && !mediaHeaderAvailable"
-              class="text-xs text-n-slate-11"
+              v-tooltip.top="mediaUnavailableText"
+              class="i-lucide-info size-3.5 shrink-0 text-n-slate-10"
+              role="img"
+              :aria-label="mediaUnavailableText"
               data-testid="media-header-unavailable"
-            >
-              {{ mediaUnavailableText }}
-            </p>
+            />
             <template v-if="form.header.format === 'TEXT'">
               <Input
                 :model-value="mappedForm.header.text"
@@ -1019,7 +1028,7 @@ const buttonChoices = computed(() =>
               <!-- Next to the character counter, inside the text box: a small button, not a full-width field. -->
               <div
                 v-if="!isEdit && !copySource"
-                class="absolute bottom-2.5 end-24 w-36"
+                class="absolute bottom-2.5 end-24 w-40"
                 data-testid="variable-picker"
               >
                 <TemplateComboBox

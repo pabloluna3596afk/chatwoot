@@ -321,7 +321,9 @@ describe('TemplateFormDrawer', () => {
     const wrapper = await mountDrawer();
 
     expect(
-      wrapper.get('[data-testid="media-header-unavailable"]').text()
+      wrapper
+        .get('[data-testid="media-header-unavailable"]')
+        .attributes('aria-label')
     ).toContain('WHATSAPP_TEMPLATE_MGMT.FORM');
   });
   const positional = {
