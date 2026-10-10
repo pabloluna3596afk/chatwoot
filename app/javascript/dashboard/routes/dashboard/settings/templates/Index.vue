@@ -13,7 +13,6 @@ import InboxesAPI from 'dashboard/api/inboxes';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
-import Button from 'dashboard/components-next/button/Button.vue';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
@@ -26,6 +25,7 @@ import TemplatePreviewDrawer from './TemplatePreviewDrawer.vue';
 import TemplateFormDrawer from './TemplateFormDrawer.vue';
 import PresetsPanel from './PresetsPanel.vue';
 import FlowsPanel from './flows/FlowsPanel.vue';
+import SyncStatus from 'dashboard/components-next/whatsapp/sync-status/SyncStatus.vue';
 import { isEditable, formFromTemplate } from './templateForm';
 import { presetToForm } from './presets';
 import {
@@ -96,6 +96,7 @@ const actionLabels = computed(() => ({
 }));
 const selectedTemplate = ref(null);
 const previewPanelRef = ref(null);
+const flowsPanel = ref(null);
 const formDrawerRef = ref(null);
 const deleteDialogRef = ref(null);
 const templateToDelete = ref(null);
@@ -439,15 +440,6 @@ onDeactivated(abortTemplateRequest);
             </h1>
           </div>
         </template>
-        <template v-if="lastSyncAttemptAt && !showFlows" #meta>
-          <span class="text-xs text-n-slate-10">
-            {{
-              $t('WHATSAPP_TEMPLATE_MGMT.LAST_SYNC_ATTEMPT', {
-                date: formatTemplateDate(lastSyncAttemptAt),
-              })
-            }}
-          </span>
-        </template>
         <template #tabs>
           <div class="flex flex-wrap items-center min-w-0 gap-2">
             <TabBar
@@ -455,6 +447,23 @@ onDeactivated(abortTemplateRequest);
               :tabs="tabs"
               :initial-active-tab="tabIndex"
               @tab-changed="onTabChanged"
+            />
+            <SyncStatus
+              v-if="showFlows"
+              :label="$t('WHATSAPP_TEMPLATE_MGMT.UPDATED_AT')"
+              :date="flowsPanel?.loadedAt"
+              :is-loading="flowsPanel?.isPending"
+              :button-label="$t('WHATSAPP_TEMPLATE_MGMT.SYNC_COMPACT')"
+              @refresh="flowsPanel?.reload()"
+            />
+            <SyncStatus
+              v-else-if="showTemplates"
+              :label="$t('WHATSAPP_TEMPLATE_MGMT.LAST_SYNC_ATTEMPT')"
+              :date="lastSyncAttemptAt"
+              :is-loading="isSyncing"
+              :disabled="!canSync"
+              :button-label="$t('WHATSAPP_TEMPLATE_MGMT.SYNC_TEMPLATES')"
+              @refresh="syncTemplates"
             />
           </div>
         </template>
@@ -499,22 +508,11 @@ onDeactivated(abortTemplateRequest);
             />
           </div>
         </template>
-        <template #actions>
-          <Button
-            :label="$t('WHATSAPP_TEMPLATE_MGMT.SYNC_COMPACT')"
-            icon="i-lucide-refresh-cw"
-            color="slate"
-            size="sm"
-            :is-loading="isSyncing"
-            :disabled="!canSync || isSyncing"
-            @click="syncTemplates"
-          />
-        </template>
       </TemplatesToolbar>
     </template>
     <template #body>
       <KeepAlive>
-        <FlowsPanel v-if="showFlows" />
+        <FlowsPanel v-if="showFlows" ref="flowsPanel" />
       </KeepAlive>
       <PresetsPanel
         v-if="showPresets"

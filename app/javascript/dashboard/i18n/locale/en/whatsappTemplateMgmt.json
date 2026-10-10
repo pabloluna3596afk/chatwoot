@@ -4,6 +4,7 @@
     "DESCRIPTION": "View the message templates of your WhatsApp inboxes. Administrators can create, edit and delete templates on WhatsApp Cloud channels.",
     "COUNT": "{n} template | {n} templates",
     "LEARN_MORE": "Learn more about WhatsApp templates",
+    "UPDATED_AT": "Updated: {date}",
     "SYNC_TEMPLATES": "Sync templates",
     "SYNC_SUCCESS": "Template sync started for all WhatsApp inboxes. Updates may take a couple of minutes.",
     "PARTIAL_SYNC_ERROR": "Template sync started for some WhatsApp inboxes, but others could not be synced.",

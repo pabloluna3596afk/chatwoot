@@ -15,6 +15,7 @@ import WhatsAppTemplateParser from '../WhatsAppTemplateParser.vue';
 import ContentTemplateParser from 'dashboard/components-next/content-templates/ContentTemplateParser.vue';
 import { PHONE_PREVIEW_WIDTH } from '../phonePreview';
 import FlowDetail from './FlowDetail.vue';
+import SyncStatus from '../sync-status/SyncStatus.vue';
 import { lastSendCenterTab } from './session';
 import MessagePreview from './MessagePreview.vue';
 import {
@@ -267,12 +268,14 @@ const loadFlows = async () => {
     error.value = e.response?.data?.error || t(`${prefix}.LOAD_ERROR`);
   }
 };
+const lastRefreshedAt = ref(new Date());
 const refresh = async () => {
   isRefreshing.value = true;
   error.value = '';
   try {
     await store.dispatch('inboxes/syncTemplates', props.inbox.id);
     if (hasFlows.value) await loadFlows();
+    lastRefreshedAt.value = new Date();
   } catch (e) {
     error.value = e.response?.data?.error || t(`${prefix}.LOAD_ERROR`);
   } finally {
@@ -420,18 +423,15 @@ watch(
                 :initial-active-tab="tab"
                 @tab-changed="tab = $event.index"
               />
-              <Button
-                type="button"
-                icon="i-lucide-refresh-cw"
-                ghost
-                slate
-                sm
+              <SyncStatus
+                short
+                :label="$t('WHATSAPP_TEMPLATE_MGMT.UPDATED_AT')"
+                :date="lastRefreshedAt"
                 :is-loading="isRefreshing || isPending"
-                :disabled="isSending || isRefreshing || isPending"
-                :aria-label="$t(`${prefix}.REFRESH`)"
-                :title="$t(`${prefix}.REFRESH`)"
-                data-testid="center-refresh"
-                @click="refresh"
+                :disabled="isSending"
+                :button-label="$t(`${prefix}.REFRESH`)"
+                button-testid="center-refresh"
+                @refresh="refresh"
               />
             </div>
 

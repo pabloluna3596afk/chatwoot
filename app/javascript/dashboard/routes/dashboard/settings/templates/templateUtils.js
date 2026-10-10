@@ -108,6 +108,20 @@ export const formatTemplateDate = value => {
   }).format(new Date(value));
 };
 
+export const formatTemplateDateTime = (value, { short = false } = {}) => {
+  const date = new Date(value);
+  if (!value || Number.isNaN(date.getTime())) return '';
+  if (short && date.toDateString() === new Date().toDateString())
+    return new Intl.DateTimeFormat(undefined, { timeStyle: 'short' }).format(
+      date
+    );
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+};
+
 export const templateStatusClasses = status => {
   const classes = {
     approved: 'bg-n-teal-3 text-n-teal-11',

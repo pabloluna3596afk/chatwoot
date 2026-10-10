@@ -49,6 +49,7 @@ const category = ref('all');
 const page = ref(1);
 const failed = ref(false);
 const hasLoaded = ref(false);
+const loadedAt = ref(null);
 const toDelete = ref(null);
 const deleteDialog = ref(null);
 const publicationPanel = ref(null);
@@ -109,6 +110,7 @@ const load = async () => {
       total.value = data.meta.total_count;
       facets.value = data.facets;
       hasLoaded.value = true;
+      loadedAt.value = new Date();
       if (!flows.value.length && total.value && page.value > 1)
         page.value = Math.ceil(total.value / PAGE_SIZE);
     });
@@ -171,6 +173,7 @@ const categoryLabel = flow => {
   const first = t(`WHATSAPP_FLOWS.CATEGORIES.${values[0]}`);
   return values.length > 1 ? `${first} +${values.length - 1}` : first;
 };
+defineExpose({ reload: load, loadedAt, isPending });
 </script>
 
 <template>

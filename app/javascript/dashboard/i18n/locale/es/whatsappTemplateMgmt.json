@@ -3,6 +3,7 @@
     "TITLE": "Plantillas y Flows",
     "DESCRIPTION": "Consulta las plantillas de mensajes de tus bandejas de WhatsApp. Los administradores pueden crear, editar y borrar plantillas en bandejas de WhatsApp Cloud.",
     "COUNT": "{n} plantilla | {n} plantillas",
+    "UPDATED_AT": "Actualizado: {date}",
     "SYNC_TEMPLATES": "Sincronizar plantillas",
     "SYNC_SUCCESS": "Se inició la sincronización de plantillas en todas las bandejas de WhatsApp. Puede tardar un par de minutos.",
     "PARTIAL_SYNC_ERROR": "Se inició la sincronización en algunas bandejas de WhatsApp, pero otras no se pudieron sincronizar.",
