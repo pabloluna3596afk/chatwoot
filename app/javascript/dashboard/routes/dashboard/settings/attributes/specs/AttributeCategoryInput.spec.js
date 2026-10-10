@@ -42,3 +42,13 @@ it('keeps free category text and uses the real menu for suggestions with keyboar
     wrapper.unmount();
   }
 });
+
+it('shows the help as an info icon next to the label, not as a paragraph', () => {
+  const wrapper = mount(AttributeCategoryInput, {
+    props: { options: [], label: 'Category', help: 'Groups the attribute' },
+  });
+  const icon = wrapper.get('[data-testid="category-help"]');
+  expect(icon.attributes('aria-label')).toBe('Groups the attribute');
+  expect(wrapper.text()).not.toContain('Groups the attribute');
+  expect(wrapper.text()).toContain('Category');
+});

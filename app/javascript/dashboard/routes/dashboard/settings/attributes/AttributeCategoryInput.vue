@@ -6,6 +6,8 @@ import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue
 const props = defineProps({
   options: { type: Array, default: () => [] },
   label: { type: String, default: '' },
+  // Shown as an info icon next to the label instead of a paragraph under the field.
+  help: { type: String, default: '' },
   placeholder: { type: String, default: '' },
 });
 const value = defineModel({ type: String, default: '' });
@@ -38,14 +40,30 @@ const showSuggestions = (query = value.value) => {
     @action="value = $event.value"
   >
     <template #trigger>
-      <Input
-        v-model="value"
-        class="w-full"
-        :label="label"
-        :placeholder="placeholder"
-        @click="showSuggestions()"
-        @input="showSuggestions"
-      />
+      <div class="w-full">
+        <span
+          v-if="label"
+          class="flex items-center gap-1.5 mb-1 text-heading-3"
+        >
+          {{ label }}
+          <span
+            v-if="help"
+            v-tooltip.top="help"
+            class="i-lucide-info size-3.5 text-n-slate-10"
+            role="img"
+            :aria-label="help"
+            data-testid="category-help"
+          />
+        </span>
+        <Input
+          v-model="value"
+          class="w-full"
+          :aria-label="label"
+          :placeholder="placeholder"
+          @click="showSuggestions()"
+          @input="showSuggestions"
+        />
+      </div>
     </template>
   </MenuPopover>
 </template>
