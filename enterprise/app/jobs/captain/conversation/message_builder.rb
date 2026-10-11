@@ -30,6 +30,9 @@ module Captain::Conversation::MessageBuilder
   def create_messages
     return create_v1_message unless captain_v2_enabled?
 
+    sent = deliver_messaging_intent
+    return sent if sent
+
     response_parts = Captain::Assistant::ResponseParts.from_response(@response)
     citation_urls = @assistant.trusted_citation_urls(@run_result)
     message_content = response_parts.customer_message_content(citation_urls: citation_urls)
@@ -39,6 +42,25 @@ module Captain::Conversation::MessageBuilder
       agent_name: @response['agent_name'], response_parts: response_parts.to_a,
       quick_replies: Captain::QuickReplies.take(@conversation, responding_to: @responding_to_message_id)
     )
+  end
+
+  # A Flow or template a tool prepared goes out instead of the model's text (Captain::Messaging::SendService checks it all
+  # again). When it cannot go out, a private note says why and the model's own reply is posted as usual.
+  def deliver_messaging_intent
+    request = Captain::Messaging::Intent.take(@conversation, responding_to: @responding_to_message_id)
+    return unless request
+
+    result = Captain::Messaging::SendService.new(conversation: @conversation, assistant: @assistant, request: request).perform
+    return result.message if result.sent? || result.duplicate?
+
+    note_messaging_failure(result)
+    nil
+  end
+
+  def note_messaging_failure(result)
+    content = I18n.t('captain.messaging.not_sent', locale: account.locale, reason: result.message)
+    @conversation.messages.create!(message_type: :outgoing, account_id: account.id, inbox_id: inbox.id, sender: @assistant,
+                                   content: content, private: true, preserve_waiting_since: true)
   end
 
   def create_v1_message

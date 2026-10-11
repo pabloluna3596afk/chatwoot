@@ -541,6 +541,13 @@ es:
     assistant:
       limit_exceeded: 'Puedes crear un máximo de %{limit} asistentes por cuenta'
     messaging:
+      prepared_flow: 'El formulario está preparado; se enviará al terminar esta respuesta. No lo escribas tú.'
+      prepared_template: 'La plantilla está preparada; se enviará al terminar esta respuesta. No la escribas tú.'
+      already_prepared: 'Ya hay un formulario o una plantilla preparados para esta respuesta; solo se puede enviar uno.'
+      already_sent: 'Esto ya se envió en respuesta a este mensaje.'
+      retry_after: 'Podrías intentarlo de nuevo en unos %{minutes} minutos.'
+      not_here: 'Los formularios y las plantillas solo se pueden enviar en una conversación real.'
+      not_sent: 'Captain no pudo enviar el Flow o la plantilla que preparó: %{reason}'
       note_flow: 'Captain envió el Flow %{name}'
       note_template: 'Captain envió la plantilla %{name}'
       errors:

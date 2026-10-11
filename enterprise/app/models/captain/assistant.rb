@@ -31,6 +31,8 @@ class Captain::Assistant < ApplicationRecord
     confirm_appointment
   ].freeze
 
+  MESSAGING_TOOL_IDS = %w[list_available_flows send_flow list_available_templates send_template].freeze
+
   class LimitExceededError < StandardError; end
 
   include Avatarable
@@ -110,6 +112,17 @@ class Captain::Assistant < ApplicationRecord
   # (appointment reminders, re-engagement). Off unless the owner turned it on.
   def allow_paid_templates?
     config['allow_paid_templates'] == true
+  end
+
+  # Whether Captain may send Flows and templates in this inbox: a WhatsApp inbox the assistant is connected to and the
+  # owner switched on (the settings of what it may send are Captain::MessagingSettings).
+  def messaging_active_in?(inbox)
+    inbox.channel_type == 'Channel::Whatsapp' && messaging.entry_for(inbox.id).present? && captain_inboxes.exists?(inbox_id: inbox.id)
+  end
+
+  # The tools to send them (the runner adds them in a conversation of such an inbox).
+  def messaging_tools
+    MESSAGING_TOOL_IDS.map { |tool_id| self.class.resolve_tool_class(tool_id).new(self) }
   end
 
   def appointments_active_in?(inbox)
@@ -310,6 +323,7 @@ class Captain::Assistant < ApplicationRecord
 
     context = {}
     context[:appointments] = appointments.to_h if appointments_active_in?(inbox)
+    context[:messaging] = { 'paid_templates' => allow_paid_templates? } if messaging_active_in?(inbox)
     context[:followup] = followup_prompt_context if followup.inactivity_enabled? && followup.max_nudges.positive?
     context
   end

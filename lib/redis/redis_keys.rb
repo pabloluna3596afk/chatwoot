@@ -123,4 +123,6 @@ module Redis::RedisKeys
   CAPTAIN_QUICK_REPLIES = 'CAPTAIN_QUICK_REPLIES::%<conversation_id>d'.freeze
   # What each readable button id of a conversation stands for (start / event id), so replies can be resolved
   CAPTAIN_QUICK_REPLY_CHOICES = 'CAPTAIN_QUICK_REPLY_CHOICES::%<conversation_id>d'.freeze
+  # The Flow or template a Captain tool prepared for the reply being written (see Captain::Messaging::Intent)
+  CAPTAIN_MESSAGING_INTENT = 'CAPTAIN_MESSAGING_INTENT::%<conversation_id>d'.freeze
 end

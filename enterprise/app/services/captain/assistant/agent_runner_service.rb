@@ -115,7 +115,7 @@ class Captain::Assistant::AgentRunnerService
 
     return default_agent_graph unless @runtime_configuration
 
-    assistant_agent = with_appointment_tools(@assistant.agent(runtime_configuration: @runtime_configuration))
+    assistant_agent = with_messaging_tools(with_appointment_tools(@assistant.agent(runtime_configuration: @runtime_configuration)))
     scenario_agents = @runtime_configuration.scenarios.map do |scenario|
       scenario.agent(
         runtime_configuration: @runtime_configuration,
@@ -127,7 +127,7 @@ class Captain::Assistant::AgentRunnerService
   end
 
   def default_agent_graph
-    assistant_agent = with_appointment_tools(@assistant.agent)
+    assistant_agent = with_messaging_tools(with_appointment_tools(@assistant.agent))
     scenario_agents = @assistant.scenarios.enabled.map(&:agent)
 
     wire_agents(assistant_agent, scenario_agents)
@@ -145,6 +145,13 @@ class Captain::Assistant::AgentRunnerService
     return agent unless @conversation && @assistant.appointments_active_in?(@conversation.inbox)
 
     agent.clone(tools: agent.tools + @assistant.appointment_tools)
+  end
+
+  # The Flow and template tools exist only in a real conversation of an inbox where the owner allowed them.
+  def with_messaging_tools(agent)
+    return agent unless @conversation && @responding_to_message_id && @assistant.messaging_active_in?(@conversation.inbox)
+
+    agent.clone(tools: agent.tools + @assistant.messaging_tools)
   end
 
   def reply_suggestion_agent

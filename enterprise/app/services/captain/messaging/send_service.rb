@@ -39,6 +39,18 @@ class Captain::Messaging::SendService
     result
   end
 
+  # The same checks as #perform, without sending or taking a place of the daily cap: what the tools ask to tell the model
+  # early. nil when the send would be allowed now; otherwise a denied result, or a duplicate when it was already sent.
+  def precheck
+    return deny('invalid_params') unless request.valid?
+
+    conversation.reload
+    existing = sent_message
+    return Result.new(status: :duplicate, message: existing) if existing
+
+    permission_denial || resource_denial || limit_denial
+  end
+
   private
 
   attr_reader :conversation, :assistant, :request, :now
