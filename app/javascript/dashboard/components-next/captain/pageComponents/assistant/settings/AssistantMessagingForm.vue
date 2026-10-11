@@ -17,10 +17,7 @@ import {
   templateVariables,
   variablesFilled,
 } from './captainTemplates';
-import {
-  CONTACT_DEFAULT_VALUES,
-  useTemplateVariables,
-} from './useTemplateVariables';
+import { useTemplateVariables } from './useTemplateVariables';
 
 // What Captain may send, per inbox: the Flows and templates the owner allows, each with a purpose Captain reads to
 // decide when to use it. Everything starts off. This page only stores the permission (assistant.config.messaging);
@@ -34,7 +31,7 @@ const { t } = useI18n();
 const route = useRoute();
 const store = useStore();
 // The same variables (and the same selector) Follow-up uses: what the template says is filled in by name, never by the model.
-const { variableOptions, previewValues } = useTemplateVariables({
+const { variableOptions, defaultValues, previewValues } = useTemplateVariables({
   appointment: false,
 });
 const captainInboxes = useMapGetter('captainInboxes/getRecords');
@@ -629,7 +626,7 @@ onMounted(async () => {
           :template="draftTemplate"
           :model-value="draft.params"
           :variable-options="variableOptions"
-          :default-values="CONTACT_DEFAULT_VALUES"
+          :default-values="defaultValues"
           :preview-values="previewValues"
           @update:model-value="draft.params = $event"
         />
