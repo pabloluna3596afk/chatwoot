@@ -857,6 +857,7 @@ es:
       invalid_name: 'El nombre solo puede tener minúsculas, números y guion bajo.'
       invalid_language: 'El idioma no es válido.'
       invalid_category: 'La categoría debe ser Utilidad o Marketing.'
+      invalid_variable_bindings: 'Los valores elegidos para las variables no son válidos: %{message}'
       cloud_channel_required: 'Las plantillas solo se gestionan en canales de WhatsApp Cloud.'
       name_required: 'Falta el nombre de la plantilla.'
       file_required: 'Falta el archivo de ejemplo.'

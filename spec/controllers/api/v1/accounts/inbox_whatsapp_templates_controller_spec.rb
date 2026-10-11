@@ -132,6 +132,49 @@ RSpec.describe 'Inbox WhatsApp templates API', type: :request do
     end
   end
 
+  describe 'the value of each variable' do
+    let(:named) do
+      template.merge(body: { text: 'Hola {{nombre}}, tu pedido {{pedido}}.', examples: %w[Ana 4521] }, buttons: [],
+                     variable_bindings: { pedido: 'contact.custom_attribute.pedido' })
+    end
+
+    it 'is saved with the template and sent in the inbox payload' do
+      allow(service).to receive(:create).and_return(id: '999', status: 'PENDING', category: 'UTILITY')
+
+      post base_url, params: { template: named }, headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:created)
+      expect(channel.reload.template_variable_bindings).to eq('recordatorio_cita' => { 'pedido' => 'contact.custom_attribute.pedido' })
+      expect(Whatsapp::TemplateVariableBindingsService.new(channel).merge_into([{ 'name' => 'recordatorio_cita' }]).first)
+        .to include('variable_bindings' => { 'pedido' => 'contact.custom_attribute.pedido' })
+    end
+
+    it 'is checked before Meta is called' do
+      allow(service).to receive(:create)
+
+      post base_url, params: { template: named.merge(variable_bindings: { otro: 'contact.name' }) },
+                     headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['error']).to eq('invalid_variable_bindings')
+      expect(service).not_to have_received(:create)
+      expect(channel.reload.template_variable_bindings).to eq({})
+    end
+
+    it 'is replaced on an edit that sends it, and kept on one that does not' do
+      allow(service).to receive(:update).and_return(id: '555', status: 'PENDING')
+      channel.update!(template_variable_bindings: { 'recordatorio_cita' => { 'pedido' => 'contact.name' } })
+      edit = named.slice(:name, :body, :footer)
+
+      patch "#{base_url}/555", params: { template: edit }, headers: admin.create_new_auth_token, as: :json
+      expect(channel.reload.template_variable_bindings).to eq('recordatorio_cita' => { 'pedido' => 'contact.name' })
+
+      patch "#{base_url}/555", params: { template: edit.merge(variable_bindings: { pedido: 'contact.city' }) },
+                               headers: admin.create_new_auth_token, as: :json
+      expect(channel.reload.template_variable_bindings).to eq('recordatorio_cita' => { 'pedido' => 'contact.city' })
+    end
+  end
+
   describe 'PATCH update' do
     it 'edits through the template id' do
       allow(service).to receive(:update).and_return(id: '555', status: 'PENDING')
