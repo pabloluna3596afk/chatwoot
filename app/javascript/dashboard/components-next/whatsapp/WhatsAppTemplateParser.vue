@@ -28,6 +28,7 @@ import {
 } from 'dashboard/helper/templateHeaderMedia';
 import InsertVariableButton from 'dashboard/components-next/variable/InsertVariableButton.vue';
 import { resolveLiquid } from 'dashboard/helper/templateVariableBindings';
+import { formatLiquidVariable } from 'dashboard/helper/liquidVariablesHelper';
 import {
   buildTemplateParameters,
   buildTemplateButtonsSnapshot,
@@ -222,6 +223,12 @@ const v$ = useVuelidate(
 );
 
 // A default whose value is empty for this contact (no email) is not filled in: the agent has to type it.
+// What a variable starts with: the choice saved with the template (variable_bindings), else the table of names.
+const defaultLiquidFor = key => {
+  const saved = props.template?.variable_bindings?.[key];
+  return saved ? formatLiquidVariable(saved) : props.defaultValues[key];
+};
+
 const defaultFor = liquid => {
   const resolved = props.resolveContext
     ? resolveLiquid(liquid, props.resolveContext)
@@ -245,8 +252,8 @@ const initializeTemplateParameters = () => {
     Object.keys(built[component] || {}).forEach(key => {
       const saved = props.modelValue?.[component]?.[key];
       if (saved !== undefined) built[component][key] = saved;
-      else if (!built[component][key] && props.defaultValues[key]) {
-        built[component][key] = defaultFor(props.defaultValues[key]);
+      else if (!built[component][key] && defaultLiquidFor(key)) {
+        built[component][key] = defaultFor(defaultLiquidFor(key));
         if (!built[component][key]) missing.value[`${component}.${key}`] = true;
       }
     });

@@ -54,6 +54,8 @@ export const emptyForm = () => ({
   buttons: [],
   // Parts of an edited template the form cannot express, kept as Meta returned them: { components, buttons }.
   preserved: { components: [], buttons: [] },
+  // What each variable the shared table does not know is filled with: { pedido: 'contact.custom_attribute.pedido' }.
+  variableBindings: {},
 });
 
 // "Recordatorio de cita" -> "recordatorio_de_cita"
@@ -234,6 +236,19 @@ const buttonPayload = button => {
 
 // The body of POST / PATCH .../whatsapp_templates ({ template: ... }). The server decides named or numbered from the
 // variables in the texts.
+// The choices of the variables the template really has (a variable that was removed from the text loses its choice).
+const variableBindingsPayload = form => {
+  const tokens = [
+    ...variableTokens(form.header.format === 'TEXT' ? form.header.text : ''),
+    ...variableTokens(form.body.text),
+  ];
+  return Object.fromEntries(
+    Object.entries(form.variableBindings || {}).filter(
+      ([token, key]) => key && tokens.includes(token)
+    )
+  );
+};
+
 export const buildPayload = form => {
   const count = bodyExampleCount(form.body.text);
   return {
@@ -256,6 +271,7 @@ export const buildPayload = form => {
     footer: { text: form.footer.text.trim() },
     buttons: form.buttons.map(buttonPayload),
     preserved: form.preserved,
+    variable_bindings: variableBindingsPayload(form),
   };
 };
 
@@ -354,6 +370,7 @@ export const formFromTemplate = (template, inboxId) => {
       ? 'NAMED'
       : 'POSITIONAL');
   form.category = template.category || 'UTILITY';
+  form.variableBindings = { ...(template.variable_bindings || {}) };
 
   (template.components || []).forEach((component, position) => {
     if (PRESERVABLE_COMPONENTS.includes(component.type)) {

@@ -124,6 +124,35 @@ const knownVariableNames = computed(() => [
   ]),
 ]);
 
+// The variables of the message the shared table does not know ({{pedido}}): each one needs to say what fills it.
+const ownVariables = computed(() =>
+  [
+    ...variableTokens(form.header.format === 'TEXT' ? form.header.text : ''),
+    ...variableTokens(form.body.text),
+  ].filter(
+    (token, index, all) =>
+      all.indexOf(token) === index &&
+      !/^\d+$/.test(token) &&
+      !knownVariableNames.value.includes(token)
+  )
+);
+const allBindings = computed(() => [
+  ...bindings.value,
+  ...APPOINTMENT_BINDINGS.filter(
+    binding => !bindings.value.some(known => known.name === binding.name)
+  ),
+]);
+// The picker works with the name of a value (nombre, correo); the template keeps its path (contact.name).
+const bindingNameFor = token =>
+  allBindings.value.find(
+    binding => binding.key === form.variableBindings[token]
+  )?.name || '';
+const setVariableBinding = (token, name) => {
+  const key = allBindings.value.find(binding => binding.name === name)?.key;
+  if (key) form.variableBindings[token] = key;
+  else delete form.variableBindings[token];
+};
+
 const isEdit = computed(() => Boolean(editing.value));
 const mappedForm = computed(() =>
   copySource.value ? copyWithSystemVariables(form, systemMapping) : form
@@ -1162,6 +1191,45 @@ const buttonChoices = computed(() =>
           <span v-if="fieldError('buttons')" class="text-xs text-n-ruby-9">
             {{ fieldError('buttons') }}
           </span>
+        </div>
+      </div>
+
+      <div
+        v-if="ownVariables.length && !copySource"
+        class="grid gap-2"
+        data-testid="variable-values"
+      >
+        <span
+          class="flex items-center gap-1.5 text-sm font-medium text-n-slate-12"
+        >
+          {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_VALUES') }}
+          <span
+            v-tooltip.top="
+              $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_VALUES_HELP')
+            "
+            class="i-lucide-info size-3.5 text-n-slate-10"
+          />
+        </span>
+        <div class="grid gap-2 sm:grid-cols-2">
+          <div v-for="token in ownVariables" :key="token" class="grid gap-1">
+            <span class="text-xs text-n-slate-11">{{
+              variableLabel(token)
+            }}</span>
+            <VariablePicker
+              mode="read"
+              allow-none
+              :allow-none-label="
+                $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_ONLY_HERE')
+              "
+              :model-value="bindingNameFor(token)"
+              :placeholder="
+                $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_ONLY_HERE')
+              "
+              :aria-label="variableLabel(token)"
+              :data-testid="`variable-value-${token}`"
+              @update:model-value="name => setVariableBinding(token, name)"
+            />
+          </div>
         </div>
       </div>
 

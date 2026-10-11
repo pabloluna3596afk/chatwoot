@@ -179,6 +179,39 @@ describe('buildPayload', () => {
         { type: 'PHONE_NUMBER', text: 'Llamar', phone_number: '+593999999999' },
       ],
       preserved: { components: [], buttons: [] },
+      variable_bindings: {},
+    });
+  });
+
+  it('sends the value chosen for each variable the template still has, and none for one that was removed', () => {
+    const form = validForm();
+    form.body.text = 'Hola {{nombre}}, tu pedido {{pedido}}.';
+    form.body.examples = ['Ana', '4521'];
+    form.variableBindings = {
+      pedido: 'contact.custom_attribute.pedido',
+      borrada: 'contact.city',
+      vacia: '',
+    };
+
+    expect(buildPayload(form).variable_bindings).toEqual({
+      pedido: 'contact.custom_attribute.pedido',
+    });
+  });
+
+  it('loads the choices saved with a template when it is edited', () => {
+    const form = formFromTemplate(
+      {
+        name: 'pedido_listo',
+        language: 'es',
+        parameter_format: 'NAMED',
+        components: [{ type: 'BODY', text: 'Tu pedido {{pedido}}' }],
+        variable_bindings: { pedido: 'contact.custom_attribute.pedido' },
+      },
+      3
+    );
+
+    expect(form.variableBindings).toEqual({
+      pedido: 'contact.custom_attribute.pedido',
     });
   });
 });
