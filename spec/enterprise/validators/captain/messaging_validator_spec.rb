@@ -105,4 +105,42 @@ RSpec.describe Captain::MessagingValidator do
     expect(assistant.allow_paid_templates?).to be(true)
     expect(messaging_errors).to be_empty
   end
+
+  context 'with the variables of a template' do
+    let(:channel) do
+      create(:channel_whatsapp, provider: 'whatsapp_cloud', account: account, sync_templates: false, validate_provider_config: false,
+                                message_templates: [{ 'name' => 'reserva', 'language' => 'es', 'status' => 'APPROVED', 'category' => 'UTILITY',
+                                                      'components' => [{ 'type' => 'BODY', 'text' => 'Hola {{nombre}}' }] }])
+    end
+
+    def with_params(params)
+      template = { 'name' => 'reserva', 'language' => 'es' }
+      template['processed_params'] = params unless params.nil?
+      assign('inboxes' => [{ 'inbox_id' => inbox.id, 'enabled' => true, 'flows' => [], 'templates' => [template] }])
+    end
+
+    it 'accepts a template whose variables are all filled' do
+      with_params('body' => { 'nombre' => '{{ contact.first_name }}' })
+
+      expect(messaging_errors).to be_empty
+    end
+
+    it 'rejects a template with a variable left empty' do
+      with_params('body' => { 'nombre' => ' ' })
+
+      expect(messaging_errors.join).to include('variable body.nombre is empty')
+    end
+
+    it 'rejects a text that is not valid Liquid' do
+      with_params('body' => { 'nombre' => '{{ contact.name ' })
+
+      expect(messaging_errors.join).to include('is not valid Liquid')
+    end
+
+    it 'allows a template that is still being set up, without variables yet' do
+      with_params(nil)
+
+      expect(messaging_errors).to be_empty
+    end
+  end
 end

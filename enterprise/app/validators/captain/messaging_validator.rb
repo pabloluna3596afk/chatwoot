@@ -9,7 +9,7 @@ class Captain::MessagingValidator < ActiveModel::Validator
   ROOT_KEYS = %w[inboxes].freeze
   INBOX_KEYS = %w[inbox_id enabled flows templates].freeze
   FLOW_KEYS = %w[flow_id purpose].freeze
-  TEMPLATE_KEYS = %w[name language purpose].freeze
+  TEMPLATE_KEYS = %w[name language purpose processed_params].freeze
 
   def validate(record)
     raw = record.config['messaging']
@@ -102,6 +102,18 @@ class Captain::MessagingValidator < ActiveModel::Validator
       error(record, "template #{key} must be a text up to #{MAX_TEXT_LENGTH} characters") unless valid
     end
     validate_purpose(record, template['purpose'])
+    validate_variables(record, template)
+  end
+
+  # What fills each variable of the template (see Captain::TemplateReference). Optional while it is being set up, but a
+  # template whose variables are not all filled cannot be sent.
+  def validate_variables(record, template)
+    return unless template.key?('processed_params')
+
+    reference = template.slice('name', 'language', 'processed_params')
+    Captain::TemplateReference.errors(reference, record.account).each do |message|
+      error(record, "template #{template['name']} #{message}")
+    end
   end
 
   def validate_purpose(record, purpose)
