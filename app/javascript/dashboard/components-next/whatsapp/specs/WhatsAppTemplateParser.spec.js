@@ -137,6 +137,21 @@ describe('WhatsAppTemplateParser with the options of a Captain setting', () => {
     expect(saved.vm.processedParams.body.fecha).toBe('');
   });
 
+  it('starts a variable with the choice saved in the template before the table of names', async () => {
+    const wrapper = mountParser({
+      template: {
+        ...named,
+        variable_bindings: { nombre: 'contact.custom_attribute.apodo' },
+      },
+      defaultValues: { nombre: '{{ contact.name }}' },
+    });
+    await nextTick();
+
+    expect(wrapper.vm.processedParams.body.nombre).toBe(
+      '{{ contact.custom_attribute.apodo }}'
+    );
+  });
+
   it('shows no insert button when no variables are offered (the default)', () => {
     const wrapper = mountParser();
 
