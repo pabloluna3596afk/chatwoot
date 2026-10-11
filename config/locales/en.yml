@@ -600,6 +600,19 @@ en:
       limit_exceeded: 'You can create a maximum of %{limit} custom tools per account'
     assistant:
       limit_exceeded: 'You can create a maximum of %{limit} assistants per account'
+    messaging:
+      note_flow: 'Captain sent the Flow %{name}'
+      note_template: 'Captain sent the template %{name}'
+      errors:
+        disabled: 'The owner has not enabled Flows and templates for this assistant and inbox.'
+        not_allowed: 'This resource is not allowed.'
+        unavailable: 'The Flow is not published or the template is not approved for this inbox.'
+        window_closed: 'The 24-hour window is closed; a Flow cannot be sent.'
+        paid_off: 'Paid messages are turned off.'
+        missing_variables: 'Some variables of the template have no value.'
+        pending_flow: 'This Flow is already pending; wait for the answer.'
+        rate_limit: 'The sending limit was reached; do not try again now.'
+        invalid_params: 'The parameters do not have the required format.'
     followup:
       nudge: 'Are you still there? If you still need help, just reply.'
       nudge_hint: ' Reply "%{continue}" or "%{stop}".'

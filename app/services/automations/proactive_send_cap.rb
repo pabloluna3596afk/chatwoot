@@ -20,6 +20,21 @@ class Automations::ProactiveSendCap
     ::Redis::Alfred.expire(key, 1.day.to_i) if new_count == 1
   end
 
+  # Takes one place of the day, or none: the check and the increment are one step, so two sends cannot compete for the
+  # last place. Give it back with #release! when the message is not created.
+  def reserve!
+    new_count = ::Redis::Alfred.incr(key)
+    ::Redis::Alfred.expire(key, 1.day.to_i) if new_count == 1
+    return true if new_count <= daily_cap
+
+    release!
+    false
+  end
+
+  def release!
+    ::Redis::Alfred.with { |conn| conn.decr(key) }
+  end
+
   private
 
   def daily_cap

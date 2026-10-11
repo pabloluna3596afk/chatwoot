@@ -29,4 +29,25 @@ RSpec.describe Automations::ProactiveSendCap do
       expect(cap.within_cap?).to be(true)
     end
   end
+
+  describe '#reserve! and #release!' do
+    before { account.update!(settings: (account.settings || {}).merge('proactive_daily_send_cap' => 2)) }
+
+    it 'takes places until the cap and refuses the next one without keeping it' do
+      expect(cap.reserve!).to be(true)
+      expect(cap.reserve!).to be(true)
+      expect(cap.reserve!).to be(false)
+
+      expect(cap.within_cap?).to be(false)
+      cap.release!
+      expect(cap.within_cap?).to be(true)
+    end
+
+    it 'counts together with the sends of the other producers' do
+      cap.increment!
+      cap.increment!
+
+      expect(cap.reserve!).to be(false)
+    end
+  end
 end

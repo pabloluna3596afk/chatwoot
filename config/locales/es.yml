@@ -540,6 +540,19 @@ es:
       limit_exceeded: 'You can create a maximum of %{limit} custom tools per account'
     assistant:
       limit_exceeded: 'Puedes crear un máximo de %{limit} asistentes por cuenta'
+    messaging:
+      note_flow: 'Captain envió el Flow %{name}'
+      note_template: 'Captain envió la plantilla %{name}'
+      errors:
+        disabled: 'El dueño no habilitó Flows y plantillas para este asistente y esta bandeja.'
+        not_allowed: 'Este recurso no está autorizado.'
+        unavailable: 'El Flow no está publicado o la plantilla no está aprobada para esta bandeja.'
+        window_closed: 'La ventana de 24 horas está cerrada; no se puede enviar un Flow.'
+        paid_off: 'Los mensajes de pago están desactivados.'
+        missing_variables: 'Faltan valores en algunas variables de la plantilla.'
+        pending_flow: 'Este Flow ya está pendiente; espera la respuesta.'
+        rate_limit: 'Se alcanzó el límite de envíos; no lo vuelvas a intentar ahora.'
+        invalid_params: 'Los parámetros no tienen el formato requerido.'
     followup:
       nudge: '¿Sigues ahí? Si todavía necesitas ayuda, solo responde.'
       nudge_hint: ' Responde "%{continue}" o "%{stop}".'
