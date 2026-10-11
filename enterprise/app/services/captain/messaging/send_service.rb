@@ -34,10 +34,8 @@ class Captain::Messaging::SendService
     return deny('invalid_params') unless request.valid?
 
     result = nil
-    conversation.with_lock do
-      conversation.reload
-      result = run
-    end
+    # Locking a record that has unsaved changes is refused, so what is in memory is dropped first.
+    conversation.reload.with_lock { result = run }
     result
   end
 
