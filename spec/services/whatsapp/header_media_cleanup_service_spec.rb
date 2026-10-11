@@ -2,6 +2,8 @@ require 'rails_helper'
 
 describe Whatsapp::HeaderMediaCleanupService do
   let(:account) { create(:account) }
+  # Files other specs left in the shared storage table are not what is being checked here.
+  let!(:other_blob_ids) { ActiveStorage::Blob.pluck(:id) }
   let(:inbox) { create(:inbox, account: account) }
 
   def header_blob(created_at: 40.days.ago, last_used_at: nil, name: 'oferta.pdf')
@@ -11,9 +13,6 @@ describe Whatsapp::HeaderMediaCleanupService do
       io: StringIO.new("%PDF-1.4 #{name} #{SecureRandom.hex(4)}"), filename: name, content_type: 'application/pdf', metadata: metadata
     ).tap { |blob| blob.update_columns(created_at: created_at) } # rubocop:disable Rails/SkipsModelValidations
   end
-
-  # Files other specs left in the shared storage table are not what is being checked here.
-  let!(:other_blob_ids) { ActiveStorage::Blob.pluck(:id) }
 
   def names_left
     ActiveStorage::Blob.where.not(id: other_blob_ids).pluck(:filename).map(&:to_s)
