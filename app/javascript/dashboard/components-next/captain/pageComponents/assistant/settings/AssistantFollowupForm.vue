@@ -8,10 +8,7 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
 import { isWhatsAppComplete } from '@chatwoot/utils';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
-import {
-  CONTACT_DEFAULT_VALUES,
-  useTemplateVariables,
-} from './useTemplateVariables';
+import { useTemplateVariables } from './useTemplateVariables';
 import {
   useApprovedTemplates,
   templateFromValue,
@@ -30,7 +27,7 @@ const emit = defineEmits(['submit']);
 const { t } = useI18n();
 const { templateOptions, templateEntry, templateInboxId } =
   useApprovedTemplates();
-const { variableOptions, previewValues } = useTemplateVariables({
+const { variableOptions, defaultValues, previewValues } = useTemplateVariables({
   appointment: false,
 });
 
@@ -243,7 +240,7 @@ watch(
             :media-inbox-id="templateInboxId(state.template)"
             :model-value="state.params"
             :variable-options="variableOptions"
-            :default-values="CONTACT_DEFAULT_VALUES"
+            :default-values="defaultValues"
             :preview-values="previewValues"
             @update:model-value="state.params = $event"
           />

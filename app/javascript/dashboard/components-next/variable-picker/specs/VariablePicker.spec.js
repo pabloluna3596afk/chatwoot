@@ -117,7 +117,10 @@ describe('VariablePicker', () => {
     await combo.get('input[type="search"]').setValue('Appointment date');
     expect(
       combo.findAll('[role="option"]').map(option => option.text())
-    ).toEqual(['Appointment date (fecha)']);
+    ).toEqual([
+      'Appointment date (fecha)',
+      'Appointment date and time (fecha_hora)',
+    ]);
     await combo.get('[role="option"]').trigger('click');
     expect(wrapper.emitted('update:modelValue')).toEqual([['fecha']]);
     await wrapper.setProps({ modelValue: 'fecha' });

@@ -47,13 +47,16 @@ const metadata = (binding, attribute) => ({
   requiresContext: [binding.key.split('.')[0]],
 });
 
-// Existing Captain aliases, offered only when requested; never added to message defaults in P1.
+// What Captain's messages add to the system names: the appointment, the assistant and the account (the business, not
+// the customer's company). Offered only when requested; never added to message defaults in P1.
 export const APPOINTMENT_BINDINGS = [
   { name: 'cita', key: 'appointment.title' },
   { name: 'fecha', key: 'appointment.date' },
   { name: 'hora', key: 'appointment.time' },
+  { name: 'fecha_hora', key: 'appointment.datetime' },
   { name: 'tema', key: 'appointment.title' },
   { name: 'asistente', key: 'assistant.name' },
+  { name: 'cuenta', key: 'account.name' },
 ].map(binding => metadata({ ...binding, group: 'appointment' }));
 
 // Flow compatibility lives in the catalog, including its input and option constraints.

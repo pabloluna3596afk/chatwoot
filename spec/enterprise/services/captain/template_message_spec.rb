@@ -120,6 +120,20 @@ RSpec.describe Captain::TemplateMessage do
       expect(text).to eq('Ana Pérez / Aurora / jueves 1 de octubre / Consulta')
     end
 
+    it 'renders every value the shared variable table offers (see templateVariableBindings)' do
+      contact = create(:contact, account: account, name: 'Ana Pérez', email: 'ana@correo.com', phone_number: '+593991234567',
+                                 additional_attributes: { 'city' => 'Quito', 'company_name' => 'Café Sol' })
+      conversation = create(:conversation, account: account, contact: contact)
+      keys = %w[contact.name contact.first_name contact.last_name contact.email contact.phone contact.company_name contact.city
+                agent.name conversation.id account.name assistant.name]
+      drops = described_class.drops(conversation, assistant)
+
+      values = keys.map { |key| Liquid::Template.parse("{{ #{key} }}").render(drops) }
+
+      expect(values.first(8)).to eq(['Ana Pérez', 'Ana', 'Pérez', 'ana@correo.com', '+593991234567', 'Café Sol', 'Quito', ''])
+      expect(values.last(3)).to eq([conversation.display_id.to_s, account.name, 'Aurora'])
+    end
+
     it 'has an empty appointment for messages that are not about one' do
       drops = described_class.drops(conversation, assistant)
 

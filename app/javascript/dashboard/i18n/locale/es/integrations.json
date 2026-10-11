@@ -903,28 +903,23 @@
         },
         "TEMPLATE_VARIABLES": {
           "ERROR": "Completa todas las variables de la plantilla antes de guardar.",
-          "LABELS": {
-            "contact": {
-              "name": "Nombre del cliente",
-              "first_name": "Primer nombre del cliente"
-            },
-            "appointment": {
-              "date": "Fecha de la cita",
-              "time": "Hora de la cita",
-              "datetime": "Fecha y hora de la cita",
-              "title": "Título de la cita"
-            },
-            "assistant": {
-              "name": "Nombre del asistente"
-            },
-            "account": {
-              "name": "Nombre de la empresa"
-            }
-          },
           "SAMPLES": {
             "contact": {
               "name": "Ana Pérez",
-              "first_name": "Ana"
+              "first_name": "Ana",
+              "last_name": "Pérez",
+              "email": "ana@correo.com",
+              "phone": "+593 99 123 4567",
+              "company_name": "Café Sol",
+              "city": "Quito",
+              "country_code": "EC",
+              "document_number": "1712345678"
+            },
+            "agent": {
+              "name": "Luis"
+            },
+            "conversation": {
+              "id": "1024"
             },
             "appointment": {
               "date": "jueves 1 de octubre",
