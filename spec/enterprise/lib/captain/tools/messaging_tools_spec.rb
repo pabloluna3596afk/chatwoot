@@ -24,7 +24,7 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
   let(:assistant) do
     create(:captain_assistant, account: account, name: 'Aurora', config: { 'messaging' => messaging, 'allow_paid_templates' => true })
   end
-  let(:customer_message) do
+  let!(:customer_message) do
     create(:message, account: account, inbox: inbox, conversation: conversation, message_type: :incoming, sender: contact)
   end
   let(:state) { { conversation: { id: conversation.id }, responding_to_message_id: customer_message.id } }
