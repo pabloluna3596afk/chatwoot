@@ -52,7 +52,7 @@ class Captain::Messaging::Limits
 
   # A Flow is answered when the customer's answer was saved after it was sent (Whatsapp::Flows::SaveResponseService).
   def unanswered?(flow_message)
-    @conversation.messages.incoming.where('created_at > ?', flow_message.created_at)
-                 .where("content_attributes -> 'whatsapp_flow_saved' IS NOT NULL").none?
+    answers = @conversation.messages.incoming.where('created_at > ?', flow_message.created_at).pluck(:content_attributes)
+    answers.none? { |attributes| attributes.is_a?(Hash) && attributes['whatsapp_flow_saved'] }
   end
 end

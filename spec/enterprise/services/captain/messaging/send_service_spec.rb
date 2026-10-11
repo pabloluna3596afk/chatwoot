@@ -227,9 +227,10 @@ RSpec.describe Captain::Messaging::SendService do
       expect(send_template(name: 'pendiente').code).to eq('unavailable')
     end
 
-    it 'refuses a template with a variable that has no value' do
-      messaging['inboxes'][0]['templates'][0]['processed_params'] = { 'body' => { 'nombre' => '{{ contact.first_name }}' } }
-      assistant.update!(config: assistant_config)
+    it 'refuses a template with a variable that has no value (the template changed in Meta after the settings were saved)' do
+      incomplete = assistant_config.deep_dup
+      incomplete['messaging']['inboxes'][0]['templates'][0]['processed_params'] = { 'body' => { 'nombre' => '{{ contact.first_name }}' } }
+      assistant.update_column(:config, incomplete) # rubocop:disable Rails/SkipsModelValidations
 
       expect(send_template).to have_attributes(code: 'missing_variables', detail: 'body.asistente')
     end
