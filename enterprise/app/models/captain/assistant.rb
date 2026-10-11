@@ -102,6 +102,10 @@ class Captain::Assistant < ApplicationRecord
     Captain::FollowupSettings.new(config['followup'])
   end
 
+  def messaging
+    Captain::MessagingSettings.new(config['messaging'])
+  end
+
   # One switch for every Captain message that, outside the 24 h window, has to be a paid WhatsApp template
   # (appointment reminders, re-engagement). Off unless the owner turned it on.
   def allow_paid_templates?
