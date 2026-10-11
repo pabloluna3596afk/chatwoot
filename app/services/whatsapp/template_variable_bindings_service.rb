@@ -48,7 +48,9 @@ class Whatsapp::TemplateVariableBindingsService
   def store(name, clean)
     updated = stored.except(name.to_s)
     updated[name.to_s] = clean if clean.any?
-    @channel.update!(template_variable_bindings: updated)
+    # Saved without validations: validate_provider_config checks the credentials with Meta, and nothing of the provider changes.
+    @channel.template_variable_bindings = updated
+    @channel.save!(validate: false)
   end
 
   private
