@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_05_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_10_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -898,6 +898,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_05_120000) do
     t.datetime "phone_number_health_checked_at"
     t.string "phone_number_health_error", limit: 500
     t.text "business_management_token"
+    t.jsonb "template_variable_bindings", default: {}, null: false
     t.index ["phone_number"], name: "index_channel_whatsapp_on_phone_number", unique: true
     t.index ["phone_number_health_checked_at"], name: "index_channel_whatsapp_on_phone_number_health_checked_at"
   end

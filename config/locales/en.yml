@@ -926,6 +926,7 @@ en:
       invalid_name: 'The name can only contain lowercase letters, numbers and underscores.'
       invalid_language: 'The language is not valid.'
       invalid_category: 'The category must be Utility or Marketing.'
+      invalid_variable_bindings: 'The values chosen for the variables are not valid: %{message}'
       cloud_channel_required: 'Templates can only be managed on WhatsApp Cloud channels.'
       name_required: 'The template name is missing.'
       file_required: 'The example file is missing.'
