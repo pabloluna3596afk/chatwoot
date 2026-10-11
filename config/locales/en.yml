@@ -601,6 +601,13 @@ en:
     assistant:
       limit_exceeded: 'You can create a maximum of %{limit} assistants per account'
     messaging:
+      prepared_flow: 'The form is prepared; it will be sent when you finish this reply. Do not write it yourself.'
+      prepared_template: 'The template is prepared; it will be sent when you finish this reply. Do not write it yourself.'
+      already_prepared: 'A form or template is already prepared for this reply; only one can be sent.'
+      already_sent: 'This was already sent in answer to this message.'
+      retry_after: 'You could try again in about %{minutes} minutes.'
+      not_here: 'Forms and templates can only be sent in a real conversation.'
+      not_sent: 'Captain could not send the Flow or template it prepared: %{reason}'
       note_flow: 'Captain sent the Flow %{name}'
       note_template: 'Captain sent the template %{name}'
       errors:

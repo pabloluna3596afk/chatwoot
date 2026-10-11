@@ -74,3 +74,23 @@
   title: 'Confirm Appointment'
   description: "Mark one of the customer's appointments as confirmed"
   icon: 'calendar-check'
+
+- id: list_available_flows
+  title: 'List Available Flows'
+  description: 'List the forms the assistant may send in this conversation'
+  icon: 'list-checks'
+
+- id: send_flow
+  title: 'Send Flow'
+  description: 'Send the customer a form (WhatsApp Flow) to fill in'
+  icon: 'send'
+
+- id: list_available_templates
+  title: 'List Available Templates'
+  description: 'List the message templates the assistant may send in this conversation'
+  icon: 'list'
+
+- id: send_template
+  title: 'Send Template'
+  description: 'Send the customer an approved message template'
+  icon: 'send'
