@@ -2,6 +2,8 @@ require 'rails_helper'
 
 describe Whatsapp::HeaderMediaCleanupService do
   let(:account) { create(:account) }
+  # Files other specs left in the shared storage table are not what is being checked here.
+  let!(:other_blob_ids) { ActiveStorage::Blob.pluck(:id) }
   let(:inbox) { create(:inbox, account: account) }
 
   def header_blob(created_at: 40.days.ago, last_used_at: nil, name: 'oferta.pdf')
@@ -13,7 +15,7 @@ describe Whatsapp::HeaderMediaCleanupService do
   end
 
   def names_left
-    ActiveStorage::Blob.pluck(:filename).map(&:to_s)
+    ActiveStorage::Blob.where.not(id: other_blob_ids).pluck(:filename).map(&:to_s)
   end
 
   it 'purges a copy that nothing uses and was last chosen more than 30 days ago' do

@@ -12,7 +12,8 @@ class Captain::OpenAiMessageBuilderService
 
   def generate_content
     parts = []
-    parts << text_part(@message.content) if @message.content.present?
+    text = Captain::Messaging::FlowAnswersContext.text_for(@message) || @message.content
+    parts << text_part(text) if text.present?
     parts.concat(attachment_parts(@message.attachments)) if @message.attachments.any?
 
     return 'Message without content' if parts.blank?
