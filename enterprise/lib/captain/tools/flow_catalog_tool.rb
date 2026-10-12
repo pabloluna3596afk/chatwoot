@@ -1,4 +1,4 @@
-class Captain::Tools::ListAvailableFlowsTool < Captain::Tools::BaseMessagingTool
+class Captain::Tools::FlowCatalogTool < Captain::Tools::BaseMessagingTool
   description 'List the forms (WhatsApp Flows) you may send in this conversation, with what each one is for and the fields ' \
               'it asks. Call it before send_flow; only these forms can be sent.'
 

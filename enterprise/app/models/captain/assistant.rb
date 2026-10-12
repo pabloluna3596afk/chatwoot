@@ -31,7 +31,7 @@ class Captain::Assistant < ApplicationRecord
     confirm_appointment
   ].freeze
 
-  MESSAGING_TOOL_IDS = %w[list_available_flows send_flow list_available_templates send_template].freeze
+  MESSAGING_TOOL_IDS = %w[flow_catalog send_flow template_catalog send_template].freeze
 
   class LimitExceededError < StandardError; end
 

@@ -1,4 +1,4 @@
-class Captain::Tools::ListAvailableTemplatesTool < Captain::Tools::BaseMessagingTool
+class Captain::Tools::TemplateCatalogTool < Captain::Tools::BaseMessagingTool
   description 'List the message templates you may send in this conversation, with what each one is for. A template is a paid ' \
               'WhatsApp message: use it only when the customer needs exactly that and a normal reply or a form does not do. ' \
               'Call it before send_template; only these templates can be sent.'

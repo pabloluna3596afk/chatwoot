@@ -43,7 +43,7 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
     Captain::Messaging::Intent.take(conversation, responding_to: customer_message.id)
   end
 
-  describe Captain::Tools::ListAvailableFlowsTool do
+  describe Captain::Tools::FlowCatalogTool do
     it 'lists the allowed Flows that are published, with their purpose and the fields they ask' do
       data = JSON.parse(described_class.new(assistant).perform(tool_context))
 
@@ -113,7 +113,7 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
     end
   end
 
-  describe Captain::Tools::ListAvailableTemplatesTool do
+  describe Captain::Tools::TemplateCatalogTool do
     it 'lists the allowed templates and whether they can be sent' do
       entry = JSON.parse(described_class.new(assistant).perform(tool_context))['templates'].first
 
@@ -146,6 +146,31 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
 
       expect(result).to eq('Los mensajes de pago están desactivados.')
       expect(prepared_request).to be_nil
+    end
+  end
+
+  describe 'how the assistant finds them' do
+    it 'resolves the id of every tool of the registry to a class (a plural id such as "x_flows" would not)' do
+      Captain::Assistant.built_in_tool_ids.each do |tool_id|
+        expect(Captain::Assistant.resolve_tool_class(tool_id)).to be_present, "#{tool_id} has no tool class"
+      end
+    end
+
+    it 'builds the four tools' do
+      expect(assistant.messaging_tools.map { |tool| tool.class.name.demodulize })
+        .to eq(%w[FlowCatalogTool SendFlowTool TemplateCatalogTool SendTemplateTool])
+    end
+
+    it 'gives them to the agent of a real conversation of an inbox the owner allowed, and to no other' do
+      run_options = Captain::Assistant::AgentRunnerService::RunOptions.new(responding_to_message_id: customer_message.id)
+      runner = Captain::Assistant::AgentRunnerService.new(assistant: assistant, conversation: conversation, run_options: run_options)
+      names = ->(agent) { agent.tools.map { |tool| tool.class.name.demodulize } }
+
+      expect(names.call(runner.send(:with_messaging_tools, assistant.agent))).to include('FlowCatalogTool', 'SendFlowTool', 'SendTemplateTool')
+
+      other = create(:conversation, account: account, inbox: create(:inbox, account: account))
+      other_runner = Captain::Assistant::AgentRunnerService.new(assistant: assistant, conversation: other, run_options: run_options)
+      expect(names.call(other_runner.send(:with_messaging_tools, assistant.agent))).not_to include('SendFlowTool')
     end
   end
 end
