@@ -1,7 +1,7 @@
 {
   "SEARCH": {
     "TABS": {
-      "ALL": "All results",
+      "ALL": "Todos los resultados",
       "CONTACTS": "Contactos",
       "CONVERSATIONS": "Conversaciones",
       "MESSAGES": "Mensajes",
@@ -21,21 +21,21 @@
     "EMPTY_STATE_FULL": "No se han encontrado resultados para la consulta '{query}'",
     "PLACEHOLDER_KEYBINDING": "/para enfocar",
     "INPUT_PLACEHOLDER": "Buscar mensajes, contactos o conversaciones",
-    "RECENT_SEARCHES": "Recent searches",
+    "RECENT_SEARCHES": "Búsquedas recientes",
     "CLEAR_ALL": "Limpiar todo",
-    "MOST_RECENT": "Most recent",
+    "MOST_RECENT": "Más reciente",
     "EMPTY_STATE_DEFAULT": "Buscar por Id de conversación, correo electrónico, número de teléfono, mensajes para mejores resultados de búsqueda.",
     "BOT_LABEL": "Bot",
     "READ_MORE": "Leer más",
-    "READ_LESS": "Read less",
+    "READ_LESS": "Leer menos",
     "WROTE": "escribió:",
     "FROM": "Desde",
     "EMAIL": "E-mail",
     "EMAIL_SUBJECT": "Asunto",
-    "PRIVATE": "Private note",
+    "PRIVATE": "Nota privada",
     "TRANSCRIPT": "Transcript",
     "CREATED_AT": "creado {time}",
-    "UPDATED_AT": "updated {time}",
+    "UPDATED_AT": "actualizado {time}",
     "SORT_BY": {
       "RELEVANCE": "Relevance"
     },
@@ -44,25 +44,25 @@
       "LAST_30_DAYS": "Últimos 30 días",
       "LAST_60_DAYS": "Últimos 60 días",
       "LAST_90_DAYS": "Últimos 90 días",
-      "CUSTOM_RANGE": "Custom range:",
-      "CREATED_BETWEEN": "Created between",
+      "CUSTOM_RANGE": "Rango personalizado:",
+      "CREATED_BETWEEN": "Creado entre",
       "AND": "y",
       "APPLY": "Aplicar",
-      "BEFORE_DATE": "Before {date}",
-      "AFTER_DATE": "After {date}",
-      "TIME_RANGE": "Filter by time",
+      "BEFORE_DATE": "Antes de {date}",
+      "AFTER_DATE": "Después de {date}",
+      "TIME_RANGE": "Filtrar por hora",
       "CLEAR_FILTER": "Limpiar filtros"
     },
     "FILTERS": {
-      "FILTER_MESSAGE": "Filter messages by:",
+      "FILTER_MESSAGE": "Filtrar mensajes por:",
       "FROM": "Remitente",
       "IN": "Bandeja de entrada",
       "AGENTS": "Agentes",
       "CONTACTS": "Contactos",
       "INBOXES": "Entradas",
       "NO_AGENTS": "No se encontraron agentes",
-      "NO_CONTACTS": "Start by searching to see results",
-      "NO_INBOXES": "No inboxes found"
+      "NO_CONTACTS": "Empieza buscando para ver resultados",
+      "NO_INBOXES": "No se encontraron bandejas"
     }
   }
 }

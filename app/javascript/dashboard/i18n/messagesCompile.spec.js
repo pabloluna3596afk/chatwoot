@@ -1,14 +1,11 @@
 import { createI18n } from 'vue-i18n';
-import esIntegrations from './locale/es/integrations.json';
-import enIntegrations from './locale/en/integrations.json';
-import esTemplates from './locale/es/whatsappTemplateMgmt.json';
-import enTemplates from './locale/en/whatsappTemplateMgmt.json';
-import esReports from './locale/es/report.json';
-import enReports from './locale/en/report.json';
 
-// A message with a bare "@" is read by vue-i18n as a linked message ("@:other.key") and its compiler throws "Invalid
-// linked format" the first time the message is shown, which breaks the whole component that renders it. Write a literal
-// "@" as {'@'}.
+// vue-i18n compiles a message the first time it is shown. A message it cannot compile breaks the whole component that
+// renders it. Typical causes: a bare "@" (read as a linked message "@:other.key": "Invalid linked format"; write a
+// literal "@" as {'@'}) and literal double braces ("Not allowed nest placeholder"; write {'{'}{'{'} x {'}'}{'}'}).
+// This guard compiles every message of every Spanish and English locale file.
+const modules = import.meta.glob('./locale/{es,en}/*.json', { eager: true });
+
 const leaves = (value, path = []) => {
   if (typeof value === 'string') return [[path.join('.'), value]];
   if (!value || typeof value !== 'object') return [];
@@ -17,29 +14,17 @@ const leaves = (value, path = []) => {
   );
 };
 
-const files = {
-  es: {
-    ...esIntegrations,
-    ...esTemplates,
-    REPORT_PANELS: esReports.REPORT_PANELS,
-  },
-  en: {
-    ...enIntegrations,
-    ...enTemplates,
-    REPORT_PANELS: enReports.REPORT_PANELS,
-  },
-};
-
-describe.each(Object.keys(files))('messages of %s', locale => {
-  const i18n = createI18n({
-    legacy: false,
-    locale,
-    fallbackLocale: false,
-    missingWarn: false,
-    messages: { [locale]: files[locale] },
-  });
-
-  it('compile without errors', () => {
+describe('locale messages compile without errors', () => {
+  it.each(Object.keys(modules))('%s', file => {
+    const locale = file.includes('/es/') ? 'es' : 'en';
+    const data = modules[file].default;
+    const i18n = createI18n({
+      legacy: false,
+      locale,
+      fallbackLocale: false,
+      missingWarn: false,
+      messages: { [locale]: data },
+    });
     // vue-i18n reports a message it cannot compile on the console and shows the raw key; some builds throw.
     const logged = [];
     const spies = ['error', 'warn'].map(level =>
@@ -47,21 +32,19 @@ describe.each(Object.keys(files))('messages of %s', locale => {
         logged.push(args.map(String).join(' '));
       })
     );
-    const failures = leaves(files[locale]).flatMap(([key, text]) => {
-      logged.length = 0;
+    const failures = leaves(data).flatMap(([key]) => {
       try {
-        i18n.global.t(key, { n: 1, count: 1, title: 'x' });
+        i18n.global.t(key);
+        return [];
       } catch (error) {
-        logged.push(error.message);
+        return [`${key}: ${error.message}`];
       }
-      // Upstream messages that carry HTML only warn: they render fine.
-      const problems = logged.filter(line => !line.includes('Detected HTML'));
-      return problems.length
-        ? [`${key}: ${problems.join(' / ')} (${text.slice(0, 60)})`]
-        : [];
     });
     spies.forEach(spy => spy.mockRestore());
-
-    expect(failures).toEqual([]);
+    // HTML in a message is intentional in a few places; only compilation errors matter here.
+    const compileErrors = logged.filter(
+      line => !line.includes('Detected HTML')
+    );
+    expect([...failures, ...compileErrors].slice(0, 5)).toEqual([]);
   });
 });

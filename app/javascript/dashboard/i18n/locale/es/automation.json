@@ -220,7 +220,7 @@
       "CUSTOM_ATTRIBUTE_USE_TODAY": "Usar fecha de hoy",
       "CUSTOM_ATTRIBUTE_USE_NOW": "Usar fecha y hora actuales",
       "CUSTOM_ATTRIBUTE_DATETIME_DYNAMIC_NOW": "Fecha y hora dinámica: ahora",
-      "CUSTOM_ATTRIBUTE_DATETIME_DYNAMIC_HELP": "Se resuelve cuando corre la automatización o macro. Usa ahora, ahora más N días, o variables como {{ contact.custom_attribute.foo }}.",
+      "CUSTOM_ATTRIBUTE_DATETIME_DYNAMIC_HELP": "Se resuelve cuando corre la automatización o macro. Usa ahora, ahora más N días, o variables como {'{'}{'{'} contact.custom_attribute.foo {'}'}{'}'}.",
       "VARIABLES_HINT": "Usa el botón de variables para insertar nombre del contacto, atributos personalizados o fechas",
       "WHATSAPP_TEMPLATE": {
         "INBOX_LABEL": "Inbox de WhatsApp",

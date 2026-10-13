@@ -25,8 +25,8 @@
     "NO_INBOX_2": " para empezar",
     "NO_INBOX_AGENT": "¡Uh Oh! Parece que no eres parte de ninguna bandeja de entrada. Por favor, contacta con tu administrador",
     "SEARCH_MESSAGES": "Buscar mensajes en conversaciones",
-    "VIEW_ORIGINAL": "View original",
-    "VIEW_TRANSLATED": "View translated",
+    "VIEW_ORIGINAL": "Ver original",
+    "VIEW_TRANSLATED": "Ver traducido",
     "EMPTY_STATE": {
       "CMD_BAR": "para abrir el menú de comandos",
       "KEYBOARD_SHORTCUTS": "para ver los atajos del teclado"
@@ -90,7 +90,7 @@
     "UNSUPPORTED_MESSAGE": "Este mensaje no es compatible. Puedes ver este mensaje en la aplicación de Facebook/Instagram.",
     "UNSUPPORTED_MESSAGE_FACEBOOK": "Este mensaje no es compatible. Puedes ver este mensaje en la aplicación de Facebook Messenger.",
     "UNSUPPORTED_MESSAGE_INSTAGRAM": "Este mensaje no es compatible. Puedes ver este mensaje en la aplicación de Instagram.",
-    "UNSUPPORTED_MESSAGE_TIKTOK": "This message is unsupported. You can view this message on the TikTok app.",
+    "UNSUPPORTED_MESSAGE_TIKTOK": "Este mensaje no es compatible. Puedes verlo en la aplicación de TikTok.",
     "UNSUPPORTED_MESSAGE_WHATSAPP": "Este mensaje no es compatible. Puedes ver este mensaje en la aplicación de WhatsApp.",
     "WHATSAPP_FLOW_RESPONSE": "Envió una respuesta de Flow",
     "WHATSAPP_FLOW_COMPLETED": "Flow",
@@ -128,21 +128,21 @@
       "CAPTAIN_WAITING_CUSTOMER": "{name} · esperando al cliente"
     },
     "VOICE_CALL": {
-      "INCOMING_CALL": "Incoming call",
-      "OUTGOING_CALL": "Outgoing call",
-      "CALL_IN_PROGRESS": "Call in progress",
-      "NO_ANSWER": "No answer",
-      "NO_ANSWER_OUTBOUND_LABEL": "No answer",
+      "INCOMING_CALL": "Llamada entrante",
+      "OUTGOING_CALL": "Llamada saliente",
+      "CALL_IN_PROGRESS": "Llamada en curso",
+      "NO_ANSWER": "Sin respuesta",
+      "NO_ANSWER_OUTBOUND_LABEL": "Sin respuesta",
       "NO_ANSWER_OUTBOUND_SUBTEXT": "El contacto no ha atendido",
-      "MISSED_CALL": "Missed call",
+      "MISSED_CALL": "Llamada perdida",
       "MISSED_CALL_INBOUND_SUBTEXT": "Ningún agente escogido",
       "MISSED_CALL_DECLINED_BY": "Denegado por {agentName}",
-      "CALL_ENDED": "Call ended",
+      "CALL_ENDED": "Llamada finalizada",
       "HANDLED_BY": "Manejado por {agentName}",
-      "NOT_ANSWERED_YET": "Not answered yet",
+      "NOT_ANSWERED_YET": "Aún sin respuesta",
       "CALLING": "Llamando…",
-      "THEY_ANSWERED": "They answered",
-      "YOU_ANSWERED": "You answered",
+      "THEY_ANSWERED": "Respondieron",
+      "YOU_ANSWERED": "Respondiste",
       "AGENT_ANSWERED": "{agentName} respondió",
       "JOIN_CALL": "Unirse a la llamada",
       "CALL_BACK": "Llamar de vuelta",
@@ -254,8 +254,8 @@
           "FAILED": "No se pudo asignar el agente. Por favor, inténtelo de nuevo."
         },
         "LABEL_REMOVAL": {
-          "SUCCESFUL": "Removed label #{labelName} from conversation id {conversationId}",
-          "FAILED": "Couldn't remove label. Please try again."
+          "SUCCESFUL": "Se eliminó la etiqueta #{labelName} de la conversación con id {conversationId}",
+          "FAILED": "No se pudo eliminar la etiqueta. Inténtalo de nuevo."
         },
         "TEAM_ASSIGNMENT": {
           "SUCCESFUL": "Equipo asignado \"{team}\" al ID de conversación {conversationId}",
@@ -269,9 +269,9 @@
       "DISABLE_SIGN_TOOLTIP": "Desactivar firma",
       "MSG_INPUT": "Shift + enter for new line. Comience con '/' para seleccionar una respuesta predefinida.",
       "PRIVATE_MSG_INPUT": "Mayús + entrar para una nueva línea. Esto será visible sólo para los agentes",
-      "MESSAGING_RESTRICTED": "You cannot reply to this conversation",
-      "MESSAGING_RESTRICTED_WHATSAPP": "You can only reply using a template message due to 24-hour message window restriction",
-      "MESSAGING_RESTRICTED_API": "You can only reply using a template message due to message window restriction",
+      "MESSAGING_RESTRICTED": "No puedes responder a esta conversación",
+      "MESSAGING_RESTRICTED_WHATSAPP": "Solo puedes responder con una plantilla debido a la restricción de ventana de mensajes de 24 horas",
+      "MESSAGING_RESTRICTED_API": "Solo puedes responder con una plantilla debido a la restricción de ventana de mensajes",
       "MESSAGE_SIGNATURE_NOT_CONFIGURED": "La firma del mensaje no está configurada, por favor configúrela en la configuración del perfil.",
       "COPILOT_MSG_INPUT": "Dale instrucciones adicionales a Copilot o pregúntale cualquier otra cosa... Pulsa Enter para enviar el seguimiento",
       "CLICK_HERE": "Haga clic aquí para actualizar",
@@ -323,14 +323,15 @@
         "TITLE": "Asignar conversación",
         "MESSAGE": "Para responder debes asignarte esta conversación. ¿Confirmar?",
         "CONFIRM": "Sí",
-        "CANCEL": "No"
+        "CANCEL": "No",
+        "ENTER_HINT": "Pulsa Enter para confirmar · Esc para cancelar"
       },
       "QUOTED_REPLY": {
-        "ENABLE_TOOLTIP": "Include quoted email thread",
-        "DISABLE_TOOLTIP": "Don't include quoted email thread",
-        "REMOVE_PREVIEW": "Remove quoted email thread",
-        "COLLAPSE": "Collapse preview",
-        "EXPAND": "Expand preview"
+        "ENABLE_TOOLTIP": "Incluir el hilo de correo citado",
+        "DISABLE_TOOLTIP": "No incluir el hilo de correo citado",
+        "REMOVE_PREVIEW": "Quitar el hilo de correo citado",
+        "COLLAPSE": "Contraer vista previa",
+        "EXPAND": "Expandir vista previa"
       }
     },
     "VISIBLE_TO_AGENTS": "Nota privada: solo visible para ti y tu equipo",
@@ -344,11 +345,11 @@
     "SUCCESS_DELETE_CONVERSATION": "Conversación eliminada con éxito",
     "FAIL_DELETE_CONVERSATION": "¡No se pudo eliminar la conversación! Inténtalo de nuevo",
     "FILE_SIZE_LIMIT": "El archivo supera el límite de archivos adjuntos de {MAXIMUM_SUPPORTED_FILE_UPLOAD_SIZE} MB",
-    "FILE_TYPE_NOT_SUPPORTED": "This {fileName} file type is not supported in this conversation",
+    "FILE_TYPE_NOT_SUPPORTED": "El tipo de archivo {fileName} no es compatible con esta conversación",
     "MESSAGE_ERROR": "No se puede enviar este mensaje, por favor inténtalo de nuevo más tarde",
     "SENT_BY": "Enviado por:",
     "BOT": "Bot",
-    "NATIVE_APP": "Native app",
+    "NATIVE_APP": "App nativa",
     "NATIVE_APP_ADVISORY": "Este mensaje se envió desde la aplicación nativa. Responde desde ChatHub para mantener la ventana de mensajes.",
     "SEND_FAILED": "¡No se pudo enviar el mensaje! Inténtalo de nuevo",
     "TRY_AGAIN": "reintentar",
@@ -420,10 +421,10 @@
       "EMPTY_STATE": "Todas las secciones del panel están ocultas. Usa el menú de arriba para mostrarlas."
     },
     "VOICE_WIDGET": {
-      "INCOMING_CALL": "Incoming call",
-      "OUTGOING_CALL": "Outgoing call",
-      "CALL_IN_PROGRESS": "Call in progress",
-      "NOT_ANSWERED_YET": "Not answered yet",
+      "INCOMING_CALL": "Llamada entrante",
+      "OUTGOING_CALL": "Llamada saliente",
+      "CALL_IN_PROGRESS": "Llamada en curso",
+      "NOT_ANSWERED_YET": "Aún sin respuesta",
       "HANDLED_IN_ANOTHER_TAB": "Atendido en otra pestaña",
       "REJECT_CALL": "Rechazar",
       "DISMISS_CALL": "Descartar",
@@ -471,6 +472,19 @@
         "DISABLED": "Deshabilitado",
         "YOU_ARE_A_MEMBER": "Eres un miembro de este equipo"
       }
+    },
+    "CONTACT_HISTORY": {
+      "OLDER": "Conversación anterior con este cliente",
+      "NEWER": "Siguiente conversación con este cliente"
+    },
+    "REQUEST_CONTACT_INFO": {
+      "ACTION": "Pedir al cliente que comparta su número de WhatsApp",
+      "PENDING_ACTION": "Solicitud de información de contacto pendiente",
+      "STATES": {
+        "PENDING": "Esperando información de contacto",
+        "SHARED": "Número de teléfono compartido",
+        "IDENTITY_CONFLICT": "El número de teléfono necesita revisión"
+      }
     }
   },
   "EMAIL_TRANSCRIPT": {
@@ -480,7 +494,7 @@
     "CANCEL": "Cancelar",
     "SEND_EMAIL_SUCCESS": "La transcripción ha sido enviada",
     "SEND_EMAIL_ERROR": "Hubo un error, por favor inténtelo de nuevo",
-    "SEND_EMAIL_PAYMENT_REQUIRED": "Email transcript is not available on your current plan. Please upgrade to use this feature.",
+    "SEND_EMAIL_PAYMENT_REQUIRED": "La transcripción del correo no está disponible en tu plan actual. Mejora tu plan para usar esta función.",
     "FORM": {
       "SEND_TO_CONTACT": "Enviar la transcripción al cliente",
       "SEND_TO_AGENT": "Enviar la transcripción al agente asignado",
@@ -538,7 +552,7 @@
       "MACROS": "Macros",
       "LINEAR_ISSUES": "Problemas lineales vinculados",
       "CALENDAR_EVENTS": "Citas",
-      "SHOPIFY_ORDERS": "Shopify Orders",
+      "SHOPIFY_ORDERS": "Pedidos de Shopify",
       "SHARED_FILES": "Adjuntos"
     },
     "CALENDAR": {
@@ -579,21 +593,21 @@
       "JUMP_TO_MESSAGE": "Ir al mensaje"
     },
     "SHOPIFY": {
-      "ORDER_ID": "Order #{id}",
-      "ERROR": "Error loading orders",
-      "NO_SHOPIFY_ORDERS": "No orders found",
+      "ORDER_ID": "Pedido #{id}",
+      "ERROR": "Error al cargar los pedidos",
+      "NO_SHOPIFY_ORDERS": "No se encontraron pedidos",
       "FINANCIAL_STATUS": {
         "PENDING": "Pendientes",
         "AUTHORIZED": "Authorized",
-        "PARTIALLY_PAID": "Partially Paid",
+        "PARTIALLY_PAID": "Pagado parcialmente",
         "PAID": "Paid",
-        "PARTIALLY_REFUNDED": "Partially Refunded",
+        "PARTIALLY_REFUNDED": "Reembolsado parcialmente",
         "REFUNDED": "Refunded",
         "VOIDED": "Voided"
       },
       "FULFILLMENT_STATUS": {
         "FULFILLED": "Fulfilled",
-        "PARTIALLY_FULFILLED": "Partially Fulfilled",
+        "PARTIALLY_FULFILLED": "Completado parcialmente",
         "UNFULFILLED": "Unfulfilled"
       }
     }

@@ -1,10 +1,10 @@
 {
   "GENERAL_SETTINGS": {
     "LIMIT_MESSAGES": {
-      "CONVERSATION": "You have exceeded the conversation limit. Hacker plan allows only 500 conversations.",
-      "INBOXES": "You have exceeded the inbox limit. Hacker plan only supports website live-chat. Additional inboxes like email, WhatsApp etc. require a paid plan.",
+      "CONVERSATION": "Has superado el límite de conversaciones. El plan Hacker solo permite 500 conversaciones.",
+      "INBOXES": "Has superado el límite de bandejas. El plan Hacker solo admite chat en vivo del sitio web. Las bandejas adicionales como correo electrónico, WhatsApp, etc. requieren un plan de pago.",
       "AGENTS": "Has superado el límite de agentes. Tu plan solo permite {allowedAgents} agentes.",
-      "NON_ADMIN": "Please contact your administrator to upgrade the plan and continue using all features."
+      "NON_ADMIN": "Por favor, contacta a tu administrador para actualizar el plan y seguir usando todas las funciones."
     },
     "TITLE": "Configuración de la cuenta",
     "SUBMIT": "Actualizar ajustes",
@@ -15,23 +15,23 @@
       "SUCCESS": "Configuración de cuenta actualizada correctamente"
     },
     "ACCOUNT_DELETE_SECTION": {
-      "TITLE": "Delete your Account",
-      "NOTE": "Once you delete your account, all your data will be deleted.",
-      "BUTTON_TEXT": "Delete Your Account",
+      "TITLE": "Eliminar tu cuenta",
+      "NOTE": "Una vez que elimines tu cuenta, todos tus datos se eliminarán.",
+      "BUTTON_TEXT": "Eliminar tu cuenta",
       "CONFIRM": {
-        "TITLE": "Delete Account",
-        "MESSAGE": "Deleting your Account is irreversible. Enter your account name below to confirm you want to permanently delete it.",
+        "TITLE": "Eliminar cuenta",
+        "MESSAGE": "Eliminar tu cuenta es irreversible. Ingresa el nombre de la cuenta a continuación para confirmar que quieres eliminarla de forma permanente.",
         "BUTTON_TEXT": "Eliminar",
         "DISMISS": "Cancelar",
         "PLACE_HOLDER": "Por favor escriba {accountName} para confirmar"
       },
-      "SUCCESS": "Account marked for deletion",
-      "FAILURE": "Could not delete account, try again!",
+      "SUCCESS": "Cuenta marcada para eliminación",
+      "FAILURE": "No se pudo eliminar la cuenta, inténtalo de nuevo!",
       "SCHEDULED_DELETION": {
-        "TITLE": "Account Scheduled for Deletion",
-        "MESSAGE_MANUAL": "This account is scheduled for deletion on {deletionDate}. This was requested by an administrator. You can cancel the deletion before this date.",
+        "TITLE": "Cuenta programada para eliminación",
+        "MESSAGE_MANUAL": "Esta cuenta está programada para eliminarse el {deletionDate}. Esto lo solicitó un administrador. Puedes cancelar la eliminación antes de esa fecha.",
         "MESSAGE_INACTIVITY": "Esta cuenta se eliminará el {deletionDate} debido a inactividad. Puedes cancelar la eliminación antes de esta fecha.",
-        "CLEAR_BUTTON": "Cancel Scheduled Deletion"
+        "CLEAR_BUTTON": "Cancelar eliminación programada"
       }
     },
     "FORM": {
@@ -165,7 +165,7 @@
   },
   "COMMAND_BAR": {
     "SEARCH_PLACEHOLDER": "Buscar o saltar a",
-    "SNOOZE_PLACEHOLDER": "Type a time e.g. tomorrow, 2 hours, next friday, jan 15...",
+    "SNOOZE_PLACEHOLDER": "Escribe un momento, por ejemplo: mañana, 2 horas, próximo viernes, 15 de enero...",
     "SECTIONS": {
       "GENERAL": "General",
       "REPORTS": "Informes",

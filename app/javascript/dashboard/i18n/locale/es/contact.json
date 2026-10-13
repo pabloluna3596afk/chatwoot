@@ -23,13 +23,14 @@
     "CALL_FAILED": "No se puede iniciar la llamada. Por favor, inténtelo de nuevo.",
     "WHATSAPP_CALL_PERMISSION_REQUESTED": "Solicitud de permiso de llamada al contacto enviada. Inténtalo de nuevo una vez que acepten.",
     "WHATSAPP_CALL_PERMISSION_PENDING": "Solicitud de permiso de llamada ya enviada recientemente. Inténtelo de nuevo una vez que el contacto acepte.",
-    "CLICK_TO_EDIT": "Click to edit",
+    "CLICK_TO_EDIT": "Haz clic para editar",
     "VOICE_INBOX_PICKER": {
       "TITLE": "Seleccionar un buzón de entrada"
     },
     "CONVERSATIONS": {
       "NO_RECORDS_FOUND": "No hay conversaciones previas asociadas a este contacto.",
-      "TITLE": "Conversaciones anteriores"
+      "TITLE": "Conversaciones anteriores",
+      "VIEW_ALL": "Ver todas las conversaciones"
     },
     "LABELS": {
       "CONTACT": {
@@ -284,7 +285,7 @@
       "ATTRIBUTE_WARNING": "Los datos de contacto de <strong>{primaryContactName}</strong> se copiarán en <strong>{parentContactName}</strong>."
     },
     "SEARCH": {
-      "ERROR_MESSAGE": "Something went wrong. Please try again later."
+      "ERROR_MESSAGE": "Algo salió mal. Inténtalo de nuevo más tarde."
     },
     "FORM": {
       "SUBMIT": " Combinar contactos",
@@ -530,7 +531,7 @@
             "PLACEHOLDER": "Añadir WhatsApp"
           },
           "TELEGRAM": {
-            "PLACEHOLDER": "Add Telegram"
+            "PLACEHOLDER": "Agregar Telegram"
           },
           "TIKTOK": {
             "PLACEHOLDER": "Añadir TikTok"
@@ -583,7 +584,7 @@
         "UPDATE_ERROR": "No se pudo actualizar el agente asignado al contacto. Inténtalo de nuevo más tarde."
       },
       "CHAT_BOT": {
-        "LABEL": "Chat bot",
+        "LABEL": "Chatbot",
         "DESCRIPTION": "Si está apagado, Panel IA no responderá a este contacto",
         "ON": "El bot puede responder",
         "OFF": "Bot apagado",
@@ -685,7 +686,8 @@
           "DELETE_SUCCESS_MESSAGE": "Atributo eliminado correctamente",
           "UPDATE_ERROR": "No se puede actualizar el atributo. Por favor, inténtalo de nuevo más tarde",
           "DELETE_ERROR": "No se puede eliminar el atributo. Por favor, inténtalo de nuevo más tarde"
-        }
+        },
+        "CATEGORY_COUNT": "{title} ({count})"
       },
       "MERGE": {
         "TITLE": "Combinar contacto",
@@ -772,7 +774,7 @@
       "NO_INBOX_ALERT": "No hay bandejas de entrada disponibles para iniciar una conversación con este contacto.",
       "CONTACT_SELECTOR": {
         "LABEL": "Para:",
-        "TAG_INPUT_PLACEHOLDER": "Enter at least 2 characters to search by name, email, or phone number",
+        "TAG_INPUT_PLACEHOLDER": "Ingresa al menos 2 caracteres para buscar por nombre, correo electrónico o número de teléfono",
         "CONTACT_CREATING": "Creando contacto..."
       },
       "INBOX_SELECTOR": {
@@ -783,9 +785,9 @@
         "SUBJECT_LABEL": "Asunto :",
         "SUBJECT_PLACEHOLDER": "Introduzca el asunto de correo electrónico aquí",
         "CC_LABEL": "Cc:",
-        "CC_PLACEHOLDER": "Enter at least 2 characters to search by email",
+        "CC_PLACEHOLDER": "Ingresa al menos 2 caracteres para buscar por correo electrónico",
         "BCC_LABEL": "Bcc:",
-        "BCC_PLACEHOLDER": "Enter at least 2 characters to search by email",
+        "BCC_PLACEHOLDER": "Ingresa al menos 2 caracteres para buscar por correo electrónico",
         "BCC_BUTTON": "Bcc"
       },
       "MESSAGE_EDITOR": {
