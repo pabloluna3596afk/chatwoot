@@ -49,7 +49,7 @@ RSpec.describe 'Saved report panels preview', type: :request do
 
   context 'with dynamic table options' do
     let(:widget) do
-      { id: 'table', type: 'table', table_kind: 'agent_summary', columns: %w[name conversations_count ca:amount__sum ca:amount__avg],
+      { id: 'table', type: 'table', table_kind: 'pivot', columns: %w[name conversations_count ca:amount__sum ca:amount__avg],
         pivot: { row_attribute: 'created_at', row_granularity: 'week' },
         sort: { column: 'ca:amount__sum', direction: 'asc' },
         top_n: { limit: 5, column: 'ca:amount__sum', include_others: true },
@@ -71,6 +71,18 @@ RSpec.describe 'Saved report panels preview', type: :request do
     end
 
     invalid_options = [
+      { table_kind: 'agent_summary' },
+      { pivot: { column_attribute: 'ca:segment' } },
+      { pivot: nil },
+      { pivot: { row_attribute: 'agent', column_attribute: 5 } },
+      { pivot: { row_attribute: 'agent', column_attribute: 'ca:segment', column_values: [5] } },
+      { pivot: { row_attribute: 'agent', column_attribute: 'ca:segment', column_values: Array.new(13, 'A') } },
+      { pivot: { row_attribute: 'agent', show_row_totals: 'true' } },
+      { columns: %w[name ca:amount] },
+      { columns: %w[name ca:amount__count__eq__10] },
+      { columns: %w[name name conversations_count] },
+      { columns: ['name', false] },
+      { columns: [] },
       { pivot: { row_attribute: 'invalid' } },
       { pivot: { row_attribute: false } },
       { pivot: { row_attribute: 'agent', row_granularity: 'day' } },

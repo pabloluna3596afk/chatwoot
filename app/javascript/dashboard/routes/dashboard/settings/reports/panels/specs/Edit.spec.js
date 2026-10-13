@@ -8,7 +8,6 @@ import ConditionRow from 'dashboard/components-next/filter/ConditionRow.vue';
 import SavedReportPanelsAPI from 'dashboard/api/savedReportPanels';
 import esReports from 'dashboard/i18n/locale/es/report.json';
 import { PREVIEW_DEBOUNCE_MS } from '../panelConstants';
-import PanelTablePivotBuilder from '../components/PanelTablePivotBuilder.vue';
 
 const mocks = vi.hoisted(() => ({
   dispatch: vi.fn(),
@@ -353,9 +352,10 @@ describe('guided panel editor', () => {
           {
             id: 'sales',
             type: 'table',
-            table_kind: 'agent_summary',
+            table_kind: 'pivot',
             columns: ['rank', 'name', 'ca:importe__sum'],
             column_aggregations: { 'ca:importe__sum': 'sum' },
+            pivot: { row_attribute: 'agent' },
           },
         ],
       },
@@ -364,16 +364,17 @@ describe('guided panel editor', () => {
     await flushPromises();
     await wrapper.find('[data-testid="step-1"]').trigger('click');
     wrapper
-      .findAllComponents(PanelTablePivotBuilder)
-      .find(builder => builder.props('showGrouping'))
-      .vm.$emit('tableKindChange', 'team_summary');
+      .findAllComponents(ComboBox)
+      .find(box => box.attributes('data-testid') === 'pivot-rows')
+      .vm.$emit('update:modelValue', 'team');
     await flushPromises();
     await vi.advanceTimersByTimeAsync(PREVIEW_DEBOUNCE_MS);
     expect(
       SavedReportPanelsAPI.preview.mock.lastCall[0].saved_report_panel
         .widgets[0]
     ).toMatchObject({
-      table_kind: 'team_summary',
+      table_kind: 'pivot',
+      pivot: { row_attribute: 'team' },
       columns: ['rank', 'name', 'ca:importe__sum'],
       column_aggregations: { 'ca:importe__sum': 'sum' },
     });
@@ -396,7 +397,7 @@ describe('guided panel editor', () => {
       const widget = {
         id: 'dynamic',
         type: 'table',
-        table_kind: 'agent_summary',
+        table_kind: 'pivot',
         columns: ['rank', 'name', 'ca:importe__sum'],
         pivot: {
           ...pivot,
@@ -434,34 +435,4 @@ describe('guided panel editor', () => {
       ).toEqual(widget);
     }
   );
-
-  it('keeps the original pivot configuration of a saved table without new settings', async () => {
-    const widget = {
-      id: 'old-pivot',
-      type: 'table',
-      table_kind: 'inbox_summary',
-      columns: ['name', 'conversations_count'],
-      column_aggregations: {},
-      pivot: {
-        column_attribute: 'ca:stage',
-        column_values: ['A'],
-        show_row_totals: false,
-      },
-    };
-    SavedReportPanelsAPI.show.mockResolvedValue({
-      data: {
-        name: 'Legacy',
-        date_preset: 'last_7_days',
-        filters: [],
-        widgets: [widget],
-      },
-    });
-    wrapper = mountEditor(false);
-    await flushPromises();
-    await vi.advanceTimersByTimeAsync(PREVIEW_DEBOUNCE_MS);
-    expect(
-      SavedReportPanelsAPI.preview.mock.lastCall[0].saved_report_panel
-        .widgets[0]
-    ).toEqual(widget);
-  });
 });

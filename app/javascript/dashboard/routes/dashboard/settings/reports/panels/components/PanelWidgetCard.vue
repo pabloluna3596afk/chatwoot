@@ -348,8 +348,7 @@ const headerLabelForMeasure = key => {
 };
 
 const headerLabel = key => {
-  const dimension =
-    props.result?.pivot?.row_attribute || props.widget.pivot?.row_attribute;
+  const dimension = props.widget.pivot?.row_attribute;
   if (key === 'name' && dimension) {
     if (isCustomAttributeColumn(dimension))
       return (
@@ -412,7 +411,7 @@ const measureFormat = key => {
 const formatCell = (row, key) => {
   const value = row[key];
   if (key === 'name' && row.is_others) return t('REPORT_PANELS.DYNAMIC.OTHERS');
-  if (key === 'name' && value === '' && props.result?.pivot?.row_attribute)
+  if (key === 'name' && value === '' && props.widget.pivot?.row_attribute)
     return t('REPORT_PANELS.DYNAMIC.BLANK');
   const configuredFormat = measureFormat(key);
   if (configuredFormat) return formatPanelMeasure(value, configuredFormat);
@@ -528,18 +527,13 @@ const openRow = row => {
 const title = computed(() => {
   if (props.widget.title) return props.widget.title;
   if (props.widget.type === 'table') {
-    if (props.result?.pivot?.row_attribute || props.widget.pivot?.row_attribute)
-      return headerLabel('name');
+    if (props.widget.pivot?.row_attribute) return headerLabel('name');
     const kind = tableKind.value;
     const keyMap = {
-      agent_summary: 'AGENT',
-      inbox_summary: 'INBOX',
-      team_summary: 'TEAM',
-      label_summary: 'LABEL',
       conversations: 'CONVERSATIONS',
       contacts: 'CONTACTS',
     };
-    return t(`REPORT_PANELS.TABLE_KINDS.${keyMap[kind] || 'AGENT'}`);
+    return t(`REPORT_PANELS.TABLE_KINDS.${keyMap[kind]}`);
   }
   return metricLabel.value;
 });

@@ -4,6 +4,8 @@ import {
   isAdditiveMeasure,
   defaultTableWidget,
   defaultPivotConfig,
+  pivotColumnKey,
+  parsePivotColumnKey,
   panelRangeToDates,
   panelRangeToPickerDates,
   panelPickerRangeToUnix,
@@ -102,21 +104,36 @@ describe('panel date presets (D1)', () => {
 });
 
 describe('dynamic table settings', () => {
-  it('keeps defaults compatible with saved tables and does not opt in to new row behavior', () => {
+  it('encodes crossed columns like the backend and keeps blank values distinct from text markers', () => {
+    expect(pivotColumnKey('conversations_count', '')).toBe(
+      'conversations_count__pv__'
+    );
+    expect(pivotColumnKey('conversations_count', 'A ~!*()')).toBe(
+      'conversations_count__pv__A%20%7E%21%2A%28%29'
+    );
+    ['', '__blank__', 'A ~!*()', 'ñ / %'].forEach(value => {
+      expect(
+        parsePivotColumnKey(pivotColumnKey('conversations_count', value)).value
+      ).toBe(value);
+    });
+  });
+
+  it('creates tables with an explicit row dimension', () => {
     expect(defaultPivotConfig()).toEqual({
+      row_attribute: 'agent',
       column_attribute: '',
       column_values: [],
       show_row_totals: true,
     });
     expect(defaultTableWidget()).not.toHaveProperty('sort');
-    expect(defaultTableWidget().pivot).not.toHaveProperty('row_attribute');
+    expect(defaultTableWidget().pivot.row_attribute).toBe('agent');
   });
 
   it('remaps base and expanded references while preserving currency settings', () => {
     const widget = {
-      table_kind: 'agent_summary',
+      table_kind: 'pivot',
       columns: ['name', 'ca:amount__sum'],
-      pivot: { column_attribute: 'ca:stage' },
+      pivot: { row_attribute: 'agent', column_attribute: 'ca:stage' },
       sort: { column: 'ca:amount__count__pv__A', direction: 'desc' },
       top_n: { limit: 5, column: 'ca:amount__count', include_others: true },
       column_formats: {
@@ -147,7 +164,7 @@ describe('dynamic table settings', () => {
 
   it('clears orphan settings, non-additive displays, contact Others and summary options on detail tables', () => {
     const widget = {
-      table_kind: 'agent_summary',
+      table_kind: 'pivot',
       columns: ['name', 'contact_ca:amount__avg'],
       sort: { column: 'missing', direction: 'asc' },
       top_n: {

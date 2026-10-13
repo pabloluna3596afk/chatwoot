@@ -7,13 +7,13 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import {
-  SUMMARY_TABLE_KINDS,
   ROW_GRANULARITIES,
   TOP_N_LIMITS,
   MEASURE_DISPLAYS,
   COLUMN_FORMAT_TYPES,
   COLUMN_DECIMALS,
   PIVOT_SYSTEM_MEASURES,
+  PIVOT_IDENTITY_COLUMNS,
   isAdditiveMeasure,
   cleanTableOptions,
   pivotColumnKey,
@@ -22,14 +22,11 @@ import {
   MAX_PIVOT_VALUES,
   TABLE_COLUMN_OPTIONS,
   AGGREGATION_OPS,
-  SUMMABLE_SYSTEM_COLUMNS,
   defaultColumnsForTableKind,
   customAttributeColumnKey,
   customAttributeMeasureColumnKey,
   parseCustomAttributeColumn,
-  summaryMeasureOpsForAttrType,
-  summaryIdentityColumnsFor,
-  summarySystemMeasureKeysFor,
+  measureOpsForAttrType,
   normalizeAttrDisplayType,
   isCustomAttributeColumn,
 } from '../panelConstants';
@@ -47,30 +44,18 @@ const emit = defineEmits(['tableKindChange']);
 const { t } = useI18n();
 const addField = ref('');
 const addOp = ref('count');
-const isSummary = computed(() =>
-  SUMMARY_TABLE_KINDS.has(props.widget.table_kind)
-);
+const isPivot = computed(() => props.widget.table_kind === 'pivot');
 const selectedColumns = computed(() =>
   props.widget.columns?.length
     ? props.widget.columns
     : defaultColumnsForTableKind(props.widget.table_kind)
 );
-const systemOp = key =>
-  key.startsWith('avg_') || ['csat_avg', 'share_percent'].includes(key)
-    ? 'avg'
-    : 'count';
 const fields = computed(() => {
-  const dynamic =
-    props.widget.pivot?.row_attribute ||
-    props.widget.pivot?.column_attribute ||
-    props.widget.top_n;
-  const system = summarySystemMeasureKeysFor(props.widget.table_kind)
-    .filter(key => !dynamic || PIVOT_SYSTEM_MEASURES.has(key))
-    .map(key => ({
-      value: key,
-      label: t(`REPORT_PANELS.COLUMNS.${key}`),
-      ops: [systemOp(key)],
-    }));
+  const system = [...PIVOT_SYSTEM_MEASURES].map(key => ({
+    value: key,
+    label: t(`REPORT_PANELS.COLUMNS.${key}`),
+    ops: ['count'],
+  }));
   const custom = (attrs, contact) =>
     attrs.map(attr => {
       const key = attr.attributeKey || attr.attribute_key;
@@ -84,7 +69,7 @@ const fields = computed(() => {
           : name,
         key,
         contact,
-        ops: summaryMeasureOpsForAttrType(type),
+        ops: measureOpsForAttrType(type),
         canSplit: !contact && PIVOT_COLUMN_ATTR_TYPES.has(type),
         values: attr.attributeValues || attr.attribute_values || [],
       };
@@ -106,18 +91,13 @@ const opOptions = ops =>
     value: item.value,
     label: t(item.labelKey),
   }));
-const columnFor = (field, op, parsed = {}) =>
+const columnFor = (field, op) =>
   field.key
-    ? customAttributeMeasureColumnKey(field.key, op, {
-        ...parsed,
-        contact: field.contact,
-      })
+    ? customAttributeMeasureColumnKey(field.key, op, { contact: field.contact })
     : field.value;
 const measures = computed(() =>
   selectedColumns.value
-    .filter(
-      key => !summaryIdentityColumnsFor(props.widget.table_kind).includes(key)
-    )
+    .filter(key => !PIVOT_IDENTITY_COLUMNS.has(key))
     .map(column => {
       const parsed = parseCustomAttributeColumn(column);
       const fieldId = parsed.attrKey
@@ -128,12 +108,11 @@ const measures = computed(() =>
         column,
         fieldId,
         field,
-        parsed,
         label:
           field?.label ||
           parsed.attrKey ||
           t(`REPORT_PANELS.COLUMNS.${column}`),
-        op: parsed.op || (parsed.attrKey ? 'count' : systemOp(column)),
+        op: parsed.op || 'count',
         ops: field?.ops || [parsed.op || 'count'],
       };
     })
@@ -148,20 +127,16 @@ const selectAddField = value => {
 };
 const writeMeasures = columns => {
   props.widget.columns = [
-    ...summaryIdentityColumnsFor(props.widget.table_kind),
+    ...selectedColumns.value.filter(key => PIVOT_IDENTITY_COLUMNS.has(key)),
     ...columns,
   ];
 };
 const canShowFooter = column =>
-  isCustomAttributeColumn(column) || SUMMABLE_SYSTEM_COLUMNS.has(column);
+  isCustomAttributeColumn(column) || PIVOT_SYSTEM_MEASURES.has(column);
 const replaceMeasure = (row, fieldId, op) => {
   const field = fieldById.value[fieldId];
   if (!field) return;
-  const nextColumn = columnFor(
-    field,
-    op,
-    fieldId === row.fieldId ? row.parsed : {}
-  );
+  const nextColumn = columnFor(field, op);
   if (nextColumn !== row.column && selectedColumns.value.includes(nextColumn))
     return;
   writeMeasures(
@@ -262,40 +237,17 @@ const rowOptions = computed(() => [
     .filter(field => field.key)
     .map(({ value, label }) => ({ value, label })),
 ]);
-const rowAttribute = computed(
-  () =>
-    props.widget.pivot?.row_attribute ||
-    props.widget.table_kind.replace('_summary', '')
-);
-const restrictPivotMeasures = () => {
-  const supported = measures.value
-    .filter(
-      row =>
-        isCustomAttributeColumn(row.column) ||
-        PIVOT_SYSTEM_MEASURES.has(row.column)
-    )
-    .map(row => row.column);
-  writeMeasures(supported.length ? supported : ['conversations_count']);
-  props.widget.column_aggregations = Object.fromEntries(
-    Object.entries(props.widget.column_aggregations || {}).filter(([key]) =>
-      props.widget.columns.includes(key)
-    )
-  );
-};
+const rowAttribute = computed(() => props.widget.pivot.row_attribute);
 const setSplit = value => {
   props.widget.pivot.column_attribute = value;
   props.widget.pivot.column_values = [];
-  restrictPivotMeasures();
   cleanTableOptions(props.widget);
 };
 const setRow = value => {
   props.widget.pivot.row_attribute = value;
   if (value === 'created_at') props.widget.pivot.row_granularity ||= 'day';
   else delete props.widget.pivot.row_granularity;
-  restrictPivotMeasures();
   cleanTableOptions(props.widget);
-  if (['agent', 'inbox', 'team', 'label'].includes(value))
-    emit('tableKindChange', `${value}_summary`);
 };
 const displayedPivotValues = computed(() => {
   if (!props.widget.pivot?.column_attribute) return [];
@@ -385,7 +337,6 @@ const setControl = (key, value) => {
       [key === 'sort_column' ? 'column' : 'direction']: value,
     };
   if (key.startsWith('top_')) {
-    restrictPivotMeasures();
     props.widget.top_n = {
       limit: props.widget.top_n?.limit ?? null,
       column: props.widget.top_n?.column || measures.value[0]?.column,
@@ -437,7 +388,7 @@ const setFormat = (column, key, value) => {
 
 <template>
   <div class="min-w-0 grid gap-4">
-    <div v-if="!isSummary" class="grid gap-1.5 text-sm text-n-slate-12">
+    <div v-if="!isPivot" class="grid gap-1.5 text-sm text-n-slate-12">
       <span>{{ t('REPORT_PANELS.EDITOR.GROUP_BY') }}</span>
       <ComboBox
         :model-value="widget.table_kind"
@@ -452,7 +403,7 @@ const setFormat = (column, key, value) => {
         "
       />
     </div>
-    <template v-if="isSummary">
+    <template v-if="isPivot">
       <div v-if="showGrouping" class="grid gap-3 sm:grid-cols-2">
         <div class="grid gap-1.5 text-sm text-n-slate-12 min-w-0">
           <div class="flex items-center gap-1">

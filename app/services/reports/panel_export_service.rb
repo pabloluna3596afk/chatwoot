@@ -186,48 +186,19 @@ class Reports::PanelExportService
   end
 
   def header_label_for(key)
-    key = key.to_s
     return HEADER_LABELS[key] if HEADER_LABELS.key?(key)
+    return pivot_header_label(key) if key.include?('__pv__')
 
-    if key.start_with?('ca:', 'contact_ca:') || key.include?('__pv__')
-      if key.include?('__pv__')
-        measure, encoded = key.split('__pv__', 2)
-        segment = encoded == '__blank__' ? '(blank)' : begin
-          URI.decode_www_form_component(encoded.to_s)
-        rescue ArgumentError
-          encoded.to_s
-        end
-        return "#{segment} · #{header_label_for(measure)}"
-      end
-      rest = key.delete_prefix('contact_ca:').delete_prefix('ca:')
-      op = nil
-      filter_value = nil
-      filtered = rest.match(/\A(.+)__(count|sum|avg|min|max)__eq__(.+)\z/)
-      if filtered
-        rest = filtered[1]
-        op = filtered[2]
-        filter_value = begin
-          URI.decode_www_form_component(filtered[3])
-        rescue ArgumentError
-          filtered[3]
-        end
-      else
-        %w[count sum avg min max].each do |candidate|
-          suffix = "__#{candidate}"
-          next unless rest.end_with?(suffix) && rest.length > suffix.length
+    measure = Reports::PanelPivotMeasure.new(key)
+    return "#{measure.op.capitalize}(#{measure.attribute_key.humanize})" if measure.attribute_key
 
-          op = candidate
-          rest = rest.delete_suffix(suffix)
-          break
-        end
-      end
-      label = rest.humanize
-      return "#{op.capitalize}(#{label} = #{filter_value})" if op.present? && filter_value.present?
+    key.delete_prefix('contact_ca:').delete_prefix('ca:').humanize
+  end
 
-      return op.present? ? "#{op.capitalize}(#{label})" : label
-    end
-
-    key.humanize
+  def pivot_header_label(key)
+    measure, encoded = key.split('__pv__', 2)
+    segment = encoded.empty? ? '(blank)' : URI.decode_www_form_component(encoded)
+    "#{segment} ? #{header_label_for(measure)}"
   end
 
   def format_cell(key, value)

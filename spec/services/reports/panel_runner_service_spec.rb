@@ -50,10 +50,10 @@ RSpec.describe Reports::PanelRunnerService do
   end
 
   describe 'contact pivot measures (D5)' do
-    let(:measures) { %w[contact_ca:amount__sum contact_ca:amount__avg contact_ca:status__count__eq__active contact_ca:score__sum] }
+    let(:measures) { %w[contact_ca:amount__sum contact_ca:amount__avg contact_ca:status__count contact_ca:score__sum] }
     let(:widgets) do
-      [{ id: 'pivot', type: 'table', table_kind: 'inbox_summary', columns: ['name'] + measures,
-         pivot: { column_attribute: 'ca:segment', column_values: %w[A B] } }]
+      [{ id: 'pivot', type: 'table', table_kind: 'pivot', columns: ['name'] + measures,
+         pivot: { row_attribute: 'inbox', column_attribute: 'ca:segment', column_values: %w[A B] } }]
     end
 
     it 'deduplicates each measure independently within each bucket' do
@@ -69,7 +69,7 @@ RSpec.describe Reports::PanelRunnerService do
       %w[A B].each do |segment|
         expect(row["contact_ca:amount__sum__pv__#{segment}"]).to eq(100)
         expect(row["contact_ca:amount__avg__pv__#{segment}"]).to eq(100)
-        expect(row["contact_ca:status__count__eq__active__pv__#{segment}"]).to eq(1)
+        expect(row["contact_ca:status__count__pv__#{segment}"]).to eq(1)
         expect(row["contact_ca:score__sum__pv__#{segment}"]).to eq(7)
       end
     end
@@ -77,10 +77,9 @@ RSpec.describe Reports::PanelRunnerService do
 
   describe 'pivot totals (D6)' do
     let(:other_inbox) { create(:inbox, account: account) }
-    let!(:empty_inbox) { create(:inbox, account: account) }
     let(:widgets) do
-      [{ id: 'pivot', type: 'table', table_kind: 'inbox_summary', columns: %w[name ca:amount__avg ca:amount__min ca:amount__max],
-         pivot: { column_attribute: 'ca:segment', column_values: %w[A B Empty] } }]
+      [{ id: 'pivot', type: 'table', table_kind: 'pivot', columns: %w[name ca:amount__avg ca:amount__min ca:amount__max],
+         pivot: { row_attribute: 'inbox', column_attribute: 'ca:segment', column_values: %w[A B Empty] } }]
     end
 
     before do
@@ -106,8 +105,6 @@ RSpec.describe Reports::PanelRunnerService do
       %w[avg min max].each do |op|
         expect(row["ca:amount__#{op}__pv__Empty"]).to be_nil
         expect(result[:totals][:columns]["ca:amount__#{op}__pv__Empty"]).to be_nil
-        empty_row = result[:rows].find { |item| item[:id] == empty_inbox.id }
-        expect(empty_row["ca:amount__#{op}"]).to be_nil
       end
     end
   end
@@ -146,8 +143,8 @@ RSpec.describe Reports::PanelRunnerService do
 
     context 'when two agents resolve the same conversation' do
       let(:widgets) do
-        [{ id: 'agents', type: 'table', table_kind: 'agent_summary', columns: %w[name resolved_conversations_count],
-           pivot: { column_attribute: 'ca:segment', column_values: ['A'] } }]
+        [{ id: 'agents', type: 'table', table_kind: 'pivot', columns: %w[name resolved_conversations_count],
+           pivot: { row_attribute: 'agent', column_attribute: 'ca:segment', column_values: ['A'] } }]
       end
 
       it 'counts the conversation once in the pivot footer while crediting both actors in their rows' do
@@ -198,12 +195,13 @@ RSpec.describe Reports::PanelRunnerService do
           end
         end
 
-        %w[agent_summary inbox_summary team_summary label_summary].each do |kind|
+        %w[agent inbox team label].each do |dimension|
           [false, true].each do |pivot|
-            context "with #{kind} #{pivot ? 'pivot' : 'summary'}" do
+            context "with #{dimension} #{pivot ? 'crossed' : 'uncrossed'} rows" do
               let(:widgets) do
-                widget = { id: 'table', type: 'table', table_kind: kind, columns: %w[name conversations_count resolved_conversations_count] }
-                widget[:pivot] = { column_attribute: 'ca:segment', column_values: ['A'] } if pivot
+                widget = { id: 'table', type: 'table', table_kind: 'pivot', pivot: { row_attribute: dimension },
+                           columns: %w[name conversations_count resolved_conversations_count] }
+                widget[:pivot] = { row_attribute: dimension, column_attribute: 'ca:segment', column_values: ['A'] } if pivot
                 [widget]
               end
 
@@ -247,8 +245,8 @@ RSpec.describe Reports::PanelRunnerService do
     let(:actor) { create(:user, account: account, role: :agent) }
     let(:assignee) { create(:user, account: account, role: :agent) }
     let(:widgets) do
-      [{ id: 'agents', type: 'table', table_kind: 'agent_summary',
-         columns: %w[name conversations_count resolved_conversations_count avg_first_response_time avg_reply_time] }]
+      [{ id: 'agents', type: 'table', table_kind: 'pivot',
+         columns: %w[name conversations_count resolved_conversations_count], pivot: { row_attribute: 'agent' } }]
     end
 
     before do
@@ -283,22 +281,15 @@ RSpec.describe Reports::PanelRunnerService do
           assignee_row = result[:rows].find { |row| row[:id] == assignee.id }
           unassigned_row = result[:rows].find { |row| row[:id] == 0 }
           expect(actor_row[:resolved_conversations_count]).to eq(1)
-          expect(actor_row[:avg_resolution_time]).to eq(100)
-          expect(actor_row[:avg_first_response_time]).to eq(20)
-          expect(actor_row[:avg_reply_time]).to eq(40)
           expect(assignee_row[:conversations_count]).to eq(1)
           expect(assignee_row[:resolved_conversations_count]).to eq(0)
-          expect(assignee_row[:avg_first_response_time]).to be_nil
-          expect(assignee_row[:avg_reply_time]).to be_nil
           expect(unassigned_row[:resolved_conversations_count]).to eq(1)
-          expect(unassigned_row[:avg_first_response_time]).to eq(60)
-          expect(unassigned_row[:avg_reply_time]).to eq(80)
         end
 
         context 'with a pivot' do
           let(:widgets) do
-            [{ id: 'agents', type: 'table', table_kind: 'agent_summary', columns: %w[name resolved_conversations_count],
-               pivot: { column_attribute: 'ca:segment', column_values: ['A'] } }]
+            [{ id: 'agents', type: 'table', table_kind: 'pivot', columns: %w[name resolved_conversations_count],
+               pivot: { row_attribute: 'agent', column_attribute: 'ca:segment', column_values: ['A'] } }]
           end
 
           it 'uses event actors for pivot resolutions, including nil actors on assigned conversations' do
@@ -318,7 +309,7 @@ RSpec.describe Reports::PanelRunnerService do
   describe 'dynamic summary tables' do
     let(:measures) { %w[conversations_count ca:amount__sum] }
     let(:pivot) { { row_attribute: 'ca:segment' } }
-    let(:widget) { { id: 'dynamic', type: 'table', table_kind: 'inbox_summary', columns: ['name'] + measures, pivot: pivot } }
+    let(:widget) { { id: 'dynamic', type: 'table', table_kind: 'pivot', columns: ['name'] + measures, pivot: pivot } }
     let(:widgets) { [widget] }
 
     before do
@@ -327,41 +318,8 @@ RSpec.describe Reports::PanelRunnerService do
                                            attribute_display_type: :currency)
     end
 
-    it 'preserves the complete legacy pivot columns, rows and totals without new keys' do
-      widget[:pivot] = { column_attribute: 'ca:segment', column_values: %w[A B], show_row_totals: true }
-      create(:conversation, account: account, inbox: inbox, created_at: since_time, custom_attributes: { segment: 'A', amount: 10 })
-      create(:conversation, account: account, inbox: inbox, created_at: since_time, custom_attributes: { segment: 'B', amount: 30 })
-      expect(result[:columns]).to eq(%w[name conversations_count__pv__A ca:amount__sum__pv__A
-                                        conversations_count__pv__B ca:amount__sum__pv__B conversations_count ca:amount__sum])
-      expect(result[:rows].map(&:to_h)).to eq([
-                                                { 'id' => inbox.id, 'name' => inbox.name, 'rank' => 1, 'conversations_count__pv__A' => 1,
-                                                  'ca:amount__sum__pv__A' => 10.0, 'conversations_count__pv__B' => 1, 'ca:amount__sum__pv__B' => 30.0,
-                                                  'conversations_count' => 2, 'ca:amount__sum' => 40.0 }
-                                              ])
-      expect(result[:totals].to_h).to eq(
-        'count' => 1,
-        'columns' => { 'conversations_count__pv__A' => 1, 'ca:amount__sum__pv__A' => 10.0,
-                       'conversations_count__pv__B' => 1, 'ca:amount__sum__pv__B' => 30.0,
-                       'conversations_count' => 2, 'ca:amount__sum' => 40.0 },
-        'ops' => { 'conversations_count__pv__A' => 'sum', 'ca:amount__sum__pv__A' => 'sum',
-                   'conversations_count__pv__B' => 'sum', 'ca:amount__sum__pv__B' => 'sum',
-                   'conversations_count' => 'sum', 'ca:amount__sum' => 'sum' }
-      )
-      expect(result[:pivot].to_h).to eq('column_attribute' => 'ca:segment', 'column_values' => %w[A B],
-                                        'measures' => measures, 'show_row_totals' => true)
-    end
-
-    it 'keeps the flat legacy summary contract and explicitly configured footer' do
-      widget.delete(:pivot)
-      widget[:column_aggregations] = { 'ca:amount__sum' => 'sum' }
-      create(:conversation, account: account, inbox: inbox, created_at: since_time, custom_attributes: { amount: 10.9 })
-      expect(result[:columns]).to eq(['name'] + measures)
-      expect(result[:pivot]).to be_nil
-      expect(result[:totals].to_h).to eq('count' => 1, 'columns' => { 'ca:amount__sum' => 10.9 }, 'ops' => { 'ca:amount__sum' => 'sum' })
-    end
-
-    it 'calculates flat percentages without changing the legacy summary measures or their columns' do
-      widget.delete(:pivot)
+    it 'calculates uncrossed percentages and keeps the selected measures' do
+      pivot[:row_attribute] = 'inbox'
       widget[:column_aggregations] = { 'ca:amount__sum' => 'sum' }
       widget[:measure_display] = { 'ca:amount__sum' => 'column_percent' }
       other_inbox = create(:inbox, account: account)
@@ -518,6 +476,18 @@ RSpec.describe Reports::PanelRunnerService do
       expect(result[:totals][:columns]['conversations_count']).to eq(13)
     end
 
+    it 'keeps blank, literal blank markers and escaped column values distinct' do
+      pivot.merge!(row_attribute: 'inbox', column_attribute: 'ca:segment', column_values: ['', '__blank__', 'A ~!*()'])
+      [nil, '__blank__', 'A ~!*()'].each do |segment|
+        create(:conversation, account: account, inbox: inbox, created_at: since_time, custom_attributes: { segment: segment })
+      end
+      row = result[:rows].first
+      expect(row['conversations_count__pv__']).to eq(1)
+      expect(row['conversations_count__pv____blank__']).to eq(1)
+      expect(row['conversations_count__pv__A%20%7E%21%2A%28%29']).to eq(1)
+      expect(result[:totals][:columns]['conversations_count']).to eq(3)
+    end
+
     it 'fails explicitly at row 1001 without partial results' do
       conversations = Array.new(1001) do |index|
         build_stubbed(:conversation, account: account, inbox: inbox, created_at: since_time, custom_attributes: { segment: index.to_s })
@@ -532,7 +502,7 @@ RSpec.describe Reports::PanelRunnerService do
     end
 
     it 'limits internal buckets even when automatic columns return only twelve values' do
-      stub_const('Reports::PanelRunnerService::MAX_PIVOT_BUCKETS', 12)
+      stub_const('Reports::PanelPivotBuckets::MAX_BUCKETS', 12)
       pivot[:row_attribute] = 'inbox'
       pivot[:column_attribute] = 'ca:segment'
       13.times do |index|

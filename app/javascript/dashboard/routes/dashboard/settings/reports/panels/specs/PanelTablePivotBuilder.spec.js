@@ -24,18 +24,20 @@ describe('guided table measures', () => {
     widget = reactive({
       id: 'table',
       type: 'table',
-      table_kind: 'agent_summary',
+      table_kind: 'pivot',
       columns: ['rank', 'name', 'ca:importe__count'],
       column_aggregations: { 'ca:importe__count': 'sum' },
-      pivot: { column_attribute: '', column_values: [], show_row_totals: true },
+      pivot: {
+        row_attribute: 'agent',
+        column_attribute: '',
+        column_values: [],
+        show_row_totals: true,
+      },
     });
     wrapper = mount(PanelTablePivotBuilder, {
       props: {
         widget,
-        tableKindOptions: [
-          { value: 'agent_summary', label: 'Agente' },
-          { value: 'inbox_summary', label: 'Bandeja' },
-        ],
+        tableKindOptions: [{ value: 'pivot', label: 'Tabla' }],
         conversationAttributes: [
           {
             attribute_key: 'importe',
@@ -106,14 +108,6 @@ describe('guided table measures', () => {
     expect(widget.columns).toContain('contact_ca:ventas__avg');
   });
 
-  it('preserves an existing value condition when changing a measure operation', async () => {
-    widget.columns = ['rank', 'name', 'ca:importe__count__eq__10'];
-    await wrapper.vm.$nextTick();
-    picker('measure-operation').vm.$emit('update:modelValue', 'avg');
-    await wrapper.vm.$nextTick();
-    expect(widget.columns).toContain('ca:importe__avg__eq__10');
-  });
-
   it('keeps an existing selection when a duplicate measure would replace another one', async () => {
     widget.columns.push('ca:importe__sum');
     await wrapper.vm.$nextTick();
@@ -129,7 +123,7 @@ describe('guided table measures', () => {
 
   it('emits table grouping changes and uses the same menus for detail columns', async () => {
     picker('pivot-rows').vm.$emit('update:modelValue', 'inbox');
-    expect(wrapper.emitted('tableKindChange')).toEqual([['inbox_summary']]);
+    expect(widget.pivot.row_attribute).toBe('inbox');
     widget.table_kind = 'conversations';
     widget.columns = ['id', 'status'];
     await wrapper.vm.$nextTick();
@@ -139,20 +133,6 @@ describe('guided table measures', () => {
     ]);
     await wrapper.vm.$nextTick();
     expect(widget.columns).toEqual(['id', 'ca:importe']);
-    expect(wrapper.find('select').exists()).toBe(false);
-  });
-
-  it('preserves legacy options without writing new keys just by opening the builder', () => {
-    expect(widget.pivot).toEqual({
-      column_attribute: '',
-      column_values: [],
-      show_row_totals: true,
-    });
-    expect(widget.sort).toBeUndefined();
-    expect(widget.top_n).toBeUndefined();
-    expect(widget.measure_display).toBeUndefined();
-    expect(widget.column_formats).toBeUndefined();
-    expect(picker('pivot-rows').props('modelValue')).toBe('agent');
     expect(wrapper.find('select').exists()).toBe(false);
   });
 
@@ -296,7 +276,8 @@ describe('guided table measures', () => {
       props: {
         widget: {
           type: 'table',
-          table_kind: 'agent_summary',
+          table_kind: 'pivot',
+          pivot: { row_attribute: 'created_at' },
           columns: ['name', 'ca:importe__sum'],
           column_formats: { 'ca:importe__sum': config },
           sort: { column, direction: 'desc' },
