@@ -73,12 +73,10 @@ jobs:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        # Halve runner usage while retaining the existing round-robin split.
-        ci_node_total: [8]
-        ci_node_index: [0, 1, 2, 3, 4, 5, 6, 7]
+    env:
+      # Match runner CPU capacity; a repository variable can override the count.
+      BACKEND_PROCESSES: ${{ vars.BACKEND_PROCESSES || '4' }}
+      RAILS_ENV: test
 
     services:
       postgres:
@@ -118,28 +116,70 @@ jobs:
       - name: Install pnpm dependencies
         run: pnpm i
 
-      - name: Create database
-        run: bundle exec rake db:create
-
-      - name: Seed database
-        run: bundle exec rake db:schema:load
-
-      - name: Run backend tests with enterprise (parallelized)
+      - name: Prepare process databases
+        shell: bash
         run: |
-          # The whole spec/ tree, enterprise included (the CE workflow strips enterprise/ and is disabled).
-          # Round-robin split across the nodes, so slow files spread evenly.
-          SPEC_FILES=($(find spec -name '*_spec.rb' | sort))
-          TESTS=""
+          # Redis has 16 logical databases (0-15) by default.
+          if [[ ! "$BACKEND_PROCESSES" =~ ^([1-9]|1[0-6])$ ]]; then
+            echo "BACKEND_PROCESSES must be an integer from 1 to 16"
+            exit 1
+          fi
 
-          for i in "${!SPEC_FILES[@]}"; do
-            if [ $(( i % ${{ matrix.ci_node_total }} )) -eq ${{ matrix.ci_node_index }} ]; then
-              TESTS="$TESTS ${SPEC_FILES[$i]}"
-            fi
+          PIDS=()
+          for (( p=0; p<BACKEND_PROCESSES; p++ )); do
+            (
+              export POSTGRES_DATABASE="chatwoot_test_$p"
+              export REDIS_URL="redis://127.0.0.1:6379/$p"
+              bundle exec rake db:create db:schema:load
+            ) &
+            PIDS[$p]=$!
           done
 
-          if [ -n "$TESTS" ]; then
-            bundle exec rspec --profile=10 --format progress --format json --out tmp/rspec_results.json $TESTS
-          fi
+          STATUS=0
+          for p in "${!PIDS[@]}"; do
+            if ! wait "${PIDS[$p]}"; then
+              echo "Database setup failed for slice $p"
+              STATUS=1
+            fi
+          done
+          exit "$STATUS"
+
+      - name: Run backend tests with enterprise (parallelized)
+        shell: bash
+        run: |
+          # The whole spec/ tree, enterprise included (the CE workflow strips enterprise/ and is disabled).
+          # Round-robin split across processes, so slow files spread evenly.
+          mapfile -t SPEC_FILES < <(find spec -name '*_spec.rb' | sort)
+          mkdir -p tmp
+          PIDS=()
+          for (( p=0; p<BACKEND_PROCESSES; p++ )); do
+            (
+              # Real Redis clients use REDIS_URL; Alfred and Rails.cache are process-local in test.
+              export POSTGRES_DATABASE="chatwoot_test_$p"
+              export REDIS_URL="redis://127.0.0.1:6379/$p"
+              TESTS=()
+              for i in "${!SPEC_FILES[@]}"; do
+                if [ $(( i % BACKEND_PROCESSES )) -eq "$p" ]; then
+                  TESTS+=("${SPEC_FILES[$i]}")
+                fi
+              done
+
+              echo "Running slice $p/$BACKEND_PROCESSES (${#TESTS[@]} spec files)"
+              if [ "${#TESTS[@]}" -gt 0 ]; then
+                bundle exec rspec --profile=10 --format progress --format json --out "tmp/rspec_results_$p.json" "${TESTS[@]}"
+              fi
+            ) &
+            PIDS[$p]=$!
+          done
+
+          STATUS=0
+          for p in "${!PIDS[@]}"; do
+            if ! wait "${PIDS[$p]}"; then
+              echo "Backend tests failed for slice $p"
+              STATUS=1
+            fi
+          done
+          exit "$STATUS"
         env:
           NODE_OPTIONS: --openssl-legacy-provider
 
@@ -148,14 +188,14 @@ jobs:
         # Store test results only when needed to investigate failures, like Rails logs.
         if: failure()
         with:
-          name: ee-rspec-results-${{ matrix.ci_node_index }}
-          path: tmp/rspec_results.json
+          name: ee-rspec-results
+          path: tmp/rspec_results_*.json
 
       - name: Upload rails log folder
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ee-rails-log-folder-${{ matrix.ci_node_index }}
+          name: ee-rails-log-folder
           path: log
 
   # Rubocop on the Ruby files the change touches (the whole-repo run belongs to the disabled CE workflow).
