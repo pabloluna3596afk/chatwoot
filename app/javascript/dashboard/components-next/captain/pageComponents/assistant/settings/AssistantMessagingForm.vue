@@ -547,7 +547,7 @@ onMounted(async () => {
 
     <div>
       <Button
-        :label="t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.SAVE')"
+        :label="t('CAPTAIN.ASSISTANTS.FORM.UPDATE')"
         data-testid="messaging-save"
         @click="submit"
       />
