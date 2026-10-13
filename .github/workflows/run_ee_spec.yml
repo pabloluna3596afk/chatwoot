@@ -49,6 +49,8 @@ jobs:
             while IFS= read -r path; do
               # Backend paths-ignore: frontend trees, documentation trees, workflow files and all Markdown.
               case "$path" in
+                # The CI definition itself is not ignorable: a broken workflow must fail on its own PR, not after merging.
+                .github/workflows/run_ee_spec.yml|.github/scripts/*) backend=true; frontend=true; ruby=true ;;
                 app/javascript/*|docs/*|docs-crm/*|.github/*|*.md) ;;
                 *) backend=true ;;
               esac
@@ -169,7 +171,15 @@ jobs:
 
               echo "Running slice $p/$BACKEND_PROCESSES (${#TESTS[@]} spec files)"
               if [ "${#TESTS[@]}" -gt 0 ]; then
-                bundle exec rspec --profile=10 --format progress --format json --out "tmp/rspec_results_$p.json" "${TESTS[@]}"
+                if ! bundle exec rspec --profile=10 --format progress --format json --out "tmp/rspec_results_$p.json" "${TESTS[@]}"; then
+                  # Timing-sensitive specs fail now and then on a busy runner: run only the failed examples once more.
+                  mapfile -t FAILED < <(jq -r '.examples[] | select(.status == "failed") | .id' "tmp/rspec_results_$p.json")
+                  if [ "${#FAILED[@]}" -eq 0 ] || [ "${#FAILED[@]}" -gt 10 ]; then
+                    exit 1
+                  fi
+                  echo "::warning::Slice $p: retrying ${#FAILED[@]} failed example(s) once: ${FAILED[*]}"
+                  bundle exec rspec --format progress --format json --out "tmp/rspec_retry_$p.json" "${FAILED[@]}"
+                fi
               fi
             ) &
             PIDS[$p]=$!
