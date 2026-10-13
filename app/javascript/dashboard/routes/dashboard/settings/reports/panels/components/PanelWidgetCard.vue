@@ -3,9 +3,10 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import fromUnixTime from 'date-fns/fromUnixTime';
-import format from 'date-fns/format';
 import { formatTime } from '@chatwoot/utils';
 import BarChart from 'shared/components/charts/BarChart.vue';
+import { useLocale } from 'shared/composables/useLocale';
+import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import { useAccount } from 'dashboard/composables/useAccount';
 import {
   resolveTableColumns,
@@ -19,18 +20,44 @@ import {
   formatNumericAttribute,
   formatPanelMeasure,
   SUMMABLE_CUSTOM_TYPES,
+  TABLE_MEASURE_LABELS,
+  PIVOT_IDENTITY_COLUMNS,
+  PANEL_DATE_FORMATS,
+  formatPanelDate,
 } from '../panelConstants';
 
 const props = defineProps({
   widget: { type: Object, required: true },
   result: { type: Object, default: null },
+  loading: { type: Boolean, default: false },
+  error: { type: String, default: '' },
   attributeLabels: { type: Object, default: () => ({}) },
   attributeTypes: { type: Object, default: () => ({}) },
 });
 
 const { t } = useI18n();
+const { resolvedLocale: locale } = useLocale();
 const router = useRouter();
 const { accountScopedRoute } = useAccount();
+
+const numberFormatter = computed(
+  () => new Intl.NumberFormat(locale.value, { useGrouping: true })
+);
+const formatNumber = value => numberFormatter.value.format(Number(value));
+const errorMessage = computed(() => {
+  const error = props.error || props.result?.error;
+  if (!error) return '';
+  if (
+    error.startsWith('pivot_row_limit_exceeded') ||
+    error.startsWith('pivot_bucket_limit_exceeded')
+  ) {
+    return t('REPORT_PANELS.DYNAMIC.LIMIT_ERROR');
+  }
+  return props.error || t('REPORT_PANELS.ERRORS.RUN');
+});
+const isLoading = computed(
+  () => props.loading || (!props.result && !errorMessage.value)
+);
 
 const TIME_COLUMNS = new Set([
   'avg_first_response_time',
@@ -92,9 +119,9 @@ const displayValue = computed(() => {
   }
   const type = aggregationFieldType.value;
   if (type && SUMMABLE_CUSTOM_TYPES.has(type)) {
-    return formatNumericAttribute(value, type);
+    return formatNumericAttribute(value, type, locale.value);
   }
-  return Number(value).toLocaleString();
+  return formatNumber(value);
 });
 
 const metricLabel = computed(() => {
@@ -115,25 +142,19 @@ const metricLabel = computed(() => {
   return t(`REPORT_PANELS.METRICS.${metric}`);
 });
 
-const BUCKET_LABEL_FORMATS = {
-  day: 'dd-MMM',
-  week: 'dd-MMM',
-  month: 'MMM-yyyy',
-  year: 'yyyy',
-};
-
 const chartData = computed(() => {
   const points = props.result?.points || [];
   const groupBy =
-    props.widget.group_by in BUCKET_LABEL_FORMATS
-      ? props.widget.group_by
-      : 'day';
+    props.widget.group_by in PANEL_DATE_FORMATS ? props.widget.group_by : 'day';
   const timeMetric =
     !isAggregationSource.value && isTimeMetric(props.widget.metric);
   return {
-    // Same bucket labels as the Reports charts (ReportContainer#getChartData).
     categories: points.map(point =>
-      format(fromUnixTime(point.timestamp), BUCKET_LABEL_FORMATS[groupBy])
+      formatPanelDate(
+        fromUnixTime(point.timestamp),
+        locale.value,
+        PANEL_DATE_FORMATS[groupBy]
+      )
     ),
     series: [
       {
@@ -189,6 +210,9 @@ const NUMERIC_SYSTEM_COLUMNS = new Set([
   'id',
   'rank',
   'conversations_count',
+  'resolved_conversations_count',
+  'unique_contacts_count',
+  'contacts_count',
   'resolutions_count',
   'incoming_messages_count',
   'outgoing_messages_count',
@@ -210,21 +234,67 @@ const isNumericColumn = key => {
 
 const headerCellClass = key =>
   [
-    'py-2 px-2 text-n-slate-11 font-medium select-none cursor-pointer hover:text-n-slate-12',
-    isNumericColumn(key)
-      ? 'text-right whitespace-nowrap'
-      : 'text-left max-w-[14rem] min-w-0',
+    'py-2 px-2 text-n-slate-11 font-medium min-w-0',
+    isNumericColumn(key) ? 'text-end' : 'text-start',
+    key === tableHeaders.value[0] ? 'sticky start-0 z-20 bg-n-solid-2' : '',
   ].join(' ');
 
-const bodyCellClass = key =>
+const bodyCellClass = (key, footer = false) =>
   [
     'py-2 px-2 text-n-slate-12',
     isNumericColumn(key)
-      ? 'text-right whitespace-nowrap'
-      : 'text-left max-w-[14rem] min-w-0',
+      ? 'text-end whitespace-nowrap'
+      : 'text-start max-w-[14rem] min-w-0',
+    key === tableHeaders.value[0]
+      ? `sticky start-0 z-10 ${footer ? 'bg-n-solid-1' : 'bg-n-solid-2'}`
+      : '',
   ].join(' ');
 
-const footerCellClass = key => `${bodyCellClass(key)} font-medium`;
+const footerCellClass = key =>
+  `${bodyCellClass(key, true)} font-medium bg-n-solid-1`;
+
+const hasCrossedColumns = computed(() =>
+  tableHeaders.value.some(isPivotColumnKey)
+);
+
+// Group adjacent columns only, so headers, cells and sorting keep the API order.
+const headerGroups = computed(() => {
+  const groups = [];
+  tableHeaders.value.forEach(key => {
+    const parsed = parsePivotColumnKey(key);
+    const isTotal =
+      hasCrossedColumns.value && !parsed && !PIVOT_IDENTITY_COLUMNS.has(key);
+    let groupKey = key;
+    if (parsed) groupKey = `pivot:${parsed.encoded}`;
+    else if (isTotal) groupKey = 'totals';
+    const isGroup = Boolean(parsed || isTotal);
+    const previous = groups[groups.length - 1];
+    if (isGroup && previous?.groupKey === groupKey) {
+      previous.columns.push(key);
+    } else {
+      groups.push({
+        key,
+        groupKey,
+        isGroup,
+        isTotal,
+        segment: parsed?.value,
+        columns: [key],
+      });
+    }
+  });
+  return groups;
+});
+const measureHeaders = computed(() =>
+  headerGroups.value
+    .filter(group => group.isGroup)
+    .flatMap(group => group.columns)
+);
+const headerRows = computed(() => [
+  headerGroups.value,
+  ...(hasCrossedColumns.value
+    ? [measureHeaders.value.map(key => ({ key, columns: [key] }))]
+    : []),
+]);
 
 const sortValueFor = (row, key) => {
   const value = row?.[key];
@@ -274,7 +344,7 @@ const sortedTableRows = computed(() => {
       return (av - bv) * dir;
     }
     return (
-      String(av).localeCompare(String(bv), undefined, {
+      String(av).localeCompare(String(bv), locale.value, {
         numeric: true,
         sensitivity: 'base',
       }) * dir
@@ -325,7 +395,7 @@ const rowsClickable = computed(() =>
   ['conversations', 'contacts'].includes(tableKind.value)
 );
 
-const headerLabelForMeasure = key => {
+const headerLabelForMeasure = (key, short = false) => {
   if (isCustomAttributeColumn(key)) {
     const attrKey = customAttributeKeyFromColumn(key);
     const op = measureOpFromColumn(key);
@@ -340,14 +410,22 @@ const headerLabelForMeasure = key => {
       attrKey;
     if (!op) return name;
     const opLabel = t(`REPORT_PANELS.AGGREGATIONS.${String(op).toUpperCase()}`);
+    if (short) {
+      return t('REPORT_PANELS.COLUMNS.MEASURE_CA_SHORT', {
+        name,
+        op: opLabel.toLocaleLowerCase(locale.value),
+      });
+    }
     return t('REPORT_PANELS.COLUMNS.MEASURE_CA', { op: opLabel, name });
   }
+  const labels = TABLE_MEASURE_LABELS[key];
+  if (labels) return t((short && labels.shortLabelKey) || labels.labelKey);
   const i18nKey = `REPORT_PANELS.COLUMNS.${key}`;
   const translated = t(i18nKey);
   return translated === i18nKey ? key : translated;
 };
 
-const headerLabel = key => {
+const headerLabel = (key, short = false) => {
   const dimension = props.widget.pivot?.row_attribute;
   if (key === 'name' && dimension) {
     if (isCustomAttributeColumn(dimension))
@@ -359,6 +437,7 @@ const headerLabel = key => {
   }
   if (isPivotColumnKey(key)) {
     const parsed = parsePivotColumnKey(key);
+    if (short) return headerLabelForMeasure(parsed.measure, true);
     const measureLabel = headerLabelForMeasure(parsed.measure);
     const segment = parsed.value || t('REPORT_PANELS.PIVOT.BLANK_VALUE');
     return t('REPORT_PANELS.PIVOT.HEADER', {
@@ -366,7 +445,7 @@ const headerLabel = key => {
       measure: measureLabel,
     });
   }
-  return headerLabelForMeasure(key);
+  return headerLabelForMeasure(key, short);
 };
 
 const formatCustomAttributeCell = (value, type) => {
@@ -377,26 +456,33 @@ const formatCustomAttributeCell = (value, type) => {
         ? t('FILTER.ATTRIBUTE_LABELS.TRUE')
         : t('FILTER.ATTRIBUTE_LABELS.FALSE');
     case 'date': {
-      const date = new Date(value);
-      return Number.isNaN(date.getTime())
-        ? String(value)
-        : date.toLocaleDateString();
+      return formatPanelDate(value, locale.value);
     }
     case 'datetime': {
-      const date = new Date(value);
-      return Number.isNaN(date.getTime())
-        ? String(value)
-        : date.toLocaleString();
+      return formatPanelDate(value, locale.value, {
+        ...PANEL_DATE_FORMATS.day,
+        hour: '2-digit',
+        minute: '2-digit',
+      });
     }
     case 'number':
     case 'currency':
     case 'percent':
-      return formatNumericAttribute(value, type);
+      return formatNumericAttribute(value, type, locale.value);
     case 'list':
       return Array.isArray(value) ? value.join(', ') : String(value);
     default:
       return String(value);
   }
+};
+
+const segmentLabel = group => {
+  if (group.isTotal) return t('REPORT_PANELS.TOTALS.FOOTER_LABEL');
+  if (group.segment === '') return t('REPORT_PANELS.PIVOT.BLANK_VALUE');
+  return formatCustomAttributeCell(
+    group.segment,
+    columnType(props.widget.pivot?.column_attribute)
+  );
 };
 
 const measureFormat = key => {
@@ -413,8 +499,25 @@ const formatCell = (row, key) => {
   if (key === 'name' && row.is_others) return t('REPORT_PANELS.DYNAMIC.OTHERS');
   if (key === 'name' && value === '' && props.widget.pivot?.row_attribute)
     return t('REPORT_PANELS.DYNAMIC.BLANK');
+  if (key === 'name' && props.widget.pivot?.row_attribute === 'created_at') {
+    return formatPanelDate(
+      value,
+      locale.value,
+      PANEL_DATE_FORMATS[props.widget.pivot.row_granularity || 'day']
+    );
+  }
+  if (
+    key === 'name' &&
+    isCustomAttributeColumn(props.widget.pivot?.row_attribute)
+  ) {
+    return formatCustomAttributeCell(
+      value,
+      columnType(props.widget.pivot.row_attribute)
+    );
+  }
   const configuredFormat = measureFormat(key);
-  if (configuredFormat) return formatPanelMeasure(value, configuredFormat);
+  if (configuredFormat)
+    return formatPanelMeasure(value, configuredFormat, locale.value);
   const measureKey = isPivotColumnKey(key)
     ? parsePivotColumnKey(key)?.measure
     : key;
@@ -427,13 +530,13 @@ const formatCell = (row, key) => {
         measureKey === 'conversations_count' ||
         measureKey === 'resolved_conversations_count'
       ) {
-        return Number(value).toLocaleString();
+        return formatNumber(value);
       }
       const type = columnType(measureKey);
       if (type && SUMMABLE_CUSTOM_TYPES.has(type)) {
-        return formatNumericAttribute(value, type);
+        return formatNumericAttribute(value, type, locale.value);
       }
-      return Number(value).toLocaleString();
+      return formatNumber(value);
     }
     if (isCustomAttributeColumn(measureKey)) {
       return formatCustomAttributeCell(value, columnType(measureKey));
@@ -441,9 +544,18 @@ const formatCell = (row, key) => {
   }
   if (value == null || value === '') return '—';
   if (TIME_COLUMNS.has(key)) return formatTime(value);
-  if (key === 'share_percent') return `${Number(value).toFixed(1)}%`;
+  if (key === 'share_percent')
+    return formatPanelMeasure(
+      value,
+      { type: 'percent', decimals: 1 },
+      locale.value
+    );
   if (DATE_COLUMNS.has(key) && typeof value === 'number') {
-    return format(fromUnixTime(value), 'dd-MMM-yyyy HH:mm');
+    return formatPanelDate(fromUnixTime(value), locale.value, {
+      ...PANEL_DATE_FORMATS.day,
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   }
   if (key === 'status') {
     const statusKey = `CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.${value}.TEXT`;
@@ -465,7 +577,7 @@ const formatCell = (row, key) => {
     key !== 'id' &&
     key !== 'rank'
   ) {
-    return Number(value).toLocaleString();
+    return formatNumber(value);
   }
   return value;
 };
@@ -481,18 +593,24 @@ const cellTitle = (row, key) => {
 
 const formatAggregateValue = (key, value) => {
   const configuredFormat = measureFormat(key);
-  if (configuredFormat) return formatPanelMeasure(value, configuredFormat);
+  if (configuredFormat)
+    return formatPanelMeasure(value, configuredFormat, locale.value);
   if (value == null || value === '') return '—';
   if (TIME_COLUMNS.has(key)) return formatTime(value);
-  if (key === 'share_percent') return `${Number(value).toFixed(1)}%`;
+  if (key === 'share_percent')
+    return formatPanelMeasure(
+      value,
+      { type: 'percent', decimals: 1 },
+      locale.value
+    );
   if (measureOpFromColumn(key) === 'count') {
-    return Number(value).toLocaleString();
+    return formatNumber(value);
   }
   const type = columnType(key);
   if (type && SUMMABLE_CUSTOM_TYPES.has(type)) {
-    return formatNumericAttribute(value, type);
+    return formatNumericAttribute(value, type, locale.value);
   }
-  return Number(value).toLocaleString();
+  return formatNumber(value);
 };
 
 const footerCell = key => {
@@ -539,23 +657,27 @@ const title = computed(() => {
 });
 
 const tableSubtitle = computed(() => {
-  if (props.widget.type !== 'table') return '';
+  if (props.widget.type !== 'table' || isLoading.value || errorMessage.value)
+    return '';
   const total = totals.value.count;
   if (total == null) return '';
   const shown = tableRows.value.length;
   if (props.result?.truncated && shown < total) {
     return t('REPORT_PANELS.TOTALS.TRUNCATED_COUNT', {
-      shown,
-      total,
+      shown: formatNumber(shown),
+      total: formatNumber(total),
     });
   }
-  return t('REPORT_PANELS.TOTALS.RECORDS_COUNT', { count: total });
+  return t('REPORT_PANELS.TOTALS.RECORDS_COUNT', {
+    count: formatNumber(total),
+  });
 });
 </script>
 
 <template>
   <div
     class="rounded-xl border border-n-weak bg-n-solid-2 p-4 flex flex-col gap-3 min-h-[10rem] min-w-0 max-w-full"
+    :aria-busy="isLoading"
   >
     <div class="flex flex-col gap-0.5">
       <h3 class="text-sm font-medium text-n-slate-12 break-words">
@@ -573,7 +695,23 @@ const tableSubtitle = computed(() => {
     </div>
 
     <div
-      v-if="widget.type === 'metric'"
+      v-if="isLoading"
+      role="status"
+      class="flex flex-1 items-center justify-center gap-2 py-4 text-sm text-n-slate-11"
+    >
+      <Spinner :size="20" />
+      <span>{{ t('REPORT_PANELS.LOADING') }}</span>
+    </div>
+    <p
+      v-else-if="errorMessage"
+      role="alert"
+      class="text-sm text-n-ruby-11 break-words py-4"
+    >
+      {{ errorMessage }}
+    </p>
+
+    <div
+      v-else-if="widget.type === 'metric'"
       class="text-3xl font-semibold text-n-slate-12"
     >
       {{ displayValue }}
@@ -584,46 +722,73 @@ const tableSubtitle = computed(() => {
         :data="chartData"
         :height="224"
         timeseries
-        :format-value="value => Number(value).toLocaleString()"
+        :format-value="formatNumber"
         :aria-label="widget.title || metricLabel"
       />
     </div>
 
-    <div v-else-if="widget.type === 'table'" class="flex flex-col gap-3">
-      <div class="overflow-x-auto">
+    <div
+      v-else-if="widget.type === 'table'"
+      class="flex flex-col gap-3 min-w-0 max-w-full"
+    >
+      <p
+        v-if="!tableRows.length"
+        role="status"
+        class="text-sm text-n-slate-11 py-4"
+      >
+        {{ t('REPORT_PANELS.EMPTY_TABLE') }}
+      </p>
+      <div v-else class="overflow-x-auto min-w-0 max-w-full">
         <table class="w-full text-sm">
           <thead>
-            <tr>
+            <tr v-for="(headers, level) in headerRows" :key="level">
               <th
-                v-for="header in tableHeaders"
-                :key="header"
-                :class="headerCellClass(header)"
-                :aria-sort="
-                  sortKey === header
-                    ? sortDir === 'desc'
-                      ? 'descending'
-                      : 'ascending'
-                    : 'none'
+                v-for="header in headers"
+                :key="header.key"
+                :class="headerCellClass(header.key)"
+                :scope="header.isGroup ? 'colgroup' : 'col'"
+                :colspan="header.columns.length"
+                :rowspan="
+                  hasCrossedColumns && level === 0 && !header.isGroup ? 2 : 1
                 "
-                @click="toggleSort(header)"
+                :aria-sort="
+                  header.isGroup
+                    ? undefined
+                    : sortKey === header.key
+                      ? sortDir === 'desc'
+                        ? 'descending'
+                        : 'ascending'
+                      : 'none'
+                "
               >
                 <span
-                  class="inline-flex items-center gap-1.5 max-w-full"
-                  :class="{ 'justify-end': isNumericColumn(header) }"
+                  v-if="header.isGroup"
+                  class="block truncate max-w-[14rem] text-start"
+                  :title="segmentLabel(header)"
                 >
-                  <span
-                    :class="{ truncate: !isNumericColumn(header) }"
-                    :title="
-                      isNumericColumn(header) ? undefined : headerLabel(header)
-                    "
-                  >
-                    {{ headerLabel(header) }}
+                  {{ segmentLabel(header) }}
+                </span>
+                <button
+                  v-else
+                  type="button"
+                  class="flex items-center gap-1.5 w-full max-w-[12rem] min-w-0 hover:text-n-slate-12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand rounded-sm"
+                  :class="
+                    isNumericColumn(header.key)
+                      ? 'justify-end text-end'
+                      : 'text-start'
+                  "
+                  :title="headerLabel(header.key)"
+                  @click="toggleSort(header.key)"
+                >
+                  <span class="truncate min-w-0">
+                    {{ headerLabel(header.key, true) }}
                   </span>
                   <span
                     class="size-3.5 shrink-0"
-                    :class="sortIconClass(header)"
+                    :class="sortIconClass(header.key)"
+                    aria-hidden="true"
                   />
-                </span>
+                </button>
               </th>
             </tr>
           </thead>
@@ -644,7 +809,9 @@ const tableSubtitle = computed(() => {
               >
                 <span
                   :class="[
-                    isNumericColumn(header) ? '' : 'block truncate',
+                    isNumericColumn(header)
+                      ? ''
+                      : 'block truncate max-w-[12rem]',
                     rowsClickable && header === tableHeaders[0]
                       ? 'text-n-brand font-medium'
                       : '',
@@ -676,22 +843,13 @@ const tableSubtitle = computed(() => {
             </tr>
           </tfoot>
         </table>
-        <p v-if="!tableRows.length" class="text-sm text-n-slate-11 py-4">
-          {{ t('REPORT_PANELS.EMPTY_TABLE') }}
-        </p>
-        <p v-else-if="rowsClickable" class="text-xs text-n-slate-11 mt-2">
-          {{ t('REPORT_PANELS.TABLE_CLICK_HINT') }}
-        </p>
       </div>
+      <p
+        v-if="tableRows.length && rowsClickable"
+        class="text-xs text-n-slate-11"
+      >
+        {{ t('REPORT_PANELS.TABLE_CLICK_HINT') }}
+      </p>
     </div>
-
-    <p v-if="result?.error" class="text-sm text-n-ruby-11">
-      {{
-        result.error.startsWith('pivot_row_limit_exceeded') ||
-        result.error.startsWith('pivot_bucket_limit_exceeded')
-          ? t('REPORT_PANELS.DYNAMIC.LIMIT_ERROR')
-          : result.error
-      }}
-    </p>
   </div>
 </template>

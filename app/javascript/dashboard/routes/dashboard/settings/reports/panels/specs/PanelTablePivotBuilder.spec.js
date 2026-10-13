@@ -306,11 +306,11 @@ describe('guided table measures', () => {
       formatPanelMeasure(51, config)
     );
     expect(wrapper.find('thead').text()).toContain('Fecha de creación');
-    await wrapper.findAll('thead th')[1].trigger('click');
+    await wrapper.findAll('thead tr')[1].find('button').trigger('click');
     expect(
       wrapper.findAll('tbody tr').map(row => row.find('td').text())
     ).toEqual(['A', 'B', 'Otros']);
-    await wrapper.findAll('thead th')[1].trigger('click');
+    await wrapper.findAll('thead tr')[1].find('button').trigger('click');
     expect(
       wrapper.findAll('tbody tr').map(row => row.find('td').text())
     ).toEqual(['B', 'A', 'Otros']);

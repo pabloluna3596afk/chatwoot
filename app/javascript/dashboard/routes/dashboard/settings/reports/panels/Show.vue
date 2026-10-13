@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import { useLocale } from 'shared/composables/useLocale';
 import { useStore } from 'dashboard/composables/store';
 import { useMapGetter } from 'dashboard/composables/store.js';
 import { useAccount } from 'dashboard/composables/useAccount';
@@ -20,11 +21,12 @@ import {
   panelRangeToPickerDates,
   panelPickerRangeToUnix,
   panelReportingToday,
+  formatPanelDate,
 } from './panelConstants';
-import format from 'date-fns/format';
 import fromUnixTime from 'date-fns/fromUnixTime';
 
 const { t } = useI18n();
+const { resolvedLocale: locale } = useLocale();
 const route = useRoute();
 const router = useRouter();
 const store = useStore();
@@ -38,6 +40,7 @@ const conversationAttributes = useMapGetter(
 
 const loading = ref(true);
 const running = ref(false);
+const runError = ref('');
 const panel = ref(null);
 
 // A table of conversations or contacts carries personal data, so exporting it also needs the customer-data switch.
@@ -129,9 +132,9 @@ const rangeDescription = computed(() => {
     const since = runResult.value?.since;
     const until = runResult.value?.until;
     if (since && until) {
-      return `${format(fromUnixTime(since), 'dd-MMM-yyyy')} → ${format(
+      return `${formatPanelDate(fromUnixTime(since), locale.value)} → ${formatPanelDate(
         fromUnixTime(until),
-        'dd-MMM-yyyy'
+        locale.value
       )}`;
     }
     return t('REPORT_PANELS.DATE_PRESETS.CUSTOM');
@@ -155,10 +158,12 @@ const runParams = () => {
 
 const runPanel = async () => {
   running.value = true;
+  runError.value = '';
   try {
     const { data } = await SavedReportPanelsAPI.run(panelId.value, runParams());
     runResult.value = data;
   } catch {
+    runError.value = t('REPORT_PANELS.ERRORS.RUN');
     useAlert(t('REPORT_PANELS.ERRORS.RUN'));
   } finally {
     running.value = false;
@@ -298,12 +303,16 @@ onMounted(load);
       />
     </div>
 
-    <div class="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mt-4">
+    <div
+      class="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mt-4 min-w-0 max-w-full"
+    >
       <PanelWidgetCard
         v-for="widget in panel.widgets"
         :key="widget.id"
         :widget="widget"
         :result="resultByWidgetId[widget.id]"
+        :loading="running"
+        :error="runError"
         :attribute-labels="attributeLabels"
         :attribute-types="attributeTypes"
         :class="

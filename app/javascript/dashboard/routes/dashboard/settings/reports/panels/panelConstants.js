@@ -33,6 +33,73 @@ export const METRIC_OPTIONS = [
   'resolutions_count',
 ];
 
+// Table headings stay compact; the full label is retained in their tooltip.
+export const TABLE_MEASURE_LABELS = {
+  conversations_count: {
+    labelKey: 'REPORT_PANELS.COLUMNS.conversations_count',
+    shortLabelKey: 'REPORT_PANELS.COLUMNS.CONVERSATIONS_SHORT',
+  },
+  resolved_conversations_count: {
+    labelKey: 'REPORT_PANELS.COLUMNS.resolved_conversations_count',
+  },
+  unique_contacts_count: {
+    labelKey: 'REPORT_PANELS.METRICS.unique_contacts_count',
+    shortLabelKey: 'REPORT_PANELS.COLUMNS.UNIQUE_CONTACTS_SHORT',
+  },
+  contacts_count: {
+    labelKey: 'REPORT_PANELS.METRICS.contacts_count',
+    shortLabelKey: 'REPORT_PANELS.COLUMNS.CONTACTS_SHORT',
+  },
+  incoming_messages_count: {
+    labelKey: 'REPORT_PANELS.METRICS.incoming_messages_count',
+  },
+  outgoing_messages_count: {
+    labelKey: 'REPORT_PANELS.METRICS.outgoing_messages_count',
+  },
+  avg_first_response_time: {
+    labelKey: 'REPORT_PANELS.METRICS.avg_first_response_time',
+    shortLabelKey: 'REPORT_PANELS.COLUMNS.FIRST_RESPONSE_SHORT',
+  },
+  avg_resolution_time: {
+    labelKey: 'REPORT_PANELS.METRICS.avg_resolution_time',
+    shortLabelKey: 'REPORT_PANELS.COLUMNS.RESOLUTION_SHORT',
+  },
+  reply_time: {
+    labelKey: 'REPORT_PANELS.METRICS.reply_time',
+    shortLabelKey: 'REPORT_PANELS.COLUMNS.WAIT_TIME_SHORT',
+  },
+  resolutions_count: {
+    labelKey: 'REPORT_PANELS.METRICS.resolutions_count',
+  },
+};
+
+export const PANEL_DATE_FORMATS = {
+  day: { day: '2-digit', month: 'short', year: 'numeric' },
+  week: { day: '2-digit', month: 'short', year: 'numeric' },
+  month: { month: 'short', year: 'numeric' },
+  year: { year: 'numeric' },
+};
+
+export const formatPanelDate = (
+  value,
+  locale,
+  options = PANEL_DATE_FORMATS.day
+) => {
+  // Free text (e.g. an attribute value) must never be parsed as a date.
+  if (typeof value === 'string' && !/^\d{4}-\d{2}-\d{2}/.test(value)) {
+    return value;
+  }
+  // Calendar dates must keep their day regardless of the browser timezone.
+  const date = new Date(
+    typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ? `${value}T00:00:00`
+      : value
+  );
+  return Number.isNaN(date.getTime())
+    ? String(value)
+    : new Intl.DateTimeFormat(locale, options).format(date);
+};
+
 export const METRIC_SOURCES = [
   { value: 'preset', labelKey: 'REPORT_PANELS.METRIC_SOURCES.PRESET' },
   {
@@ -316,22 +383,27 @@ export const parseLocaleNumber = value => {
 };
 
 /** Format numeric CA cells/footers; currency always shown with `$`. */
-export const formatNumericAttribute = (value, type) => {
+export const formatNumericAttribute = (value, type, locale) => {
   const num = parseLocaleNumber(value);
   if (num == null) return value == null || value === '' ? '—' : String(value);
 
   if (type === 'currency') {
-    return `$${num.toLocaleString(undefined, {
+    return `$${new Intl.NumberFormat(locale, {
+      useGrouping: true,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    })}`;
+    }).format(num)}`;
   }
   if (type === 'percent') {
-    return `${num.toLocaleString(undefined, {
+    return `${new Intl.NumberFormat(locale, {
+      useGrouping: true,
       maximumFractionDigits: 2,
-    })}%`;
+    }).format(num)}%`;
   }
-  return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  return new Intl.NumberFormat(locale, {
+    useGrouping: true,
+    maximumFractionDigits: 2,
+  }).format(num);
 };
 
 export const ROW_GRANULARITIES = ['day', 'week', 'month'];
@@ -405,14 +477,15 @@ export const cleanTableOptions = (
   return widget;
 };
 
-export const formatPanelMeasure = (value, config) => {
+export const formatPanelMeasure = (value, config, locale) => {
   const number = parseLocaleNumber(value);
   if (number == null) return '—';
   const decimals = config.decimals ?? (config.type === 'integer' ? 0 : 2);
-  const formatted = number.toLocaleString(undefined, {
+  const formatted = new Intl.NumberFormat(locale, {
+    useGrouping: true,
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
-  });
+  }).format(number);
   if (config.type === 'currency')
     return `${config.currency_symbol ?? '$'}${formatted}`;
   if (config.type === 'percent') return `${formatted}%`;
