@@ -1,18 +1,19 @@
 class Reports::PanelRunnerService
   # ponytail: statement_timeout caps expensive panel runs; raise if panels need longer windows
   STATEMENT_TIMEOUT_MS = 15_000
+  PivotResolutionContext = Struct.new(:table_kind, :attribute_key, :selected_values, :since_time, :until_time, keyword_init: true)
+  PivotTotalsContext = Struct.new(:columns, :attribute_types, :footer_aggs, :buckets, :measures, :pivot_values, keyword_init: true)
 
   # Filters that only affect conversation-scoped widgets. Contact custom attrs are split out.
   # Not applied: live message-content filters beyond FilterService; metric scopes other than account
   # still use widget scope_type when no panel filters are set.
 
-  def initialize(panel:, account:, user:, timezone_offset: 0, since_override: nil, until_override: nil)
+  def initialize(panel:, account:, user:, timezone_offset: 0, date_overrides: {})
     @panel = panel
     @account = account
     @user = user
     @timezone_offset = timezone_offset.to_f
-    @since_override = since_override
-    @until_override = until_override
+    @date_overrides = date_overrides
   end
 
   def perform
@@ -37,14 +38,13 @@ class Reports::PanelRunnerService
   private
 
   def resolve_range
-    if @since_override.present? && @until_override.present?
-      return [Time.zone.at(@since_override.to_i), Time.zone.at(@until_override.to_i)]
-    end
+    return Reports::PanelDateRange.validate(@date_overrides[:since], @date_overrides[:until], account: @account) if @date_overrides.any?
 
     Reports::PanelDateRange.resolve(
       @panel.date_preset,
       custom_since: @panel.custom_since,
-      custom_until: @panel.custom_until
+      custom_until: @panel.custom_until,
+      account: @account
     )
   end
 
@@ -79,6 +79,8 @@ class Reports::PanelRunnerService
         filtered_contacts_count(since_time, until_time)
       elsif metric == 'unique_contacts_count'
         unique_contacts_count(since_time, until_time)
+      elsif metric == 'resolutions_count'
+        widget_resolution_events_scope(widget, since_time, until_time).distinct.count(:conversation_id)
       elsif conversation_filters? || contact_filters? || panel_date_attribute_key.present?
         filtered_metric_value(metric, since_time, until_time)
       else
@@ -101,7 +103,9 @@ class Reports::PanelRunnerService
     metric = widget[:metric].to_s
     group_by = widget[:group_by].presence || 'day'
     points =
-      if conversation_filters? || contact_filters? || panel_date_attribute_key.present?
+      if metric == 'resolutions_count'
+        resolution_chart_points(widget, since_time, until_time, group_by)
+      elsif conversation_filters? || contact_filters? || panel_date_attribute_key.present?
         filtered_chart_points(metric, since_time, until_time, group_by)
       else
         report_builder(widget, since_time, until_time, metric: metric, group_by: group_by).build
@@ -528,17 +532,22 @@ class Reports::PanelRunnerService
     footer_aggs = {}
     if show_row_totals
       measures.each do |m|
-        op = (column_aggregations[m].presence || (m.end_with?('__avg') ? 'avg' : 'sum')).to_s
+        op = (column_aggregations[m].presence || pivot_footer_op(m)).to_s
         footer_aggs[m] = op if SavedReportPanel::COLUMN_AGGREGATION_OPS.include?(op)
       end
     end
     pivot_values.each do |pval|
       measures.each do |m|
         col = pivot_column_key(m, pval)
-        op = (column_aggregations[m].presence || (m.end_with?('__avg') ? 'avg' : 'sum')).to_s
+        op = (column_aggregations[m].presence || pivot_footer_op(m)).to_s
         footer_aggs[col] = op if SavedReportPanel::COLUMN_AGGREGATION_OPS.include?(op)
       end
     end
+
+    totals_context = PivotTotalsContext.new(
+      columns: expanded_columns, attribute_types: attribute_types, footer_aggs: footer_aggs,
+      buckets: buckets, measures: measures, pivot_values: pivot_values
+    )
 
     {
       id: widget[:id],
@@ -555,7 +564,7 @@ class Reports::PanelRunnerService
         measures: measures,
         show_row_totals: show_row_totals
       },
-      totals: build_table_totals(rows, expanded_columns, rows.size, attribute_types, footer_aggs)
+      totals: build_pivot_totals(rows, totals_context)
     }
   end
 
@@ -586,7 +595,7 @@ class Reports::PanelRunnerService
     # Keep the same row universe as the flat (non-pivot) summary — agents/inboxes/…
     # with zeros — instead of only dimensions that appear in the pivot scan.
     pivot_baseline_dimension_ids(table_kind, since_time, until_time).each do |dim_id|
-      buckets[dim_id] # touch empty bucket so the row survives with zero cells
+      buckets[dim_id] # touch empty bucket so the row survives with empty cells
     end
 
     # ponytail: full range scan (batched). Old reorder(:id).limit(2k) biased to earliest
@@ -610,6 +619,14 @@ class Reports::PanelRunnerService
         end
       end
 
+    if measures.include?('resolved_conversations_count')
+      context = PivotResolutionContext.new(
+        table_kind: table_kind, attribute_key: pivot_attr_key, selected_values: selected_values,
+        since_time: since_time, until_time: until_time
+      )
+      accumulate_pivot_resolutions!(buckets, discovered, context)
+    end
+
     pivot_values =
       if selected_values.present?
         selected_values
@@ -625,6 +642,28 @@ class Reports::PanelRunnerService
     pivot_values = discovered.keys.map(&:to_s).first(MAX_PIVOT_VALUES) if pivot_values.empty?
 
     [pivot_values, buckets, name_map]
+  end
+
+  def accumulate_pivot_resolutions!(buckets, discovered, context)
+    resolution_events_scope(context.since_time, context.until_time).includes(:conversation).find_each do |event|
+      conversation = event.conversation
+      pivot_val = normalize_pivot_value(conversation.custom_attributes&.[](context.attribute_key))
+      next if context.selected_values.present? && context.selected_values.exclude?(pivot_val)
+
+      dim_ids = pivot_resolution_dimension_ids(context.table_kind, event)
+      discovered[pivot_val] = true if dim_ids.present?
+      dim_ids.each do |dim_id|
+        buckets[dim_id][pivot_val]['resolved_conversations_count'][conversation.id] = true
+      end
+    end
+  end
+
+  def pivot_resolution_dimension_ids(table_kind, event)
+    case table_kind.to_s
+    when 'agent_summary' then [event.user_id || UNASSIGNED_AGENT_ID]
+    when 'inbox_summary' then [event.inbox_id].compact
+    else pivot_dimension_ids(table_kind, event.conversation)
+    end
   end
 
   # Same dimension ids the flat summary table would show for this kind/filters/range.
@@ -651,7 +690,11 @@ class Reports::PanelRunnerService
   def new_pivot_measure_accum(measures)
     measures.each_with_object({}) do |m, memo|
       _attr, op, = parse_summary_ca_column(m)
-      memo[m] = if op && %w[avg min max].include?(op)
+      memo[m] = if m == 'resolved_conversations_count'
+                  {}
+                elsif op == 'avg'
+                  { sum: 0.0, count: 0 }
+                elsif %w[min max].include?(op)
                   []
                 elsif op == 'sum'
                   0.0
@@ -668,7 +711,6 @@ class Reports::PanelRunnerService
         next
       end
       if measure == 'resolved_conversations_count'
-        accum[measure] = accum[measure].to_i + 1 if conversation.status == 'resolved'
         next
       end
       next unless summary_ca_column?(measure)
@@ -677,9 +719,12 @@ class Reports::PanelRunnerService
       op = (op.presence || 'count').to_s
       if contact_attr
         contact = conversation.contact
-        next if contact.blank? || seen_contact_ids[contact.id]
+        next if contact.blank?
 
-        seen_contact_ids[contact.id] = true
+        seen_contact_ids[measure] ||= {}
+        next if seen_contact_ids[measure][contact.id]
+
+        seen_contact_ids[measure][contact.id] = true
         val = contact.custom_attributes&.[](attr_key)
       else
         val = conversation.custom_attributes&.[](attr_key)
@@ -693,7 +738,13 @@ class Reports::PanelRunnerService
       when 'sum'
         num = CustomAttributes::NumericParser.parse(val)
         accum[measure] = accum[measure].to_f + num if num
-      when 'avg', 'min', 'max'
+      when 'avg'
+        num = CustomAttributes::NumericParser.parse(val)
+        if num
+          accum[measure][:sum] += num
+          accum[measure][:count] += 1
+        end
+      when 'min', 'max'
         num = CustomAttributes::NumericParser.parse(val)
         accum[measure] << num if num
       end
@@ -701,11 +752,20 @@ class Reports::PanelRunnerService
   end
 
   def finalize_pivot_measure(accum_value, measure)
+    return (accum_value || {}).size if measure == 'resolved_conversations_count'
+
     _attr, op, = parse_summary_ca_column(measure)
     op = op.presence || 'count'
+    if op == 'avg'
+      return nil if accum_value.nil? || accum_value[:count].zero?
+
+      return (accum_value[:sum] / accum_value[:count]).round(2)
+    end
     if accum_value.is_a?(Array)
+      return nil if accum_value.empty?
+
       result = aggregate_numeric_values(accum_value, op)
-      return result.is_a?(Float) ? result.round(2) : (result || 0)
+      return result.is_a?(Float) ? result.round(2) : result
     end
     val = accum_value || 0
     val.is_a?(Float) ? val.round(2) : val
@@ -748,49 +808,87 @@ class Reports::PanelRunnerService
     end
 
     dim_ids.map.with_index(1) do |dim_id, rank|
-      # String keys only — a later nil-fill with expanded_columns (strings) must not
-      # invent a second :name/:rank that as_json prefers as 0 (B-NEW-19).
+      # String keys only — pivot columns and totals also use strings (B-NEW-19).
       row = {
         'id' => dim_id,
         'rank' => rank,
         'name' => name_map[dim_id].presence || "##{dim_id}"
       }
-      totals = measures.index_with { 0.0 }
-
       pivot_values.each do |pval|
         cell = buckets[dim_id][pval] || {}
         measures.each do |m|
           finalized = finalize_pivot_measure(cell[m], m)
-          row[pivot_column_key(m, pval)] = finalized || 0
-          totals[m] = totals[m].to_f + finalized.to_f if show_row_totals
+          row[pivot_column_key(m, pval)] = finalized
         end
       end
 
       if show_row_totals
         measures.each do |m|
-          _a, op, = parse_summary_ca_column(m)
-          if %w[avg min max].include?(op)
-            vals = pivot_values.map { |pv| row[pivot_column_key(m, pv)] }.compact
-            row[m] =
-              case op
-              when 'avg' then vals.empty? ? 0 : (vals.sum(&:to_f) / vals.size).round(2)
-              when 'min' then vals.min || 0
-              else vals.max || 0
-              end
-          else
-            val = totals[m] || 0
-            row[m] = val.is_a?(Float) ? val.round(2) : val
-          end
+          row[m] = combine_pivot_measure(pivot_values.map { |pv| buckets[dim_id][pv][m] }, m)
         end
       end
 
       expanded_columns.each do |col|
         next if PIVOT_IDENTITY_COLUMNS.include?(col.to_s)
 
-        row[col] = 0 if row[col].nil?
+        row[col] = finalize_pivot_measure(new_pivot_measure_accum([col])[col], col) unless row.key?(col)
       end
       row
     end
+  end
+
+  def combine_pivot_measure(accumulators, measure)
+    _attr, op, = parse_summary_ca_column(measure)
+    combined = if measure == 'resolved_conversations_count'
+                 accumulators.compact.each_with_object({}) { |values, total| total.merge!(values) }
+               elsif op == 'avg'
+                 accumulators.compact.each_with_object({ sum: 0.0, count: 0 }) do |values, total|
+                   total[:sum] += values[:sum]
+                   total[:count] += values[:count]
+                 end
+               elsif %w[min max].include?(op)
+                 accumulators.compact.flatten
+               else
+                 accumulators.compact.sum
+               end
+    finalize_pivot_measure(combined, measure)
+  end
+
+  def pivot_footer_op(measure)
+    _attr, op, = parse_summary_ca_column(measure)
+    %w[avg min max].include?(op) ? op : 'sum'
+  end
+
+  def build_pivot_totals(rows, context)
+    totals = build_table_totals(rows, context.columns, rows.size, context.attribute_types, context.footer_aggs)
+    context.measures.each do |measure|
+      update_pivot_measure_totals!(totals, measure, context)
+    end
+    totals
+  end
+
+  def update_pivot_measure_totals!(totals, measure, context)
+    op = raw_pivot_footer_op(measure)
+    return if op.nil?
+
+    ([nil] + context.pivot_values).each do |pivot_value|
+      column = pivot_value.nil? ? measure : pivot_column_key(measure, pivot_value)
+      next unless context.footer_aggs[column] == op
+
+      accumulators = pivot_total_accumulators(context, measure, pivot_value)
+      totals[:columns][column] = combine_pivot_measure(accumulators, measure)
+    end
+  end
+
+  def raw_pivot_footer_op(measure)
+    return 'sum' if measure == 'resolved_conversations_count'
+
+    'avg' if pivot_footer_op(measure) == 'avg'
+  end
+
+  def pivot_total_accumulators(context, measure, pivot_value)
+    values = pivot_value.nil? ? context.pivot_values : [pivot_value]
+    context.buckets.values.flat_map { |cells| values.map { |value| cells[value][measure] } }
   end
 
   # Sum/avg/min/max/count custom attrs onto summary dimensions (agent/inbox/team/label).
@@ -1014,7 +1112,7 @@ class Reports::PanelRunnerService
       type: scope_type,
       id: widget[:scope_id],
       since: since_time.to_i.to_s,
-      until: until_time.to_i.to_s,
+      until: (until_time.to_i + 1).to_s,
       business_hours: @panel.business_hours,
       timezone_offset: @timezone_offset,
       group_by: group_by
@@ -1026,7 +1124,7 @@ class Reports::PanelRunnerService
   def summary_builder(klass, since_time, until_time, type: nil)
     params = {
       since: since_time.to_i.to_s,
-      until: until_time.to_i.to_s,
+      until: (until_time.to_i + 1).to_s,
       business_hours: @panel.business_hours
     }
     params[:type] = type if type.present?
@@ -1037,7 +1135,11 @@ class Reports::PanelRunnerService
     if conversation_filters? || contact_filters? || panel_date_attribute_key.present?
       filtered_dimension_summary(dimension, since_time, until_time)
     else
-      summary_builder(klass, since_time, until_time, type: type)
+      event_dimension = dimension == :inbox_id ? 'reporting_events.inbox_id' : nil
+      resolved_counts = dimension_resolution_counts(dimension, since_time, until_time, event_dimension: event_dimension)
+      summary_builder(klass, since_time, until_time, type: type).map do |row|
+        row.merge(resolved_conversations_count: resolved_counts.fetch(row[:id], 0))
+      end
     end
   end
 
@@ -1045,7 +1147,10 @@ class Reports::PanelRunnerService
     if conversation_filters? || contact_filters? || panel_date_attribute_key.present?
       filtered_label_summary(since_time, until_time)
     else
-      summary_builder(V2::Reports::LabelSummaryBuilder, since_time, until_time)
+      resolved_counts = label_resolution_counts(since_time, until_time)
+      summary_builder(V2::Reports::LabelSummaryBuilder, since_time, until_time).map do |row|
+        row.merge(resolved_conversations_count: resolved_counts.fetch(row[:name], 0))
+      end
     end
   end
 
@@ -1053,21 +1158,25 @@ class Reports::PanelRunnerService
     conv_ids = filtered_conversation_ids_subquery(since_time, until_time)
     conversations_count = Conversation.where(id: conv_ids).group(dimension).count
     events = ReportingEvent.where(account_id: @account.id, conversation_id: conv_ids, created_at: since_time..until_time)
-    resolved_count = events.where(name: 'conversation_resolved').joins(:conversation).group("conversations.#{dimension}").count
+    event_dimension = dimension == :assignee_id ? 'reporting_events.user_id' : "conversations.#{dimension}"
+    resolved_count = dimension_resolution_counts(dimension, since_time, until_time)
     avg_map = lambda do |event_name|
-      events.where(name: event_name).joins(:conversation).group("conversations.#{dimension}")
+      events.where(name: event_name).joins(:conversation).group(event_dimension)
             .average(average_value_key)
     end
 
-    ids = (conversations_count.keys | resolved_count.keys).compact
+    first_response = avg_map.call('first_response')
+    resolution_time = avg_map.call('conversation_resolved')
+    reply_time = avg_map.call('reply_time')
+    ids = (conversations_count.keys | resolved_count.keys | first_response.keys | resolution_time.keys | reply_time.keys).compact
     ids.map do |id|
       {
         id: id,
         conversations_count: conversations_count[id] || 0,
         resolved_conversations_count: resolved_count[id] || 0,
-        avg_first_response_time: avg_map.call('first_response')[id],
-        avg_resolution_time: avg_map.call('conversation_resolved')[id],
-        avg_reply_time: avg_map.call('reply_time')[id]
+        avg_first_response_time: first_response[id],
+        avg_resolution_time: resolution_time[id],
+        avg_reply_time: reply_time[id]
       }
     end
   end
@@ -1093,7 +1202,7 @@ class Reports::PanelRunnerService
                taggings: { taggable_type: 'Conversation', context: 'labels' }
              )
 
-    resolved_counts = events.where(name: 'conversation_resolved').group('tags.name').count
+    resolved_counts = label_resolution_counts(since_time, until_time)
     avg_for = lambda do |event_name|
       events.where(name: event_name).group('tags.name').average(average_value_key)
     end
@@ -1184,19 +1293,24 @@ class Reports::PanelRunnerService
     list = Array(rows).map { |row| row.with_indifferent_access }
     list = list.reject { |row| row[:id].nil? || row[:id] == UNASSIGNED_AGENT_ID }
     count, resolved = unassigned_agent_conversation_stats(since_time, until_time)
+    events = @account.reporting_events.where(user_id: nil, created_at: since_time..until_time)
+    if conversation_filters? || contact_filters? || panel_date_attribute_key.present?
+      events = events.where(conversation_id: filtered_conversation_ids_subquery(since_time, until_time))
+    end
     list + [{
       id: UNASSIGNED_AGENT_ID,
       conversations_count: count,
       resolved_conversations_count: resolved,
-      avg_first_response_time: nil,
-      avg_resolution_time: nil,
-      avg_reply_time: nil
+      avg_first_response_time: events.where(name: 'first_response').average(average_value_key),
+      avg_resolution_time: events.where(name: 'conversation_resolved').average(average_value_key),
+      avg_reply_time: events.where(name: 'reply_time').average(average_value_key)
     }]
   end
 
   def unassigned_agent_conversation_stats(since_time, until_time)
     unassigned = filtered_conversations_scope(since_time, until_time).where(assignee_id: nil)
-    [unassigned.count, unassigned.where(status: :resolved).count]
+    resolved = resolution_events_scope(since_time, until_time).where(user_id: nil).distinct.count(:conversation_id)
+    [unassigned.count, resolved]
   end
 
   def filtered_conversation_rows(since_time, until_time, columns = [])
@@ -1395,8 +1509,6 @@ class Reports::PanelRunnerService
       filtered_messages_scope(conv_ids, since_time, until_time).incoming.count
     when 'outgoing_messages_count'
       filtered_messages_scope(conv_ids, since_time, until_time).outgoing.count
-    when 'resolutions_count'
-      filtered_events_scope(conv_ids, since_time, until_time, 'conversation_resolved').count
     when 'avg_first_response_time'
       filtered_events_scope(conv_ids, since_time, until_time, 'first_response').average(average_value_key) || 0
     when 'avg_resolution_time'
@@ -1425,10 +1537,6 @@ class Reports::PanelRunnerService
         ).count
       when 'outgoing_messages_count'
         filtered_messages_scope(conv_ids, since_time, until_time).outgoing.group_by_period(
-          group_by, :created_at, default_value: 0, range: range, permit: %w[day week month year hour], time_zone: timezone
-        ).count
-      when 'resolutions_count'
-        filtered_events_scope(conv_ids, since_time, until_time, 'conversation_resolved').group_by_period(
           group_by, :created_at, default_value: 0, range: range, permit: %w[day week month year hour], time_zone: timezone
         ).count
       when 'avg_first_response_time', 'avg_resolution_time', 'reply_time'
@@ -1461,6 +1569,56 @@ class Reports::PanelRunnerService
       created_at: since_time..until_time,
       name: event_name
     )
+  end
+
+  def resolution_events_scope(since_time, until_time)
+    conv_ids = conversations_matching_filters_without_date.unscope(:order).reselect(:id)
+    filtered_events_scope(conv_ids, since_time, until_time, 'conversation_resolved')
+  end
+
+  def widget_resolution_events_scope(widget, since_time, until_time)
+    events = resolution_events_scope(since_time, until_time)
+    return events if conversation_filters? || contact_filters? || panel_date_attribute_key.present?
+
+    events.merge(resolution_reporting_scope(widget).reporting_events)
+  end
+
+  def resolution_reporting_scope(widget)
+    case widget[:scope_type].to_s
+    when 'account', '' then @account
+    when 'agent' then @account.users.find(widget[:scope_id])
+    when 'inbox' then @account.inboxes.find(widget[:scope_id])
+    when 'team' then @account.teams.find(widget[:scope_id])
+    when 'label' then @account.labels.find(widget[:scope_id])
+    end
+  end
+
+  def resolution_chart_points(widget, since_time, until_time, group_by)
+    timezone = timezone_name
+    widget_resolution_events_scope(widget, since_time, until_time).group_by_period(
+      group_by, :created_at,
+      default_value: 0,
+      range: since_time..until_time,
+      permit: %w[day week month year hour],
+      time_zone: timezone
+    ).distinct.count(:conversation_id).map do |period, count|
+      { value: count, timestamp: period.in_time_zone(timezone).to_i }
+    end
+  end
+
+  def dimension_resolution_counts(dimension, since_time, until_time, event_dimension: nil)
+    event_dimension ||= dimension == :assignee_id ? 'reporting_events.user_id' : "conversations.#{dimension}"
+    resolution_events_scope(since_time, until_time)
+      .joins(:conversation)
+      .group(event_dimension)
+      .distinct.count('reporting_events.conversation_id')
+  end
+
+  def label_resolution_counts(since_time, until_time)
+    resolution_events_scope(since_time, until_time)
+      .joins(conversation: { taggings: :tag })
+      .where(taggings: { taggable_type: 'Conversation', context: 'labels' })
+      .group('tags.name').distinct.count('reporting_events.conversation_id')
   end
 
   def filtered_contacts_count(since_time, until_time)

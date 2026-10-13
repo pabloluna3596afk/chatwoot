@@ -1,3 +1,6 @@
+import { startOfDay, endOfDay, subDays } from 'date-fns';
+import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
+
 export const DATE_PRESETS = [
   { value: 'today', labelKey: 'REPORT_PANELS.DATE_PRESETS.TODAY' },
   { value: 'yesterday', labelKey: 'REPORT_PANELS.DATE_PRESETS.YESTERDAY' },
@@ -596,24 +599,17 @@ export const panelPresetToRangeType = preset => {
   }
 };
 
-/** Resolve panel saved range into Date objects for the picker. */
-export const panelRangeToDates = panel => {
-  const now = new Date();
-  const startOfDay = d => {
-    const date = new Date(d);
-    date.setHours(0, 0, 0, 0);
-    return date;
-  };
-  const endOfDay = d => {
-    const date = new Date(d);
-    date.setHours(23, 59, 59, 999);
-    return date;
-  };
+export const panelPickerRangeToUnix = (dates, timezone = 'UTC') => [
+  Math.floor(zonedTimeToUtc(startOfDay(dates[0]), timezone).getTime() / 1000),
+  Math.floor(zonedTimeToUtc(endOfDay(dates[1]), timezone).getTime() / 1000),
+];
 
+/** Resolve the saved range into UTC instants in the effective reporting timezone. */
+export const panelRangeToDates = panel => {
   if (
     panel?.date_preset === 'custom' &&
-    panel.custom_since &&
-    panel.custom_until
+    panel.custom_since != null &&
+    panel.custom_until != null
   ) {
     return [
       new Date(panel.custom_since * 1000),
@@ -621,24 +617,33 @@ export const panelRangeToDates = panel => {
     ];
   }
 
+  const timezone = panel?.reporting_timezone || 'UTC';
+  const today = utcToZonedTime(new Date(), timezone);
+  let firstDay = today;
+  let lastDay = today;
   switch (panel?.date_preset) {
     case 'today':
-      return [startOfDay(now), endOfDay(now)];
-    case 'yesterday': {
-      const day = new Date(now);
-      day.setDate(day.getDate() - 1);
-      return [startOfDay(day), endOfDay(day)];
-    }
-    case 'last_30_days': {
-      const from = new Date(now);
-      from.setDate(from.getDate() - 29);
-      return [startOfDay(from), endOfDay(now)];
-    }
+      break;
+    case 'yesterday':
+      firstDay = subDays(today, 1);
+      lastDay = firstDay;
+      break;
+    case 'last_30_days':
+      firstDay = subDays(today, 29);
+      break;
     case 'last_7_days':
-    default: {
-      const from = new Date(now);
-      from.setDate(from.getDate() - 6);
-      return [startOfDay(from), endOfDay(now)];
-    }
+    default:
+      firstDay = subDays(today, 6);
   }
+  const [since, until] = panelPickerRangeToUnix([firstDay, lastDay], timezone);
+  return [new Date(since * 1000), new Date(until * 1000)];
 };
+
+// The shared picker uses local Date fields as calendar days, not UTC instants.
+export const panelReportingToday = timezone =>
+  utcToZonedTime(new Date(), timezone || 'UTC');
+
+export const panelRangeToPickerDates = panel =>
+  panelRangeToDates(panel).map(date =>
+    utcToZonedTime(date, panel?.reporting_timezone || 'UTC')
+  );

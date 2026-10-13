@@ -36,7 +36,9 @@ import {
   defaultMetricWidget,
   defaultTableWidget,
   emptyPanel,
-  panelRangeToDates,
+  panelRangeToPickerDates,
+  panelPickerRangeToUnix,
+  panelReportingToday,
   resolveTableColumns,
   normalizeAttrDisplayType,
   customAttributeColumnKey,
@@ -46,7 +48,6 @@ import {
 import PanelTablePivotBuilder from './components/PanelTablePivotBuilder.vue';
 import WootDatePicker from 'dashboard/components/ui/DatePicker/DatePicker.vue';
 import { DATE_RANGE_TYPES } from 'dashboard/components/ui/DatePicker/helpers/DatePickerHelper';
-import { getUnixStartOfDay, getUnixEndOfDay } from 'helpers/DateHelper';
 import subDays from 'date-fns/subDays';
 
 const props = defineProps({
@@ -57,7 +58,11 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const store = useStore();
-const { accountScopedRoute } = useAccount();
+const { accountScopedRoute, currentAccount } = useAccount();
+const panelTimezone = ref(null);
+const reportingTimezone = computed(
+  () => panelTimezone.value || currentAccount.value.reporting_timezone || 'UTC'
+);
 const { filterTypes } = useConversationFilterContext();
 const contactAttributes = useMapGetter('attributes/getContactAttributes');
 const conversationAttributes = useMapGetter(
@@ -139,8 +144,10 @@ const tableKindOptions = computed(() =>
 );
 
 const syncCustomDates = () => {
-  form.value.custom_since = getUnixStartOfDay(customDateRange.value[0]);
-  form.value.custom_until = getUnixEndOfDay(customDateRange.value[1]);
+  [form.value.custom_since, form.value.custom_until] = panelPickerRangeToUnix(
+    customDateRange.value,
+    reportingTimezone.value
+  );
 };
 
 const onPresetChange = () => {
@@ -149,7 +156,10 @@ const onPresetChange = () => {
     form.value.custom_until = null;
     return;
   }
-  const [from, to] = panelRangeToDates({ date_preset: 'last_7_days' });
+  const [from, to] = panelRangeToPickerDates({
+    date_preset: 'last_7_days',
+    reporting_timezone: reportingTimezone.value,
+  });
   customDateRange.value = [from, to];
   syncCustomDates();
 };
@@ -346,6 +356,7 @@ const loadExisting = async () => {
   if (props.isNew) return;
   try {
     const { data } = await SavedReportPanelsAPI.show(route.params.id);
+    panelTimezone.value = data.reporting_timezone;
     form.value = {
       name: data.name,
       description: data.description || '',
@@ -359,7 +370,7 @@ const loadExisting = async () => {
       widgets: (data.widgets || []).map(ensureWidgetDefaults),
     };
     if (data.date_preset === 'custom') {
-      customDateRange.value = panelRangeToDates(data);
+      customDateRange.value = panelRangeToPickerDates(data);
       customRangeType.value = DATE_RANGE_TYPES.CUSTOM_RANGE;
     }
     const types = panelFilterTypes.value || [];
@@ -701,6 +712,7 @@ onMounted(async () => {
         <WootDatePicker
           v-model:date-range="customDateRange"
           v-model:range-type="customRangeType"
+          :reference-date="panelReportingToday(reportingTimezone)"
           @date-range-changed="onCustomDateChange"
         />
       </div>

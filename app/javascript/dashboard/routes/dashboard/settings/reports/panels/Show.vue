@@ -15,8 +15,12 @@ import { generateFileName } from 'dashboard/helper/downloadHelper';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import WootDatePicker from 'dashboard/components/ui/DatePicker/DatePicker.vue';
 import { DATE_RANGE_TYPES } from 'dashboard/components/ui/DatePicker/helpers/DatePickerHelper';
-import { getUnixStartOfDay, getUnixEndOfDay } from 'helpers/DateHelper';
-import { panelPresetToRangeType, panelRangeToDates } from './panelConstants';
+import {
+  panelPresetToRangeType,
+  panelRangeToPickerDates,
+  panelPickerRangeToUnix,
+  panelReportingToday,
+} from './panelConstants';
 import format from 'date-fns/format';
 import fromUnixTime from 'date-fns/fromUnixTime';
 
@@ -141,8 +145,10 @@ const runParams = () => {
     timezone_offset: -new Date().getTimezoneOffset() / 60,
   };
   if (usingOverride.value) {
-    params.since = getUnixStartOfDay(viewDateRange.value[0]);
-    params.until = getUnixEndOfDay(viewDateRange.value[1]);
+    [params.since, params.until] = panelPickerRangeToUnix(
+      viewDateRange.value,
+      panel.value.reporting_timezone
+    );
   }
   return params;
 };
@@ -165,7 +171,7 @@ const load = async () => {
     await store.dispatch('attributes/get');
     const { data } = await SavedReportPanelsAPI.show(panelId.value);
     panel.value = data;
-    viewDateRange.value = panelRangeToDates(data);
+    viewDateRange.value = panelRangeToPickerDates(data);
     viewRangeType.value = panelPresetToRangeType(data.date_preset);
     usingOverride.value = false;
     await runPanel();
@@ -186,7 +192,7 @@ const onViewDateChange = value => {
 
 const resetToSavedRange = () => {
   if (!panel.value) return;
-  viewDateRange.value = panelRangeToDates(panel.value);
+  viewDateRange.value = panelRangeToPickerDates(panel.value);
   viewRangeType.value = panelPresetToRangeType(panel.value.date_preset);
   usingOverride.value = false;
   runPanel();
@@ -280,6 +286,7 @@ onMounted(load);
       <WootDatePicker
         v-model:date-range="viewDateRange"
         v-model:range-type="viewRangeType"
+        :reference-date="panelReportingToday(panel?.reporting_timezone)"
         @date-range-changed="onViewDateChange"
       />
       <Button

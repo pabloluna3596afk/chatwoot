@@ -1,4 +1,5 @@
 json.settings resource.settings
+json.reporting_timezone Reports::PanelDateRange.timezone(resource).tzinfo.name
 json.created_at resource.created_at
 if resource.custom_attributes.present?
   json.custom_attributes do
