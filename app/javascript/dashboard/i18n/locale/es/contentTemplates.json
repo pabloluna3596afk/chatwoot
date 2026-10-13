@@ -1,9 +1,9 @@
 {
   "CONTENT_TEMPLATES": {
     "MODAL": {
-      "TITLE": "Twilio Templates",
-      "SUBTITLE": "Select the Twilio template you want to send",
-      "TEMPLATE_SELECTED_SUBTITLE": "Configure template: {templateName}"
+      "TITLE": "Plantillas de Twilio",
+      "SUBTITLE": "Selecciona la plantilla de Twilio que quieres enviar",
+      "TEMPLATE_SELECTED_SUBTITLE": "Configurar plantilla: {templateName}"
     },
     "PICKER": {
       "SEARCH_PLACEHOLDER": "Buscar plantillas",
@@ -14,12 +14,12 @@
       "FOOTER": "Footer",
       "BUTTONS": "Buttons",
       "CATEGORY": "Categoría",
-      "MEDIA_CONTENT": "Media Content",
-      "MEDIA_CONTENT_FALLBACK": "media content",
-      "NO_TEMPLATES_AVAILABLE": "No Twilio templates available. Click refresh to sync templates from Twilio.",
-      "REFRESH_BUTTON": "Refresh templates",
-      "REFRESH_SUCCESS": "Templates refresh initiated. It may take a couple of minutes to update.",
-      "REFRESH_ERROR": "Failed to refresh templates. Please try again.",
+      "MEDIA_CONTENT": "Contenido multimedia",
+      "MEDIA_CONTENT_FALLBACK": "contenido multimedia",
+      "NO_TEMPLATES_AVAILABLE": "No hay plantillas de Twilio disponibles. Haz clic en actualizar para sincronizar plantillas desde Twilio.",
+      "REFRESH_BUTTON": "Actualizar plantillas",
+      "REFRESH_SUCCESS": "Actualización de plantillas iniciada. Puede tardar un par de minutos en completarse.",
+      "REFRESH_ERROR": "Error al actualizar las plantillas. Inténtalo de nuevo.",
       "LABELS": {
         "LANGUAGE": "Idioma",
         "TEMPLATE_BODY": "Cuerpo de plantilla",
@@ -27,8 +27,8 @@
       },
       "TYPES": {
         "MEDIA": "Media",
-        "QUICK_REPLY": "Quick Reply",
-        "CALL_TO_ACTION": "Call to Action",
+        "QUICK_REPLY": "Respuesta rápida",
+        "CALL_TO_ACTION": "Llamada a la acción",
         "TEXT": "Texto"
       }
     },
@@ -40,7 +40,7 @@
       "GO_BACK_LABEL": "Volver",
       "SEND_MESSAGE_LABEL": "Enviar mensaje",
       "FORM_ERROR_MESSAGE": "Por favor, rellene todas las variables antes de enviar",
-      "MEDIA_HEADER_LABEL": "{type} Header",
+      "MEDIA_HEADER_LABEL": "Encabezado de {type}",
       "MEDIA_URL_LABEL": "Ingrese la URL completa",
       "MEDIA_URL_PLACEHOLDER": "https://example.com/image.jpg"
     },
