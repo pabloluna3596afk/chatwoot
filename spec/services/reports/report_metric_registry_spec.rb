@@ -30,6 +30,14 @@ RSpec.describe Reports::ReportMetricRegistry do
       expect(metric.raw_count_strategy).to eq(:distinct_conversation)
     end
 
+    it 'counts resolutions as distinct conversations in raw reports and summaries' do
+      metric = described_class.fetch(:resolutions_count)
+
+      expect(metric.raw_event_name).to eq(:conversation_resolved)
+      expect(metric.raw_count_strategy).to eq(:distinct_conversation)
+      expect(metric.summary_key).to eq(:resolved_conversations_count)
+    end
+
     it 'locks the handoff exclusion strategy for bot_resolutions_count' do
       metric = described_class.fetch(:bot_resolutions_count)
 

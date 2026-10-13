@@ -1,6 +1,10 @@
 class Api::V1::Accounts::SavedReportPanelsController < Api::V1::Accounts::BaseController
   DETAIL_TABLE_KINDS = %w[conversations contacts].freeze
 
+  rescue_from CustomExceptions::InvalidReportDateRange do |exception|
+    render_could_not_create_error(exception.message)
+  end
+
   before_action :check_authorization
   before_action :fetch_panel, only: [:show, :update, :destroy, :run, :export]
   before_action :ensure_report_download_enabled, only: [:export]
@@ -52,8 +56,8 @@ class Api::V1::Accounts::SavedReportPanelsController < Api::V1::Accounts::BaseCo
       account: Current.account,
       user: Current.user,
       timezone_offset: params[:timezone_offset],
-      since_override: params[:since],
-      until_override: params[:until]
+      since_override: params.fetch(:since, Reports::PanelRunnerService::DATE_OVERRIDE_UNSET),
+      until_override: params.fetch(:until, Reports::PanelRunnerService::DATE_OVERRIDE_UNSET)
     )
   end
 

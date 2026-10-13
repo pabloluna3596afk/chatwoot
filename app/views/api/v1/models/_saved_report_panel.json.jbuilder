@@ -2,6 +2,7 @@ json.id resource.id
 json.name resource.name
 json.description resource.description
 json.date_preset resource.date_preset
+json.reporting_timezone Reports::PanelDateRange.timezone(resource.account).tzinfo.name
 json.custom_since resource.custom_since
 json.custom_until resource.custom_until
 json.date_attribute resource.date_attribute

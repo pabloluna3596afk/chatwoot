@@ -74,7 +74,8 @@ module Reports::ReportMetricRegistry
       aggregate: :count,
       raw_event_name: :conversation_resolved,
       rollup_metric: :resolutions_count,
-      summary_key: :resolved_conversations_count
+      summary_key: :resolved_conversations_count,
+      raw_count_strategy: :distinct_conversation
     ),
     bot_resolutions_count: Metric.new(
       name: :bot_resolutions_count,

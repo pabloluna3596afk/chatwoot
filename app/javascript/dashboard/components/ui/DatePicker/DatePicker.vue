@@ -35,6 +35,10 @@ import CalendarWeek from './components/CalendarWeek.vue';
 import CalendarFooter from './components/CalendarFooter.vue';
 
 const props = defineProps({
+  referenceDate: {
+    type: Date,
+    default: () => new Date(),
+  },
   hasAppliedRange: {
     type: Boolean,
     default: true,
@@ -59,7 +63,7 @@ const { WEEK, MONTH, YEAR } = CALENDAR_PERIODS;
 
 const showDatePicker = ref(!props.hasAppliedRange);
 const calendarViews = ref({ start: WEEK, end: WEEK });
-const currentDate = ref(new Date());
+const currentDate = computed(() => props.referenceDate);
 
 // Use dates from v-model if provided, otherwise default to last 7 days
 const selectedStartDate = ref(

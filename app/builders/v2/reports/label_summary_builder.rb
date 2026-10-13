@@ -63,7 +63,7 @@ class V2::Reports::LabelSummaryBuilder < V2::Reports::BaseSummaryBuilder
   end
 
   def fetch_resolved_counts
-    # Count resolution events, not conversations currently in resolved status
+    # Count distinct conversations with resolution events in the period
     # Filter by reporting_event.created_at, not conversation.created_at
     reporting_event_filter = { name: 'conversation_resolved', account_id: account.id }
     reporting_event_filter[:created_at] = range if range.present?
@@ -76,7 +76,7 @@ class V2::Reports::LabelSummaryBuilder < V2::Reports::BaseSummaryBuilder
         )
       )
       .group('tags.name')
-      .count
+      .distinct.count('reporting_events.conversation_id')
   end
 
   def fetch_counts(conversation_filter)
