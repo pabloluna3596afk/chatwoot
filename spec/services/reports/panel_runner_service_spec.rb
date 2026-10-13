@@ -312,6 +312,12 @@ RSpec.describe Reports::PanelRunnerService do
     let(:widget) { { id: 'dynamic', type: 'table', table_kind: 'pivot', columns: ['name'] + measures, pivot: pivot } }
     let(:widgets) { [widget] }
 
+    # The panel keeps its own copy of the widgets, so run again after mutating `widget`.
+    def rerun
+      panel.widgets = [widget]
+      runner.perform[:widgets].first.with_indifferent_access
+    end
+
     before do
       create(:custom_attribute_definition, account: account, attribute_key: 'segment', attribute_model: :conversation_attribute)
       create(:custom_attribute_definition, account: account, attribute_key: 'amount', attribute_model: :conversation_attribute,
@@ -364,7 +370,7 @@ RSpec.describe Reports::PanelRunnerService do
       expect(result[:rows].first[:name]).to eq('Conversation')
       expect(result[:attribute_types]).to include('ca:amount__sum' => 'currency', 'contact_ca:amount__sum' => 'number')
       pivot[:row_attribute] = 'contact_ca:segment'
-      contact_result = runner.perform[:widgets].first.with_indifferent_access
+      contact_result = rerun
       expect(contact_result[:rows].first[:name]).to eq('Contact')
     end
 
@@ -391,7 +397,7 @@ RSpec.describe Reports::PanelRunnerService do
       end
       expect(result[:rows].map { |row| row[:name] }).to eq(%w[B C A D])
       widget[:sort][:direction] = 'asc'
-      expect(runner.perform[:widgets].first[:rows].map { |row| row['name'] }).to eq(%w[A B C D])
+      expect(rerun[:rows].map { |row| row['name'] }).to eq(%w[A B C D])
     end
 
     [nil, 5, 10, 20].each do |limit|
@@ -438,7 +444,7 @@ RSpec.describe Reports::PanelRunnerService do
       widget[:sort] = { column: 'ca:amount__sum__pv__A', direction: 'desc' }
       expect(result[:rows].map { |row| row['ca:amount__sum__pv__A'] }).to eq([7, 5, 3, 0, 0])
       widget[:top_n][:column] = 'ca:amount__sum__pv__B'
-      expect(runner.perform[:widgets].first[:rows].sum { |row| row['ca:amount__sum__pv__B'] }).to eq(12)
+      expect(rerun[:rows].sum { |row| row['ca:amount__sum__pv__B'] }).to eq(12)
     end
 
     it 'calculates 25/75 for each measure and returns null for zero denominators' do
@@ -493,9 +499,9 @@ RSpec.describe Reports::PanelRunnerService do
         build_stubbed(:conversation, account: account, inbox: inbox, created_at: since_time, custom_attributes: { segment: index.to_s })
       end
       scope = instance_double(ActiveRecord::Relation)
-      batch = instance_double(ActiveRecord::Relation, includes: conversations)
       allow(scope).to receive(:unscope).with(:order).and_return(scope)
-      allow(scope).to receive(:in_batches).with(of: 250).and_yield(batch)
+      allow(scope).to receive(:includes).with(:contact).and_return(scope)
+      allow(scope).to receive(:find_each).with(batch_size: 250) { |&block| conversations.each(&block) }
       allow(runner).to receive(:filtered_conversations_scope).and_return(scope)
       expect(result[:error]).to start_with('pivot_row_limit_exceeded')
       expect(result[:rows]).to eq([])
@@ -550,8 +556,8 @@ RSpec.describe Reports::PanelRunnerService do
       it 'uses the filtered conversation population for resolutions while grouping by creation date' do
         create(:custom_attribute_definition, account: account, attribute_key: 'business_date', attribute_model: :conversation_attribute,
                                              attribute_display_type: :date)
-        panel.date_attribute = 'ca:business_date'
         measures << 'resolved_conversations_count'
+        panel.date_attribute = 'ca:business_date'
         [since_time - 30.days, since_time - 60.days].each_with_index do |created_at, index|
           conversation = create(:conversation, account: account, inbox: inbox, created_at: created_at,
                                                custom_attributes: { business_date: index.zero? ? '2026-10-05' : '2026-09-01' })

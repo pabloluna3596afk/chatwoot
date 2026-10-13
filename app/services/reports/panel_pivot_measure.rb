@@ -65,7 +65,8 @@ class Reports::PanelPivotMeasure
   end
 
   def column_key(value)
-    encoded = CGI.escape(value).gsub('+', '%20')
+    # Same bytes as the editor's encodeURIComponent plus !'()*~ (see panelConstants#pivotColumnKey).
+    encoded = CGI.escape(value).gsub('+', '%20').gsub('~', '%7E')
     "#{key}__pv__#{encoded}"
   end
 
