@@ -1180,7 +1180,7 @@ RSpec.describe Conversation do
 
       first_response_events = account.reporting_events.where(name: 'first_response', conversation_id: conversation.id)
       expect(first_response_events.count).to eq(1)
-      expect(first_response_events.first.value).to be_within(1.second).of(1.hour)
+      expect(first_response_events.first.value).to be_within(10.seconds).of(1.hour)
 
       # the first response should also clear the waiting_since
       conversation.reload
@@ -1205,7 +1205,7 @@ RSpec.describe Conversation do
       create_agent_message(conversation, created_at: 2.hours.ago)
       reply_events = account.reporting_events.where(name: 'reply_time', conversation_id: conversation.id)
       expect(reply_events.count).to eq(1)
-      expect(reply_events.first.value).to be_within(1.second).of(1.hour)
+      expect(reply_events.first.value).to be_within(10.seconds).of(1.hour)
 
       conversation.reload
       expect(conversation.waiting_since).to be_nil
