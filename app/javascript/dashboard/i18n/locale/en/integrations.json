@@ -1005,7 +1005,7 @@
               "name": "Ana Perez",
               "first_name": "Ana",
               "last_name": "Perez",
-              "email": "ana@mail.com",
+              "email": "ana{'@'}mail.com",
               "phone": "+593 99 123 4567",
               "company_name": "Sun Cafe",
               "city": "Quito",

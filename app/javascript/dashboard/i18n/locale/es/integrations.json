@@ -908,7 +908,7 @@
               "name": "Ana Pérez",
               "first_name": "Ana",
               "last_name": "Pérez",
-              "email": "ana@correo.com",
+              "email": "ana{'@'}correo.com",
               "phone": "+593 99 123 4567",
               "company_name": "Café Sol",
               "city": "Quito",
