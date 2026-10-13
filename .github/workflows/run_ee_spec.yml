@@ -77,6 +77,9 @@ jobs:
       # Match runner CPU capacity; a repository variable can override the count.
       BACKEND_PROCESSES: ${{ vars.BACKEND_PROCESSES || '4' }}
       RAILS_ENV: test
+      # Without it Rails writes tmp/local_secret.txt on first use; the parallel processes raced on that file and one of
+      # them read it empty ("secret_key_base for test environment must be a type of String"). CI-only value.
+      SECRET_KEY_BASE: ci-only-secret-key-base-for-the-test-processes
 
     services:
       postgres:
