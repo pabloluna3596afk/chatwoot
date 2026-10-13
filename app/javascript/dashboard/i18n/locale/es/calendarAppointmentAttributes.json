@@ -1,0 +1,35 @@
+{
+  "CALENDAR_APPOINTMENT_ATTRIBUTES": {
+    "TITLE": "Atributos de cita",
+    "DESCRIPTION": "Crea atributos de contacto en la categoría Citas y calcula sus valores a partir de las citas. Al activar un atributo, las citas existentes se procesan en segundo plano.",
+    "DISABLE_HINT": "Al desmarcar un atributo se detienen las actualizaciones y se conservan su definición y sus valores guardados. Las fechas se guardan en UTC y se muestran en tu zona horaria.",
+    "UPDATE": "Actualizar",
+    "SAVED": "Atributos de cita actualizados.",
+    "LOAD_ERROR": "No se pudieron cargar los atributos de cita. Recarga la página para intentarlo de nuevo.",
+    "SAVE_ERROR": "No se pudieron actualizar los atributos de cita.",
+    "CONFLICT_DETAIL": "Tipo existente: {actual}. Tipo esperado: {expected}. Se conservaron el atributo y sus valores.",
+    "RESULT": {
+      "created": "Creado",
+      "reused": "Ya existía; reutilizado",
+      "conflict": "Conflicto de tipo"
+    },
+    "ATTRIBUTES": {
+      "ultima_cita": {
+        "NAME": "Última cita",
+        "HELP": "Inicio de la cita más reciente que ya comenzó. Se excluyen las citas canceladas y eliminadas."
+      },
+      "proxima_cita": {
+        "NAME": "Próxima cita",
+        "HELP": "Inicio de la cita futura más cercana. Se excluyen las citas canceladas y eliminadas."
+      },
+      "proxima_cita_titulo": {
+        "NAME": "Título de la próxima cita",
+        "HELP": "Título de la cita futura más cercana. Se vacía cuando no hay una próxima cita."
+      },
+      "total_citas": {
+        "NAME": "Total de citas",
+        "HELP": "Cantidad de citas pasadas y futuras vinculadas al contacto, sin incluir las canceladas ni las eliminadas."
+      }
+    }
+  }
+}
