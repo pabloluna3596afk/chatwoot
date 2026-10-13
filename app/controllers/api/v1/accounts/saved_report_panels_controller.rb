@@ -1,7 +1,10 @@
 class Api::V1::Accounts::SavedReportPanelsController < Api::V1::Accounts::BaseController
+  DETAIL_TABLE_KINDS = %w[conversations contacts].freeze
+
   before_action :check_authorization
-  before_action :ensure_report_download_enabled, only: [:export]
   before_action :fetch_panel, only: [:show, :update, :destroy, :run, :export]
+  before_action :ensure_report_download_enabled, only: [:export]
+  before_action :ensure_customer_data_download_enabled, only: [:export], if: :detail_tables?
 
   def index
     @panels = Current.account.saved_report_panels.ordered
@@ -56,6 +59,12 @@ class Api::V1::Accounts::SavedReportPanelsController < Api::V1::Accounts::BaseCo
 
   def check_authorization
     authorize :report, :view?
+  end
+
+  # A panel with a table of conversations or contacts carries personal data (names, phones, emails, documents): its
+  # export needs the customer-data download switch too, not only the one of aggregate reports.
+  def detail_tables?
+    Array(@panel.widgets).any? { |widget| DETAIL_TABLE_KINDS.include?(widget.with_indifferent_access[:table_kind].to_s) }
   end
 
   def fetch_panel
