@@ -114,31 +114,47 @@ const metricLabel = computed(() => {
   return t(`REPORT_PANELS.METRICS.${metric}`);
 });
 
-const chartCollection = computed(() => {
+const BUCKET_LABEL_FORMATS = {
+  day: 'dd-MMM',
+  week: 'dd-MMM',
+  month: 'MMM-yyyy',
+  year: 'yyyy',
+};
+
+const chartData = computed(() => {
   const points = props.result?.points || [];
+  const groupBy =
+    props.widget.group_by in BUCKET_LABEL_FORMATS
+      ? props.widget.group_by
+      : 'day';
   const timeMetric =
     !isAggregationSource.value && isTimeMetric(props.widget.metric);
   return {
-    labels: points.map(point =>
-      format(fromUnixTime(point.timestamp), 'dd-MMM')
+    // Same bucket labels as the Reports charts (ReportContainer#getChartData).
+    categories: points.map(point =>
+      format(fromUnixTime(point.timestamp), BUCKET_LABEL_FORMATS[groupBy])
     ),
-    datasets: [
+    series: [
       {
-        type: 'bar',
-        // Dataset label = real metric (not custom title) so tooltips match data.
+        id: props.widget.id || 'panel-chart',
+        // Series label = real metric (not custom title) so tooltips match data.
         label: timeMetric
           ? `${metricLabel.value} (${t('REPORT_PANELS.CHART_TIME_UNIT')})`
           : metricLabel.value || props.widget.title || '',
+        color: 'rgb(var(--blue-9))',
         data: points.map(point => {
           const value = Number(point.value) || 0;
-          // Time metrics arrive as seconds — plot hours for readable scale.
-          return timeMetric ? Math.round((value / 3600) * 10) / 10 : value;
+          // Time metrics arrive as seconds, so plot hours for a readable scale.
+          return {
+            ...point,
+            value: timeMetric ? Math.round((value / 3600) * 10) / 10 : value,
+          };
         }),
-        backgroundColor: 'rgba(37, 99, 235, 0.65)',
       },
     ],
   };
 });
+
 const tableKind = computed(
   () => props.widget.table_kind || props.result?.table_kind || 'agent_summary'
 );
@@ -514,10 +530,12 @@ const tableSubtitle = computed(() => {
 
 <template>
   <div
-    class="rounded-xl border border-n-weak bg-n-solid-2 p-4 flex flex-col gap-3 min-h-[10rem]"
+    class="rounded-xl border border-n-weak bg-n-solid-2 p-4 flex flex-col gap-3 min-h-[10rem] min-w-0 max-w-full"
   >
     <div class="flex flex-col gap-0.5">
-      <h3 class="text-sm font-medium text-n-slate-12">{{ title }}</h3>
+      <h3 class="text-sm font-medium text-n-slate-12 break-words">
+        {{ title }}
+      </h3>
       <p v-if="tableSubtitle" class="text-xs text-n-slate-11">
         {{ tableSubtitle }}
       </p>
@@ -536,8 +554,14 @@ const tableSubtitle = computed(() => {
       {{ displayValue }}
     </div>
 
-    <div v-else-if="widget.type === 'chart'" class="h-56">
-      <BarChart :collection="chartCollection" />
+    <div v-else-if="widget.type === 'chart'">
+      <BarChart
+        :data="chartData"
+        :height="224"
+        timeseries
+        :format-value="value => Number(value).toLocaleString()"
+        :aria-label="widget.title || metricLabel"
+      />
     </div>
 
     <div v-else-if="widget.type === 'table'" class="flex flex-col gap-3">

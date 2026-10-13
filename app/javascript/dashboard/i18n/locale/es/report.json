@@ -761,8 +761,8 @@
       "FOOTER_LABEL": "Total"
     },
     "METRIC_SOURCES": {
-      "PRESET": "Métrica predefinida",
-      "AGGREGATION": "Agregación personalizada"
+      "PRESET": "Indicador habitual",
+      "AGGREGATION": "Campo personalizado"
     },
     "AGGREGATIONS": {
       "NONE": "Sin pie",
@@ -792,12 +792,12 @@
       "DATE_PRESET": "Rango de fechas",
       "DATE_ATTRIBUTE": "Campo de fecha",
       "DATE_ATTRIBUTE_CREATED_AT": "Fecha de creación de la conversación",
-      "DATE_ATTRIBUTE_HINT": "Usa un atributo personalizado date/datetime de conversación (p. ej. fecha de venta) en lugar de la fecha de creación para el período del panel.",
+      "DATE_ATTRIBUTE_HINT": "Elige qué fecha usar para el período: la creación de la conversación o un campo de fecha propio, como la fecha de venta.",
       "CUSTOM_RANGE": "Fechas personalizadas",
       "VIEW_RANGE": "Período a ver",
       "BUSINESS_HOURS": "Solo horario laboral",
       "FAVORITE": "Marcar como favorito",
-      "WIDGET_TITLE": "Título del widget",
+      "WIDGET_TITLE": "Título",
       "METRIC": "Métrica",
       "METRIC_SOURCE": "Origen del valor",
       "AGGREGATION_OP": "Agregación",
@@ -805,8 +805,8 @@
       "AGGREGATION_FIELD_OPTIONAL": "Atributo (opcional)",
       "AGGREGATION_FIELD_OPTIONAL_HINT": "Déjalo vacío para contar filas coincidentes, o elige cualquier atributo para contar solo las que lo tienen (no vacío).",
       "AGGREGATION_GROUP_FIELD": "Agrupar / filtrar por atributo de fecha",
-      "AGGREGATION_GROUP_FIELD_HINT": "Usa un atributo personalizado date o date-time (p. ej. fecha de venta) para el eje X y el filtro del período. Vacío = fecha de creación. Combínalo con un atributo numérico arriba (p. ej. precio) para gráficas de ventas.",
-      "AGGREGATION_ENTITY": "Agregar sobre",
+      "AGGREGATION_GROUP_FIELD_HINT": "Elige la fecha de creación o una fecha propia para agrupar y filtrar el período.",
+      "AGGREGATION_ENTITY": "Datos de",
       "TABLE_KIND": "Tipo de tabla",
       "TABLE_COLUMNS": "Columnas",
       "TABLE_COLUMNS_HINT": "Elige columnas. En tablas resumen usa el constructor de pivote (Campos → Filas / Columnas / Valores). Cambiar el tipo de tabla reinicia las columnas.",
@@ -867,8 +867,8 @@
     "FILTERS": {
       "TITLE": "Filtros del informe",
       "ADD": "Añadir filtro",
-      "HINT": "Como filtros/segmentación de Excel: aplican a todo el panel (AND exterior), incluidas métricas y tablas pivote. Los filtros de conversación acotan conversaciones (prueba status = open/pending/resolved); los de contacto intersectan contactos. El pivote desglosa dentro de ese conjunto. Máx. 10.",
-      "MIXED_GROUPS_BANNER": "Los filtros de conversación y de contacto se combinan con AND entre grupos. OR solo aplica dentro del mismo grupo (todas las condiciones de conversación, o todas las de contacto).",
+      "HINT": "Los filtros se aplican a todo el panel. Puedes añadir hasta 10 condiciones.",
+      "MIXED_GROUPS_BANNER": "Cuando combinas filtros de conversación y de contacto, deben cumplirse ambos grupos. La opción «O» se aplica solo dentro de cada grupo.",
       "EMPTY": "Sin filtros. Las métricas cuentan toda la cuenta en el rango; las tablas de agentes muestran asignados más Sin asignar.",
       "SYSTEM_ATTRIBUTES": "Atributos de conversación",
       "CUSTOM_ATTRIBUTES": "Atributos personalizados de conversación",
@@ -892,12 +892,12 @@
       }
     },
     "TABLE_KINDS": {
-      "AGENT": "Resumen de agentes",
-      "INBOX": "Resumen de bandejas",
-      "TEAM": "Resumen de equipos",
-      "LABEL": "Resumen de etiquetas",
-      "CONVERSATIONS": "Conversaciones filtradas",
-      "CONTACTS": "Contactos únicos (atendidos)"
+      "AGENT": "Agente",
+      "INBOX": "Bandeja",
+      "TEAM": "Equipo",
+      "LABEL": "Etiqueta",
+      "CONVERSATIONS": "Detalle de conversaciones",
+      "CONTACTS": "Detalle de contactos"
     },
     "COLUMNS": {
       "rank": "Puesto",
@@ -945,11 +945,53 @@
       "RUN": "No se pudo ejecutar el panel",
       "EXPORT": "No se pudo exportar el panel",
       "NAME_REQUIRED": "El nombre es obligatorio",
-      "WIDGET_REQUIRED": "Añade al menos un widget",
+      "WIDGET_REQUIRED": "Añade al menos un número, una gráfica o una tabla.",
       "CUSTOM_RANGE_REQUIRED": "Elige una fecha de inicio y fin",
-      "MAX_WIDGETS": "Máximo 12 widgets por panel",
+      "MAX_WIDGETS": "Puedes añadir hasta 12 elementos al panel.",
       "MAX_FILTERS": "Máximo 10 filtros por panel",
       "FILTERS_INVALID": "Corrige los filtros inválidos antes de guardar"
+    },
+    "EDITOR": {
+      "STEPS_LABEL": "Pasos para configurar el panel",
+      "STEPS": {
+        "CHOOSE": "Qué quieres ver",
+        "GROUP": "Cómo agruparlo",
+        "FILTER": "Filtros y fechas",
+        "PREVIEW": "Vista previa"
+      },
+      "TYPES": {
+        "METRIC": "Número",
+        "CHART": "Gráfica",
+        "TABLE": "Tabla"
+      },
+      "GROUPS": {
+        "DAY": "Día",
+        "WEEK": "Semana",
+        "MONTH": "Mes"
+      },
+      "TYPE": "Tipo de presentación",
+      "CONTENT": "Contenido del panel",
+      "ADD": "Añadir contenido",
+      "TITLE": "Título",
+      "MEASURE": "Medida",
+      "OPERATION": "Operación",
+      "OPERATION_HINT": "Los indicadores habituales ya tienen su forma de cálculo. En los campos personalizados puedes elegir la operación.",
+      "GROUP_BY": "Agrupar por",
+      "SPLIT": "Separar columnas por",
+      "NO_SPLIT": "Sin separación",
+      "ALL_VALUES": "Todos los valores",
+      "SPLIT_HINT": "Cada valor del campo elegido tendrá sus propias columnas. Se muestran hasta 12 valores.",
+      "TOTALS": "Totales al pie",
+      "BREAKDOWN_HINT": "Las gráficas se agrupan por día, semana o mes. Para comparar agentes, bandejas, equipos o etiquetas, elige una tabla.",
+      "PREVIEW_HINT": "Los resultados se actualizan con tus cambios, sin guardar el panel.",
+      "LOADING": "Calculando vista previa…",
+      "PREVIEW_ERROR": "No se pudo calcular la vista previa. Cambia la configuración para volver a intentarlo.",
+      "INCOMPLETE": "Completa la medida, los filtros y las fechas para ver el resultado.",
+      "PREVIOUS": "Anterior",
+      "NEXT": "Siguiente",
+      "UPDATE": "Actualizar",
+      "START_DATE": "Desde",
+      "END_DATE": "Hasta"
     }
   }
 }
