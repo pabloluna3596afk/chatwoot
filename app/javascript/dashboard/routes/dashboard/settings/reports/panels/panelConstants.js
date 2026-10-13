@@ -500,6 +500,91 @@ export const formatNumericAttribute = (value, type) => {
   return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
 };
 
+export const ROW_GRANULARITIES = ['day', 'week', 'month'];
+export const TOP_N_LIMITS = [null, 5, 10, 20];
+export const MEASURE_DISPLAYS = ['value', 'row_percent', 'column_percent'];
+export const COLUMN_FORMAT_TYPES = ['', 'currency', 'percent', 'integer'];
+export const COLUMN_DECIMALS = [0, 1, 2];
+export const PIVOT_SYSTEM_MEASURES = new Set([
+  'conversations_count',
+  'resolved_conversations_count',
+]);
+
+export const isAdditiveMeasure = column =>
+  SUMMABLE_SYSTEM_COLUMNS.has(column) ||
+  ['count', 'sum'].includes(measureOpFromColumn(column));
+
+/** Keep dependent settings attached when a measure changes; drop removed keys. */
+export const cleanTableOptions = (
+  widget,
+  previous = null,
+  replacement = null
+) => {
+  const columns = widget.columns || [];
+  const measures = columns.filter(key => !PIVOT_IDENTITY_COLUMNS.has(key));
+  const remap = key => {
+    const parsed = parsePivotColumnKey(key);
+    const base = parsed?.measure || key;
+    const next = base === previous ? replacement : base;
+    if (!next || !columns.includes(next)) return null;
+    if (parsed && !widget.pivot?.column_attribute) return null;
+    return parsed ? pivotColumnKey(next, parsed.value) : next;
+  };
+  ['column_formats', 'measure_display'].forEach(option => {
+    if (!widget[option]) return;
+    widget[option] = Object.fromEntries(
+      Object.entries(widget[option]).flatMap(([key, value]) => {
+        const next = remap(key);
+        if (!next || !measures.includes(next)) return [];
+        if (
+          option === 'measure_display' &&
+          value !== 'value' &&
+          !isAdditiveMeasure(next)
+        )
+          return [];
+        return [[next, value]];
+      })
+    );
+  });
+  if (widget.sort) {
+    const column = remap(widget.sort.column);
+    if (column) widget.sort = { ...widget.sort, column };
+    else delete widget.sort;
+  }
+  if (widget.top_n) {
+    const column = remap(widget.top_n.column);
+    if (column && !PIVOT_IDENTITY_COLUMNS.has(column)) {
+      widget.top_n = {
+        ...widget.top_n,
+        column,
+        include_others:
+          widget.top_n.include_others &&
+          !measures.some(isContactCustomAttributeColumn),
+      };
+    } else delete widget.top_n;
+  }
+  if (!SUMMARY_TABLE_KINDS.has(widget.table_kind)) {
+    ['sort', 'top_n', 'column_formats', 'measure_display'].forEach(option => {
+      delete widget[option];
+    });
+  }
+  return widget;
+};
+
+export const formatPanelMeasure = (value, config) => {
+  const number = parseLocaleNumber(value);
+  if (number == null) return '—';
+  const decimals = config.decimals ?? (config.type === 'integer' ? 0 : 2);
+  const formatted = number.toLocaleString(undefined, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+  if (config.type === 'currency')
+    return `${config.currency_symbol ?? '$'}${formatted}`;
+  if (config.type === 'percent') return `${formatted}%`;
+  return formatted;
+};
+
 export const isAggregatableColumn = (key, attributeTypes = {}) => {
   if (SUMMABLE_SYSTEM_COLUMNS.has(key)) return true;
   if (!isCustomAttributeColumn(key)) return false;

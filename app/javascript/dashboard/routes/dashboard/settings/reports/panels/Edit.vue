@@ -44,6 +44,7 @@ import {
   SUMMARY_TABLE_KINDS,
   MAX_PIVOT_VALUES,
   defaultPivotConfig,
+  cleanTableOptions,
   defaultColumnsForTableKind,
   defaultChartWidget,
   defaultMetricWidget,
@@ -657,6 +658,7 @@ const onTableKindChange = (widget, kind) => {
     widget.column_aggregations = {};
     widget.pivot = defaultPivotConfig();
   }
+  cleanTableOptions(widget);
 };
 
 const buildPayload = () => {
@@ -701,10 +703,16 @@ const buildPayload = () => {
       );
       if (
         SUMMARY_TABLE_KINDS.has(next.table_kind) &&
-        next.pivot?.column_attribute
+        (next.pivot?.column_attribute || next.pivot?.row_attribute)
       ) {
         next.pivot = {
-          column_attribute: next.pivot.column_attribute,
+          ...(next.pivot.row_attribute
+            ? { row_attribute: next.pivot.row_attribute }
+            : {}),
+          ...(next.pivot.row_attribute === 'created_at'
+            ? { row_granularity: next.pivot.row_granularity || 'day' }
+            : {}),
+          column_attribute: next.pivot.column_attribute || '',
           column_values: Array.isArray(next.pivot.column_values)
             ? next.pivot.column_values.slice(0, MAX_PIVOT_VALUES)
             : [],
@@ -713,6 +721,7 @@ const buildPayload = () => {
       } else {
         next.pivot = defaultPivotConfig();
       }
+      cleanTableOptions(next);
     }
     return next;
   });
@@ -1065,6 +1074,7 @@ onMounted(async () => {
                 :table-kind-options="tableKindOptions"
                 :conversation-attributes="conversationAttributes"
                 :contact-attributes="contactAttributes"
+                :preview-pivot="resultById[selectedWidget.id]?.pivot"
                 :show-grouping="false"
                 :show-operations="false"
                 @table-kind-change="
@@ -1086,6 +1096,7 @@ onMounted(async () => {
                 :table-kind-options="tableKindOptions"
                 :conversation-attributes="conversationAttributes"
                 :contact-attributes="contactAttributes"
+                :preview-pivot="resultById[selectedWidget.id]?.pivot"
                 @table-kind-change="
                   kind => onTableKindChange(selectedWidget, kind)
                 "

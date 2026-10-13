@@ -379,4 +379,89 @@ describe('guided panel editor', () => {
     });
     expect(SavedReportPanelsAPI.update).not.toHaveBeenCalled();
   });
+
+  it.each([
+    { row_attribute: 'created_at', row_granularity: 'month' },
+    { row_attribute: 'ca:importe' },
+  ])(
+    'reopens, previews and saves rows without crossed columns: %o',
+    async pivot => {
+      mocks.conversationAttributes = [
+        {
+          attribute_key: 'importe',
+          attribute_display_name: 'Importe',
+          attribute_display_type: 'currency',
+        },
+      ];
+      const widget = {
+        id: 'dynamic',
+        type: 'table',
+        table_kind: 'agent_summary',
+        columns: ['rank', 'name', 'ca:importe__sum'],
+        pivot: {
+          ...pivot,
+          column_attribute: '',
+          column_values: [],
+          show_row_totals: true,
+        },
+        sort: { column: 'ca:importe__sum', direction: 'asc' },
+        top_n: { limit: 10, column: 'ca:importe__sum', include_others: true },
+        measure_display: { 'ca:importe__sum': 'column_percent' },
+        column_formats: { 'ca:importe__sum': { type: 'percent', decimals: 1 } },
+        column_aggregations: { 'ca:importe__sum': 'sum' },
+      };
+      SavedReportPanelsAPI.show.mockResolvedValue({
+        data: {
+          name: 'Dynamic',
+          date_preset: 'last_7_days',
+          filters: [],
+          widgets: [widget],
+        },
+      });
+      wrapper = mountEditor(false);
+      await flushPromises();
+      await vi.advanceTimersByTimeAsync(PREVIEW_DEBOUNCE_MS);
+      const previewWidget =
+        SavedReportPanelsAPI.preview.mock.lastCall[0].saved_report_panel
+          .widgets[0];
+      expect(previewWidget).toEqual(widget);
+      await wrapper.find('[data-testid="step-3"]').trigger('click');
+      await wrapper.find('[data-testid="save-panel"]').trigger('click');
+      await flushPromises();
+      expect(
+        SavedReportPanelsAPI.update.mock.lastCall[1].saved_report_panel
+          .widgets[0]
+      ).toEqual(widget);
+    }
+  );
+
+  it('keeps the original pivot configuration of a saved table without new settings', async () => {
+    const widget = {
+      id: 'old-pivot',
+      type: 'table',
+      table_kind: 'inbox_summary',
+      columns: ['name', 'conversations_count'],
+      column_aggregations: {},
+      pivot: {
+        column_attribute: 'ca:stage',
+        column_values: ['A'],
+        show_row_totals: false,
+      },
+    };
+    SavedReportPanelsAPI.show.mockResolvedValue({
+      data: {
+        name: 'Legacy',
+        date_preset: 'last_7_days',
+        filters: [],
+        widgets: [widget],
+      },
+    });
+    wrapper = mountEditor(false);
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(PREVIEW_DEBOUNCE_MS);
+    expect(
+      SavedReportPanelsAPI.preview.mock.lastCall[0].saved_report_panel
+        .widgets[0]
+    ).toEqual(widget);
+  });
 });

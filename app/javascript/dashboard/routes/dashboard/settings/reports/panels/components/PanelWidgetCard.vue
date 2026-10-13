@@ -17,6 +17,7 @@ import {
   parsePivotColumnKey,
   parseLocaleNumber,
   formatNumericAttribute,
+  formatPanelMeasure,
   SUMMABLE_CUSTOM_TYPES,
 } from '../panelConstants';
 
@@ -262,6 +263,8 @@ const sortedTableRows = computed(() => {
   const key = sortKey.value;
   const dir = sortDir.value === 'desc' ? -1 : 1;
   return [...rows].sort((a, b) => {
+    if (a.is_others || b.is_others)
+      return Number(Boolean(a.is_others)) - Number(Boolean(b.is_others));
     const av = sortValueFor(a, key);
     const bv = sortValueFor(b, key);
     if (av == null && bv == null) return 0;
@@ -345,6 +348,16 @@ const headerLabelForMeasure = key => {
 };
 
 const headerLabel = key => {
+  const dimension =
+    props.result?.pivot?.row_attribute || props.widget.pivot?.row_attribute;
+  if (key === 'name' && dimension) {
+    if (isCustomAttributeColumn(dimension))
+      return (
+        props.attributeLabels[dimension] ||
+        customAttributeKeyFromColumn(dimension)
+      );
+    return t(`REPORT_PANELS.DYNAMIC.ROWS_${dimension.toUpperCase()}`);
+  }
   if (isPivotColumnKey(key)) {
     const parsed = parsePivotColumnKey(key);
     const measureLabel = headerLabelForMeasure(parsed.measure);
@@ -387,8 +400,22 @@ const formatCustomAttributeCell = (value, type) => {
   }
 };
 
+const measureFormat = key => {
+  const base = parsePivotColumnKey(key)?.measure || key;
+  const explicit = props.widget.column_formats?.[base];
+  if (explicit) return explicit;
+  const display = props.widget.measure_display?.[base];
+  return display && display !== 'value'
+    ? { type: 'percent', decimals: 2 }
+    : null;
+};
 const formatCell = (row, key) => {
   const value = row[key];
+  if (key === 'name' && row.is_others) return t('REPORT_PANELS.DYNAMIC.OTHERS');
+  if (key === 'name' && value === '' && props.result?.pivot?.row_attribute)
+    return t('REPORT_PANELS.DYNAMIC.BLANK');
+  const configuredFormat = measureFormat(key);
+  if (configuredFormat) return formatPanelMeasure(value, configuredFormat);
   const measureKey = isPivotColumnKey(key)
     ? parsePivotColumnKey(key)?.measure
     : key;
@@ -454,6 +481,8 @@ const cellTitle = (row, key) => {
 };
 
 const formatAggregateValue = (key, value) => {
+  const configuredFormat = measureFormat(key);
+  if (configuredFormat) return formatPanelMeasure(value, configuredFormat);
   if (value == null || value === '') return '—';
   if (TIME_COLUMNS.has(key)) return formatTime(value);
   if (key === 'share_percent') return `${Number(value).toFixed(1)}%`;
@@ -499,6 +528,8 @@ const openRow = row => {
 const title = computed(() => {
   if (props.widget.title) return props.widget.title;
   if (props.widget.type === 'table') {
+    if (props.result?.pivot?.row_attribute || props.widget.pivot?.row_attribute)
+      return headerLabel('name');
     const kind = tableKind.value;
     const keyMap = {
       agent_summary: 'AGENT',
@@ -661,7 +692,12 @@ const tableSubtitle = computed(() => {
     </div>
 
     <p v-if="result?.error" class="text-sm text-n-ruby-11">
-      {{ result.error }}
+      {{
+        result.error.startsWith('pivot_row_limit_exceeded') ||
+        result.error.startsWith('pivot_bucket_limit_exceeded')
+          ? t('REPORT_PANELS.DYNAMIC.LIMIT_ERROR')
+          : result.error
+      }}
     </p>
   </div>
 </template>

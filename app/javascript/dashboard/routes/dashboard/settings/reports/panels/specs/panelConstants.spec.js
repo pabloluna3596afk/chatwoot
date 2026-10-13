@@ -1,4 +1,9 @@
 import {
+  cleanTableOptions,
+  formatPanelMeasure,
+  isAdditiveMeasure,
+  defaultTableWidget,
+  defaultPivotConfig,
   panelRangeToDates,
   panelRangeToPickerDates,
   panelPickerRangeToUnix,
@@ -93,5 +98,105 @@ describe('panel date presets (D1)', () => {
         reporting_timezone: 'America/Guayaquil',
       }).map(date => date.getTime() / 1000)
     ).toEqual([0, 3600]);
+  });
+});
+
+describe('dynamic table settings', () => {
+  it('keeps defaults compatible with saved tables and does not opt in to new row behavior', () => {
+    expect(defaultPivotConfig()).toEqual({
+      column_attribute: '',
+      column_values: [],
+      show_row_totals: true,
+    });
+    expect(defaultTableWidget()).not.toHaveProperty('sort');
+    expect(defaultTableWidget().pivot).not.toHaveProperty('row_attribute');
+  });
+
+  it('remaps base and expanded references while preserving currency settings', () => {
+    const widget = {
+      table_kind: 'agent_summary',
+      columns: ['name', 'ca:amount__sum'],
+      pivot: { column_attribute: 'ca:stage' },
+      sort: { column: 'ca:amount__count__pv__A', direction: 'desc' },
+      top_n: { limit: 5, column: 'ca:amount__count', include_others: true },
+      column_formats: {
+        'ca:amount__count': {
+          type: 'currency',
+          currency_symbol: 'EUR ',
+          decimals: 1,
+        },
+      },
+      measure_display: { 'ca:amount__count': 'row_percent' },
+    };
+    cleanTableOptions(widget, 'ca:amount__count', 'ca:amount__sum');
+    expect(widget.sort.column).toBe('ca:amount__sum__pv__A');
+    expect(widget.top_n.column).toBe('ca:amount__sum');
+    expect(widget.column_formats).toEqual({
+      'ca:amount__sum': {
+        type: 'currency',
+        currency_symbol: 'EUR ',
+        decimals: 1,
+      },
+    });
+    expect(widget.measure_display).toEqual({ 'ca:amount__sum': 'row_percent' });
+    widget.pivot.column_attribute = '';
+    cleanTableOptions(widget);
+    expect(widget.sort).toBeUndefined();
+    expect(widget.top_n.column).toBe('ca:amount__sum');
+  });
+
+  it('clears orphan settings, non-additive displays, contact Others and summary options on detail tables', () => {
+    const widget = {
+      table_kind: 'agent_summary',
+      columns: ['name', 'contact_ca:amount__avg'],
+      sort: { column: 'missing', direction: 'asc' },
+      top_n: {
+        limit: 5,
+        column: 'contact_ca:amount__avg',
+        include_others: true,
+      },
+      column_formats: { missing: { type: 'currency' } },
+      measure_display: { 'contact_ca:amount__avg': 'column_percent' },
+    };
+    cleanTableOptions(widget);
+    expect(widget.sort).toBeUndefined();
+    expect(widget.column_formats).toEqual({});
+    expect(widget.measure_display).toEqual({});
+    expect(widget.top_n.include_others).toBe(false);
+    widget.table_kind = 'contacts';
+    cleanTableOptions(widget);
+    expect(widget.top_n).toBeUndefined();
+    expect(widget.column_formats).toBeUndefined();
+  });
+
+  it.each([
+    'conversations_count',
+    'resolved_conversations_count',
+    'ca:amount__sum',
+    'contact_ca:amount__count',
+  ])('offers percentages for %s', column => {
+    expect(isAdditiveMeasure(column)).toBe(true);
+  });
+  it.each(['ca:amount__avg', 'ca:amount__min', 'ca:amount__max', 'name'])(
+    'does not offer percentages for %s',
+    column => {
+      expect(isAdditiveMeasure(column)).toBe(false);
+    }
+  );
+
+  it('formats cells and footers with the same base configuration and retains raw numbers', () => {
+    const value = 10.9;
+    const config = { type: 'currency', currency_symbol: 'EUR ', decimals: 1 };
+    const number = value.toLocaleString(undefined, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
+    expect(formatPanelMeasure(value, config)).toBe(`EUR ${number}`);
+    expect(formatPanelMeasure(25, { type: 'percent', decimals: 0 })).toBe(
+      '25%'
+    );
+    expect(formatPanelMeasure(value, { type: 'integer' })).toBe('11');
+    expect(formatPanelMeasure(null, config)).toBe('—');
+    expect(value).toBe(10.9);
   });
 });

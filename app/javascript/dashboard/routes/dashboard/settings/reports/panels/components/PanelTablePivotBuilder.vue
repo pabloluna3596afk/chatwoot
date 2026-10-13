@@ -4,9 +4,20 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import Input from 'dashboard/components-next/input/Input.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import {
   SUMMARY_TABLE_KINDS,
+  ROW_GRANULARITIES,
+  TOP_N_LIMITS,
+  MEASURE_DISPLAYS,
+  COLUMN_FORMAT_TYPES,
+  COLUMN_DECIMALS,
+  PIVOT_SYSTEM_MEASURES,
+  isAdditiveMeasure,
+  cleanTableOptions,
+  pivotColumnKey,
+  isContactCustomAttributeColumn,
   PIVOT_COLUMN_ATTR_TYPES,
   MAX_PIVOT_VALUES,
   TABLE_COLUMN_OPTIONS,
@@ -28,6 +39,7 @@ const props = defineProps({
   tableKindOptions: { type: Array, default: () => [] },
   conversationAttributes: { type: Array, default: () => [] },
   contactAttributes: { type: Array, default: () => [] },
+  previewPivot: { type: Object, default: null },
   showGrouping: { type: Boolean, default: true },
   showOperations: { type: Boolean, default: true },
 });
@@ -48,13 +60,17 @@ const systemOp = key =>
     ? 'avg'
     : 'count';
 const fields = computed(() => {
-  const system = summarySystemMeasureKeysFor(props.widget.table_kind).map(
-    key => ({
+  const dynamic =
+    props.widget.pivot?.row_attribute ||
+    props.widget.pivot?.column_attribute ||
+    props.widget.top_n;
+  const system = summarySystemMeasureKeysFor(props.widget.table_kind)
+    .filter(key => !dynamic || PIVOT_SYSTEM_MEASURES.has(key))
+    .map(key => ({
       value: key,
       label: t(`REPORT_PANELS.COLUMNS.${key}`),
       ops: [systemOp(key)],
-    })
-  );
+    }));
   const custom = (attrs, contact) =>
     attrs.map(attr => {
       const key = attr.attributeKey || attr.attribute_key;
@@ -159,6 +175,7 @@ const replaceMeasure = (row, fieldId, op) => {
     if (nextColumn !== row.column) delete totals[row.column];
   }
   props.widget.column_aggregations = totals;
+  cleanTableOptions(props.widget, row.column, nextColumn);
 };
 const changeField = (row, fieldId) => {
   const field = fieldById.value[fieldId];
@@ -174,6 +191,7 @@ const addMeasure = () => {
   if (selectedColumns.value.includes(column)) return;
   writeMeasures([...measures.value.map(row => row.column), column]);
   addField.value = '';
+  cleanTableOptions(props.widget);
 };
 const removeMeasure = column => {
   writeMeasures(
@@ -182,6 +200,7 @@ const removeMeasure = column => {
   const totals = { ...props.widget.column_aggregations };
   delete totals[column];
   props.widget.column_aggregations = totals;
+  cleanTableOptions(props.widget);
 };
 const moveMeasure = (index, direction) => {
   const columns = measures.value.map(row => row.column);
@@ -204,10 +223,6 @@ const splitValues = computed(() =>
     .slice(0, MAX_PIVOT_VALUES)
     .map(value => ({ value, label: value }))
 );
-const setSplit = value => {
-  props.widget.pivot.column_attribute = value;
-  props.widget.pivot.column_values = [];
-};
 const detailOptions = computed(() => [
   ...(TABLE_COLUMN_OPTIONS[props.widget.table_kind] || []).map(value => ({
     value,
@@ -237,14 +252,192 @@ const setFooter = (column, op) => {
   else delete totals[column];
   props.widget.column_aggregations = totals;
 };
+
+const rowOptions = computed(() => [
+  ...['agent', 'inbox', 'team', 'label', 'created_at'].map(value => ({
+    value,
+    label: t(`REPORT_PANELS.DYNAMIC.ROWS_${value.toUpperCase()}`),
+  })),
+  ...fields.value
+    .filter(field => field.key)
+    .map(({ value, label }) => ({ value, label })),
+]);
+const rowAttribute = computed(
+  () =>
+    props.widget.pivot?.row_attribute ||
+    props.widget.table_kind.replace('_summary', '')
+);
+const restrictPivotMeasures = () => {
+  const supported = measures.value
+    .filter(
+      row =>
+        isCustomAttributeColumn(row.column) ||
+        PIVOT_SYSTEM_MEASURES.has(row.column)
+    )
+    .map(row => row.column);
+  writeMeasures(supported.length ? supported : ['conversations_count']);
+  props.widget.column_aggregations = Object.fromEntries(
+    Object.entries(props.widget.column_aggregations || {}).filter(([key]) =>
+      props.widget.columns.includes(key)
+    )
+  );
+};
+const setSplit = value => {
+  props.widget.pivot.column_attribute = value;
+  props.widget.pivot.column_values = [];
+  restrictPivotMeasures();
+  cleanTableOptions(props.widget);
+};
+const setRow = value => {
+  props.widget.pivot.row_attribute = value;
+  if (value === 'created_at') props.widget.pivot.row_granularity ||= 'day';
+  else delete props.widget.pivot.row_granularity;
+  restrictPivotMeasures();
+  cleanTableOptions(props.widget);
+  if (['agent', 'inbox', 'team', 'label'].includes(value))
+    emit('tableKindChange', `${value}_summary`);
+};
+const displayedPivotValues = computed(() => {
+  if (!props.widget.pivot?.column_attribute) return [];
+  if (props.widget.pivot.column_values?.length)
+    return props.widget.pivot.column_values;
+  if (
+    props.previewPivot?.column_attribute === props.widget.pivot.column_attribute
+  )
+    return props.previewPivot.column_values || [];
+  return splitValues.value.map(option => option.value);
+});
+const measureOptions = computed(() =>
+  measures.value.flatMap(row => [
+    { value: row.column, label: row.label },
+    ...displayedPivotValues.value.map(value => ({
+      value: pivotColumnKey(row.column, value),
+      label: t('REPORT_PANELS.PIVOT.HEADER', {
+        segment: value,
+        measure: row.label,
+      }),
+    })),
+  ])
+);
+const defaultSortColumn = computed(() =>
+  rowAttribute.value === 'created_at'
+    ? 'name'
+    : measures.value.find(row => row.column === 'conversations_count')
+        ?.column || measures.value[0]?.column
+);
+const controls = computed(() => [
+  ...(rowAttribute.value === 'created_at'
+    ? [
+        {
+          key: 'granularity',
+          value: props.widget.pivot.row_granularity || 'day',
+          options: ROW_GRANULARITIES.map(value => ({
+            value,
+            label: t(`REPORT_PANELS.EDITOR.GROUPS.${value.toUpperCase()}`),
+          })),
+        },
+      ]
+    : []),
+  {
+    key: 'sort_column',
+    value: props.widget.sort?.column || defaultSortColumn.value,
+    options: [
+      { value: 'name', label: t('REPORT_PANELS.DYNAMIC.ROW_NAME') },
+      ...measureOptions.value,
+    ],
+  },
+  {
+    key: 'sort_direction',
+    value:
+      props.widget.sort?.direction ||
+      (rowAttribute.value === 'created_at' ? 'asc' : 'desc'),
+    options: ['asc', 'desc'].map(value => ({
+      value,
+      label: t(`REPORT_PANELS.DYNAMIC.${value.toUpperCase()}`),
+    })),
+  },
+  {
+    key: 'top_limit',
+    value: props.widget.top_n?.limit ?? '',
+    options: TOP_N_LIMITS.map(value => ({
+      value: value ?? '',
+      label: value == null ? t('REPORT_PANELS.DYNAMIC.ALL') : String(value),
+    })),
+  },
+  ...(props.widget.top_n?.limit
+    ? [
+        {
+          key: 'top_column',
+          value: props.widget.top_n.column,
+          options: measureOptions.value,
+        },
+      ]
+    : []),
+]);
+const setControl = (key, value) => {
+  if (key === 'granularity') props.widget.pivot.row_granularity = value;
+  if (key.startsWith('sort_'))
+    props.widget.sort = {
+      column: props.widget.sort?.column || defaultSortColumn.value,
+      direction:
+        props.widget.sort?.direction ||
+        (rowAttribute.value === 'created_at' ? 'asc' : 'desc'),
+      [key === 'sort_column' ? 'column' : 'direction']: value,
+    };
+  if (key.startsWith('top_')) {
+    restrictPivotMeasures();
+    props.widget.top_n = {
+      limit: props.widget.top_n?.limit ?? null,
+      column: props.widget.top_n?.column || measures.value[0]?.column,
+      include_others: props.widget.top_n?.include_others || false,
+      [key === 'top_limit' ? 'limit' : 'column']: value === '' ? null : value,
+    };
+    cleanTableOptions(props.widget);
+  }
+};
+const hasContactMeasures = computed(() =>
+  measures.value.some(row => isContactCustomAttributeColumn(row.column))
+);
+const setOthers = value => {
+  props.widget.top_n.include_others = value;
+};
+const displayOptions = row =>
+  MEASURE_DISPLAYS.filter(
+    value => value === 'value' || isAdditiveMeasure(row.column)
+  ).map(value => ({
+    value,
+    label: t(`REPORT_PANELS.DYNAMIC.DISPLAY_${value.toUpperCase()}`),
+  }));
+const setDisplay = (column, value) => {
+  const displays = { ...props.widget.measure_display };
+  if (value === 'value') delete displays[column];
+  else displays[column] = value;
+  props.widget.measure_display = displays;
+  cleanTableOptions(props.widget);
+};
+const formatOptions = computed(() =>
+  COLUMN_FORMAT_TYPES.map(value => ({
+    value,
+    label: t(
+      `REPORT_PANELS.DYNAMIC.FORMAT_${value ? value.toUpperCase() : 'AUTO'}`
+    ),
+  }))
+);
+const decimalsOptions = COLUMN_DECIMALS.map(value => ({
+  value,
+  label: String(value),
+}));
+const setFormat = (column, key, value) => {
+  const formats = { ...props.widget.column_formats };
+  if (key === 'type' && !value) delete formats[column];
+  else formats[column] = { type: 'integer', ...formats[column], [key]: value };
+  props.widget.column_formats = formats;
+};
 </script>
 
 <template>
   <div class="min-w-0 grid gap-4">
-    <div
-      v-if="showGrouping || !isSummary"
-      class="grid gap-1.5 text-sm text-n-slate-12"
-    >
+    <div v-if="!isSummary" class="grid gap-1.5 text-sm text-n-slate-12">
       <span>{{ t('REPORT_PANELS.EDITOR.GROUP_BY') }}</span>
       <ComboBox
         :model-value="widget.table_kind"
@@ -260,6 +453,72 @@ const setFooter = (column, op) => {
       />
     </div>
     <template v-if="isSummary">
+      <div v-if="showGrouping" class="grid gap-3 sm:grid-cols-2">
+        <div class="grid gap-1.5 text-sm text-n-slate-12 min-w-0">
+          <div class="flex items-center gap-1">
+            <span>{{ t('REPORT_PANELS.DYNAMIC.ROWS') }}</span>
+            <Button
+              v-tooltip="t('REPORT_PANELS.DYNAMIC.ROWS_HINT')"
+              icon="i-lucide-info"
+              variant="ghost"
+              color="slate"
+              size="xs"
+              :aria-label="t('REPORT_PANELS.DYNAMIC.ROWS_HINT')"
+            />
+          </div>
+          <ComboBox
+            :model-value="rowAttribute"
+            :options="rowOptions"
+            :allow-deselect="false"
+            show-search
+            :aria-label="t('REPORT_PANELS.DYNAMIC.ROWS')"
+            teleport
+            data-testid="pivot-rows"
+            @update:model-value="setRow"
+          />
+        </div>
+        <div
+          v-for="control in controls"
+          :key="control.key"
+          class="grid gap-1.5 text-sm text-n-slate-12 min-w-0"
+        >
+          <span>{{
+            t(`REPORT_PANELS.DYNAMIC.${control.key.toUpperCase()}`)
+          }}</span>
+          <ComboBox
+            :model-value="control.value"
+            :options="control.options"
+            :allow-deselect="false"
+            :aria-label="
+              t(`REPORT_PANELS.DYNAMIC.${control.key.toUpperCase()}`)
+            "
+            teleport
+            :data-testid="control.key"
+            @update:model-value="setControl(control.key, $event)"
+          />
+        </div>
+        <div
+          v-if="widget.top_n?.limit"
+          class="flex items-center gap-2 text-sm text-n-slate-12"
+        >
+          <Switch
+            :model-value="widget.top_n.include_others"
+            :disabled="hasContactMeasures"
+            :aria-label="t('REPORT_PANELS.DYNAMIC.OTHERS')"
+            data-testid="include-others"
+            @update:model-value="setOthers"
+          />
+          <span>{{ t('REPORT_PANELS.DYNAMIC.OTHERS') }}</span>
+          <Button
+            v-tooltip="t('REPORT_PANELS.DYNAMIC.OTHERS_HINT')"
+            icon="i-lucide-info"
+            variant="ghost"
+            color="slate"
+            size="xs"
+            :aria-label="t('REPORT_PANELS.DYNAMIC.OTHERS_HINT')"
+          />
+        </div>
+      </div>
       <div class="grid gap-3">
         <div
           v-for="(row, index) in measures"
@@ -298,6 +557,76 @@ const setFooter = (column, op) => {
                 teleport
                 data-testid="measure-operation"
                 @update:model-value="replaceMeasure(row, row.fieldId, $event)"
+              />
+            </div>
+          </div>
+          <div v-if="showOperations" class="grid gap-3 sm:grid-cols-2">
+            <div class="grid gap-1.5 text-sm text-n-slate-12 min-w-0">
+              <div class="flex items-center gap-1">
+                <span>{{ t('REPORT_PANELS.DYNAMIC.DISPLAY') }}</span>
+                <Button
+                  v-tooltip="t('REPORT_PANELS.DYNAMIC.PERCENT_HINT')"
+                  icon="i-lucide-info"
+                  variant="ghost"
+                  color="slate"
+                  size="xs"
+                  :aria-label="t('REPORT_PANELS.DYNAMIC.PERCENT_HINT')"
+                />
+              </div>
+              <ComboBox
+                :model-value="widget.measure_display?.[row.column] || 'value'"
+                :options="displayOptions(row)"
+                :allow-deselect="false"
+                :aria-label="t('REPORT_PANELS.DYNAMIC.DISPLAY')"
+                teleport
+                data-testid="measure-display"
+                @update:model-value="setDisplay(row.column, $event)"
+              />
+            </div>
+            <div class="grid gap-1.5 text-sm text-n-slate-12 min-w-0">
+              <span>{{ t('REPORT_PANELS.DYNAMIC.FORMAT') }}</span>
+              <ComboBox
+                :model-value="widget.column_formats?.[row.column]?.type || ''"
+                :options="formatOptions"
+                :allow-deselect="false"
+                :aria-label="t('REPORT_PANELS.DYNAMIC.FORMAT')"
+                teleport
+                data-testid="measure-format"
+                @update:model-value="setFormat(row.column, 'type', $event)"
+              />
+            </div>
+            <div
+              v-if="widget.column_formats?.[row.column]?.type === 'currency'"
+              class="grid gap-1.5 text-sm text-n-slate-12 min-w-0"
+            >
+              <span>{{ t('REPORT_PANELS.DYNAMIC.SYMBOL') }}</span>
+              <Input
+                :model-value="
+                  widget.column_formats[row.column].currency_symbol ?? '$'
+                "
+                :aria-label="t('REPORT_PANELS.DYNAMIC.SYMBOL')"
+                data-testid="currency-symbol"
+                @update:model-value="
+                  setFormat(row.column, 'currency_symbol', $event)
+                "
+              />
+            </div>
+            <div
+              v-if="widget.column_formats?.[row.column]"
+              class="grid gap-1.5 text-sm text-n-slate-12 min-w-0"
+            >
+              <span>{{ t('REPORT_PANELS.DYNAMIC.DECIMALS') }}</span>
+              <ComboBox
+                :model-value="
+                  widget.column_formats[row.column].decimals ??
+                  (widget.column_formats[row.column].type === 'integer' ? 0 : 2)
+                "
+                :options="decimalsOptions"
+                :allow-deselect="false"
+                :aria-label="t('REPORT_PANELS.DYNAMIC.DECIMALS')"
+                teleport
+                data-testid="format-decimals"
+                @update:model-value="setFormat(row.column, 'decimals', $event)"
               />
             </div>
           </div>
