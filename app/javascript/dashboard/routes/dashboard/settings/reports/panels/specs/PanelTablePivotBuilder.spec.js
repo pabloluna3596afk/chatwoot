@@ -300,10 +300,10 @@ describe('guided table measures', () => {
       wrapper.findAll('tbody tr').map(row => row.find('td').text())
     ).toEqual(['B', 'A', 'Otros']);
     expect(wrapper.find('tbody').text()).toContain(
-      formatPanelMeasure(10.9, config)
+      formatPanelMeasure(10.9, config, 'es')
     );
     expect(wrapper.find('tfoot').text()).toContain(
-      formatPanelMeasure(51, config)
+      formatPanelMeasure(51, config, 'es')
     );
     expect(wrapper.find('thead').text()).toContain('Fecha de creación');
     await wrapper.findAll('thead tr')[1].find('button').trigger('click');
