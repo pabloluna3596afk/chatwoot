@@ -76,7 +76,7 @@ class CalendarEvent < ApplicationRecord
 
   # "Next appointment" becomes "last appointment" when it starts: refresh the contact right after that moment.
   def enqueue_appointment_start_refresh
-    return if destroyed? || contact_id.blank? || deleted_at.present? || start_at <= Time.current
+    return if destroyed? || contact_id.blank? || deleted_at.present? || start_at.blank? || start_at <= Time.current
 
     Calendar::AppointmentAttributes::UpdateJob.set(wait_until: start_at + 1.minute).perform_later(account_id, contact_id)
   end
