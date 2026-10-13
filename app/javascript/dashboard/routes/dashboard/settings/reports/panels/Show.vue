@@ -27,11 +27,6 @@ const store = useStore();
 const { accountScopedRoute, currentAccount, isCloudFeatureEnabled } =
   useAccount();
 
-// Super admin can turn report downloads off for this account; the panel itself
-// stays viewable, only taking it out of the tool is blocked.
-const canExportPanel = computed(() =>
-  isCloudFeatureEnabled(FEATURE_FLAGS.REPORT_EXPORT)
-);
 const contactAttributes = useMapGetter('attributes/getContactAttributes');
 const conversationAttributes = useMapGetter(
   'attributes/getConversationAttributes'
@@ -40,6 +35,22 @@ const conversationAttributes = useMapGetter(
 const loading = ref(true);
 const running = ref(false);
 const panel = ref(null);
+
+// A table of conversations or contacts carries personal data, so exporting it also needs the customer-data switch.
+const hasDetailTables = computed(() =>
+  (panel.value?.widgets || []).some(widget =>
+    ['conversations', 'contacts'].includes(widget.table_kind)
+  )
+);
+
+// Super admin can turn report downloads off for this account; the panel itself
+// stays viewable, only taking it out of the tool is blocked.
+const canExportPanel = computed(
+  () =>
+    isCloudFeatureEnabled(FEATURE_FLAGS.REPORT_EXPORT) &&
+    (!hasDetailTables.value ||
+      isCloudFeatureEnabled(FEATURE_FLAGS.CUSTOMER_DATA_EXPORT))
+);
 const runResult = ref(null);
 const viewDateRange = ref([new Date(), new Date()]);
 const viewRangeType = ref(DATE_RANGE_TYPES.CUSTOM_RANGE);

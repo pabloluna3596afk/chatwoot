@@ -108,6 +108,8 @@ class Reports::PanelExportService
 
     workbook.add_worksheet(name: sheet_name) do |worksheet| # rubocop:disable Metrics/BlockLength
       sheet = Exports::SafeCell.sheet(worksheet)
+      next add_error_rows(sheet, widget) if widget[:error].present?
+
       case widget[:type].to_s
       when 'metric'
         sheet.add_row %w[Métrica Valor]
@@ -126,7 +128,7 @@ class Reports::PanelExportService
         if rows.blank?
           sheet.add_row ['Sin datos para este periodo']
         else
-          keys = rows.first.with_indifferent_access.keys.map(&:to_s)
+          keys = exported_keys(widget, rows)
           sheet.add_row(keys.map { |key| header_label_for(key) })
           rows.each do |row|
             row = row.with_indifferent_access
@@ -151,11 +153,36 @@ class Reports::PanelExportService
               end
             )
           end
+          add_truncation_note(sheet, widget)
         end
       else
         sheet.add_row ['Tipo de widget no soportado', widget[:type].to_s]
       end
     end
+  end
+
+  # A widget that failed says so in its sheet, instead of looking like "no data".
+  def add_error_rows(sheet, widget)
+    sheet.add_row ['Este widget no se pudo calcular']
+    sheet.add_row ['Motivo', widget[:error].to_s]
+  end
+
+  # The columns the panel was configured with, in that order (never the whole record: a detail table of contacts has
+  # phone, email and document number even when the panel only asked for the name). Rows without configured columns
+  # fall back to their own keys.
+  def exported_keys(widget, rows)
+    row_keys = rows.first.with_indifferent_access.keys.map(&:to_s)
+    configured = Array(widget[:columns]).map(&:to_s)
+    return row_keys if configured.blank?
+
+    configured & row_keys
+  end
+
+  # Detail tables are capped; the sheet says how many records exist so nobody reads the cap as the whole.
+  def add_truncation_note(sheet, widget)
+    return unless ActiveModel::Type::Boolean.new.cast(widget[:truncated])
+
+    sheet.add_row ["Se muestran #{Array(widget[:rows]).size} de #{widget[:total_count]} registros (límite del informe)."]
   end
 
   def header_label_for(key)
@@ -196,6 +223,7 @@ class Reports::PanelExportService
       end
       label = rest.humanize
       return "#{op.capitalize}(#{label} = #{filter_value})" if op.present? && filter_value.present?
+
       return op.present? ? "#{op.capitalize}(#{label})" : label
     end
 
