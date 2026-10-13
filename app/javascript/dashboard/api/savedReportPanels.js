@@ -10,6 +10,10 @@ class SavedReportPanelsAPI extends ApiClient {
     return axios.post(`${this.url}/${id}/run`, params);
   }
 
+  preview(params, { signal } = {}) {
+    return axios.post(`${this.url}/preview`, params, { signal });
+  }
+
   export(id, params = {}) {
     return axios.get(`${this.url}/${id}/export`, {
       params,

@@ -35,6 +35,11 @@ class Api::V1::Accounts::SavedReportPanelsController < Api::V1::Accounts::BaseCo
     render json: build_runner.perform
   end
 
+  def preview
+    @panel = SavedReportPanel.new(panel_params.merge(account: Current.account, created_by: Current.user))
+    render json: build_runner.perform
+  end
+
   def export
     result = build_runner.perform
 

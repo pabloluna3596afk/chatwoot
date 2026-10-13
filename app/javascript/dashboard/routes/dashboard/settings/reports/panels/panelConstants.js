@@ -1,6 +1,15 @@
 import { startOfDay, endOfDay, subDays } from 'date-fns';
 import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
 
+export const EDITOR_STEPS = ['CHOOSE', 'GROUP', 'FILTER', 'PREVIEW'];
+export const PANEL_TYPES = [
+  { value: 'metric', icon: 'i-lucide-hash' },
+  { value: 'chart', icon: 'i-lucide-chart-column' },
+  { value: 'table', icon: 'i-lucide-table' },
+];
+export const CHART_GROUPS = ['day', 'week', 'month'];
+export const PREVIEW_DEBOUNCE_MS = 600;
+
 export const DATE_PRESETS = [
   { value: 'today', labelKey: 'REPORT_PANELS.DATE_PRESETS.TODAY' },
   { value: 'yesterday', labelKey: 'REPORT_PANELS.DATE_PRESETS.YESTERDAY' },

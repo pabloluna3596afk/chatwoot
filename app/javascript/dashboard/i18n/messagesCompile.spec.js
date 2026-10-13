@@ -3,6 +3,8 @@ import esIntegrations from './locale/es/integrations.json';
 import enIntegrations from './locale/en/integrations.json';
 import esTemplates from './locale/es/whatsappTemplateMgmt.json';
 import enTemplates from './locale/en/whatsappTemplateMgmt.json';
+import esReports from './locale/es/report.json';
+import enReports from './locale/en/report.json';
 
 // A message with a bare "@" is read by vue-i18n as a linked message ("@:other.key") and its compiler throws "Invalid
 // linked format" the first time the message is shown, which breaks the whole component that renders it. Write a literal
@@ -16,8 +18,16 @@ const leaves = (value, path = []) => {
 };
 
 const files = {
-  es: { ...esIntegrations, ...esTemplates },
-  en: { ...enIntegrations, ...enTemplates },
+  es: {
+    ...esIntegrations,
+    ...esTemplates,
+    REPORT_PANELS: esReports.REPORT_PANELS,
+  },
+  en: {
+    ...enIntegrations,
+    ...enTemplates,
+    REPORT_PANELS: enReports.REPORT_PANELS,
+  },
 };
 
 describe.each(Object.keys(files))('messages of %s', locale => {

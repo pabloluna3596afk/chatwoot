@@ -761,8 +761,8 @@
       "FOOTER_LABEL": "Total"
     },
     "METRIC_SOURCES": {
-      "PRESET": "Preset metric",
-      "AGGREGATION": "Custom aggregation"
+      "PRESET": "Standard indicator",
+      "AGGREGATION": "Custom field"
     },
     "AGGREGATIONS": {
       "NONE": "No footer",
@@ -792,12 +792,12 @@
       "DATE_PRESET": "Date range",
       "DATE_ATTRIBUTE": "Date field",
       "DATE_ATTRIBUTE_CREATED_AT": "Conversation created date",
-      "DATE_ATTRIBUTE_HINT": "Use a conversation date/datetime custom attribute (e.g. sale date) instead of created date for the panel period.",
+      "DATE_ATTRIBUTE_HINT": "Choose the date used for the period: conversation creation or your own date field, such as the sale date.",
       "CUSTOM_RANGE": "Custom dates",
       "VIEW_RANGE": "View period",
       "BUSINESS_HOURS": "Business hours only",
       "FAVORITE": "Pin as favorite",
-      "WIDGET_TITLE": "Widget title",
+      "WIDGET_TITLE": "Title",
       "METRIC": "Metric",
       "METRIC_SOURCE": "Value source",
       "AGGREGATION_OP": "Aggregation",
@@ -805,8 +805,8 @@
       "AGGREGATION_FIELD_OPTIONAL": "Attribute (optional)",
       "AGGREGATION_FIELD_OPTIONAL_HINT": "Leave empty to count matching rows, or pick any attribute to count only rows where it is set (non-empty).",
       "AGGREGATION_GROUP_FIELD": "Group / filter by date attribute",
-      "AGGREGATION_GROUP_FIELD_HINT": "Use a custom date or date-time attribute (e.g. sale date) for the X-axis and period filter. Leave empty to use conversation/contact created date. Pair with a numeric custom attribute above (e.g. price) for sales charts.",
-      "AGGREGATION_ENTITY": "Aggregate over",
+      "AGGREGATION_GROUP_FIELD_HINT": "Choose the creation date or your own date field to group and filter the period.",
+      "AGGREGATION_ENTITY": "Data from",
       "TABLE_KIND": "Table type",
       "TABLE_COLUMNS": "Columns",
       "TABLE_COLUMNS_HINT": "Choose columns to show. On summary tables, use the pivot builder (Fields → Rows / Columns / Values). Changing the table type resets columns.",
@@ -867,8 +867,8 @@
     "FILTERS": {
       "TITLE": "Report filters",
       "ADD": "Add filter",
-      "HINT": "Like Excel filters / slicers: apply to the whole panel (outer AND), including metrics and pivot tables. Conversation filters narrow conversations (try status = open/pending/resolved); contact filters intersect contacts. Pivot Columns still break down within this filtered set. Max 10.",
-      "MIXED_GROUPS_BANNER": "Conversation and contact filters are combined with AND across groups. OR only applies within the same group (all conversation conditions, or all contact conditions).",
+      "HINT": "Filters apply to the whole panel. You can add up to 10 conditions.",
+      "MIXED_GROUPS_BANNER": "When combining conversation and contact filters, both groups must match. The “Or” option only applies within each group.",
       "EMPTY": "No filters. Metrics count the whole account for the date range; agent tables show assigned agents plus Unassigned.",
       "SYSTEM_ATTRIBUTES": "Conversation attributes",
       "CUSTOM_ATTRIBUTES": "Conversation custom attributes",
@@ -892,12 +892,12 @@
       }
     },
     "TABLE_KINDS": {
-      "AGENT": "Agent summary",
-      "INBOX": "Inbox summary",
-      "TEAM": "Team summary",
-      "LABEL": "Label summary",
-      "CONVERSATIONS": "Filtered conversations",
-      "CONTACTS": "Unique contacts (attended)"
+      "AGENT": "Agent",
+      "INBOX": "Inbox",
+      "TEAM": "Team",
+      "LABEL": "Label",
+      "CONVERSATIONS": "Conversation details",
+      "CONTACTS": "Contact details"
     },
     "COLUMNS": {
       "rank": "Rank",
@@ -945,11 +945,53 @@
       "RUN": "Could not run panel",
       "EXPORT": "Could not export panel",
       "NAME_REQUIRED": "Name is required",
-      "WIDGET_REQUIRED": "Add at least one widget",
+      "WIDGET_REQUIRED": "Add at least one number, chart or table.",
       "CUSTOM_RANGE_REQUIRED": "Pick a custom start and end date",
-      "MAX_WIDGETS": "Maximum 12 widgets per panel",
+      "MAX_WIDGETS": "You can add up to 12 items to the panel.",
       "MAX_FILTERS": "Maximum 10 filters per panel",
       "FILTERS_INVALID": "Fix invalid filters before saving"
+    },
+    "EDITOR": {
+      "STEPS_LABEL": "Panel setup steps",
+      "STEPS": {
+        "CHOOSE": "What do you want to see",
+        "GROUP": "How to group it",
+        "FILTER": "Filters and dates",
+        "PREVIEW": "Preview"
+      },
+      "TYPES": {
+        "METRIC": "Number",
+        "CHART": "Chart",
+        "TABLE": "Table"
+      },
+      "GROUPS": {
+        "DAY": "Day",
+        "WEEK": "Week",
+        "MONTH": "Month"
+      },
+      "TYPE": "Display type",
+      "CONTENT": "Panel content",
+      "ADD": "Add content",
+      "TITLE": "Title",
+      "MEASURE": "Measure",
+      "OPERATION": "Operation",
+      "OPERATION_HINT": "Standard indicators already have a calculation method. You can choose the operation for custom fields.",
+      "GROUP_BY": "Group by",
+      "SPLIT": "Split columns by",
+      "NO_SPLIT": "No split",
+      "ALL_VALUES": "All values",
+      "SPLIT_HINT": "Each value of the selected field gets its own columns. Up to 12 values are shown.",
+      "TOTALS": "Footer totals",
+      "BREAKDOWN_HINT": "Charts group by day, week or month. Choose a table to compare agents, inboxes, teams or labels.",
+      "PREVIEW_HINT": "Results update with your changes without saving the panel.",
+      "LOADING": "Calculating preview…",
+      "PREVIEW_ERROR": "Could not calculate the preview. Change the configuration to try again.",
+      "INCOMPLETE": "Complete the measure, filters and dates to see the result.",
+      "PREVIOUS": "Previous",
+      "NEXT": "Next",
+      "UPDATE": "Update",
+      "START_DATE": "From",
+      "END_DATE": "To"
     }
   }
 }

@@ -209,6 +209,9 @@ Rails.application.routes.draw do
           end
           resources :dashboard_apps, only: [:index, :show, :create, :update, :destroy]
           resources :saved_report_panels, only: [:index, :show, :create, :update, :destroy] do
+            collection do
+              post :preview
+            end
             member do
               post :run
               get :export
