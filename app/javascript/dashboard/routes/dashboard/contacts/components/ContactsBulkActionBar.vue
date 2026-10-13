@@ -140,12 +140,14 @@ const handleRemoveLabels = labels => {
         <div class="flex items-center gap-2 ml-auto">
           <BulkLabelActions
             type="contact"
+            placement="bottom"
             :is-loading="isLoading"
             :disabled="!selectedCount"
             @assign="handleAssignLabels"
           />
           <BulkLabelActions
             type="contact"
+            placement="bottom"
             action="remove"
             :is-loading="isLoading"
             :disabled="!selectedCount"
