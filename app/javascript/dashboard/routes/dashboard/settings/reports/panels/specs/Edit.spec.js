@@ -8,7 +8,6 @@ import ConditionRow from 'dashboard/components-next/filter/ConditionRow.vue';
 import SavedReportPanelsAPI from 'dashboard/api/savedReportPanels';
 import esReports from 'dashboard/i18n/locale/es/report.json';
 import { PREVIEW_DEBOUNCE_MS } from '../panelConstants';
-import PanelTablePivotBuilder from '../components/PanelTablePivotBuilder.vue';
 
 const mocks = vi.hoisted(() => ({
   dispatch: vi.fn(),
@@ -353,9 +352,10 @@ describe('guided panel editor', () => {
           {
             id: 'sales',
             type: 'table',
-            table_kind: 'agent_summary',
+            table_kind: 'pivot',
             columns: ['rank', 'name', 'ca:importe__sum'],
             column_aggregations: { 'ca:importe__sum': 'sum' },
+            pivot: { row_attribute: 'agent' },
           },
         ],
       },
@@ -364,19 +364,75 @@ describe('guided panel editor', () => {
     await flushPromises();
     await wrapper.find('[data-testid="step-1"]').trigger('click');
     wrapper
-      .findAllComponents(PanelTablePivotBuilder)
-      .find(builder => builder.props('showGrouping'))
-      .vm.$emit('tableKindChange', 'team_summary');
+      .findAllComponents(ComboBox)
+      .find(box => box.attributes('data-testid') === 'pivot-rows')
+      .vm.$emit('update:modelValue', 'team');
     await flushPromises();
     await vi.advanceTimersByTimeAsync(PREVIEW_DEBOUNCE_MS);
     expect(
       SavedReportPanelsAPI.preview.mock.lastCall[0].saved_report_panel
         .widgets[0]
     ).toMatchObject({
-      table_kind: 'team_summary',
+      table_kind: 'pivot',
+      pivot: { row_attribute: 'team' },
       columns: ['rank', 'name', 'ca:importe__sum'],
       column_aggregations: { 'ca:importe__sum': 'sum' },
     });
     expect(SavedReportPanelsAPI.update).not.toHaveBeenCalled();
   });
+
+  it.each([
+    { row_attribute: 'created_at', row_granularity: 'month' },
+    { row_attribute: 'ca:importe' },
+  ])(
+    'reopens, previews and saves rows without crossed columns: %o',
+    async pivot => {
+      mocks.conversationAttributes = [
+        {
+          attribute_key: 'importe',
+          attribute_display_name: 'Importe',
+          attribute_display_type: 'currency',
+        },
+      ];
+      const widget = {
+        id: 'dynamic',
+        type: 'table',
+        table_kind: 'pivot',
+        columns: ['rank', 'name', 'ca:importe__sum'],
+        pivot: {
+          ...pivot,
+          column_attribute: '',
+          column_values: [],
+          show_row_totals: true,
+        },
+        sort: { column: 'ca:importe__sum', direction: 'asc' },
+        top_n: { limit: 10, column: 'ca:importe__sum', include_others: true },
+        measure_display: { 'ca:importe__sum': 'column_percent' },
+        column_formats: { 'ca:importe__sum': { type: 'percent', decimals: 1 } },
+        column_aggregations: { 'ca:importe__sum': 'sum' },
+      };
+      SavedReportPanelsAPI.show.mockResolvedValue({
+        data: {
+          name: 'Dynamic',
+          date_preset: 'last_7_days',
+          filters: [],
+          widgets: [widget],
+        },
+      });
+      wrapper = mountEditor(false);
+      await flushPromises();
+      await vi.advanceTimersByTimeAsync(PREVIEW_DEBOUNCE_MS);
+      const previewWidget =
+        SavedReportPanelsAPI.preview.mock.lastCall[0].saved_report_panel
+          .widgets[0];
+      expect(previewWidget).toEqual(widget);
+      await wrapper.find('[data-testid="step-3"]').trigger('click');
+      await wrapper.find('[data-testid="save-panel"]').trigger('click');
+      await flushPromises();
+      expect(
+        SavedReportPanelsAPI.update.mock.lastCall[1].saved_report_panel
+          .widgets[0]
+      ).toEqual(widget);
+    }
+  );
 });

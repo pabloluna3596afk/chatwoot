@@ -41,9 +41,8 @@ import {
   CONTACT_FILTER_PREFIX,
   MULTI_SELECT_SYSTEM_KEYS,
   SUMMABLE_CUSTOM_TYPES,
-  SUMMARY_TABLE_KINDS,
-  MAX_PIVOT_VALUES,
   defaultPivotConfig,
+  cleanTableOptions,
   defaultColumnsForTableKind,
   defaultChartWidget,
   defaultMetricWidget,
@@ -436,9 +435,6 @@ const ensureWidgetDefaults = widget => {
   if (widget.type === 'table' && !widget.column_aggregations) {
     widget.column_aggregations = {};
   }
-  if (widget.type === 'table' && !widget.pivot) {
-    widget.pivot = defaultPivotConfig();
-  }
   return widget;
 };
 
@@ -637,26 +633,12 @@ const aggregationGroupFieldOptions = widget => {
 };
 
 const onTableKindChange = (widget, kind) => {
-  const previousKind = widget.table_kind;
-  const previousColumns = resolveTableColumns(previousKind, widget.columns);
-  if (kind !== undefined && kind !== null && kind !== '') {
-    widget.table_kind = kind;
-  }
-  if (
-    SUMMARY_TABLE_KINDS.has(previousKind) &&
-    SUMMARY_TABLE_KINDS.has(widget.table_kind)
-  ) {
-    widget.columns = resolveTableColumns(widget.table_kind, previousColumns);
-    widget.column_aggregations = Object.fromEntries(
-      Object.entries(widget.column_aggregations).filter(([column]) =>
-        widget.columns.includes(column)
-      )
-    );
-  } else {
-    widget.columns = defaultColumnsForTableKind(widget.table_kind);
-    widget.column_aggregations = {};
-    widget.pivot = defaultPivotConfig();
-  }
+  widget.table_kind = kind;
+  widget.columns = defaultColumnsForTableKind(kind);
+  widget.column_aggregations = {};
+  if (kind === 'pivot') widget.pivot = defaultPivotConfig();
+  else delete widget.pivot;
+  cleanTableOptions(widget);
 };
 
 const buildPayload = () => {
@@ -699,20 +681,7 @@ const buildPayload = () => {
           ([key, op]) => next.columns.includes(key) && Boolean(op)
         )
       );
-      if (
-        SUMMARY_TABLE_KINDS.has(next.table_kind) &&
-        next.pivot?.column_attribute
-      ) {
-        next.pivot = {
-          column_attribute: next.pivot.column_attribute,
-          column_values: Array.isArray(next.pivot.column_values)
-            ? next.pivot.column_values.slice(0, MAX_PIVOT_VALUES)
-            : [],
-          show_row_totals: next.pivot.show_row_totals !== false,
-        };
-      } else {
-        next.pivot = defaultPivotConfig();
-      }
+      cleanTableOptions(next);
     }
     return next;
   });
@@ -1065,6 +1034,7 @@ onMounted(async () => {
                 :table-kind-options="tableKindOptions"
                 :conversation-attributes="conversationAttributes"
                 :contact-attributes="contactAttributes"
+                :preview-pivot="resultById[selectedWidget.id]?.pivot"
                 :show-grouping="false"
                 :show-operations="false"
                 @table-kind-change="
@@ -1086,6 +1056,7 @@ onMounted(async () => {
                 :table-kind-options="tableKindOptions"
                 :conversation-attributes="conversationAttributes"
                 :contact-attributes="contactAttributes"
+                :preview-pivot="resultById[selectedWidget.id]?.pivot"
                 @table-kind-change="
                   kind => onTableKindChange(selectedWidget, kind)
                 "

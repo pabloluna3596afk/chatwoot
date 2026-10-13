@@ -51,7 +51,7 @@ class Reports::DefaultPanelsSeeder
           metric_widget('w_default_agent_res', 'Resoluciones', 'resolutions_count'),
           metric_widget('w_default_agent_frt', '1ª respuesta', 'avg_first_response_time'),
           metric_widget('w_default_agent_art', 'Resolución', 'avg_resolution_time'),
-          table_widget('w_default_agent_table', 'Resumen de agentes', 'agent_summary')
+          table_widget('w_default_agent_table', 'Resumen de agentes', 'agent')
         ]
       },
       {
@@ -64,7 +64,7 @@ class Reports::DefaultPanelsSeeder
           metric_widget('w_default_month_res', 'Resoluciones', 'resolutions_count'),
           metric_widget('w_default_month_art', 'Tiempo de resolución', 'avg_resolution_time'),
           chart_widget('w_default_month_chart', 'Resoluciones por día', 'resolutions_count'),
-          table_widget('w_default_month_inbox', 'Resumen de bandejas', 'inbox_summary')
+          table_widget('w_default_month_inbox', 'Resumen de bandejas', 'inbox')
         ]
       }
     ]
@@ -94,12 +94,14 @@ class Reports::DefaultPanelsSeeder
     }
   end
 
-  def table_widget(id, title, table_kind)
+  def table_widget(id, title, row)
     {
       'id' => id,
       'type' => 'table',
       'title' => title,
-      'table_kind' => table_kind
+      'table_kind' => 'pivot',
+      'columns' => %w[rank name conversations_count resolved_conversations_count],
+      'pivot' => { 'row_attribute' => row }
     }
   end
 end

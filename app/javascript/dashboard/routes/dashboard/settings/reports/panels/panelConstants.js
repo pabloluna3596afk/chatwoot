@@ -49,15 +49,6 @@ export const AGGREGATION_OPS = [
   { value: 'max', labelKey: 'REPORT_PANELS.AGGREGATIONS.MAX' },
 ];
 
-export const COLUMN_AGGREGATION_OPS = [
-  { value: '', labelKey: 'REPORT_PANELS.AGGREGATIONS.NONE' },
-  { value: 'sum', labelKey: 'REPORT_PANELS.AGGREGATIONS.SUM' },
-  { value: 'avg', labelKey: 'REPORT_PANELS.AGGREGATIONS.AVG' },
-  { value: 'count', labelKey: 'REPORT_PANELS.AGGREGATIONS.COUNT' },
-  { value: 'min', labelKey: 'REPORT_PANELS.AGGREGATIONS.MIN' },
-  { value: 'max', labelKey: 'REPORT_PANELS.AGGREGATIONS.MAX' },
-];
-
 export const AGGREGATION_ENTITIES = [
   {
     value: 'conversations',
@@ -70,10 +61,7 @@ export const AGGREGATION_ENTITIES = [
 ];
 
 export const TABLE_KINDS = [
-  { value: 'agent_summary', labelKey: 'REPORT_PANELS.TABLE_KINDS.AGENT' },
-  { value: 'inbox_summary', labelKey: 'REPORT_PANELS.TABLE_KINDS.INBOX' },
-  { value: 'team_summary', labelKey: 'REPORT_PANELS.TABLE_KINDS.TEAM' },
-  { value: 'label_summary', labelKey: 'REPORT_PANELS.TABLE_KINDS.LABEL' },
+  { value: 'pivot', labelKey: 'REPORT_PANELS.EDITOR.TYPES.TABLE' },
   {
     value: 'conversations',
     labelKey: 'REPORT_PANELS.TABLE_KINDS.CONVERSATIONS',
@@ -109,48 +97,11 @@ export const TABLE_COLUMN_OPTIONS = {
     'last_activity_at',
     'id',
   ],
-  agent_summary: [
+  pivot: [
     'rank',
     'name',
     'conversations_count',
     'resolved_conversations_count',
-    'csat_avg',
-    'incoming_messages_count',
-    'outgoing_messages_count',
-    'avg_first_response_time',
-    'avg_resolution_time',
-    'avg_reply_time',
-    'share_percent',
-  ],
-  inbox_summary: [
-    'rank',
-    'name',
-    'conversations_count',
-    'resolved_conversations_count',
-    'avg_first_response_time',
-    'avg_resolution_time',
-    'avg_reply_time',
-    'share_percent',
-  ],
-  team_summary: [
-    'rank',
-    'name',
-    'conversations_count',
-    'resolved_conversations_count',
-    'avg_first_response_time',
-    'avg_resolution_time',
-    'avg_reply_time',
-    'share_percent',
-  ],
-  label_summary: [
-    'rank',
-    'name',
-    'conversations_count',
-    'resolved_conversations_count',
-    'avg_first_response_time',
-    'avg_resolution_time',
-    'avg_reply_time',
-    'share_percent',
   ],
 };
 
@@ -172,78 +123,32 @@ export const DEFAULT_TABLE_COLUMNS = {
     'conversations_count',
     'last_activity_at',
   ],
-  // Summary defaults: counts only. CSAT / averages / share stay optional
-  // (and are not expanded under pivot Columnas).
-  agent_summary: [
-    'rank',
-    'name',
-    'conversations_count',
-    'resolved_conversations_count',
-  ],
-  inbox_summary: [
-    'rank',
-    'name',
-    'conversations_count',
-    'resolved_conversations_count',
-  ],
-  team_summary: [
-    'rank',
-    'name',
-    'conversations_count',
-    'resolved_conversations_count',
-  ],
-  label_summary: [
-    'rank',
-    'name',
-    'conversations_count',
-    'resolved_conversations_count',
-  ],
+  pivot: TABLE_COLUMN_OPTIONS.pivot,
 };
 
 /** Prefix for custom-attribute columns stored in widget.columns */
 export const CA_COLUMN_PREFIX = 'ca:';
-/** Contact custom attrs on summary tables (agent/inbox/team/label) */
+/** Contact custom attributes in pivot measures */
 export const CONTACT_CA_COLUMN_PREFIX = 'contact_ca:';
 
 /**
- * Summary measure columns bake the aggregation into the column id so Count(ventas)
+ * Pivot measure columns bake the aggregation into the column id so Count(ventas)
  * and Sum(ventas) can both be selected: `ca:ventas__count`, `ca:ventas__sum`.
- * Optional value match: `ca:estado__count__eq__venta` (URI-encoded value).
  * Attribute keys themselves must not end with `__{op}` (Chatwoot keys are simple).
  */
 export const MEASURE_OPS = ['count', 'sum', 'avg', 'min', 'max'];
 export const MEASURE_SEP = '__';
-/** Legacy single-value sugar (still parsed). Prefer pivot for Excel-style breakdown. */
-export const MEASURE_FILTER_EQ = 'eq';
 /** Pivot: measure__pv__{urlencoded value} */
 export const PIVOT_SEP = '__pv__';
-export const PIVOT_BLANK = '__blank__';
 export const MAX_PIVOT_VALUES = 12;
 /** Attr types eligible as pivot column dimension (Excel “Columnas”) */
 export const PIVOT_COLUMN_ATTR_TYPES = new Set(['list', 'text']);
-
-const FILTERED_MEASURE_RE = new RegExp(
-  `^(.+)${MEASURE_SEP}(${MEASURE_OPS.join('|')})${MEASURE_SEP}${MEASURE_FILTER_EQ}${MEASURE_SEP}(.+)$`
-);
-
-export const encodeMeasureFilterValue = value =>
-  encodeURIComponent(String(value));
-
-export const decodeMeasureFilterValue = encoded => {
-  try {
-    return decodeURIComponent(String(encoded));
-  } catch {
-    return String(encoded);
-  }
-};
 
 /** Parse ca:/contact_ca: column → attrKey, op, optional eq filter */
 export const parseCustomAttributeColumn = key => {
   const empty = {
     attrKey: null,
     op: null,
-    filterOp: null,
-    filterValue: null,
     contact: false,
   };
   if (typeof key !== 'string') return empty;
@@ -259,17 +164,6 @@ export const parseCustomAttributeColumn = key => {
     return empty;
   }
 
-  const filtered = rest.match(FILTERED_MEASURE_RE);
-  if (filtered) {
-    return {
-      attrKey: filtered[1],
-      op: filtered[2],
-      filterOp: MEASURE_FILTER_EQ,
-      filterValue: decodeMeasureFilterValue(filtered[3]),
-      contact,
-    };
-  }
-
   for (let i = 0; i < MEASURE_OPS.length; i += 1) {
     const op = MEASURE_OPS[i];
     const suffix = `${MEASURE_SEP}${op}`;
@@ -277,8 +171,6 @@ export const parseCustomAttributeColumn = key => {
       return {
         attrKey: rest.slice(0, -suffix.length),
         op,
-        filterOp: null,
-        filterValue: null,
         contact,
       };
     }
@@ -287,18 +179,9 @@ export const parseCustomAttributeColumn = key => {
   return {
     attrKey: rest,
     op: null,
-    filterOp: null,
-    filterValue: null,
     contact,
   };
 };
-
-export const SUMMARY_TABLE_KINDS = new Set([
-  'agent_summary',
-  'inbox_summary',
-  'team_summary',
-  'label_summary',
-]);
 
 export const isConversationCustomAttributeColumn = key =>
   typeof key === 'string' && key.startsWith(CA_COLUMN_PREFIX);
@@ -310,7 +193,7 @@ export const isCustomAttributeColumn = key =>
   isConversationCustomAttributeColumn(key) ||
   isContactCustomAttributeColumn(key);
 
-/** Strip ca:/contact_ca: and optional __{op}[/__eq__/value] → attribute_key */
+/** Strip ca:/contact_ca: and optional __{op} → attribute_key */
 export const customAttributeKeyFromColumn = key =>
   parseCustomAttributeColumn(key).attrKey;
 
@@ -319,48 +202,19 @@ export const measureOpFromColumn = key => {
   return parseCustomAttributeColumn(key).op;
 };
 
-export const measureFilterFromColumn = key => {
-  if (!isCustomAttributeColumn(key)) return null;
-  const { filterOp, filterValue } = parseCustomAttributeColumn(key);
-  if (!filterOp) return null;
-  return { op: filterOp, value: filterValue };
-};
-
 export const customAttributeColumnKey = attributeKey =>
   `${CA_COLUMN_PREFIX}${attributeKey}`;
 
 export const contactCustomAttributeColumnKey = attributeKey =>
   `${CONTACT_CA_COLUMN_PREFIX}${attributeKey}`;
 
-/** Summary table column id with baked-in aggregation (Power BI-style measures). */
+/** Pivot measure id with an explicit aggregation. */
 export const customAttributeMeasureColumnKey = (
   attributeKey,
   op,
-  { contact = false, filterOp = null, filterValue = null } = {}
-) => {
-  const base = contact
-    ? contactCustomAttributeColumnKey(attributeKey)
-    : customAttributeColumnKey(attributeKey);
-  if (!op || !MEASURE_OPS.includes(op)) return base;
-  let key = `${base}${MEASURE_SEP}${op}`;
-  if (
-    filterOp === MEASURE_FILTER_EQ &&
-    filterValue != null &&
-    String(filterValue) !== ''
-  ) {
-    key = `${key}${MEASURE_SEP}${MEASURE_FILTER_EQ}${MEASURE_SEP}${encodeMeasureFilterValue(filterValue)}`;
-  }
-  return key;
-};
-
-/** Base measure id without value filter (`ca:estado__count`). */
-export const measureBaseColumnKey = key => {
-  const parsed = parseCustomAttributeColumn(key);
-  if (!parsed.attrKey || !parsed.op) return key;
-  return customAttributeMeasureColumnKey(parsed.attrKey, parsed.op, {
-    contact: parsed.contact,
-  });
-};
+  { contact = false } = {}
+) =>
+  `${contact ? CONTACT_CA_COLUMN_PREFIX : CA_COLUMN_PREFIX}${attributeKey}${MEASURE_SEP}${op}`;
 
 export const isPivotColumnKey = key =>
   typeof key === 'string' && key.includes(PIVOT_SEP);
@@ -370,20 +224,20 @@ export const parsePivotColumnKey = key => {
   const idx = key.indexOf(PIVOT_SEP);
   const measure = key.slice(0, idx);
   const encoded = key.slice(idx + PIVOT_SEP.length);
-  const value =
-    encoded === PIVOT_BLANK ? '' : decodeMeasureFilterValue(encoded);
+  const value = decodeURIComponent(encoded);
   return { measure, value, encoded };
 };
 
 export const pivotColumnKey = (measure, value) => {
-  const encoded =
-    value == null || value === ''
-      ? PIVOT_BLANK
-      : encodeMeasureFilterValue(value);
+  const encoded = encodeURIComponent(value).replace(
+    /[!'()*~]/g,
+    char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`
+  );
   return `${measure}${PIVOT_SEP}${encoded}`;
 };
 
-export const defaultPivotConfig = () => ({
+export const defaultPivotConfig = (row = 'agent') => ({
+  row_attribute: row,
   column_attribute: '',
   column_values: [],
   show_row_totals: true,
@@ -391,14 +245,6 @@ export const defaultPivotConfig = () => ({
 
 /** Identity / label columns kept on the left of a pivot table */
 export const PIVOT_IDENTITY_COLUMNS = new Set(['rank', 'name', 'id']);
-
-/** Additive count columns eligible for footer aggregations */
-export const SUMMABLE_SYSTEM_COLUMNS = new Set([
-  'conversations_count',
-  'resolved_conversations_count',
-  'incoming_messages_count',
-  'outgoing_messages_count',
-]);
 
 export const SUMMABLE_CUSTOM_TYPES = new Set(['number', 'currency', 'percent']);
 
@@ -421,26 +267,14 @@ export const normalizeAttrDisplayType = attr => {
   return String(raw);
 };
 
-/** Ops offered as separate selectable columns per attribute on summary tables */
-export const summaryMeasureOpsForAttrType = type => {
+/** Measure operations available for each attribute type */
+export const measureOpsForAttrType = type => {
   if (SUMMABLE_CUSTOM_TYPES.has(type)) {
     return ['count', 'sum', 'avg', 'min', 'max'];
   }
   // Non-numeric: only count of conversations/contacts where the attr is set / non-empty
   return ['count'];
 };
-
-/** Identity columns always kept on summary rows (not shown as Valores). */
-export const summaryIdentityColumnsFor = kind =>
-  (TABLE_COLUMN_OPTIONS[kind] || []).filter(key =>
-    PIVOT_IDENTITY_COLUMNS.has(key)
-  );
-
-/** System metrics eligible as Valores on summary tables (excludes rank/name). */
-export const summarySystemMeasureKeysFor = kind =>
-  (TABLE_COLUMN_OPTIONS[kind] || []).filter(
-    key => !PIVOT_IDENTITY_COLUMNS.has(key)
-  );
 
 /**
  * Parse number/currency/percent CA values that may use locale separators
@@ -500,14 +334,89 @@ export const formatNumericAttribute = (value, type) => {
   return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
 };
 
-export const isAggregatableColumn = (key, attributeTypes = {}) => {
-  if (SUMMABLE_SYSTEM_COLUMNS.has(key)) return true;
-  if (!isCustomAttributeColumn(key)) return false;
-  const attrKey = customAttributeKeyFromColumn(key);
-  return (
-    SUMMABLE_CUSTOM_TYPES.has(attributeTypes[key]) ||
-    SUMMABLE_CUSTOM_TYPES.has(attributeTypes[attrKey])
-  );
+export const ROW_GRANULARITIES = ['day', 'week', 'month'];
+export const TOP_N_LIMITS = [null, 5, 10, 20];
+export const MEASURE_DISPLAYS = ['value', 'row_percent', 'column_percent'];
+export const COLUMN_FORMAT_TYPES = ['', 'currency', 'percent', 'integer'];
+export const COLUMN_DECIMALS = [0, 1, 2];
+export const PIVOT_SYSTEM_MEASURES = new Set([
+  'conversations_count',
+  'resolved_conversations_count',
+]);
+
+export const isAdditiveMeasure = column =>
+  PIVOT_SYSTEM_MEASURES.has(column) ||
+  ['count', 'sum'].includes(measureOpFromColumn(column));
+
+/** Keep dependent settings attached when a measure changes; drop removed keys. */
+export const cleanTableOptions = (
+  widget,
+  previous = null,
+  replacement = null
+) => {
+  const columns = widget.columns || [];
+  const measures = columns.filter(key => !PIVOT_IDENTITY_COLUMNS.has(key));
+  const remap = key => {
+    const parsed = parsePivotColumnKey(key);
+    const base = parsed?.measure || key;
+    const next = base === previous ? replacement : base;
+    if (!next || !columns.includes(next)) return null;
+    if (parsed && !widget.pivot?.column_attribute) return null;
+    return parsed ? pivotColumnKey(next, parsed.value) : next;
+  };
+  ['column_formats', 'measure_display'].forEach(option => {
+    if (!widget[option]) return;
+    widget[option] = Object.fromEntries(
+      Object.entries(widget[option]).flatMap(([key, value]) => {
+        const next = remap(key);
+        if (!next || !measures.includes(next)) return [];
+        if (
+          option === 'measure_display' &&
+          value !== 'value' &&
+          !isAdditiveMeasure(next)
+        )
+          return [];
+        return [[next, value]];
+      })
+    );
+  });
+  if (widget.sort) {
+    const column = remap(widget.sort.column);
+    if (column) widget.sort = { ...widget.sort, column };
+    else delete widget.sort;
+  }
+  if (widget.top_n) {
+    const column = remap(widget.top_n.column);
+    if (column && !PIVOT_IDENTITY_COLUMNS.has(column)) {
+      widget.top_n = {
+        ...widget.top_n,
+        column,
+        include_others:
+          widget.top_n.include_others &&
+          !measures.some(isContactCustomAttributeColumn),
+      };
+    } else delete widget.top_n;
+  }
+  if (widget.table_kind !== 'pivot') {
+    ['sort', 'top_n', 'column_formats', 'measure_display'].forEach(option => {
+      delete widget[option];
+    });
+  }
+  return widget;
+};
+
+export const formatPanelMeasure = (value, config) => {
+  const number = parseLocaleNumber(value);
+  if (number == null) return '—';
+  const decimals = config.decimals ?? (config.type === 'integer' ? 0 : 2);
+  const formatted = number.toLocaleString(undefined, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+  if (config.type === 'currency')
+    return `${config.currency_symbol ?? '$'}${formatted}`;
+  if (config.type === 'percent') return `${formatted}%`;
+  return formatted;
 };
 
 export const defaultColumnsForTableKind = kind => {
@@ -570,8 +479,8 @@ export const defaultTableWidget = () => ({
   id: newWidgetId(),
   type: 'table',
   title: '',
-  table_kind: 'agent_summary',
-  columns: [],
+  table_kind: 'pivot',
+  columns: defaultColumnsForTableKind('pivot'),
   column_aggregations: {},
   pivot: defaultPivotConfig(),
 });

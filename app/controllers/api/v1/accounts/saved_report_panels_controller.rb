@@ -7,6 +7,7 @@ class Api::V1::Accounts::SavedReportPanelsController < Api::V1::Accounts::BaseCo
 
   before_action :check_authorization
   before_action :fetch_panel, only: [:show, :update, :destroy, :run, :export]
+  before_action :validate_widget_configuration, only: [:create, :update, :preview]
   before_action :ensure_report_download_enabled, only: [:export]
   before_action :ensure_customer_data_download_enabled, only: [:export], if: :detail_tables?
 
@@ -54,6 +55,11 @@ class Api::V1::Accounts::SavedReportPanelsController < Api::V1::Accounts::BaseCo
   end
 
   private
+
+  def validate_widget_configuration
+    candidate = SavedReportPanel.new(widgets: panel_params.fetch(:widgets) { @panel&.widgets || [] })
+    candidate.validate_widget_configuration!
+  end
 
   def build_runner
     Reports::PanelRunnerService.new(
