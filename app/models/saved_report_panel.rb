@@ -21,6 +21,10 @@
 class SavedReportPanel < ApplicationRecord
   DATE_PRESETS = %w[today yesterday last_7_days last_30_days custom].freeze
   WIDGET_TYPES = %w[metric chart table].freeze
+  ADDITIVE_PANEL_MEASURES = %w[conversations_count resolved_conversations_count incoming_messages_count outgoing_messages_count].freeze
+  PANEL_MEASURE_DISPLAYS = %w[value row_percent column_percent].freeze
+  PANEL_FORMAT_KEYS = %w[type currency_symbol decimals].freeze
+  PANEL_FORMAT_TYPES = %w[currency percent integer].freeze
   ALLOWED_METRICS = %w[
     conversations_count
     contacts_count
@@ -69,6 +73,12 @@ class SavedReportPanel < ApplicationRecord
 
   scope :ordered, -> { order(favorite: :desc, updated_at: :desc) }
 
+  # Preview shares the persisted widget contract, without requiring a panel name.
+  def validate_widget_configuration!
+    validate_widgets
+    raise ActiveRecord::RecordInvalid, self if errors.any?
+  end
+
   private
 
   def clear_custom_range_unless_custom
@@ -87,9 +97,7 @@ class SavedReportPanel < ApplicationRecord
     attr = date_attribute.to_s
     return if attr.blank?
 
-    unless attr.match?(/\Aca:[\p{L}\p{N}_.\-]+\z/)
-      errors.add(:date_attribute, 'must be blank or ca:<attribute_key>')
-    end
+    errors.add(:date_attribute, 'must be blank or ca:<attribute_key>') unless attr.match?(/\Aca:[\p{L}\p{N}_.\-]+\z/)
   end
 
   def validate_custom_date_range
@@ -118,9 +126,7 @@ class SavedReportPanel < ApplicationRecord
       return
     end
 
-    if filters.size > MAX_FILTERS
-      errors.add(:filters, "cannot exceed #{MAX_FILTERS} conditions")
-    end
+    errors.add(:filters, "cannot exceed #{MAX_FILTERS} conditions") if filters.size > MAX_FILTERS
   end
 
   def validate_widgets
@@ -151,15 +157,12 @@ class SavedReportPanel < ApplicationRecord
       return
     end
 
-    if %w[metric chart].include?(type)
-      validate_metric_or_chart_widget(widget, index)
-    end
+    validate_metric_or_chart_widget(widget, index) if %w[metric chart].include?(type)
 
     scope_type = (widget[:scope_type].presence || 'account').to_s
-    unless SCOPE_TYPES.include?(scope_type)
-      errors.add(:widgets, "invalid scope at index #{index}")
-    end
+    errors.add(:widgets, "invalid scope at index #{index}") unless SCOPE_TYPES.include?(scope_type)
 
+    validate_dynamic_table_options(widget, index)
     return unless type == 'table'
 
     validate_table_widget(widget, index)
@@ -179,12 +182,8 @@ class SavedReportPanel < ApplicationRecord
       group_field = widget[:aggregation_group_field].to_s
       errors.add(:widgets, "invalid aggregation op at index #{index}") unless AGGREGATION_OPS.include?(op)
       errors.add(:widgets, "invalid aggregation entity at index #{index}") unless AGGREGATION_ENTITIES.include?(entity)
-      if op != 'count' && field.blank?
-        errors.add(:widgets, "aggregation field required at index #{index}")
-      end
-      if field.present? && !field.match?(/\Aca:[\p{L}\p{N}_.\-]+\z/)
-        errors.add(:widgets, "invalid aggregation field at index #{index}")
-      end
+      errors.add(:widgets, "aggregation field required at index #{index}") if op != 'count' && field.blank?
+      errors.add(:widgets, "invalid aggregation field at index #{index}") if field.present? && !field.match?(/\Aca:[\p{L}\p{N}_.\-]+\z/)
       if group_field.present? && !group_field.match?(/\Aca:[\p{L}\p{N}_.\-]+\z/)
         errors.add(:widgets, "invalid aggregation group field at index #{index}")
       end
@@ -263,9 +262,7 @@ class SavedReportPanel < ApplicationRecord
     attr = pivot[:column_attribute].to_s
     return if attr.blank?
 
-    unless attr.match?(/\Aca:[\p{L}\p{N}_.\-]+\z/)
-      errors.add(:widgets, "invalid pivot column_attribute at index #{index}")
-    end
+    errors.add(:widgets, "invalid pivot column_attribute at index #{index}") unless attr.match?(/\Aca:[\p{L}\p{N}_.\-]+\z/)
 
     values = pivot[:column_values]
     if values.present?
@@ -273,8 +270,83 @@ class SavedReportPanel < ApplicationRecord
         errors.add(:widgets, "invalid pivot column_values at index #{index}")
         return
       end
-      if values.size > 12
-        errors.add(:widgets, "pivot column_values cannot exceed 12 at index #{index}")
+      errors.add(:widgets, "pivot column_values cannot exceed 12 at index #{index}") if values.size > 12
+    end
+  end
+
+  def validate_dynamic_table_options(widget, index) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
+    pivot = widget[:pivot]
+    options = %w[sort top_n column_formats measure_display]
+    configured = options.any? { |key| widget.key?(key) } ||
+                 (pivot.is_a?(Hash) && (pivot.key?(:row_attribute) || pivot.key?(:row_granularity)))
+    return unless configured
+
+    summary = %w[agent_summary inbox_summary team_summary label_summary].include?(widget[:table_kind].presence || 'agent_summary')
+    unless widget[:type] == 'table' && summary
+      errors.add(:widgets, "dynamic options require a summary table at index #{index}")
+      return
+    end
+
+    if pivot.is_a?(Hash)
+      row = pivot[:row_attribute]
+      if pivot.key?(:row_attribute) && !(row.is_a?(String) &&
+         (%w[agent inbox team label created_at].include?(row) || row.match?(/\A(?:ca|contact_ca):[\p{L}\p{N}_.\-]+\z/)))
+        errors.add(:widgets, "invalid pivot row_attribute at index #{index}")
+      end
+      if pivot.key?(:row_granularity) && !(row == 'created_at' && %w[day week month].include?(pivot[:row_granularity]))
+        errors.add(:widgets, "invalid pivot row_granularity at index #{index}")
+      end
+    end
+
+    columns = widget[:columns].is_a?(Array) ? widget[:columns] : []
+    unless columns.all?(String)
+      errors.add(:widgets, "invalid columns at index #{index}")
+      return
+    end
+    measures = columns - %w[id rank name]
+    column_valid = lambda do |column, allowed|
+      column.is_a?(String) && (allowed.include?(column) ||
+        (pivot.is_a?(Hash) && pivot[:column_attribute].present? && column.include?('__pv__') && allowed.include?(column.split('__pv__', 2).first)))
+    end
+    if widget.key?(:sort)
+      sort = widget[:sort]
+      unless sort.is_a?(Hash) && (sort.keys - %w[column direction]).empty? &&
+             column_valid.call(sort[:column], columns) && %w[asc desc].include?(sort[:direction])
+        errors.add(:widgets, "invalid sort at index #{index}")
+      end
+    end
+    if widget.key?(:top_n)
+      top = widget[:top_n]
+      pivot_measures = measures.select do |measure|
+        %w[conversations_count resolved_conversations_count].include?(measure) || measure.start_with?('ca:', 'contact_ca:')
+      end
+      valid = top.is_a?(Hash) && (top.keys - %w[limit column include_others]).empty? &&
+              top.key?(:limit) && (top[:limit].nil? || (top[:limit].is_a?(Integer) && [5, 10, 20].include?(top[:limit]))) &&
+              column_valid.call(top[:column], pivot_measures) && [true, false].include?(top[:include_others])
+      valid &&= !top[:include_others] || measures.none? { |key| key.start_with?('contact_ca:') }
+      errors.add(:widgets, "invalid top_n at index #{index}") unless valid
+    end
+    %w[column_formats measure_display].each do |option|
+      next unless widget.key?(option)
+
+      map = widget[option]
+      unless map.is_a?(Hash)
+        errors.add(:widgets, "invalid #{option} at index #{index}")
+        next
+      end
+      map.each do |measure, value|
+        valid = measures.include?(measure)
+        if option == 'measure_display'
+          additive = ADDITIVE_PANEL_MEASURES.include?(measure) ||
+                     measure.match?(/__(?:sum|count)(?:__eq__.+)?\z/)
+          valid &&= PANEL_MEASURE_DISPLAYS.include?(value) && (value == 'value' || additive)
+        else
+          valid &&= value.is_a?(Hash) && (value.keys - PANEL_FORMAT_KEYS).empty? &&
+                    PANEL_FORMAT_TYPES.include?(value[:type]) &&
+                    (!value.key?(:currency_symbol) || value[:currency_symbol].is_a?(String)) &&
+                    (!value.key?(:decimals) || (value[:decimals].is_a?(Integer) && (0..2).cover?(value[:decimals])))
+        end
+        errors.add(:widgets, "invalid #{option} measure at index #{index}: #{measure}") unless valid
       end
     end
   end

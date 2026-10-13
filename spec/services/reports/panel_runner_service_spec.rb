@@ -314,5 +314,294 @@ RSpec.describe Reports::PanelRunnerService do
       end
     end
   end
+
+  describe 'dynamic summary tables' do
+    let(:measures) { %w[conversations_count ca:amount__sum] }
+    let(:pivot) { { row_attribute: 'ca:segment' } }
+    let(:widget) { { id: 'dynamic', type: 'table', table_kind: 'inbox_summary', columns: ['name'] + measures, pivot: pivot } }
+    let(:widgets) { [widget] }
+
+    before do
+      create(:custom_attribute_definition, account: account, attribute_key: 'segment', attribute_model: :conversation_attribute)
+      create(:custom_attribute_definition, account: account, attribute_key: 'amount', attribute_model: :conversation_attribute,
+                                           attribute_display_type: :currency)
+    end
+
+    it 'preserves the complete legacy pivot columns, rows and totals without new keys' do
+      widget[:pivot] = { column_attribute: 'ca:segment', column_values: %w[A B], show_row_totals: true }
+      create(:conversation, account: account, inbox: inbox, created_at: since_time, custom_attributes: { segment: 'A', amount: 10 })
+      create(:conversation, account: account, inbox: inbox, created_at: since_time, custom_attributes: { segment: 'B', amount: 30 })
+      expect(result[:columns]).to eq(%w[name conversations_count__pv__A ca:amount__sum__pv__A
+                                        conversations_count__pv__B ca:amount__sum__pv__B conversations_count ca:amount__sum])
+      expect(result[:rows].map(&:to_h)).to eq([
+                                                { 'id' => inbox.id, 'name' => inbox.name, 'rank' => 1, 'conversations_count__pv__A' => 1,
+                                                  'ca:amount__sum__pv__A' => 10.0, 'conversations_count__pv__B' => 1, 'ca:amount__sum__pv__B' => 30.0,
+                                                  'conversations_count' => 2, 'ca:amount__sum' => 40.0 }
+                                              ])
+      expect(result[:totals].to_h).to eq(
+        'count' => 1,
+        'columns' => { 'conversations_count__pv__A' => 1, 'ca:amount__sum__pv__A' => 10.0,
+                       'conversations_count__pv__B' => 1, 'ca:amount__sum__pv__B' => 30.0,
+                       'conversations_count' => 2, 'ca:amount__sum' => 40.0 },
+        'ops' => { 'conversations_count__pv__A' => 'sum', 'ca:amount__sum__pv__A' => 'sum',
+                   'conversations_count__pv__B' => 'sum', 'ca:amount__sum__pv__B' => 'sum',
+                   'conversations_count' => 'sum', 'ca:amount__sum' => 'sum' }
+      )
+      expect(result[:pivot].to_h).to eq('column_attribute' => 'ca:segment', 'column_values' => %w[A B],
+                                        'measures' => measures, 'show_row_totals' => true)
+    end
+
+    it 'keeps the flat legacy summary contract and explicitly configured footer' do
+      widget.delete(:pivot)
+      widget[:column_aggregations] = { 'ca:amount__sum' => 'sum' }
+      create(:conversation, account: account, inbox: inbox, created_at: since_time, custom_attributes: { amount: 10.9 })
+      expect(result[:columns]).to eq(['name'] + measures)
+      expect(result[:pivot]).to be_nil
+      expect(result[:totals].to_h).to eq('count' => 1, 'columns' => { 'ca:amount__sum' => 10.9 }, 'ops' => { 'ca:amount__sum' => 'sum' })
+    end
+
+    it 'calculates flat percentages without changing the legacy summary measures or their columns' do
+      widget.delete(:pivot)
+      widget[:column_aggregations] = { 'ca:amount__sum' => 'sum' }
+      widget[:measure_display] = { 'ca:amount__sum' => 'column_percent' }
+      other_inbox = create(:inbox, account: account)
+      [[inbox, 10], [other_inbox, 30]].each do |box, amount|
+        create(:conversation, account: account, inbox: box, created_at: since_time, custom_attributes: { amount: amount })
+      end
+      expect(result[:columns]).to eq(['name'] + measures)
+      expect(result[:rows].map { |row| row['ca:amount__sum'] }.sort).to eq([25, 75])
+      expect(result[:totals][:columns]['ca:amount__sum']).to eq(100)
+    end
+
+    it 'groups all scalar attribute values, false, zero, blank and the first nonempty array value without crossed columns' do
+      ['text', 0, false, nil, '', ['', 'array', 'ignored']].each do |value|
+        create(:conversation, account: account, inbox: inbox, created_at: since_time, custom_attributes: { segment: value, amount: 2 })
+      end
+      expect(result[:error]).to be_nil
+      expect(result[:columns]).to eq(['name'] + measures)
+      expect(result[:rows].map { |row| [row[:name], row[:conversations_count]] }.to_h).to eq(
+        'text' => 1, '0' => 1, 'false' => 1, '' => 2, 'array' => 1
+      )
+      expect(result[:rows].flat_map(&:keys).none? { |key| key.include?('__pv__') }).to be true
+    end
+
+    { number: 0, checkbox: false, currency: 10.9, percent: 25, date: '2026-10-05',
+      datetime: '2026-10-05T12:30:00Z', link: 'https://example.com', list: 'A' }.each do |type, value|
+      it "groups scalar #{type} attributes without dropping zero or false" do
+        account.custom_attribute_definitions.find_by!(attribute_key: 'segment').update!(attribute_display_type: type)
+        create(:conversation, account: account, inbox: inbox, created_at: since_time, custom_attributes: { segment: value })
+        expect(result[:rows].first[:name]).to eq(value.to_s)
+        expect(result[:rows].first[:conversations_count]).to eq(1)
+      end
+    end
+
+    it 'separates homonymous contact and conversation attributes for rows and measure types' do
+      create(:custom_attribute_definition, account: account, attribute_key: 'segment', attribute_model: :contact_attribute)
+      create(:custom_attribute_definition, account: account, attribute_key: 'amount', attribute_model: :contact_attribute,
+                                           attribute_display_type: :number)
+      measures << 'contact_ca:amount__sum'
+      contact = create(:contact, account: account, custom_attributes: { segment: 'Contact', amount: 7 })
+      create(:conversation, account: account, inbox: inbox, contact: contact, created_at: since_time,
+                            custom_attributes: { segment: 'Conversation', amount: 10 })
+      expect(result[:rows].first[:name]).to eq('Conversation')
+      expect(result[:attribute_types]).to include('ca:amount__sum' => 'currency', 'contact_ca:amount__sum' => 'number')
+      pivot[:row_attribute] = 'contact_ca:segment'
+      contact_result = runner.perform[:widgets].first.with_indifferent_access
+      expect(contact_result[:rows].first[:name]).to eq('Contact')
+    end
+
+    it 'scans more than one batch and deduplicates both contact measures per row and column (D5)' do
+      measures.replace(%w[conversations_count contact_ca:amount__sum contact_ca:score__sum])
+      pivot[:column_attribute] = 'ca:segment'
+      contact = create(:contact, account: account, custom_attributes: { amount: 100, score: 7 })
+      create_list(:conversation, 251, account: account, inbox: inbox, contact: contact, created_at: since_time,
+                                      custom_attributes: { segment: 'A' })
+      create(:conversation, account: account, inbox: inbox, contact: contact, created_at: since_time, custom_attributes: { segment: 'B' })
+      rows = result[:rows].index_by { |row| row[:name] }
+      expect(rows['A']['conversations_count__pv__A']).to eq(251)
+      %w[A B].each do |value|
+        expect(rows[value]["contact_ca:amount__sum__pv__#{value}"]).to eq(100)
+        expect(rows[value]["contact_ca:score__sum__pv__#{value}"]).to eq(7)
+      end
+    end
+
+    it 'sorts decimals numerically, puts nulls last in both directions and breaks ties by stable id' do
+      measures.replace(%w[ca:amount__avg])
+      widget[:sort] = { column: 'ca:amount__avg', direction: 'desc' }
+      [['A', 10.1], ['B', 10.9], ['C', 10.9], ['D', nil]].each do |segment, amount|
+        create(:conversation, account: account, inbox: inbox, created_at: since_time, custom_attributes: { segment: segment, amount: amount })
+      end
+      expect(result[:rows].map { |row| row[:name] }).to eq(%w[B C A D])
+      widget[:sort][:direction] = 'asc'
+      expect(runner.perform[:widgets].first[:rows].map { |row| row['name'] }).to eq(%w[A B C D])
+    end
+
+    [nil, 5, 10, 20].each do |limit|
+      it "supports Top #{limit || 'All'} independently of presentation order, retaining global totals" do
+        21.times do |index|
+          create(:conversation, account: account, inbox: inbox, created_at: since_time,
+                                custom_attributes: { segment: format('%02d', index), amount: index + 1 })
+        end
+        widget[:top_n] = { limit: limit, column: 'ca:amount__sum', include_others: false }
+        widget[:sort] = { column: 'name', direction: 'asc' }
+        expect(result[:rows].size).to eq(limit || 21)
+        expect(result[:rows].first[:name]).to eq(format('%02d', limit ? 21 - limit : 0))
+        expect(result[:total_count]).to eq(21)
+        expect(result[:totals][:columns]['ca:amount__sum']).to eq(231)
+      end
+    end
+
+    it 'combines original averages and distinct resolution sets for Others and pins it last' do
+      measures.replace(%w[ca:amount__avg resolved_conversations_count])
+      widget[:top_n] = { limit: 5, column: 'ca:amount__avg', include_others: true }
+      widget[:sort] = { column: 'ca:amount__avg', direction: 'asc' }
+      [100, 90, 80, 70, 60, 10, 10, 10, 40].each_with_index do |amount, index|
+        segment = index < 5 ? index.to_s : { 10 => 'low' }.fetch(amount, 'last')
+        conversation = create(:conversation, account: account, inbox: inbox, created_at: since_time,
+                                             custom_attributes: { segment: segment, amount: amount })
+        2.times do
+          create(:reporting_event, account: account, inbox: inbox, conversation: conversation,
+                                   name: 'conversation_resolved', created_at: since_time + 1.hour)
+        end
+      end
+      expect(result[:rows].last).to include('is_others' => true, 'ca:amount__avg' => 17.5, 'resolved_conversations_count' => 4)
+      expect(result[:totals][:columns]['resolved_conversations_count']).to eq(9)
+      expect(result[:totals][:columns]['ca:amount__avg']).to eq(52.22)
+    end
+
+    it 'uses base and expanded measures for Top N and sort when row totals are hidden' do
+      pivot.merge!(column_attribute: 'ca:segment', column_values: %w[A B], show_row_totals: false)
+      pivot[:row_attribute] = 'created_at'
+      7.times do |index|
+        create(:conversation, account: account, inbox: inbox, created_at: since_time + index.days,
+                              custom_attributes: { segment: index.even? ? 'A' : 'B', amount: index + 1 })
+      end
+      widget[:top_n] = { limit: 5, column: 'ca:amount__sum', include_others: false }
+      widget[:sort] = { column: 'ca:amount__sum__pv__A', direction: 'desc' }
+      expect(result[:rows].map { |row| row['ca:amount__sum__pv__A'] }).to eq([7, 5, 3, 0, 0])
+      widget[:top_n][:column] = 'ca:amount__sum__pv__B'
+      expect(runner.perform[:widgets].first[:rows].sum { |row| row['ca:amount__sum__pv__B'] }).to eq(12)
+    end
+
+    it 'calculates 25/75 for each measure and returns null for zero denominators' do
+      pivot.merge!(column_attribute: 'ca:segment', column_values: %w[A B Zero], row_attribute: 'inbox')
+      widget[:measure_display] = { 'conversations_count' => 'row_percent', 'ca:amount__sum' => 'column_percent' }
+      other_inbox = create(:inbox, account: account)
+      [['A', inbox, 1], ['B', inbox, 1], ['B', inbox, 1], ['B', inbox, 1], ['A', other_inbox, 3]].each do |segment, box, amount|
+        create(:conversation, account: account, inbox: box, created_at: since_time, custom_attributes: { segment: segment, amount: amount })
+      end
+      row = result[:rows].find { |item| item[:id] == inbox.id }
+      expect(row['conversations_count__pv__A']).to eq(25)
+      expect(row['conversations_count__pv__B']).to eq(75)
+      expect(row['ca:amount__sum__pv__A']).to eq(25)
+      expect(row['ca:amount__sum__pv__Zero']).to be_nil
+      expect(result[:totals][:columns]['ca:amount__sum__pv__A']).to eq(100)
+    end
+
+    it 'uses full-population percentage denominators before Top N and Others' do
+      widget[:top_n] = { limit: 5, column: 'ca:amount__sum', include_others: true }
+      widget[:measure_display] = { 'ca:amount__sum' => 'column_percent' }
+      8.times do |index|
+        create(:conversation, account: account, inbox: inbox, created_at: since_time, custom_attributes: { segment: index.to_s, amount: 10 })
+      end
+      expect(result[:rows].first['ca:amount__sum']).to eq(12.5)
+      expect(result[:rows].last['ca:amount__sum']).to eq(37.5)
+      expect(result[:totals][:columns]['ca:amount__sum']).to eq(100)
+    end
+
+    it 'returns only twelve crossed columns while still scanning all discovered values' do
+      pivot[:column_attribute] = 'ca:segment'
+      13.times do |index|
+        create(:conversation, account: account, inbox: inbox, created_at: since_time, custom_attributes: { segment: index.to_s })
+      end
+      expect(result[:pivot][:column_values].size).to eq(12)
+      expect(result[:totals][:columns]['conversations_count']).to eq(13)
+    end
+
+    it 'fails explicitly at row 1001 without partial results' do
+      conversations = Array.new(1001) do |index|
+        build_stubbed(:conversation, account: account, inbox: inbox, created_at: since_time, custom_attributes: { segment: index.to_s })
+      end
+      scope = instance_double(ActiveRecord::Relation)
+      batch = instance_double(ActiveRecord::Relation, includes: conversations)
+      allow(scope).to receive(:unscope).with(:order).and_return(scope)
+      allow(scope).to receive(:in_batches).with(of: 250).and_yield(batch)
+      allow(runner).to receive(:filtered_conversations_scope).and_return(scope)
+      expect(result[:error]).to start_with('pivot_row_limit_exceeded')
+      expect(result[:rows]).to eq([])
+    end
+
+    it 'limits internal buckets even when automatic columns return only twelve values' do
+      stub_const('Reports::PanelRunnerService::MAX_PIVOT_BUCKETS', 12)
+      pivot[:row_attribute] = 'inbox'
+      pivot[:column_attribute] = 'ca:segment'
+      13.times do |index|
+        create(:conversation, account: account, inbox: inbox, created_at: since_time, custom_attributes: { segment: index.to_s })
+      end
+      expect(result[:error]).to start_with('pivot_bucket_limit_exceeded')
+      expect(result[:rows]).to eq([])
+    end
+
+    context 'with creation-date rows' do
+      let(:pivot) { { row_attribute: 'created_at' } }
+
+      [-5, 5.5].each do |offset|
+        it "groups both inclusive range boundaries with fixed offset #{offset}" do
+          [since_time, until_time].each { |time| create(:conversation, account: account, inbox: inbox, created_at: time) }
+          service = described_class.new(panel: panel, account: account, user: admin, timezone_offset: offset,
+                                        date_overrides: { since: since_time.to_i, until: until_time.to_i })
+          rows = service.perform[:widgets].first[:rows]
+          expected = [since_time, until_time].map { |time| time.getlocal((offset * 3600).to_i).to_date.iso8601 }
+          expect(rows.map { |row| row['name'] }).to eq(expected)
+        end
+      end
+
+      it 'starts weeks on Monday and keeps Sunday in the previous week' do
+        pivot[:row_granularity] = 'week'
+        [since_time - 1.day, since_time, until_time].each do |time|
+          create(:conversation, account: account, inbox: inbox, created_at: time)
+        end
+        service = described_class.new(panel: panel, account: account, user: admin,
+                                      date_overrides: { since: (since_time - 1.day).to_i, until: until_time.to_i })
+        expect(service.perform[:widgets].first[:rows].map { |row| [row['name'], row['conversations_count']] }).to eq(
+          [['2026-09-28', 1], ['2026-10-05', 2]]
+        )
+      end
+
+      it 'groups month/year transitions chronologically' do
+        pivot[:row_granularity] = 'month'
+        create(:conversation, account: account, inbox: inbox, created_at: Time.utc(2025, 12, 31, 23, 59))
+        create(:conversation, account: account, inbox: inbox, created_at: Time.utc(2026, 1, 1))
+        service = described_class.new(panel: panel, account: account, user: admin,
+                                      date_overrides: { since: Time.utc(2025, 12, 31).to_i, until: Time.utc(2026, 1, 2).to_i })
+        expect(service.perform[:widgets].first[:rows].map { |row| row['name'] }).to eq(%w[2025-12-01 2026-01-01])
+      end
+
+      it 'uses the filtered conversation population for resolutions while grouping by creation date' do
+        create(:custom_attribute_definition, account: account, attribute_key: 'business_date', attribute_model: :conversation_attribute,
+                                             attribute_display_type: :date)
+        panel.date_attribute = 'ca:business_date'
+        measures << 'resolved_conversations_count'
+        [since_time - 30.days, since_time - 60.days].each_with_index do |created_at, index|
+          conversation = create(:conversation, account: account, inbox: inbox, created_at: created_at,
+                                               custom_attributes: { business_date: index.zero? ? '2026-10-05' : '2026-09-01' })
+          create(:reporting_event, account: account, inbox: inbox, conversation: conversation,
+                                   name: 'conversation_resolved', created_at: since_time + 1.hour)
+        end
+        expect(result[:rows].map { |row| row[:name] }).to eq(['2026-09-05'])
+        expect(result[:totals][:columns]['resolved_conversations_count']).to eq(1)
+      end
+
+      it 'excludes older resolved conversations when the panel filters by creation' do
+        measures << 'resolved_conversations_count'
+        [since_time - 1.day, since_time].each do |time|
+          conversation = create(:conversation, account: account, inbox: inbox, created_at: time)
+          create(:reporting_event, account: account, inbox: inbox, conversation: conversation,
+                                   name: 'conversation_resolved', created_at: since_time + 1.hour)
+        end
+        expect(result[:totals][:columns]['resolved_conversations_count']).to eq(1)
+      end
+    end
+  end
 end
 # rubocop:enable RSpec/MultipleExpectations, RSpec/MultipleMemoizedHelpers, Performance/CollectionLiteralInLoop

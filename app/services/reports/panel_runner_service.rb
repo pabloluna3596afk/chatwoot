@@ -1,8 +1,10 @@
 class Reports::PanelRunnerService
   # ponytail: statement_timeout caps expensive panel runs; raise if panels need longer windows
   STATEMENT_TIMEOUT_MS = 15_000
-  PivotResolutionContext = Struct.new(:table_kind, :attribute_key, :selected_values, :since_time, :until_time, keyword_init: true)
-  PivotTotalsContext = Struct.new(:columns, :attribute_types, :footer_aggs, :buckets, :measures, :pivot_values, keyword_init: true)
+  PivotResolutionContext = Struct.new(:table_kind, :attribute_key, :selected_values, :since_time, :until_time, :pivot, :name_map, keyword_init: true)
+  PivotTotalsContext = Struct.new(
+    :columns, :attribute_types, :footer_aggs, :buckets, :measures, :pivot_values, :all_row_values, keyword_init: true
+  )
 
   # Filters that only affect conversation-scoped widgets. Contact custom attrs are split out.
   # Not applied: live message-content filters beyond FilterService; metric scopes other than account
@@ -200,9 +202,7 @@ class Reports::PanelRunnerService
 
   def aggregate_numeric_values(values, op)
     # Count may pass 1s; sum/avg/min/max skip unparseable (nil from NumericParser).
-    if op.to_s == 'count'
-      return Array(values).size
-    end
+    return Array(values).size if op.to_s == 'count'
 
     list = Array(values).filter_map { |v| v.is_a?(Numeric) ? v.to_f : CustomAttributes::NumericParser.parse(v) }
     return 0 if list.empty?
@@ -412,6 +412,8 @@ class Reports::PanelRunnerService
   MEASURE_FILTER_EQ = 'eq'.freeze
   PIVOT_SEP = '__pv__'.freeze
   PIVOT_BLANK = '__blank__'.freeze
+  MAX_PIVOT_ROWS = 1_000
+  MAX_PIVOT_BUCKETS = 12_000
   MAX_PIVOT_VALUES = 12
   PIVOT_IDENTITY_COLUMNS = %w[rank name id].freeze
   PIVOT_SYSTEM_MEASURES = %w[conversations_count resolved_conversations_count].freeze
@@ -479,6 +481,15 @@ class Reports::PanelRunnerService
 
     resolved_columns = columns.presence || rows.first&.keys&.map(&:to_s) || []
     detail_table = %w[conversations contacts].include?(table_kind)
+    totals = build_table_totals(rows, resolved_columns, total_count, attribute_types, column_aggregations)
+    if widget[:sort] || widget[:measure_display].present?
+      rows = rows.map(&:stringify_keys)
+      measures = resolved_columns - PIVOT_IDENTITY_COLUMNS
+      apply_panel_percentages!(rows, rows, measures, [], widget, totals)
+      default_measure = measures.include?('conversations_count') ? 'conversations_count' : measures.first
+      sort = widget[:sort] || { column: default_measure, direction: 'desc' }
+      rows = sort_panel_rows(rows, sort[:column], sort[:direction])
+    end
 
     {
       id: widget[:id],
@@ -490,41 +501,69 @@ class Reports::PanelRunnerService
       total_count: total_count,
       truncated: detail_table && rows.size < total_count,
       attribute_types: attribute_types,
-      totals: build_table_totals(rows, resolved_columns, total_count, attribute_types, column_aggregations)
+      totals: totals
     }
   end
 
   def pivot_configured?(widget)
     pivot = (widget[:pivot].presence || {}).with_indifferent_access
-    pivot[:column_attribute].to_s.start_with?(CA_COLUMN_PREFIX)
+    pivot[:column_attribute].to_s.start_with?(CA_COLUMN_PREFIX) || pivot[:row_attribute].present? ||
+      widget.key?(:top_n)
   end
 
   # Excel-style pivot: rows = agent/inbox/team/label, columns = CA values, values = measures.
   def build_pivot_summary_table(widget, table_kind, columns, column_aggregations, since_time, until_time)
     pivot = (widget[:pivot].presence || {}).with_indifferent_access
     pivot_attr_key = pivot[:column_attribute].to_s.delete_prefix(CA_COLUMN_PREFIX)
-    return { id: widget[:id], type: 'table', title: widget[:title], table_kind: table_kind, error: 'pivot_attribute_required', rows: [], columns: [] } if pivot_attr_key.blank?
-    return { id: widget[:id], type: 'table', title: widget[:title], table_kind: table_kind, error: 'unknown_pivot_attribute', rows: [], columns: [] } unless known_custom_attribute_key?(pivot_attr_key, :conversation_attribute)
+    error = if pivot_attr_key.blank? && !dynamic_pivot_options?(widget)
+              'pivot_attribute_required'
+            elsif pivot_attr_key.present? && !known_custom_attribute_key?(pivot_attr_key, :conversation_attribute)
+              'unknown_pivot_attribute'
+            end
+    return { id: widget[:id], type: 'table', title: widget[:title], table_kind: table_kind, error: error, rows: [], columns: [] } if error
 
-    measures = columns.reject { |c| PIVOT_IDENTITY_COLUMNS.include?(c) || c.start_with?('avg_') || %w[csat_avg share_percent incoming_messages_count outgoing_messages_count].include?(c) }
+    validate_pivot_row_attribute!(pivot)
+    crossed = pivot_attr_key.present?
+    dimension_kind = %w[agent inbox team label].include?(pivot[:row_attribute]) ? "#{pivot[:row_attribute]}_summary" : table_kind
+    measures = columns.reject do |column|
+      PIVOT_IDENTITY_COLUMNS.include?(column) || column.start_with?('avg_') ||
+        %w[csat_avg share_percent incoming_messages_count outgoing_messages_count].include?(column)
+    end
     measures = %w[conversations_count] if measures.empty?
-    show_row_totals = ActiveModel::Type::Boolean.new.cast(pivot.fetch(:show_row_totals, true))
+    show_row_totals = !crossed || ActiveModel::Type::Boolean.new.cast(pivot.fetch(:show_row_totals, true))
 
-    selected_values = Array(pivot[:column_values]).map(&:to_s).reject(&:blank?).first(MAX_PIVOT_VALUES)
-    pivot_values, buckets, name_map = accumulate_pivot_buckets(table_kind, pivot_attr_key, measures, selected_values, since_time, until_time)
+    selected_values = crossed ? Array(pivot[:column_values]).map(&:to_s).reject(&:blank?).first(MAX_PIVOT_VALUES) : []
+    pivot_values, buckets, name_map = accumulate_pivot_buckets(
+      dimension_kind, pivot_attr_key, measures, selected_values, since_time, until_time, pivot
+    )
 
     expanded_columns = []
     expanded_columns << 'name' if columns.include?('name') || columns.blank?
     expanded_columns << 'rank' if columns.include?('rank')
-    pivot_values.each do |pval|
-      measures.each { |m| expanded_columns << pivot_column_key(m, pval) }
+    if crossed
+      pivot_values.each do |pval|
+        measures.each { |m| expanded_columns << pivot_column_key(m, pval) }
+      end
     end
     measures.each { |m| expanded_columns << m } if show_row_totals
 
-    rows = build_pivot_rows(buckets, name_map, measures, pivot_values, show_row_totals, expanded_columns)
+    rows = build_pivot_rows(
+      buckets, name_map, measures, pivot_values, show_row_totals, expanded_columns,
+      preserve_blank_names: custom_pivot_rows?(pivot), all_row_values: dynamic_pivot_options?(widget)
+    )
     attribute_types = custom_attribute_type_map_for(table_kind, measures)
+    if dynamic_pivot_options?(widget)
+      definitions = @account.custom_attribute_definitions.index_by { |definition| [definition.attribute_key, definition.contact_attribute?] }
+      measures.each do |measure|
+        next unless summary_ca_column?(measure)
+
+        key, _op, contact, = parse_summary_ca_column(measure)
+        definition = definitions[[key, contact]]
+        attribute_types[measure] = definition.attribute_display_type if definition
+      end
+    end
     measures.each do |m|
-      pivot_values.each do |pval|
+      (crossed ? pivot_values : []).each do |pval|
         attribute_types[pivot_column_key(m, pval)] = attribute_types[m] || attribute_types[custom_attribute_key_from_measure(m)]
       end
     end
@@ -536,7 +575,7 @@ class Reports::PanelRunnerService
         footer_aggs[m] = op if SavedReportPanel::COLUMN_AGGREGATION_OPS.include?(op)
       end
     end
-    pivot_values.each do |pval|
+    (crossed ? pivot_values : []).each do |pval|
       measures.each do |m|
         col = pivot_column_key(m, pval)
         op = (column_aggregations[m].presence || pivot_footer_op(m)).to_s
@@ -546,8 +585,21 @@ class Reports::PanelRunnerService
 
     totals_context = PivotTotalsContext.new(
       columns: expanded_columns, attribute_types: attribute_types, footer_aggs: footer_aggs,
-      buckets: buckets, measures: measures, pivot_values: pivot_values
+      buckets: buckets, measures: measures, pivot_values: pivot_values, all_row_values: dynamic_pivot_options?(widget)
     )
+
+    totals = build_pivot_totals(rows, totals_context)
+    total_count = rows.size
+    if dynamic_pivot_options?(widget)
+      rows = prepare_dynamic_pivot_rows(rows, buckets, measures, pivot_values, widget, totals)
+      rows.each { |row| row.slice!(*(expanded_columns + %w[id name rank is_others])) }
+    end
+    metadata = {
+      column_attribute: crossed ? "ca:#{pivot_attr_key}" : '', column_values: crossed ? pivot_values : [],
+      measures: measures, show_row_totals: show_row_totals
+    }
+    metadata[:row_attribute] = pivot[:row_attribute] if pivot[:row_attribute].present?
+    metadata[:row_granularity] = pivot.fetch(:row_granularity, 'day') if pivot[:row_attribute] == 'created_at'
 
     {
       id: widget[:id],
@@ -556,15 +608,10 @@ class Reports::PanelRunnerService
       table_kind: table_kind,
       columns: expanded_columns,
       rows: rows,
-      total_count: rows.size,
+      total_count: total_count,
       attribute_types: attribute_types,
-      pivot: {
-        column_attribute: "ca:#{pivot_attr_key}",
-        column_values: pivot_values,
-        measures: measures,
-        show_row_totals: show_row_totals
-      },
-      totals: build_pivot_totals(rows, totals_context)
+      pivot: metadata,
+      totals: totals
     }
   end
 
@@ -573,12 +620,116 @@ class Reports::PanelRunnerService
     "#{measure}#{PIVOT_SEP}#{encoded}"
   end
 
+  def custom_pivot_rows?(pivot)
+    pivot[:row_attribute].present? && %w[agent inbox team label].exclude?(pivot[:row_attribute])
+  end
+
+  def validate_pivot_row_attribute!(pivot)
+    attribute = pivot[:row_attribute].to_s
+    return unless attribute.start_with?(CA_COLUMN_PREFIX, CONTACT_CA_COLUMN_PREFIX)
+
+    contact = attribute.start_with?(CONTACT_CA_COLUMN_PREFIX)
+    key = attribute.delete_prefix(contact ? CONTACT_CA_COLUMN_PREFIX : CA_COLUMN_PREFIX)
+    model = contact ? :contact_attribute : :conversation_attribute
+    raise CustomExceptions::InvalidPanelPivot, 'unknown_pivot_row_attribute' unless known_custom_attribute_key?(key, model)
+  end
+
+  def dynamic_pivot_options?(widget)
+    widget.dig(:pivot, :row_attribute).present? || %w[sort top_n measure_display].any? { |key| widget.key?(key) }
+  end
+
+  # Nulls always last, regardless of direction.
+  def panel_nil_order(left, right)
+    return 0 if left.nil? == right.nil?
+
+    left.nil? ? 1 : -1
+  end
+
+  def sort_panel_rows(rows, column, direction) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
+    rows.sort do |left, right|
+      a = left[column]
+      b = right[column]
+      comparison = if a.nil? || b.nil?
+                     panel_nil_order(a, b)
+                   else
+                     value = a.is_a?(Numeric) && b.is_a?(Numeric) ? a <=> b : a.to_s <=> b.to_s
+                     direction == 'desc' ? -value : value
+                   end
+      comparison.zero? ? left['id'].to_s <=> right['id'].to_s : comparison
+    end
+  end
+
+  def prepare_dynamic_pivot_rows(rows, buckets, measures, values, widget, totals) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity, Metrics/ParameterLists
+    default_measure = measures.include?('conversations_count') ? 'conversations_count' : measures.first
+    # Hidden row totals are also usable as saved sort/Top N measures.
+    rows.each do |row|
+      measures.each do |measure|
+        row[measure] ||= combine_pivot_measure(buckets[row['id']].values.map { |cell| cell[measure] }, measure)
+      end
+    end
+    top = widget[:top_n]
+    selected = rows
+    if top && top[:limit]
+      selected = sort_panel_rows(rows, top[:column], 'desc').first(top[:limit])
+      excluded = rows - selected
+      if top[:include_others] && excluded.any?
+        all_values = excluded.flat_map { |row| buckets[row['id']].keys }.uniq
+        cells = all_values.index_with do |value|
+          measures.to_h do |measure|
+            accumulators = excluded.filter_map { |row| buckets[row['id']].fetch(value, {})[measure] }
+            [measure, merge_pivot_accumulators(accumulators, measure)]
+          end
+        end
+        others = build_pivot_rows(
+          { '__others__' => cells }, { '__others__' => '' }, measures, values, true, [], all_row_values: true
+        ).first
+        others['is_others'] = true
+        selected += [others]
+      end
+    end
+    apply_panel_percentages!(rows, selected, measures, values, widget, totals)
+    date_rows = widget.dig(:pivot, :row_attribute) == 'created_at'
+    sort = widget[:sort] || { column: date_rows ? 'name' : default_measure, direction: date_rows ? 'asc' : 'desc' }
+    regular, others = selected.partition { |row| !row['is_others'] }
+    (sort_panel_rows(regular, sort[:column], sort[:direction]) + others).each_with_index do |row, index|
+      row['rank'] = index + 1
+    end
+  end
+
+  def apply_panel_percentages!(population, selected, measures, values, widget, totals) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity, Metrics/ParameterLists
+    crossed = widget.dig(:pivot, :column_attribute).present?
+    displays = widget[:measure_display] || {}
+    measures.each do |measure|
+      mode = displays[measure]
+      next unless %w[row_percent column_percent].include?(mode)
+
+      columns = crossed ? values.map { |value| pivot_column_key(measure, value) } : [measure]
+      denominators = (columns + [measure]).uniq.index_with do |column|
+        population.sum { |row| row[column].to_f }
+      end
+      selected.each do |row|
+        row_total = row[measure].to_f
+        (columns + [measure]).uniq.each do |column|
+          denominator = mode == 'row_percent' ? row_total : denominators[column]
+          row[column] = denominator.zero? ? nil : (row[column].to_f / denominator * 100).round(2)
+        end
+      end
+      grand_total = denominators[measure]
+      (columns + [measure]).uniq.each do |column|
+        next unless totals[:columns].key?(column)
+
+        denominator = mode == 'row_percent' ? grand_total : denominators[column]
+        totals[:columns][column] = denominator.zero? ? nil : (denominators[column] / denominator * 100).round(2)
+      end
+    end
+  end
+
   def custom_attribute_key_from_measure(measure)
     attr_key, _op, _contact, _fop, _fv = parse_summary_ca_column(measure)
     attr_key
   end
 
-  def accumulate_pivot_buckets(table_kind, pivot_attr_key, measures, selected_values, since_time, until_time)
+  def accumulate_pivot_buckets(table_kind, pivot_attr_key, measures, selected_values, since_time, until_time, pivot) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity, Metrics/ParameterLists
     name_map =
       case table_kind.to_s
       when 'inbox_summary' then @account.inboxes.pluck(:id, :name).to_h
@@ -587,42 +738,55 @@ class Reports::PanelRunnerService
       else agent_name_map
       end
 
-    # buckets[dim_id][pivot_value] => { measure => accumulator }
-    buckets = Hash.new { |h, dim| h[dim] = Hash.new { |h2, pv| h2[pv] = new_pivot_measure_accum(measures) } }
+    name_map = {} if custom_pivot_rows?(pivot)
+    bucket_count = 0
+    # Limits apply at allocation, including discovered columns beyond the visible twelve.
+    buckets = Hash.new do |rows, dim|
+      if pivot[:row_attribute].present? && rows.size >= MAX_PIVOT_ROWS
+        raise CustomExceptions::InvalidPanelPivot, 'pivot_row_limit_exceeded: reduce the date range or filters'
+      end
+
+      rows[dim] = Hash.new do |cells, pv|
+        bucket_count += 1
+        if pivot[:row_attribute].present? && bucket_count > MAX_PIVOT_BUCKETS
+          raise CustomExceptions::InvalidPanelPivot, 'pivot_bucket_limit_exceeded: reduce the date range or filters'
+        end
+
+        cells[pv] = new_pivot_measure_accum(measures)
+      end
+    end
     seen_contacts = Hash.new { |h, dim| h[dim] = Hash.new { |h2, pv| h2[pv] = {} } }
     discovered = {}
 
     # Keep the same row universe as the flat (non-pivot) summary — agents/inboxes/…
     # with zeros — instead of only dimensions that appear in the pivot scan.
-    pivot_baseline_dimension_ids(table_kind, since_time, until_time).each do |dim_id|
-      buckets[dim_id] # touch empty bucket so the row survives with empty cells
+    unless custom_pivot_rows?(pivot)
+      pivot_baseline_dimension_ids(table_kind, since_time, until_time).each do |dim_id|
+        buckets[dim_id]
+      end
     end
 
     # ponytail: full range scan (batched). Old reorder(:id).limit(2k) biased to earliest
     # conversations and dropped most agents in busy accounts; statement_timeout caps cost.
-    filtered_conversations_scope(since_time, until_time)
-      .unscope(:order)
-      .in_batches(of: 250) do |batch|
-        batch.includes(:contact).each do |conversation|
-          dim_ids = pivot_dimension_ids(table_kind, conversation)
-          next if dim_ids.empty?
+    each_conversation_in_batches(filtered_conversations_scope(since_time, until_time), includes: :contact) do |conversation|
+      dim_ids = pivot_dimension_ids(table_kind, conversation, pivot, name_map)
+      next if dim_ids.empty?
 
-          raw_val = conversation.custom_attributes&.[](pivot_attr_key)
-          pivot_val = normalize_pivot_value(raw_val)
-          next if selected_values.present? && selected_values.exclude?(pivot_val) && !(pivot_val.blank? && selected_values.include?(''))
+      raw_val = conversation.custom_attributes&.[](pivot_attr_key)
+      pivot_val = normalize_pivot_value(raw_val)
+      next if selected_values.present? && selected_values.exclude?(pivot_val) && !(pivot_val.blank? && selected_values.include?(''))
 
-          discovered[pivot_val] = true
-          dim_ids.each do |dim_id|
-            accum = buckets[dim_id][pivot_val]
-            accumulate_pivot_measures!(accum, conversation, measures, seen_contacts[dim_id][pivot_val])
-          end
-        end
+      discovered[pivot_val] = true
+      dim_ids.each do |dim_id|
+        accum = buckets[dim_id][pivot_val]
+        accumulate_pivot_measures!(accum, conversation, measures, seen_contacts[dim_id][pivot_val])
       end
+    end
 
     if measures.include?('resolved_conversations_count')
       context = PivotResolutionContext.new(
         table_kind: table_kind, attribute_key: pivot_attr_key, selected_values: selected_values,
-        since_time: since_time, until_time: until_time
+        since_time: since_time, until_time: until_time, pivot: pivot, name_map: name_map
       )
       accumulate_pivot_resolutions!(buckets, discovered, context)
     end
@@ -641,16 +805,21 @@ class Reports::PanelRunnerService
       end
     pivot_values = discovered.keys.map(&:to_s).first(MAX_PIVOT_VALUES) if pivot_values.empty?
 
+    pivot_values = [''] if pivot_attr_key.blank?
     [pivot_values, buckets, name_map]
   end
 
   def accumulate_pivot_resolutions!(buckets, discovered, context)
-    resolution_events_scope(context.since_time, context.until_time).includes(:conversation).find_each do |event|
+    events = resolution_events_scope(context.since_time, context.until_time)
+    if context.pivot[:row_attribute] == 'created_at'
+      events = events.where(conversation_id: filtered_conversation_ids_subquery(context.since_time, context.until_time))
+    end
+    events.includes(conversation: :contact).find_each do |event|
       conversation = event.conversation
       pivot_val = normalize_pivot_value(conversation.custom_attributes&.[](context.attribute_key))
       next if context.selected_values.present? && context.selected_values.exclude?(pivot_val)
 
-      dim_ids = pivot_resolution_dimension_ids(context.table_kind, event)
+      dim_ids = pivot_resolution_dimension_ids(context.table_kind, event, context.pivot, context.name_map)
       discovered[pivot_val] = true if dim_ids.present?
       dim_ids.each do |dim_id|
         buckets[dim_id][pivot_val]['resolved_conversations_count'][conversation.id] = true
@@ -658,7 +827,9 @@ class Reports::PanelRunnerService
     end
   end
 
-  def pivot_resolution_dimension_ids(table_kind, event)
+  def pivot_resolution_dimension_ids(table_kind, event, pivot, name_map)
+    return pivot_dimension_ids(table_kind, event.conversation, pivot, name_map) if custom_pivot_rows?(pivot)
+
     case table_kind.to_s
     when 'agent_summary' then [event.user_id || UNASSIGNED_AGENT_ID]
     when 'inbox_summary' then [event.inbox_id].compact
@@ -710,9 +881,7 @@ class Reports::PanelRunnerService
         accum[measure] = accum[measure].to_i + 1
         next
       end
-      if measure == 'resolved_conversations_count'
-        next
-      end
+      next if measure == 'resolved_conversations_count'
       next unless summary_ca_column?(measure)
 
       attr_key, op, contact_attr, filter_op, filter_value = parse_summary_ca_column(measure)
@@ -771,7 +940,25 @@ class Reports::PanelRunnerService
     val.is_a?(Float) ? val.round(2) : val
   end
 
-  def pivot_dimension_ids(table_kind, conversation)
+  def pivot_dimension_ids(table_kind, conversation, pivot = {}, name_map = {}) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
+    if custom_pivot_rows?(pivot)
+      attribute = pivot[:row_attribute]
+      if attribute == 'created_at'
+        day = conversation.created_at.getlocal((@timezone_offset * 3600).to_i).to_date
+        day = day.beginning_of_week(:monday) if pivot[:row_granularity] == 'week'
+        day = day.beginning_of_month if pivot[:row_granularity] == 'month'
+        value = day.iso8601
+      else
+        contact = attribute.start_with?(CONTACT_CA_COLUMN_PREFIX)
+        key = attribute.delete_prefix(contact ? CONTACT_CA_COLUMN_PREFIX : CA_COLUMN_PREFIX)
+        attrs = contact ? conversation.contact&.custom_attributes : conversation.custom_attributes
+        value = normalize_pivot_value(attrs&.[](key))
+      end
+      id = "#{attribute}:#{value.empty? ? PIVOT_BLANK : "value:#{CGI.escape(value)}"}"
+      name_map[id] = value
+      return [id]
+    end
+
     case table_kind.to_s
     when 'inbox_summary'
       conversation.inbox_id.present? ? [conversation.inbox_id] : []
@@ -796,7 +983,8 @@ class Reports::PanelRunnerService
     raw.to_s
   end
 
-  def build_pivot_rows(buckets, name_map, measures, pivot_values, show_row_totals, expanded_columns)
+  def build_pivot_rows(buckets, name_map, measures, pivot_values, show_row_totals, expanded_columns, # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity, Metrics/ParameterLists
+                       preserve_blank_names: false, all_row_values: false)
     sort_measure = measures.include?('conversations_count') ? 'conversations_count' : measures.first
     dim_ids = buckets.keys.sort_by do |id|
       -pivot_values.sum do |pv|
@@ -812,7 +1000,7 @@ class Reports::PanelRunnerService
       row = {
         'id' => dim_id,
         'rank' => rank,
-        'name' => name_map[dim_id].presence || "##{dim_id}"
+        'name' => preserve_blank_names && name_map.key?(dim_id) ? name_map[dim_id] : name_map[dim_id].presence || "##{dim_id}"
       }
       pivot_values.each do |pval|
         cell = buckets[dim_id][pval] || {}
@@ -824,7 +1012,8 @@ class Reports::PanelRunnerService
 
       if show_row_totals
         measures.each do |m|
-          row[m] = combine_pivot_measure(pivot_values.map { |pv| buckets[dim_id][pv][m] }, m)
+          cells = all_row_values ? buckets[dim_id].values : pivot_values.map { |pv| buckets[dim_id][pv] }
+          row[m] = combine_pivot_measure(cells.map { |cell| cell[m] }, m)
         end
       end
 
@@ -837,21 +1026,24 @@ class Reports::PanelRunnerService
     end
   end
 
-  def combine_pivot_measure(accumulators, measure)
+  def merge_pivot_accumulators(accumulators, measure)
     _attr, op, = parse_summary_ca_column(measure)
-    combined = if measure == 'resolved_conversations_count'
-                 accumulators.compact.each_with_object({}) { |values, total| total.merge!(values) }
-               elsif op == 'avg'
-                 accumulators.compact.each_with_object({ sum: 0.0, count: 0 }) do |values, total|
-                   total[:sum] += values[:sum]
-                   total[:count] += values[:count]
-                 end
-               elsif %w[min max].include?(op)
-                 accumulators.compact.flatten
-               else
-                 accumulators.compact.sum
-               end
-    finalize_pivot_measure(combined, measure)
+    if measure == 'resolved_conversations_count'
+      accumulators.compact.each_with_object({}) { |values, total| total.merge!(values) }
+    elsif op == 'avg'
+      accumulators.compact.each_with_object({ sum: 0.0, count: 0 }) do |values, total|
+        total[:sum] += values[:sum]
+        total[:count] += values[:count]
+      end
+    elsif %w[min max].include?(op)
+      accumulators.compact.flatten
+    else
+      accumulators.compact.sum
+    end
+  end
+
+  def combine_pivot_measure(accumulators, measure)
+    finalize_pivot_measure(merge_pivot_accumulators(accumulators, measure), measure)
   end
 
   def pivot_footer_op(measure)
@@ -887,6 +1079,8 @@ class Reports::PanelRunnerService
   end
 
   def pivot_total_accumulators(context, measure, pivot_value)
+    return context.buckets.values.flat_map { |cells| cells.values.map { |cell| cell[measure] } } if pivot_value.nil? && context.all_row_values
+
     values = pivot_value.nil? ? context.pivot_values : [pivot_value]
     context.buckets.values.flat_map { |cells| values.map { |value| cells[value][measure] } }
   end
@@ -923,9 +1117,7 @@ class Reports::PanelRunnerService
     rest = col.delete_prefix(CONTACT_CA_COLUMN_PREFIX).delete_prefix(CA_COLUMN_PREFIX)
 
     filtered = rest.match(/\A(.+)#{Regexp.escape(MEASURE_SEP)}(#{MEASURE_OPS.join('|')})#{Regexp.escape(MEASURE_SEP)}#{MEASURE_FILTER_EQ}#{Regexp.escape(MEASURE_SEP)}(.+)\z/)
-    if filtered
-      return [filtered[1], filtered[2], contact_attr, MEASURE_FILTER_EQ, decode_measure_filter_value(filtered[3])]
-    end
+    return [filtered[1], filtered[2], contact_attr, MEASURE_FILTER_EQ, decode_measure_filter_value(filtered[3])] if filtered
 
     op = nil
     MEASURE_OPS.each do |candidate|
