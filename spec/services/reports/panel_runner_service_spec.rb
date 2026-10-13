@@ -1,5 +1,9 @@
 require 'rails_helper'
 
+# These scenarios build a whole account (agents, inboxes, contacts, events) and check many numbers of one run, so they
+# keep many memoized helpers and expectations per example.
+# rubocop:disable RSpec/MultipleExpectations, RSpec/MultipleMemoizedHelpers, Performance/CollectionLiteralInLoop
+
 RSpec.describe Reports::PanelRunnerService do
   let(:account) { create(:account, reporting_timezone: 'UTC') }
   let(:admin) { create(:user, account: account, role: :administrator) }
@@ -311,3 +315,4 @@ RSpec.describe Reports::PanelRunnerService do
     end
   end
 end
+# rubocop:enable RSpec/MultipleExpectations, RSpec/MultipleMemoizedHelpers, Performance/CollectionLiteralInLoop

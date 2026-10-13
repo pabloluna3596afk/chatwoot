@@ -38,9 +38,7 @@ class Reports::PanelRunnerService
   private
 
   def resolve_range
-    if @date_overrides.any?
-      return Reports::PanelDateRange.validate(@date_overrides[:since], @date_overrides[:until], account: @account)
-    end
+    return Reports::PanelDateRange.validate(@date_overrides[:since], @date_overrides[:until], account: @account) if @date_overrides.any?
 
     Reports::PanelDateRange.resolve(
       @panel.date_preset,
@@ -1598,8 +1596,11 @@ class Reports::PanelRunnerService
   def resolution_chart_points(widget, since_time, until_time, group_by)
     timezone = timezone_name
     widget_resolution_events_scope(widget, since_time, until_time).group_by_period(
-      group_by, :created_at, default_value: 0, range: since_time..until_time,
-      permit: %w[day week month year hour], time_zone: timezone
+      group_by, :created_at,
+      default_value: 0,
+      range: since_time..until_time,
+      permit: %w[day week month year hour],
+      time_zone: timezone
     ).distinct.count(:conversation_id).map do |period, count|
       { value: count, timestamp: period.in_time_zone(timezone).to_i }
     end

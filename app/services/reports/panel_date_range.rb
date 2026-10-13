@@ -22,9 +22,7 @@ class Reports::PanelDateRange
 
   def self.validate(since_value, until_value, account: nil)
     values = [since_value, until_value]
-    unless values.all? { |value| integer_timestamp?(value) }
-      raise CustomExceptions::InvalidReportDateRange, 'since and until must be integers'
-    end
+    raise CustomExceptions::InvalidReportDateRange, 'since and until must be integers' unless values.all? { |value| integer_timestamp?(value) }
 
     since_time, until_time = values.map { |value| timezone(account).at(value.to_i) }
     # Unix until includes its final second, as it does in the report builders.
