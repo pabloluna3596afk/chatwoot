@@ -25,13 +25,13 @@ RSpec.describe 'Saved report panels preview', type: :request do
     expect(response.parsed_body['widgets'].first).to include('id' => 'draft_metric', 'value' => 0)
   end
 
-  it 'rejects an agent without saving a panel' do
+  it 'rejects an agent (unauthorized) without saving a panel' do
     headers = agent.create_new_auth_token
     expect do
       post "/api/v1/accounts/#{account.id}/saved_report_panels/preview",
            params: params, headers: headers, as: :json
     end.not_to change(SavedReportPanel, :count)
 
-    expect(response).to have_http_status(:forbidden)
+    expect(response).to have_http_status(:unauthorized)
   end
 end
