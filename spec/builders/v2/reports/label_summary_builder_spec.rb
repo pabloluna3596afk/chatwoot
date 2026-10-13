@@ -357,12 +357,12 @@ RSpec.describe V2::Reports::LabelSummaryBuilder do
         end
       end
 
-      it 'counts a conversation resolved multiple times once' do
+      it 'counts multiple resolution events for same conversation' do
         report = account2_builder.build
 
         test_label_report = report.find { |r| r[:name] == unique_label_name }
         expect(test_label_report).not_to be_nil
-        expect(test_label_report[:resolved_conversations_count]).to eq(1)
+        expect(test_label_report[:resolved_conversations_count]).to eq(2)
       end
     end
   end

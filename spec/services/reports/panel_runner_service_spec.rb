@@ -9,7 +9,7 @@ RSpec.describe Reports::PanelRunnerService do
   let(:panel) { build(:saved_report_panel, account: account, created_by: admin, widgets: widgets, filters: filters) }
   let(:filters) { [] }
   let(:runner) do
-    described_class.new(panel: panel, account: account, user: admin, since_override: since_time.to_i, until_override: until_time.to_i)
+    described_class.new(panel: panel, account: account, user: admin, date_overrides: { since: since_time.to_i, until: until_time.to_i })
   end
   let(:result) { runner.perform[:widgets].first.with_indifferent_access }
 
@@ -35,8 +35,13 @@ RSpec.describe Reports::PanelRunnerService do
     end
 
     it 'rejects a partial override before executing widgets' do
-      service = described_class.new(panel: panel, account: account, user: admin, since_override: since_time.to_i)
-      expect { service.perform }.to raise_error { |error| expect(error.class.name).to eq('CustomExceptions::InvalidReportDateRange') }
+      service = described_class.new(panel: panel, account: account, user: admin, date_overrides: { since: since_time.to_i })
+      expect { service.perform }.to(raise_error { |error| expect(error.class.name).to eq('CustomExceptions::InvalidReportDateRange') })
+    end
+
+    it 'rejects explicit null overrides rather than using the saved preset' do
+      service = described_class.new(panel: panel, account: account, user: admin, date_overrides: { since: nil, until: nil })
+      expect { service.perform }.to(raise_error { |error| expect(error.class.name).to eq('CustomExceptions::InvalidReportDateRange') })
     end
   end
 
@@ -127,7 +132,7 @@ RSpec.describe Reports::PanelRunnerService do
         end
       end
       no_event = create(:conversation, account: account, inbox: inbox, team: team, assignee: agent,
-                                      status: :resolved, created_at: since_time, custom_attributes: { segment: 'A' })
+                                       status: :resolved, created_at: since_time, custom_attributes: { segment: 'A' })
       no_event.add_labels([label.title])
       create(:reporting_event, account: account, inbox: inbox, conversation: no_event, user: agent,
                                name: 'conversation_resolved', created_at: since_time - 1.second)
@@ -164,12 +169,28 @@ RSpec.describe Reports::PanelRunnerService do
             [{ id: 'kpi', type: 'metric', metric: 'resolutions_count' },
              { id: 'chart', type: 'chart', metric: 'resolutions_count', group_by: 'day' }]
           end
+          let(:normal_report_params) do
+            {
+              type: :account, metric: 'resolutions_count', group_by: 'day', timezone_offset: 0,
+              since: since_time.to_i.to_s, until: (until_time.to_i + 1).to_s,
+              business_hours: false
+            }
+          end
 
           it 'counts two conversations rather than four events, including the old reopened conversation' do
+            expect(V2::ReportBuilder).not_to receive(:new)
             report = runner.perform
             expect(report[:widgets].map { |widget| widget[:error] }).to eq([nil, nil])
             expect(report[:widgets][0][:value]).to eq(2)
             expect(report[:widgets][1][:points].sum { |point| point[:value] }).to eq(2)
+          end
+
+          it 'keeps normal reports counting four resolution events while panels count two conversations' do
+            normal_report = V2::ReportBuilder.new(account, normal_report_params)
+
+            expect(normal_report.summary[:resolutions_count]).to eq(4)
+            expect(normal_report.build.sum { |point| point[:value] }).to eq(4)
+            expect(result[:value]).to eq(2)
           end
         end
 
@@ -189,6 +210,30 @@ RSpec.describe Reports::PanelRunnerService do
               end
             end
           end
+        end
+      end
+    end
+
+    %w[account agent inbox team label].each do |scope_type|
+      context "with unfiltered #{scope_type} resolution widgets" do
+        let(:scope_ids) { { 'agent' => agent.id, 'inbox' => inbox.id, 'team' => team.id, 'label' => label.id } }
+        let(:widgets) do
+          [{ id: 'kpi', type: 'metric', metric: 'resolutions_count', scope_type: scope_type, scope_id: scope_ids[scope_type] },
+           { id: 'chart', type: 'chart', metric: 'resolutions_count', scope_type: scope_type, scope_id: scope_ids[scope_type] }]
+        end
+
+        it 'preserves the selected scope while counting distinct conversations in the period' do
+          other_actor = create(:user, account: account, role: :agent)
+          other_inbox = create(:inbox, account: account)
+          other_conversation = create(:conversation, account: account, inbox: other_inbox, assignee: other_actor, created_at: since_time - 30.days)
+          create(:reporting_event, account: account, inbox: other_inbox, conversation: other_conversation, user: other_actor,
+                                   name: 'conversation_resolved', created_at: since_time + 1.hour)
+
+          report = runner.perform
+          expected_count = scope_type == 'account' ? 3 : 2
+          expect(report[:widgets].map { |widget| widget[:error] }).to eq([nil, nil])
+          expect(report[:widgets][0][:value]).to eq(expected_count)
+          expect(report[:widgets][1][:points].sum { |point| point[:value] }).to eq(expected_count)
         end
       end
     end

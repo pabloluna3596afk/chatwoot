@@ -55,14 +55,14 @@ RSpec.describe Reports::PanelDateRange do
     [nil, '', '123abc', '1.5', 1.5, true, [], {}].each do |invalid|
       it "rejects invalid timestamps #{invalid.inspect}" do
         expect { described_class.validate(invalid, since_value, account: account) }
-          .to raise_error { |error| expect(error.class.name).to eq('CustomExceptions::InvalidReportDateRange') }
+          .to(raise_error { |error| expect(error.class.name).to eq('CustomExceptions::InvalidReportDateRange') })
       end
     end
 
     it 'rejects reversed and oversized custom ranges' do
       [since_value - 1, Time.utc(2025, 1, 1, 5).to_i].each do |until_value|
         expect { described_class.resolve('custom', custom_since: since_value, custom_until: until_value, account: account) }
-          .to raise_error { |error| expect(error.class.name).to eq('CustomExceptions::InvalidReportDateRange') }
+          .to(raise_error { |error| expect(error.class.name).to eq('CustomExceptions::InvalidReportDateRange') })
       end
     end
   end

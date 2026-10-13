@@ -23,13 +23,13 @@ RSpec.describe Reports::RawDataSource do
     end
   end
 
-  it 'counts two distinct conversations in aggregates and timeseries, independent of their creation dates' do
-    expect(source.aggregate).to eq(2)
-    expect(source.timeseries.sum { |point| point[:value] }).to eq(2)
+  it 'keeps counting four resolution events for normal reports, independent of conversation creation dates' do
+    expect(source.aggregate).to eq(4)
+    expect(source.timeseries.sum { |point| point[:value] }).to eq(4)
   end
 
-  it 'uses the same distinct definition in the grouped summary' do
+  it 'keeps counting resolution events in normal report summaries' do
     expect(source.summary[user.id][:conversations_count]).to eq(0)
-    expect(source.summary[user.id][:resolved_conversations_count]).to eq(2)
+    expect(source.summary[user.id][:resolved_conversations_count]).to eq(4)
   end
 end

@@ -22,7 +22,7 @@ class Reports::PanelDateRange
 
   def self.validate(since_value, until_value, account: nil)
     values = [since_value, until_value]
-    unless values.all? { |value| value.is_a?(Integer) || (value.is_a?(String) && value.match?(/\A-?\d+\z/)) }
+    unless values.all? { |value| integer_timestamp?(value) }
       raise CustomExceptions::InvalidReportDateRange, 'since and until must be integers'
     end
 
@@ -35,4 +35,9 @@ class Reports::PanelDateRange
 
     [since_time, until_time]
   end
+
+  def self.integer_timestamp?(value)
+    value.is_a?(Integer) || (value.is_a?(String) && value.match?(/\A-?\d+\z/))
+  end
+  private_class_method :integer_timestamp?
 end

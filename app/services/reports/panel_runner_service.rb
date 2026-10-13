@@ -1,19 +1,19 @@
 class Reports::PanelRunnerService
   # ponytail: statement_timeout caps expensive panel runs; raise if panels need longer windows
   STATEMENT_TIMEOUT_MS = 15_000
-  DATE_OVERRIDE_UNSET = Object.new.freeze
+  PivotResolutionContext = Struct.new(:table_kind, :attribute_key, :selected_values, :since_time, :until_time, keyword_init: true)
+  PivotTotalsContext = Struct.new(:columns, :attribute_types, :footer_aggs, :buckets, :measures, :pivot_values, keyword_init: true)
 
   # Filters that only affect conversation-scoped widgets. Contact custom attrs are split out.
   # Not applied: live message-content filters beyond FilterService; metric scopes other than account
   # still use widget scope_type when no panel filters are set.
 
-  def initialize(panel:, account:, user:, timezone_offset: 0, since_override: DATE_OVERRIDE_UNSET, until_override: DATE_OVERRIDE_UNSET)
+  def initialize(panel:, account:, user:, timezone_offset: 0, date_overrides: {})
     @panel = panel
     @account = account
     @user = user
     @timezone_offset = timezone_offset.to_f
-    @since_override = since_override
-    @until_override = until_override
+    @date_overrides = date_overrides
   end
 
   def perform
@@ -38,8 +38,8 @@ class Reports::PanelRunnerService
   private
 
   def resolve_range
-    unless @since_override.equal?(DATE_OVERRIDE_UNSET) && @until_override.equal?(DATE_OVERRIDE_UNSET)
-      return Reports::PanelDateRange.validate(@since_override, @until_override, account: @account)
+    if @date_overrides.any?
+      return Reports::PanelDateRange.validate(@date_overrides[:since], @date_overrides[:until], account: @account)
     end
 
     Reports::PanelDateRange.resolve(
@@ -81,6 +81,8 @@ class Reports::PanelRunnerService
         filtered_contacts_count(since_time, until_time)
       elsif metric == 'unique_contacts_count'
         unique_contacts_count(since_time, until_time)
+      elsif metric == 'resolutions_count'
+        widget_resolution_events_scope(widget, since_time, until_time).distinct.count(:conversation_id)
       elsif conversation_filters? || contact_filters? || panel_date_attribute_key.present?
         filtered_metric_value(metric, since_time, until_time)
       else
@@ -103,7 +105,9 @@ class Reports::PanelRunnerService
     metric = widget[:metric].to_s
     group_by = widget[:group_by].presence || 'day'
     points =
-      if conversation_filters? || contact_filters? || panel_date_attribute_key.present?
+      if metric == 'resolutions_count'
+        resolution_chart_points(widget, since_time, until_time, group_by)
+      elsif conversation_filters? || contact_filters? || panel_date_attribute_key.present?
         filtered_chart_points(metric, since_time, until_time, group_by)
       else
         report_builder(widget, since_time, until_time, metric: metric, group_by: group_by).build
@@ -542,6 +546,11 @@ class Reports::PanelRunnerService
       end
     end
 
+    totals_context = PivotTotalsContext.new(
+      columns: expanded_columns, attribute_types: attribute_types, footer_aggs: footer_aggs,
+      buckets: buckets, measures: measures, pivot_values: pivot_values
+    )
+
     {
       id: widget[:id],
       type: 'table',
@@ -557,7 +566,7 @@ class Reports::PanelRunnerService
         measures: measures,
         show_row_totals: show_row_totals
       },
-      totals: build_pivot_totals(rows, expanded_columns, attribute_types, footer_aggs, buckets, measures, pivot_values)
+      totals: build_pivot_totals(rows, totals_context)
     }
   end
 
@@ -613,7 +622,11 @@ class Reports::PanelRunnerService
       end
 
     if measures.include?('resolved_conversations_count')
-      accumulate_pivot_resolutions!(buckets, discovered, table_kind, pivot_attr_key, selected_values, since_time, until_time)
+      context = PivotResolutionContext.new(
+        table_kind: table_kind, attribute_key: pivot_attr_key, selected_values: selected_values,
+        since_time: since_time, until_time: until_time
+      )
+      accumulate_pivot_resolutions!(buckets, discovered, context)
     end
 
     pivot_values =
@@ -633,21 +646,25 @@ class Reports::PanelRunnerService
     [pivot_values, buckets, name_map]
   end
 
-  def accumulate_pivot_resolutions!(buckets, discovered, table_kind, pivot_attr_key, selected_values, since_time, until_time)
-    resolution_events_scope(since_time, until_time).includes(:conversation).find_each do |event|
+  def accumulate_pivot_resolutions!(buckets, discovered, context)
+    resolution_events_scope(context.since_time, context.until_time).includes(:conversation).find_each do |event|
       conversation = event.conversation
-      pivot_val = normalize_pivot_value(conversation.custom_attributes&.[](pivot_attr_key))
-      next if selected_values.present? && selected_values.exclude?(pivot_val)
+      pivot_val = normalize_pivot_value(conversation.custom_attributes&.[](context.attribute_key))
+      next if context.selected_values.present? && context.selected_values.exclude?(pivot_val)
 
-      dim_ids = case table_kind.to_s
-                when 'agent_summary' then [event.user_id || UNASSIGNED_AGENT_ID]
-                when 'inbox_summary' then [event.inbox_id].compact
-                else pivot_dimension_ids(table_kind, conversation)
-                end
+      dim_ids = pivot_resolution_dimension_ids(context.table_kind, event)
       discovered[pivot_val] = true if dim_ids.present?
       dim_ids.each do |dim_id|
         buckets[dim_id][pivot_val]['resolved_conversations_count'][conversation.id] = true
       end
+    end
+  end
+
+  def pivot_resolution_dimension_ids(table_kind, event)
+    case table_kind.to_s
+    when 'agent_summary' then [event.user_id || UNASSIGNED_AGENT_ID]
+    when 'inbox_summary' then [event.inbox_id].compact
+    else pivot_dimension_ids(table_kind, event.conversation)
     end
   end
 
@@ -844,22 +861,36 @@ class Reports::PanelRunnerService
     %w[avg min max].include?(op) ? op : 'sum'
   end
 
-  def build_pivot_totals(rows, columns, attribute_types, footer_aggs, buckets, measures, pivot_values)
-    totals = build_table_totals(rows, columns, rows.size, attribute_types, footer_aggs)
-    measures.each do |measure|
-      resolved_measure = measure == 'resolved_conversations_count'
-      next unless resolved_measure || pivot_footer_op(measure) == 'avg'
-
-      ([nil] + pivot_values).each do |pivot_value|
-        column = pivot_value.nil? ? measure : pivot_column_key(measure, pivot_value)
-        next unless footer_aggs[column] == (resolved_measure ? 'sum' : 'avg')
-
-        values = pivot_value.nil? ? pivot_values : [pivot_value]
-        accumulators = buckets.values.flat_map { |cells| values.map { |value| cells[value][measure] } }
-        totals[:columns][column] = combine_pivot_measure(accumulators, measure)
-      end
+  def build_pivot_totals(rows, context)
+    totals = build_table_totals(rows, context.columns, rows.size, context.attribute_types, context.footer_aggs)
+    context.measures.each do |measure|
+      update_pivot_measure_totals!(totals, measure, context)
     end
     totals
+  end
+
+  def update_pivot_measure_totals!(totals, measure, context)
+    op = raw_pivot_footer_op(measure)
+    return if op.nil?
+
+    ([nil] + context.pivot_values).each do |pivot_value|
+      column = pivot_value.nil? ? measure : pivot_column_key(measure, pivot_value)
+      next unless context.footer_aggs[column] == op
+
+      accumulators = pivot_total_accumulators(context, measure, pivot_value)
+      totals[:columns][column] = combine_pivot_measure(accumulators, measure)
+    end
+  end
+
+  def raw_pivot_footer_op(measure)
+    return 'sum' if measure == 'resolved_conversations_count'
+
+    'avg' if pivot_footer_op(measure) == 'avg'
+  end
+
+  def pivot_total_accumulators(context, measure, pivot_value)
+    values = pivot_value.nil? ? context.pivot_values : [pivot_value]
+    context.buckets.values.flat_map { |cells| values.map { |value| cells[value][measure] } }
   end
 
   # Sum/avg/min/max/count custom attrs onto summary dimensions (agent/inbox/team/label).
@@ -1106,7 +1137,11 @@ class Reports::PanelRunnerService
     if conversation_filters? || contact_filters? || panel_date_attribute_key.present?
       filtered_dimension_summary(dimension, since_time, until_time)
     else
-      summary_builder(klass, since_time, until_time, type: type)
+      event_dimension = dimension == :inbox_id ? 'reporting_events.inbox_id' : nil
+      resolved_counts = dimension_resolution_counts(dimension, since_time, until_time, event_dimension: event_dimension)
+      summary_builder(klass, since_time, until_time, type: type).map do |row|
+        row.merge(resolved_conversations_count: resolved_counts.fetch(row[:id], 0))
+      end
     end
   end
 
@@ -1114,7 +1149,10 @@ class Reports::PanelRunnerService
     if conversation_filters? || contact_filters? || panel_date_attribute_key.present?
       filtered_label_summary(since_time, until_time)
     else
-      summary_builder(V2::Reports::LabelSummaryBuilder, since_time, until_time)
+      resolved_counts = label_resolution_counts(since_time, until_time)
+      summary_builder(V2::Reports::LabelSummaryBuilder, since_time, until_time).map do |row|
+        row.merge(resolved_conversations_count: resolved_counts.fetch(row[:name], 0))
+      end
     end
   end
 
@@ -1123,8 +1161,7 @@ class Reports::PanelRunnerService
     conversations_count = Conversation.where(id: conv_ids).group(dimension).count
     events = ReportingEvent.where(account_id: @account.id, conversation_id: conv_ids, created_at: since_time..until_time)
     event_dimension = dimension == :assignee_id ? 'reporting_events.user_id' : "conversations.#{dimension}"
-    resolved_count = resolution_events_scope(since_time, until_time).joins(:conversation).group(event_dimension)
-                                            .distinct.count('reporting_events.conversation_id')
+    resolved_count = dimension_resolution_counts(dimension, since_time, until_time)
     avg_map = lambda do |event_name|
       events.where(name: event_name).joins(:conversation).group(event_dimension)
             .average(average_value_key)
@@ -1167,10 +1204,7 @@ class Reports::PanelRunnerService
                taggings: { taggable_type: 'Conversation', context: 'labels' }
              )
 
-    resolved_counts = resolution_events_scope(since_time, until_time)
-                      .joins(conversation: { taggings: :tag })
-                      .where(taggings: { taggable_type: 'Conversation', context: 'labels' })
-                      .group('tags.name').distinct.count('reporting_events.conversation_id')
+    resolved_counts = label_resolution_counts(since_time, until_time)
     avg_for = lambda do |event_name|
       events.where(name: event_name).group('tags.name').average(average_value_key)
     end
@@ -1477,8 +1511,6 @@ class Reports::PanelRunnerService
       filtered_messages_scope(conv_ids, since_time, until_time).incoming.count
     when 'outgoing_messages_count'
       filtered_messages_scope(conv_ids, since_time, until_time).outgoing.count
-    when 'resolutions_count'
-      resolution_events_scope(since_time, until_time).distinct.count(:conversation_id)
     when 'avg_first_response_time'
       filtered_events_scope(conv_ids, since_time, until_time, 'first_response').average(average_value_key) || 0
     when 'avg_resolution_time'
@@ -1509,10 +1541,6 @@ class Reports::PanelRunnerService
         filtered_messages_scope(conv_ids, since_time, until_time).outgoing.group_by_period(
           group_by, :created_at, default_value: 0, range: range, permit: %w[day week month year hour], time_zone: timezone
         ).count
-      when 'resolutions_count'
-        resolution_events_scope(since_time, until_time).group_by_period(
-          group_by, :created_at, default_value: 0, range: range, permit: %w[day week month year hour], time_zone: timezone
-        ).distinct.count(:conversation_id)
       when 'avg_first_response_time', 'avg_resolution_time', 'reply_time'
         event_name = { 'avg_first_response_time' => 'first_response', 'avg_resolution_time' => 'conversation_resolved',
                        'reply_time' => 'reply_time' }[metric]
@@ -1548,6 +1576,48 @@ class Reports::PanelRunnerService
   def resolution_events_scope(since_time, until_time)
     conv_ids = conversations_matching_filters_without_date.unscope(:order).reselect(:id)
     filtered_events_scope(conv_ids, since_time, until_time, 'conversation_resolved')
+  end
+
+  def widget_resolution_events_scope(widget, since_time, until_time)
+    events = resolution_events_scope(since_time, until_time)
+    return events if conversation_filters? || contact_filters? || panel_date_attribute_key.present?
+
+    events.merge(resolution_reporting_scope(widget).reporting_events)
+  end
+
+  def resolution_reporting_scope(widget)
+    case widget[:scope_type].to_s
+    when 'account', '' then @account
+    when 'agent' then @account.users.find(widget[:scope_id])
+    when 'inbox' then @account.inboxes.find(widget[:scope_id])
+    when 'team' then @account.teams.find(widget[:scope_id])
+    when 'label' then @account.labels.find(widget[:scope_id])
+    end
+  end
+
+  def resolution_chart_points(widget, since_time, until_time, group_by)
+    timezone = timezone_name
+    widget_resolution_events_scope(widget, since_time, until_time).group_by_period(
+      group_by, :created_at, default_value: 0, range: since_time..until_time,
+      permit: %w[day week month year hour], time_zone: timezone
+    ).distinct.count(:conversation_id).map do |period, count|
+      { value: count, timestamp: period.in_time_zone(timezone).to_i }
+    end
+  end
+
+  def dimension_resolution_counts(dimension, since_time, until_time, event_dimension: nil)
+    event_dimension ||= dimension == :assignee_id ? 'reporting_events.user_id' : "conversations.#{dimension}"
+    resolution_events_scope(since_time, until_time)
+      .joins(:conversation)
+      .group(event_dimension)
+      .distinct.count('reporting_events.conversation_id')
+  end
+
+  def label_resolution_counts(since_time, until_time)
+    resolution_events_scope(since_time, until_time)
+      .joins(conversation: { taggings: :tag })
+      .where(taggings: { taggable_type: 'Conversation', context: 'labels' })
+      .group('tags.name').distinct.count('reporting_events.conversation_id')
   end
 
   def filtered_contacts_count(since_time, until_time)

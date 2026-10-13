@@ -56,8 +56,7 @@ class Api::V1::Accounts::SavedReportPanelsController < Api::V1::Accounts::BaseCo
       account: Current.account,
       user: Current.user,
       timezone_offset: params[:timezone_offset],
-      since_override: params.fetch(:since, Reports::PanelRunnerService::DATE_OVERRIDE_UNSET),
-      until_override: params.fetch(:until, Reports::PanelRunnerService::DATE_OVERRIDE_UNSET)
+      date_overrides: params.slice(:since, :until).to_unsafe_h.symbolize_keys
     )
   end
 

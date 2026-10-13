@@ -54,7 +54,6 @@ module ReportHelper
 
   def resolutions
     scope.reporting_events.where(account_id: account.id, name: :conversation_resolved, created_at: range)
-         .select(:conversation_id).distinct
   end
 
   def bot_resolutions
