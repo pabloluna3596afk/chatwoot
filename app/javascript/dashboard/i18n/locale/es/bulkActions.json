@@ -35,6 +35,17 @@
       "REMOVE_SUCCESFUL": "Etiquetas removidas con éxito.",
       "REMOVE_FAILED": "Error al quitar las etiquetas. Por favor, inténtalo de nuevo."
     },
+    "CONTACT_LABELS": {
+      "ASSIGN_LABELS": "Etiquetar contactos",
+      "REMOVE_LABELS": "Quitar etiquetas",
+      "ASSIGN_SELECTED_LABELS": "Aplicar a los contactos",
+      "REMOVE_SELECTED_LABELS": "Quitar de los contactos",
+      "ASSIGN_SUCCESFUL": "Las etiquetas se asignaron a los contactos.",
+      "ASSIGN_FAILED": "No se pudieron asignar las etiquetas a los contactos. Inténtalo de nuevo.",
+      "REMOVE_SUCCESFUL": "Las etiquetas se quitaron de los contactos.",
+      "REMOVE_FAILED": "No se pudieron quitar las etiquetas de los contactos. Inténtalo de nuevo.",
+      "NO_CONTACTS": "No se encontraron contactos en las conversaciones seleccionadas."
+    },
     "TEAMS": {
       "NONE": "Ninguna",
       "ASSIGN_TEAM_CONFIRMATION_LABEL": "¿Estás seguro de que quieres asignar {n} conversación a {teamName}? | ¿Estás seguro de que quieres asignar {n} conversaciones a {teamName}?",

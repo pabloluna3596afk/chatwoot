@@ -36,6 +36,12 @@ const props = defineProps({
     type: Boolean,
     default: undefined,
   },
+  // Where the menu opens relative to the button. Bars at the top of a scrolling list must open downward.
+  placement: {
+    type: String,
+    default: 'top',
+    validator: value => ['top', 'bottom'].includes(value),
+  },
 });
 
 const emit = defineEmits(['assign', 'remove']);
@@ -50,6 +56,7 @@ const selectedLabels = ref([]);
 
 const isTypeContact = computed(() => props.type === 'contact');
 const isRemoveAction = computed(() => props.action === 'remove');
+const opensDownward = computed(() => props.placement === 'bottom');
 
 const shouldShowButtonLabel = computed(() => {
   if (props.showButtonLabel !== undefined) return props.showButtonLabel;
@@ -166,10 +173,10 @@ const handleDismiss = () => {
       @click.stop="toggleDropdown()"
     />
     <Transition
-      enter-active-class="transition-all duration-150 ease-out origin-bottom"
+      enter-active-class="transition-all duration-150 ease-out"
       enter-from-class="opacity-0 scale-95"
       enter-to-class="opacity-100 scale-100"
-      leave-active-class="transition-all duration-100 ease-in origin-bottom"
+      leave-active-class="transition-all duration-100 ease-in"
       leave-from-class="opacity-100 scale-100"
       leave-to-class="opacity-0 scale-95"
     >
@@ -180,7 +187,8 @@ const handleDismiss = () => {
         show-search
         compact
         :search-placeholder="t('BULK_ACTION.SEARCH_INPUT_PLACEHOLDER')"
-        class="ltr:right-0 rtl:left-0 bottom-8 w-60 max-h-80"
+        class="ltr:right-0 rtl:left-0 w-60 max-h-80"
+        :class="opensDownward ? 'top-8 origin-top' : 'bottom-8 origin-bottom'"
         @action="item => toggleLabelSelection(item.value)"
       >
         <template #label="{ item }">
