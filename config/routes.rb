@@ -523,6 +523,8 @@ Rails.application.routes.draw do
                 get :events
                 get :invitation
                 patch :invitation, action: :update_invitation
+                get :appointment_attributes, to: 'calendar_appointment_attributes#show'
+                patch :appointment_attributes, to: 'calendar_appointment_attributes#update'
                 post :events, action: :create_event
                 patch 'events/:event_id', action: :update_event
                 delete 'events/:event_id', action: :destroy_event

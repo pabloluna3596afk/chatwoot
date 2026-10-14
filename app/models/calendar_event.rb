@@ -49,6 +49,8 @@ class CalendarEvent < ApplicationRecord
 
   scope :kept, -> { where(deleted_at: nil) }
 
+  after_commit :enqueue_appointment_attributes_update, on: [:create, :update, :destroy]
+
   def discarded?
     deleted_at.present?
   end
@@ -59,6 +61,24 @@ class CalendarEvent < ApplicationRecord
 
   def ai_booked?
     booking_source == 'ai'
+  end
+
+  private
+
+  def enqueue_appointment_attributes_update
+    fields = %w[contact_id start_at summary appointment_status deleted_at]
+    return unless destroyed? || previous_changes.keys.intersect?(fields)
+
+    contact_ids = [contact_id, previous_changes.dig('contact_id', 0)].compact.uniq
+    contact_ids.each { |id| Calendar::AppointmentAttributes::UpdateJob.perform_later(account_id, id) }
+    enqueue_appointment_start_refresh
+  end
+
+  # "Next appointment" becomes "last appointment" when it starts: refresh the contact right after that moment.
+  def enqueue_appointment_start_refresh
+    return if destroyed? || contact_id.blank? || deleted_at.present? || start_at.blank? || start_at <= Time.current
+
+    Calendar::AppointmentAttributes::UpdateJob.set(wait_until: start_at + 1.minute).perform_later(account_id, contact_id)
   end
 end
 

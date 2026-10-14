@@ -460,6 +460,12 @@ es:
       short_description: 'Conectá Google Calendar y mirá los eventos en el panel.'
       description: 'Conectá cuentas de Google Calendar para que el equipo vea los eventos. Microsoft Calendar llega pronto.'
       default_title: Cita
+      appointment_attributes:
+        ultima_cita: Última cita
+        proxima_cita: Próxima cita
+        proxima_cita_titulo: Título de la próxima cita
+        total_citas: Total de citas
+        invalid_keys: Selecciona solo claves de atributos de cita válidas, sin duplicados.
       invitation_unknown_tokens: 'Hay variables que no existen: %{tokens}.'
       invitation_too_long: 'El texto puede tener hasta %{limit} caracteres.'
       invitation_default: |-

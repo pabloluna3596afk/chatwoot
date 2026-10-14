@@ -1,0 +1,35 @@
+{
+  "CALENDAR_APPOINTMENT_ATTRIBUTES": {
+    "TITLE": "Appointment attributes",
+    "DESCRIPTION": "Create contact attributes in the Citas category and calculate their values from appointments. Existing appointments are filled in the background when you enable an attribute.",
+    "DISABLE_HINT": "Unchecking an attribute stops updates and keeps its definition and saved values. Dates are stored in UTC and displayed in your time zone.",
+    "UPDATE": "Update",
+    "SAVED": "Appointment attributes updated.",
+    "LOAD_ERROR": "Could not load appointment attributes. Reload the page to try again.",
+    "SAVE_ERROR": "Could not update appointment attributes.",
+    "CONFLICT_DETAIL": "Existing type: {actual}. Expected type: {expected}. The attribute and its values were left unchanged.",
+    "RESULT": {
+      "created": "Created",
+      "reused": "Already existed; reused",
+      "conflict": "Type conflict"
+    },
+    "ATTRIBUTES": {
+      "ultima_cita": {
+        "NAME": "Last appointment",
+        "HELP": "Start of the most recent appointment that has already started. Cancelled and deleted appointments are excluded."
+      },
+      "proxima_cita": {
+        "NAME": "Next appointment",
+        "HELP": "Start of the nearest future appointment. Cancelled and deleted appointments are excluded."
+      },
+      "proxima_cita_titulo": {
+        "NAME": "Next appointment title",
+        "HELP": "Title of the nearest future appointment. Cleared when there is no next appointment."
+      },
+      "total_citas": {
+        "NAME": "Total appointments",
+        "HELP": "Number of past and future appointments linked to the contact, excluding cancelled and deleted appointments."
+      }
+    }
+  }
+}
