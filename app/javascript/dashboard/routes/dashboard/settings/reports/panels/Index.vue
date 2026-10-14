@@ -2,16 +2,21 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import { useLocale } from 'shared/composables/useLocale';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useAlert } from 'dashboard/composables';
 import ReportHeader from '../components/ReportHeader.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import SavedReportPanelsAPI from 'dashboard/api/savedReportPanels';
-import format from 'date-fns/format';
 import fromUnixTime from 'date-fns/fromUnixTime';
+import { formatPanelDate } from './panelConstants';
 
 const { t } = useI18n();
+const { resolvedLocale: locale } = useLocale();
+const numberFormatter = computed(
+  () => new Intl.NumberFormat(locale.value, { useGrouping: true })
+);
 const router = useRouter();
 const { accountScopedRoute } = useAccount();
 
@@ -61,7 +66,7 @@ const filterCount = panel =>
 
 const updatedLabel = panel => {
   if (!panel.updated_at) return '—';
-  return format(fromUnixTime(panel.updated_at), 'dd MMM yyyy');
+  return formatPanelDate(fromUnixTime(panel.updated_at), locale.value);
 };
 
 const toggleFavorite = async panel => {
@@ -116,40 +121,76 @@ onMounted(fetchPanels);
 
     <div
       v-else
-      class="rounded-xl border border-n-weak bg-n-solid-2 overflow-x-auto"
+      class="rounded-xl border border-n-weak bg-n-solid-2 overflow-x-auto min-w-0 max-w-full"
     >
-      <table class="w-full table-fixed divide-y divide-n-weak">
+      <table class="w-full min-w-[40rem] table-fixed divide-y divide-n-weak">
         <thead class="border-t border-n-weak">
           <tr>
             <th
-              class="py-4 px-4 text-start text-heading-3 text-n-slate-12 w-[32%]"
+              scope="col"
+              class="py-4 px-4 text-start text-body-main font-medium text-n-slate-12 w-[32%] sticky start-0 z-20 bg-n-solid-2"
             >
-              {{ t('REPORT_PANELS.LIST.COLUMNS.NAME') }}
+              <span
+                class="block truncate"
+                :title="t('REPORT_PANELS.LIST.COLUMNS.NAME')"
+              >
+                {{ t('REPORT_PANELS.LIST.COLUMNS.NAME') }}
+              </span>
             </th>
             <th
-              class="py-4 px-4 text-start text-heading-3 text-n-slate-12 w-[18%]"
+              scope="col"
+              class="py-4 px-4 text-start text-body-main font-medium text-n-slate-12 w-[18%]"
             >
-              {{ t('REPORT_PANELS.LIST.COLUMNS.PERIOD') }}
+              <span
+                class="block truncate"
+                :title="t('REPORT_PANELS.LIST.COLUMNS.PERIOD')"
+              >
+                {{ t('REPORT_PANELS.LIST.COLUMNS.PERIOD') }}
+              </span>
             </th>
             <th
-              class="py-4 px-4 text-start text-heading-3 text-n-slate-12 w-[10%]"
+              scope="col"
+              class="py-4 px-4 text-end text-body-main font-medium text-n-slate-12 w-[10%]"
             >
-              {{ t('REPORT_PANELS.LIST.COLUMNS.WIDGETS') }}
+              <span
+                class="block truncate"
+                :title="t('REPORT_PANELS.LIST.COLUMNS.WIDGETS')"
+              >
+                {{ t('REPORT_PANELS.LIST.COLUMNS.WIDGETS') }}
+              </span>
             </th>
             <th
-              class="py-4 px-4 text-start text-heading-3 text-n-slate-12 w-[10%]"
+              scope="col"
+              class="py-4 px-4 text-end text-body-main font-medium text-n-slate-12 w-[10%]"
             >
-              {{ t('REPORT_PANELS.LIST.COLUMNS.FILTERS') }}
+              <span
+                class="block truncate"
+                :title="t('REPORT_PANELS.LIST.COLUMNS.FILTERS')"
+              >
+                {{ t('REPORT_PANELS.LIST.COLUMNS.FILTERS') }}
+              </span>
             </th>
             <th
-              class="py-4 px-4 text-start text-heading-3 text-n-slate-12 w-[14%]"
+              scope="col"
+              class="py-4 px-4 text-start text-body-main font-medium text-n-slate-12 w-[14%]"
             >
-              {{ t('REPORT_PANELS.LIST.COLUMNS.UPDATED') }}
+              <span
+                class="block truncate"
+                :title="t('REPORT_PANELS.LIST.COLUMNS.UPDATED')"
+              >
+                {{ t('REPORT_PANELS.LIST.COLUMNS.UPDATED') }}
+              </span>
             </th>
             <th
-              class="py-4 px-4 text-end text-heading-3 text-n-slate-12 w-[16%]"
+              scope="col"
+              class="py-4 px-4 text-end text-body-main font-medium text-n-slate-12 w-[16%]"
             >
-              {{ t('REPORT_PANELS.LIST.COLUMNS.ACTIONS') }}
+              <span
+                class="block truncate"
+                :title="t('REPORT_PANELS.LIST.COLUMNS.ACTIONS')"
+              >
+                {{ t('REPORT_PANELS.LIST.COLUMNS.ACTIONS') }}
+              </span>
             </th>
           </tr>
         </thead>
@@ -160,11 +201,12 @@ onMounted(fetchPanels);
             class="cursor-pointer hover:bg-n-alpha-2"
             @click="openPanel(panel.id)"
           >
-            <td class="py-3 px-4 min-w-0">
+            <td class="py-3 px-4 min-w-0 sticky start-0 z-10 bg-n-solid-2">
               <div class="flex flex-col gap-0.5 min-w-0">
                 <div class="flex items-center gap-2 min-w-0">
                   <span
                     class="text-body-main text-n-slate-12 truncate font-medium"
+                    :title="panel.name"
                   >
                     {{ panel.name }}
                   </span>
@@ -178,6 +220,7 @@ onMounted(fetchPanels);
                 <span
                   v-if="panel.description"
                   class="text-sm text-n-slate-11 truncate"
+                  :title="panel.description"
                 >
                   {{ panel.description }}
                 </span>
@@ -186,16 +229,20 @@ onMounted(fetchPanels);
             <td class="py-3 px-4 text-body-main text-n-slate-12">
               <span class="line-clamp-2">{{ periodLabel(panel) }}</span>
             </td>
-            <td class="py-3 px-4 text-body-main text-n-slate-12">
-              {{ widgetCount(panel) }}
-            </td>
-            <td class="py-3 px-4 text-body-main text-n-slate-12">
-              {{ filterCount(panel) }}
+            <td
+              class="py-3 px-4 text-body-main text-n-slate-12 text-end whitespace-nowrap"
+            >
+              {{ numberFormatter.format(widgetCount(panel)) }}
             </td>
             <td
-              class="py-3 px-4 text-body-main text-n-slate-11 whitespace-nowrap"
+              class="py-3 px-4 text-body-main text-n-slate-12 text-end whitespace-nowrap"
             >
-              {{ updatedLabel(panel) }}
+              {{ numberFormatter.format(filterCount(panel)) }}
+            </td>
+            <td class="py-3 px-4 text-body-main text-n-slate-11">
+              <span class="block truncate" :title="updatedLabel(panel)">{{
+                updatedLabel(panel)
+              }}</span>
             </td>
             <td class="py-3 px-4">
               <div class="flex items-center justify-end gap-1">

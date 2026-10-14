@@ -750,6 +750,7 @@
       }
     },
     "EMPTY_TABLE": "No rows for this period.",
+    "LOADING": "Loading data…",
     "TABLE_CLICK_HINT": "Click a row to open the conversation or contact.",
     "FILTERED_COUNT": "{count} conversations match the filters",
     "FILTERED_CONTACTS_COUNT": "{count} contacts match the filters",
@@ -853,6 +854,13 @@
       "CONVERSATION_CA_PREFIX": "Conversation: {name}",
       "CONTACT_CA_PREFIX": "Contact: {name}",
       "MEASURE_CA": "{op}({name})",
+      "MEASURE_CA_SHORT": "{name} ({op})",
+      "CONVERSATIONS_SHORT": "Conversations",
+      "UNIQUE_CONTACTS_SHORT": "Unique contacts",
+      "CONTACTS_SHORT": "Contacts",
+      "FIRST_RESPONSE_SHORT": "First response",
+      "RESOLUTION_SHORT": "Resolution",
+      "WAIT_TIME_SHORT": "Wait time",
       "MEASURE_CA_EQ": "{op}({name} = {value})"
     },
     "METRICS": {

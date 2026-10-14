@@ -1,6 +1,9 @@
 import {
   cleanTableOptions,
   formatPanelMeasure,
+  formatNumericAttribute,
+  formatPanelDate,
+  PANEL_DATE_FORMATS,
   isAdditiveMeasure,
   defaultTableWidget,
   defaultPivotConfig,
@@ -215,5 +218,29 @@ describe('dynamic table settings', () => {
     expect(formatPanelMeasure(value, { type: 'integer' })).toBe('11');
     expect(formatPanelMeasure(null, config)).toBe('—');
     expect(value).toBe(10.9);
+  });
+
+  it.each([
+    ['es', '$1.080,50', '25,5%'],
+    ['en', '$1,080.50', '25.5%'],
+  ])(
+    'formats currency with four-digit grouping and percentages in %s',
+    (locale, amount, percent) => {
+      expect(formatNumericAttribute(1080.5, 'currency', locale)).toBe(amount);
+      expect(formatPanelMeasure(1080.5, { type: 'currency' }, locale)).toBe(
+        amount
+      );
+      expect(
+        formatPanelMeasure(25.5, { type: 'percent', decimals: 1 }, locale)
+      ).toBe(percent);
+    }
+  );
+
+  it('localizes calendar dates, preserving their day and handling invalid custom attributes', () => {
+    expect(formatPanelDate('2026-01-15', 'es')).toBe('15 ene 2026');
+    expect(formatPanelDate('2026-01-01', 'en', PANEL_DATE_FORMATS.month)).toBe(
+      'Jan 2026'
+    );
+    expect(formatPanelDate('not a date', 'es')).toBe('not a date');
   });
 });
