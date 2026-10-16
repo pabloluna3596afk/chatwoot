@@ -351,7 +351,7 @@
       "TITLE": "Calendars",
       "CONNECT_CTA": "Connect a calendar",
       "EMPTY": "No calendars connected yet. An administrator can connect Google from Settings → Integrations → Calendars.",
-      "NO_EVENTS": "No events in this week.",
+      "NO_EVENTS": "No upcoming events in this range.",
       "DELETED": "Cancelled event",
       "DELETED_SECTION": "Cancelled events",
       "SHOW_CANCELLED": "Show cancelled events",
@@ -366,7 +366,7 @@
       "LOAD_ERROR": "Could not load events.",
       "OPEN_IN_GOOGLE": "Open in Google Calendar",
       "ALL_DAY": "All day",
-      "AGENDA": "Agenda",
+      "AGENDA": "Upcoming events",
       "NEW_EVENT": "New appointment",
       "EMPTY_CALENDARS": "No calendars are enabled yet. An administrator must enable specific calendars from Settings → Integrations → Calendars.",
       "ENABLE_CTA": "Enable calendars",
@@ -434,8 +434,19 @@
         "FOLLOWUP_CAPTAIN_NOTE": "Appointments that Captain books are handled by Captain (confirmation and reminders). This section is for appointments a person creates.",
         "FOLLOWUP_NONE_HELP": "No message is sent to the customer.",
         "FOLLOWUP_NOTICE_HELP": "One message with the appointment details is written in the conversation, without reminders.",
-        "FOLLOWUP_BOT_HELP": "The connected AI bot confirms the appointment and sends reminders."
-      }
+        "FOLLOWUP_BOT_HELP": "The connected AI bot confirms the appointment and sends reminders.",
+        "APPOINTMENT_STATUS": "Appointment status",
+        "TIME_CHANGED": "{from} → {to}",
+        "STATUS_CHANGED": "{from} → {to}"
+      },
+      "STATUS": {
+        "CONFIRMED": "Confirmed",
+        "PENDING_CONFIRMATION": "Pending confirmation",
+        "RESCHEDULED": "Rescheduled",
+        "NONE": "Meeting",
+        "CANCELLED": "Cancelled"
+      },
+      "LEGEND_HELP": "Appointment status. Moving an appointment keeps its confirmation; cancel with a reason."
     },
     "ALL_CONVERSATIONS": "All Conversations",
     "MENTIONED_CONVERSATIONS": "Mentions",
