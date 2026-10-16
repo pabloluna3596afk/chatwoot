@@ -165,7 +165,7 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
 
       result = service.update('g-1', create_params(description: 'Updated note', appointment_status: 'confirmed'))
 
-      expect(result).to include(appointment_status: 'confirmed', start: Time.zone.parse(slot_start).iso8601)
+      expect(result).to include(appointment_status: 'confirmed', start: slot_start)
       expect(connection.calendar_events.find_by!(google_event_id: 'g-1').invitation_text).to eq('Updated note')
       expect(client).to have_received(:update_event).once
     end
