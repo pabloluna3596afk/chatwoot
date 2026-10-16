@@ -351,7 +351,7 @@
       "TITLE": "Calendarios",
       "CONNECT_CTA": "Conectar un calendario",
       "EMPTY": "Todavía no hay calendarios. Un administrador puede conectar Google en Ajustes → Integraciones → Calendarios.",
-      "NO_EVENTS": "No hay eventos en esta semana.",
+      "NO_EVENTS": "No hay próximos eventos en este rango.",
       "DELETED": "Evento cancelado",
       "DELETED_SECTION": "Eventos cancelados",
       "SHOW_CANCELLED": "Mostrar eventos cancelados",
@@ -366,7 +366,7 @@
       "LOAD_ERROR": "No se pudieron cargar los eventos.",
       "OPEN_IN_GOOGLE": "Abrir en Google Calendar",
       "ALL_DAY": "Todo el día",
-      "AGENDA": "Agenda",
+      "AGENDA": "Próximos eventos",
       "NEW_EVENT": "Nueva cita",
       "EMPTY_CALENDARS": "Todavía no hay calendarios habilitados. Un administrador debe habilitar calendarios concretos en Ajustes → Integraciones → Calendarios.",
       "ENABLE_CTA": "Habilitar calendarios",
@@ -434,8 +434,19 @@
         "FOLLOWUP_BOT_HELP": "El bot de IA conectado confirma la cita y envía recordatorios.",
         "FOLLOWUP_CONFIRMATION": "Pedir confirmación",
         "FOLLOWUP_REMINDER_24H": "Recordatorio 24 horas antes",
-        "FOLLOWUP_REMINDER_30M": "Recordatorio 30 minutos antes"
-      }
+        "FOLLOWUP_REMINDER_30M": "Recordatorio 30 minutos antes",
+        "APPOINTMENT_STATUS": "Estado de la cita",
+        "TIME_CHANGED": "{from} → {to}",
+        "STATUS_CHANGED": "{from} → {to}"
+      },
+      "STATUS": {
+        "CONFIRMED": "Confirmada",
+        "PENDING_CONFIRMATION": "Pendiente de confirmar",
+        "RESCHEDULED": "Reprogramada",
+        "NONE": "Reunión",
+        "CANCELLED": "Cancelada"
+      },
+      "LEGEND_HELP": "Estado de la cita. Al moverla se conserva su confirmación; para cancelarla debes indicar un motivo."
     },
     "ALL_CONVERSATIONS": "Todas las conversaciones",
     "MENTIONED_CONVERSATIONS": "Menciones",

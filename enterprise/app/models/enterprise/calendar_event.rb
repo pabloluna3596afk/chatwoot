@@ -11,7 +11,7 @@ module Enterprise::CalendarEvent
   def sync_appointment_reminders
     return unless appointment_reminders.exists?
 
-    if saved_change_to_deleted_at? && discarded?
+    if discarded? && (saved_change_to_deleted_at? || saved_change_to_appointment_status?)
       Captain::AppointmentReminders::Scheduler.cancel(self)
     elsif saved_change_to_start_at?
       Captain::AppointmentReminders::Scheduler.reschedule(self)

@@ -1,4 +1,10 @@
 <script setup>
+import {
+  CALENDAR_LEGEND_STATUSES,
+  calendarEventStyle,
+  isCancelledEvent,
+  visibleCalendarEvents,
+} from 'dashboard/helper/appointmentStatus';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -21,13 +27,13 @@ import {
   HOUR_END,
   HOUR_START,
   addDaysKey,
+  calendarEventTooltip,
   compareEventsByStart,
   eventDateKey,
   formatDayLabel,
   formatTime,
   startOfWeekKey,
   weekBoundsIso,
-  weekDays,
 } from 'dashboard/helper/calendarTime';
 import {
   calendarDisplayName,
@@ -53,11 +59,10 @@ const modalRef = ref(null);
 const showMenu = ref(false);
 const showAccountMenu = ref(false);
 const { showCancelled } = useCalendarCancelledVisibility();
+const AGENDA_DAYS = 14;
 
 const visibleEvents = computed(() =>
-  showCancelled.value
-    ? events.value
-    : events.value.filter(event => !event.deleted)
+  visibleCalendarEvents(events.value, showCancelled.value)
 );
 
 const calendarOutlineOptions = computed(() =>
@@ -100,15 +105,19 @@ const weekLabel = computed(() => {
   return `${formatDayLabel(start, locale.value)} - ${formatDayLabel(end, locale.value)}`;
 });
 
-const groupedEvents = computed(() =>
-  weekDays(weekStartKey.value).map(dateKey => ({
-    key: dateKey,
-    label: formatDayLabel(dateKey, locale.value),
-    events: visibleEvents.value
-      .filter(event => eventDateKey(event.start) === dateKey)
-      .sort(compareEventsByStart),
-  }))
-);
+const groupsForDays = days =>
+  Array.from({ length: days }, (_, index) => addDaysKey(weekStartKey.value, index)).map(
+    dateKey => ({
+      key: dateKey,
+      label: formatDayLabel(dateKey, locale.value),
+      events: visibleEvents.value
+        .filter(event => eventDateKey(event.start) === dateKey)
+        .sort(compareEventsByStart),
+    })
+  );
+
+const weekGroups = computed(() => groupsForDays(7));
+const agendaGroups = computed(() => groupsForDays(AGENDA_DAYS));
 
 const hasConnections = computed(() => connections.value.length > 0);
 const panelAiActive = ref(false);
@@ -180,7 +189,7 @@ const loadEvents = async ({ silent = false, keepEvent = null } = {}) => {
   }
   if (!silent) loadingEvents.value = true;
   try {
-    const bounds = weekBoundsIso(weekStartKey.value);
+    const bounds = weekBoundsIso(weekStartKey.value, AGENDA_DAYS);
     const { data } = await CalendarAPI.getEvents({
       connectionId: selectedConnectionId.value,
       calendarId: selectedCalendarId.value,
@@ -258,17 +267,15 @@ onMounted(loadConnections);
 
 <template>
   <section class="flex flex-col w-full h-full min-w-0 bg-n-surface-1">
-    <header
-      class="flex items-start justify-between gap-4 px-6 py-3 border-b border-n-weak min-w-0"
-    >
+    <header class="flex items-start justify-between gap-3 px-4 py-3 min-w-0">
       <h1 class="text-lg font-medium text-n-slate-12 shrink-0 pt-1">
         {{ $t('SIDEBAR.CALENDAR_PAGE.TITLE') }}
       </h1>
       <div
         v-if="hasConnections"
-        class="ml-auto flex flex-wrap items-end justify-end gap-2 min-w-0 max-w-full"
+        class="ms-auto flex flex-1 flex-wrap xl:flex-nowrap items-end justify-end gap-2 min-w-0"
       >
-        <div class="w-44 shrink-0">
+        <div class="w-40 xl:w-36 2xl:w-44 min-w-[6rem]">
           <OutlinedAttributeField
             :label="$t('SIDEBAR.CALENDAR_PAGE.ACCOUNT')"
             filled
@@ -321,7 +328,7 @@ onMounted(loadConnections);
             </MenuPopover>
           </OutlinedAttributeField>
         </div>
-        <div class="w-44 shrink-0">
+        <div class="w-40 xl:w-36 2xl:w-44 min-w-[6rem]">
           <OutlinedSelectField
             :label="$t('SIDEBAR.CALENDAR_PAGE.CALENDAR')"
             :options="calendarOutlineOptions"
@@ -331,7 +338,9 @@ onMounted(loadConnections);
             @select="onCalendarSelect"
           />
         </div>
-        <div class="flex items-center gap-1 shrink-0">
+        <div
+          class="flex w-full xl:w-auto xl:flex-1 items-center justify-end gap-1 min-w-0"
+        >
           <Button
             icon="i-lucide-chevron-left"
             faded
@@ -340,7 +349,10 @@ onMounted(loadConnections);
             :title="$t('SIDEBAR.CALENDAR_PAGE.PREV_WEEK')"
             @click="weekStartKey = addDaysKey(weekStartKey, -7)"
           />
-          <span class="px-2 text-sm text-n-slate-12 whitespace-nowrap">
+          <span
+            class="min-w-0 truncate px-2 text-sm text-n-slate-12"
+            :title="weekLabel"
+          >
             {{ weekLabel }}
           </span>
           <Button
@@ -366,32 +378,16 @@ onMounted(loadConnections);
             :disabled="!selectedCalendarId"
             @click="openCreate({ dateKey: weekStartKey, hours: 9, minutes: 0 })"
           />
-          <MenuPopover
-            v-model:open="showMenu"
-            :label="$t('SIDEBAR.CALENDAR_PAGE.SHOW_CANCELLED')"
-            panel-class="w-64 max-w-[calc(100vw-2rem)]"
-          >
-            <template #trigger>
-              <Button
-                faded
-                slate
-                sm
-                icon="i-lucide-ellipsis-vertical"
-                :title="$t('SIDEBAR.CALENDAR_PAGE.SHOW_CANCELLED')"
-                @click="showMenu = !showMenu"
-              />
-            </template>
-            <template #content>
-              <div class="px-2 pb-2">
-                <label
-                  class="flex items-center justify-between gap-3 text-sm text-n-slate-12"
-                >
-                  {{ $t('SIDEBAR.CALENDAR_PAGE.SHOW_CANCELLED') }}
-                  <Switch v-model="showCancelled" />
-                </label>
-              </div>
-            </template>
-          </MenuPopover>
+          <Button
+            faded
+            slate
+            sm
+            icon="i-lucide-ellipsis-vertical"
+            :title="$t('SIDEBAR.CALENDAR_PAGE.SHOW_CANCELLED')"
+            :aria-expanded="showMenu"
+            aria-controls="calendar-cancelled-visibility"
+            @click="showMenu = !showMenu"
+          />
         </div>
       </div>
     </header>
@@ -432,92 +428,122 @@ onMounted(loadConnections);
       />
     </div>
 
-    <div v-else class="flex flex-1 min-h-0">
-      <AgendaSidebar :groups="groupedEvents" @event-click="openEvent" />
-      <div class="flex flex-col flex-1 min-h-0 min-w-0">
-        <WeekGrid
-          :week-start-key="weekStartKey"
-          :events="visibleEvents"
-          :hour-start="hourStart"
-          :hour-end="hourEnd"
-          @slot-click="openCreate"
-          @event-click="openEvent"
-        />
-        <div class="md:hidden flex-1 overflow-auto px-4 py-4">
-          <div class="flex flex-col gap-4">
-            <section
-              v-for="group in groupedEvents"
-              :key="group.key"
-              class="rounded-xl border border-n-weak bg-n-card p-4"
-            >
-              <h2 class="text-sm font-medium text-n-slate-12 capitalize mb-3">
-                {{ group.label }}
-              </h2>
-              <p v-if="!group.events.length" class="text-sm text-n-slate-10">
-                {{ $t('SIDEBAR.CALENDAR_PAGE.NO_EVENTS') }}
-              </p>
-              <div v-else class="flex flex-col gap-0.5">
-                <button
-                  v-for="event in group.events"
-                  :key="event.id"
-                  type="button"
-                  class="flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left"
-                  :class="
-                    event.deleted
-                      ? 'bg-n-ruby-3/50 hover:bg-n-ruby-4'
-                      : 'hover:bg-n-alpha-2'
-                  "
-                  @click="openEvent(event)"
-                >
-                  <span
-                    class="mt-1.5 size-2 shrink-0 rounded-full"
-                    :class="event.deleted ? 'bg-n-ruby-9' : 'bg-n-blue-9'"
-                    aria-hidden="true"
-                  />
-                  <span class="min-w-0 flex-1">
+    <div v-else class="flex flex-col flex-1 min-h-0">
+      <div
+        class="flex flex-wrap items-center gap-3 px-4 py-2 text-xs text-n-slate-11"
+      >
+        <div class="flex flex-1 flex-wrap items-center gap-3">
+          <span
+            v-for="status in CALENDAR_LEGEND_STATUSES"
+            :key="status"
+            v-tooltip.top="$t('SIDEBAR.CALENDAR_PAGE.LEGEND_HELP')"
+            class="inline-flex items-center gap-1.5"
+          >
+            <span
+              class="size-2 rounded-full"
+              :class="calendarEventStyle({ appointment_status: status }).dot"
+            />
+            {{ $t(`SIDEBAR.CALENDAR_PAGE.STATUS.${status.toUpperCase()}`) }}
+          </span>
+        </div>
+        <label
+          v-if="showMenu"
+          id="calendar-cancelled-visibility"
+          class="ms-auto flex shrink-0 items-center gap-3 text-n-slate-12"
+        >
+          {{ $t('SIDEBAR.CALENDAR_PAGE.SHOW_CANCELLED') }}
+          <Switch v-model="showCancelled" />
+        </label>
+      </div>
+      <div class="flex flex-1 min-h-0">
+        <AgendaSidebar :groups="agendaGroups" @event-click="openEvent" />
+        <div class="flex flex-col flex-1 min-h-0 min-w-0">
+          <WeekGrid
+            :week-start-key="weekStartKey"
+            :events="visibleEvents"
+            :hour-start="hourStart"
+            :hour-end="hourEnd"
+            @slot-click="openCreate"
+            @event-click="openEvent"
+          />
+          <div class="md:hidden flex-1 overflow-auto px-4 py-4">
+            <div class="flex flex-col gap-4">
+              <section
+                v-for="group in weekGroups"
+                :key="group.key"
+                class="rounded-xl border border-n-weak bg-n-card p-4"
+              >
+                <h2 class="text-sm font-medium text-n-slate-12 capitalize mb-3">
+                  {{ group.label }}
+                </h2>
+                <p v-if="!group.events.length" class="text-sm text-n-slate-10">
+                  {{ $t('SIDEBAR.CALENDAR_PAGE.NO_EVENTS') }}
+                </p>
+                <div v-else class="flex flex-col gap-0.5">
+                  <button
+                    v-for="event in group.events"
+                    :key="event.id"
+                    type="button"
+                    class="flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left"
+                    :class="calendarEventStyle(event).surface"
+                    :title="calendarEventTooltip(event, t)"
+                    @click="openEvent(event)"
+                  >
                     <span
-                      v-if="event.deleted"
-                      class="block text-[10px] font-medium text-n-ruby-11"
-                    >
-                      {{ $t('SIDEBAR.CALENDAR_PAGE.DELETED') }}
-                    </span>
-                    <span
-                      class="block text-sm truncate"
-                      :class="
-                        event.deleted
-                          ? 'text-n-ruby-11 line-through'
-                          : 'text-n-slate-12'
-                      "
-                    >
-                      {{ event.summary }}
-                    </span>
-                    <span
-                      class="block text-xs truncate"
-                      :class="
-                        event.deleted ? 'text-n-ruby-11/80' : 'text-n-slate-11'
-                      "
-                    >
-                      {{
-                        event.all_day
-                          ? $t('SIDEBAR.CALENDAR_PAGE.ALL_DAY')
-                          : formatTime(event.start)
-                      }}
-                      <template
-                        v-if="event.deleted_by?.name || event.created_by?.name"
+                      class="mt-1.5 size-2 shrink-0 rounded-full"
+                      :class="calendarEventStyle(event).dot"
+                      aria-hidden="true"
+                    />
+                    <span class="min-w-0 flex-1">
+                      <span
+                        v-if="isCancelledEvent(event)"
+                        class="block text-[10px] font-medium text-n-ruby-11"
                       >
-                        · {{ event.deleted_by?.name || event.created_by.name }}
-                      </template>
+                        {{ $t('SIDEBAR.CALENDAR_PAGE.DELETED') }}
+                      </span>
+                      <span
+                        class="block text-sm truncate"
+                        :class="
+                          isCancelledEvent(event)
+                            ? 'text-n-ruby-11 line-through'
+                            : 'text-n-slate-12'
+                        "
+                      >
+                        {{ event.summary }}
+                      </span>
+                      <span
+                        class="block text-xs truncate"
+                        :class="
+                          isCancelledEvent(event)
+                            ? 'text-n-ruby-11/80'
+                            : 'text-n-slate-11'
+                        "
+                      >
+                        {{
+                          event.all_day
+                            ? $t('SIDEBAR.CALENDAR_PAGE.ALL_DAY')
+                            : formatTime(event.start)
+                        }}
+                        <template
+                          v-if="
+                            event.deleted_by?.name || event.created_by?.name
+                          "
+                        >
+                          ·
+                          {{ event.deleted_by?.name || event.created_by.name }}
+                        </template>
+                      </span>
+                      <span
+                        v-if="isCancelledEvent(event) && event.deleted_note"
+                        class="block text-xs text-n-ruby-11 truncate"
+                      >
+                        {{ event.deleted_note }}
+                      </span>
                     </span>
-                    <span
-                      v-if="event.deleted && event.deleted_note"
-                      class="block text-xs text-n-ruby-11 truncate"
-                    >
-                      {{ event.deleted_note }}
-                    </span>
-                  </span>
-                </button>
-              </div>
-            </section>
+                  </button>
+                </div>
+              </section>
+            </div>
           </div>
         </div>
       </div>

@@ -136,6 +136,14 @@ RSpec.describe Captain::AppointmentReminders do
       expect(Captain::AppointmentReminder.where(calendar_event_id: event.id).pluck(:status).uniq).to eq(['cancelled'])
     end
 
+    it 'cancels pending reminders for a legacy status-only cancellation' do
+      schedule
+
+      event.update!(appointment_status: 'cancelled')
+
+      expect(event.appointment_reminders.pluck(:status).uniq).to eq(['cancelled'])
+    end
+
     it 'leaves events without reminders alone' do
       expect { event.update!(summary: 'Otra') }.not_to change(Captain::AppointmentReminder, :count)
     end
@@ -182,6 +190,14 @@ RSpec.describe Captain::AppointmentReminders do
 
     def send_reminder(kind = 'reminder_1')
       at(due_at) { described_class.new(reminder(kind)).perform }
+    end
+
+    it 'skips legacy status-only cancellations even if a pending reminder survived' do
+      schedule
+      event.update_columns(appointment_status: 'cancelled') # rubocop:disable Rails/SkipsModelValidations
+
+      expect { send_reminder }.not_to change(Message, :count)
+      expect(reminder('reminder_1')).to have_attributes(status: 'skipped', skipped_reason: 'event_gone')
     end
 
     context 'when the conversation can be answered freely' do

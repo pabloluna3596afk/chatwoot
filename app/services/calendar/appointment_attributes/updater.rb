@@ -31,7 +31,6 @@ class Calendar::AppointmentAttributes::Updater
   def values
     now = Time.current
     events = CalendarEvent.kept.where(account_id: @contact.account_id, contact_id: @contact.id)
-                          .where.not(appointment_status: 'cancelled')
     previous = events.where(start_at: ..now).maximum(:start_at)
     upcoming = events.where('start_at > ?', now).order(:start_at, :id).pick(:start_at, :summary)
     {

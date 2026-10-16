@@ -5,6 +5,20 @@ RSpec.describe CalendarEvent do
   let(:connection) { create(:calendar_connection, account: contact.account) }
   let(:event) { create(:calendar_event, calendar_connection: connection, contact: contact) }
 
+  it 'treats legacy cancelled appointments as discarded and excludes them from kept' do
+    event.update!(appointment_status: 'cancelled')
+
+    expect(event).to be_discarded
+    expect(described_class.kept).not_to include(event)
+  end
+
+  it 'does not schedule a future contact refresh for a cancelled appointment' do
+    event
+
+    expect { event.update!(appointment_status: 'cancelled') }
+      .not_to have_enqueued_job(Calendar::AppointmentAttributes::UpdateJob).with(contact.account_id, contact.id).at(event.start_at + 1.minute)
+  end
+
   it 'enqueues a contact update after creation' do
     expect { event }.to have_enqueued_job(Calendar::AppointmentAttributes::UpdateJob).with(contact.account_id, contact.id).at(:no_wait)
   end

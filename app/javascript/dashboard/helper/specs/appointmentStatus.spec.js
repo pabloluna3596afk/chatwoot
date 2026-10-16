@@ -1,5 +1,9 @@
 import {
   appointmentStatusKey,
+  calendarEventStyle,
+  calendarEventStatus,
+  isCancelledEvent,
+  visibleCalendarEvents,
   invitationStatusKey,
 } from '../appointmentStatus';
 
@@ -38,5 +42,43 @@ describe('invitationStatusKey', () => {
     );
     expect(invitationStatusKey({ invitation_status: null })).toBeNull();
     expect(invitationStatusKey({})).toBeNull();
+  });
+});
+
+describe('calendar event appearance and visibility', () => {
+  it.each([
+    ['confirmed', 'bg-n-teal-3'],
+    ['pending_confirmation', 'bg-n-amber-3'],
+    ['rescheduled', 'bg-n-iris-3'],
+    ['none', 'bg-n-slate-3'],
+    ['cancelled', 'bg-n-ruby-3'],
+  ])('maps %s to the shared palette', (status, background) => {
+    expect(
+      calendarEventStyle({ appointment_status: status }).surface
+    ).toContain(background);
+  });
+
+  it('gives cancellation precedence over confirmation and keeps untracked meetings neutral', () => {
+    expect(
+      calendarEventStatus({ deleted: true, appointment_status: 'confirmed' })
+    ).toBe('cancelled');
+    expect(calendarEventStyle({}).surface).toContain('bg-n-slate-3');
+    expect(
+      calendarEventStyle({ appointment_status: 'unknown' }).surface
+    ).toContain('bg-n-slate-3');
+    expect(isCancelledEvent({ invitation_status: 'declined' })).toBe(false);
+  });
+
+  it('toggles both forms of cancellation without mutating the source', () => {
+    const events = [
+      { id: 'active' },
+      { id: 'deleted', deleted: true },
+      { id: 'cancelled', appointment_status: 'cancelled' },
+    ];
+    expect(visibleCalendarEvents(events, false).map(event => event.id)).toEqual(
+      ['active']
+    );
+    expect(visibleCalendarEvents(events, true)).toEqual(events);
+    expect(events).toHaveLength(3);
   });
 });

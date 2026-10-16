@@ -1,5 +1,6 @@
 import { flushPromises, shallowMount } from '@vue/test-utils';
 import CalendarEventsList from '../CalendarEventsList.vue';
+import { ref } from 'vue';
 
 const { getConversationEvents, getConnections } = vi.hoisted(() => ({
   getConversationEvents: vi.fn(),
@@ -8,6 +9,10 @@ const { getConversationEvents, getConnections } = vi.hoisted(() => ({
 
 vi.mock('dashboard/api/integrations/calendar', () => ({
   default: { getConversationEvents, getConnections, getCalendars: vi.fn() },
+}));
+
+vi.mock('dashboard/helper/useCalendarCancelledVisibility', () => ({
+  useCalendarCancelledVisibility: () => ({ showCancelled: ref(true) }),
 }));
 
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
@@ -65,5 +70,12 @@ describe('CalendarEventsList', () => {
     expect(past.text()).toContain('CONVERSATION_SIDEBAR.CALENDAR.PAST_BADGE');
     expect(past.text()).toContain('Cancelada');
     expect(past.text()).not.toContain('Próxima');
+    wrapper
+      .findComponent({ name: 'EventModal' })
+      .vm.$emit('saved', { id: 'gone', deleted: true });
+    await flushPromises();
+    expect(wrapper.emitted('saved')[0]).toEqual([
+      { id: 'gone', deleted: true },
+    ]);
   });
 });

@@ -6,12 +6,17 @@ import CalendarAPI from 'dashboard/api/integrations/calendar';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import EventModal from 'dashboard/routes/dashboard/calendars/EventModal.vue';
+import Switch from 'dashboard/components-next/switch/Switch.vue';
+import { useCalendarCancelledVisibility } from 'dashboard/helper/useCalendarCancelledVisibility';
 import AppointmentCreatorAvatar from './AppointmentCreatorAvatar.vue';
 import {
   formatEventWhen,
   isUpcomingEvent,
 } from 'dashboard/helper/calendarTime';
 import {
+  calendarEventStyle,
+  isCancelledEvent,
+  visibleCalendarEvents,
   appointmentStatusKey,
   invitationStatusKey,
 } from 'dashboard/helper/appointmentStatus';
@@ -31,6 +36,7 @@ const props = defineProps({
   },
 });
 
+const emit = defineEmits(['saved']);
 const { t, locale } = useI18n();
 const events = ref([]);
 const connections = ref([]);
@@ -40,13 +46,17 @@ const isLoading = ref(false);
 const modalRef = ref(null);
 const selectedConnectionId = ref('');
 
-const hasEvents = computed(() => events.value.length > 0);
+const { showCancelled } = useCalendarCancelledVisibility();
+const visibleEvents = computed(() =>
+  visibleCalendarEvents(events.value, showCancelled.value)
+);
+const hasEvents = computed(() => visibleEvents.value.length > 0);
 const upcomingEvents = computed(() =>
-  events.value.filter(event => isUpcomingEvent(event))
+  visibleEvents.value.filter(event => isUpcomingEvent(event))
 );
 // What already happened (or was cancelled) is kept short: title, date and that it is past.
 const pastEvents = computed(() =>
-  events.value.filter(event => !isUpcomingEvent(event)).reverse()
+  visibleEvents.value.filter(event => !isUpcomingEvent(event)).reverse()
 );
 
 const loadConnections = async () => {
@@ -78,6 +88,11 @@ const loadEvents = async () => {
   } finally {
     isLoading.value = false;
   }
+};
+
+const onSaved = event => {
+  loadEvents();
+  emit('saved', event);
 };
 
 const openCreate = () => {
@@ -132,6 +147,12 @@ onMounted(async () => {
         @click="openCreate"
       />
     </div>
+    <label
+      class="flex items-center justify-between gap-2 px-4 pb-2 text-xs text-n-slate-11"
+    >
+      {{ $t('SIDEBAR.CALENDAR_PAGE.SHOW_CANCELLED') }}
+      <Switch v-model="showCancelled" />
+    </label>
     <div v-if="isLoading" class="flex justify-center p-8">
       <Spinner />
     </div>
@@ -146,14 +167,11 @@ onMounted(async () => {
           {{ $t('CONVERSATION_SIDEBAR.CALENDAR.UPCOMING') }}
         </h5>
         <ul class="max-h-[300px] overflow-y-auto list-none m-0 p-0">
-          <li
-            v-for="event in upcomingEvents"
-            :key="event.id"
-            class="px-4 py-3 border-b border-n-weak last:border-b-0"
-          >
+          <li v-for="event in upcomingEvents" :key="event.id" class="px-4 py-3">
             <button
               type="button"
-              class="w-full text-left"
+              class="w-full rounded-md p-2 text-start"
+              :class="calendarEventStyle(event).surface"
               @click="openEvent(event)"
             >
               <p class="flex items-center gap-1.5 text-sm text-n-slate-12">
@@ -162,7 +180,8 @@ onMounted(async () => {
               </p>
               <p
                 v-if="appointmentStatusKey(event)"
-                class="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-n-blue-11"
+                class="mt-0.5 text-[10px] font-medium uppercase tracking-wide"
+                :class="calendarEventStyle(event).text"
               >
                 {{
                   $t(
@@ -196,18 +215,19 @@ onMounted(async () => {
           <li
             v-for="event in pastEvents"
             :key="event.id"
-            class="px-4 py-2 border-b border-n-weak last:border-b-0"
-            :class="{ 'bg-n-ruby-3/40': event.deleted }"
+            class="px-4 py-2"
+            :class="{ 'bg-n-ruby-3/40': isCancelledEvent(event) }"
           >
             <button
               type="button"
-              class="w-full text-left"
+              class="w-full rounded-md p-2 text-start"
+              :class="calendarEventStyle(event).surface"
               @click="openEvent(event)"
             >
               <p
                 class="text-sm truncate"
                 :class="
-                  event.deleted
+                  isCancelledEvent(event)
                     ? 'text-n-ruby-11 line-through'
                     : 'text-n-slate-11'
                 "
@@ -216,17 +236,21 @@ onMounted(async () => {
               </p>
               <p
                 class="text-xs"
-                :class="event.deleted ? 'text-n-ruby-11/80' : 'text-n-slate-10'"
+                :class="
+                  isCancelledEvent(event)
+                    ? 'text-n-ruby-11/80'
+                    : 'text-n-slate-10'
+                "
               >
                 {{ formatEventWhen(event.start, locale) }} ·
                 {{
-                  event.deleted
+                  isCancelledEvent(event)
                     ? $t('CONVERSATION_SIDEBAR.CALENDAR.DELETED')
                     : $t('CONVERSATION_SIDEBAR.CALENDAR.PAST_BADGE')
                 }}
               </p>
               <p
-                v-if="event.deleted && event.deleted_note"
+                v-if="isCancelledEvent(event) && event.deleted_note"
                 class="text-xs text-n-ruby-11 truncate"
               >
                 {{ event.deleted_note }}
@@ -241,7 +265,7 @@ onMounted(async () => {
       :connections="connections"
       :calendars="calendars"
       :panel-ai-active="panelAiActive"
-      @saved="loadEvents"
+      @saved="onSaved"
     />
   </div>
 </template>

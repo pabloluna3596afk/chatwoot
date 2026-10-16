@@ -50,6 +50,7 @@ const {
 } = useUISettings();
 
 const dragging = ref(false);
+const nextAppointmentCard = ref(null);
 const conversationSidebarItems = ref(conversationSidebarItemsOrder.value);
 
 const isVisible = name => conversationSidebarVisibleItems.value.includes(name);
@@ -199,6 +200,7 @@ onMounted(() => {
       <ContactInfo :contact="contact" :channel-type="channelType" />
       <NextAppointmentCard
         v-if="isCalendarConnected && contact.id"
+        ref="nextAppointmentCard"
         :contact-id="contact.id"
       />
       <div class="px-3 pb-6 list-group">
@@ -402,6 +404,7 @@ onMounted(() => {
                   :conversation-id="conversationId"
                   :contact-id="contactId"
                   :contact-name="contact.name"
+                  @saved="nextAppointmentCard?.refresh()"
                 />
                 <p v-else class="px-4 py-3 text-sm text-n-slate-11">
                   {{ $t('CONVERSATION_SIDEBAR.CALENDAR.NOT_CONNECTED') }}

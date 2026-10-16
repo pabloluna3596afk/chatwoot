@@ -1,5 +1,59 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-65 — Citas: correcciones visuales y de edición de FASE 2 A+B v2
+
+**Archivos:** `CalendarView.vue`, `WeekGrid.vue`, `EventBlock.vue`,
+`AgendaSidebar.vue`, `calendarGrid.js`, `calendarTime.js`, `EventService`,
+`CalendarController`, textos EN/ES y sus specs. Se retira la safelist añadida a
+`tailwind.config.js`, que queda igual a HEAD.
+
+**Fix:** control de cancelados junto a la leyenda y cabecera sin wrapping desde
+1280 px; grilla sin bandas alternadas, con líneas horarias sutiles; dos/tres
+carriles muestran nombres truncados sin hora ni prefijo repetido y tooltips
+completos. Geometría inline por minuto, sin miles de clases globales. El horario
+se exige al crear o mover; editar nota/estado sin mover funciona fuera del
+horario vigente. Editar una cancelada devuelve un error propio localizado (422).
+
+**Cómo probar:** abrir/activar/cerrar el control de cancelados a 1280 px en
+claro/oscuro; comparar dos/tres citas simultáneas y sus tooltips. Cambiar horario
+y días del calendario, editar una cita existente sin moverla y luego intentar
+moverla fuera de disponibilidad, con agente y AgentBot. Editar una cancelada y
+comprobar “La cita está cancelada y no se puede editar.” sin llamar a Google.
+Cobertura por punto y archivos en [`CITAS_FASE2_AB.md`](CITAS_FASE2_AB.md).
+
+**Validación local:** ESLint de toda la entrega sin errores (17 advertencias),
+compilación de ocho SFC, helpers directos y generación Tailwind correctos.
+Vitest no arranca por `spawn EPERM` de esbuild; RSpec/RuboCop pendientes porque
+no hay Ruby local ni Docker disponible. Smoke visual/E2E pendiente del PM.
+
+### B-NEW-64 — Citas: disponibilidad, estados, cancelación y solapes (FASE 2 A+B)
+
+**Hallazgos:** CIT-03/10/05/04/01/18/23/24/25; refresco local de próxima cita relacionado con CIT-16.
+
+**Archivos:** `CalendarController`, `EventService`, `CalendarEvent` y su overlay
+Enterprise, `Calendar::AppointmentAttributes::Updater`; componentes del calendario,
+lista/tarjeta de conversación y `ContactPanel`; helpers de estado, geometría,
+tiempo y visibilidad; `tailwind.config.js`; textos EN/ES y specs correspondientes.
+
+**Fix:** exigir días/horas para humanos y bots; rechazar estado/tipo/transición
+inválidos antes de Google; PATCH cancelled y DELETE comparten cancelación con
+motivo, eliminación lógica y estado cancelled. Ocupación, atributos, próxima
+cita y recordatorios Captain excluyen también cancelaciones antiguas sin
+deleted_at. Modal con ComboBox de estado e historial; carriles estables para
+solapes con escala por minuto, paleta común y cancelados por cuenta.
+
+**Cómo probar:** crear/mover dentro y fuera de horario con agente y AgentBot;
+enviar tipos/estados inválidos; cancelar con PATCH y DELETE, comprobando motivo,
+Google, atributos, tarjeta y recordatorios. Mostrar dos/tres eventos simultáneos,
+adyacentes y cancelados en semana, agenda, móvil y conversación. Cambiar de
+cuenta y comprobar preferencias separadas. Comandos, cobertura y límites en
+[`CITAS_FASE2_AB.md`](CITAS_FASE2_AB.md).
+
+**Validación local:** ESLint sin errores; compilación Vue, comprobaciones directas
+de helpers con Node y generación de utilidades Tailwind. RSpec, RuboCop, Vitest y
+smoke visual/E2E pendientes. No hay migraciones. Seguimiento externo Panel AI y
+reconciliación Google permanecen fuera de alcance.
+
 ### B-NEW-63 — Template drawer picker lists displaced the form (PR Z)
 
 **Files:** `settings/templates/TemplateFormDrawer.vue`, `TemplateComboBox.vue`,

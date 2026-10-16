@@ -1,3 +1,5 @@
+import { calendarEventStatus, isCancelledEvent } from './appointmentStatus';
+
 export const TIMEZONE = 'America/Guayaquil';
 export const HOUR_START = 8;
 export const HOUR_END = 20;
@@ -87,10 +89,10 @@ export function weekDays(weekStartKey) {
   );
 }
 
-export function weekBoundsIso(weekStartKey) {
+export function weekBoundsIso(weekStartKey, days = 7) {
   return {
     timeMin: `${weekStartKey}T00:00:00${OFFSET}`,
-    timeMax: `${addDaysKey(weekStartKey, 7)}T00:00:00${OFFSET}`,
+    timeMax: `${addDaysKey(weekStartKey, days)}T00:00:00${OFFSET}`,
   };
 }
 
@@ -127,7 +129,9 @@ export function formatEventWhen(value, locale) {
 }
 
 export function isUpcomingEvent(event, now = Date.now()) {
-  return !event.deleted && eventInstant(event.end || event.start) >= now;
+  return (
+    !isCancelledEvent(event) && eventInstant(event.end || event.start) >= now
+  );
 }
 
 export function formatWeekdayMonth(dateKey, locale) {
@@ -141,38 +145,6 @@ export function formatWeekdayMonth(dateKey, locale) {
     month: 'short',
   });
   return `${weekday}, ${month}`;
-}
-
-export function eventLayout(
-  startIso,
-  endIso,
-  hourStart = HOUR_START,
-  hourEnd = HOUR_END
-) {
-  const gridStart = hourStart * 60;
-  const gridSpan = Math.max((hourEnd - hourStart) * 60, 60);
-  const start =
-    startIso && startIso.length > 10
-      ? guayaquilParts(new Date(startIso))
-      : { hour: hourStart, minute: 0 };
-  const end =
-    endIso && endIso.length > 10
-      ? guayaquilParts(new Date(endIso))
-      : { hour: start.hour + 1, minute: start.minute };
-  const startMin = start.hour * 60 + start.minute;
-  const endMin = end.hour * 60 + end.minute;
-  const clampedStart = Math.min(
-    Math.max(startMin, gridStart),
-    gridStart + gridSpan
-  );
-  const clampedEnd = Math.min(
-    Math.max(endMin, clampedStart + 15),
-    gridStart + gridSpan
-  );
-  return {
-    top: ((clampedStart - gridStart) / gridSpan) * 100,
-    height: ((clampedEnd - clampedStart) / gridSpan) * 100,
-  };
 }
 
 export function slotFromClick(
@@ -234,4 +206,14 @@ export function rangeFromStartEnd(date, startTime, endTime) {
 
 export function rangeFromParts(date, time, duration) {
   return rangeFromStartEnd(date, time, addMinutesToTime(time, duration));
+}
+
+export function calendarEventTooltip(event, t) {
+  const time = event.all_day
+    ? t('SIDEBAR.CALENDAR_PAGE.ALL_DAY')
+    : `${formatTime(event.start)} – ${formatTime(event.end)}`;
+  const status = t(
+    `SIDEBAR.CALENDAR_PAGE.STATUS.${calendarEventStatus(event).toUpperCase()}`
+  );
+  return `${event.summary}\n${time}\n${status}`;
 }

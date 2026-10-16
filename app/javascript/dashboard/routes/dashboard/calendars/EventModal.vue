@@ -6,13 +6,14 @@ import { useMapGetter } from 'dashboard/composables/store';
 import { useAccount } from 'dashboard/composables/useAccount';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
-import SelectInput from 'dashboard/components-next/select/Select.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
+import { isCancelledEvent } from 'dashboard/helper/appointmentStatus';
 import SearchAPI from 'dashboard/api/search';
 import ContactAPI from 'dashboard/api/contacts';
 import { createContactSearcher } from 'dashboard/components-next/NewConversation/helpers/composeConversationHelper';
@@ -21,7 +22,6 @@ import {
   TIMEZONE,
   addMinutesToTime,
   dateAndTimeParts,
-  formatTime,
   rangeFromStartEnd,
 } from 'dashboard/helper/calendarTime';
 import {
@@ -68,6 +68,16 @@ const etag = ref('');
 const connectionId = ref('');
 const calendarId = ref('');
 const summary = ref('');
+const appointmentStatus = ref('confirmed');
+const statusOptions = computed(() =>
+  ['confirmed', 'pending_confirmation'].map(value => ({
+    value,
+    label: t(`CONVERSATION_SIDEBAR.CALENDAR.STATUS.${value.toUpperCase()}`),
+  }))
+);
+const statusLabel = computed(() =>
+  t(`SIDEBAR.CALENDAR_PAGE.STATUS.${appointmentStatus.value.toUpperCase()}`)
+);
 const date = ref('');
 const time = ref('09:00');
 const endTime = ref('09:30');
@@ -165,6 +175,7 @@ const activityStamp = value => {
     timeZone: TIMEZONE,
     day: 'numeric',
     month: 'short',
+    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   });
@@ -172,11 +183,26 @@ const activityStamp = value => {
 
 const activityChange = item => {
   if (item.details?.note) return item.details.note;
+  const changes = [];
   const times = item.details?.start_at;
   if (Array.isArray(times) && times.length === 2) {
-    return `${formatTime(times[0])} â†’ ${formatTime(times[1])}`;
+    changes.push(
+      t('SIDEBAR.CALENDAR_PAGE.MODAL.TIME_CHANGED', {
+        from: activityStamp(times[0]),
+        to: activityStamp(times[1]),
+      })
+    );
   }
-  return '';
+  const statuses = item.details?.appointment_status;
+  if (Array.isArray(statuses)) {
+    changes.push(
+      t('SIDEBAR.CALENDAR_PAGE.MODAL.STATUS_CHANGED', {
+        from: t(`SIDEBAR.CALENDAR_PAGE.STATUS.${statuses[0].toUpperCase()}`),
+        to: t(`SIDEBAR.CALENDAR_PAGE.STATUS.${statuses[1].toUpperCase()}`),
+      })
+    );
+  }
+  return changes.join(' \u00b7 ');
 };
 
 const activityIcon = action =>
@@ -262,6 +288,7 @@ const payload = () => {
     connection_id: connectionId.value,
     calendar_id: calendarId.value,
     summary: summary.value.trim(),
+    appointment_status: appointmentStatus.value,
     start: range.start,
     end: range.end,
     etag: etag.value,
@@ -378,6 +405,11 @@ const applyEvent = (event, defaults) => {
   hideConversation.value =
     Boolean(defaults.hideConversation) && !defaults.conversationId;
   applyBotFollowupDefaults(event, defaults);
+  appointmentStatus.value =
+    event?.appointment_status ||
+    (botFollowupMode.value === 'bot_followup' && botFollowupConfirmation.value
+      ? 'pending_confirmation'
+      : 'confirmed');
   contactEmail.value = event?.contact?.email || defaults.contactEmail || '';
   inviteEmail.value = contactEmail.value;
   saveEmailOnContact.value = !contactEmail.value;
@@ -385,7 +417,7 @@ const applyEvent = (event, defaults) => {
   updatedBy.value = event?.updated_by?.name || '';
   bookingSource.value = event?.booking_source || 'manual';
   activities.value = event?.activities || [];
-  isDeleted.value = Boolean(event?.deleted);
+  isDeleted.value = isCancelledEvent(event);
   deleteNote.value = event?.deleted_note || '';
   confirmingDelete.value = false;
   readOnly.value = isDeleted.value;
@@ -631,14 +663,30 @@ defineExpose({ open, close });
           :placeholder="$t('SIDEBAR.CALENDAR_PAGE.MODAL.TITLE_PLACEHOLDER')"
           :disabled="readOnly"
         />
+        <div class="flex flex-col gap-1">
+          <span class="text-sm font-medium text-n-slate-12">
+            {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.APPOINTMENT_STATUS') }}
+          </span>
+          <ComboBox
+            v-model="appointmentStatus"
+            :options="statusOptions"
+            :display-label="statusLabel"
+            :aria-label="$t('SIDEBAR.CALENDAR_PAGE.MODAL.APPOINTMENT_STATUS')"
+            :disabled="readOnly"
+            :allow-deselect="false"
+            teleport
+            data-testid="appointment-status"
+          />
+        </div>
         <div class="grid grid-cols-2 gap-3">
           <div class="flex flex-col gap-1 min-w-0">
             <span class="mb-0.5 text-sm font-medium text-n-slate-12">
               {{ $t('SIDEBAR.CALENDAR_PAGE.ACCOUNT') }}
             </span>
-            <SelectInput
+            <ComboBox
               v-model="connectionId"
-              full-width
+              :allow-deselect="false"
+              teleport
               :options="connectionOptions"
               :placeholder="$t('SIDEBAR.CALENDAR_PAGE.ACCOUNT')"
               disabled
@@ -648,16 +696,17 @@ defineExpose({ open, close });
             <span class="mb-0.5 text-sm font-medium text-n-slate-12">
               {{ $t('SIDEBAR.CALENDAR_PAGE.CALENDAR') }}
             </span>
-            <SelectInput
+            <ComboBox
               v-model="calendarId"
-              full-width
+              :allow-deselect="false"
+              teleport
               :options="calendarOptions"
               :placeholder="$t('SIDEBAR.CALENDAR_PAGE.CALENDAR')"
               :disabled="readOnly || !isCreate"
             />
           </div>
         </div>
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Input
             v-model="date"
             type="date"
@@ -821,11 +870,12 @@ defineExpose({ open, close });
           <span class="text-xs font-medium text-n-slate-11">
             {{ $t('CALENDAR_INVITATION.MODAL.PREVIEW') }}
           </span>
-          <pre
+          <p
             class="p-2.5 m-0 text-sm whitespace-pre-wrap border rounded-lg font-sans border-n-weak bg-n-alpha-2 text-n-slate-12"
             data-testid="invitation-preview"
-            >{{ invitationPreview }}</pre
           >
+            {{ invitationPreview }}
+          </p>
           <span v-if="includeMeet && !meetLink" class="text-xs text-n-slate-11">
             {{ $t('CALENDAR_INVITATION.MODAL.MEET_NOTE') }}
           </span>
