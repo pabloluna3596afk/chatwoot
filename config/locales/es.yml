@@ -457,8 +457,8 @@ es:
       description: 'Connect your Shopify store to access order details, customer information, and product data directly within your conversations and helps your support team provide faster, more contextual assistance to your customers.'
     calendars:
       name: 'Calendarios'
-      short_description: 'Conectá Google Calendar y mirá los eventos en el panel.'
-      description: 'Conectá cuentas de Google Calendar para que el equipo vea los eventos. Microsoft Calendar llega pronto.'
+      short_description: 'Conecta Google Calendar y mira los eventos en el panel.'
+      description: 'Conecta cuentas de Google Calendar para que el equipo vea los eventos. Microsoft Calendar llega pronto.'
       default_title: Cita
       appointment_attributes:
         ultima_cita: Última cita
@@ -478,14 +478,17 @@ es:
 
         Si necesitas cambiar la cita, responde a este mensaje.
       untitled: '(Sin título)'
-      stale: Alguien más cambió este evento. Recargá e intentá de nuevo.
+      stale: Alguien más cambió este evento. Recarga e intenta de nuevo.
       locked: '%{name} está editando este evento'
-      slot_busy: Ese horario no está disponible. Elegí otro.
-      slot_in_progress: Alguien más está agendando en este calendario ahora. Esperá un momento e intentá de nuevo.
-      slot_overlap: 'No se puede agendar: se cruza con "%{title}" de %{name} (%{start}–%{end}). Elegí otro horario.'
-      slot_overlap_unknown: 'No se puede agendar: se cruza con "%{title}" (%{start}–%{end}). Elegí otro horario.'
-      delete_note_required: Escribí por qué se cancela esta cita.
+      slot_busy: Ese horario no está disponible. Elige otro.
+      slot_in_progress: Alguien más está agendando en este calendario ahora. Espera un momento e intenta de nuevo.
+      slot_overlap: 'No se puede agendar: se cruza con "%{title}" de %{name} (%{start}–%{end}). Elige otro horario.'
+      slot_overlap_unknown: 'No se puede agendar: se cruza con "%{title}" (%{start}–%{end}). Elige otro horario.'
+      delete_note_required: Escribe por qué se cancela esta cita.
       not_enabled: Este calendario no está habilitado para el equipo.
+      outside_hours: Elige una hora dentro de los días y el horario de atención del calendario.
+      invalid_appointment_status: El estado o cambio de estado de la cita no es válido. Para cancelarla, usa la cancelación e indica el motivo.
+      event_cancelled: La cita está cancelada y no se puede editar.
       invalid_range: La hora de fin debe ser posterior a la de inicio.
       customer_message: 'Tu cita "%{title}" quedó agendada para el %{start_at}.'
     leadsquared:

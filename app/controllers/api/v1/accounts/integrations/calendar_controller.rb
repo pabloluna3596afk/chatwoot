@@ -102,14 +102,14 @@ class Api::V1::Accounts::Integrations::CalendarController < Api::V1::Accounts::I
   end
 
   def create_event
-    item = event_service.create(event_params)
+    item = event_service.create(event_params, enforce_hours: true)
     render json: { payload: item }
   rescue StandardError => e
     render_calendar_error(e)
   end
 
   def update_event
-    item = event_service.update(params[:event_id], event_params)
+    item = event_service.update(params[:event_id], event_params, enforce_hours: true)
     render json: { payload: item }
   rescue StandardError => e
     render_calendar_error(e)
@@ -252,6 +252,12 @@ class Api::V1::Accounts::Integrations::CalendarController < Api::V1::Accounts::I
       render json: { error: I18n.t('integration_apps.calendars.not_enabled') }, status: :unprocessable_entity
     when Integrations::GoogleCalendar::EventService::InvalidRange
       render json: { error: I18n.t('integration_apps.calendars.invalid_range') }, status: :unprocessable_entity
+    when Integrations::GoogleCalendar::EventService::OutsideHours
+      render json: { error: I18n.t('integration_apps.calendars.outside_hours') }, status: :unprocessable_entity
+    when Integrations::GoogleCalendar::EventService::InvalidAppointmentStatus
+      render json: { error: I18n.t('integration_apps.calendars.invalid_appointment_status') }, status: :unprocessable_entity
+    when Integrations::GoogleCalendar::EventService::EventCancelled
+      render json: { error: I18n.t('integration_apps.calendars.event_cancelled') }, status: :unprocessable_entity
     when Integrations::GoogleCalendar::EventService::MissingDeleteNote
       render json: { error: I18n.t('integration_apps.calendars.delete_note_required') }, status: :unprocessable_entity
     else
@@ -316,6 +322,11 @@ class Api::V1::Accounts::Integrations::CalendarController < Api::V1::Accounts::I
   end
 
   def event_params
+    # Strong parameters drops arrays/objects for scalar keys; reject them rather than treating them as absent.
+    if params.key?(:appointment_status) && !params[:appointment_status].is_a?(String)
+      raise Integrations::GoogleCalendar::EventService::InvalidAppointmentStatus
+    end
+
     permitted_params
   end
 

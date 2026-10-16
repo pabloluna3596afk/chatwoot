@@ -542,6 +542,9 @@ en:
       slot_overlap_unknown: 'Cannot book: it overlaps "%{title}" (%{start}–%{end}). Choose another time.'
       delete_note_required: Write why this appointment is being cancelled.
       not_enabled: This calendar is not enabled for the team.
+      outside_hours: Choose a time within the calendar working days and opening hours.
+      invalid_appointment_status: Invalid appointment status or transition. Use cancellation with a reason to cancel an appointment.
+      event_cancelled: This appointment is cancelled and cannot be edited.
       invalid_range: The end time must be after the start time.
       customer_message: 'Your appointment "%{title}" is scheduled for %{start_at}.'
     leadsquared:

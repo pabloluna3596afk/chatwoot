@@ -47,12 +47,12 @@ class CalendarEvent < ApplicationRecord
   validates :booking_source, inclusion: { in: BOOKING_SOURCES }
   validates :invitation_status, inclusion: { in: INVITATION_STATUSES }, allow_nil: true
 
-  scope :kept, -> { where(deleted_at: nil) }
+  scope :kept, -> { where(deleted_at: nil).where.not(appointment_status: 'cancelled') }
 
   after_commit :enqueue_appointment_attributes_update, on: [:create, :update, :destroy]
 
   def discarded?
-    deleted_at.present?
+    deleted_at.present? || appointment_status == 'cancelled'
   end
 
   def bot_followup_enabled?
@@ -76,7 +76,7 @@ class CalendarEvent < ApplicationRecord
 
   # "Next appointment" becomes "last appointment" when it starts: refresh the contact right after that moment.
   def enqueue_appointment_start_refresh
-    return if destroyed? || contact_id.blank? || deleted_at.present? || start_at.blank? || start_at <= Time.current
+    return if destroyed? || contact_id.blank? || discarded? || start_at.blank? || start_at <= Time.current
 
     Calendar::AppointmentAttributes::UpdateJob.set(wait_until: start_at + 1.minute).perform_later(account_id, contact_id)
   end

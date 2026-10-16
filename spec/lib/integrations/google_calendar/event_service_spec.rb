@@ -60,7 +60,131 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
 
   after do
     Redis::Alfred.delete(booking_lock_key)
-    %w[g-1 g-2].each { |event_id| Redis::Alfred.delete(event_lock_key(event_id)) }
+    %w[g-1 g-2 external].each { |event_id| Redis::Alfred.delete(event_lock_key(event_id)) }
+  end
+
+  describe 'appointment status validation and cancellation' do
+    [nil, '', 123, true, [], {}, 'unknown', 'cancelled', 'rescheduled'].each do |status|
+      it "rejects invalid creation status #{status.inspect} before Google" do
+        expect { service.create(create_params(appointment_status: status)) }.to raise_error(described_class::InvalidAppointmentStatus)
+        expect(client).not_to have_received(:create_event)
+        expect(CalendarEvent.count).to eq(0)
+      end
+    end
+
+    it 'records status-only changes in the activity history' do
+      service.create(create_params(appointment_status: 'pending_confirmation'))
+      service.update('g-1', create_params(appointment_status: 'confirmed'))
+
+      record = connection.calendar_events.find_by!(google_event_id: 'g-1')
+      expect(record.appointment_status).to eq('confirmed')
+      expect(record.activities.find_by!(action: 'updated').details).to include('appointment_status' => %w[pending_confirmation confirmed])
+    end
+
+    it 'automatically marks an unconfirmed appointment as rescheduled when moved' do
+      service.create(create_params(appointment_status: 'pending_confirmation'))
+      result = service.update('g-1', create_params(start: '2030-01-15T11:00:00-05:00', end: '2030-01-15T11:30:00-05:00'))
+
+      expect(result[:appointment_status]).to eq('rescheduled')
+    end
+
+    it 'preserves confirmation when moving a confirmed appointment' do
+      service.create(create_params(appointment_status: 'confirmed'))
+      result = service.update('g-1', create_params(start: '2030-01-15T11:00:00-05:00', end: '2030-01-15T11:30:00-05:00'))
+
+      expect(result[:appointment_status]).to eq('confirmed')
+    end
+
+    it 'rejects rescheduled without a move before Google' do
+      service.create(create_params)
+
+      expect { service.update('g-1', create_params(appointment_status: 'rescheduled')) }.to raise_error(described_class::InvalidAppointmentStatus)
+      expect(client).not_to have_received(:update_event)
+    end
+
+    it 'requires a reason for status-based cancellation without calling Google' do
+      service.create(create_params)
+
+      expect { service.update('g-1', { calendar_id: 'cal-1', appointment_status: 'cancelled' }) }.to raise_error(described_class::MissingDeleteNote)
+      expect(client).not_to have_received(:delete_event)
+      expect(client).not_to have_received(:update_event)
+    end
+
+    it 'cancels through destroy, releases the slot, and removes the next appointment' do
+      service.create(create_params(appointment_status: 'confirmed'))
+      result = service.update('g-1', { calendar_id: 'cal-1', appointment_status: 'cancelled', note: 'Customer request', etag: 'old' })
+
+      record = connection.calendar_events.find_by!(google_event_id: 'g-1')
+      expect(record).to have_attributes(appointment_status: 'cancelled', deleted_at: be_present, deleted_by: user, idempotency_key: nil)
+      expect(result).to include(deleted: true, deleted_note: 'Customer request', appointment_status: 'cancelled')
+      expect(client).to have_received(:delete_event).with(calendar_id: 'cal-1', event_id: 'g-1', etag: 'old')
+      expect(client).not_to have_received(:update_event)
+      expect(service.list_for_contact(contact_id: contact.id)).to be_empty
+      expect { service.create(create_params) }.not_to raise_error
+    end
+
+    it 'does not revive a cancelled event' do
+      service.create(create_params)
+      service.destroy('g-1', calendar_id: 'cal-1', note: 'Customer request')
+
+      expect { service.update('g-1', create_params(appointment_status: 'confirmed')) }.to raise_error(described_class::EventCancelled)
+      expect(client).not_to have_received(:update_event)
+    end
+
+    it 'rejects update of a deleted event even when status is omitted' do
+      service.create(create_params)
+      service.destroy('g-1', calendar_id: 'cal-1', note: 'Customer request')
+
+      expect { service.update('g-1', create_params) }.to raise_error(described_class::EventCancelled)
+      expect(client).not_to have_received(:update_event)
+    end
+
+    it 'rejects edits to legacy status-only cancellations with the dedicated error' do
+      record = local_event(appointment_status: 'cancelled')
+
+      expect { service.update(record.google_event_id, create_params(summary: 'Edited')) }.to raise_error(described_class::EventCancelled)
+      expect(client).not_to have_received(:update_event)
+      expect(record.reload.summary).to eq('Existing')
+    end
+
+    it 'stores the title and reason when cancelling a Google-only event' do
+      allow(client).to receive(:get_event).with(calendar_id: 'cal-1', event_id: 'external').and_return(
+        'id' => 'external', 'summary' => 'External meeting', 'start' => { 'dateTime' => slot_start }, 'end' => { 'dateTime' => slot_end }
+      )
+      result = service.update('external', { calendar_id: 'cal-1', appointment_status: 'cancelled', note: 'Customer request' })
+
+      expect(result).to include(summary: 'External meeting', deleted: true, appointment_status: 'cancelled', deleted_note: 'Customer request')
+      expect(client).not_to have_received(:update_event)
+    end
+  end
+
+  describe 'editing appointments outside current availability' do
+    it 'allows note and status changes when opening hours have changed since booking' do
+      service.create(create_params(appointment_status: 'pending_confirmation'))
+      connection.connection_calendars.first.update!(hour_start: 12)
+
+      result = service.update('g-1', create_params(description: 'Updated note', appointment_status: 'confirmed'))
+
+      expect(result).to include(appointment_status: 'confirmed', start: Time.zone.parse(slot_start).iso8601)
+      expect(connection.calendar_events.find_by!(google_event_id: 'g-1').invitation_text).to eq('Updated note')
+      expect(client).to have_received(:update_event).once
+    end
+
+    it 'allows an unchanged slot on a day that is now closed' do
+      service.create(create_params)
+      connection.connection_calendars.first.update!(working_days: [1])
+
+      expect { service.update('g-1', create_params(summary: 'Updated title')) }.not_to raise_error
+      expect(client).to have_received(:update_event).once
+    end
+
+    it 'rejects changing only the end outside current hours before updating Google' do
+      service.create(create_params)
+      connection.connection_calendars.first.update!(hour_start: 12)
+
+      expect { service.update('g-1', create_params(end: '2030-01-15T11:00:00-05:00')) }.to raise_error(described_class::OutsideHours)
+      expect(client).not_to have_received(:update_event)
+    end
   end
 
   describe '#create' do
@@ -315,7 +439,7 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
       expect(record.deleted_at).to be_present
       expect(record.deleted_by).to eq(user)
       expect(record.activities.find_by(action: 'deleted').details).to include('note' => 'customer cancelled')
-      expect(result).to include(deleted: true, deleted_note: 'customer cancelled')
+      expect(result).to include(deleted: true, deleted_note: 'customer cancelled', appointment_status: 'cancelled')
       expect(client).to have_received(:delete_event).with(hash_including(calendar_id: 'cal-1', event_id: 'g-1', etag: '"etag-1"'))
     end
 

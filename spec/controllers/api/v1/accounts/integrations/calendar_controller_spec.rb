@@ -53,6 +53,146 @@ RSpec.describe 'Calendar Integration API', type: :request do
 
   after { Redis::Alfred.delete(event_lock_key('stale-1')) }
 
+  describe 'availability and status request validation' do
+    let(:account) { create(:account, locale: 'es') }
+
+    after do
+      %w[invalid-status patch-cancel closed-day outside-hours].each { |id| Redis::Alfred.delete(event_lock_key(id)) }
+    end
+
+    outside_hours_ranges = [
+      ['2030-01-15T07:30:00-05:00', '2030-01-15T08:00:00-05:00'],
+      ['2030-01-15T19:45:00-05:00', '2030-01-15T20:15:00-05:00']
+    ]
+    cancelled_update_statuses = [nil, 'confirmed']
+    boundary_ranges = [['08:00', '08:30'], ['19:30', '20:00']]
+
+    [:agent, :bot].each do |actor|
+      context "with #{actor} authentication" do
+        let(:headers) { actor == :bot ? bot_headers : agent.create_new_auth_token }
+
+        outside_hours_ranges.each do |start_at, end_at|
+          it "rejects #{start_at} outside availability before Google" do
+            post "#{base_url}/events", headers: headers, params: event_params(start: start_at, end: end_at), as: :json
+
+            expect(response).to have_http_status(:unprocessable_entity)
+            expect(response.parsed_body['error']).to eq(I18n.t('integration_apps.calendars.outside_hours', locale: :es))
+            expect(client).not_to have_received(:create_event)
+            expect(CalendarEvent.count).to eq(0)
+            record = local_event(google_event_id: 'outside-hours')
+            patch "#{base_url}/events/#{record.google_event_id}",
+                  headers: headers, params: event_params(start: start_at, end: end_at), as: :json
+            expect(response).to have_http_status(:unprocessable_entity)
+            expect(client).not_to have_received(:update_event)
+          end
+        end
+
+        it 'rejects booking and moving onto a closed day' do
+          connection.connection_calendars.first.update!(working_days: [1])
+          record = local_event(google_event_id: 'closed-day', start_at: Time.zone.parse('2030-01-14T10:00:00-05:00'),
+                               end_at: Time.zone.parse('2030-01-14T10:30:00-05:00'))
+
+          post "#{base_url}/events", headers: headers, params: event_params, as: :json
+          expect(response).to have_http_status(:unprocessable_entity)
+          patch "#{base_url}/events/#{record.google_event_id}", headers: headers, params: event_params, as: :json
+          expect(response).to have_http_status(:unprocessable_entity)
+          expect(client).not_to have_received(:create_event)
+          expect(client).not_to have_received(:update_event)
+        end
+
+        it 'allows note and status edits without moving a slot outside current availability' do
+          connection.connection_calendars.first.update!(hour_start: 12, working_days: [1])
+          record = local_event(google_event_id: 'outside-hours', appointment_status: 'pending_confirmation')
+          update_params = event_params(description: 'Updated note', appointment_status: 'confirmed')
+
+          patch "#{base_url}/events/#{record.google_event_id}", headers: headers, params: update_params, as: :json
+
+          expect(response).to have_http_status(:ok)
+          expect(record.reload).to have_attributes(
+            appointment_status: 'confirmed', invitation_text: 'Updated note', start_at: Time.zone.parse(slot_start)
+          )
+          expect(client).to have_received(:update_event).once
+        end
+
+        cancelled_update_statuses.each do |status|
+          it "returns a clear localized error when editing a cancelled appointment with status #{status.inspect}" do
+            record = local_event(google_event_id: 'patch-cancel', appointment_status: 'cancelled')
+            update_params = status ? event_params(appointment_status: status) : event_params
+
+            patch "#{base_url}/events/#{record.google_event_id}", headers: headers, params: update_params, as: :json
+
+            expect(response).to have_http_status(:unprocessable_entity)
+            expect(response.parsed_body['error']).to eq('La cita está cancelada y no se puede editar.')
+            expect(client).not_to have_received(:update_event)
+            expect(record.reload.appointment_status).to eq('cancelled')
+          end
+        end
+
+        boundary_ranges.each do |start_time, end_time|
+          it "accepts the exact boundary #{start_time}-#{end_time}" do
+            post "#{base_url}/events",
+                 headers: headers,
+                 params: event_params(start: "2030-01-15T#{start_time}:00-05:00", end: "2030-01-15T#{end_time}:00-05:00"),
+                 as: :json
+
+            expect(response).to have_http_status(:ok)
+          end
+        end
+      end
+    end
+
+    [nil, '', 1, true, [], {}, 'invalid', 'cancelled', 'rescheduled'].each do |status|
+      it "rejects creation status #{status.inspect} before Google and persistence" do
+        post "#{base_url}/events", headers: agent.create_new_auth_token, params: event_params(appointment_status: status), as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body['error']).to eq(I18n.t('integration_apps.calendars.invalid_appointment_status', locale: :es))
+        expect(client).not_to have_received(:create_event)
+        expect(CalendarEvent.count).to eq(0)
+      end
+    end
+
+    [nil, '', 1, true, [], {}, 'invalid', 'rescheduled'].each do |status|
+      it "rejects update status #{status.inspect} without a remote or local change" do
+        record = local_event(google_event_id: 'invalid-status')
+
+        patch "#{base_url}/events/#{record.google_event_id}",
+              headers: agent.create_new_auth_token, params: event_params(appointment_status: status), as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body['error']).to eq(I18n.t('integration_apps.calendars.invalid_appointment_status', locale: :es))
+        expect(client).not_to have_received(:update_event)
+        expect(record.reload.appointment_status).to eq('none')
+        expect(record.activities).to be_empty
+      end
+    end
+
+    it 'requires a reason for PATCH cancellation' do
+      record = local_event(google_event_id: 'patch-cancel')
+
+      patch "#{base_url}/events/#{record.google_event_id}",
+            headers: agent.create_new_auth_token, params: event_params(appointment_status: 'cancelled'), as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['error']).to eq(I18n.t('integration_apps.calendars.delete_note_required', locale: :es))
+      expect(client).not_to have_received(:delete_event)
+      expect(client).not_to have_received(:update_event)
+    end
+
+    it 'cancels through PATCH using the DELETE operation and its reason' do
+      record = local_event(google_event_id: 'patch-cancel')
+
+      patch "#{base_url}/events/#{record.google_event_id}",
+            headers: agent.create_new_auth_token, params: event_params(appointment_status: 'cancelled', note: 'Customer request'), as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body['payload']).to include('deleted' => true, 'appointment_status' => 'cancelled', 'deleted_note' => 'Customer request')
+      expect(record.reload).to have_attributes(deleted_at: be_present, deleted_by: agent)
+      expect(client).to have_received(:delete_event)
+      expect(client).not_to have_received(:update_event)
+    end
+  end
+
   describe 'POST /api/v1/accounts/:account_id/integrations/calendar_connections/events' do
     it 'books for an agent and marks the booking manual' do
       post "#{base_url}/events", headers: agent.create_new_auth_token, params: event_params(idempotency_key: 'k-1'), as: :json

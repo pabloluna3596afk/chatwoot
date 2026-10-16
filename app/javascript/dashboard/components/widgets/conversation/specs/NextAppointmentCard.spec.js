@@ -45,6 +45,9 @@ describe('NextAppointmentCard', () => {
           event('soon', future(2)),
           event('past', future(-3)),
           event('cancelled', future(1), { deleted: true }),
+          event('legacy-cancelled', future(1), {
+            appointment_status: 'cancelled',
+          }),
         ],
       },
     });
@@ -99,4 +102,18 @@ describe('NextAppointmentCard', () => {
       wrapper.get('[data-testid="next-appointment-invitation"]').text()
     ).toBe('CONVERSATION_SIDEBAR.CALENDAR.INVITATION.NEEDS_ACTION');
   });
+});
+
+it('refreshes the next appointment after a modal cancellation without changing contact', async () => {
+  getContactEvents.mockResolvedValueOnce({
+    data: { payload: [event('soon', future(2))] },
+  });
+  const wrapper = await mountCard();
+  expect(wrapper.text()).toContain('Cita soon');
+  expect(wrapper.classes()).toContain('bg-n-teal-3');
+  getContactEvents.mockResolvedValueOnce({ data: { payload: [] } });
+  await wrapper.vm.refresh();
+  await flushPromises();
+  expect(wrapper.find('[data-testid="next-appointment"]').exists()).toBe(false);
+  wrapper.unmount();
 });

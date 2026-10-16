@@ -217,8 +217,20 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
         .to raise_error(described_class::OutsideHours)
     end
 
-    it 'keeps accepting any hour when enforcement is off (agents and the Panel AI bridge)' do
-      expect { book('2030-01-15T07:30:00-05:00', '2030-01-15T08:00:00-05:00') }.not_to raise_error
+    it 'enforces hours by default for every caller' do
+      expect { book('2030-01-15T07:30:00-05:00', '2030-01-15T08:00:00-05:00') }.to raise_error(described_class::OutsideHours)
+      expect(client).not_to have_received(:create_event)
+    end
+
+    it 'accepts the exact opening boundary' do
+      expect { book('2030-01-15T08:00:00-05:00', '2030-01-15T08:30:00-05:00') }.not_to raise_error
+    end
+
+    it 'rejects a closed day by default' do
+      calendar.update!(working_days: [1])
+
+      expect { book('2030-01-15T10:00:00-05:00', '2030-01-15T10:30:00-05:00') }.to raise_error(described_class::OutsideHours)
+      expect(client).not_to have_received(:create_event)
     end
 
     it 'follows the calendar hours when they change' do
@@ -240,6 +252,14 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
     it 'keeps back-to-back slots without a step' do
       expect(starts(slots)).to include('10:00', '10:30')
       expect(starts(slots)).not_to include('10:15')
+    end
+  end
+
+  describe 'legacy cancellations' do
+    it 'does not block slots for cancelled rows without deleted_at' do
+      local_event(appointment_status: 'cancelled')
+
+      expect(starts(slots)).to include('10:00')
     end
   end
 

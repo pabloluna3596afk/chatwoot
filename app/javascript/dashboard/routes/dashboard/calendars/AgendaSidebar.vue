@@ -1,10 +1,15 @@
 <script setup>
+import {
+  calendarEventStyle,
+  isCancelledEvent,
+} from 'dashboard/helper/appointmentStatus';
 import { computed, nextTick, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useNow } from '@vueuse/core';
 import {
+  calendarEventTooltip,
   compareEventsByStart,
   formatTime,
-  isEventCurrent,
   isEventPast,
   todayKey,
 } from 'dashboard/helper/calendarTime';
@@ -17,6 +22,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['event-click']);
+const { t } = useI18n();
 
 const scrollRoot = ref(null);
 const now = useNow({ interval: 60_000 });
@@ -26,7 +32,7 @@ const daysWithEvents = computed(() =>
     .map(group => ({
       ...group,
       events: (group.events || [])
-        .filter(event => !event.deleted)
+        .filter(event => !isCancelledEvent(event))
         .sort(compareEventsByStart),
     }))
     .filter(group => group.events.length)
@@ -34,7 +40,7 @@ const daysWithEvents = computed(() =>
 
 const deletedEvents = computed(() =>
   props.groups.flatMap(group =>
-    (group.events || []).filter(event => event.deleted)
+    (group.events || []).filter(event => isCancelledEvent(event))
   )
 );
 
@@ -74,14 +80,12 @@ const scrollToAnchor = async () => {
 watch([() => props.groups, scrollAnchorId], scrollToAnchor, {
   immediate: true,
 });
-
-const isCurrentEvent = event => isEventCurrent(event, now.value.getTime());
 </script>
 
 <template>
   <aside
     ref="scrollRoot"
-    class="hidden md:flex flex-col w-64 shrink-0 border-r border-n-weak overflow-auto px-3 py-4"
+    class="hidden md:flex flex-col w-64 shrink-0 overflow-auto px-3 py-4"
   >
     <h2 class="px-1 mb-3 text-sm font-medium text-n-slate-12 shrink-0">
       {{ $t('SIDEBAR.CALENDAR_PAGE.AGENDA') }}
@@ -105,13 +109,14 @@ const isCurrentEvent = event => isEventCurrent(event, now.value.getTime());
             :id="`agenda-event-${event.id}`"
             :key="event.id"
             type="button"
-            class="flex w-full items-start gap-2 rounded-lg px-1 py-1.5 text-left hover:bg-n-alpha-2"
-            :class="isCurrentEvent(event) ? 'bg-n-blue-3/40' : ''"
+            class="flex w-full items-start gap-2 rounded-lg px-1 py-1.5 text-start"
+            :class="calendarEventStyle(event).surface"
+            :title="calendarEventTooltip(event, t)"
             @click="emit('event-click', event)"
           >
             <span
               class="mt-1.5 size-2 shrink-0 rounded-full"
-              :class="isCurrentEvent(event) ? 'bg-n-blue-11' : 'bg-n-blue-9'"
+              :class="calendarEventStyle(event).dot"
               aria-hidden="true"
             />
             <span class="min-w-0 flex-1">
@@ -133,10 +138,7 @@ const isCurrentEvent = event => isEventCurrent(event, now.value.getTime());
         </div>
       </section>
     </div>
-    <section
-      v-if="deletedEvents.length"
-      class="mt-6 pt-4 border-t border-n-ruby-6"
-    >
+    <section v-if="deletedEvents.length" class="mt-6 pt-4">
       <h3 class="px-1 mb-2 text-xs font-medium text-n-ruby-11">
         {{ $t('SIDEBAR.CALENDAR_PAGE.DELETED_SECTION') }}
       </h3>
@@ -145,7 +147,9 @@ const isCurrentEvent = event => isEventCurrent(event, now.value.getTime());
           v-for="event in deletedEvents"
           :key="event.id"
           type="button"
-          class="flex w-full items-start gap-2 rounded-lg px-1 py-1.5 text-left bg-n-ruby-3/50 hover:bg-n-ruby-4"
+          class="flex w-full items-start gap-2 rounded-lg px-1 py-1.5 text-start"
+          :class="calendarEventStyle(event).surface"
+          :title="calendarEventTooltip(event, t)"
           @click="emit('event-click', event)"
         >
           <span
