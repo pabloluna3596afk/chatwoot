@@ -89,7 +89,7 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
       calendar.update!(working_days: [1, 2, 3, 4, 5])
 
       expect do
-        service.create({ calendar_id: 'cal-1', summary: 'Consulta', start: '2030-01-19T10:00:00-05:00', end: '2030-01-19T10:30:00-05:00' })
+        service.create({ calendar_id: 'cal-1', summary: 'Consulta', start: '2030-01-19T10:00:00-05:00', end: '2030-01-19T10:30:00-05:00' }, enforce_hours: false)
       end.not_to raise_error
     end
   end
