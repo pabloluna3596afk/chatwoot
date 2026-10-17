@@ -1,6 +1,12 @@
 {
   "LOGIN": {
-    "TITLE": "Login to ChatHub",
+    "TITLE": "Welcome to ChatHub",
+    "SIGNUP_PROMPT": "Don't have an account?",
+    "STAGING_LABEL": "Test environment — InboxHub",
+    "MARKETING": {
+      "TITLE": "Every conversation, moving forward.",
+      "SUBTITLE": "Build stronger customer relationships and give your team the clarity to grow."
+    },
     "EMAIL": {
       "LABEL": "Email",
       "PLACEHOLDER": "example{'@'}companyname.com",
@@ -16,15 +22,15 @@
       "UNAUTH": "Username or password is incorrect. Please try again."
     },
     "OAUTH": {
-      "GOOGLE_LOGIN": "Login with Google",
+      "GOOGLE_LOGIN": "Log in with Google",
       "BUSINESS_ACCOUNTS_ONLY": "You can't create a new account with a personal email address. Please sign up using your work email.",
       "NO_ACCOUNT_FOUND": "We couldn't find an account for your email address."
     },
-    "FORGOT_PASSWORD": "Forgot your password?",
-    "CREATE_NEW_ACCOUNT": "Create a new account",
-    "SUBMIT": "Login",
+    "FORGOT_PASSWORD": "Forgot Password",
+    "CREATE_NEW_ACCOUNT": "Sign up for free",
+    "SUBMIT": "Log in",
     "SAML": {
-      "LABEL": "Login via SSO",
+      "LABEL": "Use Single Sign-On (SSO)",
       "TITLE": "Initiate Single Sign-on (SSO)",
       "SUBTITLE": "Enter your work email to access your organization",
       "BACK_TO_LOGIN": "Login via Password",
@@ -36,6 +42,7 @@
       "API": {
         "ERROR_MESSAGE": "SSO authentication failed. Please check your credentials and try again."
       }
-    }
+    },
+    "OR": "OR"
   }
 }
