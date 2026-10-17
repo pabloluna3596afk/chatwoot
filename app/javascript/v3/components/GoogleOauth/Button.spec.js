@@ -21,7 +21,7 @@ describe('GoogleOAuthButton.vue', () => {
 
   it('generates the correct Google Auth URL', () => {
     const wrapper = getWrapper();
-    const googleAuthUrl = new URL(wrapper.vm.getGoogleAuthUrl());
+    const googleAuthUrl = new URL(wrapper.get('a').attributes('href'));
     const params = googleAuthUrl.searchParams;
     expect(googleAuthUrl.origin).toBe('https://accounts.google.com');
     expect(googleAuthUrl.pathname).toBe('/o/oauth2/auth');
