@@ -36,16 +36,11 @@ const i18nKey = computed(
 );
 
 const createAssistant = async assistantDetails => {
-  try {
-    const newAssistant = await store.dispatch(
-      'captainAssistants/create',
-      assistantDetails
-    );
-    emit('created', newAssistant);
-  } catch (error) {
-    const errorMessage = error?.message || t(`${i18nKey.value}.ERROR_MESSAGE`);
-    useAlert(errorMessage);
-  }
+  const newAssistant = await store.dispatch(
+    'captainAssistants/create',
+    assistantDetails
+  );
+  emit('created', newAssistant);
 };
 
 const handleSubmit = async updatedAssistant => {
