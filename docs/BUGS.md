@@ -1567,6 +1567,21 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
 - Verify: open category/status filters in the send center and assignment menus in a task dialog.
   Confirm the menu receives clicks, does not move the trigger, and Escape restores focus.
 
+### B-NEW-66 -- Login redesign (photo panel, pill form, Google/SSO) and password visibility reactivity
+
+- Files: `v3/views/login/Index.vue`, `v3/components/Form/Input.vue`, `v3/components/Form/WithLabel.vue`,
+  `v3/components/GoogleOauth/Button.vue`, login hero image, `en|es/login.json` and auth form specs.
+- Two-column login: full-height hero photo with brand logo, serif headline and separate top/bottom gradients;
+  right column with label-less pill inputs, black pill button, OR divider, Google and SSO pill buttons, and a
+  "Sign up for free" link when account signup is enabled.
+- Keep password visibility in a native Vue ref. The local dependency tree resolves VueUse against Vue 3.5.13
+  while the component uses Vue 3.5.12; its toggle changed a ref without updating the rendered input.
+- Restrict the new password padding/button sizing to outlined inputs, preserving the default signup/SAML styling.
+- Google needs `GOOGLE_OAUTH_CLIENT_ID`, SSO needs a non-community plan and signup needs `ENABLE_ACCOUNT_SIGNUP=true`;
+  the login language follows the server `DEFAULT_LOCALE` (or `?locale=`), there is no selector.
+- Verify: check the hero at 1280x720, 1440x900 and 1920x1080; click the real password button twice and confirm
+  input type, eye icon, pressed state and value. Run all v3 specs, including signup labels/eye and SAML POST/validation.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)

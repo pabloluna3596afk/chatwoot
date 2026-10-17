@@ -1,6 +1,6 @@
 {
   "LOGIN": {
-    "TITLE": "Iniciar sesión en ChatHub",
+    "TITLE": "Te damos la bienvenida a ChatHub",
     "EMAIL": {
       "LABEL": "E-mail",
       "PLACEHOLDER": "ejemplo{'@'}nombredeempresa.com",
@@ -20,11 +20,11 @@
       "BUSINESS_ACCOUNTS_ONLY": "No puedes crear una nueva cuenta con una dirección de correo electrónico personal. Por favor, regístrate usando tu correo electrónico de trabajo.",
       "NO_ACCOUNT_FOUND": "No pudimos encontrar una cuenta para tu dirección de correo electrónico."
     },
-    "FORGOT_PASSWORD": "¿Olvidaste tu contraseña?",
-    "CREATE_NEW_ACCOUNT": "Crear nueva cuenta",
+    "FORGOT_PASSWORD": "Olvidé mi contraseña",
+    "CREATE_NEW_ACCOUNT": "Regístrate gratis",
     "SUBMIT": "Iniciar sesión",
     "SAML": {
-      "LABEL": "Login via SSO",
+      "LABEL": "Usar inicio de sesión único (SSO)",
       "TITLE": "Initiate Single Sign-on (SSO)",
       "SUBTITLE": "Enter your work email to access your organization",
       "BACK_TO_LOGIN": "Login via Password",
@@ -36,6 +36,13 @@
       "API": {
         "ERROR_MESSAGE": "SSO authentication failed. Please check your credentials and try again."
       }
+    },
+    "SIGNUP_PROMPT": "¿No tienes cuenta?",
+    "STAGING_LABEL": "Entorno de pruebas — InboxHub",
+    "OR": "O",
+    "MARKETING": {
+      "TITLE": "Cada conversación nos lleva más lejos.",
+      "SUBTITLE": "Fortalece las relaciones con tus clientes y dale a tu equipo la claridad para crecer."
     }
   }
 }
