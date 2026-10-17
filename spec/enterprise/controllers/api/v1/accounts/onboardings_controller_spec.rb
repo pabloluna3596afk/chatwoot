@@ -12,6 +12,19 @@ RSpec.describe 'Enterprise Onboarding API', type: :request do
         allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(true)
       end
 
+      it 'does not auto-create a widget or help center for version 2' do
+        account.update!(custom_attributes: { 'onboarding_version' => 2, 'onboarding_step' => 'account_details' })
+        expect(Onboarding::WebWidgetCreationService).not_to receive(:new)
+        expect(Onboarding::HelpCenterCreationService).not_to receive(:new)
+
+        patch "/api/v1/accounts/#{account.id}/onboarding",
+              params: { website: 'acme.com', onboarding_step: 'account_details' },
+              headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(account.reload.custom_attributes['onboarding_step']).to eq('inbox_setup')
+      end
+
       it 'invokes HelpCenterCreationService when website is present' do
         service = instance_double(Onboarding::HelpCenterCreationService, perform: nil)
         allow(Onboarding::HelpCenterCreationService).to receive(:new).and_return(service)

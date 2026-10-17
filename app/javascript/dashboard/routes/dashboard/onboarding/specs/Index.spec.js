@@ -348,7 +348,7 @@ describe('Business onboarding', () => {
         onboarding_step: 'account_details',
       })
     );
-    expect(setUser).not.toHaveBeenCalled();
+    expect(setUser).toHaveBeenCalledOnce();
     expect(router.currentRoute.value.name).toBe('onboarding_inbox_setup');
   });
 

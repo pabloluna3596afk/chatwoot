@@ -10,6 +10,7 @@ class Api::V1::Accounts::Whatsapp::AuthorizationsController < Api::V1::Accounts:
   def create
     validate_embedded_signup_params!
     channel = process_embedded_signup
+    Onboarding::InboxMemberAssignmentService.new(Current.account, Current.account_user).perform if params[:inbox_id].blank?
     render_success_response(channel.inbox)
   rescue CustomExceptions::Inbox::LimitExceeded => e
     render_error_response(e)
@@ -60,6 +61,7 @@ class Api::V1::Accounts::Whatsapp::AuthorizationsController < Api::V1::Accounts:
       success: true,
       id: inbox.id,
       name: inbox.name,
+      phone_number: inbox.channel.phone_number,
       channel_type: 'whatsapp'
     }
     response[:message] = I18n.t('inbox.reauthorization.success') if params[:inbox_id].present?

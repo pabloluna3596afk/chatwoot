@@ -48,7 +48,11 @@ export const validateAuthenticateRoutePermission = async (to, next) => {
     return next(frontendURL(`accounts/${routeAccountId}/${target}`));
   }
 
-  if (needsOnboarding && !isOnOnboardingView(to)) {
+  const expectedOnboardingRoute =
+    userAccount?.onboarding_step === 'inbox_setup'
+      ? 'onboarding_inbox_setup'
+      : 'onboarding_account_details';
+  if (needsOnboarding && to.name !== expectedOnboardingRoute) {
     return next(
       frontendURL(
         `accounts/${routeAccountId}/${onboardingPath(userAccount?.onboarding_step)}`

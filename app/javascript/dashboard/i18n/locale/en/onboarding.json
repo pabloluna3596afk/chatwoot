@@ -113,5 +113,72 @@
       "FACEBOOK_NO_PAGES": "No connectable Pages found. All your Pages are already connected.",
       "FACEBOOK_ERROR": "Couldn't connect to Facebook. Please try again."
     }
+  },
+  "ONBOARDING_WHATSAPP": {
+    "TRUST": {
+      "TITLE": "You keep your number",
+      "APP": "Keep using the WhatsApp Business app on your phone",
+      "OFFICIAL": "Official connection to Meta’s WhatsApp Business Platform API",
+      "BENEFITS": "Templates, catalog and all the benefits of the official API",
+      "PROVIDER": "ChatHub is a Meta Tech Provider"
+    },
+    "GUIDE": {
+      "OPEN": "View connection guide",
+      "TITLE": "How to connect your WhatsApp",
+      "CLOSE": "Close guide",
+      "STEPS": {
+        "LOGIN": "Log in with your Meta account in the window that opens.",
+        "NUMBER": "Choose or confirm the number you use in the WhatsApp Business app.",
+        "VERIFY": "Meta sends a message with a verification code to your WhatsApp Business app. Choose Enter code and paste that code into the Meta window, or scan the QR code from another screen. Choose whether to share your history from the last 6 months."
+      },
+      "CHANGES_TITLE": "What changes",
+      "CHANGES": {
+        "HISTORY": "If you share your history, 1:1 chats and contacts from the last 6 months are synced.",
+        "GROUPS": "Groups are not synced.",
+        "MESSAGES": "Disappearing messages are disabled and view-once messages are not supported.",
+        "ACTIVITY": "Use the WhatsApp Business app on your phone at least every 14 days. After about 14 days without using the primary device, Meta disconnects the account from the API; additional devices disconnect after about 30 days.",
+        "VERSION": "You need WhatsApp Business version 2.24.17 or later.",
+        "THROUGHPUT": "Your number has a fixed throughput of 20 messages per second.",
+        "DISCONNECT": "To disconnect your account: WhatsApp Business → Settings → Account → WhatsApp Business Platform → Disconnect account."
+      },
+      "VIDEO": "Connection video",
+      "SOURCES": "Official Meta documentation",
+      "LINKS": {
+        "COEXISTENCE": "Meta: connect the WhatsApp Business app",
+        "TECH_PROVIDER": "Meta: Tech Provider program"
+      },
+      "BADGE_ALT": "Meta Tech Provider"
+    },
+    "MOBILE": {
+      "NOTICE": "You’re on your phone. If this phone has the WhatsApp Business app, when Meta asks you to link it, choose {code} and paste the code from the message (you don’t need to scan the QR code). Prefer to scan the QR code? Open this link on a computer.",
+      "ENTER_CODE": "Enter code",
+      "COPY": "Copy link to continue on a computer",
+      "COPIED": "Link copied. Open it on a computer to continue.",
+      "COPY_ERROR": "We couldn’t copy the link. Copy the address from your browser."
+    },
+    "TITLE": "Connect your number or account",
+    "SUBTITLE": "Keep your current number and the app on your phone. Your conversations arrive here.",
+    "STEPS": {
+      "META": "1. Sign in with your Meta account",
+      "NUMBER": "2. Choose your WhatsApp Business number",
+      "READY": "3. All set: keep using the app on your phone and receive your messages here"
+    },
+    "MARKETING": {
+      "TITLE": "Your conversations, all in one place.",
+      "SUBTITLE": "Connect WhatsApp and start welcoming your customers in your workspace."
+    },
+    "CONNECT": "Connect WhatsApp",
+    "CONNECTING": "Connecting to WhatsApp…",
+    "CONNECTED": "WhatsApp connected",
+    "OTHER_CONNECTED": "Channel connected",
+    "AGENT_ASSIGNED": "We've assigned you as an agent. You can invite your team later in Settings.",
+    "CONTINUE": "Continue",
+    "SKIP": "I’ll do this later",
+    "OTHER_CHANNEL": "Use another channel",
+    "CANCELLED": "You cancelled the connection. You can try again or continue later.",
+    "ERROR": "We couldn’t connect WhatsApp. Check your connection and permissions in Meta, then try again.",
+    "RETRY": "Try again",
+    "UNAVAILABLE": "WhatsApp connection is not available on this installation. You can use another channel or do this later.",
+    "COMPLETION_ERROR": "We couldn’t save this step. Try again to continue."
   }
 }

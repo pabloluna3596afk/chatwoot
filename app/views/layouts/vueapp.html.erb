@@ -46,6 +46,8 @@
         fbApiVersion: '<%= @global_config['FACEBOOK_API_VERSION'] %>',
         whatsappAppId: '<%= @global_config['WHATSAPP_APP_ID'] %>',
         whatsappConfigurationId: '<%= @global_config['WHATSAPP_CONFIGURATION_ID'] %>',
+        metaTechProviderLive: <%= (@global_config['META_TECH_PROVIDER_LIVE'].to_s == 'true').to_json %>,
+        whatsappGuideVideoUrl: <%= raw json_escape(@global_config['WHATSAPP_GUIDE_VIDEO_URL'].to_s.to_json) %>,
         whatsappApiVersion: '<%= @global_config['WHATSAPP_API_VERSION'] %>',
         signupEnabled: '<%= @global_config['ENABLE_ACCOUNT_SIGNUP'] %>',
         isEnterprise: '<%= @global_config['IS_ENTERPRISE'] %>',

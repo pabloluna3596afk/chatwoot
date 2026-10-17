@@ -47,7 +47,7 @@ class AccountBuilder
     @account = Account.create!(
       name: account_name,
       locale: I18n.locale,
-      custom_attributes: { 'onboarding_step' => 'account_details' }
+      custom_attributes: { 'onboarding_step' => 'account_details', 'onboarding_version' => 2 }
     )
     Current.account = @account
   end
