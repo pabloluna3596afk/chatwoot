@@ -14,7 +14,6 @@ import PasswordRequirements from './PasswordRequirements.vue';
 import { isValidPassword } from 'shared/helpers/Validators';
 import GoogleOAuthButton from '../../../../../components/GoogleOauth/Button.vue';
 import { register } from '../../../../../api/auth';
-import * as CompanyEmailValidator from 'company-email-validator';
 
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -37,9 +36,6 @@ const rules = {
     email: {
       required,
       email,
-      businessEmailValidator(value) {
-        return CompanyEmailValidator.isCompanyEmail(value);
-      },
     },
     password: {
       required,
@@ -85,7 +81,10 @@ const performRegistration = async () => {
       state: { email: credentials.email },
     });
   } catch (error) {
-    const errorMessage = error?.message || t('REGISTER.API.ERROR_MESSAGE');
+    const errorMessage =
+      error?.message === 'Invalid Captcha'
+        ? t('REGISTER.CAPTCHA.ERROR')
+        : error?.message || t('REGISTER.API.ERROR_MESSAGE');
     if (globalConfig.value.hCaptchaSiteKey) {
       hCaptcha.value.reset();
       credentials.hCaptchaClientResponse = '';
@@ -117,6 +116,7 @@ const onCaptchaError = () => {
   isSignupInProgress.value = false;
   credentials.hCaptchaClientResponse = '';
   hCaptcha.value.reset();
+  useAlert(t('REGISTER.CAPTCHA.ERROR'));
 };
 </script>
 

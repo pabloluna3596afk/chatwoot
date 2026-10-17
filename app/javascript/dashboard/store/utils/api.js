@@ -88,16 +88,17 @@ export const clearCookiesOnLogout = () => {
 };
 
 export const parseAPIErrorResponse = error => {
-  if (error?.response?.data?.message) {
-    return error?.response?.data?.message;
-  }
-  if (error?.response?.data?.error) {
-    return error?.response?.data?.error;
-  }
-  if (error?.response?.data?.errors) {
-    return error?.response?.data?.errors[0];
-  }
-  return error;
+  const data = error?.response?.data;
+  const messages = [
+    data?.message,
+    data?.error,
+    Array.isArray(data?.errors) ? data.errors[0] : null,
+  ];
+  // Let the UI use its translated fallback instead of exposing transport errors.
+  return (
+    messages.find(message => typeof message === 'string' && message.trim()) ||
+    ''
+  );
 };
 
 export const throwErrorMessage = error => {
