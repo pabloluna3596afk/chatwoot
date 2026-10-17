@@ -20,9 +20,9 @@
       "ERROR": "El nombre completo es demasiado corto"
     },
     "EMAIL": {
-      "LABEL": "E-mail",
-      "PLACEHOLDER": "Introduzca su dirección de correo electrónico de trabajo. Por ejemplo, bruce{'@'}wayne{'.'}empresas",
-      "ERROR": "Por favor, introduzca una dirección de correo válida"
+      "LABEL": "Correo electrónico",
+      "PLACEHOLDER": "Introduce tu correo electrónico. Por ejemplo, bruce{'@'}gmail{'.'}com",
+      "ERROR": "Introduce una dirección de correo válida."
     },
     "PASSWORD": {
       "LABEL": "Contraseña",
@@ -42,7 +42,7 @@
     },
     "API": {
       "SUCCESS_MESSAGE": "Registration Successful",
-      "ERROR_MESSAGE": "No se pudo conectar al servidor Woot, por favor inténtalo de nuevo más tarde"
+      "ERROR_MESSAGE": "No pudimos completar la acción. Inténtalo de nuevo."
     },
     "SUBMIT": "Crear una cuenta",
     "HAVE_AN_ACCOUNT": "¿Ya tienes una cuenta?",
@@ -50,8 +50,17 @@
       "TITLE": "Check your inbox",
       "DESCRIPTION": "We sent a verification link to {email}. Click the link to verify your email and get started.",
       "RESEND": "Reenviar correo de verificación",
-      "RESEND_SUCCESS": "Verification email sent. Please check your inbox.",
-      "RESEND_ERROR": "Could not send verification email. Please try again."
+      "RESEND_SUCCESS": "Si este correo necesita confirmación, enviaremos un enlace nuevo. Revisa tu bandeja de entrada.",
+      "RESEND_ERROR": "No pudimos enviar el correo de confirmación. Inténtalo de nuevo."
+    },
+    "CAPTCHA": {
+      "ERROR": "La verificación no se pudo completar o ha caducado. Inténtalo de nuevo."
+    },
+    "CONFIRMATION": {
+      "ERROR_TITLE": "No pudimos confirmar tu correo",
+      "ERROR_DESCRIPTION": "Este enlace no es válido, ha caducado o ya se ha utilizado. Entra si ya confirmaste tu correo o solicita un enlace nuevo.",
+      "LOGIN": "Entrar",
+      "RESEND": "Reenviar correo de confirmación"
     }
   }
 }

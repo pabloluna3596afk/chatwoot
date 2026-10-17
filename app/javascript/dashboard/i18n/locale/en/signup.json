@@ -20,9 +20,9 @@
       "ERROR": "Full name is too short."
     },
     "EMAIL": {
-      "LABEL": "Work email",
-      "PLACEHOLDER": "Enter your work email address. E.g., bruce{'@'}wayne{'.'}enterprises",
-      "ERROR": "Please enter a valid work email address."
+      "LABEL": "Email",
+      "PLACEHOLDER": "Enter your email address. E.g., bruce{'@'}gmail{'.'}com",
+      "ERROR": "Please enter a valid email address."
     },
     "PASSWORD": {
       "LABEL": "Password",
@@ -42,7 +42,7 @@
     },
     "API": {
       "SUCCESS_MESSAGE": "Registration Successful",
-      "ERROR_MESSAGE": "Could not connect to Woot server. Please try again."
+      "ERROR_MESSAGE": "We couldn't complete the action. Please try again."
     },
     "SUBMIT": "Create account",
     "HAVE_AN_ACCOUNT": "Already have an account?",
@@ -50,8 +50,17 @@
       "TITLE": "Check your inbox",
       "DESCRIPTION": "We sent a verification link to {email}. Click the link to verify your email and get started.",
       "RESEND": "Resend verification email",
-      "RESEND_SUCCESS": "Verification email sent. Please check your inbox.",
-      "RESEND_ERROR": "Could not send verification email. Please try again."
+      "RESEND_SUCCESS": "If this email address needs confirmation, we will send a new link. Please check your inbox.",
+      "RESEND_ERROR": "Could not send the confirmation email. Please try again."
+    },
+    "CAPTCHA": {
+      "ERROR": "Verification could not be completed or has expired. Please try again."
+    },
+    "CONFIRMATION": {
+      "ERROR_TITLE": "We could not confirm your email",
+      "ERROR_DESCRIPTION": "This link is invalid, has expired or has already been used. Sign in if you have already confirmed your email, or request a new link.",
+      "LOGIN": "Sign in",
+      "RESEND": "Resend confirmation email"
     }
   }
 }
