@@ -180,5 +180,69 @@
     "RETRY": "Reintentar",
     "UNAVAILABLE": "La conexión con WhatsApp no está disponible en esta instalación. Puedes usar otro canal o hacerlo después.",
     "COMPLETION_ERROR": "No pudimos guardar este paso. Inténtalo de nuevo para continuar."
+  },
+  "ONBOARDING_ASSISTANT": {
+    "TITLE": "Crea tu asistente",
+    "SUBTITLE": "Cuéntanos qué debe hacer. Prepararemos un borrador para que lo pruebes antes de activarlo.",
+    "MARKETING": {
+      "TITLE": "Tu próxima conversación empieza aquí",
+      "SUBTITLE": "Prepara un asistente que entienda tu negocio, a tu ritmo."
+    },
+    "DEFAULT_NAME": "Asistente de {business}",
+    "NAME": "Nombre del asistente",
+    "GOAL": "¿Qué quieres que haga tu asistente?",
+    "EXAMPLES_LABEL": "Prueba uno de estos ejemplos. Puedes editarlo.",
+    "TONE": "Tono de voz",
+    "TONES": {
+      "friendly": "Cercano",
+      "professional": "Profesional",
+      "brief": "Breve"
+    },
+    "CREATE": "Crear y probar",
+    "CREATING": "Creando tu borrador…",
+    "CHAT": "Chat de prueba",
+    "CHAT_EMPTY": "Haz una pregunta como si fueras un cliente. Este chat no envía mensajes a clientes.",
+    "DRAFT": "Borrador · Solo responderá a clientes cuando lo actives.",
+    "ACTIVE": "Activo · Tu asistente está conectado a WhatsApp.",
+    "QUESTION": "Tu pregunta de prueba",
+    "YOU": "Tú",
+    "SEND": "Enviar",
+    "THINKING": "Preparando una respuesta…",
+    "RETRY": "Reintentar",
+    "ACTIVATE": "Activar",
+    "CONTINUE": "Continuar",
+    "EDIT": "Seguir editando",
+    "SKIP": "Lo haré después",
+    "CONNECT_REQUIRED": "Conecta tu WhatsApp para activarlo",
+    "BACK_WHATSAPP": "Volver a WhatsApp",
+    "LOAD_ERROR": "No pudimos cargar tu borrador o tus canales. Reintenta.",
+    "CREATE_ERROR": "No pudimos guardar tu asistente. Tus cambios siguen aquí. Reintenta.",
+    "LIMIT_ERROR": "Tu plan permite {limit} asistente(s) y ya alcanzaste ese límite. Puedes continuar y administrar tus asistentes desde el panel.",
+    "AI_UNAVAILABLE": "La IA no está disponible: esta cuenta necesita una clave de IA configurada en la instalación y respuestas disponibles. Tu borrador está guardado. Puedes reintentar o continuar después.",
+    "CHAT_ERROR": "No pudimos obtener una respuesta. Revisa la disponibilidad de la IA y reintenta.",
+    "ACTIVATE_ERROR": "No pudimos terminar la activación. Revisa la conexión y si esta bandeja ya tiene un asistente, y reintenta.",
+    "COMPLETION_ERROR": "No pudimos terminar este paso. Tu borrador está guardado. Reintenta.",
+    "EXAMPLES": {
+      "appointments": {
+        "1": "Explica mis servicios y ayuda a solicitar una cita.",
+        "2": "Recoge el servicio y el horario preferido para que una persona confirme la cita.",
+        "3": "Responde preguntas confirmadas sobre citas y ofrece ayuda humana cuando sea necesario."
+      },
+      "commerce": {
+        "1": "Ayuda a conocer mis productos y explica cómo hacer un pedido.",
+        "2": "Responde preguntas con los datos de entregas y pagos que yo proporcione.",
+        "3": "Recoge consultas sobre productos y pásalas a una persona cuando sea necesario."
+      },
+      "services": {
+        "1": "Explica mis servicios y recoge las primeras consultas.",
+        "2": "Pregunta qué necesita el cliente para que una persona prepare una cotización.",
+        "3": "Responde preguntas confirmadas sobre mis servicios y ofrece ayuda humana."
+      },
+      "other": {
+        "1": "Da la bienvenida y explica a qué se dedica mi negocio.",
+        "2": "Recoge las consultas iniciales y dirígelas a la persona adecuada.",
+        "3": "Responde preguntas frecuentes solo con la información que yo proporcione."
+      }
+    }
   }
 }

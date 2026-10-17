@@ -1888,6 +1888,131 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
   alternar la bandera y la URL del video, copiar el enlace y comprobar el pie fijo.
   Sin migraciones ni commit.
 
+### B-NEW-71 — Paso 4: crear, probar y activar un asistente borrador
+
+- Alcance: onboarding versión 2. WhatsApp avanza a `assistant`; completar u omitir
+  ese paso lleva al dashboard. Las cuentas anteriores conservan su recorrido.
+  El paso 5 (plan) queda fuera de esta entrega. Sin migraciones ni commit.
+- Captain v1 y v2 se habilitan al crear cuentas versión 2, incluso sin licencia
+  pagada ni plan trial configurado. Los límites existentes del plan siguen vigentes.
+- `Onboarding::CaptainDraftService` bloquea la cuenta y guarda el asistente y
+  `custom_attributes.onboarding_assistant_id` en la misma transacción. Reenvíos
+  reutilizan ese asistente; editar actualiza el mismo borrador y nunca sobrescribe
+  uno ya vinculado. El límite de `Captain::Assistant` se aplica al crear.
+- Las cuatro plantillas, tonos y reglas están centralizados en
+  `enterprise/app/services/onboarding/captain_draft_templates.rb`. Componen
+  instrucciones en español neutro con el objetivo del dueño y el idioma de la
+  cuenta, sin generar precios ni respuestas comerciales. La composición es el
+  punto de extensión documentado para futura generación IA; crear no llama al LLM.
+- El borrador nace sin bandejas, citas, seguimientos ni mensajes pagados. Solo el
+  botón **Activar** llama a `POST captain/assistants/:id/inboxes`. Sin WhatsApp se
+  deshabilita y se ofrece volver al paso 3 manteniendo el cursor y el borrador.
+  La asignación del administrador también cubre esa conexión tardía.
+- El chat usa el playground existente. Para el asistente del onboarding, el
+  servidor selecciona `onboarding_playground`: solo consulta de conocimiento,
+  sin herramientas externas ni escenarios con acciones. El payload del borrador
+  informa falta de clave/cuota; la UI permite reintentar. No se promete prueba
+  gratuita ni atención real hasta activar.
+- API nueva bajo el recurso autenticado de onboarding: `GET /assistant` recupera
+  el borrador; `POST /assistant` recibe `name` (texto, 1–120 caracteres), `goal`
+  (texto, 1–2000) y `tone` (`friendly`, `professional`, `brief`). Solo administrador;
+  parámetros inválidos devuelven 422. El exceso de cupo devuelve 422 con código
+  `assistant_limit`, límite y mensaje traducido. Cuenta y membresías exponen el
+  ID únicamente si existe; no exponen el objetivo en el perfil.
+- Frontend: `AssistantSetup.vue`, API `onboarding.js`, rutas del dashboard/guard y
+  navegación mínima en `InboxSetup.vue`. Reutiliza `AuthSplitLayout`, tokens `n-*`,
+  progreso «Paso 4 de 5», controles redondeados y radios nativos accesibles para
+  tono. Textos completos en `locale/en/onboarding.json` y `locale/es/onboarding.json`;
+  errores de servidor en `config/locales/en.yml` y `es.yml`.
+- Autoevaluación: se corrigió la referencia a `STEP_INBOX_SETUP` en el módulo
+  Enterprise usando la constante del controlador base; sin calificarla, el
+  módulo no la resuelve y la transición puede lanzar `NameError`. Se agregaron
+  request specs de transición y replay pasando por ese overlay.
+- Autoevaluación: `accounts/get` devuelve el payload o `null`; el paso comprueba
+  ese resultado y el booleano de `inboxes/get`, que absorben fallos HTTP. Un 5xx
+  de carga ahora muestra error y reintento en vez de usar datos vacíos o viejos.
+  También se permite partir nombres largos en la tarjeta del borrador en móvil.
+
+Archivos de esta entrega:
+
+```text
+app/controllers/api/v1/accounts/onboardings_controller.rb
+app/javascript/dashboard/api/onboarding.js
+app/javascript/dashboard/i18n/locale/en/onboarding.json
+app/javascript/dashboard/i18n/locale/es/onboarding.json
+app/javascript/dashboard/routes/dashboard/dashboard.routes.js
+app/javascript/dashboard/routes/dashboard/onboarding/AssistantSetup.vue
+app/javascript/dashboard/routes/dashboard/onboarding/InboxSetup.vue
+app/javascript/dashboard/routes/dashboard/onboarding/specs/AssistantSetup.spec.js
+app/javascript/dashboard/routes/dashboard/onboarding/specs/InboxSetup.spec.js
+app/javascript/dashboard/routes/dashboard/onboarding/specs/assistantGuard.spec.js
+app/javascript/dashboard/routes/index.js
+app/javascript/dashboard/store/modules/accounts.js
+app/services/onboarding/inbox_member_assignment_service.rb
+app/views/api/v1/accounts/create.json.jbuilder
+app/views/api/v1/models/_account.json.jbuilder
+app/views/api/v1/models/_user.json.jbuilder
+config/locales/en.yml
+config/locales/es.yml
+config/routes.rb
+docs/BUGS.md
+enterprise/app/controllers/api/v1/accounts/captain/assistants_controller.rb
+enterprise/app/controllers/enterprise/api/v1/accounts/onboardings_controller.rb
+enterprise/app/models/enterprise/account.rb
+enterprise/app/services/captain/assistant/agent_runner_service.rb
+enterprise/app/services/onboarding/captain_draft_service.rb
+enterprise/app/services/onboarding/captain_draft_templates.rb
+enterprise/app/views/api/v1/accounts/onboardings/assistant.json.jbuilder
+spec/controllers/api/v1/accounts/onboardings_controller_spec.rb
+spec/enterprise/controllers/api/v1/accounts/captain/assistants_controller_spec.rb
+spec/enterprise/controllers/api/v1/accounts/onboarding_assistants_controller_spec.rb
+spec/enterprise/controllers/api/v1/accounts/onboardings_controller_spec.rb
+spec/enterprise/models/account_spec.rb
+spec/enterprise/services/captain/assistant/agent_runner_service_spec.rb
+spec/enterprise/services/onboarding/captain_draft_service_spec.rb
+spec/services/onboarding/inbox_member_assignment_service_spec.rb
+```
+
+Cobertura:
+
+| Spec | Qué verifica |
+|---|---|
+| `onboarding/specs/AssistantSetup.spec.js` | Pantalla en/es, tres ejemplos por negocio, creación/cargando/error, límite traducido sin falso éxito, edición/reanudación, respuesta de prueba, clave/cuota/error/reintento, activación explícita con/sin WhatsApp, respuesta perdida y omisión. Carga mediante la acción real de cuenta, errores absorbidos, doble activación y reintento de finalización tras 5xx. |
+| `onboarding/specs/assistantGuard.spec.js` | Reanudar paso 4, volver a WhatsApp y excluir cuentas antiguas/completadas. |
+| `onboarding/specs/InboxSetup.spec.js` | Continuar/omitir WhatsApp conduce al asistente, incluidas recuperación y reintentos. |
+| `spec/enterprise/services/onboarding/captain_draft_service_spec.rb` | Idempotencia, cupo de un asistente, edición sin duplicar, rollback del puntero, aislamiento por cuenta, plantillas/idioma/tono, ausencia de vínculos/LLM y defaults de automatización. |
+| `spec/enterprise/controllers/api/v1/accounts/onboarding_assistants_controller_spec.rb` | Crear/recuperar, validación 422, autorización, límite traducido, cuenta antigua y payload del puntero presente/ausente. Contrato de cuenta y `/auth/validate_token` usando las vistas reales, y vínculo explícito a WhatsApp. |
+| `spec/enterprise/controllers/api/v1/accounts/onboardings_controller_spec.rb` | Transición a asistente a través del overlay Enterprise y replay sin mutar estado. |
+| `spec/controllers/api/v1/accounts/onboardings_controller_spec.rb` | Transiciones versión 2, completar/omitir asistente, reenvíos/fuera de orden y compatibilidad legacy. |
+| `spec/enterprise/models/account_spec.rb` | Ambos flags Captain en cuentas nuevas sin instalación pagada ni plan. |
+| `spec/enterprise/controllers/api/v1/accounts/captain/assistants_controller_spec.rb` | Selección del runner restringido durante onboarding, incluso si se suministra configuración avanzada. |
+| `spec/enterprise/services/captain/assistant/agent_runner_service_spec.rb` | Prueba sin herramientas externas ni handoffs a escenarios reales. |
+| `spec/services/onboarding/inbox_member_assignment_service_spec.rb` | Asignación del administrador al regresar desde el asistente a conectar WhatsApp. |
+| `dashboard/i18n/messagesCompile.spec.js` | Compilación de mensajes en/es, incluidas las nuevas cadenas. |
+
+Validación de autoevaluación: ESLint de los nueve archivos JS/Vue nuevos o modificados con **0 errores
+y 0 advertencias**; paridad de las **48 claves** nuevas en/es y `git diff --check`
+correctos. El CLI solicitado de Vitest falla al iniciar esbuild con **`spawn EPERM`**.
+La misma selección onboarding + Captain + i18n se ejecutó mediante la API local:
+**38 archivos y 445 pruebas aprobadas**, incluidas 29 de pantalla y 5 del guard nuevo.
+El ejecutor temporal `tmp/run-assistant-tests.mjs` carga la configuración base en
+memoria, resuelve dependencias enlazadas y omite estilos SFC en jsdom para evitar
+el preprocesador Sass no disponible; no modifica configuración ni estilos de producto.
+Los RSpec se escribieron y revisaron estáticamente, **sin ejecutarlos**, según el
+brief; Docker Desktop tampoco dispone del daemon Linux en esta sesión. La revisión
+visual en navegador y la prueba con Rails/IA/WhatsApp reales quedan pendientes;
+Vitest usa respuestas simuladas y no valida la serialización real de Rails.
+Detalle de cumplimiento, recorrido de datos y pendientes en
+[`AUTOEVALUACION-ASISTENTE.md`](AUTOEVALUACION-ASISTENTE.md). Se usó este destino
+porque los permisos de la sesión rechazan la escritura en `.codex/AUTOEVALUACION.md`.
+
+Cómo verificar en producto: cuenta nueva → negocio → conectar u omitir WhatsApp →
+asistente. Elegir ejemplo/tono y crear; recargar y comprobar que reaparece el mismo
+borrador. Probar una pregunta (con IA configurada y saldo), editar y repetir. Sin
+clave/saldo, comprobar mensaje y reintento. Sin WhatsApp, volver a conectarlo y
+regresar sin duplicar; pulsar Activar y comprobar el vínculo. Omitir conserva el
+borrador y permite entrar al dashboard. Verificar móvil y ambos temas.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)

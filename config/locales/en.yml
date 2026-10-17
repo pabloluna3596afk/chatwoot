@@ -30,6 +30,10 @@
 # available at https://guides.rubyonrails.org/i18n.html.
 
 en:
+  onboarding:
+    assistant:
+      invalid: 'Invalid assistant details'
+      unavailable: 'Assistant setup is not available at this onboarding step'
   hello: 'Hello world'
   inbox:
     reauthorization:

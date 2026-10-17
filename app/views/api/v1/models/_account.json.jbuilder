@@ -11,6 +11,7 @@ if resource.custom_attributes.present?
     json.billing_currency resource.billing_currency if resource.respond_to?(:billing_currency) && Enterprise::Billing::Currencies.enabled?
     json.website resource.custom_attributes['website'] if resource.custom_attributes['website'].present?
     json.industry resource.custom_attributes['industry'] if resource.custom_attributes['industry'].present?
+    json.business_type resource.custom_attributes['business_type'] if resource.custom_attributes['business_type'].present?
     json.company_size resource.custom_attributes['company_size'] if resource.custom_attributes['company_size'].present?
     json.timezone resource.custom_attributes['timezone'] if resource.custom_attributes['timezone'].present?
     json.logo resource.custom_attributes['logo'] if resource.custom_attributes['logo'].present?
@@ -18,6 +19,9 @@ if resource.custom_attributes.present?
     json.brand_info resource.custom_attributes['brand_info'] if resource.custom_attributes['brand_info'].present?
     json.onboarding_step resource.onboarding_step if resource.onboarding_step.present?
     json.onboarding_version resource.custom_attributes['onboarding_version'] if resource.custom_attributes['onboarding_version'].present?
+    if resource.custom_attributes['onboarding_assistant_id'].present?
+      json.onboarding_assistant_id resource.custom_attributes['onboarding_assistant_id']
+    end
     if resource.custom_attributes['help_center_generation_id'].present?
       json.help_center_generation_id resource.custom_attributes['help_center_generation_id']
     end

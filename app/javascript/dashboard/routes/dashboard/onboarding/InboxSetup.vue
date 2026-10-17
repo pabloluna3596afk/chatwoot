@@ -150,7 +150,10 @@ const completeOnboarding = async skipped => {
         : ONBOARDING_EVENTS.INBOX_SETUP_COMPLETED
     );
     await store.dispatch('setUser');
-    await router.push({ name: 'home', params: { accountId: accountId.value } });
+    await router.push({
+      name: isNewOnboarding.value ? 'onboarding_assistant' : 'home',
+      params: { accountId: accountId.value },
+    });
   } catch {
     completionFailed.value = true;
   } finally {

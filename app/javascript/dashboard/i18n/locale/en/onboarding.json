@@ -180,5 +180,69 @@
     "RETRY": "Try again",
     "UNAVAILABLE": "WhatsApp connection is not available on this installation. You can use another channel or do this later.",
     "COMPLETION_ERROR": "We couldn’t save this step. Try again to continue."
+  },
+  "ONBOARDING_ASSISTANT": {
+    "TITLE": "Create your assistant",
+    "SUBTITLE": "Tell us what it should do. We will prepare a draft for you to try before activating it.",
+    "MARKETING": {
+      "TITLE": "Your next conversation starts here",
+      "SUBTITLE": "Prepare an assistant that understands your business, at your own pace."
+    },
+    "DEFAULT_NAME": "Assistant for {business}",
+    "NAME": "Assistant name",
+    "GOAL": "What would you like your assistant to do?",
+    "EXAMPLES_LABEL": "Try one of these examples. You can edit it.",
+    "TONE": "Tone of voice",
+    "TONES": {
+      "friendly": "Friendly",
+      "professional": "Professional",
+      "brief": "Brief"
+    },
+    "CREATE": "Create and try",
+    "CREATING": "Creating your draft…",
+    "CHAT": "Test chat",
+    "CHAT_EMPTY": "Ask a question as if you were a customer. This chat does not send messages to customers.",
+    "DRAFT": "Draft · It will only reply to customers after you activate it.",
+    "ACTIVE": "Active · Your assistant is connected to WhatsApp.",
+    "QUESTION": "Your test question",
+    "YOU": "You",
+    "SEND": "Send",
+    "THINKING": "Preparing a reply…",
+    "RETRY": "Try again",
+    "ACTIVATE": "Activate",
+    "CONTINUE": "Continue",
+    "EDIT": "Keep editing",
+    "SKIP": "I’ll do it later",
+    "CONNECT_REQUIRED": "Connect your WhatsApp to activate it.",
+    "BACK_WHATSAPP": "Back to WhatsApp",
+    "LOAD_ERROR": "We could not load your draft or channels. Try again.",
+    "CREATE_ERROR": "We could not save your assistant. Your changes are still here. Try again.",
+    "LIMIT_ERROR": "Your plan allows {limit} assistant(s). You have reached this limit. You can continue and manage your assistants from the dashboard.",
+    "AI_UNAVAILABLE": "AI is not available: this account needs an AI key configured for the installation and available responses. Your draft is saved. You can try again or continue later.",
+    "CHAT_ERROR": "We could not get a reply. Check AI availability and try again.",
+    "ACTIVATE_ERROR": "We could not finish activation. Check the connection and whether this inbox already has an assistant, then try again.",
+    "COMPLETION_ERROR": "We could not finish this step. Your draft is saved. Try again.",
+    "EXAMPLES": {
+      "appointments": {
+        "1": "Explain my services and help people request an appointment.",
+        "2": "Collect the service and preferred time so a person can confirm the appointment.",
+        "3": "Answer confirmed questions about appointments and offer human help when needed."
+      },
+      "commerce": {
+        "1": "Help customers explore my products and understand how to order.",
+        "2": "Answer questions using the delivery and payment details I provide.",
+        "3": "Collect product inquiries and pass them to a person when needed."
+      },
+      "services": {
+        "1": "Explain my services and collect initial inquiries.",
+        "2": "Ask what the customer needs so a person can prepare a quote.",
+        "3": "Answer confirmed questions about my services and offer human help."
+      },
+      "other": {
+        "1": "Welcome customers and explain what my business does.",
+        "2": "Collect initial questions and direct them to the right person.",
+        "3": "Answer common questions using only the information I provide."
+      }
+    }
   }
 }

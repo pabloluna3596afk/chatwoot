@@ -5,6 +5,30 @@ RSpec.describe 'Enterprise Onboarding API', type: :request do
   let(:admin) { create(:user, account: account, role: :administrator) }
 
   describe 'PATCH /api/v1/accounts/{account.id}/onboarding' do
+    it 'advances version 2 through the Enterprise override and clears the generation pointer' do
+      account.update!(custom_attributes: {
+                        'onboarding_version' => 2, 'onboarding_step' => 'inbox_setup', 'help_center_generation_id' => 'generation-123'
+                      })
+
+      patch "/api/v1/accounts/#{account.id}/onboarding",
+            params: { onboarding_step: 'inbox_setup', inbox_setup_result: 'skipped' }, headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(account.reload.custom_attributes).to include('onboarding_step' => 'assistant', 'inbox_setup_result' => 'skipped')
+      expect(account.custom_attributes).not_to have_key('help_center_generation_id')
+    end
+
+    it 'does not mutate the generation pointer on a replay from the assistant step' do
+      attributes = { 'onboarding_version' => 2, 'onboarding_step' => 'assistant', 'help_center_generation_id' => 'generation-123' }
+      account.update!(custom_attributes: attributes)
+
+      patch "/api/v1/accounts/#{account.id}/onboarding",
+            params: { onboarding_step: 'inbox_setup', inbox_setup_result: 'skipped' }, headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(account.reload.custom_attributes).to eq(attributes)
+    end
+
     context 'when finalizing account_details' do
       # Inbox/help-center setup is a cloud-only step; off cloud the flow finishes at account_details.
       before do

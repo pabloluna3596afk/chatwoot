@@ -6,7 +6,7 @@ class Onboarding::InboxMemberAssignmentService
 
   def perform
     return unless @account.custom_attributes['onboarding_version'] == 2
-    return unless @account.custom_attributes['onboarding_step'] == 'inbox_setup'
+    return unless %w[inbox_setup assistant].include?(@account.custom_attributes['onboarding_step'])
     return unless @account_user&.administrator?
 
     @account.inboxes.find_each do |inbox|

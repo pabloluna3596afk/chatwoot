@@ -5,6 +5,19 @@ require 'rails_helper'
 RSpec.describe Account, type: :model do
   include ActiveJob::TestHelper
 
+  describe 'version 2 onboarding Captain defaults' do
+    it 'enables both Captain features without a paid installation or a trial plan' do
+      allow(ChatwootApp).to receive(:self_hosted_paid?).and_return(false)
+      allow(Plan).to receive(:active).and_return(Plan.none)
+
+      account = create(:account, custom_attributes: { 'onboarding_version' => 2, 'onboarding_step' => 'account_details' })
+
+      expect(account.reload.feature_enabled?('captain_integration')).to be(true)
+      expect(account.feature_enabled?('captain_integration_v2')).to be(true)
+      expect(account.plan).to be_nil
+    end
+  end
+
   describe 'associations' do
     it { is_expected.to have_many(:sla_policies).dependent(:destroy_async) }
     it { is_expected.to have_many(:applied_slas).dependent(:destroy_async) }

@@ -28,6 +28,16 @@ RSpec.describe Onboarding::InboxMemberAssignmentService do
     expect(inbox.members).to contain_exactly(admin)
   end
 
+  it 'assigns the administrator when returning from the assistant step to connect WhatsApp' do
+    inbox
+    account.update!(custom_attributes: { onboarding_version: 2, onboarding_step: 'assistant' })
+
+    service.perform
+
+    expect(inbox.members).to contain_exactly(admin)
+    expect(account.reload.onboarding_step).to eq('assistant')
+  end
+
   it 'preserves existing members without adding the administrator' do
     agent = create(:user, account: account, role: :agent)
     inbox.add_members([agent.id])
@@ -43,7 +53,7 @@ RSpec.describe Onboarding::InboxMemberAssignmentService do
     expect { service.perform }.not_to change(InboxMember, :count)
   end
 
-  it 'does not change accounts outside inbox_setup' do
+  it 'does not change accounts after onboarding' do
     inbox
     account.update!(custom_attributes: { onboarding_version: 2 })
 

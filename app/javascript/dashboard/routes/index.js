@@ -8,10 +8,13 @@ import { isOnOnboardingView } from 'v3/helpers/RouteHelper';
 import AnalyticsHelper from '../helper/AnalyticsHelper';
 
 const ONBOARDING_STEPS = ['account_details', 'enrichment', 'inbox_setup'];
+const ONBOARDING_ROUTES = {
+  inbox_setup: ['onboarding/inbox-setup', 'onboarding_inbox_setup'],
+  assistant: ['onboarding/assistant', 'onboarding_assistant'],
+};
 const routes = [...dashboard.routes];
 
-const onboardingPath = step =>
-  step === 'inbox_setup' ? 'onboarding/inbox-setup' : 'onboarding';
+const onboardingPath = step => ONBOARDING_ROUTES[step]?.[0] || 'onboarding';
 
 export const router = createRouter({ history: createWebHistory(), routes });
 
@@ -36,8 +39,12 @@ export const validateAuthenticateRoutePermission = async (to, next) => {
   const userAccount = accounts.find(a => a.id === routeAccountId);
   const isAdmin = userAccount?.role === 'administrator';
   const isActive = userAccount?.status === 'active';
+  const isAssistantStep =
+    userAccount?.onboarding_version === 2 &&
+    userAccount?.onboarding_step === 'assistant';
   const needsOnboarding =
-    ONBOARDING_STEPS.includes(userAccount?.onboarding_step) &&
+    (ONBOARDING_STEPS.includes(userAccount?.onboarding_step) ||
+      isAssistantStep) &&
     isAdmin &&
     isActive;
 
@@ -49,10 +56,15 @@ export const validateAuthenticateRoutePermission = async (to, next) => {
   }
 
   const expectedOnboardingRoute =
-    userAccount?.onboarding_step === 'inbox_setup'
-      ? 'onboarding_inbox_setup'
-      : 'onboarding_account_details';
-  if (needsOnboarding && to.name !== expectedOnboardingRoute) {
+    ONBOARDING_ROUTES[userAccount?.onboarding_step]?.[1] ||
+    'onboarding_account_details';
+  const returningToWhatsapp =
+    isAssistantStep && to.name === 'onboarding_inbox_setup';
+  if (
+    needsOnboarding &&
+    to.name !== expectedOnboardingRoute &&
+    !returningToWhatsapp
+  ) {
     return next(
       frontendURL(
         `accounts/${routeAccountId}/${onboardingPath(userAccount?.onboarding_step)}`

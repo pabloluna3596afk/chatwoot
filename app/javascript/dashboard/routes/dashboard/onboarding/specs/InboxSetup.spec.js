@@ -109,11 +109,13 @@ describe('WhatsApp onboarding', () => {
     });
     router = createRouter({
       history: createMemoryHistory(),
-      routes: ['onboarding_inbox_setup', 'home'].map(name => ({
-        path: `/accounts/:accountId/${name}`,
-        name,
-        component: { template: '<div />' },
-      })),
+      routes: ['onboarding_inbox_setup', 'onboarding_assistant', 'home'].map(
+        name => ({
+          path: `/accounts/:accountId/${name}`,
+          name,
+          component: { template: '<div />' },
+        })
+      ),
     });
     await router.push({
       name: 'onboarding_inbox_setup',
@@ -424,7 +426,7 @@ describe('WhatsApp onboarding', () => {
       inbox_setup_result: 'whatsapp_connected',
     });
     expect(setUser).toHaveBeenCalledOnce();
-    expect(router.currentRoute.value.name).toBe('home');
+    expect(router.currentRoute.value.name).toBe('onboarding_assistant');
   });
 
   it('shows cancellation separately and allows another attempt', async () => {
@@ -474,7 +476,7 @@ describe('WhatsApp onboarding', () => {
     });
     expect(runEmbeddedSignup).not.toHaveBeenCalled();
     expect(setUser).toHaveBeenCalledOnce();
-    expect(router.currentRoute.value.name).toBe('home');
+    expect(router.currentRoute.value.name).toBe('onboarding_assistant');
   });
 
   it('opens the existing dialog and continues after another channel connects', async () => {
@@ -544,7 +546,7 @@ describe('WhatsApp onboarding', () => {
     expect(openDialog).toHaveBeenCalledOnce();
     await wrapper.get('[data-testid="skip"]').trigger('click');
     await flushPromises();
-    expect(router.currentRoute.value.name).toBe('home');
+    expect(router.currentRoute.value.name).toBe('onboarding_assistant');
   });
 
   it('resumes a connection from the inbox API after reload', async () => {
@@ -644,7 +646,7 @@ describe('WhatsApp onboarding', () => {
     expect(router.currentRoute.value.name).toBe('onboarding_inbox_setup');
     await wrapper.get('[data-testid="primary"]').trigger('click');
     await flushPromises();
-    expect(router.currentRoute.value.name).toBe('home');
+    expect(router.currentRoute.value.name).toBe('onboarding_assistant');
   });
 
   it('prevents duplicate completion requests', async () => {

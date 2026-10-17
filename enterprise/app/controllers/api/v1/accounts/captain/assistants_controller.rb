@@ -198,6 +198,15 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
   end
 
   def generate_v2_playground_response
+    onboarding = @assistant.account.custom_attributes
+    if onboarding['onboarding_version'] == 2 && onboarding['onboarding_step'] == 'assistant' && onboarding['onboarding_assistant_id'] == @assistant.id
+      run_options = Captain::Assistant::AgentRunnerService::RunOptions.new(
+        source: Captain::Assistant::AgentRunnerService::ONBOARDING_PLAYGROUND_SOURCE
+      )
+      service = Captain::Assistant::AgentRunnerService.new(assistant: @assistant, run_options: run_options)
+      return service.generate_response(message_history: playground_message_history)
+    end
+
     return default_v2_playground_response unless playground_configuration_params
 
     Captain::Playground::Runner.new(
