@@ -1,37 +1,30 @@
 <script setup>
-import Icon from 'dashboard/components-next/icon/Icon.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 
 defineProps({
-  modelValue: { type: String, default: '' },
-  options: { type: Array, default: () => [] },
-  placeholder: { type: String, default: '' },
-  hasError: { type: Boolean, default: false },
+  label: { type: String, required: true },
+  options: { type: Array, required: true },
+  placeholder: { type: String, required: true },
+  showSearch: Boolean,
+  allowDeselect: Boolean,
 });
-
-defineEmits(['update:modelValue']);
+const model = defineModel({ type: String, required: true });
 </script>
 
 <template>
-  <div class="relative flex items-center justify-end">
-    <select
-      :value="modelValue"
-      class="!h-auto !w-auto !py-0 !ps-0 !pe-[17px] !m-0 !rounded-none !bg-transparent !bg-none !outline-none text-sm text-end border-0 cursor-pointer appearance-none focus:outline-none focus:ring-0"
-      :class="[
-        modelValue ? 'text-n-slate-12' : 'text-n-slate-9',
-        { 'animate-shake': hasError },
-      ]"
-      @change="$emit('update:modelValue', $event.target.value)"
-    >
-      <option v-if="placeholder" value="" disabled>
-        {{ placeholder }}
-      </option>
-      <option v-for="opt in options" :key="opt.value" :value="opt.value">
-        {{ opt.label }}
-      </option>
-    </select>
-    <Icon
-      icon="i-lucide-chevron-down"
-      class="pointer-events-none absolute end-0 top-1/2 -translate-y-1/2 text-n-slate-9"
+  <div class="space-y-2">
+    <p class="m-0 text-sm font-medium text-n-slate-12">{{ label }}</p>
+    <ComboBox
+      v-model="model"
+      :options="options"
+      :aria-label="label"
+      :placeholder="placeholder"
+      :show-search="showSearch"
+      :allow-deselect="allowDeselect"
+      :search-placeholder="$t('ONBOARDING_NEXT.SEARCH')"
+      :empty-state="$t('ONBOARDING_NEXT.NO_RESULTS')"
+      teleport
+      class="[&>div>button]:!h-14 [&>div>button]:!rounded-full [&>div>button]:!px-5 [&>div>button]:!text-base [&>div>button]:bg-n-solid-1 [&>div>button]:dark:bg-n-solid-3"
     />
   </div>
 </template>

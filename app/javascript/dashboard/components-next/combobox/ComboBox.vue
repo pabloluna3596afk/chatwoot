@@ -110,7 +110,9 @@ const filteredOptions = computed(() => {
 
   const searchTerm = search.value.toLowerCase();
   return props.options.filter(option =>
-    option.label.toLowerCase().includes(searchTerm)
+    [option.label, ...(option.searchTerms || [])].some(term =>
+      term.toLowerCase().includes(searchTerm)
+    )
   );
 });
 const selectPlaceholder = computed(() => {

@@ -1,4 +1,4 @@
-import { defineComponent, h, ref } from 'vue';
+import { defineComponent, h, ref, reactive, nextTick } from 'vue';
 import { createStore } from 'vuex';
 import { mount } from '@vue/test-utils';
 import { useRoute } from 'vue-router';
@@ -6,22 +6,11 @@ import { useAccountEnrichment } from '../../account-details/useAccountEnrichment
 
 vi.mock('vue-router');
 
-const ENABLED_LANGUAGES = [
-  { iso_639_1_code: 'en', name: 'English' },
-  { iso_639_1_code: 'fr', name: 'French' },
-];
-
-// Mounts the composable against a real store and the real useAccount/useConfig
-// (only useRoute and the underlying account getter / window config are faked),
+// Mounts the composable against a real store and the real useAccount
+// (only useRoute and the underlying account getter are faked),
 // so a change to how those resolve their data is exercised here too. `presets`
 // seeds form fields as if the user had already typed them.
-const mountComposable = ({
-  account = {},
-  enabledLanguages = ENABLED_LANGUAGES,
-  presets = {},
-} = {}) => {
-  window.chatwootConfig = { enabledLanguages };
-
+const mountComposable = ({ account = {}, presets = {} } = {}) => {
   const store = createStore({
     modules: {
       accounts: {
@@ -35,9 +24,9 @@ const mountComposable = ({
     locale: ref(presets.locale || ''),
     website: ref(presets.website || ''),
     timezone: ref(presets.timezone || ''),
-    companySize: ref(presets.companySize || ''),
-    industry: ref(presets.industry || ''),
-    referralSource: ref(presets.referralSource || ''),
+    name: ref(presets.name || ''),
+    businessType: ref(presets.businessType || ''),
+    country: ref(presets.country || ''),
   };
 
   let api;
@@ -55,75 +44,83 @@ beforeEach(() => {
   useRoute.mockReturnValue({ params: { accountId: '1' } });
 });
 
-afterEach(() => {
-  delete window.chatwootConfig;
-});
-
 describe('useAccountEnrichment', () => {
   describe('populateFormFields', () => {
     it('fills empty fields from the enriched attributes on mount', () => {
       const { fields } = mountComposable({
         account: {
           locale: 'en',
+          name: 'Acme',
           custom_attributes: {
             website: 'https://acme.com',
             timezone: 'America/New_York',
-            company_size: '11-50',
-            industry: 'Technology',
-            referral_source: 'google',
+            business_type: 'commerce',
+            country: 'EC',
           },
         },
       });
 
       expect(fields.website.value).toBe('https://acme.com');
       expect(fields.timezone.value).toBe('America/New_York');
-      expect(fields.companySize.value).toBe('11-50');
-      expect(fields.industry.value).toBe('Technology');
-      expect(fields.referralSource.value).toBe('google');
+      expect(fields.name.value).toBe('Acme');
+      expect(fields.businessType.value).toBe('commerce');
+      expect(fields.country.value).toBe('EC');
     });
 
-    it('falls back to brand_info for website and industry', () => {
+    it('falls back to brand_info for website', () => {
       const { fields } = mountComposable({
         account: {
           custom_attributes: {
             brand_info: {
               domain: 'acme.com',
-              industries: [{ industry: 'Retail & E-commerce' }],
             },
           },
         },
       });
 
       expect(fields.website.value).toBe('acme.com');
-      expect(fields.industry.value).toBe('Retail & E-commerce');
     });
 
     it('does not clobber fields the user already set', () => {
       const { fields } = mountComposable({
-        presets: { website: 'mysite.com', industry: 'Finance' },
+        presets: { website: 'mysite.com', name: 'My business' },
         account: {
+          name: 'Enriched name',
           custom_attributes: {
             website: 'https://enriched.com',
-            industry: 'Technology',
           },
         },
       });
 
       expect(fields.website.value).toBe('mysite.com');
-      expect(fields.industry.value).toBe('Finance');
+      expect(fields.name.value).toBe('My business');
     });
 
-    it('detects the locale from the browser, else the account locale', () => {
-      // jsdom reports navigator.language as 'en-US' -> base 'en' is enabled.
-      const { fields } = mountComposable({ account: { locale: 'de' } });
-      expect(fields.locale.value).toBe('en');
-
-      // No enabled language matches the browser -> fall back to account locale.
+    it('prefers the account locale over the browser and uses a supported default', () => {
+      const { fields } = mountComposable({ account: { locale: 'es' } });
+      expect(fields.locale.value).toBe('es');
       const { fields: other } = mountComposable({
         account: { locale: 'de' },
-        enabledLanguages: [{ iso_639_1_code: 'es', name: 'Spanish' }],
       });
-      expect(other.locale.value).toBe('de');
+      expect(other.locale.value).toBe('en');
+    });
+
+    it('does not overwrite edits or a cleared website when enrichment arrives late', async () => {
+      const account = reactive({
+        name: 'Acme',
+        custom_attributes: { website: 'acme.com' },
+      });
+      const { fields, getChangedFields } = mountComposable({ account });
+      fields.name.value = 'My business';
+      fields.website.value = '';
+      account.name = 'Enriched name';
+      account.custom_attributes = { website: 'enriched.com', country: 'EC' };
+      await nextTick();
+
+      expect(fields.name.value).toBe('My business');
+      expect(fields.website.value).toBe('');
+      expect(fields.country.value).toBe('EC');
+      expect(getChangedFields()).toEqual(['website', 'name']);
     });
   });
 
@@ -149,7 +146,7 @@ describe('useAccountEnrichment', () => {
           account: {
             custom_attributes: {
               onboarding_step: 'enrichment',
-              company_size: '51-200',
+              business_type: 'other',
             },
           },
         });
@@ -158,7 +155,7 @@ describe('useAccountEnrichment', () => {
         vi.advanceTimersByTime(30000);
 
         expect(isEnriching.value).toBe(false);
-        expect(fields.companySize.value).toBe('51-200');
+        expect(fields.businessType.value).toBe('other');
       } finally {
         vi.useRealTimers();
       }
@@ -171,16 +168,14 @@ describe('useAccountEnrichment', () => {
         account: {
           custom_attributes: {
             website: 'https://acme.com',
-            company_size: '11-50',
-            industry: 'Technology',
           },
         },
       });
 
       expect(getChangedFields()).toEqual([]);
 
-      fields.industry.value = 'Finance';
-      expect(getChangedFields()).toEqual(['industry']);
+      fields.businessType.value = 'services';
+      expect(getChangedFields()).toEqual(['business_type']);
     });
   });
 });

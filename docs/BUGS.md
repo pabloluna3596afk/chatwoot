@@ -1657,6 +1657,94 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
   `npx vitest run --config vitest.local.config.ts app/javascript/v3 app/javascript/dashboard/i18n`
   no inicia: esbuild devuelve `spawn EPERM`. Specs, build y capturas pendientes del PM.
 
+### B-NEW-69 — Datos del negocio en el paso 2 del onboarding (ONB-01/06/10/13)
+
+- Archivos: `app/javascript/dashboard/routes/dashboard/onboarding/Index.vue`,
+  `account-details/{OnboardingFormSelect.vue,useAccountEnrichment.js}` dentro de esa
+  carpeta, `app/controllers/api/v1/accounts/onboardings_controller.rb`,
+  `app/javascript/dashboard/i18n/locale/{en,es}/onboarding.json` y los specs indicados abajo.
+- Causa: la web era obligatoria, el nombre del negocio no se podía editar y los
+  selectores nativos y las traducciones incompletas dificultaban el primer ingreso.
+- Cambio: «Cuéntanos de tu negocio» reutiliza `AuthSplitLayout` con foto y columna,
+  campos y botón de 56 px con forma de píldora, temas claro/oscuro y disposición móvil.
+  Muestra «Paso 2 de 5» con progreso visual. El nombre se precarga y permite edición;
+  el tipo se elige entre cuatro tarjetas obligatorias. País y web son opcionales;
+  país y zona horaria usan ComboBox con búsqueda y nombres de países localizados
+  desde la lista compartida (se excluye el código retirado AN). Zona horaria se
+  detecta en el navegador; idioma ofrece es/en y prefiere el de la cuenta.
+  Se retiran rol, sector, tamaño y origen de la pantalla, conservando su contrato backend.
+  Se eliminan `account-details/OnboardingFormRow.vue` y `shared/constants.js`,
+  que solo usaba el formulario anterior.
+  Se mantiene la espera del enriquecimiento y se protegen los campos editados frente
+  a sus actualizaciones tardías. Los errores usan la alerta existente y conservan los datos.
+  El backend guarda `business_type` y `country` en atributos personalizados y devuelve
+  422 para tipos fuera del catálogo o países fuera de ISO 3166 mediante TZInfo.
+  No cambia rutas, guards, permisos ni transiciones: cloud sigue a `inbox_setup`;
+  instalación propia finaliza. No implementa los pasos futuros ni modifica Captain.
+  Se completan en/es y se corrigen los controles ingleses y Outlook en español.
+- Cobertura:
+  - `app/javascript/dashboard/routes/dashboard/onboarding/specs/Index.spec.js`:
+    layout/campos/textos en ambos idiomas, progreso, nombre editable, tipo obligatorio,
+    web y país opcionales, precargas de zona/idioma, ComboBox y selecciones;
+    envío mediante la acción real del store a `OnboardingAPI.update` con
+    `onboarding_step: account_details`, normalización de web, rutas cloud/propia,
+    errores/reintento sin pérdida de datos, carga y bloqueo de envíos repetidos.
+  - `app/javascript/dashboard/routes/dashboard/onboarding/specs/account-details/useAccountEnrichment.spec.js`:
+    precargas, preferencia del idioma de la cuenta, espera/timeout y protección del
+    nombre editado y de una web borrada frente al enriquecimiento tardío.
+  - `spec/controllers/api/v1/accounts/onboardings_controller_spec.rb`: guardado del
+    nombre/tipo/país sin web, cuatro tipos válidos, país vacío y rechazo 422 sin
+    persistencia ni avance para tipo inválido/malformado o país inválido. Conserva
+    los casos existentes de autorización, compatibilidad y transiciones cloud/propia.
+  - `app/javascript/dashboard/i18n/messagesCompile.spec.js` (existente): compila
+    todas las hojas en/es, incluyendo los nuevos mensajes de onboarding.
+- Verificar manualmente: abrir onboarding en escritorio y móvil, claro/oscuro;
+  editar el nombre, seleccionar un tipo, buscar país/zona, confirmar idioma y
+  continuar sin web. Simular fallo de API y comprobar que permite reintentar con
+  los mismos datos. Verificar la salida existente en cloud e instalación propia.
+- Validación local: ESLint de los JS/Vue tocados sin errores ni advertencias;
+  compilación directa de ambos componentes Vue y de los 93 mensajes por idioma,
+  con igualdad de claves en/es. El comando solicitado
+  `npx vitest run --config vitest.local.config.ts app/javascript/dashboard/routes/dashboard/onboarding app/javascript/v3 app/javascript/dashboard/i18n`
+  no inicia: esbuild devuelve `spawn EPERM`. Ejecución de specs, build y capturas
+  pendientes del PM; RSpec no se ejecuta localmente, queda para CI. Sin migraciones.
+
+### B-NEW-70 — Contraste, formulario compacto y selección accesible del negocio (ronda 2)
+
+- Archivos: `app/javascript/v3/components/Auth/AuthSplitLayout.vue`,
+  `app/javascript/dashboard/routes/dashboard/onboarding/Index.vue`,
+  `account-details/{OnboardingFormSelect.vue,timezoneOptions.js}` dentro de esa carpeta,
+  `app/javascript/dashboard/components-next/combobox/ComboBox.vue`,
+  `app/controllers/api/v1/accounts/onboardings_controller.rb` y sus specs.
+- Cambio: el titular y subtítulo sobre la foto declaran blanco explícitamente.
+  El paso de negocio usa una columna con scroll interno y un pie fuera del scroll
+  para mantener «Continuar» visible, asociado al formulario mediante `form`.
+  Se reducen separaciones y se colocan país e idioma juntos desde 640 px, apilados
+  en móvil. Los ComboBox usan portal para evitar recortes por el área de scroll.
+  Las zonas conservan el identificador IANA y muestran país localizado con
+  `Intl.DisplayNames`, offset calculado con `Intl.DateTimeFormat` y ciudad;
+  la búsqueda admite ciudad, países asociados e identificador.
+  Las tarjetas conservan su altura mínima, añaden iconos Lucide, selección con
+  borde/fondo de marca y check; exponen radios con un único punto de tabulación
+  y flechas que cambian selección y foco, incluyendo el salto entre extremos.
+  La validación Ruby extrae predicados y usa `exclude?` y modificadores `if`,
+  conservando el contrato y los specs del controlador. Sin cambios de textos i18n.
+- Cobertura: specs del onboarding para pie/scroll, disposición responsive,
+  asociación y envío del formulario desde el pie, radios/foco y búsqueda IANA;
+  nuevo `specs/account-details/timezoneOptions.spec.js` para nombres localizados,
+  horario de verano, alias guardados y offsets fraccionarios. Se amplían
+  `AuthSplitLayout.spec.js` y `combobox/specs/ComboBox.spec.js` para contraste y búsqueda.
+- Verificar manualmente: abrir a 1440×900, 1280×720 y en móvil; comprobar el pie
+  visible, foto inmóvil, menús sin recortes y selección por teclado en ambos temas.
+- Validación local: ESLint de todos los JS/Vue tocados sin errores ni advertencias.
+  Compilación directa de los cuatro componentes Vue modificados y los 93 mensajes
+  de onboarding por idioma (en/es); comprobación directa del formateador sobre
+  419 zonas, alias IANA, horario de verano y offsets fraccionarios, correcta.
+  El comando de Vitest solicitado sigue bloqueado al arrancar por `spawn EPERM`
+  de esbuild; RuboCop y RSpec no pueden ejecutarse porque Docker no está disponible
+  y el host no tiene Ruby. Ejecución de specs y comprobación visual pendientes.
+  Sin migraciones ni commit.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)
