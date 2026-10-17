@@ -1,0 +1,169 @@
+import { flushPromises, mount } from '@vue/test-utils';
+import { reactive, nextTick } from 'vue';
+import { createI18n } from 'vue-i18n';
+import { useAlert } from 'dashboard/composables';
+import es from 'dashboard/i18n/locale/es/signup.json';
+import Form from './Form.vue';
+
+const { post, push, execute, reset } = vi.hoisted(() => ({
+  post: vi.fn(),
+  push: vi.fn(),
+  execute: vi.fn(),
+  reset: vi.fn(),
+}));
+let globalConfig;
+
+vi.mock('v3/api/apiClient', () => ({ default: { post } }));
+vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }));
+vi.mock('vuex', () => ({
+  useStore: () => ({ getters: { 'globalConfig/get': globalConfig } }),
+}));
+vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
+
+describe('Signup Form', () => {
+  let wrapper;
+
+  beforeEach(async () => {
+    window.chatwootConfig = { allowedLoginMethods: ['email'] };
+    globalConfig = reactive({ hCaptchaSiteKey: '' });
+    wrapper = mount(Form, {
+      global: {
+        plugins: [
+          createI18n({ legacy: false, locale: 'es', messages: { es } }),
+        ],
+        stubs: {
+          NextButton: false,
+          PasswordRequirements: true,
+          VueHcaptcha: {
+            name: 'VueHcaptcha',
+            methods: { execute, reset },
+            template: '<div />',
+          },
+        },
+      },
+    });
+    await wrapper.get('input[name="email_address"]').setValue('ana@gmail.com');
+    await wrapper.get('input[name="password"]').setValue('Secure123!');
+  });
+
+  afterEach(() => {
+    wrapper.unmount();
+    window.chatwootConfig = {};
+  });
+
+  it('accepts Gmail and keeps the registration request and verification route', async () => {
+    post.mockResolvedValueOnce({ data: { email: 'ana@gmail.com' } });
+    expect(
+      wrapper.get('[data-testid="submit_button"]').attributes('disabled')
+    ).toBeUndefined();
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+
+    expect(post).toHaveBeenCalledWith('api/v1/accounts.json', {
+      account_name: 'Gmail',
+      user_full_name: 'Ana',
+      email: 'ana@gmail.com',
+      password: 'Secure123!',
+      h_captcha_client_response: '',
+    });
+    expect(push).toHaveBeenCalledWith({
+      name: 'auth_verify_email',
+      state: { email: 'ana@gmail.com' },
+    });
+  });
+
+  it('submits disposable email to the server and displays its rejection', async () => {
+    const message = 'No se permiten correos electrónicos desechables.';
+    await wrapper
+      .get('input[name="email_address"]')
+      .setValue('ana@mailinator.com');
+    post.mockRejectedValueOnce({
+      response: { status: 403, data: { message } },
+    });
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+
+    expect(post).toHaveBeenCalledWith(
+      'api/v1/accounts.json',
+      expect.objectContaining({ email: 'ana@mailinator.com' })
+    );
+    expect(useAlert).toHaveBeenCalledExactlyOnceWith(message);
+    expect(push).not.toHaveBeenCalled();
+    expect(
+      wrapper.get('[data-testid="submit_button"]').attributes('disabled')
+    ).toBeUndefined();
+  });
+
+  it.each([
+    new Error('Network Error'),
+    { response: { status: 500 } },
+    { response: { data: { message: {} } } },
+  ])(
+    'uses the translated generic message for an error without usable payload: %j',
+    async error => {
+      post.mockRejectedValueOnce(error);
+      await wrapper.get('form').trigger('submit');
+      await flushPromises();
+
+      expect(useAlert).toHaveBeenCalledExactlyOnceWith(
+        'No pudimos completar la acción. Inténtalo de nuevo.'
+      );
+      expect(push).not.toHaveBeenCalled();
+    }
+  );
+
+  it('translates a server captcha rejection and allows another attempt', async () => {
+    globalConfig.hCaptchaSiteKey = 'site-key';
+    await nextTick();
+    post.mockRejectedValueOnce({
+      response: { status: 422, data: { error: 'Invalid Captcha' } },
+    });
+    await wrapper.get('form').trigger('submit');
+    expect(execute).toHaveBeenCalledOnce();
+    expect(post).not.toHaveBeenCalled();
+    wrapper
+      .getComponent({ name: 'VueHcaptcha' })
+      .vm.$emit('verify', 'captcha-token');
+    await flushPromises();
+
+    expect(post).toHaveBeenCalledWith(
+      'api/v1/accounts.json',
+      expect.objectContaining({ h_captcha_client_response: 'captcha-token' })
+    );
+    expect(useAlert).toHaveBeenCalledExactlyOnceWith(es.REGISTER.CAPTCHA.ERROR);
+    expect(reset).toHaveBeenCalledOnce();
+    expect(push).not.toHaveBeenCalled();
+    expect(
+      wrapper.get('[data-testid="submit_button"]').attributes('disabled')
+    ).toBeUndefined();
+  });
+
+  it.each(['error', 'expired', 'challenge-expired', 'closed'])(
+    'explains captcha %s and re-enables submission',
+    async event => {
+      globalConfig.hCaptchaSiteKey = 'site-key';
+      await nextTick();
+      await wrapper.get('form').trigger('submit');
+      wrapper.getComponent({ name: 'VueHcaptcha' }).vm.$emit(event);
+      await flushPromises();
+
+      expect(useAlert).toHaveBeenCalledExactlyOnceWith(
+        es.REGISTER.CAPTCHA.ERROR
+      );
+      expect(reset).toHaveBeenCalledOnce();
+      expect(post).not.toHaveBeenCalled();
+      expect(
+        wrapper.get('[data-testid="submit_button"]').attributes('disabled')
+      ).toBeUndefined();
+    }
+  );
+
+  it('keeps invalid email blocked before making a request', async () => {
+    await wrapper.get('input[name="email_address"]').setValue('invalid-email');
+    await wrapper.get('form').trigger('submit');
+    expect(post).not.toHaveBeenCalled();
+    expect(
+      wrapper.get('[data-testid="submit_button"]').attributes('disabled')
+    ).toBeDefined();
+  });
+});

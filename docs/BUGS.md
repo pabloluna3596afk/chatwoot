@@ -1582,6 +1582,36 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
 - Verify: check the hero at 1280x720, 1440x900 and 1920x1080; click the real password button twice and confirm
   input type, eye icon, pressed state and value. Run all v3 specs, including signup labels/eye and SAML POST/validation.
 
+### B-NEW-67 — Registro y Captain: errores recuperables del onboarding (ONB-02/03/07/11)
+
+- Archivos: `components-next/captain/pageComponents/assistant/CreateAssistantDialog.vue`,
+  `dashboard/store/utils/api.js`, `v3/views/auth/confirmation/Index.vue`,
+  `v3/views/auth/signup/components/Signup/Form.vue`, `dashboard/i18n/locale/{en,es}/signup.json`
+  y sus specs `CreateAssistantDialog.spec.js`, `store/utils/specs/api.spec.js`,
+  `auth/confirmation/Index.spec.js` y `Signup/Form.spec.js` (rutas bajo `app/javascript/`).
+- Causa: el diálogo capturaba el rechazo de creación y continuaba mostrando éxito;
+  la confirmación redirigía incluso con token inválido; el parser devolvía objetos o
+  errores de transporte sin payload; captcha fallaba sin explicación y el cliente
+  exigía correo empresarial aunque el servidor acepta correos personales.
+- Cambio: crear Captain solo cierra y emite éxito tras guardar; conserva el error del
+  servidor y permite reintentar. La confirmación fallida ofrece entrar o reenviar a un
+  correo válido mediante `resend_confirmation`, con captcha y respuesta neutra.
+  El parser entrega solo mensajes de texto del payload y permite el fallback traducido
+  de la UI; registro muestra un mensaje genérico o uno específico de captcha.
+  Se aceptan Gmail y otros correos personales; el servidor conserva el bloqueo de desechables.
+- Verificar: agotar el límite del plan o simular 4xx/5xx al crear Captain: el diálogo
+  conserva los datos, muestra un único error y permite reintentar sin falso éxito.
+  Abrir enlaces de confirmación inválidos, caducados o usados: comprobar las dos acciones,
+  reenviar con y sin captcha y verificar que el mensaje no revela si existe la cuenta.
+  Registrar Gmail; simular rechazo de correo desechable y comprobar el mensaje del servidor.
+  Simular error de red/sin payload y captcha fallido/caducado: comprobar textos en inglés
+  y español y que vuelve a ser posible enviar el formulario.
+- Cobertura: specs del diálogo (rechazo, reintento y edición), confirmación (error,
+  éxito y reenvío), registro (Gmail, desechable, fallback y captcha) y parser (payloads
+  válidos y errores sin mensaje utilizable). ESLint: 0 errores. Vitest con
+  `vitest.local.config.ts`, incluyendo `dashboard/i18n`, no inicia por `spawn EPERM`
+  de esbuild en este entorno; pendiente de ejecución por el PM.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)
