@@ -8,7 +8,9 @@
     },
     "PASSWORD": {
       "LABEL": "Contraseña",
-      "PLACEHOLDER": "Contraseña"
+      "PLACEHOLDER": "Contraseña",
+      "SHOW": "Mostrar contraseña",
+      "HIDE": "Ocultar contraseña"
     },
     "API": {
       "SUCCESS_MESSAGE": "Inicio de sesión exitoso",

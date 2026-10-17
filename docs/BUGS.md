@@ -1612,6 +1612,51 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
   `vitest.local.config.ts`, incluyendo `dashboard/i18n`, no inicia por `spawn EPERM`
   de esbuild en este entorno; pendiente de ejecución por el PM.
 
+### B-NEW-68 — Registro con el layout del login y requisitos de contraseña dentro de la columna
+
+- Archivos (bajo `app/javascript/`): `v3/components/Auth/AuthSplitLayout.vue`,
+  `v3/views/login/Index.vue`, `v3/views/auth/signup/Index.vue`,
+  `v3/views/auth/signup/components/Signup/{Form,PasswordRequirements}.vue`,
+  `v3/views/auth/verify-email/Index.vue`, `v3/components/GoogleOauth/Button.vue`,
+  `v3/components/Form/Input.vue`, `dashboard/i18n/locale/{en,es}/{signup,login}.json`
+  y los specs indicados abajo.
+- Causa: registro conservaba el diseño anterior, los requisitos de contraseña se
+  mostraban en un popup lateral y había textos en inglés en español. El botón de
+  Google ignoraba el slot de registro y no explicaba que después se define una contraseña.
+- Cambio: login, registro y verificación comparten la foto, los degradados, los logos
+  por tema, la columna de 480 px y el comportamiento móvil. Registro conserva sus
+  dos campos actuales (correo y contraseña), el contrato del API, captcha, términos,
+  errores y ruta de verificación. Usa campos outlined de 56 px, botón principal
+  píldora y requisitos siempre visibles con checks reactivos dentro de la columna.
+  Google solo aparece si está habilitado y tiene client ID, acepta texto por slot
+  y explica el siguiente paso. Se completan los textos de registro en inglés/español
+  y las etiquetas accesibles del botón de mostrar/ocultar contraseña.
+- Cobertura (bajo `app/javascript/`):
+  - `v3/components/Auth/AuthSplitLayout.spec.js`: foto, degradados, marca, logos
+    claro/oscuro y fallback, panel móvil oculto y columna compartida.
+  - `v3/views/login/Index.spec.js`: montaje del login real con el layout compartido;
+    conserva los casos existentes de validación, OAuth, SSO, MFA y sesiones.
+  - `v3/views/auth/signup/Index.spec.js`: montaje completo en inglés/español,
+    titulares, campos existentes, etiquetas accesibles, medidas, términos y enlace al login.
+  - `v3/views/auth/signup/components/Signup/Form.spec.js`: cinco requisitos en vivo,
+    envío válido/inválido, contrato y ruta, Google condicional y aviso, errores de API,
+    captcha y spinner con bloqueo de envíos repetidos.
+  - `v3/components/GoogleOauth/Button.spec.js`: etiqueta de login por defecto,
+    slot de registro y URL OAuth sin cambios.
+  - `v3/components/Form/Input.spec.js` y `v3/views/auth/AuthForms.spec.js`:
+    visibilidad y etiquetas de contraseña en ambos idiomas, variante outlined de
+    registro y compatibilidad de los campos y el POST de SAML.
+  - `v3/views/auth/verify-email/Index.spec.js`: layout y textos en inglés/español,
+    reenvío neutro, captcha, errores/reintento, spinner y retorno al login sin email.
+  - `dashboard/i18n/messagesCompile.spec.js`: compilación de mensajes de ambos idiomas.
+- Verificar manualmente: abrir registro y login en escritorio y móvil, con tema
+  claro/oscuro; comprobar misma foto y medidas, requisitos sin desbordes y Google
+  solo con configuración válida. Registrar correo, revisar la pantalla de verificación,
+  reenviar y completar el flujo existente de confirmación.
+- Validación local: ESLint de los archivos JS/Vue tocados sin errores. El comando
+  `npx vitest run --config vitest.local.config.ts app/javascript/v3 app/javascript/dashboard/i18n`
+  no inicia: esbuild devuelve `spawn EPERM`. Specs, build y capturas pendientes del PM.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)

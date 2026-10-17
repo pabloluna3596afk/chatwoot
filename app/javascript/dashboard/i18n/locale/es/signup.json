@@ -2,12 +2,13 @@
   "REGISTER": {
     "TRY_WOOT": "Crear una cuenta",
     "GET_STARTED": "Empieza con ChatHub",
-    "TITLE": "Registrarse",
+    "TITLE": "Crea tu cuenta",
     "TESTIMONIAL_HEADER": "Todo lo que se necesita es un paso adelante",
     "TESTIMONIAL_CONTENT": "Usted está a un paso de involucrar a sus clientes, conservarlos y encontrar nuevos.",
     "TERMS_ACCEPT": "Al crear una cuenta, aceptas nuestros <a href=\"/es/terms\">Términos y condiciones</a> y nuestra <a href=\"/es/privacy\">Política de privacidad</a>",
     "OAUTH": {
-      "GOOGLE_SIGNUP": "Registrarse con Google"
+      "GOOGLE_SIGNUP": "Registrarte con Google",
+      "PASSWORD_NOTICE": "Después de registrarte con Google, definirás una contraseña."
     },
     "COMPANY_NAME": {
       "LABEL": "Nombre de la empresa",
@@ -29,11 +30,11 @@
       "PLACEHOLDER": "Contraseña",
       "ERROR": "La contraseña es demasiado corta",
       "IS_INVALID_PASSWORD": "La contraseña debe contener al menos 1 letra mayúscula, 1 letra minúscula, 1 número y 1 carácter especial",
-      "REQUIREMENTS_LENGTH": "At least 6 characters long",
-      "REQUIREMENTS_UPPERCASE": "At least one uppercase letter",
-      "REQUIREMENTS_LOWERCASE": "At least one lowercase letter",
-      "REQUIREMENTS_NUMBER": "At least one number",
-      "REQUIREMENTS_SPECIAL": "At least one special character"
+      "REQUIREMENTS_LENGTH": "Al menos 6 caracteres",
+      "REQUIREMENTS_UPPERCASE": "Una letra mayúscula",
+      "REQUIREMENTS_LOWERCASE": "Una letra minúscula",
+      "REQUIREMENTS_NUMBER": "Un número",
+      "REQUIREMENTS_SPECIAL": "Un carácter especial"
     },
     "CONFIRM_PASSWORD": {
       "LABEL": "Confirmar contraseña",
@@ -41,14 +42,14 @@
       "ERROR": "Las contraseñas no coinciden."
     },
     "API": {
-      "SUCCESS_MESSAGE": "Registration Successful",
+      "SUCCESS_MESSAGE": "Registro completado",
       "ERROR_MESSAGE": "No pudimos completar la acción. Inténtalo de nuevo."
     },
-    "SUBMIT": "Crear una cuenta",
-    "HAVE_AN_ACCOUNT": "¿Ya tienes una cuenta?",
+    "SUBMIT": "Crear cuenta",
+    "HAVE_AN_ACCOUNT": "¿Ya tienes cuenta?",
     "VERIFY_EMAIL": {
-      "TITLE": "Check your inbox",
-      "DESCRIPTION": "We sent a verification link to {email}. Click the link to verify your email and get started.",
+      "TITLE": "Revisa tu correo",
+      "DESCRIPTION": "Enviamos un enlace de verificación a {email}. Abre el enlace para confirmar tu correo y empezar.",
       "RESEND": "Reenviar correo de verificación",
       "RESEND_SUCCESS": "Si este correo necesita confirmación, enviaremos un enlace nuevo. Revisa tu bandeja de entrada.",
       "RESEND_ERROR": "No pudimos enviar el correo de confirmación. Inténtalo de nuevo."
@@ -61,6 +62,12 @@
       "ERROR_DESCRIPTION": "Este enlace no es válido, ha caducado o ya se ha utilizado. Entra si ya confirmaste tu correo o solicita un enlace nuevo.",
       "LOGIN": "Entrar",
       "RESEND": "Reenviar correo de confirmación"
+    },
+    "SIGN_IN": "Inicia sesión",
+    "OR": "O",
+    "MARKETING": {
+      "TITLE": "Tu asistente de WhatsApp, listo en minutos.",
+      "SUBTITLE": "Conecta tu número, crea tu asistente y empieza a atender hoy."
     }
   }
 }

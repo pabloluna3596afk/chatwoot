@@ -34,7 +34,7 @@ function getGoogleAuthUrl() {
         aria-hidden="true"
       />
       <span>
-        {{ $t('LOGIN.OAUTH.GOOGLE_LOGIN') }}
+        <slot>{{ $t('LOGIN.OAUTH.GOOGLE_LOGIN') }}</slot>
       </span>
     </a>
   </div>
