@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe Captain::Playground::Usage do
+RSpec.describe Captain::Playground::Usage, :real_redis do
   let(:account) { create(:account, reporting_timezone: 'America/Guayaquil') }
   let(:usage) { described_class.new(account: account) }
   let(:success) { { response: 'Hello' }.with_indifferent_access }
@@ -105,15 +105,14 @@ RSpec.describe Captain::Playground::Usage do
 
   it 'expires the daily counter at account midnight and starts a new allowance' do
     put_account_on_plan(account, price_monthly: 79, captain_daily_tests: 10)
-    travel_to Time.utc(2026, 10, 18, 4, 59, 59) do
-      old_key = "captain:playground:daily:#{account.id}:2026-10-17"
+    midnight = Time.current.in_time_zone(account.reporting_timezone).tomorrow.beginning_of_day
+    travel_to midnight - 1.second do
+      old_key = daily_key
       usage.perform { success }
-      expect(Redis::Alfred.ttl(old_key)).to be_between(0, 1)
+      expect(Redis::Alfred.with { |redis| redis.expiretime(old_key) }).to eq(midnight.to_i)
       travel 2.seconds
       next_day = described_class.new(account: account)
       expect(next_day.perform { success }[:test_usage][:daily_remaining]).to eq(9)
-      Redis::Alfred.delete(old_key)
-      Redis::Alfred.delete("captain:playground:daily:#{account.id}:2026-10-18")
     end
   end
 end

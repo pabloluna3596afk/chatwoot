@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe 'Captain playground quotas', type: :request do
+RSpec.describe 'Captain playground quotas', :real_redis, type: :request do
   let(:account) { create(:account) }
   let(:admin) { create(:user, account: account, role: :administrator) }
   let(:assistant) { create(:captain_assistant, account: account) }

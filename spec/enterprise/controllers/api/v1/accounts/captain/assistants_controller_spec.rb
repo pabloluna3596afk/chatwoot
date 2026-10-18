@@ -599,7 +599,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
     end
   end
 
-  describe 'POST /api/v1/accounts/{account.id}/captain/assistants/{id}/playground' do
+  describe 'POST /api/v1/accounts/{account.id}/captain/assistants/{id}/playground', :real_redis do
     let(:assistant) { create(:captain_assistant, account: account) }
     let(:valid_params) do
       {

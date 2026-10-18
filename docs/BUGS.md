@@ -2094,6 +2094,13 @@ Cómo probar: abrir el paso 4 en ambos idiomas, comprobar el icono Captain en el
 encabezado, editar el borrador y enviar preguntas de prueba; en la tarjeta y en
 las burbujas solo debe aparecer el nombre del asistente, sin fotos.
 
+### B-NEW-075 — CI del playground: ejecutar Lua con Redis real y corregir setup del paso 4
+
+- **Causa:** `MockRedis` no ejecuta Lua; las llamadas nuevas a `eval` fallan con `TypeError: wrong argument type Hash (expected binding)` antes de generar respuestas. Además, el spec de finalización del onboarding intentaba crear el borrador desde `inbox_setup`, aunque el servicio exige el paso `assistant`.
+- **Archivos:** `spec/support/real_redis.rb`, specs de cuotas y uso del playground, contexto playground de `assistants_controller_spec.rb` y `onboarding_assistants_controller_spec.rb`.
+- **Fix:** optar esos ejemplos a Redis real con namespace único por ejemplo y limpieza limitada a ese namespace; conservar el MockRedis del resto de la suite. Verificar el timestamp de expiración y el cambio de fecha sin depender del reloj real de Redis durante `travel_to`. Crear el borrador desde el paso elegible y verificar el éxito antes de leer su ID.
+- **Cómo probar:** CI EE con Redis disponible; ejecutar los specs de playground y onboarding, incluyendo rate limit, allowance diario, pool compartido y errores del modelo. RSpec no disponible localmente; diagnóstico basado en el run `39153664286` y comparación con develop `39153434965` (cero fallos).
+
 ### B-NEW-074 — Revisión visual del paso 4 y botones de marca
 
 El icono Captain conserva el slot `#brand` compartido con el logo del paso 3:

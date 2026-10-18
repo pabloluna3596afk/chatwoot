@@ -149,9 +149,9 @@ RSpec.describe 'Onboarding assistant API', type: :request do
   end
 
   it 'clears the completed step while retaining the version and assistant pointer' do
-    account.update!(custom_attributes: account.custom_attributes.merge('onboarding_step' => 'inbox_setup'))
     headers = admin.create_new_auth_token
     post path, params: attributes, headers: headers, as: :json
+    expect(response).to have_http_status(:success)
     assistant_id = response.parsed_body.fetch('assistant').fetch('id')
     patch "/api/v1/accounts/#{account.id}/onboarding", params: { onboarding_step: 'assistant' }, headers: headers, as: :json
     expect(response).to have_http_status(:success)
