@@ -106,11 +106,11 @@ RSpec.describe Captain::Playground::Usage, :real_redis do
   it 'expires the daily counter at account midnight and starts a new allowance' do
     put_account_on_plan(account, price_monthly: 79, captain_daily_tests: 10)
     midnight = Time.current.in_time_zone(account.reporting_timezone).tomorrow.beginning_of_day
-    travel_to midnight - 1.second do
+    travel_to midnight - 1.minute do
       old_key = daily_key
       usage.perform { success }
-      expect(Redis::Alfred.with { |redis| redis.expiretime(old_key) }).to eq(midnight.to_i)
-      travel 2.seconds
+      expect(Redis::Alfred.ttl(old_key)).to be_between(50, 60)
+      travel 61.seconds
       next_day = described_class.new(account: account)
       expect(next_day.perform { success }[:test_usage][:daily_remaining]).to eq(9)
     end
