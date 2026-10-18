@@ -505,7 +505,7 @@ const onQuestionKeydown = event => {
             :maxlength="PLAYGROUND_MESSAGE_LIMIT"
             rows="1"
             :class="AUTH_FIELD_CLASS"
-            class="!h-14 resize-none !py-3.5 pe-16"
+            class="!h-20 resize-none !py-3.5 pe-16 sm:!h-14"
             :placeholder="t('ONBOARDING_ASSISTANT.QUESTION_PLACEHOLDER')"
             :aria-label="t('ONBOARDING_ASSISTANT.QUESTION')"
             :disabled="busy || Boolean(chatError)"

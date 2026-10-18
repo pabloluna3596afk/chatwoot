@@ -2107,7 +2107,9 @@ generar también las clases de campos y enlaces compartidos de `authStyles.js`.
 Archivos: `onboarding/AssistantSetup.vue`, `Auth/AuthButton.vue`,
 `tailwind.config.js` y las expectativas existentes de los specs del paso y Auth.
 El pie ya reserva su altura real fuera del contenedor con scroll; no requiere
-cambios. No se modifica la configuración de avatar de Captain.
+cambios. El campo de pregunta pasa a 80 px en móvil para mostrar las dos líneas
+del texto de ayuda; mantiene 56 px desde `sm`. No se modifica la configuración
+de avatar de Captain.
 
 Cómo probar: abrir formulario, borrador, chat y reanudación del paso 4 en claro
 y oscuro, a 1280, 360, 390 y 430 px. Desplazar el contenedor hasta el final:
