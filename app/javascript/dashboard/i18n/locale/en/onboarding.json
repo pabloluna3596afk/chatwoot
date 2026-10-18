@@ -1,18 +1,21 @@
 {
   "ONBOARDING_NEXT": {
     "GREETING": "Hello {name}!",
-    "SUBTITLE": "Please review the following details",
+    "SUBTITLE": "Confirm these details to personalize your workspace.",
     "YOUR_DETAILS": "Your details",
     "COMPANY_DETAILS": "Company details",
     "FIELDS": {
       "EMAIL": "Email",
       "YOUR_ROLE": "Your Role",
-      "WEBSITE": "Website",
+      "WEBSITE": "Website (optional)",
       "LANGUAGE": "Language",
       "TIMEZONE": "Timezone",
       "COMPANY_SIZE": "Company Size",
       "INDUSTRY": "Industry",
-      "REFERRAL_SOURCE": "Where did you find us?"
+      "REFERRAL_SOURCE": "Where did you find us?",
+      "NAME": "Business name",
+      "BUSINESS_TYPE": "Business type",
+      "COUNTRY": "Country (optional)"
     },
     "PLACEHOLDERS": {
       "SELECT_ROLE": "Select your role",
@@ -21,7 +24,8 @@
       "SELECT_TIMEZONE": "Select timezone",
       "SELECT_COMPANY_SIZE": "Select company size",
       "SELECT_INDUSTRY": "Select industry",
-      "SELECT_REFERRAL_SOURCE": "Select source"
+      "SELECT_REFERRAL_SOURCE": "Select source",
+      "SELECT_COUNTRY": "Select a country"
     },
     "EMAIL_VERIFIED": "Email verified",
     "SETTING_UP": "Setting up your account...",
@@ -29,7 +33,28 @@
     "SAVING": "Saving...",
     "VALIDATION_ERROR": "Please fill in all required fields",
     "SUCCESS": "Details saved successfully",
-    "ERROR": "Could not save details. Please try again."
+    "ERROR": "Could not save details. Please try again.",
+    "TITLE": "Tell us about your business",
+    "STEP": "Step {current} of {total}",
+    "PROGRESS": "Onboarding progress",
+    "MARKETING": {
+      "TITLE": "Every great conversation starts with your business.",
+      "SUBTITLE": "Tell us a little about what you do. We will help you take the next step."
+    },
+    "BUSINESS_TYPES": {
+      "appointments": "Appointments and bookings",
+      "commerce": "Commerce or store",
+      "services": "Professional services",
+      "other": "Other"
+    },
+    "LANGUAGES": {
+      "ES": "Spanish",
+      "EN": "English"
+    },
+    "NAME_REQUIRED": "Enter your business name.",
+    "BUSINESS_TYPE_REQUIRED": "Select a business type.",
+    "SEARCH": "Search...",
+    "NO_RESULTS": "No results found"
   },
   "ONBOARDING_INBOX_SETUP": {
     "GREETING": "Let's set up a few things",

@@ -59,6 +59,60 @@ RSpec.describe 'Onboarding API', type: :request do
         expect(attrs['company_size']).to eq('10-50')
       end
 
+      it 'saves the edited name, business type and country without a website' do
+        patch "/api/v1/accounts/#{account.id}/onboarding",
+              params: { name: 'Mi negocio', business_type: 'appointments', country: 'EC', onboarding_step: 'account_details' },
+              headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(account.reload.name).to eq('Mi negocio')
+        expect(account.custom_attributes).to include('business_type' => 'appointments', 'country' => 'EC')
+        expect(account.custom_attributes['website']).to be_blank
+      end
+
+      it 'accepts each documented business type and an empty optional country' do
+        %w[appointments commerce services other].each do |business_type|
+          account.update!(custom_attributes: { 'onboarding_step' => 'account_details' })
+          patch "/api/v1/accounts/#{account.id}/onboarding",
+                params: { business_type: business_type, country: '', onboarding_step: 'account_details' },
+                headers: admin.create_new_auth_token, as: :json
+
+          expect(response).to have_http_status(:success)
+          expect(account.reload.custom_attributes).to include('business_type' => business_type, 'country' => '')
+        end
+      end
+
+      it 'rejects an invalid business type without saving the name or advancing the step' do
+        original_name = account.name
+        patch "/api/v1/accounts/#{account.id}/onboarding",
+              params: { name: 'Invalid update', business_type: 'restaurant', country: 'EC', onboarding_step: 'account_details' },
+              headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body['error']).to eq('Invalid business type')
+        expect(account.reload.name).to eq(original_name)
+        expect(account.custom_attributes).to eq('onboarding_step' => 'account_details')
+      end
+
+      it 'rejects malformed business types instead of dropping them through strong parameters' do
+        patch "/api/v1/accounts/#{account.id}/onboarding",
+              params: { business_type: ['appointments'], onboarding_step: 'account_details' },
+              headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(account.reload.custom_attributes).to eq('onboarding_step' => 'account_details')
+      end
+
+      it 'rejects an invalid country code' do
+        patch "/api/v1/accounts/#{account.id}/onboarding",
+              params: { business_type: 'services', country: 'ZZ', onboarding_step: 'account_details' },
+              headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body['error']).to eq('Invalid country')
+        expect(account.reload.custom_attributes).to eq('onboarding_step' => 'account_details')
+      end
+
       context 'when on cloud (inbox setup is a cloud-only step)' do
         before { allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(true) }
 

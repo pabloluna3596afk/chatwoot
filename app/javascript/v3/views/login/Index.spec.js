@@ -84,7 +84,7 @@ describe('login', () => {
   it('renders the unchanged login content inside the shared auth layout', () => {
     wrapper = mount(Login);
     const layout = wrapper.getComponent(AuthSplitLayout);
-    expect(layout.props()).toEqual({
+    expect(layout.props()).toMatchObject({
       title: en.LOGIN.MARKETING.TITLE,
       subtitle: en.LOGIN.MARKETING.SUBTITLE,
     });

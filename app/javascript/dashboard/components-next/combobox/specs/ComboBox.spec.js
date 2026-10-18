@@ -10,6 +10,26 @@ const options = [
 ];
 
 describe('ComboBox', () => {
+  it.each(['Ecuador', 'guayaquil', 'AMERICA/GUAYAQUIL'])(
+    'searches labels and optional search terms for %s',
+    async search => {
+      const zone = {
+        value: 'America/Guayaquil',
+        label: 'Ecuador (GMT-5) · Guayaquil',
+        searchTerms: ['America/Guayaquil'],
+      };
+      const wrapper = mount(ComboBox, {
+        props: { options: [...options, zone] },
+      });
+      const dropdown = wrapper.getComponent(ComboBoxDropdown);
+      dropdown.vm.$emit('update:searchValue', search);
+      await flushPromises();
+
+      expect(dropdown.props('options')).toEqual([zone]);
+      wrapper.unmount();
+    }
+  );
+
   it('forwards a caller height limit to the real panel scroll body', async () => {
     const wrapper = mount(ComboBox, {
       props: { options, dropdownMaxHeight: 'max-h-20' },

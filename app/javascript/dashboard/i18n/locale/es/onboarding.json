@@ -1,41 +1,66 @@
 {
   "ONBOARDING_NEXT": {
     "GREETING": "¡Hola {name}!",
-    "SUBTITLE": "Por favor, revise los siguientes detalles",
-    "YOUR_DETAILS": "Sus datos",
-    "COMPANY_DETAILS": "Detalles de la empresa",
+    "SUBTITLE": "Confirma estos datos para personalizar tu espacio de trabajo.",
+    "YOUR_DETAILS": "Tus datos",
+    "COMPANY_DETAILS": "Datos de la empresa",
     "FIELDS": {
-      "EMAIL": "E-mail",
+      "EMAIL": "Correo electrónico",
       "YOUR_ROLE": "Tu rol",
-      "WEBSITE": "Sitio web",
+      "WEBSITE": "Sitio web (opcional)",
       "LANGUAGE": "Idioma",
-      "TIMEZONE": "Timezone",
+      "TIMEZONE": "Zona horaria",
       "COMPANY_SIZE": "Tamaño de la empresa",
       "INDUSTRY": "Industria",
-      "REFERRAL_SOURCE": "¿Dónde nos encontraron?"
+      "REFERRAL_SOURCE": "¿Dónde nos encontraron?",
+      "NAME": "Nombre del negocio",
+      "BUSINESS_TYPE": "Tipo de negocio",
+      "COUNTRY": "País (opcional)"
     },
     "PLACEHOLDERS": {
-      "SELECT_ROLE": "Seleccione su rol",
+      "SELECT_ROLE": "Selecciona tu rol",
       "ENTER_WEBSITE": "www.ejemplo.com",
-      "SELECT_LANGUAGE": "Seleccionar idioma",
-      "SELECT_TIMEZONE": "Seleccione la zona horaria",
-      "SELECT_COMPANY_SIZE": "Seleccione el tamaño de la empresa",
-      "SELECT_INDUSTRY": "Seleccionar industria",
-      "SELECT_REFERRAL_SOURCE": "Seleccionar fuente"
+      "SELECT_LANGUAGE": "Selecciona un idioma",
+      "SELECT_TIMEZONE": "Selecciona una zona horaria",
+      "SELECT_COMPANY_SIZE": "Selecciona el tamaño de la empresa",
+      "SELECT_INDUSTRY": "Selecciona un sector",
+      "SELECT_REFERRAL_SOURCE": "Selecciona una opción",
+      "SELECT_COUNTRY": "Selecciona un país"
     },
-    "EMAIL_VERIFIED": "Email verificado",
+    "EMAIL_VERIFIED": "Correo verificado",
     "SETTING_UP": "Configurando tu cuenta...",
-    "CONTINUE": "Continue",
+    "CONTINUE": "Continuar",
     "SAVING": "Guardando...",
-    "VALIDATION_ERROR": "Por favor, rellene todos los campos requeridos",
-    "SUCCESS": "Detalles guardados correctamente",
-    "ERROR": "No se pudo guardar los detalles. Por favor, inténtelo de nuevo."
+    "VALIDATION_ERROR": "Completa todos los campos obligatorios",
+    "SUCCESS": "Datos guardados correctamente",
+    "ERROR": "No se pudieron guardar los datos. Inténtalo de nuevo.",
+    "TITLE": "Cuéntanos de tu negocio",
+    "STEP": "Paso {current} de {total}",
+    "PROGRESS": "Progreso de la configuración",
+    "MARKETING": {
+      "TITLE": "Cada gran conversación empieza con tu negocio.",
+      "SUBTITLE": "Cuéntanos un poco sobre lo que haces. Te ayudaremos a dar el siguiente paso."
+    },
+    "BUSINESS_TYPES": {
+      "appointments": "Citas y reservas",
+      "commerce": "Comercio o tienda",
+      "services": "Servicios profesionales",
+      "other": "Otro"
+    },
+    "LANGUAGES": {
+      "ES": "Español",
+      "EN": "Inglés"
+    },
+    "NAME_REQUIRED": "Escribe el nombre de tu negocio.",
+    "BUSINESS_TYPE_REQUIRED": "Selecciona un tipo de negocio.",
+    "SEARCH": "Buscar...",
+    "NO_RESULTS": "No se encontraron resultados"
   },
   "ONBOARDING_INBOX_SETUP": {
     "GREETING": "Vamos a configurar algunas cosas",
     "SUBTITLE": "Esto le dará inicio en su área de trabajo",
-    "CONTINUE": "Continue",
-    "SKIP": "Skip",
+    "CONTINUE": "Continuar",
+    "SKIP": "Omitir",
     "ERROR": "Algo salió mal. Por favor, inténtalo de nuevo.",
     "WHATSAPP_CONNECTED": "WhatsApp se ha conectado correctamente",
     "FACEBOOK_CONNECTED": "Facebook conectado correctamente",
@@ -45,10 +70,10 @@
     },
     "CREATED_FOR_YOU": {
       "TITLE": "Hemos creado lo siguiente para ti",
-      "LIVE_CHAT": "Widget de Live Chat",
+      "LIVE_CHAT": "Widget de chat en vivo",
       "LIVE_CHAT_DESCRIPTION": "Mensajero instantáneo para tu sitio web",
       "LIVE_CHAT_STATUS": "Casi listo…",
-      "LIVE_CHAT_READY": "Ready",
+      "LIVE_CHAT_READY": "Listo",
       "HELP_CENTER": "Centro de ayuda",
       "HELP_CENTER_DESCRIPTION": "Tu enciclopedia digital",
       "HELP_CENTER_GENERATING": "Creando tu centro de ayuda…",
@@ -56,8 +81,8 @@
       "HELP_CENTER_SETTING_UP_CATEGORIES": "Configurando categorías…",
       "HELP_CENTER_CURATING_ARTICLES": "Curando artículos…",
       "HELP_CENTER_ARTICLES": "Artículo {count} creado | Artículos {count} creados",
-      "HELP_CENTER_CATEGORIES": "{count} category | {count} categories",
-      "HELP_CENTER_SUMMARY": "Artículo {count} creado a través de {categories} | Creado {count} artículos a través de {categories}"
+      "HELP_CENTER_CATEGORIES": "{count} categoría | {count} categorías",
+      "HELP_CENTER_SUMMARY": "{count} artículo creado en {categories} | {count} artículos creados en {categories}"
     },
     "CHANNELS": {
       "TITLE": "Conecta todos tus canales de conversación",
@@ -65,11 +90,11 @@
       "CONNECT": "Conectar",
       "CONNECTED": "Conectado",
       "MORE_CHANNELS_NOTE": "Configurar los canales {email} y {voice} más adelante dentro de la aplicación",
-      "MORE_CHANNELS_EMAIL": "E-mail",
-      "MORE_CHANNELS_VOICE": "Voice",
+      "MORE_CHANNELS_EMAIL": "Correo electrónico",
+      "MORE_CHANNELS_VOICE": "Voz",
       "VIEW_ALL": "Ver todo",
       "GMAIL": "Gmail",
-      "OUTLOOK": "Mirador",
+      "OUTLOOK": "Outlook",
       "OTHER_EMAIL": "Otros proveedores de correo"
     },
     "CHANNELS_DIALOG": {

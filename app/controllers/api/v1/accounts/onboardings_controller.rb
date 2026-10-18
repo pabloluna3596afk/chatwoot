@@ -1,10 +1,12 @@
 class Api::V1::Accounts::OnboardingsController < Api::V1::Accounts::BaseController
   before_action :check_admin_authorization?
+  before_action :validate_business_details, only: :update
 
   ONBOARDING_STEP_KEY = 'onboarding_step'.freeze
   STEP_ACCOUNT_DETAILS = 'account_details'.freeze
   STEP_INBOX_SETUP = 'inbox_setup'.freeze
   ONBOARDING_STEPS = [STEP_ACCOUNT_DETAILS, STEP_INBOX_SETUP].freeze
+  BUSINESS_TYPES = %w[appointments commerce services other].freeze
 
   def update
     return render json: { error: 'Invalid onboarding step' }, status: :unprocessable_entity unless ONBOARDING_STEPS.include?(params[:onboarding_step])
@@ -23,6 +25,23 @@ class Api::V1::Accounts::OnboardingsController < Api::V1::Accounts::BaseControll
   end
 
   private
+
+  def validate_business_details
+    return unless params[:onboarding_step] == STEP_ACCOUNT_DETAILS
+    return unless Current.account.custom_attributes[ONBOARDING_STEP_KEY] == STEP_ACCOUNT_DETAILS
+
+    return render_could_not_create_error('Invalid business type') if invalid_business_type?
+
+    render_could_not_create_error('Invalid country') if invalid_country?
+  end
+
+  def invalid_business_type?
+    params.key?(:business_type) && BUSINESS_TYPES.exclude?(params[:business_type])
+  end
+
+  def invalid_country?
+    params.key?(:country) && params[:country] != '' && TZInfo::Country.all_codes.exclude?(params[:country])
+  end
 
   def complete_account_details
     # Only act while the cursor still points here, so a stale replay after
@@ -73,7 +92,7 @@ class Api::V1::Accounts::OnboardingsController < Api::V1::Accounts::BaseControll
   end
 
   def custom_attributes_params
-    params.permit(:industry, :company_size, :timezone, :referral_source, :user_role, :website)
+    params.permit(:industry, :company_size, :timezone, :referral_source, :user_role, :website, :business_type, :country)
   end
 
   def help_center_generation_status

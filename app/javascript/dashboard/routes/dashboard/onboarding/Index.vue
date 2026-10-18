@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, nextTick, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useVuelidate } from '@vuelidate/core';
 import { required } from '@vuelidate/validators';
 import { useI18n } from 'vue-i18n';
@@ -7,185 +7,145 @@ import { useRouter } from 'vue-router';
 import { useAlert, useTrack } from 'dashboard/composables';
 import { ONBOARDING_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import { useAccount } from 'dashboard/composables/useAccount';
-import { useConfig } from 'dashboard/composables/useConfig';
-import { useStore, useMapGetter } from 'dashboard/composables/store';
-import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
-import Icon from 'dashboard/components-next/icon/Icon.vue';
-import NextButton from 'dashboard/components-next/button/Button.vue';
-import OnboardingLayout from './shared/OnboardingLayout.vue';
-import OnboardingSection from './shared/OnboardingSection.vue';
-import OnboardingFormRow from './account-details/OnboardingFormRow.vue';
+import { useStore } from 'dashboard/composables/store';
+import countries from 'shared/constants/countries';
+import AuthSplitLayout from 'v3/components/Auth/AuthSplitLayout.vue';
+import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import OnboardingFormSelect from './account-details/OnboardingFormSelect.vue';
 import { useAccountEnrichment } from './account-details/useAccountEnrichment';
-import InlineInput from 'dashboard/components-next/inline-input/InlineInput.vue';
-import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
-import {
-  COMPANY_SIZE_OPTIONS,
-  INDUSTRY_OPTIONS,
-  REFERRAL_SOURCE_OPTIONS,
-  USER_ROLE_OPTIONS,
-} from './shared/constants';
+import { businessTimezoneOptions } from './account-details/timezoneOptions';
 
-const { t } = useI18n();
+const { t, locale: interfaceLocale } = useI18n();
 const router = useRouter();
 const store = useStore();
 const { accountId, currentAccount, finishOnboarding } = useAccount();
 
-// Where each onboarding cursor routes. The backend owns which steps run where;
-// the frontend just follows the cursor it advanced us to (no deployment checks).
+const CURRENT_STEP = 2;
+const TOTAL_STEPS = 5;
+// The shared phone-country list still contains the retired Netherlands Antilles code.
+const RETIRED_COUNTRY_CODE = 'AN';
 const STEP_ROUTES = { inbox_setup: 'onboarding_inbox_setup' };
-const { enabledLanguages } = useConfig();
-const currentUser = useMapGetter('getCurrentUser');
+const RADIO_ARROW_STEPS = {
+  ArrowRight: 1,
+  ArrowDown: 1,
+  ArrowLeft: -1,
+  ArrowUp: -1,
+};
+const INPUT_CLASS =
+  'reset-base m-0 h-14 w-full rounded-full border-0 bg-n-solid-1 px-5 text-base text-n-slate-12 outline outline-1 outline-n-weak placeholder:text-n-slate-10 hover:outline-n-slate-6 focus:outline-n-brand dark:bg-n-solid-3';
 
-const userRole = ref('');
+const name = ref('');
+const businessType = ref('');
+const country = ref('');
 const website = ref('');
 const locale = ref('');
 const timezone = ref('');
-const companySize = ref('');
-const industry = ref('');
-const referralSource = ref('');
 const isSubmitting = ref(false);
-const isEditingWebsite = ref(false);
-const websiteInput = ref(null);
-const showErrorOnFields = ref(false);
-
-const validationRules = {
-  userRole: {},
-  // Website is required: the onboarding web-widget inbox can't be created
-  // without a URL (Channel::WebWidget validates presence), so a blank value
-  // would leave the "Live Chat widget" status polling forever.
-  website: { required },
-  locale: {},
-  timezone: {},
-  companySize: {},
-  industry: {},
-  referralSource: {},
-};
-
-const v$ = useVuelidate(validationRules, {
-  userRole,
-  website,
-  locale,
-  timezone,
-  companySize,
-  industry,
-  referralSource,
-});
-
-const userName = computed(() => currentUser.value?.name || '');
-const userEmail = computed(() => currentUser.value?.email || '');
-const accountName = computed(() => currentAccount.value?.name || '');
 const { isEnriching, getChangedFields } = useAccountEnrichment({
+  name,
+  businessType,
+  country,
   locale,
   website,
   timezone,
-  companySize,
-  industry,
-  referralSource,
 });
 
-const companyLogo = computed(() => {
-  const logos = currentAccount.value?.custom_attributes?.brand_info?.logos;
-  if (!logos?.length) return '';
-  const square = logos.find(l => l.resolution?.aspect_ratio === 1);
-  return (square || logos[0])?.url || '';
+const v$ = useVuelidate(
+  { name: { required }, businessType: { required } },
+  { name, businessType }
+);
+const businessTypeOptions = computed(() => [
+  {
+    value: 'appointments',
+    label: t('ONBOARDING_NEXT.BUSINESS_TYPES.appointments'),
+    icon: 'i-lucide-calendar',
+  },
+  {
+    value: 'commerce',
+    label: t('ONBOARDING_NEXT.BUSINESS_TYPES.commerce'),
+    icon: 'i-lucide-store',
+  },
+  {
+    value: 'services',
+    label: t('ONBOARDING_NEXT.BUSINESS_TYPES.services'),
+    icon: 'i-lucide-briefcase',
+  },
+  {
+    value: 'other',
+    label: t('ONBOARDING_NEXT.BUSINESS_TYPES.other'),
+    icon: 'i-lucide-sparkles',
+  },
+]);
+const languageOptions = computed(() => [
+  { value: 'es', label: t('ONBOARDING_NEXT.LANGUAGES.ES') },
+  { value: 'en', label: t('ONBOARDING_NEXT.LANGUAGES.EN') },
+]);
+const countryOptions = computed(() => {
+  const languageTag = interfaceLocale.value.replace('_', '-');
+  const names = new Intl.DisplayNames([languageTag], {
+    type: 'region',
+  });
+  return countries
+    .filter(({ id }) => id !== RETIRED_COUNTRY_CODE)
+    .map(({ id }) => ({ value: id, label: names.of(id) }))
+    .sort((a, b) => a.label.localeCompare(b.label, languageTag));
+});
+const timezoneOptions = computed(() =>
+  businessTimezoneOptions(timezone.value, interfaceLocale.value)
+);
+const submitLabel = computed(() => {
+  if (isEnriching.value) return t('ONBOARDING_NEXT.SETTING_UP');
+  if (isSubmitting.value) return t('ONBOARDING_NEXT.SAVING');
+  return t('ONBOARDING_NEXT.CONTINUE');
 });
 
-const languageOptions = computed(() => {
-  const langs = [...(enabledLanguages || [])];
-  return langs
-    .sort((a, b) => a.iso_639_1_code.localeCompare(b.iso_639_1_code))
-    .map(l => ({ value: l.iso_639_1_code, label: l.name }));
-});
+onMounted(() => useTrack(ONBOARDING_EVENTS.ACCOUNT_DETAILS_VISITED));
 
-const timezoneOptions = computed(() => {
-  try {
-    return Intl.supportedValuesOf('timeZone').map(tz => ({
-      value: tz,
-      label: tz.replace(/_/g, ' '),
-    }));
-  } catch {
-    return [];
-  }
-});
-
-onMounted(() => {
-  useTrack(ONBOARDING_EVENTS.ACCOUNT_DETAILS_VISITED);
-});
-
-const enableWebsiteEditing = () => {
-  isEditingWebsite.value = true;
-  nextTick(() => websiteInput.value?.focus());
-};
-
-const handleWebsiteEnter = () => {
-  websiteInput.value?.blur();
-};
-
-const normalizeWebsiteUrl = raw => {
-  const trimmed = (raw || '').trim();
-  if (!trimmed) return '';
-  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+const handleBusinessTypeKeydown = (event, index) => {
+  const step = RADIO_ARROW_STEPS[event.key];
+  if (!step) return;
+  event.preventDefault();
+  const options = businessTypeOptions.value;
+  const next = (index + step + options.length) % options.length;
+  businessType.value = options[next].value;
+  const radios = event.currentTarget
+    .closest('[role="radiogroup"]')
+    .querySelectorAll('input');
+  radios[next].focus();
 };
 
 const handleSubmit = async () => {
-  // Block submit while enrichment is still running so users can't bypass
-  // the form with empty values — the controller would otherwise clear
-  // onboarding_step and persist incomplete data. Also guard against
-  // re-entry while a submit is in flight (double-click/Enter), which would
-  // fire parallel requests that can duplicate the auto-created inbox/portal.
   if (isEnriching.value || isSubmitting.value) return;
-
   v$.value.$touch();
-  if (v$.value.$invalid) {
-    useAlert(t('ONBOARDING_NEXT.VALIDATION_ERROR'));
-    showErrorOnFields.value = true;
-    setTimeout(() => {
-      showErrorOnFields.value = false;
-    }, 600);
-    // The website field is read-only until edited; open it so a required-but-
-    // empty value is immediately fixable rather than just shaking a locked field.
-    if (v$.value.website.$error) enableWebsiteEditing();
-    return;
-  }
+  if (v$.value.$invalid) return;
 
-  // Capture which enrichable fields the user edited *before* normalizing the
-  // website, so an untouched auto-filled domain isn't falsely flagged.
   const fieldsChanged = getChangedFields();
-
-  // Persist with a scheme so downstream consumers (Firecrawl, portal
-  // homepage_link) get a fully-qualified URL regardless of what the user typed.
-  website.value = normalizeWebsiteUrl(website.value);
+  const trimmedWebsite = website.value.trim();
+  const websiteUrl =
+    trimmedWebsite && !/^https?:\/\//i.test(trimmedWebsite)
+      ? `https://${trimmedWebsite}`
+      : trimmedWebsite;
 
   isSubmitting.value = true;
   try {
     await finishOnboarding({
-      name: accountName.value,
+      name: name.value.trim(),
+      business_type: businessType.value,
+      country: country.value,
       locale: locale.value,
-      website: website.value,
-      industry: industry.value,
-      company_size: companySize.value,
       timezone: timezone.value,
-      referral_source: referralSource.value,
-      user_role: userRole.value,
+      website: websiteUrl,
       onboarding_step: 'account_details',
     });
-
     useTrack(ONBOARDING_EVENTS.ACCOUNT_DETAILS_COMPLETED, {
       has_enriched_data: Boolean(
         currentAccount.value?.custom_attributes?.brand_info
       ),
       fields_changed: fieldsChanged,
-      user_role: userRole.value,
-      company_size: companySize.value,
-      industry: industry.value,
-      referral_source: referralSource.value,
+      business_type: businessType.value,
     });
-
     useAlert(t('ONBOARDING_NEXT.SUCCESS'));
-    // Follow the cursor the backend advanced us to. A next step routes there; no
-    // next step means onboarding is complete, so refresh the user (so the router
-    // guard sees the cleared cursor) and head to the dashboard.
+
     const nextStep = currentAccount.value?.custom_attributes?.onboarding_step;
     if (STEP_ROUTES[nextStep]) {
       router.push({
@@ -205,162 +165,193 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <form @submit.prevent="handleSubmit">
-    <OnboardingLayout
-      :greeting="t('ONBOARDING_NEXT.GREETING', { name: userName })"
-      :subtitle="t('ONBOARDING_NEXT.SUBTITLE')"
-      :continue-label="t('ONBOARDING_NEXT.CONTINUE')"
-      :is-loading="isSubmitting"
-      :disabled="isEnriching"
-    >
-      <OnboardingSection
-        :title="t('ONBOARDING_NEXT.YOUR_DETAILS')"
-        icon="i-lucide-user"
+  <AuthSplitLayout
+    :title="t('ONBOARDING_NEXT.MARKETING.TITLE')"
+    :subtitle="t('ONBOARDING_NEXT.MARKETING.SUBTITLE')"
+    scrollable
+  >
+    <header class="mb-4">
+      <p class="mb-2 text-sm font-medium text-n-slate-11">
+        {{
+          t('ONBOARDING_NEXT.STEP', {
+            current: CURRENT_STEP,
+            total: TOTAL_STEPS,
+          })
+        }}
+      </p>
+      <div
+        role="progressbar"
+        :aria-label="t('ONBOARDING_NEXT.PROGRESS')"
+        :aria-valuenow="CURRENT_STEP"
+        :aria-valuemin="0"
+        :aria-valuemax="TOTAL_STEPS"
+        class="mb-3 flex gap-1.5"
       >
-        <div class="flex items-center gap-2 px-3 py-3">
-          <Avatar :name="userName" :size="16" rounded-full />
-          <span class="text-sm font-medium text-n-slate-12">
-            {{ userName }}
-          </span>
-        </div>
-        <OnboardingFormRow
-          :title="t('ONBOARDING_NEXT.FIELDS.EMAIL')"
-          icon="i-lucide-mail"
-        >
-          <div class="flex items-center justify-end gap-1.5">
-            <span class="text-sm text-n-slate-12">{{ userEmail }}</span>
-            <Icon
-              v-tooltip="t('ONBOARDING_NEXT.EMAIL_VERIFIED')"
-              icon="i-lucide-circle-check"
-              class="size-4 text-n-teal-11 flex-shrink-0"
-            />
-          </div>
-        </OnboardingFormRow>
-        <OnboardingFormRow
-          :title="t('ONBOARDING_NEXT.FIELDS.YOUR_ROLE')"
-          icon="i-lucide-user"
-        >
-          <OnboardingFormSelect
-            v-model="userRole"
-            :has-error="showErrorOnFields && v$.userRole.$error"
-            :options="USER_ROLE_OPTIONS"
-            :placeholder="t('ONBOARDING_NEXT.PLACEHOLDERS.SELECT_ROLE')"
-          />
-        </OnboardingFormRow>
-      </OnboardingSection>
+        <span
+          v-for="step in TOTAL_STEPS"
+          :key="step"
+          class="h-1 flex-1 rounded-full"
+          :class="step <= CURRENT_STEP ? 'bg-n-slate-12' : 'bg-n-slate-4'"
+        />
+      </div>
+      <h2 class="text-3xl font-bold tracking-tight text-n-slate-12 xl:text-4xl">
+        {{ t('ONBOARDING_NEXT.TITLE') }}
+      </h2>
+      <p class="mt-2 mb-0 text-sm text-n-slate-11">
+        {{ t('ONBOARDING_NEXT.SUBTITLE') }}
+      </p>
+    </header>
 
-      <OnboardingSection
-        :title="t('ONBOARDING_NEXT.COMPANY_DETAILS')"
-        icon="i-lucide-briefcase-business"
-      >
-        <div
-          v-if="isEnriching"
-          class="flex items-center justify-center gap-3 py-8"
+    <form
+      id="business-details-form"
+      class="space-y-3"
+      novalidate
+      @submit.prevent="handleSubmit"
+    >
+      <div class="space-y-2">
+        <label for="business-name" class="text-sm font-medium text-n-slate-12">
+          {{ t('ONBOARDING_NEXT.FIELDS.NAME') }}
+        </label>
+        <input
+          id="business-name"
+          v-model="name"
+          name="name"
+          autocomplete="organization"
+          required
+          :class="[INPUT_CLASS, { '!outline-n-ruby-8': v$.name.$error }]"
+          :aria-invalid="v$.name.$error"
+          :aria-describedby="v$.name.$error ? 'business-name-error' : undefined"
+          @blur="v$.name.$touch"
+        />
+        <p
+          v-if="v$.name.$error"
+          id="business-name-error"
+          class="mb-0 text-sm text-n-ruby-11"
+          role="alert"
         >
-          <Spinner :size="16" class="text-n-blue-10" />
-          <span class="text-sm text-n-slate-11">
-            {{ t('ONBOARDING_NEXT.SETTING_UP') }}
-          </span>
-        </div>
-        <template v-else>
-          <div class="flex items-center gap-2 px-3 py-3">
-            <img
-              v-if="companyLogo"
-              :src="companyLogo"
-              :alt="accountName"
-              class="size-4 object-contain"
+          {{ t('ONBOARDING_NEXT.NAME_REQUIRED') }}
+        </p>
+      </div>
+
+      <fieldset
+        class="space-y-2"
+        role="radiogroup"
+        aria-labelledby="business-type-label"
+        :aria-describedby="
+          v$.businessType.$error ? 'business-type-error' : undefined
+        "
+      >
+        <legend
+          id="business-type-label"
+          class="mb-2 text-sm font-medium text-n-slate-12"
+        >
+          {{ t('ONBOARDING_NEXT.FIELDS.BUSINESS_TYPE') }}
+        </legend>
+        <div class="grid grid-cols-2 gap-2">
+          <label
+            v-for="(option, index) in businessTypeOptions"
+            :key="option.value"
+            class="relative cursor-pointer"
+          >
+            <input
+              v-model="businessType"
+              type="radio"
+              role="radio"
+              name="business_type"
+              :value="option.value"
+              :tabindex="
+                businessType === option.value || (!businessType && index === 0)
+                  ? 0
+                  : -1
+              "
+              required
+              :aria-invalid="v$.businessType.$error"
+              class="peer sr-only"
+              @keydown="handleBusinessTypeKeydown($event, index)"
             />
-            <span class="text-sm font-medium text-n-slate-12">
-              {{ accountName }}
+            <span
+              class="flex min-h-16 h-full items-center justify-center gap-2 rounded-2xl border border-n-weak px-3 py-3 text-center text-sm font-medium text-n-slate-12 transition-colors hover:bg-n-alpha-1 peer-checked:border-n-brand peer-checked:bg-n-brand/10 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-n-brand"
+            >
+              <span
+                :class="option.icon"
+                class="size-4 shrink-0"
+                aria-hidden="true"
+              />
+              {{ option.label }}
             </span>
-          </div>
-          <OnboardingFormRow
-            :title="t('ONBOARDING_NEXT.FIELDS.WEBSITE')"
-            icon="i-lucide-globe"
-          >
-            <div class="flex items-center justify-end gap-2">
-              <InlineInput
-                ref="websiteInput"
-                v-model="website"
-                :readonly="!isEditingWebsite"
-                :placeholder="t('ONBOARDING_NEXT.PLACEHOLDERS.ENTER_WEBSITE')"
-                :custom-input-class="[
-                  'w-auto text-end px-1 py-0.5 -my-0.5 mx-0 placeholder:text-n-slate-9 rounded',
-                  { 'animate-shake': showErrorOnFields && v$.website.$error },
-                ]"
-                @enter-press="handleWebsiteEnter"
-                @blur="isEditingWebsite = false"
-              />
-              <NextButton
-                type="button"
-                icon="i-lucide-pencil"
-                slate
-                xs
-                ghost
-                @click="enableWebsiteEditing"
-              />
-            </div>
-          </OnboardingFormRow>
-          <OnboardingFormRow
-            :title="t('ONBOARDING_NEXT.FIELDS.LANGUAGE')"
-            icon="i-lucide-languages"
-          >
-            <OnboardingFormSelect
-              v-model="locale"
-              :has-error="showErrorOnFields && v$.locale.$error"
-              :options="languageOptions"
+            <span
+              class="i-lucide-check absolute end-2 top-2 hidden size-3 text-n-brand peer-checked:block"
+              aria-hidden="true"
             />
-          </OnboardingFormRow>
-          <OnboardingFormRow
-            :title="t('ONBOARDING_NEXT.FIELDS.TIMEZONE')"
-            icon="i-lucide-clock"
-          >
-            <OnboardingFormSelect
-              v-model="timezone"
-              :has-error="showErrorOnFields && v$.timezone.$error"
-              :options="timezoneOptions"
-              :placeholder="t('ONBOARDING_NEXT.PLACEHOLDERS.SELECT_TIMEZONE')"
-            />
-          </OnboardingFormRow>
-          <OnboardingFormRow
-            :title="t('ONBOARDING_NEXT.FIELDS.INDUSTRY')"
-            icon="i-lucide-factory"
-          >
-            <OnboardingFormSelect
-              v-model="industry"
-              :has-error="showErrorOnFields && v$.industry.$error"
-              :options="INDUSTRY_OPTIONS"
-              :placeholder="t('ONBOARDING_NEXT.PLACEHOLDERS.SELECT_INDUSTRY')"
-            />
-          </OnboardingFormRow>
-          <OnboardingFormRow
-            :title="t('ONBOARDING_NEXT.FIELDS.COMPANY_SIZE')"
-            icon="i-lucide-users"
-          >
-            <OnboardingFormSelect
-              v-model="companySize"
-              :has-error="showErrorOnFields && v$.companySize.$error"
-              :options="COMPANY_SIZE_OPTIONS"
-              :placeholder="
-                t('ONBOARDING_NEXT.PLACEHOLDERS.SELECT_COMPANY_SIZE')
-              "
-            />
-          </OnboardingFormRow>
-          <OnboardingFormRow
-            :title="t('ONBOARDING_NEXT.FIELDS.REFERRAL_SOURCE')"
-            icon="i-lucide-megaphone"
-          >
-            <OnboardingFormSelect
-              v-model="referralSource"
-              :has-error="showErrorOnFields && v$.referralSource.$error"
-              :options="REFERRAL_SOURCE_OPTIONS"
-              :placeholder="
-                t('ONBOARDING_NEXT.PLACEHOLDERS.SELECT_REFERRAL_SOURCE')
-              "
-            />
-          </OnboardingFormRow>
-        </template>
-      </OnboardingSection>
-    </OnboardingLayout>
-  </form>
+          </label>
+        </div>
+        <p
+          v-if="v$.businessType.$error"
+          id="business-type-error"
+          class="mb-0 text-sm text-n-ruby-11"
+          role="alert"
+        >
+          {{ t('ONBOARDING_NEXT.BUSINESS_TYPE_REQUIRED') }}
+        </p>
+      </fieldset>
+
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <OnboardingFormSelect
+          v-model="country"
+          :label="t('ONBOARDING_NEXT.FIELDS.COUNTRY')"
+          :options="countryOptions"
+          :placeholder="t('ONBOARDING_NEXT.PLACEHOLDERS.SELECT_COUNTRY')"
+          show-search
+          allow-deselect
+        />
+        <OnboardingFormSelect
+          v-model="locale"
+          :label="t('ONBOARDING_NEXT.FIELDS.LANGUAGE')"
+          :options="languageOptions"
+          :placeholder="t('ONBOARDING_NEXT.PLACEHOLDERS.SELECT_LANGUAGE')"
+        />
+      </div>
+      <OnboardingFormSelect
+        v-model="timezone"
+        :label="t('ONBOARDING_NEXT.FIELDS.TIMEZONE')"
+        :options="timezoneOptions"
+        :placeholder="t('ONBOARDING_NEXT.PLACEHOLDERS.SELECT_TIMEZONE')"
+        show-search
+      />
+      <div class="space-y-2">
+        <label
+          for="business-website"
+          class="text-sm font-medium text-n-slate-12"
+        >
+          {{ t('ONBOARDING_NEXT.FIELDS.WEBSITE') }}
+        </label>
+        <input
+          id="business-website"
+          v-model="website"
+          name="website"
+          type="text"
+          inputmode="url"
+          autocomplete="url"
+          :class="INPUT_CLASS"
+          :placeholder="t('ONBOARDING_NEXT.PLACEHOLDERS.ENTER_WEBSITE')"
+        />
+      </div>
+    </form>
+    <template #footer>
+      <button
+        type="submit"
+        form="business-details-form"
+        class="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-n-slate-12 px-6 text-base font-medium text-n-solid-1 transition-opacity hover:enabled:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-n-brand disabled:cursor-not-allowed disabled:opacity-60"
+        :aria-busy="isSubmitting || isEnriching"
+        :disabled="isSubmitting || isEnriching"
+      >
+        <Spinner
+          v-if="isSubmitting || isEnriching"
+          :size="20"
+          aria-hidden="true"
+        />
+        {{ submitLabel }}
+      </button>
+    </template>
+  </AuthSplitLayout>
 </template>

@@ -37,6 +37,8 @@ describe('AuthSplitLayout', () => {
         logoDark || '/logo.svg'
       );
       expect(hero.get('h1').text()).toBe('Welcome to ChatHub');
+      expect(hero.get('h1').classes()).toContain('text-white');
+      expect(hero.get('p').classes()).toContain('text-white');
       expect(hero.text()).toContain('Your assistant');
       expect(hero.findAll('.bg-gradient-to-b, .bg-gradient-to-t')).toHaveLength(
         2
