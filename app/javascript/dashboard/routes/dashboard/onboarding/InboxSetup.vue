@@ -1,6 +1,12 @@
 <script setup>
-import { computed, defineAsyncComponent, ref, watch } from 'vue';
-import { useWindowSize } from '@vueuse/core';
+import {
+  computed,
+  defineAsyncComponent,
+  onMounted,
+  onUnmounted,
+  ref,
+  watch,
+} from 'vue';
 import { useI18n, Translation as I18nT } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
@@ -65,10 +71,15 @@ const connectedInbox = computed(() => whatsappInbox.value || inboxes.value[0]);
 const isInitial = computed(
   () => state.value === 'idle' && !connectedInbox.value && isAvailable.value
 );
-const { width } = useWindowSize();
+const windowWidth = ref(window.innerWidth);
+const updateWindowWidth = () => {
+  windowWidth.value = window.innerWidth;
+};
+onMounted(() => window.addEventListener('resize', updateWindowWidth));
+onUnmounted(() => window.removeEventListener('resize', updateWindowWidth));
 const isMobile = computed(
   () =>
-    width.value < MOBILE_BREAKPOINT ||
+    windowWidth.value < MOBILE_BREAKPOINT ||
     MOBILE_USER_AGENT.test(navigator.userAgent)
 );
 const metaTechProviderLive =
