@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAccount } from 'dashboard/composables/useAccount';
@@ -13,7 +13,6 @@ import {
 import CaptainInboxes from 'dashboard/api/captain/inboxes';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
 import AuthSplitLayout from 'v3/components/Auth/AuthSplitLayout.vue';
-import AssistantAvatar from './AssistantAvatar.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import AuthStepHeader from 'v3/components/Auth/AuthStepHeader.vue';
 import AuthField from 'v3/components/Auth/AuthField.vue';
@@ -28,8 +27,6 @@ import {
 const CURRENT_STEP = 4;
 const EXAMPLE_IDS = [1, 2, 3];
 const GOAL_MAX_LENGTH = 2000;
-const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
-const AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 const { t, tm, rt } = useI18n();
 const {
   remaining,
@@ -43,72 +40,6 @@ const store = useStore();
 const { currentAccount, accountId, finishOnboarding } = useAccount();
 const inboxes = useMapGetter('inboxes/getInboxes');
 const assistant = ref(null);
-const avatarInput = ref(null);
-const avatarFile = ref(null);
-const avatarPreview = ref('');
-const avatarError = ref('');
-const avatarUploading = ref(false);
-const savedAvatar = computed(() => {
-  const url = assistant.value?.avatar_url || '';
-  return /\/captain\/avatar-(light|dark)\.svg$/.test(url) ? '' : url;
-});
-const avatarUrl = computed(() => avatarPreview.value || savedAvatar.value);
-const clearAvatarPreview = () => {
-  if (avatarPreview.value) URL.revokeObjectURL(avatarPreview.value);
-  avatarPreview.value = '';
-  avatarFile.value = null;
-};
-onBeforeUnmount(clearAvatarPreview);
-
-const uploadAvatar = async () => {
-  avatarUploading.value = true;
-  try {
-    const { data } = await CaptainAssistant.updateAvatar(
-      assistant.value.id,
-      avatarFile.value
-    );
-    assistant.value = { ...assistant.value, ...data };
-  } catch {
-    avatarError.value = t('ONBOARDING_ASSISTANT.PHOTO.UPLOAD_ERROR');
-  } finally {
-    clearAvatarPreview();
-    avatarUploading.value = false;
-  }
-};
-const selectAvatar = async event => {
-  const [file] = event.target.files;
-  event.target.value = '';
-  if (!file) return;
-  avatarError.value = '';
-  if (!AVATAR_TYPES.includes(file.type)) {
-    avatarError.value = t('ONBOARDING_ASSISTANT.PHOTO.FORMAT_ERROR');
-    return;
-  }
-  if (file.size > AVATAR_MAX_BYTES) {
-    avatarError.value = t('ONBOARDING_ASSISTANT.PHOTO.SIZE_ERROR');
-    return;
-  }
-  clearAvatarPreview();
-  avatarFile.value = file;
-  avatarPreview.value = URL.createObjectURL(file);
-  if (assistant.value) await uploadAvatar();
-};
-const removeAvatar = async () => {
-  avatarError.value = '';
-  if (!assistant.value) {
-    clearAvatarPreview();
-    return;
-  }
-  avatarUploading.value = true;
-  try {
-    const { data } = await CaptainAssistant.deleteAvatar(assistant.value.id);
-    assistant.value = { ...assistant.value, ...data };
-  } catch {
-    avatarError.value = t('ONBOARDING_ASSISTANT.PHOTO.REMOVE_ERROR');
-  } finally {
-    avatarUploading.value = false;
-  }
-};
 const name = ref('');
 const goal = ref('');
 const tone = ref('friendly');
@@ -165,10 +96,7 @@ watch(
 const whatsappInbox = computed(() =>
   inboxes.value.find(inbox => inbox.channel_type === INBOX_TYPES.WHATSAPP)
 );
-const busy = computed(
-  () =>
-    saving.value || finishing.value || sending.value || avatarUploading.value
-);
+const busy = computed(() => saving.value || finishing.value || sending.value);
 const valid = computed(() => name.value.trim() && goal.value.trim());
 const active = computed(() => Boolean(assistant.value?.inbox_ids?.length));
 
@@ -226,7 +154,6 @@ const createAndTest = async () => {
       tone: tone.value,
     });
     assistant.value = data.assistant;
-    if (avatarFile.value) await uploadAvatar();
     await refreshUsage();
     editing.value = false;
     messages.value = [];
@@ -337,67 +264,12 @@ const onQuestionKeydown = event => {
       :back-disabled="busy || loading"
     >
       <template #brand>
-        <AssistantAvatar :src="avatarUrl" class="size-10" />
+        <span
+          class="i-woot-captain size-10 text-n-slate-12"
+          aria-hidden="true"
+        />
       </template>
     </AuthStepHeader>
-    <div v-if="!loading && !loadError" class="mb-4 space-y-2">
-      <p
-        id="assistant-photo-label"
-        class="m-0 text-sm font-medium text-n-slate-12"
-      >
-        {{ t('ONBOARDING_ASSISTANT.PHOTO.LABEL') }}
-      </p>
-      <div class="flex items-center gap-3">
-        <AssistantAvatar :src="avatarUrl" class="size-10" />
-        <input
-          id="assistant-photo"
-          ref="avatarInput"
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          class="sr-only"
-          tabindex="-1"
-          :disabled="busy"
-          aria-labelledby="assistant-photo-label"
-          :aria-describedby="
-            avatarError
-              ? 'assistant-photo-hint assistant-photo-error'
-              : 'assistant-photo-hint'
-          "
-          @change="selectAvatar"
-        />
-        <div class="flex min-w-0 flex-1 flex-wrap items-center gap-3">
-          <AuthButton
-            variant="secondary"
-            class="!w-auto"
-            :disabled="busy"
-            :loading="avatarUploading"
-            data-testid="upload-avatar"
-            @click="avatarInput.click()"
-          >
-            {{ t('ONBOARDING_ASSISTANT.PHOTO.UPLOAD') }}
-          </AuthButton>
-          <button
-            v-if="avatarUrl"
-            type="button"
-            :class="AUTH_LINK_CLASS"
-            :disabled="busy"
-            data-testid="remove-avatar"
-            @click="removeAvatar"
-          >
-            {{ t('ONBOARDING_ASSISTANT.PHOTO.REMOVE') }}
-          </button>
-        </div>
-      </div>
-      <p
-        id="assistant-photo-hint"
-        class="m-0 text-sm leading-6 text-n-slate-11"
-      >
-        {{ t('ONBOARDING_ASSISTANT.PHOTO.HINT') }}
-      </p>
-      <AuthFeedback v-if="avatarError" id="assistant-photo-error" error>
-        {{ avatarError }}
-      </AuthFeedback>
-    </div>
     <div
       v-if="loading"
       role="status"
@@ -525,7 +397,6 @@ const onQuestionKeydown = event => {
         role="status"
         class="flex items-start gap-3 rounded-xl bg-n-slate-3 p-4"
       >
-        <AssistantAvatar :src="avatarUrl" class="size-10" />
         <div class="min-w-0 space-y-1">
           <p
             class="m-0 break-words text-base font-medium leading-6 text-n-slate-12"
@@ -587,11 +458,6 @@ const onQuestionKeydown = event => {
           "
           :data-message-role="message.role"
         >
-          <AssistantAvatar
-            v-if="message.role === 'assistant'"
-            :src="avatarUrl"
-            class="mb-1 size-7"
-          />
           <p
             class="m-0 mb-1 break-words text-sm font-medium leading-5 text-n-slate-11"
           >

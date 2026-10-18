@@ -43,23 +43,6 @@ describe('Assistant onboarding', () => {
   let getInboxes;
 
   beforeEach(async () => {
-    vi.stubGlobal(
-      'URL',
-      class extends URL {
-        static createObjectURL = vi.fn(() => 'blob:assistant-preview');
-
-        static revokeObjectURL = vi.fn();
-      }
-    );
-    CaptainAssistant.updateAvatar.mockImplementation(async () => {
-      serverAssistant.avatar_url = '/rails/active_storage/assistant.webp';
-      return { data: structuredClone(serverAssistant) };
-    });
-    CaptainAssistant.deleteAvatar.mockImplementation(async () => {
-      serverAssistant.avatar_url =
-        '/assets/images/dashboard/captain/avatar-light.svg';
-      return { data: structuredClone(serverAssistant) };
-    });
     CaptainAssistant.playgroundUsage.mockResolvedValue({
       data: { test_usage: null },
     });
@@ -154,208 +137,41 @@ describe('Assistant onboarding', () => {
 
   afterEach(() => {
     wrapper?.unmount();
-    vi.unstubAllGlobals();
   });
 
   it.each(['en', 'es'])(
-    'shows accessible Captain avatars and theme variants in %s',
+    'shows the Captain brand icon and assistant setup title in %s',
     async lang => {
       i18n.global.locale.value = lang;
-      serverAssistant = {
-        ...structuredClone(draft),
-        avatar_url:
-          'https://inbox.example/assets/images/dashboard/captain/avatar-light.svg',
-      };
       wrapper = mount(AssistantSetup, options);
+      await flushPromises();
+      const strings = { en, es }[lang].ONBOARDING_ASSISTANT;
+      expect(wrapper.get('h1').text()).toBe(strings.TITLE);
+      expect(wrapper.get('header .i-woot-captain').classes()).toEqual(
+        expect.arrayContaining(['size-10', 'text-n-slate-12'])
+      );
+      expect(
+        wrapper.get('header .i-woot-captain').attributes('aria-hidden')
+      ).toBe('true');
+      expect(wrapper.find('input[type="file"]').exists()).toBe(false);
+
+      await wrapper.get('#assistant-name').setValue('Asistente de Acme');
+      await wrapper.get('#assistant-goal').setValue('Ayuda a tus clientes');
+      await wrapper.get('#assistant-form').trigger('submit');
       await flushPromises();
       await wrapper.get('#assistant-question').setValue('Hola');
       await wrapper.get('section form').trigger('submit');
       await flushPromises();
-      const alt = { en, es }[lang].ONBOARDING_ASSISTANT.PHOTO.ALT;
-      const header = wrapper.get('header img');
-      expect(header.attributes('src')).toContain('captain/avatar-light.svg');
-      expect(header.attributes('alt')).toBe(alt);
-      expect(
-        wrapper.get('header img.dark\\:block').attributes('src')
-      ).toContain('avatar-dark.svg');
-      expect(
-        wrapper
-          .get('section [role="status"] img')
-          .element.parentElement.classList.contains('size-10')
-      ).toBe(true);
-      expect(
-        wrapper
-          .get('[data-message-role="assistant"] img')
-          .element.parentElement.classList.contains('size-7')
-      ).toBe(true);
-      expect(wrapper.find('[data-message-role="user"] img').exists()).toBe(
-        false
+
+      expect(wrapper.get('section [role="status"]').text()).toContain(
+        draft.name
       );
-      expect(CaptainAssistant.updateAvatar).not.toHaveBeenCalled();
+      expect(wrapper.get('[data-message-role="assistant"]').text()).toContain(
+        draft.name
+      );
+      expect(wrapper.find('img').exists()).toBe(false);
     }
   );
-
-  it.each(['image/png', 'image/jpeg', 'image/webp'])(
-    'previews %s, saves with Captain and resumes all avatar locations',
-    async type => {
-      wrapper = mount(AssistantSetup, options);
-      await flushPromises();
-      const file = new File(['photo'], 'photo', { type });
-      Object.defineProperty(wrapper.get('#assistant-photo').element, 'files', {
-        configurable: true,
-        value: [file],
-      });
-      await wrapper.get('#assistant-photo').trigger('change');
-      expect(wrapper.get('header img').attributes('src')).toBe(
-        'blob:assistant-preview'
-      );
-      expect(URL.createObjectURL).toHaveBeenCalledWith(file);
-      expect(CaptainAssistant.updateAvatar).not.toHaveBeenCalled();
-      await wrapper.get('#assistant-goal').setValue('Ayuda');
-      await wrapper.get('#assistant-form').trigger('submit');
-      await flushPromises();
-      expect(CaptainAssistant.updateAvatar).toHaveBeenCalledExactlyOnceWith(
-        42,
-        file
-      );
-      expect(URL.revokeObjectURL).toHaveBeenCalledWith(
-        'blob:assistant-preview'
-      );
-      wrapper.unmount();
-      wrapper = mount(AssistantSetup, options);
-      await flushPromises();
-      await wrapper.get('#assistant-question').setValue('Hola');
-      await wrapper.get('section form').trigger('submit');
-      await flushPromises();
-      [
-        'header img',
-        'section [role="status"] img',
-        '[data-message-role="assistant"] img',
-      ].forEach(selector => {
-        expect(wrapper.get(selector).attributes('src')).toBe(
-          serverAssistant.avatar_url
-        );
-      });
-      expect(OnboardingAPI.saveAssistant).toHaveBeenCalledOnce();
-    }
-  );
-
-  it('removes a pending preview without uploading and releases its URL', async () => {
-    wrapper = mount(AssistantSetup, options);
-    await flushPromises();
-    Object.defineProperty(wrapper.get('#assistant-photo').element, 'files', {
-      configurable: true,
-      value: [new File(['x'], 'a.png', { type: 'image/png' })],
-    });
-    await wrapper.get('#assistant-photo').trigger('change');
-    await wrapper.get('[data-testid="remove-avatar"]').trigger('click');
-    expect(wrapper.get('header img').attributes('src')).toContain(
-      'avatar-light.svg'
-    );
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:assistant-preview');
-    expect(CaptainAssistant.deleteAvatar).not.toHaveBeenCalled();
-    expect(CaptainAssistant.updateAvatar).not.toHaveBeenCalled();
-  });
-
-  it('uploads after keep editing and removes a persisted avatar through Captain', async () => {
-    serverAssistant = structuredClone(draft);
-    wrapper = mount(AssistantSetup, options);
-    await flushPromises();
-    await wrapper.get('[data-testid="edit"]').trigger('click');
-    const file = new File(['x'], 'a.png', { type: 'image/png' });
-    Object.defineProperty(wrapper.get('#assistant-photo').element, 'files', {
-      configurable: true,
-      value: [file],
-    });
-    await wrapper.get('#assistant-photo').trigger('change');
-    await flushPromises();
-    expect(CaptainAssistant.updateAvatar).toHaveBeenCalledWith(42, file);
-    await wrapper.get('[data-testid="remove-avatar"]').trigger('click');
-    await flushPromises();
-    expect(CaptainAssistant.deleteAvatar).toHaveBeenCalledWith(42);
-    expect(wrapper.get('header img').attributes('src')).toContain(
-      'avatar-light.svg'
-    );
-    wrapper.unmount();
-    wrapper = mount(AssistantSetup, options);
-    await flushPromises();
-    expect(
-      wrapper.get('section [role="status"] img').attributes('src')
-    ).toContain('avatar-light.svg');
-  });
-
-  it.each(['en', 'es'])(
-    'keeps the created draft on upload failure and permits another upload in %s',
-    async lang => {
-      i18n.global.locale.value = lang;
-      CaptainAssistant.updateAvatar.mockRejectedValueOnce(new Error('offline'));
-      wrapper = mount(AssistantSetup, options);
-      await flushPromises();
-      const file = new File(['x'], 'a.png', { type: 'image/png' });
-      Object.defineProperty(wrapper.get('#assistant-photo').element, 'files', {
-        configurable: true,
-        value: [file],
-      });
-      await wrapper.get('#assistant-photo').trigger('change');
-      await wrapper.get('#assistant-goal').setValue('Ayuda');
-      await wrapper.get('#assistant-form').trigger('submit');
-      await flushPromises();
-      expect(wrapper.get('#assistant-photo-error').text()).toBe(
-        { en, es }[lang].ONBOARDING_ASSISTANT.PHOTO.UPLOAD_ERROR
-      );
-      expect(wrapper.text()).toContain(draft.name);
-      expect(wrapper.find('[data-testid="edit"]').exists()).toBe(true);
-      expect(wrapper.get('header img').attributes('src')).toContain(
-        'avatar-light.svg'
-      );
-      Object.defineProperty(wrapper.get('#assistant-photo').element, 'files', {
-        configurable: true,
-        value: [file],
-      });
-      await wrapper.get('#assistant-photo').trigger('change');
-      await flushPromises();
-      expect(wrapper.find('#assistant-photo-error').exists()).toBe(false);
-      expect(wrapper.get('header img').attributes('src')).toBe(
-        serverAssistant.avatar_url
-      );
-    }
-  );
-
-  it.each([
-    ['image/gif', 1, 'FORMAT_ERROR'],
-    ['image/svg+xml', 1, 'FORMAT_ERROR'],
-    ['image/png', 2 * 1024 * 1024 + 1, 'SIZE_ERROR'],
-  ])(
-    'rejects invalid avatar %s / %s bytes before preview or upload',
-    async (type, size, key) => {
-      wrapper = mount(AssistantSetup, options);
-      await flushPromises();
-      const file = new File([new Uint8Array(size)], 'photo', { type });
-      Object.defineProperty(wrapper.get('#assistant-photo').element, 'files', {
-        configurable: true,
-        value: [file],
-      });
-      await wrapper.get('#assistant-photo').trigger('change');
-      expect(wrapper.get('#assistant-photo-error').text()).toBe(
-        es.ONBOARDING_ASSISTANT.PHOTO[key]
-      );
-      expect(URL.createObjectURL).not.toHaveBeenCalled();
-      expect(CaptainAssistant.updateAvatar).not.toHaveBeenCalled();
-    }
-  );
-
-  it('retains the saved avatar and reports a failed deletion', async () => {
-    serverAssistant = { ...structuredClone(draft), avatar_url: '/saved.png' };
-    CaptainAssistant.deleteAvatar.mockRejectedValueOnce(new Error('offline'));
-    wrapper = mount(AssistantSetup, options);
-    await flushPromises();
-    await wrapper.get('[data-testid="remove-avatar"]').trigger('click');
-    await flushPromises();
-    expect(wrapper.get('#assistant-photo-error').text()).toBe(
-      es.ONBOARDING_ASSISTANT.PHOTO.REMOVE_ERROR
-    );
-    expect(wrapper.get('header img').attributes('src')).toBe('/saved.png');
-  });
 
   it.each(['en', 'es'])(
     'shows the paid daily allowance before testing in %s',

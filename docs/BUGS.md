@@ -2073,39 +2073,26 @@ usuarios de la misma cuenta deben dar 429 y permitir reintentar después.
 Repetir en ambos chats y v1/v2, dos pestañas, medianoche, cambio de plan, error
 sin consumo y Developer con/sin hook OpenAI. Aplicar migración antes del deploy.
 
-### B-NEW-73 — Avatar de Captain y foto opcional en el paso 4
+### B-NEW-73 — Icono de Captain y sin foto en el paso 4
 
-El paso «Crea tu asistente» no mostraba la identidad visual de Captain ni
-permitía elegir una foto. Ahora el encabezado, la tarjeta del borrador y las
-respuestas de prueba comparten el avatar persistido; sin foto se muestran los
-SVG existentes de Captain en sus variantes clara y oscura (40 px en tarjeta,
-28 px en burbujas, con texto alternativo traducido).
+El paso de onboarding configura el asistente con el icono de marca de Captain
+en su encabezado y el título «Configura tu primer asistente» (en: «Set up your
+first assistant»). El icono usa `i-woot-captain`, mide 40 px y es decorativo.
+Se eliminó del recorrido el bloque de foto, el avatar de la tarjeta del borrador
+y las imágenes en las burbujas de prueba; estas muestran el nombre del asistente.
 
-Archivos: `onboarding/AssistantSetup.vue`, nuevo `onboarding/AssistantAvatar.vue`,
+Archivos: `onboarding/AssistantSetup.vue`,
 `onboarding/specs/AssistantSetup.spec.js` y `locale/{en,es}/onboarding.json`.
-El bloque «Foto del asistente» admite PNG/JPG/WebP de hasta 2 MB, vista previa
-circular inmediata y «Quitar». Libera las URL de vista previa al sustituir,
-quitar, terminar la subida o desmontar. Usa `CaptainAssistant.updateAvatar`
-(PATCH multipart existente) y `deleteAvatar` (DELETE existente); no cambia
-backend, permisos, endpoints ni configuración de Captain.
+El onboarding ya no usa ni modifica los endpoints o el backend de avatar. La
+configuración de avatar del panel de Captain sigue funcionando sin cambios.
 
-La foto elegida antes de crear se sube después de guardar el borrador. Si falla,
-el borrador sigue disponible y se muestra el error traducido junto al bloque;
-puede volver a subirse desde ahí o desde «Seguir editando». Al fallar una subida
-o eliminación se vuelve a mostrar el avatar persistido. La recarga recupera
-`avatar_url` del serializador de Captain usado por onboarding.
+Cobertura: Vitest verifica el icono decorativo y el título en inglés y español;
+la vista no renderiza campos de archivo ni imágenes de avatar. Autoevaluación y
+límites de verificación: `tmp/AUTOEVALUACION-ICONO.md`.
 
-Cobertura: Vitest de avatar por defecto, variantes de tema, textos en/es,
-PNG/JPG/WebP con vista previa y reanudación, quitar antes/después de crear,
-error de subida con reintento y rechazo de formato/tamaño, error de eliminación.
-Autoevaluación y límites de verificación: `tmp/AUTOEVALUACION-AVATAR.md`.
-
-Cómo probar: abrir el paso 4 sin borrador, comprobar Captain y elegir una foto;
-crear y enviar una pregunta, comprobar la misma foto en encabezado, tarjeta y
-respuesta. Recargar, entrar a «Seguir editando», cambiar/quitar foto y recargar.
-Repetir en claro/oscuro, es/en y anchos de 360/390/430 px. Bloquear solo el PATCH
-del avatar al crear: el borrador debe conservarse con error de foto y permitir
-volver a subirla. Rechazar GIF/SVG y archivos mayores de 2 MB antes de enviar.
+Cómo probar: abrir el paso 4 en ambos idiomas, comprobar el icono Captain en el
+encabezado, editar el borrador y enviar preguntas de prueba; en la tarjeta y en
+las burbujas solo debe aparecer el nombre del asistente, sin fotos.
 
 ## 8. Docs relacionadas
 

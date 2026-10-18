@@ -190,18 +190,7 @@
     "COMPLETION_ERROR": "We couldn’t save this step. Try again to continue."
   },
   "ONBOARDING_ASSISTANT": {
-    "PHOTO": {
-      "LABEL": "Assistant photo",
-      "ALT": "Assistant avatar",
-      "UPLOAD": "Upload photo",
-      "REMOVE": "Remove",
-      "HINT": "PNG, JPG or WebP, up to 2 MB. You can change it later in the assistant settings.",
-      "FORMAT_ERROR": "Choose a PNG, JPG or WebP image.",
-      "SIZE_ERROR": "Choose an image no larger than 2 MB.",
-      "UPLOAD_ERROR": "Your assistant is saved, but the photo could not be uploaded. Try uploading it again.",
-      "REMOVE_ERROR": "The photo could not be removed. Try again."
-    },
-    "TITLE": "Create your assistant",
+    "TITLE": "Set up your first assistant",
     "SUBTITLE": "Tell us what it should do. We will prepare a draft for you to try before activating it.",
     "MARKETING": {
       "TITLE": "Your next conversation starts here",
