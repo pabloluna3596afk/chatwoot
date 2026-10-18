@@ -159,10 +159,10 @@ describe('Onboarding accessibility', () => {
     expect(wrapper.find('svg').exists()).toBe(true);
   });
 
-  it('keeps actions neutral and gives secondary actions a solid border', async () => {
+  it('uses brand blue for primary actions and a solid border for secondary actions', async () => {
     wrapper = mount(AuthButton, { slots: { default: 'Continue' } });
-    expect(wrapper.get('button').classes()).toContain('bg-n-slate-12');
-    expect(wrapper.get('button').classes()).not.toContain('bg-n-brand');
+    expect(wrapper.get('button').classes()).toContain('bg-n-brand');
+    expect(wrapper.get('button').classes()).toContain('text-white');
     await wrapper.setProps({ variant: 'secondary' });
     expect(wrapper.get('button').classes()).toEqual(
       expect.arrayContaining(['border', 'border-solid', 'bg-n-solid-1'])
