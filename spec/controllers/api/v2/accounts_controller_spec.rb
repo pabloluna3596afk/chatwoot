@@ -41,6 +41,25 @@ RSpec.describe 'Accounts API', type: :request do
                as: :json
 
           expect(account.reload.custom_attributes['onboarding_step']).to eq('profile_update')
+          membership = response.parsed_body.dig('data', 'accounts').find { |item| item['id'] == account.id }
+          expect(membership['onboarding_step']).to eq('profile_update')
+          expect(membership).not_to have_key('onboarding_version')
+        end
+      end
+
+      it 'preserves version 2 and starts the new account_details route' do
+        with_modified_env ENABLE_ACCOUNT_SIGNUP: 'true' do
+          account.update!(custom_attributes: { 'onboarding_version' => 2, 'onboarding_step' => 'account_details' })
+          allow(account_builder).to receive(:perform).and_return([user, account])
+
+          post api_v2_accounts_url,
+               params: { email: email, password: 'Password1!' }, as: :json
+
+          expect(response).to have_http_status(:success)
+          expect(account.reload.custom_attributes).to include('onboarding_version' => 2, 'onboarding_step' => 'account_details')
+          membership = response.parsed_body.dig('data', 'accounts').find { |item| item['id'] == account.id }
+          expect(membership).to include('onboarding_version' => 2, 'onboarding_step' => 'account_details')
+          expect(membership).not_to have_key('custom_attributes')
         end
       end
 

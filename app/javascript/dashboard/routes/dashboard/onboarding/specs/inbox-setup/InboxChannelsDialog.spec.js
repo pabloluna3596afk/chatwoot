@@ -1,6 +1,11 @@
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import InboxChannelsDialog from '../../inbox-setup/InboxChannelsDialog.vue';
+
+const { connectWhatsapp, closeDialog } = vi.hoisted(() => ({
+  connectWhatsapp: vi.fn(),
+  closeDialog: vi.fn(),
+}));
 
 const { isOnChatwootCloud, isMetaInboxCreationDisabled, isTiktokEnabled } =
   vi.hoisted(() => ({
@@ -27,18 +32,18 @@ vi.mock('dashboard/composables/useAccount', () => ({
 vi.mock('../../inbox-setup/useChannelConnect', () => ({
   useChannelConnect: () => ({
     connectViaOAuth: vi.fn(),
-    connectWhatsapp: vi.fn(),
+    connectWhatsapp,
   }),
 }));
 
-const mountDialog = () =>
+const mountDialog = (onboardingV2 = false) =>
   mount(InboxChannelsDialog, {
-    props: { inboxes: [] },
+    props: { inboxes: [], onboardingV2 },
     global: {
       stubs: {
         Dialog: {
           template: '<div><slot /></div>',
-          methods: { open() {}, close() {} },
+          methods: { open() {}, close: closeDialog },
         },
         InboxFacebookForm: { template: '<div data-test="fb-form" />' },
         InboxChannelForm: { template: '<div data-test="channel-form" />' },
@@ -64,6 +69,61 @@ describe('InboxChannelsDialog channel availability', () => {
     await nextTick();
 
     expect(wrapper.find('[data-test="fb-form"]').exists()).toBe(true);
+  });
+
+  it('closes WhatsApp signup and returns to the onboarding success screen', async () => {
+    window.chatwootConfig = {
+      whatsappAppId: 'app',
+      whatsappConfigurationId: 'config',
+    };
+    connectWhatsapp.mockResolvedValue({ id: 7 });
+    const wrapper = mountDialog(true);
+
+    await wrapper
+      .findAll('button')
+      .find(button => button.text().includes('WHATSAPP.TITLE'))
+      .trigger('click');
+    await flushPromises();
+
+    expect(connectWhatsapp).toHaveBeenCalledOnce();
+    expect(closeDialog).toHaveBeenCalledOnce();
+    expect(wrapper.emitted('connected')).toHaveLength(1);
+  });
+
+  it('keeps the dialog open when WhatsApp signup is cancelled', async () => {
+    window.chatwootConfig = {
+      whatsappAppId: 'app',
+      whatsappConfigurationId: 'config',
+    };
+    connectWhatsapp.mockResolvedValue(null);
+    const wrapper = mountDialog(true);
+
+    await wrapper
+      .findAll('button')
+      .find(button => button.text().includes('WHATSAPP.TITLE'))
+      .trigger('click');
+    await flushPromises();
+
+    expect(closeDialog).not.toHaveBeenCalled();
+    expect(wrapper.emitted('connected')).toBeUndefined();
+  });
+
+  it('preserves the legacy dialog after WhatsApp signup', async () => {
+    window.chatwootConfig = {
+      whatsappAppId: 'app',
+      whatsappConfigurationId: 'config',
+    };
+    connectWhatsapp.mockResolvedValue({ id: 7 });
+    const wrapper = mountDialog();
+
+    await wrapper
+      .findAll('button')
+      .find(button => button.text().includes('WHATSAPP.TITLE'))
+      .trigger('click');
+    await flushPromises();
+
+    expect(closeDialog).not.toHaveBeenCalled();
+    expect(wrapper.emitted('connected')).toBeUndefined();
   });
 
   it('shows the grid (not the picker) when fbAppId is missing', async () => {

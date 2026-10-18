@@ -1745,6 +1745,149 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
   y el host no tiene Ruby. Ejecución de specs y comprobación visual pendientes.
   Sin migraciones ni commit.
 
+#### Paso 3 — Conecta tu WhatsApp (ampliación de B-NEW-70, 2026-10-17)
+
+- Ronda 4: `InboxSetup.vue` llena el estado inicial con tres pasos traducidos en
+  en/es e iconos Lucide sobre círculos suaves, centrados en el espacio disponible.
+  La falta de configuración muestra una nota neutra con icono de información y
+  «Usar otro canal» como botón secundario de borde en el pie; «Lo haré después»
+  conserva su aspecto de enlace. El éxito mantiene la tarjeta con un check más
+  grande sobre fondo teal y «Continuar» como único botón primario. Se conserva
+  el contenido desplazable separado del pie sin superponerlo. Specs ampliados
+  para pasos en ambos idiomas, nota/acciones y transición de no disponible a
+  canal conectado. ESLint: 0 errores y advertencias; scripts/templates Vue y
+  113 mensajes por idioma compilados, claves en/es iguales y generación de
+  iconos/tokens Tailwind verificada. Vitest de onboarding/i18n/AuthSplitLayout
+  bloqueado por `spawn EPERM` (esbuild; también resolución de rutas de Vite al
+  intentar carga sin esbuild). La herramienta de navegador no inicia por acceso
+  denegado al sandbox de Windows: revisión visual pendiente en los tres estados,
+  móvil/escritorio y claro/oscuro; comprobar que no haya scroll horizontal y que
+  todo el contenido pueda alcanzarse sin quedar detrás del pie. Sin commit.
+- Ronda 3: `onboarding_version` se serializa solo si está presente en `custom_attributes` de la cuenta (GET/PATCH y avance del onboarding) y en cada membresía de sesión/perfil/creación de cuenta; esta última respuesta también omitía `onboarding_step` y ahora lo expone, sin publicar otros atributos internos. Specs de requests cubren v2, legado, múltiples cuentas, avance y finalización; se corrigen el condicional y el contexto anidado de RuboCop en Embedded Signup. ESLint: 0 errores, 2 advertencias de claves dinámicas i18n; RSpec/RuboCop pendientes por acceso denegado al motor Docker. Sin cambios frontend en esta ronda.
+- Ronda 2: solo en onboarding v2, el administrador actual se incorpora con `Inbox#add_members` a las bandejas sin miembros al completar u omitir `inbox_setup` y al crear por Embedded Signup; es idempotente y conserva miembros existentes. «Usar otro canal» cierra el diálogo de WhatsApp al conectar y muestra el éxito con «Continuar» y el aviso de asignación en en/es, sin pasar por agentes ni cambiar Ajustes. Cobertura RSpec del servicio y endpoints, y Vitest del diálogo y éxito; ESLint sin errores. Vitest bloqueado al iniciar por `spawn EPERM`; RSpec pendiente porque Docker no está disponible.
+- Problema: ONB-04/05/08/11. El primer canal guiado solo aparecía en cloud,
+  se creaba un widget antes de elegir WhatsApp y faltaban estados recuperables.
+- Cambio: cuentas nuevas de `AccountBuilder` reciben `onboarding_version: 2`.
+  Después del negocio pasan a `inbox_setup` en cloud e instalaciones propias,
+  sin crear widget ni centro de ayuda. Las cuentas sin versión conservan el
+  recorrido anterior. La API v2 respeta el nuevo cursor y conserva su contrato
+  anterior para cuentas sin versión.
+- Pantalla: `AuthSplitLayout`, Paso 3 de 5, botones píldora y tokens de tema.
+  Reutiliza el Embedded Signup con coexistencia existente; muestra carga,
+  cancelación, error traducido con reintento, éxito con nombre/número del API
+  y falta de configuración. «Usar otro canal» abre el diálogo existente y
+  «Lo haré después» permite salir incluso durante la conexión. Continuar u
+  omitir actualiza la sesión y entra al dashboard. No implementa pasos 4/5.
+- Persistencia: `inbox_setup_result` solo admite `whatsapp_connected` o `skipped`
+  para completar la versión 2; valores ausentes/malformados devuelven 422.
+  Replays y solicitudes fuera de orden siguen siendo no-op, sin sobrescribir
+  el resultado. El guard sigue el cursor y la pantalla espera la carga de la
+  cuenta al recargar antes de recuperar las bandejas conectadas.
+- Archivos de producto:
+  - `app/builders/account_builder.rb`.
+  - `app/controllers/api/v1/accounts/onboardings_controller.rb`.
+  - `app/controllers/api/v1/accounts/whatsapp/authorizations_controller.rb`
+    (añade `phone_number` a la respuesta existente).
+  - `app/controllers/api/v2/accounts_controller.rb`.
+  - `app/javascript/dashboard/routes/index.js`.
+  - `app/javascript/dashboard/routes/dashboard/onboarding/InboxSetup.vue`,
+    `LegacyInboxSetup.vue` (pantalla anterior preservada) e `Index.vue`
+    (refresca la sesión antes de avanzar).
+  - `app/javascript/dashboard/i18n/locale/{en,es}/onboarding.json`.
+- Cobertura añadida/ampliada:
+  - `app/javascript/dashboard/routes/dashboard/onboarding/specs/InboxSetup.spec.js`:
+    estado inicial, carga/doble clic, éxito y credenciales de coexistencia,
+    cancelación, errores SDK/API traducidos y reintento, omitir, otro canal,
+    configuración ausente/restricción/flag cloud, continuar, recarga, carga
+    asíncrona de cuenta, error al finalizar y compatibilidad de pantalla anterior.
+  - `app/javascript/dashboard/routes/dashboard/onboarding/specs/onboardingGuard.spec.js`:
+    redirección según cursor, recarga, orden, finalización y usuarios no elegibles.
+  - `app/javascript/dashboard/routes/dashboard/onboarding/specs/Index.spec.js`:
+    actualiza su expectativa de refresco de sesión al avanzar al canal.
+  - `spec/controllers/api/v1/accounts/onboardings_controller_spec.rb`:
+    versión 2 en cloud/propia, ausencia de widget, resultados válidos,
+    rechazo de valores inválidos, replays y orden. Conserva los casos legacy.
+  - `spec/enterprise/controllers/api/v1/accounts/onboardings_controller_spec.rb`:
+    versión 2 no crea widget ni centro de ayuda; conserva cobertura legacy.
+  - `spec/builders/account_builder_spec.rb`: nuevas cuentas reciben versión 2.
+  - `spec/controllers/api/v2/accounts_controller_spec.rb`: cursor de versión 2
+    y contrato sin versión.
+  - `spec/controllers/api/v1/accounts/whatsapp/authorizations_controller_spec.rb`:
+    respuesta con número y nombre de la bandeja real.
+  - `app/javascript/dashboard/composables/spec/useWhatsappEmbeddedSignup.spec.js`
+    (existente, sin cambios): protocolo de coexistencia y finalización con WABA.
+- Validación: ESLint de los JS/Vue tocados sin errores ni advertencias;
+  compilación directa de script/template de las tres vistas y de los 109 mensajes
+  por idioma, con igualdad de claves en/es. El comando solicitado
+  `npx vitest run --config vitest.local.config.ts app/javascript/dashboard/routes/dashboard/onboarding app/javascript/dashboard/composables app/javascript/v3 app/javascript/dashboard/i18n`
+  se detiene antes de ejecutar specs: esbuild devuelve `spawn EPERM`.
+  RSpec no ejecutado localmente según el brief. Smoke con Meta y revisión visual
+  móvil/escritorio en claro/oscuro pendientes. Sin migraciones ni commit.
+- Verificación manual: registrar una cuenta, confirmar correo, guardar negocio
+  sin web, recargar Paso 3, conectar con un número autorizado y verificar
+  nombre/número antes de continuar. Repetir cancelando, simulando error y
+  omitiendo; probar otra instalación sin configuración y la alternativa de canal.
+
+#### Paso 3 — Confianza, guía de conexión y aviso móvil (ronda 5, 2026-10-17)
+
+- En el estado inicial, bloque compacto «Tu número no se pierde» con continuidad
+  de la app WhatsApp Business, conexión oficial y beneficios de la API. La frase
+  «ChatHub es Meta Tech Provider» solo aparece con `metaTechProviderLive === true`.
+- «Ver guía de conexión» carga bajo demanda `WhatsappGuideDialog.vue`, usando el
+  diálogo existente con contenido desplazable. Explica inicio de sesión, número,
+  pegar el código recibido en WhatsApp Business o escanear el QR desde otra
+  pantalla y elección del historial. Incluye los límites verificados: 6 meses,
+  sin grupos, mensajes temporales/visualización única, actividad de 14/30 días,
+  versión 2.24.17+, 20 mensajes por segundo y ruta para desconectar la cuenta.
+- Dos enlaces oficiales de Meta con `target="_blank"` y
+  `rel="noopener noreferrer"`. El slot/video solo existe si se configura
+  `window.chatwootConfig.whatsappGuideVideoUrl`.
+- Distintivos oficiales negro/blanco copiados sin cambios a
+  `app/javascript/dashboard/assets/images/meta/`; SHA-256 idéntico a los
+  originales. Se muestran dentro del diálogo con la bandera activa,
+  ancho de 10rem, proporción original y espacio libre de 2rem por lado.
+- Ronda 7: sello también en el encabezado junto a WhatsApp, en los estados
+  inicial, no disponible y conectado, solo con `metaTechProviderLive === true`.
+  Negro en claro y blanco en oscuro, assets mediante `new URL` en el paso,
+  ancho de 130px móvil / 150px escritorio y espacio libre de 28px por lado
+  (≥ la mitad de su alto). La fila centra ambos y permite salto alineado al
+  inicio si no caben. Specs cubren estados, bandera estricta y variantes de tema.
+- Aviso inicial para ancho <768px o user agent móvil, con «Ingresar código»
+  destacado y copia de la URL actual mediante Clipboard. Toast existente para
+  éxito, permiso denegado o Clipboard ausente. El aviso queda en el contenido
+  desplazable sobre el pie fijo, con tokens `n-*` para claro/oscuro.
+- Configuración: `META_TECH_PROVIDER_LIVE` (texto, `'false'`) y
+  `WHATSAPP_GUIDE_VIDEO_URL` (texto, `''`), sin propiedad `locked`.
+  `DashboardController::GLOBAL_CONFIG_KEYS` carga ambas entradas y
+  `vueapp.html.erb` publica el booleano y la URL con escape JSON.
+- Archivos de esta ronda:
+  - `app/controllers/dashboard_controller.rb`
+  - `app/views/layouts/vueapp.html.erb`
+  - `config/installation_config.yml`
+  - `app/javascript/dashboard/routes/dashboard/onboarding/InboxSetup.vue`
+  - `app/javascript/dashboard/routes/dashboard/onboarding/inbox-setup/WhatsappGuideDialog.vue`
+  - `app/javascript/dashboard/routes/dashboard/onboarding/specs/InboxSetup.spec.js`
+  - `app/javascript/dashboard/routes/dashboard/onboarding/specs/inbox-setup/WhatsappGuideDialog.spec.js`
+  - `app/javascript/dashboard/i18n/locale/en/onboarding.json`
+  - `app/javascript/dashboard/i18n/locale/es/onboarding.json`
+  - `app/javascript/dashboard/assets/images/meta/meta_tech_provider_black.svg`
+  - `app/javascript/dashboard/assets/images/meta/meta_tech_provider_white.svg`
+  - `docs/BUGS.md`
+- Validación: ESLint de los cuatro JS/Vue de esta ronda con 0 errores y 0
+  advertencias; compilación Vue de script/template, YAML, paridad de las 142
+  claves en/es y `git diff --check` correctos. Vitest onboarding/i18n: **12
+  archivos, 249 pruebas aprobadas**, incluidas 58 de pantalla WhatsApp/guía
+  y 110 de compilación de mensajes. El CLI habitual sigue bloqueado por
+  `spawn EPERM` al arrancar esbuild; se ejecutó la API de Vitest cargando la
+  configuración del proyecto en memoria, sin esbuild ni caché, resolviendo
+  los enlaces de paquetes y procesando VueUse/vue-demi en Vite para compartir Vue.
+- Revisión visual real móvil/escritorio y claro/oscuro pendiente: Docker no
+  tiene daemon disponible y el controlador del navegador falla al iniciar por
+  permisos del sandbox. Revisados los tokens y la estructura de scroll en código.
+  Para verificar: abrir Paso 3 en ambos temas y móvil, abrir/cerrar la guía,
+  alternar la bandera y la URL del video, copiar el enlace y comprobar el pie fijo.
+  Sin migraciones ni commit.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)

@@ -113,5 +113,72 @@
       "FACEBOOK_NO_PAGES": "No se encontraron páginas conectables. Todas sus páginas ya están conectadas.",
       "FACEBOOK_ERROR": "No se pudo conectar a Facebook. Por favor, inténtalo de nuevo."
     }
+  },
+  "ONBOARDING_WHATSAPP": {
+    "TRUST": {
+      "TITLE": "Tu número no se pierde",
+      "APP": "Sigues usando la app WhatsApp Business en tu celular",
+      "OFFICIAL": "Conexión oficial con la API de WhatsApp Business Platform de Meta",
+      "BENEFITS": "Plantillas, catálogo y todos los beneficios de la API oficial",
+      "PROVIDER": "ChatHub es Meta Tech Provider"
+    },
+    "GUIDE": {
+      "OPEN": "Ver guía de conexión",
+      "TITLE": "Cómo conectar tu WhatsApp",
+      "CLOSE": "Cerrar guía",
+      "STEPS": {
+        "LOGIN": "Inicia sesión con tu cuenta de Meta en la ventana que se abre.",
+        "NUMBER": "Elige o confirma el número que usas en la app WhatsApp Business.",
+        "VERIFY": "Meta envía un mensaje con un código de verificación a tu app WhatsApp Business. Elige Ingresar código y pega ese código en la ventana de Meta, o escanea el QR desde otra pantalla. Elige si compartes el historial de los últimos 6 meses."
+      },
+      "CHANGES_TITLE": "Qué cambia",
+      "CHANGES": {
+        "HISTORY": "Si compartes el historial, se sincronizan los chats 1:1 y contactos de los últimos 6 meses.",
+        "GROUPS": "Los grupos no se sincronizan.",
+        "MESSAGES": "Los mensajes temporales se desactivan y los mensajes de visualización única no se admiten.",
+        "ACTIVITY": "Usa la app WhatsApp Business de tu celular al menos cada 14 días. Tras unos 14 días sin usar el dispositivo principal, Meta desconecta la cuenta de la API; los dispositivos adicionales se desconectan tras unos 30 días.",
+        "VERSION": "Necesitas WhatsApp Business versión 2.24.17 o posterior.",
+        "THROUGHPUT": "Tu número tiene un rendimiento fijo de 20 mensajes por segundo.",
+        "DISCONNECT": "Para desconectar la cuenta: WhatsApp Business → Ajustes → Cuenta → Plataforma de WhatsApp Business → Desconectar cuenta."
+      },
+      "VIDEO": "Video de conexión",
+      "SOURCES": "Documentación oficial de Meta",
+      "LINKS": {
+        "COEXISTENCE": "Meta: conectar la app WhatsApp Business",
+        "TECH_PROVIDER": "Meta: programa Tech Provider"
+      },
+      "BADGE_ALT": "Meta Tech Provider"
+    },
+    "MOBILE": {
+      "NOTICE": "Estás en tu celular. Si este mismo teléfono tiene la app WhatsApp Business, cuando Meta te pida vincular elige {code} y pega el código del mensaje (no hace falta escanear el QR). ¿Prefieres escanear el QR? Abre este enlace en una computadora.",
+      "ENTER_CODE": "Ingresar código",
+      "COPY": "Copiar enlace para continuar en computadora",
+      "COPIED": "Enlace copiado. Ábrelo en una computadora para continuar.",
+      "COPY_ERROR": "No pudimos copiar el enlace. Copia la dirección desde tu navegador."
+    },
+    "TITLE": "Conecta tu número o cuenta",
+    "SUBTITLE": "Usa tu número actual sin perder la app del celular. Tus conversaciones llegan aquí.",
+    "STEPS": {
+      "META": "1. Inicia sesión con tu cuenta de Meta",
+      "NUMBER": "2. Elige tu número de WhatsApp Business",
+      "READY": "3. Listo: sigues usando la app del celular y los mensajes llegan aquí"
+    },
+    "MARKETING": {
+      "TITLE": "Tus conversaciones, en un solo lugar.",
+      "SUBTITLE": "Conecta WhatsApp y empieza a recibir a tus clientes en tu espacio de trabajo."
+    },
+    "CONNECT": "Conectar WhatsApp",
+    "CONNECTING": "Conectando con WhatsApp…",
+    "CONNECTED": "WhatsApp conectado",
+    "OTHER_CONNECTED": "Canal conectado",
+    "AGENT_ASSIGNED": "Te asignamos a ti como agente. Podrás invitar a tu equipo después en Ajustes.",
+    "CONTINUE": "Continuar",
+    "SKIP": "Lo haré después",
+    "OTHER_CHANNEL": "Usar otro canal",
+    "CANCELLED": "Cancelaste la conexión. Puedes reintentar o continuar más tarde.",
+    "ERROR": "No pudimos conectar WhatsApp. Revisa tu conexión y los permisos en Meta e inténtalo de nuevo.",
+    "RETRY": "Reintentar",
+    "UNAVAILABLE": "La conexión con WhatsApp no está disponible en esta instalación. Puedes usar otro canal o hacerlo después.",
+    "COMPLETION_ERROR": "No pudimos guardar este paso. Inténtalo de nuevo para continuar."
   }
 }

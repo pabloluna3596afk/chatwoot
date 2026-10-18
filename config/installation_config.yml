@@ -168,6 +168,16 @@
   description: 'Configure this if you want to use a different WhatsApp API version. Make sure its prefixed with `v`'
   value: 'v22.0'
   locked: false
+- name: META_TECH_PROVIDER_LIVE
+  display_title: 'Meta Tech Provider Live'
+  description: 'Show the Meta Tech Provider statement and badge in WhatsApp onboarding when live.'
+  value: 'false'
+  type: text
+- name: WHATSAPP_GUIDE_VIDEO_URL
+  display_title: 'WhatsApp Connection Guide Video URL'
+  description: 'Optional video URL for the WhatsApp connection guide.'
+  value: ''
+  type: text
 # ------- End of WhatsApp Channel Related Config ------- #
 
 # MARK: Microsoft Email Channel Config

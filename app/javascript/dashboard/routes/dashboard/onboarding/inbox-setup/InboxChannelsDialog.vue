@@ -14,6 +14,7 @@ import InboxFacebookForm from './InboxFacebookForm.vue';
 
 const props = defineProps({
   inboxes: { type: Array, default: () => [] },
+  onboardingV2: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['connected']);
@@ -83,7 +84,7 @@ const onCreated = () => {
   emit('connected');
 };
 
-const onCardClick = channel => {
+const onCardClick = async channel => {
   if (channel.availability !== 'available') return;
   if (channel.form) {
     selectedChannel.value = channel;
@@ -91,7 +92,8 @@ const onCardClick = channel => {
   }
   // WhatsApp uses Meta's embedded-signup popup, not the redirect OAuth flow.
   if (channel.type === CHANNEL_TYPES.WHATSAPP) {
-    connectWhatsapp();
+    const inbox = await connectWhatsapp();
+    if (props.onboardingV2 && inbox) onCreated();
     return;
   }
   // Facebook swaps to an in-dialog page picker (FB.login → choose a Page).

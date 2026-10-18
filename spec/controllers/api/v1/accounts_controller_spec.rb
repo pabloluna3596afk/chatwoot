@@ -71,7 +71,7 @@ RSpec.describe 'Accounts API', type: :request do
     context 'when an authenticated user creates a second account' do
       let(:existing_user) { create(:user, password: 'Password1!') }
 
-      it 'returns the full response with account_id' do
+      it 'returns the full response with account_id and onboarding metadata' do
         with_modified_env ENABLE_ACCOUNT_SIGNUP: 'true' do
           post api_v1_accounts_url,
                params: { account_name: 'Second Account', email: existing_user.email,
@@ -81,6 +81,9 @@ RSpec.describe 'Accounts API', type: :request do
 
           expect(response).to have_http_status(:success)
           expect(response.parsed_body.dig('data', 'account_id')).to be_present
+          account_id = response.parsed_body.dig('data', 'account_id')
+          membership = response.parsed_body.dig('data', 'accounts').find { |item| item['id'] == account_id }
+          expect(membership).to include('onboarding_version' => 2, 'onboarding_step' => 'enrichment')
         end
       end
     end
@@ -183,6 +186,28 @@ RSpec.describe 'Accounts API', type: :request do
     end
 
     context 'when it is an authenticated user' do
+      it 'exposes the onboarding version and step without leaking internal account attributes' do
+        account.update!(custom_attributes: { onboarding_version: 2, onboarding_step: 'inbox_setup', stripe_customer_id: 'cus_private' })
+
+        get "/api/v1/accounts/#{account.id}", headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:success)
+        attributes = response.parsed_body['custom_attributes']
+        expect(attributes).to include('onboarding_version' => 2, 'onboarding_step' => 'inbox_setup')
+        expect(attributes).not_to have_key('stripe_customer_id')
+      end
+
+      it 'preserves the legacy onboarding step without adding a version' do
+        account.update!(custom_attributes: { onboarding_step: 'inbox_setup' })
+
+        get "/api/v1/accounts/#{account.id}", headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:success)
+        attributes = response.parsed_body['custom_attributes']
+        expect(attributes['onboarding_step']).to eq('inbox_setup')
+        expect(attributes).not_to have_key('onboarding_version')
+      end
+
       it 'shows an account' do
         account.update(name: 'new name')
 

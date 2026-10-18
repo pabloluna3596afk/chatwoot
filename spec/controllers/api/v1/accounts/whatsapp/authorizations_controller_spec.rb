@@ -111,6 +111,7 @@ RSpec.describe 'WhatsApp Authorization API', type: :request do
           expect(response_data['success']).to be true
           expect(response_data['id']).to eq(inbox.id)
           expect(response_data['name']).to eq(inbox.name)
+          expect(response_data['phone_number']).to eq(whatsapp_channel.phone_number)
           expect(response_data['channel_type']).to eq('whatsapp')
         end
 
@@ -259,6 +260,60 @@ RSpec.describe 'WhatsApp Authorization API', type: :request do
                as: :json
 
           expect(response).to have_http_status(:unauthorized)
+        end
+      end
+
+      context 'when an administrator connects during version 2 inbox setup' do
+        let(:whatsapp_channel) do
+          create(:channel_whatsapp, account: account, validate_provider_config: false, sync_templates: false)
+        end
+        let!(:inbox) { create(:inbox, account: account, channel: whatsapp_channel) }
+        let!(:another_inbox) { create(:inbox, account: account) }
+        let(:embedded_signup_service) { instance_double(Whatsapp::EmbeddedSignupService, perform: whatsapp_channel) }
+
+        before do
+          account.update!(custom_attributes: { onboarding_version: 2, onboarding_step: 'inbox_setup' })
+          allow(Whatsapp::EmbeddedSignupService).to receive(:new).and_return(embedded_signup_service)
+          allow(whatsapp_channel).to receive(:inbox).and_return(inbox)
+        end
+
+        it 'assigns the administrator before returning success and does not duplicate memberships on replay' do
+          2.times do
+            post "/api/v1/accounts/#{account.id}/whatsapp/authorization",
+                 params: { code: 'test_code', waba_id: 'test_waba_id' },
+                 headers: administrator.create_new_auth_token, as: :json
+
+            expect(response).to have_http_status(:success)
+            expect(inbox.members).to contain_exactly(administrator)
+            expect(another_inbox.members).to contain_exactly(administrator)
+            expect(account.reload.custom_attributes['onboarding_step']).to eq('inbox_setup')
+          end
+        end
+
+        it 'does not touch inboxes that already have members' do
+          inbox.add_members([agent.id])
+
+          post "/api/v1/accounts/#{account.id}/whatsapp/authorization",
+               params: { code: 'test_code', waba_id: 'test_waba_id' },
+               headers: administrator.create_new_auth_token, as: :json
+
+          expect(response).to have_http_status(:success)
+          expect(inbox.members).to contain_exactly(agent)
+          expect(another_inbox.members).to contain_exactly(administrator)
+        end
+
+        [{ onboarding_step: 'inbox_setup' }, { onboarding_version: 2 }].each do |attributes|
+          it "does not assign members outside version 2 inbox setup: #{attributes}" do
+            account.update!(custom_attributes: attributes)
+
+            post "/api/v1/accounts/#{account.id}/whatsapp/authorization",
+                 params: { code: 'test_code', waba_id: 'test_waba_id' },
+                 headers: administrator.create_new_auth_token, as: :json
+
+            expect(response).to have_http_status(:success)
+            expect(inbox.members).to be_empty
+            expect(another_inbox.members).to be_empty
+          end
         end
       end
 

@@ -15,6 +15,34 @@ RSpec.describe 'Profile API', type: :request do
     context 'when it is an authenticated user' do
       let(:agent) { create(:user, account: account, custom_attributes: { test: 'test' }, role: :agent) }
 
+      it 'exposes onboarding metadata per account without leaking internal account attributes' do
+        account.update!(custom_attributes: { onboarding_version: 2, onboarding_step: 'inbox_setup', stripe_customer_id: 'cus_private' })
+        legacy_account = create(:account, custom_attributes: { onboarding_step: 'inbox_setup' })
+        create(:account_user, account: legacy_account, user: agent)
+
+        get '/api/v1/profile', headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:success)
+        accounts = response.parsed_body['accounts']
+        membership = accounts.find { |item| item['id'] == account.id }
+        expect(membership).to include('onboarding_version' => 2, 'onboarding_step' => 'inbox_setup')
+        expect(membership).not_to include('custom_attributes', 'stripe_customer_id')
+        legacy_membership = accounts.find { |item| item['id'] == legacy_account.id }
+        expect(legacy_membership['onboarding_step']).to eq('inbox_setup')
+        expect(legacy_membership).not_to have_key('onboarding_version')
+      end
+
+      it 'retains the version with no onboarding step after completion' do
+        account.update!(custom_attributes: { onboarding_version: 2, inbox_setup_result: 'skipped' })
+
+        get '/api/v1/profile', headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:success)
+        membership = response.parsed_body['accounts'].find { |item| item['id'] == account.id }
+        expect(membership).to include('onboarding_version' => 2, 'onboarding_step' => nil)
+        expect(membership).not_to have_key('inbox_setup_result')
+      end
+
       it 'returns current user information' do
         get '/api/v1/profile',
             headers: agent.create_new_auth_token,

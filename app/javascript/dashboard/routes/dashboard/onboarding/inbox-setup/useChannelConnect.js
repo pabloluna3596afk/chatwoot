@@ -52,7 +52,7 @@ export function useChannelConnect() {
   const connectWhatsapp = async () => {
     if (isMetaInboxCreationDisabled.value) {
       useAlert(t('ONBOARDING_INBOX_SETUP.META_RESTRICTION.MESSAGE'));
-      return;
+      return null;
     }
 
     let credentials;
@@ -60,19 +60,24 @@ export function useChannelConnect() {
       credentials = await runEmbeddedSignup();
     } catch {
       useAlert(t('ONBOARDING_INBOX_SETUP.ERROR'));
-      return;
+      return null;
     }
-    if (!credentials) return; // user dismissed the popup
+    if (!credentials) return null; // user dismissed the popup
 
     try {
-      await store.dispatch('inboxes/createWhatsAppEmbeddedSignup', credentials);
+      const inbox = await store.dispatch(
+        'inboxes/createWhatsAppEmbeddedSignup',
+        credentials
+      );
       await store.dispatch('inboxes/get');
       useAlert(t('ONBOARDING_INBOX_SETUP.WHATSAPP_CONNECTED'));
+      return inbox;
     } catch (error) {
       useAlert(
         parseAPIErrorResponse(error) || t('ONBOARDING_INBOX_SETUP.ERROR')
       );
     }
+    return null;
   };
 
   return { connectViaOAuth, connectWhatsapp };

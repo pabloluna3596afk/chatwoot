@@ -147,13 +147,13 @@ const handleSubmit = async () => {
     useAlert(t('ONBOARDING_NEXT.SUCCESS'));
 
     const nextStep = currentAccount.value?.custom_attributes?.onboarding_step;
+    await store.dispatch('setUser');
     if (STEP_ROUTES[nextStep]) {
       router.push({
         name: STEP_ROUTES[nextStep],
         params: { accountId: accountId.value },
       });
     } else {
-      await store.dispatch('setUser');
       router.push({ name: 'home', params: { accountId: accountId.value } });
     }
   } catch {

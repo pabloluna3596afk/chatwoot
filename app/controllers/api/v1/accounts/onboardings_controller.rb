@@ -1,12 +1,14 @@
 class Api::V1::Accounts::OnboardingsController < Api::V1::Accounts::BaseController
   before_action :check_admin_authorization?
   before_action :validate_business_details, only: :update
+  before_action :validate_inbox_setup_result, only: :update
 
   ONBOARDING_STEP_KEY = 'onboarding_step'.freeze
   STEP_ACCOUNT_DETAILS = 'account_details'.freeze
   STEP_INBOX_SETUP = 'inbox_setup'.freeze
   ONBOARDING_STEPS = [STEP_ACCOUNT_DETAILS, STEP_INBOX_SETUP].freeze
   BUSINESS_TYPES = %w[appointments commerce services other].freeze
+  INBOX_SETUP_RESULTS = %w[whatsapp_connected skipped].freeze
 
   def update
     return render json: { error: 'Invalid onboarding step' }, status: :unprocessable_entity unless ONBOARDING_STEPS.include?(params[:onboarding_step])
@@ -43,6 +45,15 @@ class Api::V1::Accounts::OnboardingsController < Api::V1::Accounts::BaseControll
     params.key?(:country) && params[:country] != '' && TZInfo::Country.all_codes.exclude?(params[:country])
   end
 
+  def validate_inbox_setup_result
+    return unless Current.account.custom_attributes['onboarding_version'] == 2
+    return unless params[:onboarding_step] == STEP_INBOX_SETUP
+    return unless Current.account.custom_attributes[ONBOARDING_STEP_KEY] == STEP_INBOX_SETUP
+    return if INBOX_SETUP_RESULTS.include?(params[:inbox_setup_result])
+
+    render_could_not_create_error('Invalid inbox setup result')
+  end
+
   def complete_account_details
     # Only act while the cursor still points here, so a stale replay after
     # onboarding finished can't re-enter it.
@@ -51,9 +62,9 @@ class Api::V1::Accounts::OnboardingsController < Api::V1::Accounts::BaseControll
     @account.assign_attributes(account_params)
     @account.custom_attributes.merge!(custom_attributes_params)
 
-    # inbox_setup is a cloud-only step (DEPLOYMENT_ENV config, not a hardcoded
-    # environment check); self-hosted finishes onboarding here.
-    if ChatwootApp.chatwoot_cloud?
+    if onboarding_v2?
+      move_to_step(STEP_INBOX_SETUP)
+    elsif ChatwootApp.chatwoot_cloud?
       move_to_step(STEP_INBOX_SETUP)
       create_onboarding_inboxes
     else
@@ -66,7 +77,14 @@ class Api::V1::Accounts::OnboardingsController < Api::V1::Accounts::BaseControll
     # request can't end onboarding early. Replays are no-ops.
     return unless current_step == STEP_INBOX_SETUP
 
+    Onboarding::InboxMemberAssignmentService.new(@account, Current.account_user).perform
+    @account.custom_attributes['inbox_setup_result'] = params[:inbox_setup_result] if onboarding_v2?
+
     finish_onboarding
+  end
+
+  def onboarding_v2?
+    @account.custom_attributes['onboarding_version'] == 2
   end
 
   def current_step

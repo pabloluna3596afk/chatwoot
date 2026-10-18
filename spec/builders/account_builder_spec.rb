@@ -56,6 +56,7 @@ RSpec.describe AccountBuilder do
       it 'initializes the onboarding step to account_details' do
         _user, account = account_builder.perform
         expect(account.custom_attributes['onboarding_step']).to eq('account_details')
+        expect(account.custom_attributes['onboarding_version']).to eq(2)
       end
     end
   end

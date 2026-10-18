@@ -165,6 +165,101 @@ RSpec.describe 'Onboarding API', type: :request do
       end
     end
 
+    context 'with onboarding version 2' do
+      before do
+        account.update!(custom_attributes: { 'onboarding_version' => 2, 'onboarding_step' => 'account_details' })
+      end
+
+      [true, false].each do |cloud|
+        it "advances to inbox_setup without creating resources when cloud is #{cloud}" do
+          allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(cloud)
+          expect(Onboarding::WebWidgetCreationService).not_to receive(:new)
+
+          expect do
+            patch "/api/v1/accounts/#{account.id}/onboarding",
+                  params: { website: 'acme.com', onboarding_step: 'account_details' },
+                  headers: admin.create_new_auth_token, as: :json
+          end.not_to change(account.inboxes, :count)
+
+          expect(response).to have_http_status(:success)
+          expect(account.reload.custom_attributes).to include('onboarding_version' => 2, 'onboarding_step' => 'inbox_setup')
+          expect(response.parsed_body['custom_attributes']).to include('onboarding_version' => 2, 'onboarding_step' => 'inbox_setup')
+        end
+      end
+
+      it 'does not persist a replayed business update or skip inbox_setup' do
+        2.times do |index|
+          patch "/api/v1/accounts/#{account.id}/onboarding",
+                params: { name: "Business #{index}", onboarding_step: 'account_details' },
+                headers: admin.create_new_auth_token, as: :json
+        end
+
+        expect(account.reload.name).to eq('Business 0')
+        expect(account.custom_attributes['onboarding_step']).to eq('inbox_setup')
+      end
+
+      it 'ignores an out-of-order completion including an invalid result' do
+        patch "/api/v1/accounts/#{account.id}/onboarding",
+              params: { onboarding_step: 'inbox_setup', inbox_setup_result: 'invalid' },
+              headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(account.reload.custom_attributes).to eq('onboarding_version' => 2, 'onboarding_step' => 'account_details')
+      end
+
+      context 'when on inbox_setup' do
+        before do
+          account.update!(custom_attributes: { 'onboarding_version' => 2, 'onboarding_step' => 'inbox_setup' })
+        end
+
+        %w[whatsapp_connected skipped].each do |result|
+          it "finishes onboarding and records #{result}" do
+            inbox = create(:inbox, account: account)
+
+            patch "/api/v1/accounts/#{account.id}/onboarding",
+                  params: { onboarding_step: 'inbox_setup', inbox_setup_result: result },
+                  headers: admin.create_new_auth_token, as: :json
+
+            expect(response).to have_http_status(:success)
+            expect(account.reload.custom_attributes).to eq('onboarding_version' => 2, 'inbox_setup_result' => result)
+            attributes = response.parsed_body['custom_attributes']
+            expect(attributes['onboarding_version']).to eq(2)
+            expect(attributes).not_to include('onboarding_step', 'inbox_setup_result')
+            expect(inbox.members).to contain_exactly(admin)
+          end
+        end
+
+        [nil, '', 'connected', 2, ['skipped'], { value: 'skipped' }].each do |result|
+          it "rejects missing or malformed results: #{result.inspect}" do
+            patch "/api/v1/accounts/#{account.id}/onboarding",
+                  params: { onboarding_step: 'inbox_setup', inbox_setup_result: result },
+                  headers: admin.create_new_auth_token, as: :json
+
+            expect(response).to have_http_status(:unprocessable_entity)
+            expect(account.reload.custom_attributes).to eq('onboarding_version' => 2, 'onboarding_step' => 'inbox_setup')
+          end
+        end
+
+        it 'keeps the original result on replay and does not re-enter onboarding' do
+          %w[whatsapp_connected skipped invalid].each do |result|
+            patch "/api/v1/accounts/#{account.id}/onboarding",
+                  params: { onboarding_step: 'inbox_setup', inbox_setup_result: result },
+                  headers: admin.create_new_auth_token, as: :json
+
+            expect(response).to have_http_status(:success)
+          end
+
+          patch "/api/v1/accounts/#{account.id}/onboarding",
+                params: { onboarding_step: 'account_details', name: 'Stale' },
+                headers: admin.create_new_auth_token, as: :json
+
+          expect(response).to have_http_status(:success)
+          expect(account.reload.custom_attributes).to eq('onboarding_version' => 2, 'inbox_setup_result' => 'whatsapp_connected')
+          expect(account.name).not_to eq('Stale')
+        end
+      end
+    end
+
     context 'when replaying account_details after onboarding has finished' do
       before { account.update!(custom_attributes: { 'website' => 'acme.com' }) }
 
@@ -183,11 +278,14 @@ RSpec.describe 'Onboarding API', type: :request do
       before { account.update!(custom_attributes: { 'onboarding_step' => 'inbox_setup' }) }
 
       it 'clears onboarding_step' do
+        inbox = create(:inbox, account: account)
+
         patch "/api/v1/accounts/#{account.id}/onboarding",
               params: { onboarding_step: 'inbox_setup' },
               headers: admin.create_new_auth_token, as: :json
 
         expect(account.reload.custom_attributes).not_to have_key('onboarding_step')
+        expect(inbox.members).to be_empty
       end
 
       it 'does not create another web widget inbox' do
