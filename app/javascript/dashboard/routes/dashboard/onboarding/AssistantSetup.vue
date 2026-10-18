@@ -265,7 +265,7 @@ const onQuestionKeydown = event => {
     >
       <template #brand>
         <span
-          class="i-woot-captain size-10 text-n-slate-12"
+          class="i-woot-captain size-7 shrink-0 text-n-slate-12 sm:size-10"
           aria-hidden="true"
         />
       </template>

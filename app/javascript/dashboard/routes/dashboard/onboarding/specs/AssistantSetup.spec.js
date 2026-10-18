@@ -148,7 +148,7 @@ describe('Assistant onboarding', () => {
       const strings = { en, es }[lang].ONBOARDING_ASSISTANT;
       expect(wrapper.get('h1').text()).toBe(strings.TITLE);
       expect(wrapper.get('header .i-woot-captain').classes()).toEqual(
-        expect.arrayContaining(['size-10', 'text-n-slate-12'])
+        expect.arrayContaining(['size-7', 'sm:size-10', 'text-n-slate-12'])
       );
       expect(
         wrapper.get('header .i-woot-captain').attributes('aria-hidden')

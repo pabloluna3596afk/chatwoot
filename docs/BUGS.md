@@ -2094,6 +2094,27 @@ Cómo probar: abrir el paso 4 en ambos idiomas, comprobar el icono Captain en el
 encabezado, editar el borrador y enviar preguntas de prueba; en la tarjeta y en
 las burbujas solo debe aparecer el nombre del asistente, sin fotos.
 
+### B-NEW-074 — Revisión visual del paso 4 y botones de marca
+
+El icono Captain conserva el slot `#brand` compartido con el logo del paso 3:
+28 px en móvil y 40 px desde `sm`, con `text-n-slate-12` para ambos temas.
+Se descarta la variante local `title-icon` porque cambiaba la posición del icono.
+`AuthButton.vue` usa ahora `bg-n-brand` y texto blanco para las acciones primarias
+del recorrido, incluida «Activar»; las secundarias conservan su borde.
+`tailwind.config.js` incluye los tokens JavaScript de Auth en el escaneo para
+generar también las clases de campos y enlaces compartidos de `authStyles.js`.
+
+Archivos: `onboarding/AssistantSetup.vue`, `Auth/AuthButton.vue`,
+`tailwind.config.js` y las expectativas existentes de los specs del paso y Auth.
+El pie ya reserva su altura real fuera del contenedor con scroll; no requiere
+cambios. No se modifica la configuración de avatar de Captain.
+
+Cómo probar: abrir formulario, borrador, chat y reanudación del paso 4 en claro
+y oscuro, a 1280, 360, 390 y 430 px. Desplazar el contenedor hasta el final:
+deben verse las tres opciones de tono o el área de chat, sin solaparse con el
+pie. Comprobar el icono en la misma fila de marca que el paso 3 y las acciones
+primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)
