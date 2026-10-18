@@ -135,7 +135,7 @@ describe('Business onboarding', () => {
         strings.CONTINUE
       );
       expect(wrapper.get('button[type="submit"]').classes()).toEqual(
-        expect.arrayContaining(['min-h-12', 'rounded-xl', 'bg-n-slate-12'])
+        expect.arrayContaining(['min-h-12', 'rounded-xl', 'bg-n-brand'])
       );
     },
     20000

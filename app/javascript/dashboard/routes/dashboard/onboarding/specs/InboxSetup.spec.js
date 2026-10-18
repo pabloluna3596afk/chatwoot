@@ -469,7 +469,7 @@ describe('WhatsApp onboarding', () => {
     expect(wrapper.get('[data-testid="primary"]').text()).toBe(
       es.ONBOARDING_WHATSAPP.CONTINUE
     );
-    expect(wrapper.findAll('button.bg-n-slate-12')).toHaveLength(1);
+    expect(wrapper.findAll('button.bg-n-brand')).toHaveLength(1);
     expect(
       wrapper.get('[data-testid="other-channel"]').classes()
     ).not.toContain('border');
