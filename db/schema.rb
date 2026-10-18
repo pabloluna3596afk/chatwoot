@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_10_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_17_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1633,6 +1633,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_10_120000) do
   end
 
   create_table "plans", force: :cascade do |t|
+    t.integer "captain_daily_tests", default: 0, null: false
     t.string "name", null: false
     t.string "slug", null: false
     t.string "description"

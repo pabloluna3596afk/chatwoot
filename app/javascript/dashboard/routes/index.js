@@ -60,10 +60,12 @@ export const validateAuthenticateRoutePermission = async (to, next) => {
     'onboarding_account_details';
   const returningToWhatsapp =
     isAssistantStep && to.name === 'onboarding_inbox_setup';
+  const viewingPlans = isAssistantStep && to.name === 'billing_settings_index';
   if (
     needsOnboarding &&
     to.name !== expectedOnboardingRoute &&
-    !returningToWhatsapp
+    !returningToWhatsapp &&
+    !viewingPlans
   ) {
     return next(
       frontendURL(

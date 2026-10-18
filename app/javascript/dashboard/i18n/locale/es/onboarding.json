@@ -190,6 +190,17 @@
     "COMPLETION_ERROR": "No pudimos guardar este paso. Inténtalo de nuevo para continuar."
   },
   "ONBOARDING_ASSISTANT": {
+    "PHOTO": {
+      "LABEL": "Foto del asistente",
+      "ALT": "Avatar del asistente",
+      "UPLOAD": "Subir foto",
+      "REMOVE": "Quitar",
+      "HINT": "PNG, JPG o WebP, hasta 2 MB. Puedes cambiarla después en la configuración del asistente.",
+      "FORMAT_ERROR": "Elige una imagen PNG, JPG o WebP.",
+      "SIZE_ERROR": "Elige una imagen de hasta 2 MB.",
+      "UPLOAD_ERROR": "Tu asistente está guardado, pero no se pudo subir la foto. Intenta subirla de nuevo.",
+      "REMOVE_ERROR": "No se pudo quitar la foto. Inténtalo de nuevo."
+    },
     "TITLE": "Crea tu asistente",
     "SUBTITLE": "Cuéntanos qué debe hacer. Prepararemos un borrador para que lo pruebes antes de activarlo.",
     "MARKETING": {

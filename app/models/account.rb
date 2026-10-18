@@ -220,6 +220,15 @@ class Account < ApplicationRecord
                         .first || create_usage_period(window)
   end
 
+  # The enabled OpenAI integration already stores account-owned credentials.
+  def own_ai_key_configured?
+    own_ai_key.present?
+  end
+
+  def own_ai_key
+    hooks.find_by(app_id: 'openai', status: 'enabled')&.settings&.dig('api_key').presence
+  end
+
   def api_and_webhooks_enabled?
     true
   end

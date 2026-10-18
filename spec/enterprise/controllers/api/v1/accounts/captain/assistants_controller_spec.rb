@@ -639,8 +639,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
 
         expect(response).to have_http_status(:success)
         expect(chat_service).to have_received(:generate_response).with(
-          additional_message: valid_params[:message_content],
-          message_history: valid_params[:message_history]
+          message_history: valid_params[:message_history] + [{ role: 'user', content: valid_params[:message_content] }]
         )
         expect(json_response[:content]).to eq('Assistant response')
       end
@@ -661,8 +660,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
 
         expect(response).to have_http_status(:success)
         expect(chat_service).to have_received(:generate_response).with(
-          additional_message: params_without_history[:message_content],
-          message_history: []
+          message_history: [{ role: 'user', content: params_without_history[:message_content] }]
         )
       end
 

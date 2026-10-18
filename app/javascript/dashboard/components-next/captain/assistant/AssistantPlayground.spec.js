@@ -4,6 +4,7 @@ import AssistantPlayground from './AssistantPlayground.vue';
 
 const mocks = vi.hoisted(() => ({
   playground: vi.fn(),
+  playgroundUsage: vi.fn(),
   initialize: vi.fn(),
   reset: vi.fn(),
   isFeatureFlagEnabled: vi.fn(),
@@ -15,7 +16,14 @@ vi.mock('vue-i18n', () => ({
 }));
 
 vi.mock('dashboard/api/captain/assistant', () => ({
-  default: { playground: mocks.playground },
+  default: {
+    playground: mocks.playground,
+    playgroundUsage: mocks.playgroundUsage,
+  },
+}));
+
+vi.mock('dashboard/composables/useAccount', () => ({
+  useAccount: () => ({ accountId: ref(1) }),
 }));
 
 vi.mock('dashboard/composables/store', () => ({
@@ -89,6 +97,7 @@ describe('AssistantPlayground', () => {
     featureState = reactive({ isV2: true });
     mocks.isFeatureFlagEnabled.mockImplementation(() => featureState.isV2);
     mocks.loadError = '';
+    mocks.playgroundUsage.mockResolvedValue({ data: { test_usage: null } });
     mocks.playground.mockResolvedValue({
       data: {
         response: 'Hello from Captain',
@@ -101,6 +110,102 @@ describe('AssistantPlayground', () => {
       },
     });
   });
+
+  it('shows remaining counts from the playground API', async () => {
+    mocks.playground.mockResolvedValueOnce({
+      data: {
+        response: 'Hello',
+        test_usage: {
+          plan_kind: 'paid',
+          daily_total: 10,
+          daily_used: 7,
+          daily_remaining: 3,
+          uses_plan_pool: false,
+          plan_remaining: 100,
+        },
+      },
+    });
+    const wrapper = mountPlayground();
+    await wrapper.get('input').setValue('Hello');
+    await wrapper.get('input').trigger('keydown', { key: 'Enter' });
+    await flushPromises();
+    expect(wrapper.text()).toContain('CAPTAIN.PLAYGROUND.USAGE.DAILY');
+    mocks.playground.mockResolvedValueOnce({
+      data: {
+        response: 'Again',
+        test_usage: {
+          plan_kind: 'paid',
+          daily_total: 10,
+          daily_used: 10,
+          daily_remaining: 0,
+          uses_plan_pool: true,
+          plan_remaining: 99,
+        },
+      },
+    });
+    await wrapper.get('input').setValue('Again');
+    await wrapper.get('input').trigger('keydown', { key: 'Enter' });
+    await flushPromises();
+    expect(wrapper.text()).toContain('CAPTAIN.PLAYGROUND.USAGE.PLAN');
+  });
+
+  it.each([
+    ['free', 0, 50, 'FREE'],
+    ['paid', 10, 50, 'DAILY'],
+    ['paid', 0, 0, 'responses_limit_reached'],
+  ])(
+    'loads %s usage before the first question',
+    async (kind, daily, pool, key) => {
+      mocks.playgroundUsage.mockResolvedValueOnce({
+        data: {
+          test_usage: {
+            plan_kind: kind,
+            daily_total: daily,
+            daily_used: 0,
+            daily_remaining: daily,
+            uses_plan_pool: daily === 0,
+            plan_remaining: pool,
+          },
+        },
+      });
+      const wrapper = mountPlayground();
+      await flushPromises();
+      expect(mocks.playgroundUsage).toHaveBeenCalledWith(7);
+      expect(mocks.playground).not.toHaveBeenCalled();
+      expect(wrapper.text()).toContain(`CAPTAIN.PLAYGROUND.USAGE.${key}`);
+      if (pool === 0)
+        expect(wrapper.get('a').attributes('href')).toBe(
+          '/app/accounts/1/settings/billing'
+        );
+    }
+  );
+
+  it.each(['responses_limit_reached', 'playground_rate_limit'])(
+    'translates %s and permits another attempt',
+    async code => {
+      mocks.playground.mockRejectedValueOnce({
+        response: {
+          status: 429,
+          data: { error_code: code },
+          headers: { 'retry-after': '60' },
+        },
+      });
+      const wrapper = mountPlayground();
+      await wrapper.get('input').setValue('Hello');
+      await wrapper.get('input').trigger('keydown', { key: 'Enter' });
+      await flushPromises();
+      expect(
+        wrapper.findComponent(MessageListStub).props('messages').at(-1)
+      ).toMatchObject({
+        isError: true,
+        content: `CAPTAIN.PLAYGROUND.USAGE.${code}`,
+      });
+      await wrapper.get('input').setValue('Retry');
+      await wrapper.get('input').trigger('keydown', { key: 'Enter' });
+      await flushPromises();
+      expect(mocks.playground).toHaveBeenCalledTimes(2);
+    }
+  );
 
   it('sends a runtime snapshot and attaches run details to the response', async () => {
     const wrapper = mountPlayground();

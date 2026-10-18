@@ -19,6 +19,11 @@ RSpec.describe Onboarding::CaptainDraftService do
     expect(account.reload.custom_attributes['onboarding_assistant_id']).to eq(assistant.id)
     expect(assistant.inboxes).to be_empty
     expect(assistant.description).to eq(attributes[:goal])
+  end
+
+  it 'uses the reviewed Spanish guidance and disables automation on the draft' do
+    assistant = service.perform
+
     expect(assistant.response_guidelines.join(' ')).to include(attributes[:goal], 'es', 'No confirmes reservas', 'tono cercano')
     expect(assistant.guardrails.join(' ')).to include('No inventes precios')
     expect(assistant.config).to include('auto_resolve_mode' => 'disabled', 'allow_paid_templates' => false)
@@ -49,7 +54,7 @@ RSpec.describe Onboarding::CaptainDraftService do
   it 'respects an existing assistant and the trial limit instead of claiming or duplicating it' do
     existing = create(:captain_assistant, account: account)
 
-    expect { service.perform }.to raise_error { |error| expect(error.class.name).to eq('Captain::Assistant::LimitExceededError') }
+    expect { service.perform }.to(raise_error { |error| expect(error.class.name).to eq('Captain::Assistant::LimitExceededError') })
     expect(account.reload.custom_attributes).not_to have_key('onboarding_assistant_id')
     expect(account.captain_assistants.pluck(:id)).to eq([existing.id])
   end
@@ -84,14 +89,14 @@ RSpec.describe Onboarding::CaptainDraftService do
   it 'does not provision outside the version 2 assistant step' do
     account.update!(custom_attributes: { 'onboarding_step' => 'inbox_setup' })
 
-    expect { service.perform }.to raise_error { |error| expect(error.class.name).to eq('Onboarding::CaptainDraftService::Unavailable') }
+    expect { service.perform }.to(raise_error { |error| expect(error.class.name).to eq('Onboarding::CaptainDraftService::Unavailable') })
     expect(account.captain_assistants.count).to eq(0)
   end
 
   it 'requires the Captain features at the shared entry point' do
     account.disable_features!('captain_integration_v2')
 
-    expect { service.perform }.to raise_error { |error| expect(error.class.name).to eq('Onboarding::CaptainDraftService::Unavailable') }
+    expect { service.perform }.to(raise_error { |error| expect(error.class.name).to eq('Onboarding::CaptainDraftService::Unavailable') })
     expect(account.captain_assistants.count).to eq(0)
   end
 

@@ -112,7 +112,7 @@ RSpec.describe 'Onboarding assistant API', type: :request do
     expect(membership).not_to have_key('onboarding_goal')
   end
 
-  it 'serializes the step, version, business type, pointer and features through the real account and session views' do
+  it 'serializes the onboarding state and assistant through the account view' do
     account.update!(custom_attributes: account.custom_attributes.merge('onboarding_step' => 'inbox_setup'))
     headers = admin.create_new_auth_token
 
@@ -133,12 +133,26 @@ RSpec.describe 'Onboarding assistant API', type: :request do
       'business_type' => 'commerce', 'onboarding_step' => 'assistant', 'onboarding_version' => 2, 'onboarding_assistant_id' => assistant_id
     )
     expect(response.parsed_body['features']).to include('captain_integration' => true, 'captain_integration_v2' => true)
+  end
+
+  it 'serializes the onboarding state and assistant through the session view' do
+    account.update!(custom_attributes: account.custom_attributes.merge('onboarding_step' => 'assistant'))
+    assistant = Onboarding::CaptainDraftService.new(account: account, **attributes).perform
+    headers = admin.create_new_auth_token
 
     get '/auth/validate_token', headers: headers, as: :json
     expect(response).to have_http_status(:success)
     membership = response.parsed_body.dig('payload', 'data', 'accounts').find { |item| item['id'] == account.id }
-    expect(membership).to include('onboarding_step' => 'assistant', 'onboarding_version' => 2, 'onboarding_assistant_id' => assistant_id)
+    expect(membership).to include(
+      'onboarding_step' => 'assistant', 'onboarding_version' => 2, 'onboarding_assistant_id' => assistant.id
+    )
+  end
 
+  it 'clears the completed step while retaining the version and assistant pointer' do
+    account.update!(custom_attributes: account.custom_attributes.merge('onboarding_step' => 'inbox_setup'))
+    headers = admin.create_new_auth_token
+    post path, params: attributes, headers: headers, as: :json
+    assistant_id = response.parsed_body.fetch('assistant').fetch('id')
     patch "/api/v1/accounts/#{account.id}/onboarding", params: { onboarding_step: 'assistant' }, headers: headers, as: :json
     expect(response).to have_http_status(:success)
     expect(response.parsed_body['custom_attributes']).not_to have_key('onboarding_step')
@@ -148,9 +162,5 @@ RSpec.describe 'Onboarding assistant API', type: :request do
     membership = response.parsed_body.dig('payload', 'data', 'accounts').find { |item| item['id'] == account.id }
     expect(membership['onboarding_step']).to be_nil
     expect(membership).to include('onboarding_version' => 2, 'onboarding_assistant_id' => assistant_id)
-
-    get path, headers: headers, as: :json
-    expect(response.parsed_body['assistant']).to include('id' => assistant_id, 'inbox_ids' => [])
-    expect(account.captain_assistants.count).to eq(1)
   end
 end

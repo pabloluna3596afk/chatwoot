@@ -58,4 +58,8 @@ class Captain::AssistantPolicy < ApplicationPolicy
   def playground?
     true
   end
+
+  def playground_usage?
+    true
+  end
 end

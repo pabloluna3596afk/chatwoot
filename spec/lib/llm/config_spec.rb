@@ -36,6 +36,31 @@ RSpec.describe Llm::Config do
     end
   end
 
+  describe '.with_chat_context' do
+    it 'supplies account credentials to both direct SDK and RubyLLM chat constructors without changing globals' do
+      global_key = RubyLLM.config.openai_api_key
+      described_class.with_chat_context('account-key') do
+        sdk_chat = RubyLLM::Chat.new(model: 'gpt-4.1-mini')
+        legacy_chat = RubyLLM.chat(model: 'gpt-4.1-mini')
+        expect(sdk_chat.instance_variable_get(:@config).openai_api_key).to eq('account-key')
+        expect(legacy_chat.instance_variable_get(:@config).openai_api_key).to eq('account-key')
+        expect(sdk_chat.instance_variable_get(:@config).openai_api_base).to be_nil
+        expect(Thread.new { ActiveSupport::IsolatedExecutionState[:llm_chat_context] }.value).to be_nil
+      end
+      expect(RubyLLM.config.openai_api_key).to eq(global_key)
+      expect(ActiveSupport::IsolatedExecutionState[:llm_chat_context]).to be_nil
+    end
+
+    it 'restores the previous context after nested calls and exceptions' do
+      described_class.with_chat_context('outer-key') do
+        outer = ActiveSupport::IsolatedExecutionState[:llm_chat_context]
+        expect { described_class.with_chat_context('inner-key') { raise 'model failed' } }.to raise_error('model failed')
+        expect(ActiveSupport::IsolatedExecutionState[:llm_chat_context]).to equal(outer)
+      end
+      expect(ActiveSupport::IsolatedExecutionState[:llm_chat_context]).to be_nil
+    end
+  end
+
   describe '.refresh!' do
     it 'configures RubyLLM but not the Agents SDK while there is no key' do
       described_class.refresh!

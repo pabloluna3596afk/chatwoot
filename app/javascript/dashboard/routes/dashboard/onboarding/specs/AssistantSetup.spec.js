@@ -12,6 +12,8 @@ import AccountAPI from 'dashboard/api/account';
 import accounts from 'dashboard/store/modules/accounts';
 import en from 'dashboard/i18n/locale/en/onboarding.json';
 import es from 'dashboard/i18n/locale/es/onboarding.json';
+import integrationsEn from 'dashboard/i18n/locale/en/integrations.json';
+import integrationsEs from 'dashboard/i18n/locale/es/integrations.json';
 import AssistantSetup from '../AssistantSetup.vue';
 
 vi.mock('dashboard/api/onboarding');
@@ -41,6 +43,26 @@ describe('Assistant onboarding', () => {
   let getInboxes;
 
   beforeEach(async () => {
+    vi.stubGlobal(
+      'URL',
+      class extends URL {
+        static createObjectURL = vi.fn(() => 'blob:assistant-preview');
+
+        static revokeObjectURL = vi.fn();
+      }
+    );
+    CaptainAssistant.updateAvatar.mockImplementation(async () => {
+      serverAssistant.avatar_url = '/rails/active_storage/assistant.webp';
+      return { data: structuredClone(serverAssistant) };
+    });
+    CaptainAssistant.deleteAvatar.mockImplementation(async () => {
+      serverAssistant.avatar_url =
+        '/assets/images/dashboard/captain/avatar-light.svg';
+      return { data: structuredClone(serverAssistant) };
+    });
+    CaptainAssistant.playgroundUsage.mockResolvedValue({
+      data: { test_usage: null },
+    });
     account = reactive({
       id: 1,
       name: 'Acme',
@@ -112,7 +134,10 @@ describe('Assistant onboarding', () => {
     i18n = createI18n({
       legacy: false,
       locale: 'es',
-      messages: { en: { ...en, ...authEn }, es: { ...es, ...authEs } },
+      messages: {
+        en: { ...en, ...authEn, ...integrationsEn },
+        es: { ...es, ...authEs, ...integrationsEs },
+      },
     });
     options = {
       global: {
@@ -127,7 +152,338 @@ describe('Assistant onboarding', () => {
     };
   });
 
-  afterEach(() => wrapper?.unmount());
+  afterEach(() => {
+    wrapper?.unmount();
+    vi.unstubAllGlobals();
+  });
+
+  it.each(['en', 'es'])(
+    'shows accessible Captain avatars and theme variants in %s',
+    async lang => {
+      i18n.global.locale.value = lang;
+      serverAssistant = {
+        ...structuredClone(draft),
+        avatar_url:
+          'https://inbox.example/assets/images/dashboard/captain/avatar-light.svg',
+      };
+      wrapper = mount(AssistantSetup, options);
+      await flushPromises();
+      await wrapper.get('#assistant-question').setValue('Hola');
+      await wrapper.get('section form').trigger('submit');
+      await flushPromises();
+      const alt = { en, es }[lang].ONBOARDING_ASSISTANT.PHOTO.ALT;
+      const header = wrapper.get('header img');
+      expect(header.attributes('src')).toContain('captain/avatar-light.svg');
+      expect(header.attributes('alt')).toBe(alt);
+      expect(
+        wrapper.get('header img.dark\\:block').attributes('src')
+      ).toContain('avatar-dark.svg');
+      expect(
+        wrapper
+          .get('section [role="status"] img')
+          .element.parentElement.classList.contains('size-10')
+      ).toBe(true);
+      expect(
+        wrapper
+          .get('[data-message-role="assistant"] img')
+          .element.parentElement.classList.contains('size-7')
+      ).toBe(true);
+      expect(wrapper.find('[data-message-role="user"] img').exists()).toBe(
+        false
+      );
+      expect(CaptainAssistant.updateAvatar).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each(['image/png', 'image/jpeg', 'image/webp'])(
+    'previews %s, saves with Captain and resumes all avatar locations',
+    async type => {
+      wrapper = mount(AssistantSetup, options);
+      await flushPromises();
+      const file = new File(['photo'], 'photo', { type });
+      Object.defineProperty(wrapper.get('#assistant-photo').element, 'files', {
+        configurable: true,
+        value: [file],
+      });
+      await wrapper.get('#assistant-photo').trigger('change');
+      expect(wrapper.get('header img').attributes('src')).toBe(
+        'blob:assistant-preview'
+      );
+      expect(URL.createObjectURL).toHaveBeenCalledWith(file);
+      expect(CaptainAssistant.updateAvatar).not.toHaveBeenCalled();
+      await wrapper.get('#assistant-goal').setValue('Ayuda');
+      await wrapper.get('#assistant-form').trigger('submit');
+      await flushPromises();
+      expect(CaptainAssistant.updateAvatar).toHaveBeenCalledExactlyOnceWith(
+        42,
+        file
+      );
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith(
+        'blob:assistant-preview'
+      );
+      wrapper.unmount();
+      wrapper = mount(AssistantSetup, options);
+      await flushPromises();
+      await wrapper.get('#assistant-question').setValue('Hola');
+      await wrapper.get('section form').trigger('submit');
+      await flushPromises();
+      [
+        'header img',
+        'section [role="status"] img',
+        '[data-message-role="assistant"] img',
+      ].forEach(selector => {
+        expect(wrapper.get(selector).attributes('src')).toBe(
+          serverAssistant.avatar_url
+        );
+      });
+      expect(OnboardingAPI.saveAssistant).toHaveBeenCalledOnce();
+    }
+  );
+
+  it('removes a pending preview without uploading and releases its URL', async () => {
+    wrapper = mount(AssistantSetup, options);
+    await flushPromises();
+    Object.defineProperty(wrapper.get('#assistant-photo').element, 'files', {
+      configurable: true,
+      value: [new File(['x'], 'a.png', { type: 'image/png' })],
+    });
+    await wrapper.get('#assistant-photo').trigger('change');
+    await wrapper.get('[data-testid="remove-avatar"]').trigger('click');
+    expect(wrapper.get('header img').attributes('src')).toContain(
+      'avatar-light.svg'
+    );
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:assistant-preview');
+    expect(CaptainAssistant.deleteAvatar).not.toHaveBeenCalled();
+    expect(CaptainAssistant.updateAvatar).not.toHaveBeenCalled();
+  });
+
+  it('uploads after keep editing and removes a persisted avatar through Captain', async () => {
+    serverAssistant = structuredClone(draft);
+    wrapper = mount(AssistantSetup, options);
+    await flushPromises();
+    await wrapper.get('[data-testid="edit"]').trigger('click');
+    const file = new File(['x'], 'a.png', { type: 'image/png' });
+    Object.defineProperty(wrapper.get('#assistant-photo').element, 'files', {
+      configurable: true,
+      value: [file],
+    });
+    await wrapper.get('#assistant-photo').trigger('change');
+    await flushPromises();
+    expect(CaptainAssistant.updateAvatar).toHaveBeenCalledWith(42, file);
+    await wrapper.get('[data-testid="remove-avatar"]').trigger('click');
+    await flushPromises();
+    expect(CaptainAssistant.deleteAvatar).toHaveBeenCalledWith(42);
+    expect(wrapper.get('header img').attributes('src')).toContain(
+      'avatar-light.svg'
+    );
+    wrapper.unmount();
+    wrapper = mount(AssistantSetup, options);
+    await flushPromises();
+    expect(
+      wrapper.get('section [role="status"] img').attributes('src')
+    ).toContain('avatar-light.svg');
+  });
+
+  it.each(['en', 'es'])(
+    'keeps the created draft on upload failure and permits another upload in %s',
+    async lang => {
+      i18n.global.locale.value = lang;
+      CaptainAssistant.updateAvatar.mockRejectedValueOnce(new Error('offline'));
+      wrapper = mount(AssistantSetup, options);
+      await flushPromises();
+      const file = new File(['x'], 'a.png', { type: 'image/png' });
+      Object.defineProperty(wrapper.get('#assistant-photo').element, 'files', {
+        configurable: true,
+        value: [file],
+      });
+      await wrapper.get('#assistant-photo').trigger('change');
+      await wrapper.get('#assistant-goal').setValue('Ayuda');
+      await wrapper.get('#assistant-form').trigger('submit');
+      await flushPromises();
+      expect(wrapper.get('#assistant-photo-error').text()).toBe(
+        { en, es }[lang].ONBOARDING_ASSISTANT.PHOTO.UPLOAD_ERROR
+      );
+      expect(wrapper.text()).toContain(draft.name);
+      expect(wrapper.find('[data-testid="edit"]').exists()).toBe(true);
+      expect(wrapper.get('header img').attributes('src')).toContain(
+        'avatar-light.svg'
+      );
+      Object.defineProperty(wrapper.get('#assistant-photo').element, 'files', {
+        configurable: true,
+        value: [file],
+      });
+      await wrapper.get('#assistant-photo').trigger('change');
+      await flushPromises();
+      expect(wrapper.find('#assistant-photo-error').exists()).toBe(false);
+      expect(wrapper.get('header img').attributes('src')).toBe(
+        serverAssistant.avatar_url
+      );
+    }
+  );
+
+  it.each([
+    ['image/gif', 1, 'FORMAT_ERROR'],
+    ['image/svg+xml', 1, 'FORMAT_ERROR'],
+    ['image/png', 2 * 1024 * 1024 + 1, 'SIZE_ERROR'],
+  ])(
+    'rejects invalid avatar %s / %s bytes before preview or upload',
+    async (type, size, key) => {
+      wrapper = mount(AssistantSetup, options);
+      await flushPromises();
+      const file = new File([new Uint8Array(size)], 'photo', { type });
+      Object.defineProperty(wrapper.get('#assistant-photo').element, 'files', {
+        configurable: true,
+        value: [file],
+      });
+      await wrapper.get('#assistant-photo').trigger('change');
+      expect(wrapper.get('#assistant-photo-error').text()).toBe(
+        es.ONBOARDING_ASSISTANT.PHOTO[key]
+      );
+      expect(URL.createObjectURL).not.toHaveBeenCalled();
+      expect(CaptainAssistant.updateAvatar).not.toHaveBeenCalled();
+    }
+  );
+
+  it('retains the saved avatar and reports a failed deletion', async () => {
+    serverAssistant = { ...structuredClone(draft), avatar_url: '/saved.png' };
+    CaptainAssistant.deleteAvatar.mockRejectedValueOnce(new Error('offline'));
+    wrapper = mount(AssistantSetup, options);
+    await flushPromises();
+    await wrapper.get('[data-testid="remove-avatar"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.get('#assistant-photo-error').text()).toBe(
+      es.ONBOARDING_ASSISTANT.PHOTO.REMOVE_ERROR
+    );
+    expect(wrapper.get('header img').attributes('src')).toBe('/saved.png');
+  });
+
+  it.each(['en', 'es'])(
+    'shows the paid daily allowance before testing in %s',
+    async lang => {
+      serverAssistant = structuredClone(draft);
+      i18n.global.locale.value = lang;
+      CaptainAssistant.playgroundUsage.mockResolvedValueOnce({
+        data: {
+          test_usage: {
+            plan_kind: 'paid',
+            daily_total: 10,
+            daily_used: 3,
+            daily_remaining: 7,
+            uses_plan_pool: false,
+            plan_remaining: 50,
+          },
+        },
+      });
+      wrapper = mount(AssistantSetup, options);
+      await flushPromises();
+      const strings = { en: integrationsEn, es: integrationsEs }[lang].CAPTAIN
+        .PLAYGROUND.USAGE;
+      expect(wrapper.text()).toContain(
+        strings.DAILY.replace('{used}', '3').replace('{total}', '10')
+      );
+      expect(CaptainAssistant.playgroundUsage).toHaveBeenCalledWith(42);
+      expect(CaptainAssistant.playground).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each(['en', 'es'])('renders API remaining values in %s', async lang => {
+    serverAssistant = structuredClone(draft);
+    i18n.global.locale.value = lang;
+    const strings = { en: integrationsEn, es: integrationsEs }[lang].CAPTAIN
+      .PLAYGROUND.USAGE;
+    CaptainAssistant.playground.mockResolvedValueOnce({
+      data: {
+        response: 'Hello',
+        test_usage: {
+          plan_kind: 'free',
+          daily_total: 0,
+          daily_used: 0,
+          daily_remaining: 0,
+          uses_plan_pool: true,
+          plan_remaining: 50,
+        },
+      },
+    });
+    wrapper = mount(AssistantSetup, options);
+    await flushPromises();
+    await wrapper.get('#assistant-question').setValue('Hello');
+    await wrapper
+      .get('#assistant-question')
+      .trigger('keydown', { key: 'Enter' });
+    await flushPromises();
+    expect(wrapper.text()).toContain(strings.FREE.replace('{count}', '50'));
+    CaptainAssistant.playground.mockResolvedValueOnce({
+      data: {
+        response: 'Hello again',
+        test_usage: {
+          plan_kind: 'paid',
+          daily_total: 10,
+          daily_used: 10,
+          daily_remaining: 0,
+          uses_plan_pool: true,
+          plan_remaining: 50,
+        },
+      },
+    });
+    await wrapper.get('#assistant-question').setValue('Again');
+    await wrapper
+      .get('#assistant-question')
+      .trigger('keydown', { key: 'Enter' });
+    await flushPromises();
+    expect(wrapper.text()).toContain(
+      strings.PLAN.replace('{count}', '50').replace('{total}', '10')
+    );
+  });
+
+  it.each(['responses_limit_reached', 'playground_rate_limit'])(
+    'keeps the chat open on %s and supports retry without duplicating the question',
+    async code => {
+      serverAssistant = structuredClone(draft);
+      CaptainAssistant.playground.mockRejectedValueOnce({
+        response: {
+          status: code === 'responses_limit_reached' ? 422 : 429,
+          data: {
+            error_code: code,
+            test_usage: {
+              plan_kind: 'free',
+              daily_total: 0,
+              daily_used: 0,
+              daily_remaining: 0,
+              uses_plan_pool: true,
+              plan_remaining: 0,
+            },
+          },
+          headers: { 'retry-after': '60' },
+        },
+      });
+      wrapper = mount(AssistantSetup, options);
+      await flushPromises();
+      await wrapper.get('#assistant-question').setValue('Hello');
+      await wrapper
+        .get('#assistant-question')
+        .trigger('keydown', { key: 'Enter' });
+      await flushPromises();
+      expect(wrapper.get('#assistant-chat-error').text()).toContain(
+        integrationsEs.CAPTAIN.PLAYGROUND.USAGE[code].replace('{seconds}', '60')
+      );
+      expect(router.currentRoute.value.name).toBe('onboarding_assistant');
+      expect(OnboardingAPI.update).not.toHaveBeenCalled();
+      expect(wrapper.find('[data-message-role="assistant"]').exists()).toBe(
+        false
+      );
+      if (code === 'responses_limit_reached') {
+        expect(wrapper.get('#assistant-chat-error a').attributes('href')).toBe(
+          '/app/accounts/1/settings/billing'
+        );
+      }
+      await wrapper.get('#assistant-chat-error button').trigger('click');
+      await flushPromises();
+      expect(wrapper.findAll('[data-message-role="user"]')).toHaveLength(1);
+      expect(wrapper.findAll('[data-message-role="assistant"]')).toHaveLength(
+        1
+      );
+    }
+  );
 
   it.each(['en', 'es'])(
     'preserves a 60-character business name and makes example selection editable in %s',

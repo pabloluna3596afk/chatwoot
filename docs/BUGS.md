@@ -2013,6 +2013,100 @@ clave/saldo, comprobar mensaje y reintento. Sin WhatsApp, volver a conectarlo y
 regresar sin duplicar; pulsar Activar y comprobar el vínculo. Omitir conserva el
 borrador y permite entrar al dashboard. Verificar móvil y ambos temas.
 
+### B-NEW-72 — Cupo diario de pruebas por plan y consumo del pool compartido
+
+El playground de Captain (v1/v2) y el paso 4 del onboarding hacían llamadas a IA
+sin contabilizar. Cada prueba exitosa del plan gratuito ahora consume una
+respuesta del plan. Los planes de pago usan primero `Plan#captain_daily_tests`
+por cuenta/día y luego el mismo pool de respuestas que los clientes reales.
+No existe techo diario adicional. Los errores del modelo o la falta de clave
+no consumen ni cupo ni respuestas. Las cuentas sin plan conservan el fallback
+a `ChatwootApp.max_limit` y no se contabilizan (`test_usage: null`).
+
+Migración `20261017120000_add_captain_daily_tests_to_plans`, schema y campo
+editable en SuperAdmin. `plans:seed` define Prueba 0, Inicio 10, Crecimiento 20,
+Negocio 35, Escala 50 y Developer 10. Tras migrar hay que aplicar esos valores a
+los planes existentes mediante el seed o SuperAdmin; el default de la columna es 0.
+El seed también actualiza los demás precios/límites: revisar antes de usarlo
+si la instalación tiene planes personalizados.
+
+`Captain::Playground::Usage` serializa elegibilidad/modelo/débito con el lock de
+la cuenta. Redis incrementa el cupo exitoso y fija su expiración en una sola
+operación Lua, a medianoche de `reporting_timezone` (UTC si no hay zona).
+El contador es por cuenta/fecha, se conserva al cambiar de plan ese día y solo
+cuenta pruebas cubiertas por el cupo gratuito diario. El día se fija al admitir
+la solicitud. Los intentos fallidos cuentan solo para el freno móvil de 6
+preguntas/minuto por cuenta, compartido entre usuarios y asistentes, con 429 y
+`Retry-After`. Mensaje máximo 500 caracteres, historial máximo 10 mensajes y
+4000 caracteres incluyendo la pregunta actual; se elimina lo más antiguo.
+
+BYOK confirmado: `Integrations::Hook` OpenAI habilitado guarda `settings.api_key`;
+`lib/captain/base_task_service.rb` ya lee ese campo para tareas compatibles.
+El historial BYOK contiene `45f4b423ae` y `b67ba61bda`. No se inventó una columna:
+`Account#own_ai_key_configured?` comprueba esa integración real. Las pruebas con
+clave propia no consumen ningún pool/cupo. Developer sin clave se comporta como
+plan de pago normal y, con su pool mensual 0, se detiene al terminar el cupo diario.
+El controlador aplica `Llm::Config.with_chat_context` únicamente al playground:
+usa un contexto RubyLLM aislado de la solicitud, sin endpoint de la instalación,
+para los constructores de chat de v1 y ai-agents v2 (incluidos handoffs/rewrites).
+El contexto se restaura en `ensure`; las claves globales no se modifican. Esta
+adaptación es necesaria porque ai-agents 0.12 construye RubyLLM::Chat directamente
+sin aceptar contexto; evita depender de una clave global para construir el chat.
+
+La API devuelve `test_usage` con tipo de plan, cupo total/usado/restante, origen
+del próximo consumo y respuestas del plan restantes. `GET playground_usage`
+permite avisar antes de la primera pregunta; POST y errores de cuota/ritmo
+actualizan el mismo estado local de ambas pantallas. El agotamiento del pool
+responde 422 `responses_limit_reached` antes del modelo, traducido en/es, con
+enlace a planes. El guard permite abrir facturación desde el paso 4 sin finalizarlo.
+No se modifica `ResponseBuilderJob` ni la contabilización de clientes reales.
+
+Cobertura: RSpec de Usage/Input, contratos v1/v2/onboarding, modelos Plan/Account,
+contexto BYOK y regresión del job. Vitest cubre los cinco estados de consumo,
+precarga de saldos, traducciones, reintento y acceso a planes. Resultados y
+limitaciones exactos en `tmp/AUTOEVALUACION-TOPES.md`.
+
+Cómo probar: en Prueba, cada éxito baja 1 del pool. En Inicio, las primeras 10
+pruebas del día no lo cambian; la siguiente sí consume. Con ambos saldos a 0,
+comprobar 422 sin llamada a IA. Siete solicitudes válidas en 60 segundos entre
+usuarios de la misma cuenta deben dar 429 y permitir reintentar después.
+Repetir en ambos chats y v1/v2, dos pestañas, medianoche, cambio de plan, error
+sin consumo y Developer con/sin hook OpenAI. Aplicar migración antes del deploy.
+
+### B-NEW-73 — Avatar de Captain y foto opcional en el paso 4
+
+El paso «Crea tu asistente» no mostraba la identidad visual de Captain ni
+permitía elegir una foto. Ahora el encabezado, la tarjeta del borrador y las
+respuestas de prueba comparten el avatar persistido; sin foto se muestran los
+SVG existentes de Captain en sus variantes clara y oscura (40 px en tarjeta,
+28 px en burbujas, con texto alternativo traducido).
+
+Archivos: `onboarding/AssistantSetup.vue`, nuevo `onboarding/AssistantAvatar.vue`,
+`onboarding/specs/AssistantSetup.spec.js` y `locale/{en,es}/onboarding.json`.
+El bloque «Foto del asistente» admite PNG/JPG/WebP de hasta 2 MB, vista previa
+circular inmediata y «Quitar». Libera las URL de vista previa al sustituir,
+quitar, terminar la subida o desmontar. Usa `CaptainAssistant.updateAvatar`
+(PATCH multipart existente) y `deleteAvatar` (DELETE existente); no cambia
+backend, permisos, endpoints ni configuración de Captain.
+
+La foto elegida antes de crear se sube después de guardar el borrador. Si falla,
+el borrador sigue disponible y se muestra el error traducido junto al bloque;
+puede volver a subirse desde ahí o desde «Seguir editando». Al fallar una subida
+o eliminación se vuelve a mostrar el avatar persistido. La recarga recupera
+`avatar_url` del serializador de Captain usado por onboarding.
+
+Cobertura: Vitest de avatar por defecto, variantes de tema, textos en/es,
+PNG/JPG/WebP con vista previa y reanudación, quitar antes/después de crear,
+error de subida con reintento y rechazo de formato/tamaño, error de eliminación.
+Autoevaluación y límites de verificación: `tmp/AUTOEVALUACION-AVATAR.md`.
+
+Cómo probar: abrir el paso 4 sin borrador, comprobar Captain y elegir una foto;
+crear y enviar una pregunta, comprobar la misma foto en encabezado, tarjeta y
+respuesta. Recargar, entrar a «Seguir editando», cambiar/quitar foto y recargar.
+Repetir en claro/oscuro, es/en y anchos de 360/390/430 px. Bloquear solo el PATCH
+del avatar al crear: el borrador debe conservarse con error de foto y permitir
+volver a subirla. Rechazar GIF/SVG y archivos mayores de 2 MB antes de enviar.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)

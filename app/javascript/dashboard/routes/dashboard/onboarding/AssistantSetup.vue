@@ -1,14 +1,19 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import OnboardingAPI from 'dashboard/api/onboarding';
 import CaptainAssistant from 'dashboard/api/captain/assistant';
+import {
+  PLAYGROUND_MESSAGE_LIMIT,
+  usePlaygroundUsage,
+} from 'dashboard/components-next/captain/assistant/usePlaygroundUsage';
 import CaptainInboxes from 'dashboard/api/captain/inboxes';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
 import AuthSplitLayout from 'v3/components/Auth/AuthSplitLayout.vue';
+import AssistantAvatar from './AssistantAvatar.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import AuthStepHeader from 'v3/components/Auth/AuthStepHeader.vue';
 import AuthField from 'v3/components/Auth/AuthField.vue';
@@ -23,12 +28,87 @@ import {
 const CURRENT_STEP = 4;
 const EXAMPLE_IDS = [1, 2, 3];
 const GOAL_MAX_LENGTH = 2000;
+const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+const AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 const { t, tm, rt } = useI18n();
+const {
+  remaining,
+  errorCode,
+  label: usageLabel,
+  update: updateUsage,
+  handleError: usageError,
+} = usePlaygroundUsage();
 const router = useRouter();
 const store = useStore();
 const { currentAccount, accountId, finishOnboarding } = useAccount();
 const inboxes = useMapGetter('inboxes/getInboxes');
 const assistant = ref(null);
+const avatarInput = ref(null);
+const avatarFile = ref(null);
+const avatarPreview = ref('');
+const avatarError = ref('');
+const avatarUploading = ref(false);
+const savedAvatar = computed(() => {
+  const url = assistant.value?.avatar_url || '';
+  return /\/captain\/avatar-(light|dark)\.svg$/.test(url) ? '' : url;
+});
+const avatarUrl = computed(() => avatarPreview.value || savedAvatar.value);
+const clearAvatarPreview = () => {
+  if (avatarPreview.value) URL.revokeObjectURL(avatarPreview.value);
+  avatarPreview.value = '';
+  avatarFile.value = null;
+};
+onBeforeUnmount(clearAvatarPreview);
+
+const uploadAvatar = async () => {
+  avatarUploading.value = true;
+  try {
+    const { data } = await CaptainAssistant.updateAvatar(
+      assistant.value.id,
+      avatarFile.value
+    );
+    assistant.value = { ...assistant.value, ...data };
+  } catch {
+    avatarError.value = t('ONBOARDING_ASSISTANT.PHOTO.UPLOAD_ERROR');
+  } finally {
+    clearAvatarPreview();
+    avatarUploading.value = false;
+  }
+};
+const selectAvatar = async event => {
+  const [file] = event.target.files;
+  event.target.value = '';
+  if (!file) return;
+  avatarError.value = '';
+  if (!AVATAR_TYPES.includes(file.type)) {
+    avatarError.value = t('ONBOARDING_ASSISTANT.PHOTO.FORMAT_ERROR');
+    return;
+  }
+  if (file.size > AVATAR_MAX_BYTES) {
+    avatarError.value = t('ONBOARDING_ASSISTANT.PHOTO.SIZE_ERROR');
+    return;
+  }
+  clearAvatarPreview();
+  avatarFile.value = file;
+  avatarPreview.value = URL.createObjectURL(file);
+  if (assistant.value) await uploadAvatar();
+};
+const removeAvatar = async () => {
+  avatarError.value = '';
+  if (!assistant.value) {
+    clearAvatarPreview();
+    return;
+  }
+  avatarUploading.value = true;
+  try {
+    const { data } = await CaptainAssistant.deleteAvatar(assistant.value.id);
+    assistant.value = { ...assistant.value, ...data };
+  } catch {
+    avatarError.value = t('ONBOARDING_ASSISTANT.PHOTO.REMOVE_ERROR');
+  } finally {
+    avatarUploading.value = false;
+  }
+};
 const name = ref('');
 const goal = ref('');
 const tone = ref('friendly');
@@ -85,7 +165,10 @@ watch(
 const whatsappInbox = computed(() =>
   inboxes.value.find(inbox => inbox.channel_type === INBOX_TYPES.WHATSAPP)
 );
-const busy = computed(() => saving.value || finishing.value || sending.value);
+const busy = computed(
+  () =>
+    saving.value || finishing.value || sending.value || avatarUploading.value
+);
 const valid = computed(() => name.value.trim() && goal.value.trim());
 const active = computed(() => Boolean(assistant.value?.inbox_ids?.length));
 
@@ -93,6 +176,12 @@ const refreshAssistant = async () => {
   const { data } = await OnboardingAPI.getAssistant();
   assistant.value = data.assistant;
   return data.assistant;
+};
+
+const refreshUsage = async () => {
+  if (!assistant.value) return;
+  const { data } = await CaptainAssistant.playgroundUsage(assistant.value.id);
+  updateUsage(data);
 };
 
 const initialize = async () => {
@@ -117,6 +206,7 @@ const initialize = async () => {
     goal.value = assistant.value?.config.onboarding?.goal || '';
     tone.value = assistant.value?.config.onboarding?.tone || 'friendly';
     editing.value = !assistant.value;
+    await refreshUsage();
   } catch {
     loadError.value = true;
   } finally {
@@ -136,6 +226,8 @@ const createAndTest = async () => {
       tone: tone.value,
     });
     assistant.value = data.assistant;
+    if (avatarFile.value) await uploadAvatar();
+    await refreshUsage();
     editing.value = false;
     messages.value = [];
     chatError.value = '';
@@ -177,6 +269,7 @@ const sendQuestion = async (retry = false) => {
       messageContent: content,
       messageHistory: [...messages.value],
     });
+    updateUsage(data);
     if (data.error || !data.response) {
       chatError.value = t('ONBOARDING_ASSISTANT.CHAT_ERROR');
       return;
@@ -187,8 +280,8 @@ const sendQuestion = async (retry = false) => {
       ...(data.agent_name ? { agent_name: data.agent_name } : {}),
     });
     pendingQuestion.value = '';
-  } catch {
-    chatError.value = t('ONBOARDING_ASSISTANT.CHAT_ERROR');
+  } catch (error) {
+    chatError.value = usageError(error) || t('ONBOARDING_ASSISTANT.CHAT_ERROR');
   } finally {
     sending.value = false;
   }
@@ -242,7 +335,69 @@ const onQuestionKeydown = event => {
       :current="CURRENT_STEP"
       :back-to="{ name: 'onboarding_inbox_setup', params: { accountId } }"
       :back-disabled="busy || loading"
-    />
+    >
+      <template #brand>
+        <AssistantAvatar :src="avatarUrl" class="size-10" />
+      </template>
+    </AuthStepHeader>
+    <div v-if="!loading && !loadError" class="mb-4 space-y-2">
+      <p
+        id="assistant-photo-label"
+        class="m-0 text-sm font-medium text-n-slate-12"
+      >
+        {{ t('ONBOARDING_ASSISTANT.PHOTO.LABEL') }}
+      </p>
+      <div class="flex items-center gap-3">
+        <AssistantAvatar :src="avatarUrl" class="size-10" />
+        <input
+          id="assistant-photo"
+          ref="avatarInput"
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          class="sr-only"
+          tabindex="-1"
+          :disabled="busy"
+          aria-labelledby="assistant-photo-label"
+          :aria-describedby="
+            avatarError
+              ? 'assistant-photo-hint assistant-photo-error'
+              : 'assistant-photo-hint'
+          "
+          @change="selectAvatar"
+        />
+        <div class="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+          <AuthButton
+            variant="secondary"
+            class="!w-auto"
+            :disabled="busy"
+            :loading="avatarUploading"
+            data-testid="upload-avatar"
+            @click="avatarInput.click()"
+          >
+            {{ t('ONBOARDING_ASSISTANT.PHOTO.UPLOAD') }}
+          </AuthButton>
+          <button
+            v-if="avatarUrl"
+            type="button"
+            :class="AUTH_LINK_CLASS"
+            :disabled="busy"
+            data-testid="remove-avatar"
+            @click="removeAvatar"
+          >
+            {{ t('ONBOARDING_ASSISTANT.PHOTO.REMOVE') }}
+          </button>
+        </div>
+      </div>
+      <p
+        id="assistant-photo-hint"
+        class="m-0 text-sm leading-6 text-n-slate-11"
+      >
+        {{ t('ONBOARDING_ASSISTANT.PHOTO.HINT') }}
+      </p>
+      <AuthFeedback v-if="avatarError" id="assistant-photo-error" error>
+        {{ avatarError }}
+      </AuthFeedback>
+    </div>
     <div
       v-if="loading"
       role="status"
@@ -370,10 +525,7 @@ const onQuestionKeydown = event => {
         role="status"
         class="flex items-start gap-3 rounded-xl bg-n-slate-3 p-4"
       >
-        <span
-          class="i-lucide-circle-check mt-1 size-5 shrink-0 text-n-teal-11"
-          aria-hidden="true"
-        />
+        <AssistantAvatar :src="avatarUrl" class="size-10" />
         <div class="min-w-0 space-y-1">
           <p
             class="m-0 break-words text-base font-medium leading-6 text-n-slate-12"
@@ -435,6 +587,11 @@ const onQuestionKeydown = event => {
           "
           :data-message-role="message.role"
         >
+          <AssistantAvatar
+            v-if="message.role === 'assistant'"
+            :src="avatarUrl"
+            class="mb-1 size-7"
+          />
           <p
             class="m-0 mb-1 break-words text-sm font-medium leading-5 text-n-slate-11"
           >
@@ -461,10 +618,25 @@ const onQuestionKeydown = event => {
         </p>
       </div>
       <form class="space-y-2" @submit.prevent="sendQuestion()">
+        <p v-if="usageLabel" role="status" class="m-0 text-sm text-n-slate-11">
+          {{ usageLabel }}
+        </p>
+        <a
+          v-if="
+            remaining?.uses_plan_pool &&
+            remaining.plan_remaining <= 0 &&
+            !chatError
+          "
+          :href="`/app/accounts/${accountId}/settings/billing`"
+          :class="AUTH_LINK_CLASS"
+        >
+          {{ t('CAPTAIN.PLAYGROUND.USAGE.PLANS') }}
+        </a>
         <div class="relative">
           <textarea
             id="assistant-question"
             v-model="question"
+            :maxlength="PLAYGROUND_MESSAGE_LIMIT"
             rows="1"
             :class="AUTH_FIELD_CLASS"
             class="!h-14 resize-none !py-3.5 pe-16"
@@ -492,6 +664,13 @@ const onQuestionKeydown = event => {
         </div>
         <AuthFeedback v-if="chatError" id="assistant-chat-error" error>
           <p class="m-0">{{ chatError }}</p>
+          <a
+            v-if="errorCode === 'responses_limit_reached'"
+            :href="`/app/accounts/${accountId}/settings/billing`"
+            :class="AUTH_LINK_CLASS"
+          >
+            {{ t('CAPTAIN.PLAYGROUND.USAGE.PLANS') }}
+          </a>
           <button
             type="button"
             :class="AUTH_LINK_CLASS"

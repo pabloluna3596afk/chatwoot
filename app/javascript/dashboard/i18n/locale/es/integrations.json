@@ -667,7 +667,17 @@
       "MESSAGE_PLACEHOLDER": "Escribe tu mensaje...",
       "HEADER": "Zona de pruebas",
       "DESCRIPTION": "Usa esta zona de pruebas para enviarle mensajes a tu asistente y comprobar si responde bien, rápido y con el tono que esperas.",
-      "CREDIT_NOTE": "Los mensajes que envíes aquí cuentan para tus créditos de Captain."
+      "CREDIT_NOTE": "El consumo de las pruebas depende de tu plan.",
+      "USAGE": {
+        "FREE": "Cada prueba usa 1 respuesta de tu plan (te quedan {count})",
+        "PLAN": "Ya usaste tus {total} pruebas gratis de hoy. Las siguientes usan las respuestas de tu plan (te quedan {count})",
+        "DAILY": "Pruebas gratis de hoy: {used} de {total}",
+        "PLANS": "Ver planes",
+        "responses_limit_reached": "Se agotaron las respuestas de tu plan",
+        "playground_rate_limit": "Espera unos segundos y reintenta (hasta {seconds} segundos)",
+        "playground_message_invalid": "Escribe un mensaje de hasta 500 caracteres",
+        "playground_history_invalid": "El historial de la prueba no es válido"
+      }
     },
     "PAYWALL": {
       "TITLE": "Actualiza tu plan para usar Captain AI",
