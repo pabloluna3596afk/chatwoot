@@ -1,5 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils';
-import { reactive } from 'vue';
+import { nextTick, reactive } from 'vue';
 import { createI18n } from 'vue-i18n';
 import { createStore } from 'vuex';
 import { createMemoryHistory, createRouter } from 'vue-router';
@@ -264,12 +264,20 @@ describe('WhatsApp onboarding', () => {
     wrapper = mount(InboxSetup, options);
     await flushPromises();
     expect(wrapper.find('[data-testid="mobile-notice"]').exists()).toBe(false);
-    vi.stubGlobal('innerWidth', 375);
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 375,
+    });
     window.dispatchEvent(new Event('resize'));
+    await nextTick();
     await flushPromises();
     expect(wrapper.find('[data-testid="mobile-notice"]').exists()).toBe(true);
-    vi.stubGlobal('innerWidth', 1024);
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1024,
+    });
     window.dispatchEvent(new Event('resize'));
+    await nextTick();
     await flushPromises();
     expect(wrapper.find('[data-testid="mobile-notice"]').exists()).toBe(false);
   });
