@@ -1,3 +1,5 @@
+import authEn from 'dashboard/i18n/locale/en/auth.json';
+import authEs from 'dashboard/i18n/locale/es/auth.json';
 import { flushPromises, mount } from '@vue/test-utils';
 import { nextTick, reactive } from 'vue';
 import { createI18n } from 'vue-i18n';
@@ -46,7 +48,11 @@ describe('Verify email page', () => {
     });
     await router.push('/app/auth/verify-email');
     await router.isReady();
-    i18n = createI18n({ legacy: false, locale: 'es', messages: { en, es } });
+    i18n = createI18n({
+      legacy: false,
+      locale: 'es',
+      messages: { en: { ...en, ...authEn }, es: { ...es, ...authEs } },
+    });
     mountOptions = {
       props: { email: 'ana@gmail.com' },
       global: {
@@ -71,7 +77,7 @@ describe('Verify email page', () => {
       const messages = { en, es }[locale].REGISTER;
       wrapper = mount(VerifyEmail, mountOptions);
       expect(wrapper.getComponent(AuthSplitLayout).exists()).toBe(true);
-      expect(wrapper.get('h2').text()).toBe(messages.VERIFY_EMAIL.TITLE);
+      expect(wrapper.get('h1').text()).toBe(messages.VERIFY_EMAIL.TITLE);
       expect(wrapper.text()).toContain('ana@gmail.com');
       expect(wrapper.get('.i-lucide-mail').attributes('aria-hidden')).toBe(
         'true'
@@ -79,7 +85,7 @@ describe('Verify email page', () => {
       const button = wrapper.get('[data-testid="resend_email_button"]');
       expect(button.text()).toBe(messages.VERIFY_EMAIL.RESEND);
       expect(button.classes()).toEqual(
-        expect.arrayContaining(['h-14', 'rounded-full'])
+        expect.arrayContaining(['min-h-12', 'rounded-xl'])
       );
       expect(wrapper.get('a[href="/app/login"]').text()).toBe(messages.SIGN_IN);
       expect(wrapper.findComponent({ name: 'VueHcaptcha' }).exists()).toBe(

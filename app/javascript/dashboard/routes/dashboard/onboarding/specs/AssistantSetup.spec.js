@@ -1,3 +1,5 @@
+import authEn from 'dashboard/i18n/locale/en/auth.json';
+import authEs from 'dashboard/i18n/locale/es/auth.json';
 import { flushPromises, mount } from '@vue/test-utils';
 import { reactive } from 'vue';
 import { createI18n } from 'vue-i18n';
@@ -107,7 +109,11 @@ describe('Assistant onboarding', () => {
       name: 'onboarding_assistant',
       params: { accountId: 1 },
     });
-    i18n = createI18n({ legacy: false, locale: 'es', messages: { en, es } });
+    i18n = createI18n({
+      legacy: false,
+      locale: 'es',
+      messages: { en: { ...en, ...authEn }, es: { ...es, ...authEs } },
+    });
     options = {
       global: {
         plugins: [store, router, i18n],
@@ -124,13 +130,73 @@ describe('Assistant onboarding', () => {
   afterEach(() => wrapper?.unmount());
 
   it.each(['en', 'es'])(
+    'preserves a 60-character business name and makes example selection editable in %s',
+    async lang => {
+      account.name = 'N'.repeat(60);
+      i18n.global.locale.value = lang;
+      wrapper = mount(AssistantSetup, options);
+      await flushPromises();
+      const strings = { en, es }[lang].ONBOARDING_ASSISTANT;
+      expect(wrapper.get('#assistant-name').element.value).toBe(
+        strings.DEFAULT_NAME.replace('{business}', account.name)
+      );
+      const chip = wrapper.get('[data-testid="example"]');
+      expect(chip.text()).toBe(strings.EXAMPLE_LABELS.appointments['1']);
+      expect(chip.attributes('aria-label')).toContain(chip.text());
+      await chip.trigger('click');
+      expect(wrapper.get('#assistant-goal').element.value).toBe(
+        strings.EXAMPLES.appointments['1']
+      );
+      expect(chip.attributes('aria-pressed')).toBe('true');
+      expect(chip.classes()).toEqual(
+        expect.arrayContaining([
+          'border-solid',
+          'border-n-brand',
+          'bg-n-blue-2',
+        ])
+      );
+      expect(wrapper.get('#goal-count').text()).toBe(
+        strings.CHARACTERS.replace(
+          '{count}',
+          strings.EXAMPLES.appointments['1'].length
+        ).replace('{max}', '2000')
+      );
+      await wrapper.get('#assistant-goal').setValue('Edited goal');
+      expect(chip.attributes('aria-pressed')).toBe('false');
+    }
+  );
+
+  it('supports tone selection with arrows and keeps one tab stop', async () => {
+    options.attachTo = document.body;
+    wrapper = mount(AssistantSetup, options);
+    await flushPromises();
+    const radios = wrapper.findAll('[name="assistant-tone"]');
+    await radios[0].trigger('keydown', { key: 'ArrowRight' });
+    expect(radios[1].element.checked).toBe(true);
+    expect(document.activeElement).toBe(radios[1].element);
+    expect(radios.map(radio => radio.attributes('tabindex'))).toEqual([
+      '-1',
+      '0',
+      '-1',
+    ]);
+    expect(wrapper.text()).toContain(
+      es.ONBOARDING_ASSISTANT.TONE_DESCRIPTIONS.professional
+    );
+    expect(radios[1].element.nextElementSibling.classList).toEqual(
+      expect.objectContaining({
+        value: expect.stringContaining('peer-checked:border-n-brand'),
+      })
+    );
+  });
+
+  it.each(['en', 'es'])(
     'shows step 4 and translated copy in %s',
     async lang => {
       i18n.global.locale.value = lang;
       wrapper = mount(AssistantSetup, options);
       await flushPromises();
       const strings = { en, es }[lang].ONBOARDING_ASSISTANT;
-      expect(wrapper.get('h2').text()).toBe(strings.TITLE);
+      expect(wrapper.get('h1').text()).toBe(strings.TITLE);
       expect(
         wrapper.get('[role="progressbar"]').attributes('aria-valuenow')
       ).toBe('4');
@@ -153,12 +219,12 @@ describe('Assistant onboarding', () => {
       await flushPromises();
       const examples = wrapper.findAll('[data-testid="example"]');
       expect(examples).toHaveLength(3);
-      expect(examples.map(item => item.text())).toEqual(
+      expect(examples.map(item => item.attributes('title'))).toEqual(
         Object.values(es.ONBOARDING_ASSISTANT.EXAMPLES[businessType])
       );
       await examples[1].trigger('click');
       expect(wrapper.get('#assistant-goal').element.value).toBe(
-        examples[1].text()
+        examples[1].attributes('title')
       );
       await wrapper.get('#assistant-goal').setValue('Mi objetivo');
       await wrapper.get('input[value="brief"]').setValue();
@@ -246,6 +312,31 @@ describe('Assistant onboarding', () => {
     serverAssistant = structuredClone(draft);
     wrapper = mount(AssistantSetup, options);
     await flushPromises();
+    expect(wrapper.get('#assistant-question').attributes('placeholder')).toBe(
+      es.ONBOARDING_ASSISTANT.QUESTION_PLACEHOLDER
+    );
+    const composer = wrapper.get('#assistant-question');
+    expect(composer.attributes('aria-label')).toBe(
+      es.ONBOARDING_ASSISTANT.QUESTION
+    );
+    expect(wrapper.find('label[for="assistant-question"]').exists()).toBe(
+      false
+    );
+    expect(composer.classes()).toEqual(
+      expect.arrayContaining(['border', 'border-solid', 'min-h-14', 'pe-16'])
+    );
+    expect(
+      composer.element.parentElement.querySelector('button[type="submit"]')
+    ).not.toBeNull();
+    expect(
+      wrapper
+        .get('[data-testid="chat-empty"]')
+        .find('[aria-hidden="true"]')
+        .exists()
+    ).toBe(true);
+    expect(wrapper.get('[data-testid="chat-empty"]').text()).toBe(
+      es.ONBOARDING_ASSISTANT.CHAT_EMPTY
+    );
     await wrapper.get('#assistant-question').setValue('Hola');
     await wrapper
       .get('#assistant-question')
@@ -258,6 +349,13 @@ describe('Assistant onboarding', () => {
       messageContent: 'Hola',
       messageHistory: [{ role: 'user', content: 'Hola' }],
     });
+    expect(wrapper.get('[data-message-role="user"]').classes()).toContain(
+      'self-end'
+    );
+    expect(wrapper.get('[data-message-role="assistant"]').classes()).toContain(
+      'self-start'
+    );
+    expect(wrapper.find('[data-testid="chat-empty"]').exists()).toBe(false);
     expect(wrapper.get('[role="log"]').text()).toContain(
       'Hola, ¿en qué puedo ayudarte?'
     );
@@ -459,7 +557,9 @@ describe('Assistant onboarding', () => {
       'Asistente de Tienda'
     );
     expect(
-      wrapper.findAll('[data-testid="example"]').map(item => item.text())
+      wrapper
+        .findAll('[data-testid="example"]')
+        .map(item => item.attributes('title'))
     ).toEqual(Object.values(es.ONBOARDING_ASSISTANT.EXAMPLES.commerce));
   });
 

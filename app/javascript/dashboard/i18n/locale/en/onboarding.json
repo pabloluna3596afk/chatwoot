@@ -54,7 +54,13 @@
     "NAME_REQUIRED": "Enter your business name.",
     "BUSINESS_TYPE_REQUIRED": "Select a business type.",
     "SEARCH": "Search...",
-    "NO_RESULTS": "No results found"
+    "NO_RESULTS": "No results found",
+    "BUSINESS_DESCRIPTIONS": {
+      "appointments": "Bookings and availability",
+      "commerce": "Products and orders",
+      "services": "Enquiries and quotes",
+      "other": "A little of everything"
+    }
   },
   "ONBOARDING_INBOX_SETUP": {
     "GREETING": "Let's set up a few things",
@@ -120,7 +126,8 @@
       "APP": "Keep using the WhatsApp Business app on your phone",
       "OFFICIAL": "Official connection to Meta’s WhatsApp Business Platform API",
       "BENEFITS": "Templates, catalog and all the benefits of the official API",
-      "PROVIDER": "ChatHub is a Meta Tech Provider"
+      "PROVIDER": "ChatHub is a Meta Tech Provider",
+      "SAFETY": "Why is it safe?"
     },
     "GUIDE": {
       "OPEN": "View connection guide",
@@ -154,7 +161,8 @@
       "ENTER_CODE": "Enter code",
       "COPY": "Copy link to continue on a computer",
       "COPIED": "Link copied. Open it on a computer to continue.",
-      "COPY_ERROR": "We couldn’t copy the link. Copy the address from your browser."
+      "COPY_ERROR": "We couldn’t copy the link. Copy the address from your browser.",
+      "TITLE": "Connecting from this phone"
     },
     "TITLE": "Connect your number or account",
     "SUBTITLE": "Keep your current number and the app on your phone. Your conversations arrive here.",
@@ -201,7 +209,7 @@
     "CREATE": "Create and try",
     "CREATING": "Creating your draft…",
     "CHAT": "Test chat",
-    "CHAT_EMPTY": "Ask a question as if you were a customer. This chat does not send messages to customers.",
+    "CHAT_EMPTY": "Test here without messaging customers.",
     "DRAFT": "Draft · It will only reply to customers after you activate it.",
     "ACTIVE": "Active · Your assistant is connected to WhatsApp.",
     "QUESTION": "Your test question",
@@ -242,6 +250,35 @@
         "1": "Welcome customers and explain what my business does.",
         "2": "Collect initial questions and direct them to the right person.",
         "3": "Answer common questions using only the information I provide."
+      }
+    },
+    "TONE_DESCRIPTIONS": {
+      "friendly": "Warm and open",
+      "professional": "Clear and calm",
+      "brief": "Short and direct"
+    },
+    "CHARACTERS": "{count} / {max} characters",
+    "QUESTION_PLACEHOLDER": "Ask a question as if you were a customer",
+    "EXAMPLE_LABELS": {
+      "appointments": {
+        "1": "Services and bookings",
+        "2": "Booking requests",
+        "3": "Questions about appointments"
+      },
+      "commerce": {
+        "1": "Products and orders",
+        "2": "Delivery and payments",
+        "3": "Product questions"
+      },
+      "services": {
+        "1": "Introduce my services",
+        "2": "Quote requests",
+        "3": "Service questions"
+      },
+      "other": {
+        "1": "Welcome customers",
+        "2": "Route enquiries",
+        "3": "Common questions"
       }
     }
   }

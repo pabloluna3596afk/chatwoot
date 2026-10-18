@@ -20,6 +20,8 @@ const props = defineProps({
   },
   placeholder: { type: String, default: '' },
   ariaLabel: { type: String, default: '' },
+  // Opt in to a caller's field style without changing other dashboard pickers.
+  triggerClass: { type: String, default: '' },
   // Fallback label shown when the selected value is not in `options` yet
   // (e.g. API-backed lists that load lazily on open).
   displayLabel: { type: String, default: '' },
@@ -205,12 +207,16 @@ onClickOutside(
         :aria-label="ariaLabel || undefined"
         :aria-expanded="open"
         no-animation
-        class="justify-between w-full !px-3 !py-2.5 text-n-slate-12 font-normal group-hover/combobox:border-n-slate-6 focus:outline-n-brand"
-        :class="{
-          focused: open,
-          '[&:not(.focused)]:dark:outline-n-weak [&:not(.focused)]:hover:enabled:outline-n-slate-6 [&:not(.focused)]:dark:hover:enabled:outline-n-slate-6':
-            !hasError,
-        }"
+        class="justify-between w-full"
+        :class="[
+          triggerClass ||
+            '!px-3 !py-2.5 text-n-slate-12 font-normal group-hover/combobox:border-n-slate-6 focus:outline-n-brand',
+          {
+            focused: open,
+            '[&:not(.focused)]:dark:outline-n-weak [&:not(.focused)]:hover:enabled:outline-n-slate-6 [&:not(.focused)]:dark:hover:enabled:outline-n-slate-6':
+              !triggerClass && !hasError,
+          },
+        ]"
         :icon="open ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
         @click="toggleDropdown"
       />

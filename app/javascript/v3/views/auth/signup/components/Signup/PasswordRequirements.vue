@@ -46,20 +46,23 @@ const requirements = computed(() => {
 </script>
 
 <template>
-  <div class="mt-3 w-full text-xs">
-    <ul role="list" class="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+  <div class="mt-4 w-full text-sm leading-5">
+    <ul
+      role="list"
+      class="m-0 grid list-none grid-cols-1 gap-2 p-0 sm:grid-cols-2"
+    >
       <li
         v-for="item in requirements"
         :key="item.id"
-        class="flex gap-1.5 items-start"
+        class="flex items-start gap-2"
       >
         <Icon
-          class="flex-none w-3 mt-0.5"
+          class="mt-1 size-4 flex-none"
           aria-hidden="true"
           :icon="item.met ? 'i-lucide-circle-check-big' : 'i-lucide-circle'"
-          :class="item.met ? 'text-n-teal-10' : 'text-n-slate-10'"
+          :class="item.met ? 'text-n-teal-11' : 'text-n-slate-11'"
         />
-        <span :class="item.met ? 'text-n-slate-11' : 'text-n-slate-10'">
+        <span class="text-n-slate-11">
           {{ item.label }}
         </span>
       </li>

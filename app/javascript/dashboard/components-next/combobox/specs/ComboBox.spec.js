@@ -10,6 +10,33 @@ const options = [
 ];
 
 describe('ComboBox', () => {
+  it('keeps the dashboard trigger style by default and applies a field style only when requested', async () => {
+    const wrapper = mount(ComboBox, { props: { options } });
+    const trigger = wrapper.get('button');
+    expect(trigger.classes()).toContain('!px-3');
+    expect(trigger.classes()).not.toContain('!border-solid');
+    await wrapper.setProps({
+      triggerClass: '!h-14 !border !border-solid !outline-none',
+    });
+    expect(trigger.classes()).toEqual(
+      expect.arrayContaining([
+        '!h-14',
+        '!border',
+        '!border-solid',
+        '!outline-none',
+      ])
+    );
+    expect(trigger.classes()).not.toContain('!px-3');
+    await trigger.trigger('click');
+    expect(trigger.attributes('aria-expanded')).toBe('true');
+    await wrapper.getComponent(ComboBoxDropdown).vm.$emit('select', options[0]);
+    expect(wrapper.emitted('update:modelValue')).toEqual([[7]]);
+    expect(trigger.attributes('aria-expanded')).toBe('false');
+    await wrapper.setProps({ triggerClass: '' });
+    expect(trigger.classes()).toContain('!px-3');
+    expect(trigger.classes()).not.toContain('!border-solid');
+    wrapper.unmount();
+  });
   it.each(['Ecuador', 'guayaquil', 'AMERICA/GUAYAQUIL'])(
     'searches labels and optional search terms for %s',
     async search => {

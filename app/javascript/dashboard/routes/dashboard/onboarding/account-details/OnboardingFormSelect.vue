@@ -1,5 +1,9 @@
 <script setup>
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import {
+  AUTH_LABEL_CLASS,
+  AUTH_SELECT_TRIGGER_CLASS,
+} from 'v3/components/Auth/authStyles';
 
 defineProps({
   label: { type: String, required: true },
@@ -13,18 +17,18 @@ const model = defineModel({ type: String, required: true });
 
 <template>
   <div class="space-y-2">
-    <p class="m-0 text-sm font-medium text-n-slate-12">{{ label }}</p>
+    <p class="m-0" :class="AUTH_LABEL_CLASS">{{ label }}</p>
     <ComboBox
       v-model="model"
       :options="options"
       :aria-label="label"
+      :trigger-class="AUTH_SELECT_TRIGGER_CLASS"
       :placeholder="placeholder"
       :show-search="showSearch"
       :allow-deselect="allowDeselect"
       :search-placeholder="$t('ONBOARDING_NEXT.SEARCH')"
       :empty-state="$t('ONBOARDING_NEXT.NO_RESULTS')"
       teleport
-      class="[&>div>button]:!h-14 [&>div>button]:!rounded-full [&>div>button]:!px-5 [&>div>button]:!text-base [&>div>button]:bg-n-solid-1 [&>div>button]:dark:bg-n-solid-3"
     />
   </div>
 </template>

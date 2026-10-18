@@ -8,8 +8,9 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAlert } from 'dashboard/composables';
 import VueHcaptcha from '@hcaptcha/vue3-hcaptcha';
-import FormInput from '../../../../../components/Form/Input.vue';
-import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
+import AuthField from '../../../../../components/Auth/AuthField.vue';
+import AuthButton from '../../../../../components/Auth/AuthButton.vue';
+import AuthFeedback from '../../../../../components/Auth/AuthFeedback.vue';
 import PasswordRequirements from './PasswordRequirements.vue';
 import { isValidPassword } from 'shared/helpers/Validators';
 import GoogleOAuthButton from '../../../../../components/GoogleOauth/Button.vue';
@@ -24,6 +25,7 @@ const router = useRouter();
 
 const hCaptcha = ref(null);
 const isSignupInProgress = ref(false);
+const registrationError = ref('');
 
 const credentials = reactive({
   email: '',
@@ -71,9 +73,16 @@ const showGoogleOAuth = computed(
 );
 
 const isFormValid = computed(() => !v$.value.$invalid);
+const passwordError = computed(() => {
+  if (!v$.value.credentials.password.$error) return '';
+  return credentials.password.length < MIN_PASSWORD_LENGTH
+    ? t('REGISTER.PASSWORD.ERROR')
+    : t('REGISTER.PASSWORD.IS_INVALID_PASSWORD');
+});
 
 const performRegistration = async () => {
   isSignupInProgress.value = true;
+  registrationError.value = '';
   try {
     await register(credentials);
     router.push({
@@ -89,6 +98,7 @@ const performRegistration = async () => {
       hCaptcha.value.reset();
       credentials.hCaptchaClientResponse = '';
     }
+    registrationError.value = errorMessage;
     useAlert(errorMessage);
   } finally {
     isSignupInProgress.value = false;
@@ -116,40 +126,38 @@ const onCaptchaError = () => {
   isSignupInProgress.value = false;
   credentials.hCaptchaClientResponse = '';
   hCaptcha.value.reset();
+  registrationError.value = t('REGISTER.CAPTCHA.ERROR');
   useAlert(t('REGISTER.CAPTCHA.ERROR'));
 };
 </script>
 
 <template>
   <div class="flex-1">
-    <form class="space-y-3" @submit.prevent="submit">
-      <FormInput
+    <form class="space-y-4" @submit.prevent="submit">
+      <AuthField
+        id="email_address"
         v-model="credentials.email"
         type="email"
         name="email_address"
         autocomplete="email"
         required
-        label-sr-only
-        outlined
         :label="$t('REGISTER.EMAIL.LABEL')"
         :placeholder="$t('REGISTER.EMAIL.PLACEHOLDER')"
-        :has-error="v$.credentials.email.$error"
-        :error-message="$t('REGISTER.EMAIL.ERROR')"
+        :error="v$.credentials.email.$error ? $t('REGISTER.EMAIL.ERROR') : ''"
         @blur="v$.credentials.email.$touch"
       />
       <div>
-        <FormInput
+        <AuthField
+          id="password"
           v-model="credentials.password"
           type="password"
           name="password"
           autocomplete="new-password"
           required
-          label-sr-only
-          outlined
-          aria-describedby="signup-password-requirements"
+          describedby="signup-password-requirements"
           :label="$t('REGISTER.PASSWORD.LABEL')"
           :placeholder="$t('REGISTER.PASSWORD.PLACEHOLDER')"
-          :has-error="v$.credentials.password.$error"
+          :error="passwordError"
           @blur="v$.credentials.password.$touch"
         />
         <PasswordRequirements
@@ -168,32 +176,36 @@ const onCaptchaError = () => {
         @challenge-expired="onCaptchaError"
         @closed="onCaptchaError"
       />
-      <button
+      <AuthFeedback v-if="registrationError" error>
+        {{ registrationError }}
+      </AuthFeedback>
+      <AuthButton
         type="submit"
         data-testid="submit_button"
-        class="flex h-14 w-full items-center justify-center rounded-full bg-n-slate-12 px-6 text-base font-medium text-n-solid-1 transition-opacity hover:enabled:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-n-brand disabled:cursor-not-allowed disabled:opacity-60"
         :aria-label="$t('REGISTER.SUBMIT')"
-        :aria-busy="isSignupInProgress"
+        :loading="isSignupInProgress"
         :disabled="isSignupInProgress || !isFormValid"
       >
-        <Spinner v-if="isSignupInProgress" :size="20" aria-hidden="true" />
-        <span v-else>{{ $t('REGISTER.SUBMIT') }}</span>
-      </button>
+        {{ $t('REGISTER.SUBMIT') }}
+      </AuthButton>
     </form>
-    <div v-if="showGoogleOAuth" class="mt-6 space-y-3">
+    <div v-if="showGoogleOAuth" class="mt-6 space-y-4">
       <SimpleDivider
         :label="$t('REGISTER.OR')"
         bg="bg-n-solid-1 dark:bg-n-background"
+        class="[&_.border-t]:border-solid [&_.border-t]:border-n-slate-7 [&_span]:text-n-slate-11"
       />
-      <GoogleOAuthButton>
+      <GoogleOAuthButton
+        class="[&>a]:!h-auto [&>a]:min-h-12 [&>a]:!rounded-xl [&>a]:!border-n-slate-9 [&>a]:dark:!border-n-slate-10 [&>a]:!bg-n-solid-1 [&>a]:py-3 [&>a]:!text-n-slate-12 motion-reduce:[&>a]:transition-none [&>a]:dark:!bg-n-solid-3 [&>a]:hover:!bg-n-slate-3"
+      >
         {{ $t('REGISTER.OAUTH.GOOGLE_SIGNUP') }}
       </GoogleOAuthButton>
-      <p class="text-center text-xs text-n-slate-11">
+      <p class="m-0 text-center text-sm leading-6 text-n-slate-11">
         {{ $t('REGISTER.OAUTH.PASSWORD_NOTICE') }}
       </p>
     </div>
     <p
-      class="text-sm mt-6 mb-0 text-center text-n-slate-11 [&>a]:text-n-blue-10 [&>a]:font-medium [&>a]:hover:text-n-blue-11"
+      class="mt-6 mb-0 text-center text-sm leading-6 text-n-slate-11 [&>a]:inline-flex [&>a]:min-h-11 [&>a]:items-center [&>a]:rounded [&>a]:font-medium [&>a]:text-n-slate-12 [&>a]:underline [&>a]:underline-offset-4 [&>a]:focus-visible:outline [&>a]:focus-visible:outline-2 [&>a]:focus-visible:outline-n-brand"
       v-html="sanitizedTermsLink"
     />
   </div>

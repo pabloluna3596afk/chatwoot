@@ -54,7 +54,13 @@
     "NAME_REQUIRED": "Escribe el nombre de tu negocio.",
     "BUSINESS_TYPE_REQUIRED": "Selecciona un tipo de negocio.",
     "SEARCH": "Buscar...",
-    "NO_RESULTS": "No se encontraron resultados"
+    "NO_RESULTS": "No se encontraron resultados",
+    "BUSINESS_DESCRIPTIONS": {
+      "appointments": "Reservas y disponibilidad",
+      "commerce": "Productos y pedidos",
+      "services": "Consultas y cotizaciones",
+      "other": "Un poco de todo"
+    }
   },
   "ONBOARDING_INBOX_SETUP": {
     "GREETING": "Vamos a configurar algunas cosas",
@@ -120,7 +126,8 @@
       "APP": "Sigues usando la app WhatsApp Business en tu celular",
       "OFFICIAL": "Conexión oficial con la API de WhatsApp Business Platform de Meta",
       "BENEFITS": "Plantillas, catálogo y todos los beneficios de la API oficial",
-      "PROVIDER": "ChatHub es Meta Tech Provider"
+      "PROVIDER": "ChatHub es Meta Tech Provider",
+      "SAFETY": "¿Por qué es seguro?"
     },
     "GUIDE": {
       "OPEN": "Ver guía de conexión",
@@ -154,7 +161,8 @@
       "ENTER_CODE": "Ingresar código",
       "COPY": "Copiar enlace para continuar en computadora",
       "COPIED": "Enlace copiado. Ábrelo en una computadora para continuar.",
-      "COPY_ERROR": "No pudimos copiar el enlace. Copia la dirección desde tu navegador."
+      "COPY_ERROR": "No pudimos copiar el enlace. Copia la dirección desde tu navegador.",
+      "TITLE": "Conectar desde este teléfono"
     },
     "TITLE": "Conecta tu número o cuenta",
     "SUBTITLE": "Usa tu número actual sin perder la app del celular. Tus conversaciones llegan aquí.",
@@ -201,7 +209,7 @@
     "CREATE": "Crear y probar",
     "CREATING": "Creando tu borrador…",
     "CHAT": "Chat de prueba",
-    "CHAT_EMPTY": "Haz una pregunta como si fueras un cliente. Este chat no envía mensajes a clientes.",
+    "CHAT_EMPTY": "Prueba aquí sin enviar a clientes.",
     "DRAFT": "Borrador · Solo responderá a clientes cuando lo actives.",
     "ACTIVE": "Activo · Tu asistente está conectado a WhatsApp.",
     "QUESTION": "Tu pregunta de prueba",
@@ -242,6 +250,35 @@
         "1": "Da la bienvenida y explica a qué se dedica mi negocio.",
         "2": "Recoge las consultas iniciales y dirígelas a la persona adecuada.",
         "3": "Responde preguntas frecuentes solo con la información que yo proporcione."
+      }
+    },
+    "TONE_DESCRIPTIONS": {
+      "friendly": "Cálido y cercano",
+      "professional": "Claro y atento",
+      "brief": "Directo al punto"
+    },
+    "CHARACTERS": "{count} / {max} caracteres",
+    "QUESTION_PLACEHOLDER": "Escribe una pregunta como si fueras un cliente",
+    "EXAMPLE_LABELS": {
+      "appointments": {
+        "1": "Servicios y citas",
+        "2": "Solicitudes de reserva",
+        "3": "Preguntas sobre citas"
+      },
+      "commerce": {
+        "1": "Productos y pedidos",
+        "2": "Entregas y pagos",
+        "3": "Consultas de productos"
+      },
+      "services": {
+        "1": "Presentar mis servicios",
+        "2": "Solicitudes de cotización",
+        "3": "Consultas de servicios"
+      },
+      "other": {
+        "1": "Dar la bienvenida",
+        "2": "Dirigir consultas",
+        "3": "Preguntas frecuentes"
       }
     }
   }

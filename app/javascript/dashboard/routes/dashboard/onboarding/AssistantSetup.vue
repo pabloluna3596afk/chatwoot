@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAccount } from 'dashboard/composables/useAccount';
@@ -10,14 +10,19 @@ import CaptainInboxes from 'dashboard/api/captain/inboxes';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
 import AuthSplitLayout from 'v3/components/Auth/AuthSplitLayout.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
+import AuthStepHeader from 'v3/components/Auth/AuthStepHeader.vue';
+import AuthField from 'v3/components/Auth/AuthField.vue';
+import AuthButton from 'v3/components/Auth/AuthButton.vue';
+import AuthChoiceCard from 'v3/components/Auth/AuthChoiceCard.vue';
+import AuthFeedback from 'v3/components/Auth/AuthFeedback.vue';
+import {
+  AUTH_FIELD_CLASS,
+  AUTH_LINK_CLASS,
+} from 'v3/components/Auth/authStyles';
 
 const CURRENT_STEP = 4;
-const TOTAL_STEPS = 5;
 const EXAMPLE_IDS = [1, 2, 3];
-const INPUT_CLASS =
-  'reset-base m-0 w-full border-0 bg-n-solid-1 px-5 py-4 text-base text-n-slate-12 outline outline-1 outline-n-weak placeholder:text-n-slate-10 focus:outline-n-brand dark:bg-n-solid-3';
-const BUTTON_CLASS =
-  'flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-n-slate-12 px-6 py-3 text-base font-medium text-n-solid-1 hover:enabled:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-n-brand disabled:cursor-not-allowed disabled:opacity-60';
+const GOAL_MAX_LENGTH = 2000;
 const { t, tm, rt } = useI18n();
 const router = useRouter();
 const store = useStore();
@@ -37,22 +42,46 @@ const messages = ref([]);
 const question = ref('');
 const sending = ref(false);
 const chatError = ref('');
+const chatLog = ref(null);
 const pendingQuestion = ref('');
 const businessType = computed(
   () => currentAccount.value?.custom_attributes?.business_type || 'other'
 );
 const toneOptions = computed(() => [
-  { value: 'friendly', label: t('ONBOARDING_ASSISTANT.TONES.friendly') },
+  {
+    value: 'friendly',
+    label: t('ONBOARDING_ASSISTANT.TONES.friendly'),
+    description: t('ONBOARDING_ASSISTANT.TONE_DESCRIPTIONS.friendly'),
+    icon: 'i-lucide-smile',
+  },
   {
     value: 'professional',
     label: t('ONBOARDING_ASSISTANT.TONES.professional'),
+    description: t('ONBOARDING_ASSISTANT.TONE_DESCRIPTIONS.professional'),
+    icon: 'i-lucide-briefcase',
   },
-  { value: 'brief', label: t('ONBOARDING_ASSISTANT.TONES.brief') },
+  {
+    value: 'brief',
+    label: t('ONBOARDING_ASSISTANT.TONES.brief'),
+    description: t('ONBOARDING_ASSISTANT.TONE_DESCRIPTIONS.brief'),
+    icon: 'i-lucide-zap',
+  },
 ]);
 const examples = computed(() => {
   const messagesByType = tm('ONBOARDING_ASSISTANT.EXAMPLES');
   return EXAMPLE_IDS.map(id => rt(messagesByType[businessType.value][id]));
 });
+const exampleLabels = computed(() => {
+  const labelsByType = tm('ONBOARDING_ASSISTANT.EXAMPLE_LABELS');
+  return EXAMPLE_IDS.map(id => rt(labelsByType[businessType.value][id]));
+});
+watch(
+  () => [messages.value.length, sending.value],
+  () => {
+    if (chatLog.value) chatLog.value.scrollTop = chatLog.value.scrollHeight;
+  },
+  { flush: 'post' }
+);
 const whatsappInbox = computed(() =>
   inboxes.value.find(inbox => inbox.channel_type === INBOX_TYPES.WHATSAPP)
 );
@@ -192,164 +221,184 @@ const complete = async activate => {
     finishing.value = false;
   }
 };
+const onQuestionKeydown = event => {
+  if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return;
+  event.preventDefault();
+  sendQuestion();
+};
 </script>
 
 <template>
   <AuthSplitLayout
     :title="t('ONBOARDING_ASSISTANT.MARKETING.TITLE')"
     :subtitle="t('ONBOARDING_ASSISTANT.MARKETING.SUBTITLE')"
+    onboarding
     scrollable
   >
-    <header class="mb-6">
-      <p class="mb-2 text-sm font-medium text-n-slate-11">
-        {{
-          t('ONBOARDING_NEXT.STEP', {
-            current: CURRENT_STEP,
-            total: TOTAL_STEPS,
-          })
-        }}
-      </p>
+    <AuthStepHeader
+      :title="t('ONBOARDING_ASSISTANT.TITLE')"
+      :subtitle="t('ONBOARDING_ASSISTANT.SUBTITLE')"
+      :step-name="t('ONBOARDING_ASSISTANT.TITLE')"
+      :current="CURRENT_STEP"
+      :back-to="{ name: 'onboarding_inbox_setup', params: { accountId } }"
+      :back-disabled="busy || loading"
+    />
+    <div
+      v-if="loading"
+      role="status"
+      :aria-label="t('ONBOARDING_AUTH.LOADING')"
+      class="space-y-4"
+      data-testid="assistant-skeleton"
+    >
+      <span class="sr-only">{{ t('ONBOARDING_AUTH.LOADING') }}</span>
       <div
-        role="progressbar"
-        :aria-label="t('ONBOARDING_NEXT.PROGRESS')"
-        :aria-valuenow="CURRENT_STEP"
-        :aria-valuemin="0"
-        :aria-valuemax="TOTAL_STEPS"
-        class="mb-6 flex gap-1.5"
-      >
-        <span
-          v-for="step in TOTAL_STEPS"
-          :key="step"
-          class="h-1 flex-1 rounded-full"
-          :class="step <= CURRENT_STEP ? 'bg-n-slate-12' : 'bg-n-slate-4'"
-        />
-      </div>
-      <h2 class="text-3xl font-bold tracking-tight text-n-slate-12 xl:text-4xl">
-        {{ t('ONBOARDING_ASSISTANT.TITLE') }}
-      </h2>
-      <p class="mt-3 mb-0 text-base leading-7 text-n-slate-11">
-        {{ t('ONBOARDING_ASSISTANT.SUBTITLE') }}
-      </p>
-    </header>
-    <Spinner v-if="loading" class="mx-auto" :size="32" />
+        class="h-12 rounded-xl bg-n-slate-3 motion-safe:animate-pulse"
+        aria-hidden="true"
+      />
+      <div
+        class="h-32 rounded-xl bg-n-slate-3 motion-safe:animate-pulse"
+        aria-hidden="true"
+      />
+      <div
+        class="h-20 rounded-xl bg-n-slate-3 motion-safe:animate-pulse"
+        aria-hidden="true"
+      />
+    </div>
     <div v-else-if="loadError" class="space-y-4">
-      <p role="alert" class="text-sm text-n-ruby-11">
+      <AuthFeedback error>
         {{ t('ONBOARDING_ASSISTANT.LOAD_ERROR') }}
-      </p>
-      <button type="button" :class="BUTTON_CLASS" @click="initialize">
+      </AuthFeedback>
+      <AuthButton @click="initialize">
         {{ t('ONBOARDING_ASSISTANT.RETRY') }}
-      </button>
+      </AuthButton>
     </div>
     <form
       v-else-if="editing"
       id="assistant-form"
-      class="space-y-5"
+      class="space-y-4"
       @submit.prevent="createAndTest"
     >
+      <AuthField
+        id="assistant-name"
+        v-model="name"
+        required
+        maxlength="120"
+        :disabled="busy"
+        :label="t('ONBOARDING_ASSISTANT.NAME')"
+      />
       <div class="space-y-2">
-        <label for="assistant-name" class="text-sm font-medium text-n-slate-12">
-          {{ t('ONBOARDING_ASSISTANT.NAME') }}
-        </label>
-        <input
-          id="assistant-name"
-          v-model="name"
-          required
-          maxlength="120"
-          :disabled="busy"
-          class="rounded-full"
-          :class="[INPUT_CLASS]"
-        />
-      </div>
-      <div class="space-y-2">
-        <label for="assistant-goal" class="text-sm font-medium text-n-slate-12">
+        <label
+          for="assistant-goal"
+          class="text-sm font-medium leading-5 text-n-slate-12"
+        >
           {{ t('ONBOARDING_ASSISTANT.GOAL') }}
         </label>
         <textarea
           id="assistant-goal"
           v-model="goal"
           required
-          rows="4"
-          maxlength="2000"
+          rows="3"
+          :maxlength="GOAL_MAX_LENGTH"
           :disabled="busy"
-          class="resize-y rounded-2xl"
-          :class="[INPUT_CLASS]"
+          :class="AUTH_FIELD_CLASS"
+          class="resize-none"
+          aria-describedby="goal-count goal-examples"
         />
-        <p class="mb-2 text-xs text-n-slate-11">
+        <p
+          id="goal-count"
+          class="m-0 text-end text-sm leading-5 text-n-slate-11"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {{
+            t('ONBOARDING_ASSISTANT.CHARACTERS', {
+              count: goal.length,
+              max: GOAL_MAX_LENGTH,
+            })
+          }}
+        </p>
+        <p id="goal-examples" class="m-0 text-sm leading-6 text-n-slate-11">
           {{ t('ONBOARDING_ASSISTANT.EXAMPLES_LABEL') }}
         </p>
         <div class="flex flex-wrap gap-2">
           <button
-            v-for="example in examples"
+            v-for="(example, index) in examples"
             :key="example"
             type="button"
-            class="rounded-2xl bg-n-slate-3 px-3 py-2 text-start text-xs leading-5 text-n-slate-11 hover:bg-n-slate-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand disabled:opacity-60"
+            class="min-h-11 max-w-full rounded-full border border-solid px-3 py-2 text-start text-sm leading-5 text-n-slate-12 hover:border-n-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-brand disabled:opacity-60 motion-safe:transition-all motion-safe:duration-150 motion-safe:active:scale-[0.98]"
+            :class="
+              goal === example
+                ? 'border-n-brand bg-n-blue-2'
+                : 'border-n-slate-9 dark:border-n-slate-10 bg-transparent'
+            "
             :disabled="busy"
+            :title="example"
+            :aria-label="`${exampleLabels[index]}: ${example}`"
+            :aria-pressed="goal === example"
             data-testid="example"
             @click="goal = example"
           >
-            {{ example }}
+            {{ exampleLabels[index] }}
           </button>
         </div>
       </div>
-      <fieldset>
-        <legend class="mb-2 text-sm font-medium text-n-slate-12">
+      <fieldset role="radiogroup" aria-labelledby="assistant-tone-label">
+        <legend
+          id="assistant-tone-label"
+          class="mb-2 text-sm font-medium leading-5 text-n-slate-12"
+        >
           {{ t('ONBOARDING_ASSISTANT.TONE') }}
         </legend>
         <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <label
+          <AuthChoiceCard
             v-for="option in toneOptions"
             :key="option.value"
-            class="relative flex cursor-pointer items-center justify-center gap-2 rounded-2xl px-4 py-4 text-sm text-n-slate-12 outline outline-1 focus-within:outline-2 focus-within:outline-n-brand"
-            :class="
-              tone === option.value
-                ? 'bg-n-slate-3 outline-n-slate-12'
-                : 'outline-n-weak'
-            "
-          >
-            <input
-              v-model="tone"
-              type="radio"
-              name="assistant-tone"
-              :value="option.value"
-              :disabled="busy"
-              class="sr-only"
-            />
-            {{ option.label }}
-          </label>
+            v-model="tone"
+            name="assistant-tone"
+            v-bind="option"
+            :disabled="busy"
+          />
         </div>
       </fieldset>
     </form>
     <section
       v-else
-      class="space-y-4"
+      class="space-y-4 motion-safe:animate-fade-in-up motion-safe:[animation-duration:200ms]"
       :aria-label="t('ONBOARDING_ASSISTANT.CHAT')"
     >
-      <div class="rounded-2xl bg-n-slate-3 p-4">
-        <p class="mb-1 break-words font-medium text-n-slate-12">
-          {{ assistant.name }}
-        </p>
-        <p class="mb-0 text-sm leading-6 text-n-slate-11">
-          {{
-            active
-              ? t('ONBOARDING_ASSISTANT.ACTIVE')
-              : t('ONBOARDING_ASSISTANT.DRAFT')
-          }}
-        </p>
-      </div>
-      <h3 class="text-base font-semibold text-n-slate-12">
-        {{ t('ONBOARDING_ASSISTANT.CHAT') }}
-      </h3>
-      <p
-        v-if="assistant.paused_reason"
+      <div
         role="status"
-        class="text-sm text-n-slate-11"
+        class="flex items-start gap-3 rounded-xl bg-n-slate-3 p-4"
       >
+        <span
+          class="i-lucide-circle-check mt-1 size-5 shrink-0 text-n-teal-11"
+          aria-hidden="true"
+        />
+        <div class="min-w-0 space-y-1">
+          <p
+            class="m-0 break-words text-base font-medium leading-6 text-n-slate-12"
+          >
+            {{ assistant.name }}
+          </p>
+          <p class="m-0 text-sm leading-6 text-n-slate-11">
+            {{
+              active
+                ? t('ONBOARDING_ASSISTANT.ACTIVE')
+                : t('ONBOARDING_ASSISTANT.DRAFT')
+            }}
+          </p>
+        </div>
+      </div>
+      <h2 class="m-0 text-base font-semibold leading-6 text-n-slate-12">
+        {{ t('ONBOARDING_ASSISTANT.CHAT') }}
+      </h2>
+      <AuthFeedback v-if="assistant.paused_reason">
         {{ t('ONBOARDING_ASSISTANT.AI_UNAVAILABLE') }}
-      </p>
+      </AuthFeedback>
       <button
         v-if="assistant.paused_reason && !chatError"
         type="button"
-        class="rounded-full px-3 py-2 text-sm font-medium text-n-slate-12 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand disabled:opacity-60"
+        :class="AUTH_LINK_CLASS"
         :disabled="busy"
         data-testid="ai-retry"
         @click="initialize"
@@ -357,25 +406,38 @@ const complete = async activate => {
         {{ t('ONBOARDING_ASSISTANT.RETRY') }}
       </button>
       <div
+        ref="chatLog"
         role="log"
         aria-live="polite"
-        class="max-h-80 space-y-3 overflow-y-auto rounded-2xl bg-n-alpha-1 p-4"
+        :aria-label="t('ONBOARDING_ASSISTANT.CHAT')"
+        tabindex="0"
+        class="flex max-h-40 min-h-24 flex-col gap-3 overflow-y-auto rounded-xl border border-n-slate-9 dark:border-n-slate-10 bg-n-slate-2 p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
       >
-        <p
+        <div
           v-if="!messages.length"
-          class="mb-0 text-sm leading-6 text-n-slate-11"
+          class="flex flex-1 flex-col items-center justify-center gap-2 text-center text-sm leading-6 text-n-slate-11"
+          data-testid="chat-empty"
         >
-          {{ t('ONBOARDING_ASSISTANT.CHAT_EMPTY') }}
-        </p>
+          <span
+            class="i-lucide-messages-square size-6 shrink-0"
+            aria-hidden="true"
+          />
+          <p class="m-0">{{ t('ONBOARDING_ASSISTANT.CHAT_EMPTY') }}</p>
+        </div>
         <div
           v-for="(message, index) in messages"
           :key="index"
-          class="rounded-2xl p-3"
+          class="max-w-[90%] shrink-0 rounded-2xl p-3 motion-safe:animate-fade-in-up motion-safe:[animation-duration:200ms]"
           :class="
-            message.role === 'user' ? 'ms-5 bg-n-slate-3' : 'me-5 bg-n-solid-1'
+            message.role === 'user'
+              ? 'self-end rounded-ee-sm bg-n-slate-4'
+              : 'self-start rounded-es-sm bg-n-solid-1 dark:bg-n-solid-3'
           "
+          :data-message-role="message.role"
         >
-          <p class="mb-1 text-xs font-medium text-n-slate-11">
+          <p
+            class="m-0 mb-1 break-words text-sm font-medium leading-5 text-n-slate-11"
+          >
             {{
               message.role === 'user'
                 ? t('ONBOARDING_ASSISTANT.YOU')
@@ -383,98 +445,102 @@ const complete = async activate => {
             }}
           </p>
           <p
-            class="mb-0 whitespace-pre-wrap break-words text-sm leading-6 text-n-slate-12"
+            class="m-0 whitespace-pre-wrap break-words text-sm leading-6 text-n-slate-12"
           >
             {{ message.content }}
           </p>
         </div>
-        <p v-if="sending" role="status" class="mb-0 text-sm text-n-slate-11">
-          {{ t('ONBOARDING_ASSISTANT.THINKING') }}
+        <p
+          v-if="sending"
+          role="status"
+          class="m-0 flex items-center gap-2 text-sm leading-6 text-n-slate-11 motion-reduce:[&_svg]:animate-none"
+        >
+          <Spinner :size="16" aria-hidden="true" />{{
+            t('ONBOARDING_ASSISTANT.THINKING')
+          }}
         </p>
       </div>
-      <div
-        v-if="chatError"
-        role="alert"
-        class="space-y-2 text-sm text-n-ruby-11"
-      >
-        <p class="mb-0">{{ chatError }}</p>
-        <button
-          type="button"
-          class="rounded-full px-3 py-2 font-medium underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand disabled:opacity-60"
-          :disabled="busy"
-          @click="sendQuestion(true)"
-        >
-          {{ t('ONBOARDING_ASSISTANT.RETRY') }}
-        </button>
-      </div>
-      <form class="space-y-3" @submit.prevent="sendQuestion()">
-        <label
-          for="assistant-question"
-          class="text-sm font-medium text-n-slate-12"
-        >
-          {{ t('ONBOARDING_ASSISTANT.QUESTION') }}
-        </label>
-        <input
-          id="assistant-question"
-          v-model="question"
-          class="rounded-full"
-          :class="[INPUT_CLASS]"
-          :disabled="busy || Boolean(chatError)"
-        />
-        <button
-          type="submit"
-          :class="BUTTON_CLASS"
-          :disabled="busy || !question.trim() || Boolean(chatError)"
-        >
-          {{ t('ONBOARDING_ASSISTANT.SEND') }}
-        </button>
+      <form class="space-y-2" @submit.prevent="sendQuestion()">
+        <div class="relative">
+          <textarea
+            id="assistant-question"
+            v-model="question"
+            rows="1"
+            :class="AUTH_FIELD_CLASS"
+            class="!h-14 resize-none !py-3.5 pe-16"
+            :placeholder="t('ONBOARDING_ASSISTANT.QUESTION_PLACEHOLDER')"
+            :aria-label="t('ONBOARDING_ASSISTANT.QUESTION')"
+            :disabled="busy || Boolean(chatError)"
+            :aria-invalid="Boolean(chatError)"
+            :aria-describedby="chatError ? 'assistant-chat-error' : undefined"
+            @keydown="onQuestionKeydown"
+          />
+          <AuthButton
+            type="submit"
+            variant="secondary"
+            class="absolute end-1 top-1 !min-h-12 !w-12 !border-0 !bg-transparent !px-0"
+            :loading="sending"
+            :disabled="busy || !question.trim() || Boolean(chatError)"
+            :aria-label="t('ONBOARDING_ASSISTANT.SEND')"
+          >
+            <span
+              v-if="!sending"
+              class="i-lucide-arrow-up size-5"
+              aria-hidden="true"
+            />
+          </AuthButton>
+        </div>
+        <AuthFeedback v-if="chatError" id="assistant-chat-error" error>
+          <p class="m-0">{{ chatError }}</p>
+          <button
+            type="button"
+            :class="AUTH_LINK_CLASS"
+            :disabled="busy"
+            @click="sendQuestion(true)"
+          >
+            {{ t('ONBOARDING_ASSISTANT.RETRY') }}
+          </button>
+        </AuthFeedback>
       </form>
     </section>
     <template #footer>
-      <p v-if="errorMessage" role="alert" class="mb-3 text-sm text-n-ruby-11">
-        {{ errorMessage }}
-      </p>
+      <AuthFeedback v-if="errorMessage" error>{{ errorMessage }}</AuthFeedback>
       <template v-if="!loading && !loadError">
-        <button
+        <AuthButton
           v-if="editing"
           type="submit"
           form="assistant-form"
-          :class="BUTTON_CLASS"
+          :loading="saving"
           :disabled="busy || !valid"
-          :aria-busy="saving"
           data-testid="create"
         >
-          <Spinner v-if="saving" :size="20" aria-hidden="true" />
           {{
             saving
               ? t('ONBOARDING_ASSISTANT.CREATING')
               : t('ONBOARDING_ASSISTANT.CREATE')
           }}
-        </button>
+        </AuthButton>
         <template v-else>
-          <button
-            type="button"
-            :class="BUTTON_CLASS"
+          <AuthButton
             :disabled="busy || !whatsappInbox"
-            :aria-busy="finishing"
+            :loading="finishing"
             data-testid="activate"
             @click="complete(true)"
           >
-            <Spinner v-if="finishing" :size="20" aria-hidden="true" />
             {{
               active
                 ? t('ONBOARDING_ASSISTANT.CONTINUE')
                 : t('ONBOARDING_ASSISTANT.ACTIVATE')
             }}
-          </button>
+          </AuthButton>
           <p
             v-if="!whatsappInbox"
-            class="mt-3 mb-0 text-center text-sm text-n-slate-11"
+            class="m-0 text-center text-sm leading-6 text-n-slate-11"
           >
             {{ t('ONBOARDING_ASSISTANT.CONNECT_REQUIRED') }}
             <RouterLink
               :to="{ name: 'onboarding_inbox_setup', params: { accountId } }"
-              class="rounded font-medium text-n-slate-12 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
+              :class="AUTH_LINK_CLASS"
             >
               {{ t('ONBOARDING_ASSISTANT.BACK_WHATSAPP') }}
             </RouterLink>
@@ -482,7 +548,8 @@ const complete = async activate => {
           <button
             v-if="!active"
             type="button"
-            class="mt-4 w-full rounded-full px-4 py-2 text-sm text-n-slate-12 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand disabled:opacity-60"
+            :class="AUTH_LINK_CLASS"
+            class="w-full"
             :disabled="busy"
             data-testid="edit"
             @click="keepEditing"
@@ -493,11 +560,14 @@ const complete = async activate => {
       </template>
       <button
         type="button"
-        class="mt-4 w-full rounded-full px-4 py-2 text-sm text-n-slate-11 hover:text-n-slate-12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand disabled:opacity-60"
+        :class="AUTH_LINK_CLASS"
+        class="w-full"
         :disabled="loading || busy"
+        :aria-busy="finishing"
         data-testid="skip"
         @click="complete(false)"
       >
+        <Spinner v-if="finishing" :size="16" aria-hidden="true" />
         {{ t('ONBOARDING_ASSISTANT.SKIP') }}
       </button>
     </template>
