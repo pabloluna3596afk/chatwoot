@@ -14,7 +14,9 @@
     },
     "PASSWORD": {
       "LABEL": "Password",
-      "PLACEHOLDER": "Password"
+      "PLACEHOLDER": "Password",
+      "SHOW": "Show password",
+      "HIDE": "Hide password"
     },
     "API": {
       "SUCCESS_MESSAGE": "Login successful",

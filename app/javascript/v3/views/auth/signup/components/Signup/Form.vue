@@ -9,10 +9,11 @@ import { useRouter } from 'vue-router';
 import { useAlert } from 'dashboard/composables';
 import VueHcaptcha from '@hcaptcha/vue3-hcaptcha';
 import FormInput from '../../../../../components/Form/Input.vue';
-import NextButton from 'dashboard/components-next/button/Button.vue';
+import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import PasswordRequirements from './PasswordRequirements.vue';
 import { isValidPassword } from 'shared/helpers/Validators';
 import GoogleOAuthButton from '../../../../../components/GoogleOauth/Button.vue';
+import SimpleDivider from '../../../../../components/Divider/SimpleDivider.vue';
 import { register } from '../../../../../api/auth';
 
 const MIN_PASSWORD_LENGTH = 6;
@@ -22,7 +23,6 @@ const { t } = useI18n();
 const router = useRouter();
 
 const hCaptcha = ref(null);
-const isPasswordFocused = ref(false);
 const isSignupInProgress = ref(false);
 
 const credentials = reactive({
@@ -127,41 +127,35 @@ const onCaptchaError = () => {
         v-model="credentials.email"
         type="email"
         name="email_address"
-        :class="{ error: v$.credentials.email.$error }"
+        autocomplete="email"
+        required
+        label-sr-only
+        outlined
         :label="$t('REGISTER.EMAIL.LABEL')"
         :placeholder="$t('REGISTER.EMAIL.PLACEHOLDER')"
         :has-error="v$.credentials.email.$error"
         :error-message="$t('REGISTER.EMAIL.ERROR')"
         @blur="v$.credentials.email.$touch"
       />
-      <div class="relative">
+      <div>
         <FormInput
           v-model="credentials.password"
           type="password"
           name="password"
-          :class="{ error: v$.credentials.password.$error }"
-          :label="$t('LOGIN.PASSWORD.LABEL')"
-          :placeholder="$t('SET_NEW_PASSWORD.PASSWORD.PLACEHOLDER')"
+          autocomplete="new-password"
+          required
+          label-sr-only
+          outlined
+          aria-describedby="signup-password-requirements"
+          :label="$t('REGISTER.PASSWORD.LABEL')"
+          :placeholder="$t('REGISTER.PASSWORD.PLACEHOLDER')"
           :has-error="v$.credentials.password.$error"
-          @focus="isPasswordFocused = true"
-          @blur="
-            isPasswordFocused = false;
-            v$.credentials.password.$touch();
-          "
+          @blur="v$.credentials.password.$touch"
         />
-        <Transition
-          enter-active-class="transition duration-200 ease-out origin-left"
-          enter-from-class="opacity-0 scale-90 translate-x-1"
-          enter-to-class="opacity-100 scale-100 translate-x-0"
-          leave-active-class="transition duration-150 ease-in origin-left"
-          leave-from-class="opacity-100 scale-100 translate-x-0"
-          leave-to-class="opacity-0 scale-90 translate-x-1"
-        >
-          <PasswordRequirements
-            v-if="isPasswordFocused"
-            :password="credentials.password"
-          />
-        </Transition>
+        <PasswordRequirements
+          id="signup-password-requirements"
+          :password="credentials.password"
+        />
       </div>
       <VueHcaptcha
         v-if="globalConfig.hCaptchaSiteKey"
@@ -174,21 +168,32 @@ const onCaptchaError = () => {
         @challenge-expired="onCaptchaError"
         @closed="onCaptchaError"
       />
-      <NextButton
-        lg
+      <button
         type="submit"
         data-testid="submit_button"
-        class="w-full font-medium"
-        :label="$t('REGISTER.SUBMIT')"
+        class="flex h-14 w-full items-center justify-center rounded-full bg-n-slate-12 px-6 text-base font-medium text-n-solid-1 transition-opacity hover:enabled:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-n-brand disabled:cursor-not-allowed disabled:opacity-60"
+        :aria-label="$t('REGISTER.SUBMIT')"
+        :aria-busy="isSignupInProgress"
         :disabled="isSignupInProgress || !isFormValid"
-        :is-loading="isSignupInProgress"
-      />
+      >
+        <Spinner v-if="isSignupInProgress" :size="20" aria-hidden="true" />
+        <span v-else>{{ $t('REGISTER.SUBMIT') }}</span>
+      </button>
     </form>
-    <GoogleOAuthButton v-if="showGoogleOAuth" class="mt-3">
-      {{ $t('REGISTER.OAUTH.GOOGLE_SIGNUP') }}
-    </GoogleOAuthButton>
+    <div v-if="showGoogleOAuth" class="mt-6 space-y-3">
+      <SimpleDivider
+        :label="$t('REGISTER.OR')"
+        bg="bg-n-solid-1 dark:bg-n-background"
+      />
+      <GoogleOAuthButton>
+        {{ $t('REGISTER.OAUTH.GOOGLE_SIGNUP') }}
+      </GoogleOAuthButton>
+      <p class="text-center text-xs text-n-slate-11">
+        {{ $t('REGISTER.OAUTH.PASSWORD_NOTICE') }}
+      </p>
+    </div>
     <p
-      class="text-sm mt-5 mb-0 text-n-slate-11 [&>a]:text-n-blue-10 [&>a]:font-medium [&>a]:hover:text-n-blue-11"
+      class="text-sm mt-6 mb-0 text-center text-n-slate-11 [&>a]:text-n-blue-10 [&>a]:font-medium [&>a]:hover:text-n-blue-11"
       v-html="sanitizedTermsLink"
     />
   </div>

@@ -3,7 +3,7 @@ import GoogleOAuthButton from './Button.vue';
 
 function getWrapper() {
   return shallowMount(GoogleOAuthButton, {
-    mocks: { $t: text => text },
+    global: { mocks: { $t: text => text } },
   });
 }
 
@@ -31,5 +31,16 @@ describe('GoogleOAuthButton.vue', () => {
     );
     expect(params.get('response_type')).toBe('code');
     expect(params.get('scope')).toBe('email profile');
+  });
+
+  it('uses the login label by default', () => {
+    expect(getWrapper().get('a').text()).toBe('LOGIN.OAUTH.GOOGLE_LOGIN');
+  });
+
+  it('accepts signup copy through its default slot', () => {
+    const wrapper = shallowMount(GoogleOAuthButton, {
+      slots: { default: 'Registrarte con Google' },
+    });
+    expect(wrapper.get('a').text()).toBe('Registrarte con Google');
   });
 });

@@ -3,6 +3,8 @@ import { reactive, nextTick } from 'vue';
 import { createI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import es from 'dashboard/i18n/locale/es/signup.json';
+import login from 'dashboard/i18n/locale/es/login.json';
+import SimpleDivider from '../../../../../components/Divider/SimpleDivider.vue';
 import Form from './Form.vue';
 
 const { post, push, execute, reset } = vi.hoisted(() => ({
@@ -24,16 +26,22 @@ describe('Signup Form', () => {
   let wrapper;
 
   beforeEach(async () => {
-    window.chatwootConfig = { allowedLoginMethods: ['email'] };
+    window.chatwootConfig = reactive({
+      allowedLoginMethods: ['email'],
+      googleOAuthClientId: '',
+    });
     globalConfig = reactive({ hCaptchaSiteKey: '' });
     wrapper = mount(Form, {
       global: {
         plugins: [
-          createI18n({ legacy: false, locale: 'es', messages: { es } }),
+          createI18n({
+            legacy: false,
+            locale: 'es',
+            messages: { es: { ...es, ...login } },
+          }),
         ],
         stubs: {
           NextButton: false,
-          PasswordRequirements: true,
           VueHcaptcha: {
             name: 'VueHcaptcha',
             methods: { execute, reset },
@@ -165,5 +173,92 @@ describe('Signup Form', () => {
     expect(
       wrapper.get('[data-testid="submit_button"]').attributes('disabled')
     ).toBeDefined();
+  });
+
+  it.each([
+    '',
+    'short',
+    'lowercase1!',
+    'UPPERCASE1!',
+    'NoNumbers!',
+    'NoSpecial1',
+  ])('blocks invalid password %j before making a request', async password => {
+    await wrapper.get('input[name="password"]').setValue(password);
+    await wrapper.get('form').trigger('submit');
+    expect(post).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+    expect(wrapper.get('[data-testid="submit_button"]').element.disabled).toBe(
+      true
+    );
+  });
+
+  it('keeps translated requirements below the password and updates each check live', async () => {
+    const input = wrapper.get('input[name="password"]');
+    const requirements = wrapper.get('#signup-password-requirements');
+    expect(input.attributes('aria-describedby')).toBe(
+      'signup-password-requirements'
+    );
+    expect(requirements.findAll('li')).toHaveLength(5);
+    expect(requirements.text()).toContain(
+      es.REGISTER.PASSWORD.REQUIREMENTS_LENGTH
+    );
+    expect(requirements.classes()).toContain('w-full');
+    expect(requirements.classes()).not.toContain('absolute');
+    await input.setValue('');
+    expect(requirements.findAll('.i-lucide-circle-check-big')).toHaveLength(0);
+    await input.setValue('a');
+    expect(requirements.findAll('.i-lucide-circle-check-big')).toHaveLength(1);
+    await input.setValue('aA');
+    expect(requirements.findAll('.i-lucide-circle-check-big')).toHaveLength(2);
+    await input.setValue('aA1');
+    expect(requirements.findAll('.i-lucide-circle-check-big')).toHaveLength(3);
+    await input.setValue('aA1!');
+    expect(requirements.findAll('.i-lucide-circle-check-big')).toHaveLength(4);
+    await input.setValue('aA1!xx');
+    expect(
+      requirements.findAll('.i-lucide-circle-check-big.text-n-teal-10')
+    ).toHaveLength(5);
+    await input.trigger('blur');
+    expect(requirements.isVisible()).toBe(true);
+  });
+
+  it.each([
+    [['email'], 'client-id', false],
+    [['email', 'google_oauth'], '', false],
+    [['email', 'google_oauth'], 'client-id', true],
+  ])(
+    'shows Google only for methods %j and client ID %j',
+    async (methods, clientId, visible) => {
+      window.chatwootConfig.allowedLoginMethods = methods;
+      window.chatwootConfig.googleOAuthClientId = clientId;
+      await nextTick();
+      expect(
+        wrapper.find('a[href^="https://accounts.google.com"]').exists()
+      ).toBe(visible);
+      expect(wrapper.text().includes(es.REGISTER.OAUTH.PASSWORD_NOTICE)).toBe(
+        visible
+      );
+      const divider = wrapper.findComponent(SimpleDivider);
+      expect(divider.exists()).toBe(visible);
+      if (visible) {
+        expect(
+          wrapper.get('a[href^="https://accounts.google.com"]').text()
+        ).toBe('Registrarte con Google');
+        expect(divider.props('label')).toBe(es.REGISTER.OR);
+        expect(divider.text()).toBe(es.REGISTER.OR);
+        expect(divider.props('bg')).toBe('bg-n-solid-1 dark:bg-n-background');
+      }
+    }
+  );
+
+  it('shows a spinner and blocks duplicate submissions while registering', async () => {
+    post.mockReturnValueOnce(new Promise(() => {}));
+    await wrapper.get('form').trigger('submit');
+    const button = wrapper.get('[data-testid="submit_button"]');
+    expect(button.attributes('aria-busy')).toBe('true');
+    expect(button.element.disabled).toBe(true);
+    expect(button.find('svg.animate-spin').exists()).toBe(true);
+    await wrapper.get('form').trigger('submit');
+    expect(post).toHaveBeenCalledOnce();
   });
 });

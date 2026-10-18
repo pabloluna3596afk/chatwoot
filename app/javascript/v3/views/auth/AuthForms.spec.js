@@ -51,7 +51,7 @@ describe('shared auth form compatibility', () => {
     ['signup', SignupForm],
     ['SAML', Saml],
   ])(
-    'preserves visible labels and default field sizing in %s',
+    'keeps accessible labels and the intended field variant in %s',
     (name, view) => {
       wrapper = mount(view, {
         global: { plugins, stubs: { Button: false, NextButton: false } },
@@ -61,34 +61,38 @@ describe('shared auth form compatibility', () => {
       expect(labels.length).toBe(view === SignupForm ? 2 : 1);
       labels.forEach(label => {
         expect(label.text()).not.toBe('');
-        expect(label.classes('sr-only')).toBe(false);
+        expect(label.classes('sr-only')).toBe(view === SignupForm);
         const input = wrapper.get(`input[id="${label.attributes('for')}"]`);
         expect(input.classes()).toEqual(
           expect.arrayContaining([
-            'rounded-md',
-            'shadow-sm',
-            'bg-n-alpha-black2',
-            'px-3',
+            ...(view === SignupForm
+              ? ['rounded-xl', 'bg-n-solid-1', 'px-4', 'h-14', 'reset-base']
+              : [
+                  'rounded-md',
+                  'shadow-sm',
+                  'bg-n-alpha-black2',
+                  'px-3',
+                  'sm:text-sm',
+                  'sm:leading-6',
+                ]),
             'py-3',
-            'sm:text-sm',
-            'sm:leading-6',
           ])
         );
-        expect(input.classes('h-14')).toBe(false);
-        expect(input.classes('reset-base')).toBe(false);
+        expect(input.classes('h-14')).toBe(view === SignupForm);
+        expect(input.classes('reset-base')).toBe(view === SignupForm);
       });
     }
   );
 
-  it('keeps the signup password eye and its original spacing', async () => {
+  it('keeps the signup password eye with outlined spacing', async () => {
     wrapper = mount(SignupForm, {
       global: { plugins, stubs: { Button: false, NextButton: false } },
     });
     const input = wrapper.get('input[name="password"]');
     const button = wrapper.get('button[aria-pressed]');
-    expect(input.classes('pe-10')).toBe(true);
-    expect(button.classes('pe-3')).toBe(true);
-    expect(button.classes('!h-full')).toBe(false);
+    expect(input.classes('pe-12')).toBe(true);
+    expect(button.classes('!px-3')).toBe(true);
+    expect(button.classes('!h-full')).toBe(true);
     await input.setValue('Strong!Password1');
     await button.trigger('click');
     expect(input.attributes('type')).toBe('text');

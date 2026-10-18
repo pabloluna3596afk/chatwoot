@@ -110,7 +110,11 @@ const currentInputType = computed(() => {
       :icon="isPasswordVisible ? 'i-lucide-eye-off' : 'i-lucide-eye'"
       class="absolute inset-y-0 end-0"
       :class="outlined ? '!h-full !px-3' : 'pe-3'"
-      :aria-label="isPasswordVisible ? 'Hide password' : 'Show password'"
+      :aria-label="
+        isPasswordVisible
+          ? $t('LOGIN.PASSWORD.HIDE')
+          : $t('LOGIN.PASSWORD.SHOW')
+      "
       :aria-pressed="isPasswordVisible"
       @click="isPasswordVisible = !isPasswordVisible"
     />

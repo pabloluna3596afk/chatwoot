@@ -7,6 +7,7 @@ import { useAlert } from 'dashboard/composables';
 import en from 'dashboard/i18n/locale/en/login.json';
 import es from 'dashboard/i18n/locale/es/login.json';
 import Login from './Index.vue';
+import AuthSplitLayout from '../../components/Auth/AuthSplitLayout.vue';
 
 vi.mock('../../api/auth', () => ({ login: vi.fn() }));
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
@@ -80,6 +81,19 @@ afterEach(() => {
 });
 
 describe('login', () => {
+  it('renders the unchanged login content inside the shared auth layout', () => {
+    wrapper = mount(Login);
+    const layout = wrapper.getComponent(AuthSplitLayout);
+    expect(layout.props()).toEqual({
+      title: en.LOGIN.MARKETING.TITLE,
+      subtitle: en.LOGIN.MARKETING.SUBTITLE,
+    });
+    expect(layout.get('h1').text()).toBe(en.LOGIN.MARKETING.TITLE);
+    expect(layout.get('form').exists()).toBe(true);
+    expect(wrapper.get('input[type="email"]').classes()).toContain('h-14');
+    expect(wrapper.get('button[type="submit"]').classes()).toContain('h-14');
+  });
+
   it.each(['en', 'es'])('renders the form and links in %s', locale => {
     i18n.global.locale.value = locale;
     const messages = { en, es }[locale].LOGIN;
