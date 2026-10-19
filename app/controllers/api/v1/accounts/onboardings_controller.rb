@@ -6,7 +6,8 @@ class Api::V1::Accounts::OnboardingsController < Api::V1::Accounts::BaseControll
   ONBOARDING_STEP_KEY = 'onboarding_step'.freeze
   STEP_ACCOUNT_DETAILS = 'account_details'.freeze
   STEP_INBOX_SETUP = 'inbox_setup'.freeze
-  ONBOARDING_STEPS = [STEP_ACCOUNT_DETAILS, STEP_INBOX_SETUP].freeze
+  STEP_ASSISTANT = 'assistant'.freeze
+  ONBOARDING_STEPS = [STEP_ACCOUNT_DETAILS, STEP_INBOX_SETUP, STEP_ASSISTANT].freeze
   BUSINESS_TYPES = %w[appointments commerce services other].freeze
   INBOX_SETUP_RESULTS = %w[whatsapp_connected skipped].freeze
 
@@ -17,7 +18,7 @@ class Api::V1::Accounts::OnboardingsController < Api::V1::Accounts::BaseControll
     # The client declares the step it is completing; `account_details` runs
     # `complete_account_details`, and so on. The known-step guard above keeps the
     # client value from `send`-ing an arbitrary method.
-    send("complete_#{params[:onboarding_step]}")
+    @account.with_lock { send("complete_#{params[:onboarding_step]}") }
 
     render 'api/v1/accounts/update', format: :json
   end
@@ -80,6 +81,13 @@ class Api::V1::Accounts::OnboardingsController < Api::V1::Accounts::BaseControll
     Onboarding::InboxMemberAssignmentService.new(@account, Current.account_user).perform
     @account.custom_attributes['inbox_setup_result'] = params[:inbox_setup_result] if onboarding_v2?
 
+    onboarding_v2? ? move_to_step(STEP_ASSISTANT) : finish_onboarding
+  end
+
+  def complete_assistant
+    return unless onboarding_v2? && current_step == STEP_ASSISTANT
+
+    Onboarding::InboxMemberAssignmentService.new(@account, Current.account_user).perform
     finish_onboarding
   end
 

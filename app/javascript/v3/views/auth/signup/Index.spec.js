@@ -1,3 +1,5 @@
+import authEn from 'dashboard/i18n/locale/en/auth.json';
+import authEs from 'dashboard/i18n/locale/es/auth.json';
 import { flushPromises, mount } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import { createStore } from 'vuex';
@@ -48,15 +50,20 @@ describe('Signup page', () => {
       const i18n = createI18n({
         legacy: false,
         locale,
-        messages: { en: { ...en, ...loginEn }, es: { ...es, ...loginEs } },
+        messages: {
+          en: { ...en, ...loginEn, ...authEn },
+          es: { ...es, ...loginEs, ...authEs },
+        },
       });
       wrapper = mount(Signup, {
         global: { plugins: [store, router, i18n] },
       });
       expect(wrapper.getComponent(AuthSplitLayout).exists()).toBe(true);
-      expect(wrapper.get('h1').text()).toBe(messages.MARKETING.TITLE);
+      expect(wrapper.get('[data-testid="auth-marketing-title"]').text()).toBe(
+        messages.MARKETING.TITLE
+      );
       expect(wrapper.text()).toContain(messages.MARKETING.SUBTITLE);
-      expect(wrapper.get('h2').text()).toBe(messages.TITLE);
+      expect(wrapper.get('h1').text()).toBe(messages.TITLE);
       expect(wrapper.text()).toContain(messages.HAVE_AN_ACCOUNT);
       expect(wrapper.findAll('input')).toHaveLength(2);
       expect(wrapper.find('select').exists()).toBe(false);
@@ -70,17 +77,17 @@ describe('Signup page', () => {
       ).toBe(messages.PASSWORD.LABEL);
       wrapper.findAll('input').forEach(input => {
         expect(input.classes()).toEqual(
-          expect.arrayContaining(['h-14', 'rounded-xl'])
+          expect.arrayContaining(['min-h-14', 'rounded-xl', 'border-solid'])
         );
         expect(input.attributes('placeholder')).toBeTruthy();
       });
       expect(
-        wrapper.findAll('label').every(label => label.classes('sr-only'))
+        wrapper.findAll('label').every(label => !label.classes('sr-only'))
       ).toBe(true);
       const submit = wrapper.get('button[type="submit"]');
       expect(submit.text()).toBe(messages.SUBMIT);
       expect(submit.classes()).toEqual(
-        expect.arrayContaining(['h-14', 'rounded-full'])
+        expect.arrayContaining(['min-h-12', 'rounded-xl'])
       );
       expect(wrapper.get('p a[href$="/terms"]').exists()).toBe(true);
       const link = wrapper.get('a[href="/app/login"]');

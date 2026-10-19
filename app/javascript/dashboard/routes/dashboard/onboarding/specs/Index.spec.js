@@ -1,3 +1,5 @@
+import authEn from 'dashboard/i18n/locale/en/auth.json';
+import authEs from 'dashboard/i18n/locale/es/auth.json';
 import { flushPromises, mount } from '@vue/test-utils';
 import { reactive } from 'vue';
 import { createI18n } from 'vue-i18n';
@@ -69,7 +71,11 @@ describe('Business onboarding', () => {
       params: { accountId: 1 },
     });
     await router.isReady();
-    i18n = createI18n({ legacy: false, locale: 'es', messages: { en, es } });
+    i18n = createI18n({
+      legacy: false,
+      locale: 'es',
+      messages: { en: { ...en, ...authEn }, es: { ...es, ...authEs } },
+    });
     mountOptions = {
       attachTo: document.body,
       global: { plugins: [store, router, i18n] },
@@ -93,7 +99,7 @@ describe('Business onboarding', () => {
       const strings = { en, es }[lang].ONBOARDING_NEXT;
 
       expect(wrapper.getComponent(AuthSplitLayout).exists()).toBe(true);
-      expect(wrapper.get('h2').text()).toBe(strings.TITLE);
+      expect(wrapper.get('h1').text()).toBe(strings.TITLE);
       expect(wrapper.text()).toContain(
         i18n.global.t('ONBOARDING_NEXT.STEP', { current: 2, total: 5 })
       );
@@ -123,13 +129,13 @@ describe('Business onboarding', () => {
       expect(wrapper.find('[name="referral_source"]').exists()).toBe(false);
       expect(wrapper.get('[name="website"]').element.required).toBe(false);
       expect(wrapper.get('[name="name"]').classes()).toEqual(
-        expect.arrayContaining(['h-14', 'rounded-full'])
+        expect.arrayContaining(['min-h-14', 'rounded-xl', 'border-solid'])
       );
       expect(wrapper.get('button[type="submit"]').text()).toBe(
         strings.CONTINUE
       );
       expect(wrapper.get('button[type="submit"]').classes()).toEqual(
-        expect.arrayContaining(['h-14', 'rounded-full', 'bg-n-slate-12'])
+        expect.arrayContaining(['min-h-12', 'rounded-xl', 'bg-n-brand'])
       );
     },
     20000
@@ -145,7 +151,7 @@ describe('Business onboarding', () => {
     );
   });
 
-  it('keeps the submit footer outside the scrolling fields and pairs country with language from sm', async () => {
+  it('keeps the form scrollable above its separate action footer and pairs country with language from sm', async () => {
     wrapper = mount(Index, mountOptions);
     await flushPromises();
 
@@ -153,7 +159,7 @@ describe('Business onboarding', () => {
       true
     );
     expect(wrapper.get('main').classes()).toContain('h-dvh');
-    const scroller = wrapper.get('section .overflow-y-auto');
+    const scroller = wrapper.get('[data-testid="onboarding-scroll-content"]');
     expect(scroller.find('form').exists()).toBe(true);
     expect(scroller.find('button[type="submit"]').exists()).toBe(false);
     const submit = wrapper.get('button[type="submit"]');
@@ -177,6 +183,28 @@ describe('Business onboarding', () => {
     ).toBe(true);
   });
 
+  it('opts all three pickers into the same 56px bordered field with light, dark and keyboard focus states', () => {
+    wrapper = mount(Index, mountOptions);
+    const pickers = wrapper.findAllComponents(ComboBox);
+    expect(pickers).toHaveLength(3);
+    pickers.forEach(picker => {
+      expect(picker.get('button').classes()).toEqual(
+        expect.arrayContaining([
+          '!h-14',
+          '!rounded-xl',
+          '!border',
+          '!border-solid',
+          '!border-n-slate-9',
+          'dark:!border-n-slate-10',
+          '!bg-n-solid-1',
+          'dark:!bg-n-solid-3',
+          'focus-visible:!border-n-brand',
+          'focus-visible:ring-2',
+        ])
+      );
+    });
+  });
+
   it('exposes a radio group with one tab stop, brand selection, icons and a check', async () => {
     wrapper = mount(Index, mountOptions);
     const group = wrapper.get('[role="radiogroup"]');
@@ -193,13 +221,11 @@ describe('Business onboarding', () => {
       expect(
         card.querySelector(`.i-lucide-${icon}`).getAttribute('aria-hidden')
       ).toBe('true');
-      expect(
-        card.querySelector('.peer-checked\\:bg-n-brand\\/10')
-      ).not.toBeNull();
+      expect(card.querySelector('.peer-checked\\:bg-n-blue-2')).not.toBeNull();
       expect(
         card.querySelector('.peer-checked\\:border-n-brand')
       ).not.toBeNull();
-      expect(card.querySelector('.i-lucide-check')).not.toBeNull();
+      expect(card.querySelector('.i-lucide-circle-check')).not.toBeNull();
     });
     await radios[2].setValue();
     expect(radios.map(radio => radio.element.checked)).toEqual([
@@ -261,6 +287,7 @@ describe('Business onboarding', () => {
 
   it('requires an editable business name', async () => {
     wrapper = mount(Index, mountOptions);
+    await flushPromises();
     await wrapper.get('[name="name"]').setValue('');
     await wrapper.get('[value="other"]').setValue();
     await wrapper.get('form').trigger('submit');
@@ -270,6 +297,27 @@ describe('Business onboarding', () => {
       es.ONBOARDING_NEXT.NAME_REQUIRED
     );
   });
+
+  it.each(['en', 'es'])(
+    'saves a 60-character name without truncation in %s',
+    async lang => {
+      i18n.global.locale.value = lang;
+      wrapper = mount(Index, mountOptions);
+      await flushPromises();
+      const businessName = 'N'.repeat(60);
+      await wrapper.get('#business-name').setValue(businessName);
+      await wrapper.get('[value="other"]').setValue();
+      await wrapper.get('form').trigger('submit');
+      await flushPromises();
+      expect(OnboardingAPI.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: businessName,
+          business_type: 'other',
+          onboarding_step: 'account_details',
+        })
+      );
+    }
+  );
 
   it('prefills the account language and detected timezone, including zones omitted by supportedValuesOf', async () => {
     const detectedZone = Intl.DateTimeFormat().resolvedOptions().timeZone;

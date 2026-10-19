@@ -29,6 +29,10 @@ class CaptainAssistant extends ApiClient {
     return axios.delete(`${this.url}/${assistantId}/avatar`);
   }
 
+  playgroundUsage(assistantId) {
+    return axios.get(`${this.url}/${assistantId}/playground_usage`);
+  }
+
   playground({
     assistantId,
     messageContent,

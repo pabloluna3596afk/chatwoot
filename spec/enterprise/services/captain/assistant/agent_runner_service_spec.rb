@@ -92,6 +92,19 @@ RSpec.describe Captain::Assistant::AgentRunnerService do
   end
 
   describe '#build_and_wire_agents' do
+    it 'limits the onboarding chat to knowledge lookup without live tools or scenarios' do
+      faq_tool = instance_double(Captain::Tools::FaqLookupTool)
+      http_tool = instance_double(Captain::Tools::HttpTool)
+      allow(faq_tool).to receive(:is_a?).with(Captain::Tools::FaqLookupTool).and_return(true)
+      allow(http_tool).to receive(:is_a?).with(Captain::Tools::FaqLookupTool).and_return(false)
+      allow(mock_agent).to receive(:tools).and_return([faq_tool, http_tool])
+      expect(mock_agent).to receive(:clone).with(tools: [faq_tool]).and_return(mock_agent)
+      expect(mock_agent).not_to receive(:register_handoffs)
+      service = described_class.new(assistant: assistant, run_options: described_class::RunOptions.new(source: 'onboarding_playground'))
+
+      expect(service.send(:build_and_wire_agents)).to eq([mock_agent])
+    end
+
     it 'builds the graph from the selected runtime scenarios' do
       runtime_configuration = instance_double(
         Captain::Playground::Configuration,

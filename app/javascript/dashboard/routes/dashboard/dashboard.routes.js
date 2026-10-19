@@ -17,6 +17,7 @@ import Suspended from './suspended/Index.vue';
 import NoAccounts from './noAccounts/Index.vue';
 import OnboardingAccountDetails from './onboarding/Index.vue';
 import OnboardingInboxSetup from './onboarding/InboxSetup.vue';
+import OnboardingAssistant from './onboarding/AssistantSetup.vue';
 
 export default {
   routes: [
@@ -54,6 +55,12 @@ export default {
         permissions: ['administrator', 'agent', 'custom_role'],
       },
       component: OnboardingInboxSetup,
+    },
+    {
+      path: frontendURL('accounts/:accountId/onboarding/assistant'),
+      name: 'onboarding_assistant',
+      meta: { permissions: ['administrator'] },
+      component: OnboardingAssistant,
     },
     {
       path: frontendURL('accounts/:accountId/suspended'),

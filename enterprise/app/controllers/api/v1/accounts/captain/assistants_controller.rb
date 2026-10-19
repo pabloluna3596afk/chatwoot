@@ -1,7 +1,7 @@
 class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::BaseController
   before_action -> { check_authorization(Captain::Assistant) }
 
-  before_action :set_assistant, only: [:show, :update, :destroy, :avatar, :playground, :metrics, :faq_stats, :summary, :drilldown]
+  before_action :set_assistant, only: [:show, :update, :destroy, :avatar, :playground, :playground_usage, :metrics, :faq_stats, :summary, :drilldown]
 
   def index
     @assistants = account_assistants.ordered.with_attached_avatar
@@ -34,18 +34,21 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
     @assistant
   end
 
-  def playground
-    response = if captain_v2_enabled?
-                 generate_v2_playground_response
-               else
-                 Captain::Playground::Configuration.reject_v1! if playground_configuration_supplied?
-                 Captain::Llm::AssistantChatService.new(assistant: @assistant, source: 'playground').generate_response(
-                   additional_message: playground_params[:message_content],
-                   message_history: message_history
-                 )
-               end
+  def playground_usage
+    render json: Captain::Playground::Usage.new(account: Current.account).remaining
+  end
 
-    render json: response
+  def playground
+    @playground_messages = Captain::Playground::Input.new(
+      message: params.require(:assistant)[:message_content], history: params[:assistant][:message_history]
+    ).messages
+    @playground_usage = Captain::Playground::Usage.new(account: Current.account)
+    result = @playground_usage.perform { generate_playground_response.with_indifferent_access }
+
+    render json: result
+  rescue Captain::Playground::Usage::LimitExceeded => e
+    response.headers['Retry-After'] = e.retry_after.to_s if e.retry_after
+    render json: { error: e.message, error_code: e.code }.merge(@playground_usage&.remaining || {}), status: e.status
   rescue Captain::Playground::Configuration::Invalid => e
     render json: { error: e.message, errors: e.errors }, status: :unprocessable_entity
   end
@@ -86,6 +89,22 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
   end
 
   private
+
+  def generate_playground_response
+    key = Current.account.own_ai_key
+    return generate_playground_response_with_credentials unless key
+
+    Llm::Config.with_chat_context(key) { generate_playground_response_with_credentials }
+  end
+
+  def generate_playground_response_with_credentials
+    return generate_v2_playground_response if captain_v2_enabled?
+
+    Captain::Playground::Configuration.reject_v1! if playground_configuration_supplied?
+    Captain::Llm::AssistantChatService.new(assistant: @assistant, source: 'playground').generate_response(
+      message_history: playground_message_history
+    )
+  end
 
   def drilldown_params
     params.permit(:metric, :range, :timezone_offset, :page, :per_page)
@@ -185,19 +204,16 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
     permitted[:config][:messaging] = messaging.respond_to?(:permit!) ? messaging.permit!.to_h : messaging
   end
 
-  def playground_params
-    params.require(:assistant).permit(
-      :message_content,
-      message_history: [:role, :content, :agent_name],
-      playground_config: [
-        :knowledge_text,
-        { scenario_ids: [], response_guidelines: [], guardrails: [],
-          temporary_scenarios: [:client_id, :title, :description, :instruction] }
-      ]
-    )
-  end
-
   def generate_v2_playground_response
+    onboarding = @assistant.account.custom_attributes
+    if onboarding['onboarding_version'] == 2 && onboarding['onboarding_step'] == 'assistant' && onboarding['onboarding_assistant_id'] == @assistant.id
+      run_options = Captain::Assistant::AgentRunnerService::RunOptions.new(
+        source: Captain::Assistant::AgentRunnerService::ONBOARDING_PLAYGROUND_SOURCE
+      )
+      service = Captain::Assistant::AgentRunnerService.new(assistant: @assistant, run_options: run_options)
+      return service.generate_response(message_history: playground_message_history)
+    end
+
     return default_v2_playground_response unless playground_configuration_params
 
     Captain::Playground::Runner.new(
@@ -223,25 +239,8 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
 
   def playground_configuration_supplied? = params.key?(:playground_config) || params[:assistant]&.key?(:playground_config)
 
-  def message_history
-    Array(playground_params[:message_history]).map do |message|
-      {
-        role: message[:role],
-        content: message[:content],
-        agent_name: message[:agent_name]
-      }.compact
-    end
-  end
-
   def playground_message_history
-    history = message_history
-    current_message = playground_params[:message_content]
-    return history if current_message.blank?
-
-    current_user_message = { role: 'user', content: current_message }
-    return history if history.last == current_user_message
-
-    history + [current_user_message]
+    @playground_messages
   end
 
   def captain_v2_enabled?

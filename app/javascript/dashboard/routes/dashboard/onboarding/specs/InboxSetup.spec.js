@@ -1,3 +1,5 @@
+import authEn from 'dashboard/i18n/locale/en/auth.json';
+import authEs from 'dashboard/i18n/locale/es/auth.json';
 import { flushPromises, mount } from '@vue/test-utils';
 import { nextTick, reactive } from 'vue';
 import { createI18n } from 'vue-i18n';
@@ -109,17 +111,23 @@ describe('WhatsApp onboarding', () => {
     });
     router = createRouter({
       history: createMemoryHistory(),
-      routes: ['onboarding_inbox_setup', 'home'].map(name => ({
-        path: `/accounts/:accountId/${name}`,
-        name,
-        component: { template: '<div />' },
-      })),
+      routes: ['onboarding_inbox_setup', 'onboarding_assistant', 'home'].map(
+        name => ({
+          path: `/accounts/:accountId/${name}`,
+          name,
+          component: { template: '<div />' },
+        })
+      ),
     });
     await router.push({
       name: 'onboarding_inbox_setup',
       params: { accountId: 1 },
     });
-    i18n = createI18n({ legacy: false, locale: 'es', messages: { en, es } });
+    i18n = createI18n({
+      legacy: false,
+      locale: 'es',
+      messages: { en: { ...en, ...authEn }, es: { ...es, ...authEs } },
+    });
     options = {
       global: {
         plugins: [store, router, i18n],
@@ -151,7 +159,10 @@ describe('WhatsApp onboarding', () => {
       wrapper = mount(InboxSetup, options);
       const strings = { en, es }[lang].ONBOARDING_WHATSAPP;
       const trust = wrapper.get('[data-testid="whatsapp-trust"]');
-      expect(trust.get('h3').text()).toBe(strings.TRUST.TITLE);
+      expect(trust.element.tagName).toBe('DETAILS');
+      expect(trust.element.open).toBe(false);
+      expect(trust.get('summary').text()).toBe(strings.TRUST.SAFETY);
+      expect(trust.get('h2').text()).toBe(strings.TRUST.TITLE);
       expect(trust.findAll('li').map(item => item.text())).toEqual([
         strings.TRUST.APP,
         strings.TRUST.OFFICIAL,
@@ -161,6 +172,11 @@ describe('WhatsApp onboarding', () => {
       expect(wrapper.get('[data-testid="connection-guide"]').text()).toBe(
         strings.GUIDE.OPEN
       );
+      expect(
+        wrapper
+          .get('[data-testid="connection-guide"] .i-lucide-book-open')
+          .exists()
+      ).toBe(true);
       expect(wrapper.findComponent(WhatsappGuideDialog).exists()).toBe(false);
     }
   );
@@ -194,14 +210,23 @@ describe('WhatsApp onboarding', () => {
       const header = wrapper.get('header');
       const badge = header.find('[data-testid="header-meta-tech-provider"]');
       expect(badge.exists()).toBe(flag === true);
-      const row = header.get('.i-woot-whatsapp').element.parentElement;
+      const logo = header.get('[data-testid="header-whatsapp-business"]');
+      expect(logo.attributes('alt')).toBe('WhatsApp Business');
+      expect(logo.attributes('src')).toContain('whatsapp_business_temporal');
+      const row = logo.element.parentElement;
       expect(row.classList).toContain('justify-between');
       expect(row.classList).toContain('items-center');
       if (flag !== true) return;
 
       expect(badge.element.parentElement).toBe(row);
-      expect(row.firstElementChild.classList).toContain('i-woot-whatsapp');
-      expect(badge.classes()).toContain('p-5');
+      expect(row.firstElementChild).toBe(logo.element);
+      expect(logo.classes()).toEqual(
+        expect.arrayContaining(['h-7', 'sm:h-10', 'min-w-0', 'object-contain'])
+      );
+      expect(logo.classes()).not.toContain('shrink-0');
+      expect(badge.classes()).toEqual(
+        expect.arrayContaining(['shrink-0', 'p-3', 'sm:p-5'])
+      );
       const images = badge.findAll('img');
       expect(images).toHaveLength(2);
       ['black', 'white'].forEach((color, index) => {
@@ -212,7 +237,8 @@ describe('WhatsApp onboarding', () => {
         expect(images[index].classes()).toEqual(
           expect.arrayContaining([
             'h-auto',
-            'w-28',
+            'w-20',
+            'sm:w-28',
             ...(color === 'black' ? ['dark:hidden'] : ['hidden', 'dark:block']),
           ])
         );
@@ -239,6 +265,32 @@ describe('WhatsApp onboarding', () => {
     await wrapper.get('[data-testid="connection-guide"]').trigger('click');
     await flushPromises();
     expect(wrapper.findComponent(WhatsappGuideDialog).exists()).toBe(true);
+  });
+
+  it('keeps the guide and expanded mobile content above a separate footer while loading', async () => {
+    vi.stubGlobal('innerWidth', 360);
+    window.chatwootConfig.metaTechProviderLive = true;
+    fetchInboxes.mockReturnValue(new Promise(() => {}));
+    wrapper = mount(InboxSetup, options);
+    await flushPromises();
+    const scroller = wrapper.get('[data-testid="onboarding-scroll-content"]');
+    expect(scroller.get('[data-testid="connection-guide"]').exists()).toBe(
+      true
+    );
+    expect(scroller.classes()).toContain('pb-4');
+    const notice = scroller.get('[data-testid="mobile-notice"]');
+    notice.element.open = true;
+    expect(notice.get('[data-testid="copy-link"]').exists()).toBe(true);
+    expect(scroller.element.nextElementSibling).toBe(
+      wrapper.get('footer').element
+    );
+    const logo = wrapper.get('[data-testid="header-whatsapp-business"]');
+    expect(
+      logo.element.parentElement.querySelector('[role="status"]')
+    ).toBeNull();
+    expect(wrapper.get('header [role="status"]').text()).toBe(
+      authEs.ONBOARDING_AUTH.LOADING
+    );
   });
 
   it.each([
@@ -357,7 +409,7 @@ describe('WhatsApp onboarding', () => {
       expect(wrapper.getComponent(AuthSplitLayout).props('scrollable')).toBe(
         true
       );
-      expect(wrapper.get('h2').text()).toBe(strings.ONBOARDING_WHATSAPP.TITLE);
+      expect(wrapper.get('h1').text()).toBe(strings.ONBOARDING_WHATSAPP.TITLE);
       expect(wrapper.text()).toContain(strings.ONBOARDING_WHATSAPP.SUBTITLE);
       expect(
         wrapper
@@ -417,7 +469,7 @@ describe('WhatsApp onboarding', () => {
     expect(wrapper.get('[data-testid="primary"]').text()).toBe(
       es.ONBOARDING_WHATSAPP.CONTINUE
     );
-    expect(wrapper.findAll('button.bg-n-slate-12')).toHaveLength(1);
+    expect(wrapper.findAll('button.bg-n-brand')).toHaveLength(1);
     expect(
       wrapper.get('[data-testid="other-channel"]').classes()
     ).not.toContain('border');
@@ -432,7 +484,7 @@ describe('WhatsApp onboarding', () => {
       inbox_setup_result: 'whatsapp_connected',
     });
     expect(setUser).toHaveBeenCalledOnce();
-    expect(router.currentRoute.value.name).toBe('home');
+    expect(router.currentRoute.value.name).toBe('onboarding_assistant');
   });
 
   it('shows cancellation separately and allows another attempt', async () => {
@@ -482,7 +534,7 @@ describe('WhatsApp onboarding', () => {
     });
     expect(runEmbeddedSignup).not.toHaveBeenCalled();
     expect(setUser).toHaveBeenCalledOnce();
-    expect(router.currentRoute.value.name).toBe('home');
+    expect(router.currentRoute.value.name).toBe('onboarding_assistant');
   });
 
   it('opens the existing dialog and continues after another channel connects', async () => {
@@ -526,6 +578,7 @@ describe('WhatsApp onboarding', () => {
       featureEnabled = false;
     } else delete window.chatwootConfig[reason];
     wrapper = mount(InboxSetup, options);
+    await flushPromises();
     expect(wrapper.get('[role="status"]').text()).toBe(
       es.ONBOARDING_WHATSAPP.UNAVAILABLE
     );
@@ -539,9 +592,10 @@ describe('WhatsApp onboarding', () => {
     expect(wrapper.get('[role="status"]').classes()).toContain('bg-n-slate-3');
     expect(wrapper.get('[data-testid="other-channel"]').classes()).toEqual(
       expect.arrayContaining([
-        'rounded-full',
+        'min-h-12',
+        'rounded-xl',
         'border',
-        'border-n-slate-7',
+        'border-n-slate-9',
         'w-full',
       ])
     );
@@ -552,7 +606,7 @@ describe('WhatsApp onboarding', () => {
     expect(openDialog).toHaveBeenCalledOnce();
     await wrapper.get('[data-testid="skip"]').trigger('click');
     await flushPromises();
-    expect(router.currentRoute.value.name).toBe('home');
+    expect(router.currentRoute.value.name).toBe('onboarding_assistant');
   });
 
   it('resumes a connection from the inbox API after reload', async () => {
@@ -574,6 +628,7 @@ describe('WhatsApp onboarding', () => {
       i18n.global.locale.value = lang;
       delete window.chatwootConfig.whatsappAppId;
       wrapper = mount(InboxSetup, options);
+      await flushPromises();
       const strings = { en, es }[lang].ONBOARDING_WHATSAPP;
 
       expect(wrapper.get('[role="status"]').text()).toBe(strings.UNAVAILABLE);
@@ -636,7 +691,7 @@ describe('WhatsApp onboarding', () => {
     });
     await flushPromises();
     expect(fetchInboxes).toHaveBeenCalledOnce();
-    expect(wrapper.get('h2').text()).toBe(es.ONBOARDING_WHATSAPP.TITLE);
+    expect(wrapper.get('h1').text()).toBe(es.ONBOARDING_WHATSAPP.TITLE);
   });
 
   it('keeps a successful connection on completion failure and permits retry', async () => {
@@ -652,7 +707,7 @@ describe('WhatsApp onboarding', () => {
     expect(router.currentRoute.value.name).toBe('onboarding_inbox_setup');
     await wrapper.get('[data-testid="primary"]').trigger('click');
     await flushPromises();
-    expect(router.currentRoute.value.name).toBe('home');
+    expect(router.currentRoute.value.name).toBe('onboarding_assistant');
   });
 
   it('prevents duplicate completion requests', async () => {
