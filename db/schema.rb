@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_17_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_18_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1657,6 +1657,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_17_120000) do
     t.integer "max_emails_per_day", default: 0, null: false
     t.integer "max_documents", default: 10, null: false
     t.boolean "is_default_trial", default: false, null: false
+    t.boolean "coming_soon", default: false, null: false
+    t.jsonb "feature_keys", default: [], null: false
     t.index ["is_default_trial"], name: "index_plans_on_is_default_trial", unique: true, where: "is_default_trial"
     t.index ["slug"], name: "index_plans_on_slug", unique: true
   end

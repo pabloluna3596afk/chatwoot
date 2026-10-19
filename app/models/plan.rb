@@ -6,9 +6,11 @@
 #  addon_agent_price  :decimal(10, 2)   default(0.0), not null
 #  addon_bot_price    :decimal(10, 2)   default(0.0), not null
 #  captain_daily_tests :integer        default(0), not null
+#  coming_soon        :boolean          default(FALSE), not null
 #  credit_unit_price  :decimal(10, 4)   default(0.0), not null
 #  description        :string
 #  display_order      :integer          default(0), not null
+#  feature_keys       :jsonb            default([]), not null
 #  is_active          :boolean          default(TRUE), not null
 #  is_default_trial   :boolean          default(FALSE), not null
 #  is_public          :boolean          default(TRUE), not null
@@ -54,7 +56,6 @@ class Plan < ApplicationRecord
   validate :valid_feature_keys
   validates :captain_daily_tests, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :name, presence: true
-  validates :captain_daily_tests, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :slug, presence: true, uniqueness: true
   # DB partial unique index enforces this too; the validation just gives a
   # friendly SuperAdmin form error instead of a raw StatementInvalid.
