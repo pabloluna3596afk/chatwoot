@@ -109,7 +109,8 @@ RSpec.describe Captain::Playground::Usage, :real_redis do
     travel_to midnight - 1.minute do
       old_key = daily_key
       usage.perform { success }
-      expect(Redis::Alfred.ttl(old_key)).to be_between(50, 60)
+      expected_ttl = midnight.to_i - Process.clock_gettime(Process::CLOCK_REALTIME).to_i
+      expect(Redis::Alfred.ttl(old_key)).to be_within(5).of(expected_ttl)
       travel 61.seconds
       next_day = described_class.new(account: account)
       expect(next_day.perform { success }[:test_usage][:daily_remaining]).to eq(9)
