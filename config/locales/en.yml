@@ -30,6 +30,10 @@
 # available at https://guides.rubyonrails.org/i18n.html.
 
 en:
+  onboarding:
+    assistant:
+      invalid: 'Invalid assistant details'
+      unavailable: 'Assistant setup is not available at this onboarding step'
   hello: 'Hello world'
   inbox:
     reauthorization:
@@ -552,6 +556,11 @@ en:
       short_description: 'Sync your contacts and conversations with LeadSquared CRM.'
       description: 'Sync your contacts and conversations with LeadSquared CRM. This integration automatically creates leads in LeadSquared when new contacts are added, and logs conversation activity to provide your sales team with complete context.'
   captain:
+    playground:
+      responses_limit_reached: 'Your plan responses have run out'
+      playground_rate_limit: 'Too many tests. Please try again shortly.'
+      playground_message_invalid: 'Enter a message of up to 500 characters'
+      playground_history_invalid: 'Invalid test message history'
     copilot_message_required: Message is required
     copilot_error: 'Please connect an assistant to this inbox to use Copilot'
     copilot_limit: 'You are out of Copilot credits. You can buy more credits from the billing section.'

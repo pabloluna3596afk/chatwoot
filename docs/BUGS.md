@@ -1888,6 +1888,242 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
   alternar la bandera y la URL del video, copiar el enlace y comprobar el pie fijo.
   Sin migraciones ni commit.
 
+### B-NEW-71 — Paso 4: crear, probar y activar un asistente borrador
+
+- Alcance: onboarding versión 2. WhatsApp avanza a `assistant`; completar u omitir
+  ese paso lleva al dashboard. Las cuentas anteriores conservan su recorrido.
+  El paso 5 (plan) queda fuera de esta entrega. Sin migraciones ni commit.
+- Captain v1 y v2 se habilitan al crear cuentas versión 2, incluso sin licencia
+  pagada ni plan trial configurado. Los límites existentes del plan siguen vigentes.
+- `Onboarding::CaptainDraftService` bloquea la cuenta y guarda el asistente y
+  `custom_attributes.onboarding_assistant_id` en la misma transacción. Reenvíos
+  reutilizan ese asistente; editar actualiza el mismo borrador y nunca sobrescribe
+  uno ya vinculado. El límite de `Captain::Assistant` se aplica al crear.
+- Las cuatro plantillas, tonos y reglas están centralizados en
+  `enterprise/app/services/onboarding/captain_draft_templates.rb`. Componen
+  instrucciones en español neutro con el objetivo del dueño y el idioma de la
+  cuenta, sin generar precios ni respuestas comerciales. La composición es el
+  punto de extensión documentado para futura generación IA; crear no llama al LLM.
+- El borrador nace sin bandejas, citas, seguimientos ni mensajes pagados. Solo el
+  botón **Activar** llama a `POST captain/assistants/:id/inboxes`. Sin WhatsApp se
+  deshabilita y se ofrece volver al paso 3 manteniendo el cursor y el borrador.
+  La asignación del administrador también cubre esa conexión tardía.
+- El chat usa el playground existente. Para el asistente del onboarding, el
+  servidor selecciona `onboarding_playground`: solo consulta de conocimiento,
+  sin herramientas externas ni escenarios con acciones. El payload del borrador
+  informa falta de clave/cuota; la UI permite reintentar. No se promete prueba
+  gratuita ni atención real hasta activar.
+- API nueva bajo el recurso autenticado de onboarding: `GET /assistant` recupera
+  el borrador; `POST /assistant` recibe `name` (texto, 1–120 caracteres), `goal`
+  (texto, 1–2000) y `tone` (`friendly`, `professional`, `brief`). Solo administrador;
+  parámetros inválidos devuelven 422. El exceso de cupo devuelve 422 con código
+  `assistant_limit`, límite y mensaje traducido. Cuenta y membresías exponen el
+  ID únicamente si existe; no exponen el objetivo en el perfil.
+- Frontend: `AssistantSetup.vue`, API `onboarding.js`, rutas del dashboard/guard y
+  navegación mínima en `InboxSetup.vue`. Reutiliza `AuthSplitLayout`, tokens `n-*`,
+  progreso «Paso 4 de 5», controles redondeados y radios nativos accesibles para
+  tono. Textos completos en `locale/en/onboarding.json` y `locale/es/onboarding.json`;
+  errores de servidor en `config/locales/en.yml` y `es.yml`.
+- Autoevaluación: se corrigió la referencia a `STEP_INBOX_SETUP` en el módulo
+  Enterprise usando la constante del controlador base; sin calificarla, el
+  módulo no la resuelve y la transición puede lanzar `NameError`. Se agregaron
+  request specs de transición y replay pasando por ese overlay.
+- Autoevaluación: `accounts/get` devuelve el payload o `null`; el paso comprueba
+  ese resultado y el booleano de `inboxes/get`, que absorben fallos HTTP. Un 5xx
+  de carga ahora muestra error y reintento en vez de usar datos vacíos o viejos.
+  También se permite partir nombres largos en la tarjeta del borrador en móvil.
+
+Archivos de esta entrega:
+
+```text
+app/controllers/api/v1/accounts/onboardings_controller.rb
+app/javascript/dashboard/api/onboarding.js
+app/javascript/dashboard/i18n/locale/en/onboarding.json
+app/javascript/dashboard/i18n/locale/es/onboarding.json
+app/javascript/dashboard/routes/dashboard/dashboard.routes.js
+app/javascript/dashboard/routes/dashboard/onboarding/AssistantSetup.vue
+app/javascript/dashboard/routes/dashboard/onboarding/InboxSetup.vue
+app/javascript/dashboard/routes/dashboard/onboarding/specs/AssistantSetup.spec.js
+app/javascript/dashboard/routes/dashboard/onboarding/specs/InboxSetup.spec.js
+app/javascript/dashboard/routes/dashboard/onboarding/specs/assistantGuard.spec.js
+app/javascript/dashboard/routes/index.js
+app/javascript/dashboard/store/modules/accounts.js
+app/services/onboarding/inbox_member_assignment_service.rb
+app/views/api/v1/accounts/create.json.jbuilder
+app/views/api/v1/models/_account.json.jbuilder
+app/views/api/v1/models/_user.json.jbuilder
+config/locales/en.yml
+config/locales/es.yml
+config/routes.rb
+docs/BUGS.md
+enterprise/app/controllers/api/v1/accounts/captain/assistants_controller.rb
+enterprise/app/controllers/enterprise/api/v1/accounts/onboardings_controller.rb
+enterprise/app/models/enterprise/account.rb
+enterprise/app/services/captain/assistant/agent_runner_service.rb
+enterprise/app/services/onboarding/captain_draft_service.rb
+enterprise/app/services/onboarding/captain_draft_templates.rb
+enterprise/app/views/api/v1/accounts/onboardings/assistant.json.jbuilder
+spec/controllers/api/v1/accounts/onboardings_controller_spec.rb
+spec/enterprise/controllers/api/v1/accounts/captain/assistants_controller_spec.rb
+spec/enterprise/controllers/api/v1/accounts/onboarding_assistants_controller_spec.rb
+spec/enterprise/controllers/api/v1/accounts/onboardings_controller_spec.rb
+spec/enterprise/models/account_spec.rb
+spec/enterprise/services/captain/assistant/agent_runner_service_spec.rb
+spec/enterprise/services/onboarding/captain_draft_service_spec.rb
+spec/services/onboarding/inbox_member_assignment_service_spec.rb
+```
+
+Cobertura:
+
+| Spec | Qué verifica |
+|---|---|
+| `onboarding/specs/AssistantSetup.spec.js` | Pantalla en/es, tres ejemplos por negocio, creación/cargando/error, límite traducido sin falso éxito, edición/reanudación, respuesta de prueba, clave/cuota/error/reintento, activación explícita con/sin WhatsApp, respuesta perdida y omisión. Carga mediante la acción real de cuenta, errores absorbidos, doble activación y reintento de finalización tras 5xx. |
+| `onboarding/specs/assistantGuard.spec.js` | Reanudar paso 4, volver a WhatsApp y excluir cuentas antiguas/completadas. |
+| `onboarding/specs/InboxSetup.spec.js` | Continuar/omitir WhatsApp conduce al asistente, incluidas recuperación y reintentos. |
+| `spec/enterprise/services/onboarding/captain_draft_service_spec.rb` | Idempotencia, cupo de un asistente, edición sin duplicar, rollback del puntero, aislamiento por cuenta, plantillas/idioma/tono, ausencia de vínculos/LLM y defaults de automatización. |
+| `spec/enterprise/controllers/api/v1/accounts/onboarding_assistants_controller_spec.rb` | Crear/recuperar, validación 422, autorización, límite traducido, cuenta antigua y payload del puntero presente/ausente. Contrato de cuenta y `/auth/validate_token` usando las vistas reales, y vínculo explícito a WhatsApp. |
+| `spec/enterprise/controllers/api/v1/accounts/onboardings_controller_spec.rb` | Transición a asistente a través del overlay Enterprise y replay sin mutar estado. |
+| `spec/controllers/api/v1/accounts/onboardings_controller_spec.rb` | Transiciones versión 2, completar/omitir asistente, reenvíos/fuera de orden y compatibilidad legacy. |
+| `spec/enterprise/models/account_spec.rb` | Ambos flags Captain en cuentas nuevas sin instalación pagada ni plan. |
+| `spec/enterprise/controllers/api/v1/accounts/captain/assistants_controller_spec.rb` | Selección del runner restringido durante onboarding, incluso si se suministra configuración avanzada. |
+| `spec/enterprise/services/captain/assistant/agent_runner_service_spec.rb` | Prueba sin herramientas externas ni handoffs a escenarios reales. |
+| `spec/services/onboarding/inbox_member_assignment_service_spec.rb` | Asignación del administrador al regresar desde el asistente a conectar WhatsApp. |
+| `dashboard/i18n/messagesCompile.spec.js` | Compilación de mensajes en/es, incluidas las nuevas cadenas. |
+
+Validación de autoevaluación: ESLint de los nueve archivos JS/Vue nuevos o modificados con **0 errores
+y 0 advertencias**; paridad de las **48 claves** nuevas en/es y `git diff --check`
+correctos. El CLI solicitado de Vitest falla al iniciar esbuild con **`spawn EPERM`**.
+La misma selección onboarding + Captain + i18n se ejecutó mediante la API local:
+**38 archivos y 445 pruebas aprobadas**, incluidas 29 de pantalla y 5 del guard nuevo.
+El ejecutor temporal `tmp/run-assistant-tests.mjs` carga la configuración base en
+memoria, resuelve dependencias enlazadas y omite estilos SFC en jsdom para evitar
+el preprocesador Sass no disponible; no modifica configuración ni estilos de producto.
+Los RSpec se escribieron y revisaron estáticamente, **sin ejecutarlos**, según el
+brief; Docker Desktop tampoco dispone del daemon Linux en esta sesión. La revisión
+visual en navegador y la prueba con Rails/IA/WhatsApp reales quedan pendientes;
+Vitest usa respuestas simuladas y no valida la serialización real de Rails.
+Detalle de cumplimiento, recorrido de datos y pendientes en
+[`AUTOEVALUACION-ASISTENTE.md`](AUTOEVALUACION-ASISTENTE.md). Se usó este destino
+porque los permisos de la sesión rechazan la escritura en `.codex/AUTOEVALUACION.md`.
+
+Cómo verificar en producto: cuenta nueva → negocio → conectar u omitir WhatsApp →
+asistente. Elegir ejemplo/tono y crear; recargar y comprobar que reaparece el mismo
+borrador. Probar una pregunta (con IA configurada y saldo), editar y repetir. Sin
+clave/saldo, comprobar mensaje y reintento. Sin WhatsApp, volver a conectarlo y
+regresar sin duplicar; pulsar Activar y comprobar el vínculo. Omitir conserva el
+borrador y permite entrar al dashboard. Verificar móvil y ambos temas.
+
+### B-NEW-72 — Cupo diario de pruebas por plan y consumo del pool compartido
+
+El playground de Captain (v1/v2) y el paso 4 del onboarding hacían llamadas a IA
+sin contabilizar. Cada prueba exitosa del plan gratuito ahora consume una
+respuesta del plan. Los planes de pago usan primero `Plan#captain_daily_tests`
+por cuenta/día y luego el mismo pool de respuestas que los clientes reales.
+No existe techo diario adicional. Los errores del modelo o la falta de clave
+no consumen ni cupo ni respuestas. Las cuentas sin plan conservan el fallback
+a `ChatwootApp.max_limit` y no se contabilizan (`test_usage: null`).
+
+Migración `20261017120000_add_captain_daily_tests_to_plans`, schema y campo
+editable en SuperAdmin. `plans:seed` define Prueba 0, Inicio 10, Crecimiento 20,
+Negocio 35, Escala 50 y Developer 10. Tras migrar hay que aplicar esos valores a
+los planes existentes mediante el seed o SuperAdmin; el default de la columna es 0.
+El seed también actualiza los demás precios/límites: revisar antes de usarlo
+si la instalación tiene planes personalizados.
+
+`Captain::Playground::Usage` serializa elegibilidad/modelo/débito con el lock de
+la cuenta. Redis incrementa el cupo exitoso y fija su expiración en una sola
+operación Lua, a medianoche de `reporting_timezone` (UTC si no hay zona).
+El contador es por cuenta/fecha, se conserva al cambiar de plan ese día y solo
+cuenta pruebas cubiertas por el cupo gratuito diario. El día se fija al admitir
+la solicitud. Los intentos fallidos cuentan solo para el freno móvil de 6
+preguntas/minuto por cuenta, compartido entre usuarios y asistentes, con 429 y
+`Retry-After`. Mensaje máximo 500 caracteres, historial máximo 10 mensajes y
+4000 caracteres incluyendo la pregunta actual; se elimina lo más antiguo.
+
+BYOK confirmado: `Integrations::Hook` OpenAI habilitado guarda `settings.api_key`;
+`lib/captain/base_task_service.rb` ya lee ese campo para tareas compatibles.
+El historial BYOK contiene `45f4b423ae` y `b67ba61bda`. No se inventó una columna:
+`Account#own_ai_key_configured?` comprueba esa integración real. Las pruebas con
+clave propia no consumen ningún pool/cupo. Developer sin clave se comporta como
+plan de pago normal y, con su pool mensual 0, se detiene al terminar el cupo diario.
+El controlador aplica `Llm::Config.with_chat_context` únicamente al playground:
+usa un contexto RubyLLM aislado de la solicitud, sin endpoint de la instalación,
+para los constructores de chat de v1 y ai-agents v2 (incluidos handoffs/rewrites).
+El contexto se restaura en `ensure`; las claves globales no se modifican. Esta
+adaptación es necesaria porque ai-agents 0.12 construye RubyLLM::Chat directamente
+sin aceptar contexto; evita depender de una clave global para construir el chat.
+
+La API devuelve `test_usage` con tipo de plan, cupo total/usado/restante, origen
+del próximo consumo y respuestas del plan restantes. `GET playground_usage`
+permite avisar antes de la primera pregunta; POST y errores de cuota/ritmo
+actualizan el mismo estado local de ambas pantallas. El agotamiento del pool
+responde 422 `responses_limit_reached` antes del modelo, traducido en/es, con
+enlace a planes. El guard permite abrir facturación desde el paso 4 sin finalizarlo.
+No se modifica `ResponseBuilderJob` ni la contabilización de clientes reales.
+
+Cobertura: RSpec de Usage/Input, contratos v1/v2/onboarding, modelos Plan/Account,
+contexto BYOK y regresión del job. Vitest cubre los cinco estados de consumo,
+precarga de saldos, traducciones, reintento y acceso a planes. Resultados y
+limitaciones exactos en `tmp/AUTOEVALUACION-TOPES.md`.
+
+Cómo probar: en Prueba, cada éxito baja 1 del pool. En Inicio, las primeras 10
+pruebas del día no lo cambian; la siguiente sí consume. Con ambos saldos a 0,
+comprobar 422 sin llamada a IA. Siete solicitudes válidas en 60 segundos entre
+usuarios de la misma cuenta deben dar 429 y permitir reintentar después.
+Repetir en ambos chats y v1/v2, dos pestañas, medianoche, cambio de plan, error
+sin consumo y Developer con/sin hook OpenAI. Aplicar migración antes del deploy.
+
+### B-NEW-73 — Icono de Captain y sin foto en el paso 4
+
+El paso de onboarding configura el asistente con el icono de marca de Captain
+en su encabezado y el título «Configura tu primer asistente» (en: «Set up your
+first assistant»). El icono usa `i-woot-captain`, mide 40 px y es decorativo.
+Se eliminó del recorrido el bloque de foto, el avatar de la tarjeta del borrador
+y las imágenes en las burbujas de prueba; estas muestran el nombre del asistente.
+
+Archivos: `onboarding/AssistantSetup.vue`,
+`onboarding/specs/AssistantSetup.spec.js` y `locale/{en,es}/onboarding.json`.
+El onboarding ya no usa ni modifica los endpoints o el backend de avatar. La
+configuración de avatar del panel de Captain sigue funcionando sin cambios.
+
+Cobertura: Vitest verifica el icono decorativo y el título en inglés y español;
+la vista no renderiza campos de archivo ni imágenes de avatar. Autoevaluación y
+límites de verificación: `tmp/AUTOEVALUACION-ICONO.md`.
+
+Cómo probar: abrir el paso 4 en ambos idiomas, comprobar el icono Captain en el
+encabezado, editar el borrador y enviar preguntas de prueba; en la tarjeta y en
+las burbujas solo debe aparecer el nombre del asistente, sin fotos.
+
+### B-NEW-075 — CI del playground: ejecutar Lua con Redis real y corregir setup del paso 4
+
+- **Causa:** `MockRedis` no ejecuta Lua; las llamadas nuevas a `eval` fallan con `TypeError: wrong argument type Hash (expected binding)` antes de generar respuestas. Además, el spec de finalización del onboarding intentaba crear el borrador desde `inbox_setup`, aunque el servicio exige el paso `assistant`.
+- **Archivos:** `spec/support/real_redis.rb`, specs de cuotas y uso del playground, contexto playground de `assistants_controller_spec.rb` y `onboarding_assistants_controller_spec.rb`.
+- **Fix:** optar esos ejemplos a Redis real con namespace único por ejemplo y limpieza limitada a ese namespace; conservar el MockRedis del resto de la suite. Verificar el timestamp de expiración y el cambio de fecha sin depender del reloj real de Redis durante `travel_to`. Crear el borrador desde el paso elegible y verificar el éxito antes de leer su ID.
+- **Cómo probar:** CI EE con Redis disponible; ejecutar los specs de playground y onboarding, incluyendo rate limit, allowance diario, pool compartido y errores del modelo. RSpec no disponible localmente; diagnóstico basado en el run `39153664286` y comparación con develop `39153434965` (cero fallos).
+
+### B-NEW-074 — Revisión visual del paso 4 y botones de marca
+
+El icono Captain conserva el slot `#brand` compartido con el logo del paso 3:
+28 px en móvil y 40 px desde `sm`, con `text-n-slate-12` para ambos temas.
+Se descarta la variante local `title-icon` porque cambiaba la posición del icono.
+`AuthButton.vue` usa ahora `bg-n-brand` y texto blanco para las acciones primarias
+del recorrido, incluida «Activar»; las secundarias conservan su borde.
+`tailwind.config.js` incluye los tokens JavaScript de Auth en el escaneo para
+generar también las clases de campos y enlaces compartidos de `authStyles.js`.
+
+Archivos: `onboarding/AssistantSetup.vue`, `Auth/AuthButton.vue`,
+`tailwind.config.js` y las expectativas existentes de los specs del paso y Auth.
+El pie ya reserva su altura real fuera del contenedor con scroll; no requiere
+cambios. El campo de pregunta pasa a 80 px en móvil para mostrar las dos líneas
+del texto de ayuda; mantiene 56 px desde `sm`. No se modifica la configuración
+de avatar de Captain.
+
+Cómo probar: abrir formulario, borrador, chat y reanudación del paso 4 en claro
+y oscuro, a 1280, 360, 390 y 430 px. Desplazar el contenedor hasta el final:
+deben verse las tres opciones de tono o el área de chat, sin solaparse con el
+pie. Comprobar el icono en la misma fila de marca que el paso 3 y las acciones
+primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)

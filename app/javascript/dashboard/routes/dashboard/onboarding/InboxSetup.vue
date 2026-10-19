@@ -17,6 +17,10 @@ import { ONBOARDING_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
 import AuthSplitLayout from 'v3/components/Auth/AuthSplitLayout.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
+import AuthStepHeader from 'v3/components/Auth/AuthStepHeader.vue';
+import AuthButton from 'v3/components/Auth/AuthButton.vue';
+import AuthFeedback from 'v3/components/Auth/AuthFeedback.vue';
+import { AUTH_LINK_CLASS } from 'v3/components/Auth/authStyles';
 import { useChannelConfig } from './inbox-setup/useChannelConfig';
 import InboxChannelsDialog from './inbox-setup/InboxChannelsDialog.vue';
 import LegacyInboxSetup from './LegacyInboxSetup.vue';
@@ -27,7 +31,6 @@ const WhatsappGuideDialog = defineAsyncComponent(
 const MOBILE_BREAKPOINT = 768;
 const MOBILE_USER_AGENT = /Android|iPhone|iPad|iPod|Mobile/i;
 const CURRENT_STEP = 3;
-const TOTAL_STEPS = 5;
 const { t } = useI18n();
 const connectionSteps = computed(() => [
   {
@@ -56,6 +59,7 @@ const isAvailable = computed(() => isConfigured('whatsapp'));
 const state = ref('idle');
 const createdInbox = ref(null);
 const isSubmitting = ref(false);
+const isFetchingInboxes = ref(false);
 const completionFailed = ref(false);
 const channelsDialogRef = ref(null);
 const whatsappInbox = computed(
@@ -88,18 +92,34 @@ const metaTechProviderWhite = new URL(
   '../../../assets/images/meta/meta_tech_provider_white.svg',
   import.meta.url
 ).href;
+// TEMPORAL: recreación vectorial del logo de WhatsApp Business hecha por el
+// dueño. Reemplazar por el archivo oficial cuando esté disponible.
+const whatsappBusinessLogo = new URL(
+  '../../../assets/images/meta/whatsapp_business_temporal.svg',
+  import.meta.url
+).href;
 const guideOpen = ref(false);
 const trustPoints = computed(() => [
   t('ONBOARDING_WHATSAPP.TRUST.APP'),
   t('ONBOARDING_WHATSAPP.TRUST.OFFICIAL'),
   t('ONBOARDING_WHATSAPP.TRUST.BENEFITS'),
 ]);
+const copyStatus = ref('');
+const copyFailed = ref(false);
+const isCopying = ref(false);
 const copyLink = async () => {
+  isCopying.value = true;
   try {
     await navigator.clipboard.writeText(window.location.href);
-    useAlert(t('ONBOARDING_WHATSAPP.MOBILE.COPIED'));
+    copyFailed.value = false;
+    copyStatus.value = t('ONBOARDING_WHATSAPP.MOBILE.COPIED');
+    useAlert(copyStatus.value);
   } catch {
-    useAlert(t('ONBOARDING_WHATSAPP.MOBILE.COPY_ERROR'));
+    copyFailed.value = true;
+    copyStatus.value = t('ONBOARDING_WHATSAPP.MOBILE.COPY_ERROR');
+    useAlert(copyStatus.value);
+  } finally {
+    isCopying.value = false;
   }
 };
 const isConnecting = computed(() => state.value === 'loading');
@@ -110,10 +130,13 @@ const buttonLabel = computed(() => {
 });
 
 const refetchInboxes = async () => {
+  isFetchingInboxes.value = true;
   try {
     await store.dispatch('inboxes/get');
   } catch {
     state.value = 'error';
+  } finally {
+    isFetchingInboxes.value = false;
   }
 };
 watch(
@@ -161,7 +184,10 @@ const completeOnboarding = async skipped => {
         : ONBOARDING_EVENTS.INBOX_SETUP_COMPLETED
     );
     await store.dispatch('setUser');
-    await router.push({ name: 'home', params: { accountId: accountId.value } });
+    await router.push({
+      name: isNewOnboarding.value ? 'onboarding_assistant' : 'home',
+      params: { accountId: accountId.value },
+    });
   } catch {
     completionFailed.value = true;
   } finally {
@@ -177,66 +203,62 @@ const openChannelsDialog = () => channelsDialogRef.value?.open();
     v-else-if="isNewOnboarding"
     :title="t('ONBOARDING_WHATSAPP.MARKETING.TITLE')"
     :subtitle="t('ONBOARDING_WHATSAPP.MARKETING.SUBTITLE')"
+    onboarding
     scrollable
   >
-    <header class="mb-8">
-      <p class="mb-2 text-sm font-medium text-n-slate-11">
-        {{
-          t('ONBOARDING_NEXT.STEP', {
-            current: CURRENT_STEP,
-            total: TOTAL_STEPS,
-          })
-        }}
-      </p>
-      <div
-        role="progressbar"
-        :aria-label="t('ONBOARDING_NEXT.PROGRESS')"
-        :aria-valuenow="CURRENT_STEP"
-        :aria-valuemin="0"
-        :aria-valuemax="TOTAL_STEPS"
-        class="mb-6 flex gap-1.5"
-      >
-        <span
-          v-for="step in TOTAL_STEPS"
-          :key="step"
-          class="h-1 flex-1 rounded-full"
-          :class="step <= CURRENT_STEP ? 'bg-n-slate-12' : 'bg-n-slate-4'"
-        />
-      </div>
-      <div class="mb-5 flex items-center justify-between gap-4">
-        <span
-          class="i-woot-whatsapp block size-10 shrink-0 text-n-teal-11"
-          aria-hidden="true"
-        />
-        <div
-          v-if="metaTechProviderLive"
-          class="shrink-0 p-5"
-          data-testid="header-meta-tech-provider"
-        >
+    <AuthStepHeader
+      :title="t('ONBOARDING_WHATSAPP.TITLE')"
+      :subtitle="t('ONBOARDING_WHATSAPP.SUBTITLE')"
+      :step-name="t('ONBOARDING_AUTH.WHATSAPP_STEP')"
+      :current="CURRENT_STEP"
+    >
+      <template #brand>
+        <div class="flex min-w-0 items-center justify-between gap-4">
           <img
-            :src="metaTechProviderBlack"
-            alt="Meta Tech Provider"
-            class="h-auto w-28 dark:hidden"
+            :src="whatsappBusinessLogo"
+            alt="WhatsApp Business"
+            data-testid="header-whatsapp-business"
+            class="h-7 w-auto min-w-0 max-w-full object-contain object-left sm:h-10"
           />
-          <img
-            :src="metaTechProviderWhite"
-            alt="Meta Tech Provider"
-            class="hidden h-auto w-28 dark:block"
+          <div
+            v-if="metaTechProviderLive"
+            class="shrink-0 p-3 sm:p-5"
+            data-testid="header-meta-tech-provider"
+          >
+            <img
+              :src="metaTechProviderBlack"
+              alt="Meta Tech Provider"
+              class="h-auto w-20 sm:w-28 dark:hidden"
+            />
+            <img
+              :src="metaTechProviderWhite"
+              alt="Meta Tech Provider"
+              class="hidden h-auto w-20 sm:w-28 dark:block"
+            />
+          </div>
+        </div>
+        <div
+          v-if="isFetchingInboxes && !connectedInbox"
+          role="status"
+          class="space-y-2"
+        >
+          <span class="sr-only">{{ t('ONBOARDING_AUTH.LOADING') }}</span>
+          <span
+            class="block h-2 w-16 rounded-full bg-n-slate-5 motion-safe:animate-pulse"
+            aria-hidden="true"
+          />
+          <span
+            class="block h-2 w-12 rounded-full bg-n-slate-5 motion-safe:animate-pulse"
+            aria-hidden="true"
           />
         </div>
-      </div>
-      <h2 class="text-3xl font-bold tracking-tight text-n-slate-12 xl:text-4xl">
-        {{ t('ONBOARDING_WHATSAPP.TITLE') }}
-      </h2>
-      <p class="mt-3 mb-0 text-base leading-7 text-n-slate-11">
-        {{ t('ONBOARDING_WHATSAPP.SUBTITLE') }}
-      </p>
-    </header>
+      </template>
+    </AuthStepHeader>
 
     <div
       v-if="connectedInbox"
       role="status"
-      class="flex items-start gap-3 rounded-2xl bg-n-alpha-1 p-5"
+      class="flex items-start gap-4 rounded-xl bg-n-slate-3 p-4 motion-safe:animate-fade-in-up motion-safe:[animation-duration:200ms]"
     >
       <span
         class="flex size-10 shrink-0 items-center justify-center rounded-full bg-n-teal-3 text-n-teal-11"
@@ -266,45 +288,33 @@ const openChannelsDialog = () => channelsDialogRef.value?.open();
     <div
       v-else-if="!isAvailable"
       role="status"
-      class="flex items-start gap-3 rounded-2xl bg-n-slate-3 p-5 text-sm leading-6 text-n-slate-11"
+      class="flex items-start gap-4 rounded-xl bg-n-slate-3 p-4 text-sm leading-6 text-n-slate-11"
     >
       <span class="i-lucide-info mt-0.5 size-5 shrink-0" aria-hidden="true" />
       <p class="mb-0 min-w-0">
         {{ t('ONBOARDING_WHATSAPP.UNAVAILABLE') }}
       </p>
     </div>
-    <p
-      v-else-if="state === 'error'"
-      role="alert"
-      class="text-sm leading-6 text-n-ruby-11"
-    >
+    <AuthFeedback v-else-if="state === 'error'" error>
       {{ t('ONBOARDING_WHATSAPP.ERROR') }}
-    </p>
-    <p
-      v-else-if="state === 'cancelled'"
-      role="status"
-      class="text-sm leading-6 text-n-slate-11"
-    >
+    </AuthFeedback>
+    <AuthFeedback v-else-if="state === 'cancelled'">
       {{ t('ONBOARDING_WHATSAPP.CANCELLED') }}
-    </p>
-    <p
-      v-else-if="isConnecting"
-      role="status"
-      class="text-sm leading-6 text-n-slate-11"
-    >
+    </AuthFeedback>
+    <AuthFeedback v-else-if="isConnecting">
       {{ t('ONBOARDING_WHATSAPP.CONNECTING') }}
-    </p>
+    </AuthFeedback>
 
     <ol
       v-if="!connectedInbox && isAvailable"
       role="list"
-      class="my-auto list-none space-y-6 py-4"
+      class="m-0 list-none space-y-4 p-0"
       data-testid="connection-steps"
     >
       <li
         v-for="step in connectionSteps"
         :key="step.icon"
-        class="flex items-start gap-4"
+        class="flex items-start gap-3"
       >
         <span
           class="flex size-10 shrink-0 items-center justify-center rounded-full bg-n-teal-3 text-n-teal-11"
@@ -312,59 +322,80 @@ const openChannelsDialog = () => channelsDialogRef.value?.open();
         >
           <span class="size-5" :class="step.icon" />
         </span>
-        <p class="mb-0 min-w-0 pt-1.5 text-sm leading-6 text-n-slate-12">
+        <p class="mb-0 min-w-0 pt-2 text-sm leading-6 text-n-slate-12">
           {{ step.label }}
         </p>
       </li>
     </ol>
 
-    <section
-      v-if="isInitial"
-      class="space-y-4 py-4"
-      data-testid="whatsapp-trust"
-    >
-      <h3 class="mb-0 text-base font-semibold text-n-slate-12">
-        {{ t('ONBOARDING_WHATSAPP.TRUST.TITLE') }}
-      </h3>
-      <ul class="m-0 list-none space-y-2 p-0">
-        <li
-          v-for="point in trustPoints"
-          :key="point"
-          class="flex items-start gap-2 text-sm leading-6 text-n-slate-11"
+    <div v-if="isInitial" class="mt-6 space-y-2">
+      <details
+        class="group rounded-xl border border-n-slate-7 px-4"
+        data-testid="whatsapp-trust"
+      >
+        <summary
+          class="flex min-h-12 cursor-pointer list-none items-center gap-2 py-3 text-sm font-medium leading-5 text-n-slate-12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-n-brand [&::-webkit-details-marker]:hidden"
         >
           <span
-            class="i-lucide-check mt-1 size-4 shrink-0 text-n-teal-11"
+            class="i-lucide-shield-check size-5 shrink-0 text-n-teal-11"
             aria-hidden="true"
           />
-          <span class="min-w-0">{{ point }}</span>
-        </li>
-        <li
-          v-if="metaTechProviderLive"
-          class="flex items-start gap-2 text-sm leading-6 text-n-slate-11"
-        >
+          {{ t('ONBOARDING_WHATSAPP.TRUST.SAFETY') }}
           <span
-            class="i-lucide-check mt-1 size-4 shrink-0 text-n-teal-11"
+            class="i-lucide-chevron-down ms-auto size-4 shrink-0 group-open:rotate-180 motion-safe:transition-transform motion-safe:duration-150"
             aria-hidden="true"
           />
-          <span>{{ t('ONBOARDING_WHATSAPP.TRUST.PROVIDER') }}</span>
-        </li>
-      </ul>
+        </summary>
+        <div class="space-y-3 pb-4">
+          <h2 class="m-0 text-sm font-medium leading-5 text-n-slate-12">
+            {{ t('ONBOARDING_WHATSAPP.TRUST.TITLE') }}
+          </h2>
+          <ul class="m-0 list-none space-y-2 p-0">
+            <li
+              v-for="point in trustPoints"
+              :key="point"
+              class="flex items-start gap-2 text-sm leading-6 text-n-slate-11"
+            >
+              <span
+                class="i-lucide-check mt-1 size-4 shrink-0 text-n-teal-11"
+                aria-hidden="true"
+              />
+              <span class="min-w-0">{{ point }}</span>
+            </li>
+            <li
+              v-if="metaTechProviderLive"
+              class="flex items-start gap-2 text-sm leading-6 text-n-slate-11"
+            >
+              <span
+                class="i-lucide-check mt-1 size-4 shrink-0 text-n-teal-11"
+                aria-hidden="true"
+              />
+              <span>{{ t('ONBOARDING_WHATSAPP.TRUST.PROVIDER') }}</span>
+            </li>
+          </ul>
+        </div>
+      </details>
       <button
         type="button"
-        class="rounded-lg border border-n-slate-7 px-4 py-2 text-sm font-medium text-n-slate-12 hover:bg-n-slate-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
+        :class="AUTH_LINK_CLASS"
         data-testid="connection-guide"
         @click="guideOpen = true"
       >
+        <span class="i-lucide-book-open size-4 shrink-0" aria-hidden="true" />
         {{ t('ONBOARDING_WHATSAPP.GUIDE.OPEN') }}
       </button>
-    </section>
-    <aside
+    </div>
+    <details
       v-if="isInitial && isMobile"
-      class="mt-2 flex items-start gap-2 rounded-xl bg-n-slate-3 p-4 text-sm leading-6 text-n-slate-11"
+      class="mt-4 rounded-xl bg-n-slate-3 px-4 text-sm leading-6 text-n-slate-11"
       data-testid="mobile-notice"
     >
-      <span class="i-lucide-info mt-1 size-4 shrink-0" aria-hidden="true" />
-      <div class="min-w-0 space-y-3">
+      <summary
+        class="min-h-12 cursor-pointer py-3 font-medium text-n-slate-12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-n-brand"
+      >
+        {{ t('ONBOARDING_WHATSAPP.MOBILE.TITLE') }}
+      </summary>
+      <div class="min-w-0 space-y-4 pb-4">
         <I18nT
           keypath="ONBOARDING_WHATSAPP.MOBILE.NOTICE"
           tag="p"
@@ -379,14 +410,21 @@ const openChannelsDialog = () => channelsDialogRef.value?.open();
         </I18nT>
         <button
           type="button"
-          class="rounded text-start font-medium text-n-slate-12 underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
+          :class="AUTH_LINK_CLASS"
+          class="text-start"
           data-testid="copy-link"
+          :disabled="isCopying"
+          :aria-busy="isCopying"
           @click="copyLink"
         >
+          <Spinner v-if="isCopying" :size="16" aria-hidden="true" />
           {{ t('ONBOARDING_WHATSAPP.MOBILE.COPY') }}
         </button>
       </div>
-    </aside>
+      <AuthFeedback v-if="copyStatus" class="mb-4" :error="copyFailed">
+        {{ copyStatus }}
+      </AuthFeedback>
+    </details>
     <WhatsappGuideDialog v-if="guideOpen" @close="guideOpen = false" />
     <InboxChannelsDialog
       ref="channelsDialogRef"
@@ -395,41 +433,33 @@ const openChannelsDialog = () => channelsDialogRef.value?.open();
       @connected="refetchInboxes"
     />
     <template #footer>
-      <p
-        v-if="completionFailed"
-        role="alert"
-        class="mb-3 text-sm text-n-ruby-11"
-      >
+      <AuthFeedback v-if="completionFailed" error>
         {{ t('ONBOARDING_WHATSAPP.COMPLETION_ERROR') }}
-      </p>
-      <button
+      </AuthFeedback>
+      <AuthButton
         v-if="connectedInbox || isAvailable"
         type="button"
-        class="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-n-slate-12 px-6 text-base font-medium text-n-solid-1 transition-opacity hover:enabled:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-n-brand disabled:cursor-not-allowed disabled:opacity-60"
         :disabled="isConnecting || isSubmitting"
-        :aria-busy="isConnecting || isSubmitting"
+        :loading="isConnecting || isSubmitting"
         data-testid="primary"
         @click="connectedInbox ? completeOnboarding(false) : connectWhatsapp()"
       >
-        <Spinner
-          v-if="isConnecting || isSubmitting"
-          :size="20"
-          aria-hidden="true"
-        />
         {{ connectedInbox ? t('ONBOARDING_WHATSAPP.CONTINUE') : buttonLabel }}
-      </button>
-      <div
-        class="flex flex-wrap items-center justify-center gap-x-6 gap-y-3"
-        :class="connectedInbox || isAvailable ? 'mt-5' : 'flex-col'"
-      >
+      </AuthButton>
+      <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+        <AuthButton
+          v-if="!connectedInbox && !isAvailable"
+          variant="secondary"
+          :disabled="isSubmitting"
+          data-testid="other-channel"
+          @click="openChannelsDialog"
+        >
+          {{ t('ONBOARDING_WHATSAPP.OTHER_CHANNEL') }}
+        </AuthButton>
         <button
+          v-else
           type="button"
-          class="hover:text-n-slate-12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand disabled:opacity-60"
-          :class="
-            !connectedInbox && !isAvailable
-              ? 'flex h-14 w-full items-center justify-center rounded-full border border-n-slate-7 px-6 text-base font-medium text-n-slate-12 hover:enabled:bg-n-slate-3'
-              : 'rounded text-sm text-n-slate-11'
-          "
+          :class="AUTH_LINK_CLASS"
           :disabled="isConnecting || isSubmitting"
           data-testid="other-channel"
           @click="openChannelsDialog"
@@ -438,15 +468,17 @@ const openChannelsDialog = () => channelsDialogRef.value?.open();
         </button>
         <button
           type="button"
-          class="rounded text-sm text-n-slate-11 hover:text-n-slate-12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand disabled:opacity-60"
+          :class="AUTH_LINK_CLASS"
           :disabled="isSubmitting"
+          :aria-busy="isSubmitting"
           data-testid="skip"
           @click="completeOnboarding(true)"
         >
+          <Spinner v-if="isSubmitting" :size="16" aria-hidden="true" />
           {{ t('ONBOARDING_WHATSAPP.SKIP') }}
         </button>
       </div>
     </template>
   </AuthSplitLayout>
-  <Spinner v-else class="m-auto" :size="32" />
+  <Spinner v-else class="m-auto motion-reduce:animate-none" :size="32" />
 </template>

@@ -3,6 +3,7 @@ import agentBots from './agentBots.json';
 import agentMgmt from './agentMgmt.json';
 import attributesMgmt from './attributesMgmt.json';
 import auditLogs from './auditLogs.json';
+import auth from './auth.json';
 import automation from './automation.json';
 import bulkActions from './bulkActions.json';
 import businessRules from './businessRules.json';
@@ -89,6 +90,7 @@ export default {
   ...macros,
   ...mfa,
   ...onboarding,
+  ...auth,
   ...report,
   ...resetPassword,
   ...search,

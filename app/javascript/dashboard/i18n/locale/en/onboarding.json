@@ -54,7 +54,13 @@
     "NAME_REQUIRED": "Enter your business name.",
     "BUSINESS_TYPE_REQUIRED": "Select a business type.",
     "SEARCH": "Search...",
-    "NO_RESULTS": "No results found"
+    "NO_RESULTS": "No results found",
+    "BUSINESS_DESCRIPTIONS": {
+      "appointments": "Bookings and availability",
+      "commerce": "Products and orders",
+      "services": "Enquiries and quotes",
+      "other": "A little of everything"
+    }
   },
   "ONBOARDING_INBOX_SETUP": {
     "GREETING": "Let's set up a few things",
@@ -120,7 +126,8 @@
       "APP": "Keep using the WhatsApp Business app on your phone",
       "OFFICIAL": "Official connection to Meta’s WhatsApp Business Platform API",
       "BENEFITS": "Templates, catalog and all the benefits of the official API",
-      "PROVIDER": "ChatHub is a Meta Tech Provider"
+      "PROVIDER": "ChatHub is a Meta Tech Provider",
+      "SAFETY": "Why is it safe?"
     },
     "GUIDE": {
       "OPEN": "View connection guide",
@@ -154,7 +161,8 @@
       "ENTER_CODE": "Enter code",
       "COPY": "Copy link to continue on a computer",
       "COPIED": "Link copied. Open it on a computer to continue.",
-      "COPY_ERROR": "We couldn’t copy the link. Copy the address from your browser."
+      "COPY_ERROR": "We couldn’t copy the link. Copy the address from your browser.",
+      "TITLE": "Connecting from this phone"
     },
     "TITLE": "Connect your number or account",
     "SUBTITLE": "Keep your current number and the app on your phone. Your conversations arrive here.",
@@ -180,5 +188,98 @@
     "RETRY": "Try again",
     "UNAVAILABLE": "WhatsApp connection is not available on this installation. You can use another channel or do this later.",
     "COMPLETION_ERROR": "We couldn’t save this step. Try again to continue."
+  },
+  "ONBOARDING_ASSISTANT": {
+    "TITLE": "Set up your first assistant",
+    "SUBTITLE": "Tell us what it should do. We will prepare a draft for you to try before activating it.",
+    "MARKETING": {
+      "TITLE": "Your next conversation starts here",
+      "SUBTITLE": "Prepare an assistant that understands your business, at your own pace."
+    },
+    "DEFAULT_NAME": "Assistant for {business}",
+    "NAME": "Assistant name",
+    "GOAL": "What would you like your assistant to do?",
+    "EXAMPLES_LABEL": "Try one of these examples. You can edit it.",
+    "TONE": "Tone of voice",
+    "TONES": {
+      "friendly": "Friendly",
+      "professional": "Professional",
+      "brief": "Brief"
+    },
+    "CREATE": "Create and try",
+    "CREATING": "Creating your draft…",
+    "CHAT": "Test chat",
+    "CHAT_EMPTY": "Test here without messaging customers.",
+    "DRAFT": "Draft · It will only reply to customers after you activate it.",
+    "ACTIVE": "Active · Your assistant is connected to WhatsApp.",
+    "QUESTION": "Your test question",
+    "YOU": "You",
+    "SEND": "Send",
+    "THINKING": "Preparing a reply…",
+    "RETRY": "Try again",
+    "ACTIVATE": "Activate",
+    "CONTINUE": "Continue",
+    "EDIT": "Keep editing",
+    "SKIP": "I’ll do it later",
+    "CONNECT_REQUIRED": "Connect your WhatsApp to activate it.",
+    "BACK_WHATSAPP": "Back to WhatsApp",
+    "LOAD_ERROR": "We could not load your draft or channels. Try again.",
+    "CREATE_ERROR": "We could not save your assistant. Your changes are still here. Try again.",
+    "LIMIT_ERROR": "Your plan allows {limit} assistant(s). You have reached this limit. You can continue and manage your assistants from the dashboard.",
+    "AI_UNAVAILABLE": "AI is not available: this account needs an AI key configured for the installation and available responses. Your draft is saved. You can try again or continue later.",
+    "CHAT_ERROR": "We could not get a reply. Check AI availability and try again.",
+    "ACTIVATE_ERROR": "We could not finish activation. Check the connection and whether this inbox already has an assistant, then try again.",
+    "COMPLETION_ERROR": "We could not finish this step. Your draft is saved. Try again.",
+    "EXAMPLES": {
+      "appointments": {
+        "1": "Explain my services and help people request an appointment.",
+        "2": "Collect the service and preferred time so a person can confirm the appointment.",
+        "3": "Answer confirmed questions about appointments and offer human help when needed."
+      },
+      "commerce": {
+        "1": "Help customers explore my products and understand how to order.",
+        "2": "Answer questions using the delivery and payment details I provide.",
+        "3": "Collect product inquiries and pass them to a person when needed."
+      },
+      "services": {
+        "1": "Explain my services and collect initial inquiries.",
+        "2": "Ask what the customer needs so a person can prepare a quote.",
+        "3": "Answer confirmed questions about my services and offer human help."
+      },
+      "other": {
+        "1": "Welcome customers and explain what my business does.",
+        "2": "Collect initial questions and direct them to the right person.",
+        "3": "Answer common questions using only the information I provide."
+      }
+    },
+    "TONE_DESCRIPTIONS": {
+      "friendly": "Warm and open",
+      "professional": "Clear and calm",
+      "brief": "Short and direct"
+    },
+    "CHARACTERS": "{count} / {max} characters",
+    "QUESTION_PLACEHOLDER": "Ask a question as if you were a customer",
+    "EXAMPLE_LABELS": {
+      "appointments": {
+        "1": "Services and bookings",
+        "2": "Booking requests",
+        "3": "Questions about appointments"
+      },
+      "commerce": {
+        "1": "Products and orders",
+        "2": "Delivery and payments",
+        "3": "Product questions"
+      },
+      "services": {
+        "1": "Introduce my services",
+        "2": "Quote requests",
+        "3": "Service questions"
+      },
+      "other": {
+        "1": "Welcome customers",
+        "2": "Route enquiries",
+        "3": "Common questions"
+      }
+    }
   }
 }

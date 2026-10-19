@@ -69,6 +69,8 @@ Rails.application.routes.draw do
           resource :bulk_actions, only: [:create]
           resource :onboarding, only: [:update] do
             get :help_center_generation
+            get :assistant, action: :show_assistant
+            post :assistant, action: :create_assistant
           end
           resources :agents, only: [:index, :create, :update, :destroy] do
             post :bulk_create, on: :collection
@@ -78,6 +80,7 @@ Rails.application.routes.draw do
             resources :assistants do
               member do
                 post :playground
+                get :playground_usage
                 delete :avatar
                 get :metrics
                 get :faq_stats

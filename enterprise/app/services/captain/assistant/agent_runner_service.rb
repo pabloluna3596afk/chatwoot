@@ -11,6 +11,7 @@ class Captain::Assistant::AgentRunnerService
   attr_reader :last_run_result
 
   REPLY_SUGGESTION_SOURCE = 'copilot_reply_suggestion'.freeze
+  ONBOARDING_PLAYGROUND_SOURCE = 'onboarding_playground'.freeze
   RunOptions = Data.define(:callbacks, :source, :responding_to_message_id, :runtime_configuration) do
     def initialize(callbacks: {}, source: nil, responding_to_message_id: nil, runtime_configuration: nil)
       super
@@ -112,6 +113,11 @@ class Captain::Assistant::AgentRunnerService
 
   def build_and_wire_agents
     return [reply_suggestion_agent] if reply_suggestion?
+    # The initial test chat must not run account tools or live scenarios.
+    if @source == ONBOARDING_PLAYGROUND_SOURCE
+      agent = @assistant.agent
+      return [agent.clone(tools: agent.tools.select { |tool| tool.is_a?(Captain::Tools::FaqLookupTool) })]
+    end
 
     return default_agent_graph unless @runtime_configuration
 

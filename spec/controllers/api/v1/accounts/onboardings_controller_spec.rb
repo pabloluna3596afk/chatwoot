@@ -213,7 +213,7 @@ RSpec.describe 'Onboarding API', type: :request do
         end
 
         %w[whatsapp_connected skipped].each do |result|
-          it "finishes onboarding and records #{result}" do
+          it "advances to assistant and records #{result}" do
             inbox = create(:inbox, account: account)
 
             patch "/api/v1/accounts/#{account.id}/onboarding",
@@ -221,10 +221,13 @@ RSpec.describe 'Onboarding API', type: :request do
                   headers: admin.create_new_auth_token, as: :json
 
             expect(response).to have_http_status(:success)
-            expect(account.reload.custom_attributes).to eq('onboarding_version' => 2, 'inbox_setup_result' => result)
+            expect(account.reload.custom_attributes).to eq(
+              'onboarding_version' => 2, 'onboarding_step' => 'assistant', 'inbox_setup_result' => result
+            )
             attributes = response.parsed_body['custom_attributes']
             expect(attributes['onboarding_version']).to eq(2)
-            expect(attributes).not_to include('onboarding_step', 'inbox_setup_result')
+            expect(attributes['onboarding_step']).to eq('assistant')
+            expect(attributes).not_to include('inbox_setup_result')
             expect(inbox.members).to contain_exactly(admin)
           end
         end
@@ -254,8 +257,41 @@ RSpec.describe 'Onboarding API', type: :request do
                 headers: admin.create_new_auth_token, as: :json
 
           expect(response).to have_http_status(:success)
-          expect(account.reload.custom_attributes).to eq('onboarding_version' => 2, 'inbox_setup_result' => 'whatsapp_connected')
+          expect(account.reload.custom_attributes).to eq(
+            'onboarding_version' => 2, 'onboarding_step' => 'assistant', 'inbox_setup_result' => 'whatsapp_connected'
+          )
           expect(account.name).not_to eq('Stale')
+        end
+      end
+    end
+
+    context 'when completing the assistant step' do
+      it 'finishes version 2, preserves the draft pointer and ignores all step replays' do
+        account.update!(custom_attributes: {
+                          'onboarding_version' => 2, 'onboarding_step' => 'assistant', 'onboarding_assistant_id' => 123
+                        })
+
+        %w[assistant assistant inbox_setup account_details].each do |step|
+          patch "/api/v1/accounts/#{account.id}/onboarding",
+                params: { onboarding_step: step }, headers: admin.create_new_auth_token, as: :json
+
+          expect(response).to have_http_status(:success)
+          expect(account.reload.custom_attributes).to eq('onboarding_version' => 2, 'onboarding_assistant_id' => 123)
+          expect(response.parsed_body.dig('custom_attributes', 'onboarding_assistant_id')).to eq(123)
+        end
+      end
+
+      [{ 'onboarding_version' => 2, 'onboarding_step' => 'account_details' },
+       { 'onboarding_version' => 2, 'onboarding_step' => 'inbox_setup' },
+       { 'onboarding_step' => 'assistant' }, { 'onboarding_step' => 'inbox_setup' }].each do |attributes|
+        it "ignores assistant completion out of order or without version 2: #{attributes}" do
+          account.update!(custom_attributes: attributes)
+
+          patch "/api/v1/accounts/#{account.id}/onboarding",
+                params: { onboarding_step: 'assistant' }, headers: admin.create_new_auth_token, as: :json
+
+          expect(response).to have_http_status(:success)
+          expect(account.reload.custom_attributes).to eq(attributes)
         end
       end
     end

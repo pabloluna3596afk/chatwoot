@@ -2,6 +2,8 @@ import { validateAuthenticateRoutePermission } from './index';
 import store from '../store'; // This import will be mocked
 import { vi } from 'vitest';
 
+vi.mock('./dashboard/dashboard.routes', () => ({ default: { routes: [] } }));
+
 // Mock the store module
 vi.mock('../store', () => ({
   default: {
@@ -102,6 +104,25 @@ describe('#validateAuthenticateRoutePermission', () => {
         await validateAuthenticateRoutePermission(to, next);
 
         expect(next).toHaveBeenCalledWith();
+      });
+
+      it('allows viewing plans during the assistant step without completing onboarding', async () => {
+        Object.assign(store.getters.getCurrentUser.accounts[0], {
+          onboarding_version: 2,
+          onboarding_step: 'assistant',
+        });
+        await validateAuthenticateRoutePermission(
+          {
+            name: 'billing_settings_index',
+            params: { accountId: 1 },
+            meta: { permissions: ['administrator'] },
+          },
+          next
+        );
+        expect(next).toHaveBeenCalledWith();
+        expect(store.getters.getCurrentUser.accounts[0].onboarding_step).toBe(
+          'assistant'
+        );
       });
     });
   });

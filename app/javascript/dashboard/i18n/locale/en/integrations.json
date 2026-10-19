@@ -681,7 +681,7 @@
       "SEND_MESSAGE": "Send message",
       "HEADER": "Playground",
       "DESCRIPTION": "Use this playground to send messages to your assistant and check if it responds accurately, quickly, and in the tone you expect.",
-      "CREDIT_NOTE": "Messages sent here will count toward your Captain credits.",
+      "CREDIT_NOTE": "Test usage depends on your plan.",
       "CLEAR_CONVERSATION": "Clear conversation",
       "RESPONSE_ERROR": "Captain could not complete this test run. Review the setup and try again.",
       "SETUP": {
@@ -764,6 +764,16 @@
           "COMPLETED": "Completed",
           "FAILED": "Failed"
         }
+      },
+      "USAGE": {
+        "FREE": "Each test uses 1 plan response ({count} remaining)",
+        "PLAN": "You used your {total} free tests today. Further tests use plan responses ({count} remaining)",
+        "DAILY": "Today's free tests: {used} of {total}",
+        "PLANS": "View plans",
+        "responses_limit_reached": "Your plan responses have run out",
+        "playground_rate_limit": "Wait a few seconds and retry (up to {seconds} seconds)",
+        "playground_message_invalid": "Enter a message of up to 500 characters",
+        "playground_history_invalid": "Invalid test message history"
       }
     },
     "PAYWALL": {

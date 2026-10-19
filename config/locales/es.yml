@@ -17,6 +17,10 @@
 #To learn more, please read the Rails Internationalization guide
 #available at https://guides.rubyonrails.org/i18n.html.
 es:
+  onboarding:
+    assistant:
+      invalid: 'Los datos del asistente no son válidos'
+      unavailable: 'La configuración del asistente no está disponible en este paso'
   hello: 'Hola mundo'
   inbox:
     reauthorization:
@@ -496,6 +500,11 @@ es:
       short_description: 'Sync your contacts and conversations with LeadSquared CRM.'
       description: 'Sync your contacts and conversations with LeadSquared CRM. This integration automatically creates leads in LeadSquared when new contacts are added, and logs conversation activity to provide your sales team with complete context.'
   captain:
+    playground:
+      responses_limit_reached: 'Se agotaron las respuestas de tu plan'
+      playground_rate_limit: 'Demasiadas pruebas. Intenta de nuevo en unos segundos.'
+      playground_message_invalid: 'Escribe un mensaje de hasta 500 caracteres'
+      playground_history_invalid: 'El historial de la prueba no es válido'
     copilot_message_required: El mensaje es obligatorio
     copilot_error: 'Conecte un asistente a esta bandeja de entrada para utilizar Copilot'
     copilot_limit: 'Te quedaste sin créditos de Copilot. Puedes comprar más créditos desde la sección de facturación.'

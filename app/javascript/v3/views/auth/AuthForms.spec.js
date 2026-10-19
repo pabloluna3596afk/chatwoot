@@ -61,12 +61,12 @@ describe('shared auth form compatibility', () => {
       expect(labels.length).toBe(view === SignupForm ? 2 : 1);
       labels.forEach(label => {
         expect(label.text()).not.toBe('');
-        expect(label.classes('sr-only')).toBe(view === SignupForm);
+        expect(label.classes('sr-only')).toBe(false);
         const input = wrapper.get(`input[id="${label.attributes('for')}"]`);
         expect(input.classes()).toEqual(
           expect.arrayContaining([
             ...(view === SignupForm
-              ? ['rounded-xl', 'bg-n-solid-1', 'px-4', 'h-14', 'reset-base']
+              ? ['rounded-xl', 'bg-n-solid-1', 'px-4', 'min-h-14', 'reset-base']
               : [
                   'rounded-md',
                   'shadow-sm',
@@ -78,7 +78,7 @@ describe('shared auth form compatibility', () => {
             'py-3',
           ])
         );
-        expect(input.classes('h-14')).toBe(view === SignupForm);
+        expect(input.classes('min-h-14')).toBe(view === SignupForm);
         expect(input.classes('reset-base')).toBe(view === SignupForm);
       });
     }
@@ -90,9 +90,9 @@ describe('shared auth form compatibility', () => {
     });
     const input = wrapper.get('input[name="password"]');
     const button = wrapper.get('button[aria-pressed]');
-    expect(input.classes('pe-12')).toBe(true);
-    expect(button.classes('!px-3')).toBe(true);
-    expect(button.classes('!h-full')).toBe(true);
+    expect(input.classes('pe-14')).toBe(true);
+    expect(button.classes('w-12')).toBe(true);
+    expect(button.classes('min-h-11')).toBe(true);
     await input.setValue('Strong!Password1');
     await button.trigger('click');
     expect(input.attributes('type')).toBe('text');

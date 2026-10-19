@@ -10,7 +10,11 @@ import { useAccount } from 'dashboard/composables/useAccount';
 import { useStore } from 'dashboard/composables/store';
 import countries from 'shared/constants/countries';
 import AuthSplitLayout from 'v3/components/Auth/AuthSplitLayout.vue';
-import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
+import AuthStepHeader from 'v3/components/Auth/AuthStepHeader.vue';
+import AuthField from 'v3/components/Auth/AuthField.vue';
+import AuthButton from 'v3/components/Auth/AuthButton.vue';
+import AuthChoiceCard from 'v3/components/Auth/AuthChoiceCard.vue';
+import AuthFeedback from 'v3/components/Auth/AuthFeedback.vue';
 import OnboardingFormSelect from './account-details/OnboardingFormSelect.vue';
 import { useAccountEnrichment } from './account-details/useAccountEnrichment';
 import { businessTimezoneOptions } from './account-details/timezoneOptions';
@@ -21,19 +25,9 @@ const store = useStore();
 const { accountId, currentAccount, finishOnboarding } = useAccount();
 
 const CURRENT_STEP = 2;
-const TOTAL_STEPS = 5;
 // The shared phone-country list still contains the retired Netherlands Antilles code.
 const RETIRED_COUNTRY_CODE = 'AN';
 const STEP_ROUTES = { inbox_setup: 'onboarding_inbox_setup' };
-const RADIO_ARROW_STEPS = {
-  ArrowRight: 1,
-  ArrowDown: 1,
-  ArrowLeft: -1,
-  ArrowUp: -1,
-};
-const INPUT_CLASS =
-  'reset-base m-0 h-14 w-full rounded-full border-0 bg-n-solid-1 px-5 text-base text-n-slate-12 outline outline-1 outline-n-weak placeholder:text-n-slate-10 hover:outline-n-slate-6 focus:outline-n-brand dark:bg-n-solid-3';
-
 const name = ref('');
 const businessType = ref('');
 const country = ref('');
@@ -41,6 +35,7 @@ const website = ref('');
 const locale = ref('');
 const timezone = ref('');
 const isSubmitting = ref(false);
+const submitError = ref('');
 const { isEnriching, getChangedFields } = useAccountEnrichment({
   name,
   businessType,
@@ -58,21 +53,25 @@ const businessTypeOptions = computed(() => [
   {
     value: 'appointments',
     label: t('ONBOARDING_NEXT.BUSINESS_TYPES.appointments'),
+    description: t('ONBOARDING_NEXT.BUSINESS_DESCRIPTIONS.appointments'),
     icon: 'i-lucide-calendar',
   },
   {
     value: 'commerce',
     label: t('ONBOARDING_NEXT.BUSINESS_TYPES.commerce'),
+    description: t('ONBOARDING_NEXT.BUSINESS_DESCRIPTIONS.commerce'),
     icon: 'i-lucide-store',
   },
   {
     value: 'services',
     label: t('ONBOARDING_NEXT.BUSINESS_TYPES.services'),
+    description: t('ONBOARDING_NEXT.BUSINESS_DESCRIPTIONS.services'),
     icon: 'i-lucide-briefcase',
   },
   {
     value: 'other',
     label: t('ONBOARDING_NEXT.BUSINESS_TYPES.other'),
+    description: t('ONBOARDING_NEXT.BUSINESS_DESCRIPTIONS.other'),
     icon: 'i-lucide-sparkles',
   },
 ]);
@@ -101,23 +100,17 @@ const submitLabel = computed(() => {
 
 onMounted(() => useTrack(ONBOARDING_EVENTS.ACCOUNT_DETAILS_VISITED));
 
-const handleBusinessTypeKeydown = (event, index) => {
-  const step = RADIO_ARROW_STEPS[event.key];
-  if (!step) return;
-  event.preventDefault();
-  const options = businessTypeOptions.value;
-  const next = (index + step + options.length) % options.length;
-  businessType.value = options[next].value;
-  const radios = event.currentTarget
-    .closest('[role="radiogroup"]')
-    .querySelectorAll('input');
-  radios[next].focus();
-};
-
 const handleSubmit = async () => {
   if (isEnriching.value || isSubmitting.value) return;
   v$.value.$touch();
-  if (v$.value.$invalid) return;
+  if (v$.value.$invalid) {
+    document
+      .querySelector(
+        v$.value.name.$error ? '#business-name' : '[name=business_type]'
+      )
+      ?.focus();
+    return;
+  }
 
   const fieldsChanged = getChangedFields();
   const trimmedWebsite = website.value.trim();
@@ -127,6 +120,7 @@ const handleSubmit = async () => {
       : trimmedWebsite;
 
   isSubmitting.value = true;
+  submitError.value = '';
   try {
     await finishOnboarding({
       name: name.value.trim(),
@@ -157,6 +151,7 @@ const handleSubmit = async () => {
       router.push({ name: 'home', params: { accountId: accountId.value } });
     }
   } catch {
+    submitError.value = t('ONBOARDING_NEXT.ERROR');
     useAlert(t('ONBOARDING_NEXT.ERROR'));
   } finally {
     isSubmitting.value = false;
@@ -168,134 +163,67 @@ const handleSubmit = async () => {
   <AuthSplitLayout
     :title="t('ONBOARDING_NEXT.MARKETING.TITLE')"
     :subtitle="t('ONBOARDING_NEXT.MARKETING.SUBTITLE')"
+    onboarding
     scrollable
   >
-    <header class="mb-4">
-      <p class="mb-2 text-sm font-medium text-n-slate-11">
-        {{
-          t('ONBOARDING_NEXT.STEP', {
-            current: CURRENT_STEP,
-            total: TOTAL_STEPS,
-          })
-        }}
-      </p>
-      <div
-        role="progressbar"
-        :aria-label="t('ONBOARDING_NEXT.PROGRESS')"
-        :aria-valuenow="CURRENT_STEP"
-        :aria-valuemin="0"
-        :aria-valuemax="TOTAL_STEPS"
-        class="mb-3 flex gap-1.5"
-      >
-        <span
-          v-for="step in TOTAL_STEPS"
-          :key="step"
-          class="h-1 flex-1 rounded-full"
-          :class="step <= CURRENT_STEP ? 'bg-n-slate-12' : 'bg-n-slate-4'"
-        />
-      </div>
-      <h2 class="text-3xl font-bold tracking-tight text-n-slate-12 xl:text-4xl">
-        {{ t('ONBOARDING_NEXT.TITLE') }}
-      </h2>
-      <p class="mt-2 mb-0 text-sm text-n-slate-11">
-        {{ t('ONBOARDING_NEXT.SUBTITLE') }}
-      </p>
-    </header>
-
+    <AuthStepHeader
+      :title="t('ONBOARDING_NEXT.TITLE')"
+      :subtitle="t('ONBOARDING_NEXT.SUBTITLE')"
+      :step-name="t('ONBOARDING_NEXT.TITLE')"
+      :current="CURRENT_STEP"
+    />
     <form
       id="business-details-form"
-      class="space-y-3"
+      class="space-y-4"
       novalidate
       @submit.prevent="handleSubmit"
     >
-      <div class="space-y-2">
-        <label for="business-name" class="text-sm font-medium text-n-slate-12">
-          {{ t('ONBOARDING_NEXT.FIELDS.NAME') }}
-        </label>
-        <input
-          id="business-name"
-          v-model="name"
-          name="name"
-          autocomplete="organization"
-          required
-          :class="[INPUT_CLASS, { '!outline-n-ruby-8': v$.name.$error }]"
-          :aria-invalid="v$.name.$error"
-          :aria-describedby="v$.name.$error ? 'business-name-error' : undefined"
-          @blur="v$.name.$touch"
-        />
-        <p
-          v-if="v$.name.$error"
-          id="business-name-error"
-          class="mb-0 text-sm text-n-ruby-11"
-          role="alert"
-        >
-          {{ t('ONBOARDING_NEXT.NAME_REQUIRED') }}
-        </p>
-      </div>
-
+      <AuthField
+        id="business-name"
+        v-model="name"
+        name="name"
+        autocomplete="organization"
+        required
+        :label="t('ONBOARDING_NEXT.FIELDS.NAME')"
+        :error="v$.name.$error ? t('ONBOARDING_NEXT.NAME_REQUIRED') : ''"
+        @blur="v$.name.$touch"
+      />
       <fieldset
-        class="space-y-2"
         role="radiogroup"
         aria-labelledby="business-type-label"
+        :aria-invalid="v$.businessType.$error"
         :aria-describedby="
           v$.businessType.$error ? 'business-type-error' : undefined
         "
       >
         <legend
           id="business-type-label"
-          class="mb-2 text-sm font-medium text-n-slate-12"
+          class="mb-2 text-sm font-medium leading-5 text-n-slate-12"
         >
           {{ t('ONBOARDING_NEXT.FIELDS.BUSINESS_TYPE') }}
         </legend>
         <div class="grid grid-cols-2 gap-2">
-          <label
+          <AuthChoiceCard
             v-for="(option, index) in businessTypeOptions"
             :key="option.value"
-            class="relative cursor-pointer"
-          >
-            <input
-              v-model="businessType"
-              type="radio"
-              role="radio"
-              name="business_type"
-              :value="option.value"
-              :tabindex="
-                businessType === option.value || (!businessType && index === 0)
-                  ? 0
-                  : -1
-              "
-              required
-              :aria-invalid="v$.businessType.$error"
-              class="peer sr-only"
-              @keydown="handleBusinessTypeKeydown($event, index)"
-            />
-            <span
-              class="flex min-h-16 h-full items-center justify-center gap-2 rounded-2xl border border-n-weak px-3 py-3 text-center text-sm font-medium text-n-slate-12 transition-colors hover:bg-n-alpha-1 peer-checked:border-n-brand peer-checked:bg-n-brand/10 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-n-brand"
-            >
-              <span
-                :class="option.icon"
-                class="size-4 shrink-0"
-                aria-hidden="true"
-              />
-              {{ option.label }}
-            </span>
-            <span
-              class="i-lucide-check absolute end-2 top-2 hidden size-3 text-n-brand peer-checked:block"
-              aria-hidden="true"
-            />
-          </label>
+            v-model="businessType"
+            name="business_type"
+            required
+            v-bind="option"
+            :first="index === 0"
+            :invalid="v$.businessType.$error"
+          />
         </div>
-        <p
+        <AuthFeedback
           v-if="v$.businessType.$error"
           id="business-type-error"
-          class="mb-0 text-sm text-n-ruby-11"
-          role="alert"
+          class="mt-2"
+          error
         >
           {{ t('ONBOARDING_NEXT.BUSINESS_TYPE_REQUIRED') }}
-        </p>
+        </AuthFeedback>
       </fieldset>
-
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <OnboardingFormSelect
           v-model="country"
           :label="t('ONBOARDING_NEXT.FIELDS.COUNTRY')"
@@ -318,40 +246,26 @@ const handleSubmit = async () => {
         :placeholder="t('ONBOARDING_NEXT.PLACEHOLDERS.SELECT_TIMEZONE')"
         show-search
       />
-      <div class="space-y-2">
-        <label
-          for="business-website"
-          class="text-sm font-medium text-n-slate-12"
-        >
-          {{ t('ONBOARDING_NEXT.FIELDS.WEBSITE') }}
-        </label>
-        <input
-          id="business-website"
-          v-model="website"
-          name="website"
-          type="text"
-          inputmode="url"
-          autocomplete="url"
-          :class="INPUT_CLASS"
-          :placeholder="t('ONBOARDING_NEXT.PLACEHOLDERS.ENTER_WEBSITE')"
-        />
-      </div>
+      <AuthField
+        id="business-website"
+        v-model="website"
+        name="website"
+        inputmode="url"
+        autocomplete="url"
+        :label="t('ONBOARDING_NEXT.FIELDS.WEBSITE')"
+        :placeholder="t('ONBOARDING_NEXT.PLACEHOLDERS.ENTER_WEBSITE')"
+      />
     </form>
     <template #footer>
-      <button
+      <AuthFeedback v-if="submitError" error>{{ submitError }}</AuthFeedback>
+      <AuthButton
         type="submit"
         form="business-details-form"
-        class="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-n-slate-12 px-6 text-base font-medium text-n-solid-1 transition-opacity hover:enabled:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-n-brand disabled:cursor-not-allowed disabled:opacity-60"
-        :aria-busy="isSubmitting || isEnriching"
+        :loading="isSubmitting || isEnriching"
         :disabled="isSubmitting || isEnriching"
       >
-        <Spinner
-          v-if="isSubmitting || isEnriching"
-          :size="20"
-          aria-hidden="true"
-        />
         {{ submitLabel }}
-      </button>
+      </AuthButton>
     </template>
   </AuthSplitLayout>
 </template>

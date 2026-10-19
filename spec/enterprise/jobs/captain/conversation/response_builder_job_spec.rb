@@ -87,6 +87,13 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         expect(account.usage_limits[:captain][:responses][:consumed]).to eq(1)
       end
 
+      it 'keeps customer response metering independent of all playground limits' do
+        account.plan.update!(captain_daily_tests: 0)
+        expect(Captain::Playground::Usage).not_to receive(:new)
+        described_class.perform_now(conversation, assistant)
+        expect(captain_responses_used(account)).to eq(1)
+      end
+
       it 'does not create a captain session' do
         expect do
           described_class.perform_now(conversation, assistant)

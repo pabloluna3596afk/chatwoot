@@ -7,10 +7,15 @@ import SidePanel from 'dashboard/components-next/side-panel/SidePanel.vue';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { usePolicy } from 'dashboard/composables/usePolicy';
 import { useMapGetter } from 'dashboard/composables/store';
+import { useAccount } from 'dashboard/composables/useAccount';
 import MessageList from './MessageList.vue';
 import PlaygroundTestSetup from './PlaygroundTestSetup.vue';
 import { usePlaygroundSession } from './usePlaygroundSession';
 import CaptainAssistant from 'dashboard/api/captain/assistant';
+import {
+  PLAYGROUND_MESSAGE_LIMIT,
+  usePlaygroundUsage,
+} from './usePlaygroundUsage';
 
 const props = defineProps({
   assistantId: {
@@ -20,6 +25,14 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
+const {
+  remaining,
+  errorCode,
+  label: usageLabel,
+  update: updateUsage,
+  handleError: usageError,
+} = usePlaygroundUsage();
+const { accountId } = useAccount();
 const assistants = useMapGetter('captainAssistants/getRecords');
 const assistant = computed(() =>
   assistants.value?.find(({ id }) => id === props.assistantId)
@@ -110,6 +123,21 @@ watch(
 );
 
 watch(
+  () => props.assistantId,
+  async id => {
+    try {
+      const { data } = await CaptainAssistant.playgroundUsage(id);
+      if (id === props.assistantId) updateUsage(data);
+    } catch (error) {
+      pushAssistantError(
+        usageError(error) || t('CAPTAIN.PLAYGROUND.RESPONSE_ERROR')
+      );
+    }
+  },
+  { immediate: true }
+);
+
+watch(
   isV2,
   enabled => {
     if (enabled) session.initialize();
@@ -154,6 +182,7 @@ const sendMessage = async () => {
       playgroundConfig: isV2.value ? session.playgroundConfig : undefined,
     });
     if (requestVersion !== conversationVersion) return;
+    updateUsage(data);
 
     messages.value.push({
       content: data.error
@@ -170,7 +199,8 @@ const sendMessage = async () => {
     if (requestVersion !== conversationVersion) return;
 
     pushAssistantError(
-      error?.response?.data?.error ||
+      usageError(error) ||
+        error?.response?.data?.error ||
         error?.response?.data?.message ||
         t('CAPTAIN.PLAYGROUND.RESPONSE_ERROR')
     );
@@ -233,6 +263,7 @@ const handleEnterKey = event => {
       >
         <input
           v-model="newMessage"
+          :maxlength="PLAYGROUND_MESSAGE_LIMIT"
           class="mb-0 flex-1 border-none bg-transparent text-sm text-n-slate-12 placeholder:text-n-slate-10 focus:outline-none"
           :placeholder="t('CAPTAIN.PLAYGROUND.MESSAGE_PLACEHOLDER')"
           @keydown.enter.exact="handleEnterKey"
@@ -248,8 +279,18 @@ const handleEnterKey = event => {
       </div>
 
       <p class="pt-2 text-center text-xs text-n-slate-11">
-        {{ t('CAPTAIN.PLAYGROUND.CREDIT_NOTE') }}
+        {{ usageLabel || t('CAPTAIN.PLAYGROUND.CREDIT_NOTE') }}
       </p>
+      <a
+        v-if="
+          errorCode === 'responses_limit_reached' ||
+          (remaining?.uses_plan_pool && remaining.plan_remaining <= 0)
+        "
+        :href="`/app/accounts/${accountId}/settings/billing`"
+        class="pt-2 text-center text-xs text-n-blue-11 underline"
+      >
+        {{ t('CAPTAIN.PLAYGROUND.USAGE.PLANS') }}
+      </a>
     </div>
 
     <aside

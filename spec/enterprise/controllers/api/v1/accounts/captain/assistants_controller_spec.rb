@@ -599,7 +599,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
     end
   end
 
-  describe 'POST /api/v1/accounts/{account.id}/captain/assistants/{id}/playground' do
+  describe 'POST /api/v1/accounts/{account.id}/captain/assistants/{id}/playground', :real_redis do
     let(:assistant) { create(:captain_assistant, account: account) }
     let(:valid_params) do
       {
@@ -639,8 +639,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
 
         expect(response).to have_http_status(:success)
         expect(chat_service).to have_received(:generate_response).with(
-          additional_message: valid_params[:message_content],
-          message_history: valid_params[:message_history]
+          message_history: valid_params[:message_history] + [{ role: 'user', content: valid_params[:message_content] }]
         )
         expect(json_response[:content]).to eq('Assistant response')
       end
@@ -661,8 +660,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
 
         expect(response).to have_http_status(:success)
         expect(chat_service).to have_received(:generate_response).with(
-          additional_message: params_without_history[:message_content],
-          message_history: []
+          message_history: [{ role: 'user', content: params_without_history[:message_content] }]
         )
       end
 
@@ -682,6 +680,26 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
 
       before do
         account.enable_features('captain_integration_v2')
+      end
+
+      it 'uses the restricted runner for the onboarding assistant even if a configuration is supplied' do
+        account.update!(custom_attributes: {
+                          'onboarding_version' => 2, 'onboarding_step' => 'assistant', 'onboarding_assistant_id' => assistant.id
+                        })
+        options = Captain::Assistant::AgentRunnerService::RunOptions.new(source: 'onboarding_playground')
+        allow(Captain::Assistant::AgentRunnerService).to receive(:new)
+          .with(assistant: assistant, run_options: options).and_return(agent_runner_service)
+        allow(agent_runner_service).to receive(:generate_response).and_return({ response: 'Test reply' })
+        expect(Captain::Playground::Runner).not_to receive(:new)
+
+        post "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}/playground",
+             params: valid_params.merge(playground_config: { scenario_ids: [] }),
+             headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body['response']).to eq('Test reply')
+        expect(agent_runner_service).to have_received(:generate_response)
+          .with(message_history: valid_params[:message_history] + [{ role: 'user', content: valid_params[:message_content] }])
       end
 
       it 'generates a response with the agent runner service' do

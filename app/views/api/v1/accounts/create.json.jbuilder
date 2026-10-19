@@ -18,6 +18,9 @@ json.data do
       json.id account_user.account_id
       json.name account_user.account.name
       json.onboarding_step account_user.account.onboarding_step
+      if account_user.account.custom_attributes['onboarding_assistant_id'].present?
+        json.onboarding_assistant_id account_user.account.custom_attributes['onboarding_assistant_id']
+      end
       if account_user.account.custom_attributes['onboarding_version'].present?
         json.onboarding_version account_user.account.custom_attributes['onboarding_version']
       end

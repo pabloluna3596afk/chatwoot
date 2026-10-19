@@ -4,7 +4,6 @@ import { createI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import es from 'dashboard/i18n/locale/es/signup.json';
 import login from 'dashboard/i18n/locale/es/login.json';
-import SimpleDivider from '../../../../../components/Divider/SimpleDivider.vue';
 import Form from './Form.vue';
 
 const { post, push, execute, reset } = vi.hoisted(() => ({
@@ -216,7 +215,7 @@ describe('Signup Form', () => {
     expect(requirements.findAll('.i-lucide-circle-check-big')).toHaveLength(4);
     await input.setValue('aA1!xx');
     expect(
-      requirements.findAll('.i-lucide-circle-check-big.text-n-teal-10')
+      requirements.findAll('.i-lucide-circle-check-big.text-n-teal-11')
     ).toHaveLength(5);
     await input.trigger('blur');
     expect(requirements.isVisible()).toBe(true);
@@ -238,15 +237,27 @@ describe('Signup Form', () => {
       expect(wrapper.text().includes(es.REGISTER.OAUTH.PASSWORD_NOTICE)).toBe(
         visible
       );
-      const divider = wrapper.findComponent(SimpleDivider);
-      expect(divider.exists()).toBe(visible);
+      expect(wrapper.find('.section-separator').exists()).toBe(visible);
       if (visible) {
+        const divider = wrapper.get('.section-separator');
+        expect(divider.text()).toBe(es.REGISTER.OR);
+        expect(divider.classes()).toEqual(
+          expect.arrayContaining([
+            '[&_.border-t]:border-solid',
+            '[&_.border-t]:border-n-slate-7',
+            '[&_span]:text-n-slate-11',
+          ])
+        );
+        expect(
+          divider.get('[aria-hidden="true"] .border-t').classes()
+        ).toContain('border-n-strong');
+        expect(divider.get('span').classes()).toEqual(
+          expect.arrayContaining(['bg-n-solid-1', 'dark:bg-n-background'])
+        );
         expect(
           wrapper.get('a[href^="https://accounts.google.com"]').text()
         ).toBe('Registrarte con Google');
-        expect(divider.props('label')).toBe(es.REGISTER.OR);
-        expect(divider.text()).toBe(es.REGISTER.OR);
-        expect(divider.props('bg')).toBe('bg-n-solid-1 dark:bg-n-background');
+        expect(wrapper.text()).toContain(es.REGISTER.OR);
       }
     }
   );

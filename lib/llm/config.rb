@@ -46,6 +46,19 @@ module Llm::Config
       yield context
     end
 
+    # ai-agents 0.12 builds RubyLLM::Chat directly, without accepting a context.
+    # Scope its constructors to this request, including handoffs and rewrites.
+    # Never mutate global credentials or expose the key in the agent's trace context.
+    def with_chat_context(api_key)
+      previous = ActiveSupport::IsolatedExecutionState[:llm_chat_context]
+      with_api_key(api_key) do |context|
+        ActiveSupport::IsolatedExecutionState[:llm_chat_context] = context
+        yield
+      end
+    ensure
+      ActiveSupport::IsolatedExecutionState[:llm_chat_context] = previous
+    end
+
     private
 
     def settings
@@ -78,3 +91,11 @@ module Llm::Config
     end
   end
 end
+
+module Llm::Config::ScopedChatContext
+  def initialize(context: nil, **)
+    super(context: context || ActiveSupport::IsolatedExecutionState[:llm_chat_context], **)
+  end
+end
+
+RubyLLM::Chat.prepend(Llm::Config::ScopedChatContext)
