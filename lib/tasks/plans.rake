@@ -55,9 +55,16 @@ namespace :plans do
     plans.each do |attrs|
       plan = Plan.find_or_initialize_by(slug: attrs[:slug])
       was_new = plan.new_record?
-      plan.assign_attributes(common.merge(attrs).merge(is_active: true, is_public: true))
+      unless was_new
+        puts "Unchanged: #{plan.name} (#{plan.slug})"
+        next
+      end
+
+      plan.assign_attributes(common.merge(attrs).merge(
+                               is_active: true, is_public: attrs[:slug] != 'developer', coming_soon: !attrs[:is_default_trial]
+                             ))
       plan.save!
-      puts "#{was_new ? 'Created' : 'Updated'}: #{plan.name} (#{plan.slug})"
+      puts "Created: #{plan.name} (#{plan.slug})"
     end
   end
 end
