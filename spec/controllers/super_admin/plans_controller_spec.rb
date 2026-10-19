@@ -49,4 +49,14 @@ RSpec.describe 'Super Admin plans', type: :request do
     expect(response).to have_http_status(:unprocessable_entity)
     expect(plan.reload.feature_keys).to eq([])
   end
+
+  it 'rejects non-string identifiers without raising an exception' do
+    sign_in(super_admin, scope: :super_admin)
+
+    patch "/super_admin/plans/#{plan.id}", params: { plan: { feature_keys: [1] } }, as: :json
+
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(plan.reload.feature_keys).to eq([])
+  end
+
 end
