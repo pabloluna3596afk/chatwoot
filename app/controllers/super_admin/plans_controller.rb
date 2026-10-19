@@ -1,4 +1,10 @@
 class SuperAdmin::PlansController < SuperAdmin::ApplicationController
-  # Default Administrate CRUD actions are enough here — Plan is plain
-  # configuration data, nothing custom to override.
+  private
+
+  def resource_params
+    attributes = super
+    # Checkbox forms submit one empty sentinel so every feature can be cleared.
+    attributes[:feature_keys] = attributes[:feature_keys].reject(&:empty?) if attributes.key?(:feature_keys)
+    attributes
+  end
 end
