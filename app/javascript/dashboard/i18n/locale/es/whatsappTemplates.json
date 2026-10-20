@@ -26,6 +26,8 @@
       }
     },
     "PARSER": {
+      "PREVIEW_FAILED": "No se pudo calcular la vista previa. Vuelve a abrir la plantilla para intentarlo de nuevo.",
+      "TIMEZONE": "Zona horaria: {timezone}",
       "NO_VALUE": "Este contacto no tiene este dato: escríbelo para poder enviar.",
       "VARIABLES_LABEL": "Variables",
       "HEADER_VARIABLES_LABEL": "Variables del encabezado",

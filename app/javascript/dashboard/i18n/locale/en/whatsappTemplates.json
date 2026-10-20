@@ -26,8 +26,8 @@
       }
     },
     "PARSER": {
-      "PREVIEW_FAILED": "No se pudo calcular la vista previa. Vuelve a abrir la plantilla para intentarlo de nuevo.",
-      "TIMEZONE": "Zona horaria: {timezone}",
+      "PREVIEW_FAILED": "The preview could not be calculated. Reopen the template to try again.",
+      "TIMEZONE": "Time zone: {timezone}",
       "NO_VALUE": "This contact has no value for this: type it to be able to send.",
       "VARIABLES_LABEL": "Variables",
       "HEADER_VARIABLES_LABEL": "Header variables",
