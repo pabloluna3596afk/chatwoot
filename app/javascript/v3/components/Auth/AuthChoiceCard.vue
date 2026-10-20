@@ -9,6 +9,7 @@ defineProps({
   disabled: Boolean,
   invalid: Boolean,
   required: Boolean,
+  compact: Boolean,
 });
 const model = defineModel({ type: String, required: true });
 const ARROW_STEPS = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
@@ -47,7 +48,10 @@ const onKeydown = event => {
       @keydown="onKeydown"
     />
     <span
-      class="flex h-full min-h-20 flex-col gap-2 rounded-xl border border-n-slate-9 dark:border-n-slate-10 p-3 text-start text-n-slate-12 hover:border-n-slate-11 hover:bg-n-slate-2 peer-checked:border-n-brand dark:peer-checked:border-n-brand peer-checked:bg-n-blue-2 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-n-brand peer-disabled:cursor-not-allowed peer-disabled:opacity-60 motion-safe:transition-colors motion-safe:duration-150"
+      class="flex h-full gap-2 rounded-xl border border-n-slate-9 dark:border-n-slate-10 p-3 text-start text-n-slate-12 hover:border-n-slate-11 hover:bg-n-slate-2 peer-checked:border-n-brand dark:peer-checked:border-n-brand peer-checked:bg-n-blue-2 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-n-brand peer-disabled:cursor-not-allowed peer-disabled:opacity-60 motion-safe:transition-colors motion-safe:duration-150"
+      :class="
+        compact ? 'min-h-[4.5rem] flex-row items-start' : 'min-h-20 flex-col'
+      "
     >
       <span :class="icon" class="size-5 shrink-0" aria-hidden="true" />
       <span class="min-w-0 space-y-1">

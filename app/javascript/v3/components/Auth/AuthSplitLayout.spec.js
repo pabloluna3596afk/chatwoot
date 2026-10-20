@@ -7,51 +7,6 @@ describe('AuthSplitLayout', () => {
   let wrapper;
   afterEach(() => wrapper?.unmount());
 
-  it.each([true, false])(
-    'reserves the actual footer height outside the scroll region with 24px bottom clearance (footer=%s)',
-    withFooter => {
-      const store = createStore({
-        getters: { 'globalConfig/get': () => ({ logo: '/logo.svg' }) },
-      });
-      wrapper = mount(AuthSplitLayout, {
-        props: { title: 'Welcome', subtitle: 'Get started', onboarding: true },
-        slots: {
-          default:
-            '<form id="onboarding-form"><a href="#guide">Guide</a></form>',
-          ...(withFooter && {
-            footer: '<button form="onboarding-form">Continue</button>',
-          }),
-        },
-        global: { plugins: [store] },
-      });
-      expect(wrapper.get('main').classes()).toContain('h-dvh');
-      const column = wrapper.get('[data-testid="onboarding-column"]');
-      expect(column.classes()).toContain(
-        'pb-[max(1.5rem,env(safe-area-inset-bottom))]'
-      );
-      const scroller = wrapper.get('[data-testid="onboarding-scroll-content"]');
-      expect(scroller.classes()).toEqual(
-        expect.arrayContaining(['min-h-0', 'overflow-y-auto', 'pb-4'])
-      );
-      expect(scroller.get('a').text()).toBe('Guide');
-      expect(wrapper.find('footer').exists()).toBe(withFooter);
-      if (withFooter) {
-        const footer = wrapper.get('footer');
-        expect(scroller.element.parentElement).toBe(
-          footer.element.parentElement
-        );
-        expect(scroller.element.nextElementSibling).toBe(footer.element);
-        expect(footer.classes()).toEqual(
-          expect.arrayContaining(['shrink-0', 'backdrop-blur-md'])
-        );
-        expect(scroller.find('button').exists()).toBe(false);
-        expect(footer.get('button').element.form).toBe(
-          scroller.get('form').element
-        );
-      }
-    }
-  );
-
   it.each(['/logo-dark.svg', ''])(
     'shares the login photo, responsive column and branded logos with dark logo %j',
     logoDark => {
@@ -81,8 +36,12 @@ describe('AuthSplitLayout', () => {
       expect(hero.get('img[alt="ChatHub"]').attributes('src')).toBe(
         logoDark || '/logo.svg'
       );
-      expect(hero.get('h1').text()).toBe('Welcome to ChatHub');
-      expect(hero.get('h1').classes()).toContain('text-white');
+      expect(hero.get('[data-testid="auth-marketing-title"]').text()).toBe(
+        'Welcome to ChatHub'
+      );
+      expect(
+        hero.get('[data-testid="auth-marketing-title"]').classes()
+      ).toContain('text-white');
       expect(hero.get('p').classes()).toContain('text-white');
       expect(hero.text()).toContain('Your assistant');
       expect(hero.findAll('.bg-gradient-to-b, .bg-gradient-to-t')).toHaveLength(

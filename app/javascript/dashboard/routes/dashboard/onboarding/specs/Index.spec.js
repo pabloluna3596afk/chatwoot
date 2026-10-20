@@ -10,7 +10,7 @@ import OnboardingAPI from 'dashboard/api/onboarding';
 import accounts from 'dashboard/store/modules/accounts';
 import en from 'dashboard/i18n/locale/en/onboarding.json';
 import es from 'dashboard/i18n/locale/es/onboarding.json';
-import AuthSplitLayout from 'v3/components/Auth/AuthSplitLayout.vue';
+import OnboardingShell from '../shared/OnboardingShell.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import ComboBoxDropdown from 'dashboard/components-next/combobox/ComboBoxDropdown.vue';
 import Index from '../Index.vue';
@@ -30,6 +30,12 @@ describe('Business onboarding', () => {
   let mountOptions;
 
   beforeEach(async () => {
+    vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({
+      timeZone: 'America/Guayaquil',
+    });
+    vi.spyOn(Intl, 'supportedValuesOf').mockReturnValue(['America/New_York']);
+    vi.spyOn(navigator, 'language', 'get').mockReturnValue('es-EC');
+    vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['es-EC']);
     account = reactive({
       id: 1,
       name: 'Acme',
@@ -90,6 +96,51 @@ describe('Business onboarding', () => {
     vi.restoreAllMocks();
   });
 
+  it('uses the configured logo and falls back to shipped brand assets after a load error', async () => {
+    wrapper = mount(Index, mountOptions);
+    const [light, dark] = wrapper.findAll('header img');
+    expect(light.attributes('src')).toBe('/logo.svg');
+    expect(dark.attributes('src')).toBe('/logo.svg');
+    await light.trigger('error');
+    await dark.trigger('error');
+    expect(light.attributes('src')).toBe('/brand-assets/logo.svg');
+    expect(dark.attributes('src')).toBe('/brand-assets/logo_dark.svg');
+    [light, dark].forEach(logo => {
+      expect(logo.attributes('alt')).toBe('ChatHub');
+      expect(logo.classes()).toEqual(
+        expect.arrayContaining(['h-7', 'w-auto', 'shrink-0', 'object-contain'])
+      );
+    });
+  });
+
+  it('updates the live preview when the business name and activity change', async () => {
+    wrapper = mount(Index, mountOptions);
+    await flushPromises();
+    await wrapper.get('[name="name"]').setValue('Librería Sol');
+    await wrapper.get('[value="commerce"]').setValue();
+    expect(wrapper.get('[data-testid="business-preview"]').text()).toContain(
+      'Librería Sol'
+    );
+    expect(wrapper.get('[data-testid="business-preview"]').text()).toContain(
+      es.ONBOARDING_LAYOUT.PREVIEW_REPLIES.commerce
+    );
+    expect(OnboardingAPI.update).not.toHaveBeenCalled();
+  });
+
+  it('reviews saved business details without replaying the completed backend step', async () => {
+    account.custom_attributes.onboarding_step = 'inbox_setup';
+    wrapper = mount(Index, mountOptions);
+    await flushPromises();
+    expect(wrapper.get('[name="name"]').element.disabled).toBe(true);
+    expect(wrapper.find('[aria-controls="location-fields"]').exists()).toBe(
+      false
+    );
+    await wrapper.get('button[type="submit"]').trigger('click');
+    await flushPromises();
+    expect(OnboardingAPI.update).not.toHaveBeenCalled();
+    expect(router.currentRoute.value.name).toBe('onboarding_inbox_setup');
+  });
+
   it.each(['en', 'es'])(
     'renders the business fields and shared layout in %s',
     async lang => {
@@ -98,17 +149,17 @@ describe('Business onboarding', () => {
       await flushPromises();
       const strings = { en, es }[lang].ONBOARDING_NEXT;
 
-      expect(wrapper.getComponent(AuthSplitLayout).exists()).toBe(true);
+      expect(wrapper.getComponent(OnboardingShell).exists()).toBe(true);
       expect(wrapper.get('h1').text()).toBe(strings.TITLE);
       expect(wrapper.text()).toContain(
-        i18n.global.t('ONBOARDING_NEXT.STEP', { current: 2, total: 5 })
+        i18n.global.t('ONBOARDING_LAYOUT.STEP', { current: 1, total: 4 })
       );
       expect(
         wrapper.get('[role="progressbar"]').attributes('aria-valuenow')
-      ).toBe('2');
+      ).toBe('1');
       expect(
         wrapper.get('[role="progressbar"]').attributes('aria-valuemax')
-      ).toBe('5');
+      ).toBe('4');
       expect(wrapper.get('[name="name"]').element.value).toBe('Acme');
       expect(wrapper.findAll('[name="business_type"]')).toHaveLength(4);
       Object.values(strings.BUSINESS_TYPES).forEach(label => {
@@ -155,18 +206,15 @@ describe('Business onboarding', () => {
     wrapper = mount(Index, mountOptions);
     await flushPromises();
 
-    expect(wrapper.getComponent(AuthSplitLayout).props('scrollable')).toBe(
-      true
-    );
     expect(wrapper.get('main').classes()).toContain('h-dvh');
     const scroller = wrapper.get('[data-testid="onboarding-scroll-content"]');
     expect(scroller.find('form').exists()).toBe(true);
     expect(scroller.find('button[type="submit"]').exists()).toBe(false);
     const submit = wrapper.get('button[type="submit"]');
     expect(submit.element.form).toBe(wrapper.get('form').element);
-    expect(submit.element.parentElement.classList.contains('shrink-0')).toBe(
-      true
-    );
+    expect(
+      submit.element.closest('footer').classList.contains('shrink-0')
+    ).toBe(true);
 
     const row = wrapper.get('.sm\\:grid-cols-2');
     expect(row.classes()).toContain('grid-cols-1');
@@ -320,15 +368,12 @@ describe('Business onboarding', () => {
   );
 
   it('prefills the account language and detected timezone, including zones omitted by supportedValuesOf', async () => {
-    const detectedZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    vi.spyOn(Intl, 'supportedValuesOf').mockReturnValueOnce([
-      'America/Guayaquil',
-    ]);
+    const detectedZone = 'America/Guayaquil';
     wrapper = mount(Index, mountOptions);
     await flushPromises();
     const [country, language, timezone] = wrapper.findAllComponents(ComboBox);
 
-    expect(country.props('modelValue')).toBe('');
+    expect(country.props('modelValue')).toBe('EC');
     expect(timezone.props('modelValue')).toBe(detectedZone);
     expect(timezone.props('options')).toContainEqual(
       expect.objectContaining({ value: detectedZone })
@@ -349,7 +394,38 @@ describe('Business onboarding', () => {
     });
   });
 
-  it('sends the edited name through the real store action and API with account_details, without website or country', async () => {
+  it.each([false, true])(
+    'uses saved preferences or selectors in UTC (saved: %s)',
+    async saved => {
+      vi.spyOn(
+        Intl.DateTimeFormat.prototype,
+        'resolvedOptions'
+      ).mockReturnValue({
+        timeZone: 'UTC',
+      });
+      vi.spyOn(navigator, 'language', 'get').mockReturnValue('en-US');
+      vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['en-US']);
+      if (saved) {
+        Object.assign(account.custom_attributes, {
+          country: 'EC',
+          timezone: 'America/Guayaquil',
+        });
+      }
+      wrapper = mount(Index, mountOptions);
+      await flushPromises();
+      const [country, , timezone] = wrapper.findAllComponents(ComboBox);
+      expect(country.props('modelValue')).toBe(saved ? 'EC' : '');
+      expect(timezone.props('modelValue')).toBe(
+        saved ? 'America/Guayaquil' : 'UTC'
+      );
+      expect(country.isVisible()).toBe(!saved);
+      expect(timezone.props('options')).toContainEqual(
+        expect.objectContaining({ value: saved ? 'America/Guayaquil' : 'UTC' })
+      );
+    }
+  );
+
+  it('sends the edited name through the real store action and API with account_details, with detected country and without a website', async () => {
     wrapper = mount(Index, mountOptions);
     await wrapper.get('[name="name"]').setValue('Mi tienda');
     await wrapper.get('[value="commerce"]').setValue();
@@ -359,10 +435,10 @@ describe('Business onboarding', () => {
     expect(OnboardingAPI.update).toHaveBeenCalledExactlyOnceWith({
       name: 'Mi tienda',
       business_type: 'commerce',
-      country: '',
+      country: 'EC',
       website: '',
       locale: 'es',
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone: 'America/Guayaquil',
       onboarding_step: 'account_details',
     });
     expect(setUser).toHaveBeenCalledOnce();

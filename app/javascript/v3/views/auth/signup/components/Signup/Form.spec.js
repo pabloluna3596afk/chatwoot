@@ -181,6 +181,7 @@ describe('Signup Form', () => {
     'UPPERCASE1!',
     'NoNumbers!',
     'NoSpecial1',
+    `Aa1!${'x'.repeat(125)}`,
   ])('blocks invalid password %j before making a request', async password => {
     await wrapper.get('input[name="password"]').setValue(password);
     await wrapper.get('form').trigger('submit');
@@ -199,7 +200,10 @@ describe('Signup Form', () => {
     );
     expect(requirements.findAll('li')).toHaveLength(5);
     expect(requirements.text()).toContain(
-      es.REGISTER.PASSWORD.REQUIREMENTS_LENGTH
+      es.REGISTER.PASSWORD.REQUIREMENTS_LENGTH.replace('{min}', '6').replace(
+        '{max}',
+        '128'
+      )
     );
     expect(requirements.classes()).toContain('w-full');
     expect(requirements.classes()).not.toContain('absolute');

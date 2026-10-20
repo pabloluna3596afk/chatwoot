@@ -8,7 +8,7 @@
     "TERMS_ACCEPT": "By creating an account, you agree to our <a href=\"/en/terms\">T & C</a> and <a href=\"/en/privacy\">Privacy policy</a>",
     "OAUTH": {
       "GOOGLE_SIGNUP": "Sign up with Google",
-      "PASSWORD_NOTICE": "After signing up with Google, you will set a password."
+      "PASSWORD_NOTICE": "Google confirms your email so you can continue setting up."
     },
     "COMPANY_NAME": {
       "LABEL": "Company name",
@@ -30,10 +30,10 @@
       "PLACEHOLDER": "Password",
       "ERROR": "Password is too short.",
       "IS_INVALID_PASSWORD": "Password should contain atleast 1 uppercase letter, 1 lowercase letter, 1 number and 1 special character.",
-      "REQUIREMENTS_LENGTH": "At least 6 characters long",
-      "REQUIREMENTS_UPPERCASE": "At least one uppercase letter",
-      "REQUIREMENTS_LOWERCASE": "At least one lowercase letter",
-      "REQUIREMENTS_NUMBER": "At least one number",
+      "REQUIREMENTS_LENGTH": "{min}–{max} characters",
+      "REQUIREMENTS_UPPERCASE": "One uppercase letter (A–Z)",
+      "REQUIREMENTS_LOWERCASE": "One lowercase letter (a–z)",
+      "REQUIREMENTS_NUMBER": "One number (0–9)",
       "REQUIREMENTS_SPECIAL": "At least one special character"
     },
     "CONFIRM_PASSWORD": {

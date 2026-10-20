@@ -198,7 +198,7 @@ defineExpose({
         :placeholder="
           searchPlaceholder || t('DROPDOWN_MENU.SEARCH_PLACEHOLDER')
         "
-        class="reset-base w-full focus:outline-none border-none rounded-md bg-n-alpha-black2 dark:bg-n-solid-1 text-n-slate-12"
+        class="reset-base w-full focus:outline-none border-none rounded-md bg-n-alpha-black2 dark:bg-n-solid-1 text-n-slate-12 placeholder:text-n-slate-11 placeholder:opacity-100"
         :class="
           compact
             ? 'h-7 py-1 text-xs ltr:pl-8 ltr:pr-1.5 rtl:pl-1.5 rtl:pr-8'

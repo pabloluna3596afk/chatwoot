@@ -1,5 +1,29 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-74 — Registro y onboarding: contraseña, progreso y contraste
+
+**Archivos:** registro/verify-email de `v3`, `PasswordRequirements.vue`,
+`OnboardingShell.vue`, vistas de negocio/WhatsApp/asistente y
+`DropdownMenu.vue`; traducciones EN/ES y sus specs.
+
+**Fix:** separar registro y confirmación del progreso de cuatro pasos;
+reflejar el rango real de contraseña (6–128) también en validación y campo;
+corregir contraste de placeholders, búsqueda y acciones; mantener el pie
+fuera del contenido desplazable. Ubicación automática con selectores si
+falta detección; las regiones de idioma como `419` no se envían como país.
+Plan es un marcador del frontend, sin precios inventados ni cambios al
+cursor backend. Volver a Negocio permite consultar sus datos guardados.
+
+**Cómo probar:** crear cuenta por correo o Google, confirmar y continuar
+por Negocio → WhatsApp → Asistente → Plan. Cambiar nombre/rubro y comprobar
+la vista previa; abrir Cambiar y buscar un país; omitir WhatsApp; guardar
+un borrador y probarlo sin activarlo; recargar Plan antes de finalizar.
+Comprobar 1366×768, móvil de 390 px y modo oscuro. La confirmación/OAuth
+con proveedores reales requiere el entorno configurado del producto.
+
+**Validación local:** pruebas frontend y capturas con componentes reales;
+evidencia detallada en `tmp/BUILD-ONBOARDING.md`. Sin backend ni migraciones.
+
 ### B-NEW-65 — Citas: correcciones visuales y de edición de FASE 2 A+B v2
 
 **Archivos:** `CalendarView.vue`, `WeekGrid.vue`, `EventBlock.vue`,
@@ -2128,3 +2152,15 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)
 - [`AGENTS.md`](../AGENTS.md)
+
+### B-NEW-076 ? Onboarding country detection and deterministic CI
+
+- Files: `onboarding/specs/Index.spec.js`, `specs/account-details/useAccountEnrichment.spec.js`, `account-details/useAccountEnrichment.js`.
+- Fix: pin browser timezone, supported zones and language in business specs; restore spies after each test. Pin the enrichment suite language too. UTC does not identify a country, so use saved country preferences or expose the country selector instead of inferring US from en-US.
+- Verify: run the PR frontend specs with TZ=UTC and TZ=America/Guayaquil, LANG=en_US.UTF-8. Cover UTC with and without saved preferences; retain UTC as the reported timezone when none is saved.
+
+### B-NEW-077 — Onboarding header logo and visual preset
+
+- Files: `onboarding/shared/OnboardingShell.vue`, `onboarding/specs/Index.spec.js`.
+- Fix: preserve the same globalConfig logo/logoDark sources as login; use the shipped light/dark brand assets when a source is missing or fails. Reserve a fixed height, preserve aspect ratio and prevent flex shrinking. Visual presets must supply the real ChatHub logos.
+- Verify: force a configured logo load error, inspect both fallback paths, and capture business, WhatsApp, assistant, plan, mobile and dark views with real brand assets.

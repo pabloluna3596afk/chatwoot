@@ -6,7 +6,6 @@ import { useStore } from 'vuex';
 import { useAlert } from 'dashboard/composables';
 import VueHcaptcha from '@hcaptcha/vue3-hcaptcha';
 import AuthSplitLayout from '../../../components/Auth/AuthSplitLayout.vue';
-import AuthStepHeader from '../../../components/Auth/AuthStepHeader.vue';
 import AuthButton from '../../../components/Auth/AuthButton.vue';
 import AuthFeedback from '../../../components/Auth/AuthFeedback.vue';
 import { AUTH_LINK_CLASS } from '../../../components/Auth/authStyles';
@@ -86,21 +85,21 @@ const onCaptchaError = () => {
   <AuthSplitLayout
     :title="$t('REGISTER.MARKETING.TITLE')"
     :subtitle="$t('REGISTER.MARKETING.SUBTITLE')"
-    onboarding
   >
-    <AuthStepHeader
-      :title="$t('REGISTER.VERIFY_EMAIL.TITLE')"
-      :subtitle="$t('REGISTER.VERIFY_EMAIL.DESCRIPTION', { email })"
-      :step-name="$t('REGISTER.VERIFY_EMAIL.TITLE')"
-      :current="1"
-    >
-      <template #brand>
-        <span
-          class="i-lucide-mail block size-10 text-n-slate-12"
-          aria-hidden="true"
-        />
-      </template>
-    </AuthStepHeader>
+    <header class="mb-8 space-y-4 text-center">
+      <span
+        class="i-lucide-mail mx-auto block size-10 text-n-slate-12"
+        aria-hidden="true"
+      />
+      <h1
+        class="m-0 text-3xl font-bold tracking-tight text-n-slate-12 xl:text-4xl"
+      >
+        {{ $t('REGISTER.VERIFY_EMAIL.TITLE') }}
+      </h1>
+      <p class="m-0 break-words text-base leading-6 text-n-slate-11">
+        {{ $t('REGISTER.VERIFY_EMAIL.DESCRIPTION', { email }) }}
+      </p>
+    </header>
     <div class="space-y-4">
       <VueHcaptcha
         v-if="globalConfig.hCaptchaSiteKey"
@@ -119,6 +118,7 @@ const onCaptchaError = () => {
       <AuthButton
         type="button"
         data-testid="resend_email_button"
+        class="!h-14 !rounded-full !bg-n-slate-12 !text-n-solid-1"
         :aria-label="$t('REGISTER.VERIFY_EMAIL.RESEND')"
         :loading="isResendingEmail"
         :disabled="isResendingEmail"
