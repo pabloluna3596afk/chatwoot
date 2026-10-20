@@ -36,7 +36,9 @@ const choose = () => {
   <article
     class="flex min-w-0 flex-col gap-5 rounded-2xl border bg-n-solid-1 p-5 text-n-slate-12 dark:bg-n-solid-3"
     :class="
-      current || selected
+      current ||
+      selected ||
+      (requiredFeature && plan.feature_keys.includes(requiredFeature))
         ? 'border-n-blue-9 ring-1 ring-n-blue-9'
         : 'border-n-weak'
     "
@@ -92,6 +94,9 @@ const choose = () => {
         v-for="feature in plan.feature_keys"
         :key="feature"
         class="flex gap-2"
+        :class="{
+          'rounded bg-n-blue-3 p-2 text-n-blue-12': feature === requiredFeature,
+        }"
       >
         <span
           :class="
