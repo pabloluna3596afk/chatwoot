@@ -1,5 +1,28 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-76 — Variables en envíos y campañas (MV-04, MV-05, MV-15)
+
+**Archivos:** `Variables::DeliveryRenderer`, `Variables::Resolver`,
+`Whatsapp::Flows::SendFlowService`, adaptadores de campañas WA/SMS/web,
+`AutomationRules::ActionService`, `Liquidable` y `Messages::MessageBuilder`.
+
+**Fix:** resolver compartido antes del transporte; snapshot de Flow coherente
+con el historial y persistido antes de encolar. Fechas de campaña en zona de
+cuenta. Datos ausentes/invalidos omiten destinatarios con ruta y estado en el
+registro de campaña; acciones de plantilla dejan nota privada en inglés/español.
+Avisos web públicos excluyen mensajes que requieren contacto; solo al crear
+la conversación se resuelven datos personales. Sin migraciones ni conversaciones
+al enviar campañas WA/SMS. Adaptador histórico Enterprise conserva alias Meta.
+
+**Cómo probar:** Flow con `Hola {{ contact.name }}` en body/header/CTA;
+comprobar payload Cloud e historial. Campaña WA/SMS con `date.today` cerca de
+medianoche UTC y cuenta America/Guayaquil; comprobar día anterior. Destinatario
+sin email en texto mixto: ningún envío, registro skipped con razón. Aviso web
+con cuenta/fecha resuelto; con contacto no aparece en la respuesta pública y
+se resuelve al crear conversación. Acción plantilla con appointment.title sin
+contexto: solo nota privada. Specs preparados por superficie; RSpec solo en CI.
+Envío manual y selector quedan con el contrato previo hasta PR C.
+
 ### B-NEW-75 — Preview de variables distinto del envío (MV-01, MV-02, MV-03)
 
 **Archivos:** `Variables::Catalog`, `Variables::ContextFactory`, `Variables::Resolver`,

@@ -95,7 +95,29 @@ valores del envío además de extraer el resolver; no se modifica transporte,
 conversores ni mapeo Meta. Otros consumidores de `DateDrop.new` conservan su
 zona anterior hasta adoptar la fábrica.
 
-Campañas siguen sin `date` ni `conversation`; la PR B migrará esos envíos.
+Campañas WA/SMS usan ahora `date` en la zona de la cuenta, sin `conversation`.
+`Variables::DeliveryRenderer` aplica la política de envío a los árboles de
+parámetros: rechaza `missing`, `unavailable` e `invalid` con ruta y estado,
+incluido un dato vacío dentro de texto no vacío. Los destinatarios omitidos
+quedan en `campaign_recipients.error_message`, exportable desde la campaña.
+SMS conserva su seguimiento previo de entregas; solo registra las omisiones
+de variables, sin convertir ese registro parcial en totales de audiencia.
+El adaptador Enterprise de texto histórico WA conserva su render permisivo
+para los alias Meta existentes; los parámetros enviados sí se validan.
+
+Flows Meta resuelven header/body/CTA antes de validar límites y guardan el
+snapshot junto con el mensaje, antes de encolar el envío. Las acciones de
+plantilla omiten con nota privada y razón. Esos mensajes ya resueltos se
+persisten una vez: los datos insertados no vuelven a interpretarse como Liquid.
+Los envíos manuales mantienen el contrato de preview de PR A y el adaptador
+Liquidable previo; la migración de su selector/diagnóstico pertenece a PR C.
+
+El endpoint público de campañas web solo usa cuenta, Bandeja, fecha y remitente
+de la campaña, nunca datos del visitante. Si necesita contacto u otro contexto
+ausente, omite el aviso completo de la respuesta pública. La ruta de creación
+de conversación sí resuelve el contacto; ante datos faltantes revierte esa
+creación. Los backticks conservan la protección histórica de campañas.
+
 Citas concretas y su zona efectiva del calendario permanecen en el proveedor
 Captain para PR E. No se inventa una cita desde los derivados del contacto.
 Los locales de correo mantienen su contrato independiente hasta su migración.
