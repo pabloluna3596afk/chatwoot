@@ -317,9 +317,6 @@
     "ASSISTANT_PREVIEW_HINT": "Esta es su presentación. Guarda tu asistente para probar una respuesta con la información de tu negocio.",
     "PLAN_TITLE": "Tu espacio está listo",
     "PLAN_SUBTITLE": "Ya puedes empezar a conocer tu bandeja.",
-    "PLAN_READY": "Configuración preparada",
-    "PLAN_NOTE": "Puedes consultar tu plan desde Ajustes → Facturación.",
-    "FINISH": "Ir a mi bandeja",
     "STEP_LABEL": "{number}. {name}",
     "ASSISTANT_ROLE": "Asistente · {type}"
   }

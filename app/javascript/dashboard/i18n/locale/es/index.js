@@ -1,3 +1,4 @@
+import planCatalog from './planCatalog.json';
 import advancedFilters from './advancedFilters.json';
 import agentBots from './agentBots.json';
 import agentMgmt from './agentMgmt.json';
@@ -52,6 +53,7 @@ import whatsappTemplateMgmt from './whatsappTemplateMgmt.json';
 import whatsappFlows from './whatsappFlows.json';
 
 export default {
+  ...planCatalog,
   ...advancedFilters,
   ...agentBots,
   ...agentMgmt,

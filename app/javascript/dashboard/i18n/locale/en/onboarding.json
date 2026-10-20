@@ -317,9 +317,6 @@
     "ASSISTANT_PREVIEW_HINT": "This is its introduction. Save your assistant to test a response using your business information.",
     "PLAN_TITLE": "Your workspace is ready",
     "PLAN_SUBTITLE": "You can now explore your inbox.",
-    "PLAN_READY": "Setup prepared",
-    "PLAN_NOTE": "You can check your plan in Settings → Billing.",
-    "FINISH": "Go to my inbox",
     "STEP_LABEL": "{number}. {name}",
     "ASSISTANT_ROLE": "Assistant · {type}"
   }

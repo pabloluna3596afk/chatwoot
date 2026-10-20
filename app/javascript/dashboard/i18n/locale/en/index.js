@@ -1,3 +1,4 @@
+import planCatalog from './planCatalog.json';
 import advancedFilters from './advancedFilters.json';
 import agentBots from './agentBots.json';
 import agentMgmt from './agentMgmt.json';
@@ -54,6 +55,7 @@ import sessionLimit from './sessionLimit.json';
 import yearInReview from './yearInReview.json';
 
 export default {
+  ...planCatalog,
   ...advancedFilters,
   ...agentBots,
   ...agentMgmt,

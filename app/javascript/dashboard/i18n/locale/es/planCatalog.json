@@ -1,0 +1,97 @@
+{
+  "PLAN_CATALOG": {
+    "COMPARE": "Comparar planes",
+    "TITLE": "El espacio para tu próxima etapa.",
+    "SUBTITLE": "Conoce los planes y los límites de tu cuenta.",
+    "CLOSE": "Cerrar",
+    "CURRENT": "Tu plan",
+    "CONTINUE": "Continuar con {plan}",
+    "HEADING": "Tu cuenta empieza en {plan}",
+    "SUPPORT": "Todo listo para empezar a conversar con tu asistente.",
+    "PLAN": "Plan",
+    "EYEBROW": "PLANES CHATHUB",
+    "DETAIL": "Más claridad para elegir tu camino.",
+    "TABLE_HINT": "Desliza la tabla para comparar todos los planes",
+    "NOTICE": "Solo puedes continuar con tu plan actual. Los planes de pago estarán disponibles próximamente.",
+    "CONFIGURATION": "Las funciones mostradas existen en ChatHub. Su disponibilidad depende de las funciones habilitadas y los canales conectados; no son exclusivas de un plan.",
+    "TABLE_NOTE": "Las pruebas de IA pueden consumir las respuestas incluidas. Los límites de los futuros planes pueden cambiar.",
+    "AFTER": "Qué pasa después de la prueba",
+    "AFTER_SUB": "Hoy la prueba no vence automáticamente. Estos son tus próximos pasos.",
+    "FAQ": "Preguntas frecuentes",
+    "BACK": "Volver a mi plan",
+    "NEXT": {
+      "1": {
+        "TITLE": "Empiezas con tu cuenta",
+        "TEXT": "Confirma tu plan actual y continúa al panel."
+      },
+      "2": {
+        "TITLE": "Prueba tu asistente",
+        "TEXT": "Configura Captain y conoce cómo responde usando tu cupo incluido."
+      },
+      "3": {
+        "TITLE": "Cuando haya planes de pago te avisamos",
+        "TEXT": "Aún no hay fecha confirmada. Hoy no necesitas contratar nada."
+      }
+    },
+    "QUESTIONS": {
+      "1": {
+        "TITLE": "¿La prueba tiene fecha de vencimiento?",
+        "TEXT": "Hoy no vence automáticamente. Incluye los límites que ves aquí; no significa uso ilimitado."
+      },
+      "2": {
+        "TITLE": "¿Necesito una tarjeta para empezar?",
+        "TEXT": "No necesitas una tarjeta para continuar con la prueba."
+      },
+      "3": {
+        "TITLE": "¿Puedo contratar un plan de pago ahora?",
+        "TEXT": "Todavía no. Los planes marcados como no disponibles no se pueden contratar. No hay una fecha confirmada."
+      },
+      "4": {
+        "TITLE": "¿Qué ocurre si agoto las respuestas de IA?",
+        "TEXT": "El asistente deja de responder al agotar el cupo. Puedes entrar al panel y revisar tu consumo en Facturación; hoy no puedes ampliar el plan desde aquí."
+      }
+    },
+    "STATES": {
+      "available": "Disponible",
+      "coming_soon": "Disponible pronto"
+    },
+    "LOADING": "Cargando planes",
+    "ERROR": "No pudimos cargar los planes.",
+    "RETRY": "Reintentar",
+    "EMPTY": "No hay planes para mostrar.",
+    "NO_CURRENT": "Tu cuenta no tiene un plan asignado. Contacta con un administrador.",
+    "UNLISTED": "Tu plan actual no está en el catálogo público. Sus límites siguen disponibles en Facturación.",
+    "UNKNOWN": "No disponible",
+    "INCLUDED": "Incluido según configuración",
+    "MB": "{count} MB",
+    "GB": "{count} GB",
+    "LIMITS": {
+      "inboxes": "Bandejas",
+      "assistants": "Asistentes",
+      "monthly_responses": "Respuestas de IA al mes",
+      "users": "Agentes",
+      "storage_bytes": "Almacenamiento",
+      "emails_per_day": "Correos salientes al día",
+      "tests_per_day": "Pruebas de IA adicionales al día",
+      "trial_days": "Días de prueba incluidos",
+      "trial_responses": "Respuestas de prueba"
+    },
+    "COUNTS": {
+      "inboxes": "{count} bandeja | {count} bandejas",
+      "assistants": "{count} asistente | {count} asistentes",
+      "monthly_responses": "{count} respuesta de IA al mes | {count} respuestas de IA al mes",
+      "users": "{count} agente | {count} agentes"
+    },
+    "FEATURES": {
+      "captain_integration": "Asistente Captain",
+      "automations": "Automatizaciones",
+      "campaigns": "Campañas",
+      "help_center": "Centro de ayuda",
+      "api_and_webhooks": "API y webhooks",
+      "custom_roles": "Roles personalizados",
+      "sla": "SLA",
+      "saml": "SAML",
+      "calendar_integration": "Calendario y citas"
+    }
+  }
+}
