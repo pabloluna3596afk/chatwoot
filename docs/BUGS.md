@@ -1,5 +1,26 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-75 — Preview de variables distinto del envío (MV-01, MV-02, MV-03)
+
+**Archivos:** `Variables::Catalog`, `Variables::ContextFactory`, `Variables::Resolver`,
+`VariablesController`, `Liquidable`, `ContactDrop`, `DateDrop` y `WhatsAppTemplateParser.vue`.
+
+**Fix:** Rails calcula el preview por lote con los mismos Drops del mensaje:
+columna de documento/país, capitalización y apellido de contacto, nombre interno
+del agente. Un nombre no informado devuelve apellido vacío, como UserDrop,
+sin lanzar un error al consultar el dato. Los parámetros sin editar conservan Liquid. Catálogo por cuenta con
+claves literales y metadata de propiedad. Fechas de mensajes y preview usan la
+zona de la cuenta; sin configuración conservan la zona Rails anterior.
+
+**Cómo probar:** seleccionar una plantilla con documento solo en columna, nombre
+MARÍA del CARMEN, país EC y agente con nombre público diferente; comprobar preview
+y mensaje. El documento no debe quedar vacío ni el país tomar country_code de
+additional_attributes. Editar un campo fija el texto. Probar contacto sin dato,
+fallo de preview y cuenta ajena. Contrato y comandos en `docs/VARIABLES_ENGINE.md`.
+Specs Ruby preparados para CI; regresión frontend comprobada contra el parser
+anterior y corregido. Sin migraciones ni cambios de transporte.
+
+
 ### B-NEW-74 — Registro y onboarding: contraseña, progreso y contraste
 
 **Archivos:** registro/verify-email de `v3`, `PasswordRequirements.vue`,

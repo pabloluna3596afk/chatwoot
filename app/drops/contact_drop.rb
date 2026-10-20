@@ -20,7 +20,7 @@ class ContactDrop < BaseDrop
   end
 
   def last_name
-    @obj.try(:name).try(:split).try(:last).try(:capitalize) if @obj.try(:name).try(:split).try(:size) > 1
+    @obj.try(:name).try(:split).try(:last).try(:capitalize) if @obj.try(:name).try(:split).try(:size).to_i > 1
   end
 
   def document_number

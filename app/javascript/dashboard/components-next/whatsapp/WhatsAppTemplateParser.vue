@@ -14,6 +14,8 @@ import { requiredIf } from '@vuelidate/validators';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store';
 import InboxesAPI from 'dashboard/api/inboxes';
+import VariablesAPI from 'dashboard/api/variables';
+import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 
 import { isWhatsAppComplete } from '@chatwoot/utils';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -27,7 +29,6 @@ import {
   withoutUploadedMedia,
 } from 'dashboard/helper/templateHeaderMedia';
 import InsertVariableButton from 'dashboard/components-next/variable/InsertVariableButton.vue';
-import { resolveLiquid } from 'dashboard/helper/templateVariableBindings';
 import { formatLiquidVariable } from 'dashboard/helper/liquidVariablesHelper';
 import {
   buildTemplateParameters,
@@ -159,6 +160,16 @@ const hasVariables = computed(
 );
 
 const LIQUID_VARIABLE = /{{\s*([\w.]+)\s*}}/g;
+const resolvedDefaults = ref({});
+const previewFailed = ref(false);
+const previewTimezone = ref('');
+const {
+  run: runPreview,
+  abort: abortPreview,
+  isPending: isPreviewPending,
+} = useAbortableRequest();
+
+const resolveDefault = value => resolvedDefaults.value[value]?.value;
 
 // With preview values, {{ contact.name }} in a field shows its sample ("Ana Pérez") in the preview.
 const withSamples = values =>
@@ -179,7 +190,7 @@ const displayValue = (component, key) => {
   const value = processedParams.value[component]?.[key] ?? '';
   if (!props.resolveContext || edited.value[`${component}.${key}`])
     return value;
-  const resolved = resolveLiquid(value, props.resolveContext);
+  const resolved = resolveDefault(value);
   return resolved === undefined ? value : resolved;
 };
 
@@ -207,11 +218,6 @@ const renderedTemplate = computed(() => {
   return renderTemplatePreview(bodyText.value, withSamples(displayed('body')));
 });
 
-// Completeness validation is shared with the mobile app via @chatwoot/utils.
-const isFormInvalid = computed(
-  () => !isWhatsAppComplete(props.template, processedParams.value)
-);
-
 const v$ = useVuelidate(
   {
     processedParams: {
@@ -230,19 +236,34 @@ const defaultLiquidFor = key => {
 };
 
 const defaultFor = liquid => {
-  const resolved = props.resolveContext
-    ? resolveLiquid(liquid, props.resolveContext)
-    : undefined;
+  const resolved = props.resolveContext ? resolveDefault(liquid) : undefined;
   return resolved === '' ? '' : liquid;
 };
 
 // Variables whose default came out empty for this contact: the field says why it is empty (see the README policy table).
 const missing = ref({});
 const isMissing = (component, key) =>
-  Boolean(missing.value[`${component}.${key}`]) &&
+  !edited.value[`${component}.${key}`] &&
+  (Boolean(missing.value[`${component}.${key}`]) ||
+    ['missing', 'unavailable', 'invalid'].includes(
+      resolvedDefaults.value[processedParams.value[component]?.[key]]?.status
+    )) &&
   !displayValue(component, key);
 const missingMessage = (component, key) =>
   isMissing(component, key) ? t('WHATSAPP_TEMPLATES.PARSER.NO_VALUE') : '';
+
+// Completeness validation is shared with the mobile app via @chatwoot/utils.
+const isFormInvalid = computed(
+  () =>
+    !isWhatsAppComplete(props.template, processedParams.value) ||
+    isPreviewPending.value ||
+    previewFailed.value ||
+    ['header', 'body'].some(component =>
+      Object.keys(processedParams.value[component] || {}).some(key =>
+        isMissing(component, key)
+      )
+    )
+);
 
 const initializeTemplateParameters = () => {
   edited.value = {};
@@ -362,7 +383,7 @@ const updateMediaName = value => {
 
 const sendMessage = () => {
   v$.value.$touch();
-  if (v$.value.$invalid) return;
+  if (v$.value.$invalid || isFormInvalid.value) return;
 
   const { name, category, language, namespace } = props.template;
   const templateButtons = buildTemplateButtonsSnapshot(
@@ -419,6 +440,54 @@ watch(
   { deep: true }
 );
 
+const previewInputs = computed(() => {
+  const context = props.resolveContext;
+  if (!context) return null;
+  const record = {};
+  if (context.conversation?.id)
+    record.conversation_id = context.conversation.id;
+  if (context.contact?.id) record.contact_id = context.contact.id;
+  if (props.mediaInboxId) record.inbox_id = Number(props.mediaInboxId);
+  const texts = ['header', 'body'].flatMap(component =>
+    Object.entries(processedParams.value[component] || {})
+      .filter(
+        ([key, value]) =>
+          !edited.value[`${component}.${key}`] && typeof value === 'string'
+      )
+      .map(([, value]) => value)
+  );
+  return { surface: 'message', contexts: [record], texts: [...new Set(texts)] };
+});
+
+watch(
+  previewInputs,
+  async payload => {
+    resolvedDefaults.value = {};
+    previewFailed.value = false;
+    previewTimezone.value = '';
+    if (!payload?.texts.length) {
+      abortPreview();
+      return;
+    }
+    try {
+      const response = await runPreview(signal =>
+        VariablesAPI.preview(payload, signal)
+      );
+      if (!response) return;
+      previewTimezone.value = response.data.timezone;
+      resolvedDefaults.value = Object.fromEntries(
+        payload.texts.map((text, index) => [
+          text,
+          response.data.results[0][index],
+        ])
+      );
+    } catch {
+      previewFailed.value = true;
+    }
+  },
+  { immediate: true }
+);
+
 defineExpose({
   processedParams,
   hasVariables,
@@ -443,6 +512,14 @@ defineExpose({
 
 <template>
   <div>
+    <p v-if="previewTimezone" class="mb-2 text-xs text-n-slate-11">
+      {{
+        $t('WHATSAPP_TEMPLATES.PARSER.TIMEZONE', { timezone: previewTimezone })
+      }}
+    </p>
+    <p v-if="previewFailed" class="mb-2 text-sm text-n-ruby-11">
+      {{ $t('WHATSAPP_TEMPLATES.PARSER.PREVIEW_FAILED') }}
+    </p>
     <slot name="preview" :header="renderedHeader" :body="renderedTemplate">
       <div class="flex flex-col gap-4 p-4 mb-4 rounded-lg bg-n-alpha-black2">
         <div class="flex justify-between items-center">

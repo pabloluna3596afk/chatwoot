@@ -1,4 +1,4 @@
-import { shallowMount } from '@vue/test-utils';
+import { shallowMount, flushPromises } from '@vue/test-utils';
 import { nextTick } from 'vue';
 
 import WhatsAppTemplateParser from '../WhatsAppTemplateParser.vue';
@@ -8,10 +8,13 @@ vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key }),
 }));
 
-const { inboxState, uploadTemplateMedia } = vi.hoisted(() => ({
-  inboxState: { provider: 'whatsapp_cloud' },
-  uploadTemplateMedia: vi.fn(),
-}));
+const { inboxState, uploadTemplateMedia, previewVariables } = vi.hoisted(
+  () => ({
+    inboxState: { provider: 'whatsapp_cloud' },
+    uploadTemplateMedia: vi.fn(),
+    previewVariables: vi.fn(),
+  })
+);
 
 vi.mock('dashboard/composables/store', () => ({
   useMapGetter: () => ({ value: () => inboxState }),
@@ -19,6 +22,10 @@ vi.mock('dashboard/composables/store', () => ({
 
 vi.mock('dashboard/api/inboxes', () => ({
   default: { uploadTemplateMedia },
+}));
+
+vi.mock('dashboard/api/variables', () => ({
+  default: { preview: previewVariables },
 }));
 
 const template = {
@@ -417,11 +424,25 @@ describe('WhatsAppTemplateParser with CRM values', () => {
       global: { mocks: { $t: key => key } },
     });
 
+  beforeEach(() => {
+    previewVariables.mockReset();
+    previewVariables.mockImplementation(async payload => ({
+      data: {
+        results: [
+          payload.texts.map(text => ({
+            status: 'value',
+            value: text.includes('first_name') ? 'Ana' : 'Pro',
+          })),
+        ],
+      },
+    }));
+  });
+
   it('shows the resolved value and sends the Liquid while the agent leaves it alone', async () => {
     const wrapper = mountCrm({
       contact: { name: 'ana pérez', custom_attributes: { plan: 'Pro' } },
     });
-    await nextTick();
+    await flushPromises();
 
     expect(wrapper.vm.renderedTemplate).toBe(
       'Hola Ana, tu plan es Pro gracias'
@@ -439,10 +460,10 @@ describe('WhatsAppTemplateParser with CRM values', () => {
     const wrapper = mountCrm({
       contact: { name: 'ana pérez', custom_attributes: { plan: 'Pro' } },
     });
-    await nextTick();
+    await flushPromises();
 
     wrapper.vm.setValue('body', 'plan', 'Premium');
-    await nextTick();
+    await flushPromises();
 
     expect(wrapper.vm.renderedTemplate).toBe(
       'Hola Ana, tu plan es Premium gracias'
@@ -457,10 +478,21 @@ describe('WhatsAppTemplateParser with CRM values', () => {
   });
 
   it('leaves empty the field the contact has no value for, so the agent types it', async () => {
+    previewVariables.mockImplementation(async payload => ({
+      data: {
+        results: [
+          payload.texts.map(text =>
+            text.includes('first_name')
+              ? { status: 'value', value: 'Ana' }
+              : { status: 'missing', value: '' }
+          ),
+        ],
+      },
+    }));
     const wrapper = mountCrm({ contact: { name: 'ana pérez' } });
-    await nextTick();
+    await flushPromises();
 
-    expect(wrapper.vm.processedParams.body.plan).toBe('');
+    expect(wrapper.vm.displayValue('body', 'plan')).toBe('');
     expect(wrapper.vm.processedParams.body.nombre).toBe(
       '{{ contact.first_name }}'
     );
@@ -471,6 +503,94 @@ describe('WhatsAppTemplateParser with CRM values', () => {
     wrapper.vm.setValue('body', 'plan', 'Pro');
     await nextTick();
     expect(wrapper.vm.missingMessage('body', 'plan')).toBe('');
+  });
+
+  it('uses server values even when browser records disagree, and sends only record IDs', async () => {
+    const wrapper = mountCrm({ contact: { id: 42, name: 'WRONG LOCAL NAME' } });
+    await flushPromises();
+
+    expect(wrapper.vm.renderedTemplate).toBe(
+      'Hola Ana, tu plan es Pro gracias'
+    );
+    expect(previewVariables).toHaveBeenLastCalledWith(
+      {
+        surface: 'message',
+        contexts: [{ contact_id: 42 }],
+        texts: [
+          '{{ contact.first_name }}',
+          '{{ contact.custom_attribute.plan }}',
+        ],
+      },
+      expect.any(AbortSignal)
+    );
+  });
+
+  it('blocks sending and shows an error if the authoritative preview fails', async () => {
+    previewVariables.mockRejectedValue(new Error('offline'));
+    const wrapper = mountCrm({ contact: { id: 42 } });
+    await flushPromises();
+    wrapper.vm.sendMessage();
+
+    expect(wrapper.vm.isFormInvalid).toBe(true);
+    expect(wrapper.emitted('sendMessage')).toBeUndefined();
+    expect(wrapper.text()).toContain(
+      'WHATSAPP_TEMPLATES.PARSER.PREVIEW_FAILED'
+    );
+  });
+
+  it('reproduces MV-01, MV-02 and MV-03 with column values, compound names and a different public agent name', async () => {
+    const defaults = {
+      documento: '{{ contact.document_number }}',
+      nombre: '{{ contact.name }}',
+      apellido: '{{ contact.last_name }}',
+      pais: '{{ contact.country_code }}',
+      agente: '{{ agent.name }}',
+    };
+    const values = [
+      'DOC-123',
+      'María Del Carmen',
+      'Carmen',
+      'EC',
+      'Agente Interno',
+    ];
+    previewVariables.mockResolvedValue({
+      data: {
+        timezone: 'America/Guayaquil',
+        results: [values.map(value => ({ status: 'value', value }))],
+      },
+    });
+    const wrapper = shallowMount(WhatsAppTemplateParser, {
+      props: {
+        template: {
+          ...named,
+          components: [
+            {
+              type: 'BODY',
+              text: '{{documento}}|{{nombre}}|{{apellido}}|{{pais}}|{{agente}}',
+            },
+          ],
+        },
+        defaultValues: defaults,
+        resolveContext: {
+          contact: {
+            id: 42,
+            name: 'MARÍA del CARMEN',
+            document_number: 'DOC-123',
+            country_code: 'EC',
+            additional_attributes: { country_code: 'US' },
+          },
+          agent: { name: 'AGENTE interno', available_name: 'Nombre público' },
+        },
+      },
+      global: { mocks: { $t: key => key } },
+    });
+    await flushPromises();
+
+    expect(wrapper.vm.renderedTemplate).toBe(values.join('|'));
+    wrapper.vm.sendMessage();
+    expect(
+      wrapper.emitted('sendMessage')[0][0].templateParams.processed_params.body
+    ).toEqual(defaults);
   });
 
   it('shows the Liquid itself when there are no records to resolve it with (a campaign)', async () => {
