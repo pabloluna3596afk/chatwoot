@@ -56,20 +56,16 @@ describe Liquid::CampaignTemplateService do
     context 'with malformed liquid syntax' do
       let(:message_content) { 'Hello {{contact.name missing closing braces' }
 
-      it 'returns original message when liquid parsing fails' do
-        result = template_service.call(message_content)
-
-        expect(result).to eq(message_content)
+      it 'rejects invalid Liquid before delivery' do
+        expect { template_service.call(message_content) }.to raise_error(Variables::DeliveryRenderer::Error, 'content: invalid')
       end
     end
 
     context 'with invalid liquid tags' do
       let(:message_content) { 'Hello {% invalid_tag %} world' }
 
-      it 'returns original message when liquid parsing fails' do
-        result = template_service.call(message_content)
-
-        expect(result).to eq(message_content)
+      it 'rejects invalid Liquid before delivery' do
+        expect { template_service.call(message_content) }.to raise_error(Variables::DeliveryRenderer::Error, 'content: invalid')
       end
     end
 

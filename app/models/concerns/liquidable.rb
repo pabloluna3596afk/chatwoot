@@ -4,10 +4,20 @@ module Liquidable
   included do
     before_validation :process_liquid_in_content, on: :create, if: :raw_whatsapp_template_content?
     before_create :process_liquid_in_content, unless: :liquid_content_processed?
-    before_create :process_liquid_in_template_params
+    before_create :process_liquid_in_template_params, unless: :liquid_template_params_processed?
+  end
+
+  # Internal callers may supply a snapshot that has already been resolved once.
+  def variables_resolved!
+    @liquid_content_processed = true
+    @liquid_template_params_processed = true
   end
 
   private
+
+  def liquid_template_params_processed?
+    @liquid_template_params_processed
+  end
 
   def message_drops
     Variables::ContextFactory.for_message(self)

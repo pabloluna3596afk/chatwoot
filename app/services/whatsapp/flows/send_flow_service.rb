@@ -38,14 +38,15 @@ class Whatsapp::Flows::SendFlowService
 
   def create_message(flow)
     texts = message_texts(flow)
-    message = Messages::MessageBuilder.new(@sender, @conversation, { content: texts['body'] }).perform
-    message.update!(additional_attributes: message.additional_attributes.merge('whatsapp_flow' => snapshot(flow, texts)))
-    message
+    Messages::MessageBuilder.new(@sender, @conversation, { content: texts['body'] }).perform(variables_resolved: true) do |message|
+      message.additional_attributes = message.additional_attributes.merge('whatsapp_flow' => snapshot(flow, texts))
+    end
   end
 
   def message_texts(flow)
     defaults = { 'header' => '', 'body' => flow.name, 'cta' => I18n.t('conversations.messages.whatsapp.flow_send.open') }
     texts = defaults.merge(@params.except('whatsapp_flow_id'))
+    texts = resolve_texts(texts)
     TEXT_LIMITS.each do |key, limit|
       value = texts[key]
       raise Error, "Invalid #{key} (maximum #{limit} characters)" unless value.is_a?(String) && value.length <= limit
@@ -54,6 +55,17 @@ class Whatsapp::Flows::SendFlowService
     raise Error, 'CTA cannot contain emoji' if texts['cta'].match?(Whatsapp::Flows::Spec::EMOJI)
 
     texts
+  end
+
+  def resolve_texts(texts)
+    raise Error, 'Invalid message text' unless TEXT_LIMITS.keys.all? { |key| texts[key].is_a?(String) }
+
+    drops = Variables::ContextFactory.new(account: @conversation.account,
+                                          records: { conversation: @conversation,
+                                                     agent: @sender }).build(surface: 'flow')
+    Variables::DeliveryRenderer.new(drops: drops).render(texts)
+  rescue Variables::DeliveryRenderer::Error => e
+    raise Error, e.message
   end
 
   def snapshot(flow, texts)

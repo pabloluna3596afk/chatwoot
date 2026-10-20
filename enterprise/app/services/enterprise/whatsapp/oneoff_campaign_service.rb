@@ -3,6 +3,7 @@ module Enterprise::Whatsapp::OneoffCampaignService
     validate_campaign!
     recipients = create_recipients(extract_audience_labels)
     process_recipients(recipients)
+    campaign.refresh_execution_stats!
     campaign.completed!
   end
 
@@ -26,7 +27,7 @@ module Enterprise::Whatsapp::OneoffCampaignService
 
     processed_template_params = process_liquid_template_params(contact)
     if processed_template_params.nil?
-      recipient.mark_skipped!('Template parameters could not be resolved')
+      recipient.mark_skipped!(@template_resolution_error)
       return
     end
 
@@ -54,7 +55,12 @@ module Enterprise::Whatsapp::OneoffCampaignService
   end
 
   def rendered_message_content(contact)
-    Liquid::CampaignTemplateService.new(campaign: campaign, contact: contact).call(campaign.message)
+    # The legacy history adapter may still contain Meta aliases. Delivery is
+    # validated separately from processed_params; do not treat those aliases as CRM references.
+    drops = Variables::ContextFactory.new(account: campaign.account, records: { campaign: campaign, contact: contact }).build(surface: 'campaign')
+    Variables::Resolver.new(drops: drops).render(campaign.message, protect_code: true)
+  rescue Liquid::Error
+    campaign.message
   end
 
   def send_whatsapp_template_message(recipient:, to:, template_params:)

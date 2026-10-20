@@ -79,4 +79,46 @@ RSpec.describe Whatsapp::Flows::SendFlowService do
     flow.whatsapp_flow_publications.sole.update!(published_at: Time.current, waba_id: '999')
     expect { service.perform }.to raise_error(described_class::Error)
   end
+
+  it 'reproduces MV-05: resolves body, header and CTA identically in history and the Cloud payload' do
+    conversation.contact.update!(name: 'ANA maria')
+    params = { 'whatsapp_flow_id' => flow.id, 'header' => '{{ account.name }}',
+               'body' => 'Hola {{ contact.name }}', 'cta' => '{{ contact.first_name }}' }
+    message = described_class.new(conversation: conversation, sender: agent, params: params).perform
+    url = "https://graph.facebook.com/v22.0/#{channel.provider_config['phone_number_id']}/messages"
+    stub_request(:post, url).to_return(status: 200, body: { messages: [{ id: 'wamid.resolved' }] }.to_json,
+                                       headers: { 'Content-Type' => 'application/json' })
+    Whatsapp::Providers::WhatsappCloudService.new(whatsapp_channel: channel).send_message('593991234567', message)
+
+    expect(message.reload.content).to eq('Hola Ana Maria')
+    expect(message.additional_attributes['whatsapp_flow']).to include('body' => message.content, 'header' => account.name, 'cta' => 'Ana')
+    expect(WebMock).to(have_requested(:post, url).with do |request|
+      interactive = JSON.parse(request.body).fetch('interactive')
+      interactive.dig('body', 'text') == message.content && interactive.dig('header', 'text') == account.name &&
+        interactive.dig('action', 'parameters', 'flow_cta') == 'Ana'
+    end.once)
+  end
+
+  it 'validates limits after substitution and creates no message on failure' do
+    conversation.contact.update!(name: 'a' * 61)
+    params = { 'whatsapp_flow_id' => flow.id, 'header' => '{{ contact.name }}' }
+    expect { described_class.new(conversation: conversation, sender: agent, params: params).perform }
+      .to raise_error(described_class::Error, 'Invalid header (maximum 60 characters)')
+    expect(conversation.messages).to be_empty
+  end
+
+  it 'rejects unavailable contexts before persisting or sending' do
+    params = { 'whatsapp_flow_id' => flow.id, 'body' => 'Cita {{ appointment.title }}' }
+    expect { described_class.new(conversation: conversation, sender: agent, params: params).perform }
+      .to raise_error(described_class::Error, 'content.body: unavailable')
+    expect(conversation.messages).to be_empty
+  end
+
+  it 'does not interpret Liquid stored in contact data again' do
+    conversation.contact.update!(custom_attributes: { 'literal' => '{{ contact.email }}' })
+    params = { 'whatsapp_flow_id' => flow.id, 'body' => '{{ contact.custom_attribute.literal }}' }
+    message = described_class.new(conversation: conversation, sender: agent, params: params).perform
+    expect(message.content).to eq('{{ contact.email }}')
+    expect(message.additional_attributes.dig('whatsapp_flow', 'body')).to eq(message.content)
+  end
 end

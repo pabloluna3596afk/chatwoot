@@ -2,7 +2,7 @@ class Variables::Catalog
   SCHEMA_VERSION = 1
   SURFACES = {
     'message' => %w[contact agent conversation inbox account date],
-    'campaign' => %w[contact agent inbox account],
+    'campaign' => %w[contact agent inbox account date],
     'automation' => %w[contact agent conversation inbox account date],
     'flow' => %w[contact agent conversation inbox account date flow],
     'captain' => %w[contact agent conversation inbox account date appointment assistant],

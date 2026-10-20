@@ -74,7 +74,7 @@ RSpec.describe Variables::Resolver do
     expect(resolver.preview('{{ contact.last_name }}')).to include(status: 'missing', value: '')
   end
 
-  it 'matches the current campaign sender and contact resolution without adding conversation or date' do
+  it 'matches the current campaign sender and contact resolution without adding conversation' do
     campaign = create(:campaign, account: account, sender: agent)
     context = Variables::ContextFactory.new(account: account, records: { contact: contact, campaign: campaign }).build(surface: 'campaign')
     preview = described_class.new(drops: context)
@@ -82,7 +82,7 @@ RSpec.describe Variables::Resolver do
 
     expect(preview.preview(text)[:value]).to eq(Liquid::CampaignTemplateService.new(campaign: campaign, contact: contact).call(text))
     expect(preview.preview('{{ conversation.id }}')[:status]).to eq('unavailable')
-    expect(preview.preview('{{ date.today }}')[:status]).to eq('unavailable')
+    expect(preview.preview('{{ date.today }}')[:status]).to eq('value')
   end
 
   it 'uses the account timezone on both sides of midnight without changing the process timezone' do

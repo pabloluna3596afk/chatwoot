@@ -119,5 +119,30 @@ describe Twilio::OneoffSmsCampaignService do
       sms_campaign_service.perform
       expect(campaign.reload.completed?).to be true
     end
+
+    it 'reproduces MV-04: sends account dates without creating a conversation' do
+      account.update!(reporting_timezone: 'America/Guayaquil')
+      campaign.update!(message: '{{ date.today }}')
+      contact = create(:contact, :with_phone_number, account: account)
+      contact.update_labels([label1.title])
+      expect(twilio_messages).to receive(:create).with(
+        body: '2026-10-19',
+        messaging_service_sid: twilio_sms.messaging_service_sid,
+        to: contact.phone_number,
+        status_callback: 'http://localhost:3000/twilio/delivery_status'
+      )
+      travel_to Time.utc(2026, 10, 20, 2) do
+        expect { sms_campaign_service.perform }.not_to change(Conversation, :count)
+      end
+    end
+
+    it 'skips incomplete messages and records the reason in the campaign recipients' do
+      campaign.update!(message: 'Correo: {{ contact.email }}')
+      contact = create(:contact, :with_phone_number, account: account, email: nil)
+      contact.update_labels([label1.title])
+      expect(twilio_messages).not_to receive(:create)
+      expect { sms_campaign_service.perform }.not_to change(Conversation, :count)
+      expect(campaign.campaign_recipients.sole).to have_attributes(status: 'skipped', error_message: 'content: missing')
+    end
   end
 end

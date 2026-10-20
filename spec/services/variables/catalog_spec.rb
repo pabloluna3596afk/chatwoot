@@ -54,11 +54,11 @@ RSpec.describe Variables::Catalog do
     expect([initial, edited, deleted].uniq.size).to eq(3)
   end
 
-  it 'does not offer conversation or dates as available in the current campaign contract' do
+  it 'offers account dates but not conversation context in campaigns' do
     entries = described_class.new(account: account, surface: 'campaign').as_json[:variables].index_by { |entry| entry[:id] }
 
     expect(entries['conversation.id'][:available]).to be(false)
-    expect(entries['date.today'][:available]).to be(false)
+    expect(entries['date.today'][:available]).to be(true)
     expect(entries['contact.document_number'][:aliases]).to eq(['documento'])
     expect(catalog[:schemaVersion]).to eq(1)
   end

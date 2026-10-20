@@ -12,5 +12,9 @@ class Api::V1::Widget::CampaignsController < Api::V1::Widget::BaseController
                  else
                    []
                  end
+    @campaign_messages = {}
+    @campaigns = @campaigns.select do |campaign|
+      @campaign_messages[campaign.id] = Campaigns::ProactiveMessageService.new(campaign: campaign).perform
+    end
   end
 end
