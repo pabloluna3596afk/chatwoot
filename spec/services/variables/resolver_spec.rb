@@ -68,6 +68,12 @@ RSpec.describe Variables::Resolver do
     expect(resolver.preview('{{ contact.email | default: "fallback" }}')[:value]).to be_present
   end
 
+  it 'reports a missing surname for a contact whose name is not set' do
+    contact.update!(name: nil)
+
+    expect(resolver.preview('{{ contact.last_name }}')).to include(status: 'missing', value: '')
+  end
+
   it 'matches the current campaign sender and contact resolution without adding conversation or date' do
     campaign = create(:campaign, account: account, sender: agent)
     context = Variables::ContextFactory.new(account: account, records: { contact: contact, campaign: campaign }).build(surface: 'campaign')
