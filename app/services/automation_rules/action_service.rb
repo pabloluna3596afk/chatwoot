@@ -115,14 +115,14 @@ class AutomationRules::ActionService < ActionService
   def skip_outbound_outside_messaging_window!
     leave_automation_skip_note!(
       'automation.message_skipped_messaging_window',
-      messaging_window_skipped: true
+      { messaging_window_skipped: true }
     )
   end
 
   def skip_whatsapp_template!(reason)
     leave_automation_skip_note!(
       "automation.template_skipped.#{reason}",
-      whatsapp_template_skipped: reason.to_s
+      { whatsapp_template_skipped: reason.to_s }
     )
   end
 

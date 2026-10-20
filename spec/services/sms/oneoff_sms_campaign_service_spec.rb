@@ -82,25 +82,25 @@ describe Sms::OneoffSmsCampaignService do
       sms_campaign_service.perform
       expect(campaign.reload.completed?).to be true
     end
-  end
 
-  it 'reproduces MV-04: sends account dates without creating a conversation' do
-    account.update!(reporting_timezone: 'America/Guayaquil')
-    campaign.update!(message: '{{ date.today }}')
-    contact = create(:contact, :with_phone_number, account: account)
-    contact.update_labels([label1.title])
-    expect(sms_channel).to receive(:send_text_message).with(contact.phone_number, '2026-10-19')
-    travel_to Time.utc(2026, 10, 20, 2) do
-      expect { sms_campaign_service.perform }.not_to change(Conversation, :count)
+    it 'reproduces MV-04: sends account dates without creating a conversation' do
+      account.update!(reporting_timezone: 'America/Guayaquil')
+      campaign.update!(message: '{{ date.today }}')
+      contact = create(:contact, :with_phone_number, account: account)
+      contact.update_labels([label1.title])
+      expect(sms_channel).to receive(:send_text_message).with(contact.phone_number, '2026-10-19')
+      travel_to Time.utc(2026, 10, 20, 2) do
+        expect { sms_campaign_service.perform }.not_to change(Conversation, :count)
+      end
     end
-  end
 
-  it 'skips incomplete messages and records the reason in the campaign recipients' do
-    campaign.update!(message: 'Correo: {{ contact.email }}')
-    contact = create(:contact, :with_phone_number, account: account, email: nil)
-    contact.update_labels([label1.title])
-    expect(sms_channel).not_to receive(:send_text_message)
-    expect { sms_campaign_service.perform }.not_to change(Conversation, :count)
-    expect(campaign.campaign_recipients.sole).to have_attributes(status: 'skipped', error_message: 'content: missing')
+    it 'skips incomplete messages and records the reason in the campaign recipients' do
+      campaign.update!(message: 'Correo: {{ contact.email }}')
+      contact = create(:contact, :with_phone_number, account: account, email: nil)
+      contact.update_labels([label1.title])
+      expect(sms_channel).not_to receive(:send_text_message)
+      expect { sms_campaign_service.perform }.not_to change(Conversation, :count)
+      expect(campaign.campaign_recipients.sole).to have_attributes(status: 'skipped', error_message: 'content: missing')
+    end
   end
 end

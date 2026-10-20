@@ -1,5 +1,24 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-079 — CI del PR #178: notas de omisión y fixtures de campañas
+
+**Archivos:** `app/services/automation_rules/action_service.rb`,
+`spec/services/{sms,twilio}/oneoff_sms_campaign_service_spec.rb` y
+`spec/services/variables/catalog_spec.rb`.
+
+**Causa y fix:** Ruby 3 separa keywords del hash posicional requerido por
+`leave_automation_skip_note!`; pasar el hash explícito para registrar las notas
+de plantilla omitida y ventana cerrada. Los ejemplos MV-04 y de omisión SMS
+quedaron fuera del setup del proveedor: moverlos dentro de `describe 'perform'`.
+Twilio verifica el cliente simulado, evitando depender de la identidad de una
+instancia ActiveRecord. El catálogo mantiene fechas disponibles en campañas,
+como exige BRIEF-MOTOR-B A2; corregir la expectativa del contrato anterior.
+
+**Cómo probar:** en CI ejecutar los cuatro archivos indicados. Comprobar notas
+privadas al usar un canal distinto o bandeja incorrecta; fecha de Guayaquil sin
+crear conversaciones; destinatarios incompletos omitidos sin llamar al proveedor.
+RSpec reservado a CI; revisión estática contra el run `39508121861`.
+
 ### B-NEW-76 — Variables en envíos y campañas (MV-04, MV-05, MV-15)
 
 **Archivos:** `Variables::DeliveryRenderer`, `Variables::Resolver`,
