@@ -57,7 +57,14 @@ class Whatsapp::TemplateVariableBindingsService
 
   def check(variable, key, variables)
     raise Invalid, "variable #{variable} is not in the template" unless variables.include?(variable)
-    raise Invalid, "variable #{variable} has an invalid value" unless key.length <= MAX_KEY_LENGTH && key.match?(KEY)
+    return if key.length <= MAX_KEY_LENGTH && key.match?(KEY)
+
+    # The catalog emits literal access for Unicode and punctuation in attribute keys.
+    # Accept only its exact paths, without broadening the legacy expression grammar.
+    @catalog_paths ||= Variables::Catalog.new(account: @channel.account, surface: 'captain').as_json[:variables].map do |descriptor|
+      descriptor[:expression].delete_prefix('{{ ').delete_suffix(' }}')
+    end
+    raise Invalid, "variable #{variable} has an invalid value" unless @catalog_paths.include?(key)
   end
 
   def stored
