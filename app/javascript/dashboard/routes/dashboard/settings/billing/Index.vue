@@ -14,6 +14,7 @@ import PurchaseCreditsModal from './components/PurchaseCreditsModal.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import ButtonV4 from 'next/button/Button.vue';
+import PlanPricingView from 'next/plans/PlanPricingView.vue';
 import { getCurrencyConfig } from 'dashboard/constants/billing';
 import { useI18n } from 'vue-i18n';
 
@@ -36,6 +37,13 @@ const BILLING_REFRESH_ATTEMPTED = 'billing_refresh_attempted';
 // State for handling refresh attempts and loading
 const isWaitingForBilling = ref(false);
 const purchaseCreditsModalRef = ref(null);
+const comparingPlans = ref(false);
+const currentPlanId = computed(
+  () =>
+    currentAccount.value.limits?.plan?.id ??
+    currentAccount.value.limits?.plan?.slug ??
+    null
+);
 
 // Currency selection shown to new accounts whose locale supports a non-USD currency.
 const currencySelectionRequired = ref(false);
@@ -235,8 +243,24 @@ onMounted(handleBillingPageLogic);
       <BaseSettingsHeader
         :title="$t('BILLING_SETTINGS.TITLE')"
         :description="$t('BILLING_SETTINGS.DESCRIPTION')"
-        :link-text="$t('BILLING_SETTINGS.VIEW_PRICING')"
+        :link-text="
+          isOnChatwootCloud ? $t('BILLING_SETTINGS.VIEW_PRICING') : ''
+        "
         feature-name="billing"
+      >
+        <template v-if="!isOnChatwootCloud" #actions>
+          <ButtonV4
+            :label="t('PLAN_CATALOG.COMPARE')"
+            variant="outline"
+            @click="comparingPlans = true"
+          />
+        </template>
+      </BaseSettingsHeader>
+      <PlanPricingView
+        v-if="comparingPlans"
+        context="billing"
+        :current-plan-id="currentPlanId"
+        @close="comparingPlans = false"
       />
     </template>
     <template #body>

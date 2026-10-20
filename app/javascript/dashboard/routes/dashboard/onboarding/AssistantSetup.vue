@@ -13,6 +13,7 @@ import {
 import CaptainInboxes from 'dashboard/api/captain/inboxes';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
 import OnboardingShell from './shared/OnboardingShell.vue';
+import PlanStep from './PlanStep.vue';
 import { LocalStorage } from 'shared/helpers/localStorage';
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
@@ -327,22 +328,7 @@ const onQuestionKeydown = event => {
     <template v-if="showingPlan" #back>
       {{ t('ONBOARDING_AUTH.BACK') }}
     </template>
-    <section
-      v-if="showingPlan"
-      class="rounded-xl border border-n-weak bg-n-solid-1 p-6 shadow-sm dark:bg-n-solid-3"
-      data-testid="plan-placeholder"
-    >
-      <span
-        class="i-lucide-circle-check mb-4 block size-10 text-n-teal-11"
-        aria-hidden="true"
-      />
-      <h2 class="m-0 text-lg font-semibold">
-        {{ t('ONBOARDING_LAYOUT.PLAN_READY') }}
-      </h2>
-      <p class="mb-0 mt-3 text-sm leading-6 text-n-slate-11">
-        {{ t('ONBOARDING_LAYOUT.PLAN_NOTE') }}
-      </p>
-    </section>
+    <PlanStep v-if="showingPlan" :busy="busy || loading" @continue="finish" />
     <div v-else class="grid items-start gap-5 lg:grid-cols-2">
       <div
         class="rounded-xl border border-n-weak bg-n-solid-1 p-5 shadow-sm sm:p-6 dark:bg-n-solid-3"
@@ -692,16 +678,7 @@ const onQuestionKeydown = event => {
     </div>
     <template #footer>
       <AuthFeedback v-if="errorMessage" error>{{ errorMessage }}</AuthFeedback>
-      <AuthButton
-        v-if="showingPlan"
-        :loading="finishing"
-        :disabled="loading || busy"
-        data-testid="finish"
-        @click="finish"
-      >
-        {{ t('ONBOARDING_LAYOUT.FINISH') }}
-      </AuthButton>
-      <template v-else-if="!loading && !loadError">
+      <template v-if="!showingPlan && !loading && !loadError">
         <AuthButton
           v-if="editing"
           type="button"
