@@ -26,7 +26,9 @@ export function useAccountEnrichment(fields) {
     const browserLocale = new Intl.Locale(navigator.language);
     const timezoneCountries = ct.getTimezone(browserTimezone)?.countries || [];
     const localeCountry =
-      browserLocale.region && ct.getCountry(browserLocale.region)
+      browserTimezone !== 'UTC' &&
+      browserLocale.region &&
+      ct.getCountry(browserLocale.region)
         ? browserLocale.region
         : '';
     const detectedCountry =

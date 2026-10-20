@@ -2152,3 +2152,9 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)
 - [`AGENTS.md`](../AGENTS.md)
+
+### B-NEW-076 ? Onboarding country detection and deterministic CI
+
+- Files: `onboarding/specs/Index.spec.js`, `specs/account-details/useAccountEnrichment.spec.js`, `account-details/useAccountEnrichment.js`.
+- Fix: pin browser timezone, supported zones and language in business specs; restore spies after each test. Pin the enrichment suite language too. UTC does not identify a country, so use saved country preferences or expose the country selector instead of inferring US from en-US.
+- Verify: run the PR frontend specs with TZ=UTC and TZ=America/Guayaquil, LANG=en_US.UTF-8. Cover UTC with and without saved preferences; retain UTC as the reported timezone when none is saved.

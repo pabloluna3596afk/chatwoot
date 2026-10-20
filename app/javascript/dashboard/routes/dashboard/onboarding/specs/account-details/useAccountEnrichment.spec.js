@@ -40,7 +40,14 @@ const mountComposable = ({ account = {}, presets = {} } = {}) => {
   return { ...api, fields, wrapper };
 };
 
+afterEach(() => vi.restoreAllMocks());
+
 beforeEach(() => {
+  vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({
+    timeZone: 'UTC',
+  });
+  vi.spyOn(navigator, 'language', 'get').mockReturnValue('en-US');
+  vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['en-US']);
   useRoute.mockReturnValue({ params: { accountId: '1' } });
 });
 

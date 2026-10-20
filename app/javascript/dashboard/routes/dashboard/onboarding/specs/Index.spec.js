@@ -30,6 +30,12 @@ describe('Business onboarding', () => {
   let mountOptions;
 
   beforeEach(async () => {
+    vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({
+      timeZone: 'America/Guayaquil',
+    });
+    vi.spyOn(Intl, 'supportedValuesOf').mockReturnValue(['America/New_York']);
+    vi.spyOn(navigator, 'language', 'get').mockReturnValue('es-EC');
+    vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['es-EC']);
     account = reactive({
       id: 1,
       name: 'Acme',
@@ -345,10 +351,7 @@ describe('Business onboarding', () => {
   );
 
   it('prefills the account language and detected timezone, including zones omitted by supportedValuesOf', async () => {
-    const detectedZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    vi.spyOn(Intl, 'supportedValuesOf').mockReturnValueOnce([
-      'America/Guayaquil',
-    ]);
+    const detectedZone = 'America/Guayaquil';
     wrapper = mount(Index, mountOptions);
     await flushPromises();
     const [country, language, timezone] = wrapper.findAllComponents(ComboBox);
@@ -374,7 +377,38 @@ describe('Business onboarding', () => {
     });
   });
 
-  it('sends the edited name through the real store action and API with account_details, without website or country', async () => {
+  it.each([false, true])(
+    'uses saved preferences or selectors in UTC (saved: %s)',
+    async saved => {
+      vi.spyOn(
+        Intl.DateTimeFormat.prototype,
+        'resolvedOptions'
+      ).mockReturnValue({
+        timeZone: 'UTC',
+      });
+      vi.spyOn(navigator, 'language', 'get').mockReturnValue('en-US');
+      vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['en-US']);
+      if (saved) {
+        Object.assign(account.custom_attributes, {
+          country: 'EC',
+          timezone: 'America/Guayaquil',
+        });
+      }
+      wrapper = mount(Index, mountOptions);
+      await flushPromises();
+      const [country, , timezone] = wrapper.findAllComponents(ComboBox);
+      expect(country.props('modelValue')).toBe(saved ? 'EC' : '');
+      expect(timezone.props('modelValue')).toBe(
+        saved ? 'America/Guayaquil' : 'UTC'
+      );
+      expect(country.isVisible()).toBe(!saved);
+      expect(timezone.props('options')).toContainEqual(
+        expect.objectContaining({ value: saved ? 'America/Guayaquil' : 'UTC' })
+      );
+    }
+  );
+
+  it('sends the edited name through the real store action and API with account_details, with detected country and without a website', async () => {
     wrapper = mount(Index, mountOptions);
     await wrapper.get('[name="name"]').setValue('Mi tienda');
     await wrapper.get('[value="commerce"]').setValue();
@@ -387,7 +421,7 @@ describe('Business onboarding', () => {
       country: 'EC',
       website: '',
       locale: 'es',
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone: 'America/Guayaquil',
       onboarding_step: 'account_details',
     });
     expect(setUser).toHaveBeenCalledOnce();
