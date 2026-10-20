@@ -37,6 +37,7 @@ const openBilling = () => {
     class="w-full max-w-5xl mx-auto h-full max-h-[448px] grid place-content-center"
   >
     <BasePaywallModal
+      required-feature="captain_integration"
       class="mx-auto"
       :feature-prefix="featurePrefix"
       :i18n-key="i18nKey"

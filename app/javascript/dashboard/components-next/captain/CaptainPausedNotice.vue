@@ -7,12 +7,18 @@ import { useAccount } from 'dashboard/composables/useAccount';
 import { usePolicy } from 'dashboard/composables/usePolicy';
 
 import Banner from 'dashboard/components-next/banner/Banner.vue';
+import PlanCompareButton from 'next/plans/PlanCompareButton.vue';
 
 const SUPER_ADMIN_CAPTAIN_SETTINGS = '/super_admin/app_config?config=captain';
 
 const { t } = useI18n();
 const route = useRoute();
-const { accountScopedRoute } = useAccount();
+const { accountScopedRoute, currentAccount, isOnChatwootCloud } = useAccount();
+const usesProviderBilling = computed(
+  () =>
+    isOnChatwootCloud.value ||
+    currentAccount.value?.billing_provider === 'shopify'
+);
 const { checkPermissions } = usePolicy();
 
 const assistants = useMapGetter('captainAssistants/getRecords');
@@ -61,13 +67,14 @@ const message = computed(() =>
         </span>
       </template>
       <router-link
-        v-else
+        v-else-if="usesProviderBilling"
         data-testid="captain-paused-billing-link"
         class="link font-medium underline"
         :to="accountScopedRoute('billing_settings_index')"
       >
         {{ t('CAPTAIN.PAUSED_NOTICE.VIEW_BILLING') }}
       </router-link>
+      <PlanCompareButton v-else />
     </div>
   </Banner>
 </template>

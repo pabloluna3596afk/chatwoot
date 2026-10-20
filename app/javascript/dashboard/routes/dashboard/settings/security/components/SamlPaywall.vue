@@ -30,6 +30,7 @@ const openBilling = () => {
     class="w-full max-w-5xl mx-auto h-full max-h-[28rem] grid place-content-center"
   >
     <BasePaywallModal
+      required-feature="saml"
       class="mx-auto"
       feature-prefix="SECURITY_SETTINGS.SAML"
       :i18n-key="i18nKey"

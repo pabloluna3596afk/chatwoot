@@ -19,6 +19,7 @@ const i18nKey = props.isOnChatwootCloud ? 'PAYWALL' : 'ENTERPRISE_PAYWALL';
 <template>
   <div class="pb-6 pt-10 flex justify-center">
     <BasePaywallModal
+      required-feature="sla"
       feature-prefix="SLA"
       :i18n-key="i18nKey"
       :is-on-chatwoot-cloud="isOnChatwootCloud"

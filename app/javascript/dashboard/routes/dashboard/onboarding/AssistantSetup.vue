@@ -1,4 +1,5 @@
 <script setup>
+import PlanCompareButton from 'next/plans/PlanCompareButton.vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -39,7 +40,8 @@ const {
 } = usePlaygroundUsage();
 const router = useRouter();
 const store = useStore();
-const { currentAccount, accountId, finishOnboarding } = useAccount();
+const { currentAccount, accountId, finishOnboarding, isOnChatwootCloud } =
+  useAccount();
 const inboxes = useMapGetter('inboxes/getInboxes');
 const planStorageKey = `${LOCAL_STORAGE_KEYS.ONBOARDING_PLAN}::${accountId.value}`;
 const showingPlan = ref(LocalStorage.get(planStorageKey) === true);
@@ -291,6 +293,11 @@ const onQuestionKeydown = event => {
   event.preventDefault();
   sendQuestion();
 };
+const usesProviderBilling = computed(
+  () =>
+    isOnChatwootCloud.value ||
+    currentAccount.value?.billing_provider === 'shopify'
+);
 </script>
 
 <template>
@@ -564,17 +571,22 @@ const onQuestionKeydown = event => {
             >
               {{ usageLabel }}
             </p>
-            <a
+            <template
               v-if="
                 remaining?.uses_plan_pool &&
                 remaining.plan_remaining <= 0 &&
                 !chatError
               "
-              :href="`/app/accounts/${accountId}/settings/billing`"
-              :class="AUTH_LINK_CLASS"
             >
-              {{ t('CAPTAIN.PLAYGROUND.USAGE.PLANS') }}
-            </a>
+              <a
+                v-if="usesProviderBilling"
+                :href="`/app/accounts/${accountId}/settings/billing`"
+                :class="AUTH_LINK_CLASS"
+              >
+                {{ t('CAPTAIN.PLAYGROUND.USAGE.PLANS') }}
+              </a>
+              <PlanCompareButton v-else />
+            </template>
             <div class="relative">
               <textarea
                 id="assistant-question"
@@ -609,13 +621,16 @@ const onQuestionKeydown = event => {
             </div>
             <AuthFeedback v-if="chatError" id="assistant-chat-error" error>
               <p class="m-0">{{ chatError }}</p>
-              <a
-                v-if="errorCode === 'responses_limit_reached'"
-                :href="`/app/accounts/${accountId}/settings/billing`"
-                :class="AUTH_LINK_CLASS"
-              >
-                {{ t('CAPTAIN.PLAYGROUND.USAGE.PLANS') }}
-              </a>
+              <template v-if="errorCode === 'responses_limit_reached'">
+                <a
+                  v-if="usesProviderBilling"
+                  :href="`/app/accounts/${accountId}/settings/billing`"
+                  :class="AUTH_LINK_CLASS"
+                >
+                  {{ t('CAPTAIN.PLAYGROUND.USAGE.PLANS') }}
+                </a>
+                <PlanCompareButton v-else />
+              </template>
               <button
                 type="button"
                 :class="AUTH_LINK_CLASS"
