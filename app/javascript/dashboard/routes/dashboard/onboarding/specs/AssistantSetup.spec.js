@@ -43,6 +43,7 @@ describe('Assistant onboarding', () => {
   let getInboxes;
 
   beforeEach(async () => {
+    window.localStorage.clear();
     CaptainAssistant.playgroundUsage.mockResolvedValue({
       data: { test_usage: null },
     });
@@ -60,6 +61,15 @@ describe('Assistant onboarding', () => {
     setUser = vi.fn();
     getInboxes = vi.fn().mockResolvedValue(true);
     AccountAPI.get.mockImplementation(async () => ({ data: account }));
+    AccountAPI.update.mockImplementation(async (_, data) => ({
+      data: {
+        ...account,
+        custom_attributes: {
+          ...account.custom_attributes,
+          website: data.website,
+        },
+      },
+    }));
     OnboardingAPI.getAssistant.mockImplementation(async () => ({
       data: { assistant: structuredClone(serverAssistant) },
     }));
@@ -85,11 +95,16 @@ describe('Assistant onboarding', () => {
     CaptainInboxes.create.mockResolvedValue({ data: {} });
     const store = createStore({
       getters: {
+        'globalConfig/get': () => ({
+          logo: '/logo.svg',
+          installationName: 'ChatHub',
+        }),
         'accounts/getAccount': () => () => account,
         'inboxes/getInboxes': () => inboxes,
       },
       actions: {
         'accounts/get': accounts.actions.get,
+        'accounts/update': accounts.actions.update,
         'inboxes/get': getInboxes,
         'accounts/finishOnboarding': accounts.actions.finishOnboarding,
         setUser,
@@ -139,6 +154,90 @@ describe('Assistant onboarding', () => {
     wrapper?.unmount();
   });
 
+  it('continues from the editor to Plan after saving the draft without activating it', async () => {
+    wrapper = mount(AssistantSetup, options);
+    await flushPromises();
+    await wrapper.get('#assistant-goal').setValue('Explica nuestros servicios');
+    expect(wrapper.get('[data-testid="create"]').text()).toBe(
+      es.ONBOARDING_NEXT.CONTINUE
+    );
+    await wrapper.get('[data-testid="create"]').trigger('click');
+    await flushPromises();
+    expect(OnboardingAPI.saveAssistant).toHaveBeenCalledOnce();
+    expect(wrapper.get('[data-testid="plan-placeholder"]').exists()).toBe(true);
+    expect(CaptainInboxes.create).not.toHaveBeenCalled();
+    expect(OnboardingAPI.update).not.toHaveBeenCalled();
+  });
+
+  it('keeps the editor when saving fails instead of advancing to Plan', async () => {
+    OnboardingAPI.saveAssistant.mockRejectedValueOnce(new Error('network'));
+    wrapper = mount(AssistantSetup, options);
+    await flushPromises();
+    await wrapper.get('#assistant-goal').setValue('Explica nuestros servicios');
+    await wrapper.get('[data-testid="create"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.get('#assistant-form').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="plan-placeholder"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.get('[role="alert"]').text()).toBe(
+      es.ONBOARDING_ASSISTANT.CREATE_ERROR
+    );
+  });
+
+  it('saves a normalized website through the existing account endpoint before creating the draft', async () => {
+    wrapper = mount(AssistantSetup, options);
+    await flushPromises();
+    await wrapper.get('#assistant-website').setValue('estudio.example');
+    await wrapper
+      .get('#assistant-goal')
+      .setValue('Ayuda a conocer nuestros servicios');
+    await wrapper.get('#assistant-form').trigger('submit');
+    await flushPromises();
+    expect(AccountAPI.update).toHaveBeenCalledExactlyOnceWith('', {
+      website: 'https://estudio.example',
+    });
+    expect(OnboardingAPI.saveAssistant).toHaveBeenCalledOnce();
+    expect(account.custom_attributes.website).toBe('https://estudio.example');
+  });
+
+  it('resumes the pending Plan in this browser without requesting an assistant', async () => {
+    window.localStorage.setItem('onboarding_plan::1', 'true');
+    wrapper = mount(AssistantSetup, options);
+    await flushPromises();
+    expect(wrapper.get('[data-testid="plan-placeholder"]').exists()).toBe(true);
+    expect(
+      wrapper.get('[role="progressbar"]').attributes('aria-valuenow')
+    ).toBe('4');
+    expect(OnboardingAPI.getAssistant).not.toHaveBeenCalled();
+    expect(OnboardingAPI.update).not.toHaveBeenCalled();
+    await wrapper.get('[data-testid="finish"]').trigger('click');
+    await flushPromises();
+    expect(OnboardingAPI.update).toHaveBeenCalledExactlyOnceWith({
+      onboarding_step: 'assistant',
+    });
+    expect(window.localStorage.getItem('onboarding_plan::1')).toBeNull();
+    expect(router.currentRoute.value.name).toBe('home');
+  });
+
+  it('preserves the assistant cursor and returns from Plan without activating a draft', async () => {
+    wrapper = mount(AssistantSetup, options);
+    await flushPromises();
+    await wrapper.get('[data-testid="skip"]').trigger('click');
+    await flushPromises();
+    expect(account.custom_attributes.onboarding_step).toBe('assistant');
+    expect(OnboardingAPI.update).not.toHaveBeenCalled();
+    expect(window.localStorage.getItem('onboarding_plan::1')).toBe('true');
+    await wrapper.get('footer button').trigger('click');
+    await flushPromises();
+    expect(wrapper.find('[data-testid="plan-placeholder"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.get('#assistant-form').exists()).toBe(true);
+    expect(CaptainInboxes.create).not.toHaveBeenCalled();
+    expect(window.localStorage.getItem('onboarding_plan::1')).toBeNull();
+  });
+
   it.each(['en', 'es'])(
     'shows the Captain brand icon and assistant setup title in %s',
     async lang => {
@@ -148,7 +247,7 @@ describe('Assistant onboarding', () => {
       const strings = { en, es }[lang].ONBOARDING_ASSISTANT;
       expect(wrapper.get('h1').text()).toBe(strings.TITLE);
       expect(wrapper.get('header .i-woot-captain').classes()).toEqual(
-        expect.arrayContaining(['size-7', 'sm:size-10', 'text-n-slate-12'])
+        expect.arrayContaining(['size-5'])
       );
       expect(
         wrapper.get('header .i-woot-captain').attributes('aria-hidden')
@@ -169,7 +268,7 @@ describe('Assistant onboarding', () => {
       expect(wrapper.get('[data-message-role="assistant"]').text()).toContain(
         draft.name
       );
-      expect(wrapper.find('img').exists()).toBe(false);
+      expect(wrapper.get('img').attributes('alt')).toBe('ChatHub');
     }
   );
 
@@ -362,7 +461,7 @@ describe('Assistant onboarding', () => {
   });
 
   it.each(['en', 'es'])(
-    'shows step 4 and translated copy in %s',
+    'shows step 3 of 4 and translated copy in %s',
     async lang => {
       i18n.global.locale.value = lang;
       wrapper = mount(AssistantSetup, options);
@@ -371,7 +470,7 @@ describe('Assistant onboarding', () => {
       expect(wrapper.get('h1').text()).toBe(strings.TITLE);
       expect(
         wrapper.get('[role="progressbar"]').attributes('aria-valuenow')
-      ).toBe('4');
+      ).toBe('3');
       expect(wrapper.get('#assistant-name').element.value).toBe(
         strings.DEFAULT_NAME.replace('{business}', 'Acme')
       );
@@ -646,6 +745,10 @@ describe('Assistant onboarding', () => {
       assistantId: 42,
       inboxId: 7,
     });
+    expect(wrapper.get('[data-testid="plan-placeholder"]').exists()).toBe(true);
+    expect(OnboardingAPI.update).not.toHaveBeenCalled();
+    await wrapper.get('[data-testid="finish"]').trigger('click');
+    await flushPromises();
     expect(OnboardingAPI.update).toHaveBeenCalledExactlyOnceWith({
       onboarding_step: 'assistant',
     });
@@ -671,6 +774,8 @@ describe('Assistant onboarding', () => {
     await wrapper.get('[data-testid="activate"]').trigger('click');
     await flushPromises();
     expect(CaptainInboxes.create).toHaveBeenCalledOnce();
+    await wrapper.get('[data-testid="finish"]').trigger('click');
+    await flushPromises();
     expect(router.currentRoute.value.name).toBe('home');
   });
 
@@ -681,6 +786,9 @@ describe('Assistant onboarding', () => {
       wrapper = mount(AssistantSetup, options);
       await flushPromises();
       await wrapper.get('[data-testid="skip"]').trigger('click');
+      await flushPromises();
+      expect(OnboardingAPI.update).not.toHaveBeenCalled();
+      await wrapper.get('[data-testid="finish"]').trigger('click');
       await flushPromises();
       expect(OnboardingAPI.update).toHaveBeenCalledExactlyOnceWith({
         onboarding_step: 'assistant',
@@ -793,13 +901,15 @@ describe('Assistant onboarding', () => {
     await flushPromises();
     await wrapper.get('[data-testid="activate"]').trigger('click');
     await flushPromises();
+    await wrapper.get('[data-testid="finish"]').trigger('click');
+    await flushPromises();
     expect(wrapper.get('[role="alert"]').text()).toBe(
-      es.ONBOARDING_ASSISTANT.ACTIVATE_ERROR
+      es.ONBOARDING_ASSISTANT.COMPLETION_ERROR
     );
-    expect(wrapper.text()).toContain(es.ONBOARDING_ASSISTANT.ACTIVE);
+    expect(wrapper.get('[data-testid="plan-placeholder"]').exists()).toBe(true);
     expect(router.currentRoute.value.name).toBe('onboarding_assistant');
     expect(setUser).not.toHaveBeenCalled();
-    await wrapper.get('[data-testid="activate"]').trigger('click');
+    await wrapper.get('[data-testid="finish"]').trigger('click');
     await flushPromises();
     expect(CaptainInboxes.create).toHaveBeenCalledOnce();
     expect(OnboardingAPI.update).toHaveBeenCalledTimes(2);

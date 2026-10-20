@@ -1,5 +1,29 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-74 — Registro y onboarding: contraseña, progreso y contraste
+
+**Archivos:** registro/verify-email de `v3`, `PasswordRequirements.vue`,
+`OnboardingShell.vue`, vistas de negocio/WhatsApp/asistente y
+`DropdownMenu.vue`; traducciones EN/ES y sus specs.
+
+**Fix:** separar registro y confirmación del progreso de cuatro pasos;
+reflejar el rango real de contraseña (6–128) también en validación y campo;
+corregir contraste de placeholders, búsqueda y acciones; mantener el pie
+fuera del contenido desplazable. Ubicación automática con selectores si
+falta detección; las regiones de idioma como `419` no se envían como país.
+Plan es un marcador del frontend, sin precios inventados ni cambios al
+cursor backend. Volver a Negocio permite consultar sus datos guardados.
+
+**Cómo probar:** crear cuenta por correo o Google, confirmar y continuar
+por Negocio → WhatsApp → Asistente → Plan. Cambiar nombre/rubro y comprobar
+la vista previa; abrir Cambiar y buscar un país; omitir WhatsApp; guardar
+un borrador y probarlo sin activarlo; recargar Plan antes de finalizar.
+Comprobar 1366×768, móvil de 390 px y modo oscuro. La confirmación/OAuth
+con proveedores reales requiere el entorno configurado del producto.
+
+**Validación local:** pruebas frontend y capturas con componentes reales;
+evidencia detallada en `tmp/BUILD-ONBOARDING.md`. Sin backend ni migraciones.
+
 ### B-NEW-65 — Citas: correcciones visuales y de edición de FASE 2 A+B v2
 
 **Archivos:** `CalendarView.vue`, `WeekGrid.vue`, `EventBlock.vue`,
