@@ -1,4 +1,4 @@
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { mount } from '@vue/test-utils';
 import CaptainPausedNotice from './CaptainPausedNotice.vue';
 
@@ -26,7 +26,11 @@ vi.mock('dashboard/composables/store', () => ({
 }));
 
 vi.mock('dashboard/composables/useAccount', () => ({
-  useAccount: () => ({ accountScopedRoute: name => ({ name }) }),
+  useAccount: () => ({
+    accountScopedRoute: name => ({ name }),
+    currentAccount: ref({}),
+    isOnChatwootCloud: ref(true),
+  }),
 }));
 
 vi.mock('dashboard/composables/usePolicy', () => ({
@@ -37,6 +41,7 @@ const mountNotice = () =>
   mount(CaptainPausedNotice, {
     global: {
       stubs: {
+        PlanCompareButton: true,
         RouterLink: {
           props: ['to'],
           template: '<a data-testid="captain-paused-billing-link"><slot /></a>',

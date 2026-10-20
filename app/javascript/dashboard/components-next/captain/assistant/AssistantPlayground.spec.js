@@ -23,7 +23,11 @@ vi.mock('dashboard/api/captain/assistant', () => ({
 }));
 
 vi.mock('dashboard/composables/useAccount', () => ({
-  useAccount: () => ({ accountId: ref(1) }),
+  useAccount: () => ({
+    accountId: ref(1),
+    currentAccount: ref({}),
+    isOnChatwootCloud: ref(true),
+  }),
 }));
 
 vi.mock('dashboard/composables/store', () => ({

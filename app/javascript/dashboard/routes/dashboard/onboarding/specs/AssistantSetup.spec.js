@@ -108,6 +108,8 @@ describe('Assistant onboarding', () => {
           logo: '/logo.svg',
           installationName: 'ChatHub',
         }),
+        getCurrentRole: () => 'administrator',
+        'globalConfig/isOnChatwootCloud': () => false,
         'accounts/getAccount': () => () => account,
         'inboxes/getInboxes': () => inboxes,
       },
@@ -396,11 +398,14 @@ describe('Assistant onboarding', () => {
         false
       );
       if (code === 'responses_limit_reached') {
-        expect(wrapper.get('#assistant-chat-error a').attributes('href')).toBe(
-          '/app/accounts/1/settings/billing'
+        expect(wrapper.get('#assistant-chat-error').text()).toContain(
+          planEs.PLAN_CATALOG.COMPARE
         );
       }
-      await wrapper.get('#assistant-chat-error button').trigger('click');
+      await wrapper
+        .findAll('#assistant-chat-error button')
+        .at(-1)
+        .trigger('click');
       await flushPromises();
       expect(wrapper.findAll('[data-message-role="user"]')).toHaveLength(1);
       expect(wrapper.findAll('[data-message-role="assistant"]')).toHaveLength(
