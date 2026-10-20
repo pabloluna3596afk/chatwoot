@@ -1,4 +1,5 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import ct from 'countries-and-timezones';
 import { useAccount } from 'dashboard/composables/useAccount';
 
 const ENRICHMENT_TIMEOUT = 30000;
@@ -20,14 +21,28 @@ export function useAccountEnrichment(fields) {
   const populateFormFields = () => {
     const account = currentAccount.value || {};
     const attrs = account.custom_attributes || {};
+    const browserTimezone =
+      Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    const browserLocale = new Intl.Locale(navigator.language);
+    const timezoneCountries = ct.getTimezone(browserTimezone)?.countries || [];
+    const localeCountry =
+      browserLocale.region && ct.getCountry(browserLocale.region)
+        ? browserLocale.region
+        : '';
+    const detectedCountry =
+      timezoneCountries.length === 1 ? timezoneCountries[0] : localeCountry;
+    const detectedLocale = ['es', 'en'].includes(browserLocale.language)
+      ? browserLocale.language
+      : '';
     const defaults = {
       name: account.name || '',
       businessType: attrs.business_type || '',
-      country: attrs.country || '',
-      locale: ['es', 'en'].includes(account.locale) ? account.locale : 'en',
+      country: attrs.country || detectedCountry,
+      locale: ['es', 'en'].includes(account.locale)
+        ? account.locale
+        : detectedLocale,
       website: attrs.website || attrs.brand_info?.domain || '',
-      timezone:
-        attrs.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone: attrs.timezone || browserTimezone,
     };
 
     Object.entries(defaults).forEach(([key, value]) => {

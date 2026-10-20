@@ -46,6 +46,51 @@ beforeEach(() => {
 
 describe('useAccountEnrichment', () => {
   describe('populateFormFields', () => {
+    it('does not send the Latin America locale region as a country', () => {
+      const timezone = vi
+        .spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions')
+        .mockReturnValue({ timeZone: 'UTC' });
+      const language = vi
+        .spyOn(navigator, 'language', 'get')
+        .mockReturnValue('es-419');
+      const { fields, wrapper } = mountComposable();
+      expect(fields.country.value).toBe('');
+      expect(fields.locale.value).toBe('es');
+      wrapper.unmount();
+      timezone.mockRestore();
+      language.mockRestore();
+    });
+    it('infers the country from the browser timezone and the supported browser language', () => {
+      const timezone = vi
+        .spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions')
+        .mockReturnValue({ timeZone: 'America/Guayaquil' });
+      const language = vi
+        .spyOn(navigator, 'language', 'get')
+        .mockReturnValue('es-EC');
+      const { fields, wrapper } = mountComposable();
+      expect(fields.country.value).toBe('EC');
+      expect(fields.locale.value).toBe('es');
+      expect(fields.timezone.value).toBe('America/Guayaquil');
+      wrapper.unmount();
+      timezone.mockRestore();
+      language.mockRestore();
+    });
+
+    it('leaves missing detection empty so the UI can show its selectors', () => {
+      const timezone = vi
+        .spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions')
+        .mockReturnValue({ timeZone: '' });
+      const language = vi
+        .spyOn(navigator, 'language', 'get')
+        .mockReturnValue('de');
+      const { fields, wrapper } = mountComposable();
+      expect(fields.country.value).toBe('');
+      expect(fields.locale.value).toBe('');
+      expect(fields.timezone.value).toBe('');
+      wrapper.unmount();
+      timezone.mockRestore();
+      language.mockRestore();
+    });
     it('fills empty fields from the enriched attributes on mount', () => {
       const { fields } = mountComposable({
         account: {

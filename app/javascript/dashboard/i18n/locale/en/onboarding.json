@@ -1,7 +1,7 @@
 {
   "ONBOARDING_NEXT": {
     "GREETING": "Hello {name}!",
-    "SUBTITLE": "Confirm these details to personalize your workspace.",
+    "SUBTITLE": "Let’s prepare a workspace for you. You can adjust it later.",
     "YOUR_DETAILS": "Your details",
     "COMPANY_DETAILS": "Company details",
     "FIELDS": {
@@ -15,7 +15,7 @@
       "REFERRAL_SOURCE": "Where did you find us?",
       "NAME": "Business name",
       "BUSINESS_TYPE": "Business type",
-      "COUNTRY": "Country (optional)"
+      "COUNTRY": "Country"
     },
     "PLACEHOLDERS": {
       "SELECT_ROLE": "Select your role",
@@ -27,7 +27,7 @@
       "SELECT_REFERRAL_SOURCE": "Select source",
       "SELECT_COUNTRY": "Select a country"
     },
-    "EMAIL_VERIFIED": "Email verified",
+    "EMAIL_VERIFIED": "Email confirmed. Great to have you here!",
     "SETTING_UP": "Setting up your account...",
     "CONTINUE": "Continue",
     "SAVING": "Saving...",
@@ -164,34 +164,37 @@
       "COPY_ERROR": "We couldn’t copy the link. Copy the address from your browser.",
       "TITLE": "Connecting from this phone"
     },
-    "TITLE": "Connect your number or account",
-    "SUBTITLE": "Keep your current number and the app on your phone. Your conversations arrive here.",
+    "TITLE": "Connect your WhatsApp",
+    "SUBTITLE": "Bring your conversations together in one inbox.",
     "STEPS": {
-      "META": "1. Sign in with your Meta account",
-      "NUMBER": "2. Choose your WhatsApp Business number",
-      "READY": "3. All set: keep using the app on your phone and receive your messages here"
+      "META": "Administrator access to your business in Meta.",
+      "NUMBER": "The number you use to serve your customers.",
+      "READY": "Access to the verification code by SMS or call."
     },
     "MARKETING": {
       "TITLE": "Your conversations, all in one place.",
       "SUBTITLE": "Connect WhatsApp and start welcoming your customers in your workspace."
     },
-    "CONNECT": "Connect WhatsApp",
+    "CONNECT": "Connect with Meta",
     "CONNECTING": "Connecting to WhatsApp…",
     "CONNECTED": "WhatsApp connected",
-    "OTHER_CONNECTED": "Channel connected",
+    "OTHER_CONNECTED": "Inbox connected",
     "AGENT_ASSIGNED": "We've assigned you as an agent. You can invite your team later in Settings.",
     "CONTINUE": "Continue",
-    "SKIP": "I’ll do this later",
-    "OTHER_CHANNEL": "Use another channel",
+    "SKIP": "Set up later",
+    "OTHER_CHANNEL": "Use another inbox",
     "CANCELLED": "You cancelled the connection. You can try again or continue later.",
     "ERROR": "We couldn’t connect WhatsApp. Check your connection and permissions in Meta, then try again.",
     "RETRY": "Try again",
-    "UNAVAILABLE": "WhatsApp connection is not available on this installation. You can use another channel or do this later.",
-    "COMPLETION_ERROR": "We couldn’t save this step. Try again to continue."
+    "UNAVAILABLE": "WhatsApp connection is unavailable in this installation. You can use another inbox or set it up later.",
+    "COMPLETION_ERROR": "We couldn’t save this step. Try again to continue.",
+    "PREPARE": "Have these ready",
+    "AUTHORIZATION": "You choose the business and number you authorize.",
+    "RESUME": "Resume from Inboxes without losing your progress."
   },
   "ONBOARDING_ASSISTANT": {
-    "TITLE": "Set up your first assistant",
-    "SUBTITLE": "Tell us what it should do. We will prepare a draft for you to try before activating it.",
+    "TITLE": "Give your assistant a voice",
+    "SUBTITLE": "Choose how it introduces itself and test its first response.",
     "MARKETING": {
       "TITLE": "Your next conversation starts here",
       "SUBTITLE": "Prepare an assistant that understands your business, at your own pace."
@@ -281,5 +284,43 @@
         "3": "Common questions"
       }
     }
+  },
+  "ONBOARDING_LAYOUT": {
+    "STEPS": {
+      "BUSINESS": "Business",
+      "WHATSAPP": "WhatsApp",
+      "ASSISTANT": "Assistant",
+      "PLAN": "Plan"
+    },
+    "TAGLINE": "Your workspace is taking shape",
+    "STEP": "Step {current} of {total}",
+    "FOOTNOTE": "A good start for your next conversation.",
+    "MADE_FOR_YOU": "Made for your business",
+    "DURATION": "Takes about 3 minutes. Go at your own pace.",
+    "YOUR_BUSINESS": "your business",
+    "LOCATION": "Your location and preferences",
+    "CHANGE": "Change",
+    "SAVED_DETAILS": "These details are already saved. You can review them here and continue setting up.",
+    "PREVIEW": "Preview",
+    "PREVIEW_TITLE": "How your assistant will introduce itself",
+    "PREVIEW_GREETING": "Hi! I am the assistant for {business}.",
+    "PREVIEW_REPLIES": {
+      "appointments": "I can help you explore our services and arrange an appointment. What do you need today?",
+      "commerce": "I can help you find products and check your order. What do you need today?",
+      "services": "I can help you explore our services and request a quote. What do you need today?",
+      "other": "Tell me what you need and I will help you find the information."
+    },
+    "PREVIEW_HINT": "You can name your assistant and customize its voice in the Assistant step.",
+    "ALMOST_THERE": "Almost there",
+    "ALMOST_READY": "One last step",
+    "ASSISTANT_GREETING": "Hi! I am {name}, the assistant for {business}. How can I help you?",
+    "ASSISTANT_PREVIEW_HINT": "This is its introduction. Save your assistant to test a response using your business information.",
+    "PLAN_TITLE": "Your workspace is ready",
+    "PLAN_SUBTITLE": "You can now explore your inbox.",
+    "PLAN_READY": "Setup prepared",
+    "PLAN_NOTE": "You can check your plan in Settings → Billing.",
+    "FINISH": "Go to my inbox",
+    "STEP_LABEL": "{number}. {name}",
+    "ASSISTANT_ROLE": "Assistant · {type}"
   }
 }

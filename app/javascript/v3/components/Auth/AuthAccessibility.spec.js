@@ -8,7 +8,10 @@ import login from 'dashboard/i18n/locale/en/login.json';
 import AuthButton from './AuthButton.vue';
 import AuthChoiceCard from './AuthChoiceCard.vue';
 import AuthField from './AuthField.vue';
-import AuthStepHeader from './AuthStepHeader.vue';
+import OnboardingShell from 'dashboard/routes/dashboard/onboarding/shared/OnboardingShell.vue';
+import onboardingEn from 'dashboard/i18n/locale/en/onboarding.json';
+import onboardingEs from 'dashboard/i18n/locale/es/onboarding.json';
+import { createStore } from 'vuex';
 
 const colorSource = readFileSync(
   'app/javascript/dashboard/assets/scss/_next-colors.scss',
@@ -59,46 +62,49 @@ describe('Onboarding accessibility', () => {
       const i18n = createI18n({
         legacy: false,
         locale,
-        messages: { en: authEn, es: authEs },
+        messages: {
+          en: { ...authEn, ...onboardingEn },
+          es: { ...authEs, ...onboardingEs },
+        },
       });
-      wrapper = mount(AuthStepHeader, {
+      wrapper = mount(OnboardingShell, {
         attachTo: document.body,
         props: {
           title: 'Assistant',
-          current: 4,
-          stepName: 'Assistant',
+          current: 3,
           backTo: { path: '/previous' },
           backDisabled: true,
         },
-        global: { plugins: [router, i18n] },
+        global: {
+          plugins: [
+            router,
+            i18n,
+            createStore({
+              getters: {
+                'globalConfig/get': () => ({
+                  logo: '/logo.svg',
+                  installationName: 'ChatHub',
+                }),
+              },
+            }),
+          ],
+        },
       });
+      await flushPromises();
       expect(
         wrapper.get('[role="progressbar"]').attributes('aria-valuetext')
-      ).toBe(
-        i18n.global.t('ONBOARDING_AUTH.STEP', {
-          current: 4,
-          total: 5,
-          name: 'Assistant',
-        })
+      ).toBe(i18n.global.t('ONBOARDING_LAYOUT.STEPS.ASSISTANT'));
+      expect(wrapper.findAll('ol li')).toHaveLength(4);
+      expect(wrapper.get('[aria-current="step"]').text()).toContain(
+        i18n.global.t('ONBOARDING_LAYOUT.STEPS.ASSISTANT')
       );
-      const segments = wrapper.get('[role="progressbar"]').findAll('span');
-      expect(segments).toHaveLength(5);
-      expect(segments.every(segment => !segment.element.children.length)).toBe(
-        true
-      );
-      expect(segments.every(segment => !segment.text())).toBe(true);
+      expect(wrapper.get('footer').classes()).toContain('shrink-0');
       expect(
-        segments.map(segment => segment.attributes('data-step-state'))
-      ).toEqual(['completed', 'completed', 'completed', 'current', 'upcoming']);
-      expect(wrapper.find('.i-lucide-check').exists()).toBe(false);
-      expect(segments[0].classes()).toContain('bg-n-brand');
-      expect(segments[3].classes()).toEqual(
-        expect.arrayContaining(['bg-n-brand', 'ring-2'])
-      );
-      expect(segments[4].classes()).toContain('bg-n-slate-5');
-      expect(
-        segments.filter(segment => segment.classes().includes('ring-2'))
-      ).toHaveLength(1);
+        wrapper
+          .get('[data-testid="onboarding-scroll-content"]')
+          .find('footer')
+          .exists()
+      ).toBe(false);
       expect(document.activeElement).toBe(wrapper.get('h1').element);
       expect(wrapper.get('h1').attributes('tabindex')).toBe('-1');
       expect(wrapper.get('h1').classes()).toContain('outline-none');

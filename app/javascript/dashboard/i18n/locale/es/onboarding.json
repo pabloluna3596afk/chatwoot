@@ -1,7 +1,7 @@
 {
   "ONBOARDING_NEXT": {
     "GREETING": "¡Hola {name}!",
-    "SUBTITLE": "Confirma estos datos para personalizar tu espacio de trabajo.",
+    "SUBTITLE": "Vamos a preparar un espacio a tu medida. Puedes ajustarlo después.",
     "YOUR_DETAILS": "Tus datos",
     "COMPANY_DETAILS": "Datos de la empresa",
     "FIELDS": {
@@ -15,7 +15,7 @@
       "REFERRAL_SOURCE": "¿Dónde nos encontraron?",
       "NAME": "Nombre del negocio",
       "BUSINESS_TYPE": "Tipo de negocio",
-      "COUNTRY": "País (opcional)"
+      "COUNTRY": "País"
     },
     "PLACEHOLDERS": {
       "SELECT_ROLE": "Selecciona tu rol",
@@ -27,14 +27,14 @@
       "SELECT_REFERRAL_SOURCE": "Selecciona una opción",
       "SELECT_COUNTRY": "Selecciona un país"
     },
-    "EMAIL_VERIFIED": "Correo verificado",
+    "EMAIL_VERIFIED": "Correo confirmado. ¡Qué gusto tenerte aquí!",
     "SETTING_UP": "Configurando tu cuenta...",
     "CONTINUE": "Continuar",
     "SAVING": "Guardando...",
     "VALIDATION_ERROR": "Completa todos los campos obligatorios",
     "SUCCESS": "Datos guardados correctamente",
     "ERROR": "No se pudieron guardar los datos. Inténtalo de nuevo.",
-    "TITLE": "Cuéntanos de tu negocio",
+    "TITLE": "Cuéntanos sobre tu negocio",
     "STEP": "Paso {current} de {total}",
     "PROGRESS": "Progreso de la configuración",
     "MARKETING": {
@@ -164,34 +164,37 @@
       "COPY_ERROR": "No pudimos copiar el enlace. Copia la dirección desde tu navegador.",
       "TITLE": "Conectar desde este teléfono"
     },
-    "TITLE": "Conecta tu número o cuenta",
-    "SUBTITLE": "Usa tu número actual sin perder la app del celular. Tus conversaciones llegan aquí.",
+    "TITLE": "Conecta tu WhatsApp",
+    "SUBTITLE": "Reúne tus conversaciones en una sola bandeja.",
     "STEPS": {
-      "META": "1. Inicia sesión con tu cuenta de Meta",
-      "NUMBER": "2. Elige tu número de WhatsApp Business",
-      "READY": "3. Listo: sigues usando la app del celular y los mensajes llegan aquí"
+      "META": "Acceso de administrador a tu negocio en Meta.",
+      "NUMBER": "El número que usas para atender a tus clientes.",
+      "READY": "Acceso al código de verificación por SMS o llamada."
     },
     "MARKETING": {
       "TITLE": "Tus conversaciones, en un solo lugar.",
       "SUBTITLE": "Conecta WhatsApp y empieza a recibir a tus clientes en tu espacio de trabajo."
     },
-    "CONNECT": "Conectar WhatsApp",
+    "CONNECT": "Conectar con Meta",
     "CONNECTING": "Conectando con WhatsApp…",
     "CONNECTED": "WhatsApp conectado",
-    "OTHER_CONNECTED": "Canal conectado",
+    "OTHER_CONNECTED": "Bandeja conectada",
     "AGENT_ASSIGNED": "Te asignamos a ti como agente. Podrás invitar a tu equipo después en Ajustes.",
     "CONTINUE": "Continuar",
-    "SKIP": "Lo haré después",
-    "OTHER_CHANNEL": "Usar otro canal",
+    "SKIP": "Configurar más adelante",
+    "OTHER_CHANNEL": "Usar otra bandeja",
     "CANCELLED": "Cancelaste la conexión. Puedes reintentar o continuar más tarde.",
     "ERROR": "No pudimos conectar WhatsApp. Revisa tu conexión y los permisos en Meta e inténtalo de nuevo.",
     "RETRY": "Reintentar",
-    "UNAVAILABLE": "La conexión con WhatsApp no está disponible en esta instalación. Puedes usar otro canal o hacerlo después.",
-    "COMPLETION_ERROR": "No pudimos guardar este paso. Inténtalo de nuevo para continuar."
+    "UNAVAILABLE": "La conexión con WhatsApp no está disponible en esta instalación. Puedes usar otra bandeja o configurarla después.",
+    "COMPLETION_ERROR": "No pudimos guardar este paso. Inténtalo de nuevo para continuar.",
+    "PREPARE": "Ten a mano",
+    "AUTHORIZATION": "Tú eliges el negocio y el número que autorizas.",
+    "RESUME": "Retómalo desde Bandejas, sin perder lo avanzado."
   },
   "ONBOARDING_ASSISTANT": {
-    "TITLE": "Configura tu primer asistente",
-    "SUBTITLE": "Cuéntanos qué debe hacer. Prepararemos un borrador para que lo pruebes antes de activarlo.",
+    "TITLE": "Dale voz a tu asistente",
+    "SUBTITLE": "Elige cómo se presenta y prueba su primera respuesta.",
     "MARKETING": {
       "TITLE": "Tu próxima conversación empieza aquí",
       "SUBTITLE": "Prepara un asistente que entienda tu negocio, a tu ritmo."
@@ -223,7 +226,7 @@
     "SKIP": "Lo haré después",
     "CONNECT_REQUIRED": "Conecta tu WhatsApp para activarlo",
     "BACK_WHATSAPP": "Volver a WhatsApp",
-    "LOAD_ERROR": "No pudimos cargar tu borrador o tus canales. Reintenta.",
+    "LOAD_ERROR": "No pudimos cargar tu borrador o tus bandejas. Inténtalo de nuevo.",
     "CREATE_ERROR": "No pudimos guardar tu asistente. Tus cambios siguen aquí. Reintenta.",
     "LIMIT_ERROR": "Tu plan permite {limit} asistente(s) y ya alcanzaste ese límite. Puedes continuar y administrar tus asistentes desde el panel.",
     "AI_UNAVAILABLE": "La IA no está disponible: esta cuenta necesita una clave de IA configurada en la instalación y respuestas disponibles. Tu borrador está guardado. Puedes reintentar o continuar después.",
@@ -281,5 +284,43 @@
         "3": "Preguntas frecuentes"
       }
     }
+  },
+  "ONBOARDING_LAYOUT": {
+    "STEPS": {
+      "BUSINESS": "Negocio",
+      "WHATSAPP": "WhatsApp",
+      "ASSISTANT": "Asistente",
+      "PLAN": "Plan"
+    },
+    "TAGLINE": "Tu espacio está tomando forma",
+    "STEP": "Paso {current} de {total}",
+    "FOOTNOTE": "Un buen comienzo para tu próxima conversación.",
+    "MADE_FOR_YOU": "Hecho para tu negocio",
+    "DURATION": "Toma unos 3 minutos. Avanza a tu ritmo.",
+    "YOUR_BUSINESS": "tu negocio",
+    "LOCATION": "Tu ubicación y preferencias",
+    "CHANGE": "Cambiar",
+    "SAVED_DETAILS": "Estos datos ya están guardados. Puedes consultarlos aquí y continuar con la configuración.",
+    "PREVIEW": "Vista previa",
+    "PREVIEW_TITLE": "Así se presentará tu asistente",
+    "PREVIEW_GREETING": "¡Hola! Soy el asistente de {business}.",
+    "PREVIEW_REPLIES": {
+      "appointments": "Te ayudo a conocer nuestros servicios y coordinar una cita. ¿Qué necesitas hoy?",
+      "commerce": "Te ayudo a encontrar productos y consultar tu pedido. ¿Qué necesitas hoy?",
+      "services": "Te ayudo a conocer nuestros servicios y solicitar una cotización. ¿Qué necesitas hoy?",
+      "other": "Cuéntame qué necesitas y te ayudaré a encontrar la información."
+    },
+    "PREVIEW_HINT": "Podrás darle nombre y personalizar su voz en el paso Asistente.",
+    "ALMOST_THERE": "Ya casi",
+    "ALMOST_READY": "Solo falta",
+    "ASSISTANT_GREETING": "¡Hola! Soy {name}, el asistente de {business}. ¿En qué puedo ayudarte?",
+    "ASSISTANT_PREVIEW_HINT": "Esta es su presentación. Guarda tu asistente para probar una respuesta con la información de tu negocio.",
+    "PLAN_TITLE": "Tu espacio está listo",
+    "PLAN_SUBTITLE": "Ya puedes empezar a conocer tu bandeja.",
+    "PLAN_READY": "Configuración preparada",
+    "PLAN_NOTE": "Puedes consultar tu plan desde Ajustes → Facturación.",
+    "FINISH": "Ir a mi bandeja",
+    "STEP_LABEL": "{number}. {name}",
+    "ASSISTANT_ROLE": "Asistente · {type}"
   }
 }
