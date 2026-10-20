@@ -1,8 +1,8 @@
 {
   "GENERAL_SETTINGS": {
     "LIMIT_MESSAGES": {
-      "CONVERSATION": "Has superado el límite de conversaciones. El plan Hacker solo permite 500 conversaciones.",
-      "INBOXES": "Has superado el límite de bandejas. El plan Hacker solo admite chat en vivo del sitio web. Las bandejas adicionales como correo electrónico, WhatsApp, etc. requieren un plan de pago.",
+      "CONVERSATION": "Tu cuenta ha superado su límite de conversaciones.",
+      "INBOXES": "Tu cuenta ha superado su límite de bandejas de entrada.",
       "AGENTS": "Has superado el límite de agentes. Tu plan solo permite {allowedAgents} agentes.",
       "NON_ADMIN": "Por favor, contacta a tu administrador para actualizar el plan y seguir usando todas las funciones."
     },
@@ -141,7 +141,7 @@
     "LEARN_MORE": "Más información",
     "PAYMENT_PENDING": "Tu pago está pendiente. Por favor actualiza tu información de pago para seguir usando ChatHub",
     "UPGRADE": "Actualiza para seguir usando ChatHub",
-    "LIMITS_UPGRADE": "Su cuenta ha excedido los límites de uso, por favor actualice su plan para seguir usando ChatHub",
+    "LIMITS_UPGRADE": "Tu cuenta ha superado sus límites de uso. Revisa tu plan y consumo.",
     "OPEN_BILLING": "Abrir facturación"
   },
   "FORMS": {

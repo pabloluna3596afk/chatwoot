@@ -1,8 +1,8 @@
 {
   "GENERAL_SETTINGS": {
     "LIMIT_MESSAGES": {
-      "CONVERSATION": "You have exceeded the conversation limit. Hacker plan allows only 500 conversations.",
-      "INBOXES": "You have exceeded the inbox limit. Hacker plan only supports website live-chat. Additional inboxes like email, WhatsApp etc. require a paid plan.",
+      "CONVERSATION": "Your account has exceeded its conversation limit.",
+      "INBOXES": "Your account has exceeded its inbox limit.",
       "AGENTS": "You have exceeded the agent limit. Your plan only allows {allowedAgents} agents.",
       "NON_ADMIN": "Please contact your administrator to upgrade the plan and continue using all features."
     },
@@ -141,7 +141,7 @@
     "LEARN_MORE": "Learn more",
     "PAYMENT_PENDING": "Your payment is pending. Please update your payment information to continue using ChatHub",
     "UPGRADE": "Upgrade to continue using ChatHub",
-    "LIMITS_UPGRADE": "Your account has exceeded the usage limits, please upgrade your plan to continue using ChatHub",
+    "LIMITS_UPGRADE": "Your account has exceeded its usage limits. Review your plan and usage.",
     "OPEN_BILLING": "Open billing"
   },
   "FORMS": {

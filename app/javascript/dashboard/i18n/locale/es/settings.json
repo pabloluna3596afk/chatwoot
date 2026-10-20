@@ -286,7 +286,6 @@
     "LOGOUT": "Cerrar sesión"
   },
   "APP_GLOBAL": {
-    "TRIAL_MESSAGE": "días de prueba restantes.",
     "TRAIL_BUTTON": "Comprar ahora",
     "DELETED_USER": "Usuario eliminado",
     "EMAIL_VERIFICATION_PENDING": "Parece que aún no has verificado tu dirección de correo electrónico. Por favor, revisa tu bandeja de entrada para ver el correo electrónico de verificación.",
@@ -871,14 +870,14 @@
         "IDP_ENTITY_ID_ERROR": "El ID de entidad del proveedor de identidad es obligatorio"
       },
       "ENTERPRISE_PAYWALL": {
-        "AVAILABLE_ON": "La función SAML SSO solo está disponible en los planes Enterprise.",
-        "UPGRADE_PROMPT": "Actualiza a un plan Enterprise para acceder a SAML SSO y otras funciones avanzadas de seguridad.",
+        "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
+        "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
         "ASK_ADMIN": "Por favor, comuníquese con su administrador para la actualización."
       },
       "PAYWALL": {
         "TITLE": "Actualiza tu plan para habilitar SAML SSO",
-        "AVAILABLE_ON": "La función SAML SSO solo está disponible en los planes Enterprise.",
-        "UPGRADE_PROMPT": "Actualiza tu plan para obtener acceso a SAML SSO y otras funciones avanzadas.",
+        "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
+        "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
         "UPGRADE_NOW": "Actualizar ahora",
         "CANCEL_ANYTIME": "Puede cambiar o cancelar su plan en cualquier momento"
       },
@@ -948,14 +947,14 @@
       },
       "PAYWALL": {
         "TITLE": "Actualiza para usar atributos obligatorios",
-        "AVAILABLE_ON": "Los atributos obligatorios de conversación están disponibles en los planes Business y Enterprise.",
-        "UPGRADE_PROMPT": "Actualiza tu plan para pedir a los agentes completar atributos antes de resolver la conversación.",
+        "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
+        "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
         "UPGRADE_NOW": "Actualizar ahora",
         "CANCEL_ANYTIME": "Puedes cambiar o cancelar tu plan en cualquier momento"
       },
       "ENTERPRISE_PAYWALL": {
-        "AVAILABLE_ON": "Los atributos obligatorios de conversación están disponibles en los planes de pago.",
-        "UPGRADE_PROMPT": "Actualiza a un plan de pago para exigir atributos antes de resolver la conversación.",
+        "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
+        "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
         "ASK_ADMIN": "Por favor, comuníquese con su administrador para la actualización."
       }
     }

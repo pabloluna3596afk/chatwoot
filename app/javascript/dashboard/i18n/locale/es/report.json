@@ -533,8 +533,8 @@
       "UPDATED_BY_LABEL": "Actualizado por",
       "PAYWALL": {
         "TITLE": "Mejora tu plan para añadir notas de revisión",
-        "AVAILABLE_ON": "Las notas de revisión solo están disponibles en los planes Business y Enterprise.",
-        "UPGRADE_PROMPT": "Añade contexto interno a cada respuesta CSAT con notas de revisión. Captura lo que ocurrió, detecta patrones más rápido y toma mejores decisiones a partir del feedback.",
+        "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
+        "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
         "UPGRADE_NOW": "Actualizar ahora",
         "CANCEL_ANYTIME": "Puede cambiar o cancelar su plan en cualquier momento"
       }

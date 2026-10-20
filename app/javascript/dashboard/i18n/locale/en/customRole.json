@@ -11,14 +11,14 @@
     "SEARCH_404": "There are no items matching this query.",
     "PAYWALL": {
       "TITLE": "Upgrade to create custom roles",
-      "AVAILABLE_ON": "The custom role feature is only available in the Business and Enterprise plans.",
-      "UPGRADE_PROMPT": "Upgrade your plan to get access to advanced features like team management, automations, custom attributes, and more.",
+      "AVAILABLE_ON": "This feature is not enabled for your account.",
+      "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
       "UPGRADE_NOW": "Upgrade now",
       "CANCEL_ANYTIME": "You can change or cancel your plan anytime"
     },
     "ENTERPRISE_PAYWALL": {
-      "AVAILABLE_ON": "The custom role feature is only available in the paid plans.",
-      "UPGRADE_PROMPT": "Upgrade to a paid plan to access advanced features like audit logs, agent capacity, and more.",
+      "AVAILABLE_ON": "This feature is not enabled for your account.",
+      "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
       "ASK_ADMIN": "Please reach out to your administrator for the upgrade."
     },
     "LIST": {

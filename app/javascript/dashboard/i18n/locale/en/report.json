@@ -533,8 +533,8 @@
       "UPDATED_BY_LABEL": "Updated by",
       "PAYWALL": {
         "TITLE": "Upgrade to add review notes",
-        "AVAILABLE_ON": "The review notes feature is only available in the Business and Enterprise plans.",
-        "UPGRADE_PROMPT": "Add internal context to every CSAT response with review notes. Capture what really happened, spot patterns faster, and make better decisions from your feedback.",
+        "AVAILABLE_ON": "This feature is not enabled for your account.",
+        "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
         "UPGRADE_NOW": "Upgrade now",
         "CANCEL_ANYTIME": "You can change or cancel your plan anytime"
       }

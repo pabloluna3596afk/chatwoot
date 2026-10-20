@@ -32,9 +32,9 @@
       "SUBSCRIBED_EVENTS": "Eventos suscritos",
       "LEARN_MORE": "Aprenda más sobre webhooks",
       "PAYWALL": {
-        "TITLE": "Los webhooks están disponibles en planes de pago",
-        "AVAILABLE_ON": "Usa webhooks para recibir eventos en tiempo real de tu cuenta de ChatHub.",
-        "UPGRADE_PROMPT": "Actualiza a un plan Startups, Business o Enterprise para usar webhooks.",
+        "TITLE": "Los webhooks no están habilitados",
+        "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
+        "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
         "UPGRADE_NOW": "Actualizar ahora",
         "CANCEL_ANYTIME": "Cambia o cancela tu plan en cualquier momento."
       },
@@ -681,19 +681,19 @@
     },
     "PAYWALL": {
       "TITLE": "Actualiza tu plan para usar Captain AI",
-      "AVAILABLE_ON": "Captain no está disponible en el plan gratuito.",
-      "UPGRADE_PROMPT": "Actualiza tu plan para acceder a nuestros asistentes, Copilot y más.",
+      "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
+      "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
       "UPGRADE_NOW": "Actualizar ahora",
       "CANCEL_ANYTIME": "Puedes cambiar o cancelar tu plan cuando quieras"
     },
     "ENTERPRISE_PAYWALL": {
-      "AVAILABLE_ON": "Captain AI solo está disponible en los planes Enterprise.",
-      "UPGRADE_PROMPT": "Actualiza tu plan para acceder a nuestros asistentes, Copilot y más.",
+      "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
+      "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
       "ASK_ADMIN": "Contacta a tu administrador para hacer la actualización."
     },
     "BANNER": {
-      "RESPONSES": "Has usado más del 80% de tu límite de respuestas. Para seguir usando Captain AI, actualiza tu plan.",
-      "DOCUMENTS": "Has llegado al límite de documentos. Actualiza tu plan para seguir usando Captain AI."
+      "RESPONSES": "Te estás acercando al límite de respuestas. Revisa tu plan y consumo.",
+      "DOCUMENTS": "Has alcanzado el límite de documentos. Revisa tu plan y consumo."
     },
     "FORM": {
       "CANCEL": "Cancelar",
@@ -1415,14 +1415,14 @@
       },
       "PAYWALL": {
         "TITLE": "Actualiza tu plan para usar herramientas con Captain",
-        "AVAILABLE_ON": "Las herramientas de Captain solo están disponibles en los planes Business y Enterprise. Actualiza al plan Business para usar esta función.",
-        "UPGRADE_PROMPT": "",
+        "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
+        "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
         "UPGRADE_NOW": "Abrir facturación",
         "CANCEL_ANYTIME": ""
       },
       "ENTERPRISE_PAYWALL": {
-        "AVAILABLE_ON": "Las herramientas de Captain solo están disponibles en los planes pagos.",
-        "UPGRADE_PROMPT": "Actualiza a un plan de pago para usar esta función.",
+        "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
+        "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
         "ASK_ADMIN": "Contacta a tu administrador para hacer la actualización."
       },
       "TEST": {
