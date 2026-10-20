@@ -5,9 +5,9 @@
     "LOADING": "Obtener atributos personalizados",
     "DESCRIPTION": "Un atributo personalizado rastrea detalles adicionales sobre tus contactos o conversaciones, como el plan de suscripción o la fecha de su primera compra. Puede agregar diferentes tipos de atributos personalizados, como textos, listas o números, para capturar la información específica que necesita.",
     "LEARN_MORE": "Aprende más sobre los atributos personalizados",
-    "COUNT": "{n} attribute | {n} attributes",
+    "COUNT": "{n} atributo | {n} atributos",
     "SEARCH_PLACEHOLDER": "Buscar atributos...",
-    "NO_RESULTS": "No attributes found matching your search",
+    "NO_RESULTS": "No se encontraron atributos que coincidan con tu búsqueda",
     "ALL_CATEGORIES": "Todas las categorías",
     "UNCATEGORIZED": "Sin categoría",
     "ATTRIBUTE_MODELS": {
@@ -94,7 +94,7 @@
           "PLACEHOLDER": "Por favor, introduzca el patrón de regex de atributo personalizado. (Opcional)"
         },
         "REGEX_CUE": {
-          "LABEL": "Regex Cue",
+          "LABEL": "Pista de regex",
           "PLACEHOLDER": "Por favor ingrese la pista de patrones regex. (opcional)"
         },
         "ENABLE_REGEX": {
@@ -153,7 +153,8 @@
       },
       "BUTTONS": {
         "EDIT": "Editar",
-        "DELETE": "Eliminar"
+        "DELETE": "Eliminar",
+        "DUPLICATE": "Duplicar"
       },
       "EMPTY_RESULT": {
         "404": "No hay atributos personalizados creados",
@@ -164,7 +165,7 @@
         "PLACEHOLDER": "Por favor, introduzca el patrón de regex de atributo personalizado. (Opcional)"
       },
       "REGEX_CUE": {
-        "LABEL": "Regex Cue",
+        "LABEL": "Pista de regex",
         "PLACEHOLDER": "Por favor ingrese la pista de patrones regex. (opcional)"
       },
       "ENABLE_REGEX": {
@@ -174,6 +175,13 @@
     "BADGES": {
       "PRE_CHAT": "Pre-chat",
       "RESOLUTION": "Resolución"
+    },
+    "DUPLICATE": {
+      "TOOLTIP": "Duplicar",
+      "API": {
+        "SUCCESS_MESSAGE": "Atributo personalizado duplicado con éxito.",
+        "ERROR_MESSAGE": "No se pudo duplicar el atributo personalizado. Inténtalo de nuevo."
+      }
     }
   }
 }

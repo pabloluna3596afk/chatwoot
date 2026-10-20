@@ -46,4 +46,23 @@ RSpec.describe '/api/v1/widget/campaigns', type: :request do
       end
     end
   end
+
+  it 'reproduces MV-15: resolves public campaign values using the account timezone' do
+    account.enable_features!('campaigns')
+    account.update!(reporting_timezone: 'America/Guayaquil')
+    campaign_1.update!(message: '{{ account.name }} / {{ inbox.name }} / {{ date.today }}')
+    travel_to Time.utc(2026, 10, 20, 2) do
+      get '/api/v1/widget/campaigns', params: { website_token: web_widget.website_token }
+      expect(response.parsed_body.sole.fetch('message')).to eq("#{account.name} / #{web_widget.inbox.name} / 2026-10-19")
+    end
+  end
+
+  it 'never includes visitor data, raw Liquid or null entries in the shared response' do
+    account.enable_features!('campaigns')
+    campaign_1.update!(message: 'Hola {{ contact.name }}')
+    create(:contact, account: account, name: 'Private Visitor', email: 'private@example.com')
+    get '/api/v1/widget/campaigns', params: { website_token: web_widget.website_token }
+    expect(response.parsed_body).to eq([])
+    expect(Conversation.count).to eq(0)
+  end
 end

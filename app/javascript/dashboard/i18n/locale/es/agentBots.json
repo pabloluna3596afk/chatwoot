@@ -3,10 +3,10 @@
     "HEADER": "Bots",
     "LOADING_EDITOR": "Cargando el editor...",
     "DESCRIPTION": "Los bots de agentes son como los miembros más fabulosos de tu equipo. Ellos pueden manejar las cosas pequeñas, así que usted puede centrarse en las cosas que importan. Inténtalos. Puedes administrar tus bots desde esta página o crear nuevos usando el botón 'Configurar un nuevo bot'.",
-    "LEARN_MORE": "Learn about agent bots",
+    "LEARN_MORE": "Conoce los bots de agente",
     "COUNT": "{n} bot | {n} bots",
-    "SEARCH_PLACEHOLDER": "Search bots...",
-    "NO_RESULTS": "No bots found matching your search",
+    "SEARCH_PLACEHOLDER": "Buscar bots...",
+    "NO_RESULTS": "No se encontraron bots de agente que coincidan con tu búsqueda",
     "GLOBAL_BOT": "Bot del sistema",
     "GLOBAL_BOT_BADGE": "Sistema",
     "AVATAR": {
@@ -68,7 +68,7 @@
       "COPY": "Copiar el código secreto al portapapeles",
       "COPY_SUCCESS": "Código secreto copiado al portapapeles",
       "TOGGLE": "Mostrar u ocultar el código secreto",
-      "CREATED_DESC": "Use the secret below to verify webhook signatures. Please copy it now, you can also find it later in the bot settings.",
+      "CREATED_DESC": "Usa el siguiente secreto para verificar las firmas de los webhooks. Cópialo ahora; también puedes encontrarlo más tarde en la configuración del bot.",
       "DONE": "Listo",
       "RESET_SUCCESS": "El código secreto del webhook se regeneró correctamente",
       "RESET_ERROR": "No se pudo regenerar el código secreto del webhook. Inténtalo de nuevo"

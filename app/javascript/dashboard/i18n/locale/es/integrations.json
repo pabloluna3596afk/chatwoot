@@ -11,8 +11,13 @@
         "LABEL": "URL de la tienda",
         "PLACEHOLDER": "your-store.myshopify.com",
         "HELP": "Escribe la URL myshopify.com de tu tienda de Shopify",
+        "INVALID_URL": "Ingresa una URL válida de tienda Shopify (por ejemplo, tu-tienda.myshopify.com)",
         "CANCEL": "Cancelar",
         "SUBMIT": "Conectar tienda"
+      },
+      "HELP_TEXT": {
+        "TITLE": "¿Cómo se usa la integración con Shopify?",
+        "BODY": "Con esta integración, tu tienda Shopify ***{storeDomain}*** está conectada a tu cuenta de ChatHub. Esto es lo que puedes hacer:\n\n**Rastrea pedidos en las conversaciones:** al abrir una conversación, el panel lateral de Shopify mostrará automáticamente los pedidos recientes del cliente según su correo electrónico. Esto le da a tu equipo de soporte contexto inmediato sin cambiar de pestaña.\n\n**Accede a los detalles del pedido:** consulta el estado del pedido, el estado de envío y el monto total directamente en el panel de conversación."
       },
       "ERROR": "Hubo un error al conectar con Shopify. Inténtalo de nuevo o contacta a soporte si el problema continúa."
     },
@@ -203,10 +208,10 @@
             "FRIENDLY": "Amigable"
           }
         },
-        "GRAMMAR": "Fix grammar & spelling",
-        "SUGGESTION": "Suggest a reply",
+        "GRAMMAR": "Corregir gramática y ortografía",
+        "SUGGESTION": "Sugerir una respuesta",
         "SUMMARIZE": "Resumir la conversación",
-        "ASK_COPILOT": "Ask Copilot"
+        "ASK_COPILOT": "Preguntar a Copilot"
       },
       "ASSISTANCE_MODAL": {
         "DRAFT_TITLE": "Contenido de borrador",
@@ -433,7 +438,7 @@
         "CANCEL": "Cancelar"
       },
       "CTA": {
-        "TITLE": "Connect to Linear",
+        "TITLE": "Conectar con Linear",
         "AGENT_DESCRIPTION": "El espacio de trabajo de Linear no está conectado. Pide a tu administrador que conecte un espacio de trabajo para usar esta integración.",
         "DESCRIPTION": "El espacio de trabajo de Linear no está conectado. Haz clic en el botón de abajo para conectar tu espacio de trabajo y usar esta integración.",
         "BUTTON_TEXT": "Conectar espacio de trabajo de Linear"
@@ -469,6 +474,9 @@
         "DISMISS": "Descartar"
       },
       "RANGES": {
+        "INSUFFICIENT_HISTORY": "Aún no hay suficiente historial de reportes",
+        "THIS_WEEK": "Esta semana",
+        "LAST_WEEK": "La semana pasada",
         "LAST_DAYS": "Últimos {count} días",
         "THIS_MONTH": "Este mes",
         "LAST_MONTH": "Mes pasado"
@@ -549,6 +557,7 @@
           },
           "DURABLE": {
             "LABEL": "Resoluciones de Captain que se mantuvieron cerradas",
+            "NOT_APPLICABLE_HINT": "Ninguna resolución de este período tiene aún siete días de seguimiento. La durabilidad no está disponible.",
             "HINT": "Porción de conversaciones resueltas por Captain que seguían cerradas siete días después.",
             "NOTE": "Solo se incluyen resoluciones con al menos siete días de antigüedad."
           },
@@ -588,6 +597,9 @@
         },
         "RESOLUTION_TREND": {
           "TITLE": "Tendencia de resolución",
+          "COMPARISON_LABEL": "Comparación alineada por día de la semana",
+          "COMPARISON_HINT": "Compara las tasas de resolución en días de la semana equivalentes, por ejemplo, lunes con lunes.",
+          "COMPARISON_NOTE": "Hoy se compara hasta la misma hora del día.",
           "CONVERSATION_COUNT": "Cantidad de conversaciones",
           "RESOLUTION_RATE": "Tasa de resolución",
           "CURRENT_PERIOD": "Período actual",
@@ -615,6 +627,7 @@
           "BUY_MORE": "Comprar más créditos"
         },
         "KNOWLEDGE": {
+          "SUGGESTED": "Preguntas frecuentes sugeridas",
           "REVIEW": "Revisar FAQs"
         }
       }
@@ -665,9 +678,92 @@
       "USER": "Tú",
       "ASSISTANT": "Asistente",
       "MESSAGE_PLACEHOLDER": "Escribe tu mensaje...",
+      "SEND_MESSAGE": "Enviar mensaje",
       "HEADER": "Zona de pruebas",
       "DESCRIPTION": "Usa esta zona de pruebas para enviarle mensajes a tu asistente y comprobar si responde bien, rápido y con el tono que esperas.",
       "CREDIT_NOTE": "El consumo de las pruebas depende de tu plan.",
+      "CLEAR_CONVERSATION": "Borrar conversación",
+      "RESPONSE_ERROR": "Captain no pudo completar esta prueba. Revisa la configuración e inténtalo de nuevo.",
+      "SETUP": {
+        "TITLE": "Configuración de prueba",
+        "DESCRIPTION": "Los cambios aquí se aplican solo a esta sesión del playground, a menos que guardes un elemento de forma explícita.",
+        "TOGGLE": "Mostrar u ocultar configuración de prueba",
+        "CLOSE": "Cerrar configuración de prueba",
+        "RESET": "Restablecer configuración de prueba",
+        "TEMPORARY": "Temporal",
+        "SESSION_ONLY": "Solo para esta sesión",
+        "INCLUDE_IN_TEST": "Incluir en esta prueba",
+        "ADD_TO_TEST": "Agregar a la prueba (↵)",
+        "LOAD_ERROR": "No se pudo cargar la configuración guardada del asistente.",
+        "INVALID_CONFIGURATION": "Completa o elimina los escenarios temporales incluidos antes de enviar un mensaje.",
+        "SAVE_SCENARIO_SUCCESS": "El escenario se guardó y permanece incluido en esta prueba.",
+        "SAVE_SCENARIO_ERROR": "No se pudo guardar el escenario.",
+        "SAVE_RULE_SUCCESS": "La regla se guardó y permanece incluida en esta prueba.",
+        "SAVE_RULE_ERROR": "No se pudo guardar la regla.",
+        "RULE_ALREADY_SAVED": "Esa regla ya está guardada, por lo que no se creó un duplicado.",
+        "SCENARIOS": {
+          "TAB_TITLE": "Escenarios",
+          "CREATE_TITLE": "Agregar un escenario temporal",
+          "CREATE_HINT": "Prueba un nuevo comportamiento sin cambiar la configuración del asistente.",
+          "SAVED_SUMMARY": "Escenarios existentes ({count})",
+          "ADD_PERMANENTLY": "Agregar escenario de forma permanente",
+          "DISABLED": "Desactivado",
+          "EMPTY": "Este asistente no tiene escenarios guardados.",
+          "COMPOSER_PLACEHOLDER": "Escribe un título de escenario temporal...",
+          "COLLAPSE": "Contraer escenario temporal",
+          "EXPAND": "Expandir escenario temporal",
+          "REMOVE": "Eliminar escenario temporal"
+        },
+        "GUIDELINES": {
+          "TAB_TITLE": "Pautas",
+          "CREATE_TITLE": "Agregar una pauta temporal",
+          "CREATE_HINT": "Prueba una preferencia de respuesta antes de agregarla al asistente.",
+          "SAVED_SUMMARY": "Pautas existentes ({count})",
+          "ADD_PERMANENTLY": "Agregar pauta de forma permanente",
+          "EMPTY": "Este asistente no tiene pautas de respuesta guardadas.",
+          "COMPOSER_PLACEHOLDER": "Escribe una pauta temporal...",
+          "PLACEHOLDER": "Agregar una pauta de respuesta",
+          "REMOVE": "Eliminar pauta de respuesta temporal"
+        },
+        "GUARDRAILS": {
+          "TAB_TITLE": "Límites",
+          "CREATE_TITLE": "Agregar un límite temporal",
+          "CREATE_HINT": "Prueba un límite de seguridad antes de agregarlo al asistente.",
+          "SAVED_SUMMARY": "Límites existentes ({count})",
+          "ADD_PERMANENTLY": "Agregar límite de forma permanente",
+          "EMPTY": "Este asistente no tiene límites guardados.",
+          "COMPOSER_PLACEHOLDER": "Escribe un límite temporal...",
+          "PLACEHOLDER": "Agregar un límite",
+          "REMOVE": "Eliminar límite temporal"
+        },
+        "KNOWLEDGE": {
+          "TAB_TITLE": "Conocimiento",
+          "AVAILABLE_TITLE": "Conocimiento disponible para Captain",
+          "AVAILABLE_DESCRIPTION": "Las fuentes guardadas se resumen aquí y se gestionan fuera del playground.",
+          "DOCUMENTS": "Documentos",
+          "FAQS": "Preguntas frecuentes",
+          "TEMPORARY_TITLE": "Conocimiento temporal",
+          "ADD_PERMANENTLY": "Agregar documento de forma permanente",
+          "LABEL": "Texto de referencia",
+          "PLACEHOLDER": "Pega o escribe nuevo conocimiento para esta prueba",
+          "HINT": "Este texto se adjunta solo a las solicitudes del playground, a menos que lo agregues como documento."
+        },
+        "SAVE_KNOWLEDGE_SUCCESS": "Conocimiento agregado como documento.",
+        "SAVE_KNOWLEDGE_ERROR": "No se pudo agregar el conocimiento como documento."
+      },
+      "RUN_DETAILS": {
+        "SUMMARY": "Detalles de la ejecución · {duration} ms",
+        "HANDLER_VALUE": "Gestionado por: {handler}",
+        "SCENARIOS": "Sin escenarios | Un escenario | {count} escenarios",
+        "RULES": "{count} reglas",
+        "KNOWLEDGE_ATTACHED": "Se adjuntó conocimiento temporal a esta ejecución.",
+        "NO_EVENTS": "No se registraron llamadas a herramientas ni transferencias de escenarios.",
+        "STATUS": {
+          "RUNNING": "En ejecución",
+          "COMPLETED": "Completada",
+          "FAILED": "Falló"
+        }
+      },
       "USAGE": {
         "FREE": "Cada prueba usa 1 respuesta de tu plan (te quedan {count})",
         "PLAN": "Ya usaste tus {total} pruebas gratis de hoy. Las siguientes usan las respuestas de tu plan (te quedan {count})",
@@ -1205,6 +1301,11 @@
           "CANCEL": "Cancelar",
           "UPDATE": "Actualizar cambios"
         },
+        "STATUS": {
+          "ENABLED": "Activado",
+          "DISABLED": "Deshabilitado",
+          "TOGGLE": "Alternar {title}"
+        },
         "LIST": {
           "SEARCH_PLACEHOLDER": "Buscar..."
         },
@@ -1219,27 +1320,22 @@
             "SUCCESS": "Escenarios actualizados correctamente",
             "ERROR": "Hubo un error al actualizar los escenarios, inténtalo de nuevo."
           },
-          "DELETE": {
-            "SUCCESS": "Escenarios eliminados correctamente",
-            "ERROR": "Hubo un error al eliminar los escenarios, inténtalo de nuevo."
-          },
           "TOGGLE": {
             "ENABLED": "Escenario habilitado con éxito",
             "DISABLED": "Escenario desactivado con éxito",
             "ERROR": "Hubo un error al actualizar el estado del escenario, por favor inténtelo de nuevo."
+          },
+          "DELETE": {
+            "SUCCESS": "Escenarios eliminados correctamente",
+            "ERROR": "Hubo un error al eliminar los escenarios, inténtalo de nuevo."
           }
-        },
-        "STATUS": {
-          "ENABLED": "Activado",
-          "DISABLED": "Deshabilitado",
-          "TOGGLE": "Alternar {title}"
         }
       }
     },
     "DOCUMENTS": {
       "HEADER": "Documentos",
       "ADD_NEW": "Crear un nuevo documento",
-      "FAQ_COUNT": "{n} FAQ | {n} FAQs",
+      "FAQ_COUNT": "{n} pregunta frecuente | {n} preguntas frecuentes",
       "USED_IN_CONVERSATIONS": "Usado en {n} conversación | Usado en {n} conversaciones",
       "NO_USED_CONVERSATIONS": "No se encontraron conversaciones para este documento.",
       "SELECTED": "{count} seleccionados",
@@ -1396,6 +1492,22 @@
         "EDIT_TOOL": "Editar herramienta",
         "DELETE_TOOL": "Eliminar herramienta"
       },
+      "STATUS": {
+        "ENABLED": "Activado",
+        "DISABLED": "Deshabilitado",
+        "TOGGLE": "Alternar {title}"
+      },
+      "TOGGLE": {
+        "ENABLED": "Herramienta activada correctamente",
+        "DISABLED": "Herramienta desactivada correctamente",
+        "ERROR": "Error al actualizar el estado de la herramienta"
+      },
+      "DISABLE_CONFIRMATION": {
+        "TITLE": "¿Desactivar {title}?",
+        "DESCRIPTION_ONE": "Esta herramienta es utilizada por {count} escenario habilitado. Desactivarla puede hacer que ese escenario deje de funcionar como se esperaba.",
+        "DESCRIPTION_OTHER": "Esta herramienta es utilizada por {count} escenarios habilitados. Desactivarla puede hacer que esos escenarios dejen de funcionar como se esperaba.",
+        "CONFIRM": "Desactivar herramienta"
+      },
       "CREATE": {
         "TITLE": "Crear herramienta personalizada",
         "SUCCESS_MESSAGE": "Herramienta personalizada creada correctamente",
@@ -1506,22 +1618,6 @@
         "ERRORS": {
           "PARAM_NAME_REQUIRED": "El nombre del parámetro es obligatorio"
         }
-      },
-      "STATUS": {
-        "ENABLED": "Activado",
-        "DISABLED": "Deshabilitado",
-        "TOGGLE": "Alternar {title}"
-      },
-      "TOGGLE": {
-        "ENABLED": "Herramienta activada correctamente",
-        "DISABLED": "Herramienta desactivada correctamente",
-        "ERROR": "Error al actualizar el estado de la herramienta"
-      },
-      "DISABLE_CONFIRMATION": {
-        "TITLE": "¿Desactivar {title}?",
-        "DESCRIPTION_ONE": "Esta herramienta es utilizada por {count} escenario habilitado. Desactivarla puede hacer que ese escenario deje de funcionar como se esperaba.",
-        "DESCRIPTION_OTHER": "Esta herramienta es utilizada por {count} escenarios habilitados. Desactivarla puede hacer que esos escenarios dejen de funcionar como se esperaba.",
-        "CONFIRM": "Desactivar herramienta"
       }
     },
     "RESPONSES": {

@@ -29,4 +29,19 @@ describe Campaigns::CampaignConversationBuilder do
       expect(campaign_conversation).to be_nil
     end
   end
+
+  it 'resolves contact data only when the visitor creates the conversation' do
+    contact.update!(name: 'ANA maria')
+    campaign.update!(message: 'Hola {{ contact.name }}')
+    conversation = described_class.new(contact_inbox_id: contact_inbox.id, campaign_display_id: campaign.display_id).perform
+    expect(conversation.messages.sole.content).to eq('Hola Ana Maria')
+  end
+
+  it 'rolls back conversation creation when required contact data is missing' do
+    contact.update!(email: nil)
+    campaign.update!(message: 'Correo: {{ contact.email }}')
+    expect do
+      expect(described_class.new(contact_inbox_id: contact_inbox.id, campaign_display_id: campaign.display_id).perform).to be_nil
+    end.not_to change(Conversation, :count)
+  end
 end

@@ -45,7 +45,7 @@
       "ENABLED": "Regla activa",
       "STATUS": "Estado objetivo",
       "STATUSES": "Estados",
-      "STATUSES_PLACEHOLDER": "pending, snoozed",
+      "STATUSES_PLACEHOLDER": "pendiente, pospuesta",
       "ATTRIBUTES": "Atributos obligatorios",
       "ATTRIBUTES_HELP": "Marca una categoría para exigir todos sus campos (incluidos futuros), o elige campos sueltos.",
       "CONDITIONS": "Cuando (condiciones)",

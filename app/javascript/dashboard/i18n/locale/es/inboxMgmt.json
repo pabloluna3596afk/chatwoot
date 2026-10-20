@@ -3,13 +3,13 @@
     "HEADER": "Entradas",
     "DESCRIPTION": "Un canal es el modo de comunicación que tu cliente elige para interactuar contigo. Una bandeja de entrada es donde administras interacciones para un canal específico. Puede incluir comunicaciones de diversas fuentes como correo electrónico, chat en vivo y redes sociales.",
     "LEARN_MORE": "Aprende más sobre las entradas",
-    "COUNT": "{n} inbox | {n} inboxes",
+    "COUNT": "{n} bandeja | {n} bandejas",
     "SEARCH_PLACEHOLDER": "Buscar nombre de bandeja de entrada, canal o identificador...",
-    "NO_RESULTS": "No inboxes found matching your search",
+    "NO_RESULTS": "No se encontraron bandejas que coincidan con tu búsqueda",
     "RECONNECTION_REQUIRED": "Tu bandeja de entrada está desconectada. No recibirás mensajes nuevos hasta que lo vuelvas a autorizar.",
     "CLICK_TO_RECONNECT": "Haga clic aquí para volver a conectar.",
-    "WHATSAPP_REGISTRATION_INCOMPLETE": "Your WhatsApp Business registration isn’t complete. Please check your display name status in Meta Business Manager before reconnecting.",
-    "COMPLETE_REGISTRATION": "Complete Registration",
+    "WHATSAPP_REGISTRATION_INCOMPLETE": "El registro de tu cuenta de WhatsApp Business no está completo. Verifica el estado del nombre visible en Meta Business Manager antes de volver a conectarte.",
+    "COMPLETE_REGISTRATION": "Completar registro",
     "LIST": {
       "404": "No hay entradas adjuntas a esta cuenta."
     },
@@ -54,23 +54,23 @@
         "STATUS_LINK": "Ver actualizaciones de estado"
       },
       "INSTAGRAM": {
-        "CONTINUE_WITH_INSTAGRAM": "Continue with Instagram",
-        "CONNECT_YOUR_INSTAGRAM_PROFILE": "Connect your Instagram Profile",
-        "HELP": "To add your Instagram profile as a channel, you need to authenticate your Instagram Profile by clicking on 'Continue with Instagram' ",
-        "ERROR_MESSAGE": "There was an error connecting to Instagram, please try again",
-        "ERROR_AUTH": "There was an error connecting to Instagram, please try again",
-        "NEW_INBOX_SUGGESTION": "This Instagram account was previously linked to a different inbox and has now been migrated here. All new messages will appear here. The old inbox will no longer be able to send or receive messages for this account.",
-        "DUPLICATE_INBOX_BANNER": "This Instagram account was migrated to the new Instagram channel inbox. You won’t be able to send/receive Instagram messages from this inbox anymore.",
+        "CONTINUE_WITH_INSTAGRAM": "Continuar con Instagram",
+        "CONNECT_YOUR_INSTAGRAM_PROFILE": "Conecta tu perfil de Instagram",
+        "HELP": "Para agregar tu perfil de Instagram como canal, debes autenticar tu perfil de Instagram haciendo clic en 'Continuar con Instagram'",
+        "ERROR_MESSAGE": "Ocurrió un error al conectar con Instagram, inténtalo de nuevo",
+        "ERROR_AUTH": "Ocurrió un error al conectar con Instagram, inténtalo de nuevo",
+        "NEW_INBOX_SUGGESTION": "Esta cuenta de Instagram estaba vinculada antes a otra bandeja y ahora se migró aquí. Todos los mensajes nuevos aparecerán aquí. La bandeja anterior ya no podrá enviar ni recibir mensajes de esta cuenta.",
+        "DUPLICATE_INBOX_BANNER": "Esta cuenta de Instagram se migró a la nueva bandeja del canal de Instagram. Ya no podrás enviar ni recibir mensajes de Instagram desde esta bandeja.",
         "RESTRICTED_WARNING": "La creación de bandejas de entrada de Instagram no está disponible temporalmente debido a un problema en la API de Meta, no de ChatHub. Estamos colaborando estrechamente con Meta para resolverlo cuanto antes.",
         "SETTINGS_RESTRICTED_WARNING": "La mensajería de Instagram está afectada actualmente por un problema de la API de Meta, no por un problema de ChatHub. Algunos mensajes o acciones pueden retrasarse o no estar disponibles. Estamos colaborando estrechamente con Meta para resolverlo lo antes posible.",
         "STATUS_LINK": "Ver actualizaciones de estado"
       },
       "TIKTOK": {
-        "CONTINUE_WITH_TIKTOK": "Continue with TikTok",
-        "CONNECT_YOUR_TIKTOK_PROFILE": "Connect your TikTok Profile",
-        "HELP": "To add your TikTok profile as a channel, you need to authenticate your TikTok Profile by clicking on 'Continue with TikTok' ",
-        "ERROR_MESSAGE": "There was an error connecting to TikTok, please try again",
-        "ERROR_AUTH": "There was an error connecting to TikTok, please try again",
+        "CONTINUE_WITH_TIKTOK": "Continuar con TikTok",
+        "CONNECT_YOUR_TIKTOK_PROFILE": "Conecta tu perfil de TikTok",
+        "HELP": "Para agregar tu perfil de TikTok como canal, debes autenticar tu perfil de TikTok haciendo clic en 'Continuar con TikTok'",
+        "ERROR_MESSAGE": "Ocurrió un error al conectar con TikTok, inténtalo de nuevo",
+        "ERROR_AUTH": "Ocurrió un error al conectar con TikTok, inténtalo de nuevo",
         "NORTH_AMERICA_WARNING": "Las conexiones de TikTok para cuentas norteamericanas no están disponibles temporalmente mientras esperamos una actualización del equipo de TikTok."
       },
       "TWITTER": {
@@ -93,12 +93,12 @@
           "ERROR": "Por favor, introduzca una URL válida"
         },
         "CHANNEL_WEBHOOK_SECRET": {
-          "LABEL": "Webhook Secret",
-          "COPY": "Copy secret to clipboard",
-          "COPY_SUCCESS": "Secret copied to clipboard",
-          "TOGGLE": "Toggle secret visibility",
-          "RESET_SUCCESS": "Webhook secret regenerated successfully",
-          "RESET_ERROR": "Unable to regenerate webhook secret. Please try again"
+          "LABEL": "Secreto del webhook",
+          "COPY": "Copiar secreto al portapapeles",
+          "COPY_SUCCESS": "Secreto copiado al portapapeles",
+          "TOGGLE": "Mostrar u ocultar el secreto",
+          "RESET_SUCCESS": "El secreto del webhook se regeneró correctamente",
+          "RESET_ERROR": "No se pudo regenerar el secreto del webhook. Inténtalo de nuevo"
         },
         "CHANNEL_DOMAIN": {
           "LABEL": "Dominio del sitio web",
@@ -251,14 +251,14 @@
           "WHATSAPP_EMBEDDED": "WhatsApp Business",
           "TWILIO": "Twilio",
           "WHATSAPP_CLOUD": "Nube de WhatsApp",
-          "WHATSAPP_CLOUD_DESC": "Quick setup through Meta",
+          "WHATSAPP_CLOUD_DESC": "Configuración rápida a través de Meta",
           "WHATSAPP_CLOUD_MANUAL_SETUP_DESC": "Configuración manual con credenciales de la API de Cloud",
-          "TWILIO_DESC": "Connect via Twilio credentials",
+          "TWILIO_DESC": "Conectar mediante credenciales de Twilio",
           "360_DIALOG": "360dialog"
         },
         "SELECT_PROVIDER": {
-          "TITLE": "Select your API provider",
-          "DESCRIPTION": "Choose your WhatsApp provider. You can connect directly through Meta which requires no setup, or connect through Twilio using your account credentials.",
+          "TITLE": "Selecciona tu proveedor de API",
+          "DESCRIPTION": "Elige tu proveedor de WhatsApp. Puedes conectarte directamente a través de Meta, que no requiere configuración, o hacerlo mediante Twilio con las credenciales de tu cuenta.",
           "RESTRICTION_DESCRIPTION": "Elige tu proveedor de WhatsApp. Puedes conectar WhatsApp Cloud manualmente con tus credenciales de la API de Cloud o conectarte mediante Twilio con las credenciales de tu cuenta."
         },
         "INBOX_NAME": {
@@ -304,34 +304,39 @@
           "DESC": "Usa la configuración rápida con Meta para conectar un número nuevo o uno existente de la aplicación WhatsApp Business. Se te redirigirá a Meta para iniciar sesión en tu cuenta de WhatsApp Business. Disponer de acceso de administrador facilitará la configuración.",
           "BENEFITS": {
             "TITLE": "Ventajas de WhatsApp Embedded Signup:",
-            "EASY_SETUP": "No manual configuration required",
-            "SECURE_AUTH": "Secure OAuth based authentication",
-            "AUTO_CONFIG": "Automatic webhook and phone number configuration"
+            "EASY_SETUP": "Sin configuración manual",
+            "SECURE_AUTH": "Autenticación segura basada en OAuth",
+            "AUTO_CONFIG": "Configuración automática del webhook y del número de teléfono"
           },
           "LEARN_MORE": {
             "TEXT": "Para obtener más información sobre la configuración rápida, los precios y las limitaciones, visita {link}.",
-            "LINK_TEXT": "this link"
+            "LINK_TEXT": "este enlace"
           },
-          "SUBMIT_BUTTON": "Connect with WhatsApp Business",
-          "AUTH_PROCESSING": "Authenticating with Meta",
-          "WAITING_FOR_BUSINESS_INFO": "Please complete business setup in the Meta window...",
-          "PROCESSING": "Setting up your WhatsApp Business Account",
+          "SUBMIT_BUTTON": "Conectar con WhatsApp Business",
+          "AUTH_PROCESSING": "Autenticando con Meta",
+          "WAITING_FOR_BUSINESS_INFO": "Completa la configuración del negocio en la ventana de Meta...",
+          "PROCESSING": "Configurando tu cuenta de WhatsApp Business",
           "ENABLING_CALLING": "Activando llamadas de WhatsApp en tu número…",
-          "LOADING_SDK": "Loading Facebook SDK...",
-          "CANCELLED": "WhatsApp Signup was cancelled",
-          "SUCCESS_TITLE": "WhatsApp Business Account Connected!",
-          "WAITING_FOR_AUTH": "Waiting for authentication...",
-          "INVALID_BUSINESS_DATA": "Invalid business data received from Facebook. Please try again.",
-          "SIGNUP_ERROR": "Signup error occurred",
-          "AUTH_NOT_COMPLETED": "Authentication not completed. Please restart the process.",
-          "SUCCESS_FALLBACK": "WhatsApp Business Account has been successfully configured",
-          "MANUAL_FALLBACK": "If your number is already connected to the WhatsApp Business Platform (API), or if you’re a tech provider onboarding your own number, please use the {link} flow",
+          "LOADING_SDK": "Cargando Facebook SDK...",
+          "CANCELLED": "Se canceló el registro de WhatsApp",
+          "SUCCESS_TITLE": "¡Cuenta de WhatsApp Business conectada!",
+          "WAITING_FOR_AUTH": "Esperando autenticación...",
+          "INVALID_BUSINESS_DATA": "Se recibieron datos del negocio no válidos desde Facebook. Inténtalo de nuevo.",
+          "SIGNUP_ERROR": "Ocurrió un error en el registro",
+          "AUTH_NOT_COMPLETED": "No se completó la autenticación. Reinicia el proceso.",
+          "SUCCESS_FALLBACK": "La cuenta de WhatsApp Business se configuró correctamente",
+          "MANUAL_FALLBACK": "Si tu número ya está conectado a la plataforma de WhatsApp Business (API), o si eres un proveedor técnico que está incorporando tu propio número, usa el flujo {link}",
           "MANUAL_LINK_TEXT": "configuración manual",
           "ACCESS_REQUEST": {
             "TITLE": "Configuración rápida con Meta",
             "DESCRIPTION": "Conecta un número nuevo o uno existente de la aplicación WhatsApp Business sin configuración manual. Para solicitar esta opción, cuéntanos a qué se dedica tu empresa, cómo usarás WhatsApp y qué cuenta de ChatHub necesita acceso.",
             "FOOTNOTE": "Revisaremos tu solicitud y te informaremos si podemos habilitar esta opción. También puedes continuar con la configuración manual que aparece a continuación.",
-            "BUTTON": "Solicitar acceso"
+            "BUTTON": "Solicitar acceso",
+            "FORM_DESCRIPTION": "Cuéntanos sobre tu negocio y cómo planeas usar WhatsApp. Envía tu caso de uso para habilitar la configuración rápida de tu cuenta.",
+            "USE_CASE_LABEL": "Caso de uso del negocio",
+            "USE_CASE_PLACEHOLDER": "Por ejemplo, vendemos muebles para el hogar y usamos WhatsApp para responder preguntas sobre los productos y ayudar a los clientes con sus pedidos.",
+            "SUBMIT": "Enviar",
+            "ERROR": "No pudimos habilitar el acceso. Inténtalo de nuevo."
           },
           "RESTRICTED_WARNING": "El registro integrado de WhatsApp no está disponible temporalmente debido a un problema en la API de Meta, no de ChatHub. Puedes usar la configuración manual para los números compatibles con la API de Cloud. Estamos colaborando estrechamente con Meta para resolverlo cuanto antes.",
           "STATUS_LINK": "Ver actualizaciones de estado",
@@ -441,28 +446,28 @@
         }
       },
       "VOICE": {
-        "TITLE": "Voice Channel",
-        "DESC": "Integrate Twilio Voice and start supporting your customers via phone calls.",
+        "TITLE": "Canal de voz",
+        "DESC": "Integra Twilio Voice y empieza a atender a tus clientes por llamadas telefónicas.",
         "PHONE_NUMBER": {
           "LABEL": "Número telefónico",
-          "PLACEHOLDER": "Enter your phone number (e.g. +1234567890)",
-          "ERROR": "Please provide a valid phone number in E.164 format (e.g. +1234567890)"
+          "PLACEHOLDER": "Ingresa tu número de teléfono (p. ej. +1234567890)",
+          "ERROR": "Ingresa un número de teléfono válido en formato E.164 (p. ej. +1234567890)"
         },
         "TWILIO": {
           "ACCOUNT_SID": {
             "LABEL": "Cuenta SID",
-            "PLACEHOLDER": "Enter your Twilio Account SID",
-            "REQUIRED": "Account SID is required"
+            "PLACEHOLDER": "Ingresa tu Account SID de Twilio",
+            "REQUIRED": "El Account SID es obligatorio"
           },
           "AUTH_TOKEN": {
             "LABEL": "Token de Auth",
-            "PLACEHOLDER": "Enter your Twilio Auth Token",
-            "REQUIRED": "Auth Token is required"
+            "PLACEHOLDER": "Ingresa tu Auth Token de Twilio",
+            "REQUIRED": "El Auth Token es obligatorio"
           },
           "API_KEY_SID": {
             "LABEL": "API Key SID",
-            "PLACEHOLDER": "Enter your Twilio API Key SID",
-            "REQUIRED": "API Key SID is required"
+            "PLACEHOLDER": "Ingresa tu API Key SID de Twilio",
+            "REQUIRED": "El API Key SID es obligatorio"
           },
           "API_KEY_SECRET": {
             "LABEL": "Clave API secreta",

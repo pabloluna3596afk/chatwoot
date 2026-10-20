@@ -8,13 +8,14 @@ class Variables::Resolver
     Liquid::Template.parse(protect_code ? self.class.protect_code(text) : text).render(@drops)
   end
 
-  def preview(text, protect_code: false)
+  def preview(text, protect_code: false, diagnose_outputs: false)
     source = protect_code ? self.class.protect_code(text) : text
     template = Liquid::Template.parse(source, error_mode: :strict)
     value = template.render(@drops)
     template.render(@drops, strict_variables: true, strict_filters: true)
     errors = template.errors
     status = preview_status(value, errors, template)
+    status = delivery_status(status, template) if diagnose_outputs
     { status: status, value: status == 'invalid' ? nil : value, errors: errors.map { |error| error.class.name }.uniq }
   rescue Liquid::Error => e
     { status: 'invalid', value: nil, errors: [e.class.name] }
@@ -25,6 +26,22 @@ class Variables::Resolver
   end
 
   private
+
+  # Inspect evaluated outputs rather than matching expressions with a regexp.
+  # This also catches a nil Drop method inside otherwise nonempty text. Liquid
+  # filters (including default) and control flow retain their normal semantics.
+  def delivery_status(status, template)
+    status == 'value' && missing_output?(template) ? 'missing' : status
+  end
+
+  def missing_output?(template)
+    missing = false
+    template.render(@drops, global_filter: lambda do |input|
+      missing = true if input.nil? || input == ''
+      input
+    end)
+    missing
+  end
 
   def preview_status(value, errors, template)
     return 'invalid' if errors.any? { |error| !error.is_a?(Liquid::UndefinedVariable) }

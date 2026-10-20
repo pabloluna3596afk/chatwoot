@@ -161,6 +161,14 @@
     "VISIBILITY_LABEL": {
       "personal": "Personal",
       "global": "Cuenta"
+    },
+    "DUPLICATE": {
+      "TOOLTIP": "Duplicar",
+      "API": {
+        "SUCCESS_MESSAGE": "Respuesta rápida duplicada con éxito.",
+        "SUCCESS_MESSAGE_PENDING": "Duplicación enviada. Un administrador debe aprobarla antes de poder usarla.",
+        "ERROR_MESSAGE": "No se pudo duplicar la respuesta rápida. Inténtalo de nuevo."
+      }
     }
   }
 }

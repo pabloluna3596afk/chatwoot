@@ -5,9 +5,9 @@
     "LOADING": "Obteniendo etiquetas",
     "DESCRIPTION": "Las etiquetas le ayudan a clasificar y priorizar conversaciones y clientes potenciales. Puede asignar una etiqueta a una conversación o contacto usando el panel lateral.",
     "LEARN_MORE": "Aprende más sobre etiquetas",
-    "COUNT": "{n} label | {n} labels",
+    "COUNT": "{n} etiqueta | {n} etiquetas",
     "SEARCH_PLACEHOLDER": "Buscar etiquetas...",
-    "NO_RESULTS": "No labels found matching your search",
+    "NO_RESULTS": "No se encontraron etiquetas que coincidan con tu búsqueda",
     "SEARCH_404": "No hay elementos que coincidan con esta consulta",
     "LIST": {
       "404": "No hay etiquetas disponibles en esta cuenta.",
