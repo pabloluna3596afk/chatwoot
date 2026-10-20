@@ -96,6 +96,23 @@ describe('Business onboarding', () => {
     vi.restoreAllMocks();
   });
 
+  it('uses the configured logo and falls back to shipped brand assets after a load error', async () => {
+    wrapper = mount(Index, mountOptions);
+    const [light, dark] = wrapper.findAll('header img');
+    expect(light.attributes('src')).toBe('/logo.svg');
+    expect(dark.attributes('src')).toBe('/logo.svg');
+    await light.trigger('error');
+    await dark.trigger('error');
+    expect(light.attributes('src')).toBe('/brand-assets/logo.svg');
+    expect(dark.attributes('src')).toBe('/brand-assets/logo_dark.svg');
+    [light, dark].forEach(logo => {
+      expect(logo.attributes('alt')).toBe('ChatHub');
+      expect(logo.classes()).toEqual(
+        expect.arrayContaining(['h-7', 'w-auto', 'shrink-0', 'object-contain'])
+      );
+    });
+  });
+
   it('updates the live preview when the business name and activity change', async () => {
     wrapper = mount(Index, mountOptions);
     await flushPromises();

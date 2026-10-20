@@ -2158,3 +2158,9 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - Files: `onboarding/specs/Index.spec.js`, `specs/account-details/useAccountEnrichment.spec.js`, `account-details/useAccountEnrichment.js`.
 - Fix: pin browser timezone, supported zones and language in business specs; restore spies after each test. Pin the enrichment suite language too. UTC does not identify a country, so use saved country preferences or expose the country selector instead of inferring US from en-US.
 - Verify: run the PR frontend specs with TZ=UTC and TZ=America/Guayaquil, LANG=en_US.UTF-8. Cover UTC with and without saved preferences; retain UTC as the reported timezone when none is saved.
+
+### B-NEW-077 — Onboarding header logo and visual preset
+
+- Files: `onboarding/shared/OnboardingShell.vue`, `onboarding/specs/Index.spec.js`.
+- Fix: preserve the same globalConfig logo/logoDark sources as login; use the shipped light/dark brand assets when a source is missing or fails. Reserve a fixed height, preserve aspect ratio and prevent flex shrinking. Visual presets must supply the real ChatHub logos.
+- Verify: force a configured logo load error, inspect both fallback paths, and capture business, WhatsApp, assistant, plan, mobile and dark views with real brand assets.

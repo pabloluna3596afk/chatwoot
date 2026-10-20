@@ -15,6 +15,18 @@ const props = defineProps({
 const emit = defineEmits(['back']);
 const { t } = useI18n();
 const config = useMapGetter('globalConfig/get');
+const logoFailed = ref(false);
+const logoDarkFailed = ref(false);
+const logo = computed(() =>
+  !logoFailed.value && config.value.logo
+    ? config.value.logo
+    : '/brand-assets/logo.svg'
+);
+const logoDark = computed(() =>
+  !logoDarkFailed.value && (config.value.logoDark || config.value.logo)
+    ? config.value.logoDark || config.value.logo
+    : '/brand-assets/logo_dark.svg'
+);
 const steps = computed(() => [
   t('ONBOARDING_LAYOUT.STEPS.BUSINESS'),
   t('ONBOARDING_LAYOUT.STEPS.WHATSAPP'),
@@ -43,14 +55,16 @@ watch(() => props.current, focusHeading);
       <div class="mx-auto w-full max-w-[60rem] space-y-4">
         <div class="flex items-center justify-between gap-4">
           <img
-            :src="config.logo"
+            :src="logo"
             :alt="config.installationName"
-            class="h-7 max-w-40 object-contain dark:hidden"
+            class="h-7 w-auto max-w-40 shrink-0 object-contain dark:hidden"
+            @error="logoFailed = true"
           />
           <img
-            :src="config.logoDark || config.logo"
+            :src="logoDark"
             :alt="config.installationName"
-            class="hidden h-7 max-w-40 object-contain dark:block"
+            class="hidden h-7 w-auto max-w-40 shrink-0 object-contain dark:block"
+            @error="logoDarkFailed = true"
           />
           <p
             class="m-0 hidden flex-1 border-s border-n-weak ps-4 text-sm text-n-slate-11 sm:block"
