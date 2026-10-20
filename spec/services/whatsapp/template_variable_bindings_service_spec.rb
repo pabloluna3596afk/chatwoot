@@ -34,8 +34,6 @@ RSpec.describe Whatsapp::TemplateVariableBindingsService do
     it 'accepts exact catalog paths for Unicode, hyphens and dots without accepting arbitrary Liquid' do
       %w[nivel-vip nivel.vip categoría].each do |key|
         create(:custom_attribute_definition, account: channel.account, attribute_key: key, attribute_model: 'contact_attribute')
-      end
-      %w[nivel-vip nivel.vip categoría].each do |key|
         path = "contact.custom_attribute['#{key}']"
         expect(service.normalize({ pedido: path }, texts)).to eq('pedido' => path)
       end
