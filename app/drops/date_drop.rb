@@ -6,43 +6,54 @@
 #   {{ date.today | minus_days: 30 }} → today - N
 # ActionService renders these through MessageRendererService before parsing date CAs.
 class DateDrop < Liquid::Drop
+  def initialize(timezone: Time.zone)
+    @timezone = timezone
+    super()
+  end
+
   def today
-    Time.current.to_date
+    current_time.to_date
   end
 
   def now
-    Time.current
+    current_time
   end
 
   def tomorrow
-    (Time.current + 1.day).to_date
+    (current_time + 1.day).to_date
   end
 
   def yesterday
-    (Time.current - 1.day).to_date
+    (current_time - 1.day).to_date
   end
 
   # Bare {{ date.days_from_now }} → today. Liquid cannot pass Ruby args here;
   # use {{ date.today | plus_days: N }} instead (see class comment).
   def days_from_now
-    Time.current.to_date
+    current_time.to_date
   end
 
   # Bare {{ date.days_ago }} → today. Use {{ date.today | minus_days: N }} instead.
   def days_ago
-    Time.current.to_date
+    current_time.to_date
   end
 
   # Returns the current year/month/day as integers
   def current_year
-    Time.current.year
+    current_time.year
   end
 
   def current_month
-    Time.current.month
+    current_time.month
   end
 
   def current_day
-    Time.current.day
+    current_time.day
+  end
+
+  private
+
+  def current_time
+    Time.current.in_time_zone(@timezone)
   end
 end

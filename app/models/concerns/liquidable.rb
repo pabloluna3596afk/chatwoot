@@ -10,14 +10,7 @@ module Liquidable
   private
 
   def message_drops
-    {
-      'contact' => ContactDrop.new(conversation.contact),
-      'agent' => UserDrop.new(sender || conversation.assignee),
-      'conversation' => ConversationDrop.new(conversation),
-      'inbox' => InboxDrop.new(inbox),
-      'account' => AccountDrop.new(conversation.account),
-      'date' => DateDrop.new
-    }
+    Variables::ContextFactory.for_message(self)
   end
 
   def liquid_processable_message?
@@ -36,7 +29,7 @@ module Liquidable
                        message_drops: message_drops
                      ).perform
                    else
-                     Liquid::Template.parse(modified_liquid_content(content)).render(message_drops)
+                     Variables::Resolver.new(drops: message_drops).render(content, protect_code: true)
                    end
     mark_whatsapp_template_content_rendered if raw_whatsapp_template_content
     @liquid_content_processed = true
@@ -60,12 +53,6 @@ module Liquidable
 
     template_params['content_mode'] == 'raw_template' &&
       (template_params['processed_params'].nil? || template_params['processed_params'].is_a?(Hash))
-  end
-
-  def modified_liquid_content(message_content)
-    # This regex is used to match the code blocks in the content
-    # We don't want to process liquid in code blocks
-    message_content.gsub(/`(.*?)`/m, '{% raw %}`\\1`{% endraw %}')
   end
 
   def process_liquid_in_template_params
@@ -124,8 +111,7 @@ module Liquidable
   def process_liquid_string(string)
     return string if string.blank?
 
-    template = Liquid::Template.parse(string)
-    template.render(message_drops)
+    Variables::Resolver.new(drops: message_drops).render(string)
   rescue Liquid::Error
     string
   end

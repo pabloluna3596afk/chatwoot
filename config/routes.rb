@@ -361,6 +361,10 @@ Rails.application.routes.draw do
             end
           end
 
+          resources :variables, only: [:index] do
+            post :preview, on: :collection
+          end
+
           resources :custom_attribute_definitions, only: [:index, :show, :create, :update, :destroy] do
             member do
               post :recalculate
