@@ -1201,8 +1201,8 @@
         "ROUND_ROBIN": "Por turno",
         "BALANCED": "Asignación balanceada"
       },
-      "UPGRADE_PROMPT": "Las políticas de asignación personalizadas están disponibles en el plan Business",
-      "UPGRADE_TO_BUSINESS": "Actualizar a Business",
+      "UPGRADE_PROMPT": "Las políticas de asignación personalizadas no están habilitadas para tu cuenta.",
+      "UPGRADE_TO_BUSINESS": "Ver facturación",
       "DEFAULT_POLICY_LINKED": "Política predeterminada vinculada",
       "DEFAULT_POLICY_DESCRIPTION": "Vincula una política de asignación personalizada para ajustar cómo se asignan las conversaciones a los agentes en esta bandeja.",
       "LINK_EXISTING_POLICY": "Vincular política existente",

@@ -5,9 +5,15 @@ import { useCaptain } from 'dashboard/composables/useCaptain';
 import { useRouter } from 'vue-router';
 
 import Banner from 'dashboard/components-next/banner/Banner.vue';
+import PlanCompareButton from 'next/plans/PlanCompareButton.vue';
 
 const router = useRouter();
-const { accountId } = useAccount();
+const { accountId, currentAccount, isOnChatwootCloud } = useAccount();
+const usesProviderBilling = computed(
+  () =>
+    isOnChatwootCloud.value ||
+    currentAccount.value?.billing_provider === 'shopify'
+);
 
 const { responseLimits, fetchLimits } = useCaptain();
 
@@ -34,9 +40,13 @@ onMounted(fetchLimits);
   <Banner
     v-show="showBanner"
     color="amber"
-    :action-label="$t('CAPTAIN.PAYWALL.UPGRADE_NOW')"
+    :class="{ '!text-n-amber-12': !usesProviderBilling }"
+    :action-label="
+      usesProviderBilling ? $t('CAPTAIN.PAYWALL.UPGRADE_NOW') : null
+    "
     @action="openBilling"
   >
     {{ $t('CAPTAIN.BANNER.RESPONSES') }}
+    <PlanCompareButton class="mt-2" />
   </Banner>
 </template>

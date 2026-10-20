@@ -1,9 +1,11 @@
 <script setup>
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import Icon from 'next/icon/Icon.vue';
+import PlanCompareButton from 'next/plans/PlanCompareButton.vue';
 import ButtonV4 from 'next/button/Button.vue';
 
 defineProps({
+  requiredFeature: { type: String, default: '' },
   featurePrefix: {
     type: String,
     required: true,
@@ -69,9 +71,10 @@ const { isAdmin } = useAdmin();
       </span>
     </template>
     <template v-else-if="!isOnChatwootCloud && isSuperAdmin">
+      <PlanCompareButton :required-feature="requiredFeature" />
       <a href="/super_admin" class="block w-full">
-        <ButtonV4 solid blue md class="w-full">
-          {{ $t(`${featurePrefix}.PAYWALL.UPGRADE_NOW`) }}
+        <ButtonV4 variant="outline" color="slate" md class="w-full mt-2">
+          {{ $t('PLAN_CATALOG.MANAGE_INSTALLATION') }}
         </ButtonV4>
       </a>
     </template>

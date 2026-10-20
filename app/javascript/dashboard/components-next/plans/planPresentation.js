@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 
 export const planViewProps = {
   context: { type: String, default: 'billing' },
+  requiredFeature: { type: String, default: '' },
   currentPlanId: { type: [Number, String], default: null },
   selectedPlanId: { type: [Number, String], default: null },
   canSelect: { type: Boolean, default: false },

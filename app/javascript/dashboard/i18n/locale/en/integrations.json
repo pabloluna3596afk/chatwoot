@@ -37,9 +37,9 @@
       "SUBSCRIBED_EVENTS": "Subscribed Events",
       "LEARN_MORE": "Learn more about webhooks",
       "PAYWALL": {
-        "TITLE": "Webhooks are available on paid plans",
-        "AVAILABLE_ON": "Use webhooks to receive real-time events from your ChatHub account.",
-        "UPGRADE_PROMPT": "Upgrade to the Startups, Business, or Enterprise plan to use webhooks.",
+        "TITLE": "Webhooks are not enabled",
+        "AVAILABLE_ON": "This feature is not enabled for your account.",
+        "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
         "UPGRADE_NOW": "Upgrade now",
         "CANCEL_ANYTIME": "Change or cancel your plan anytime."
       },
@@ -778,19 +778,19 @@
     },
     "PAYWALL": {
       "TITLE": "Upgrade to use Captain AI",
-      "AVAILABLE_ON": "Captain is not available on the free plan.",
-      "UPGRADE_PROMPT": "Upgrade your plan to get access to our assistants, copilot and more.",
+      "AVAILABLE_ON": "This feature is not enabled for your account.",
+      "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
       "UPGRADE_NOW": "Upgrade now",
       "CANCEL_ANYTIME": "You can change or cancel your plan anytime"
     },
     "ENTERPRISE_PAYWALL": {
-      "AVAILABLE_ON": "Captain AI is only available in the Enterprise plans.",
-      "UPGRADE_PROMPT": "Upgrade your plan to get access to our assistants, copilot and more.",
+      "AVAILABLE_ON": "This feature is not enabled for your account.",
+      "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
       "ASK_ADMIN": "Please reach out to your administrator for the upgrade."
     },
     "BANNER": {
-      "RESPONSES": "You've used over 80% of your response limit. To continue using Captain AI, please upgrade.",
-      "DOCUMENTS": "Document limit reached. Upgrade to continue using Captain AI."
+      "RESPONSES": "You are approaching your response limit. Review your plan and usage.",
+      "DOCUMENTS": "Document limit reached. Review your plan and usage."
     },
     "FORM": {
       "CANCEL": "Cancel",
@@ -1528,14 +1528,14 @@
       },
       "PAYWALL": {
         "TITLE": "Upgrade to use tools with Captain",
-        "AVAILABLE_ON": "Captain Tools are only available in Business and Enterprise plans. Please upgrade to Business plan to use the feature.",
-        "UPGRADE_PROMPT": "",
+        "AVAILABLE_ON": "This feature is not enabled for your account.",
+        "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
         "UPGRADE_NOW": "Open billing",
         "CANCEL_ANYTIME": ""
       },
       "ENTERPRISE_PAYWALL": {
-        "AVAILABLE_ON": "Captain Tools are only available in the paid plans.",
-        "UPGRADE_PROMPT": "Please upgrade to a paid plan to use this feature.",
+        "AVAILABLE_ON": "This feature is not enabled for your account.",
+        "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
         "ASK_ADMIN": "Please reach out to your administrator for the upgrade."
       },
       "TEST": {

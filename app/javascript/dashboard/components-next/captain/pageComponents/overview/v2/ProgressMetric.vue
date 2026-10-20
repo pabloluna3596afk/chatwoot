@@ -30,7 +30,7 @@ const chartData = computed(() => ({
   <div class="flex flex-col gap-2">
     <div class="flex items-center justify-between gap-3 text-body-main">
       <span class="text-n-slate-11">
-        <span v-if="showLabel">{{ label }} </span>
+        <span v-if="showLabel" class="me-1">{{ label }} </span>
         <span v-if="usageLabel" :class="{ 'text-n-teal-11': showLabel }">
           {{ usageLabel }}
         </span>

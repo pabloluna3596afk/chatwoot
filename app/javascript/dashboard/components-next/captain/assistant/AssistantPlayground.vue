@@ -1,4 +1,5 @@
 <script setup>
+import PlanCompareButton from 'next/plans/PlanCompareButton.vue';
 import { computed, reactive, ref, toRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { breakpointsTailwind, useBreakpoints } from '@vueuse/core';
@@ -32,7 +33,7 @@ const {
   update: updateUsage,
   handleError: usageError,
 } = usePlaygroundUsage();
-const { accountId } = useAccount();
+const { accountId, currentAccount, isOnChatwootCloud } = useAccount();
 const assistants = useMapGetter('captainAssistants/getRecords');
 const assistant = computed(() =>
   assistants.value?.find(({ id }) => id === props.assistantId)
@@ -214,6 +215,11 @@ const handleEnterKey = event => {
   event.preventDefault();
   sendMessage();
 };
+const usesProviderBilling = computed(
+  () =>
+    isOnChatwootCloud.value ||
+    currentAccount.value?.billing_provider === 'shopify'
+);
 </script>
 
 <template>
@@ -281,16 +287,21 @@ const handleEnterKey = event => {
       <p class="pt-2 text-center text-xs text-n-slate-11">
         {{ usageLabel || t('CAPTAIN.PLAYGROUND.CREDIT_NOTE') }}
       </p>
-      <a
+      <template
         v-if="
           errorCode === 'responses_limit_reached' ||
           (remaining?.uses_plan_pool && remaining.plan_remaining <= 0)
         "
-        :href="`/app/accounts/${accountId}/settings/billing`"
-        class="pt-2 text-center text-xs text-n-blue-11 underline"
       >
-        {{ t('CAPTAIN.PLAYGROUND.USAGE.PLANS') }}
-      </a>
+        <a
+          v-if="usesProviderBilling"
+          :href="`/app/accounts/${accountId}/settings/billing`"
+          class="pt-2 text-center text-xs text-n-blue-11 underline"
+        >
+          {{ t('CAPTAIN.PLAYGROUND.USAGE.PLANS') }}
+        </a>
+        <PlanCompareButton v-else />
+      </template>
     </div>
 
     <aside

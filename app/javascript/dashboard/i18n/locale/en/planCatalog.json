@@ -92,6 +92,7 @@
       "sla": "SLA",
       "saml": "SAML",
       "calendar_integration": "Calendar and appointments"
-    }
+    },
+    "MANAGE_INSTALLATION": "Manage installation"
   }
 }

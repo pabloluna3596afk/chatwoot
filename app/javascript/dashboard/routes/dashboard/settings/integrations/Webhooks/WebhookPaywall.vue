@@ -17,6 +17,7 @@ const openBilling = () => {
 <template>
   <div class="grid place-content-center w-full h-full max-h-[28rem] mx-auto">
     <BasePaywallModal
+      required-feature="api_and_webhooks"
       class="mx-auto"
       feature-prefix="INTEGRATION_SETTINGS.WEBHOOK"
       i18n-key="PAYWALL"

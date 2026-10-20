@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+import PlanCompareButton from 'next/plans/PlanCompareButton.vue';
 import { useRoute, RouterLink } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAccount } from 'dashboard/composables/useAccount';
@@ -50,6 +51,7 @@ const links = computed(() =>
 </script>
 
 <template>
+  <PlanCompareButton v-if="!isOnChatwootCloud" />
   <div v-if="isOnChatwootCloud" class="grid grid-cols-1 gap-4 sm:grid-cols-3">
     <component
       :is="link.href ? 'a' : RouterLink"

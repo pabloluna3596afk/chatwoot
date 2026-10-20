@@ -286,7 +286,6 @@
     "LOGOUT": "Log out"
   },
   "APP_GLOBAL": {
-    "TRIAL_MESSAGE": "days trial remaining.",
     "TRAIL_BUTTON": "Buy Now",
     "DELETED_USER": "Deleted User",
     "EMAIL_VERIFICATION_PENDING": "It seems that you haven't verified your email address yet. Please check your inbox for the verification email.",
@@ -871,14 +870,14 @@
         "IDP_ENTITY_ID_ERROR": "Identity Provider Entity ID is required"
       },
       "ENTERPRISE_PAYWALL": {
-        "AVAILABLE_ON": "The SAML SSO feature is only available in the Enterprise plans.",
-        "UPGRADE_PROMPT": "Upgrade to an Enterprise plan to access SAML single sign-on and other advanced security features.",
+        "AVAILABLE_ON": "This feature is not enabled for your account.",
+        "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
         "ASK_ADMIN": "Please reach out to your administrator for the upgrade."
       },
       "PAYWALL": {
         "TITLE": "Upgrade to enable SAML SSO",
-        "AVAILABLE_ON": "The SAML SSO feature is only available in the Enterprise plans.",
-        "UPGRADE_PROMPT": "Upgrade your plan to get access to SAML single sign-on and other advanced features.",
+        "AVAILABLE_ON": "This feature is not enabled for your account.",
+        "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
         "UPGRADE_NOW": "Upgrade now",
         "CANCEL_ANYTIME": "You can change or cancel your plan anytime"
       },
@@ -948,14 +947,14 @@
       },
       "PAYWALL": {
         "TITLE": "Upgrade to use required attributes",
-        "AVAILABLE_ON": "The required conversation attributes feature is available on the Business and Enterprise plans.",
-        "UPGRADE_PROMPT": "Upgrade your plan to prompt agents to fill required attributes before conversation resolution.",
+        "AVAILABLE_ON": "This feature is not enabled for your account.",
+        "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
         "UPGRADE_NOW": "Upgrade now",
         "CANCEL_ANYTIME": "You can change or cancel your plan anytime"
       },
       "ENTERPRISE_PAYWALL": {
-        "AVAILABLE_ON": "The required conversation attributes feature is available on the paid plans.",
-        "UPGRADE_PROMPT": "Upgrade to a paid plan to enforce required attributes before conversation resolution.",
+        "AVAILABLE_ON": "This feature is not enabled for your account.",
+        "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
         "ASK_ADMIN": "Please reach out to your administrator for the upgrade."
       }
     }

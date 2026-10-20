@@ -51,7 +51,11 @@ const featureRows = computed(() => features(props.plans));
               :key="plan.id"
               scope="col"
               class="min-w-40 border-b border-n-weak bg-n-solid-1 p-5 dark:bg-n-solid-3"
-              :class="{ '!bg-n-blue-3': matchesPlan(plan, currentPlanId) }"
+              :class="{
+                '!bg-n-blue-3':
+                  matchesPlan(plan, currentPlanId) ||
+                  plan.feature_keys.includes(requiredFeature),
+              }"
             >
               {{ plan.name }}
               <div
@@ -87,12 +91,23 @@ const featureRows = computed(() => features(props.plans));
               {{ value(row.key, plan.limits[row.key]) }}
             </td>
           </tr>
-          <tr v-for="feature in featureRows" :key="feature">
+          <tr
+            v-for="feature in featureRows"
+            :key="feature"
+            :class="{ 'bg-n-blue-3': feature === requiredFeature }"
+          >
             <th
               scope="row"
               class="sticky start-0 z-10 border-b border-n-weak bg-n-solid-1 p-4 text-start font-normal dark:bg-n-solid-3"
             >
-              {{ t(`PLAN_CATALOG.FEATURES.${feature}`) }}
+              <div
+                :class="{
+                  'rounded bg-n-blue-3 p-2 text-n-blue-12 font-medium':
+                    feature === requiredFeature,
+                }"
+              >
+                {{ t(`PLAN_CATALOG.FEATURES.${feature}`) }}
+              </div>
             </th>
             <td
               v-for="plan in plans"

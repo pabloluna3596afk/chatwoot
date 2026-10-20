@@ -2185,3 +2185,9 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - Files: `onboarding/shared/OnboardingShell.vue`, `onboarding/specs/Index.spec.js`.
 - Fix: preserve the same globalConfig logo/logoDark sources as login; use the shipped light/dark brand assets when a source is missing or fails. Reserve a fixed height, preserve aspect ratio and prevent flex shrinking. Visual presets must supply the real ChatHub logos.
 - Verify: force a configured logo load error, inspect both fallback paths, and capture business, WhatsApp, assistant, plan, mobile and dark views with real brand assets.
+
+### B-NEW-078 — Plan comparison surfaces and absent Captain usage
+
+- Files: `components-next/plans/PlanCompareButton.vue`, `captain/pageComponents/overview/v2/UsageCard.vue`, `captain/pageComponents/{response,document}/LimitBanner.vue`, paywalls and en/es locales.
+- Fix: open the shared catalog from ChatHub usage and limit notices; retain administrator restrictions and provider billing. Show missing usage as unavailable instead of zero, highlight catalog features, remove legacy tier claims and the unused trial countdown copy. Use amber-12 for AA text contrast in ChatHub limit banners.
+- Verify: run `components-next/plans/specs/surfaces.spec.js` in UTC and America/Guayaquil. Compare missing and genuine zero usage; open comparison from usage, paywall and banners; verify agents cannot load it and Cloud/Shopify retain billing. Review `plan6-*` screenshots at 390 px and in both themes.

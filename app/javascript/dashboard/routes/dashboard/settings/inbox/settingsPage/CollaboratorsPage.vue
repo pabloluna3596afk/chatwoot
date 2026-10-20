@@ -1,4 +1,5 @@
 <script setup>
+import PlanCompareButton from 'next/plans/PlanCompareButton.vue';
 import { ref, computed, watch, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
@@ -6,6 +7,7 @@ import { vOnClickOutside } from '@vueuse/components';
 import { useVuelidate } from '@vuelidate/core';
 import { minValue } from '@vuelidate/validators';
 import { useAlert } from 'dashboard/composables';
+import { useAccount } from 'dashboard/composables/useAccount';
 import { useConfig } from 'dashboard/composables/useConfig';
 import SettingsFieldSection from 'dashboard/components-next/Settings/SettingsFieldSection.vue';
 import SettingsAccordion from 'dashboard/components-next/Settings/SettingsAccordion.vue';
@@ -29,6 +31,12 @@ const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
 const { isEnterprise } = useConfig();
+const { currentAccount, isOnChatwootCloud } = useAccount();
+const usesProviderBilling = computed(
+  () =>
+    isOnChatwootCloud.value ||
+    currentAccount.value?.billing_provider === 'shopify'
+);
 
 const selectedAgentIds = ref([]);
 const isAgentListUpdating = ref(false);
@@ -623,7 +631,9 @@ onMounted(() => {
                     <p class="text-body-main text-n-slate-11 mb-1">
                       {{ $t('INBOX_MGMT.ASSIGNMENT.UPGRADE_PROMPT') }}
                     </p>
+                    <PlanCompareButton />
                     <NextButton
+                      v-if="usesProviderBilling"
                       :label="$t('INBOX_MGMT.ASSIGNMENT.UPGRADE_TO_BUSINESS')"
                       icon="i-lucide-arrow-right"
                       trailing-icon

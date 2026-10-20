@@ -98,6 +98,7 @@ const tableHeaders = computed(() => {
       class="absolute inset-0 flex flex-col items-center justify-center w-full h-full bg-gradient-to-t from-white dark:from-slate-900 to-transparent"
     >
       <BasePaywallModal
+        required-feature="custom_roles"
         feature-prefix="CUSTOM_ROLE"
         :i18n-key="i18nKey"
         :is-on-chatwoot-cloud="isOnChatwootCloud"

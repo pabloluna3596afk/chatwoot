@@ -11,14 +11,14 @@
     "SEARCH_404": "No hay elementos que coincidan con esta consulta.",
     "PAYWALL": {
       "TITLE": "Mejora tu plan para crear roles personalizados",
-      "AVAILABLE_ON": "La función de roles personalizados solo está disponible en los planes Business y Enterprise.",
-      "UPGRADE_PROMPT": "Actualiza tu plan para tener acceso a funciones avanzadas como gestión de equipos, automatizaciones, atributos personalizados y más.",
+      "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
+      "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
       "UPGRADE_NOW": "Actualizar ahora",
       "CANCEL_ANYTIME": "Puede cambiar o cancelar su plan en cualquier momento"
     },
     "ENTERPRISE_PAYWALL": {
-      "AVAILABLE_ON": "La función de roles personalizados solo está disponible en los planes de pago.",
-      "UPGRADE_PROMPT": "Actualice a un plan pago para acceder a funciones avanzadas como registros de auditoría, capacidad de agente y más.",
+      "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
+      "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
       "ASK_ADMIN": "Por favor, comuníquese con su administrador para la actualización."
     },
     "LIST": {
