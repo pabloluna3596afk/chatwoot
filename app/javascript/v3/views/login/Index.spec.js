@@ -88,7 +88,9 @@ describe('login', () => {
       title: en.LOGIN.MARKETING.TITLE,
       subtitle: en.LOGIN.MARKETING.SUBTITLE,
     });
-    expect(layout.get('h1').text()).toBe(en.LOGIN.MARKETING.TITLE);
+    expect(layout.get('[data-testid="auth-marketing-title"]').text()).toBe(
+      en.LOGIN.MARKETING.TITLE
+    );
     expect(layout.get('form').exists()).toBe(true);
     expect(wrapper.get('input[type="email"]').classes()).toContain('h-14');
     expect(wrapper.get('button[type="submit"]').classes()).toContain('h-14');
@@ -99,7 +101,7 @@ describe('login', () => {
     const messages = { en, es }[locale].LOGIN;
     wrapper = mount(Login);
 
-    expect(wrapper.get('h2').text()).toBe(messages.TITLE);
+    expect(wrapper.get('h1').text()).toBe(messages.TITLE);
     expect(wrapper.get('input[type="email"]').attributes('aria-label')).toBe(
       messages.EMAIL.LABEL
     );

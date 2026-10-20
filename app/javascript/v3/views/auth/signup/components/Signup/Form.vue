@@ -2,13 +2,13 @@
 import { ref, computed, reactive } from 'vue';
 import DOMPurify from 'dompurify';
 import { useVuelidate } from '@vuelidate/core';
-import { required, minLength, email } from '@vuelidate/validators';
+import { required, minLength, maxLength, email } from '@vuelidate/validators';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAlert } from 'dashboard/composables';
 import VueHcaptcha from '@hcaptcha/vue3-hcaptcha';
-import AuthField from '../../../../../components/Auth/AuthField.vue';
+import FormInput from '../../../../../components/Form/Input.vue';
 import AuthButton from '../../../../../components/Auth/AuthButton.vue';
 import AuthFeedback from '../../../../../components/Auth/AuthFeedback.vue';
 import PasswordRequirements from './PasswordRequirements.vue';
@@ -18,6 +18,7 @@ import SimpleDivider from '../../../../../components/Divider/SimpleDivider.vue';
 import { register } from '../../../../../api/auth';
 
 const MIN_PASSWORD_LENGTH = 6;
+const MAX_PASSWORD_LENGTH = 128;
 
 const store = useStore();
 const { t } = useI18n();
@@ -43,6 +44,7 @@ const rules = {
       required,
       isValidPassword,
       minLength: minLength(MIN_PASSWORD_LENGTH),
+      maxLength: maxLength(MAX_PASSWORD_LENGTH),
     },
   },
 };
@@ -132,34 +134,60 @@ const onCaptchaError = () => {
 </script>
 
 <template>
-  <div class="flex-1">
+  <div>
     <form class="space-y-4" @submit.prevent="submit">
-      <AuthField
+      <FormInput
         id="email_address"
         v-model="credentials.email"
         type="email"
         name="email_address"
         autocomplete="email"
         required
+        outlined
+        label-sr-only
+        class="placeholder:!text-n-slate-11"
+        :aria-invalid="v$.credentials.email.$error"
+        :aria-describedby="
+          v$.credentials.email.$error ? 'signup-email-error' : undefined
+        "
         :label="$t('REGISTER.EMAIL.LABEL')"
-        :placeholder="$t('REGISTER.EMAIL.PLACEHOLDER')"
-        :error="v$.credentials.email.$error ? $t('REGISTER.EMAIL.ERROR') : ''"
+        :placeholder="$t('REGISTER.EMAIL.LABEL')"
+        :has-error="v$.credentials.email.$error"
         @blur="v$.credentials.email.$touch"
       />
+      <AuthFeedback
+        v-if="v$.credentials.email.$error"
+        id="signup-email-error"
+        error
+      >
+        {{ $t('REGISTER.EMAIL.ERROR') }}
+      </AuthFeedback>
       <div>
-        <AuthField
+        <FormInput
           id="password"
           v-model="credentials.password"
           type="password"
           name="password"
           autocomplete="new-password"
+          :maxlength="MAX_PASSWORD_LENGTH"
           required
-          describedby="signup-password-requirements"
+          outlined
+          label-sr-only
+          class="placeholder:!text-n-slate-11"
+          :aria-invalid="Boolean(passwordError)"
+          :aria-describedby="
+            passwordError
+              ? 'signup-password-requirements signup-password-error'
+              : 'signup-password-requirements'
+          "
           :label="$t('REGISTER.PASSWORD.LABEL')"
           :placeholder="$t('REGISTER.PASSWORD.PLACEHOLDER')"
-          :error="passwordError"
+          :has-error="Boolean(passwordError)"
           @blur="v$.credentials.password.$touch"
         />
+        <AuthFeedback v-if="passwordError" id="signup-password-error" error>
+          {{ passwordError }}
+        </AuthFeedback>
         <PasswordRequirements
           id="signup-password-requirements"
           :password="credentials.password"
@@ -185,6 +213,7 @@ const onCaptchaError = () => {
         :aria-label="$t('REGISTER.SUBMIT')"
         :loading="isSignupInProgress"
         :disabled="isSignupInProgress || !isFormValid"
+        class="!h-14 !rounded-full !bg-n-slate-12 !text-n-solid-1"
       >
         {{ $t('REGISTER.SUBMIT') }}
       </AuthButton>
@@ -195,9 +224,7 @@ const onCaptchaError = () => {
         bg="bg-n-solid-1 dark:bg-n-background"
         class="[&_.border-t]:border-solid [&_.border-t]:border-n-slate-7 [&_span]:text-n-slate-11"
       />
-      <GoogleOAuthButton
-        class="[&>a]:!h-auto [&>a]:min-h-12 [&>a]:!rounded-xl [&>a]:!border-n-slate-9 [&>a]:dark:!border-n-slate-10 [&>a]:!bg-n-solid-1 [&>a]:py-3 [&>a]:!text-n-slate-12 motion-reduce:[&>a]:transition-none [&>a]:dark:!bg-n-solid-3 [&>a]:hover:!bg-n-slate-3"
-      >
+      <GoogleOAuthButton>
         {{ $t('REGISTER.OAUTH.GOOGLE_SIGNUP') }}
       </GoogleOAuthButton>
       <p class="m-0 text-center text-sm leading-6 text-n-slate-11">

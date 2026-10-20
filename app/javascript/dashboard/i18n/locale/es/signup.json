@@ -8,7 +8,7 @@
     "TERMS_ACCEPT": "Al crear una cuenta, aceptas nuestros <a href=\"/es/terms\">Términos y condiciones</a> y nuestra <a href=\"/es/privacy\">Política de privacidad</a>",
     "OAUTH": {
       "GOOGLE_SIGNUP": "Registrarte con Google",
-      "PASSWORD_NOTICE": "Después de registrarte con Google, definirás una contraseña."
+      "PASSWORD_NOTICE": "Google confirma tu correo para continuar con la configuración."
     },
     "COMPANY_NAME": {
       "LABEL": "Nombre de la empresa",
@@ -30,10 +30,10 @@
       "PLACEHOLDER": "Contraseña",
       "ERROR": "La contraseña es demasiado corta",
       "IS_INVALID_PASSWORD": "La contraseña debe contener al menos 1 letra mayúscula, 1 letra minúscula, 1 número y 1 carácter especial",
-      "REQUIREMENTS_LENGTH": "Al menos 6 caracteres",
-      "REQUIREMENTS_UPPERCASE": "Una letra mayúscula",
-      "REQUIREMENTS_LOWERCASE": "Una letra minúscula",
-      "REQUIREMENTS_NUMBER": "Un número",
+      "REQUIREMENTS_LENGTH": "De {min} a {max} caracteres",
+      "REQUIREMENTS_UPPERCASE": "Una mayúscula (A–Z)",
+      "REQUIREMENTS_LOWERCASE": "Una minúscula (a–z)",
+      "REQUIREMENTS_NUMBER": "Un número (0–9)",
       "REQUIREMENTS_SPECIAL": "Un carácter especial"
     },
     "CONFIRM_PASSWORD": {

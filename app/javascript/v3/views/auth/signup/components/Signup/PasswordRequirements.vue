@@ -7,6 +7,7 @@ const props = defineProps({
   password: { type: String, default: '' },
 });
 const MIN_PASSWORD_LENGTH = 6;
+const MAX_PASSWORD_LENGTH = 128;
 const SPECIAL_CHAR_REGEX = /[!@#$%^&*()_+\-=[\]{}|'"/\\.,`<>:;?~]/;
 
 const { t } = useI18n();
@@ -16,9 +17,12 @@ const requirements = computed(() => {
   return [
     {
       id: 'length',
-      met: password.length >= MIN_PASSWORD_LENGTH,
+      met:
+        password.length >= MIN_PASSWORD_LENGTH &&
+        password.length <= MAX_PASSWORD_LENGTH,
       label: t('REGISTER.PASSWORD.REQUIREMENTS_LENGTH', {
         min: MIN_PASSWORD_LENGTH,
+        max: MAX_PASSWORD_LENGTH,
       }),
     },
     {

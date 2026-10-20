@@ -235,9 +235,9 @@ if (props.ssoAuthToken) {
     :subtitle="$t('LOGIN.MARKETING.SUBTITLE')"
   >
     <header class="mb-8 text-center">
-      <h2 class="text-3xl font-bold tracking-tight text-n-slate-12 xl:text-4xl">
+      <h1 class="text-3xl font-bold tracking-tight text-n-slate-12 xl:text-4xl">
         {{ replaceInstallationName($t('LOGIN.TITLE')) }}
-      </h2>
+      </h1>
       <p v-if="showSignupLink" class="mt-3 text-sm text-n-slate-11">
         {{ $t('LOGIN.SIGNUP_PROMPT') }}
         <router-link

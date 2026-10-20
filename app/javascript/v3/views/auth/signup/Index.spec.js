@@ -77,12 +77,12 @@ describe('Signup page', () => {
       ).toBe(messages.PASSWORD.LABEL);
       wrapper.findAll('input').forEach(input => {
         expect(input.classes()).toEqual(
-          expect.arrayContaining(['min-h-14', 'rounded-xl', 'border-solid'])
+          expect.arrayContaining(['h-14', 'rounded-xl', 'reset-base'])
         );
         expect(input.attributes('placeholder')).toBeTruthy();
       });
       expect(
-        wrapper.findAll('label').every(label => !label.classes('sr-only'))
+        wrapper.findAll('label').every(label => label.classes('sr-only'))
       ).toBe(true);
       const submit = wrapper.get('button[type="submit"]');
       expect(submit.text()).toBe(messages.SUBMIT);
