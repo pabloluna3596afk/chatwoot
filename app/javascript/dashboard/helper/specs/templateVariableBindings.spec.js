@@ -4,7 +4,6 @@ import {
   writableFor,
   buildBindings,
   defaultValuesFor,
-  resolveLiquid,
 } from '../templateVariableBindings';
 
 const attributes = [
@@ -68,59 +67,6 @@ describe('buildBindings', () => {
     expect(values.nombre).toBe('{{ contact.name }}');
     expect(values.plan).toBe('{{ contact.custom_attribute.plan }}');
     expect(values.agente).toBe('{{ agent.name }}');
-  });
-});
-
-describe('resolveLiquid', () => {
-  const records = {
-    contact: {
-      name: 'ana pérez gómez',
-      email: 'ana@example.com',
-      phone_number: '+593999999999',
-      custom_attributes: { plan: 'Pro' },
-      additional_attributes: { company_name: 'Acme', city: 'Quito' },
-    },
-    conversation: { id: 42, custom_attributes: { estado: 'VIP' } },
-    agent: { name: 'Pablo' },
-  };
-
-  it('gives the value the backend would render', () => {
-    expect(resolveLiquid('{{ contact.name }}', records)).toBe(
-      'ana pérez gómez'
-    );
-    expect(resolveLiquid('{{ contact.first_name }}', records)).toBe('Ana');
-    expect(resolveLiquid('{{contact.last_name}}', records)).toBe('Pérez Gómez');
-    expect(resolveLiquid('{{ contact.phone }}', records)).toBe('+593999999999');
-    expect(resolveLiquid('{{ contact.company_name }}', records)).toBe('Acme');
-    expect(resolveLiquid('{{ contact.custom_attribute.plan }}', records)).toBe(
-      'Pro'
-    );
-    expect(
-      resolveLiquid('{{ conversation.custom_attribute.estado }}', records)
-    ).toBe('VIP');
-    expect(resolveLiquid('{{ conversation.id }}', records)).toBe('42');
-    expect(resolveLiquid('{{ agent.name }}', records)).toBe('Pablo');
-  });
-
-  it('reads camelCased records too (the compose dialog)', () => {
-    const camel = {
-      contact: {
-        name: 'Luis',
-        phoneNumber: '+593988888888',
-        customAttributes: { plan: 'Basic' },
-      },
-    };
-
-    expect(resolveLiquid('{{ contact.phone }}', camel)).toBe('+593988888888');
-    expect(resolveLiquid('{{ contact.custom_attribute.plan }}', camel)).toBe(
-      'Basic'
-    );
-  });
-
-  it('is empty for a missing value and undefined for what only the backend knows', () => {
-    expect(resolveLiquid('{{ contact.email }}', { contact: {} })).toBe('');
-    expect(resolveLiquid('{{ appointment.date }}', records)).toBeUndefined();
-    expect(resolveLiquid('Hola {{ contact.name }}', records)).toBeUndefined();
   });
 });
 

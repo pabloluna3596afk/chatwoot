@@ -28,7 +28,7 @@ Use this thin ComboBox wrapper whenever a feature chooses one CRM variable. P1 c
 
 `APPOINTMENT_BINDINGS` describes the existing template aliases separately so ordinary message defaults do not gain appointment expressions. `cita` and `tema` describe appointment.title, `fecha` appointment.date, `hora` appointment.time, and `asistente` assistant.name. P1 emits their aliases exactly as before; it adds no Captain resolution or sending behavior.
 
-Captain and future consumers should supply their available scopes/context and eligibility filter, then adapt the selected alias/path to their existing request contract. Server Drops remain the source of values; `resolveLiquid` is only a partial browser preview and does not resolve appointment or assistant expressions. Missing-value policies, common writers and other picker migrations belong to later phases. Do not copy groups, labels or the modal into consumers. All picker copy lives under `VARIABLE_PICKER` in en/es variables.json.
+Captain and future consumers should supply their available scopes/context and eligibility filter, then adapt the selected alias/path to their existing request contract. CRM previews with records now use the Rails batch preview endpoint and the same Drops as messages; the unused browser resolver was removed. See `docs/VARIABLES_ENGINE.md` for the account-scoped API and context availability. Common writers and other picker migrations belong to later phases. Do not copy groups, labels or the modal into consumers. All picker copy lives under `VARIABLE_PICKER`.
 
 ## Missing values: one policy per consumer (P2)
 
@@ -39,7 +39,7 @@ What each place does when a variable has no value for the contact it is filled f
 | Manual send, send center, new conversation (`WhatsAppTemplateParser`) | The field stays empty, says "Este contacto no tiene este dato" and sending is blocked until the agent types it | A person is looking at the message |
 | Automation "Enviar plantilla" | Resolved when the rule runs; an empty result skips that message (the backend never sends a blank variable) | Nobody is there to type it |
 | Campaigns | The recipient is marked skipped ("liquid variables resolved to blank values") | A blank variable is rejected by Meta |
-| Captain templates | Captain's own sample values; an empty value is not sent | Defined by the Captain settings |
+| Captain templates | Settings use sample values; the legacy backend substitutes `-` for empty values | Preserved until the explicit Captain migration |
 
 ## Who uses the engine today
 
