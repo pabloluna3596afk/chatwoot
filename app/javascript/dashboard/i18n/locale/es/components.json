@@ -1,7 +1,7 @@
 {
   "PAGINATION_FOOTER": {
-    "SHOWING": "Mostrando {startItem}-{endItem} de {totalItems} elementos",
-    "CURRENT_PAGE_INFO": "{currentPage} de {totalPages} páginas",
+    "SHOWING": "Mostrando {startItem}-{endItem} de {totalItems} elemento | Mostrando {startItem}-{endItem} de {totalItems} elementos",
+    "CURRENT_PAGE_INFO": "{currentPage} de {totalPages} página | {currentPage} de {totalPages} páginas",
     "PER_PAGE": "Por página"
   },
   "COMBOBOX": {
@@ -43,7 +43,7 @@
   },
   "FEATURE_SPOTLIGHT": {
     "LEARN_MORE": "Más información",
-    "WATCH_VIDEO": "Watch video"
+    "WATCH_VIDEO": "Ver video"
   },
   "DURATION_INPUT": {
     "MINUTES": "Minutos",
@@ -55,15 +55,15 @@
     "COMING_SOON": "¡Muy pronto!"
   },
   "SLASH_COMMANDS": {
-    "HEADING_1": "Heading 1",
-    "HEADING_2": "Heading 2",
-    "HEADING_3": "Heading 3",
+    "HEADING_1": "Título 1",
+    "HEADING_2": "Título 2",
+    "HEADING_3": "Título 3",
     "BOLD": "Bold",
     "ITALIC": "Italic",
     "STRIKETHROUGH": "Strikethrough",
     "CODE": "Code",
-    "BULLET_LIST": "Bullet List",
-    "ORDERED_LIST": "Ordered List",
+    "BULLET_LIST": "Lista con viñetas",
+    "ORDERED_LIST": "Lista numerada",
     "TABLE": "Table",
     "IMAGE": "Imagen",
     "VIDEO": "Vídeo",

@@ -9,7 +9,8 @@
       "EMPTY_ACTIONS": "Esta regla no tiene acciones, así que no haría nada.",
       "MISSING_SCHEDULE_KIND": "Una regla por tiempo necesita una programación.",
       "CONTRADICTORY_ACTIONS": "La regla «{other_rule_name}» se ejecuta en el mismo disparador y hace lo contrario. Gana la que se ejecute última.",
-      "CONFLICTING_ACTION_VALUES": "La regla «{other_rule_name}» también aplica {action_name} en el mismo disparador, con otro valor. Gana la que se ejecute última."
+      "CONFLICTING_ACTION_VALUES": "La regla «{other_rule_name}» también aplica {action_name} en el mismo disparador, con otro valor. Gana la que se ejecute última.",
+      "SAVED_WITH_WARNINGS": "Guardado, pero se encontraron {count} conflicto(s) con otras reglas."
     },
     "ATTRIBUTE_REQUIREMENT": {
       "TITLE": "Elige el atributo",
@@ -28,7 +29,7 @@
     },
     "DESCRIPTION": "La automatización puede reemplazar y agilizar los procesos existentes que requieren esfuerzo manual, como añadir etiquetas y asignar conversaciones al agente más adecuado. Esto permite al equipo concentrarse en sus fortalezas, mientras que reduce el tiempo dedicado a las tareas de rutina.",
     "LEARN_MORE": "Aprende más sobre automatización",
-    "COUNT": "{n} automation | {n} automations",
+    "COUNT": "{n} automatización | {n} automatizaciones",
     "HEADER_BTN_TXT": "Crear automatización",
     "TAB_EVENT": "Por evento",
     "TAB_TIME": "Por tiempo",

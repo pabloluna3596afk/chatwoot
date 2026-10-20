@@ -5,9 +5,9 @@
     "LOADING": "Obteniendo equipos",
     "DESCRIPTION": "Los equipos te permiten organizar a los agentes en grupos basados en sus responsabilidades. Un agente puede pertenecer a varios equipos. Cuando trabajas en colaboración, puedes asignar conversaciones a equipos específicos.",
     "LEARN_MORE": "Aprende más sobre los equipos",
-    "COUNT": "{n} team | {n} teams",
+    "COUNT": "{n} equipo | {n} equipos",
     "SEARCH_PLACEHOLDER": "Buscar equipos...",
-    "NO_RESULTS": "No teams found matching your search",
+    "NO_RESULTS": "No se encontraron equipos que coincidan con tu búsqueda",
     "LIST": {
       "404": "No hay equipos creados en ésta cuenta.",
       "EDIT_TEAM": "Editar equipo",

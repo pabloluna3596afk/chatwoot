@@ -9,7 +9,7 @@
       "ADMINISTRATOR": "Administrador",
       "AGENT": "Agente"
     },
-    "COUNT": "{n} agent | {n} agents",
+    "COUNT": "{n} agente | {n} agentes",
     "LIST": {
       "404": "No hay agentes asociados a esta cuenta",
       "TITLE": "Administrar agentes en tu equipo",
@@ -98,7 +98,7 @@
       }
     },
     "SEARCH_PLACEHOLDER": "Buscar agentes...",
-    "NO_RESULTS": "No agents found matching your search",
+    "NO_RESULTS": "No se encontraron agentes que coincidan con tu búsqueda",
     "SEARCH": {
       "NO_RESULTS": "No se encontraron resultados."
     },
