@@ -1,3 +1,5 @@
+import 'dashboard/api/variables';
+
 import { mount, flushPromises } from '@vue/test-utils';
 import { createStore } from 'vuex';
 import { createI18n } from 'vue-i18n';
@@ -11,6 +13,9 @@ import en from 'dashboard/i18n/locale/en/whatsappTemplates.json';
 import es from 'dashboard/i18n/locale/es/whatsappTemplates.json';
 import esFlows from 'dashboard/i18n/locale/es/whatsappFlows.json';
 
+vi.mock('dashboard/api/variables', () => ({
+  default: { catalog: vi.fn(async () => ({ data: { variables: [] } })) },
+}));
 vi.mock('dashboard/api/whatsappFlows', () => ({
   default: { conversationFlows: vi.fn(), sendToConversation: vi.fn() },
 }));

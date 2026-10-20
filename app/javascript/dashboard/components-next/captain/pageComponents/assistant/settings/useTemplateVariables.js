@@ -1,33 +1,24 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useTemplateBindings } from 'dashboard/composables/useTemplateBindings';
-import {
-  APPOINTMENT_BINDINGS,
-  defaultValuesFor,
-} from 'dashboard/helper/templateVariableBindings';
+import { defaultValuesFor } from 'dashboard/helper/templateVariableBindings';
 
 // What a template variable is filled with in a Captain message, from the same engine as the send dialog and the
 // campaigns (templateVariableBindings): one table says which name means which value, so a template made in ChatHub
 // ({{nombre}}, {{primer_nombre}}, {{correo}}...) fills itself in the same way here. Captain adds what only it knows:
 // the assistant, the account and, for appointment messages, the appointment.
-const ALWAYS = ['asistente', 'cuenta'];
 
 // `variableOptions` are the variables the owner can insert in a field (with a sample value of each for the preview),
 // `defaultValues` what a variable starts with by its name, `previewValues` the sample of each Liquid key.
 export function useTemplateVariables({ appointment }) {
   const { t } = useI18n();
-  const { bindings } = useTemplateBindings('message');
+  const { bindings } = useTemplateBindings('captain');
 
-  const available = computed(() => {
-    const extra = APPOINTMENT_BINDINGS.filter(
-      binding => appointment || ALWAYS.includes(binding.name)
-    );
-    const names = new Set(extra.map(binding => binding.name));
-    return [
-      ...bindings.value.filter(binding => !names.has(binding.name)),
-      ...extra,
-    ];
-  });
+  const available = computed(() =>
+    bindings.value.filter(
+      binding => appointment || !binding.requiresContext.includes('appointment')
+    )
+  );
 
   const sample = key => {
     const path = `CAPTAIN.ASSISTANTS.FORM.TEMPLATE_VARIABLES.SAMPLES.${key}`;

@@ -1,3 +1,4 @@
+import catalog from 'dashboard/components-next/variable-picker/specs/catalog.json';
 import { flushPromises, mount } from '@vue/test-utils';
 import { ref } from 'vue';
 import AssistantMessagingForm from './AssistantMessagingForm.vue';
@@ -27,6 +28,17 @@ const inbox = {
     approved('pendiente', { status: 'PENDING' }),
   ],
 };
+vi.mock('dashboard/api/variables', () => ({
+  default: {
+    catalog: vi.fn(async () => ({
+      data: {
+        variables: catalog.variables
+          .filter(item => item.reference.kind === 'system')
+          .map(item => ({ ...item, available: item.group !== 'company' })),
+      },
+    })),
+  },
+}));
 vi.mock('dashboard/composables/store', () => ({
   useStore: () => ({ dispatch: vi.fn() }),
   useMapGetter: name =>

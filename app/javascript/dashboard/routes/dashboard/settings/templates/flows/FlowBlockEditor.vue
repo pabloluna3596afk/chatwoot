@@ -35,7 +35,6 @@ const props = defineProps({
   screenIndex: { type: Number, required: true },
   blockIndex: { type: Number, required: true },
   errors: { type: Array, default: () => [] },
-  attributes: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -196,13 +195,9 @@ const keepValue = (apply, value) => {
       <div v-if="!isFile" class="grid gap-1.5 text-sm text-n-slate-12">
         <span>{{ $t('WHATSAPP_FLOWS.EDITOR.SAVE_TO') }}</span>
         <VariablePicker
+          value-format="path"
           mode="write"
           :model-value="modelValue.save_to?.target || ''"
-          :attributes="
-            attributes.filter(
-              attribute => attribute.attribute_model === 'contact_attribute'
-            )
-          "
           :scopes="['system', 'contact']"
           :filter="binding => writableFor(binding, modelValue)"
           :aria-label="$t('WHATSAPP_FLOWS.EDITOR.SAVE_TO')"

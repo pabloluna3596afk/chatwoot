@@ -577,6 +577,7 @@ onMounted(loadConnections);
                     state.templates[key] && templateEntry(state.templates[key])
                   "
                   :key="state.templates[key]"
+                  variable-surface="captain"
                   :template="templateEntry(state.templates[key])"
                   :media-inbox-id="templateInboxId(state.templates[key])"
                   :model-value="state.params[key]"

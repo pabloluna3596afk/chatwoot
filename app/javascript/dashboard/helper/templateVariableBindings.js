@@ -1,4 +1,4 @@
-// The link between the variables of a WhatsApp template and the CRM.
+// Alias compatibility between the variables of a WhatsApp template and the CRM.
 //
 // A Meta variable ({{nombre}}) is only a name: whoever sends the template fills it with a text, and that text can be a
 // Liquid expression ("{{ contact.first_name }}") that the backend renders when the message is sent (Liquidable for
@@ -21,47 +21,14 @@ export const SYSTEM_BINDINGS = [
   { name: 'numero_conversacion', key: 'conversation.id' },
 ];
 
-const FLOW_WRITABLE_KEYS = new Set([
-  'contact.name',
-  'contact.email',
-  'contact.phone',
-  'contact.company_name',
-  'contact.city',
-  'contact.document_number',
-]);
-
-// Metadata describes capabilities; server Drops remain the authority for values.
-const metadata = (binding, attribute) => ({
-  ...binding,
-  scope: binding.group,
-  canonicalPath: binding.key,
-  type: attribute?.attribute_display_type || 'text',
-  options: attribute?.attribute_values || [],
-  readable: true,
-  writable: attribute
-    ? ['contact_attribute', 'conversation_attribute'].includes(
-        attribute.attribute_model
-      ) && !Object.keys(attribute.formula || {}).length
-    : FLOW_WRITABLE_KEYS.has(binding.key),
-  formula: attribute?.formula || null,
-  requiresContext: [binding.key.split('.')[0]],
-});
-
-// What Captain's messages add to the system names: the appointment, the assistant and the account (the business, not
-// the customer's company). Offered only when requested; never added to message defaults in P1.
-export const APPOINTMENT_BINDINGS = [
-  { name: 'cita', key: 'appointment.title' },
-  { name: 'fecha', key: 'appointment.date' },
-  { name: 'hora', key: 'appointment.time' },
-  { name: 'fecha_hora', key: 'appointment.datetime' },
-  { name: 'tema', key: 'appointment.title' },
-  { name: 'asistente', key: 'assistant.name' },
-  { name: 'cuenta', key: 'account.name' },
-].map(binding => metadata({ ...binding, group: 'appointment' }));
-
 // Flow compatibility lives in the catalog, including its input and option constraints.
 export const writableFor = (binding, block) => {
-  if (!binding.writable || !['system', 'contact'].includes(binding.scope))
+  if (
+    !binding.writable ||
+    binding.managedBy ||
+    !binding.writeContexts.includes('whatsapp_flow') ||
+    !['system', 'contact'].includes(binding.scope)
+  )
     return false;
   const { type, options } = binding;
   switch (block.type) {
@@ -86,47 +53,43 @@ export const writableFor = (binding, block) => {
   }
 };
 
-const VARIABLE_NAME = /^[a-z][a-z0-9_]*$/;
-const CONVERSATION_PREFIX = 'conversacion_';
-
-// Every name the CRM can fill in: the system ones plus the custom attributes of the contact (named by their key)
-// and of the conversation (named conversacion_<key>). A campaign has no conversation, so it gets no conversation
-// values. Each is { name, key, group: 'system' | 'contact' | 'conversation', label? }.
-export const buildBindings = (attributes = [], context = 'message') => {
-  const isCampaign = context === 'campaign';
-  const bindings = SYSTEM_BINDINGS.filter(
-    binding => !(isCampaign && binding.key.startsWith('conversation.'))
-  ).map(binding => metadata({ ...binding, group: 'system' }));
-  const taken = new Set(bindings.map(binding => binding.name));
-
-  (attributes || []).forEach(attribute => {
-    const isConversation =
-      attribute.attribute_model === 'conversation_attribute';
-    if (isConversation && isCampaign) return;
-
-    const name = isConversation
-      ? `${CONVERSATION_PREFIX}${attribute.attribute_key}`
-      : attribute.attribute_key;
-    if (!VARIABLE_NAME.test(name) || taken.has(name)) return;
-
-    taken.add(name);
-    bindings.push(
-      metadata(
-        {
-          name,
-          key: `${isConversation ? 'conversation' : 'contact'}.custom_attribute.${attribute.attribute_key}`,
-          group: isConversation ? 'conversation' : 'contact',
-          label: attribute.attribute_display_name || attribute.attribute_key,
-        },
-        attribute
-      )
-    );
-  });
-  return bindings;
-};
-
 // { nombre: '{{ contact.name }}' }: what a variable starts with in a send dialog, by its name.
 export const defaultValuesFor = bindings =>
   Object.fromEntries(
-    bindings.map(binding => [binding.name, formatLiquidVariable(binding.key)])
+    bindings.map(binding => [
+      binding.name,
+      binding.expression || formatLiquidVariable(binding.key),
+    ])
   );
+
+// Do not infer paths from attribute keys. Rails supplies the literal expression.
+export const catalogBindings = variables => {
+  const taken = new Set(variables.flatMap(variable => variable.aliases));
+  return variables
+    .filter(variable => variable.available && variable.readable)
+    .flatMap(variable => {
+      let names = variable.aliases;
+      if (!names.length) {
+        let name = variable.reference.definitionId
+          ? `atributo_${variable.reference.definitionId}`
+          : variable.id.replace(/[^a-z0-9_]/g, '_');
+        while (taken.has(name)) name += '_';
+        taken.add(name);
+        names = [name];
+      }
+      const path = variable.expression.slice(3, -3);
+      return names.map(name => ({
+        ...variable,
+        name,
+        key: path,
+        canonicalPath: variable.legacyPaths[0],
+        scope:
+          variable.reference.kind === 'system' &&
+          !['company', 'flow', 'appointment', 'assistant'].includes(
+            variable.group
+          )
+            ? 'system'
+            : variable.group,
+      }));
+    });
+};

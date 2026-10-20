@@ -4,7 +4,10 @@
     "SEARCH_PLACEHOLDER": "Search variables...",
     "LABELS": {
       "conversation": {
-        "id": "Conversation ID"
+        "id": "Conversation ID",
+        "display_id": "Conversation number",
+        "contact_name": "Conversation contact name",
+        "recent_messages": "Recent messages"
       },
       "contact": {
         "id": "Contact ID",
@@ -18,22 +21,62 @@
         "document_number": "Contact document number",
         "country_code": "Contact country code",
         "city": "Contact city",
-        "company_name": "Contact company name"
+        "company_name": "Contact company name",
+        "assigned_agent": {
+          "id": "Assigned agent ID",
+          "name": "Assigned agent name",
+          "available_name": "Assigned agent public name",
+          "email": "Assigned agent email",
+          "first_name": "Assigned agent first name",
+          "last_name": "Assigned agent last name"
+        }
       },
       "agent": {
         "name": "Agent name",
         "first_name": "Agent first name",
         "last_name": "Agent last name",
-        "email": "Agent email"
+        "email": "Agent email",
+        "id": "Agent ID",
+        "available_name": "Agent public name"
       },
       "inbox": {
         "name": "Inbox name",
-        "id": "Inbox ID"
+        "id": "Inbox ID",
+        "business_name": "Inbox business name",
+        "avatar_url": "Inbox avatar URL",
+        "email": "Inbox email"
       },
       "account": {
         "name": "Account name",
         "locale": "Account locale",
-        "timezone": "Account timezone"
+        "timezone": "Account timezone",
+        "id": "Account ID"
+      },
+      "date": {
+        "today": "Today",
+        "now": "Current date and time",
+        "tomorrow": "Tomorrow",
+        "yesterday": "Yesterday",
+        "days_from_now": "Days from today",
+        "days_ago": "Days ago",
+        "current_year": "Current year",
+        "current_month": "Current month",
+        "current_day": "Current day"
+      },
+      "message": {
+        "id": "Message ID",
+        "sender_display_name": "Sender name",
+        "text_content": "Message text"
+      },
+      "company": {
+        "id": "Company ID",
+        "name": "Company name",
+        "domain": "Company domain",
+        "description": "Company description",
+        "contacts_count": "Company contact count"
+      },
+      "flow": {
+        "variables": "Flow variables"
       }
     }
   },
@@ -42,7 +85,10 @@
       "SYSTEM": "System",
       "CONTACT": "Contact attributes",
       "CONVERSATION": "Conversation attributes",
-      "APPOINTMENT": "Captain appointments"
+      "APPOINTMENT": "Captain appointments",
+      "ASSISTANT": "Assistant",
+      "COMPANY": "Company",
+      "FLOW": "Flow"
     },
     "LABELS": {
       "nombre": "Contact name",
@@ -70,6 +116,11 @@
     "NONE": "Do not save",
     "CREATE_ATTRIBUTE": "Create new attribute",
     "NO_ATTRIBUTES": "No attributes yet",
-    "NO_COMPATIBLE": "No compatible variables"
+    "NO_COMPATIBLE": "No compatible variables",
+    "LOADING": "Loading variables…",
+    "ERROR": "Variables could not be loaded.",
+    "RETRY": "Retry",
+    "UNKNOWN": "This mapping is unavailable. Its saved value has been preserved.",
+    "UNAVAILABLE": "Not available: this message has no appointment or assistant context."
   }
 }

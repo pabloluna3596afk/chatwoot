@@ -28,7 +28,7 @@ import {
   validateHeaderMediaFile,
   withoutUploadedMedia,
 } from 'dashboard/helper/templateHeaderMedia';
-import InsertVariableButton from 'dashboard/components-next/variable/InsertVariableButton.vue';
+import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
 import { formatLiquidVariable } from 'dashboard/helper/liquidVariablesHelper';
 import {
   buildTemplateParameters,
@@ -52,6 +52,7 @@ const props = defineProps({
       return true;
     },
   },
+  variableSurface: { type: String, default: 'message' },
   sendRenderedContent: {
     type: Boolean,
     default: false,
@@ -101,6 +102,18 @@ const emit = defineEmits([
 ]);
 
 const { t } = useI18n();
+
+const pickerEligible = binding => {
+  if (
+    props.resolveContext &&
+    !props.resolveContext.conversation &&
+    binding.requiresContext.includes('conversation')
+  )
+    return false;
+  if (props.variableSurface === 'captain')
+    return props.variableOptions.some(option => option.key === binding.key);
+  return true;
+};
 
 const processedParams = ref({});
 // The fields the agent typed in: the others keep the Liquid they started with.
@@ -248,9 +261,18 @@ const isMissing = (component, key) =>
     ['missing', 'unavailable', 'invalid'].includes(
       resolvedDefaults.value[processedParams.value[component]?.[key]]?.status
     )) &&
-  !displayValue(component, key);
-const missingMessage = (component, key) =>
-  isMissing(component, key) ? t('WHATSAPP_TEMPLATES.PARSER.NO_VALUE') : '';
+  (!displayValue(component, key) ||
+    resolvedDefaults.value[processedParams.value[component]?.[key]]?.status ===
+      'unavailable');
+const missingMessage = (component, key) => {
+  const result =
+    resolvedDefaults.value[processedParams.value[component]?.[key]];
+  if (!edited.value[`${component}.${key}`] && result?.status === 'unavailable')
+    return t('VARIABLE_PICKER.UNAVAILABLE');
+  return isMissing(component, key)
+    ? t('WHATSAPP_TEMPLATES.PARSER.NO_VALUE')
+    : '';
+};
 
 // Completeness validation is shared with the mobile app via @chatwoot/utils.
 const isFormInvalid = computed(
@@ -438,6 +460,22 @@ watch(
     if (props.modelValue !== null) emit('update:modelValue', value);
   },
   { deep: true }
+);
+
+watch(
+  () => props.defaultValues,
+  () => {
+    ['header', 'body'].forEach(component => {
+      Object.keys(processedParams.value[component] || {}).forEach(key => {
+        if (
+          !edited.value[`${component}.${key}`] &&
+          !processedParams.value[component][key]
+        ) {
+          processedParams.value[component][key] = defaultLiquidFor(key) || '';
+        }
+      });
+    });
+  }
 );
 
 const previewInputs = computed(() => {
@@ -674,11 +712,11 @@ defineExpose({
             "
             @update:model-value="setValue('header', key, $event)"
           />
-          <InsertVariableButton
-            v-if="variableOptions.length"
-            :variables="variableOptions"
-            :show-label="false"
-            @insert="insertVariable('header', key, $event)"
+          <VariablePicker
+            class="ms-2 !w-40 shrink-0 sm:!w-48"
+            :surface="variableSurface"
+            :filter="pickerEligible"
+            @select="insertVariable('header', key, $event.expression)"
           />
         </div>
       </div>
@@ -705,11 +743,11 @@ defineExpose({
             "
             @update:model-value="setValue('body', key, $event)"
           />
-          <InsertVariableButton
-            v-if="variableOptions.length"
-            :variables="variableOptions"
-            :show-label="false"
-            @insert="insertVariable('body', key, $event)"
+          <VariablePicker
+            class="ms-2 !w-40 shrink-0 sm:!w-48"
+            :surface="variableSurface"
+            :filter="pickerEligible"
+            @select="insertVariable('body', key, $event.expression)"
           />
         </div>
       </div>

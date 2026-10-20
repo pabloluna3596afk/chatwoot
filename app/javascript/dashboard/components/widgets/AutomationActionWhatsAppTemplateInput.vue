@@ -27,21 +27,7 @@ const getFilteredWhatsAppTemplates = useMapGetter(
 
 // The same variables the manual send offers, but only the ones an automation can fill when it runs: the contact, the
 // conversation and the account (no appointment values: there is no appointment here).
-const { bindings, defaultValues } = useTemplateBindings('message');
-const variableOptions = computed(() =>
-  bindings.value
-    .filter(
-      binding =>
-        binding.readable &&
-        ['system', 'contact', 'conversation'].includes(binding.scope)
-    )
-    .map(binding => ({
-      key: binding.canonicalPath,
-      label: binding.label || t(`VARIABLE_PICKER.LABELS.${binding.name}`),
-      description: binding.name,
-    }))
-);
-
+const { defaultValues } = useTemplateBindings('automation');
 const templateParserRef = ref(null);
 const templateId = ref(null);
 const hydratedKey = ref('');
@@ -262,7 +248,7 @@ watch(
       ref="templateParserRef"
       :template="selectedTemplate"
       :default-values="defaultValues"
-      :variable-options="variableOptions"
+      variable-surface="automation"
     />
     <p class="mb-0 text-xs text-n-slate-11">
       {{ t('AUTOMATION.ACTION.WHATSAPP_TEMPLATE.VARIABLES_HINT') }}

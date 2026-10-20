@@ -236,6 +236,7 @@ watch(
           <WhatsAppTemplateParser
             v-if="state.template && templateEntry(state.template)"
             :key="state.template"
+            variable-surface="captain"
             :template="templateEntry(state.template)"
             :media-inbox-id="templateInboxId(state.template)"
             :model-value="state.params"

@@ -1,3 +1,5 @@
+import catalog from 'dashboard/components-next/variable-picker/specs/catalog.json';
+import { catalogBindings } from 'dashboard/helper/templateVariableBindings';
 import { saveTargets } from '../flowSaveTargets';
 
 const attributes = [
@@ -40,7 +42,22 @@ const attributes = [
   },
 ];
 const keys = block =>
-  saveTargets(block, attributes).map(binding => binding.key);
+  saveTargets(block, [
+    ...catalogBindings(catalog.variables).filter(
+      binding => binding.reference.kind === 'system'
+    ),
+    ...attributes.map(attribute => ({
+      key: `${attribute.attribute_model === 'contact_attribute' ? 'contact' : 'company'}.custom_attribute.${attribute.attribute_key}`,
+      scope:
+        attribute.attribute_model === 'contact_attribute'
+          ? 'contact'
+          : 'company',
+      type: attribute.attribute_display_type,
+      options: attribute.attribute_values || [],
+      writable: !attribute.formula,
+      writeContexts: ['whatsapp_flow'],
+    })),
+  ]).map(binding => binding.key);
 
 describe('writable template bindings for flow answers', () => {
   it('keeps the exact writable standard vocabulary and excludes conversation/agent values', () => {

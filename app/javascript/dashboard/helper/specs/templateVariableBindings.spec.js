@@ -1,135 +1,46 @@
-import {
-  SYSTEM_BINDINGS,
-  APPOINTMENT_BINDINGS,
-  writableFor,
-  buildBindings,
-  defaultValuesFor,
-} from '../templateVariableBindings';
+import { catalogBindings, defaultValuesFor } from '../templateVariableBindings';
+import catalog from 'dashboard/components-next/variable-picker/specs/catalog.json';
 
-const attributes = [
-  {
-    attribute_key: 'plan',
-    attribute_model: 'contact_attribute',
-    attribute_display_name: 'Plan',
-  },
-  {
-    attribute_key: 'estado',
-    attribute_model: 'conversation_attribute',
-    attribute_display_name: 'Estado',
-  },
-  { attribute_key: 'Bad Key', attribute_model: 'contact_attribute' },
-  { attribute_key: 'nombre', attribute_model: 'contact_attribute' },
-];
-
-describe('buildBindings', () => {
-  it('offers the CRM names even when the account has no custom attributes', () => {
-    const bindings = buildBindings([], 'message');
-
-    expect(bindings.map(binding => binding.name)).toEqual(
-      SYSTEM_BINDINGS.map(binding => binding.name)
+describe('Meta alias facade over server descriptors', () => {
+  it('preserves server aliases when a literal key needs a generated Meta name', () => {
+    const literal = catalog.variables.find(
+      variable => variable.reference.definitionId === 14
     );
-    expect(bindings.every(binding => binding.group === 'system')).toBe(true);
-  });
-
-  it('adds the contact and the conversation custom attributes with valid, unique names', () => {
-    const bindings = buildBindings(attributes, 'message');
-
-    expect(bindings.find(binding => binding.name === 'plan')).toMatchObject({
-      key: 'contact.custom_attribute.plan',
-      group: 'contact',
-      label: 'Plan',
-    });
-    expect(
-      bindings.find(binding => binding.name === 'conversacion_estado')
-    ).toMatchObject({
-      key: 'conversation.custom_attribute.estado',
-      group: 'conversation',
-    });
-    expect(bindings.filter(binding => binding.name === 'nombre')).toHaveLength(
-      1
-    );
-    expect(bindings.some(binding => binding.name.includes(' '))).toBe(false);
-  });
-
-  it('leaves the conversation out of a campaign, which has none', () => {
-    const names = buildBindings(attributes, 'campaign').map(
-      binding => binding.name
-    );
-
-    expect(names).toContain('plan');
-    expect(names).not.toContain('conversacion_estado');
-    expect(names).not.toContain('numero_conversacion');
-  });
-
-  it('turns them into the Liquid a send dialog starts with', () => {
-    const values = defaultValuesFor(buildBindings(attributes, 'message'));
-
-    expect(values.nombre).toBe('{{ contact.name }}');
-    expect(values.plan).toBe('{{ contact.custom_attribute.plan }}');
-    expect(values.agente).toBe('{{ agent.name }}');
-  });
-});
-
-describe('catalog metadata', () => {
-  it('preserves paths and aliases, with explicit capabilities and required context', () => {
-    const bindings = buildBindings(attributes);
-    expect(bindings.find(item => item.name === 'nombre')).toMatchObject({
-      scope: 'system',
-      canonicalPath: 'contact.name',
-      type: 'text',
-      options: [],
-      readable: true,
-      writable: true,
-      formula: null,
-      requiresContext: ['contact'],
-    });
-    expect(
-      bindings.find(item => item.name === 'conversacion_estado')
-    ).toMatchObject({
-      scope: 'conversation',
-      writable: true,
-      requiresContext: ['conversation'],
-    });
-    expect(bindings.find(item => item.name === 'agente').writable).toBe(false);
-    expect(
-      APPOINTMENT_BINDINGS.every(
-        item => item.scope === 'appointment' && item.readable && !item.writable
-      )
-    ).toBe(true);
-    expect(defaultValuesFor(bindings)).not.toHaveProperty('cita');
-  });
-
-  it('exposes list options and keeps formulas readable but never writable', () => {
-    const bindings = buildBindings([
-      {
-        attribute_key: 'tier',
-        attribute_model: 'contact_attribute',
-        attribute_display_type: 'list',
-        attribute_values: ['pro'],
-      },
-      {
-        attribute_key: 'total',
-        attribute_model: 'contact_attribute',
-        attribute_display_type: 'number',
-        formula: { op: 'sum' },
-      },
+    const existing = {
+      ...literal,
+      id: 'contact.custom_attribute:20',
+      aliases: ['atributo_14'],
+    };
+    const bindings = catalogBindings([literal, existing]);
+    expect(bindings.map(binding => binding.name)).toEqual([
+      'atributo_14_',
+      'atributo_14',
     ]);
-    const tier = bindings.find(item => item.name === 'tier');
-    const total = bindings.find(item => item.name === 'total');
-    expect(tier.options).toEqual(['pro']);
-    expect(writableFor(tier, { type: 'radio', options: [{ id: 'pro' }] })).toBe(
-      true
+    expect(defaultValuesFor(bindings)[bindings[0].name]).toBe(
+      literal.expression
     );
-    expect(
-      writableFor(tier, { type: 'radio', options: [{ id: 'free' }] })
-    ).toBe(false);
-    expect(total).toMatchObject({
-      readable: true,
-      writable: false,
-      formula: { op: 'sum' },
-    });
-    expect(writableFor(total, { type: 'short_text', input: 'number' })).toBe(
-      false
+  });
+  it('preserves aliases and uses the exact literal server expression for defaults', () => {
+    const bindings = catalogBindings(catalog.variables);
+    const defaults = defaultValuesFor(bindings);
+    expect(defaults.nombre).toBe('{{ contact.name }}');
+    expect(defaults.atributo_14).toBe(
+      "{{ contact.custom_attribute['nivel-vip'] }}"
     );
+    expect(defaults.atributo_15).toBe(
+      "{{ contact.custom_attribute['nivel.vip'] }}"
+    );
+    expect(defaults.atributo_16).toBe(
+      "{{ contact.custom_attribute['categoría'] }}"
+    );
+    expect(defaults.fecha).toBeUndefined();
+    expect(defaults.atributo_17).toBeUndefined();
+  });
+  it('keeps company and Flow groups and definition identities when available', () => {
+    const company = { ...catalog.variables.at(-1), available: true };
+    const bindings = catalogBindings([company]);
+    expect(bindings[0].scope).toBe('company');
+    expect(bindings[0].reference.definitionId).toBe(17);
+    expect(bindings[0].key).toBe("company.custom_attribute['company_context']");
   });
 });

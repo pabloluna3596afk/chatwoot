@@ -6,6 +6,12 @@ class VariablesAPI extends ApiClient {
     super('variables', { accountScoped: true });
   }
 
+  catalog(accountId, surface) {
+    return axios.get(`${this.apiVersion}/accounts/${accountId}/variables`, {
+      params: { surface },
+    });
+  }
+
   preview(payload, signal) {
     return axios.post(`${this.url}/preview`, payload, { signal });
   }

@@ -1,4 +1,5 @@
-import { mount } from '@vue/test-utils';
+import catalog from 'dashboard/components-next/variable-picker/specs/catalog.json';
+import { mount, flushPromises } from '@vue/test-utils';
 import { ref } from 'vue';
 import AutomationActionWhatsAppTemplateInput from '../AutomationActionWhatsAppTemplateInput.vue';
 
@@ -9,6 +10,9 @@ const template = {
   parameter_format: 'NAMED',
   components: [{ type: 'BODY', text: 'Hola {{nombre}}' }],
 };
+vi.mock('dashboard/api/variables', () => ({
+  default: { catalog: vi.fn(async () => ({ data: catalog })) },
+}));
 vi.mock('dashboard/composables/store', () => ({
   useStore: () => ({ dispatch: vi.fn() }),
   useMapGetter: name =>
@@ -23,7 +27,7 @@ vi.mock('dashboard/composables/store', () => ({
 
 const ParserStub = {
   name: 'WhatsAppTemplateParser',
-  props: ['template', 'defaultValues', 'variableOptions'],
+  props: ['template', 'defaultValues', 'variableSurface'],
   template: '<div data-testid="parser" />',
 };
 
@@ -39,13 +43,11 @@ describe('AutomationActionWhatsAppTemplateInput', () => {
       },
     });
     wrapper.vm.$.setupState.templateId = 't1';
-    await wrapper.vm.$nextTick();
+    await flushPromises();
     const parser = wrapper.findComponent(ParserStub);
     expect(parser.exists()).toBe(true);
     expect(parser.props('defaultValues').nombre).toContain('contact.name');
-    const keys = parser.props('variableOptions').map(option => option.key);
-    expect(keys).toContain('contact.name');
-    expect(keys.some(key => key.startsWith('appointment.'))).toBe(false);
+    expect(parser.props('variableSurface')).toBe('automation');
     wrapper.unmount();
   });
 });

@@ -623,6 +623,7 @@ onMounted(async () => {
         <WhatsAppTemplateParser
           v-if="draftTemplate"
           :key="draft.resource || draft.editIndex"
+          variable-surface="captain"
           :template="draftTemplate"
           :model-value="draft.params"
           :variable-options="variableOptions"
