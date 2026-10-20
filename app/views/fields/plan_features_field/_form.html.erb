@@ -1,0 +1,12 @@
+<div class="field-unit__label">
+  <%= f.label field.attribute %>
+</div>
+<div class="field-unit__field">
+  <%= hidden_field_tag "plan[#{field.attribute}][]", '' %>
+  <% Plan::FEATURE_KEYS.each do |key| %>
+    <label class="block">
+      <%= check_box_tag "plan[#{field.attribute}][]", key, field.data.include?(key), id: "plan_feature_#{key}" %>
+      <%= key.humanize %>
+    </label>
+  <% end %>
+</div>

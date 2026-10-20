@@ -163,6 +163,8 @@ class Enterprise::Api::V1::AccountsController < Api::BaseController
       'inboxes' => { 'allowed' => @account.usage_limits[:inboxes], 'consumed' => @account.inboxes.count },
       'captain' => captain_limits,
       'plan' => @account.plan.present? ? {
+        'id' => @account.plan.id,
+        'slug' => @account.plan.slug,
         'name' => @account.plan.name,
         'price_monthly' => @account.plan.price_monthly,
         'period_start' => usage_period&.period_start,
