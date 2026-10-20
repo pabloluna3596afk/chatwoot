@@ -74,7 +74,7 @@ class Whatsapp::OneoffCampaignService
 
     processed_template_params = process_liquid_template_params(contact)
     if processed_template_params.nil?
-      recipient.mark_skipped!('liquid variables resolved to blank values')
+      recipient.mark_skipped!(@template_resolution_error)
       return
     end
 
@@ -97,13 +97,8 @@ class Whatsapp::OneoffCampaignService
   def process_liquid_template_params(contact)
     liquid_processor = Whatsapp::LiquidTemplateProcessorService.new(campaign: campaign, contact: contact)
     processed_template_params = liquid_processor.process_template_params(campaign.template_params)
-
-    Rails.logger.info "Skipping contact #{contact.name} - liquid variables resolved to blank values" if processed_template_params.nil?
-
+    @template_resolution_error = liquid_processor.resolution_error
     processed_template_params
-  rescue StandardError => e
-    Rails.logger.error "Failed to process liquid template params for contact #{contact.name}: #{e.message}"
-    nil
   end
 
   def send_whatsapp_template_message(recipient:, to:, template_params:)
@@ -125,11 +120,11 @@ class Whatsapp::OneoffCampaignService
     end
 
     wamid = channel.send_template(to, {
-                                   name: name,
-                                   namespace: namespace,
-                                   lang_code: lang_code,
-                                   parameters: processed_parameters
-                                 }, nil)
+                                    name: name,
+                                    namespace: namespace,
+                                    lang_code: lang_code,
+                                    parameters: processed_parameters
+                                  }, nil)
 
     if wamid.present?
       recipient.mark_sent!(wamid)

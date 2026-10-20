@@ -12,7 +12,7 @@ class Campaigns::CampaignConversationBuilder
       raise 'Conversation already present' if @contact_inbox.reload.conversations.present?
 
       @conversation = ::Conversation.create!(conversation_params)
-      Messages::MessageBuilder.new(@campaign.sender, @conversation, message_params).perform
+      Messages::MessageBuilder.new(@campaign.sender, @conversation, message_params).perform(variables_resolved: true)
     end
     @conversation
   rescue StandardError => e
@@ -23,8 +23,9 @@ class Campaigns::CampaignConversationBuilder
   private
 
   def message_params
+    content = Liquid::CampaignTemplateService.new(campaign: @campaign, contact: @contact_inbox.contact).call(@campaign.message)
     ActionController::Parameters.new({
-                                       content: @campaign.message,
+                                       content: content,
                                        campaign_id: @campaign.id
                                      })
   end

@@ -287,10 +287,11 @@ describe Whatsapp::LiquidTemplateProcessorService do
         }
       end
 
-      it 'returns original value when liquid parsing fails' do
+      it 'rejects invalid syntax instead of sending raw Liquid' do
         result = service.process_template_params(template_params)
 
-        expect(result['processed_params']['body']['invalid']).to eq('{{contact.name missing braces')
+        expect(result).to be_nil
+        expect(service.resolution_error).to eq('processed_params.body.invalid: invalid')
       end
     end
 

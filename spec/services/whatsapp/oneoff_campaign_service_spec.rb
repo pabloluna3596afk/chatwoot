@@ -76,6 +76,25 @@ describe Whatsapp::OneoffCampaignService do
     end
 
     context 'when campaign is valid' do
+      it 'reproduces MV-04: sends the account date to the provider without a conversation' do
+        account.update!(reporting_timezone: 'America/Guayaquil')
+        contact = create(:contact, :with_phone_number, account: account)
+        contact.update_labels([label1.title])
+        params = campaign.template_params.deep_dup
+        params['processed_params']['body']['ticket_id'] = '{{ date.today }}'
+        campaign.update!(template_params: params)
+        expect(whatsapp_channel).to receive(:send_template).with(
+          contact.phone_number,
+          hash_including(parameters: array_including(hash_including(
+                                                       type: 'body', parameters: array_including(hash_including(text: '2026-10-19'))
+                                                     ))), nil
+        ).and_return('wamid.date')
+        travel_to Time.utc(2026, 10, 20, 2) do
+          expect { described_class.new(campaign: campaign).perform }.not_to change(Conversation, :count)
+        end
+        expect(campaign.campaign_recipients.sole).to be_sent
+      end
+
       it 'marks campaign as completed' do
         described_class.new(campaign: campaign).perform
 
@@ -308,10 +327,12 @@ describe Whatsapp::OneoffCampaignService do
                                                        })
 
         expect(whatsapp_channel).not_to receive(:send_template)
-        expect(Rails.logger).to receive(:info).with("Skipping contact #{contact.name} - liquid variables resolved to blank values")
         allow(Rails.logger).to receive(:info)
 
-        described_class.new(campaign: campaign_with_blank_liquid).perform
+        expect { described_class.new(campaign: campaign_with_blank_liquid).perform }.not_to change(Conversation, :count)
+        expect(campaign_with_blank_liquid.campaign_recipients.sole).to have_attributes(
+          status: 'skipped', error_message: 'processed_params.body.email: missing'
+        )
       end
     end
 
