@@ -6,9 +6,11 @@
 #  addon_agent_price  :decimal(10, 2)   default(0.0), not null
 #  addon_bot_price    :decimal(10, 2)   default(0.0), not null
 #  captain_daily_tests :integer        default(0), not null
+#  coming_soon        :boolean          default(FALSE), not null
 #  credit_unit_price  :decimal(10, 4)   default(0.0), not null
 #  description        :string
 #  display_order      :integer          default(0), not null
+#  feature_keys       :jsonb            default([]), not null
 #  is_active          :boolean          default(TRUE), not null
 #  is_default_trial   :boolean          default(FALSE), not null
 #  is_public          :boolean          default(TRUE), not null
@@ -45,10 +47,15 @@
 # ("plan".classify => "Plan"), and a namespaced class name breaks navigation
 # rendering across all of SuperAdmin, not just this resource's own pages.
 class Plan < ApplicationRecord
+  # Catalog labels only; these keys never grant account features.
+  FEATURE_KEYS = %w[captain_integration automations campaigns help_center api_and_webhooks
+                    custom_roles sla saml calendar_integration].freeze
+
   has_many :accounts, dependent: :nullify, inverse_of: :plan
 
-  validates :name, presence: true
+  validate :valid_feature_keys
   validates :captain_daily_tests, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+  validates :name, presence: true
   validates :slug, presence: true, uniqueness: true
   # DB partial unique index enforces this too; the validation just gives a
   # friendly SuperAdmin form error instead of a raw StatementInvalid.
@@ -57,4 +64,19 @@ class Plan < ApplicationRecord
   scope :active, -> { where(is_active: true) }
   scope :public_plans, -> { where(is_public: true) }
   scope :ordered, -> { order(:display_order, :price_monthly) }
+  scope :catalog, -> { active.public_plans.where.not(slug: 'developer').order(:display_order, :id) }
+
+  def catalog_state
+    return 'hidden' unless is_active? && is_public? && slug != 'developer'
+
+    coming_soon? ? 'coming_soon' : 'available'
+  end
+
+  private
+
+  def valid_feature_keys
+    return if feature_keys.is_a?(Array) && feature_keys.all? { |key| FEATURE_KEYS.include?(key) }
+
+    errors.add(:feature_keys, :inclusion)
+  end
 end

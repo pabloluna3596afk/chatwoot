@@ -12,8 +12,10 @@ class PlanDashboard < Administrate::BaseDashboard
     name: Field::String.with_options(searchable: true),
     slug: Field::String.with_options(searchable: true),
     description: Field::String,
-    monthly_messages: Field::Number,
+    coming_soon: Field::Boolean,
+    feature_keys: PlanFeaturesField,
     captain_daily_tests: Field::Number,
+    monthly_messages: Field::Number,
     storage_mb: Field::Number,
     max_documents: Field::Number,
     max_captain_assistants: Field::Number,
@@ -59,8 +61,10 @@ class PlanDashboard < Administrate::BaseDashboard
     name
     slug
     description
-    monthly_messages
+    coming_soon
+    feature_keys
     captain_daily_tests
+    monthly_messages
     storage_mb
     max_documents
     max_captain_assistants
@@ -90,8 +94,10 @@ class PlanDashboard < Administrate::BaseDashboard
     name
     slug
     description
-    monthly_messages
+    coming_soon
+    feature_keys
     captain_daily_tests
+    monthly_messages
     storage_mb
     max_documents
     max_captain_assistants
