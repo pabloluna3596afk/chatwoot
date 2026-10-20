@@ -72,8 +72,7 @@ class AutomationRules::ActionService < ActionService
     template = find_approved_whatsapp_template(inbox.channel, template_params)
     return skip_whatsapp_template!(:template_missing) if template.blank?
 
-    interpolated, blank = interpolate_whatsapp_template_params(template_params)
-    return skip_whatsapp_template!(:blank_liquid) if blank
+    interpolated = interpolate_whatsapp_template_params(template_params)
 
     payload = interpolated.slice(:name, :namespace, :language, :category, :processed_params)
     Messages::MessageBuilder.new(nil, @conversation, {
@@ -81,7 +80,17 @@ class AutomationRules::ActionService < ActionService
                                    private: false,
                                    template_params: payload,
                                    content_attributes: automation_message_attributes
-                                 }).perform
+                                 }).perform(variables_resolved: true)
+  rescue Variables::DeliveryRenderer::Error => e
+    skip_unresolved_whatsapp_template!(e)
+  end
+
+  def skip_unresolved_whatsapp_template!(error)
+    leave_automation_skip_note!(
+      'automation.template_skipped.variables',
+      { whatsapp_template_skipped: error.status, variable_resolution: error.message },
+      reason: error.message
+    )
   end
 
   def send_message(message, delivery = nil)
@@ -117,9 +126,9 @@ class AutomationRules::ActionService < ActionService
     )
   end
 
-  def leave_automation_skip_note!(i18n_key, extra_attrs)
+  def leave_automation_skip_note!(i18n_key, extra_attrs, **interpolations)
     locale = @account.locale.presence || I18n.default_locale
-    content = I18n.with_locale(locale) { I18n.t(i18n_key, name: @rule.name) }
+    content = I18n.with_locale(locale) { I18n.t(i18n_key, name: @rule.name, **interpolations) }
 
     Conversations::SystemAuditNote.perform(
       conversation: @conversation,
@@ -146,40 +155,11 @@ class AutomationRules::ActionService < ActionService
   def interpolate_whatsapp_template_params(template_params)
     copy = template_params.deep_dup
     processed = copy[:processed_params]
-    return [copy, false] if processed.blank?
+    return copy if processed.blank?
 
-    rendered = interpolate_liquid_tree(processed)
-    [copy.merge(processed_params: rendered), blank_liquid_tree?(processed, rendered)]
-  end
-
-  def interpolate_liquid_tree(value)
-    case value
-    when Hash
-      value.transform_values { |item| interpolate_liquid_tree(item) }
-    when Array
-      value.map { |item| interpolate_liquid_tree(item) }
-    when String
-      value.include?('{{') ? AutomationRules::MessageRendererService.new(@conversation, value).perform : value
-    else
-      value
-    end
-  end
-
-  def blank_liquid_tree?(original, rendered)
-    case original
-    when Hash
-      return false unless rendered.is_a?(Hash)
-
-      original.any? { |key, item| blank_liquid_tree?(item, rendered[key]) }
-    when Array
-      return false unless rendered.is_a?(Array)
-
-      original.each_with_index.any? { |item, index| blank_liquid_tree?(item, rendered[index]) }
-    when String
-      original.include?('{{') && rendered.to_s.blank?
-    else
-      false
-    end
+    drops = Variables::ContextFactory.new(account: @account, records: { conversation: @conversation }).build(surface: 'automation')
+    rendered = Variables::DeliveryRenderer.new(drops: drops).render(processed, path: 'processed_params')
+    copy.merge(processed_params: rendered)
   end
 
   def rendered_whatsapp_template_body(template, processed_params)

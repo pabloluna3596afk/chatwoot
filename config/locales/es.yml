@@ -769,6 +769,7 @@ es:
     audit_note: 'Automatización «%{name}» ejecutada.'
     message_skipped_messaging_window: 'Automatización «%{name}» no envió mensaje al cliente (ventana de mensajería cerrada).'
     template_skipped:
+      variables: 'Se omitió la plantilla de WhatsApp de la automatización "%{name}": variable no disponible (%{reason}).'
       not_whatsapp: 'Automatización «%{name}» no envió una plantilla de WhatsApp (la conversación no está en WhatsApp).'
       wrong_inbox: 'Automatización «%{name}» no envió una plantilla de WhatsApp (el inbox de la conversación no coincide).'
       template_missing: 'Automatización «%{name}» no envió una plantilla de WhatsApp (plantilla ausente o no aprobada en este inbox).'

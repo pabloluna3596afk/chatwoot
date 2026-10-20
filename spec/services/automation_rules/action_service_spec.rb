@@ -242,6 +242,26 @@ RSpec.describe AutomationRules::ActionService do
         rule.save!
       end
 
+      it 'resolves template actions once and keeps provider params and history coherent' do
+        wa_conversation.contact.update!(custom_attributes: { 'literal' => '{{ contact.email }}' })
+        template_params[:processed_params]['body']['1'] = '{{ contact.custom_attribute.literal }}'
+        rule.update!(actions: [{ action_name: 'send_whatsapp_template', action_params: [template_params] }])
+        described_class.new(rule, account, wa_conversation).perform
+        message = wa_conversation.messages.where(private: false).sole
+        expect(message.content).to include('{{ contact.email }}')
+        expect(message.additional_attributes.dig('template_params', 'processed_params', 'body', '1')).to eq('{{ contact.email }}')
+      end
+
+      it 'omits an unavailable appointment and records the reason in a private audit note' do
+        template_params[:processed_params]['body']['1'] = 'Cita {{ appointment.title }}'
+        rule.update!(actions: [{ action_name: 'send_whatsapp_template', action_params: [template_params] }])
+        described_class.new(rule, account, wa_conversation).perform
+        expect(wa_conversation.messages.where(private: false)).to be_empty
+        note = wa_conversation.messages.where(private: true).sole
+        expect(note.content).to include('processed_params.body.1: unavailable')
+        expect(note.content_attributes).to include('whatsapp_template_skipped' => 'unavailable')
+      end
+
       it 'sends the template on a matching WhatsApp inbox' do
         allow(Messages::MessageBuilder).to receive(:new).and_return(message_builder)
         described_class.new(rule, account, wa_conversation).perform
