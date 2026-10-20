@@ -1,0 +1,97 @@
+{
+  "PLAN_CATALOG": {
+    "COMPARE": "Compare plans",
+    "TITLE": "Room for your next chapter.",
+    "SUBTITLE": "Explore plans and your account limits.",
+    "CLOSE": "Close",
+    "CURRENT": "Your plan",
+    "CONTINUE": "Continue with {plan}",
+    "HEADING": "Your account starts on {plan}",
+    "SUPPORT": "Everything is ready to start talking with your assistant.",
+    "PLAN": "Plan",
+    "EYEBROW": "CHATHUB PLANS",
+    "DETAIL": "A clearer view of your next step.",
+    "TABLE_HINT": "Scroll the table to compare all plans",
+    "NOTICE": "You can only continue with your current plan. Paid plans are coming soon.",
+    "CONFIGURATION": "These features exist in ChatHub. Availability depends on enabled features and connected channels; they are not exclusive to a plan.",
+    "TABLE_NOTE": "AI tests may use included responses. Future plan limits may change.",
+    "AFTER": "What happens after the trial",
+    "AFTER_SUB": "Today the trial does not expire automatically. Here are your next steps.",
+    "FAQ": "Frequently asked questions",
+    "BACK": "Back to my plan",
+    "NEXT": {
+      "1": {
+        "TITLE": "Start with your account",
+        "TEXT": "Confirm your current plan and continue to the dashboard."
+      },
+      "2": {
+        "TITLE": "Try your assistant",
+        "TEXT": "Set up Captain and explore its responses using your included allowance."
+      },
+      "3": {
+        "TITLE": "We will let you know when paid plans are available",
+        "TEXT": "There is no confirmed date yet. You do not need to purchase anything today."
+      }
+    },
+    "QUESTIONS": {
+      "1": {
+        "TITLE": "Does the trial have an expiry date?",
+        "TEXT": "Today it does not expire automatically. It includes the limits shown here; it does not mean unlimited usage."
+      },
+      "2": {
+        "TITLE": "Do I need a card to start?",
+        "TEXT": "You do not need a card to continue with the trial."
+      },
+      "3": {
+        "TITLE": "Can I purchase a paid plan now?",
+        "TEXT": "Not yet. Plans marked as unavailable cannot be purchased. There is no confirmed date."
+      },
+      "4": {
+        "TITLE": "What happens if I use all my AI responses?",
+        "TEXT": "The assistant stops responding when the allowance is exhausted. You can access the dashboard and review usage in Billing; you cannot upgrade your plan here today."
+      }
+    },
+    "STATES": {
+      "available": "Available",
+      "coming_soon": "Coming soon"
+    },
+    "LOADING": "Loading plans",
+    "ERROR": "We could not load the plans.",
+    "RETRY": "Retry",
+    "EMPTY": "There are no plans to display.",
+    "NO_CURRENT": "Your account has no assigned plan. Contact an administrator.",
+    "UNLISTED": "Your current plan is not in the public catalog. Its limits remain available in Billing.",
+    "UNKNOWN": "Not available",
+    "INCLUDED": "Included depending on configuration",
+    "MB": "{count} MB",
+    "GB": "{count} GB",
+    "LIMITS": {
+      "inboxes": "Inboxes",
+      "assistants": "Assistants",
+      "monthly_responses": "AI responses per month",
+      "users": "Agents",
+      "storage_bytes": "Storage",
+      "emails_per_day": "Outgoing emails per day",
+      "tests_per_day": "Additional AI tests per day",
+      "trial_days": "Included trial days",
+      "trial_responses": "Trial responses"
+    },
+    "COUNTS": {
+      "inboxes": "{count} inbox | {count} inboxes",
+      "assistants": "{count} assistant | {count} assistants",
+      "monthly_responses": "{count} AI response per month | {count} AI responses per month",
+      "users": "{count} agent | {count} agents"
+    },
+    "FEATURES": {
+      "captain_integration": "Captain assistant",
+      "automations": "Automations",
+      "campaigns": "Campaigns",
+      "help_center": "Help center",
+      "api_and_webhooks": "API and webhooks",
+      "custom_roles": "Custom roles",
+      "sla": "SLA",
+      "saml": "SAML",
+      "calendar_integration": "Calendar and appointments"
+    }
+  }
+}
