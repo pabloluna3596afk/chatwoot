@@ -18,9 +18,9 @@ RSpec.describe Rake::Task do
                         is_active: false, is_public: false, coming_soon: true, feature_keys: ['automations'])
     account = create(:account, plan: plan)
     account.current_usage_period
-    original = plan.attributes
-    original_account = account.attributes
-    original_usage = account.account_plan_usages.map(&:attributes)
+    original = plan.reload.attributes
+    original_account = account.reload.attributes
+    original_usage = account.account_plan_usages.reload.map(&:attributes)
 
     expect { task.invoke }.to change(Plan, :count).by(5)
     task.reenable
