@@ -66,6 +66,9 @@
           "API": {
             "SUCCESS_MESSAGE": "Campaña de Live Chat creada con éxito",
             "ERROR_MESSAGE": "Se presentó un error. Por favor intente nuevamente."
+          },
+          "COLOR": {
+            "LABEL": "Color"
           }
         }
       },
@@ -140,6 +143,9 @@
             "SUCCESS_MESSAGE": "Campaña de SMS creada con éxito",
             "DRAFT_SUCCESS_MESSAGE": "Borrador de campaña SMS guardado",
             "ERROR_MESSAGE": "Se presentó un error. Por favor intente nuevamente."
+          },
+          "COLOR": {
+            "LABEL": "Color"
           }
         }
       },
@@ -251,6 +257,9 @@
             "SUCCESS_MESSAGE": "Campaña de WhatsApp creada con éxito",
             "DRAFT_SUCCESS_MESSAGE": "Borrador de campaña WhatsApp guardado",
             "ERROR_MESSAGE": "Se presentó un error. Por favor intente nuevamente."
+          },
+          "COLOR": {
+            "LABEL": "Color"
           }
         }
       },
@@ -261,7 +270,8 @@
           "API": {
             "SUCCESS_MESSAGE": "Campaña actualizada correctamente",
             "ERROR_MESSAGE": "No se pudo actualizar la campaña. Inténtalo de nuevo."
-          }
+          },
+          "SAVE_TITLE": "Guardar nombre"
         }
       },
       "LIST": {

@@ -19,19 +19,19 @@
     "THIS": "this",
     "AT": "at",
     "IN": "in",
-    "FROM_NOW": "from now",
-    "NEXT_YEAR": "next year",
+    "FROM_NOW": "desde ahora",
+    "NEXT_YEAR": "el próximo año",
     "MERIDIEM": {
       "AM": "am",
       "PM": "pm"
     },
     "RELATIVE": {
       "TOMORROW": "mañana",
-      "DAY_AFTER_TOMORROW": "day after tomorrow",
+      "DAY_AFTER_TOMORROW": "pasado mañana",
       "NEXT_WEEK": "próxima semana",
-      "NEXT_MONTH": "next month",
-      "THIS_WEEKEND": "this weekend",
-      "NEXT_WEEKEND": "next weekend"
+      "NEXT_MONTH": "el próximo mes",
+      "THIS_WEEKEND": "este fin de semana",
+      "NEXT_WEEKEND": "el próximo fin de semana"
     },
     "TIME_OF_DAY": {
       "MORNING": "morning",

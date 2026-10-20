@@ -124,6 +124,12 @@
       },
       "unread": {
         "TEXT": "No leídos: más altos primero"
+      },
+      "custom_asc": {
+        "TEXT": "{attribute}: Ascendente"
+      },
+      "custom_desc": {
+        "TEXT": "{attribute}: Descendente"
       }
     },
     "ATTACHMENTS": {

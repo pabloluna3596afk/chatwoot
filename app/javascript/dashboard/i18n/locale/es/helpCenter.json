@@ -2,7 +2,7 @@
   "HELP_CENTER": {
     "TITLE": "Centro de ayuda",
     "NEW_PAGE": {
-      "DESCRIPTION": "Create self-service help center portals for your customers. Help them find answers quickly, without waiting. Streamline inquiries, boost agent efficiency, and elevate customer support.",
+      "DESCRIPTION": "Crea portales de centro de ayuda de autoservicio para tus clientes. Ayúdalos a encontrar respuestas rápido, sin esperas. Agiliza las consultas, aumenta la eficiencia de los agentes y mejora la atención al cliente.",
       "CREATE_PORTAL_BUTTON": "Crear Portal"
     },
     "HEADER": {
@@ -165,8 +165,8 @@
         },
         "SEND_CNAME_INSTRUCTIONS": {
           "API": {
-            "SUCCESS_MESSAGE": "CNAME instructions sent successfully",
-            "ERROR_MESSAGE": "Error while sending CNAME instructions"
+            "SUCCESS_MESSAGE": "Instrucciones de CNAME enviadas correctamente",
+            "ERROR_MESSAGE": "Error al enviar las instrucciones de CNAME"
           }
         }
       },
@@ -216,7 +216,7 @@
             "BODY": "Personalizar portal"
           },
           "FINISH": {
-            "TITLE": "Voila! 🎉",
+            "TITLE": "¡Listo! 🎉",
             "BODY": "¡Ya estás listo!"
           }
         },
@@ -260,13 +260,13 @@
         "DOMAIN": {
           "LABEL": "Dominio personalizado",
           "PLACEHOLDER": "Dominio personalizado del portal",
-          "HELP_TEXT": "Add only If you want to use a custom domain for your portals. Eg: {exampleURL}",
+          "HELP_TEXT": "Agrégalo solo si quieres usar un dominio personalizado para tus portales. Ej.: {exampleURL}",
           "ERROR": "Introduzca una URL de dominio válida"
         },
         "HOME_PAGE_LINK": {
           "LABEL": "Enlace de página principal",
           "PLACEHOLDER": "Enlace de página de inicio del portal",
-          "HELP_TEXT": "The link used to return from the portal to the home page. Eg: {exampleURL}",
+          "HELP_TEXT": "El enlace usado para volver desde el portal a la página de inicio. Ej.: {exampleURL}",
           "ERROR": "Introduzca una URL de página de inicio válida"
         },
         "THEME_COLOR": {
@@ -324,14 +324,14 @@
       },
       "DRAFT_LOCALE": {
         "API": {
-          "SUCCESS_MESSAGE": "Locale moved to draft successfully",
-          "ERROR_MESSAGE": "Unable to move locale to draft. Try again."
+          "SUCCESS_MESSAGE": "Idioma movido a borrador correctamente",
+          "ERROR_MESSAGE": "No se pudo mover el idioma a borrador. Inténtalo de nuevo."
         }
       },
       "PUBLISH_LOCALE": {
         "API": {
-          "SUCCESS_MESSAGE": "Locale published successfully",
-          "ERROR_MESSAGE": "Unable to publish locale. Try again."
+          "SUCCESS_MESSAGE": "Idioma publicado correctamente",
+          "ERROR_MESSAGE": "No se pudo publicar el idioma. Inténtalo de nuevo."
         }
       }
     },
@@ -373,8 +373,8 @@
     },
     "DRAFT_ARTICLE": {
       "API": {
-        "ERROR": "Error while drafting article",
-        "SUCCESS": "Article drafted successfully"
+        "ERROR": "Error al pasar el artículo a borrador",
+        "SUCCESS": "Artículo pasado a borrador correctamente"
       }
     },
     "DELETE_ARTICLE": {
@@ -393,12 +393,12 @@
     },
     "REORDER_ARTICLE": {
       "API": {
-        "ERROR_MESSAGE": "Unable to reorder articles. Please try again."
+        "ERROR_MESSAGE": "No se pudo reordenar los artículos. Inténtalo de nuevo."
       }
     },
     "REORDER_CATEGORY": {
       "API": {
-        "ERROR_MESSAGE": "Unable to reorder categories. Please try again."
+        "ERROR_MESSAGE": "No se pudo reordenar las categorías. Inténtalo de nuevo."
       }
     },
     "CREATE_ARTICLE": {
@@ -531,7 +531,7 @@
     "ARTICLES_PAGE": {
       "ARTICLE_CARD": {
         "CARD": {
-          "VIEWS": "{count} view | {count} views",
+          "VIEWS": "{count} vista | {count} vistas",
           "DROPDOWN_MENU": {
             "PUBLISH": "Publicar",
             "DRAFT": "Borrador",
@@ -553,46 +553,46 @@
       },
       "ARTICLES_HEADER": {
         "TABS": {
-          "ALL": "All articles",
+          "ALL": "Todos los artículos",
           "MINE": "Mías",
           "DRAFT": "Borrador",
           "PUBLISHED": "Publicado",
           "ARCHIVED": "Archivado"
         },
         "CATEGORY": {
-          "ALL": "All categories"
+          "ALL": "Todas las categorías"
         },
         "LOCALE": {
-          "ALL": "All locales"
+          "ALL": "Todos los idiomas"
         },
         "SEARCH_PLACEHOLDER": "Buscar artículos...",
-        "NEW_ARTICLE": "New article"
+        "NEW_ARTICLE": "Nuevo artículo"
       },
       "EMPTY_STATE": {
         "ALL": {
-          "TITLE": "Write an article",
-          "SUBTITLE": "Write a rich article, let’s get started!",
-          "BUTTON_LABEL": "New article"
+          "TITLE": "Escribe un artículo",
+          "SUBTITLE": "Escribe un artículo completo, ¡comencemos!",
+          "BUTTON_LABEL": "Nuevo artículo"
         },
         "MINE": {
-          "TITLE": "You haven't written any articles here",
-          "SUBTITLE": "All articles written by you show up here for quick access."
+          "TITLE": "No has escrito ningún artículo aquí",
+          "SUBTITLE": "Todos los artículos escritos por ti aparecen aquí para acceder rápido."
         },
         "DRAFT": {
-          "TITLE": "There are no articles in drafts",
-          "SUBTITLE": "Draft articles will appear here"
+          "TITLE": "No hay artículos en borradores",
+          "SUBTITLE": "Los artículos en borrador aparecerán aquí"
         },
         "PUBLISHED": {
-          "TITLE": "There are no published articles",
-          "SUBTITLE": "Published articles will appear here"
+          "TITLE": "No hay artículos publicados",
+          "SUBTITLE": "Los artículos publicados aparecerán aquí"
         },
         "ARCHIVED": {
-          "TITLE": "There are no articles in the archive",
-          "SUBTITLE": "Archived articles don't show up on the portal, you can use it to mark deprecated or outdated pages"
+          "TITLE": "No hay artículos en el archivo",
+          "SUBTITLE": "Los artículos archivados no se muestran en el portal, puedes usarlo para marcar páginas obsoletas o desactualizadas"
         },
         "CATEGORY": {
-          "TITLE": "There are no articles in this category",
-          "SUBTITLE": "Articles in this category will appear here"
+          "TITLE": "No hay artículos en esta categoría",
+          "SUBTITLE": "Los artículos de esta categoría aparecerán aquí"
         },
         "SEARCH": {
           "TITLE": "No hay artículos coincidentes",
@@ -645,22 +645,22 @@
         "NEW_CATEGORY": "Nueva categoría",
         "EDIT_CATEGORY": "Editar categoría",
         "SEARCH_PLACEHOLDER": "Buscar categorías...",
-        "CATEGORIES_COUNT": "{n} category | {n} categories",
+        "CATEGORIES_COUNT": "{n} categoría | {n} categorías",
         "BREADCRUMB": {
-          "CATEGORY_LOCALE": "Categories ({localeCode})",
-          "ACTIVE_CATEGORY": "{categoryName} ({categoryCount} articles) | {categoryName} ({categoryCount} article)"
+          "CATEGORY_LOCALE": "Categorías ({localeCode})",
+          "ACTIVE_CATEGORY": "{categoryName} ({categoryCount} artículos) | {categoryName} ({categoryCount} artículo)"
         }
       },
       "CATEGORY_EMPTY_STATE": {
         "TITLE": "No se encontraron categorías",
-        "SUBTITLE": "Categories will appear here. You can add a category by clicking the 'New Category' button."
+        "SUBTITLE": "Las categorías aparecerán aquí. Puedes agregar una categoría haciendo clic en el botón 'Nueva categoría'."
       },
       "SEARCH_EMPTY_STATE": {
         "TITLE": "No hay categorías coincidentes",
         "SUBTITLE": "No pudimos encontrar ninguna categoría que coincida con tu búsqueda. Prueba con un término diferente."
       },
       "CATEGORY_CARD": {
-        "ARTICLES_COUNT": "{count} article | {count} articles"
+        "ARTICLES_COUNT": "{count} artículo | {count} artículos"
       },
       "CATEGORY_DIALOG": {
         "CREATE": {
@@ -714,22 +714,22 @@
       }
     },
     "LOCALES_PAGE": {
-      "LOCALES_COUNT": "No locales available | {n} locale | {n} locales",
-      "NEW_LOCALE_BUTTON_TEXT": "New locale",
+      "LOCALES_COUNT": "No hay idiomas disponibles | {n} idioma | {n} idiomas",
+      "NEW_LOCALE_BUTTON_TEXT": "Nuevo idioma",
       "SEARCH_PLACEHOLDER": "Buscar locales...",
       "SEARCH_EMPTY_STATE": {
         "TITLE": "No hay idiomas coincidentes",
         "SUBTITLE": "No pudimos encontrar ningún local que coincida con tu búsqueda. Prueba con un término diferente."
       },
       "LOCALE_CARD": {
-        "ARTICLES_COUNT": "{count} article | {count} articles",
-        "CATEGORIES_COUNT": "{count} category | {count} categories",
+        "ARTICLES_COUNT": "{count} artículo | {count} artículos",
+        "CATEGORIES_COUNT": "{count} categoría | {count} categorías",
         "DEFAULT": "Predeterminado",
         "DRAFT": "Borrador",
         "DROPDOWN_MENU": {
-          "MAKE_DEFAULT": "Make default",
-          "MOVE_TO_DRAFT": "Move to draft",
-          "PUBLISH_LOCALE": "Publish locale",
+          "MAKE_DEFAULT": "Establecer como predeterminado",
+          "MOVE_TO_DRAFT": "Mover a borrador",
+          "PUBLISH_LOCALE": "Publicar idioma",
           "CUSTOMIZE_CONTENT": "Localizar contenido",
           "SELECT_POPULAR_CONTENT": "Seleccionar contenido recomendado",
           "DELETE": "Eliminar"
@@ -777,7 +777,7 @@
       },
       "ADD_LOCALE_DIALOG": {
         "TITLE": "Añadir un nuevo idioma",
-        "DESCRIPTION": "Select the language in which this article will be written. This will be added to your list of translations, and you can add more later.",
+        "DESCRIPTION": "Selecciona el idioma en el que se escribirá este artículo. Se agregará a tu lista de traducciones y podrás añadir más después.",
         "COMBOBOX": {
           "PLACEHOLDER": "Seleccionar idioma..."
         },
@@ -814,7 +814,8 @@
         "VIEW_CHANGES": "Ver cambios no publicados",
         "DRAFT": "Borrador",
         "ARCHIVE": "Archive",
-        "BACK_TO_ARTICLES": "Back to articles"
+        "BACK_TO_ARTICLES": "Volver a artículos",
+        "CREATE_IN_PROGRESS": "El artículo aún se está creando. Vuelve a agregar los archivos en un momento."
       },
       "PENDING_CHANGES_POPOVER": {
         "TITLE": "Cambios no publicados",
@@ -828,46 +829,46 @@
         "TITLE_LABEL": "Título"
       },
       "EDIT_ARTICLE": {
-        "MORE_PROPERTIES": "More properties",
+        "MORE_PROPERTIES": "Más propiedades",
         "UNCATEGORIZED": "Sin categoría",
         "EDITOR_PLACEHOLDER": "Write something..."
       },
       "ARTICLE_PROPERTIES": {
-        "ARTICLE_PROPERTIES": "Article properties",
+        "ARTICLE_PROPERTIES": "Propiedades del artículo",
         "META_DESCRIPTION": "Meta-descripción",
-        "META_DESCRIPTION_PLACEHOLDER": "Add meta description",
+        "META_DESCRIPTION_PLACEHOLDER": "Agregar meta description",
         "META_TITLE": "Título Meta",
-        "META_TITLE_PLACEHOLDER": "Add meta title",
+        "META_TITLE_PLACEHOLDER": "Agregar meta title",
         "META_TAGS": "Meta etiquetas",
-        "META_TAGS_PLACEHOLDER": "Add meta tags"
+        "META_TAGS_PLACEHOLDER": "Agregar meta tags"
       },
       "API": {
         "ERROR": "Error al guardar el artículo"
       }
     },
     "PORTAL_SWITCHER": {
-      "NEW_PORTAL": "New portal",
+      "NEW_PORTAL": "Nuevo portal",
       "PORTALS": "Portales",
-      "CREATE_PORTAL": "Create and manage multiple portals",
+      "CREATE_PORTAL": "Crea y administra varios portales",
       "ARTICLES": "artículos",
       "DOMAIN": "dominio",
       "PORTAL_NAME": "Nombre del portal"
     },
     "CREATE_PORTAL_DIALOG": {
-      "TITLE": "Create new portal",
-      "DESCRIPTION": "Give your portal a name and create a user-friendly URL slug. You can modify both later in the settings.",
+      "TITLE": "Crear nuevo portal",
+      "DESCRIPTION": "Asigna un nombre a tu portal y crea un slug de URL fácil de usar. Puedes modificar ambos después en los ajustes.",
       "CONFIRM_BUTTON_LABEL": "Crear",
       "NAME": {
         "LABEL": "Nombre",
         "PLACEHOLDER": "Guía de usuario | ChatHub",
-        "MESSAGE": "Choose an name for your portal.",
+        "MESSAGE": "Elige un nombre para tu portal.",
         "ERROR": "El nombre es requerido"
       },
       "SLUG": {
         "LABEL": "Slug",
         "PLACEHOLDER": "user-guide",
         "ERROR": "Slug es requerido",
-        "FORMAT_ERROR": "Please enter a valid slug, for eg: user-guide"
+        "FORMAT_ERROR": "Ingresa un slug válido, por ejemplo: user-guide"
       }
     },
     "PORTAL_SETTINGS": {
@@ -875,9 +876,9 @@
         "AVATAR": {
           "LABEL": "Logo",
           "IMAGE_UPLOAD_ERROR": "¡No se pudo subir la imagen! Intente nuevamente",
-          "IMAGE_UPLOAD_SUCCESS": "Image added successfully. Please click on save changes to save the logo",
+          "IMAGE_UPLOAD_SUCCESS": "Imagen agregada correctamente. Haz clic en guardar cambios para guardar el logo",
           "IMAGE_DELETE_SUCCESS": "Logo eliminado correctamente",
-          "IMAGE_DELETE_ERROR": "Unable to delete logo",
+          "IMAGE_DELETE_ERROR": "No se pudo eliminar el logo",
           "IMAGE_UPLOAD_SIZE_ERROR": "El tamaño de la imagen debe ser menor que {size}MB"
         },
         "NAME": {
@@ -886,24 +887,24 @@
           "ERROR": "El nombre es requerido"
         },
         "HEADER_TEXT": {
-          "LABEL": "Header text",
+          "LABEL": "Texto del encabezado",
           "PLACEHOLDER": "Texto de encabezado del portal"
         },
         "PAGE_TITLE": {
-          "LABEL": "Page title",
+          "LABEL": "Título de la página",
           "PLACEHOLDER": "Título de página del portal"
         },
         "HOME_PAGE_LINK": {
-          "LABEL": "Home page link",
+          "LABEL": "Enlace a la página de inicio",
           "PLACEHOLDER": "Enlace de página de inicio del portal",
-          "ERROR": "Enter a valid URL. The Home page link must start with 'http://' or 'https://'."
+          "ERROR": "Ingresa una URL válida. El enlace a la página de inicio debe comenzar con 'http://' o 'https://'."
         },
         "SLUG": {
           "LABEL": "Slug",
-          "PLACEHOLDER": "Portal slug"
+          "PLACEHOLDER": "Slug del portal"
         },
         "BRAND_COLOR": {
-          "LABEL": "Brand color"
+          "LABEL": "Color de marca"
         },
         "SAVE_CHANGES": "Guardar cambios"
       },
@@ -911,50 +912,50 @@
         "CUSTOM_DOMAIN": {
           "HEADER": "Dominio personalizado",
           "LABEL": "Dominio personalizado:",
-          "DESCRIPTION": "You can host your portal on a custom domain. For instance, if your website is yourdomain.com and you want your portal available at docs.yourdomain.com, simply enter that in this field.",
-          "STATUS_DESCRIPTION": "Your custom portal will start working as soon as it is verified.",
+          "DESCRIPTION": "Puedes alojar tu portal en un dominio personalizado. Por ejemplo, si tu sitio web es yourdomain.com y quieres que tu portal esté disponible en docs.yourdomain.com, simplemente ingrésalo en este campo.",
+          "STATUS_DESCRIPTION": "Tu portal personalizado empezará a funcionar en cuanto se verifique.",
           "PLACEHOLDER": "Dominio personalizado del portal",
           "EDIT_BUTTON": "Editar",
-          "ADD_BUTTON": "Add custom domain",
+          "ADD_BUTTON": "Agregar dominio personalizado",
           "STATUS": {
             "LIVE": "En vivo",
-            "PENDING": "Awaiting verification",
-            "ERROR": "Verification failed"
+            "PENDING": "Esperando verificación",
+            "ERROR": "Verificación fallida"
           },
           "DIALOG": {
-            "ADD_HEADER": "Add custom domain",
-            "EDIT_HEADER": "Edit custom domain",
-            "ADD_CONFIRM_BUTTON_LABEL": "Add domain",
-            "EDIT_CONFIRM_BUTTON_LABEL": "Update domain",
+            "ADD_HEADER": "Agregar dominio personalizado",
+            "EDIT_HEADER": "Editar dominio personalizado",
+            "ADD_CONFIRM_BUTTON_LABEL": "Agregar dominio",
+            "EDIT_CONFIRM_BUTTON_LABEL": "Actualizar dominio",
             "LABEL": "Dominio personalizado",
             "PLACEHOLDER": "Dominio personalizado del portal",
-            "ERROR": "Custom domain is required",
-            "FORMAT_ERROR": "Please enter a valid domain URL e.g. docs.yourdomain.com"
+            "ERROR": "El dominio personalizado es obligatorio",
+            "FORMAT_ERROR": "Ingresa una URL de dominio válida, por ejemplo docs.yourdomain.com"
           },
           "DNS_CONFIGURATION_DIALOG": {
-            "HEADER": "DNS configuration",
-            "DESCRIPTION": "Log in to the account you have with your DNS provider, and add a CNAME record for subdomain pointing to chatwoot.help",
-            "COPY": "Successfully copied CNAME",
+            "HEADER": "Configuración de DNS",
+            "DESCRIPTION": "Inicia sesión en la cuenta que tienes con tu proveedor de DNS y agrega un registro CNAME para el subdominio que apunte a chatwoot.help",
+            "COPY": "CNAME copiado correctamente",
             "SEND_INSTRUCTIONS": {
-              "HEADER": "Send instructions",
-              "DESCRIPTION": "If you would prefer to have someone from your development team to handle this step, you can enter email address below, and we will send them the required instructions.",
-              "PLACEHOLDER": "Enter their email",
-              "ERROR": "Enter a valid email address",
+              "HEADER": "Enviar instrucciones",
+              "DESCRIPTION": "Si prefieres que alguien de tu equipo de desarrollo se encargue de este paso, puedes ingresar la dirección de correo electrónico a continuación y le enviaremos las instrucciones necesarias.",
+              "PLACEHOLDER": "Ingresa su correo electrónico",
+              "ERROR": "Ingresa una dirección de correo electrónico válida",
               "SEND_BUTTON": "Enviar"
             }
           }
         },
         "DELETE_PORTAL": {
-          "BUTTON": "Delete {portalName}",
+          "BUTTON": "Eliminar {portalName}",
           "HEADER": "Eliminar portal",
-          "DESCRIPTION": "Permanently delete this portal. This action is irreversible",
+          "DESCRIPTION": "Eliminar este portal de forma permanente. Esta acción es irreversible",
           "DIALOG": {
-            "HEADER": "Sure you want to delete {portalName}?",
-            "DESCRIPTION": "This is a permanent action that cannot be reversed.",
+            "HEADER": "¿Seguro que quieres eliminar {portalName}?",
+            "DESCRIPTION": "Esta es una acción permanente que no se puede revertir.",
             "CONFIRM_BUTTON_LABEL": "Eliminar"
           }
         },
-        "EDIT_CONFIGURATION": "Edit configuration"
+        "EDIT_CONFIGURATION": "Editar configuración"
       },
       "LAYOUT_CONTENT": {
         "HEADER": "Apariencia",
@@ -1047,40 +1048,40 @@
       "API": {
         "CREATE_PORTAL": {
           "SUCCESS_MESSAGE": "Portal creado correctamente",
-          "ERROR_MESSAGE": "Unable to create portal"
+          "ERROR_MESSAGE": "No se pudo crear el portal"
         },
         "UPDATE_PORTAL": {
           "SUCCESS_MESSAGE": "Portal actualizado correctamente",
-          "ERROR_MESSAGE": "Unable to update portal"
+          "ERROR_MESSAGE": "No se pudo actualizar el portal"
         }
       }
     },
     "PDF_UPLOAD": {
-      "TITLE": "Upload PDF Document",
-      "DESCRIPTION": "Upload a PDF document to automatically generate FAQs using AI",
-      "DRAG_DROP_TEXT": "Drag and drop your PDF file here, or click to select",
-      "SELECT_FILE": "Select PDF File",
-      "ADDITIONAL_CONTEXT_LABEL": "Additional Context (Optional)",
-      "ADDITIONAL_CONTEXT_PLACEHOLDER": "Provide any additional context or instructions for FAQ generation...",
+      "TITLE": "Subir documento PDF",
+      "DESCRIPTION": "Sube un documento PDF para generar preguntas frecuentes automáticamente con IA",
+      "DRAG_DROP_TEXT": "Arrastra y suelta tu archivo PDF aquí, o haz clic para seleccionarlo",
+      "SELECT_FILE": "Seleccionar archivo PDF",
+      "ADDITIONAL_CONTEXT_LABEL": "Contexto adicional (opcional)",
+      "ADDITIONAL_CONTEXT_PLACEHOLDER": "Proporciona cualquier contexto o instrucción adicional para la generación de preguntas frecuentes...",
       "UPLOADING": "Subiendo...",
-      "UPLOAD": "Upload & Process",
+      "UPLOAD": "Subir y procesar",
       "CANCEL": "Cancelar",
-      "ERROR_INVALID_TYPE": "Please select a valid PDF file",
-      "ERROR_FILE_TOO_LARGE": "File size must be less than 512MB",
-      "ERROR_UPLOAD_FAILED": "Failed to upload PDF. Please try again."
+      "ERROR_INVALID_TYPE": "Selecciona un archivo PDF válido",
+      "ERROR_FILE_TOO_LARGE": "El tamaño del archivo debe ser menor a 512 MB",
+      "ERROR_UPLOAD_FAILED": "No se pudo subir el PDF. Inténtalo de nuevo."
     },
     "PDF_DOCUMENTS": {
-      "TITLE": "PDF Documents",
-      "DESCRIPTION": "Manage uploaded PDF documents and generate FAQs from them",
-      "UPLOAD_PDF": "Upload PDF",
-      "UPLOAD_FIRST_PDF": "Upload your first PDF",
-      "UPLOADED_BY": "Uploaded by",
-      "GENERATE_FAQS": "Generate FAQs",
+      "TITLE": "Documentos PDF",
+      "DESCRIPTION": "Administra los documentos PDF subidos y genera preguntas frecuentes a partir de ellos",
+      "UPLOAD_PDF": "Subir PDF",
+      "UPLOAD_FIRST_PDF": "Sube tu primer PDF",
+      "UPLOADED_BY": "Subido por",
+      "GENERATE_FAQS": "Generar preguntas frecuentes",
       "GENERATING": "Generando...",
       "CONFIRM_DELETE": "¿Está seguro que desea borrar {filename}?",
       "EMPTY_STATE": {
-        "TITLE": "No PDF documents yet",
-        "DESCRIPTION": "Upload PDF documents to automatically generate FAQs using AI"
+        "TITLE": "Aún no hay documentos PDF",
+        "DESCRIPTION": "Sube documentos PDF para generar preguntas frecuentes automáticamente con IA"
       },
       "STATUS": {
         "UPLOADED": "Ready",
@@ -1090,22 +1091,22 @@
       }
     },
     "CONTENT_GENERATION": {
-      "TITLE": "Content Generation",
-      "DESCRIPTION": "Upload PDF documents to automatically generate FAQ content using AI",
-      "UPLOAD_TITLE": "Upload PDF Document",
-      "DRAG_DROP": "Drag and drop your PDF file here, or click to select",
-      "SELECT_FILE": "Select PDF File",
-      "UPLOADING": "Processing document...",
-      "UPLOAD_SUCCESS": "Document processed successfully!",
-      "UPLOAD_ERROR": "Failed to upload document. Please try again.",
-      "INVALID_FILE_TYPE": "Please select a valid PDF file",
-      "FILE_TOO_LARGE": "File size must be less than 512MB",
-      "GENERATED_CONTENT": "Generated FAQ Content",
-      "PUBLISH_SELECTED": "Publish Selected",
+      "TITLE": "Generación de contenido",
+      "DESCRIPTION": "Sube documentos PDF para generar contenido de preguntas frecuentes automáticamente con IA",
+      "UPLOAD_TITLE": "Subir documento PDF",
+      "DRAG_DROP": "Arrastra y suelta tu archivo PDF aquí, o haz clic para seleccionarlo",
+      "SELECT_FILE": "Seleccionar archivo PDF",
+      "UPLOADING": "Procesando documento...",
+      "UPLOAD_SUCCESS": "¡Documento procesado con éxito!",
+      "UPLOAD_ERROR": "No se pudo subir el documento. Inténtalo de nuevo.",
+      "INVALID_FILE_TYPE": "Selecciona un archivo PDF válido",
+      "FILE_TOO_LARGE": "El tamaño del archivo debe ser menor a 512 MB",
+      "GENERATED_CONTENT": "Contenido de preguntas frecuentes generado",
+      "PUBLISH_SELECTED": "Publicar selección",
       "PUBLISHING": "Publishing...",
-      "FROM_DOCUMENT": "From document",
-      "NO_CONTENT": "No generated content available. Upload a PDF document to get started.",
-      "LOADING": "Loading generated content..."
+      "FROM_DOCUMENT": "Desde un documento",
+      "NO_CONTENT": "No hay contenido generado disponible. Sube un documento PDF para comenzar.",
+      "LOADING": "Cargando contenido generado..."
     }
   }
 }

@@ -108,11 +108,11 @@
     },
     "ACTIONS": {
       "ASSIGN_TEAM": "Asignar equipo",
-      "ASSIGN_AGENT": "Assign an Agent",
+      "ASSIGN_AGENT": "Asignar un agente",
       "ADD_LABEL": "Añadir etiqueta",
       "REMOVE_LABEL": "Eliminar etiqueta",
-      "REMOVE_ASSIGNED_AGENT": "Remove Assigned Agent",
-      "REMOVE_ASSIGNED_TEAM": "Remove Assigned Team",
+      "REMOVE_ASSIGNED_AGENT": "Quitar el agente asignado",
+      "REMOVE_ASSIGNED_TEAM": "Quitar el equipo asignado",
       "SEND_EMAIL_TRANSCRIPT": "Enviar transcripción por correo",
       "MUTE_CONVERSATION": "Silenciar Conversación",
       "SNOOZE_CONVERSATION": "Posponer conversación",
@@ -132,6 +132,13 @@
       "MEDIUM": "Media",
       "HIGH": "Alta",
       "URGENT": "Urgente"
+    },
+    "DUPLICATE": {
+      "TOOLTIP": "Duplicar macro",
+      "API": {
+        "SUCCESS_MESSAGE": "Macro duplicada correctamente",
+        "ERROR_MESSAGE": "No se pudo duplicar la macro. Inténtalo de nuevo más tarde"
+      }
     }
   }
 }

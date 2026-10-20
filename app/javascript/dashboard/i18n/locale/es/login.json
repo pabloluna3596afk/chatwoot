@@ -1,6 +1,12 @@
 {
   "LOGIN": {
     "TITLE": "Te damos la bienvenida a ChatHub",
+    "SIGNUP_PROMPT": "¿No tienes cuenta?",
+    "STAGING_LABEL": "Entorno de pruebas — InboxHub",
+    "MARKETING": {
+      "TITLE": "Cada conversación nos lleva más lejos.",
+      "SUBTITLE": "Fortalece las relaciones con tus clientes y dale a tu equipo la claridad para crecer."
+    },
     "EMAIL": {
       "LABEL": "E-mail",
       "PLACEHOLDER": "ejemplo{'@'}nombredeempresa.com",
@@ -27,24 +33,18 @@
     "SUBMIT": "Iniciar sesión",
     "SAML": {
       "LABEL": "Usar inicio de sesión único (SSO)",
-      "TITLE": "Initiate Single Sign-on (SSO)",
-      "SUBTITLE": "Enter your work email to access your organization",
-      "BACK_TO_LOGIN": "Login via Password",
+      "TITLE": "Iniciar sesión única (SSO)",
+      "SUBTITLE": "Ingresa tu correo de trabajo para acceder a tu organización",
+      "BACK_TO_LOGIN": "Iniciar sesión con contraseña",
       "WORK_EMAIL": {
-        "LABEL": "Work Email",
-        "PLACEHOLDER": "Enter your work email"
+        "LABEL": "Correo de trabajo",
+        "PLACEHOLDER": "Ingresa tu correo de trabajo"
       },
-      "SUBMIT": "Continue with SSO",
+      "SUBMIT": "Continuar con SSO",
       "API": {
-        "ERROR_MESSAGE": "SSO authentication failed. Please check your credentials and try again."
+        "ERROR_MESSAGE": "Falló la autenticación con SSO. Por favor verifica tus credenciales e intenta de nuevo."
       }
     },
-    "SIGNUP_PROMPT": "¿No tienes cuenta?",
-    "STAGING_LABEL": "Entorno de pruebas — InboxHub",
-    "OR": "O",
-    "MARKETING": {
-      "TITLE": "Cada conversación nos lleva más lejos.",
-      "SUBTITLE": "Fortalece las relaciones con tus clientes y dale a tu equipo la claridad para crecer."
-    }
+    "OR": "O"
   }
 }

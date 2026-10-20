@@ -140,6 +140,9 @@
       "CREATED_BY": "Creada por",
       "CREATED_AT": "Creada",
       "DUE_AT": "Vence"
+    },
+    "ERRORS": {
+      "ALREADY_CLAIMED": "Esta tarea ya fue reclamada por otro agente"
     }
   }
 }
