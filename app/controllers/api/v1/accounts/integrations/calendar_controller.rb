@@ -236,6 +236,8 @@ class Api::V1::Accounts::Integrations::CalendarController < Api::V1::Accounts::I
   end
 
   def render_calendar_error(error)
+    raise error if error.is_a?(Pundit::NotAuthorizedError) || error.is_a?(ActiveRecord::RecordNotFound)
+
     Rails.logger.error("Google Calendar error: #{error.class} #{error.message}")
     case error
     when Integrations::GoogleCalendar::Client::PreconditionFailed
@@ -258,6 +260,8 @@ class Api::V1::Accounts::Integrations::CalendarController < Api::V1::Accounts::I
       render json: { error: I18n.t('integration_apps.calendars.invalid_appointment_status') }, status: :unprocessable_entity
     when Integrations::GoogleCalendar::EventService::EventCancelled
       render json: { error: I18n.t('integration_apps.calendars.event_cancelled') }, status: :unprocessable_entity
+    when Integrations::GoogleCalendar::EventService::ContactMismatch
+      render json: { error: I18n.t('integration_apps.calendars.contact_mismatch') }, status: :unprocessable_entity
     when Integrations::GoogleCalendar::EventService::MissingDeleteNote
       render json: { error: I18n.t('integration_apps.calendars.delete_note_required') }, status: :unprocessable_entity
     else

@@ -404,6 +404,9 @@ _Última actualización: 2026-07-12_
 
 | Item | Repo | Acción |
 |------|------|--------|
+| **CIT-12 / CIT-31 / B-NEW-084** (lease y recuperación Meet) | chatwoot | `feat/citas-exclusion-meet` depende del PR 2; lock con Redis real rojo/verde aprobado; faltan RSpec Rails de servicio/invitación/Captain y lint exacto CI. Integrar PR1 → PR2 → PR3; sin migraciones, sin push |
+| **CIT-09 / CIT-30 / B-NEW-083** (reserva y fila propietaria) | chatwoot | validar RSpec rojo/verde, lint exacto de CI y smoke A→B→A; `feat/citas-reserva-correcta` depende del PR 1 `feat/citas-autorizacion`; sin migraciones, sin push |
+| **CIT-11 / B-NEW-082** (privacidad de asociaciones de citas) | chatwoot | validar RSpec en CI + capturas, PR `feat/citas-autorizacion` → `develop`, redeploy; sin migraciones |
 | **B-NEW-11** (automation replies attended) | chatwoot | commit + merge `feat/internal-tasks` → `develop`, GHCR redeploy, **no requiere `db:migrate`**, smoke en conversación con automation |
 | **InboxHub 1.0.0** | chatwoot | merge `feat/internal-tasks` → `develop`, tag `inboxhub-v1.0.0`, GHCR redeploy, **`db:migrate`**, smoke RELEASE |
 | WhatsApp channel + menús | panel-ai | verificar prod / merge `master` si falta |

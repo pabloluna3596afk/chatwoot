@@ -39,6 +39,12 @@ class Captain::Tools::BookAppointmentTool < Captain::Tools::BaseAppointmentTool
 
     end_at = start_at + settings.slot_duration_minutes.minutes
     booked = create_event(booking_params(conversation, contact, start_at, end_at, reason))
+    booking_confirmation(conversation, tool_context, booked)
+  end
+
+  def booking_confirmation(conversation, tool_context, booked)
+    contact = conversation.contact
+    start_at = Time.iso8601(booked.fetch(:start))
     log_tool_usage('book_appointment', conversation_id: conversation.id, start: start_at.iso8601)
     schedule_reminders(conversation, booked[:id])
     [translate(contact.email.present? ? 'booked_with_invite' : 'booked', time: format_time(start_at), email: contact.email),
@@ -51,7 +57,10 @@ class Captain::Tools::BookAppointmentTool < Captain::Tools::BaseAppointmentTool
   def create_event(params)
     event_service.create(params, enforce_hours: true)
   rescue StandardError => e
-    record = connection.calendar_events.kept.find_by(idempotency_key: params[:idempotency_key])
+    record = connection.calendar_events.kept.find_by(
+      external_calendar_id: params[:calendar_id], idempotency_key: params[:idempotency_key],
+      start_at: Time.iso8601(params[:start]), end_at: Time.iso8601(params[:end])
+    )
     raise if record.blank?
 
     report_side_failure(e)
@@ -63,7 +72,7 @@ class Captain::Tools::BookAppointmentTool < Captain::Tools::BaseAppointmentTool
   def schedule_reminders(conversation, event_id)
     return unless settings.any_reminder_enabled?
 
-    record = connection.calendar_events.find_by(google_event_id: event_id)
+    record = connection.calendar_events.find_by(external_calendar_id: calendar_id, google_event_id: event_id)
     Captain::AppointmentReminders::Scheduler.schedule(record, assistant: @assistant, conversation: conversation) if record
   rescue StandardError => e
     report_side_failure(e)
@@ -100,6 +109,6 @@ class Captain::Tools::BookAppointmentTool < Captain::Tools::BaseAppointmentTool
   # The same conversation booking the same slot twice is the same booking, so a retry of the
   # call returns the existing event instead of creating a second one.
   def idempotency_key(conversation, start_at, end_at)
-    "captain-#{Digest::SHA256.hexdigest([conversation.id, calendar_id, start_at.to_i, end_at.to_i].join('|'))[0, 32]}"
+    "captain-#{Digest::SHA256.hexdigest([conversation.id, connection.id, calendar_id, start_at.to_i, end_at.to_i].join('|'))[0, 32]}"
   end
 end

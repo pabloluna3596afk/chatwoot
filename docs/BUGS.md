@@ -1,5 +1,129 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-183 — Fixtures de propiedad e idempotencia del CI de citas (PR #183)
+
+**Archivos:** `spec/lib/integrations/google_calendar/event_service_spec.rb`,
+`spec/enterprise/lib/captain/tools/appointment_tools_spec.rb`,
+`spec/controllers/api/v1/accounts/integrations/calendar_controller_spec.rb`.
+
+**Causa y fix:** los helpers creaban mediante `connection.calendar_events`,
+que imponía esa conexión sobre la conexión ajena solicitada por el ejemplo y
+retenía en su colección la fila destruida. Ahora crean con `CalendarEvent`,
+con conexión predeterminada explícita y atributos del ejemplo aplicados después.
+El reintento idempotente necesita leer el evento Google para recuperar Meet;
+el double del request spec no admitía `get_event` y causaba HTTP 500, no un
+rechazo de intervalo. Se simula esa lectura y se exige HTTP 200 en ambos POST,
+el mismo evento, un solo POST a Google y una sola lectura de recuperación.
+Se conservan todas las aserciones de aislamiento; no cambia código de producción.
+
+**Cómo probar:** ejecutar los tres archivos anteriores: la base intacta reproduce
+303 ejemplos con los mismos 12 fallos del CI. Luego ejecutar la regresión de
+calendario y Captain con los fixtures corregidos, incluyendo las pruebas de
+recuperación Meet y exclusión con Redis real. Sin migraciones.
+
+### B-NEW-084 — Lease de reservas y recuperación de Meet (CIT-12 / CIT-31)
+
+**Archivos:** `lib/integrations/google_calendar/booking_lock.rb`,
+`lib/integrations/google_calendar/event_service.rb`, specs de lock, servicio,
+invitación y herramientas Captain, y `spec/support/real_redis.rb`.
+
+**Fix:** el lease renueva cada 5 s mediante WATCH/MULTI condicionado al token;
+una pérdida o error de renovación invalida permanentemente la operación. Antes
+de cada nueva fase de escritura se comprueba la propiedad. El heartbeat se
+detiene y la liberación en ensure conserva compare-and-delete: no elimina el
+token de otro worker. La prueba real espera 21 s, sin travel_to.
+
+El resultado del POST/PATCH principal se persiste antes de completar la
+descripción Meet: conserva identidad, intervalo, clave, asociaciones, invitación,
+estado y política de seguimiento. Un fallo del PATCH opcional se registra y no
+impide el seguimiento normal. Reintentar con la misma clave lee el evento Google
+existente y completa la descripción sin otro POST ni duplicar notificaciones.
+Si se pierde el lease durante una petición ya enviada, se conserva su resultado
+local como reconciliación, pero se detienen las fases siguientes. No se promete
+deshacer un POST remoto ni exclusión por fencing que Google no ofrece.
+
+**Cómo probar:** con Redis real y namespace aislado, retrasar Google más de 20 s
+y competir por el mismo calendario; reemplazar el token durante la lectura y
+durante el POST. No debe haber nuevas escrituras tras detectar la pérdida ni
+borrado del token ajeno; un POST ya finalizado debe quedar identificable.
+Simular timeout al completar Meet al crear/editar: la reserva y el PATCH
+principal permanecen; repetir la reserva idempotente repara la descripción sin
+otro evento. Captain confirma y programa los recordatorios una sola vez.
+
+**Verificación local (2026-10-21):** los cinco ejemplos del lock, con el mismo
+spec y soporte del repo en runner aislado sin Rails/DB, fallan contra el lock
+anterior y pasan con el nuevo; Redis 7 real y gems Redis del lockfile. Smoke de
+compatibilidad MockRedis aprobado. Sintaxis Ruby aprobada en 16 archivos de la
+pila; RuboCop directo en imagen `chathub-rubocop-ci` inspecciona 16 archivos,
+66 infracciones heredadas y cero en líneas cambiadas frente a origin/develop.
+El comando exacto de CI sigue bloqueado por Ruby 3.4.11 frente a 3.4.4.
+RSpec Rails de servicio/invitación/herramientas/recordatorios no ejecutado:
+la imagen de aplicación no tiene rspec. Falta rojo/verde de esos recorridos y
+CI completo; no se declara validación funcional completa. Sin cambios visuales,
+capturas, migraciones ni push. Integrar PR1 → PR2 → PR3.
+
+### B-NEW-083 — Reserva y confirmación de la cita propietaria (CIT-09 / CIT-30)
+
+**Archivos:** `CalendarEvent`, `Integrations::GoogleCalendar::EventService`,
+herramientas de citas de Captain y sus specs de servicio/herramientas.
+
+**Fix:** una clave solo reutiliza un evento de la misma conexión, calendario e
+intervalo; una colisión devuelve `InvalidRange` antes de Google. Mover el inicio
+o fin libera la clave en la misma escritura del evento, también al sincronizar
+un movimiento de Google. Editar sin mover conserva la clave. A→B→nueva A mantiene
+el evento movido en B y permite una nueva reserva idempotente en A. Las claves
+de Captain incluyen la conexión; texto y botones usan el inicio devuelto por el
+evento persistido, incluida la recuperación tras fallos de notificación.
+
+Captain lista por conexión y calendario, confirma con `find_by!` y exige la fila
+local propietaria al cancelar o reprogramar. Si desaparece después del listado,
+devuelve error sin llamar a Google. Se conservan los callbacks de recordatorios.
+El dashboard mantiene la importación/edición/cancelación de eventos Google-only;
+la exigencia de fila local corresponde al recorrido de Captain (CIT-30).
+
+**Cómo probar:** reservar A dos veces, mover a B y reservar A otras dos veces:
+solo dos eventos, cada confirmación con su hora y botones asociados al evento
+correcto. Repetir con dos conexiones al mismo calendario y mismo ID Google:
+solo cambia la fila propietaria. Quitar esa fila entre listado y mutación: error,
+sin mutación remota. Verificar horarios de recordatorios al mover y cancelación
+de pendientes al cancelar. Specs nuevos en `event_service_spec.rb` y
+`appointment_tools_spec.rb`; regresión `appointment_reminders_spec.rb`.
+
+**Verificación local:** sintaxis de los 12 archivos Ruby de la rama frente a
+`origin/develop` y RuboCop directo en `chathub-rubocop-ci`, sin infracciones en
+líneas nuevas. La invocación exacta de CI está bloqueada por Ruby 3.4.11 frente a
+3.4.4 del Gemfile. RSpec intentado con base aislada explícita: faltan gemas de test;
+no se ejecutaron ejemplos ni se acredita rojo/verde. Capturas y Google real
+pendientes. Sin migraciones; depende del PR 1 (`feat/citas-autorizacion`).
+Pendiente merge/deploy y validación CI; no se hizo push.
+
+### B-NEW-082 — Asociaciones de citas sin autorización (CIT-11)
+
+**Archivos:** `lib/integrations/google_calendar/event_service.rb`,
+`app/controllers/api/v1/accounts/integrations/calendar_controller.rb`, locales en/es
+y specs de integración, servicio y eventos por conversación.
+
+**Fix:** crear, editar y cancelar autorizan `ConversationPolicy#show?` antes de
+acceder a Google. Al mutar se comprueba también la conversación guardada, aunque
+el cliente omita, borre o sustituya la asociación. Los retornos por idempotencia
+autorizan el evento guardado. Se conserva el contexto de rol Enterprise; los bots
+no resuelven membresías por un ID numérico que pueda coincidir con un usuario.
+Un contacto discordante devuelve 422 localizado; IDs ajenos no se resuelven fuera
+de la cuenta. Pundit conserva su 401 y los recursos inexistentes su 404.
+
+**Cómo probar:** con un agente sin acceso al inbox, intentar crear, editar,
+cancelar por DELETE y por PATCH, y sustituir/quitar las asociaciones: 401, sin
+mutación Google, actividad ni mensaje. Con acceso, mezclar contacto y conversación:
+422. Repetir con admin, agente miembro y AgentBot válido: recorrido permitido.
+Repetir con rol Enterprise de participación, sin y con participación.
+
+**Verificación local:** sintaxis Ruby, nueva clave en/es y nueve tests existentes
+de helpers Calendar en UTC y America/Guayaquil aprobados. RuboCop en imagen
+`chathub-rubocop-ci`: cinco archivos inspeccionados, cero infracciones en líneas
+modificadas; 37 infracciones anteriores en los archivos completos. RSpec queda
+reservado a CI; todavía no se acredita ejecución rojo/verde. Capturas pendientes:
+la herramienta no dispone de navegador. Sin migraciones. Pendiente merge/deploy.
+
 ### B-NEW-081 — Cierre de variables Flow, notificaciones e importadores (MV-12, MV-13, MV-16)
 
 **Archivos:** `Variables::{ContextFactory,Omission,ImportDiagnostics,Writer}`,

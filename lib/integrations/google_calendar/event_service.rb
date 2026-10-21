@@ -17,12 +17,15 @@ class Integrations::GoogleCalendar::EventService
       super('slot_busy')
     end
   end
+
   class MissingDeleteNote < StandardError; end
   class CalendarNotEnabled < StandardError; end
   class InvalidRange < StandardError; end
   class OutsideHours < StandardError; end
   class InvalidAppointmentStatus < StandardError; end
   class EventCancelled < StandardError; end
+  class ContactMismatch < StandardError; end
+
   class EventLocked < StandardError
     attr_reader :holder_name
 
@@ -120,12 +123,13 @@ class Integrations::GoogleCalendar::EventService
                 .map { |record| payload_from_record(record) }
   end
 
-  def self.contact_payloads(account, contact_id, calendar_id: nil, time_min: nil, time_max: nil)
+  def self.contact_payloads(account, contact_id, calendar_id: nil, connection_id: nil, time_min: nil, time_max: nil) # rubocop:disable Metrics/ParameterLists
     scope = account.calendar_events
                    .kept
                    .where(contact_id: contact_id)
                    .includes(:created_by, :updated_by, :deleted_by, :contact, :conversation, :calendar_connection, activities: :user)
     scope = scope.where(external_calendar_id: calendar_id) if calendar_id.present?
+    scope = scope.where(calendar_connection_id: connection_id) if connection_id.present?
     if time_min.present? && time_max.present?
       scope = scope.where('start_at < ? AND end_at > ?', Time.iso8601(time_max), Time.iso8601(time_min))
     end
@@ -217,34 +221,33 @@ class Integrations::GoogleCalendar::EventService
 
   # All booking actors respect the configured availability, including API-token callers.
   def create(params, enforce_hours: true)
+    people = authorized_people!(params)
     validate_appointment_status!(params, creating: true)
-    if (existing = find_by_idempotency_key(params[:idempotency_key]))
-      return self.class.payload_from_record(existing)
-    end
-
     calendar_id = params[:calendar_id]
     ensure_calendar_enabled!(calendar_id)
     start_at, end_at = parse_range(params)
-    ensure_within_hours!(calendar_id, start_at, end_at) if enforce_hours
+    existing = existing_booking(params, start_at, end_at)
+    ensure_within_hours!(calendar_id, start_at, end_at) if enforce_hours && !existing
     with_booking_lock(calendar_id) do
-      if (existing = find_by_idempotency_key(params[:idempotency_key]))
-        return self.class.payload_from_record(existing)
-      end
+      existing = existing_booking(params, start_at, end_at)
+      return recover_booking!(existing) if existing
 
       ensure_slot_available!(calendar_id, start_at, end_at)
+      @booking_lock.assert_owned!
       release_discarded_idempotency_key!(params[:idempotency_key])
-      create_booking!(params, start_at, end_at)
+      create_booking!(params, start_at, end_at, people)
     end
   end
 
-  def update(event_id, params, enforce_hours: true)
+  def update(event_id, params, enforce_hours: true, require_local: false)
     calendar_id = params[:calendar_id]
     ensure_calendar_enabled!(calendar_id)
-    record = connection.calendar_events.find_by(google_event_id: event_id)
+    record = local_owner(event_id, calendar_id, required: require_local)
+    people = authorized_people!(params, record: record)
     raise EventCancelled if record&.discarded? && params[:appointment_status] != 'cancelled'
 
     validate_appointment_status!(params, record: record)
-    return destroy(event_id, params) if params[:appointment_status] == 'cancelled'
+    return destroy(event_id, params.merge(require_local: require_local)) if params[:appointment_status] == 'cancelled'
 
     start_at, end_at = parse_range(params)
     ensure_lock!(event_id)
@@ -253,15 +256,16 @@ class Integrations::GoogleCalendar::EventService
         ensure_within_hours!(calendar_id, start_at, end_at) if enforce_hours
         ensure_slot_available!(calendar_id, start_at, end_at, except_event_id: event_id)
       end
-      update_booking!(event_id, params, [start_at, end_at], record)
+      update_booking!(event_id, params, [start_at, end_at], record, people)
     end
   end
 
   def destroy(event_id, params)
     calendar_id = params[:calendar_id]
     ensure_calendar_enabled!(calendar_id)
+    record = local_owner(event_id, calendar_id, required: params[:require_local])
+    authorized_people!(params, record: record)
     ensure_lock!(event_id)
-    record = connection.calendar_events.find_by(google_event_id: event_id)
     note = params[:note].to_s.strip
     raise MissingDeleteNote if note.blank? && record&.deleted_at.nil?
 
@@ -294,6 +298,12 @@ class Integrations::GoogleCalendar::EventService
 
   attr_reader :account, :user, :connection
 
+  # Captain may mutate only a kept local appointment. The dashboard can also import Google-only events.
+  def local_owner(event_id, calendar_id, required:)
+    records = connection.calendar_events.where(external_calendar_id: calendar_id)
+    required ? records.kept.find_by!(google_event_id: event_id) : records.find_by(google_event_id: event_id)
+  end
+
   def client
     @client ||= begin
       token = Integrations::GoogleCalendar::TokenService.new(connection: connection).access_token
@@ -301,37 +311,45 @@ class Integrations::GoogleCalendar::EventService
     end
   end
 
-  def create_booking!(params, start_at, end_at)
+  def create_booking!(params, start_at, end_at, people)
     calendar_id = params[:calendar_id]
-    contact = find_contact(params[:contact_id])
-    conversation = find_conversation(params[:conversation_id])
+    contact, conversation = people
     summary = params[:summary].presence || I18n.t('integration_apps.calendars.default_title')
     invitation = invitation_for(params, start_at, [contact, conversation], summary: summary)
     attributes = google_event_attributes(params, [start_at, end_at], [contact, conversation], summary: summary, invitation: invitation)
+    @booking_lock.assert_owned!
     google_event = client.create_event(**attributes)
-    google_event = complete_meet_link(calendar_id, google_event, invitation)
+    # Preserve the result of an already submitted POST even if its lease expired
+    # during I/O. This records the remote reservation; it cannot undo that POST.
     record = upsert_local!(
       google_event, calendar_id, contact, conversation,
       creating: true, idempotency_key: params[:idempotency_key], params: params
     )
-    notify_conversation!(conversation, :event_created, record)
-    notify_contact_or_bot!(params, conversation, record, google_event, 'created')
-    serialize(google_event, record, calendar_id)
+    finish_booking!(params, record, google_event, invitation, 'created')
   end
 
-  def update_booking!(event_id, params, range, record)
+  def update_booking!(event_id, params, range, record, people)
     calendar_id = params[:calendar_id]
-    contact = find_contact(params[:contact_id])
-    conversation = find_conversation(params[:conversation_id])
+    contact, conversation = people
     summary = params[:summary].presence || I18n.t('integration_apps.calendars.default_title')
     invitation = invitation_for(params, range.first, [contact, conversation], summary: summary, record: record)
     attributes = google_event_attributes(params, range, [contact, conversation], summary: summary, invitation: invitation)
+    @booking_lock.assert_owned!
     google_event = client.update_event(**attributes, event_id: event_id, etag: params[:etag])
-    google_event = complete_meet_link(calendar_id, google_event, invitation)
     record = upsert_local!(google_event, calendar_id, contact, conversation, creating: false, params: params)
-    notify_conversation!(conversation, :event_updated, record)
-    notify_contact_or_bot!(params, conversation, record, google_event, 'updated')
-    serialize(google_event, record, calendar_id)
+    finish_booking!(params, record, google_event, invitation, 'updated')
+  end
+
+  def finish_booking!(params, record, google_event, invitation, event_name)
+    @booking_lock.assert_owned!
+    google_event = complete_meet_link(record.external_calendar_id, google_event, invitation)
+    @booking_lock.assert_owned!
+    record.update!(etag: google_event['etag']) if record.etag != google_event['etag']
+    @booking_lock.assert_owned!
+    notify_conversation!(record.conversation, "event_#{event_name}".to_sym, record)
+    @booking_lock.assert_owned!
+    notify_contact_or_bot!(params, record.conversation, record, google_event, event_name)
+    serialize(google_event, record, record.external_calendar_id)
   end
 
   def google_event_attributes(params, range, people, summary:, invitation:)
@@ -376,12 +394,15 @@ class Integrations::GoogleCalendar::EventService
   end
 
   def with_booking_lock(calendar_id)
-    lock = Integrations::GoogleCalendar::BookingLock.new(account_id: account.id, calendar_id: calendar_id)
-    raise SlotBusy.new(reason: 'in_progress') unless lock.acquire
+    @booking_lock = Integrations::GoogleCalendar::BookingLock.new(account_id: account.id, calendar_id: calendar_id)
+    raise SlotBusy.new(reason: 'in_progress') unless @booking_lock.acquire
 
     yield
+  rescue Integrations::GoogleCalendar::BookingLock::Lost
+    raise SlotBusy.new(reason: 'in_progress')
   ensure
-    lock&.release
+    @booking_lock&.release
+    @booking_lock = nil
   end
 
   def ensure_slot_available!(calendar_id, start_at, end_at, except_event_id: nil)
@@ -499,6 +520,23 @@ class Integrations::GoogleCalendar::EventService
     [start_at, end_at]
   end
 
+  def authorized_people!(params, record: nil)
+    authorize_conversation!(record&.conversation)
+    conversation = find_conversation(params[:conversation_id])
+    authorize_conversation!(conversation)
+    contact = find_contact(params[:contact_id])
+    raise ContactMismatch if contact && conversation && contact.id != conversation.contact_id
+
+    [contact, conversation]
+  end
+
+  def authorize_conversation!(conversation)
+    return if conversation.nil?
+
+    account_user = account.account_users.find_by(user_id: user.id) if user.is_a?(User)
+    Pundit.authorize({ user: user, account: account, account_user: account_user }, conversation, :show?)
+  end
+
   def find_contact(contact_id)
     return if contact_id.blank?
 
@@ -547,7 +585,28 @@ class Integrations::GoogleCalendar::EventService
     text = Integrations::GoogleCalendar::InvitationText.render(invitation[:template], invitation[:values].merge('enlace_meet' => link))
     return google_event if text == google_event['description']
 
-    google_event.merge(client.update_description(calendar_id: calendar_id, event_id: google_event['id'], description: text))
+    @booking_lock.assert_owned!
+    result = google_event.merge(client.update_description(calendar_id: calendar_id, event_id: google_event['id'], description: text))
+    @booking_lock.assert_owned!
+    result
+  rescue Integrations::GoogleCalendar::BookingLock::Lost
+    raise
+  rescue StandardError => e
+    Rails.logger.warn("Google Calendar Meet description pending for #{google_event['id']}: #{e.class} #{e.message}")
+    google_event
+  end
+
+  # An idempotent retry repairs the optional description from Google's current
+  # event and the saved invitation, without another POST or duplicate messages.
+  def recover_booking!(record)
+    event = google_event_for(record)
+    invitation = invitation_for({}, record.start_at, [record.contact, record.conversation], summary: record.summary, record: record)
+    event = complete_meet_link(record.external_calendar_id, event, invitation)
+    @booking_lock.assert_owned!
+    record.update!(etag: event['etag']) if record.etag != event['etag']
+    self.class.payload_from_record(record).merge(
+      description: event['description'], meet_link: meet_link(event), invitation_text: record.invitation_text
+    )
   end
 
   def upsert_local!(google_event, calendar_id, contact, conversation, creating:, idempotency_key: nil, params: {})
@@ -625,6 +684,18 @@ class Integrations::GoogleCalendar::EventService
     return if key.blank?
 
     account.calendar_events.kept.find_by(idempotency_key: key)
+  end
+
+  # Keys identify one connection, calendar and interval. A collision must never confirm another booking.
+  def existing_booking(params, start_at, end_at)
+    record = find_by_idempotency_key(params[:idempotency_key])
+    return unless record
+
+    authorize_conversation!(record.conversation)
+    raise InvalidRange if record.calendar_connection_id != connection.id || record.external_calendar_id != params[:calendar_id] ||
+                          slot_changed?(record, start_at, end_at)
+
+    record
   end
 
   # A cancelled booking no longer answers to its key (find_by_idempotency_key only sees kept rows), but rows

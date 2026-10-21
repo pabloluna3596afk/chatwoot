@@ -460,6 +460,7 @@ es:
       short_description: 'Access order details and customer data from your Shopify store.'
       description: 'Connect your Shopify store to access order details, customer information, and product data directly within your conversations and helps your support team provide faster, more contextual assistance to your customers.'
     calendars:
+      contact_mismatch: 'El contacto seleccionado no corresponde a esta conversación.'
       name: 'Calendarios'
       short_description: 'Conecta Google Calendar y mira los eventos en el panel.'
       description: 'Conecta cuentas de Google Calendar para que el equipo vea los eventos. Microsoft Calendar llega pronto.'

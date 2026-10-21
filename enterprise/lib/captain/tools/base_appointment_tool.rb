@@ -89,7 +89,8 @@ class Captain::Tools::BaseAppointmentTool < Captain::Tools::BasePublicTool
 
   def own_appointments(conversation, contact)
     Integrations::GoogleCalendar::EventService.contact_payloads(
-      conversation.account, contact.id, calendar_id: calendar_id, time_min: Time.current.iso8601, time_max: 2.years.from_now.iso8601
+      conversation.account, contact.id,
+      calendar_id: calendar_id, connection_id: connection.id, time_min: Time.current.iso8601, time_max: 2.years.from_now.iso8601
     ).reject { |event| event[:deleted] }
   end
 
