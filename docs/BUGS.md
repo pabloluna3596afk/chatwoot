@@ -1,5 +1,43 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-091 - Próxima cita vigente y errores de carga visibles (CIT-16 / CIT-26)
+
+**Archivos:** `CalendarEvent`, `useAppointmentEvents`, `useAppointmentClock`,
+`actionCable.js`, `NextAppointmentCard.vue`, `CalendarEventsList.vue`, cliente
+Calendar, mensajes en/es de conversación y specs de modelo/job/UI.
+
+**Fix:** después del commit de una cita se invalida su contacto en el canal
+existente de la cuenta, incluyendo el contacto anterior al reasociar. El mensaje
+solo lleva IDs; lista y tarjeta vuelven a consultar sus endpoints autorizados.
+Funciona para cambios humanos/Captain y sin atributos opcionales de citas.
+Cambiar solo etag no emite ni provoca bucles de lectura. Se conserva el refresh
+local al guardar desde ContactPanel y se recarga después de recuperar WebSocket.
+Las solicitudes se cancelan al cambiar cuenta/contacto/conversación o desmontar.
+Un timeout en la siguiente frontera temporal recalcula sin polling; al volver
+a una pestaña suspendida se actualiza el reloj. Se mantiene el contrato existente:
+una cita en curso sigue siendo próxima hasta su fin. Las canceladas se excluyen.
+Lista y tarjeta distinguen error de vacío real y ofrecen reintento localizado.
+
+**Cómo probar:** mantener abiertos dos contactos, crear/mover/cancelar una cita
+del primero desde calendario u otro cliente y comprobar su actualización sin
+remontar ni cambiar el segundo. Dejar vencer una cita y comprobar la siguiente.
+Cambiar contacto con una petición pendiente: la respuesta anterior no aparece.
+Simular 503, reintentar y comparar con un contacto realmente sin citas.
+
+**Evidencia local (2026-10-21):** seis regresiones frontend fallan sobre la base;
+también falla la integración ContactPanel con la tarjeta original. En backend,
+cuatro regresiones fallan sin el callback. Verde: 115 tests por zona UTC y
+America/Guayaquil; 20 ejemplos RSpec sin fallos, PostgreSQL/Redis exclusivos.
+ESLint sin errores (cinco warnings heredados), Prettier y diff check aprobados.
+RuboCop exacto CI en chathub-rubocop-ci:cit5-ruby344 pasa sobre 42 Ruby de la
+cadena; inspected_file_count=42. Los tres Ruby de esta tarea pasan completos;
+el reporte global conserva 90 infracciones heredadas fuera de líneas cambiadas.
+Veinte capturas cit10- revisadas, 1280/390, claro/oscuro, dos contactos,
+actualización/vacío/error/reintento con componentes reales y APIs simuladas.
+Sin migraciones. Pendientes CI remoto y smoke Google aislado; las capturas
+no acreditan operaciones ni entrega de proveedor. Integrar PR1 → … → PR10;
+esta rama parte localmente del PR9. Sin push ni cambios a AGENTS.md.
+
 ### B-NEW-090 - Conexión propietaria y respuestas vigentes de Citas (CIT-15 / CIT-17)
 
 **Archivos:** `CalendarView.vue`, `CalendarEventsList.vue`, `EventModal.vue`,
