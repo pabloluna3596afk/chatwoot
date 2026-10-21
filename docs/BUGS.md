@@ -135,6 +135,21 @@ base, por lo que no se reclama rojo/verde backend. Sin migraciones. Pendientes C
 remoto y smoke con Google real. Detalle: `tmp/PR-CITAS-8.md` (ignorado).
 
 
+### B-NEW-184 — Fixtures de cuenta en specs de tarjetas de citas
+
+**Archivos:** `CalendarEventsList.spec.js`, `NextAppointmentCard.spec.js`.
+
+**Causa:** las tarjetas usan `useCalendarTime`, que lee la cuenta mediante
+`useAccount`. Los specs montaban las tarjetas sin cuenta, store ni router;
+esto provocaba cinco rechazos sin manejar y cuatro aserciones fallidas.
+
+**Fix:** proporcionar una cuenta con `calendar_timezone` mediante el mock de
+`useAccount`, conservando las aserciones existentes y comprobando además que
+ambas tarjetas muestran `America/Guayaquil`.
+
+**Cómo probar:** ejecutar los seis ejemplos de ambos archivos con Vitest en
+`TZ=UTC` y `TZ=America/Guayaquil`; deben pasar sin rechazos sin manejar.
+
 ### B-NEW-087 — Una zona de cuenta en todo el recorrido de Citas (CIT-02)
 
 **Archivos:** `lib/integrations/google_calendar/timezone.rb`, servicio de eventos,
@@ -264,6 +279,27 @@ consumo atómico. Sin migraciones, cambios visuales, capturas ni OAuth real.
 remota del CI y smoke con Google en cuenta de prueba; sin push ni despliegue.
 Los pendientes funcionales heredados de PR1–PR3 no se dan por cerrados aquí.
 
+### B-NEW-183 — Fixtures de propiedad e idempotencia del CI de citas (PR #183)
+
+**Archivos:** `spec/lib/integrations/google_calendar/event_service_spec.rb`,
+`spec/enterprise/lib/captain/tools/appointment_tools_spec.rb`,
+`spec/controllers/api/v1/accounts/integrations/calendar_controller_spec.rb`.
+
+**Causa y fix:** los helpers creaban mediante `connection.calendar_events`,
+que imponía esa conexión sobre la conexión ajena solicitada por el ejemplo y
+retenía en su colección la fila destruida. Ahora crean con `CalendarEvent`,
+con conexión predeterminada explícita y atributos del ejemplo aplicados después.
+El reintento idempotente necesita leer el evento Google para recuperar Meet;
+el double del request spec no admitía `get_event` y causaba HTTP 500, no un
+rechazo de intervalo. Se simula esa lectura y se exige HTTP 200 en ambos POST,
+el mismo evento, un solo POST a Google y una sola lectura de recuperación.
+Se conservan todas las aserciones de aislamiento; no cambia código de producción.
+
+**Cómo probar:** ejecutar los tres archivos anteriores: la base intacta reproduce
+303 ejemplos con los mismos 12 fallos del CI. Luego ejecutar la regresión de
+calendario y Captain con los fixtures corregidos, incluyendo las pruebas de
+recuperación Meet y exclusión con Redis real. Sin migraciones.
+
 ### B-NEW-084 — Lease de reservas y recuperación de Meet (CIT-12 / CIT-31)
 
 **Archivos:** `lib/integrations/google_calendar/booking_lock.rb`,
@@ -366,6 +402,41 @@ de helpers Calendar en UTC y America/Guayaquil aprobados. RuboCop en imagen
 modificadas; 37 infracciones anteriores en los archivos completos. RSpec queda
 reservado a CI; todavía no se acredita ejecución rojo/verde. Capturas pendientes:
 la herramienta no dispone de navegador. Sin migraciones. Pendiente merge/deploy.
+
+### B-NEW-081 — Cierre de variables Flow, notificaciones e importadores (MV-12, MV-13, MV-16)
+
+**Archivos:** `Variables::{ContextFactory,Omission,ImportDiagnostics,Writer}`,
+`VariablesController`, `Flows::{DeferredSendJob,ActionService,ExecutionService}`,
+`AutomationNotificationMailer`, `MessageTemplates::Template::Greeting`,
+`Concerns::Toolable`, `Captain::Tools::HttpTool`, `DataImportJob`,
+`DataImport::ContactManager`, `DataImports::Importer` y el correo de importación.
+
+**Fix:** el run explícito habilita `flow.x` y `flow.variables.x` en preview,
+envío, notas y captura. Notificaciones resuelven `custom_message` antes de
+insertarlo; herramientas HTTP comparten contexto CRM y devuelven diagnóstico
+con ruta/estado. Saludos y notificaciones incompletos se omiten con nota privada.
+Los snapshots se interpolan una vez, usando fechas en zona de cuenta.
+API/prechat conservan su writer común y JSON literal. CSV/Intercom/Freshdesk
+protegen atributos gestionados y avisan de claves sin definición, sin crear
+definiciones a partir de metadata técnica ni modificar formatos de entrada.
+CSV incluye el aviso en el correo; externos lo muestran en sus resultados.
+Los avisos externos cuentan como incidencias, sin sumar registros ficticios.
+Sin migraciones ni cambios de frontend, campañas, Meta, Panel AI o cobros.
+
+**Cómo probar:** guardar `x` en un nodo de Flow y enviar `{{ flow.x }}` en texto
+y botón; comparar preview con `flow_run_id`/`conversation_id`. Usar un run ajeno
+debe devolver 404, y uno sin conversación, 422. Probar un saludo y una notificación
+con `contact.identifier`, fecha y atributo ausente: solo el último se omite y
+deja razón privada. HTTP con ruta CRM debe resolverla; un dato ausente impide
+la petición y muestra ruta/estado. Importar una columna sin definición: el valor
+se conserva y se informa su clave, nunca su valor. Crear la definición y verificar
+el selector. CSV con `total_citas` protegido queda en rechazados. Repetir con
+Intercom/Freshdesk; revisar avisos, contadores y que no aparezcan definiciones
+automáticas. Specs Ruby preparados por superficie; ejecución integrada solo CI.
+
+**Estado:** implementado; RSpec pendiente de CI. Comprobaciones aisladas con
+Liquid reproducen MV-12/MV-13 antes y pasan después; no sustituyen Rails/RSpec.
+Contrato y límites: `docs/VARIABLES_ENGINE.md`, sección de cierre PR F.
 
 ### B-NEW-080 - Captain y escritura de variables (MV-10, MV-11, MV-14)
 
@@ -2622,6 +2693,13 @@ y oscuro, a 1280, 360, 390 y 430 px. Desplazar el contenedor hasta el final:
 deben verse las tres opciones de tono o el área de chat, sin solaparse con el
 pie. Comprobar el icono en la misma fila de marca que el paso 3 y las acciones
 primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
+
+### B-NEW-082 - PR #182 backend CI: import diagnostics and Flow contracts
+
+- Files: `app/services/variables/import_diagnostics.rb`, `config/locales/{en,es}.yml`, `app/jobs/flows/deferred_send_job.rb`, `spec/services/flows/action_service_spec.rb`.
+- Cause: I18n treats `scope` as a lookup option, producing `contact.variables.import_undefined`; the deferred job renders the content/buttons envelope under another `content` root; the action spec inherits a numeric attribute from its factory while writing `stored`.
+- Fix: rename the interpolation argument/placeholder to `attribute_scope` (including the existing Spanish placeholder, without changing translated copy); render each deferred payload field at its own root; explicitly define the spec attribute as text. Preserve the `result:` keyword and all expectations.
+- Verify: CI-image RuboCop inspected all three changed Ruby files with zero offenses; standalone I18n interpolation passed in en/es. Statically traced both import callers, Flow context propagation, typed normalization and skipped-send advancement. RSpec is deferred to CI as required by the task.
 
 ## 8. Docs relacionadas
 

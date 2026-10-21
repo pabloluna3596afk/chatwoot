@@ -34,7 +34,8 @@ class AdministratorNotifications::AccountNotificationMailer < AdministratorNotif
 
     meta = {
       'failed_contacts' => resource.total_records - resource.processed_records,
-      'imported_contacts' => resource.processed_records
+      'imported_contacts' => resource.processed_records,
+      'variable_warnings' => resource.import_errors.where(error_code: Variables::ImportDiagnostics::ERROR_CODE).pluck(:message).join(' ')
     }
 
     send_notification(subject, action_url: action_url, meta: meta)

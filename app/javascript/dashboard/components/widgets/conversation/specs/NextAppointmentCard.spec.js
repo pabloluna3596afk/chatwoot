@@ -1,6 +1,13 @@
 import { flushPromises, shallowMount } from '@vue/test-utils';
 import { ref } from 'vue';
 import NextAppointmentCard from '../NextAppointmentCard.vue';
+import { ref } from 'vue';
+
+vi.mock('dashboard/composables/useAccount', () => ({
+  useAccount: () => ({
+    currentAccount: ref({ calendar_timezone: 'America/Guayaquil' }),
+  }),
+}));
 
 const { getContactEvents } = vi.hoisted(() => ({ getContactEvents: vi.fn() }));
 
@@ -65,6 +72,7 @@ describe('NextAppointmentCard', () => {
     expect(wrapper.find('[data-testid="next-appointment"]').text()).toContain(
       'Cita soon'
     );
+    expect(wrapper.text()).toContain('America/Guayaquil');
     expect(wrapper.text()).toContain(
       'CONVERSATION_SIDEBAR.CALENDAR.STATUS.CONFIRMED'
     );

@@ -11,11 +11,14 @@ class Captain::Tools::HttpTool < Captain::Tools::BasePublicTool
   end
 
   def perform(tool_context, **params)
-    url = @custom_tool.build_request_url(params)
-    body = @custom_tool.build_request_body(params)
+    drops = variable_drops(tool_context.state)
+    url = @custom_tool.build_request_url(params, drops: drops)
+    body = @custom_tool.build_request_body(params, drops: drops)
 
     response_body = execute_http_request(url, body, tool_context)
-    @custom_tool.format_response(response_body)
+    @custom_tool.format_response(response_body, drops: drops)
+  rescue Variables::DeliveryRenderer::Error => e
+    failure_result(I18n.t('variables.tool_render_failed', locale: @assistant.account.locale, path: e.path, status: e.status), tool_context.state)
   rescue StandardError => e
     Rails.logger.error("HttpTool execution error for #{@custom_tool.slug}: #{e.class} - #{e.message}")
     failure_result('An error occurred while executing the request', tool_context.state)
@@ -26,6 +29,14 @@ class Captain::Tools::HttpTool < Captain::Tools::BasePublicTool
   end
 
   private
+
+  def variable_drops(state)
+    conversation = find_conversation(state)
+    contact = conversation ? conversation.contact : find_contact(state)
+    Variables::ContextFactory.new(
+      account: @assistant.account, records: { conversation: conversation, contact: contact, assistant: @assistant }
+    ).build(surface: 'captain')
+  end
 
   def safe_to_run_after_new_customer_message?
     @custom_tool.http_method == 'GET'

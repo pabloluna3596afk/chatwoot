@@ -122,4 +122,57 @@ RSpec.describe 'Variables API', type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.parsed_body['results'].first.first['value']).to eq(admin.email)
   end
+
+  context 'with an explicit FlowRun' do
+    let(:conversation) { create(:conversation, account: account, contact: contact) }
+    let(:flow) { Flow.create!(account: account, name: 'Preview') }
+    let(:run) { FlowRun.create!(account: account, conversation: conversation, flow: flow, variables: { x: 'stored' }) }
+
+    before do
+      payload[:surface] = 'flow'
+      payload[:texts] = ['{{ flow.x }}', '{{ flow.variables.x }}']
+      payload[:contexts] = [{ conversation_id: conversation.display_id, flow_run_id: run.id }]
+    end
+
+    it 'previews the exact run using the same factory as delivery' do
+      post "#{url}/preview", headers: admin.create_new_auth_token, params: payload, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body['results'].first.map { |entry| entry['value'] }).to eq(%w[stored stored])
+    end
+
+    it 'does not infer a run when none was explicitly supplied' do
+      payload[:contexts].first.delete(:flow_run_id)
+      post "#{url}/preview", headers: admin.create_new_auth_token, params: payload, as: :json
+
+      expect(response.parsed_body['results'].first.map { |entry| entry['status'] }).to eq(%w[unavailable unavailable])
+    end
+
+    it 'rejects a run outside the supplied conversation' do
+      other = create(:conversation, account: account)
+      payload[:contexts].first[:conversation_id] = other.display_id
+      post "#{url}/preview", headers: admin.create_new_auth_token, params: payload, as: :json
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it 'validates the run context before loading records' do
+      payload[:contexts].first.delete(:conversation_id)
+      post "#{url}/preview", headers: admin.create_new_auth_token, params: payload, as: :json
+      expect(response).to have_http_status(:unprocessable_entity)
+
+      payload[:contexts].first[:conversation_id] = conversation.display_id
+      payload[:surface] = 'message'
+      post "#{url}/preview", headers: admin.create_new_auth_token, params: payload, as: :json
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it 'applies conversation visibility to the run preview' do
+      agent = create(:user, account: account, role: :agent)
+      post "#{url}/preview", headers: agent.create_new_auth_token, params: payload, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+      expect(response.body).not_to include('stored')
+    end
+  end
 end

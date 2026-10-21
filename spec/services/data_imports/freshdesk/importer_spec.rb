@@ -13,6 +13,12 @@ RSpec.describe DataImports::Freshdesk::Importer do
   end
 
   before do
+    %w[freshdesk_contact_id freshdesk_unique_external_id].each do |key|
+      create(:custom_attribute_definition, account: account, attribute_model: 'contact_attribute', attribute_key: key)
+    end
+    %w[freshdesk_ticket_id freshdesk_subject freshdesk_status freshdesk_priority].each do |key|
+      create(:custom_attribute_definition, account: account, attribute_model: 'conversation_attribute', attribute_key: key)
+    end
     account.enable_features!('data_import')
     allow(DataImports::Freshdesk::Client).to receive(:new).with(
       domain: 'acme.freshdesk.com',
@@ -298,5 +304,18 @@ RSpec.describe DataImports::Freshdesk::Importer do
       'source_provider' => 'freshdesk',
       'error_class' => 'CustomExceptions::DataImport::FreshdeskTicketLimitError'
     )
+  end
+
+  it 'reports undefined imported attributes without generating definitions or changing stored values' do
+    account.custom_attribute_definitions.destroy_all
+    described_class.new(data_import: data_import).perform
+
+    expect(account.custom_attribute_definitions).to be_empty
+    warnings = data_import.import_errors.where(error_code: Variables::ImportDiagnostics::ERROR_CODE)
+    expect(warnings.pluck(:source_object_type)).to contain_exactly('contact', 'conversation')
+    expect(warnings.find_by!(source_object_type: 'contact').details['keys']).to include('freshdesk_contact_id')
+    expect(account.contacts.first.custom_attributes).to have_key('freshdesk_contact_id')
+    expect(data_import.reload).to be_completed_with_errors
+    expect(data_import.total_records).to eq(data_import.processed_records)
   end
 end

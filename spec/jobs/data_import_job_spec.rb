@@ -5,6 +5,38 @@ RSpec.describe DataImportJob do
 
   let!(:data_import) { create(:data_import) }
 
+  describe 'variable import diagnostics' do
+    it 'retains undefined CSV columns and reports their names in the result' do
+      data_import.import_file.attach(io: StringIO.new("email,hidden_field\nvariables@example.com,secret-value\n"), filename: 'variables.csv')
+      described_class.perform_now(data_import)
+
+      contact = data_import.account.contacts.find_by!(email: 'variables@example.com')
+      expect(contact.custom_attributes['hidden_field']).to eq('secret-value')
+      warning = data_import.import_errors.find_by!(error_code: Variables::ImportDiagnostics::ERROR_CODE)
+      expect(warning.message).to include('hidden_field')
+      expect(warning.message).not_to include('secret-value')
+      expect(data_import.account.custom_attribute_definitions).to be_empty
+      expect(data_import.reload).to be_completed
+      create(:user, account: data_import.account, role: :administrator)
+      with_modified_env SMTP_ADDRESS: 'smtp.example.com' do
+        email = AdministratorNotifications::AccountNotificationMailer.with(account: data_import.account).contact_import_complete(data_import).message
+        expect(email.body.decoded).to include('hidden_field')
+        expect(email.body.decoded).not_to include('secret-value')
+      end
+    end
+
+    it 'rejects managed CSV values in the existing rejected-records file' do
+      data_import.account.update!(appointment_attributes: { 'enabled_keys' => ['total_citas'] })
+      create(:custom_attribute_definition, account: data_import.account, attribute_model: 'contact_attribute',
+                                           attribute_key: 'total_citas', attribute_display_type: 'number')
+      data_import.import_file.attach(io: StringIO.new("email,total_citas\nblocked@example.com,99\n"), filename: 'managed.csv')
+      described_class.perform_now(data_import)
+
+      expect(data_import.account.contacts.from_email('blocked@example.com')).to be_nil
+      expect(data_import.reload.failed_records.download).to include('Read-only variables: total_citas')
+    end
+  end
+
   describe 'enqueueing the job' do
     it 'queues the job on the low priority queue' do
       expect { job }.to have_enqueued_job(described_class)
