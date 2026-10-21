@@ -1,5 +1,4 @@
 class Integrations::GoogleCalendar::EventService
-  TIMEZONE = Integrations::GoogleCalendar::Client::TIMEZONE
   INVITATION_REFRESH_LIMIT = 5
   INVITATION_REFRESH_EVERY = 5.minutes
 
@@ -44,7 +43,7 @@ class Integrations::GoogleCalendar::EventService
   # Falls back to the hardcoded default only for accounts that never set a
   # reporting timezone — real accounts should configure Settings → Reports.
   def account_timezone
-    account.reporting_timezone.presence || TIMEZONE
+    Integrations::GoogleCalendar::Timezone.for(account).tzinfo.name
   end
 
   def list(calendar_id:, time_min:, time_max:)
@@ -533,11 +532,13 @@ class Integrations::GoogleCalendar::EventService
 
   def parse_range(params)
     zone = Time.find_zone!(account_timezone)
-    start_at = zone.parse(params[:start].to_s)
-    end_at = params[:end].present? ? zone.parse(params[:end].to_s) : start_at + 30.minutes
+    start_at = Integrations::GoogleCalendar::Timezone.parse(params[:start].to_s, zone: zone)
+    end_at = params[:end].present? ? Integrations::GoogleCalendar::Timezone.parse(params[:end].to_s, zone: zone) : start_at + 30.minutes
     raise InvalidRange if start_at.blank? || end_at <= start_at
 
     [start_at, end_at]
+  rescue ArgumentError
+    raise InvalidRange
   end
 
   def authorized_people!(params, record: nil)
@@ -836,7 +837,7 @@ class Integrations::GoogleCalendar::EventService
     value = payload['dateTime'].presence || payload['date']
     Time.iso8601(value)
   rescue ArgumentError
-    Time.zone.parse(value)
+    Integrations::GoogleCalendar::Timezone.parse(value, zone: Integrations::GoogleCalendar::Timezone.for(account))
   end
 
   def serialize(event, record, calendar_id)

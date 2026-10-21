@@ -77,7 +77,7 @@ class Captain::AppointmentReminders::Sender
   end
 
   def zone
-    @zone ||= Time.find_zone!(account.reporting_timezone.presence || Integrations::GoogleCalendar::Client::TIMEZONE)
+    @zone ||= Integrations::GoogleCalendar::Timezone.for(account)
   end
 
   def contact

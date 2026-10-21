@@ -771,4 +771,26 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
       expect(soon.reload.invitation_status).to eq('declined')
     end
   end
+  describe 'account timezone throughout a booking' do
+    ['America/Guayaquil', 'America/New_York'].each do |timezone|
+      it "offers, books and renders invitations at 10:00 in #{timezone}" do
+        account.update!(settings: { reporting_timezone: timezone }, appointment_invitation_template: '{{fecha}} {{hora}}')
+        zone = Time.find_zone!(timezone)
+        start_at = zone.local(2030, 7, 15, 10)
+        travel_to(Time.utc(2030, 7, 1))
+        connection.update!(access_token_expires_at: 1.hour.from_now)
+
+        slots = service.available_slots(calendar_id: 'cal-1', from: start_at, to: start_at + 30.minutes)
+        expect(slots).to eq([{ start: start_at.iso8601, end: (start_at + 30.minutes).iso8601 }])
+        result = service.create(create_params(start: slots.first[:start], end: slots.first[:end]))
+
+        expect(Time.iso8601(result[:start])).to eq(start_at)
+        expect(connection.calendar_events.last.start_at).to eq(start_at)
+        expect(created_calls.last).to include(timezone: timezone, start_at: start_at)
+        expect(created_calls.last[:description]).to include('10:00')
+      ensure
+        travel_back
+      end
+    end
+  end
 end
