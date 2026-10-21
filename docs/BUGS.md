@@ -1,5 +1,458 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-185 — Mock único de cuenta en la próxima cita tras integrar develop
+
+**Archivo:** `app/javascript/dashboard/components/widgets/conversation/specs/NextAppointmentCard.spec.js`.
+
+**Causa y fix:** la integración de develop dejó dos imports de `ref` y dos mocks
+de `useAccount` en el mismo spec. ESLint abortaba con `Identifier 'ref' has already
+been declared`. Se conserva un solo import y un mock con `accountId` y
+`calendar_timezone: 'America/Guayaquil'`, manteniendo todas las aserciones.
+No cambia código de producción.
+
+**Cómo probar:** ejecutar ESLint sobre el archivo y Vitest sobre las carpetas de
+specs de conversación, calendario, helpers, composables y ajustes del asistente
+en UTC y America/Guayaquil. Ver el informe externo `docs-crm/codex/validar-c.md`
+para comandos y resultados de la validación del bloque C.
+
+### B-NEW-091 - Próxima cita vigente y errores de carga visibles (CIT-16 / CIT-26)
+
+**Archivos:** `CalendarEvent`, `useAppointmentEvents`, `useAppointmentClock`,
+`actionCable.js`, `NextAppointmentCard.vue`, `CalendarEventsList.vue`, cliente
+Calendar, mensajes en/es de conversación y specs de modelo/job/UI.
+
+**Fix:** después del commit de una cita se invalida su contacto en el canal
+existente de la cuenta, incluyendo el contacto anterior al reasociar. El mensaje
+solo lleva IDs; lista y tarjeta vuelven a consultar sus endpoints autorizados.
+Funciona para cambios humanos/Captain y sin atributos opcionales de citas.
+Cambiar solo etag no emite ni provoca bucles de lectura. Se conserva el refresh
+local al guardar desde ContactPanel y se recarga después de recuperar WebSocket.
+Las solicitudes se cancelan al cambiar cuenta/contacto/conversación o desmontar.
+Un timeout en la siguiente frontera temporal recalcula sin polling; al volver
+a una pestaña suspendida se actualiza el reloj. Se mantiene el contrato existente:
+una cita en curso sigue siendo próxima hasta su fin. Las canceladas se excluyen.
+Lista y tarjeta distinguen error de vacío real y ofrecen reintento localizado.
+
+**Cómo probar:** mantener abiertos dos contactos, crear/mover/cancelar una cita
+del primero desde calendario u otro cliente y comprobar su actualización sin
+remontar ni cambiar el segundo. Dejar vencer una cita y comprobar la siguiente.
+Cambiar contacto con una petición pendiente: la respuesta anterior no aparece.
+Simular 503, reintentar y comparar con un contacto realmente sin citas.
+
+**Evidencia local (2026-10-21):** seis regresiones frontend fallan sobre la base;
+también falla la integración ContactPanel con la tarjeta original. En backend,
+cuatro regresiones fallan sin el callback. Verde: 115 tests por zona UTC y
+America/Guayaquil; 20 ejemplos RSpec sin fallos, PostgreSQL/Redis exclusivos.
+ESLint sin errores (cinco warnings heredados), Prettier y diff check aprobados.
+RuboCop exacto CI en chathub-rubocop-ci:cit5-ruby344 pasa sobre 42 Ruby de la
+cadena; inspected_file_count=42. Los tres Ruby de esta tarea pasan completos;
+el reporte global conserva 90 infracciones heredadas fuera de líneas cambiadas.
+Veinte capturas cit10- revisadas, 1280/390, claro/oscuro, dos contactos,
+actualización/vacío/error/reintento con componentes reales y APIs simuladas.
+Sin migraciones. Pendientes CI remoto y smoke Google aislado; las capturas
+no acreditan operaciones ni entrega de proveedor. Integrar PR1 → … → PR10;
+esta rama parte localmente del PR9. Sin push ni cambios a AGENTS.md.
+
+### B-NEW-090 - Conexión propietaria y respuestas vigentes de Citas (CIT-15 / CIT-17)
+
+**Archivos:** `CalendarView.vue`, `CalendarEventsList.vue`, `EventModal.vue`,
+`AssistantAppointmentsForm.vue`, clientes Calendar/Search, `useAbortableRequest`
+y specs de esas superficies. Fuentes nuevas solo en `en/settings.json`.
+
+**Fix:** desde conversación se puede elegir otra conexión al crear. El modal
+carga los calendarios de esa conexión y mantiene cuenta/calendario bloqueados
+al editar un evento existente. Muestra carga, fallo y reintento de calendarios;
+en móvil los selectores ocupan filas completas. Las lecturas usan cancelación
+compartida con señal hasta axios, incluida la búsqueda de contactos/conversaciones,
+invitación y adquisición del lock del modal. Se invalidan al cambiar contexto,
+cerrar o desmontar. El composable descarta incluso una respuesta resuelta por
+un transporte que ignore el aborto. Cambiar conexión con el mismo calendar_id
+recarga eventos; guardar en otra conexión no inserta el evento en la vista actual.
+
+**Cómo probar:** con dos conexiones Google, crear desde una conversación usando
+la segunda; reabrir el evento y comprobar sus opciones y propietario fijo.
+Alternar conexión con calendar_id compartido, semana, calendario, conversación
+y asistente con solicitudes pendientes: solo se aplica la respuesta vigente.
+Cerrar el modal durante búsquedas o desmontar las vistas no muestra cancelación
+como error. Simular fallo al cargar calendarios y reintentar.
+
+**Evidencia local (2026-10-21):** seis regresiones conductuales nuevas fallan
+antes del cambio sobre las cuatro superficies. Verde final: 112 tests por zona
+(UTC / America/Guayaquil), incluidos contratos de señal axios e i18n en/es.
+ESLint sin errores (13 warnings heredados), Prettier y diff check aprobados.
+RuboCop exacto CI aprobado, imagen chathub-rubocop-ci:cit5-ruby344, 40 Ruby de
+la cadena inspeccionados; reporte completo conserva 90 infracciones heredadas
+fuera de líneas cambiadas. Este PR no toca Ruby; no ejecuta RSpec ni migraciones.
+16 capturas cit9- de componentes reales con API simulada en 1280/390 y claro/oscuro,
+revisadas visualmente, más vídeo de cambio rápido. Pendientes CI remoto, smoke
+con Google real y Crowdin de tres textos nuevos (fallback inglés comprobado en
+español). No cubre CIT-16/26 ni entrega de recordatorios. Rama local
+feat/citas-conexion-respuestas basada en f25807dc78 de PR8; integrar PR1 → … → PR9.
+Sin fetch, stash, push ni deploy. Informe: tmp/PR-CITAS-10.md (ignorado).
+
+### B-NEW-089 - Preparación de recordatorios por bandeja (CIT-07 / CIT-28)
+
+**Archivos:** `AppointmentReminderReadiness.vue`, `AssistantAppointmentsForm.vue`,
+`Captain::AppointmentReminders::Readiness`, sender, serializer del asistente,
+AssistantsController y AppointmentsValidator; specs del formulario, panel,
+readiness y contratos request; traducciones en/es.
+
+**Fix:** estado de configuración guardada por bandeja, con Captain/citas activos,
+canal, permiso de pago, plantilla aprobada en esa bandeja y bindings completos.
+Comparte comprobaciones/códigos con el sender y reutiliza TemplateMessage y
+Variables, sin otro resolver. Explica los límites de ventana y valores concretos
+al enviar; enlaza Mensajes de pago. Mantiene 24 h / 3 h y pago optativo. Oculta
+el selector sin consumidor de cancelación y conserva la referencia histórica al
+guardar otros campos, aunque la plantilla haya cambiado en Meta.
+
+**Cómo probar:** conectar dos bandejas con la misma plantilla, aprobada solo en
+una; guardar y comprobar estados diferentes. Desactivar pago: aparece el motivo
+de omisión fuera de ventana. Cambiar variables de la plantilla: muestra bindings
+pendientes. Guardar otros ajustes conserva template_cancelled. Un valor de contacto
+ausente al enviar deja nota privada y el diagnóstico existente del motor.
+
+**Evidencia local (2026-10-21):** 103 ejemplos Rails y 39 tests frontend por zona
+(UTC / America/Guayaquil) sin fallos; RuboCop exacto CI aprobado sobre 40 Ruby
+inspeccionados, ESLint sin errores y Prettier aprobado. 32 capturas cit8- en
+1280/390 y claro/oscuro revisadas, componentes reales con datos simulados.
+Rojo/verde conductual demostrado en formulario y dos contratos request; las
+regresiones existentes de sender/TemplateMessage no tienen rojo previo nuevo.
+Pendientes CI remoto y entrega real autorizada dentro/fuera de ventana. Sin
+migraciones ni push. Rama local feat/citas-recordatorios-estado sobre PR7;
+integrar PR1 → … → PR8. Informe: tmp/PR-CITAS-9.md (ignorado).
+
+### B-NEW-088 - Atributos de cita disponibles en el alta de Captain (CIT-06)
+
+**Archivos:** `AssistantAppointmentsForm.vue` y su spec; specs del controlador
+`calendar_appointment_attributes`, `updater_onboarding_contract` y `event_service`.
+
+**Fix:** el alta muestra el panel existente `CalendarAppointmentAttributes`, con
+seleccion optativa y resultados por clave. Usa el controlador de Integraciones y
+Provisioner existentes; la preferencia pertenece a la cuenta. El panel queda
+fuera del toggle de Captain: activarlo nuevamente no escribe ni restablece claves,
+incluida una seleccion vacia guardada. Los dos botones guardan sus respectivas
+secciones. Los conflictos conservan definicion y valor; no hay cambios al motor
+de variables, al contrato API ni a la configuracion del asistente.
+
+**Como probar:** desde Captain > Ajustes > Citas, habilitar los cuatro atributos
+en una cuenta nueva y comprobar resultados; recargar, desmarcarlos todos y guardar,
+volver a activar Captain: siguen desmarcados. Con `ultima_cita` de tipo texto,
+reintentar muestra conflicto y mantiene su valor. Reservar y procesar jobs actualiza
+los cuatro derivados; el catalogo y el editor de contactos mantienen lectura sola.
+
+**Evidencia local (2026-10-21):** 136 ejemplos RSpec sin fallos, 34 tests Vitest
+por zona (UTC y America/Guayaquil), ESLint/Prettier aprobados. RuboCop exacto de CI
+sin infracciones en lineas cambiadas, 35 Ruby inspeccionados; los tres specs propios
+sin infracciones completas. Doce capturas `cit7-` claro/oscuro, 1280/390 px, con
+componentes reales y datos simulados, revisadas visualmente. Rojo/verde del cambio
+demostrado en tres casos del formulario; el backend reutilizado ya pasaba en la
+base, por lo que no se reclama rojo/verde backend. Sin migraciones. Pendientes CI
+remoto y smoke con Google real. Detalle: `tmp/PR-CITAS-8.md` (ignorado).
+
+
+### B-NEW-184 — Fixtures de cuenta en specs de tarjetas de citas
+
+**Archivos:** `CalendarEventsList.spec.js`, `NextAppointmentCard.spec.js`.
+
+**Causa:** las tarjetas usan `useCalendarTime`, que lee la cuenta mediante
+`useAccount`. Los specs montaban las tarjetas sin cuenta, store ni router;
+esto provocaba cinco rechazos sin manejar y cuatro aserciones fallidas.
+
+**Fix:** proporcionar una cuenta con `calendar_timezone` mediante el mock de
+`useAccount`, conservando las aserciones existentes y comprobando además que
+ambas tarjetas muestran `America/Guayaquil`.
+
+**Cómo probar:** ejecutar los seis ejemplos de ambos archivos con Vitest en
+`TZ=UTC` y `TZ=America/Guayaquil`; deben pasar sin rechazos sin manejar.
+
+### B-NEW-087 — Una zona de cuenta en todo el recorrido de Citas (CIT-02)
+
+**Archivos:** `lib/integrations/google_calendar/timezone.rb`, servicio de eventos,
+controlador de Calendar, serializers de cuenta/perfil, herramientas y remitente
+Captain; `calendarTime.js`, `calendarGrid.js`, `useCalendarTime.js`, vistas de
+calendario/modal y tarjetas de conversación, más sus specs.
+
+**Fix:** `reporting_timezone` determina una sola zona efectiva, normalizada a
+IANA para Google y el dashboard. Sin configuración se conserva America/Guayaquil;
+el fallback de informes sigue independiente. `calendar_timezone` se expone al
+iniciar sesión y al refrescar la cuenta. Semana, agenda, límites de consulta,
+edición, historial, errores, invitación y Captain usan esa misma zona. La zona
+se muestra en calendario, modal y conversación.
+
+Una hora local inexistente por DST se rechaza. Una hora local repetida selecciona
+la primera ocurrencia; un ISO con offset explícito identifica cualquiera de las
+dos. Editar sin cambiar los campos civiles conserva el instante original, incluida
+la segunda ocurrencia. Los all-day mantienen su fecha civil. La grilla usa minutos
+del reloj local; las dos ocurrencias de una hora repetida ocupan carriles separados.
+Una cita que atraviesa un cambio DST se divide en tramos con el mismo ID: conserva
+su duraci?n en el retroceso y deja vac?a la hora inexistente al adelantar.
+
+**Cómo probar:** configurar Guayaquil y New York, crear a las 10:00 en julio,
+recargar y comparar semana/modal/conversación/invitación. Verificar semana del
+10/03/2030, hora inexistente 02:30 y hora repetida 01:30 del 03/11/2030, además
+del cambio 31/12 → 01/01 y fechas all-day. Validar Captain y variables del
+recordatorio contra el mismo instante persistido.
+
+**Validación local:** regresión RSpec de 366 ejemplos sin fallos; 12 ejemplos
+adicionales sobre el código final sin fallos. Vitest: 67 tests en UTC y 67 en
+America/Guayaquil, con modal en ingles y espanol y cuentas de ambas zonas. Rojo reproducido
+en la base: diez fallos frontend y cuatro backend. ESLint sin errores; filtro
+exacto de RuboCop CI aprobado, 33 archivos Ruby inspeccionados. El fixture de
+reintentos ahora simula `get_event`; su fallo se reprodujo en la base intacta.
+
+**Pendiente antes de integrar:** workflow remoto, Google/canal reales y capturas
+claro/oscuro/390 px de ambas zonas. Computer-use no tuvo superficies habilitadas;
+no se generaron capturas. La nueva ayuda DST tiene fuente inglesa y usa fallback
+en español hasta Crowdin. Sin migraciones ni cambios a Panel AI. Rama local
+`feat/citas-zona-horaria`, dependiente de PR5: integrar PR1 → … → PR6. Sin push.
+Informe completo ignorado: `tmp/PR-CITAS-7.md`.
+
+### B-NEW-086 — Reconciliar Google antes de enviar recordatorios (CIT-08)
+
+**Archivos:** `lib/integrations/google_calendar/event_service.rb`,
+`app/jobs/calendar/reconcile_events_job.rb`, `config/schedule.yml`,
+`enterprise/app/services/captain/appointment_reminders/{sender,dispatcher}.rb`,
+`enterprise/app/models/enterprise/calendar_event.rb`, reconciliador manual y specs.
+
+**Fix:** cada intento de envío consulta una sola versión del evento en Google.
+Sincroniza título, intervalo e invitación; 404/410 o estado cancelled cancelan
+la fila local, liberan su clave y cancelan recordatorios pendientes. Un rechazo
+de invitación no cancela la cita. Timeout/5xx conservan el pendiente sin enviar.
+El remitente bloquea primero la cita y luego el recordatorio, y vuelve a leer
+su estado y vencimiento después de reconciliar. Cambiar la hora modifica las
+filas existentes: no crea otro recordatorio del mismo tipo.
+
+La sincronización Enterprise de recordatorios ahora ocurre dentro de la misma
+transacción que el cambio de cita; un rollback revierte ambos. El job periódico
+recorre citas vinculadas a contacto o conversación, humanas y Captain, cada
+cinco minutos: páginas de 100 con cursor por ID, futuras y terminadas durante
+el último día. Los atributos del contacto se recalculan mediante el callback
+existente. No activa recordatorios Captain para citas humanas ni modifica Panel AI.
+El rake manual usa la misma reconciliación al aplicar; conserva su modo de consulta.
+
+**Cómo probar:** mover/cambiar título en Google sin abrir el calendario; ejecutar
+la tarea periódica y revisar fila, atributos y recordatorios. Ejecutar el despacho
+en la hora anterior: cero mensajes; en la nueva: uno, incluso al repetir. Borrar
+o cancelar en Google: cero envíos y fila fuera de kept. Simular timeout/5xx:
+ningún envío ni cancelación; recuperar Google y repetir: un solo mensaje.
+
+**Verificación local (2026-10-21):** diez ejemplos finales fallan contra la base
+original `67ad570ef2`; 316 ejemplos de regresión pasan con el fix. DB y Redis
+exclusivos, Google/canal simulados. Se corrigieron dos helpers de fixtures que
+ignoraban la conexión solicitada por crear a través de una asociación: los once
+fallos correspondientes también se reprodujeron en la base intacta, y pasan
+con los fixtures corregidos. Lint exacto CI aprobado en
+`chathub-rubocop-ci:cit5-ruby344`, 29 Ruby inspeccionados; 85 infracciones del
+reporte completo quedan fuera de líneas cambiadas. Sin migraciones ni UI.
+
+**Pendiente de integración/deploy:** PR5 `feat/citas-reconciliar` depende
+localmente de PR4 `feat/citas-oauth-state`; integrar PR1 → PR2 → PR3 → PR4 → PR5.
+Sin push ni deploy. Reiniciar Rails y Sidekiq al desplegar para cargar código
+y cron. Faltan CI remoto, Google/canal reales, recepción efectiva y prueba con
+dos procesos simultáneos. El barrido automático no recupera movimientos de
+citas cuyo final local ya quedó más de un día atrás; un backfill histórico
+requeriría otro recorrido explícito. Evidencia: `tmp/PR-CITAS-6.md` (ignorado).
+
+### B-NEW-085 — State OAuth de Calendar consumible una sola vez (CIT-29)
+
+**Archivos:** `app/helpers/google_calendar/integration_helper.rb`,
+`app/controllers/google_calendar/callbacks_controller.rb`, sus dos specs y
+mensajes de error en `config/locales/en.yml` y `config/locales/es.yml`.
+
+**Fix:** cada autorización recibe un nonce aleatorio, cuenta, usuario, huella
+de sesión y vencimiento firmado de 10 minutos. Redis conserva la huella del
+state con el mismo TTL. El callback lo consume con GET y DEL en MULTI/EXEC
+antes de intercambiar el código, incluso ante cancelación o fallo posterior.
+Se utiliza la transacción porque redis-namespace 1.x no aplica su namespace a
+GETDEL. Un replay no llega a Google ni cambia conexiones o tokens.
+
+El callback comprueba la cookie iniciadora, el usuario autenticado si lo hay,
+la pertenencia y el rol administrador actuales y que la cuenta siga activa.
+La cookie enlaza el callback del navegador con el inicio autenticado por
+cabeceras del dashboard; Google no devuelve esas cabeceras. `connected_by`
+conserva al usuario iniciador. Reconectar por email mantiene el refresh token
+anterior cuando Google lo omite. Los errores devuelven 422 con mensajes en
+inglés y español neutro, sin detalles del proveedor.
+
+**Cómo probar:** conectar y reconectar; repetir el callback después de éxito,
+cancelación, código ausente o fallo del proveedor; esperar el vencimiento;
+usar otra sesión/usuario/cuenta o revocar permisos antes del retorno. Ningún
+rechazo debe intercambiar el código. Con Redis real, ocho consumidores del
+mismo state deben producir exactamente una aceptación.
+
+**Verificación local (2026-10-21):** mismos specs Rails contra fuentes de
+`2a13eb9f32`: 24 fallos; con el fix: 24 ejemplos aprobados. PostgreSQL y Redis
+exclusivos, sin bases compartidas. Comando exacto de lint CI aprobado en
+`chathub-rubocop-ci:cit5-ruby344` (Ruby 3.4.4, dependencias del lockfile): cero
+infracciones en líneas cambiadas de los 20 Ruby de la pila. El reporte completo
+inspecciona 20 archivos y conserva 68 infracciones fuera de las líneas del PR.
+Tras corregir indentación en specs se releyeron bloques, Ruby 3 kwargs y
+consumo atómico. Sin migraciones, cambios visuales, capturas ni OAuth real.
+
+**Pendiente de integración:** PR1 → PR2 → PR3 → PR4; rama local
+`feat/citas-oauth-state` basada en `feat/citas-exclusion-meet`. Falta ejecución
+remota del CI y smoke con Google en cuenta de prueba; sin push ni despliegue.
+Los pendientes funcionales heredados de PR1–PR3 no se dan por cerrados aquí.
+
+### B-NEW-183 — Fixtures de propiedad e idempotencia del CI de citas (PR #183)
+
+**Archivos:** `spec/lib/integrations/google_calendar/event_service_spec.rb`,
+`spec/enterprise/lib/captain/tools/appointment_tools_spec.rb`,
+`spec/controllers/api/v1/accounts/integrations/calendar_controller_spec.rb`.
+
+**Causa y fix:** los helpers creaban mediante `connection.calendar_events`,
+que imponía esa conexión sobre la conexión ajena solicitada por el ejemplo y
+retenía en su colección la fila destruida. Ahora crean con `CalendarEvent`,
+con conexión predeterminada explícita y atributos del ejemplo aplicados después.
+El reintento idempotente necesita leer el evento Google para recuperar Meet;
+el double del request spec no admitía `get_event` y causaba HTTP 500, no un
+rechazo de intervalo. Se simula esa lectura y se exige HTTP 200 en ambos POST,
+el mismo evento, un solo POST a Google y una sola lectura de recuperación.
+Se conservan todas las aserciones de aislamiento; no cambia código de producción.
+
+**Cómo probar:** ejecutar los tres archivos anteriores: la base intacta reproduce
+303 ejemplos con los mismos 12 fallos del CI. Luego ejecutar la regresión de
+calendario y Captain con los fixtures corregidos, incluyendo las pruebas de
+recuperación Meet y exclusión con Redis real. Sin migraciones.
+
+### B-NEW-084 — Lease de reservas y recuperación de Meet (CIT-12 / CIT-31)
+
+**Archivos:** `lib/integrations/google_calendar/booking_lock.rb`,
+`lib/integrations/google_calendar/event_service.rb`, specs de lock, servicio,
+invitación y herramientas Captain, y `spec/support/real_redis.rb`.
+
+**Fix:** el lease renueva cada 5 s mediante WATCH/MULTI condicionado al token;
+una pérdida o error de renovación invalida permanentemente la operación. Antes
+de cada nueva fase de escritura se comprueba la propiedad. El heartbeat se
+detiene y la liberación en ensure conserva compare-and-delete: no elimina el
+token de otro worker. La prueba real espera 21 s, sin travel_to.
+
+El resultado del POST/PATCH principal se persiste antes de completar la
+descripción Meet: conserva identidad, intervalo, clave, asociaciones, invitación,
+estado y política de seguimiento. Un fallo del PATCH opcional se registra y no
+impide el seguimiento normal. Reintentar con la misma clave lee el evento Google
+existente y completa la descripción sin otro POST ni duplicar notificaciones.
+Si se pierde el lease durante una petición ya enviada, se conserva su resultado
+local como reconciliación, pero se detienen las fases siguientes. No se promete
+deshacer un POST remoto ni exclusión por fencing que Google no ofrece.
+
+**Cómo probar:** con Redis real y namespace aislado, retrasar Google más de 20 s
+y competir por el mismo calendario; reemplazar el token durante la lectura y
+durante el POST. No debe haber nuevas escrituras tras detectar la pérdida ni
+borrado del token ajeno; un POST ya finalizado debe quedar identificable.
+Simular timeout al completar Meet al crear/editar: la reserva y el PATCH
+principal permanecen; repetir la reserva idempotente repara la descripción sin
+otro evento. Captain confirma y programa los recordatorios una sola vez.
+
+**Verificación local (2026-10-21):** los cinco ejemplos del lock, con el mismo
+spec y soporte del repo en runner aislado sin Rails/DB, fallan contra el lock
+anterior y pasan con el nuevo; Redis 7 real y gems Redis del lockfile. Smoke de
+compatibilidad MockRedis aprobado. Sintaxis Ruby aprobada en 16 archivos de la
+pila; RuboCop directo en imagen `chathub-rubocop-ci` inspecciona 16 archivos,
+66 infracciones heredadas y cero en líneas cambiadas frente a origin/develop.
+El comando exacto de CI sigue bloqueado por Ruby 3.4.11 frente a 3.4.4.
+RSpec Rails de servicio/invitación/herramientas/recordatorios no ejecutado:
+la imagen de aplicación no tiene rspec. Falta rojo/verde de esos recorridos y
+CI completo; no se declara validación funcional completa. Sin cambios visuales,
+capturas, migraciones ni push. Integrar PR1 → PR2 → PR3.
+
+### B-NEW-083 — Reserva y confirmación de la cita propietaria (CIT-09 / CIT-30)
+
+**Archivos:** `CalendarEvent`, `Integrations::GoogleCalendar::EventService`,
+herramientas de citas de Captain y sus specs de servicio/herramientas.
+
+**Fix:** una clave solo reutiliza un evento de la misma conexión, calendario e
+intervalo; una colisión devuelve `InvalidRange` antes de Google. Mover el inicio
+o fin libera la clave en la misma escritura del evento, también al sincronizar
+un movimiento de Google. Editar sin mover conserva la clave. A→B→nueva A mantiene
+el evento movido en B y permite una nueva reserva idempotente en A. Las claves
+de Captain incluyen la conexión; texto y botones usan el inicio devuelto por el
+evento persistido, incluida la recuperación tras fallos de notificación.
+
+Captain lista por conexión y calendario, confirma con `find_by!` y exige la fila
+local propietaria al cancelar o reprogramar. Si desaparece después del listado,
+devuelve error sin llamar a Google. Se conservan los callbacks de recordatorios.
+El dashboard mantiene la importación/edición/cancelación de eventos Google-only;
+la exigencia de fila local corresponde al recorrido de Captain (CIT-30).
+
+**Cómo probar:** reservar A dos veces, mover a B y reservar A otras dos veces:
+solo dos eventos, cada confirmación con su hora y botones asociados al evento
+correcto. Repetir con dos conexiones al mismo calendario y mismo ID Google:
+solo cambia la fila propietaria. Quitar esa fila entre listado y mutación: error,
+sin mutación remota. Verificar horarios de recordatorios al mover y cancelación
+de pendientes al cancelar. Specs nuevos en `event_service_spec.rb` y
+`appointment_tools_spec.rb`; regresión `appointment_reminders_spec.rb`.
+
+**Verificación local:** sintaxis de los 12 archivos Ruby de la rama frente a
+`origin/develop` y RuboCop directo en `chathub-rubocop-ci`, sin infracciones en
+líneas nuevas. La invocación exacta de CI está bloqueada por Ruby 3.4.11 frente a
+3.4.4 del Gemfile. RSpec intentado con base aislada explícita: faltan gemas de test;
+no se ejecutaron ejemplos ni se acredita rojo/verde. Capturas y Google real
+pendientes. Sin migraciones; depende del PR 1 (`feat/citas-autorizacion`).
+Pendiente merge/deploy y validación CI; no se hizo push.
+
+### B-NEW-082 — Asociaciones de citas sin autorización (CIT-11)
+
+**Archivos:** `lib/integrations/google_calendar/event_service.rb`,
+`app/controllers/api/v1/accounts/integrations/calendar_controller.rb`, locales en/es
+y specs de integración, servicio y eventos por conversación.
+
+**Fix:** crear, editar y cancelar autorizan `ConversationPolicy#show?` antes de
+acceder a Google. Al mutar se comprueba también la conversación guardada, aunque
+el cliente omita, borre o sustituya la asociación. Los retornos por idempotencia
+autorizan el evento guardado. Se conserva el contexto de rol Enterprise; los bots
+no resuelven membresías por un ID numérico que pueda coincidir con un usuario.
+Un contacto discordante devuelve 422 localizado; IDs ajenos no se resuelven fuera
+de la cuenta. Pundit conserva su 401 y los recursos inexistentes su 404.
+
+**Cómo probar:** con un agente sin acceso al inbox, intentar crear, editar,
+cancelar por DELETE y por PATCH, y sustituir/quitar las asociaciones: 401, sin
+mutación Google, actividad ni mensaje. Con acceso, mezclar contacto y conversación:
+422. Repetir con admin, agente miembro y AgentBot válido: recorrido permitido.
+Repetir con rol Enterprise de participación, sin y con participación.
+
+**Verificación local:** sintaxis Ruby, nueva clave en/es y nueve tests existentes
+de helpers Calendar en UTC y America/Guayaquil aprobados. RuboCop en imagen
+`chathub-rubocop-ci`: cinco archivos inspeccionados, cero infracciones en líneas
+modificadas; 37 infracciones anteriores en los archivos completos. RSpec queda
+reservado a CI; todavía no se acredita ejecución rojo/verde. Capturas pendientes:
+la herramienta no dispone de navegador. Sin migraciones. Pendiente merge/deploy.
+
+### B-NEW-081 — Cierre de variables Flow, notificaciones e importadores (MV-12, MV-13, MV-16)
+
+**Archivos:** `Variables::{ContextFactory,Omission,ImportDiagnostics,Writer}`,
+`VariablesController`, `Flows::{DeferredSendJob,ActionService,ExecutionService}`,
+`AutomationNotificationMailer`, `MessageTemplates::Template::Greeting`,
+`Concerns::Toolable`, `Captain::Tools::HttpTool`, `DataImportJob`,
+`DataImport::ContactManager`, `DataImports::Importer` y el correo de importación.
+
+**Fix:** el run explícito habilita `flow.x` y `flow.variables.x` en preview,
+envío, notas y captura. Notificaciones resuelven `custom_message` antes de
+insertarlo; herramientas HTTP comparten contexto CRM y devuelven diagnóstico
+con ruta/estado. Saludos y notificaciones incompletos se omiten con nota privada.
+Los snapshots se interpolan una vez, usando fechas en zona de cuenta.
+API/prechat conservan su writer común y JSON literal. CSV/Intercom/Freshdesk
+protegen atributos gestionados y avisan de claves sin definición, sin crear
+definiciones a partir de metadata técnica ni modificar formatos de entrada.
+CSV incluye el aviso en el correo; externos lo muestran en sus resultados.
+Los avisos externos cuentan como incidencias, sin sumar registros ficticios.
+Sin migraciones ni cambios de frontend, campañas, Meta, Panel AI o cobros.
+
+**Cómo probar:** guardar `x` en un nodo de Flow y enviar `{{ flow.x }}` en texto
+y botón; comparar preview con `flow_run_id`/`conversation_id`. Usar un run ajeno
+debe devolver 404, y uno sin conversación, 422. Probar un saludo y una notificación
+con `contact.identifier`, fecha y atributo ausente: solo el último se omite y
+deja razón privada. HTTP con ruta CRM debe resolverla; un dato ausente impide
+la petición y muestra ruta/estado. Importar una columna sin definición: el valor
+se conserva y se informa su clave, nunca su valor. Crear la definición y verificar
+el selector. CSV con `total_citas` protegido queda en rechazados. Repetir con
+Intercom/Freshdesk; revisar avisos, contadores y que no aparezcan definiciones
+automáticas. Specs Ruby preparados por superficie; ejecución integrada solo CI.
+
+**Estado:** implementado; RSpec pendiente de CI. Comprobaciones aisladas con
+Liquid reproducen MV-12/MV-13 antes y pasan después; no sustituyen Rails/RSpec.
+Contrato y límites: `docs/VARIABLES_ENGINE.md`, sección de cierre PR F.
+
 ### B-NEW-080 - Captain y escritura de variables (MV-10, MV-11, MV-14)
 
 **Archivos:** `Captain::TemplateMessage`, sus tres senders, `Captain::VariableDiagnostics`,
@@ -2255,6 +2708,13 @@ y oscuro, a 1280, 360, 390 y 430 px. Desplazar el contenedor hasta el final:
 deben verse las tres opciones de tono o el área de chat, sin solaparse con el
 pie. Comprobar el icono en la misma fila de marca que el paso 3 y las acciones
 primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
+
+### B-NEW-082 - PR #182 backend CI: import diagnostics and Flow contracts
+
+- Files: `app/services/variables/import_diagnostics.rb`, `config/locales/{en,es}.yml`, `app/jobs/flows/deferred_send_job.rb`, `spec/services/flows/action_service_spec.rb`.
+- Cause: I18n treats `scope` as a lookup option, producing `contact.variables.import_undefined`; the deferred job renders the content/buttons envelope under another `content` root; the action spec inherits a numeric attribute from its factory while writing `stored`.
+- Fix: rename the interpolation argument/placeholder to `attribute_scope` (including the existing Spanish placeholder, without changing translated copy); render each deferred payload field at its own root; explicitly define the spec attribute as text. Preserve the `result:` keyword and all expectations.
+- Verify: CI-image RuboCop inspected all three changed Ruby files with zero offenses; standalone I18n interpolation passed in en/es. Statically traced both import callers, Flow context propagation, typed normalization and skipped-send advancement. RSpec is deferred to CI as required by the task.
 
 ## 8. Docs relacionadas
 

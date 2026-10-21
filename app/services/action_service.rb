@@ -287,9 +287,12 @@ class ActionService
     return unless writer.target(target, context: 'automation')
 
     definition = @account.custom_attribute_definitions.find_by!(attribute_key: key, attribute_model: "#{scope}_attribute")
-    drops = Variables::ContextFactory.new(account: @account, records: { conversation: @conversation }).build(surface: 'automation')
-    value = Variables::ValueNormalizer.new(drops: drops).normalize(definition, raw_value)
+    value = Variables::ValueNormalizer.new(drops: variable_drops).normalize(definition, raw_value)
     record.update!(writer.attributes(record: record, target: target, value: value, context: 'automation'))
+  end
+
+  def variable_drops
+    Variables::ContextFactory.new(account: @account, records: { conversation: @conversation }).build(surface: 'automation')
   end
 
   def last_responding_agent_id

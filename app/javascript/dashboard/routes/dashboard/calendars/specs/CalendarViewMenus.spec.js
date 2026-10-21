@@ -9,7 +9,10 @@ import WeekGrid from '../WeekGrid.vue';
 
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 vi.mock('dashboard/composables/useAccount', () => ({
-  useAccount: () => ({ accountScopedRoute: path => path }),
+  useAccount: () => ({
+    accountScopedRoute: path => path,
+    currentAccount: ref({}),
+  }),
 }));
 vi.mock('dashboard/composables/useAdmin', () => ({
   useAdmin: () => ({ isAdmin: true }),
@@ -69,7 +72,9 @@ it('uses the real floating menu for calendar accounts and keeps provider logos a
     expect(menu.findAll('.i-lucide-check')).toHaveLength(1);
     await menu.findAll('button')[1].trigger('click');
     await flushPromises();
-    expect(CalendarAPI.getCalendars).toHaveBeenLastCalledWith('8');
+    expect(CalendarAPI.getCalendars).toHaveBeenLastCalledWith('8', {
+      signal: expect.any(AbortSignal),
+    });
     expect(trigger.text()).toContain('Ventas');
     expect(wrapper.findComponent(DropdownMenu).exists()).toBe(false);
   } finally {

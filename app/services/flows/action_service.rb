@@ -48,11 +48,17 @@ class Flows::ActionService < ActionService
 
     content = message.is_a?(Array) ? message[0] : message
     params = {
-      content: content,
+      content: Variables::DeliveryRenderer.new(drops: variable_drops).render(content, protect_code: true),
       private: true,
       content_attributes: MessageSourceAttributes.for_flow(@flow_run)
     }
-    Messages::MessageBuilder.new(nil, @conversation.reload, params).perform
+    Messages::MessageBuilder.new(nil, @conversation.reload, params).perform(variables_resolved: true)
+  rescue Variables::DeliveryRenderer::Error => e
+    Variables::Omission.create_note(conversation: @conversation, surface: 'flow', error: e)
+  end
+
+  def variable_drops
+    Variables::ContextFactory.new(account: @account, records: { conversation: @conversation, flow_run: @flow_run }).build(surface: 'flow')
   end
 
   def send_email_to_team(params)
@@ -66,7 +72,7 @@ class Flows::ActionService < ActionService
       break unless @account.within_email_rate_limit?
 
       TeamNotifications::AutomationNotificationMailer.conversation_creation(
-        @conversation, team, payload[:message]
+        @conversation, team, payload[:message], flow_run: @flow_run
       )&.deliver_now
       @account.increment_email_sent_count
     end

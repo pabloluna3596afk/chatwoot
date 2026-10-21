@@ -3,7 +3,7 @@ class Api::V1::Accounts::VariablesController < Api::V1::Accounts::BaseController
   MAX_CONTEXTS = 50
   MAX_RENDERS = 500
   MAX_TEXT_BYTES = 150_000
-  CONTEXT_KEYS = %w[contact_id conversation_id inbox_id campaign_id].freeze
+  CONTEXT_KEYS = %w[contact_id conversation_id inbox_id campaign_id flow_run_id].freeze
 
   before_action :validate_surface
   before_action :prevent_caching
@@ -65,6 +65,14 @@ class Api::V1::Accounts::VariablesController < Api::V1::Accounts::BaseController
     valid = context.is_a?(ActionController::Parameters) && (context.keys - CONTEXT_KEYS).empty?
     valid &&= context.values.all? { |id| id.is_a?(Integer) && id.positive? }
     raise ActionController::ParameterMissing, :contexts unless valid
+
+    validate_flow_context!(context)
+  end
+
+  def validate_flow_context!(context)
+    return unless context[:flow_run_id]
+
+    raise ActionController::ParameterMissing, :contexts unless surface == 'flow' && context[:conversation_id]
   end
 
   def context_factory(context)
@@ -82,6 +90,7 @@ class Api::V1::Accounts::VariablesController < Api::V1::Accounts::BaseController
       id = context["#{type}_id"]
       records[type] = Current.account.public_send(type.to_s.pluralize).find(id) if id
     end
+    records[:flow_run] = records.fetch(:conversation).flow_runs.find(context[:flow_run_id]) if context[:flow_run_id]
     records
   end
 

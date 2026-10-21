@@ -67,4 +67,45 @@ RSpec.describe 'Calendar appointment attributes API', type: :request do
       expect(account.reload.appointment_attributes).to be_nil
     end
   end
+  it 'keeps all four definitions stable when onboarding is retried after reloading' do
+    keys = Calendar::AppointmentAttributes::Definitions::TYPES.keys
+    patch url, params: { keys: keys }, headers: admin.create_new_auth_token, as: :json
+    expect(response.parsed_body['results'].values.pluck('status')).to eq(Array.new(4, 'created'))
+    ids = account.custom_attribute_definitions.order(:id).ids
+
+    get url, headers: admin.create_new_auth_token, as: :json
+    expect(response.parsed_body['keys']).to eq(keys)
+    patch url, params: { keys: keys }, headers: admin.create_new_auth_token, as: :json
+
+    expect(response.parsed_body['results'].values.pluck('status')).to eq(Array.new(4, 'reused'))
+    expect(account.custom_attribute_definitions.order(:id).ids).to eq(ids)
+  end
+
+  it 'distinguishes a deliberately empty saved selection from an unconfigured account' do
+    patch url, params: { keys: [] }, headers: admin.create_new_auth_token, as: :json
+    get url, headers: admin.create_new_auth_token, as: :json
+
+    expect(response.parsed_body).to eq('keys' => [], 'enabled_keys' => [], 'results' => {})
+    expect(account.custom_attribute_definitions).to be_empty
+  end
+
+  it 'preserves conflicting definitions and contact values through retries and backfill' do
+    definition = create(:custom_attribute_definition, account: account, attribute_model: :contact_attribute,
+                                                      attribute_key: 'ultima_cita', attribute_display_type: :text)
+    contact = create(:contact, account: account, custom_attributes: { 'ultima_cita' => 'Customer value' })
+    original = definition.attributes
+    keys = Calendar::AppointmentAttributes::Definitions::TYPES.keys
+
+    2.times do
+      patch url, params: { keys: keys }, headers: admin.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body['results']['ultima_cita']['status']).to eq('conflict')
+      expect(response.parsed_body['enabled_keys']).not_to include('ultima_cita')
+    end
+    Calendar::AppointmentAttributes::UpdateJob.perform_now(account.id, contact.id)
+
+    expect(definition.reload.attributes).to eq(original)
+    expect(contact.reload.custom_attributes['ultima_cita']).to eq('Customer value')
+    expect(account.custom_attribute_definitions.count).to eq(4)
+  end
 end

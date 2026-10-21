@@ -49,6 +49,11 @@ RSpec.describe 'Calendar Integration API', type: :request do
         'start' => { 'dateTime' => kwargs[:start_at].iso8601 }, 'end' => { 'dateTime' => kwargs[:end_at].iso8601 } }
     end
     allow(client).to receive(:delete_event).and_return({})
+    allow(client).to receive(:get_event) do |event_id:, **|
+      record = connection.calendar_events.find_by!(google_event_id: event_id)
+      { 'id' => event_id, 'etag' => record.etag, 'summary' => record.summary,
+        'start' => { 'dateTime' => record.start_at.iso8601 }, 'end' => { 'dateTime' => record.end_at.iso8601 } }
+    end
   end
 
   after { Redis::Alfred.delete(event_lock_key('stale-1')) }
@@ -212,12 +217,22 @@ RSpec.describe 'Calendar Integration API', type: :request do
     end
 
     it 'returns the same event for a repeated idempotency key' do
-      2.times { post "#{base_url}/events", headers: agent.create_new_auth_token, params: event_params(idempotency_key: 'k-3'), as: :json }
+      allow(client).to receive(:get_event) do |event_id:, **|
+        record = connection.calendar_events.find_by!(google_event_id: event_id)
+        { 'id' => event_id, 'etag' => record.etag, 'summary' => record.summary,
+          'start' => { 'dateTime' => record.start_at.iso8601 }, 'end' => { 'dateTime' => record.end_at.iso8601 } }
+      end
+      2.times do
+        post "#{base_url}/events", headers: agent.create_new_auth_token, params: event_params(idempotency_key: 'k-3'), as: :json
+
+        expect(response).to have_http_status(:ok)
+      end
 
       ids = CalendarEvent.where(idempotency_key: 'k-3').pluck(:google_event_id)
       expect(ids.size).to eq(1)
       expect(response.parsed_body['payload']['id']).to eq(ids.first)
       expect(client).to have_received(:create_event).once
+      expect(client).to have_received(:get_event).with(calendar_id: 'cal-1', event_id: ids.first).once
     end
 
     it 'answers 422 with a slot_busy conflict when the time overlaps another event' do
@@ -350,5 +365,24 @@ RSpec.describe 'Calendar Integration API', type: :request do
 
       expect(response).to have_http_status(:unauthorized)
     end
+  end
+  it 'exposes the calendar zone on both profile bootstrap and account refresh' do
+    account.update!(settings: { reporting_timezone: 'Eastern Time (US & Canada)' })
+    get '/api/v1/profile', headers: admin.create_new_auth_token
+    expect(response.parsed_body.fetch('accounts').find { |item| item['id'] == account.id }.fetch('calendar_timezone')).to eq('America/New_York')
+
+    get "/api/v1/accounts/#{account.id}", headers: admin.create_new_auth_token
+    expect(response.parsed_body.fetch('calendar_timezone')).to eq('America/New_York')
+  end
+
+  it 'formats overlap errors in the account zone instead of a fixed offset' do
+    account.update!(settings: { reporting_timezone: 'America/New_York' })
+    local_event(start_at: Time.iso8601('2030-07-15T10:00:00-04:00'), end_at: Time.iso8601('2030-07-15T10:30:00-04:00'))
+
+    post "#{base_url}/events", headers: agent.create_new_auth_token,
+                               params: event_params(start: '2030-07-15T10:15:00-04:00', end: '2030-07-15T10:45:00-04:00'), as: :json
+
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.parsed_body.fetch('error')).to include('10:00', '10:30')
   end
 end

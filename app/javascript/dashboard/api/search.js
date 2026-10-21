@@ -25,8 +25,9 @@ class SearchAPI extends ApiClient {
     });
   }
 
-  conversations({ q, page = 1, since, until }) {
+  conversations({ q, page = 1, since, until }, { signal } = {}) {
     return axios.get(`${this.url}/conversations`, {
+      signal,
       params: {
         q,
         page: page,

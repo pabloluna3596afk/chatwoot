@@ -460,6 +460,7 @@ es:
       short_description: 'Access order details and customer data from your Shopify store.'
       description: 'Connect your Shopify store to access order details, customer information, and product data directly within your conversations and helps your support team provide faster, more contextual assistance to your customers.'
     calendars:
+      contact_mismatch: 'El contacto seleccionado no corresponde a esta conversación.'
       name: 'Calendarios'
       short_description: 'Conecta Google Calendar y mira los eventos en el panel.'
       description: 'Conecta cuentas de Google Calendar para que el equipo vea los eventos. Microsoft Calendar llega pronto.'
@@ -765,6 +766,10 @@ es:
   auto_assignment:
     default_policy_name: 'la política de asignación predeterminada'
     policy_actor: 'la política de asignación «%{policy_name}»'
+  variables:
+    tool_render_failed: 'No se pudo resolver la plantilla: %{path}: %{status}'
+    import_undefined: 'Los campos importados de %{attribute_scope} no tienen definición de atributo y no aparecerán en los selectores de variables: %{keys}. Crea las definiciones para mostrarlos.'
+    delivery_skipped: 'Se omitió el envío (%{surface}): variable no disponible (%{reason}).'
   automation:
     system_name: 'el sistema'
     activity_actor: 'la automatización «%{name}»'
@@ -948,3 +953,9 @@ es:
       library_unavailable: 'No se pudo consultar la biblioteca de Meta para este canal.'
       library_name_required: 'Falta la plantilla de la biblioteca.'
       meta_error: 'Meta rechazó la solicitud: %{detail}'
+
+  google_calendar:
+    oauth:
+      invalid_state: 'Esta solicitud de conexión venció, ya se utilizó o pertenece a otra sesión. Inicia de nuevo la conexión con Google Calendar.'
+      cancelled: 'Se canceló la autorización de Google Calendar. Inicia de nuevo la conexión cuando lo desees.'
+      failed: 'No se pudo conectar Google Calendar. Inicia de nuevo la conexión.'

@@ -82,8 +82,9 @@ class DataImport::ContactManager
     contact.additional_attributes[:company_name] = params[:company_name] if params[:company_name].present?
     contact.additional_attributes[:city] = params[:city] if params[:city].present?
     contact.assign_attributes(
-      custom_attributes: contact.custom_attributes.merge(
-        params.except(:identifier, :document_number, :email, :name, :phone_number, :company_name, :city, :labels, :id)
+      custom_attributes: Variables::Writer.new(account: @account).patch(
+        scope: 'contact', current: contact.custom_attributes,
+        values: params.except(:identifier, :document_number, :email, :name, :phone_number, :company_name, :city, :labels, :id)
       )
     )
   end

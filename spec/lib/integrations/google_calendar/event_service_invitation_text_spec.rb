@@ -125,8 +125,52 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
     def with_meet(link)
       allow(client).to receive(:create_event) do |**kwargs|
         created_calls << kwargs
-        google_event_for('g-1', kwargs).merge('conferenceData' => { 'entryPoints' => [{ 'entryPointType' => 'video', 'uri' => link }] })
+        event = google_event_for('g-1', kwargs).merge('conferenceData' => { 'entryPoints' => [{ 'entryPointType' => 'video', 'uri' => link }] })
+        allow(client).to receive(:get_event).with(calendar_id: 'cal-1', event_id: 'g-1').and_return(event)
+        event
       end
+    end
+
+    it 'keeps the reservation and followup after description failure and repairs it without another POST', :aggregate_failures do
+      with_meet(meet_url)
+      allow(client).to receive(:update_description).and_raise(Timeout::Error)
+      allow(Calendar::NotifyPanelAiFollowupJob).to receive(:perform_later)
+      booking = params(include_meet: true, description: 'Hola {{nombre}}: {{enlace_meet}}', idempotency_key: 'meet-retry',
+                       bot_followup_policy: { enabled: true })
+
+      result = service.create(booking)
+      record = connection.calendar_events.find_by!(idempotency_key: 'meet-retry')
+      expect(result[:id]).to eq('g-1')
+      expect(record).to have_attributes(contact_id: contact.id, invitation_text: booking[:description])
+      expect(record.bot_followup_enabled?).to be true
+      expect(Calendar::NotifyPanelAiFollowupJob).to have_received(:perform_later).with(record.id, 'created').once
+
+      allow(client).to receive(:update_description).and_return('description' => "Hola Ana Pérez: #{meet_url}", 'etag' => '"repaired"')
+      recovered = service.create(booking)
+
+      expect(recovered).to include(id: 'g-1', description: "Hola Ana Pérez: #{meet_url}")
+      expect(record.reload.etag).to eq('"repaired"')
+      expect(created_calls.size).to eq(1)
+      expect(connection.calendar_events.count).to eq(1)
+      expect(Calendar::NotifyPanelAiFollowupJob).to have_received(:perform_later).once
+    end
+
+    it 'keeps the main edit when the optional description PATCH fails' do
+      service.create(params)
+      allow(client).to receive(:update_event) do |**kwargs|
+        google_event_for('g-1', kwargs).merge('conferenceData' => { 'entryPoints' => [{ 'entryPointType' => 'video', 'uri' => meet_url }] })
+      end
+      allow(client).to receive(:update_description).and_raise(Timeout::Error)
+      edit = params(summary: 'Edited', start: '2030-01-16T10:00:00-05:00', end: '2030-01-16T10:30:00-05:00', include_meet: true)
+
+      result = service.update('g-1', edit)
+
+      expect(result).to include(id: 'g-1', summary: 'Edited', start: edit[:start])
+      expect(connection.calendar_events.find_by!(google_event_id: 'g-1')).to have_attributes(
+        summary: 'Edited', start_at: Time.iso8601(edit[:start]), etag: '"etag-1"'
+      )
+      expect(client).to have_received(:update_event).once
+      expect(client).to have_received(:update_description).once
     end
 
     it 'is written into the invitation once Google has created it, when the text uses it' do

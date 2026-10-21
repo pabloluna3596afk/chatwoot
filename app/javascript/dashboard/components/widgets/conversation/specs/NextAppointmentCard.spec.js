@@ -1,5 +1,13 @@
 import { flushPromises, shallowMount } from '@vue/test-utils';
+import { ref } from 'vue';
 import NextAppointmentCard from '../NextAppointmentCard.vue';
+
+vi.mock('dashboard/composables/useAccount', () => ({
+  useAccount: () => ({
+    accountId: ref(1),
+    currentAccount: ref({ calendar_timezone: 'America/Guayaquil' }),
+  }),
+}));
 
 const { getContactEvents } = vi.hoisted(() => ({ getContactEvents: vi.fn() }));
 
@@ -54,10 +62,13 @@ describe('NextAppointmentCard', () => {
 
     const wrapper = await mountCard();
 
-    expect(getContactEvents).toHaveBeenCalledWith(7);
+    expect(getContactEvents).toHaveBeenCalledWith(7, {
+      signal: expect.any(AbortSignal),
+    });
     expect(wrapper.find('[data-testid="next-appointment"]').text()).toContain(
       'Cita soon'
     );
+    expect(wrapper.text()).toContain('America/Guayaquil');
     expect(wrapper.text()).toContain(
       'CONVERSATION_SIDEBAR.CALENDAR.STATUS.CONFIRMED'
     );
@@ -73,12 +84,28 @@ describe('NextAppointmentCard', () => {
     ).toBe(false);
   });
 
-  it('shows nothing when the request fails', async () => {
+  it('keeps the appointment card hidden and shows a load error when the request fails', async () => {
     getContactEvents.mockRejectedValue(new Error('boom'));
 
-    expect(
-      (await mountCard()).find('[data-testid="next-appointment"]').exists()
-    ).toBe(false);
+    const wrapper = await mountCard();
+    expect(wrapper.find('[data-testid="next-appointment"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.text()).toContain(
+      'CONVERSATION_SIDEBAR.CALENDAR.LOAD_ERROR'
+    );
+  });
+
+  it('reports its load failure to the panel and asks it to reload the list on a single retry', async () => {
+    getContactEvents.mockRejectedValueOnce(new Error('boom'));
+    const wrapper = await mountCard();
+    expect(wrapper.emitted('errorChange').at(-1)).toEqual([true]);
+    getContactEvents.mockResolvedValueOnce({ data: { payload: [] } });
+    await wrapper.findComponent({ name: 'Button' }).vm.$emit('click');
+    await flushPromises();
+    expect(wrapper.emitted('retry')).toHaveLength(1);
+    expect(getContactEvents).toHaveBeenCalledTimes(2);
+    expect(wrapper.emitted('errorChange').at(-1)).toEqual([false]);
   });
 
   it('says how the customer answered the invite, and confirms what Captain booked by chat', async () => {

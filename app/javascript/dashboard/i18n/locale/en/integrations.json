@@ -943,6 +943,22 @@
           "HINT": "Inboxes without business hours configured are always covered."
         },
         "APPOINTMENTS": {
+          "READINESS": {
+            "TITLE": "Reminder preparation by inbox",
+            "SAVED_HELP": "Saved configuration. Save your changes to refresh these checks. This applies to appointments booked by Captain in its connected inboxes.",
+            "NO_INBOXES": "Connect an inbox to Captain to check reminder preparation.",
+            "MISSING": "Missing bindings: {variables}",
+            "DELIVERY_HELP": "Configuration does not guarantee delivery. The reply window, customer values, appointment status and daily limit are checked at send time. Missing values skip the template and leave a private note. Enabling reminders does not authorize paid messages.",
+            "STATUS": {
+              "ready": "Prepared for outside-window WhatsApp templates. Customer values are checked at send time.",
+              "disabled": "Captain appointments or both reminders are disabled. Enable appointments for this assistant and inbox, and at least one reminder.",
+              "not_sent_channel": "This channel cannot send reminders outside its reply window. Inside the window, a normal reply can be sent.",
+              "not_sent_window": "Outside the reply window, reminders are skipped because paid templates are off. Enable them under Paid messages if you authorize charges.",
+              "no_template": "Outside the reply window, reminders are skipped: select a reminder template below and save.",
+              "template_unavailable": "The selected template is missing or not approved in this inbox. Approve it in WhatsApp or choose an approved template below and save.",
+              "template_changed": "The template has incomplete variable bindings or a missing header file. Complete the reminder template below and save."
+            }
+          },
           "TOGGLE": "Book appointments",
           "TOGGLE_HELP": "When on, Captain can offer available times from the calendar you choose. It is off by default.",
           "CONNECTION": "Calendar account",

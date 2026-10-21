@@ -12,17 +12,12 @@ import {
   gridRowStyle,
   layoutDayEvents,
 } from 'dashboard/helper/calendarGrid';
+import { useCalendarTime } from 'dashboard/composables/useCalendarTime';
 import {
   HOUR_END,
   HOUR_START,
-  calendarEventTooltip,
   dayNumberFromKey,
-  eventDateKey,
-  formatTime,
-  formatWeekdayMonth,
-  nowLinePercent,
   slotFromClick,
-  todayKey,
   weekDays,
 } from 'dashboard/helper/calendarTime';
 
@@ -32,7 +27,19 @@ const props = defineProps({
   hourStart: { type: Number, default: HOUR_START },
   hourEnd: { type: Number, default: HOUR_END },
 });
+
 const emit = defineEmits(['slotClick', 'event-click']);
+
+const {
+  timezone,
+  calendarEventTooltip,
+  eventDateKey,
+  formatTime,
+  formatWeekdayMonth,
+  nowLinePercent,
+  todayKey,
+} = useCalendarTime();
+
 const { t, locale } = useI18n();
 const now = useNow({ interval: 60_000 });
 const hours = computed(() =>
@@ -60,7 +67,8 @@ const days = computed(() =>
       props.events,
       dateKey,
       props.hourStart,
-      props.hourEnd
+      props.hourEnd,
+      timezone.value
     ),
   }))
 );

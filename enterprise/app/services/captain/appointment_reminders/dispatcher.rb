@@ -8,13 +8,9 @@ class Captain::AppointmentReminders::Dispatcher
 
   private
 
-  # The row lock makes a reminder go out once even if two workers overlap.
+  # Sender locks event then reminder, the same order as reconciliation and its callbacks.
   def dispatch(reminder)
-    reminder.with_lock do
-      next unless reminder.pending?
-
-      Captain::AppointmentReminders::Sender.new(reminder).perform
-    end
+    Captain::AppointmentReminders::Sender.new(reminder).perform
   rescue StandardError => e
     ChatwootExceptionTracker.new(e, account: reminder.account).capture_exception
     Captain::AppointmentReminder.where(id: reminder.id, status: 'pending')

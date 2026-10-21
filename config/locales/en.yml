@@ -516,6 +516,7 @@ en:
       short_description: 'Access order details and customer data from your Shopify store.'
       description: 'Connect your Shopify store to access order details, customer information, and product data directly within your conversations and helps your support team provide faster, more contextual assistance to your customers.'
     calendars:
+      contact_mismatch: 'The selected contact does not belong to this conversation.'
       name: 'Calendars'
       short_description: 'Connect Google calendars and view events in the dashboard.'
       description: 'Connect Google Calendar accounts so your team can see upcoming events. Microsoft Calendar is coming soon.'
@@ -825,6 +826,10 @@ en:
   auto_assignment:
     default_policy_name: 'Default Policy'
     policy_actor: 'Automation System via %{policy_name}'
+  variables:
+    tool_render_failed: 'Template rendering failed: %{path}: %{status}'
+    import_undefined: 'Imported %{attribute_scope} fields have no attribute definition and will not appear in variable selectors: %{keys}. Create definitions to make them visible.'
+    delivery_skipped: 'Delivery skipped (%{surface}): variable not available (%{reason}).'
   automation:
     system_name: 'Automation System'
     activity_actor: 'automation «%{name}»'
@@ -1017,6 +1022,12 @@ en:
       library_unavailable: 'The Meta library could not be read for this channel.'
       library_name_required: 'The library template is missing.'
       meta_error: 'Meta rejected the request: %{detail}'
+
+  google_calendar:
+    oauth:
+      invalid_state: 'This connection request has expired, has already been used, or belongs to another session. Start connecting Google Calendar again.'
+      cancelled: 'Google Calendar authorization was cancelled. Start connecting again when you are ready.'
+      failed: 'Google Calendar could not be connected. Start connecting again.'
 
 helpers:
   label:

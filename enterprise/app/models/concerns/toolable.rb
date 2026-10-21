@@ -36,16 +36,16 @@ module Concerns::Toolable
     tool_class.new(assistant, self, **)
   end
 
-  def build_request_url(params)
-    return endpoint_url if endpoint_url.blank? || endpoint_url.exclude?('{{')
+  def build_request_url(params, drops: {})
+    return endpoint_url if endpoint_url.blank?
 
-    render_template(endpoint_url, params)
+    render_template(endpoint_url, params.deep_stringify_keys.merge(drops), path: 'endpoint_url')
   end
 
-  def build_request_body(params)
+  def build_request_body(params, drops: {})
     return nil if request_template.blank?
 
-    render_template(request_template, params)
+    render_template(request_template, params.deep_stringify_keys.merge(drops), path: 'request_template')
   end
 
   def build_auth_headers
@@ -98,21 +98,17 @@ module Concerns::Toolable
     headers['X-Chatwoot-Contact-Inbox-Verified'] = (contact_inbox&.[](:hmac_verified) || false).to_s
   end
 
-  def format_response(raw_response_body)
+  def format_response(raw_response_body, drops: {})
     return raw_response_body if response_template.blank?
 
     response_data = parse_response_body(raw_response_body)
-    render_template(response_template, { 'response' => response_data, 'r' => response_data })
+    render_template(response_template, drops.merge('response' => response_data, 'r' => response_data), path: 'response_template')
   end
 
   private
 
-  def render_template(template, context)
-    liquid_template = Liquid::Template.parse(template, error_mode: :strict)
-    liquid_template.render(context.deep_stringify_keys, registers: {}, strict_variables: true, strict_filters: true)
-  rescue Liquid::SyntaxError, Liquid::UndefinedVariable, Liquid::UndefinedFilter => e
-    Rails.logger.error("Liquid template error: #{e.message}")
-    raise "Template rendering failed: #{e.message}"
+  def render_template(template, context, path:)
+    Variables::DeliveryRenderer.new(drops: context).render(template, path: path)
   end
 
   def parse_response_body(body)

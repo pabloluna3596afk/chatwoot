@@ -5,7 +5,7 @@ RSpec.describe Captain::AppointmentReminders do
   let(:connection) do
     CalendarConnection.create!(
       account: account, provider: 'google', email: 'agenda@example.com', refresh_token: 'refresh',
-      access_token: 'access', access_token_expires_at: 1.hour.from_now
+      access_token: 'access', access_token_expires_at: Time.zone.parse('2031-01-01')
     )
   end
   let(:appointments_config) { { 'enabled' => true, 'calendar_connection_id' => connection.id, 'calendar_id' => 'cal-1' } }
@@ -36,6 +36,13 @@ RSpec.describe Captain::AppointmentReminders do
   before do
     connection.connection_calendars.create!(account: account, external_id: 'cal-1', summary: 'Main', is_enabled: true)
     create(:captain_inbox, captain_assistant: assistant, inbox: inbox)
+    client = instance_double(Integrations::GoogleCalendar::Client)
+    allow(Integrations::GoogleCalendar::Client).to receive(:new).and_return(client)
+    allow(client).to receive(:get_event) do
+      current = event.reload
+      { 'status' => 'confirmed', 'summary' => current.summary,
+        'start' => { 'dateTime' => current.start_at.iso8601 }, 'end' => { 'dateTime' => current.end_at.iso8601 } }
+    end
   end
 
   def schedule

@@ -12,6 +12,7 @@ import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useAlert } from 'dashboard/composables';
+import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import Button from 'dashboard/components-next/button/Button.vue';
 import OutlinedAttributeField from 'dashboard/components-next/CustomAttributes/OutlinedAttributeField.vue';
 import OutlinedSelectField from 'dashboard/components-next/CustomAttributes/OutlinedSelectField.vue';
@@ -23,10 +24,21 @@ import AgendaSidebar from './AgendaSidebar.vue';
 import EventModal from './EventModal.vue';
 import googleLogo from 'dashboard/assets/images/integrations/google.svg';
 import microsoftLogo from 'dashboard/assets/images/integrations/microsoft.svg';
+import { useCalendarTime } from 'dashboard/composables/useCalendarTime';
 import {
   HOUR_END,
   HOUR_START,
   addDaysKey,
+} from 'dashboard/helper/calendarTime';
+
+import {
+  calendarDisplayName,
+  connectionDisplayName,
+} from 'dashboard/helper/calendarLabels';
+import { useCalendarCancelledVisibility } from 'dashboard/helper/useCalendarCancelledVisibility';
+
+const {
+  timezone,
   calendarEventTooltip,
   compareEventsByStart,
   eventDateKey,
@@ -34,12 +46,7 @@ import {
   formatTime,
   startOfWeekKey,
   weekBoundsIso,
-} from 'dashboard/helper/calendarTime';
-import {
-  calendarDisplayName,
-  connectionDisplayName,
-} from 'dashboard/helper/calendarLabels';
-import { useCalendarCancelledVisibility } from 'dashboard/helper/useCalendarCancelledVisibility';
+} = useCalendarTime();
 
 const { t, locale } = useI18n();
 const router = useRouter();
@@ -48,7 +55,9 @@ const { isAdmin } = useAdmin();
 
 const loading = ref(true);
 const calendarsReady = ref(false);
-const loadingEvents = ref(false);
+const connectionRequest = useAbortableRequest();
+const calendarRequest = useAbortableRequest();
+const eventRequest = useAbortableRequest();
 const connections = ref([]);
 const calendars = ref([]);
 const events = ref([]);
@@ -106,15 +115,15 @@ const weekLabel = computed(() => {
 });
 
 const groupsForDays = days =>
-  Array.from({ length: days }, (_, index) => addDaysKey(weekStartKey.value, index)).map(
-    dateKey => ({
-      key: dateKey,
-      label: formatDayLabel(dateKey, locale.value),
-      events: visibleEvents.value
-        .filter(event => eventDateKey(event.start) === dateKey)
-        .sort(compareEventsByStart),
-    })
-  );
+  Array.from({ length: days }, (_, index) =>
+    addDaysKey(weekStartKey.value, index)
+  ).map(dateKey => ({
+    key: dateKey,
+    label: formatDayLabel(dateKey, locale.value),
+    events: visibleEvents.value
+      .filter(event => eventDateKey(event.start) === dateKey)
+      .sort(compareEventsByStart),
+  }));
 
 const weekGroups = computed(() => groupsForDays(7));
 const agendaGroups = computed(() => groupsForDays(AGENDA_DAYS));
@@ -138,7 +147,11 @@ const loadConnections = async () => {
   loading.value = true;
   calendarsReady.value = false;
   try {
-    const { data } = await CalendarAPI.getConnections();
+    const response = await connectionRequest.run(signal =>
+      CalendarAPI.getConnections({ signal })
+    );
+    if (!response) return;
+    const { data } = response;
     panelAiActive.value = Boolean(data.panel_ai_active);
     connections.value = (data.payload || []).filter(item =>
       ['google', 'microsoft'].includes(item.provider)
@@ -152,12 +165,15 @@ const loadConnections = async () => {
   } catch (error) {
     calendarsReady.value = true;
     useAlert(t('SIDEBAR.CALENDAR_PAGE.LOAD_ERROR'));
-  } finally {
-    loading.value = false;
   }
+  loading.value = false;
 };
 
 const loadCalendars = async () => {
+  calendarRequest.abort();
+  eventRequest.abort();
+  events.value = [];
+  calendars.value = [];
   if (!selectedConnectionId.value) {
     calendars.value = [];
     selectedCalendarId.value = '';
@@ -166,7 +182,11 @@ const loadCalendars = async () => {
   }
   calendarsReady.value = false;
   try {
-    const { data } = await CalendarAPI.getCalendars(selectedConnectionId.value);
+    const response = await calendarRequest.run(signal =>
+      CalendarAPI.getCalendars(selectedConnectionId.value, { signal })
+    );
+    if (!response) return;
+    const { data } = response;
     calendars.value = (data.payload || []).filter(
       item => item.enabled !== false
     );
@@ -176,26 +196,36 @@ const loadCalendars = async () => {
     selectedCalendarId.value = current?.id || calendars.value[0]?.id || '';
   } catch (error) {
     calendars.value = [];
+    selectedCalendarId.value = '';
     useAlert(t('SIDEBAR.CALENDAR_PAGE.LOAD_ERROR'));
-  } finally {
-    calendarsReady.value = true;
   }
+  calendarsReady.value = true;
 };
 
 const loadEvents = async ({ silent = false, keepEvent = null } = {}) => {
-  if (!selectedConnectionId.value || !selectedCalendarId.value) {
+  eventRequest.abort();
+  if (
+    !calendarsReady.value ||
+    !selectedConnectionId.value ||
+    !selectedCalendarId.value
+  ) {
     events.value = [];
     return;
   }
-  if (!silent) loadingEvents.value = true;
+  if (!silent) events.value = [];
   try {
     const bounds = weekBoundsIso(weekStartKey.value, AGENDA_DAYS);
-    const { data } = await CalendarAPI.getEvents({
-      connectionId: selectedConnectionId.value,
-      calendarId: selectedCalendarId.value,
-      timeMin: bounds.timeMin,
-      timeMax: bounds.timeMax,
-    });
+    const response = await eventRequest.run(signal =>
+      CalendarAPI.getEvents({
+        connectionId: selectedConnectionId.value,
+        calendarId: selectedCalendarId.value,
+        timeMin: bounds.timeMin,
+        timeMax: bounds.timeMax,
+        signal,
+      })
+    );
+    if (!response) return;
+    const { data } = response;
     let next = [...(data.payload || [])];
     if (keepEvent?.id && !next.some(item => item.id === keepEvent.id)) {
       next.push(keepEvent);
@@ -206,8 +236,6 @@ const loadEvents = async ({ silent = false, keepEvent = null } = {}) => {
       events.value = [];
       useAlert(t('SIDEBAR.CALENDAR_PAGE.LOAD_ERROR'));
     }
-  } finally {
-    if (!silent) loadingEvents.value = false;
   }
 };
 
@@ -222,6 +250,11 @@ const applySavedEvent = event => {
 };
 
 const onSaved = async event => {
+  if (
+    String(event?.connection_id) !== selectedConnectionId.value ||
+    event?.calendar_id !== selectedCalendarId.value
+  )
+    return;
   applySavedEvent(event);
   await loadEvents({ silent: true, keepEvent: event });
 };
@@ -258,9 +291,18 @@ watch(selectedConnectionId, () => {
   loadCalendars();
 });
 
-watch([selectedCalendarId, weekStartKey], () => {
-  loadEvents();
-});
+watch(
+  [
+    selectedConnectionId,
+    selectedCalendarId,
+    weekStartKey,
+    timezone,
+    calendarsReady,
+  ],
+  () => {
+    loadEvents();
+  }
+);
 
 onMounted(loadConnections);
 </script>
@@ -270,6 +312,9 @@ onMounted(loadConnections);
     <header class="flex items-start justify-between gap-3 px-4 py-3 min-w-0">
       <h1 class="text-lg font-medium text-n-slate-12 shrink-0 pt-1">
         {{ $t('SIDEBAR.CALENDAR_PAGE.TITLE') }}
+        <span class="block text-xs font-normal text-n-slate-11">{{
+          timezone
+        }}</span>
       </h1>
       <div
         v-if="hasConnections"
@@ -552,7 +597,6 @@ onMounted(loadConnections);
     <EventModal
       ref="modalRef"
       :connections="connections"
-      :calendars="calendars"
       :panel-ai-active="panelAiActive"
       @saved="onSaved"
     />

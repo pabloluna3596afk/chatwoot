@@ -4,7 +4,7 @@
 #   {{ date.today }}                 → today (ISO YYYY-MM-DD via to_s)
 #   {{ date.today | plus_days: 7 }}  → today + N
 #   {{ date.today | minus_days: 30 }} → today - N
-# ActionService renders these through MessageRendererService before parsing date CAs.
+# ActionService renders these through Variables::ValueNormalizer before parsing date CAs.
 class DateDrop < Liquid::Drop
   def initialize(timezone: Time.zone)
     @timezone = timezone

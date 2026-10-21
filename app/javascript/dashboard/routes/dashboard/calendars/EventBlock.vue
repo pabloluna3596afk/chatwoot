@@ -1,7 +1,8 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { calendarEventTooltip } from 'dashboard/helper/calendarTime';
+import { useCalendarTime } from 'dashboard/composables/useCalendarTime';
+
 import {
   calendarEventStyle,
   isCancelledEvent,
@@ -11,7 +12,11 @@ const props = defineProps({
   event: { type: Object, required: true },
   compact: { type: Boolean, default: false },
 });
+
 const emit = defineEmits(['select']);
+
+const { calendarEventTooltip } = useCalendarTime();
+
 const { t } = useI18n();
 const APPOINTMENT_TITLE_PREFIX = /^(?:Cita|Appointment)\s*·\s*/i;
 const displayTitle = computed(() =>

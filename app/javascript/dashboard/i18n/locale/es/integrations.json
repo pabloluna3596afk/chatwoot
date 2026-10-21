@@ -942,6 +942,22 @@
           "HINT": "Las bandejas sin horario laboral configurado están cubiertas siempre."
         },
         "APPOINTMENTS": {
+          "READINESS": {
+            "TITLE": "Preparación de recordatorios por bandeja",
+            "SAVED_HELP": "Configuración guardada. Guarda los cambios para actualizar estas comprobaciones. Se aplica a citas reservadas por Captain en sus bandejas conectadas.",
+            "NO_INBOXES": "Conecta una bandeja a Captain para comprobar la preparación de recordatorios.",
+            "MISSING": "Asignaciones pendientes: {variables}",
+            "DELIVERY_HELP": "La configuración no garantiza la entrega. Al enviar se comprueban la ventana de respuesta, los valores del contacto, el estado de la cita y el límite diario. Si faltan valores, se omite la plantilla y se deja una nota privada. Activar recordatorios no autoriza mensajes de pago.",
+            "STATUS": {
+              "ready": "Preparado para plantillas de WhatsApp fuera de la ventana. Los valores del contacto se comprueban al enviar.",
+              "disabled": "Las citas de Captain o ambos recordatorios están desactivados. Activa las citas para este asistente y bandeja, y al menos un recordatorio.",
+              "not_sent_channel": "Este canal no permite recordatorios fuera de su ventana de respuesta. Dentro de la ventana se puede enviar una respuesta normal.",
+              "not_sent_window": "Fuera de la ventana se omiten los recordatorios porque las plantillas de pago están desactivadas. Actívalas en Mensajes de pago si autorizas los cargos.",
+              "no_template": "Fuera de la ventana se omiten los recordatorios: selecciona una plantilla de recordatorio abajo y guarda.",
+              "template_unavailable": "La plantilla seleccionada no existe o no está aprobada en esta bandeja. Apruébala en WhatsApp o elige una plantilla aprobada abajo y guarda.",
+              "template_changed": "La plantilla tiene variables sin asignar o falta un archivo de cabecera. Completa la plantilla de recordatorio abajo y guarda."
+            }
+          },
           "TOGGLE": "Agendar citas",
           "TOGGLE_HELP": "Si está activado, Captain puede ofrecer horarios disponibles del calendario que elijas. Viene desactivado.",
           "CONNECTION": "Cuenta de calendario",

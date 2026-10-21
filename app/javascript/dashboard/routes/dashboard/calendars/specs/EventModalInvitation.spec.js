@@ -16,6 +16,9 @@ vi.mock('dashboard/api/integrations/calendar', () => ({
   default: {
     lockEvent: vi.fn().mockResolvedValue({}),
     unlockEvent: vi.fn(),
+    getCalendars: vi.fn().mockImplementation(async () => ({
+      data: { payload: [{ id: 'cal-1' }] },
+    })),
     getInvitation: vi.fn(),
     createEvent: vi.fn(),
     updateEvent: vi.fn(),
@@ -71,6 +74,9 @@ const textarea = wrapper => wrapper.findComponent({ name: 'TextArea' });
 
 describe('EventModal invitation text', () => {
   beforeEach(() => {
+    CalendarAPI.getCalendars.mockResolvedValue({
+      data: { payload: [{ id: 'cal-1' }] },
+    });
     CalendarAPI.getInvitation.mockReset();
     CalendarAPI.createEvent.mockReset();
     CalendarAPI.updateEvent.mockReset();

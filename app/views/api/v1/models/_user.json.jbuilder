@@ -27,6 +27,7 @@ json.accounts do
   json.array! account_users do |account_user|
     json.id account_user.account_id
     json.name account_user.account.name
+    json.calendar_timezone Integrations::GoogleCalendar::Timezone.for(account_user.account).tzinfo.name
     json.reporting_timezone Reports::PanelDateRange.timezone(account_user.account).tzinfo.name
     json.status account_user.account.status
     json.onboarding_step account_user.account.onboarding_step

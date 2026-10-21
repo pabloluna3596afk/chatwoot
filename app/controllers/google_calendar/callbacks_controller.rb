@@ -2,17 +2,30 @@ class GoogleCalendar::CallbacksController < ApplicationController
   include GoogleCalendar::IntegrationHelper
 
   def show
-    return redirect_to(safe_redirect_uri) if params[:code].blank? || account_id.blank?
+    authorize_initiator!
+
+    return render plain: I18n.t('google_calendar.oauth.cancelled'), status: :unprocessable_entity if params[:code].blank? || params[:error].present?
 
     tokens = Integrations::GoogleCalendar::Oauth.exchange_code(params[:code])
     persist_connection(tokens)
     redirect_to calendars_redirect_uri
+  rescue GoogleCalendar::IntegrationHelper::InvalidState, ActiveRecord::RecordNotFound
+    render plain: I18n.t('google_calendar.oauth.invalid_state'), status: :unprocessable_entity
   rescue StandardError => e
-    Rails.logger.error("Google Calendar callback error: #{e.message}")
-    redirect_to safe_redirect_uri
+    Rails.logger.error("Google Calendar callback failed: #{e.class}")
+    render plain: I18n.t('google_calendar.oauth.failed'), status: :unprocessable_entity
   end
 
   private
+
+  attr_reader :account
+
+  def authorize_initiator!
+    state = verify_google_calendar_token(params[:state])
+    @account = Account.find(state.fetch('sub'))
+    @initiating_user = account.account_users.find_by(user_id: state.fetch('user_id'), role: :administrator)&.user
+    raise GoogleCalendar::IntegrationHelper::InvalidState unless @initiating_user && account.active?
+  end
 
   def persist_connection(tokens)
     access_token = tokens['access_token']
@@ -35,36 +48,14 @@ class GoogleCalendar::CallbacksController < ApplicationController
       access_token_expires_at: Time.current.utc + expires_in.seconds,
       scopes: Array(tokens['scope'].to_s.split),
       is_active: true,
-      connected_by: current_user,
+      connected_by: @initiating_user,
       display_name: profile[:name].presence || Integrations::GoogleCalendar::Oauth.name_from_id_token(tokens['id_token'])
     )
     connection.save!
     @connection = connection
   end
 
-  def account
-    @account ||= Account.find(account_id)
-  end
-
-  def account_id
-    return @account_id if instance_variable_defined?(:@account_id)
-
-    @account_id = params[:state].present? ? verify_google_calendar_token(params[:state]) : nil
-  end
-
   def calendars_redirect_uri
     "#{ENV.fetch('FRONTEND_URL', nil)}/app/accounts/#{account.id}/settings/integrations/calendars?setup=#{@connection.id}"
-  end
-
-  def safe_redirect_uri
-    return base_url if account_id.blank?
-
-    calendars_redirect_uri
-  rescue StandardError
-    base_url
-  end
-
-  def base_url
-    ENV.fetch('FRONTEND_URL', 'http://localhost:3000')
   end
 end

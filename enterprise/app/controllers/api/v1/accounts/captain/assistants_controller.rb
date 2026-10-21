@@ -18,6 +18,11 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
   def update
     @assistant.with_lock do
       permitted_params = assistant_params
+      if permitted_params.dig(:config, :appointments)
+        permitted_params[:config][:appointments].reverse_merge!(
+          template_cancelled: @assistant.config.dig('appointments', 'template_cancelled')
+        )
+      end
       permitted_params[:config] = @assistant.config.merge(permitted_params[:config].to_h) if permitted_params[:config]
 
       @assistant.update!(permitted_params)

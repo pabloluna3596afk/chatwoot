@@ -1,3 +1,4 @@
+json.calendar_timezone Integrations::GoogleCalendar::Timezone.for(resource).tzinfo.name
 json.settings resource.settings
 json.reporting_timezone Reports::PanelDateRange.timezone(resource).tzinfo.name
 json.created_at resource.created_at
