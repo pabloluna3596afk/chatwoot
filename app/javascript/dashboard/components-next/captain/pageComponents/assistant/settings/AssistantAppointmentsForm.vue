@@ -8,6 +8,7 @@ import {
   templateToValue,
 } from './useApprovedTemplates';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
+import CalendarAppointmentAttributes from 'dashboard/routes/dashboard/settings/integrations/CalendarAppointmentAttributes.vue';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
@@ -605,6 +606,7 @@ onMounted(loadConnections);
           @click="handleSubmit"
         />
       </div>
+      <CalendarAppointmentAttributes />
     </template>
   </div>
 </template>

@@ -67,6 +67,21 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
     %w[g-1 g-2 external].each { |event_id| Redis::Alfred.delete(event_lock_key(event_id)) }
   end
 
+  it 'updates the four enabled derivatives after booking and processing the contact job' do
+    travel_to(Time.zone.parse(slot_start) - 1.day)
+    connection.update!(access_token_expires_at: 1.hour.from_now)
+    Calendar::AppointmentAttributes::Provisioner.new(account: account).perform(keys: Calendar::AppointmentAttributes::Definitions::TYPES.keys)
+    local_event(contact: contact, start_at: 1.day.ago, end_at: 1.day.ago + 30.minutes)
+
+    service.create(create_params)
+    perform_enqueued_jobs(only: Calendar::AppointmentAttributes::UpdateJob, at: Time.current)
+
+    expect(contact.reload.custom_attributes).to include(
+      'ultima_cita' => 1.day.ago.utc.iso8601, 'proxima_cita' => Time.zone.parse(slot_start).utc.iso8601,
+      'proxima_cita_titulo' => 'Consulta', 'total_citas' => 2
+    )
+  end
+
   describe 'association authorization without controller context' do
     let(:user) { create(:user, account: account, role: :agent) }
     let(:conversation) { create(:conversation, account: account, contact: contact) }
@@ -771,6 +786,7 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
       expect(soon.reload.invitation_status).to eq('declined')
     end
   end
+
   describe 'account timezone throughout a booking' do
     ['America/Guayaquil', 'America/New_York'].each do |timezone|
       it "offers, books and renders invitations at 10:00 in #{timezone}" do

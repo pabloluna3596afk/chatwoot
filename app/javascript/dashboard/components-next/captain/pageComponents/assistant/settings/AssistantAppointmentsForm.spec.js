@@ -5,9 +5,17 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import { nextTick } from 'vue';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
 
-const { getConnections, getCalendars, inboxes } = vi.hoisted(() => ({
+const {
+  getConnections,
+  getCalendars,
+  getAppointmentAttributes,
+  updateAppointmentAttributes,
+  inboxes,
+} = vi.hoisted(() => ({
   getConnections: vi.fn(),
   getCalendars: vi.fn(),
+  getAppointmentAttributes: vi.fn(),
+  updateAppointmentAttributes: vi.fn(),
   inboxes: { value: [] },
 }));
 
@@ -28,6 +36,8 @@ vi.mock('dashboard/composables/store', () => ({
     name === 'attributes/getAttributes' ? { value: [] } : inboxes,
 }));
 
+vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
+
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
     locale: { value: 'en' },
@@ -41,7 +51,12 @@ vi.mock('dashboard/composables/useAccount', () => ({
 }));
 
 vi.mock('dashboard/api/integrations/calendar', () => ({
-  default: { getConnections, getCalendars },
+  default: {
+    getConnections,
+    getCalendars,
+    getAppointmentAttributes,
+    updateAppointmentAttributes,
+  },
 }));
 
 const CONNECTIONS = [{ id: 7, email: 'agenda@example.com', name: 'Agenda' }];
@@ -92,12 +107,119 @@ const REMINDER_DEFAULTS = {
 describe('AssistantAppointmentsForm', () => {
   beforeEach(() => {
     inboxes.value = [];
+    getAppointmentAttributes.mockReset().mockResolvedValue({
+      data: { keys: null, enabled_keys: [], results: {} },
+    });
+    updateAppointmentAttributes.mockReset();
     getConnections
       .mockReset()
       .mockResolvedValue({ data: { payload: CONNECTIONS } });
     getCalendars
       .mockReset()
       .mockResolvedValue({ data: { payload: CALENDARS } });
+  });
+
+  it('offers explicit provisioning of all four attributes from appointment setup', async () => {
+    const wrapper = await mountForm();
+    const inputs = wrapper.findAll(
+      '[data-testid^="appointment-attribute-"] input'
+    );
+    expect(inputs).toHaveLength(4);
+    inputs.forEach(input => expect(input.element.checked).toBe(true));
+    expect(updateAppointmentAttributes).not.toHaveBeenCalled();
+    updateAppointmentAttributes.mockResolvedValue({
+      data: {
+        keys: [
+          'ultima_cita',
+          'proxima_cita',
+          'proxima_cita_titulo',
+          'total_citas',
+        ],
+        enabled_keys: ['proxima_cita', 'proxima_cita_titulo', 'total_citas'],
+        results: {
+          ultima_cita: {
+            status: 'conflict',
+            expected_type: 'datetime',
+            actual_type: 'text',
+          },
+          proxima_cita: { status: 'created' },
+          total_citas: { status: 'reused' },
+        },
+      },
+    });
+    await wrapper
+      .get('[data-testid="appointment-attributes-save"]')
+      .trigger('click');
+    await flushPromises();
+    expect(updateAppointmentAttributes).toHaveBeenCalledWith([
+      'ultima_cita',
+      'proxima_cita',
+      'proxima_cita_titulo',
+      'total_citas',
+    ]);
+    [
+      ['ultima_cita', 'conflict'],
+      ['proxima_cita', 'created'],
+      ['total_citas', 'reused'],
+    ].forEach(([key, status]) => {
+      expect(
+        wrapper.get(`[data-testid="appointment-result-${key}"]`).text()
+      ).toContain(`RESULT.${status}`);
+    });
+  });
+
+  it('preserves a saved empty selection across Captain toggles and reloads', async () => {
+    getAppointmentAttributes.mockResolvedValue({
+      data: { keys: [], enabled_keys: [], results: {} },
+    });
+    const wrapper = await mountForm();
+    await toggle(wrapper);
+    await toggle(wrapper);
+    await toggle(wrapper);
+    const inputs = wrapper.findAll(
+      '[data-testid^="appointment-attribute-"] input'
+    );
+    expect(inputs).toHaveLength(4);
+    inputs.forEach(input => expect(input.element.checked).toBe(false));
+    expect(getAppointmentAttributes).toHaveBeenCalledTimes(1);
+    expect(updateAppointmentAttributes).not.toHaveBeenCalled();
+    wrapper.unmount();
+    const reloaded = await mountForm();
+    expect(
+      reloaded
+        .get('[data-testid="appointment-attributes-save"]')
+        .attributes('disabled')
+    ).toBeDefined();
+    reloaded
+      .findAll('[data-testid^="appointment-attribute-"] input')
+      .forEach(input => expect(input.element.checked).toBe(false));
+  });
+
+  it('retains the selected keys for an explicit retry after provisioning fails', async () => {
+    const wrapper = await mountForm();
+    await wrapper
+      .get('[data-testid="appointment-attribute-total_citas"] input')
+      .setValue(false);
+    updateAppointmentAttributes
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce({
+        data: {
+          keys: ['ultima_cita', 'proxima_cita', 'proxima_cita_titulo'],
+          enabled_keys: ['ultima_cita', 'proxima_cita', 'proxima_cita_titulo'],
+          results: {},
+        },
+      });
+    const button = wrapper.get('[data-testid="appointment-attributes-save"]');
+    await button.trigger('click');
+    await flushPromises();
+    expect(button.attributes('disabled')).toBeUndefined();
+    await button.trigger('click');
+    await flushPromises();
+    expect(updateAppointmentAttributes).toHaveBeenCalledTimes(2);
+    expect(updateAppointmentAttributes.mock.calls[0]).toEqual(
+      updateAppointmentAttributes.mock.calls[1]
+    );
+    expect(button.attributes('disabled')).toBeDefined();
   });
 
   it('points to the calendars integration when the account has no calendar connected', async () => {
