@@ -949,3 +949,9 @@ es:
       library_unavailable: 'No se pudo consultar la biblioteca de Meta para este canal.'
       library_name_required: 'Falta la plantilla de la biblioteca.'
       meta_error: 'Meta rechazó la solicitud: %{detail}'
+
+  google_calendar:
+    oauth:
+      invalid_state: 'Esta solicitud de conexión venció, ya se utilizó o pertenece a otra sesión. Inicia de nuevo la conexión con Google Calendar.'
+      cancelled: 'Se canceló la autorización de Google Calendar. Inicia de nuevo la conexión cuando lo desees.'
+      failed: 'No se pudo conectar Google Calendar. Inicia de nuevo la conexión.'
