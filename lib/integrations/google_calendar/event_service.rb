@@ -1,5 +1,4 @@
 class Integrations::GoogleCalendar::EventService
-  TIMEZONE = Integrations::GoogleCalendar::Client::TIMEZONE
   INVITATION_REFRESH_LIMIT = 5
   INVITATION_REFRESH_EVERY = 5.minutes
 
@@ -44,7 +43,7 @@ class Integrations::GoogleCalendar::EventService
   # Falls back to the hardcoded default only for accounts that never set a
   # reporting timezone — real accounts should configure Settings → Reports.
   def account_timezone
-    account.reporting_timezone.presence || TIMEZONE
+    Integrations::GoogleCalendar::Timezone.for(account).tzinfo.name
   end
 
   def list(calendar_id:, time_min:, time_max:)
@@ -52,7 +51,10 @@ class Integrations::GoogleCalendar::EventService
     google_events = client.list_events(calendar_id: calendar_id, time_min: time_min, time_max: time_max)
     google_ids = google_events.map { |event| event['id'] }
     locals = local_records_by_google_id(google_ids)
-    google_events.each { |event| sync_google_drift!(event, locals[event['id']]) }
+    google_events.each do |event|
+      record = locals[event['id']]
+      record&.with_lock { sync_google_drift!(event, record) }
+    end
     live = google_events.map { |event| serialize(event, locals[event['id']], calendar_id) }
     live + discarded_in_range(calendar_id, time_min, time_max, google_ids)
   end
@@ -91,6 +93,23 @@ class Integrations::GoogleCalendar::EventService
   # The event as Google has it now (attendees included).
   def google_event_for(record)
     client.get_event(calendar_id: record.external_calendar_id, event_id: record.google_event_id)
+  end
+
+  # A single remote snapshot per attempt. Failures other than a confirmed absence propagate;
+  # callers must not send from the old local snapshot when Google cannot be checked.
+  def reconcile!(record)
+    record.with_lock do
+      return record if record.discarded?
+
+      begin
+        sync_google_drift!(google_event_for(record), record)
+      rescue Integrations::GoogleCalendar::Client::Error => e
+        raise unless [404, 410].include?(e.code.to_i)
+
+        cancel_from_google!(record)
+      end
+    end
+    record
   end
 
   # Reads the invite answer of an appointment from Google and keeps it. A failure leaves what was known.
@@ -513,11 +532,13 @@ class Integrations::GoogleCalendar::EventService
 
   def parse_range(params)
     zone = Time.find_zone!(account_timezone)
-    start_at = zone.parse(params[:start].to_s)
-    end_at = params[:end].present? ? zone.parse(params[:end].to_s) : start_at + 30.minutes
+    start_at = Integrations::GoogleCalendar::Timezone.parse(params[:start].to_s, zone: zone)
+    end_at = params[:end].present? ? Integrations::GoogleCalendar::Timezone.parse(params[:end].to_s, zone: zone) : start_at + 30.minutes
     raise InvalidRange if start_at.blank? || end_at <= start_at
 
     [start_at, end_at]
+  rescue ArgumentError
+    raise InvalidRange
   end
 
   def authorized_people!(params, record: nil)
@@ -732,27 +753,33 @@ class Integrations::GoogleCalendar::EventService
 
   def sync_google_drift!(google_event, record)
     return if record.blank? || record.discarded?
-    return if google_event.dig('start', 'dateTime').blank?
+    return cancel_from_google!(record) if google_event['status'] == 'cancelled'
 
-    sync_invitation_status!(google_event, record)
+    attributes = drift_attributes(google_event, record)
+    details = diff_snapshots(snapshot(record), attributes)
+    record.assign_attributes(attributes)
+    record.save! if record.changed?
+    record_activity!(record, 'moved_in_google', details) if details.present?
+  end
+
+  def drift_attributes(google_event, record)
     google_start = parse_google_time(google_event['start'])
     google_end = parse_google_time(google_event['end'])
-    after = {
+    raise InvalidRange unless google_start && google_end && google_end > google_start
+
+    {
       summary: google_event['summary'].presence || record.summary,
       start_at: google_start,
-      end_at: google_end
-    }
-    details = diff_snapshots(snapshot(record), after)
-    return if details.empty?
-
-    record.update!(
-      start_at: google_start,
       end_at: google_end,
-      summary: after[:summary],
       etag: google_event['etag'],
-      html_link: google_event['htmlLink']
-    )
-    record_activity!(record, 'moved_in_google', details)
+      html_link: google_event['htmlLink'],
+      invitation_status: self.class.invitation_status_from(google_event)
+    }
+  end
+
+  def cancel_from_google!(record)
+    record.update!(deleted_at: Time.current, appointment_status: 'cancelled', idempotency_key: nil)
+    record.activities.create!(account: account, user: nil, action: 'deleted', details: { 'source' => 'google' })
   end
 
   def sync_invitation_status!(google_event, record)
@@ -810,7 +837,7 @@ class Integrations::GoogleCalendar::EventService
     value = payload['dateTime'].presence || payload['date']
     Time.iso8601(value)
   rescue ArgumentError
-    Time.zone.parse(value)
+    Integrations::GoogleCalendar::Timezone.parse(value, zone: Integrations::GoogleCalendar::Timezone.for(account))
   end
 
   def serialize(event, record, calendar_id)

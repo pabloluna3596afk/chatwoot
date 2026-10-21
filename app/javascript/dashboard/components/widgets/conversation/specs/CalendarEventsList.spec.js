@@ -17,6 +17,12 @@ vi.mock('dashboard/helper/useCalendarCancelledVisibility', () => ({
 
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 
+vi.mock('dashboard/composables/useAccount', () => ({
+  useAccount: () => ({
+    currentAccount: ref({ calendar_timezone: 'America/Guayaquil' }),
+  }),
+}));
+
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key, locale: { value: 'es' } }),
 }));
@@ -62,6 +68,7 @@ describe('CalendarEventsList', () => {
       'CONVERSATION_SIDEBAR.CALENDAR.PAST',
     ]);
     const [upcoming, past] = wrapper.findAll('section');
+    expect(upcoming.text()).toContain('America/Guayaquil');
     expect(upcoming.text()).toContain('Próxima');
     expect(
       upcoming.findComponent({ name: 'AppointmentCreatorAvatar' }).exists()

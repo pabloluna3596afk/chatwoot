@@ -6,13 +6,7 @@ import {
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useNow } from '@vueuse/core';
-import {
-  calendarEventTooltip,
-  compareEventsByStart,
-  formatTime,
-  isEventPast,
-  todayKey,
-} from 'dashboard/helper/calendarTime';
+import { useCalendarTime } from 'dashboard/composables/useCalendarTime';
 
 const props = defineProps({
   groups: {
@@ -22,6 +16,15 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['event-click']);
+
+const {
+  calendarEventTooltip,
+  compareEventsByStart,
+  formatTime,
+  isEventPast,
+  todayKey,
+} = useCalendarTime();
+
 const { t } = useI18n();
 
 const scrollRoot = ref(null);

@@ -24,7 +24,9 @@ RSpec.describe Captain::AppointmentReconciler do
   end
 
   def google_event(answer: 'needsAction', status: 'confirmed')
-    { 'id' => 'x', 'status' => status, 'attendees' => [{ 'email' => 'ana@example.com', 'responseStatus' => answer }] }
+    { 'id' => 'x', 'status' => status, 'start' => { 'dateTime' => start_at.iso8601 },
+      'end' => { 'dateTime' => (start_at + 30.minutes).iso8601 },
+      'attendees' => [{ 'email' => 'ana@example.com', 'responseStatus' => answer }] }
   end
 
   def reconcile(apply:)
@@ -81,14 +83,15 @@ RSpec.describe Captain::AppointmentReconciler do
       expect([manual, gone].map { |item| item.reload.appointment_status }).to all(eq('pending_confirmation'))
     end
 
-    it 'reports an appointment whose Google event is gone and keeps it' do
+    it 'reports and soft cancels an appointment whose Google event is gone' do
       event = booking('g-1')
       allow(client).to receive(:get_event).and_raise(Integrations::GoogleCalendar::Client::Error.new('not found', code: 404))
 
       result = reconcile(apply: true)
 
       expect(result.missing_in_google).to eq([event.id])
-      expect(event.reload.discarded?).to be(false)
+      expect(event.reload.discarded?).to be(true)
+      expect(event.appointment_reminders).to be_empty
     end
 
     it 'reports a failure and goes on with the next appointment' do

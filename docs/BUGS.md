@@ -1,5 +1,149 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-184 — Fixtures de cuenta en specs de tarjetas de citas
+
+**Archivos:** `CalendarEventsList.spec.js`, `NextAppointmentCard.spec.js`.
+
+**Causa:** las tarjetas usan `useCalendarTime`, que lee la cuenta mediante
+`useAccount`. Los specs montaban las tarjetas sin cuenta, store ni router;
+esto provocaba cinco rechazos sin manejar y cuatro aserciones fallidas.
+
+**Fix:** proporcionar una cuenta con `calendar_timezone` mediante el mock de
+`useAccount`, conservando las aserciones existentes y comprobando además que
+ambas tarjetas muestran `America/Guayaquil`.
+
+**Cómo probar:** ejecutar los seis ejemplos de ambos archivos con Vitest en
+`TZ=UTC` y `TZ=America/Guayaquil`; deben pasar sin rechazos sin manejar.
+
+### B-NEW-087 — Una zona de cuenta en todo el recorrido de Citas (CIT-02)
+
+**Archivos:** `lib/integrations/google_calendar/timezone.rb`, servicio de eventos,
+controlador de Calendar, serializers de cuenta/perfil, herramientas y remitente
+Captain; `calendarTime.js`, `calendarGrid.js`, `useCalendarTime.js`, vistas de
+calendario/modal y tarjetas de conversación, más sus specs.
+
+**Fix:** `reporting_timezone` determina una sola zona efectiva, normalizada a
+IANA para Google y el dashboard. Sin configuración se conserva America/Guayaquil;
+el fallback de informes sigue independiente. `calendar_timezone` se expone al
+iniciar sesión y al refrescar la cuenta. Semana, agenda, límites de consulta,
+edición, historial, errores, invitación y Captain usan esa misma zona. La zona
+se muestra en calendario, modal y conversación.
+
+Una hora local inexistente por DST se rechaza. Una hora local repetida selecciona
+la primera ocurrencia; un ISO con offset explícito identifica cualquiera de las
+dos. Editar sin cambiar los campos civiles conserva el instante original, incluida
+la segunda ocurrencia. Los all-day mantienen su fecha civil. La grilla usa minutos
+del reloj local; las dos ocurrencias de una hora repetida ocupan carriles separados.
+Una cita que atraviesa un cambio DST se divide en tramos con el mismo ID: conserva
+su duraci?n en el retroceso y deja vac?a la hora inexistente al adelantar.
+
+**Cómo probar:** configurar Guayaquil y New York, crear a las 10:00 en julio,
+recargar y comparar semana/modal/conversación/invitación. Verificar semana del
+10/03/2030, hora inexistente 02:30 y hora repetida 01:30 del 03/11/2030, además
+del cambio 31/12 → 01/01 y fechas all-day. Validar Captain y variables del
+recordatorio contra el mismo instante persistido.
+
+**Validación local:** regresión RSpec de 366 ejemplos sin fallos; 12 ejemplos
+adicionales sobre el código final sin fallos. Vitest: 67 tests en UTC y 67 en
+America/Guayaquil, con modal en ingles y espanol y cuentas de ambas zonas. Rojo reproducido
+en la base: diez fallos frontend y cuatro backend. ESLint sin errores; filtro
+exacto de RuboCop CI aprobado, 33 archivos Ruby inspeccionados. El fixture de
+reintentos ahora simula `get_event`; su fallo se reprodujo en la base intacta.
+
+**Pendiente antes de integrar:** workflow remoto, Google/canal reales y capturas
+claro/oscuro/390 px de ambas zonas. Computer-use no tuvo superficies habilitadas;
+no se generaron capturas. La nueva ayuda DST tiene fuente inglesa y usa fallback
+en español hasta Crowdin. Sin migraciones ni cambios a Panel AI. Rama local
+`feat/citas-zona-horaria`, dependiente de PR5: integrar PR1 → … → PR6. Sin push.
+Informe completo ignorado: `tmp/PR-CITAS-7.md`.
+
+### B-NEW-086 — Reconciliar Google antes de enviar recordatorios (CIT-08)
+
+**Archivos:** `lib/integrations/google_calendar/event_service.rb`,
+`app/jobs/calendar/reconcile_events_job.rb`, `config/schedule.yml`,
+`enterprise/app/services/captain/appointment_reminders/{sender,dispatcher}.rb`,
+`enterprise/app/models/enterprise/calendar_event.rb`, reconciliador manual y specs.
+
+**Fix:** cada intento de envío consulta una sola versión del evento en Google.
+Sincroniza título, intervalo e invitación; 404/410 o estado cancelled cancelan
+la fila local, liberan su clave y cancelan recordatorios pendientes. Un rechazo
+de invitación no cancela la cita. Timeout/5xx conservan el pendiente sin enviar.
+El remitente bloquea primero la cita y luego el recordatorio, y vuelve a leer
+su estado y vencimiento después de reconciliar. Cambiar la hora modifica las
+filas existentes: no crea otro recordatorio del mismo tipo.
+
+La sincronización Enterprise de recordatorios ahora ocurre dentro de la misma
+transacción que el cambio de cita; un rollback revierte ambos. El job periódico
+recorre citas vinculadas a contacto o conversación, humanas y Captain, cada
+cinco minutos: páginas de 100 con cursor por ID, futuras y terminadas durante
+el último día. Los atributos del contacto se recalculan mediante el callback
+existente. No activa recordatorios Captain para citas humanas ni modifica Panel AI.
+El rake manual usa la misma reconciliación al aplicar; conserva su modo de consulta.
+
+**Cómo probar:** mover/cambiar título en Google sin abrir el calendario; ejecutar
+la tarea periódica y revisar fila, atributos y recordatorios. Ejecutar el despacho
+en la hora anterior: cero mensajes; en la nueva: uno, incluso al repetir. Borrar
+o cancelar en Google: cero envíos y fila fuera de kept. Simular timeout/5xx:
+ningún envío ni cancelación; recuperar Google y repetir: un solo mensaje.
+
+**Verificación local (2026-10-21):** diez ejemplos finales fallan contra la base
+original `67ad570ef2`; 316 ejemplos de regresión pasan con el fix. DB y Redis
+exclusivos, Google/canal simulados. Se corrigieron dos helpers de fixtures que
+ignoraban la conexión solicitada por crear a través de una asociación: los once
+fallos correspondientes también se reprodujeron en la base intacta, y pasan
+con los fixtures corregidos. Lint exacto CI aprobado en
+`chathub-rubocop-ci:cit5-ruby344`, 29 Ruby inspeccionados; 85 infracciones del
+reporte completo quedan fuera de líneas cambiadas. Sin migraciones ni UI.
+
+**Pendiente de integración/deploy:** PR5 `feat/citas-reconciliar` depende
+localmente de PR4 `feat/citas-oauth-state`; integrar PR1 → PR2 → PR3 → PR4 → PR5.
+Sin push ni deploy. Reiniciar Rails y Sidekiq al desplegar para cargar código
+y cron. Faltan CI remoto, Google/canal reales, recepción efectiva y prueba con
+dos procesos simultáneos. El barrido automático no recupera movimientos de
+citas cuyo final local ya quedó más de un día atrás; un backfill histórico
+requeriría otro recorrido explícito. Evidencia: `tmp/PR-CITAS-6.md` (ignorado).
+
+### B-NEW-085 — State OAuth de Calendar consumible una sola vez (CIT-29)
+
+**Archivos:** `app/helpers/google_calendar/integration_helper.rb`,
+`app/controllers/google_calendar/callbacks_controller.rb`, sus dos specs y
+mensajes de error en `config/locales/en.yml` y `config/locales/es.yml`.
+
+**Fix:** cada autorización recibe un nonce aleatorio, cuenta, usuario, huella
+de sesión y vencimiento firmado de 10 minutos. Redis conserva la huella del
+state con el mismo TTL. El callback lo consume con GET y DEL en MULTI/EXEC
+antes de intercambiar el código, incluso ante cancelación o fallo posterior.
+Se utiliza la transacción porque redis-namespace 1.x no aplica su namespace a
+GETDEL. Un replay no llega a Google ni cambia conexiones o tokens.
+
+El callback comprueba la cookie iniciadora, el usuario autenticado si lo hay,
+la pertenencia y el rol administrador actuales y que la cuenta siga activa.
+La cookie enlaza el callback del navegador con el inicio autenticado por
+cabeceras del dashboard; Google no devuelve esas cabeceras. `connected_by`
+conserva al usuario iniciador. Reconectar por email mantiene el refresh token
+anterior cuando Google lo omite. Los errores devuelven 422 con mensajes en
+inglés y español neutro, sin detalles del proveedor.
+
+**Cómo probar:** conectar y reconectar; repetir el callback después de éxito,
+cancelación, código ausente o fallo del proveedor; esperar el vencimiento;
+usar otra sesión/usuario/cuenta o revocar permisos antes del retorno. Ningún
+rechazo debe intercambiar el código. Con Redis real, ocho consumidores del
+mismo state deben producir exactamente una aceptación.
+
+**Verificación local (2026-10-21):** mismos specs Rails contra fuentes de
+`2a13eb9f32`: 24 fallos; con el fix: 24 ejemplos aprobados. PostgreSQL y Redis
+exclusivos, sin bases compartidas. Comando exacto de lint CI aprobado en
+`chathub-rubocop-ci:cit5-ruby344` (Ruby 3.4.4, dependencias del lockfile): cero
+infracciones en líneas cambiadas de los 20 Ruby de la pila. El reporte completo
+inspecciona 20 archivos y conserva 68 infracciones fuera de las líneas del PR.
+Tras corregir indentación en specs se releyeron bloques, Ruby 3 kwargs y
+consumo atómico. Sin migraciones, cambios visuales, capturas ni OAuth real.
+
+**Pendiente de integración:** PR1 → PR2 → PR3 → PR4; rama local
+`feat/citas-oauth-state` basada en `feat/citas-exclusion-meet`. Falta ejecución
+remota del CI y smoke con Google en cuenta de prueba; sin push ni despliegue.
+Los pendientes funcionales heredados de PR1–PR3 no se dan por cerrados aquí.
+
 ### B-NEW-183 — Fixtures de propiedad e idempotencia del CI de citas (PR #183)
 
 **Archivos:** `spec/lib/integrations/google_calendar/event_service_spec.rb`,

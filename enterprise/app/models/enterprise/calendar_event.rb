@@ -1,7 +1,7 @@
 module Enterprise::CalendarEvent
   def self.prepended(base)
     base.has_many :appointment_reminders, class_name: 'Captain::AppointmentReminder', dependent: :delete_all
-    base.after_update_commit :sync_appointment_reminders
+    base.after_update :sync_appointment_reminders
   end
 
   private

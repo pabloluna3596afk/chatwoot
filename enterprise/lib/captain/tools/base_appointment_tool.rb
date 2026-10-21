@@ -34,7 +34,7 @@ class Captain::Tools::BaseAppointmentTool < Captain::Tools::BasePublicTool
   end
 
   def zone
-    @zone ||= Time.find_zone!(@assistant.account.reporting_timezone.presence || Integrations::GoogleCalendar::Client::TIMEZONE)
+    @zone ||= Integrations::GoogleCalendar::Timezone.for(@assistant.account)
   end
 
   def calendar_id
@@ -51,7 +51,7 @@ class Captain::Tools::BaseAppointmentTool < Captain::Tools::BasePublicTool
   end
 
   def parse_time(value)
-    zone.parse(value.to_s.strip).presence
+    Integrations::GoogleCalendar::Timezone.parse(value.to_s.strip, zone: zone)
   rescue ArgumentError
     nil
   end

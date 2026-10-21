@@ -3,23 +3,23 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 import AppointmentCreatorAvatar from './AppointmentCreatorAvatar.vue';
-import {
-  formatEventWhen,
-  isUpcomingEvent,
-} from 'dashboard/helper/calendarTime';
+import { useCalendarTime } from 'dashboard/composables/useCalendarTime';
+
 import {
   calendarEventStyle,
   appointmentStatusKey,
   invitationStatusKey,
 } from 'dashboard/helper/appointmentStatus';
 
-// The next upcoming appointment of the contact, pinned under its details whatever conversation it was made in.
 const props = defineProps({
   contactId: {
     type: [Number, String],
     required: true,
   },
 });
+
+// The next upcoming appointment of the contact, pinned under its details whatever conversation it was made in.
+const { timezone, formatEventWhen, isUpcomingEvent } = useCalendarTime();
 
 const { t, locale } = useI18n();
 const events = ref([]);
@@ -73,7 +73,7 @@ defineExpose({ refresh: load });
         {{ nextEvent.summary }}
       </span>
       <span class="text-xs text-n-slate-11">
-        {{ formatEventWhen(nextEvent.start, locale) }}
+        {{ formatEventWhen(nextEvent.start, locale) + ' \u00b7 ' + timezone }}
       </span>
       <span
         v-if="statusLabel"

@@ -1023,6 +1023,12 @@ en:
       library_name_required: 'The library template is missing.'
       meta_error: 'Meta rejected the request: %{detail}'
 
+  google_calendar:
+    oauth:
+      invalid_state: 'This connection request has expired, has already been used, or belongs to another session. Start connecting Google Calendar again.'
+      cancelled: 'Google Calendar authorization was cancelled. Start connecting again when you are ready.'
+      failed: 'Google Calendar could not be connected. Start connecting again.'
+
 helpers:
   label:
     account:

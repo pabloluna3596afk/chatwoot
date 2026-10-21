@@ -294,7 +294,7 @@ class Api::V1::Accounts::Integrations::CalendarController < Api::V1::Accounts::I
   def clock_label(value)
     return '' if value.blank?
 
-    Time.iso8601(value.to_s).in_time_zone(Integrations::GoogleCalendar::Client::TIMEZONE).strftime('%H:%M')
+    Time.iso8601(value.to_s).in_time_zone(Integrations::GoogleCalendar::Timezone.for(Current.account)).strftime('%H:%M')
   rescue ArgumentError
     value.to_s
   end

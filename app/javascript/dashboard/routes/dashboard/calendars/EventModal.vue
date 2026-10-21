@@ -17,13 +17,9 @@ import { isCancelledEvent } from 'dashboard/helper/appointmentStatus';
 import SearchAPI from 'dashboard/api/search';
 import ContactAPI from 'dashboard/api/contacts';
 import { createContactSearcher } from 'dashboard/components-next/NewConversation/helpers/composeConversationHelper';
-import {
-  SLOT_MINUTES,
-  TIMEZONE,
-  addMinutesToTime,
-  dateAndTimeParts,
-  rangeFromStartEnd,
-} from 'dashboard/helper/calendarTime';
+import { useCalendarTime } from 'dashboard/composables/useCalendarTime';
+import { SLOT_MINUTES, addMinutesToTime } from 'dashboard/helper/calendarTime';
+
 import {
   invitationValues,
   renderInvitation,
@@ -50,6 +46,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['saved']);
+
+const { timezone, dateAndTimeParts, rangeFromStartEnd } = useCalendarTime();
+
 const { t, locale } = useI18n();
 const currentUser = useMapGetter('getCurrentUser');
 const { currentAccount } = useAccount();
@@ -172,7 +171,8 @@ const activityLabel = item => {
 const activityStamp = value => {
   if (!value) return '';
   return new Date(value).toLocaleString(locale.value, {
-    timeZone: TIMEZONE,
+    timeZone: timezone.value,
+    hourCycle: 'h23',
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -213,8 +213,19 @@ const activityIcon = action =>
     moved_in_google: 'i-lucide-calendar',
   })[action] || 'i-lucide-dot';
 
+const originalRange = ref({});
+const currentRange = computed(() =>
+  rangeFromStartEnd(date.value, time.value, endTime.value, originalRange.value)
+);
 const invalidRange = computed(() =>
-  Boolean(time.value && endTime.value && endTime.value <= time.value)
+  Boolean(
+    date.value &&
+      time.value &&
+      endTime.value &&
+      (!currentRange.value.start ||
+        !currentRange.value.end ||
+        new Date(currentRange.value.end) <= new Date(currentRange.value.start))
+  )
 );
 
 const onTabChanged = tab => {
@@ -279,7 +290,7 @@ const invitationPayload = () => {
 };
 
 const payload = () => {
-  const range = rangeFromStartEnd(date.value, time.value, endTime.value);
+  const range = currentRange.value;
   const reminders = [];
   if (botFollowupReminder24h.value) reminders.push(1440);
   if (botFollowupReminder30m.value) reminders.push(30);
@@ -374,6 +385,8 @@ const applyBotFollowupDefaults = (event, defaults) => {
 };
 
 const applyEvent = (event, defaults) => {
+  originalRange.value =
+    event && !event.all_day ? { start: event.start, end: event.end } : {};
   isCreate.value = !event;
   eventId.value = event?.id || null;
   etag.value = event?.etag || '';
@@ -628,6 +641,10 @@ defineExpose({ open, close });
     @close="releaseLock"
   >
     <div class="flex flex-col gap-4">
+      <p class="text-xs text-n-slate-11">{{ timezone }}</p>
+      <p class="text-xs text-n-slate-11">
+        {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.DST_POLICY') }}
+      </p>
       <p
         v-if="isDeleted"
         class="rounded-lg bg-n-ruby-3/80 px-3 py-2 text-sm text-n-ruby-11"
