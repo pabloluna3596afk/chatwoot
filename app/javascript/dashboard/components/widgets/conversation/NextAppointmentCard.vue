@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useAppointmentEvents } from 'dashboard/composables/useAppointmentEvents';
 import { useAppointmentClock } from 'dashboard/composables/useAppointmentClock';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -20,6 +20,8 @@ const props = defineProps({
     required: true,
   },
 });
+
+const emit = defineEmits(['errorChange', 'retry']);
 
 // The next upcoming appointment of the contact, pinned under its details whatever conversation it was made in.
 const { timezone, formatEventWhen, isUpcomingEvent } = useCalendarTime();
@@ -50,6 +52,13 @@ const invitationLabel = computed(() => {
   return key ? t(`CONVERSATION_SIDEBAR.CALENDAR.INVITATION.${key}`) : '';
 });
 
+// The list below shows no second error while this card shows the failure; one retry reloads both.
+watch(hasError, value => emit('errorChange', value), { immediate: true });
+const retry = () => {
+  load();
+  emit('retry');
+};
+
 defineExpose({ refresh: load });
 </script>
 
@@ -64,7 +73,7 @@ defineExpose({ refresh: load });
       sm
       ghost
       :label="t('CONVERSATION_SIDEBAR.CALENDAR.RETRY')"
-      @click="load"
+      @click="retry"
     />
   </div>
   <p

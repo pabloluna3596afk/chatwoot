@@ -52,6 +52,34 @@ const events = [
 ];
 
 describe('CalendarEventsList', () => {
+  it('shows its own error once, or stays quiet (never "no appointments") when the card already shows it', async () => {
+    getConnections.mockResolvedValue({ data: { payload: [] } });
+    getConversationEvents.mockRejectedValue(new Error('boom'));
+    const mountList = errorShownElsewhere =>
+      shallowMount(CalendarEventsList, {
+        props: { conversationId: 1, errorShownElsewhere },
+        global: {
+          mocks: { $t: key => key },
+          directives: { tooltip: {} },
+          stubs: { EventModal: true },
+        },
+      });
+    const alone = mountList(false);
+    await flushPromises();
+    expect(alone.text()).toContain('CONVERSATION_SIDEBAR.CALENDAR.LOAD_ERROR');
+    const withCard = mountList(true);
+    await flushPromises();
+    expect(withCard.text()).not.toContain(
+      'CONVERSATION_SIDEBAR.CALENDAR.LOAD_ERROR'
+    );
+    expect(withCard.text()).not.toContain(
+      'CONVERSATION_SIDEBAR.CALENDAR.EMPTY'
+    );
+    getConversationEvents.mockResolvedValue({ data: { payload: [] } });
+    await withCard.vm.refresh();
+    expect(withCard.text()).toContain('CONVERSATION_SIDEBAR.CALENDAR.EMPTY');
+  });
+
   it('splits upcoming from past, and keeps the past minimal', async () => {
     getConnections.mockResolvedValue({ data: { payload: [] } });
     getConversationEvents.mockResolvedValue({ data: { payload: events } });

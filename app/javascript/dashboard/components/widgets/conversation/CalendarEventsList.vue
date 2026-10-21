@@ -23,6 +23,7 @@ import {
 } from 'dashboard/helper/appointmentStatus';
 
 const props = defineProps({
+  errorShownElsewhere: { type: Boolean, default: false },
   conversationId: {
     type: [Number, String],
     required: true,
@@ -131,6 +132,7 @@ onMounted(async () => {
     useAlert(t('SIDEBAR.CALENDAR_PAGE.LOAD_ERROR'));
   }
 });
+defineExpose({ refresh: loadEvents });
 </script>
 
 <template>
@@ -154,19 +156,21 @@ onMounted(async () => {
     <div v-if="isLoading" class="flex justify-center p-8">
       <Spinner />
     </div>
-    <div
-      v-else-if="hasError"
-      role="alert"
-      class="px-4 py-3 text-sm text-n-ruby-11"
-    >
-      <p>{{ t('CONVERSATION_SIDEBAR.CALENDAR.LOAD_ERROR') }}</p>
-      <Button
-        sm
-        ghost
-        :label="t('CONVERSATION_SIDEBAR.CALENDAR.RETRY')"
-        @click="loadEvents"
-      />
-    </div>
+    <template v-else-if="hasError">
+      <div
+        v-if="!errorShownElsewhere"
+        role="alert"
+        class="px-4 py-3 text-sm text-n-ruby-11"
+      >
+        <p>{{ t('CONVERSATION_SIDEBAR.CALENDAR.LOAD_ERROR') }}</p>
+        <Button
+          sm
+          ghost
+          :label="t('CONVERSATION_SIDEBAR.CALENDAR.RETRY')"
+          @click="loadEvents"
+        />
+      </div>
+    </template>
     <div v-else-if="!hasEvents" class="flex justify-center p-4">
       <p class="text-sm text-n-slate-11">
         {{ $t('CONVERSATION_SIDEBAR.CALENDAR.EMPTY') }}

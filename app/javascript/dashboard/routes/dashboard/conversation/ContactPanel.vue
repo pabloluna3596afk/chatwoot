@@ -51,6 +51,8 @@ const {
 
 const dragging = ref(false);
 const nextAppointmentCard = ref(null);
+const calendarEventsList = ref(null);
+const nextCardError = ref(false);
 const conversationSidebarItems = ref(conversationSidebarItemsOrder.value);
 
 const isVisible = name => conversationSidebarVisibleItems.value.includes(name);
@@ -202,6 +204,8 @@ onMounted(() => {
         v-if="isCalendarConnected && contact.id"
         ref="nextAppointmentCard"
         :contact-id="contact.id"
+        @error-change="value => (nextCardError = value)"
+        @retry="calendarEventsList?.refresh()"
       />
       <div class="px-3 pb-6 list-group">
         <div
@@ -401,6 +405,8 @@ onMounted(() => {
               >
                 <CalendarEventsList
                   v-if="isCalendarConnected"
+                  ref="calendarEventsList"
+                  :error-shown-elsewhere="nextCardError"
                   :conversation-id="conversationId"
                   :contact-id="contactId"
                   :contact-name="contact.name"

@@ -96,6 +96,18 @@ describe('NextAppointmentCard', () => {
     );
   });
 
+  it('reports its load failure to the panel and asks it to reload the list on a single retry', async () => {
+    getContactEvents.mockRejectedValueOnce(new Error('boom'));
+    const wrapper = await mountCard();
+    expect(wrapper.emitted('errorChange').at(-1)).toEqual([true]);
+    getContactEvents.mockResolvedValueOnce({ data: { payload: [] } });
+    await wrapper.findComponent({ name: 'Button' }).vm.$emit('click');
+    await flushPromises();
+    expect(wrapper.emitted('retry')).toHaveLength(1);
+    expect(getContactEvents).toHaveBeenCalledTimes(2);
+    expect(wrapper.emitted('errorChange').at(-1)).toEqual([false]);
+  });
+
   it('says how the customer answered the invite, and confirms what Captain booked by chat', async () => {
     getContactEvents.mockResolvedValue({
       data: {
