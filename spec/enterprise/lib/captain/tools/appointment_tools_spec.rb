@@ -50,6 +50,11 @@ RSpec.shared_context 'with an appointments conversation' do
         'start' => { 'dateTime' => kwargs[:start_at].iso8601 }, 'end' => { 'dateTime' => kwargs[:end_at].iso8601 } }
     end
     allow(client).to receive(:delete_event).and_return({})
+    allow(client).to receive(:get_event) do |event_id:, **|
+      record = connection.calendar_events.find_by!(google_event_id: event_id)
+      { 'id' => event_id, 'etag' => record.etag, 'summary' => record.summary,
+        'start' => { 'dateTime' => record.start_at.iso8601 }, 'end' => { 'dateTime' => record.end_at.iso8601 } }
+    end
   end
 
   after do
@@ -301,6 +306,30 @@ RSpec.describe Captain::Tools::BookAppointmentTool do
   end
 
   describe 'confirmation and reminders' do
+    it 'confirms and schedules once when Meet completion fails, then repairs on retry', :aggregate_failures do
+      remote = nil
+      allow(client).to receive(:create_event) do |**kwargs|
+        remote = {
+          'id' => 'g-1', 'etag' => '"main"', 'summary' => kwargs[:summary], 'description' => kwargs[:description],
+          'start' => { 'dateTime' => kwargs[:start_at].iso8601 }, 'end' => { 'dateTime' => kwargs[:end_at].iso8601 },
+          'conferenceData' => { 'entryPoints' => [{ 'entryPointType' => 'video', 'uri' => 'https://meet.google.com/abc' }] }
+        }
+      end
+      allow(client).to receive(:get_event) { remote }
+      allow(client).to receive(:update_description).and_raise(Timeout::Error)
+
+      expect(call).to start_with('Agendada: martes 15 de enero, 10:00.')
+      event = connection.calendar_events.find_by!(google_event_id: 'g-1')
+      expect(event).to have_attributes(appointment_status: 'confirmed', contact_id: contact.id, conversation_id: conversation.id)
+      expect(event.appointment_reminders.count).to eq(2)
+
+      allow(client).to receive(:update_description) { |**kwargs| { 'description' => kwargs[:description], 'etag' => '"completed"' } }
+      expect(call).to start_with('Agendada: martes 15 de enero, 10:00.')
+      expect(event.reload.etag).to eq('"completed"')
+      expect(client).to have_received(:create_event).once
+      expect(event.appointment_reminders.count).to eq(2)
+    end
+
     it 'asks the model for one confirmation message' do
       expect(call).to include('UN solo mensaje')
     end

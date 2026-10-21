@@ -227,14 +227,13 @@ class Integrations::GoogleCalendar::EventService
     ensure_calendar_enabled!(calendar_id)
     start_at, end_at = parse_range(params)
     existing = existing_booking(params, start_at, end_at)
-    return self.class.payload_from_record(existing) if existing
-
-    ensure_within_hours!(calendar_id, start_at, end_at) if enforce_hours
+    ensure_within_hours!(calendar_id, start_at, end_at) if enforce_hours && !existing
     with_booking_lock(calendar_id) do
       existing = existing_booking(params, start_at, end_at)
-      return self.class.payload_from_record(existing) if existing
+      return recover_booking!(existing) if existing
 
       ensure_slot_available!(calendar_id, start_at, end_at)
+      @booking_lock.assert_owned!
       release_discarded_idempotency_key!(params[:idempotency_key])
       create_booking!(params, start_at, end_at, people)
     end
@@ -318,15 +317,15 @@ class Integrations::GoogleCalendar::EventService
     summary = params[:summary].presence || I18n.t('integration_apps.calendars.default_title')
     invitation = invitation_for(params, start_at, [contact, conversation], summary: summary)
     attributes = google_event_attributes(params, [start_at, end_at], [contact, conversation], summary: summary, invitation: invitation)
+    @booking_lock.assert_owned!
     google_event = client.create_event(**attributes)
-    google_event = complete_meet_link(calendar_id, google_event, invitation)
+    # Preserve the result of an already submitted POST even if its lease expired
+    # during I/O. This records the remote reservation; it cannot undo that POST.
     record = upsert_local!(
       google_event, calendar_id, contact, conversation,
       creating: true, idempotency_key: params[:idempotency_key], params: params
     )
-    notify_conversation!(conversation, :event_created, record)
-    notify_contact_or_bot!(params, conversation, record, google_event, 'created')
-    serialize(google_event, record, calendar_id)
+    finish_booking!(params, record, google_event, invitation, 'created')
   end
 
   def update_booking!(event_id, params, range, record, people)
@@ -335,12 +334,22 @@ class Integrations::GoogleCalendar::EventService
     summary = params[:summary].presence || I18n.t('integration_apps.calendars.default_title')
     invitation = invitation_for(params, range.first, [contact, conversation], summary: summary, record: record)
     attributes = google_event_attributes(params, range, [contact, conversation], summary: summary, invitation: invitation)
+    @booking_lock.assert_owned!
     google_event = client.update_event(**attributes, event_id: event_id, etag: params[:etag])
-    google_event = complete_meet_link(calendar_id, google_event, invitation)
     record = upsert_local!(google_event, calendar_id, contact, conversation, creating: false, params: params)
-    notify_conversation!(conversation, :event_updated, record)
-    notify_contact_or_bot!(params, conversation, record, google_event, 'updated')
-    serialize(google_event, record, calendar_id)
+    finish_booking!(params, record, google_event, invitation, 'updated')
+  end
+
+  def finish_booking!(params, record, google_event, invitation, event_name)
+    @booking_lock.assert_owned!
+    google_event = complete_meet_link(record.external_calendar_id, google_event, invitation)
+    @booking_lock.assert_owned!
+    record.update!(etag: google_event['etag']) if record.etag != google_event['etag']
+    @booking_lock.assert_owned!
+    notify_conversation!(record.conversation, "event_#{event_name}".to_sym, record)
+    @booking_lock.assert_owned!
+    notify_contact_or_bot!(params, record.conversation, record, google_event, event_name)
+    serialize(google_event, record, record.external_calendar_id)
   end
 
   def google_event_attributes(params, range, people, summary:, invitation:)
@@ -385,12 +394,15 @@ class Integrations::GoogleCalendar::EventService
   end
 
   def with_booking_lock(calendar_id)
-    lock = Integrations::GoogleCalendar::BookingLock.new(account_id: account.id, calendar_id: calendar_id)
-    raise SlotBusy.new(reason: 'in_progress') unless lock.acquire
+    @booking_lock = Integrations::GoogleCalendar::BookingLock.new(account_id: account.id, calendar_id: calendar_id)
+    raise SlotBusy.new(reason: 'in_progress') unless @booking_lock.acquire
 
     yield
+  rescue Integrations::GoogleCalendar::BookingLock::Lost
+    raise SlotBusy.new(reason: 'in_progress')
   ensure
-    lock&.release
+    @booking_lock&.release
+    @booking_lock = nil
   end
 
   def ensure_slot_available!(calendar_id, start_at, end_at, except_event_id: nil)
@@ -573,7 +585,28 @@ class Integrations::GoogleCalendar::EventService
     text = Integrations::GoogleCalendar::InvitationText.render(invitation[:template], invitation[:values].merge('enlace_meet' => link))
     return google_event if text == google_event['description']
 
-    google_event.merge(client.update_description(calendar_id: calendar_id, event_id: google_event['id'], description: text))
+    @booking_lock.assert_owned!
+    result = google_event.merge(client.update_description(calendar_id: calendar_id, event_id: google_event['id'], description: text))
+    @booking_lock.assert_owned!
+    result
+  rescue Integrations::GoogleCalendar::BookingLock::Lost
+    raise
+  rescue StandardError => e
+    Rails.logger.warn("Google Calendar Meet description pending for #{google_event['id']}: #{e.class} #{e.message}")
+    google_event
+  end
+
+  # An idempotent retry repairs the optional description from Google's current
+  # event and the saved invitation, without another POST or duplicate messages.
+  def recover_booking!(record)
+    event = google_event_for(record)
+    invitation = invitation_for({}, record.start_at, [record.contact, record.conversation], summary: record.summary, record: record)
+    event = complete_meet_link(record.external_calendar_id, event, invitation)
+    @booking_lock.assert_owned!
+    record.update!(etag: event['etag']) if record.etag != event['etag']
+    self.class.payload_from_record(record).merge(
+      description: event['description'], meet_link: meet_link(event), invitation_text: record.invitation_text
+    )
   end
 
   def upsert_local!(google_event, calendar_id, contact, conversation, creating:, idempotency_key: nil, params: {})

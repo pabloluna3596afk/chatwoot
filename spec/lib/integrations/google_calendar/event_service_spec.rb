@@ -56,6 +56,10 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
     end
     allow(client).to receive(:update_event) { |**kwargs| google_event_for(kwargs[:event_id], kwargs) }
     allow(client).to receive(:delete_event).and_return({})
+    allow(client).to receive(:get_event) do |event_id:, **|
+      record = connection.calendar_events.find_by!(google_event_id: event_id)
+      google_event_for(event_id, summary: record.summary, start_at: record.start_at, end_at: record.end_at)
+    end
   end
 
   after do
@@ -225,6 +229,49 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
   end
 
   describe '#create' do
+    context 'when the booking lease is lost', :real_redis do
+      it 'excludes a competing booking during a slow Google availability read' do
+        competitor = described_class.new(account: account, user: user, connection: connection)
+        allow(client).to receive(:list_events) do
+          sleep 21
+          expect { competitor.create(create_params) }.to raise_error(described_class::SlotBusy)
+          []
+        end
+
+        expect(service.create(create_params)[:id]).to eq('g-1')
+        expect(client).to have_received(:create_event).once
+        expect(connection.calendar_events.count).to eq(1)
+      end
+
+      it 'does not POST after losing ownership during the availability read' do
+        allow(client).to receive(:list_events) do
+          Redis::Alfred.set(booking_lock_key, 'replacement', ex: 20)
+          []
+        end
+
+        expect { service.create(create_params) }.to raise_error(described_class::SlotBusy)
+        expect(client).not_to have_received(:create_event)
+        expect(CalendarEvent.count).to eq(0)
+        expect(Redis::Alfred.get(booking_lock_key)).to eq('replacement')
+      end
+
+      it 'records an in-flight POST result but performs no further remote write or notification' do
+        allow(client).to receive(:create_event) do |**kwargs|
+          Redis::Alfred.set(booking_lock_key, 'replacement', ex: 20)
+          google_event_for('g-1', kwargs)
+        end
+        allow(service).to receive(:notify_conversation!)
+        allow(service).to receive(:notify_contact_or_bot!)
+
+        expect { service.create(create_params(idempotency_key: 'in-flight')) }.to raise_error(described_class::SlotBusy)
+        expect(connection.calendar_events.find_by!(idempotency_key: 'in-flight').google_event_id).to eq('g-1')
+        expect(client).not_to have_received(:update_event)
+        expect(service).not_to have_received(:notify_conversation!)
+        expect(service).not_to have_received(:notify_contact_or_bot!)
+        expect(Redis::Alfred.get(booking_lock_key)).to eq('replacement')
+      end
+    end
+
     it 'books the slot, stores it locally and releases the booking lock' do
       result = service.create(create_params)
 
