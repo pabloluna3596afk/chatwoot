@@ -19,6 +19,8 @@ la primera ocurrencia; un ISO con offset explícito identifica cualquiera de las
 dos. Editar sin cambiar los campos civiles conserva el instante original, incluida
 la segunda ocurrencia. Los all-day mantienen su fecha civil. La grilla usa minutos
 del reloj local; las dos ocurrencias de una hora repetida ocupan carriles separados.
+Una cita que atraviesa un cambio DST se divide en tramos con el mismo ID: conserva
+su duraci?n en el retroceso y deja vac?a la hora inexistente al adelantar.
 
 **Cómo probar:** configurar Guayaquil y New York, crear a las 10:00 en julio,
 recargar y comparar semana/modal/conversación/invitación. Verificar semana del
@@ -27,9 +29,9 @@ del cambio 31/12 → 01/01 y fechas all-day. Validar Captain y variables del
 recordatorio contra el mismo instante persistido.
 
 **Validación local:** regresión RSpec de 366 ejemplos sin fallos; 12 ejemplos
-adicionales sobre el código final sin fallos. Vitest: 65 tests en UTC y 65 en
+adicionales sobre el código final sin fallos. Vitest: 67 tests en UTC y 67 en
 America/Guayaquil, con modal en ingles y espanol y cuentas de ambas zonas. Rojo reproducido
-en la base: ocho fallos frontend y cuatro backend. ESLint sin errores; filtro
+en la base: diez fallos frontend y cuatro backend. ESLint sin errores; filtro
 exacto de RuboCop CI aprobado, 33 archivos Ruby inspeccionados. El fixture de
 reintentos ahora simula `get_event`; su fallo se reprodujo en la base intacta.
 
