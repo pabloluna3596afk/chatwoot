@@ -1,5 +1,42 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-090 - Conexión propietaria y respuestas vigentes de Citas (CIT-15 / CIT-17)
+
+**Archivos:** `CalendarView.vue`, `CalendarEventsList.vue`, `EventModal.vue`,
+`AssistantAppointmentsForm.vue`, clientes Calendar/Search, `useAbortableRequest`
+y specs de esas superficies. Fuentes nuevas solo en `en/settings.json`.
+
+**Fix:** desde conversación se puede elegir otra conexión al crear. El modal
+carga los calendarios de esa conexión y mantiene cuenta/calendario bloqueados
+al editar un evento existente. Muestra carga, fallo y reintento de calendarios;
+en móvil los selectores ocupan filas completas. Las lecturas usan cancelación
+compartida con señal hasta axios, incluida la búsqueda de contactos/conversaciones,
+invitación y adquisición del lock del modal. Se invalidan al cambiar contexto,
+cerrar o desmontar. El composable descarta incluso una respuesta resuelta por
+un transporte que ignore el aborto. Cambiar conexión con el mismo calendar_id
+recarga eventos; guardar en otra conexión no inserta el evento en la vista actual.
+
+**Cómo probar:** con dos conexiones Google, crear desde una conversación usando
+la segunda; reabrir el evento y comprobar sus opciones y propietario fijo.
+Alternar conexión con calendar_id compartido, semana, calendario, conversación
+y asistente con solicitudes pendientes: solo se aplica la respuesta vigente.
+Cerrar el modal durante búsquedas o desmontar las vistas no muestra cancelación
+como error. Simular fallo al cargar calendarios y reintentar.
+
+**Evidencia local (2026-10-21):** seis regresiones conductuales nuevas fallan
+antes del cambio sobre las cuatro superficies. Verde final: 112 tests por zona
+(UTC / America/Guayaquil), incluidos contratos de señal axios e i18n en/es.
+ESLint sin errores (13 warnings heredados), Prettier y diff check aprobados.
+RuboCop exacto CI aprobado, imagen chathub-rubocop-ci:cit5-ruby344, 40 Ruby de
+la cadena inspeccionados; reporte completo conserva 90 infracciones heredadas
+fuera de líneas cambiadas. Este PR no toca Ruby; no ejecuta RSpec ni migraciones.
+16 capturas cit9- de componentes reales con API simulada en 1280/390 y claro/oscuro,
+revisadas visualmente, más vídeo de cambio rápido. Pendientes CI remoto, smoke
+con Google real y Crowdin de tres textos nuevos (fallback inglés comprobado en
+español). No cubre CIT-16/26 ni entrega de recordatorios. Rama local
+feat/citas-conexion-respuestas basada en f25807dc78 de PR8; integrar PR1 → … → PR9.
+Sin fetch, stash, push ni deploy. Informe: tmp/PR-CITAS-10.md (ignorado).
+
 ### B-NEW-089 - Preparación de recordatorios por bandeja (CIT-07 / CIT-28)
 
 **Archivos:** `AppointmentReminderReadiness.vue`, `AssistantAppointmentsForm.vue`,
