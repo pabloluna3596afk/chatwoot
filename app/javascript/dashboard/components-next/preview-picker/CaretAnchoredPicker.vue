@@ -194,6 +194,7 @@ watch(items, () => {
       class="fixed z-[9999]"
       :style="pickerStyle"
       @select="onListItemSelection"
+      @keydown.esc.stop.prevent="emit('close')"
     >
       <template v-if="$slots.leading" #leading="slotProps">
         <slot name="leading" v-bind="slotProps" />
