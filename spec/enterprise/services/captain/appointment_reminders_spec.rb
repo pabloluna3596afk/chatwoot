@@ -337,6 +337,14 @@ RSpec.describe Captain::AppointmentReminders do
       context 'with paid templates on and an approved template chosen' do
         let(:paid_config) { paid }
 
+        it 'MV-10: skips a missing value with a note and a settings diagnosis' do
+          contact.update!(name: nil)
+          expect(send_reminder).to eq(:skipped)
+          expect(conversation.messages.outgoing.where(private: false)).to be_empty
+          expect(reminder('reminder_1')).to have_attributes(skipped_reason: 'template_variables_missing')
+          expect(assistant.reload.config.fetch('variable_delivery_error')).to include('path' => 'body.1', 'status' => 'missing')
+        end
+
         it 'sends the template with the appointment data' do
           expect(send_reminder).to eq(:sent)
 

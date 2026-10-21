@@ -124,6 +124,9 @@ class Captain::Messaging::SendService
 
     built
     nil
+  rescue Variables::DeliveryRenderer::Error => e
+    Captain::VariableDiagnostics.record(assistant, e, template: allowed_entry)
+    deny('missing_variables', detail: e.message)
   rescue Captain::TemplateMessage::MappingMismatch => e
     deny('missing_variables', detail: e.message)
   end
@@ -189,8 +192,11 @@ class Captain::Messaging::SendService
   end
 
   def create_message(content, **attributes)
-    conversation.messages.create!(message_type: :outgoing, account_id: account.id, inbox_id: inbox.id, sender: assistant,
-                                  content: content, **attributes)
+    message = conversation.messages.build(message_type: :outgoing, account_id: account.id, inbox_id: inbox.id, sender: assistant,
+                                          content: content, **attributes)
+    message.variables_resolved! if attributes[:additional_attributes]&.with_indifferent_access&.key?(:template_params)
+    message.save!
+    message
   end
 
   def deny(code, retry_after: nil, detail: nil)

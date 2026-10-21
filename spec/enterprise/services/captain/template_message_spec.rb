@@ -71,12 +71,26 @@ RSpec.describe Captain::TemplateMessage do
       expect(payload[:processed_params]).to eq('body' => { '1' => 'Consulta', '2' => 'Ana Pérez', '3' => '10:00', '4' => 'hoy' })
     end
 
-    it 'sends "-" for a text that renders empty (Meta rejects empty variables)' do
-      params = { 'body' => { '1' => '{{ contact.name }}', '2' => '{{ appointment.nope }}', '3' => '{{ appointment.date }}', '4' => 'x' } }
+    it 'MV-10: rejects a missing value inside nonempty text for explicit mappings' do
+      params = { 'body' => { '1' => '{{ contact.name }}', '2' => 'Visit {{ appointment.nope }}', '3' => 'today', '4' => 'x' } }
 
-      payload, = described_class.build(numbered, params, drops)
+      expect { described_class.build(numbered, params, drops) }
+        .to raise_error(Variables::DeliveryRenderer::Error) { |error| expect(error.message).to eq('body.2: missing') }
+    end
 
-      expect(payload[:processed_params]['body']).to eq('1' => 'Ana Pérez', '2' => '-', '3' => 'martes 15 de enero', '4' => 'x')
+    it 'preserves the dash only for legacy references without saved mappings' do
+      fallback = { 'body' => { '1' => 'Ana', '2' => '{{ appointment.nope }}', '3' => 'today', '4' => 'x' } }
+
+      payload, = described_class.build(numbered, nil, drops, fallback: fallback)
+
+      expect(payload[:processed_params]['body']['2']).to eq('-')
+    end
+
+    it 'rejects invalid Liquid and unavailable contexts instead of sending braces' do
+      ['{% if %}', '{{ flow.x }}'].each do |source|
+        params = { 'body' => { '1' => source, '2' => 'visit', '3' => 'today', '4' => 'x' } }
+        expect { described_class.build(numbered, params, drops) }.to raise_error(Variables::DeliveryRenderer::Error)
+      end
     end
 
     it 'raises when a variable of the template has no text (the template changed in Meta)' do
@@ -132,6 +146,15 @@ RSpec.describe Captain::TemplateMessage do
 
       expect(values.first(8)).to eq(['Ana Pérez', 'Ana', 'Pérez', 'ana@correo.com', '+593991234567', 'Café Sol', 'Quito', ''])
       expect(values.last(3)).to eq([conversation.display_id.to_s, account.name, 'Aurora'])
+    end
+
+    it 'uses the account timezone for date without inventing an appointment' do
+      account.update!(reporting_timezone: 'America/Guayaquil')
+      travel_to(Time.utc(2026, 10, 21, 2)) do
+        drops = described_class.drops(conversation, assistant)
+        expect(Variables::Resolver.new(drops: drops).render('{{ date.today }}')).to eq('2026-10-20')
+        expect(drops).not_to have_key('appointment')
+      end
     end
 
     it 'has an empty appointment for messages that are not about one' do

@@ -77,37 +77,30 @@ class Captain::TemplateMessage
       header.is_a?(Hash) && (header['media_id'].present? || header['media_url'].present?)
     end
 
-    # [template_params payload, text shown in the conversation]. `drops` are the Liquid objects the texts can use
-    # (see .drops). A variable whose text renders empty is sent as "-" (Meta rejects empty ones). A reference saved
-    # without texts (nil) uses `fallback`. Raises MappingMismatch when a variable of the template has no text.
+    # Explicit mappings use the shared delivery policy. Only references saved before mappings
+    # existed (nil) retain the historical dash policy until an explicit migration.
     def build(entry, processed_params, drops, fallback: nil)
       params = processed_params.nil? ? fallback : processed_params
       missing = unmapped(entry, params)
       raise MappingMismatch, missing.join(', ') if missing.any?
 
-      texts = variables(entry).to_h { |variable| [variable.key, render(params.dig(variable.component, variable.name), drops)] }
+      texts = variables(entry).to_h do |variable|
+        source = params.dig(variable.component, variable.name).to_s
+        [variable.key, render_variable(source, drops, path: variable.key, legacy: processed_params.nil?)]
+      end
       [payload(entry, texts, params), rendered_body(entry, texts)]
     end
 
     # What the texts of a message about an appointment can use: {{ contact.name }}, {{ appointment.date }}...
     # `appointment` is nil for messages that are not about one (the re-engagement).
     def drops(conversation, assistant, appointment: nil)
-      {
-        'contact' => ContactDrop.new(conversation.contact),
-        'agent' => UserDrop.new(conversation.assignee),
-        'conversation' => ConversationDrop.new(conversation),
-        'inbox' => InboxDrop.new(conversation.inbox),
-        'account' => AccountDrop.new(conversation.account),
-        'date' => DateDrop.new,
-        'assistant' => { 'name' => assistant.name },
-        'appointment' => appointment.to_h.stringify_keys
-      }
+      Variables::ContextFactory.new(account: conversation.account,
+                                    records: { conversation: conversation, assistant: assistant, appointment: appointment }).build(surface: 'captain')
     end
 
-    # A text that is not valid Liquid cannot be saved. (An unknown expression, say a typo in {{ appointment.dat }},
-    # is valid and renders empty, which is sent as "-".)
+    # Unknown paths are diagnosed at delivery, when the concrete records are available.
     def valid_liquid?(text)
-      Liquid::Template.parse(text.to_s)
+      Liquid::Template.parse(text.to_s, error_mode: :strict)
       true
     rescue Liquid::Error
       false
@@ -122,10 +115,17 @@ class Captain::TemplateMessage
       end
     end
 
-    def render(text, drops)
-      Liquid::Template.parse(text.to_s).render(drops).strip.presence || '-'
+    def render_variable(source, drops, path:, legacy:)
+      return Variables::Resolver.new(drops: drops).render(source).strip.presence || '-' if legacy
+
+      value = Variables::DeliveryRenderer.new(drops: drops).render(source, path: path).strip
+      raise Variables::DeliveryRenderer::Error.new(status: 'missing', path: path) if value.empty?
+
+      value
     rescue Liquid::Error
-      text.to_s.strip.presence || '-'
+      raise unless legacy
+
+      source.strip.presence || '-'
     end
 
     def payload(entry, texts, saved_params)

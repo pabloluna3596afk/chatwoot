@@ -37,7 +37,7 @@ No record values are cached. See `docs/VARIABLES_ENGINE.md` for the API contract
 Current consumers: template creation/copy/mapping, manual template Parser (send center,
 new conversation and reply), automation template action, Captain template configuration,
 and WhatsApp Flow save targets. Captain samples and legacy write targets retain adapters.
-The capture writer and Captain runtime are separate work.
+Capture uses `Variables::Writer`; Captain uses the shared resolver and delivery diagnostics.
 
 Text consumers also use this catalog: canned Add/Edit, WootWriter cursor VariableList,
 the shared InsertVariableButton, macros through MacroNode, automation text and attribute
@@ -48,5 +48,5 @@ capability in automation and keep the legacy raw attribute key at the persistenc
 Campaign sending and existing Liquid resolution remain outside this selector migration.
 
 Manual preview uses Rails statuses: `missing` asks for a value; `unavailable` diagnoses the
-missing context and blocks sending until corrected. Automation and Captain runtime policies
-are unchanged by this selector migration.
+missing context and blocks sending until corrected. Captain explicit mappings omit incomplete messages and expose the last reason in assistant
+settings. Only legacy references without saved mappings retain the dash until an explicit migration.

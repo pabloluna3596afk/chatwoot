@@ -579,6 +579,7 @@ es:
         rate_limit: 'Se alcanzó el límite de envíos; no lo vuelvas a intentar ahora.'
         invalid_params: 'Los parámetros no tienen el formato requerido.'
     followup:
+      reengagement_variables_missing: "Mensaje de reactivación omitido porque falta un valor de la plantilla o es inválido. Revisa la configuración del asistente."
       nudge: '¿Sigues ahí? Si todavía necesitas ayuda, solo responde.'
       nudge_hint: ' Responde "%{continue}" o "%{stop}".'
       continue_button: 'Sí, sigo aquí'
@@ -589,6 +590,7 @@ es:
       reengagement_no_template: '%{assistant} no envió el reenganche: la ventana de 24 h ya cerró y no hay una plantilla elegida para el reenganche.'
       reengagement_template_unavailable: '%{assistant} no envió el reenganche: la plantilla elegida no está aprobada en esta bandeja.'
     appointment_reminders:
+      template_variables_missing: "Recordatorio omitido porque falta un valor de la plantilla o es inválido. Revisa la configuración del asistente."
       reminder_far: 'Hola %{name}, te recordamos tu cita "%{title}" para el %{when}.'
       reminder_near: 'Hola %{name}, tu cita "%{title}" es en unas %{hours} horas (%{when}).'
       reminder_near_one: 'Hola %{name}, tu cita "%{title}" es en aproximadamente una hora (%{when}).'

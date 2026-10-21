@@ -56,6 +56,30 @@ RSpec.describe Captain::Messaging::SendService do
     conversation.messages.where(private: false, message_type: :outgoing)
   end
 
+  it 'MV-10: omits incomplete mappings and exposes the reason in assistant settings' do
+    params['body']['nombre'] = 'Hello {{ contact.email }}'
+    contact.update!(email: nil)
+    assistant.update!(config: assistant_config)
+    result = send_template
+
+    expect(result).to have_attributes(status: :denied, code: 'missing_variables', detail: 'body.nombre: missing')
+    expect(public_messages).to be_empty
+    expect(assistant.reload.config.fetch('variable_delivery_error')).to include(
+      'template' => 'cita_confirmada', 'path' => 'body.nombre', 'status' => 'missing'
+    )
+    expect(assistant.config['messaging']).to eq(messaging)
+  end
+
+  it 'does not interpret inserted customer data as Liquid again' do
+    contact.update!(name: '{{ date.today }}')
+    params['body']['nombre'] = '{{ contact.name }}'
+    assistant.update!(config: assistant_config)
+    result = send_template
+
+    expect(result).to have_attributes(status: :sent)
+    expect(result.message.reload.content).to include('{{ date.today }}')
+  end
+
   describe 'what the owner allows' do
     it 'sends nothing when the assistant has no messaging settings' do
       assistant.update!(config: {})

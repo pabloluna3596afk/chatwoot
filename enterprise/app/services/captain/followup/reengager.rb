@@ -87,6 +87,9 @@ class Captain::Followup::Reengager
     cap.increment!
     record('at' => now.utc.iso8601, 'status' => 'sent')
     :sent
+  rescue Variables::DeliveryRenderer::Error => e
+    Captain::VariableDiagnostics.record(assistant, e, template: settings.reengagement_template)
+    skip_with_note('reengagement_variables_missing', 'template_variables_missing')
   rescue Captain::TemplateMessage::MappingMismatch
     skip_with_note('reengagement_template_changed', 'template_changed')
   end
@@ -107,9 +110,12 @@ class Captain::Followup::Reengager
   end
 
   def create_message(content, **attributes)
-    conversation.messages.create!(
+    message = conversation.messages.build(
       message_type: :outgoing, account_id: account.id, inbox_id: conversation.inbox_id, sender: assistant,
       content: content, preserve_waiting_since: true, **attributes
     )
+    message.variables_resolved! if attributes[:additional_attributes]&.with_indifferent_access&.key?(:template_params)
+    message.save!
+    message
   end
 end

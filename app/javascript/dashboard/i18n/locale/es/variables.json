@@ -78,6 +78,12 @@
       "flow": {
         "variables": "Variables del Flow"
       }
+    },
+    "DELIVERY_WARNING": "Última plantilla omitida: {template} ({at}). {path}: {reason}. Revisa los valores de la plantilla y los datos del contacto. Las plantillas antiguas sin valores guardados conservan su comportamiento anterior.",
+    "STATUS": {
+      "MISSING": "Falta un valor",
+      "UNAVAILABLE": "Contexto no disponible",
+      "INVALID": "Expresión inválida"
     }
   },
   "VARIABLE_PICKER": {
