@@ -64,6 +64,12 @@ RSpec.describe DataImports::Intercom::Importer do
   end
 
   before do
+    %w[intercom_contact_id intercom_external_id].each do |key|
+      create(:custom_attribute_definition, account: account, attribute_model: 'contact_attribute', attribute_key: key)
+    end
+    %w[intercom_conversation_id].each do |key|
+      create(:custom_attribute_definition, account: account, attribute_model: 'conversation_attribute', attribute_key: key)
+    end
     account.enable_features!('data_import')
     allow(DataImports::Intercom::Client).to receive(:new).with(access_token: 'intercom-token').and_return(client)
     allow(client).to receive(:list_contacts).with(starting_after: nil, per_page: 50).and_return(
@@ -1754,5 +1760,18 @@ RSpec.describe DataImports::Intercom::Importer do
       expect(data_import.import_errors.where(source_object_type: 'message').count).to eq(1)
       expect(account.messages.find_by(source_id: 'intercom:conversation:conversation_1:source:source_1')).to be_present
     end
+  end
+
+  it 'reports undefined imported attributes without generating definitions or changing stored values' do
+    account.custom_attribute_definitions.destroy_all
+    described_class.new(data_import: data_import).perform
+
+    expect(account.custom_attribute_definitions).to be_empty
+    warnings = data_import.import_errors.where(error_code: Variables::ImportDiagnostics::ERROR_CODE)
+    expect(warnings.pluck(:source_object_type)).to contain_exactly('contact', 'conversation')
+    expect(warnings.find_by!(source_object_type: 'contact').details['keys']).to include('intercom_contact_id')
+    expect(account.contacts.first.custom_attributes).to have_key('intercom_contact_id')
+    expect(data_import.reload).to be_completed_with_errors
+    expect(data_import.total_records).to eq(data_import.processed_records)
   end
 end

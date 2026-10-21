@@ -30,4 +30,35 @@ describe MessageTemplates::Template::Greeting do
       expect(conversation.messages.last.content).to eq('Hello welcome to our board.')
     end
   end
+
+  context 'with the shared resolver' do
+    let(:conversation) { create(:conversation) }
+
+    it 'omits a greeting with missing data and leaves a private diagnostic' do
+      conversation.inbox.update!(greeting_message: 'Hello {{ contact.custom_attribute.absent }}')
+      described_class.new(conversation: conversation).perform
+
+      expect(conversation.messages.where(private: false)).to be_empty
+      expect(conversation.messages.outgoing.last).to have_attributes(private: true)
+      expect(conversation.messages.outgoing.last.content).to include('content: missing')
+    end
+
+    it 'does not store invalid Liquid as the greeting' do
+      conversation.inbox.update!(greeting_message: '{% if %}')
+      described_class.new(conversation: conversation).perform
+
+      expect(conversation.messages.template).to be_empty
+      expect(conversation.messages.outgoing.last.content).to include('invalid')
+    end
+
+    it 'uses the account timezone and renders inserted data only once' do
+      conversation.account.update!(reporting_timezone: 'America/Guayaquil')
+      conversation.contact.update!(identifier: '{{ contact.email }}')
+      conversation.inbox.update!(greeting_message: '{{ date.today }} / {{ contact.identifier }}')
+      travel_to Time.utc(2026, 10, 20, 2) do
+        described_class.new(conversation: conversation).perform
+        expect(conversation.messages.template.last.content).to eq('2026-10-19 / {{ contact.email }}')
+      end
+    end
+  end
 end

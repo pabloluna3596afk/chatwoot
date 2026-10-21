@@ -25,7 +25,7 @@ class Variables::Writer
     end
   end
 
-  # API JSON has historically accepted keys without definitions. Preserve those until MV-16;
+  # API JSON and imports accept keys without definitions; imports report them to the user.
   # a defined managed variable can never be changed or removed through this entry point.
   def patch(scope:, values:, current: {}, replace: false)
     unless values.is_a?(Hash) || values.is_a?(ActionController::Parameters)

@@ -29,6 +29,7 @@ class DataImports::Importer
 
   def initialize(data_import:, run_id: nil, source: nil)
     @data_import = data_import
+    @variable_diagnostics = Variables::ImportDiagnostics.new(data_import: data_import)
     @run_id = run_id
     @account = data_import.account
     @source = source || DataImports::Source.for(data_import)
@@ -352,6 +353,12 @@ class DataImports::Importer
     nil
   end
 
+  def imported_custom_attributes(scope, values)
+    attributes = Variables::Writer.new(account: @account).patch(scope: scope, values: values)
+    @variable_diagnostics.check(scope: scope, values: attributes)
+    attributes
+  end
+
   def contact_attributes(contact_payload)
     attrs = {
       account_id: @account.id,
@@ -363,7 +370,7 @@ class DataImports::Importer
       additional_attributes: {
         source: @source.contact_source_metadata(contact_payload).merge(provider: @source.provider)
       },
-      custom_attributes: @source.contact_custom_attributes(contact_payload)
+      custom_attributes: imported_custom_attributes('contact', @source.contact_custom_attributes(contact_payload))
     }
     attrs[:contact_type] = Contact.contact_types[:lead] if attrs[:email].present? || attrs[:phone_number].present?
     attrs
@@ -385,7 +392,7 @@ class DataImports::Importer
       contact_inbox_id: contact_inbox.id,
       identifier: conversation_identifier(conversation),
       additional_attributes: metadata,
-      custom_attributes: @source.conversation_custom_attributes(conversation),
+      custom_attributes: imported_custom_attributes('conversation', @source.conversation_custom_attributes(conversation)),
       created_at: timestamp_for(conversation['created_at']),
       updated_at: timestamp_for(conversation['updated_at']),
       last_activity_at: timestamp_for(conversation['updated_at'])
@@ -1338,7 +1345,8 @@ class DataImports::Importer
       @stats.fetch('contacts', {}).fetch('skipped', 0).to_i +
       @stats.fetch('conversations', {}).fetch('skipped', 0).to_i +
       @stats.fetch('messages', {}).fetch('skipped', 0).to_i +
-      @stats.fetch('errors', {}).fetch('count', 0).to_i
+      @stats.fetch('errors', {}).fetch('count', 0).to_i -
+      @data_import.import_errors.where(error_code: Variables::ImportDiagnostics::ERROR_CODE).count
   end
 
   def total_successful_records
