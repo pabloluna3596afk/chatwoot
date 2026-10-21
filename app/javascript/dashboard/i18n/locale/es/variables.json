@@ -21,19 +21,19 @@
         "document_number": "Número de documento",
         "country_code": "Código de país",
         "city": "Ciudad",
-        "company_name": "Empresa",
+        "company_name": "Empresa del contacto",
         "assigned_agent": {
           "id": "ID del agente asignado",
           "name": "Nombre del agente asignado",
           "available_name": "Nombre público del agente asignado",
           "email": "Correo del agente asignado",
-          "first_name": "Nombre del agente asignado",
+          "first_name": "Primer nombre del agente asignado",
           "last_name": "Apellido del agente asignado"
         }
       },
       "agent": {
         "name": "Nombre del agente",
-        "first_name": "Nombre del agente",
+        "first_name": "Primer nombre del agente",
         "last_name": "Apellido del agente",
         "email": "Correo del agente",
         "id": "ID del agente",
