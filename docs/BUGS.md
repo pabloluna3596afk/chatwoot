@@ -1,5 +1,20 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-184 — Fixtures de cuenta en specs de tarjetas de citas
+
+**Archivos:** `CalendarEventsList.spec.js`, `NextAppointmentCard.spec.js`.
+
+**Causa:** las tarjetas usan `useCalendarTime`, que lee la cuenta mediante
+`useAccount`. Los specs montaban las tarjetas sin cuenta, store ni router;
+esto provocaba cinco rechazos sin manejar y cuatro aserciones fallidas.
+
+**Fix:** proporcionar una cuenta con `calendar_timezone` mediante el mock de
+`useAccount`, conservando las aserciones existentes y comprobando además que
+ambas tarjetas muestran `America/Guayaquil`.
+
+**Cómo probar:** ejecutar los seis ejemplos de ambos archivos con Vitest en
+`TZ=UTC` y `TZ=America/Guayaquil`; deben pasar sin rechazos sin manejar.
+
 ### B-NEW-087 — Una zona de cuenta en todo el recorrido de Citas (CIT-02)
 
 **Archivos:** `lib/integrations/google_calendar/timezone.rb`, servicio de eventos,
