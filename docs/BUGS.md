@@ -1,5 +1,46 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-084 — Lease de reservas y recuperación de Meet (CIT-12 / CIT-31)
+
+**Archivos:** `lib/integrations/google_calendar/booking_lock.rb`,
+`lib/integrations/google_calendar/event_service.rb`, specs de lock, servicio,
+invitación y herramientas Captain, y `spec/support/real_redis.rb`.
+
+**Fix:** el lease renueva cada 5 s mediante WATCH/MULTI condicionado al token;
+una pérdida o error de renovación invalida permanentemente la operación. Antes
+de cada nueva fase de escritura se comprueba la propiedad. El heartbeat se
+detiene y la liberación en ensure conserva compare-and-delete: no elimina el
+token de otro worker. La prueba real espera 21 s, sin travel_to.
+
+El resultado del POST/PATCH principal se persiste antes de completar la
+descripción Meet: conserva identidad, intervalo, clave, asociaciones, invitación,
+estado y política de seguimiento. Un fallo del PATCH opcional se registra y no
+impide el seguimiento normal. Reintentar con la misma clave lee el evento Google
+existente y completa la descripción sin otro POST ni duplicar notificaciones.
+Si se pierde el lease durante una petición ya enviada, se conserva su resultado
+local como reconciliación, pero se detienen las fases siguientes. No se promete
+deshacer un POST remoto ni exclusión por fencing que Google no ofrece.
+
+**Cómo probar:** con Redis real y namespace aislado, retrasar Google más de 20 s
+y competir por el mismo calendario; reemplazar el token durante la lectura y
+durante el POST. No debe haber nuevas escrituras tras detectar la pérdida ni
+borrado del token ajeno; un POST ya finalizado debe quedar identificable.
+Simular timeout al completar Meet al crear/editar: la reserva y el PATCH
+principal permanecen; repetir la reserva idempotente repara la descripción sin
+otro evento. Captain confirma y programa los recordatorios una sola vez.
+
+**Verificación local (2026-10-21):** los cinco ejemplos del lock, con el mismo
+spec y soporte del repo en runner aislado sin Rails/DB, fallan contra el lock
+anterior y pasan con el nuevo; Redis 7 real y gems Redis del lockfile. Smoke de
+compatibilidad MockRedis aprobado. Sintaxis Ruby aprobada en 16 archivos de la
+pila; RuboCop directo en imagen `chathub-rubocop-ci` inspecciona 16 archivos,
+66 infracciones heredadas y cero en líneas cambiadas frente a origin/develop.
+El comando exacto de CI sigue bloqueado por Ruby 3.4.11 frente a 3.4.4.
+RSpec Rails de servicio/invitación/herramientas/recordatorios no ejecutado:
+la imagen de aplicación no tiene rspec. Falta rojo/verde de esos recorridos y
+CI completo; no se declara validación funcional completa. Sin cambios visuales,
+capturas, migraciones ni push. Integrar PR1 → PR2 → PR3.
+
 ### B-NEW-083 — Reserva y confirmación de la cita propietaria (CIT-09 / CIT-30)
 
 **Archivos:** `CalendarEvent`, `Integrations::GoogleCalendar::EventService`,
