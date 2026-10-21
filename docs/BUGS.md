@@ -1,5 +1,40 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-081 — Cierre de variables Flow, notificaciones e importadores (MV-12, MV-13, MV-16)
+
+**Archivos:** `Variables::{ContextFactory,Omission,ImportDiagnostics,Writer}`,
+`VariablesController`, `Flows::{DeferredSendJob,ActionService,ExecutionService}`,
+`AutomationNotificationMailer`, `MessageTemplates::Template::Greeting`,
+`Concerns::Toolable`, `Captain::Tools::HttpTool`, `DataImportJob`,
+`DataImport::ContactManager`, `DataImports::Importer` y el correo de importación.
+
+**Fix:** el run explícito habilita `flow.x` y `flow.variables.x` en preview,
+envío, notas y captura. Notificaciones resuelven `custom_message` antes de
+insertarlo; herramientas HTTP comparten contexto CRM y devuelven diagnóstico
+con ruta/estado. Saludos y notificaciones incompletos se omiten con nota privada.
+Los snapshots se interpolan una vez, usando fechas en zona de cuenta.
+API/prechat conservan su writer común y JSON literal. CSV/Intercom/Freshdesk
+protegen atributos gestionados y avisan de claves sin definición, sin crear
+definiciones a partir de metadata técnica ni modificar formatos de entrada.
+CSV incluye el aviso en el correo; externos lo muestran en sus resultados.
+Los avisos externos cuentan como incidencias, sin sumar registros ficticios.
+Sin migraciones ni cambios de frontend, campañas, Meta, Panel AI o cobros.
+
+**Cómo probar:** guardar `x` en un nodo de Flow y enviar `{{ flow.x }}` en texto
+y botón; comparar preview con `flow_run_id`/`conversation_id`. Usar un run ajeno
+debe devolver 404, y uno sin conversación, 422. Probar un saludo y una notificación
+con `contact.identifier`, fecha y atributo ausente: solo el último se omite y
+deja razón privada. HTTP con ruta CRM debe resolverla; un dato ausente impide
+la petición y muestra ruta/estado. Importar una columna sin definición: el valor
+se conserva y se informa su clave, nunca su valor. Crear la definición y verificar
+el selector. CSV con `total_citas` protegido queda en rechazados. Repetir con
+Intercom/Freshdesk; revisar avisos, contadores y que no aparezcan definiciones
+automáticas. Specs Ruby preparados por superficie; ejecución integrada solo CI.
+
+**Estado:** implementado; RSpec pendiente de CI. Comprobaciones aisladas con
+Liquid reproducen MV-12/MV-13 antes y pasan después; no sustituyen Rails/RSpec.
+Contrato y límites: `docs/VARIABLES_ENGINE.md`, sección de cierre PR F.
+
 ### B-NEW-080 - Captain y escritura de variables (MV-10, MV-11, MV-14)
 
 **Archivos:** `Captain::TemplateMessage`, sus tres senders, `Captain::VariableDiagnostics`,
