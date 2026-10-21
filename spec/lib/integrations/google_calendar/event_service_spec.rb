@@ -30,9 +30,9 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
   end
 
   def local_event(attrs = {})
-    connection.calendar_events.create!(
+    CalendarEvent.create!(
       {
-        account: account, external_calendar_id: 'cal-1', google_event_id: "local-#{SecureRandom.hex(4)}",
+        account: account, calendar_connection: connection, external_calendar_id: 'cal-1', google_event_id: "local-#{SecureRandom.hex(4)}",
         summary: 'Existing', start_at: Time.zone.parse(slot_start), end_at: Time.zone.parse(slot_end)
       }.merge(attrs)
     )
