@@ -16,7 +16,7 @@ vi.mock('dashboard/helper/useCalendarCancelledVisibility', () => ({
 }));
 
 vi.mock('dashboard/composables/useAccount', () => ({
-  useAccount: () => ({ currentAccount: ref({}) }),
+  useAccount: () => ({ accountId: ref(1), currentAccount: ref({}) }),
 }));
 
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));

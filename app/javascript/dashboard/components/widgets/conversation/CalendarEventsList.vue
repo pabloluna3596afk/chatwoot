@@ -1,5 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
+import { useAppointmentEvents } from 'dashboard/composables/useAppointmentEvents';
+import { useAppointmentClock } from 'dashboard/composables/useAppointmentClock';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
@@ -40,12 +42,21 @@ const emit = defineEmits(['saved']);
 const { timezone, formatEventWhen, isUpcomingEvent } = useCalendarTime();
 
 const { t, locale } = useI18n();
-const events = ref([]);
+const {
+  events,
+  hasError,
+  isLoading,
+  load: loadEvents,
+} = useAppointmentEvents({
+  context: () => props.conversationId,
+  contactId: () => props.contactId,
+  fetchEvents: signal =>
+    CalendarAPI.getConversationEvents(props.conversationId, { signal }),
+});
+const now = useAppointmentClock(events, timezone);
 const connections = ref([]);
 const panelAiActive = ref(false);
 const connectionRequest = useAbortableRequest();
-const eventRequest = useAbortableRequest();
-const isLoading = eventRequest.isPending;
 const modalRef = ref(null);
 const selectedConnectionId = ref('');
 
@@ -55,11 +66,13 @@ const visibleEvents = computed(() =>
 );
 const hasEvents = computed(() => visibleEvents.value.length > 0);
 const upcomingEvents = computed(() =>
-  visibleEvents.value.filter(event => isUpcomingEvent(event))
+  visibleEvents.value.filter(event => isUpcomingEvent(event, now.value))
 );
 // What already happened (or was cancelled) is kept short: title, date and that it is past.
 const pastEvents = computed(() =>
-  visibleEvents.value.filter(event => !isUpcomingEvent(event)).reverse()
+  visibleEvents.value
+    .filter(event => !isUpcomingEvent(event, now.value))
+    .reverse()
 );
 
 const loadConnections = async () => {
@@ -75,20 +88,6 @@ const loadConnections = async () => {
   selectedConnectionId.value = connections.value[0]
     ? String(connections.value[0].id)
     : '';
-};
-
-const loadEvents = async () => {
-  events.value = [];
-  try {
-    const response = await eventRequest.run(signal =>
-      CalendarAPI.getConversationEvents(props.conversationId, { signal })
-    );
-    if (!response) return;
-    const { data } = response;
-    events.value = data.payload || [];
-  } catch (error) {
-    events.value = [];
-  }
 };
 
 const onSaved = event => {
@@ -122,9 +121,7 @@ watch(
   () => props.conversationId,
   () => {
     modalRef.value?.close();
-    loadEvents();
-  },
-  { immediate: true }
+  }
 );
 
 onMounted(async () => {
@@ -156,6 +153,19 @@ onMounted(async () => {
     </label>
     <div v-if="isLoading" class="flex justify-center p-8">
       <Spinner />
+    </div>
+    <div
+      v-else-if="hasError"
+      role="alert"
+      class="px-4 py-3 text-sm text-n-ruby-11"
+    >
+      <p>{{ t('CONVERSATION_SIDEBAR.CALENDAR.LOAD_ERROR') }}</p>
+      <Button
+        sm
+        ghost
+        :label="t('CONVERSATION_SIDEBAR.CALENDAR.RETRY')"
+        @click="loadEvents"
+      />
     </div>
     <div v-else-if="!hasEvents" class="flex justify-center p-4">
       <p class="text-sm text-n-slate-11">

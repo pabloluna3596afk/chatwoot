@@ -101,4 +101,45 @@ RSpec.describe CalendarEvent do
       end
     end.not_to have_enqueued_job(Calendar::AppointmentAttributes::UpdateJob)
   end
+
+  describe 'appointment invalidation' do
+    it 'broadcasts only contact identities to the owning account after create' do
+      expect { event }.to have_enqueued_job(ActionCableBroadcastJob).with(
+        ["account_#{contact.account_id}"], 'calendar.events_changed', { account_id: contact.account_id, contact_ids: [contact.id] }
+      )
+    end
+
+    it 'invalidates both old and new contacts after reassociation' do
+      event
+      other = create(:contact, account: contact.account)
+      expect { event.update!(contact: other) }.to have_enqueued_job(ActionCableBroadcastJob).with(
+        ["account_#{contact.account_id}"], 'calendar.events_changed', { account_id: contact.account_id, contact_ids: [other.id, contact.id] }
+      )
+    end
+
+    it 'broadcasts rescheduling, cancellation and deletion without optional appointment attributes' do
+      event
+      [{ end_at: 3.days.from_now }, { appointment_status: 'cancelled' }, { deleted_at: Time.current }].each do |attributes|
+        expect { event.update!(attributes) }.to have_enqueued_job(ActionCableBroadcastJob).with(
+          ["account_#{contact.account_id}"], 'calendar.events_changed', { account_id: contact.account_id, contact_ids: [contact.id] }
+        )
+      end
+      expect { event.destroy! }.to have_enqueued_job(ActionCableBroadcastJob)
+    end
+
+    it 'does not broadcast etag-only syncs, avoiding read/reload loops' do
+      event
+      expect { event.update!(etag: 'sync') }.not_to have_enqueued_job(ActionCableBroadcastJob)
+    end
+
+    it 'does not broadcast a rolled back mutation' do
+      event
+      expect do
+        described_class.transaction(requires_new: true) do
+          event.update!(summary: 'Rolled back')
+          raise ActiveRecord::Rollback
+        end
+      end.not_to have_enqueued_job(ActionCableBroadcastJob)
+    end
+  end
 end

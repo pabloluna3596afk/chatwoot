@@ -1,10 +1,15 @@
 import { flushPromises, shallowMount } from '@vue/test-utils';
+import { ref } from 'vue';
 import NextAppointmentCard from '../NextAppointmentCard.vue';
 
 const { getContactEvents } = vi.hoisted(() => ({ getContactEvents: vi.fn() }));
 
 vi.mock('dashboard/api/integrations/calendar', () => ({
   default: { getContactEvents },
+}));
+
+vi.mock('dashboard/composables/useAccount', () => ({
+  useAccount: () => ({ accountId: ref(1), currentAccount: ref({}) }),
 }));
 
 vi.mock('vue-i18n', () => ({
@@ -54,7 +59,9 @@ describe('NextAppointmentCard', () => {
 
     const wrapper = await mountCard();
 
-    expect(getContactEvents).toHaveBeenCalledWith(7);
+    expect(getContactEvents).toHaveBeenCalledWith(7, {
+      signal: expect.any(AbortSignal),
+    });
     expect(wrapper.find('[data-testid="next-appointment"]').text()).toContain(
       'Cita soon'
     );
@@ -73,12 +80,16 @@ describe('NextAppointmentCard', () => {
     ).toBe(false);
   });
 
-  it('shows nothing when the request fails', async () => {
+  it('keeps the appointment card hidden and shows a load error when the request fails', async () => {
     getContactEvents.mockRejectedValue(new Error('boom'));
 
-    expect(
-      (await mountCard()).find('[data-testid="next-appointment"]').exists()
-    ).toBe(false);
+    const wrapper = await mountCard();
+    expect(wrapper.find('[data-testid="next-appointment"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.text()).toContain(
+      'CONVERSATION_SIDEBAR.CALENDAR.LOAD_ERROR'
+    );
   });
 
   it('says how the customer answered the invite, and confirms what Captain booked by chat', async () => {

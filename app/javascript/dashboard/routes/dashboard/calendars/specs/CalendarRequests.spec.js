@@ -12,7 +12,11 @@ import { useAlert } from 'dashboard/composables';
 
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 vi.mock('dashboard/composables/useAccount', () => ({
-  useAccount: () => ({ currentAccount: ref({}), accountScopedRoute: x => x }),
+  useAccount: () => ({
+    accountId: ref(1),
+    currentAccount: ref({}),
+    accountScopedRoute: x => x,
+  }),
 }));
 vi.mock('dashboard/composables/useAdmin', () => ({
   useAdmin: () => ({ isAdmin: true }),

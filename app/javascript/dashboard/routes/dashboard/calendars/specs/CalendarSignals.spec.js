@@ -38,6 +38,11 @@ it('passes calendar and search cancellation signals to axios without changing re
       expect.stringContaining('/conversations/9/calendar_events'),
       { signal }
     );
+    await CalendarAPI.getContactEvents(7, { signal });
+    expect(get).toHaveBeenLastCalledWith(
+      expect.stringContaining('/contacts/7/calendar_events'),
+      { signal }
+    );
     await CalendarAPI.getInvitation({ signal });
     expect(get).toHaveBeenLastCalledWith(
       expect.stringContaining('/invitation'),

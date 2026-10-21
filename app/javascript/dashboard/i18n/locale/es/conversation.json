@@ -556,6 +556,9 @@
       "SHARED_FILES": "Adjuntos"
     },
     "CALENDAR": {
+      "LOAD_ERROR": "No se pudieron cargar las citas. Inténtalo de nuevo.",
+      "RETRY": "Reintentar",
+      "NEXT_EMPTY": "No hay próximas citas",
       "NEW": "Nueva cita",
       "EMPTY": "No hay citas ligadas a esta conversación",
       "DELETED": "Evento cancelado",
