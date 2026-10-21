@@ -35,6 +35,9 @@ class Captain::AppointmentsValidator < ActiveModel::Validator
 
   def validate_templates(record, settings)
     Settings::TEMPLATE_KEYS.each do |key|
+      # The retired control must not block unrelated edits after template drift.
+      next if key == 'template_cancelled' && record.config_was&.dig('appointments', key) == settings.values[key]
+
       Captain::TemplateReference.errors(settings.values[key], record.account).each do |error|
         record.errors.add(:config, "appointments #{key} #{error}")
       end

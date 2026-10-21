@@ -8,10 +8,7 @@
 class Captain::AppointmentReminders::Sender
   CONFIRMED = 'confirmed'.freeze
   # The texts of a template saved before the variables could be chosen: numbered variables in a fixed order.
-  LEGACY_TEMPLATE_PARAMS = {
-    'body' => { '1' => '{{ contact.name }}', '2' => '{{ appointment.title }}', '3' => '{{ appointment.date }}',
-                '4' => '{{ appointment.time }}', '5' => '{{ assistant.name }}' }
-  }.freeze
+  LEGACY_TEMPLATE_PARAMS = Captain::AppointmentReminders::Readiness::LEGACY_TEMPLATE_PARAMS
 
   def initialize(reminder, now: Time.current)
     @reminder = reminder
@@ -139,14 +136,11 @@ class Captain::AppointmentReminders::Sender
   end
 
   def send_template
-    return skip_with_note('not_sent_channel') unless conversation.inbox.channel_type == 'Channel::Whatsapp'
-    return skip_with_note('not_sent_window') unless assistant.allow_paid_templates?
-    return skip_with_note('no_template') if settings.template_reminder.blank?
+    readiness = Captain::AppointmentReminders::Readiness.new(assistant, conversation.inbox)
+    reason = readiness.outside_window_reason
+    return skip_with_note(reason) if reason
 
-    entry = Captain::TemplateMessage.approved(conversation.inbox, settings.template_reminder)
-    return skip_with_note('template_unavailable') if entry.blank?
-
-    deliver_template(entry)
+    deliver_template(readiness.entry)
   end
 
   def deliver_template(entry)

@@ -119,6 +119,48 @@ describe('AssistantAppointmentsForm', () => {
       .mockResolvedValue({ data: { payload: CALENDARS } });
   });
 
+  it('preserves an unavailable historical cancellation template without validating or editing it', async () => {
+    const historical = { name: 'old', language: 'es' };
+    const wrapper = await mountForm({
+      config: {
+        allow_paid_templates: true,
+        appointments: { template_cancelled: historical },
+      },
+    });
+    expect(
+      wrapper.find('[data-testid="appointments-template-cancelled"]').exists()
+    ).toBe(false);
+    await wrapper.get('[data-testid="appointments-save"]').trigger('click');
+    expect(
+      wrapper.emitted('submit')[0][0].config.appointments.template_cancelled
+    ).toEqual(historical);
+  });
+
+  it.each([
+    'ready',
+    'disabled',
+    'not_sent_channel',
+    'not_sent_window',
+    'no_template',
+    'template_unavailable',
+    'template_changed',
+  ])(
+    'shows the saved per-inbox preparation reason %s and the delivery limits',
+    async status => {
+      const wrapper = await mountForm({
+        config: {},
+        appointment_reminder_readiness: [
+          { inbox_id: 10, inbox_name: 'Ventas', status, missing: ['body.1'] },
+        ],
+      });
+      expect(
+        wrapper.get('[data-testid="reminder-readiness-10"]').text()
+      ).toContain(status);
+      expect(wrapper.text()).toContain('READINESS.SAVED_HELP');
+      expect(wrapper.text()).toContain('body.1');
+    }
+  );
+
   it('offers explicit provisioning of all four attributes from appointment setup', async () => {
     const wrapper = await mountForm();
     const inputs = wrapper.findAll(
@@ -560,7 +602,7 @@ describe('AssistantAppointmentsForm', () => {
       ).toBe(true);
       expect(
         wrapper.find('[data-testid="appointments-template-cancelled"]').exists()
-      ).toBe(true);
+      ).toBe(false);
     });
 
     const templateWithVariables = {

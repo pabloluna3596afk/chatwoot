@@ -9,6 +9,7 @@ import {
 } from './useApprovedTemplates';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 import CalendarAppointmentAttributes from 'dashboard/routes/dashboard/settings/integrations/CalendarAppointmentAttributes.vue';
+import AppointmentReminderReadiness from './AppointmentReminderReadiness.vue';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
@@ -35,7 +36,7 @@ const CONTACT_FIELDS = ['name', 'phone', 'email'];
 const DURATION_OPTIONS = [15, 30, 45, 60, 90, 120];
 const NOTICE_OPTIONS = [0, 30, 60, 120, 240, 1440];
 const WINDOW_OPTIONS = [7, 14, 30, 60, 90];
-const TEMPLATE_KEYS = ['reminder', 'cancelled'];
+const TEMPLATE_KEYS = ['reminder'];
 
 // Two reminders, each with its own lead time (1 to 168 hours before the appointment).
 const REMINDER_KEYS = ['reminder_1', 'reminder_2'];
@@ -54,15 +55,15 @@ const initialState = {
   minNotice: 60,
   windowDays: 14,
   reminders: DEFAULT_REMINDERS.map(reminder => ({ ...reminder })),
-  templates: { reminder: '', cancelled: '' },
-  params: { reminder: {}, cancelled: {} },
+  templates: { reminder: '' },
+  params: { reminder: {} },
 };
 
 const state = reactive({
   ...initialState,
   reminders: DEFAULT_REMINDERS.map(reminder => ({ ...reminder })),
   templates: { ...initialState.templates },
-  params: { reminder: {}, cancelled: {} },
+  params: { reminder: {} },
 });
 const { templateOptions, templateEntry, templateInboxId } =
   useApprovedTemplates();
@@ -236,11 +237,9 @@ const updateStateFromAssistant = assistant => {
     })),
     templates: {
       reminder: templateToValue(settings.template_reminder),
-      cancelled: templateToValue(settings.template_cancelled),
     },
     params: {
       reminder: settings.template_reminder?.processed_params || {},
-      cancelled: settings.template_cancelled?.processed_params || {},
     },
   });
 };
@@ -294,10 +293,8 @@ const handleSubmit = () => {
           state.templates.reminder,
           state.params.reminder
         ),
-        template_cancelled: templateFromValue(
-          state.templates.cancelled,
-          state.params.cancelled
-        ),
+        template_cancelled:
+          props.assistant.config?.appointments?.template_cancelled ?? null,
       },
     },
   });
@@ -329,6 +326,9 @@ onMounted(loadConnections);
 
 <template>
   <div class="flex flex-col gap-4">
+    <AppointmentReminderReadiness
+      :inboxes="assistant.appointment_reminder_readiness || []"
+    />
     <p v-if="isLoading" class="mb-0 text-sm text-n-slate-11">
       {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.LOADING') }}
     </p>
