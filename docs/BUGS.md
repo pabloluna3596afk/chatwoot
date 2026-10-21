@@ -1,5 +1,51 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-086 — Reconciliar Google antes de enviar recordatorios (CIT-08)
+
+**Archivos:** `lib/integrations/google_calendar/event_service.rb`,
+`app/jobs/calendar/reconcile_events_job.rb`, `config/schedule.yml`,
+`enterprise/app/services/captain/appointment_reminders/{sender,dispatcher}.rb`,
+`enterprise/app/models/enterprise/calendar_event.rb`, reconciliador manual y specs.
+
+**Fix:** cada intento de envío consulta una sola versión del evento en Google.
+Sincroniza título, intervalo e invitación; 404/410 o estado cancelled cancelan
+la fila local, liberan su clave y cancelan recordatorios pendientes. Un rechazo
+de invitación no cancela la cita. Timeout/5xx conservan el pendiente sin enviar.
+El remitente bloquea primero la cita y luego el recordatorio, y vuelve a leer
+su estado y vencimiento después de reconciliar. Cambiar la hora modifica las
+filas existentes: no crea otro recordatorio del mismo tipo.
+
+La sincronización Enterprise de recordatorios ahora ocurre dentro de la misma
+transacción que el cambio de cita; un rollback revierte ambos. El job periódico
+recorre citas vinculadas a contacto o conversación, humanas y Captain, cada
+cinco minutos: páginas de 100 con cursor por ID, futuras y terminadas durante
+el último día. Los atributos del contacto se recalculan mediante el callback
+existente. No activa recordatorios Captain para citas humanas ni modifica Panel AI.
+El rake manual usa la misma reconciliación al aplicar; conserva su modo de consulta.
+
+**Cómo probar:** mover/cambiar título en Google sin abrir el calendario; ejecutar
+la tarea periódica y revisar fila, atributos y recordatorios. Ejecutar el despacho
+en la hora anterior: cero mensajes; en la nueva: uno, incluso al repetir. Borrar
+o cancelar en Google: cero envíos y fila fuera de kept. Simular timeout/5xx:
+ningún envío ni cancelación; recuperar Google y repetir: un solo mensaje.
+
+**Verificación local (2026-10-21):** diez ejemplos finales fallan contra la base
+original `67ad570ef2`; 316 ejemplos de regresión pasan con el fix. DB y Redis
+exclusivos, Google/canal simulados. Se corrigieron dos helpers de fixtures que
+ignoraban la conexión solicitada por crear a través de una asociación: los once
+fallos correspondientes también se reprodujeron en la base intacta, y pasan
+con los fixtures corregidos. Lint exacto CI aprobado en
+`chathub-rubocop-ci:cit5-ruby344`, 29 Ruby inspeccionados; 85 infracciones del
+reporte completo quedan fuera de líneas cambiadas. Sin migraciones ni UI.
+
+**Pendiente de integración/deploy:** PR5 `feat/citas-reconciliar` depende
+localmente de PR4 `feat/citas-oauth-state`; integrar PR1 → PR2 → PR3 → PR4 → PR5.
+Sin push ni deploy. Reiniciar Rails y Sidekiq al desplegar para cargar código
+y cron. Faltan CI remoto, Google/canal reales, recepción efectiva y prueba con
+dos procesos simultáneos. El barrido automático no recupera movimientos de
+citas cuyo final local ya quedó más de un día atrás; un backfill histórico
+requeriría otro recorrido explícito. Evidencia: `tmp/PR-CITAS-6.md` (ignorado).
+
 ### B-NEW-085 — State OAuth de Calendar consumible una sola vez (CIT-29)
 
 **Archivos:** `app/helpers/google_calendar/integration_helper.rb`,
