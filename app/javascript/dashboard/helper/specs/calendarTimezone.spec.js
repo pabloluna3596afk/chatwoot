@@ -132,3 +132,33 @@ it('leaves the missing opening hour empty instead of shifting the visible day', 
     layoutDayEvents([event], '2030-03-10', 2, 20, 'America/New_York')[0].row
   ).toBe(60);
 });
+
+it.each([
+  [
+    '2030-11-03',
+    '2030-11-03T01:45:00-04:00',
+    '2030-11-03T01:15:00-05:00',
+    [60, 105],
+  ],
+  [
+    '2030-03-10',
+    '2030-03-10T01:45:00-05:00',
+    '2030-03-10T03:15:00-04:00',
+    [105, 180],
+  ],
+])(
+  'splits an appointment across the DST transition on %s without losing duration',
+  (date, start, end, rows) => {
+    const groups = layoutDayEvents(
+      [{ id: 'a', start, end }],
+      date,
+      0,
+      23,
+      'America/New_York'
+    );
+    const pieces = groups.flatMap(group => group.lanes.flat());
+    expect(pieces.map(piece => piece.row)).toEqual(rows);
+    expect(pieces.map(piece => piece.rowSpan)).toEqual([15, 15]);
+    expect(pieces.every(piece => piece.id === 'a')).toBe(true);
+  }
+);
