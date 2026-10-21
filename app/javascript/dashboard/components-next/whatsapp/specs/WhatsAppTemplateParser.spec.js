@@ -2,7 +2,7 @@ import { shallowMount, flushPromises } from '@vue/test-utils';
 import { nextTick } from 'vue';
 
 import WhatsAppTemplateParser from '../WhatsAppTemplateParser.vue';
-import InsertVariableButton from 'dashboard/components-next/variable/InsertVariableButton.vue';
+import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key }),
@@ -159,19 +159,20 @@ describe('WhatsAppTemplateParser with the options of a Captain setting', () => {
     );
   });
 
-  it('shows no insert button when no variables are offered (the default)', () => {
+  it('offers the shared catalog selector by default', async () => {
     const wrapper = mountParser();
+    await nextTick();
 
-    expect(wrapper.findAllComponents(InsertVariableButton)).toHaveLength(0);
+    expect(wrapper.findAllComponents(VariablePicker)).toHaveLength(3);
   });
 
   it('offers the variables next to every field of the header and the body', async () => {
     const wrapper = mountParser({ variableOptions });
     await nextTick();
 
-    const buttons = wrapper.findAllComponents(InsertVariableButton);
+    const buttons = wrapper.findAllComponents(VariablePicker);
     expect(buttons).toHaveLength(3);
-    expect(buttons[0].props('variables')).toEqual(variableOptions);
+    expect(buttons[0].props('surface')).toBe('message');
   });
 
   it('inserts the variable as Liquid in the field it was chosen for', async () => {
@@ -179,9 +180,9 @@ describe('WhatsAppTemplateParser with the options of a Captain setting', () => {
 
     wrapper.vm.processedParams.body.nombre = 'Hola';
     await nextTick();
-    const buttons = wrapper.findAllComponents(InsertVariableButton);
-    buttons[1].vm.$emit('insert', '{{ contact.name }}');
-    buttons[0].vm.$emit('insert', '{{ appointment.date }}');
+    const buttons = wrapper.findAllComponents(VariablePicker);
+    buttons[1].vm.$emit('select', { expression: '{{ contact.name }}' });
+    buttons[0].vm.$emit('select', { expression: '{{ appointment.date }}' });
     await nextTick();
 
     expect(wrapper.vm.processedParams.body.nombre).toBe(
@@ -600,5 +601,63 @@ describe('WhatsAppTemplateParser with CRM values', () => {
     expect(wrapper.vm.renderedTemplate).toBe(
       'Hola {{ contact.first_name }}, tu plan es {{ contact.custom_attribute.plan }} gracias'
     );
+  });
+});
+
+describe('manual template catalog and resolver boundaries', () => {
+  it.each(['appointment.date', 'assistant.name'])(
+    'A12 diagnoses unavailable %s, preserves mapping and blocks sending',
+    async path => {
+      previewVariables.mockResolvedValue({
+        data: {
+          timezone: 'America/Guayaquil',
+          results: [[{ status: 'unavailable', value: '', errors: [] }]],
+        },
+      });
+      const wrapper = shallowMount(WhatsAppTemplateParser, {
+        props: {
+          template: {
+            ...template,
+            components: [{ type: 'BODY', text: 'Hola {{1}} gracias' }],
+            variable_bindings: { 1: path },
+          },
+          resolveContext: { contact: { id: 2 } },
+        },
+        global: { mocks: { $t: key => key } },
+      });
+      await flushPromises();
+      expect(wrapper.vm.processedParams.body['1']).toBe(`{{ ${path} }}`);
+      expect(wrapper.vm.missingMessage('body', '1')).toBe(
+        'VARIABLE_PICKER.UNAVAILABLE'
+      );
+      expect(wrapper.vm.isFormInvalid).toBe(true);
+      wrapper.vm.sendMessage();
+      expect(wrapper.emitted('sendMessage')).toBeUndefined();
+      wrapper.vm.setValue('body', '1', 'Valor manual');
+      await flushPromises();
+      expect(wrapper.vm.missingMessage('body', '1')).toBe('');
+      wrapper.unmount();
+    }
+  );
+  it('fills late defaults only in untouched empty fields and preserves typed text on refresh failure', async () => {
+    const wrapper = shallowMount(WhatsAppTemplateParser, {
+      props: { template },
+      global: { mocks: { $t: key => key } },
+    });
+    await nextTick();
+    wrapper.vm.setValue('body', '1', 'Texto escrito');
+    await wrapper.setProps({
+      defaultValues: { 1: '{{ contact.name }}', 2: '{{ agent.name }}' },
+    });
+    expect(wrapper.vm.processedParams.body).toEqual({
+      1: 'Texto escrito',
+      2: '{{ agent.name }}',
+    });
+    await wrapper.setProps({ defaultValues: {} });
+    expect(wrapper.vm.processedParams.body).toEqual({
+      1: 'Texto escrito',
+      2: '{{ agent.name }}',
+    });
+    wrapper.unmount();
   });
 });

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useTemplateBindings } from 'dashboard/composables/useTemplateBindings';
 import Button from 'dashboard/components-next/button/Button.vue';
 import { answerBlocks } from 'shared/helpers/flowAnswers';
 import { saveTargets, saveTargetLabel } from './flowSaveTargets';
@@ -10,17 +11,17 @@ const props = defineProps({
   flowName: { type: String, required: true },
   definition: { type: Object, required: true },
   answers: { type: Object, required: true },
-  attributes: { type: Array, default: () => [] },
 });
 defineEmits(['reset', 'edit']);
 const { t } = useI18n();
 const showTargets = ref(false);
+const { bindings } = useTemplateBindings('message');
 const destinations = computed(() =>
   answerBlocks(props.definition)
     .filter(block => block.save_to && Object.hasOwn(props.answers, block.key))
     .map(block => {
-      const target = saveTargets(block, props.attributes).find(
-        item => item.key === block.save_to.target
+      const target = saveTargets(block, bindings.value).find(
+        item => item.canonicalPath === block.save_to.target
       );
       return {
         key: block.key,

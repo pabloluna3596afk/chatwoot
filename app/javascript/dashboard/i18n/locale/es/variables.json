@@ -4,7 +4,10 @@
     "SEARCH_PLACEHOLDER": "Buscar variables...",
     "LABELS": {
       "conversation": {
-        "id": "ID de la conversación"
+        "id": "ID de la conversación",
+        "display_id": "Número de conversación",
+        "contact_name": "Nombre del contacto de la conversación",
+        "recent_messages": "Mensajes recientes"
       },
       "contact": {
         "id": "ID del contacto",
@@ -18,22 +21,62 @@
         "document_number": "Número de documento",
         "country_code": "Código de país",
         "city": "Ciudad",
-        "company_name": "Empresa"
+        "company_name": "Empresa",
+        "assigned_agent": {
+          "id": "ID del agente asignado",
+          "name": "Nombre del agente asignado",
+          "available_name": "Nombre público del agente asignado",
+          "email": "Correo del agente asignado",
+          "first_name": "Nombre del agente asignado",
+          "last_name": "Apellido del agente asignado"
+        }
       },
       "agent": {
         "name": "Nombre del agente",
         "first_name": "Nombre del agente",
         "last_name": "Apellido del agente",
-        "email": "Correo del agente"
+        "email": "Correo del agente",
+        "id": "ID del agente",
+        "available_name": "Nombre público del agente"
       },
       "inbox": {
-        "name": "Nombre de la bandeja",
-        "id": "ID de la bandeja"
+        "name": "Nombre de la Bandeja",
+        "id": "ID de la Bandeja",
+        "business_name": "Nombre comercial de la Bandeja",
+        "avatar_url": "URL del avatar de la Bandeja",
+        "email": "Correo de la Bandeja"
       },
       "account": {
         "name": "Nombre de la cuenta",
         "locale": "Idioma de la cuenta",
-        "timezone": "Zona horaria de la cuenta"
+        "timezone": "Zona horaria de la cuenta",
+        "id": "ID de la cuenta"
+      },
+      "date": {
+        "today": "Hoy",
+        "now": "Fecha y hora actuales",
+        "tomorrow": "Mañana",
+        "yesterday": "Ayer",
+        "days_from_now": "Días a partir de hoy",
+        "days_ago": "Días atrás",
+        "current_year": "Año actual",
+        "current_month": "Mes actual",
+        "current_day": "Día actual"
+      },
+      "message": {
+        "id": "ID del mensaje",
+        "sender_display_name": "Nombre del remitente",
+        "text_content": "Texto del mensaje"
+      },
+      "company": {
+        "id": "ID de la empresa",
+        "name": "Nombre de la empresa",
+        "domain": "Dominio de la empresa",
+        "description": "Descripción de la empresa",
+        "contacts_count": "Total de contactos de la empresa"
+      },
+      "flow": {
+        "variables": "Variables del Flow"
       }
     }
   },
@@ -42,7 +85,10 @@
       "SYSTEM": "Sistema",
       "CONTACT": "Atributos del contacto",
       "CONVERSATION": "Atributos de la conversación",
-      "APPOINTMENT": "Citas de Captain"
+      "APPOINTMENT": "Citas de Captain",
+      "ASSISTANT": "Asistente",
+      "COMPANY": "Empresa",
+      "FLOW": "Flow"
     },
     "LABELS": {
       "nombre": "Nombre del contacto",
@@ -70,6 +116,11 @@
     "NONE": "No guardar",
     "CREATE_ATTRIBUTE": "Crear atributo nuevo",
     "NO_ATTRIBUTES": "Todavía no hay atributos",
-    "NO_COMPATIBLE": "No hay variables compatibles"
+    "NO_COMPATIBLE": "No hay variables compatibles",
+    "LOADING": "Cargando variables…",
+    "ERROR": "No se pudieron cargar las variables.",
+    "RETRY": "Reintentar",
+    "UNKNOWN": "Esta asignación no está disponible. Se ha conservado el valor guardado.",
+    "UNAVAILABLE": "No disponible: este mensaje no tiene contexto de cita o asistente."
   }
 }

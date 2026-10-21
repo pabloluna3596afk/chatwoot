@@ -1,3 +1,4 @@
+import catalog from 'dashboard/components-next/variable-picker/specs/catalog.json';
 import { flushPromises, mount } from '@vue/test-utils';
 import AssistantAppointmentsForm from './AssistantAppointmentsForm.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
@@ -10,6 +11,17 @@ const { getConnections, getCalendars, inboxes } = vi.hoisted(() => ({
   inboxes: { value: [] },
 }));
 
+vi.mock('dashboard/api/variables', () => ({
+  default: {
+    catalog: vi.fn(async () => ({
+      data: {
+        variables: catalog.variables
+          .filter(item => item.reference.kind === 'system')
+          .map(item => ({ ...item, available: item.group !== 'company' })),
+      },
+    })),
+  },
+}));
 vi.mock('dashboard/composables/store', () => ({
   useStore: () => ({ dispatch: vi.fn() }),
   useMapGetter: name =>
@@ -19,6 +31,7 @@ vi.mock('dashboard/composables/store', () => ({
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
     locale: { value: 'en' },
+    te: () => false,
     t: (key, params) => (params ? `${key} ${JSON.stringify(params)}` : key),
   }),
 }));

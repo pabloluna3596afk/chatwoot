@@ -1,3 +1,5 @@
+import 'dashboard/api/variables';
+
 import { flushPromises, mount } from '@vue/test-utils';
 import { startingDefinition } from '../flowDefinition';
 import FlowBuilderPage from '../FlowBuilderPage.vue';
@@ -7,6 +9,9 @@ import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.v
 import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
 import { createStore } from 'vuex';
 
+vi.mock('dashboard/api/variables', () => ({
+  default: { catalog: vi.fn(async () => ({ data: { variables: [] } })) },
+}));
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
     t: (key, args) => (args ? `${key} ${JSON.stringify(args)}` : key),

@@ -1,13 +1,19 @@
-# VariablePicker
+﻿# VariablePicker
 
-Use this thin ComboBox wrapper whenever a feature chooses one CRM variable. P1 consumers are Flow "Guardar en" and template "Crear copia con variables" mappings. Other pickers remain unchanged until their planned migration.
+`VariablePicker` wraps the shared ComboBox. Its authority is Rails `GET /variables`;
+`useVariableCatalog` shares metadata and in-flight requests by account and surface.
+No record values are cached. See `docs/VARIABLES_ENGINE.md` for the API contract.
 
 ```vue
-<VariablePicker mode="read" v-model="metaAlias" />
+<VariablePicker
+  v-model="descriptorId"
+  surface="message"
+  @select="insert($event.expression)"
+/>
 <VariablePicker
   mode="write"
+  value-format="path"
   :model-value="block.save_to?.target || ''"
-  :attributes="attributes"
   :scopes="['system', 'contact']"
   :filter="binding => writableFor(binding, block)"
   allow-none
@@ -15,34 +21,28 @@ Use this thin ComboBox wrapper whenever a feature chooses one CRM variable. P1 c
 />
 ```
 
-- `read` emits the existing Meta alias (`name`), displaying the human label and alias. `write` emits `canonicalPath` and displays only the human label. Never use the alias as a write target.
-- `scopes` restricts the ordered system/contact/conversation/appointment groups. `filter(binding)` adds the caller's eligibility rules; Flow uses catalog `writableFor(binding, block)`, including numeric inputs, options and formulas.
-- `allowNone` adds an empty value, with optional `allowNoneLabel`. `disabled` and `hasError` forward to ComboBox. Other attributes (ARIA label, test ID) forward to ComboBox.
-- Account definitions load through `useTemplateBindings`. A caller that already owns definitions can pass reactive `attributes`; it remains responsible for updating them after the modal refreshes the store.
-- An administrator gets the shared "Create new attribute" footer and existing AddAttribute modal. Closing it refreshes definitions. Formula attributes remain readable and cannot be selected for writing.
-- The teleported menu targets a local portal in the consumer's scroll area. It participates in layout, is capped at 20rem, and scrolls its options before the consumer's fixed footer.
+- The default value is the descriptor `id`; custom attributes retain `reference.definitionId`.
+  `select` emits the descriptor with its exact server expression. Never infer Liquid from its key.
+- `value-format="alias"` adapts Meta names; `value-format="path"` adapts existing Flow save targets.
+  These adapters preserve persisted contracts. Read and write both use the server catalog.
+- `surface` controls available contexts. `scopes` and `filter` narrow eligibility for a caller.
+  Write additionally requires `writable`, no `managedBy`, and the requested `writeContext`
+  (default `whatsapp_flow`). Calendar derivatives and formulas remain read only.
+- Loading, retry, empty results and unknown mappings are shared. Errors never emit a value change.
+  Existing unknown mappings remain visible with a diagnostic.
+- Administrators get the existing AddAttribute modal. Closing it refreshes attributes and the
+  shared catalog. The ComboBox menu is teleported, searchable, keyboard navigable and bounded
+  by the consuming drawer when one supplies `comboboxBoundary`.
 
-## Catalog and future consumers
+Current consumers: template creation/copy/mapping, manual template Parser (send center,
+new conversation and reply), automation template action, Captain template configuration,
+and WhatsApp Flow save targets. Captain samples and legacy write targets retain adapters.
+The capture writer and Captain runtime are separate work.
 
-`buildBindings` extends the existing entries without changing names, keys, order, defaults or resolution. Metadata: `scope`, `canonicalPath`, Meta alias `name`, `type`, `options`, `readable`, `writable`, `formula`, `requiresContext`. `system` groups standard fields, even when their required context is contact or conversation. Custom attribute scopes describe their owner.
+Pending migration under brief A10: canned Add/Edit, WootWriter cursor VariableList,
+shared InsertVariableButton, macros and automation text/custom-attribute actions. Their
+existing lists must remain until no callers use them. Campaign sending is outside this PR.
 
-`APPOINTMENT_BINDINGS` describes the existing template aliases separately so ordinary message defaults do not gain appointment expressions. `cita` and `tema` describe appointment.title, `fecha` appointment.date, `hora` appointment.time, and `asistente` assistant.name. P1 emits their aliases exactly as before; it adds no Captain resolution or sending behavior.
-
-Captain and future consumers should supply their available scopes/context and eligibility filter, then adapt the selected alias/path to their existing request contract. CRM previews with records now use the Rails batch preview endpoint and the same Drops as messages; the unused browser resolver was removed. See `docs/VARIABLES_ENGINE.md` for the account-scoped API and context availability. Common writers and other picker migrations belong to later phases. Do not copy groups, labels or the modal into consumers. All picker copy lives under `VARIABLE_PICKER`.
-
-## Missing values: one policy per consumer (P2)
-
-What each place does when a variable has no value for the contact it is filled for. The catalog and the picker do not decide this; the consumer does, and it must be one of these:
-
-| Consumer | When the value is empty | Why |
-|---|---|---|
-| Manual send, send center, new conversation (`WhatsAppTemplateParser`) | The field stays empty, says "Este contacto no tiene este dato" and sending is blocked until the agent types it | A person is looking at the message |
-| Automation "Enviar plantilla" | Resolved when the rule runs; an empty result skips that message (the backend never sends a blank variable) | Nobody is there to type it |
-| Campaigns | The recipient is marked skipped ("liquid variables resolved to blank values") | A blank variable is rejected by Meta |
-| Captain templates | Settings use sample values; the legacy backend substitutes `-` for empty values | Preserved until the explicit Captain migration |
-
-## Who uses the engine today
-
-- `VariablePicker`: Flow editor "Guardar en" (write), template form "Agregar variable" and "Crear copia con variables" (read).
-- Catalog (`useTemplateBindings`): the template form, the send center, the automation template action (contact, conversation and account only: no appointment values), campaigns.
-- Not switched on purpose: the variable button inside `WhatsAppTemplateParser` (it inserts a Liquid expression into a text field, which is not choosing one value); Captain's own list (`useTemplateVariables`) moves with the Captain PR.
+Manual preview uses Rails statuses: `missing` asks for a value; `unavailable` diagnoses the
+missing context and blocks sending until corrected. Automation and Captain runtime policies
+are unchanged by this selector migration.

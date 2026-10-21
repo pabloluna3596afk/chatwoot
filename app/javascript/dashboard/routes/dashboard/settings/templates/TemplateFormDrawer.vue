@@ -18,7 +18,6 @@ import { useAccount } from 'dashboard/composables/useAccount';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TemplateComboBox from './TemplateComboBox.vue';
-import { APPOINTMENT_BINDINGS } from 'dashboard/helper/templateVariableBindings';
 import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -117,12 +116,9 @@ const variableMode = ref('NAMED');
 const customVariable = ref('');
 
 // The names a variable can have: the same catalog the VariablePicker offers (CRM, attributes and appointments).
-const knownVariableNames = computed(() => [
-  ...new Set([
-    ...bindings.value.map(binding => binding.name),
-    ...APPOINTMENT_BINDINGS.map(binding => binding.name),
-  ]),
-]);
+const knownVariableNames = computed(() =>
+  bindings.value.map(binding => binding.name)
+);
 
 // The variables of the message the shared table does not know ({{pedido}}): each one needs to say what fills it.
 const ownVariables = computed(() =>
@@ -133,29 +129,46 @@ const ownVariables = computed(() =>
     (token, index, all) =>
       all.indexOf(token) === index &&
       !/^\d+$/.test(token) &&
-      !knownVariableNames.value.includes(token)
+      (!knownVariableNames.value.includes(token) ||
+        (form.variableBindings[token] &&
+          !bindings.value.some(
+            binding =>
+              binding.key === form.variableBindings[token] ||
+              binding.legacyPaths.includes(form.variableBindings[token])
+          )))
   )
 );
-const allBindings = computed(() => [
-  ...bindings.value,
-  ...APPOINTMENT_BINDINGS.filter(
-    binding => !bindings.value.some(known => known.name === binding.name)
-  ),
-]);
-// The picker works with the name of a value (nombre, correo); the template keeps its path (contact.name).
+const allBindings = bindings;
 const bindingNameFor = token =>
   allBindings.value.find(
-    binding => binding.key === form.variableBindings[token]
-  )?.name || '';
-const setVariableBinding = (token, name) => {
-  const key = allBindings.value.find(binding => binding.name === name)?.key;
-  if (key) form.variableBindings[token] = key;
-  else delete form.variableBindings[token];
+    binding =>
+      binding.key === form.variableBindings[token] ||
+      binding.legacyPaths.includes(form.variableBindings[token])
+  )?.id ||
+  form.variableBindings[token] ||
+  '';
+const setVariableBinding = (token, id) => {
+  if (!id) delete form.variableBindings[token];
+  const binding = allBindings.value.find(item => item.id === id);
+  if (binding) form.variableBindings[token] = binding.key;
 };
 
 const isEdit = computed(() => Boolean(editing.value));
 const mappedForm = computed(() =>
-  copySource.value ? copyWithSystemVariables(form, systemMapping) : form
+  copySource.value
+    ? {
+        ...copyWithSystemVariables(form, systemMapping),
+        variableBindings: {
+          ...form.variableBindings,
+          ...Object.fromEntries(
+            Object.values(systemMapping).flatMap(name => {
+              const binding = bindings.value.find(item => item.name === name);
+              return binding ? [[name, binding.key]] : [];
+            })
+          ),
+        },
+      }
+    : form
 );
 const errors = computed(() => {
   const mappingReady =
@@ -368,6 +381,8 @@ const customVariableInvalid = computed(
 
 // Puts {{token}} where the cursor is in the body (at the end when the field was never focused).
 const insertVariable = token => {
+  const binding = bindings.value.find(item => item.name === token);
+  if (binding) form.variableBindings[token] = binding.key;
   const field = bodyBox.value?.querySelector('textarea');
   const text = form.body.text;
   const start = field?.selectionStart ?? text.length;
@@ -626,6 +641,7 @@ const buttonChoices = computed(() =>
             variableLabel(token)
           }}</span>
           <VariablePicker
+            value-format="alias"
             mode="read"
             :aria-label="
               $t('WHATSAPP_TEMPLATE_MGMT.FORM.MAP_VARIABLE') +
@@ -1016,6 +1032,7 @@ const buttonChoices = computed(() =>
               >
                 <VariablePicker
                   v-if="variableMode === 'NAMED'"
+                  value-format="alias"
                   :filter="isFreeVariable"
                   :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
                   :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
@@ -1216,6 +1233,7 @@ const buttonChoices = computed(() =>
               variableLabel(token)
             }}</span>
             <VariablePicker
+              value-format="id"
               mode="read"
               allow-none
               :allow-none-label="
@@ -1292,7 +1310,7 @@ const buttonChoices = computed(() =>
     </Dialog>
 
     <template #footer>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap gap-2">
         <Button
           type="button"
           slate
@@ -1313,7 +1331,7 @@ const buttonChoices = computed(() =>
         />
         <Button
           type="button"
-          class="flex-1"
+          class="basis-full sm:basis-0 sm:flex-1"
           outline
           :is-loading="isSaving"
           :disabled="

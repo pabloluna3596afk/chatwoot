@@ -1,5 +1,25 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-76 — Selectores de variables divergentes y claves especiales ocultas (MV-06/07/08/09)
+
+**Archivos:** `useVariableCatalog.js`, `templateVariableBindings.js`, `VariablePicker.vue`,
+`WhatsAppTemplateParser.vue`, `TemplateFormDrawer.vue` y `Whatsapp::TemplateVariableBindingsService`.
+
+**Fix:** plantillas, Parser, centro de envío y acciones de plantilla consumen el catálogo Rails
+compartido por cuenta/superficie. El selector usa identidad de definición y expresiones literales
+del servidor para claves Unicode, con punto o guion. No ofrece contextos ausentes ni derivados
+Calendar/fórmulas para escritura; conserva mappings desconocidos y texto ante errores.
+El servidor acepta los paths literales exactos del catálogo al guardar mappings, manteniendo
+la gramática legacy. No cambia el envío. Respuestas rápidas, editor y acciones de texto quedan
+pendientes bajo A10 del brief; sus listas aún tienen consumidores y se conservan.
+
+**Cómo probar:** crear atributos `nivel-vip`, `nivel.vip` y `categoría`, insertarlos en una
+plantilla y comprobar sus mappings y preview; abrir Parser desde centro de envío/nueva
+conversación. Una variable de cita guardada sin contexto debe indicar «No disponible».
+Interrumpir `/variables`: reintentar sin perder mappings ni texto. En Flow, verificar que los
+derivados de Citas no aparecen como destino. Specs frontend y de contrato Ruby incluidos;
+RSpec requiere CI/entorno aislado descrito en `docs/TESTING.md`.
+
 ### B-NEW-079 — CI del PR #178: notas de omisión y fixtures de campañas
 
 **Archivos:** `app/services/automation_rules/action_service.rb`,

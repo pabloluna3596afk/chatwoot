@@ -1,3 +1,4 @@
+import catalog from 'dashboard/components-next/variable-picker/specs/catalog.json';
 import { flushPromises, mount } from '@vue/test-utils';
 import AssistantFollowupForm from './AssistantFollowupForm.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
@@ -6,8 +7,20 @@ import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppT
 
 const { inboxes } = vi.hoisted(() => ({ inboxes: { value: [] } }));
 
+vi.mock('dashboard/api/variables', () => ({
+  default: {
+    catalog: vi.fn(async () => ({
+      data: {
+        variables: catalog.variables
+          .filter(item => item.reference.kind === 'system')
+          .map(item => ({ ...item, available: item.group !== 'company' })),
+      },
+    })),
+  },
+}));
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
+    te: () => false,
     t: (key, params) => (params ? `${key} ${JSON.stringify(params)}` : key),
   }),
 }));

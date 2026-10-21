@@ -1,3 +1,6 @@
+import catalog from 'dashboard/components-next/variable-picker/specs/catalog.json';
+import 'dashboard/api/variables';
+
 import { mount, flushPromises } from '@vue/test-utils';
 import { createStore } from 'vuex';
 import { createI18n } from 'vue-i18n';
@@ -12,6 +15,9 @@ import RadioCard from 'dashboard/components-next/radioCard/RadioCard.vue';
 import esFlow from 'dashboard/i18n/locale/es/whatsappFlows.json';
 import esConversation from 'dashboard/i18n/locale/es/conversation.json';
 
+vi.mock('dashboard/api/variables', () => ({
+  default: { catalog: vi.fn(async () => ({ data: catalog })) },
+}));
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 
 describe('FlowPhoneSimulator', () => {

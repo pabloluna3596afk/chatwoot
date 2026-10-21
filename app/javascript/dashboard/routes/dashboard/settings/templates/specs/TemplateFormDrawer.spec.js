@@ -6,7 +6,9 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import ComboBoxDropdown from 'dashboard/components-next/combobox/ComboBoxDropdown.vue';
 import { useAlert } from 'dashboard/composables';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
-import { APPOINTMENT_BINDINGS } from 'dashboard/helper/templateVariableBindings';
+import VariablesAPI from 'dashboard/api/variables';
+import catalog from 'dashboard/components-next/variable-picker/specs/catalog.json';
+vi.mock('dashboard/api/variables', () => ({ default: { catalog: vi.fn() } }));
 
 const userLocale = vi.hoisted(() => ({ value: 'es' }));
 const currentRole = vi.hoisted(() => ({ value: 'administrator' }));
@@ -14,7 +16,7 @@ const currentRole = vi.hoisted(() => ({ value: 'administrator' }));
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
     t: (key, values) => (values?.message ? `${key}: ${values.message}` : key),
-    te: () => false,
+    te: key => key.startsWith('VARIABLE_PICKER.LABELS.'),
     locale: userLocale,
   }),
 }));
@@ -39,7 +41,10 @@ vi.mock('dashboard/composables/store', async () => {
   const store = { dispatch: vi.fn() };
   return {
     useStore: () => store,
-    useMapGetter: key => (key === 'getCurrentRole' ? currentRole : attributes),
+    useMapGetter: key => {
+      if (key === 'getCurrentAccountId') return { value: 1 };
+      return key === 'getCurrentRole' ? currentRole : attributes;
+    },
   };
 });
 vi.mock(
@@ -96,6 +101,7 @@ const typeInto = async (wrapper, selector, value) => {
 
 describe('TemplateFormDrawer', () => {
   beforeEach(() => {
+    VariablesAPI.catalog.mockResolvedValue({ data: structuredClone(catalog) });
     userLocale.value = 'es';
     currentRole.value = 'administrator';
     useMapGetter('attributes/getAttributes').value = [
@@ -256,7 +262,7 @@ describe('TemplateFormDrawer', () => {
     expect(wrapper.find('[data-testid="examples"]').exists()).toBe(true);
   });
 
-  it('offers the CRM names, the contact and conversation attributes and the Captain names, grouped', async () => {
+  it('offers the CRM names, the contact and conversation attributes from the server, excluding unavailable Captain contexts', async () => {
     const wrapper = await mountDrawer();
 
     const picker = wrapper.findComponent(
@@ -269,13 +275,11 @@ describe('TemplateFormDrawer', () => {
       'VARIABLE_PICKER.GROUPS.SYSTEM',
       'VARIABLE_PICKER.GROUPS.CONTACT',
       'VARIABLE_PICKER.GROUPS.CONVERSATION',
-      'VARIABLE_PICKER.GROUPS.APPOINTMENT',
       '(nombre)',
       '(correo)',
       '(empresa)',
       'Plan (plan)',
       'Estado (conversacion_estado)',
-      'cita',
     ].forEach(expected => expect(text).toContain(expected));
     await picker
       .findAll('[role="option"]')
@@ -595,7 +599,7 @@ describe('TemplateFormDrawer', () => {
     }
   );
 
-  it('offers the same grouped variables as the editor, including attributes and Captain', async () => {
+  it('offers the same grouped variables as the editor, including attributes and excluding unavailable Captain contexts', async () => {
     WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
     const wrapper = await mountDrawer();
     await wrapper.vm.open(positional);
@@ -603,7 +607,7 @@ describe('TemplateFormDrawer', () => {
     await flushPromises();
     const select = wrapper.findComponent('[data-testid="map-variable-1"]');
     expect(select.props('groups')).toEqual(
-      ['system', 'contact', 'conversation', 'appointment'].map(key => ({
+      ['system', 'contact', 'conversation'].map(key => ({
         key,
         label: `VARIABLE_PICKER.GROUPS.${key.toUpperCase()}`,
         emptyState: 'VARIABLE_PICKER.NO_COMPATIBLE',
@@ -617,11 +621,6 @@ describe('TemplateFormDrawer', () => {
           label: 'Estado (conversacion_estado)',
           group: 'conversation',
         },
-        ...APPOINTMENT_BINDINGS.map(({ name }) => ({
-          value: name,
-          label: `VARIABLE_PICKER.LABELS.${name} (${name})`,
-          group: 'appointment',
-        })),
       ])
     );
     await select.get('button').trigger('click');
@@ -657,6 +656,19 @@ describe('TemplateFormDrawer', () => {
     const modal = wrapper.findComponent({ name: 'AddAttribute' });
     expect(modal.props('selectedAttributeModelTab')).toBe(1);
     expect(select.get('button').attributes('aria-expanded')).toBe('false');
+    VariablesAPI.catalog.mockResolvedValueOnce({
+      data: {
+        variables: [
+          ...catalog.variables,
+          {
+            ...catalog.variables.find(item => item.key === 'estado'),
+            id: 'conversation.custom_attribute:18',
+            aliases: ['conversacion_nuevo'],
+            label: 'Nuevo',
+          },
+        ],
+      },
+    });
     useStore().dispatch.mockImplementationOnce(async () => {
       useMapGetter('attributes/getAttributes').value.push({
         attribute_key: 'nuevo',
@@ -712,7 +724,7 @@ describe('TemplateFormDrawer', () => {
       1: 'nombre',
       2: 'plan',
       3: 'conversacion_estado',
-      4: 'cita',
+      4: 'agente',
     };
     Object.entries(choices).forEach(([token, name]) => {
       wrapper
@@ -731,7 +743,7 @@ describe('TemplateFormDrawer', () => {
         name: 'test_utility_envio_v2',
         parameter_format: 'NAMED',
         body: {
-          text: 'Hola {{nombre}}, tu pedido #{{plan}} llega el {{conversacion_estado}} con el agente {{cita}}.',
+          text: 'Hola {{nombre}}, tu pedido #{{plan}} llega el {{conversacion_estado}} con el agente {{agente}}.',
           examples: ['Ana', '123', 'lunes', 'Luis'],
         },
         buttons: [
@@ -753,13 +765,16 @@ describe('TemplateFormDrawer', () => {
       await wrapper.vm.open(positional);
       await wrapper.get('[data-testid="system-copy-open"]').trigger('click');
       await flushPromises();
-      Object.entries({ 1: 'nombre', 2: second, 3: 'plan', 4: 'cita' }).forEach(
-        ([token, name]) => {
-          wrapper
-            .findComponent(`[data-testid="map-variable-${token}"]`)
-            .vm.$emit('update:modelValue', name);
-        }
-      );
+      Object.entries({
+        1: 'nombre',
+        2: second,
+        3: 'plan',
+        4: 'agente',
+      }).forEach(([token, name]) => {
+        wrapper
+          .findComponent(`[data-testid="map-variable-${token}"]`)
+          .vm.$emit('update:modelValue', name);
+      });
       await wrapper.get('form').trigger('submit');
       expect(WhatsappTemplatesAPI.createTemplate).not.toHaveBeenCalled();
       expect(wrapper.text()).toContain(

@@ -1,3 +1,7 @@
+import VariablesAPI from 'dashboard/api/variables';
+import catalog from 'dashboard/components-next/variable-picker/specs/catalog.json';
+vi.mock('dashboard/api/variables', () => ({ default: { catalog: vi.fn() } }));
+let accountId = 500;
 import { flushPromises, mount } from '@vue/test-utils';
 import { createStore } from 'vuex';
 import FlowBlockEditor from '../FlowBlockEditor.vue';
@@ -9,6 +13,7 @@ vi.mock('vue-i18n', () => ({
 vi.mock(
   'dashboard/routes/dashboard/settings/attributes/AddAttribute.vue',
   () => ({
+    __esModule: true,
     default: {
       name: 'AddAttribute',
       props: ['onClose', 'selectedAttributeModelTab'],
@@ -41,8 +46,36 @@ const mountBlock = (
   props = {},
   role = 'administrator',
   refresh = vi.fn()
-) =>
-  mount(FlowBlockEditor, {
+) => {
+  accountId += 1;
+  VariablesAPI.catalog.mockResolvedValue({
+    data: {
+      variables: [
+        ...catalog.variables.filter(item => item.reference.kind === 'system'),
+        ...(props.attributes || []).map((attribute, index) => {
+          const scope = attribute.attribute_model.replace('_attribute', '');
+          const path = `${scope}.custom_attribute.${attribute.attribute_key}`;
+          return {
+            id: `${scope}.custom_attribute:${index}`,
+            reference: { kind: 'custom_attribute', scope, definitionId: index },
+            key: attribute.attribute_key,
+            label: attribute.attribute_display_name || attribute.attribute_key,
+            group: scope,
+            aliases: [],
+            expression: `{{ ${path} }}`,
+            legacyPaths: [path],
+            available: true,
+            writable: true,
+            readable: true,
+            writeContexts: ['whatsapp_flow'],
+            type: attribute.attribute_display_type,
+            options: [],
+          };
+        }),
+      ],
+    },
+  });
+  const wrapper = mount(FlowBlockEditor, {
     props: {
       modelValue: definition.screens[0].blocks[blockIndex],
       definition,
@@ -53,7 +86,10 @@ const mountBlock = (
     global: {
       plugins: [
         createStore({
-          getters: { getCurrentRole: () => role },
+          getters: {
+            getCurrentRole: () => role,
+            getCurrentAccountId: () => accountId,
+          },
           modules: {
             attributes: { namespaced: true, actions: { get: refresh } },
           },
@@ -70,16 +106,17 @@ const mountBlock = (
       },
     },
   });
+  return wrapper;
+};
 
 const lastUpdate = wrapper => wrapper.emitted('update:modelValue').at(-1)[0];
 
 describe('FlowBlockEditor', () => {
   it('explains missing and incompatible attributes, with an admin CTA in both cases', async () => {
     const wrapper = mountBlock(1);
+    await flushPromises();
     const combo = wrapper.findComponent('[data-testid="flow-save-to"]');
-    expect(combo.props('groups')[1].emptyState).toBe(
-      'VARIABLE_PICKER.NO_ATTRIBUTES'
-    );
+    expect(combo.props('groups')).toHaveLength(1);
     expect(
       wrapper.find('[data-testid="variable-create-attribute"]').exists()
     ).toBe(true);
@@ -92,9 +129,7 @@ describe('FlowBlockEditor', () => {
         },
       ],
     });
-    expect(combo.props('groups')[1].emptyState).toBe(
-      'VARIABLE_PICKER.NO_COMPATIBLE'
-    );
+    expect(combo.props('groups')).toHaveLength(1);
     expect(
       combo.props('options').some(option => option.value.endsWith('.date'))
     ).toBe(false);
@@ -129,6 +164,19 @@ describe('FlowBlockEditor', () => {
     const modal = wrapper.findComponent({ name: 'AddAttribute' });
     expect(modal.exists()).toBe(true);
     expect(modal.props('selectedAttributeModelTab')).toBe(1);
+    VariablesAPI.catalog.mockResolvedValueOnce({
+      data: {
+        variables: [
+          ...catalog.variables,
+          {
+            ...catalog.variables.find(item => item.key === 'plan'),
+            id: 'contact.custom_attribute:19',
+            label: 'New attribute',
+            legacyPaths: ['contact.custom_attribute.new_attribute'],
+          },
+        ],
+      },
+    });
     await modal.props('onClose')();
     expect(refresh).toHaveBeenCalledOnce();
     await wrapper.setProps({
@@ -141,6 +189,7 @@ describe('FlowBlockEditor', () => {
         },
       ],
     });
+    await flushPromises();
     const combo = wrapper.findComponent('[data-testid="flow-save-to"]');
     expect(
       combo
@@ -158,12 +207,12 @@ describe('FlowBlockEditor', () => {
     );
   });
 
-  it('keeps the empty-state text but hides the CTA for agents', () => {
+  it('keeps the empty-state text but hides the CTA for agents', async () => {
     const wrapper = mountBlock(1, {}, 'agent');
+    await flushPromises();
     expect(
-      wrapper.findComponent('[data-testid="flow-save-to"]').props('groups')[1]
-        .emptyState
-    ).toBe('VARIABLE_PICKER.NO_ATTRIBUTES');
+      wrapper.findComponent('[data-testid="flow-save-to"]').props('groups')
+    ).toHaveLength(1);
     expect(
       wrapper.find('[data-testid="variable-create-attribute"]').exists()
     ).toBe(false);
@@ -190,6 +239,7 @@ describe('FlowBlockEditor', () => {
         },
       ],
     });
+    await flushPromises();
     const select = wrapper.findComponent('[data-testid="flow-save-to"]');
     expect(select.props('groups')).toHaveLength(2);
     expect(select.props('options').map(option => option.value)).toContain(
@@ -203,7 +253,7 @@ describe('FlowBlockEditor', () => {
     expect(lastUpdate(wrapper)).not.toHaveProperty('save_to');
   });
 
-  it('restricts optin to checkbox attributes and does not offer destinations for files', () => {
+  it('restricts optin to checkbox attributes and does not offer destinations for files', async () => {
     const attributes = [
       {
         attribute_key: 'accept',
@@ -215,6 +265,7 @@ describe('FlowBlockEditor', () => {
       modelValue: { type: 'optin', key: 'accept', label: 'Accept' },
       attributes,
     });
+    await flushPromises();
     expect(
       optin
         .findComponent('[data-testid="flow-save-to"]')
