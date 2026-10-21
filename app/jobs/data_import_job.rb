@@ -26,6 +26,8 @@ class DataImportJob < ApplicationJob
     @data_import.update!(status: :processing)
     contacts, rejected_contacts = parse_csv_and_build_contacts
 
+    diagnostics = Variables::ImportDiagnostics.new(data_import: @data_import)
+    diagnostics.check(scope: 'contact', values: contacts.pluck(:contact).flat_map { |contact| contact.custom_attributes.keys }.index_with(nil))
     import_contacts(contacts)
     update_data_import_status(contacts.length, rejected_contacts.length)
     save_failed_records_csv(rejected_contacts)
@@ -60,6 +62,9 @@ class DataImportJob < ApplicationJob
     else
       append_rejected_contact(row, current_contact, rejected_contacts)
     end
+  rescue ActionController::ParameterMissing => e
+    row['errors'] = e.message
+    rejected_contacts << row
   end
 
   def extract_labels(row_hash)

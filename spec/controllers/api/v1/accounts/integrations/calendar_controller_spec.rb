@@ -217,12 +217,22 @@ RSpec.describe 'Calendar Integration API', type: :request do
     end
 
     it 'returns the same event for a repeated idempotency key' do
-      2.times { post "#{base_url}/events", headers: agent.create_new_auth_token, params: event_params(idempotency_key: 'k-3'), as: :json }
+      allow(client).to receive(:get_event) do |event_id:, **|
+        record = connection.calendar_events.find_by!(google_event_id: event_id)
+        { 'id' => event_id, 'etag' => record.etag, 'summary' => record.summary,
+          'start' => { 'dateTime' => record.start_at.iso8601 }, 'end' => { 'dateTime' => record.end_at.iso8601 } }
+      end
+      2.times do
+        post "#{base_url}/events", headers: agent.create_new_auth_token, params: event_params(idempotency_key: 'k-3'), as: :json
+
+        expect(response).to have_http_status(:ok)
+      end
 
       ids = CalendarEvent.where(idempotency_key: 'k-3').pluck(:google_event_id)
       expect(ids.size).to eq(1)
       expect(response.parsed_body['payload']['id']).to eq(ids.first)
       expect(client).to have_received(:create_event).once
+      expect(client).to have_received(:get_event).with(calendar_id: 'cal-1', event_id: ids.first).once
     end
 
     it 'answers 422 with a slot_busy conflict when the time overlaps another event' do
