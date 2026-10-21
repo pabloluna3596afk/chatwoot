@@ -17,12 +17,15 @@ class Integrations::GoogleCalendar::EventService
       super('slot_busy')
     end
   end
+
   class MissingDeleteNote < StandardError; end
   class CalendarNotEnabled < StandardError; end
   class InvalidRange < StandardError; end
   class OutsideHours < StandardError; end
   class InvalidAppointmentStatus < StandardError; end
   class EventCancelled < StandardError; end
+  class ContactMismatch < StandardError; end
+
   class EventLocked < StandardError
     attr_reader :holder_name
 
@@ -217,8 +220,10 @@ class Integrations::GoogleCalendar::EventService
 
   # All booking actors respect the configured availability, including API-token callers.
   def create(params, enforce_hours: true)
+    people = authorized_people!(params)
     validate_appointment_status!(params, creating: true)
     if (existing = find_by_idempotency_key(params[:idempotency_key]))
+      authorize_conversation!(existing.conversation)
       return self.class.payload_from_record(existing)
     end
 
@@ -228,12 +233,13 @@ class Integrations::GoogleCalendar::EventService
     ensure_within_hours!(calendar_id, start_at, end_at) if enforce_hours
     with_booking_lock(calendar_id) do
       if (existing = find_by_idempotency_key(params[:idempotency_key]))
+        authorize_conversation!(existing.conversation)
         return self.class.payload_from_record(existing)
       end
 
       ensure_slot_available!(calendar_id, start_at, end_at)
       release_discarded_idempotency_key!(params[:idempotency_key])
-      create_booking!(params, start_at, end_at)
+      create_booking!(params, start_at, end_at, people)
     end
   end
 
@@ -241,6 +247,7 @@ class Integrations::GoogleCalendar::EventService
     calendar_id = params[:calendar_id]
     ensure_calendar_enabled!(calendar_id)
     record = connection.calendar_events.find_by(google_event_id: event_id)
+    people = authorized_people!(params, record: record)
     raise EventCancelled if record&.discarded? && params[:appointment_status] != 'cancelled'
 
     validate_appointment_status!(params, record: record)
@@ -253,15 +260,16 @@ class Integrations::GoogleCalendar::EventService
         ensure_within_hours!(calendar_id, start_at, end_at) if enforce_hours
         ensure_slot_available!(calendar_id, start_at, end_at, except_event_id: event_id)
       end
-      update_booking!(event_id, params, [start_at, end_at], record)
+      update_booking!(event_id, params, [start_at, end_at], record, people)
     end
   end
 
   def destroy(event_id, params)
     calendar_id = params[:calendar_id]
     ensure_calendar_enabled!(calendar_id)
-    ensure_lock!(event_id)
     record = connection.calendar_events.find_by(google_event_id: event_id)
+    authorized_people!(params, record: record)
+    ensure_lock!(event_id)
     note = params[:note].to_s.strip
     raise MissingDeleteNote if note.blank? && record&.deleted_at.nil?
 
@@ -301,10 +309,9 @@ class Integrations::GoogleCalendar::EventService
     end
   end
 
-  def create_booking!(params, start_at, end_at)
+  def create_booking!(params, start_at, end_at, people)
     calendar_id = params[:calendar_id]
-    contact = find_contact(params[:contact_id])
-    conversation = find_conversation(params[:conversation_id])
+    contact, conversation = people
     summary = params[:summary].presence || I18n.t('integration_apps.calendars.default_title')
     invitation = invitation_for(params, start_at, [contact, conversation], summary: summary)
     attributes = google_event_attributes(params, [start_at, end_at], [contact, conversation], summary: summary, invitation: invitation)
@@ -319,10 +326,9 @@ class Integrations::GoogleCalendar::EventService
     serialize(google_event, record, calendar_id)
   end
 
-  def update_booking!(event_id, params, range, record)
+  def update_booking!(event_id, params, range, record, people)
     calendar_id = params[:calendar_id]
-    contact = find_contact(params[:contact_id])
-    conversation = find_conversation(params[:conversation_id])
+    contact, conversation = people
     summary = params[:summary].presence || I18n.t('integration_apps.calendars.default_title')
     invitation = invitation_for(params, range.first, [contact, conversation], summary: summary, record: record)
     attributes = google_event_attributes(params, range, [contact, conversation], summary: summary, invitation: invitation)
@@ -497,6 +503,23 @@ class Integrations::GoogleCalendar::EventService
     raise InvalidRange if start_at.blank? || end_at <= start_at
 
     [start_at, end_at]
+  end
+
+  def authorized_people!(params, record: nil)
+    authorize_conversation!(record&.conversation)
+    conversation = find_conversation(params[:conversation_id])
+    authorize_conversation!(conversation)
+    contact = find_contact(params[:contact_id])
+    raise ContactMismatch if contact && conversation && contact.id != conversation.contact_id
+
+    [contact, conversation]
+  end
+
+  def authorize_conversation!(conversation)
+    return if conversation.nil?
+
+    account_user = account.account_users.find_by(user_id: user.id) if user.is_a?(User)
+    Pundit.authorize({ user: user, account: account, account_user: account_user }, conversation, :show?)
   end
 
   def find_contact(contact_id)

@@ -63,6 +63,43 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
     %w[g-1 g-2 external].each { |event_id| Redis::Alfred.delete(event_lock_key(event_id)) }
   end
 
+  describe 'association authorization without controller context' do
+    let(:user) { create(:user, account: account, role: :agent) }
+    let(:conversation) { create(:conversation, account: account, contact: contact) }
+
+    [:create, :update, :destroy].each do |operation|
+      it "authorizes #{operation} before accessing Google", :aggregate_failures do
+        record = local_event(conversation: conversation, contact: contact)
+        original = record.reload.attributes
+        params = create_params(conversation_id: conversation.display_id, note: 'Requested')
+
+        expect do
+          if operation == :create
+            service.create(params)
+          else
+            service.public_send(operation, record.google_event_id, params)
+          end
+        end.to(raise_error { |error| expect(error.class.name).to eq('Pundit::NotAuthorizedError') })
+        expect(Integrations::GoogleCalendar::Client).not_to have_received(:new)
+        expect(record.reload.attributes).to eq(original)
+        expect(record.activities).to be_empty
+        expect(conversation.messages.count).to eq(0)
+      end
+    end
+
+    it 'rejects mismatched people before looking for an available slot' do
+      create(:inbox_member, user: user, inbox: conversation.inbox)
+      other_contact = create(:contact, account: account)
+
+      expect do
+        service.create(create_params(conversation_id: conversation.display_id, contact_id: other_contact.id))
+      end.to(raise_error { |error| expect(error.class.name).to eq('Integrations::GoogleCalendar::EventService::ContactMismatch') })
+      expect(Integrations::GoogleCalendar::Client).not_to have_received(:new)
+      expect(CalendarEvent.count).to eq(0)
+      expect(CalendarEventActivity.count).to eq(0)
+    end
+  end
+
   describe 'appointment status validation and cancellation' do
     [nil, '', 123, true, [], {}, 'unknown', 'cancelled', 'rescheduled'].each do |status|
       it "rejects invalid creation status #{status.inspect} before Google" do
