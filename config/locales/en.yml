@@ -827,7 +827,7 @@ en:
     policy_actor: 'Automation System via %{policy_name}'
   variables:
     tool_render_failed: 'Template rendering failed: %{path}: %{status}'
-    import_undefined: 'Imported %{scope} fields have no attribute definition and will not appear in variable selectors: %{keys}. Create definitions to make them visible.'
+    import_undefined: 'Imported %{attribute_scope} fields have no attribute definition and will not appear in variable selectors: %{keys}. Create definitions to make them visible.'
     delivery_skipped: 'Delivery skipped (%{surface}): variable not available (%{reason}).'
   automation:
     system_name: 'Automation System'

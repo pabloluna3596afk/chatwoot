@@ -767,7 +767,7 @@ es:
     policy_actor: 'la política de asignación «%{policy_name}»'
   variables:
     tool_render_failed: 'No se pudo resolver la plantilla: %{path}: %{status}'
-    import_undefined: 'Los campos importados de %{scope} no tienen definición de atributo y no aparecerán en los selectores de variables: %{keys}. Crea las definiciones para mostrarlos.'
+    import_undefined: 'Los campos importados de %{attribute_scope} no tienen definición de atributo y no aparecerán en los selectores de variables: %{keys}. Crea las definiciones para mostrarlos.'
     delivery_skipped: 'Se omitió el envío (%{surface}): variable no disponible (%{reason}).'
   automation:
     system_name: 'el sistema'

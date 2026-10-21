@@ -2291,6 +2291,13 @@ deben verse las tres opciones de tono o el área de chat, sin solaparse con el
 pie. Comprobar el icono en la misma fila de marca que el paso 3 y las acciones
 primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 
+### B-NEW-082 - PR #182 backend CI: import diagnostics and Flow contracts
+
+- Files: `app/services/variables/import_diagnostics.rb`, `config/locales/{en,es}.yml`, `app/jobs/flows/deferred_send_job.rb`, `spec/services/flows/action_service_spec.rb`.
+- Cause: I18n treats `scope` as a lookup option, producing `contact.variables.import_undefined`; the deferred job renders the content/buttons envelope under another `content` root; the action spec inherits a numeric attribute from its factory while writing `stored`.
+- Fix: rename the interpolation argument/placeholder to `attribute_scope` (including the existing Spanish placeholder, without changing translated copy); render each deferred payload field at its own root; explicitly define the spec attribute as text. Preserve the `result:` keyword and all expectations.
+- Verify: CI-image RuboCop inspected all three changed Ruby files with zero offenses; standalone I18n interpolation passed in en/es. Statically traced both import callers, Flow context propagation, typed normalization and skipped-send advancement. RSpec is deferred to CI as required by the task.
+
 ## 8. Docs relacionadas
 
 - [`INTERNAL_TASKS_AND_ALERTS.md`](INTERNAL_TASKS_AND_ALERTS.md)

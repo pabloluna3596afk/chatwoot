@@ -14,7 +14,8 @@ RSpec.describe Flows::ActionService do
   end
 
   it 'uses flow values with the shared attribute writer' do
-    create(:custom_attribute_definition, account: account, attribute_model: 'contact_attribute', attribute_key: 'flow_value')
+    create(:custom_attribute_definition, account: account, attribute_model: 'contact_attribute', attribute_key: 'flow_value',
+                                         attribute_display_type: 'text')
     service.execute(action_name: 'update_contact_custom_attribute', action_params: [{ attribute_key: 'flow_value', value: '{{ flow.x }}' }])
 
     expect(conversation.contact.reload.custom_attributes['flow_value']).to eq('stored')

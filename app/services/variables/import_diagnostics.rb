@@ -16,7 +16,7 @@ class Variables::ImportDiagnostics
       next if warning.persisted? && keys == warning.details['keys']
 
       warning.assign_attributes(
-        message: I18n.t('variables.import_undefined', locale: @data_import.account.locale, scope: scope, keys: keys.join(', ')),
+        message: I18n.t('variables.import_undefined', locale: @data_import.account.locale, attribute_scope: scope, keys: keys.join(', ')),
         details: { kind: 'warning', keys: keys }
       )
       warning.save!

@@ -20,7 +20,10 @@ class Flows::DeferredSendJob < ApplicationJob
   def resolve_payload(conversation, run, payload)
     records = { conversation: conversation, flow_run: run }
     drops = Variables::ContextFactory.new(account: conversation.account, records: records).build(surface: 'flow')
-    Variables::DeliveryRenderer.new(drops: drops).render(payload.slice(:content, :buttons), protect_code: true)
+    renderer = Variables::DeliveryRenderer.new(drops: drops)
+    payload.slice(:content, :buttons).to_h do |key, value|
+      [key, renderer.render(value, path: key, protect_code: true)]
+    end
   end
 
   def create_message(conversation, run, payload)
