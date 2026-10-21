@@ -77,7 +77,8 @@ RSpec.describe Captain::Messaging::SendService do
     result = send_template
 
     expect(result).to have_attributes(status: :sent)
-    expect(result.message.reload.content).to include('{{ date.today }}')
+    # ContactDrop capitalizes names before rendering; the resulting Liquid-looking text must remain literal.
+    expect(result.message.reload.content).to eq('Hola {{ Date.today }}, soy Aurora.')
   end
 
   describe 'what the owner allows' do

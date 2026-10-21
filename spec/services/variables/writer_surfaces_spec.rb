@@ -18,8 +18,8 @@ RSpec.describe Variables::Writer do
   it 'renders multi_list entries through the shared resolver before writing' do
     create(:custom_attribute_definition, account: account, attribute_model: 'contact_attribute',
                                          attribute_key: 'interests', attribute_display_type: 'multi_list', attribute_values: ['VIP'])
-    contact.update!(name: 'VIP')
-    ActionService.new(conversation).update_contact_custom_attribute({ attribute_key: 'interests', value: ['{{ contact.name }}'] })
+    contact.update!(identifier: 'VIP')
+    ActionService.new(conversation).update_contact_custom_attribute({ attribute_key: 'interests', value: ['{{ contact.identifier }}'] })
     expect(contact.reload.custom_attributes['interests']).to eq(['VIP'])
   end
 

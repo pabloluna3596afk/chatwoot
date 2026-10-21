@@ -24,6 +24,7 @@ RSpec.describe 'Variable write boundaries', type: :request do
     patch '/api/v1/widget/contact', params: { website_token: web_widget.website_token, custom_attributes: { total_citas: 99 } },
                                     headers: { 'X-Auth-Token' => token }, as: :json
     expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.parsed_body['error']).to include('Read-only variables: total_citas')
     expect(contact.reload.custom_attributes['total_citas']).to eq(3)
   end
 

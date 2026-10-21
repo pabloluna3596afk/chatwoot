@@ -1,6 +1,7 @@
 class Api::V1::Widget::ContactsController < Api::V1::Widget::BaseController
   include WidgetHelper
 
+  before_action :validate_custom_attributes, only: [:update, :set_user]
   before_action :validate_hmac, only: [:set_user]
   before_action :validate_hmac_for_identified_update, only: [:update]
 
@@ -86,9 +87,11 @@ class Api::V1::Widget::ContactsController < Api::V1::Widget::BaseController
     ActiveSupport::SecurityUtils.secure_compare(identifier_hash, expected_hash)
   end
 
-  def permitted_params
+  def validate_custom_attributes
     Variables::Writer.new(account: @contact.account).patch(scope: 'contact', values: params[:custom_attributes]) if params.key?(:custom_attributes)
+  end
 
+  def permitted_params
     params.permit(:website_token, :identifier, :identifier_hash, :email, :name, :avatar_url, :phone_number, custom_attributes: {},
                                                                                                             additional_attributes: {})
   end
