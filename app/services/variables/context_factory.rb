@@ -18,6 +18,7 @@ class Variables::ContextFactory
     values = {
       'account' => AccountDrop.new(@account), 'contact' => contact && ContactDrop.new(contact),
       'conversation' => @records[:conversation] && ConversationDrop.new(@records[:conversation]),
+      'flow' => @records[:flow_run]&.then { |run| run.variables.merge('variables' => run.variables) },
       'inbox' => inbox && InboxDrop.new(inbox), 'agent' => UserDrop.new(agent), 'date' => DateDrop.new(timezone: self.class.timezone(@account))
     }
     values.slice(*Variables::Catalog::SURFACES.fetch(surface)).compact

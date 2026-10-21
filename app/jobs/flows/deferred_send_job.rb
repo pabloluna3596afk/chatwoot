@@ -7,11 +7,21 @@ class Flows::DeferredSendJob < ApplicationJob
     run = FlowRun.find_by(id: payload[:flow_run_id])
     return if conversation.blank? || run.blank? || !run.active?
 
-    create_message(conversation, run, payload)
+    resolved = resolve_payload(conversation, run, payload)
+    create_message(conversation, run, payload.merge(resolved))
     Flows::ExecutionService.new(run: run).advance_after_send!(payload[:node_id])
+  rescue Variables::DeliveryRenderer::Error => e
+    Variables::Omission.create_note(conversation: conversation, surface: 'flow', error: e)
+    Flows::ExecutionService.new(run: run).advance_after_send!(payload[:node_id], result: { 'skipped' => e.message })
   end
 
   private
+
+  def resolve_payload(conversation, run, payload)
+    records = { conversation: conversation, flow_run: run }
+    drops = Variables::ContextFactory.new(account: conversation.account, records: records).build(surface: 'flow')
+    Variables::DeliveryRenderer.new(drops: drops).render(payload.slice(:content, :buttons), protect_code: true)
+  end
 
   def create_message(conversation, run, payload)
     content = payload[:content].to_s
@@ -33,6 +43,6 @@ class Flows::DeferredSendJob < ApplicationJob
       params[:content_attributes][:items] = buttons.first(3)
     end
 
-    Messages::MessageBuilder.new(nil, conversation, params).perform
+    Messages::MessageBuilder.new(nil, conversation, params).perform(variables_resolved: true)
   end
 end
