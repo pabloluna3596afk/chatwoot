@@ -1,6 +1,11 @@
 module Enterprise::Api::V1::Accounts::InboxesController
   extend ActiveSupport::Concern
 
+  def index
+    super
+    @inboxes = @inboxes.includes(:captain_assistant) if Current.account.feature_enabled?('captain_integration')
+  end
+
   def inbox_attributes
     super + ee_inbox_attributes
   end

@@ -11,6 +11,7 @@ module Enterprise::MessageTemplates::HookExecutionService
     track_captain_eligibility
     return captain_unavailable unless inbox.captain_active?
     return unless conversation.pending?
+    return if message.id <= conversation.additional_attributes.fetch('captain_assignment_message_id', 0)
 
     Captain::Conversation::ResponseSchedulerService.new(message: message).perform
   end

@@ -45,6 +45,8 @@ class Flows::ExitPolicyService
   private
 
   def apply_status!
+    return if @policy[:assignee_mode] == 'captain'
+
     status = @policy[:status].to_s
     case status
     when 'open' then @conversation.open!
@@ -55,7 +57,7 @@ class Flows::ExitPolicyService
 
   def apply_assignee!
     mode = @policy[:assignee_mode].to_s
-    actions = ActionService.new(@conversation)
+    actions = Flows::ActionService.new(conversation: @conversation, flow_run: @run)
 
     case mode
     when 'keep', 'none', ''
@@ -72,6 +74,9 @@ class Flows::ExitPolicyService
     when 'agent'
       agent_id = @policy[:agent_id]
       actions.assign_agent([agent_id]) if agent_id.present?
+    when 'captain'
+      assistant_id = @policy[:assistant_id]
+      actions.assign_agent([assistant_id.present? ? "captain:#{assistant_id}" : 'captain'])
     when 'contact_owner'
       owner_id = @conversation.contact&.assigned_agent_id
       if owner_id.present?
@@ -91,6 +96,8 @@ class Flows::ExitPolicyService
   end
 
   def maybe_bot_handoff!
+    return if @policy[:assignee_mode] == 'captain'
+
     return unless @policy[:status].to_s == 'open'
     return unless %w[on_handoff on_fail].include?(@event)
 

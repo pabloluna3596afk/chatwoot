@@ -20,6 +20,7 @@ class CaptainInbox < ApplicationRecord
   belongs_to :inbox
 
   validates :inbox_id, uniqueness: true
+  after_commit -> { inbox.update_account_cache }, on: [:create, :destroy]
 
   # Appointments run on this channel only when the assistant has them on and the channel's own
   # switch is on (the switch defaults to on, so channels inherit the assistant setting).
