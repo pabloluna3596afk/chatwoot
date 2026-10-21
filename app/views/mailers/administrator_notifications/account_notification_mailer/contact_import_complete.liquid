@@ -6,6 +6,10 @@
 
 <p>Number of records failed: {{meta['failed_contacts']}}</p>
 
+{% if meta['variable_warnings'] != blank %}
+  <p>{{ meta['variable_warnings'] | escape }}</p>
+{% endif %}
+
 {% if meta['failed_contacts'] == 0 %}
   <p>
     Click <a href="{{action_url}}">here</a> to view the imported contacts.
