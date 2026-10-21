@@ -1,5 +1,30 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-080 - Captain y escritura de variables (MV-10, MV-11, MV-14)
+
+**Archivos:** `Captain::TemplateMessage`, sus tres senders, `Captain::VariableDiagnostics`,
+`Enterprise::Variables::ContextFactory`, `Variables::{Writer,Ownership,ValueNormalizer}`,
+`SaveTargets`, `ActionService`, entradas API/prechat y editores de atributos.
+
+**Fix:** mappings explicitos de Captain omiten mensajes incompletos y exponen la
+ultima razon en configuracion del asistente; solo referencias sin mappings
+conservan el guion legacy. Resolver/fabrica compartidos y snapshots de una sola
+resolucion. El writer comun aplica propiedad Calendar/formula desde Rails a
+acciones, captura Flow y API/prechat, incluido borrado/reemplazo; metadata en UI.
+`multi_list` resuelve cada elemento antes de persistir. Sin migraciones.
+
+**Como probar:** configurar una plantilla Captain con `Hola {{ contact.email }}`
+y un contacto sin email: no hay envio publico, aparece la razon en ajustes;
+recordatorio/reactivacion dejan nota privada. Una referencia legacy sin mappings
+sigue usando el guion. Habilitar total_citas e intentar sobrescribirlo/borrarlo
+por API, accion o un Flow publicado anteriormente: se rechaza/omite; actualizar
+otro atributo con merge conserva total_citas. Verificar formulas de empresa.
+Una accion multi_list con `{{ contact.name }}` guarda el nombre, no la expresion.
+Specs Ruby por superficie preparados para CI; frontend verificado en UTC y
+America/Guayaquil. Capturas pendientes por navegador de herramientas no disponible.
+Alcance restante MV-12/13/16 documentado en `docs/VARIABLES_ENGINE.md`.
+
+
 ### B-NEW-76 — Selectores de variables divergentes y claves especiales ocultas (MV-06/07/08/09)
 
 **Archivos:** `useVariableCatalog.js`, `templateVariableBindings.js`, `VariablePicker.vue`,
