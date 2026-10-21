@@ -1,5 +1,45 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-087 — Una zona de cuenta en todo el recorrido de Citas (CIT-02)
+
+**Archivos:** `lib/integrations/google_calendar/timezone.rb`, servicio de eventos,
+controlador de Calendar, serializers de cuenta/perfil, herramientas y remitente
+Captain; `calendarTime.js`, `calendarGrid.js`, `useCalendarTime.js`, vistas de
+calendario/modal y tarjetas de conversación, más sus specs.
+
+**Fix:** `reporting_timezone` determina una sola zona efectiva, normalizada a
+IANA para Google y el dashboard. Sin configuración se conserva America/Guayaquil;
+el fallback de informes sigue independiente. `calendar_timezone` se expone al
+iniciar sesión y al refrescar la cuenta. Semana, agenda, límites de consulta,
+edición, historial, errores, invitación y Captain usan esa misma zona. La zona
+se muestra en calendario, modal y conversación.
+
+Una hora local inexistente por DST se rechaza. Una hora local repetida selecciona
+la primera ocurrencia; un ISO con offset explícito identifica cualquiera de las
+dos. Editar sin cambiar los campos civiles conserva el instante original, incluida
+la segunda ocurrencia. Los all-day mantienen su fecha civil. La grilla usa minutos
+del reloj local; las dos ocurrencias de una hora repetida ocupan carriles separados.
+
+**Cómo probar:** configurar Guayaquil y New York, crear a las 10:00 en julio,
+recargar y comparar semana/modal/conversación/invitación. Verificar semana del
+10/03/2030, hora inexistente 02:30 y hora repetida 01:30 del 03/11/2030, además
+del cambio 31/12 → 01/01 y fechas all-day. Validar Captain y variables del
+recordatorio contra el mismo instante persistido.
+
+**Validación local:** regresión RSpec de 366 ejemplos sin fallos; 12 ejemplos
+adicionales sobre el código final sin fallos. Vitest: 65 tests en UTC y 65 en
+America/Guayaquil, con modal en ingles y espanol y cuentas de ambas zonas. Rojo reproducido
+en la base: ocho fallos frontend y cuatro backend. ESLint sin errores; filtro
+exacto de RuboCop CI aprobado, 33 archivos Ruby inspeccionados. El fixture de
+reintentos ahora simula `get_event`; su fallo se reprodujo en la base intacta.
+
+**Pendiente antes de integrar:** workflow remoto, Google/canal reales y capturas
+claro/oscuro/390 px de ambas zonas. Computer-use no tuvo superficies habilitadas;
+no se generaron capturas. La nueva ayuda DST tiene fuente inglesa y usa fallback
+en español hasta Crowdin. Sin migraciones ni cambios a Panel AI. Rama local
+`feat/citas-zona-horaria`, dependiente de PR5: integrar PR1 → … → PR6. Sin push.
+Informe completo ignorado: `tmp/PR-CITAS-7.md`.
+
 ### B-NEW-086 — Reconciliar Google antes de enviar recordatorios (CIT-08)
 
 **Archivos:** `lib/integrations/google_calendar/event_service.rb`,
