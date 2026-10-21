@@ -1,5 +1,46 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-085 — State OAuth de Calendar consumible una sola vez (CIT-29)
+
+**Archivos:** `app/helpers/google_calendar/integration_helper.rb`,
+`app/controllers/google_calendar/callbacks_controller.rb`, sus dos specs y
+mensajes de error en `config/locales/en.yml` y `config/locales/es.yml`.
+
+**Fix:** cada autorización recibe un nonce aleatorio, cuenta, usuario, huella
+de sesión y vencimiento firmado de 10 minutos. Redis conserva la huella del
+state con el mismo TTL. El callback lo consume con GET y DEL en MULTI/EXEC
+antes de intercambiar el código, incluso ante cancelación o fallo posterior.
+Se utiliza la transacción porque redis-namespace 1.x no aplica su namespace a
+GETDEL. Un replay no llega a Google ni cambia conexiones o tokens.
+
+El callback comprueba la cookie iniciadora, el usuario autenticado si lo hay,
+la pertenencia y el rol administrador actuales y que la cuenta siga activa.
+La cookie enlaza el callback del navegador con el inicio autenticado por
+cabeceras del dashboard; Google no devuelve esas cabeceras. `connected_by`
+conserva al usuario iniciador. Reconectar por email mantiene el refresh token
+anterior cuando Google lo omite. Los errores devuelven 422 con mensajes en
+inglés y español neutro, sin detalles del proveedor.
+
+**Cómo probar:** conectar y reconectar; repetir el callback después de éxito,
+cancelación, código ausente o fallo del proveedor; esperar el vencimiento;
+usar otra sesión/usuario/cuenta o revocar permisos antes del retorno. Ningún
+rechazo debe intercambiar el código. Con Redis real, ocho consumidores del
+mismo state deben producir exactamente una aceptación.
+
+**Verificación local (2026-10-21):** mismos specs Rails contra fuentes de
+`2a13eb9f32`: 24 fallos; con el fix: 24 ejemplos aprobados. PostgreSQL y Redis
+exclusivos, sin bases compartidas. Comando exacto de lint CI aprobado en
+`chathub-rubocop-ci:cit5-ruby344` (Ruby 3.4.4, dependencias del lockfile): cero
+infracciones en líneas cambiadas de los 20 Ruby de la pila. El reporte completo
+inspecciona 20 archivos y conserva 68 infracciones fuera de las líneas del PR.
+Tras corregir indentación en specs se releyeron bloques, Ruby 3 kwargs y
+consumo atómico. Sin migraciones, cambios visuales, capturas ni OAuth real.
+
+**Pendiente de integración:** PR1 → PR2 → PR3 → PR4; rama local
+`feat/citas-oauth-state` basada en `feat/citas-exclusion-meet`. Falta ejecución
+remota del CI y smoke con Google en cuenta de prueba; sin push ni despliegue.
+Los pendientes funcionales heredados de PR1–PR3 no se dan por cerrados aquí.
+
 ### B-NEW-084 — Lease de reservas y recuperación de Meet (CIT-12 / CIT-31)
 
 **Archivos:** `lib/integrations/google_calendar/booking_lock.rb`,
