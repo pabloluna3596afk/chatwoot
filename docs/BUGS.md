@@ -1,5 +1,20 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-185 — Mock único de cuenta en la próxima cita tras integrar develop
+
+**Archivo:** `app/javascript/dashboard/components/widgets/conversation/specs/NextAppointmentCard.spec.js`.
+
+**Causa y fix:** la integración de develop dejó dos imports de `ref` y dos mocks
+de `useAccount` en el mismo spec. ESLint abortaba con `Identifier 'ref' has already
+been declared`. Se conserva un solo import y un mock con `accountId` y
+`calendar_timezone: 'America/Guayaquil'`, manteniendo todas las aserciones.
+No cambia código de producción.
+
+**Cómo probar:** ejecutar ESLint sobre el archivo y Vitest sobre las carpetas de
+specs de conversación, calendario, helpers, composables y ajustes del asistente
+en UTC y America/Guayaquil. Ver el informe externo `docs-crm/codex/validar-c.md`
+para comandos y resultados de la validación del bloque C.
+
 ### B-NEW-091 - Próxima cita vigente y errores de carga visibles (CIT-16 / CIT-26)
 
 **Archivos:** `CalendarEvent`, `useAppointmentEvents`, `useAppointmentClock`,

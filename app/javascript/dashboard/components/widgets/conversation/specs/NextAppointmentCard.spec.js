@@ -1,10 +1,10 @@
 import { flushPromises, shallowMount } from '@vue/test-utils';
 import { ref } from 'vue';
 import NextAppointmentCard from '../NextAppointmentCard.vue';
-import { ref } from 'vue';
 
 vi.mock('dashboard/composables/useAccount', () => ({
   useAccount: () => ({
+    accountId: ref(1),
     currentAccount: ref({ calendar_timezone: 'America/Guayaquil' }),
   }),
 }));
@@ -13,10 +13,6 @@ const { getContactEvents } = vi.hoisted(() => ({ getContactEvents: vi.fn() }));
 
 vi.mock('dashboard/api/integrations/calendar', () => ({
   default: { getContactEvents },
-}));
-
-vi.mock('dashboard/composables/useAccount', () => ({
-  useAccount: () => ({ accountId: ref(1), currentAccount: ref({}) }),
 }));
 
 vi.mock('vue-i18n', () => ({
