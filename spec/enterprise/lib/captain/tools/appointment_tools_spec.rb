@@ -25,9 +25,10 @@ RSpec.shared_context 'with an appointments conversation' do
   let(:tool) { described_class.new(assistant) }
 
   def local_event(attrs = {})
-    connection.calendar_events.create!(
+    CalendarEvent.create!(
       {
-        account: account, external_calendar_id: 'cal-1', google_event_id: "local-#{SecureRandom.hex(4)}", summary: 'Existing',
+        account: account, calendar_connection: connection, external_calendar_id: 'cal-1',
+        google_event_id: "local-#{SecureRandom.hex(4)}", summary: 'Existing',
         start_at: Time.zone.parse('2030-01-15T10:00:00-05:00'), end_at: Time.zone.parse('2030-01-15T10:30:00-05:00')
       }.merge(attrs)
     )

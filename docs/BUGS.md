@@ -1,5 +1,26 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-183 — Fixtures de propiedad e idempotencia del CI de citas (PR #183)
+
+**Archivos:** `spec/lib/integrations/google_calendar/event_service_spec.rb`,
+`spec/enterprise/lib/captain/tools/appointment_tools_spec.rb`,
+`spec/controllers/api/v1/accounts/integrations/calendar_controller_spec.rb`.
+
+**Causa y fix:** los helpers creaban mediante `connection.calendar_events`,
+que imponía esa conexión sobre la conexión ajena solicitada por el ejemplo y
+retenía en su colección la fila destruida. Ahora crean con `CalendarEvent`,
+con conexión predeterminada explícita y atributos del ejemplo aplicados después.
+El reintento idempotente necesita leer el evento Google para recuperar Meet;
+el double del request spec no admitía `get_event` y causaba HTTP 500, no un
+rechazo de intervalo. Se simula esa lectura y se exige HTTP 200 en ambos POST,
+el mismo evento, un solo POST a Google y una sola lectura de recuperación.
+Se conservan todas las aserciones de aislamiento; no cambia código de producción.
+
+**Cómo probar:** ejecutar los tres archivos anteriores: la base intacta reproduce
+303 ejemplos con los mismos 12 fallos del CI. Luego ejecutar la regresión de
+calendario y Captain con los fixtures corregidos, incluyendo las pruebas de
+recuperación Meet y exclusión con Redis real. Sin migraciones.
+
 ### B-NEW-084 — Lease de reservas y recuperación de Meet (CIT-12 / CIT-31)
 
 **Archivos:** `lib/integrations/google_calendar/booking_lock.rb`,
