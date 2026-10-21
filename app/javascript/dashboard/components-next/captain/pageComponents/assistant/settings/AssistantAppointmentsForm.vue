@@ -527,7 +527,7 @@ onMounted(loadConnections);
                   :disabled="!reminder.enabled"
                   :data-testid="`appointments-reminder-${index + 1}-hours`"
                   :message="hoursError(index)"
-                  message-type="error"
+                  :message-type="hoursError(index) ? 'error' : 'info'"
                   class="w-24"
                 />
                 <span>
