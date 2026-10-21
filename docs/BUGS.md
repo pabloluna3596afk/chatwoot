@@ -1,5 +1,36 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-089 - Preparación de recordatorios por bandeja (CIT-07 / CIT-28)
+
+**Archivos:** `AppointmentReminderReadiness.vue`, `AssistantAppointmentsForm.vue`,
+`Captain::AppointmentReminders::Readiness`, sender, serializer del asistente,
+AssistantsController y AppointmentsValidator; specs del formulario, panel,
+readiness y contratos request; traducciones en/es.
+
+**Fix:** estado de configuración guardada por bandeja, con Captain/citas activos,
+canal, permiso de pago, plantilla aprobada en esa bandeja y bindings completos.
+Comparte comprobaciones/códigos con el sender y reutiliza TemplateMessage y
+Variables, sin otro resolver. Explica los límites de ventana y valores concretos
+al enviar; enlaza Mensajes de pago. Mantiene 24 h / 3 h y pago optativo. Oculta
+el selector sin consumidor de cancelación y conserva la referencia histórica al
+guardar otros campos, aunque la plantilla haya cambiado en Meta.
+
+**Cómo probar:** conectar dos bandejas con la misma plantilla, aprobada solo en
+una; guardar y comprobar estados diferentes. Desactivar pago: aparece el motivo
+de omisión fuera de ventana. Cambiar variables de la plantilla: muestra bindings
+pendientes. Guardar otros ajustes conserva template_cancelled. Un valor de contacto
+ausente al enviar deja nota privada y el diagnóstico existente del motor.
+
+**Evidencia local (2026-10-21):** 103 ejemplos Rails y 39 tests frontend por zona
+(UTC / America/Guayaquil) sin fallos; RuboCop exacto CI aprobado sobre 40 Ruby
+inspeccionados, ESLint sin errores y Prettier aprobado. 32 capturas cit8- en
+1280/390 y claro/oscuro revisadas, componentes reales con datos simulados.
+Rojo/verde conductual demostrado en formulario y dos contratos request; las
+regresiones existentes de sender/TemplateMessage no tienen rojo previo nuevo.
+Pendientes CI remoto y entrega real autorizada dentro/fuera de ventana. Sin
+migraciones ni push. Rama local feat/citas-recordatorios-estado sobre PR7;
+integrar PR1 → … → PR8. Informe: tmp/PR-CITAS-9.md (ignorado).
+
 ### B-NEW-088 - Atributos de cita disponibles en el alta de Captain (CIT-06)
 
 **Archivos:** `AssistantAppointmentsForm.vue` y su spec; specs del controlador
