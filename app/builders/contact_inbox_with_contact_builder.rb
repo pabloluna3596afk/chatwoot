@@ -6,6 +6,9 @@ class ContactInboxWithContactBuilder
   pattr_initialize [:inbox!, :contact_attributes!, :source_id, :hmac_verified]
 
   def perform
+    if contact_attributes[:custom_attributes]
+      Variables::Writer.new(account: account).patch(scope: 'contact', values: contact_attributes[:custom_attributes])
+    end
     find_or_create_contact_and_contact_inbox
   # in case of race conditions where contact is created by another thread
   # we will try to find the contact and create a contact inbox

@@ -271,6 +271,14 @@ RSpec.describe Captain::Followup do
       expect(described_class.candidates(inbox, now: now)).to be_empty
     end
 
+    it 'MV-10: omits re-engagement when a mapped value is missing' do
+      contact.update!(name: nil)
+      expect(reengage).to eq(:skipped)
+      expect(public_messages.where('created_at >= ?', now)).to be_empty
+      expect(assistant.reload.config.fetch('variable_delivery_error')).to include('path' => 'body.1', 'status' => 'missing')
+      expect(conversation.reload.additional_attributes['captain_followup']['reengagement']).to include('reason' => 'template_variables_missing')
+    end
+
     it 'sends the approved template with the customer and assistant names' do
       expect(reengage).to eq(:sent)
 

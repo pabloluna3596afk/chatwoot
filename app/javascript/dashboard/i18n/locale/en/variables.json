@@ -78,6 +78,12 @@
       "flow": {
         "variables": "Flow variables"
       }
+    },
+    "DELIVERY_WARNING": "Last omitted template: {template} ({at}). {path}: {reason}. Check the template mappings and contact data. Legacy templates without saved mappings keep their previous behavior.",
+    "STATUS": {
+      "MISSING": "Missing value",
+      "UNAVAILABLE": "Context unavailable",
+      "INVALID": "Invalid expression"
     }
   },
   "VARIABLE_PICKER": {

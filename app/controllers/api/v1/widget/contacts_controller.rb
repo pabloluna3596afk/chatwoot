@@ -1,6 +1,7 @@
 class Api::V1::Widget::ContactsController < Api::V1::Widget::BaseController
   include WidgetHelper
 
+  before_action :validate_custom_attributes, only: [:update, :set_user]
   before_action :validate_hmac, only: [:set_user]
   before_action :validate_hmac_for_identified_update, only: [:update]
 
@@ -27,7 +28,9 @@ class Api::V1::Widget::ContactsController < Api::V1::Widget::BaseController
 
   # TODO : clean up this with proper routes delete contacts/custom_attributes
   def destroy_custom_attributes
-    @contact.custom_attributes = @contact.custom_attributes.excluding(params[:custom_attributes])
+    @contact.custom_attributes = Variables::Writer.new(account: @contact.account).remove(
+      scope: 'contact', current: @contact.custom_attributes, keys: params[:custom_attributes]
+    )
     @contact.save!
     render json: @contact
   end
@@ -82,6 +85,10 @@ class Api::V1::Widget::ContactsController < Api::V1::Widget::BaseController
     return false unless identifier_hash.bytesize == expected_hash.bytesize
 
     ActiveSupport::SecurityUtils.secure_compare(identifier_hash, expected_hash)
+  end
+
+  def validate_custom_attributes
+    Variables::Writer.new(account: @contact.account).patch(scope: 'contact', values: params[:custom_attributes]) if params.key?(:custom_attributes)
   end
 
   def permitted_params

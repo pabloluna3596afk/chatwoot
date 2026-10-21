@@ -44,7 +44,9 @@ class Api::V1::Accounts::CompaniesController < Api::V1::Accounts::EnterpriseAcco
     custom_attributes = custom_attributes_to_destroy
     return if performed?
 
-    @company.custom_attributes = @company.custom_attributes.excluding(*custom_attributes)
+    @company.custom_attributes = Variables::Writer.new(account: Current.account).remove(
+      scope: 'company', current: @company.custom_attributes, keys: custom_attributes
+    )
     @company.save!
   end
 
@@ -84,7 +86,10 @@ class Api::V1::Accounts::CompaniesController < Api::V1::Accounts::EnterpriseAcco
   end
 
   def company_params
-    params.require(:company).permit(
+    company = params.require(:company)
+    Variables::Writer.new(account: Current.account).patch(scope: 'company', values: company[:custom_attributes]) if company.key?(:custom_attributes)
+
+    company.permit(
       :name,
       :domain,
       :description,

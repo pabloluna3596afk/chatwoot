@@ -1,5 +1,30 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-080 - Captain y escritura de variables (MV-10, MV-11, MV-14)
+
+**Archivos:** `Captain::TemplateMessage`, sus tres senders, `Captain::VariableDiagnostics`,
+`Enterprise::Variables::ContextFactory`, `Variables::{Writer,Ownership,ValueNormalizer}`,
+`SaveTargets`, `ActionService`, entradas API/prechat y editores de atributos.
+
+**Fix:** mappings explicitos de Captain omiten mensajes incompletos y exponen la
+ultima razon en configuracion del asistente; solo referencias sin mappings
+conservan el guion legacy. Resolver/fabrica compartidos y snapshots de una sola
+resolucion. El writer comun aplica propiedad Calendar/formula desde Rails a
+acciones, captura Flow y API/prechat, incluido borrado/reemplazo; metadata en UI.
+`multi_list` resuelve cada elemento antes de persistir. Sin migraciones.
+
+**Como probar:** configurar una plantilla Captain con `Hola {{ contact.email }}`
+y un contacto sin email: no hay envio publico, aparece la razon en ajustes;
+recordatorio/reactivacion dejan nota privada. Una referencia legacy sin mappings
+sigue usando el guion. Habilitar total_citas e intentar sobrescribirlo/borrarlo
+por API, accion o un Flow publicado anteriormente: se rechaza/omite; actualizar
+otro atributo con merge conserva total_citas. Verificar formulas de empresa.
+Una accion multi_list con `{{ contact.name }}` guarda el nombre, no la expresion.
+Specs Ruby por superficie preparados para CI; frontend verificado en UTC y
+America/Guayaquil. Capturas pendientes por navegador de herramientas no disponible.
+Alcance restante MV-12/13/16 documentado en `docs/VARIABLES_ENGINE.md`.
+
+
 ### B-NEW-76 — Selectores de variables divergentes y claves especiales ocultas (MV-06/07/08/09)
 
 **Archivos:** `useVariableCatalog.js`, `templateVariableBindings.js`, `VariablePicker.vue`,
@@ -2260,3 +2285,11 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - Fix: use the catalog by surface and capability; insert server expressions for literal Unicode, dot and hyphen keys. Attribute targets honor `managedBy` and automation write capability; unavailable saved targets stay visible and read only. Keep company and Flow groups separate. Remove the unused legacy builder, MESSAGE_VARIABLES and duplicate canned picker.
 - Interaction fixes: insert at the editor selection, preserve text after the caret trigger, restore focus on selection/Escape, prevent retry from submitting a canned form, scope campaign insertion to its own editor, bound menus to the canned modal and allow the automation toolbar to wrap on mobile. Picker group/placeholder text uses slate-11 for AA contrast.
 - Verify: `components-next/variable-picker/specs/VariableEditors.spec.js` mounts real editors in Add/Edit canned, automation, MacroNode and live campaign, with keyboard, caret, failure/retry, loading/empty, literal attribute and managed-destination cases. Run the scoped frontend suite in UTC and America/Guayaquil; inspect `motor4-*` captures in both themes at 1280/390 px. No backend, sending or migration changes.
+
+### B-NEW-081 - Widget variable validation before contact initialization (PR #181)
+
+- Files: `app/controllers/api/v1/widget/contacts_controller.rb`, `spec/requests/variables_write_contract_spec.rb`.
+- Cause: `WebsiteTokenHelper#set_web_widget` calls `permitted_params` before `set_contact`. Validating variables inside parameter filtering dereferenced a nil contact and returned 500 before the writer could report read-only data.
+- Fix: validate raw custom attributes in an update/set_user callback after widget/contact initialization, before identity changes or writes. Keep the existing ParameterMissing handler and its 422 error message.
+- Verify: the existing prechat request spec rejects `total_citas`, checks the read-only error message and preserves the stored value. Review set_user ordering and malformed input before strong parameter filtering. RSpec runs only in CI; local CI-image RuboCop passed on all four changed Ruby files.
+- Related CI expectations: ContactDrop intentionally capitalizes names (MV-02). The Captain spec now asserts the full literal `{{ Date.today }}` output; the multi_list spec uses the unformatted contact identifier to assert exact `VIP` preservation without changing the established name contract.

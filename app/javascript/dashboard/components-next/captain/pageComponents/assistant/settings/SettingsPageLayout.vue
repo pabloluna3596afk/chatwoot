@@ -7,6 +7,8 @@ import { useAccount } from 'dashboard/composables/useAccount';
 import { useMapGetter } from 'dashboard/composables/store';
 import PageLayout from 'dashboard/components-next/captain/PageLayout.vue';
 import SettingsHeader from 'dashboard/components-next/captain/pageComponents/settings/SettingsHeader.vue';
+import VariableDeliveryWarning from './VariableDeliveryWarning.vue';
+import { useAssistantSettings } from 'dashboard/routes/dashboard/captain/assistants/settings/useAssistantSettings';
 import VerticalTabs from 'dashboard/components-next/vertical-tabs/VerticalTabs.vue';
 
 defineProps({
@@ -21,6 +23,7 @@ defineProps({
 });
 
 const { t } = useI18n();
+const { assistant } = useAssistantSettings();
 const route = useRoute();
 const router = useRouter();
 const { isCloudFeatureEnabled } = useAccount();
@@ -131,6 +134,9 @@ const activeTab = computed({
         <template #[activeTab]>
           <div class="flex flex-col w-full gap-6">
             <SettingsHeader :heading="heading" :description="description" />
+            <VariableDeliveryWarning
+              :diagnostic="assistant?.config?.variable_delivery_error"
+            />
             <slot />
           </div>
         </template>

@@ -639,6 +639,7 @@ en:
         rate_limit: 'The sending limit was reached; do not try again now.'
         invalid_params: 'The parameters do not have the required format.'
     followup:
+      reengagement_variables_missing: "Re-engagement omitted because a template value is missing or invalid. Check the assistant settings."
       nudge: 'Are you still there? If you still need help, just reply.'
       nudge_hint: ' Reply "%{continue}" or "%{stop}".'
       continue_button: "Yes, I'm here"
@@ -649,6 +650,7 @@ en:
       reengagement_no_template: '%{assistant} did not send the re-engagement: the 24 h window has closed and no re-engagement template is selected.'
       reengagement_template_unavailable: '%{assistant} did not send the re-engagement: the selected template is not approved in this inbox.'
     appointment_reminders:
+      template_variables_missing: "Reminder omitted because a template value is missing or invalid. Check the assistant settings."
       reminder_far: 'Hi %{name}, a reminder of your appointment "%{title}" on %{when}.'
       reminder_near: 'Hi %{name}, your appointment "%{title}" is in about %{hours} hours (%{when}).'
       reminder_near_one: 'Hi %{name}, your appointment "%{title}" is in about an hour (%{when}).'

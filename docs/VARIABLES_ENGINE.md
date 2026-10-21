@@ -26,7 +26,7 @@ Cada descriptor declara `id`, `reference`, `key`, `label`, `group`, `type`,
   orden de ID; los descriptores en colisión permanecen en el catálogo.
 - Las fórmulas tienen `managedBy: formula`. Los derivados habilitados de Citas
   cuyo tipo coincide con el propietario tienen `managedBy: calendar`.
-  `writable: false` describe capacidad; no modifica todavía los writers.
+  `writable: false` se aplica también en `Variables::Writer` para las superficies migradas.
 - Empresa y Flow tienen grupos propios. No se convierten en contacto.
 - Catálogo y fábrica tienen extensión Enterprise mediante `prepend_mod_with`.
   No se enumeran columnas del modelo ni se exponen credenciales.
@@ -129,3 +129,44 @@ Specs de contrato y permisos:
 Catálogo y paridad: `spec/services/variables/`. RSpec se ejecuta solo en CI.
 Los specs frontend del parser cubren MV-01/02/03, valores de servidor frente a
 registros locales diferentes, datos faltantes y fallo de red.
+
+## Captain y escritura (PR E, alcance A1/A2)
+
+Captain usa `ContextFactory` con un proveedor Enterprise para asistente/cita
+concreta y `DeliveryRenderer` para mappings guardados. Una variable faltante,
+contexto ausente o expresion invalida omite el mensaje completo. Recordatorios y
+reactivacion registran la omision y dejan nota privada; mensajeria devuelve
+`missing_variables`. La ultima razon (plantilla, slot, estado y fecha UTC, sin
+valores del cliente) queda en `assistant.config.variable_delivery_error`, visible
+en todas las paginas de configuracion del asistente. Indica la ultima omision,
+no un diagnostico de que todos los contactos actuales esten incompletos.
+
+Solo las referencias legacy cuyo `processed_params` es nil conservan el fallback
+y el guion anteriores. No se migran implicitamente al guardar otros ajustes.
+Los snapshots ya resueltos no vuelven a interpretar Liquid insertado desde datos.
+`date.*` usa la zona de cuenta. La cita concreta sigue formateandose con la zona
+efectiva de EventService (actualmente cuenta o el default Google Calendar);
+no existe una columna independiente de zona por calendario en este esquema.
+
+`Variables::Ownership` es la unica regla de propiedad usada por Catalog y por
+la metadata aditiva `managed_by` de las definiciones. `Variables::Writer` valida
+destinos de acciones y captura de WhatsApp Flow y construye sus atributos.
+Las entradas API/prechat de contacto, conversacion y empresa aplican la misma
+regla a updates, creacion y borrado. Reemplazar un JSON tampoco permite borrar
+implicitamente derivados. Un intento de escritura en un campo gestionado se
+rechaza con el error existente `ParameterMissing` (HTTP 422); las acciones y
+snapshots Flow viejos omiten destinos que ya no son escribibles. Calendar y los
+recomputadores de formulas mantienen sus escrituras internas como propietarios.
+Los editores de atributos de contacto, conversacion y empresa respetan metadata
+de propiedad; el selector ya filtraba estos destinos desde PR D.
+
+`ValueNormalizer` conserva los tipos de acciones y resuelve cada elemento de
+`multi_list` antes de devolverlo. Los valores JSON de API y respuestas Flow
+siguen siendo datos literales: no ejecutan Liquid suministrado por un visitante.
+Por compatibilidad, API/prechat conservan claves JSON sin definicion; su
+visibilidad y el diagnostico de importadores pertenecen a MV-16, pendiente.
+No se impone una nueva coercion de tipos a esos contratos existentes.
+
+Quedan sin migrar: contexto `flow.x`, herramientas HTTP, custom_message de
+notificaciones, saludos/prechat como superficies de lectura e importadores.
+No se modifican campa?as, proveedores, Panel AI ni plantillas aprobadas en Meta.

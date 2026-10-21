@@ -125,11 +125,18 @@ class Captain::AppointmentReminders::Sender
     entry = Captain::TemplateMessage.approved(conversation.inbox, settings.template_reminder)
     return skip_with_note('template_unavailable') if entry.blank?
 
+    deliver_template(entry)
+  end
+
+  def deliver_template(entry)
     drops = Captain::TemplateMessage.drops(conversation, assistant, appointment: appointment_drop)
     payload, text = Captain::TemplateMessage.build(entry, settings.template_reminder['processed_params'], drops,
                                                    fallback: LEGACY_TEMPLATE_PARAMS)
     create_message(text, additional_attributes: { template_params: payload })
     finish
+  rescue Variables::DeliveryRenderer::Error => e
+    Captain::VariableDiagnostics.record(assistant, e, template: settings.template_reminder)
+    skip_with_note('template_variables_missing')
   rescue Captain::TemplateMessage::MappingMismatch
     skip_with_note('template_changed')
   end
@@ -146,10 +153,13 @@ class Captain::AppointmentReminders::Sender
   end
 
   def create_message(content, **attributes)
-    conversation.messages.create!(
+    message = conversation.messages.build(
       message_type: :outgoing, account_id: account.id, inbox_id: conversation.inbox_id, sender: assistant,
       content: content, preserve_waiting_since: true, **attributes
     )
+    message.variables_resolved! if attributes[:additional_attributes]&.with_indifferent_access&.key?(:template_params)
+    message.save!
+    message
   end
 
   def finish

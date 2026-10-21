@@ -81,7 +81,9 @@ const isCheckbox = computed(
   () => props.attribute.attributeDisplayType === 'checkbox'
 );
 
-const isReadOnly = computed(() => !!props.attribute.formula);
+const isReadOnly = computed(
+  () => !!(props.attribute.managedBy || props.attribute.formula)
+);
 
 const hasValue = computed(() => {
   const val = props.attribute.value;
@@ -123,6 +125,7 @@ const onDelete = () => {
     <CheckboxAttribute
       :attribute="attribute"
       :is-editing-view="isEditingView && !isReadOnly"
+      :read-only="isReadOnly"
       @update="onUpdate"
       @delete="onDelete"
     />

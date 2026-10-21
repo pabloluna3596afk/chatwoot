@@ -5,6 +5,20 @@ RSpec.describe 'Companies API', type: :request do
 
   before { account.enable_features!(:companies) }
 
+  it 'rejects formula writes and deletion through the company API' do
+    admin = create(:user, account: account, role: :administrator)
+    create(:custom_attribute_definition, account: account, attribute_model: 'company_attribute', attribute_key: 'computed',
+                                         formula: { 'op' => 'count', 'source_attribute_key' => 'amount' })
+    company = create(:company, account: account, custom_attributes: { 'computed' => 3 })
+    patch "/api/v1/accounts/#{account.id}/companies/#{company.id}", params: { company: { custom_attributes: { computed: 99 } } },
+                                                                    headers: admin.create_new_auth_token, as: :json
+    expect(response).to have_http_status(:unprocessable_entity)
+    post "/api/v1/accounts/#{account.id}/companies/#{company.id}/destroy_custom_attributes", params: { custom_attributes: ['computed'] },
+                                                                                             headers: admin.create_new_auth_token, as: :json
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(company.reload.custom_attributes['computed']).to eq(3)
+  end
+
   describe 'GET /api/v1/accounts/{account.id}/companies' do
     context 'when it is an unauthenticated user' do
       it 'returns unauthorized' do
