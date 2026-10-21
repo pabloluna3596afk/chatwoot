@@ -556,6 +556,9 @@
       "SHARED_FILES": "Attachments"
     },
     "CALENDAR": {
+      "LOAD_ERROR": "Could not load appointments. Please try again.",
+      "RETRY": "Retry",
+      "NEXT_EMPTY": "No upcoming appointments",
       "NEW": "New appointment",
       "EMPTY": "No appointments linked to this conversation",
       "DELETED": "Cancelled event",

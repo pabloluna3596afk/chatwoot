@@ -1,5 +1,6 @@
 import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
 import ActionCableConnector from '../actionCable';
+import { emitter } from 'shared/helpers/mitt';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
 vi.mock('shared/helpers/mitt', () => ({
@@ -47,6 +48,18 @@ describe('ActionCableConnector - Copilot Tests', () => {
     vi.clearAllTimers();
     vi.useRealTimers();
   });
+  it('routes calendar invalidations through the shared bus only for the selected account', () => {
+    const data = { account_id: 1, contact_ids: [7] };
+    actionCable.onReceived({ event: 'calendar.events_changed', data });
+    expect(emitter.emit).toHaveBeenCalledWith('calendar.events_changed', data);
+    vi.mocked(emitter.emit).mockClear();
+    actionCable.onReceived({
+      event: 'calendar.events_changed',
+      data: { account_id: 2, contact_ids: [7] },
+    });
+    expect(emitter.emit).not.toHaveBeenCalled();
+  });
+
   describe('copilot event handlers', () => {
     it('should register the copilot.message.created event handler', () => {
       expect(Object.keys(actionCable.events)).toContain(

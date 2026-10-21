@@ -26,15 +26,24 @@ vi.mock('dashboard/api/integrations/calendar', () => ({
     updateEvent: vi.fn(),
     lockEvent: vi.fn().mockResolvedValue({}),
     unlockEvent: vi.fn(),
+    getCalendars: vi.fn().mockImplementation(async () => ({
+      data: { payload: [{ id: 'cal-1' }] },
+    })),
     getInvitation: vi.fn().mockResolvedValue({ data: {} }),
   },
 }));
+
+beforeEach(() => {
+  CalendarAPI.getCalendars.mockResolvedValue({
+    data: { payload: [{ id: 'cal-1' }] },
+  });
+});
 
 const mountModal = (props = {}) =>
   shallowMount(EventModal, {
     props: {
       connections: [{ id: 1, email: 'a@b.c' }],
-      calendars: [],
+
       ...props,
     },
     global: {

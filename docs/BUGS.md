@@ -1,5 +1,155 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-185 — Mock único de cuenta en la próxima cita tras integrar develop
+
+**Archivo:** `app/javascript/dashboard/components/widgets/conversation/specs/NextAppointmentCard.spec.js`.
+
+**Causa y fix:** la integración de develop dejó dos imports de `ref` y dos mocks
+de `useAccount` en el mismo spec. ESLint abortaba con `Identifier 'ref' has already
+been declared`. Se conserva un solo import y un mock con `accountId` y
+`calendar_timezone: 'America/Guayaquil'`, manteniendo todas las aserciones.
+No cambia código de producción.
+
+**Cómo probar:** ejecutar ESLint sobre el archivo y Vitest sobre las carpetas de
+specs de conversación, calendario, helpers, composables y ajustes del asistente
+en UTC y America/Guayaquil. Ver el informe externo `docs-crm/codex/validar-c.md`
+para comandos y resultados de la validación del bloque C.
+
+### B-NEW-091 - Próxima cita vigente y errores de carga visibles (CIT-16 / CIT-26)
+
+**Archivos:** `CalendarEvent`, `useAppointmentEvents`, `useAppointmentClock`,
+`actionCable.js`, `NextAppointmentCard.vue`, `CalendarEventsList.vue`, cliente
+Calendar, mensajes en/es de conversación y specs de modelo/job/UI.
+
+**Fix:** después del commit de una cita se invalida su contacto en el canal
+existente de la cuenta, incluyendo el contacto anterior al reasociar. El mensaje
+solo lleva IDs; lista y tarjeta vuelven a consultar sus endpoints autorizados.
+Funciona para cambios humanos/Captain y sin atributos opcionales de citas.
+Cambiar solo etag no emite ni provoca bucles de lectura. Se conserva el refresh
+local al guardar desde ContactPanel y se recarga después de recuperar WebSocket.
+Las solicitudes se cancelan al cambiar cuenta/contacto/conversación o desmontar.
+Un timeout en la siguiente frontera temporal recalcula sin polling; al volver
+a una pestaña suspendida se actualiza el reloj. Se mantiene el contrato existente:
+una cita en curso sigue siendo próxima hasta su fin. Las canceladas se excluyen.
+Lista y tarjeta distinguen error de vacío real y ofrecen reintento localizado.
+
+**Cómo probar:** mantener abiertos dos contactos, crear/mover/cancelar una cita
+del primero desde calendario u otro cliente y comprobar su actualización sin
+remontar ni cambiar el segundo. Dejar vencer una cita y comprobar la siguiente.
+Cambiar contacto con una petición pendiente: la respuesta anterior no aparece.
+Simular 503, reintentar y comparar con un contacto realmente sin citas.
+
+**Evidencia local (2026-10-21):** seis regresiones frontend fallan sobre la base;
+también falla la integración ContactPanel con la tarjeta original. En backend,
+cuatro regresiones fallan sin el callback. Verde: 115 tests por zona UTC y
+America/Guayaquil; 20 ejemplos RSpec sin fallos, PostgreSQL/Redis exclusivos.
+ESLint sin errores (cinco warnings heredados), Prettier y diff check aprobados.
+RuboCop exacto CI en chathub-rubocop-ci:cit5-ruby344 pasa sobre 42 Ruby de la
+cadena; inspected_file_count=42. Los tres Ruby de esta tarea pasan completos;
+el reporte global conserva 90 infracciones heredadas fuera de líneas cambiadas.
+Veinte capturas cit10- revisadas, 1280/390, claro/oscuro, dos contactos,
+actualización/vacío/error/reintento con componentes reales y APIs simuladas.
+Sin migraciones. Pendientes CI remoto y smoke Google aislado; las capturas
+no acreditan operaciones ni entrega de proveedor. Integrar PR1 → … → PR10;
+esta rama parte localmente del PR9. Sin push ni cambios a AGENTS.md.
+
+### B-NEW-090 - Conexión propietaria y respuestas vigentes de Citas (CIT-15 / CIT-17)
+
+**Archivos:** `CalendarView.vue`, `CalendarEventsList.vue`, `EventModal.vue`,
+`AssistantAppointmentsForm.vue`, clientes Calendar/Search, `useAbortableRequest`
+y specs de esas superficies. Fuentes nuevas solo en `en/settings.json`.
+
+**Fix:** desde conversación se puede elegir otra conexión al crear. El modal
+carga los calendarios de esa conexión y mantiene cuenta/calendario bloqueados
+al editar un evento existente. Muestra carga, fallo y reintento de calendarios;
+en móvil los selectores ocupan filas completas. Las lecturas usan cancelación
+compartida con señal hasta axios, incluida la búsqueda de contactos/conversaciones,
+invitación y adquisición del lock del modal. Se invalidan al cambiar contexto,
+cerrar o desmontar. El composable descarta incluso una respuesta resuelta por
+un transporte que ignore el aborto. Cambiar conexión con el mismo calendar_id
+recarga eventos; guardar en otra conexión no inserta el evento en la vista actual.
+
+**Cómo probar:** con dos conexiones Google, crear desde una conversación usando
+la segunda; reabrir el evento y comprobar sus opciones y propietario fijo.
+Alternar conexión con calendar_id compartido, semana, calendario, conversación
+y asistente con solicitudes pendientes: solo se aplica la respuesta vigente.
+Cerrar el modal durante búsquedas o desmontar las vistas no muestra cancelación
+como error. Simular fallo al cargar calendarios y reintentar.
+
+**Evidencia local (2026-10-21):** seis regresiones conductuales nuevas fallan
+antes del cambio sobre las cuatro superficies. Verde final: 112 tests por zona
+(UTC / America/Guayaquil), incluidos contratos de señal axios e i18n en/es.
+ESLint sin errores (13 warnings heredados), Prettier y diff check aprobados.
+RuboCop exacto CI aprobado, imagen chathub-rubocop-ci:cit5-ruby344, 40 Ruby de
+la cadena inspeccionados; reporte completo conserva 90 infracciones heredadas
+fuera de líneas cambiadas. Este PR no toca Ruby; no ejecuta RSpec ni migraciones.
+16 capturas cit9- de componentes reales con API simulada en 1280/390 y claro/oscuro,
+revisadas visualmente, más vídeo de cambio rápido. Pendientes CI remoto, smoke
+con Google real y Crowdin de tres textos nuevos (fallback inglés comprobado en
+español). No cubre CIT-16/26 ni entrega de recordatorios. Rama local
+feat/citas-conexion-respuestas basada en f25807dc78 de PR8; integrar PR1 → … → PR9.
+Sin fetch, stash, push ni deploy. Informe: tmp/PR-CITAS-10.md (ignorado).
+
+### B-NEW-089 - Preparación de recordatorios por bandeja (CIT-07 / CIT-28)
+
+**Archivos:** `AppointmentReminderReadiness.vue`, `AssistantAppointmentsForm.vue`,
+`Captain::AppointmentReminders::Readiness`, sender, serializer del asistente,
+AssistantsController y AppointmentsValidator; specs del formulario, panel,
+readiness y contratos request; traducciones en/es.
+
+**Fix:** estado de configuración guardada por bandeja, con Captain/citas activos,
+canal, permiso de pago, plantilla aprobada en esa bandeja y bindings completos.
+Comparte comprobaciones/códigos con el sender y reutiliza TemplateMessage y
+Variables, sin otro resolver. Explica los límites de ventana y valores concretos
+al enviar; enlaza Mensajes de pago. Mantiene 24 h / 3 h y pago optativo. Oculta
+el selector sin consumidor de cancelación y conserva la referencia histórica al
+guardar otros campos, aunque la plantilla haya cambiado en Meta.
+
+**Cómo probar:** conectar dos bandejas con la misma plantilla, aprobada solo en
+una; guardar y comprobar estados diferentes. Desactivar pago: aparece el motivo
+de omisión fuera de ventana. Cambiar variables de la plantilla: muestra bindings
+pendientes. Guardar otros ajustes conserva template_cancelled. Un valor de contacto
+ausente al enviar deja nota privada y el diagnóstico existente del motor.
+
+**Evidencia local (2026-10-21):** 103 ejemplos Rails y 39 tests frontend por zona
+(UTC / America/Guayaquil) sin fallos; RuboCop exacto CI aprobado sobre 40 Ruby
+inspeccionados, ESLint sin errores y Prettier aprobado. 32 capturas cit8- en
+1280/390 y claro/oscuro revisadas, componentes reales con datos simulados.
+Rojo/verde conductual demostrado en formulario y dos contratos request; las
+regresiones existentes de sender/TemplateMessage no tienen rojo previo nuevo.
+Pendientes CI remoto y entrega real autorizada dentro/fuera de ventana. Sin
+migraciones ni push. Rama local feat/citas-recordatorios-estado sobre PR7;
+integrar PR1 → … → PR8. Informe: tmp/PR-CITAS-9.md (ignorado).
+
+### B-NEW-088 - Atributos de cita disponibles en el alta de Captain (CIT-06)
+
+**Archivos:** `AssistantAppointmentsForm.vue` y su spec; specs del controlador
+`calendar_appointment_attributes`, `updater_onboarding_contract` y `event_service`.
+
+**Fix:** el alta muestra el panel existente `CalendarAppointmentAttributes`, con
+seleccion optativa y resultados por clave. Usa el controlador de Integraciones y
+Provisioner existentes; la preferencia pertenece a la cuenta. El panel queda
+fuera del toggle de Captain: activarlo nuevamente no escribe ni restablece claves,
+incluida una seleccion vacia guardada. Los dos botones guardan sus respectivas
+secciones. Los conflictos conservan definicion y valor; no hay cambios al motor
+de variables, al contrato API ni a la configuracion del asistente.
+
+**Como probar:** desde Captain > Ajustes > Citas, habilitar los cuatro atributos
+en una cuenta nueva y comprobar resultados; recargar, desmarcarlos todos y guardar,
+volver a activar Captain: siguen desmarcados. Con `ultima_cita` de tipo texto,
+reintentar muestra conflicto y mantiene su valor. Reservar y procesar jobs actualiza
+los cuatro derivados; el catalogo y el editor de contactos mantienen lectura sola.
+
+**Evidencia local (2026-10-21):** 136 ejemplos RSpec sin fallos, 34 tests Vitest
+por zona (UTC y America/Guayaquil), ESLint/Prettier aprobados. RuboCop exacto de CI
+sin infracciones en lineas cambiadas, 35 Ruby inspeccionados; los tres specs propios
+sin infracciones completas. Doce capturas `cit7-` claro/oscuro, 1280/390 px, con
+componentes reales y datos simulados, revisadas visualmente. Rojo/verde del cambio
+demostrado en tres casos del formulario; el backend reutilizado ya pasaba en la
+base, por lo que no se reclama rojo/verde backend. Sin migraciones. Pendientes CI
+remoto y smoke con Google real. Detalle: `tmp/PR-CITAS-8.md` (ignorado).
+
+
 ### B-NEW-184 — Fixtures de cuenta en specs de tarjetas de citas
 
 **Archivos:** `CalendarEventsList.spec.js`, `NextAppointmentCard.spec.js`.

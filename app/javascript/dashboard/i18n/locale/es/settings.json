@@ -370,6 +370,10 @@
       "EMPTY_CALENDARS": "Todavía no hay calendarios habilitados. Un administrador debe habilitar calendarios concretos en Ajustes → Integraciones → Calendarios.",
       "ENABLE_CTA": "Habilitar calendarios",
       "MODAL": {
+        "LOADING_CALENDARS": "Cargando calendarios...",
+        "RETRY_CALENDARS": "Reintentar",
+        "CALENDAR_LOAD_ERROR": "No se pudieron cargar los calendarios.",
+        "DST_POLICY": "Las horas usan la zona horaria de la cuenta. Las horas que no existen por el cambio de hora no están disponibles; las repetidas usan la primera ocurrencia.",
         "CREATE_TITLE": "Nueva cita",
         "EDIT_TITLE": "Cita",
         "TITLE": "Título",

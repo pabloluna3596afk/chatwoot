@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onUnmounted, ref } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { useMapGetter } from 'dashboard/composables/store';
@@ -16,7 +16,7 @@ import CalendarAPI from 'dashboard/api/integrations/calendar';
 import { isCancelledEvent } from 'dashboard/helper/appointmentStatus';
 import SearchAPI from 'dashboard/api/search';
 import ContactAPI from 'dashboard/api/contacts';
-import { createContactSearcher } from 'dashboard/components-next/NewConversation/helpers/composeConversationHelper';
+import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import { useCalendarTime } from 'dashboard/composables/useCalendarTime';
 import { SLOT_MINUTES, addMinutesToTime } from 'dashboard/helper/calendarTime';
 
@@ -34,10 +34,6 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
-  calendars: {
-    type: Array,
-    default: () => [],
-  },
   // An AI bot (Panel AI) is active in some inbox of the account: only then is its follow-up offered.
   panelAiActive: {
     type: Boolean,
@@ -52,7 +48,15 @@ const { timezone, dateAndTimeParts, rangeFromStartEnd } = useCalendarTime();
 const { t, locale } = useI18n();
 const currentUser = useMapGetter('getCurrentUser');
 const { currentAccount } = useAccount();
-const searchContacts = createContactSearcher();
+const calendarRequest = useAbortableRequest();
+const contactRequest = useAbortableRequest();
+const conversationRequest = useAbortableRequest();
+const invitationRequest = useAbortableRequest();
+const lockRequest = useAbortableRequest();
+const calendars = ref([]);
+const calendarLoadFailed = ref(false);
+const loadingCalendars = calendarRequest.isPending;
+const isOpen = ref(false);
 
 const dialogRef = ref(null);
 const saving = ref(false);
@@ -131,8 +135,57 @@ const connectionOptions = computed(() =>
 );
 
 const calendarOptions = computed(() =>
-  calendarSelectOptions(props.calendars, t)
+  calendarSelectOptions(calendars.value, t)
 );
+
+const loadCalendars = async () => {
+  calendarRequest.abort();
+  calendars.value = [];
+  calendarLoadFailed.value = false;
+  if (!isOpen.value || !connectionId.value) return;
+  try {
+    const response = await calendarRequest.run(signal =>
+      CalendarAPI.getCalendars(connectionId.value, { signal })
+    );
+    if (!response) return;
+    calendars.value = (response.data.payload || []).filter(
+      item => item.enabled !== false
+    );
+    if (
+      isCreate.value &&
+      !calendars.value.some(item => item.id === calendarId.value)
+    ) {
+      calendarId.value = calendars.value[0]?.id || '';
+    }
+  } catch {
+    calendarLoadFailed.value = true;
+  }
+};
+
+const cancelSearches = () => {
+  contactRequest.abort();
+  conversationRequest.abort();
+  contactResults.value = [];
+  conversationResults.value = [];
+};
+
+watch(
+  connectionId,
+  () => {
+    cancelSearches();
+    if (isCreate.value) calendarId.value = '';
+    loadCalendars();
+  },
+  { flush: 'sync' }
+);
+
+const endContext = () => {
+  isOpen.value = false;
+  calendarRequest.abort();
+  invitationRequest.abort();
+  lockRequest.abort();
+  cancelSearches();
+};
 
 const modalTabs = computed(() => [
   { label: t('SIDEBAR.CALENDAR_PAGE.MODAL.TAB_EVENT'), value: 'event' },
@@ -242,6 +295,8 @@ const onStartTimeInput = value => {
 const confirmDisabled = computed(
   () =>
     readOnly.value ||
+    loadingCalendars.value ||
+    calendarLoadFailed.value ||
     saving.value ||
     !summary.value.trim() ||
     !connectionId.value ||
@@ -329,6 +384,7 @@ const stopHeartbeat = () => {
 };
 
 const releaseLock = async () => {
+  endContext();
   stopHeartbeat();
   if (isCreate.value || !eventId.value || readOnly.value) return;
   try {
@@ -441,9 +497,17 @@ const applyEvent = (event, defaults) => {
 const acquireLock = async () => {
   if (isCreate.value || !eventId.value || isDeleted.value) return;
   try {
-    await CalendarAPI.lockEvent(eventId.value, {
-      connection_id: connectionId.value,
+    const acquired = await lockRequest.run(async signal => {
+      await CalendarAPI.lockEvent(
+        eventId.value,
+        {
+          connection_id: connectionId.value,
+        },
+        { signal }
+      );
+      return true;
     });
+    if (!acquired) return;
     startHeartbeat();
   } catch (error) {
     if (error.response?.status === 423) {
@@ -461,7 +525,11 @@ const acquireLock = async () => {
 
 const loadInvitation = async () => {
   try {
-    const { data } = await CalendarAPI.getInvitation();
+    const response = await invitationRequest.run(signal =>
+      CalendarAPI.getInvitation({ signal })
+    );
+    if (!response) return;
+    const { data } = response;
     invitationAccount.value = {
       template: data.template || data.default_template || '',
       location: data.location || '',
@@ -472,7 +540,11 @@ const loadInvitation = async () => {
 };
 
 const open = async ({ event = null, defaults = {} } = {}) => {
+  endContext();
+  stopHeartbeat();
   applyEvent(event, defaults);
+  isOpen.value = true;
+  loadCalendars();
   loadInvitation();
   if (defaults.dateKey) {
     date.value = defaults.dateKey;
@@ -495,19 +567,27 @@ const close = async () => {
 };
 
 const onSearchContacts = async query => {
+  cancelSearches();
   contactQuery.value = query;
   if (query !== contactLabel.value) {
     contactId.value = null;
     contactLabel.value = '';
     contactEmail.value = '';
   }
-  contactResults.value = await searchContacts(query, {
-    skipMinLength: false,
-    reachableOnly: false,
-  });
+  if (query.trim().length < 2) return;
+  try {
+    const response = await contactRequest.run(signal =>
+      ContactAPI.search(query.trim(), 1, 'name', '', { signal })
+    );
+    if (!response) return;
+    contactResults.value = response.data.payload || [];
+  } catch {
+    useAlert(t('SIDEBAR.CALENDAR_PAGE.LOAD_ERROR'));
+  }
 };
 
 const selectContact = contact => {
+  cancelSearches();
   contactId.value = contact.id;
   contactLabel.value = contact.name;
   contactQuery.value = contact.name;
@@ -518,13 +598,19 @@ const selectContact = contact => {
 };
 
 const onSearchConversations = async query => {
+  conversationRequest.abort();
+  conversationResults.value = [];
   conversationQuery.value = query;
   if (!query || query.length < 2) {
     conversationResults.value = [];
     return;
   }
   try {
-    const { data } = await SearchAPI.conversations({ q: query });
+    const response = await conversationRequest.run(signal =>
+      SearchAPI.conversations({ q: query }, { signal })
+    );
+    if (!response) return;
+    const { data } = response;
     conversationResults.value = data.payload?.conversations || [];
   } catch {
     conversationResults.value = [];
@@ -532,6 +618,7 @@ const onSearchConversations = async query => {
 };
 
 const selectConversation = conversation => {
+  cancelSearches();
   conversationId.value = String(conversation.id);
   conversationQuery.value = `#${conversation.id}`;
   conversationResults.value = [];
@@ -620,6 +707,7 @@ const remove = async () => {
 };
 
 onUnmounted(() => {
+  endContext();
   stopHeartbeat();
 });
 
@@ -695,7 +783,7 @@ defineExpose({ open, close });
             data-testid="appointment-status"
           />
         </div>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="flex flex-col gap-1 min-w-0">
             <span class="mb-0.5 text-sm font-medium text-n-slate-12">
               {{ $t('SIDEBAR.CALENDAR_PAGE.ACCOUNT') }}
@@ -706,7 +794,8 @@ defineExpose({ open, close });
               teleport
               :options="connectionOptions"
               :placeholder="$t('SIDEBAR.CALENDAR_PAGE.ACCOUNT')"
-              disabled
+              :aria-label="$t('SIDEBAR.CALENDAR_PAGE.ACCOUNT')"
+              :disabled="readOnly || !isCreate"
             />
           </div>
           <div class="flex flex-col gap-1 min-w-0">
@@ -719,9 +808,35 @@ defineExpose({ open, close });
               teleport
               :options="calendarOptions"
               :placeholder="$t('SIDEBAR.CALENDAR_PAGE.CALENDAR')"
-              :disabled="readOnly || !isCreate"
+              :aria-label="$t('SIDEBAR.CALENDAR_PAGE.CALENDAR')"
+              :disabled="
+                readOnly || !isCreate || loadingCalendars || calendarLoadFailed
+              "
             />
           </div>
+        </div>
+        <p
+          v-if="loadingCalendars"
+          role="status"
+          class="m-0 text-sm text-n-slate-11"
+        >
+          {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.LOADING_CALENDARS') }}
+        </p>
+        <div
+          v-else-if="calendarLoadFailed"
+          role="alert"
+          class="flex items-center gap-2 text-sm text-n-ruby-11"
+        >
+          <span>{{
+            $t('SIDEBAR.CALENDAR_PAGE.MODAL.CALENDAR_LOAD_ERROR')
+          }}</span>
+          <Button
+            sm
+            faded
+            slate
+            :label="$t('SIDEBAR.CALENDAR_PAGE.MODAL.RETRY_CALENDARS')"
+            @click="loadCalendars"
+          />
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Input

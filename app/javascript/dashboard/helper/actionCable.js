@@ -53,6 +53,7 @@ class ActionCableConnector extends BaseActionCableConnector {
       'presence.update': this.onPresenceUpdate,
       'contact.deleted': this.onContactDelete,
       'contact.updated': this.onContactUpdate,
+      'calendar.events_changed': this.onCalendarEventsChanged,
       'conversation.mentioned': this.onConversationMentioned,
       'notification.created': this.onNotificationCreated,
       'notification.deleted': this.onNotificationDeleted,
@@ -392,6 +393,11 @@ class ActionCableConnector extends BaseActionCableConnector {
       data.id
     );
     this.fetchConversationStats();
+  };
+
+  // eslint-disable-next-line class-methods-use-this
+  onCalendarEventsChanged = data => {
+    emitter.emit(BUS_EVENTS.CALENDAR_EVENTS_CHANGED, data);
   };
 
   onContactUpdate = data => {

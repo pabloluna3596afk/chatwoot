@@ -7,8 +7,8 @@ class CalendarAPI extends ApiClient {
     super('integrations/calendar_connections', { accountScoped: true });
   }
 
-  getConnections() {
-    return axios.get(this.url);
+  getConnections({ signal } = {}) {
+    return axios.get(this.url, { signal });
   }
 
   startOAuth() {
@@ -19,9 +19,10 @@ class CalendarAPI extends ApiClient {
     return axios.delete(`${this.url}/${id}`);
   }
 
-  getCalendars(connectionId, { all = false } = {}) {
+  getCalendars(connectionId, { all = false, signal } = {}) {
     return axios.get(`${this.url}/${connectionId}/calendars`, {
       params: all ? { all: true } : {},
+      signal,
     });
   }
 
@@ -29,8 +30,9 @@ class CalendarAPI extends ApiClient {
     return axios.patch(`${this.url}/${connectionId}/calendars`, { calendars });
   }
 
-  getEvents({ connectionId, calendarId, timeMin, timeMax }) {
+  getEvents({ connectionId, calendarId, timeMin, timeMax, signal }) {
     return axios.get(`${this.url}/events`, {
+      signal,
       params: {
         connection_id: connectionId,
         calendar_id: calendarId,
@@ -41,8 +43,8 @@ class CalendarAPI extends ApiClient {
   }
 
   // The text of the invitation of an appointment (account-wide): { template, location, default_template, tokens, max_length }.
-  getInvitation() {
-    return axios.get(`${this.url}/invitation`);
+  getInvitation({ signal } = {}) {
+    return axios.get(`${this.url}/invitation`, { signal });
   }
 
   updateInvitation({ template, location }) {
@@ -74,10 +76,11 @@ class CalendarAPI extends ApiClient {
     });
   }
 
-  lockEvent(eventId, payload) {
+  lockEvent(eventId, payload, { signal } = {}) {
     return axios.post(
       `${this.url}/events/${encodeURIComponent(eventId)}/lock`,
-      payload
+      payload,
+      { signal }
     );
   }
 
@@ -89,15 +92,17 @@ class CalendarAPI extends ApiClient {
   }
 
   // The upcoming appointments of a contact, across all its conversations.
-  getContactEvents(contactId) {
+  getContactEvents(contactId, { signal } = {}) {
     return axios.get(
-      `${this.apiVersion}/accounts/${this.accountIdFromRoute}/contacts/${contactId}/calendar_events`
+      `${this.apiVersion}/accounts/${this.accountIdFromRoute}/contacts/${contactId}/calendar_events`,
+      { signal }
     );
   }
 
-  getConversationEvents(conversationId) {
+  getConversationEvents(conversationId, { signal } = {}) {
     return axios.get(
-      `${this.apiVersion}/accounts/${this.accountIdFromRoute}/conversations/${conversationId}/calendar_events`
+      `${this.apiVersion}/accounts/${this.accountIdFromRoute}/conversations/${conversationId}/calendar_events`,
+      { signal }
     );
   }
 }

@@ -2,6 +2,10 @@ require 'rails_helper'
 
 RSpec.describe 'Api::V1::Accounts::Captain::Assistants appointments settings', type: :request do
   let(:account) { create(:account) }
+  let(:reminder_defaults) do
+    { reminder_1: { enabled: true, hours_before: 24 }, reminder_2: { enabled: true, hours_before: 3 },
+      template_reminder: nil, template_cancelled: nil }
+  end
   let(:admin) { create(:user, account: account, role: :administrator) }
   let(:assistant) { create(:captain_assistant, account: account) }
   let(:connection) do
@@ -13,12 +17,42 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants appointments settings', t
     JSON.parse(response.body, symbolize_names: true)
   end
 
-  let(:reminder_defaults) do
-    { reminder_1: { enabled: true, hours_before: 24 }, reminder_2: { enabled: true, hours_before: 3 },
-      template_reminder: nil, template_cancelled: nil }
+  before { connection.connection_calendars.create!(account: account, external_id: 'cal-1', summary: 'Main', is_enabled: true) }
+
+  it 'returns saved readiness for every linked inbox, including inactive Captain' do
+    inbox = create(:inbox, account: account)
+    create(:captain_inbox, captain_assistant: assistant, inbox: inbox, appointments_enabled: false)
+    get url, headers: admin.create_new_auth_token, as: :json
+    expect(json_response[:appointment_reminder_readiness]).to contain_exactly(
+      { inbox_id: inbox.id, inbox_name: inbox.name, status: 'disabled', missing: [] }
+    )
   end
 
-  before { connection.connection_calendars.create!(account: account, external_id: 'cal-1', summary: 'Main', is_enabled: true) }
+  it 'checks the selected template in each inbox rather than approving it account-wide' do
+    assistant.update!(config: { 'appointments' => { 'enabled' => true, 'calendar_connection_id' => connection.id, 'calendar_id' => 'cal-1',
+                                                    'template_reminder' => { 'name' => 'shared', 'language' => 'es',
+                                                                             'processed_params' => {} } },
+                                'allow_paid_templates' => true })
+    channels = %w[approved pending].map do |status|
+      create(:channel_whatsapp, account: account, sync_templates: false, validate_provider_config: false,
+                                message_templates: [{ 'name' => 'shared', 'language' => 'es', 'status' => status, 'components' => [] }])
+    end
+    channels.each { |channel| create(:captain_inbox, captain_assistant: assistant, inbox: channel.inbox) }
+    get url, headers: admin.create_new_auth_token, as: :json
+    expect(json_response[:appointment_reminder_readiness].map { |row| row[:status] }).to eq(%w[ready template_unavailable])
+  end
+
+  it 'preserves a historical cancellation template when saving other appointment fields after template drift' do
+    historical = { 'name' => 'cita', 'language' => 'es', 'processed_params' => { 'body' => { '1' => 'old' } } }
+    assistant.update!(config: { 'appointments' => { 'template_cancelled' => historical } })
+    create(:channel_whatsapp, account: account, sync_templates: false, validate_provider_config: false,
+                              message_templates: [{ 'name' => 'cita', 'language' => 'es', 'status' => 'approved',
+                                                    'components' => [{ 'type' => 'BODY', 'text' => '{{1}} {{2}}' }] }])
+    patch url, params: { assistant: { config: { appointments: { slot_duration_minutes: 45 } } } },
+               headers: admin.create_new_auth_token, as: :json
+    expect(response).to have_http_status(:success)
+    expect(assistant.reload.config.dig('appointments', 'template_cancelled')).to eq(historical)
+  end
 
   it 'returns the defaults, disabled, for an assistant that never configured appointments' do
     get url, headers: admin.create_new_auth_token, as: :json
@@ -57,7 +91,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants appointments settings', t
   it 'rejects lead times outside 1 to 168 hours' do
     [0, 169].each do |hours|
       patch url, params: { assistant: { config: { appointments: { reminder_1: { enabled: true, hours_before: hours } } } } },
-            headers: admin.create_new_auth_token, as: :json
+                 headers: admin.create_new_auth_token, as: :json
 
       expect(response).to have_http_status(:unprocessable_entity), "#{hours} h should be rejected"
     end
@@ -80,8 +114,8 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants appointments settings', t
 
     def save_template(processed_params)
       patch url, params: { assistant: { config: { appointments: { template_reminder: { name: 'cita', language: 'es',
-                                                                                      processed_params: processed_params } } } } },
-            headers: admin.create_new_auth_token, as: :json
+                                                                                       processed_params: processed_params } } } } },
+                 headers: admin.create_new_auth_token, as: :json
     end
 
     it 'saves the template with a text for every variable of the body and the header' do
@@ -109,7 +143,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants appointments settings', t
 
     it 'cannot be saved with no texts at all' do
       patch url, params: { assistant: { config: { appointments: { template_reminder: { name: 'cita', language: 'es' } } } } },
-            headers: admin.create_new_auth_token, as: :json
+                 headers: admin.create_new_auth_token, as: :json
 
       expect(response).to have_http_status(:unprocessable_entity)
     end
@@ -129,7 +163,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants appointments settings', t
 
   it 'rejects a template without a language' do
     patch url, params: { assistant: { config: { appointments: { template_reminder: { name: 'recordatorio' } } } } },
-          headers: admin.create_new_auth_token, as: :json
+               headers: admin.create_new_auth_token, as: :json
 
     expect(response).to have_http_status(:unprocessable_entity)
   end
@@ -159,7 +193,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants appointments settings', t
     other = CalendarConnection.create!(account: create(:account), provider: 'google', email: 'other@example.com', refresh_token: 'r')
 
     patch url, params: { assistant: { config: { appointments: { enabled: true, calendar_connection_id: other.id, calendar_id: 'cal-1' } } } },
-              headers: admin.create_new_auth_token, as: :json
+               headers: admin.create_new_auth_token, as: :json
 
     expect(response).to have_http_status(:unprocessable_entity)
   end

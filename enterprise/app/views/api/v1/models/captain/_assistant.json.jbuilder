@@ -13,5 +13,8 @@ json.description resource.description
 json.guardrails resource.guardrails
 json.id resource.id
 json.name resource.name
+json.appointment_reminder_readiness resource.captain_inboxes.includes(:inbox).map { |link|
+  Captain::AppointmentReminders::Readiness.new(resource, link.inbox).to_h
+}
 json.response_guidelines resource.response_guidelines
 json.updated_at resource.updated_at.to_i

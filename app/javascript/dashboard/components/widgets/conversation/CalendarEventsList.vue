@@ -1,7 +1,10 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
+import { useAppointmentEvents } from 'dashboard/composables/useAppointmentEvents';
+import { useAppointmentClock } from 'dashboard/composables/useAppointmentClock';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
+import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
@@ -20,6 +23,7 @@ import {
 } from 'dashboard/helper/appointmentStatus';
 
 const props = defineProps({
+  errorShownElsewhere: { type: Boolean, default: false },
   conversationId: {
     type: [Number, String],
     required: true,
@@ -39,11 +43,21 @@ const emit = defineEmits(['saved']);
 const { timezone, formatEventWhen, isUpcomingEvent } = useCalendarTime();
 
 const { t, locale } = useI18n();
-const events = ref([]);
+const {
+  events,
+  hasError,
+  isLoading,
+  load: loadEvents,
+} = useAppointmentEvents({
+  context: () => props.conversationId,
+  contactId: () => props.contactId,
+  fetchEvents: signal =>
+    CalendarAPI.getConversationEvents(props.conversationId, { signal }),
+});
+const now = useAppointmentClock(events, timezone);
 const connections = ref([]);
 const panelAiActive = ref(false);
-const calendars = ref([]);
-const isLoading = ref(false);
+const connectionRequest = useAbortableRequest();
 const modalRef = ref(null);
 const selectedConnectionId = ref('');
 
@@ -53,15 +67,21 @@ const visibleEvents = computed(() =>
 );
 const hasEvents = computed(() => visibleEvents.value.length > 0);
 const upcomingEvents = computed(() =>
-  visibleEvents.value.filter(event => isUpcomingEvent(event))
+  visibleEvents.value.filter(event => isUpcomingEvent(event, now.value))
 );
 // What already happened (or was cancelled) is kept short: title, date and that it is past.
 const pastEvents = computed(() =>
-  visibleEvents.value.filter(event => !isUpcomingEvent(event)).reverse()
+  visibleEvents.value
+    .filter(event => !isUpcomingEvent(event, now.value))
+    .reverse()
 );
 
 const loadConnections = async () => {
-  const { data } = await CalendarAPI.getConnections();
+  const response = await connectionRequest.run(signal =>
+    CalendarAPI.getConnections({ signal })
+  );
+  if (!response) return;
+  const { data } = response;
   panelAiActive.value = Boolean(data.panel_ai_active);
   connections.value = (data.payload || []).filter(
     item => item.provider === 'google'
@@ -69,26 +89,6 @@ const loadConnections = async () => {
   selectedConnectionId.value = connections.value[0]
     ? String(connections.value[0].id)
     : '';
-  if (selectedConnectionId.value) {
-    const calendarsResponse = await CalendarAPI.getCalendars(
-      selectedConnectionId.value
-    );
-    calendars.value = calendarsResponse.data.payload || [];
-  }
-};
-
-const loadEvents = async () => {
-  isLoading.value = true;
-  try {
-    const { data } = await CalendarAPI.getConversationEvents(
-      props.conversationId
-    );
-    events.value = data.payload || [];
-  } catch (error) {
-    events.value = [];
-  } finally {
-    isLoading.value = false;
-  }
 };
 
 const onSaved = event => {
@@ -100,7 +100,6 @@ const openCreate = () => {
   modalRef.value?.open({
     defaults: {
       connectionId: selectedConnectionId.value,
-      calendarId: calendars.value[0]?.id,
       conversationId: props.conversationId,
       contactId: props.contactId,
       contactName: props.contactName,
@@ -122,7 +121,7 @@ const openEvent = event => {
 watch(
   () => props.conversationId,
   () => {
-    loadEvents();
+    modalRef.value?.close();
   }
 );
 
@@ -132,8 +131,8 @@ onMounted(async () => {
   } catch (error) {
     useAlert(t('SIDEBAR.CALENDAR_PAGE.LOAD_ERROR'));
   }
-  await loadEvents();
 });
+defineExpose({ refresh: loadEvents });
 </script>
 
 <template>
@@ -144,7 +143,7 @@ onMounted(async () => {
         xs
         icon="i-lucide-plus"
         :label="$t('CONVERSATION_SIDEBAR.CALENDAR.NEW')"
-        :disabled="!calendars.length"
+        :disabled="!connections.length"
         @click="openCreate"
       />
     </div>
@@ -157,6 +156,21 @@ onMounted(async () => {
     <div v-if="isLoading" class="flex justify-center p-8">
       <Spinner />
     </div>
+    <template v-else-if="hasError">
+      <div
+        v-if="!errorShownElsewhere"
+        role="alert"
+        class="px-4 py-3 text-sm text-n-ruby-11"
+      >
+        <p>{{ t('CONVERSATION_SIDEBAR.CALENDAR.LOAD_ERROR') }}</p>
+        <Button
+          sm
+          ghost
+          :label="t('CONVERSATION_SIDEBAR.CALENDAR.RETRY')"
+          @click="loadEvents"
+        />
+      </div>
+    </template>
     <div v-else-if="!hasEvents" class="flex justify-center p-4">
       <p class="text-sm text-n-slate-11">
         {{ $t('CONVERSATION_SIDEBAR.CALENDAR.EMPTY') }}
@@ -269,7 +283,6 @@ onMounted(async () => {
     <EventModal
       ref="modalRef"
       :connections="connections"
-      :calendars="calendars"
       :panel-ai-active="panelAiActive"
       @saved="onSaved"
     />

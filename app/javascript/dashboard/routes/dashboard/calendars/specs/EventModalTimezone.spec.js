@@ -20,6 +20,9 @@ vi.mock('dashboard/api/integrations/calendar', () => ({
     updateEvent: vi.fn(),
     lockEvent: vi.fn().mockResolvedValue({}),
     unlockEvent: vi.fn(),
+    getCalendars: vi.fn().mockImplementation(async () => ({
+      data: { payload: [{ id: 'cal-1' }] },
+    })),
     getInvitation: vi
       .fn()
       .mockResolvedValue({ data: { template: '{{fecha}} {{hora}}' } }),
@@ -35,6 +38,9 @@ const i18n = createI18n({
 });
 config.global.plugins = [i18n];
 beforeEach(() => {
+  CalendarAPI.getCalendars.mockResolvedValue({
+    data: { payload: [{ id: 'cal-1' }] },
+  });
   CalendarAPI.getInvitation.mockResolvedValue({
     data: { template: '{{fecha}} {{hora}}' },
   });

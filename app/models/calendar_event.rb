@@ -50,6 +50,7 @@ class CalendarEvent < ApplicationRecord
   scope :kept, -> { where(deleted_at: nil).where.not(appointment_status: 'cancelled') }
 
   before_update :release_booking_key_on_move
+  after_commit :broadcast_appointment_change, on: [:create, :update, :destroy]
   after_commit :enqueue_appointment_attributes_update, on: [:create, :update, :destroy]
 
   def discarded?
@@ -70,6 +71,19 @@ class CalendarEvent < ApplicationRecord
   # the moved event keeps its identity, while a new booking of the old interval gets a new event.
   def release_booking_key_on_move
     self.idempotency_key = nil if will_save_change_to_start_at? || will_save_change_to_end_at?
+  end
+
+  def broadcast_appointment_change
+    # Google reads may change only etag/updated_at; never turn a read into a reload loop.
+    fields = %w[contact_id conversation_id start_at end_at summary appointment_status invitation_status deleted_at created_by_id booking_source]
+    return unless destroyed? || previous_changes.keys.intersect?(fields)
+
+    contact_ids = [contact_id, previous_changes.dig('contact_id', 0)].compact.uniq
+    return if contact_ids.empty?
+
+    ActionCableBroadcastJob.perform_later(
+      ["account_#{account_id}"], 'calendar.events_changed', { account_id: account_id, contact_ids: contact_ids }
+    )
   end
 
   def enqueue_appointment_attributes_update

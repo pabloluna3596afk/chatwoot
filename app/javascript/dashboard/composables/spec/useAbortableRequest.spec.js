@@ -24,6 +24,20 @@ const abortableRunner =
     });
 
 describe('useAbortableRequest', () => {
+  it('discards a resolved response even when the transport ignores cancellation', async () => {
+    const request = useAbortableRequest();
+    let resolveOld;
+    const old = request.run(
+      () =>
+        new Promise(resolve => {
+          resolveOld = resolve;
+        })
+    );
+    await expect(request.run(async () => 'current')).resolves.toBe('current');
+    resolveOld('old');
+    await expect(old).resolves.toBeUndefined();
+  });
+
   it('passes a fresh signal to the runner and returns its result', async () => {
     const { run } = useAbortableRequest();
     let received = null;
