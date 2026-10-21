@@ -33,11 +33,11 @@ class Flows::ExecutionService
     end
   end
 
-  def advance_after_send!(node_id)
+  def advance_after_send!(node_id, result: 'sent')
     @run.reload
     return unless @run.active?
 
-    @run.append_to_trail!(node_id, 'sent')
+    @run.append_to_trail!(node_id, result)
     advance_unconditional!(node_id)
   end
 

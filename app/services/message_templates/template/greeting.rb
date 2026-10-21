@@ -3,8 +3,12 @@ class MessageTemplates::Template::Greeting
 
   def perform
     ActiveRecord::Base.transaction do
-      conversation.messages.create!(greeting_message_params)
+      message = conversation.messages.build(greeting_message_params)
+      message.variables_resolved!
+      message.save!
     end
+  rescue Variables::DeliveryRenderer::Error => e
+    Variables::Omission.create_note(conversation: conversation, surface: 'greeting', error: e)
   rescue StandardError => e
     ChatwootExceptionTracker.new(e, account: conversation.account).capture_exception
     true
@@ -16,7 +20,8 @@ class MessageTemplates::Template::Greeting
   delegate :inbox, to: :message
 
   def greeting_message_params
-    content = @conversation.inbox&.greeting_message
+    drops = Variables::ContextFactory.new(account: account, records: { conversation: conversation }).build(surface: 'message')
+    content = Variables::DeliveryRenderer.new(drops: drops).render(conversation.inbox.greeting_message, protect_code: true)
 
     {
       account_id: @conversation.account_id,

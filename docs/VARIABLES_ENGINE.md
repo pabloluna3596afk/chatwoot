@@ -44,17 +44,19 @@ Cada descriptor declara `id`, `reference`, `key`, `label`, `group`, `type`,
 }
 ```
 
-`conversation_id` es el `display_id` público. `contact_id`, `inbox_id` y
-`campaign_id` son IDs internos positivos de la cuenta. Solo se aceptan enteros
+`conversation_id` es el `display_id` público. `contact_id`, `inbox_id`,
+`campaign_id` y `flow_run_id` son IDs internos positivos de la cuenta. Solo se aceptan enteros
 JSON. Una conversación impone su contacto y Bandeja; se rechazan combinaciones
 incoherentes. Se consultan políticas Pundit y sus extensiones Enterprise.
 El contexto de campaña requiere administrador. No se aceptan datos completos
 de contacto ni un remitente arbitrario del cliente.
 
 `surface` admite `message` (predeterminado), `campaign`, `automation`, `flow`,
-`captain` y `email`. La PR A resuelve contextos base y campañas. Los contextos
-locales de cita/asistente/empresa/run/mail se declaran, pero sin proveedor del
-registro entregan `unavailable`; no se busca otra cita o run como respaldo.
+`captain` y `email`. La PR A resuelve contextos base y campañas. La PR F admite
+`flow_run_id` solo en superficie `flow`, junto con `conversation_id`: el run se
+busca dentro de esa conversación y se aplica su política de acceso. No se
+selecciona automáticamente un run activo. Los contextos locales sin proveedor
+del registro entregan `unavailable`; no se busca otra cita o run como respaldo.
 
 `mode: value` coincide con los valores de parámetros de plantillas.
 `mode: content` protege backticks como los mensajes. Se conservan filtros y
@@ -120,7 +122,8 @@ creación. Los backticks conservan la protección histórica de campañas.
 
 Citas concretas y su zona efectiva del calendario permanecen en el proveedor
 Captain para PR E. No se inventa una cita desde los derivados del contacto.
-Los locales de correo mantienen su contrato independiente hasta su migración.
+Los locales de correo conservan su contrato; la PR F resuelve el texto configurable
+`custom_message` antes de insertarlo como local, sin reinterpretar sus valores.
 
 ## Verificación
 
@@ -163,10 +166,54 @@ de propiedad; el selector ya filtraba estos destinos desde PR D.
 `ValueNormalizer` conserva los tipos de acciones y resuelve cada elemento de
 `multi_list` antes de devolverlo. Los valores JSON de API y respuestas Flow
 siguen siendo datos literales: no ejecutan Liquid suministrado por un visitante.
-Por compatibilidad, API/prechat conservan claves JSON sin definicion; su
-visibilidad y el diagnostico de importadores pertenecen a MV-16, pendiente.
+Por compatibilidad, API/prechat conservan claves JSON sin definicion.
 No se impone una nueva coercion de tipos a esos contratos existentes.
 
-Quedan sin migrar: contexto `flow.x`, herramientas HTTP, custom_message de
-notificaciones, saludos/prechat como superficies de lectura e importadores.
-No se modifican campa?as, proveedores, Panel AI ni plantillas aprobadas en Meta.
+## Cierre de superficies (PR F)
+
+`ContextFactory` recibe un `flow_run` explícito y expone sus valores como
+`flow.x` y `flow.variables.x`, dentro del grupo Flow. El nombre `variables` se
+reserva para el objeto completo; una clave del run llamada `variables` se lee
+mediante `flow.variables.variables`. No se agrega un scope oculto en `Liquidable`.
+El envío diferido de Flow resuelve contenido y botones antes de persistirlos,
+conserva los backticks y marca el snapshot como resuelto para evitar una segunda
+interpolación. Las notas y las acciones de captura del Flow usan el mismo contexto.
+Un envío incompleto se omite, deja nota privada y avanza con `skipped` en el trail.
+
+Las notificaciones de equipo resuelven `custom_message` antes de insertarlo en
+el correo, con el run explícito cuando proceden de un Flow. Los saludos de bandeja
+usan el mismo resolver y la zona de cuenta. Ambos omiten textos incompletos o
+inválidos con nota privada localizada; los valores insertados siguen siendo
+literales. Se retira `AutomationRules::MessageRendererService`, sin consumidores.
+No se cambian los demás locales o plantillas de correo del sistema.
+
+Las herramientas HTTP de Captain (V1 a través de su wrapper y V2) cargan contacto
+y conversación desde IDs de estado limitados a la cuenta del asistente. Usan la
+fábrica común para URL, cuerpo y formato de respuesta. Se conservan parámetros
+directos y alias `r`/`response`; los Drops disponibles tienen precedencia sobre
+parámetros homónimos. Una variable faltante impide la petición y devuelve ruta y
+estado localizados. Un fallo al resolver la respuesta se informa después de la
+petición; no puede deshacer una operación HTTP ya realizada. Autenticación,
+SafeFetch y el manejo de errores de transporte mantienen sus contratos.
+
+API y prechat siguen usando `Writer` y guardando JSON literal. Los importadores
+CSV, Intercom y Freshdesk también pasan sus atributos por el writer, respetando
+Calendar y fórmulas. CSV informa intentos de escritura protegida en el archivo de
+rechazados; los externos conservan su manejo de errores por registro.
+
+MV-16 se resuelve con avisos, sin crear definiciones automáticamente: inferir
+tipos de CSV o promover metadata técnica de proveedores cambiaría el catálogo
+de la cuenta. `ImportDiagnostics` acumula solo claves sin definición por scope,
+sin valores, en el resultado de la importación. El correo de finalización CSV
+incluye el aviso. Los externos muestran los avisos en su registro descargable y
+terminan `completed_with_errors`; los avisos no suman registros ficticios a
+`total_records` ni alteran los importados. El formato de entrada y los valores
+guardados se conservan. Crear la definición con la misma clave hace visible el
+valor existente, sin duplicarlo. La metadata de `additional_attributes.source`
+no se transforma en atributos CRM.
+
+No hay migraciones ni cambios de frontend, campañas, proveedores de mensajería,
+Panel AI, plantillas aprobadas en Meta o cobros. Las campañas conservan la regla
+de no crear conversaciones al enviarse. La compatibilidad Captain sin mappings
+descrita en PR E continúa vigente. El alcance F está implementado con specs por
+superficie; la confirmación integrada queda pendiente de RSpec en CI.

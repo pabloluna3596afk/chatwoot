@@ -7,6 +7,75 @@ RSpec.describe Captain::Tools::HttpTool, type: :model do
   let(:tool) { described_class.new(assistant, custom_tool) }
   let(:tool_context) { Struct.new(:state).new({}) }
 
+  describe 'shared variable rendering' do
+    let(:conversation) { create(:conversation, account: account) }
+    let(:tool_context) { Struct.new(:state).new({ conversation: { id: conversation.id } }) }
+
+    it 'renders CRM, assistant, request params and response aliases with one context' do
+      conversation.contact.update!(identifier: 'crm-id')
+      custom_tool.update!(http_method: 'POST', endpoint_url: 'https://example.com/{{ contact.identifier }}/{{ order_id }}',
+                          request_template: '{"id":"{{ contact.identifier }}"}',
+                          response_template: '{{ r.status }} / {{ response.status }} / {{ assistant.name }} / {{ contact.identifier }}')
+      stub_request(:post, 'https://example.com/crm-id/42').with(body: '{"id":"crm-id"}')
+                                                          .to_return(status: 200, body: '{"status":"ok"}')
+
+      expect(tool.perform(tool_context, order_id: '42')).to eq("ok / ok / #{assistant.name} / crm-id")
+    end
+
+    it 'does not allow tool parameters to replace trusted CRM contexts' do
+      conversation.contact.update!(identifier: 'trusted')
+      custom_tool.update!(endpoint_url: 'https://example.com/{{ contact.identifier }}', response_template: nil)
+      stub_request(:get, 'https://example.com/trusted').to_return(body: 'ok')
+
+      expect(tool.perform(tool_context, contact: { identifier: 'forged' })).to eq('ok')
+    end
+
+    it 'does not send a request with missing CRM data and returns the path and status' do
+      custom_tool.update!(endpoint_url: 'https://example.com/{{ contact.custom_attribute.absent }}')
+
+      expect(tool.perform(tool_context)).to eq('Template rendering failed: endpoint_url: missing')
+      expect(WebMock).not_to have_requested(:get, /example.com/)
+    end
+
+    it 'does not load a conversation from another account' do
+      other_conversation = create(:conversation)
+      tool_context.state[:conversation][:id] = other_conversation.id
+      custom_tool.update!(endpoint_url: 'https://example.com/{{ contact.identifier }}')
+
+      expect(tool.perform(tool_context)).to eq('Template rendering failed: endpoint_url: unavailable')
+    end
+
+    it 'omits a request with missing body data and reports its path' do
+      custom_tool.update!(http_method: 'POST', endpoint_url: 'https://example.com/data', request_template: '{{ contact.custom_attribute.absent }}')
+
+      expect(tool.perform(tool_context)).to eq('Template rendering failed: request_template: missing')
+      expect(WebMock).not_to have_requested(:post, 'https://example.com/data')
+    end
+
+    it 'uses the account timezone in HTTP templates' do
+      account.update!(reporting_timezone: 'America/Guayaquil')
+      custom_tool.update!(endpoint_url: 'https://example.com/{{ date.today }}', response_template: nil)
+      stub_request(:get, 'https://example.com/2026-10-19').to_return(body: 'ok')
+
+      travel_to Time.utc(2026, 10, 20, 2) do
+        expect(tool.perform(tool_context)).to eq('ok')
+      end
+    end
+
+    it 'reports missing response fields instead of returning a silent blank' do
+      custom_tool.update!(endpoint_url: 'https://example.com/data', response_template: '{{ response.absent }}')
+      stub_request(:get, 'https://example.com/data').to_return(body: '{}')
+
+      expect(tool.perform(tool_context)).to eq('Template rendering failed: response_template: missing')
+    end
+
+    it 'rejects invalid Liquid before making a request' do
+      custom_tool.update!(endpoint_url: 'https://example.com/{{ contact.identifier | unknown_filter }}')
+
+      expect(tool.perform(tool_context)).to eq('Template rendering failed: endpoint_url: invalid')
+    end
+  end
+
   describe '#active?' do
     it 'returns true when custom tool is enabled' do
       custom_tool.update!(enabled: true)

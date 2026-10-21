@@ -1,13 +1,17 @@
 class TeamNotifications::AutomationNotificationMailer < ApplicationMailer
-  def conversation_creation(conversation, team, message)
+  def conversation_creation(conversation, team, message, flow_run: nil)
     return unless smtp_config_set_or_development?
 
     @agents = team.team_members
     @conversation = conversation
-    @custom_message = message
+    records = { conversation: conversation, flow_run: flow_run }
+    drops = Variables::ContextFactory.new(account: conversation.account, records: records).build(surface: flow_run ? 'flow' : 'automation')
+    @custom_message = Variables::DeliveryRenderer.new(drops: drops).render(message, path: 'custom_message')
     @action_url = app_account_conversation_url(account_id: @conversation.account_id, id: @conversation.display_id)
 
     send_an_email_to_team
+  rescue Variables::DeliveryRenderer::Error => e
+    Variables::Omission.create_note(conversation: conversation, surface: 'notification', error: e)
   end
 
   private

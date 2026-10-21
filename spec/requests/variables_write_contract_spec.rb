@@ -61,4 +61,21 @@ RSpec.describe 'Variable write boundaries', type: :request do
     expect(response).to have_http_status(:success)
     expect(conversation.reload.custom_attributes).to eq('computed' => 3, 'ordinary' => 'value')
   end
+
+  it 'preserves literal JSON values and existing managed data through the authenticated API' do
+    patch "/api/v1/accounts/#{account.id}/contacts/#{contact.id}",
+          params: { custom_attributes: { literal: '{{ contact.email }}', flag: false } }, headers: admin.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(contact.reload.custom_attributes).to include('total_citas' => 3, 'literal' => '{{ contact.email }}', 'flag' => false)
+  end
+
+  it 'uses the same writer merge and literal-value contract for prechat' do
+    patch '/api/v1/widget/contact',
+          params: { website_token: web_widget.website_token, custom_attributes: { literal: '{{ contact.email }}', zero: 0 } },
+          headers: { 'X-Auth-Token' => token }, as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(contact.reload.custom_attributes).to include('total_citas' => 3, 'literal' => '{{ contact.email }}', 'zero' => 0)
+  end
 end
