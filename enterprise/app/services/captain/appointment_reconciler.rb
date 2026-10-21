@@ -3,7 +3,7 @@
 # - a booking still "pending confirmation" is confirmed (the customer said yes in the chat);
 # - the invite answer of the upcoming ones is read from Google;
 # - upcoming bookings with no reminder rows get their reminders;
-# - bookings whose Google event is gone are reported (never deleted here).
+# - confirmed Google absences cancel the local appointment when applying.
 # It only reports unless `apply` is true. Run it with: rake captain:appointments:reconcile[ACCOUNT_ID] (APPLY=1 to write).
 class Captain::AppointmentReconciler
   Result = Struct.new(:confirmed, :invitations, :reminders, :missing_in_google, :failed, keyword_init: true)
@@ -36,6 +36,8 @@ class Captain::AppointmentReconciler
     return unless upcoming?(event)
 
     check_google(event)
+    return if event.discarded? || @result.missing_in_google.include?(event.id)
+
     schedule_reminders(event)
   end
 
@@ -53,6 +55,8 @@ class Captain::AppointmentReconciler
 
   # One read of the Google event tells whether it still exists and what the customer answered to the invite.
   def check_google(event)
+    return apply_google(event) if @apply
+
     google_event = service_for(event).google_event_for(event)
     return report_missing(event) if google_event['status'] == 'cancelled'
 
@@ -66,6 +70,14 @@ class Captain::AppointmentReconciler
     raise unless [404, 410].include?(e.code.to_i)
 
     report_missing(event)
+  end
+
+  def apply_google(event)
+    previous_status = event.invitation_status
+    service_for(event).reconcile!(event)
+    return report_missing(event) if event.discarded?
+
+    @result.invitations << event.id if previous_status != event.invitation_status
   end
 
   def report_missing(event)

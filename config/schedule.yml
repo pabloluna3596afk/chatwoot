@@ -89,8 +89,13 @@ internal_chats_retention_job:
   class: 'InternalChats::RetentionJob'
   queue: purgable
 
-# executed At every minute..
-# sends the 24 h / 2 h reminders of appointments booked by Captain (a no-op in the community edition)
+# Linked human and Captain appointments, independent of calendar views.
+reconcile_calendar_events_job:
+  cron: '*/5 * * * *'
+  class: 'Calendar::ReconcileEventsJob'
+  queue: scheduled_jobs
+
+# Sends Captain's due reminders every minute (a no-op in the community edition).
 send_appointment_reminders_job:
   cron: '*/1 * * * *'
   class: 'Calendar::AppointmentRemindersJob'

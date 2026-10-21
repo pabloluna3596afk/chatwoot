@@ -1,4 +1,4 @@
-# Sends one due reminder (the dispatcher already holds the row lock).
+# Validates and sends one due reminder, locking the event before its reminder row.
 #
 # Inside the 24 h window it is a single free-form message with [Confirmo] [Cambiar hora] [Cancelar cita]
 # buttons (just the last two once the customer confirmed). Outside it, WhatsApp only accepts an approved
@@ -20,14 +20,35 @@ class Captain::AppointmentReminders::Sender
 
   # Returns :sent, :skipped or :waiting.
   def perform
+    event.with_lock do
+      return :skipped unless reminder.reload.pending?
+      return :waiting if reminder.scheduled_at > now
+      return skip('event_gone') unless upcoming_event?
+      return :waiting unless refresh_event
+
+      reminder.with_lock { deliver }
+    end
+  end
+
+  private
+
+  def refresh_event
+    Integrations::GoogleCalendar::EventService.new(account: account, user: nil, connection: event.calendar_connection).reconcile!(event)
+    true
+  rescue Integrations::GoogleCalendar::Client::Error, Timeout::Error, SocketError, SystemCallError => e
+    Rails.logger.warn("Google Calendar reminder validation failed for event #{event.id}: #{e.class}")
+    false
+  end
+
+  def deliver
+    return :skipped unless reminder.pending?
+    return :waiting if reminder.scheduled_at > now
     return skip('event_gone') unless upcoming_event?
     return skip('disabled') unless active?
     return :waiting unless cap.within_cap?
 
     conversation.can_reply? ? send_free_form : send_template
   end
-
-  private
 
   attr_reader :reminder, :now
 
