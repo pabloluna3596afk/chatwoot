@@ -65,11 +65,16 @@ class Api::V1::Widget::ConversationsController < Api::V1::Widget::BaseController
   end
 
   def set_custom_attributes
-    conversation.update!(custom_attributes: permitted_params[:custom_attributes])
+    attributes = Variables::Writer.new(account: conversation.account).patch(
+      scope: 'conversation', current: conversation.custom_attributes, values: params[:custom_attributes], replace: true
+    )
+    conversation.update!(custom_attributes: attributes)
   end
 
   def destroy_custom_attributes
-    conversation.custom_attributes = conversation.custom_attributes.excluding(params[:custom_attribute])
+    conversation.custom_attributes = Variables::Writer.new(account: conversation.account).remove(
+      scope: 'conversation', current: conversation.custom_attributes, keys: params[:custom_attribute]
+    )
     conversation.save!
     render json: conversation
   end

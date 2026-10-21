@@ -2,6 +2,9 @@ class ConversationBuilder
   pattr_initialize [:params!, :contact_inbox!]
 
   def perform
+    if params.key?(:custom_attributes)
+      Variables::Writer.new(account: @contact_inbox.inbox.account).patch(scope: 'conversation', values: params[:custom_attributes])
+    end
     look_up_exising_conversation || create_new_conversation
   end
 

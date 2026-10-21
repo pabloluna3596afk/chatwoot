@@ -27,7 +27,12 @@ const props = defineProps({
 const companiesStore = useCompaniesStore();
 const { t } = useI18n();
 
+const isReadOnly = computed(
+  () => !!(props.attribute.managedBy || props.attribute.formula)
+);
+
 const handleDelete = async () => {
+  if (isReadOnly.value) return;
   try {
     await companiesStore.deleteCustomAttributes({
       id: props.companyId,
@@ -43,6 +48,7 @@ const handleDelete = async () => {
 };
 
 const handleUpdate = async value => {
+  if (isReadOnly.value) return;
   try {
     await companiesStore.update({
       id: props.companyId,
@@ -87,7 +93,8 @@ const CurrentAttributeComponent = computed(
     <component
       :is="CurrentAttributeComponent"
       :attribute="attribute"
-      :is-editing-view="isEditingView"
+      :is-editing-view="isEditingView && !isReadOnly"
+      :read-only="isReadOnly"
       @update="handleUpdate"
       @delete="handleDelete"
     />

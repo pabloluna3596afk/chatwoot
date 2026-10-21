@@ -27,7 +27,9 @@ class Api::V1::Widget::ContactsController < Api::V1::Widget::BaseController
 
   # TODO : clean up this with proper routes delete contacts/custom_attributes
   def destroy_custom_attributes
-    @contact.custom_attributes = @contact.custom_attributes.excluding(params[:custom_attributes])
+    @contact.custom_attributes = Variables::Writer.new(account: @contact.account).remove(
+      scope: 'contact', current: @contact.custom_attributes, keys: params[:custom_attributes]
+    )
     @contact.save!
     render json: @contact
   end
@@ -85,6 +87,8 @@ class Api::V1::Widget::ContactsController < Api::V1::Widget::BaseController
   end
 
   def permitted_params
+    Variables::Writer.new(account: @contact.account).patch(scope: 'contact', values: params[:custom_attributes]) if params.key?(:custom_attributes)
+
     params.permit(:website_token, :identifier, :identifier_hash, :email, :name, :avatar_url, :phone_number, custom_attributes: {},
                                                                                                             additional_attributes: {})
   end

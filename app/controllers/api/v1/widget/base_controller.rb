@@ -40,7 +40,7 @@ class Api::V1::Widget::BaseController < ApplicationController
         initiated_at: timestamp_params,
         referer: permitted_params[:message][:referer_url]
       },
-      custom_attributes: permitted_params[:custom_attributes].presence || {}
+      custom_attributes: Variables::Writer.new(account: inbox.account).patch(scope: 'conversation', values: params.fetch(:custom_attributes, {}))
     }
   end
 

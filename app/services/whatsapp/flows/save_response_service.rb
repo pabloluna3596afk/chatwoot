@@ -133,13 +133,7 @@ class Whatsapp::Flows::SaveResponseService
   end
 
   def contact_attributes(target, value)
-    if target.start_with?(Whatsapp::Flows::SaveTargets::CUSTOM_PREFIX)
-      { custom_attributes: @contact.custom_attributes.merge(target.delete_prefix(Whatsapp::Flows::SaveTargets::CUSTOM_PREFIX) => value) }
-    elsif %w[contact.company_name contact.city].include?(target)
-      { additional_attributes: @contact.additional_attributes.merge(target.delete_prefix('contact.') => value) }
-    else
-      { (target == 'contact.phone' ? 'phone_number' : target.delete_prefix('contact.')) => value }
-    end
+    Variables::Writer.new(account: @contact.account).attributes(record: @contact, target: target, value: value, context: 'whatsapp_flow')
   end
 
   def note(name)

@@ -1,5 +1,4 @@
 module Whatsapp::Flows::SaveTargets
-  STANDARD = %w[contact.name contact.email contact.phone contact.company_name contact.city contact.document_number].freeze
   CUSTOM_PREFIX = 'contact.custom_attribute.'.freeze
   ALLOWED_TYPES = {
     'short_text' => %w[text number].freeze,
@@ -23,16 +22,12 @@ module Whatsapp::Flows::SaveTargets
     return false unless target.is_a?(String)
 
     custom = attribute(account, target)
-    return false unless writable_target?(target, custom)
+    return false unless Variables::Writer.new(account: account).target(target, context: 'whatsapp_flow')
 
     type = custom ? custom.attribute_display_type : 'text'
     return false unless ALLOWED_TYPES.fetch(block['type'], []).include?(type)
 
     compatible_constraints?(block, type, custom)
-  end
-
-  def writable_target?(target, custom)
-    (STANDARD.include?(target) || custom) && !custom&.formula?
   end
 
   def compatible_constraints?(block, type, custom)
@@ -42,7 +37,7 @@ module Whatsapp::Flows::SaveTargets
     true
   end
 
-  private_class_method :writable_target?, :compatible_constraints?
+  private_class_method :compatible_constraints?
 
   def compatible_options?(block, custom)
     Array(block['options']).all? do |option|

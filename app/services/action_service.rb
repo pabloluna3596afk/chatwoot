@@ -120,44 +120,14 @@ class ActionService
       return
     end
 
-    definition = find_writable_custom_attribute(attribute_key, :contact_attribute)
-    if definition.blank?
-      Rails.logger.warn("[Automation] update_contact_custom_attribute skipped: no contact attribute '#{attribute_key}' on account #{@account.id}")
-      return
-    end
-    if definition.formula?
-      Rails.logger.warn("[Automation] update_contact_custom_attribute skipped: '#{attribute_key}' is a formula attribute")
-      return
-    end
-
-    contact = @conversation.contact
-    attrs = (contact.custom_attributes || {}).merge(
-      attribute_key => normalize_custom_attribute_value(definition, value)
-    )
-    contact.update!(custom_attributes: attrs)
+    write_custom_attribute(@conversation.contact, 'contact', attribute_key, value)
   end
 
   def update_conversation_custom_attribute(params)
     attribute_key, value = extract_custom_attribute_params(params)
-    if attribute_key.blank?
-      Rails.logger.warn("[Automation] update_conversation_custom_attribute skipped: blank attribute_key params=#{params.inspect}")
-      return
-    end
+    return if attribute_key.blank?
 
-    definition = find_writable_custom_attribute(attribute_key, :conversation_attribute)
-    if definition.blank?
-      Rails.logger.warn("[Automation] update_conversation_custom_attribute skipped: no conversation attribute '#{attribute_key}' on account #{@account.id}")
-      return
-    end
-    if definition.formula?
-      Rails.logger.warn("[Automation] update_conversation_custom_attribute skipped: '#{attribute_key}' is a formula attribute")
-      return
-    end
-
-    attrs = (@conversation.custom_attributes || {}).merge(
-      attribute_key => normalize_custom_attribute_value(definition, value)
-    )
-    @conversation.update!(custom_attributes: attrs)
+    write_custom_attribute(@conversation, 'conversation', attribute_key, value)
   end
 
   MAX_DELIVERY_DELAY_SECONDS = 25
@@ -311,75 +281,15 @@ class ActionService
     [data[:attribute_key].to_s, data[:value]]
   end
 
-  def find_writable_custom_attribute(attribute_key, attribute_model)
-    @account.custom_attribute_definitions.find_by(
-      attribute_key: attribute_key,
-      attribute_model: attribute_model
-    )
-  end
+  def write_custom_attribute(record, scope, key, raw_value)
+    writer = Variables::Writer.new(account: @account)
+    target = "#{scope}.custom_attribute.#{key}"
+    return unless writer.target(target, context: 'automation')
 
-  def normalize_custom_attribute_value(definition, raw_value)
-    return Array.wrap(raw_value).map(&:to_s) if definition.attribute_display_type == 'multi_list'
-
-    rendered = render_custom_attribute_template(raw_value)
-
-    case definition.attribute_display_type
-    when 'number', 'currency', 'percent'
-      Float(rendered)
-    when 'checkbox'
-      ActiveModel::Type::Boolean.new.cast(rendered)
-    when 'date'
-      parse_custom_attribute_date(rendered)
-    when 'datetime'
-      parse_custom_attribute_datetime(rendered)
-    else
-      # text, link, list, and any other type
-      rendered.to_s
-    end
-  rescue ArgumentError, TypeError => e
-    Rails.logger.warn("[Automation] custom attribute normalize failed for #{definition.attribute_key}: #{e.message}")
-    # Do not persist garbage into typed date/number fields.
-    raise if %w[date datetime number currency percent].include?(definition.attribute_display_type)
-
-    raw_value.to_s
-  end
-
-  def render_custom_attribute_template(raw_value)
-    text = raw_value.to_s
-    return text unless text.include?('{{')
-
-    AutomationRules::MessageRendererService.new(@conversation, text).perform
-  end
-
-  def parse_custom_attribute_date(rendered)
-    return rendered.iso8601 if rendered.is_a?(Date)
-    return rendered.to_date.iso8601 if rendered.is_a?(Time) || rendered.is_a?(DateTime)
-
-    text = rendered.to_s.strip
-    # Native date inputs and Liquid relative dates resolve to ISO YYYY-MM-DD:
-    # {{ date.today }}, {{ date.today | plus_days: N }}, {{ date.today | minus_days: N }}.
-    if text.match?(/\A\d{4}-\d{2}-\d{2}\z/)
-      return Date.iso8601(text).iso8601
-    end
-
-    %w[%d/%m/%Y %m/%d/%Y %Y/%m/%d].each do |fmt|
-      return Date.strptime(text, fmt).iso8601
-    rescue ArgumentError
-      next
-    end
-
-    raise ArgumentError, "invalid date: #{text}"
-  end
-
-  def parse_custom_attribute_datetime(rendered)
-    return rendered.iso8601 if rendered.is_a?(Time) || rendered.is_a?(DateTime)
-    return rendered.to_time.iso8601 if rendered.is_a?(Date)
-
-    text = rendered.to_s.strip
-    parsed = Time.zone.parse(text)
-    raise ArgumentError, "invalid datetime: #{text}" if parsed.blank?
-
-    parsed.iso8601
+    definition = @account.custom_attribute_definitions.find_by!(attribute_key: key, attribute_model: "#{scope}_attribute")
+    drops = Variables::ContextFactory.new(account: @account, records: { conversation: @conversation }).build(surface: 'automation')
+    value = Variables::ValueNormalizer.new(drops: drops).normalize(definition, raw_value)
+    record.update!(writer.attributes(record: record, target: target, value: value, context: 'automation'))
   end
 
   def last_responding_agent_id

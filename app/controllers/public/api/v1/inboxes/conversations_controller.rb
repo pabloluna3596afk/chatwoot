@@ -62,6 +62,10 @@ class Public::Api::V1::Inboxes::ConversationsController < Public::Api::V1::Inbox
   end
 
   def conversation_params
+    if params.key?(:custom_attributes)
+      Variables::Writer.new(account: @contact_inbox.inbox.account).patch(scope: 'conversation', values: params[:custom_attributes])
+    end
+
     params.permit(custom_attributes: {})
   end
 end

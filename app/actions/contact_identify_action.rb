@@ -10,6 +10,9 @@ class ContactIdentifyAction
   pattr_initialize [:contact!, :params!, { retain_original_contact_name: false, discard_invalid_attrs: false }]
 
   def perform
+    if params.key?(:custom_attributes) && !params[:custom_attributes].nil?
+      Variables::Writer.new(account: account).patch(scope: 'contact', values: params[:custom_attributes])
+    end
     @attributes_to_update = [:identifier, :name, :email, :phone_number]
 
     ActiveRecord::Base.transaction do
@@ -128,7 +131,7 @@ class ContactIdentifyAction
   def custom_attributes
     return @contact.custom_attributes if params[:custom_attributes].blank?
 
-    (@contact.custom_attributes || {}).deep_merge(params[:custom_attributes].stringify_keys)
+    Variables::Writer.new(account: account).patch(scope: 'contact', current: @contact.custom_attributes || {}, values: params[:custom_attributes])
   end
 
   def additional_attributes

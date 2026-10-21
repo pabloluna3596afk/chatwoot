@@ -88,7 +88,7 @@ class Variables::Catalog
   def attribute_entry(definition)
     scope = definition.attribute_model.delete_suffix('_attribute')
     path = "#{scope}.custom_attribute.#{definition.attribute_key}"
-    managed_by = owner(definition)
+    managed_by = Variables::Ownership.for(definition)
     entry = descriptor(scope, path, type: definition.attribute_display_type, managed_by: managed_by, writable: managed_by.nil?)
     entry.merge(
       id: "#{scope}.custom_attribute:#{definition.id}",
@@ -97,16 +97,6 @@ class Variables::Catalog
       aliases: attribute_aliases(scope, definition.attribute_key),
       expression: "{{ #{scope}.custom_attribute['#{definition.attribute_key}'] }}"
     )
-  end
-
-  def owner(definition)
-    return 'formula' if definition.formula?
-
-    calendar_types = Calendar::AppointmentAttributes::Definitions::TYPES
-    return unless definition.contact_attribute? && calendar_types[definition.attribute_key] == definition.attribute_display_type
-    return unless Calendar::AppointmentAttributes::Definitions.enabled_keys(@account).include?(definition.attribute_key)
-
-    'calendar'
   end
 
   def attribute_aliases(scope, key)

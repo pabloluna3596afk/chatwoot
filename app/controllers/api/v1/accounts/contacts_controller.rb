@@ -97,7 +97,9 @@ class Api::V1::Accounts::ContactsController < Api::V1::Accounts::BaseController
 
   # TODO : refactor this method into dedicated contacts/custom_attributes controller class and routes
   def destroy_custom_attributes
-    @contact.custom_attributes = @contact.custom_attributes.excluding(params[:custom_attributes])
+    @contact.custom_attributes = Variables::Writer.new(account: Current.account).remove(
+      scope: 'contact', current: @contact.custom_attributes, keys: params[:custom_attributes]
+    )
     @contact.save!
   end
 
@@ -221,6 +223,8 @@ class Api::V1::Accounts::ContactsController < Api::V1::Accounts::BaseController
   end
 
   def permitted_params
+    Variables::Writer.new(account: Current.account).patch(scope: 'contact', values: params[:custom_attributes]) if params.key?(:custom_attributes)
+
     params.permit(:name, :identifier, :document_number, :email, :phone_number, :avatar, :blocked, :chat_bot, :avatar_url,
                   additional_attributes: {}, custom_attributes: {})
   end

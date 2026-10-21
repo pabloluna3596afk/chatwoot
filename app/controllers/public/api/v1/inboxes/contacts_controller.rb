@@ -48,6 +48,10 @@ class Public::Api::V1::Inboxes::ContactsController < Public::Api::V1::InboxesCon
   end
 
   def permitted_params
+    if params.key?(:custom_attributes)
+      Variables::Writer.new(account: @inbox_channel.inbox.account).patch(scope: 'contact', values: params[:custom_attributes])
+    end
+
     params.permit(:identifier, :identifier_hash, :email, :name, :avatar_url, :phone_number, custom_attributes: {})
   end
 end

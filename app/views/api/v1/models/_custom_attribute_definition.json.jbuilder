@@ -11,5 +11,6 @@ json.default_value resource.default_value
 json.featured resource.featured
 json.category resource.category
 json.formula resource.formula
+json.managed_by Variables::Ownership.for(resource)
 json.created_at resource.created_at
 json.updated_at resource.updated_at
