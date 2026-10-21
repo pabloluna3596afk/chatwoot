@@ -49,6 +49,11 @@ RSpec.describe 'Calendar Integration API', type: :request do
         'start' => { 'dateTime' => kwargs[:start_at].iso8601 }, 'end' => { 'dateTime' => kwargs[:end_at].iso8601 } }
     end
     allow(client).to receive(:delete_event).and_return({})
+    allow(client).to receive(:get_event) do |event_id:, **|
+      record = connection.calendar_events.find_by!(google_event_id: event_id)
+      { 'id' => event_id, 'etag' => record.etag, 'summary' => record.summary,
+        'start' => { 'dateTime' => record.start_at.iso8601 }, 'end' => { 'dateTime' => record.end_at.iso8601 } }
+    end
   end
 
   after { Redis::Alfred.delete(event_lock_key('stale-1')) }
