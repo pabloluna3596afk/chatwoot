@@ -198,8 +198,7 @@ export default {
       return [];
     },
     insertMessageVariable(token) {
-      const current = this.castMessageVmodel || '';
-      this.castMessageVmodel = current ? `${current} ${token}` : token;
+      this.$refs.messageEditor.insertVariable(token);
     },
     updateDelivery(partial) {
       const next = { ...this.delivery, ...partial };
@@ -234,7 +233,7 @@ export default {
 </script>
 
 <template>
-  <li class="list-none py-2 first:pt-0 last:pb-0">
+  <li class="min-w-0 list-none py-2 first:pt-0 last:pb-0">
     <div
       class="flex flex-col gap-2"
       :class="{ 'animate-wiggle': errorMessage }"
@@ -318,7 +317,6 @@ export default {
       <AutomationActionCustomAttributeInput
         v-if="isCustomAttributeAction || inputType === 'custom_attribute'"
         v-model="action_params"
-        :attributes="dropdownValues || []"
         :attribute-model="
           action_name === 'update_conversation_custom_attribute'
             ? 'conversation_attribute'
@@ -328,7 +326,9 @@ export default {
       />
       <WootMessageEditor
         v-else-if="inputType === 'textarea'"
+        ref="messageEditor"
         v-model="castMessageVmodel"
+        variable-context="automation"
         rows="4"
         enable-variables
         :placeholder="$t('AUTOMATION.ACTION.TEAM_MESSAGE_INPUT_PLACEHOLDER')"
@@ -336,12 +336,16 @@ export default {
       />
       <div
         v-if="inputType === 'textarea'"
-        class="flex items-center justify-between gap-2 mt-1"
+        class="flex flex-wrap items-center justify-between gap-2 mt-1"
       >
-        <span class="text-xs text-n-slate-11">
+        <span class="min-w-0 flex-1 basis-40 text-xs text-n-slate-11">
           {{ $t('AUTOMATION.ACTION.VARIABLES_HINT') }}
         </span>
-        <InsertVariableButton @insert="insertMessageVariable" />
+        <InsertVariableButton
+          context="automation"
+          @insert="insertMessageVariable"
+          @close="$refs.messageEditor.focusEditorInputField(null)"
+        />
       </div>
       <div
         v-if="showDeliveryOptions"

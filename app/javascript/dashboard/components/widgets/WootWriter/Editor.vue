@@ -84,6 +84,7 @@ const props = defineProps({
   enableSuggestions: { type: Boolean, default: true },
   overrideLineBreaks: { type: Boolean, default: false },
   updateSelectionWith: { type: String, default: '' },
+  variableContext: { type: String, default: 'message' },
   enableVariables: { type: Boolean, default: false },
   enableCannedResponses: { type: Boolean, default: true },
   enableCaptainTools: { type: Boolean, default: false },
@@ -418,6 +419,10 @@ watch(showToolsMenu, updatedValue => {
 });
 
 function focusEditorInputField(pos = 'end') {
+  if (pos === null) {
+    editorView.focus();
+    return;
+  }
   const { tr } = editorView.state;
 
   const selection =
@@ -769,7 +774,12 @@ function insertSpecialContent(type, content) {
     editorView,
     type,
     content,
-    range.value,
+    type === 'variable'
+      ? {
+          ...range.value,
+          to: Math.min(range.value.to, editorView.state.selection.to),
+        }
+      : range.value,
     props.variables
   );
 
@@ -934,7 +944,13 @@ onMounted(() => {
   }
 });
 
-defineExpose({ focusEditorInputField });
+// Toolbar pickers keep the ProseMirror selection while their search owns focus.
+function insertVariable(expression) {
+  editorView.dispatch(editorView.state.tr.insertText(expression));
+  editorView.focus();
+}
+
+defineExpose({ focusEditorInputField, insertVariable });
 
 // BUS Event to insert text or markdown into the editor at the
 // current cursor position.
@@ -976,7 +992,7 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
       v-if="shouldShowVariables"
       :caret-position="caretPosition"
       :search-key="variableSearchKey"
-      :variables="variables"
+      :context="variableContext"
       @close="dismissVariables"
       @remove-trigger="removeSuggestionTrigger"
       @select-variable="content => insertSpecialContent('variable', content)"

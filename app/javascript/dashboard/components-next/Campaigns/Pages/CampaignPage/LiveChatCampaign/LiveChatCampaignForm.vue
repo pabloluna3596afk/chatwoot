@@ -6,8 +6,6 @@ import { required, minLength } from '@vuelidate/validators';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import { URLPattern } from 'urlpattern-polyfill';
-import { emitter } from 'shared/helpers/mitt';
-import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { getRandomColor } from 'dashboard/helper/labelColor';
 
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -216,9 +214,9 @@ watch(
 
 defineExpose({ prepareCampaignDetails, isSubmitDisabled });
 
-const insertMessageVariable = liquid => {
-  emitter.emit(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, liquid);
-};
+const messageEditor = ref(null);
+const insertMessageVariable = liquid =>
+  messageEditor.value.insertVariable(liquid);
 </script>
 
 <template>
@@ -247,14 +245,17 @@ const insertMessageVariable = liquid => {
         <InsertVariableButton
           context="campaign"
           @insert="insertMessageVariable"
+          @close="messageEditor.focusSelection()"
         />
       </div>
       <Editor
+        ref="messageEditor"
         v-model="state.message"
         :placeholder="t('CAMPAIGN.LIVE_CHAT.CREATE.FORM.MESSAGE.PLACEHOLDER')"
         :message="formErrors.message"
         :message-type="formErrors.message ? 'error' : 'info'"
         enable-variables
+        variable-context="campaign"
         :enable-canned-responses="false"
       />
     </div>

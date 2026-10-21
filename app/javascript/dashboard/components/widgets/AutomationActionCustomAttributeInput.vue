@@ -1,6 +1,7 @@
 <script>
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
-import { useMapGetter } from 'dashboard/composables/store';
+import { useVariableCatalog } from 'dashboard/composables/useVariableCatalog';
+import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
 import NextInput from 'dashboard/components-next/input/Input.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import InsertVariableButton from 'dashboard/components-next/variable/InsertVariableButton.vue';
@@ -11,12 +12,12 @@ const MAX_RELATIVE_DAYS = 365;
 export default {
   components: {
     ComboBox,
+    VariablePicker,
     NextInput,
     NextButton,
     InsertVariableButton,
   },
   props: {
-    attributes: { type: Array, default: () => [] },
     modelValue: { type: [Object, Array], default: () => ({}) },
     attributeModel: {
       type: String,
@@ -27,11 +28,8 @@ export default {
   },
   emits: ['update:modelValue'],
   setup() {
-    const contactAttributes = useMapGetter('attributes/getContactAttributes');
-    const conversationAttributes = useMapGetter(
-      'attributes/getConversationAttributes'
-    );
-    return { contactAttributes, conversationAttributes };
+    const { variables } = useVariableCatalog('automation');
+    return { catalogVariables: variables };
   },
   data() {
     return {
@@ -42,36 +40,30 @@ export default {
     };
   },
   computed: {
-    storeAttributes() {
-      if (this.attributeModel === 'conversation_attribute') {
-        return this.conversationAttributes || [];
-      }
-      return this.contactAttributes || [];
+    targetPath() {
+      const scope = this.attributeModel.replace('_attribute', '');
+      return this.selectedKey
+        ? `${scope}.custom_attribute.${this.selectedKey}`
+        : '';
     },
     attributeOptions() {
-      const source =
-        this.attributes?.length > 0 ? this.attributes : this.storeAttributes;
-
-      return (source || [])
-        .filter(attr => !attr.formula && !attr.attributeFormula)
-        .map(attr => {
-          const displayType = this.normalizeDisplayType(attr);
-          return {
-            id: attr.attributeKey || attr.attribute_key || attr.id,
-            name:
-              attr.name ||
-              attr.attributeDisplayName ||
-              attr.attribute_display_name ||
-              attr.attributeKey ||
-              attr.attribute_key,
-            displayType,
-            values:
-              attr.values ||
-              attr.attributeValues ||
-              attr.attribute_values ||
-              [],
-          };
-        });
+      const scope = this.attributeModel.replace('_attribute', '');
+      return this.catalogVariables
+        .filter(
+          attribute =>
+            attribute.available &&
+            attribute.writable &&
+            !attribute.managedBy &&
+            attribute.writeContexts.includes('automation') &&
+            attribute.reference.kind === 'custom_attribute' &&
+            attribute.reference.scope === scope
+        )
+        .map(attribute => ({
+          id: attribute.key,
+          name: attribute.label,
+          displayType: attribute.type,
+          values: attribute.options,
+        }));
     },
     selectedKey: {
       get() {
@@ -184,25 +176,10 @@ export default {
     },
   },
   methods: {
-    normalizeDisplayType(attr) {
-      const map = {
-        0: 'text',
-        1: 'number',
-        2: 'currency',
-        3: 'percent',
-        4: 'link',
-        5: 'date',
-        6: 'list',
-        7: 'checkbox',
-        8: 'datetime',
-      };
-      const raw =
-        attr.displayType ??
-        attr.attributeDisplayType ??
-        attr.attribute_display_type ??
-        'text';
-      if (typeof raw === 'number') return map[raw] || 'text';
-      return String(raw);
+    selectTarget(binding) {
+      this.selectedKey = this.catalogVariables.find(
+        variable => variable.id === binding.id
+      ).key;
     },
     emitValue(attributeKey, value) {
       let nextValue = value ?? '';
@@ -226,13 +203,20 @@ export default {
       });
     },
     insertVariable(token) {
+      const input = this.$refs.valueInput?.$el.querySelector('input');
+      const current = String(this.selectedValue || '');
+      const isFixedDate =
+        /^\d{4}-\d{2}-\d{2}/.test(current) && !current.includes('{{');
+      const from = isFixedDate ? 0 : (input?.selectionStart ?? current.length);
+      const to = isFixedDate ? current.length : (input?.selectionEnd ?? from);
       this.preferLiquidMode = true;
       this.$nextTick(() => {
-        const current = String(this.selectedValue || '');
-        const isFixedDate =
-          /^\d{4}-\d{2}-\d{2}/.test(current) && !current.includes('{{');
-        this.selectedValue =
-          !current || isFixedDate ? token : `${current}${token}`;
+        this.selectedValue = `${current.slice(0, from)}${token}${current.slice(to)}`;
+        this.$nextTick(() => {
+          const field = this.$refs.valueInput?.$el.querySelector('input');
+          field?.focus();
+          field?.setSelectionRange(from + token.length, from + token.length);
+        });
       });
     },
     buildRelativeLiquid(base, days) {
@@ -302,19 +286,18 @@ export default {
         {{ $t('AUTOMATION.ACTION.CUSTOM_ATTRIBUTE_LABEL') }}
       </label>
       <div class="relative">
-        <ComboBox
-          v-model="selectedKey"
-          teleport
-          :allow-deselect="false"
-          :options="[
-            ...attributeOptions.map(attr => ({
-              value: attr.id,
-              label: attr.name,
-            })),
-          ]"
+        <VariablePicker
+          :model-value="targetPath"
+          mode="write"
+          surface="automation"
+          write-context="automation"
+          value-format="path"
+          :scopes="[attributeModel.replace('_attribute', '')]"
+          :filter="binding => binding.reference.kind === 'custom_attribute'"
           :placeholder="
             $t('AUTOMATION.ACTION.CUSTOM_ATTRIBUTE_SELECT_PLACEHOLDER')
           "
+          @select="selectTarget"
         />
       </div>
       <p v-if="!attributeOptions.length" class="text-xs text-n-ruby-11 m-0">
@@ -322,7 +305,11 @@ export default {
       </p>
     </div>
 
-    <div v-if="selectedKey" class="flex flex-col gap-1.5">
+    <fieldset
+      v-if="selectedKey"
+      :disabled="!selectedAttribute"
+      class="flex min-w-0 flex-col gap-1.5 border-0 p-0 m-0"
+    >
       <label class="text-sm font-medium text-n-slate-12">
         {{ $t('AUTOMATION.ACTION.CUSTOM_ATTRIBUTE_VALUE_LABEL') }}
       </label>
@@ -418,6 +405,7 @@ export default {
 
       <template v-else-if="isDateAttribute && valueUsesLiquid">
         <NextInput
+          ref="valueInput"
           v-model="selectedValue"
           type="text"
           size="sm"
@@ -445,7 +433,12 @@ export default {
       </template>
 
       <template v-else-if="isDateAttribute">
-        <NextInput v-model="selectedValue" type="date" size="sm" />
+        <NextInput
+          ref="valueInput"
+          v-model="selectedValue"
+          type="date"
+          size="sm"
+        />
         <div class="flex flex-wrap items-center gap-2">
           <NextButton
             xs
@@ -522,13 +515,17 @@ export default {
               :label="$t('AUTOMATION.ACTION.CUSTOM_ATTRIBUTE_DATE_PICK_FIXED')"
               @click="useFixedDate"
             />
-            <InsertVariableButton @insert="insertVariable" />
+            <InsertVariableButton
+              context="automation"
+              @insert="insertVariable"
+            />
           </div>
         </div>
       </template>
 
       <template v-else-if="isDatetimeAttribute && valueUsesLiquid">
         <NextInput
+          ref="valueInput"
           v-model="selectedValue"
           type="text"
           size="sm"
@@ -545,12 +542,17 @@ export default {
             :label="$t('AUTOMATION.ACTION.CUSTOM_ATTRIBUTE_DATE_PICK_FIXED')"
             @click="useFixedDate"
           />
-          <InsertVariableButton @insert="insertVariable" />
+          <InsertVariableButton context="automation" @insert="insertVariable" />
         </div>
       </template>
 
       <template v-else-if="isDatetimeAttribute">
-        <NextInput v-model="selectedValue" type="datetime-local" size="sm" />
+        <NextInput
+          ref="valueInput"
+          v-model="selectedValue"
+          type="datetime-local"
+          size="sm"
+        />
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex flex-wrap items-center gap-2">
             <NextButton
@@ -570,12 +572,13 @@ export default {
               +{{ days }}
             </button>
           </div>
-          <InsertVariableButton @insert="insertVariable" />
+          <InsertVariableButton context="automation" @insert="insertVariable" />
         </div>
       </template>
 
       <template v-else>
         <NextInput
+          ref="valueInput"
           v-model="selectedValue"
           :type="inputType"
           size="sm"
@@ -585,9 +588,9 @@ export default {
           v-if="showVariablePicker"
           class="flex items-center justify-end gap-2"
         >
-          <InsertVariableButton @insert="insertVariable" />
+          <InsertVariableButton context="automation" @insert="insertVariable" />
         </div>
       </template>
-    </div>
+    </fieldset>
   </div>
 </template>

@@ -18,6 +18,7 @@ const props = defineProps({
     default: 'info',
     validator: value => ['info', 'error', 'success'].includes(value),
   },
+  variableContext: { type: String, default: 'message' },
   enableVariables: { type: Boolean, default: false },
   enableCannedResponses: { type: Boolean, default: true },
   enableCaptainTools: { type: Boolean, default: false },
@@ -33,6 +34,11 @@ const emit = defineEmits(['update:modelValue', 'executeCopilotAction']);
 const slots = useSlots();
 
 const isFocused = ref(false);
+const writer = ref(null);
+defineExpose({
+  insertVariable: expression => writer.value.insertVariable(expression),
+  focusSelection: () => writer.value.focusEditorInputField(null),
+});
 
 const characterCount = computed(() => props.modelValue.length);
 
@@ -97,6 +103,8 @@ watch(
       ]"
     >
       <WootEditor
+        ref="writer"
+        :variable-context="variableContext"
         :editor-id="editorKey"
         :model-value="modelValue"
         :placeholder="placeholder"
