@@ -338,7 +338,9 @@ describe('AssistantAppointmentsForm', () => {
     select(wrapper, 'appointments-connection').vm.$emit('update:modelValue', 7);
     await nextTick();
     await flushPromises();
-    expect(getCalendars).toHaveBeenCalledWith(7);
+    expect(getCalendars).toHaveBeenCalledWith(7, {
+      signal: expect.any(AbortSignal),
+    });
 
     select(wrapper, 'appointments-calendar').vm.$emit(
       'update:modelValue',
@@ -427,7 +429,9 @@ describe('AssistantAppointmentsForm', () => {
       },
     });
 
-    expect(getCalendars).toHaveBeenCalledWith(7);
+    expect(getCalendars).toHaveBeenCalledWith(7, {
+      signal: expect.any(AbortSignal),
+    });
     expect(select(wrapper, 'appointments-calendar').props('modelValue')).toBe(
       'cal-1'
     );

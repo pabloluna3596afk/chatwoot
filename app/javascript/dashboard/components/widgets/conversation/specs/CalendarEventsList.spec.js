@@ -15,6 +15,10 @@ vi.mock('dashboard/helper/useCalendarCancelledVisibility', () => ({
   useCalendarCancelledVisibility: () => ({ showCancelled: ref(true) }),
 }));
 
+vi.mock('dashboard/composables/useAccount', () => ({
+  useAccount: () => ({ currentAccount: ref({}) }),
+}));
+
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 
 vi.mock('vue-i18n', () => ({

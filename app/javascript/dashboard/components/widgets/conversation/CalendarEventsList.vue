@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
+import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
@@ -42,8 +43,9 @@ const { t, locale } = useI18n();
 const events = ref([]);
 const connections = ref([]);
 const panelAiActive = ref(false);
-const calendars = ref([]);
-const isLoading = ref(false);
+const connectionRequest = useAbortableRequest();
+const eventRequest = useAbortableRequest();
+const isLoading = eventRequest.isPending;
 const modalRef = ref(null);
 const selectedConnectionId = ref('');
 
@@ -61,7 +63,11 @@ const pastEvents = computed(() =>
 );
 
 const loadConnections = async () => {
-  const { data } = await CalendarAPI.getConnections();
+  const response = await connectionRequest.run(signal =>
+    CalendarAPI.getConnections({ signal })
+  );
+  if (!response) return;
+  const { data } = response;
   panelAiActive.value = Boolean(data.panel_ai_active);
   connections.value = (data.payload || []).filter(
     item => item.provider === 'google'
@@ -69,25 +75,19 @@ const loadConnections = async () => {
   selectedConnectionId.value = connections.value[0]
     ? String(connections.value[0].id)
     : '';
-  if (selectedConnectionId.value) {
-    const calendarsResponse = await CalendarAPI.getCalendars(
-      selectedConnectionId.value
-    );
-    calendars.value = calendarsResponse.data.payload || [];
-  }
 };
 
 const loadEvents = async () => {
-  isLoading.value = true;
+  events.value = [];
   try {
-    const { data } = await CalendarAPI.getConversationEvents(
-      props.conversationId
+    const response = await eventRequest.run(signal =>
+      CalendarAPI.getConversationEvents(props.conversationId, { signal })
     );
+    if (!response) return;
+    const { data } = response;
     events.value = data.payload || [];
   } catch (error) {
     events.value = [];
-  } finally {
-    isLoading.value = false;
   }
 };
 
@@ -100,7 +100,6 @@ const openCreate = () => {
   modalRef.value?.open({
     defaults: {
       connectionId: selectedConnectionId.value,
-      calendarId: calendars.value[0]?.id,
       conversationId: props.conversationId,
       contactId: props.contactId,
       contactName: props.contactName,
@@ -122,8 +121,10 @@ const openEvent = event => {
 watch(
   () => props.conversationId,
   () => {
+    modalRef.value?.close();
     loadEvents();
-  }
+  },
+  { immediate: true }
 );
 
 onMounted(async () => {
@@ -132,7 +133,6 @@ onMounted(async () => {
   } catch (error) {
     useAlert(t('SIDEBAR.CALENDAR_PAGE.LOAD_ERROR'));
   }
-  await loadEvents();
 });
 </script>
 
@@ -144,7 +144,7 @@ onMounted(async () => {
         xs
         icon="i-lucide-plus"
         :label="$t('CONVERSATION_SIDEBAR.CALENDAR.NEW')"
-        :disabled="!calendars.length"
+        :disabled="!connections.length"
         @click="openCreate"
       />
     </div>
@@ -269,7 +269,6 @@ onMounted(async () => {
     <EventModal
       ref="modalRef"
       :connections="connections"
-      :calendars="calendars"
       :panel-ai-active="panelAiActive"
       @saved="onSaved"
     />

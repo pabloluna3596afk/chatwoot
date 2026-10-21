@@ -8,6 +8,7 @@ import {
   templateToValue,
 } from './useApprovedTemplates';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
+import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import CalendarAppointmentAttributes from 'dashboard/routes/dashboard/settings/integrations/CalendarAppointmentAttributes.vue';
 import AppointmentReminderReadiness from './AppointmentReminderReadiness.vue';
 
@@ -76,6 +77,8 @@ const paidEnabled = computed(
   () => props.assistant?.config?.allow_paid_templates === true
 );
 const connections = ref([]);
+const connectionRequest = useAbortableRequest();
+const calendarRequest = useAbortableRequest();
 const calendars = ref([]);
 const isLoading = ref(true);
 const loadFailed = ref(false);
@@ -204,10 +207,15 @@ const toggleField = (field, checked) => {
 };
 
 const loadCalendars = async connectionId => {
+  calendarRequest.abort();
   calendars.value = [];
   if (!connectionId) return;
   try {
-    const { data } = await CalendarAPI.getCalendars(connectionId);
+    const response = await calendarRequest.run(signal =>
+      CalendarAPI.getCalendars(connectionId, { signal })
+    );
+    if (!response) return;
+    const { data } = response;
     calendars.value = data.payload || [];
   } catch {
     calendars.value = [];
@@ -302,19 +310,21 @@ const handleSubmit = () => {
 
 const loadConnections = async () => {
   try {
-    const { data } = await CalendarAPI.getConnections();
+    const response = await connectionRequest.run(signal =>
+      CalendarAPI.getConnections({ signal })
+    );
+    if (!response) return;
+    const { data } = response;
     connections.value = data.payload || [];
   } catch {
     loadFailed.value = true;
-  } finally {
-    isLoading.value = false;
   }
+  isLoading.value = false;
 };
 
 watch(
   () => props.assistant,
   async newAssistant => {
-    if (!newAssistant) return;
     updateStateFromAssistant(newAssistant);
     await loadCalendars(state.connectionId);
   },
