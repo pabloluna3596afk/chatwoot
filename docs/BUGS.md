@@ -1,5 +1,34 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-088 - Atributos de cita disponibles en el alta de Captain (CIT-06)
+
+**Archivos:** `AssistantAppointmentsForm.vue` y su spec; specs del controlador
+`calendar_appointment_attributes`, `updater_onboarding_contract` y `event_service`.
+
+**Fix:** el alta muestra el panel existente `CalendarAppointmentAttributes`, con
+seleccion optativa y resultados por clave. Usa el controlador de Integraciones y
+Provisioner existentes; la preferencia pertenece a la cuenta. El panel queda
+fuera del toggle de Captain: activarlo nuevamente no escribe ni restablece claves,
+incluida una seleccion vacia guardada. Los dos botones guardan sus respectivas
+secciones. Los conflictos conservan definicion y valor; no hay cambios al motor
+de variables, al contrato API ni a la configuracion del asistente.
+
+**Como probar:** desde Captain > Ajustes > Citas, habilitar los cuatro atributos
+en una cuenta nueva y comprobar resultados; recargar, desmarcarlos todos y guardar,
+volver a activar Captain: siguen desmarcados. Con `ultima_cita` de tipo texto,
+reintentar muestra conflicto y mantiene su valor. Reservar y procesar jobs actualiza
+los cuatro derivados; el catalogo y el editor de contactos mantienen lectura sola.
+
+**Evidencia local (2026-10-21):** 136 ejemplos RSpec sin fallos, 34 tests Vitest
+por zona (UTC y America/Guayaquil), ESLint/Prettier aprobados. RuboCop exacto de CI
+sin infracciones en lineas cambiadas, 35 Ruby inspeccionados; los tres specs propios
+sin infracciones completas. Doce capturas `cit7-` claro/oscuro, 1280/390 px, con
+componentes reales y datos simulados, revisadas visualmente. Rojo/verde del cambio
+demostrado en tres casos del formulario; el backend reutilizado ya pasaba en la
+base, por lo que no se reclama rojo/verde backend. Sin migraciones. Pendientes CI
+remoto y smoke con Google real. Detalle: `tmp/PR-CITAS-8.md` (ignorado).
+
+
 ### B-NEW-087 — Una zona de cuenta en todo el recorrido de Citas (CIT-02)
 
 **Archivos:** `lib/integrations/google_calendar/timezone.rb`, servicio de eventos,
