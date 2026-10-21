@@ -1,5 +1,40 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-083 — Reserva y confirmación de la cita propietaria (CIT-09 / CIT-30)
+
+**Archivos:** `CalendarEvent`, `Integrations::GoogleCalendar::EventService`,
+herramientas de citas de Captain y sus specs de servicio/herramientas.
+
+**Fix:** una clave solo reutiliza un evento de la misma conexión, calendario e
+intervalo; una colisión devuelve `InvalidRange` antes de Google. Mover el inicio
+o fin libera la clave en la misma escritura del evento, también al sincronizar
+un movimiento de Google. Editar sin mover conserva la clave. A→B→nueva A mantiene
+el evento movido en B y permite una nueva reserva idempotente en A. Las claves
+de Captain incluyen la conexión; texto y botones usan el inicio devuelto por el
+evento persistido, incluida la recuperación tras fallos de notificación.
+
+Captain lista por conexión y calendario, confirma con `find_by!` y exige la fila
+local propietaria al cancelar o reprogramar. Si desaparece después del listado,
+devuelve error sin llamar a Google. Se conservan los callbacks de recordatorios.
+El dashboard mantiene la importación/edición/cancelación de eventos Google-only;
+la exigencia de fila local corresponde al recorrido de Captain (CIT-30).
+
+**Cómo probar:** reservar A dos veces, mover a B y reservar A otras dos veces:
+solo dos eventos, cada confirmación con su hora y botones asociados al evento
+correcto. Repetir con dos conexiones al mismo calendario y mismo ID Google:
+solo cambia la fila propietaria. Quitar esa fila entre listado y mutación: error,
+sin mutación remota. Verificar horarios de recordatorios al mover y cancelación
+de pendientes al cancelar. Specs nuevos en `event_service_spec.rb` y
+`appointment_tools_spec.rb`; regresión `appointment_reminders_spec.rb`.
+
+**Verificación local:** sintaxis de los 12 archivos Ruby de la rama frente a
+`origin/develop` y RuboCop directo en `chathub-rubocop-ci`, sin infracciones en
+líneas nuevas. La invocación exacta de CI está bloqueada por Ruby 3.4.11 frente a
+3.4.4 del Gemfile. RSpec intentado con base aislada explícita: faltan gemas de test;
+no se ejecutaron ejemplos ni se acredita rojo/verde. Capturas y Google real
+pendientes. Sin migraciones; depende del PR 1 (`feat/citas-autorizacion`).
+Pendiente merge/deploy y validación CI; no se hizo push.
+
 ### B-NEW-082 — Asociaciones de citas sin autorización (CIT-11)
 
 **Archivos:** `lib/integrations/google_calendar/event_service.rb`,
