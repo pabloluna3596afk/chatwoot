@@ -195,6 +195,7 @@ defineExpose({
         ref="searchInput"
         v-model="searchQuery"
         type="search"
+        :aria-label="searchPlaceholder || t('DROPDOWN_MENU.SEARCH_PLACEHOLDER')"
         :placeholder="
           searchPlaceholder || t('DROPDOWN_MENU.SEARCH_PLACEHOLDER')
         "

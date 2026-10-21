@@ -1,4 +1,5 @@
 <script>
+import { provide, ref } from 'vue';
 import { useVuelidate } from '@vuelidate/core';
 import { required, minLength } from '@vuelidate/validators';
 import { useAlert } from 'dashboard/composables';
@@ -8,7 +9,7 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import Modal from '../../../../components/Modal.vue';
 import WootMessageEditor from 'dashboard/components/widgets/WootWriter/Editor.vue';
-import InsertVariableButton from './InsertVariableButton.vue';
+import InsertVariableButton from 'dashboard/components-next/variable/InsertVariableButton.vue';
 
 export default {
   name: 'AddCanned',
@@ -31,7 +32,9 @@ export default {
   },
   setup() {
     const { isAdmin } = useAdmin();
-    return { v$: useVuelidate(), isAdmin };
+    const pickerBoundary = ref(null);
+    provide('comboboxBoundary', pickerBoundary);
+    return { v$: useVuelidate(), isAdmin, pickerBoundary };
   },
   data() {
     return {
@@ -81,9 +84,8 @@ export default {
       if (value === 'global' && this.isPublicVisibilityDisabled) return;
       this.visibility = value;
     },
-    insertVariable(key) {
-      const token = `{{${key}}}`;
-      this.content = this.content ? `${this.content}${token}` : token;
+    insertVariable(expression) {
+      this.$refs.messageEditor.insertVariable(expression);
     },
     resetForm() {
       this.shortCode = '';
@@ -125,7 +127,7 @@ export default {
 
 <template>
   <Modal v-model:show="show" :on-close="onClose">
-    <div class="flex flex-col h-auto overflow-auto">
+    <div ref="pickerBoundary" class="flex flex-col h-auto overflow-auto">
       <woot-modal-header
         :header-title="$t('CANNED_MGMT.ADD.TITLE')"
         :header-content="$t('CANNED_MGMT.ADD.DESC')"
@@ -158,7 +160,9 @@ export default {
         </div>
 
         <div v-if="isAdmin" class="w-full mt-2">
-          <p class="block m-0 text-sm font-medium leading-[1.8] text-n-slate-12">
+          <p
+            class="block m-0 text-sm font-medium leading-[1.8] text-n-slate-12"
+          >
             {{ $t('CANNED_MGMT.ADD.FORM.VISIBILITY.LABEL') }}
           </p>
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -168,8 +172,12 @@ export default {
               :class="isActive('global')"
               @click="onUpdateVisibility('global')"
             >
-              <div class="flex items-center justify-between w-full gap-2 min-w-0">
-                <p class="block m-0 text-heading-3 text-n-slate-12 line-clamp-1">
+              <div
+                class="flex items-center justify-between w-full gap-2 min-w-0"
+              >
+                <p
+                  class="block m-0 text-heading-3 text-n-slate-12 line-clamp-1"
+                >
                   {{ $t('CANNED_MGMT.ADD.FORM.VISIBILITY.GLOBAL.LABEL') }}
                 </p>
                 <Icon
@@ -188,8 +196,12 @@ export default {
               :class="isActive('personal')"
               @click="onUpdateVisibility('personal')"
             >
-              <div class="flex items-center justify-between w-full gap-2 min-w-0">
-                <p class="block m-0 text-heading-3 text-n-slate-12 line-clamp-1">
+              <div
+                class="flex items-center justify-between w-full gap-2 min-w-0"
+              >
+                <p
+                  class="block m-0 text-heading-3 text-n-slate-12 line-clamp-1"
+                >
                   {{ $t('CANNED_MGMT.ADD.FORM.VISIBILITY.PERSONAL.LABEL') }}
                 </p>
                 <Icon
@@ -215,8 +227,11 @@ export default {
           <label :class="{ error: v$.content.$error }">
             {{ $t('CANNED_MGMT.ADD.FORM.CONTENT.LABEL') }}
           </label>
-          <div class="editor-wrap">
+          <div
+            class="editor-wrap [&_.ProseMirror-menubar]:hidden [&_.ProseMirror-woot-style]:min-h-[12.5rem]"
+          >
             <WootMessageEditor
+              ref="messageEditor"
               v-model="content"
               class="message-editor [&>div]:px-1"
               :class="{ editor_warning: v$.content.$error }"
@@ -228,7 +243,10 @@ export default {
             />
           </div>
           <div class="flex flex-col gap-2 mt-2">
-            <InsertVariableButton @insert="insertVariable" />
+            <InsertVariableButton
+              @insert="insertVariable"
+              @close="$refs.messageEditor.focusEditorInputField(null)"
+            />
             <p class="mb-0 text-xs text-n-slate-11">
               {{ $t('CANNED_MGMT.ADD.FORM.CONTENT.VARIABLES_HELP') }}
             </p>
@@ -257,13 +275,3 @@ export default {
     </div>
   </Modal>
 </template>
-
-<style scoped lang="scss">
-:deep(.ProseMirror-menubar) {
-  @apply hidden;
-}
-
-:deep(.ProseMirror-woot-style) {
-  @apply min-h-[12.5rem];
-}
-</style>

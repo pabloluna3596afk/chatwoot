@@ -27,6 +27,7 @@ const props = defineProps({
   displayLabel: { type: String, default: '' },
   modelValue: { type: [String, Number, Array], default: '' },
   multiple: { type: Boolean, default: false },
+  resetOnSelect: { type: Boolean, default: false },
   allowDeselect: { type: Boolean, default: true },
   groups: { type: Array, default: () => [] },
   disabled: { type: Boolean, default: false },
@@ -43,7 +44,7 @@ const props = defineProps({
   // The list is as wide as its trigger; a small trigger (a compact button) can ask for a wider list, e.g. '17rem'.
   menuMinWidth: { type: String, default: '' },
 });
-const emit = defineEmits(['update:modelValue', 'search', 'open']);
+const emit = defineEmits(['update:modelValue', 'search', 'open', 'close']);
 const SEARCH_OPTION_THRESHOLD = 6;
 const MENU_MAX_HEIGHT = 320;
 const MENU_GAP = 8;
@@ -155,6 +156,7 @@ const selectOption = option => {
     selectedValue.value = option.value;
     emit('update:modelValue', option.value);
   }
+  if (props.resetOnSelect) selectedValue.value = '';
   open.value = false;
   search.value = '';
 };
@@ -197,29 +199,31 @@ onClickOutside(
     @click.prevent
   >
     <div ref="triggerRef" class="w-full">
-      <Button
-        variant="outline"
-        :color="hasError && !open ? 'ruby' : open ? 'blue' : 'slate'"
-        :label="selectedLabel"
-        trailing-icon
-        :disabled="disabled"
-        aria-haspopup="listbox"
-        :aria-label="ariaLabel || undefined"
-        :aria-expanded="open"
-        no-animation
-        class="justify-between w-full"
-        :class="[
-          triggerClass ||
-            '!px-3 !py-2.5 text-n-slate-12 font-normal group-hover/combobox:border-n-slate-6 focus:outline-n-brand',
-          {
-            focused: open,
-            '[&:not(.focused)]:dark:outline-n-weak [&:not(.focused)]:hover:enabled:outline-n-slate-6 [&:not(.focused)]:dark:hover:enabled:outline-n-slate-6':
-              !triggerClass && !hasError,
-          },
-        ]"
-        :icon="open ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
-        @click="toggleDropdown"
-      />
+      <slot name="trigger" :toggle="toggleDropdown" :open="open">
+        <Button
+          variant="outline"
+          :color="hasError && !open ? 'ruby' : open ? 'blue' : 'slate'"
+          :label="selectedLabel"
+          trailing-icon
+          :disabled="disabled"
+          aria-haspopup="listbox"
+          :aria-label="ariaLabel || undefined"
+          :aria-expanded="open"
+          no-animation
+          class="justify-between w-full"
+          :class="[
+            triggerClass ||
+              '!px-3 !py-2.5 text-n-slate-12 font-normal group-hover/combobox:border-n-slate-6 focus:outline-n-brand',
+            {
+              focused: open,
+              '[&:not(.focused)]:dark:outline-n-weak [&:not(.focused)]:hover:enabled:outline-n-slate-6 [&:not(.focused)]:dark:hover:enabled:outline-n-slate-6':
+                !triggerClass && !hasError,
+            },
+          ]"
+          :icon="open ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+          @click="toggleDropdown"
+        />
+      </slot>
     </div>
 
     <Teleport :to="teleportTarget" :disabled="!teleport">
@@ -244,6 +248,7 @@ onClickOutside(
         @close="
           open = false;
           triggerRef?.querySelector('button')?.focus({ preventScroll: true });
+          emit('close');
         "
       >
         <template v-if="$slots.footer" #footer="{ close }">

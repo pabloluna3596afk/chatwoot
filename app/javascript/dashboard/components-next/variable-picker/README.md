@@ -39,9 +39,13 @@ new conversation and reply), automation template action, Captain template config
 and WhatsApp Flow save targets. Captain samples and legacy write targets retain adapters.
 The capture writer and Captain runtime are separate work.
 
-Pending migration under brief A10: canned Add/Edit, WootWriter cursor VariableList,
-shared InsertVariableButton, macros and automation text/custom-attribute actions. Their
-existing lists must remain until no callers use them. Campaign sending is outside this PR.
+Text consumers also use this catalog: canned Add/Edit, WootWriter cursor VariableList,
+the shared InsertVariableButton, macros through MacroNode, automation text and attribute
+actions, and the live campaign editor. `presentation="insert"` keeps a braces button;
+`presentation="caret"` reuses CaretAnchoredPicker with the existing trigger and keyboard.
+Read insertions use the server expression verbatim. Attribute targets require write
+capability in automation and keep the legacy raw attribute key at the persistence boundary.
+Campaign sending and existing Liquid resolution remain outside this selector migration.
 
 Manual preview uses Rails statuses: `missing` asks for a value; `unavailable` diagnoses the
 missing context and blocks sending until corrected. Automation and Captain runtime policies

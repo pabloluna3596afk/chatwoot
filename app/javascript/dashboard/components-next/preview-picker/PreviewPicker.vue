@@ -98,7 +98,7 @@ defineExpose({ scrollSelectedIntoView });
       <div
         class="relative flex items-center flex-shrink-0 h-11 px-3 border-b border-n-strong"
       >
-        <Icon icon="i-lucide-search" class="size-4 text-n-slate-10" />
+        <Icon icon="i-lucide-search" class="size-4 text-n-slate-11" />
         <input
           ref="searchRef"
           v-model="search"
@@ -109,7 +109,7 @@ defineExpose({ scrollSelectedIntoView });
           :aria-controls="listboxId"
           :aria-activedescendant="items.length ? optionId(selectedIndex) : null"
           :aria-label="searchPlaceholder"
-          class="w-full h-full px-2 text-sm bg-transparent outline-none text-n-slate-12 placeholder:text-n-slate-10 reset-base"
+          class="w-full h-full px-2 text-sm bg-transparent outline-none text-n-slate-12 placeholder:text-n-slate-11 reset-base"
           :placeholder="searchPlaceholder"
         />
       </div>
@@ -126,7 +126,7 @@ defineExpose({ scrollSelectedIntoView });
             <li
               v-if="groupFor(index)"
               role="presentation"
-              class="px-2 pb-1 text-xs font-medium text-n-slate-10"
+              class="px-2 pb-1 text-xs font-medium text-n-slate-11"
               :class="index === 0 ? '' : 'pt-2'"
             >
               {{ groupFor(index) }}
