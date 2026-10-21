@@ -1,63 +1,107 @@
+import { formatInTimeZone, zonedTimeToUtc } from 'date-fns-tz';
 import { calendarEventStatus, isCancelledEvent } from './appointmentStatus';
 
 export const TIMEZONE = 'America/Guayaquil';
 export const HOUR_START = 8;
 export const HOUR_END = 20;
 export const SLOT_MINUTES = 30;
-export const OFFSET = '-05:00';
+const HOUR_MILLISECONDS = 60 * 60 * 1000;
+const DST_OFFSET_PROBE_HOURS = 36;
 
-export function guayaquilParts(date = new Date()) {
-  const stamp = date.toLocaleString('sv-SE', { timeZone: TIMEZONE });
+export function addDaysKey(dateKey, amount) {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  const next = new Date(Date.UTC(year, month - 1, day + amount));
+  return next.toISOString().slice(0, 10);
+}
+
+export function zonedDateTime(dateKey, hours, minutes, timezone = TIMEZONE) {
+  const day = addDaysKey(dateKey, Math.floor(hours / 24));
+  const hh = String(hours % 24).padStart(2, '0');
+  const mm = String(minutes).padStart(2, '0');
+  const wall = `${day}T${hh}:${mm}:00`;
+  const guess = zonedTimeToUtc(wall, timezone).getTime();
+  // Probe offsets on both sides of a transition. Reject gaps; in a fold pick
+  // the earlier instant, matching the server's local-input contract.
+  const offsets = [-DST_OFFSET_PROBE_HOURS, 0, DST_OFFSET_PROBE_HOURS].map(
+    hoursAway =>
+      formatInTimeZone(
+        new Date(guess + hoursAway * HOUR_MILLISECONDS),
+        timezone,
+        'xxx'
+      )
+  );
+  const candidates = [...new Set(offsets)]
+    .map(offset => `${wall}${offset}`)
+    .filter(
+      iso =>
+        formatInTimeZone(new Date(iso), timezone, "yyyy-MM-dd'T'HH:mm:ss") ===
+        wall
+    )
+    .sort((a, b) => new Date(a) - new Date(b));
+  return candidates[0] || null;
+}
+
+export function zonedParts(date = new Date(), timezone = TIMEZONE) {
+  const stamp = date.toLocaleString('sv-SE', { timeZone: timezone });
   const [dateKey, time] = stamp.split(' ');
   const [year, month, day] = dateKey.split('-').map(Number);
   const [hour, minute] = time.split(':').map(Number);
   return { year, month, day, hour, minute, dateKey };
 }
 
-export function todayKey(date = new Date()) {
-  return guayaquilParts(date).dateKey;
+export function todayKey(date = new Date(), timezone = TIMEZONE) {
+  return zonedParts(date, timezone).dateKey;
 }
 
-export function eventInstant(iso) {
+export function eventInstant(iso, timezone = TIMEZONE) {
   if (!iso) return 0;
-  if (iso.length <= 10) return new Date(`${iso}T00:00:00${OFFSET}`).getTime();
+  if (iso.length <= 10)
+    return new Date(zonedDateTime(iso, 0, 0, timezone)).getTime();
   return new Date(iso).getTime();
 }
 
-export function compareEventsByStart(a, b) {
+export function compareEventsByStart(a, b, timezone = TIMEZONE) {
   if (a.all_day && !b.all_day) return -1;
   if (!a.all_day && b.all_day) return 1;
-  return eventInstant(a.start) - eventInstant(b.start);
+  return eventInstant(a.start, timezone) - eventInstant(b.start, timezone);
 }
 
-export function eventDateKey(value) {
+export function eventDateKey(value, timezone = TIMEZONE) {
   if (!value) return '';
   if (value.length <= 10) return value;
-  return guayaquilParts(new Date(value)).dateKey;
+  return zonedParts(new Date(value), timezone).dateKey;
 }
 
-export function isEventPast(event, now = Date.now()) {
+export function isEventPast(event, now = Date.now(), timezone = TIMEZONE) {
   if (!event) return true;
-  if (event.end) return eventInstant(event.end) <= now;
-  if (event.all_day) return eventDateKey(event.start) < todayKey(new Date(now));
-  return eventInstant(event.start) < now;
+  if (event.end) return eventInstant(event.end, timezone) <= now;
+  if (event.all_day)
+    return (
+      eventDateKey(event.start, timezone) < todayKey(new Date(now), timezone)
+    );
+  return eventInstant(event.start, timezone) < now;
 }
 
-export function isEventCurrent(event, now = Date.now()) {
+export function isEventCurrent(event, now = Date.now(), timezone = TIMEZONE) {
   if (!event) return false;
   if (event.all_day)
-    return eventDateKey(event.start) === todayKey(new Date(now));
-  const start = eventInstant(event.start);
-  const end = event.end ? eventInstant(event.end) : start + 60 * 60 * 1000;
+    return (
+      eventDateKey(event.start, timezone) === todayKey(new Date(now), timezone)
+    );
+  const start = eventInstant(event.start, timezone);
+  const end = event.end
+    ? eventInstant(event.end, timezone)
+    : start + 60 * 60 * 1000;
   return start <= now && now < end;
 }
 
 export function nowLinePercent(
   hourStart = HOUR_START,
   hourEnd = HOUR_END,
-  date = new Date()
+  date = new Date(),
+  timezone = TIMEZONE
 ) {
-  const { hour, minute } = guayaquilParts(date);
+  const { hour, minute } = zonedParts(date, timezone);
   const gridStart = hourStart * 60;
   const gridSpan = Math.max((hourEnd - hourStart) * 60, 60);
   const nowMin = hour * 60 + minute;
@@ -69,14 +113,8 @@ export function dayNumberFromKey(dateKey) {
   return Number(dateKey.split('-')[2]) || 0;
 }
 
-export function addDaysKey(dateKey, amount) {
-  const [year, month, day] = dateKey.split('-').map(Number);
-  const next = new Date(Date.UTC(year, month - 1, day + amount));
-  return next.toISOString().slice(0, 10);
-}
-
-export function startOfWeekKey(date = new Date()) {
-  const { dateKey } = guayaquilParts(date);
+export function startOfWeekKey(date = new Date(), timezone = TIMEZONE) {
+  const { dateKey } = zonedParts(date, timezone);
   const [year, month, day] = dateKey.split('-').map(Number);
   const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
   const diff = weekday === 0 ? -6 : 1 - weekday;
@@ -89,29 +127,23 @@ export function weekDays(weekStartKey) {
   );
 }
 
-export function weekBoundsIso(weekStartKey, days = 7) {
+export function weekBoundsIso(weekStartKey, days = 7, timezone = TIMEZONE) {
   return {
-    timeMin: `${weekStartKey}T00:00:00${OFFSET}`,
-    timeMax: `${addDaysKey(weekStartKey, days)}T00:00:00${OFFSET}`,
+    timeMin: zonedDateTime(weekStartKey, 0, 0, timezone),
+    timeMax: zonedDateTime(addDaysKey(weekStartKey, days), 0, 0, timezone),
   };
 }
 
-export function zonedDateTime(dateKey, hours, minutes) {
-  const hh = String(hours).padStart(2, '0');
-  const mm = String(minutes).padStart(2, '0');
-  return `${dateKey}T${hh}:${mm}:00${OFFSET}`;
-}
-
-export function formatTime(value) {
+export function formatTime(value, timezone = TIMEZONE) {
   if (!value || value.length <= 10) return '';
-  const { hour, minute } = guayaquilParts(new Date(value));
+  const { hour, minute } = zonedParts(new Date(value), timezone);
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
-export function formatDayLabel(dateKey, locale) {
-  const date = new Date(`${dateKey}T12:00:00${OFFSET}`);
+export function formatDayLabel(dateKey, locale, timezone = TIMEZONE) {
+  const date = new Date(zonedDateTime(dateKey, 12, 0, timezone));
   return date.toLocaleDateString(locale, {
-    timeZone: TIMEZONE,
+    timeZone: timezone,
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -119,29 +151,30 @@ export function formatDayLabel(dateKey, locale) {
 }
 
 // "mar, 15 ene · 10:15" in the calendar's timezone.
-export function formatEventWhen(value, locale) {
+export function formatEventWhen(value, locale, timezone = TIMEZONE) {
   if (!value) return '';
-  const { dateKey } = guayaquilParts(new Date(value));
-  const time = formatTime(value);
+  const dateKey = eventDateKey(value, timezone);
+  const time = formatTime(value, timezone);
   return time
-    ? `${formatDayLabel(dateKey, locale)} · ${time}`
-    : formatDayLabel(dateKey, locale);
+    ? `${formatDayLabel(dateKey, locale, timezone)} · ${time}`
+    : formatDayLabel(dateKey, locale, timezone);
 }
 
-export function isUpcomingEvent(event, now = Date.now()) {
+export function isUpcomingEvent(event, now = Date.now(), timezone = TIMEZONE) {
   return (
-    !isCancelledEvent(event) && eventInstant(event.end || event.start) >= now
+    !isCancelledEvent(event) &&
+    eventInstant(event.end || event.start, timezone) >= now
   );
 }
 
-export function formatWeekdayMonth(dateKey, locale) {
-  const date = new Date(`${dateKey}T12:00:00${OFFSET}`);
+export function formatWeekdayMonth(dateKey, locale, timezone = TIMEZONE) {
+  const date = new Date(zonedDateTime(dateKey, 12, 0, timezone));
   const weekday = date.toLocaleDateString(locale, {
-    timeZone: TIMEZONE,
+    timeZone: timezone,
     weekday: 'short',
   });
   const month = date.toLocaleDateString(locale, {
-    timeZone: TIMEZONE,
+    timeZone: timezone,
     month: 'short',
   });
   return `${weekday}, ${month}`;
@@ -165,16 +198,16 @@ export function slotFromClick(
   return { hours, minutes };
 }
 
-export function dateAndTimeParts(iso) {
+export function dateAndTimeParts(iso, timezone = TIMEZONE) {
   if (!iso) {
-    const now = guayaquilParts();
+    const now = zonedParts(new Date(), timezone);
     return {
       date: now.dateKey,
       time: `${String(now.hour).padStart(2, '0')}:${String(now.minute).padStart(2, '0')}`,
     };
   }
   if (iso.length <= 10) return { date: iso, time: '09:00' };
-  const parts = guayaquilParts(new Date(iso));
+  const parts = zonedParts(new Date(iso), timezone);
   return {
     date: parts.dateKey,
     time: `${String(parts.hour).padStart(2, '0')}:${String(parts.minute).padStart(2, '0')}`,
@@ -195,23 +228,46 @@ export function addMinutesToTime(time, minutesToAdd) {
   return `${String(Math.floor(wrapped / 60)).padStart(2, '0')}:${String(wrapped % 60).padStart(2, '0')}`;
 }
 
-export function rangeFromStartEnd(date, startTime, endTime) {
-  const [startHours, startMinutes] = startTime.split(':').map(Number);
-  const [endHours, endMinutes] = endTime.split(':').map(Number);
+// Retain an existing explicit offset when its displayed civil fields are unchanged.
+// This makes editing the second occurrence of a repeated hour lossless.
+export function rangeFromStartEnd(
+  date,
+  startTime,
+  endTime,
+  timezone = TIMEZONE,
+  original = {}
+) {
+  const instantFor = (value, time) => {
+    if (!date || !time) return null;
+    const parts = value && dateAndTimeParts(value, timezone);
+    if (parts?.date === date && parts.time === time) return value;
+    const [hours, minutes] = time.split(':').map(Number);
+    return zonedDateTime(date, hours, minutes, timezone);
+  };
   return {
-    start: zonedDateTime(date, startHours, startMinutes),
-    end: zonedDateTime(date, endHours, endMinutes),
+    start: instantFor(original.start, startTime),
+    end: instantFor(original.end, endTime),
   };
 }
 
-export function rangeFromParts(date, time, duration) {
-  return rangeFromStartEnd(date, time, addMinutesToTime(time, duration));
+export function rangeFromParts(date, time, duration, timezone = TIMEZONE) {
+  const [hours, minutes] = time.split(':').map(Number);
+  const total = hours * 60 + minutes + duration;
+  return {
+    start: zonedDateTime(date, hours, minutes, timezone),
+    end: zonedDateTime(
+      addDaysKey(date, Math.floor(total / 1440)),
+      Math.floor((total % 1440) / 60),
+      total % 60,
+      timezone
+    ),
+  };
 }
 
-export function calendarEventTooltip(event, t) {
+export function calendarEventTooltip(event, t, timezone = TIMEZONE) {
   const time = event.all_day
     ? t('SIDEBAR.CALENDAR_PAGE.ALL_DAY')
-    : `${formatTime(event.start)} – ${formatTime(event.end)}`;
+    : `${formatTime(event.start, timezone)} – ${formatTime(event.end, timezone)}`;
   const status = t(
     `SIDEBAR.CALENDAR_PAGE.STATUS.${calendarEventStatus(event).toUpperCase()}`
   );

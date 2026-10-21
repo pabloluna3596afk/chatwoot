@@ -1,13 +1,9 @@
-import {
-  eventInstant,
-  zonedDateTime,
-  HOUR_START,
-  HOUR_END,
-} from './calendarTime';
+import { zonedParts, HOUR_START, HOUR_END, TIMEZONE } from './calendarTime';
 
+const DAY_MILLISECONDS = 24 * 60 * 60 * 1000;
+const DAY_MINUTES = 24 * 60;
 export const GRID_STEP_MINUTES = 1;
 export const GRID_ROWS_PER_HOUR = 60 / GRID_STEP_MINUTES;
-const MINUTE_MS = 60_000;
 // Grid line numbers are one-based; layout rows are zero-based minutes.
 export const gridRowStyle = (row, span) => ({
   gridRow: `${row + 1} / span ${span}`,
@@ -19,17 +15,33 @@ export function layoutDayEvents(
   events,
   dateKey,
   hourStart = HOUR_START,
-  hourEnd = HOUR_END
+  hourEnd = HOUR_END,
+  timezone = TIMEZONE
 ) {
-  const gridStart = eventInstant(zonedDateTime(dateKey, hourStart, 0));
-  const gridEnd = gridStart + (hourEnd - hourStart) * 60 * MINUTE_MS;
+  const wallMinute = value => {
+    const {
+      dateKey: localDate,
+      hour,
+      minute,
+    } = zonedParts(new Date(value), timezone);
+    const dayOffset =
+      (Date.parse(localDate) - Date.parse(dateKey)) / DAY_MILLISECONDS;
+    return dayOffset * DAY_MINUTES + (hour - hourStart) * 60 + minute;
+  };
+  const gridMinutes = (hourEnd - hourStart) * 60;
   const entries = events
     .filter(event => !event.all_day)
-    .map(event => ({
-      ...event,
-      intervalStart: Math.max(eventInstant(event.start), gridStart),
-      intervalEnd: Math.min(eventInstant(event.end), gridEnd),
-    }))
+    .map(event => {
+      const start = wallMinute(event.start);
+      const end = wallMinute(event.end);
+      return {
+        ...event,
+        intervalStart: Math.max(start, 0),
+        // A fold can end at an earlier clock reading. Keep its start visible;
+        // both occurrences share clock rows and receive separate lanes.
+        intervalEnd: Math.min(Math.max(end, start + 1), gridMinutes),
+      };
+    })
     .filter(event => event.intervalStart < event.intervalEnd)
     .sort(
       (a, b) =>
@@ -50,15 +62,11 @@ export function layoutDayEvents(
     group.end = Math.max(group.end, event.intervalEnd);
     const row = Math.min(
       (hourEnd - hourStart) * GRID_ROWS_PER_HOUR - 1,
-      Math.round(
-        (event.intervalStart - gridStart) / MINUTE_MS / GRID_STEP_MINUTES
-      )
+      Math.round(event.intervalStart / GRID_STEP_MINUTES)
     );
     const endRow = Math.max(
       row + 1,
-      Math.round(
-        (event.intervalEnd - gridStart) / MINUTE_MS / GRID_STEP_MINUTES
-      )
+      Math.round(event.intervalEnd / GRID_STEP_MINUTES)
     );
     group.events.push({ ...event, lane, row, rowSpan: endRow - row });
   });

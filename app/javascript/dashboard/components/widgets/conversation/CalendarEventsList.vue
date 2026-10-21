@@ -9,10 +9,8 @@ import EventModal from 'dashboard/routes/dashboard/calendars/EventModal.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import { useCalendarCancelledVisibility } from 'dashboard/helper/useCalendarCancelledVisibility';
 import AppointmentCreatorAvatar from './AppointmentCreatorAvatar.vue';
-import {
-  formatEventWhen,
-  isUpcomingEvent,
-} from 'dashboard/helper/calendarTime';
+import { useCalendarTime } from 'dashboard/composables/useCalendarTime';
+
 import {
   calendarEventStyle,
   isCancelledEvent,
@@ -37,6 +35,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['saved']);
+
+const { timezone, formatEventWhen, isUpcomingEvent } = useCalendarTime();
+
 const { t, locale } = useI18n();
 const events = ref([]);
 const connections = ref([]);
@@ -201,7 +202,9 @@ onMounted(async () => {
                 }}
               </p>
               <p class="text-xs text-n-slate-11">
-                {{ formatEventWhen(event.start, locale) }}
+                {{
+                  formatEventWhen(event.start, locale) + ' \u00b7 ' + timezone
+                }}
               </p>
             </button>
           </li>
@@ -242,7 +245,10 @@ onMounted(async () => {
                     : 'text-n-slate-10'
                 "
               >
-                {{ formatEventWhen(event.start, locale) }} ·
+                {{
+                  formatEventWhen(event.start, locale) + ' \u00b7 ' + timezone
+                }}
+                ·
                 {{
                   isCancelledEvent(event)
                     ? $t('CONVERSATION_SIDEBAR.CALENDAR.DELETED')

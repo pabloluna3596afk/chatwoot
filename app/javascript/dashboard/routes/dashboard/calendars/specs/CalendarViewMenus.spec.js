@@ -9,7 +9,10 @@ import WeekGrid from '../WeekGrid.vue';
 
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 vi.mock('dashboard/composables/useAccount', () => ({
-  useAccount: () => ({ accountScopedRoute: path => path }),
+  useAccount: () => ({
+    accountScopedRoute: path => path,
+    currentAccount: ref({}),
+  }),
 }));
 vi.mock('dashboard/composables/useAdmin', () => ({
   useAdmin: () => ({ isAdmin: true }),

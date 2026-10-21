@@ -23,10 +23,21 @@ import AgendaSidebar from './AgendaSidebar.vue';
 import EventModal from './EventModal.vue';
 import googleLogo from 'dashboard/assets/images/integrations/google.svg';
 import microsoftLogo from 'dashboard/assets/images/integrations/microsoft.svg';
+import { useCalendarTime } from 'dashboard/composables/useCalendarTime';
 import {
   HOUR_END,
   HOUR_START,
   addDaysKey,
+} from 'dashboard/helper/calendarTime';
+
+import {
+  calendarDisplayName,
+  connectionDisplayName,
+} from 'dashboard/helper/calendarLabels';
+import { useCalendarCancelledVisibility } from 'dashboard/helper/useCalendarCancelledVisibility';
+
+const {
+  timezone,
   calendarEventTooltip,
   compareEventsByStart,
   eventDateKey,
@@ -34,12 +45,7 @@ import {
   formatTime,
   startOfWeekKey,
   weekBoundsIso,
-} from 'dashboard/helper/calendarTime';
-import {
-  calendarDisplayName,
-  connectionDisplayName,
-} from 'dashboard/helper/calendarLabels';
-import { useCalendarCancelledVisibility } from 'dashboard/helper/useCalendarCancelledVisibility';
+} = useCalendarTime();
 
 const { t, locale } = useI18n();
 const router = useRouter();
@@ -106,15 +112,15 @@ const weekLabel = computed(() => {
 });
 
 const groupsForDays = days =>
-  Array.from({ length: days }, (_, index) => addDaysKey(weekStartKey.value, index)).map(
-    dateKey => ({
-      key: dateKey,
-      label: formatDayLabel(dateKey, locale.value),
-      events: visibleEvents.value
-        .filter(event => eventDateKey(event.start) === dateKey)
-        .sort(compareEventsByStart),
-    })
-  );
+  Array.from({ length: days }, (_, index) =>
+    addDaysKey(weekStartKey.value, index)
+  ).map(dateKey => ({
+    key: dateKey,
+    label: formatDayLabel(dateKey, locale.value),
+    events: visibleEvents.value
+      .filter(event => eventDateKey(event.start) === dateKey)
+      .sort(compareEventsByStart),
+  }));
 
 const weekGroups = computed(() => groupsForDays(7));
 const agendaGroups = computed(() => groupsForDays(AGENDA_DAYS));
@@ -258,7 +264,7 @@ watch(selectedConnectionId, () => {
   loadCalendars();
 });
 
-watch([selectedCalendarId, weekStartKey], () => {
+watch([selectedCalendarId, weekStartKey, timezone], () => {
   loadEvents();
 });
 
@@ -270,6 +276,9 @@ onMounted(loadConnections);
     <header class="flex items-start justify-between gap-3 px-4 py-3 min-w-0">
       <h1 class="text-lg font-medium text-n-slate-12 shrink-0 pt-1">
         {{ $t('SIDEBAR.CALENDAR_PAGE.TITLE') }}
+        <span class="block text-xs font-normal text-n-slate-11">{{
+          timezone
+        }}</span>
       </h1>
       <div
         v-if="hasConnections"

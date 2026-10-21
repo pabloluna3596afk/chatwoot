@@ -1,3 +1,8 @@
+import { vi } from 'vitest';
+vi.mock('dashboard/composables/useAccount', () => ({
+  useAccount: () => ({ currentAccount: { value: {} } }),
+}));
+
 import { mount } from '@vue/test-utils';
 import EventBlock from '../EventBlock.vue';
 
