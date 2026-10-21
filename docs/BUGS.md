@@ -1,5 +1,32 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-082 — Asociaciones de citas sin autorización (CIT-11)
+
+**Archivos:** `lib/integrations/google_calendar/event_service.rb`,
+`app/controllers/api/v1/accounts/integrations/calendar_controller.rb`, locales en/es
+y specs de integración, servicio y eventos por conversación.
+
+**Fix:** crear, editar y cancelar autorizan `ConversationPolicy#show?` antes de
+acceder a Google. Al mutar se comprueba también la conversación guardada, aunque
+el cliente omita, borre o sustituya la asociación. Los retornos por idempotencia
+autorizan el evento guardado. Se conserva el contexto de rol Enterprise; los bots
+no resuelven membresías por un ID numérico que pueda coincidir con un usuario.
+Un contacto discordante devuelve 422 localizado; IDs ajenos no se resuelven fuera
+de la cuenta. Pundit conserva su 401 y los recursos inexistentes su 404.
+
+**Cómo probar:** con un agente sin acceso al inbox, intentar crear, editar,
+cancelar por DELETE y por PATCH, y sustituir/quitar las asociaciones: 401, sin
+mutación Google, actividad ni mensaje. Con acceso, mezclar contacto y conversación:
+422. Repetir con admin, agente miembro y AgentBot válido: recorrido permitido.
+Repetir con rol Enterprise de participación, sin y con participación.
+
+**Verificación local:** sintaxis Ruby, nueva clave en/es y nueve tests existentes
+de helpers Calendar en UTC y America/Guayaquil aprobados. RuboCop en imagen
+`chathub-rubocop-ci`: cinco archivos inspeccionados, cero infracciones en líneas
+modificadas; 37 infracciones anteriores en los archivos completos. RSpec queda
+reservado a CI; todavía no se acredita ejecución rojo/verde. Capturas pendientes:
+la herramienta no dispone de navegador. Sin migraciones. Pendiente merge/deploy.
+
 ### B-NEW-080 - Captain y escritura de variables (MV-10, MV-11, MV-14)
 
 **Archivos:** `Captain::TemplateMessage`, sus tres senders, `Captain::VariableDiagnostics`,
