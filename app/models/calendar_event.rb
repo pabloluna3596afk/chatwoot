@@ -49,6 +49,7 @@ class CalendarEvent < ApplicationRecord
 
   scope :kept, -> { where(deleted_at: nil).where.not(appointment_status: 'cancelled') }
 
+  before_update :release_booking_key_on_move
   after_commit :enqueue_appointment_attributes_update, on: [:create, :update, :destroy]
 
   def discarded?
@@ -64,6 +65,12 @@ class CalendarEvent < ApplicationRecord
   end
 
   private
+
+  # A key belongs to the booked interval. Moving (locally or through Google sync) releases it;
+  # the moved event keeps its identity, while a new booking of the old interval gets a new event.
+  def release_booking_key_on_move
+    self.idempotency_key = nil if will_save_change_to_start_at? || will_save_change_to_end_at?
+  end
 
   def enqueue_appointment_attributes_update
     fields = %w[contact_id start_at summary appointment_status deleted_at]

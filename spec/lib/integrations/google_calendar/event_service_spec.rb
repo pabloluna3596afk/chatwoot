@@ -252,6 +252,82 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
     end
 
     context 'with an idempotency key' do
+      it 'releases A after moving to B and books a new event only in A' do
+        params = create_params(idempotency_key: 'slot-a')
+        first = service.create(params)
+        service.update(first[:id], create_params(start: '2030-01-15T11:00:00-05:00', end: '2030-01-15T11:30:00-05:00'))
+
+        second = service.create(params)
+        retry_result = service.create(params)
+
+        expect(second).to include(id: 'g-2', start: slot_start, end: slot_end)
+        expect(retry_result[:id]).to eq(second[:id])
+        expect(connection.calendar_events.find_by!(google_event_id: first[:id])).to have_attributes(
+          start_at: Time.iso8601('2030-01-15T11:00:00-05:00'), end_at: Time.iso8601('2030-01-15T11:30:00-05:00'), idempotency_key: nil
+        )
+        expect(connection.calendar_events.find_by!(google_event_id: second[:id]).idempotency_key).to eq('slot-a')
+        expect(client).to have_received(:create_event).twice
+      end
+
+      it 'preserves the key when editing without moving' do
+        service.create(create_params(idempotency_key: 'slot-a'))
+        service.update('g-1', create_params(summary: 'Edited'))
+
+        expect(connection.calendar_events.find_by!(google_event_id: 'g-1').idempotency_key).to eq('slot-a')
+      end
+
+      it 'releases the key when only the end changes' do
+        service.create(create_params(idempotency_key: 'slot-a'))
+        service.update('g-1', create_params(end: '2030-01-15T10:45:00-05:00'))
+
+        expect(connection.calendar_events.find_by!(google_event_id: 'g-1').idempotency_key).to be_nil
+      end
+
+      it 'releases the key when a Google move is synchronized' do
+        service.create(create_params(idempotency_key: 'slot-a'))
+        allow(client).to receive(:list_events).and_return(
+          [google_event_for('g-1', summary: 'Moved', start_at: Time.iso8601('2030-01-15T11:00:00-05:00'),
+                                   end_at: Time.iso8601('2030-01-15T11:30:00-05:00'))]
+        )
+
+        service.list(calendar_id: 'cal-1', time_min: slot_start, time_max: '2030-01-15T12:00:00-05:00')
+
+        expect(connection.calendar_events.find_by!(google_event_id: 'g-1')).to have_attributes(
+          start_at: Time.iso8601('2030-01-15T11:00:00-05:00'), idempotency_key: nil
+        )
+      end
+
+      [:start, :end].each do |boundary|
+        it "rejects a key collision with a different #{boundary} before returning an event" do
+          service.create(create_params(idempotency_key: 'slot-a'))
+          params = create_params({ :idempotency_key => 'slot-a', boundary => '2030-01-15T10:15:00-05:00' })
+
+          expect { service.create(params) }.to raise_error(described_class::InvalidRange)
+          expect(client).to have_received(:create_event).once
+        end
+      end
+
+      it 'rejects a key owned by another connection to the same calendar before Google' do
+        service.create(create_params(idempotency_key: 'slot-a'))
+        other_connection = CalendarConnection.create!(
+          account: account, provider: 'google', email: 'other@example.com', refresh_token: 'refresh'
+        )
+        other_connection.connection_calendars.create!(account: account, external_id: 'cal-1', summary: 'Shared', is_enabled: true)
+        other_service = described_class.new(account: account, user: user, connection: other_connection)
+
+        expect { other_service.create(create_params(idempotency_key: 'slot-a')) }.to raise_error(described_class::InvalidRange)
+        expect(other_connection.calendar_events).to be_empty
+        expect(client).to have_received(:create_event).once
+      end
+
+      it 'rejects a key owned by another calendar on the same connection' do
+        service.create(create_params(idempotency_key: 'slot-a'))
+        connection.connection_calendars.create!(account: account, external_id: 'cal-2', summary: 'Other', is_enabled: true)
+
+        expect { service.create(create_params(calendar_id: 'cal-2', idempotency_key: 'slot-a')) }.to raise_error(described_class::InvalidRange)
+        expect(client).to have_received(:create_event).once
+      end
+
       it 'returns the existing event and never double-books' do
         first = service.create(create_params(idempotency_key: 'key-1'))
         second = service.create(create_params(idempotency_key: 'key-1'))
@@ -396,6 +472,45 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
       it 'does not enqueue the Panel AI job without a policy' do
         expect { service.create(create_params) }.not_to have_enqueued_job(Calendar::NotifyPanelAiFollowupJob)
         expect(CalendarEvent.find_by(google_event_id: 'g-1').appointment_status).to eq('none')
+      end
+    end
+  end
+
+  describe 'Captain mutations require the local owner' do
+    [:update, :destroy].each do |operation|
+      it "rejects #{operation} when only another connection owns the event" do
+        other_connection = CalendarConnection.create!(
+          account: account, provider: 'google', email: 'other@example.com', refresh_token: 'refresh'
+        )
+        record = local_event(calendar_connection: other_connection, google_event_id: 'external', contact: contact)
+        params = create_params(note: 'Customer request')
+
+        expect do
+          if operation == :update
+            service.update('external', params, require_local: true)
+          else
+            service.destroy('external', params.merge(require_local: true))
+          end
+        end.to(raise_error { |error| expect(error.class.name).to eq('ActiveRecord::RecordNotFound') })
+        expect(record.reload).to have_attributes(deleted_at: nil, summary: 'Existing')
+        expect(client).not_to have_received(:update_event)
+        expect(client).not_to have_received(:delete_event)
+      end
+
+      it "rejects #{operation} when the event belongs to another calendar" do
+        record = local_event(external_calendar_id: 'cal-2', google_event_id: 'external')
+        params = create_params(note: 'Customer request')
+
+        expect do
+          if operation == :update
+            service.update('external', params, require_local: true)
+          else
+            service.destroy('external', params.merge(require_local: true))
+          end
+        end.to(raise_error { |error| expect(error.class.name).to eq('ActiveRecord::RecordNotFound') })
+        expect(record.reload.deleted_at).to be_nil
+        expect(client).not_to have_received(:update_event)
+        expect(client).not_to have_received(:delete_event)
       end
     end
   end

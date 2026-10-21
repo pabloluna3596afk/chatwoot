@@ -37,10 +37,12 @@ RSpec.shared_context 'with an appointments conversation' do
   around { |example| travel_to(Time.zone.parse('2030-01-14T12:00:00-05:00')) { example.run } }
 
   before do
+    created_count = 0
     allow(Integrations::GoogleCalendar::Client).to receive(:new).and_return(client)
     allow(client).to receive(:list_events).and_return([])
     allow(client).to receive(:create_event) do |**kwargs|
-      { 'id' => 'g-1', 'etag' => '"e"', 'summary' => kwargs[:summary],
+      created_count += 1
+      { 'id' => "g-#{created_count}", 'etag' => '"e"', 'summary' => kwargs[:summary],
         'start' => { 'dateTime' => kwargs[:start_at].iso8601 }, 'end' => { 'dateTime' => kwargs[:end_at].iso8601 } }
     end
     allow(client).to receive(:update_event) do |**kwargs|
@@ -51,7 +53,7 @@ RSpec.shared_context 'with an appointments conversation' do
   end
 
   after do
-    %w[g-1 own-1 other-1].each do |event_id|
+    %w[g-1 g-2 own-1 other-1].each do |event_id|
       Redis::Alfred.delete(format(Redis::RedisKeys::CALENDAR_EVENT_LOCK, account_id: account.id, event_id: event_id))
     end
     Redis::Alfred.delete(format(Redis::RedisKeys::CALENDAR_BOOKING_LOCK, account_id: account.id, calendar_id: 'cal-1'))
@@ -504,11 +506,152 @@ RSpec.describe Captain::Tools::BookAppointmentTool do
     expect(CalendarEvent.count).to eq(1)
   end
 
+  it 'books A again after moving A to B, with separate reminders and confirmation buttons', :aggregate_failures do
+    call
+    moved = CalendarEvent.find_by!(google_event_id: 'g-1')
+    old_key = moved.idempotency_key
+    move = Captain::Tools::RescheduleAppointmentTool.new(assistant).perform(
+      tool_context, event_id: 'g-1', new_start: '2030-01-16T15:00:00-05:00', customer_confirmed: true
+    )
+
+    expect(move).to start_with('Reprogramada')
+    expect(moved.reload).to have_attributes(start_at: Time.iso8601('2030-01-16T15:00:00-05:00'), idempotency_key: nil)
+    expect(moved.appointment_reminders.find_by!(kind: 'reminder_2').scheduled_at).to eq(moved.start_at - 3.hours)
+
+    result = call
+    retried = call
+    booked = CalendarEvent.find_by!(google_event_id: 'g-2')
+
+    expect(result).to start_with('Agendada: martes 15 de enero, 10:00.')
+    expect(retried).to eq(result)
+    expect(booked).to have_attributes(start_at: Time.iso8601(start), idempotency_key: old_key)
+    expect(booked.appointment_reminders.count).to eq(2)
+    expect(moved.appointment_reminders.count).to eq(2)
+    items = Captain::QuickReplies.take(conversation)
+    expect(items.pluck('value')).to eq(['Cambiar hora · mar 15 ene · 10:00', 'Cancelar cita · mar 15 ene · 10:00'])
+    expect(Captain::QuickReplies.choice(conversation, items.last['value'])).to include('event_id' => 'g-2')
+    expect(client).to have_received(:create_event).twice
+  end
+
+  it 'uses the persisted start in the confirmation text and button values' do
+    allow(client).to receive(:create_event).and_return(
+      'id' => 'g-1', 'summary' => 'Appointment',
+      'start' => { 'dateTime' => '2030-01-15T10:15:00-05:00' }, 'end' => { 'dateTime' => '2030-01-15T10:45:00-05:00' }
+    )
+
+    expect(call).to start_with('Agendada: martes 15 de enero, 10:15.')
+    expect(Captain::QuickReplies.take(conversation).pluck('value')).to all(include('10:15'))
+    expect(CalendarEvent.find_by!(google_event_id: 'g-1').start_at).to eq(Time.iso8601('2030-01-15T10:15:00-05:00'))
+  end
+
+  it 'uses a different booking identity when the assistant switches connections to the same calendar' do
+    call
+    first = CalendarEvent.find_by!(google_event_id: 'g-1')
+    other_connection = CalendarConnection.create!(
+      account: account, provider: 'google', email: 'other@example.com', refresh_token: 'refresh',
+      access_token: 'access', access_token_expires_at: 1.hour.from_now
+    )
+    other_connection.connection_calendars.create!(account: account, external_id: 'cal-1', summary: 'Shared', is_enabled: true)
+    assistant.update!(config: assistant.config.merge('appointments' => appointments_config.merge('calendar_connection_id' => other_connection.id)))
+
+    result = described_class.new(assistant).perform(tool_context, start: start, customer_confirmed: true)
+
+    expect(result).to start_with('Agendada')
+    second = CalendarEvent.find_by!(google_event_id: 'g-2')
+    expect(second.calendar_connection_id).to eq(other_connection.id)
+    expect(second.idempotency_key).not_to eq(first.idempotency_key)
+    expect(client).to have_received(:create_event).twice
+  end
+
+  it 'does not hide an interval collision as a successful booking in the recovery path' do
+    call
+    moved = CalendarEvent.find_by!(google_event_id: 'g-1')
+    moved.update_columns(start_at: Time.iso8601('2030-01-16T15:00:00-05:00')) # rubocop:disable Rails/SkipsModelValidations
+    Captain::QuickReplies.take(conversation)
+
+    expect(call).to include('No se pudo leer ese horario')
+    expect(client).to have_received(:create_event).once
+    expect(Captain::QuickReplies.take(conversation)).to be_nil
+  end
+
   it 'treats another time in the same conversation as another booking' do
     call
     call(start: '2030-01-15T11:00:00-05:00')
 
     expect(client).to have_received(:create_event).twice
+  end
+end
+
+[Captain::Tools::ConfirmAppointmentTool, Captain::Tools::CancelAppointmentTool, Captain::Tools::RescheduleAppointmentTool].each do |tool_class|
+  RSpec.describe tool_class, 'connection ownership' do
+    include_context 'with an appointments conversation'
+
+    let(:other_connection) do
+      CalendarConnection.create!(account: account, provider: 'google', email: 'other@example.com', refresh_token: 'refresh')
+    end
+    let(:params) do
+      case tool_class.name
+      when 'Captain::Tools::ConfirmAppointmentTool' then { event_id: 'own-1' }
+      when 'Captain::Tools::CancelAppointmentTool' then { event_id: 'own-1', customer_confirmed: true }
+      else { event_id: 'own-1', new_start: '2030-01-16T15:00:00-05:00', customer_confirmed: true }
+      end
+    end
+
+    it 'rejects an event owned only by another connection to the same calendar' do
+      foreign = local_event(calendar_connection: other_connection, google_event_id: 'own-1', contact: contact)
+      original = foreign.reload.attributes
+
+      expect(tool.perform(tool_context, **params)).to include('No se encontró esa cita')
+      expect(foreign.reload.attributes).to eq(original)
+      expect(client).not_to have_received(:update_event)
+      expect(client).not_to have_received(:delete_event)
+    end
+
+    it 'mutates only the own row when both connections have the same Google event id', :aggregate_failures do
+      foreign = local_event(calendar_connection: other_connection, google_event_id: 'own-1', contact: contact)
+      own = local_event(google_event_id: 'own-1', contact: contact, conversation: conversation, appointment_status: 'pending_confirmation')
+      original = foreign.reload.attributes
+      Captain::AppointmentReminders::Scheduler.schedule(own, assistant: assistant, conversation: conversation)
+
+      result = tool.perform(tool_context, **params)
+
+      expect(result).to match(/\A(?:Confirmada|Cancelada|Reprogramada):/)
+      expect(foreign.reload.attributes).to eq(original)
+      own.reload
+      case tool_class.name
+      when 'Captain::Tools::ConfirmAppointmentTool'
+        expect(own.appointment_status).to eq('confirmed')
+      when 'Captain::Tools::CancelAppointmentTool'
+        expect(own).to be_discarded
+        expect(own.appointment_reminders.find_by!(kind: 'reminder_2').status).to eq('cancelled')
+        expect(own.appointment_reminders.pending).to be_empty
+      else
+        expect(own.start_at).to eq(Time.iso8601(params[:new_start]))
+        expect(own.appointment_reminders.find_by!(kind: 'reminder_2').scheduled_at).to eq(own.start_at - 3.hours)
+      end
+    end
+
+    it 'rejects an event in another calendar of the own connection' do
+      foreign = local_event(external_calendar_id: 'cal-2', google_event_id: 'own-1', contact: contact)
+      original = foreign.reload.attributes
+
+      expect(tool.perform(tool_context, **params)).to include('No se encontró esa cita')
+      expect(foreign.reload.attributes).to eq(original)
+      expect(client).not_to have_received(:update_event)
+      expect(client).not_to have_received(:delete_event)
+    end
+
+    it 'returns an error if the local row disappears after the appointment list was read' do
+      own = local_event(google_event_id: 'own-1', contact: contact)
+      payload = Integrations::GoogleCalendar::EventService.payload_from_record(own)
+      allow(tool).to receive(:own_appointments).with(conversation, contact).and_return([payload])
+      own.destroy!
+
+      expect(tool.perform(tool_context, **params)).to include('No se pudo acceder al calendario')
+      expect(connection.calendar_events).to be_empty
+      expect(client).not_to have_received(:update_event)
+      expect(client).not_to have_received(:delete_event)
+    end
   end
 end
 
