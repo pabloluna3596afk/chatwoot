@@ -38,12 +38,17 @@ class Captain::EngagementActivity
     condition = @result[:condition]
     params = { assistant: @assistant.name.presence || 'Captain', channel: channel_label }
     return params unless condition
+    return params.merge(customer_scope: scope_label(condition[:contact_scope])) if condition[:contact_scope]
 
     params.merge(
       attribute: attribute_label(condition[:attribute_key]),
-      operator: I18n.t("captain.engagement.operators.#{condition[:filter_operator]}", locale: @locale),
+      operator: condition[:filter_operator] && I18n.t("captain.engagement.operators.#{condition[:filter_operator]}", locale: @locale),
       value: Array(condition[:values]).join(', ')
     )
+  end
+
+  def scope_label(scope)
+    I18n.t("captain.engagement.scopes.#{scope}", locale: @locale)
   end
 
   def translated_content

@@ -517,9 +517,19 @@ es:
         %{assistant} no atendió esta conversación: la audiencia pide %{attribute} y este contacto no lo tiene (%{channel}).
       audience_no_match: >-
         %{assistant} no atendió esta conversación: el contacto no cumple la regla «%{attribute} %{operator} %{value}».
+      audience_denied: >-
+        %{assistant} no atendi? esta conversaci?n: el contacto est? en la lista de bloqueados (%{attribute}).
+      audience_not_allowed: >-
+        %{assistant} no atendi? esta conversaci?n: el contacto no est? en la lista de permitidos (%{attribute}).
+      audience_scope: >-
+        %{assistant} no atendi? esta conversaci?n: solo atiende clientes %{customer_scope}.
+      scopes:
+        new: "nuevos"
+        returning: "recurrentes"
       attributes:
         name: "Nombre"
         email: "E-mail"
+        channel_ids: "ID o usuario del canal"
         phone_number: "Número de teléfono"
         identifier: "Identificador"
         blocked: "Bloqueado"

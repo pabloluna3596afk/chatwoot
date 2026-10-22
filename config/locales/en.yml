@@ -574,9 +574,19 @@ en:
         (%{channel}).
       audience_no_match: >-
         %{assistant} did not take this conversation: the contact does not match the rule “%{attribute} %{operator} %{value}”.
+      audience_denied: >-
+        %{assistant} did not take this conversation: the contact is on the denied list (%{attribute}).
+      audience_not_allowed: >-
+        %{assistant} did not take this conversation: the contact is not on the allowed list (%{attribute}).
+      audience_scope: >-
+        %{assistant} did not take this conversation: it only serves %{customer_scope} customers.
+      scopes:
+        new: "new"
+        returning: "returning"
       attributes:
         name: "Name"
         email: "Email"
+        channel_ids: "Channel ID or username"
         phone_number: "Phone number"
         identifier: "Identifier"
         blocked: "Blocked"

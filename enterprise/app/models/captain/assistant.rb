@@ -162,14 +162,7 @@ class Captain::Assistant < ApplicationRecord
   end
 
   def engagement_result(contact, conversation)
-    failure = Captain::AudienceMatcher.new(config['audience']).first_failure(contact, conversation)
-    if failure
-      reason = failure[:missing_data] ? 'audience_missing_data' : 'audience_no_match'
-      return { engages: false, reason: reason, condition: failure[:condition] }
-    end
-    return { engages: false, reason: 'out_of_hours', condition: nil } unless available_now?(conversation)
-
-    { engages: true, reason: nil, condition: nil }
+    Captain::Audience::Evaluator.new(self, conversation.inbox).result(contact, conversation)
   end
 
   def responds_to_audience?(contact, conversation)

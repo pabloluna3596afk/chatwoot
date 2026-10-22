@@ -52,6 +52,20 @@ RSpec.describe 'Captain assistant conversation assignment API', type: :request d
     expect(conversation.reload.ai_assignee).to be_nil
   end
 
+  it 'allows explicit assignment even when the custom inbox audience rejects the contact (matrix 18)' do
+    assistant.captain_inboxes.find_by!(inbox: inbox).update!(
+      audience_mode: 'custom', audience_rules: { phones: { mode: 'allow', list: [] } }
+    )
+
+    post api_v1_account_conversation_assignments_url(account_id: account.id, conversation_id: conversation.display_id),
+         params: { assignee_id: assistant.id, assignee_type: 'Captain::Assistant' },
+         headers: agent.create_new_auth_token,
+         as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(conversation.reload).to have_attributes(ai_assignee: assistant, status: 'pending')
+  end
+
   it 'preserves the human assignment when the account entitlement is disabled' do
     conversation.update!(assignee: agent, status: :open)
     account.disable_features!('captain_integration')

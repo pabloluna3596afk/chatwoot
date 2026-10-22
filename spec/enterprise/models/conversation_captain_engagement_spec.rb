@@ -14,6 +14,42 @@ RSpec.describe Conversation, type: :model do
       allow(assistant).to receive(:paused_reason).and_return(nil)
     end
 
+    context 'with custom inbox rules' do
+      let(:locale) { 'es' }
+
+      it 'stores the list diagnosis and writes its translated activity on creation' do
+        contact.update!(email: 'blocked@example.com')
+        assistant.captain_inboxes.find_by!(inbox: inbox).update!(
+          audience_mode: 'custom', audience_rules: { emails: { mode: 'deny', list: ['blocked@example.com'] } }
+        )
+
+        expect(conversation).to be_open
+        diagnosis = conversation.reload.additional_attributes.fetch('captain_skip_reason')
+        expect(diagnosis).to eq('reason' => 'audience_denied', 'condition' => { 'attribute_key' => 'email' })
+        expect(conversation.messages.activity.sole.content).to include('lista de bloqueados')
+      end
+
+      it 'evaluates a label change only on reopening (matrix 15)' do
+        assistant.captain_inboxes.find_by!(inbox: inbox).update!(
+          audience_mode: 'custom', audience_rules: {
+            tree: { attribute_key: 'labels', filter_operator: 'equal_to', values: ['VIP'] }
+          }
+        )
+        expect(conversation).to be_open
+        contact.update!(label_list: ['VIP'])
+        create(:message, message_type: :incoming, conversation: conversation)
+        expect(conversation.reload).to be_open
+        expect(conversation.ai_assignee).to be_nil
+
+        conversation.resolved!
+        create(:message, message_type: :incoming, conversation: conversation)
+
+        expect(conversation.reload).to be_pending
+        expect(conversation.ai_assignee).to eq(assistant)
+        expect(conversation.messages.activity.where("additional_attributes ? 'captain_skip_reason'").count).to eq(1)
+      end
+    end
+
     %w[es en].each do |language|
       context "with account locale #{language}" do
         let(:locale) { language }
