@@ -98,17 +98,17 @@ it('refreshes the contact tool after local saves and remote appointment changes'
     },
   });
   await flushPromises();
-  expect(
-    wrapper.findComponent(ContactToolsBar).props('tools')[1].legend
-  ).toContain('Original');
+  expect(wrapper.findComponent(ContactToolsBar).props('tools')[1].label).toBe(
+    'Original'
+  );
   getContactEvents.mockResolvedValueOnce({ data: { payload: [] } });
   wrapper
     .findComponent(CalendarEventsList)
     .vm.$emit('saved', { deleted: true });
   await flushPromises();
   expect(
-    wrapper.findComponent(ContactToolsBar).props('tools')[1].legend
-  ).not.toContain('Original');
+    wrapper.findComponent(ContactToolsBar).props('tools')[1].label
+  ).not.toBe('Original');
   expect(getContactEvents).toHaveBeenCalledTimes(2);
   getContactEvents.mockResolvedValueOnce({
     data: {
@@ -124,9 +124,9 @@ it('refreshes the contact tool after local saves and remote appointment changes'
   });
   emitter.emit('calendar.events_changed', { account_id: 1, contact_ids: [7] });
   await flushPromises();
-  expect(
-    wrapper.findComponent(ContactToolsBar).props('tools')[1].legend
-  ).toContain('Remote appointment');
+  expect(wrapper.findComponent(ContactToolsBar).props('tools')[1].label).toBe(
+    'Remote appointment'
+  );
   wrapper.unmount();
 });
 

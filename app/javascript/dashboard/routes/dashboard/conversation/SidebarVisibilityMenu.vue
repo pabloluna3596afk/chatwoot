@@ -278,7 +278,7 @@ const onReset = () => {
                 class="group flex items-center gap-2 h-8 px-2 rounded-md hover:bg-n-alpha-2"
               >
                 <span
-                  class="section-drag-handle i-lucide-grip-vertical size-3.5 shrink-0 text-n-slate-9 cursor-grab [@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                  class="section-drag-handle i-lucide-grip-vertical size-3.5 shrink-0 text-n-slate-9 cursor-grab"
                 />
                 <label
                   class="flex flex-1 items-center gap-2 min-w-0 mb-0 cursor-pointer"
@@ -337,7 +337,7 @@ const onReset = () => {
                     class="group flex items-center gap-2 h-7 px-2 rounded-md text-xs text-n-slate-11 hover:bg-n-alpha-2"
                   >
                     <span
-                      class="category-drag-handle i-lucide-grip-vertical size-3.5 shrink-0 text-n-slate-9 cursor-grab [@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                      class="category-drag-handle i-lucide-grip-vertical size-3.5 shrink-0 text-n-slate-9 cursor-grab"
                     />
                     <label
                       class="flex flex-1 items-center gap-2 min-w-0 mb-0 cursor-pointer"
