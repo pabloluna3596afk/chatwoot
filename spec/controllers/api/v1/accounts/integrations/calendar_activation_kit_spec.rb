@@ -19,7 +19,8 @@ RSpec.describe 'Calendar activation kit API', type: :request do
     get url, headers: agent.create_new_auth_token, as: :json
 
     expect(response).to have_http_status(:ok)
-    expect(response.parsed_body['template']).to include('name' => 'cita_confirmacion', 'language' => 'es')
+    expect(response.parsed_body['template']).to include('name' => 'cita_confirmacion', 'language' => 'es',
+                                                                         'buttons' => %w[Confirmar Reagendar Cancelar])
     expect(response.parsed_body['inboxes']).to eq([])
   end
 

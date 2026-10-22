@@ -30,7 +30,8 @@ class Calendar::ActivationKit
   end
 
   def status
-    { attributes: provisioner.status, template: { name: TEMPLATE_NAME, language: language, category: CATEGORY, body: definition[:body] },
+    { attributes: provisioner.status, template: { name: TEMPLATE_NAME, language: language, category: CATEGORY, body: definition[:body],
+                  buttons: definition[:buttons] },
       inboxes: whatsapp_inboxes.map { |inbox| inbox_status(inbox) } }
   end
 

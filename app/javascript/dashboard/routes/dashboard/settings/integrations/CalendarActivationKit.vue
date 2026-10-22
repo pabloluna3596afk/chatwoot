@@ -184,6 +184,19 @@ onMounted(load);
         <p class="m-0 text-body-main text-n-slate-12 whitespace-pre-line">
           {{ kit.template.body }}
         </p>
+        <div
+          v-if="kit.template.buttons?.length"
+          class="flex flex-wrap gap-2"
+          data-testid="activation-kit-buttons"
+        >
+          <span
+            v-for="label in kit.template.buttons"
+            :key="label"
+            class="px-3 py-1 text-xs font-medium rounded-lg bg-n-solid-1 text-n-blue-11"
+          >
+            {{ label }}
+          </span>
+        </div>
         <span class="text-xs text-n-slate-11">
           {{
             $t('CALENDAR_ACTIVATION_KIT.TEMPLATE_META', {

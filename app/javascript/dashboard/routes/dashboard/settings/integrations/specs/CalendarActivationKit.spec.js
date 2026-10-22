@@ -27,6 +27,7 @@ const kitWith = (inboxes, extra = {}) => ({
     language: 'es',
     category: 'UTILITY',
     body: 'Hola {{nombre}}, tu cita quedó agendada.',
+    buttons: ['Confirmar', 'Reagendar', 'Cancelar'],
   },
   inboxes,
   ...extra,
@@ -257,5 +258,13 @@ describe('CalendarActivationKit', () => {
       );
 
     expect(keys(en).sort()).toEqual(keys(es).sort());
+  });
+
+  it('previews the quick-reply buttons of the template', async () => {
+    const wrapper = await mountKit(kitWith([inbox(1, 'missing')]));
+
+    expect(
+      wrapper.get('[data-testid="activation-kit-buttons"]').text()
+    ).toContain('Reagendar');
   });
 });
