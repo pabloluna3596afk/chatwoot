@@ -1,5 +1,5 @@
 # What an account needs so appointments work from day one: the attributes of the contact (Calendar::AppointmentAttributes)
-# and, on the WhatsApp Cloud inboxes the administrator picks, the confirmation and cancellation templates sent to Meta
+# and, on the WhatsApp Cloud inboxes the administrator picks, confirmation, cancellation and reminder templates sent to Meta
 # for review.
 # Idempotent: what already exists is reused, and a template Meta rejected is the only one sent again.
 #
@@ -35,7 +35,20 @@ class Calendar::ActivationKit
       buttons: []
     }
   }.freeze
-  DEFINITIONS = { TEMPLATE_NAME => TEMPLATES, CANCEL_TEMPLATE_NAME => CANCEL_TEMPLATES }.freeze
+  REMINDER_TEMPLATE_NAME = 'cita_recordatorio'.freeze
+  REMINDER_TEMPLATES = {
+    'es' => {
+      body: 'Hola {{nombre}}, te recordamos tu cita "{{cita}}" para el {{fecha}} a las {{hora}}. ¿Sigues pudiendo asistir?',
+      examples: TEMPLATES['es'][:examples], buttons: TEMPLATES['es'][:buttons]
+    },
+    'en' => {
+      body: 'Hi {{nombre}}, this is a reminder of your appointment "{{cita}}" on {{fecha}} at {{hora}}. Can you still attend?',
+      examples: TEMPLATES['en'][:examples], buttons: TEMPLATES['en'][:buttons]
+    }
+  }.freeze
+  DEFINITIONS = { TEMPLATE_NAME => TEMPLATES, CANCEL_TEMPLATE_NAME => CANCEL_TEMPLATES,
+                  REMINDER_TEMPLATE_NAME => REMINDER_TEMPLATES }.freeze
+  REPLY_TEMPLATE_NAMES = [TEMPLATE_NAME, REMINDER_TEMPLATE_NAME].freeze
   NOT_REVIEWABLE = %w[PENDING APPROVED IN_APPEAL].freeze
 
   def initialize(account)
@@ -49,6 +62,7 @@ class Calendar::ActivationKit
   def status
     { attributes: provisioner.status, template: template_summary(TEMPLATE_NAME),
       cancel_template: template_summary(CANCEL_TEMPLATE_NAME).except(:buttons),
+      reminder_template: template_summary(REMINDER_TEMPLATE_NAME), reminder_enabled: @account.customer_reminders_enabled == true,
       inboxes: whatsapp_inboxes.map { |inbox| inbox_status(inbox) } }
   end
 
@@ -58,7 +72,9 @@ class Calendar::ActivationKit
     provisioner.perform(keys: attribute_keys)
     chosen = whatsapp_inboxes.select { |inbox| inbox_ids.map(&:to_i).include?(inbox.id) }
     results = chosen.to_h do |inbox|
-      [inbox.id, submit(inbox, TEMPLATE_NAME).merge(cancel: submit(inbox, CANCEL_TEMPLATE_NAME))]
+      [inbox.id, submit(inbox, TEMPLATE_NAME).merge(
+        cancel: submit(inbox, CANCEL_TEMPLATE_NAME), reminder: submit(inbox, REMINDER_TEMPLATE_NAME)
+      )]
     end
     status.merge(results: results)
   end
@@ -95,12 +111,17 @@ class Calendar::ActivationKit
   end
 
   def inbox_status(inbox)
-    template = template_of(inbox, TEMPLATE_NAME)
-    cancel_template = template_of(inbox, CANCEL_TEMPLATE_NAME)
-    { id: inbox.id, name: inbox.name, status: template ? template['status'].to_s.downcase : 'missing',
-      rejected_reason: rejected_reason_of(template),
-      cancel_status: cancel_template ? cancel_template['status'].to_s.downcase : 'missing',
-      cancel_rejected_reason: rejected_reason_of(cancel_template) }
+    { id: inbox.id, name: inbox.name }.merge(
+      template_state(inbox, TEMPLATE_NAME),
+      template_state(inbox, CANCEL_TEMPLATE_NAME, prefix: 'cancel_'),
+      template_state(inbox, REMINDER_TEMPLATE_NAME, prefix: 'reminder_')
+    )
+  end
+
+  def template_state(inbox, name, prefix: '')
+    template = template_of(inbox, name)
+    { "#{prefix}status".to_sym => template ? template['status'].to_s.downcase : 'missing',
+      "#{prefix}rejected_reason".to_sym => rejected_reason_of(template) }
   end
 
   def rejected_reason_of(template)

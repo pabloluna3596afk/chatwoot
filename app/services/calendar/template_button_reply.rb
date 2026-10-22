@@ -50,12 +50,14 @@ class Calendar::TemplateButtonReply
       return
     end
 
-    scope.where("additional_attributes -> 'template_params' ->> 'name' = ?", Calendar::ActivationKit::TEMPLATE_NAME)
+    scope.where("additional_attributes -> 'template_params' ->> 'name' IN (?)", Calendar::ActivationKit::REPLY_TEMPLATE_NAMES)
          .where("additional_attributes ->> 'calendar_event_id' IS NOT NULL").order(:id).last
   end
 
   def template_notice?(notice)
-    notice.present? && notice.additional_attributes.dig('template_params', 'name') == Calendar::ActivationKit::TEMPLATE_NAME &&
+    return false unless notice
+
+    Calendar::ActivationKit::REPLY_TEMPLATE_NAMES.include?(notice.additional_attributes.dig('template_params', 'name')) &&
       notice.additional_attributes['calendar_event_id'].present?
   end
 

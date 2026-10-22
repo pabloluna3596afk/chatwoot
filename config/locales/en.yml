@@ -436,6 +436,7 @@ en:
         issue_linked: 'Linear issue %{issue_id} was linked by %{user_name}'
         issue_unlinked: 'Linear issue %{issue_id} was unlinked by %{user_name}'
       calendar:
+        reminder_notice_not_sent: 'The WhatsApp reminder for the appointment "%{event_title}" was not sent: the approved reminder template is missing. Set it up in Settings, Calendars.'
         event_created: '%{user_name} created calendar event "%{event_title}" from the "%{inbox_name}" inbox'
         event_updated: '%{user_name} updated calendar event "%{event_title}"'
         event_deleted: '%{user_name} deleted calendar event "%{event_title}"'

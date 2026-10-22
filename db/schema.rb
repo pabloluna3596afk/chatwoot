@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_18_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_22_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -424,6 +424,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_18_120000) do
     t.string "booking_source", default: "manual", null: false
     t.string "invitation_status"
     t.text "invitation_text"
+    t.datetime "customer_reminder_sent_at"
+    t.string "customer_reminder_status"
     t.index ["account_id", "contact_id"], name: "index_calendar_events_on_account_id_and_contact_id"
     t.index ["account_id", "conversation_id"], name: "index_calendar_events_on_account_id_and_conversation_id"
     t.index ["account_id", "idempotency_key"], name: "index_calendar_events_on_account_id_and_idempotency_key", unique: true, where: "(idempotency_key IS NOT NULL)"
@@ -435,6 +437,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_18_120000) do
     t.index ["created_by_id"], name: "index_calendar_events_on_created_by_id"
     t.index ["deleted_at"], name: "index_calendar_events_on_deleted_at"
     t.index ["deleted_by_id"], name: "index_calendar_events_on_deleted_by_id"
+    t.index ["start_at"], name: "index_calendar_events_on_pending_customer_reminder", where: "((deleted_at IS NULL) AND (customer_reminder_sent_at IS NULL) AND ((customer_reminder_status IS NULL) OR ((customer_reminder_status)::text = ANY ((ARRAY['no_template'::character varying, 'retry_1'::character varying, 'retry_2'::character varying])::text[]))))"
     t.index ["updated_by_id"], name: "index_calendar_events_on_updated_by_id"
   end
 

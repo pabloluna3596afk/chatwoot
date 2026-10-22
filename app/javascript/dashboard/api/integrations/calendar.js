@@ -64,6 +64,12 @@ class CalendarAPI extends ApiClient {
     return axios.get(`${this.url}/activation_kit`);
   }
 
+  updateReminderEnabled(enabled) {
+    return axios.patch(`${this.url}/activation_kit`, {
+      reminder_enabled: enabled,
+    });
+  }
+
   applyActivationKit(inboxIds) {
     return axios.patch(`${this.url}/activation_kit`, { inbox_ids: inboxIds });
   }

@@ -14,6 +14,7 @@ module AccountSettingsSchema
         'audio_transcriptions': { 'type': %w[boolean null] },
         'auto_resolve_label': { 'type': %w[string null] },
         'resolved_label_key': { 'type': %w[string null], 'enum': ['resolved', 'closed', 'sold', 'finished', nil] },
+        'customer_reminders_enabled': { 'type': 'boolean' },
         'keep_pending_on_bot_failure': { 'type': %w[boolean null] },
         'captain_auto_resolve_mode': { 'type': %w[string null], 'enum': ['evaluated', 'legacy', 'disabled', nil] },
         'captain_false_promise_harness_enabled': { 'type': %w[boolean null] },

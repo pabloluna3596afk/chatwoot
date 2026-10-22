@@ -6,6 +6,11 @@ import { useAlert } from 'dashboard/composables';
 import en from 'dashboard/i18n/locale/en/calendarActivationKit.json';
 import es from 'dashboard/i18n/locale/es/calendarActivationKit.json';
 
+const messages = {
+  en: { ...en, SWITCH: { TOGGLE: 'Toggle' } },
+  es: { ...es, SWITCH: { TOGGLE: 'Alternar' } },
+};
+
 const { isAdmin } = vi.hoisted(() => ({ isAdmin: { value: true } }));
 
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
@@ -17,7 +22,11 @@ vi.mock('dashboard/composables/useAdmin', async () => {
   return { useAdmin: () => ({ isAdmin: computed(() => isAdmin.value) }) };
 });
 vi.mock('dashboard/api/integrations/calendar', () => ({
-  default: { getActivationKit: vi.fn(), applyActivationKit: vi.fn() },
+  default: {
+    getActivationKit: vi.fn(),
+    applyActivationKit: vi.fn(),
+    updateReminderEnabled: vi.fn(),
+  },
 }));
 
 const kitWith = (inboxes, extra = {}) => ({
@@ -35,6 +44,14 @@ const kitWith = (inboxes, extra = {}) => ({
     category: 'UTILITY',
     body: 'Hola {{nombre}}, tu cita fue cancelada.',
   },
+  reminder_template: {
+    name: 'cita_recordatorio',
+    language: 'es',
+    category: 'UTILITY',
+    body: 'Hola {{nombre}}, te recordamos tu cita.',
+    buttons: ['Confirmar', 'Reagendar', 'Cancelar'],
+  },
+  reminder_enabled: false,
   inboxes,
   ...extra,
 });
@@ -43,6 +60,8 @@ const inbox = (id, status, rejectedReason = null) => ({
   name: `WhatsApp ${id}`,
   status,
   rejected_reason: rejectedReason,
+  reminder_status: status,
+  reminder_rejected_reason: null,
   cancel_status: status,
   cancel_rejected_reason: null,
 });
@@ -55,7 +74,7 @@ const mountKit = async (data, locale = 'es') => {
         createI18n({
           legacy: false,
           locale,
-          messages: { en, es },
+          messages,
         }),
       ],
       stubs: { 'router-link': { template: '<a><slot /></a>' } },
@@ -241,9 +260,7 @@ describe('CalendarActivationKit', () => {
     CalendarAPI.getActivationKit.mockRejectedValue(new Error('boom'));
     const wrapper = mount(CalendarActivationKit, {
       global: {
-        plugins: [
-          createI18n({ legacy: false, locale: 'es', messages: { en, es } }),
-        ],
+        plugins: [createI18n({ legacy: false, locale: 'es', messages })],
         stubs: { 'router-link': true },
       },
     });
@@ -360,6 +377,116 @@ describe('CalendarActivationKit', () => {
     expect(
       wrapper.find('[data-testid="activation-kit-resend-1"]').exists()
     ).toBe(true);
+    expect(useAlert).toHaveBeenCalledWith(
+      es.CALENDAR_ACTIVATION_KIT.SENT_WITH_ERRORS
+    );
+  });
+
+  it('previews reminders with the same quick replies', async () => {
+    const wrapper = await mountKit(kitWith([inbox(1, 'approved')]));
+    expect(
+      wrapper.get('[data-testid="activation-kit-reminder-preview"]').text()
+    ).toContain('te recordamos');
+    expect(
+      wrapper.get('[data-testid="activation-kit-reminder-buttons"]').text()
+    ).toContain('Reagendar');
+    expect(
+      wrapper.get('[data-testid="activation-kit-reminder-status-1"]').text()
+    ).toBe('Aprobada');
+    expect(
+      wrapper
+        .get('[data-testid="activation-kit-reminder-switch"]')
+        .attributes('aria-checked')
+    ).toBe('false');
+  });
+
+  it.each(['es', 'en'])(
+    'saves the paid reminder switch in %s',
+    async locale => {
+      const data = kitWith([]);
+      const wrapper = await mountKit(data, locale);
+      CalendarAPI.updateReminderEnabled.mockResolvedValue({
+        data: { ...data, reminder_enabled: true },
+      });
+      await wrapper
+        .get('[data-testid="activation-kit-reminder-switch"]')
+        .trigger('click');
+      await flushPromises();
+      expect(CalendarAPI.updateReminderEnabled).toHaveBeenCalledWith(true);
+      expect(wrapper.get('[role="switch"]').attributes('aria-checked')).toBe(
+        'true'
+      );
+      expect(wrapper.text()).toContain(
+        (locale === 'es' ? es : en).CALENDAR_ACTIVATION_KIT.REMINDER_COST
+      );
+    }
+  );
+
+  it('keeps the switch unchanged when saving fails', async () => {
+    const wrapper = await mountKit(kitWith([]));
+    CalendarAPI.updateReminderEnabled.mockRejectedValue(new Error('failure'));
+    await wrapper.get('[role="switch"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.get('[role="switch"]').attributes('aria-checked')).toBe(
+      'false'
+    );
+    expect(useAlert).toHaveBeenCalledWith(
+      es.CALENDAR_ACTIVATION_KIT.REMINDER_SAVE_ERROR
+    );
+  });
+
+  it('disables the switch for agents', async () => {
+    isAdmin.value = false;
+    const wrapper = await mountKit(kitWith([]));
+    expect(wrapper.get('[role="switch"]').attributes('disabled')).toBeDefined();
+    await wrapper.get('[role="switch"]').trigger('click');
+    expect(CalendarAPI.updateReminderEnabled).not.toHaveBeenCalled();
+  });
+
+  it.each(['missing', 'rejected', 'error'])(
+    'allows reminder %s independently',
+    async status => {
+      const row = {
+        ...inbox(1, 'approved'),
+        reminder_status: status,
+        reminder_rejected_reason: 'INVALID_FORMAT',
+      };
+      const wrapper = await mountKit(kitWith([row]));
+      expect(
+        wrapper
+          .get('[data-testid="activation-kit-check-1"] input')
+          .attributes('disabled')
+      ).toBeUndefined();
+      expect(
+        wrapper.get('[data-testid="activation-kit-reminder-status-1"]').text()
+      ).toBe(es.CALENDAR_ACTIVATION_KIT.STATUS[status]);
+    }
+  );
+
+  it('reports reminder errors independently', async () => {
+    const row = { ...inbox(1, 'approved'), reminder_status: 'missing' };
+    const wrapper = await mountKit(kitWith([row]));
+    CalendarAPI.applyActivationKit.mockResolvedValue({
+      data: kitWith([row], {
+        results: {
+          1: {
+            status: 'approved',
+            reminder: { status: 'error', code: 'token_invalid' },
+          },
+        },
+      }),
+    });
+    await wrapper
+      .get('[data-testid="activation-kit-check-1"] input')
+      .setValue(true);
+    await wrapper.get('[data-testid="activation-kit-send"]').trigger('click');
+    await flushPromises();
+    expect(
+      wrapper.get('[data-testid="activation-kit-reminder-status-1"]').text()
+    ).toBe('Error');
+    expect(wrapper.get('[data-testid="activation-kit-status-1"]').text()).toBe(
+      'Aprobada'
+    );
     expect(useAlert).toHaveBeenCalledWith(
       es.CALENDAR_ACTIVATION_KIT.SENT_WITH_ERRORS
     );

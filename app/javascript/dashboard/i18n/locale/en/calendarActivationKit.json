@@ -1,11 +1,11 @@
 {
   "CALENDAR_ACTIVATION_KIT": {
     "TITLE": "Appointments kit",
-    "DESCRIPTION": "Gets appointments ready to use: contact attributes and WhatsApp templates to notify the customer when an appointment is booked or cancelled.",
+    "DESCRIPTION": "Gets appointments ready to use: contact attributes and WhatsApp templates to notify the customer when an appointment is booked, coming up or cancelled.",
     "ATTRIBUTES": "Appointment attributes",
     "ATTRIBUTES_COUNT": "{count} of {total} active",
-    "QUESTION": "Notify the customer on WhatsApp when an appointment is booked or cancelled?",
-    "QUESTION_HINT": "If you pick an inbox, we send the confirmation and cancellation templates to Meta for approval. Each notice goes out once its template is approved.",
+    "QUESTION": "Notify the customer on WhatsApp when an appointment is booked, coming up or cancelled?",
+    "QUESTION_HINT": "Select an inbox to submit the confirmation, cancellation and reminder templates to Meta for approval. Reminders are only sent when you turn the switch on.",
     "PREVIEW": "Confirmation template",
     "TEMPLATE_META": "{name} · language {language} · utility category",
     "NO_INBOX": "This account has no WhatsApp Cloud inboxes.",
@@ -41,6 +41,12 @@
     },
     "CANCEL_PREVIEW": "Cancellation template",
     "CONFIRMATION": "Confirmation",
-    "CANCELLATION": "Cancellation"
+    "CANCELLATION": "Cancellation",
+    "REMINDER": "Reminder",
+    "REMINDER_PREVIEW": "Reminder template",
+    "REMINDER_TOGGLE": "Reminder 24 hours before",
+    "REMINDER_COST": "Each reminder is a paid Meta message. Only for appointments booked by a person; no reminder is sent if the customer already confirmed.",
+    "REMINDER_SAVED": "Reminder settings saved.",
+    "REMINDER_SAVE_ERROR": "Could not save reminder settings. Try again."
   }
 }

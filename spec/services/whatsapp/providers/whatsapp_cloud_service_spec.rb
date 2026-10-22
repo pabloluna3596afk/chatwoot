@@ -579,6 +579,15 @@ describe Whatsapp::Providers::WhatsappCloudService do
       allow(Rails.logger).to receive(:error)
     end
 
+    it 'logs only the HTTP status for customer reminders and preserves failed-message handling' do
+      message.update!(additional_attributes: { 'customer_reminder' => { 'attempt' => 1 } })
+      allow(error_response_object).to receive(:code).and_return(400)
+      service.send(:handle_error, error_response_object, message)
+      expect(Rails.logger).to have_received(:error).with('Calendar customer reminder provider failure: HTTP 400')
+      expect(Rails.logger).not_to have_received(:error).with(error_response_object.body)
+      expect(message.reload).to have_attributes(status: 'failed', external_error: error_message)
+    end
+
     context 'when there is a message' do
       it 'logs error and updates message status' do
         service.instance_variable_set(:@message, message)

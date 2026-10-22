@@ -1,11 +1,11 @@
 {
   "CALENDAR_ACTIVATION_KIT": {
     "TITLE": "Kit de Citas",
-    "DESCRIPTION": "Deja las citas listas para usar: los atributos del contacto y las plantillas de WhatsApp para avisar al cliente al agendar o cancelar una cita.",
+    "DESCRIPTION": "Deja las citas listas para usar: los atributos del contacto y las plantillas de WhatsApp para avisar al cliente al agendar, recordar o cancelar una cita.",
     "ATTRIBUTES": "Atributos de cita",
     "ATTRIBUTES_COUNT": "{count} de {total} activos",
-    "QUESTION": "¿Avisar al cliente por WhatsApp al agendar o cancelar una cita?",
-    "QUESTION_HINT": "Si marcas una bandeja, enviamos a Meta las plantillas de confirmación y cancelación para que las apruebe. Cada aviso sale cuando su plantilla está aprobada.",
+    "QUESTION": "¿Avisar al cliente por WhatsApp al agendar, recordar o cancelar una cita?",
+    "QUESTION_HINT": "Si marcas una bandeja, enviamos a Meta las plantillas de confirmación, cancelación y recordatorio para que las apruebe. El recordatorio solo sale si activas el interruptor.",
     "PREVIEW": "Plantilla de confirmación",
     "TEMPLATE_META": "{name} · idioma {language} · categoría de utilidad",
     "NO_INBOX": "Esta cuenta no tiene bandejas de WhatsApp Cloud.",
@@ -41,6 +41,12 @@
     },
     "CANCEL_PREVIEW": "Plantilla de cancelación",
     "CONFIRMATION": "Confirmación",
-    "CANCELLATION": "Cancelación"
+    "CANCELLATION": "Cancelación",
+    "REMINDER": "Recordatorio",
+    "REMINDER_PREVIEW": "Plantilla de recordatorio",
+    "REMINDER_TOGGLE": "Recordatorio 24 h antes",
+    "REMINDER_COST": "Cada recordatorio es un mensaje pagado de Meta. Solo para citas agendadas por una persona; no se envía si el cliente ya confirmó.",
+    "REMINDER_SAVED": "Configuración de recordatorios guardada.",
+    "REMINDER_SAVE_ERROR": "No se pudo guardar la configuración de recordatorios. Inténtalo de nuevo."
   }
 }

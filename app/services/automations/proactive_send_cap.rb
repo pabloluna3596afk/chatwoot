@@ -7,8 +7,9 @@
 class Automations::ProactiveSendCap
   DEFAULT_DAILY_CAP = 200
 
-  def initialize(account)
+  def initialize(account, date: Time.zone.today)
     @account = account
+    @date = date
   end
 
   def within_cap?
@@ -47,6 +48,6 @@ class Automations::ProactiveSendCap
   end
 
   def key
-    format(::Redis::RedisKeys::PROACTIVE_SEND_DAILY_COUNT, account_id: @account.id, date: Time.zone.today.to_s)
+    format(::Redis::RedisKeys::PROACTIVE_SEND_DAILY_COUNT, account_id: @account.id, date: @date.to_s)
   end
 end

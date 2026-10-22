@@ -64,6 +64,27 @@ eliminar solo debe despachar la acción después de confirmar. Verificar edició
 combinación y cierre del menú con Escape. Specs: `ContactInfo`, `ContactInfoRow`,
 `ContactPanelCounts`, `AccordionItem`, `OutlinedSelectField` y regresión de citas.
 
+### B-NEW-187 — Recordatorio de citas humanas por WhatsApp, con consentimiento y sin duplicados
+
+**Archivos:** `Calendar::ActivationKit`, `CalendarEvent`, `Calendar::CustomerReminders::{Dispatcher,Schedule,Delivery}`,
+`Calendar::AppointmentRemindersJob`, `SendReplyJob`, `CustomerNotice`, `TemplateButtonReply`, tarjeta del kit y API de ajustes.
+
+**Cambio:** tercera plantilla `cita_recordatorio` es/en y un interruptor de cuenta apagado por defecto, editable solo por admin.
+El cron existente reclama la cita con bloqueo de fila y encola la plantilla. La entrega marca `sent` solo cuando Meta acepta;
+libera el cupo diario y reintenta hasta tres errores. No repite la nota de plantilla pendiente. Excluye Captain, Panel AI,
+confirmadas, canceladas, citas pasadas y las creadas/movidas con menos de 24 h. Adelanta la hora nocturna a las 21:00 según
+la zona de la cuenta; una cola retrasada tampoco envía de madrugada. Al mover la cita limpia los marcadores.
+La reserva del tope conserva su fecha para no descontar otro día. Los errores del proveedor no registran el cuerpo sensible.
+
+**Migración requerida:** `20261022120000_add_customer_reminder_to_calendar_events` (dos columnas nullable e índice parcial concurrente).
+
+**Cómo probar:** aplicar las tres plantillas; activar el interruptor como admin; agendar una cita humana con más de 24 h,
+ejecutar dos corridas y comprobar un solo recordatorio y sus botones. Probar plantilla pendiente, confirmación previa,
+reagenda, errores de Meta y tope agotado. R1–R16 y concurrencia están escritos en
+`spec/services/calendar/customer_reminders/`; ejecución RSpec/RuboCop en Docker pendiente del PM.
+Vitest de Integraciones: 40 pruebas pasan en UTC y America/Guayaquil. Capturas `rec-*` en el directorio externo de montaje.
+Ver `tmp/PR-RECORDATORIO.md` y `docs-crm/codex/resumen-recordatorio.md` (ambos fuera del commit).
+
 ### B-NEW-186 — Asignar a Captain desde automatizaciones y macros
 
 **Archivos:** `ActionService`, extensión Enterprise, hook/job de Captain, payload de

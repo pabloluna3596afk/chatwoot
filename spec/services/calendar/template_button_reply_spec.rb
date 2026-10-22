@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe Calendar::TemplateButtonReply do
+RSpec.shared_examples 'calendar template button replies' do |template_name|
   let(:account) { create(:account, locale: 'es') }
   let(:user) { create(:user, account: account, role: :administrator) }
   let(:contact) { create(:contact, account: account, name: 'Ana Pérez') }
@@ -17,7 +17,7 @@ RSpec.describe Calendar::TemplateButtonReply do
   let(:client) { instance_double(Integrations::GoogleCalendar::Client, delete_event: nil) }
   let(:start_at) { 2.days.from_now.change(usec: 0) }
   let(:appointment) { create_appointment('Consulta', start_at) }
-  let!(:notice) { template_message(appointment) }
+  let!(:notice) { template_message(appointment, name: template_name) }
 
   def create_appointment(summary, start, status: 'pending_confirmation')
     CalendarEvent.create!(
@@ -155,7 +155,7 @@ RSpec.describe Calendar::TemplateButtonReply do
   describe 'which appointment' do
     let(:later_appointment) { create_appointment('Control', start_at + 1.day) }
 
-    before { template_message(later_appointment) }
+    before { template_message(later_appointment, name: template_name) }
 
     it 'answers the appointment of the message the button belongs to' do
       described_class.new(tap_button('Confirmar', reply_to: notice)).perform
@@ -171,11 +171,26 @@ RSpec.describe Calendar::TemplateButtonReply do
       expect(appointment.reload.appointment_status).to eq('pending_confirmation')
     end
 
+    it 'selects the latest reminder without context and ignores a newer cancellation notice' do
+      template_message(later_appointment, name: 'cita_recordatorio')
+      template_message(appointment, name: 'cita_cancelacion')
+      described_class.new(tap_button('Confirmar', reply_to: nil)).perform
+      expect(later_appointment.reload.appointment_status).to eq('confirmed')
+      expect(appointment.reload.appointment_status).to eq('pending_confirmation')
+    end
+
     it 'ignores a button replying to a message that is not our template' do
       other = template_message(appointment, name: 'otra_plantilla')
 
       described_class.new(tap_button('Confirmar', reply_to: other)).perform
 
+      expect(appointment.reload.appointment_status).to eq('pending_confirmation')
+      expect(activity_texts).to be_empty
+    end
+
+    it 'ignores cancellation notices because they have no quick reply buttons' do
+      cancellation = template_message(appointment, name: Calendar::ActivationKit::CANCEL_TEMPLATE_NAME)
+      described_class.new(tap_button('Confirmar', reply_to: cancellation)).perform
       expect(appointment.reload.appointment_status).to eq('pending_confirmation')
       expect(activity_texts).to be_empty
     end
@@ -193,7 +208,8 @@ RSpec.describe Calendar::TemplateButtonReply do
       foreign = template_message(appointment)
       foreign.update_columns(conversation_id: other_conversation.id) # rubocop:disable Rails/SkipsModelValidations
       reply = other_conversation.messages.create!(
-        account: account, inbox: channel.inbox, message_type: :incoming, content: 'Confirmar', content_attributes: { 'in_reply_to' => foreign.id }
+        account: account, inbox: channel.inbox, message_type: :incoming, content: 'Confirmar',
+        content_attributes: { 'in_reply_to' => foreign.id }
       )
 
       described_class.new(reply).perform
@@ -216,6 +232,14 @@ RSpec.describe Calendar::TemplateButtonReply do
       allow(CalendarEvent).to receive(:find_by).and_raise(ActiveRecord::StatementInvalid)
 
       expect { described_class.new(tap_button('Confirmar')).perform }.not_to raise_error
+    end
+  end
+end
+
+RSpec.describe Calendar::TemplateButtonReply do
+  %w[cita_confirmacion cita_recordatorio].each do |template_name|
+    context "with #{template_name}" do
+      it_behaves_like 'calendar template button replies', template_name
     end
   end
 end
