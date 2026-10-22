@@ -1,5 +1,34 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-188 — Herramientas del contacto sin duplicados y secciones por contenido
+
+**Archivos:** `ContactToolsBar.vue`, `useContactTools.js`, `ContactPanel.vue`,
+`ConversationAction.vue`, `CalendarEventsList.vue`, `useAppointmentEvents.js`
+e i18n es/en de conversación.
+
+**Problema y solución:** la barra en preparación repetía las herramientas activas
+como iconos y leyendas separadas. Cada herramienta aparece una sola vez: activas
+arriba con su leyenda; inactivas abajo en una fila gris; separador solo con ambos
+grupos. Captain y Citas reutilizan los estados y datos existentes. Las acciones de
+conversación quedan visibles sin acordeón; los contadores cero pasan a «Sin datos»
+y se pueden abrir para agregar contenido. Se conserva el orden y la visibilidad.
+Al abrir Citas se monta su contenido antes de guardar las preferencias; el contador
+solo se publica al recibir los eventos, evitando un cero transitorio que desmontaba
+la lista antes de mostrar las citas. Se cancela la petición si se desconecta el
+calendario. Pago y Carrito existen solo en el arnés local. No se restauran las
+alturas uniformes de 40 px de B-NEW-187 (revertidas en `3a20f4e2b6`).
+Sin backend ni migraciones.
+
+**Cómo probar:** probar Captain activo, escalado, inactivo y sin asistente; Citas
+con próxima cita y sin citas; pulsar «Agendar» y comprobar que abre Nueva cita.
+Ocultar Citas desde el menú y abrirla desde la barra; comprobar la apertura incluso
+si tarda el guardado de preferencias. Revisar secciones desconocidas, con datos y
+vacías; revelar una vacía y cambiar de conversación. Specs: `useContactTools`,
+`ContactToolsBar`, `ContactPanelCounts`, `ContactPanelAppointments`,
+`CalendarEventsList`, `useAppointmentEvents`, `AppointmentRefresh` y
+`NextAppointmentCard`, en UTC y America/Guayaquil. Capturas: `barra-preset-*`
+en el directorio externo de montaje; informe local `tmp/PR-BARRA.md`.
+
 ### B-NEW-187 — Panel de contacto: campos uniformes, contadores y acciones secundarias
 
 **Archivos:** `ContactPanel.vue`, `contact/ContactInfo.vue`, `contact/ContactInfoRow.vue`,

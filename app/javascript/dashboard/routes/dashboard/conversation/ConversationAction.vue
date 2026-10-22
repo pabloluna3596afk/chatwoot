@@ -173,7 +173,7 @@ export default {
 </script>
 
 <template>
-  <div class="flex flex-col gap-1.5 px-1 py-0.5">
+  <div class="flex flex-col gap-2">
     <OutlinedSelectField
       :label="$t('CONVERSATION_SIDEBAR.ASSIGNEE_LABEL')"
       :options="agentsList"

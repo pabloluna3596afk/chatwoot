@@ -3,7 +3,7 @@ import { flushPromises, shallowMount } from '@vue/test-utils';
 import { computed, ref } from 'vue';
 import { emitter } from 'shared/helpers/mitt';
 import ContactPanel from 'dashboard/routes/dashboard/conversation/ContactPanel.vue';
-import NextAppointmentCard from '../NextAppointmentCard.vue';
+import ContactToolsBar from '../ContactToolsBar.vue';
 import CalendarEventsList from '../CalendarEventsList.vue';
 
 vi.mock('dashboard/composables', () => ({
@@ -14,6 +14,8 @@ vi.mock(
   'dashboard/routes/dashboard/conversation/contact/ContactInfo.vue',
   () => ({ default: { template: '<div />' } })
 );
+
+const visible = ref(['calendar_events']);
 
 const { getContactEvents, dispatch } = vi.hoisted(() => ({
   getContactEvents: vi.fn(),
@@ -32,9 +34,9 @@ vi.mock('dashboard/composables/useAccount', () => ({
 vi.mock('dashboard/composables/useUISettings', () => ({
   useUISettings: () => ({
     updateUISettings: vi.fn(),
-    isContactSidebarItemOpen: () => true,
+    isContactSidebarItemOpen: () => false,
     conversationSidebarItemsOrder: ref([{ name: 'calendar_events' }]),
-    conversationSidebarVisibleItems: ref(['calendar_events']),
+    conversationSidebarVisibleItems: visible,
     toggleSidebarUIState: vi.fn(),
     isOnExpandedLayout: ref(true),
   }),
@@ -66,7 +68,8 @@ vi.mock('dashboard/composables/store', () => ({
     ),
 }));
 
-it('keeps the local list-save refresh of the pinned contact card in ContactPanel', async () => {
+it('refreshes the contact tool after local saves and remote appointment changes', async () => {
+  visible.value = ['calendar_events'];
   getContactEvents.mockResolvedValueOnce({
     data: {
       payload: [
@@ -84,7 +87,6 @@ it('keeps the local list-save refresh of the pinned contact card in ContactPanel
     global: {
       mocks: { $t: key => key },
       stubs: {
-        NextAppointmentCard: false,
         'woot-feature-toggle': true,
         Draggable: {
           props: ['list'],
@@ -96,17 +98,17 @@ it('keeps the local list-save refresh of the pinned contact card in ContactPanel
     },
   });
   await flushPromises();
-  expect(wrapper.findComponent(NextAppointmentCard).text()).toContain(
-    'Original'
-  );
+  expect(
+    wrapper.findComponent(ContactToolsBar).props('tools')[1].legend
+  ).toContain('Original');
   getContactEvents.mockResolvedValueOnce({ data: { payload: [] } });
   wrapper
     .findComponent(CalendarEventsList)
     .vm.$emit('saved', { deleted: true });
   await flushPromises();
-  expect(wrapper.findComponent(NextAppointmentCard).text()).not.toContain(
-    'Original'
-  );
+  expect(
+    wrapper.findComponent(ContactToolsBar).props('tools')[1].legend
+  ).not.toContain('Original');
   expect(getContactEvents).toHaveBeenCalledTimes(2);
   getContactEvents.mockResolvedValueOnce({
     data: {
@@ -122,8 +124,40 @@ it('keeps the local list-save refresh of the pinned contact card in ContactPanel
   });
   emitter.emit('calendar.events_changed', { account_id: 1, contact_ids: [7] });
   await flushPromises();
-  expect(wrapper.findComponent(NextAppointmentCard).text()).toContain(
-    'Remote appointment'
-  );
+  expect(
+    wrapper.findComponent(ContactToolsBar).props('tools')[1].legend
+  ).toContain('Remote appointment');
+  wrapper.unmount();
+});
+
+it('opens the calendar and its creation flow immediately while preferences are still saving', async () => {
+  visible.value = [];
+  getContactEvents.mockResolvedValue({ data: { payload: [] } });
+  const openCreate = vi.fn();
+  const wrapper = shallowMount(ContactPanel, {
+    props: { conversationId: 9 },
+    global: {
+      mocks: { $t: key => key },
+      stubs: {
+        'woot-feature-toggle': true,
+        Draggable: {
+          props: ['list'],
+          template:
+            '<div><slot v-for="element in list" name="item" :element="element" /></div>',
+        },
+        AccordionItem: false,
+        CalendarEventsList: { template: '<div />', methods: { openCreate } },
+      },
+    },
+  });
+  await flushPromises();
+  expect(wrapper.findComponent(CalendarEventsList).exists()).toBe(false);
+  const calendarTool = wrapper.findComponent(ContactToolsBar).props('tools')[1];
+  expect(calendarTool.state).toBe('idle');
+  await calendarTool.onClick();
+  expect(wrapper.findComponent(CalendarEventsList).exists()).toBe(true);
+  expect(openCreate).toHaveBeenCalledOnce();
+  await wrapper.find('.drag-handle').trigger('click');
+  expect(wrapper.findComponent(CalendarEventsList).exists()).toBe(false);
   wrapper.unmount();
 });
