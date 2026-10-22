@@ -6,6 +6,11 @@ export default createStore({
   name: 'CaptainInbox',
   API: CaptainInboxes,
   actions: mutations => ({
+    setAudience: async function setAudience({ commit }, params) {
+      const { data } = await CaptainInboxes.updateAudience(params);
+      commit(mutations.EDIT, data);
+      return data;
+    },
     setAppointments: async function setAppointments(
       { commit },
       { assistantId, inboxId, appointmentsEnabled }
