@@ -534,7 +534,12 @@
     }
   },
   "CONVERSATION_SIDEBAR": {
-    "ASSIGNEE_LABEL": "Conversation agent",
+    "RESPONDER": {
+      "CAPTAIN_ANSWERING": "Captain is answering: {name}",
+      "WAITING_CUSTOMER": "waiting for the customer",
+      "ESCALATED": "Captain handed this conversation to the team"
+    },
+    "ASSIGNEE_LABEL": "Conversation owner",
     "SELF_ASSIGN": "Assign to me",
     "TEAM_LABEL": "Assigned Team",
     "SELECT": {

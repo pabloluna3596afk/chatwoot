@@ -23,6 +23,10 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  count: {
+    type: Number,
+    default: null,
+  },
 });
 
 const emit = defineEmits(['toggle']);
@@ -63,6 +67,13 @@ const onToggle = () => {
         <h5 class="text-n-slate-12 text-sm mb-0 py-0 pr-2 pl-0 truncate">
           {{ title }}
         </h5>
+        <span
+          v-if="count !== null"
+          data-testid="accordion-count"
+          class="shrink-0 rounded-full bg-n-alpha-2 px-1.5 text-xs tabular-nums text-n-slate-11"
+        >
+          {{ count }}
+        </span>
       </div>
       <div class="flex flex-row shrink-0">
         <slot name="button" />

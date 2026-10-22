@@ -11,6 +11,7 @@
     "BROWSER_LANGUAGE": "Browser Language",
     "CONVERSATION_TITLE": "Conversation Details",
     "VIEW_PROFILE": "View Profile",
+    "MORE_ACTIONS": "More actions",
     "BROWSER": "Browser",
     "OS": "Operating System",
     "INITIATED_FROM": "Initiated from",
@@ -62,7 +63,8 @@
       "PREVIOUS_CONVERSATIONS": "Previous Conversations",
       "NO_RECORDS_FOUND": "No attributes found"
     },
-    "WHATSAPP_USERNAME": "WhatsApp username"
+    "WHATSAPP_USERNAME": "WhatsApp username",
+    "ADD_FIELD": "Add {field}"
   },
   "EDIT_CONTACT": {
     "BUTTON_LABEL": "Edit Contact",
@@ -575,21 +577,13 @@
         "DELETE": "Delete contact"
       },
       "ASSIGNEE": {
-        "LABEL": "Contact assigned agent",
+        "LABEL": "Contact owner",
         "NONE": "Unassigned",
         "SELF_ASSIGN": "Assign this contact to me",
         "SELF_UNASSIGN": "Release contact",
         "ASSIGNED_TO_OTHER": "Contact assigned to {agentName}",
         "UPDATE_SUCCESS": "Contact assigned agent updated successfully",
         "UPDATE_ERROR": "Could not update the contact assigned agent. Please try again later."
-      },
-      "CHAT_BOT": {
-        "LABEL": "Chat bot",
-        "DESCRIPTION": "When off, Panel AI will not reply to this contact",
-        "ON": "Bot can reply",
-        "OFF": "Bot off",
-        "UPDATE_SUCCESS": "Chat bot setting updated",
-        "UPDATE_ERROR": "Could not update chat bot setting. Please try again later."
       },
       "DELETE_CONTACT_DESCRIPTION": "Permanently delete this contact. This action is irreversible",
       "DELETE_CONTACT": "Delete contact",

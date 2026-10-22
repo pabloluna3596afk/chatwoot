@@ -133,11 +133,19 @@ export default {
       >
         {{ value }}
       </span>
+      <button
+        v-else-if="editable"
+        type="button"
+        class="p-0 text-sm text-n-slate-10 bg-transparent border-0 cursor-pointer hover:text-n-slate-12"
+        @click.prevent="startEditing"
+      >
+        {{ $t('CONTACT_PANEL.ADD_FIELD', { field: title }) }}
+      </button>
       <span v-else class="text-sm text-n-slate-11">
         {{ $t('CONTACT_PANEL.NOT_AVAILABLE') }}
       </span>
       <NextButton
-        v-if="showCopy"
+        v-if="showCopy && value"
         ghost
         xs
         slate
@@ -150,7 +158,7 @@ export default {
         ghost
         xs
         slate
-        class="ltr:-ml-1 rtl:-mr-1 opacity-0 group-hover/row:opacity-100 transition-opacity"
+        class="ltr:-ml-1 rtl:-mr-1 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100 transition-opacity"
         icon="i-lucide-pencil"
         @click.prevent="startEditing"
       />
@@ -175,11 +183,19 @@ export default {
         v-dompurify-html="value"
         class="overflow-hidden text-sm whitespace-nowrap text-ellipsis"
       />
+      <button
+        v-else-if="editable"
+        type="button"
+        class="p-0 text-sm text-n-slate-10 bg-transparent border-0 cursor-pointer hover:text-n-slate-12"
+        @click.prevent="startEditing"
+      >
+        {{ $t('CONTACT_PANEL.ADD_FIELD', { field: title }) }}
+      </button>
       <span v-else class="text-sm text-n-slate-11">
         {{ $t('CONTACT_PANEL.NOT_AVAILABLE') }}
       </span>
       <NextButton
-        v-if="showCopy"
+        v-if="showCopy && value"
         ghost
         xs
         slate
@@ -192,7 +208,7 @@ export default {
         ghost
         xs
         slate
-        class="ltr:-ml-1 rtl:-mr-1 opacity-0 group-hover/row:opacity-100 transition-opacity"
+        class="ltr:-ml-1 rtl:-mr-1 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100 transition-opacity"
         icon="i-lucide-pencil"
         @click="startEditing"
       />

@@ -145,6 +145,11 @@ const contactAdditionalAttributes = computed(
     {}
 );
 
+const contactAttributesCount = computed(() => {
+  const attributes = contact.value.custom_attributes || {};
+  return Object.keys(attributes).length;
+});
+
 const appliedContactFilter = useMapGetter('getAppliedContactFilter');
 
 const isListScopedToContact = computed(
@@ -307,6 +312,7 @@ onMounted(() => {
               <AccordionItem
                 :title="$t('CONVERSATION_SIDEBAR.ACCORDION.CONTACT_ATTRIBUTES')"
                 icon="i-lucide-contact"
+                :count="contactAttributesCount"
                 :is-open="
                   isContactSidebarItemOpen('is_contact_attributes_open')
                 "

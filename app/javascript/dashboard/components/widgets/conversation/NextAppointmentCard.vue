@@ -76,12 +76,14 @@ defineExpose({ refresh: load });
       @click="retry"
     />
   </div>
-  <p
+  <div
     v-else-if="!isLoading && !nextEvent"
-    class="mx-3 mb-3 text-xs text-n-slate-11"
+    class="mx-3 mb-3 flex items-center gap-2 rounded-xl bg-n-alpha-1 px-3 py-2 text-xs text-n-slate-11"
+    data-testid="next-appointment-empty"
   >
+    <span class="i-lucide-calendar-x size-4 shrink-0" />
     {{ t('CONVERSATION_SIDEBAR.CALENDAR.NEXT_EMPTY') }}
-  </p>
+  </div>
   <div
     v-else-if="nextEvent"
     class="mx-3 mb-3 flex items-start gap-2 rounded-xl px-3 py-2.5"
