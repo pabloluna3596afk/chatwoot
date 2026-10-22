@@ -92,7 +92,9 @@ const channelWarnings = computed(() => {
   if (mode.value !== MODE.SPECIFIC || inboxFlags.value.fetchingList) return [];
 
   const attributes = new Set(conditionAttributes(root.value));
-  const channels = connectedInboxes.value.map(channelForInbox);
+  const channels = connectedInboxes.value
+    .filter(inbox => inbox.audience_mode === 'inherit')
+    .map(channelForInbox);
   return Object.entries(MISSING_ATTRIBUTES).flatMap(
     ([key, missingChannels]) => {
       const affected = [

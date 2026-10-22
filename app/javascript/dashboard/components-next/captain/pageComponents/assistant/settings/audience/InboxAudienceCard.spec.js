@@ -6,7 +6,6 @@ import { useStore } from 'dashboard/composables/store';
 import CaptainInboxes from 'dashboard/api/captain/inboxes';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
-import RadioCard from 'dashboard/components-next/radioCard/RadioCard.vue';
 import FilterSelect from 'dashboard/components-next/filter/inputs/FilterSelect.vue';
 import AudienceGroup from './AudienceGroup.vue';
 import InboxAudienceCard from './InboxAudienceCard.vue';
@@ -247,15 +246,44 @@ describe('inbox audience', () => {
     expect(wrapper.find('[aria-label]').exists()).toBe(true);
     await open(wrapper);
     expect(wrapper.text()).toContain('Missing phone');
-    wrapper.findAllComponents(RadioCard)[1].vm.$emit('select');
+    await wrapper
+      .get('[data-testid="inbox-audience-mode-everyone"]')
+      .trigger('click');
     await nextTick();
     expect(wrapper.text()).not.toContain('Missing phone');
+  });
+
+  it('renders a compact segmented control for editable inboxes', async () => {
+    const wrapper = mountCard();
+    await open(wrapper);
+    const control = wrapper.get('[data-testid="inbox-audience-mode"]');
+    expect(control.classes()).toContain('h-8');
+    expect(control.classes()).toContain('grid-cols-3');
+    expect(control.findAll('[role="radio"]')).toHaveLength(3);
+    expect(
+      wrapper.get('[data-testid="inbox-audience-mode-inherit"]').text()
+    ).toBe('Base rule');
+    expect(
+      wrapper
+        .get('[data-testid="inbox-audience-mode-custom"]')
+        .attributes('aria-checked')
+    ).toBe('true');
+    await wrapper
+      .get('[data-testid="inbox-audience-mode-everyone"]')
+      .trigger('click');
+    expect(
+      wrapper
+        .get('[data-testid="inbox-audience-mode-everyone"]')
+        .attributes('aria-checked')
+    ).toBe('true');
   });
 
   it('lets non-admins inspect lists and advanced rules without editing', async () => {
     const wrapper = mountCard({}, false);
     await open(wrapper);
-    expect(wrapper.findComponent(RadioCard).exists()).toBe(false);
+    expect(wrapper.find('[data-testid="inbox-audience-mode"]').exists()).toBe(
+      false
+    );
     expect(wrapper.findComponent(FilterSelect).exists()).toBe(false);
     expect(wrapper.findComponent(TextArea).props('disabled')).toBe(true);
     expect(action(wrapper, 'Save')).toBeUndefined();

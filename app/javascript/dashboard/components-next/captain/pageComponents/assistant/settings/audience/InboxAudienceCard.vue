@@ -4,7 +4,6 @@ import { useI18n } from 'vue-i18n';
 import { useStore } from 'dashboard/composables/store';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Banner from 'dashboard/components-next/banner/Banner.vue';
-import RadioCard from 'dashboard/components-next/radioCard/RadioCard.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import FilterSelect from 'dashboard/components-next/filter/inputs/FilterSelect.vue';
 import ChannelIcon from 'dashboard/components-next/icon/ChannelIcon.vue';
@@ -55,6 +54,20 @@ const modes = computed(() => [
   {
     value: 'custom',
     label: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.INBOX.MODE_CUSTOM'),
+  },
+]);
+const segmentModes = computed(() => [
+  {
+    value: 'inherit',
+    label: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.INBOX.MODE_INHERIT_SHORT'),
+  },
+  {
+    value: 'everyone',
+    label: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.INBOX.MODE_EVERYONE_SHORT'),
+  },
+  {
+    value: 'custom',
+    label: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.INBOX.MODE_CUSTOM_SHORT'),
   },
 ]);
 const listModes = computed(() => [
@@ -268,17 +281,31 @@ const save = async () => {
       <p class="text-body-main text-n-slate-12">
         {{ t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.INBOX.ATTENDS') }}
       </p>
-      <div v-if="canEdit" class="grid gap-2 lg:grid-cols-3">
-        <RadioCard
-          v-for="option in modes"
-          :id="`audience-${inbox.id}-${option.value}`"
+      <div
+        v-if="canEdit"
+        role="radiogroup"
+        :aria-label="t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.INBOX.ATTENDS')"
+        data-testid="inbox-audience-mode"
+        class="grid h-8 grid-cols-3 gap-0.5 rounded-lg bg-n-alpha-1 p-0.5"
+      >
+        <button
+          v-for="option in segmentModes"
           :key="option.value"
-          :label="option.label"
-          description=""
-          :is-active="mode === option.value"
+          type="button"
+          role="radio"
+          :aria-checked="mode === option.value"
+          :data-testid="`inbox-audience-mode-${option.value}`"
           :disabled="saving"
-          @select="mode = option.value"
-        />
+          class="min-w-0 rounded-md px-3 text-xs font-medium transition-colors sm:text-sm"
+          :class="
+            mode === option.value
+              ? 'bg-n-solid-1 text-n-slate-12 shadow-sm'
+              : 'text-n-slate-11 hover:bg-n-alpha-2'
+          "
+          @click="mode = option.value"
+        >
+          <span class="-mx-1 block whitespace-nowrap">{{ option.label }}</span>
+        </button>
       </div>
       <p v-else class="text-body-main text-n-slate-11">
         {{ modes.find(option => option.value === mode).label }}
