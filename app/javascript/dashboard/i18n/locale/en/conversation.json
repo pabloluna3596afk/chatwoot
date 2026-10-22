@@ -538,7 +538,12 @@
     "TOOLS": {
       "CONVERSATION": "Conversation",
       "EMPTY": "No data:",
-      "SCHEDULE": "Schedule"
+      "SCHEDULE": "Schedule",
+      "CAPTAIN_REPLYING": "{name} is replying",
+      "CAPTAIN_WAITING": "{name} is waiting for the customer",
+      "CAPTAIN_ESCALATED": "{name} handed the conversation to the team",
+      "CALENDAR_IDLE": "No upcoming appointments · Schedule",
+      "NEXT_APPOINTMENT": "Next appointment: {when}"
     },
     "RESPONDER": {
       "IDLE": "Captain is not answering this conversation",

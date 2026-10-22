@@ -61,8 +61,8 @@ describe('useContactTools', () => {
   });
 
   it.each([
-    ['ai', 'active', 'Responde: Aurora'],
-    ['escalated', 'warning', 'Pasó la conversación al equipo'],
+    ['ai', 'active', 'Aurora está respondiendo'],
+    ['escalated', 'warning', 'Aurora pasó la conversación al equipo'],
     ['human', 'idle', 'Captain no atiende esta conversación'],
   ])('maps Captain %s to %s with localized state', (state, expected, label) => {
     assistant.value = { name: 'Aurora' };
@@ -71,25 +71,50 @@ describe('useContactTools', () => {
     expect(tools.value[0].state).toBe(expected);
     expect(tools.value[0].label).toContain(label);
     chat.value = { captain_state: 'ai', captain_assistant: { name: 'Luna' } };
-    expect(tools.value[0].legend).toBe('Responde: Luna');
+    expect(tools.value[0].legend).toBe('Luna está respondiendo');
     assistant.value = null;
     expect(tools.value[0].state).toBe('hidden');
+  });
+
+  it.each([
+    ['es', 'ai', 0, 'Aurora está respondiendo'],
+    ['es', 'ai', 1, 'Aurora espera al cliente'],
+    ['es', 'escalated', 1, 'Aurora pasó la conversación al equipo'],
+    ['en', 'ai', 0, 'Aurora is replying'],
+    ['en', 'ai', 1, 'Aurora is waiting for the customer'],
+    ['en', 'escalated', 1, 'Aurora handed the conversation to the team'],
+  ])(
+    'localizes %s Captain %s after message type %s',
+    (locale, state, type, legend) => {
+      assistant.value = { name: 'Aurora' };
+      chat.value = { captain_state: state, messages: [{ message_type: type }] };
+      start(locale);
+      expect(tools.value[0].legend).toBe(legend);
+      expect(tools.value[0].label).toBe(legend);
+    }
+  );
+
+  it('uses Captain when the assistant has no name', () => {
+    assistant.value = {};
+    chat.value = { captain_state: 'ai' };
+    start('en');
+    expect(tools.value[0].legend).toBe('Captain is replying');
   });
 
   it('opens creation for idle calendar and the accordion for an existing appointment', () => {
     connected.value = true;
     start();
     expect(tools.value[1].state).toBe('idle');
-    expect(tools.value[1].label).toContain('Agendar');
+    expect(tools.value[1].label).toBe('Sin próximas citas · Agendar');
     tools.value[1].onClick();
     expect(openCalendar).toHaveBeenLastCalledWith(true);
     nextEvent.value = { start: '2026-10-22T15:00:00Z', summary: 'Consulta' };
     expect(tools.value[1].state).toBe('active');
-    expect(tools.value[1].legend).toBe('Mañana 10:00 · Consulta');
+    expect(tools.value[1].legend).toBe('Próxima cita: mañana 10:00');
     tools.value[1].onClick();
     expect(openCalendar).toHaveBeenLastCalledWith(false);
     now.value = new Date('2026-10-22T05:30:00Z');
-    expect(tools.value[1].legend).toBe('Hoy 10:00 · Consulta');
+    expect(tools.value[1].legend).toBe('Próxima cita: hoy 10:00');
     connected.value = false;
     expect(tools.value[1].state).toBe('hidden');
   });
@@ -102,12 +127,13 @@ describe('useContactTools', () => {
     };
     start('en');
     expect(tools.value[1].legend).toContain('10:00');
-    expect(tools.value[1].legend).toContain('Consultation');
+    expect(tools.value[1].label).toBe('Consultation');
+    expect(tools.value[1].legend).not.toContain('Consultation');
     nextEvent.value = {
       start: '2026-10-22T15:00:00Z',
       summary: 'Consultation',
     };
-    expect(tools.value[1].legend).toBe('Tomorrow 10:00 · Consultation');
+    expect(tools.value[1].legend).toBe('Next appointment: tomorrow 10:00');
   });
 
   it('keeps new English and Spanish keys in parity', () => {

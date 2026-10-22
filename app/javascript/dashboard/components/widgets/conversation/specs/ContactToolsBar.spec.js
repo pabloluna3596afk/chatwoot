@@ -7,33 +7,33 @@ const tools = [
     icon: 'i-woot-captain',
     tone: 'teal',
     label: 'Captain',
-    legend: 'Responde: Aurora',
+    legend: 'Aurora está respondiendo',
   },
   {
     key: 'calendar',
     icon: 'i-lucide-calendar',
     tone: 'blue',
-    label: 'Citas',
-    legend: 'Mañana 10:00 · Consulta',
+    label: 'Consulta',
+    legend: 'Próxima cita: mañana 10:00',
   },
   {
     key: 'payment',
     icon: 'i-lucide-credit-card',
     tone: 'ruby',
-    label: 'Pago pendiente',
+    label: 'Sin cobros pendientes',
     legend: 'Pendiente $25',
   },
   {
     key: 'cart',
     icon: 'i-lucide-shopping-cart',
     tone: 'iris',
-    label: 'Carrito activo',
+    label: 'Carrito vacío',
     legend: '3 productos',
   },
 ];
 
 describe('ContactToolsBar', () => {
-  it('renders each tool once, active rows first and idle icons together in one pill', async () => {
+  it('renders each tool once, active rows first and idle icons together in one container', async () => {
     const onClick = vi.fn();
     const wrapper = mount(ContactToolsBar, {
       props: {
@@ -48,10 +48,19 @@ describe('ContactToolsBar', () => {
       wrapper.findAll('[data-tool]').map(item => item.attributes('data-tool'))
     ).toEqual(['captain', 'calendar', 'payment', 'cart']);
     expect(wrapper.find('[data-tool="captain"]').text()).toBe(
-      'Responde: Aurora'
+      'Aurora está respondiendo'
     );
-    expect(wrapper.find('[data-tool="calendar"]').text()).toContain('Consulta');
+    expect(wrapper.find('[data-tool="calendar"]').text()).toBe(
+      'Próxima cita: mañana 10:00'
+    );
+    expect(wrapper.find('[data-tool="calendar"]').attributes('title')).toBe(
+      'Consulta'
+    );
+    expect(wrapper.find('[data-testid="tools-separator"]').exists()).toBe(true);
     expect(wrapper.find('[data-tool="payment"]').text()).toBe('');
+    expect(wrapper.find('[data-tool="payment"]').attributes('title')).toBe(
+      'Sin cobros pendientes'
+    );
     expect(wrapper.find('[data-tool="payment"]').element.parentElement).toBe(
       wrapper.find('[data-tool="cart"]').element.parentElement
     );
@@ -72,9 +81,28 @@ describe('ContactToolsBar', () => {
         state === 'idle'
       );
       expect(wrapper.findAll('[data-tool]')).toHaveLength(4);
+      expect(wrapper.find('[data-testid="tools-separator"]').exists()).toBe(
+        false
+      );
       expect(wrapper.text().includes('3 productos')).toBe(state === 'active');
     }
   );
+
+  it('shows the action text for a single idle tool', async () => {
+    const onClick = vi.fn();
+    const label = 'Sin próximas citas · Agendar';
+    const wrapper = mount(ContactToolsBar, {
+      props: { tools: [{ ...tools[1], state: 'idle', label, onClick }] },
+    });
+    const button = wrapper.find('[data-tool="calendar"]');
+    expect(button.text()).toBe(label);
+    expect(button.attributes('title')).toBe(label);
+    expect(wrapper.find('[data-testid="tools-separator"]').exists()).toBe(
+      false
+    );
+    await button.trigger('click');
+    expect(onClick).toHaveBeenCalledOnce();
+  });
 
   it('hides unavailable tools and uses amber for escalation', () => {
     const wrapper = mount(ContactToolsBar, {

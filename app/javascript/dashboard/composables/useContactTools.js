@@ -15,15 +15,23 @@ export function useContactTools({
   onOpenCalendar,
 }) {
   const { t, locale } = useI18n();
-  const { isAiAttended, isEscalated, assistant } = useCaptainState(chat);
+  const { isAiAttended, isEscalated, isWaitingForCustomer, assistant } =
+    useCaptainState(chat);
   const { formatEventWhen, eventDateKey, todayKey, formatTime } =
     useCalendarTime();
   return computed(() => {
-    const captainLegend = isAiAttended.value
-      ? t('CONVERSATION_SIDEBAR.RESPONDER.ANSWERING', {
-          name: assistant.value?.name || toValue(inboxAssistant)?.name,
-        })
-      : t('CONVERSATION_SIDEBAR.RESPONDER.ESCALATED');
+    const captainName = {
+      name: assistant.value?.name || toValue(inboxAssistant)?.name || 'Captain',
+    };
+    let captainLegend = t(
+      'CONVERSATION_SIDEBAR.TOOLS.CAPTAIN_ESCALATED',
+      captainName
+    );
+    if (isAiAttended.value) {
+      captainLegend = isWaitingForCustomer.value
+        ? t('CONVERSATION_SIDEBAR.TOOLS.CAPTAIN_WAITING', captainName)
+        : t('CONVERSATION_SIDEBAR.TOOLS.CAPTAIN_REPLYING', captainName);
+    }
     const appointment = toValue(nextEvent);
     let captainState = 'hidden';
     if (toValue(inboxAssistant)) {
@@ -51,7 +59,10 @@ export function useContactTools({
         icon: 'i-woot-captain',
         tone: 'teal',
         state: captainState,
-        label: `Captain · ${isAiAttended.value || isEscalated.value ? captainLegend : t('CONVERSATION_SIDEBAR.RESPONDER.IDLE')}`,
+        label:
+          isAiAttended.value || isEscalated.value
+            ? captainLegend
+            : t('CONVERSATION_SIDEBAR.RESPONDER.IDLE'),
         legend: captainLegend,
         onClick: undefined,
       },
@@ -60,9 +71,13 @@ export function useContactTools({
         icon: 'i-lucide-calendar',
         tone: 'blue',
         state: calendarState,
-        label: `${t('CONVERSATION_SIDEBAR.ACCORDION.CALENDAR_EVENTS')} · ${appointment ? formatEventWhen(appointment.start, locale.value) : t('CONVERSATION_SIDEBAR.TOOLS.SCHEDULE')}`,
+        label: appointment
+          ? appointment.summary
+          : t('CONVERSATION_SIDEBAR.TOOLS.CALENDAR_IDLE'),
         legend: appointment
-          ? `${when.charAt(0).toLocaleUpperCase(locale.value)}${when.slice(1)} · ${appointment.summary}`
+          ? t('CONVERSATION_SIDEBAR.TOOLS.NEXT_APPOINTMENT', {
+              when: when.toLocaleLowerCase(locale.value),
+            })
           : '',
         onClick: () => onOpenCalendar(!appointment),
       },
