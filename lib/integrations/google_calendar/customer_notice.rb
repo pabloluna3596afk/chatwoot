@@ -1,11 +1,12 @@
-# The notice a customer gets when an appointment is booked from their WhatsApp conversation: the approved confirmation
+# The notice a customer gets when an appointment is booked or cancelled from their WhatsApp conversation: an approved
 # template of the activation kit (Calendar::ActivationKit), sent as a template message so it also reaches the customer
 # outside the 24-hour window. The values are already resolved here (the message surface of the variables catalog does not
 # know appointments) and the message is marked as resolved so nothing a contact typed is rendered as Liquid.
 class Integrations::GoogleCalendar::CustomerNotice
   DATE_FORMATS = { 'es' => '%d/%m/%Y', 'en' => '%m/%d/%Y' }.freeze
 
-  def initialize(conversation:, record:, timezone:, sender: nil)
+  def initialize(conversation:, record:, timezone:, sender: nil, template_name: Calendar::ActivationKit::TEMPLATE_NAME)
+    @template_name = template_name
     @conversation = conversation
     @sender = sender
     @record = record
@@ -16,10 +17,10 @@ class Integrations::GoogleCalendar::CustomerNotice
     channel.is_a?(Channel::Whatsapp) && channel.provider == 'whatsapp_cloud'
   end
 
-  # The approved confirmation template of this channel, or nil while it is missing, pending or rejected.
+  # The requested approved template of this channel, or nil while it is missing, pending or rejected.
   def template
     @template ||= Array(channel.message_templates).find do |item|
-      item.is_a?(Hash) && item['name'] == Calendar::ActivationKit::TEMPLATE_NAME && item['status'].to_s.casecmp?('approved') &&
+      item.is_a?(Hash) && item['name'] == @template_name && item['status'].to_s.casecmp?('approved') &&
         item['language'].to_s.casecmp?(language)
     end
   end
@@ -60,7 +61,7 @@ class Integrations::GoogleCalendar::CustomerNotice
 
   def body_text
     body = Array(template['components']).find { |component| component['type'] == 'BODY' }
-    body&.dig('text').presence || Calendar::ActivationKit::TEMPLATES.fetch(language)[:body]
+    body&.dig('text').presence || Calendar::ActivationKit::DEFINITIONS.fetch(@template_name).fetch(language)[:body]
   end
 
   def rendered_body(values)

@@ -383,6 +383,7 @@ es:
         event_created: '%{user_name} creó la cita "%{event_title}" desde la bandeja "%{inbox_name}"'
         event_updated: '%{user_name} actualizó la cita "%{event_title}"'
         event_deleted: '%{user_name} eliminó la cita "%{event_title}"'
+        cancellation_notice_not_sent: 'No se envió el aviso de cancelación de la cita "%{event_title}" por WhatsApp: falta la plantilla de cancelación aprobada. Actívala en Ajustes, Calendarios.'
         notice_not_sent: 'No se envió el aviso de la cita "%{event_title}" por WhatsApp: falta la plantilla de confirmación aprobada. Actívala en Ajustes, Calendarios.'
         customer_confirmed: '%{contact_name} confirmó la cita "%{event_title}" con el botón de la plantilla'
         customer_cancelled: '%{contact_name} canceló la cita "%{event_title}" con el botón de la plantilla'

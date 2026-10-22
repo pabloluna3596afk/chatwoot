@@ -439,6 +439,7 @@ en:
         event_created: '%{user_name} created calendar event "%{event_title}" from the "%{inbox_name}" inbox'
         event_updated: '%{user_name} updated calendar event "%{event_title}"'
         event_deleted: '%{user_name} deleted calendar event "%{event_title}"'
+        cancellation_notice_not_sent: 'The WhatsApp cancellation notice for the appointment "%{event_title}" was not sent: the approved cancellation template is missing. Set it up in Settings, Calendars.'
         notice_not_sent: 'The WhatsApp notice for the appointment "%{event_title}" was not sent: the approved confirmation template is missing. Set it up in Settings, Calendars.'
         customer_confirmed: '%{contact_name} confirmed the appointment "%{event_title}" with the template button'
         customer_cancelled: '%{contact_name} cancelled the appointment "%{event_title}" with the template button'

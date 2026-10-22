@@ -320,26 +320,9 @@ class Integrations::GoogleCalendar::EventService
     note = params[:note].to_s.strip
     raise MissingDeleteNote if note.blank? && record&.deleted_at.nil?
 
-    unless record
-      event = client.get_event(calendar_id: calendar_id, event_id: event_id)
-      record = connection.calendar_events.new(
-        account: account, external_calendar_id: calendar_id, google_event_id: event_id,
-        summary: event['summary'], start_at: parse_google_time(event['start']), end_at: parse_google_time(event['end']),
-        html_link: event['htmlLink'], etag: event['etag']
-      )
-    end
-
+    record ||= import_event_for_cancellation(calendar_id, event_id)
     client.delete_event(calendar_id: calendar_id, event_id: event_id, etag: params[:etag])
-    if record.deleted_at.nil?
-      attrs = { deleted_at: Time.current, appointment_status: 'cancelled', idempotency_key: nil }
-      attrs[:deleted_by] = actor_user if actor_user
-      attrs[:updated_by] = actor_user if actor_user
-      CalendarEvent.transaction do
-        record.update!(attrs)
-        record_activity!(record, 'deleted', activity_details_from(record).merge('note' => note))
-      end
-      notify_conversation!(record.conversation, :event_deleted, record)
-    end
+    cancel_local_event!(record, note) if record.deleted_at.nil?
     Integrations::GoogleCalendar::EventLock.new(account_id: account.id, event_id: event_id).release(user)
     record.reload
     self.class.payload_from_record(record)
@@ -348,6 +331,28 @@ class Integrations::GoogleCalendar::EventService
   private
 
   attr_reader :account, :user, :connection
+
+  def import_event_for_cancellation(calendar_id, event_id)
+    event = client.get_event(calendar_id: calendar_id, event_id: event_id)
+    connection.calendar_events.new(
+      account: account, external_calendar_id: calendar_id, google_event_id: event_id,
+      summary: event['summary'], start_at: parse_google_time(event['start']), end_at: parse_google_time(event['end']),
+      html_link: event['htmlLink'], etag: event['etag']
+    )
+  end
+
+  def cancel_local_event!(record, note)
+    was_cancelled = record.discarded?
+    attrs = { deleted_at: Time.current, appointment_status: 'cancelled', idempotency_key: nil }
+    attrs[:deleted_by] = actor_user if actor_user
+    attrs[:updated_by] = actor_user if actor_user
+    CalendarEvent.transaction do
+      record.update!(attrs)
+      record_activity!(record, 'deleted', activity_details_from(record).merge('note' => note))
+    end
+    notify_conversation!(record.conversation, :event_deleted, record)
+    send_cancellation_notice!(record) unless was_cancelled
+  end
 
   # Captain may mutate only a kept local appointment. The dashboard can also import Google-only events.
   def local_owner(event_id, calendar_id, required:)
@@ -975,6 +980,27 @@ class Integrations::GoogleCalendar::EventService
     send_to_contact!(conversation, record, google_event) if send_to_contact?(params, conversation)
   rescue StandardError => e
     Rails.logger.error("Calendar WhatsApp notice failed: #{e.class}")
+  end
+
+  # Only a person cancelling an upcoming appointment of a conversation tells the customer. The customer (template button),
+  # Captain, Google and Panel AI follow-ups do not.
+  def cancellation_notice?(record)
+    user.is_a?(User) && record.start_at&.future? && record.conversation.present? && !record.bot_followup_enabled?
+  end
+
+  def send_cancellation_notice!(record)
+    return unless cancellation_notice?(record)
+
+    notice = Integrations::GoogleCalendar::CustomerNotice.new(
+      conversation: record.conversation, record: record, timezone: account_timezone, sender: user,
+      template_name: Calendar::ActivationKit::CANCEL_TEMPLATE_NAME
+    )
+    return unless notice.whatsapp_cloud?
+    return if notice.deliver!
+
+    notify_conversation!(record.conversation, :cancellation_notice_not_sent, record)
+  rescue StandardError => e
+    Rails.logger.error("Calendar WhatsApp cancellation notice failed: #{e.class}")
   end
 
   def send_to_contact?(params, conversation)

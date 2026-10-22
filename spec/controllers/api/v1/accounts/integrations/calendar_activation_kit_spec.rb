@@ -21,6 +21,7 @@ RSpec.describe 'Calendar activation kit API', type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.parsed_body['template']).to include('name' => 'cita_confirmacion', 'language' => 'es')
     expect(response.parsed_body['template']['buttons']).to eq(%w[Confirmar Reagendar Cancelar])
+    expect(response.parsed_body['cancel_template']).to include('name' => 'cita_cancelacion', 'language' => 'es')
     expect(response.parsed_body['inboxes']).to eq([])
   end
 
@@ -40,6 +41,10 @@ RSpec.describe 'Calendar activation kit API', type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(response.parsed_body['results'].keys).to eq([channel.inbox.id.to_s])
-    expect(service).to have_received(:create).once
+    expect(response.parsed_body['inboxes'].first).to include('cancel_status' => 'missing', 'cancel_rejected_reason' => nil)
+    expect(service).to have_received(:create).twice
+    expect(response.parsed_body['results'][channel.inbox.id.to_s]).to include(
+      'status' => 'pending', 'cancel' => { 'status' => 'pending' }
+    )
   end
 end
