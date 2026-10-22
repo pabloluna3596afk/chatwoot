@@ -733,19 +733,25 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
       record = local_event(conversation: Conversation.find(conversation.id), created_by: user)
 
       expect(described_class.origin_payload(record)).to eq(
-        type: 'conversation', channel_type: conversation.inbox.channel_type, inbox_name: conversation.inbox.name
+        type: 'conversation', channel_type: conversation.inbox.channel_type, inbox_name: conversation.inbox.name, by_captain: false
       )
     end
 
     it 'is the CRM for what a person created without a conversation' do
-      expect(described_class.origin_payload(local_event(created_by: user))).to eq(type: 'crm')
+      expect(described_class.origin_payload(local_event(created_by: user))).to eq(type: 'crm', by_captain: false)
     end
 
     it 'is the calendar for what only exists there, and goes in the payload' do
       record = local_event
 
-      expect(described_class.origin_payload(record)).to eq(type: 'google')
-      expect(described_class.payload_from_record(record)[:origin]).to eq(type: 'google')
+      expect(described_class.origin_payload(record)).to eq(type: 'google', by_captain: false)
+      expect(described_class.payload_from_record(record)[:origin]).to eq(type: 'google', by_captain: false)
+    end
+
+    it 'marks what Captain booked' do
+      record = local_event(created_by: user, booking_source: 'ai')
+
+      expect(described_class.origin_payload(record)).to eq(type: 'crm', by_captain: true)
     end
   end
 

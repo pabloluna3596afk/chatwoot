@@ -30,27 +30,27 @@ const displayTitle = computed(() =>
 <template>
   <button
     type="button"
-    class="col-start-1 z-[1] min-w-0 overflow-hidden rounded-md px-1 py-0.5 text-start"
+    class="col-start-1 z-[1] flex min-w-0 flex-col overflow-hidden rounded-md px-1 py-0.5 text-start"
     :class="calendarEventStyle(event).surface"
     :title="calendarEventTooltip(event, t)"
     @click.stop="emit('select', event)"
   >
-    <span class="flex min-w-0 items-center gap-1 text-[11px] leading-tight">
-      <span v-if="!compact" class="shrink-0 font-medium">{{
-        event.timeLabel
-      }}</span>
-      <span
-        class="truncate"
-        :class="{ 'line-through': isCancelledEvent(event) }"
-      >
-        {{ displayTitle }}
-      </span>
+    <span
+      v-if="!compact"
+      class="flex min-w-0 items-center gap-1 text-[11px] leading-tight"
+    >
+      <span class="shrink-0 font-medium">{{ event.timeLabel }}</span>
       <AppointmentOriginLogo
-        v-if="!compact"
         :origin="event.origin"
         :size="12"
         class="ms-auto"
       />
+    </span>
+    <span
+      class="break-words text-[11px] leading-tight line-clamp-3"
+      :class="{ 'line-through': isCancelledEvent(event) }"
+    >
+      {{ displayTitle }}
     </span>
   </button>
 </template>

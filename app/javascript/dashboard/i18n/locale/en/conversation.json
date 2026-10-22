@@ -535,9 +535,9 @@
   },
   "CONVERSATION_SIDEBAR": {
     "RESPONDER": {
-      "CAPTAIN_ANSWERING": "Captain is answering: {name}",
+      "ANSWERING": "Answering: {name}",
       "WAITING_CUSTOMER": "waiting for the customer",
-      "ESCALATED": "Captain handed this conversation to the team"
+      "ESCALATED": "Handed the conversation to the team"
     },
     "ASSIGNEE_LABEL": "Conversation owner",
     "SELF_ASSIGN": "Assign to me",
@@ -582,6 +582,7 @@
       "NEXT": "Next appointment",
       "CREATED_BY": "Created by {name}",
       "ORIGIN": {
+        "CAPTAIN": "Booked by Captain",
         "CONVERSATION_INBOX": "Created from the {inbox} inbox",
         "CONVERSATION": "Created from a conversation",
         "CRM": "Created in the CRM",

@@ -9,8 +9,7 @@ import { CONVERSATION_PRIORITY } from '../../../../shared/constants/messages';
 import { CONVERSATION_EVENTS } from '../../../helper/AnalyticsHelper/events';
 import { useTrack } from 'dashboard/composables';
 import { useConversationAssignee } from 'dashboard/composables/useConversationAssignee';
-import { useCaptainState } from 'dashboard/composables/useCaptainState';
-import { computed, onMounted, watch } from 'vue';
+import { onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 
 export default {
@@ -40,9 +39,6 @@ export default {
       }
     };
 
-    const { isAiAttended, isEscalated, assistant, isWaitingForCustomer } =
-      useCaptainState(computed(() => store.getters.getSelectedChat));
-
     onMounted(fetchAssignableAgents);
     watch(
       () => store.getters.getSelectedChat?.inbox_id,
@@ -54,10 +50,6 @@ export default {
       assignedAgent,
       isAssigning,
       onClickAssignAgent,
-      isAiAttended,
-      isEscalated,
-      captainAssistant: assistant,
-      isWaitingForCustomer,
     };
   },
   data() {
@@ -191,28 +183,6 @@ export default {
       has-thumbnail
       @select="onClickAssignAgent"
     />
-
-    <p
-      v-if="isAiAttended || isEscalated"
-      class="m-0 flex items-center gap-1.5 px-1 text-xs"
-      :class="isAiAttended ? 'text-n-teal-11' : 'text-n-amber-11'"
-      data-testid="responder-status"
-    >
-      <span class="i-woot-captain size-3.5 shrink-0" />
-      <template v-if="isAiAttended">
-        {{
-          $t('CONVERSATION_SIDEBAR.RESPONDER.CAPTAIN_ANSWERING', {
-            name: captainAssistant?.name || 'Captain',
-          })
-        }}
-        <template v-if="isWaitingForCustomer">
-          · {{ $t('CONVERSATION_SIDEBAR.RESPONDER.WAITING_CUSTOMER') }}
-        </template>
-      </template>
-      <template v-else>
-        {{ $t('CONVERSATION_SIDEBAR.RESPONDER.ESCALATED') }}
-      </template>
-    </p>
 
     <OutlinedSelectField
       :label="$t('CONVERSATION_SIDEBAR.TEAM_LABEL')"

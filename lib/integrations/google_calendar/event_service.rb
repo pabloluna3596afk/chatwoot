@@ -199,6 +199,11 @@ class Integrations::GoogleCalendar::EventService
   def self.origin_payload(record)
     return if record.blank?
 
+    origin = origin_source(record)
+    origin.merge(by_captain: record.booking_source == 'ai')
+  end
+
+  def self.origin_source(record)
     inbox = record.conversation&.inbox
     return { type: 'conversation', channel_type: inbox&.channel_type, inbox_name: inbox&.name } if record.conversation.present?
     return { type: 'crm' } if record.created_by_id.present?

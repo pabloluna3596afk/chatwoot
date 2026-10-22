@@ -32,6 +32,7 @@ const label = computed(() => {
     return t('CONVERSATION_SIDEBAR.CALENDAR.ORIGIN.CRM');
   return t('CONVERSATION_SIDEBAR.CALENDAR.ORIGIN.GOOGLE');
 });
+const byCaptain = computed(() => Boolean(props.origin?.by_captain));
 const sizeStyle = computed(() => ({
   width: `${props.size}px`,
   height: `${props.size}px`,
@@ -39,27 +40,38 @@ const sizeStyle = computed(() => ({
 </script>
 
 <template>
-  <span
-    v-if="type"
-    v-tooltip.top="label"
-    class="inline-flex shrink-0 items-center justify-center"
-    :style="sizeStyle"
-    :aria-label="label"
-    :data-testid="`appointment-origin-${type}`"
-  >
-    <ChannelIcon
-      v-if="type === 'conversation' && origin.channel_type"
-      :inbox="{ channel_type: origin.channel_type }"
-      use-brand-icon
-      class="size-full"
+  <span v-if="type" class="inline-flex shrink-0 items-center gap-1">
+    <span
+      v-tooltip.top="label"
+      class="inline-flex shrink-0 items-center justify-center"
+      :style="sizeStyle"
+      :aria-label="label"
+      :data-testid="`appointment-origin-${type}`"
+    >
+      <ChannelIcon
+        v-if="type === 'conversation' && origin.channel_type"
+        :inbox="{ channel_type: origin.channel_type }"
+        use-brand-icon
+        class="size-full"
+      />
+      <Icon
+        v-else-if="type === 'conversation' || type === 'crm'"
+        :icon="
+          type === 'crm'
+            ? 'i-lucide-layout-dashboard'
+            : 'i-lucide-message-circle'
+        "
+        class="size-full text-n-slate-11"
+      />
+      <img v-else :src="googleLogo" alt="" class="size-full rounded-sm" />
+    </span>
+    <span
+      v-if="byCaptain"
+      v-tooltip.top="t('CONVERSATION_SIDEBAR.CALENDAR.ORIGIN.CAPTAIN')"
+      class="i-woot-captain shrink-0 text-n-teal-11"
+      :style="sizeStyle"
+      :aria-label="t('CONVERSATION_SIDEBAR.CALENDAR.ORIGIN.CAPTAIN')"
+      data-testid="appointment-origin-captain"
     />
-    <Icon
-      v-else-if="type === 'conversation' || type === 'crm'"
-      :icon="
-        type === 'crm' ? 'i-lucide-layout-dashboard' : 'i-lucide-message-circle'
-      "
-      class="size-full text-n-slate-11"
-    />
-    <img v-else :src="googleLogo" alt="" class="size-full rounded-sm" />
   </span>
 </template>
