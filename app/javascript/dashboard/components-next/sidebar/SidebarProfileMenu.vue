@@ -6,8 +6,6 @@ import { useI18n } from 'vue-i18n';
 import Avatar from 'next/avatar/Avatar.vue';
 import SidebarProfileMenuStatus from './SidebarProfileMenuStatus.vue';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
-import { useAlert } from 'dashboard/composables';
-/* global axios */
 
 import {
   DropdownContainer,
@@ -52,19 +50,6 @@ const toggleChatSupport = () => {
   }
 };
 
-const openPanelAi = async () => {
-  try {
-    const { data } = await axios.post('/api/v1/profile/panel_ai_sso');
-    if (data?.url) {
-      window.open(data.url, '_blank', 'noopener');
-    } else {
-      useAlert(t('SIDEBAR_ITEMS.PANEL_AI_ERROR'));
-    }
-  } catch (e) {
-    useAlert(t('SIDEBAR_ITEMS.PANEL_AI_ERROR'));
-  }
-};
-
 const menuItems = computed(() => {
   return [
     {
@@ -73,13 +58,6 @@ const menuItems = computed(() => {
       label: t('SIDEBAR_ITEMS.CONTACT_SUPPORT'),
       icon: 'i-lucide-life-buoy',
       click: toggleChatSupport,
-    },
-    {
-      show: true,
-      showOnCustomBrandedInstance: true,
-      label: t('SIDEBAR_ITEMS.PANEL_AI'),
-      icon: 'i-lucide-sparkles',
-      click: openPanelAi,
     },
     {
       show: true,
