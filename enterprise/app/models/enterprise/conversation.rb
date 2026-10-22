@@ -1,6 +1,16 @@
 module Enterprise::Conversation
   attr_accessor :captain_activity_reason, :captain_activity_reason_type
 
+  def self.prepended(base)
+    base.after_create :create_captain_skip_activity
+    base.after_update :create_captain_skip_activity, if: :saved_change_to_status?
+  end
+
+  def record_captain_skip(assistant, result)
+    @captain_skip_assistant = assistant
+    self.additional_attributes = additional_attributes.merge('captain_skip_reason' => result.slice(:reason, :condition))
+  end
+
   def list_of_keys
     super + %w[sla_policy_id]
   end
@@ -33,12 +43,25 @@ module Enterprise::Conversation
     assistant = inbox.captain_assistant
     return if assistant.blank?
 
-    unless assistant.engages?(contact, self)
+    result = assistant.engagement_result(contact, self)
+    unless result[:engages]
+      record_captain_skip(assistant, result)
       self.status = :open
       return
     end
 
     self.ai_assignee = assistant if assignee_id.blank?
+  end
+
+  # The note only explains the skip; it must never break creating or reopening the conversation.
+  def create_captain_skip_activity
+    return unless @captain_skip_assistant && open?
+
+    assistant = @captain_skip_assistant
+    @captain_skip_assistant = nil
+    Captain::EngagementActivity.new(self, assistant).perform
+  rescue StandardError => e
+    Rails.logger.error("Captain skip activity failed for conversation #{id}: #{e.class}")
   end
 
   def handle_resolved_status_change

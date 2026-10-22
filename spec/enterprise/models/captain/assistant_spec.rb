@@ -82,6 +82,86 @@ RSpec.describe Captain::Assistant, type: :model do
     end
   end
 
+  describe '#engagement_result' do
+    let(:condition) do
+      {
+        'attribute_key' => 'phone_number',
+        'filter_operator' => 'contains',
+        'values' => ['+593']
+      }
+    end
+
+    it 'explains a missing attribute without changing the boolean contract' do
+      contact.phone_number = nil
+      assistant.config['audience'] = condition
+
+      expect(assistant.engagement_result(contact, conversation)).to eq(
+        engages: false, reason: 'audience_missing_data', condition: condition
+      )
+      expect(assistant.engages?(contact, conversation)).to be(false)
+    end
+
+    it 'explains a present attribute that does not match' do
+      contact.phone_number = '+14155552671'
+      assistant.config['audience'] = condition
+
+      expect(assistant.engagement_result(contact, conversation)).to eq(
+        engages: false, reason: 'audience_no_match', condition: condition
+      )
+    end
+
+    it 'explains a schedule rejection after the audience matches' do
+      assistant.config['response_window'] = 'business_hours'
+      allow(conversation.inbox).to receive_messages(
+        working_hours_enabled?: true,
+        out_of_office?: true
+      )
+
+      expect(assistant.engagement_result(contact, conversation)).to eq(
+        engages: false,
+        reason: 'out_of_hours',
+        condition: nil
+      )
+    end
+
+    it 'preserves audience precedence when both audience and schedule fail' do
+      contact.phone_number = ''
+      assistant.config.merge!(
+        'audience' => condition,
+        'response_window' => 'business_hours'
+      )
+      allow(conversation.inbox).to receive_messages(
+        working_hours_enabled?: true,
+        out_of_office?: true
+      )
+
+      expect(assistant.engagement_result(contact, conversation)[:reason]).to eq('audience_missing_data')
+    end
+
+    it 'accepts an empty audience and an inbox without working hours' do
+      assistant.config.merge!('audience' => {}, 'response_window' => 'business_hours')
+      allow(conversation.inbox).to receive(:working_hours_enabled?).and_return(false)
+
+      expect(assistant.engagement_result(contact, conversation)).to eq(
+        engages: true,
+        reason: nil,
+        condition: nil
+      )
+      expect(assistant.engages?(contact, conversation)).to be(true)
+    end
+
+    it 'does not call a false boolean missing data' do
+      contact.blocked = false
+      assistant.config['audience'] = {
+        'attribute_key' => 'blocked',
+        'filter_operator' => 'equal_to',
+        'values' => ['true']
+      }
+
+      expect(assistant.engagement_result(contact, conversation)[:reason]).to eq('audience_no_match')
+    end
+  end
+
   describe '#responds_to_audience?' do
     it 'returns true when no audience is configured' do
       expect(assistant.responds_to_audience?(contact, conversation)).to be(true)

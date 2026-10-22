@@ -23,7 +23,31 @@ class Captain::AudienceMatcher
     matches_node?(@root)
   end
 
+  def first_failure(contact, conversation)
+    return if @root.blank?
+
+    @contact = contact
+    @conversation = conversation
+    failure = first_failed_node(@root)
+    return unless failure
+
+    actual = attribute_value(failure[:attribute_key])
+    { condition: failure.slice(:attribute_key, :filter_operator, :values), missing_data: actual != false && actual.blank? }
+  end
+
   private
+
+  # The leaf that made the tree fail: the first failing child of an AND group; for an OR group, nothing when any
+  # child passes, otherwise its first failure.
+  def first_failed_node(node)
+    node = node.with_indifferent_access
+    return (matches_leaf?(node) ? nil : node) unless node.key?(:conditions)
+
+    failures = Array(node[:conditions]).map { |child| first_failed_node(child) }
+    return failures.compact.first unless node[:operator].to_s.casecmp?('or')
+
+    failures.all? ? failures.first : nil
+  end
 
   def matches_node?(node)
     node = node.with_indifferent_access

@@ -1,7 +1,9 @@
 <script setup>
-import { ref, watch, useTemplateRef } from 'vue';
+import { computed, ref, watch, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'dashboard/components-next/button/Button.vue';
+import Banner from 'dashboard/components-next/banner/Banner.vue';
+import { useMapGetter, useStore } from 'dashboard/composables/store';
 import RadioCard from 'dashboard/components-next/radioCard/RadioCard.vue';
 import AudienceGroup from './audience/AudienceGroup.vue';
 import { useAudienceFilterTypes } from './audience/useAudienceFilterTypes.js';
@@ -15,8 +17,33 @@ const props = defineProps({
 
 const emit = defineEmits(['submit']);
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const { filterTypes } = useAudienceFilterTypes();
+const store = useStore();
+const connectedInboxes = useMapGetter('captainInboxes/getRecords');
+const inboxFlags = useMapGetter('captainInboxes/getUIFlags');
+
+const CHANNELS = {
+  'Channel::Instagram': 'instagram',
+  'Channel::FacebookPage': 'messenger',
+  'Channel::WebWidget': 'web',
+  'Channel::Email': 'email',
+  'Channel::Whatsapp': 'whatsapp',
+  'Channel::Sms': 'sms',
+  'Channel::TwilioSms': 'sms',
+};
+const MISSING_ATTRIBUTES = {
+  phone_number: ['instagram', 'messenger', 'web', 'email'],
+  email: ['whatsapp', 'sms', 'instagram', 'messenger'],
+};
+
+watch(
+  () => props.assistant.id,
+  id => {
+    if (id) store.dispatch('captainInboxes/get', { assistantId: id });
+  },
+  { immediate: true }
+);
 
 const MODE = {
   EVERYONE: 'everyone',
@@ -37,6 +64,51 @@ const defaultRoot = () => ({ id: nextId(), operator: 'and', conditions: [] });
 const root = ref(defaultRoot());
 const mode = ref(MODE.EVERYONE);
 const showEmptyAudienceError = ref(false);
+
+const conditionAttributes = node =>
+  hasConditions(node)
+    ? node.conditions.flatMap(conditionAttributes)
+    : [node.attributeKey];
+
+const channelWarnings = computed(() => {
+  if (mode.value !== MODE.SPECIFIC || inboxFlags.value.fetchingList) return [];
+
+  const attributes = new Set(conditionAttributes(root.value));
+  const channelLabels = {
+    instagram: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNELS.INSTAGRAM'),
+    messenger: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNELS.MESSENGER'),
+    web: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNELS.WEB'),
+    email: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNELS.EMAIL'),
+    whatsapp: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNELS.WHATSAPP'),
+    sms: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNELS.SMS'),
+  };
+  const channels = connectedInboxes.value.map(inbox =>
+    inbox.channel_type === 'Channel::TwilioSms' && inbox.medium === 'whatsapp'
+      ? 'whatsapp'
+      : CHANNELS[inbox.channel_type]
+  );
+  return Object.entries(MISSING_ATTRIBUTES).flatMap(
+    ([key, missingChannels]) => {
+      const affected = [
+        ...new Set(channels.filter(c => missingChannels.includes(c))),
+      ];
+      if (!attributes.has(key) || !affected.length) return [];
+
+      return [
+        {
+          key,
+          text: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNEL_WARNING', {
+            attribute: filterTypes.value.find(type => type.attributeKey === key)
+              .label,
+            channels: new Intl.ListFormat(locale?.value, {
+              type: 'conjunction',
+            }).format(affected.map(channel => channelLabels[channel])),
+          }),
+        },
+      ];
+    }
+  );
+});
 
 const findOption = (filterType, value) =>
   filterType?.options?.find(option => String(option.id) === String(value));
@@ -185,6 +257,14 @@ watch(
         </p>
       </RadioCard>
     </div>
+    <Banner
+      v-for="warning in channelWarnings"
+      :key="warning.key"
+      color="amber"
+      role="status"
+    >
+      {{ warning.text }}
+    </Banner>
     <div>
       <Button
         :label="t('CAPTAIN.ASSISTANTS.FORM.UPDATE')"

@@ -932,6 +932,15 @@
           "GROUP_CONTACT": "Atributos de contacto",
           "GROUP_CONVERSATION": "Conversación",
           "GROUP_CUSTOM": "Atributos personalizados",
+          "CHANNEL_WARNING": "La condición «{attribute}» no aplica en {channels}: esos contactos no tienen {attribute}, así que Captain no los atenderá.",
+          "CHANNELS": {
+            "INSTAGRAM": "Instagram",
+            "MESSENGER": "Messenger",
+            "WEB": "Chat web",
+            "EMAIL": "Correo",
+            "WHATSAPP": "WhatsApp",
+            "SMS": "SMS"
+          },
           "BROWSER_LANGUAGE": "Idioma del navegador",
           "CONVERSATION_LANGUAGE": "Idioma del primer mensaje",
           "LOGGED_IN": "Usuario con sesión iniciada",
