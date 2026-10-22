@@ -9,6 +9,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import Label from 'dashboard/components-next/label/Label.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
+import WhatsAppBubble from 'dashboard/components-next/whatsapp/WhatsAppBubble.vue';
 
 // What an account needs so appointments work from day one: the contact attributes and the WhatsApp templates
 // Meta has to approve. The administrator marks the WhatsApp Cloud inboxes that get the template.
@@ -36,6 +37,8 @@ const TEMPLATE_TYPES = ['', 'cancel'];
 const field = (type, name) => (type ? `${type}_${name}` : name);
 const testId = (part, type, id) =>
   `activation-kit-${type ? `${type}-` : ''}${part}${id ? `-${id}` : ''}`;
+const quickReplies = labels =>
+  (labels || []).map(text => ({ text, type: 'QUICK_REPLY' }));
 
 const { t, te } = useI18n();
 const { accountScopedRoute } = useAccount();
@@ -187,43 +190,39 @@ onMounted(load);
         </p>
       </div>
 
-      <div
-        v-for="type in TEMPLATE_TYPES"
-        :key="type"
-        class="flex flex-col gap-2 p-3 rounded-xl bg-n-alpha-1"
-        :data-testid="testId('preview', type)"
-      >
-        <span class="text-xs font-medium text-n-slate-11">
-          {{
-            type
-              ? $t('CALENDAR_ACTIVATION_KIT.CANCEL_PREVIEW')
-              : $t('CALENDAR_ACTIVATION_KIT.PREVIEW')
-          }}
-        </span>
-        <p class="m-0 text-body-main text-n-slate-12 whitespace-pre-line">
-          {{ kit[field(type, 'template')].body }}
-        </p>
+      <div class="grid gap-3 sm:grid-cols-2">
         <div
-          v-if="kit[field(type, 'template')].buttons?.length"
-          class="flex flex-wrap gap-2"
-          :data-testid="testId('buttons', type)"
+          v-for="type in TEMPLATE_TYPES"
+          :key="type"
+          class="flex flex-col gap-2 p-3 rounded-xl border border-n-weak"
+          :data-testid="testId('preview', type)"
         >
-          <span
-            v-for="label in kit[field(type, 'template')].buttons"
-            :key="label"
-            class="px-3 py-1 text-xs font-medium rounded-lg bg-n-solid-1 text-n-blue-11"
-          >
-            {{ label }}
+          <span class="text-xs font-medium text-n-slate-11">
+            {{
+              type
+                ? $t('CALENDAR_ACTIVATION_KIT.CANCEL_PREVIEW')
+                : $t('CALENDAR_ACTIVATION_KIT.PREVIEW')
+            }}
+          </span>
+          <WhatsAppBubble
+            class="flex-1 [&>div]:h-full"
+            :body="kit[field(type, 'template')].body"
+            :buttons="quickReplies(kit[field(type, 'template')].buttons)"
+            :data-testid="
+              kit[field(type, 'template')].buttons?.length
+                ? testId('buttons', type)
+                : undefined
+            "
+          />
+          <span class="text-xs text-n-slate-11">
+            {{
+              $t('CALENDAR_ACTIVATION_KIT.TEMPLATE_META', {
+                name: kit[field(type, 'template')].name,
+                language: kit[field(type, 'template')].language,
+              })
+            }}
           </span>
         </div>
-        <span class="text-xs text-n-slate-11">
-          {{
-            $t('CALENDAR_ACTIVATION_KIT.TEMPLATE_META', {
-              name: kit[field(type, 'template')].name,
-              language: kit[field(type, 'template')].language,
-            })
-          }}
-        </span>
       </div>
 
       <div
@@ -243,7 +242,7 @@ onMounted(load);
         <li
           v-for="inbox in inboxes"
           :key="inbox.id"
-          class="flex flex-wrap items-center gap-2"
+          class="flex flex-wrap items-center gap-x-3 gap-y-2 p-3 rounded-xl border border-n-weak"
           :data-testid="`activation-kit-inbox-${inbox.id}`"
         >
           <label
@@ -258,45 +257,47 @@ onMounted(load);
             />
             {{ inbox.name }}
           </label>
-          <div
-            v-for="type in TEMPLATE_TYPES"
-            :key="type"
-            class="flex flex-wrap items-center gap-2 basis-full ps-6"
-          >
-            <span class="text-xs text-n-slate-11">
-              {{
-                type
-                  ? $t('CALENDAR_ACTIVATION_KIT.CANCELLATION')
-                  : $t('CALENDAR_ACTIVATION_KIT.CONFIRMATION')
-              }}
-            </span>
-            <Label
-              :label="statusLabel(shownStatus(inbox, type))"
-              :color="STATUS_COLORS[shownStatus(inbox, type)] || 'slate'"
-              :data-testid="testId('status', type, inbox.id)"
-              compact
-              role="status"
-            />
-            <p
-              v-if="
-                inbox[field(type, 'status')] === 'rejected' &&
-                inbox[field(type, 'rejected_reason')]
-              "
-              class="basis-full m-0 text-xs text-n-ruby-11 break-words min-w-0"
+          <div class="grid gap-2 basis-full sm:grid-cols-2">
+            <div
+              v-for="type in TEMPLATE_TYPES"
+              :key="type"
+              class="flex flex-wrap items-center content-start gap-2 min-w-0"
             >
-              {{
-                $t('CALENDAR_ACTIVATION_KIT.REJECTED_REASON', {
-                  reason: inbox[field(type, 'rejected_reason')],
-                })
-              }}
-            </p>
-            <p
-              v-if="errorOf(inbox, type)"
-              class="basis-full m-0 text-xs text-n-ruby-11 break-words min-w-0"
-              role="alert"
-            >
-              {{ errorMessage(errorOf(inbox, type)) }}
-            </p>
+              <span class="text-xs text-n-slate-11">
+                {{
+                  type
+                    ? $t('CALENDAR_ACTIVATION_KIT.CANCELLATION')
+                    : $t('CALENDAR_ACTIVATION_KIT.CONFIRMATION')
+                }}
+              </span>
+              <Label
+                :label="statusLabel(shownStatus(inbox, type))"
+                :color="STATUS_COLORS[shownStatus(inbox, type)] || 'slate'"
+                :data-testid="testId('status', type, inbox.id)"
+                compact
+                role="status"
+              />
+              <p
+                v-if="
+                  inbox[field(type, 'status')] === 'rejected' &&
+                  inbox[field(type, 'rejected_reason')]
+                "
+                class="basis-full m-0 text-xs text-n-ruby-11 break-words min-w-0"
+              >
+                {{
+                  $t('CALENDAR_ACTIVATION_KIT.REJECTED_REASON', {
+                    reason: inbox[field(type, 'rejected_reason')],
+                  })
+                }}
+              </p>
+              <p
+                v-if="errorOf(inbox, type)"
+                class="basis-full m-0 text-xs text-n-ruby-11 break-words min-w-0"
+                role="alert"
+              >
+                {{ errorMessage(errorOf(inbox, type)) }}
+              </p>
+            </div>
           </div>
           <Button
             v-if="isAdmin && canResend(inbox)"

@@ -982,9 +982,14 @@ class Integrations::GoogleCalendar::EventService
     Rails.logger.error("Calendar WhatsApp notice failed: #{e.class}")
   end
 
+  # Only a person cancelling an upcoming appointment of a conversation tells the customer. The customer (template button),
+  # Captain, Google and Panel AI follow-ups do not.
+  def cancellation_notice?(record)
+    user.is_a?(User) && record.start_at&.future? && record.conversation.present? && !record.bot_followup_enabled?
+  end
+
   def send_cancellation_notice!(record)
-    return unless user.is_a?(User) && record.start_at.future? && record.conversation.present?
-    return if record.bot_followup_enabled?
+    return unless cancellation_notice?(record)
 
     notice = Integrations::GoogleCalendar::CustomerNotice.new(
       conversation: record.conversation, record: record, timezone: account_timezone, sender: user,

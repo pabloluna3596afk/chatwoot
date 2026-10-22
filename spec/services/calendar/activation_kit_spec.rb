@@ -24,7 +24,7 @@ RSpec.describe Calendar::ActivationKit do
   describe '#status' do
     it 'lists the WhatsApp Cloud inboxes with the template missing' do
       expect(kit.status[:inboxes]).to eq([{ id: inbox.id, name: inbox.name, status: 'missing', rejected_reason: nil,
-                                           cancel_status: 'missing', cancel_rejected_reason: nil }])
+                                            cancel_status: 'missing', cancel_rejected_reason: nil }])
     end
 
     it 'shows the status and rejection reason Meta synced' do
@@ -143,9 +143,9 @@ RSpec.describe Calendar::ActivationKit do
 
     it 'resends only the rejected cancellation template' do
       channel.update!(message_templates: [
-        { 'name' => 'cita_confirmacion', 'language' => 'es', 'status' => 'APPROVED' },
-        { 'name' => 'cita_cancelacion', 'language' => 'es', 'status' => 'REJECTED', 'rejected_reason' => 'INVALID_FORMAT' }
-      ])
+                        { 'name' => 'cita_confirmacion', 'language' => 'es', 'status' => 'APPROVED' },
+                        { 'name' => 'cita_cancelacion', 'language' => 'es', 'status' => 'REJECTED', 'rejected_reason' => 'INVALID_FORMAT' }
+                      ])
       expect(kit.status[:inboxes].first).to include(cancel_status: 'rejected', cancel_rejected_reason: 'INVALID_FORMAT')
 
       kit.apply(inbox_ids: [inbox.id])
@@ -157,7 +157,7 @@ RSpec.describe Calendar::ActivationKit do
     %w[cita_confirmacion cita_cancelacion].each do |failed_name|
       it "still sends the other template when #{failed_name} fails" do
         allow(service).to receive(:create).with(hash_including(name: failed_name))
-                                        .and_raise(Whatsapp::TemplateManagementService::Error.new('permission_denied'))
+                                          .and_raise(Whatsapp::TemplateManagementService::Error.new('permission_denied'))
 
         result = kit.apply(inbox_ids: [inbox.id])[:results][inbox.id]
 

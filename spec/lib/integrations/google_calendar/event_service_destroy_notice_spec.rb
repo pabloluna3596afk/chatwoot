@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe Integrations::GoogleCalendar::EventService, '#destroy cancellation notice' do
+RSpec.describe Integrations::GoogleCalendar::EventService, '#destroy' do
   let(:account) { create(:account, locale: 'es') }
   let(:user) { create(:user, account: account, role: :administrator) }
   let(:contact) { create(:contact, account: account, name: 'Ana Pérez') }
