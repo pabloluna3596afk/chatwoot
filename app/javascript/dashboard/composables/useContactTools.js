@@ -61,7 +61,9 @@ export function useContactTools({
         tone: 'blue',
         state: calendarState,
         label: `${t('CONVERSATION_SIDEBAR.ACCORDION.CALENDAR_EVENTS')} · ${appointment ? formatEventWhen(appointment.start, locale.value) : t('CONVERSATION_SIDEBAR.TOOLS.SCHEDULE')}`,
-        legend: appointment ? `${when} · ${appointment.summary}` : '',
+        legend: appointment
+          ? `${when.charAt(0).toLocaleUpperCase(locale.value)}${when.slice(1)} · ${appointment.summary}`
+          : '',
         onClick: () => onOpenCalendar(!appointment),
       },
     ];

@@ -85,11 +85,11 @@ describe('useContactTools', () => {
     expect(openCalendar).toHaveBeenLastCalledWith(true);
     nextEvent.value = { start: '2026-10-22T15:00:00Z', summary: 'Consulta' };
     expect(tools.value[1].state).toBe('active');
-    expect(tools.value[1].legend).toBe('mañana 10:00 · Consulta');
+    expect(tools.value[1].legend).toBe('Mañana 10:00 · Consulta');
     tools.value[1].onClick();
     expect(openCalendar).toHaveBeenLastCalledWith(false);
     now.value = new Date('2026-10-22T05:30:00Z');
-    expect(tools.value[1].legend).toBe('hoy 10:00 · Consulta');
+    expect(tools.value[1].legend).toBe('Hoy 10:00 · Consulta');
     connected.value = false;
     expect(tools.value[1].state).toBe('hidden');
   });
@@ -107,7 +107,7 @@ describe('useContactTools', () => {
       start: '2026-10-22T15:00:00Z',
       summary: 'Consultation',
     };
-    expect(tools.value[1].legend).toBe('tomorrow 10:00 · Consultation');
+    expect(tools.value[1].legend).toBe('Tomorrow 10:00 · Consultation');
   });
 
   it('keeps new English and Spanish keys in parity', () => {
