@@ -323,28 +323,54 @@ const onContactRemoved = () => {
                 class="i-lucide-pencil text-xs text-n-slate-10 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/name:opacity-100 transition-opacity ml-1 align-middle"
               />
             </h3>
-            <MenuPopover
-              v-model:open="showHeaderMenu"
-              :menu-items="headerMenuItems"
-              :label="$t('CONTACT_PANEL.MORE_ACTIONS')"
-              :restore-focus-on-select="false"
-              @action="onHeaderMenuAction"
-            >
-              <template #trigger>
-                <NextButton
-                  :aria-label="$t('CONTACT_PANEL.MORE_ACTIONS')"
-                  :title="$t('CONTACT_PANEL.MORE_ACTIONS')"
-                  :aria-expanded="showHeaderMenu"
-                  aria-haspopup="dialog"
-                  icon="i-lucide-ellipsis-vertical"
-                  slate
-                  ghost
-                  xs
-                  data-testid="contact-header-menu"
-                  @click="showHeaderMenu = !showHeaderMenu"
-                />
-              </template>
-            </MenuPopover>
+            <div class="flex items-center flex-shrink-0 gap-1">
+              <ComposeConversation :contact-id="String(contact.id)">
+                <template #trigger>
+                  <NextButton
+                    v-tooltip.top-end="$t('CONTACT_PANEL.NEW_MESSAGE')"
+                    :aria-label="$t('CONTACT_PANEL.NEW_MESSAGE')"
+                    :title="$t('CONTACT_PANEL.NEW_MESSAGE')"
+                    icon="i-ph-chat-circle-dots"
+                    slate
+                    faded
+                    xs
+                  />
+                </template>
+              </ComposeConversation>
+              <ViewAllConversations :contact="contact" />
+              <VoiceCallButton
+                :phone="phoneNumber"
+                :contact-id="contact.id"
+                :conversation-id="currentChat?.id"
+                icon="i-lucide-phone"
+                size="xs"
+                faded
+                slate
+                :tooltip-label="$t('CONTACT_PANEL.CALL')"
+              />
+              <MenuPopover
+                v-model:open="showHeaderMenu"
+                :menu-items="headerMenuItems"
+                :label="$t('CONTACT_PANEL.MORE_ACTIONS')"
+                :restore-focus-on-select="false"
+                @action="onHeaderMenuAction"
+              >
+                <template #trigger>
+                  <NextButton
+                    :aria-label="$t('CONTACT_PANEL.MORE_ACTIONS')"
+                    :title="$t('CONTACT_PANEL.MORE_ACTIONS')"
+                    :aria-expanded="showHeaderMenu"
+                    aria-haspopup="dialog"
+                    icon="i-lucide-ellipsis-vertical"
+                    slate
+                    ghost
+                    xs
+                    data-testid="contact-header-menu"
+                    @click="showHeaderMenu = !showHeaderMenu"
+                  />
+                </template>
+              </MenuPopover>
+            </div>
           </div>
         </div>
       </div>
@@ -444,32 +470,6 @@ const onContactRemoved = () => {
           v-if="contact.id"
           :contact="contact"
           class="mt-1"
-        />
-      </div>
-      <div class="flex items-center w-full mt-1 gap-1.5">
-        <ComposeConversation :contact-id="String(contact.id)">
-          <template #trigger>
-            <NextButton
-              v-tooltip.top-end="$t('CONTACT_PANEL.NEW_MESSAGE')"
-              :aria-label="$t('CONTACT_PANEL.NEW_MESSAGE')"
-              :title="$t('CONTACT_PANEL.NEW_MESSAGE')"
-              icon="i-ph-chat-circle-dots"
-              slate
-              faded
-              xs
-            />
-          </template>
-        </ComposeConversation>
-        <ViewAllConversations :contact="contact" />
-        <VoiceCallButton
-          :phone="phoneNumber"
-          :contact-id="contact.id"
-          :conversation-id="currentChat?.id"
-          icon="i-lucide-phone"
-          size="xs"
-          faded
-          slate
-          :tooltip-label="$t('CONTACT_PANEL.CALL')"
         />
       </div>
       <ContactMergeDialog
