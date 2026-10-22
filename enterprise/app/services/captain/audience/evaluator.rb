@@ -66,7 +66,6 @@ class Captain::Audience::Evaluator
     return if scope == 'all'
 
     previous = @contact.conversations.where(account_id: @conversation.account_id).where.not(id: @conversation.id)
-    previous = previous.where(created_at: ..@conversation.created_at) if @conversation.persisted?
     returning = previous.exists?
     return if scope == 'returning' ? returning : !returning
 

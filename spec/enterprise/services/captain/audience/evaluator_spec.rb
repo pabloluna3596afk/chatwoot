@@ -275,11 +275,11 @@ RSpec.describe Captain::Audience::Evaluator do
       expect(evaluation[:engages]).to be(true)
     end
 
-    it 'does not reclassify an earlier conversation because of a later opening' do
+    it 'counts other conversations already present when an older conversation is reopened' do
       conversation.save!
       create(:conversation, account: account, contact: contact, created_at: conversation.created_at + 1.minute)
 
-      expect(evaluation[:engages]).to be(true)
+      expect(evaluation[:reason]).to eq('audience_scope')
     end
 
     it 'rejects a new customer when only returning customers are allowed' do
