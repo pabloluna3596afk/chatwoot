@@ -929,9 +929,32 @@ class Integrations::GoogleCalendar::EventService
   def notify_contact_or_bot!(params, conversation, record, google_event, event_name)
     if record.bot_followup_enabled?
       Calendar::NotifyPanelAiFollowupJob.perform_later(record.id, event_name)
+    elsif whatsapp_notice?(conversation, record, event_name)
+      send_whatsapp_notice!(params, conversation, record, google_event)
     elsif send_to_contact?(params, conversation)
       send_to_contact!(conversation, record, google_event)
     end
+  end
+
+  # An appointment booked by a person from a WhatsApp Cloud conversation is confirmed to the customer once, when it is
+  # created. What Captain books it confirms itself in the conversation.
+  def whatsapp_notice?(conversation, record, event_name)
+    event_name == 'created' && conversation.present? && record.booking_source != 'ai' && customer_notice(conversation, record).whatsapp_cloud?
+  end
+
+  def customer_notice(conversation, record)
+    Integrations::GoogleCalendar::CustomerNotice.new(conversation: conversation, record: record, timezone: account_timezone, sender: user)
+  end
+
+  # The approved template goes out on its own; without it the person is told in the conversation and the free text is
+  # only sent when they asked for it. Nothing here may undo an appointment that already exists.
+  def send_whatsapp_notice!(params, conversation, record, google_event)
+    return if customer_notice(conversation, record).deliver!
+
+    notify_conversation!(conversation, :notice_not_sent, record)
+    send_to_contact!(conversation, record, google_event) if send_to_contact?(params, conversation)
+  rescue StandardError => e
+    Rails.logger.error("Calendar WhatsApp notice failed: #{e.class}")
   end
 
   def send_to_contact?(params, conversation)
