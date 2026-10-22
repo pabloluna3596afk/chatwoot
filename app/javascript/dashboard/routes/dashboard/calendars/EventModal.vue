@@ -6,7 +6,7 @@ import { useMapGetter } from 'dashboard/composables/store';
 import { useAccount } from 'dashboard/composables/useAccount';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
-import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import OutlinedSelectField from 'dashboard/components-next/CustomAttributes/OutlinedSelectField.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -136,6 +136,29 @@ const connectionOptions = computed(() =>
 
 const calendarOptions = computed(() =>
   calendarSelectOptions(calendars.value, t)
+);
+
+const toMenuOptions = options =>
+  options.map(({ value, label }) => ({ id: value, name: label }));
+const selectedMenuOption = (options, value) =>
+  toMenuOptions(options).find(option => String(option.id) === String(value)) ||
+  null;
+const statusMenuOptions = computed(() => toMenuOptions(statusOptions.value));
+const selectedStatus = computed(() => ({
+  id: appointmentStatus.value,
+  name: statusLabel.value,
+}));
+const connectionMenuOptions = computed(() =>
+  toMenuOptions(connectionOptions.value)
+);
+const selectedConnection = computed(() =>
+  selectedMenuOption(connectionOptions.value, connectionId.value)
+);
+const calendarMenuOptions = computed(() =>
+  toMenuOptions(calendarOptions.value)
+);
+const selectedCalendar = computed(() =>
+  selectedMenuOption(calendarOptions.value, calendarId.value)
 );
 
 const loadCalendars = async () => {
@@ -768,52 +791,36 @@ defineExpose({ open, close });
           :placeholder="$t('SIDEBAR.CALENDAR_PAGE.MODAL.TITLE_PLACEHOLDER')"
           :disabled="readOnly"
         />
-        <div class="flex flex-col gap-1">
-          <span class="text-sm font-medium text-n-slate-12">
-            {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.APPOINTMENT_STATUS') }}
-          </span>
-          <ComboBox
-            v-model="appointmentStatus"
-            :options="statusOptions"
-            :display-label="statusLabel"
-            :aria-label="$t('SIDEBAR.CALENDAR_PAGE.MODAL.APPOINTMENT_STATUS')"
-            :disabled="readOnly"
-            :allow-deselect="false"
-            teleport
-            data-testid="appointment-status"
-          />
-        </div>
+        <OutlinedSelectField
+          :label="$t('SIDEBAR.CALENDAR_PAGE.MODAL.APPOINTMENT_STATUS')"
+          :options="statusMenuOptions"
+          :selected-item="selectedStatus"
+          :show-search="false"
+          :disabled="readOnly"
+          data-testid="appointment-status"
+          @select="option => (appointmentStatus = option.id)"
+        />
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div class="flex flex-col gap-1 min-w-0">
-            <span class="mb-0.5 text-sm font-medium text-n-slate-12">
-              {{ $t('SIDEBAR.CALENDAR_PAGE.ACCOUNT') }}
-            </span>
-            <ComboBox
-              v-model="connectionId"
-              :allow-deselect="false"
-              teleport
-              :options="connectionOptions"
-              :placeholder="$t('SIDEBAR.CALENDAR_PAGE.ACCOUNT')"
-              :aria-label="$t('SIDEBAR.CALENDAR_PAGE.ACCOUNT')"
-              :disabled="readOnly || !isCreate"
-            />
-          </div>
-          <div class="flex flex-col gap-1 min-w-0">
-            <span class="mb-0.5 text-sm font-medium text-n-slate-12">
-              {{ $t('SIDEBAR.CALENDAR_PAGE.CALENDAR') }}
-            </span>
-            <ComboBox
-              v-model="calendarId"
-              :allow-deselect="false"
-              teleport
-              :options="calendarOptions"
-              :placeholder="$t('SIDEBAR.CALENDAR_PAGE.CALENDAR')"
-              :aria-label="$t('SIDEBAR.CALENDAR_PAGE.CALENDAR')"
-              :disabled="
-                readOnly || !isCreate || loadingCalendars || calendarLoadFailed
-              "
-            />
-          </div>
+          <OutlinedSelectField
+            :label="$t('SIDEBAR.CALENDAR_PAGE.ACCOUNT')"
+            :options="connectionMenuOptions"
+            :selected-item="selectedConnection"
+            :show-search="false"
+            :disabled="readOnly || !isCreate"
+            data-testid="appointment-connection"
+            @select="option => (connectionId = String(option.id))"
+          />
+          <OutlinedSelectField
+            :label="$t('SIDEBAR.CALENDAR_PAGE.CALENDAR')"
+            :options="calendarMenuOptions"
+            :selected-item="selectedCalendar"
+            :show-search="false"
+            :disabled="
+              readOnly || !isCreate || loadingCalendars || calendarLoadFailed
+            "
+            data-testid="appointment-calendar"
+            @select="option => (calendarId = option.id)"
+          />
         </div>
         <p
           v-if="loadingCalendars"

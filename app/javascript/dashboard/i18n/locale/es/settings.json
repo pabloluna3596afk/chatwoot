@@ -346,6 +346,7 @@
     "CALENDARS": "Calendarios",
     "CALENDAR_PAGE": {
       "TITLE": "Calendarios",
+      "DESCRIPTION": "Consulta y agenda las citas de tus calendarios conectados.",
       "CONNECT_CTA": "Conectar un calendario",
       "EMPTY": "Todavía no hay calendarios. Un administrador puede conectar Google en Ajustes → Integraciones → Calendarios.",
       "NO_EVENTS": "No hay próximos eventos en este rango.",

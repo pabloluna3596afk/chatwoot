@@ -1,7 +1,7 @@
 import { flushPromises, shallowMount } from '@vue/test-utils';
 import EventModal from '../EventModal.vue';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
-import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import OutlinedSelectField from 'dashboard/components-next/CustomAttributes/OutlinedSelectField.vue';
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
@@ -134,7 +134,7 @@ describe('EventModal customer notification', () => {
 });
 
 describe('EventModal appointment status', () => {
-  it('offers confirmed and pending through ComboBox and sends the selected status', async () => {
+  it('offers confirmed and pending through the ChatHub select and sends the selected status', async () => {
     CalendarAPI.createEvent.mockResolvedValue({ data: { payload: {} } });
     const wrapper = mountModal();
     await wrapper.vm.open({
@@ -145,14 +145,14 @@ describe('EventModal appointment status', () => {
       },
     });
     const status = wrapper
-      .findAllComponents(ComboBox)
+      .findAllComponents(OutlinedSelectField)
       .find(combo => combo.attributes('data-testid') === 'appointment-status');
-    expect(status.props('options').map(option => option.value)).toEqual([
+    expect(status.props('options').map(option => option.id)).toEqual([
       'confirmed',
       'pending_confirmation',
     ]);
     expect(wrapper.find('select').exists()).toBe(false);
-    status.vm.$emit('update:modelValue', 'pending_confirmation');
+    status.vm.$emit('select', { id: 'pending_confirmation' });
     wrapper
       .findAllComponents({ name: 'Input' })
       .find(

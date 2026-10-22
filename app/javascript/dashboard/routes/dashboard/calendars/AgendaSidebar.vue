@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n';
 import { useNow } from '@vueuse/core';
 import { useCalendarTime } from 'dashboard/composables/useCalendarTime';
 import AppointmentOriginLogo from 'dashboard/components/widgets/conversation/AppointmentOriginLogo.vue';
+import CalendarLegend from './CalendarLegend.vue';
 
 const props = defineProps({
   groups: {
@@ -186,5 +187,6 @@ watch([() => props.groups, scrollAnchorId], scrollToAnchor, {
         </button>
       </div>
     </section>
+    <CalendarLegend class="mt-auto pt-6 px-1 shrink-0" />
   </aside>
 </template>

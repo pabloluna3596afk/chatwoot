@@ -218,9 +218,7 @@ defineExpose({ refresh: loadEvents });
                 }}
               </p>
               <p class="text-xs text-n-slate-11">
-                {{
-                  formatEventWhen(event.start, locale) + ' \u00b7 ' + timezone
-                }}
+                {{ formatEventWhen(event.start, locale) }}
               </p>
             </button>
           </li>
@@ -261,9 +259,7 @@ defineExpose({ refresh: loadEvents });
                     : 'text-n-slate-10'
                 "
               >
-                {{
-                  formatEventWhen(event.start, locale) + ' \u00b7 ' + timezone
-                }}
+                {{ formatEventWhen(event.start, locale) }}
                 ·
                 {{
                   isCancelledEvent(event)
