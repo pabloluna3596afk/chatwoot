@@ -50,7 +50,7 @@ const onToggle = () => {
     <button
       class="flex items-center select-none w-full rounded-lg bg-n-slate-2 outline outline-1 outline-n-weak m-0 cursor-grab justify-between drag-handle"
       :class="[
-        compact ? 'h-10 px-3' : 'py-2 px-4',
+        compact ? 'py-1.5 px-3' : 'py-2 px-4',
         { 'rounded-bl-none rounded-br-none': isOpen },
       ]"
       @click.stop="onToggle"

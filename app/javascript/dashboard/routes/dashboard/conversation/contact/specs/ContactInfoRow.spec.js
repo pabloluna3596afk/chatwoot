@@ -1,8 +1,5 @@
-import { vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import ContactInfoRow from '../ContactInfoRow.vue';
-
-vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 
 const mountRow = props =>
   mount(ContactInfoRow, {
