@@ -400,11 +400,12 @@
       "MENU": {
         "TITLE": "Secciones del panel",
         "VISIBLE_COUNT": "{count} visibles",
-        "ORDER_HINT": "Arrastra para reordenar",
-        "RESET": "Restaurar",
+        "ORDER_HINT": "arrastra para ordenar",
+        "RESET": "Restablecer",
         "EMPTY": "Todas las secciones están ocultas",
         "CATEGORIES_HIDDEN": "Todas las categorías de atributos están ocultas. Usa el menú de arriba para mostrarlas.",
         "CATEGORIES": "Categorías",
+        "CATEGORIES_FOR": "Categorías: {section}",
         "conversation_actions": "Acciones de conversación",
         "macros": "Macros",
         "conversation_info": "Información de conversación",
@@ -534,7 +535,18 @@
     }
   },
   "CONVERSATION_SIDEBAR": {
+    "TOOLS": {
+      "CONVERSATION": "Conversación",
+      "EMPTY": "Sin datos:",
+      "SCHEDULE": "Agendar",
+      "CAPTAIN_REPLYING": "{name} está respondiendo",
+      "CAPTAIN_WAITING": "{name} espera al cliente",
+      "CAPTAIN_ESCALATED": "{name} pasó la conversación al equipo",
+      "CALENDAR_IDLE": "Sin próximas citas · Agendar",
+      "NEXT_APPOINTMENT": "Próxima cita: {when}"
+    },
     "RESPONDER": {
+      "IDLE": "Captain no atiende esta conversación",
       "ANSWERING": "Responde: {name}",
       "WAITING_CUSTOMER": "esperando al cliente",
       "ESCALATED": "Pasó la conversación al equipo"

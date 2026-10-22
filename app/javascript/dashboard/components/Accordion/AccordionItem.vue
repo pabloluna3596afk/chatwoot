@@ -75,22 +75,13 @@ const onToggle = () => {
           {{ count }}
         </span>
       </div>
-      <div class="flex flex-row shrink-0">
+      <div class="flex flex-row items-center gap-1 ml-2 shrink-0">
         <slot name="button" />
-        <div class="flex justify-end w-3 text-n-blue-11 cursor-pointer">
-          <fluent-icon
-            v-if="isOpen"
-            :size="compact ? 20 : 24"
-            icon="subtract"
-            type="solid"
-          />
-          <fluent-icon
-            v-else
-            :size="compact ? 20 : 24"
-            icon="add"
-            type="solid"
-          />
-        </div>
+        <span
+          class="size-4 text-n-slate-11"
+          :class="isOpen ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
+          data-testid="accordion-chevron"
+        />
       </div>
     </button>
     <div

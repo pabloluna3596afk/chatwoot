@@ -1,5 +1,69 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-190 - Compact sidebar sections menu
+
+- Files: `SidebarVisibilityMenu.vue`, `MenuPopover.vue`, `useUISettings.js`, conversation i18n es/en and menu specs.
+- Fix: 320 px menu with a compact two-line header, icon-only Reset, shared checkboxes, 32 px section rows and 28 px indented category rows. Labels wrap onto two lines; the list uses up to min(60vh, 32rem) with a thin scrollbar. Category groups start expanded, can fold independently of visibility, and persist per user. Reset clears folding with the other preferences in a single update.
+- Dependencies: optional MenuPopover maxHeight keeps its 320 px default for other callers; this menu opts into extra height while retaining viewport positioning. Explicit empty visibility now means zero visible sections, matching the checkbox state and empty notice.
+- Verify: menu, MenuPopover and useUISettings specs in UTC and America/Guayaquil; ESLint of touched JS/Vue. Reviewed `.codex/qa/menu-secciones-390-{light,dark}.png` with the real menu, six sections and five categories: no clipped labels or horizontal overflow. Browser smoke: folding survives reload, Reset expands groups, actual section dragging saves order and leaves the menu open. No backend or migrations.
+
+### B-NEW-189 - Compact contact tools and restored conversation accordions
+
+- Files: `ContactToolsBar.vue`, `ContactPanel.vue`, `ConversationAction.vue` and their toolbar/count specs.
+- Fix: supersedes the panel organization in B-NEW-188. Restore Conversation actions with its four fields, the original section order and SidebarVisibilityMenu; keep empty sections visible with their counters. Remove the Conversation heading and empty-section summary. Keep the approved chevrons, contact menu, message/call controls and tools registry.
+- Tools: one compact 36 px pill per active tool, 16 px colored icon and a single truncated legend; one shared gray pill for idle tools. No exterior box, separator or 32 px icon buttons. Keep calendar opening/creation and appointment refresh behavior.
+- Verify: 28 tests passed in UTC and America/Guayaquil (tools, toolbar, calendar panel actions, section counts/order/visibility, contact menu, chevrons). ESLint: zero errors, existing root-v-if warning. Six reviewed `barra2-preset-{1,2,4}-390-{light,dark}.png` captures; all pills 36 px, no horizontal overflow. No backend or migrations.
+
+### B-NEW-188 — Herramientas del contacto sin duplicados y secciones por contenido
+
+**Archivos:** `ContactToolsBar.vue`, `useContactTools.js`, `ContactPanel.vue`,
+`ConversationAction.vue`, `CalendarEventsList.vue`, `useAppointmentEvents.js`
+e i18n es/en de conversación.
+
+**Problema y solución:** la barra en preparación repetía las herramientas activas
+como iconos y leyendas separadas. Cada herramienta aparece una sola vez: activas
+arriba con su leyenda; inactivas abajo en una fila gris; separador solo con ambos
+grupos. Captain y Citas reutilizan los estados y datos existentes. Las acciones de
+conversación quedan visibles sin acordeón; los contadores cero pasan a «Sin datos»
+y se pueden abrir para agregar contenido. Se conserva el orden y la visibilidad.
+Al abrir Citas se monta su contenido antes de guardar las preferencias; el contador
+solo se publica al recibir los eventos, evitando un cero transitorio que desmontaba
+la lista antes de mostrar las citas. Se cancela la petición si se desconecta el
+calendario. Pago y Carrito existen solo en el arnés local. No se restauran las
+alturas uniformes de 40 px de B-NEW-187 (revertidas en `3a20f4e2b6`).
+Sin backend ni migraciones.
+
+**Cómo probar:** probar Captain activo, escalado, inactivo y sin asistente; Citas
+con próxima cita y sin citas; pulsar «Agendar» y comprobar que abre Nueva cita.
+Ocultar Citas desde el menú y abrirla desde la barra; comprobar la apertura incluso
+si tarda el guardado de preferencias. Revisar secciones desconocidas, con datos y
+vacías; revelar una vacía y cambiar de conversación. Specs: `useContactTools`,
+`ContactToolsBar`, `ContactPanelCounts`, `ContactPanelAppointments`,
+`CalendarEventsList`, `useAppointmentEvents`, `AppointmentRefresh` y
+`NextAppointmentCard`, en UTC y America/Guayaquil. Capturas: `barra-preset-*`
+en el directorio externo de montaje; informe local `tmp/PR-BARRA.md`.
+
+### B-NEW-187 — Panel de contacto: campos uniformes, contadores y acciones secundarias
+
+**Archivos:** `ContactPanel.vue`, `contact/ContactInfo.vue`, `contact/ContactInfoRow.vue`,
+`OutlinedSelectField.vue`, `AccordionItem.vue` e i18n de contacto en es/en.
+
+**Problema y solución:** las filas de datos, los desplegables y las cabeceras compactas
+tenían alturas distintas. Ahora miden 40 px y alinean los iconos. Combinar y eliminar
+se encuentran en el menú Más; solo administradores ven eliminar y deben confirmar.
+Se reutilizan los diálogos de `components-next`. Los botones de copiar y editar tienen
+nombre accesible. Participantes, conversaciones anteriores, notas, tareas y adjuntos
+muestran el número disponible en la caché, sin nuevas peticiones ni ceros inventados.
+Se mantienen las correcciones previas de campos vacíos, responsables y lápiz táctil.
+Sin backend ni migraciones.
+
+**Cómo probar:** abrir una conversación con contacto completo y otra sin datos, en
+es/en, claro/oscuro y 390 px. Revisar los contadores antes y después de cargar las
+secciones y al cambiar de conversación. Abrir Más como administrador y agente;
+eliminar solo debe despachar la acción después de confirmar. Verificar edición,
+combinación y cierre del menú con Escape. Specs: `ContactInfo`, `ContactInfoRow`,
+`ContactPanelCounts`, `AccordionItem`, `OutlinedSelectField` y regresión de citas.
+
 ### B-NEW-187 — Recordatorio de citas humanas por WhatsApp, con consentimiento y sin duplicados
 
 **Archivos:** `Calendar::ActivationKit`, `CalendarEvent`, `Calendar::CustomerReminders::{Dispatcher,Schedule,Delivery}`,

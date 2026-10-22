@@ -456,6 +456,7 @@
         "EMPTY": "All sections are hidden",
         "CATEGORIES_HIDDEN": "All attribute categories are hidden. Use the menu above to show them.",
         "CATEGORIES": "Categories",
+        "CATEGORIES_FOR": "Categories: {section}",
         "conversation_actions": "Conversation actions",
         "macros": "Macros",
         "conversation_info": "Conversation info",
@@ -534,7 +535,18 @@
     }
   },
   "CONVERSATION_SIDEBAR": {
+    "TOOLS": {
+      "CONVERSATION": "Conversation",
+      "EMPTY": "No data:",
+      "SCHEDULE": "Schedule",
+      "CAPTAIN_REPLYING": "{name} is replying",
+      "CAPTAIN_WAITING": "{name} is waiting for the customer",
+      "CAPTAIN_ESCALATED": "{name} handed the conversation to the team",
+      "CALENDAR_IDLE": "No upcoming appointments · Schedule",
+      "NEXT_APPOINTMENT": "Next appointment: {when}"
+    },
     "RESPONDER": {
+      "IDLE": "Captain is not answering this conversation",
       "ANSWERING": "Answering: {name}",
       "WAITING_CUSTOMER": "waiting for the customer",
       "ESCALATED": "Handed the conversation to the team"
