@@ -383,6 +383,7 @@ es:
         event_created: '%{user_name} creó la cita "%{event_title}" desde la bandeja "%{inbox_name}"'
         event_updated: '%{user_name} actualizó la cita "%{event_title}"'
         event_deleted: '%{user_name} eliminó la cita "%{event_title}"'
+        notice_not_sent: 'No se envió el aviso de la cita "%{event_title}" por WhatsApp: falta la plantilla de confirmación aprobada. Actívala en Ajustes, Calendarios.'
       whatsapp_call:
         permission_requested: 'Envió una solicitud de permiso de llamada a %{contact_name}.'
         permission_granted: '%{contact_name} ha aceptado la solicitud de permiso de llamada.'
