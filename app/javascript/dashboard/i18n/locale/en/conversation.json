@@ -456,6 +456,7 @@
         "EMPTY": "All sections are hidden",
         "CATEGORIES_HIDDEN": "All attribute categories are hidden. Use the menu above to show them.",
         "CATEGORIES": "Categories",
+        "CATEGORIES_FOR": "Categories: {section}",
         "conversation_actions": "Conversation actions",
         "macros": "Macros",
         "conversation_info": "Conversation info",

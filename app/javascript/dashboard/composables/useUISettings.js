@@ -116,7 +116,7 @@ const useConversationSidebarVisibleItems = uiSettings => {
   return computed(() => {
     const { conversation_sidebar_visible_items: visibleItems } =
       uiSettings.value;
-    if (!visibleItems || !visibleItems.length) {
+    if (!visibleItems) {
       return [...DEFAULT_CONVERSATION_SIDEBAR_VISIBLE_ITEMS];
     }
     return visibleItems;
@@ -162,6 +162,7 @@ const resetConversationSidebarVisibility = updateUISettings => {
     ],
     conversation_sidebar_visible_categories: {},
     conversation_sidebar_category_order: {},
+    conversation_sidebar_menu_collapsed_sections: [],
   });
 };
 

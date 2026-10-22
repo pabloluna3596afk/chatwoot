@@ -9,6 +9,7 @@ const props = defineProps({
   menuSections: { type: Array, default: () => [] },
   showSearch: { type: Boolean, default: false },
   searchPlaceholder: { type: String, default: '' },
+  maxHeight: { type: Number, default: 320 },
   panelClass: { type: String, default: 'w-56 max-w-[calc(100vw-2rem)]' },
   align: { type: String, default: 'end' },
   label: { type: String, default: '' },
@@ -28,10 +29,9 @@ const menuElement = computed(() => menu.value?.$el);
 const { fixedPosition } = useDropdownPosition(trigger, menuElement, open, {
   align: props.align,
 });
-const MENU_MAX_HEIGHT = 320;
 const panelStyle = computed(() => ({
   ...fixedPosition.value.style,
-  maxHeight: `${Math.max(0, Math.min(MENU_MAX_HEIGHT, parseFloat(fixedPosition.value.style.maxHeight ?? MENU_MAX_HEIGHT)))}px`,
+  maxHeight: `${Math.max(0, Math.min(props.maxHeight, parseFloat(fixedPosition.value.style.maxHeight ?? props.maxHeight)))}px`,
   width: props.matchWidth ? `${triggerWidth.value}px` : undefined,
   zIndex: 10050,
 }));

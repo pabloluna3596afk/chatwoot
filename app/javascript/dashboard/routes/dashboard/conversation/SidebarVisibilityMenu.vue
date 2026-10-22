@@ -3,6 +3,7 @@ import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Draggable from 'vuedraggable';
+import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import {
   useStoreGetters,
@@ -22,6 +23,8 @@ const { t } = useI18n();
 const getters = useStoreGetters();
 const { isCloudFeatureEnabled } = useAccount();
 const {
+  uiSettings,
+  updateUISettings,
   conversationSidebarItemsOrder,
   conversationSidebarVisibleItems,
   isConversationSidebarItemVisible,
@@ -59,7 +62,19 @@ const isSectionAvailable = name => {
   return true;
 };
 
+const SIDEBAR_MENU_MAX_HEIGHT = 640;
 const isOpen = ref(false);
+const collapsedSections = computed(
+  () => uiSettings.value.conversation_sidebar_menu_collapsed_sections || []
+);
+const toggleCategories = name => {
+  const collapsed = new Set(collapsedSections.value);
+  if (collapsed.has(name)) collapsed.delete(name);
+  else collapsed.add(name);
+  updateUISettings({
+    conversation_sidebar_menu_collapsed_sections: [...collapsed],
+  });
+};
 const dragging = ref(false);
 const sections = ref([]);
 /** Local category lists keyed by section name (mutated by Draggable). */
@@ -176,6 +191,7 @@ const onToggleCategory = (sectionName, slug) => {
 };
 
 const onCategoryDragEnd = sectionName => {
+  dragging.value = false;
   const attributeType = SIDEBAR_SECTION_ATTRIBUTE_TYPE[sectionName];
   if (!attributeType) return;
   const order = (categoryRows.value[sectionName] || []).map(c => c.slug);
@@ -204,7 +220,8 @@ const onReset = () => {
     v-model:open="isOpen"
     :dismissible="!dragging"
     :label="$t('CONVERSATION.SIDEBAR.MENU.TITLE')"
-    panel-class="w-72 max-w-[calc(100vw-2rem)]"
+    panel-class="w-80 max-w-[calc(100vw-2rem)] !pt-0 [&>div]:!px-0 [&>div]:!pb-0"
+    :max-height="SIDEBAR_MENU_MAX_HEIGHT"
   >
     <template #trigger>
       <Button
@@ -218,28 +235,31 @@ const onReset = () => {
       />
     </template>
     <template #content>
-      <div class="flex flex-col gap-3 px-2 pb-2 overflow-y-auto min-h-0">
-        <div class="flex items-center justify-between gap-2 px-3 py-2">
-          <div class="min-w-0">
-            <p class="mb-0 text-xs font-medium text-n-slate-12 truncate">
+      <div class="flex flex-col min-h-0 pb-2">
+        <div class="shrink-0 px-3 pt-3 pb-2">
+          <div class="flex items-center justify-between gap-2">
+            <p class="mb-0 text-sm font-medium text-n-slate-12">
               {{ $t('CONVERSATION.SIDEBAR.MENU.TITLE') }}
             </p>
-            <p class="mb-0 text-[11px] text-n-slate-11">
-              {{
-                $t('CONVERSATION.SIDEBAR.MENU.VISIBLE_COUNT', {
-                  count: visibleCount,
-                })
-              }}
-              <!-- eslint-disable-next-line vue/no-bare-strings-in-template -->
-              · {{ $t('CONVERSATION.SIDEBAR.MENU.ORDER_HINT') }}
-            </p>
+            <Button
+              icon="i-lucide-rotate-ccw"
+              ghost
+              xs
+              slate
+              :title="$t('CONVERSATION.SIDEBAR.MENU.RESET')"
+              :aria-label="$t('CONVERSATION.SIDEBAR.MENU.RESET')"
+              @click="onReset"
+            />
           </div>
-          <Button
-            ghost
-            xs
-            :label="$t('CONVERSATION.SIDEBAR.MENU.RESET')"
-            @click="onReset"
-          />
+          <p class="mb-0 text-xs text-n-slate-11 whitespace-nowrap">
+            {{
+              $t('CONVERSATION.SIDEBAR.MENU.VISIBLE_COUNT', {
+                count: visibleCount,
+              })
+            }}
+            <!-- eslint-disable-next-line vue/no-bare-strings-in-template -->
+            · {{ $t('CONVERSATION.SIDEBAR.MENU.ORDER_HINT') }}
+          </p>
         </div>
 
         <Draggable
@@ -248,60 +268,83 @@ const onReset = () => {
           ghost-class="opacity-50"
           handle=".section-drag-handle"
           item-key="name"
-          class="max-h-80 overflow-y-auto py-1"
+          class="max-h-[min(60vh,32rem)] overflow-y-auto min-h-0 px-2 [scrollbar-width:thin] [&::-webkit-scrollbar-button]:hidden"
           @start="dragging = true"
           @end="onSectionDragEnd"
         >
           <template #item="{ element }">
-            <div class="">
+            <div>
               <div
-                class="flex items-center gap-2 px-2 py-1.5 hover:bg-n-alpha-2"
+                class="group flex items-center gap-2 h-8 px-2 rounded-md hover:bg-n-alpha-2"
               >
                 <span
-                  class="section-drag-handle i-lucide-grip-vertical size-3.5 shrink-0 text-n-slate-10 cursor-grab"
+                  class="section-drag-handle i-lucide-grip-vertical size-3.5 shrink-0 text-n-slate-9 cursor-grab [@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
                 />
                 <label
-                  class="flex flex-1 items-center gap-2 min-w-0 cursor-pointer"
+                  class="flex flex-1 items-center gap-2 min-w-0 mb-0 cursor-pointer"
                 >
-                  <input
-                    type="checkbox"
-                    class="rounded border-n-weak text-n-brand focus:ring-n-brand"
-                    :checked="isConversationSidebarItemVisible(element.name)"
+                  <Checkbox
+                    class="shrink-0"
+                    :model-value="
+                      isConversationSidebarItemVisible(element.name)
+                    "
                     @change="onToggleSection(element.name)"
                   />
-                  <span class="text-sm text-n-slate-12 truncate">
+                  <span
+                    class="text-sm leading-4 text-n-slate-12 line-clamp-2 break-words"
+                  >
                     {{ sectionLabel(element.name) }}
                   </span>
                 </label>
+                <Button
+                  v-if="categoryRows[element.name]?.length"
+                  :icon="
+                    collapsedSections.includes(element.name)
+                      ? 'i-lucide-chevron-right'
+                      : 'i-lucide-chevron-down'
+                  "
+                  ghost
+                  xs
+                  slate
+                  class="shrink-0 [&_span]:!size-3.5"
+                  :aria-label="
+                    $t('CONVERSATION.SIDEBAR.MENU.CATEGORIES_FOR', {
+                      section: sectionLabel(element.name),
+                    })
+                  "
+                  :aria-expanded="!collapsedSections.includes(element.name)"
+                  @click="toggleCategories(element.name)"
+                />
               </div>
 
               <Draggable
                 v-if="
                   isConversationSidebarItemVisible(element.name) &&
-                  categoryRows[element.name]?.length
+                  categoryRows[element.name]?.length &&
+                  !collapsedSections.includes(element.name)
                 "
                 :list="categoryRows[element.name]"
                 animation="200"
                 ghost-class="opacity-50"
                 handle=".category-drag-handle"
                 item-key="slug"
-                class="pb-1 pl-7 pr-2"
+                class="ps-6"
+                @start="dragging = true"
                 @end="onCategoryDragEnd(element.name)"
               >
                 <template #item="{ element: category }">
                   <div
-                    class="flex items-center gap-2 py-1 px-1 rounded-md hover:bg-n-alpha-2"
+                    class="group flex items-center gap-2 h-7 px-2 rounded-md text-xs text-n-slate-11 hover:bg-n-alpha-2"
                   >
                     <span
-                      class="category-drag-handle i-lucide-grip-vertical size-3 shrink-0 text-n-slate-10 cursor-grab"
+                      class="category-drag-handle i-lucide-grip-vertical size-3.5 shrink-0 text-n-slate-9 cursor-grab [@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
                     />
                     <label
-                      class="flex flex-1 items-center gap-2 min-w-0 cursor-pointer"
+                      class="flex flex-1 items-center gap-2 min-w-0 mb-0 cursor-pointer"
                     >
-                      <input
-                        type="checkbox"
-                        class="rounded border-n-weak text-n-brand focus:ring-n-brand"
-                        :checked="
+                      <Checkbox
+                        class="shrink-0"
+                        :model-value="
                           isConversationSidebarCategoryVisible(
                             SIDEBAR_SECTION_ATTRIBUTE_TYPE[element.name],
                             category.slug
@@ -309,7 +352,9 @@ const onReset = () => {
                         "
                         @change="onToggleCategory(element.name, category.slug)"
                       />
-                      <span class="text-xs text-n-slate-11 truncate">
+                      <span
+                        class="text-xs leading-[0.875rem] text-n-slate-11 line-clamp-2 break-words"
+                      >
                         {{ category.title }}
                       </span>
                     </label>
@@ -320,7 +365,10 @@ const onReset = () => {
           </template>
         </Draggable>
 
-        <p v-if="!visibleCount" class="px-3 py-2 text-xs text-n-slate-11">
+        <p
+          v-if="!visibleCount"
+          class="shrink-0 mb-0 px-3 py-2 text-xs text-n-slate-11"
+        >
           {{ $t('CONVERSATION.SIDEBAR.MENU.EMPTY') }}
         </p>
       </div>

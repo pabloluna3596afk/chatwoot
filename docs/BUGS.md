@@ -1,5 +1,12 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-190 - Compact sidebar sections menu
+
+- Files: `SidebarVisibilityMenu.vue`, `MenuPopover.vue`, `useUISettings.js`, conversation i18n es/en and menu specs.
+- Fix: 320 px menu with a compact two-line header, icon-only Reset, shared checkboxes, 32 px section rows and 28 px indented category rows. Labels wrap onto two lines; the list uses up to min(60vh, 32rem) with a thin scrollbar. Category groups start expanded, can fold independently of visibility, and persist per user. Reset clears folding with the other preferences in a single update.
+- Dependencies: optional MenuPopover maxHeight keeps its 320 px default for other callers; this menu opts into extra height while retaining viewport positioning. Explicit empty visibility now means zero visible sections, matching the checkbox state and empty notice.
+- Verify: menu, MenuPopover and useUISettings specs in UTC and America/Guayaquil; ESLint of touched JS/Vue. Reviewed `.codex/qa/menu-secciones-390-{light,dark}.png` with the real menu, six sections and five categories: no clipped labels or horizontal overflow. Browser smoke: folding survives reload, Reset expands groups, actual section dragging saves order and leaves the menu open. No backend or migrations.
+
 ### B-NEW-189 - Compact contact tools and restored conversation accordions
 
 - Files: `ContactToolsBar.vue`, `ContactPanel.vue`, `ConversationAction.vue` and their toolbar/count specs.
