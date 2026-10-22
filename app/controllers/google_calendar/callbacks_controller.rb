@@ -8,6 +8,7 @@ class GoogleCalendar::CallbacksController < ApplicationController
 
     tokens = Integrations::GoogleCalendar::Oauth.exchange_code(params[:code])
     persist_connection(tokens)
+    provision_appointment_attributes
     redirect_to calendars_redirect_uri
   rescue GoogleCalendar::IntegrationHelper::InvalidState, ActiveRecord::RecordNotFound
     render plain: I18n.t('google_calendar.oauth.invalid_state'), status: :unprocessable_entity
@@ -53,6 +54,15 @@ class GoogleCalendar::CallbacksController < ApplicationController
     )
     connection.save!
     @connection = connection
+  end
+
+  # The first calendar of the account brings its contact attributes with it; a choice the administrator already made is kept.
+  def provision_appointment_attributes
+    return if account.appointment_attributes.present?
+
+    Calendar::AppointmentAttributes::Provisioner.new(account: account).perform(keys: Calendar::AppointmentAttributes::Definitions::TYPES.keys)
+  rescue StandardError => e
+    Rails.logger.error("Google Calendar attribute provisioning failed: #{e.class}")
   end
 
   def calendars_redirect_uri
