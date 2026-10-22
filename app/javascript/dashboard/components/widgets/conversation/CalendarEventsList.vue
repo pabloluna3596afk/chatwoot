@@ -39,7 +39,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['saved']);
+const emit = defineEmits(['saved', 'countChange']);
 
 const { timezone, formatEventWhen, isUpcomingEvent } = useCalendarTime();
 
@@ -97,7 +97,15 @@ const onSaved = event => {
   emit('saved', event);
 };
 
-const openCreate = () => {
+const openCreate = async () => {
+  if (!connections.value.length) {
+    try {
+      await loadConnections();
+    } catch (error) {
+      useAlert(t('SIDEBAR.CALENDAR_PAGE.LOAD_ERROR'));
+      return;
+    }
+  }
   modalRef.value?.open({
     defaults: {
       connectionId: selectedConnectionId.value,
@@ -133,7 +141,14 @@ onMounted(async () => {
     useAlert(t('SIDEBAR.CALENDAR_PAGE.LOAD_ERROR'));
   }
 });
-defineExpose({ refresh: loadEvents });
+// Count only resolved event data: request.isPending clears before the response is assigned.
+watch([events, hasError], () => {
+  emit(
+    'countChange',
+    isLoading.value || hasError.value ? null : events.value.length
+  );
+});
+defineExpose({ refresh: loadEvents, openCreate });
 </script>
 
 <template>
