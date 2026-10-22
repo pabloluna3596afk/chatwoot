@@ -96,6 +96,16 @@ class Whatsapp::IncomingMessageBaseService
     attach_location if message_type == 'location'
     @message.save!
     save_flow_response(message) unless outgoing_echo
+    answer_appointment_template(message)
+  end
+
+  # A quick-reply button of the appointment confirmation template (Confirmar, Reagendar, Cancelar) answers the appointment.
+  def answer_appointment_template(message)
+    return if outgoing_echo || message[:type] != 'button'
+
+    Calendar::TemplateButtonReply.new(@message).perform
+  rescue StandardError => e
+    Rails.logger.error("Appointment template button failed: #{e.class}")
   end
 
   def set_contact

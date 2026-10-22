@@ -440,6 +440,12 @@ en:
         event_updated: '%{user_name} updated calendar event "%{event_title}"'
         event_deleted: '%{user_name} deleted calendar event "%{event_title}"'
         notice_not_sent: 'The WhatsApp notice for the appointment "%{event_title}" was not sent: the approved confirmation template is missing. Set it up in Settings, Calendars.'
+        customer_confirmed: '%{contact_name} confirmed the appointment "%{event_title}" with the template button'
+        customer_cancelled: '%{contact_name} cancelled the appointment "%{event_title}" with the template button'
+        customer_cancel_failed: '%{contact_name} asked to cancel the appointment "%{event_title}", but it could not be cancelled in Google. Cancel it manually'
+        customer_reschedule_requested: '%{contact_name} asked to reschedule the appointment "%{event_title}". Propose a new time'
+        answer_ignored_past: '%{contact_name} tapped a button of the appointment "%{event_title}", but it already took place and was not changed'
+        answer_ignored_cancelled: '%{contact_name} tapped a button of the appointment "%{event_title}", but it was already cancelled and was not changed'
       whatsapp_call:
         permission_requested: 'Sent a call permission request to %{contact_name}.'
         permission_granted: '%{contact_name} accepted the call permission request.'

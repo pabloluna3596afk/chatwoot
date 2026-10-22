@@ -112,6 +112,20 @@ class Integrations::GoogleCalendar::EventService
     record
   end
 
+  # The customer cancelled with the button of the confirmation template: the Google event goes and the appointment is
+  # cancelled like a person would cancel it, with the customer as the source. A Google failure other than a confirmed
+  # absence propagates so the caller can leave the appointment untouched.
+  def cancel_by_customer!(record)
+    record.with_lock do
+      return record if record.discarded?
+
+      delete_in_google(record)
+      record.update!(deleted_at: Time.current, appointment_status: 'cancelled', idempotency_key: nil)
+      record.activities.create!(account: account, user: nil, action: 'deleted', details: { 'source' => 'customer' })
+    end
+    record
+  end
+
   # Reads the invite answer of an appointment from Google and keeps it. A failure leaves what was known.
   def refresh_invitation_status!(record)
     sync_invitation_status!(google_event_for(record), record)
@@ -793,6 +807,12 @@ class Integrations::GoogleCalendar::EventService
       html_link: google_event['htmlLink'],
       invitation_status: self.class.invitation_status_from(google_event)
     }
+  end
+
+  def delete_in_google(record)
+    client.delete_event(calendar_id: record.external_calendar_id, event_id: record.google_event_id, etag: nil)
+  rescue Integrations::GoogleCalendar::Client::Error => e
+    raise unless [404, 410].include?(e.code.to_i)
   end
 
   def cancel_from_google!(record)
