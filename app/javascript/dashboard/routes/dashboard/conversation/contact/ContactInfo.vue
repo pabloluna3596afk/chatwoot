@@ -5,6 +5,8 @@ import {
   DuplicateContactException,
   ExceptionWithMessage,
 } from 'shared/helpers/CustomErrors';
+import { dynamicTime } from 'shared/helpers/timeHelper';
+import { vOnClickOutside } from '@vueuse/components';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import ContactInfoRow from './ContactInfoRow.vue';
 import ViewAllConversations from './ViewAllConversations.vue';
@@ -15,6 +17,7 @@ import ContactMergeModal from 'dashboard/modules/contact/ContactMergeModal.vue';
 import ContactDeleteModal from 'dashboard/modules/contact/ContactDeleteModal.vue';
 import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import VoiceCallButton from 'dashboard/components-next/Contacts/VoiceCallButton.vue';
 import InlineInput from 'dashboard/components-next/inline-input/InlineInput.vue';
 import ContactAssigneeSelector from 'dashboard/components-next/Contacts/ContactAssigneeSelector.vue';
@@ -24,8 +27,10 @@ import { computed, toRef } from 'vue';
 import { useStore } from 'vuex';
 
 export default {
+  directives: { OnClickOutside: vOnClickOutside },
   components: {
     NextButton,
+    DropdownMenu,
     ContactInfoRow,
     ViewAllConversations,
     EditContact,
@@ -72,6 +77,7 @@ export default {
       showEditModal: false,
       isEditingName: false,
       editName: '',
+      showHeaderMenu: false,
     };
   },
   computed: {
@@ -79,6 +85,31 @@ export default {
       uiFlags: 'contacts/getUIFlags',
       currentChat: 'getSelectedChat',
     }),
+    headerMenuItems() {
+      const items = [
+        {
+          action: 'profile',
+          value: 'profile',
+          label: this.$t('CONTACT_PANEL.VIEW_PROFILE'),
+          icon: 'i-lucide-external-link',
+        },
+        {
+          action: 'edit',
+          value: 'edit',
+          label: this.$t('EDIT_CONTACT.BUTTON_LABEL'),
+          icon: 'i-lucide-pencil',
+        },
+      ];
+      if (this.contact.created_at) {
+        items.push({
+          action: 'created',
+          value: 'created',
+          label: `${this.$t('CONTACT_PANEL.CREATED_AT_LABEL')} ${dynamicTime(this.contact.created_at)}`,
+          icon: 'i-lucide-info',
+        });
+      }
+      return items;
+    },
     contactProfileLink() {
       return `/app/accounts/${this.$route.params.accountId}/contacts/${this.contact.id}`;
     },
@@ -166,6 +197,14 @@ export default {
     },
   },
   methods: {
+    onHeaderMenuAction({ action }) {
+      this.showHeaderMenu = false;
+      if (action === 'profile') {
+        window.open(this.contactProfileLink, '_blank', 'noopener,noreferrer');
+      } else if (action === 'edit') {
+        this.toggleEditModal();
+      }
+    },
     toggleEditModal() {
       this.showEditModal = !this.showEditModal;
     },
@@ -273,25 +312,25 @@ export default {
                 class="i-lucide-pencil text-xs text-n-slate-10 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/name:opacity-100 transition-opacity ml-1 align-middle"
               />
             </h3>
-            <div class="flex flex-row items-center gap-2 flex-shrink-0 pt-0.5">
-              <span
-                v-if="contact.created_at"
-                v-tooltip.left="
-                  `${$t('CONTACT_PANEL.CREATED_AT_LABEL')} ${dynamicTime(
-                    contact.created_at
-                  )}`
-                "
-                class="i-lucide-info text-sm text-n-slate-10"
+            <div
+              v-on-click-outside="() => (showHeaderMenu = false)"
+              class="relative flex-shrink-0"
+            >
+              <NextButton
+                :aria-label="$t('CONTACT_PANEL.MORE_ACTIONS')"
+                icon="i-lucide-ellipsis-vertical"
+                slate
+                ghost
+                xs
+                data-testid="contact-header-menu"
+                @click="showHeaderMenu = !showHeaderMenu"
               />
-              <a
-                :href="contactProfileLink"
-                target="_blank"
-                rel="noopener nofollow noreferrer"
-                class="leading-3"
-                :aria-label="$t('CONTACT_PANEL.VIEW_PROFILE')"
-              >
-                <span class="i-lucide-external-link text-sm text-n-slate-10" />
-              </a>
+              <DropdownMenu
+                v-if="showHeaderMenu"
+                :menu-items="headerMenuItems"
+                class="ltr:right-0 rtl:left-0 top-full mt-1 min-w-48 z-20"
+                @action="onHeaderMenuAction"
+              />
             </div>
           </div>
           <ContactInfoRow
@@ -416,15 +455,6 @@ export default {
           faded
           slate
           :tooltip-label="$t('CONTACT_PANEL.CALL')"
-        />
-        <NextButton
-          v-tooltip.top-end="$t('EDIT_CONTACT.BUTTON_LABEL')"
-          :aria-label="$t('EDIT_CONTACT.BUTTON_LABEL')"
-          icon="i-ph-pencil-simple"
-          slate
-          faded
-          xs
-          @click="toggleEditModal"
         />
         <ContactMergeModal :primary-contact="contact">
           <template #trigger>
