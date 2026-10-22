@@ -116,4 +116,124 @@ RSpec.describe 'Api::V1::Accounts::Captain::Inboxes', type: :request do
       end
     end
   end
+
+  describe 'audience settings' do
+    let(:url) { "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}/inboxes" }
+    let(:rules) do
+      { 'tree' => { 'operator' => 'and', 'conditions' => [
+        { 'operator' => 'or', 'conditions' => [
+          { 'attribute_key' => 'email', 'filter_operator' => 'contains', 'values' => ['example.com'] }
+        ] }
+      ] },
+        'phones' => { 'mode' => 'allow', 'list' => ['0991234567'] },
+        'channel_ids' => { 'mode' => 'deny', 'list' => ['user'] },
+        'emails' => { 'mode' => 'allow', 'list' => ['@example.com'] }, 'contact_scope' => 'new' }
+    end
+
+    it 'returns the inherited defaults in index' do
+      get url, headers: admin.create_new_auth_token
+
+      expect(response).to have_http_status(:ok)
+      expect(json_response[:payload].first).to include(audience_mode: 'inherit', audience_rules: {})
+    end
+
+    it 'connects a new inbox with inherited defaults (matrix 17)' do
+      post url, params: { inbox: { inbox_id: inbox2.id } }, headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(json_response).to include(audience_mode: 'inherit', audience_rules: {})
+    end
+
+    it 'accepts and returns explicit audience settings on create' do
+      post url, params: { inbox: { inbox_id: inbox2.id, audience_mode: 'custom', audience_rules: rules } },
+                headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(json_response).to include(audience_mode: 'custom', audience_rules: rules.deep_symbolize_keys)
+      expect(assistant.captain_inboxes.find_by!(inbox_id: inbox2.id).audience_rules).to eq(rules)
+    end
+
+    it 'permits a maximum depth tree and all lists without changing appointments' do
+      patch "#{url}/#{inbox.id}", params: { inbox: { audience_mode: 'custom', audience_rules: rules } },
+                                  headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(json_response).to include(audience_mode: 'custom', audience_rules: rules.deep_symbolize_keys)
+      expect(captain_inbox.reload).to have_attributes(audience_rules: rules, appointments_enabled: true)
+    end
+
+    it 'preserves rules on a mode-only change and can explicitly clear them' do
+      captain_inbox.update!(audience_mode: 'custom', audience_rules: rules)
+      patch "#{url}/#{inbox.id}", params: { inbox: { audience_mode: 'everyone' } },
+                                  headers: admin.create_new_auth_token, as: :json
+      expect(captain_inbox.reload).to have_attributes(audience_mode: 'everyone', audience_rules: rules)
+
+      patch "#{url}/#{inbox.id}", params: { inbox: { audience_mode: 'inherit', audience_rules: {} } },
+                                  headers: admin.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:success)
+      expect(captain_inbox.reload).to have_attributes(audience_mode: 'inherit', audience_rules: {})
+    end
+
+    [
+      { audience_mode: 'invalid' }, { audience_mode: nil }, { audience_rules: nil }, { audience_rules: [] },
+      { audience_rules: 'invalid' }, { audience_rules: { unknown: true } },
+      { audience_rules: { phones: { mode: 'allow', list: [123] } } },
+      { audience_rules: { tree: { attribute_key: 'email', filter_operator: 'contains', values: [{ nested: 'value' }] } } },
+      { audience_rules: { phones: { mode: 'allow', list: ['1'], unknown: true } } },
+      { audience_rules: { phones: { mode: 'allow', list: Array.new(1001, '1') } } },
+      { audience_rules: { emails: { mode: 'allow', list: ['a' * 121] } } },
+      { audience_rules: { tree: { attribute_key: 'email', filter_operator: 'contains', values: ['a'], unknown: true } } }
+    ].each_with_index do |attributes, index|
+      it "rejects malformed audience input #{index + 1} with 422 instead of filtering it out" do
+        patch "#{url}/#{inbox.id}", params: { inbox: attributes }, headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(captain_inbox.reload).to have_attributes(audience_mode: 'inherit', audience_rules: {})
+      end
+    end
+
+    it 'rejects invalid rules before creating a connection' do
+      expect do
+        post url, params: { inbox: { inbox_id: inbox2.id, audience_rules: { unknown: true } } },
+                  headers: admin.create_new_auth_token, as: :json
+      end.not_to change(CaptainInbox, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it 'forbids agents from changing the audience' do
+      patch "#{url}/#{inbox.id}", params: { inbox: { audience_mode: 'everyone', audience_rules: rules } },
+                                  headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+      expect(captain_inbox.reload).to have_attributes(audience_mode: 'inherit', audience_rules: {})
+    end
+
+    it 'forbids agents from connecting with audience settings' do
+      post url, params: { inbox: { inbox_id: inbox2.id, audience_mode: 'everyone' } },
+                headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+      expect(assistant.captain_inboxes.exists?(inbox_id: inbox2.id)).to be(false)
+    end
+
+    it 'does not allow moving the connection to another assistant' do
+      other_assistant = create(:captain_assistant, account: account)
+      patch "#{url}/#{inbox.id}", params: { inbox: { captain_assistant_id: other_assistant.id, audience_mode: 'everyone' } },
+                                  headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(captain_inbox.reload.captain_assistant_id).to eq(assistant.id)
+    end
+
+    it 'does not update another account connection' do
+      other_account = create(:account)
+      outsider = create(:user, account: other_account, role: :administrator)
+      patch "#{url}/#{inbox.id}", params: { inbox: { audience_mode: 'everyone' } },
+                                  headers: outsider.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+      expect(captain_inbox.reload.audience_mode).to eq('inherit')
+    end
+  end
 end
