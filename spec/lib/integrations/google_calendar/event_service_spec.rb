@@ -726,6 +726,29 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
     end
   end
 
+  describe '.origin_payload' do
+    let(:conversation) { create(:conversation, account: account) }
+
+    it 'names the channel and inbox of the conversation the appointment was booked from' do
+      record = local_event(conversation: Conversation.find(conversation.id), created_by: user)
+
+      expect(described_class.origin_payload(record)).to eq(
+        type: 'conversation', channel_type: conversation.inbox.channel_type, inbox_name: conversation.inbox.name
+      )
+    end
+
+    it 'is the CRM for what a person created without a conversation' do
+      expect(described_class.origin_payload(local_event(created_by: user))).to eq(type: 'crm')
+    end
+
+    it 'is the calendar for what only exists there, and goes in the payload' do
+      record = local_event
+
+      expect(described_class.origin_payload(record)).to eq(type: 'google')
+      expect(described_class.payload_from_record(record)[:origin]).to eq(type: 'google')
+    end
+  end
+
   describe 'the invite answer of the customer' do
     def at(start)
       { start_at: Time.zone.parse(start), end_at: Time.zone.parse(start) + 30.minutes }

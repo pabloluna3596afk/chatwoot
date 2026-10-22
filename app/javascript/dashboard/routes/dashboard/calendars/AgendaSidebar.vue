@@ -7,6 +7,7 @@ import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useNow } from '@vueuse/core';
 import { useCalendarTime } from 'dashboard/composables/useCalendarTime';
+import AppointmentOriginLogo from 'dashboard/components/widgets/conversation/AppointmentOriginLogo.vue';
 import CalendarLegend from './CalendarLegend.vue';
 
 const props = defineProps({
@@ -124,8 +125,11 @@ watch([() => props.groups, scrollAnchorId], scrollToAnchor, {
               aria-hidden="true"
             />
             <span class="min-w-0 flex-1">
-              <span class="block text-sm text-n-slate-12 truncate">
-                {{ event.summary }}
+              <span
+                class="flex items-center gap-1 text-sm text-n-slate-12 min-w-0"
+              >
+                <span class="truncate">{{ event.summary }}</span>
+                <AppointmentOriginLogo :origin="event.origin" :size="14" />
               </span>
               <span class="block text-[11px] text-n-slate-11 truncate">
                 {{

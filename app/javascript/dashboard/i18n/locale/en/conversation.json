@@ -581,6 +581,12 @@
       "PAST_BADGE": "Past",
       "NEXT": "Next appointment",
       "CREATED_BY": "Created by {name}",
+      "ORIGIN": {
+        "CONVERSATION_INBOX": "Created from the {inbox} inbox",
+        "CONVERSATION": "Created from a conversation",
+        "CRM": "Created in the CRM",
+        "GOOGLE": "Created in Google Calendar"
+      },
       "INVITATION": {
         "NEEDS_ACTION": "Invite: waiting to be accepted by email",
         "ACCEPTED": "Invite: accepted",

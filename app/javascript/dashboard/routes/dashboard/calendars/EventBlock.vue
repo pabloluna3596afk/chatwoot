@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useCalendarTime } from 'dashboard/composables/useCalendarTime';
+import AppointmentOriginLogo from 'dashboard/components/widgets/conversation/AppointmentOriginLogo.vue';
 
 import {
   calendarEventStyle,
@@ -44,6 +45,12 @@ const displayTitle = computed(() =>
       >
         {{ displayTitle }}
       </span>
+      <AppointmentOriginLogo
+        v-if="!compact"
+        :origin="event.origin"
+        :size="12"
+        class="ms-auto"
+      />
     </span>
   </button>
 </template>
