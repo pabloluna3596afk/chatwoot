@@ -141,7 +141,7 @@ defineExpose({ validate });
       </p>
     </div>
 
-    <div class="flex gap-2">
+    <div class="flex flex-wrap gap-2">
       <Button
         sm
         ghost

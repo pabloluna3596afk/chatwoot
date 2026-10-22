@@ -5,6 +5,9 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import Banner from 'dashboard/components-next/banner/Banner.vue';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import RadioCard from 'dashboard/components-next/radioCard/RadioCard.vue';
+import { useAdmin } from 'dashboard/composables/useAdmin';
+import InboxAudienceCard from './audience/InboxAudienceCard.vue';
+import { useAudienceTree } from './audience/useAudienceTree';
 import AudienceGroup from './audience/AudienceGroup.vue';
 import { useAudienceFilterTypes } from './audience/useAudienceFilterTypes.js';
 
@@ -20,6 +23,7 @@ const emit = defineEmits(['submit']);
 const { t, locale } = useI18n();
 const { filterTypes } = useAudienceFilterTypes();
 const store = useStore();
+const { isAdmin } = useAdmin();
 const connectedInboxes = useMapGetter('captainInboxes/getRecords');
 const inboxFlags = useMapGetter('captainInboxes/getUIFlags');
 
@@ -50,16 +54,10 @@ const MODE = {
   SPECIFIC: 'specific',
 };
 
-let uid = 0;
-const nextId = () => {
-  uid += 1;
-  return `audience-root-${uid}`;
-};
-
+const { defaultRoot, hydrateRoot, serializeNode } =
+  useAudienceTree(filterTypes);
 const hasConditions = node =>
   node && Object.prototype.hasOwnProperty.call(node, 'conditions');
-
-const defaultRoot = () => ({ id: nextId(), operator: 'and', conditions: [] });
 
 const root = ref(defaultRoot());
 const mode = ref(MODE.EVERYONE);
@@ -70,23 +68,31 @@ const conditionAttributes = node =>
     ? node.conditions.flatMap(conditionAttributes)
     : [node.attributeKey];
 
+const channelLabels = computed(() => ({
+  instagram: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNELS.INSTAGRAM'),
+  messenger: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNELS.MESSENGER'),
+  web: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNELS.WEB'),
+  email: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNELS.EMAIL'),
+  whatsapp: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNELS.WHATSAPP'),
+  sms: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNELS.SMS'),
+}));
+const channelForInbox = inbox =>
+  inbox.channel_type === 'Channel::TwilioSms' && inbox.medium === 'whatsapp'
+    ? 'whatsapp'
+    : CHANNELS[inbox.channel_type];
+const warningText = (key, channels) =>
+  t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNEL_WARNING', {
+    attribute: filterTypes.value.find(type => type.attributeKey === key).label,
+    channels: new Intl.ListFormat(locale?.value, {
+      type: 'conjunction',
+    }).format(channels.map(channel => channelLabels.value[channel])),
+  });
+
 const channelWarnings = computed(() => {
   if (mode.value !== MODE.SPECIFIC || inboxFlags.value.fetchingList) return [];
 
   const attributes = new Set(conditionAttributes(root.value));
-  const channelLabels = {
-    instagram: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNELS.INSTAGRAM'),
-    messenger: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNELS.MESSENGER'),
-    web: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNELS.WEB'),
-    email: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNELS.EMAIL'),
-    whatsapp: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNELS.WHATSAPP'),
-    sms: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNELS.SMS'),
-  };
-  const channels = connectedInboxes.value.map(inbox =>
-    inbox.channel_type === 'Channel::TwilioSms' && inbox.medium === 'whatsapp'
-      ? 'whatsapp'
-      : CHANNELS[inbox.channel_type]
-  );
+  const channels = connectedInboxes.value.map(channelForInbox);
   return Object.entries(MISSING_ATTRIBUTES).flatMap(
     ([key, missingChannels]) => {
       const affected = [
@@ -97,95 +103,25 @@ const channelWarnings = computed(() => {
       return [
         {
           key,
-          text: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNEL_WARNING', {
-            attribute: filterTypes.value.find(type => type.attributeKey === key)
-              .label,
-            channels: new Intl.ListFormat(locale?.value, {
-              type: 'conjunction',
-            }).format(affected.map(channel => channelLabels[channel])),
-          }),
+          channels: affected,
+          text: warningText(key, affected),
         },
       ];
     }
   );
 });
 
-const findOption = (filterType, value) =>
-  filterType?.options?.find(option => String(option.id) === String(value));
-
-const hydrateValues = (leaf, filterType) => {
-  const raw = Array.isArray(leaf.values) ? leaf.values : [leaf.values];
-  const inputType = filterType?.inputType;
-  if (inputType === 'multiSelect') {
-    return raw.map(
-      value => findOption(filterType, value) ?? { id: value, name: value }
-    );
-  }
-  if (['searchSelect', 'booleanSelect'].includes(inputType)) {
-    return findOption(filterType, raw[0]) ?? { id: raw[0], name: raw[0] };
-  }
-  return raw[0] ?? '';
-};
-
-const hydrateNode = node => {
-  if (hasConditions(node)) {
-    return {
-      id: nextId(),
-      operator: node.operator || 'and',
-      conditions: (node.conditions || []).map(hydrateNode),
-    };
-  }
-
-  const filterType = filterTypes.value.find(
-    type => type.attributeKey === node.attribute_key
-  );
-  return {
-    id: nextId(),
-    attributeKey: node.attribute_key,
-    filterOperator: node.filter_operator,
-    values: hydrateValues(node, filterType),
-    attributeModel: filterType?.attributeModel || 'standard',
-  };
-};
-
-const hydrateRoot = audience => {
-  if (!audience) return defaultRoot();
-  const hydrated = hydrateNode(audience);
-  return hasConditions(hydrated)
-    ? hydrated
-    : { id: nextId(), operator: 'and', conditions: [hydrated] };
-};
-
-const serializeValues = values => {
-  if (Array.isArray(values)) {
-    return values[0]?.id ? values.map(value => value.id) : values;
-  }
-  if (values && typeof values === 'object') {
-    return [values.id];
-  }
-  if (values === '' || values === null || values === undefined) {
-    return [];
-  }
-  return [values];
-};
-
-const serializeNode = node => {
-  if (hasConditions(node)) {
-    return {
-      operator: node.operator,
-      conditions: node.conditions.map(serializeNode),
-    };
-  }
-  return {
-    attribute_key: node.attributeKey,
-    filter_operator: node.filterOperator,
-    values: serializeValues(node.values),
-  };
+const inboxWarnings = inbox => {
+  const channel = channelForInbox(inbox);
+  return channelWarnings.value
+    .filter(warning => warning.channels.includes(channel))
+    .map(warning => warningText(warning.key, [channel]));
 };
 
 const groupRef = useTemplateRef('groupRef');
 
 const handleSubmit = () => {
+  if (!isAdmin.value) return;
   const isSpecific = mode.value === MODE.SPECIFIC;
   if (isSpecific && !root.value.conditions.length) {
     showEmptyAudienceError.value = true;
@@ -229,7 +165,15 @@ watch(
 
 <template>
   <div class="flex flex-col gap-4">
-    <div class="flex flex-col gap-3">
+    <div>
+      <h2 class="text-heading-3 text-n-slate-12">
+        {{ t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.INBOX.BASE') }}
+      </h2>
+      <p class="text-body-main text-n-slate-11">
+        {{ t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.INBOX.BASE_HELP') }}
+      </p>
+    </div>
+    <fieldset :disabled="!isAdmin" class="min-w-0 flex flex-col gap-3">
       <RadioCard
         :id="MODE.EVERYONE"
         :label="t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.EVERYONE.LABEL')"
@@ -256,7 +200,7 @@ watch(
           {{ t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.EMPTY_ERROR') }}
         </p>
       </RadioCard>
-    </div>
+    </fieldset>
     <Banner
       v-for="warning in channelWarnings"
       :key="warning.key"
@@ -265,11 +209,23 @@ watch(
     >
       {{ warning.text }}
     </Banner>
-    <div>
+    <div v-if="isAdmin">
       <Button
         :label="t('CAPTAIN.ASSISTANTS.FORM.UPDATE')"
         @click="handleSubmit"
       />
     </div>
+    <h2 class="text-heading-3 text-n-slate-12">
+      {{ t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.INBOX.TITLE') }}
+    </h2>
+    <InboxAudienceCard
+      v-for="inbox in inboxFlags.fetchingList ? [] : connectedInboxes"
+      :key="`${assistant.id}-${inbox.id}`"
+      :inbox="inbox"
+      :assistant-id="assistant.id"
+      :can-edit="isAdmin"
+      :filter-types="filterTypes"
+      :warnings="inboxWarnings(inbox)"
+    />
   </div>
 </template>

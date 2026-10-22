@@ -1,5 +1,12 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-191 - Audience condition actions overflow on mobile
+
+- File: `app/javascript/dashboard/components-next/captain/pageComponents/assistant/settings/audience/AudienceGroup.vue`.
+- Fix: allow Add condition and Add condition group to wrap onto separate lines. The shared base/custom audience editor otherwise overflows at 390 px in Spanish.
+- Verify: open Captain → Assistant → Settings → Audience with a specific base rule, then open an inbox's custom advanced conditions at 390 px. Actions remain visible without horizontal scrolling. Reviewed the four `audiencia-*.png` captures in the external montage directory; browser smoke also checks the expanded custom editor.
+- Scope: presentation only; no backend changes or migrations.
+
 ### B-NEW-190 - Compact sidebar sections menu
 
 - Files: `SidebarVisibilityMenu.vue`, `MenuPopover.vue`, `useUISettings.js`, conversation i18n es/en and menu specs.

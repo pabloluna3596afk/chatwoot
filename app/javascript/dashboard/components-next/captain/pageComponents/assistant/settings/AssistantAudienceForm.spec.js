@@ -8,6 +8,13 @@ import RadioCard from 'dashboard/components-next/radioCard/RadioCard.vue';
 import AudienceGroup from './audience/AudienceGroup.vue';
 import { useAudienceFilterTypes } from './audience/useAudienceFilterTypes';
 import AssistantAudienceForm from './AssistantAudienceForm.vue';
+import InboxAudienceCard from './audience/InboxAudienceCard.vue';
+
+const permissions = vi.hoisted(() => ({ isAdmin: true }));
+
+vi.mock('dashboard/composables/useAdmin', () => ({
+  useAdmin: () => ({ isAdmin: ref(permissions.isAdmin) }),
+}));
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
@@ -37,6 +44,7 @@ const mountComponent = (audience = null) =>
   });
 
 beforeEach(() => {
+  permissions.isAdmin = true;
   connectedInboxes.value = [];
   uiFlags.value = { fetchingList: false };
   useMapGetter.mockImplementation(key =>
@@ -56,6 +64,29 @@ beforeEach(() => {
 });
 
 describe('AssistantAudienceForm', () => {
+  it('disables the base rule and inbox editing for non-admins', () => {
+    permissions.isAdmin = false;
+    connectedInboxes.value = [{ id: 3, channel_type: 'Channel::Whatsapp' }];
+    const wrapper = mountComponent();
+    expect(wrapper.get('fieldset').element.disabled).toBe(true);
+    expect(wrapper.findComponent(Button).exists()).toBe(false);
+    expect(wrapper.findComponent(InboxAudienceCard).props('canEdit')).toBe(
+      false
+    );
+  });
+
+  it('passes warnings scoped to each inbox channel', () => {
+    connectedInboxes.value = [
+      { id: 1, channel_type: 'Channel::Whatsapp' },
+      { id: 2, channel_type: 'Channel::Instagram' },
+      { id: 3, channel_type: 'Channel::WebWidget' },
+    ];
+    const cards =
+      mountComponent(phoneCondition).findAllComponents(InboxAudienceCard);
+    expect(cards[0].props('warnings')).toEqual([]);
+    expect(cards[1].props('warnings')[0]).toContain('CHANNELS.INSTAGRAM');
+    expect(cards[1].props('warnings')[0]).not.toContain('CHANNELS.WEB');
+  });
   it('does not submit a specific audience without conditions', async () => {
     const wrapper = mountComponent();
     wrapper.findAllComponents(RadioCard)[1].vm.$emit('select', 'specific');
