@@ -6,6 +6,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import { useI18n } from 'vue-i18n';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 import AppointmentCreatorAvatar from './AppointmentCreatorAvatar.vue';
+import AppointmentOriginLogo from './AppointmentOriginLogo.vue';
 import { useCalendarTime } from 'dashboard/composables/useCalendarTime';
 
 import {
@@ -119,6 +120,7 @@ defineExpose({ refresh: load });
         {{ invitationLabel }}
       </span>
     </div>
+    <AppointmentOriginLogo :origin="nextEvent.origin" />
     <AppointmentCreatorAvatar :creator="nextEvent.creator" />
   </div>
 </template>

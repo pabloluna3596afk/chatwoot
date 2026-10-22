@@ -12,6 +12,7 @@ import EventModal from 'dashboard/routes/dashboard/calendars/EventModal.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import { useCalendarCancelledVisibility } from 'dashboard/helper/useCalendarCancelledVisibility';
 import AppointmentCreatorAvatar from './AppointmentCreatorAvatar.vue';
+import AppointmentOriginLogo from './AppointmentOriginLogo.vue';
 import { useCalendarTime } from 'dashboard/composables/useCalendarTime';
 
 import {
@@ -191,6 +192,7 @@ defineExpose({ refresh: loadEvents });
             >
               <p class="flex items-center gap-1.5 text-sm text-n-slate-12">
                 <span class="flex-1 truncate">{{ event.summary }}</span>
+                <AppointmentOriginLogo :origin="event.origin" />
                 <AppointmentCreatorAvatar :creator="event.creator" />
               </p>
               <p

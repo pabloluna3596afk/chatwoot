@@ -574,6 +574,12 @@
       "PAST_BADGE": "Pasada",
       "NEXT": "Próxima cita",
       "CREATED_BY": "Creada por {name}",
+      "ORIGIN": {
+        "CONVERSATION_INBOX": "Creada desde la bandeja {inbox}",
+        "CONVERSATION": "Creada desde una conversación",
+        "CRM": "Creada en el CRM",
+        "GOOGLE": "Creada en Google Calendar"
+      },
       "STATUS": {
         "PENDING_CONFIRMATION": "Pendiente de confirmar",
         "CONFIRMED": "Confirmada",

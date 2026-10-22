@@ -189,8 +189,21 @@ class Integrations::GoogleCalendar::EventService
       appointment_status: record.appointment_status.presence || 'none',
       invitation_status: record.invitation_status,
       booking_source: record.booking_source.presence || 'manual',
+      origin: origin_payload(record),
       activities: serialize_activities(record)
     }
+  end
+
+  # Where the appointment was born, for the logo the panels show: the channel of the conversation it was booked from, the CRM
+  # for what a person created without a conversation, and the calendar for what only exists there (read in by the sync).
+  def self.origin_payload(record)
+    return if record.blank?
+
+    inbox = record.conversation&.inbox
+    return { type: 'conversation', channel_type: inbox&.channel_type, inbox_name: inbox&.name } if record.conversation.present?
+    return { type: 'crm' } if record.created_by_id.present?
+
+    { type: 'google' }
   end
 
   # What the invited customer answered, from the attendee's responseStatus (the organizer and the calendar itself are not
@@ -870,6 +883,7 @@ class Integrations::GoogleCalendar::EventService
       appointment_status: record&.appointment_status.presence || 'none',
       invitation_status: record&.invitation_status,
       booking_source: record&.booking_source.presence || 'manual',
+      origin: self.class.origin_payload(record),
       activities: self.class.serialize_activities(record)
     }
   end
