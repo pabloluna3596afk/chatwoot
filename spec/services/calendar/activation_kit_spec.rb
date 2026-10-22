@@ -39,7 +39,7 @@ RSpec.describe Calendar::ActivationKit do
         account.update!(locale: locale)
 
         expect(kit.status[:reminder_template]).to include(name: 'cita_recordatorio', language: locale,
-                                                        buttons: described_class::TEMPLATES[locale][:buttons])
+                                                          buttons: described_class::TEMPLATES[locale][:buttons])
         expect(kit.status[:reminder_enabled]).to be(false)
         expect(kit.status[:template]).to include(name: 'cita_confirmacion', language: locale, buttons: an_instance_of(Array))
         expect(kit.status[:cancel_template]).to eq(

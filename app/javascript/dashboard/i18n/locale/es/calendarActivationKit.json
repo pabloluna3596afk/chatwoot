@@ -1,10 +1,10 @@
 {
   "CALENDAR_ACTIVATION_KIT": {
     "TITLE": "Kit de Citas",
-    "DESCRIPTION": "Deja las citas listas para usar: los atributos del contacto y las plantillas de WhatsApp para avisar al cliente al agendar o cancelar una cita.",
+    "DESCRIPTION": "Deja las citas listas para usar: los atributos del contacto y las plantillas de WhatsApp para avisar al cliente al agendar, recordar o cancelar una cita.",
     "ATTRIBUTES": "Atributos de cita",
     "ATTRIBUTES_COUNT": "{count} de {total} activos",
-    "QUESTION": "¿Avisar al cliente por WhatsApp al agendar o cancelar una cita?",
+    "QUESTION": "¿Avisar al cliente por WhatsApp al agendar, recordar o cancelar una cita?",
     "QUESTION_HINT": "Si marcas una bandeja, enviamos a Meta las plantillas de confirmación, cancelación y recordatorio para que las apruebe. El recordatorio solo sale si activas el interruptor.",
     "PREVIEW": "Plantilla de confirmación",
     "TEMPLATE_META": "{name} · idioma {language} · categoría de utilidad",

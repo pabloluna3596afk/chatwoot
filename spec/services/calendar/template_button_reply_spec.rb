@@ -239,7 +239,7 @@ end
 RSpec.describe Calendar::TemplateButtonReply do
   %w[cita_confirmacion cita_recordatorio].each do |template_name|
     context "with #{template_name}" do
-      include_examples 'calendar template button replies', template_name
+      it_behaves_like 'calendar template button replies', template_name
     end
   end
 end

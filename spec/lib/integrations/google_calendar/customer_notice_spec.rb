@@ -92,7 +92,7 @@ RSpec.describe Integrations::GoogleCalendar::CustomerNotice do
         account.update!(locale: locale)
         notice.deliver!(additional_attributes: { 'customer_reminder' => { 'attempt' => 1 } })
         expect(outgoing.last.additional_attributes).to include('calendar_event_id' => appointment.id,
-                                                             'customer_reminder' => { 'attempt' => 1 })
+                                                               'customer_reminder' => { 'attempt' => 1 })
         expect(outgoing.last.additional_attributes['template_params']).to include('name' => 'cita_recordatorio', 'language' => locale)
         values = outgoing.last.additional_attributes.dig('template_params', 'processed_params', 'body')
         expect(values).to include('nombre' => contact.name, 'cita' => 'Consulta', 'hora' => '10:00')

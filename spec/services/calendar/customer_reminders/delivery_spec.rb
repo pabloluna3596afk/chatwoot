@@ -14,7 +14,7 @@ RSpec.describe Calendar::CustomerReminders::Delivery do
   end
   let(:cap) { instance_double(Automations::ProactiveSendCap, reserve!: true, release!: nil) }
   let(:service) { instance_double(Whatsapp::SendOnWhatsappService) }
-  let(:outgoing) { conversation.messages.outgoing }
+  let(:outgoing) { conversation.messages.outgoing.reorder(:id) }
 
   before do
     travel_to(now)
@@ -24,8 +24,6 @@ RSpec.describe Calendar::CustomerReminders::Delivery do
     event
     Calendar::CustomerReminders::Dispatcher.new.perform
   end
-
-  after { travel_back }
 
   it 'R1 marks sent only after Meta accepts and ignores duplicate delivery jobs' do
     allow(service).to receive(:perform) { outgoing.last.update!(source_id: 'wamid-accepted') }

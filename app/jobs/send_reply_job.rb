@@ -17,9 +17,7 @@ class SendReplyJob < ApplicationJob
 
   def perform(message_id)
     message = Message.find(message_id)
-    if message.additional_attributes['customer_reminder'].present?
-      return Calendar::CustomerReminders::Delivery.new(message).perform
-    end
+    return Calendar::CustomerReminders::Delivery.new(message).perform if message.additional_attributes['customer_reminder'].present?
 
     channel_name = message.conversation.inbox.channel.class.to_s
 

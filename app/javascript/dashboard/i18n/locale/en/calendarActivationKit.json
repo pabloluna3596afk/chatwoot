@@ -1,10 +1,10 @@
 {
   "CALENDAR_ACTIVATION_KIT": {
     "TITLE": "Appointments kit",
-    "DESCRIPTION": "Gets appointments ready to use: contact attributes and WhatsApp templates to notify the customer when an appointment is booked or cancelled.",
+    "DESCRIPTION": "Gets appointments ready to use: contact attributes and WhatsApp templates to notify the customer when an appointment is booked, coming up or cancelled.",
     "ATTRIBUTES": "Appointment attributes",
     "ATTRIBUTES_COUNT": "{count} of {total} active",
-    "QUESTION": "Notify the customer on WhatsApp when an appointment is booked or cancelled?",
+    "QUESTION": "Notify the customer on WhatsApp when an appointment is booked, coming up or cancelled?",
     "QUESTION_HINT": "Select an inbox to submit the confirmation, cancellation and reminder templates to Meta for approval. Reminders are only sent when you turn the switch on.",
     "PREVIEW": "Confirmation template",
     "TEMPLATE_META": "{name} · language {language} · utility category",

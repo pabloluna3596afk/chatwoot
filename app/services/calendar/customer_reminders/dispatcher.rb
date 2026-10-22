@@ -8,7 +8,10 @@ class Calendar::CustomerReminders::Dispatcher
   end
 
   def perform
-    CalendarEvent.customer_reminder_pending.where(start_at: @now..(@now + LOOKAHEAD)).includes(:account).find_each do |event|
+    # Only accounts that opted in: the cron runs every minute and must not lock appointments of everyone else.
+    CalendarEvent.customer_reminder_pending.where(start_at: @now..(@now + LOOKAHEAD))
+                 .joins(:account).where("accounts.settings ->> 'customer_reminders_enabled' = 'true'")
+                 .includes(:account).find_each do |event|
       dispatch(event)
     end
   end

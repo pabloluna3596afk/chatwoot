@@ -16,15 +16,13 @@ RSpec.describe Calendar::CustomerReminders::Dispatcher do
                             conversation: conversation, start_at: now + 24.hours, created_at: now - 2.days)
   end
   let(:cap) { instance_double(Automations::ProactiveSendCap, reserve!: true, release!: nil) }
-  let(:outgoing) { conversation.messages.outgoing }
+  let(:outgoing) { conversation.messages.outgoing.reorder(:id) }
 
   before do
     travel_to(now)
     allow(Automations::ProactiveSendCap).to receive(:new).and_return(cap)
     event
   end
-
-  after { travel_back }
 
   it 'R1 claims one reminder across repeated cron runs, using the existing template pipeline' do
     2.times { described_class.new.perform }
@@ -145,9 +143,9 @@ RSpec.describe Calendar::CustomerReminders::Dispatcher do
 
   it 'R13 sends one message for each appointment of the same customer' do
     other = create(:calendar_event, account: account, calendar_connection: event.calendar_connection,
-                                   conversation: conversation, start_at: event.start_at, created_at: event.created_at)
+                                    conversation: conversation, start_at: event.start_at, created_at: event.created_at)
     described_class.new.perform
-    expect(outgoing.map { |message| message.additional_attributes['calendar_event_id'] }).to match_array([event.id, other.id])
+    expect(outgoing.map { |message| message.additional_attributes['calendar_event_id'] }).to contain_exactly(event.id, other.id)
   end
 
   it 'R15 waits without claiming when the daily cap is exhausted' do

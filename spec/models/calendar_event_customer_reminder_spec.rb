@@ -1,13 +1,12 @@
 require 'rails_helper'
 
-RSpec.describe CalendarEvent, 'customer reminders' do
+RSpec.describe CalendarEvent, '#customer_reminder' do
   let(:now) { Time.utc(2030, 1, 14, 15) }
   let(:account) { create(:account, customer_reminders_enabled: true) }
   let(:connection) { create(:calendar_connection, account: account) }
   let(:event) { create(:calendar_event, calendar_connection: connection, start_at: now + 2.days) }
 
   before { travel_to(now) }
-  after { travel_back }
 
   it 'clears both markers when the start changes' do
     event.update!(customer_reminder_status: 'sent', customer_reminder_sent_at: now)
@@ -53,9 +52,10 @@ RSpec.describe CalendarEvent, 'customer reminders' do
     expect(panel.customer_reminder_status).to be_nil
   end
 
-  it 'selects only nonterminal reminders' do
-    event
-    sent = create(:calendar_event, calendar_connection: connection, start_at: now + 2.days)
+  it 'selects only nonterminal reminders of appointments with a conversation' do
+    conversation = create(:conversation, account: account)
+    event.update!(conversation: conversation)
+    sent = create(:calendar_event, calendar_connection: connection, conversation: conversation, start_at: now + 2.days)
     sent.update!(customer_reminder_status: 'sent', customer_reminder_sent_at: now)
     expect(described_class.customer_reminder_pending).to include(event)
     expect(described_class.customer_reminder_pending).not_to include(sent)
