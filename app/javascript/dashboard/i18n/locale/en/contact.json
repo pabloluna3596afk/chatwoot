@@ -62,7 +62,8 @@
       "PREVIOUS_CONVERSATIONS": "Previous Conversations",
       "NO_RECORDS_FOUND": "No attributes found"
     },
-    "WHATSAPP_USERNAME": "WhatsApp username"
+    "WHATSAPP_USERNAME": "WhatsApp username",
+    "ADD_FIELD": "Add {field}"
   },
   "EDIT_CONTACT": {
     "BUTTON_LABEL": "Edit Contact",
@@ -575,7 +576,7 @@
         "DELETE": "Delete contact"
       },
       "ASSIGNEE": {
-        "LABEL": "Contact assigned agent",
+        "LABEL": "Contact owner",
         "NONE": "Unassigned",
         "SELF_ASSIGN": "Assign this contact to me",
         "SELF_UNASSIGN": "Release contact",

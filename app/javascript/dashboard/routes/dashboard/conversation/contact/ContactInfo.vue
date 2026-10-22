@@ -270,7 +270,7 @@ export default {
             >
               {{ contact.name }}
               <span
-                class="i-lucide-pencil text-xs text-n-slate-10 opacity-0 group-hover/name:opacity-100 transition-opacity ml-1 align-middle"
+                class="i-lucide-pencil text-xs text-n-slate-10 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/name:opacity-100 transition-opacity ml-1 align-middle"
               />
             </h3>
             <div class="flex flex-row items-center gap-2 flex-shrink-0 pt-0.5">
@@ -441,6 +441,7 @@ export default {
         </ContactMergeModal>
         <ContactDeleteModal
           v-if="isAdmin"
+          class="ltr:ml-auto rtl:mr-auto"
           :contact="contact"
           @deleted="$emit('panelClose')"
         >

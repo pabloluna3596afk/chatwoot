@@ -62,7 +62,8 @@
       "PREVIOUS_CONVERSATIONS": "Conversaciones anteriores",
       "NO_RECORDS_FOUND": "No se encontraron atributos"
     },
-    "WHATSAPP_USERNAME": "Nombre de usuario WhatsApp"
+    "WHATSAPP_USERNAME": "Nombre de usuario WhatsApp",
+    "ADD_FIELD": "Agregar {field}"
   },
   "EDIT_CONTACT": {
     "BUTTON_LABEL": "Editar Contacto",
@@ -575,7 +576,7 @@
         "DELETE": "Eliminar contacto"
       },
       "ASSIGNEE": {
-        "LABEL": "Agente asignado al contacto",
+        "LABEL": "Responsable del contacto",
         "NONE": "Sin asignar",
         "SELF_ASSIGN": "Asignarme este contacto",
         "SELF_UNASSIGN": "Liberar contacto",
