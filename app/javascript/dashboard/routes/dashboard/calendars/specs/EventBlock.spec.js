@@ -56,7 +56,7 @@ it.each(['Cita · Ana Pérez', 'Appointment · Ana Pérez', 'Reunión de equipo'
     expect(wrapper.text()).toBe(
       summary === 'Reunión de equipo' ? summary : 'Ana Pérez'
     );
-    expect(wrapper.get('.truncate').text()).toBe(wrapper.text());
+    expect(wrapper.get('.line-clamp-3').text()).toBe(wrapper.text());
     expect(wrapper.text()).not.toContain('11:30');
     expect(wrapper.attributes('title')).toBe(
       `${summary}\n11:30 – 12:00\nSIDEBAR.CALENDAR_PAGE.STATUS.CONFIRMED`

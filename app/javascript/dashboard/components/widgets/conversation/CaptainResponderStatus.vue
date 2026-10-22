@@ -12,15 +12,13 @@ const { isAiAttended, isEscalated, assistant, isWaitingForCustomer } =
 <template>
   <p
     v-if="isAiAttended || isEscalated"
-    class="mx-3 mb-3 flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium"
-    :class="
-      isAiAttended
-        ? 'bg-n-teal-3 text-n-teal-11'
-        : 'bg-n-amber-3 text-n-amber-11'
-    "
+    class="mx-3 mb-3 flex items-center gap-2 rounded-xl bg-n-alpha-1 px-3 py-2.5 text-xs font-medium text-n-slate-12"
     data-testid="responder-status"
   >
-    <span class="i-woot-captain size-4 shrink-0" />
+    <span
+      class="i-woot-captain size-4 shrink-0"
+      :class="isAiAttended ? 'text-n-teal-11' : 'text-n-amber-11'"
+    />
     <span class="min-w-0">
       <template v-if="isAiAttended">
         {{
