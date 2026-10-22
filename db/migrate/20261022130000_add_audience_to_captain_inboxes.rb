@@ -1,4 +1,4 @@
-class AddAudienceToCaptainInboxes < ActiveRecord::Migration[7.1]
+class AddAudienceToCaptainInboxes < ActiveRecord::Migration[7.2]
   def change
     add_column :captain_inboxes, :audience_mode, :string, null: false, default: 'inherit'
     add_column :captain_inboxes, :audience_rules, :jsonb, null: false, default: {}
