@@ -59,6 +59,15 @@ class CalendarAPI extends ApiClient {
     return axios.patch(`${this.url}/appointment_attributes`, { keys });
   }
 
+  // The appointments kit: attributes plus the WhatsApp confirmation template and its status per inbox.
+  getActivationKit() {
+    return axios.get(`${this.url}/activation_kit`);
+  }
+
+  applyActivationKit(inboxIds) {
+    return axios.patch(`${this.url}/activation_kit`, { inbox_ids: inboxIds });
+  }
+
   createEvent(payload) {
     return axios.post(`${this.url}/events`, payload);
   }
