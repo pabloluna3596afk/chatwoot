@@ -1,0 +1,43 @@
+{
+  "CALENDAR_ACTIVATION_KIT": {
+    "TITLE": "Kit de Citas",
+    "DESCRIPTION": "Deja las citas listas para usar: los atributos del contacto y la plantilla de WhatsApp con la que avisamos al cliente cuando se agenda una cita.",
+    "ATTRIBUTES": "Atributos de cita",
+    "ATTRIBUTES_COUNT": "{count} de {total} activos",
+    "QUESTION": "¿Avisar al cliente por WhatsApp cuando se agende una cita?",
+    "QUESTION_HINT": "Si marcas una bandeja, enviamos a Meta la plantilla de confirmación para que la apruebe. El aviso sale cuando la plantilla esté aprobada.",
+    "PREVIEW": "Plantilla de confirmación",
+    "TEMPLATE_META": "{name} · idioma {language} · categoría de utilidad",
+    "NO_INBOX": "Esta cuenta no tiene bandejas de WhatsApp Cloud.",
+    "CREATE_INBOX": "Crear una bandeja de WhatsApp",
+    "STATUS": {
+      "missing": "Sin enviar",
+      "pending": "Pendiente",
+      "in_appeal": "En apelación",
+      "approved": "Aprobada",
+      "rejected": "Rechazada",
+      "error": "Error",
+      "paused": "Pausada",
+      "disabled": "Desactivada"
+    },
+    "REJECTED_REASON": "Motivo de Meta: {reason}",
+    "RESEND": "Reenviar a Meta",
+    "SEND": "Enviar a Meta",
+    "RELOAD": "Actualizar estado",
+    "SENT": "Plantilla enviada a Meta. La aprobación puede tardar unos minutos.",
+    "SENT_WITH_ERRORS": "Algunas bandejas no se pudieron enviar. Revisa los avisos en rojo.",
+    "SEND_ERROR": "No se pudo enviar la plantilla. Inténtalo de nuevo.",
+    "LOAD_ERROR": "No se pudo cargar el kit de citas.",
+    "ERRORS": {
+      "token_invalid": "El acceso de WhatsApp venció. Vuelve a conectar la bandeja.",
+      "permission_denied": "La cuenta de WhatsApp no tiene permiso para crear plantillas.",
+      "rate_limited": "Meta recibió demasiadas solicitudes. Inténtalo más tarde.",
+      "name_exists": "Ya existe una plantilla con ese nombre en ese idioma.",
+      "name_locked": "Ese nombre se borró hace poco y Meta lo mantiene bloqueado 30 días.",
+      "template_limit": "Llegaste al límite de plantillas de tu cuenta de WhatsApp.",
+      "not_found": "Meta no encontró la cuenta de WhatsApp de esta bandeja.",
+      "meta_unreachable": "No se pudo contactar a Meta. Inténtalo de nuevo.",
+      "unknown": "Meta no aceptó la plantilla."
+    }
+  }
+}

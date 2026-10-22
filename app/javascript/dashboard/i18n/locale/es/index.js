@@ -9,6 +9,7 @@ import automation from './automation.json';
 import bulkActions from './bulkActions.json';
 import businessRules from './businessRules.json';
 import calendarInvitation from './calendarInvitation.json';
+import calendarActivationKit from './calendarActivationKit.json';
 import calendarAppointmentAttributes from './calendarAppointmentAttributes.json';
 import calls from './calls.json';
 import campaign from './campaign.json';
@@ -62,6 +63,7 @@ export default {
   ...automation,
   ...bulkActions,
   ...calendarInvitation,
+  ...calendarActivationKit,
   ...calendarAppointmentAttributes,
   ...businessRules,
   ...calls,

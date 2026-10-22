@@ -30,8 +30,7 @@ class Calendar::ActivationKit
   end
 
   def status
-    { attributes: provisioner.status, template: { name: TEMPLATE_NAME, language: language, category: CATEGORY, body: definition[:body] },
-      inboxes: whatsapp_inboxes.map { |inbox| inbox_status(inbox) } }
+    { attributes: provisioner.status, template: template_summary, inboxes: whatsapp_inboxes.map { |inbox| inbox_status(inbox) } }
   end
 
   # Creates the attributes (the ones the administrator already chose, or all of them) and sends the template to the
@@ -43,6 +42,10 @@ class Calendar::ActivationKit
   end
 
   private
+
+  def template_summary
+    { name: TEMPLATE_NAME, language: language, category: CATEGORY, body: definition[:body], buttons: definition[:buttons] }
+  end
 
   def definition
     TEMPLATES.fetch(language)

@@ -1,0 +1,43 @@
+{
+  "CALENDAR_ACTIVATION_KIT": {
+    "TITLE": "Appointments kit",
+    "DESCRIPTION": "Gets appointments ready to use: the contact attributes and the WhatsApp template we use to notify the customer when an appointment is booked.",
+    "ATTRIBUTES": "Appointment attributes",
+    "ATTRIBUTES_COUNT": "{count} of {total} active",
+    "QUESTION": "Notify the customer on WhatsApp when an appointment is booked?",
+    "QUESTION_HINT": "If you pick an inbox, we send the confirmation template to Meta for approval. The notice goes out once the template is approved.",
+    "PREVIEW": "Confirmation template",
+    "TEMPLATE_META": "{name} · language {language} · utility category",
+    "NO_INBOX": "This account has no WhatsApp Cloud inboxes.",
+    "CREATE_INBOX": "Create a WhatsApp inbox",
+    "STATUS": {
+      "missing": "Not sent",
+      "pending": "Pending",
+      "in_appeal": "In appeal",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "error": "Error",
+      "paused": "Paused",
+      "disabled": "Disabled"
+    },
+    "REJECTED_REASON": "Reason from Meta: {reason}",
+    "RESEND": "Resend to Meta",
+    "SEND": "Send to Meta",
+    "RELOAD": "Refresh status",
+    "SENT": "Template sent to Meta. Approval can take a few minutes.",
+    "SENT_WITH_ERRORS": "Some inboxes could not be sent. Check the red notices.",
+    "SEND_ERROR": "The template could not be sent. Try again.",
+    "LOAD_ERROR": "The appointments kit could not be loaded.",
+    "ERRORS": {
+      "token_invalid": "The WhatsApp access expired. Reconnect the inbox.",
+      "permission_denied": "The WhatsApp account has no permission to create templates.",
+      "rate_limited": "Meta received too many requests. Try again later.",
+      "name_exists": "A template with that name already exists in that language.",
+      "name_locked": "That name was deleted recently and Meta keeps it locked for 30 days.",
+      "template_limit": "You reached the template limit of your WhatsApp account.",
+      "not_found": "Meta could not find the WhatsApp account of this inbox.",
+      "meta_unreachable": "Meta could not be reached. Try again.",
+      "unknown": "Meta did not accept the template."
+    }
+  }
+}
