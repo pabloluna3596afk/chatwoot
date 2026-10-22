@@ -4,6 +4,7 @@ import CalendarView from '../CalendarView.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 import Button from 'dashboard/components-next/button/Button.vue';
+import CalendarLegend from '../CalendarLegend.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 import WeekGrid from '../WeekGrid.vue';
 
@@ -82,7 +83,7 @@ it('uses the real floating menu for calendar accounts and keeps provider logos a
   }
 });
 
-it('shows the cancelled switch beside the legend without changing header contents and filters events', async () => {
+it('shows the cancelled switch below the header without changing header contents and filters events', async () => {
   CalendarAPI.getConnections.mockResolvedValue({
     data: { payload: [{ id: 7, name: 'Consultas', provider: 'google' }] },
   });
@@ -121,9 +122,7 @@ it('shows the cancelled switch beside the legend without changing header content
     await toggle.trigger('click');
     const control = wrapper.get('#calendar-cancelled-visibility');
     expect(header.element.contains(control.element)).toBe(false);
-    expect(control.element.parentElement.textContent).toContain(
-      'SIDEBAR.CALENDAR_PAGE.STATUS.CONFIRMED'
-    );
+    expect(wrapper.findComponent(CalendarLegend).exists()).toBe(true);
     expect(header.text()).toBe(headerText);
     expect(toggle.attributes('aria-expanded')).toBe('true');
 

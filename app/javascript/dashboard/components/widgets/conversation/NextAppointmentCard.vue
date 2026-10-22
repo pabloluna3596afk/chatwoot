@@ -102,7 +102,7 @@ defineExpose({ refresh: load });
         {{ nextEvent.summary }}
       </span>
       <span class="text-xs text-n-slate-11">
-        {{ formatEventWhen(nextEvent.start, locale) + ' \u00b7 ' + timezone }}
+        {{ formatEventWhen(nextEvent.start, locale) }}
       </span>
       <span
         v-if="statusLabel"

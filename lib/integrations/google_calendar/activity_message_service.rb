@@ -23,7 +23,8 @@ class Integrations::GoogleCalendar::ActivityMessageService
     I18n.t(
       "conversations.activity.calendar.#{action_type}",
       user_name: user.name,
-      event_title: event_data[:summary]
+      event_title: event_data[:summary],
+      inbox_name: conversation.inbox&.name
     )
   rescue I18n::MissingTranslationData
     nil

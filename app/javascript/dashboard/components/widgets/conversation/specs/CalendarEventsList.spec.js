@@ -100,7 +100,7 @@ describe('CalendarEventsList', () => {
       'CONVERSATION_SIDEBAR.CALENDAR.PAST',
     ]);
     const [upcoming, past] = wrapper.findAll('section');
-    expect(upcoming.text()).toContain('America/Guayaquil');
+    expect(upcoming.text()).not.toContain('America/Guayaquil');
     expect(upcoming.text()).toContain('Próxima');
     expect(
       upcoming.findComponent({ name: 'AppointmentCreatorAvatar' }).exists()

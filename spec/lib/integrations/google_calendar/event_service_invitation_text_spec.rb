@@ -57,7 +57,7 @@ RSpec.describe Integrations::GoogleCalendar::EventService do
     description = created_calls.first[:description]
     expect(description).to include('Hola Ana, te esperamos en tu cita con Pablo Luna de Clínica Sol.')
     expect(description).to include('Fecha: martes 15 de enero', 'Hora: 10:00')
-    expect(description).to include('Si necesitas cambiar la cita, responde a este mensaje.')
+    expect(description).to include('Si necesitas cambiar la cita, contáctanos.')
     expect(description).not_to include('Cita InboxHub')
   end
 
