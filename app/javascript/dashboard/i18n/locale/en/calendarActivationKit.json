@@ -1,11 +1,11 @@
 {
   "CALENDAR_ACTIVATION_KIT": {
     "TITLE": "Appointments kit",
-    "DESCRIPTION": "Gets appointments ready to use: the contact attributes and the WhatsApp template we use to notify the customer when an appointment is booked.",
+    "DESCRIPTION": "Gets appointments ready to use: contact attributes and WhatsApp templates to notify the customer when an appointment is booked or cancelled.",
     "ATTRIBUTES": "Appointment attributes",
     "ATTRIBUTES_COUNT": "{count} of {total} active",
-    "QUESTION": "Notify the customer on WhatsApp when an appointment is booked?",
-    "QUESTION_HINT": "If you pick an inbox, we send the confirmation template to Meta for approval. The notice goes out once the template is approved.",
+    "QUESTION": "Notify the customer on WhatsApp when an appointment is booked or cancelled?",
+    "QUESTION_HINT": "If you pick an inbox, we send the confirmation and cancellation templates to Meta for approval. Each notice goes out once its template is approved.",
     "PREVIEW": "Confirmation template",
     "TEMPLATE_META": "{name} · language {language} · utility category",
     "NO_INBOX": "This account has no WhatsApp Cloud inboxes.",
@@ -24,9 +24,9 @@
     "RESEND": "Resend to Meta",
     "SEND": "Send to Meta",
     "RELOAD": "Refresh status",
-    "SENT": "Template sent to Meta. Approval can take a few minutes.",
+    "SENT": "Templates sent to Meta. Approval can take a few minutes.",
     "SENT_WITH_ERRORS": "Some inboxes could not be sent. Check the red notices.",
-    "SEND_ERROR": "The template could not be sent. Try again.",
+    "SEND_ERROR": "The templates could not be sent. Try again.",
     "LOAD_ERROR": "The appointments kit could not be loaded.",
     "ERRORS": {
       "token_invalid": "The WhatsApp access expired. Reconnect the inbox.",
@@ -38,6 +38,9 @@
       "not_found": "Meta could not find the WhatsApp account of this inbox.",
       "meta_unreachable": "Meta could not be reached. Try again.",
       "unknown": "Meta did not accept the template."
-    }
+    },
+    "CANCEL_PREVIEW": "Cancellation template",
+    "CONFIRMATION": "Confirmation",
+    "CANCELLATION": "Cancellation"
   }
 }

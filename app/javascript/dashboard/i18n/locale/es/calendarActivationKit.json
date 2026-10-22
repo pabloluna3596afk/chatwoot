@@ -1,11 +1,11 @@
 {
   "CALENDAR_ACTIVATION_KIT": {
     "TITLE": "Kit de Citas",
-    "DESCRIPTION": "Deja las citas listas para usar: los atributos del contacto y la plantilla de WhatsApp con la que avisamos al cliente cuando se agenda una cita.",
+    "DESCRIPTION": "Deja las citas listas para usar: los atributos del contacto y las plantillas de WhatsApp para avisar al cliente al agendar o cancelar una cita.",
     "ATTRIBUTES": "Atributos de cita",
     "ATTRIBUTES_COUNT": "{count} de {total} activos",
-    "QUESTION": "¿Avisar al cliente por WhatsApp cuando se agende una cita?",
-    "QUESTION_HINT": "Si marcas una bandeja, enviamos a Meta la plantilla de confirmación para que la apruebe. El aviso sale cuando la plantilla esté aprobada.",
+    "QUESTION": "¿Avisar al cliente por WhatsApp al agendar o cancelar una cita?",
+    "QUESTION_HINT": "Si marcas una bandeja, enviamos a Meta las plantillas de confirmación y cancelación para que las apruebe. Cada aviso sale cuando su plantilla está aprobada.",
     "PREVIEW": "Plantilla de confirmación",
     "TEMPLATE_META": "{name} · idioma {language} · categoría de utilidad",
     "NO_INBOX": "Esta cuenta no tiene bandejas de WhatsApp Cloud.",
@@ -24,9 +24,9 @@
     "RESEND": "Reenviar a Meta",
     "SEND": "Enviar a Meta",
     "RELOAD": "Actualizar estado",
-    "SENT": "Plantilla enviada a Meta. La aprobación puede tardar unos minutos.",
+    "SENT": "Plantillas enviadas a Meta. La aprobación puede tardar unos minutos.",
     "SENT_WITH_ERRORS": "Algunas bandejas no se pudieron enviar. Revisa los avisos en rojo.",
-    "SEND_ERROR": "No se pudo enviar la plantilla. Inténtalo de nuevo.",
+    "SEND_ERROR": "No se pudieron enviar las plantillas. Inténtalo de nuevo.",
     "LOAD_ERROR": "No se pudo cargar el kit de citas.",
     "ERRORS": {
       "token_invalid": "El acceso de WhatsApp venció. Vuelve a conectar la bandeja.",
@@ -38,6 +38,9 @@
       "not_found": "Meta no encontró la cuenta de WhatsApp de esta bandeja.",
       "meta_unreachable": "No se pudo contactar a Meta. Inténtalo de nuevo.",
       "unknown": "Meta no aceptó la plantilla."
-    }
+    },
+    "CANCEL_PREVIEW": "Plantilla de cancelación",
+    "CONFIRMATION": "Confirmación",
+    "CANCELLATION": "Cancelación"
   }
 }

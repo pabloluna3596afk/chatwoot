@@ -10,7 +10,7 @@ import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import Label from 'dashboard/components-next/label/Label.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 
-// What an account needs so appointments work from day one: the contact attributes and the WhatsApp confirmation template
+// What an account needs so appointments work from day one: the contact attributes and the WhatsApp templates
 // Meta has to approve. The administrator marks the WhatsApp Cloud inboxes that get the template.
 const STATUS_COLORS = {
   missing: 'slate',
@@ -32,6 +32,10 @@ const ERROR_CODES = [
   'meta_unreachable',
 ];
 const ATTRIBUTES_TOTAL = 4;
+const TEMPLATE_TYPES = ['', 'cancel'];
+const field = (type, name) => (type ? `${type}_${name}` : name);
+const testId = (part, type, id) =>
+  `activation-kit-${type ? `${type}-` : ''}${part}${id ? `-${id}` : ''}`;
 
 const { t, te } = useI18n();
 const { accountScopedRoute } = useAccount();
@@ -51,15 +55,24 @@ const canSend = computed(
   () => isAdmin.value && !sending.value && selected.value.length > 0
 );
 
-const errorOf = inbox =>
-  results.value[inbox.id]?.status === 'error' ? results.value[inbox.id] : null;
-const shownStatus = inbox => (errorOf(inbox) ? 'error' : inbox.status);
+const resultOf = (inbox, type) =>
+  type ? results.value[inbox.id]?.cancel : results.value[inbox.id];
+const errorOf = (inbox, type = '') => {
+  const result = resultOf(inbox, type);
+  return result?.status === 'error' ? result : null;
+};
+const shownStatus = (inbox, type = '') =>
+  errorOf(inbox, type) ? 'error' : inbox[field(type, 'status')];
 const statusLabel = status =>
   te(`CALENDAR_ACTIVATION_KIT.STATUS.${status}`)
     ? t(`CALENDAR_ACTIVATION_KIT.STATUS.${status}`)
     : status;
-const isSelectable = inbox => !SENT.includes(inbox.status);
-const canResend = inbox => inbox.status === 'rejected' || !!errorOf(inbox);
+const isSelectable = inbox =>
+  TEMPLATE_TYPES.some(type => !SENT.includes(shownStatus(inbox, type)));
+const canResend = inbox =>
+  TEMPLATE_TYPES.some(
+    type => inbox[field(type, 'status')] === 'rejected' || errorOf(inbox, type)
+  );
 const errorMessage = result => {
   if (ERROR_CODES.includes(result.code)) {
     return t(`CALENDAR_ACTIVATION_KIT.ERRORS.${result.code}`);
@@ -98,7 +111,7 @@ const send = async ids => {
     const { data } = await CalendarAPI.applyActivationKit(ids);
     apply(data);
     const failed = Object.values(data.results || {}).some(
-      result => result.status === 'error'
+      result => result.status === 'error' || result.cancel?.status === 'error'
     );
     useAlert(
       failed
@@ -175,22 +188,28 @@ onMounted(load);
       </div>
 
       <div
+        v-for="type in TEMPLATE_TYPES"
+        :key="type"
         class="flex flex-col gap-2 p-3 rounded-xl bg-n-alpha-1"
-        data-testid="activation-kit-preview"
+        :data-testid="testId('preview', type)"
       >
         <span class="text-xs font-medium text-n-slate-11">
-          {{ $t('CALENDAR_ACTIVATION_KIT.PREVIEW') }}
+          {{
+            type
+              ? $t('CALENDAR_ACTIVATION_KIT.CANCEL_PREVIEW')
+              : $t('CALENDAR_ACTIVATION_KIT.PREVIEW')
+          }}
         </span>
         <p class="m-0 text-body-main text-n-slate-12 whitespace-pre-line">
-          {{ kit.template.body }}
+          {{ kit[field(type, 'template')].body }}
         </p>
         <div
-          v-if="kit.template.buttons?.length"
+          v-if="kit[field(type, 'template')].buttons?.length"
           class="flex flex-wrap gap-2"
-          data-testid="activation-kit-buttons"
+          :data-testid="testId('buttons', type)"
         >
           <span
-            v-for="label in kit.template.buttons"
+            v-for="label in kit[field(type, 'template')].buttons"
             :key="label"
             class="px-3 py-1 text-xs font-medium rounded-lg bg-n-solid-1 text-n-blue-11"
           >
@@ -200,8 +219,8 @@ onMounted(load);
         <span class="text-xs text-n-slate-11">
           {{
             $t('CALENDAR_ACTIVATION_KIT.TEMPLATE_META', {
-              name: kit.template.name,
-              language: kit.template.language,
+              name: kit[field(type, 'template')].name,
+              language: kit[field(type, 'template')].language,
             })
           }}
         </span>
@@ -239,13 +258,46 @@ onMounted(load);
             />
             {{ inbox.name }}
           </label>
-          <Label
-            :label="statusLabel(shownStatus(inbox))"
-            :color="STATUS_COLORS[shownStatus(inbox)] || 'slate'"
-            :data-testid="`activation-kit-status-${inbox.id}`"
-            compact
-            role="status"
-          />
+          <div
+            v-for="type in TEMPLATE_TYPES"
+            :key="type"
+            class="flex flex-wrap items-center gap-2 basis-full ps-6"
+          >
+            <span class="text-xs text-n-slate-11">
+              {{
+                type
+                  ? $t('CALENDAR_ACTIVATION_KIT.CANCELLATION')
+                  : $t('CALENDAR_ACTIVATION_KIT.CONFIRMATION')
+              }}
+            </span>
+            <Label
+              :label="statusLabel(shownStatus(inbox, type))"
+              :color="STATUS_COLORS[shownStatus(inbox, type)] || 'slate'"
+              :data-testid="testId('status', type, inbox.id)"
+              compact
+              role="status"
+            />
+            <p
+              v-if="
+                inbox[field(type, 'status')] === 'rejected' &&
+                inbox[field(type, 'rejected_reason')]
+              "
+              class="basis-full m-0 text-xs text-n-ruby-11 break-words min-w-0"
+            >
+              {{
+                $t('CALENDAR_ACTIVATION_KIT.REJECTED_REASON', {
+                  reason: inbox[field(type, 'rejected_reason')],
+                })
+              }}
+            </p>
+            <p
+              v-if="errorOf(inbox, type)"
+              class="basis-full m-0 text-xs text-n-ruby-11 break-words min-w-0"
+              role="alert"
+            >
+              {{ errorMessage(errorOf(inbox, type)) }}
+            </p>
+          </div>
           <Button
             v-if="isAdmin && canResend(inbox)"
             xs
@@ -255,23 +307,6 @@ onMounted(load);
             :data-testid="`activation-kit-resend-${inbox.id}`"
             @click="send([inbox.id])"
           />
-          <p
-            v-if="inbox.status === 'rejected' && inbox.rejected_reason"
-            class="basis-full m-0 text-xs text-n-ruby-11"
-          >
-            {{
-              $t('CALENDAR_ACTIVATION_KIT.REJECTED_REASON', {
-                reason: inbox.rejected_reason,
-              })
-            }}
-          </p>
-          <p
-            v-if="errorOf(inbox)"
-            class="basis-full m-0 text-xs text-n-ruby-11"
-            role="alert"
-          >
-            {{ errorMessage(errorOf(inbox)) }}
-          </p>
         </li>
       </ul>
 

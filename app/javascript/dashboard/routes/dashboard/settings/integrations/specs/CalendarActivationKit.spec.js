@@ -29,6 +29,12 @@ const kitWith = (inboxes, extra = {}) => ({
     body: 'Hola {{nombre}}, tu cita quedó agendada.',
     buttons: ['Confirmar', 'Reagendar', 'Cancelar'],
   },
+  cancel_template: {
+    name: 'cita_cancelacion',
+    language: 'es',
+    category: 'UTILITY',
+    body: 'Hola {{nombre}}, tu cita fue cancelada.',
+  },
   inboxes,
   ...extra,
 });
@@ -37,6 +43,8 @@ const inbox = (id, status, rejectedReason = null) => ({
   name: `WhatsApp ${id}`,
   status,
   rejected_reason: rejectedReason,
+  cancel_status: status,
+  cancel_rejected_reason: null,
 });
 
 const mountKit = async (data, locale = 'es') => {
@@ -266,5 +274,104 @@ describe('CalendarActivationKit', () => {
     expect(
       wrapper.get('[data-testid="activation-kit-buttons"]').text()
     ).toContain('Reagendar');
+  });
+  it('previews cancellation without buttons and labels both statuses', async () => {
+    const wrapper = await mountKit(kitWith([inbox(1, 'approved')]));
+
+    expect(
+      wrapper.get('[data-testid="activation-kit-cancel-preview"]').text()
+    ).toContain('tu cita fue cancelada');
+    expect(
+      wrapper.find('[data-testid="activation-kit-cancel-buttons"]').exists()
+    ).toBe(false);
+    expect(
+      wrapper.get('[data-testid="activation-kit-cancel-status-1"]').text()
+    ).toBe('Aprobada');
+    expect(
+      wrapper.get('[data-testid="activation-kit-inbox-1"]').text()
+    ).toContain(es.CALENDAR_ACTIVATION_KIT.CANCELLATION);
+  });
+
+  it.each(['missing', 'rejected', 'error'])(
+    'allows cancellation %s when confirmation is approved',
+    async status => {
+      const row = {
+        ...inbox(1, 'approved'),
+        cancel_status: status,
+        cancel_rejected_reason: 'INVALID_FORMAT',
+      };
+      const wrapper = await mountKit(kitWith([row]));
+      expect(
+        wrapper
+          .get('[data-testid="activation-kit-check-1"] input')
+          .attributes('disabled')
+      ).toBeUndefined();
+      if (status === 'rejected') {
+        expect(
+          wrapper.get('[data-testid="activation-kit-inbox-1"]').text()
+        ).toContain('INVALID_FORMAT');
+        CalendarAPI.applyActivationKit.mockResolvedValue({
+          data: kitWith([
+            { ...row, cancel_status: 'pending', cancel_rejected_reason: null },
+          ]),
+        });
+        await wrapper
+          .get('[data-testid="activation-kit-resend-1"]')
+          .trigger('click');
+        await flushPromises();
+        expect(CalendarAPI.applyActivationKit).toHaveBeenCalledWith([1]);
+        expect(
+          wrapper.get('[data-testid="activation-kit-cancel-status-1"]').text()
+        ).toBe('Pendiente');
+        expect(
+          wrapper.get('[data-testid="activation-kit-status-1"]').text()
+        ).toBe('Aprobada');
+      }
+    }
+  );
+
+  it('shows cancellation errors independently and offers a retry', async () => {
+    const row = { ...inbox(1, 'approved'), cancel_status: 'missing' };
+    const wrapper = await mountKit(kitWith([row]));
+    CalendarAPI.applyActivationKit.mockResolvedValue({
+      data: kitWith([row], {
+        results: {
+          1: {
+            status: 'approved',
+            cancel: { status: 'error', code: 'token_invalid' },
+          },
+        },
+      }),
+    });
+    await wrapper
+      .get('[data-testid="activation-kit-check-1"] input')
+      .setValue(true);
+    await wrapper.get('[data-testid="activation-kit-send"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.get('[data-testid="activation-kit-status-1"]').text()).toBe(
+      'Aprobada'
+    );
+    expect(
+      wrapper.get('[data-testid="activation-kit-cancel-status-1"]').text()
+    ).toBe('Error');
+    expect(
+      wrapper.get('[data-testid="activation-kit-inbox-1"]').text()
+    ).toContain(es.CALENDAR_ACTIVATION_KIT.ERRORS.token_invalid);
+    expect(
+      wrapper.find('[data-testid="activation-kit-resend-1"]').exists()
+    ).toBe(true);
+    expect(useAlert).toHaveBeenCalledWith(
+      es.CALENDAR_ACTIVATION_KIT.SENT_WITH_ERRORS
+    );
+  });
+
+  it('shows cancellation in English', async () => {
+    const wrapper = await mountKit(kitWith([inbox(1, 'approved')]), 'en');
+    expect(
+      wrapper.get('[data-testid="activation-kit-cancel-preview"]').text()
+    ).toContain('Cancellation template');
+    expect(
+      wrapper.get('[data-testid="activation-kit-cancel-status-1"]').text()
+    ).toBe('Approved');
   });
 });
