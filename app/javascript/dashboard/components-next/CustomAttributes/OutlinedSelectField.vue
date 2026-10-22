@@ -83,6 +83,7 @@ const onAction = item => {
 <template>
   <OutlinedAttributeField
     :label="label"
+    class="h-10 [&>div]:h-full"
     filled
     :focused="showMenu"
     :disabled="disabled"

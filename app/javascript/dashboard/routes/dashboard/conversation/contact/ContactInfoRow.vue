@@ -1,94 +1,81 @@
-<script>
+<script setup>
+import { ref, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import EmojiOrIcon from 'shared/components/EmojiOrIcon.vue';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import InlineInput from 'dashboard/components-next/inline-input/InlineInput.vue';
 
-export default {
-  components: {
-    EmojiOrIcon,
-    NextButton,
-    InlineInput,
+const props = defineProps({
+  href: {
+    type: String,
+    default: '',
   },
-  props: {
-    href: {
-      type: String,
-      default: '',
-    },
-    icon: {
-      type: String,
-      required: true,
-    },
-    emoji: {
-      type: String,
-      required: true,
-    },
-    // Phosphor/UnoCSS class (e.g. i-ph-identification-card) — preferred when set
-    iconClass: {
-      type: String,
-      default: '',
-    },
-    value: {
-      type: String,
-      default: '',
-    },
-    showCopy: {
-      type: Boolean,
-      default: false,
-    },
-    editable: {
-      type: Boolean,
-      default: false,
-    },
-    title: {
-      type: String,
-      default: '',
-    },
+  icon: {
+    type: String,
+    required: true,
   },
-  emits: ['update'],
-  data() {
-    return {
-      isEditing: false,
-      editValue: '',
-    };
+  emoji: {
+    type: String,
+    required: true,
   },
-  methods: {
-    async onCopy(e) {
-      e.preventDefault();
-      await copyTextToClipboard(this.value);
-      useAlert(this.$t('CONTACT_PANEL.COPY_SUCCESSFUL'));
-    },
-    startEditing() {
-      if (!this.editable) return;
-      this.editValue = this.value || '';
-      this.isEditing = true;
-      this.$nextTick(() => {
-        this.$refs.editInput?.focus();
-      });
-    },
-    saveEdit() {
-      if (!this.isEditing) return;
-      this.isEditing = false;
-      const trimmed = this.editValue.trim();
-      if (trimmed !== (this.value || '')) {
-        this.$emit('update', trimmed);
-      }
-    },
-    cancelEdit() {
-      this.isEditing = false;
-    },
+  // Phosphor/UnoCSS class (e.g. i-ph-identification-card) — preferred when set
+  iconClass: {
+    type: String,
+    default: '',
   },
+  value: {
+    type: String,
+    default: '',
+  },
+  showCopy: {
+    type: Boolean,
+    default: false,
+  },
+  editable: {
+    type: Boolean,
+    default: false,
+  },
+  title: {
+    type: String,
+    default: '',
+  },
+});
+const emit = defineEmits(['update']);
+const { t } = useI18n();
+const isEditing = ref(false);
+const editValue = ref('');
+const editInput = ref(null);
+const onCopy = async event => {
+  event.preventDefault();
+  await copyTextToClipboard(props.value);
+  useAlert(t('CONTACT_PANEL.COPY_SUCCESSFUL'));
+};
+const startEditing = () => {
+  if (!props.editable) return;
+  editValue.value = props.value || '';
+  isEditing.value = true;
+  nextTick(() => editInput.value?.focus());
+};
+const saveEdit = () => {
+  if (!isEditing.value) return;
+  isEditing.value = false;
+  const trimmed = editValue.value.trim();
+  if (trimmed !== (props.value || '')) emit('update', trimmed);
+};
+const cancelEdit = () => {
+  isEditing.value = false;
 };
 </script>
 
 <template>
-  <div class="group/row w-full h-5 ltr:-ml-1 rtl:-mr-1">
+  <div class="group/row w-full h-10 px-3">
     <!-- Inline edit mode -->
-    <div v-if="isEditing" class="flex items-center w-full min-w-0 gap-2">
+    <div v-if="isEditing" class="flex h-full w-full min-w-0 items-center gap-2">
       <span
         v-if="iconClass"
-        class="flex-shrink-0 size-3.5 text-n-slate-10 ltr:ml-1 rtl:mr-1"
+        class="flex-shrink-0 size-3.5 text-n-slate-10"
         :class="iconClass"
       />
       <EmojiOrIcon
@@ -96,7 +83,7 @@ export default {
         :icon="icon"
         :emoji="emoji"
         icon-size="14"
-        class="flex-shrink-0 ltr:ml-1 rtl:mr-1"
+        class="flex-shrink-0"
       />
       <InlineInput
         ref="editInput"
@@ -112,11 +99,11 @@ export default {
     <a
       v-else-if="href"
       :href="href"
-      class="flex items-center gap-2 text-n-slate-11 hover:underline"
+      class="flex h-full min-w-0 items-center gap-2 text-n-slate-11 hover:underline"
     >
       <span
         v-if="iconClass"
-        class="flex-shrink-0 size-3.5 text-n-slate-10 ltr:ml-1 rtl:mr-1"
+        class="flex-shrink-0 size-3.5 text-n-slate-10"
         :class="iconClass"
       />
       <EmojiOrIcon
@@ -124,7 +111,7 @@ export default {
         :icon="icon"
         :emoji="emoji"
         icon-size="14"
-        class="flex-shrink-0 ltr:ml-1 rtl:mr-1"
+        class="flex-shrink-0"
       />
       <span
         v-if="value"
@@ -149,7 +136,8 @@ export default {
         ghost
         xs
         slate
-        class="ltr:-ml-1 rtl:-mr-1"
+        :title="$t('CONTACT_PANEL.COPY_LABEL')"
+        :aria-label="$t('CONTACT_PANEL.COPY_LABEL')"
         icon="i-lucide-clipboard"
         @click="onCopy"
       />
@@ -158,17 +146,19 @@ export default {
         ghost
         xs
         slate
-        class="ltr:-ml-1 rtl:-mr-1 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100 transition-opacity"
+        class="[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100 transition-opacity"
+        :title="$t('CONTACT_PANEL.CLICK_TO_EDIT')"
+        :aria-label="$t('CONTACT_PANEL.CLICK_TO_EDIT')"
         icon="i-lucide-pencil"
         @click.prevent="startEditing"
       />
     </a>
 
     <!-- Read mode without link -->
-    <div v-else class="flex items-center gap-2 text-n-slate-11">
+    <div v-else class="flex h-full min-w-0 items-center gap-2 text-n-slate-11">
       <span
         v-if="iconClass"
-        class="flex-shrink-0 size-3.5 text-n-slate-10 ltr:ml-1 rtl:mr-1"
+        class="flex-shrink-0 size-3.5 text-n-slate-10"
         :class="iconClass"
       />
       <EmojiOrIcon
@@ -176,7 +166,7 @@ export default {
         :icon="icon"
         :emoji="emoji"
         icon-size="14"
-        class="flex-shrink-0 ltr:ml-1 rtl:mr-1"
+        class="flex-shrink-0"
       />
       <span
         v-if="value"
@@ -199,7 +189,8 @@ export default {
         ghost
         xs
         slate
-        class="ltr:-ml-1 rtl:-mr-1"
+        :title="$t('CONTACT_PANEL.COPY_LABEL')"
+        :aria-label="$t('CONTACT_PANEL.COPY_LABEL')"
         icon="i-lucide-clipboard"
         @click="onCopy"
       />
@@ -208,7 +199,9 @@ export default {
         ghost
         xs
         slate
-        class="ltr:-ml-1 rtl:-mr-1 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100 transition-opacity"
+        class="[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100 transition-opacity"
+        :title="$t('CONTACT_PANEL.CLICK_TO_EDIT')"
+        :aria-label="$t('CONTACT_PANEL.CLICK_TO_EDIT')"
         icon="i-lucide-pencil"
         @click="startEditing"
       />
