@@ -535,9 +535,9 @@
   },
   "CONVERSATION_SIDEBAR": {
     "RESPONDER": {
-      "CAPTAIN_ANSWERING": "Responde Captain: {name}",
+      "ANSWERING": "Responde: {name}",
       "WAITING_CUSTOMER": "esperando al cliente",
-      "ESCALATED": "Captain pasó esta conversación al equipo"
+      "ESCALATED": "Pasó la conversación al equipo"
     },
     "ASSIGNEE_LABEL": "Responsable de la conversación",
     "SELF_ASSIGN": "Asignarme",
@@ -575,6 +575,7 @@
       "NEXT": "Próxima cita",
       "CREATED_BY": "Creada por {name}",
       "ORIGIN": {
+        "CAPTAIN": "Agendada por Captain",
         "CONVERSATION_INBOX": "Creada desde la bandeja {inbox}",
         "CONVERSATION": "Creada desde una conversación",
         "CRM": "Creada en el CRM",

@@ -39,6 +39,18 @@ describe('AppointmentOriginLogo', () => {
     ).toBe(true);
   });
 
+  it('adds the Captain mark when Captain booked the appointment', () => {
+    const wrapper = mountLogo({ type: 'crm', by_captain: true });
+    expect(
+      wrapper.find('[data-testid="appointment-origin-captain"]').exists()
+    ).toBe(true);
+    expect(
+      mountLogo({ type: 'crm' })
+        .find('[data-testid="appointment-origin-captain"]')
+        .exists()
+    ).toBe(false);
+  });
+
   it('renders nothing without an origin', () => {
     expect(mountLogo(null).html()).toBe('<!--v-if-->');
   });

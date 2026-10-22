@@ -18,7 +18,7 @@ class Captain::ConversationCompletionService < Captain::BaseTaskService
     response = make_api_call(
       feature: 'conversation_completion',
       messages: [
-        { role: 'system', content: prompt_from_file('conversation_completion') },
+        { role: 'system', content: system_prompt },
         { role: 'user', content: content }
       ],
       schema: RESPONSE_SCHEMA
@@ -30,6 +30,14 @@ class Captain::ConversationCompletionService < Captain::BaseTaskService
   end
 
   private
+
+  # The reason ends up in a private note read by the team, so it is written in the account language, not the prompt's.
+  def system_prompt
+    [
+      prompt_from_file('conversation_completion'),
+      "Write the \"reason\" in the language with locale code \"#{account.locale}\"."
+    ].join("\n\n")
+  end
 
   def prompt_from_file(file_name)
     Rails.root.join('enterprise/lib/captain/prompts', "#{file_name}.liquid").read
