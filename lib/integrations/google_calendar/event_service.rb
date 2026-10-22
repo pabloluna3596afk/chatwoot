@@ -320,28 +320,9 @@ class Integrations::GoogleCalendar::EventService
     note = params[:note].to_s.strip
     raise MissingDeleteNote if note.blank? && record&.deleted_at.nil?
 
-    unless record
-      event = client.get_event(calendar_id: calendar_id, event_id: event_id)
-      record = connection.calendar_events.new(
-        account: account, external_calendar_id: calendar_id, google_event_id: event_id,
-        summary: event['summary'], start_at: parse_google_time(event['start']), end_at: parse_google_time(event['end']),
-        html_link: event['htmlLink'], etag: event['etag']
-      )
-    end
-
-    was_cancelled = record.discarded?
+    record ||= import_event_for_cancellation(calendar_id, event_id)
     client.delete_event(calendar_id: calendar_id, event_id: event_id, etag: params[:etag])
-    if record.deleted_at.nil?
-      attrs = { deleted_at: Time.current, appointment_status: 'cancelled', idempotency_key: nil }
-      attrs[:deleted_by] = actor_user if actor_user
-      attrs[:updated_by] = actor_user if actor_user
-      CalendarEvent.transaction do
-        record.update!(attrs)
-        record_activity!(record, 'deleted', activity_details_from(record).merge('note' => note))
-      end
-      notify_conversation!(record.conversation, :event_deleted, record)
-      send_cancellation_notice!(record) unless was_cancelled
-    end
+    cancel_local_event!(record, note) if record.deleted_at.nil?
     Integrations::GoogleCalendar::EventLock.new(account_id: account.id, event_id: event_id).release(user)
     record.reload
     self.class.payload_from_record(record)
@@ -350,6 +331,28 @@ class Integrations::GoogleCalendar::EventService
   private
 
   attr_reader :account, :user, :connection
+
+  def import_event_for_cancellation(calendar_id, event_id)
+    event = client.get_event(calendar_id: calendar_id, event_id: event_id)
+    connection.calendar_events.new(
+      account: account, external_calendar_id: calendar_id, google_event_id: event_id,
+      summary: event['summary'], start_at: parse_google_time(event['start']), end_at: parse_google_time(event['end']),
+      html_link: event['htmlLink'], etag: event['etag']
+    )
+  end
+
+  def cancel_local_event!(record, note)
+    was_cancelled = record.discarded?
+    attrs = { deleted_at: Time.current, appointment_status: 'cancelled', idempotency_key: nil }
+    attrs[:deleted_by] = actor_user if actor_user
+    attrs[:updated_by] = actor_user if actor_user
+    CalendarEvent.transaction do
+      record.update!(attrs)
+      record_activity!(record, 'deleted', activity_details_from(record).merge('note' => note))
+    end
+    notify_conversation!(record.conversation, :event_deleted, record)
+    send_cancellation_notice!(record) unless was_cancelled
+  end
 
   # Captain may mutate only a kept local appointment. The dashboard can also import Google-only events.
   def local_owner(event_id, calendar_id, required:)
