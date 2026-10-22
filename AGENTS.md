@@ -404,6 +404,7 @@ _Última actualización: 2026-07-12_
 
 | Item | Repo | Acción |
 |------|------|--------|
+| **Plan 24 / B-NEW-187** (recordatorio humano WhatsApp) | chatwoot | `feat/kit-citas-recordatorio`: RSpec/RuboCop Docker pendientes del PM; migración `20261022120000` antes de desplegar; interruptor apagado por defecto; sin push |
 | **CIT-12 / CIT-31 / B-NEW-084** (lease y recuperación Meet) | chatwoot | `feat/citas-exclusion-meet` depende del PR 2; lock con Redis real rojo/verde aprobado; faltan RSpec Rails de servicio/invitación/Captain y lint exacto CI. Integrar PR1 → PR2 → PR3; sin migraciones, sin push |
 | **CIT-09 / CIT-30 / B-NEW-083** (reserva y fila propietaria) | chatwoot | validar RSpec rojo/verde, lint exacto de CI y smoke A→B→A; `feat/citas-reserva-correcta` depende del PR 1 `feat/citas-autorizacion`; sin migraciones, sin push |
 | **CIT-11 / B-NEW-082** (privacidad de asociaciones de citas) | chatwoot | validar RSpec en CI + capturas, PR `feat/citas-autorizacion` → `develop`, redeploy; sin migraciones |

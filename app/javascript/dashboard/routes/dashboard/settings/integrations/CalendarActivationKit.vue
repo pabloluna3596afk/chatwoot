@@ -7,6 +7,7 @@ import { useAdmin } from 'dashboard/composables/useAdmin';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
+import Switch from 'dashboard/components-next/switch/Switch.vue';
 import Label from 'dashboard/components-next/label/Label.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import WhatsAppBubble from 'dashboard/components-next/whatsapp/WhatsAppBubble.vue';
@@ -33,7 +34,17 @@ const ERROR_CODES = [
   'meta_unreachable',
 ];
 const ATTRIBUTES_TOTAL = 4;
-const TEMPLATE_TYPES = ['', 'cancel'];
+const TEMPLATE_TYPES = ['', 'cancel', 'reminder'];
+const PREVIEW_KEYS = {
+  '': 'PREVIEW',
+  cancel: 'CANCEL_PREVIEW',
+  reminder: 'REMINDER_PREVIEW',
+};
+const LABEL_KEYS = {
+  '': 'CONFIRMATION',
+  cancel: 'CANCELLATION',
+  reminder: 'REMINDER',
+};
 const field = (type, name) => (type ? `${type}_${name}` : name);
 const testId = (part, type, id) =>
   `activation-kit-${type ? `${type}-` : ''}${part}${id ? `-${id}` : ''}`;
@@ -49,6 +60,7 @@ const selected = ref([]);
 const loading = ref(true);
 const loadFailed = ref(false);
 const sending = ref(false);
+const savingReminder = ref(false);
 
 const inboxes = computed(() => kit.value?.inboxes || []);
 const attributesEnabled = computed(
@@ -59,7 +71,7 @@ const canSend = computed(
 );
 
 const resultOf = (inbox, type) =>
-  type ? results.value[inbox.id]?.cancel : results.value[inbox.id];
+  type ? results.value[inbox.id]?.[type] : results.value[inbox.id];
 const errorOf = (inbox, type = '') => {
   const result = resultOf(inbox, type);
   return result?.status === 'error' ? result : null;
@@ -114,7 +126,10 @@ const send = async ids => {
     const { data } = await CalendarAPI.applyActivationKit(ids);
     apply(data);
     const failed = Object.values(data.results || {}).some(
-      result => result.status === 'error' || result.cancel?.status === 'error'
+      result =>
+        result.status === 'error' ||
+        result.cancel?.status === 'error' ||
+        result.reminder?.status === 'error'
     );
     useAlert(
       failed
@@ -127,6 +142,18 @@ const send = async ids => {
     );
   } finally {
     sending.value = false;
+  }
+};
+const saveReminder = async enabled => {
+  savingReminder.value = true;
+  try {
+    const { data } = await CalendarAPI.updateReminderEnabled(enabled);
+    kit.value.reminder_enabled = data.reminder_enabled;
+    useAlert(t('CALENDAR_ACTIVATION_KIT.REMINDER_SAVED'));
+  } catch {
+    useAlert(t('CALENDAR_ACTIVATION_KIT.REMINDER_SAVE_ERROR'));
+  } finally {
+    savingReminder.value = false;
   }
 };
 onMounted(load);
@@ -190,7 +217,7 @@ onMounted(load);
         </p>
       </div>
 
-      <div class="grid gap-3 sm:grid-cols-2">
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div
           v-for="type in TEMPLATE_TYPES"
           :key="type"
@@ -198,11 +225,7 @@ onMounted(load);
           :data-testid="testId('preview', type)"
         >
           <span class="text-xs font-medium text-n-slate-11">
-            {{
-              type
-                ? $t('CALENDAR_ACTIVATION_KIT.CANCEL_PREVIEW')
-                : $t('CALENDAR_ACTIVATION_KIT.PREVIEW')
-            }}
+            {{ $t(`CALENDAR_ACTIVATION_KIT.${PREVIEW_KEYS[type]}`) }}
           </span>
           <WhatsAppBubble
             class="flex-1 [&>div]:h-full"
@@ -223,6 +246,33 @@ onMounted(load);
             }}
           </span>
         </div>
+      </div>
+
+      <div
+        class="flex items-center justify-between gap-4 p-3 rounded-xl border border-n-weak"
+      >
+        <div>
+          <p
+            id="reminder-label"
+            class="m-0 text-body-main font-medium text-n-slate-12"
+          >
+            {{ $t('CALENDAR_ACTIVATION_KIT.REMINDER_TOGGLE') }}
+          </p>
+          <p
+            id="reminder-cost"
+            class="mt-1 mb-0 text-body-main text-n-slate-11"
+          >
+            {{ $t('CALENDAR_ACTIVATION_KIT.REMINDER_COST') }}
+          </p>
+        </div>
+        <Switch
+          :model-value="kit.reminder_enabled"
+          :disabled="!isAdmin || savingReminder"
+          aria-labelledby="reminder-label"
+          aria-describedby="reminder-cost"
+          data-testid="activation-kit-reminder-switch"
+          @update:model-value="saveReminder"
+        />
       </div>
 
       <div
@@ -257,18 +307,14 @@ onMounted(load);
             />
             {{ inbox.name }}
           </label>
-          <div class="grid gap-2 basis-full sm:grid-cols-2">
+          <div class="grid gap-2 basis-full sm:grid-cols-2 lg:grid-cols-3">
             <div
               v-for="type in TEMPLATE_TYPES"
               :key="type"
               class="flex flex-wrap items-center content-start gap-2 min-w-0"
             >
               <span class="text-xs text-n-slate-11">
-                {{
-                  type
-                    ? $t('CALENDAR_ACTIVATION_KIT.CANCELLATION')
-                    : $t('CALENDAR_ACTIVATION_KIT.CONFIRMATION')
-                }}
+                {{ $t(`CALENDAR_ACTIVATION_KIT.${LABEL_KEYS[type]}`) }}
               </span>
               <Label
                 :label="statusLabel(shownStatus(inbox, type))"
