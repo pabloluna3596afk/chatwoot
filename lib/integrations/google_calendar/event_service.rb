@@ -329,6 +329,7 @@ class Integrations::GoogleCalendar::EventService
       )
     end
 
+    was_cancelled = record.discarded?
     client.delete_event(calendar_id: calendar_id, event_id: event_id, etag: params[:etag])
     if record.deleted_at.nil?
       attrs = { deleted_at: Time.current, appointment_status: 'cancelled', idempotency_key: nil }
@@ -339,6 +340,7 @@ class Integrations::GoogleCalendar::EventService
         record_activity!(record, 'deleted', activity_details_from(record).merge('note' => note))
       end
       notify_conversation!(record.conversation, :event_deleted, record)
+      send_cancellation_notice!(record) unless was_cancelled
     end
     Integrations::GoogleCalendar::EventLock.new(account_id: account.id, event_id: event_id).release(user)
     record.reload
@@ -975,6 +977,22 @@ class Integrations::GoogleCalendar::EventService
     send_to_contact!(conversation, record, google_event) if send_to_contact?(params, conversation)
   rescue StandardError => e
     Rails.logger.error("Calendar WhatsApp notice failed: #{e.class}")
+  end
+
+  def send_cancellation_notice!(record)
+    return unless user.is_a?(User) && record.start_at.future? && record.conversation.present?
+    return if record.bot_followup_enabled?
+
+    notice = Integrations::GoogleCalendar::CustomerNotice.new(
+      conversation: record.conversation, record: record, timezone: account_timezone, sender: user,
+      template_name: Calendar::ActivationKit::CANCEL_TEMPLATE_NAME
+    )
+    return unless notice.whatsapp_cloud?
+    return if notice.deliver!
+
+    notify_conversation!(record.conversation, :cancellation_notice_not_sent, record)
+  rescue StandardError => e
+    Rails.logger.error("Calendar WhatsApp cancellation notice failed: #{e.class}")
   end
 
   def send_to_contact?(params, conversation)

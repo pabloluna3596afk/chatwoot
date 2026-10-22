@@ -23,13 +23,25 @@ RSpec.describe Calendar::ActivationKit do
 
   describe '#status' do
     it 'lists the WhatsApp Cloud inboxes with the template missing' do
-      expect(kit.status[:inboxes]).to eq([{ id: inbox.id, name: inbox.name, status: 'missing', rejected_reason: nil }])
+      expect(kit.status[:inboxes]).to eq([{ id: inbox.id, name: inbox.name, status: 'missing', rejected_reason: nil,
+                                           cancel_status: 'missing', cancel_rejected_reason: nil }])
     end
 
     it 'shows the status and rejection reason Meta synced' do
       stored_template('REJECTED', 'rejected_reason' => 'INVALID_FORMAT')
 
       expect(kit.status[:inboxes].first).to include(status: 'rejected', rejected_reason: 'INVALID_FORMAT')
+    end
+
+    %w[es en].each do |locale|
+      it "exposes both template summaries in #{locale}" do
+        account.update!(locale: locale)
+
+        expect(kit.status[:template]).to include(name: 'cita_confirmacion', language: locale, buttons: an_instance_of(Array))
+        expect(kit.status[:cancel_template]).to eq(
+          name: 'cita_cancelacion', language: locale, category: 'UTILITY', body: described_class::CANCEL_TEMPLATES[locale][:body]
+        )
+      end
     end
 
     it 'ignores inboxes that are not WhatsApp Cloud' do
@@ -57,13 +69,13 @@ RSpec.describe Calendar::ActivationKit do
       expect(service).to have_received(:create).with(
         hash_including(name: 'cita_confirmacion', language: 'es', category: 'UTILITY', parameter_format: 'NAMED')
       )
-      expect(result[:results]).to eq(inbox.id => { status: 'pending' })
+      expect(result[:results]).to eq(inbox.id => { status: 'pending', cancel: { status: 'pending' } })
     end
 
     it 'sends a body with named variables the catalog fills and quick-reply buttons' do
       kit.apply(inbox_ids: [inbox.id])
 
-      expect(service).to have_received(:create) do |args|
+      expect(service).to have_received(:create).with(hash_including(name: 'cita_confirmacion')) do |args|
         body = args[:components].find { |component| component[:type] == 'BODY' }
         buttons = args[:components].find { |component| component[:type] == 'BUTTONS' }
         expect(body[:text]).to include('{{nombre}}', '{{cita}}', '{{fecha}}', '{{hora}}')
@@ -88,8 +100,8 @@ RSpec.describe Calendar::ActivationKit do
     it 'does not send again a template that is pending or approved' do
       stored_template('APPROVED')
 
-      expect(kit.apply(inbox_ids: [inbox.id])[:results]).to eq(inbox.id => { status: 'approved' })
-      expect(service).not_to have_received(:create)
+      expect(kit.apply(inbox_ids: [inbox.id])[:results]).to eq(inbox.id => { status: 'approved', cancel: { status: 'pending' } })
+      expect(service).not_to have_received(:create).with(hash_including(name: 'cita_confirmacion'))
     end
 
     it 'sends again a template Meta rejected' do
@@ -97,13 +109,61 @@ RSpec.describe Calendar::ActivationKit do
 
       kit.apply(inbox_ids: [inbox.id])
 
-      expect(service).to have_received(:create)
+      expect(service).to have_received(:create).twice
     end
 
     it 'reports the Meta error without raising' do
       allow(service).to receive(:create).and_raise(Whatsapp::TemplateManagementService::Error.new('permission_denied', detail: 'no access'))
 
-      expect(kit.apply(inbox_ids: [inbox.id])[:results]).to eq(inbox.id => { status: 'error', code: 'permission_denied', detail: 'no access' })
+      failure = { status: 'error', code: 'permission_denied', detail: 'no access' }
+      expect(kit.apply(inbox_ids: [inbox.id])[:results]).to eq(inbox.id => failure.merge(cancel: failure))
+    end
+
+    it 'submits cancellation without buttons and with named variables' do
+      kit.apply(inbox_ids: [inbox.id])
+
+      expect(service).to have_received(:create).with(hash_including(name: 'cita_cancelacion')) do |args|
+        expect(args[:components].pluck(:type)).to eq(['BODY'])
+        expect(args[:components].first[:text]).to include('{{nombre}}', '{{cita}}', '{{fecha}}', '{{hora}}')
+      end
+    end
+
+    %w[PENDING APPROVED IN_APPEAL].each do |state|
+      it "reuses both templates in #{state}" do
+        templates = described_class::DEFINITIONS.keys.map do |name|
+          { 'name' => name, 'language' => 'es', 'status' => state }
+        end
+        channel.update!(message_templates: templates)
+
+        kit.apply(inbox_ids: [inbox.id])
+
+        expect(service).not_to have_received(:create)
+      end
+    end
+
+    it 'resends only the rejected cancellation template' do
+      channel.update!(message_templates: [
+        { 'name' => 'cita_confirmacion', 'language' => 'es', 'status' => 'APPROVED' },
+        { 'name' => 'cita_cancelacion', 'language' => 'es', 'status' => 'REJECTED', 'rejected_reason' => 'INVALID_FORMAT' }
+      ])
+      expect(kit.status[:inboxes].first).to include(cancel_status: 'rejected', cancel_rejected_reason: 'INVALID_FORMAT')
+
+      kit.apply(inbox_ids: [inbox.id])
+
+      expect(service).to have_received(:create).with(hash_including(name: 'cita_cancelacion')).once
+      expect(service).not_to have_received(:create).with(hash_including(name: 'cita_confirmacion'))
+    end
+
+    %w[cita_confirmacion cita_cancelacion].each do |failed_name|
+      it "still sends the other template when #{failed_name} fails" do
+        allow(service).to receive(:create).with(hash_including(name: failed_name))
+                                        .and_raise(Whatsapp::TemplateManagementService::Error.new('permission_denied'))
+
+        result = kit.apply(inbox_ids: [inbox.id])[:results][inbox.id]
+
+        expect(service).to have_received(:create).twice
+        expect([result[:status], result[:cancel][:status]]).to match_array(%w[error pending])
+      end
     end
   end
 end
