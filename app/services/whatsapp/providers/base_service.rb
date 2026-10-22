@@ -42,7 +42,11 @@ class Whatsapp::Providers::BaseService
   end
 
   def handle_error(response, message)
-    Rails.logger.error response.body
+    if message&.additional_attributes&.key?('customer_reminder')
+      Rails.logger.error("Calendar customer reminder provider failure: HTTP #{response.code}")
+    else
+      Rails.logger.error response.body
+    end
     return if message.blank?
 
     # https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes/#sample-response

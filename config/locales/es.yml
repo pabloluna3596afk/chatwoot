@@ -380,6 +380,7 @@ es:
         issue_linked: 'Linear issue %{issue_id} was linked by %{user_name}'
         issue_unlinked: 'Linear issue %{issue_id} was unlinked by %{user_name}'
       calendar:
+        reminder_notice_not_sent: 'No se envió el recordatorio de la cita "%{event_title}" por WhatsApp: falta la plantilla de recordatorio aprobada. Actívala en Ajustes, Calendarios.'
         event_created: '%{user_name} creó la cita "%{event_title}" desde la bandeja "%{inbox_name}"'
         event_updated: '%{user_name} actualizó la cita "%{event_title}"'
         event_deleted: '%{user_name} eliminó la cita "%{event_title}"'
