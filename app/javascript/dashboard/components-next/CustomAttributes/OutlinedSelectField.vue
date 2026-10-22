@@ -41,13 +41,21 @@ const sameId = (a, b) => {
   return String(a) === String(b);
 };
 
+// A person and an assistant can share the same numeric id, so when both carry an assignee type
+// (people, bots, Captain) the type has to match too or two rows would show as selected.
+const isSelectedOption = option => {
+  const selected = props.selectedItem;
+  if (!selected || !sameId(option.id, selected.id)) return false;
+  if (!option.assignee_type || !selected.assignee_type) return true;
+  return option.assignee_type === selected.assignee_type;
+};
+
 const menuItems = computed(() =>
   (props.options || []).map(option => ({
     label: option.name,
     value: option.id,
     action: 'select',
-    isSelected:
-      !!props.selectedItem && sameId(option.id, props.selectedItem.id),
+    isSelected: isSelectedOption(option),
     icon: option.icon || undefined,
     thumbnail:
       props.hasThumbnail && option.name
