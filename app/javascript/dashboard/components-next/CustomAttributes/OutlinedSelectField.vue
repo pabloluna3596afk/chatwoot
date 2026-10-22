@@ -56,7 +56,8 @@ const menuItems = computed(() =>
     value: option.id,
     action: 'select',
     isSelected: isSelectedOption(option),
-    icon: option.icon || undefined,
+    // The image already identifies the assignee; the icon is only the fallback when there is none.
+    icon: option.thumbnail ? undefined : option.icon || undefined,
     thumbnail:
       props.hasThumbnail && option.name
         ? {
@@ -103,7 +104,7 @@ const onAction = item => {
           :aria-label="label"
           aria-haspopup="menu"
           :aria-expanded="showMenu"
-          class="relative flex items-center w-full min-h-8 gap-1.5"
+          class="relative flex items-center justify-start w-full min-h-8 gap-1.5 text-start"
           :class="{ 'cursor-pointer': !disabled, 'z-50': showMenu }"
           @click="onTriggerClick"
         >
@@ -123,7 +124,7 @@ const onAction = item => {
             class="size-4 shrink-0 text-n-slate-11"
           />
           <span
-            class="flex-1 min-w-0 text-sm truncate"
+            class="flex-1 min-w-0 text-sm text-start truncate"
             :class="hasValue ? 'text-n-slate-12' : 'text-n-slate-11'"
           >
             {{ displayLabel || '\u00A0' }}

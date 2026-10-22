@@ -147,7 +147,11 @@ const onClickSelfAssign = () => {
     </template>
     <template #thumbnail="{ item }">
       <Avatar
-        v-if="!item.agent.icon || item.agent.assignee_type === 'AgentBot'"
+        v-if="
+          item.agent.thumbnail ||
+          !item.agent.icon ||
+          item.agent.assignee_type === 'AgentBot'
+        "
         :name="item.agent.name"
         :src="item.agent.thumbnail"
         :status="item.agent.availability_status"

@@ -18,7 +18,6 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import VoiceCallButton from 'dashboard/components-next/Contacts/VoiceCallButton.vue';
 import InlineInput from 'dashboard/components-next/inline-input/InlineInput.vue';
 import ContactAssigneeSelector from 'dashboard/components-next/Contacts/ContactAssigneeSelector.vue';
-import ContactChatBotToggle from 'dashboard/components-next/Contacts/ContactChatBotToggle.vue';
 import FeaturedAttributeBadges from 'dashboard/components-next/FeaturedAttributes/FeaturedAttributeBadges.vue';
 import { useFeaturedAttributes } from 'dashboard/composables/useFeaturedAttributes';
 import { computed, toRef } from 'vue';
@@ -38,7 +37,6 @@ export default {
     VoiceCallButton,
     InlineInput,
     ContactAssigneeSelector,
-    ContactChatBotToggle,
     FeaturedAttributeBadges,
   },
   props: {
@@ -390,11 +388,6 @@ export default {
           />
         </div>
         <ContactAssigneeSelector
-          v-if="contact.id"
-          :contact="contact"
-          class="mt-1"
-        />
-        <ContactChatBotToggle
           v-if="contact.id"
           :contact="contact"
           class="mt-1"
