@@ -22,6 +22,17 @@ RSpec.describe ActionService do
     expect(Notification.where(user: agent, notification_type: 'conversation_assignment')).to be_empty
   end
 
+  it 'leaves a private note naming the assistant and the origin of the assignment' do
+    rule = create(:automation_rule, account: account, name: 'Filtro de interesados',
+                                    actions: [{ action_name: 'assign_agent', action_params: ['captain'] }])
+    AutomationRules::ActionService.new(rule.reload, account, conversation).perform
+    note = conversation.messages.where(private: true).order(:id).last
+    expect(note.content).to eq('Asignada a Captain Ventas.')
+    expect(note.content_attributes).to include('automation_rule_id' => rule.id)
+  ensure
+    Current.executed_by = nil
+  end
+
   it 'bypasses audience and business hours for an explicit assignment' do
     assistant.update!(config: assistant.config.merge(
       'audience' => { 'attribute_key' => 'country_code', 'filter_operator' => 'equal_to', 'values' => ['US'] },

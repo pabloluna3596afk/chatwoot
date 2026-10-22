@@ -18,6 +18,8 @@ import PlanStep from './PlanStep.vue';
 import { LocalStorage } from 'shared/helpers/localStorage';
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import { captainInboxOptions } from 'dashboard/helper/captainAssignment';
 import AuthField from 'v3/components/Auth/AuthField.vue';
 import AuthButton from 'v3/components/Auth/AuthButton.vue';
 import AuthChoiceCard from 'v3/components/Auth/AuthChoiceCard.vue';
@@ -100,9 +102,21 @@ watch(
   },
   { flush: 'post' }
 );
-const whatsappInbox = computed(() =>
-  inboxes.value.find(inbox => inbox.channel_type === INBOX_TYPES.WHATSAPP)
+const selectedInboxId = ref(null);
+const inboxOptions = computed(() =>
+  captainInboxOptions(
+    inboxes.value.filter(inbox => inbox.channel_type === INBOX_TYPES.WHATSAPP),
+    assistant.value?.id,
+    t
+  )
 );
+const whatsappInbox = computed(() => {
+  const id =
+    selectedInboxId.value ??
+    assistant.value?.inbox_ids?.[0] ??
+    inboxOptions.value.find(option => !option.disabled)?.value;
+  return inboxes.value.find(inbox => inbox.id === id);
+});
 const busy = computed(() => saving.value || finishing.value || sending.value);
 const valid = computed(() => name.value.trim() && goal.value.trim());
 const active = computed(() => Boolean(assistant.value?.inbox_ids?.length));
@@ -709,6 +723,15 @@ const usesProviderBilling = computed(
           }}
         </AuthButton>
         <template v-else>
+          <ComboBox
+            v-model="selectedInboxId"
+            :disabled="active || busy"
+            :options="inboxOptions"
+            :display-label="whatsappInbox?.name"
+            :placeholder="t('CAPTAIN.INBOXES.FORM.INBOX.PLACEHOLDER')"
+            :aria-label="t('CAPTAIN.INBOXES.FORM.INBOX.LABEL')"
+            teleport
+          />
           <AuthButton
             :disabled="busy || !whatsappInbox"
             :loading="finishing"

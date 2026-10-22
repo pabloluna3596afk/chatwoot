@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AutomationRuleForm from './AutomationRuleForm.vue';
 import AutomationRunTypeSelector from './components/AutomationRunTypeSelector.vue';
 import AutomationWaitCondition from './components/AutomationWaitCondition.vue';
+const inboxes = vi.hoisted(() => ({ value: [] }));
+vi.mock('dashboard/composables/store', () => ({ useMapGetter: () => inboxes }));
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key }),
@@ -131,6 +133,36 @@ const selectRunType = async (wrapper, isDelayed) => {
 describe('AutomationRuleForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    inboxes.value = [];
+  });
+
+  it('summarizes who is assigned per inbox and flags unconnected ones without blocking editing', () => {
+    inboxes.value = [
+      {
+        id: 1,
+        name: 'Sales',
+        captain_assistant: { id: 7, name: 'Sales assistant' },
+      },
+      { id: 2, name: 'Support', captain_assistant: null },
+    ];
+    const automation = buildAutomation();
+    automation.conditions = [
+      {
+        attribute_key: 'inbox_id',
+        filter_operator: 'equal_to',
+        values: [{ id: 1 }, { id: 2 }],
+      },
+    ];
+    automation.actions = [
+      { action_name: 'assign_agent', action_params: [{ id: 'captain:7' }] },
+    ];
+    const wrapper = mountComponent({ mode: 'edit', automation });
+    const summary = wrapper.get('[data-testid="captain-summary"]').text();
+    expect(summary).toContain('CAPTAIN.ASSIGNMENT.SUMMARY.OK');
+    expect(summary).toContain('CAPTAIN.ASSIGNMENT.SUMMARY.NONE');
+    wrapper.vm.open();
+    expect(panelOpen).toHaveBeenCalled();
+    wrapper.unmount();
   });
 
   it('opens a rule whose conditions hold reactive dropdown options', async () => {

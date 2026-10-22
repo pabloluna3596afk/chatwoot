@@ -15,6 +15,7 @@ module Enterprise::ActionService
       ).perform
       @conversation.update!(additional_attributes: @conversation.additional_attributes.merge(captain_assignment_message_id: message_id))
     end
+    record_captain_assignment(assistant)
   end
 
   def add_sla(sla_policy_id)
@@ -42,9 +43,18 @@ module Enterprise::ActionService
     assistant.paused_reason
   end
 
+  def captain_assignment_source
+    @flow_run ? MessageSourceAttributes.for_flow(@flow_run) : business_rule_block_source_attributes
+  end
+
+  def record_captain_assignment(assistant)
+    content = I18n.t('captain.assignment.assigned', name: assistant.name, locale: @account.locale)
+    Conversations::SystemAuditNote.perform(conversation: @conversation, content: content, content_attributes: captain_assignment_source)
+  end
+
   def record_captain_assignment_skip(reason)
     content = I18n.t('captain.assignment.skipped', locale: @account.locale).fetch(reason)
-    source = @flow_run ? MessageSourceAttributes.for_flow(@flow_run) : business_rule_block_source_attributes
+    source = captain_assignment_source
     Conversations::SystemAuditNote.perform(conversation: @conversation, content: content, content_attributes: source)
     return unless @flow_run
 

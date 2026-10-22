@@ -7,6 +7,7 @@ import { useMapGetter } from 'dashboard/composables/store';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import { captainInboxOptions } from 'dashboard/helper/captainAssignment';
 
 const props = defineProps({
   assistantId: {
@@ -38,12 +39,13 @@ const validationRules = {
 const inboxList = computed(() => {
   const captainInboxIds = formState.captainInboxes.value.map(inbox => inbox.id);
 
-  return formState.inboxes.value
-    .filter(inbox => !captainInboxIds.includes(inbox.id))
-    .map(inbox => ({
-      value: inbox.id,
-      label: inbox.name,
-    }));
+  return captainInboxOptions(
+    formState.inboxes.value.filter(
+      inbox => !captainInboxIds.includes(inbox.id)
+    ),
+    props.assistantId,
+    t
+  );
 });
 
 const v$ = useVuelidate(validationRules, state);

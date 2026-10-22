@@ -9,6 +9,10 @@ import SingleSelect from 'dashboard/components-next/filter/inputs/SingleSelect.v
 import MultiSelect from 'dashboard/components-next/filter/inputs/MultiSelect.vue';
 import NextInput from 'dashboard/components-next/input/Input.vue';
 import InsertVariableButton from 'dashboard/components-next/variable/InsertVariableButton.vue';
+import {
+  isCaptainSelection,
+  captainSelection,
+} from 'dashboard/helper/captainAssignment';
 
 const DEFAULT_DELIVERY = { delay_seconds: 0, mark_read_and_typing: false };
 
@@ -63,6 +67,23 @@ export default {
   },
   emits: ['update:modelValue', 'input', 'removeAction', 'resetAction'],
   computed: {
+    assignmentOptions() {
+      if (this.action_name !== 'assign_agent') return this.dropdownValues;
+      const selected = [this.action_params]
+        .flat()
+        .map(value => value?.id ?? value);
+      const missing = selected.filter(
+        id =>
+          isCaptainSelection(id) &&
+          !this.dropdownValues.some(option => option.id === id)
+      );
+      return [
+        ...this.dropdownValues,
+        ...missing.map(id =>
+          captainSelection(id, this.dropdownValues, this.$t)
+        ),
+      ];
+    },
     action_name: {
       get() {
         if (!this.modelValue) return null;
@@ -238,7 +259,7 @@ export default {
       class="flex flex-col gap-2"
       :class="{ 'animate-wiggle': errorMessage }"
     >
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2 sm:flex-nowrap">
         <SingleSelect
           :model-value="actionNameAsSelectModel"
           :options="actionTypesAsOptions"
@@ -251,8 +272,11 @@ export default {
           <SingleSelect
             v-if="inputType === 'search_select'"
             v-model="action_params"
-            :options="dropdownValues"
+            :options="assignmentOptions"
             :dropdown-max-height="dropdownMaxHeight"
+            :class="{
+              'max-sm:order-3 max-sm:w-full': action_name === 'assign_agent',
+            }"
           />
           <MultiSelect
             v-else-if="inputType === 'multi_select'"

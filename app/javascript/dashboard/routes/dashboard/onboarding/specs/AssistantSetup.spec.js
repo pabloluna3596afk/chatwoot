@@ -728,7 +728,11 @@ describe('Assistant onboarding', () => {
 
   it('shows that the test is running and prevents another send or activation', async () => {
     serverAssistant = structuredClone(draft);
-    inboxes.push({ id: 7, channel_type: 'Channel::Whatsapp' });
+    inboxes.push({
+      id: 7,
+      name: 'WhatsApp',
+      channel_type: 'Channel::Whatsapp',
+    });
     CaptainAssistant.playground.mockReturnValue(new Promise(() => {}));
     wrapper = mount(AssistantSetup, options);
     await flushPromises();
@@ -748,7 +752,11 @@ describe('Assistant onboarding', () => {
   });
 
   it('links only on explicit activation and then finishes onboarding', async () => {
-    inboxes.push({ id: 7, channel_type: 'Channel::Whatsapp' });
+    inboxes.push({
+      id: 7,
+      name: 'WhatsApp',
+      channel_type: 'Channel::Whatsapp',
+    });
     serverAssistant = structuredClone(draft);
     wrapper = mount(AssistantSetup, options);
     await flushPromises();
@@ -770,8 +778,42 @@ describe('Assistant onboarding', () => {
     expect(router.currentRoute.value.name).toBe('home');
   });
 
+  it('shows an occupied inbox disabled and activates only a free inbox', async () => {
+    serverAssistant = structuredClone(draft);
+    inboxes.push({
+      id: 6,
+      name: 'Occupied',
+      channel_type: 'Channel::Whatsapp',
+      captain_assistant: { id: 99, name: 'Soporte' },
+    });
+    inboxes.push({
+      id: 7,
+      name: 'Free',
+      channel_type: 'Channel::Whatsapp',
+      captain_assistant: null,
+    });
+    wrapper = mount(AssistantSetup, options);
+    await flushPromises();
+    const picker = wrapper.findComponent({ name: 'ComboBox' });
+    expect(picker.props('options')[0]).toMatchObject({
+      value: 6,
+      disabled: true,
+    });
+    expect(picker.props('options')[0].label).toContain('Soporte');
+    await wrapper.get('[data-testid="activate"]').trigger('click');
+    await flushPromises();
+    expect(CaptainInboxes.create).toHaveBeenCalledWith({
+      assistantId: 42,
+      inboxId: 7,
+    });
+  });
+
   it('keeps the draft on activation failure and reconciles a lost response on retry', async () => {
-    inboxes.push({ id: 7, channel_type: 'Channel::Whatsapp' });
+    inboxes.push({
+      id: 7,
+      name: 'WhatsApp',
+      channel_type: 'Channel::Whatsapp',
+    });
     serverAssistant = structuredClone(draft);
     CaptainInboxes.create.mockImplementationOnce(async () => {
       serverAssistant.inbox_ids = [7];
@@ -880,7 +922,11 @@ describe('Assistant onboarding', () => {
 
   it('keeps the draft and step when activation returns 5xx', async () => {
     serverAssistant = structuredClone(draft);
-    inboxes.push({ id: 7, channel_type: 'Channel::Whatsapp' });
+    inboxes.push({
+      id: 7,
+      name: 'WhatsApp',
+      channel_type: 'Channel::Whatsapp',
+    });
     CaptainInboxes.create.mockRejectedValueOnce({ response: { status: 503 } });
     wrapper = mount(AssistantSetup, options);
     await flushPromises();
@@ -896,7 +942,11 @@ describe('Assistant onboarding', () => {
 
   it('prevents a double activation while the inbox request is pending', async () => {
     serverAssistant = structuredClone(draft);
-    inboxes.push({ id: 7, channel_type: 'Channel::Whatsapp' });
+    inboxes.push({
+      id: 7,
+      name: 'WhatsApp',
+      channel_type: 'Channel::Whatsapp',
+    });
     CaptainInboxes.create.mockReturnValueOnce(new Promise(() => {}));
     wrapper = mount(AssistantSetup, options);
     await flushPromises();
@@ -909,7 +959,11 @@ describe('Assistant onboarding', () => {
 
   it('retries completion after 5xx without linking an already activated draft again', async () => {
     serverAssistant = structuredClone(draft);
-    inboxes.push({ id: 7, channel_type: 'Channel::Whatsapp' });
+    inboxes.push({
+      id: 7,
+      name: 'WhatsApp',
+      channel_type: 'Channel::Whatsapp',
+    });
     OnboardingAPI.update.mockRejectedValueOnce({ response: { status: 503 } });
     wrapper = mount(AssistantSetup, options);
     await flushPromises();

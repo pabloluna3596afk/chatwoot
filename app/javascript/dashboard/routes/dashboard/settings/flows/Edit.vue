@@ -7,6 +7,10 @@ import { useAlert } from 'dashboard/composables';
 import useAutomationValues from 'dashboard/composables/useAutomationValues';
 import { useStatusLabel } from 'dashboard/composables/useStatusLabel';
 import actionQueryGenerator from 'dashboard/helper/actionQueryGenerator.js';
+import {
+  isCaptainSelection,
+  captainSelection,
+} from 'dashboard/helper/captainAssignment';
 import { FLOW_ACTION_TYPES } from './constants';
 import FlowCanvas from './FlowCanvas.vue';
 import FlowStepInspector from './FlowStepInspector.vue';
@@ -209,6 +213,14 @@ const formatActionForEditor = action => {
       actionParams = getActionDropdownValues(action.action_name).filter(item =>
         [...action.action_params].includes(item.id)
       );
+      if (
+        action.action_name === 'assign_agent' &&
+        action.action_params.some(isCaptainSelection)
+      ) {
+        actionParams = action.action_params.map(id =>
+          captainSelection(id, getActionDropdownValues(action.action_name), t)
+        );
+      }
     } else if (inputType === 'team_message') {
       const raw = Array.isArray(action.action_params)
         ? action.action_params[0]

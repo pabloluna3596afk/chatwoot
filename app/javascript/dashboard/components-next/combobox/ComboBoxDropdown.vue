@@ -90,10 +90,12 @@ const isSelected = option => {
 const menuItems = computed(() =>
   props.options.map(option => ({
     label: option.label,
+    title: option.label,
     value: option.value,
     group: option.group,
     action: 'select',
     option,
+    disabled: option.disabled,
     isSelected: isSelected(option),
   }))
 );
@@ -126,7 +128,7 @@ defineExpose({
     ref="menu"
     data-combobox-dropdown
     :dir="portalDirection"
-    class="w-full"
+    class="w-full [&_button:disabled]:h-auto [&_button:disabled]:min-h-8"
     :class="portal ? '' : placement"
     :menu-items="groups.length ? [] : menuItems"
     :menu-sections="menuSections"
@@ -147,6 +149,18 @@ defineExpose({
   >
     <template v-if="loading" #search-icon>
       <Spinner :size="14" class="absolute top-2 start-5 text-n-slate-11" />
+    </template>
+    <template #label="{ item }">
+      <span
+        class="min-w-0 text-sm font-420"
+        :class="
+          item.disabled
+            ? 'whitespace-normal break-words text-start'
+            : 'truncate'
+        "
+      >
+        {{ item.label }}
+      </span>
     </template>
     <template #trailing-icon="{ item }">
       <span

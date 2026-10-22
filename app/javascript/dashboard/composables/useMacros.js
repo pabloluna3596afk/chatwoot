@@ -2,6 +2,11 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStoreGetters } from 'dashboard/composables/store';
 import { PRIORITY_CONDITION_VALUES } from 'dashboard/constants/automation';
+import { useCaptainAssignment } from './useCaptainAssignment';
+import {
+  isCaptainSelection,
+  captainSelection,
+} from 'dashboard/helper/captainAssignment';
 import {
   generateLabelOptions,
   generateTeamOptions,
@@ -17,6 +22,7 @@ import {
  */
 export const useMacros = () => {
   const { t } = useI18n();
+  const { options: captainOptions } = useCaptainAssignment();
   const getters = useStoreGetters();
 
   const labels = computed(() => getters['labels/getLabels'].value);
@@ -42,6 +48,7 @@ export const useMacros = () => {
           ...withNoneOption(),
           { id: 'self', name: 'Self' },
           ...agents.value,
+          ...captainOptions.value,
         ];
       case 'add_label':
       case 'remove_label':
@@ -65,7 +72,11 @@ export const useMacros = () => {
     const options = getMacroDropdownValues(name);
     if (options.length) {
       return params
-        .map(id => options.find(option => option.id === id)?.name)
+        .map(id =>
+          isCaptainSelection(id)
+            ? captainSelection(id, options, t).name
+            : options.find(option => option.id === id)?.name
+        )
         .filter(Boolean)
         .join(', ');
     }

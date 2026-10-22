@@ -3,6 +3,8 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 /* eslint-disable vue/no-mutating-props -- exitPolicy is shared mutable from parent */
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useCaptainAssignment } from 'dashboard/composables/useCaptainAssignment';
+import { captainSelection } from 'dashboard/helper/captainAssignment';
 
 const props = defineProps({
   exitPolicy: { type: Object, required: true },
@@ -11,6 +13,25 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
+const { options: captainOptions } = useCaptainAssignment();
+const captainChoices = eventKey => {
+  const selected = props.exitPolicy[eventKey]?.assistant_id;
+  const options = captainOptions.value.length
+    ? captainOptions.value
+    : [captainSelection('captain', [], t)];
+  const choices = options.map(option => ({
+    value: option.id === 'captain' ? null : Number(option.id.split(':')[1]),
+    label: option.name,
+  }));
+  if (selected && !choices.some(option => option.value === selected)) {
+    choices.push({
+      value: selected,
+      label: captainSelection(`captain:${selected}`, captainOptions.value, t)
+        .name,
+    });
+  }
+  return choices;
+};
 
 const exitEvents = ['on_complete', 'on_handoff', 'on_fail', 'on_human_break'];
 
@@ -22,6 +43,12 @@ const assigneeModes = computed(() => [
   { id: 'team', label: t('FLOWS.EXIT.MODE_TEAM') },
   { id: 'agent', label: t('FLOWS.EXIT.MODE_AGENT') },
   { id: 'contact_owner', label: t('FLOWS.EXIT.MODE_OWNER') },
+  ...(captainOptions.value.length ||
+  Object.values(props.exitPolicy).some(
+    policy => policy.assignee_mode === 'captain'
+  )
+    ? [{ id: 'captain', label: t('CAPTAIN.ASSIGNMENT.MODE') }]
+    : []),
 ]);
 
 const statusOptions = computed(() => [
@@ -59,13 +86,19 @@ const showPrivateNote = eventKey =>
             {{ t('FLOWS.EXIT.STATUS') }}
           </span>
           <ComboBox
-            v-model="exitPolicy[eventKey].status"
+            :model-value="
+              exitPolicy[eventKey].assignee_mode === 'captain'
+                ? 'pending'
+                : exitPolicy[eventKey].status
+            "
+            :disabled="exitPolicy[eventKey].assignee_mode === 'captain'"
             class="mb-0"
             teleport
             :allow-deselect="false"
             :options="[
               ...statusOptions.map(s => ({ value: s.id, label: s.label })),
             ]"
+            @update:model-value="exitPolicy[eventKey].status = $event"
           />
         </label>
         <label class="mb-2 block">
@@ -111,6 +144,23 @@ const showPrivateNote = eventKey =>
               ...agents.map(agent => ({ value: agent.id, label: agent.name })),
             ]"
           />
+        </label>
+        <label
+          v-if="exitPolicy[eventKey].assignee_mode === 'captain'"
+          class="mb-2 block"
+        >
+          <span class="mb-1 block text-xs text-n-slate-11">{{
+            t('CAPTAIN.ASSIGNMENT.ASSISTANT')
+          }}</span>
+          <ComboBox
+            :model-value="exitPolicy[eventKey].assistant_id ?? null"
+            :options="captainChoices(eventKey)"
+            teleport
+            @update:model-value="exitPolicy[eventKey].assistant_id = $event"
+          />
+          <span class="mt-1 block text-xs text-n-slate-11">{{
+            t('CAPTAIN.ASSIGNMENT.NEXT_MESSAGE')
+          }}</span>
         </label>
         <label
           v-if="showPrivateNote(eventKey)"

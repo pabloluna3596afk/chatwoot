@@ -558,6 +558,7 @@ en:
       description: 'Sync your contacts and conversations with LeadSquared CRM. This integration automatically creates leads in LeadSquared when new contacts are added, and logs conversation activity to provide your sales team with complete context.'
   captain:
     assignment:
+      assigned: 'Assigned to Captain %{name}.'
       skipped:
         disabled: 'Captain assignment skipped: Captain is not enabled for this account.'
         disconnected: 'Captain assignment skipped: This inbox has no Captain connected.'

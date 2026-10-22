@@ -1,4 +1,5 @@
 import { useEditableAutomation } from '../useEditableAutomation';
+vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: key => key }) }));
 import useAutomationValues from '../useAutomationValues';
 import { generateAutomationPayload } from 'dashboard/helper/automationHelper';
 import { AUTOMATIONS } from 'dashboard/routes/dashboard/settings/automation/constants';
@@ -6,6 +7,28 @@ import { AUTOMATIONS } from 'dashboard/routes/dashboard/settings/automation/cons
 vi.mock('../useAutomationValues');
 
 describe('useEditableAutomation', () => {
+  it('keeps deleted Captain ids while editing instead of dropping the action params', () => {
+    useAutomationValues.mockReturnValue({
+      getActionDropdownValues: () => [],
+      getConditionDropdownValues: () => [],
+    });
+    const { formatAutomation } = useEditableAutomation();
+    const result = formatAutomation(
+      {
+        event_name: 'message_created',
+        conditions: [],
+        actions: [
+          { action_name: 'assign_agent', action_params: ['captain:999'] },
+        ],
+      },
+      [],
+      {},
+      [{ key: 'assign_agent', inputType: 'search_select' }]
+    );
+    expect(result.actions[0].action_params).toEqual([
+      { id: 'captain:999', name: 'CAPTAIN.ASSIGNMENT.DELETED' },
+    ]);
+  });
   beforeEach(() => {
     useAutomationValues.mockReturnValue({
       getConditionDropdownValues: vi.fn(attributeKey => {

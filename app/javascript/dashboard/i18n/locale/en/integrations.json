@@ -455,6 +455,21 @@
     }
   },
   "CAPTAIN": {
+    "ASSIGNMENT": {
+      "GENERAL": "Captain (inbox assistant)",
+      "DELETED": "Captain (deleted)",
+      "MODE": "Captain",
+      "ASSISTANT": "Assistant (optional)",
+      "NEXT_MESSAGE": "Captain replies to the next customer message. The conversation will be pending.",
+      "CONNECTED_TO": "Connected to {name}",
+      "UNSUPPORTED_INBOXES": "Captain does not serve these inboxes: {names}",
+      "SUMMARY": {
+        "EACH_INBOX": "The assignment goes to the Captain of each conversation's Inbox.",
+        "OK": "Inbox {inbox} → Captain {assistant} will handle it.",
+        "NONE": "Inbox {inbox} → no Captain, nothing will be assigned.",
+        "DIFFERENT": "Inbox {inbox} → handled by Captain {assistant}, not the selected one; nothing will be assigned."
+      }
+    },
     "NAME": "Captain",
     "HEADER_KNOW_MORE": "Know more",
     "OVERVIEW": {

@@ -4,6 +4,9 @@ import { useStoreGetters } from 'dashboard/composables/store';
 import { PRIORITY_CONDITION_VALUES } from 'dashboard/constants/automation';
 
 vi.mock('dashboard/composables/store');
+vi.mock('../useCaptainAssignment', () => ({
+  useCaptainAssignment: () => ({ options: { value: [] } }),
+}));
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key }),
 }));
