@@ -1,6 +1,5 @@
 <script setup>
 import {
-  CALENDAR_LEGEND_STATUSES,
   calendarEventStyle,
   isCancelledEvent,
   visibleCalendarEvents,
@@ -21,6 +20,7 @@ import Switch from 'dashboard/components-next/switch/Switch.vue';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 import WeekGrid from './WeekGrid.vue';
 import AgendaSidebar from './AgendaSidebar.vue';
+import CalendarLegend from './CalendarLegend.vue';
 import EventModal from './EventModal.vue';
 import googleLogo from 'dashboard/assets/images/integrations/google.svg';
 import microsoftLogo from 'dashboard/assets/images/integrations/microsoft.svg';
@@ -309,17 +309,38 @@ onMounted(loadConnections);
 
 <template>
   <section class="flex flex-col w-full h-full min-w-0 bg-n-surface-1">
-    <header class="flex items-start justify-between gap-3 px-4 py-3 min-w-0">
-      <h1 class="text-lg font-medium text-n-slate-12 shrink-0 pt-1">
-        {{ $t('SIDEBAR.CALENDAR_PAGE.TITLE') }}
-        <span class="block text-xs font-normal text-n-slate-11">{{
-          timezone
-        }}</span>
-      </h1>
-      <div
-        v-if="hasConnections"
-        class="ms-auto flex flex-1 flex-wrap xl:flex-nowrap items-end justify-end gap-2 min-w-0"
-      >
+    <header class="flex flex-col gap-3 px-4 py-3 min-w-0">
+      <div class="flex items-start justify-between gap-3 min-w-0">
+        <div class="min-w-0">
+          <h1 class="text-heading-1 text-n-slate-12">
+            {{ $t('SIDEBAR.CALENDAR_PAGE.TITLE') }}
+          </h1>
+          <p class="mb-0 text-body-main text-n-slate-11">
+            {{ $t('SIDEBAR.CALENDAR_PAGE.DESCRIPTION') }}
+          </p>
+        </div>
+        <div v-if="hasConnections" class="flex shrink-0 items-center gap-1">
+          <Button
+            blue
+            sm
+            icon="i-lucide-plus"
+            :label="$t('SIDEBAR.CALENDAR_PAGE.NEW_EVENT')"
+            :disabled="!selectedCalendarId"
+            @click="openCreate({ dateKey: weekStartKey, hours: 9, minutes: 0 })"
+          />
+          <Button
+            faded
+            slate
+            sm
+            icon="i-lucide-ellipsis-vertical"
+            :title="$t('SIDEBAR.CALENDAR_PAGE.SHOW_CANCELLED')"
+            :aria-expanded="showMenu"
+            aria-controls="calendar-cancelled-visibility"
+            @click="showMenu = !showMenu"
+          />
+        </div>
+      </div>
+      <div v-if="hasConnections" class="flex flex-wrap items-end gap-2 min-w-0">
         <div class="w-40 xl:w-36 2xl:w-44 min-w-[6rem]">
           <OutlinedAttributeField
             :label="$t('SIDEBAR.CALENDAR_PAGE.ACCOUNT')"
@@ -383,9 +404,7 @@ onMounted(loadConnections);
             @select="onCalendarSelect"
           />
         </div>
-        <div
-          class="flex w-full xl:w-auto xl:flex-1 items-center justify-end gap-1 min-w-0"
-        >
+        <div class="ms-auto flex items-center gap-1 min-w-0">
           <Button
             icon="i-lucide-chevron-left"
             faded
@@ -414,24 +433,6 @@ onMounted(loadConnections);
             sm
             :label="$t('SIDEBAR.CALENDAR_PAGE.THIS_WEEK')"
             @click="weekStartKey = startOfWeekKey()"
-          />
-          <Button
-            blue
-            sm
-            icon="i-lucide-plus"
-            :label="$t('SIDEBAR.CALENDAR_PAGE.NEW_EVENT')"
-            :disabled="!selectedCalendarId"
-            @click="openCreate({ dateKey: weekStartKey, hours: 9, minutes: 0 })"
-          />
-          <Button
-            faded
-            slate
-            sm
-            icon="i-lucide-ellipsis-vertical"
-            :title="$t('SIDEBAR.CALENDAR_PAGE.SHOW_CANCELLED')"
-            :aria-expanded="showMenu"
-            aria-controls="calendar-cancelled-visibility"
-            @click="showMenu = !showMenu"
           />
         </div>
       </div>
@@ -477,20 +478,7 @@ onMounted(loadConnections);
       <div
         class="flex flex-wrap items-center gap-3 px-4 py-2 text-xs text-n-slate-11"
       >
-        <div class="flex flex-1 flex-wrap items-center gap-3">
-          <span
-            v-for="status in CALENDAR_LEGEND_STATUSES"
-            :key="status"
-            v-tooltip.top="$t('SIDEBAR.CALENDAR_PAGE.LEGEND_HELP')"
-            class="inline-flex items-center gap-1.5"
-          >
-            <span
-              class="size-2 rounded-full"
-              :class="calendarEventStyle({ appointment_status: status }).dot"
-            />
-            {{ $t(`SIDEBAR.CALENDAR_PAGE.STATUS.${status.toUpperCase()}`) }}
-          </span>
-        </div>
+        <CalendarLegend class="md:hidden flex-1 !flex-row flex-wrap gap-3" />
         <label
           v-if="showMenu"
           id="calendar-cancelled-visibility"

@@ -348,6 +348,7 @@
     "CALENDARS": "Calendars",
     "CALENDAR_PAGE": {
       "TITLE": "Calendars",
+      "DESCRIPTION": "View and schedule appointments across your connected calendars.",
       "CONNECT_CTA": "Connect a calendar",
       "EMPTY": "No calendars connected yet. An administrator can connect Google from Settings → Integrations → Calendars.",
       "NO_EVENTS": "No upcoming events in this range.",

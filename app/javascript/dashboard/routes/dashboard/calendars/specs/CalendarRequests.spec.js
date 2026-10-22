@@ -176,7 +176,11 @@ it('loads the owner options on edit and allows a second connection on create', a
   await wrapper.vm.open({ defaults: { connectionId: '1' } });
   await flushPromises();
   const state = wrapper.vm.$.setupState;
-  const connection = wrapper.findAllComponents({ name: 'ComboBox' })[1];
+  const connection = wrapper
+    .findAllComponents({ name: 'OutlinedSelectField' })
+    .find(
+      field => field.attributes('data-testid') === 'appointment-connection'
+    );
   expect(connection.props('disabled')).toBe(false);
   state.connectionId = '2';
   await flushPromises();

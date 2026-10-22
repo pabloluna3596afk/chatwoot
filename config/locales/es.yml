@@ -380,7 +380,7 @@ es:
         issue_linked: 'Linear issue %{issue_id} was linked by %{user_name}'
         issue_unlinked: 'Linear issue %{issue_id} was unlinked by %{user_name}'
       calendar:
-        event_created: '%{user_name} creó la cita "%{event_title}"'
+        event_created: '%{user_name} creó la cita "%{event_title}" desde la bandeja "%{inbox_name}"'
         event_updated: '%{user_name} actualizó la cita "%{event_title}"'
         event_deleted: '%{user_name} eliminó la cita "%{event_title}"'
       whatsapp_call:
@@ -481,7 +481,7 @@ es:
         Lugar: {{direccion}}
         Videollamada: {{enlace_meet}}
 
-        Si necesitas cambiar la cita, responde a este mensaje.
+        Si necesitas cambiar la cita, contáctanos.
       untitled: '(Sin título)'
       stale: Alguien más cambió este evento. Recarga e intenta de nuevo.
       locked: '%{name} está editando este evento'

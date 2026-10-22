@@ -436,7 +436,7 @@ en:
         issue_linked: 'Linear issue %{issue_id} was linked by %{user_name}'
         issue_unlinked: 'Linear issue %{issue_id} was unlinked by %{user_name}'
       calendar:
-        event_created: '%{user_name} created calendar event "%{event_title}"'
+        event_created: '%{user_name} created calendar event "%{event_title}" from the "%{inbox_name}" inbox'
         event_updated: '%{user_name} updated calendar event "%{event_title}"'
         event_deleted: '%{user_name} deleted calendar event "%{event_title}"'
       whatsapp_call:
@@ -537,7 +537,7 @@ en:
         Place: {{direccion}}
         Video call: {{enlace_meet}}
 
-        If you need to change the appointment, reply to this message.
+        If you need to change the appointment, contact us.
       untitled: '(No title)'
       stale: This event was changed by someone else. Reload and try again.
       locked: '%{name} is editing this event'

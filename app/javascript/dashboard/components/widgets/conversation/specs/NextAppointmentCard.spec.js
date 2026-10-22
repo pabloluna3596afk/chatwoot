@@ -68,7 +68,7 @@ describe('NextAppointmentCard', () => {
     expect(wrapper.find('[data-testid="next-appointment"]').text()).toContain(
       'Cita soon'
     );
-    expect(wrapper.text()).toContain('America/Guayaquil');
+    expect(wrapper.text()).not.toContain('America/Guayaquil');
     expect(wrapper.text()).toContain(
       'CONVERSATION_SIDEBAR.CALENDAR.STATUS.CONFIRMED'
     );
