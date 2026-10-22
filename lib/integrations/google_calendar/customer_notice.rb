@@ -25,14 +25,14 @@ class Integrations::GoogleCalendar::CustomerNotice
     end
   end
 
-  def deliver!
+  def deliver!(additional_attributes: {})
     return false if template.blank?
 
     values = body_values
     message = @conversation.messages.new(
       account_id: @conversation.account_id, inbox_id: @conversation.inbox_id, message_type: :outgoing, sender: @sender,
       content: rendered_body(values),
-      additional_attributes: { 'template_params' => template_params(values), 'calendar_event_id' => @record.id }
+      additional_attributes: additional_attributes.merge('template_params' => template_params(values), 'calendar_event_id' => @record.id)
     )
     message.variables_resolved!
     message.save!

@@ -26,6 +26,8 @@
 class CalendarEvent < ApplicationRecord
   APPOINTMENT_STATUSES = %w[none pending_confirmation confirmed cancelled rescheduled].freeze
   BOOKING_SOURCES = %w[manual ai].freeze
+  CUSTOMER_REMINDER_LEAD_TIME = 24.hours
+  CUSTOMER_REMINDER_PENDING_STATUSES = [nil, 'no_template', 'retry_1', 'retry_2'].freeze
   INVITATION_STATUSES = %w[needs_action accepted declined tentative].freeze
 
   belongs_to :account
@@ -49,6 +51,12 @@ class CalendarEvent < ApplicationRecord
 
   scope :kept, -> { where(deleted_at: nil).where.not(appointment_status: 'cancelled') }
 
+  scope :customer_reminder_pending, lambda {
+    kept.where(customer_reminder_sent_at: nil, customer_reminder_status: CUSTOMER_REMINDER_PENDING_STATUSES)
+        .where.not(booking_source: 'ai').where.not(conversation_id: nil)
+  }
+
+  before_save :reset_customer_reminder, if: :will_save_change_to_start_at?
   before_update :release_booking_key_on_move
   after_commit :broadcast_appointment_change, on: [:create, :update, :destroy]
   after_commit :enqueue_appointment_attributes_update, on: [:create, :update, :destroy]
@@ -66,6 +74,14 @@ class CalendarEvent < ApplicationRecord
   end
 
   private
+
+  def reset_customer_reminder
+    self.customer_reminder_sent_at = nil
+    self.customer_reminder_status = nil
+    return unless account.customer_reminders_enabled == true && !ai_booked? && !bot_followup_enabled?
+
+    self.customer_reminder_status = 'skipped_too_close' if start_at && start_at < Time.current + CUSTOMER_REMINDER_LEAD_TIME
+  end
 
   # A key belongs to the booked interval. Moving (locally or through Google sync) releases it;
   # the moved event keeps its identity, while a new booking of the old interval gets a new event.

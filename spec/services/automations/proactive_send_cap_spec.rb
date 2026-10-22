@@ -50,4 +50,20 @@ RSpec.describe Automations::ProactiveSendCap do
       expect(cap.reserve!).to be(false)
     end
   end
+
+  it 'releases a delayed reservation against its original day' do
+    travel_to(Time.utc(2030, 1, 14, 15))
+    original_date = Time.zone.today
+    old = described_class.new(account)
+    old.reserve!
+    travel_to(Time.utc(2030, 1, 15, 15))
+    today = described_class.new(account)
+    today.reserve!
+    described_class.new(account, date: original_date).release!
+    account.update!(settings: { 'proactive_daily_send_cap' => 1 })
+    expect(today.within_cap?).to be(false)
+    expect(old.within_cap?).to be(true)
+  ensure
+    travel_back
+  end
 end
