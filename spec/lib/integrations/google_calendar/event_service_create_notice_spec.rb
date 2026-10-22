@@ -77,6 +77,25 @@ RSpec.describe Integrations::GoogleCalendar::EventService, '#create' do
     expect { service.create(params.merge(send_to_contact: false)) }.to change(sent_messages, :count).by(1)
   end
 
+  it 'sends it outside the 24-hour window, the only message Meta allows there' do
+    create(:message, conversation: conversation, account: account, inbox: channel.inbox, message_type: :incoming, created_at: 3.days.ago)
+
+    expect { service.create(params) }.to change(sent_messages, :count).by(1)
+    expect(sent_messages.last.additional_attributes['template_params']['name']).to eq('cita_confirmacion')
+  end
+
+  it 'sends it when the inbox is closed by its working hours' do
+    channel.inbox.update!(working_hours_enabled: true)
+    channel.inbox.working_hours.each { |hours| hours.update!(closed_all_day: true) }
+
+    expect { service.create(params) }.to change(sent_messages, :count).by(1)
+  end
+
+  it 'books without a notice when the appointment has no conversation' do
+    expect { service.create(params.except(:conversation_id)) }.not_to change(Message, :count)
+    expect(connection.calendar_events.count).to eq(1)
+  end
+
   it 'does not send it again when the appointment is edited' do
     service.create(params)
 
