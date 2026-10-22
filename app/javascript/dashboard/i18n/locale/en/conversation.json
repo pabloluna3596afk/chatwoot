@@ -534,7 +534,13 @@
     }
   },
   "CONVERSATION_SIDEBAR": {
+    "TOOLS": {
+      "CONVERSATION": "Conversation",
+      "EMPTY": "No data:",
+      "SCHEDULE": "Schedule"
+    },
     "RESPONDER": {
+      "IDLE": "Captain is not answering this conversation",
       "ANSWERING": "Answering: {name}",
       "WAITING_CUSTOMER": "waiting for the customer",
       "ESCALATED": "Handed the conversation to the team"
