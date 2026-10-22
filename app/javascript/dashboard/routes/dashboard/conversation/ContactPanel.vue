@@ -8,6 +8,7 @@ import {
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import { NON_FILE_TYPES } from 'dashboard/components-next/message/constants';
 
 import AccordionItem from 'dashboard/components/Accordion/AccordionItem.vue';
 import ContactConversations from './ContactConversations.vue';
@@ -146,6 +147,37 @@ const contactAdditionalAttributes = computed(
     {}
 );
 
+// Missing cache entries are unknown, not zero. Child sections keep their existing fetches.
+const participantsCount = computed(
+  () =>
+    store.state.conversationWatchers.records[conversationId.value]?.length ??
+    null
+);
+const previousConversationsCount = computed(() => {
+  const records = store.state.contactConversations.records[contactId.value];
+  return records
+    ? records.filter(item => item.id !== Number(conversationId.value)).length
+    : null;
+});
+const contactNotesCount = computed(
+  () => store.state.contactNotes.records[contactId.value]?.length ?? null
+);
+const internalTasksCount = computed(
+  () =>
+    store.state.internalTasks.conversationRecords[conversationId.value]
+      ?.length ?? null
+);
+
+const attachments = useMapGetter('getSelectedChatAttachments');
+const attachmentsLoaded = useMapGetter('getSelectedChatAttachmentsLoaded');
+const sharedFilesCount = computed(() =>
+  attachmentsLoaded.value
+    ? attachments.value.filter(
+        item => item.data_url && !NON_FILE_TYPES.includes(item.file_type)
+      ).length
+    : null
+);
+
 const contactAttributesCount = computed(() => {
   const attributes = contact.value.custom_attributes || {};
   return Object.keys(attributes).length;
@@ -271,6 +303,7 @@ onMounted(() => {
               <AccordionItem
                 :title="$t('CONVERSATION_PARTICIPANTS.SIDEBAR_TITLE')"
                 icon="i-lucide-users"
+                :count="participantsCount"
                 :is-open="isContactSidebarItemOpen('is_conv_participants_open')"
                 compact
                 @toggle="
@@ -347,6 +380,7 @@ onMounted(() => {
                   $t('CONVERSATION_SIDEBAR.ACCORDION.PREVIOUS_CONVERSATION')
                 "
                 icon="i-lucide-history"
+                :count="previousConversationsCount"
                 :is-open="isContactSidebarItemOpen('is_previous_conv_open')"
                 compact
                 @toggle="
@@ -452,6 +486,7 @@ onMounted(() => {
               <AccordionItem
                 :title="$t('CONVERSATION_SIDEBAR.ACCORDION.CONTACT_NOTES')"
                 icon="i-lucide-notebook-pen"
+                :count="contactNotesCount"
                 :is-open="isContactSidebarItemOpen('is_contact_notes_open')"
                 compact
                 @toggle="
@@ -471,6 +506,7 @@ onMounted(() => {
               <AccordionItem
                 :title="$t('CONVERSATION_SIDEBAR.ACCORDION.INTERNAL_TASKS')"
                 icon="i-lucide-list-checks"
+                :count="internalTasksCount"
                 :is-open="isContactSidebarItemOpen('is_internal_tasks_open')"
                 compact
                 @toggle="
@@ -488,6 +524,7 @@ onMounted(() => {
               <AccordionItem
                 :title="$t('CONVERSATION_SIDEBAR.ACCORDION.SHARED_FILES')"
                 icon="i-lucide-paperclip"
+                :count="sharedFilesCount"
                 :is-open="isContactSidebarItemOpen('is_shared_files_open')"
                 compact
                 @toggle="

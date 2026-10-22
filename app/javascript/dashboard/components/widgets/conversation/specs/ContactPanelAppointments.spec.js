@@ -1,9 +1,19 @@
+import { vi } from 'vitest';
 import { flushPromises, shallowMount } from '@vue/test-utils';
 import { computed, ref } from 'vue';
 import { emitter } from 'shared/helpers/mitt';
 import ContactPanel from 'dashboard/routes/dashboard/conversation/ContactPanel.vue';
 import NextAppointmentCard from '../NextAppointmentCard.vue';
 import CalendarEventsList from '../CalendarEventsList.vue';
+
+vi.mock('dashboard/composables', () => ({
+  useAlert: vi.fn(),
+  useTrack: vi.fn(),
+}));
+vi.mock(
+  'dashboard/routes/dashboard/conversation/contact/ContactInfo.vue',
+  () => ({ default: { template: '<div />' } })
+);
 
 const { getContactEvents, dispatch } = vi.hoisted(() => ({
   getContactEvents: vi.fn(),
@@ -30,7 +40,15 @@ vi.mock('dashboard/composables/useUISettings', () => ({
   }),
 }));
 vi.mock('dashboard/composables/store', () => ({
-  useStore: () => ({ dispatch }),
+  useStore: () => ({
+    dispatch,
+    state: {
+      conversationWatchers: { records: {} },
+      contactConversations: { records: {} },
+      contactNotes: { records: {} },
+      internalTasks: { conversationRecords: {} },
+    },
+  }),
   useMapGetter: key =>
     ref(
       {

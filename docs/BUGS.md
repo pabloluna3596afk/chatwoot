@@ -1,5 +1,26 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-187 — Panel de contacto: campos uniformes, contadores y acciones secundarias
+
+**Archivos:** `ContactPanel.vue`, `contact/ContactInfo.vue`, `contact/ContactInfoRow.vue`,
+`OutlinedSelectField.vue`, `AccordionItem.vue` e i18n de contacto en es/en.
+
+**Problema y solución:** las filas de datos, los desplegables y las cabeceras compactas
+tenían alturas distintas. Ahora miden 40 px y alinean los iconos. Combinar y eliminar
+se encuentran en el menú Más; solo administradores ven eliminar y deben confirmar.
+Se reutilizan los diálogos de `components-next`. Los botones de copiar y editar tienen
+nombre accesible. Participantes, conversaciones anteriores, notas, tareas y adjuntos
+muestran el número disponible en la caché, sin nuevas peticiones ni ceros inventados.
+Se mantienen las correcciones previas de campos vacíos, responsables y lápiz táctil.
+Sin backend ni migraciones.
+
+**Cómo probar:** abrir una conversación con contacto completo y otra sin datos, en
+es/en, claro/oscuro y 390 px. Revisar los contadores antes y después de cargar las
+secciones y al cambiar de conversación. Abrir Más como administrador y agente;
+eliminar solo debe despachar la acción después de confirmar. Verificar edición,
+combinación y cierre del menú con Escape. Specs: `ContactInfo`, `ContactInfoRow`,
+`ContactPanelCounts`, `AccordionItem`, `OutlinedSelectField` y regresión de citas.
+
 ### B-NEW-186 — Asignar a Captain desde automatizaciones y macros
 
 **Archivos:** `ActionService`, extensión Enterprise, hook/job de Captain, payload de
