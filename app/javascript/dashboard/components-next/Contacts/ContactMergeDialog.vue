@@ -5,6 +5,10 @@ import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import ContactMerge from 'dashboard/components-next/Contacts/ContactsSidebar/ContactMerge.vue';
 
 defineProps({
+  contentClass: {
+    type: String,
+    default: '',
+  },
   selectedContact: {
     type: Object,
     required: true,
@@ -42,6 +46,7 @@ defineExpose({ open, close });
   >
     <ContactMerge
       :selected-contact="selectedContact"
+      :class="contentClass"
       @go-to-contacts-list="handleGoToContactsList"
       @reset-tab="close"
     />

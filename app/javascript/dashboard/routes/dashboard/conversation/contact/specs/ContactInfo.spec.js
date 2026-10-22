@@ -1,9 +1,32 @@
-import { mount } from '@vue/test-utils';
+import { vi } from 'vitest';
+import { mount, flushPromises } from '@vue/test-utils';
 import { createStore } from 'vuex';
 import ContactInfo from '../ContactInfo.vue';
+import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
+import ContactMergeDialog from 'dashboard/components-next/Contacts/ContactMergeDialog.vue';
+import ConfirmContactDeleteDialog from 'dashboard/components-next/Contacts/ContactsForm/ConfirmContactDeleteDialog.vue';
+import { ref } from 'vue';
+
+vi.mock('dashboard/components-next/Contacts/VoiceCallButton.vue', () => ({
+  default: { template: '<button />' },
+}));
+
+const { push, mergeOpen, deleteOpen } = vi.hoisted(() => ({
+  push: vi.fn(),
+  mergeOpen: vi.fn(),
+  deleteOpen: vi.fn(),
+}));
+const admin = ref(true);
+vi.mock('vue-router', () => ({
+  useRoute: () => ({
+    name: 'conversation_through_inbox',
+    params: { accountId: 1 },
+  }),
+  useRouter: () => ({ push }),
+}));
 
 vi.mock('dashboard/composables/useAdmin', () => ({
-  useAdmin: () => ({ isAdmin: { value: true } }),
+  useAdmin: () => ({ isAdmin: admin }),
 }));
 vi.mock('dashboard/composables/useFeaturedAttributes', () => ({
   useFeaturedAttributes: () => ({ featuredBadges: { value: [] } }),
@@ -17,7 +40,7 @@ const contact = {
   created_at: 1700000000,
 };
 
-const mountInfo = () =>
+const mountInfo = (realDelete = false) =>
   mount(ContactInfo, {
     props: { contact },
     global: {
@@ -27,20 +50,45 @@ const mountInfo = () =>
             getSelectedChat: () => ({ id: 1, meta: { sender: {} } }),
             'contacts/getUIFlags': () => ({}),
           },
-          actions: { 'contacts/fetchContactableInbox': () => {} },
+          actions: {
+            'contacts/fetchContactableInbox': () => {},
+            'contacts/delete': () => {},
+          },
         }),
       ],
       mocks: { $t: key => key, $route: { params: { accountId: 1 } } },
-      directives: { tooltip: () => {} },
       stubs: {
+        Dialog: {
+          props: ['confirmButtonLabel'],
+          data: () => ({ opened: false }),
+          methods: {
+            open() {
+              this.opened = true;
+            },
+            close() {
+              this.opened = false;
+            },
+          },
+          template: `<div v-if="opened"><button @click="$emit('confirm')">{{ confirmButtonLabel }}</button></div>`,
+        },
         ContactInfoRow: true,
         ViewAllConversations: true,
         Avatar: true,
         SocialIcons: true,
         EditContact: true,
-        ContactMergeModal: true,
-        ContactDeleteModal: true,
-        ComposeConversation: true,
+        ContactMergeDialog: {
+          props: ['selectedContact'],
+          template: '<div />',
+          methods: { open: mergeOpen },
+        },
+        ConfirmContactDeleteDialog: realDelete
+          ? false
+          : {
+              props: ['selectedContact'],
+              template: '<div />',
+              setup: () => ({ dialogRef: { open: deleteOpen } }),
+            },
+        ComposeConversation: { template: '<div><slot name="trigger" /></div>' },
         VoiceCallButton: true,
         ContactAssigneeSelector: true,
         FeaturedAttributeBadges: true,
@@ -50,27 +98,96 @@ const mountInfo = () =>
   });
 
 describe('ContactInfo header menu', () => {
-  it('lists profile, edit and creation date only after opening', async () => {
+  beforeEach(() => {
+    admin.value = true;
+  });
+  it('keeps merge and delete inside the more menu', async () => {
     const wrapper = mountInfo();
-    expect(wrapper.vm.showHeaderMenu).toBe(false);
+    expect(wrapper.getComponent(MenuPopover).props('open')).toBe(false);
     await wrapper.get('[data-testid="contact-header-menu"]').trigger('click');
-    const actions = wrapper.vm.headerMenuItems.map(item => item.action);
-    expect(wrapper.vm.showHeaderMenu).toBe(true);
-    expect(actions).toEqual(['profile', 'edit', 'created']);
+    const actions = wrapper
+      .getComponent(MenuPopover)
+      .props('menuItems')
+      .map(item => item.action);
+    expect(wrapper.getComponent(MenuPopover).props('open')).toBe(true);
+    expect(actions).toEqual(['profile', 'edit', 'created', 'merge', 'delete']);
   });
 
-  it('opens the edit modal from the menu and closes it', () => {
+  it('opens the edit modal from the menu and closes it', async () => {
     const wrapper = mountInfo();
-    wrapper.vm.showHeaderMenu = true;
-    wrapper.vm.onHeaderMenuAction({ action: 'edit' });
-    expect(wrapper.vm.showEditModal).toBe(true);
-    expect(wrapper.vm.showHeaderMenu).toBe(false);
+    wrapper.getComponent(MenuPopover).vm.$emit('action', { action: 'edit' });
+    await wrapper.vm.$nextTick();
+    expect(wrapper.getComponent({ name: 'EditContact' }).props('show')).toBe(
+      true
+    );
+    expect(wrapper.getComponent(MenuPopover).props('open')).toBe(false);
+  });
+
+  it('opens merge from the menu without a visible merge button', () => {
+    const wrapper = mountInfo();
+    wrapper.getComponent(MenuPopover).vm.$emit('action', { action: 'merge' });
+    expect(mergeOpen).toHaveBeenCalledOnce();
+    expect(wrapper.find('.i-ph-arrows-merge').exists()).toBe(false);
+    expect(
+      wrapper.getComponent(ContactMergeDialog).props('selectedContact')
+    ).toEqual(contact);
+  });
+
+  it('opens confirmation without deleting the contact', () => {
+    const wrapper = mountInfo();
+    wrapper.getComponent(MenuPopover).vm.$emit('action', { action: 'delete' });
+    expect(deleteOpen).toHaveBeenCalledOnce();
+    expect(
+      wrapper.getComponent(ConfirmContactDeleteDialog).props('selectedContact')
+    ).toEqual(contact);
+    expect(wrapper.find('.i-ph-trash').exists()).toBe(false);
+  });
+
+  it('dispatches deletion only after the shared confirmation is accepted', async () => {
+    const wrapper = mountInfo(true);
+    const dispatch = vi.spyOn(wrapper.vm.$store, 'dispatch');
+    wrapper.getComponent(MenuPopover).vm.$emit('action', { action: 'delete' });
+    await wrapper.vm.$nextTick();
+    expect(dispatch).not.toHaveBeenCalledWith('contacts/delete', contact.id);
+    await wrapper
+      .getComponent(ConfirmContactDeleteDialog)
+      .get('button')
+      .trigger('click');
+    await flushPromises();
+    expect(dispatch).toHaveBeenCalledWith('contacts/delete', contact.id);
+    expect(wrapper.emitted('panelClose')).toHaveLength(1);
+    wrapper.unmount();
+  });
+
+  it('hides deletion and its dialog for agents', () => {
+    admin.value = false;
+    const wrapper = mountInfo();
+    expect(
+      wrapper
+        .getComponent(MenuPopover)
+        .props('menuItems')
+        .map(item => item.action)
+    ).not.toContain('delete');
+    expect(wrapper.findComponent(ConfirmContactDeleteDialog).exists()).toBe(
+      false
+    );
+    wrapper.getComponent(MenuPopover).vm.$emit('action', { action: 'delete' });
+    expect(deleteOpen).not.toHaveBeenCalled();
+  });
+
+  it('leaves the removed contact after confirmation succeeds', () => {
+    const wrapper = mountInfo();
+    wrapper
+      .getComponent(ConfirmContactDeleteDialog)
+      .vm.$emit('goToContactsList');
+    expect(wrapper.emitted('panelClose')).toHaveLength(1);
+    expect(push).toHaveBeenCalled();
   });
 
   it('opens the full profile in a new tab', () => {
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     const wrapper = mountInfo();
-    wrapper.vm.onHeaderMenuAction({ action: 'profile' });
+    wrapper.getComponent(MenuPopover).vm.$emit('action', { action: 'profile' });
     expect(open).toHaveBeenCalledWith(
       '/app/accounts/1/contacts/9',
       '_blank',
