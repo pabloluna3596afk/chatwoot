@@ -68,6 +68,8 @@ class Captain::Assistant < ApplicationRecord
   before_validation :normalize_appointments_config
   before_validation :normalize_followup_config
   before_create :ensure_within_plan_limit
+  after_update_commit -> { account.update_cache_key('inbox') }, if: :saved_change_to_name?
+  after_destroy_commit -> { account.update_cache_key('inbox') }
 
   validates :name, presence: true
   validates :description, presence: true, length: { maximum: DESCRIPTION_LENGTH_LIMIT }

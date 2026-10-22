@@ -557,6 +557,15 @@ en:
       short_description: 'Sync your contacts and conversations with LeadSquared CRM.'
       description: 'Sync your contacts and conversations with LeadSquared CRM. This integration automatically creates leads in LeadSquared when new contacts are added, and logs conversation activity to provide your sales team with complete context.'
   captain:
+    assignment:
+      assigned: 'Assigned to Captain %{name}.'
+      skipped:
+        disabled: 'Captain assignment skipped: Captain is not enabled for this account.'
+        disconnected: 'Captain assignment skipped: This inbox has no Captain connected.'
+        different: 'Captain assignment skipped: The selected assistant is not connected to this inbox.'
+        external_bot: 'Captain assignment skipped: This inbox has an active external bot.'
+        missing_key: 'Captain assignment skipped: Captain is paused because the AI key is missing.'
+        quota_exhausted: 'Captain assignment skipped: Captain is paused because no responses are available.'
     playground:
       responses_limit_reached: 'Your plan responses have run out'
       playground_rate_limit: 'Too many tests. Please try again shortly.'

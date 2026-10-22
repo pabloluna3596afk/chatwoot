@@ -16,6 +16,10 @@ import { getAttributeIcon } from 'dashboard/components-next/filter/helper/filter
 import { provideDropdownTeleport } from 'dashboard/components-next/dropdown-menu/base/provider';
 import { isEmptyValue, validateAutomation } from 'dashboard/helper/validations';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import {
+  captainAssignmentSummary,
+  hasCaptainSelection,
+} from 'dashboard/helper/captainAssignment';
 import { DURATION_UNITS } from 'dashboard/components-next/input/constants';
 import {
   AUTOMATION_RULE_EVENTS,
@@ -77,6 +81,20 @@ const emit = defineEmits(['save']);
 const DATE_SCHEDULE_ATTRIBUTE_TYPES = new Set(['date', 'datetime']);
 
 const automation = defineModel('automation', { type: Object, default: null });
+const captainInboxes = useMapGetter('inboxes/getInboxes');
+const captainSummary = computed(() =>
+  captainAssignmentSummary(
+    automation.value?.conditions || [],
+    automation.value?.actions || [],
+    captainInboxes.value || []
+  )
+);
+const showCaptainSummary = computed(() =>
+  hasCaptainSelection(automation.value?.actions || [])
+);
+const captainSummaryHasIssues = computed(() =>
+  captainSummary.value.some(line => line.status !== 'ok')
+);
 
 const INPUT_TYPE_MAP = {
   multi_select: 'multiSelect',
@@ -698,6 +716,35 @@ defineExpose({ open, close, setLintFindings });
         :remove-action="removeAction"
         :reset-action="resetAction"
       />
+      <div
+        v-if="showCaptainSummary"
+        role="status"
+        class="m-0 grid gap-1 rounded-lg p-3 text-sm"
+        :class="
+          captainSummaryHasIssues
+            ? 'bg-n-amber-2 text-n-amber-11'
+            : 'bg-n-alpha-1 text-n-slate-12'
+        "
+        data-testid="captain-summary"
+      >
+        <p v-if="!captainSummary.length" class="m-0 flex items-center gap-2">
+          <span class="i-woot-captain size-4 shrink-0" />
+          {{ $t('CAPTAIN.ASSIGNMENT.SUMMARY.EACH_INBOX') }}
+        </p>
+        <p
+          v-for="line in captainSummary"
+          :key="line.inbox.id"
+          class="m-0 flex items-center gap-2"
+        >
+          <span class="i-woot-captain size-4 shrink-0" />
+          {{
+            $t(`CAPTAIN.ASSIGNMENT.SUMMARY.${line.status.toUpperCase()}`, {
+              inbox: line.inbox.name,
+              assistant: line.assistant?.name,
+            })
+          }}
+        </p>
+      </div>
       <div
         v-if="hasStatusChangingAction"
         class="w-full mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-n-weak bg-n-solid-2 p-3"

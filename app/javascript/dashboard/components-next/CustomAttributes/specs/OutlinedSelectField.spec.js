@@ -26,6 +26,37 @@ describe('OutlinedSelectField', () => {
     wrapper.unmount();
   });
 
+  it('marks only the assignee whose type matches when a person and an assistant share an id', async () => {
+    const options = [
+      { id: 2, name: 'Soporte', assignee_type: 'User' },
+      { id: 2, name: 'Aurora', assignee_type: 'Captain::Assistant' },
+    ];
+    const wrapper = mount(OutlinedSelectField, {
+      props: { label: 'Agent', options, selectedItem: options[0] },
+      attachTo: document.body,
+    });
+    await wrapper.get('button').trigger('click');
+    const rows = wrapper.getComponent(DropdownMenu).findAll('button');
+    expect(rows[0].find('.i-lucide-check').exists()).toBe(true);
+    expect(rows[1].find('.i-lucide-check').exists()).toBe(false);
+    await wrapper.setProps({ selectedItem: options[1] });
+    expect(
+      wrapper
+        .getComponent(DropdownMenu)
+        .findAll('button')[0]
+        .find('.i-lucide-check')
+        .exists()
+    ).toBe(false);
+    expect(
+      wrapper
+        .getComponent(DropdownMenu)
+        .findAll('button')[1]
+        .find('.i-lucide-check')
+        .exists()
+    ).toBe(true);
+    wrapper.unmount();
+  });
+
   it('keeps a disabled field closed', async () => {
     const wrapper = mount(OutlinedSelectField, {
       props: { label: 'Agent', disabled: true },

@@ -11,6 +11,10 @@ import { getActionIcon } from 'dashboard/helper/automationHelper';
 import { useMacros } from 'dashboard/composables/useMacros';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useStatusLabel } from 'dashboard/composables/useStatusLabel';
+import {
+  isCaptainSelection,
+  captainSelection,
+} from 'dashboard/helper/captainAssignment';
 
 const store = useStore();
 const getters = useStoreGetters();
@@ -71,6 +75,14 @@ const formatMacro = macroData => {
         actionParams = getMacroDropdownValues(action.action_name).filter(item =>
           [...action.action_params].includes(item.id)
         );
+        if (
+          action.action_name === 'assign_agent' &&
+          action.action_params.some(isCaptainSelection)
+        ) {
+          actionParams = action.action_params.map(id =>
+            captainSelection(id, getMacroDropdownValues(action.action_name), t)
+          );
+        }
       } else if (inputType === 'team_message') {
         actionParams = {
           team_ids: getMacroDropdownValues(action.action_name).filter(item =>

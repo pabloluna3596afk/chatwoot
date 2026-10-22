@@ -1,4 +1,9 @@
 import useAutomationValues from './useAutomationValues';
+import { useI18n } from 'vue-i18n';
+import {
+  isCaptainSelection,
+  captainSelection,
+} from 'dashboard/helper/captainAssignment';
 
 import {
   filterCustomAttributes,
@@ -8,6 +13,7 @@ import {
 } from 'dashboard/helper/automationHelper';
 
 export function useEditableAutomation() {
+  const { t } = useI18n();
   const { getConditionDropdownValues, getActionDropdownValues } =
     useAutomationValues();
 
@@ -120,6 +126,14 @@ export function useEditableAutomation() {
       };
     }
     if (inputType === 'multi_select' || inputType === 'search_select') {
+      if (
+        action.action_name === 'assign_agent' &&
+        params.some(isCaptainSelection)
+      ) {
+        return params.map(id =>
+          captainSelection(id, getActionDropdownValues(action.action_name), t)
+        );
+      }
       return [...getActionDropdownValues(action.action_name)].filter(item =>
         [...params].includes(item.id)
       );

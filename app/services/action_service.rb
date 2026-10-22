@@ -54,6 +54,8 @@ class ActionService
   end
 
   def assign_agent(agent_ids = [])
+    return assign_captain(agent_ids.first) if agent_ids.first.to_s.match?(/\Acaptain(?::[1-9]\d*)?\z/) && respond_to?(:assign_captain, true)
+
     if agent_ids[0] == 'nil'
       return Conversations::AssignmentService.new(conversation: @conversation, assignee_id: nil).perform
     end

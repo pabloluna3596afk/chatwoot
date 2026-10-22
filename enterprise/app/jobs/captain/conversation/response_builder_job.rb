@@ -17,6 +17,9 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
 
     return log_non_pending unless conversation_pending?
 
+    assignment_message_id = conversation.additional_attributes['captain_assignment_message_id']
+    return if assignment_message_id && !conversation.messages.captain_response_triggering.exists?(['messages.id > ?', assignment_message_id])
+
     Current.executed_by = @assistant
     return process_reply_limit if @assistant.reply_limit_reached?(conversation)
 

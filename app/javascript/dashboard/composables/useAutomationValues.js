@@ -3,6 +3,7 @@ import { useI18n } from 'vue-i18n';
 import languages from 'dashboard/components/widgets/conversation/advancedFilterItems/languages';
 import countries from 'shared/constants/countries';
 import { useStoreGetters, useMapGetter } from 'dashboard/composables/store';
+import { useCaptainAssignment } from './useCaptainAssignment';
 
 import {
   getActionOptions,
@@ -20,6 +21,7 @@ import {
 export default function useAutomationValues() {
   const getters = useStoreGetters();
   const { t } = useI18n();
+  const { options: captainOptions } = useCaptainAssignment();
   const agents = useMapGetter('agents/getVerifiedAgents');
   const campaigns = useMapGetter('campaigns/getAllCampaigns');
   const contacts = useMapGetter('contacts/getContacts');
@@ -134,6 +136,7 @@ export default function useAutomationValues() {
           name: t('AUTOMATION.LAST_RESPONDING_AGENT'),
         },
         ...agentsList,
+        ...captainOptions.value,
       ];
     }
 

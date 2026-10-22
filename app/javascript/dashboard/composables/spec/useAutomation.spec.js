@@ -24,6 +24,9 @@ vi.mock('dashboard/composables/store');
 vi.mock('dashboard/composables');
 vi.mock('vue-i18n');
 vi.mock('dashboard/helper/automationHelper');
+vi.mock('../useCaptainAssignment', () => ({
+  useCaptainAssignment: () => ({ options: { value: [] } }),
+}));
 
 describe('useAutomation', () => {
   beforeEach(() => {

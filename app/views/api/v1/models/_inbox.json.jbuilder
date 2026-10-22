@@ -2,6 +2,10 @@ json.id resource.id
 json.avatar_url resource.try(:avatar_url)
 json.channel_id resource.channel_id
 json.name resource.name
+if Current.account.feature_enabled?('captain_integration')
+  assistant = resource.captain_assistant
+  json.captain_assistant assistant&.slice(:id, :name)
+end
 json.channel_type resource.channel_type
 json.greeting_enabled resource.greeting_enabled
 json.greeting_message resource.greeting_message

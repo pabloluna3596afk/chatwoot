@@ -455,6 +455,18 @@
     }
   },
   "CAPTAIN": {
+    "ASSIGNMENT": {
+      "GENERAL": "Captain",
+      "DELETED": "Captain (deleted)",
+      "CONNECTED_TO": "Connected to {name}",
+      "UNSUPPORTED_INBOXES": "Captain does not serve these inboxes: {names}",
+      "SUMMARY": {
+        "EACH_INBOX": "The assignment goes to the Captain of each conversation's Inbox.",
+        "OK": "Inbox {inbox} → {assistant} will handle it.",
+        "NONE": "Inbox {inbox} → no Captain, nothing will be assigned.",
+        "DIFFERENT": "Inbox {inbox} → handled by {assistant}, not the selected one; nothing will be assigned."
+      }
+    },
     "NAME": "Captain",
     "HEADER_KNOW_MORE": "Know more",
     "OVERVIEW": {
