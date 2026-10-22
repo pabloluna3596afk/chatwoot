@@ -20,6 +20,94 @@ RSpec.describe Captain::AudienceMatcher do
     described_class.new(audience).matches?(contact, conversation)
   end
 
+  describe '#first_failure' do
+    let(:first) do
+      {
+        'attribute_key' => 'email',
+        'filter_operator' => 'contains',
+        'values' => ['example.invalid']
+      }
+    end
+    let(:second) do
+      {
+        'attribute_key' => 'phone_number',
+        'filter_operator' => 'contains',
+        'values' => ['+593']
+      }
+    end
+    let(:matching) do
+      {
+        'attribute_key' => 'city',
+        'filter_operator' => 'equal_to',
+        'values' => ['Boston']
+      }
+    end
+
+    before { contact.update!(phone_number: nil, email: 'person@example.com') }
+
+    it 'returns the first failing leaf in an AND containing a failing OR' do
+      audience = {
+        operator: 'and',
+        conditions: [matching, { operator: 'or', conditions: [first, second] }]
+      }
+
+      expect(described_class.new(audience).first_failure(contact, conversation)).to eq(
+        condition: first,
+        missing_data: false
+      )
+    end
+
+    it 'returns the first failing leaf in an OR of failing AND groups' do
+      audience = {
+        operator: 'or',
+        conditions: [
+          { operator: 'and', conditions: [matching, second] },
+          { operator: 'and', conditions: [first, matching] }
+        ]
+      }
+
+      expect(described_class.new(audience).first_failure(contact, conversation)).to eq(
+        condition: second,
+        missing_data: true
+      )
+    end
+
+    it 'ignores failed branches in an OR that matches' do
+      audience = {
+        operator: 'and',
+        conditions: [{ operator: 'or', conditions: [second, matching] }, first]
+      }
+
+      expect(described_class.new(audience).first_failure(contact, conversation)).to eq(
+        condition: first,
+        missing_data: false
+      )
+    end
+
+    it 'does not return a failure when an OR matches after a failed branch' do
+      audience = {
+        operator: 'or',
+        conditions: [{ operator: 'and', conditions: [first, second] }, matching]
+      }
+
+      expect(described_class.new(audience).first_failure(contact, conversation)).to be_nil
+    end
+
+    it 'returns no failure for a blank audience' do
+      expect(described_class.new(nil).first_failure(contact, conversation)).to be_nil
+    end
+
+    it 'keeps successful missing-data operators successful' do
+      audience = {
+        attribute_key: 'phone_number',
+        filter_operator: 'is_not_present',
+        values: []
+      }
+
+      expect(described_class.new(audience).first_failure(contact, conversation)).to be_nil
+    end
+  end
+
   describe '#matches?' do
     it 'returns true when the audience is blank' do
       expect(matches?(nil)).to be(true)

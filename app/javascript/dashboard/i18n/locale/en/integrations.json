@@ -933,6 +933,15 @@
           "GROUP_CONTACT": "Contact attributes",
           "GROUP_CONVERSATION": "Conversation",
           "GROUP_CUSTOM": "Custom attributes",
+          "CHANNEL_WARNING": "The condition “{attribute}” does not apply to {channels}: those contacts do not have {attribute}, so Captain will not take their conversations.",
+          "CHANNELS": {
+            "INSTAGRAM": "Instagram",
+            "MESSENGER": "Messenger",
+            "WEB": "Web chat",
+            "EMAIL": "Email",
+            "WHATSAPP": "WhatsApp",
+            "SMS": "SMS"
+          },
           "BROWSER_LANGUAGE": "Browser language",
           "CONVERSATION_LANGUAGE": "First message language",
           "LOGGED_IN": "Logged-in user",

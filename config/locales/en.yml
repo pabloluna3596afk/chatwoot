@@ -566,6 +566,52 @@ en:
       short_description: 'Sync your contacts and conversations with LeadSquared CRM.'
       description: 'Sync your contacts and conversations with LeadSquared CRM. This integration automatically creates leads in LeadSquared when new contacts are added, and logs conversation activity to provide your sales team with complete context.'
   captain:
+    engagement:
+      out_of_hours: >-
+        %{assistant} did not take this conversation: outside its working hours.
+      audience_missing_data: >-
+        %{assistant} did not take this conversation: the audience requires %{attribute} and this contact does not have it
+        (%{channel}).
+      audience_no_match: >-
+        %{assistant} did not take this conversation: the contact does not match the rule “%{attribute} %{operator} %{value}”.
+      attributes:
+        name: "Name"
+        email: "Email"
+        phone_number: "Phone number"
+        identifier: "Identifier"
+        blocked: "Blocked"
+        created_at: "Created at"
+        last_activity_at: "Last activity"
+        city: "City"
+        company_name: "Company"
+        document_number: "Document number"
+        country_code: "Country name"
+        labels: "Labels"
+        hmac_verified: "Logged-in user"
+        browser_language: "Browser language"
+      operators:
+        equal_to: "Equal to"
+        not_equal_to: "Not equal to"
+        does_not_contain: "Does not contain"
+        is_present: "Is present"
+        is_not_present: "Is not present"
+        is_greater_than: "Is greater than"
+        is_less_than: "Is lesser than"
+        days_before: "Is x days before"
+        starts_with: "Starts with"
+        contains: "Contains"
+      channels:
+        whatsapp: "WhatsApp"
+        instagram: "Instagram"
+        messenger: "Messenger"
+        web: "Web chat"
+        email: "Email"
+        sms: "SMS"
+        api: "API"
+        telegram: "Telegram"
+        line: "LINE"
+        twitter: "X"
+        tiktok: "TikTok"
     assignment:
       assigned: 'Assigned to Captain %{name}.'
       skipped:

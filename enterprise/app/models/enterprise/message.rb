@@ -33,7 +33,11 @@ module Enterprise::Message
     assistant = conversation.inbox.captain_assistant
 
     return super if assistant.blank? || conversation.inbox.external_bot_active?
-    return conversation.open! unless assistant.engages?(conversation.contact, conversation)
+    result = assistant.engagement_result(conversation.contact, conversation)
+    unless result[:engages]
+      conversation.record_captain_skip(assistant, result)
+      return conversation.open!
+    end
 
     super
     own_reopened_conversation(assistant)

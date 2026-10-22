@@ -510,6 +510,51 @@ es:
       short_description: 'Sync your contacts and conversations with LeadSquared CRM.'
       description: 'Sync your contacts and conversations with LeadSquared CRM. This integration automatically creates leads in LeadSquared when new contacts are added, and logs conversation activity to provide your sales team with complete context.'
   captain:
+    engagement:
+      out_of_hours: >-
+        %{assistant} no atendió esta conversación: fuera de su horario de atención.
+      audience_missing_data: >-
+        %{assistant} no atendió esta conversación: la audiencia pide %{attribute} y este contacto no lo tiene (%{channel}).
+      audience_no_match: >-
+        %{assistant} no atendió esta conversación: el contacto no cumple la regla «%{attribute} %{operator} %{value}».
+      attributes:
+        name: "Nombre"
+        email: "E-mail"
+        phone_number: "Número de teléfono"
+        identifier: "Identificador"
+        blocked: "Bloqueado"
+        created_at: "Creado el"
+        last_activity_at: "Última actividad"
+        city: "Ciudad"
+        company_name: "Empresa"
+        document_number: "Documento de identidad"
+        country_code: "Nombre del país"
+        labels: "Etiquetas"
+        hmac_verified: "Usuario con sesión iniciada"
+        browser_language: "Idioma del navegador"
+      operators:
+        equal_to: "Igual a"
+        not_equal_to: "No igual a"
+        does_not_contain: "No contiene"
+        is_present: "Está presente"
+        is_not_present: "No está presente"
+        is_greater_than: "Es mayor que"
+        is_less_than: "Es menor que"
+        days_before: "Es X días antes"
+        starts_with: "Empieza con"
+        contains: "Contiene"
+      channels:
+        whatsapp: "WhatsApp"
+        instagram: "Instagram"
+        messenger: "Messenger"
+        web: "Chat web"
+        email: "Correo"
+        sms: "SMS"
+        api: "API"
+        telegram: "Telegram"
+        line: "LINE"
+        twitter: "X"
+        tiktok: "TikTok"
     assignment:
       assigned: 'Asignada a Captain %{name}.'
       skipped:

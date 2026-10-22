@@ -23,7 +23,34 @@ class Captain::AudienceMatcher
     matches_node?(@root)
   end
 
+  def first_failure(contact, conversation)
+    return if @root.blank?
+
+    @contact = contact
+    @conversation = conversation
+    failure = first_failed_node(@root)
+    return unless failure
+
+    actual = attribute_value(failure[:attribute_key])
+    { condition: failure.slice(:attribute_key, :filter_operator, :values), missing_data: actual != false && actual.blank? }
+  end
+
   private
+
+  def first_failed_node(node)
+    node = node.with_indifferent_access
+    return matches_leaf?(node) ? nil : node unless node.key?(:conditions)
+
+    first_failure = nil
+    Array(node[:conditions]).each do |child|
+      failure = first_failed_node(child)
+      return if failure.nil? && node[:operator].to_s.casecmp?('or')
+      return failure if failure && !node[:operator].to_s.casecmp?('or')
+
+      first_failure ||= failure
+    end
+    first_failure
+  end
 
   def matches_node?(node)
     node = node.with_indifferent_access
