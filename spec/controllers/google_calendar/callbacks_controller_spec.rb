@@ -35,6 +35,22 @@ RSpec.describe 'Google Calendar OAuth callback', :real_redis, type: :request do
     expect(account.calendar_connections.count).to eq(1)
   end
 
+  it 'creates the contact attributes of appointments with the first connection' do
+    allow(Calendar::AppointmentAttributes::BackfillJob).to receive(:perform_later)
+
+    get '/google_calendar/callback', params: { state: state, code: 'valid-code' }
+
+    expect(account.reload.appointment_attributes['keys']).to match_array(Calendar::AppointmentAttributes::Definitions::TYPES.keys)
+  end
+
+  it 'keeps the attributes the administrator already chose when another calendar connects' do
+    account.update!(appointment_attributes: { 'keys' => %w[total_citas], 'enabled_keys' => %w[total_citas], 'results' => {} })
+
+    get '/google_calendar/callback', params: { state: state, code: 'valid-code' }
+
+    expect(account.reload.appointment_attributes['keys']).to eq(%w[total_citas])
+  end
+
   it 'reconnects by email, retaining the refresh token when Google omits it' do
     connection = account.calendar_connections.create!(provider: :google, email: 'agenda@example.com', refresh_token: 'old-refresh')
     tokens.delete('refresh_token')

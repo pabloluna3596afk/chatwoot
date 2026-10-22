@@ -6,7 +6,7 @@ class Whatsapp::BotTemplateBlueprintService
       name: 'palu_reenganche',
       language: 'es',
       category: 'MARKETING',
-      body: 'Hola {{1}}, hace un tiempo conversamos y queríamos saber si aún te podemos ayudar. Respondé este mensaje para continuar.',
+      body: 'Hola {{1}}, hace un tiempo conversamos y queríamos saber si aún te podemos ayudar. Responde este mensaje para continuar.',
       body_example: [['María']],
       buttons: []
     },
@@ -14,7 +14,7 @@ class Whatsapp::BotTemplateBlueprintService
       name: 'palu_cita_confirmacion',
       language: 'es',
       category: 'UTILITY',
-      body: 'Hola {{1}}, te agendamos "{{2}}" el {{3}} a las {{4}}. ¿Confirmás tu asistencia?',
+      body: 'Hola {{1}}, te agendamos "{{2}}" el {{3}} a las {{4}}. ¿Confirmas tu asistencia?',
       body_example: [['María', 'Consulta', '23/08/2026', '10:00']],
       buttons: %w[Confirmar Reagendar Cancelar]
     },
@@ -22,7 +22,7 @@ class Whatsapp::BotTemplateBlueprintService
       name: 'palu_cita_recordatorio',
       language: 'es',
       category: 'UTILITY',
-      body: 'Hola {{1}}, recordatorio: "{{2}}" es el {{3}} a las {{4}}. ¿Seguís disponible?',
+      body: 'Hola {{1}}, recordatorio: "{{2}}" es el {{3}} a las {{4}}. ¿Sigues disponible?',
       body_example: [['María', 'Consulta', '24/08/2026', '10:00']],
       buttons: %w[Confirmar Reagendar Cancelar]
     }
