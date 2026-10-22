@@ -37,11 +37,15 @@ class Captain::AudienceValidator < ActiveModel::Validator
     audience = record.config['audience']
     return if audience.blank?
 
-    custom_attribute_types = record.account.custom_attribute_definitions.contact_attribute.each_with_object({}) do |definition, types|
+    record.errors.add(:config, 'audience must be a valid condition tree') unless valid_tree?(audience, record.account)
+  end
+
+  def valid_tree?(audience, account)
+    custom_attribute_types = account.custom_attribute_definitions.contact_attribute.each_with_object({}) do |definition, types|
       types[definition.attribute_key] = definition.attribute_display_type
     end
 
-    record.errors.add(:config, 'audience must be a valid condition tree') unless valid_node?(audience, 1, custom_attribute_types)
+    valid_node?(audience, 1, custom_attribute_types)
   end
 
   private
