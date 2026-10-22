@@ -456,18 +456,15 @@
   },
   "CAPTAIN": {
     "ASSIGNMENT": {
-      "GENERAL": "Captain (asistente de la Bandeja)",
+      "GENERAL": "Captain",
       "DELETED": "Captain (eliminado)",
-      "MODE": "Captain",
-      "ASSISTANT": "Asistente (opcional)",
-      "NEXT_MESSAGE": "Captain responde al siguiente mensaje del cliente. La conversación quedará pendiente.",
       "CONNECTED_TO": "Conectada a {name}",
       "UNSUPPORTED_INBOXES": "Captain no atiende estas Bandejas: {names}",
       "SUMMARY": {
         "EACH_INBOX": "Se asignará al Captain de la Bandeja de cada conversación.",
-        "OK": "Bandeja {inbox} → atiende Captain {assistant}.",
+        "OK": "Bandeja {inbox} → atiende {assistant}.",
         "NONE": "Bandeja {inbox} → sin Captain, no se asignará.",
-        "DIFFERENT": "Bandeja {inbox} → la atiende Captain {assistant}, no el elegido; no se asignará."
+        "DIFFERENT": "Bandeja {inbox} → la atiende {assistant}, no el elegido; no se asignará."
       }
     },
     "NAME": "Captain",

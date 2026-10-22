@@ -4,6 +4,7 @@ export const isCaptainSelection = value =>
 export const captainSelection = (id, options, t) =>
   options.find(option => option.id === id) || {
     id,
+    icon: 'i-woot-captain',
     name:
       id === 'captain'
         ? t('CAPTAIN.ASSIGNMENT.GENERAL')

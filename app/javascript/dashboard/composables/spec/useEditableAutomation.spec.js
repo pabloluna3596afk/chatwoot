@@ -26,7 +26,11 @@ describe('useEditableAutomation', () => {
       [{ key: 'assign_agent', inputType: 'search_select' }]
     );
     expect(result.actions[0].action_params).toEqual([
-      { id: 'captain:999', name: 'CAPTAIN.ASSIGNMENT.DELETED' },
+      {
+        id: 'captain:999',
+        name: 'CAPTAIN.ASSIGNMENT.DELETED',
+        icon: 'i-woot-captain',
+      },
     ]);
   });
   beforeEach(() => {

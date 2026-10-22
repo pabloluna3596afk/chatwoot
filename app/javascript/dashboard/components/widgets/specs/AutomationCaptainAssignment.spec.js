@@ -74,14 +74,18 @@ describe('Captain in the shared action editor', () => {
       const select = wrapper.findAllComponents(SingleSelect)[1];
       expect(select.props('options')).toEqual(
         expect.arrayContaining([
-          { id: 'captain', name: 'CAPTAIN.ASSIGNMENT.GENERAL' },
-          { id: 'captain:7', name: 'Captain · Ventas' },
+          {
+            id: 'captain',
+            name: 'CAPTAIN.ASSIGNMENT.GENERAL',
+            icon: 'i-woot-captain',
+          },
+          { id: 'captain:7', name: 'Ventas', icon: 'i-woot-captain' },
           { id: 3, name: 'Ana' },
         ])
       );
       await select.vm.$emit('update:modelValue', {
         id: 'captain:7',
-        name: 'Captain · Ventas',
+        name: 'Ventas',
       });
       expect(
         actionQueryGenerator([wrapper.vm.action])[0].action_params
@@ -95,7 +99,11 @@ describe('Captain in the shared action editor', () => {
     const wrapper = mount(Host, { props: { selected: 'captain:99' } });
     expect(
       wrapper.findAllComponents(SingleSelect)[1].props('options')
-    ).toContainEqual({ id: 'captain:99', name: 'CAPTAIN.ASSIGNMENT.DELETED' });
+    ).toContainEqual({
+      id: 'captain:99',
+      name: 'CAPTAIN.ASSIGNMENT.DELETED',
+      icon: 'i-woot-captain',
+    });
     expect(actionQueryGenerator([wrapper.vm.action])[0].action_params).toEqual([
       'captain:99',
     ]);

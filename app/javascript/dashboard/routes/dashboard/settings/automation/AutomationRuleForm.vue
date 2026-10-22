@@ -727,10 +727,16 @@ defineExpose({ open, close, setLintFindings });
         "
         data-testid="captain-summary"
       >
-        <p v-if="!captainSummary.length" class="m-0">
+        <p v-if="!captainSummary.length" class="m-0 flex items-center gap-2">
+          <span class="i-woot-captain size-4 shrink-0" />
           {{ $t('CAPTAIN.ASSIGNMENT.SUMMARY.EACH_INBOX') }}
         </p>
-        <p v-for="line in captainSummary" :key="line.inbox.id" class="m-0">
+        <p
+          v-for="line in captainSummary"
+          :key="line.inbox.id"
+          class="m-0 flex items-center gap-2"
+        >
+          <span class="i-woot-captain size-4 shrink-0" />
           {{
             $t(`CAPTAIN.ASSIGNMENT.SUMMARY.${line.status.toUpperCase()}`, {
               inbox: line.inbox.name,

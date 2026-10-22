@@ -44,7 +44,7 @@ module Enterprise::ActionService
   end
 
   def captain_assignment_source
-    @flow_run ? MessageSourceAttributes.for_flow(@flow_run) : business_rule_block_source_attributes
+    business_rule_block_source_attributes
   end
 
   def record_captain_assignment(assistant)
@@ -56,11 +56,5 @@ module Enterprise::ActionService
     content = I18n.t('captain.assignment.skipped', locale: @account.locale).fetch(reason)
     source = captain_assignment_source
     Conversations::SystemAuditNote.perform(conversation: @conversation, content: content, content_attributes: source)
-    return unless @flow_run
-
-    FlowEvent.create!(
-      flow_run: @flow_run, event_type: 'captain_assignment_skipped', node_id: @flow_run.current_node_id,
-      data: { reason: reason }, created_at: Time.current
-    )
   end
 end

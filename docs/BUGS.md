@@ -1,17 +1,17 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
-### B-NEW-186 — Asignar a Captain desde automatizaciones, macros y flujos
+### B-NEW-186 — Asignar a Captain desde automatizaciones y macros
 
-**Archivos:** `ActionService`, extensión Enterprise, `Flows::ExitPolicyService`,
-hook/job de Captain, payload de Bandejas, editores compartidos, `FlowFooter`,
-`ConnectInboxForm` y onboarding del asistente.
+**Archivos:** `ActionService`, extensión Enterprise, hook/job de Captain, payload de
+Bandejas, editores de automatizaciones y macros, `ConnectInboxForm` y onboarding
+del asistente. Los Flujos quedan fuera (van a salir del sistema).
 
 **Problema y solución:** «Asignar al agente» solo aceptaba personas. Ahora acepta
 `captain` y `captain:<id>` y reutiliza `Conversations::AssignmentService`: quita al
 humano, asigna al asistente conectado y deja Pendiente. La orden explícita no
 reevalúa audiencia ni horario. Sin función, conexión, coincidencia del asistente,
 clave/cupo, o con bot externo activo, conserva estado/responsable y deja una nota
-privada con el motivo; los flujos también registran el evento. La repetición de
+privada con el motivo. La repetición de
 una asignación pendiente al mismo Captain no escribe. El hook y los trabajos ya
 encolados esperan un mensaje del cliente posterior a la orden.
 
@@ -21,7 +21,7 @@ guardado. Las Bandejas ocupadas siguen visibles, deshabilitadas y con el nombre
 del asistente conectado. El payload precarga esa asociación y su caché se
 invalida al conectar, desconectar o renombrar. Sin migraciones.
 
-**Cómo probar:** elegir Captain en una regla/macro/paso o en Reglas de salida;
+**Cómo probar:** elegir Captain en una regla o macro;
 probar cada guarda, conversación resuelta y humano asignado; comprobar que solo
 responde al siguiente mensaje del cliente. Reabrir una regla con asistente
 eliminado y conectar una Bandeja ocupada. Evidencia local y límites de la

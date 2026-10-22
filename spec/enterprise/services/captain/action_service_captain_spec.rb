@@ -103,34 +103,6 @@ RSpec.describe ActionService do
     expect(conversation.reload.ai_assignee).to eq(assistant)
   end
 
-  it 'records a skipped flow step with its reason' do
-    flow = Flow.create!(account: account, name: 'Captain')
-    run = FlowRun.create!(account: account, flow: flow, conversation: conversation)
-    inbox.captain_inbox.destroy!
-    Flows::ActionService.new(conversation: conversation, flow_run: run).execute(action_name: 'assign_agent', action_params: ['captain'])
-    expect(run.flow_events.last).to have_attributes(event_type: 'captain_assignment_skipped', data: include('reason' => 'disconnected'))
-  end
-
-  it 'assigns Captain on flow exit even when the configured status is resolved' do
-    flow = Flow.create!(account: account, name: 'Captain', exit_policy: {
-                          on_complete: { status: 'resolved', assignee_mode: 'captain', assistant_id: assistant.id }
-                        })
-    run = FlowRun.create!(account: account, flow: flow, conversation: conversation)
-    Flows::ExitPolicyService.new(run: run, event: 'on_complete').perform
-    expect(conversation.reload).to have_attributes(ai_assignee: assistant, status: 'pending', assignee_id: nil)
-  end
-
-  it 'preserves status and ownership on a blocked Captain flow exit and records the reason' do
-    flow = Flow.create!(account: account, name: 'Captain', exit_policy: {
-                          on_complete: { status: 'resolved', assignee_mode: 'captain' }
-                        })
-    run = FlowRun.create!(account: account, flow: flow, conversation: conversation)
-    inbox.captain_inbox.destroy!
-    Flows::ExitPolicyService.new(run: run, event: 'on_complete').perform
-    expect(conversation.reload).to have_attributes(status: 'open', assignee_id: agent.id)
-    expect(run.flow_events.where(event_type: 'captain_assignment_skipped').last.data).to include('reason' => 'disconnected')
-  end
-
   %w[captain captain:123].each do |selector|
     it "round trips #{selector} through automation validation and the single value linter" do
       rule = create(:automation_rule, account: account, actions: [{ action_name: 'assign_agent', action_params: [selector] }])

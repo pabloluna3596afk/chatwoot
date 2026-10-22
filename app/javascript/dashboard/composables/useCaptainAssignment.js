@@ -19,10 +19,15 @@ export function useCaptainAssignment() {
   const options = computed(() => {
     if (!enabled.value || !assistants.value?.length) return [];
     return [
-      { id: 'captain', name: t('CAPTAIN.ASSIGNMENT.GENERAL') },
+      {
+        id: 'captain',
+        name: t('CAPTAIN.ASSIGNMENT.GENERAL'),
+        icon: 'i-woot-captain',
+      },
       ...assistants.value.map(assistant => ({
         id: `captain:${assistant.id}`,
-        name: `Captain · ${assistant.name}`,
+        name: assistant.name,
+        icon: 'i-woot-captain',
       })),
     ];
   });
