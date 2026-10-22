@@ -42,9 +42,41 @@ RSpec.describe 'Calendar activation kit API', type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.parsed_body['results'].keys).to eq([channel.inbox.id.to_s])
     expect(response.parsed_body['inboxes'].first).to include('cancel_status' => 'missing', 'cancel_rejected_reason' => nil)
-    expect(service).to have_received(:create).twice
+    expect(service).to have_received(:create).exactly(3).times
     expect(response.parsed_body['results'][channel.inbox.id.to_s]).to include(
-      'status' => 'pending', 'cancel' => { 'status' => 'pending' }
+      'status' => 'pending', 'cancel' => { 'status' => 'pending' }, 'reminder' => { 'status' => 'pending' }
     )
+  end
+
+  it 'exposes the switch off by default and the third template' do
+    get url, headers: agent.create_new_auth_token, as: :json
+    expect(response.parsed_body['reminder_enabled']).to be(false)
+    expect(response.parsed_body['reminder_template']).to include('name' => 'cita_recordatorio')
+  end
+
+  [true, false].each do |enabled|
+    it "lets administrators save reminder_enabled #{enabled} without submitting the kit" do
+      account.update!(settings: { 'reporting_timezone' => 'UTC' })
+      patch url, params: { reminder_enabled: enabled }, headers: admin.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:ok)
+      expect(account.reload.customer_reminders_enabled).to be(enabled)
+      expect(account.reporting_timezone).to eq('UTC')
+      expect(response.parsed_body['reminder_enabled']).to be(enabled)
+      expect(Calendar::AppointmentAttributes::BackfillJob).not_to have_received(:perform_later)
+    end
+  end
+
+  it 'forbids agents from changing the reminder switch' do
+    patch url, params: { reminder_enabled: true }, headers: agent.create_new_auth_token, as: :json
+    expect(response).to have_http_status(:unauthorized)
+    expect(account.reload.customer_reminders_enabled).to be_nil
+  end
+
+  ['true', 1, nil, [], {}].each do |invalid|
+    it "rejects malformed switch input #{invalid.inspect}" do
+      patch url, params: { reminder_enabled: invalid }, headers: admin.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(account.reload.customer_reminders_enabled).to be_nil
+    end
   end
 end

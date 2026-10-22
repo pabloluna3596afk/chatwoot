@@ -77,4 +77,27 @@ RSpec.describe Integrations::GoogleCalendar::CustomerNotice do
       expect(outgoing).to be_empty
     end
   end
+
+  context 'with the reminder template' do
+    let(:templates) do
+      [{ 'name' => 'cita_recordatorio', 'language' => account.locale, 'status' => 'APPROVED', 'category' => 'UTILITY' }]
+    end
+    let(:notice) do
+      described_class.new(conversation: conversation, record: appointment, timezone: 'America/Guayaquil',
+                          template_name: Calendar::ActivationKit::REMINDER_TEMPLATE_NAME)
+    end
+
+    %w[es en].each do |locale|
+      it "resolves all reminder variables in #{locale} and preserves delivery metadata" do
+        account.update!(locale: locale)
+        notice.deliver!(additional_attributes: { 'customer_reminder' => { 'attempt' => 1 } })
+        expect(outgoing.last.additional_attributes).to include('calendar_event_id' => appointment.id,
+                                                             'customer_reminder' => { 'attempt' => 1 })
+        expect(outgoing.last.additional_attributes['template_params']).to include('name' => 'cita_recordatorio', 'language' => locale)
+        values = outgoing.last.additional_attributes.dig('template_params', 'processed_params', 'body')
+        expect(values).to include('nombre' => contact.name, 'cita' => 'Consulta', 'hora' => '10:00')
+        expect(values['fecha']).to eq(locale == 'es' ? '15/01/2030' : '01/15/2030')
+      end
+    end
+  end
 end
