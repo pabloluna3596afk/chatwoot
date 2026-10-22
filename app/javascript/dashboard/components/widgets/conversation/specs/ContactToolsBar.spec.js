@@ -33,7 +33,7 @@ const tools = [
 ];
 
 describe('ContactToolsBar', () => {
-  it('renders each tool once, active rows first and idle icons together below a separator', async () => {
+  it('renders each tool once, active rows first and idle icons together in one pill', async () => {
     const onClick = vi.fn();
     const wrapper = mount(ContactToolsBar, {
       props: {
@@ -55,21 +55,21 @@ describe('ContactToolsBar', () => {
     expect(wrapper.find('[data-tool="payment"]').element.parentElement).toBe(
       wrapper.find('[data-tool="cart"]').element.parentElement
     );
-    expect(wrapper.find('[data-testid="tools-separator"]').exists()).toBe(true);
+    expect(wrapper.findAll('[data-testid="idle-tools"]')).toHaveLength(1);
     await wrapper.find('[data-tool="calendar"] .truncate').trigger('click');
-    await wrapper.find('[data-tool="calendar"] .size-8').trigger('click');
+    await wrapper.find('[data-tool="calendar"] .size-4').trigger('click');
     await wrapper.find('[data-tool="cart"]').trigger('click');
     expect(onClick).toHaveBeenCalledTimes(3);
   });
 
   it.each(['idle', 'active'])(
-    'omits the separator when all tools are %s',
+    'groups idle tools only when all tools are %s',
     state => {
       const wrapper = mount(ContactToolsBar, {
         props: { tools: tools.map(tool => ({ ...tool, state })) },
       });
-      expect(wrapper.find('[data-testid="tools-separator"]').exists()).toBe(
-        false
+      expect(wrapper.find('[data-testid="idle-tools"]').exists()).toBe(
+        state === 'idle'
       );
       expect(wrapper.findAll('[data-tool]')).toHaveLength(4);
       expect(wrapper.text().includes('3 productos')).toBe(state === 'active');
@@ -86,7 +86,7 @@ describe('ContactToolsBar', () => {
       },
     });
     expect(wrapper.findAll('[data-tool]')).toHaveLength(1);
-    expect(wrapper.find('.bg-n-amber-3').exists()).toBe(true);
+    expect(wrapper.find('.text-n-amber-11').exists()).toBe(true);
     expect(wrapper.find('button').attributes('title')).toBe('Captain');
   });
 

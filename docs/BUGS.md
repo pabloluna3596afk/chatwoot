@@ -1,5 +1,12 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-189 - Compact contact tools and restored conversation accordions
+
+- Files: `ContactToolsBar.vue`, `ContactPanel.vue`, `ConversationAction.vue` and their toolbar/count specs.
+- Fix: supersedes the panel organization in B-NEW-188. Restore Conversation actions with its four fields, the original section order and SidebarVisibilityMenu; keep empty sections visible with their counters. Remove the Conversation heading and empty-section summary. Keep the approved chevrons, contact menu, message/call controls and tools registry.
+- Tools: one compact 36 px pill per active tool, 16 px colored icon and a single truncated legend; one shared gray pill for idle tools. No exterior box, separator or 32 px icon buttons. Keep calendar opening/creation and appointment refresh behavior.
+- Verify: 28 tests passed in UTC and America/Guayaquil (tools, toolbar, calendar panel actions, section counts/order/visibility, contact menu, chevrons). ESLint: zero errors, existing root-v-if warning. Six reviewed `barra2-preset-{1,2,4}-390-{light,dark}.png` captures; all pills 36 px, no horizontal overflow. No backend or migrations.
+
 ### B-NEW-188 — Herramientas del contacto sin duplicados y secciones por contenido
 
 **Archivos:** `ContactToolsBar.vue`, `useContactTools.js`, `ContactPanel.vue`,

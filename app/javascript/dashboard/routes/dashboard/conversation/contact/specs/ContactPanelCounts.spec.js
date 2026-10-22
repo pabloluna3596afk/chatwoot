@@ -34,12 +34,10 @@ const senderId = ref(7);
 const attachments = ref(null);
 const dispatch = vi.fn();
 const visible = ref([...sections]);
-const open = reactive({});
-const updateUISettings = vi.fn(settings => Object.assign(open, settings));
 vi.mock('dashboard/composables/useUISettings', () => ({
   useUISettings: () => ({
-    updateUISettings,
-    isContactSidebarItemOpen: key => !!open[key],
+    updateUISettings: vi.fn(),
+    isContactSidebarItemOpen: () => false,
     conversationSidebarItemsOrder: ref(sections.map(name => ({ name }))),
     conversationSidebarVisibleItems: visible,
     toggleSidebarUIState: vi.fn(),
@@ -75,6 +73,9 @@ const mountPanel = () =>
       mocks: { $t: key => key },
       stubs: {
         'woot-feature-toggle': true,
+        SidebarActionsHeader: {
+          template: '<div><slot name="actions" /></div>',
+        },
         Draggable: {
           props: ['list'],
           template:
@@ -84,13 +85,9 @@ const mountPanel = () =>
     },
   });
 
-describe('ContactPanel counts and zones', () => {
+describe('ContactPanel cached counts', () => {
   beforeEach(() => {
     visible.value = [...sections];
-    Object.keys(open).forEach(key => delete open[key]);
-    updateUISettings.mockImplementation(settings =>
-      Object.assign(open, settings)
-    );
     senderId.value = 7;
     attachments.value = null;
     state.conversationWatchers.records = {};
@@ -103,7 +100,7 @@ describe('ContactPanel counts and zones', () => {
     const wrapper = mountPanel();
     expect(
       wrapper.findAllComponents(AccordionItem).map(item => item.props('count'))
-    ).toEqual([null, null, null, null, null]);
+    ).toEqual([null, null, null, null, null, null]);
     expect(dispatch.mock.calls.map(([action]) => action)).toEqual([
       'contacts/show',
       'attributes/get',
@@ -112,7 +109,7 @@ describe('ContactPanel counts and zones', () => {
     wrapper.unmount();
   });
 
-  it('moves loaded zeroes to the empty zone and excludes the current conversation', async () => {
+  it('reacts to loaded caches, includes zero and excludes the current conversation', async () => {
     const wrapper = mountPanel();
     state.conversationWatchers.records[9] = [{ id: 1 }, { id: 2 }];
     state.contactConversations.records[7] = [{ id: 9 }, { id: 10 }, { id: 11 }];
@@ -127,66 +124,40 @@ describe('ContactPanel counts and zones', () => {
     await wrapper.vm.$nextTick();
     expect(
       wrapper.findAllComponents(AccordionItem).map(item => item.props('count'))
-    ).toEqual([2, 2, 1, 2]);
-    expect(wrapper.find('[data-testid=empty-sections]').text()).toContain(
-      'CONVERSATION_SIDEBAR.ACCORDION.CONTACT_NOTES'
-    );
+    ).toEqual([null, 2, 2, 0, 1, 2]);
     await wrapper.setProps({ conversationId: '10' });
     expect(
       wrapper.findAllComponents(AccordionItem).map(item => item.props('count'))
-    ).toEqual([null, 2, null, 2]);
+    ).toEqual([null, null, 2, 0, null, 2]);
     senderId.value = 8;
     attachments.value = null;
     await wrapper.vm.$nextTick();
     expect(
       wrapper.findAllComponents(AccordionItem).map(item => item.props('count'))
-    ).toEqual([null, null, null, null, null]);
+    ).toEqual([null, null, null, null, null, null]);
     wrapper.unmount();
   });
-
-  it('shows conversation fields without an accordion and respects visibility in all zones', async () => {
+  it('keeps actions and empty sections in their original order and respects visibility', async () => {
     state.contactNotes.records[7] = [];
-    visible.value = [...sections];
     const wrapper = mountPanel();
-    expect(wrapper.find('[data-testid=conversation-now]').exists()).toBe(true);
-    expect(wrapper.findComponent({ name: 'ConversationAction' }).exists()).toBe(
-      true
-    );
     expect(
-      wrapper
-        .findAllComponents(AccordionItem)
-        .some(item => item.text().includes('CONVERSATION_ACTIONS'))
-    ).toBe(false);
-    expect(wrapper.find('[data-testid=empty-sections]').exists()).toBe(true);
-    visible.value = ['conversation_participants'];
-    await wrapper.vm.$nextTick();
+      wrapper.findAllComponents(AccordionItem).map(item => item.props('title'))
+    ).toEqual([
+      'CONVERSATION_SIDEBAR.ACCORDION.CONVERSATION_ACTIONS',
+      'CONVERSATION_PARTICIPANTS.SIDEBAR_TITLE',
+      'CONVERSATION_SIDEBAR.ACCORDION.PREVIOUS_CONVERSATION',
+      'CONVERSATION_SIDEBAR.ACCORDION.CONTACT_NOTES',
+      'CONVERSATION_SIDEBAR.ACCORDION.INTERNAL_TASKS',
+      'CONVERSATION_SIDEBAR.ACCORDION.SHARED_FILES',
+    ]);
     expect(wrapper.find('[data-testid=conversation-now]').exists()).toBe(false);
     expect(wrapper.find('[data-testid=empty-sections]').exists()).toBe(false);
+    expect(
+      wrapper.findComponent({ name: 'SidebarVisibilityMenu' }).exists()
+    ).toBe(true);
+    visible.value = ['conversation_participants'];
+    await wrapper.vm.$nextTick();
     expect(wrapper.findAllComponents(AccordionItem)).toHaveLength(1);
-    wrapper.unmount();
-  });
-
-  it('reveals an empty section open and resets the local reveal when changing conversations', async () => {
-    visible.value = [...sections];
-    state.contactNotes.records[7] = [];
-    updateUISettings.mockImplementation(() => {});
-    const wrapper = mountPanel();
-    expect(wrapper.find('[data-testid=empty-sections]').exists()).toBe(true);
-    await wrapper.find('[data-testid=empty-sections] button').trigger('click');
-    expect(updateUISettings).toHaveBeenLastCalledWith({
-      is_contact_notes_open: true,
-    });
-    const notes = wrapper
-      .findAllComponents(AccordionItem)
-      .find(
-        item =>
-          item.props('title') === 'CONVERSATION_SIDEBAR.ACCORDION.CONTACT_NOTES'
-      );
-    expect(notes.props('isOpen')).toBe(true);
-    expect(notes.props('count')).toBe(0);
-    expect(wrapper.find('[data-testid=empty-sections]').exists()).toBe(false);
-    await wrapper.setProps({ conversationId: 10 });
-    expect(wrapper.find('[data-testid=empty-sections]').exists()).toBe(true);
     wrapper.unmount();
   });
 });
