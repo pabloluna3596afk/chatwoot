@@ -38,7 +38,7 @@ RSpec.describe Conversation, type: :model do
           conversation.resolved!
           create(:message, message_type: :incoming, conversation: conversation)
           create(:message, message_type: :incoming, conversation: conversation)
-          conversation.touch
+          conversation.update!(updated_at: Time.current)
 
           notes = conversation.messages.activity.where("additional_attributes ? 'captain_skip_reason'")
           expect(conversation.reload).to be_open
@@ -61,8 +61,9 @@ RSpec.describe Conversation, type: :model do
         end
 
         it 'records a schedule rejection' do
-          assistant.config = { 'response_window' => 'business_hours' }
-          allow(inbox).to receive_messages(working_hours_enabled?: true, out_of_office?: true)
+          assistant.update!(config: { 'response_window' => 'business_hours' })
+          inbox.update!(working_hours_enabled: true)
+          inbox.working_hours.each { |hours| hours.update!(closed_all_day: true) }
 
           note = conversation.messages.activity.where("additional_attributes ? 'captain_skip_reason'").sole
           expect(note.content).to include(language == 'es' ? 'fuera de su horario' : 'outside its working hours')
@@ -70,7 +71,7 @@ RSpec.describe Conversation, type: :model do
         end
 
         it 'creates no skip activity when Captain accepts the opening' do
-          assistant.config = {}
+          assistant.update!(config: {})
 
           expect(conversation).to be_pending
           expect(conversation.additional_attributes).not_to have_key('captain_skip_reason')
@@ -78,7 +79,7 @@ RSpec.describe Conversation, type: :model do
         end
 
         it 'uses Captain for a legacy assistant without a name' do
-          assistant.name = ''
+          assistant.update_column(:name, '') # rubocop:disable Rails/SkipsModelValidations
 
           note = conversation.messages.activity.where("additional_attributes ? 'captain_skip_reason'").sole
           expect(note.content).to start_with('Captain ')

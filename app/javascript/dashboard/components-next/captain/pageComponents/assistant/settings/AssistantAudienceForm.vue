@@ -17,7 +17,7 @@ const props = defineProps({
 
 const emit = defineEmits(['submit']);
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const { filterTypes } = useAudienceFilterTypes();
 const store = useStore();
 const connectedInboxes = useMapGetter('captainInboxes/getRecords');
@@ -100,9 +100,9 @@ const channelWarnings = computed(() => {
           text: t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.CHANNEL_WARNING', {
             attribute: filterTypes.value.find(type => type.attributeKey === key)
               .label,
-            channels: affected
-              .map(channel => channelLabels[channel])
-              .join(', '),
+            channels: new Intl.ListFormat(locale?.value, {
+              type: 'conjunction',
+            }).format(affected.map(channel => channelLabels[channel])),
           }),
         },
       ];

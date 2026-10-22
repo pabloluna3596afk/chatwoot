@@ -37,19 +37,16 @@ class Captain::AudienceMatcher
 
   private
 
+  # The leaf that made the tree fail: the first failing child of an AND group; for an OR group, nothing when any
+  # child passes, otherwise its first failure.
   def first_failed_node(node)
     node = node.with_indifferent_access
-    return matches_leaf?(node) ? nil : node unless node.key?(:conditions)
+    return (matches_leaf?(node) ? nil : node) unless node.key?(:conditions)
 
-    first_failure = nil
-    Array(node[:conditions]).each do |child|
-      failure = first_failed_node(child)
-      return if failure.nil? && node[:operator].to_s.casecmp?('or')
-      return failure if failure && !node[:operator].to_s.casecmp?('or')
+    failures = Array(node[:conditions]).map { |child| first_failed_node(child) }
+    return failures.compact.first unless node[:operator].to_s.casecmp?('or')
 
-      first_failure ||= failure
-    end
-    first_failure
+    failures.all? ? failures.first : nil
   end
 
   def matches_node?(node)

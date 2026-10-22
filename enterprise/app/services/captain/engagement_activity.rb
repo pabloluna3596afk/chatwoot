@@ -64,11 +64,9 @@ class Captain::EngagementActivity
 
   def channel_label
     inbox = @conversation.inbox
-    key = CHANNELS.fetch(inbox.channel_type)
+    key = CHANNELS.fetch(inbox.channel_type, 'api')
     key = 'whatsapp' if inbox.twilio? && inbox.channel.medium == 'whatsapp'
-    if inbox.facebook? && @conversation.additional_attributes['type'] == 'instagram_direct_message'
-      key = 'instagram'
-    end
+    key = 'instagram' if inbox.facebook? && @conversation.additional_attributes['type'] == 'instagram_direct_message'
     I18n.t("captain.engagement.channels.#{key}", locale: @locale)
   end
 end

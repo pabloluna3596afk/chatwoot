@@ -53,11 +53,15 @@ module Enterprise::Conversation
     self.ai_assignee = assistant if assignee_id.blank?
   end
 
+  # The note only explains the skip; it must never break creating or reopening the conversation.
   def create_captain_skip_activity
     return unless @captain_skip_assistant && open?
 
-    Captain::EngagementActivity.new(self, @captain_skip_assistant).perform
+    assistant = @captain_skip_assistant
     @captain_skip_assistant = nil
+    Captain::EngagementActivity.new(self, assistant).perform
+  rescue StandardError => e
+    Rails.logger.error("Captain skip activity failed for conversation #{id}: #{e.class}")
   end
 
   def handle_resolved_status_change
