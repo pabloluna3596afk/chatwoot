@@ -30,7 +30,8 @@ class Integrations::GoogleCalendar::CustomerNotice
     values = body_values
     message = @conversation.messages.new(
       account_id: @conversation.account_id, inbox_id: @conversation.inbox_id, message_type: :outgoing, sender: @sender,
-      content: rendered_body(values), additional_attributes: { 'template_params' => template_params(values) }
+      content: rendered_body(values),
+      additional_attributes: { 'template_params' => template_params(values), 'calendar_event_id' => @record.id }
     )
     message.variables_resolved!
     message.save!

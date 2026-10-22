@@ -384,6 +384,12 @@ es:
         event_updated: '%{user_name} actualizó la cita "%{event_title}"'
         event_deleted: '%{user_name} eliminó la cita "%{event_title}"'
         notice_not_sent: 'No se envió el aviso de la cita "%{event_title}" por WhatsApp: falta la plantilla de confirmación aprobada. Actívala en Ajustes, Calendarios.'
+        customer_confirmed: '%{contact_name} confirmó la cita "%{event_title}" con el botón de la plantilla'
+        customer_cancelled: '%{contact_name} canceló la cita "%{event_title}" con el botón de la plantilla'
+        customer_cancel_failed: '%{contact_name} pidió cancelar la cita "%{event_title}", pero no se pudo cancelar en Google. Cancélala manualmente'
+        customer_reschedule_requested: '%{contact_name} pidió reagendar la cita "%{event_title}". Propón una nueva hora'
+        answer_ignored_past: '%{contact_name} tocó un botón de la cita "%{event_title}", pero la cita ya pasó y no se cambió'
+        answer_ignored_cancelled: '%{contact_name} tocó un botón de la cita "%{event_title}", pero la cita ya estaba cancelada y no se cambió'
       whatsapp_call:
         permission_requested: 'Envió una solicitud de permiso de llamada a %{contact_name}.'
         permission_granted: '%{contact_name} ha aceptado la solicitud de permiso de llamada.'
