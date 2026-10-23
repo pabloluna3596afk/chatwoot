@@ -79,12 +79,19 @@ class AutomationRules::ConditionValidationService
 
   def standard_condition_error(condition, filter)
     key = condition['attribute_key']
-    return 'The attribute is not supported for this event.' unless @rule.conditions_attributes.include?(key) && attribute_supported_for_event?(key)
+    return 'The attribute is not supported for this event.' unless attribute_supported?(key)
 
     return if condition['filter_operator'] == 'attribute_changed'
     return if filter['filter_operators'].include?(condition['filter_operator'])
 
     'The filter operator is not supported for this attribute.'
+  end
+
+  # Embedded business rules evaluate conditions with a rule-like object that has no event or attribute list.
+  def attribute_supported?(key)
+    return true unless @rule.respond_to?(:event_name) && @rule.respond_to?(:conditions_attributes)
+
+    @rule.conditions_attributes.include?(key) && attribute_supported_for_event?(key)
   end
 
   def attribute_supported_for_event?(key)
