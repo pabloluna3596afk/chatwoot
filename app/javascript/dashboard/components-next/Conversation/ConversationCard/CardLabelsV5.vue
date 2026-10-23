@@ -1,9 +1,9 @@
 <script setup>
+import { useLabelNavigation } from 'dashboard/composables/useLabelNavigation';
 import { ref, computed, nextTick, useSlots, watch, useAttrs } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useThrottleFn } from '@vueuse/core';
 import { useMapGetter } from 'dashboard/composables/store';
-
 import Button from 'dashboard/components-next/button/Button.vue';
 import Label from 'dashboard/components-next/label/Label.vue';
 
@@ -17,7 +17,7 @@ const props = defineProps({
     default: false,
   },
 });
-
+const { goToLabel } = useLabelNavigation();
 defineOptions({ inheritAttrs: false });
 
 const attrs = useAttrs();
@@ -151,9 +151,15 @@ const onShowLabels = e => {
       data-label
       :label="label"
       compact
+      :title="label.title"
+      role="link"
+      tabindex="0"
+      class="max-w-full cursor-pointer"
       :class="{
         'invisible absolute': !showAllLabels && index > labelPosition,
       }"
+      @keydown.enter.stop="goToLabel(label.title)"
+      @click.stop="goToLabel(label.title)"
     />
     <Button
       v-if="showExpandLabelButton || (disableToggle && allLabelsHidden)"

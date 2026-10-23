@@ -274,7 +274,7 @@ onMounted(async () => {
                   </template>
                 </button>
                 <button
-                  v-if="child.showTemplateSync"
+                  v-if="child.showTemplateSync && !shouldRenderComponent(child)"
                   v-tooltip.top="$t('WHATSAPP_TEMPLATE_MGMT.SYNC_TEMPLATES')"
                   type="button"
                   class="flex size-6 flex-shrink-0 items-center justify-center rounded-md me-1.5 text-n-slate-11 hover:bg-n-alpha-2 focus-visible:bg-n-alpha-2 focus-visible:outline-none disabled:opacity-40 disabled:pointer-events-none"

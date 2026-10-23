@@ -113,6 +113,7 @@ defineExpose({ close });
       <DropdownMenu
         v-if="open"
         ref="menu"
+        data-menu-popover
         role="dialog"
         :aria-label="label || undefined"
         :dir="direction"

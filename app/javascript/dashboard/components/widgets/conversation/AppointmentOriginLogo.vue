@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ChannelIcon from 'next/icon/ChannelIcon.vue';
 import Icon from 'next/icon/Icon.vue';
+import Logo from 'next/icon/Logo.vue';
 import googleLogo from 'dashboard/assets/images/integrations/google.svg';
 
 // Where an appointment was born: the channel of its conversation, the CRM, or the external calendar.
@@ -54,13 +55,10 @@ const sizeStyle = computed(() => ({
         use-brand-icon
         class="size-full"
       />
+      <Logo v-else-if="type === 'crm'" class="size-full object-contain" />
       <Icon
-        v-else-if="type === 'conversation' || type === 'crm'"
-        :icon="
-          type === 'crm'
-            ? 'i-lucide-layout-dashboard'
-            : 'i-lucide-message-circle'
-        "
+        v-else-if="type === 'conversation'"
+        icon="i-lucide-message-circle"
         class="size-full text-n-slate-11"
       />
       <img v-else :src="googleLogo" alt="" class="size-full rounded-sm" />

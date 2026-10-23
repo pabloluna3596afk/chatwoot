@@ -1,3 +1,4 @@
+import dateField from './dateField.json';
 import planCatalog from './planCatalog.json';
 import advancedFilters from './advancedFilters.json';
 import agentBots from './agentBots.json';
@@ -56,6 +57,7 @@ import sessionLimit from './sessionLimit.json';
 import yearInReview from './yearInReview.json';
 
 export default {
+  ...dateField,
   ...planCatalog,
   ...advancedFilters,
   ...agentBots,

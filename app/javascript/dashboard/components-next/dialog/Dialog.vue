@@ -126,9 +126,10 @@ const close = () => {
 const handleDialogClose = e => e.target === dialogRef.value && close();
 
 // Only close on click-outside if this dialog is the topmost one.
-// Ignore teleported ComboBox menus (sibling of the form, still in <dialog>).
+// Ignore teleported field menus (siblings of the form, still in <dialog>).
 const handleClickOutside = event => {
-  if (event?.target?.closest?.('[data-combobox-dropdown]')) return;
+  if (event?.target?.closest?.('[data-combobox-dropdown], [data-menu-popover]'))
+    return;
   const dialogs = document.querySelectorAll('dialog[open]');
   if (dialogs[dialogs.length - 1] === dialogRef.value) close();
 };

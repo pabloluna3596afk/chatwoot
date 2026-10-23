@@ -65,6 +65,7 @@ export const actions = {
       const response = await LabelsAPI.create(cannedObj);
       AnalyticsHelper.track(LABEL_EVENTS.CREATE);
       commit(types.ADD_LABEL, response.data);
+      return response.data;
     } catch (error) {
       const errorMessage = error?.response?.data?.message;
       throw new Error(errorMessage);

@@ -1,4 +1,5 @@
 <script setup>
+import { useLabelNavigation } from 'dashboard/composables/useLabelNavigation';
 import { ref, computed, watch, onMounted, nextTick, useSlots } from 'vue';
 import { useMapGetter } from 'dashboard/composables/store';
 
@@ -8,7 +9,7 @@ const props = defineProps({
     required: true,
   },
 });
-
+const { goToLabel } = useLabelNavigation();
 const slots = useSlots();
 const accountLabels = useMapGetter('labels/getLabels');
 
@@ -78,6 +79,8 @@ const onShowLabels = e => {
         :class="{
           'invisible absolute': !showAllLabels && index > labelPosition,
         }"
+        selectable
+        @select="goToLabel(label.title)"
       />
       <button
         v-if="showExpandLabelButton"

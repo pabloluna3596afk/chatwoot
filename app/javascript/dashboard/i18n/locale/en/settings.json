@@ -371,7 +371,6 @@
         "LOADING_CALENDARS": "Loading calendars...",
         "RETRY_CALENDARS": "Retry",
         "CALENDAR_LOAD_ERROR": "Could not load calendars.",
-        "DST_POLICY": "Times use this account timezone. Nonexistent daylight-saving times are unavailable; repeated times use the first occurrence.",
         "CREATE_TITLE": "New appointment",
         "EDIT_TITLE": "Appointment",
         "TITLE": "Title",

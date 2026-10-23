@@ -330,14 +330,14 @@ const onContactRemoved = () => {
                     v-tooltip.top-end="$t('CONTACT_PANEL.NEW_MESSAGE')"
                     :aria-label="$t('CONTACT_PANEL.NEW_MESSAGE')"
                     :title="$t('CONTACT_PANEL.NEW_MESSAGE')"
-                    icon="i-ph-chat-circle-dots"
+                    icon="i-lucide-message-circle-plus"
                     slate
                     faded
                     xs
                   />
                 </template>
               </ComposeConversation>
-              <ViewAllConversations :contact="contact" />
+              <ViewAllConversations :contact="contact" size="xs" />
               <VoiceCallButton
                 :phone="phoneNumber"
                 :contact-id="contact.id"
@@ -346,7 +346,7 @@ const onContactRemoved = () => {
                 size="xs"
                 faded
                 slate
-                :tooltip-label="$t('CONTACT_PANEL.CALL')"
+                :tooltip-label="$t('CONTACT_PANEL.CALL_FROM_PLATFORM')"
               />
               <MenuPopover
                 v-model:open="showHeaderMenu"

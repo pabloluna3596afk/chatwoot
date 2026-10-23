@@ -19,7 +19,7 @@ export default {
       default: '',
     },
   },
-  emits: ['close'],
+  emits: ['close', 'created'],
   setup() {
     return { v$: useVuelidate() };
   },
@@ -51,13 +51,14 @@ export default {
     },
     async addLabel() {
       try {
-        await this.$store.dispatch('labels/create', {
+        const label = await this.$store.dispatch('labels/create', {
           color: this.color,
           description: this.description,
           title: this.title.toLowerCase(),
           show_on_sidebar: this.showOnSidebar,
         });
         useAlert(this.$t('LABEL_MGMT.ADD.API.SUCCESS_MESSAGE'));
+        this.$emit('created', label);
         this.onClose();
       } catch (error) {
         const errorMessage =

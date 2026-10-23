@@ -6,6 +6,8 @@ import { useMapGetter } from 'dashboard/composables/store';
 import { useAccount } from 'dashboard/composables/useAccount';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
+import DateField from 'next/date-field/DateField.vue';
+import TimeField from 'next/time-field/TimeField.vue';
 import OutlinedSelectField from 'dashboard/components-next/CustomAttributes/OutlinedSelectField.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
@@ -117,6 +119,7 @@ const saveEmailOnContact = ref(true);
 // is set once the agent writes one (or the appointment already had it): only then is it sent with the appointment.
 const invitationAccount = ref({ template: '', location: '' });
 const invitationText = ref('');
+const showInvitationPreview = ref(false);
 const invitationOwn = ref(false);
 const invitationSaved = ref(false);
 const meetLink = ref('');
@@ -487,6 +490,7 @@ const applyEvent = (event, defaults) => {
   existingMeet.value = Boolean(event?.meet_link);
   meetLink.value = event?.meet_link || '';
   invitationText.value = event?.invitation_text || '';
+  showInvitationPreview.value = false;
   invitationOwn.value = Boolean(event?.invitation_text);
   invitationSaved.value = Boolean(event?.invitation_text);
   contactId.value = event?.contact?.id || defaults.contactId || null;
@@ -752,10 +756,6 @@ defineExpose({ open, close });
     @close="releaseLock"
   >
     <div class="flex flex-col gap-4">
-      <p class="text-xs text-n-slate-11">{{ timezone }}</p>
-      <p class="text-xs text-n-slate-11">
-        {{ $t('SIDEBAR.CALENDAR_PAGE.MODAL.DST_POLICY') }}
-      </p>
       <p
         v-if="isDeleted"
         class="rounded-lg bg-n-ruby-3/80 px-3 py-2 text-sm text-n-ruby-11"
@@ -846,22 +846,19 @@ defineExpose({ open, close });
           />
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Input
+          <DateField
             v-model="date"
-            type="date"
             :label="$t('SIDEBAR.CALENDAR_PAGE.MODAL.DATE')"
             :disabled="readOnly"
           />
-          <Input
+          <TimeField
             :model-value="time"
-            type="time"
             :label="$t('SIDEBAR.CALENDAR_PAGE.MODAL.START_TIME')"
             :disabled="readOnly"
             @update:model-value="onStartTimeInput"
           />
-          <Input
+          <TimeField
             v-model="endTime"
-            type="time"
             :label="$t('SIDEBAR.CALENDAR_PAGE.MODAL.END_TIME')"
             :disabled="readOnly"
             :message="
@@ -986,6 +983,10 @@ defineExpose({ open, close });
             {{ $t('CALENDAR_INVITATION.MODAL.HELP') }}
           </p>
           <TextArea
+            auto-height
+            resize
+            min-height="8rem"
+            max-height="24rem"
             :model-value="invitationShown"
             :disabled="readOnly"
             :max-length="4000"
@@ -1006,10 +1007,23 @@ defineExpose({ open, close });
               @click="useAccountInvitation"
             />
           </div>
-          <span class="text-xs font-medium text-n-slate-11">
-            {{ $t('CALENDAR_INVITATION.MODAL.PREVIEW') }}
-          </span>
+          <Button
+            type="button"
+            ghost
+            slate
+            xs
+            :icon="showInvitationPreview ? 'i-lucide-eye-off' : 'i-lucide-eye'"
+            :label="
+              showInvitationPreview
+                ? $t('CALENDAR_INVITATION.MODAL.HIDE_PREVIEW')
+                : $t('CALENDAR_INVITATION.MODAL.SHOW_PREVIEW')
+            "
+            :aria-expanded="showInvitationPreview"
+            data-testid="invitation-preview-toggle"
+            @click="showInvitationPreview = !showInvitationPreview"
+          />
           <p
+            v-if="showInvitationPreview"
             class="p-2.5 m-0 text-sm whitespace-pre-wrap border rounded-lg font-sans border-n-weak bg-n-alpha-2 text-n-slate-12"
             data-testid="invitation-preview"
           >

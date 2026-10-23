@@ -1,92 +1,64 @@
-<script>
-import { ref } from 'vue';
-import { mapGetters } from 'vuex';
+<script setup>
+import { nextTick, ref } from 'vue';
+import { useMapGetter } from 'dashboard/composables/store';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useConversationLabels } from 'dashboard/composables/useConversationLabels';
 import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
 import Spinner from 'shared/components/Spinner.vue';
 import LabelDropdown from 'shared/components/ui/label/LabelDropdown.vue';
 import AddLabel from 'shared/components/ui/dropdown/AddLabel.vue';
+import AddLabelModal from 'dashboard/routes/dashboard/settings/labels/AddLabel.vue';
+import { useLabelNavigation } from 'dashboard/composables/useLabelNavigation';
 
-export default {
-  components: {
-    Spinner,
-    LabelDropdown,
-    AddLabel,
-  },
-  setup() {
-    const { isAdmin } = useAdmin();
-
-    const {
-      savedLabels,
-      activeLabels,
-      accountLabels,
-      addLabelToConversation,
-      removeLabelFromConversation,
-    } = useConversationLabels();
-
-    const showSearchDropdownLabel = ref(false);
-
-    const toggleLabels = () => {
-      showSearchDropdownLabel.value = !showSearchDropdownLabel.value;
-    };
-
-    const closeDropdownLabel = () => {
-      showSearchDropdownLabel.value = false;
-    };
-
-    const keyboardEvents = {
-      KeyL: {
-        action: e => {
-          e.preventDefault();
-          toggleLabels();
-        },
-      },
-      Escape: {
-        action: () => {
-          if (showSearchDropdownLabel.value) {
-            toggleLabels();
-          }
-        },
-        allowOnFocusedInput: true,
-      },
-    };
-    useKeyboardEvents(keyboardEvents);
-    return {
-      isAdmin,
-      savedLabels,
-      activeLabels,
-      accountLabels,
-      addLabelToConversation,
-      removeLabelFromConversation,
-      showSearchDropdownLabel,
-      closeDropdownLabel,
-      toggleLabels,
-    };
-  },
-  data() {
-    return {
-      selectedLabels: [],
-    };
-  },
-
-  computed: {
-    ...mapGetters({
-      conversationUiFlags: 'conversationLabels/getUIFlags',
-    }),
-  },
+const { isAdmin } = useAdmin();
+const {
+  savedLabels,
+  activeLabels,
+  accountLabels,
+  addLabelToConversation,
+  removeLabelFromConversation,
+} = useConversationLabels();
+const conversationUiFlags = useMapGetter('conversationLabels/getUIFlags');
+const { goToLabel } = useLabelNavigation();
+const showSearchDropdownLabel = ref(false);
+const createModalVisible = ref(false);
+const prefillTitle = ref('');
+const labelTrigger = ref(null);
+const toggleLabels = () => {
+  showSearchDropdownLabel.value = !showSearchDropdownLabel.value;
 };
+const closeDropdownLabel = () => {
+  showSearchDropdownLabel.value = false;
+};
+const createLabel = title => {
+  prefillTitle.value = title;
+  closeDropdownLabel();
+  createModalVisible.value = true;
+};
+const hideCreateModal = async () => {
+  createModalVisible.value = false;
+  await nextTick();
+  labelTrigger.value?.querySelector('button')?.focus();
+};
+useKeyboardEvents({
+  KeyL: {
+    action: event => {
+      if (createModalVisible.value) return;
+      event.preventDefault();
+      toggleLabels();
+    },
+  },
+  Escape: { action: closeDropdownLabel, allowOnFocusedInput: true },
+});
 </script>
 
 <template>
   <div class="sidebar-labels-wrap">
-    <div
-      v-if="!conversationUiFlags.isFetching"
-      class="contact-conversation--list"
-    >
+    <div v-if="!conversationUiFlags.isFetching" class="w-full">
       <div
+        ref="labelTrigger"
         v-on-clickaway="closeDropdownLabel"
-        class="label-wrap flex flex-wrap"
+        class="relative flex flex-wrap leading-6"
         @keyup.esc="closeDropdownLabel"
       >
         <AddLabel @add="toggleLabels" />
@@ -99,7 +71,9 @@ export default {
           :color="label.color"
           variant="smooth"
           class="max-w-[calc(100%-0.5rem)]"
+          selectable
           @remove="removeLabelFromConversation"
+          @select="goToLabel(label.title)"
         />
 
         <div
@@ -114,6 +88,7 @@ export default {
             :account-labels="accountLabels"
             :selected-labels="savedLabels"
             :allow-creation="isAdmin"
+            @create="createLabel"
             @add="addLabelToConversation"
             @remove="removeLabelFromConversation"
           />
@@ -121,19 +96,18 @@ export default {
       </div>
     </div>
     <Spinner v-else />
+    <Teleport to="body">
+      <woot-modal
+        v-if="createModalVisible"
+        v-model:show="createModalVisible"
+        @close="hideCreateModal"
+      >
+        <AddLabelModal
+          :prefill-title="prefillTitle"
+          @created="addLabelToConversation"
+          @close="hideCreateModal"
+        />
+      </woot-modal>
+    </Teleport>
   </div>
 </template>
-
-<style lang="scss" scoped>
-.sidebar-labels-wrap {
-  margin-bottom: 0;
-}
-.contact-conversation--list {
-  width: 100%;
-
-  .label-wrap {
-    line-height: 1.5rem;
-    position: relative;
-  }
-}
-</style>

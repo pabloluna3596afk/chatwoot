@@ -13,9 +13,9 @@ module AssigneeActivityMessageHandler
   end
 
   # A conversation given to Captain or to a bot (no person is assigned, so there is no assignee change to report).
-  # When Captain takes a pending conversation the status activity already says it.
+  # A direct status change already describes Captain taking over; an assignment records its own single activity.
   def create_ai_assignee_change_activity(user_name)
-    return if ai_assignee.blank? || (saved_change_to_status? && captain_attended?)
+    return if ai_assignee.blank? || (saved_change_to_status? && captain_attended? && !assignment_driven_status)
 
     content = I18n.t('conversations.activity.ai_assignee.assigned', assistant: ai_assignee.name, actor: activity_actor_name(user_name))
     ::Conversations::ActivityMessageJob.perform_later(

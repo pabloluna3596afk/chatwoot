@@ -6,6 +6,9 @@ import labelsList from './fixtures';
 const commit = vi.fn();
 global.axios = axios;
 vi.mock('axios');
+vi.mock('dashboard/helper/AnalyticsHelper', () => ({
+  default: { track: vi.fn() },
+}));
 
 describe('#actions', () => {
   describe('#get', () => {
@@ -43,7 +46,9 @@ describe('#actions', () => {
   describe('#create', () => {
     it('sends correct actions if API is success', async () => {
       axios.post.mockResolvedValue({ data: labelsList[0] });
-      await actions.create({ commit }, labelsList[0]);
+      expect(await actions.create({ commit }, labelsList[0])).toEqual(
+        labelsList[0]
+      );
       expect(commit.mock.calls).toEqual([
         [types.default.SET_LABEL_UI_FLAG, { isCreating: true }],
         [types.default.ADD_LABEL, labelsList[0]],
