@@ -33,10 +33,10 @@ class AutomationRules::SimulationService
     matches = []
     @diagnostics = []
 
-    rules.each_with_index do |rule, index|
+    rules.each do |rule|
       next unless conditions_match?(rule)
 
-      matches << describe_match(rule, index)
+      matches << describe_match(rule, matches.size)
     end
 
     Result.new(
@@ -55,7 +55,7 @@ class AutomationRules::SimulationService
       rule_id: rule.id,
       rule_name: rule.name,
       actions: describe_actions(rule),
-      # Preserve the DB's default order, as in the runtime (no ORDER BY).
+      # Number matches in the same ascending rule ID order used by the runtime.
       order: index + 1
     )
   end
@@ -64,11 +64,11 @@ class AutomationRules::SimulationService
     return AutomationRule.none unless SIMULATABLE_EVENTS.include?(@event_name)
 
     # Same selection the listener performs.
-    AutomationRule.where(
-      event_name: @event_name,
-      account_id: @account.id,
-      active: true
-    )
+    rules = AutomationRule.in_execution_order.where(account_id: @account.id, active: true)
+    event_rules = rules.where(event_name: @event_name)
+    return event_rules unless @event_name == 'conversation_created'
+
+    event_rules.or(rules.where(event_name: 'conversation_updated').where.not(execution_delay: nil))
   end
 
   def conditions_match?(rule)

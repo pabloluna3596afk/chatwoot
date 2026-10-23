@@ -54,6 +54,7 @@ class AutomationRule < ApplicationRecord
   after_update :discard_stale_pending_executions, if: :execution_config_changed?
 
   scope :active, -> { where(active: true) }
+  scope :in_execution_order, -> { order(:id) }
 
   def time_triggered?
     event_name == 'time_triggered'

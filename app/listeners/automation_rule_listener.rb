@@ -31,8 +31,9 @@ class AutomationRuleListener < BaseListener
     rules = current_account_rules('message_created', account)
 
     rules.each do |rule|
-      conditions_match = ::AutomationRules::ConditionsFilterService.new(rule, message.conversation,
-                                                                        { message: message, changed_attributes: changed_attributes }).perform
+      conditions_match = ::AutomationRules::ConditionsFilterService.new(
+        rule, message.conversation, { message: message, changed_attributes: changed_attributes }
+      ).perform
       execute_rule(rule, account, message.conversation, message: message) if conditions_match.present?
     end
   end
@@ -53,7 +54,9 @@ class AutomationRuleListener < BaseListener
     return if rules.blank?
 
     rules.each do |rule|
-      conditions_match = ::AutomationRules::ConditionsFilterService.new(rule, conversation, { changed_attributes: changed_attributes }).perform
+      conditions_match = ::AutomationRules::ConditionsFilterService.new(
+        rule, conversation, { changed_attributes: changed_attributes }
+      ).perform
       execute_rule(rule, account, conversation) if conditions_match.present?
     end
   end
@@ -66,7 +69,7 @@ class AutomationRuleListener < BaseListener
     rules = current_account_rules(event_name, account)
     return rules unless event_name == 'conversation_created'
 
-    rules + current_account_rules('conversation_updated', account).where.not(execution_delay: nil)
+    rules.or(current_account_rules('conversation_updated', account).where.not(execution_delay: nil))
   end
 
   # Delayed rules record a pending execution instead of acting; the sweep re-checks and
@@ -91,7 +94,7 @@ class AutomationRuleListener < BaseListener
   def current_account_rules(event_name, account)
     return AutomationRule.none if event_name.to_s == 'time_triggered'
 
-    AutomationRule.where(
+    AutomationRule.in_execution_order.where(
       event_name: event_name,
       account_id: account.id,
       active: true
