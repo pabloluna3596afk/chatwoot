@@ -24,6 +24,36 @@ vi.mock('dashboard/composables/useCaptainState', () => ({
 }));
 
 describe('ConversationAssigneeSelector', () => {
+  it('lists None, Captain, then people', async () => {
+    const none = { id: 0, name: 'None', assignee_type: 'User' };
+    const captain = {
+      id: 7,
+      name: 'Captain',
+      assignee_type: 'Captain::Assistant',
+    };
+    const person = { id: 3, name: 'Ana', assignee_type: 'User' };
+    Object.assign(state, {
+      agentsList: ref([none, captain, person]),
+      assignedAgent: ref(person),
+      showSelfAssign: ref(false),
+      isAssigning: ref(false),
+      onClickAssignAgent: assign,
+      onSelfAssign: selfAssign,
+    });
+    const wrapper = mount(ConversationAssigneeSelector, {
+      attachTo: document.body,
+      global: { mocks: { $t: key => key }, directives: { tooltip: {} } },
+    });
+    await wrapper.get('button').trigger('click');
+    expect(
+      wrapper
+        .getComponent(DropdownMenu)
+        .props('menuItems')
+        .map(item => item.label)
+    ).toEqual(['None', 'Captain', 'Ana']);
+    wrapper.unmount();
+  });
+
   it('distinguishes human and Captain identities with the same id and keeps the self assignment action', async () => {
     const human = { id: 7, name: 'Ana', assignee_type: 'User' };
     const captain = {

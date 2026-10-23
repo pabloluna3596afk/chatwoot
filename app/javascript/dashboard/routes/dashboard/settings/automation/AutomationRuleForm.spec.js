@@ -1,11 +1,15 @@
 import { nextTick, reactive } from 'vue';
 import { shallowMount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import Input from 'dashboard/components-next/input/Input.vue';
 import AutomationRuleForm from './AutomationRuleForm.vue';
 import AutomationRunTypeSelector from './components/AutomationRunTypeSelector.vue';
 import AutomationWaitCondition from './components/AutomationWaitCondition.vue';
 const inboxes = vi.hoisted(() => ({ value: [] }));
-vi.mock('dashboard/composables/store', () => ({ useMapGetter: () => inboxes }));
+const uiFlags = vi.hoisted(() => ({ value: {} }));
+vi.mock('dashboard/composables/store', () => ({
+  useMapGetter: key => (key === 'automations/getUIFlags' ? uiFlags : inboxes),
+}));
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key }),
@@ -118,7 +122,16 @@ const mountComponent = ({ mode, automation }) =>
         },
         AutomationInstantTrigger: triggerStub,
         AutomationWaitCondition: waitConditionStub,
-        WootInput: true,
+        AutomationActions: {
+          props: ['modelValue'],
+          template:
+            '<div><slot v-for="action in modelValue" name="captain-summary" :action="action" /></div>',
+        },
+        NextButton: {
+          props: ['disabled', 'isLoading'],
+          template:
+            '<button :disabled="disabled" @click="$emit(\'click\')"><slot /></button>',
+        },
       },
     },
   });
@@ -131,9 +144,58 @@ const selectRunType = async (wrapper, isDelayed) => {
 };
 
 describe('AutomationRuleForm', () => {
+  it('disables submit and shows loading while the API saves', async () => {
+    uiFlags.value = { isCreating: true };
+    const wrapper = mountComponent({
+      mode: 'create',
+      automation: buildAutomation(),
+    });
+    const submit = wrapper.find('button:last-child');
+    expect(submit.attributes('disabled')).toBeDefined();
+    await submit.trigger('click');
+    expect(wrapper.emitted('save')).toBeUndefined();
+  });
+
+  it('shows inline field errors and scrolls to the first one', async () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    const automation = buildAutomation();
+    automation.name = '';
+    automation.description = '';
+    const wrapper = mountComponent({ mode: 'create', automation });
+    await wrapper.find('button:last-child').trigger('click');
+    await nextTick();
+    expect(wrapper.findAllComponents(Input)[0].props('message')).toBe(
+      'AUTOMATION.ADD.FORM.NAME.ERROR'
+    );
+    expect(wrapper.findAllComponents(Input)[1].props('message')).toBe(
+      'AUTOMATION.ADD.FORM.DESC.ERROR'
+    );
+    expect(scroll).toHaveBeenCalledWith({
+      block: 'center',
+      behavior: 'smooth',
+    });
+    wrapper.unmount();
+  });
+
+  it('scrolls to server lint findings', async () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    const wrapper = mountComponent({
+      mode: 'create',
+      automation: buildAutomation(),
+    });
+    wrapper.vm.setLintFindings({ errors: [{ code: 'empty_actions' }] });
+    await nextTick();
+    expect(wrapper.get('[role="alert"]').text()).toContain('empty_actions');
+    expect(scroll).toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     inboxes.value = [];
+    uiFlags.value = {};
   });
 
   it('summarizes who is assigned per inbox and flags unconnected ones without blocking editing', () => {

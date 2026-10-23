@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { onKeyStroke, useScrollLock } from '@vueuse/core';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirection.vue';
@@ -39,6 +39,31 @@ const MAX_WIDTH_CLASSES = {
 const isOpen = ref(false);
 const panelRef = ref(null);
 const isScrollLocked = useScrollLock(document.body);
+const sourceRef = ref(null);
+let lockedContainers = [];
+const unlockContainers = () => {
+  lockedContainers.forEach(element =>
+    element.classList.remove('!overflow-hidden')
+  );
+  lockedContainers = [];
+};
+watch(isOpen, open => {
+  if (!open) {
+    unlockContainers();
+    return;
+  }
+  let element = sourceRef.value?.parentElement;
+  while (element && element !== document.body) {
+    if (
+      /(auto|scroll)/.test(getComputedStyle(element).overflowY) &&
+      !element.classList.contains('!overflow-hidden')
+    ) {
+      element.classList.add('!overflow-hidden');
+      lockedContainers.push(element);
+    }
+    element = element.parentElement;
+  }
+});
 
 let previousActiveElement = null;
 
@@ -83,6 +108,7 @@ onKeyStroke('Escape', event => {
 });
 
 onBeforeUnmount(() => {
+  unlockContainers();
   isScrollLocked.value = false;
 });
 
@@ -90,6 +116,7 @@ defineExpose({ open, close });
 </script>
 
 <template>
+  <span ref="sourceRef" class="hidden" />
   <TeleportWithDirection to="body">
     <Transition
       enter-active-class="transition-opacity duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"

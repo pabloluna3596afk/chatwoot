@@ -387,43 +387,71 @@ defineExpose({ validate, resetValidation });
           : 'outline-n-weak dark:outline-n-strong'
       "
     >
-      <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_20rem]">
+      <div class="flex flex-col gap-3">
         <div class="flex flex-col min-w-0 gap-3">
-          <div class="flex items-center gap-3 min-h-8">
-            <span class="text-sm w-20 shrink-0 text-n-slate-11">
+          <div
+            class="grid grid-cols-1 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-center gap-2 sm:gap-3 min-h-8"
+          >
+            <span class="text-sm whitespace-nowrap text-n-slate-11">
               {{ $t('AUTOMATION.ADD.FORM.WAIT.WHEN_LABEL') }}
             </span>
-            <FilterSelect v-model="selectedTrigger" :options="triggerOptions" />
+            <FilterSelect
+              v-model="selectedTrigger"
+              class="min-w-0 max-w-full"
+              :options="triggerOptions"
+            />
           </div>
-          <div v-if="isStatusTrigger" class="flex items-center gap-3 min-h-8">
-            <span class="text-sm w-20 shrink-0 text-n-slate-11">
+          <div
+            v-if="isStatusTrigger"
+            class="grid grid-cols-1 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-center gap-2 sm:gap-3 min-h-8"
+          >
+            <span class="text-sm whitespace-nowrap text-n-slate-11">
               {{ $t('AUTOMATION.ADD.FORM.WAIT.STATUS_LABEL') }}
             </span>
-            <FilterSelect v-model="triggerStatus" :options="statusOptions" />
+            <FilterSelect
+              v-model="triggerStatus"
+              class="min-w-0 max-w-full"
+              :options="statusOptions"
+            />
           </div>
-          <div class="flex items-center gap-3 min-h-8">
-            <span class="text-sm w-20 shrink-0 text-n-slate-11">
+          <div
+            class="grid grid-cols-1 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-center gap-2 sm:gap-3 min-h-8"
+          >
+            <span class="text-sm whitespace-nowrap text-n-slate-11">
               {{ $t('AUTOMATION.ADD.FORM.WAIT.FOR_LABEL') }}
             </span>
-            <div class="flex items-center w-64 gap-2">
+            <div class="flex items-center w-full max-w-64 gap-2">
               <DurationInput
                 v-model="delay"
                 v-model:unit="unit"
+                custom-unit-select
                 :min="minDelay"
                 :max="MAX_DELAY_MINUTES"
               />
             </div>
+            <p class="m-0 text-xs text-n-slate-11 sm:col-start-2">
+              {{ $t('AUTOMATION.ADD.FORM.WAIT.RANGE_HINT') }}
+            </p>
+            <span
+              v-if="hasError"
+              role="alert"
+              class="text-xs text-n-ruby-11 sm:col-start-2"
+              >{{ $t('AUTOMATION.ADD.FORM.WAIT.ERROR') }}</span
+            >
           </div>
-          <div class="flex items-center gap-3 min-h-8">
-            <span class="text-sm w-20 shrink-0 text-n-slate-11">
+          <div
+            class="grid grid-cols-1 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-center gap-2 sm:gap-3 min-h-8"
+          >
+            <span class="text-sm whitespace-nowrap text-n-slate-11">
               {{ $t('AUTOMATION.ADD.FORM.WAIT.INBOX_LABEL') }}
             </span>
             <MultiSelect v-model="triggerInboxes" :options="inboxOptions" />
+            <p class="m-0 text-xs text-n-slate-11 sm:col-start-2">
+              {{ $t('AUTOMATION.ADD.FORM.WAIT.INBOX_HINT') }}
+            </p>
           </div>
         </div>
-        <aside
-          class="flex gap-2 p-3 min-w-0 rounded-xl bg-n-alpha-1 md:self-start"
-        >
+        <aside class="flex gap-2 p-3 min-w-0 rounded-xl bg-n-alpha-1">
           <Icon icon="i-lucide-info" class="mt-0.5 shrink-0 text-n-slate-10" />
           <div class="flex flex-col min-w-0 gap-2">
             <p class="mb-0 text-xs text-n-slate-11">{{ explanation }}</p>
@@ -469,8 +497,5 @@ defineExpose({ validate, resetValidation });
         />
       </div>
     </div>
-    <span v-if="hasError" class="text-xs text-n-ruby-9">
-      {{ $t('AUTOMATION.ADD.FORM.WAIT.ERROR') }}
-    </span>
   </div>
 </template>

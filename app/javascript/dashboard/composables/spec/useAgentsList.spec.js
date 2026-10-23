@@ -121,6 +121,23 @@ describe('useAgentsList', () => {
     });
   });
 
+  it('places Captain ahead of people while keeping None first', () => {
+    const captain = {
+      id: 7,
+      name: 'Sales',
+      assignee_type: 'Captain::Assistant',
+    };
+    mockUseMapGetter({
+      'inboxAssignableAgents/getAssignableAgents': ref(() => [
+        ...allAgentsData,
+        captain,
+      ]),
+    });
+    const { agentsList } = useAgentsList(true, { includeAIAssignees: true });
+    expect(agentsList.value.slice(0, 2)).toEqual([mockNoneAgent, captain]);
+    expect(agentsList.value.slice(2)).toEqual(formattedAgentsData.slice(1));
+  });
+
   it('handles empty assignable agents', () => {
     mockUseMapGetter({
       'inboxAssignableAgents/getAssignableAgents': ref(() => []),

@@ -465,7 +465,9 @@
         "OK": "Inbox {inbox} → {assistant} will handle it.",
         "NONE": "Inbox {inbox} → no Captain, nothing will be assigned.",
         "DIFFERENT": "Inbox {inbox} → handled by {assistant}, not the selected one; nothing will be assigned."
-      }
+      },
+      "NO_ASSISTANT": "no assistant configured",
+      "UNAVAILABLE": "Unavailable for these inboxes"
     },
     "NAME": "Captain",
     "HEADER_KNOW_MORE": "Know more",

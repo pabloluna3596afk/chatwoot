@@ -45,10 +45,10 @@ export const useMacros = () => {
         return withNoneOption(generateTeamOptions(teams.value));
       case 'assign_agent':
         return [
+          ...captainOptions.value,
           ...withNoneOption(),
           { id: 'self', name: 'Self' },
           ...agents.value,
-          ...captainOptions.value,
         ];
       case 'add_label':
       case 'remove_label':

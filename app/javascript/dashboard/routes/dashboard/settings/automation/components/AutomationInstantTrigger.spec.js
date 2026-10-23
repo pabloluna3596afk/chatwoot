@@ -30,10 +30,6 @@ describe('AutomationInstantTrigger', () => {
         ],
       }))
     );
-    const addEventListener = vi.spyOn(
-      EventTarget.prototype,
-      'addEventListener'
-    );
     const wrapper = mount(
       defineComponent({
         setup: () => () =>
@@ -65,6 +61,7 @@ describe('AutomationInstantTrigger', () => {
           mocks: { $t: key => key },
           config: { errorHandler: error => errors.push(error.message) },
           stubs: {
+            ComboBox: true,
             FilterSelect: true,
             SingleSelect: true,
             MultiSelect: true,
@@ -73,24 +70,10 @@ describe('AutomationInstantTrigger', () => {
         },
       }
     );
-    const select = wrapper.find('select').element;
-    const changeListeners = addEventListener.mock.calls
-      .filter(
-        ([type], index) =>
-          type === 'change' && addEventListener.mock.contexts[index] === select
-      )
-      .map(([, listener]) => listener);
-    addEventListener.mockRestore();
-
-    // A real pick lets Vue render after each change listener, while setValue() runs them all first.
-    select.value = 'conversation_resolved';
-    const event = new Event('change');
-    // eslint-disable-next-line no-restricted-syntax
-    for (const listener of changeListeners) {
-      listener(event);
-      // eslint-disable-next-line no-await-in-loop
-      await nextTick();
-    }
+    wrapper
+      .findComponent({ name: 'ComboBox' })
+      .vm.$emit('update:modelValue', 'conversation_resolved');
+    await nextTick();
 
     expect(errors).toEqual([]);
     expect(automation.conditions.map(c => c.attribute_key)).toEqual([
