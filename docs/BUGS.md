@@ -1741,6 +1741,22 @@ modelos y guarda contacto vía `contacts/update` antes de `toggle_status`.
 condicional `tipo=venta` → currency; resolve con `0` bloquea; valor > 0 OK.
 Local: `up -d --build` (Vue en imagen).
 
+### B-NEW-202 — Automatizaciones: condición de origen de campaña
+
+- **Fecha:** 2026-10-23. Backend; sin migración ni frontend.
+- **Archivos:** `app/models/automation_rule.rb`, `app/services/automation_rules/condition_validation_service.rb`.
+- **Cambio:** habilitar `campaign_id` en eventos de conversación, mensaje y reglas por tiempo, reutilizando el catálogo y el evaluador
+  existentes. Operadores: `equal_to`, `not_equal_to`, `is_present`, `is_not_present`. Igualdad exige `values: [id]` (un entero positivo,
+  ID interno de una campaña de la misma cuenta); presencia admite omitir `values`, `null` o `[]`. IDs ajenos/inexistentes devuelven
+  un error que identifica `campaign_id`. La API conserva su respuesta 422. No modifica filtros de conversaciones ni segmentos.
+- **Límites:** `not_equal_to` conserva SQL `NOT IN`: no coincide con `NULL`. WhatsApp solo atribuye por contexto explícito de respuesta
+  de Meta, sin reemplazar una campaña previa; no atribuye texto libre. Esta condición lee la conversación y no acredita cada mensaje.
+- **Cómo probar:** crear una regla por campaña y comparar conversación de esa campaña, de otra y sin campaña; probar los cuatro
+  operadores, guardado de IDs ajenos/eliminados, simulación, listeners y ambos runners por tiempo. Specs añadidos/ampliados en
+  `spec/services/automation_rules/`, `spec/listeners/automation_rule_listener_spec.rb`, `spec/services/automations/`,
+  `spec/services/business_rules/conditions_matcher_spec.rb` y `spec/controllers/api/v1/accounts/automation_rules_controller_spec.rb`.
+  RSpec/RuboCop pendientes de ejecución del PM en Docker según `docs/TESTING.md`.
+
 ### B-NEW-32 — Business rules UX: ConditionRow + categorías + multi-status
 
 **Feature.** Guards usan `conditions[]` (mismos filtros que Automations via
