@@ -266,8 +266,8 @@ class AutomationRule < ApplicationRecord
   def execution_delay_supported_event
     return if execution_delay.blank?
 
-    if time_triggered?
-      errors.add(:execution_delay, 'cannot be used with time_triggered events.')
+    if time_triggered? || event_name == 'contact_updated'
+      errors.add(:execution_delay, "cannot be used with #{event_name} events.")
       return
     end
     return if conditions.blank? || event_name == 'message_created'
