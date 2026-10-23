@@ -16,7 +16,7 @@ RSpec.describe AutomationRules::SimulationService do
 
   describe '#perform' do
     it 'orders matching rules by ID and numbers only matches consecutively' do
-      base_id = AutomationRule.maximum(:id).to_i + 1
+      base_id = AutomationRule.maximum(:id).to_i + 1000
       later_rule = create(:automation_rule, id: base_id + 2, account: account, event_name: event_name, conditions: [condition])
       create(:automation_rule, id: base_id, account: account, event_name: event_name,
                                conditions: [condition.merge('values' => ['resolved'])])
@@ -34,7 +34,7 @@ RSpec.describe AutomationRules::SimulationService do
 
     it 'includes delayed update rules armed by creation in the same order as the listener' do
       delayed = create(:automation_rule, account: account, event_name: 'conversation_updated',
-                                          execution_delay: 10, conditions: [condition])
+                                         execution_delay: 10, conditions: [condition])
       create(:automation_rule, account: account, event_name: 'conversation_updated', conditions: [condition])
       runtime_ids = AutomationRuleListener.instance.send(:conversation_rules, event_name, account).map(&:id)
 

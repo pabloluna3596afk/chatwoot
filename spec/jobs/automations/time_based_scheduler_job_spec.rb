@@ -9,7 +9,7 @@ RSpec.describe Automations::TimeBasedSchedulerJob do
   let(:contact_runner) { instance_double(Automations::ContactBasedRuleRunner, perform: true) }
 
   it 'runs active time and contact rules together by ascending ID without selecting other rules' do
-    base_id = AutomationRule.maximum(:id).to_i + 1
+    base_id = AutomationRule.maximum(:id).to_i + 1000
     rules = [2, 0, 1].map do |offset|
       schedule = if offset == 1
                    { kind: 'contact_date', date_source: 'last_activity', target_inbox_id: inbox.id }

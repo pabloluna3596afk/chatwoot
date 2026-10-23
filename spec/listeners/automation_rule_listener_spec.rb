@@ -1,6 +1,7 @@
 require 'rails_helper'
 
 describe AutomationRuleListener do
+  let(:id_offsets) { [2, 0, 1] }
   let(:listener) { described_class.instance }
   let!(:account) { create(:account) }
   let(:conversation) { create(:conversation, account: account) }
@@ -25,8 +26,8 @@ describe AutomationRuleListener do
       it "executes #{event_name} rules by ascending ID and keeps the same winning assignee" do
         conversation.update!(status: :open)
         message = create(:message, conversation: conversation, account: account)
-        base_id = AutomationRule.maximum(:id).to_i + 1
-        rules = [2, 0, 1].map do |offset|
+        base_id = AutomationRule.maximum(:id).to_i + 1000
+        rules = id_offsets.map do |offset|
           agent = create(:user, account: account)
           create(:inbox_member, inbox: conversation.inbox, user: agent)
           create(:automation_rule, id: base_id + offset, account: account, event_name: event_name,
@@ -72,10 +73,10 @@ describe AutomationRuleListener do
 
     it 'merges delayed update rules into creation rules in ascending ID order' do
       conversation.update!(status: :open)
-      base_id = AutomationRule.maximum(:id).to_i + 1
+      base_id = AutomationRule.maximum(:id).to_i + 1000
       instant = create(:automation_rule, id: base_id + 1, account: account, event_name: 'conversation_created')
       delayed = create(:automation_rule, id: base_id, account: account, event_name: 'conversation_updated',
-                                          execution_delay: 10)
+                                         execution_delay: 10)
 
       expect(listener.send(:conversation_rules, 'conversation_created', account).map(&:id)).to eq([delayed.id, instant.id])
     end
