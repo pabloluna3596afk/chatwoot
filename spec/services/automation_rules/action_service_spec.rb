@@ -313,9 +313,9 @@ RSpec.describe AutomationRules::ActionService do
 
       expect(rule.runs.sole).to have_attributes(outcome: 'executed', conversation_id: conversation.id)
       expect(rule.runs.sole.details['actions']).to eq([
-        { 'name' => 'send_webhook_event', 'outcome' => 'ok' },
-        { 'name' => 'send_message', 'outcome' => 'ok' }
-      ])
+                                                        { 'name' => 'send_webhook_event', 'outcome' => 'ok' },
+                                                        { 'name' => 'send_message', 'outcome' => 'ok' }
+                                                      ])
     end
 
     it 'records the failing action class and continues the remaining actions' do

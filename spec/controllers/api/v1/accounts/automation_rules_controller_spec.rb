@@ -746,10 +746,10 @@ RSpec.describe 'Api::V1::Accounts::AutomationRulesController', type: :request do
       get url, headers: headers
 
       body = response.parsed_body
-      expect(body['payload'].pluck('id')).to eq(runs.map(&:id).reverse.first(25))
+      expect(body['payload'].pluck('id')).to eq(runs.map(&:id).last(25).reverse)
       expect(body['meta']).to include('count' => 26, 'current_page' => 1, 'total_pages' => 2)
       expect(body['payload'].first.keys).to contain_exactly('id', 'outcome', 'reason', 'event_name', 'conversation_id',
-                                                          'contact_id', 'details', 'created_at')
+                                                            'contact_id', 'details', 'created_at')
 
       get url, headers: headers, params: { page: 2 }
       expect(response.parsed_body['payload'].pluck('id')).to eq([runs.first.id])

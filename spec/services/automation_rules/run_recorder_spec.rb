@@ -8,7 +8,7 @@ RSpec.describe AutomationRules::RunRecorder do
     described_class.record(rule: rule, outcome: 'executed', conversation: conversation, details: { actions: [] })
 
     expect(rule.runs.sole.attributes).to include('account_id' => rule.account_id, 'event_name' => rule.event_name,
-                                               'contact_id' => conversation.contact_id, 'details' => { 'actions' => [] })
+                                                 'contact_id' => conversation.contact_id, 'details' => { 'actions' => [] })
   end
 
   it 'absorbs database errors and logs only the error class' do

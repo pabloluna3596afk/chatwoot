@@ -226,7 +226,7 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
   end
 
   def invalid_run_filters?
-    return true if params.key?(:outcome) && !AutomationRuleRun::OUTCOMES.include?(params[:outcome])
+    return true if params.key?(:outcome) && AutomationRuleRun::OUTCOMES.exclude?(params[:outcome])
 
     %i[conversation_id page].any? do |key|
       params.key?(key) && !(params[key].is_a?(String) && params[key].match?(/\A[1-9]\d*\z/))
