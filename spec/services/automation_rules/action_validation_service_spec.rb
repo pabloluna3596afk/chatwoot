@@ -117,7 +117,8 @@ RSpec.describe AutomationRules::ActionValidationService do
           expect(rule.errors[:actions].join).to include('create_internal_task')
         end
 
-        [nil, '1', true].each do |id|
+        wrong_assignee_ids = [nil, '1', true]
+        wrong_assignee_ids.each do |id|
           it "rejects an assignee of the wrong type: #{id.inspect}" do
             action_params.first['assignee_id'] = id
 

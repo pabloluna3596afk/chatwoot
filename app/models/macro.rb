@@ -77,7 +77,7 @@ class Macro < ApplicationRecord
   end
 
   def validate_internal_task_actions
-    self.actions.each do |action|
+    actions.each do |action|
       next unless action['action_name'] == 'create_internal_task'
 
       error = AutomationRules::InternalTaskParameters.new(action['action_params'], account: account).error
