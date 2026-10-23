@@ -10,7 +10,7 @@ class AutomationRules::ProcessPendingExecutionJob < ApplicationJob
     return unless pending_execution.claim!
 
     skip_reason = skip_reason_for(pending_execution)
-    return pending_execution.update!(status: :skipped, skip_reason: skip_reason) if skip_reason
+    return skip_execution(pending_execution, skip_reason) if skip_reason
 
     execute(pending_execution)
   rescue StandardError => e
@@ -19,6 +19,12 @@ class AutomationRules::ProcessPendingExecutionJob < ApplicationJob
   end
 
   private
+
+  def skip_execution(pending_execution, reason)
+    pending_execution.update!(status: :skipped, skip_reason: reason)
+    AutomationRules::RunRecorder.record(rule: pending_execution.automation_rule, outcome: 'skipped', reason: reason,
+                                        conversation: pending_execution.conversation)
+  end
 
   def skip_reason_for(pending_execution)
     return 'expired' if pending_execution.due_at < AutomationRulePendingExecution::DUE_WINDOW.ago

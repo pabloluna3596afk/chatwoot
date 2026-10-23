@@ -5,7 +5,7 @@ require 'rails_helper'
 RSpec.describe Automations::ContactBasedRuleRunner do
   let(:account) { create(:account) }
   let(:inbox) { create(:inbox, account: account) }
-  let(:action_service) { instance_double(AutomationRules::ActionService, perform: true) }
+  let(:action_service) { instance_double(AutomationRules::ActionService, perform: true, record_run: true) }
 
   def contact_with(attrs)
     create(:contact, account: account, **attrs)
@@ -337,6 +337,7 @@ RSpec.describe Automations::ContactBasedRuleRunner do
 
       expect(contact.conversations.last.messages.outgoing.count).to eq(1)
       expect(Redis::Alfred.get(count_key).to_i).to eq(1)
+      expect(rule.runs.where(outcome: 'executed').count).to eq(1)
     end
 
     it 'releases a skipped send without counting its private audit note' do
@@ -521,6 +522,65 @@ RSpec.describe Automations::ContactBasedRuleRunner do
       described_class.new(rule).perform
 
       expect(AutomationRules::ActionService).not_to have_received(:new)
+    end
+  end
+
+  describe 'execution history' do
+    let!(:history_contact) { create(:contact, account: account, last_activity_at: Time.current) }
+    let(:history_conversation) { create(:conversation, account: account, inbox: inbox, contact: history_contact) }
+    let(:history_rule) do
+      create(:automation_rule, account: account, event_name: 'time_triggered', conditions: [],
+                               actions: [{ 'action_name' => 'add_label', 'action_params' => ['history'] }],
+                               schedule: { kind: 'contact_date', target_inbox_id: inbox.id, date_source: 'last_activity' })
+    end
+    let(:runner) { described_class.new(history_rule) }
+    let(:send_cap) { instance_double(Automations::ProactiveSendCap, reserve!: true, release!: true) }
+
+    before do
+      allow(AutomationRules::ActionService).to receive(:new).and_call_original
+      allow(runner).to receive(:resolve_conversation).and_return(history_conversation)
+      allow(runner).to receive(:cap).and_return(send_cap)
+    end
+
+    it 'records the cap omission and preserves the pause' do
+      allow(send_cap).to receive(:reserve!).and_return(false)
+      runner.perform
+
+      expect(history_rule.runs.sole).to have_attributes(outcome: 'skipped', reason: 'cap_reached')
+      expect(history_rule.reload.active).to be(false)
+    end
+
+    it 'records a consumed window and releases the cap' do
+      allow(runner).to receive(:claim_window!).and_return(false)
+      runner.perform
+
+      expect(history_rule.runs.sole.reason).to eq('window_consumed')
+      expect(send_cap).to have_received(:release!)
+    end
+
+    it 'records no message created once and releases both reservations' do
+      allow(runner).to receive(:claim_window!).and_return(true)
+      allow(runner).to receive(:release_window!)
+      runner.perform
+
+      expect(history_rule.runs.sole).to have_attributes(outcome: 'skipped', reason: 'no_send_created')
+      expect(history_rule.runs.sole.details['actions']).to eq([{ 'name' => 'add_label', 'outcome' => 'ok' }])
+      expect(send_cap).to have_received(:release!)
+      expect(runner).to have_received(:release_window!).with(history_contact)
+    end
+
+    it 'records a failed action once while releasing the reservations' do
+      allow(runner).to receive(:claim_window!).and_return(true)
+      allow(runner).to receive(:release_window!)
+      service = AutomationRules::ActionService.new(history_rule, account, history_conversation)
+      allow(AutomationRules::ActionService).to receive(:new).and_return(service)
+      allow(service).to receive(:execute_action).and_raise(ArgumentError, 'private data')
+      allow(ChatwootExceptionTracker).to receive(:new).and_return(instance_double(ChatwootExceptionTracker, capture_exception: nil))
+      runner.perform
+
+      expect(history_rule.runs.sole).to have_attributes(outcome: 'failed', reason: 'action_error')
+      expect(history_rule.runs.sole.details.to_json).not_to include('private data')
+      expect(send_cap).to have_received(:release!)
     end
   end
 end

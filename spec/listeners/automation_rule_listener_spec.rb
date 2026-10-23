@@ -399,4 +399,32 @@ describe AutomationRuleListener do
       expect { listener.message_created(event) }.not_to change(AutomationRulePendingExecution, :count)
     end
   end
+
+  describe 'execution history' do
+    let!(:history_rule) do
+      create(:automation_rule, account: account, event_name: 'conversation_created', conditions: [],
+                               actions: [{ 'action_name' => 'add_label', 'action_params' => ['history'] }])
+    end
+    let(:event) { Events::Base.new('conversation_created', Time.current, conversation: conversation) }
+
+    before do
+      allow(AutomationRules::ConditionsFilterService).to receive(:new).and_call_original
+      allow(AutomationRules::ActionService).to receive(:new).and_call_original
+    end
+
+    it 'records exactly one run for the event' do
+      listener.conversation_created(event)
+
+      expect(history_rule.runs.sole).to have_attributes(outcome: 'executed', event_name: 'conversation_created')
+      expect(history_rule.runs.sole.details['actions']).to eq([{ 'name' => 'add_label', 'outcome' => 'ok' }])
+    end
+
+    it 'does not record nonmatching evaluations' do
+      allow(AutomationRules::ConditionsFilterService).to receive(:new).and_return(conditions_filter_service)
+      allow(conditions_filter_service).to receive(:perform).and_return(false)
+      listener.conversation_created(event)
+
+      expect(history_rule.runs).to be_empty
+    end
+  end
 end

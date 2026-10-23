@@ -44,6 +44,7 @@ RSpec.describe AutomationRules::ProcessPendingExecutionJob do
 
     expect(pending_execution.reload).to be_executed
     expect(conversation.reload.label_list).to include('stale')
+    expect(rule.runs.sole).to have_attributes(outcome: 'executed', conversation_id: conversation.id)
   end
 
   it 'skips with rule_inactive when the rule was disabled' do
@@ -52,6 +53,7 @@ RSpec.describe AutomationRules::ProcessPendingExecutionJob do
 
     expect(pending_execution.reload).to be_skipped
     expect(pending_execution.skip_reason).to eq('rule_inactive')
+    expect(rule.runs.sole).to have_attributes(outcome: 'skipped', reason: 'rule_inactive')
     expect(conversation.reload.label_list).to be_empty
   end
 
@@ -76,6 +78,7 @@ RSpec.describe AutomationRules::ProcessPendingExecutionJob do
 
     expect(pending_execution.reload).to be_skipped
     expect(pending_execution.skip_reason).to eq('episode_moved')
+    expect(rule.runs.sole).to have_attributes(outcome: 'skipped', reason: 'episode_moved')
     expect(conversation.reload.label_list).to be_empty
   end
 
@@ -88,6 +91,7 @@ RSpec.describe AutomationRules::ProcessPendingExecutionJob do
 
     expect(row.reload).to be_skipped
     expect(row.skip_reason).to eq('conditions_changed')
+    expect(follow_up_rule.runs.sole).to have_attributes(outcome: 'skipped', reason: 'conditions_changed')
     expect(conversation.messages.outgoing.where(content: 'Just checking in')).to be_empty
   end
 
@@ -115,6 +119,7 @@ RSpec.describe AutomationRules::ProcessPendingExecutionJob do
 
     expect(pending_execution.reload).to be_skipped
     expect(pending_execution.skip_reason).to eq('expired')
+    expect(rule.runs.sole).to have_attributes(outcome: 'skipped', reason: 'expired')
     expect(conversation.reload.label_list).to be_empty
   end
 

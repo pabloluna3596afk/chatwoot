@@ -2,7 +2,7 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
   include AttachmentConcern
 
   before_action :check_authorization
-  before_action :fetch_automation_rule, only: [:show, :update, :destroy, :clone]
+  before_action :fetch_automation_rule, only: [:show, :update, :destroy, :clone, :runs]
   before_action :ensure_execution_delay_allowed, only: [:create, :update]
 
   def index
@@ -10,6 +10,16 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
   end
 
   def show; end
+
+  def runs
+    return head :not_found unless @automation_rule
+    return render json: { error: 'Invalid run filters' }, status: :unprocessable_entity if invalid_run_filters?
+
+    @runs = @automation_rule.runs.order(created_at: :desc, id: :desc)
+    @runs = @runs.where(outcome: params[:outcome]) if params[:outcome].present?
+    @runs = @runs.where(conversation_id: params[:conversation_id]) if params[:conversation_id].present?
+    @runs = @runs.page(params[:page]).per(25)
+  end
 
   def create
     blobs, actions, error = validate_and_prepare_attachments(params[:actions])
@@ -212,6 +222,14 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
   def serialize_findings(findings)
     Array(findings).map do |f|
       { rule_id: f.rule_id, rule_name: f.rule_name, code: f.code, message_key: f.message_key, meta: f.meta }
+    end
+  end
+
+  def invalid_run_filters?
+    return true if params.key?(:outcome) && AutomationRuleRun::OUTCOMES.exclude?(params[:outcome])
+
+    %i[conversation_id page].any? do |key|
+      params.key?(key) && !(params[key].is_a?(String) && params[key].match?(/\A[1-9]\d*\z/))
     end
   end
 

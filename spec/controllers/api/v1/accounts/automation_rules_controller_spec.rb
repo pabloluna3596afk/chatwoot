@@ -707,4 +707,70 @@ RSpec.describe 'Api::V1::Accounts::AutomationRulesController', type: :request do
       end
     end
   end
+
+  describe 'GET /api/v1/accounts/:account_id/automation_rules/:id/runs' do
+    let(:rule) { create(:automation_rule, account: account) }
+    let(:url) { "/api/v1/accounts/#{account.id}/automation_rules/#{rule.id}/runs" }
+    let(:headers) { administrator.create_new_auth_token }
+
+    it 'requires authentication' do
+      get url
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'rejects agents' do
+      agent = create(:user, account: account, role: :agent)
+      get url, headers: agent.create_new_auth_token
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'rejects administrators from other accounts' do
+      other_admin = create(:user, account: create(:account), role: :administrator)
+      get url, headers: other_admin.create_new_auth_token
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'does not expose another account rule' do
+      other_rule = create(:automation_rule)
+      get "/api/v1/accounts/#{account.id}/automation_rules/#{other_rule.id}/runs", headers: headers
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it 'paginates newest first with a stable order and only the documented fields' do
+      runs = create_list(:automation_rule_run, 26, automation_rule: rule, created_at: 1.hour.ago)
+      create(:automation_rule_run, automation_rule: create(:automation_rule, account: account))
+      get url, headers: headers
+
+      body = response.parsed_body
+      expect(body['payload'].pluck('id')).to eq(runs.map(&:id).last(25).reverse)
+      expect(body['meta']).to include('count' => 26, 'current_page' => 1, 'total_pages' => 2)
+      expect(body['payload'].first.keys).to contain_exactly('id', 'outcome', 'reason', 'event_name', 'conversation_id',
+                                                            'contact_id', 'details', 'created_at')
+
+      get url, headers: headers, params: { page: 2 }
+      expect(response.parsed_body['payload'].pluck('id')).to eq([runs.first.id])
+    end
+
+    it 'filters by outcome and conversation without exposing other rules' do
+      conversation = create(:conversation, account: account, inbox: inbox, contact: contact)
+      matching = create(:automation_rule_run, automation_rule: rule, outcome: 'failed', conversation: conversation)
+      create(:automation_rule_run, automation_rule: rule, outcome: 'executed', conversation: conversation)
+      create(:automation_rule_run, automation_rule: rule, outcome: 'failed')
+      get url, headers: headers, params: { outcome: 'failed', conversation_id: conversation.id }
+
+      expect(response.parsed_body['payload'].pluck('id')).to eq([matching.id])
+    end
+
+    it 'rejects malformed filters at the boundary' do
+      [{ outcome: 'unknown' }, { conversation_id: '1oops' }, { conversation_id: ['1'] }, { page: '0' }].each do |filters|
+        get url, headers: headers, params: filters
+
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+    end
+  end
 end
