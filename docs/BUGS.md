@@ -1,5 +1,19 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-193 — Simulación de automatizaciones sin efectos laterales (2026-10-23)
+
+- Archivos: `app/services/automation_rules/{conditions_filter_service,condition_validation_service,simulation_service}.rb`
+  y `app/controllers/api/v1/accounts/automation_rules_controller.rb`.
+- Causa: la simulación llamaba al evaluador de runtime, que contabilizaba condiciones inválidas como errores de autorización;
+  al segundo error podía desactivar la regla y encolar un correo.
+- Arreglo: evaluación compartida de solo lectura en `evaluate`; `perform` conserva la reacción del runtime.
+  La respuesta agrega `diagnostics` con regla, índice de condición (desde cero), atributo, operador y motivo.
+  Los permisos, coincidencias válidas y descripciones de acciones se conservan.
+- Verificación: specs de simulación (dos intentos sin cambios de datos, contador, estado de reautorización ni colas),
+  diagnósticos, coincidencias válidas y último mensaje; specs de endpoint para administrador, agente y aislamiento de cuenta;
+  regresión de runtime para contador, desactivación y correo. RSpec y RuboCop pendientes del PM en Docker según el brief.
+- Sin migraciones. Antes de promover: ejecutar los specs y RuboCop indicados en `tmp/PR-SIMULACION.md` del worktree.
+
 ### B-NEW-192 — Lote UI del dueño: asignación Captain, citas y conversación (2026-10-22)
 
 - Archivos: `app/services/conversations/assignment_service.rb`, concerns de actividades/asignación, `components-next/{date-field,time-field,dialog,dropdown-menu,sidebar}`, `calendars/EventModal.vue`, `AppointmentOriginLogo.vue`, `conversation/labels/LabelBox.vue`, etiquetas de tarjetas, `ContactInfo.vue`, `ViewAllConversations.vue` y locales es/en.

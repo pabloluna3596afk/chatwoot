@@ -11,7 +11,7 @@
 #
 # Nothing is executed: ActionService is never called, only described.
 class AutomationRules::SimulationService
-  Result = Struct.new(:event_name, :conversation_id, :matches, :evaluated_count, keyword_init: true)
+  Result = Struct.new(:event_name, :conversation_id, :matches, :evaluated_count, :diagnostics, keyword_init: true)
   Match = Struct.new(:rule_id, :rule_name, :actions, :order, keyword_init: true)
 
   # Events a conversation can be simulated against. time_triggered is excluded
@@ -31,29 +31,34 @@ class AutomationRules::SimulationService
   def perform
     rules = candidate_rules
     matches = []
+    @diagnostics = []
 
     rules.each_with_index do |rule, index|
       next unless conditions_match?(rule)
 
-      matches << Match.new(
-        rule_id: rule.id,
-        rule_name: rule.name,
-        actions: describe_actions(rule),
-        # Runtime has no ORDER BY, so this mirrors the DB's default order —
-        # which is what decides who wins when two rules collide.
-        order: index + 1
-      )
+      matches << describe_match(rule, index)
     end
 
     Result.new(
       event_name: @event_name,
       conversation_id: @conversation.id,
       matches: matches,
-      evaluated_count: rules.size
+      evaluated_count: rules.size,
+      diagnostics: @diagnostics
     )
   end
 
   private
+
+  def describe_match(rule, index)
+    Match.new(
+      rule_id: rule.id,
+      rule_name: rule.name,
+      actions: describe_actions(rule),
+      # Preserve the DB's default order, as in the runtime (no ORDER BY).
+      order: index + 1
+    )
+  end
 
   def candidate_rules
     return AutomationRule.none unless SIMULATABLE_EVENTS.include?(@event_name)
@@ -73,7 +78,10 @@ class AutomationRules::SimulationService
     # conditions (content, message_type, private_note) behave realistically.
     options[:message] = @conversation.messages.last if @event_name == 'message_created'
 
-    ::AutomationRules::ConditionsFilterService.new(rule, @conversation, options).perform.present?
+    evaluator = ::AutomationRules::ConditionsFilterService.new(rule, @conversation, options)
+    matches = evaluator.evaluate
+    @diagnostics.concat(evaluator.diagnostics.map { |finding| finding.merge(rule_id: rule.id, rule_name: rule.name) })
+    matches.present?
   rescue StandardError => e
     Rails.logger.error "Simulation failed for automation rule #{rule.id}: #{e.message}"
     false

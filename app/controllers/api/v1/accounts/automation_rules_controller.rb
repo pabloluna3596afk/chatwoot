@@ -149,6 +149,7 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
       event_name: result.event_name,
       conversation_id: result.conversation_id,
       evaluated_count: result.evaluated_count,
+      diagnostics: result.diagnostics,
       matches: result.matches.map { |m| { rule_id: m.rule_id, rule_name: m.rule_name, order: m.order, actions: m.actions } }
     }
   end

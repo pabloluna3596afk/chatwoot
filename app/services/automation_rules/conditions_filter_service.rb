@@ -3,6 +3,8 @@ require 'json'
 class AutomationRules::ConditionsFilterService < FilterService
   ATTRIBUTE_MODEL = 'contact_attribute'.freeze
 
+  attr_reader :diagnostics
+
   def initialize(rule, conversation = nil, options = {})
     super([], nil)
     # assign rule, conversation and account to instance variables
@@ -23,31 +25,39 @@ class AutomationRules::ConditionsFilterService < FilterService
   end
 
   def perform
+    matches = evaluate
+    @rule.authorization_error! if @validation_failed
+    matches
+  rescue StandardError => e
+    log_evaluation_error(e)
+    false
+  end
+
+  # Shared read-only evaluator. Runtime reactions belong exclusively to perform.
+  def evaluate
+    @diagnostics = []
+    @validation_failed = false
     return true if @rule.conditions.blank?
     return false unless rule_valid?
 
-    @attribute_changed_query_filter = []
-
-    @rule.conditions.each_with_index do |query_hash, current_index|
-      @attribute_changed_query_filter << query_hash and next if query_hash['filter_operator'] == 'attribute_changed'
-
-      apply_filter(query_hash, current_index)
-    end
+    build_conditions_query
 
     records = base_relation.where(@query_string, @filter_values.with_indifferent_access)
     records = perform_attribute_changed_filter(records) if @attribute_changed_query_filter.any?
 
     records.any?
   rescue StandardError => e
-    Rails.logger.error "Error in AutomationRules::ConditionsFilterService: #{e.message}"
-    Rails.logger.info "AutomationRules::ConditionsFilterService failed while processing rule #{@rule.id} for conversation #{@conversation.id}"
+    log_evaluation_error(e)
+    @diagnostics << { message: "Condition evaluation failed: #{e.message}" }
     false
   end
 
   def rule_valid?
-    is_valid = AutomationRules::ConditionValidationService.new(@rule).perform
+    validation = AutomationRules::ConditionValidationService.new(@rule)
+    is_valid = validation.perform
+    @diagnostics = validation.diagnostics
+    @validation_failed = !is_valid
     Rails.logger.info "Automation rule condition validation failed for rule id: #{@rule.id}" unless is_valid
-    @rule.authorization_error! unless is_valid
 
     is_valid
   end
@@ -164,6 +174,20 @@ class AutomationRules::ConditionsFilterService < FilterService
   end
 
   private
+
+  def build_conditions_query
+    @attribute_changed_query_filter = []
+    @rule.conditions.each_with_index do |query_hash, current_index|
+      @attribute_changed_query_filter << query_hash and next if query_hash['filter_operator'] == 'attribute_changed'
+
+      apply_filter(query_hash, current_index)
+    end
+  end
+
+  def log_evaluation_error(error)
+    Rails.logger.error "Error in AutomationRules::ConditionsFilterService: #{error.message}"
+    Rails.logger.info "ConditionsFilterService failed for rule #{@rule.id} and conversation #{@conversation.id}"
+  end
 
   def filter_config
     {
