@@ -28,7 +28,12 @@ RSpec.describe Automations::ContactBasedRuleRunner do
   end
 
   before do
-    allow(AutomationRules::ActionService).to receive(:new).and_return(action_service)
+    allow(AutomationRules::ActionService).to receive(:new) do |_rule, _account, conversation|
+      allow(action_service).to receive(:perform) do
+        conversation.messages.create!(account: account, inbox: inbox, message_type: :outgoing, content: 'Hola!')
+      end
+      action_service
+    end
   end
 
   around do |example|
@@ -221,6 +226,233 @@ RSpec.describe Automations::ContactBasedRuleRunner do
 
         expect(AutomationRules::ActionService).not_to have_received(:new)
       end
+    end
+  end
+
+  describe 'send reservations and contact windows' do
+    let(:recurrence) { 'once' }
+    let(:actions) { [{ 'action_name' => 'send_message', 'action_params' => ['Hola!'] }] }
+    let(:rule) do
+      create(:automation_rule, account: account, event_name: 'time_triggered', conditions: [], actions: actions, schedule: {
+               'kind' => 'contact_date', 'target_inbox_id' => inbox.id,
+               'date_source' => 'contact_attribute', 'attribute_key' => 'birthday',
+               'recurrence' => recurrence, 'relative_to' => 'on'
+             })
+    end
+    let!(:contact) { create(:contact, account: account, custom_attributes: { 'birthday' => '2026-08-14' }) }
+    let(:conversation) { create(:conversation, account: account, inbox: inbox, contact: contact) }
+    let(:runner) { described_class.new(rule) }
+    let(:count_key) do
+      format(Redis::RedisKeys::PROACTIVE_SEND_DAILY_COUNT, account_id: account.id, date: Time.zone.today.to_s)
+    end
+    let(:window_key) { runner.send(:window_key, contact) }
+
+    before { allow(AutomationRules::ActionService).to receive(:new).and_call_original }
+
+    around do |example|
+      travel_to(Time.zone.local(2026, 8, 14, 12)) { example.run }
+    end
+
+    shared_examples 'an unspent window when conditions do not match' do
+      it 'can send on a later run after the condition changes' do
+        rule.update!(conditions: [{
+                       'attribute_key' => 'status', 'filter_operator' => 'equal_to', 'values' => ['resolved']
+                     }])
+        conversation.open!
+
+        runner.perform
+
+        expect(Redis::Alfred.get(window_key)).to be_nil
+        expect(Redis::Alfred.get(count_key).to_i).to eq(0)
+        expect(conversation.messages.outgoing).to be_empty
+
+        conversation.resolved!
+        runner.perform
+
+        expect(conversation.messages.outgoing.count).to eq(1)
+        expect(Redis::Alfred.get(count_key).to_i).to eq(1)
+      end
+    end
+
+    include_examples 'an unspent window when conditions do not match'
+
+    context 'with yearly recurrence' do
+      let(:recurrence) { 'yearly' }
+
+      include_examples 'an unspent window when conditions do not match'
+    end
+
+    it 'does not reserve anything when a conversation cannot be resolved' do
+      allow(ContactInboxBuilder).to receive(:new).and_raise(StandardError, 'unavailable')
+
+      runner.perform
+
+      expect(Redis::Alfred.get(window_key)).to be_nil
+      expect(Redis::Alfred.get(count_key).to_i).to eq(0)
+      expect(AutomationRules::ActionService).not_to have_received(:new)
+    end
+
+    it 'consumes exactly one place even if the actions send two messages' do
+      rule.update!(actions: actions * 2)
+
+      runner.perform
+
+      expect(contact.conversations.last.messages.outgoing.count).to eq(2)
+      expect(Redis::Alfred.get(count_key).to_i).to eq(1)
+      expect(Redis::Alfred.get(window_key)).to be_present
+    end
+
+    it 'releases the second reservation without deleting the first run window' do
+      runner.perform
+      original_window = Redis::Alfred.get(window_key)
+      described_class.new(rule).perform
+
+      expect(contact.conversations.last.messages.outgoing.count).to eq(1)
+      expect(Redis::Alfred.get(count_key).to_i).to eq(1)
+      expect(Redis::Alfred.get(window_key)).to eq(original_window)
+    end
+
+    it 'does not treat an older outgoing message as a new send' do
+      conversation.messages.create!(account: account, inbox: inbox, message_type: :outgoing, content: 'Previous')
+      rule.update!(actions: [{ 'action_name' => 'add_label', 'action_params' => ['follow-up'] }])
+
+      runner.perform
+
+      expect(conversation.reload.label_list).to include('follow-up')
+      expect(Redis::Alfred.get(count_key).to_i).to eq(0)
+      expect(Redis::Alfred.get(window_key)).to be_nil
+    end
+
+    it 'releases a label-only run so the contact can receive a message later' do
+      rule.update!(actions: [{ 'action_name' => 'add_label', 'action_params' => ['follow-up'] }])
+
+      runner.perform
+
+      expect(contact.conversations.last.label_list).to include('follow-up')
+      expect(Redis::Alfred.get(count_key).to_i).to eq(0)
+      expect(Redis::Alfred.get(window_key)).to be_nil
+
+      rule.update!(actions: actions)
+      described_class.new(rule).perform
+
+      expect(contact.conversations.last.messages.outgoing.count).to eq(1)
+      expect(Redis::Alfred.get(count_key).to_i).to eq(1)
+    end
+
+    it 'releases a skipped send without counting its private audit note' do
+      allow(runner).to receive(:resolve_conversation).with(contact).and_return(conversation)
+      allow(conversation).to receive(:can_reply?).and_return(false)
+
+      runner.perform
+
+      expect(contact.conversations.last.messages.where(private: true)).to exist
+      expect(Redis::Alfred.get(count_key).to_i).to eq(0)
+      expect(Redis::Alfred.get(window_key)).to be_nil
+    end
+
+    it 'does not count a private note as an outbound send' do
+      rule.update!(actions: [{ 'action_name' => 'add_private_note', 'action_params' => ['Internal only'] }])
+
+      runner.perform
+
+      expect(contact.conversations.last.messages.outgoing.where(private: true).count).to eq(1)
+      expect(Redis::Alfred.get(count_key).to_i).to eq(0)
+      expect(Redis::Alfred.get(window_key)).to be_nil
+    end
+
+    it 'does not count an asynchronous webhook as an outbound message' do
+      rule.update!(actions: [{ 'action_name' => 'send_webhook_event', 'action_params' => ['https://example.com/hook'] }])
+
+      expect { runner.perform }.to have_enqueued_job(WebhookJob).once
+
+      expect(Redis::Alfred.get(count_key).to_i).to eq(0)
+      expect(Redis::Alfred.get(window_key)).to be_nil
+    end
+
+    it 'releases a failed action and continues with the next contact' do
+      following = create(:contact, account: account, custom_attributes: contact.custom_attributes)
+      allow(AutomationRules::ActionService).to receive(:new).with(rule, account, conversation).and_return(action_service)
+      allow(action_service).to receive(:perform).and_raise(StandardError, 'send failed')
+      allow(Rails.logger).to receive(:error)
+
+      runner.perform
+
+      expect(Redis::Alfred.get(window_key)).to be_nil
+      expect(Redis::Alfred.get(count_key).to_i).to eq(1)
+      expect(following.conversations.last.messages.outgoing.count).to eq(1)
+      expect(Rails.logger).to have_received(:error).with(
+        "[ContactBasedRuleRunner] action failed rule=#{rule.id} contact=#{contact.id}: send failed"
+      )
+
+      allow(AutomationRules::ActionService).to receive(:new).and_call_original
+      described_class.new(rule).perform
+
+      expect(conversation.messages.outgoing.count).to eq(1)
+      expect(Redis::Alfred.get(count_key).to_i).to eq(2)
+    end
+
+    it 'pauses at the cap without claiming windows for remaining contacts' do
+      account.update!(settings: { 'proactive_daily_send_cap' => 1 })
+      following = create(:contact, account: account, custom_attributes: contact.custom_attributes)
+
+      runner.perform
+
+      expect(rule.reload.active?).to be(false)
+      expect(Redis::Alfred.get(count_key).to_i).to eq(1)
+      expect(Redis::Alfred.get(runner.send(:window_key, following))).to be_nil
+      expect(following.conversations.last.messages.outgoing).to be_empty
+    end
+
+    it 'retains the reservation and window for a deferred message' do
+      rule.update!(actions: [actions.first.merge('delivery' => { 'delay_seconds' => 5 })])
+
+      expect { runner.perform }.to have_enqueued_job(Messages::DeferredOutboundJob).once
+      described_class.new(rule).perform
+
+      expect(contact.conversations.last.messages.outgoing).to be_empty
+      expect(Redis::Alfred.get(count_key).to_i).to eq(1)
+      expect(Redis::Alfred.get(window_key)).to be_present
+    end
+
+    it 'retains the reservation and window for a deferred attachment' do
+      rule.update!(actions: [{
+                     'action_name' => 'send_attachment', 'action_params' => [],
+                     'delivery' => { 'delay_seconds' => 5 }
+                   }])
+      rule.files.attach(io: Rails.root.join('spec/assets/avatar.png').open, filename: 'avatar.png', content_type: 'image/png')
+      rule.update!(actions: [rule.actions.first.merge('action_params' => rule.files.blobs.ids)])
+
+      expect { runner.perform }.to have_enqueued_job(Messages::DeferredOutboundJob).once
+      described_class.new(rule).perform
+
+      expect(contact.conversations.last.messages.outgoing).to be_empty
+      expect(Redis::Alfred.get(count_key).to_i).to eq(1)
+      expect(Redis::Alfred.get(window_key)).to be_present
+    end
+
+    %w[execute_macro enter_flow send_email_transcript].each do |action_name|
+      it "conservatively retains reservations for #{action_name} even when it skips" do
+        rule.update!(actions: [{ 'action_name' => action_name, 'action_params' => [] }])
+        allow(AutomationRules::ActionService).to receive(:new).and_return(action_service)
+
+        runner.perform
+        described_class.new(rule).perform
+
+        expect(action_service).to have_received(:perform).once
+        expect(Redis::Alfred.get(count_key).to_i).to eq(1)
+        expect(Redis::Alfred.get(window_key)).to be_present
+      end
+    end
+
+    it 'keeps candidate counts read-only before and after sending' do
+      expect(runner.candidates_count).to eq(1)
+      expect(Redis::Alfred.get(count_key)).to be_nil
+      expect(contact.conversations).to be_empty
+
+      runner.perform
+
+      expect(described_class.new(rule).candidates_count).to eq(1)
+      expect(Redis::Alfred.get(count_key).to_i).to eq(1)
     end
   end
 
