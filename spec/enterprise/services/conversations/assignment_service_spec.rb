@@ -23,7 +23,7 @@ describe Conversations::AssignmentService do
     content = I18n.t('conversations.activity.ai_assignee.assigned', assistant: assistant.name, actor: actor.name)
 
     expect do
-      described_class.new(conversation: conversation, assignee_id: assistant.id, assignee_type: 'Captain::Assistant').perform
+      described_class.new(conversation: conversation.reload, assignee_id: assistant.id, assignee_type: 'Captain::Assistant').perform
     end.to have_enqueued_job(Conversations::ActivityMessageJob).with(conversation, hash_including(content: content)).exactly(:once)
       .and change { enqueued_jobs.count { |job| job[:job] == Conversations::ActivityMessageJob } }.by(1)
 
@@ -36,7 +36,7 @@ describe Conversations::AssignmentService do
     content = I18n.t('conversations.activity.assignee.assigned', assignee_name: agent.name, user_name: actor.name)
 
     expect do
-      described_class.new(conversation: conversation, assignee_id: agent.id).perform
+      described_class.new(conversation: conversation.reload, assignee_id: agent.id).perform
     end.to have_enqueued_job(Conversations::ActivityMessageJob).with(conversation, hash_including(content: content)).exactly(:once)
       .and change { enqueued_jobs.count { |job| job[:job] == Conversations::ActivityMessageJob } }.by(1)
 
@@ -52,7 +52,7 @@ describe Conversations::AssignmentService do
     content = I18n.t('conversations.activity.ai_assignee.assigned', assistant: assistant.name, actor: actor.name)
 
     expect do
-      described_class.new(conversation: conversation, assignee_id: assistant.id, assignee_type: 'Captain::Assistant').perform
+      described_class.new(conversation: conversation.reload, assignee_id: assistant.id, assignee_type: 'Captain::Assistant').perform
     end.to have_enqueued_job(Conversations::ActivityMessageJob).with(conversation, hash_including(content: content)).exactly(:once)
       .and change { enqueued_jobs.count { |job| job[:job] == Conversations::ActivityMessageJob } }.by(1)
 
@@ -63,7 +63,7 @@ describe Conversations::AssignmentService do
     content = I18n.t('conversations.activity.assignee.assigned', assignee_name: other_agent.name, user_name: actor.name)
 
     expect do
-      described_class.new(conversation: conversation, assignee_id: other_agent.id).perform
+      described_class.new(conversation: conversation.reload, assignee_id: other_agent.id).perform
     end.to have_enqueued_job(Conversations::ActivityMessageJob).with(conversation, hash_including(content: content)).exactly(:once)
       .and change { enqueued_jobs.count { |job| job[:job] == Conversations::ActivityMessageJob } }.by(1)
 
@@ -71,6 +71,8 @@ describe Conversations::AssignmentService do
   end
 
   it 'clears the assignment flag if saving fails' do
+    conversation.reload
+    allow(conversation).to receive(:with_lock).and_yield
     allow(conversation).to receive(:save!).and_raise(ActiveRecord::RecordInvalid.new(conversation))
 
     expect do

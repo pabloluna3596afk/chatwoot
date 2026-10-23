@@ -17,7 +17,7 @@ class Conversations::AssignmentService
 
   def assign_agent
     conversation.with_lock do
-      conversation.assignment_driven_status = conversation.captain_attended?
+      conversation.assignment_driven_status = conversation.captain_assigned?
       if cleared_assignee? && (bot = conversation.inbox.assignable_agent_bot)
         conversation.assignee = nil
         conversation.ai_assignee = bot
@@ -77,7 +77,7 @@ class Conversations::AssignmentService
       conversation.assignee = nil
       conversation.ai_assignee = ai_assignee
       conversation.status = :pending
-      conversation.assignment_driven_status = conversation.captain_attended?
+      conversation.assignment_driven_status = conversation.captain_assigned?
       conversation.save!
     end
     ai_assignee
