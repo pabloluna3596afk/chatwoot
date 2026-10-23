@@ -1579,6 +1579,21 @@ CAs updated `2026-06-19` → `2026-07-24`, no exception. Preset defaults now
 use prod keys `fecha_seguimiento` / `fecha_venta` (alias `ultimo_seguimiento`
 is local-only).
 
+### B-NEW-197 — Historial de ejecución de automatizaciones (2026-10-23)
+
+- Archivos: `automation_rule_runs`, `AutomationRules::RunRecorder`, `AutomationRules::ActionService`,
+  `Automations::ContactBasedRuleRunner`, `AutomationRules::ProcessPendingExecutionJob`, modelo y controlador de reglas.
+- Cambio: una fila por ejecución con resultado por acción, clase e índice del error sin mensajes ni datos del cliente;
+  omisiones de cupo/ventana/sin envío y esperas conservan sus motivos. Desactivar una regla inválida deja historial.
+- Lectura: `GET /api/v1/accounts/:account_id/automation_rules/:id/runs`, solo administradores de la cuenta,
+  páginas de 25, filtros por resultado y conversación. Sin pantalla en este PR.
+- Retención: purga diaria a los 30 días; bloqueo por regla para limitar `executed` a partir de 1000 filas diarias
+  y contador `suppressed_executed_count` en la última fila. Los errores siguen registrándose.
+- Verificación: specs del recorder, ActionService, listener, runners temporal/contacto, esperas, purga, modelo y API.
+  RSpec/RuboCop pendientes del PM en Docker, según el brief; revisión estática y `git diff --check` realizadas.
+- Deploy: requiere migración `20261023120000_create_automation_rule_runs.rb` y reiniciar Rails/Sidekiq.
+
+
 ### B-NEW-15 — Flows menu no visible (local / prod) — secundario
 
 **Estado:** ✅ portado (2026-07-24) sobre `feat/business-rules-time-multilist`.
