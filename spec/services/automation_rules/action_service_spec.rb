@@ -53,7 +53,7 @@ RSpec.describe AutomationRules::ActionService do
       end
     end
 
-    ['hours', 'minutes'].each do |unit|
+    %w[hours minutes].each do |unit|
       context "with #{unit}" do
         let(:params) { [{ 'duration' => 3, 'unit' => unit }] }
 
