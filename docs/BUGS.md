@@ -1588,6 +1588,22 @@ API, store/rutas FE, Sidebar **Flows**, flag `flows_v1`, acción automation
 `Account.find(1).enable_features!('flows_v1')`. UI: rebuild Vite/Docker assets
 si el menú no aparece tras restart Rails.
 
+### B-NEW-198 — Automatizaciones al cambiar atributos del contacto (2026-10-23)
+
+- Archivos: `app/listeners/automation_rule_listener.rb`, `app/models/{contact,automation_rule}.rb`
+  y `app/services/automation_rules/{contact_updated_service,condition_validation_service}.rb`.
+- Cambio: `contact_updated` usa el catálogo compartido y evalúa condiciones sobre la conversación abierta o pendiente
+  más reciente; las condiciones `inbox_id/equal_to` restringen el destino antes de elegirlo. No crea conversaciones.
+- Seguridad: el evento conserva `Current.executed_by` para ignorar cambios causados por automatizaciones;
+  Redis reclama una vez por regla/contacto/hash durante diez minutos. Límite propio de 200 ejecuciones por cuenta
+  y día (`Time.zone.today`), porque las importaciones no tienen un indicador común en `Current`.
+- Alcance: atributos personalizados y estándares filtrables; diferencias JSON desglosadas para `attribute_changed`.
+  Etiquetas del contacto pendientes: no existe una notificación específica con su diferencia; `labels` conserva
+  el significado actual de etiquetas de conversación. No admite espera ni simulación para este evento.
+- Verificación: `spec/services/automation_rules/contact_updated_service_spec.rb` cubre A1–A8, TTL, cupo, orden
+  y actor; el spec del controlador comprueba que simularlo devuelve 422. Revisión estática y `git diff --check`;
+  RSpec/RuboCop pendientes del PM en Docker, según `.codex/BRIEF-CONTACTO.md`. Sin frontend ni migraciones.
+
 ### B-NEW-22 — Flows: columna infinita + nota handoff con IDs técnicos
 
 **Síntoma:** el editor listaba todos los pasos en una columna; con muchas ramas

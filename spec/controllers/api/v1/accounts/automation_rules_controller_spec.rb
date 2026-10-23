@@ -12,6 +12,17 @@ RSpec.describe 'Api::V1::Accounts::AutomationRulesController', type: :request do
     let(:simulation_params) { { conversation_id: conversation.id, event_name: 'conversation_created' } }
     let(:url) { "/api/v1/accounts/#{account.id}/automation_rules/simulate" }
 
+    it 'rejects contact_updated without executing actions' do
+      allow(AutomationRules::ActionService).to receive(:new)
+
+      post url, headers: administrator.create_new_auth_token,
+                params: simulation_params.merge(event_name: 'contact_updated')
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['error']).to eq('Unsupported event_name')
+      expect(AutomationRules::ActionService).not_to have_received(:new)
+    end
+
     it 'requires authentication' do
       post url, params: simulation_params
 
