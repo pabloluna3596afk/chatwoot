@@ -81,10 +81,30 @@ class AutomationRules::ConditionValidationService
     key = condition['attribute_key']
     return 'The attribute is not supported for this event.' unless attribute_supported?(key)
 
-    return if condition['filter_operator'] == 'attribute_changed'
-    return if filter['filter_operators'].include?(condition['filter_operator'])
+    campaign_condition = key == 'campaign_id' && @rule.respond_to?(:conditions_attributes)
+    return if condition['filter_operator'] == 'attribute_changed' && !campaign_condition
+    unless filter['filter_operators'].include?(condition['filter_operator'])
+      return 'The filter operator is not supported for this attribute.'
+    end
 
-    'The filter operator is not supported for this attribute.'
+    campaign_value_error(condition) if campaign_condition
+  end
+
+  def campaign_value_error(condition)
+    values = condition['values']
+    if PRESENCE_OPERATORS.include?(condition['filter_operator'])
+      return if values.nil? || values == []
+
+      return 'campaign_id presence conditions must not have values.'
+    end
+
+    unless values.is_a?(Array) && values.one? && values.first.is_a?(Integer) && values.first.positive?
+      return 'campaign_id requires one positive integer campaign ID in values.'
+    end
+
+    return if @account.campaigns.exists?(id: values.first)
+
+    'campaign_id must reference an existing campaign in this account.'
   end
 
   # Embedded business rules evaluate conditions with a rule-like object that has no event or attribute list.
