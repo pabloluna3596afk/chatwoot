@@ -37,6 +37,8 @@
       "HELP": "If you do not change it, the account's text is used. The variables are filled in with this appointment's data.",
       "CUSTOM": "Text of this appointment",
       "USE_ACCOUNT": "Use the account's text",
+      "SHOW_PREVIEW": "See how the customer will see it",
+      "HIDE_PREVIEW": "Hide preview",
       "PREVIEW": "How the customer will see it",
       "MEET_NOTE": "The Meet link is added when the appointment is created."
     }

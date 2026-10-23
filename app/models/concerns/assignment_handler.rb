@@ -3,6 +3,8 @@ module AssignmentHandler
   include Events::Types
 
   included do
+    attr_accessor :assignment_driven_status
+
     before_save :ensure_assignee_is_from_team
     after_commit :notify_assignment_change, :process_assignment_changes
   end
@@ -48,6 +50,8 @@ module AssignmentHandler
     with_account_locale do
       if saved_change_to_team_id?
         create_team_change_activity(user_name)
+      elsif captain_attended? && (saved_change_to_assignee_agent_bot_id? || saved_change_to_ai_assignee_type?)
+        create_ai_assignee_change_activity(user_name)
       elsif saved_change_to_assignee_id?
         create_assignee_change_activity(user_name)
       elsif saved_change_to_assignee_agent_bot_id? || saved_change_to_ai_assignee_type?

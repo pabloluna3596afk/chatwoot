@@ -1,5 +1,12 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-192 — Lote UI del dueño: asignación Captain, citas y conversación (2026-10-22)
+
+- Archivos: `app/services/conversations/assignment_service.rb`, concerns de actividades/asignación, `components-next/{date-field,time-field,dialog,dropdown-menu,sidebar}`, `calendars/EventModal.vue`, `AppointmentOriginLogo.vue`, `conversation/labels/LabelBox.vue`, etiquetas de tarjetas, `ContactInfo.vue`, `ViewAllConversations.vue` y locales es/en.
+- Arreglo: una nota por asignación de Captain con marca `assignment_driven_status` y limpieza en `ensure`; conservar `pending` interno, el estado visible Abierta y el comportamiento AgentBot. Fecha/hora propios; invitación con área ampliable y vista previa plegada; logo de instalación para origen CRM. Modal real de etiquetas fuera del dropdown, aplicar la etiqueta creada y navegar por su nombre; botones de contacto compactos y un solo refrescar en Plantillas y Flows.
+- Interacción: los menús de fecha/hora permanecen en el dialog nativo sin disparar su cierre exterior; evitar doble toggle por propagación del input de hora.
+- Verificar: Vitest del lote en UTC y America/Guayaquil, ESLint de archivos tocados, capturas `lote-*` de `.codex/qa` a 390 px en ambos temas. RSpec nuevo en `spec/enterprise/services/conversations/assignment_service_spec.rb`: persona→Captain, Captain→persona, Captain A→B, persona→persona y limpieza del flag; revisión estática local según brief, ejecución Rails pendiente. Sin migraciones.
+
 ### B-NEW-191 - Audience condition actions overflow on mobile
 
 - File: `app/javascript/dashboard/components-next/captain/pageComponents/assistant/settings/audience/AudienceGroup.vue`.

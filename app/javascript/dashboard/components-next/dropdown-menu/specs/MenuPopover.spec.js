@@ -12,6 +12,9 @@ describe('MenuPopover', () => {
       global: { provide: { dialogPortalTarget: ref(dialog) } },
     });
     try {
+      expect(wrapper.getComponent(DropdownMenu).attributes()).toHaveProperty(
+        'data-menu-popover'
+      );
       expect(wrapper.getComponent(DropdownMenu).element.parentElement).toBe(
         dialog
       );

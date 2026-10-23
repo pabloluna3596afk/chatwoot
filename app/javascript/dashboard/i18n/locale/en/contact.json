@@ -1,5 +1,6 @@
 {
   "CONTACT_PANEL": {
+    "CALL_FROM_PLATFORM": "Call from ChatHub (WhatsApp or Twilio)",
     "NOT_AVAILABLE": "Not Available",
     "EMAIL_ADDRESS": "Email Address",
     "PHONE_NUMBER": "Phone number",

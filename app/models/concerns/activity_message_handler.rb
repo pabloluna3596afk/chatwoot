@@ -39,6 +39,7 @@ module ActivityMessageHandler
   end
 
   def handle_status_change(user_name)
+    return if assignment_driven_status
     return unless saved_change_to_status?
 
     status_change_activity(user_name)

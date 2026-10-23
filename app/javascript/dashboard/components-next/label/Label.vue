@@ -55,7 +55,7 @@ const colorClasses = computed(() =>
 
 <template>
   <div
-    :title="labelDescription"
+    :title="labelDescription || labelTitle"
     class="rounded-lg inline-flex items-center flex-shrink-0"
     :class="[
       tintStyles
@@ -68,7 +68,7 @@ const colorClasses = computed(() =>
   >
     <slot v-if="!tintStyles" name="icon" />
     <span
-      class="whitespace-nowrap"
+      class="min-w-0 truncate"
       :class="compact ? 'text-label-small' : 'text-label !font-420'"
     >
       {{ labelTitle }}

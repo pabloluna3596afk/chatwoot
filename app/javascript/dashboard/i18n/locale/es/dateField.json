@@ -1,0 +1,7 @@
+{
+  "DATE_FIELD": {
+    "PREVIOUS_MONTH": "Mes anterior",
+    "NEXT_MONTH": "Mes siguiente",
+    "INVALID_TIME": "Escribe una hora válida (HH:mm)"
+  }
+}

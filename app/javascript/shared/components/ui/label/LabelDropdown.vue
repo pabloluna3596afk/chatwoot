@@ -1,7 +1,6 @@
 <script>
 import LabelDropdownItem from './LabelDropdownItem.vue';
 import Hotkey from 'dashboard/components/base/Hotkey.vue';
-import AddLabelModal from 'dashboard/routes/dashboard/settings/labels/AddLabel.vue';
 import { picoSearch } from '@chatwoot/pico-search';
 import { sanitizeLabel } from 'shared/helpers/sanitizeData';
 import NextButton from 'dashboard/components-next/button/Button.vue';
@@ -9,7 +8,6 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 export default {
   components: {
     LabelDropdownItem,
-    AddLabelModal,
     Hotkey,
     NextButton,
   },
@@ -28,12 +26,11 @@ export default {
       default: false,
     },
   },
-  emits: ['update', 'add', 'remove'],
+  emits: ['update', 'add', 'remove', 'create'],
 
   data() {
     return {
       search: '',
-      createModalVisible: false,
     };
   },
 
@@ -98,11 +95,7 @@ export default {
     },
 
     showCreateModal() {
-      this.createModalVisible = true;
-    },
-
-    hideCreateModal() {
-      this.createModalVisible = false;
+      this.$emit('create', this.parsedSearch);
     },
   },
 };
@@ -165,16 +158,6 @@ export default {
             :disabled="hasExactMatchInResults"
             @click="showCreateModal"
           />
-
-          <woot-modal
-            v-model:show="createModalVisible"
-            :on-close="hideCreateModal"
-          >
-            <AddLabelModal
-              :prefill-title="parsedSearch"
-              @close="hideCreateModal"
-            />
-          </woot-modal>
         </div>
       </div>
     </div>

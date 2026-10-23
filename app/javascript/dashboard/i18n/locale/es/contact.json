@@ -1,5 +1,6 @@
 {
   "CONTACT_PANEL": {
+    "CALL_FROM_PLATFORM": "Llamar desde ChatHub (WhatsApp o Twilio)",
     "NOT_AVAILABLE": "No Disponible",
     "EMAIL_ADDRESS": "Dirección de correo",
     "PHONE_NUMBER": "Número de teléfono",
@@ -31,7 +32,7 @@
     "CONVERSATIONS": {
       "NO_RECORDS_FOUND": "No hay conversaciones previas asociadas a este contacto.",
       "TITLE": "Conversaciones anteriores",
-      "VIEW_ALL": "Ver todas las conversaciones"
+      "VIEW_ALL": "Ver todas las conversaciones de este contacto"
     },
     "LABELS": {
       "CONTACT": {

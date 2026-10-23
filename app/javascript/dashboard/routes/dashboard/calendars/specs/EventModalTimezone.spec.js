@@ -78,9 +78,12 @@ describe.each(['en', 'es'])('appointment timezone in %s', language => {
     inputs[0].vm.$emit('update:modelValue', 'Consultation');
     await flushPromises();
     expect(
-      inputs.find(input => input.props('type') === 'time').props('modelValue')
+      wrapper.findComponent({ name: 'TimeField' }).props('modelValue')
     ).toBe('10:00');
-    expect(wrapper.text()).toContain(timezone);
+    expect(wrapper.text()).not.toContain(timezone);
+    await wrapper
+      .get('[data-testid="invitation-preview-toggle"]')
+      .trigger('click');
     expect(wrapper.get('[data-testid="invitation-preview"]').text()).toContain(
       '10:00'
     );
@@ -101,10 +104,7 @@ describe.each(['en', 'es'])('appointment timezone in %s', language => {
     });
     await flushPromises();
     expect(
-      wrapper
-        .findAllComponents({ name: 'Input' })
-        .find(input => input.props('type') === 'time')
-        .props('modelValue')
+      wrapper.findComponent({ name: 'TimeField' }).props('modelValue')
     ).toBe('10:00');
     wrapper.unmount();
   });

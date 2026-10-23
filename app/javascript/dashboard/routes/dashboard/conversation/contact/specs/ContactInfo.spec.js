@@ -101,6 +101,28 @@ describe('ContactInfo header menu', () => {
   beforeEach(() => {
     admin.value = true;
   });
+  it('uses compact faded controls and clear call and history labels', () => {
+    const wrapper = mountInfo();
+    const message = wrapper.get('[aria-label="CONTACT_PANEL.NEW_MESSAGE"]');
+    expect(message.attributes()).toMatchObject({
+      icon: 'i-lucide-message-circle-plus',
+      slate: '',
+      faded: '',
+      xs: '',
+    });
+    expect(
+      wrapper.getComponent({ name: 'ViewAllConversations' }).props('size')
+    ).toBe('xs');
+    expect(
+      wrapper.getComponent({ name: 'VoiceCallButton' }).attributes()
+    ).toMatchObject({
+      size: 'xs',
+      slate: '',
+      faded: '',
+      'tooltip-label': 'CONTACT_PANEL.CALL_FROM_PLATFORM',
+    });
+  });
+
   it('keeps merge and delete inside the more menu', async () => {
     const wrapper = mountInfo();
     expect(wrapper.getComponent(MenuPopover).props('open')).toBe(false);

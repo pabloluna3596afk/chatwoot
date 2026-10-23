@@ -37,6 +37,8 @@
       "HELP": "Si no lo cambias, se usa el texto de la cuenta. Las variables se llenan con los datos de esta cita.",
       "CUSTOM": "Texto propio de esta cita",
       "USE_ACCOUNT": "Usar el texto de la cuenta",
+      "SHOW_PREVIEW": "Ver cómo lo verá el cliente",
+      "HIDE_PREVIEW": "Ocultar vista previa",
       "PREVIEW": "Así lo verá el cliente",
       "MEET_NOTE": "El enlace de Meet se añade cuando se crea la cita."
     }

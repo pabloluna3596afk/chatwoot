@@ -64,8 +64,14 @@ const existing = (extra = {}) => ({
   defaults: {},
 });
 
-const preview = wrapper =>
-  wrapper.get('[data-testid="invitation-preview"]').text();
+const preview = async wrapper => {
+  if (!wrapper.find('[data-testid="invitation-preview"]').exists()) {
+    await wrapper
+      .get('[data-testid="invitation-preview-toggle"]')
+      .trigger('click');
+  }
+  return wrapper.get('[data-testid="invitation-preview"]').text();
+};
 const save = async wrapper => {
   wrapper.findComponent(DialogStub).vm.$emit('confirm');
   await flushPromises();
@@ -92,12 +98,43 @@ describe('EventModal invitation text', () => {
     CalendarAPI.updateEvent.mockResolvedValue({ data: { payload: {} } });
   });
 
+  it('opens with preview hidden and hides it again when reopened', async () => {
+    const wrapper = mountModal();
+    await wrapper.vm.open(newAppointment);
+    await flushPromises();
+    expect(wrapper.find('[data-testid="invitation-preview"]').exists()).toBe(
+      false
+    );
+    await preview(wrapper);
+    expect(wrapper.find('[data-testid="invitation-preview"]').exists()).toBe(
+      true
+    );
+    await wrapper
+      .get('[data-testid="invitation-preview-toggle"]')
+      .trigger('click');
+    expect(wrapper.find('[data-testid="invitation-preview"]').exists()).toBe(
+      false
+    );
+    await preview(wrapper);
+    await wrapper.vm.open(newAppointment);
+    await flushPromises();
+    expect(wrapper.find('[data-testid="invitation-preview"]').exists()).toBe(
+      false
+    );
+    expect(textarea(wrapper).props()).toMatchObject({
+      autoHeight: true,
+      resize: true,
+      minHeight: '8rem',
+      maxHeight: '24rem',
+    });
+  });
+
   it("shows the account's text with the values of this appointment", async () => {
     const wrapper = mountModal();
     await wrapper.vm.open(newAppointment);
     await flushPromises();
 
-    expect(preview(wrapper)).toBe(
+    expect(await preview(wrapper)).toBe(
       'Hola Ana, tu cita con Pablo es el martes 15 de enero a las 10:00.'
     );
   });
@@ -111,8 +148,10 @@ describe('EventModal invitation text', () => {
     wrapper.vm.$.setupState.date = '2030-01-16';
     await flushPromises();
 
-    expect(preview(wrapper)).toContain('miércoles 16 de enero a las 11:30');
-    expect(preview(wrapper)).not.toContain('Lugar');
+    expect(await preview(wrapper)).toContain(
+      'miércoles 16 de enero a las 11:30'
+    );
+    expect(await preview(wrapper)).not.toContain('Lugar');
   });
 
   it('sends nothing about the text while the appointment keeps the account text', async () => {
@@ -144,7 +183,7 @@ describe('EventModal invitation text', () => {
       ' Trae tu cédula, {{nombre}} '
     );
     await flushPromises();
-    expect(preview(wrapper)).toBe('Trae tu cédula, ana pérez');
+    expect(await preview(wrapper)).toBe('Trae tu cédula, ana pérez');
 
     await save(wrapper);
     expect(CalendarAPI.createEvent.mock.calls[0][0]).toMatchObject({
@@ -160,7 +199,7 @@ describe('EventModal invitation text', () => {
     await flushPromises();
 
     expect(textarea(wrapper).props('modelValue')).toBe('Texto propio {{hora}}');
-    expect(preview(wrapper)).toBe('Texto propio 10:00');
+    expect(await preview(wrapper)).toBe('Texto propio 10:00');
 
     await save(wrapper);
     expect(CalendarAPI.updateEvent.mock.calls[0][1]).toMatchObject({
@@ -176,7 +215,7 @@ describe('EventModal invitation text', () => {
     await wrapper
       .get('[data-testid="invitation-use-account"]')
       .trigger('click');
-    expect(preview(wrapper)).toContain('Hola Ana');
+    expect(await preview(wrapper)).toContain('Hola Ana');
 
     await save(wrapper);
     expect(CalendarAPI.updateEvent.mock.calls[0][1]).toMatchObject({

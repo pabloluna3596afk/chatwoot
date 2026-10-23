@@ -1,10 +1,18 @@
 import { mount } from '@vue/test-utils';
+import { createStore } from 'vuex';
 import AppointmentOriginLogo from '../AppointmentOriginLogo.vue';
 
 const mountLogo = origin =>
   mount(AppointmentOriginLogo, {
     props: { origin },
     global: {
+      plugins: [
+        createStore({
+          getters: {
+            'globalConfig/get': () => ({ logoThumbnail: '/custom-logo.svg' }),
+          },
+        }),
+      ],
       mocks: { $t: key => key },
       directives: { tooltip: () => {} },
       stubs: { ChannelIcon: true, Icon: true },
@@ -30,6 +38,11 @@ describe('AppointmentOriginLogo', () => {
       wrapper.find('[data-testid="appointment-origin-crm"]').exists()
     ).toBe(true);
     expect(wrapper.findComponent({ name: 'ChannelIcon' }).exists()).toBe(false);
+    expect(
+      wrapper
+        .get('[data-testid="appointment-origin-crm"] img')
+        .attributes('src')
+    ).toContain('/custom-logo.svg');
   });
 
   it('shows the Google logo for what only exists in the calendar', () => {

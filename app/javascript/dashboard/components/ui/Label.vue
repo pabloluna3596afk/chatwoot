@@ -4,6 +4,7 @@ import { tintStylesFromHex } from 'dashboard/helper/colorHelper';
 
 export default {
   props: {
+    selectable: { type: Boolean, default: false },
     title: {
       type: String,
       required: true,
@@ -45,7 +46,7 @@ export default {
       default: '',
     },
   },
-  emits: ['remove'],
+  emits: ['remove', 'select'],
   computed: {
     isTintVariant() {
       return ['smooth', 'dashed'].includes(this.variant);
@@ -93,6 +94,11 @@ export default {
     },
   },
   methods: {
+    onSelect(event) {
+      if (!this.selectable) return;
+      event.stopPropagation();
+      this.$emit('select', this.title);
+    },
     onClick() {
       this.$emit('remove', this.title);
     },
@@ -102,17 +108,25 @@ export default {
 
 <template>
   <div
-    class="inline-flex ltr:mr-1 rtl:ml-1 mb-1"
+    class="inline-flex min-w-0 max-w-full ltr:mr-1 rtl:ml-1 mb-1"
     :class="labelClass"
     :style="labelStyle"
-    :title="description"
+    :title="description || title"
   >
     <span v-if="icon" class="label-action--button">
       <fluent-icon :icon="icon" size="12" class="label--icon cursor-pointer" />
     </span>
-    <span v-if="!href" class="whitespace-nowrap text-ellipsis overflow-hidden">
+    <component
+      :is="selectable ? 'button' : 'span'"
+      v-if="!href"
+      :type="selectable ? 'button' : undefined"
+      class="min-w-0 truncate text-start"
+      :class="{ 'cursor-pointer': selectable }"
+      :title="title"
+      @click="onSelect"
+    >
       {{ title }}
-    </span>
+    </component>
     <a v-else :href="href" :style="anchorStyle">{{ title }}</a>
     <button
       v-if="showClose"

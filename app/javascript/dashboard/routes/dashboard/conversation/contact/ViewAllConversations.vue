@@ -10,6 +10,7 @@ import wootConstants from 'dashboard/constants/globals';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 
 const props = defineProps({
+  size: { type: String, default: 'sm' },
   contact: {
     type: Object,
     required: true,
@@ -90,7 +91,8 @@ const viewAllConversations = async () => {
     icon="i-lucide-history"
     slate
     faded
-    sm
+    :size="size"
+    :title="$t('CONTACT_PANEL.CONVERSATIONS.VIEW_ALL')"
     @click="viewAllConversations"
   />
 </template>

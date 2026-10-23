@@ -1,4 +1,5 @@
 <script setup>
+import { useLabelNavigation } from 'dashboard/composables/useLabelNavigation';
 import { ref, computed } from 'vue';
 import { tintStylesFromHex } from 'dashboard/helper/colorHelper';
 
@@ -12,7 +13,7 @@ const props = defineProps({
     required: true,
   },
 });
-
+const { goToLabel } = useLabelNavigation();
 const WIDTH_CONFIG = Object.freeze({
   DEFAULT_WIDTH: 80,
   CHAR_WIDTH: {
@@ -71,14 +72,17 @@ const updateVisibleLabels = () => {
     v-resize="updateVisibleLabels"
     class="flex items-center gap-1.5 w-full min-w-0 h-6 overflow-hidden"
   >
-    <span
+    <button
       v-for="(label, index) in visibleLabels"
       :key="label.id"
+      type="button"
+      :title="label.title"
       class="inline-flex items-center rounded-md border px-1.5 py-0.5 text-xxs font-medium min-w-0"
       :class="[
         index !== visibleLabels.length - 1 ? 'flex-shrink-0' : 'flex-shrink',
       ]"
       :style="tintStylesFromHex(label.color)"
+      @click.stop="goToLabel(label.title)"
     >
       <span
         class="whitespace-nowrap"
@@ -86,6 +90,6 @@ const updateVisibleLabels = () => {
       >
         {{ label.title }}
       </span>
-    </span>
+    </button>
   </div>
 </template>

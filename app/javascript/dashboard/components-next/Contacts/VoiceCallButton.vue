@@ -207,6 +207,7 @@ const onPickInbox = async inbox => {
       v-if="shouldRender"
       v-tooltip.top-end="tooltipLabel || null"
       v-bind="attrs"
+      :title="tooltipLabel || $t('CONTACT_PANEL.CALL_FROM_PLATFORM')"
       :disabled="isCallButtonDisabled"
       :is-loading="isInitiatingCall"
       :label="label"
