@@ -1,5 +1,7 @@
 class AutomationRules::ConditionValidationService
   ATTRIBUTE_MODEL = 'contact_attribute'.freeze
+  FILTERS = YAML.safe_load(File.read(Rails.root.join('lib/filters/filter_keys.yml'))).freeze
+  COMPUTED_ATTRIBUTES = FILTERS.fetch('conversations').select { |_key, filter| filter['attribute_type'] == 'computed' }.keys.freeze
   EVENTS = %w[conversation_created conversation_updated conversation_opened conversation_resolved message_created time_triggered].freeze
   MESSAGE_ATTRIBUTES = %w[content message_type private_note].freeze
   EQUALITY_OPERATORS = %w[equal_to not_equal_to].freeze
@@ -25,8 +27,7 @@ class AutomationRules::ConditionValidationService
     @rule = rule
     @account = rule.account
 
-    file = File.read('./lib/filters/filter_keys.yml')
-    @filters = YAML.safe_load(file)
+    @filters = FILTERS
 
     @conversation_filters = @filters['conversations']
     @contact_filters = @filters['contacts']
@@ -81,10 +82,29 @@ class AutomationRules::ConditionValidationService
     key = condition['attribute_key']
     return 'The attribute is not supported for this event.' unless attribute_supported?(key)
 
+    return computed_condition_error(condition, filter) if filter['attribute_type'] == 'computed'
+
     return if condition['filter_operator'] == 'attribute_changed'
     return if filter['filter_operators'].include?(condition['filter_operator'])
 
     'The filter operator is not supported for this attribute.'
+  end
+
+  def computed_condition_error(condition, filter)
+    key = condition['attribute_key']
+    unless filter['filter_operators'].include?(condition['filter_operator'])
+      return "The filter operator is not supported for #{key}."
+    end
+
+    allowed = if filter['values_catalog'] == 'channel_type'
+                Conversations::ChannelType::AUTOMATION_VALUES
+              else
+                filter.fetch('allowed_values')
+              end
+    values = condition['values']
+    return if values.is_a?(Array) && values.length == 1 && allowed.include?(values.first)
+
+    "The value is not supported for #{key}."
   end
 
   # Embedded business rules evaluate conditions with a rule-like object that has no event or attribute list.

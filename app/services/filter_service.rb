@@ -17,6 +17,7 @@ class FilterService
     @user = user
     file = File.read('./lib/filters/filter_keys.yml')
     @filters = YAML.safe_load(file)
+    @filters.each_value { |filters| filters.reject! { |_key, filter| filter['automation_only'] } }
     @query_string = ''
     @filter_values = {}
   end
