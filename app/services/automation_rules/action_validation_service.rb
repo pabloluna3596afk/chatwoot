@@ -26,7 +26,10 @@ class AutomationRules::ActionValidationService
     return 'The action is not supported.' unless @rule.actions_attributes.include?(name)
     return if PARAMETERLESS_ACTIONS.include?(name)
 
-    params = action['action_params']
+    parameters_error(name, action['action_params'])
+  end
+
+  def parameters_error(name, params)
     return structured_parameters_error(name, params) if REQUIRED_FIELDS.key?(name)
     return message_parameters_error(params) if name == 'send_message'
     return if params.is_a?(Array) && params.any? && params.all?(&:present?)

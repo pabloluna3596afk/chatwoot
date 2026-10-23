@@ -154,7 +154,7 @@ RSpec.describe AutomationRule do
 
     it 'validates custom operators by the attribute display type' do
       definition = create(:custom_attribute_definition, account: account, attribute_model: 'contact_attribute',
-                                                       attribute_display_type: 'checkbox')
+                                                        attribute_display_type: 'checkbox')
       condition.merge!('attribute_key' => definition.attribute_key, 'filter_operator' => 'contains')
 
       expect(rule).not_to be_valid
@@ -201,9 +201,9 @@ RSpec.describe AutomationRule do
       ]
       schedules.each do |schedule|
         recipe = build(:automation_rule, account: account, event_name: 'time_triggered', conditions: [],
-                                        schedule: schedule.merge(kind: 'contact_date', target_inbox_id: inbox.id),
-                                        actions: [{ action_name: 'send_whatsapp_template',
-                                                    action_params: [{ inbox_id: inbox.id, name: 'recipe', language: 'es' }] }])
+                                         schedule: schedule.merge(kind: 'contact_date', target_inbox_id: inbox.id),
+                                         actions: [{ action_name: 'send_whatsapp_template',
+                                                     action_params: [{ inbox_id: inbox.id, name: 'recipe', language: 'es' }] }])
 
         expect(recipe.save).to be(true)
       end
@@ -229,7 +229,7 @@ RSpec.describe AutomationRule do
         rule.event_name = 'another_invalid_event'
 
         expect(rule).not_to be_valid
-        expect(rule.errors.keys).to include(:event_name, :conditions, :actions)
+        expect(rule.errors.attribute_names).to include(:event_name, :conditions, :actions)
         expect(rule.reload.active).to be(true)
       end
 

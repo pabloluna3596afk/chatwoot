@@ -1,6 +1,8 @@
 require 'rails_helper'
 
 RSpec.describe AutomationRules::ConditionValidationService do
+  let(:probe_operators) { %w[equal_to contains unsupported] }
+
   let(:account) { create(:account) }
   let(:rule) { build(:automation_rule, account: account, event_name: 'message_created') }
 
@@ -12,7 +14,7 @@ RSpec.describe AutomationRules::ConditionValidationService do
         rule.event_name = event
         rule.schedule = { kind: 'hours_since_last_incoming' } if rule.time_triggered?
         rule.conditions_attributes.each do |key|
-          %w[equal_to contains unsupported].each do |operator|
+          probe_operators.each do |operator|
             rule.conditions = [{ 'attribute_key' => key, 'filter_operator' => operator }]
             supported = described_class.new(rule).perform
             evaluator = AutomationRules::ConditionsFilterService.new(rule, conversation)
@@ -27,7 +29,7 @@ RSpec.describe AutomationRules::ConditionValidationService do
 
     it 'uses the evaluator default custom attribute scope' do
       definition = create(:custom_attribute_definition, account: account, attribute_model: 'contact_attribute',
-                                                       attribute_display_type: 'text')
+                                                        attribute_display_type: 'text')
       rule.conditions = [{ 'attribute_key' => definition.attribute_key, 'filter_operator' => 'contains' }]
 
       expect(rule).to be_valid

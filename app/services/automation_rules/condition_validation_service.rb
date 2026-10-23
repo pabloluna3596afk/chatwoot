@@ -79,9 +79,7 @@ class AutomationRules::ConditionValidationService
 
   def standard_condition_error(condition, filter)
     key = condition['attribute_key']
-    unless @rule.conditions_attributes.include?(key) && attribute_supported_for_event?(key)
-      return 'The attribute is not supported for this event.'
-    end
+    return 'The attribute is not supported for this event.' unless @rule.conditions_attributes.include?(key) && attribute_supported_for_event?(key)
 
     return if condition['filter_operator'] == 'attribute_changed'
     return if filter['filter_operators'].include?(condition['filter_operator'])
@@ -90,7 +88,7 @@ class AutomationRules::ConditionValidationService
   end
 
   def attribute_supported_for_event?(key)
-    EVENTS.include?(@rule.event_name) && (@rule.event_name == 'message_created' || !MESSAGE_ATTRIBUTES.include?(key))
+    EVENTS.include?(@rule.event_name) && (@rule.event_name == 'message_created' || MESSAGE_ATTRIBUTES.exclude?(key))
   end
 
   def custom_attribute(attribute_key, attribute_model)
