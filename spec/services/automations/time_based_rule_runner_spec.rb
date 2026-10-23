@@ -40,6 +40,25 @@ RSpec.describe Automations::TimeBasedRuleRunner do
     Time.use_zone('UTC') { travel_to(Time.zone.local(2026, 8, 14, 12, 0, 0)) { example.run } }
   end
 
+  describe 'computed conversation conditions' do
+    { 'channel_type' => ['web_widget', 'whatsapp'], 'within_business_hours' => [true, false],
+      'captain_state' => ['none', 'ai'] }.each do |key, (matching, missing)|
+      it "applies #{key} before claiming and executing a time-triggered rule" do
+        conversation = create(:conversation, account: account, inbox: inbox, custom_attributes: { 'fecha_cita' => Date.current.iso8601 })
+        rule = create(:automation_rule, account: account, event_name: 'time_triggered',
+                                        schedule: { kind: 'days_since_attribute', attribute_key: 'fecha_cita', relative_to: 'on' },
+                                        conditions: [{ attribute_key: key, filter_operator: 'equal_to', values: [missing] }])
+
+        described_class.new(rule).perform
+        expect(AutomationRules::ActionService).not_to have_received(:new)
+
+        rule.update!(conditions: [{ attribute_key: key, filter_operator: 'equal_to', values: [matching] }])
+        described_class.new(rule).perform
+        expect(AutomationRules::ActionService).to have_received(:new).with(rule, account, conversation)
+      end
+    end
+  end
+
   describe '#perform with days_since_attribute' do
     it 'matches dates on or before today minus N when relative_to is after' do
       matching = conversation_on(Date.new(2026, 8, 13))

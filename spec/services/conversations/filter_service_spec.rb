@@ -20,6 +20,15 @@ describe Conversations::FilterService do
                           status: 'pending', additional_attributes: { 'browser_language': 'en' })
   end
 
+  %w[channel_type within_business_hours captain_state].each do |key|
+    it "keeps automation-only #{key} out of general conversation filters and segments" do
+      params = { payload: [{ attribute_key: key, filter_operator: 'equal_to', values: ['none'] }] }.with_indifferent_access
+
+      expect { filter_service.new(params, user_1, account).perform }
+        .to raise_error(CustomExceptions::CustomFilter::InvalidAttribute)
+    end
+  end
+
   before do
     create(:inbox_member, user: user_1, inbox: inbox)
     create(:inbox_member, user: user_2, inbox: inbox)
