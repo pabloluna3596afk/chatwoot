@@ -505,6 +505,7 @@ RSpec.describe Automations::ContactBasedRuleRunner do
       end
 
       it 'skips a new conversation without an incoming message' do
+        contact.update!(phone_number: '+593990000001') # a WhatsApp contact inbox needs a phone number
         runner.perform
 
         expect(contact.conversations.sole.messages.outgoing).to be_empty
