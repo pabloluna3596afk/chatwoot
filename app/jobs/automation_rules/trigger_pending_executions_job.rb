@@ -7,7 +7,7 @@ class AutomationRules::TriggerPendingExecutionsJob < ApplicationJob
     started_at = Time.current
     purged = AutomationRulePendingExecution.purge_terminal!
 
-    rows = AutomationRulePendingExecution.sweepable.for_enabled_accounts.order(:due_at).limit(sweep_limit).to_a
+    rows = sweep_rows
     rows.each { |row| AutomationRules::ProcessPendingExecutionJob.perform_later(row) }
 
     log_summary(enqueued: rows.size, capped: rows.size >= sweep_limit, purged: purged,
@@ -15,6 +15,14 @@ class AutomationRules::TriggerPendingExecutionsJob < ApplicationJob
   end
 
   private
+
+  def sweep_rows
+    # Keep the due-time cap unchanged; order only the selected rows for enqueueing.
+    selected = AutomationRulePendingExecution.sweepable.for_enabled_accounts.order(:due_at).limit(sweep_limit)
+    AutomationRulePendingExecution.where(id: selected.select(:id))
+                                  .left_joins(:automation_rule).merge(AutomationRule.in_execution_order)
+                                  .order(:due_at, :id).to_a
+  end
 
   def sweep_limit
     (InstallationConfig.find_by(name: 'AUTOMATION_PENDING_EXECUTIONS_SWEEP_LIMIT')&.value || DEFAULT_SWEEP_LIMIT).to_i

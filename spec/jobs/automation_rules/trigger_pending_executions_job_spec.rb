@@ -8,6 +8,22 @@ RSpec.describe AutomationRules::TriggerPendingExecutionsJob do
 
   before { account.enable_features!('delayed_automations') }
 
+  it 'keeps the earliest due rows under the cap and enqueues them by rule ID' do
+    create(:installation_config, name: 'AUTOMATION_PENDING_EXECUTIONS_SWEEP_LIMIT',
+                                 serialized_value: { value: 2 }.with_indifferent_access)
+    older_rule = create(:automation_rule, account: account)
+    newer_rule = create(:automation_rule, account: account)
+    newer_row = create(:automation_rule_pending_execution, account: account, automation_rule: newer_rule, due_at: 3.minutes.ago)
+    older_row = create(:automation_rule_pending_execution, account: account, automation_rule: older_rule, due_at: 2.minutes.ago)
+    excluded = create(:automation_rule_pending_execution, account: account, automation_rule: older_rule, due_at: 1.minute.ago)
+
+    expect(AutomationRules::ProcessPendingExecutionJob).to receive(:perform_later).with(older_row).ordered
+    expect(AutomationRules::ProcessPendingExecutionJob).to receive(:perform_later).with(newer_row).ordered
+    expect(AutomationRules::ProcessPendingExecutionJob).not_to receive(:perform_later).with(excluded)
+
+    job.perform
+  end
+
   it 'enqueues a per-row job for due pending rows but not future ones' do
     due_row = create(:automation_rule_pending_execution, account: account, conversation: conversation, due_at: 1.minute.ago)
     future_row = create(:automation_rule_pending_execution, account: account, due_at: 1.hour.from_now)
@@ -19,7 +35,8 @@ RSpec.describe AutomationRules::TriggerPendingExecutionsJob do
 
   it 're-enqueues stale processing rows so they get retried' do
     stale_row = travel_to(20.minutes.ago) do
-      create(:automation_rule_pending_execution, account: account, conversation: conversation, status: :processing, due_at: 19.minutes.from_now)
+      create(:automation_rule_pending_execution, account: account, conversation: conversation,
+                                                 status: :processing, due_at: 19.minutes.from_now)
     end
 
     expect { job.perform }.to have_enqueued_job(AutomationRules::ProcessPendingExecutionJob).with(stale_row)

@@ -15,6 +15,33 @@ RSpec.describe AutomationRules::SimulationService do
   end
 
   describe '#perform' do
+    it 'orders matching rules by ID and numbers only matches consecutively' do
+      base_id = AutomationRule.maximum(:id).to_i + 1000
+      later_rule = create(:automation_rule, id: base_id + 2, account: account, event_name: event_name, conditions: [condition])
+      create(:automation_rule, id: base_id, account: account, event_name: event_name,
+                               conditions: [condition.merge('values' => ['resolved'])])
+      middle_rule = create(:automation_rule, id: base_id + 1, account: account, event_name: event_name, conditions: [condition])
+      create(:automation_rule, account: account, event_name: event_name, active: false, conditions: [condition])
+      create(:automation_rule, event_name: event_name, conditions: [condition])
+      create(:automation_rule, account: account, event_name: 'conversation_opened', conditions: [condition])
+
+      result = simulation.perform
+
+      expect(result.matches.map(&:rule_id)).to eq([rule.id, middle_rule.id, later_rule.id])
+      expect(result.matches.map(&:order)).to eq([1, 2, 3])
+      expect(result.evaluated_count).to eq(4)
+    end
+
+    it 'includes delayed update rules armed by creation in the same order as the listener' do
+      delayed = create(:automation_rule, account: account, event_name: 'conversation_updated',
+                                         execution_delay: 10, conditions: [condition])
+      create(:automation_rule, account: account, event_name: 'conversation_updated', conditions: [condition])
+      runtime_ids = AutomationRuleListener.instance.send(:conversation_rules, event_name, account).map(&:id)
+
+      expect(simulation.perform.matches.map(&:rule_id)).to eq([rule.id, delayed.id])
+      expect(simulation.perform.matches.map(&:rule_id)).to eq(runtime_ids)
+    end
+
     it 'preserves the runtime matches and action descriptions for valid rules' do
       expect(AutomationRules::ConditionsFilterService.new(rule, conversation).perform).to be(true)
 
@@ -85,7 +112,9 @@ RSpec.describe AutomationRules::SimulationService do
 
     context 'with a deleted custom attribute' do
       before do
-        rule.update_columns(conditions: [condition.merge('attribute_key' => 'deleted_attribute')]) # rubocop:disable Rails/SkipsModelValidations
+        # rubocop:disable Rails/SkipsModelValidations
+        rule.update_columns(conditions: [condition.merge('attribute_key' => 'deleted_attribute')])
+        # rubocop:enable Rails/SkipsModelValidations
       end
 
       it 'identifies the unavailable attribute without modifying the rule' do

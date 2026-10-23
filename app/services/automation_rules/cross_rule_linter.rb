@@ -9,9 +9,8 @@
 # the answer is no. This asks "will this rule collide with another?" and only
 # warns — two rules on one trigger is sometimes exactly what you want.
 #
-# Order matters and is not knowable here: AutomationRuleListener#current_account_rules
-# has no ORDER BY, so when two rules collide the effective winner is whichever the
-# database happens to return last. That unpredictability is the reason to warn.
+# Rules run in ascending ID order. Collisions still warrant a warning: a later
+# matching rule can overwrite an earlier action or change subsequent conditions.
 class AutomationRules::CrossRuleLinter
   Finding = AutomationRules::LintService::Finding
 

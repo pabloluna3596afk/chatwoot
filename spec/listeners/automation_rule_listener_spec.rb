@@ -1,6 +1,7 @@
 require 'rails_helper'
 
 describe AutomationRuleListener do
+  let(:id_offsets) { [2, 0, 1] }
   let(:listener) { described_class.instance }
   let!(:account) { create(:account) }
   let(:conversation) { create(:conversation, account: account) }
@@ -13,6 +14,72 @@ describe AutomationRuleListener do
     allow(conditions_filter_service).to receive(:perform).and_return(condition_match)
     allow(AutomationRules::ActionService).to receive(:new).and_return(action_service)
     allow(action_service).to receive(:perform)
+  end
+
+  describe 'execution order' do
+    before do
+      allow(AutomationRules::ConditionsFilterService).to receive(:new).and_call_original
+      allow(AutomationRules::ActionService).to receive(:new).and_call_original
+    end
+
+    %w[conversation_created conversation_updated conversation_opened conversation_resolved message_created].each do |event_name|
+      it "executes #{event_name} rules by ascending ID and keeps the same winning assignee" do
+        conversation.update!(status: :open)
+        message = create(:message, conversation: conversation, account: account)
+        base_id = AutomationRule.maximum(:id).to_i + 1000
+        rules = id_offsets.map do |offset|
+          agent = create(:user, account: account)
+          create(:inbox_member, inbox: conversation.inbox, user: agent)
+          create(:automation_rule, id: base_id + offset, account: account, event_name: event_name,
+                                   conditions: [{ attribute_key: 'status', filter_operator: 'equal_to',
+                                                  values: ['open'], query_operator: nil }],
+                                   actions: [{ action_name: 'assign_agent', action_params: [agent.id] }])
+        end
+        event = Events::Base.new(event_name, Time.current, conversation: conversation, message: message)
+        executed_ids = []
+        allow(AutomationRules::ActionService).to receive(:new).and_wrap_original do |original, rule, *args|
+          executed_ids << rule.id
+          original.call(rule, *args)
+        end
+
+        2.times do
+          conversation.update!(assignee: nil)
+          listener.public_send(event_name, event)
+          expect(conversation.reload.assignee_id).to eq(rules.first.actions.first['action_params'].first)
+        end
+
+        expect(executed_ids).to eq(rules.map(&:id).sort * 2)
+      end
+    end
+
+    it 'still excludes inactive, other-account, other-event and nonmatching rules' do
+      conversation.update!(status: :open)
+      condition = { attribute_key: 'status', filter_operator: 'equal_to', values: ['open'], query_operator: nil }
+      matching = create(:automation_rule, account: account, event_name: 'conversation_created', conditions: [condition],
+                                          actions: [{ action_name: 'change_priority', action_params: ['high'] }])
+      create(:automation_rule, account: account, event_name: 'conversation_created', conditions: [condition], active: false)
+      create(:automation_rule, event_name: 'conversation_created', conditions: [condition])
+      create(:automation_rule, account: account, event_name: 'conversation_opened', conditions: [condition])
+      create(:automation_rule, account: account, event_name: 'conversation_created',
+                               conditions: [condition.merge(values: ['resolved'])])
+      event = Events::Base.new('conversation_created', Time.current, conversation: conversation)
+
+      listener.conversation_created(event)
+
+      expect(AutomationRules::ActionService).to have_received(:new).with(matching, account, conversation).once
+      expect(AutomationRules::ActionService).to have_received(:new).once
+      expect(conversation.reload.priority).to eq('high')
+    end
+
+    it 'merges delayed update rules into creation rules in ascending ID order' do
+      conversation.update!(status: :open)
+      base_id = AutomationRule.maximum(:id).to_i + 1000
+      instant = create(:automation_rule, id: base_id + 1, account: account, event_name: 'conversation_created')
+      delayed = create(:automation_rule, id: base_id, account: account, event_name: 'conversation_updated',
+                                         execution_delay: 10)
+
+      expect(listener.send(:conversation_rules, 'conversation_created', account).map(&:id)).to eq([delayed.id, instant.id])
+    end
   end
 
   describe 'conversation_created' do
@@ -212,7 +279,8 @@ describe AutomationRuleListener do
         email_channel = create(:channel_email, account: account)
         email_inbox = create(:inbox, channel: email_channel, account: account)
         email_conversation = create(:conversation, inbox: email_inbox, account: account)
-        email_message = create(:message, conversation: email_conversation, account: account, content_attributes: { email: { auto_reply: true } })
+        email_message = create(:message, conversation: email_conversation, account: account,
+                                         content_attributes: { email: { auto_reply: true } })
         email_event = Events::Base.new('message_created', Time.zone.now, { message: email_message })
         allow(condition_match).to receive(:present?).and_return(true)
 
