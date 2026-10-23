@@ -40,6 +40,7 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
     @automation_rule.save!
     attach_files(@automation_rule, blobs)
     @lint_warnings = lint.warnings
+    @recipe_warnings = recipe_warnings
   end
 
   def update
@@ -87,8 +88,8 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
   def reach_preview
     schedule = params.permit(schedule: {})[:schedule] || {}
     rule = Current.account.automation_rules.new(schedule: schedule)
-    count = Automations::ContactBasedRuleRunner.new(rule).candidates_count
-    render json: { count: count }, status: :ok
+    breakdown = Automations::ContactBasedRuleRunner.new(rule).candidates_breakdown
+    render json: { count: breakdown[:candidates] }.merge(breakdown), status: :ok
   end
 
   def destroy
@@ -120,6 +121,7 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
     @automation_rule.save!
     attach_files(@automation_rule, blobs)
     @lint_warnings = lint.warnings
+    @recipe_warnings = recipe_warnings
   rescue ActiveRecord::Rollback
     raise
   rescue StandardError => e
@@ -144,6 +146,17 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
     rule.actions = actions unless actions.nil?
     rule.conditions = conditions unless conditions.nil?
     rule.schedule = params[:schedule] if params.key?(:schedule)
+  end
+
+  def recipe_warnings
+    schedule = (@automation_rule.schedule || {}).with_indifferent_access
+    return [] unless schedule[:kind] == 'contact_date'
+    return [] unless @automation_rule.actions.any? { |action| action['action_name'] == 'send_message' }
+
+    inbox = Current.account.inboxes.find(schedule[:target_inbox_id])
+    return [] unless inbox.whatsapp? && inbox.channel.provider == 'whatsapp_cloud'
+
+    ['whatsapp_template_recommended']
   end
 
   def attach_files(rule, blobs)

@@ -1492,6 +1492,33 @@ hacían que “ventas del mes” o Sum con `"1.000,50"` no cuadraran.
 
 ---
 
+### B-NEW-199 — Recetas por contacto: ventana WhatsApp Cloud y alcance (2026-10-23)
+
+**Problema:** el servicio de acciones ya omitía el texto libre fuera de ventana,
+pero el runner podía conservar cupo y deduplicación en acciones diferidas omitidas.
+La vista previa solo exponía candidatos y le faltaba el permiso explícito en Pundit.
+
+**Cambio:** `app/services/automations/contact_based_rule_runner.rb` omite la ejecución
+con `window_closed_needs_template` cuando contiene `send_message` y la conversación
+destino de WhatsApp Cloud no permite responder. Reutiliza `Conversation#can_reply?`,
+libera cupo y ventana propios y registra regla/contacto. Las plantillas siguen su flujo.
+`candidates_count` conserva el entero; `candidates_breakdown` agrega diagnóstico de
+ventanas existentes y exclusiones por etiqueta de prueba. Los conteos de ventana
+incluyen todos los candidatos con conversación Cloud, también los excluidos por prueba.
+
+**API:** `reach_preview` conserva `count` y agrega `candidates`, `with_open_window`,
+`window_closed`, `excluded_by_test_mode`; exige administrador de la cuenta vía
+`AutomationRulePolicy#reach_preview?`. Crear/editar una receta con texto libre para
+Cloud permite guardar y agrega `warnings: ['whatsapp_template_recommended']`.
+La simulación existente solo admite eventos conversacionales, no `time_triggered`.
+
+**Cómo probar:** specs en `spec/services/automations/contact_based_rule_runner_spec.rb`
+y `spec/controllers/api/v1/accounts/automation_rules_controller_spec.rb`: límite de
+24 h con reloj fijo, apertura posterior, diferidos, plantilla, canal alternativo,
+dedupe previo, desglose sin crear conversaciones, permisos y aislamiento por cuenta,
+advertencias aditivas en create/update. Regresión completa de ambos runners y lint
+pendientes del PM en Docker según `docs/TESTING.md`. Sin migraciones ni cambios de UI.
+
 ## 3. Fijados en sesión anterior (tasks / UX)
 
 ### TASK-001 — Notas privadas en timeline

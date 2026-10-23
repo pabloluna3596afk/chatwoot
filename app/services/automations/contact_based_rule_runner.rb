@@ -56,17 +56,35 @@ class Automations::ContactBasedRuleRunner
     end
   end
 
-  # Read-only reach preview for the activation UI ("this would reach N
-  # contacts right now") — reuses the exact same candidate query `perform`
-  # runs, so the number shown never drifts from what the rule would actually
-  # do. Returns 0 for a schedule that's incomplete rather than raising, so a
-  # half-filled recipe dialog can call this on every keystroke.
+  # Read-only candidate pool for the activation UI. This deliberately retains
+  # the original count, before conditions, windows, test mode, cap or dedupe.
+  # Returns 0 for an incomplete schedule so a half-filled recipe can preview it.
   def candidates_count
     return 0 unless @schedule[:kind].to_s == 'contact_date'
     return 0 if target_inbox.blank?
     return 0 if date_source == 'contact_attribute' && attribute_key.blank?
 
     candidates.count
+  end
+
+  # These are candidate diagnostics, not a promise of delivery. Conditions,
+  # cap and deduplication still apply at execution time. Window counts only
+  # classify existing conversations in the target WhatsApp Cloud inbox.
+  def candidates_breakdown
+    breakdown = { candidates: candidates_count, with_open_window: 0, window_closed: 0, excluded_by_test_mode: 0 }
+    return breakdown if breakdown[:candidates].zero?
+
+    candidates.find_each(batch_size: 50) do |contact|
+      breakdown[:excluded_by_test_mode] += 1 unless test_mode_allows?(contact)
+      next unless whatsapp_cloud?
+
+      conversation = existing_conversation(contact)
+      next if conversation.blank?
+
+      key = conversation.can_reply? ? :with_open_window : :window_closed
+      breakdown[key] += 1
+    end
+    breakdown
   end
 
   private
@@ -83,6 +101,13 @@ class Automations::ContactBasedRuleRunner
   end
 
   def outbound_sent?(contact, conversation)
+    if free_text_requires_template?(conversation)
+      Rails.logger.info(
+        "[ContactBasedRuleRunner] skipped rule=#{@rule.id} contact=#{contact.id} reason=window_closed_needs_template"
+      )
+      return false
+    end
+
     last_message_id = conversation.messages.maximum(:id) || 0
     service = AutomationRules::ActionService.new(@rule, @account, conversation)
     service.perform(record_run: false)
@@ -114,6 +139,14 @@ class Automations::ContactBasedRuleRunner
 
   def target_inbox
     @target_inbox ||= @account.inboxes.find_by(id: @schedule[:target_inbox_id])
+  end
+
+  def whatsapp_cloud?
+    target_inbox.whatsapp? && target_inbox.channel.provider == 'whatsapp_cloud'
+  end
+
+  def free_text_requires_template?(conversation)
+    whatsapp_cloud? && @rule.actions.any? { |action| action['action_name'] == 'send_message' } && !conversation.can_reply?
   end
 
   def attribute_key
@@ -201,7 +234,7 @@ class Automations::ContactBasedRuleRunner
   end
 
   def resolve_conversation(contact)
-    existing = target_inbox.conversations.where(contact_id: contact.id).order(created_at: :desc).first
+    existing = existing_conversation(contact)
     return existing if existing.present?
 
     contact_inbox = ContactInboxBuilder.new(contact: contact, inbox: target_inbox, hmac_verified: true).perform
@@ -218,6 +251,10 @@ class Automations::ContactBasedRuleRunner
       "[ContactBasedRuleRunner] failed to resolve conversation rule=#{@rule.id} contact=#{contact.id}: #{e.message}"
     )
     nil
+  end
+
+  def existing_conversation(contact)
+    target_inbox.conversations.where(contact_id: contact.id).order(created_at: :desc).first
   end
 
   def claim_window!(contact)
