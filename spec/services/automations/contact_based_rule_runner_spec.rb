@@ -415,10 +415,11 @@ RSpec.describe Automations::ContactBasedRuleRunner do
     end
 
     it 'retains the reservation and window for a deferred attachment' do
-      rule.update!(actions: [{
-                     'action_name' => 'send_attachment', 'action_params' => [],
-                     'delivery' => { 'delay_seconds' => 5 }
-                   }])
+      # Deliberately skips validation: the blobs are attached right after.
+      rule.update_columns(actions: [{ # rubocop:disable Rails/SkipsModelValidations
+                            'action_name' => 'send_attachment', 'action_params' => [],
+                            'delivery' => { 'delay_seconds' => 5 }
+                          }])
       rule.files.attach(io: Rails.root.join('spec/assets/avatar.png').open, filename: 'avatar.png', content_type: 'image/png')
       rule.update!(actions: [rule.actions.first.merge('action_params' => rule.files.blobs.ids)])
 
@@ -432,7 +433,7 @@ RSpec.describe Automations::ContactBasedRuleRunner do
 
     %w[execute_macro enter_flow send_email_transcript].each do |action_name|
       it "conservatively retains reservations for #{action_name} even when it skips" do
-        rule.update!(actions: [{ 'action_name' => action_name, 'action_params' => [] }])
+        rule.update_columns(actions: [{ 'action_name' => action_name, 'action_params' => [] }]) # rubocop:disable Rails/SkipsModelValidations
         allow(AutomationRules::ActionService).to receive(:new).and_return(action_service)
 
         runner.perform
