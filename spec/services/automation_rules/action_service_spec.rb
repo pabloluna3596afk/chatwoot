@@ -12,6 +12,29 @@ RSpec.describe AutomationRules::ActionService do
                              ])
   end
 
+  describe '#perform with create_internal_task' do
+    let!(:rule) do
+      create(:automation_rule, account: account,
+                               actions: [{ action_name: 'create_internal_task', action_params: [{ title: 'Call the customer' }] }])
+    end
+
+    before do
+      account.enable_features!('internal_tasks')
+      conversation.update!(assignee: agent)
+    end
+
+    it 'creates one linked task through the shared action, even on repeated triggers' do
+      expect do
+        2.times { described_class.new(rule, account, conversation).perform }
+      end.to change(InternalTask, :count).by(1)
+
+      task = conversation.internal_tasks.last
+      expect(task.title).to eq('Call the customer')
+      expect(task.assigned_to).to eq(agent)
+      expect(task.conversation.contact).to eq(conversation.contact)
+    end
+  end
+
   describe '#perform with snooze_conversation' do
     let!(:rule) do
       create(:automation_rule, account: account, actions: [{ action_name: 'snooze_conversation', action_params: params }])
@@ -151,7 +174,8 @@ RSpec.describe AutomationRules::ActionService do
       end
 
       it 'will send email to team' do
-        expect(TeamNotifications::AutomationNotificationMailer).to receive(:conversation_creation).with(conversation, team, 'Hello').and_call_original
+        expect(TeamNotifications::AutomationNotificationMailer).to receive(:conversation_creation)
+          .with(conversation, team, 'Hello').and_call_original
         described_class.new(rule, account, conversation).perform
       end
     end
@@ -181,7 +205,9 @@ RSpec.describe AutomationRules::ActionService do
         allow(account).to receive(:email_transcript_enabled?).and_return(true)
         allow(account).to receive(:within_email_rate_limit?).and_return(true)
         allow(account).to receive(:increment_email_sent_count).and_return(true)
-        rule.actions << { action_name: 'send_email_transcript', action_params: ['contact@example.com, agent@example.com,agent1@example.com'] }
+        rule.actions << {
+          action_name: 'send_email_transcript', action_params: ['contact@example.com, agent@example.com,agent1@example.com']
+        }
         rule.save
       end
 
