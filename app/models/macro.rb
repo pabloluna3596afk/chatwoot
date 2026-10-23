@@ -32,7 +32,7 @@ class Macro < ApplicationRecord
 
   ACTIONS_ATTRS = %w[send_message add_label assign_team assign_agent mute_conversation change_status remove_label remove_assigned_agent
                      remove_assigned_team resolve_conversation snooze_conversation change_priority send_email_transcript
-                     send_attachment add_private_note send_webhook_event
+                     send_attachment add_private_note send_webhook_event create_internal_task
                      update_contact_custom_attribute update_conversation_custom_attribute].freeze
 
   def set_visibility(user, params)
@@ -73,6 +73,16 @@ class Macro < ApplicationRecord
     actions = attributes - ACTIONS_ATTRS
 
     errors.add(:actions, "Macro execution actions #{actions.join(',')} not supported.") if actions.any?
+    validate_internal_task_actions
+  end
+
+  def validate_internal_task_actions
+    self.actions.each do |action|
+      next unless action['action_name'] == 'create_internal_task'
+
+      error = AutomationRules::InternalTaskParameters.new(action['action_params'], account: account).error
+      errors.add(:actions, error) if error
+    end
   end
 end
 
