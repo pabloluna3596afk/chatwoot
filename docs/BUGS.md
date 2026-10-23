@@ -1492,7 +1492,7 @@ hacían que “ventas del mes” o Sum con `"1.000,50"` no cuadraran.
 
 ---
 
-### B-NEW-198 — Recetas por contacto: ventana WhatsApp Cloud y alcance (2026-10-23)
+### B-NEW-199 — Recetas por contacto: ventana WhatsApp Cloud y alcance (2026-10-23)
 
 **Problema:** el servicio de acciones ya omitía el texto libre fuera de ventana,
 pero el runner podía conservar cupo y deduplicación en acciones diferidas omitidas.
