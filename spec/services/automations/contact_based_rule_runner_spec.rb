@@ -525,9 +525,9 @@ RSpec.describe Automations::ContactBasedRuleRunner do
       it 'sends an approved template outside the window' do
         create(:message, account: account, conversation: conversation, message_type: :incoming, created_at: 25.hours.ago)
         rule.update!(actions: [{ 'action_name' => 'send_whatsapp_template', 'action_params' => [{
-                                'inbox_id' => inbox.id, 'name' => 'sample_shipping_confirmation', 'language' => 'en_US',
+                       'inbox_id' => inbox.id, 'name' => 'sample_shipping_confirmation', 'language' => 'en_US',
                                 'processed_params' => { 'body' => { '1' => '3' } }
-                              }] }])
+                     }] }])
 
         runner.perform
 
