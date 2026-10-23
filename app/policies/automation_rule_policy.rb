@@ -27,6 +27,10 @@ class AutomationRulePolicy < ApplicationPolicy
     @account_user.administrator?
   end
 
+  def reach_preview?
+    @account_user.administrator?
+  end
+
   def destroy?
     @account_user.administrator?
   end

@@ -7,6 +7,153 @@ RSpec.describe 'Api::V1::Accounts::AutomationRulesController', type: :request do
   let!(:contact) { create(:contact, account: account) }
   let(:contact_inbox) { create(:contact_inbox, inbox_id: inbox.id, contact_id: contact.id) }
 
+  describe 'POST /api/v1/accounts/{account.id}/automation_rules/reach_preview' do
+    let(:url) { "/api/v1/accounts/#{account.id}/automation_rules/reach_preview" }
+    let(:schedule) do
+      { kind: 'contact_date', target_inbox_id: inbox.id, date_source: 'contact_attribute', attribute_key: 'birthday' }
+    end
+
+    it 'requires authentication' do
+      post url, params: { schedule: schedule }, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'rejects account agents' do
+      agent = create(:user, account: account, role: :agent)
+
+      post url, headers: agent.create_new_auth_token, params: { schedule: schedule }, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'rejects administrators of another account' do
+      other_administrator = create(:user, account: create(:account), role: :administrator)
+
+      post url, headers: other_administrator.create_new_auth_token, params: { schedule: schedule }, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'counts only account contacts and preserves count alongside the diagnostics' do
+      contact.update!(custom_attributes: { 'birthday' => Time.zone.today.to_s })
+      create(:contact, custom_attributes: contact.custom_attributes)
+
+      expect do
+        post url, headers: administrator.create_new_auth_token, params: { schedule: schedule }, as: :json
+      end.not_to change(Conversation, :count)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body).to eq(
+        'count' => 1, 'candidates' => 1, 'with_open_window' => 0, 'window_closed' => 0, 'excluded_by_test_mode' => 0
+      )
+    end
+
+    it 'does not use an inbox belonging to another account' do
+      other_inbox = create(:inbox)
+      create(:contact, account: other_inbox.account, custom_attributes: { 'birthday' => Time.zone.today.to_s })
+
+      post url, headers: administrator.create_new_auth_token,
+                params: { schedule: schedule.merge(target_inbox_id: other_inbox.id) }, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body).to eq(
+        'count' => 0, 'candidates' => 0, 'with_open_window' => 0, 'window_closed' => 0, 'excluded_by_test_mode' => 0
+      )
+    end
+  end
+
+  describe 'contact recipe save warnings' do
+    let(:url) { "/api/v1/accounts/#{account.id}/automation_rules" }
+    let(:channel) do
+      create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud',
+                                sync_templates: false, validate_provider_config: false)
+    end
+    let(:target_inbox) { channel.inbox }
+    let(:schedule) do
+      { kind: 'contact_date', target_inbox_id: target_inbox.id, date_source: 'contact_attribute', attribute_key: 'birthday' }
+    end
+    let(:payload) do
+      { name: 'Birthday', event_name: 'time_triggered', conditions: [], schedule: schedule,
+        actions: [{ action_name: 'send_message', action_params: ['Hello'] }] }
+    end
+
+    it 'saves free text for WhatsApp Cloud with an additive warning' do
+      post url, headers: administrator.create_new_auth_token, params: payload, as: :json
+
+      expect(response).to have_http_status(:success)
+      rule = account.automation_rules.sole
+      expect(rule.actions.first['action_name']).to eq('send_message')
+      expect(response.parsed_body).to include(
+        'id' => rule.id, 'name' => 'Birthday', 'warnings' => ['whatsapp_template_recommended'],
+        'automation_rule_warnings' => []
+      )
+    end
+
+    it 'preserves the update payload and warns even when actions are omitted from the request' do
+      rule = create(:automation_rule, account: account, event_name: 'time_triggered', conditions: [],
+                                      schedule: schedule, actions: payload[:actions])
+
+      patch "#{url}/#{rule.id}", headers: administrator.create_new_auth_token, params: { name: 'Anniversary' }, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body).to include('warnings' => ['whatsapp_template_recommended'], 'automation_rule_warnings' => [])
+      expect(response.parsed_body['payload']).to include('id' => rule.id, 'name' => 'Anniversary')
+    end
+
+    it 'does not warn for a template and clears the warning when free text is replaced' do
+      rule = create(:automation_rule, account: account, event_name: 'time_triggered', conditions: [],
+                                      schedule: schedule, actions: payload[:actions])
+      actions = [{ action_name: 'send_whatsapp_template', action_params: [{
+        inbox_id: target_inbox.id, name: 'sample_shipping_confirmation', language: 'en_US',
+        processed_params: { body: { '1' => '3' } }
+      }] }]
+
+      patch "#{url}/#{rule.id}", headers: administrator.create_new_auth_token, params: { actions: actions }, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body).not_to have_key('warnings')
+      expect(rule.reload.actions.first['action_name']).to eq('send_whatsapp_template')
+
+      post url, headers: administrator.create_new_auth_token, params: payload.merge(actions: actions), as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body).not_to have_key('warnings')
+    end
+
+    it 'does not warn for a conversation-based rule' do
+      post url, headers: administrator.create_new_auth_token,
+                params: payload.except(:schedule).merge(event_name: 'conversation_created'), as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body).not_to have_key('warnings')
+    end
+
+    context 'with another channel' do
+      let(:target_inbox) { inbox }
+
+      it 'preserves the existing response without a recipe warning' do
+        post url, headers: administrator.create_new_auth_token, params: payload, as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body).not_to have_key('warnings')
+      end
+    end
+
+    context 'with the default WhatsApp provider' do
+      let(:channel) do
+        create(:channel_whatsapp, account: account, sync_templates: false, validate_provider_config: false)
+      end
+
+      it 'does not recommend a Cloud template for a different provider' do
+        post url, headers: administrator.create_new_auth_token, params: payload, as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body).not_to have_key('warnings')
+      end
+    end
+  end
+
   describe 'POST /api/v1/accounts/{account.id}/automation_rules/simulate' do
     let(:conversation) { create(:conversation, account: account, inbox: inbox, contact: contact) }
     let(:simulation_params) { { conversation_id: conversation.id, event_name: 'conversation_created' } }
@@ -41,6 +188,23 @@ RSpec.describe 'Api::V1::Accounts::AutomationRulesController', type: :request do
                 params: simulation_params.merge(conversation_id: other_conversation.id)
 
       expect(response).to have_http_status(:not_found)
+    end
+
+    it 'does not resolve a foreign display id when there is no account conversation with that display id' do
+      other_conversation = create(:conversation)
+
+      post url, headers: administrator.create_new_auth_token,
+                params: { conversation_display_id: other_conversation.display_id, event_name: 'conversation_created' }
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it 'does not offer contact date simulation through the conversation simulator' do
+      post url, headers: administrator.create_new_auth_token,
+                params: simulation_params.merge(event_name: 'time_triggered')
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['supported']).not_to include('time_triggered')
     end
 
     it 'returns additive diagnostics to an administrator without disabling the rule' do
