@@ -36,7 +36,7 @@ RSpec.describe AutomationRules::SimulationService do
     context 'with an invalid condition' do
       before do
         # Persist an invalid legacy configuration without running callbacks.
-        rule.update_columns(conditions: [condition.merge('filter_operator' => 'unsupported')])
+        rule.update_columns(conditions: [condition.merge('filter_operator' => 'unsupported')]) # rubocop:disable Rails/SkipsModelValidations
       end
 
       it 'leaves persisted data, counters, reauthorization state and queues unchanged across two simulations' do
@@ -76,7 +76,7 @@ RSpec.describe AutomationRules::SimulationService do
       end
 
       it 'identifies the position of an invalid condition after a valid condition' do
-        rule.update_columns(conditions: [condition.merge('query_operator' => 'AND'),
+        rule.update_columns(conditions: [condition.merge('query_operator' => 'AND'), # rubocop:disable Rails/SkipsModelValidations
                                          condition.merge('filter_operator' => 'unsupported')])
 
         expect(simulation.perform.diagnostics.first).to include(condition_index: 1, filter_operator: 'unsupported')
@@ -85,7 +85,7 @@ RSpec.describe AutomationRules::SimulationService do
 
     context 'with a deleted custom attribute' do
       before do
-        rule.update_columns(conditions: [condition.merge('attribute_key' => 'deleted_attribute')])
+        rule.update_columns(conditions: [condition.merge('attribute_key' => 'deleted_attribute')]) # rubocop:disable Rails/SkipsModelValidations
       end
 
       it 'identifies the unavailable attribute without modifying the rule' do
@@ -96,7 +96,7 @@ RSpec.describe AutomationRules::SimulationService do
 
     context 'with an invalid query operator' do
       before do
-        rule.update_columns(conditions: [condition.merge('query_operator' => 'XOR')])
+        rule.update_columns(conditions: [condition.merge('query_operator' => 'XOR')]) # rubocop:disable Rails/SkipsModelValidations
       end
 
       it 'explains the allowed query operators' do

@@ -18,12 +18,12 @@ RSpec.describe 'Api::V1::Accounts::AutomationRulesController', type: :request do
       expect(response).to have_http_status(:unauthorized)
     end
 
-    it 'forbids agents who are not administrators' do
+    it 'rejects agents who are not administrators like the other rule endpoints' do
       agent = create(:user, account: account, role: :agent)
 
       post url, headers: agent.create_new_auth_token, params: simulation_params
 
-      expect(response).to have_http_status(:forbidden)
+      expect(response).to have_http_status(:unauthorized)
     end
 
     it 'forbids administrators of other accounts' do
@@ -45,7 +45,7 @@ RSpec.describe 'Api::V1::Accounts::AutomationRulesController', type: :request do
 
     it 'returns additive diagnostics to an administrator without disabling the rule' do
       rule = create(:automation_rule, account: account, event_name: 'conversation_created')
-      rule.update_columns(conditions: [
+      rule.update_columns(conditions: [ # rubocop:disable Rails/SkipsModelValidations
                             { 'attribute_key' => 'status', 'filter_operator' => 'unsupported', 'values' => ['open'] }
                           ])
 

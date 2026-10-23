@@ -20,7 +20,7 @@ RSpec.describe AutomationRules::ConditionsFilterService do
   describe '#perform' do
     context 'with an invalid legacy condition' do
       before do
-        rule.update_columns(conditions: [
+        rule.update_columns(conditions: [ # rubocop:disable Rails/SkipsModelValidations
                               { 'attribute_key' => 'status', 'filter_operator' => 'unsupported', 'values' => ['open'] }
                             ])
       end
