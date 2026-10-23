@@ -92,7 +92,9 @@ RSpec.describe Automations::TimeBasedRuleRunner do
                                        'relative_to' => 'after',
                                        'days' => 0
                                      })
-      rule.save!(validate: false)
+      rule.schedule['days'] = 1
+      rule.save!
+      rule.update_columns(schedule: rule.schedule.merge('days' => 0)) # rubocop:disable Rails/SkipsModelValidations
 
       described_class.new(rule).perform
 

@@ -1,8 +1,41 @@
 require 'rails_helper'
 
 RSpec.describe AutomationRules::ConditionValidationService do
+  let(:probe_operators) { %w[equal_to contains unsupported] }
+
   let(:account) { create(:account) }
-  let(:rule) { create(:automation_rule, account: account) }
+  let(:rule) { build(:automation_rule, account: account, event_name: 'message_created') }
+
+  describe 'the shared save and evaluation contract' do
+    let(:conversation) { create(:conversation, account: account) }
+
+    it 'uses identical event attributes and operators in the model, validator and evaluator' do
+      described_class::EVENTS.each do |event|
+        rule.event_name = event
+        rule.schedule = { kind: 'hours_since_last_incoming' } if rule.time_triggered?
+        rule.conditions_attributes.each do |key|
+          probe_operators.each do |operator|
+            rule.conditions = [{ 'attribute_key' => key, 'filter_operator' => operator }]
+            supported = described_class.new(rule).perform
+            evaluator = AutomationRules::ConditionsFilterService.new(rule, conversation)
+
+            expect(rule.valid?).to eq(supported), "model: #{event}/#{key}/#{operator}"
+            expect(evaluator.rule_valid?).to eq(supported), "evaluator: #{event}/#{key}/#{operator}"
+          end
+        end
+      end
+      expect(rule.active).to be(true)
+    end
+
+    it 'uses the evaluator default custom attribute scope' do
+      definition = create(:custom_attribute_definition, account: account, attribute_model: 'contact_attribute',
+                                                        attribute_display_type: 'text')
+      rule.conditions = [{ 'attribute_key' => definition.attribute_key, 'filter_operator' => 'contains' }]
+
+      expect(rule).to be_valid
+      expect(AutomationRules::ConditionsFilterService.new(rule, conversation).rule_valid?).to be(true)
+    end
+  end
 
   describe '#perform' do
     context 'with standard attributes' do
@@ -13,7 +46,6 @@ RSpec.describe AutomationRules::ConditionValidationService do
           { 'values': ['test'], 'attribute_key': 'email', 'query_operator': 'OR', 'filter_operator': 'contains' },
           { 'values': [true], 'attribute_key': 'private_note', 'query_operator': nil, 'filter_operator': 'equal_to' }
         ]
-        rule.save
       end
 
       it 'returns true' do
@@ -26,7 +58,6 @@ RSpec.describe AutomationRules::ConditionValidationService do
         rule.conditions = [
           { 'values': ['open'], 'attribute_key': 'not-a-standard-attribute-for-sure', 'query_operator': nil, 'filter_operator': 'equal_to' }
         ]
-        rule.save
       end
 
       it 'returns false' do
@@ -39,7 +70,6 @@ RSpec.describe AutomationRules::ConditionValidationService do
         rule.conditions = [
           { 'values': ['open'], 'attribute_key': 'status', 'query_operator': nil, 'filter_operator': 'not-a-filter-operator' }
         ]
-        rule.save
       end
 
       it 'returns false' do
@@ -49,8 +79,9 @@ RSpec.describe AutomationRules::ConditionValidationService do
 
     context 'with wrong query operator' do
       before do
-        rule.conditions = [{ 'values': ['open'], 'attribute_key': 'status', 'query_operator': 'invalid', 'filter_operator': 'attribute_changed' }]
-        rule.save
+        rule.conditions = [
+          { 'values': ['open'], 'attribute_key': 'status', 'query_operator': 'invalid', 'filter_operator': 'attribute_changed' }
+        ]
       end
 
       it 'returns false' do
@@ -63,7 +94,6 @@ RSpec.describe AutomationRules::ConditionValidationService do
         rule.conditions = [
           { 'values': ['open'], 'attribute_key': 'status', 'query_operator': nil, 'filter_operator': 'attribute_changed' }
         ]
-        rule.save
       end
 
       it 'returns true' do
@@ -88,7 +118,6 @@ RSpec.describe AutomationRules::ConditionValidationService do
             'custom_attribute_type': 'conversation_attribute'
           }
         ]
-        rule.save
       end
 
       it 'returns true' do
@@ -106,7 +135,6 @@ RSpec.describe AutomationRules::ConditionValidationService do
             'custom_attribute_type': 'conversation_attribute'
           }
         ]
-        rule.save
       end
 
       it 'returns false for missing custom attribute' do

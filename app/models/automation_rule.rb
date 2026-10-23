@@ -32,6 +32,7 @@ class AutomationRule < ApplicationRecord
   # activity lives on the contact, and TimeBasedRuleRunner can never reach a
   # contact with no open conversation.
   CONTACT_BASED_SCHEDULE_KINDS = %w[contact_date].freeze
+  SCHEDULE_KINDS = (CONTACT_BASED_SCHEDULE_KINDS + %w[days_since_attribute hours_since_last_outgoing hours_since_last_incoming]).freeze
   CONTACT_DATE_SOURCES = %w[contact_attribute last_activity].freeze
   CONTACT_DATE_RECURRENCES = %w[once yearly].freeze
 
@@ -39,11 +40,13 @@ class AutomationRule < ApplicationRecord
   has_many :pending_executions, class_name: 'AutomationRulePendingExecution', dependent: :delete_all
   has_many_attached :files
 
-  validate :json_conditions_format
-  validate :json_actions_format
-  validate :query_operator_presence
-  validate :query_operator_value
-  validate :schedule_format, if: :time_triggered?
+  validate :supported_event, if: :definition_changed?
+  validate :json_conditions_format, if: :definition_changed?
+  validate :json_actions_format, if: :definition_changed?
+  validate :query_operator_presence, if: :definition_changed?
+  validate :query_operator_value, if: :definition_changed?
+  validate :supported_schedule_kind, if: -> { definition_changed? || will_save_change_to_schedule? }
+  validate :schedule_format, if: :schedule_validation_required?
   validates :account_id, presence: true
   validates :execution_delay, numericality: { only_integer: true, in: EXECUTION_DELAY_RANGE }, allow_nil: true
   validate :execution_delay_supported_conditions
@@ -57,6 +60,10 @@ class AutomationRule < ApplicationRecord
 
   def time_triggered?
     event_name == 'time_triggered'
+  end
+
+  def definition_changed?
+    will_save_change_to_conditions? || will_save_change_to_actions? || will_save_change_to_event_name?
   end
 
   def contact_based_schedule?
@@ -92,6 +99,17 @@ class AutomationRule < ApplicationRecord
   end
 
   private
+
+  def schedule_validation_required?
+    time_triggered? && (definition_changed? || will_save_change_to_schedule?)
+  end
+
+  def supported_schedule_kind
+    kind = schedule_value(:kind)
+    return if kind.blank? || SCHEDULE_KINDS.include?(kind)
+
+    errors.add(:schedule, 'kind is not supported')
+  end
 
   def schedule_format
     kind = schedule_value(:kind).to_s
@@ -195,22 +213,27 @@ class AutomationRule < ApplicationRecord
     schedule_hash[key.to_s].presence || schedule_hash[key]
   end
 
+  def supported_event
+    return if AutomationRules::ConditionValidationService::EVENTS.include?(event_name)
+
+    errors.add(:event_name, 'is not supported')
+  end
+
   def json_conditions_format
     return if conditions.blank?
 
-    attributes = conditions.map { |obj, _| obj['attribute_key'] }
-    conditions = attributes - conditions_attributes
-    conditions -= account.custom_attribute_definitions.pluck(:attribute_key)
-    errors.add(:conditions, "Automation conditions #{conditions.join(',')} not supported.") if conditions.any?
+    validation = AutomationRules::ConditionValidationService.new(self)
+    return if validation.perform
+
+    validation.diagnostics.each do |diagnostic|
+      errors.add(:conditions, "Condition #{diagnostic[:condition_index]}: #{diagnostic[:message]}")
+    end
   end
 
   def json_actions_format
-    return if actions.blank?
-
-    attributes = actions.map { |obj, _| obj['action_name'] }
-    actions = attributes - actions_attributes
-
-    errors.add(:actions, "Automation actions #{actions.join(',')} not supported.") if actions.any?
+    AutomationRules::ActionValidationService.new(self).perform.each do |diagnostic|
+      errors.add(:actions, "Action #{diagnostic[:action_index]}: #{diagnostic[:message]}")
+    end
   end
 
   def query_operator_presence
@@ -240,7 +263,13 @@ class AutomationRule < ApplicationRecord
   # Conversation-level episodes key on status_changed_at alone. Mutable attributes would collapse
   # distinct periods into one episode, so only status and immutable filters (inbox) are allowed.
   def execution_delay_supported_event
-    return if execution_delay.blank? || conditions.blank? || event_name == 'message_created'
+    return if execution_delay.blank?
+
+    if time_triggered?
+      errors.add(:execution_delay, 'cannot be used with time_triggered events.')
+      return
+    end
+    return if conditions.blank? || event_name == 'message_created'
     return if conditions.all? { |obj| DELAYED_CONVERSATION_ATTRIBUTES.include?(obj['attribute_key']) }
 
     errors.add(:execution_delay, 'only supports status and inbox conditions for conversation-level events.')
@@ -262,11 +291,10 @@ class AutomationRule < ApplicationRecord
   def validate_single_condition(condition)
     query_operator = condition['query_operator']
 
-    return if query_operator.nil?
-    return if query_operator.empty?
+    return if query_operator.nil? || query_operator == ''
+    return if query_operator.is_a?(String) && %w[AND OR].include?(query_operator.upcase)
 
-    operator = query_operator.upcase
-    errors.add(:conditions, 'Query operator must be either "AND" or "OR"') unless %w[AND OR].include?(operator)
+    errors.add(:conditions, 'Query operator must be either "AND" or "OR"')
   end
 end
 

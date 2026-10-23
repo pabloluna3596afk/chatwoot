@@ -20,6 +20,8 @@ module AttachmentConcern
   private
 
   def process_attachment_action(action, record, blobs)
+    return if action[:action_params].blank?
+
     blob_id = action[:action_params].first
     blob = ActiveStorage::Blob.find_signed(blob_id.to_s)
 

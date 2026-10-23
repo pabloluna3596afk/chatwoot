@@ -116,6 +116,8 @@ RSpec.describe AutomationRules::ConditionsFilterService do
     end
 
     context 'when conditions based on messages attributes' do
+      before { rule.update!(event_name: 'message_created') }
+
       context 'when filter_operator is equal_to' do
         before do
           rule.conditions = [

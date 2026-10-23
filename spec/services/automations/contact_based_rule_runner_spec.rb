@@ -22,7 +22,7 @@ RSpec.describe Automations::ContactBasedRuleRunner do
       account: account,
       event_name: 'time_triggered',
       conditions: [],
-      actions: [{ 'action_name' => 'send_message', 'action_params' => { message: 'Hola!' } }],
+      actions: [{ 'action_name' => 'send_message', 'action_params' => ['Hola!'] }],
       schedule: schedule
     )
   end
