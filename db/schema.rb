@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_22_130000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_23_140000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1440,7 +1440,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_22_130000) do
     t.string "title", null: false
     t.text "description"
     t.jsonb "metadata", default: {}, null: false
-    t.bigint "created_by_id", null: false
+    t.bigint "created_by_id"
     t.bigint "assigned_to_id"
     t.bigint "team_id"
     t.string "status", default: "pending", null: false

@@ -1505,7 +1505,7 @@ Archivos: `app/services/automation_rules/internal_task_parameters.rb`,
 `app/models/macro.rb` y `app/models/internal_task.rb`.
 
 Autoría automática: usuario nulo y metadatos explícitos de sistema, sin atribuirla a una persona.
-Requiere migración `20261023120000_allow_system_created_internal_tasks.rb` antes de habilitar la acción.
+Requiere migración `20261023140000_allow_system_created_internal_tasks.rb` antes de habilitar la acción.
 La creación manual sigue exigiendo autor; no hay cambios de frontend ni traducciones.
 
 Cómo probar: guardar regla/macro con `[{title: 'Llamar al cliente', due_in: {duration: 2, unit: 'days'}}]`;
