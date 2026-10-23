@@ -106,12 +106,7 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
                         actions: params[:actions] ? actions : nil,
                         conditions: params[:conditions])
 
-    lint = lint_for(@automation_rule)
-    unless lint.ok?
-      render_lint_failed(lint)
-      raise ActiveRecord::Rollback
-    end
-
+    lint = validate_updated_rule!
     @automation_rule.save!
     attach_files(@automation_rule, blobs)
     @lint_warnings = lint.warnings
@@ -120,6 +115,19 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
   rescue StandardError => e
     Rails.logger.error e
     render_could_not_create_error(@automation_rule.errors.messages)
+  end
+
+  def validate_updated_rule!
+    unless @automation_rule.valid?
+      render_could_not_create_error(@automation_rule.errors.messages)
+      raise ActiveRecord::Rollback
+    end
+
+    lint = lint_for(@automation_rule)
+    return lint unless lint_required? && !lint.ok?
+
+    render_lint_failed(lint)
+    raise ActiveRecord::Rollback
   end
 
   def assign_rule_payload(rule, actions: nil, conditions: nil)
@@ -179,6 +187,10 @@ class Api::V1::Accounts::AutomationRulesController < Api::V1::Accounts::BaseCont
 
   def delayed_automations_enabled?
     Current.account.feature_enabled?('delayed_automations')
+  end
+
+  def lint_required?
+    @automation_rule.definition_changed? || @automation_rule.will_save_change_to_schedule?
   end
 
   def lint_for(rule)
