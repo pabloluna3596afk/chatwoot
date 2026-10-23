@@ -5,7 +5,7 @@ class AutomationRules::InternalTaskParameters
   end
 
   def error
-    message = fields_error || assignee_error || due_in_error
+    message = feature_error || fields_error || assignee_error || due_in_error
     "create_internal_task: #{message}" if message
   end
 
@@ -18,6 +18,10 @@ class AutomationRules::InternalTaskParameters
   end
 
   private
+
+  def feature_error
+    'the internal_tasks feature is not enabled for this account.' unless @account.feature_enabled?('internal_tasks')
+  end
 
   def fields_error
     return 'requires one parameter hash with title.' unless @data

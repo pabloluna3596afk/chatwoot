@@ -81,10 +81,18 @@ RSpec.describe AutomationRules::ActionValidationService do
   context 'with create_internal_task' do
     let(:action_name) { 'create_internal_task' }
     let(:action_params) { [{ 'title' => 'Call the customer' }] }
+    let(:task_account) { create(:account).tap { |account| account.enable_features!('internal_tasks') } }
 
     [AutomationRule, Macro].each do |model|
       context "when saving #{model.name}" do
-        let(:rule) { build(model == Macro ? :macro : :automation_rule, account: create(:account), actions: [action]) }
+        let(:rule) { build(model == Macro ? :macro : :automation_rule, account: task_account, actions: [action]) }
+
+        it 'rejects the action when the account has no internal tasks' do
+          task_account.disable_features!('internal_tasks')
+
+          expect(rule.save).to be(false)
+          expect(rule.errors[:actions].join).to include('create_internal_task', 'internal_tasks feature is not enabled')
+        end
 
         it 'accepts the action with only a title' do
           expect(rule.save).to be(true)

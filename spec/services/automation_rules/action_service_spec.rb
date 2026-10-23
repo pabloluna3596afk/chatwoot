@@ -14,6 +14,7 @@ RSpec.describe AutomationRules::ActionService do
 
   describe '#perform with create_internal_task' do
     let!(:rule) do
+      account.enable_features!('internal_tasks')
       create(:automation_rule, account: account,
                                actions: [{ action_name: 'create_internal_task', action_params: [{ title: 'Call the customer' }] }])
     end

@@ -6,6 +6,14 @@ RSpec.describe AutomationRules::InternalTaskParameters do
   let(:account) { create(:account) }
   let(:params) { [{ 'title' => 'Call the customer' }] }
 
+  before { account.enable_features!('internal_tasks') }
+
+  it 'rejects the action when the account does not have internal tasks' do
+    account.disable_features!('internal_tasks')
+
+    expect(parameters.error).to include('internal_tasks feature is not enabled')
+  end
+
   it 'accepts only the required title' do
     expect(parameters.error).to be_nil
   end
