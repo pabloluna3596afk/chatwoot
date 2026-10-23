@@ -30,7 +30,7 @@ class AutomationRules::ActionValidationService
   end
 
   def parameters_error(name, params)
-    return InternalTaskParameters.new(params, account: @rule.account).error if name == 'create_internal_task'
+    return AutomationRules::InternalTaskParameters.new(params, account: @rule.account).error if name == 'create_internal_task'
 
     return Conversations::SnoozeParameters.new(params).error if name == 'snooze_conversation'
     return structured_parameters_error(name, params) if REQUIRED_FIELDS.key?(name)
