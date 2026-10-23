@@ -190,6 +190,9 @@ const toggleSelected = option => {
             </template>
             <template #label>
               {{ option.name }}
+              <span v-if="option.description" class="text-xs text-n-slate-11">{{
+                option.description
+              }}</span>
               <Icon
                 v-if="selectedItem && selectedItem.id === option.id"
                 icon="i-lucide-check"

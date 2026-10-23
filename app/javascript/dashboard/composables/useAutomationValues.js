@@ -21,7 +21,7 @@ import {
 export default function useAutomationValues() {
   const getters = useStoreGetters();
   const { t } = useI18n();
-  const { options: captainOptions } = useCaptainAssignment();
+  const { optionsForInboxes } = useCaptainAssignment();
   const agents = useMapGetter('agents/getVerifiedAgents');
   const campaigns = useMapGetter('campaigns/getAllCampaigns');
   const contacts = useMapGetter('contacts/getContacts');
@@ -127,22 +127,23 @@ export default function useAutomationValues() {
    * @param {string} type - The type of action.
    * @returns {Array} An array of action dropdown values.
    */
-  const getActionDropdownValues = type => {
-    let agentsList = agents.value;
+  const getActionDropdownValues = (type, pinnedIds = []) => {
     if (type === 'assign_agent') {
-      agentsList = [
-        {
-          id: 'last_responding_agent',
-          name: t('AUTOMATION.LAST_RESPONDING_AGENT'),
-        },
-        ...agentsList,
-        ...captainOptions.value,
+      return [
+        ...optionsForInboxes(pinnedIds),
+        ...addNoneToList([
+          {
+            id: 'last_responding_agent',
+            name: t('AUTOMATION.LAST_RESPONDING_AGENT'),
+          },
+          ...agents.value,
+        ]),
       ];
     }
 
     return (
       getActionOptions({
-        agents: agentsList,
+        agents: agents.value,
         labels: labels.value,
         teams: teams.value,
         slaPolicies: slaPolicies.value,

@@ -1,5 +1,6 @@
 <script setup>
 import { computed, useTemplateRef } from 'vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import ConditionRow from 'dashboard/components-next/filter/ConditionRow.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 
@@ -70,12 +71,19 @@ defineExpose({ validate, resetValidation });
     <div>
       <label :class="{ error: errors.event_name }">
         {{ $t('AUTOMATION.ADD.FORM.EVENT.LABEL') }}
-        <select v-model="selectedEvent" class="m-0">
-          <option v-for="event in events" :key="event.key" :value="event.key">
-            {{ event.value }}
-          </option>
-        </select>
-        <span v-if="errors.event_name" class="message">
+        <ComboBox
+          v-model="selectedEvent"
+          :options="
+            events.map(event => ({ value: event.key, label: event.value }))
+          "
+          :allow-deselect="false"
+          teleport
+        />
+        <span
+          v-if="errors.event_name"
+          role="alert"
+          class="text-sm text-n-ruby-11"
+        >
           {{ $t('AUTOMATION.ADD.FORM.EVENT.ERROR') }}
         </span>
       </label>
@@ -118,7 +126,7 @@ defineExpose({ validate, resetValidation });
             @remove="removeFilter(i)"
           />
         </template>
-        <div>
+        <li>
           <NextButton
             icon="i-lucide-plus"
             blue
@@ -127,7 +135,7 @@ defineExpose({ validate, resetValidation });
             :label="$t('AUTOMATION.ADD.CONDITION_BUTTON_LABEL')"
             @click="appendNewCondition"
           />
-        </div>
+        </li>
       </ul>
     </section>
   </div>

@@ -1,5 +1,6 @@
 import { defineComponent, ref } from 'vue';
 import { mount } from '@vue/test-utils';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import DurationInput from '../DurationInput.vue';
 
 const mountDurationInput = ({ initialValue = null } = {}) => {
@@ -36,6 +37,31 @@ const mountDurationInput = ({ initialValue = null } = {}) => {
 };
 
 describe('DurationInput', () => {
+  it('opts into a compact custom unit selector and keeps the payload in minutes', async () => {
+    const wrapper = mount(DurationInput, {
+      props: {
+        customUnitSelect: true,
+        modelValue: 240,
+        unit: 'hours',
+        min: 10,
+        'onUpdate:unit': value => wrapper.setProps({ unit: value }),
+      },
+    });
+    expect(wrapper.find('select').exists()).toBe(false);
+    expect(
+      wrapper
+        .findComponent(ComboBox)
+        .props('options')
+        .map(option => option.value)
+    ).toEqual(['minutes', 'hours', 'days']);
+    expect(wrapper.get('input').element.value).toBe('4');
+    expect(wrapper.get('input').classes()).toContain('h-8');
+    await wrapper.get('input').setValue('5');
+    expect(wrapper.emitted('update:modelValue').at(-1)).toEqual([300]);
+    await wrapper.findComponent(ComboBox).vm.$emit('update:modelValue', 'days');
+    expect(wrapper.emitted('update:modelValue').at(-1)).toEqual([10]);
+  });
+
   it('allows a multi-digit value to be typed before enforcing the minimum', async () => {
     const wrapper = mountDurationInput();
     const input = wrapper.get('input');

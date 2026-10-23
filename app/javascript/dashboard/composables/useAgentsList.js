@@ -1,3 +1,4 @@
+import { withAIAssigneesFirst } from 'dashboard/helper/captainAssignmentOptions';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store';
@@ -60,7 +61,7 @@ export function useAgentsList(
   );
 
   const showNoneAgent = computed(
-    () => includeNoneAgent && isAgentSelected.value && !inboxBotAgent.value
+    () => includeNoneAgent && isAgentSelected.value
   );
 
   /**
@@ -86,8 +87,7 @@ export function useAgentsList(
 
     return [
       ...(showNoneAgent.value ? [createNoneAgent()] : []),
-      ...filteredAgentsByAvailability,
-      ...botAgents,
+      ...withAIAssigneesFirst([...filteredAgentsByAvailability, ...botAgents]),
     ];
   });
 

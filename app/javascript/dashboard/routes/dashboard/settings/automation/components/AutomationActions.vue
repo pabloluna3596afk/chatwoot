@@ -44,8 +44,10 @@ const props = defineProps({
 
 const actions = defineModel({ type: Array, required: true });
 
-const hasActionErrors = computed(() =>
-  Object.keys(props.errors).some(key => key.startsWith('action_'))
+const hasActionErrors = computed(
+  () =>
+    props.errors.actions ||
+    Object.keys(props.errors).some(key => key.startsWith('action_'))
 );
 </script>
 
@@ -62,23 +64,32 @@ const hasActionErrors = computed(() =>
           : 'outline-n-weak dark:outline-n-strong'
       "
     >
-      <AutomationActionInput
-        v-for="(action, i) in actions"
-        :key="i"
-        v-model="actions[i]"
-        :action-types="actionTypes"
-        :dropdown-values="getActionDropdownValues(action.action_name)"
-        :show-action-input="showActionInput(actionTypes, action.action_name)"
-        :error-message="
-          errors[`action_${i}`]
-            ? $t(`AUTOMATION.ERRORS.${errors[`action_${i}`]}`)
-            : ''
-        "
-        :initial-file-name="showFileName ? getFileName(action, files) : ''"
-        @reset-action="resetAction(i)"
-        @remove-action="removeAction(i)"
-      />
-      <div class="pt-2">
+      <template v-for="(action, i) in actions" :key="i">
+        <AutomationActionInput
+          v-model="actions[i]"
+          :action-types="actionTypes"
+          :dropdown-values="getActionDropdownValues(action.action_name)"
+          :show-action-input="showActionInput(actionTypes, action.action_name)"
+          :error-message="
+            errors[`action_${i}`]
+              ? $t(`AUTOMATION.ERRORS.${errors[`action_${i}`]}`)
+              : ''
+          "
+          :initial-file-name="showFileName ? getFileName(action, files) : ''"
+          @reset-action="resetAction(i)"
+          @remove-action="removeAction(i)"
+        >
+          <slot
+            v-if="action.action_name === 'assign_agent'"
+            name="captain-summary"
+            :action="action"
+          />
+        </AutomationActionInput>
+      </template>
+      <li v-if="errors.actions" role="alert" class="text-sm text-n-ruby-11">
+        {{ $t(`AUTOMATION.ERRORS.${errors.actions}`) }}
+      </li>
+      <li class="pt-2">
         <NextButton
           icon="i-lucide-plus"
           blue
@@ -87,7 +98,7 @@ const hasActionErrors = computed(() =>
           :label="$t('AUTOMATION.ADD.ACTION_BUTTON_LABEL')"
           @click="appendNewAction"
         />
-      </div>
+      </li>
     </ul>
   </section>
 </template>

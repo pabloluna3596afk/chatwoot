@@ -24,13 +24,18 @@ vi.mock('dashboard/composables/store', () => ({
 
 const Host = defineComponent({
   components: { AutomationActionInput },
-  props: { macro: Boolean, selected: { type: String, default: 'captain' } },
+  props: {
+    inboxIds: { type: Array, default: () => [] },
+    macro: Boolean,
+    selected: { type: String, default: 'captain' },
+  },
   setup(props) {
     const { getActionDropdownValues } = useAutomationValues();
     const { getMacroDropdownValues } = useMacros();
     const options = computed(() =>
       (props.macro ? getMacroDropdownValues : getActionDropdownValues)(
-        'assign_agent'
+        'assign_agent',
+        props.inboxIds
       )
     );
     const action = ref({
@@ -54,6 +59,32 @@ const Host = defineComponent({
 });
 
 describe('Captain in the shared action editor', () => {
+  it('updates options with pinned inboxes while retaining a now unavailable selection', async () => {
+    const wrapper = mount(Host, {
+      props: { inboxIds: [1], selected: 'captain:7' },
+    });
+    const select = wrapper.findAllComponents(SingleSelect)[1];
+    expect(select.props('options')[0]).toMatchObject({
+      id: 'captain:7',
+      name: 'Ventas',
+    });
+    await wrapper.setProps({ inboxIds: [2] });
+    expect(select.props('options')[0]).toMatchObject({
+      id: 'captain',
+      description: 'CAPTAIN.ASSIGNMENT.NO_ASSISTANT',
+    });
+    expect(select.props('options')).toContainEqual(
+      expect.objectContaining({
+        id: 'captain:7',
+        description: 'CAPTAIN.ASSIGNMENT.UNAVAILABLE',
+      })
+    );
+    expect(actionQueryGenerator([wrapper.vm.action])[0].action_params).toEqual([
+      'captain:7',
+    ]);
+    wrapper.unmount();
+  });
+
   beforeEach(() => {
     Object.assign(
       state,
@@ -61,6 +92,10 @@ describe('Captain in the shared action editor', () => {
         'accounts/isFeatureEnabledonAccount': () => true,
         'captainAssistants/getRecords': [{ id: 7, name: 'Ventas' }],
         'agents/getVerifiedAgents': [{ id: 3, name: 'Ana' }],
+        'inboxes/getInboxes': [
+          { id: 1, captain_assistant: { id: 7, name: 'Ventas' } },
+          { id: 2, captain_assistant: null },
+        ],
         'labels/getLabels': [],
         'teams/getTeams': [],
       })
@@ -68,7 +103,7 @@ describe('Captain in the shared action editor', () => {
   });
 
   it.each([false, true])(
-    'lists general and named Captain, persists the selection (macro=%s)',
+    'lists only general Captain without pinned inboxes and persists the selection (macro=%s)',
     async macro => {
       const wrapper = mount(Host, { props: { macro } });
       const select = wrapper.findAllComponents(SingleSelect)[1];
@@ -79,7 +114,6 @@ describe('Captain in the shared action editor', () => {
             name: 'CAPTAIN.ASSIGNMENT.GENERAL',
             icon: 'i-woot-captain',
           },
-          { id: 'captain:7', name: 'Ventas', icon: 'i-woot-captain' },
           { id: 3, name: 'Ana' },
         ])
       );
@@ -103,6 +137,7 @@ describe('Captain in the shared action editor', () => {
       id: 'captain:99',
       name: 'CAPTAIN.ASSIGNMENT.DELETED',
       icon: 'i-woot-captain',
+      description: 'CAPTAIN.ASSIGNMENT.UNAVAILABLE',
     });
     expect(actionQueryGenerator([wrapper.vm.action])[0].action_params).toEqual([
       'captain:99',
@@ -110,19 +145,23 @@ describe('Captain in the shared action editor', () => {
     wrapper.unmount();
   });
 
-  it.each([false, true])(
-    'hides new Captain choices without the feature or assistants (empty=%s)',
-    empty => {
-      state['accounts/isFeatureEnabledonAccount'] = () => empty;
-      if (empty) state['captainAssistants/getRecords'] = [];
-      const wrapper = mount(Host, { props: { selected: '3' } });
-      const options = wrapper
+  it('hides Captain choices without the feature', () => {
+    state['accounts/isFeatureEnabledonAccount'] = () => false;
+    const wrapper = mount(Host, { props: { selected: '3' } });
+    expect(
+      wrapper
         .findAllComponents(SingleSelect)[1]
-        .props('options');
-      expect(
-        options.some(option => String(option.id).startsWith('captain'))
-      ).toBe(false);
-      wrapper.unmount();
-    }
-  );
+        .props('options')
+        .some(option => String(option.id).startsWith('captain'))
+    ).toBe(false);
+    wrapper.unmount();
+  });
+  it('offers general Captain even when no assistant is configured', () => {
+    state['captainAssistants/getRecords'] = [];
+    const wrapper = mount(Host);
+    expect(
+      wrapper.findAllComponents(SingleSelect)[1].props('options')[0].id
+    ).toBe('captain');
+    wrapper.unmount();
+  });
 });

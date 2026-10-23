@@ -25,7 +25,7 @@ vi.mock('dashboard/composables');
 vi.mock('vue-i18n');
 vi.mock('dashboard/helper/automationHelper');
 vi.mock('../useCaptainAssignment', () => ({
-  useCaptainAssignment: () => ({ options: { value: [] } }),
+  useCaptainAssignment: () => ({ optionsForInboxes: () => [] }),
 }));
 
 describe('useAutomation', () => {

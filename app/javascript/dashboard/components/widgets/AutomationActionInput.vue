@@ -79,9 +79,10 @@ export default {
       );
       return [
         ...this.dropdownValues,
-        ...missing.map(id =>
-          captainSelection(id, this.dropdownValues, this.$t)
-        ),
+        ...missing.map(id => ({
+          ...captainSelection(id, this.dropdownValues, this.$t),
+          description: this.$t('CAPTAIN.ASSIGNMENT.UNAVAILABLE'),
+        })),
       ];
     },
     action_name: {
@@ -307,6 +308,7 @@ export default {
           @click="removeAction"
         />
       </div>
+      <slot />
       <div v-if="inputType === 'email'" class="flex items-center w-full gap-2">
         <NextInput
           v-model="action_params"
