@@ -8,6 +8,13 @@ import RadioCard from 'dashboard/components-next/radioCard/RadioCard.vue';
 import AudienceGroup from './audience/AudienceGroup.vue';
 import { useAudienceFilterTypes } from './audience/useAudienceFilterTypes';
 import AssistantAudienceForm from './AssistantAudienceForm.vue';
+import InboxAudienceCard from './audience/InboxAudienceCard.vue';
+
+const permissions = vi.hoisted(() => ({ isAdmin: true }));
+
+vi.mock('dashboard/composables/useAdmin', () => ({
+  useAdmin: () => ({ isAdmin: ref(permissions.isAdmin) }),
+}));
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
@@ -37,6 +44,7 @@ const mountComponent = (audience = null) =>
   });
 
 beforeEach(() => {
+  permissions.isAdmin = true;
   connectedInboxes.value = [];
   uiFlags.value = { fetchingList: false };
   useMapGetter.mockImplementation(key =>
@@ -56,6 +64,47 @@ beforeEach(() => {
 });
 
 describe('AssistantAudienceForm', () => {
+  it('disables the base rule and inbox editing for non-admins', () => {
+    permissions.isAdmin = false;
+    connectedInboxes.value = [{ id: 3, channel_type: 'Channel::Whatsapp' }];
+    const wrapper = mountComponent();
+    expect(wrapper.get('fieldset').element.disabled).toBe(true);
+    expect(wrapper.findComponent(Button).exists()).toBe(false);
+    expect(wrapper.findComponent(InboxAudienceCard).props('canEdit')).toBe(
+      false
+    );
+  });
+
+  it('passes warnings scoped to each inbox channel', () => {
+    connectedInboxes.value = [
+      { id: 1, channel_type: 'Channel::Whatsapp', audience_mode: 'inherit' },
+      { id: 2, channel_type: 'Channel::Instagram', audience_mode: 'inherit' },
+      { id: 3, channel_type: 'Channel::WebWidget', audience_mode: 'inherit' },
+    ];
+    const cards =
+      mountComponent(phoneCondition).findAllComponents(InboxAudienceCard);
+    expect(cards[0].props('warnings')).toEqual([]);
+    expect(cards[1].props('warnings')[0]).toContain('CHANNELS.INSTAGRAM');
+    expect(cards[1].props('warnings')[0]).not.toContain('CHANNELS.WEB');
+  });
+
+  it('warns only for inboxes that use the base rule', () => {
+    connectedInboxes.value = [
+      { id: 1, channel_type: 'Channel::Instagram', audience_mode: 'custom' },
+      { id: 2, channel_type: 'Channel::WebWidget', audience_mode: 'everyone' },
+    ];
+    expect(mountComponent(phoneCondition).findComponent(Banner).exists()).toBe(
+      false
+    );
+
+    connectedInboxes.value = [
+      { id: 1, channel_type: 'Channel::Instagram', audience_mode: 'inherit' },
+      { id: 2, channel_type: 'Channel::WebWidget', audience_mode: 'custom' },
+    ];
+    const wrapper = mountComponent(phoneCondition);
+    expect(wrapper.text()).toContain('CHANNELS.INSTAGRAM');
+    expect(wrapper.text()).not.toContain('CHANNELS.WEB');
+  });
   it('does not submit a specific audience without conditions', async () => {
     const wrapper = mountComponent();
     wrapper.findAllComponents(RadioCard)[1].vm.$emit('select', 'specific');
@@ -82,7 +131,9 @@ describe('AssistantAudienceForm', () => {
   it.each(['Instagram', 'FacebookPage', 'WebWidget', 'Email'])(
     'warns about phone data for Channel::%s',
     channel => {
-      connectedInboxes.value = [{ channel_type: `Channel::${channel}` }];
+      connectedInboxes.value = [
+        { channel_type: `Channel::${channel}`, audience_mode: 'inherit' },
+      ];
       const wrapper = mountComponent(phoneCondition);
       expect(wrapper.findComponent(Banner).props('color')).toBe('amber');
       expect(wrapper.text()).toContain('AUDIENCE.CHANNEL_WARNING');
@@ -93,7 +144,9 @@ describe('AssistantAudienceForm', () => {
   it.each(['Whatsapp', 'Sms', 'TwilioSms', 'Instagram', 'FacebookPage'])(
     'warns about email data for Channel::%s',
     channel => {
-      connectedInboxes.value = [{ channel_type: `Channel::${channel}` }];
+      connectedInboxes.value = [
+        { channel_type: `Channel::${channel}`, audience_mode: 'inherit' },
+      ];
       const wrapper = mountComponent({
         ...phoneCondition,
         attribute_key: 'email',
@@ -105,8 +158,8 @@ describe('AssistantAudienceForm', () => {
 
   it('finds nested conditions and deduplicates channel names', () => {
     connectedInboxes.value = [
-      { channel_type: 'Channel::Instagram' },
-      { channel_type: 'Channel::Instagram' },
+      { channel_type: 'Channel::Instagram', audience_mode: 'inherit' },
+      { channel_type: 'Channel::Instagram', audience_mode: 'inherit' },
     ];
     const wrapper = mountComponent({
       operator: 'and',
@@ -119,11 +172,15 @@ describe('AssistantAudienceForm', () => {
   });
 
   it('does not warn when connected channels support the attribute', () => {
-    connectedInboxes.value = [{ channel_type: 'Channel::Whatsapp' }];
+    connectedInboxes.value = [
+      { channel_type: 'Channel::Whatsapp', audience_mode: 'inherit' },
+    ];
     expect(mountComponent(phoneCondition).findComponent(Banner).exists()).toBe(
       false
     );
-    connectedInboxes.value = [{ channel_type: 'Channel::Email' }];
+    connectedInboxes.value = [
+      { channel_type: 'Channel::Email', audience_mode: 'inherit' },
+    ];
     expect(
       mountComponent({ ...phoneCondition, attribute_key: 'email' })
         .findComponent(Banner)
@@ -133,7 +190,11 @@ describe('AssistantAudienceForm', () => {
 
   it('handles Twilio WhatsApp as WhatsApp', () => {
     connectedInboxes.value = [
-      { channel_type: 'Channel::TwilioSms', medium: 'whatsapp' },
+      {
+        channel_type: 'Channel::TwilioSms',
+        medium: 'whatsapp',
+        audience_mode: 'inherit',
+      },
     ];
     const wrapper = mountComponent({
       ...phoneCondition,
@@ -144,7 +205,9 @@ describe('AssistantAudienceForm', () => {
   });
 
   it('does not show stale inbox warnings while fetching', () => {
-    connectedInboxes.value = [{ channel_type: 'Channel::Instagram' }];
+    connectedInboxes.value = [
+      { channel_type: 'Channel::Instagram', audience_mode: 'inherit' },
+    ];
     uiFlags.value.fetchingList = true;
     expect(mountComponent(phoneCondition).findComponent(Banner).exists()).toBe(
       false
@@ -155,12 +218,16 @@ describe('AssistantAudienceForm', () => {
     expect(mountComponent(phoneCondition).findComponent(Banner).exists()).toBe(
       false
     );
-    connectedInboxes.value = [{ channel_type: 'Channel::Instagram' }];
+    connectedInboxes.value = [
+      { channel_type: 'Channel::Instagram', audience_mode: 'inherit' },
+    ];
     expect(mountComponent().findComponent(Banner).exists()).toBe(false);
   });
 
   it('allows saving and reacts to edits without changing the audience', async () => {
-    connectedInboxes.value = [{ channel_type: 'Channel::Instagram' }];
+    connectedInboxes.value = [
+      { channel_type: 'Channel::Instagram', audience_mode: 'inherit' },
+    ];
     const wrapper = mountComponent(phoneCondition);
     wrapper.findComponent(AudienceGroup).vm.validate = vi.fn(() => true);
     wrapper.findComponent(Button).vm.$emit('click');
