@@ -30,14 +30,22 @@ class AutomationRules::ActionValidationService
   end
 
   def parameters_error(name, params)
-    return AutomationRules::InternalTaskParameters.new(params, account: @rule.account).error if name == 'create_internal_task'
-
-    return Conversations::SnoozeParameters.new(params).error if name == 'snooze_conversation'
+    special = special_parameters_error(name, params)
+    return special unless special == :none
     return structured_parameters_error(name, params) if REQUIRED_FIELDS.key?(name)
-    return message_parameters_error(params) if name == 'send_message'
     return if params.is_a?(Array) && params.any? && params.all?(&:present?)
 
     'Required action parameters must not be empty.'
+  end
+
+  # Actions with their own parameter contract. :none means the action has no special rule.
+  def special_parameters_error(name, params)
+    case name
+    when 'create_internal_task' then AutomationRules::InternalTaskParameters.new(params, account: @rule.account).error
+    when 'snooze_conversation' then Conversations::SnoozeParameters.new(params).error
+    when 'send_message' then message_parameters_error(params)
+    else :none
+    end
   end
 
   def message_parameters_error(params)
