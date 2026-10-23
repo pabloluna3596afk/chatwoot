@@ -274,12 +274,12 @@ RSpec.describe Automations::ContactBasedRuleRunner do
       end
     end
 
-    include_examples 'an unspent window when conditions do not match'
+    it_behaves_like 'an unspent window when conditions do not match'
 
     context 'with yearly recurrence' do
       let(:recurrence) { 'yearly' }
 
-      include_examples 'an unspent window when conditions do not match'
+      it_behaves_like 'an unspent window when conditions do not match'
     end
 
     it 'does not reserve anything when a conversation cannot be resolved' do

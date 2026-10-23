@@ -81,7 +81,7 @@ class Automations::ContactBasedRuleRunner
   def outbound_sent?(contact, conversation)
     last_message_id = conversation.messages.maximum(:id) || 0
     AutomationRules::ActionService.new(@rule, @account, conversation).perform
-    asynchronous_actions? || conversation.messages.outgoing.where(private: false).where('id > ?', last_message_id).exists?
+    asynchronous_actions? || conversation.messages.outgoing.exists?(['private = ? AND id > ?', false, last_message_id])
   rescue StandardError => e
     Rails.logger.error("[ContactBasedRuleRunner] action failed rule=#{@rule.id} contact=#{contact.id}: #{e.message}")
     false
