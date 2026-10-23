@@ -18,6 +18,36 @@ RSpec.describe AutomationRules::ConditionsFilterService do
   end
 
   describe '#perform' do
+    context 'with an invalid legacy condition' do
+      before do
+        rule.update_columns(conditions: [
+                              { 'attribute_key' => 'status', 'filter_operator' => 'unsupported', 'values' => ['open'] }
+                            ])
+      end
+
+      it 'keeps the runtime authorization error reaction' do
+        expect(rule).to receive(:authorization_error!).twice.and_call_original
+
+        2.times do
+          expect(described_class.new(rule, conversation).perform).to be(false)
+        end
+
+        expect(rule.authorization_error_count).to eq(2)
+        expect(rule.reauthorization_required?).to be(true)
+      end
+
+      it 'disables the rule and enqueues the notification when the threshold is reached' do
+        rule.authorization_error!
+
+        expect do
+          expect(described_class.new(rule, conversation).perform).to be(false)
+        end.to have_enqueued_mail(AdministratorNotifications::AccountNotificationMailer, :automation_rule_disabled)
+          .with(params: { account: account }, args: [rule])
+
+        expect(rule.reload.active).to be(false)
+      end
+    end
+
     context 'when conditions based on filter_operator equal_to' do
       before do
         rule.conditions = [{ 'values': ['open'], 'attribute_key': 'status', 'query_operator': nil, 'filter_operator': 'equal_to' }]
@@ -77,7 +107,9 @@ RSpec.describe AutomationRules::ConditionsFilterService do
       end
 
       it 'does not treat AgentBot ownership as absent' do
-        rule.update!(conditions: [{ 'values': [], 'attribute_key': 'assignee_id', 'query_operator': nil, 'filter_operator': 'is_not_present' }])
+        rule.update!(conditions: [
+                       { 'values': [], 'attribute_key': 'assignee_id', 'query_operator': nil, 'filter_operator': 'is_not_present' }
+                     ])
 
         expect(described_class.new(rule, conversation, { changed_attributes: {} }).perform).to be(false)
       end
@@ -146,7 +178,9 @@ RSpec.describe AutomationRules::ConditionsFilterService do
         end
 
         it 'will return false when processed_message_content does no match' do
-          rule.update(conditions: [{ 'values': ['text'], 'attribute_key': 'content', 'query_operator': nil, 'filter_operator': 'contains' }])
+          rule.update(conditions: [
+                        { 'values': ['text'], 'attribute_key': 'content', 'query_operator': nil, 'filter_operator': 'contains' }
+                      ])
 
           expect(described_class.new(rule, conversation, { message: message, changed_attributes: {} }).perform).to be(false)
         end
@@ -165,12 +199,16 @@ RSpec.describe AutomationRules::ConditionsFilterService do
         end
 
         it 'will return false when conversation status does not match' do
-          rule.update(conditions: [{ 'values': ['resolved'], 'attribute_key': 'status', 'query_operator': nil, 'filter_operator': 'equal_to' }])
+          rule.update(conditions: [
+                        { 'values': ['resolved'], 'attribute_key': 'status', 'query_operator': nil, 'filter_operator': 'equal_to' }
+                      ])
           expect(described_class.new(rule, conversation, { message: message, changed_attributes: {} }).perform).to be(false)
         end
 
         it 'will return true when conversation priority matches' do
-          rule.update(conditions: [{ 'values': ['high'], 'attribute_key': 'priority', 'query_operator': nil, 'filter_operator': 'equal_to' }])
+          rule.update(conditions: [
+                        { 'values': ['high'], 'attribute_key': 'priority', 'query_operator': nil, 'filter_operator': 'equal_to' }
+                      ])
           expect(described_class.new(rule, conversation, { message: message, changed_attributes: {} }).perform).to be(true)
         end
       end
