@@ -42,19 +42,16 @@ class Automations::ContactBasedRuleRunner
     candidates.find_each(batch_size: 50) do |contact|
       next unless test_mode_allows?(contact)
 
-      unless cap.within_cap?
-        pause_for_cap!
-        break
-      end
-
-      next unless claim_window!(contact)
-
       conversation = resolve_conversation(contact)
       next if conversation.blank?
       next unless conditions_match?(conversation)
 
-      AutomationRules::ActionService.new(@rule, @account, conversation).perform
-      cap.increment!
+      unless cap.reserve!
+        pause_for_cap!
+        break
+      end
+
+      perform_actions(contact, conversation)
     end
   end
 
@@ -72,6 +69,33 @@ class Automations::ContactBasedRuleRunner
   end
 
   private
+
+  def perform_actions(contact, conversation)
+    return cap.release! unless claim_window!(contact)
+    return if outbound_sent?(contact, conversation)
+
+    cap.release!
+    release_window!(contact)
+  end
+
+  def outbound_sent?(contact, conversation)
+    last_message_id = conversation.messages.maximum(:id) || 0
+    AutomationRules::ActionService.new(@rule, @account, conversation).perform
+    asynchronous_actions? || conversation.messages.outgoing.exists?(['private = ? AND id > ?', false, last_message_id])
+  rescue StandardError => e
+    Rails.logger.error("[ContactBasedRuleRunner] action failed rule=#{@rule.id} contact=#{contact.id}: #{e.message}")
+    false
+  end
+
+  # Macros and flows can enqueue outbound jobs; retain their reservation conservatively,
+  # even when an action's own eligibility check skips it. Webhooks do not create messages here.
+  def asynchronous_actions?
+    @rule.actions.any? do |action|
+      name = action['action_name']
+      %w[execute_macro enter_flow send_email_transcript].include?(name) ||
+        (%w[send_message send_attachment].include?(name) && action.dig('delivery', 'delay_seconds').to_i.positive?)
+    end
+  end
 
   def cap
     @cap ||= Automations::ProactiveSendCap.new(@account)
@@ -186,13 +210,20 @@ class Automations::ContactBasedRuleRunner
   end
 
   def claim_window!(contact)
-    key = format(
+    ::Redis::Alfred.set(window_key(contact), Time.now.utc.to_i, nx: true, ex: LEDGER_TTL)
+  end
+
+  def release_window!(contact)
+    ::Redis::Alfred.delete(window_key(contact))
+  end
+
+  def window_key(contact)
+    format(
       ::Redis::Alfred::AUTOMATION_CONTACT_RULE_LEDGER,
       rule_id: @rule.id,
       contact_id: contact.id,
       window: window_id(contact)
     )
-    ::Redis::Alfred.set(key, Time.now.utc.to_i, nx: true, ex: LEDGER_TTL)
   end
 
   # yearly keys on the scan year, so the same contact comes around again next
