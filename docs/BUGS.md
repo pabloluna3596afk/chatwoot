@@ -1,5 +1,20 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-194 — Orden determinista entre reglas de automatización (2026-10-23)
+
+- Archivos: `app/models/automation_rule.rb`, `app/listeners/automation_rule_listener.rb`,
+  `app/jobs/automations/time_based_scheduler_job.rb`, `app/jobs/automation_rules/trigger_pending_executions_job.rb`
+  y `app/services/automation_rules/{simulation_service,cross_rule_linter}.rb`.
+- Causa: listener y simulación dependían del orden de PostgreSQL, sin `ORDER BY` explícito.
+- Arreglo: un único scope `in_execution_order` por ID ascendente para eventos, simulación, scheduler temporal/contacto
+  y encolado de esperas. La creación combina sus reglas con las de actualización con espera antes de ordenar;
+  la simulación comparte esa selección y numera coincidencias consecutivas. El barrido conserva candidatos y límite
+  por vencimiento antes de ordenar. Los jobs de espera siguen siendo independientes: su finalización concurrente no se serializa.
+- Verificación: specs de los cinco eventos con tres IDs insertados fuera de orden y asignaciones en conflicto repetidas;
+  simulación con filtros, reglas diferidas y numeración; scheduler mixto temporal/contacto; barrido con límite.
+  Revisión estática y `git diff --check`; RSpec y RuboCop pendientes del PM en Docker según el brief.
+- Sin migraciones, frontend ni cambios en las condiciones de elegibilidad del motor. Informe local: `tmp/PR-ORDEN.md`.
+
 ### B-NEW-193 — Simulación de automatizaciones sin efectos laterales (2026-10-23)
 
 - Archivos: `app/services/automation_rules/{conditions_filter_service,condition_validation_service,simulation_service}.rb`
