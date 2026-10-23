@@ -465,7 +465,9 @@
         "OK": "Bandeja {inbox} → atiende {assistant}.",
         "NONE": "Bandeja {inbox} → sin Captain, no se asignará.",
         "DIFFERENT": "Bandeja {inbox} → la atiende {assistant}, no el elegido; no se asignará."
-      }
+      },
+      "NO_ASSISTANT": "no tiene ningún asistente configurado",
+      "UNAVAILABLE": "No disponible para estas bandejas"
     },
     "NAME": "Captain",
     "HEADER_KNOW_MORE": "Más información",

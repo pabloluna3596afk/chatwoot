@@ -6,6 +6,7 @@ import ConditionRow from 'dashboard/components-next/filter/ConditionRow.vue';
 import FilterSelect from 'dashboard/components-next/filter/inputs/FilterSelect.vue';
 import MultiSelect from 'dashboard/components-next/filter/inputs/MultiSelect.vue';
 import { DURATION_UNITS } from 'dashboard/components-next/input/constants';
+import DurationInput from 'dashboard/components-next/input/DurationInput.vue';
 import AutomationWaitCondition from './AutomationWaitCondition.vue';
 
 vi.mock('vue-i18n', () => ({
@@ -85,6 +86,23 @@ const mountComponent = (props = {}, options = {}) =>
   });
 
 describe('AutomationWaitCondition', () => {
+  it('uses compact custom duration controls and keeps field hints beside their fields', () => {
+    const wrapper = mountComponent({ hasError: true });
+    expect(wrapper.findComponent(DurationInput).props('customUnitSelect')).toBe(
+      true
+    );
+    expect(
+      wrapper
+        .findAllComponents(FilterSelect)
+        .every(control => control.classes().includes('min-w-0'))
+    ).toBe(true);
+    expect(wrapper.get('[role="alert"]').text()).toBe(
+      'AUTOMATION.ADD.FORM.WAIT.ERROR'
+    );
+    expect(wrapper.text()).toContain('AUTOMATION.ADD.FORM.WAIT.RANGE_HINT');
+    expect(wrapper.text()).toContain('AUTOMATION.ADD.FORM.WAIT.INBOX_HINT');
+  });
+
   it('creates a pending status wait by default', async () => {
     const wrapper = mountComponent();
     await nextTick();

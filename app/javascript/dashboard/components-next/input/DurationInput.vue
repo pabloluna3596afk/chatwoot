@@ -1,16 +1,32 @@
 <script setup>
 import { computed, watch } from 'vue';
 import Input from './Input.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import { useI18n } from 'vue-i18n';
 import { DURATION_UNITS } from './constants';
 
 const props = defineProps({
+  customUnitSelect: { type: Boolean, default: false },
   min: { type: Number, default: 0 },
   max: { type: Number, default: Infinity },
   disabled: { type: Boolean, default: false },
 });
 
 const { t } = useI18n();
+const unitOptions = computed(() => [
+  {
+    value: DURATION_UNITS.MINUTES,
+    label: t('DURATION_INPUT.MINUTES'),
+  },
+  {
+    value: DURATION_UNITS.HOURS,
+    label: t('DURATION_INPUT.HOURS'),
+  },
+  {
+    value: DURATION_UNITS.DAYS,
+    label: t('DURATION_INPUT.DAYS'),
+  },
+]);
 const duration = defineModel('modelValue', { type: Number, default: null });
 const unit = defineModel('unit', {
   type: String,
@@ -71,15 +87,27 @@ watch(unit, () => {
 <template>
   <Input
     v-model="transformedValue"
+    :size="customUnitSelect ? 'sm' : 'md'"
     type="number"
     autocomplete="off"
     :disabled="disabled"
     :placeholder="t('DURATION_INPUT.PLACEHOLDER')"
-    class="flex-grow w-full disabled:"
+    :class="customUnitSelect ? 'min-w-0 flex-1' : 'flex-grow w-full'"
     @blur="normalizeDuration"
     @keydown.enter="normalizeDuration"
   />
+  <ComboBox
+    v-if="customUnitSelect"
+    v-model="unit"
+    class="basis-32 max-w-32 shrink-0"
+    trigger-class="h-8"
+    :options="unitOptions"
+    :disabled="disabled"
+    :allow-deselect="false"
+    teleport
+  />
   <select
+    v-else
     v-model="unit"
     :disabled="disabled"
     class="mb-0 text-sm disabled:outline-n-weak disabled:opacity-40"

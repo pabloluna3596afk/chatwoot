@@ -1,4 +1,5 @@
 <script>
+import { withAIAssigneesFirst } from 'dashboard/helper/captainAssignmentOptions';
 import { mapGetters } from 'vuex';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useAlert } from 'dashboard/composables';
@@ -210,21 +211,14 @@ export default {
       const filteredAgents = getSortedAgentsByAvailability(
         agentsByUpdatedPresence
       );
-      return [...filteredAgents, ...botAgents];
+      return withAIAssigneesFirst([...filteredAgents, ...botAgents]);
     },
     assignableAgents() {
       const agents = this.filteredAgentOnAvailability;
-      const hasInboxBot = agents.some(
-        agent => agent.assignee_type === 'AgentBot'
-      );
-      if (hasInboxBot) {
-        return agents;
-      }
-
       return [
         {
           confirmed: true,
-          name: 'None',
+          name: this.$t('AGENT_MGMT.MULTI_SELECTOR.LIST.NONE'),
           id: null,
           role: 'agent',
           account_id: 0,

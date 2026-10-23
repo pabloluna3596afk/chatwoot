@@ -24,12 +24,15 @@ export const captainInboxOptions = (inboxes, assistantId, t) =>
     };
   });
 
-const pinnedInboxIds = conditions =>
-  conditions
-    .filter(
-      c => c.attribute_key === 'inbox_id' && c.filter_operator === 'equal_to'
-    )
-    .flatMap(c => [c.values].flat().map(value => value?.id ?? value));
+export const pinnedInboxIds = conditions =>
+  conditions.some(condition => condition.query_operator === 'or')
+    ? []
+    : conditions
+        .filter(
+          c =>
+            c.attribute_key === 'inbox_id' && c.filter_operator === 'equal_to'
+        )
+        .flatMap(c => [c.values].flat().map(value => value?.id ?? value));
 
 const captainSelections = actions =>
   actions

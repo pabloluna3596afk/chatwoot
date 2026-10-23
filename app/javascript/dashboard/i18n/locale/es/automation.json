@@ -33,7 +33,7 @@
     "HEADER_BTN_TXT": "Crear automatización",
     "TAB_EVENT": "Por evento",
     "TAB_TIME": "Por tiempo",
-    "TIME_PRESETS_TITLE": "Presets de tiempo",
+    "TIME_PRESETS_TITLE": "Atajos de tiempo",
     "LOADING": "Obteniendo reglas de automatización",
     "SEARCH_PLACEHOLDER": "Buscar reglas de automatización...",
     "NO_RESULTS": "No se encontraron reglas que coincidan con la búsqueda",
@@ -45,18 +45,18 @@
       "CANCEL_BUTTON_TEXT": "Cancelar",
       "FORM": {
         "NAME": {
-          "LABEL": "Nombre de regla",
-          "PLACEHOLDER": "Introduzca el nombre de regla",
-          "ERROR": "El nombre es requerido"
+          "LABEL": "Nombre de regla *",
+          "PLACEHOLDER": "Introduce el nombre de regla",
+          "ERROR": "Escribe un nombre"
         },
         "DESC": {
-          "LABEL": "Descripción",
+          "LABEL": "Descripción *",
           "PLACEHOLDER": "Introduce la descripción de la regla",
-          "ERROR": "Descripción requerida"
+          "ERROR": "Escribe una descripción"
         },
         "EVENT": {
           "LABEL": "Evento",
-          "PLACEHOLDER": "Por favor, seleccione uno",
+          "PLACEHOLDER": "Por favor, selecciona uno",
           "ERROR": "El evento es requerido"
         },
         "RUN_TYPE": {
@@ -94,7 +94,9 @@
             "CUSTOMER_UNRESPONSIVE": "El contador comienza cuando responde un miembro del equipo. Si el cliente no ha vuelto a escribir {duration} después, se ejecutan las acciones siguientes. Si responde, no ocurre nada y la siguiente respuesta del equipo vuelve a iniciar el contador.",
             "AGENT_UNRESPONSIVE": "El contador comienza cuando un cliente envía un mensaje. Si ningún miembro del equipo ha respondido {duration} después, se ejecutan las acciones siguientes. Si alguien responde antes, no ocurre nada."
           },
-          "FOOTNOTE": "Solo la actividad nueva inicia un contador. Las conversaciones que ya se encuentren en este estado se procesarán la próxima vez que ocurra algo en ellas."
+          "FOOTNOTE": "Solo la actividad nueva inicia un contador. Las conversaciones que ya se encuentren en este estado se procesarán la próxima vez que ocurra algo en ellas.",
+          "INBOX_HINT": "Si no eliges ninguna, aplica a todas las bandejas",
+          "RANGE_HINT": "Entre 10 minutos y 30 días"
         },
         "CONDITIONS": {
           "LABEL": "Condiciones",
@@ -133,7 +135,7 @@
         }
       },
       "CONDITION_BUTTON_LABEL": "Añadir condición",
-      "ACTION_BUTTON_LABEL": "Añadir Acción",
+      "ACTION_BUTTON_LABEL": "Añadir acción",
       "API": {
         "SUCCESS_MESSAGE": "Regla de automatización añadida correctamente",
         "ERROR_MESSAGE": "No se pudo crear una regla de automatización, por favor inténtalo de nuevo más tarde"
@@ -153,7 +155,7 @@
         "DELAYED": "Se ejecutan después de una espera"
       },
       "DELAY_BADGE": "Se ejecuta después de {delay}",
-      "DELAY_DISABLED_BANNER": "La ejecución diferida está desactivada para esta cuenta, por lo que las reglas siguientes que se ejecutan después de una espera permanecerán en pausa hasta que vuelva a activarse."
+      "DELAY_DISABLED_BANNER": "La ejecución con espera está desactivada para esta cuenta, por lo que las reglas siguientes que se ejecutan después de una espera permanecerán en pausa hasta que vuelva a activarse."
     },
     "DELETE": {
       "TITLE": "Eliminar regla de automatización",
@@ -161,7 +163,7 @@
       "CANCEL_BUTTON_TEXT": "Cancelar",
       "CONFIRM": {
         "TITLE": "Confirmar eliminación",
-        "MESSAGE": "¿Está seguro de eliminar ",
+        "MESSAGE": "¿Seguro que quieres eliminar ",
         "YES": "Sí, eliminar ",
         "NO": "No, mantenerlo "
       },
@@ -200,7 +202,7 @@
     },
     "ACTION": {
       "DELETE_MESSAGE": "Necesitas tener al menos una acción para guardar",
-      "TEAM_MESSAGE_INPUT_PLACEHOLDER": "Introduzca su mensaje aquí",
+      "TEAM_MESSAGE_INPUT_PLACEHOLDER": "Introduce tu mensaje aquí",
       "TEAM_DROPDOWN_PLACEHOLDER": "Seleccionar equipos",
       "EMAIL_INPUT_PLACEHOLDER": "Introducir email",
       "URL_INPUT_PLACEHOLDER": "Introducir URL",
@@ -224,13 +226,13 @@
       "CUSTOM_ATTRIBUTE_DATETIME_DYNAMIC_HELP": "Se resuelve cuando corre la automatización o macro. Usa ahora, ahora más N días, o variables como {'{'}{'{'} contact.custom_attribute.foo {'}'}{'}'}.",
       "VARIABLES_HINT": "Usa el botón de variables para insertar nombre del contacto, atributos personalizados o fechas",
       "WHATSAPP_TEMPLATE": {
-        "INBOX_LABEL": "Inbox de WhatsApp",
-        "INBOX_PLACEHOLDER": "Selecciona un inbox de WhatsApp",
-        "INBOX_EMPTY": "No hay inboxes de WhatsApp en esta cuenta",
-        "INBOX_HINT": "Esta plantilla solo se envía si la conversación está en el inbox de WhatsApp seleccionado arriba. En otros inboxes o canales se omite; el resto de acciones de esta regla sí se ejecutan.",
+        "INBOX_LABEL": "Bandeja de WhatsApp",
+        "INBOX_PLACEHOLDER": "Selecciona una bandeja de WhatsApp",
+        "INBOX_EMPTY": "No hay bandejas de WhatsApp en esta cuenta",
+        "INBOX_HINT": "Esta plantilla solo se envía si la conversación está en la bandeja de WhatsApp seleccionada arriba. En otras bandejas o canales se omite; el resto de acciones de esta regla sí se ejecutan.",
         "TEMPLATE_LABEL": "Plantilla",
         "TEMPLATE_PLACEHOLDER": "Selecciona una plantilla",
-        "TEMPLATE_DISABLED": "Primero selecciona un inbox",
+        "TEMPLATE_DISABLED": "Primero selecciona una bandeja",
         "VARIABLES_HINT": "Usa variables Liquid como contact.name en los campos de la plantilla."
       },
       "DELAY_SECONDS_LABEL": "Espera (segundos)",
@@ -241,17 +243,17 @@
     "TOGGLE": {
       "ACTIVATION_TITLE": "Activar regla de automatización",
       "DEACTIVATION_TITLE": "Desactivar regla de automatización",
-      "ACTIVATION_DESCRIPTION": "Esta acción activará la regla de automatización '{automationName}'. ¿Seguro que desea continuar?",
-      "DEACTIVATION_DESCRIPTION": "Esta acción desactivará la regla de automatización '{automationName}'. ¿Está seguro que desea continuar?",
+      "ACTIVATION_DESCRIPTION": "Esta acción activará la regla de automatización '{automationName}'. ¿Seguro que quieres continuar?",
+      "DEACTIVATION_DESCRIPTION": "Esta acción desactivará la regla de automatización '{automationName}'. ¿Seguro que quieres continuar?",
       "ACTIVATION_SUCCESFUL": "Regla de automatización activada con éxito",
       "DEACTIVATION_SUCCESFUL": "Regla de automatización desactivada con éxito",
-      "ACTIVATION_ERROR": "No se pudo activar la automatización, por favor inténtelo de nuevo más tarde",
-      "DEACTIVATION_ERROR": "No se pudo desactivar la automatización, por favor inténtelo de nuevo más tarde",
+      "ACTIVATION_ERROR": "No se pudo activar la automatización, por favor inténtalo de nuevo más tarde",
+      "DEACTIVATION_ERROR": "No se pudo desactivar la automatización, por favor inténtalo de nuevo más tarde",
       "CONFIRMATION_LABEL": "Si",
       "CANCEL_LABEL": "No"
     },
     "ATTACHMENT": {
-      "UPLOAD_ERROR": "No se pudo subir el archivo adjunto, por favor inténtelo de nuevo",
+      "UPLOAD_ERROR": "No se pudo subir el archivo adjunto, por favor inténtalo de nuevo",
       "LABEL_IDLE": "Subir archivo adjunto",
       "LABEL_UPLOADING": "Subiendo...",
       "LABEL_UPLOADED": "Subido correctamente",
@@ -273,7 +275,7 @@
       "CONVERSATION_CREATED": "Conversación creada",
       "CONVERSATION_UPDATED": "Conversación actualizada",
       "MESSAGE_CREATED": "Mensaje creado",
-      "CONVERSATION_RESOLVED": "Conversación Resuelta",
+      "CONVERSATION_RESOLVED": "Conversación resuelta",
       "CONVERSATION_OPENED": "Conversación abierta",
       "TIME_TRIGGERED": "Por tiempo (programado)"
     },
@@ -286,10 +288,10 @@
       "REMOVE_LABEL": "Eliminar etiqueta",
       "SEND_EMAIL_TO_TEAM": "Enviar un email al equipo",
       "SEND_EMAIL_TRANSCRIPT": "Enviar transcripción por correo",
-      "MUTE_CONVERSATION": "Silenciar Conversación",
+      "MUTE_CONVERSATION": "Silenciar conversación",
       "SNOOZE_CONVERSATION": "Posponer conversación",
       "RESOLVE_CONVERSATION": "Resolver conversación",
-      "SEND_WEBHOOK_EVENT": "Enviar Evento de Webhook",
+      "SEND_WEBHOOK_EVENT": "Enviar evento de webhook",
       "SEND_ATTACHMENT": "Enviar archivo adjunto",
       "SEND_MESSAGE": "Enviar mensaje",
       "SEND_WHATSAPP_TEMPLATE": "Enviar plantilla de WhatsApp",

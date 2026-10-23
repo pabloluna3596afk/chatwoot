@@ -1,6 +1,15 @@
 <script setup>
+import Input from 'dashboard/components-next/input/Input.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
-import { ref, computed, h, shallowRef, useTemplateRef, watch } from 'vue';
+import {
+  ref,
+  computed,
+  h,
+  shallowRef,
+  useTemplateRef,
+  watch,
+  nextTick,
+} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useMapGetter } from 'dashboard/composables/store';
@@ -18,6 +27,7 @@ import { isEmptyValue, validateAutomation } from 'dashboard/helper/validations';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import {
   captainAssignmentSummary,
+  pinnedInboxIds,
   hasCaptainSelection,
 } from 'dashboard/helper/captainAssignment';
 import { DURATION_UNITS } from 'dashboard/components-next/input/constants';
@@ -81,20 +91,35 @@ const emit = defineEmits(['save']);
 const DATE_SCHEDULE_ATTRIBUTE_TYPES = new Set(['date', 'datetime']);
 
 const automation = defineModel('automation', { type: Object, default: null });
-const captainInboxes = useMapGetter('inboxes/getInboxes');
-const captainSummary = computed(() =>
-  captainAssignmentSummary(
-    automation.value?.conditions || [],
-    automation.value?.actions || [],
-    captainInboxes.value || []
+const automationUIFlags = useMapGetter('automations/getUIFlags');
+const isSaving = computed(() =>
+  Boolean(
+    automationUIFlags.value?.isCreating || automationUIFlags.value?.isUpdating
   )
 );
-const showCaptainSummary = computed(() =>
-  hasCaptainSelection(automation.value?.actions || [])
+const currentInboxIds = computed(() =>
+  pinnedInboxIds(automation.value?.conditions || [])
 );
-const captainSummaryHasIssues = computed(() =>
-  captainSummary.value.some(line => line.status !== 'ok')
-);
+const actionDropdownValues = type =>
+  props.getActionDropdownValues(type, currentInboxIds.value);
+const formRef = ref(null);
+const scrollToError = async () => {
+  await nextTick();
+  formRef.value
+    ?.querySelector(
+      '[data-error="true"], [role="alert"], input.error, .text-n-ruby-11'
+    )
+    ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+};
+const captainInboxes = useMapGetter('inboxes/getInboxes');
+const captainSummary = action =>
+  captainAssignmentSummary(
+    automation.value?.conditions || [],
+    [action],
+    captainInboxes.value || []
+  );
+const captainSummaryHasIssues = action =>
+  captainSummary(action).some(line => line.status !== 'ok');
 
 const INPUT_TYPE_MAP = {
   multi_select: 'multiSelect',
@@ -455,6 +480,7 @@ const resetValidation = () => {
 const setLintFindings = ({ errors: apiErrors = [], warnings = [] } = {}) => {
   lintErrors.value = apiErrors;
   lintWarnings.value = warnings;
+  scrollToError();
 };
 
 // The server sends raw identifiers (assign_agent); show the same label the
@@ -501,6 +527,7 @@ const close = () => {
 };
 
 const emitSaveAutomation = () => {
+  if (isSaving.value) return;
   // Previous server findings are stale the moment the user resubmits.
   lintErrors.value = [];
   lintWarnings.value = [];
@@ -515,6 +542,8 @@ const emitSaveAutomation = () => {
     // The API rejects the param when the feature is off; existing values are kept server-side.
     if (!allowsDelayedExecution.value) delete payload.execution_delay;
     emit('save', payload, props.mode);
+  } else {
+    scrollToError();
   }
 };
 
@@ -523,22 +552,26 @@ defineExpose({ open, close, setLintFindings });
 
 <template>
   <SidePanel ref="panelRef" width="3xl" :title="$t(titleKey)">
-    <div v-if="automation" class="flex flex-col w-full gap-6">
-      <div class="flex flex-col">
-        <woot-input
+    <div v-if="automation" ref="formRef" class="flex flex-col w-full gap-6">
+      <div class="flex flex-col gap-4">
+        <Input
           v-model="automation.name"
+          required
           :label="$t('AUTOMATION.ADD.FORM.NAME.LABEL')"
           type="text"
-          :class="{ error: errors.name }"
-          :error="errors.name ? $t('AUTOMATION.ADD.FORM.NAME.ERROR') : ''"
+          :data-error="Boolean(errors.name)"
+          :message-type="errors.name ? 'error' : 'info'"
+          :message="errors.name ? $t('AUTOMATION.ADD.FORM.NAME.ERROR') : ''"
           :placeholder="$t('AUTOMATION.ADD.FORM.NAME.PLACEHOLDER')"
         />
-        <woot-input
+        <Input
           v-model="automation.description"
+          required
           :label="$t('AUTOMATION.ADD.FORM.DESC.LABEL')"
           type="text"
-          :class="{ error: errors.description }"
-          :error="
+          :data-error="Boolean(errors.description)"
+          :message-type="errors.description ? 'error' : 'info'"
+          :message="
             errors.description ? $t('AUTOMATION.ADD.FORM.DESC.ERROR') : ''
           "
           :placeholder="$t('AUTOMATION.ADD.FORM.DESC.PLACEHOLDER')"
@@ -632,8 +665,8 @@ defineExpose({ open, close, setLintFindings });
           </label>
           <label v-if="showScheduleDays" class="text-sm text-n-slate-11">
             {{ $t('AUTOMATION.ADD.FORM.SCHEDULE.DAYS') }}
-            <input
-              v-model.number="automation.schedule.days"
+            <Input
+              v-model="automation.schedule.days"
               type="number"
               min="1"
               class="mt-1 w-full"
@@ -653,8 +686,8 @@ defineExpose({ open, close, setLintFindings });
             class="text-sm text-n-slate-11"
           >
             {{ $t('AUTOMATION.ADD.FORM.SCHEDULE.HOURS') }}
-            <input
-              v-model.number="automation.schedule.hours"
+            <Input
+              v-model="automation.schedule.hours"
               type="number"
               min="1"
               class="mt-1 w-full"
@@ -708,46 +741,52 @@ defineExpose({ open, close, setLintFindings });
       <AutomationActions
         v-model="automation.actions"
         :action-types="automationActionTypes"
-        :get-action-dropdown-values="getActionDropdownValues"
+        :get-action-dropdown-values="actionDropdownValues"
         :files="automation.files"
         :show-file-name="isEditMode"
         :errors="errors"
         :append-new-action="appendNewAction"
         :remove-action="removeAction"
         :reset-action="resetAction"
-      />
-      <div
-        v-if="showCaptainSummary"
-        role="status"
-        class="m-0 grid gap-1 rounded-lg p-3 text-sm"
-        :class="
-          captainSummaryHasIssues
-            ? 'bg-n-amber-2 text-n-amber-11'
-            : 'bg-n-alpha-1 text-n-slate-12'
-        "
-        data-testid="captain-summary"
       >
-        <p v-if="!captainSummary.length" class="m-0 flex items-center gap-2">
-          <span class="i-woot-captain size-4 shrink-0" />
-          {{ $t('CAPTAIN.ASSIGNMENT.SUMMARY.EACH_INBOX') }}
-        </p>
-        <p
-          v-for="line in captainSummary"
-          :key="line.inbox.id"
-          class="m-0 flex items-center gap-2"
-        >
-          <span class="i-woot-captain size-4 shrink-0" />
-          {{
-            $t(`CAPTAIN.ASSIGNMENT.SUMMARY.${line.status.toUpperCase()}`, {
-              inbox: line.inbox.name,
-              assistant: line.assistant?.name,
-            })
-          }}
-        </p>
-      </div>
+        <template #captain-summary="{ action }">
+          <div
+            v-if="hasCaptainSelection([action])"
+            role="status"
+            class="m-0 grid gap-1 rounded-lg p-3 text-sm"
+            :class="
+              captainSummaryHasIssues(action)
+                ? 'bg-n-amber-2 text-n-amber-11'
+                : 'bg-n-alpha-1 text-n-slate-12'
+            "
+            data-testid="captain-summary"
+          >
+            <p
+              v-if="!captainSummary(action).length"
+              class="m-0 flex items-center gap-2"
+            >
+              <span class="i-woot-captain size-4 shrink-0" />
+              {{ $t('CAPTAIN.ASSIGNMENT.SUMMARY.EACH_INBOX') }}
+            </p>
+            <p
+              v-for="line in captainSummary(action)"
+              :key="line.inbox.id"
+              class="m-0 flex items-center gap-2"
+            >
+              <span class="i-woot-captain size-4 shrink-0" />
+              {{
+                $t(`CAPTAIN.ASSIGNMENT.SUMMARY.${line.status.toUpperCase()}`, {
+                  inbox: line.inbox.name,
+                  assistant: line.assistant?.name,
+                })
+              }}
+            </p>
+          </div>
+        </template>
+      </AutomationActions>
       <div
         v-if="hasStatusChangingAction"
-        class="w-full mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-n-weak bg-n-solid-2 p-3"
+        class="w-full flex flex-wrap items-center justify-between gap-3 rounded-lg border border-n-weak bg-n-solid-2 p-3"
       >
         <div>
           <p class="m-0 text-sm font-medium text-n-slate-12">
@@ -767,7 +806,8 @@ defineExpose({ open, close, setLintFindings });
       <!-- Server-side lint findings -->
       <div
         v-if="lintErrors.length || lintWarnings.length"
-        class="w-full mt-6 flex flex-col gap-2"
+        role="alert"
+        class="w-full flex flex-col gap-2"
       >
         <div
           v-if="lintErrors.length"
@@ -819,6 +859,8 @@ defineExpose({ open, close, setLintFindings });
           blue
           type="button"
           :label="$t(submitKey)"
+          :disabled="isSaving"
+          :is-loading="isSaving"
           @click="emitSaveAutomation"
         />
       </div>
