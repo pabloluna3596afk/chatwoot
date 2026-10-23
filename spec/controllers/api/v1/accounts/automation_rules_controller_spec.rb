@@ -7,6 +7,74 @@ RSpec.describe 'Api::V1::Accounts::AutomationRulesController', type: :request do
   let!(:contact) { create(:contact, account: account) }
   let(:contact_inbox) { create(:contact_inbox, inbox_id: inbox.id, contact_id: contact.id) }
 
+  describe 'POST /api/v1/accounts/{account.id}/automation_rules/simulate' do
+    let(:conversation) { create(:conversation, account: account, inbox: inbox, contact: contact) }
+    let(:simulation_params) { { conversation_id: conversation.id, event_name: 'conversation_created' } }
+    let(:url) { "/api/v1/accounts/#{account.id}/automation_rules/simulate" }
+
+    it 'requires authentication' do
+      post url, params: simulation_params
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'rejects agents who are not administrators like the other rule endpoints' do
+      agent = create(:user, account: account, role: :agent)
+
+      post url, headers: agent.create_new_auth_token, params: simulation_params
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'forbids administrators of other accounts' do
+      other_administrator = create(:user, account: create(:account), role: :administrator)
+
+      post url, headers: other_administrator.create_new_auth_token, params: simulation_params
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'does not expose conversations from another account' do
+      other_conversation = create(:conversation)
+
+      post url, headers: administrator.create_new_auth_token,
+                params: simulation_params.merge(conversation_id: other_conversation.id)
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it 'returns additive diagnostics to an administrator without disabling the rule' do
+      rule = create(:automation_rule, account: account, event_name: 'conversation_created')
+      rule.update_columns(conditions: [ # rubocop:disable Rails/SkipsModelValidations
+                            { 'attribute_key' => 'status', 'filter_operator' => 'unsupported', 'values' => ['open'] }
+                          ])
+
+      2.times { post url, headers: administrator.create_new_auth_token, params: simulation_params }
+
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body
+      expect(body['matches']).to eq([])
+      expect(body['evaluated_count']).to eq(1)
+      expect(body['diagnostics'].first).to include('rule_id' => rule.id, 'condition_index' => 0, 'attribute_key' => 'status')
+      expect(rule.reload.active).to be(true)
+    end
+
+    it 'preserves the valid match response with an empty diagnostics array' do
+      rule = create(:automation_rule, account: account, event_name: 'conversation_created', conditions: [],
+                                      actions: [{ 'action_name' => 'send_message', 'action_params' => ['Hello'] }])
+
+      post url, headers: administrator.create_new_auth_token, params: simulation_params
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body).to eq(
+        'event_name' => 'conversation_created', 'conversation_id' => conversation.id,
+        'evaluated_count' => 1, 'diagnostics' => [],
+        'matches' => [{ 'rule_id' => rule.id, 'rule_name' => rule.name, 'order' => 1,
+                        'actions' => [{ 'action_name' => 'send_message', 'action_params' => ['Hello'] }] }]
+      )
+    end
+  end
+
   describe 'GET /api/v1/accounts/{account.id}/automation_rules' do
     context 'when it is an authenticated user' do
       it 'returns all records' do

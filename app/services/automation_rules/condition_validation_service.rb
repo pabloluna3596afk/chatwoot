@@ -1,6 +1,8 @@
 class AutomationRules::ConditionValidationService
   ATTRIBUTE_MODEL = 'conversation_attribute'.freeze
 
+  attr_reader :diagnostics
+
   def initialize(rule)
     @rule = rule
     @account = rule.account
@@ -14,14 +16,27 @@ class AutomationRules::ConditionValidationService
   end
 
   def perform
-    @rule.conditions.each do |condition|
-      return false unless valid_condition?(condition) && valid_query_operator?(condition)
+    @diagnostics = []
+    @rule.conditions.each_with_index do |condition, index|
+      message = condition_error(condition)
+      next unless message
+
+      @diagnostics << { condition_index: index, attribute_key: condition['attribute_key'],
+                        filter_operator: condition['filter_operator'], message: message }
+      return false
     end
 
     true
   end
 
   private
+
+  def condition_error(condition)
+    filter_error = condition_filter_error(condition)
+    return filter_error if filter_error
+
+    'The query operator must be AND or OR.' unless valid_query_operator?(condition)
+  end
 
   def valid_query_operator?(condition)
     query_operator = condition['query_operator']
@@ -32,17 +47,15 @@ class AutomationRules::ConditionValidationService
     %w[AND OR].include?(query_operator.upcase)
   end
 
-  def valid_condition?(condition)
+  def condition_filter_error(condition)
     key = condition['attribute_key']
 
-    conversation_filter = @conversation_filters[key]
-    contact_filter = @contact_filters[key]
-    message_filter = @message_filters[key]
+    filter = @conversation_filters[key] || @contact_filters[key] || @message_filters[key]
 
-    if conversation_filter || contact_filter || message_filter
-      operation_valid?(condition, conversation_filter || contact_filter || message_filter)
+    if filter
+      'The filter operator is not supported for this attribute.' unless operation_valid?(condition, filter)
     else
-      custom_attribute_present?(key, condition['custom_attribute_type'])
+      'The attribute is unavailable in this account.' unless custom_attribute_present?(key, condition['custom_attribute_type'])
     end
   end
 
