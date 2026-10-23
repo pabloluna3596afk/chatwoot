@@ -12,6 +12,74 @@ RSpec.describe AutomationRules::ActionService do
                              ])
   end
 
+  describe '#perform with snooze_conversation' do
+    let!(:rule) do
+      create(:automation_rule, account: account, actions: [{ action_name: 'snooze_conversation', action_params: params }])
+    end
+    let(:params) { { 'duration' => 3, 'unit' => 'days' } }
+
+    it 'sets the status and date together and retains the date on subsequent saves' do
+      travel_to(Time.zone.local(2026, 10, 23, 12)) do
+        described_class.new(rule, account, conversation).perform
+        conversation.reload.update!(priority: :high)
+
+        expect(conversation.reload.status).to eq('snoozed')
+        expect(conversation.snoozed_until).to eq(3.days.from_now)
+      end
+    end
+
+    [nil, []].each do |parameters|
+      context "without duration: #{parameters.inspect}" do
+        let(:params) { parameters }
+
+        it 'matches the existing snoozed transition on the same conversation' do
+          conversation.snoozed!
+          original = conversation.reload.attributes.slice('status', 'snoozed_until')
+          conversation.open!
+
+          described_class.new(rule, account, conversation).perform
+
+          expect(conversation.reload.attributes.slice('status', 'snoozed_until')).to eq(original)
+        end
+
+        it 'preserves an existing snooze date as before' do
+          date = 2.days.from_now.change(usec: 0)
+          conversation.update!(status: :snoozed, snoozed_until: date)
+
+          described_class.new(rule, account, conversation).perform
+
+          expect(conversation.reload.snoozed_until).to eq(date)
+        end
+      end
+    end
+
+    ['hours', 'minutes'].each do |unit|
+      context "with #{unit}" do
+        let(:params) { [{ 'duration' => 3, 'unit' => unit }] }
+
+        it 'snoozes until the specified duration has elapsed' do
+          travel_to(Time.zone.local(2026, 10, 23, 12)) do
+            described_class.new(rule, account, conversation).perform
+
+            expect(conversation.reload.status).to eq('snoozed')
+            expect(conversation.snoozed_until).to eq(Time.current + 3.public_send(unit))
+          end
+        end
+      end
+    end
+
+    it 'logs invalid stored parameters with the rule id and snoozes indefinitely' do
+      conversation.update!(status: :snoozed, snoozed_until: 1.day.from_now)
+      rule.actions = [{ action_name: 'snooze_conversation', action_params: { duration: -1, unit: 'days' } }]
+      expect(Rails.logger).to receive(:error).with(a_string_including("rule_id=#{rule.id}", 'snooze_conversation'))
+
+      described_class.new(rule, account, conversation).perform
+
+      expect(conversation.reload.status).to eq('snoozed')
+      expect(conversation.snoozed_until).to be_nil
+    end
+  end
+
   describe '#perform' do
     context 'when actions are defined in the rule' do
       it 'will call the actions' do

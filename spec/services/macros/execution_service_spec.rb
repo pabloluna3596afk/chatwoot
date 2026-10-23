@@ -12,6 +12,22 @@ RSpec.describe Macros::ExecutionService, type: :service do
   end
 
   describe '#perform' do
+    context 'with a snooze duration' do
+      let(:macro) do
+        create(:macro, account: account,
+                       actions: [{ action_name: 'snooze_conversation', action_params: [{ duration: 3, unit: 'days' }] }])
+      end
+
+      it 'uses the shared action to snooze until the specified date' do
+        travel_to(Time.zone.local(2026, 10, 23, 12)) do
+          service.perform
+
+          expect(conversation.reload.status).to eq('snoozed')
+          expect(conversation.snoozed_until).to eq(3.days.from_now)
+        end
+      end
+    end
+
     context 'when actions are present' do
       before do
         allow(macro).to receive(:actions).and_return([

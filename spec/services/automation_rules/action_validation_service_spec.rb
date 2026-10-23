@@ -77,4 +77,46 @@ RSpec.describe AutomationRules::ActionValidationService do
       expect(validation.perform).to be_empty
     end
   end
+
+  context 'with snooze_conversation' do
+    let(:action_name) { 'snooze_conversation' }
+
+    [nil, [], { 'duration' => 3, 'unit' => 'days' }, [{ 'duration' => 2, 'unit' => 'hours' }],
+     { 'duration' => 365, 'unit' => 'days' }, { 'duration' => 8760, 'unit' => 'hours' },
+     { 'duration' => 525_600, 'unit' => 'minutes' }].each do |params|
+      context "with valid parameters #{params.inspect}" do
+        let(:action_params) { params }
+
+        it 'allows the rule to be saved' do
+          expect(validation.perform).to be_empty
+          expect(rule.save).to be(true)
+        end
+      end
+    end
+
+    [0, -1, 1.5, '3', nil, true].each do |duration|
+      context "with invalid duration #{duration.inspect}" do
+        let(:action_params) { { 'duration' => duration, 'unit' => 'days' } }
+
+        it 'rejects saving with an error naming the action' do
+          expect(rule.save).to be(false)
+          expect(rule.errors[:actions].join).to include('snooze_conversation', 'positive integer')
+        end
+      end
+    end
+
+    [{ 'duration' => 366, 'unit' => 'days' }, { 'duration' => 8761, 'unit' => 'hours' },
+     { 'duration' => 525_601, 'unit' => 'minutes' }, { 'duration' => 1, 'unit' => 'weeks' },
+     { 'duration' => 1 }, {}, [nil], '3 days'].each do |params|
+      context "with invalid parameters #{params.inspect}" do
+        let(:action_params) { params }
+
+        it 'rejects saving with an error naming the action' do
+          expect(validation.perform.first[:message]).to include('snooze_conversation')
+          expect(rule.save).to be(false)
+          expect(rule.errors[:actions].join).to include('snooze_conversation')
+        end
+      end
+    end
+  end
 end

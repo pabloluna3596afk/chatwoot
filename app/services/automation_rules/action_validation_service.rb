@@ -1,6 +1,6 @@
 class AutomationRules::ActionValidationService
   PARAMETERLESS_ACTIONS = %w[remove_assigned_agent remove_assigned_team mute_conversation resolve_conversation
-                             open_conversation pending_conversation snooze_conversation notify_assignee assign_team].freeze
+                             open_conversation pending_conversation notify_assignee assign_team].freeze
   REQUIRED_FIELDS = {
     'send_email_to_team' => %w[team_ids message],
     'send_whatsapp_template' => %w[inbox_id name language],
@@ -30,6 +30,7 @@ class AutomationRules::ActionValidationService
   end
 
   def parameters_error(name, params)
+    return Conversations::SnoozeParameters.new(params).error if name == 'snooze_conversation'
     return structured_parameters_error(name, params) if REQUIRED_FIELDS.key?(name)
     return message_parameters_error(params) if name == 'send_message'
     return if params.is_a?(Array) && params.any? && params.all?(&:present?)

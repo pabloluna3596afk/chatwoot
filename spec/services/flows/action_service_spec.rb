@@ -7,6 +7,15 @@ RSpec.describe Flows::ActionService do
   let(:run) { FlowRun.create!(account: account, conversation: conversation, flow: flow, variables: { x: 'stored' }) }
   let(:service) { described_class.new(conversation: conversation, flow_run: run) }
 
+  it 'uses the shared snooze duration' do
+    travel_to(Time.zone.local(2026, 10, 23, 12)) do
+      service.execute(action_name: 'snooze_conversation', action_params: { duration: 2, unit: 'hours' })
+
+      expect(conversation.reload.status).to eq('snoozed')
+      expect(conversation.snoozed_until).to eq(2.hours.from_now)
+    end
+  end
+
   it 'reads flow values when creating private notes' do
     service.execute(action_name: 'add_private_note', action_params: ['{{ flow.x }}'])
 
