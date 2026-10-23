@@ -94,6 +94,7 @@ RSpec.describe AutomationRule do
     end
 
     it 'allows private_note as a valid condition attribute' do
+      params[:event_name] = 'message_created'
       params[:conditions] = [
         {
           attribute_key: 'private_note',
@@ -104,6 +105,147 @@ RSpec.describe AutomationRule do
       ]
       rule = FactoryBot.build(:automation_rule, params)
       expect(rule.valid?).to be true
+    end
+  end
+
+  describe 'the saved automation contract' do
+    let(:account) { create(:account) }
+    let(:rule) { build(:automation_rule, account: account) }
+    let(:condition) { rule.conditions.first }
+
+    it 'rejects unsupported events without changing active' do
+      rule.event_name = 'contact_created'
+
+      expect(rule).not_to be_valid
+      expect(rule.errors[:event_name]).to include('is not supported')
+      expect(rule.active).to be(true)
+    end
+
+    it 'names the condition with an unsupported operator' do
+      condition['filter_operator'] = 'contains'
+
+      expect(rule).not_to be_valid
+      expect(rule.errors[:conditions]).to include('Condition 0: The filter operator is not supported for this attribute.')
+      expect(rule.active).to be(true)
+    end
+
+    it 'rejects message attributes on conversation events' do
+      condition['attribute_key'] = 'content'
+
+      expect(rule).not_to be_valid
+      expect(rule.errors[:conditions]).to include('Condition 0: The attribute is not supported for this event.')
+    end
+
+    it 'rejects nominal attributes with no implemented filter' do
+      condition['attribute_key'] = 'hours_since_last_outgoing'
+
+      expect(rule).not_to be_valid
+      expect(rule.errors[:conditions]).to include('Condition 0: The attribute is unavailable in this account.')
+    end
+
+    it 'rejects custom attributes from another account' do
+      definition = create(:custom_attribute_definition, attribute_model: 'contact_attribute')
+      condition['attribute_key'] = definition.attribute_key
+      condition['custom_attribute_type'] = 'contact_attribute'
+
+      expect(rule).not_to be_valid
+      expect(rule.errors[:conditions]).to include('Condition 0: The attribute is unavailable in this account.')
+    end
+
+    it 'validates custom operators by the attribute display type' do
+      definition = create(:custom_attribute_definition, account: account, attribute_model: 'contact_attribute',
+                                                       attribute_display_type: 'checkbox')
+      condition.merge!('attribute_key' => definition.attribute_key, 'filter_operator' => 'contains')
+
+      expect(rule).not_to be_valid
+      expect(rule.errors[:conditions]).to include('Condition 0: The filter operator is not supported for this attribute.')
+    end
+
+    it 'rejects unknown schedule kinds' do
+      rule.assign_attributes(event_name: 'time_triggered', schedule: { kind: 'whenever' })
+
+      expect(rule).not_to be_valid
+      expect(rule.errors[:schedule]).to include('kind is not supported')
+    end
+
+    it 'rejects execution delays on scheduled rules' do
+      rule.assign_attributes(event_name: 'time_triggered', schedule: { kind: 'hours_since_last_incoming' }, execution_delay: 60)
+
+      expect(rule).not_to be_valid
+      expect(rule.errors[:execution_delay]).to include('cannot be used with time_triggered events.')
+    end
+
+    it 'accepts the existing conversation schedule kinds' do
+      %w[hours_since_last_outgoing hours_since_last_incoming].each do |kind|
+        rule.assign_attributes(event_name: 'time_triggered', schedule: { kind: kind })
+
+        expect(rule).to be_valid
+      end
+    end
+
+    it 'rejects a query operator with an undocumented type' do
+      condition['query_operator'] = 1
+
+      expect(rule).not_to be_valid
+      expect(rule.errors[:conditions]).to include('Condition 0: The query operator must be AND or OR.')
+    end
+
+    it 'saves the five existing contact recipe payloads with WhatsApp template actions' do
+      inbox = create(:inbox, account: account)
+      schedules = [
+        { attribute_key: 'birthday', recurrence: 'yearly', relative_to: 'on' },
+        { attribute_key: 'anniversary', recurrence: 'yearly', relative_to: 'on' },
+        { attribute_key: 'purchase', recurrence: 'once', relative_to: 'after', days: 30 },
+        { attribute_key: 'appointment', recurrence: 'once', relative_to: 'before', days: 1 },
+        { date_source: 'last_activity', recurrence: 'once', relative_to: 'after', days: 60 }
+      ]
+      schedules.each do |schedule|
+        recipe = build(:automation_rule, account: account, event_name: 'time_triggered', conditions: [],
+                                        schedule: schedule.merge(kind: 'contact_date', target_inbox_id: inbox.id),
+                                        actions: [{ action_name: 'send_whatsapp_template',
+                                                    action_params: [{ inbox_id: inbox.id, name: 'recipe', language: 'es' }] }])
+
+        expect(recipe.save).to be(true)
+      end
+    end
+
+    context 'with an invalid legacy definition' do
+      let(:rule) { create(:automation_rule, account: account) }
+
+      before do
+        rule.update_columns(event_name: 'unsupported', # rubocop:disable Rails/SkipsModelValidations
+                            conditions: [{ attribute_key: 'deleted', filter_operator: 'invalid' }],
+                            actions: [{ action_name: 'deleted_action' }])
+        rule.reload
+      end
+
+      it 'allows deactivation, reactivation and renaming' do
+        expect(rule.update(active: false)).to be(true)
+        expect(rule.update(active: true)).to be(true)
+        expect(rule.update(name: 'Renamed legacy rule')).to be(true)
+      end
+
+      it 'validates the whole definition when any contract field changes' do
+        rule.event_name = 'another_invalid_event'
+
+        expect(rule).not_to be_valid
+        expect(rule.errors.keys).to include(:event_name, :conditions, :actions)
+        expect(rule.reload.active).to be(true)
+      end
+
+      it 'rejects a different invalid condition' do
+        rule.conditions = [{ attribute_key: 'another_deleted_attribute', filter_operator: 'equal_to' }]
+
+        expect(rule.save).to be(false)
+        expect(rule.errors[:conditions]).to be_present
+      end
+
+      it 'rejects a different invalid action' do
+        rule.actions = [{ action_name: 'another_deleted_action' }]
+
+        expect(rule.save).to be(false)
+        expect(rule.errors[:actions]).to include('Action 0: The action is not supported.')
+      end
     end
   end
 

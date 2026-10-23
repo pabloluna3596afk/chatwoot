@@ -1,5 +1,20 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-194 — Contrato de automatizaciones validado al guardar (2026-10-23)
+
+- Archivos: `app/models/automation_rule.rb`, `app/services/automation_rules/{condition_validation_service,action_validation_service}.rb`,
+  `app/controllers/api/v1/accounts/automation_rules_controller.rb` y `app/controllers/concerns/attachment_concern.rb`.
+- Causa: el guardado aceptaba eventos, operadores, programaciones y parámetros de acciones que el motor no podía ejecutar.
+- Arreglo: el modelo reutiliza el validador del evaluador para las condiciones y valida evento, kind y acciones antes de persistir.
+  Errores en inglés con índices desde cero, bajo las claves existentes. Las reglas antiguas pueden renombrarse y activarse/desactivarse
+  sin revalidar su definición; al editar condiciones, acciones o evento se valida el contrato completo.
+- Compatibilidad: Captain, macros, SLA Enterprise y las cinco recetas de contacto tienen cobertura; se corrigen fixtures inválidas.
+  La simulación y la validación no cambian `active`; el evaluador conserva la reacción de autorización del runtime.
+  Adjuntos sin parámetros devuelven el 422 existente en vez de invocar `first` sobre nil.
+- Verificación: análisis sintáctico estático de Ruby y `git diff --check`; specs de modelo, servicio, API y Enterprise agregados.
+  RSpec y RuboCop pendientes del PM en Docker, según `.codex/BRIEF-CONTRATO.md`.
+- Sin migraciones ni frontend. Informe y comandos de verificación en `tmp/PR-CONTRATO.md` de `wt-auto-contrato`.
+
 ### B-NEW-193 — Simulación de automatizaciones sin efectos laterales (2026-10-23)
 
 - Archivos: `app/services/automation_rules/{conditions_filter_service,condition_validation_service,simulation_service}.rb`

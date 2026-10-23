@@ -5,6 +5,28 @@ require 'rails_helper'
 RSpec.describe AutomationRule do
   let!(:automation_rule) { create(:automation_rule, name: 'automation rule 1') }
 
+  describe 'the automation contract' do
+    it 'accepts the Enterprise SLA action with its required parameters' do
+      automation_rule.actions = [{ action_name: 'add_sla', action_params: [12] }]
+
+      expect(automation_rule).to be_valid
+    end
+
+    it 'rejects missing SLA parameters' do
+      automation_rule.actions = [{ action_name: 'add_sla', action_params: [] }]
+
+      expect(automation_rule).not_to be_valid
+      expect(automation_rule.errors[:actions]).to include('Action 0: Required action parameters must not be empty.')
+    end
+
+    it 'rejects nominal SLA conditions without an implemented filter' do
+      automation_rule.conditions = [{ attribute_key: 'sla_policy_id', filter_operator: 'equal_to', values: [12] }]
+
+      expect(automation_rule).not_to be_valid
+      expect(automation_rule.errors[:conditions]).to include('Condition 0: The attribute is unavailable in this account.')
+    end
+  end
+
   describe 'audit log' do
     context 'when automation rule is created' do
       it 'has associated audit log created' do

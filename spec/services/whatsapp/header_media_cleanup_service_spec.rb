@@ -55,8 +55,9 @@ describe Whatsapp::HeaderMediaCleanupService do
     header_blob(name: 'libre.pdf')
     campaign = create(:campaign, account: account)
     campaign.update_columns(template_params: header_params(campaign_blob)) # rubocop:disable Rails/SkipsModelValidations
+    template_params = header_params(rule_blob).merge('inbox_id' => 1, 'name' => 'test', 'language' => 'es')
     create(:automation_rule, account: account,
-                             actions: [{ 'action_name' => 'send_message', 'action_params' => [header_params(rule_blob)] }])
+                             actions: [{ 'action_name' => 'send_whatsapp_template', 'action_params' => [template_params] }])
     create(:captain_assistant, account: account, config: { 'reengagement_template' => header_params(assistant_blob) })
 
     expect(described_class.new.perform).to eq(1)

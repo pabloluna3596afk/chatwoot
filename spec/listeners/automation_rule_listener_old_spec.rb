@@ -41,6 +41,8 @@ describe AutomationRuleListener do
     create(:account_user, user: user_1, account: account)
 
     conversation.resolved!
+    file = fixture_file_upload(Rails.root.join('spec/assets/avatar.png'), 'image/png')
+    automation_rule.files.attach(file)
     automation_rule.update!(actions:
                                       [
                                         {
@@ -57,10 +59,8 @@ describe AutomationRuleListener do
                                         { 'action_name' => 'mute_conversation', 'action_params' => nil },
                                         { 'action_name' => 'change_status', 'action_params' => ['snoozed'] },
                                         { 'action_name' => 'send_message', 'action_params' => ['Send this message.'] },
-                                        { 'action_name' => 'send_attachment' }
+                                        { 'action_name' => 'send_attachment', 'action_params' => [automation_rule.files.first.blob_id] }
                                       ])
-    file = fixture_file_upload(Rails.root.join('spec/assets/avatar.png'), 'image/png')
-    automation_rule.files.attach(file)
     automation_rule.save!
   end
 

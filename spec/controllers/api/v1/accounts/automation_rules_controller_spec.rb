@@ -75,6 +75,62 @@ RSpec.describe 'Api::V1::Accounts::AutomationRulesController', type: :request do
     end
   end
 
+  describe 'saving the automation contract' do
+    let(:url) { "/api/v1/accounts/#{account.id}/automation_rules" }
+    let(:rule) { create(:automation_rule, account: account) }
+    let(:valid_params) do
+      { name: 'Contract rule', event_name: 'conversation_created', conditions: [],
+        actions: [{ action_name: 'send_message', action_params: ['Hello'] }] }
+    end
+
+    it 'returns indexed condition errors on create and update' do
+      conditions = [{ attribute_key: 'content', filter_operator: 'equal_to', values: ['hello'] }]
+      payload = valid_params.merge(conditions: conditions)
+      headers = administrator.create_new_auth_token
+
+      post url, headers: headers, params: payload, as: :json
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['error']['conditions'].first).to include('Condition 0:')
+
+      patch "#{url}/#{rule.id}", headers: headers, params: payload, as: :json
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['error']['conditions'].first).to include('Condition 0:')
+      expect(rule.reload.active).to be(true)
+    end
+
+    it 'returns 422 for unsupported events, operators, schedule kinds and actions' do
+      invalid_payloads = [
+        { event_name: 'contact_created' },
+        { conditions: [{ attribute_key: 'status', filter_operator: 'contains', values: ['open'] }] },
+        { event_name: 'time_triggered', schedule: { kind: 'unknown' } },
+        { actions: [{ action_name: 'unknown' }] },
+        { actions: [{ action_name: 'send_message', action_params: [] }] }
+      ]
+      headers = administrator.create_new_auth_token
+      invalid_payloads.each do |invalid|
+        post url, headers: headers, params: valid_params.merge(invalid), as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body['error']).to be_present
+      end
+      expect(account.automation_rules.count).to eq(0)
+    end
+
+    it 'allows renaming and toggling legacy rules through the API' do
+      rule.update_columns(event_name: 'unsupported', # rubocop:disable Rails/SkipsModelValidations
+                          conditions: [{ attribute_key: 'deleted', filter_operator: 'unsupported' }],
+                          actions: [{ action_name: 'deleted' }])
+      headers = administrator.create_new_auth_token
+      [{ active: false }, { active: true }, { name: 'Renamed legacy rule' }].each do |changes|
+        patch "#{url}/#{rule.id}", headers: headers, params: changes, as: :json
+
+        expect(response).to have_http_status(:ok)
+      end
+      expect(rule.reload.name).to eq('Renamed legacy rule')
+      expect(rule.active).to be(true)
+    end
+  end
+
   describe 'GET /api/v1/accounts/{account.id}/automation_rules' do
     context 'when it is an authenticated user' do
       it 'returns all records' do
