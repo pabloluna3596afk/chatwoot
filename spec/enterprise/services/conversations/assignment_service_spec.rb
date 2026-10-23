@@ -1,6 +1,10 @@
 require 'rails_helper'
 
 describe Conversations::AssignmentService do
+  def activity_job_count
+    enqueued_jobs.count { |job| job[:job] == Conversations::ActivityMessageJob }
+  end
+
   let(:account) { create(:account) }
   let(:inbox) { create(:inbox, account: account) }
   let(:actor) { create(:user, account: account) }
@@ -25,7 +29,7 @@ describe Conversations::AssignmentService do
     expect do
       described_class.new(conversation: conversation.reload, assignee_id: assistant.id, assignee_type: 'Captain::Assistant').perform
     end.to have_enqueued_job(Conversations::ActivityMessageJob).with(conversation, hash_including(content: content)).exactly(:once)
-      .and change { enqueued_jobs.count { |job| job[:job] == Conversations::ActivityMessageJob } }.by(1)
+                                                               .and change { activity_job_count }.by(1)
 
     expect(conversation.reload).to have_attributes(status: 'pending', assignee_id: nil, ai_assignee: assistant)
     expect(conversation.assignment_driven_status).to be(false)
@@ -38,13 +42,13 @@ describe Conversations::AssignmentService do
     expect do
       described_class.new(conversation: conversation.reload, assignee_id: agent.id).perform
     end.to have_enqueued_job(Conversations::ActivityMessageJob).with(conversation, hash_including(content: content)).exactly(:once)
-      .and change { enqueued_jobs.count { |job| job[:job] == Conversations::ActivityMessageJob } }.by(1)
+                                                               .and change { activity_job_count }.by(1)
 
     expect(conversation.reload).to have_attributes(status: 'open', assignee: agent, ai_assignee: nil)
     expect(conversation.assignment_driven_status).to be(false)
     expect { conversation.update!(status: :resolved) }.to have_enqueued_job(Conversations::ActivityMessageJob)
       .with(conversation, hash_including(content: I18n.t('conversations.activity.status.resolved', user_name: actor.name,
-                                                                                              status_label: account.resolved_status_label_word)))
+                                                                                                   status_label: account.resolved_status_label_word)))
   end
 
   it 'records one assignment when Captain B replaces Captain A' do
@@ -54,7 +58,7 @@ describe Conversations::AssignmentService do
     expect do
       described_class.new(conversation: conversation.reload, assignee_id: assistant.id, assignee_type: 'Captain::Assistant').perform
     end.to have_enqueued_job(Conversations::ActivityMessageJob).with(conversation, hash_including(content: content)).exactly(:once)
-      .and change { enqueued_jobs.count { |job| job[:job] == Conversations::ActivityMessageJob } }.by(1)
+                                                               .and change { activity_job_count }.by(1)
 
     expect(conversation.reload).to have_attributes(status: 'pending', ai_assignee: assistant)
   end
@@ -65,7 +69,7 @@ describe Conversations::AssignmentService do
     expect do
       described_class.new(conversation: conversation.reload, assignee_id: other_agent.id).perform
     end.to have_enqueued_job(Conversations::ActivityMessageJob).with(conversation, hash_including(content: content)).exactly(:once)
-      .and change { enqueued_jobs.count { |job| job[:job] == Conversations::ActivityMessageJob } }.by(1)
+                                                               .and change { activity_job_count }.by(1)
 
     expect(conversation.reload).to have_attributes(status: 'open', assignee: other_agent)
   end
