@@ -5,7 +5,7 @@ require 'rails_helper'
 RSpec.describe Automations::ContactBasedRuleRunner do
   let(:account) { create(:account) }
   let(:inbox) { create(:inbox, account: account) }
-  let(:action_service) { instance_double(AutomationRules::ActionService, perform: true) }
+  let(:action_service) { instance_double(AutomationRules::ActionService, perform: true, record_run: true) }
 
   def contact_with(attrs)
     create(:contact, account: account, **attrs)
@@ -359,6 +359,7 @@ RSpec.describe Automations::ContactBasedRuleRunner do
 
       expect(contact.conversations.last.messages.outgoing.count).to eq(1)
       expect(Redis::Alfred.get(count_key).to_i).to eq(1)
+      expect(rule.runs.where(outcome: 'executed').count).to eq(1)
     end
 
     it 'releases a skipped send without counting its private audit note' do
@@ -455,7 +456,9 @@ RSpec.describe Automations::ContactBasedRuleRunner do
 
     %w[execute_macro enter_flow send_email_transcript].each do |action_name|
       it "conservatively retains reservations for #{action_name} even when it skips" do
-        rule.update_columns(actions: [{ 'action_name' => action_name, 'action_params' => [] }]) # rubocop:disable Rails/SkipsModelValidations
+        rule.update_columns( # rubocop:disable Rails/SkipsModelValidations
+          actions: [{ 'action_name' => action_name, 'action_params' => [] }]
+        )
         allow(AutomationRules::ActionService).to receive(:new).and_return(action_service)
 
         runner.perform
@@ -476,6 +479,186 @@ RSpec.describe Automations::ContactBasedRuleRunner do
 
       expect(described_class.new(rule).candidates_count).to eq(1)
       expect(Redis::Alfred.get(count_key).to_i).to eq(1)
+    end
+
+    context 'with WhatsApp Cloud' do
+      let(:channel) do
+        create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud',
+                                  sync_templates: false, validate_provider_config: false)
+      end
+      let(:inbox) { channel.inbox }
+
+      before { allow(Rails.logger).to receive(:info) }
+
+      it 'skips free text at exactly 24 hours and releases both reservations' do
+        create(:message, account: account, conversation: conversation, message_type: :incoming, created_at: 24.hours.ago)
+
+        runner.perform
+
+        expect(conversation.messages.outgoing).to be_empty
+        expect(AutomationRules::ActionService).not_to have_received(:new)
+        expect(Redis::Alfred.get(count_key).to_i).to eq(0)
+        expect(Redis::Alfred.get(window_key)).to be_nil
+        expect(Rails.logger).to have_received(:info).with(
+          "[ContactBasedRuleRunner] skipped rule=#{rule.id} contact=#{contact.id} reason=window_closed_needs_template"
+        )
+      end
+
+      it 'releases a delayed free text send without enqueuing it' do
+        rule.update!(actions: [actions.first.merge('delivery' => { 'delay_seconds' => 5 })])
+        create(:message, account: account, conversation: conversation, message_type: :incoming, created_at: 25.hours.ago)
+
+        expect { runner.perform }.not_to have_enqueued_job(Messages::DeferredOutboundJob)
+
+        expect(Redis::Alfred.get(count_key).to_i).to eq(0)
+        expect(Redis::Alfred.get(window_key)).to be_nil
+        expect(AutomationRules::ActionService).not_to have_received(:new)
+      end
+
+      it 'can send on a subsequent scan after a new incoming message opens the window' do
+        create(:message, account: account, conversation: conversation, message_type: :incoming, created_at: 25.hours.ago)
+        runner.perform
+        create(:message, account: account, conversation: conversation, message_type: :incoming)
+
+        described_class.new(rule).perform
+
+        expect(conversation.messages.outgoing.where(private: false).count).to eq(1)
+        expect(Redis::Alfred.get(count_key).to_i).to eq(1)
+        expect(Redis::Alfred.get(window_key)).to be_present
+      end
+
+      it 'skips a new conversation without an incoming message' do
+        contact.update!(phone_number: '+593990000001') # a WhatsApp contact inbox needs a phone number
+        runner.perform
+
+        expect(contact.conversations.sole.messages.outgoing).to be_empty
+        expect(Redis::Alfred.get(count_key).to_i).to eq(0)
+        expect(Redis::Alfred.get(window_key)).to be_nil
+      end
+
+      it 'sends free text within the window' do
+        create(:message, account: account, conversation: conversation, message_type: :incoming, created_at: 23.hours.ago)
+
+        runner.perform
+
+        expect(conversation.messages.outgoing.where(private: false).count).to eq(1)
+        expect(Redis::Alfred.get(count_key).to_i).to eq(1)
+        expect(Redis::Alfred.get(window_key)).to be_present
+      end
+
+      it 'sends an approved template outside the window' do
+        create(:message, account: account, conversation: conversation, message_type: :incoming, created_at: 25.hours.ago)
+        rule.update!(actions: [{ 'action_name' => 'send_whatsapp_template', 'action_params' => [{
+                       'inbox_id' => inbox.id, 'name' => 'sample_shipping_confirmation', 'language' => 'en_US',
+                       'processed_params' => { 'body' => { '1' => '3' } }
+                     }] }])
+
+        runner.perform
+
+        message = conversation.messages.outgoing.where(private: false).sole
+        expect(message.additional_attributes.dig('template_params', 'name')).to eq('sample_shipping_confirmation')
+        expect(Redis::Alfred.get(count_key).to_i).to eq(1)
+        expect(Redis::Alfred.get(window_key)).to be_present
+      end
+
+      it 'keeps the existing window when a repeat scan is skipped' do
+        create(:message, account: account, conversation: conversation, message_type: :incoming, created_at: 23.hours.ago)
+        runner.perform
+        original_window = Redis::Alfred.get(window_key)
+
+        travel 2.hours
+        described_class.new(rule).perform
+
+        expect(Redis::Alfred.get(window_key)).to eq(original_window)
+        expect(Redis::Alfred.get(count_key).to_i).to eq(1)
+      end
+
+      context 'with the default WhatsApp provider' do
+        let(:channel) do
+          create(:channel_whatsapp, account: account, sync_templates: false, validate_provider_config: false)
+        end
+
+        it 'leaves the existing action service window handling in place' do
+          create(:message, account: account, conversation: conversation, message_type: :incoming, created_at: 25.hours.ago)
+
+          runner.perform
+
+          expect(AutomationRules::ActionService).to have_received(:new).with(rule, account, conversation)
+          expect(conversation.messages.where(private: true)).to exist
+          expect(Redis::Alfred.get(count_key).to_i).to eq(0)
+          expect(Redis::Alfred.get(window_key)).to be_nil
+        end
+      end
+    end
+  end
+
+  describe '#candidates_breakdown' do
+    let(:channel) do
+      create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud',
+                                sync_templates: false, validate_provider_config: false)
+    end
+    let(:inbox) { channel.inbox }
+    let(:rule) do
+      build(:automation_rule, account: account, schedule: {
+              'kind' => 'contact_date', 'target_inbox_id' => inbox.id,
+              'attribute_key' => 'birthday', 'test_mode_label' => 'test'
+            })
+    end
+    let(:runner) { described_class.new(rule) }
+    let(:birthday) { { 'birthday' => '2026-08-14' } }
+
+    around do |example|
+      travel_to(Time.zone.local(2026, 8, 14, 12)) { example.run }
+    end
+
+    it 'counts candidates, existing windows and test exclusions without writing' do
+      open_contact = create(:contact, account: account, custom_attributes: birthday)
+      open_contact.update!(label_list: ['test'])
+      open_conversation = create(:conversation, account: account, inbox: inbox, contact: open_contact)
+      create(:message, account: account, conversation: open_conversation, message_type: :incoming, created_at: 23.hours.ago)
+      closed_contact = create(:contact, account: account, custom_attributes: birthday)
+      closed_conversation = create(:conversation, account: account, inbox: inbox, contact: closed_contact)
+      create(:message, account: account, conversation: closed_conversation, message_type: :incoming, created_at: 24.hours.ago)
+      create(:contact, account: account, custom_attributes: birthday)
+      create(:contact, custom_attributes: birthday)
+
+      expect { runner.candidates_breakdown }.not_to change(Conversation, :count)
+      expect(runner.candidates_count).to eq(3)
+      expect(runner.candidates_breakdown).to eq(
+        candidates: 3, with_open_window: 1, window_closed: 1, excluded_by_test_mode: 2
+      )
+      expect(AutomationRules::ActionService).not_to have_received(:new)
+    end
+
+    it 'uses the latest conversation in the target inbox' do
+      contact = create(:contact, account: account, custom_attributes: birthday)
+      older = create(:conversation, account: account, inbox: inbox, contact: contact, created_at: 2.days.ago)
+      create(:message, account: account, conversation: older, message_type: :incoming, created_at: 1.hour.ago)
+      create(:conversation, account: account, inbox: inbox, contact: contact)
+
+      expect(runner.candidates_breakdown).to include(with_open_window: 0, window_closed: 1)
+    end
+
+    it 'returns zero diagnostics for an incomplete schedule' do
+      rule.schedule = { 'kind' => 'contact_date' }
+
+      expect(runner.candidates_count).to eq(0)
+      expect(runner.candidates_breakdown).to eq(
+        candidates: 0, with_open_window: 0, window_closed: 0, excluded_by_test_mode: 0
+      )
+    end
+
+    context 'with another channel' do
+      let(:inbox) { create(:inbox, account: account) }
+
+      it 'does not classify its conversations as WhatsApp windows' do
+        contact = create(:contact, account: account, custom_attributes: birthday)
+        create(:conversation, account: account, inbox: inbox, contact: contact)
+
+        expect(runner.candidates_breakdown).to eq(
+          candidates: 1, with_open_window: 0, window_closed: 0, excluded_by_test_mode: 1
+        )
+      end
     end
   end
 
@@ -543,6 +726,65 @@ RSpec.describe Automations::ContactBasedRuleRunner do
       described_class.new(rule).perform
 
       expect(AutomationRules::ActionService).not_to have_received(:new)
+    end
+  end
+
+  describe 'execution history' do
+    let!(:history_contact) { create(:contact, account: account, last_activity_at: Time.current) }
+    let(:history_conversation) { create(:conversation, account: account, inbox: inbox, contact: history_contact) }
+    let(:history_rule) do
+      create(:automation_rule, account: account, event_name: 'time_triggered', conditions: [],
+                               actions: [{ 'action_name' => 'add_label', 'action_params' => ['history'] }],
+                               schedule: { kind: 'contact_date', target_inbox_id: inbox.id, date_source: 'last_activity' })
+    end
+    let(:runner) { described_class.new(history_rule) }
+    let(:send_cap) { instance_double(Automations::ProactiveSendCap, reserve!: true, release!: true) }
+
+    before do
+      allow(AutomationRules::ActionService).to receive(:new).and_call_original
+      allow(runner).to receive(:resolve_conversation).and_return(history_conversation)
+      allow(runner).to receive(:cap).and_return(send_cap)
+    end
+
+    it 'records the cap omission and preserves the pause' do
+      allow(send_cap).to receive(:reserve!).and_return(false)
+      runner.perform
+
+      expect(history_rule.runs.sole).to have_attributes(outcome: 'skipped', reason: 'cap_reached')
+      expect(history_rule.reload.active).to be(false)
+    end
+
+    it 'records a consumed window and releases the cap' do
+      allow(runner).to receive(:claim_window!).and_return(false)
+      runner.perform
+
+      expect(history_rule.runs.sole.reason).to eq('window_consumed')
+      expect(send_cap).to have_received(:release!)
+    end
+
+    it 'records no message created once and releases both reservations' do
+      allow(runner).to receive(:claim_window!).and_return(true)
+      allow(runner).to receive(:release_window!)
+      runner.perform
+
+      expect(history_rule.runs.sole).to have_attributes(outcome: 'skipped', reason: 'no_send_created')
+      expect(history_rule.runs.sole.details['actions']).to eq([{ 'name' => 'add_label', 'outcome' => 'ok' }])
+      expect(send_cap).to have_received(:release!)
+      expect(runner).to have_received(:release_window!).with(history_contact)
+    end
+
+    it 'records a failed action once while releasing the reservations' do
+      allow(runner).to receive(:claim_window!).and_return(true)
+      allow(runner).to receive(:release_window!)
+      service = AutomationRules::ActionService.new(history_rule, account, history_conversation)
+      allow(AutomationRules::ActionService).to receive(:new).and_return(service)
+      allow(service).to receive(:execute_action).and_raise(ArgumentError, 'private data')
+      allow(ChatwootExceptionTracker).to receive(:new).and_return(instance_double(ChatwootExceptionTracker, capture_exception: nil))
+      runner.perform
+
+      expect(history_rule.runs.sole).to have_attributes(outcome: 'failed', reason: 'action_error')
+      expect(history_rule.runs.sole.details.to_json).not_to include('private data')
+      expect(send_cap).to have_received(:release!)
     end
   end
 end

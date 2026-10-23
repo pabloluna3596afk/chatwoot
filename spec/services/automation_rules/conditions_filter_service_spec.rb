@@ -94,6 +94,7 @@ RSpec.describe AutomationRules::ConditionsFilterService do
           .with(params: { account: account }, args: [rule])
 
         expect(rule.reload.active).to be(false)
+        expect(rule.runs.sole).to have_attributes(outcome: 'failed', reason: 'rule_invalid_disabled')
       end
     end
 

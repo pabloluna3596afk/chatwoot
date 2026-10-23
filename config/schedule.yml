@@ -114,3 +114,9 @@ whatsapp_header_media_cleanup_job:
   cron: '30 3 * * *'
   class: 'Whatsapp::HeaderMediaCleanupJob'
   queue: purgable
+
+# Daily retention for automation execution history.
+automation_rule_runs_retention_job:
+  cron: '0 4 * * *'
+  class: 'AutomationRules::PurgeRunsJob'
+  queue: purgable

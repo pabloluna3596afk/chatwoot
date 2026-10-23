@@ -1492,6 +1492,33 @@ hacían que “ventas del mes” o Sum con `"1.000,50"` no cuadraran.
 
 ---
 
+### B-NEW-199 — Recetas por contacto: ventana WhatsApp Cloud y alcance (2026-10-23)
+
+**Problema:** el servicio de acciones ya omitía el texto libre fuera de ventana,
+pero el runner podía conservar cupo y deduplicación en acciones diferidas omitidas.
+La vista previa solo exponía candidatos y le faltaba el permiso explícito en Pundit.
+
+**Cambio:** `app/services/automations/contact_based_rule_runner.rb` omite la ejecución
+con `window_closed_needs_template` cuando contiene `send_message` y la conversación
+destino de WhatsApp Cloud no permite responder. Reutiliza `Conversation#can_reply?`,
+libera cupo y ventana propios y registra regla/contacto. Las plantillas siguen su flujo.
+`candidates_count` conserva el entero; `candidates_breakdown` agrega diagnóstico de
+ventanas existentes y exclusiones por etiqueta de prueba. Los conteos de ventana
+incluyen todos los candidatos con conversación Cloud, también los excluidos por prueba.
+
+**API:** `reach_preview` conserva `count` y agrega `candidates`, `with_open_window`,
+`window_closed`, `excluded_by_test_mode`; exige administrador de la cuenta vía
+`AutomationRulePolicy#reach_preview?`. Crear/editar una receta con texto libre para
+Cloud permite guardar y agrega `warnings: ['whatsapp_template_recommended']`.
+La simulación existente solo admite eventos conversacionales, no `time_triggered`.
+
+**Cómo probar:** specs en `spec/services/automations/contact_based_rule_runner_spec.rb`
+y `spec/controllers/api/v1/accounts/automation_rules_controller_spec.rb`: límite de
+24 h con reloj fijo, apertura posterior, diferidos, plantilla, canal alternativo,
+dedupe previo, desglose sin crear conversaciones, permisos y aislamiento por cuenta,
+advertencias aditivas en create/update. Regresión completa de ambos runners y lint
+pendientes del PM en Docker según `docs/TESTING.md`. Sin migraciones ni cambios de UI.
+
 ## 3. Fijados en sesión anterior (tasks / UX)
 
 ### TASK-001 — Notas privadas en timeline
@@ -1579,6 +1606,21 @@ CAs updated `2026-06-19` → `2026-07-24`, no exception. Preset defaults now
 use prod keys `fecha_seguimiento` / `fecha_venta` (alias `ultimo_seguimiento`
 is local-only).
 
+### B-NEW-197 — Historial de ejecución de automatizaciones (2026-10-23)
+
+- Archivos: `automation_rule_runs`, `AutomationRules::RunRecorder`, `AutomationRules::ActionService`,
+  `Automations::ContactBasedRuleRunner`, `AutomationRules::ProcessPendingExecutionJob`, modelo y controlador de reglas.
+- Cambio: una fila por ejecución con resultado por acción, clase e índice del error sin mensajes ni datos del cliente;
+  omisiones de cupo/ventana/sin envío y esperas conservan sus motivos. Desactivar una regla inválida deja historial.
+- Lectura: `GET /api/v1/accounts/:account_id/automation_rules/:id/runs`, solo administradores de la cuenta,
+  páginas de 25, filtros por resultado y conversación. Sin pantalla en este PR.
+- Retención: purga diaria a los 30 días; bloqueo por regla para limitar `executed` a partir de 1000 filas diarias
+  y contador `suppressed_executed_count` en la última fila. Los errores siguen registrándose.
+- Verificación: specs del recorder, ActionService, listener, runners temporal/contacto, esperas, purga, modelo y API.
+  RSpec/RuboCop pendientes del PM en Docker, según el brief; revisión estática y `git diff --check` realizadas.
+- Deploy: requiere migración `20261023120000_create_automation_rule_runs.rb` y reiniciar Rails/Sidekiq.
+
+
 ### B-NEW-15 — Flows menu no visible (local / prod) — secundario
 
 **Estado:** ✅ portado (2026-07-24) sobre `feat/business-rules-time-multilist`.
@@ -1587,6 +1629,22 @@ API, store/rutas FE, Sidebar **Flows**, flag `flows_v1`, acción automation
 `enter_flow`. Business-rules UI/servicios intactos. Activar por cuenta:
 `Account.find(1).enable_features!('flows_v1')`. UI: rebuild Vite/Docker assets
 si el menú no aparece tras restart Rails.
+
+### B-NEW-198 — Automatizaciones al cambiar atributos del contacto (2026-10-23)
+
+- Archivos: `app/listeners/automation_rule_listener.rb`, `app/models/{contact,automation_rule}.rb`
+  y `app/services/automation_rules/{contact_updated_service,condition_validation_service}.rb`.
+- Cambio: `contact_updated` usa el catálogo compartido y evalúa condiciones sobre la conversación abierta o pendiente
+  más reciente; las condiciones `inbox_id/equal_to` restringen el destino antes de elegirlo. No crea conversaciones.
+- Seguridad: el evento conserva `Current.executed_by` para ignorar cambios causados por automatizaciones;
+  Redis reclama una vez por regla/contacto/hash durante diez minutos. Límite propio de 200 ejecuciones por cuenta
+  y día (`Time.zone.today`), porque las importaciones no tienen un indicador común en `Current`.
+- Alcance: atributos personalizados y estándares filtrables; diferencias JSON desglosadas para `attribute_changed`.
+  Etiquetas del contacto pendientes: no existe una notificación específica con su diferencia; `labels` conserva
+  el significado actual de etiquetas de conversación. No admite espera ni simulación para este evento.
+- Verificación: `spec/services/automation_rules/contact_updated_service_spec.rb` cubre A1–A8, TTL, cupo, orden
+  y actor; el spec del controlador comprueba que simularlo devuelve 422. Revisión estática y `git diff --check`;
+  RSpec/RuboCop pendientes del PM en Docker, según `.codex/BRIEF-CONTACTO.md`. Sin frontend ni migraciones.
 
 ### B-NEW-22 — Flows: columna infinita + nota handoff con IDs técnicos
 
