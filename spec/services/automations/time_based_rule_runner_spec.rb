@@ -44,7 +44,7 @@ RSpec.describe Automations::TimeBasedRuleRunner do
     it 'filters candidates before claiming their time window' do
       campaign = create(:campaign, account: account, inbox: inbox)
       matching = create(:conversation, account: account, inbox: inbox, campaign: campaign,
-                                        custom_attributes: { 'fecha_cita' => Time.zone.today.iso8601 })
+                                       custom_attributes: { 'fecha_cita' => Time.zone.today.iso8601 })
       create(:conversation, account: account, inbox: inbox, custom_attributes: { 'fecha_cita' => Time.zone.today.iso8601 })
       rule = create(:automation_rule, account: account, event_name: 'time_triggered', conditions: [
                       { 'attribute_key' => 'campaign_id', 'filter_operator' => 'equal_to', 'values' => [campaign.id] }

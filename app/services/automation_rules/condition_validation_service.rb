@@ -80,31 +80,30 @@ class AutomationRules::ConditionValidationService
   def standard_condition_error(condition, filter)
     key = condition['attribute_key']
     return 'The attribute is not supported for this event.' unless attribute_supported?(key)
+    return campaign_condition_error(condition, filter) if key == 'campaign_id' && @rule.respond_to?(:conditions_attributes)
+    return if condition['filter_operator'] == 'attribute_changed'
+    return if filter['filter_operators'].include?(condition['filter_operator'])
 
-    campaign_condition = key == 'campaign_id' && @rule.respond_to?(:conditions_attributes)
-    return if condition['filter_operator'] == 'attribute_changed' && !campaign_condition
-    unless filter['filter_operators'].include?(condition['filter_operator'])
-      return 'The filter operator is not supported for this attribute.'
-    end
-
-    campaign_value_error(condition) if campaign_condition
+    'The filter operator is not supported for this attribute.'
   end
 
-  def campaign_value_error(condition)
+  def campaign_condition_error(condition, filter)
+    return 'The filter operator is not supported for this attribute.' unless filter['filter_operators'].include?(condition['filter_operator'])
+
     values = condition['values']
-    if PRESENCE_OPERATORS.include?(condition['filter_operator'])
-      return if values.nil? || values == []
-
-      return 'campaign_id presence conditions must not have values.'
-    end
-
-    unless values.is_a?(Array) && values.one? && values.first.is_a?(Integer) && values.first.positive?
-      return 'campaign_id requires one positive integer campaign ID in values.'
-    end
-
+    return campaign_presence_error(values) if PRESENCE_OPERATORS.include?(condition['filter_operator'])
+    return 'campaign_id requires one positive integer campaign ID in values.' unless campaign_id_value?(values)
     return if @account.campaigns.exists?(id: values.first)
 
     'campaign_id must reference an existing campaign in this account.'
+  end
+
+  def campaign_presence_error(values)
+    'campaign_id presence conditions must not have values.' unless values.nil? || values == []
+  end
+
+  def campaign_id_value?(values)
+    values.is_a?(Array) && values.one? && values.first.is_a?(Integer) && values.first.positive?
   end
 
   # Embedded business rules evaluate conditions with a rule-like object that has no event or attribute list.

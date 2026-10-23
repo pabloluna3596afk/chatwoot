@@ -17,9 +17,7 @@ RSpec.describe AutomationRules::ConditionValidationService do
         rule.conditions_attributes.each do |key|
           probe_operators.each do |operator|
             rule.conditions = [{ 'attribute_key' => key, 'filter_operator' => operator }]
-            if key == 'campaign_id' && described_class::EQUALITY_OPERATORS.include?(operator)
-              rule.conditions.first['values'] = [campaign.id]
-            end
+            rule.conditions.first['values'] = [campaign.id] if key == 'campaign_id' && described_class::EQUALITY_OPERATORS.include?(operator)
             supported = described_class.new(rule).perform
             evaluator = AutomationRules::ConditionsFilterService.new(rule, conversation)
 
@@ -101,7 +99,8 @@ RSpec.describe AutomationRules::ConditionValidationService do
 
       %w[is_present is_not_present].each do |operator|
         it "saves #{operator} without values or with an empty array" do
-          [nil, []].each do |values|
+          empty_values = [nil, []]
+          empty_values.each do |values|
             rule.conditions = [{ 'attribute_key' => 'campaign_id', 'filter_operator' => operator, 'values' => values }]
 
             expect(rule.save).to be(true)

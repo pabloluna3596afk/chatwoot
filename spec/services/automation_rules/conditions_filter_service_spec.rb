@@ -22,19 +22,21 @@ RSpec.describe AutomationRules::ConditionsFilterService do
       let(:campaign) { create(:campaign, account: account) }
       let(:other_campaign) { create(:campaign, account: account) }
 
+      operator_expectations = {
+        'equal_to' => [true, false, false],
+        'not_equal_to' => [false, true, false],
+        'is_present' => [true, true, false],
+        'is_not_present' => [false, false, true]
+      }
+
       AutomationRules::ConditionValidationService::EVENTS.each do |event|
-        context "for #{event}" do
+        context "when the event is #{event}" do
           let(:rule) do
             build(:automation_rule, account: account, event_name: event,
                                     schedule: event == 'time_triggered' ? { kind: 'hours_since_last_incoming' } : {})
           end
 
-          {
-            'equal_to' => [true, false, false],
-            'not_equal_to' => [false, true, false],
-            'is_present' => [true, true, false],
-            'is_not_present' => [false, false, true]
-          }.each do |operator, expected|
+          operator_expectations.each do |operator, expected|
             it "evaluates #{operator} against the conversation campaign, including NULL" do
               values = operator.in?(%w[is_present is_not_present]) ? [] : [campaign.id]
               rule.conditions = [{ 'attribute_key' => 'campaign_id', 'filter_operator' => operator, 'values' => values }]
