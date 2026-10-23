@@ -121,4 +121,22 @@ RSpec.describe Automations::TimeBasedRuleRunner do
       expect(AutomationRules::ActionService).to have_received(:new).with(rule, account, matching)
     end
   end
+
+  describe 'execution history' do
+    let!(:history_conversation) do
+      create(:conversation, account: account, custom_attributes: { 'history_date' => 2.days.ago.to_date.to_s })
+    end
+    let(:history_rule) do
+      create(:automation_rule, account: account, event_name: 'time_triggered', conditions: [],
+                               actions: [{ 'action_name' => 'add_label', 'action_params' => ['history'] }],
+                               schedule: { kind: 'days_since_attribute', attribute_key: 'history_date', days: 1 })
+    end
+
+    it 'records one execution and does not duplicate a consumed time window' do
+      allow(AutomationRules::ActionService).to receive(:new).and_call_original
+      2.times { described_class.new(history_rule).perform }
+
+      expect(history_rule.runs.sole).to have_attributes(outcome: 'executed', conversation_id: history_conversation.id)
+    end
+  end
 end

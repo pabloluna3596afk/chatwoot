@@ -47,6 +47,7 @@ class Automations::ContactBasedRuleRunner
       next unless conditions_match?(conversation)
 
       unless cap.reserve!
+        record_skip(contact, conversation, 'cap_reached')
         pause_for_cap!
         break
       end
@@ -71,7 +72,10 @@ class Automations::ContactBasedRuleRunner
   private
 
   def perform_actions(contact, conversation)
-    return cap.release! unless claim_window!(contact)
+    unless claim_window!(contact)
+      record_skip(contact, conversation, 'window_consumed')
+      return cap.release!
+    end
     return if outbound_sent?(contact, conversation)
 
     cap.release!
@@ -80,8 +84,11 @@ class Automations::ContactBasedRuleRunner
 
   def outbound_sent?(contact, conversation)
     last_message_id = conversation.messages.maximum(:id) || 0
-    AutomationRules::ActionService.new(@rule, @account, conversation).perform
-    asynchronous_actions? || conversation.messages.outgoing.exists?(['private = ? AND id > ?', false, last_message_id])
+    service = AutomationRules::ActionService.new(@rule, @account, conversation)
+    service.perform(record_run: false)
+    sent = asynchronous_actions? || conversation.messages.outgoing.exists?(['private = ? AND id > ?', false, last_message_id])
+    service.record_run(outcome: sent ? 'executed' : 'skipped', reason: sent ? nil : 'no_send_created')
+    sent
   rescue StandardError => e
     Rails.logger.error("[ContactBasedRuleRunner] action failed rule=#{@rule.id} contact=#{contact.id}: #{e.message}")
     false
@@ -95,6 +102,10 @@ class Automations::ContactBasedRuleRunner
       %w[execute_macro enter_flow send_email_transcript].include?(name) ||
         (%w[send_message send_attachment].include?(name) && action.dig('delivery', 'delay_seconds').to_i.positive?)
     end
+  end
+
+  def record_skip(contact, conversation, reason)
+    AutomationRules::RunRecorder.record(rule: @rule, outcome: 'skipped', reason: reason, contact: contact, conversation: conversation)
   end
 
   def cap
