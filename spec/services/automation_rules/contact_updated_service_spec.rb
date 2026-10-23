@@ -45,7 +45,7 @@ RSpec.describe AutomationRules::ContactUpdatedService do
     expect { service.perform }.not_to change(Conversation, :count)
 
     expect(AutomationRules::ActionService).not_to have_received(:new)
-    expect(Rails.logger).to have_received(:info).with(/no open\/pending conversation/)
+    expect(Rails.logger).to have_received(:info).with(%r{no open/pending conversation})
   end
 
   it 'does nothing when the conditions do not match' do
@@ -70,9 +70,7 @@ RSpec.describe AutomationRules::ContactUpdatedService do
   it 'executes once when the contact is saved twice with the same attribute value' do
     contact.update!(custom_attributes: { interest: 'Nuevo' })
     allow(Rails.configuration.dispatcher).to receive(:dispatch).and_wrap_original do |original, name, timestamp, data|
-      if name == 'contact.updated'
-        AutomationRuleListener.instance.contact_updated(Events::Base.new(name, timestamp, data))
-      end
+      AutomationRuleListener.instance.contact_updated(Events::Base.new(name, timestamp, data)) if name == 'contact.updated'
       original.call(name, timestamp, data)
     end
 
@@ -83,7 +81,7 @@ RSpec.describe AutomationRules::ContactUpdatedService do
 
   it 'sets a ten-minute expiration on the deduplication claim' do
     service.perform
-    ttl = ::Redis::Alfred.ttl(service.send(:dedupe_key))
+    ttl = Redis::Alfred.ttl(service.send(:dedupe_key))
 
     expect(ttl).to be_between(590, 600)
   end
@@ -95,7 +93,7 @@ RSpec.describe AutomationRules::ContactUpdatedService do
     contact.update!(custom_attributes: { interest: 'Otro' })
     described_class.new(rule, contact, 'custom_attributes' => [{}, { interest: 'Otro' }]).perform
 
-    expect(::Redis::Alfred.get(key).to_i).to eq(1)
+    expect(Redis::Alfred.get(key).to_i).to eq(1)
   end
 
   it 'restricts the target inbox before choosing the latest conversation' do
@@ -123,7 +121,7 @@ RSpec.describe AutomationRules::ContactUpdatedService do
 
   it 'supports attribute_changed on a contact custom attribute using previous_changes' do
     rule.update!(conditions: [condition.merge('filter_operator' => 'attribute_changed',
-                                             'values' => { 'from' => ['Nuevo'], 'to' => ['Interesado'] })])
+                                              'values' => { 'from' => ['Nuevo'], 'to' => ['Interesado'] })])
 
     service.perform
 
@@ -150,7 +148,7 @@ RSpec.describe AutomationRules::ContactUpdatedService do
   it 'enforces 200 executions per account and calendar day independently of proactive send settings' do
     account.update!(settings: { 'proactive_daily_send_cap' => 1000 })
     key = "automation:contact_updated:daily:#{account.id}:#{Time.zone.today}"
-    ::Redis::Alfred.set(key, 199, ex: 2.days.to_i)
+    Redis::Alfred.set(key, 199, ex: 2.days.to_i)
 
     service.perform
     described_class.new(rule, contact, 'email' => %w[a@example.com b@example.com]).perform
@@ -163,7 +161,7 @@ RSpec.describe AutomationRules::ContactUpdatedService do
   end
 
   it 'keeps separate quotas for different accounts' do
-    ::Redis::Alfred.set("automation:contact_updated:daily:#{create(:account).id}:#{Time.zone.today}", 200, ex: 2.days.to_i)
+    Redis::Alfred.set("automation:contact_updated:daily:#{create(:account).id}:#{Time.zone.today}", 200, ex: 2.days.to_i)
 
     service.perform
 
@@ -179,14 +177,14 @@ RSpec.describe AutomationRules::ContactUpdatedService do
 
   it 'does not simulate the contact event or touch execution ledgers' do
     simulation = AutomationRules::SimulationService.new(account: account, conversation: conversation, event_name: 'contact_updated')
-    allow(::Redis::Alfred).to receive(:set).and_call_original
-    allow(::Redis::Alfred).to receive(:incr).and_call_original
+    allow(Redis::Alfred).to receive(:set).and_call_original
+    allow(Redis::Alfred).to receive(:incr).and_call_original
 
     expect(simulation.perform.evaluated_count).to eq(0)
     expect(simulation.perform.matches).to be_empty
     expect(AutomationRules::ActionService).not_to have_received(:new)
-    expect(::Redis::Alfred).not_to have_received(:set)
-    expect(::Redis::Alfred).not_to have_received(:incr)
+    expect(Redis::Alfred).not_to have_received(:set)
+    expect(Redis::Alfred).not_to have_received(:incr)
   end
 
   it 'dispatches the action actor and prevents another contact rule from running after Current resets' do
@@ -214,7 +212,7 @@ RSpec.describe AutomationRules::ContactUpdatedService do
 
   it 'runs active account rules in ascending ID order through the listener' do
     second = create(:automation_rule, account: account, event_name: 'contact_updated', conditions: [condition],
-                                     actions: [{ action_name: 'change_priority', action_params: ['urgent'] }])
+                                      actions: [{ action_name: 'change_priority', action_params: ['urgent'] }])
     create(:automation_rule, account: account, event_name: 'contact_updated', conditions: [condition], active: false)
     event = Events::Base.new('contact.updated', Time.current, contact: contact, changed_attributes: changes)
 
