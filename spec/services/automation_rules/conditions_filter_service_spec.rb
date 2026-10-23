@@ -65,7 +65,7 @@ RSpec.describe AutomationRules::ConditionsFilterService do
       [['2026-10-26 14:00:00 UTC', true], ['2026-10-26 23:00:00 UTC', false],
        ['2026-10-25 15:00:00 UTC', false]].each do |time, working|
         it "uses the inbox timezone and schedule at #{time}" do
-          travel_to(Time.parse(time)) do
+          travel_to(Time.zone.parse(time)) do
             expect(described_class.new(rule, conversation).evaluate).to eq(!working)
             rule.conditions = [condition.merge('values' => [true])]
             expect(described_class.new(rule, conversation).evaluate).to eq(working)
@@ -87,7 +87,7 @@ RSpec.describe AutomationRules::ConditionsFilterService do
       let(:key) { 'captain_state' }
       let(:value) { 'none' }
 
-      ['none', 'ai', 'escalated'].each do |state|
+      %w[none ai escalated].each do |state|
         it "distinguishes #{state} using the conversation state" do
           if state == 'ai'
             # Represent Captain ownership without requiring an Enterprise assistant in the OSS evaluator spec.

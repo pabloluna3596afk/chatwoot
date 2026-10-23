@@ -92,9 +92,7 @@ class AutomationRules::ConditionValidationService
 
   def computed_condition_error(condition, filter)
     key = condition['attribute_key']
-    unless filter['filter_operators'].include?(condition['filter_operator'])
-      return "The filter operator is not supported for #{key}."
-    end
+    return "The filter operator is not supported for #{key}." unless filter['filter_operators'].include?(condition['filter_operator'])
 
     allowed = if filter['values_catalog'] == 'channel_type'
                 Conversations::ChannelType::AUTOMATION_VALUES

@@ -41,8 +41,8 @@ RSpec.describe Automations::TimeBasedRuleRunner do
   end
 
   describe 'computed conversation conditions' do
-    { 'channel_type' => ['web_widget', 'whatsapp'], 'within_business_hours' => [true, false],
-      'captain_state' => ['none', 'ai'] }.each do |key, (matching, missing)|
+    { 'channel_type' => %w[web_widget whatsapp], 'within_business_hours' => [true, false],
+      'captain_state' => %w[none ai] }.each do |key, (matching, missing)|
       it "applies #{key} before claiming and executing a time-triggered rule" do
         conversation = create(:conversation, account: account, inbox: inbox, custom_attributes: { 'fecha_cita' => Date.current.iso8601 })
         rule = create(:automation_rule, account: account, event_name: 'time_triggered',

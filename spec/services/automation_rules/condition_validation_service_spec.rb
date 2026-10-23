@@ -71,7 +71,8 @@ RSpec.describe AutomationRules::ConditionValidationService do
         end
       end
 
-      %w[is_present is_not_present contains attribute_changed].each do |operator|
+      invalid_operators = %w[is_present is_not_present contains attribute_changed]
+      invalid_operators.each do |operator|
         it "rejects #{operator} for #{key}" do
           rule.conditions = [{ 'attribute_key' => key, 'filter_operator' => operator, 'values' => [value] }]
           expect(rule).not_to be_valid

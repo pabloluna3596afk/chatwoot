@@ -19,10 +19,12 @@ describe AutomationRuleListener do
   describe 'computed conversation conditions' do
     before { allow(AutomationRules::ConditionsFilterService).to receive(:new).and_call_original }
 
+    shared_values = { 'channel_type' => 'web_widget', 'within_business_hours' => true, 'captain_state' => 'none' }
+
     %w[conversation_created conversation_updated conversation_opened conversation_resolved message_created].each do |event_name|
       it "evaluates the shared conditions for #{event_name}" do
         message = create(:message, conversation: conversation, account: account, message_type: :incoming)
-        conditions = { 'channel_type' => 'web_widget', 'within_business_hours' => true, 'captain_state' => 'none' }.map do |key, value|
+        conditions = shared_values.map do |key, value|
           { attribute_key: key, filter_operator: 'equal_to', values: [value], query_operator: 'AND' }
         end
         conditions.last[:query_operator] = nil
