@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_22_130000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_23_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -329,6 +329,21 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_22_130000) do
     t.index ["conversation_id"], name: "index_automation_rule_pending_executions_on_conversation_id"
     t.index ["status", "due_at"], name: "index_automation_rule_pending_executions_on_status_and_due_at"
     t.index ["status", "updated_at"], name: "index_automation_pending_executions_on_status_and_updated_at"
+  end
+
+  create_table "automation_rule_runs", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "automation_rule_id", null: false
+    t.bigint "conversation_id"
+    t.bigint "contact_id"
+    t.string "event_name"
+    t.string "outcome", null: false
+    t.string "reason"
+    t.jsonb "details", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.index ["account_id", "created_at"], name: "index_automation_rule_runs_on_account_id_and_created_at"
+    t.index ["account_id"], name: "index_automation_rule_runs_on_account_id"
+    t.index ["automation_rule_id", "created_at"], name: "index_automation_rule_runs_on_automation_rule_id_and_created_at"
   end
 
   create_table "automation_rules", force: :cascade do |t|
