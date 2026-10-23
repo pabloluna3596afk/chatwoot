@@ -11,6 +11,24 @@ RSpec.describe Conversations::ReopenSnoozedConversationsJob do
   end
 
   context 'when called' do
+    it 'reopens an automation snooze at its deadline and clears the date' do
+      conversation = create(:conversation)
+      rule = create(:automation_rule, account: conversation.account,
+                                      actions: [{ action_name: 'snooze_conversation', action_params: { duration: 3, unit: 'days' } }])
+
+      travel_to(Time.zone.local(2026, 10, 23, 12)) do
+        AutomationRules::ActionService.new(rule, conversation.account, conversation).perform
+        travel 3.days - 1.second
+        described_class.perform_now
+        expect(conversation.reload.status).to eq('snoozed')
+
+        travel 1.second
+        described_class.perform_now
+        expect(conversation.reload.status).to eq('open')
+        expect(conversation.snoozed_until).to be_nil
+      end
+    end
+
     it 'reopens snoozed conversations whose snooze until has passed' do
       described_class.perform_now
 

@@ -13,8 +13,13 @@ class ActionService
     record_business_rule_block!(e)
   end
 
-  def snooze_conversation(_params)
-    @conversation.snoozed!
+  def snooze_conversation(params)
+    snooze = Conversations::SnoozeParameters.new(params)
+    return @conversation.snoozed! if snooze.parameterless?
+
+    error = snooze.error
+    Rails.logger.error("[ActionService] rule_id=#{@rule&.id} conversation_id=#{@conversation.id}: #{error}") if error
+    @conversation.update!(status: :snoozed, snoozed_until: error ? nil : Time.current + snooze.duration)
   rescue ActiveRecord::RecordInvalid => e
     record_business_rule_block!(e)
   end
