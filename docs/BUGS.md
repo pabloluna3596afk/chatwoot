@@ -1,5 +1,19 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-194 — Cupo y ventana de automatizaciones solo tras elegibilidad y envío (2026-10-23)
+
+- Archivo: `app/services/automations/contact_based_rule_runner.rb`.
+- Causa: se reclamaba la ventana antes de resolver conversación y condiciones; el cupo usaba una comprobación
+  separada del incremento y contaba incluso acciones que no enviaban mensajes.
+- Arreglo: resolver y evaluar antes de reservar con `ProactiveSendCap#reserve!`; reclamar la ventana con NX,
+  devolver la reserva si ya tiene dueño y liberar cupo/ventana propios cuando no aparece un mensaje público saliente.
+  Las excepciones de la acción se registran por regla/contacto y el lote continúa. La pausa por cupo conserva su comportamiento.
+- Asincronía: mensajes y adjuntos con demora, macros, flujos y transcripciones de correo conservan cupo/ventana
+  de forma conservadora; no se puede verificar el mensaje futuro al terminar la acción.
+- Verificación: `spec/services/automations/contact_based_rule_runner_spec.rb` cubre dos corridas, condiciones que cambian
+  (once/yearly), etiquetas, notas privadas, envío múltiple, fallos, cupo agotado, demoras y conteo de candidatos.
+  RSpec y RuboCop quedan pendientes del PM en Docker según `.codex/BRIEF-LIMITES.md`. Sin migraciones.
+
 ### B-NEW-193 — Simulación de automatizaciones sin efectos laterales (2026-10-23)
 
 - Archivos: `app/services/automation_rules/{conditions_filter_service,condition_validation_service,simulation_service}.rb`
