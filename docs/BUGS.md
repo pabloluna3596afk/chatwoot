@@ -2938,3 +2938,18 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
   Revisión estática y `git diff --check`; RSpec y RuboCop pendientes del PM en Docker según el brief.
 - Sin migraciones, frontend ni cambios en las condiciones de elegibilidad del motor. Informe local: `tmp/PR-ORDEN.md`.
 
+### B-NEW-197 — Posponer automatizaciones con duración (2026-10-23)
+
+- Archivos: `app/services/action_service.rb`, `app/services/conversations/snooze_parameters.rb`
+  y `app/services/automation_rules/action_validation_service.rb`.
+- Causa: `snooze_conversation` ignoraba parámetros y no establecía una fecha de reapertura.
+- Arreglo: duración entera positiva en minutos, horas o días, hasta el equivalente a 365 días;
+  hash directo o primer elemento de una lista. Validación compartida al guardar reglas y al ejecutar.
+  Sin parámetros se conserva la transición anterior; parámetros inválidos en ejecución dejan la
+  conversación pospuesta sin fecha y registran el error con el id de la regla y la conversación.
+  Macros y flujos heredan el comportamiento. El callback, el job de reapertura y la actividad existente se conservan.
+- Verificación: specs de `AutomationRules::ActionValidationService`, `AutomationRules::ActionService`,
+  `Macros::ExecutionService`, `Flows::ActionService` y `Conversations::ReopenSnoozedConversationsJob`.
+  Incluyen límites equivalentes por unidad, compatibilidad, `travel_to`, fallback y reapertura al vencer.
+  Revisión estática y `git diff --check`; RSpec y RuboCop pendientes del PM en Docker según el brief.
+  Sin migraciones ni cambios de frontend o i18n.
