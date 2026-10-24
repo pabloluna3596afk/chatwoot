@@ -1,5 +1,12 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-220 ? Nombre, foco y altura de las ventanas emergentes (UI-13)
+
+- **Problema:** los di?logos no asociaban sus t?tulos y descripciones; los paneles laterales y las ventanas m?viles no imped?an llegar al fondo con el teclado. Los campos del di?logo se montaban despu?s de elegir el foco inicial.
+- **Cambio:** `components-next/dialog/Dialog.vue`, `side-panel/SidePanel.vue` y `popover/Popover.vue` comparten la modalidad nativa del navegador. Se asocian nombres y descripciones, se conserva el cierre durante una petici?n pendiente y los selectores permanecen dentro del di?logo. La altura usa la ventana din?mica y respeta el ?rea segura; los botones comunes alcanzan 44 px en m?vil. El alta de escenarios reutiliza Dialog y conserva el borrador ante errores.
+- **Verificaci?n:** pruebas de las bases, selectores, persistencia Captain, Plantillas y Reportes; Chromium con retorno del foco, Tab contenido y Esc del selector antes que el di?logo. Capturas pareadas de las bases a 390 ? 844 y 1280 ? 900; simulaci?n de teclado a 390 ? 500. La autoevaluaci?n local detalla las suites bloqueadas por dependencias, la comprobaci?n pendiente en tel?fono y el cambio de presentaci?n del piloto Captain en escritorio.
+- **Archivos:** `app/javascript/dashboard/helper/overlayFocus.js`, las tres bases citadas, `combobox/ComboBox.vue`, consumidores con encabezado propio y sus pruebas. Sin cambios de servidor ni migraciones.
+
 ### B-NEW-210 — Reactividad de VueUse distinta entre Vitest local y CI (UI-09g)
 
 - Archivos: `vitest.config.ts` y `InternalTasks/specs/TaskDetailHeader.spec.js`.
