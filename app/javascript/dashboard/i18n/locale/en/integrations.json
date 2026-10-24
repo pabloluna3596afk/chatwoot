@@ -455,6 +455,13 @@
     }
   },
   "CAPTAIN": {
+    "PERSISTENCE": {
+      "DELETE_TITLE": "Delete selected items?",
+      "DELETE_DESCRIPTION": "You are about to delete {count} items. This action cannot be undone.",
+      "PARTIAL_DELETE": "Deleted: {succeeded}. Could not delete: {failed}. Try again to delete only the remaining items.",
+      "DELETE_SINGLE_TITLE": "Delete selected item?",
+      "DELETE_SINGLE_DESCRIPTION": "You are about to delete 1 item. This action cannot be undone."
+    },
     "ASSIGNMENT": {
       "GENERAL": "Captain",
       "DELETED": "Captain (deleted)",

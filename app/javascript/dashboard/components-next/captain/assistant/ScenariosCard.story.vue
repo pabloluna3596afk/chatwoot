@@ -34,6 +34,7 @@ const sampleScenarios = [
       >
         <ScenariosCard
           :id="scenario.id"
+          :on-update="async () => true"
           :title="scenario.title"
           :description="scenario.description"
           :instruction="scenario.instruction"

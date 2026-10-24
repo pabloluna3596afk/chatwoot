@@ -8,6 +8,11 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  padding: {
+    type: String,
+    default: 'default',
+    validator: value => ['default', 'compact'].includes(value),
+  },
 });
 
 const emit = defineEmits(['click']);
@@ -22,10 +27,14 @@ const handleClick = () => {
     class="flex flex-col w-full outline-1 outline outline-n-container -outline-offset-1 group/cardLayout rounded-xl bg-n-solid-2"
   >
     <div
-      class="flex w-full gap-3 py-5"
+      class="flex w-full gap-3"
       :class="[
         layout === 'col' ? 'flex-col' : 'flex-row justify-between items-center',
-        selectable ? 'px-10 py-6' : 'px-6',
+        selectable
+          ? 'px-10 py-6'
+          : padding === 'compact'
+            ? 'px-4 py-4'
+            : 'px-6 py-5',
       ]"
       @click="handleClick"
     >

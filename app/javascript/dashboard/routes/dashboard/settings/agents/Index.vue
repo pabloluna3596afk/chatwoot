@@ -15,6 +15,14 @@ import EditAgent from './EditAgent.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
+import ListCard from 'dashboard/components-next/ListCard/ListCard.vue';
+import InfoChip from 'dashboard/components-next/ListCard/InfoChip.vue';
+
+const AVAILABILITY_CLASSES = {
+  online: 'bg-n-teal-10',
+  busy: 'bg-n-amber-10',
+  offline: 'bg-n-slate-9',
+};
 
 const getters = useStoreGetters();
 const store = useStore();
@@ -74,6 +82,14 @@ const getAgentRolePermissions = agent => {
   return customRole?.permissions || [];
 };
 
+const getAgentRoleDescription = agent =>
+  [
+    getAgentRoleName(agent),
+    ...getAgentRolePermissions(agent).map(permission =>
+      t(`CUSTOM_ROLE.PERMISSIONS.${permission.toUpperCase()}`)
+    ),
+  ].join(', ');
+
 const verifiedAdministrators = computed(() => {
   return agentList.value.filter(
     agent => agent.role === 'administrator' && agent.confirmed
@@ -129,6 +145,34 @@ const closeDeletePopup = () => {
   showDeletePopup.value = false;
 };
 
+const getAgentMenuItems = agent => [
+  ...(showEditAction(agent)
+    ? [
+        {
+          action: 'edit',
+          label: t('AGENT_MGMT.EDIT.BUTTON_TEXT'),
+          icon: 'i-lucide-pencil',
+          disabled: !!loading.value[agent.id],
+        },
+      ]
+    : []),
+  ...(showDeleteAction(agent)
+    ? [
+        {
+          action: 'delete',
+          label: t('AGENT_MGMT.DELETE.BUTTON_TEXT'),
+          icon: 'i-lucide-trash',
+          disabled: !!loading.value[agent.id],
+        },
+      ]
+    : []),
+];
+
+const handleAgentAction = (agent, { action }) => {
+  if (action === 'edit') openEditPopup(agent);
+  if (action === 'delete') openDeletePopup(agent);
+};
+
 const deleteAgent = async id => {
   try {
     await store.dispatch('agents/delete', id);
@@ -181,99 +225,48 @@ const confirmDeletion = () => {
       >
         {{ $t('AGENT_MGMT.NO_RESULTS') }}
       </span>
-      <div v-else class="divide-y divide-n-weak border-t border-n-weak">
-        <div
-          v-for="(agent, index) in filteredAgentList"
-          :key="agent.email"
-          class="flex justify-between flex-row items-start gap-4 py-4"
+      <div v-else class="flex min-w-0 flex-col gap-3">
+        <ListCard
+          v-for="agent in filteredAgentList"
+          :key="agent.id"
+          :title="agent.name"
+          :subtitle="agent.email"
+          :menu-items="getAgentMenuItems(agent)"
+          @action="handleAgentAction(agent, $event)"
         >
-          <div class="flex items-center gap-4">
-            <Avatar
-              :src="agent.thumbnail"
-              :name="agent.name"
-              :status="agent.availability_status"
-              :size="40"
-              hide-offline-status
-            />
-            <div class="flex flex-col gap-1.5 items-start">
-              <span class="block text-heading-3 text-n-slate-12 capitalize">
-                {{ agent.name }}
+          <template #avatar>
+            <Avatar :src="agent.thumbnail" :name="agent.name" :size="40">
+              <template #badge>
+                <span
+                  :title="
+                    $t(
+                      `PROFILE_SETTINGS.FORM.AVAILABILITY.STATUS.${agent.availability_status.toUpperCase()}`
+                    )
+                  "
+                  class="absolute bottom-0 end-0 z-20 size-3 rounded-full ring-2 ring-n-solid-2 dark:ring-n-solid-3"
+                  :class="AVAILABILITY_CLASSES[agent.availability_status]"
+                  data-agent-availability
+                />
+              </template>
+            </Avatar>
+          </template>
+          <template #chips>
+            <InfoChip>
+              <span class="truncate" :title="getAgentRoleDescription(agent)">
+                {{ getAgentRoleName(agent) }}
               </span>
-              <div class="flex items-center gap-2">
-                <span class="text-body-main text-n-slate-11">
-                  {{ agent.email }}
-                </span>
-                <div class="w-px h-3 bg-n-strong rounded-lg" />
-                <span
-                  class="block w-fit text-body-main text-n-slate-11 relative"
-                  :class="{
-                    'hover:text-n-slate-12 group cursor-pointer':
-                      agent.custom_role_id,
-                  }"
-                >
-                  {{ getAgentRoleName(agent) }}
-
-                  <div
-                    class="absolute ltr:left-0 rtl:right-0 z-10 hidden w-[300px] bg-n-alpha-3 backdrop-blur-[100px] rounded-xl outline outline-1 outline-n-container shadow-lg top-14 md:top-12"
-                    :class="{ 'group-hover:block': agent.custom_role_id }"
-                  >
-                    <div class="flex flex-col gap-1 p-4">
-                      <span class="text-heading-3 text-n-slate-12">
-                        {{ $t('AGENT_MGMT.LIST.AVAILABLE_CUSTOM_ROLE') }}
-                      </span>
-                      <ul class="ltr:pl-4 rtl:pr-4 mb-0 list-disc">
-                        <li
-                          v-for="permission in getAgentRolePermissions(agent)"
-                          :key="permission"
-                          class="text-body-main text-n-slate-11"
-                        >
-                          {{
-                            $t(
-                              `CUSTOM_ROLE.PERMISSIONS.${permission.toUpperCase()}`
-                            )
-                          }}
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </span>
-                <div class="w-px h-3 bg-n-strong rounded-lg" />
-                <span
-                  v-if="agent.confirmed"
-                  class="text-body-main text-n-slate-11"
-                >
-                  {{ $t('AGENT_MGMT.LIST.VERIFIED') }}
-                </span>
-                <span
-                  v-if="!agent.confirmed"
-                  class="text-body-main text-n-slate-11"
-                >
-                  {{ $t('AGENT_MGMT.LIST.VERIFICATION_PENDING') }}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div class="flex justify-end gap-3">
-            <Button
-              v-if="showEditAction(agent)"
-              v-tooltip.top="$t('AGENT_MGMT.EDIT.BUTTON_TEXT')"
-              icon="i-woot-edit-pen"
-              slate
-              sm
-              @click="openEditPopup(agent)"
-            />
-            <Button
-              v-if="showDeleteAction(agent)"
-              v-tooltip.top="$t('AGENT_MGMT.DELETE.BUTTON_TEXT')"
-              icon="i-woot-bin"
-              slate
-              sm
-              class="hover:enabled:text-n-ruby-11 hover:enabled:bg-n-ruby-2"
-              :is-loading="loading[agent.id]"
-              @click="openDeletePopup(agent, index)"
-            />
-          </div>
-        </div>
+            </InfoChip>
+            <InfoChip :tone="agent.confirmed ? 'success' : 'warning'">
+              {{
+                $t(
+                  agent.confirmed
+                    ? 'AGENT_MGMT.LIST.VERIFIED'
+                    : 'AGENT_MGMT.LIST.VERIFICATION_PENDING'
+                )
+              }}
+            </InfoChip>
+          </template>
+        </ListCard>
       </div>
     </template>
 

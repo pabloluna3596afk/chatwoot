@@ -95,9 +95,13 @@ defineExpose({ refreshCounts, refresh });
   <div
     v-if="showTaskList"
     class="flex flex-col flex-shrink-0 h-full min-h-0 conversations-list-wrap bg-n-surface-1 relative"
-    :class="isOnExpandedLayout ? 'basis-full' : 'w-[340px] 2xl:w-[412px]'"
+    :class="
+      isOnExpandedLayout ? 'flex-1 w-full' : 'w-[21.25rem] 2xl:w-[25.75rem]'
+    "
   >
-    <div class="flex items-center justify-between gap-2 px-3 h-[3.25rem]">
+    <div
+      class="flex flex-wrap items-center justify-between gap-2 px-3 min-h-[3.25rem] py-1 md:py-0 shrink-0"
+    >
       <div class="flex items-center min-w-0">
         <h1 class="text-base font-medium truncate text-n-slate-12">
           {{ $t('INTERNAL_TASKS.INBOX.TITLE') }}
@@ -113,7 +117,7 @@ defineExpose({ refreshCounts, refresh });
           {{ statusChipLabel }}
         </span>
       </div>
-      <div class="flex items-center gap-1 shrink-0">
+      <div class="flex flex-wrap items-center gap-1 min-w-0">
         <TaskListStatusFilter
           v-model="statusFilter"
           :is-on-expanded-layout="isOnExpandedLayout"

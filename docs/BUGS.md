@@ -1,5 +1,21 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-210 — Reactividad de VueUse distinta entre Vitest local y CI (UI-09g)
+
+- Archivos: `vitest.config.ts` y `InternalTasks/specs/TaskDetailHeader.spec.js`.
+- Causa: VueUse externalizado usa otro runtime de Vue que los componentes con el alias
+  `vue/dist/vue.esm-bundler.js`. El clic sí cambia `reassignOpen` a true, pero no dispara render;
+  esperar con `vi.waitFor` no lo resuelve. Un render forzado de diagnóstico muestra el panel,
+  y el cierre posterior también queda sin renderizar. No es un cierre por clic exterior.
+- Arreglo: procesar `@vueuse/core`, `@vueuse/shared` y `@vueuse/components` en Vitest para
+  compartir el runtime aliased, igual que ya hacía la configuración local. Comprobar apertura
+  inmediatamente después del tick de `trigger`, sin espera por timeout ni render forzado.
+- Verificación: reproducción roja sin inlining; cinco repeticiones verdes con threads, sin caché
+  ni coverage y CI=true; los 7 casos de InternalTasks y routes/dashboard/tasks pasan en UTC y
+  America/Guayaquil, con configuración local y con la base más la excepción de filesystem del
+  worktree. ESLint pasa. Evidencia y límites en `tmp/PR-UI-09g.md`.
+- Sin cambios de UI, backend, contratos, ACL ni migraciones; UI-09f conserva sus portales reales.
+
 ### B-NEW-205 — Catálogos existentes sin registrar en el dashboard (UI-01)
 
 - Archivos: `app/javascript/dashboard/i18n/locale/{en,es}/index.js`.
@@ -1754,6 +1770,14 @@ toolbar del mensaje se desbordaba; sin categoría.
 **Cómo probar:** lista toggle activo; editar categoría; Exit rules no tapa canvas;
 configurar botones sin scroll infinito de delay doble.
 
+### B-NEW-206 — Captain: persistencia confirmada y borrado seguro (2026-10-24)
+
+- Archivos: `components-next/captain/assistant/{AddNewRulesDialog,AddNewRulesInput,AddNewScenariosDialog,RuleCard,ScenariosCard}.vue`, páginas de pautas, límites y escenarios, wrappers de borrado de Captain y Campañas, `dialog/Dialog.vue` y `reports/panels/Edit.vue`.
+- Causa: altas y ediciones limpiaban o cerraban el diálogo antes de saber si el servidor había guardado; un 422 o un fallo de red hacía perder el borrador. «Agregar todos» ocultaba las sugerencias sin esperar el guardado y el borrado no pedía confirmación en todos los puntos.
+- Arreglo: altas y ediciones esperan el resultado; solo el éxito limpia o cierra y el fallo conserva el borrador. Mientras hay una petición pendiente se bloquean los envíos repetidos. El borrado individual y por lote pide confirmación y los errores conservan el contexto. Escenarios usa `allSettled`, informa cuántos se borraron y reintenta solo los fallidos. Pautas y límites guardan su lista en una sola petición.
+- Cómo probar: provocar un 422 o un corte de red al crear o editar y reintentar; cancelar un borrado (no debe enviar nada); confirmar dos veces durante la espera; en un lote, rechazar un solo ID y comprobar que el reintento no vuelve a borrar los que ya se borraron.
+- Specs: `assistant/Persistence.spec.js`, `assistants/Persistence.spec.js`, `pageComponents/DeletePersistence.spec.js`, `dialog/Dialog.spec.js` y `panels/specs/Edit.spec.js`. Sin backend ni migraciones. Los textos nuevos de borrado quedan en inglés hasta sincronizar con Crowdin.
+
 ### B-NEW-25 — Flows: acciones montadas + dropdown roto en inspector
 
 **Síntoma:** Acciones del paso se veían apiladas sin número/borde; al abrir el
@@ -1805,6 +1829,13 @@ sin definir, y `useAgentsList.js` sin imports de `vue` / `vue-i18n`.
 **Fix:** definir computeds + `UNREAD_COUNT_FOR_FILTERS` en featureFlags + imports.
 
 **Deploy:** merge PR + GHCR rebuild (assets en imagen).
+
+### B-NEW-207 — Búsqueda y encabezados disponibles en móvil (2026-10-24)
+
+- Archivos: `settings/components/BaseSettingsHeader.vue`, `components-next/Campaigns/CampaignLayout.vue`, `settings/reports/components/ReportHeader.vue` y `settings/agents/Index.vue` bajo `app/javascript/dashboard/`.
+- Causa: la búsqueda estaba oculta bajo `sm`, los grupos de botones no se envolvían, el botón de campañas tenía altura fija y texto truncado, y las acciones de cada fila de Agentes se salían de la pantalla.
+- Arreglo: búsqueda visible con nombre accesible, grupos que se envuelven, títulos y acciones en varias líneas, y la fila de Agentes con el correo y el rol envueltos y los botones siempre dentro de la pantalla. Los estilos del encabezado de informes solo alcanzan al botón directo, no al menú de descarga. Se conservan modelos, slots, permisos y eventos.
+- Verificación: specs de `BaseSettingsHeader`, `CampaignLayout` y `ReportHeader`; páginas reales de Agentes, Macros, Etiquetas, Campañas e Informes a 390 y 1280 px en claro y oscuro. Sin backend ni migraciones.
 
 ### B-NEW-30 — `toggle_status` 500 (resolve / reopen / pending / snooze)
 
@@ -1884,6 +1915,13 @@ tiempo siguen solo en **Automations** (`time_triggered`), no en Business rules.
 **Cómo probar:** form Cuando/Entonces; categoría Venta exige keys nuevas;
 resolve modal; pending con require_reason. Local: `--build`.
 
+### B-NEW-211 — Rangos de fecha utilizables en el teléfono (2026-10-24)
+
+- Archivos: `components/ui/DatePicker/DatePicker.vue` y sus componentes de calendario, bajo `app/javascript/dashboard/`.
+- Causa: panel fijo de 880 px con dos calendarios, que quedaba fuera de la pantalla en móvil.
+- Arreglo: bajo `lg` el selector se muestra como diálogo con un calendario, atajos plegables, borrador con Aplicar y Cancelar y controles de 44 px. Escritorio conserva dos calendarios, no cambia el cálculo de fechas ni los datos que reciben los seis consumidores. Pulsar el disparador abierto en escritorio vuelve a aplicar el borrador, y las etiquetas accesibles de los días usan el idioma de la aplicación.
+- Verificación: `DatePicker/specs/{DatePicker,DatePickerConsumers,DatePickerResponsive}.spec.js` y `CalendarWeek.spec.js`, más las suites de informes y auditoría en UTC y America/Guayaquil. Capturas reales a 390 y 1280 px, antes y después. Sin backend, migraciones ni claves de traducción nuevas.
+
 ### B-NEW-33 — Dialog Business rules: clic en filtro guardaba la regla
 
 **Causa:** `Dialog` usa `<form @submit>` y `MultiSelect` / trash / “Añadir
@@ -1943,6 +1981,13 @@ válido → la regla nunca pedía humano. Backend ya miraba `assignee_id` (User)
 bloquea hasta asignar humano/equipo. Contacto sin agente → abrir selector →
 lista legible opaca.
 
+### B-NEW-209 — Panel activo de tareas a ancho completo en el teléfono (2026-10-24)
+
+- Archivos: `routes/dashboard/tasks/TaskView.vue` y `components-next/InternalTasks/{TaskList,TaskKanban,TaskDetail,TaskDetailHeader,TaskListTeamFilter,TaskListStatusFilter}.vue`, bajo `app/javascript/dashboard/`.
+- Causa: la lista fija de 340 px quedaba junto al detalle o el tablero en el teléfono, dejando la tarea fuera del área visible. Además, los menús de equipo y agente del panel de reasignar se montaban en `body`, y el cierre por clic exterior desmontaba el panel antes de guardar.
+- Arreglo: bajo 768 px se alternan lista y tablero y al elegir una tarea solo se muestra el detalle con botón de retorno; los filtros se conservan. Los menús del panel de reasignar se montan dentro del propio panel. El tablero solo consulta al servidor cuando es visible y pospone la actualización mientras está oculto. Escritorio conserva sus paneles.
+- Verificación: `tasks/specs/TaskView.spec.js`, `InternalTasks/specs/TaskDetail.spec.js` y `TaskDetailHeader.spec.js`; capturas reales a 390 y 1280 px en ambos temas, con toques reales en el selector de reasignar. Sin backend, permisos ni migraciones.
+
 ### B-NEW-37 — Post-compra: atributo de fecha era texto libre
 
 **Causa:** `days_since_attribute` usaba `<input>` para `schedule.attribute_key`.
@@ -1956,6 +2001,13 @@ día calendario (`LEFT(..., 10)::date` en el runner).
 
 **Cómo probar:** Automations → time triggered / preset post-compra →
 dropdown lista fechas; datetime marcado; sin CAs de fecha → mensaje vacío.
+
+### B-NEW-213 — Listas de agentes en tarjeta responsiva (2026-10-24)
+
+- Archivos: `components-next/ListCard/{ListCard,InfoChip}.vue`, `components-next/CardLayout.vue` (nueva opción `padding`) y `settings/agents/Index.vue`, bajo `app/javascript/dashboard/`.
+- Causa: la lista de Agentes era una tabla armada a mano que se salía de la pantalla en el teléfono, con separadores «|» entre correo, rol y estado y dos botones por fila.
+- Arreglo: `ListCard` es tarjeta en móvil y fila compacta desde `md`, con avatar y punto de disponibilidad, subtítulo, chips de rol y verificación alineados en una columna fija a la derecha, y un menú ⋮ de 44 px con Editar y Eliminar que respeta los permisos y los diálogos existentes. El menú se abre hacia abajo y solo se voltea si no cabe. `CardLayout` admite `padding="compact"` sin cambiar a sus consumidores actuales.
+- Verificación: specs de `ListCard`, `InfoChip`, `CardLayout`, `dropdown-menu` y `settings/agents` en UTC y America/Guayaquil. Capturas reales a 390, 768 y 1280 px en claro y oscuro. Sin backend ni migraciones.
 
 ### B-NEW-38 — Automation: nota privada de auditoría al ejecutarse
 
