@@ -3123,3 +3123,14 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - Verificación: `DatePicker/specs/{DatePicker,DatePickerConsumers}.spec.js`, helpers existentes y suites de informes/auditoría
   en UTC y America/Guayaquil. Capturas y teclado real pendientes por navegador no disponible; detalle en `tmp/PR-UI-11.md`.
 - Sin backend, migraciones ni nuevas claves i18n.
+
+### B-NEW-212 — Regresiones del selector de rangos (UI-11f, 2026-10-24)
+
+- Archivos: `DatePicker/DatePicker.vue` y `DatePicker/components/CalendarWeek.vue` bajo `app/javascript/dashboard/components/ui/`.
+- Causa: mover clickaway al contenedor exterior dejó de aplicar el borrador al pulsar el disparador en escritorio;
+  las etiquetas accesibles de días usaban el idioma del navegador en lugar del idioma de la aplicación.
+- Arreglo: el disparador abierto en escritorio reutiliza `closeDatePicker`; cada día utiliza el locale reactivo de i18n.
+- Verificación: regresiones en `DatePicker/specs/DatePicker.spec.js` (disparador y clic externo con directiva real),
+  `CalendarWeek.spec.js` (español → inglés) y `DatePickerResponsive.spec.js` (390/1023/1024/1280 simulados).
+  Suites del selector, informes y auditoría en UTC y America/Guayaquil; capturas y medición real pendientes por navegador no disponible.
+  Informe de correcciones: `tmp/PR-UI-11f.md`. Sin backend, migraciones ni nuevas claves i18n.
