@@ -1,10 +1,9 @@
 <script setup>
 import { ref } from 'vue';
-import { useToggle } from '@vueuse/core';
-import { vOnClickOutside } from '@vueuse/components';
 
 import Button from 'dashboard/components-next/button/Button.vue';
-import InlineInput from 'dashboard/components-next/inline-input/InlineInput.vue';
+import Input from 'dashboard/components-next/input/Input.vue';
+import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 
 const props = defineProps({
   // Return true only after the mutation succeeds; events cannot be awaited.
@@ -34,62 +33,69 @@ const modelValue = defineModel({
   default: '',
 });
 
-const [showPopover, togglePopover] = useToggle();
+const dialogRef = ref(null);
 const onClickAdd = async () => {
   if (isSaving.value || !modelValue.value?.trim()) return;
   isSaving.value = true;
   try {
     if (await props.onAdd(modelValue.value.trim())) {
       modelValue.value = '';
-      togglePopover(false);
+      dialogRef.value.close();
     }
   } finally {
     isSaving.value = false;
   }
 };
-
-const onClickCancel = () => {
-  if (!isSaving.value) togglePopover(false);
-};
 </script>
 
 <template>
-  <div v-on-click-outside="onClickCancel" class="inline-flex relative">
+  <div class="inline-flex">
     <Button
       :label="buttonLabel"
       sm
       slate
-      class="flex-shrink-0"
+      class="flex-shrink-0 min-h-11 sm:min-h-0"
       :disabled="isSaving"
-      @click="togglePopover(!showPopover)"
+      @click="dialogRef.open()"
     />
-    <div
-      v-if="showPopover"
-      class="absolute w-[26.5rem] top-9 z-50 ltr:left-0 rtl:right-0 flex flex-col gap-5 bg-n-alpha-3 backdrop-blur-[100px] p-4 rounded-xl border border-n-weak shadow-md"
+    <Dialog
+      ref="dialogRef"
+      width="sm"
+      body-scroll
+      :title="buttonLabel"
+      :cancel-button-label="cancelLabel"
+      :confirm-button-label="confirmLabel"
+      :is-loading="isSaving"
+      :disable-confirm-button="!modelValue.trim()"
+      @confirm="onClickAdd"
     >
-      <InlineInput
+      <Input
         v-model="modelValue"
         :disabled="isSaving"
+        class="[&_input]:min-h-11 sm:[&_input]:min-h-0"
+        :label="buttonLabel"
         :placeholder="placeholder"
-        @keyup.enter="onClickAdd"
       />
-      <div class="flex gap-2 justify-between">
-        <Button
-          :label="cancelLabel"
-          sm
-          link
-          slate
-          class="h-10 hover:!no-underline"
-          @click="onClickCancel"
-        />
-        <Button
-          :label="confirmLabel"
-          sm
-          :is-loading="isSaving"
-          :disabled="isSaving"
-          @click="onClickAdd"
-        />
-      </div>
-    </div>
+      <template #footer>
+        <div class="flex items-center gap-3">
+          <Button
+            :label="cancelLabel"
+            variant="faded"
+            color="slate"
+            type="button"
+            class="w-full min-h-11 sm:min-h-0"
+            :disabled="isSaving"
+            @click="dialogRef.close()"
+          />
+          <Button
+            :label="confirmLabel"
+            type="submit"
+            class="w-full min-h-11 sm:min-h-0"
+            :is-loading="isSaving"
+            :disabled="isSaving || !modelValue.trim()"
+          />
+        </div>
+      </template>
+    </Dialog>
   </div>
 </template>

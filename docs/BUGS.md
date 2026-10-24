@@ -1,5 +1,15 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-231 — Menú de herramientas de Captain sobre el cursor y el pie (UI-10m)
+
+- Archivos: `components-next/captain/assistant/ToolsDropdown.vue` y `components/widgets/conversation/TagTools.vue` (dashboard).
+- Causa: el anclaje fijo `bottom-20` no seguía la línea escrita; el menú podía cubrirla y solaparse con Cancelar/Crear.
+- Arreglo: medir el rango del cursor, elegir el lado con más espacio antes del pie y limitar la altura con scroll propio.
+  El menú conserva MenuPopover, su contrato de slots y el portal dentro del diálogo nativo; sigue selección, scroll y resize.
+- Verificación: `ToolsDropdown.spec.js` cubre posición, altura, pie, scroll, teclado y selección; comprobar a 390/1280
+  escribiendo @ al final y a mitad de texto largo. Evidencia antes/después y mediciones: `tmp/PR-UI-10m.md`.
+- El defecto ya existía en develop a mitad del texto; la rama también cubría el pie. Sin backend ni migraciones.
+
 ### B-NEW-210 — Reactividad de VueUse distinta entre Vitest local y CI (UI-09g)
 
 - Archivos: `vitest.config.ts` y `InternalTasks/specs/TaskDetailHeader.spec.js`.
@@ -2084,6 +2094,13 @@ array (MultiSelect). `(expectedValues || []).map` falla si `values` es string.
 
 **Cómo probar:** conversación con business rules con condiciones → Resolver
 sin error en consola. Hard refresh tras redeploy (assets Vite).
+
+### B-NEW-214 — Altas y selectores Captain adaptables (2026-10-24)
+
+- Archivos: `components-next/captain/assistant/{AddNewScenariosDialog,AddNewRulesDialog,ToolsDropdown}.vue`, `captain/{PageLayout,pageComponents/switcher/AssistantSwitcher}.vue`, `HelpCenter/{HelpCenterLayout,PortalSwitcher/PortalSwitcher}.vue` y `components/widgets/{conversation/TagTools,WootWriter/Editor}.vue`, bajo `app/javascript/dashboard/`.
+- Causa: los paneles de ancho fijo y los menús extensos impedían alcanzar campos, herramientas y acciones en el teléfono.
+- Arreglo: altas con Dialog y cuerpo desplazable, acciones fuera del desplazamiento y campos con etiqueta; selectores con MenuPopover, búsqueda y acción de creación. Las herramientas se muestran dentro del diálogo nativo; Escape cierra primero el menú y conserva el editor. Se mantienen rutas, identificadores, idioma del portal y confirmación de persistencia.
+- Verificación: `assistant/{AddDialogs,Persistence,ToolsDropdown}.spec.js`, `switcher/AssistantSwitcher.spec.js` y `WootWriter/CaptainTools.spec.js`; abrir las altas a 390 y 1280 px, provocar un error y reintentar sin perder texto, recorrer las herramientas con flechas y Escape y crear desde una búsqueda sin resultados. Sin backend ni migraciones.
 
 ### B-NEW-46 — Modal resolve: cadena de reglas en el mismo paso
 

@@ -11,7 +11,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['selectTool']);
+const emit = defineEmits(['selectTool', 'close']);
 
 const tools = useMapGetter('captainTools/getRecords');
 
@@ -26,7 +26,7 @@ const filteredTools = computed(() => {
 const adjustScroll = () => {};
 
 const onSelect = idx => {
-  if (idx) selectedIndex.value = idx;
+  if (Number.isInteger(idx)) selectedIndex.value = idx;
   emit('selectTool', filteredTools.value[selectedIndex.value]);
 };
 
@@ -47,10 +47,10 @@ watch(filteredTools, newListOfTools => {
 <template>
   <ToolsDropdown
     v-if="filteredTools.length"
+    v-model:selected-index="selectedIndex"
     :items="filteredTools"
-    :selected-index="selectedIndex"
-    class="bottom-20"
     @select="onSelect"
+    @close="emit('close')"
   />
   <template v-else />
 </template>

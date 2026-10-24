@@ -3,10 +3,12 @@ vi.mock('dashboard/components-next/Editor/Editor.vue', () => ({
 }));
 vi.mock('@amplitude/analytics-browser', () => ({}));
 import { shallowMount } from '@vue/test-utils';
+import { nextTick } from 'vue';
 import AddNewRulesDialog from './AddNewRulesDialog.vue';
 import AddNewRulesInput from './AddNewRulesInput.vue';
 import AddNewScenariosDialog from './AddNewScenariosDialog.vue';
 import RuleCard from './RuleCard.vue';
+import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import ScenariosCard from './ScenariosCard.vue';
 
 vi.mock('shared/composables/useMessageFormatter', () => ({
@@ -25,8 +27,18 @@ describe.each([AddNewRulesDialog, AddNewRulesInput, AddNewScenariosDialog])(
             finish = resolve;
           })
       );
+      const close = vi.fn();
       const wrapper = shallowMount(Component, {
         props: { onAdd, modelValue: 'Draft' },
+        global: {
+          stubs: {
+            Dialog: {
+              props: ['isLoading'],
+              methods: { close, open: vi.fn() },
+              template: '<div><slot /></div>',
+            },
+          },
+        },
       });
       const vm = wrapper.vm;
       if (Component === AddNewScenariosDialog)
@@ -38,16 +50,24 @@ describe.each([AddNewRulesDialog, AddNewRulesInput, AddNewScenariosDialog])(
       if (vm.togglePopover) vm.togglePopover(true);
       const first = vm.onClickAdd();
       await vm.onClickAdd();
+      await nextTick();
       expect(onAdd).toHaveBeenCalledTimes(1);
       if (vm.onClickCancel) vm.onClickCancel();
       if (vm.showPopover !== undefined) expect(vm.showPopover).toBe(true);
+      if (wrapper.findComponent(Dialog).exists()) {
+        expect(wrapper.getComponent(Dialog).props('isLoading')).toBe(true);
+        expect(close).not.toHaveBeenCalled();
+      }
       finish(false);
       await first;
       expect(wrapper.emitted('update:modelValue')).toBeUndefined();
       if (vm.state) expect(vm.state.title).toBe('Draft');
       if (vm.showPopover !== undefined) expect(vm.showPopover).toBe(true);
+      expect(close).not.toHaveBeenCalled();
       onAdd.mockResolvedValue(true);
       await vm.onClickAdd();
+      if (wrapper.findComponent(Dialog).exists())
+        expect(close).toHaveBeenCalledOnce();
       if (vm.state) expect(vm.state.title).toBe('');
       else expect(wrapper.emitted('update:modelValue')).toEqual([['']]);
       if (vm.showPopover !== undefined) expect(vm.showPopover).toBe(false);
