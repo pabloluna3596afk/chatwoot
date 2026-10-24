@@ -49,7 +49,6 @@ watch(filteredTools, newListOfTools => {
     v-if="filteredTools.length"
     v-model:selected-index="selectedIndex"
     :items="filteredTools"
-    class="absolute bottom-20 start-0 w-full"
     @select="onSelect"
     @close="emit('close')"
   />

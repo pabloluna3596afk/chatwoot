@@ -1,5 +1,16 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-215 — Menú de herramientas de Captain sobre el cursor y el pie (UI-10m)
+
+- Archivos: `components-next/captain/assistant/ToolsDropdown.vue` y `components/widgets/conversation/TagTools.vue` (dashboard).
+- Causa: el anclaje fijo `bottom-20` no seguía la línea escrita; el menú podía cubrirla y solaparse con Cancelar/Crear.
+- Arreglo: medir el rango del cursor, elegir el lado con más espacio antes del pie y limitar la altura con scroll propio.
+  El menú conserva MenuPopover, su contrato de slots y el portal dentro del diálogo nativo; sigue selección, scroll y resize.
+- Verificación: `ToolsDropdown.spec.js` cubre posición, altura, pie, scroll, teclado y selección; comprobar a 390/1280
+  escribiendo @ al final y a mitad de texto largo. Evidencia antes/después y mediciones: `tmp/PR-UI-10m.md`.
+- El defecto ya existía en develop a mitad del texto; la rama también cubría el pie. Sin backend ni migraciones.
+
+
 ### B-NEW-205 — Catálogos existentes sin registrar en el dashboard (UI-01)
 
 - Archivos: `app/javascript/dashboard/i18n/locale/{en,es}/index.js`.
