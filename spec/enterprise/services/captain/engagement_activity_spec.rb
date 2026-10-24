@@ -5,6 +5,25 @@ RSpec.describe Captain::EngagementActivity do
   let(:assistant) { create(:captain_assistant, account: account, name: 'Aurora') }
   let(:conversation) { create(:conversation, account: account) }
 
+  describe 'shared channel labels' do
+    let(:locale) { 'en' }
+
+    it 'retains the existing Captain channel catalog including web and Twitter' do
+      expected = Conversations::ChannelType::CHANNELS.transform_values { |value| value == 'web_widget' ? 'web' : value }
+      expect(described_class::CHANNELS).to eq(expected)
+      expect(described_class::CHANNELS.fetch('Channel::TwitterProfile')).to eq('twitter')
+    end
+
+    it 'keeps the translated web label after sharing the channel resolver' do
+      conversation.update!(additional_attributes: {
+                             captain_skip_reason: { reason: 'audience_denied', condition: { attribute_key: 'phone_number' } }
+                           })
+      service = described_class.new(conversation, assistant)
+
+      expect(service.send(:channel_label)).to eq(I18n.t('captain.engagement.channels.web', locale: locale))
+    end
+  end
+
   diagnoses = {
     'audience_denied' => { 'attribute_key' => 'phone_number' },
     'audience_not_allowed' => { 'attribute_key' => 'email' },

@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe AutomationRules::ConditionValidationService do
-  let(:probe_operators) { %w[equal_to not_equal_to is_present is_not_present contains attribute_changed unsupported] }
+  let(:probe_operators) { %w[equal_to not_equal_to contains is_present is_not_present attribute_changed unsupported] }
 
   let(:account) { create(:account) }
   let(:rule) { build(:automation_rule, account: account, event_name: 'message_created') }
@@ -16,8 +16,10 @@ RSpec.describe AutomationRules::ConditionValidationService do
         rule.schedule = { kind: 'hours_since_last_incoming' } if rule.time_triggered?
         rule.conditions_attributes.each do |key|
           probe_operators.each do |operator|
-            rule.conditions = [{ 'attribute_key' => key, 'filter_operator' => operator }]
-            rule.conditions.first['values'] = [campaign.id] if key == 'campaign_id' && described_class::EQUALITY_OPERATORS.include?(operator)
+            filter = described_class::FILTERS['conversations'][key]
+            values = filter&.fetch('allowed_values', nil) || ['whatsapp']
+            rule.conditions = [{ 'attribute_key' => key, 'filter_operator' => operator, 'values' => [values.first] }]
+            rule.conditions.first['values'] = described_class::EQUALITY_OPERATORS.include?(operator) ? [campaign.id] : [] if key == 'campaign_id'
             supported = described_class.new(rule).perform
             evaluator = AutomationRules::ConditionsFilterService.new(rule, conversation)
 
@@ -27,6 +29,28 @@ RSpec.describe AutomationRules::ConditionValidationService do
         end
       end
       expect(rule.active).to be(true)
+    end
+
+    it 'registers every computed filter in the model and evaluator for every supported event' do
+      catalog = described_class::FILTERS.fetch('conversations').select { |_key, filter| filter['automation_only'] }
+      expect(catalog.keys).to contain_exactly('channel_type', 'within_business_hours', 'captain_state')
+      expect(rule.conditions_attributes).to include(*catalog.keys)
+
+      described_class::EVENTS.each do |event|
+        rule.event_name = event
+        catalog.each do |key, filter|
+          values = filter['allowed_values'] || Conversations::ChannelType::AUTOMATION_VALUES
+          values.each do |value|
+            filter['filter_operators'].each do |operator|
+              rule.conditions = [{ 'attribute_key' => key, 'filter_operator' => operator, 'values' => [value] }]
+              expect(described_class.new(rule).perform).to be(true), "#{event}/#{key}/#{operator}/#{value}"
+              evaluator = AutomationRules::ConditionsFilterService.new(rule, conversation)
+              expect(evaluator.evaluate).to be_in([true, false])
+              expect(evaluator.diagnostics).to be_empty
+            end
+          end
+        end
+      end
     end
 
     it 'includes campaign_id and takes its four operators from the existing conversation catalog' do
@@ -56,6 +80,33 @@ RSpec.describe AutomationRules::ConditionValidationService do
 
       expect(rule).to be_valid
       expect(AutomationRules::ConditionsFilterService.new(rule, conversation).rule_valid?).to be(true)
+    end
+  end
+
+  describe 'computed condition values' do
+    { 'channel_type' => 'whatsapp', 'within_business_hours' => true, 'captain_state' => 'ai' }.each do |key, value|
+      [nil, [], 'whatsapp', [value, value], {}].each do |values|
+        it "rejects malformed #{key} values #{values.inspect}" do
+          rule.conditions = [{ 'attribute_key' => key, 'filter_operator' => 'equal_to', 'values' => values }]
+          expect(rule).not_to be_valid
+          expect(rule.errors[:conditions].join).to include(key)
+        end
+      end
+
+      invalid_operators = %w[is_present is_not_present contains attribute_changed]
+      invalid_operators.each do |operator|
+        it "rejects #{operator} for #{key}" do
+          rule.conditions = [{ 'attribute_key' => key, 'filter_operator' => operator, 'values' => [value] }]
+          expect(rule).not_to be_valid
+          expect(rule.errors[:conditions].join).to include(key)
+        end
+      end
+    end
+
+    it 'only permits equal_to for within_business_hours' do
+      rule.conditions = [{ 'attribute_key' => 'within_business_hours', 'filter_operator' => 'not_equal_to', 'values' => [true] }]
+      expect(rule).not_to be_valid
+      expect(rule.errors[:conditions].join).to include('within_business_hours')
     end
   end
 

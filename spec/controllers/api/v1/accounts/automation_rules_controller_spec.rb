@@ -258,6 +258,38 @@ RSpec.describe 'Api::V1::Accounts::AutomationRulesController', type: :request do
         actions: [{ action_name: 'send_message', action_params: ['Hello'] }] }
     end
 
+    { 'channel_type' => ['unknown', 'twitter', nil, 1],
+      'within_business_hours' => ['false', 'true', nil, 0],
+      'captain_state' => ['unknown', nil, true] }.each do |key, values|
+      values.each do |value|
+        it "rejects #{key}=#{value.inspect} on create and update with a named 422 error" do
+          payload = valid_params.merge(conditions: [{ attribute_key: key, filter_operator: 'equal_to', values: [value] }])
+          headers = administrator.create_new_auth_token
+          existing_rule = rule
+
+          expect { post url, headers: headers, params: payload, as: :json }.not_to change(AutomationRule, :count)
+          expect(response).to have_http_status(:unprocessable_entity)
+          expect(response.parsed_body['error']['conditions'].first).to include(key)
+
+          patch "#{url}/#{existing_rule.id}", headers: headers, params: payload, as: :json
+          expect(response).to have_http_status(:unprocessable_entity)
+          expect(response.parsed_body['error']['conditions'].first).to include(key)
+          expect(existing_rule.reload.conditions).not_to eq(payload[:conditions].as_json)
+        end
+      end
+    end
+
+    { 'channel_type' => 'whatsapp', 'within_business_hours' => false, 'captain_state' => 'none' }.each do |key, value|
+      it "saves #{key} with its documented JSON value" do
+        payload = valid_params.merge(conditions: [{ attribute_key: key, filter_operator: 'equal_to', values: [value] }])
+
+        post url, headers: administrator.create_new_auth_token, params: payload, as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(account.automation_rules.last.conditions.first['values']).to eq([value])
+      end
+    end
+
     it 'saves campaign conditions using the internal campaign ID' do
       campaign = create(:campaign, account: account, inbox: inbox)
       conditions = [{ attribute_key: 'campaign_id', filter_operator: 'equal_to', values: [campaign.id] }]

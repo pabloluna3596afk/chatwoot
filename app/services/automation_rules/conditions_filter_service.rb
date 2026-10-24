@@ -13,8 +13,7 @@ class AutomationRules::ConditionsFilterService < FilterService
     @account = conversation.account
 
     # setup filters from json file
-    file = File.read('./lib/filters/filter_keys.yml')
-    @filters = YAML.safe_load(file)
+    @filters = AutomationRules::ConditionValidationService::FILTERS
 
     @conversation_filters = @filters['conversations']
     @contact_filters = @filters['contacts']
@@ -76,7 +75,9 @@ class AutomationRules::ConditionsFilterService < FilterService
     contact_filter = @contact_filters[query_hash['attribute_key']]
     message_filter = @message_filters[query_hash['attribute_key']]
 
-    if conversation_filter
+    if conversation_filter && conversation_filter['attribute_type'] == 'computed'
+      @query_string += computed_condition_query(query_hash, current_index)
+    elsif conversation_filter
       @query_string += conversation_query_string('conversations', conversation_filter, query_hash.with_indifferent_access, current_index)
     elsif contact_filter
       @query_string += contact_query_string(contact_filter, query_hash.with_indifferent_access, current_index)
@@ -174,6 +175,19 @@ class AutomationRules::ConditionsFilterService < FilterService
   end
 
   private
+
+  # Bind the result as a SQL boolean so computed conditions keep the same AND/OR precedence as existing filters.
+  def computed_condition_query(condition, index)
+    actual = case condition['attribute_key']
+             when 'channel_type' then Conversations::ChannelType.for(@conversation)
+             when 'within_business_hours' then !@conversation.inbox.out_of_office?
+             when 'captain_state' then @conversation.captain_state || 'none'
+             end
+    matches = condition['values'].include?(actual)
+    matches = !matches if condition['filter_operator'] == 'not_equal_to'
+    @filter_values["computed_#{index}"] = matches
+    " :computed_#{index} #{condition['query_operator']} "
+  end
 
   def build_conditions_query
     @attribute_changed_query_filter = []

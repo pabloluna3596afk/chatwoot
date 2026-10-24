@@ -15,6 +15,20 @@ RSpec.describe AutomationRules::SimulationService do
   end
 
   describe '#perform' do
+    { 'channel_type' => 'web_widget', 'within_business_hours' => true, 'captain_state' => 'none' }.each do |key, value|
+      context "with #{key}" do
+        let(:condition) { { 'attribute_key' => key, 'filter_operator' => 'equal_to', 'values' => [value] } }
+
+        it 'shares runtime evaluation and returns the matching rule without executing actions' do
+          expect(AutomationRules::ConditionsFilterService.new(rule, conversation).perform).to be(true)
+          result = nil
+          expect { result = simulation.perform }.not_to change(Message, :count)
+          expect(result.matches.map(&:rule_id)).to eq([rule.id])
+          expect(result.diagnostics).to be_empty
+        end
+      end
+    end
+
     context 'with campaign conditions' do
       let(:campaign) { create(:campaign, account: account) }
       let(:condition) do

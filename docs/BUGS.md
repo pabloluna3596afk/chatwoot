@@ -422,6 +422,23 @@ dos procesos simultáneos. El barrido automático no recupera movimientos de
 citas cuyo final local ya quedó más de un día atrás; un backfill histórico
 requeriría otro recorrido explícito. Evidencia: `tmp/PR-CITAS-6.md` (ignorado).
 
+### B-NEW-201 — Condiciones de automatización por canal, horario y estado de Captain (2026-10-23)
+
+- **Cambio:** `channel_type`, `within_business_hours` y `captain_state` comparten el catálogo de
+  `lib/filters/filter_keys.yml` entre modelo, validador y evaluador. Valores y operadores inv?lidos devuelven 422
+  con el nombre de la condición; `within_business_hours` acepta únicamente `equal_to` y booleanos JSON.
+- **Semántica:** resolver de canales común a automatizaciones y Captain (`Conversations::ChannelType`), incluidos
+  Twilio WhatsApp e Instagram vía Facebook; horario delegado a `Inbox#out_of_office?` con su zona horaria;
+  Captain delegado a `Conversation#captain_state`, con ausencia representada por `none`.
+- **Compatibilidad:** condiciones marcadas `automation_only`, excluidas de los filtros generales y segmentos.
+  Sin frontend, migraciones ni cambios en listeners/runners; simulación usa el mismo evaluador.
+- **Cómo probar:** reglas con cada condición y su inversa; horario activado/desactivado; estados `none`, `ai`,
+  `escalated`; guardar valores inv?lidos; simular y ejecutar por evento/tiempo. Specs ampliados en
+  `spec/services/automation_rules/`, `spec/services/automations/time_based_rule_runner_spec.rb`,
+  `spec/listeners/automation_rule_listener_spec.rb`, `spec/controllers/api/v1/accounts/automation_rules_controller_spec.rb`,
+  `spec/services/conversations/filter_service_spec.rb` y `spec/enterprise/services/captain/engagement_activity_spec.rb`.
+- **Verificación:** revisión estática; RSpec y RuboCop en Docker pendientes del PM según el brief. Sin push.
+
 ### B-NEW-085 — State OAuth de Calendar consumible una sola vez (CIT-29)
 
 **Archivos:** `app/helpers/google_calendar/integration_helper.rb`,

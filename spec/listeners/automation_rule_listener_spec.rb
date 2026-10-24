@@ -16,6 +16,31 @@ describe AutomationRuleListener do
     allow(action_service).to receive(:perform)
   end
 
+  describe 'computed conversation conditions' do
+    before { allow(AutomationRules::ConditionsFilterService).to receive(:new).and_call_original }
+
+    shared_values = { 'channel_type' => 'web_widget', 'within_business_hours' => true, 'captain_state' => 'none' }
+
+    %w[conversation_created conversation_updated conversation_opened conversation_resolved message_created].each do |event_name|
+      it "evaluates the shared conditions for #{event_name}" do
+        message = create(:message, conversation: conversation, account: account, message_type: :incoming)
+        conditions = shared_values.map do |key, value|
+          { attribute_key: key, filter_operator: 'equal_to', values: [value], query_operator: 'AND' }
+        end
+        conditions.last[:query_operator] = nil
+        rule = create(:automation_rule, account: account, event_name: event_name, conditions: conditions)
+        event = Events::Base.new(event_name, Time.current, conversation: conversation, message: message)
+
+        listener.public_send(event_name, event)
+        expect(AutomationRules::ActionService).to have_received(:new).with(rule, account, conversation).once
+
+        rule.update!(conditions: [{ attribute_key: 'channel_type', filter_operator: 'equal_to', values: ['whatsapp'] }])
+        listener.public_send(event_name, event)
+        expect(AutomationRules::ActionService).to have_received(:new).with(rule, account, conversation).once
+      end
+    end
+  end
+
   describe 'campaign conditions' do
     before do
       allow(AutomationRules::ConditionsFilterService).to receive(:new).and_call_original

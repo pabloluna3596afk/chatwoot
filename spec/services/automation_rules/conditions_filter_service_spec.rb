@@ -17,6 +17,114 @@ RSpec.describe AutomationRules::ConditionsFilterService do
     create(:conversation, account: account)
   end
 
+  describe 'computed conversation conditions' do
+    let(:inbox) { create(:inbox, account: account, enable_auto_assignment: false) }
+    let(:conversation) { create(:conversation, account: account, inbox: inbox, status: :open) }
+    let(:rule) { build(:automation_rule, account: account, conditions: [condition]) }
+    let(:condition) { { 'attribute_key' => key, 'filter_operator' => operator, 'values' => [value] } }
+    let(:operator) { 'equal_to' }
+
+    context 'with channel_type' do
+      let(:key) { 'channel_type' }
+      let(:value) { 'whatsapp' }
+
+      [[:channel_whatsapp, { provider: 'whatsapp_cloud', sync_templates: false, validate_provider_config: false }, {}, 'whatsapp'],
+       [:channel_twilio_sms, { medium: :whatsapp }, {}, 'whatsapp'],
+       [:channel_twilio_sms, { medium: :sms }, {}, 'sms'],
+       [:channel_instagram, {}, {}, 'instagram'],
+       [:channel_facebook_page, {}, { 'type' => 'instagram_direct_message' }, 'instagram'],
+       [:channel_facebook_page, {}, {}, 'messenger'],
+       [:channel_widget, {}, {}, 'web_widget'],
+       [:channel_email, {}, {}, 'email'],
+       [:channel_api, {}, {}, 'api']].each do |factory, attributes, additional_attributes, expected|
+        context "with #{factory}, #{attributes} and #{additional_attributes}" do
+          before do
+            allow(Facebook::Messenger::Subscriptions).to receive(:subscribe).and_return(true)
+            channel = create(factory, **attributes, account: account)
+            inbox.update!(channel: channel)
+            conversation.update!(additional_attributes: additional_attributes)
+          end
+
+          it "matches only #{expected} and reverses not_equal_to" do
+            expect(described_class.new(rule, conversation).evaluate).to eq(expected == value)
+            rule.conditions = [condition.merge('filter_operator' => 'not_equal_to')]
+            expect(described_class.new(rule, conversation).evaluate).to eq(expected != value)
+            rule.conditions = [condition.merge('values' => [expected])]
+            expect(described_class.new(rule, conversation).evaluate).to be(true)
+          end
+        end
+      end
+    end
+
+    context 'with within_business_hours' do
+      let(:key) { 'within_business_hours' }
+      let(:value) { false }
+
+      before { inbox.update!(working_hours_enabled: true, timezone: 'America/Guayaquil') }
+
+      [['2026-10-26 14:00:00 UTC', true], ['2026-10-26 23:00:00 UTC', false],
+       ['2026-10-25 15:00:00 UTC', false]].each do |time, working|
+        it "uses the inbox timezone and schedule at #{time}" do
+          travel_to(Time.zone.parse(time)) do
+            expect(described_class.new(rule, conversation).evaluate).to eq(!working)
+            rule.conditions = [condition.merge('values' => [true])]
+            expect(described_class.new(rule, conversation).evaluate).to eq(working)
+          end
+        end
+      end
+
+      it 'always treats an inbox without enabled hours as open' do
+        inbox.update!(working_hours_enabled: false)
+        travel_to(Time.parse('2026-10-25 23:00:00 UTC')) do
+          expect(described_class.new(rule, conversation).evaluate).to be(false)
+          rule.conditions = [condition.merge('values' => [true])]
+          expect(described_class.new(rule, conversation).evaluate).to be(true)
+        end
+      end
+    end
+
+    context 'with captain_state' do
+      let(:key) { 'captain_state' }
+      let(:value) { 'none' }
+
+      %w[none ai escalated].each do |state|
+        it "distinguishes #{state} using the conversation state" do
+          if state == 'ai'
+            # Represent Captain ownership without requiring an Enterprise assistant in the OSS evaluator spec.
+            # rubocop:disable Rails/SkipsModelValidations
+            conversation.update_columns(status: Conversation.statuses.fetch('pending'), ai_assignee_type: 'Captain::Assistant')
+            # rubocop:enable Rails/SkipsModelValidations
+          elsif state == 'escalated'
+            conversation.update!(captain_handed_off_at: Time.current)
+          end
+
+          expect(conversation.captain_state || 'none').to eq(state)
+          %w[none ai escalated].each do |expected|
+            rule.conditions = [condition.merge('values' => [expected])]
+            expect(described_class.new(rule, conversation).evaluate).to eq(expected == state)
+            rule.conditions = [condition.merge('values' => [expected], 'filter_operator' => 'not_equal_to')]
+            expect(described_class.new(rule, conversation).evaluate).to eq(expected != state)
+          end
+        end
+      end
+    end
+
+    context 'when combined with existing conditions' do
+      let(:key) { 'within_business_hours' }
+      let(:value) { true }
+      let(:status_condition) { { 'attribute_key' => 'status', 'filter_operator' => 'equal_to', 'values' => ['resolved'] } }
+
+      it 'preserves AND and OR with computed conditions on either side' do
+        { 'AND' => false, 'OR' => true }.each do |query_operator, expected|
+          rule.conditions = [condition.merge('query_operator' => query_operator), status_condition]
+          expect(described_class.new(rule, conversation).evaluate).to eq(expected)
+          rule.conditions = [status_condition.merge('query_operator' => query_operator), condition]
+          expect(described_class.new(rule, conversation).evaluate).to eq(expected)
+        end
+      end
+    end
+  end
+
   describe '#perform' do
     context 'with campaign_id conditions' do
       let(:campaign) { create(:campaign, account: account) }

@@ -1,19 +1,6 @@
 # Records an internal activity using the diagnosis already saved with the opening.
 class Captain::EngagementActivity
-  CHANNELS = {
-    'Channel::Whatsapp' => 'whatsapp',
-    'Channel::Instagram' => 'instagram',
-    'Channel::FacebookPage' => 'messenger',
-    'Channel::WebWidget' => 'web',
-    'Channel::Email' => 'email',
-    'Channel::Sms' => 'sms',
-    'Channel::TwilioSms' => 'sms',
-    'Channel::Api' => 'api',
-    'Channel::Telegram' => 'telegram',
-    'Channel::Line' => 'line',
-    'Channel::TwitterProfile' => 'twitter',
-    'Channel::Tiktok' => 'tiktok'
-  }.freeze
+  CHANNELS = Conversations::ChannelType::CHANNELS.transform_values { |value| value == 'web_widget' ? 'web' : value }.freeze
 
   def initialize(conversation, assistant)
     @conversation = conversation
@@ -68,10 +55,8 @@ class Captain::EngagementActivity
   end
 
   def channel_label
-    inbox = @conversation.inbox
-    key = CHANNELS.fetch(inbox.channel_type, 'api')
-    key = 'whatsapp' if inbox.twilio? && inbox.channel.medium == 'whatsapp'
-    key = 'instagram' if inbox.facebook? && @conversation.additional_attributes['type'] == 'instagram_direct_message'
+    key = Conversations::ChannelType.for(@conversation)
+    key = 'web' if key == 'web_widget'
     I18n.t("captain.engagement.channels.#{key}", locale: @locale)
   end
 end
