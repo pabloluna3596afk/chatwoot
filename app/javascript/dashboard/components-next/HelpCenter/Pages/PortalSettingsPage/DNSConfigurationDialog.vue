@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, computed, ref } from 'vue';
+import { reactive, computed, ref, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
@@ -72,11 +72,15 @@ const handleSend = async () => {
 };
 
 defineExpose({ dialogRef });
+const overlayTitleId = useId();
+const overlayDescriptionId = useId();
 </script>
 
 <template>
   <Dialog
     ref="dialogRef"
+    :aria-labelledby="overlayTitleId"
+    :aria-describedby="overlayDescriptionId"
     :show-cancel-button="false"
     :show-confirm-button="false"
     @close="resetForm"
@@ -92,14 +96,17 @@ defineExpose({ dialogRef });
     <div class="flex flex-col gap-6 divide-y divide-n-strong">
       <div class="flex flex-col gap-6">
         <div class="flex flex-col gap-2 ltr:pr-10 rtl:pl-10">
-          <h3 class="text-base font-medium leading-6 text-n-slate-12">
+          <h3
+            :id="overlayTitleId"
+            class="text-base font-medium leading-6 text-n-slate-12"
+          >
             {{
               t(
                 'HELP_CENTER.PORTAL_SETTINGS.CONFIGURATION_FORM.CUSTOM_DOMAIN.DNS_CONFIGURATION_DIALOG.HEADER'
               )
             }}
           </h3>
-          <p class="mb-0 text-sm text-n-slate-12">
+          <p :id="overlayDescriptionId" class="mb-0 text-sm text-n-slate-12">
             {{
               t(
                 'HELP_CENTER.PORTAL_SETTINGS.CONFIGURATION_FORM.CUSTOM_DOMAIN.DNS_CONFIGURATION_DIALOG.DESCRIPTION'

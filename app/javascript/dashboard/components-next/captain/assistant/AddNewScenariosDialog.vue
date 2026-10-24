@@ -1,11 +1,10 @@
 <script setup>
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useToggle } from '@vueuse/core';
 import { useVuelidate } from '@vuelidate/core';
-import { vOnClickOutside } from '@vueuse/components';
 import { required, minLength } from '@vuelidate/validators';
 
+import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
@@ -19,7 +18,7 @@ const isSaving = ref(false);
 
 const { t } = useI18n();
 
-const [showPopover, togglePopover] = useToggle();
+const dialogRef = ref(null);
 
 const state = reactive({
   id: '',
@@ -73,37 +72,38 @@ const onClickAdd = async () => {
     if (await props.onAdd({ ...state })) {
       resetState();
       v$.value.$reset();
-      togglePopover(false);
+      dialogRef.value.close();
     }
   } finally {
     isSaving.value = false;
   }
 };
-
-const onClickCancel = () => {
-  if (!isSaving.value) togglePopover(false);
-};
 </script>
 
 <template>
-  <div v-on-click-outside="onClickCancel" class="inline-flex relative">
+  <div class="inline-flex relative">
     <Button
       :label="t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.CREATE')"
       sm
       slate
       class="flex-shrink-0"
       :disabled="isSaving"
-      @click="togglePopover(!showPopover)"
+      @click="dialogRef.open()"
     />
 
-    <div
-      v-if="showPopover"
-      class="w-[31.25rem] absolute top-10 ltr:left-0 rtl:right-0 bg-n-alpha-3 backdrop-blur-[100px] p-6 rounded-xl border border-n-weak shadow-md flex flex-col gap-6 z-50"
+    <Dialog
+      ref="dialogRef"
+      :title="t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.TITLE')"
+      :is-loading="isSaving"
+      :confirm-button-label="
+        t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.CREATE')
+      "
+      :cancel-button-label="
+        t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.CANCEL')
+      "
+      body-scroll
+      @confirm="onClickAdd"
     >
-      <h3 class="text-base font-medium text-n-slate-12">
-        {{ t(`CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.TITLE`) }}
-      </h3>
-
       <div class="flex flex-col gap-4">
         <Input
           v-model="state.title"
@@ -149,23 +149,6 @@ const onClickCancel = () => {
           enable-captain-tools
         />
       </div>
-
-      <div class="flex items-center justify-between w-full gap-3">
-        <Button
-          variant="faded"
-          color="slate"
-          :label="t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.CANCEL')"
-          class="w-full bg-n-alpha-2 !text-n-blue-11 hover:bg-n-alpha-3"
-          @click="onClickCancel"
-        />
-        <Button
-          :label="t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.CREATE')"
-          class="w-full"
-          :is-loading="isSaving"
-          :disabled="isSaving"
-          @click="onClickAdd"
-        />
-      </div>
-    </div>
+    </Dialog>
   </div>
 </template>

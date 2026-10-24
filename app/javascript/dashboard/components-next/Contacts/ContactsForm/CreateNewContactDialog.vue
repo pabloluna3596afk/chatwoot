@@ -42,6 +42,9 @@ defineExpose({ dialogRef, contactsFormRef, onSuccess });
 <template>
   <Dialog
     ref="dialogRef"
+    :aria-label="
+      t('CONTACTS_LAYOUT.HEADER.ACTIONS.CONTACT_CREATION.ADD_CONTACT')
+    "
     width="3xl"
     overflow-y-auto
     @confirm="handleDialogConfirm"

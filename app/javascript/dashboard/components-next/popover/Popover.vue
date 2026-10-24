@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, provide, useId } from 'vue';
 import { vOnClickOutside } from '@vueuse/components';
 import {
   useBreakpoints,
@@ -8,9 +8,13 @@ import {
 } from '@vueuse/core';
 import { useDropdownPosition } from 'dashboard/composables/useDropdownPosition';
 import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
+import { showModal } from 'dashboard/helper/overlayFocus';
 import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirection.vue';
 
 const props = defineProps({
+  ariaLabel: { type: String, default: '' },
+  labelledby: { type: String, default: '' },
+  describedby: { type: String, default: '' },
   align: {
     type: String,
     default: 'end',
@@ -32,6 +36,9 @@ const props = defineProps({
 
 const emit = defineEmits(['show', 'hide']);
 
+const triggerId = useId();
+const modalRef = ref(null);
+provide('dialogPortalTarget', modalRef);
 const isActive = ref(false);
 const triggerRef = ref(null);
 const popoverRef = ref(null);
@@ -64,6 +71,7 @@ const show = async () => {
 
 const hide = () => {
   if (!isActive.value) return;
+  modalRef.value?.close();
   isActive.value = false;
   emit('hide');
 };
@@ -89,6 +97,12 @@ const toggle = async () => {
   else await show();
 };
 
+// Native modality supplies focus containment, background isolation and restoration.
+watch([isActive, isMobile], async ([active, mobile]) => {
+  await nextTick();
+  if (active && mobile && !modalRef.value?.open) showModal(modalRef.value);
+});
+
 // Recalculate position when switching from mobile to desktop while open
 watch(isMobile, async mobile => {
   if (!isActive.value || mobile) return;
@@ -103,7 +117,10 @@ const handleClickOutside = event => {
 
 // Selectors for teleported elements that should not trigger close
 const clickOutsideIgnore = [
+  'dialog[open]',
   'dialog.ProseMirror-prompt-backdrop',
+  '[data-combobox-dropdown]',
+  '[data-menu-popover]',
   '[data-popover-content]',
 ];
 
@@ -122,7 +139,7 @@ const isNestedOverlay = event => {
 useKeyboardEvents({
   Escape: {
     action: event => {
-      if (isActive.value && !isNestedOverlay(event)) hide();
+      if (isActive.value && !isMobile.value && !isNestedOverlay(event)) hide();
     },
     allowOnFocusedInput: true,
   },
@@ -132,16 +149,23 @@ defineExpose({ show, hide, toggle });
 </script>
 
 <template>
-  <span ref="triggerRef" class="inline-flex" @click="toggle">
+  <span :id="triggerId" ref="triggerRef" class="inline-flex" @click="toggle">
     <slot :is-open="isActive" />
   </span>
 
   <TeleportWithDirection to="body">
     <!-- Mobile: centered modal with backdrop -->
-    <div
+    <dialog
       v-if="isActive && isMobile"
+      ref="modalRef"
+      :aria-label="ariaLabel || undefined"
+      :aria-labelledby="ariaLabel ? undefined : labelledby || triggerId"
+      :aria-describedby="describedby || undefined"
+      tabindex="-1"
       data-popover-backdrop
-      class="fixed inset-0 z-[9999] flex items-start pt-[clamp(3rem,15vh,12rem)] justify-center bg-n-alpha-black1"
+      class="fixed inset-0 m-0 border-0 p-0 w-full max-w-none h-dvh max-h-none z-[9999] flex items-start pt-[clamp(3rem,15dvh,12rem)] pb-[max(1rem,env(safe-area-inset-bottom))] justify-center bg-transparent [&::backdrop]:bg-n-alpha-black1"
+      @cancel.prevent="$event.target === modalRef && hide()"
+      @close="$event.target === modalRef && hide()"
     >
       <div
         ref="mobileContentRef"
@@ -150,7 +174,7 @@ defineExpose({ show, hide, toggle });
           { ignore: clickOutsideIgnore },
         ]"
         data-popover-content
-        class="relative flex flex-col w-full max-w-lg max-h-[calc(100vh-4rem)] mx-4 bg-n-alpha-3 backdrop-blur-[100px] shadow-xl rounded-xl"
+        class="relative flex flex-col w-full max-w-lg max-h-full mx-4 bg-n-alpha-3 backdrop-blur-[100px] shadow-xl rounded-xl"
       >
         <div
           class="flex-1 min-h-0 overflow-y-auto overscroll-contain rounded-xl"
@@ -158,7 +182,7 @@ defineExpose({ show, hide, toggle });
           <slot name="content" :hide="hide" />
         </div>
       </div>
-    </div>
+    </dialog>
 
     <!-- Desktop: fixed popover -->
     <div

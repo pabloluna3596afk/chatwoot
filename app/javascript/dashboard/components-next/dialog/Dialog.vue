@@ -1,12 +1,17 @@
 <script setup>
-import { ref, computed, provide } from 'vue';
+import { ref, computed, provide, nextTick, useId } from 'vue';
 import { OnClickOutside } from '@vueuse/components';
 import { useI18n } from 'vue-i18n';
 
+import { showModal } from 'dashboard/helper/overlayFocus';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirection.vue';
 
 const props = defineProps({
+  // A slot-only header must supply an accessible name.
+  ariaLabel: { type: String, default: '' },
+  ariaLabelledby: { type: String, default: '' },
+  ariaDescribedby: { type: String, default: '' },
   type: {
     type: String,
     default: 'edit',
@@ -69,6 +74,8 @@ const emit = defineEmits(['confirm', 'close']);
 
 const { t } = useI18n();
 
+const titleId = useId();
+const descriptionId = useId();
 const dialogRef = ref(null);
 const dialogContentRef = ref(null);
 const isOpen = ref(false);
@@ -92,33 +99,37 @@ const widthClass = computed(() => {
 });
 
 const positionClass = computed(() =>
-  props.position === 'top' ? 'dialog-position-top' : ''
+  props.position === 'top' ? 'mt-[clamp(2rem,5dvh,5rem)] mb-auto' : ''
 );
 
 const dialogOverflowClass = computed(() => {
   // Keep overflow visible so teleported ComboBox menus aren't clipped by <dialog>.
-  if (props.bodyScroll) return 'max-h-[90vh] overflow-visible';
-  if (props.overflowYAuto) return 'max-h-[90vh] overflow-y-auto';
+  if (props.bodyScroll) return 'max-h-[90dvh] overflow-visible';
+  if (props.overflowYAuto) return 'max-h-[90dvh] overflow-y-auto';
   return 'overflow-visible';
 });
 
 const formClass = computed(() => {
   // Avoid `transform` with bodyScroll so fixed teleported menus aren't trapped.
   if (props.bodyScroll) {
-    return 'flex flex-col w-full max-h-[90vh] gap-4 p-6 overflow-hidden text-start align-middle transition-all duration-300 ease-in-out bg-n-alpha-3 backdrop-blur-[100px] shadow-xl rounded-xl';
+    return 'flex flex-col w-full max-h-[90dvh] gap-4 p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:pb-6 overflow-hidden text-start align-middle transition-all duration-300 ease-in-out bg-n-alpha-3 backdrop-blur-[100px] shadow-xl rounded-xl';
   }
   return 'flex flex-col w-full h-auto gap-6 p-6 overflow-visible text-start align-middle transition-all duration-300 ease-in-out transform bg-n-alpha-3 backdrop-blur-[100px] shadow-xl rounded-xl';
 });
 
-const open = () => {
+const open = async () => {
+  if (isOpen.value) return;
   isOpen.value = true;
-  dialogRef.value?.showModal();
+  // Mount the fields before the browser chooses the initial focus target.
+  await nextTick();
+  if (isOpen.value) showModal(dialogRef.value);
 };
 
 const close = () => {
-  emit('close');
-  dialogRef.value?.close();
+  if (!isOpen.value) return;
   isOpen.value = false;
+  dialogRef.value?.close();
+  emit('close');
 };
 
 const dismiss = () => {
@@ -153,8 +164,15 @@ defineExpose({ open, close });
       ref="dialogRef"
       class="transition-all duration-300 ease-in-out shadow-xl rounded-xl"
       :class="[widthClass, positionClass, dialogOverflowClass]"
+      :aria-labelledby="ariaLabelledby || (title ? titleId : undefined)"
+      :aria-label="title ? undefined : ariaLabel || undefined"
+      :aria-describedby="
+        ariaDescribedby ||
+        (description || $slots.description ? descriptionId : undefined)
+      "
+      tabindex="-1"
       @close.prevent="handleDialogClose"
-      @cancel.prevent="dismiss"
+      @cancel.prevent="$event.target === dialogRef && dismiss()"
     >
       <OnClickOutside @trigger="handleClickOutside">
         <form
@@ -163,20 +181,29 @@ defineExpose({ open, close });
           @submit.prevent="confirm"
           @click.stop
         >
-          <div v-if="title || description" class="flex flex-col gap-2 shrink-0">
-            <h3 class="text-base font-medium leading-6 text-n-slate-12">
+          <div
+            v-if="title || description || $slots.description"
+            class="flex flex-col gap-2 shrink-0"
+          >
+            <h3
+              v-if="title"
+              :id="titleId"
+              class="text-base font-medium leading-6 text-n-slate-12"
+            >
               {{ title }}
             </h3>
-            <slot name="description">
-              <p v-if="description" class="mb-0 text-sm text-n-slate-11">
-                {{ description }}
-              </p>
-            </slot>
+            <div v-if="description || $slots.description" :id="descriptionId">
+              <slot name="description">
+                <p v-if="description" class="mb-0 text-sm text-n-slate-11">
+                  {{ description }}
+                </p>
+              </slot>
+            </div>
           </div>
           <!-- Explicit max-height so the scrollbar appears when fields overflow -->
           <div
             v-if="isOpen && bodyScroll"
-            class="overflow-y-auto overscroll-contain -mx-1 px-1 max-h-[calc(90vh-11rem)]"
+            class="min-h-0 overflow-y-auto overscroll-contain -mx-1 px-1 max-h-[calc(90dvh-11rem)]"
           >
             <slot />
           </div>
@@ -195,7 +222,7 @@ defineExpose({ open, close });
                   variant="faded"
                   color="slate"
                   :label="cancelButtonLabel || t('DIALOG.BUTTONS.CANCEL')"
-                  class="w-full"
+                  class="w-full min-h-11 md:min-h-0"
                   type="button"
                   :disabled="isLoading"
                   @click="dismiss"
@@ -204,7 +231,7 @@ defineExpose({ open, close });
                   v-if="showConfirmButton"
                   :color="type === 'edit' ? 'blue' : 'ruby'"
                   :label="confirmButtonLabel || t('DIALOG.BUTTONS.CONFIRM')"
-                  class="w-full"
+                  class="w-full min-h-11 md:min-h-0"
                   :is-loading="isLoading"
                   :disabled="disableConfirmButton || isLoading"
                   type="submit"
@@ -221,10 +248,5 @@ defineExpose({ open, close });
 <style scoped>
 dialog::backdrop {
   @apply bg-n-alpha-black1 backdrop-blur-[4px];
-}
-
-.dialog-position-top {
-  margin-top: clamp(2rem, 5vh, 5rem);
-  margin-bottom: auto;
 }
 </style>

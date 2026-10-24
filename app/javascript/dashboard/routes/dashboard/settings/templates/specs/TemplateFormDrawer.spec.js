@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils';
+import { mockNativeDialog } from 'dashboard/helper/specs/mockNativeDialog';
 import TemplateFormDrawer from '../TemplateFormDrawer.vue';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import { PRESETS, presetToForm } from '../presets';
@@ -74,6 +75,8 @@ const SidePanelStub = {
   template: '<div><slot name="header" /><slot /><slot name="footer" /></div>',
   methods: { open: vi.fn(), close: vi.fn() },
 };
+
+beforeEach(mockNativeDialog);
 
 const mountDrawer = async (props = {}, realPanel = false) => {
   const wrapper = mount(TemplateFormDrawer, {
@@ -398,7 +401,7 @@ describe('TemplateFormDrawer', () => {
         expect(selector.get('button').classes()).toContain('font-normal');
       });
       const scrollContainer = document.querySelector(
-        'aside > .overflow-y-auto'
+        'dialog > .overflow-y-auto'
       );
       expect(scrollContainer).not.toBeNull();
       expect(
@@ -412,7 +415,7 @@ describe('TemplateFormDrawer', () => {
       );
       expect(menus).toHaveLength(selectors.length);
       menus.forEach(menu => {
-        expect(menu.parentElement).toBe(document.body);
+        expect(menu.parentElement).toBe(document.querySelector('dialog[open]'));
         // Fixed positioning excludes the list from the document's layout flow.
         expect(menu.style.position).toBe('fixed');
       });

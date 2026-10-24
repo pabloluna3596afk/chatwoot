@@ -97,7 +97,6 @@ const dropdownStyle = computed(() => {
 
 const teleportTarget = computed(() => {
   if (!props.teleport) return 'body';
-  if (dropdownBoundary) return 'body';
   return dialogPortalTarget?.value || 'body';
 });
 

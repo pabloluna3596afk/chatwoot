@@ -46,6 +46,12 @@ describe('Popover', () => {
 
   beforeEach(() => {
     belowMd.value = false;
+    HTMLDialogElement.prototype.showModal = vi.fn(function showModal() {
+      this.setAttribute('open', '');
+    });
+    HTMLDialogElement.prototype.close = vi.fn(function close() {
+      this.removeAttribute('open');
+    });
   });
 
   afterEach(() => {
@@ -210,6 +216,20 @@ describe('Popover', () => {
       expect(mobileBackdrop().exists()).toBe(false);
       expect(desktopPopover().exists()).toBe(true);
     });
+  });
+
+  it('names the native mobile modal from its trigger and closes on cancel', async () => {
+    belowMd.value = true;
+    mountPopover({ describedby: 'help' });
+    await openPopover();
+    const modal = wrapper.find('dialog');
+    expect(modal.attributes('aria-labelledby')).toBe(
+      wrapper.find('span').attributes('id')
+    );
+    expect(modal.attributes('aria-describedby')).toBe('help');
+    expect(modal.element.showModal).toHaveBeenCalledOnce();
+    await modal.trigger('cancel');
+    expect(wrapper.emitted('hide')).toHaveLength(1);
   });
 
   describe('close on scroll', () => {

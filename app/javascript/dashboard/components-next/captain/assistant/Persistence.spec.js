@@ -12,6 +12,7 @@ import ScenariosCard from './ScenariosCard.vue';
 vi.mock('shared/composables/useMessageFormatter', () => ({
   useMessageFormatter: () => ({ formatMessage: text => text }),
 }));
+const closeScenario = vi.fn();
 const stubs = { CardLayout: { template: '<div><slot /></div>' } };
 
 describe.each([AddNewRulesDialog, AddNewRulesInput, AddNewScenariosDialog])(
@@ -27,6 +28,14 @@ describe.each([AddNewRulesDialog, AddNewRulesInput, AddNewScenariosDialog])(
       );
       const wrapper = shallowMount(Component, {
         props: { onAdd, modelValue: 'Draft' },
+        global: {
+          stubs: {
+            Dialog: {
+              methods: { close: closeScenario },
+              template: '<div><slot /></div>',
+            },
+          },
+        },
       });
       const vm = wrapper.vm;
       if (Component === AddNewScenariosDialog)
