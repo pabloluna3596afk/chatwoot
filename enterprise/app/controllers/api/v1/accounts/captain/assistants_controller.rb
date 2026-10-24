@@ -197,6 +197,10 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
     permitted
   end
 
+  def string_list?(value)
+    value.is_a?(Array) && value.all?(String)
+  end
+
   def render_invalid_rule_list(error)
     render json: { error: error.message }, status: :unprocessable_entity
   end
@@ -221,9 +225,7 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
       next unless permitted.key?(key)
 
       expected = params[:assistant]["expected_#{key}"]
-      unless expected.is_a?(Array) && expected.all?(String)
-        raise InvalidRuleList, I18n.t('captain.contracts.expected_rules_required', field: key)
-      end
+      raise InvalidRuleList, I18n.t('captain.contracts.expected_rules_required', field: key) unless string_list?(expected)
       next if expected == (@assistant.public_send(key) || [])
 
       render json: { error: I18n.t('captain.contracts.stale_rules') }, status: :conflict
