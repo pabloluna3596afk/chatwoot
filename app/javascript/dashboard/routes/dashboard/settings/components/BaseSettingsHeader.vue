@@ -4,7 +4,7 @@ import CustomBrandPolicyWrapper from 'dashboard/components/CustomBrandPolicyWrap
 import { getHelpUrlForFeature } from '../../../../helper/featureHelper';
 import BackButton from '../../../../components/widgets/BackButton.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
-import Input from 'dashboard/components-next/input/Input.vue';
+import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
 
 const props = defineProps({
   title: {
@@ -97,22 +97,13 @@ const helpURL = getHelpUrlForFeature(props.featureName);
       class="flex flex-wrap items-center gap-3 min-w-0 w-full sm:w-auto"
     >
       <slot name="tabs" />
-      <Input
+      <SearchInput
         v-if="searchPlaceholder"
         v-model="searchQuery"
         :placeholder="searchPlaceholder"
-        :aria-label="searchPlaceholder"
-        class="group w-full sm:w-56 min-w-0 [&>input]:ltr:!pl-8 [&>input]:rtl:!pr-8 [&>input]:!rounded-[0.625rem]"
+        class="w-full sm:w-56"
         size="sm"
-        type="search"
-      >
-        <template #prefix>
-          <Icon
-            icon="i-lucide-search"
-            class="absolute top-1/2 -translate-y-1/2 text-n-slate-11 group-focus-within:text-n-brand size-3.5 ltr:left-2.5 rtl:right-2.5"
-          />
-        </template>
-      </Input>
+      />
     </div>
     <div
       class="flex flex-wrap items-center gap-3 min-w-0 max-w-full [&>a]:min-w-0 [&>a]:max-w-full [&>button]:!h-auto [&>button]:min-h-8 [&>button]:py-1.5 [&>button>span]:whitespace-normal [&>button>span]:break-words [&>a>button]:!h-auto [&>a>button]:min-h-8 [&>a>button]:max-w-full [&>a>button]:py-1.5 [&>a>button>span]:whitespace-normal [&>a>button>span]:break-words"

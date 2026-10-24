@@ -2292,6 +2292,12 @@ crash en init (params vacíos) y en send (snapshot).
 **Cómo probar:** abrir `ventas_seguimiento` → input `contact_name`; rellenar y
 enviar. Plantilla sin vars → Enviar sin error en consola.
 
+### B-NEW-218 — Buscador compartido para los encabezados de ajustes
+
+- **Problema:** cada pantalla armaba su buscador por separado; la lupa y el texto podían superponerse al cambiar la dirección del idioma.
+- **Cambio:** `components-next/input/SearchInput.vue` reutiliza el campo existente, reserva espacio para la lupa en ambas direcciones y ofrece nombre accesible, tamaños y limpieza opcional. `BaseSettingsHeader.vue` lo usa sin cambiar la consulta ni el ancho del buscador.
+- **Cómo comprobar:** buscar agentes y etiquetas, escribir y borrar la consulta; revisar a 390, 768 y 1280 px en ambos temas y direcciones. La lupa debe quedar separada del texto al menos 4 px. Las pruebas del componente y del encabezado cubren el valor, nombre accesible, relleno y limpieza; las capturas y mediciones del navegador quedan registradas por separado en la autoevaluación UI-S1.
+
 ### B-NEW-41 — Flows canvas: layout no persistía / re-dagre al editar
 
 **Síntoma:** al mover nodos y refrescar, el layout volvía a dagre; editar texto

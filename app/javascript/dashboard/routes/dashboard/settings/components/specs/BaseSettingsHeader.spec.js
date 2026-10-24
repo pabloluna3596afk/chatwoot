@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils';
+import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
 import BaseSettingsHeader from '../BaseSettingsHeader.vue';
 
 vi.mock('dashboard/components/widgets/BackButton.vue', () => ({
@@ -41,6 +42,11 @@ describe('BaseSettingsHeader', () => {
       const wrapper = mount(BaseSettingsHeader, {
         props: { title: 'Settings', searchPlaceholder, searchQuery: 'initial' },
       });
+      const search = wrapper.getComponent(SearchInput);
+      expect(search.classes()).toContain('w-full');
+      expect(search.classes()).toContain('sm:w-56');
+      expect(search.props('size')).toBe('sm');
+      expect(search.props('clearable')).toBe(false);
       const input = wrapper.get('input[type="search"]');
       expect(input.attributes('aria-label')).toBe(searchPlaceholder);
       expect(input.element.value).toBe('initial');
