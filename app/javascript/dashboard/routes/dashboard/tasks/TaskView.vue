@@ -21,6 +21,9 @@ const isOnExpandedLayout = computed(() => width.value < 768);
 const showBoard = ref(false);
 
 const hasTaskSelected = computed(() => Boolean(Number(props.taskId)));
+const showTaskBoard = computed(
+  () => !hasTaskSelected.value && (!isOnExpandedLayout.value || showBoard.value)
+);
 
 const showTaskList = computed(
   () =>
@@ -77,8 +80,9 @@ onBeforeRouteLeave(() => {
     />
 
     <TaskKanban
-      v-show="!hasTaskSelected && (!isOnExpandedLayout || showBoard)"
+      v-show="showTaskBoard"
       ref="taskKanbanRef"
+      :is-visible="showTaskBoard"
       :task-id="taskId"
       :is-on-expanded-layout="isOnExpandedLayout"
     />
