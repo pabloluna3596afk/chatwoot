@@ -38,6 +38,7 @@ class AutomationRule < ApplicationRecord
 
   belongs_to :account
   has_many :pending_executions, class_name: 'AutomationRulePendingExecution', dependent: :delete_all
+  has_many :runs, class_name: 'AutomationRuleRun', dependent: :delete_all
   has_many_attached :files
 
   validate :supported_event, if: :definition_changed?
@@ -58,6 +59,11 @@ class AutomationRule < ApplicationRecord
 
   scope :active, -> { where(active: true) }
   scope :in_execution_order, -> { order(:id) }
+
+  def handle_automation_rule_reauthorization
+    super
+    AutomationRules::RunRecorder.record(rule: self, outcome: 'failed', reason: 'rule_invalid_disabled')
+  end
 
   def time_triggered?
     event_name == 'time_triggered'
@@ -266,8 +272,8 @@ class AutomationRule < ApplicationRecord
   def execution_delay_supported_event
     return if execution_delay.blank?
 
-    if time_triggered?
-      errors.add(:execution_delay, 'cannot be used with time_triggered events.')
+    if time_triggered? || event_name == 'contact_updated'
+      errors.add(:execution_delay, "cannot be used with #{event_name} events.")
       return
     end
     return if conditions.blank? || event_name == 'message_created'

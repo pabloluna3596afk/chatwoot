@@ -6,21 +6,36 @@ class AutomationRules::ActionService < ActionService
     Current.executed_by = rule
   end
 
-  def perform
-    @rule.actions.each do |action|
-      @conversation.reload
-      action = action.with_indifferent_access
-      begin
-        execute_action(action)
-      rescue StandardError => e
-        ChatwootExceptionTracker.new(e, account: @account).capture_exception
-      end
-    end
+  def perform(record_run: true)
+    @run_details = { actions: [] }
+    @rule.actions.each_with_index { |action, index| perform_action(action, index) }
+    self.record_run if record_run
   ensure
     Current.reset
   end
 
+  def record_run(outcome: 'executed', reason: nil)
+    if @run_details[:actions].any? { |action| action[:outcome] == 'error' }
+      outcome = 'failed'
+      reason = 'action_error'
+    end
+    AutomationRules::RunRecorder.record(rule: @rule, conversation: @conversation, outcome: outcome, reason: reason, details: @run_details)
+  end
+
   private
+
+  def perform_action(action, index)
+    @conversation.reload
+    action = action.with_indifferent_access
+    begin
+      result = execute_action(action)
+      @run_details[:actions] << { name: action[:action_name], outcome: 'ok' }
+      @run_details[:message_id] = result.id if result.is_a?(Message) && result.persisted?
+    rescue StandardError => e
+      @run_details[:actions] << { name: action[:action_name], outcome: 'error', index: index, error_class: e.class.name }
+      ChatwootExceptionTracker.new(e, account: @account).capture_exception
+    end
+  end
 
   def automation_message_attributes
     MessageSourceAttributes.for_automation(@rule)

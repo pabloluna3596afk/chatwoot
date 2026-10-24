@@ -368,4 +368,56 @@ RSpec.describe AutomationRules::ActionService do
       end
     end
   end
+
+  describe 'execution history' do
+    let(:service) { described_class.new(rule, account, conversation) }
+
+    before do
+      allow(service).to receive(:execute_action).and_return(nil)
+    end
+
+    it 'records one successful run with every action result' do
+      service.perform
+
+      expect(rule.runs.sole).to have_attributes(outcome: 'executed', conversation_id: conversation.id)
+      expect(rule.runs.sole.details['actions']).to eq([
+                                                        { 'name' => 'send_webhook_event', 'outcome' => 'ok' },
+                                                        { 'name' => 'send_message', 'outcome' => 'ok' }
+                                                      ])
+    end
+
+    it 'records the failing action class and continues the remaining actions' do
+      allow(service).to receive(:execute_action) do |action|
+        raise ArgumentError, 'private data' if action[:action_name] == 'send_webhook_event'
+      end
+      allow(ChatwootExceptionTracker).to receive(:new).and_return(instance_double(ChatwootExceptionTracker, capture_exception: nil))
+
+      service.perform
+
+      run = rule.runs.sole
+      expect(run).to have_attributes(outcome: 'failed', reason: 'action_error')
+      expect(run.details['actions'].first).to include('index' => 0, 'error_class' => 'ArgumentError', 'outcome' => 'error')
+      expect(run.details['actions'].last['outcome']).to eq('ok')
+      expect(run.details.to_json).not_to include('private data')
+      expect(service).to have_received(:execute_action).twice
+    end
+
+    it 'keeps executing when the history insert fails' do
+      allow(AutomationRuleRun).to receive(:create!).and_raise(ActiveRecord::StatementInvalid)
+
+      expect { service.perform }.not_to raise_error
+      expect(service).to have_received(:execute_action).twice
+      expect(Current.executed_by).to be_nil
+    end
+
+    it 'records the id of a created message without its content' do
+      message = create(:message, conversation: conversation, account: account, content: 'private data')
+      allow(service).to receive(:execute_action).and_return(message)
+
+      service.perform
+
+      expect(rule.runs.sole.details['message_id']).to eq(message.id)
+      expect(rule.runs.sole.details.to_json).not_to include('private data')
+    end
+  end
 end

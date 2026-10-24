@@ -7,6 +7,10 @@ class AutomationRulePolicy < ApplicationPolicy
     @account_user.administrator?
   end
 
+  def runs?
+    @account_user.administrator?
+  end
+
   def show?
     @account_user.administrator?
   end
@@ -24,6 +28,10 @@ class AutomationRulePolicy < ApplicationPolicy
   end
 
   def simulate?
+    @account_user.administrator?
+  end
+
+  def reach_preview?
     @account_user.administrator?
   end
 

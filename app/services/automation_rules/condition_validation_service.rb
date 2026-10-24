@@ -2,7 +2,9 @@ class AutomationRules::ConditionValidationService
   ATTRIBUTE_MODEL = 'contact_attribute'.freeze
   FILTERS = YAML.safe_load(File.read(Rails.root.join('lib/filters/filter_keys.yml'))).freeze
   COMPUTED_ATTRIBUTES = FILTERS.fetch('conversations').select { |_key, filter| filter['attribute_type'] == 'computed' }.keys.freeze
-  EVENTS = %w[conversation_created conversation_updated conversation_opened conversation_resolved message_created time_triggered].freeze
+  EVENTS = %w[
+    conversation_created conversation_updated conversation_opened conversation_resolved message_created time_triggered contact_updated
+  ].freeze
   MESSAGE_ATTRIBUTES = %w[content message_type private_note].freeze
   EQUALITY_OPERATORS = %w[equal_to not_equal_to].freeze
   PRESENCE_OPERATORS = %w[is_present is_not_present].freeze
@@ -73,6 +75,8 @@ class AutomationRules::ConditionValidationService
 
     definition = custom_attribute(key, condition['custom_attribute_type'])
     return 'The attribute is unavailable in this account.' unless definition
+    return if @rule.respond_to?(:event_name) && @rule.event_name == 'contact_updated' &&
+              definition.contact_attribute? && condition['filter_operator'] == 'attribute_changed'
 
     operators = CUSTOM_OPERATORS.fetch(definition.attribute_display_type)
     'The filter operator is not supported for this attribute.' unless operators.include?(condition['filter_operator'])

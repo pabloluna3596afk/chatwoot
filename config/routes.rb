@@ -156,6 +156,7 @@ Rails.application.routes.draw do
           end
           resources :automation_rules, only: [:index, :create, :show, :update, :destroy] do
             post :clone
+            get :runs, on: :member
             collection do
               post :lint
               post :simulate

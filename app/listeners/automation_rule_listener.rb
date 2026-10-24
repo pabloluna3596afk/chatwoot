@@ -1,4 +1,13 @@
 class AutomationRuleListener < BaseListener
+  def contact_updated(event)
+    return if performed_by_automation?(event)
+
+    contact = event.data[:contact]
+    current_account_rules('contact_updated', contact.account).each do |rule|
+      AutomationRules::ContactUpdatedService.new(rule, contact, event.data[:changed_attributes]).perform
+    end
+  end
+
   def conversation_updated(event)
     process_conversation_event(event, 'conversation_updated')
   end
