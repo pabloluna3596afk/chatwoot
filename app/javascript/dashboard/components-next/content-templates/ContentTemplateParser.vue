@@ -12,6 +12,7 @@ import {
 } from '@chatwoot/utils';
 
 import Input from 'dashboard/components-next/input/Input.vue';
+import TemplateVariableInput from 'dashboard/components-next/variable/TemplateVariableInput.vue';
 
 const props = defineProps({
   template: {
@@ -223,14 +224,17 @@ defineExpose({
           :key="`variable-${variable}`"
           class="flex items-center mb-2.5"
         >
-          <Input
+          <TemplateVariableInput
             v-model="processedParams[variable]"
-            type="text"
             class="flex-1"
             :placeholder="
               t('CONTENT_TEMPLATES.PARSER.VARIABLE_PLACEHOLDER', {
                 variable: variable,
               })
+            "
+            @select="
+              processedParams[variable] +=
+                `${processedParams[variable] ? ' ' : ''}${$event.expression}`
             "
           />
         </div>

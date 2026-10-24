@@ -28,7 +28,7 @@ import {
   validateHeaderMediaFile,
   withoutUploadedMedia,
 } from 'dashboard/helper/templateHeaderMedia';
-import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
+import TemplateVariableInput from 'dashboard/components-next/variable/TemplateVariableInput.vue';
 import { formatLiquidVariable } from 'dashboard/helper/liquidVariablesHelper';
 import {
   buildTemplateParameters,
@@ -698,9 +698,8 @@ defineExpose({
           :key="`header-${key}`"
           class="flex min-w-0 flex-wrap items-center gap-y-2 mb-2.5"
         >
-          <Input
+          <TemplateVariableInput
             :model-value="displayValue('header', key)"
-            type="text"
             class="min-w-0 flex-1"
             :message="missingMessage('header', key)"
             :placeholder="
@@ -708,12 +707,9 @@ defineExpose({
                 variable: key,
               })
             "
-            @update:model-value="setValue('header', key, $event)"
-          />
-          <VariablePicker
-            class="ms-2 !w-40 shrink-0 sm:!w-48"
             :surface="variableSurface"
             :filter="pickerEligible"
+            @update:model-value="setValue('header', key, $event)"
             @select="insertVariable('header', key, $event.expression)"
           />
         </div>
@@ -729,9 +725,8 @@ defineExpose({
           :key="`body-${key}`"
           class="flex min-w-0 flex-wrap items-center gap-y-2 mb-2.5"
         >
-          <Input
+          <TemplateVariableInput
             :model-value="displayValue('body', key)"
-            type="text"
             class="min-w-0 flex-1"
             :message="missingMessage('body', key)"
             :placeholder="
@@ -739,12 +734,9 @@ defineExpose({
                 variable: key,
               })
             "
-            @update:model-value="setValue('body', key, $event)"
-          />
-          <VariablePicker
-            class="ms-2 !w-40 shrink-0 sm:!w-48"
             :surface="variableSurface"
             :filter="pickerEligible"
+            @update:model-value="setValue('body', key, $event)"
             @select="insertVariable('body', key, $event.expression)"
           />
         </div>

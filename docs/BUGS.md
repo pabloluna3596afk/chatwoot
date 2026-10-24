@@ -3204,3 +3204,10 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - Causa: el primer arreglo de PR #223 intercambi? variables y vista previa respecto de `1ebdc02bc2^`.
 - Arreglo: restaurar lista ? vista previa ? variables a 1280 px, con anchos y separaci?n originales; usar `data-template-fields` para ubicar el formulario sin depender de hijos ordinales. Mantener una columna en m?vil y los mensajes de error dentro del formulario. Quitar el texto visible de zona horaria y su estado local sin modificar la resoluci?n de Rails; conservar la clave i18n existente.
 - Verificaci?n: specs de ambos parsers reales en SendCenter; el parser oculta UTC y America/Guayaquil y conserva valores/payload. Comparar capturas `fixenvio2-original-*` / `fixenvio2-despues-*` en 1280x900 y 390x844. El original m?vil ya desbordaba; la versi?n corregida conserva lista, preview y variables visibles, sin scroll horizontal.
+
+### B-NEW-232 — Insertar variables dentro del campo de plantilla (2026-10-24)
+
+- Archivos: `components-next/variable/TemplateVariableInput.vue`, `whatsapp/WhatsAppTemplateParser.vue`, `content-templates/ContentTemplateParser.vue` y specs correspondientes.
+- Causa: el selector separado reducía el ancho disponible para escribir valores en la tercera columna de Enviar por WhatsApp; Twilio no ofrecía el mismo patrón.
+- Arreglo: reutilizar Input y VariablePicker en modo insert con icono de llaves dentro del campo, a la derecha, etiqueta accesible y tooltip «Insertar variable». Reservar padding lógico y mínimos de altura para resistir los estilos compactos de SendCenter. Objetivo de 40 px en escritorio y 44 px en móvil. Header y cuerpo de Meta y cuerpo de Twilio comparten la pieza; los consumidores heredan el cambio. Catálogo, filtros, validaciones y contratos de envío conservados.
+- Verificación: integración con ambos parsers reales para editar, abrir el picker con el icono, insertar en el campo elegido y enviar el payload esperado; suites de consumidores y compilación i18n en UTC y America/Guayaquil. Capturas `fixenvio3-*` de reposo, picker, texto largo, dos variables, oscuro y Twilio a 1280x900 y 390x844; geometría sin scroll horizontal.

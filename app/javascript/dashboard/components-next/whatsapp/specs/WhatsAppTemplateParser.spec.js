@@ -2,7 +2,7 @@ import { shallowMount, flushPromises } from '@vue/test-utils';
 import { nextTick } from 'vue';
 
 import WhatsAppTemplateParser from '../WhatsAppTemplateParser.vue';
-import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
+import TemplateVariableInput from 'dashboard/components-next/variable/TemplateVariableInput.vue';
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key }),
@@ -163,14 +163,14 @@ describe('WhatsAppTemplateParser with the options of a Captain setting', () => {
     const wrapper = mountParser();
     await nextTick();
 
-    expect(wrapper.findAllComponents(VariablePicker)).toHaveLength(3);
+    expect(wrapper.findAllComponents(TemplateVariableInput)).toHaveLength(3);
   });
 
   it('offers the variables next to every field of the header and the body', async () => {
     const wrapper = mountParser({ variableOptions });
     await nextTick();
 
-    const buttons = wrapper.findAllComponents(VariablePicker);
+    const buttons = wrapper.findAllComponents(TemplateVariableInput);
     expect(buttons).toHaveLength(3);
     expect(buttons[0].props('surface')).toBe('message');
   });
@@ -180,7 +180,7 @@ describe('WhatsAppTemplateParser with the options of a Captain setting', () => {
 
     wrapper.vm.processedParams.body.nombre = 'Hola';
     await nextTick();
-    const buttons = wrapper.findAllComponents(VariablePicker);
+    const buttons = wrapper.findAllComponents(TemplateVariableInput);
     buttons[1].vm.$emit('select', { expression: '{{ contact.name }}' });
     buttons[0].vm.$emit('select', { expression: '{{ appointment.date }}' });
     await nextTick();
