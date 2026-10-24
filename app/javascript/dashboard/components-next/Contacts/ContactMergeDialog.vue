@@ -38,6 +38,7 @@ defineExpose({ open, close });
 <template>
   <Dialog
     ref="dialogRef"
+    :aria-label="$t('CONTACTS_LAYOUT.SIDEBAR.MERGE.TITLE')"
     type="edit"
     :show-cancel-button="false"
     :show-confirm-button="false"

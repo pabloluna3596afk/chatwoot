@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -53,11 +53,15 @@ const onSuccess = () => {
 };
 
 defineExpose({ dialogRef, onSuccess, open });
+const overlayTitleId = useId();
+const overlayDescriptionId = useId();
 </script>
 
 <template>
   <Dialog
     ref="dialogRef"
+    :aria-labelledby="overlayTitleId"
+    :aria-describedby="overlayDescriptionId"
     width="3xl"
     overflow-y-auto
     @confirm="handleConfirm"

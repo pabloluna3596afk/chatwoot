@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useTemplateBindings } from 'dashboard/composables/useTemplateBindings';
@@ -355,11 +355,15 @@ watch(
   },
   { immediate: true }
 );
+const overlayTitleId = useId();
+const overlayDescriptionId = useId();
 </script>
 
 <template>
   <Dialog
     ref="dialog"
+    :aria-labelledby="overlayTitleId"
+    :aria-describedby="overlayDescriptionId"
     width="3xl"
     body-scroll
     :show-confirm-button="false"
@@ -382,6 +386,7 @@ watch(
       <div class="flex shrink-0 justify-between items-start gap-3">
         <div>
           <h2
+            :id="overlayTitleId"
             class="flex items-center gap-2 text-lg font-semibold text-n-slate-12"
           >
             <Icon
@@ -393,7 +398,7 @@ watch(
               )
             }}
           </h2>
-          <p class="mt-1 text-sm text-n-slate-11">
+          <p :id="overlayDescriptionId" class="mt-1 text-sm text-n-slate-11">
             {{
               $t(
                 `${prefix}.${hasFlows ? 'DESCRIPTION' : 'TEMPLATE_DESCRIPTION'}`

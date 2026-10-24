@@ -86,9 +86,9 @@ describe('ComboBox', () => {
       vi.stubGlobal('innerHeight', 700);
       const boundary = document.createElement('div');
       boundary.setAttribute('data-boundary', '');
-      const localPortal = document.createElement('div');
-      boundary.append(localPortal);
-      document.body.append(boundary);
+      const localPortal = document.createElement('dialog');
+      localPortal.append(boundary);
+      document.body.append(localPortal);
       boundary.scrollTop = 75;
       vi.spyOn(
         HTMLElement.prototype,
@@ -122,7 +122,7 @@ describe('ComboBox', () => {
         await wrapper.get('button').trigger('click');
         await flushPromises();
         const menu = wrapper.findComponent(ComboBoxDropdown);
-        expect(menu.element.parentElement).toBe(document.body);
+        expect(menu.element.parentElement).toBe(localPortal);
         expect(boundary.contains(menu.element)).toBe(false);
         expect(menu.element.style.position).toBe('fixed');
         expect(menu.element.style.top).toBe(geometry.top);
@@ -137,7 +137,7 @@ describe('ComboBox', () => {
         expect(boundary.scrollTop).toBe(75);
       } finally {
         wrapper.unmount();
-        boundary.remove();
+        localPortal.remove();
       }
     }
   );

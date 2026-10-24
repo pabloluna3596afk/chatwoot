@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useBranding } from 'shared/composables/useBranding';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
@@ -220,11 +220,15 @@ const reconnect = () => {
 };
 
 defineExpose({ open, close });
+const overlayTitleId = useId();
+const overlayDescriptionId = useId();
 </script>
 
 <template>
   <Dialog
     ref="dialogRef"
+    :aria-labelledby="overlayTitleId"
+    :aria-describedby="overlayDescriptionId"
     width="3xl"
     position="top"
     :show-confirm-button="false"
@@ -237,10 +241,16 @@ defineExpose({ open, close });
           <p class="mb-1 text-sm font-medium text-n-slate-11">
             {{ copy.eyebrow }}
           </p>
-          <h3 class="m-0 text-xl font-semibold text-n-slate-12">
+          <h3
+            :id="overlayTitleId"
+            class="m-0 text-xl font-semibold text-n-slate-12"
+          >
             {{ copy.title }}
           </h3>
-          <p class="mt-2 mb-0 text-sm text-n-slate-11 min-h-[2.5rem]">
+          <p
+            :id="overlayDescriptionId"
+            class="mt-2 mb-0 text-sm text-n-slate-11 min-h-[2.5rem]"
+          >
             {{ replaceInstallationName(currentStepDetails.description) }}
           </p>
         </div>

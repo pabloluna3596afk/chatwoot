@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAlert } from 'dashboard/composables';
@@ -124,11 +124,15 @@ const openConversation = conversationId => {
 onMounted(loadDetails);
 
 defineExpose({ dialogRef });
+const overlayTitleId = useId();
+const overlayDescriptionId = useId();
 </script>
 
 <template>
   <Dialog
     ref="dialogRef"
+    :aria-labelledby="overlayTitleId"
+    :aria-describedby="overlayDescriptionId"
     width="3xl"
     position="top"
     overflow-y-auto
@@ -138,10 +142,13 @@ defineExpose({ dialogRef });
   >
     <div class="flex items-start justify-between gap-4">
       <div class="flex flex-col gap-1">
-        <h3 class="text-base font-medium leading-6 text-n-slate-12">
+        <h3
+          :id="overlayTitleId"
+          class="text-base font-medium leading-6 text-n-slate-12"
+        >
           {{ $t('CAPTAIN.FAQ_SUGGESTIONS.DETAILS.TITLE') }}
         </h3>
-        <p class="mb-0 text-sm text-n-slate-11">
+        <p :id="overlayDescriptionId" class="mb-0 text-sm text-n-slate-11">
           {{
             $t('CAPTAIN.FAQ_SUGGESTIONS.DETAILS.DESCRIPTION', {
               count: suggestion.source_count,

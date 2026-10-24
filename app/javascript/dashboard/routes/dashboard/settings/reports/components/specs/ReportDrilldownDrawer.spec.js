@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
+import { mockNativeDialog } from 'dashboard/helper/specs/mockNativeDialog';
 import { formatTime } from '@chatwoot/utils';
 import ReportsAPI from 'dashboard/api/reports';
 import ReportDrilldownDrawer from '../ReportDrilldownDrawer.vue';
@@ -28,6 +29,7 @@ vi.mock('vue-i18n', () => ({
 }));
 
 describe('ReportDrilldownDrawer.vue', () => {
+  beforeEach(mockNativeDialog);
   const request = {
     metric: 'incoming_messages_count',
     metricName: 'Messages received',
@@ -259,7 +261,7 @@ describe('ReportDrilldownDrawer.vue', () => {
     const wrapper = await mountDrawer();
     await flushPromises();
 
-    const drawer = wrapper.get('[role="dialog"]');
+    const drawer = wrapper.get('dialog');
     expect(drawer.classes()).toContain('end-3');
     expect(drawer.classes()).not.toContain('right-3');
   });
@@ -316,31 +318,19 @@ describe('ReportDrilldownDrawer.vue', () => {
     // The panel focuses itself once the enter transition settles (after-enter
     // resolves on animation frames), so poll instead of awaiting microtasks.
     await vi.waitFor(() => {
-      expect(document.activeElement).toBe(
-        wrapper.find('[role="dialog"]').element
-      );
+      expect(document.activeElement).toBe(wrapper.find('dialog').element);
     });
 
     wrapper.unmount();
     target.remove();
   });
 
-  it('closes on Escape even when focus is outside the drawer', async () => {
-    const target = document.createElement('div');
-    document.body.appendChild(target);
-    const wrapper = await mountDrawer({ attachTo: target });
+  it('closes on the native cancel event', async () => {
+    const wrapper = await mountDrawer();
     await flushPromises();
-
-    document.body.focus();
-    // Bubbles like a real key press so it reaches the panel's window listener.
-    document.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
-    );
-
+    await wrapper.get('dialog').trigger('cancel');
     expect(wrapper.emitted('close')).toBeTruthy();
-
     wrapper.unmount();
-    target.remove();
   });
 
   it('restores focus to the previously focused element when closed', async () => {
