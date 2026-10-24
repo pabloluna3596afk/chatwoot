@@ -1,4 +1,8 @@
 class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::BaseController
+  class InvalidRuleList < StandardError; end
+
+  rescue_from InvalidRuleList, with: :render_invalid_rule_list
+
   before_action -> { check_authorization(Captain::Assistant) }
 
   before_action :set_assistant, only: [:show, :update, :destroy, :avatar, :playground, :playground_usage, :metrics, :faq_stats, :summary, :drilldown]
@@ -193,13 +197,17 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
     permitted
   end
 
+  def render_invalid_rule_list(error)
+    render json: { error: error.message }, status: :unprocessable_entity
+  end
+
   def permit_rule_lists(permitted)
     %i[response_guidelines guardrails].each do |key|
       next unless params[:assistant].key?(key)
 
       value = params[:assistant][key]
       unless value.is_a?(Array) && value.all? { |rule| rule.is_a?(String) && rule.present? }
-        raise ActionController::ParameterMissing, I18n.t('captain.contracts.invalid_rules', field: key)
+        raise InvalidRuleList, I18n.t('captain.contracts.invalid_rules', field: key)
       end
 
       permitted[key] = value
@@ -214,7 +222,7 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
 
       expected = params[:assistant]["expected_#{key}"]
       unless expected.is_a?(Array) && expected.all?(String)
-        raise ActionController::ParameterMissing, I18n.t('captain.contracts.expected_rules_required', field: key)
+        raise InvalidRuleList, I18n.t('captain.contracts.expected_rules_required', field: key)
       end
       next if expected == (@assistant.public_send(key) || [])
 

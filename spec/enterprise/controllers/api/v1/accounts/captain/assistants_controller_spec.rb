@@ -26,6 +26,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
                 headers: admin.create_new_auth_token, as: :json
 
           expect(response).to have_http_status(:unprocessable_entity)
+          expect(response.parsed_body['error']).to eq(I18n.t('captain.contracts.invalid_rules', field: field))
           expect(assistant.reload.name).not_to eq('Not saved')
           expect(assistant.response_guidelines).to eq(['Original'])
           expect(assistant.guardrails).to eq(['Safe'])
