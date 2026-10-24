@@ -15,12 +15,18 @@ const GAP = 8;
  * @param {Ref}    [options.container] - Constraining container ref
  * @param {number} [options.margin=16] - Min distance from viewport/container edges
  * @param {string} [options.align='end'] - 'start' or 'end' (flips automatically for RTL)
+ * @param {string} [options.side='bottom'] - Preferred side when it has enough space
  */
 export function useDropdownPosition(
   triggerRef,
   dropdownRef,
   enabled,
-  { container = null, margin = SAFE_MARGIN, align = 'end' } = {}
+  {
+    container = null,
+    margin = SAFE_MARGIN,
+    align = 'end',
+    side = 'bottom',
+  } = {}
 ) {
   const trigger = useElementBounding(triggerRef);
   const dropdown = useElementBounding(dropdownRef);
@@ -39,6 +45,8 @@ export function useDropdownPosition(
     const dh = dropdown.height.value || FALLBACK_SIZE;
     const spaceBelow = winHeight.value - trigger.bottom.value;
     const spaceAbove = trigger.top.value;
+    if (side === 'top' && spaceAbove >= dh + GAP + margin)
+      return 'bottom-full mb-2';
     // Only flip above if it fits there; otherwise stay below (more room or equal)
     if (spaceBelow >= dh + margin) return 'top-full mt-2';
     if (spaceAbove >= dh + margin) return 'bottom-full mb-2';
@@ -79,8 +87,9 @@ export function useDropdownPosition(
     // Vertical: prefer below, flip above only if it fits, else pick the larger side
     const spaceAbove = trigger.top.value;
     const placeAbove =
-      spaceBelow < dh + margin &&
-      (spaceAbove >= dh + margin || spaceAbove > spaceBelow);
+      (side === 'top' && spaceAbove >= dh + GAP + margin) ||
+      (spaceBelow < dh + margin &&
+        (spaceAbove >= dh + margin || spaceAbove > spaceBelow));
 
     if (placeAbove) {
       style.bottom = `${winHeight.value - trigger.top.value + GAP}px`;

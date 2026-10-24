@@ -1,5 +1,21 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-210 — Reactividad de VueUse distinta entre Vitest local y CI (UI-09g)
+
+- Archivos: `vitest.config.ts` y `InternalTasks/specs/TaskDetailHeader.spec.js`.
+- Causa: VueUse externalizado usa otro runtime de Vue que los componentes con el alias
+  `vue/dist/vue.esm-bundler.js`. El clic sí cambia `reassignOpen` a true, pero no dispara render;
+  esperar con `vi.waitFor` no lo resuelve. Un render forzado de diagnóstico muestra el panel,
+  y el cierre posterior también queda sin renderizar. No es un cierre por clic exterior.
+- Arreglo: procesar `@vueuse/core`, `@vueuse/shared` y `@vueuse/components` en Vitest para
+  compartir el runtime aliased, igual que ya hacía la configuración local. Comprobar apertura
+  inmediatamente después del tick de `trigger`, sin espera por timeout ni render forzado.
+- Verificación: reproducción roja sin inlining; cinco repeticiones verdes con threads, sin caché
+  ni coverage y CI=true; los 7 casos de InternalTasks y routes/dashboard/tasks pasan en UTC y
+  America/Guayaquil, con configuración local y con la base más la excepción de filesystem del
+  worktree. ESLint pasa. Evidencia y límites en `tmp/PR-UI-09g.md`.
+- Sin cambios de UI, backend, contratos, ACL ni migraciones; UI-09f conserva sus portales reales.
+
 ### B-NEW-205 — Catálogos existentes sin registrar en el dashboard (UI-01)
 
 - Archivos: `app/javascript/dashboard/i18n/locale/{en,es}/index.js`.
@@ -1965,6 +1981,13 @@ válido → la regla nunca pedía humano. Backend ya miraba `assignee_id` (User)
 bloquea hasta asignar humano/equipo. Contacto sin agente → abrir selector →
 lista legible opaca.
 
+### B-NEW-209 — Panel activo de tareas a ancho completo en el teléfono (2026-10-24)
+
+- Archivos: `routes/dashboard/tasks/TaskView.vue` y `components-next/InternalTasks/{TaskList,TaskKanban,TaskDetail,TaskDetailHeader,TaskListTeamFilter,TaskListStatusFilter}.vue`, bajo `app/javascript/dashboard/`.
+- Causa: la lista fija de 340 px quedaba junto al detalle o el tablero en el teléfono, dejando la tarea fuera del área visible. Además, los menús de equipo y agente del panel de reasignar se montaban en `body`, y el cierre por clic exterior desmontaba el panel antes de guardar.
+- Arreglo: bajo 768 px se alternan lista y tablero y al elegir una tarea solo se muestra el detalle con botón de retorno; los filtros se conservan. Los menús del panel de reasignar se montan dentro del propio panel. El tablero solo consulta al servidor cuando es visible y pospone la actualización mientras está oculto. Escritorio conserva sus paneles.
+- Verificación: `tasks/specs/TaskView.spec.js`, `InternalTasks/specs/TaskDetail.spec.js` y `TaskDetailHeader.spec.js`; capturas reales a 390 y 1280 px en ambos temas, con toques reales en el selector de reasignar. Sin backend, permisos ni migraciones.
+
 ### B-NEW-37 — Post-compra: atributo de fecha era texto libre
 
 **Causa:** `days_since_attribute` usaba `<input>` para `schedule.attribute_key`.
@@ -1978,6 +2001,13 @@ día calendario (`LEFT(..., 10)::date` en el runner).
 
 **Cómo probar:** Automations → time triggered / preset post-compra →
 dropdown lista fechas; datetime marcado; sin CAs de fecha → mensaje vacío.
+
+### B-NEW-213 — Listas de agentes en tarjeta responsiva (2026-10-24)
+
+- Archivos: `components-next/ListCard/{ListCard,InfoChip}.vue`, `components-next/CardLayout.vue` (nueva opción `padding`) y `settings/agents/Index.vue`, bajo `app/javascript/dashboard/`.
+- Causa: la lista de Agentes era una tabla armada a mano que se salía de la pantalla en el teléfono, con separadores «|» entre correo, rol y estado y dos botones por fila.
+- Arreglo: `ListCard` es tarjeta en móvil y fila compacta desde `md`, con avatar y punto de disponibilidad, subtítulo, chips de rol y verificación alineados en una columna fija a la derecha, y un menú ⋮ de 44 px con Editar y Eliminar que respeta los permisos y los diálogos existentes. El menú se abre hacia abajo y solo se voltea si no cabe. `CardLayout` admite `padding="compact"` sin cambiar a sus consumidores actuales.
+- Verificación: specs de `ListCard`, `InfoChip`, `CardLayout`, `dropdown-menu` y `settings/agents` en UTC y America/Guayaquil. Capturas reales a 390, 768 y 1280 px en claro y oscuro. Sin backend ni migraciones.
 
 ### B-NEW-38 — Automation: nota privada de auditoría al ejecutarse
 

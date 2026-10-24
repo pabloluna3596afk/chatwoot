@@ -32,7 +32,14 @@ export default defineConfig({
     },
     server: {
       deps: {
-        inline: ['tinykeys', '@material/mwc-icon'],
+        // VueUse must share the aliased Vue runtime with mounted components.
+        inline: [
+          'tinykeys',
+          '@material/mwc-icon',
+          '@vueuse/core',
+          '@vueuse/shared',
+          '@vueuse/components',
+        ],
       },
     },
     setupFiles: ['fake-indexeddb/auto', 'vitest.setup.js'],
