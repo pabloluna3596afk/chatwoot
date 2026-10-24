@@ -1,5 +1,16 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-205 — Catálogos existentes sin registrar en el dashboard (UI-01)
+
+- Archivos: `app/javascript/dashboard/i18n/locale/{en,es}/index.js`.
+- Causa: español no exportaba `contentTemplates`, `snooze` ni `yearInReview`; inglés no exportaba `calls`.
+  La compilación de JSON individuales no detectaba que faltaban en el catálogo efectivo.
+- Arreglo: registrar los cuatro catálogos existentes, sin modificar textos, claves ni registrar `webhooks`.
+- Verificación: `i18n/messagesCompile.spec.js` comprueba hojas efectivas sin fallback, formulario de plantillas
+  y sugerencias localizadas; `routes/dashboard/commands/specs/commandbar.spec.js` integra el catálogo real
+  con las sugerencias de posposición en inglés y español. Ejecutar en UTC y America/Guayaquil.
+- Sin cambios de backend ni migraciones. Capturas y revisión visual del dueño pendientes; detalle en `tmp/PR-UI-01.md` del worktree.
+
 ### B-NEW-194 — Cupo y ventana de automatizaciones solo tras elegibilidad y envío (2026-10-23)
 
 - Archivo: `app/services/automations/contact_based_rule_runner.rb`.
