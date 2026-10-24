@@ -230,8 +230,8 @@ const hasCustomization = computed(() => {
 });
 const parserColumns = computed(() =>
   hasCustomization.value
-    ? 'grid-cols-[var(--phone-preview-width)] xl:grid-cols-[var(--phone-preview-width)_var(--send-center-unit)] max-xl:[&>div:nth-child(2)]:absolute max-xl:[&>div:nth-child(2)]:top-0 max-xl:[&>div:nth-child(2)]:left-[calc(-1*var(--send-center-unit)-1.5rem)] max-xl:[&>div:nth-child(2)]:w-[var(--send-center-unit)] max-xl:[&>div:nth-child(2)]:z-10 max-xl:[&>div:nth-child(2)]:bg-n-solid-1'
-    : 'grid-cols-[var(--phone-preview-width)]'
+    ? 'grid-cols-1 xl:grid-cols-[var(--send-center-unit)_minmax(0,var(--phone-preview-width))] [&>[data-template-fields]]:row-start-1 [&>[data-template-preview]]:row-start-2 xl:[&>[data-template-preview]]:row-start-1 xl:[&>[data-template-preview]]:col-start-2'
+    : 'grid-cols-1 xl:grid-cols-[minmax(0,var(--phone-preview-width))]'
 );
 const component = type =>
   selected.value?.data.components?.find(c => c.type === type);
@@ -367,7 +367,7 @@ watch(
     @close="close"
   >
     <div
-      class="flex h-[min(52rem,calc(90dvh-11rem))] [div:has(>&)]:!overflow-visible min-h-0 flex-col gap-5 [dialog:has(&)]:!max-w-[calc(100vw-2rem)] [dialog:has(&)]:!left-[max(1rem,calc((100vw-(2*var(--send-center-unit)+var(--phone-preview-width)+6rem))/2))] [dialog:has(&)]:!right-auto [dialog:has(&)]:!mx-0 [dialog:has(&)]:!transition-[width] [dialog:has(&)]:!duration-300 [dialog:has(&)]:!ease-in-out motion-reduce:[dialog:has(&)]:!transition-none max-xl:[dialog:has(&)]:[--send-center-unit:calc(100vw-var(--phone-preview-width)-6.5rem)] max-xl:[dialog:has(&)]:!left-4 [form:has(&)>div:last-child]:!border-0 [form:has(&)>div:last-child]:!pt-0"
+      class="flex max-md:h-auto md:h-[min(52rem,calc(90dvh-11rem))] md:[div:has(>&)]:!overflow-visible min-h-0 flex-col gap-5 [dialog:has(&)]:!max-w-[calc(100vw-2rem)] [dialog:has(&)]:!left-[max(1rem,calc((100vw-(2*var(--send-center-unit)+var(--phone-preview-width)+6rem))/2))] [dialog:has(&)]:!right-auto [dialog:has(&)]:!mx-0 [dialog:has(&)]:!transition-[width] [dialog:has(&)]:!duration-300 [dialog:has(&)]:!ease-in-out motion-reduce:[dialog:has(&)]:!transition-none max-xl:[dialog:has(&)]:[--send-center-unit:calc(100vw-var(--phone-preview-width)-6.5rem)] max-xl:[dialog:has(&)]:!left-4 [form:has(&)>div:last-child]:!border-0 [form:has(&)>div:last-child]:!pt-0"
       :class="[
         SEND_CENTER_COLUMN_UNIT_CLASS,
         PHONE_PREVIEW_WIDTH,
@@ -412,19 +412,22 @@ watch(
         />
       </div>
       <div
-        class="grid min-h-0 flex-1 gap-x-6 gap-y-3 grid-rows-[auto_minmax(0,1fr)] grid-cols-[var(--send-center-unit)_minmax(0,1fr)]"
+        class="grid min-h-0 flex-1 gap-x-6 gap-y-3 grid-cols-1 md:grid-rows-[auto_minmax(0,1fr)] md:grid-cols-[var(--send-center-unit)_minmax(0,1fr)]"
         data-testid="center-columns"
       >
-        <section class="row-span-2 grid grid-rows-subgrid min-h-0 min-w-0">
+        <section
+          class="md:row-span-2 grid gap-3 md:grid-rows-subgrid min-h-0 min-w-0"
+        >
           <div
             class="flex flex-col gap-3"
             data-testid="center-controls"
             :class="{
-              'max-xl:[&>:not(:first-child)]:invisible': hasCustomization,
+              'md:max-xl:[&>:not(:first-child)]:invisible':
+                hasCustomization && selected?.type === 'flow',
             }"
           >
             <div
-              class="flex shrink-0 items-center gap-3"
+              class="flex flex-wrap shrink-0 items-center gap-3"
               data-testid="center-toolbar"
             >
               <TabBar
@@ -481,7 +484,10 @@ watch(
             </p>
           </div>
           <div
-            :class="{ 'max-xl:invisible': hasCustomization }"
+            :class="{
+              'md:max-xl:invisible':
+                hasCustomization && selected?.type === 'flow',
+            }"
             class="min-h-0 flex-1 overflow-y-auto overscroll-contain flex flex-col gap-2"
             role="list"
             data-testid="center-list"
@@ -534,7 +540,7 @@ watch(
         </section>
         <section
           v-if="selected"
-          class="min-h-0 min-w-0 overflow-hidden max-xl:overflow-visible row-span-2 flex flex-col gap-6"
+          class="min-h-0 min-w-0 overflow-hidden max-xl:overflow-visible md:row-span-2 flex flex-col gap-6"
           data-testid="center-detail"
         >
           <FlowDetail
@@ -549,7 +555,7 @@ watch(
               v-if="content"
               :key="selected.key"
               ref="parser"
-              class="relative grid min-h-0 min-w-0 flex-1 items-start gap-6 [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto [&_input]:!h-8 [&_input]:!py-1.5"
+              class="relative grid min-h-0 min-w-0 flex-1 content-start items-start gap-6 [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto [&_input]:!h-8 [&_input]:!py-1.5"
               :class="parserColumns"
               :template="selected.data"
               @send-message="sendTemplatePayload"
@@ -560,7 +566,7 @@ watch(
               v-else
               :key="selected.key"
               ref="parser"
-              class="relative grid min-h-0 min-w-0 flex-1 items-start gap-6 [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto [&_input]:!h-8 [&_input]:!py-1.5"
+              class="relative grid min-h-0 min-w-0 flex-1 content-start items-start gap-6 [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto [&_input]:!h-8 [&_input]:!py-1.5"
               :class="parserColumns"
               :template="selected.data"
               :media-inbox-id="inbox.id"

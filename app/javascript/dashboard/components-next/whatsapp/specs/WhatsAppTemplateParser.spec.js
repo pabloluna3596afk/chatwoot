@@ -439,6 +439,31 @@ describe('WhatsAppTemplateParser with CRM values', () => {
     }));
   });
 
+  it('keeps timezone and variables together without adding grid cells or altering the resolved name', async () => {
+    previewVariables.mockImplementation(async payload => ({
+      data: {
+        timezone: 'UTC',
+        results: [
+          payload.texts.map(() => ({ status: 'value', value: 'Leo \u4e5e' })),
+        ],
+      },
+    }));
+    const wrapper = mountCrm({ contact: { id: 2 } });
+    await flushPromises();
+
+    const fields = wrapper.get('[data-template-fields]');
+    expect(fields.text()).toContain('WHATSAPP_TEMPLATES.PARSER.TIMEZONE');
+    expect(fields.text()).toContain(
+      'WHATSAPP_TEMPLATES.PARSER.VARIABLES_LABEL'
+    );
+    expect(wrapper.element.children).toHaveLength(2);
+    expect(
+      wrapper.element.children[0].hasAttribute('data-template-preview')
+    ).toBe(true);
+    expect(wrapper.element.children[1]).toBe(fields.element);
+    expect(wrapper.vm.renderedTemplate).toContain('Leo \u4e5e');
+  });
+
   it('shows the resolved value and sends the Liquid while the agent leaves it alone', async () => {
     const wrapper = mountCrm({
       contact: { name: 'ana pérez', custom_attributes: { plan: 'Pro' } },
@@ -534,7 +559,7 @@ describe('WhatsAppTemplateParser with CRM values', () => {
 
     expect(wrapper.vm.isFormInvalid).toBe(true);
     expect(wrapper.emitted('sendMessage')).toBeUndefined();
-    expect(wrapper.text()).toContain(
+    expect(wrapper.get('[data-template-fields]').text()).toContain(
       'WHATSAPP_TEMPLATES.PARSER.PREVIEW_FAILED'
     );
   });

@@ -168,7 +168,10 @@ defineExpose({
 
 <template>
   <div>
-    <div class="flex flex-col gap-4 p-4 mb-4 rounded-lg bg-n-alpha-black2">
+    <div
+      data-template-preview
+      class="flex flex-col gap-4 p-4 mb-4 rounded-lg bg-n-alpha-black2"
+    >
       <div class="flex justify-between items-center">
         <h3 class="text-sm font-medium text-n-slate-12">
           {{ template.friendly_name }}
@@ -191,7 +194,7 @@ defineExpose({
       </div>
     </div>
 
-    <div v-if="hasVariables || hasMediaVariable">
+    <div v-if="hasVariables || hasMediaVariable" data-template-fields>
       <!-- Media URL for media templates -->
       <div v-if="hasMediaVariable" class="mb-4">
         <p class="mb-2.5 text-sm font-semibold">

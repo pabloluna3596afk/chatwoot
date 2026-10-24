@@ -3176,3 +3176,15 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
   Incluyen límites equivalentes por unidad, compatibilidad, `travel_to`, fallback y reapertura al vencer.
   Revisión estática y `git diff --check`; RSpec y RuboCop pendientes del PM en Docker según el brief.
   Sin migraciones ni cambios de frontend o i18n.
+
+### B-NEW-215 — Variables desalineadas al enviar una plantilla de WhatsApp (2026-10-24)
+
+- Archivos: `components-next/whatsapp/WhatsAppTemplateParser.vue`,
+  `components-next/whatsapp/send-center/SendCenter.vue` y `components-next/content-templates/ContentTemplateParser.vue`.
+- Causa: `1ebdc02bc20` agregó zona horaria/error como hijos directos del parser;
+  la cuadrícula del centro de envío los trató como celdas adicionales, separando las variables verticalmente.
+- Arreglo: bloques explícitos de formulario y vista previa; zona horaria/error dentro del formulario,
+  columnas lista → variables → vista previa en escritorio y una columna en móvil, sin posicionamiento absoluto de variables.
+- Verificación: 404 pruebas en UTC y 404 en America/Guayaquil, incluidos ReplyBox, Captain y ambos parsers;
+  ESLint sin errores y capturas pareadas a 1280×900 y 390×844 con componentes reales.
+  El parser conserva literalmente el valor recibido de la API; no se modifican nombres de contactos ni traducciones.
