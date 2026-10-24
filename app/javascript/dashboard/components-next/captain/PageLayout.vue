@@ -1,6 +1,5 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { OnClickOutside } from '@vueuse/components';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store.js';
@@ -81,7 +80,6 @@ const { t } = useI18n();
 const route = useRoute();
 const { shouldShowPaywall } = usePolicy();
 
-const showAssistantSwitcherDropdown = ref(false);
 const createAssistantDialogRef = ref(null);
 
 const assistants = useMapGetter('captainAssistants/getRecords');
@@ -113,12 +111,7 @@ const handlePageChange = event => {
   emit('update:currentPage', event);
 };
 
-const toggleAssistantSwitcher = () => {
-  showAssistantSwitcherDropdown.value = !showAssistantSwitcherDropdown.value;
-};
-
 const handleCreateAssistant = () => {
-  showAssistantSwitcherDropdown.value = false;
   createAssistantDialogRef.value.dialogRef.open();
 };
 </script>
@@ -130,13 +123,13 @@ const handleCreateAssistant = () => {
         <div
           class="flex items-start lg:items-center justify-between w-full py-6 lg:py-0 lg:h-20 gap-4 lg:gap-2 flex-col lg:flex-row"
         >
-          <div class="flex gap-3 items-center">
+          <div class="flex flex-wrap min-w-0 max-w-full gap-3 items-center">
             <BackButton v-if="backUrl" :back-url="backUrl" />
             <div
               v-if="showAssistantSwitcher && !showPaywall"
-              class="flex items-center gap-2"
+              class="flex items-center min-w-0 max-w-full gap-2"
             >
-              <div class="flex items-center gap-2">
+              <div class="flex items-center min-w-0 max-w-full gap-2">
                 <Avatar
                   v-if="!isFetchingAssistants && activeAssistant"
                   :name="activeAssistant.name"
@@ -151,34 +144,31 @@ const handleCreateAssistant = () => {
                 >
                   {{ activeAssistantName }}
                 </span>
-                <div class="relative group">
-                  <OnClickOutside
-                    @trigger="showAssistantSwitcherDropdown = false"
-                  >
+                <AssistantSwitcher
+                  class="shrink-0"
+                  @create-assistant="handleCreateAssistant"
+                >
+                  <template #trigger="{ open, toggle }">
                     <Button
                       icon="i-lucide-chevron-down"
-                      :variant="
-                        showAssistantSwitcherDropdown ? 'faded' : 'ghost'
+                      :aria-label="
+                        t('CAPTAIN.ASSISTANT_SWITCHER.SWITCH_ASSISTANT')
                       "
+                      :aria-expanded="open"
+                      aria-haspopup="dialog"
+                      :variant="open ? 'faded' : 'ghost'"
                       color="slate"
                       size="xs"
                       :disabled="isFetchingAssistants"
                       :is-loading="isFetchingAssistants"
-                      class="rounded-md group-hover:bg-n-slate-3 hover:bg-n-slate-3 [&>span]:size-4"
-                      @click="toggleAssistantSwitcher"
+                      class="shrink-0 rounded-md min-h-11 min-w-11 sm:min-h-0 sm:min-w-0"
+                      @click="toggle"
                     />
-
-                    <AssistantSwitcher
-                      v-if="showAssistantSwitcherDropdown"
-                      class="absolute ltr:left-0 rtl:right-0 top-9"
-                      @close="showAssistantSwitcherDropdown = false"
-                      @create-assistant="handleCreateAssistant"
-                    />
-                  </OnClickOutside>
-                </div>
+                  </template>
+                </AssistantSwitcher>
               </div>
             </div>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center min-w-0 gap-4">
               <div
                 v-if="showAssistantSwitcher && !showPaywall && headerTitle"
                 class="w-0.5 h-4 rounded-2xl bg-n-weak"
@@ -191,7 +181,7 @@ const handleCreateAssistant = () => {
               </span>
               <div
                 v-if="!isEmpty && showKnowMore"
-                class="flex items-center gap-2"
+                class="flex items-center min-w-0 max-w-full gap-2"
               >
                 <div class="w-0.5 h-4 rounded-2xl bg-n-weak" />
                 <slot name="knowMore" />
@@ -199,7 +189,7 @@ const handleCreateAssistant = () => {
             </div>
           </div>
 
-          <div class="flex items-center gap-2">
+          <div class="flex items-center min-w-0 max-w-full gap-2">
             <slot name="headerActions" />
             <slot name="search" />
             <div

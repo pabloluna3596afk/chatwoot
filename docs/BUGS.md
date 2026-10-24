@@ -1,5 +1,20 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-205 - Altas y switchers Captain adaptables (UI-10, 2026-10-24)
+
+- Archivos: `components-next/captain/assistant/{AddNewScenariosDialog,AddNewRulesDialog,ToolsDropdown}.vue`,
+  `captain/{PageLayout,pageComponents/switcher/AssistantSwitcher}.vue`, `HelpCenter/{HelpCenterLayout,PortalSwitcher/PortalSwitcher}.vue`
+  y `components/widgets/{conversation/TagTools,WootWriter/Editor}.vue` (bajo `app/javascript/dashboard`).
+- Cambio: altas con Dialog/bodyScroll, acciones fuera del scroll, Input con etiqueta para pautas y límites;
+  switchers con MenuPopover, búsqueda y pie de creación; herramientas en el portal del dialog nativo.
+- Interacción: Escape cierra primero las herramientas y conserva el editor; elegir el primer resultado tras navegar
+  conserva el índice cero; rutas, IDs, locale del portal y callbacks de persistencia de PR 07 se mantienen.
+- Verificar: abrir altas de escenarios/pautas/límites a 390 y 1280, escribir y provocar error, reintentar;
+  abrir herramientas con @, recorrer con flechas y Escape; buscar asistentes/portales y crear desde cero resultados.
+  Specs: AddDialogs, Persistence, ToolsDropdown, AssistantSwitcher y WootWriter/CaptainTools; batería ampliada en UTC/Guayaquil.
+- Sin backend ni migraciones. Dialog no ofrece pantalla completa móvil: pieza base pendiente de PR 13,
+  registrada en `tmp/PR-UI-10.md` conforme COMUN-IMPL. Revisión visual del dueño pendiente.
+
 ### B-NEW-194 — Cupo y ventana de automatizaciones solo tras elegibilidad y envío (2026-10-23)
 
 - Archivo: `app/services/automations/contact_based_rule_runner.rb`.

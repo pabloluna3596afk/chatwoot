@@ -809,6 +809,12 @@ function handleLineBreakWhenCmdAndEnterToSendEnabled(event) {
 }
 
 function onKeydown(event) {
+  if (isEscape(event) && showToolsMenu.value) {
+    showToolsMenu.value = false;
+    event.preventDefault();
+    event.stopPropagation();
+    return true;
+  }
   if (isEscape(event)) {
     collapseSelection(editorView);
     return true;
@@ -1016,6 +1022,10 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
     <TagTools
       v-if="showToolsMenu"
       :search-key="toolSearchKey"
+      @close="
+        showToolsMenu = false;
+        focusEditorInputField(null);
+      "
       @select-tool="content => insertSpecialContent('tool', content)"
     />
     <CopilotMenuBar
