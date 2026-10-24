@@ -2002,6 +2002,13 @@ día calendario (`LEFT(..., 10)::date` en el runner).
 **Cómo probar:** Automations → time triggered / preset post-compra →
 dropdown lista fechas; datetime marcado; sin CAs de fecha → mensaje vacío.
 
+### B-NEW-213 — Listas de agentes en tarjeta responsiva (2026-10-24)
+
+- Archivos: `components-next/ListCard/{ListCard,InfoChip}.vue`, `components-next/CardLayout.vue` (nueva opción `padding`) y `settings/agents/Index.vue`, bajo `app/javascript/dashboard/`.
+- Causa: la lista de Agentes era una tabla armada a mano que se salía de la pantalla en el teléfono, con separadores «|» entre correo, rol y estado y dos botones por fila.
+- Arreglo: `ListCard` es tarjeta en móvil y fila compacta desde `md`, con avatar y punto de disponibilidad, subtítulo, chips de rol y verificación alineados en una columna fija a la derecha, y un menú ⋮ de 44 px con Editar y Eliminar que respeta los permisos y los diálogos existentes. El menú se abre hacia abajo y solo se voltea si no cabe. `CardLayout` admite `padding="compact"` sin cambiar a sus consumidores actuales.
+- Verificación: specs de `ListCard`, `InfoChip`, `CardLayout`, `dropdown-menu` y `settings/agents` en UTC y America/Guayaquil. Capturas reales a 390, 768 y 1280 px en claro y oscuro. Sin backend ni migraciones.
+
 ### B-NEW-38 — Automation: nota privada de auditoría al ejecutarse
 
 **Estado:** sustituido por **B-NEW-44** (2026-07-28). Ya no se deja nota audit al
