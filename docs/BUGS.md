@@ -2579,6 +2579,13 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
 - Verify: new/edit/copy selector specs; 285 template tests pass. Actual Flow/drawer browser comparison verifies matching
   trigger, option and group appearance and no footer overlap. See `docs/TEMPLATE_PICKER_AUDIT.md` for the audit table.
 
+### B-NEW-222 — Errores de validación en inglés en Captain y equipos
+
+- Problema: los ajustes básicos y de sistema de Captain y el nombre de equipo mostraban los mensajes predeterminados de Vuelidate aunque la interfaz estuviera en español.
+- Archivos: `AssistantBasicSettingsForm.vue`, `AssistantSystemSettingsForm.vue`, `settings/teams/TeamForm.vue`, `settings/teams/helpers/validations.js` y catálogos `en/es/general.json`.
+- Cambio: mensajes localizados y reactivos para obligatorios, longitudes, mínimos, máximos y enteros mediante `helpers.withMessage`; se conservan límites, campos opcionales, condiciones y tipos del payload.
+- Verificación: `LocalizedSettingsValidation.spec.js` comprueba ambos idiomas, fronteras y cambio de idioma; revisar ajustes básicos y de sistema y crear/editar equipos con datos inválidos y válidos.
+
 ### B-NEW-63 -- Shared filter menus stayed behind native dialogs
 
 - Files: `components-next/dropdown-menu/MenuPopover.vue` and its spec.
@@ -3222,12 +3229,12 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 
 
 
-### B-NEW-231 ? Restaurar el orden original de Enviar por WhatsApp (2026-10-24)
+### B-NEW-233 — Restaurar el orden original de Enviar por WhatsApp (2026-10-24)
 
 - Archivos: `components-next/whatsapp/send-center/SendCenter.vue`, `WhatsAppTemplateParser.vue` y sus specs.
-- Causa: el primer arreglo de PR #223 intercambi? variables y vista previa respecto de `1ebdc02bc2^`.
-- Arreglo: restaurar lista ? vista previa ? variables a 1280 px, con anchos y separaci?n originales; usar `data-template-fields` para ubicar el formulario sin depender de hijos ordinales. Mantener una columna en m?vil y los mensajes de error dentro del formulario. Quitar el texto visible de zona horaria y su estado local sin modificar la resoluci?n de Rails; conservar la clave i18n existente.
-- Verificaci?n: specs de ambos parsers reales en SendCenter; el parser oculta UTC y America/Guayaquil y conserva valores/payload. Comparar capturas `fixenvio2-original-*` / `fixenvio2-despues-*` en 1280x900 y 390x844. El original m?vil ya desbordaba; la versi?n corregida conserva lista, preview y variables visibles, sin scroll horizontal.
+- Causa: el primer arreglo de PR #223 intercambió variables y vista previa respecto de `1ebdc02bc2^`.
+- Arreglo: restaurar lista → vista previa → variables a 1280 px, con anchos y separación originales; usar `data-template-fields` para ubicar el formulario sin depender de hijos ordinales. Mantener una columna en m?vil y los mensajes de error dentro del formulario. Quitar el texto visible de zona horaria y su estado local sin modificar la resoluci?n de Rails; conservar la clave i18n existente.
+- Verificación: specs de ambos parsers reales en SendCenter; el parser oculta UTC y America/Guayaquil y conserva valores/payload. Comparar capturas `fixenvio2-original-*` / `fixenvio2-despues-*` en 1280x900 y 390x844. El original m?vil ya desbordaba; la versi?n corregida conserva lista, preview y variables visibles, sin scroll horizontal.
 
 ### B-NEW-232 — Insertar variables dentro del campo de plantilla (2026-10-24)
 
