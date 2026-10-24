@@ -78,6 +78,21 @@ RSpec.shared_examples 'calendar template button replies' do |template_name|
   end
 
   describe 'Cancelar' do
+    it 'processes a changed choice and still deduplicates the repeated answer' do
+      described_class.new(tap_button('Confirmar')).perform
+      changed = tap_button('Cancelar')
+      changed.update!(content_attributes: changed.content_attributes.merge(
+        'button_choice_changed' => true, 'previous_button_choice' => 'Confirmar'
+      ))
+
+      2.times { described_class.new(changed).perform }
+
+      expect(appointment.reload.appointment_status).to eq('cancelled')
+      expect(notice.reload.additional_attributes['customer_answer']).to eq('cancel')
+      expect(client).to have_received(:delete_event).once
+      expect(activity_texts.size).to eq(2)
+    end
+
     it 'cancels the appointment in Google and locally, and tells the team' do
       described_class.new(tap_button('Cancelar')).perform
 

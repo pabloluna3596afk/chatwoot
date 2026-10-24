@@ -2050,6 +2050,29 @@ vacío → 2ª regla no aplica). Además `ConditionRow` guarda `values` como
 Venta en el modal → deben aparecer campos de venta **sin** cerrar. Completar y
 resolver en un solo flujo. Hard refresh tras redeploy.
 
+### B-NEW-204 — Captain entiende el cambio de elección en botones de WhatsApp
+
+**Problema:** un segundo toque sobre los botones del mismo mensaje llegaba a Captain sin contexto del cambio de elección.
+
+**Fix:** la entrada de WhatsApp marca `button_choice_changed` y `previous_button_choice` cuando existe una respuesta entrante
+anterior al mismo `in_reply_to`; toma la más reciente por `created_at` e `id`. Aplica a `button`, `button_reply` y `list_reply`,
+sin inferir el mensaje padre cuando falta contexto. El formateador compartido de Captain V1/V2 añade una anotación traducida,
+conservando el contenido original y el flujo normal de respuesta. `Calendar::TemplateButtonReply` conserva su deduplicación.
+
+**Archivos:** `app/services/whatsapp/incoming_message_base_service.rb`,
+`enterprise/app/services/captain/open_ai_message_builder_service.rb`, `config/locales/en.yml`, `config/locales/es.yml`.
+
+**Cómo probar:** tocar dos opciones distintas del mismo mensaje en WhatsApp: Captain debe entender la última como un cambio.
+Un tercer toque debe referir a la segunda opción. Probar también listas, mensajes padre distintos, texto libre y falta de contexto.
+En citas, confirmar y luego reagendar; repetir el webhook no debe duplicar actividades.
+
+**Specs:** `spec/services/whatsapp/incoming_message_button_choice_spec.rb`,
+`spec/enterprise/services/captain/conversation/message_history_builder_service_spec.rb`,
+`spec/enterprise/services/captain/open_ai_message_builder_service_spec.rb`,
+`spec/services/whatsapp/incoming_message_whatsapp_cloud_service_appointment_buttons_perform_spec.rb`,
+`spec/services/calendar/template_button_reply_spec.rb`.
+Pendiente ejecución de RSpec y RuboCop por el PM en Docker, según el brief. Sin migraciones ni cambios de frontend.
+
 ### B-NEW-47 — Modal resolve: precarga valores + obligatorio visible
 
 **Síntoma:** al Resolver con 4/5 attrs ya llenos, el form abría “en blanco”

@@ -13,6 +13,7 @@ class Captain::OpenAiMessageBuilderService
   def generate_content
     parts = []
     text = Captain::Messaging::FlowAnswersContext.text_for(@message) || @message.content
+    text = button_choice_content(text)
     parts << text_part(text) if text.present?
     parts.concat(attachment_parts(@message.attachments)) if @message.attachments.any?
 
@@ -23,6 +24,15 @@ class Captain::OpenAiMessageBuilderService
   end
 
   private
+
+  def button_choice_content(text)
+    return text unless @message.incoming? && @message.content_attributes['button_choice_changed'] == true
+
+    annotation = I18n.t('captain.button_choice_changed', locale: @message.account.locale,
+                                                         previous: @message.content_attributes['previous_button_choice'],
+                                                         current: @message.content)
+    "#{annotation}\n#{text}"
+  end
 
   def text_part(text)
     { type: 'text', text: text }

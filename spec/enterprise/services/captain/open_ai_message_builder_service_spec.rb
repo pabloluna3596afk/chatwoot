@@ -6,6 +6,49 @@ RSpec.describe Captain::OpenAiMessageBuilderService do
   let(:message) { create(:message, content: 'Hello world') }
 
   describe '#generate_content' do
+    context 'when the customer changes a button choice' do
+      before do
+        message.update!(content: 'Sales', content_attributes: { button_choice_changed: true, previous_button_choice: 'Support' })
+      end
+
+      it 'annotates the choice in English and preserves the saved content' do
+        message.account.update!(locale: 'en')
+
+        expect(service.generate_content).to eq("[The customer changed their choice from «Support» to «Sales»]\nSales")
+        expect(message.reload.content).to eq('Sales')
+      end
+
+      it 'uses the account locale independently of the worker locale' do
+        message.account.update!(locale: 'es')
+
+        I18n.with_locale(:en) do
+          expect(service.generate_content).to eq("[El cliente cambió su elección de «Support» a «Sales»]\nSales")
+        end
+      end
+
+      it 'preserves multimodal attachments alongside the annotation' do
+        message.account.update!(locale: 'en')
+        message.attachments.create!(account_id: message.account_id, file_type: :image, external_url: 'https://example.com/image.jpg')
+
+        expect(service.generate_content).to include(
+          { type: 'text', text: "[The customer changed their choice from «Support» to «Sales»]\nSales" },
+          { type: 'image_url', image_url: { url: 'https://example.com/image.jpg' } }
+        )
+      end
+    end
+
+    context 'when an ordinary message replies to another message' do
+      before do
+        parent = create(:message, conversation: message.conversation, account: message.account, message_type: :outgoing)
+        message.update!(content_attributes: { in_reply_to: parent.id })
+      end
+
+      it 'keeps the content unchanged on other channels' do
+        expect(message.inbox.channel_type).not_to eq('Channel::Whatsapp')
+        expect(service.generate_content).to eq('Hello world')
+      end
+    end
+
     context 'when message has only text content' do
       it 'returns the text content directly' do
         expect(service.generate_content).to eq('Hello world')

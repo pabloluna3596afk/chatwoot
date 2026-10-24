@@ -209,7 +209,20 @@ class Whatsapp::IncomingMessageBaseService
     content_attrs[:referral] = referral_content_attrs if referral_content_attrs.present?
     flow_payload = flow_response_payload(message)
     content_attrs[:whatsapp_flow_response] = flow_payload if flow_payload.present?
-    content_attrs
+    content_attrs.merge(button_choice_change_attributes(message))
+  end
+
+  def button_choice_change_attributes(message)
+    return {} if outgoing_echo || @in_reply_to_message_id.blank?
+    return {} unless message[:type] == 'button' ||
+                     (message[:type] == 'interactive' && %w[button_reply list_reply].include?(message.dig(:interactive, :type)))
+
+    previous = @conversation.messages.incoming
+                            .where("(content_attributes #>> '{}')::jsonb ->> 'in_reply_to' = ?", @in_reply_to_message_id.to_s)
+                            .reorder(created_at: :desc, id: :desc).first
+    return {} unless previous
+
+    { button_choice_changed: true, previous_button_choice: previous.content }
   end
 
   def update_contact_with_profile_name(contact_params)

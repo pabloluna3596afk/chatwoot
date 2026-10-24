@@ -59,6 +59,21 @@ describe Whatsapp::IncomingMessageWhatsappCloudService, '#perform' do
     expect(appointment.reload.appointment_status).to eq('pending_confirmation')
   end
 
+  it 'marks a changed choice while preserving the calendar answer and its deduplication' do
+    confirm = { type: 'button', button: { text: 'Confirmar' }, context: { id: 'wamid.NOTICE' } }
+    described_class.new(inbox: channel.inbox, params: params_for(confirm)).perform
+    reschedule = { id: 'wamid.CHANGED', type: 'button', button: { text: 'Reagendar' }, context: { id: 'wamid.NOTICE' } }
+    described_class.new(inbox: channel.inbox, params: params_for(reschedule)).perform
+
+    expect(conversation.messages.incoming.last.content_attributes).to include(
+      'button_choice_changed' => true, 'previous_button_choice' => 'Confirmar'
+    )
+    expect(conversation.messages.find_by!(source_id: 'wamid.NOTICE').additional_attributes['customer_answer']).to eq('reschedule')
+    expect(appointment.reload.appointment_status).to eq('confirmed')
+    expect { described_class.new(inbox: channel.inbox, params: params_for(reschedule)).perform }
+      .not_to(change { conversation.messages.count })
+  end
+
   it 'still saves the message when answering the appointment fails' do
     allow(Calendar::TemplateButtonReply).to receive(:new).and_raise(StandardError)
     button = { type: 'button', button: { payload: 'Cancelar', text: 'Cancelar' }, context: { id: 'wamid.NOTICE' } }
