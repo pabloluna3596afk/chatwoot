@@ -37,6 +37,93 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       allow(mock_false_promise_service).to receive(:detect).and_return({ 'decision' => 'safe', 'reason' => 'safe_response' })
     end
 
+    [false, true].each do |v2_enabled|
+      context "with scheduled bursts and Captain V2 enabled: #{v2_enabled}" do
+        before do
+          if v2_enabled
+            account.enable_features!(:captain_integration_v2)
+          else
+            account.disable_features!(:captain_integration_v2)
+          end
+          allow(responding_to_message.inbox).to receive(:captain_assistant).and_return(assistant)
+        end
+
+        it 'executes three scheduled jobs in order and publishes only the last response' do
+          travel_to Time.current do
+            Captain::Conversation::ResponseSchedulerService.new(message: responding_to_message).perform
+            travel 1.second
+            second_message = create(:message, conversation: conversation, content: 'Second', message_type: :incoming)
+            allow(second_message.inbox).to receive(:captain_assistant).and_return(assistant)
+            Captain::Conversation::ResponseSchedulerService.new(message: second_message).perform
+            travel 1.second
+            last_message = create(:message, conversation: conversation, content: 'Last', message_type: :incoming)
+            allow(last_message.inbox).to receive(:captain_assistant).and_return(assistant)
+            Captain::Conversation::ResponseSchedulerService.new(message: last_message).perform
+
+            expect(enqueued_jobs.count { |job| job[:job] == described_class }).to eq(3)
+            travel 4.seconds
+            perform_enqueued_jobs(only: described_class, at: Time.current)
+            expect(conversation.messages.outgoing.count).to eq(0)
+            travel 1.second
+            perform_enqueued_jobs(only: described_class, at: Time.current)
+            expect(conversation.messages.outgoing.count).to eq(0)
+            travel 1.second
+            perform_enqueued_jobs(only: described_class, at: Time.current)
+
+            expect(conversation.messages.where(sender: assistant, private: false, message_type: :outgoing).count).to eq(1)
+            expect(account.reload.usage_limits[:captain][:responses][:consumed]).to eq(1)
+            generator = v2_enabled ? mock_agent_runner_service : mock_llm_chat_service
+            expect(generator).to have_received(:generate_response).with(
+              message_history: [
+                { content: 'Hello', role: 'user' },
+                { content: 'Second', role: 'user' },
+                { content: 'Last', role: 'user' }
+              ]
+            ).once
+            expected_response = v2_enabled ? 'Hey, welcome to Captain V2' : 'Hey, welcome to Captain Specs'
+            expect(conversation.messages.outgoing.last.content).to eq(expected_response)
+          end
+        end
+
+        it 'does not generate or charge when a newer message arrives during the wait' do
+          create(:message, conversation: conversation, content: 'New context', message_type: :incoming)
+
+          expect(mock_llm_chat_service).not_to receive(:generate_response)
+          expect(mock_agent_runner_service).not_to receive(:generate_response)
+
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+          expect(conversation.messages.outgoing.count).to eq(0)
+          expect(account.reload.usage_limits[:captain][:responses][:consumed]).to eq(0)
+        end
+
+        it 'does not generate after a human takes over during the wait' do
+          conversation.update!(ai_assignee: assistant)
+          agent = create(:user, account: account)
+          Conversations::AssignmentService.new(conversation: conversation, assignee_id: agent.id).perform
+
+          expect(mock_llm_chat_service).not_to receive(:generate_response)
+          expect(mock_agent_runner_service).not_to receive(:generate_response)
+
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+          expect(conversation.reload.status).to eq('open')
+          expect(conversation.messages.outgoing.count).to eq(0)
+        end
+
+        it 'preserves the assignment boundary while waiting' do
+          conversation.update!(additional_attributes: { captain_assignment_message_id: responding_to_message.id })
+
+          expect(mock_llm_chat_service).not_to receive(:generate_response)
+          expect(mock_agent_runner_service).not_to receive(:generate_response)
+
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+          expect(conversation.messages.outgoing.count).to eq(0)
+        end
+      end
+    end
+
     context 'when captain_v2 is disabled' do
       before do
         allow(account).to receive(:feature_enabled?).and_return(false)

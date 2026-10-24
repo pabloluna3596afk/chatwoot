@@ -13,19 +13,19 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
     @conversation = conversation
     @inbox = conversation.inbox
     @assistant = assistant
-    @responding_to_message_id = responding_to_message_id if captain_v2_enabled?
+    @responding_to_message_id = responding_to_message_id
 
     return log_non_pending unless conversation_pending?
 
     assignment_message_id = conversation.additional_attributes['captain_assignment_message_id']
     return if assignment_message_id && !conversation.messages.captain_response_triggering.exists?(['messages.id > ?', assignment_message_id])
 
+    return log_pre_generation_discard if newer_customer_message_arrived?
+
     Current.executed_by = @assistant
     return process_reply_limit if @assistant.reply_limit_reached?(conversation)
 
     return generate_and_process_response unless captain_v2_enabled?
-
-    return log_pre_generation_discard if newer_customer_message_arrived?
 
     generate_response_with_v2
   rescue ActiveStorage::FileNotFoundError, Faraday::BadRequestError => e

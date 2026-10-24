@@ -100,12 +100,13 @@ RSpec.describe MessageTemplates::HookExecutionService do
 
   context 'when Captain can answer' do
     it 'adds no note' do
-      allow(Captain::Conversation::ResponseBuilderJob).to receive(:perform_later)
+      configured_job = instance_double(ActiveJob::ConfiguredJob, perform_later: true)
+      allow(Captain::Conversation::ResponseBuilderJob).to receive(:set).and_return(configured_job)
 
       customer_message
 
       expect(private_notes).to be_empty
-      expect(Captain::Conversation::ResponseBuilderJob).to have_received(:perform_later)
+      expect(configured_job).to have_received(:perform_later)
     end
   end
 

@@ -8,7 +8,7 @@ class Captain::Conversation::ResponseSchedulerService
   end
 
   def perform
-    wait_time = attachment_wait_time
+    wait_time = [@assistant.reply_delay_seconds.seconds, attachment_wait_time].max
     return Captain::Conversation::ResponseBuilderJob.perform_later(*job_args) if wait_time.zero?
 
     Captain::Conversation::ResponseBuilderJob.set(wait: wait_time).perform_later(*job_args)
@@ -17,9 +17,7 @@ class Captain::Conversation::ResponseSchedulerService
   private
 
   def job_args
-    args = [@conversation, @assistant]
-    args << @message.id if captain_v2_enabled?
-    args
+    [@conversation, @assistant, @message.id]
   end
 
   def captain_v2_enabled?
