@@ -20,7 +20,14 @@ RSpec.describe Captain::Assistant, type: :model do
       end
     end
 
-    [-1, 31, 1.5, 6.0, '6', '', nil, true, [], {}].each do |delay|
+    it 'treats nil as unset and keeps the default' do
+      assistant.reply_delay_seconds = nil
+
+      expect(assistant.save).to be(true)
+      expect(assistant.reply_delay_seconds).to eq(6)
+    end
+
+    [-1, 31, 1.5, 6.0, '6', '', true, [], {}].each do |delay|
       it "rejects #{delay.inspect} when saving" do
         assistant.reply_delay_seconds = delay
 
