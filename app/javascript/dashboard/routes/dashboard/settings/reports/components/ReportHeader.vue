@@ -39,7 +39,7 @@ defineProps({
         </div>
       </div>
       <div
-        class="flex flex-wrap items-start gap-3 min-w-0 max-w-full sm:shrink-0 [&>*]:min-w-0 [&>*]:max-w-full [&_button]:!h-auto [&_button]:min-h-8 [&_button]:max-w-full [&_button]:py-1.5 [&_button>span]:whitespace-normal [&_button>span]:break-words"
+        class="flex flex-wrap items-start gap-3 min-w-0 max-w-full sm:shrink-0 [&>*]:min-w-0 [&>*]:max-w-full [&>button]:!h-auto [&>button]:min-h-8 [&>button]:max-w-full [&>button]:py-1.5 [&>button>span]:whitespace-normal [&>button>span]:break-words [&>div>button]:!h-auto [&>div>button]:min-h-8 [&>div>button]:max-w-full [&>div>button]:py-1.5 [&>div>button>span]:whitespace-normal [&>div>button>span]:break-words"
       >
         <slot />
       </div>
