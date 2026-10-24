@@ -8,6 +8,7 @@ import { useAlert } from 'dashboard/composables';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 import Button from 'dashboard/components-next/button/Button.vue';
+import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 
 import PageLayout from 'dashboard/components-next/captain/PageLayout.vue';
@@ -29,6 +30,17 @@ const isFetching = computed(() => uiFlags.value.fetchingList);
 const scenarios = useMapGetter('captainScenarios/getRecords');
 
 const searchQuery = ref('');
+const isCreating = ref(false);
+const isDeleting = ref(false);
+const deleteDialog = ref(null);
+const deleteIds = ref([]);
+const deleteError = ref('');
+const requestDelete = ids => {
+  if (isDeleting.value) return;
+  deleteIds.value = [...ids];
+  deleteError.value = '';
+  deleteDialog.value.open();
+};
 
 const LINK_INSTRUCTION_CLASS =
   '[&_a[href^="tool://"]]:text-n-iris-11 [&_a:not([href^="tool://"])]:text-n-slate-12 [&_a]:pointer-events-none [&_a]:cursor-default';
@@ -115,11 +127,13 @@ const updateScenario = async scenario => {
       tools: getToolsFromInstruction(scenario.instruction),
     });
     useAlert(t('CAPTAIN.ASSISTANTS.SCENARIOS.API.UPDATE.SUCCESS'));
+    return true;
   } catch (error) {
     const errorMessage =
       error?.response?.message ||
       t('CAPTAIN.ASSISTANTS.SCENARIOS.API.UPDATE.ERROR');
     useAlert(errorMessage);
+    return false;
   }
 };
 
@@ -144,37 +158,45 @@ const toggleScenario = async ({ id, enabled }) => {
   }
 };
 
-const deleteScenario = async id => {
+const bulkDeleteScenarios = async () => {
+  if (isDeleting.value || !deleteIds.value.length) return;
+  isDeleting.value = true;
   try {
-    await store.dispatch('captainScenarios/delete', {
-      id,
-      assistantId: assistantId.value,
-    });
-    useAlert(t('CAPTAIN.ASSISTANTS.SCENARIOS.API.DELETE.SUCCESS'));
-  } catch (error) {
-    const errorMessage =
-      error?.response?.message ||
-      t('CAPTAIN.ASSISTANTS.SCENARIOS.API.DELETE.ERROR');
-    useAlert(errorMessage);
+    const ids = [...deleteIds.value];
+    const results = await Promise.allSettled(
+      ids.map(id =>
+        store.dispatch('captainScenarios/delete', {
+          id,
+          assistantId: assistantId.value,
+        })
+      )
+    );
+    const failedIds = ids.filter(
+      (_, index) => results[index].status === 'rejected'
+    );
+    const deletedIds = ids.filter(id => !failedIds.includes(id));
+    bulkSelectedIds.value = new Set(
+      [...bulkSelectedIds.value].filter(id => !deletedIds.includes(id))
+    );
+    deleteIds.value = failedIds;
+    if (failedIds.length) {
+      deleteError.value = t('CAPTAIN.PERSISTENCE.PARTIAL_DELETE', {
+        succeeded: deletedIds.length,
+        failed: failedIds.length,
+      });
+      useAlert(deleteError.value);
+    } else {
+      deleteDialog.value.close();
+      useAlert(t('CAPTAIN.ASSISTANTS.SCENARIOS.API.DELETE.SUCCESS'));
+    }
+  } finally {
+    isDeleting.value = false;
   }
 };
 
-// TODO: Add bulk delete endpoint
-const bulkDeleteScenarios = async ids => {
-  const idsArray = ids || Array.from(bulkSelectedIds.value);
-  await Promise.all(
-    idsArray.map(id =>
-      store.dispatch('captainScenarios/delete', {
-        id,
-        assistantId: assistantId.value,
-      })
-    )
-  );
-  bulkSelectedIds.value = new Set();
-  useAlert(t('CAPTAIN.ASSISTANTS.SCENARIOS.API.DELETE.SUCCESS'));
-};
-
 const addScenario = async scenario => {
+  if (isCreating.value) return false;
+  isCreating.value = true;
   try {
     await store.dispatch('captainScenarios/create', {
       assistantId: assistantId.value,
@@ -182,29 +204,21 @@ const addScenario = async scenario => {
       tools: getToolsFromInstruction(scenario.instruction),
     });
     useAlert(t('CAPTAIN.ASSISTANTS.SCENARIOS.API.ADD.SUCCESS'));
+    return true;
   } catch (error) {
     const errorMessage =
       error?.response?.message ||
       t('CAPTAIN.ASSISTANTS.SCENARIOS.API.ADD.ERROR');
     useAlert(errorMessage);
+    return false;
+  } finally {
+    isCreating.value = false;
   }
 };
 
 const addAllExampleScenarios = async () => {
-  try {
-    scenariosExample.forEach(async scenario => {
-      await store.dispatch('captainScenarios/create', {
-        assistantId: assistantId.value,
-        ...scenario,
-      });
-    });
-    useAlert(t('CAPTAIN.ASSISTANTS.SCENARIOS.API.ADD.SUCCESS'));
-  } catch (error) {
-    const errorMessage =
-      error?.response?.message ||
-      t('CAPTAIN.ASSISTANTS.SCENARIOS.API.ADD.ERROR');
-    useAlert(errorMessage);
-  }
+  // There is one suggested scenario; use the same awaited create path.
+  await addScenario(scenariosExample[0]);
 };
 
 onMounted(() => {
@@ -279,7 +293,7 @@ onMounted(() => {
             :delete-label="
               $t('CAPTAIN.ASSISTANTS.SCENARIOS.BULK_ACTION.BULK_DELETE_BUTTON')
             "
-            @bulk-delete="bulkDeleteScenarios"
+            @bulk-delete="requestDelete(bulkSelectedIds)"
           >
             <template #default-actions>
               <AddNewScenariosDialog @add="addScenario" />
@@ -323,7 +337,7 @@ onMounted(() => {
               hoveredCard === scenario.id || bulkSelectedIds.size > 0
             "
             @select="handleRuleSelect"
-            @delete="deleteScenario(scenario.id)"
+            @delete="requestDelete([scenario.id])"
             @update="updateScenario"
             @toggle="toggleScenario"
             @hover="isHovered => handleRuleHover(isHovered, scenario.id)"
@@ -331,5 +345,19 @@ onMounted(() => {
         </div>
       </div>
     </template>
+    <Dialog
+      ref="deleteDialog"
+      type="alert"
+      :title="t('CAPTAIN.PERSISTENCE.DELETE_TITLE')"
+      :description="
+        t('CAPTAIN.PERSISTENCE.DELETE_DESCRIPTION', { count: deleteIds.length })
+      "
+      :is-loading="isDeleting"
+      @confirm="bulkDeleteScenarios"
+    >
+      <p v-if="deleteError" role="alert" class="text-sm text-n-ruby-11">
+        {{ deleteError }}
+      </p>
+    </Dialog>
   </PageLayout>
 </template>

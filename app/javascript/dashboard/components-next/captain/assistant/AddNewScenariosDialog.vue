@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToggle } from '@vueuse/core';
 import { useVuelidate } from '@vuelidate/core';
@@ -11,7 +11,11 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import Editor from 'dashboard/components-next/Editor/Editor.vue';
 
-const emit = defineEmits(['add']);
+const props = defineProps({
+  // Return true only after the mutation succeeds; events cannot be awaited.
+  onAdd: { type: Function, required: true },
+});
+const isSaving = ref(false);
 
 const { t } = useI18n();
 
@@ -63,26 +67,32 @@ const onClickAdd = async () => {
   v$.value.$touch();
   if (v$.value.$invalid) return;
 
-  await emit('add', state);
-  resetState();
-  togglePopover(false);
+  if (isSaving.value) return;
+  isSaving.value = true;
+  try {
+    if (await props.onAdd({ ...state })) {
+      resetState();
+      v$.value.$reset();
+      togglePopover(false);
+    }
+  } finally {
+    isSaving.value = false;
+  }
 };
 
 const onClickCancel = () => {
-  togglePopover(false);
+  if (!isSaving.value) togglePopover(false);
 };
 </script>
 
 <template>
-  <div
-    v-on-click-outside="() => togglePopover(false)"
-    class="inline-flex relative"
-  >
+  <div v-on-click-outside="onClickCancel" class="inline-flex relative">
     <Button
       :label="t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.CREATE')"
       sm
       slate
       class="flex-shrink-0"
+      :disabled="isSaving"
       @click="togglePopover(!showPopover)"
     />
 
@@ -97,6 +107,7 @@ const onClickCancel = () => {
       <div class="flex flex-col gap-4">
         <Input
           v-model="state.title"
+          :disabled="isSaving"
           :label="t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.TITLE.LABEL')"
           :placeholder="
             t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.TITLE.PLACEHOLDER')
@@ -107,6 +118,7 @@ const onClickCancel = () => {
 
         <TextArea
           v-model="state.description"
+          :disabled="isSaving"
           :max-length="500"
           :label="
             t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.DESCRIPTION.LABEL')
@@ -122,6 +134,7 @@ const onClickCancel = () => {
         />
         <Editor
           v-model="state.instruction"
+          :disabled="isSaving"
           :label="
             t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.INSTRUCTION.LABEL')
           "
@@ -148,6 +161,8 @@ const onClickCancel = () => {
         <Button
           :label="t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.CREATE')"
           class="w-full"
+          :is-loading="isSaving"
+          :disabled="isSaving"
           @click="onClickAdd"
         />
       </div>

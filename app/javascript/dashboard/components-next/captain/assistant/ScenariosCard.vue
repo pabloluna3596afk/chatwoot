@@ -16,6 +16,8 @@ import Switch from 'dashboard/components-next/switch/Switch.vue';
 import Policy from 'dashboard/components/policy.vue';
 
 const props = defineProps({
+  // Return true only after the mutation succeeds; events cannot be awaited.
+  onUpdate: { type: Function, required: true },
   id: {
     type: Number,
     required: true,
@@ -54,7 +56,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['select', 'hover', 'delete', 'update', 'toggle']);
+const emit = defineEmits(['select', 'hover', 'delete', 'toggle']);
 
 const { t } = useI18n();
 const { formatMessage } = useMessageFormatter();
@@ -121,11 +123,18 @@ const descriptionError = computed(() =>
     : ''
 );
 
-const onClickUpdate = () => {
+const isSaving = ref(false);
+
+const onClickUpdate = async () => {
   v$.value.$touch();
   if (v$.value.$invalid) return;
-  emit('update', { ...state });
-  toggleEditing(false);
+  if (isSaving.value) return;
+  isSaving.value = true;
+  try {
+    if (await props.onUpdate({ ...state })) toggleEditing(false);
+  } finally {
+    isSaving.value = false;
+  }
 };
 
 const instructionError = computed(() =>
@@ -238,6 +247,7 @@ const LINK_INSTRUCTION_CLASS =
     <div v-else class="overflow-hidden flex flex-col gap-4 w-full">
       <Input
         v-model="state.title"
+        :disabled="isSaving"
         :label="t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.TITLE.LABEL')"
         :placeholder="
           t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.TITLE.PLACEHOLDER')
@@ -248,6 +258,7 @@ const LINK_INSTRUCTION_CLASS =
 
       <TextArea
         v-model="state.description"
+        :disabled="isSaving"
         :max-length="500"
         :label="
           t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.DESCRIPTION.LABEL')
@@ -261,6 +272,7 @@ const LINK_INSTRUCTION_CLASS =
       />
       <Editor
         v-model="state.instruction"
+        :disabled="isSaving"
         :label="
           t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.INSTRUCTION.LABEL')
         "
@@ -278,11 +290,14 @@ const LINK_INSTRUCTION_CLASS =
           slate
           sm
           :label="t('CAPTAIN.ASSISTANTS.SCENARIOS.UPDATE.CANCEL')"
+          :disabled="isSaving"
           @click="toggleEditing(false)"
         />
         <Button
           sm
           :label="t('CAPTAIN.ASSISTANTS.SCENARIOS.UPDATE.UPDATE')"
+          :is-loading="isSaving"
+          :disabled="isSaving"
           @click="onClickUpdate"
         />
       </div>
