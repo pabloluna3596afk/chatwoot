@@ -2,7 +2,7 @@
 import { reactive, computed, ref, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useVuelidate } from '@vuelidate/core';
-import { minLength, requiredIf, url } from '@vuelidate/validators';
+import { requiredIf, url } from '@vuelidate/validators';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 
@@ -40,8 +40,9 @@ const fileInputRef = ref(null);
 const validationRules = {
   url: {
     required: requiredIf(() => state.documentType === 'url'),
-    url: requiredIf(() => state.documentType === 'url' && url),
-    minLength: requiredIf(() => state.documentType === 'url' && minLength(1)),
+    url: value =>
+      state.documentType !== 'url' ||
+      (/^https?:\/\//i.test(value) && url.$validator(value)),
   },
   pdfFile: {
     required: requiredIf(() => state.documentType === 'pdf'),

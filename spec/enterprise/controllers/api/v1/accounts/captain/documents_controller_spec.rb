@@ -7,10 +7,25 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
   let(:assistant) { create(:captain_assistant, account: account) }
   let(:assistant2) { create(:captain_assistant, account: account) }
   let(:document) { create(:captain_document, assistant: assistant, account: account, status: :available) }
+
   let(:captain_limits) do
     {
       :startups => { :documents => 1, :responses => 100 }
     }.with_indifferent_access
+  end
+
+  describe 'document URL boundary' do
+    ['', 'not a URL', 'https://', 'javascript:alert(1)', 'ftp://example.com'].each do |url|
+      it "rejects #{url.inspect} without persisting or queuing ingestion" do
+        expect do
+          post "/api/v1/accounts/#{account.id}/captain/documents",
+               params: { document: { assistant_id: assistant.id, name: 'Draft', external_link: url } },
+               headers: admin.create_new_auth_token, as: :json
+        end.not_to change(Captain::Document, :count)
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(json_response[:error]).to include('HTTP')
+      end
+    end
   end
 
   def json_response

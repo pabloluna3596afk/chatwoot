@@ -28,7 +28,7 @@ import {
   validateHeaderMediaFile,
   withoutUploadedMedia,
 } from 'dashboard/helper/templateHeaderMedia';
-import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
+import TemplateVariableInput from 'dashboard/components-next/variable/TemplateVariableInput.vue';
 import { formatLiquidVariable } from 'dashboard/helper/liquidVariablesHelper';
 import {
   buildTemplateParameters,
@@ -175,7 +175,6 @@ const hasVariables = computed(
 const LIQUID_VARIABLE = /{{\s*([\w.]+)\s*}}/g;
 const resolvedDefaults = ref({});
 const previewFailed = ref(false);
-const previewTimezone = ref('');
 const {
   run: runPreview,
   abort: abortPreview,
@@ -502,7 +501,6 @@ watch(
   async payload => {
     resolvedDefaults.value = {};
     previewFailed.value = false;
-    previewTimezone.value = '';
     if (!payload?.texts.length) {
       abortPreview();
       return;
@@ -512,7 +510,6 @@ watch(
         VariablesAPI.preview(payload, signal)
       );
       if (!response) return;
-      previewTimezone.value = response.data.timezone;
       resolvedDefaults.value = Object.fromEntries(
         payload.texts.map((text, index) => [
           text,
@@ -550,45 +547,43 @@ defineExpose({
 
 <template>
   <div>
-    <p v-if="previewTimezone" class="mb-2 text-xs text-n-slate-11">
-      {{
-        $t('WHATSAPP_TEMPLATES.PARSER.TIMEZONE', { timezone: previewTimezone })
-      }}
-    </p>
-    <p v-if="previewFailed" class="mb-2 text-sm text-n-ruby-11">
-      {{ $t('WHATSAPP_TEMPLATES.PARSER.PREVIEW_FAILED') }}
-    </p>
-    <slot name="preview" :header="renderedHeader" :body="renderedTemplate">
-      <div class="flex flex-col gap-4 p-4 mb-4 rounded-lg bg-n-alpha-black2">
-        <div class="flex justify-between items-center">
-          <h3 class="text-sm font-medium text-n-slate-12">
-            {{ template.name }}
-          </h3>
-          <span class="text-xs text-n-slate-11">
-            {{ languageLabel }}
-          </span>
-        </div>
+    <div data-template-preview>
+      <slot name="preview" :header="renderedHeader" :body="renderedTemplate">
+        <div class="flex flex-col gap-4 p-4 mb-4 rounded-lg bg-n-alpha-black2">
+          <div class="flex justify-between items-center">
+            <h3 class="text-sm font-medium text-n-slate-12">
+              {{ template.name }}
+            </h3>
+            <span class="text-xs text-n-slate-11">
+              {{ languageLabel }}
+            </span>
+          </div>
 
-        <div class="flex flex-col gap-2">
-          <div class="rounded-md">
-            <div
-              v-if="renderedHeader"
-              class="mb-2 text-sm font-medium whitespace-pre-wrap text-n-slate-12"
-            >
-              {{ renderedHeader }}
-            </div>
-            <div class="text-sm whitespace-pre-wrap text-n-slate-12">
-              {{ renderedTemplate }}
+          <div class="flex flex-col gap-2">
+            <div class="rounded-md">
+              <div
+                v-if="renderedHeader"
+                class="mb-2 text-sm font-medium whitespace-pre-wrap text-n-slate-12"
+              >
+                {{ renderedHeader }}
+              </div>
+              <div class="text-sm whitespace-pre-wrap text-n-slate-12">
+                {{ renderedTemplate }}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="text-xs text-n-slate-11">
-          {{ categoryLabel }}
+          <div class="text-xs text-n-slate-11">
+            {{ categoryLabel }}
+          </div>
         </div>
-      </div>
-    </slot>
-    <div v-if="hasVariables || hasMediaHeader">
+      </slot>
+    </div>
+    <div v-if="hasVariables || hasMediaHeader" data-template-fields>
+      <p v-if="previewFailed" class="mb-2 text-sm text-n-ruby-11">
+        {{ $t('WHATSAPP_TEMPLATES.PARSER.PREVIEW_FAILED') }}
+      </p>
+
       <div v-if="hasMediaHeader" class="mb-4">
         <p class="mb-2.5 text-sm font-semibold">
           {{
@@ -600,12 +595,12 @@ defineExpose({
         <div
           v-if="!uploadedMedia && !canUploadMedia"
           data-testid="template-media-url"
-          class="flex items-center mb-2.5"
+          class="flex min-w-0 flex-wrap items-center gap-y-2 mb-2.5"
         >
           <Input
             :model-value="processedParams.header?.media_url || ''"
             type="url"
-            class="flex-1"
+            class="min-w-0 flex-1"
             :placeholder="
               t('WHATSAPP_TEMPLATES.PARSER.MEDIA_URL_LABEL', {
                 type: formatType,
@@ -677,11 +672,14 @@ defineExpose({
             {{ mediaError }}
           </p>
         </div>
-        <div v-if="isDocumentTemplate" class="flex items-center mb-2.5">
+        <div
+          v-if="isDocumentTemplate"
+          class="flex min-w-0 flex-wrap items-center gap-y-2 mb-2.5"
+        >
           <Input
             :model-value="processedParams.header?.media_name || ''"
             type="text"
-            class="flex-1"
+            class="min-w-0 flex-1"
             :placeholder="
               t('WHATSAPP_TEMPLATES.PARSER.DOCUMENT_NAME_PLACEHOLDER')
             "
@@ -698,24 +696,20 @@ defineExpose({
         <div
           v-for="(variable, key) in processedParams.header"
           :key="`header-${key}`"
-          class="flex items-center mb-2.5"
+          class="flex min-w-0 flex-wrap items-center gap-y-2 mb-2.5"
         >
-          <Input
+          <TemplateVariableInput
             :model-value="displayValue('header', key)"
-            type="text"
-            class="flex-1"
+            class="min-w-0 flex-1"
             :message="missingMessage('header', key)"
             :placeholder="
               t('WHATSAPP_TEMPLATES.PARSER.VARIABLE_PLACEHOLDER', {
                 variable: key,
               })
             "
-            @update:model-value="setValue('header', key, $event)"
-          />
-          <VariablePicker
-            class="ms-2 !w-40 shrink-0 sm:!w-48"
             :surface="variableSurface"
             :filter="pickerEligible"
+            @update:model-value="setValue('header', key, $event)"
             @select="insertVariable('header', key, $event.expression)"
           />
         </div>
@@ -729,24 +723,20 @@ defineExpose({
         <div
           v-for="(variable, key) in processedParams.body"
           :key="`body-${key}`"
-          class="flex items-center mb-2.5"
+          class="flex min-w-0 flex-wrap items-center gap-y-2 mb-2.5"
         >
-          <Input
+          <TemplateVariableInput
             :model-value="displayValue('body', key)"
-            type="text"
-            class="flex-1"
+            class="min-w-0 flex-1"
             :message="missingMessage('body', key)"
             :placeholder="
               t('WHATSAPP_TEMPLATES.PARSER.VARIABLE_PLACEHOLDER', {
                 variable: key,
               })
             "
-            @update:model-value="setValue('body', key, $event)"
-          />
-          <VariablePicker
-            class="ms-2 !w-40 shrink-0 sm:!w-48"
             :surface="variableSurface"
             :filter="pickerEligible"
+            @update:model-value="setValue('body', key, $event)"
             @select="insertVariable('body', key, $event.expression)"
           />
         </div>
@@ -760,12 +750,12 @@ defineExpose({
         <div
           v-for="(button, index) in processedParams.buttons"
           :key="`button-${index}`"
-          class="flex items-center mb-2.5"
+          class="flex min-w-0 flex-wrap items-center gap-y-2 mb-2.5"
         >
           <Input
             v-model="processedParams.buttons[index].parameter"
             type="text"
-            class="flex-1"
+            class="min-w-0 flex-1"
             :placeholder="t('WHATSAPP_TEMPLATES.PARSER.BUTTON_PARAMETER')"
           />
         </div>

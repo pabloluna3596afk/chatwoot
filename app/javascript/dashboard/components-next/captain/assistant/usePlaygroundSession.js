@@ -233,7 +233,10 @@ export function usePlaygroundSession({ assistantId }) {
       const updatedRules = [...latestRules, content];
       await store.dispatch('captainAssistants/update', {
         id: targetAssistantId,
-        assistant: { [field]: updatedRules },
+        assistant: {
+          [field]: updatedRules,
+          [`expected_${field}`]: latestAssistant[field] || [],
+        },
       });
       if (assistantId.value !== targetAssistantId) return;
 

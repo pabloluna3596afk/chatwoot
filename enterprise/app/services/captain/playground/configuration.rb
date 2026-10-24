@@ -8,7 +8,7 @@ class Captain::Playground::Configuration
 
     def initialize(errors)
       @errors = errors
-      super('Invalid playground configuration')
+      super(errors.map { |field, messages| "#{field}: #{messages.join(', ')}" }.join('; '))
     end
   end
 

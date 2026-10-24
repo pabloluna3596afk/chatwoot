@@ -24,6 +24,7 @@ const { assistantId, assistant } = useAssistantSettings();
 
 const searchQuery = ref('');
 const isSaving = ref(false);
+const saveError = ref('');
 const deleteDialog = ref(null);
 const deleteIds = ref([]);
 
@@ -35,7 +36,18 @@ const requestDelete = ids => {
 const newInlineRule = ref('');
 const newDialogRule = ref('');
 
-const guardrailsContent = computed(() => assistant.value?.guardrails || []);
+// Keep the list the editor was opened with, even if another consumer refreshes the store.
+const originalRules = ref(null);
+watch(
+  [assistantId, () => assistant.value?.guardrails],
+  ([id, rules], [previousId] = []) => {
+    if (id !== previousId || originalRules.value === null) {
+      originalRules.value = rules ? [...rules] : null;
+    }
+  },
+  { immediate: true }
+);
+const guardrailsContent = computed(() => originalRules.value || []);
 
 const displayGuardrails = computed(() =>
   guardrailsContent.value.map((c, idx) => ({ id: idx, content: c }))
@@ -107,22 +119,30 @@ const selectedCountLabel = computed(() => {
 });
 
 const saveGuardrails = async list => {
+  const targetAssistantId = assistantId.value;
   await store.dispatch('captainAssistants/update', {
-    id: assistantId.value,
-    assistant: { guardrails: list },
+    id: targetAssistantId,
+    assistant: {
+      guardrails: list,
+      expected_guardrails: [...guardrailsContent.value],
+    },
   });
+  if (assistantId.value === targetAssistantId) originalRules.value = [...list];
 };
 
 const addGuardrail = async content => {
   if (isSaving.value) return false;
   isSaving.value = true;
+  saveError.value = '';
   try {
     const newGuardrails = [...guardrailsContent.value, content];
     await saveGuardrails(newGuardrails);
     useAlert(t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.ADD.SUCCESS'));
     return true;
   } catch (error) {
-    useAlert(t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.ADD.ERROR'));
+    saveError.value =
+      error.message || t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.ADD.ERROR');
+    useAlert(saveError.value);
     return false;
   } finally {
     isSaving.value = false;
@@ -132,14 +152,17 @@ const addGuardrail = async content => {
 const editGuardrail = async ({ id, content }) => {
   if (isSaving.value) return false;
   isSaving.value = true;
+  saveError.value = '';
   try {
     const updated = [...guardrailsContent.value];
     updated[id] = content;
     await saveGuardrails(updated);
     useAlert(t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.UPDATE.SUCCESS'));
     return true;
-  } catch {
-    useAlert(t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.UPDATE.ERROR'));
+  } catch (error) {
+    saveError.value =
+      error.message || t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.UPDATE.ERROR');
+    useAlert(saveError.value);
     return false;
   } finally {
     isSaving.value = false;
@@ -149,6 +172,7 @@ const editGuardrail = async ({ id, content }) => {
 const bulkDeleteGuardrails = async () => {
   if (isSaving.value) return false;
   isSaving.value = true;
+  saveError.value = '';
   try {
     if (deleteIds.value.length === 0) return false;
     const updated = guardrailsContent.value.filter(
@@ -159,8 +183,10 @@ const bulkDeleteGuardrails = async () => {
     deleteDialog.value.close();
     useAlert(t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.DELETE.SUCCESS'));
     return true;
-  } catch {
-    useAlert(t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.DELETE.ERROR'));
+  } catch (error) {
+    saveError.value =
+      error.message || t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.DELETE.ERROR');
+    useAlert(saveError.value);
     return false;
   } finally {
     isSaving.value = false;
@@ -170,6 +196,7 @@ const bulkDeleteGuardrails = async () => {
 const addAllExample = async () => {
   if (isSaving.value) return false;
   isSaving.value = true;
+  saveError.value = '';
   try {
     const exampleContents = guardrailsExample.map(example => example.content);
     const newGuardrails = [...guardrailsContent.value, ...exampleContents];
@@ -177,8 +204,10 @@ const addAllExample = async () => {
     closeSuggestedRules();
     useAlert(t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.ADD.SUCCESS'));
     return true;
-  } catch {
-    useAlert(t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.ADD.ERROR'));
+  } catch (error) {
+    saveError.value =
+      error.message || t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.ADD.ERROR');
+    useAlert(saveError.value);
     return false;
   } finally {
     isSaving.value = false;
@@ -191,6 +220,9 @@ const addAllExample = async () => {
     :heading="t('CAPTAIN.ASSISTANTS.GUARDRAILS.TITLE')"
     :description="t('CAPTAIN.ASSISTANTS.GUARDRAILS.DESCRIPTION')"
   >
+    <p v-if="saveError" role="alert" class="text-sm text-n-ruby-11">
+      {{ saveError }}
+    </p>
     <SuggestedRules
       v-if="shouldShowSuggestedRules"
       :title="t('CAPTAIN.ASSISTANTS.GUARDRAILS.ADD.SUGGESTED.TITLE')"

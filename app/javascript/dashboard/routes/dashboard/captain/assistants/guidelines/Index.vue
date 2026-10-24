@@ -24,6 +24,7 @@ const { assistantId, assistant } = useAssistantSettings();
 
 const searchQuery = ref('');
 const isSaving = ref(false);
+const saveError = ref('');
 const deleteDialog = ref(null);
 const deleteIds = ref([]);
 
@@ -35,9 +36,18 @@ const requestDelete = ids => {
 const newInlineRule = ref('');
 const newDialogRule = ref('');
 
-const guidelinesContent = computed(
-  () => assistant.value?.response_guidelines || []
+// Keep the list the editor was opened with, even if another consumer refreshes the store.
+const originalRules = ref(null);
+watch(
+  [assistantId, () => assistant.value?.response_guidelines],
+  ([id, rules], [previousId] = []) => {
+    if (id !== previousId || originalRules.value === null) {
+      originalRules.value = rules ? [...rules] : null;
+    }
+  },
+  { immediate: true }
 );
+const guidelinesContent = computed(() => originalRules.value || []);
 
 const displayGuidelines = computed(() =>
   guidelinesContent.value.map((c, idx) => ({ id: idx, content: c }))
@@ -113,22 +123,31 @@ const selectedCountLabel = computed(() => {
 });
 
 const saveGuidelines = async list => {
+  const targetAssistantId = assistantId.value;
   await store.dispatch('captainAssistants/update', {
-    id: assistantId.value,
-    assistant: { response_guidelines: list },
+    id: targetAssistantId,
+    assistant: {
+      response_guidelines: list,
+      expected_response_guidelines: [...guidelinesContent.value],
+    },
   });
+  if (assistantId.value === targetAssistantId) originalRules.value = [...list];
 };
 
 const addGuideline = async content => {
   if (isSaving.value) return false;
   isSaving.value = true;
+  saveError.value = '';
   try {
     const updated = [...guidelinesContent.value, content];
     await saveGuidelines(updated);
     useAlert(t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.ADD.SUCCESS'));
     return true;
-  } catch {
-    useAlert(t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.ADD.ERROR'));
+  } catch (error) {
+    saveError.value =
+      error.message ||
+      t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.ADD.ERROR');
+    useAlert(saveError.value);
     return false;
   } finally {
     isSaving.value = false;
@@ -138,14 +157,18 @@ const addGuideline = async content => {
 const editGuideline = async ({ id, content }) => {
   if (isSaving.value) return false;
   isSaving.value = true;
+  saveError.value = '';
   try {
     const updated = [...guidelinesContent.value];
     updated[id] = content;
     await saveGuidelines(updated);
     useAlert(t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.UPDATE.SUCCESS'));
     return true;
-  } catch {
-    useAlert(t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.UPDATE.ERROR'));
+  } catch (error) {
+    saveError.value =
+      error.message ||
+      t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.UPDATE.ERROR');
+    useAlert(saveError.value);
     return false;
   } finally {
     isSaving.value = false;
@@ -155,6 +178,7 @@ const editGuideline = async ({ id, content }) => {
 const bulkDeleteGuidelines = async () => {
   if (isSaving.value) return false;
   isSaving.value = true;
+  saveError.value = '';
   try {
     if (deleteIds.value.length === 0) return false;
     const updated = guidelinesContent.value.filter(
@@ -165,8 +189,11 @@ const bulkDeleteGuidelines = async () => {
     deleteDialog.value.close();
     useAlert(t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.DELETE.SUCCESS'));
     return true;
-  } catch {
-    useAlert(t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.DELETE.ERROR'));
+  } catch (error) {
+    saveError.value =
+      error.message ||
+      t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.DELETE.ERROR');
+    useAlert(saveError.value);
     return false;
   } finally {
     isSaving.value = false;
@@ -176,6 +203,7 @@ const bulkDeleteGuidelines = async () => {
 const addAllExample = async () => {
   if (isSaving.value) return false;
   isSaving.value = true;
+  saveError.value = '';
   try {
     const exampleContents = guidelinesExample.map(example => example.content);
     const newGuidelines = [...guidelinesContent.value, ...exampleContents];
@@ -183,8 +211,11 @@ const addAllExample = async () => {
     closeSuggestedRules();
     useAlert(t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.ADD.SUCCESS'));
     return true;
-  } catch {
-    useAlert(t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.ADD.ERROR'));
+  } catch (error) {
+    saveError.value =
+      error.message ||
+      t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.ADD.ERROR');
+    useAlert(saveError.value);
     return false;
   } finally {
     isSaving.value = false;
@@ -197,6 +228,9 @@ const addAllExample = async () => {
     :heading="t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.TITLE')"
     :description="t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.DESCRIPTION')"
   >
+    <p v-if="saveError" role="alert" class="text-sm text-n-ruby-11">
+      {{ saveError }}
+    </p>
     <SuggestedRules
       v-if="shouldShowSuggestedRules"
       :title="t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.TITLE')"

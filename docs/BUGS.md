@@ -1,5 +1,15 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-231 — Menú de herramientas de Captain sobre el cursor y el pie (UI-10m)
+
+- Archivos: `components-next/captain/assistant/ToolsDropdown.vue` y `components/widgets/conversation/TagTools.vue` (dashboard).
+- Causa: el anclaje fijo `bottom-20` no seguía la línea escrita; el menú podía cubrirla y solaparse con Cancelar/Crear.
+- Arreglo: medir el rango del cursor, elegir el lado con más espacio antes del pie y limitar la altura con scroll propio.
+  El menú conserva MenuPopover, su contrato de slots y el portal dentro del diálogo nativo; sigue selección, scroll y resize.
+- Verificación: `ToolsDropdown.spec.js` cubre posición, altura, pie, scroll, teclado y selección; comprobar a 390/1280
+  escribiendo @ al final y a mitad de texto largo. Evidencia antes/después y mediciones: `tmp/PR-UI-10m.md`.
+- El defecto ya existía en develop a mitad del texto; la rama también cubría el pie. Sin backend ni migraciones.
+
 ### B-NEW-210 — Reactividad de VueUse distinta entre Vitest local y CI (UI-09g)
 
 - Archivos: `vitest.config.ts` y `InternalTasks/specs/TaskDetailHeader.spec.js`.
@@ -61,6 +71,18 @@
 - Arreglo: una nota por asignación de Captain con marca `assignment_driven_status` y limpieza en `ensure`; conservar `pending` interno, el estado visible Abierta y el comportamiento AgentBot. Fecha/hora propios; invitación con área ampliable y vista previa plegada; logo de instalación para origen CRM. Modal real de etiquetas fuera del dropdown, aplicar la etiqueta creada y navegar por su nombre; botones de contacto compactos y un solo refrescar en Plantillas y Flows.
 - Interacción: los menús de fecha/hora permanecen en el dialog nativo sin disparar su cierre exterior; evitar doble toggle por propagación del input de hora.
 - Verificar: Vitest del lote en UTC y America/Guayaquil, ESLint de archivos tocados, capturas `lote-*` de `.codex/qa` a 390 px en ambos temas. RSpec nuevo en `spec/enterprise/services/conversations/assignment_service_spec.rb`: persona→Captain, Captain→persona, Captain A→B, persona→persona y limpieza del flag; revisión estática local según brief, ejecución Rails pendiente. Sin migraciones.
+
+### B-NEW-230 — Variables desalineadas al enviar una plantilla de WhatsApp (2026-10-24)
+
+- Archivos: `components-next/whatsapp/WhatsAppTemplateParser.vue`,
+  `components-next/whatsapp/send-center/SendCenter.vue` y `components-next/content-templates/ContentTemplateParser.vue`.
+- Causa: `1ebdc02bc20` agregó zona horaria/error como hijos directos del parser;
+  la cuadrícula del centro de envío los trató como celdas adicionales, separando las variables verticalmente.
+- Arreglo: bloques explícitos de formulario y vista previa; zona horaria/error dentro del formulario,
+  columnas lista → variables → vista previa en escritorio y una columna en móvil, sin posicionamiento absoluto de variables.
+- Verificación: 404 pruebas en UTC y 404 en America/Guayaquil, incluidos ReplyBox, Captain y ambos parsers;
+  ESLint sin errores y capturas pareadas a 1280×900 y 390×844 con componentes reales.
+  El parser conserva literalmente el valor recibido de la API; no se modifican nombres de contactos ni traducciones.
 
 ### B-NEW-195 — Contrato de automatizaciones validado al guardar (2026-10-23)
 
@@ -2085,6 +2107,13 @@ array (MultiSelect). `(expectedValues || []).map` falla si `values` es string.
 **Cómo probar:** conversación con business rules con condiciones → Resolver
 sin error en consola. Hard refresh tras redeploy (assets Vite).
 
+### B-NEW-214 — Altas y selectores Captain adaptables (2026-10-24)
+
+- Archivos: `components-next/captain/assistant/{AddNewScenariosDialog,AddNewRulesDialog,ToolsDropdown}.vue`, `captain/{PageLayout,pageComponents/switcher/AssistantSwitcher}.vue`, `HelpCenter/{HelpCenterLayout,PortalSwitcher/PortalSwitcher}.vue` y `components/widgets/{conversation/TagTools,WootWriter/Editor}.vue`, bajo `app/javascript/dashboard/`.
+- Causa: los paneles de ancho fijo y los menús extensos impedían alcanzar campos, herramientas y acciones en el teléfono.
+- Arreglo: altas con Dialog y cuerpo desplazable, acciones fuera del desplazamiento y campos con etiqueta; selectores con MenuPopover, búsqueda y acción de creación. Las herramientas se muestran dentro del diálogo nativo; Escape cierra primero el menú y conserva el editor. Se mantienen rutas, identificadores, idioma del portal y confirmación de persistencia.
+- Verificación: `assistant/{AddDialogs,Persistence,ToolsDropdown}.spec.js`, `switcher/AssistantSwitcher.spec.js` y `WootWriter/CaptainTools.spec.js`; abrir las altas a 390 y 1280 px, provocar un error y reintentar sin perder texto, recorrer las herramientas con flechas y Escape y crear desde una búsqueda sin resultados. Sin backend ni migraciones.
+
 ### B-NEW-46 — Modal resolve: cadena de reglas en el mismo paso
 
 **Síntoma:** al Resolver, el modal pide `tipo_de_conversacion`; el agente elige
@@ -2178,6 +2207,13 @@ document_number y no buscaba company.
 
 **Cómo probar:** buscar nombre con espacio/tilde, cédula en mayúsculas/minúsculas,
 y company_name → deben aparecer resultados.
+
+### B-NEW-215 — Captain: listas, enlaces y conflictos de edición (2026-10-24)
+
+- Archivos: controladores Enterprise Captain `assistants_controller.rb` y `documents_controller.rb`, `playground/configuration.rb`, páginas de pautas y límites, `usePlaygroundSession.js` y formulario y diálogo de documentos.
+- Causa: se aceptaban listas y enlaces inválidos, dos editores podían sobrescribir cambios ajenos y los errores del servidor no siempre se conservaban en el formulario.
+- Arreglo: las listas deben contener textos no vacíos; al reemplazarlas se compara el original enviado en `expected_response_guidelines` o `expected_guardrails` dentro del bloqueo del asistente. Una edición desactualizada recibe 409 sin escrituras parciales. Los clientes de ajustes y playground envían el original exacto. El formulario y el servidor validan enlaces HTTP(S); PDF y Markdown conservan su flujo. Los errores mantienen el diálogo, borrador y lista original. Sin migraciones ni cambios de permisos.
+- Verificación: specs de los controladores Enterprise de asistentes y documentos, configuración de playground, `assistants/Persistence.spec.js`, `assistant/usePlaygroundSession.spec.js` y `document/DocumentForm.spec.js`. Enviar un objeto como lista devuelve 422; guardar desde dos sesiones devuelve 409 en la segunda y conserva la primera. Corregir una URL inválida y reintentar un error de duplicado conserva el formulario abierto.
 
 ### B-NEW-51 — `contacts.chat_bot` + bot vs assignee pasivo (inbox Dueño del contacto)
 
@@ -3183,3 +3219,19 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
   Incluyen límites equivalentes por unidad, compatibilidad, `travel_to`, fallback y reapertura al vencer.
   Revisión estática y `git diff --check`; RSpec y RuboCop pendientes del PM en Docker según el brief.
   Sin migraciones ni cambios de frontend o i18n.
+
+
+
+### B-NEW-231 ? Restaurar el orden original de Enviar por WhatsApp (2026-10-24)
+
+- Archivos: `components-next/whatsapp/send-center/SendCenter.vue`, `WhatsAppTemplateParser.vue` y sus specs.
+- Causa: el primer arreglo de PR #223 intercambi? variables y vista previa respecto de `1ebdc02bc2^`.
+- Arreglo: restaurar lista ? vista previa ? variables a 1280 px, con anchos y separaci?n originales; usar `data-template-fields` para ubicar el formulario sin depender de hijos ordinales. Mantener una columna en m?vil y los mensajes de error dentro del formulario. Quitar el texto visible de zona horaria y su estado local sin modificar la resoluci?n de Rails; conservar la clave i18n existente.
+- Verificaci?n: specs de ambos parsers reales en SendCenter; el parser oculta UTC y America/Guayaquil y conserva valores/payload. Comparar capturas `fixenvio2-original-*` / `fixenvio2-despues-*` en 1280x900 y 390x844. El original m?vil ya desbordaba; la versi?n corregida conserva lista, preview y variables visibles, sin scroll horizontal.
+
+### B-NEW-232 — Insertar variables dentro del campo de plantilla (2026-10-24)
+
+- Archivos: `components-next/variable/TemplateVariableInput.vue`, `whatsapp/WhatsAppTemplateParser.vue`, `content-templates/ContentTemplateParser.vue` y specs correspondientes.
+- Causa: el selector separado reducía el ancho disponible para escribir valores en la tercera columna de Enviar por WhatsApp; Twilio no ofrecía el mismo patrón.
+- Arreglo: reutilizar Input y VariablePicker en modo insert con icono de llaves dentro del campo, a la derecha, etiqueta accesible y tooltip «Insertar variable». Reservar padding lógico y mínimos de altura para resistir los estilos compactos de SendCenter. Objetivo de 40 px en escritorio y 44 px en móvil. Header y cuerpo de Meta y cuerpo de Twilio comparten la pieza; los consumidores heredan el cambio. Catálogo, filtros, validaciones y contratos de envío conservados.
+- Verificación: integración con ambos parsers reales para editar, abrir el picker con el icono, insertar en el campo elegido y enviar el payload esperado; suites de consumidores y compilación i18n en UTC y America/Guayaquil. Capturas `fixenvio3-*` de reposo, picker, texto largo, dos variables, oscuro y Twilio a 1280x900 y 390x844; geometría sin scroll horizontal.
