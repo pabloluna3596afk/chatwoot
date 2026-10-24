@@ -90,6 +90,7 @@ describe.each(['en', 'es'])('effective %s locale messages', locale => {
     });
     config.global.plugins = [i18n];
     const wrapper = mount(ContentTemplateParser, {
+      global: { stubs: { VariablePicker: true } },
       props: {
         template: {
           friendly_name: 'appointment_reminder',

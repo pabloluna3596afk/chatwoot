@@ -506,6 +506,23 @@ describe('unified send center', () => {
         'xl:[dialog:has(&)]:!w-[calc(2*var(--send-center-unit)+var(--phone-preview-width)+6rem)]'
       );
       const input = wrapper.get('[data-testid="center-detail"] input');
+      const fields = wrapper.get('[data-template-fields]');
+      const preview = wrapper.get('[data-template-preview]');
+      expect(fields.element.parentElement).toBe(preview.element.parentElement);
+      expect(fields.element.parentElement.children).toHaveLength(2);
+      expect(wrapper.get('[data-testid="center-columns"]').classes()).toContain(
+        'grid-cols-1'
+      );
+      expect(
+        wrapper.get('[data-testid="center-list"]').attributes('class')
+      ).toContain('md:max-xl:invisible');
+      const layout = fields.element.parentElement.classList;
+      expect(layout).toContain(
+        'xl:grid-cols-[var(--phone-preview-width)_var(--send-center-unit)]'
+      );
+      expect(layout).toContain('grid-cols-1');
+      expect(preview.element.parentElement.children[0]).toBe(preview.element);
+      expect(preview.element.parentElement.children[1]).toBe(fields.element);
       await input.setValue('Ana');
       expect(wrapper.get('[data-testid="center-detail"]').text()).toContain(
         'Hello Ana'
@@ -978,10 +995,10 @@ describe('unified send center', () => {
     expect(
       wrapper
         .get('[data-testid="center-list"]')
-        .element.parentElement.classList.contains('grid-rows-subgrid')
+        .element.parentElement.classList.contains('md:grid-rows-subgrid')
     ).toBe(true);
     expect(wrapper.get('[data-testid="center-columns"]').classes()).toContain(
-      'grid-rows-[auto_minmax(0,1fr)]'
+      'md:grid-rows-[auto_minmax(0,1fr)]'
     );
     await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
     expect(

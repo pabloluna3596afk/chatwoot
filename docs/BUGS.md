@@ -72,6 +72,18 @@
 - Interacción: los menús de fecha/hora permanecen en el dialog nativo sin disparar su cierre exterior; evitar doble toggle por propagación del input de hora.
 - Verificar: Vitest del lote en UTC y America/Guayaquil, ESLint de archivos tocados, capturas `lote-*` de `.codex/qa` a 390 px en ambos temas. RSpec nuevo en `spec/enterprise/services/conversations/assignment_service_spec.rb`: persona→Captain, Captain→persona, Captain A→B, persona→persona y limpieza del flag; revisión estática local según brief, ejecución Rails pendiente. Sin migraciones.
 
+### B-NEW-230 — Variables desalineadas al enviar una plantilla de WhatsApp (2026-10-24)
+
+- Archivos: `components-next/whatsapp/WhatsAppTemplateParser.vue`,
+  `components-next/whatsapp/send-center/SendCenter.vue` y `components-next/content-templates/ContentTemplateParser.vue`.
+- Causa: `1ebdc02bc20` agregó zona horaria/error como hijos directos del parser;
+  la cuadrícula del centro de envío los trató como celdas adicionales, separando las variables verticalmente.
+- Arreglo: bloques explícitos de formulario y vista previa; zona horaria/error dentro del formulario,
+  columnas lista → variables → vista previa en escritorio y una columna en móvil, sin posicionamiento absoluto de variables.
+- Verificación: 404 pruebas en UTC y 404 en America/Guayaquil, incluidos ReplyBox, Captain y ambos parsers;
+  ESLint sin errores y capturas pareadas a 1280×900 y 390×844 con componentes reales.
+  El parser conserva literalmente el valor recibido de la API; no se modifican nombres de contactos ni traducciones.
+
 ### B-NEW-195 — Contrato de automatizaciones validado al guardar (2026-10-23)
 
 - Archivos: `app/models/automation_rule.rb`, `app/services/automation_rules/{condition_validation_service,action_validation_service}.rb`,
@@ -3200,3 +3212,19 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
   Incluyen límites equivalentes por unidad, compatibilidad, `travel_to`, fallback y reapertura al vencer.
   Revisión estática y `git diff --check`; RSpec y RuboCop pendientes del PM en Docker según el brief.
   Sin migraciones ni cambios de frontend o i18n.
+
+
+
+### B-NEW-231 ? Restaurar el orden original de Enviar por WhatsApp (2026-10-24)
+
+- Archivos: `components-next/whatsapp/send-center/SendCenter.vue`, `WhatsAppTemplateParser.vue` y sus specs.
+- Causa: el primer arreglo de PR #223 intercambi? variables y vista previa respecto de `1ebdc02bc2^`.
+- Arreglo: restaurar lista ? vista previa ? variables a 1280 px, con anchos y separaci?n originales; usar `data-template-fields` para ubicar el formulario sin depender de hijos ordinales. Mantener una columna en m?vil y los mensajes de error dentro del formulario. Quitar el texto visible de zona horaria y su estado local sin modificar la resoluci?n de Rails; conservar la clave i18n existente.
+- Verificaci?n: specs de ambos parsers reales en SendCenter; el parser oculta UTC y America/Guayaquil y conserva valores/payload. Comparar capturas `fixenvio2-original-*` / `fixenvio2-despues-*` en 1280x900 y 390x844. El original m?vil ya desbordaba; la versi?n corregida conserva lista, preview y variables visibles, sin scroll horizontal.
+
+### B-NEW-232 — Insertar variables dentro del campo de plantilla (2026-10-24)
+
+- Archivos: `components-next/variable/TemplateVariableInput.vue`, `whatsapp/WhatsAppTemplateParser.vue`, `content-templates/ContentTemplateParser.vue` y specs correspondientes.
+- Causa: el selector separado reducía el ancho disponible para escribir valores en la tercera columna de Enviar por WhatsApp; Twilio no ofrecía el mismo patrón.
+- Arreglo: reutilizar Input y VariablePicker en modo insert con icono de llaves dentro del campo, a la derecha, etiqueta accesible y tooltip «Insertar variable». Reservar padding lógico y mínimos de altura para resistir los estilos compactos de SendCenter. Objetivo de 40 px en escritorio y 44 px en móvil. Header y cuerpo de Meta y cuerpo de Twilio comparten la pieza; los consumidores heredan el cambio. Catálogo, filtros, validaciones y contratos de envío conservados.
+- Verificación: integración con ambos parsers reales para editar, abrir el picker con el icono, insertar en el campo elegido y enviar el payload esperado; suites de consumidores y compilación i18n en UTC y America/Guayaquil. Capturas `fixenvio3-*` de reposo, picker, texto largo, dos variables, oscuro y Twilio a 1280x900 y 390x844; geometría sin scroll horizontal.
