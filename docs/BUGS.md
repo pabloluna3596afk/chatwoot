@@ -3124,3 +3124,14 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
   Incluyen límites equivalentes por unidad, compatibilidad, `travel_to`, fallback y reapertura al vencer.
   Revisión estática y `git diff --check`; RSpec y RuboCop pendientes del PM en Docker según el brief.
   Sin migraciones ni cambios de frontend o i18n.
+### B-NEW-206 — Validación localizada en ajustes de Captain y equipos (UI-06, 2026-10-24)
+
+- Archivos: `AssistantBasicSettingsForm.vue`, `AssistantSystemSettingsForm.vue`,
+  `settings/teams/TeamForm.vue`, `settings/teams/helpers/validations.js` y catálogos `en/es/general.json`.
+- Causa: los formularios mostraban los mensajes ingleses predeterminados de Vuelidate incluso con la interfaz en español.
+- Arreglo: `helpers.withMessage` con traducciones reactivas y parámetros del validador; las mismas reglas,
+  límites, campos opcionales, condiciones Captain V1/V2 y conversiones existentes del payload.
+- Verificación: `LocalizedSettingsValidation.spec.js` cubre obligatorios, mínimos, máximos, enteros, fronteras,
+  formularios válidos/inválidos, temporizador oculto y cambio de idioma. Repetir en UTC y America/Guayaquil;
+  inspeccionar capturas `ui-06-*` y revisar manualmente ajustes básicos/sistema de Captain y crear/editar equipo.
+- Sin cambios de backend ni migraciones.
