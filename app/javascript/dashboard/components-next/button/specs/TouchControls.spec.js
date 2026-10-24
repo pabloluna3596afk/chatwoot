@@ -22,6 +22,12 @@ describe('shared touch controls', () => {
         expect(wrapper.classes()).toContain('max-sm:!min-h-11');
         expect(wrapper.classes()).toContain('max-sm:!min-w-11');
         expect(wrapper.classes()).toContain('focus-visible:ring-2');
+        expect(
+          wrapper.classes().some(name => /^focus:|^ring-/.test(name))
+        ).toBe(false);
+        expect(wrapper.classes().some(name => /^min-[hw]-11$/.test(name))).toBe(
+          false
+        );
       });
     }
   );

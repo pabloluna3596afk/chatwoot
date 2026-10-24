@@ -7,6 +7,10 @@ const source = readFileSync(
   'app/javascript/dashboard/assets/scss/_next-colors.scss',
   'utf8'
 );
+const brand = readFileSync('theme/colors.js', 'utf8')
+  .match(/brand: '#([a-f\d]{6})'/i)[1]
+  .match(/.{2}/g)
+  .map(channel => parseInt(channel, 16));
 const palettes = source
   .split('  .dark {')
   .map(section =>
@@ -36,8 +40,68 @@ const luminance = color =>
     );
   }, 0);
 
+// Frozen develop color contract: dark colors and the approved unchanged variants.
+const baseline = {
+  colors: {
+    blue: {
+      solid:
+        'bg-n-brand text-white hover:enabled:brightness-110 focus-visible:brightness-110 outline-transparent',
+      faded:
+        'bg-n-brand/10 text-n-blue-11 hover:enabled:bg-n-brand/20 focus-visible:bg-n-brand/20 outline-transparent',
+      outline: 'text-n-blue-11 outline-n-brand',
+      ghost:
+        'text-n-blue-11 hover:enabled:bg-n-alpha-2 focus-visible:bg-n-alpha-2 outline-transparent',
+      link: 'text-n-blue-11 hover:enabled:underline focus-visible:underline outline-transparent',
+    },
+    ruby: {
+      solid:
+        'bg-n-ruby-9 text-white hover:enabled:bg-n-ruby-10 focus-visible:bg-n-ruby-10 outline-transparent',
+      faded:
+        'bg-n-ruby-9/10 text-n-ruby-11 hover:enabled:bg-n-ruby-9/20 focus-visible:bg-n-ruby-9/20 outline-transparent',
+      outline:
+        'text-n-ruby-11 hover:enabled:bg-n-ruby-9/10 focus-visible:bg-n-ruby-9/10 outline-n-ruby-8',
+      ghost:
+        'text-n-ruby-11 hover:enabled:bg-n-alpha-2 focus-visible:bg-n-alpha-2 outline-transparent',
+      link: 'text-n-ruby-9 dark:text-n-ruby-11 hover:enabled:underline focus-visible:underline outline-transparent',
+    },
+    amber: {
+      solid:
+        'bg-n-amber-9 text-n-amber-12 dark:text-n-amber-3 hover:enabled:bg-n-amber-10 focus-visible:bg-n-amber-10 outline-transparent',
+      faded:
+        'bg-n-amber-9/10 text-n-slate-12 hover:enabled:bg-n-amber-9/20 focus-visible:bg-n-amber-9/20 outline-transparent',
+      outline:
+        'text-n-amber-11 hover:enabled:bg-n-amber-9/10 focus-visible:bg-n-amber-9/10 outline-n-amber-9',
+      link: 'text-n-amber-9 hover:enabled:underline focus-visible:underline outline-transparent',
+      ghost:
+        'text-n-amber-9 hover:enabled:bg-n-alpha-2 focus-visible:bg-n-alpha-2 outline-transparent',
+    },
+    slate: {
+      solid:
+        'bg-n-button-color dark:hover:enabled:bg-n-solid-2 dark:focus-visible:bg-n-solid-2 hover:enabled:bg-n-alpha-2 focus-visible:bg-n-alpha-2 text-n-slate-12 outline-n-container',
+      faded:
+        'bg-n-slate-9/10 text-n-slate-12 hover:enabled:bg-n-slate-9/20 focus-visible:bg-n-slate-9/20 outline-transparent',
+      outline:
+        'text-n-slate-11 outline-n-strong hover:enabled:bg-n-slate-9/10 focus-visible:bg-n-slate-9/10',
+      link: 'text-n-slate-11 hover:enabled:text-n-slate-12 focus-visible:text-n-slate-12 hover:enabled:underline focus-visible:underline outline-transparent',
+      ghost:
+        'text-n-slate-12 hover:enabled:bg-n-alpha-2 focus-visible:bg-n-alpha-2 outline-transparent',
+    },
+    teal: {
+      solid:
+        'bg-n-teal-9 text-white hover:enabled:bg-n-teal-10 focus-visible:bg-n-teal-10 outline-transparent',
+      faded:
+        'bg-n-teal-9/10 text-n-teal-11 hover:enabled:bg-n-teal-9/20 focus-visible:bg-n-teal-9/20 outline-transparent',
+      outline:
+        'text-n-teal-11 hover:enabled:bg-n-teal-9/10 focus-visible:bg-n-teal-9/10 outline-n-teal-9',
+      link: 'text-n-teal-9 hover:enabled:underline focus-visible:underline outline-transparent',
+      ghost:
+        'text-n-teal-9 hover:enabled:bg-n-alpha-2 focus-visible:bg-n-alpha-2 outline-transparent',
+    },
+  },
+};
+
 // Resolve the rendered utility classes in each state, including alpha over the real surface.
-const pairFor = (classes, theme, state, surface) => {
+const colorsFor = (classes, theme, state, surface) => {
   const palette = palettes[theme];
   const resolved = { bg: palette[surface] };
   const priorities = {};
@@ -52,9 +116,9 @@ const pairFor = (classes, theme, state, surface) => {
     if (!match) return;
     const [, role, token, opacity] = match;
     const color =
-      { white: [255, 255, 255], 'n-brand': [39, 129, 246] }[token] ??
+      { white: [255, 255, 255], 'n-brand': brand }[token] ??
       palette[token.slice(2)];
-    if (!color) return;
+    expect(color, `Missing token: ${token}`).toBeDefined();
     const priority = parts.length + (rawUtility.startsWith('!') ? 10 : 0);
     if (priority < (priorities[role] ?? -1)) return;
     priorities[role] = priority;
@@ -63,25 +127,65 @@ const pairFor = (classes, theme, state, surface) => {
       : color;
   });
   const background = composite(resolved.bg, palette[surface]);
-  const foreground = composite(resolved.text, background);
+  let foreground = composite(resolved.text, background);
+  const brightens = classes.some(
+    className =>
+      className === `${state}:brightness-110` ||
+      className === `${state}:enabled:brightness-110`
+  );
+  if (brightens) {
+    foreground = foreground.map(value => Math.min(255, value * 1.1));
+    return {
+      foreground,
+      background: background.map(value => Math.min(255, value * 1.1)),
+    };
+  }
+  return { foreground, background };
+};
+
+const pairFor = (classes, theme, state, surface) => {
+  const { foreground, background } = colorsFor(classes, theme, state, surface);
   const values = [luminance(background), luminance(foreground)];
   return (Math.max(...values) + 0.05) / (Math.min(...values) + 0.05);
 };
 
-describe('button text contrast', () => {
-  ['blue', 'ruby', 'teal', 'amber', 'slate'].forEach(color => {
-    ['solid', 'faded', 'outline', 'ghost', 'link'].forEach(variant => {
-      it(`${color} ${variant} reaches 4.5:1 on light and dark surfaces in all enabled states`, () => {
-        const wrapper = mount(Button, {
-          props: { color, variant, label: 'Action' },
-        });
-        [0, 1].forEach(theme => {
-          ['default', 'hover', 'focus-visible'].forEach(state => {
-            ['surface-1', 'solid-2'].forEach(surface => {
-              expect(
-                pairFor(wrapper.classes(), theme, state, surface),
-                `${theme}/${state}/${surface}`
-              ).toBeGreaterThanOrEqual(4.5);
+describe('button color contract', () => {
+  const corrected = [
+    'teal/solid',
+    'teal/faded',
+    'teal/outline',
+    'teal/ghost',
+    'teal/link',
+    'amber/ghost',
+    'amber/link',
+    'ruby/link',
+  ];
+  Object.entries(baseline.colors).forEach(([color, variants]) => {
+    Object.entries(variants).forEach(([variant, originalClasses]) => {
+      describe(`${color} ${variant}`, () => {
+        const classes = () =>
+          mount(Button, {
+            props: { color, variant, label: 'Action' },
+          }).classes();
+        const original = originalClasses.split(' ');
+        ['default', 'hover', 'focus-visible'].forEach(state => {
+          ['surface-1', 'solid-2'].forEach(surface => {
+            it(`preserves develop dark colors: ${state}/${surface}`, () => {
+              expect(colorsFor(classes(), 1, state, surface)).toEqual(
+                colorsFor(original, 1, state, surface)
+              );
+            });
+            it(`measures the light pair: ${state}/${surface}`, () => {
+              if (corrected.includes(`${color}/${variant}`)) {
+                expect(
+                  pairFor(classes(), 0, state, surface)
+                ).toBeGreaterThanOrEqual(4.5);
+              } else {
+                // Owner explicitly preserves blue/ruby solids and all other variants.
+                expect(colorsFor(classes(), 0, state, surface)).toEqual(
+                  colorsFor(original, 0, state, surface)
+                );
+              }
             });
           });
         });
