@@ -1,10 +1,10 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
-### B-NEW-232 ? Nombre, foco y altura de las ventanas emergentes (UI-13)
+### B-NEW-232 — Nombre, foco y altura de las ventanas emergentes (UI-13)
 
-- **Problema:** los di?logos no asociaban sus t?tulos y descripciones; los paneles laterales y las ventanas m?viles no imped?an llegar al fondo con el teclado. Los campos se montaban despu?s de elegir el foco inicial.
-- **Cambio:** Dialog, SidePanel y Popover comparten la modalidad nativa. Se asocian nombres y descripciones, se bloquea el cierre durante peticiones pendientes y los selectores permanecen dentro del di?logo. La altura usa dvh y respeta el ?rea segura; las acciones comunes alcanzan 44 px en m?vil.
-- **Verificaci?n:** specs de bases, selectores y consumidores en UTC y America/Guayaquil; piloto Captain con Editor y men? @ reales, foco inicial/retorno, Tab y Esc superior. Evidencia y l?mites en `tmp/PR-UI-13b.md`.
+- **Problema:** los diálogos no asociaban sus títulos y descripciones; los paneles laterales y las ventanas móviles no impedían llegar al fondo con el teclado. Los campos se montaban después de elegir el foco inicial.
+- **Cambio:** Dialog, SidePanel y Popover comparten la modalidad nativa. Se asocian nombres y descripciones, se bloquea el cierre durante peticiones pendientes y los selectores permanecen dentro del diálogo. La altura usa dvh y respeta el área segura; las acciones comunes alcanzan 44 px en móvil.
+- **Verificación:** specs de bases, selectores y consumidores en UTC y America/Guayaquil; piloto Captain con Editor y menú @ reales, foco inicial/retorno, Tab y Esc superior. Evidencia y límites en `tmp/PR-UI-13b.md`.
 - **Archivos:** `app/javascript/dashboard/helper/overlayFocus.js`, bases Dialog/SidePanel/Popover, ComboBox, consumidores con encabezado propio y pruebas. Sin backend ni migraciones.
 
 ### B-NEW-231 — Menú de herramientas de Captain sobre el cursor y el pie (UI-10m)
