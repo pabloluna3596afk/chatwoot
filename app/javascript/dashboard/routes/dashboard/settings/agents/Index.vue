@@ -187,7 +187,7 @@ const confirmDeletion = () => {
           :key="agent.email"
           class="flex justify-between flex-row items-start gap-4 py-4"
         >
-          <div class="flex items-center gap-4">
+          <div class="flex items-center gap-4 min-w-0">
             <Avatar
               :src="agent.thumbnail"
               :name="agent.name"
@@ -195,15 +195,15 @@ const confirmDeletion = () => {
               :size="40"
               hide-offline-status
             />
-            <div class="flex flex-col gap-1.5 items-start">
+            <div class="flex flex-col gap-1.5 items-start min-w-0">
               <span class="block text-heading-3 text-n-slate-12 capitalize">
                 {{ agent.name }}
               </span>
-              <div class="flex items-center gap-2">
-                <span class="text-body-main text-n-slate-11">
+              <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span class="text-body-main text-n-slate-11 break-all">
                   {{ agent.email }}
                 </span>
-                <div class="w-px h-3 bg-n-strong rounded-lg" />
+                <div class="hidden sm:block w-px h-3 bg-n-strong rounded-lg" />
                 <span
                   class="block w-fit text-body-main text-n-slate-11 relative"
                   :class="{
@@ -237,7 +237,7 @@ const confirmDeletion = () => {
                     </div>
                   </div>
                 </span>
-                <div class="w-px h-3 bg-n-strong rounded-lg" />
+                <div class="hidden sm:block w-px h-3 bg-n-strong rounded-lg" />
                 <span
                   v-if="agent.confirmed"
                   class="text-body-main text-n-slate-11"
@@ -253,7 +253,7 @@ const confirmDeletion = () => {
               </div>
             </div>
           </div>
-          <div class="flex justify-end gap-3">
+          <div class="flex justify-end gap-3 shrink-0">
             <Button
               v-if="showEditAction(agent)"
               v-tooltip.top="$t('AGENT_MGMT.EDIT.BUTTON_TEXT')"

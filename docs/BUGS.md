@@ -1814,6 +1814,13 @@ sin definir, y `useAgentsList.js` sin imports de `vue` / `vue-i18n`.
 
 **Deploy:** merge PR + GHCR rebuild (assets en imagen).
 
+### B-NEW-207 — Búsqueda y encabezados disponibles en móvil (2026-10-24)
+
+- Archivos: `settings/components/BaseSettingsHeader.vue`, `components-next/Campaigns/CampaignLayout.vue`, `settings/reports/components/ReportHeader.vue` y `settings/agents/Index.vue` bajo `app/javascript/dashboard/`.
+- Causa: la búsqueda estaba oculta bajo `sm`, los grupos de botones no se envolvían, el botón de campañas tenía altura fija y texto truncado, y las acciones de cada fila de Agentes se salían de la pantalla.
+- Arreglo: búsqueda visible con nombre accesible, grupos que se envuelven, títulos y acciones en varias líneas, y la fila de Agentes con el correo y el rol envueltos y los botones siempre dentro de la pantalla. Los estilos del encabezado de informes solo alcanzan al botón directo, no al menú de descarga. Se conservan modelos, slots, permisos y eventos.
+- Verificación: specs de `BaseSettingsHeader`, `CampaignLayout` y `ReportHeader`; páginas reales de Agentes, Macros, Etiquetas, Campañas e Informes a 390 y 1280 px en claro y oscuro. Sin backend ni migraciones.
+
 ### B-NEW-30 — `toggle_status` 500 (resolve / reopen / pending / snooze)
 
 **Severidad:** P0 prod — cualquier cambio de estado vía
