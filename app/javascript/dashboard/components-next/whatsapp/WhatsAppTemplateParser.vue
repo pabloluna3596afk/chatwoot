@@ -175,7 +175,6 @@ const hasVariables = computed(
 const LIQUID_VARIABLE = /{{\s*([\w.]+)\s*}}/g;
 const resolvedDefaults = ref({});
 const previewFailed = ref(false);
-const previewTimezone = ref('');
 const {
   run: runPreview,
   abort: abortPreview,
@@ -502,7 +501,6 @@ watch(
   async payload => {
     resolvedDefaults.value = {};
     previewFailed.value = false;
-    previewTimezone.value = '';
     if (!payload?.texts.length) {
       abortPreview();
       return;
@@ -512,7 +510,6 @@ watch(
         VariablesAPI.preview(payload, signal)
       );
       if (!response) return;
-      previewTimezone.value = response.data.timezone;
       resolvedDefaults.value = Object.fromEntries(
         payload.texts.map((text, index) => [
           text,
@@ -583,13 +580,6 @@ defineExpose({
       </slot>
     </div>
     <div v-if="hasVariables || hasMediaHeader" data-template-fields>
-      <p v-if="previewTimezone" class="mb-2 text-xs text-n-slate-11">
-        {{
-          $t('WHATSAPP_TEMPLATES.PARSER.TIMEZONE', {
-            timezone: previewTimezone,
-          })
-        }}
-      </p>
       <p v-if="previewFailed" class="mb-2 text-sm text-n-ruby-11">
         {{ $t('WHATSAPP_TEMPLATES.PARSER.PREVIEW_FAILED') }}
       </p>

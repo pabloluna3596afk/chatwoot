@@ -515,7 +515,14 @@ describe('unified send center', () => {
       );
       expect(
         wrapper.get('[data-testid="center-list"]').attributes('class')
-      ).not.toContain('max-xl:invisible');
+      ).toContain('md:max-xl:invisible');
+      const layout = fields.element.parentElement.classList;
+      expect(layout).toContain(
+        'xl:grid-cols-[var(--phone-preview-width)_var(--send-center-unit)]'
+      );
+      expect(layout).toContain('grid-cols-1');
+      expect(preview.element.parentElement.children[0]).toBe(preview.element);
+      expect(preview.element.parentElement.children[1]).toBe(fields.element);
       await input.setValue('Ana');
       expect(wrapper.get('[data-testid="center-detail"]').text()).toContain(
         'Hello Ana'

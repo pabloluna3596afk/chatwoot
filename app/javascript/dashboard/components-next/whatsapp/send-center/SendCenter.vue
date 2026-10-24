@@ -230,8 +230,8 @@ const hasCustomization = computed(() => {
 });
 const parserColumns = computed(() =>
   hasCustomization.value
-    ? 'grid-cols-1 xl:grid-cols-[var(--send-center-unit)_minmax(0,var(--phone-preview-width))] [&>[data-template-fields]]:row-start-1 [&>[data-template-preview]]:row-start-2 xl:[&>[data-template-preview]]:row-start-1 xl:[&>[data-template-preview]]:col-start-2'
-    : 'grid-cols-1 xl:grid-cols-[minmax(0,var(--phone-preview-width))]'
+    ? 'grid-cols-1 md:grid-cols-[var(--phone-preview-width)] xl:grid-cols-[var(--phone-preview-width)_var(--send-center-unit)] md:max-xl:[&>[data-template-fields]]:absolute md:max-xl:[&>[data-template-fields]]:top-0 md:max-xl:[&>[data-template-fields]]:start-[calc(-1*var(--send-center-unit)-1.5rem)] md:max-xl:[&>[data-template-fields]]:w-[var(--send-center-unit)] md:max-xl:[&>[data-template-fields]]:z-10 md:max-xl:[&>[data-template-fields]]:bg-n-solid-1'
+    : 'grid-cols-1 md:grid-cols-[var(--phone-preview-width)]'
 );
 const component = type =>
   selected.value?.data.components?.find(c => c.type === type);
@@ -422,8 +422,7 @@ watch(
             class="flex flex-col gap-3"
             data-testid="center-controls"
             :class="{
-              'md:max-xl:[&>:not(:first-child)]:invisible':
-                hasCustomization && selected?.type === 'flow',
+              'md:max-xl:[&>:not(:first-child)]:invisible': hasCustomization,
             }"
           >
             <div
@@ -485,8 +484,7 @@ watch(
           </div>
           <div
             :class="{
-              'md:max-xl:invisible':
-                hasCustomization && selected?.type === 'flow',
+              'md:max-xl:invisible': hasCustomization,
             }"
             class="min-h-0 flex-1 overflow-y-auto overscroll-contain flex flex-col gap-2"
             role="list"
