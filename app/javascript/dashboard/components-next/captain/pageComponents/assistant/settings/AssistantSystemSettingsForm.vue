@@ -3,6 +3,7 @@ import { computed, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useVuelidate } from '@vuelidate/core';
 import {
+  helpers,
   integer,
   maxValue,
   minLength,
@@ -93,20 +94,43 @@ const initialActionTimingLabel = computed(() =>
     : t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.RESOLVE_AFTER')
 );
 
+const requiredMessage = helpers.withMessage(
+  () => t('GENERAL.VALIDATION.REQUIRED'),
+  required
+);
+const minLengthMessage = helpers.withMessage(
+  ({ $params }) => t('GENERAL.VALIDATION.MIN_LENGTH', { min: $params.min }),
+  minLength(1)
+);
 const validationRules = {
-  handoffMessage: { minLength: minLength(1) },
-  resolutionMessage: { minLength: minLength(1) },
-  instructions: { minLength: minLength(1) },
+  handoffMessage: { minLength: minLengthMessage },
+  resolutionMessage: { minLength: minLengthMessage },
+  instructions: { minLength: minLengthMessage },
   maxReplies: {
-    required,
-    integer,
-    minValue: minValue(0),
-    maxValue: maxValue(MAX_REPLIES_LIMIT),
+    required: requiredMessage,
+    integer: helpers.withMessage(
+      () => t('GENERAL.VALIDATION.INTEGER'),
+      integer
+    ),
+    minValue: helpers.withMessage(
+      ({ $params }) => t('GENERAL.VALIDATION.MIN_VALUE', { min: $params.min }),
+      minValue(0)
+    ),
+    maxValue: helpers.withMessage(
+      ({ $params }) => t('GENERAL.VALIDATION.MAX_VALUE', { max: $params.max }),
+      maxValue(MAX_REPLIES_LIMIT)
+    ),
   },
   inactivityThresholdMinutes: {
-    required,
-    minValue: minValue(MIN_INACTIVITY_MINUTES),
-    maxValue: maxValue(MAX_INACTIVITY_MINUTES),
+    required: requiredMessage,
+    minValue: helpers.withMessage(
+      ({ $params }) => t('GENERAL.VALIDATION.MIN_VALUE', { min: $params.min }),
+      minValue(MIN_INACTIVITY_MINUTES)
+    ),
+    maxValue: helpers.withMessage(
+      ({ $params }) => t('GENERAL.VALIDATION.MAX_VALUE', { max: $params.max }),
+      maxValue(MAX_INACTIVITY_MINUTES)
+    ),
   },
 };
 

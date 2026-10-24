@@ -2,7 +2,7 @@ import { shallowMount, flushPromises } from '@vue/test-utils';
 import { nextTick } from 'vue';
 
 import WhatsAppTemplateParser from '../WhatsAppTemplateParser.vue';
-import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
+import TemplateVariableInput from 'dashboard/components-next/variable/TemplateVariableInput.vue';
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key }),
@@ -163,14 +163,14 @@ describe('WhatsAppTemplateParser with the options of a Captain setting', () => {
     const wrapper = mountParser();
     await nextTick();
 
-    expect(wrapper.findAllComponents(VariablePicker)).toHaveLength(3);
+    expect(wrapper.findAllComponents(TemplateVariableInput)).toHaveLength(3);
   });
 
   it('offers the variables next to every field of the header and the body', async () => {
     const wrapper = mountParser({ variableOptions });
     await nextTick();
 
-    const buttons = wrapper.findAllComponents(VariablePicker);
+    const buttons = wrapper.findAllComponents(TemplateVariableInput);
     expect(buttons).toHaveLength(3);
     expect(buttons[0].props('surface')).toBe('message');
   });
@@ -180,7 +180,7 @@ describe('WhatsAppTemplateParser with the options of a Captain setting', () => {
 
     wrapper.vm.processedParams.body.nombre = 'Hola';
     await nextTick();
-    const buttons = wrapper.findAllComponents(VariablePicker);
+    const buttons = wrapper.findAllComponents(TemplateVariableInput);
     buttons[1].vm.$emit('select', { expression: '{{ contact.name }}' });
     buttons[0].vm.$emit('select', { expression: '{{ appointment.date }}' });
     await nextTick();
@@ -439,6 +439,37 @@ describe('WhatsAppTemplateParser with CRM values', () => {
     }));
   });
 
+  it.each(['UTC', 'America/Guayaquil'])(
+    'hides the server timezone %s without adding grid cells or altering the resolved name',
+    async timezone => {
+      previewVariables.mockImplementation(async payload => ({
+        data: {
+          timezone,
+          results: [
+            payload.texts.map(() => ({ status: 'value', value: 'Leo \u4e5e' })),
+          ],
+        },
+      }));
+      const wrapper = mountCrm({ contact: { id: 2 } });
+      await flushPromises();
+
+      const fields = wrapper.get('[data-template-fields]');
+      expect(wrapper.text()).not.toContain(
+        'WHATSAPP_TEMPLATES.PARSER.TIMEZONE'
+      );
+      expect(wrapper.text()).not.toContain(timezone);
+      expect(fields.text()).toContain(
+        'WHATSAPP_TEMPLATES.PARSER.VARIABLES_LABEL'
+      );
+      expect(wrapper.element.children).toHaveLength(2);
+      expect(
+        wrapper.element.children[0].hasAttribute('data-template-preview')
+      ).toBe(true);
+      expect(wrapper.element.children[1]).toBe(fields.element);
+      expect(wrapper.vm.renderedTemplate).toContain('Leo \u4e5e');
+    }
+  );
+
   it('shows the resolved value and sends the Liquid while the agent leaves it alone', async () => {
     const wrapper = mountCrm({
       contact: { name: 'ana pérez', custom_attributes: { plan: 'Pro' } },
@@ -534,7 +565,7 @@ describe('WhatsAppTemplateParser with CRM values', () => {
 
     expect(wrapper.vm.isFormInvalid).toBe(true);
     expect(wrapper.emitted('sendMessage')).toBeUndefined();
-    expect(wrapper.text()).toContain(
+    expect(wrapper.get('[data-template-fields]').text()).toContain(
       'WHATSAPP_TEMPLATES.PARSER.PREVIEW_FAILED'
     );
   });

@@ -12,6 +12,7 @@ import {
 } from '@chatwoot/utils';
 
 import Input from 'dashboard/components-next/input/Input.vue';
+import TemplateVariableInput from 'dashboard/components-next/variable/TemplateVariableInput.vue';
 
 const props = defineProps({
   template: {
@@ -168,7 +169,10 @@ defineExpose({
 
 <template>
   <div>
-    <div class="flex flex-col gap-4 p-4 mb-4 rounded-lg bg-n-alpha-black2">
+    <div
+      data-template-preview
+      class="flex flex-col gap-4 p-4 mb-4 rounded-lg bg-n-alpha-black2"
+    >
       <div class="flex justify-between items-center">
         <h3 class="text-sm font-medium text-n-slate-12">
           {{ template.friendly_name }}
@@ -191,7 +195,7 @@ defineExpose({
       </div>
     </div>
 
-    <div v-if="hasVariables || hasMediaVariable">
+    <div v-if="hasVariables || hasMediaVariable" data-template-fields>
       <!-- Media URL for media templates -->
       <div v-if="hasMediaVariable" class="mb-4">
         <p class="mb-2.5 text-sm font-semibold">
@@ -220,14 +224,17 @@ defineExpose({
           :key="`variable-${variable}`"
           class="flex items-center mb-2.5"
         >
-          <Input
+          <TemplateVariableInput
             v-model="processedParams[variable]"
-            type="text"
             class="flex-1"
             :placeholder="
               t('CONTENT_TEMPLATES.PARSER.VARIABLE_PLACEHOLDER', {
                 variable: variable,
               })
+            "
+            @select="
+              processedParams[variable] +=
+                `${processedParams[variable] ? ' ' : ''}${$event.expression}`
             "
           />
         </div>

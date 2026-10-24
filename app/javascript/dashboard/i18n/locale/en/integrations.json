@@ -747,15 +747,15 @@
           "REMOVE": "Remove temporary response guideline"
         },
         "GUARDRAILS": {
-          "TAB_TITLE": "Guardrails",
-          "CREATE_TITLE": "Add a temporary guardrail",
+          "TAB_TITLE": "Safety limits",
+          "CREATE_TITLE": "Add a temporary safety limit",
           "CREATE_HINT": "Test a safety boundary before adding it to the assistant.",
-          "SAVED_SUMMARY": "Existing guardrails ({count})",
-          "ADD_PERMANENTLY": "Add guardrail permanently",
-          "EMPTY": "This assistant has no saved guardrails.",
-          "COMPOSER_PLACEHOLDER": "Type a temporary guardrail...",
-          "PLACEHOLDER": "Add a guardrail",
-          "REMOVE": "Remove temporary guardrail"
+          "SAVED_SUMMARY": "Existing safety limits ({count})",
+          "ADD_PERMANENTLY": "Add safety limit permanently",
+          "EMPTY": "This assistant has no saved safety limits.",
+          "COMPOSER_PLACEHOLDER": "Type a temporary safety limit...",
+          "PLACEHOLDER": "Add a safety limit",
+          "REMOVE": "Remove temporary safety limit"
         },
         "KNOWLEDGE": {
           "TAB_TITLE": "Knowledge",
@@ -1138,19 +1138,19 @@
           "HINT": "20 by default. Use 0 for no limit."
         },
         "MESSAGING": {
-          "TOGGLE": "Let Captain send Flows and templates in this inbox",
+          "TOGGLE": "Let Captain send WhatsApp Flows and templates in this inbox",
           "TOGGLE_HELP": "When off, Captain sends none here, but the list below is kept. Each inbox has its own switch.",
           "INBOX": "Inbox",
           "INBOX_PLACEHOLDER": "Choose an inbox",
           "NO_INBOXES": "This assistant has no connected WhatsApp inboxes.",
-          "FLOWS": "Allowed Flows",
-          "FLOWS_HELP": "Captain can only send a Flow published on the WhatsApp account of that inbox, within 24 h.",
-          "FLOWS_EMPTY": "Captain will not send any Flow on this inbox.",
-          "ADD_FLOW": "Add Flow",
-          "ADD_FLOW_TITLE": "Add a Flow",
-          "ADD_FLOW_PICK": "Flow",
-          "ADD_FLOW_PLACEHOLDER": "Choose a published Flow",
-          "NO_FLOWS_LEFT": "There are no more published Flows to add.",
+          "FLOWS": "Allowed WhatsApp Flows",
+          "FLOWS_HELP": "Captain can only send a WhatsApp Flow published on the WhatsApp account of that inbox, within 24 h.",
+          "FLOWS_EMPTY": "Captain will not send any WhatsApp Flow on this inbox.",
+          "ADD_FLOW": "Add WhatsApp Flow",
+          "ADD_FLOW_TITLE": "Add a WhatsApp Flow",
+          "ADD_FLOW_PICK": "WhatsApp Flow",
+          "ADD_FLOW_PLACEHOLDER": "Choose a published WhatsApp Flow",
+          "NO_FLOWS_LEFT": "There are no more published WhatsApp Flows to add.",
           "TEMPLATES": "Allowed templates",
           "TEMPLATES_HELP": "Approved, text-only templates without buttons that change per customer. Every send is a paid message.",
           "TEMPLATES_EMPTY": "Captain will not send any template on this inbox.",
@@ -1165,14 +1165,14 @@
           "REMOVE": "Remove",
           "ADD": "Add",
           "CANCEL": "Cancel",
-          "PAID_OFF": "Paid messages are off: Captain can send Flows but not templates.",
+          "PAID_OFF": "Paid messages are off: Captain can send WhatsApp Flows but not templates.",
           "PAID_ON": "Paid messages are on: Captain can send allowed templates.",
           "PAID_LINK": "Go to Paid messages",
           "LIMITS": "Limits per conversation",
-          "LIMIT_FLOW_GAP": "10 minutes between Flows",
-          "LIMIT_FLOWS": "Up to 3 Flows every 24 h",
+          "LIMIT_FLOW_GAP": "10 minutes between WhatsApp Flows",
+          "LIMIT_FLOWS": "Up to 3 WhatsApp Flows every 24 h",
           "LIMIT_TEMPLATES": "1 template every 24 h",
-          "LIMIT_PENDING": "An unanswered Flow blocks a new one for 24 h, unless the customer asks to resend it",
+          "LIMIT_PENDING": "An unanswered WhatsApp Flow blocks a new one for 24 h, unless the customer asks to resend it",
           "UNAVAILABLE": "Unavailable",
           "VARIABLES": "Template variables",
           "MISSING_VARIABLES": "Variables missing",
@@ -1213,12 +1213,12 @@
           "DESCRIPTION": "Let this assistant offer free times and book appointments on a calendar."
         },
         "CONTROL_ITEMS": {
-          "TITLE": "The Fun Stuff",
-          "DESCRIPTION": "Add more control to the assistant. (a bit more visual like a story : Query guardrail → scenarios → output) Nudges user to actually utilise these.",
+          "TITLE": "Response behavior",
+          "DESCRIPTION": "Set safety limits for what your assistant can answer and response guidelines for how it replies.",
           "OPTIONS": {
             "GUARDRAILS": {
-              "TITLE": "Guardrails",
-              "DESCRIPTION": "Keeps things on track—only the kinds of questions you want your assistant to answer, nothing off-limits or off-topic."
+              "TITLE": "Safety limits",
+              "DESCRIPTION": "Define topics and requests your assistant must not answer. Safety limits restrict behavior, not response quotas."
             },
             "RESPONSE_GUIDELINES": {
               "TITLE": "Response guidelines",
@@ -1240,8 +1240,8 @@
           "DESCRIPTION": "One switch for everything Captain sends as a paid template."
         },
         "MESSAGING": {
-          "TITLE": "Templates and Flows",
-          "DESCRIPTION": "Which Flows and templates Captain may send to a customer on WhatsApp. Everything starts off: it only sends what you allow here."
+          "TITLE": "Templates and WhatsApp Flows",
+          "DESCRIPTION": "Which WhatsApp Flows and templates Captain may send to a customer on WhatsApp. Everything starts off: it only sends what you allow here."
         }
       },
       "OPTIONS": {
@@ -1258,8 +1258,8 @@
         }
       },
       "GUARDRAILS": {
-        "TITLE": "Guardrails",
-        "DESCRIPTION": "Keeps things on track—only the kinds of questions you want your assistant to answer, nothing off-limits or off-topic.",
+        "TITLE": "Safety limits",
+        "DESCRIPTION": "Define topics and requests your assistant must not answer. Safety limits restrict behavior, not response quotas.",
         "BULK_ACTION": {
           "SELECTED": "{count} item selected | {count} items selected",
           "SELECT_ALL": "Select all ({count})",
@@ -1268,42 +1268,42 @@
         },
         "ADD": {
           "SUGGESTED": {
-            "TITLE": "Example guardrails",
+            "TITLE": "Example safety limits",
             "ADD": "Add all",
             "ADD_SINGLE": "Add this",
             "SAVE": "Add and save (↵)",
-            "PLACEHOLDER": "Type in another guardrail..."
+            "PLACEHOLDER": "Type in another safety limit..."
           },
           "NEW": {
-            "TITLE": "Add a guardrail",
+            "TITLE": "Add a safety limit",
             "CREATE": "Create",
             "CANCEL": "Cancel",
-            "PLACEHOLDER": "Type in another guardrail...",
+            "PLACEHOLDER": "Type in another safety limit...",
             "TEST_ALL": "Test all"
           }
         },
         "LIST": {
           "SEARCH_PLACEHOLDER": "Search..."
         },
-        "EMPTY_MESSAGE": "No guardrails found. Create or add examples to begin.",
-        "SEARCH_EMPTY_MESSAGE": "No guardrails found for this search.",
+        "EMPTY_MESSAGE": "No safety limits found. Create or add examples to begin.",
+        "SEARCH_EMPTY_MESSAGE": "No safety limits found for this search.",
         "API": {
           "ADD": {
-            "SUCCESS": "Guardrails added successfully",
-            "ERROR": "There was an error adding guardrails, please try again."
+            "SUCCESS": "Safety limits added successfully",
+            "ERROR": "There was an error adding safety limits, please try again."
           },
           "UPDATE": {
-            "SUCCESS": "Guardrails updated successfully",
-            "ERROR": "There was an error updating guardrails, please try again."
+            "SUCCESS": "Safety limits updated successfully",
+            "ERROR": "There was an error updating safety limits, please try again."
           },
           "DELETE": {
-            "SUCCESS": "Guardrails deleted successfully",
-            "ERROR": "There was an error deleting guardrails, please try again."
+            "SUCCESS": "Safety limits deleted successfully",
+            "ERROR": "There was an error deleting safety limits, please try again."
           }
         }
       },
       "RESPONSE_GUIDELINES": {
-        "TITLE": "Response Guidelines",
+        "TITLE": "Response guidelines",
         "DESCRIPTION": "The vibe and structure of your assistant’s replies—clear and friendly? Short and snappy? Detailed and formal?",
         "BULK_ACTION": {
           "SELECTED": "{count} item selected | {count} items selected",
@@ -1334,15 +1334,15 @@
         "SEARCH_EMPTY_MESSAGE": "No response guidelines found for this search.",
         "API": {
           "ADD": {
-            "SUCCESS": "Response Guidelines added successfully",
+            "SUCCESS": "Response guidelines added successfully",
             "ERROR": "There was an error adding response guidelines, please try again."
           },
           "UPDATE": {
-            "SUCCESS": "Response Guidelines updated successfully",
+            "SUCCESS": "Response guidelines updated successfully",
             "ERROR": "There was an error updating response guidelines, please try again."
           },
           "DELETE": {
-            "SUCCESS": "Response Guidelines deleted successfully",
+            "SUCCESS": "Response guidelines deleted successfully",
             "ERROR": "There was an error deleting response guidelines, please try again."
           }
         }

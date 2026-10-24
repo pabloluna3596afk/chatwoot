@@ -3,6 +3,7 @@ import validations from './helpers/validations';
 import FormInput from 'v3/components/Form/Input.vue';
 import { reactive, defineAsyncComponent } from 'vue';
 import { useVuelidate } from '@vuelidate/core';
+import { useI18n } from 'vue-i18n';
 
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import Popover from 'dashboard/components-next/popover/Popover.vue';
@@ -59,7 +60,8 @@ export default {
       iconColor,
     });
 
-    const rules = validations;
+    const { t } = useI18n();
+    const rules = validations(t);
     const v$ = useVuelidate(rules, state);
     return { state, v$ };
   },

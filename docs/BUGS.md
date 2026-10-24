@@ -79,6 +79,18 @@
 - Interacción: los menús de fecha/hora permanecen en el dialog nativo sin disparar su cierre exterior; evitar doble toggle por propagación del input de hora.
 - Verificar: Vitest del lote en UTC y America/Guayaquil, ESLint de archivos tocados, capturas `lote-*` de `.codex/qa` a 390 px en ambos temas. RSpec nuevo en `spec/enterprise/services/conversations/assignment_service_spec.rb`: persona→Captain, Captain→persona, Captain A→B, persona→persona y limpieza del flag; revisión estática local según brief, ejecución Rails pendiente. Sin migraciones.
 
+### B-NEW-230 — Variables desalineadas al enviar una plantilla de WhatsApp (2026-10-24)
+
+- Archivos: `components-next/whatsapp/WhatsAppTemplateParser.vue`,
+  `components-next/whatsapp/send-center/SendCenter.vue` y `components-next/content-templates/ContentTemplateParser.vue`.
+- Causa: `1ebdc02bc20` agregó zona horaria/error como hijos directos del parser;
+  la cuadrícula del centro de envío los trató como celdas adicionales, separando las variables verticalmente.
+- Arreglo: bloques explícitos de formulario y vista previa; zona horaria/error dentro del formulario,
+  columnas lista → variables → vista previa en escritorio y una columna en móvil, sin posicionamiento absoluto de variables.
+- Verificación: 404 pruebas en UTC y 404 en America/Guayaquil, incluidos ReplyBox, Captain y ambos parsers;
+  ESLint sin errores y capturas pareadas a 1280×900 y 390×844 con componentes reales.
+  El parser conserva literalmente el valor recibido de la API; no se modifican nombres de contactos ni traducciones.
+
 ### B-NEW-195 — Contrato de automatizaciones validado al guardar (2026-10-23)
 
 - Archivos: `app/models/automation_rule.rb`, `app/services/automation_rules/{condition_validation_service,action_validation_service}.rb`,
@@ -2521,6 +2533,13 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
 - Production counted filters, inbox destinations, language reporting and Meta errors remain unchanged.
 - Verify: run the LibraryPanel Vitest suite; all backend shards and RuboCop passed in the failing CI run.
 
+### B-NEW-221 — Nombres operativos ambiguos entre Flows y ajustes
+
+- Problema: la navegación, el editor y el retorno podían llamar «Flow» tanto al recurso de WhatsApp como al de conversación; los límites de seguridad y la regeneración del token tenían nombres poco precisos.
+- Archivos: `app/javascript/dashboard/i18n/locale/en/{settings,integrations,automation,flows,whatsappFlows}.json` y `app/javascript/dashboard/routes/dashboard/settings/flows/FlowHeader.vue`.
+- Cambio: contexto explícito para cada tipo de Flow, límites de seguridad, perfil y políticas, conservando claves, rutas, marcas y datos propios. Las traducciones existentes se sincronizan por Crowdin. Las acciones del editor pueden pasar a otra línea en móvil para mostrar sus textos completos.
+- Verificación: compilar los catálogos y recorrer navegación, editor, guardar y volver en ambos idiomas; comprobar las pruebas del glosario y del encabezado.
+
 ### B-NEW-59 -- Editing positional WhatsApp templates changed their Meta structure
 
 - Files: `settings/templates/TemplateFormDrawer.vue`, `templateForm.js`, `Index.vue`,
@@ -2566,6 +2585,13 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
   the panel body; search and the attribute CTA stay visible above the drawer footer.
 - Verify: new/edit/copy selector specs; 285 template tests pass. Actual Flow/drawer browser comparison verifies matching
   trigger, option and group appearance and no footer overlap. See `docs/TEMPLATE_PICKER_AUDIT.md` for the audit table.
+
+### B-NEW-222 — Errores de validación en inglés en Captain y equipos
+
+- Problema: los ajustes básicos y de sistema de Captain y el nombre de equipo mostraban los mensajes predeterminados de Vuelidate aunque la interfaz estuviera en español.
+- Archivos: `AssistantBasicSettingsForm.vue`, `AssistantSystemSettingsForm.vue`, `settings/teams/TeamForm.vue`, `settings/teams/helpers/validations.js` y catálogos `en/es/general.json`.
+- Cambio: mensajes localizados y reactivos para obligatorios, longitudes, mínimos, máximos y enteros mediante `helpers.withMessage`; se conservan límites, campos opcionales, condiciones y tipos del payload.
+- Verificación: `LocalizedSettingsValidation.spec.js` comprueba ambos idiomas, fronteras y cambio de idioma; revisar ajustes básicos y de sistema y crear/editar equipos con datos inválidos y válidos.
 
 ### B-NEW-63 -- Shared filter menus stayed behind native dialogs
 
@@ -3207,3 +3233,19 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
   Incluyen límites equivalentes por unidad, compatibilidad, `travel_to`, fallback y reapertura al vencer.
   Revisión estática y `git diff --check`; RSpec y RuboCop pendientes del PM en Docker según el brief.
   Sin migraciones ni cambios de frontend o i18n.
+
+
+
+### B-NEW-233 — Restaurar el orden original de Enviar por WhatsApp (2026-10-24)
+
+- Archivos: `components-next/whatsapp/send-center/SendCenter.vue`, `WhatsAppTemplateParser.vue` y sus specs.
+- Causa: el primer arreglo de PR #223 intercambió variables y vista previa respecto de `1ebdc02bc2^`.
+- Arreglo: restaurar lista → vista previa → variables a 1280 px, con anchos y separación originales; usar `data-template-fields` para ubicar el formulario sin depender de hijos ordinales. Mantener una columna en m?vil y los mensajes de error dentro del formulario. Quitar el texto visible de zona horaria y su estado local sin modificar la resoluci?n de Rails; conservar la clave i18n existente.
+- Verificación: specs de ambos parsers reales en SendCenter; el parser oculta UTC y America/Guayaquil y conserva valores/payload. Comparar capturas `fixenvio2-original-*` / `fixenvio2-despues-*` en 1280x900 y 390x844. El original m?vil ya desbordaba; la versi?n corregida conserva lista, preview y variables visibles, sin scroll horizontal.
+
+### B-NEW-232 — Insertar variables dentro del campo de plantilla (2026-10-24)
+
+- Archivos: `components-next/variable/TemplateVariableInput.vue`, `whatsapp/WhatsAppTemplateParser.vue`, `content-templates/ContentTemplateParser.vue` y specs correspondientes.
+- Causa: el selector separado reducía el ancho disponible para escribir valores en la tercera columna de Enviar por WhatsApp; Twilio no ofrecía el mismo patrón.
+- Arreglo: reutilizar Input y VariablePicker en modo insert con icono de llaves dentro del campo, a la derecha, etiqueta accesible y tooltip «Insertar variable». Reservar padding lógico y mínimos de altura para resistir los estilos compactos de SendCenter. Objetivo de 40 px en escritorio y 44 px en móvil. Header y cuerpo de Meta y cuerpo de Twilio comparten la pieza; los consumidores heredan el cambio. Catálogo, filtros, validaciones y contratos de envío conservados.
+- Verificación: integración con ambos parsers reales para editar, abrir el picker con el icono, insertar en el campo elegido y enviar el payload esperado; suites de consumidores y compilación i18n en UTC y America/Guayaquil. Capturas `fixenvio3-*` de reposo, picker, texto largo, dos variables, oscuro y Twilio a 1280x900 y 390x844; geometría sin scroll horizontal.
