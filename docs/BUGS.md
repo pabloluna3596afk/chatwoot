@@ -1955,6 +1955,26 @@ final de cada run; ver B-NEW-44.
 
 **Fix original (2026-07-27):** nota privada vía `Conversations::SystemAuditNote`.
 
+### B-NEW-203 — Captain espera los mensajes de una ráfaga antes de responder
+
+- **Cambio:** `reply_delay_seconds` en `Captain::Assistant.config`, entero de 0 a 30;
+  6 segundos cuando falta y 0 sin espera adicional. Sin migración ni frontend.
+- **Archivos:** `enterprise/app/models/captain/assistant.rb`,
+  `enterprise/app/controllers/api/v1/accounts/captain/assistants_controller.rb`,
+  `enterprise/app/services/captain/conversation/response_scheduler_service.rb`,
+  `enterprise/app/jobs/captain/conversation/response_builder_job.rb`.
+- **Comportamiento:** espera máxima entre el ajuste y los adjuntos; V1 y V2 reciben
+  el ID del mensaje y descartan jobs antiguos antes de generar. Se conservan los
+  descartes de V2 durante la generación y las comprobaciones de estado/asignación.
+- **Cómo probar:** enviar tres mensajes en menos de 6 segundos: una respuesta al
+  último, un consumo. Cambiar el ajuste por API a 0 y 10; rechazar -1, 31, texto,
+  decimales y estructuras con 422. Revisar adjuntos y toma de control humana.
+- **Specs:** scheduler, response builder job, assistant, assistants controller,
+  hook execution y Captain unavailable bajo `spec/enterprise/`. RSpec/RuboCop
+  pendientes de ejecutar por el PM en Docker con base de test aislada.
+- **Límites:** no se garantiza respuesta en 60 segundos si siguen llegando mensajes
+  indefinidamente. V1 solo añade descarte antes de generar; no durante generación.
+
 ### B-NEW-44 — Automation: nota audit ruidosa → tuerca + actividades
 
 **Síntoma:** cada automatización dejaba nota privada *«Automatización "X" ejecutada»*

@@ -26,6 +26,8 @@ class Captain::Assistant < ApplicationRecord
   INACTIVITY_THRESHOLD_STEP_MINUTES = 5
   RESPONSE_WINDOWS = %w[always business_hours outside_business_hours].freeze
   DEFAULT_MAX_REPLIES = 20
+  DEFAULT_REPLY_DELAY_SECONDS = 6
+  MAX_REPLY_DELAY_SECONDS = 30
   APPOINTMENT_TOOL_IDS = %w[
     check_availability propose_appointment book_appointment appointment_list reschedule_appointment cancel_appointment
     confirm_appointment
@@ -61,7 +63,7 @@ class Captain::Assistant < ApplicationRecord
 
   store_accessor :config, :temperature, :feature_faq, :feature_memory, :feature_contact_attributes, :product_name,
                  :auto_resolve_mode, :auto_resolve_after, :send_inactivity_resolution_message, :response_window,
-                 :max_replies_per_conversation
+                 :max_replies_per_conversation, :reply_delay_seconds
 
   before_validation :set_default_auto_resolve_mode, on: :create
   before_validation :normalize_auto_resolve_after
@@ -80,6 +82,7 @@ class Captain::Assistant < ApplicationRecord
   validates_with Captain::MessagingValidator
   validate :validate_response_window
   validate :validate_max_replies_per_conversation
+  validate :validate_reply_delay_seconds
   validates :auto_resolve_mode, inclusion: { in: AUTO_RESOLVE_MODES }
   validates :send_inactivity_resolution_message, inclusion: { in: [true, false] }
   validates :auto_resolve_after,
@@ -155,6 +158,10 @@ class Captain::Assistant < ApplicationRecord
     return false unless max_replies.positive?
 
     conversation.messages.where(sender: self, private: false, message_type: :outgoing).count >= max_replies
+  end
+
+  def reply_delay_seconds
+    config.fetch('reply_delay_seconds', DEFAULT_REPLY_DELAY_SECONDS)
   end
 
   def engages?(contact, conversation)
@@ -311,6 +318,15 @@ class Captain::Assistant < ApplicationRecord
     return if response_window.blank?
 
     errors.add(:config, 'invalid response_window') unless RESPONSE_WINDOWS.include?(response_window)
+  end
+
+  def validate_reply_delay_seconds
+    return unless config.key?('reply_delay_seconds')
+
+    value = config['reply_delay_seconds']
+    return if value.is_a?(Integer) && value.between?(0, MAX_REPLY_DELAY_SECONDS)
+
+    errors.add(:config, "reply_delay_seconds must be an integer between 0 and #{MAX_REPLY_DELAY_SECONDS}")
   end
 
   def set_default_auto_resolve_mode
