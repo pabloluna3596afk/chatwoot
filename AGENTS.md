@@ -404,7 +404,7 @@ _Última actualización: 2026-07-12_
 
 | Item | Repo | Acción |
 |------|------|--------|
-| **UI-08 / TASK-208** (contratos Captain y conflicto de listas) | chatwoot | `feat/ui-08-captain-contratos`, apilado sobre PR 07: integrar después de UI-07, actualizar clientes externos para enviar `expected_response_guidelines` / `expected_guardrails`; capturas y Crowdin pendientes; sin migraciones ni push |
+| **UI-08 / B-NEW-215** (contratos Captain y conflicto de listas) | chatwoot | `feat/ui-08-captain-contratos`, actualizado sobre develop con PR 07: actualizar clientes externos para enviar `expected_response_guidelines` / `expected_guardrails`; capturas y Crowdin pendientes; sin migraciones ni push |
 | **Plan 26 / A09 / B-NEW-200** (crear tarea desde automatizaciones) | chatwoot | `feat/automatizaciones-tareas`: RSpec/RuboCop Docker pendientes del PM; migración `20261023120000` antes de habilitar; regenerar schema; sin push |
 | **Plan 24 / B-NEW-187** (recordatorio humano WhatsApp) | chatwoot | `feat/kit-citas-recordatorio`: RSpec/RuboCop Docker pendientes del PM; migración `20261022120000` antes de desplegar; interruptor apagado por defecto; sin push |
 | **CIT-12 / CIT-31 / B-NEW-084** (lease y recuperación Meet) | chatwoot | `feat/citas-exclusion-meet` depende del PR 2; lock con Redis real rojo/verde aprobado; faltan RSpec Rails de servicio/invitación/Captain y lint exacto CI. Integrar PR1 → PR2 → PR3; sin migraciones, sin push |

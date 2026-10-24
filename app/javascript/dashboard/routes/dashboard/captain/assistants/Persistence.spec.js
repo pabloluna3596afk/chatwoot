@@ -14,6 +14,9 @@ vi.mock('dashboard/components-next/Editor/Editor.vue', () => ({
 }));
 vi.mock('@amplitude/analytics-browser', () => ({}));
 import { flushPromises, shallowMount } from '@vue/test-utils';
+import { createI18n } from 'vue-i18n';
+import integrations from 'dashboard/i18n/locale/en/integrations.json';
+import SuggestedRules from 'dashboard/components-next/captain/assistant/SuggestedRules.vue';
 import Guidelines from './guidelines/Index.vue';
 import Guardrails from './guardrails/Index.vue';
 import Scenarios from './scenarios/Index.vue';
@@ -28,6 +31,7 @@ const mocks = vi.hoisted(() => ({
   open: vi.fn(),
   assistant: null,
   assistantId: null,
+  updateUISettings: vi.fn(),
 }));
 vi.mock('dashboard/composables/store', async () => {
   const { ref: makeRef } = await import('vue');
@@ -40,9 +44,18 @@ vi.mock('dashboard/composables', () => ({ useAlert: mocks.alert }));
 vi.mock('vue-router', () => ({
   useRoute: () => ({ params: { assistantId: 7 } }),
 }));
-vi.mock('dashboard/composables/useUISettings', () => ({
-  useUISettings: () => ({ uiSettings: {}, updateUISettings: vi.fn() }),
-}));
+vi.mock('dashboard/composables/useUISettings', async () => {
+  const { ref: makeRef } = await import('vue');
+  return {
+    useUISettings: () => {
+      const uiSettings = makeRef({});
+      mocks.updateUISettings.mockImplementation(settings => {
+        uiSettings.value = { ...uiSettings.value, ...settings };
+      });
+      return { uiSettings, updateUISettings: mocks.updateUISettings };
+    },
+  };
+});
 vi.mock('./settings/useAssistantSettings', async () => {
   const { ref: makeRef } = await import('vue');
   return {
@@ -66,6 +79,13 @@ const slots = {
 const mountPage = Component =>
   shallowMount(Component, {
     global: {
+      plugins: [
+        createI18n({
+          legacy: false,
+          locale: 'en',
+          messages: { en: integrations },
+        }),
+      ],
       directives: { 'dompurify-html': {} },
       stubs: {
         PageLayout: slots,
@@ -105,6 +125,49 @@ describe.each([Guidelines, Guardrails, Scenarios])(
         wrapper.unmount();
       }
     );
+
+    it('hides suggestions only after adding all succeeds, preserving them on error', async () => {
+      const wrapper = mountPage(Component);
+      mocks.dispatch.mockClear();
+      const originalItems = wrapper
+        .findComponent(SuggestedRules)
+        .props('items');
+      mocks.dispatch.mockRejectedValueOnce(new Error('422'));
+      wrapper.findComponent(SuggestedRules).vm.$emit('add');
+      await flushPromises();
+      expect(mocks.updateUISettings).not.toHaveBeenCalled();
+      expect(wrapper.findComponent(SuggestedRules).props('items')).toEqual(
+        originalItems
+      );
+      expect(wrapper.vm.shouldShowSuggestedRules).toBe(true);
+      wrapper.findComponent(SuggestedRules).vm.$emit('add');
+      await flushPromises();
+      expect(mocks.updateUISettings).toHaveBeenCalledOnce();
+      expect(wrapper.findComponent(SuggestedRules).exists()).toBe(false);
+      expect(mocks.dispatch).toHaveBeenCalledTimes(2);
+      wrapper.unmount();
+    });
+
+    it('uses singular copy for one item and plural copy for multiple items', async () => {
+      const wrapper = mountPage(Component);
+      wrapper.vm.requestDelete([0]);
+      await flushPromises();
+      expect(wrapper.findComponent(Dialog).attributes('title')).toBe(
+        'Delete selected item?'
+      );
+      expect(wrapper.findComponent(Dialog).attributes('description')).toBe(
+        'You are about to delete 1 item. This action cannot be undone.'
+      );
+      wrapper.vm.requestDelete([0, 1]);
+      await flushPromises();
+      expect(wrapper.findComponent(Dialog).attributes('title')).toBe(
+        'Delete selected items?'
+      );
+      expect(wrapper.findComponent(Dialog).attributes('description')).toBe(
+        'You are about to delete 2 items. This action cannot be undone.'
+      );
+      wrapper.unmount();
+    });
 
     it('does not delete on request/cancel and retains confirmation after failure', async () => {
       const wrapper = mountPage(Component);
@@ -226,7 +289,9 @@ it('reports partial scenario deletion and retries only failures, once per intent
   await first;
   expect(mocks.dispatch).toHaveBeenCalledTimes(2);
   expect(wrapper.vm.deleteIds).toEqual([2]);
-  expect(wrapper.vm.deleteError).toBeTruthy();
+  expect(wrapper.vm.deleteError).toBe(
+    'Deleted: 1. Could not delete: 1. Try again to delete only the remaining items.'
+  );
   expect(mocks.close).not.toHaveBeenCalled();
   mocks.dispatch.mockClear().mockResolvedValue(undefined);
   await wrapper.vm.bulkDeleteScenarios();
@@ -237,3 +302,28 @@ it('reports partial scenario deletion and retries only failures, once per intent
   expect(mocks.close).toHaveBeenCalledOnce();
   wrapper.unmount();
 });
+
+it.each(['This scenario is in use', ''])(
+  'shows the server error or translated fallback when deleting one scenario: %s',
+  async message => {
+    const wrapper = mountPage(Scenarios);
+    wrapper.vm.requestDelete([2]);
+    mocks.dispatch.mockClear().mockRejectedValue(new Error(message));
+    await wrapper.vm.bulkDeleteScenarios();
+    await flushPromises();
+    expect(wrapper.get('[role="alert"]').text()).toBe(
+      message || integrations.CAPTAIN.ASSISTANTS.SCENARIOS.API.DELETE.ERROR
+    );
+    expect(mocks.alert).toHaveBeenLastCalledWith(wrapper.vm.deleteError);
+    expect(wrapper.vm.deleteIds).toEqual([2]);
+    expect(mocks.close).not.toHaveBeenCalled();
+    mocks.dispatch.mockClear().mockResolvedValue(undefined);
+    await wrapper.vm.bulkDeleteScenarios();
+    expect(mocks.dispatch).toHaveBeenCalledExactlyOnceWith(
+      'captainScenarios/delete',
+      { id: 2, assistantId: 7 }
+    );
+    expect(mocks.close).toHaveBeenCalledOnce();
+    wrapper.unmount();
+  }
+);

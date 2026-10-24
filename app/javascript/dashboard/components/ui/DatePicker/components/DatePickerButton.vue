@@ -57,9 +57,12 @@ const openDatePicker = () => {
 </script>
 
 <template>
-  <div class="inline-flex items-center gap-1">
+  <div
+    class="inline-flex max-w-full flex-wrap lg:flex-nowrap items-center gap-1"
+  >
     <button
-      class="inline-flex relative items-center rounded-lg gap-2 py-1.5 px-3 h-8 bg-n-alpha-2 hover:bg-n-alpha-1 active:bg-n-alpha-1 flex-shrink-0"
+      type="button"
+      class="inline-flex max-w-full min-h-11 lg:min-h-0 relative items-center rounded-lg gap-2 py-1.5 px-3 lg:h-8 bg-n-alpha-2 hover:bg-n-alpha-1 active:bg-n-alpha-1 flex-shrink-0"
       @click="openDatePicker"
     >
       <Icon
@@ -69,7 +72,9 @@ const openDatePicker = () => {
       <span class="text-sm font-medium text-n-slate-12 truncate">
         {{ navigationLabel || $t(activeDateRange) }}
       </span>
-      <span class="text-sm font-medium text-n-slate-11 truncate">
+      <span
+        class="text-sm font-medium text-n-slate-11 whitespace-normal lg:whitespace-nowrap lg:truncate"
+      >
         {{ formatDateRange }}
       </span>
       <Icon

@@ -201,6 +201,7 @@ const addAllExample = async () => {
     const exampleContents = guardrailsExample.map(example => example.content);
     const newGuardrails = [...guardrailsContent.value, ...exampleContents];
     await saveGuardrails(newGuardrails);
+    closeSuggestedRules();
     useAlert(t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.ADD.SUCCESS'));
     return true;
   } catch (error) {
@@ -327,9 +328,17 @@ const addAllExample = async () => {
     <Dialog
       ref="deleteDialog"
       type="alert"
-      :title="t('CAPTAIN.PERSISTENCE.DELETE_TITLE')"
+      :title="
+        deleteIds.length === 1
+          ? t('CAPTAIN.PERSISTENCE.DELETE_SINGLE_TITLE')
+          : t('CAPTAIN.PERSISTENCE.DELETE_TITLE')
+      "
       :description="
-        t('CAPTAIN.PERSISTENCE.DELETE_DESCRIPTION', { count: deleteIds.length })
+        deleteIds.length === 1
+          ? t('CAPTAIN.PERSISTENCE.DELETE_SINGLE_DESCRIPTION')
+          : t('CAPTAIN.PERSISTENCE.DELETE_DESCRIPTION', {
+              count: deleteIds.length,
+            })
       "
       :is-loading="isSaving"
       @confirm="bulkDeleteGuardrails"

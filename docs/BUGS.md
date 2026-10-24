@@ -1,5 +1,16 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-205 — Catálogos existentes sin registrar en el dashboard (UI-01)
+
+- Archivos: `app/javascript/dashboard/i18n/locale/{en,es}/index.js`.
+- Causa: español no exportaba `contentTemplates`, `snooze` ni `yearInReview`; inglés no exportaba `calls`.
+  La compilación de JSON individuales no detectaba que faltaban en el catálogo efectivo.
+- Arreglo: registrar los cuatro catálogos existentes, sin modificar textos, claves ni registrar `webhooks`.
+- Verificación: `i18n/messagesCompile.spec.js` comprueba hojas efectivas sin fallback, formulario de plantillas
+  y sugerencias localizadas; `routes/dashboard/commands/specs/commandbar.spec.js` integra el catálogo real
+  con las sugerencias de posposición en inglés y español. Ejecutar en UTC y America/Guayaquil.
+- Sin cambios de backend ni migraciones. Capturas y revisión visual del dueño pendientes; detalle en `tmp/PR-UI-01.md` del worktree.
+
 ### B-NEW-194 — Cupo y ventana de automatizaciones solo tras elegibilidad y envío (2026-10-23)
 
 - Archivo: `app/services/automations/contact_based_rule_runner.rb`.
@@ -1743,6 +1754,14 @@ toolbar del mensaje se desbordaba; sin categoría.
 **Cómo probar:** lista toggle activo; editar categoría; Exit rules no tapa canvas;
 configurar botones sin scroll infinito de delay doble.
 
+### B-NEW-206 — Captain: persistencia confirmada y borrado seguro (2026-10-24)
+
+- Archivos: `components-next/captain/assistant/{AddNewRulesDialog,AddNewRulesInput,AddNewScenariosDialog,RuleCard,ScenariosCard}.vue`, páginas de pautas, límites y escenarios, wrappers de borrado de Captain y Campañas, `dialog/Dialog.vue` y `reports/panels/Edit.vue`.
+- Causa: altas y ediciones limpiaban o cerraban el diálogo antes de saber si el servidor había guardado; un 422 o un fallo de red hacía perder el borrador. «Agregar todos» ocultaba las sugerencias sin esperar el guardado y el borrado no pedía confirmación en todos los puntos.
+- Arreglo: altas y ediciones esperan el resultado; solo el éxito limpia o cierra y el fallo conserva el borrador. Mientras hay una petición pendiente se bloquean los envíos repetidos. El borrado individual y por lote pide confirmación y los errores conservan el contexto. Escenarios usa `allSettled`, informa cuántos se borraron y reintenta solo los fallidos. Pautas y límites guardan su lista en una sola petición.
+- Cómo probar: provocar un 422 o un corte de red al crear o editar y reintentar; cancelar un borrado (no debe enviar nada); confirmar dos veces durante la espera; en un lote, rechazar un solo ID y comprobar que el reintento no vuelve a borrar los que ya se borraron.
+- Specs: `assistant/Persistence.spec.js`, `assistants/Persistence.spec.js`, `pageComponents/DeletePersistence.spec.js`, `dialog/Dialog.spec.js` y `panels/specs/Edit.spec.js`. Sin backend ni migraciones. Los textos nuevos de borrado quedan en inglés hasta sincronizar con Crowdin.
+
 ### B-NEW-25 — Flows: acciones montadas + dropdown roto en inspector
 
 **Síntoma:** Acciones del paso se veían apiladas sin número/borde; al abrir el
@@ -1794,6 +1813,13 @@ sin definir, y `useAgentsList.js` sin imports de `vue` / `vue-i18n`.
 **Fix:** definir computeds + `UNREAD_COUNT_FOR_FILTERS` en featureFlags + imports.
 
 **Deploy:** merge PR + GHCR rebuild (assets en imagen).
+
+### B-NEW-207 — Búsqueda y encabezados disponibles en móvil (2026-10-24)
+
+- Archivos: `settings/components/BaseSettingsHeader.vue`, `components-next/Campaigns/CampaignLayout.vue`, `settings/reports/components/ReportHeader.vue` y `settings/agents/Index.vue` bajo `app/javascript/dashboard/`.
+- Causa: la búsqueda estaba oculta bajo `sm`, los grupos de botones no se envolvían, el botón de campañas tenía altura fija y texto truncado, y las acciones de cada fila de Agentes se salían de la pantalla.
+- Arreglo: búsqueda visible con nombre accesible, grupos que se envuelven, títulos y acciones en varias líneas, y la fila de Agentes con el correo y el rol envueltos y los botones siempre dentro de la pantalla. Los estilos del encabezado de informes solo alcanzan al botón directo, no al menú de descarga. Se conservan modelos, slots, permisos y eventos.
+- Verificación: specs de `BaseSettingsHeader`, `CampaignLayout` y `ReportHeader`; páginas reales de Agentes, Macros, Etiquetas, Campañas e Informes a 390 y 1280 px en claro y oscuro. Sin backend ni migraciones.
 
 ### B-NEW-30 — `toggle_status` 500 (resolve / reopen / pending / snooze)
 
@@ -1872,6 +1898,13 @@ tiempo siguen solo en **Automations** (`time_triggered`), no en Business rules.
 
 **Cómo probar:** form Cuando/Entonces; categoría Venta exige keys nuevas;
 resolve modal; pending con require_reason. Local: `--build`.
+
+### B-NEW-211 — Rangos de fecha utilizables en el teléfono (2026-10-24)
+
+- Archivos: `components/ui/DatePicker/DatePicker.vue` y sus componentes de calendario, bajo `app/javascript/dashboard/`.
+- Causa: panel fijo de 880 px con dos calendarios, que quedaba fuera de la pantalla en móvil.
+- Arreglo: bajo `lg` el selector se muestra como diálogo con un calendario, atajos plegables, borrador con Aplicar y Cancelar y controles de 44 px. Escritorio conserva dos calendarios, no cambia el cálculo de fechas ni los datos que reciben los seis consumidores. Pulsar el disparador abierto en escritorio vuelve a aplicar el borrador, y las etiquetas accesibles de los días usan el idioma de la aplicación.
+- Verificación: `DatePicker/specs/{DatePicker,DatePickerConsumers,DatePickerResponsive}.spec.js` y `CalendarWeek.spec.js`, más las suites de informes y auditoría en UTC y America/Guayaquil. Capturas reales a 390 y 1280 px, antes y después. Sin backend, migraciones ni claves de traducción nuevas.
 
 ### B-NEW-33 — Dialog Business rules: clic en filtro guardaba la regla
 
@@ -2115,6 +2148,13 @@ document_number y no buscaba company.
 
 **Cómo probar:** buscar nombre con espacio/tilde, cédula en mayúsculas/minúsculas,
 y company_name → deben aparecer resultados.
+
+### B-NEW-215 — Captain: listas, enlaces y conflictos de edición (2026-10-24)
+
+- Archivos: controladores Enterprise Captain `assistants_controller.rb` y `documents_controller.rb`, `playground/configuration.rb`, páginas de pautas y límites, `usePlaygroundSession.js` y formulario y diálogo de documentos.
+- Causa: se aceptaban listas y enlaces inválidos, dos editores podían sobrescribir cambios ajenos y los errores del servidor no siempre se conservaban en el formulario.
+- Arreglo: las listas deben contener textos no vacíos; al reemplazarlas se compara el original enviado en `expected_response_guidelines` o `expected_guardrails` dentro del bloqueo del asistente. Una edición desactualizada recibe 409 sin escrituras parciales. Los clientes de ajustes y playground envían el original exacto. El formulario y el servidor validan enlaces HTTP(S); PDF y Markdown conservan su flujo. Los errores mantienen el diálogo, borrador y lista original. Sin migraciones ni cambios de permisos.
+- Verificación: specs de los controladores Enterprise de asistentes y documentos, configuración de playground, `assistants/Persistence.spec.js`, `assistant/usePlaygroundSession.spec.js` y `document/DocumentForm.spec.js`. Enviar un objeto como lista devuelve 422; guardar desde dos sesiones devuelve 409 en la segunda y conserva la primera. Corregir una URL inválida y reintentar un error de duplicado conserva el formulario abierto.
 
 ### B-NEW-51 — `contacts.chat_bot` + bot vs assignee pasivo (inbox Dueño del contacto)
 
@@ -3113,21 +3153,3 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
   Incluyen límites equivalentes por unidad, compatibilidad, `travel_to`, fallback y reapertura al vencer.
   Revisión estática y `git diff --check`; RSpec y RuboCop pendientes del PM en Docker según el brief.
   Sin migraciones ni cambios de frontend o i18n.
-
-
-### TASK-207 — Captain: persistencia confirmada y borrado seguro (UI-07, 2026-10-24)
-
-- Archivos: `components-next/captain/assistant/{AddNewRulesDialog,AddNewRulesInput,AddNewScenariosDialog,RuleCard,ScenariosCard}.vue`, páginas guidelines/guardrails/scenarios; wrappers Captain/Campañas, `dialog/Dialog.vue` y `reports/panels/Edit.vue`.
-- Altas y ediciones esperan un callback con resultado de persistencia: solo el éxito limpia/cierra, el fallo conserva el borrador. Pending bloquea envíos repetidos y cierre del diálogo compartido.
-- Borrado individual/lote requiere confirmar; errores conservan contexto. Escenarios usa `allSettled`, informa cantidades y reintenta únicamente los IDs fallidos. Guidelines/guardrails guardan su lista en una única petición. Los ejemplos esperan el guardado y no anuncian éxito anticipado.
-- Cómo probar: provocar 422/red en alta/edición, reintentar; cancelar borrado sin petición; confirmar dos veces durante pending; en lote rechazar solo un ID y comprobar que el reintento no borra otra vez los éxitos. En paneles y wrappers fallidos, la confirmación permanece abierta.
-- Specs: `assistant/Persistence.spec.js`, `assistants/Persistence.spec.js`, `pageComponents/DeletePersistence.spec.js`, `dialog/Dialog.spec.js`, `panels/specs/Edit.spec.js` y consumidores indicados en `tmp/PR-UI-07.md`. Sin backend ni migraciones.
-
-### TASK-208 — Captain: contratos de listas, URL y conflictos (UI-08, 2026-10-24)
-
-- Archivos: controladores Enterprise Captain `assistants_controller.rb` / `documents_controller.rb`, `playground/configuration.rb`, páginas guidelines/guardrails, `usePlaygroundSession.js` y formulario/diálogo de documentos.
-- Listas: POST/PATCH rechazan valores que no sean arrays de textos no vacíos con 422. PATCH exige `expected_response_guidelines` / `expected_guardrails` para cada lista reemplazada y compara el original dentro de `with_lock`; el segundo editor desactualizado recibe 409 sin escrituras parciales. Se conservan las actualizaciones independientes de otras opciones y de la otra lista; no requiere migración. Los clientes oficiales de ajustes/playground envían el original exacto.
-- URL: DocumentForm ejecuta el validador URL real para HTTP(S), solo en modo URL; el boundary también rechaza enlaces inválidos antes de crear documentos. PDF/Markdown sin enlace externo conservan su ruta.
-- Mensajes: el diálogo muestra `Error.message` del store y no cierra al fallar; las listas conservan borrador/snapshot y muestran el error persistente; playground entrega campo y motivo sin perder `errors`.
-- Cómo probar: guardar objetos/null/textos como listas → 422; abrir dos sesiones sobre la misma lista, guardar A y después B → 409 con A intacta; copiar el borrador antes de recargar y revisarlo. En documentos, probar URL inválida, corregir a HTTP(S), provocar 422 de duplicado y verificar que sigue abierto; comprobar PDF y conocimiento Markdown en playground.
-- Evidencia y límites de ejecución: `tmp/PR-UI-08.md`; specs de request Enterprise, configuración playground y consumidores Vue. Sin catálogo ni cambios de permisos.

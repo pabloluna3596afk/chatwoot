@@ -20,6 +20,7 @@ import companies from './companies.json';
 import components from './components.json';
 import contact from './contact.json';
 import contactFilters from './contactFilters.json';
+import contentTemplates from './contentTemplates.json';
 import conversation from './conversation.json';
 import csatMgmt from './csatMgmt.json';
 import customRole from './customRole.json';
@@ -48,11 +49,13 @@ import sessionLimit from './sessionLimit.json';
 import settings from './settings.json';
 import signup from './signup.json';
 import sla from './sla.json';
+import snooze from './snooze.json';
 import teamsSettings from './teamsSettings.json';
 import variables from './variables.json';
 import whatsappTemplates from './whatsappTemplates.json';
 import whatsappTemplateMgmt from './whatsappTemplateMgmt.json';
 import whatsappFlows from './whatsappFlows.json';
+import yearInReview from './yearInReview.json';
 
 export default {
   ...dateField,
@@ -76,6 +79,7 @@ export default {
   ...components,
   ...contact,
   ...contactFilters,
+  ...contentTemplates,
   ...conversation,
   ...csatMgmt,
   ...customRole,
@@ -105,9 +109,11 @@ export default {
   ...settings,
   ...signup,
   ...sla,
+  ...snooze,
   ...teamsSettings,
   ...variables,
   ...whatsappTemplates,
   ...whatsappTemplateMgmt,
   ...whatsappFlows,
+  ...yearInReview,
 };
