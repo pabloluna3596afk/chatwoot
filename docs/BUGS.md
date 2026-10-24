@@ -1,13 +1,15 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
-### B-NEW-209 — Panel activo de tareas a ancho completo en teléfono (UI-09, 2026-10-24)
+### B-NEW-205 — Catálogos existentes sin registrar en el dashboard (UI-01)
 
-- Archivos: `routes/dashboard/tasks/TaskView.vue` y `components-next/InternalTasks/{TaskList,TaskKanban,TaskDetail,TaskDetailHeader,TaskListTeamFilter,TaskListStatusFilter}.vue` (dashboard).
-- Causa: la lista fija de 340 px permanecía junto al detalle o tablero en teléfono, dejando la tarea fuera del área visible.
-- Arreglo: bajo 768 px se alternan lista y tablero; seleccionar una tarea muestra solo el detalle con retorno. Los filtros de ambos paneles se conservan al navegar. Encabezado, acciones y filtros se adaptan al ancho móvil; escritorio conserva los paneles.
-- Verificación: `tasks/specs/TaskView.spec.js` cubre URL directa, selección, filtros, refresco y cambio de ancho; `InternalTasks/specs/TaskDetail.spec.js` cubre carga, retorno y payload de reasignación. Capturas pareadas 390/1280 en ambos temas, con API simulada. Sin backend, ACL, reclamación ni migraciones.
-- Corrección UI-09f: los menús de equipo/agente se trasladaban a `body`, fuera del panel de reasignación; el listener de clic exterior lo desmontaba antes de guardar. `TaskDetailHeader.vue` ahora proporciona el propio panel como `dialogPortalTarget`, reutilizando el contrato de `MenuPopover` sin modificar los overlays globales. `InternalTasks/specs/TaskDetailHeader.spec.js` monta header, panel, selectores y menús reales, selecciona equipo/agente mediante eventos DOM y verifica guardado pendiente, payload, retorno de foco y cierre exterior. Resuelto sin depender del PR 13; comprobación visual nueva pendiente por falta de navegador disponible.
-- Corrección UI-09f de carga: `TaskView.vue` comparte la visibilidad efectiva con `TaskKanban.vue`; el tablero conserva sus filtros montado, consulta solo al ser visible y pospone el refresco oculto hasta volver. `tasks/specs/TaskView.spec.js` cubre acceso directo 390/1280 sin petición Kanban, alternancia de vistas, actualización oculta y retorno con el equipo conservado; también verifica que el botón activo coincide con la vista mostrada.
+- Archivos: `app/javascript/dashboard/i18n/locale/{en,es}/index.js`.
+- Causa: español no exportaba `contentTemplates`, `snooze` ni `yearInReview`; inglés no exportaba `calls`.
+  La compilación de JSON individuales no detectaba que faltaban en el catálogo efectivo.
+- Arreglo: registrar los cuatro catálogos existentes, sin modificar textos, claves ni registrar `webhooks`.
+- Verificación: `i18n/messagesCompile.spec.js` comprueba hojas efectivas sin fallback, formulario de plantillas
+  y sugerencias localizadas; `routes/dashboard/commands/specs/commandbar.spec.js` integra el catálogo real
+  con las sugerencias de posposición en inglés y español. Ejecutar en UTC y America/Guayaquil.
+- Sin cambios de backend ni migraciones. Capturas y revisión visual del dueño pendientes; detalle en `tmp/PR-UI-01.md` del worktree.
 
 ### B-NEW-194 — Cupo y ventana de automatizaciones solo tras elegibilidad y envío (2026-10-23)
 
@@ -1940,6 +1942,13 @@ válido → la regla nunca pedía humano. Backend ya miraba `assignee_id` (User)
 **Cómo probar:** inbox con bot, conversación solo-bot, regla exigir al abrir →
 bloquea hasta asignar humano/equipo. Contacto sin agente → abrir selector →
 lista legible opaca.
+
+### B-NEW-209 — Panel activo de tareas a ancho completo en el teléfono (2026-10-24)
+
+- Archivos: `routes/dashboard/tasks/TaskView.vue` y `components-next/InternalTasks/{TaskList,TaskKanban,TaskDetail,TaskDetailHeader,TaskListTeamFilter,TaskListStatusFilter}.vue`, bajo `app/javascript/dashboard/`.
+- Causa: la lista fija de 340 px quedaba junto al detalle o el tablero en el teléfono, dejando la tarea fuera del área visible. Además, los menús de equipo y agente del panel de reasignar se montaban en `body`, y el cierre por clic exterior desmontaba el panel antes de guardar.
+- Arreglo: bajo 768 px se alternan lista y tablero y al elegir una tarea solo se muestra el detalle con botón de retorno; los filtros se conservan. Los menús del panel de reasignar se montan dentro del propio panel. El tablero solo consulta al servidor cuando es visible y pospone la actualización mientras está oculto. Escritorio conserva sus paneles.
+- Verificación: `tasks/specs/TaskView.spec.js`, `InternalTasks/specs/TaskDetail.spec.js` y `TaskDetailHeader.spec.js`; capturas reales a 390 y 1280 px en ambos temas, con toques reales en el selector de reasignar. Sin backend, permisos ni migraciones.
 
 ### B-NEW-37 — Post-compra: atributo de fecha era texto libre
 
