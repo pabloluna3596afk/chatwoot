@@ -1,11 +1,14 @@
 <script setup>
+import { ref } from 'vue';
 import { useToggle } from '@vueuse/core';
 import { vOnClickOutside } from '@vueuse/components';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 import InlineInput from 'dashboard/components-next/inline-input/InlineInput.vue';
 
-defineProps({
+const props = defineProps({
+  // Return true only after the mutation succeeds; events cannot be awaited.
+  onAdd: { type: Function, required: true },
   placeholder: {
     type: String,
     default: '',
@@ -24,7 +27,7 @@ defineProps({
   },
 });
 
-const emit = defineEmits(['add']);
+const isSaving = ref(false);
 
 const modelValue = defineModel({
   type: String,
@@ -32,28 +35,32 @@ const modelValue = defineModel({
 });
 
 const [showPopover, togglePopover] = useToggle();
-const onClickAdd = () => {
-  if (!modelValue.value?.trim()) return;
-  emit('add', modelValue.value.trim());
-  modelValue.value = '';
-  togglePopover(false);
+const onClickAdd = async () => {
+  if (isSaving.value || !modelValue.value?.trim()) return;
+  isSaving.value = true;
+  try {
+    if (await props.onAdd(modelValue.value.trim())) {
+      modelValue.value = '';
+      togglePopover(false);
+    }
+  } finally {
+    isSaving.value = false;
+  }
 };
 
 const onClickCancel = () => {
-  togglePopover(false);
+  if (!isSaving.value) togglePopover(false);
 };
 </script>
 
 <template>
-  <div
-    v-on-click-outside="() => togglePopover(false)"
-    class="inline-flex relative"
-  >
+  <div v-on-click-outside="onClickCancel" class="inline-flex relative">
     <Button
       :label="buttonLabel"
       sm
       slate
       class="flex-shrink-0"
+      :disabled="isSaving"
       @click="togglePopover(!showPopover)"
     />
     <div
@@ -62,6 +69,7 @@ const onClickCancel = () => {
     >
       <InlineInput
         v-model="modelValue"
+        :disabled="isSaving"
         :placeholder="placeholder"
         @keyup.enter="onClickAdd"
       />
@@ -74,7 +82,13 @@ const onClickCancel = () => {
           class="h-10 hover:!no-underline"
           @click="onClickCancel"
         />
-        <Button :label="confirmLabel" sm @click="onClickAdd" />
+        <Button
+          :label="confirmLabel"
+          sm
+          :is-loading="isSaving"
+          :disabled="isSaving"
+          @click="onClickAdd"
+        />
       </div>
     </div>
   </div>

@@ -16,6 +16,7 @@ import { useAlert } from 'dashboard/composables';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import ReportHeader from '../components/ReportHeader.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
+import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
@@ -86,6 +87,8 @@ const labels = useMapGetter('labels/getLabels');
 const { getOperatorTypes, presenceOperators } = useOperators();
 
 const saving = ref(false);
+const deleting = ref(false);
+const deleteDialog = ref(null);
 const form = ref({ ...emptyPanel(), widgets: [defaultMetricWidget()] });
 const step = ref(0);
 const selectedId = ref(form.value.widgets[0].id);
@@ -761,6 +764,7 @@ onBeforeUnmount(() => {
 });
 
 const save = async () => {
+  if (saving.value || deleting.value) return;
   if (!form.value.name.trim()) {
     useAlert(t('REPORT_PANELS.ERRORS.NAME_REQUIRED'));
     return;
@@ -810,16 +814,21 @@ const save = async () => {
 };
 
 const destroyPanel = async () => {
-  if (props.isNew) return;
+  if (props.isNew || deleting.value || saving.value) return;
+  deleting.value = true;
   try {
     await SavedReportPanelsAPI.delete(route.params.id);
+    deleteDialog.value.close();
     router.push(accountScopedRoute('report_panels_index'));
   } catch {
     useAlert(t('REPORT_PANELS.ERRORS.SAVE'));
+  } finally {
+    deleting.value = false;
   }
 };
 
 const cancelEdit = () => {
+  if (saving.value || deleting.value) return;
   if (props.isNew) {
     router.push(accountScopedRoute('report_panels_index'));
     return;
@@ -865,13 +874,15 @@ onMounted(async () => {
         color="ruby"
         variant="ghost"
         size="sm"
-        @click="destroyPanel"
+        :disabled="saving || deleting"
+        data-testid="delete-panel"
+        @click="deleteDialog.open()"
       />
       <Button
         :label="t('REPORT_PANELS.SAVE')"
         size="sm"
         :is-loading="saving"
-        :disabled="!ready"
+        :disabled="!ready || deleting"
         data-testid="save-panel"
         @click="save"
       />
@@ -1379,4 +1390,13 @@ onMounted(async () => {
       </div>
     </template>
   </div>
+  <Dialog
+    ref="deleteDialog"
+    type="alert"
+    :title="t('REPORT_PANELS.DELETE_CONFIRM.TITLE', { name: form.name })"
+    :description="t('REPORT_PANELS.DELETE_CONFIRM.DESCRIPTION')"
+    :confirm-button-label="t('REPORT_PANELS.DELETE')"
+    :is-loading="deleting"
+    @confirm="destroyPanel"
+  />
 </template>

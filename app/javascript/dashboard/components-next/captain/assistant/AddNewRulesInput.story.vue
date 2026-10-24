@@ -10,6 +10,7 @@ import AddNewRulesInput from './AddNewRulesInput.vue';
     <Variant title="Default">
       <div class="px-6 py-4 bg-n-background">
         <AddNewRulesInput
+          :on-add="async () => true"
           placeholder="Type in another response guideline..."
           label="Add and save (↵)"
         />

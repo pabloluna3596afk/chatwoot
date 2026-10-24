@@ -6,6 +6,7 @@ import { picoSearch } from '@chatwoot/pico-search';
 import { useStore } from 'dashboard/composables/store';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAssistantSettings } from '../settings/useAssistantSettings';
+import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 
@@ -22,6 +23,15 @@ const { uiSettings, updateUISettings } = useUISettings();
 const { assistantId, assistant } = useAssistantSettings();
 
 const searchQuery = ref('');
+const isSaving = ref(false);
+const deleteDialog = ref(null);
+const deleteIds = ref([]);
+
+const requestDelete = ids => {
+  if (isSaving.value) return;
+  deleteIds.value = [...ids];
+  deleteDialog.value.open();
+};
 const newInlineRule = ref('');
 const newDialogRule = ref('');
 
@@ -110,59 +120,74 @@ const saveGuidelines = async list => {
 };
 
 const addGuideline = async content => {
+  if (isSaving.value) return false;
+  isSaving.value = true;
   try {
     const updated = [...guidelinesContent.value, content];
     await saveGuidelines(updated);
     useAlert(t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.ADD.SUCCESS'));
+    return true;
   } catch {
     useAlert(t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.ADD.ERROR'));
+    return false;
+  } finally {
+    isSaving.value = false;
   }
 };
 
 const editGuideline = async ({ id, content }) => {
+  if (isSaving.value) return false;
+  isSaving.value = true;
   try {
     const updated = [...guidelinesContent.value];
     updated[id] = content;
     await saveGuidelines(updated);
     useAlert(t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.UPDATE.SUCCESS'));
+    return true;
   } catch {
     useAlert(t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.UPDATE.ERROR'));
-  }
-};
-
-const deleteGuideline = async id => {
-  try {
-    const updated = guidelinesContent.value.filter((_, idx) => idx !== id);
-    await saveGuidelines(updated);
-    useAlert(t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.DELETE.SUCCESS'));
-  } catch {
-    useAlert(t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.DELETE.ERROR'));
+    return false;
+  } finally {
+    isSaving.value = false;
   }
 };
 
 const bulkDeleteGuidelines = async () => {
+  if (isSaving.value) return false;
+  isSaving.value = true;
   try {
-    if (bulkSelectedIds.value.size === 0) return;
+    if (deleteIds.value.length === 0) return false;
     const updated = guidelinesContent.value.filter(
-      (_, idx) => !bulkSelectedIds.value.has(idx)
+      (_, idx) => !deleteIds.value.includes(idx)
     );
     await saveGuidelines(updated);
-    bulkSelectedIds.value.clear();
+    bulkSelectedIds.value = new Set();
+    deleteDialog.value.close();
     useAlert(t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.DELETE.SUCCESS'));
+    return true;
   } catch {
     useAlert(t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.DELETE.ERROR'));
+    return false;
+  } finally {
+    isSaving.value = false;
   }
 };
 
 const addAllExample = async () => {
-  updateUISettings({ show_response_guidelines_suggestions: false });
+  if (isSaving.value) return false;
+  isSaving.value = true;
   try {
     const exampleContents = guidelinesExample.map(example => example.content);
     const newGuidelines = [...guidelinesContent.value, ...exampleContents];
     await saveGuidelines(newGuidelines);
+    closeSuggestedRules();
     useAlert(t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.ADD.SUCCESS'));
+    return true;
   } catch {
     useAlert(t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.ADD.ERROR'));
+    return false;
+  } finally {
+    isSaving.value = false;
   }
 };
 </script>
@@ -211,7 +236,7 @@ const addAllExample = async () => {
               'CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.BULK_ACTION.BULK_DELETE_BUTTON'
             )
           "
-          @bulk-delete="bulkDeleteGuidelines"
+          @bulk-delete="requestDelete(bulkSelectedIds)"
         >
           <template #default-actions>
             <AddNewRulesDialog
@@ -277,7 +302,7 @@ const addAllExample = async () => {
           @select="handleRuleSelect"
           @hover="isHovered => handleRuleHover(isHovered, guideline.id)"
           @edit="editGuideline"
-          @delete="deleteGuideline"
+          @delete="id => requestDelete([id])"
         />
       </div>
       <AddNewRulesInput
@@ -289,5 +314,23 @@ const addAllExample = async () => {
         @add="addGuideline"
       />
     </div>
+    <Dialog
+      ref="deleteDialog"
+      type="alert"
+      :title="
+        deleteIds.length === 1
+          ? t('CAPTAIN.PERSISTENCE.DELETE_SINGLE_TITLE')
+          : t('CAPTAIN.PERSISTENCE.DELETE_TITLE')
+      "
+      :description="
+        deleteIds.length === 1
+          ? t('CAPTAIN.PERSISTENCE.DELETE_SINGLE_DESCRIPTION')
+          : t('CAPTAIN.PERSISTENCE.DELETE_DESCRIPTION', {
+              count: deleteIds.length,
+            })
+      "
+      :is-loading="isSaving"
+      @confirm="bulkDeleteGuidelines"
+    />
   </SettingsPageLayout>
 </template>

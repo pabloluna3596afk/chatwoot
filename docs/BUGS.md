@@ -1754,6 +1754,14 @@ toolbar del mensaje se desbordaba; sin categoría.
 **Cómo probar:** lista toggle activo; editar categoría; Exit rules no tapa canvas;
 configurar botones sin scroll infinito de delay doble.
 
+### B-NEW-206 — Captain: persistencia confirmada y borrado seguro (2026-10-24)
+
+- Archivos: `components-next/captain/assistant/{AddNewRulesDialog,AddNewRulesInput,AddNewScenariosDialog,RuleCard,ScenariosCard}.vue`, páginas de pautas, límites y escenarios, wrappers de borrado de Captain y Campañas, `dialog/Dialog.vue` y `reports/panels/Edit.vue`.
+- Causa: altas y ediciones limpiaban o cerraban el diálogo antes de saber si el servidor había guardado; un 422 o un fallo de red hacía perder el borrador. «Agregar todos» ocultaba las sugerencias sin esperar el guardado y el borrado no pedía confirmación en todos los puntos.
+- Arreglo: altas y ediciones esperan el resultado; solo el éxito limpia o cierra y el fallo conserva el borrador. Mientras hay una petición pendiente se bloquean los envíos repetidos. El borrado individual y por lote pide confirmación y los errores conservan el contexto. Escenarios usa `allSettled`, informa cuántos se borraron y reintenta solo los fallidos. Pautas y límites guardan su lista en una sola petición.
+- Cómo probar: provocar un 422 o un corte de red al crear o editar y reintentar; cancelar un borrado (no debe enviar nada); confirmar dos veces durante la espera; en un lote, rechazar un solo ID y comprobar que el reintento no vuelve a borrar los que ya se borraron.
+- Specs: `assistant/Persistence.spec.js`, `assistants/Persistence.spec.js`, `pageComponents/DeletePersistence.spec.js`, `dialog/Dialog.spec.js` y `panels/specs/Edit.spec.js`. Sin backend ni migraciones. Los textos nuevos de borrado quedan en inglés hasta sincronizar con Crowdin.
+
 ### B-NEW-25 — Flows: acciones montadas + dropdown roto en inspector
 
 **Síntoma:** Acciones del paso se veían apiladas sin número/borde; al abrir el
