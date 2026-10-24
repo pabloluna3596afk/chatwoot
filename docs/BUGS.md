@@ -1,6 +1,6 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
-### B-NEW-232 — Nombre, foco y altura de las ventanas emergentes (UI-13)
+### B-NEW-236 — Nombre, foco y altura de las ventanas emergentes (UI-13)
 
 - **Problema:** los diálogos no asociaban sus títulos y descripciones; los paneles laterales y las ventanas móviles no impedían llegar al fondo con el teclado. Los campos se montaban después de elegir el foco inicial.
 - **Cambio:** Dialog, SidePanel y Popover comparten la modalidad nativa. Se asocian nombres y descripciones, se bloquea el cierre durante peticiones pendientes y los selectores permanecen dentro del diálogo. La altura usa dvh y respeta el área segura; las acciones comunes alcanzan 44 px en móvil.
