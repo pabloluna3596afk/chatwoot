@@ -126,7 +126,7 @@ RSpec.shared_examples 'WhatsApp button choice changes' do |provider|
       previous
       described_class.new(inbox: channel.inbox, params: params).perform
 
-      expect(incoming.content_attributes).not_to have_key('in_reply_to')
+      expect(incoming.content_attributes['in_reply_to']).to be_nil
       expect(incoming.content_attributes).not_to have_key('button_choice_changed')
     end
   end
