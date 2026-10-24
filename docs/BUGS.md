@@ -1899,6 +1899,13 @@ tiempo siguen solo en **Automations** (`time_triggered`), no en Business rules.
 **Cómo probar:** form Cuando/Entonces; categoría Venta exige keys nuevas;
 resolve modal; pending con require_reason. Local: `--build`.
 
+### B-NEW-211 — Rangos de fecha utilizables en el teléfono (2026-10-24)
+
+- Archivos: `components/ui/DatePicker/DatePicker.vue` y sus componentes de calendario, bajo `app/javascript/dashboard/`.
+- Causa: panel fijo de 880 px con dos calendarios, que quedaba fuera de la pantalla en móvil.
+- Arreglo: bajo `lg` el selector se muestra como diálogo con un calendario, atajos plegables, borrador con Aplicar y Cancelar y controles de 44 px. Escritorio conserva dos calendarios, no cambia el cálculo de fechas ni los datos que reciben los seis consumidores. Pulsar el disparador abierto en escritorio vuelve a aplicar el borrador, y las etiquetas accesibles de los días usan el idioma de la aplicación.
+- Verificación: `DatePicker/specs/{DatePicker,DatePickerConsumers,DatePickerResponsive}.spec.js` y `CalendarWeek.spec.js`, más las suites de informes y auditoría en UTC y America/Guayaquil. Capturas reales a 390 y 1280 px, antes y después. Sin backend, migraciones ni claves de traducción nuevas.
+
 ### B-NEW-33 — Dialog Business rules: clic en filtro guardaba la regla
 
 **Causa:** `Dialog` usa `<form @submit>` y `MultiSelect` / trash / “Añadir
