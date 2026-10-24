@@ -1,5 +1,16 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-205 — UI-12: búsqueda y encabezados disponibles en móvil (2026-10-24)
+
+- Archivos: `settings/components/BaseSettingsHeader.vue`, `components-next/Campaigns/CampaignLayout.vue`
+  y `settings/reports/components/ReportHeader.vue` bajo `app/javascript/dashboard/`.
+- Causa: búsqueda oculta bajo sm, grupos sin wrap y altura fija/truncado del CTA de campañas.
+- Arreglo: búsqueda visible con nombre accesible, grupos que envuelven y títulos/acciones multilínea;
+  se conservan modelos, slots, permisos y eventos. Sin backend ni migraciones.
+- Verificación: specs `BaseSettingsHeader`, `CampaignLayout` y `ReportHeader`; capturas pareadas
+  `ui-12-{antes,despues}-{390,1280}-{light,dark}.png` en el montaje de ChatHub.
+  Ver autoevaluación `tmp/PR-UI-12.md` del worktree para la regresión y las limitaciones del entorno.
+
 ### B-NEW-194 — Cupo y ventana de automatizaciones solo tras elegibilidad y envío (2026-10-23)
 
 - Archivo: `app/services/automations/contact_based_rule_runner.rb`.

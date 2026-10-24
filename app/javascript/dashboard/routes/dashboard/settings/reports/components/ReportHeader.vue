@@ -22,13 +22,13 @@ defineProps({
     <div v-if="hasBackButton">
       <BackButton compact />
     </div>
-    <div class="flex justify-between w-full gap-5">
-      <div class="flex flex-col gap-2">
+    <div class="flex flex-wrap justify-between w-full gap-5">
+      <div class="flex flex-col gap-2 min-w-0 flex-1 basis-full sm:basis-64">
         <div class="flex flex-col gap-3 items-start">
           <span
-            class="text-heading-1 text-n-slate-12 min-h-10 flex items-center"
+            class="text-heading-1 text-n-slate-12 min-h-10 flex items-center max-w-full"
           >
-            {{ headerTitle }}
+            <span class="min-w-0 break-words">{{ headerTitle }}</span>
           </span>
           <p
             v-if="headerDescription"
@@ -38,7 +38,9 @@ defineProps({
           </p>
         </div>
       </div>
-      <div class="flex-shrink-0">
+      <div
+        class="flex flex-wrap items-start gap-3 min-w-0 max-w-full sm:shrink-0 [&>*]:min-w-0 [&>*]:max-w-full [&_button]:!h-auto [&_button]:min-h-8 [&_button]:max-w-full [&_button]:py-1.5 [&_button>span]:whitespace-normal [&_button>span]:break-words"
+      >
         <slot />
       </div>
     </div>

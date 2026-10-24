@@ -30,15 +30,17 @@ const handleButtonClick = () => {
         class="w-full mx-auto"
         :class="fullWidth ? 'max-w-full' : 'max-w-5xl'"
       >
-        <div class="flex items-center justify-between w-full h-20 gap-2">
-          <span class="text-heading-1 text-n-slate-12">
+        <div
+          class="flex flex-wrap items-center justify-between w-full min-h-20 py-4 gap-2"
+        >
+          <span class="min-w-0 break-words text-heading-1 text-n-slate-12">
             {{ headerTitle }}
           </span>
           <Button
             :label="buttonLabel"
             icon="i-lucide-plus"
             size="sm"
-            class="hover:brightness-110"
+            class="max-w-full !h-auto min-h-8 py-1.5 hover:brightness-110 [&>span]:whitespace-normal [&>span]:break-words"
             @click="handleButtonClick"
           />
         </div>
