@@ -180,6 +180,7 @@ const addAllExample = async () => {
     const exampleContents = guidelinesExample.map(example => example.content);
     const newGuidelines = [...guidelinesContent.value, ...exampleContents];
     await saveGuidelines(newGuidelines);
+    closeSuggestedRules();
     useAlert(t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.ADD.SUCCESS'));
     return true;
   } catch {
@@ -316,9 +317,17 @@ const addAllExample = async () => {
     <Dialog
       ref="deleteDialog"
       type="alert"
-      :title="t('CAPTAIN.PERSISTENCE.DELETE_TITLE')"
+      :title="
+        deleteIds.length === 1
+          ? t('CAPTAIN.PERSISTENCE.DELETE_SINGLE_TITLE')
+          : t('CAPTAIN.PERSISTENCE.DELETE_TITLE')
+      "
       :description="
-        t('CAPTAIN.PERSISTENCE.DELETE_DESCRIPTION', { count: deleteIds.length })
+        deleteIds.length === 1
+          ? t('CAPTAIN.PERSISTENCE.DELETE_SINGLE_DESCRIPTION')
+          : t('CAPTAIN.PERSISTENCE.DELETE_DESCRIPTION', {
+              count: deleteIds.length,
+            })
       "
       :is-loading="isSaving"
       @confirm="bulkDeleteGuidelines"

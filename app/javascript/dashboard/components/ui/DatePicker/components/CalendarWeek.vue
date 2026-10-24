@@ -1,4 +1,5 @@
 <script setup>
+import { useI18n } from 'vue-i18n';
 import {
   monthName,
   yearName,
@@ -37,6 +38,8 @@ const emit = defineEmits([
   'next',
   'setView',
 ]);
+
+const { locale } = useI18n();
 
 const { START_CALENDAR } = CALENDAR_TYPES;
 const { MONTH } = CALENDAR_PERIODS;
@@ -122,7 +125,7 @@ const dayClasses = day => ({
 </script>
 
 <template>
-  <div class="flex flex-col w-full gap-2 max-h-[312px]">
+  <div class="flex flex-col w-full gap-2 lg:max-h-[19.5rem]">
     <CalendarAction
       :view-mode="MONTH"
       :calendar-type="calendarType"
@@ -144,13 +147,16 @@ const dayClasses = day => ({
     <div
       v-for="week in weeks(calendarType)"
       :key="week[0].getTime()"
-      class="grid max-w-md grid-cols-7 gap-2 mx-auto overflow-hidden rounded-lg"
+      class="grid max-w-md grid-cols-7 gap-0 lg:gap-2 mx-auto overflow-hidden rounded-lg"
     >
-      <div
+      <button
         v-for="day in week"
         :key="day.getTime()"
-        class="flex relative items-center justify-center w-9 h-8 py-1.5 px-2 font-medium text-sm rounded-lg cursor-pointer"
+        type="button"
+        class="flex relative items-center justify-center w-11 h-11 lg:w-9 lg:h-8 p-0 lg:py-1.5 lg:px-2 font-medium text-sm rounded-lg cursor-pointer"
         :class="dayClasses(day)"
+        :disabled="!isInCurrentMonth(day)"
+        :aria-label="day.toLocaleDateString(locale, { dateStyle: 'full' })"
         @mouseenter="emitHoveredEndDate(day)"
         @mouseleave="emitHoveredEndDate(null)"
         @click="emitSelectDate(day)"
@@ -165,7 +171,7 @@ const dayClasses = day => ({
           "
           class="absolute bottom-0 w-6 h-8 ltr:-right-4 rtl:-left-4 bg-n-blue-4 dark:bg-n-blue-5 -z-10"
         />
-      </div>
+      </button>
     </div>
   </div>
 </template>

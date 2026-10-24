@@ -1,5 +1,9 @@
 import { ref } from 'vue';
-import { flushPromises, mount } from '@vue/test-utils';
+import { config, flushPromises, mount } from '@vue/test-utils';
+import { createI18n } from 'vue-i18n';
+import en from 'dashboard/i18n/locale/en';
+import es from 'dashboard/i18n/locale/es';
+import { generateSnoozeSuggestions } from 'dashboard/helper/snoozeHelpers';
 import { emitter } from 'shared/helpers/mitt';
 import { CMD_SNOOZE_CONVERSATION } from 'dashboard/helper/commandbar/events';
 import { GENERAL_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
@@ -230,6 +234,47 @@ describe('commandbar', () => {
   describe('dynamic snooze suggestions', () => {
     const enterSnoozeMenu = () =>
       emitChange('', [{ id: 'until_tomorrow', parent: 'snooze_conversation' }]);
+
+    it.each([
+      ['en', 'tomorrow'],
+      ['es', 'mañana'],
+    ])(
+      'resolves %s snooze suggestions with the effective catalog',
+      async (locale, search) => {
+        const defaultPlugins = config.global.plugins;
+        const i18n = createI18n({
+          legacy: false,
+          locale,
+          fallbackLocale: false,
+          messages: { en, es },
+        });
+        const actual = await vi.importActual('dashboard/helper/snoozeHelpers');
+        generateSnoozeSuggestions.mockImplementationOnce(
+          actual.generateSnoozeSuggestions
+        );
+        config.global.plugins = [i18n];
+
+        try {
+          await mountCommandBar();
+          await enterSnoozeMenu();
+          await emitChange(search);
+
+          expect(generateSnoozeSuggestions).toHaveBeenLastCalledWith(
+            search,
+            expect.any(Date),
+            { translations: i18n.global.tm('SNOOZE_PARSER'), locale }
+          );
+          const action = element.data.find(a => a.id === 'dynamic_snooze_0');
+          expect(action.title.toLowerCase()).toContain(search);
+          expect(action.section).toBe(
+            i18n.global.t('COMMAND_BAR.SECTIONS.SNOOZE_CONVERSATION')
+          );
+          expect(action.section).not.toContain('COMMAND_BAR.');
+        } finally {
+          config.global.plugins = defaultPlugins;
+        }
+      }
+    );
 
     it('builds a suggestion from the search inside a snooze menu', async () => {
       await mountCommandBar();

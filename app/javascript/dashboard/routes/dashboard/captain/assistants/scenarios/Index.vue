@@ -180,10 +180,14 @@ const bulkDeleteScenarios = async () => {
     );
     deleteIds.value = failedIds;
     if (failedIds.length) {
-      deleteError.value = t('CAPTAIN.PERSISTENCE.PARTIAL_DELETE', {
-        succeeded: deletedIds.length,
-        failed: failedIds.length,
-      });
+      deleteError.value =
+        ids.length === 1
+          ? results[0].reason.message ||
+            t('CAPTAIN.ASSISTANTS.SCENARIOS.API.DELETE.ERROR')
+          : t('CAPTAIN.PERSISTENCE.PARTIAL_DELETE', {
+              succeeded: deletedIds.length,
+              failed: failedIds.length,
+            });
       useAlert(deleteError.value);
     } else {
       deleteDialog.value.close();
@@ -218,7 +222,7 @@ const addScenario = async scenario => {
 
 const addAllExampleScenarios = async () => {
   // There is one suggested scenario; use the same awaited create path.
-  await addScenario(scenariosExample[0]);
+  if (await addScenario(scenariosExample[0])) closeSuggestedRules();
 };
 
 onMounted(() => {
@@ -348,9 +352,17 @@ onMounted(() => {
     <Dialog
       ref="deleteDialog"
       type="alert"
-      :title="t('CAPTAIN.PERSISTENCE.DELETE_TITLE')"
+      :title="
+        deleteIds.length === 1
+          ? t('CAPTAIN.PERSISTENCE.DELETE_SINGLE_TITLE')
+          : t('CAPTAIN.PERSISTENCE.DELETE_TITLE')
+      "
       :description="
-        t('CAPTAIN.PERSISTENCE.DELETE_DESCRIPTION', { count: deleteIds.length })
+        deleteIds.length === 1
+          ? t('CAPTAIN.PERSISTENCE.DELETE_SINGLE_DESCRIPTION')
+          : t('CAPTAIN.PERSISTENCE.DELETE_DESCRIPTION', {
+              count: deleteIds.length,
+            })
       "
       :is-loading="isDeleting"
       @confirm="bulkDeleteScenarios"
