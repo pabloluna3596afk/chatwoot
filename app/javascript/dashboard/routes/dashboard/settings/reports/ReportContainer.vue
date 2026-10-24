@@ -329,7 +329,7 @@ export default {
             :clickable="isDrilldownEnabled()"
             @item-click="onChartElementClick(metric, $event)"
           />
-          <span v-else class="text-sm text-n-slate-10">
+          <span v-else class="text-sm text-n-slate-11">
             {{ $t('REPORT.NO_ENOUGH_DATA') }}
           </span>
         </div>

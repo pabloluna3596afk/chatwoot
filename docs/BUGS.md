@@ -2293,6 +2293,13 @@ tal cual) y sumar `open`+`pending` / `resolved` por nombre.
 **Cómo probar:** contacto con 1 open + N resolved → chips Total=N+1, Abiertas=1,
 Resueltas=N, Otras=0 (snoozed van a Otras).
 
+### B-NEW-217 — Tokens válidos, textos legibles y controles táctiles (2026-10-24)
+
+- Archivos: `components-next/{button,checkbox,pagination}`, `components/ui/Tabs/TabsItem.vue`, `components-next/captain/assistant/BulkSelectBar.vue`, `routes/dashboard/settings/reports/ReportContainer.vue` y `modules/widget-preview/components/WidgetFooter.vue`, bajo `app/javascript/dashboard/`.
+- Causa: dos colores inexistentes, textos ilegibles y controles móviles menores de 44 px.
+- Arreglo: tokens existentes en Checkbox y WidgetFooter, textos legibles en claro (teal sólido, faded/outline/ghost/link, amber ghost/link y ruby link), textos informativos y área táctil mínima de 44 px en móvil; paginador adaptable. Azul y ruby sólidos conservan develop; los colores de todos los botones en oscuro también. Foco solo con focus-visible. Sin backend ni migraciones.
+- Verificación: `button/specs/{ButtonContrast,TouchControls}.spec.js`; contraste con tokens reales y regresiones en UTC y America/Guayaquil. Revisar a 390 y 1280 px los controles densos y el paginador sin recortes.
+
 ### B-NEW-39 — Automation: no enviar si ventana Meta/WhatsApp cerrada
 
 **Causa:** `send_message` / attachment creaban outbound que WA marcaba failed
