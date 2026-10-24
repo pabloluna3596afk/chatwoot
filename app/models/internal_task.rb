@@ -6,7 +6,7 @@ class InternalTask < ApplicationRecord
   belongs_to :account
   belongs_to :conversation
   belongs_to :task_template, optional: true
-  belongs_to :created_by, class_name: 'User'
+  belongs_to :created_by, class_name: 'User', optional: true
   belongs_to :assigned_to, class_name: 'User', optional: true
   belongs_to :team, optional: true
   belongs_to :source_message, class_name: 'Message', optional: true
@@ -15,6 +15,7 @@ class InternalTask < ApplicationRecord
   has_many :events, class_name: 'InternalTaskEvent', dependent: :destroy_async
 
   validates :title, presence: true
+  validates :created_by, presence: true, unless: -> { metadata['created_by_type'] == 'system' }
   validates :status, inclusion: { in: STATUSES }
   validates :priority, inclusion: { in: PRIORITIES }
   validate :source_message_belongs_to_conversation

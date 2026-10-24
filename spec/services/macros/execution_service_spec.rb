@@ -12,6 +12,29 @@ RSpec.describe Macros::ExecutionService, type: :service do
   end
 
   describe '#perform' do
+    context 'with create_internal_task' do
+      let(:macro) do
+        create(:macro, account: account,
+                       actions: [{ action_name: 'create_internal_task',
+                                   action_params: [{ title: 'Call the customer', assignee_id: user.id,
+                                                     due_in: { duration: 2, unit: 'days' } }] }])
+      end
+
+      before { account.enable_features!('internal_tasks') }
+
+      it 'creates and deduplicates a system task with the requested assignee and due date' do
+        travel_to(Time.zone.local(2026, 10, 23, 12)) do
+          expect { 2.times { service.perform } }.to change(InternalTask, :count).by(1)
+
+          task = conversation.internal_tasks.last
+          expect(task.assigned_to).to eq(user)
+          expect(task.due_at).to eq(2.days.from_now)
+          expect(task.created_by).to be_nil
+          expect(task.metadata).to include('source_type' => 'Macro', 'source_id' => macro.id)
+        end
+      end
+    end
+
     context 'with a snooze duration' do
       let(:macro) do
         create(:macro, account: account,

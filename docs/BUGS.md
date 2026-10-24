@@ -1492,6 +1492,32 @@ hacían que “ventas del mes” o Sum con `"1.000,50"` no cuadraran.
 
 ---
 
+### B-NEW-200 — Crear tareas internas desde reglas y macros (A09)
+
+Las acciones de backend ahora admiten `create_internal_task` con título, agente opcional
+y vencimiento relativo. La tarea conserva el vínculo al contacto mediante su conversación,
+los callbacks y la difusión privada existentes. Redis reserva la combinación origen,
+conversación y título durante 24 horas con `SET NX EX`.
+
+Archivos: `app/services/automation_rules/internal_task_parameters.rb`,
+`app/services/internal_tasks/automated_create_service.rb`, `app/services/action_service.rb`,
+`app/services/automation_rules/action_validation_service.rb`, `app/models/automation_rule.rb`,
+`app/models/macro.rb` y `app/models/internal_task.rb`.
+
+Autoría automática: usuario nulo y metadatos explícitos de sistema, sin atribuirla a una persona.
+Requiere migración `20261023140000_allow_system_created_internal_tasks.rb` antes de habilitar la acción.
+La creación manual sigue exigiendo autor; no hay cambios de frontend ni traducciones.
+
+Cómo probar: guardar regla/macro con `[{title: 'Llamar al cliente', due_in: {duration: 2, unit: 'days'}}]`;
+ejecutarla dos veces sobre la misma conversación y comprobar una sola tarea con vencimiento en dos días.
+Probar agente de otra cuenta, administrador sin rol agente y duración superior a 365 días: rechazo al guardar.
+Comprobar recepción del evento por asignado/administradores y ausencia para otro agente.
+
+Specs: `spec/services/internal_tasks/automated_create_service_spec.rb`,
+`spec/services/automation_rules/internal_task_parameters_spec.rb`,
+`spec/services/automation_rules/action_validation_service_spec.rb`,
+`spec/services/automation_rules/action_service_spec.rb`, `spec/services/macros/execution_service_spec.rb`
+y `spec/models/internal_task_spec.rb`. RSpec/RuboCop pendientes de ejecución Docker por el PM.
 ### B-NEW-199 — Recetas por contacto: ventana WhatsApp Cloud y alcance (2026-10-23)
 
 **Problema:** el servicio de acciones ya omitía el texto libre fuera de ventana,

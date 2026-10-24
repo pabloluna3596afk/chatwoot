@@ -13,6 +13,10 @@ class ActionService
     record_business_rule_block!(e)
   end
 
+  def create_internal_task(params)
+    InternalTasks::AutomatedCreateService.new(conversation: @conversation, source: @rule || @macro, params: params).perform
+  end
+
   def snooze_conversation(params)
     snooze = Conversations::SnoozeParameters.new(params)
     return @conversation.snoozed! if snooze.parameterless?

@@ -88,7 +88,7 @@ class AutomationRule < ApplicationRecord
        remove_assigned_agent remove_assigned_team send_webhook_event mute_conversation send_attachment change_status
        resolve_conversation open_conversation pending_conversation snooze_conversation change_priority
        send_email_transcript add_private_note update_contact_custom_attribute update_conversation_custom_attribute
-       execute_macro enter_flow notify_assignee].freeze
+       execute_macro enter_flow notify_assignee create_internal_task].freeze
   end
 
   def file_base_data
