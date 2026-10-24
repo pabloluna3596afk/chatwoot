@@ -1,22 +1,15 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
-### B-NEW-205 — UI-12: búsqueda y encabezados disponibles en móvil (2026-10-24)
+### B-NEW-205 — Catálogos existentes sin registrar en el dashboard (UI-01)
 
-- Archivos: `settings/components/BaseSettingsHeader.vue`, `components-next/Campaigns/CampaignLayout.vue`
-  y `settings/reports/components/ReportHeader.vue` bajo `app/javascript/dashboard/`.
-- Causa: búsqueda oculta bajo sm, grupos sin wrap y altura fija/truncado del CTA de campañas.
-- Arreglo: búsqueda visible con nombre accesible, grupos que envuelven y títulos/acciones multilínea;
-  se conservan modelos, slots, permisos y eventos. Sin backend ni migraciones.
-- Verificación: specs `BaseSettingsHeader`, `CampaignLayout` y `ReportHeader`; capturas pareadas
-  `ui-12-{antes,despues}-{390,1280}-{light,dark}.png` en el montaje de ChatHub.
-  Ver autoevaluación `tmp/PR-UI-12.md` del worktree para la regresión y las limitaciones del entorno.
-
-- Corrección UI-12f: `ReportHeader` limita el tamaño multilínea al CTA directo o al botón
-  directo de su wrapper; las opciones CSV/Excel conservan `py-2`. `BaseSettingsHeader`
-  ya limitaba sus selectores: se añade cobertura de regresión sin modificarlo.
-  Campañas alinea el texto multilínea al inicio en móvil y conserva el centrado en escritorio.
-  Verificación: specs de las tres piezas y páginas reales con sus layouts, store de ejemplo,
-  búsqueda y descarga; capturas `ui-12-fix-*` y autoevaluación `tmp/PR-UI-12f.md`.
+- Archivos: `app/javascript/dashboard/i18n/locale/{en,es}/index.js`.
+- Causa: español no exportaba `contentTemplates`, `snooze` ni `yearInReview`; inglés no exportaba `calls`.
+  La compilación de JSON individuales no detectaba que faltaban en el catálogo efectivo.
+- Arreglo: registrar los cuatro catálogos existentes, sin modificar textos, claves ni registrar `webhooks`.
+- Verificación: `i18n/messagesCompile.spec.js` comprueba hojas efectivas sin fallback, formulario de plantillas
+  y sugerencias localizadas; `routes/dashboard/commands/specs/commandbar.spec.js` integra el catálogo real
+  con las sugerencias de posposición en inglés y español. Ejecutar en UTC y America/Guayaquil.
+- Sin cambios de backend ni migraciones. Capturas y revisión visual del dueño pendientes; detalle en `tmp/PR-UI-01.md` del worktree.
 
 ### B-NEW-194 — Cupo y ventana de automatizaciones solo tras elegibilidad y envío (2026-10-23)
 
@@ -1812,6 +1805,13 @@ sin definir, y `useAgentsList.js` sin imports de `vue` / `vue-i18n`.
 **Fix:** definir computeds + `UNREAD_COUNT_FOR_FILTERS` en featureFlags + imports.
 
 **Deploy:** merge PR + GHCR rebuild (assets en imagen).
+
+### B-NEW-207 — Búsqueda y encabezados disponibles en móvil (2026-10-24)
+
+- Archivos: `settings/components/BaseSettingsHeader.vue`, `components-next/Campaigns/CampaignLayout.vue`, `settings/reports/components/ReportHeader.vue` y `settings/agents/Index.vue` bajo `app/javascript/dashboard/`.
+- Causa: la búsqueda estaba oculta bajo `sm`, los grupos de botones no se envolvían, el botón de campañas tenía altura fija y texto truncado, y las acciones de cada fila de Agentes se salían de la pantalla.
+- Arreglo: búsqueda visible con nombre accesible, grupos que se envuelven, títulos y acciones en varias líneas, y la fila de Agentes con el correo y el rol envueltos y los botones siempre dentro de la pantalla. Los estilos del encabezado de informes solo alcanzan al botón directo, no al menú de descarga. Se conservan modelos, slots, permisos y eventos.
+- Verificación: specs de `BaseSettingsHeader`, `CampaignLayout` y `ReportHeader`; páginas reales de Agentes, Macros, Etiquetas, Campañas e Informes a 390 y 1280 px en claro y oscuro. Sin backend ni migraciones.
 
 ### B-NEW-30 — `toggle_status` 500 (resolve / reopen / pending / snooze)
 
