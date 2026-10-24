@@ -1,15 +1,15 @@
 {
   "FLOWS": {
     "HEADER": "Conversation Flows",
-    "DESCRIPTION": "Multi-step paths with automation-like actions, wait/branch on replies, and escalation policies. Enter once from Automations — the flow owns the walk.",
-    "LEARN_MORE": "Learn more about flows",
-    "COUNT": "{n} flow | {n} flows",
-    "HEADER_BTN_TXT": "Add a new flow",
-    "HEADER_BTN_TXT_SAVE": "Save flow",
-    "LOADING": "Fetching flows",
-    "SEARCH_PLACEHOLDER": "Search flows...",
-    "NO_RESULTS": "No flows found matching your search",
-    "ORDER_INFO": "After enter_flow, the conversation stays on this path. Steps run in order with the same action types as Automations/Macros. Optional buttons wait for a reply and branch — no chained “did auto1 run?” conditions.",
+    "DESCRIPTION": "Build Conversation Flows with messages, buttons, and transfer rules. Start them from Automations to guide a conversation step by step.",
+    "LEARN_MORE": "Learn more about Conversation Flows",
+    "COUNT": "{n} Conversation Flow | {n} Conversation Flows",
+    "HEADER_BTN_TXT": "Add a new Conversation Flow",
+    "HEADER_BTN_TXT_SAVE": "Save Conversation Flow",
+    "LOADING": "Fetching Conversation Flows",
+    "SEARCH_PLACEHOLDER": "Search Conversation Flows...",
+    "NO_RESULTS": "No Conversation Flows found matching your search",
+    "ORDER_INFO": "Once a Conversation Flow starts, its steps run in order. Buttons can wait for a customer reply and continue to the matching step.",
     "LIST": {
       "TABLE_HEADER": {
         "NAME": "Name",
@@ -17,7 +17,7 @@
         "STATUS": "Status",
         "ACTIONS": "Actions"
       },
-      "404": "No flows found",
+      "404": "No Conversation Flows found",
       "NO_DESCRIPTION": "No description",
       "NO_CATEGORY": "Uncategorized",
       "ACTIVE": "Active",
@@ -26,9 +26,9 @@
     "ADD": {
       "FORM": {
         "NAME": {
-          "LABEL": "Flow name",
-          "PLACEHOLDER": "Enter a name for your flow",
-          "ERROR": "Name is required for creating a flow"
+          "LABEL": "Conversation Flow name",
+          "PLACEHOLDER": "Enter a name for your Conversation Flow",
+          "ERROR": "Name is required for creating a Conversation Flow"
         },
         "DESCRIPTION": {
           "LABEL": "Description",
@@ -40,20 +40,20 @@
         },
         "ACTIVE": {
           "LABEL": "Active",
-          "DESCRIPTION": "Inactive flows cannot be started from Automations."
+          "DESCRIPTION": "Inactive Conversation Flows cannot be started from Automations."
         }
       },
       "API": {
-        "SUCCESS_MESSAGE": "Flow added successfully",
-        "ERROR_MESSAGE": "Unable to create flow, please try again later"
+        "SUCCESS_MESSAGE": "Conversation Flow added successfully",
+        "ERROR_MESSAGE": "Unable to create Conversation Flow, please try again later"
       }
     },
     "EDIT": {
-      "HEADER": "Edit flow",
-      "TOOLTIP": "Edit flow",
-      "LOADING": "Fetching flow",
-      "START_FLOW": "Start flow",
-      "END_FLOW": "End flow",
+      "HEADER": "Edit Conversation Flow",
+      "TOOLTIP": "Edit Conversation Flow",
+      "LOADING": "Fetching Conversation Flow",
+      "START_FLOW": "Start Conversation Flow",
+      "END_FLOW": "End Conversation Flow",
       "ADD_BTN_TOOLTIP": "Add step",
       "ADD_ACTION": "Add action",
       "ACTION_N": "Action {n}",
@@ -74,7 +74,7 @@
       "BUTTON_TITLE": "Button label",
       "BUTTON_VALUE": "Match value",
       "BRANCH_TO": "Then go to",
-      "BRANCH_END": "End flow",
+      "BRANCH_END": "End Conversation Flow",
       "BRANCH_HANDOFF": "Hand off to human",
       "BRANCHES_PREVIEW": "Branches",
       "HAS_BRANCHES": "Branches",
@@ -88,44 +88,44 @@
       "NO_STEP_SELECTED": "Click a step on the canvas to edit its name, actions, and buttons.",
       "NO_WAIT_WITHOUT_MESSAGE": "Add a Send message action to enable wait/branch buttons.",
       "HANDOFF_REASON": "Chose {label}",
-      "CANVAS_HINT": "Click a step to configure it. Drag from a handle to connect. Node positions are saved with Save flow.",
+      "CANVAS_HINT": "Click a step to configure it. Drag from a handle to connect. Node positions are saved with Save Conversation Flow.",
       "AUTO_LAYOUT": "Auto-arrange",
       "CONNECT_HANDLE_REQUIRED": "Connect from a step or button handle",
       "AFTER_ACTIONS": "After actions",
       "AFTER_ACTIONS_WAIT_HINT": "Branch targets are defined by the buttons below.",
-      "OVERVIEW_TOOLTIP": "Explain this flow’s steps",
-      "OVERVIEW_TITLE": "How this flow works",
+      "OVERVIEW_TOOLTIP": "Explain this Conversation Flow’s steps",
+      "OVERVIEW_TITLE": "How this Conversation Flow works",
       "OVERVIEW_HINT": "Plain-language summary of each step, in order.",
       "OVERVIEW_EMPTY": "Add a step to see the summary.",
       "OVERVIEW_STEP_NAMED": "Step {n}: {title}",
       "STEP_PREVIEW_THEN_WAIT": "Wait for customer reply",
       "STEP_PREVIEW_THEN_GO": "Then → {target}",
-      "PREVIEW_OUTCOME_END": "End flow",
+      "PREVIEW_OUTCOME_END": "End Conversation Flow",
       "PREVIEW_OUTCOME_HANDOFF": "Hand off to human",
       "PREVIEW_OUTCOME_STEP": "{label}",
       "PREVIEW_NO_ACTIONS": "No actions",
       "PREVIEW_BUTTON_N": "If customer picks \"{button}\" → {target}",
       "VALIDATION": "Name and at least one step are required",
       "API": {
-        "SUCCESS_MESSAGE": "Flow updated successfully",
-        "ERROR_MESSAGE": "Could not update flow, please try again later"
+        "SUCCESS_MESSAGE": "Conversation Flow updated successfully",
+        "ERROR_MESSAGE": "Could not update Conversation Flow, please try again later"
       }
     },
     "DELETE": {
-      "TOOLTIP": "Delete flow",
+      "TOOLTIP": "Delete Conversation Flow",
       "CONFIRM": {
-        "TITLE": "Delete flow?",
+        "TITLE": "Delete Conversation Flow?",
         "MESSAGE": "Are you sure to delete ",
         "YES": "Yes, Delete",
         "NO": "No"
       },
       "API": {
-        "SUCCESS_MESSAGE": "Flow deleted successfully",
-        "ERROR_MESSAGE": "There was an error deleting the flow. Please try again later"
+        "SUCCESS_MESSAGE": "Conversation Flow deleted successfully",
+        "ERROR_MESSAGE": "There was an error deleting the Conversation Flow. Please try again later"
       }
     },
     "EXIT": {
-      "TITLE": "When the flow ends",
+      "TITLE": "When the Conversation Flow ends",
       "OPEN_BUTTON": "Exit rules",
       "DONE": "Done",
       "HINT": "Status and assignee applied when the run completes, fails, or hands off.",
