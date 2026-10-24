@@ -160,7 +160,7 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
       :product_name, :feature_faq, :feature_memory, :feature_citation,
       :feature_contact_attributes, :welcome_message, :handoff_message,
       :resolution_message, :instructions, :temperature, :auto_resolve_mode,
-      :response_window, :allow_paid_templates, :max_replies_per_conversation,
+      :response_window, :allow_paid_templates, :max_replies_per_conversation, :reply_delay_seconds,
       { followup: [:inactivity_enabled, :inactivity_after_minutes, :max_nudges, :close_after_minutes, :reengagement_enabled,
                    { reengagement_template: [:name, :language, { processed_params: {} }] }] },
       { appointments: [:enabled, :calendar_connection_id, :calendar_id, :slot_duration_minutes,
@@ -176,6 +176,12 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
 
     permitted = params.require(:assistant).permit(:name, :description, :avatar,
                                                   config: assistant_config_attributes)
+
+    # Preserve invalid shapes so model validation rejects them instead of silently dropping the setting.
+    if params[:assistant][:config].try(:key?, :reply_delay_seconds)
+      delay = params[:assistant][:config][:reply_delay_seconds]
+      permitted[:config][:reply_delay_seconds] = delay.respond_to?(:permit!) ? delay.permit!.to_h : delay
+    end
 
     # Handle array parameters separately to allow partial updates
     permitted[:response_guidelines] = params[:assistant][:response_guidelines] if params[:assistant].key?(:response_guidelines)

@@ -6,6 +6,30 @@ RSpec.describe Captain::Assistant, type: :model do
   let(:contact) { create(:contact, account: account, additional_attributes: { 'country_code' => 'US' }) }
   let(:conversation) { create(:conversation, account: account, contact: contact) }
 
+  describe '#reply_delay_seconds' do
+    it 'defaults to six seconds without changing stored config' do
+      expect(assistant.reply_delay_seconds).to eq(6)
+      expect(assistant.config).not_to have_key('reply_delay_seconds')
+    end
+
+    [0, 6, 10, 30].each do |delay|
+      it "persists the integer delay #{delay}" do
+        assistant.update!(reply_delay_seconds: delay)
+
+        expect(assistant.reload.reply_delay_seconds).to eq(delay)
+      end
+    end
+
+    [-1, 31, 1.5, 6.0, '6', '', nil, true, [], {}].each do |delay|
+      it "rejects #{delay.inspect} when saving" do
+        assistant.reply_delay_seconds = delay
+
+        expect(assistant.save).to be(false)
+        expect(assistant.errors[:config]).to include('reply_delay_seconds must be an integer between 0 and 30')
+      end
+    end
+  end
+
   describe 'associations' do
     it 'keeps Captain and AgentBot conversations separate when their ids match' do
       assistant = create(:captain_assistant, id: 999_999, account: account)

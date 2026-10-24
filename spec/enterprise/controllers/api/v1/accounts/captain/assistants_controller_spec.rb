@@ -243,6 +243,31 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
         expect(assistant.reload.config).to include('feature_citation' => false, 'auto_resolve_mode' => 'disabled')
       end
 
+      it 'updates the reply delay without replacing other settings' do
+        assistant.update!(config: { 'product_name' => 'Chatwoot' })
+
+        patch "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}",
+              params: { assistant: { config: { reply_delay_seconds: 10 } } },
+              headers: admin.create_new_auth_token,
+              as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(assistant.reload.config).to include('reply_delay_seconds' => 10, 'product_name' => 'Chatwoot')
+      end
+
+      [-1, 31, 1.5, '6', nil, false, [], { seconds: 6 }].each do |delay|
+        it "rejects an invalid reply delay #{delay.inspect} with 422" do
+          patch "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}",
+                params: { assistant: { config: { reply_delay_seconds: delay } } },
+                headers: admin.create_new_auth_token,
+                as: :json
+
+          expect(response).to have_http_status(:unprocessable_entity)
+          expect(response.body).to include('reply_delay_seconds must be an integer between 0 and 30')
+          expect(assistant.reload.config).not_to have_key('reply_delay_seconds')
+        end
+      end
+
       it 'updates auto_resolve_mode without replacing other config' do
         assistant.update!(config: { 'product_name' => 'Chatwoot', 'auto_resolve_mode' => 'legacy' })
 
