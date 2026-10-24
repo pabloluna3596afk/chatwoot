@@ -11,6 +11,13 @@
   `ui-12-{antes,despues}-{390,1280}-{light,dark}.png` en el montaje de ChatHub.
   Ver autoevaluación `tmp/PR-UI-12.md` del worktree para la regresión y las limitaciones del entorno.
 
+- Corrección UI-12f: `ReportHeader` limita el tamaño multilínea al CTA directo o al botón
+  directo de su wrapper; las opciones CSV/Excel conservan `py-2`. `BaseSettingsHeader`
+  ya limitaba sus selectores: se añade cobertura de regresión sin modificarlo.
+  Campañas alinea el texto multilínea al inicio en móvil y conserva el centrado en escritorio.
+  Verificación: specs de las tres piezas y páginas reales con sus layouts, store de ejemplo,
+  búsqueda y descarga; capturas `ui-12-fix-*` y autoevaluación `tmp/PR-UI-12f.md`.
+
 ### B-NEW-194 — Cupo y ventana de automatizaciones solo tras elegibilidad y envío (2026-10-23)
 
 - Archivo: `app/services/automations/contact_based_rule_runner.rb`.
