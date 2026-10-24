@@ -71,7 +71,7 @@ watch(
   >
     <button
       v-if="hasScroll"
-      class="items-center rounded-none cursor-pointer flex h-auto justify-center min-w-8"
+      class="items-center rounded-none cursor-pointer flex h-auto justify-center max-sm:min-w-11 min-w-8"
       @click="onScrollClick('left')"
     >
       <fluent-icon icon="chevron-left" :size="16" />
@@ -80,14 +80,16 @@ watch(
       ref="tabsList"
       class="border-r-0 border-l-0 border-t-0 flex min-w-[6.25rem] py-0 px-4 list-none mb-0"
       :class="
-        hasScroll ? 'overflow-hidden py-0 px-1 max-w-[calc(100%-64px)]' : ''
+        hasScroll
+          ? 'overflow-hidden py-0 px-1 max-w-[calc(100%-5.5rem)] sm:max-w-[calc(100%-4rem)]'
+          : ''
       "
     >
       <slot />
     </ul>
     <button
       v-if="hasScroll"
-      class="items-center rounded-none cursor-pointer flex h-auto justify-center min-w-8"
+      class="items-center rounded-none cursor-pointer flex h-auto justify-center max-sm:min-w-11 min-w-8"
       @click="onScrollClick('right')"
     >
       <fluent-icon icon="chevron-right" :size="16" />

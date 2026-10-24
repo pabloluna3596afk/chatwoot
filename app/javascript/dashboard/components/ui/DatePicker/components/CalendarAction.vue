@@ -39,7 +39,9 @@ const onClickSetView = (type, mode) => {
 </script>
 
 <template>
-  <div class="flex items-start justify-between w-full h-9">
+  <div
+    class="flex items-start justify-between w-full min-h-11 sm:min-h-0 sm:h-9"
+  >
     <NextButton
       slate
       ghost
@@ -51,14 +53,14 @@ const onClickSetView = (type, mode) => {
     <div class="flex items-center gap-1">
       <button
         v-if="firstButtonLabel"
-        class="p-0 text-sm font-medium text-center text-n-slate-12 hover:text-n-brand"
+        class="max-sm:min-h-11 max-sm:min-w-11 p-0 text-sm font-medium text-center text-n-slate-12 hover:text-n-brand"
         @click.stop="onClickSetView(calendarType, viewMode)"
       >
         {{ firstButtonLabel }}
       </button>
       <button
         v-if="buttonLabel"
-        class="p-0 text-sm font-medium text-center text-n-slate-12"
+        class="max-sm:min-h-11 max-sm:min-w-11 p-0 text-sm font-medium text-center text-n-slate-12"
         :class="{ 'hover:text-n-brand': viewMode }"
         @click.stop="onClickSetView(calendarType, YEAR)"
       >

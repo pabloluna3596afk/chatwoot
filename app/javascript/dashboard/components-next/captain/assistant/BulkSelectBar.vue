@@ -92,7 +92,7 @@ const bulkCheckboxState = computed({
             {{ selectAllLabel }}
           </span>
         </div>
-        <span class="text-sm text-n-slate-10 truncate tabular-nums">
+        <span class="text-sm text-n-slate-11 truncate tabular-nums">
           {{ selectedCountLabel }}
         </span>
         <div v-if="$slots.primaryActions" class="h-4 w-px bg-n-strong" />

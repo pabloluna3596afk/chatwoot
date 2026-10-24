@@ -1,5 +1,18 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-216 ? UI-16: tokens v?lidos, contraste y controles t?ctiles (2026-10-24)
+
+- Archivos: `components-next/{button,checkbox,pagination}`, `components/ui/{Tabs,DatePicker}`,
+  `components/widgets/ChatTypeTabs.vue`, `components-next/captain/assistant/BulkSelectBar.vue`,
+  `routes/dashboard/settings/reports/ReportContainer.vue` y `modules/widget-preview/components/WidgetFooter.vue`
+  bajo `app/javascript/dashboard/`.
+- Causa: dos tokens inexistentes, parejas de texto insuficientes y controles m?viles menores de 44 px.
+- Arreglo: tokens existentes, contraste de variantes/estados, foco visible y m?nimo t?ctil m?vil;
+  paginador adaptable y altura suficiente para seis semanas, conservando densidad de escritorio y contratos.
+- Verificaci?n: `ButtonContrast.spec.js`, `TouchControls.spec.js`, regresi?n de consumidores en dos zonas
+  y capturas `ui-16-{antes,despues}-{390,1280}-{claro,oscuro}.png`. Evidencia y l?mites en `tmp/PR-UI-16.md`.
+- Sin backend ni migraciones; colores configurables y marcas conservados.
+
 ### B-NEW-205 — UI-12: búsqueda y encabezados disponibles en móvil (2026-10-24)
 
 - Archivos: `settings/components/BaseSettingsHeader.vue`, `components-next/Campaigns/CampaignLayout.vue`

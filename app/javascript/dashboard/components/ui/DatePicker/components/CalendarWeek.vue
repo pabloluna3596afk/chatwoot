@@ -110,19 +110,19 @@ const dayClasses = day => ({
   'text-n-slate-10 pointer-events-none': !isInCurrentMonth(day),
   'text-n-slate-12 hover:text-n-slate-12 hover:bg-n-blue-6 dark:hover:bg-n-blue-7':
     isInCurrentMonth(day),
-  'bg-n-brand text-white':
+  'bg-n-blue-11 text-white dark:text-n-blue-1 hover:!bg-n-blue-12 hover:!text-white dark:hover:!bg-n-blue-11 dark:hover:!text-n-blue-1':
     isSelectedStartOrEndDate(day) && isInCurrentMonth(day),
   'bg-n-blue-4 dark:bg-n-blue-5':
     (isInRange(day) || isHoveringInRange(day)) &&
     !isSelectedStartOrEndDate(day) &&
     isInCurrentMonth(day),
-  'outline outline-1 outline-n-blue-8 -outline-offset-1 !text-n-blue-11':
+  'outline outline-1 outline-n-blue-8 -outline-offset-1 !text-n-blue-12':
     isToday(props.currentDate, day) && !isSelectedStartOrEndDate(day),
 });
 </script>
 
 <template>
-  <div class="flex flex-col w-full gap-2 max-h-[312px]">
+  <div class="flex flex-col w-full gap-2 sm:max-h-[19.5rem]">
     <CalendarAction
       :view-mode="MONTH"
       :calendar-type="calendarType"
@@ -144,12 +144,12 @@ const dayClasses = day => ({
     <div
       v-for="week in weeks(calendarType)"
       :key="week[0].getTime()"
-      class="grid max-w-md grid-cols-7 gap-2 mx-auto overflow-hidden rounded-lg"
+      class="grid max-w-md grid-cols-7 gap-0 sm:gap-2 mx-auto overflow-hidden rounded-lg"
     >
       <div
         v-for="day in week"
         :key="day.getTime()"
-        class="flex relative items-center justify-center w-9 h-8 py-1.5 px-2 font-medium text-sm rounded-lg cursor-pointer"
+        class="flex relative items-center justify-center w-11 h-11 sm:w-9 sm:h-8 py-1.5 px-2 font-medium text-sm rounded-lg cursor-pointer"
         :class="dayClasses(day)"
         @mouseenter="emitHoveredEndDate(day)"
         @mouseleave="emitHoveredEndDate(null)"
@@ -163,7 +163,7 @@ const dayClasses = day => ({
             !isLastDayOfMonth(day) &&
             isInCurrentMonth(day)
           "
-          class="absolute bottom-0 w-6 h-8 ltr:-right-4 rtl:-left-4 bg-n-blue-4 dark:bg-n-blue-5 -z-10"
+          class="absolute bottom-0 w-6 h-11 sm:h-8 ltr:-right-4 rtl:-left-4 bg-n-blue-4 dark:bg-n-blue-5 -z-10"
         />
       </div>
     </div>

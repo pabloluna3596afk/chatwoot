@@ -143,7 +143,7 @@ watch(
     }
 
     // When parent provides new dateRange (e.g., from URL params)
-    // Skip if navigating with arrows — offset controls dates in that case
+    // Skip if navigating with arrows â€” offset controls dates in that case
     if (newDateRange?.[0] && newDateRange?.[1] && monthOffset.value === 0) {
       selectedStartDate.value = startOfDay(newDateRange[0]);
       selectedEndDate.value = endOfDay(newDateRange[1]);
@@ -390,14 +390,14 @@ const closeDatePicker = () => {
     <div
       v-if="showDatePicker"
       v-on-clickaway="closeDatePicker"
-      class="flex absolute top-9 ltr:left-0 rtl:right-0 z-30 shadow-md select-none w-[880px] rounded-2xl bg-n-alpha-3 backdrop-blur-[100px] border-0 outline outline-1 outline-n-container"
+      class="max-sm:fixed max-sm:!inset-x-4 max-sm:top-16 max-sm:!w-auto max-sm:max-h-[calc(100dvh-5rem)] max-sm:overflow-auto flex absolute top-9 ltr:left-0 rtl:right-0 z-30 shadow-md select-none w-[880px] rounded-2xl bg-n-alpha-3 backdrop-blur-[100px] border-0 outline outline-1 outline-n-container"
     >
       <CalendarDateRange
         :selected-range="selectedRange"
         @set-range="setDateRange"
       />
       <div
-        class="flex flex-col w-[680px] ltr:border-l rtl:border-r border-n-strong"
+        class="max-sm:shrink-0 flex flex-col w-[680px] ltr:border-l rtl:border-r border-n-strong"
       >
         <div class="flex justify-around h-fit">
           <!-- Calendars for Start and End Dates -->
@@ -425,7 +425,7 @@ const closeDatePicker = () => {
             />
             <div class="py-5 border-b border-n-strong">
               <div
-                class="flex flex-col items-center gap-2 px-5 min-w-[340px] max-h-[352px]"
+                class="flex flex-col items-center gap-2 px-5 min-w-[21.25rem] sm:max-h-[22rem]"
                 :class="
                   calendar === START_CALENDAR &&
                   'ltr:border-r rtl:border-l border-n-strong'

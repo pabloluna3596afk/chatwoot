@@ -74,7 +74,8 @@ const selectYear = year => {
         :key="year"
         class="p-2 text-sm font-medium text-center text-n-slate-12 w-[144px] h-10 rounded-lg py-2.5 px-2"
         :class="{
-          'bg-n-brand text-white hover:bg-n-blue-10': year === activeYear,
+          'bg-n-blue-11 text-white dark:text-n-blue-1 hover:bg-n-blue-12 dark:hover:bg-n-blue-11':
+            year === activeYear,
           'hover:bg-n-alpha-2 dark:hover:bg-n-solid-3': year !== activeYear,
         }"
         @click.stop="selectYear(year)"
