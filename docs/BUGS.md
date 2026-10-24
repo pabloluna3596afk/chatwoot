@@ -1,6 +1,6 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
-### B-NEW-215 — Menú de herramientas de Captain sobre el cursor y el pie (UI-10m)
+### B-NEW-231 — Menú de herramientas de Captain sobre el cursor y el pie (UI-10m)
 
 - Archivos: `components-next/captain/assistant/ToolsDropdown.vue` y `components/widgets/conversation/TagTools.vue` (dashboard).
 - Causa: el anclaje fijo `bottom-20` no seguía la línea escrita; el menú podía cubrirla y solaparse con Cancelar/Crear.
