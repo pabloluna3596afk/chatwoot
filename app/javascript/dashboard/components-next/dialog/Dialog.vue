@@ -121,6 +121,10 @@ const close = () => {
   isOpen.value = false;
 };
 
+const dismiss = () => {
+  if (!props.isLoading) close();
+};
+
 // Only close if the close event originated from this dialog,
 // not from a child dialog (e.g. ProseMirror prompt) bubbling up.
 const handleDialogClose = e => e.target === dialogRef.value && close();
@@ -128,6 +132,7 @@ const handleDialogClose = e => e.target === dialogRef.value && close();
 // Only close on click-outside if this dialog is the topmost one.
 // Ignore teleported field menus (siblings of the form, still in <dialog>).
 const handleClickOutside = event => {
+  if (props.isLoading) return;
   if (event?.target?.closest?.('[data-combobox-dropdown], [data-menu-popover]'))
     return;
   const dialogs = document.querySelectorAll('dialog[open]');
@@ -135,6 +140,7 @@ const handleClickOutside = event => {
 };
 
 const confirm = () => {
+  if (props.isLoading || props.disableConfirmButton) return;
   emit('confirm');
 };
 
@@ -148,6 +154,7 @@ defineExpose({ open, close });
       class="transition-all duration-300 ease-in-out shadow-xl rounded-xl"
       :class="[widthClass, positionClass, dialogOverflowClass]"
       @close.prevent="handleDialogClose"
+      @cancel.prevent="dismiss"
     >
       <OnClickOutside @trigger="handleClickOutside">
         <form
@@ -190,7 +197,8 @@ defineExpose({ open, close });
                   :label="cancelButtonLabel || t('DIALOG.BUTTONS.CANCEL')"
                   class="w-full"
                   type="button"
-                  @click="close"
+                  :disabled="isLoading"
+                  @click="dismiss"
                 />
                 <Button
                   v-if="showConfirmButton"

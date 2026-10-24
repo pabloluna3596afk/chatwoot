@@ -2,6 +2,7 @@ import { computed, defineComponent } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import Edit from '../Edit.vue';
+import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import ConditionRow from 'dashboard/components-next/filter/ConditionRow.vue';
@@ -15,6 +16,8 @@ const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
   alert: vi.fn(),
   conversationAttributes: [],
+  deleteOpen: vi.fn(),
+  deleteClose: vi.fn(),
 }));
 vi.mock('../../components/ReportHeader.vue', () => ({
   default: { template: '<header><slot /></header>' },
@@ -93,6 +96,10 @@ const mountEditor = (isNew = true) =>
         }),
       ],
       stubs: {
+        Dialog: {
+          methods: { open: mocks.deleteOpen, close: mocks.deleteClose },
+          template: '<div />',
+        },
         ConditionRow: conditionStub,
         PanelWidgetCard: {
           props: ['widget', 'result'],
@@ -435,4 +442,66 @@ describe('guided panel editor', () => {
       ).toEqual(widget);
     }
   );
+  it('confirms panel destruction, suppresses duplicates and retains the editor on failure', async () => {
+    SavedReportPanelsAPI.show.mockResolvedValue({
+      data: {
+        name: 'Ventas',
+        date_preset: 'last_7_days',
+        filters: [],
+        widgets: [{ id: 'count', type: 'kpi', metric: 'conversations_count' }],
+      },
+    });
+    wrapper = mountEditor(false);
+    await flushPromises();
+    await wrapper.find('[data-testid="delete-panel"]').trigger('click');
+    expect(mocks.deleteOpen).toHaveBeenCalledOnce();
+    expect(SavedReportPanelsAPI.delete).not.toHaveBeenCalled();
+    wrapper.findComponent(Dialog).vm.$emit('close');
+    expect(SavedReportPanelsAPI.delete).not.toHaveBeenCalled();
+    let reject;
+    SavedReportPanelsAPI.delete.mockImplementationOnce(
+      () =>
+        new Promise((_resolve, rejectRequest) => {
+          reject = rejectRequest;
+        })
+    );
+    const first = wrapper.vm.destroyPanel();
+    await wrapper.vm.destroyPanel();
+    expect(SavedReportPanelsAPI.delete).toHaveBeenCalledExactlyOnceWith('42');
+    reject(new Error('Network error'));
+    await first;
+    expect(mocks.deleteClose).not.toHaveBeenCalled();
+    expect(mocks.push).not.toHaveBeenCalled();
+    SavedReportPanelsAPI.delete.mockResolvedValue(undefined);
+    await wrapper.vm.destroyPanel();
+    expect(mocks.deleteClose).toHaveBeenCalledOnce();
+    expect(mocks.push).toHaveBeenCalledWith({
+      name: 'report_panels_index',
+      params: undefined,
+    });
+  });
+  it('blocks repeated saves and cancel while the create request is pending', async () => {
+    wrapper = mountEditor();
+    await flushPromises();
+    wrapper.vm.form.name = 'Ventas';
+    let resolve;
+    SavedReportPanelsAPI.create.mockImplementationOnce(
+      () =>
+        new Promise(finish => {
+          resolve = finish;
+        })
+    );
+    const first = wrapper.vm.save();
+    await wrapper.vm.save();
+    wrapper.vm.cancelEdit();
+    expect(SavedReportPanelsAPI.create).toHaveBeenCalledOnce();
+    expect(mocks.push).not.toHaveBeenCalled();
+    expect(mocks.replace).not.toHaveBeenCalled();
+    resolve({ data: { id: 99 } });
+    await first;
+    expect(mocks.replace).toHaveBeenCalledWith({
+      name: 'report_panels_show',
+      params: { id: 99 },
+    });
+  });
 });

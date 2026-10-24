@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'dashboard/composables/store';
 import camelcaseKeys from 'camelcase-keys';
@@ -17,6 +17,8 @@ import {
 
 const props = defineProps({
   taskId: { type: [String, Number], default: 0 },
+  isOnExpandedLayout: { type: Boolean, default: false },
+  isVisible: { type: Boolean, default: true },
 });
 
 const { t } = useI18n();
@@ -52,18 +54,22 @@ const fetchBoard = async () => {
 };
 
 const refresh = () => {
+  if (!props.isVisible) return;
   fetchBoard();
   store.dispatch('internalTasks/fetchTabCounts', {
     teamId: selectedTeamId.value,
   });
 };
 
-onMounted(() => {
-  store.dispatch('teams/get');
-  fetchBoard();
-});
-
-watch(selectedTeamId, fetchBoard);
+watch(
+  [() => props.isVisible, selectedTeamId],
+  ([isVisible]) => {
+    if (!isVisible) return;
+    store.dispatch('teams/get');
+    fetchBoard();
+  },
+  { immediate: true }
+);
 
 defineExpose({ refresh });
 </script>
@@ -85,7 +91,10 @@ defineExpose({ refresh });
           {{ $t('GENERAL.BETA') }}
         </span>
       </div>
-      <TaskListTeamFilter v-model="selectedTeamId" />
+      <TaskListTeamFilter
+        v-model="selectedTeamId"
+        :is-on-expanded-layout="isOnExpandedLayout"
+      />
     </header>
 
     <div v-if="isFetching" class="flex justify-center py-16">

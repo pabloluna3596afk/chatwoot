@@ -725,6 +725,10 @@
     }
   },
   "REPORT_PANELS": {
+    "DELETE_CONFIRM": {
+      "TITLE": "Delete {name}?",
+      "DESCRIPTION": "This report panel will be permanently deleted. This action cannot be undone."
+    },
     "HEADER": "Panels",
     "DESCRIPTION": "Saved report panels for this account: metrics, charts, and tables with optional filters.",
     "CREATE": "New panel",

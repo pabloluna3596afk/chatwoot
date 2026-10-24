@@ -29,6 +29,7 @@ const emit = defineEmits(['deleteSuccess']);
 const { t } = useI18n();
 const store = useStore();
 const deleteDialogRef = ref(null);
+const isDeleting = ref(false);
 const i18nKey = computed(() => {
   return props.translationKey || props.type.toUpperCase();
 });
@@ -36,18 +37,22 @@ const i18nKey = computed(() => {
 const deleteEntity = async payload => {
   if (!payload) return;
 
+  if (isDeleting.value) return;
+  isDeleting.value = true;
   try {
     await store.dispatch(`captain${props.type}/delete`, payload);
     emit('deleteSuccess');
+    deleteDialogRef.value?.close();
     useAlert(t(`CAPTAIN.${i18nKey.value}.DELETE.SUCCESS_MESSAGE`));
   } catch (error) {
     useAlert(t(`CAPTAIN.${i18nKey.value}.DELETE.ERROR_MESSAGE`));
+  } finally {
+    isDeleting.value = false;
   }
 };
 
 const handleDialogConfirm = async () => {
   await deleteEntity(props.deletePayload || props.entity.id);
-  deleteDialogRef.value?.close();
 };
 
 defineExpose({ dialogRef: deleteDialogRef });
@@ -57,6 +62,7 @@ defineExpose({ dialogRef: deleteDialogRef });
   <Dialog
     ref="deleteDialogRef"
     type="alert"
+    :is-loading="isDeleting"
     :title="t(`CAPTAIN.${i18nKey}.DELETE.TITLE`)"
     :description="t(`CAPTAIN.${i18nKey}.DELETE.DESCRIPTION`)"
     :confirm-button-label="t(`CAPTAIN.${i18nKey}.DELETE.CONFIRM`)"

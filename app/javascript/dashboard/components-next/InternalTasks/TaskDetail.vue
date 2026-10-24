@@ -141,6 +141,7 @@ onUnmounted(() => {
       <Button
         variant="ghost"
         size="sm"
+        class="min-h-11"
         icon="i-lucide-arrow-left"
         :label="$t('INTERNAL_TASKS.INBOX.BACK_TO_LIST')"
         @click="goBack"
