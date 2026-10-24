@@ -203,7 +203,7 @@ const confirmDeletion = () => {
                 <span class="text-body-main text-n-slate-11 break-all">
                   {{ agent.email }}
                 </span>
-                <div class="w-px h-3 bg-n-strong rounded-lg" />
+                <div class="hidden sm:block w-px h-3 bg-n-strong rounded-lg" />
                 <span
                   class="block w-fit text-body-main text-n-slate-11 relative"
                   :class="{
@@ -237,7 +237,7 @@ const confirmDeletion = () => {
                     </div>
                   </div>
                 </span>
-                <div class="w-px h-3 bg-n-strong rounded-lg" />
+                <div class="hidden sm:block w-px h-3 bg-n-strong rounded-lg" />
                 <span
                   v-if="agent.confirmed"
                   class="text-body-main text-n-slate-11"
