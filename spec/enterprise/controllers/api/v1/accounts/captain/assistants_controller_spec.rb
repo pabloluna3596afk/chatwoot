@@ -255,7 +255,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
         expect(assistant.reload.config).to include('reply_delay_seconds' => 10, 'product_name' => 'Chatwoot')
       end
 
-      [-1, 31, 1.5, '6', nil, false, [], { seconds: 6 }].each do |delay|
+      [-1, 31, 1.5, '6', nil, false, [], { seconds: 6 }, [{ seconds: 6 }]].each do |delay|
         it "rejects an invalid reply delay #{delay.inspect} with 422" do
           patch "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}",
                 params: { assistant: { config: { reply_delay_seconds: delay } } },

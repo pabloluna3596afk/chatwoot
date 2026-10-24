@@ -179,8 +179,8 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
 
     # Preserve invalid shapes so model validation rejects them instead of silently dropping the setting.
     if params[:assistant][:config].try(:key?, :reply_delay_seconds)
-      delay = params[:assistant][:config][:reply_delay_seconds]
-      permitted[:config][:reply_delay_seconds] = delay.respond_to?(:permit!) ? delay.permit!.to_h : delay
+      permitted[:config][:reply_delay_seconds] =
+        params[:assistant][:config].slice(:reply_delay_seconds).permit!.to_h['reply_delay_seconds']
     end
 
     # Handle array parameters separately to allow partial updates
