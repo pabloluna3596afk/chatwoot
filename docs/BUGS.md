@@ -1,5 +1,16 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-205 — Catálogos existentes sin registrar en el dashboard (UI-01)
+
+- Archivos: `app/javascript/dashboard/i18n/locale/{en,es}/index.js`.
+- Causa: español no exportaba `contentTemplates`, `snooze` ni `yearInReview`; inglés no exportaba `calls`.
+  La compilación de JSON individuales no detectaba que faltaban en el catálogo efectivo.
+- Arreglo: registrar los cuatro catálogos existentes, sin modificar textos, claves ni registrar `webhooks`.
+- Verificación: `i18n/messagesCompile.spec.js` comprueba hojas efectivas sin fallback, formulario de plantillas
+  y sugerencias localizadas; `routes/dashboard/commands/specs/commandbar.spec.js` integra el catálogo real
+  con las sugerencias de posposición en inglés y español. Ejecutar en UTC y America/Guayaquil.
+- Sin cambios de backend ni migraciones. Capturas y revisión visual del dueño pendientes; detalle en `tmp/PR-UI-01.md` del worktree.
+
 ### B-NEW-194 — Cupo y ventana de automatizaciones solo tras elegibilidad y envío (2026-10-23)
 
 - Archivo: `app/services/automations/contact_based_rule_runner.rb`.
@@ -1873,6 +1884,13 @@ tiempo siguen solo en **Automations** (`time_triggered`), no en Business rules.
 **Cómo probar:** form Cuando/Entonces; categoría Venta exige keys nuevas;
 resolve modal; pending con require_reason. Local: `--build`.
 
+### B-NEW-211 — Rangos de fecha utilizables en el teléfono (2026-10-24)
+
+- Archivos: `components/ui/DatePicker/DatePicker.vue` y sus componentes de calendario, bajo `app/javascript/dashboard/`.
+- Causa: panel fijo de 880 px con dos calendarios, que quedaba fuera de la pantalla en móvil.
+- Arreglo: bajo `lg` el selector se muestra como diálogo con un calendario, atajos plegables, borrador con Aplicar y Cancelar y controles de 44 px. Escritorio conserva dos calendarios, no cambia el cálculo de fechas ni los datos que reciben los seis consumidores. Pulsar el disparador abierto en escritorio vuelve a aplicar el borrador, y las etiquetas accesibles de los días usan el idioma de la aplicación.
+- Verificación: `DatePicker/specs/{DatePicker,DatePickerConsumers,DatePickerResponsive}.spec.js` y `CalendarWeek.spec.js`, más las suites de informes y auditoría en UTC y America/Guayaquil. Capturas reales a 390 y 1280 px, antes y después. Sin backend, migraciones ni claves de traducción nuevas.
+
 ### B-NEW-33 — Dialog Business rules: clic en filtro guardaba la regla
 
 **Causa:** `Dialog` usa `<form @submit>` y `MultiSelect` / trash / “Añadir
@@ -3113,24 +3131,3 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
   Incluyen límites equivalentes por unidad, compatibilidad, `travel_to`, fallback y reapertura al vencer.
   Revisión estática y `git diff --check`; RSpec y RuboCop pendientes del PM en Docker según el brief.
   Sin migraciones ni cambios de frontend o i18n.
-
-### B-NEW-211 — Rangos de fecha utilizables en teléfono (UI-11, 2026-10-24)
-
-- Archivos: `app/javascript/dashboard/components/ui/DatePicker/DatePicker.vue` y sus componentes de calendario.
-- Causa: panel fijo de 880 px y dos calendarios fuera del viewport móvil.
-- Arreglo: Dialog nativo bajo lg, un calendario, presets plegables, borrador con aplicar/cancelar y controles de 44 px.
-  Escritorio conserva dos calendarios; no cambia el cálculo de fechas ni los payloads de los seis consumidores.
-- Verificación: `DatePicker/specs/{DatePicker,DatePickerConsumers}.spec.js`, helpers existentes y suites de informes/auditoría
-  en UTC y America/Guayaquil. Capturas y teclado real pendientes por navegador no disponible; detalle en `tmp/PR-UI-11.md`.
-- Sin backend, migraciones ni nuevas claves i18n.
-
-### B-NEW-212 — Regresiones del selector de rangos (UI-11f, 2026-10-24)
-
-- Archivos: `DatePicker/DatePicker.vue` y `DatePicker/components/CalendarWeek.vue` bajo `app/javascript/dashboard/components/ui/`.
-- Causa: mover clickaway al contenedor exterior dejó de aplicar el borrador al pulsar el disparador en escritorio;
-  las etiquetas accesibles de días usaban el idioma del navegador en lugar del idioma de la aplicación.
-- Arreglo: el disparador abierto en escritorio reutiliza `closeDatePicker`; cada día utiliza el locale reactivo de i18n.
-- Verificación: regresiones en `DatePicker/specs/DatePicker.spec.js` (disparador y clic externo con directiva real),
-  `CalendarWeek.spec.js` (español → inglés) y `DatePickerResponsive.spec.js` (390/1023/1024/1280 simulados).
-  Suites del selector, informes y auditoría en UTC y America/Guayaquil; capturas y medición real pendientes por navegador no disponible.
-  Informe de correcciones: `tmp/PR-UI-11f.md`. Sin backend, migraciones ni nuevas claves i18n.
