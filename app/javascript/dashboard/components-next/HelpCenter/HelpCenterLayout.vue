@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { OnClickOutside } from '@vueuse/components';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import { useMapGetter } from 'dashboard/composables/store.js';
 
@@ -42,7 +42,7 @@ const route = useRoute();
 
 const createPortalDialogRef = ref(null);
 
-const showPortalSwitcher = ref(false);
+const { t } = useI18n();
 
 const portals = useMapGetter('portals/allPortals');
 
@@ -56,9 +56,6 @@ const activePortalName = computed(() => activePortal.value?.name);
 
 const updateCurrentPage = page => {
   emit('update:currentPage', page);
-};
-const togglePortalSwitcher = () => {
-  showPortalSwitcher.value = !showPortalSwitcher.value;
 };
 </script>
 
@@ -76,23 +73,23 @@ const togglePortalSwitcher = () => {
                 {{ activePortalName }}
               </span>
               <div class="relative shrink-0 group">
-                <OnClickOutside @trigger="showPortalSwitcher = false">
-                  <Button
-                    icon="i-lucide-chevron-down"
-                    :variant="showPortalSwitcher ? 'faded' : 'ghost'"
-                    slate
-                    xs
-                    class="rounded-md group-hover:bg-n-slate-3 hover:bg-n-slate-3 [&>span]:size-4"
-                    @click="togglePortalSwitcher"
-                  />
-
-                  <PortalSwitcher
-                    v-if="showPortalSwitcher"
-                    class="absolute ltr:left-0 rtl:right-0 top-9"
-                    @close="showPortalSwitcher = false"
-                    @create-portal="createPortalDialogRef.dialogRef.open()"
-                  />
-                </OnClickOutside>
+                <PortalSwitcher
+                  @create-portal="createPortalDialogRef.dialogRef.open()"
+                >
+                  <template #trigger="{ open, toggle }">
+                    <Button
+                      icon="i-lucide-chevron-down"
+                      :aria-label="t('HELP_CENTER.PORTAL_SWITCHER.PORTALS')"
+                      :aria-expanded="open"
+                      aria-haspopup="dialog"
+                      :variant="open ? 'faded' : 'ghost'"
+                      slate
+                      xs
+                      class="rounded-md min-h-11 min-w-11 sm:min-h-0 sm:min-w-0"
+                      @click="toggle"
+                    />
+                  </template>
+                </PortalSwitcher>
                 <CreatePortalDialog ref="createPortalDialogRef" />
               </div>
             </div>

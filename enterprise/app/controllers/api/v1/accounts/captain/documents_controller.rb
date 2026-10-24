@@ -23,6 +23,10 @@ class Api::V1::Accounts::Captain::DocumentsController < Api::V1::Accounts::BaseC
   def create
     return render_could_not_create_error('Missing Assistant') if @assistant.nil?
 
+    if document_params.key?(:external_link) && !valid_external_link?(document_params[:external_link])
+      return render_could_not_create_error(I18n.t('captain.contracts.invalid_url'))
+    end
+
     @document = @assistant.documents.build(document_params)
     @document.save!
   rescue Captain::Document::LimitExceededError => e
@@ -55,6 +59,15 @@ class Api::V1::Accounts::Captain::DocumentsController < Api::V1::Accounts::BaseC
   end
 
   private
+
+  def valid_external_link?(value)
+    return false unless value.is_a?(String)
+
+    uri = URI.parse(value)
+    uri.is_a?(URI::HTTP) && uri.host.present?
+  rescue URI::InvalidURIError
+    false
+  end
 
   def set_documents
     @documents = Current.account.captain_documents.with_attached_pdf_file.with_attached_markdown_file.includes(assistant: { avatar_attachment: :blob })
