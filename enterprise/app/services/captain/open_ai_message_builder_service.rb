@@ -29,8 +29,8 @@ class Captain::OpenAiMessageBuilderService
     return text unless @message.incoming? && @message.content_attributes['button_choice_changed'] == true
 
     annotation = I18n.t('captain.button_choice_changed', locale: @message.account.locale,
-                                                       previous: @message.content_attributes['previous_button_choice'],
-                                                       current: @message.content)
+                                                         previous: @message.content_attributes['previous_button_choice'],
+                                                         current: @message.content)
     "#{annotation}\n#{text}"
   end
 

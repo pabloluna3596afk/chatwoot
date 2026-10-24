@@ -24,11 +24,11 @@ RSpec.describe Captain::Conversation::MessageHistoryBuilderService do
         create(:message, conversation: conversation, account: account, content: 'Thank you')
 
         expect(history).to eq([
-                               { role: 'assistant', content: 'Choose a department' },
-                               { role: 'user', content: 'Support' },
-                               { role: 'user', content: "[The customer changed their choice from «Support» to «Sales»]\nSales" },
-                               { role: 'user', content: 'Thank you' }
-                             ])
+                                { role: 'assistant', content: 'Choose a department' },
+                                { role: 'user', content: 'Support' },
+                                { role: 'user', content: "[The customer changed their choice from «Support» to «Sales»]\nSales" },
+                                { role: 'user', content: 'Thank you' }
+                              ])
         expect(changed.reload.content).to eq('Sales')
       end
     end
