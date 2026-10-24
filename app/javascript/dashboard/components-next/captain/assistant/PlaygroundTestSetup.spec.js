@@ -225,7 +225,7 @@ describe('PlaygroundTestSetup', () => {
       placeholder: 'CAPTAIN.PLAYGROUND.SETUP.SCENARIOS.COMPOSER_PLACEHOLDER',
       label: 'CAPTAIN.PLAYGROUND.SETUP.ADD_TO_TEST',
     });
-    rulesInput.vm.$emit('add', 'Refund request');
+    expect(rulesInput.props('onAdd')('Refund request')).toBe(true);
     expect(addTemporaryScenario).toHaveBeenCalledWith('Refund request');
 
     await selectTab(wrapper, 'guidelines');
@@ -234,7 +234,7 @@ describe('PlaygroundTestSetup', () => {
       placeholder: 'CAPTAIN.PLAYGROUND.SETUP.GUIDELINES.COMPOSER_PLACEHOLDER',
       label: 'CAPTAIN.PLAYGROUND.SETUP.ADD_TO_TEST',
     });
-    rulesInput.vm.$emit('add', 'Keep replies concise');
+    expect(rulesInput.props('onAdd')('Keep replies concise')).toBe(true);
     expect(addTemporaryRule).toHaveBeenCalledWith(
       'guideline',
       'Keep replies concise'
@@ -246,7 +246,7 @@ describe('PlaygroundTestSetup', () => {
       placeholder: 'CAPTAIN.PLAYGROUND.SETUP.GUARDRAILS.COMPOSER_PLACEHOLDER',
       label: 'CAPTAIN.PLAYGROUND.SETUP.ADD_TO_TEST',
     });
-    rulesInput.vm.$emit('add', 'Never expose passwords');
+    expect(rulesInput.props('onAdd')('Never expose passwords')).toBe(true);
     expect(addTemporaryRule).toHaveBeenCalledWith(
       'guardrail',
       'Never expose passwords'
