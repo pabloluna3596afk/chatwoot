@@ -24,6 +24,8 @@ const { t } = useI18n();
 
 <template>
   <div
+    role="group"
+    :aria-label="t('FLOWS.HEADER')"
     class="flex-shrink-0 border-b border-n-weak bg-n-solid-2 px-4 py-3 w-full"
   >
     <div class="flex flex-col lg:flex-row lg:items-end gap-3 w-full">
