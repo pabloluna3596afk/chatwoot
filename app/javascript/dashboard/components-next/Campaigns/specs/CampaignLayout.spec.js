@@ -11,6 +11,10 @@ describe('CampaignLayout', () => {
     });
     expect(wrapper.get('header').text()).toContain(headerTitle);
     expect(wrapper.get('button').text()).toBe(buttonLabel);
+    expect(wrapper.get('button').classes()).toContain('[&>span]:text-start');
+    expect(wrapper.get('button').classes()).toContain(
+      'sm:[&>span]:text-center'
+    );
     await wrapper.get('button').trigger('click');
     expect(wrapper.emitted('click')).toHaveLength(1);
     expect(wrapper.get('main').text()).toBe('Campaigns');

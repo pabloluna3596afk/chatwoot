@@ -21,8 +21,8 @@ const sampleRules = [
           :key="rule.id"
           :content="rule.content"
           :selectable="rule.selectable"
+          :on-edit="async () => true"
           @select="id => console.log('Selected rule', id)"
-          @edit="id => console.log('Edit', id)"
           @delete="id => console.log('Delete', id)"
         />
       </div>
@@ -30,7 +30,11 @@ const sampleRules = [
 
     <Variant title="Non-Selectable">
       <div class="flex flex-col gap-4 px-20 py-4 bg-n-background">
-        <RuleCard id="4" content="Replies should be friendly and clear." />
+        <RuleCard
+          :id="4"
+          :on-edit="async () => true"
+          content="Replies should be friendly and clear."
+        />
       </div>
     </Variant>
   </Story>

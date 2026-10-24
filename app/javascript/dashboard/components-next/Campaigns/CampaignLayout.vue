@@ -40,7 +40,7 @@ const handleButtonClick = () => {
             :label="buttonLabel"
             icon="i-lucide-plus"
             size="sm"
-            class="max-w-full !h-auto min-h-8 py-1.5 hover:brightness-110 [&>span]:whitespace-normal [&>span]:break-words"
+            class="max-w-full !h-auto min-h-8 py-1.5 hover:brightness-110 [&>span]:whitespace-normal [&>span]:break-words [&>span]:text-start sm:[&>span]:text-center"
             @click="handleButtonClick"
           />
         </div>

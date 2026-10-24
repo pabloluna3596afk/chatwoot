@@ -12,6 +12,7 @@ import calendarInvitation from './calendarInvitation.json';
 import calendarActivationKit from './calendarActivationKit.json';
 import calendarAppointmentAttributes from './calendarAppointmentAttributes.json';
 import businessRules from './businessRules.json';
+import calls from './calls.json';
 import campaign from './campaign.json';
 import cannedMgmt from './cannedMgmt.json';
 import chatlist from './chatlist.json';
@@ -70,6 +71,7 @@ export default {
   ...calendarActivationKit,
   ...calendarAppointmentAttributes,
   ...businessRules,
+  ...calls,
   ...campaign,
   ...cannedMgmt,
   ...chatlist,

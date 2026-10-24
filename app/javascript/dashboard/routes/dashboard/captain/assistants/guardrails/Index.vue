@@ -6,6 +6,7 @@ import { picoSearch } from '@chatwoot/pico-search';
 import { useStore } from 'dashboard/composables/store';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAssistantSettings } from '../settings/useAssistantSettings';
+import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 
@@ -22,6 +23,15 @@ const { uiSettings, updateUISettings } = useUISettings();
 const { assistantId, assistant } = useAssistantSettings();
 
 const searchQuery = ref('');
+const isSaving = ref(false);
+const deleteDialog = ref(null);
+const deleteIds = ref([]);
+
+const requestDelete = ids => {
+  if (isSaving.value) return;
+  deleteIds.value = [...ids];
+  deleteDialog.value.open();
+};
 const newInlineRule = ref('');
 const newDialogRule = ref('');
 
@@ -104,58 +114,74 @@ const saveGuardrails = async list => {
 };
 
 const addGuardrail = async content => {
+  if (isSaving.value) return false;
+  isSaving.value = true;
   try {
     const newGuardrails = [...guardrailsContent.value, content];
     await saveGuardrails(newGuardrails);
     useAlert(t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.ADD.SUCCESS'));
+    return true;
   } catch (error) {
     useAlert(t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.ADD.ERROR'));
+    return false;
+  } finally {
+    isSaving.value = false;
   }
 };
 
 const editGuardrail = async ({ id, content }) => {
+  if (isSaving.value) return false;
+  isSaving.value = true;
   try {
     const updated = [...guardrailsContent.value];
     updated[id] = content;
     await saveGuardrails(updated);
     useAlert(t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.UPDATE.SUCCESS'));
+    return true;
   } catch {
     useAlert(t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.UPDATE.ERROR'));
-  }
-};
-
-const deleteGuardrail = async id => {
-  try {
-    const updated = guardrailsContent.value.filter((_, idx) => idx !== id);
-    await saveGuardrails(updated);
-    useAlert(t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.DELETE.SUCCESS'));
-  } catch {
-    useAlert(t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.DELETE.ERROR'));
+    return false;
+  } finally {
+    isSaving.value = false;
   }
 };
 
 const bulkDeleteGuardrails = async () => {
+  if (isSaving.value) return false;
+  isSaving.value = true;
   try {
-    if (bulkSelectedIds.value.size === 0) return;
+    if (deleteIds.value.length === 0) return false;
     const updated = guardrailsContent.value.filter(
-      (_, idx) => !bulkSelectedIds.value.has(idx)
+      (_, idx) => !deleteIds.value.includes(idx)
     );
     await saveGuardrails(updated);
-    bulkSelectedIds.value.clear();
+    bulkSelectedIds.value = new Set();
+    deleteDialog.value.close();
     useAlert(t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.DELETE.SUCCESS'));
+    return true;
   } catch {
     useAlert(t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.DELETE.ERROR'));
+    return false;
+  } finally {
+    isSaving.value = false;
   }
 };
 
-const addAllExample = () => {
-  updateUISettings({ show_guardrails_suggestions: false });
+const addAllExample = async () => {
+  if (isSaving.value) return false;
+  isSaving.value = true;
   try {
     const exampleContents = guardrailsExample.map(example => example.content);
     const newGuardrails = [...guardrailsContent.value, ...exampleContents];
-    saveGuardrails(newGuardrails);
+    await saveGuardrails(newGuardrails);
+    closeSuggestedRules();
+    useAlert(t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.ADD.SUCCESS'));
+    return true;
   } catch {
     useAlert(t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.ADD.ERROR'));
+    return false;
+  } finally {
+    isSaving.value = false;
   }
 };
 </script>
@@ -198,7 +224,7 @@ const addAllExample = () => {
           :delete-label="
             t('CAPTAIN.ASSISTANTS.GUARDRAILS.BULK_ACTION.BULK_DELETE_BUTTON')
           "
-          @bulk-delete="bulkDeleteGuardrails"
+          @bulk-delete="requestDelete(bulkSelectedIds)"
         >
           <template #default-actions>
             <AddNewRulesDialog
@@ -254,7 +280,7 @@ const addAllExample = () => {
           :selectable="hoveredCard === guardrail.id || bulkSelectedIds.size > 0"
           @select="handleRuleSelect"
           @edit="editGuardrail"
-          @delete="deleteGuardrail"
+          @delete="id => requestDelete([id])"
           @hover="isHovered => handleRuleHover(isHovered, guardrail.id)"
         />
       </div>
@@ -267,5 +293,23 @@ const addAllExample = () => {
         @add="addGuardrail"
       />
     </div>
+    <Dialog
+      ref="deleteDialog"
+      type="alert"
+      :title="
+        deleteIds.length === 1
+          ? t('CAPTAIN.PERSISTENCE.DELETE_SINGLE_TITLE')
+          : t('CAPTAIN.PERSISTENCE.DELETE_TITLE')
+      "
+      :description="
+        deleteIds.length === 1
+          ? t('CAPTAIN.PERSISTENCE.DELETE_SINGLE_DESCRIPTION')
+          : t('CAPTAIN.PERSISTENCE.DELETE_DESCRIPTION', {
+              count: deleteIds.length,
+            })
+      "
+      :is-loading="isSaving"
+      @confirm="bulkDeleteGuardrails"
+    />
   </SettingsPageLayout>
 </template>

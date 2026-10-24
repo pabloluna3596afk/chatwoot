@@ -94,7 +94,7 @@ describe('shared touch controls', () => {
     });
     const days = wrapper.findAll('.cursor-pointer');
     expect(days).toHaveLength(42);
-    expect(wrapper.classes()).toContain('sm:max-h-[19.5rem]');
+    expect(wrapper.classes()).toContain('lg:max-h-[19.5rem]');
     expect(days[0].classes()).toContain('w-11');
     expect(days[0].classes()).toContain('h-11');
     const day = days.find(item => item.text() === '15');

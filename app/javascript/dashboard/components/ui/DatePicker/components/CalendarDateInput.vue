@@ -54,7 +54,7 @@ const validateDate = () => {
 </script>
 
 <template>
-  <div class="h-[82px] flex flex-col items-start px-5 gap-1.5 pt-4 w-full">
+  <label class="h-[82px] flex flex-col items-start lg:px-5 gap-1.5 pt-4 w-full">
     <span class="text-sm font-medium text-n-slate-12">
       {{
         calendarType === START_CALENDAR
@@ -65,10 +65,10 @@ const validateDate = () => {
     <input
       v-model="localDateValue"
       type="text"
-      class="!text-sm !mb-0 disabled:!outline-n-strong"
+      class="!text-sm !mb-0 disabled:!outline-n-strong min-h-11 lg:min-h-0"
       :placeholder="dateFormat"
       :disabled="isDisabled"
-      @keypress.enter="validateDate"
+      @keydown.enter.prevent="validateDate"
     />
-  </div>
+  </label>
 </template>

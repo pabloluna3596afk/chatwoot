@@ -115,6 +115,12 @@ const toggleRule = rule => {
 
 const addTemporaryRule = content => {
   props.session.addTemporaryRule(activeRuleTab.value.type, content);
+  return true;
+};
+
+const addTemporaryScenario = title => {
+  props.session.addTemporaryScenario(title);
+  return true;
 };
 
 const isTemporaryScenarioCollapsed = scenario =>
@@ -189,7 +195,7 @@ const selectTab = tab => {
               t('CAPTAIN.PLAYGROUND.SETUP.SCENARIOS.COMPOSER_PLACEHOLDER')
             "
             :label="t('CAPTAIN.PLAYGROUND.SETUP.ADD_TO_TEST')"
-            @add="session.addTemporaryScenario"
+            @add="addTemporaryScenario"
           />
 
           <div

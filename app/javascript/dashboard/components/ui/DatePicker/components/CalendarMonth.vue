@@ -71,7 +71,8 @@ const selectMonth = index => {
       <button
         v-for="(month, index) in months"
         :key="index"
-        class="p-2 text-sm font-medium text-center text-n-slate-12 w-[92px] h-10 rounded-lg py-2.5 px-2"
+        type="button"
+        class="p-2 text-sm font-medium text-center text-n-slate-12 w-full lg:w-[5.75rem] min-h-11 lg:min-h-0 h-10 rounded-lg py-2.5 px-2"
         :class="{
           'bg-n-blue-11 text-white dark:text-n-blue-1 hover:bg-n-blue-12 dark:hover:bg-n-blue-11':
             index === activeMonthIndex,

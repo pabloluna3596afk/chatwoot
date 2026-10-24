@@ -9,6 +9,32 @@ vi.mock('dashboard/components/CustomBrandPolicyWrapper.vue', () => ({
 }));
 
 describe('BaseSettingsHeader', () => {
+  it('sizes direct and linked CTAs without sizing nested menu options', () => {
+    const wrapper = mount(BaseSettingsHeader, {
+      props: { title: 'Settings' },
+      slots: {
+        actions: `<button data-cta>Add</button>
+          <a><button data-cta>Create</button></a>
+          <div><button class="py-2" data-format>CSV</button></div>`,
+      },
+    });
+    const actions = wrapper.get('[class*="flex-row-reverse"]');
+    const selectors = actions
+      .classes()
+      .filter(name => name.endsWith(':!h-auto'))
+      .map(name =>
+        name
+          .slice(1, name.indexOf(']'))
+          .replaceAll('_', ' ')
+          .replace('&', ':scope')
+      );
+    const sizedButtons = actions.element.querySelectorAll(selectors.join(','));
+    expect([...sizedButtons]).toEqual(
+      wrapper.findAll('[data-cta]').map(node => node.element)
+    );
+    expect(wrapper.get('[data-format]').classes()).toContain('py-2');
+  });
+
   it.each(['Buscar agentes', 'Buscar macros', 'Buscar etiquetas'])(
     'preserves the search model for %s',
     async searchPlaceholder => {

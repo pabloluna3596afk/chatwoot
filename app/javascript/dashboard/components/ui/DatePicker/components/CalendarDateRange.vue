@@ -16,7 +16,7 @@ const setDateRange = range => {
 </script>
 
 <template>
-  <div class="max-sm:shrink-0 w-[200px] flex flex-col items-start">
+  <div class="w-[200px] flex flex-col items-start">
     <h4
       class="w-full px-5 py-4 text-xs font-bold capitalize text-start text-n-slate-11"
     >
@@ -26,6 +26,7 @@ const setDateRange = range => {
       <template v-for="range in dateRanges" :key="range.label">
         <div v-if="range.separator" class="w-full border-t border-n-strong" />
         <button
+          type="button"
           class="w-full px-5 py-3 text-sm font-medium truncate border-none rounded-none text-start hover:bg-n-alpha-2 dark:hover:bg-n-solid-3"
           :class="
             range.value === selectedRange

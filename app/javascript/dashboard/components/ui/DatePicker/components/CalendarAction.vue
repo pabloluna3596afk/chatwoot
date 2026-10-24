@@ -39,28 +39,30 @@ const onClickSetView = (type, mode) => {
 </script>
 
 <template>
-  <div
-    class="flex items-start justify-between w-full min-h-11 sm:min-h-0 sm:h-9"
-  >
+  <div class="flex items-start justify-between w-full h-11 lg:h-9">
     <NextButton
+      type="button"
       slate
       ghost
       xs
       icon="i-lucide-chevron-left"
-      class="rtl:rotate-180"
+      :aria-label="$t('DATE_PICKER.PREVIOUS_PERIOD')"
+      class="rtl:rotate-180 min-h-11 min-w-11 lg:min-h-0 lg:min-w-0"
       @click.stop="onClickPrev(calendarType)"
     />
     <div class="flex items-center gap-1">
       <button
         v-if="firstButtonLabel"
-        class="max-sm:min-h-11 max-sm:min-w-11 p-0 text-sm font-medium text-center text-n-slate-12 hover:text-n-brand"
+        type="button"
+        class="min-h-11 min-w-11 lg:min-h-0 lg:min-w-0 p-0 text-sm font-medium text-center text-n-slate-12 hover:text-n-brand"
         @click.stop="onClickSetView(calendarType, viewMode)"
       >
         {{ firstButtonLabel }}
       </button>
       <button
         v-if="buttonLabel"
-        class="max-sm:min-h-11 max-sm:min-w-11 p-0 text-sm font-medium text-center text-n-slate-12"
+        type="button"
+        class="min-h-11 min-w-11 lg:min-h-0 lg:min-w-0 p-0 text-sm font-medium text-center text-n-slate-12"
         :class="{ 'hover:text-n-brand': viewMode }"
         @click.stop="onClickSetView(calendarType, YEAR)"
       >
@@ -68,11 +70,13 @@ const onClickSetView = (type, mode) => {
       </button>
     </div>
     <NextButton
+      type="button"
       slate
       ghost
       xs
       icon="i-lucide-chevron-right"
-      class="rtl:rotate-180"
+      :aria-label="$t('DATE_PICKER.NEXT_PERIOD')"
+      class="rtl:rotate-180 min-h-11 min-w-11 lg:min-h-0 lg:min-w-0"
       @click.stop="onClickNext(calendarType)"
     />
   </div>

@@ -1,9 +1,12 @@
 <script setup>
+import { ref } from 'vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import InlineInput from 'dashboard/components-next/inline-input/InlineInput.vue';
 
-defineProps({
+const props = defineProps({
+  // Return true only after the mutation succeeds; events cannot be awaited.
+  onAdd: { type: Function, required: true },
   placeholder: {
     type: String,
     default: '',
@@ -18,17 +21,23 @@ defineProps({
   },
 });
 
-const emit = defineEmits(['add']);
+const isSaving = ref(false);
 
 const modelValue = defineModel({
   type: String,
   default: '',
 });
 
-const onClickAdd = () => {
-  if (!modelValue.value?.trim()) return;
-  emit('add', modelValue.value.trim());
-  modelValue.value = '';
+const onClickAdd = async () => {
+  if (isSaving.value || !modelValue.value?.trim()) return;
+  isSaving.value = true;
+  try {
+    if (await props.onAdd(modelValue.value.trim())) {
+      modelValue.value = '';
+    }
+  } finally {
+    isSaving.value = false;
+  }
 };
 </script>
 
@@ -40,6 +49,7 @@ const onClickAdd = () => {
 
     <InlineInput
       v-model="modelValue"
+      :disabled="isSaving"
       :placeholder="placeholder"
       :max-length="maxLength"
       @keyup.enter="onClickAdd"
@@ -50,6 +60,8 @@ const onClickAdd = () => {
       xs
       slate
       class="!text-sm !text-n-slate-11 flex-shrink-0"
+      :is-loading="isSaving"
+      :disabled="isSaving"
       @click="onClickAdd"
     />
   </div>

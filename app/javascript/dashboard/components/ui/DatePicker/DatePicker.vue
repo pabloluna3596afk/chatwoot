@@ -1,5 +1,8 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
+import { useMediaQuery } from '@vueuse/core';
+import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import Button from 'dashboard/components-next/button/Button.vue';
 import { useI18n } from 'vue-i18n';
 import {
   getActiveDateRange,
@@ -62,6 +65,9 @@ const { START_CALENDAR, END_CALENDAR } = CALENDAR_TYPES;
 const { WEEK, MONTH, YEAR } = CALENDAR_PERIODS;
 
 const showDatePicker = ref(!props.hasAppliedRange);
+const isMobile = useMediaQuery('(max-width: 1023px)');
+const mobileDialog = ref(null);
+const presetsOpen = ref(false);
 const calendarViews = ref({ start: WEEK, end: WEEK });
 const currentDate = computed(() => props.referenceDate);
 
@@ -88,6 +94,38 @@ const selectingEndDate = ref(false);
 const selectedRange = ref(rangeType.value || LAST_7_DAYS);
 const hoveredEndDate = ref(null);
 const monthOffset = ref(0);
+
+// Mobile edits stay local until Apply; dismissing restores the applied window.
+let appliedSelection;
+watch(
+  [showDatePicker, isMobile],
+  async ([isOpen, mobile]) => {
+    if (!isOpen || !mobile) return;
+    appliedSelection = {
+      start: selectedStartDate.value,
+      end: selectedEndDate.value,
+      range: selectedRange.value,
+      offset: monthOffset.value,
+    };
+    presetsOpen.value = false;
+    await nextTick();
+    mobileDialog.value?.open();
+  },
+  { immediate: true }
+);
+
+const cancelMobileSelection = () => {
+  if (!showDatePicker.value) return;
+  selectedStartDate.value = appliedSelection.start;
+  selectedEndDate.value = appliedSelection.end;
+  selectedRange.value = appliedSelection.range;
+  monthOffset.value = appliedSelection.offset;
+  selectingEndDate.value = false;
+  calendarViews.value = { start: WEEK, end: WEEK };
+  showDatePicker.value = false;
+  mobileDialog.value.close();
+  emit('close');
+};
 
 const showMonthNavigation = computed(() =>
   isNavigableRange(selectedRange.value)
@@ -143,7 +181,7 @@ watch(
     }
 
     // When parent provides new dateRange (e.g., from URL params)
-    // Skip if navigating with arrows â€” offset controls dates in that case
+    // Skip if navigating with arrows — offset controls dates in that case
     if (newDateRange?.[0] && newDateRange?.[1] && monthOffset.value === 0) {
       selectedStartDate.value = startOfDay(newDateRange[0]);
       selectedEndDate.value = endOfDay(newDateRange[1]);
@@ -196,6 +234,8 @@ watch(
 );
 
 const setDateRange = range => {
+  presetsOpen.value = false;
+  selectingEndDate.value = false;
   selectedRange.value = range.value;
   monthOffset.value = 0;
   const { start, end } = getActiveDateRange(range.value, currentDate.value);
@@ -330,6 +370,7 @@ const emitDateRange = () => {
     useAlert('Please select a valid time range');
   } else {
     showDatePicker.value = false;
+    if (isMobile.value) mobileDialog.value.close();
     emit('dateRangeChanged', [
       selectedStartDate.value,
       selectedEndDate.value,
@@ -352,16 +393,8 @@ const initializeCalendarMonths = () => {
   }
 };
 
-const toggleDatePicker = () => {
-  showDatePicker.value = !showDatePicker.value;
-  if (showDatePicker.value) {
-    initializeCalendarMonths();
-  } else {
-    emit('close');
-  }
-};
-
 const closeDatePicker = () => {
+  if (isMobile.value || !showDatePicker.value) return;
   const canApply =
     props.hasAppliedRange &&
     isValid(selectedStartDate.value) &&
@@ -373,10 +406,26 @@ const closeDatePicker = () => {
   showDatePicker.value = false;
   emit('close');
 };
+
+const toggleDatePicker = () => {
+  if (!isMobile.value && showDatePicker.value) {
+    closeDatePicker();
+    return;
+  }
+  showDatePicker.value = !showDatePicker.value;
+  if (showDatePicker.value) {
+    initializeCalendarMonths();
+  } else {
+    emit('close');
+  }
+};
 </script>
 
 <template>
-  <div class="relative flex-shrink-0 font-inter">
+  <div
+    v-on-clickaway="closeDatePicker"
+    class="relative max-w-full flex-shrink-0 font-inter"
+  >
     <DatePickerButton
       :selected-start-date="selectedStartDate"
       :selected-end-date="selectedEndDate"
@@ -387,24 +436,56 @@ const closeDatePicker = () => {
       @open="toggleDatePicker"
       @navigate-month="navigateMonth"
     />
-    <div
+    <component
+      :is="isMobile ? Dialog : 'div'"
       v-if="showDatePicker"
-      v-on-clickaway="closeDatePicker"
-      class="max-sm:fixed max-sm:!inset-x-4 max-sm:top-16 max-sm:!w-auto max-sm:max-h-[calc(100dvh-5rem)] max-sm:overflow-auto flex absolute top-9 ltr:left-0 rtl:right-0 z-30 shadow-md select-none w-[880px] rounded-2xl bg-n-alpha-3 backdrop-blur-[100px] border-0 outline outline-1 outline-n-container"
+      ref="mobileDialog"
+      :class="
+        !isMobile &&
+        'flex absolute top-9 ltr:left-0 rtl:right-0 z-30 shadow-md select-none w-[55rem] rounded-2xl bg-n-alpha-3 backdrop-blur-[100px] border-0 outline outline-1 outline-n-container'
+      "
+      v-bind="
+        isMobile
+          ? {
+              bodyScroll: true,
+              width: 'sm',
+              title: t('DATE_PICKER.DATE_RANGE_OPTIONS.TITLE'),
+            }
+          : {}
+      "
+      @close="cancelMobileSelection"
     >
+      <details
+        v-if="isMobile"
+        :open="presetsOpen"
+        @toggle="presetsOpen = $event.target.open"
+      >
+        <summary
+          class="min-h-11 py-3 text-n-slate-12 cursor-pointer text-label"
+        >
+          {{ t('DATE_PICKER.DATE_RANGE_OPTIONS.TITLE') }}
+        </summary>
+        <CalendarDateRange
+          class="!w-full"
+          :selected-range="selectedRange"
+          @set-range="setDateRange"
+        />
+      </details>
       <CalendarDateRange
+        v-else
         :selected-range="selectedRange"
         @set-range="setDateRange"
       />
       <div
-        class="max-sm:shrink-0 flex flex-col w-[680px] ltr:border-l rtl:border-r border-n-strong"
+        class="flex flex-col w-full lg:w-[42.5rem] lg:ltr:border-l lg:rtl:border-r border-n-strong"
       >
-        <div class="flex justify-around h-fit">
+        <div class="flex flex-col lg:flex-row justify-around h-fit">
           <!-- Calendars for Start and End Dates -->
           <div
             v-for="calendar in [START_CALENDAR, END_CALENDAR]"
             :key="`${calendar}-calendar`"
             class="flex flex-col items-center"
+            :class="{ 'contents lg:flex': isMobile }"
           >
             <CalendarDateInput
               :calendar-type="calendar"
@@ -423,10 +504,15 @@ const closeDatePicker = () => {
               @validate="updateManualInput($event, calendar)"
               @error="handleManualInputError($event)"
             />
-            <div class="py-5 border-b border-n-strong">
+            <div
+              v-if="!isMobile || calendar === START_CALENDAR"
+              class="py-5 border-b border-n-strong"
+              :class="{ 'order-last': isMobile }"
+            >
               <div
-                class="flex flex-col items-center gap-2 px-5 min-w-[21.25rem] sm:max-h-[22rem]"
+                class="flex flex-col items-center gap-2 lg:px-5 lg:min-w-[21.25rem] lg:max-h-[22rem]"
                 :class="
+                  !isMobile &&
                   calendar === START_CALENDAR &&
                   'ltr:border-r rtl:border-l border-n-strong'
                 "
@@ -468,8 +554,39 @@ const closeDatePicker = () => {
             </div>
           </div>
         </div>
-        <CalendarFooter @change="emitDateRange" @clear="resetDatePicker" />
+        <CalendarFooter
+          v-if="!isMobile"
+          @change="emitDateRange"
+          @clear="resetDatePicker"
+        />
       </div>
-    </div>
+      <template v-if="isMobile" #footer>
+        <div class="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            ghost
+            slate
+            class="min-h-11"
+            :label="t('DATE_PICKER.CLEAR_BUTTON')"
+            @click="resetDatePicker"
+          />
+          <Button
+            type="button"
+            faded
+            slate
+            class="min-h-11"
+            :label="t('DIALOG.BUTTONS.CANCEL')"
+            @click="cancelMobileSelection"
+          />
+          <Button
+            type="button"
+            class="min-h-11 grow"
+            :disabled="!isValid(selectedStartDate) || !isValid(selectedEndDate)"
+            :label="t('DATE_PICKER.APPLY_BUTTON')"
+            @click="emitDateRange"
+          />
+        </div>
+      </template>
+    </component>
   </div>
 </template>
