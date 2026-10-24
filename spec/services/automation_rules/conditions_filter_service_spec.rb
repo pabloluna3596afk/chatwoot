@@ -126,6 +126,55 @@ RSpec.describe AutomationRules::ConditionsFilterService do
   end
 
   describe '#perform' do
+    context 'with campaign_id conditions' do
+      let(:campaign) { create(:campaign, account: account) }
+      let(:other_campaign) { create(:campaign, account: account) }
+
+      operator_expectations = {
+        'equal_to' => [true, false, false],
+        'not_equal_to' => [false, true, false],
+        'is_present' => [true, true, false],
+        'is_not_present' => [false, false, true]
+      }
+
+      AutomationRules::ConditionValidationService::EVENTS.each do |event|
+        context "when the event is #{event}" do
+          let(:rule) do
+            build(:automation_rule, account: account, event_name: event,
+                                    schedule: event == 'time_triggered' ? { kind: 'hours_since_last_incoming' } : {})
+          end
+
+          operator_expectations.each do |operator, expected|
+            it "evaluates #{operator} against the conversation campaign, including NULL" do
+              values = operator.in?(%w[is_present is_not_present]) ? [] : [campaign.id]
+              rule.conditions = [{ 'attribute_key' => 'campaign_id', 'filter_operator' => operator, 'values' => values }]
+              rule.save!
+              options = event == 'message_created' ? { message: message } : {}
+
+              [campaign.id, other_campaign.id, nil].zip(expected).each do |campaign_id, matches|
+                conversation.update!(campaign_id: campaign_id)
+
+                expect(described_class.new(rule, conversation, options).perform).to be(matches)
+              end
+            end
+          end
+        end
+      end
+
+      it 'combines campaign membership with the incoming message condition' do
+        conversation.update!(campaign_id: campaign.id)
+        rule.update!(event_name: 'message_created', conditions: [
+                       { 'attribute_key' => 'campaign_id', 'filter_operator' => 'equal_to',
+                         'values' => [campaign.id], 'query_operator' => 'AND' },
+                       { 'attribute_key' => 'message_type', 'filter_operator' => 'equal_to', 'values' => ['incoming'] }
+                     ])
+
+        expect(described_class.new(rule, conversation, message: message).perform).to be(true)
+        message.update!(message_type: :outgoing)
+        expect(described_class.new(rule, conversation, message: message).perform).to be(false)
+      end
+    end
+
     context 'with an invalid legacy condition' do
       before do
         rule.update_columns(conditions: [ # rubocop:disable Rails/SkipsModelValidations

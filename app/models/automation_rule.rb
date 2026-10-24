@@ -80,7 +80,7 @@ class AutomationRule < ApplicationRecord
   def conditions_attributes
     %w[content email country_code status message_type browser_language assignee_id team_id referer city company_name inbox_id
        mail_subject phone_number priority conversation_language labels private_note days_since hours_since_last_outgoing
-       hours_since_last_incoming] + AutomationRules::ConditionValidationService::COMPUTED_ATTRIBUTES
+       hours_since_last_incoming campaign_id] + AutomationRules::ConditionValidationService::COMPUTED_ATTRIBUTES
   end
 
   def actions_attributes
@@ -88,7 +88,7 @@ class AutomationRule < ApplicationRecord
        remove_assigned_agent remove_assigned_team send_webhook_event mute_conversation send_attachment change_status
        resolve_conversation open_conversation pending_conversation snooze_conversation change_priority
        send_email_transcript add_private_note update_contact_custom_attribute update_conversation_custom_attribute
-       execute_macro enter_flow notify_assignee].freeze
+       execute_macro enter_flow notify_assignee create_internal_task].freeze
   end
 
   def file_base_data

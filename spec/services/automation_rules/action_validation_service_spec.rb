@@ -78,6 +78,86 @@ RSpec.describe AutomationRules::ActionValidationService do
     end
   end
 
+  context 'with create_internal_task' do
+    let(:action_name) { 'create_internal_task' }
+    let(:action_params) { [{ 'title' => 'Call the customer' }] }
+    let(:task_account) { create(:account).tap { |account| account.enable_features!('internal_tasks') } }
+
+    [AutomationRule, Macro].each do |model|
+      context "when saving #{model.name}" do
+        let(:rule) { build(model == Macro ? :macro : :automation_rule, account: task_account, actions: [action]) }
+
+        it 'rejects the action when the account has no internal tasks' do
+          task_account.disable_features!('internal_tasks')
+
+          expect(rule.save).to be(false)
+          expect(rule.errors[:actions].join).to include('create_internal_task', 'internal_tasks feature is not enabled')
+        end
+
+        it 'accepts the action with only a title' do
+          expect(rule.save).to be(true)
+        end
+
+        it 'accepts an explicit account agent' do
+          action_params.first['assignee_id'] = create(:user, account: rule.account, role: :agent).id
+
+          expect(rule.save).to be(true)
+        end
+
+        it 'rejects an agent from another account with an action-specific error' do
+          action_params.first['assignee_id'] = create(:user, account: create(:account), role: :agent).id
+
+          expect(rule.save).to be(false)
+          expect(rule.errors[:actions].join).to include('create_internal_task', 'agent of the account')
+        end
+
+        it 'rejects an administrator who is not an agent of this account' do
+          action_params.first['assignee_id'] = create(:user, account: rule.account, role: :administrator).id
+
+          expect(rule.save).to be(false)
+          expect(rule.errors[:actions].join).to include('create_internal_task', 'agent of the account')
+        end
+
+        it 'rejects a user with no account membership' do
+          action_params.first['assignee_id'] = create(:user).id
+
+          expect(rule.save).to be(false)
+          expect(rule.errors[:actions].join).to include('create_internal_task')
+        end
+
+        wrong_assignee_ids = [nil, '1', true]
+        wrong_assignee_ids.each do |id|
+          it "rejects an assignee of the wrong type: #{id.inspect}" do
+            action_params.first['assignee_id'] = id
+
+            expect(rule.save).to be(false)
+            expect(rule.errors[:actions].join).to include('create_internal_task')
+          end
+        end
+
+        it 'rejects an empty title' do
+          action_params.first['title'] = ' '
+
+          expect(rule.save).to be(false)
+          expect(rule.errors[:actions].join).to include('create_internal_task', 'title')
+        end
+
+        it 'rejects a due date beyond the shared maximum' do
+          action_params.first['due_in'] = { 'duration' => 366, 'unit' => 'days' }
+
+          expect(rule.save).to be(false)
+          expect(rule.errors[:actions].join).to include('create_internal_task', '365 days')
+        end
+
+        it 'accepts a due date at the shared maximum' do
+          action_params.first['due_in'] = { 'duration' => 365, 'unit' => 'days' }
+
+          expect(rule.save).to be(true)
+        end
+      end
+    end
+  end
+
   context 'with snooze_conversation' do
     let(:action_name) { 'snooze_conversation' }
 

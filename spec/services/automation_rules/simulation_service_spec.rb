@@ -29,6 +29,31 @@ RSpec.describe AutomationRules::SimulationService do
       end
     end
 
+    context 'with campaign conditions' do
+      let(:campaign) { create(:campaign, account: account) }
+      let(:condition) do
+        { 'attribute_key' => 'campaign_id', 'filter_operator' => 'equal_to', 'values' => [campaign.id] }
+      end
+
+      it 'matches the linked campaign and excludes conversations without it' do
+        conversation.update!(campaign_id: campaign.id)
+        allow(AutomationRules::ActionService).to receive(:new)
+
+        expect(simulation.perform.matches.map(&:rule_id)).to eq([rule.id])
+        expect(simulation.perform.diagnostics).to be_empty
+        expect(AutomationRules::ActionService).not_to have_received(:new)
+
+        conversation.update!(campaign_id: nil)
+        expect(simulation.perform.matches).to be_empty
+      end
+
+      it 'simulates presence without a campaign value' do
+        rule.update!(conditions: [condition.except('values').merge('filter_operator' => 'is_not_present')])
+
+        expect(simulation.perform.matches.map(&:rule_id)).to eq([rule.id])
+      end
+    end
+
     it 'orders matching rules by ID and numbers only matches consecutively' do
       base_id = AutomationRule.maximum(:id).to_i + 1000
       later_rule = create(:automation_rule, id: base_id + 2, account: account, event_name: event_name, conditions: [condition])

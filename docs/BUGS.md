@@ -1509,6 +1509,32 @@ hacían que “ventas del mes” o Sum con `"1.000,50"` no cuadraran.
 
 ---
 
+### B-NEW-200 — Crear tareas internas desde reglas y macros (A09)
+
+Las acciones de backend ahora admiten `create_internal_task` con título, agente opcional
+y vencimiento relativo. La tarea conserva el vínculo al contacto mediante su conversación,
+los callbacks y la difusión privada existentes. Redis reserva la combinación origen,
+conversación y título durante 24 horas con `SET NX EX`.
+
+Archivos: `app/services/automation_rules/internal_task_parameters.rb`,
+`app/services/internal_tasks/automated_create_service.rb`, `app/services/action_service.rb`,
+`app/services/automation_rules/action_validation_service.rb`, `app/models/automation_rule.rb`,
+`app/models/macro.rb` y `app/models/internal_task.rb`.
+
+Autoría automática: usuario nulo y metadatos explícitos de sistema, sin atribuirla a una persona.
+Requiere migración `20261023140000_allow_system_created_internal_tasks.rb` antes de habilitar la acción.
+La creación manual sigue exigiendo autor; no hay cambios de frontend ni traducciones.
+
+Cómo probar: guardar regla/macro con `[{title: 'Llamar al cliente', due_in: {duration: 2, unit: 'days'}}]`;
+ejecutarla dos veces sobre la misma conversación y comprobar una sola tarea con vencimiento en dos días.
+Probar agente de otra cuenta, administrador sin rol agente y duración superior a 365 días: rechazo al guardar.
+Comprobar recepción del evento por asignado/administradores y ausencia para otro agente.
+
+Specs: `spec/services/internal_tasks/automated_create_service_spec.rb`,
+`spec/services/automation_rules/internal_task_parameters_spec.rb`,
+`spec/services/automation_rules/action_validation_service_spec.rb`,
+`spec/services/automation_rules/action_service_spec.rb`, `spec/services/macros/execution_service_spec.rb`
+y `spec/models/internal_task_spec.rb`. RSpec/RuboCop pendientes de ejecución Docker por el PM.
 ### B-NEW-199 — Recetas por contacto: ventana WhatsApp Cloud y alcance (2026-10-23)
 
 **Problema:** el servicio de acciones ya omitía el texto libre fuera de ventana,
@@ -1815,6 +1841,22 @@ modelos y guarda contacto vía `contacts/update` antes de `toggle_status`.
 **Cómo probar:** Settings → Business rules → exigir CA de contacto +
 condicional `tipo=venta` → currency; resolve con `0` bloquea; valor > 0 OK.
 Local: `up -d --build` (Vue en imagen).
+
+### B-NEW-202 — Automatizaciones: condición de origen de campaña
+
+- **Fecha:** 2026-10-23. Backend; sin migración ni frontend.
+- **Archivos:** `app/models/automation_rule.rb`, `app/services/automation_rules/condition_validation_service.rb`.
+- **Cambio:** habilitar `campaign_id` en eventos de conversación, mensaje y reglas por tiempo, reutilizando el catálogo y el evaluador
+  existentes. Operadores: `equal_to`, `not_equal_to`, `is_present`, `is_not_present`. Igualdad exige `values: [id]` (un entero positivo,
+  ID interno de una campaña de la misma cuenta); presencia admite omitir `values`, `null` o `[]`. IDs ajenos/inexistentes devuelven
+  un error que identifica `campaign_id`. La API conserva su respuesta 422. No modifica filtros de conversaciones ni segmentos.
+- **Límites:** `not_equal_to` conserva SQL `NOT IN`: no coincide con `NULL`. WhatsApp solo atribuye por contexto explícito de respuesta
+  de Meta, sin reemplazar una campaña previa; no atribuye texto libre. Esta condición lee la conversación y no acredita cada mensaje.
+- **Cómo probar:** crear una regla por campaña y comparar conversación de esa campaña, de otra y sin campaña; probar los cuatro
+  operadores, guardado de IDs ajenos/eliminados, simulación, listeners y ambos runners por tiempo. Specs añadidos/ampliados en
+  `spec/services/automation_rules/`, `spec/listeners/automation_rule_listener_spec.rb`, `spec/services/automations/`,
+  `spec/services/business_rules/conditions_matcher_spec.rb` y `spec/controllers/api/v1/accounts/automation_rules_controller_spec.rb`.
+  RSpec/RuboCop pendientes de ejecución del PM en Docker según `docs/TESTING.md`.
 
 ### B-NEW-32 — Business rules UX: ConditionRow + categorías + multi-status
 

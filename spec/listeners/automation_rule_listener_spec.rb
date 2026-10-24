@@ -41,6 +41,30 @@ describe AutomationRuleListener do
     end
   end
 
+  describe 'campaign conditions' do
+    before do
+      allow(AutomationRules::ConditionsFilterService).to receive(:new).and_call_original
+    end
+
+    %w[conversation_created conversation_updated conversation_opened conversation_resolved message_created].each do |event_name|
+      it "runs #{event_name} only when the conversation belongs to the selected campaign" do
+        campaign = create(:campaign, account: account)
+        rule = create(:automation_rule, account: account, event_name: event_name, conditions: [
+                        { 'attribute_key' => 'campaign_id', 'filter_operator' => 'equal_to', 'values' => [campaign.id] }
+                      ])
+        conversation.update!(campaign_id: campaign.id)
+        message = create(:message, account: account, conversation: conversation, message_type: :incoming)
+        event = Events::Base.new(event_name, Time.current, conversation: conversation, message: message)
+
+        listener.public_send(event_name, event)
+        conversation.update!(campaign_id: nil)
+        listener.public_send(event_name, event)
+
+        expect(AutomationRules::ActionService).to have_received(:new).with(rule, account, conversation).once
+      end
+    end
+  end
+
   describe 'execution order' do
     before do
       allow(AutomationRules::ConditionsFilterService).to receive(:new).and_call_original
