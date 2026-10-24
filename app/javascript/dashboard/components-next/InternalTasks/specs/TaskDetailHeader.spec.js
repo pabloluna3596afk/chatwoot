@@ -60,6 +60,7 @@ describe('task reassignment with real select portals', () => {
           button => button.props('label') === 'INTERNAL_TASKS.REASSIGN.TOGGLE'
         );
       await toggle.trigger('click');
+      expect(wrapper.findComponent(TaskReassignPanel).exists()).toBe(true);
       const panel = wrapper.getComponent(TaskReassignPanel);
       const select = panel.findAllComponents(OutlinedSelectField)[field];
       await select.get('button').trigger('click');

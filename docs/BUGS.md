@@ -1,5 +1,21 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-210 — Reactividad de VueUse distinta entre Vitest local y CI (UI-09g)
+
+- Archivos: `vitest.config.ts` y `InternalTasks/specs/TaskDetailHeader.spec.js`.
+- Causa: VueUse externalizado usa otro runtime de Vue que los componentes con el alias
+  `vue/dist/vue.esm-bundler.js`. El clic sí cambia `reassignOpen` a true, pero no dispara render;
+  esperar con `vi.waitFor` no lo resuelve. Un render forzado de diagnóstico muestra el panel,
+  y el cierre posterior también queda sin renderizar. No es un cierre por clic exterior.
+- Arreglo: procesar `@vueuse/core`, `@vueuse/shared` y `@vueuse/components` en Vitest para
+  compartir el runtime aliased, igual que ya hacía la configuración local. Comprobar apertura
+  inmediatamente después del tick de `trigger`, sin espera por timeout ni render forzado.
+- Verificación: reproducción roja sin inlining; cinco repeticiones verdes con threads, sin caché
+  ni coverage y CI=true; los 7 casos de InternalTasks y routes/dashboard/tasks pasan en UTC y
+  America/Guayaquil, con configuración local y con la base más la excepción de filesystem del
+  worktree. ESLint pasa. Evidencia y límites en `tmp/PR-UI-09g.md`.
+- Sin cambios de UI, backend, contratos, ACL ni migraciones; UI-09f conserva sus portales reales.
+
 ### B-NEW-205 — Catálogos existentes sin registrar en el dashboard (UI-01)
 
 - Archivos: `app/javascript/dashboard/i18n/locale/{en,es}/index.js`.
