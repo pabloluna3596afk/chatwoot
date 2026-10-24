@@ -14,6 +14,16 @@ RSpec.describe Captain::Playground::Configuration do
   let!(:disabled_scenario) { create(:captain_scenario, assistant: assistant, account: account, enabled: false) }
 
   describe '#initialize' do
+    %i[response_guidelines guardrails].each do |field|
+      it "rejects an object in #{field} and explains how to correct it" do
+        expect do
+          described_class.new(assistant: assistant, params: { field => { '0' => 'Rule' } })
+        end.to raise_error(described_class::Invalid, "#{field}: must be an array")
+        expect(assistant.reload.response_guidelines).to eq(['Saved guideline'])
+        expect(assistant.guardrails).to eq(['Saved guardrail'])
+      end
+    end
+
     it 'uses the enabled scenarios and saved rules by default' do
       configuration = described_class.new(assistant: assistant, params: {})
 
