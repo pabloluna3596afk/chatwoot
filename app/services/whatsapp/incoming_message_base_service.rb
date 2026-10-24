@@ -218,7 +218,7 @@ class Whatsapp::IncomingMessageBaseService
                      (message[:type] == 'interactive' && %w[button_reply list_reply].include?(message.dig(:interactive, :type)))
 
     previous = @conversation.messages.incoming
-                            .where("content_attributes ->> 'in_reply_to' = ?", @in_reply_to_message_id.to_s)
+                            .where("(content_attributes #>> '{}')::jsonb ->> 'in_reply_to' = ?", @in_reply_to_message_id.to_s)
                             .reorder(created_at: :desc, id: :desc).first
     return {} unless previous
 
