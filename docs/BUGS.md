@@ -1,5 +1,18 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-205 ? Captain: sugerencias y confirmaci?n de borrado (UI-07f, 2026-10-24)
+
+- Archivos: `app/javascript/dashboard/routes/dashboard/captain/assistants/{guidelines,guardrails,scenarios}/Index.vue`
+  y `app/javascript/dashboard/i18n/locale/en/integrations.json`.
+- Arreglo: Agregar todos oculta las sugerencias solo tras persistir; el fallo conserva la tarjeta y permite reintentar.
+  Confirmaci?n singular para un elemento y plural para varios; claves en el namespace `CAPTAIN.PERSISTENCE` que usan las p?ginas.
+  Si la petici?n de borrado contiene un ?nico escenario, muestra `Error.message` del store o el error traducido existente.
+  Los lotes de varios escenarios mantienen el balance parcial y el reintento de fallidos.
+- Verificaci?n: `assistants/Persistence.spec.js` cubre ?xito/error de ejemplos en los tres dominios, texto singular/plural,
+  error individual/fallback/reintento y parcial. Junto con `captain/assistant/Persistence.spec.js` y `messagesCompile.spec.js`:
+  141 pruebas PASS en UTC y America/Guayaquil; ESLint PASS. Capturas reales pendientes: navegador no disponible en la sesi?n.
+- Sin backend ni migraciones. Espa?ol por Crowdin.
+
 ### B-NEW-194 — Cupo y ventana de automatizaciones solo tras elegibilidad y envío (2026-10-23)
 
 - Archivo: `app/services/automations/contact_based_rule_runner.rb`.
