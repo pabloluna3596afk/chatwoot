@@ -1,4 +1,5 @@
 <script setup>
+import { useI18n } from 'vue-i18n';
 import {
   monthName,
   yearName,
@@ -37,6 +38,8 @@ const emit = defineEmits([
   'next',
   'setView',
 ]);
+
+const { locale } = useI18n();
 
 const { START_CALENDAR } = CALENDAR_TYPES;
 const { MONTH } = CALENDAR_PERIODS;
@@ -153,7 +156,7 @@ const dayClasses = day => ({
         class="flex relative items-center justify-center w-11 h-11 lg:w-9 lg:h-8 p-0 lg:py-1.5 lg:px-2 font-medium text-sm rounded-lg cursor-pointer"
         :class="dayClasses(day)"
         :disabled="!isInCurrentMonth(day)"
-        :aria-label="day.toLocaleDateString(undefined, { dateStyle: 'full' })"
+        :aria-label="day.toLocaleDateString(locale, { dateStyle: 'full' })"
         @mouseenter="emitHoveredEndDate(day)"
         @mouseleave="emitHoveredEndDate(null)"
         @click="emitSelectDate(day)"
