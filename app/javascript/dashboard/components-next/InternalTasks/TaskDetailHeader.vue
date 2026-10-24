@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch } from 'vue';
+import { computed, provide, ref, watch } from 'vue';
 import { useToggle } from '@vueuse/core';
 import { vOnClickOutside } from '@vueuse/components';
 import { useRoute } from 'vue-router';
@@ -31,6 +31,9 @@ const { uiFlags, primaryAction, runAction } = useInternalTaskActions(
 );
 
 const [reassignOpen, toggleReassign] = useToggle();
+const reassignPanelRef = ref(null);
+// Keep nested select portals inside the panel's click-outside boundary.
+provide('dialogPortalTarget', reassignPanelRef);
 const needsAssignment = computed(() => !props.task.assignedToId);
 
 watch(
@@ -141,6 +144,7 @@ const onReassignUpdated = () => {
             />
             <div
               v-if="reassignOpen"
+              ref="reassignPanelRef"
               v-on-click-outside="() => toggleReassign(false)"
               class="absolute z-40 top-full mt-1 ltr:right-0 rtl:left-0 w-72 rounded-xl border border-n-weak bg-n-solid-1 shadow-lg"
             >
