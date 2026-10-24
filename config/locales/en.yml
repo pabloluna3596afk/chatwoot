@@ -566,6 +566,11 @@ en:
       short_description: 'Sync your contacts and conversations with LeadSquared CRM.'
       description: 'Sync your contacts and conversations with LeadSquared CRM. This integration automatically creates leads in LeadSquared when new contacts are added, and logs conversation activity to provide your sales team with complete context.'
   captain:
+    contracts:
+      invalid_rules: '%{field} must be an array of non-blank strings.'
+      expected_rules_required: 'Send the original %{field} list before saving changes.'
+      stale_rules: 'This list changed in another session. Copy your draft, reload the page, then review and save it again.'
+      invalid_url: 'Enter a valid HTTP or HTTPS URL.'
     button_choice_changed: '[The customer changed their choice from «%{previous}» to «%{current}»]'
     engagement:
       out_of_hours: >-

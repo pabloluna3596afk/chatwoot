@@ -2179,6 +2179,13 @@ document_number y no buscaba company.
 **Cómo probar:** buscar nombre con espacio/tilde, cédula en mayúsculas/minúsculas,
 y company_name → deben aparecer resultados.
 
+### B-NEW-215 — Captain: listas, enlaces y conflictos de edición (2026-10-24)
+
+- Archivos: controladores Enterprise Captain `assistants_controller.rb` y `documents_controller.rb`, `playground/configuration.rb`, páginas de pautas y límites, `usePlaygroundSession.js` y formulario y diálogo de documentos.
+- Causa: se aceptaban listas y enlaces inválidos, dos editores podían sobrescribir cambios ajenos y los errores del servidor no siempre se conservaban en el formulario.
+- Arreglo: las listas deben contener textos no vacíos; al reemplazarlas se compara el original enviado en `expected_response_guidelines` o `expected_guardrails` dentro del bloqueo del asistente. Una edición desactualizada recibe 409 sin escrituras parciales. Los clientes de ajustes y playground envían el original exacto. El formulario y el servidor validan enlaces HTTP(S); PDF y Markdown conservan su flujo. Los errores mantienen el diálogo, borrador y lista original. Sin migraciones ni cambios de permisos.
+- Verificación: specs de los controladores Enterprise de asistentes y documentos, configuración de playground, `assistants/Persistence.spec.js`, `assistant/usePlaygroundSession.spec.js` y `document/DocumentForm.spec.js`. Enviar un objeto como lista devuelve 422; guardar desde dos sesiones devuelve 409 en la segunda y conserva la primera. Corregir una URL inválida y reintentar un error de duplicado conserva el formulario abierto.
+
 ### B-NEW-51 — `contacts.chat_bot` + bot vs assignee pasivo (inbox Dueño del contacto)
 
 **Síntoma:** con auto-assign “Dueño del contacto”, el 1.er mensaje lo contesta el
