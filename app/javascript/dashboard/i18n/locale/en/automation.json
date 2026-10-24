@@ -34,24 +34,24 @@
     "TAB_EVENT": "By event",
     "TAB_TIME": "By time",
     "TIME_PRESETS_TITLE": "Time presets",
-    "LOADING": "Fetching automation rules",
-    "SEARCH_PLACEHOLDER": "Search automation rules...",
-    "NO_RESULTS": "No automation rules found matching your search",
+    "LOADING": "Fetching automations",
+    "SEARCH_PLACEHOLDER": "Search automations...",
+    "NO_RESULTS": "No automations match your search",
     "MESSAGE_FROM_RULE": "Sent by automation \"{name}\"",
     "MESSAGE_FROM_RULE_FALLBACK": "Sent by automation (rule #{id})",
     "ADD": {
-      "TITLE": "Add Automation Rule",
+      "TITLE": "Add automation",
       "SUBMIT": "Create",
       "CANCEL_BUTTON_TEXT": "Cancel",
       "FORM": {
         "NAME": {
           "LABEL": "Rule Name *",
-          "PLACEHOLDER": "Enter rule name",
+          "PLACEHOLDER": "Enter automation name",
           "ERROR": "Name is required"
         },
         "DESC": {
           "LABEL": "Description *",
-          "PLACEHOLDER": "Enter rule description",
+          "PLACEHOLDER": "Enter automation description",
           "ERROR": "Description is required"
         },
         "EVENT": {
@@ -60,7 +60,7 @@
           "ERROR": "Event is required"
         },
         "RUN_TYPE": {
-          "LABEL": "When should this rule run?",
+          "LABEL": "When should this automation run?",
           "OPTIONS": {
             "INSTANT": {
               "LABEL": "Run instantly",
@@ -300,7 +300,7 @@
       "UPDATE_CONTACT_CUSTOM_ATTRIBUTE": "Update contact custom attribute",
       "UPDATE_CONVERSATION_CUSTOM_ATTRIBUTE": "Update conversation custom attribute",
       "EXECUTE_MACRO": "Execute macro",
-      "ENTER_FLOW": "Enter conversation flow",
+      "ENTER_FLOW": "Start Conversation Flow",
       "NOTIFY_ASSIGNEE": "Notify assignee",
       "ADD_SLA": "Add SLA",
       "OPEN_CONVERSATION": "Open conversation",

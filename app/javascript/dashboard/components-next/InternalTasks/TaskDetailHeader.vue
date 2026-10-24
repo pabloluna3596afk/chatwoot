@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch } from 'vue';
+import { computed, provide, ref, watch } from 'vue';
 import { useToggle } from '@vueuse/core';
 import { vOnClickOutside } from '@vueuse/components';
 import { useRoute } from 'vue-router';
@@ -31,6 +31,9 @@ const { uiFlags, primaryAction, runAction } = useInternalTaskActions(
 );
 
 const [reassignOpen, toggleReassign] = useToggle();
+const reassignPanelRef = ref(null);
+// Keep nested select portals inside the panel's click-outside boundary.
+provide('dialogPortalTarget', reassignPanelRef);
 const needsAssignment = computed(() => !props.task.assignedToId);
 
 watch(
@@ -68,10 +71,12 @@ const onReassignUpdated = () => {
 
 <template>
   <div class="border-b border-n-weak">
-    <div class="flex items-start gap-3 px-4 py-3">
-      <div class="min-w-0 flex-1 flex flex-col gap-2">
+    <div class="flex flex-col md:flex-row items-start gap-3 px-4 py-3">
+      <div class="min-w-0 flex-1 flex flex-col gap-2 w-full md:w-auto">
         <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <h2 class="text-base font-medium text-n-slate-12 leading-tight">
+          <h2
+            class="text-base font-medium text-n-slate-12 leading-tight break-words min-w-0"
+          >
             {{ task.title }}
           </h2>
           <TaskStatusBadge
@@ -116,11 +121,12 @@ const onReassignUpdated = () => {
         </p>
       </div>
 
-      <div class="flex flex-col items-end gap-2 shrink-0">
+      <div class="flex flex-col items-end gap-2 shrink-0 w-full md:w-auto">
         <div class="flex flex-wrap items-center justify-end gap-2">
           <Button
             v-if="primaryAction"
             size="sm"
+            class="min-h-11 md:min-h-0"
             :variant="primaryAction.key === 'claimTask' ? 'solid' : 'outline'"
             :color="primaryAction.color"
             :label="primaryAction.label"
@@ -130,6 +136,7 @@ const onReassignUpdated = () => {
           <div class="relative">
             <Button
               size="sm"
+              class="min-h-11 md:min-h-0"
               variant="outline"
               color="slate"
               :label="$t('INTERNAL_TASKS.REASSIGN.TOGGLE')"
@@ -137,6 +144,7 @@ const onReassignUpdated = () => {
             />
             <div
               v-if="reassignOpen"
+              ref="reassignPanelRef"
               v-on-click-outside="() => toggleReassign(false)"
               class="absolute z-40 top-full mt-1 ltr:right-0 rtl:left-0 w-72 rounded-xl border border-n-weak bg-n-solid-1 shadow-lg"
             >

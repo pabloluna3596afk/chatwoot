@@ -104,6 +104,34 @@ describe('useDropdownPosition', () => {
   });
 
   describe('fixedPosition', () => {
+    it('prefers above for list actions when there is room on both sides', () => {
+      setTrigger({ top: 300, bottom: 344 });
+      setDropdown({ height: 88, width: 224 });
+      const { fixedPosition, position } = useDropdownPosition(
+        ref(null),
+        ref(null),
+        ref(true),
+        { side: 'top' }
+      );
+      expect(position.value.class).toBe('bottom-full mb-2');
+      expect(fixedPosition.value.style.bottom).toBe('476px');
+      expect(fixedPosition.value.style.top).toBeUndefined();
+    });
+
+    it('falls below when the preferred top side has insufficient room', () => {
+      setTrigger({ top: 30, bottom: 74 });
+      setDropdown({ height: 88, width: 224 });
+      const { fixedPosition, position } = useDropdownPosition(
+        ref(null),
+        ref(null),
+        ref(true),
+        { side: 'top' }
+      );
+      expect(position.value.class).toBe('top-full mt-2');
+      expect(fixedPosition.value.style.top).toBe('82px');
+      expect(fixedPosition.value.style.bottom).toBeUndefined();
+    });
+
     it('places below with correct top and maxHeight', () => {
       // Trigger at y=140, space below = 628
       // top = 140 + 8(gap) = 148

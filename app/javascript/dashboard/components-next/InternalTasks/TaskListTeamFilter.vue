@@ -40,6 +40,8 @@ const clearTeam = () => {
         slate
         faded
         xs
+        class="min-h-11 min-w-11 md:min-h-0 md:min-w-0"
+        :aria-label="$t('INTERNAL_TASKS.FILTER.TEAM_TOOLTIP')"
         :class="{ 'text-n-slate-12': selectedTeam }"
         @click="toggleDropdown()"
       />
@@ -54,7 +56,7 @@ const clearTeam = () => {
       >
         <button
           type="button"
-          class="w-full text-left px-2 py-1.5 text-sm rounded-lg hover:bg-n-alpha-1"
+          class="w-full min-h-11 md:min-h-0 text-start px-2 py-1.5 text-sm rounded-lg hover:bg-n-alpha-1"
           :class="{ 'bg-n-alpha-1 font-medium': !modelValue }"
           @click="selectTeam(null)"
         >
@@ -64,7 +66,7 @@ const clearTeam = () => {
           v-for="team in teams"
           :key="team.id"
           type="button"
-          class="w-full text-left px-2 py-1.5 text-sm rounded-lg hover:bg-n-alpha-1 truncate"
+          class="w-full min-h-11 md:min-h-0 text-start px-2 py-1.5 text-sm rounded-lg hover:bg-n-alpha-1 truncate"
           :class="{
             'bg-n-alpha-1 font-medium': team.id === Number(modelValue),
           }"
@@ -77,15 +79,17 @@ const clearTeam = () => {
 
     <span
       v-if="selectedTeam"
-      class="inline-flex items-center gap-1 max-w-full px-2 py-0.5 rounded-md bg-n-slate-3 text-xs text-n-slate-12"
+      class="inline-flex items-center min-w-0 gap-1 max-w-full px-2 py-0.5 rounded-md bg-n-slate-3 text-xs text-n-slate-12"
     >
       <span class="truncate">{{ selectedTeam.name }}</span>
       <button
         type="button"
-        class="shrink-0 i-lucide-x size-3.5 text-n-slate-11 hover:text-n-slate-12"
+        class="shrink-0 inline-flex items-center justify-center min-h-11 min-w-11 md:min-h-0 md:min-w-0 text-n-slate-11 hover:text-n-slate-12"
         :aria-label="t('INTERNAL_TASKS.FILTER.CLEAR_TEAM')"
         @click="clearTeam"
-      />
+      >
+        <span class="i-lucide-x size-3.5" aria-hidden="true" />
+      </button>
     </span>
   </div>
 </template>

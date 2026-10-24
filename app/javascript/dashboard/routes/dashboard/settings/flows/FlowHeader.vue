@@ -24,6 +24,8 @@ const { t } = useI18n();
 
 <template>
   <div
+    role="group"
+    :aria-label="t('FLOWS.HEADER')"
     class="flex-shrink-0 border-b border-n-weak bg-n-solid-2 px-4 py-3 w-full"
   >
     <div class="flex flex-col lg:flex-row lg:items-end gap-3 w-full">
@@ -56,7 +58,7 @@ const { t } = useI18n();
         >
           {{ t('FLOWS.HEADER_BTN_TXT_SAVE') }}
         </span>
-        <div class="flex items-center gap-2 h-10">
+        <div class="flex flex-wrap lg:flex-nowrap items-center gap-2 lg:h-10">
           <NextButton
             v-tooltip.top="t('FLOWS.EDIT.OVERVIEW_TOOLTIP')"
             slate

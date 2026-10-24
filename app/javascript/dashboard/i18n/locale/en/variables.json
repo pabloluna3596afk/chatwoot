@@ -1,5 +1,6 @@
 {
   "VARIABLES": {
+    "INSERT_IN_FIELD": "Insert variable",
     "INSERT": "Add variable",
     "SEARCH_PLACEHOLDER": "Search variables...",
     "LABELS": {
