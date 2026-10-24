@@ -2,7 +2,7 @@
 import { reactive, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useVuelidate } from '@vuelidate/core';
-import { required, minLength } from '@vuelidate/validators';
+import { required, minLength, helpers } from '@vuelidate/validators';
 
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -34,10 +34,18 @@ const initialState = {
 
 const state = reactive({ ...initialState });
 
+const requiredMessage = helpers.withMessage(
+  () => t('GENERAL.VALIDATION.REQUIRED'),
+  required
+);
+const minLengthMessage = helpers.withMessage(
+  ({ $params }) => t('GENERAL.VALIDATION.MIN_LENGTH', { min: $params.min }),
+  minLength(1)
+);
 const validationRules = {
-  name: { required, minLength: minLength(1) },
-  description: { required, minLength: minLength(1) },
-  productName: { required, minLength: minLength(1) },
+  name: { required: requiredMessage, minLength: minLengthMessage },
+  description: { required: requiredMessage, minLength: minLengthMessage },
+  productName: { required: requiredMessage, minLength: minLengthMessage },
 };
 
 const v$ = useVuelidate(validationRules, state);

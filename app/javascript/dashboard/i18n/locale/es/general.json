@@ -1,5 +1,12 @@
 {
   "GENERAL": {
+    "VALIDATION": {
+      "REQUIRED": "Este campo es obligatorio.",
+      "MIN_LENGTH": "Ingresa al menos {min} caracteres.",
+      "MIN_VALUE": "Ingresa un valor de al menos {min}.",
+      "MAX_VALUE": "Ingresa un valor de como máximo {max}.",
+      "INTEGER": "Ingresa un número entero."
+    },
     "SHOWING_RESULTS": "Mostrando {firstIndex}-{lastIndex} de {totalCount} elementos",
     "PHONE_INPUT": {
       "PLACEHOLDER": "Buscar",

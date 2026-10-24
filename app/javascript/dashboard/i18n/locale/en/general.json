@@ -1,5 +1,12 @@
 {
   "GENERAL": {
+    "VALIDATION": {
+      "REQUIRED": "This field is required.",
+      "MIN_LENGTH": "Enter at least {min} characters.",
+      "MIN_VALUE": "Enter a value of at least {min}.",
+      "MAX_VALUE": "Enter a value of at most {max}.",
+      "INTEGER": "Enter a whole number."
+    },
     "SHOWING_RESULTS": "Showing {firstIndex}-{lastIndex} of {totalCount} items",
     "PHONE_INPUT": {
       "PLACEHOLDER": "Search",
