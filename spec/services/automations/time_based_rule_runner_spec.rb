@@ -40,6 +40,25 @@ RSpec.describe Automations::TimeBasedRuleRunner do
     Time.use_zone('UTC') { travel_to(Time.zone.local(2026, 8, 14, 12, 0, 0)) { example.run } }
   end
 
+  describe '#perform with a campaign condition' do
+    it 'filters candidates before claiming their time window' do
+      campaign = create(:campaign, account: account, inbox: inbox)
+      matching = create(:conversation, account: account, inbox: inbox, campaign: campaign,
+                                       custom_attributes: { 'fecha_cita' => Time.zone.today.iso8601 })
+      create(:conversation, account: account, inbox: inbox, custom_attributes: { 'fecha_cita' => Time.zone.today.iso8601 })
+      rule = create(:automation_rule, account: account, event_name: 'time_triggered', conditions: [
+                      { 'attribute_key' => 'campaign_id', 'filter_operator' => 'equal_to', 'values' => [campaign.id] }
+                    ], schedule: { kind: 'days_since_attribute', attribute_key: 'fecha_cita', relative_to: 'on' })
+      allow(Redis::Alfred).to receive(:set).and_return(true)
+
+      described_class.new(rule).perform
+
+      expect(AutomationRules::ActionService).to have_received(:new).with(rule, account, matching).once
+      expect(AutomationRules::ActionService).to have_received(:new).once
+      expect(Redis::Alfred).to have_received(:set).once
+    end
+  end
+
   describe '#perform with days_since_attribute' do
     it 'matches dates on or before today minus N when relative_to is after' do
       matching = conversation_on(Date.new(2026, 8, 13))

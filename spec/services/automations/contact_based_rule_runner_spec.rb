@@ -40,6 +40,28 @@ RSpec.describe Automations::ContactBasedRuleRunner do
     Time.use_zone('UTC') { example.run }
   end
 
+  describe '#perform with a campaign condition' do
+    it 'evaluates the resolved conversation before reserving sends or claiming a window' do
+      campaign = create(:campaign, account: account, inbox: inbox)
+      contact = create(:contact, account: account, last_activity_at: Time.current)
+      create(:contact, account: account, last_activity_at: Time.current)
+      matching = create(:conversation, account: account, inbox: inbox, contact: contact, campaign: campaign)
+      rule = create(:automation_rule, account: account, event_name: 'time_triggered', conditions: [
+                      { 'attribute_key' => 'campaign_id', 'filter_operator' => 'equal_to', 'values' => [campaign.id] }
+                    ], schedule: { kind: 'contact_date', date_source: 'last_activity', target_inbox_id: inbox.id })
+      cap = instance_double(Automations::ProactiveSendCap, reserve!: true)
+      allow(Automations::ProactiveSendCap).to receive(:new).with(account).and_return(cap)
+      allow(Redis::Alfred).to receive(:set).and_return(true)
+
+      described_class.new(rule).perform
+
+      expect(AutomationRules::ActionService).to have_received(:new).with(rule, account, matching).once
+      expect(AutomationRules::ActionService).to have_received(:new).once
+      expect(cap).to have_received(:reserve!).once
+      expect(Redis::Alfred).to have_received(:set).once
+    end
+  end
+
   describe 'yearly recurrence on a contact attribute (birthday, anniversary)' do
     def birthday_rule(relative_to: 'on', days: nil)
       schedule = {

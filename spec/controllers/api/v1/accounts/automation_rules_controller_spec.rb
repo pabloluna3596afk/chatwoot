@@ -258,6 +258,37 @@ RSpec.describe 'Api::V1::Accounts::AutomationRulesController', type: :request do
         actions: [{ action_name: 'send_message', action_params: ['Hello'] }] }
     end
 
+    it 'saves campaign conditions using the internal campaign ID' do
+      campaign = create(:campaign, account: account, inbox: inbox)
+      conditions = [{ attribute_key: 'campaign_id', filter_operator: 'equal_to', values: [campaign.id] }]
+
+      post url, headers: administrator.create_new_auth_token, params: valid_params.merge(conditions: conditions), as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(account.automation_rules.last.conditions.first['values']).to eq([campaign.id])
+    end
+
+    it 'rejects foreign and deleted campaign IDs on create and update with a named condition error' do
+      foreign_campaign = create(:campaign)
+      deleted_campaign = create(:campaign, account: account, inbox: inbox)
+      deleted_campaign.destroy!
+      headers = administrator.create_new_auth_token
+      rule
+
+      [foreign_campaign.id, deleted_campaign.id].each do |campaign_id|
+        payload = valid_params.merge(conditions: [{ attribute_key: 'campaign_id', filter_operator: 'equal_to', values: [campaign_id] }])
+
+        expect { post url, headers: headers, params: payload, as: :json }.not_to change(AutomationRule, :count)
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body['error']['conditions'].first).to include('Condition 0: campaign_id')
+
+        patch "#{url}/#{rule.id}", headers: headers, params: payload, as: :json
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body['error']['conditions'].first).to include('Condition 0: campaign_id')
+        expect(rule.reload.conditions.first['attribute_key']).to eq('status')
+      end
+    end
+
     it 'returns indexed condition errors on create and update' do
       conditions = [{ attribute_key: 'content', filter_operator: 'equal_to', values: ['hello'] }]
       payload = valid_params.merge(conditions: conditions)
