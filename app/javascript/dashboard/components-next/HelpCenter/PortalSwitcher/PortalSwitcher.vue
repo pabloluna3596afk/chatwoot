@@ -6,7 +6,7 @@ import { useMapGetter, useStore } from 'dashboard/composables/store.js';
 import { buildPortalURL } from 'dashboard/helper/portalHelper';
 
 import Button from 'dashboard/components-next/button/Button.vue';
-import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
+import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
 
 const emit = defineEmits(['close', 'createPortal']);
 
@@ -38,6 +38,16 @@ const isPortalActive = portal => {
 const getPortalThumbnailSrc = portal => {
   return portal?.logo?.file_url || '';
 };
+
+const menuItems = computed(() =>
+  portals.value.map(portal => ({
+    label: portal.name,
+    title: [portal.name, portal.custom_domain].filter(Boolean).join(' - '),
+    portal,
+    isSelected: isPortalActive(portal),
+    thumbnail: { name: portal.name, src: getPortalThumbnailSrc(portal) },
+  }))
+);
 
 const fetchPortalAndItsCategories = async (slug, locale) => {
   await store.dispatch('portals/switchPortal', true);
@@ -92,76 +102,70 @@ const redirectToPortalHomePage = () => {
 </script>
 
 <template>
-  <div
-    class="pt-5 bg-n-alpha-3 backdrop-blur-[100px] outline outline-n-container outline-1 z-50 absolute w-[27.5rem] max-h-96 rounded-xl shadow-md flex flex-col gap-4"
+  <MenuPopover
+    :menu-items="menuItems"
+    :label="t('HELP_CENTER.PORTAL_SWITCHER.PORTALS')"
+    show-search
+    align="start"
+    panel-class="w-[27.5rem] max-w-[calc(100vw-2rem)] max-sm:[&_button]:min-h-11"
+    @action="handlePortalChange($event.portal)"
   >
-    <div
-      class="flex items-center justify-between gap-4 px-6 pb-3 border-b border-n-alpha-2"
-    >
-      <div class="flex flex-col gap-1">
-        <div class="flex items-center gap-2">
-          <h2
-            class="text-base font-medium cursor-pointer text-n-slate-12 w-fit hover:underline"
-            @click="redirectToPortalHomePage"
-          >
-            {{ t('HELP_CENTER.PORTAL_SWITCHER.PORTALS') }}
-          </h2>
-          <Button
-            icon="i-lucide-arrow-up-right"
-            variant="ghost"
-            color="slate"
-            icon-lib="lucide"
-            size="sm"
-            class="!w-6 !h-6 hover:bg-n-slate-2 text-n-slate-11 !p-0.5 rounded-md"
-            @click="onClickPreviewPortal"
-          />
-        </div>
-        <p class="text-sm text-n-slate-11">
-          {{ t('HELP_CENTER.PORTAL_SWITCHER.CREATE_PORTAL') }}
-        </p>
-      </div>
-      <Button
-        :label="t('HELP_CENTER.PORTAL_SWITCHER.NEW_PORTAL')"
-        color="slate"
-        icon="i-lucide-plus"
-        size="sm"
-        class="!bg-n-alpha-2 hover:!bg-n-alpha-3"
-        @click="openCreatePortalDialog"
-      />
-    </div>
-    <div
-      v-if="portals.length > 0"
-      class="flex flex-col flex-1 min-h-0 gap-2 px-4 pb-3 overflow-y-auto overscroll-contain"
-    >
-      <Button
-        v-for="(portal, index) in portals"
-        :key="index"
-        :label="portal.name"
-        variant="ghost"
-        color="slate"
-        trailing-icon
-        :icon="isPortalActive(portal) ? 'i-lucide-check' : ''"
-        class="!justify-end !px-2 !py-2 hover:!bg-n-alpha-2 [&>.i-lucide-check]:text-n-teal-10 h-9"
-        size="sm"
-        @click="handlePortalChange(portal)"
-      >
-        <div v-if="portal.custom_domain" class="flex items-center gap-1">
-          <span class="i-lucide-link size-3" />
-          <span class="text-sm truncate text-n-slate-11">
-            {{ portal.custom_domain || '' }}
-          </span>
-        </div>
-        <span class="text-sm font-medium truncate text-n-slate-12">
-          {{ portal.name || '' }}
-        </span>
-        <Avatar
-          v-if="portal"
-          :name="portal.name"
-          :src="getPortalThumbnailSrc(portal)"
-          :size="20"
-          icon-name="i-lucide-building-2"
+    <template #trigger="{ open, toggle }">
+      <slot name="trigger" :open="open" :toggle="toggle">
+        <Button
+          icon="i-lucide-chevron-down"
+          :aria-label="t('HELP_CENTER.PORTAL_SWITCHER.PORTALS')"
+          :aria-expanded="open"
+          aria-haspopup="dialog"
+          color="slate"
+          variant="ghost"
+          class="min-h-11 min-w-11 sm:min-h-0 sm:min-w-0"
+          @click="toggle"
         />
-      </Button>
-    </div>
-  </div>
+      </slot>
+    </template>
+    <template #label="{ item }">
+      <span class="flex flex-col min-w-0 text-start">
+        <span class="text-sm font-medium truncate">{{ item.label }}</span>
+        <span
+          v-if="item.portal.custom_domain"
+          class="text-xs text-n-slate-11 truncate"
+        >
+          {{ item.portal.custom_domain }}
+        </span>
+      </span>
+    </template>
+    <template #footer="{ close }">
+      <div class="flex flex-wrap gap-2 p-3 border-t border-n-weak">
+        <Button
+          :label="t('HELP_CENTER.PORTAL_SWITCHER.PORTALS')"
+          color="slate"
+          variant="ghost"
+          class="min-h-11 sm:min-h-0"
+          @click="
+            close();
+            redirectToPortalHomePage();
+          "
+        />
+        <Button
+          icon="i-lucide-arrow-up-right"
+          :aria-label="t('HELP_CENTER.EDIT_HEADER.PREVIEW')"
+          color="slate"
+          variant="ghost"
+          class="min-h-11 min-w-11 sm:min-h-0 sm:min-w-0"
+          @click="onClickPreviewPortal"
+        />
+        <Button
+          :label="t('HELP_CENTER.PORTAL_SWITCHER.NEW_PORTAL')"
+          color="slate"
+          icon="i-lucide-plus"
+          class="w-full min-h-11 sm:min-h-0"
+          @click="
+            close(false);
+            openCreatePortalDialog();
+          "
+        />
+      </div>
+    </template>
+  </MenuPopover>
 </template>

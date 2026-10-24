@@ -68,6 +68,44 @@ describe('usePlaygroundSession', () => {
     });
   });
 
+  it.each([
+    ['guideline', 'response_guidelines'],
+    ['guardrail', 'guardrails'],
+  ])(
+    'retains a temporary %s when another session wins the save',
+    async (type, field) => {
+      const { scope, session } = createSession();
+      session.addTemporaryRule(type, 'My draft');
+      const temporaryRules =
+        type === 'guideline'
+          ? session.temporaryGuidelines
+          : session.temporaryGuardrails;
+      const rule = temporaryRules.value[0];
+      mocks.dispatch.mockImplementation(action => {
+        if (action === 'captainAssistants/show')
+          return Promise.resolve(assistant);
+        return Promise.reject(new Error('Copy your draft and reload'));
+      });
+      await session.saveTemporaryRule(type, rule);
+      expect(temporaryRules.value).toContain(rule);
+      expect(rule.isSaving).toBe(false);
+      expect(mocks.useAlert).toHaveBeenLastCalledWith(
+        'Copy your draft and reload'
+      );
+      expect(mocks.dispatch).toHaveBeenLastCalledWith(
+        'captainAssistants/update',
+        {
+          id: 7,
+          assistant: {
+            [field]: [...assistant[field], 'My draft'],
+            [`expected_${field}`]: assistant[field],
+          },
+        }
+      );
+      scope.stop();
+    }
+  );
+
   it('starts context-free with enabled scenarios and all saved rules included', async () => {
     const { scope, session } = createSession();
     await session.initialize();
@@ -255,6 +293,7 @@ describe('usePlaygroundSession', () => {
         expect(payload).toEqual({
           id: 7,
           assistant: {
+            expected_response_guidelines: latestAssistant.response_guidelines,
             response_guidelines: [
               'Be concise',
               'Already saved',
@@ -407,6 +446,7 @@ describe('usePlaygroundSession', () => {
       id: 7,
       assistant: {
         response_guidelines: ['Be concise', 'Save this rule'],
+        expected_response_guidelines: ['Be concise'],
       },
     });
     expect(session.temporaryGuidelines.value).toContain(temporaryRule);

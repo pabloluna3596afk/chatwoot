@@ -4,11 +4,11 @@ import { useI18n } from 'vue-i18n';
 import { useVuelidate } from '@vuelidate/core';
 import { required, minLength } from '@vuelidate/validators';
 
-import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import Editor from 'dashboard/components-next/Editor/Editor.vue';
+import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 
 const props = defineProps({
   // Return true only after the mutation succeeds; events cannot be awaited.
@@ -81,33 +81,35 @@ const onClickAdd = async () => {
 </script>
 
 <template>
-  <div class="inline-flex relative">
+  <div class="inline-flex">
     <Button
       :label="t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.CREATE')"
       sm
       slate
-      class="flex-shrink-0"
+      class="flex-shrink-0 min-h-11 sm:min-h-0"
       :disabled="isSaving"
       @click="dialogRef.open()"
     />
 
     <Dialog
       ref="dialogRef"
+      width="md"
+      body-scroll
       :title="t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.TITLE')"
-      :is-loading="isSaving"
-      :confirm-button-label="
-        t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.CREATE')
-      "
       :cancel-button-label="
         t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.CANCEL')
       "
-      body-scroll
+      :confirm-button-label="
+        t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.CREATE')
+      "
+      :is-loading="isSaving"
       @confirm="onClickAdd"
     >
       <div class="flex flex-col gap-4">
         <Input
           v-model="state.title"
           :disabled="isSaving"
+          class="[&_input]:min-h-11 sm:[&_input]:min-h-0"
           :label="t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.TITLE.LABEL')"
           :placeholder="
             t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.TITLE.PLACEHOLDER')
@@ -149,6 +151,26 @@ const onClickAdd = async () => {
           enable-captain-tools
         />
       </div>
+      <template #footer>
+        <div class="flex items-center gap-3">
+          <Button
+            :label="t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.CANCEL')"
+            variant="faded"
+            color="slate"
+            type="button"
+            class="w-full min-h-11 sm:min-h-0"
+            :disabled="isSaving"
+            @click="dialogRef.close()"
+          />
+          <Button
+            :label="t('CAPTAIN.ASSISTANTS.SCENARIOS.ADD.NEW.FORM.CREATE')"
+            type="submit"
+            class="w-full min-h-11 sm:min-h-0"
+            :is-loading="isSaving"
+            :disabled="isSaving"
+          />
+        </div>
+      </template>
     </Dialog>
   </div>
 </template>
