@@ -12,6 +12,7 @@ const props = defineProps({
   maxHeight: { type: Number, default: 320 },
   panelClass: { type: String, default: 'w-56 max-w-[calc(100vw-2rem)]' },
   align: { type: String, default: 'end' },
+  side: { type: String, default: 'bottom' },
   label: { type: String, default: '' },
   matchWidth: { type: Boolean, default: false },
   dismissible: { type: Boolean, default: true },
@@ -28,6 +29,7 @@ const teleportTarget = computed(() => dialogPortalTarget?.value || 'body');
 const menuElement = computed(() => menu.value?.$el);
 const { fixedPosition } = useDropdownPosition(trigger, menuElement, open, {
   align: props.align,
+  side: props.side,
 });
 const panelStyle = computed(() => ({
   ...fixedPosition.value.style,
