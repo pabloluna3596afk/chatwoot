@@ -1,5 +1,6 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import { ref } from 'vue';
+import { directive as onClickaway } from 'vue3-click-away';
 import { startOfDay, endOfDay, startOfMonth } from 'date-fns';
 import DatePicker from '../DatePicker.vue';
 import DatePickerButton from '../components/DatePickerButton.vue';
@@ -37,13 +38,14 @@ describe.each([true, false])('DatePicker mobile=%s', isMobile => {
   beforeEach(async () => {
     mobile.value = isMobile;
     wrapper = mount(DatePicker, {
+      attachTo: document.body,
       props: { referenceDate, dateRange: initialRange, rangeType: 'custom' },
       global: {
         stubs: {
           TeleportWithDirection: { template: '<div><slot /></div>' },
           NextButton: false,
         },
-        directives: { 'on-clickaway': {} },
+        directives: { 'on-clickaway': onClickaway },
       },
     });
     await wrapper.findComponent(DatePickerButton).vm.$emit('open');
@@ -109,6 +111,44 @@ describe.each([true, false])('DatePicker mobile=%s', isMobile => {
       [[new Date(2025, 11, 30), new Date(2026, 0, 4), 'custom']],
     ]);
   });
+
+  if (!isMobile) {
+    it.each(['trigger', 'outside'])(
+      'applies the desktop draft once on a click on %s',
+      async target => {
+        wrapper
+          .findComponent(CalendarDateRange)
+          .vm.$emit('setRange', dateRanges[1]);
+        await flushPromises();
+        // The real clickaway directive ignores clicks during its mounting tick.
+        await new Promise(resolve => {
+          setTimeout(resolve, 0);
+        });
+        if (target === 'trigger') {
+          await wrapper
+            .findComponent(DatePickerButton)
+            .find('button')
+            .trigger('click');
+        } else {
+          document.body.dispatchEvent(
+            new Event(document.ontouchstart !== null ? 'click' : 'touchstart', {
+              bubbles: true,
+            })
+          );
+          await flushPromises();
+        }
+        const { start, end } = getActiveDateRange(
+          dateRanges[1].value,
+          referenceDate
+        );
+        expect(wrapper.emitted('dateRangeChanged')).toEqual([
+          [[start, end, dateRanges[1].value]],
+        ]);
+        expect(wrapper.findComponent(CalendarWeek).exists()).toBe(false);
+        expect(wrapper.emitted('close')).toBeUndefined();
+      }
+    );
+  }
 });
 
 describe('mobile draft', () => {

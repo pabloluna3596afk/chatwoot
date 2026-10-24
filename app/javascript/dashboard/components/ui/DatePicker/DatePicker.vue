@@ -393,15 +393,6 @@ const initializeCalendarMonths = () => {
   }
 };
 
-const toggleDatePicker = () => {
-  showDatePicker.value = !showDatePicker.value;
-  if (showDatePicker.value) {
-    initializeCalendarMonths();
-  } else {
-    emit('close');
-  }
-};
-
 const closeDatePicker = () => {
   if (isMobile.value || !showDatePicker.value) return;
   const canApply =
@@ -414,6 +405,19 @@ const closeDatePicker = () => {
   }
   showDatePicker.value = false;
   emit('close');
+};
+
+const toggleDatePicker = () => {
+  if (!isMobile.value && showDatePicker.value) {
+    closeDatePicker();
+    return;
+  }
+  showDatePicker.value = !showDatePicker.value;
+  if (showDatePicker.value) {
+    initializeCalendarMonths();
+  } else {
+    emit('close');
+  }
 };
 </script>
 
