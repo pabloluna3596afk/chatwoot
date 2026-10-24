@@ -17,6 +17,7 @@ import {
 
 const props = defineProps({
   taskId: { type: [String, Number], default: 0 },
+  isOnExpandedLayout: { type: Boolean, default: false },
 });
 
 const { t } = useI18n();
@@ -85,7 +86,10 @@ defineExpose({ refresh });
           {{ $t('GENERAL.BETA') }}
         </span>
       </div>
-      <TaskListTeamFilter v-model="selectedTeamId" />
+      <TaskListTeamFilter
+        v-model="selectedTeamId"
+        :is-on-expanded-layout="isOnExpandedLayout"
+      />
     </header>
 
     <div v-if="isFetching" class="flex justify-center py-16">

@@ -49,6 +49,8 @@ const selectStatus = value => {
       slate
       faded
       xs
+      class="min-h-11 min-w-11 md:min-h-0 md:min-w-0"
+      :aria-label="$t('INTERNAL_TASKS.FILTER.STATUS_TOOLTIP')"
       :class="{ 'text-n-slate-12': modelValue !== TASK_STATUS_FILTER.OPEN }"
       @click="toggleDropdown()"
     />
@@ -68,7 +70,7 @@ const selectStatus = value => {
         v-for="option in options"
         :key="option.value"
         type="button"
-        class="w-full text-left px-2 py-1.5 text-sm rounded-lg hover:bg-n-alpha-1"
+        class="w-full min-h-11 md:min-h-0 text-start px-2 py-1.5 text-sm rounded-lg hover:bg-n-alpha-1"
         :class="{ 'bg-n-alpha-1 font-medium': option.value === modelValue }"
         @click="selectStatus(option.value)"
       >

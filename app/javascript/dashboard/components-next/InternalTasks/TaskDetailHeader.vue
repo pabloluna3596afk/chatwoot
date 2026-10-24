@@ -68,10 +68,12 @@ const onReassignUpdated = () => {
 
 <template>
   <div class="border-b border-n-weak">
-    <div class="flex items-start gap-3 px-4 py-3">
-      <div class="min-w-0 flex-1 flex flex-col gap-2">
+    <div class="flex flex-col md:flex-row items-start gap-3 px-4 py-3">
+      <div class="min-w-0 flex-1 flex flex-col gap-2 w-full md:w-auto">
         <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <h2 class="text-base font-medium text-n-slate-12 leading-tight">
+          <h2
+            class="text-base font-medium text-n-slate-12 leading-tight break-words min-w-0"
+          >
             {{ task.title }}
           </h2>
           <TaskStatusBadge
@@ -116,11 +118,12 @@ const onReassignUpdated = () => {
         </p>
       </div>
 
-      <div class="flex flex-col items-end gap-2 shrink-0">
+      <div class="flex flex-col items-end gap-2 shrink-0 w-full md:w-auto">
         <div class="flex flex-wrap items-center justify-end gap-2">
           <Button
             v-if="primaryAction"
             size="sm"
+            class="min-h-11 md:min-h-0"
             :variant="primaryAction.key === 'claimTask' ? 'solid' : 'outline'"
             :color="primaryAction.color"
             :label="primaryAction.label"
@@ -130,6 +133,7 @@ const onReassignUpdated = () => {
           <div class="relative">
             <Button
               size="sm"
+              class="min-h-11 md:min-h-0"
               variant="outline"
               color="slate"
               :label="$t('INTERNAL_TASKS.REASSIGN.TOGGLE')"

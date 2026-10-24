@@ -1,5 +1,13 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-209 — Panel activo de tareas a ancho completo en teléfono (UI-09, 2026-10-24)
+
+- Archivos: `routes/dashboard/tasks/TaskView.vue` y `components-next/InternalTasks/{TaskList,TaskKanban,TaskDetail,TaskDetailHeader,TaskListTeamFilter,TaskListStatusFilter}.vue` (dashboard).
+- Causa: la lista fija de 340 px permanecía junto al detalle o tablero en teléfono, dejando la tarea fuera del área visible.
+- Arreglo: bajo 768 px se alternan lista y tablero; seleccionar una tarea muestra solo el detalle con retorno. Los filtros de ambos paneles se conservan al navegar. Encabezado, acciones y filtros se adaptan al ancho móvil; escritorio conserva los paneles.
+- Verificación: `tasks/specs/TaskView.spec.js` cubre URL directa, selección, filtros, refresco y cambio de ancho; `InternalTasks/specs/TaskDetail.spec.js` cubre carga, retorno y payload de reasignación. Capturas pareadas 390/1280 en ambos temas, con API simulada. Sin backend, ACL, reclamación ni migraciones.
+- Pendiente de base (fuera de UI-09): elegir una opción en el selector de reasignación con portal puede cerrar el panel por su listener exterior; revisar en el lote de overlays PR 13. La edición de estado y el guardado de asignación actual sí se verifican; no se declara resuelta esa interacción anidada.
+
 ### B-NEW-194 — Cupo y ventana de automatizaciones solo tras elegibilidad y envío (2026-10-23)
 
 - Archivo: `app/services/automations/contact_based_rule_runner.rb`.
