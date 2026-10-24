@@ -18,6 +18,8 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
   def update
     @assistant.with_lock do
       permitted_params = assistant_params
+      return unless check_rule_list_versions(permitted_params)
+
       if permitted_params.dig(:config, :appointments)
         permitted_params[:config][:appointments].reverse_merge!(
           template_cancelled: @assistant.config.dig('appointments', 'template_cancelled')
@@ -183,15 +185,43 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
         params[:assistant][:config].slice(:reply_delay_seconds).permit!.to_h['reply_delay_seconds']
     end
 
-    # Handle array parameters separately to allow partial updates
-    permitted[:response_guidelines] = params[:assistant][:response_guidelines] if params[:assistant].key?(:response_guidelines)
-
-    permitted[:guardrails] = params[:assistant][:guardrails] if params[:assistant].key?(:guardrails)
+    permit_rule_lists(permitted)
 
     permit_audience_config(permitted)
     permit_messaging_config(permitted)
 
     permitted
+  end
+
+  def permit_rule_lists(permitted)
+    %i[response_guidelines guardrails].each do |key|
+      next unless params[:assistant].key?(key)
+
+      value = params[:assistant][key]
+      unless value.is_a?(Array) && value.all? { |rule| rule.is_a?(String) && rule.present? }
+        raise ActionController::ParameterMissing, I18n.t('captain.contracts.invalid_rules', field: key)
+      end
+
+      permitted[key] = value
+    end
+  end
+
+  # Compare the client's original list under the row lock: unrelated settings and
+  # the other list can change independently, but stale replacements never win.
+  def check_rule_list_versions(permitted)
+    %i[response_guidelines guardrails].each do |key|
+      next unless permitted.key?(key)
+
+      expected = params[:assistant]["expected_#{key}"]
+      unless expected.is_a?(Array) && expected.all?(String)
+        raise ActionController::ParameterMissing, I18n.t('captain.contracts.expected_rules_required', field: key)
+      end
+      next if expected == (@assistant.public_send(key) || [])
+
+      render json: { error: I18n.t('captain.contracts.stale_rules') }, status: :conflict
+      return false
+    end
+    true
   end
 
   # The audience is a recursive condition tree that strong params can't whitelist by shape;

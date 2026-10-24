@@ -5,6 +5,63 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
   let(:admin) { create(:user, account: account, role: :administrator) }
   let(:agent) { create(:user, account: account, role: :agent) }
 
+  describe 'rule list contracts' do
+    let(:assistant) { create(:captain_assistant, account: account, response_guidelines: ['Original'], guardrails: ['Safe']) }
+
+    invalid_rules = [nil, false, 'text', { '0' => 'rule' }, [1], [' '], [{}]]
+    %i[response_guidelines guardrails].each do |field|
+      it "rejects an object in #{field} on creation" do
+        expect do
+          post "/api/v1/accounts/#{account.id}/captain/assistants",
+               params: { assistant: { 'name' => 'Draft', 'description' => 'Draft', field => { '0' => 'Rule' } } },
+               headers: admin.create_new_auth_token, as: :json
+        end.not_to change(Captain::Assistant, :count)
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      invalid_rules.each do |invalid|
+        it "rejects #{field}=#{invalid.inspect} atomically" do
+          patch "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}",
+                params: { assistant: { 'name' => 'Not saved', field => invalid } },
+                headers: admin.create_new_auth_token, as: :json
+
+          expect(response).to have_http_status(:unprocessable_entity)
+          expect(assistant.reload.name).not_to eq('Not saved')
+          expect(assistant.response_guidelines).to eq(['Original'])
+          expect(assistant.guardrails).to eq(['Safe'])
+        end
+      end
+
+      it "rejects missing original #{field} and permits an explicit empty list" do
+        patch "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}",
+              params: { assistant: { field => [] } }, headers: admin.create_new_auth_token, as: :json
+        expect(response).to have_http_status(:unprocessable_entity)
+
+        patch "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}",
+              params: { assistant: { field => [], "expected_#{field}" => assistant.public_send(field) } },
+              headers: admin.create_new_auth_token, as: :json
+        expect(response).to have_http_status(:ok)
+        expect(assistant.reload.public_send(field)).to eq([])
+      end
+
+      it "rejects the second stale #{field} replacement without changing other attributes" do
+        original = assistant.public_send(field)
+        patch "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}",
+              params: { assistant: { field => ['Session A'], "expected_#{field}" => original } },
+              headers: admin.create_new_auth_token, as: :json
+        expect(response).to have_http_status(:ok)
+
+        patch "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}",
+              params: { assistant: { field => ['Session B'], "expected_#{field}" => original, 'name' => 'Not saved' } },
+              headers: admin.create_new_auth_token, as: :json
+        expect(response).to have_http_status(:conflict)
+        expect(json_response[:error]).to include('reload')
+        expect(assistant.reload.public_send(field)).to eq(['Session A'])
+        expect(assistant.name).not_to eq('Not saved')
+      end
+    end
+  end
+
   def json_response
     JSON.parse(response.body, symbolize_names: true)
   end
@@ -161,7 +218,9 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
         assistant: {
           name: 'Updated Assistant',
           response_guidelines: ['Updated guideline'],
+          expected_response_guidelines: assistant.response_guidelines || [],
           guardrails: ['Updated guardrail'],
+          expected_guardrails: assistant.guardrails || [],
           config: {
             feature_citation: false
           }
@@ -206,7 +265,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
         original_name = assistant.name
 
         patch "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}",
-              params: { assistant: { response_guidelines: ['New guideline only'] } },
+              params: { assistant: { response_guidelines: ['New guideline only'], expected_response_guidelines: ['Original guideline'] } },
               headers: admin.create_new_auth_token,
               as: :json
 
@@ -221,7 +280,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
         original_name = assistant.name
 
         patch "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}",
-              params: { assistant: { guardrails: ['New guardrail only'] } },
+              params: { assistant: { guardrails: ['New guardrail only'], expected_guardrails: ['Original guardrail'] } },
               headers: admin.create_new_auth_token,
               as: :json
 

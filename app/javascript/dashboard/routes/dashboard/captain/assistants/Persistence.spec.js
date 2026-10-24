@@ -26,6 +26,8 @@ const mocks = vi.hoisted(() => ({
   alert: vi.fn(),
   close: vi.fn(),
   open: vi.fn(),
+  assistant: null,
+  assistantId: null,
 }));
 vi.mock('dashboard/composables/store', async () => {
   const { ref: makeRef } = await import('vue');
@@ -44,13 +46,14 @@ vi.mock('dashboard/composables/useUISettings', () => ({
 vi.mock('./settings/useAssistantSettings', async () => {
   const { ref: makeRef } = await import('vue');
   return {
-    useAssistantSettings: () => ({
-      assistantId: makeRef(7),
-      assistant: makeRef({
+    useAssistantSettings: () => {
+      mocks.assistantId = makeRef(7);
+      mocks.assistant = makeRef({
         response_guidelines: ['A', 'B'],
         guardrails: ['A', 'B'],
-      }),
-    }),
+      });
+      return { assistantId: mocks.assistantId, assistant: mocks.assistant };
+    },
   };
 });
 vi.mock('shared/composables/useMessageFormatter', () => ({
@@ -121,6 +124,95 @@ describe.each([Guidelines, Guardrails, Scenarios])(
     });
   }
 );
+
+describe.each([
+  [Guidelines, 'response_guidelines'],
+  [Guardrails, 'guardrails'],
+])('Rule list contract', (Component, field) => {
+  it('does not replace another assistant snapshot when a previous save finishes', async () => {
+    const wrapper = mountPage(Component);
+    let resolve;
+    mocks.dispatch.mockImplementationOnce(
+      () =>
+        new Promise(done => {
+          resolve = done;
+        })
+    );
+    const save = wrapper.findComponent(AddNewRulesDialog).props('onAdd')(
+      'Draft'
+    );
+    mocks.assistantId.value = 8;
+    mocks.assistant.value[field] = ['Another assistant'];
+    await flushPromises();
+    resolve();
+    await save;
+    await wrapper.findComponent(AddNewRulesDialog).props('onAdd')('Next');
+    expect(mocks.dispatch).toHaveBeenLastCalledWith(
+      'captainAssistants/update',
+      {
+        id: 8,
+        assistant: {
+          [field]: ['Another assistant', 'Next'],
+          [`expected_${field}`]: ['Another assistant'],
+        },
+      }
+    );
+    wrapper.unmount();
+  });
+
+  it('retains the original snapshot when another consumer refreshes the shared store', async () => {
+    const wrapper = mountPage(Component);
+    mocks.assistant.value[field] = ['Changed elsewhere'];
+    await flushPromises();
+    await wrapper.findComponent(AddNewRulesDialog).props('onAdd')('Draft');
+    expect(mocks.dispatch).toHaveBeenLastCalledWith(
+      'captainAssistants/update',
+      {
+        id: 7,
+        assistant: {
+          [field]: ['A', 'B', 'Draft'],
+          [`expected_${field}`]: ['A', 'B'],
+        },
+      }
+    );
+    wrapper.unmount();
+  });
+
+  it('sends the original list, preserves the draft on conflict and advances only after success', async () => {
+    const wrapper = mountPage(Component);
+    const form = wrapper.findComponent(AddNewRulesDialog);
+    mocks.dispatch.mockRejectedValueOnce(
+      new Error('Reload and review your draft')
+    );
+    expect(await form.props('onAdd')('Draft')).toBe(false);
+    expect(wrapper.get('[role="alert"]').text()).toBe(
+      'Reload and review your draft'
+    );
+    expect(mocks.dispatch).toHaveBeenLastCalledWith(
+      'captainAssistants/update',
+      {
+        id: 7,
+        assistant: {
+          [field]: ['A', 'B', 'Draft'],
+          [`expected_${field}`]: ['A', 'B'],
+        },
+      }
+    );
+    expect(await form.props('onAdd')('Draft')).toBe(true);
+    expect(await form.props('onAdd')('Next')).toBe(true);
+    expect(mocks.dispatch).toHaveBeenLastCalledWith(
+      'captainAssistants/update',
+      {
+        id: 7,
+        assistant: {
+          [field]: ['A', 'B', 'Draft', 'Next'],
+          [`expected_${field}`]: ['A', 'B', 'Draft'],
+        },
+      }
+    );
+    wrapper.unmount();
+  });
+});
 
 it('reports partial scenario deletion and retries only failures, once per intention', async () => {
   const wrapper = mountPage(Scenarios);
