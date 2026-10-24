@@ -3113,3 +3113,12 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
   Incluyen límites equivalentes por unidad, compatibilidad, `travel_to`, fallback y reapertura al vencer.
   Revisión estática y `git diff --check`; RSpec y RuboCop pendientes del PM en Docker según el brief.
   Sin migraciones ni cambios de frontend o i18n.
+
+
+### TASK-207 — Captain: persistencia confirmada y borrado seguro (UI-07, 2026-10-24)
+
+- Archivos: `components-next/captain/assistant/{AddNewRulesDialog,AddNewRulesInput,AddNewScenariosDialog,RuleCard,ScenariosCard}.vue`, páginas guidelines/guardrails/scenarios; wrappers Captain/Campañas, `dialog/Dialog.vue` y `reports/panels/Edit.vue`.
+- Altas y ediciones esperan un callback con resultado de persistencia: solo el éxito limpia/cierra, el fallo conserva el borrador. Pending bloquea envíos repetidos y cierre del diálogo compartido.
+- Borrado individual/lote requiere confirmar; errores conservan contexto. Escenarios usa `allSettled`, informa cantidades y reintenta únicamente los IDs fallidos. Guidelines/guardrails guardan su lista en una única petición. Los ejemplos esperan el guardado y no anuncian éxito anticipado.
+- Cómo probar: provocar 422/red en alta/edición, reintentar; cancelar borrado sin petición; confirmar dos veces durante pending; en lote rechazar solo un ID y comprobar que el reintento no borra otra vez los éxitos. En paneles y wrappers fallidos, la confirmación permanece abierta.
+- Specs: `assistant/Persistence.spec.js`, `assistants/Persistence.spec.js`, `pageComponents/DeletePersistence.spec.js`, `dialog/Dialog.spec.js`, `panels/specs/Edit.spec.js` y consumidores indicados en `tmp/PR-UI-07.md`. Sin backend ni migraciones.
