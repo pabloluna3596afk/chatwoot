@@ -2490,6 +2490,13 @@ Validation: ComboBox and ReorderableMultiSelect Vitest suites, including multise
 - Production counted filters, inbox destinations, language reporting and Meta errors remain unchanged.
 - Verify: run the LibraryPanel Vitest suite; all backend shards and RuboCop passed in the failing CI run.
 
+### B-NEW-221 — Nombres operativos ambiguos entre Flows y ajustes
+
+- Problema: la navegación, el editor y el retorno podían llamar «Flow» tanto al recurso de WhatsApp como al de conversación; los límites de seguridad y la regeneración del token tenían nombres poco precisos.
+- Archivos: `app/javascript/dashboard/i18n/locale/en/{settings,integrations,automation,flows,whatsappFlows}.json` y `app/javascript/dashboard/routes/dashboard/settings/flows/FlowHeader.vue`.
+- Cambio: contexto explícito para cada tipo de Flow, límites de seguridad, perfil y políticas, conservando claves, rutas, marcas y datos propios. Las traducciones existentes se sincronizan por Crowdin. Las acciones del editor pueden pasar a otra línea en móvil para mostrar sus textos completos.
+- Verificación: compilar los catálogos y recorrer navegación, editor, guardar y volver en ambos idiomas; comprobar las pruebas del glosario y del encabezado.
+
 ### B-NEW-59 -- Editing positional WhatsApp templates changed their Meta structure
 
 - Files: `settings/templates/TemplateFormDrawer.vue`, `templateForm.js`, `Index.vue`,
