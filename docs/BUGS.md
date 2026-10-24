@@ -3113,3 +3113,13 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
   Incluyen límites equivalentes por unidad, compatibilidad, `travel_to`, fallback y reapertura al vencer.
   Revisión estática y `git diff --check`; RSpec y RuboCop pendientes del PM en Docker según el brief.
   Sin migraciones ni cambios de frontend o i18n.
+
+### B-NEW-211 — Rangos de fecha utilizables en teléfono (UI-11, 2026-10-24)
+
+- Archivos: `app/javascript/dashboard/components/ui/DatePicker/DatePicker.vue` y sus componentes de calendario.
+- Causa: panel fijo de 880 px y dos calendarios fuera del viewport móvil.
+- Arreglo: Dialog nativo bajo lg, un calendario, presets plegables, borrador con aplicar/cancelar y controles de 44 px.
+  Escritorio conserva dos calendarios; no cambia el cálculo de fechas ni los payloads de los seis consumidores.
+- Verificación: `DatePicker/specs/{DatePicker,DatePickerConsumers}.spec.js`, helpers existentes y suites de informes/auditoría
+  en UTC y America/Guayaquil. Capturas y teclado real pendientes por navegador no disponible; detalle en `tmp/PR-UI-11.md`.
+- Sin backend, migraciones ni nuevas claves i18n.
