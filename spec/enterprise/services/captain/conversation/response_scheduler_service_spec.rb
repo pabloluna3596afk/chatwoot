@@ -12,7 +12,7 @@ RSpec.describe Captain::Conversation::ResponseSchedulerService, type: :job do
   end
 
   it 'schedules the default reply six seconds later' do
-    travel_to Time.current do
+    freeze_time do
       expect { described_class.new(message: message).perform }
         .to have_enqueued_job(Captain::Conversation::ResponseBuilderJob)
         .with(conversation, assistant, message.id).at(6.seconds.from_now)
@@ -30,7 +30,7 @@ RSpec.describe Captain::Conversation::ResponseSchedulerService, type: :job do
   it 'uses the configured ten second delay' do
     assistant.update!(reply_delay_seconds: 10)
 
-    travel_to Time.current do
+    freeze_time do
       expect { described_class.new(message: message).perform }
         .to have_enqueued_job(Captain::Conversation::ResponseBuilderJob).at(10.seconds.from_now)
     end
@@ -40,7 +40,7 @@ RSpec.describe Captain::Conversation::ResponseSchedulerService, type: :job do
     account.enable_features!(:captain_integration_v2)
     assistant.update!(reply_delay_seconds: 0)
 
-    travel_to Time.current do
+    freeze_time do
       create_list(:message, 4, :with_attachment, conversation: conversation, account: account, inbox: inbox, message_type: :incoming)
 
       expect { described_class.new(message: message).perform }
@@ -61,14 +61,14 @@ RSpec.describe Captain::Conversation::ResponseSchedulerService, type: :job do
       it 'keeps the attachment wait when the configured delay is smaller' do
         assistant.update!(reply_delay_seconds: 1)
 
-        travel_to Time.current do
+        freeze_time do
           expect { described_class.new(message: message).perform }
             .to have_enqueued_job(Captain::Conversation::ResponseBuilderJob).at(2.seconds.from_now)
         end
       end
 
       it 'keeps the default delay when the attachment wait is smaller' do
-        travel_to Time.current do
+        freeze_time do
           expect { described_class.new(message: message).perform }
             .to have_enqueued_job(Captain::Conversation::ResponseBuilderJob).at(6.seconds.from_now)
         end

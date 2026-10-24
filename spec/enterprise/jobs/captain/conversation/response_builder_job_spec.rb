@@ -2,10 +2,10 @@ require 'rails_helper'
 
 RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
   let(:account) { create(:account, custom_attributes: { plan_name: 'startups' }) }
-
-  before { put_account_on_plan(account) }
   let(:inbox) { create(:inbox, account: account) }
   let(:assistant) { create(:captain_assistant, account: account) }
+
+  before { put_account_on_plan(account) }
 
   describe '#perform' do
     let(:conversation) { create(:conversation, inbox: inbox, account: account, status: :pending) }
@@ -49,7 +49,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         end
 
         it 'executes three scheduled jobs in order and publishes only the last response' do
-          travel_to Time.current do
+          freeze_time do
             Captain::Conversation::ResponseSchedulerService.new(message: responding_to_message).perform
             travel 1.second
             second_message = create(:message, conversation: conversation, content: 'Second', message_type: :incoming)
