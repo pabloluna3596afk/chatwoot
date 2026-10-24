@@ -44,7 +44,6 @@ const { t } = useI18n();
       <MenuPopover
         class="col-start-3 row-start-1 shrink-0 -mt-2 md:col-start-4 md:mt-0"
         :menu-items="menuItems"
-        side="top"
         :label="t('CONVERSATION.HEADER.MORE_ACTIONS')"
         panel-class="w-56 max-w-[calc(100vw-2rem)] !bg-n-solid-3 shadow-lg"
         @action="emit('action', $event)"

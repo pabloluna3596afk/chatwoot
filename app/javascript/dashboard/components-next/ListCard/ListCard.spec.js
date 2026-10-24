@@ -30,7 +30,7 @@ describe('ListCard', () => {
       },
     });
     const trigger = wrapper.get('button');
-    expect(wrapper.getComponent(MenuPopover).props('side')).toBe('top');
+    expect(wrapper.getComponent(MenuPopover).props('side')).toBe('bottom');
     expect(trigger.classes()).toEqual(
       expect.arrayContaining(['size-11', 'min-h-11', 'min-w-11'])
     );
