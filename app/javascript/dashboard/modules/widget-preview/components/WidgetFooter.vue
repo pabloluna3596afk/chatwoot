@@ -31,9 +31,7 @@ const getStatusText = computed(() => {
     >
       <div class="flex items-center justify-between">
         <div>
-          <div
-            class="text-sm font-medium leading-4 text-n-slate-12 dark:text-n-slate-50"
-          >
+          <div class="text-sm font-medium leading-4 text-n-slate-12">
             {{ getStatusText }}
           </div>
           <div class="mt-1 text-xs text-n-slate-11">

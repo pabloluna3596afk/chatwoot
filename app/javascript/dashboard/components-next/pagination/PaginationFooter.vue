@@ -82,7 +82,7 @@ const selectPerPage = value => {
 
 <template>
   <div
-    class="relative flex justify-between h-[3.375rem] w-full border-t border-n-weak mx-auto bg-n-surface-1 py-3 px-6 items-center before:absolute before:inset-x-0 before:-top-4 before:bg-gradient-to-t before:from-n-surface-1 before:from-0% before:to-transparent before:h-4 before:pointer-events-none"
+    class="relative flex flex-col gap-2 sm:flex-row justify-between min-h-[3.375rem] sm:h-[3.375rem] w-full border-t border-n-weak mx-auto bg-n-surface-1 py-2 px-4 sm:py-3 sm:px-6 items-center before:absolute before:inset-x-0 before:-top-4 before:bg-gradient-to-t before:from-n-surface-1 before:from-0% before:to-transparent before:h-4 before:pointer-events-none"
   >
     <div class="flex items-center gap-3 min-w-0">
       <span class="min-w-0 text-body-main line-clamp-1 text-n-slate-11">
@@ -104,7 +104,7 @@ const selectPerPage = value => {
             v-for="option in perPageOptions"
             :key="option"
             type="button"
-            class="min-w-[2.25rem] h-6 px-2 rounded-md text-xs font-medium transition-colors"
+            class="max-sm:min-w-11 max-sm:min-h-11 min-w-[2.25rem] h-6 px-2 rounded-md text-xs font-medium transition-colors"
             :class="
               Number(option) === itemsPerPage
                 ? 'bg-n-surface-1 text-n-slate-12 shadow-sm'
@@ -118,7 +118,9 @@ const selectPerPage = value => {
         </div>
       </div>
     </div>
-    <div class="flex items-center gap-2">
+    <div
+      class="flex items-center gap-2 shrink-0 max-sm:flex-wrap max-sm:justify-center max-sm:max-w-full"
+    >
       <Button
         icon="i-lucide-chevrons-left"
         variant="ghost"

@@ -18,7 +18,7 @@ const setDateRange = range => {
 <template>
   <div class="w-[200px] flex flex-col items-start">
     <h4
-      class="w-full px-5 py-4 text-xs font-bold capitalize text-start text-n-slate-10"
+      class="w-full px-5 py-4 text-xs font-bold capitalize text-start text-n-slate-11"
     >
       {{ $t('DATE_PICKER.DATE_RANGE_OPTIONS.TITLE') }}
     </h4>

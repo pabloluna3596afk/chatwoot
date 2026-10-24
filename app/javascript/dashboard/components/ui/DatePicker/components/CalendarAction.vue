@@ -54,7 +54,7 @@ const onClickSetView = (type, mode) => {
       <button
         v-if="firstButtonLabel"
         type="button"
-        class="min-h-11 lg:min-h-0 p-0 text-sm font-medium text-center text-n-slate-12 hover:text-n-brand"
+        class="min-h-11 min-w-11 lg:min-h-0 lg:min-w-0 p-0 text-sm font-medium text-center text-n-slate-12 hover:text-n-brand"
         @click.stop="onClickSetView(calendarType, viewMode)"
       >
         {{ firstButtonLabel }}
@@ -62,7 +62,7 @@ const onClickSetView = (type, mode) => {
       <button
         v-if="buttonLabel"
         type="button"
-        class="min-h-11 lg:min-h-0 p-0 text-sm font-medium text-center text-n-slate-12"
+        class="min-h-11 min-w-11 lg:min-h-0 lg:min-w-0 p-0 text-sm font-medium text-center text-n-slate-12"
         :class="{ 'hover:text-n-brand': viewMode }"
         @click.stop="onClickSetView(calendarType, YEAR)"
       >
