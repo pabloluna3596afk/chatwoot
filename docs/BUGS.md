@@ -1,17 +1,15 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
-### B-NEW-205 ? Captain: sugerencias y confirmaci?n de borrado (UI-07f, 2026-10-24)
+### B-NEW-205 — Catálogos existentes sin registrar en el dashboard (UI-01)
 
-- Archivos: `app/javascript/dashboard/routes/dashboard/captain/assistants/{guidelines,guardrails,scenarios}/Index.vue`
-  y `app/javascript/dashboard/i18n/locale/en/integrations.json`.
-- Arreglo: Agregar todos oculta las sugerencias solo tras persistir; el fallo conserva la tarjeta y permite reintentar.
-  Confirmaci?n singular para un elemento y plural para varios; claves en el namespace `CAPTAIN.PERSISTENCE` que usan las p?ginas.
-  Si la petici?n de borrado contiene un ?nico escenario, muestra `Error.message` del store o el error traducido existente.
-  Los lotes de varios escenarios mantienen el balance parcial y el reintento de fallidos.
-- Verificaci?n: `assistants/Persistence.spec.js` cubre ?xito/error de ejemplos en los tres dominios, texto singular/plural,
-  error individual/fallback/reintento y parcial. Junto con `captain/assistant/Persistence.spec.js` y `messagesCompile.spec.js`:
-  141 pruebas PASS en UTC y America/Guayaquil; ESLint PASS. Capturas reales pendientes: navegador no disponible en la sesi?n.
-- Sin backend ni migraciones. Espa?ol por Crowdin.
+- Archivos: `app/javascript/dashboard/i18n/locale/{en,es}/index.js`.
+- Causa: español no exportaba `contentTemplates`, `snooze` ni `yearInReview`; inglés no exportaba `calls`.
+  La compilación de JSON individuales no detectaba que faltaban en el catálogo efectivo.
+- Arreglo: registrar los cuatro catálogos existentes, sin modificar textos, claves ni registrar `webhooks`.
+- Verificación: `i18n/messagesCompile.spec.js` comprueba hojas efectivas sin fallback, formulario de plantillas
+  y sugerencias localizadas; `routes/dashboard/commands/specs/commandbar.spec.js` integra el catálogo real
+  con las sugerencias de posposición en inglés y español. Ejecutar en UTC y America/Guayaquil.
+- Sin cambios de backend ni migraciones. Capturas y revisión visual del dueño pendientes; detalle en `tmp/PR-UI-01.md` del worktree.
 
 ### B-NEW-194 — Cupo y ventana de automatizaciones solo tras elegibilidad y envío (2026-10-23)
 
@@ -1756,6 +1754,14 @@ toolbar del mensaje se desbordaba; sin categoría.
 **Cómo probar:** lista toggle activo; editar categoría; Exit rules no tapa canvas;
 configurar botones sin scroll infinito de delay doble.
 
+### B-NEW-206 — Captain: persistencia confirmada y borrado seguro (2026-10-24)
+
+- Archivos: `components-next/captain/assistant/{AddNewRulesDialog,AddNewRulesInput,AddNewScenariosDialog,RuleCard,ScenariosCard}.vue`, páginas de pautas, límites y escenarios, wrappers de borrado de Captain y Campañas, `dialog/Dialog.vue` y `reports/panels/Edit.vue`.
+- Causa: altas y ediciones limpiaban o cerraban el diálogo antes de saber si el servidor había guardado; un 422 o un fallo de red hacía perder el borrador. «Agregar todos» ocultaba las sugerencias sin esperar el guardado y el borrado no pedía confirmación en todos los puntos.
+- Arreglo: altas y ediciones esperan el resultado; solo el éxito limpia o cierra y el fallo conserva el borrador. Mientras hay una petición pendiente se bloquean los envíos repetidos. El borrado individual y por lote pide confirmación y los errores conservan el contexto. Escenarios usa `allSettled`, informa cuántos se borraron y reintenta solo los fallidos. Pautas y límites guardan su lista en una sola petición.
+- Cómo probar: provocar un 422 o un corte de red al crear o editar y reintentar; cancelar un borrado (no debe enviar nada); confirmar dos veces durante la espera; en un lote, rechazar un solo ID y comprobar que el reintento no vuelve a borrar los que ya se borraron.
+- Specs: `assistant/Persistence.spec.js`, `assistants/Persistence.spec.js`, `pageComponents/DeletePersistence.spec.js`, `dialog/Dialog.spec.js` y `panels/specs/Edit.spec.js`. Sin backend ni migraciones. Los textos nuevos de borrado quedan en inglés hasta sincronizar con Crowdin.
+
 ### B-NEW-25 — Flows: acciones montadas + dropdown roto en inspector
 
 **Síntoma:** Acciones del paso se veían apiladas sin número/borde; al abrir el
@@ -3126,12 +3132,3 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
   Incluyen límites equivalentes por unidad, compatibilidad, `travel_to`, fallback y reapertura al vencer.
   Revisión estática y `git diff --check`; RSpec y RuboCop pendientes del PM en Docker según el brief.
   Sin migraciones ni cambios de frontend o i18n.
-
-
-### TASK-207 — Captain: persistencia confirmada y borrado seguro (UI-07, 2026-10-24)
-
-- Archivos: `components-next/captain/assistant/{AddNewRulesDialog,AddNewRulesInput,AddNewScenariosDialog,RuleCard,ScenariosCard}.vue`, páginas guidelines/guardrails/scenarios; wrappers Captain/Campañas, `dialog/Dialog.vue` y `reports/panels/Edit.vue`.
-- Altas y ediciones esperan un callback con resultado de persistencia: solo el éxito limpia/cierra, el fallo conserva el borrador. Pending bloquea envíos repetidos y cierre del diálogo compartido.
-- Borrado individual/lote requiere confirmar; errores conservan contexto. Escenarios usa `allSettled`, informa cantidades y reintenta únicamente los IDs fallidos. Guidelines/guardrails guardan su lista en una única petición. Los ejemplos esperan el guardado y no anuncian éxito anticipado.
-- Cómo probar: provocar 422/red en alta/edición, reintentar; cancelar borrado sin petición; confirmar dos veces durante pending; en lote rechazar solo un ID y comprobar que el reintento no borra otra vez los éxitos. En paneles y wrappers fallidos, la confirmación permanece abierta.
-- Specs: `assistant/Persistence.spec.js`, `assistants/Persistence.spec.js`, `pageComponents/DeletePersistence.spec.js`, `dialog/Dialog.spec.js`, `panels/specs/Edit.spec.js` y consumidores indicados en `tmp/PR-UI-07.md`. Sin backend ni migraciones.
