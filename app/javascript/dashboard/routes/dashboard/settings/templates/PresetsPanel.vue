@@ -81,21 +81,21 @@ const presets = computed(() =>
             </p>
           </template>
           <template #meta>
-            <p>
+            <p class="text-xs text-n-slate-10">
               {{
                 $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.VARIABLES', {
                   variables: item.variables.join(', '),
                 })
               }}
             </p>
-            <p class="mt-2">
+            <p class="mt-2 text-xs text-n-slate-10">
               {{
                 $t(
                   `WHATSAPP_TEMPLATE_MGMT.PRESETS.CATEGORY_NOTE.${item.category}`
                 )
               }}
             </p>
-            <p v-if="item.disabled" class="mt-2 text-n-amber-11">
+            <p v-if="item.disabled" class="mt-2 text-xs text-n-amber-11">
               {{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.DISABLED_FORMS') }}
             </p>
           </template>
