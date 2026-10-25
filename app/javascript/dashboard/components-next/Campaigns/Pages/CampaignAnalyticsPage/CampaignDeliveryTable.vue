@@ -78,88 +78,85 @@ const isEmpty = computed(() => props.deliveries.length === 0);
     >
       <Spinner />
     </div>
-    <div
+    <BaseTable
       v-else
-      class="overflow-x-auto [&_th:first-child]:ps-5 [&_td:first-child]:ps-5 [&_th:last-child]:pe-5 [&_td:last-child]:pe-5"
+      class="[&_th:first-child]:ps-5 [&_td:first-child]:ps-5 [&_th:last-child]:pe-5 [&_td:last-child]:pe-5"
       :class="{ 'border-t border-n-weak': isEmpty }"
+      :headers="headers"
+      :items="deliveries"
+      :no-data-message="noDataMessage"
     >
-      <BaseTable
-        :headers="headers"
-        :items="deliveries"
-        :no-data-message="noDataMessage"
-      >
-        <template #row="{ items }">
-          <BaseTableRow
-            v-for="delivery in items"
-            :key="delivery.contact.id"
-            :item="delivery"
-          >
-            <template #default>
-              <BaseTableCell>
-                <div class="flex flex-col gap-0.5 py-1">
-                  <RouterLink
-                    :to="contactDetailsRoute(delivery.contact.id)"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="inline-flex items-center max-w-full gap-1 transition-colors w-fit text-heading-3 text-n-slate-12 hover:text-n-blue-11 hover:underline underline-offset-2"
-                    :title="t('CONTACTS_LAYOUT.CARD.VIEW_DETAILS')"
-                  >
-                    <span class="truncate">
-                      {{ delivery.contact.name || '-' }}
-                    </span>
-                    <span
-                      aria-hidden="true"
-                      class="i-lucide-arrow-up-right size-3.5 shrink-0"
-                    />
-                  </RouterLink>
-                  <span
-                    class="tabular-nums truncate text-label-small text-n-slate-11"
-                  >
-                    {{ delivery.contact.phone_number || '-' }}
+      <template #row="{ items }">
+        <BaseTableRow
+          v-for="delivery in items"
+          :key="delivery.contact.id"
+          :item="delivery"
+        >
+          <template #default>
+            <BaseTableCell>
+              <div class="flex flex-col gap-0.5 py-1">
+                <RouterLink
+                  :to="contactDetailsRoute(delivery.contact.id)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center max-w-full gap-1 transition-colors w-fit text-heading-3 text-n-slate-12 hover:text-n-blue-11 hover:underline underline-offset-2"
+                  :title="t('CONTACTS_LAYOUT.CARD.VIEW_DETAILS')"
+                >
+                  <span class="truncate">
+                    {{ delivery.contact.name || '-' }}
                   </span>
-                </div>
-              </BaseTableCell>
-              <BaseTableCell>
-                <DeliveryStatusBadge :status="delivery.status" />
-              </BaseTableCell>
-              <BaseTableCell>
+                  <span
+                    aria-hidden="true"
+                    class="i-lucide-arrow-up-right size-3.5 shrink-0"
+                  />
+                </RouterLink>
                 <span
-                  class="block max-w-48 lg:max-w-md whitespace-pre-line line-clamp-2 text-body-main"
-                  :class="
-                    delivery.message_content
-                      ? 'text-n-slate-11'
-                      : 'italic text-n-slate-10'
-                  "
+                  class="tabular-nums truncate text-label-small text-n-slate-11"
                 >
-                  {{ messageContent(delivery) }}
+                  {{ delivery.contact.phone_number || '-' }}
                 </span>
-              </BaseTableCell>
-              <BaseTableCell>
-                <div
-                  v-if="errorReason(delivery)"
-                  class="flex flex-col gap-0.5 max-w-40 lg:max-w-56"
+              </div>
+            </BaseTableCell>
+            <BaseTableCell>
+              <DeliveryStatusBadge :status="delivery.status" />
+            </BaseTableCell>
+            <BaseTableCell>
+              <span
+                class="block max-w-48 lg:max-w-md whitespace-pre-line line-clamp-2 text-body-main"
+                :class="
+                  delivery.message_content
+                    ? 'text-n-slate-11'
+                    : 'italic text-n-slate-10'
+                "
+              >
+                {{ messageContent(delivery) }}
+              </span>
+            </BaseTableCell>
+            <BaseTableCell>
+              <div
+                v-if="errorReason(delivery)"
+                class="flex flex-col gap-0.5 max-w-40 lg:max-w-56"
+              >
+                <span class="line-clamp-2 text-body-main text-n-slate-11">
+                  {{ errorReason(delivery) }}
+                </span>
+                <span
+                  v-if="errorCode(delivery)"
+                  class="tabular-nums text-label-small text-n-slate-10"
                 >
-                  <span class="line-clamp-2 text-body-main text-n-slate-11">
-                    {{ errorReason(delivery) }}
-                  </span>
-                  <span
-                    v-if="errorCode(delivery)"
-                    class="tabular-nums text-label-small text-n-slate-10"
-                  >
-                    {{
-                      t('CAMPAIGN.WHATSAPP.ANALYTICS.TABLE.ERROR_CODE', {
-                        code: errorCode(delivery),
-                      })
-                    }}
-                  </span>
-                </div>
-                <span v-else class="text-body-main text-n-slate-10">-</span>
-              </BaseTableCell>
-            </template>
-          </BaseTableRow>
-        </template>
-      </BaseTable>
-    </div>
+                  {{
+                    t('CAMPAIGN.WHATSAPP.ANALYTICS.TABLE.ERROR_CODE', {
+                      code: errorCode(delivery),
+                    })
+                  }}
+                </span>
+              </div>
+              <span v-else class="text-body-main text-n-slate-10">-</span>
+            </BaseTableCell>
+          </template>
+        </BaseTableRow>
+      </template>
+    </BaseTable>
     <slot name="footer" />
   </div>
 </template>

@@ -65,7 +65,10 @@ const saveEdit = async () => {
     @mouseleave="emit('hover', false)"
   >
     <div v-show="selectable" class="absolute top-6 ltr:left-3 rtl:right-3">
-      <Checkbox v-model="modelValue" />
+      <Checkbox
+        v-model="modelValue"
+        :aria-label="$t('GENERAL.ACCESSIBILITY.SELECT_RULE', { content })"
+      />
     </div>
     <InlineInput
       v-if="isEditing"

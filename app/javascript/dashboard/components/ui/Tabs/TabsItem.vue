@@ -44,10 +44,18 @@ const onTabClick = event => {
 
 <template>
   <li
+    role="presentation"
     class="flex-shrink-0 my-0 mx-2 ltr:first:ml-0 rtl:first:mr-0 ltr:last:mr-0 rtl:last:ml-0 hover:text-n-slate-12"
   >
-    <a
-      class="max-sm:min-h-11 max-sm:min-w-11 flex items-center flex-row min-w-0 select-none cursor-pointer relative after:absolute after:bottom-px after:left-0 after:right-0 after:h-[2px] after:rounded-full after:transition-all after:duration-200 text-button"
+    <button
+      type="button"
+      role="tab"
+      :data-index="index"
+      :aria-selected="active"
+      :tabindex="active ? 0 : -1"
+      :disabled="disabled"
+      :aria-disabled="disabled ? 'true' : undefined"
+      class="max-sm:min-h-11 max-sm:min-w-11 border-0 bg-transparent p-0 flex items-center flex-row min-w-0 select-none cursor-pointer relative after:absolute after:bottom-px after:left-0 after:right-0 after:h-[2px] after:rounded-full after:transition-all after:duration-200 text-button focus-visible:ring-2 focus-visible:ring-n-brand focus-visible:ring-offset-1"
       :class="[
         active
           ? 'text-n-blue-11 after:bg-n-brand after:opacity-100'
@@ -72,6 +80,6 @@ const onTabClick = event => {
           {{ getItemCount }}
         </span>
       </div>
-    </a>
+    </button>
   </li>
 </template>

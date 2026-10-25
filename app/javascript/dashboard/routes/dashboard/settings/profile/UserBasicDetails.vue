@@ -1,11 +1,13 @@
 <script>
 import { useAlert } from 'dashboard/composables';
+import FormInput from 'dashboard/components-next/input/Input.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import { useVuelidate } from '@vuelidate/core';
 import { required, minLength, email } from '@vuelidate/validators';
 export default {
   components: {
     NextButton,
+    FormInput,
   },
   props: {
     name: {
@@ -34,12 +36,6 @@ export default {
       userName: this.name,
       userDisplayName: this.displayName,
       userEmail: this.email,
-      inputStyles: {
-        borderRadius: '0.75rem',
-        padding: '0.375rem 0.75rem',
-        fontSize: '0.875rem',
-        marginBottom: '0.125rem',
-      },
     };
   },
   validations: {
@@ -92,25 +88,27 @@ export default {
 
 <template>
   <form class="flex flex-col gap-4" @submit.prevent="updateUser('profile')">
-    <woot-input
+    <FormInput
       v-model="userName"
-      :styles="inputStyles"
-      :class="{ error: v$.userName.$error }"
+      class="sm:!gap-0 sm:pb-0.5 sm:[&>label]:!mb-0"
+      custom-input-class="!rounded-xl !py-1.5 !h-10"
+      :message-type="v$.userName.$error ? 'error' : 'info'"
       :label="$t('PROFILE_SETTINGS.FORM.NAME.LABEL')"
       :placeholder="$t('PROFILE_SETTINGS.FORM.NAME.PLACEHOLDER')"
-      :error="`${
+      :message="`${
         v$.userName.$error ? $t('PROFILE_SETTINGS.FORM.NAME.ERROR') : ''
       }`"
       @input="v$.userName.$touch"
       @blur="v$.userName.$touch"
     />
-    <woot-input
+    <FormInput
       v-model="userDisplayName"
-      :styles="inputStyles"
-      :class="{ error: v$.userDisplayName.$error }"
+      class="sm:!gap-0 sm:pb-0.5 sm:[&>label]:!mb-0"
+      custom-input-class="!rounded-xl !py-1.5 !h-10"
+      :message-type="v$.userDisplayName.$error ? 'error' : 'info'"
       :label="$t('PROFILE_SETTINGS.FORM.DISPLAY_NAME.LABEL')"
       :placeholder="$t('PROFILE_SETTINGS.FORM.DISPLAY_NAME.PLACEHOLDER')"
-      :error="`${
+      :message="`${
         v$.userDisplayName.$error
           ? $t('PROFILE_SETTINGS.FORM.DISPLAY_NAME.ERROR')
           : ''
@@ -118,14 +116,15 @@ export default {
       @input="v$.userDisplayName.$touch"
       @blur="v$.userDisplayName.$touch"
     />
-    <woot-input
+    <FormInput
       v-if="emailEnabled"
       v-model="userEmail"
-      :styles="inputStyles"
-      :class="{ error: v$.userEmail.$error }"
+      class="sm:!gap-0 sm:pb-0.5 sm:[&>label]:!mb-0"
+      custom-input-class="!rounded-xl !py-1.5 !h-10"
+      :message-type="v$.userEmail.$error ? 'error' : 'info'"
       :label="$t('PROFILE_SETTINGS.FORM.EMAIL.LABEL')"
       :placeholder="$t('PROFILE_SETTINGS.FORM.EMAIL.PLACEHOLDER')"
-      :error="`${
+      :message="`${
         v$.userEmail.$error ? $t('PROFILE_SETTINGS.FORM.EMAIL.ERROR') : ''
       }`"
       @input="v$.userEmail.$touch"

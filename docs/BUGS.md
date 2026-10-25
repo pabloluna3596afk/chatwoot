@@ -1,5 +1,20 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-238 — Checkbox, pestañas y selección de escenarios por teclado (UI-15)
+
+- **Problema:** atributos accesibles del checkbox no llegaban al input; las pestañas no tenían semántica ni navegación de teclado; selección y expansión de escenarios dependían del puntero.
+- **Arreglo:** reenviar attrs y nombres al input, conservar el control visual de 16 px con objetivo táctil móvil de 44 px, usar roles/tabindex/flechas/Home/End en tabs, y añadir botón Mostrar más/menos, foco de selección y cierre Esc dentro de edición.
+- **Verificación:** 187 tests en UTC y 187 en America/Guayaquil; ESLint sin errores y `git diff --check`. Capturas pareadas `ui-15-controls-{390,1280}-{antes,despues}.png` y foco para pestaña, checkbox y Mostrar más en `studio-video/referencias/chathub/montaje/`. Se añadieron specs dedicados de `ConversationBox` y `CreateOrLinkIssue`.
+- **Localización:** claves nuevas en inglés y español para acciones de pestañas, selección y expansión.
+
+### B-NEW-237 — Campos accesibles y búsqueda remota recuperable (UI-14)
+
+- **Problema:** la ayuda y los errores de Input/ComboBox no describían el control real y se recortaban; las búsquedas remotas no distinguían carga, fallo y vacío. Fecha y duración carecían de parte del recorrido por teclado o de nombres accesibles.
+- **Cambio:** asociación label/control y ayuda/error multilínea; anuncio único del error; estados controlados `loading`/`searchError`, búsqueda visible desde cero resultados y reintento explícito con la misma consulta. CompanySelector conserva resultados y selección ante errores. DateField navega días con flechas y devuelve el foco al elegir; DurationInput expone nombres localizados. Los controles modificados alcanzan 44 px en móvil.
+- **Pilotos:** `settings/teams/TeamForm.vue` (unidades) y `settings/profile/UserBasicDetails.vue`; mismo payload, validación y geometría de escritorio. No cambia el tipo de los valores emitidos ni el backend.
+- **Verificación:** pruebas de accesibilidad, promesa pendiente/rechazada/reintento, tipos string/number/array, teclado y pilotos; suites de consumidores en UTC y America/Guayaquil. Capturas pareadas 390×844/1280×900, claro/oscuro. Evidencia, resultados y limitaciones en `tmp/PR-UI-14.md`.
+- **Archivos:** `components-next/input/{Input,DurationInput}.vue`, `components-next/combobox/{ComboBox,ComboBoxDropdown}.vue`, `components-next/date-field/DateField.vue`, CompanySelector, ContactMergeForm y los dos pilotos. Sin migraciones. Nuevas traducciones españolas pendientes de Crowdin.
+
 ### B-NEW-236 — Nombre, foco y altura de las ventanas emergentes (UI-13)
 
 - **Problema:** los diálogos no asociaban sus títulos y descripciones; los paneles laterales y las ventanas móviles no impedían llegar al fondo con el teclado. Los campos se montaban después de elegir el foco inicial.
@@ -3270,3 +3285,10 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - Arreglo: aviso compartido con reintento manual, estados normal/compact, preservación de datos y filtros en los pilotos Tareas, Flujos y Empresas; contenedores y skeletons anuncian estado de carga accesiblemente; los toasts usan región polite.
 - Seguimiento (2026-10-25): `InternalTasks/specs/TaskKanban.spec.js` devolvía `getTasks.mockReset()` desde `beforeEach`. Vitest registraba el mock devuelto como limpieza y, tras el caso del skeleton, esperaba otra petición simulada que nadie resolvía. Usar un cuerpo de bloque sin retorno evita esa llamada; no cambia código de producto. Reproducción con reporter verbose: los tres casos aprobados sin resumen durante más de 90 s; con el arreglo: 3/3, resumen y salida normal en 1,57 s.
 - Verificación (2026-10-25): suites completas de `components-next`, `components/ui`, `components/widgets`, `SnackbarContainer.spec.js`, `routes/dashboard/settings` y `routes/dashboard/companies`, con dos workers y sin interrupciones. UTC: 281,00 s; America/Guayaquil: 277,13 s. En cada zona: 205 archivos aprobados, 1 fallido y 1 omitido; 2168 tests aprobados, 2 fallidos y 2 omitidos. Únicamente fallan los dos casos conocidos de `ShopifyBilling.spec.js`; ningún fallo adicional. Los cinco specs UI-17 pasan (29 casos). ESLint: 0 errores, 10 advertencias en los 10 JS/Vue del cambio. Las 24 capturas `ui-17-*` ya existen; evidencia A7 y logs/JSON en `tmp/PR-UI-17.md`. Estado NO CONFIRMADO mientras la suite no esté completamente verde.
+
+### B-NEW-240 - Aislar el scroll de tablas y usar tarjetas en listas de etiquetas y SLA (2026-10-24)
+
+- Archivos: `components-next/table/BaseTable.vue`, vistas de Etiquetas y SLA, consumidores de tablas con overflow redundante y specs correspondientes.
+- Causa: tablas anchas podían ampliar el viewport y las listas de Etiquetas/SLA se comprimían en móvil.
+- Arreglo: scroll horizontal local compartido en BaseTable; reutilizar ListCard/InfoChip para las listas móviles de Etiquetas y SLA conservando búsqueda, acciones y confirmación.
+- Verificación: specs focalizados pasan; suites amplias UTC y America/Guayaquil con 199 archivos aprobados y dos fallas ajenas al cambio en formato monetario en ShopifyBilling. Capturas y mediciones de navegador pendientes si el servidor local no está disponible.

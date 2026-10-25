@@ -193,7 +193,10 @@ const handleRetry = () => {
       v-show="showSelectionControl"
       class="absolute top-7 ltr:left-3 rtl:right-3"
     >
-      <Checkbox v-model="modelValue" />
+      <Checkbox
+        v-model="modelValue"
+        :aria-label="$t('GENERAL.ACCESSIBILITY.SELECT_DOCUMENT', { name })"
+      />
     </div>
     <div class="flex gap-1 justify-between w-full">
       <button

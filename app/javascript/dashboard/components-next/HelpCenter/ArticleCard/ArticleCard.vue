@@ -202,7 +202,11 @@ const handleClick = id => {
       v-show="showSelectionControl"
       class="absolute top-7 ltr:left-3 rtl:right-3"
     >
-      <Checkbox :model-value="isSelected" @change="emit('toggleSelect', id)" />
+      <Checkbox
+        :model-value="isSelected"
+        :aria-label="$t('GENERAL.ACCESSIBILITY.SELECT_ARTICLE', { title })"
+        @change="emit('toggleSelect', id)"
+      />
     </div>
     <div class="flex justify-between w-full gap-1">
       <div class="flex items-center gap-2 min-w-0">

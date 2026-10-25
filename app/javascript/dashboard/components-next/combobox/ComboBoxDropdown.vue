@@ -30,6 +30,7 @@ const props = defineProps({
     type: [String, Number, Array],
     default: () => [],
   },
+  searchError: { type: Boolean, default: false },
   loading: {
     type: Boolean,
     default: false,
@@ -47,7 +48,7 @@ const props = defineProps({
   scrollClass: { type: String, default: '' },
 });
 
-const emit = defineEmits(['select', 'search', 'close']);
+const emit = defineEmits(['select', 'search', 'close', 'retry']);
 
 const { t } = useI18n();
 
@@ -128,10 +129,11 @@ defineExpose({
     ref="menu"
     data-combobox-dropdown
     :dir="portalDirection"
-    class="w-full [&_button:disabled]:h-auto [&_button:disabled]:min-h-8"
+    :aria-busy="loading"
+    class="w-full max-sm:[&_button]:!min-h-11 max-sm:[&_input]:!min-h-11 [&_button:disabled]:h-auto [&_button:disabled]:min-h-8"
     :class="portal ? '' : placement"
-    :menu-items="groups.length ? [] : menuItems"
-    :menu-sections="menuSections"
+    :menu-items="loading || searchError || groups.length ? [] : menuItems"
+    :menu-sections="loading || searchError ? [] : menuSections"
     :show-search="showSearch"
     :search-value="searchValue"
     :search-placeholder="searchPlaceholder || t('COMBOBOX.SEARCH_PLACEHOLDER')"
@@ -146,7 +148,31 @@ defineExpose({
     @search="onInputSearch"
     @action="emit('select', $event.option)"
     @keydown="onKeydown"
+    @focusout="
+      if (open && !menu.$el.contains($event.relatedTarget))
+        emit('close', false);
+    "
   >
+    <template v-if="loading || searchError" #content>
+      <p v-if="loading" role="status" class="p-2 mb-0 text-sm text-n-slate-11">
+        {{ t('COMBOBOX.SEARCHING') }}
+      </p>
+      <div v-else class="p-2 flex flex-col gap-2">
+        <p
+          role="alert"
+          class="mb-0 text-sm text-n-ruby-11 whitespace-pre-line break-words"
+        >
+          {{ t('COMBOBOX.SEARCH_ERROR') }}
+        </p>
+        <button
+          type="button"
+          class="rounded-lg px-3 py-2 text-sm text-n-slate-12 outline outline-1 outline-n-weak max-sm:!min-h-11"
+          @click="emit('retry')"
+        >
+          {{ t('COMBOBOX.RETRY') }}
+        </button>
+      </div>
+    </template>
     <template v-if="loading" #search-icon>
       <Spinner :size="14" class="absolute top-2 start-5 text-n-slate-11" />
     </template>

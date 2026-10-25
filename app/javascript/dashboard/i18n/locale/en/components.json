@@ -12,7 +12,10 @@
     "EMPTY_SEARCH_RESULTS": "No items found for the search term `{searchTerm}`",
     "EMPTY_STATE": "No results found.",
     "SEARCH_PLACEHOLDER": "Search...",
-    "MORE": "+{count} more"
+    "MORE": "+{count} more",
+    "SEARCHING": "Searching…",
+    "SEARCH_ERROR": "Search failed. Try again.",
+    "RETRY": "Retry"
   },
   "DROPDOWN_MENU": {
     "SEARCH_PLACEHOLDER": "Search...",
@@ -52,7 +55,8 @@
     "MINUTES": "Minutes",
     "HOURS": "Hours",
     "DAYS": "Days",
-    "PLACEHOLDER": "Enter duration"
+    "PLACEHOLDER": "Enter duration",
+    "UNIT": "Duration unit"
   },
   "CHANNEL_SELECTOR": {
     "COMING_SOON": "Coming Soon!"

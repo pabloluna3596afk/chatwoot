@@ -1,6 +1,6 @@
 <script>
 import validations from './helpers/validations';
-import FormInput from 'v3/components/Form/Input.vue';
+import FormInput from 'dashboard/components-next/input/Input.vue';
 import { reactive, defineAsyncComponent } from 'vue';
 import { useVuelidate } from '@vuelidate/core';
 import { useI18n } from 'vue-i18n';
@@ -100,13 +100,13 @@ export default {
       <div class="relative">
         <FormInput
           v-model="state.title"
-          class="!ps-12"
+          class="sm:pb-4 sm:[&>label]:leading-6 sm:[&>label]:mb-0"
+          custom-input-class="!ps-12 !rounded-md"
           name="title"
-          spacing="compact"
           :label="$t('TEAMS_SETTINGS.FORM.NAME.LABEL')"
           :placeholder="$t('TEAMS_SETTINGS.FORM.NAME.PLACEHOLDER')"
-          :has-error="v$.title.$error"
-          :error-message="v$.title.$error ? v$.title.$errors[0].$message : ''"
+          :message-type="v$.title.$error ? 'error' : 'info'"
+          :message="v$.title.$error ? v$.title.$errors[0].$message : ''"
           @blur="v$.title.$touch"
         />
         <div class="absolute top-[1.75rem] start-0">
@@ -151,12 +151,13 @@ export default {
       </div>
       <FormInput
         v-model="state.description"
+        class="sm:pb-4 sm:[&>label]:leading-6 sm:[&>label]:mb-0"
+        custom-input-class="!rounded-md"
         name="description"
-        spacing="compact"
         :label="$t('TEAMS_SETTINGS.FORM.DESCRIPTION.LABEL')"
         :placeholder="$t('TEAMS_SETTINGS.FORM.DESCRIPTION.PLACEHOLDER')"
-        :has-error="v$.description.$error"
-        :error-message="
+        :message-type="v$.description.$error ? 'error' : 'info'"
+        :message="
           v$.description.$error ? v$.description.$errors[0].$message : ''
         "
         @blur="v$.description.$touch"

@@ -88,6 +88,7 @@ const headers = computed(() => [
           :model-value="allAgentsSelected"
           :indeterminate="someAgentsSelected"
           :title="$t('TEAMS_SETTINGS.AGENTS.SELECT_ALL')"
+          :aria-label="$t('TEAMS_SETTINGS.AGENTS.SELECT_ALL')"
           @change="toggleSelectAll"
         />
       </div>
@@ -100,6 +101,9 @@ const headers = computed(() => [
             <div class="flex items-center">
               <Checkbox
                 :model-value="isAgentSelected(agent.id)"
+                :aria-label="
+                  $t('GENERAL.ACCESSIBILITY.SELECT_AGENT', { name: agent.name })
+                "
                 @change="() => handleSelectAgent(agent.id)"
               />
             </div>

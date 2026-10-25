@@ -315,6 +315,11 @@ const selectTab = tab => {
               >
                 <Checkbox
                   :model-value="includedScenarioIdSet.has(scenario.id)"
+                  :aria-label="
+                    $t('GENERAL.ACCESSIBILITY.SELECT_SCENARIO', {
+                      title: scenario.title,
+                    })
+                  "
                   class="mt-0.5 shrink-0"
                   @update:model-value="session.toggleScenario(scenario.id)"
                 />
@@ -434,6 +439,11 @@ const selectTab = tab => {
               >
                 <Checkbox
                   :model-value="rule.included"
+                  :aria-label="
+                    $t('GENERAL.ACCESSIBILITY.SELECT_RULE', {
+                      content: rule.content,
+                    })
+                  "
                   class="mt-0.5 shrink-0"
                   @update:model-value="toggleRule(rule)"
                 />

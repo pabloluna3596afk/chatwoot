@@ -174,7 +174,14 @@ watch(
             :style="{ width: `${size}px`, height: `${size}px` }"
             @click.stop
           >
-            <Checkbox v-model="selectedModel" />
+            <Checkbox
+              v-model="selectedModel"
+              :aria-label="
+                $t('GENERAL.ACCESSIBILITY.SELECT_CONVERSATION', {
+                  name: currentContact.name,
+                })
+              "
+            />
           </label>
         </template>
       </Avatar>
