@@ -116,118 +116,115 @@ const handleRowClick = campaign => {
   <div
     class="w-full overflow-hidden border rounded-xl border-n-weak bg-n-solid-1"
   >
-    <div
-      class="overflow-x-auto [&_th:first-child]:ps-5 [&_td:first-child]:ps-5 [&_th:last-child]:pe-5 [&_td:last-child]:pe-5 [&_thead]:bg-n-surface-2 [&_thead_th]:py-3 [&_thead_th]:text-xs [&_thead_th]:font-semibold [&_thead_th]:tracking-wide [&_thead_th]:uppercase [&_thead_th]:text-n-slate-11 [&_thead_th]:border-b [&_thead_th]:border-n-weak [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-n-alpha-1"
+    <BaseTable
+      class="[&_th:first-child]:ps-5 [&_td:first-child]:ps-5 [&_th:last-child]:pe-5 [&_td:last-child]:pe-5 [&_thead]:bg-n-surface-2 [&_thead_th]:py-3 [&_thead_th]:text-xs [&_thead_th]:font-semibold [&_thead_th]:tracking-wide [&_thead_th]:uppercase [&_thead_th]:text-n-slate-11 [&_thead_th]:border-b [&_thead_th]:border-n-weak [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-n-alpha-1"
+      :headers="headers"
+      :items="props.campaigns"
+      :no-data-message="emptyMessage"
     >
-      <BaseTable
-        :headers="headers"
-        :items="props.campaigns"
-        :no-data-message="emptyMessage"
-      >
-        <template #row="{ items }">
-          <BaseTableRow
-            v-for="campaign in items"
-            :key="campaign.id"
-            :item="campaign"
-            class="cursor-pointer"
-            @click="handleRowClick(campaign)"
-          >
-            <BaseTableCell>
-              <span
-                class="block max-w-xs font-medium truncate text-body-main text-n-slate-12"
-              >
-                {{ campaign.title }}
-              </span>
-            </BaseTableCell>
-            <BaseTableCell class="whitespace-nowrap">
-              <span
-                class="inline-flex items-center h-6 px-2 text-xs font-medium rounded-md"
-                :class="statusClass(campaign.campaign_status)"
-              >
-                {{ statusLabel(campaign.campaign_status) }}
-              </span>
-            </BaseTableCell>
-            <BaseTableCell>
-              <div
-                v-if="campaign.inbox"
-                class="flex items-center gap-1.5 max-w-[10rem]"
-              >
-                <Icon
-                  :icon="inboxIcon(campaign.inbox)"
-                  class="shrink-0 size-3.5 text-n-slate-12"
-                />
-                <span class="truncate text-body-main text-n-slate-12">{{
-                  campaign.inbox.name
-                }}</span>
-              </div>
-            </BaseTableCell>
-            <BaseTableCell class="whitespace-nowrap">
-              <span
-                class="text-body-main"
-                :class="
-                  campaign.scheduled_at ? 'text-n-slate-11' : 'text-n-slate-10'
-                "
-              >
-                {{ formatDate(campaign.scheduled_at) }}
-              </span>
-            </BaseTableCell>
-            <BaseTableCell align="end" class="whitespace-nowrap tabular-nums">
-              <span
-                class="text-body-main"
-                :class="
-                  campaignAudienceCount(campaign.execution_stats)
-                    ? 'text-n-slate-12'
-                    : 'text-n-slate-10'
-                "
-              >
-                {{ audienceLabel(campaign.execution_stats) }}
-              </span>
-            </BaseTableCell>
-            <BaseTableCell align="end" class="whitespace-nowrap tabular-nums">
-              <span
-                class="text-body-main"
-                :class="
-                  campaignAudienceCount(campaign.execution_stats)
-                    ? 'text-n-slate-12'
-                    : 'text-n-slate-10'
-                "
-              >
-                {{ deliveredLabel(campaign.execution_stats) }}
-              </span>
-            </BaseTableCell>
-            <BaseTableCell align="end" class="w-28" @click.stop>
-              <div class="flex items-center justify-end gap-1">
-                <Button
-                  v-if="showAnalytics(campaign)"
-                  v-tooltip.top="t('CAMPAIGN.WHATSAPP.LIST.VIEW_ANALYTICS')"
-                  variant="faded"
-                  size="sm"
-                  color="blue"
-                  icon="i-lucide-chart-no-axes-column"
-                  @click="emit('analytics', campaign)"
-                />
-                <Button
-                  v-if="showEdit(campaign)"
-                  v-tooltip.top="t('CAMPAIGN.WHATSAPP.LIST.EDIT')"
-                  variant="faded"
-                  size="sm"
-                  color="slate"
-                  icon="i-lucide-pencil"
-                  @click="emit('edit', campaign)"
-                />
-                <Button
-                  v-tooltip.top="t('CAMPAIGN.WHATSAPP.LIST.DELETE')"
-                  variant="faded"
-                  size="sm"
-                  color="ruby"
-                  icon="i-lucide-trash-2"
-                  @click="emit('delete', campaign)"
-                />
-              </div>
-            </BaseTableCell>
-          </BaseTableRow>
-        </template>
-      </BaseTable>
-    </div>
+      <template #row="{ items }">
+        <BaseTableRow
+          v-for="campaign in items"
+          :key="campaign.id"
+          :item="campaign"
+          class="cursor-pointer"
+          @click="handleRowClick(campaign)"
+        >
+          <BaseTableCell>
+            <span
+              class="block max-w-xs font-medium truncate text-body-main text-n-slate-12"
+            >
+              {{ campaign.title }}
+            </span>
+          </BaseTableCell>
+          <BaseTableCell class="whitespace-nowrap">
+            <span
+              class="inline-flex items-center h-6 px-2 text-xs font-medium rounded-md"
+              :class="statusClass(campaign.campaign_status)"
+            >
+              {{ statusLabel(campaign.campaign_status) }}
+            </span>
+          </BaseTableCell>
+          <BaseTableCell>
+            <div
+              v-if="campaign.inbox"
+              class="flex items-center gap-1.5 max-w-[10rem]"
+            >
+              <Icon
+                :icon="inboxIcon(campaign.inbox)"
+                class="shrink-0 size-3.5 text-n-slate-12"
+              />
+              <span class="truncate text-body-main text-n-slate-12">{{
+                campaign.inbox.name
+              }}</span>
+            </div>
+          </BaseTableCell>
+          <BaseTableCell class="whitespace-nowrap">
+            <span
+              class="text-body-main"
+              :class="
+                campaign.scheduled_at ? 'text-n-slate-11' : 'text-n-slate-10'
+              "
+            >
+              {{ formatDate(campaign.scheduled_at) }}
+            </span>
+          </BaseTableCell>
+          <BaseTableCell align="end" class="whitespace-nowrap tabular-nums">
+            <span
+              class="text-body-main"
+              :class="
+                campaignAudienceCount(campaign.execution_stats)
+                  ? 'text-n-slate-12'
+                  : 'text-n-slate-10'
+              "
+            >
+              {{ audienceLabel(campaign.execution_stats) }}
+            </span>
+          </BaseTableCell>
+          <BaseTableCell align="end" class="whitespace-nowrap tabular-nums">
+            <span
+              class="text-body-main"
+              :class="
+                campaignAudienceCount(campaign.execution_stats)
+                  ? 'text-n-slate-12'
+                  : 'text-n-slate-10'
+              "
+            >
+              {{ deliveredLabel(campaign.execution_stats) }}
+            </span>
+          </BaseTableCell>
+          <BaseTableCell align="end" class="w-28" @click.stop>
+            <div class="flex items-center justify-end gap-1">
+              <Button
+                v-if="showAnalytics(campaign)"
+                v-tooltip.top="t('CAMPAIGN.WHATSAPP.LIST.VIEW_ANALYTICS')"
+                variant="faded"
+                size="sm"
+                color="blue"
+                icon="i-lucide-chart-no-axes-column"
+                @click="emit('analytics', campaign)"
+              />
+              <Button
+                v-if="showEdit(campaign)"
+                v-tooltip.top="t('CAMPAIGN.WHATSAPP.LIST.EDIT')"
+                variant="faded"
+                size="sm"
+                color="slate"
+                icon="i-lucide-pencil"
+                @click="emit('edit', campaign)"
+              />
+              <Button
+                v-tooltip.top="t('CAMPAIGN.WHATSAPP.LIST.DELETE')"
+                variant="faded"
+                size="sm"
+                color="ruby"
+                icon="i-lucide-trash-2"
+                @click="emit('delete', campaign)"
+              />
+            </div>
+          </BaseTableCell>
+        </BaseTableRow>
+      </template>
+    </BaseTable>
   </div>
 </template>

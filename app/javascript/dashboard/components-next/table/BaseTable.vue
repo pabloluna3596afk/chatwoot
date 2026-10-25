@@ -27,7 +27,7 @@ const showHeaders = computed(
 </script>
 
 <template>
-  <div class="w-full">
+  <div class="w-full min-w-0 max-w-full overflow-x-auto" data-table-scroll>
     <table class="min-w-full table-auto divide-y divide-n-weak">
       <thead v-if="showHeaders" class="border-t border-n-weak">
         <tr>

@@ -18,40 +18,38 @@ const emit = defineEmits(['update:page', 'update:pageSize', 'open']);
 
 <template>
   <div>
-    <div class="overflow-x-auto">
-      <BaseTable
-        :headers="['', ...columns.map(column => column.label)]"
-        :items="items"
-      >
-        <template #row>
-          <BaseTableRow
-            v-for="item in items"
-            :key="item.key || item.id"
-            :item="item"
-            tabindex="0"
-            class="cursor-pointer hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-n-brand"
-            @click="emit('open', item)"
-            @keydown.enter.self="emit('open', item)"
-          >
-            <BaseTableCell>
-              <span
-                class="grid size-8 place-items-center rounded-lg border border-n-strong bg-n-alpha-2"
-              >
-                <ChannelIcon
-                  :inbox="{ channel_type: 'Channel::Whatsapp' }"
-                  class="size-5"
-                />
-              </span>
-            </BaseTableCell>
-            <BaseTableCell v-for="column in columns" :key="column.key">
-              <slot :name="column.key" :item="item">
-                {{ item[column.key] }}
-              </slot>
-            </BaseTableCell>
-          </BaseTableRow>
-        </template>
-      </BaseTable>
-    </div>
+    <BaseTable
+      :headers="['', ...columns.map(column => column.label)]"
+      :items="items"
+    >
+      <template #row>
+        <BaseTableRow
+          v-for="item in items"
+          :key="item.key || item.id"
+          :item="item"
+          tabindex="0"
+          class="cursor-pointer hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-n-brand"
+          @click="emit('open', item)"
+          @keydown.enter.self="emit('open', item)"
+        >
+          <BaseTableCell>
+            <span
+              class="grid size-8 place-items-center rounded-lg border border-n-strong bg-n-alpha-2"
+            >
+              <ChannelIcon
+                :inbox="{ channel_type: 'Channel::Whatsapp' }"
+                class="size-5"
+              />
+            </span>
+          </BaseTableCell>
+          <BaseTableCell v-for="column in columns" :key="column.key">
+            <slot :name="column.key" :item="item">
+              {{ item[column.key] }}
+            </slot>
+          </BaseTableCell>
+        </BaseTableRow>
+      </template>
+    </BaseTable>
     <PaginationFooter
       v-if="total"
       :current-page="page"
