@@ -32,7 +32,7 @@ const slas = [
   },
 ];
 
-const mountIndex = dispatch =>
+const mountIndex = (dispatch, records = slas) =>
   shallowMount(Index, {
     global: {
       renderStubDefaultSlot: true,
@@ -65,7 +65,7 @@ const mountIndex = dispatch =>
           getters: {
             'globalConfig/isOnChatwootCloud': false,
             'accounts/isFeatureEnabledonAccount': () => true,
-            'sla/getSLA': slas,
+            'sla/getSLA': records,
             'sla/getUIFlags': { isFetching: false },
             getCurrentUser: { type: 'User' },
             getCurrentAccountId: 5,
@@ -87,7 +87,10 @@ describe('SLA responsive list', () => {
       'delete',
     ]);
     expect(cards[0].text()).toContain('SLA.LIST.BUSINESS_HOURS_ON');
-    expect(cards[0].text()).toContain('FRT');
+    expect(cards[0].text()).toContain('SLA.LIST.TABLE_HEADER.BUSINESS_HOURS');
+    expect(cards[0].text()).toContain('SLA.FORM.FIRST_RESPONSE_TIME.LABEL');
+    expect(cards[0].text()).toContain('SLA.FORM.NEXT_RESPONSE_TIME.LABEL');
+    expect(cards[0].text()).toContain('SLA.FORM.RESOLUTION_TIME.LABEL');
     expect(cards[0].text()).toContain('5m');
     expect(wrapper.getComponent(BaseTable).props('items')).toEqual(slas);
 
@@ -99,6 +102,16 @@ describe('SLA responsive list', () => {
     expect(cards).toHaveLength(1);
     expect(cards[0].props('title')).toBe('Standard');
     expect(wrapper.getComponent(BaseTable).props('items')).toEqual([slas[1]]);
+    wrapper.unmount();
+  });
+
+  it('shows an em dash for empty thresholds', () => {
+    const [sla] = slas;
+    const wrapper = mountIndex(vi.fn().mockResolvedValue(), [
+      { ...sla, first_response_time_threshold: null },
+    ]);
+
+    expect(wrapper.getComponent(ListCard).text()).toContain('—');
     wrapper.unmount();
   });
 

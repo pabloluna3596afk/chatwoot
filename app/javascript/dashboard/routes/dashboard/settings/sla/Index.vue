@@ -132,6 +132,9 @@ export default {
         });
     },
     displayTime(threshold) {
+      if (threshold === null || threshold === undefined || threshold === '') {
+        return '—';
+      }
       const { time, unit } = convertSecondsToTimeUnit(threshold, {
         minute: 'm',
         hour: 'h',
@@ -211,25 +214,27 @@ export default {
             <template #chips>
               <InfoChip
                 :tone="sla.only_during_business_hours ? 'success' : 'neutral'"
+                class="gap-1"
               >
+                <span>{{ $t('SLA.LIST.TABLE_HEADER.BUSINESS_HOURS') }}</span>
                 {{
                   sla.only_during_business_hours
                     ? $t('SLA.LIST.BUSINESS_HOURS_ON')
                     : $t('SLA.LIST.BUSINESS_HOURS_OFF')
                 }}
               </InfoChip>
-              <InfoChip>
-                <span>{{ $t('SLA.LIST.RESPONSE_TYPES.SHORT_HAND.FRT') }}</span>
-                <span>{{
-                  displayTime(sla.first_response_time_threshold)
-                }}</span>
+              <InfoChip class="gap-1">
+                <span>{{ $t('SLA.FORM.FIRST_RESPONSE_TIME.LABEL') }}</span>
+                <span>
+                  {{ displayTime(sla.first_response_time_threshold) }}
+                </span>
               </InfoChip>
-              <InfoChip>
-                <span>{{ $t('SLA.LIST.RESPONSE_TYPES.SHORT_HAND.NRT') }}</span>
+              <InfoChip class="gap-1">
+                <span>{{ $t('SLA.FORM.NEXT_RESPONSE_TIME.LABEL') }}</span>
                 <span>{{ displayTime(sla.next_response_time_threshold) }}</span>
               </InfoChip>
-              <InfoChip>
-                <span>{{ $t('SLA.LIST.RESPONSE_TYPES.SHORT_HAND.RT') }}</span>
+              <InfoChip class="gap-1">
+                <span>{{ $t('SLA.FORM.RESOLUTION_TIME.LABEL') }}</span>
                 <span>{{ displayTime(sla.resolution_time_threshold) }}</span>
               </InfoChip>
             </template>

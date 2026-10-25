@@ -96,6 +96,10 @@ describe('Labels responsive list', () => {
       'edit',
       'delete',
     ]);
+    expect(cards[1].props('menuItems').map(item => item.action)).toEqual([
+      'edit',
+      'delete',
+    ]);
     expect(cards[0].text()).toContain('LABEL_MGMT.FORM.SHOW_ON_SIDEBAR.LABEL');
     expect(cards[1].text()).not.toContain(
       'LABEL_MGMT.FORM.SHOW_ON_SIDEBAR.LABEL'
