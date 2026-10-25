@@ -1,7 +1,6 @@
 import { shallowMount } from '@vue/test-utils';
 import Index from './Index.vue';
 import ListCard from 'dashboard/components-next/ListCard/ListCard.vue';
-import { BaseTable } from 'dashboard/components-next/table';
 
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: key => key }) }));
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
@@ -81,7 +80,7 @@ const mountIndex = dispatch =>
   });
 
 describe('Labels responsive list', () => {
-  it('renders cards and desktop table from the same filtered records', async () => {
+  it('renders ListCards with label data at every breakpoint', async () => {
     const wrapper = mountIndex(vi.fn().mockResolvedValue());
     let cards = wrapper.findAllComponents(ListCard);
     expect(cards.map(card => card.props('title'))).toEqual([
@@ -92,6 +91,7 @@ describe('Labels responsive list', () => {
     expect(cards[0].find('[style]').element.style.backgroundColor).toBe(
       'rgb(18, 52, 86)'
     );
+    expect(cards[0].find('.size-10').exists()).toBe(true);
     expect(cards[0].props('menuItems').map(item => item.action)).toEqual([
       'edit',
       'delete',
@@ -104,8 +104,6 @@ describe('Labels responsive list', () => {
     expect(cards[1].text()).not.toContain(
       'LABEL_MGMT.FORM.SHOW_ON_SIDEBAR.LABEL'
     );
-    expect(wrapper.getComponent(BaseTable).props('items')).toEqual(labels);
-
     await wrapper
       .getComponent({ name: 'BaseSettingsHeader' })
       .vm.$emit('update:searchQuery', 'urgent');
@@ -113,7 +111,9 @@ describe('Labels responsive list', () => {
     cards = wrapper.findAllComponents(ListCard);
     expect(cards).toHaveLength(1);
     expect(cards[0].props('title')).toBe('urgent');
-    expect(wrapper.getComponent(BaseTable).props('items')).toEqual([labels[1]]);
+    expect(
+      wrapper.findAllComponents(ListCard).map(card => card.props('title'))
+    ).toEqual(['urgent']);
     wrapper.unmount();
   });
 

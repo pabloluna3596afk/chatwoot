@@ -63,6 +63,7 @@
     },
     "DUPLICATE": {
       "TOOLTIP": "Duplicate macro",
+      "PROGRESS": "Duplicating macro",
       "API": {
         "SUCCESS_MESSAGE": "Macro duplicated successfully",
         "ERROR_MESSAGE": "Could not duplicate macro. Please try again later"

@@ -2277,6 +2277,24 @@ antes” (recordatorio de cita).
 ayer → dispara; On + fecha hoy → dispara; Before N=3 + fecha hoy+3 → dispara.
 Reglas viejas sin `relative_to` siguen siendo after.
 
+### B-NEW-219 — Etiquetas y Macros con tarjetas de lista adaptables
+
+**Problema:** Etiquetas y Macros cambiaban a tablas o filas de acciones separadas
+en tablet y escritorio, y Macros no conservaba en una sola tarjeta el contexto,
+los permisos y las acciones principales.
+
+**Fix:** ambas pantallas usan `ListCard` en móvil, tablet y escritorio. Las
+etiquetas conservan color, visibilidad, permisos y confirmación de borrado;
+Macros conserva creador, carpeta, visibilidad, filtros, orden, permisos y los
+flujos de edición, duplicación y borrado.
+
+**Archivos:** `settings/labels/Index.vue`, `settings/macros/Index.vue`,
+`settings/macros/MacroListItem.vue`.
+
+**Cómo probar:** abrir Ajustes → Etiquetas y Macros a 390, 768 y 1280 px en tema
+claro y oscuro; buscar una etiqueta larga y una macro con carpeta; probar editar,
+duplicar y borrar, además de las restricciones de macros públicas.
+
 ### B-NEW-50 — Business rules safety: lint + dry-run + kill switch
 
 **Problema:** reglas mal configuradas (AND imposible, categorías vacías, keys
