@@ -7,6 +7,11 @@
 - **Escritorio:** las tablas actuales se mantienen desde `md`; el orden, las columnas y la presentación existente permanecen.
 - **Verificación:** specs de las seis tablas, `ListCard` y reportes en UTC y America/Guayaquil; ESLint sin errores. No se capturó imagen porque no hay navegador disponible en esta sesión; detalle en `tmp/PR-UI-T4.md`.
 - **Archivos:** `reports/components/{CsatTable,SummaryReports,overview/AgentTable,overview/TeamTable,SLA/SLATable}.vue`, `reports/panels/Index.vue`, `components-next/ListCard/ListCard.vue`. Sin cambios de servidor ni migraciones.
+### B-NEW-242 — Specs de reportes y recordatorios aislados de la zona horaria
+
+- **Causa:** `spec/models/working_hour_spec.rb` cambiaba `Time.zone` a `Australia/Sydney` sin restaurarla. Si el runner reutilizaba el proceso, el offset alteraba el rango esperado por el spec de reportes y el día del `cap_date` comparado por el spec de recordatorios.
+- **Arreglo:** cada spec afectado fija `Time.use_zone('UTC')`; reportes además congela el reloj a una fecha/hora fija. El spec de WorkingHour restaura la zona al terminar cada ejemplo.
+- **Verificación:** revisión estática; RSpec no se ejecutó en este entorno. No se modificó código de producción.
 ### B-NEW-241 — Buscadores con estructura distinta entre módulos (UI-S2)
 
 - **Problema:** los campos de búsqueda independientes tenían lupa, relleno y control de limpieza implementados de forma distinta.

@@ -1,6 +1,8 @@
 require 'rails_helper'
 
 RSpec.describe Calendar::CustomerReminders::Delivery do
+  around { |example| Time.use_zone('UTC') { example.run } }
+
   let(:now) { Time.utc(2030, 1, 14, 15) }
   let(:account) { create(:account, locale: 'es', reporting_timezone: 'UTC', customer_reminders_enabled: true) }
   let(:channel) do

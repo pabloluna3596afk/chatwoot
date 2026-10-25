@@ -3,6 +3,8 @@
 require 'rails_helper'
 
 RSpec.describe WorkingHour do
+  around { |example| Time.use_zone('UTC') { example.run } }
+
   context 'when on monday 10am' do
     before do
       Time.zone = 'UTC'
