@@ -193,8 +193,7 @@ const removeButton = index => {
           </div>
           <NextButton
             xs
-            faded
-            teal
+            intent="secondary"
             icon="i-lucide-plus"
             :label="t('FLOWS.EDIT.ADD_ACTION')"
             :disabled="!canAddAction"
@@ -311,8 +310,7 @@ const removeButton = index => {
             </div>
             <NextButton
               xs
-              faded
-              teal
+              intent="secondary"
               icon="i-lucide-plus"
               :label="t('FLOWS.EDIT.ADD_BUTTON')"
               :disabled="!canAddButton"

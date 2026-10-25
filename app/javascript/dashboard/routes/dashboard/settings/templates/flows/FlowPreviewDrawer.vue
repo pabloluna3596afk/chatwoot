@@ -79,6 +79,7 @@ defineExpose({ open, close });
     </div>
     <template #footer>
       <Button
+        intent="secondary"
         class="w-full"
         icon="i-lucide-pencil"
         :label="t('WHATSAPP_FLOWS.LIST.EDIT')"

@@ -128,6 +128,26 @@ describe('TemplateFormDrawer', () => {
     });
   });
 
+  it('renders Guardar cambios as primary and Agregar variable as secondary', async () => {
+    const wrapper = await mountDrawer();
+    const save = wrapper
+      .findAll('button')
+      .find(button =>
+        button.text().includes('WHATSAPP_TEMPLATE_MGMT.FORM.CREATE')
+      );
+    expect(save.classes()).toContain('bg-n-brand');
+
+    await typeInto(
+      wrapper,
+      'input[placeholder="WHATSAPP_TEMPLATE_MGMT.FORM.CUSTOM_VARIABLE"]',
+      'nombre'
+    );
+    const add = wrapper
+      .findAll('button')
+      .find(button => button.text() === 'WHATSAPP_TEMPLATE_MGMT.FORM.ADD');
+    expect(add.classes()).toContain('bg-n-slate-9/10');
+  });
+
   it('shows the Meta rules and says why media headers are missing when the channel cannot upload examples', async () => {
     const wrapper = await mountDrawer();
 
