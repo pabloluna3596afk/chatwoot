@@ -1,5 +1,12 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-241 — Buscadores con estructura distinta entre módulos (UI-S2)
+
+- **Problema:** los campos de búsqueda independientes tenían lupa, relleno y control de limpieza implementados de forma distinta.
+- **Arreglo:** 20 consumidores independientes usan `components-next/input/SearchInput.vue`; se conservan modelos, eventos, debounce, foco, placeholder y anchos. Controles compuestos (combobox, dropdown, emoji y búsqueda global) permanecen con su estructura especializada.
+- **Verificación:** `SearchInput.spec.js`, `BaseSettingsHeader.spec.js`, `FlowPublicationPanel.spec.js` y `SendCenter.spec.js`; suites de carpetas consumidoras en UTC y America/Guayaquil; ESLint focalizado. Detalle y límites en `tmp/PR-UI-S2.md`.
+- **Pendiente de evidencia:** no hay servidor Rails/Vite local activo para capturas pareadas; falta ampliar specs de evento/modelo por cada consumidor migrado.
+
 ### B-NEW-238 — Checkbox, pestañas y selección de escenarios por teclado (UI-15)
 
 - **Problema:** atributos accesibles del checkbox no llegaban al input; las pestañas no tenían semántica ni navegación de teclado; selección y expansión de escenarios dependían del puntero.

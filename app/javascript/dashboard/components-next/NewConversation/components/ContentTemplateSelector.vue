@@ -3,9 +3,8 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store';
 
-import Icon from 'dashboard/components-next/icon/Icon.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
-import Input from 'dashboard/components-next/input/Input.vue';
+import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
 import Popover from 'dashboard/components-next/popover/Popover.vue';
 import ContentTemplateForm from './ContentTemplateForm.vue';
 
@@ -83,23 +82,14 @@ const handleSendMessage = (template, hide) => {
         class="flex flex-col gap-2 p-4 items-center w-[21.875rem]"
       >
         <div class="w-full">
-          <Input
+          <SearchInput
             v-model="searchQuery"
-            type="search"
             :placeholder="
               t(
                 'COMPOSE_NEW_CONVERSATION.FORM.TWILIO_OPTIONS.SEARCH_PLACEHOLDER'
               )
             "
-            custom-input-class="ltr:pl-10 rtl:pr-10"
-          >
-            <template #prefix>
-              <Icon
-                icon="i-lucide-search"
-                class="absolute top-2 size-3.5 ltr:left-3 rtl:right-3"
-              />
-            </template>
-          </Input>
+          />
         </div>
         <div
           v-for="template in filteredTemplates"

@@ -319,7 +319,8 @@ describe('unified send center', () => {
     expect(filterRow.findAllComponents(FilterDropdown)).toHaveLength(2);
     expect(filterRow.classes()).toContain('grid-cols-2');
     expect(
-      wrapper.get('[data-testid="center-search"]').element.nextElementSibling
+      wrapper.get('[data-testid="center-search"]').element.parentElement
+        .nextElementSibling
     ).toBe(filterRow.element);
     const filters = wrapper.findAllComponents(FilterDropdown);
     expect(filters.map(filter => filter.get('button').text())).toEqual([
