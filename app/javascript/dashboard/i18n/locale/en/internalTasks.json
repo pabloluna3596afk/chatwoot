@@ -111,6 +111,8 @@
       "TITLE": "Task board",
       "SUBTITLE": "Open and completed work across conversations",
       "EMPTY_COLUMN": "No tasks here",
+      "LOAD_ERROR": "Tasks could not be loaded.",
+      "RETRY": "Retry",
       "COLUMNS": {
         "UNASSIGNED": "Unassigned",
         "PENDING": "Pending",

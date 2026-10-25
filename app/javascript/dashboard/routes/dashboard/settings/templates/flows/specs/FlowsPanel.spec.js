@@ -108,6 +108,35 @@ const mountPanel = async () => {
 };
 
 describe('FlowsPanel', () => {
+  it('shows a persistent first-load error and retries the same request', async () => {
+    WhatsappFlowsAPI.list
+      .mockRejectedValueOnce(new Error('Network unavailable'))
+      .mockResolvedValueOnce({
+        data: {
+          payload: flows,
+          meta: { total_count: 1 },
+          facets: { state: { all: 1 }, category: { all: 1 } },
+        },
+      });
+
+    const wrapper = await mountPanel();
+
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      'Network unavailable'
+    );
+    await wrapper.get('[role="alert"] button').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+    expect(wrapper.findAll('tbody tr')).toHaveLength(1);
+    expect(WhatsappFlowsAPI.list).toHaveBeenCalledTimes(2);
+    expect(WhatsappFlowsAPI.list).toHaveBeenLastCalledWith(
+      { page: 1, per_page: 8 },
+      expect.any(Object)
+    );
+    wrapper.unmount();
+  });
+
   it('shows a skeleton only until the first successful load', async () => {
     let resolve;
     const response = await WhatsappFlowsAPI.list();
