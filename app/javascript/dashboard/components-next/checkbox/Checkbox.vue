@@ -1,4 +1,6 @@
 <script setup>
+import { computed, useAttrs } from 'vue';
+
 defineProps({
   indeterminate: {
     type: Boolean,
@@ -14,6 +16,17 @@ const emit = defineEmits(['change']);
 
 defineOptions({ inheritAttrs: false });
 
+// Naming and form attributes belong to the real input; class, style and data-*
+// stay on the wrapper, as they did before the input received attrs.
+const INPUT_ATTR = /^(id|name|value|required|form|tabindex|autofocus|aria-.+)$/;
+const attrs = useAttrs();
+const inputAttrs = computed(() =>
+  Object.fromEntries(Object.entries(attrs).filter(([k]) => INPUT_ATTR.test(k)))
+);
+const wrapperAttrs = computed(() =>
+  Object.fromEntries(Object.entries(attrs).filter(([k]) => !INPUT_ATTR.test(k)))
+);
+
 const modelValue = defineModel('modelValue', {
   type: Boolean,
   default: false,
@@ -26,9 +39,9 @@ const handleChange = event => {
 </script>
 
 <template>
-  <div class="relative w-4 h-4">
+  <div class="relative w-4 h-4" v-bind="wrapperAttrs">
     <input
-      v-bind="$attrs"
+      v-bind="inputAttrs"
       :checked="modelValue"
       :indeterminate="indeterminate"
       type="checkbox"
