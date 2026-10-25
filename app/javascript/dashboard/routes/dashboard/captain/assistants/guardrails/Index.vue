@@ -16,6 +16,7 @@ import AddNewRulesInput from 'dashboard/components-next/captain/assistant/AddNew
 import AddNewRulesDialog from 'dashboard/components-next/captain/assistant/AddNewRulesDialog.vue';
 import RuleCard from 'dashboard/components-next/captain/assistant/RuleCard.vue';
 import BulkSelectBar from 'dashboard/components-next/captain/assistant/BulkSelectBar.vue';
+import { getSuggestedRules } from '../suggestedRules';
 
 const { t } = useI18n();
 const store = useStore();
@@ -53,23 +54,7 @@ const displayGuardrails = computed(() =>
   guardrailsContent.value.map((c, idx) => ({ id: idx, content: c }))
 );
 
-const guardrailsExample = [
-  {
-    id: 1,
-    content:
-      'Block queries that share or request sensitive personal information (e.g. phone numbers, passwords).',
-  },
-  {
-    id: 2,
-    content:
-      'Reject queries that include offensive, discriminatory, or threatening language.',
-  },
-  {
-    id: 3,
-    content:
-      'Deflect when the assistant is asked for legal or medical diagnosis or treatment.',
-  },
-];
+const guardrailsExample = computed(() => getSuggestedRules(t));
 
 const filteredGuardrails = computed(() => {
   const query = searchQuery.value.trim();
@@ -195,7 +180,9 @@ const addAllExample = async () => {
   isSaving.value = true;
   saveError.value = '';
   try {
-    const exampleContents = guardrailsExample.map(example => example.content);
+    const exampleContents = guardrailsExample.value.map(
+      example => example.content
+    );
     const newGuardrails = [...guardrailsContent.value, ...exampleContents];
     await saveGuardrails(newGuardrails);
     closeSuggestedRules();

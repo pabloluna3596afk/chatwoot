@@ -16,6 +16,7 @@ import AddNewRulesInput from 'dashboard/components-next/captain/assistant/AddNew
 import AddNewRulesDialog from 'dashboard/components-next/captain/assistant/AddNewRulesDialog.vue';
 import RuleCard from 'dashboard/components-next/captain/assistant/RuleCard.vue';
 import BulkSelectBar from 'dashboard/components-next/captain/assistant/BulkSelectBar.vue';
+import { getSuggestedRules } from '../suggestedRules';
 
 const { t } = useI18n();
 const store = useStore();
@@ -53,23 +54,7 @@ const displayGuidelines = computed(() =>
   guidelinesContent.value.map((c, idx) => ({ id: idx, content: c }))
 );
 
-const guidelinesExample = [
-  {
-    id: 1,
-    content:
-      'Block queries that share or request sensitive personal information (e.g. phone numbers, passwords).',
-  },
-  {
-    id: 2,
-    content:
-      'Reject queries that include offensive, discriminatory, or threatening language.',
-  },
-  {
-    id: 3,
-    content:
-      'Deflect when the assistant is asked for legal or medical diagnosis or treatment.',
-  },
-];
+const guidelinesExample = computed(() => getSuggestedRules(t));
 
 const filteredGuidelines = computed(() => {
   const query = searchQuery.value.trim();
@@ -202,7 +187,9 @@ const addAllExample = async () => {
   isSaving.value = true;
   saveError.value = '';
   try {
-    const exampleContents = guidelinesExample.map(example => example.content);
+    const exampleContents = guidelinesExample.value.map(
+      example => example.content
+    );
     const newGuidelines = [...guidelinesContent.value, ...exampleContents];
     await saveGuidelines(newGuidelines);
     closeSuggestedRules();
