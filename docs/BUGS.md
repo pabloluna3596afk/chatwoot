@@ -1,11 +1,11 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
-### B-NEW-246 — Formularios de ajustes Captain adaptados a móvil (UI-CAPTAIN-3)
+### B-NEW-244 — Base móvil de pestañas y cabecera Captain (UI-CAPTAIN-1)
 
-- **Problema:** filas de flujos y plantillas de WhatsApp podían forzar nombres, estados y acciones a una sola línea; checkboxes y el selector de audiencia tenían un área táctil menor a 44 px.
-- **Arreglo:** filas y encabezados de mensajería envuelven en móvil, los estados largos pueden partirse, los checkboxes básicos reciben objetivos de 44 px, y el selector de audiencia crece en móvil. El layout desde `md` conserva su disposición.
-- **Verificación:** en UTC y America/Guayaquil pasaron 35 archivos / 297 tests por corrida; 7 suites no cargaron por el módulo Amplitude ausente pese a usar el `NODE_PATH` indicado. Tests focalizados de Messaging y Audience pasan. ESLint sin errores, con 3 avisos existentes de i18n en Messaging. Detalle en `tmp/PR-UI-CAPTAIN-3.md`.
-- **Alcance:** presentación de los ajustes (el Switch compartido no se toca; su tamaño táctil queda para un PR aparte); sin cambios de lógica, textos, traducciones ni backend.
+- **Problema:** las pestañas de ajustes tenían un objetivo táctil de 36 px y las búsquedas FAQ conservaban 256 px en móvil; la cabecera compartida no podía envolver sus controles estrechos.
+- **Arreglo:** tabs de 44 px bajo `md`, búsquedas FAQ fluidas bajo `sm` y cabecera Captain con grupos flexibles bajo `md`; desde los breakpoints indicados se conservan tamaños de escritorio.
+- **Verificación:** ESLint y `git diff --check` limpios. Suites de Captain/Help Center: 36 archivos y 297 tests pasan en UTC y America/Guayaquil; 7 suites no cargan porque falta `@amplitude/plugin-page-view-tracking-browser`. Sin capturas por instrucción del brief.
+- **Archivos:** `components-next/vertical-tabs/VerticalTabs.vue`, `components-next/captain/PageLayout.vue`, rutas Captain `responses/{Index,FaqSuggestions}.vue`.
 
 ### B-NEW-243 — Tablas de informes legibles en móviles (UI-T4)
 
