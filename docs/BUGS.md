@@ -2,10 +2,10 @@
 
 ### B-NEW-246 — Formularios de ajustes Captain adaptados a móvil (UI-CAPTAIN-3)
 
-- **Problema:** filas de flujos y plantillas de WhatsApp podían forzar nombres, estados y acciones a una sola línea; checkboxes, switches y el selector de audiencia tenían un área táctil menor a 44 px.
-- **Arreglo:** filas y encabezados de mensajería envuelven en móvil, los estados largos pueden partirse, los checkboxes básicos y los switches reciben objetivos de 44 px, y el selector de audiencia crece en móvil. El layout desde `md` conserva su disposición.
-- **Verificación:** en UTC y America/Guayaquil pasaron 35 archivos / 297 tests por corrida; 7 suites no cargaron por el módulo Amplitude ausente pese a usar el `NODE_PATH` indicado. 40 tests focalizados de Messaging, Audience y Switch pasan. ESLint sin errores, con 3 avisos existentes de i18n en Messaging. Detalle en `tmp/PR-UI-CAPTAIN-3.md`.
-- **Alcance:** presentación de los ajustes y objetivo móvil del Switch compartido; sin cambios de lógica, textos, traducciones ni backend.
+- **Problema:** filas de flujos y plantillas de WhatsApp podían forzar nombres, estados y acciones a una sola línea; checkboxes y el selector de audiencia tenían un área táctil menor a 44 px.
+- **Arreglo:** filas y encabezados de mensajería envuelven en móvil, los estados largos pueden partirse, los checkboxes básicos reciben objetivos de 44 px, y el selector de audiencia crece en móvil. El layout desde `md` conserva su disposición.
+- **Verificación:** en UTC y America/Guayaquil pasaron 35 archivos / 297 tests por corrida; 7 suites no cargaron por el módulo Amplitude ausente pese a usar el `NODE_PATH` indicado. Tests focalizados de Messaging y Audience pasan. ESLint sin errores, con 3 avisos existentes de i18n en Messaging. Detalle en `tmp/PR-UI-CAPTAIN-3.md`.
+- **Alcance:** presentación de los ajustes (el Switch compartido no se toca; su tamaño táctil queda para un PR aparte); sin cambios de lógica, textos, traducciones ni backend.
 
 ### B-NEW-243 — Tablas de informes legibles en móviles (UI-T4)
 
