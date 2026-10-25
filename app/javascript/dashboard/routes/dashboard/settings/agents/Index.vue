@@ -9,12 +9,15 @@ import {
   useStore,
   useMapGetter,
 } from 'dashboard/composables/store';
+import { getHelpUrlForFeature } from 'dashboard/helper/featureHelper';
 
 import AddAgent from './AddAgent.vue';
 import EditAgent from './EditAgent.vue';
-import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
-import SettingsLayout from '../SettingsLayout.vue';
+import PageLayout from 'dashboard/components-next/page/PageLayout.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
+import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
+import CustomBrandPolicyWrapper from 'dashboard/components/CustomBrandPolicyWrapper.vue';
+import Icon from 'dashboard/components-next/icon/Icon.vue';
 import ListCard from 'dashboard/components-next/ListCard/ListCard.vue';
 import InfoChip from 'dashboard/components-next/ListCard/InfoChip.vue';
 
@@ -57,6 +60,7 @@ const filteredAgentList = computed(() => {
 const uiFlags = computed(() => getters['agents/getUIFlags'].value);
 const currentUserId = computed(() => getters.getCurrentUserID.value);
 const customRoles = useMapGetter('customRole/getCustomRoles');
+const helpUrl = getHelpUrlForFeature('agents');
 
 onMounted(() => {
   store.dispatch('agents/get');
@@ -189,114 +193,146 @@ const confirmDeletion = () => {
 </script>
 
 <template>
-  <SettingsLayout
-    :is-loading="uiFlags.isFetching"
-    :loading-message="$t('AGENT_MGMT.LOADING')"
-    :no-records-found="!agentList.length"
-    :no-records-message="$t('AGENT_MGMT.LIST.404')"
+  <PageLayout
+    width="settings"
+    :title="$t('AGENT_MGMT.HEADER')"
+    :description="$t('AGENT_MGMT.DESCRIPTION')"
   >
-    <template #header>
-      <BaseSettingsHeader
-        v-model:search-query="searchQuery"
-        :title="$t('AGENT_MGMT.HEADER')"
-        :description="$t('AGENT_MGMT.DESCRIPTION')"
-        :link-text="$t('AGENT_MGMT.LEARN_MORE')"
-        :search-placeholder="$t('AGENT_MGMT.SEARCH_PLACEHOLDER')"
-        feature-name="agents"
+    <template #moreInfo>
+      <CustomBrandPolicyWrapper :show-on-custom-branded-instance="false">
+        <a
+          v-if="helpUrl"
+          :href="helpUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="mb-2 hidden w-fit items-center gap-1 text-sm font-medium text-n-blue-11 hover:underline sm:inline-flex"
+        >
+          {{ $t('AGENT_MGMT.LEARN_MORE') }}
+          <Icon
+            icon="i-lucide-chevron-right"
+            class="size-4 shrink-0 text-n-blue-11"
+          />
+        </a>
+      </CustomBrandPolicyWrapper>
+    </template>
+    <template #toolbar>
+      <div class="flex min-w-0 w-full flex-wrap items-center gap-3 sm:w-auto">
+        <SearchInput
+          v-model="searchQuery"
+          :placeholder="$t('AGENT_MGMT.SEARCH_PLACEHOLDER')"
+          class="w-full sm:w-56"
+          size="sm"
+        />
+      </div>
+      <div
+        class="flex min-w-0 max-w-full flex-row-reverse flex-wrap items-center gap-3 sm:flex-row [&>button]:!h-auto [&>button]:min-h-8 [&>button]:py-1.5 [&>button>span]:whitespace-normal [&>button>span]:break-words"
       >
-        <template v-if="agentList?.length" #count>
+        <template v-if="agentList?.length">
           <span class="text-body-main text-n-slate-11">
             {{ $t('AGENT_MGMT.COUNT', { n: agentList.length }) }}
           </span>
         </template>
-        <template #actions>
-          <Button
-            :label="$t('AGENT_MGMT.HEADER_BTN_TXT')"
-            size="sm"
-            @click="openAddPopup"
-          />
-        </template>
-      </BaseSettingsHeader>
-    </template>
-    <template #body>
-      <span
-        v-if="!filteredAgentList.length && searchQuery"
-        class="flex-1 flex items-center justify-center py-20 text-center text-body-main !text-base text-n-slate-11"
-      >
-        {{ $t('AGENT_MGMT.NO_RESULTS') }}
-      </span>
-      <div v-else class="flex min-w-0 flex-col gap-3">
-        <ListCard
-          v-for="agent in filteredAgentList"
-          :key="agent.id"
-          :title="agent.name"
-          :subtitle="agent.email"
-          :menu-items="getAgentMenuItems(agent)"
-          @action="handleAgentAction(agent, $event)"
-        >
-          <template #avatar>
-            <Avatar :src="agent.thumbnail" :name="agent.name" :size="40">
-              <template #badge>
-                <span
-                  :title="
-                    $t(
-                      `PROFILE_SETTINGS.FORM.AVAILABILITY.STATUS.${agent.availability_status.toUpperCase()}`
-                    )
-                  "
-                  class="absolute bottom-0 end-0 z-20 size-3 rounded-full ring-2 ring-n-solid-2 dark:ring-n-solid-3"
-                  :class="AVAILABILITY_CLASSES[agent.availability_status]"
-                  data-agent-availability
-                />
-              </template>
-            </Avatar>
-          </template>
-          <template #chips>
-            <InfoChip>
-              <span class="truncate" :title="getAgentRoleDescription(agent)">
-                {{ getAgentRoleName(agent) }}
-              </span>
-            </InfoChip>
-            <InfoChip :tone="agent.confirmed ? 'success' : 'warning'">
-              {{
-                $t(
-                  agent.confirmed
-                    ? 'AGENT_MGMT.LIST.VERIFIED'
-                    : 'AGENT_MGMT.LIST.VERIFICATION_PENDING'
-                )
-              }}
-            </InfoChip>
-          </template>
-        </ListCard>
+        <div
+          v-if="agentList?.length"
+          class="hidden h-3 w-px shrink-0 rounded-lg bg-n-weak sm:block sm:ms-1 sm:me-2"
+        />
+        <Button
+          :label="$t('AGENT_MGMT.HEADER_BTN_TXT')"
+          size="sm"
+          @click="openAddPopup"
+        />
       </div>
     </template>
+    <template #default>
+      <div v-if="uiFlags.isFetching" class="flex w-full flex-1">
+        <woot-loading-state :message="$t('AGENT_MGMT.LOADING')" />
+      </div>
+      <p
+        v-else-if="!agentList.length"
+        class="flex flex-1 items-center justify-center py-20 text-base text-n-slate-12"
+      >
+        {{ $t('AGENT_MGMT.LIST.404') }}
+      </p>
+      <template v-else>
+        <span
+          v-if="!filteredAgentList.length && searchQuery"
+          class="flex-1 flex items-center justify-center py-20 text-center text-body-main !text-base text-n-slate-11"
+        >
+          {{ $t('AGENT_MGMT.NO_RESULTS') }}
+        </span>
+        <div v-else class="flex min-w-0 flex-col gap-3">
+          <ListCard
+            v-for="agent in filteredAgentList"
+            :key="agent.id"
+            :title="agent.name"
+            :subtitle="agent.email"
+            :menu-items="getAgentMenuItems(agent)"
+            @action="handleAgentAction(agent, $event)"
+          >
+            <template #avatar>
+              <Avatar :src="agent.thumbnail" :name="agent.name" :size="40">
+                <template #badge>
+                  <span
+                    :title="
+                      $t(
+                        `PROFILE_SETTINGS.FORM.AVAILABILITY.STATUS.${agent.availability_status.toUpperCase()}`
+                      )
+                    "
+                    class="absolute bottom-0 end-0 z-20 size-3 rounded-full ring-2 ring-n-solid-2 dark:ring-n-solid-3"
+                    :class="AVAILABILITY_CLASSES[agent.availability_status]"
+                    data-agent-availability
+                  />
+                </template>
+              </Avatar>
+            </template>
+            <template #chips>
+              <InfoChip>
+                <span class="truncate" :title="getAgentRoleDescription(agent)">
+                  {{ getAgentRoleName(agent) }}
+                </span>
+              </InfoChip>
+              <InfoChip :tone="agent.confirmed ? 'success' : 'warning'">
+                {{
+                  $t(
+                    agent.confirmed
+                      ? 'AGENT_MGMT.LIST.VERIFIED'
+                      : 'AGENT_MGMT.LIST.VERIFICATION_PENDING'
+                  )
+                }}
+              </InfoChip>
+            </template>
+          </ListCard>
+        </div>
+      </template>
 
-    <woot-modal v-model:show="showAddPopup" :on-close="hideAddPopup">
-      <AddAgent @close="hideAddPopup" />
-    </woot-modal>
+      <woot-modal v-model:show="showAddPopup" :on-close="hideAddPopup">
+        <AddAgent @close="hideAddPopup" />
+      </woot-modal>
 
-    <woot-modal v-model:show="showEditPopup" :on-close="hideEditPopup">
-      <EditAgent
-        v-if="showEditPopup"
-        :id="currentAgent.id"
-        :name="currentAgent.name"
-        :provider="currentAgent.provider"
-        :type="currentAgent.role"
-        :email="currentAgent.email"
-        :availability="currentAgent.availability_status"
-        :custom-role-id="currentAgent.custom_role_id"
-        @close="hideEditPopup"
+      <woot-modal v-model:show="showEditPopup" :on-close="hideEditPopup">
+        <EditAgent
+          v-if="showEditPopup"
+          :id="currentAgent.id"
+          :name="currentAgent.name"
+          :provider="currentAgent.provider"
+          :type="currentAgent.role"
+          :email="currentAgent.email"
+          :availability="currentAgent.availability_status"
+          :custom-role-id="currentAgent.custom_role_id"
+          @close="hideEditPopup"
+        />
+      </woot-modal>
+
+      <woot-delete-modal
+        v-model:show="showDeletePopup"
+        :on-close="closeDeletePopup"
+        :on-confirm="confirmDeletion"
+        :title="$t('AGENT_MGMT.DELETE.CONFIRM.TITLE')"
+        :message="$t('AGENT_MGMT.DELETE.CONFIRM.MESSAGE')"
+        :message-value="deleteMessage"
+        :confirm-text="deleteConfirmText"
+        :reject-text="deleteRejectText"
       />
-    </woot-modal>
-
-    <woot-delete-modal
-      v-model:show="showDeletePopup"
-      :on-close="closeDeletePopup"
-      :on-confirm="confirmDeletion"
-      :title="$t('AGENT_MGMT.DELETE.CONFIRM.TITLE')"
-      :message="$t('AGENT_MGMT.DELETE.CONFIRM.MESSAGE')"
-      :message-value="deleteMessage"
-      :confirm-text="deleteConfirmText"
-      :reject-text="deleteRejectText"
-    />
-  </SettingsLayout>
+    </template>
+  </PageLayout>
 </template>
