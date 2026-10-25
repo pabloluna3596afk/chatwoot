@@ -43,7 +43,9 @@ const mountBoard = () =>
   });
 
 describe('TaskKanban load errors', () => {
-  beforeEach(() => InternalTasksAPI.getTasks.mockReset());
+  beforeEach(() => {
+    InternalTasksAPI.getTasks.mockReset();
+  });
 
   it('shows a retry block after a failed initial load and recovers', async () => {
     InternalTasksAPI.getTasks
