@@ -331,11 +331,14 @@ describe('WhatsApp onboarding', () => {
       await flushPromises();
       if (result !== 'unavailable')
         expect(writeText).toHaveBeenCalledExactlyOnceWith(window.location.href);
-      expect(useAlert).toHaveBeenCalledExactlyOnceWith(
+      expect(
+        wrapper.get('details [role="alert"], details [role="status"]').text()
+      ).toContain(
         es.ONBOARDING_WHATSAPP.MOBILE[
           result === 'success' ? 'COPIED' : 'COPY_ERROR'
         ]
       );
+      expect(useAlert).not.toHaveBeenCalled();
     }
   );
 

@@ -471,7 +471,6 @@ const loadExisting = async () => {
     }));
   } catch {
     loadFailed.value = true;
-    useAlert(t('REPORT_PANELS.ERRORS.LOAD'));
   }
 };
 
@@ -852,7 +851,6 @@ onMounted(async () => {
     ready.value = !loadFailed.value;
   } catch {
     loadFailed.value = true;
-    useAlert(t('REPORT_PANELS.ERRORS.LOAD'));
   } finally {
     loading.value = false;
   }

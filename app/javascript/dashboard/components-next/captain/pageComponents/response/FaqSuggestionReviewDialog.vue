@@ -62,9 +62,6 @@ const loadDetails = async () => {
     if (response) details.value = response.data;
   } catch (error) {
     detailsError.value = true;
-    useAlert(
-      error?.message || t('CAPTAIN.FAQ_SUGGESTIONS.ERRORS.LOAD_DETAILS')
-    );
   }
 };
 

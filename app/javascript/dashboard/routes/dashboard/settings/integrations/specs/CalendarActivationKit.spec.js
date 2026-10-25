@@ -269,9 +269,7 @@ describe('CalendarActivationKit', () => {
     expect(wrapper.get('[role="alert"]').text()).toContain(
       es.CALENDAR_ACTIVATION_KIT.LOAD_ERROR
     );
-    expect(useAlert).toHaveBeenCalledWith(
-      es.CALENDAR_ACTIVATION_KIT.LOAD_ERROR
-    );
+    expect(useAlert).not.toHaveBeenCalled();
   });
 
   it('has the same keys in Spanish and English', () => {

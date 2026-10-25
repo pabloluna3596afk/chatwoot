@@ -314,7 +314,7 @@ it.each(['This scenario is in use', ''])(
     expect(wrapper.get('[role="alert"]').text()).toBe(
       message || integrations.CAPTAIN.ASSISTANTS.SCENARIOS.API.DELETE.ERROR
     );
-    expect(mocks.alert).toHaveBeenLastCalledWith(wrapper.vm.deleteError);
+    expect(mocks.alert).not.toHaveBeenCalled();
     expect(wrapper.vm.deleteIds).toEqual([2]);
     expect(mocks.close).not.toHaveBeenCalled();
     mocks.dispatch.mockClear().mockResolvedValue(undefined);

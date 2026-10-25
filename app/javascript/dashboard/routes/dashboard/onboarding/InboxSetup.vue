@@ -11,7 +11,7 @@ import { useI18n, Translation as I18nT } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useAccount } from 'dashboard/composables/useAccount';
-import { useAlert, useTrack } from 'dashboard/composables';
+import { useTrack } from 'dashboard/composables';
 import { useWhatsappEmbeddedSignup } from 'dashboard/composables/useWhatsappEmbeddedSignup';
 import { ONBOARDING_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
@@ -107,11 +107,9 @@ const copyLink = async () => {
     await navigator.clipboard.writeText(window.location.href);
     copyFailed.value = false;
     copyStatus.value = t('ONBOARDING_WHATSAPP.MOBILE.COPIED');
-    useAlert(copyStatus.value);
   } catch {
     copyFailed.value = true;
     copyStatus.value = t('ONBOARDING_WHATSAPP.MOBILE.COPY_ERROR');
-    useAlert(copyStatus.value);
   } finally {
     isCopying.value = false;
   }

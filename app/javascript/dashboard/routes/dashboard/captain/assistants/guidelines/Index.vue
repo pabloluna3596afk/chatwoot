@@ -147,7 +147,6 @@ const addGuideline = async content => {
     saveError.value =
       error.message ||
       t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.ADD.ERROR');
-    useAlert(saveError.value);
     return false;
   } finally {
     isSaving.value = false;
@@ -168,7 +167,6 @@ const editGuideline = async ({ id, content }) => {
     saveError.value =
       error.message ||
       t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.UPDATE.ERROR');
-    useAlert(saveError.value);
     return false;
   } finally {
     isSaving.value = false;
@@ -193,7 +191,6 @@ const bulkDeleteGuidelines = async () => {
     saveError.value =
       error.message ||
       t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.DELETE.ERROR');
-    useAlert(saveError.value);
     return false;
   } finally {
     isSaving.value = false;
@@ -215,7 +212,6 @@ const addAllExample = async () => {
     saveError.value =
       error.message ||
       t('CAPTAIN.ASSISTANTS.RESPONSE_GUIDELINES.API.ADD.ERROR');
-    useAlert(saveError.value);
     return false;
   } finally {
     isSaving.value = false;

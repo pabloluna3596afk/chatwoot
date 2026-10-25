@@ -142,7 +142,6 @@ const addGuardrail = async content => {
   } catch (error) {
     saveError.value =
       error.message || t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.ADD.ERROR');
-    useAlert(saveError.value);
     return false;
   } finally {
     isSaving.value = false;
@@ -162,7 +161,6 @@ const editGuardrail = async ({ id, content }) => {
   } catch (error) {
     saveError.value =
       error.message || t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.UPDATE.ERROR');
-    useAlert(saveError.value);
     return false;
   } finally {
     isSaving.value = false;
@@ -186,7 +184,6 @@ const bulkDeleteGuardrails = async () => {
   } catch (error) {
     saveError.value =
       error.message || t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.DELETE.ERROR');
-    useAlert(saveError.value);
     return false;
   } finally {
     isSaving.value = false;
@@ -207,7 +204,6 @@ const addAllExample = async () => {
   } catch (error) {
     saveError.value =
       error.message || t('CAPTAIN.ASSISTANTS.GUARDRAILS.API.ADD.ERROR');
-    useAlert(saveError.value);
     return false;
   } finally {
     isSaving.value = false;
