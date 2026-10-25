@@ -13,6 +13,8 @@ import Spinner from 'shared/components/Spinner.vue';
 import EmptyState from 'dashboard/components/widgets/EmptyState.vue';
 import Table from 'dashboard/components/table/Table.vue';
 import Pagination from 'dashboard/components/table/Pagination.vue';
+import ListCard from 'dashboard/components-next/ListCard/ListCard.vue';
+import InfoChip from 'dashboard/components-next/ListCard/InfoChip.vue';
 
 const { teams, teamMetrics } = defineProps({
   teams: {
@@ -116,7 +118,30 @@ const table = useVueTable({
 
 <template>
   <div class="flex flex-col flex-1">
-    <Table :table="table" class="max-h-[calc(100vh-21.875rem)]" />
+    <Table
+      :table="table"
+      class="hidden md:block max-h-[calc(100vh-21.875rem)]"
+    />
+    <div class="flex flex-col gap-3 md:hidden">
+      <ListCard
+        v-for="row in table.getRowModel().rows"
+        :key="row.id"
+        :title="row.original.agent"
+      >
+        <template #chips>
+          <InfoChip>
+            {{ t('OVERVIEW_REPORTS.TEAM_CONVERSATIONS.TABLE_HEADER.OPEN') }}
+            {{ row.original.open }}
+          </InfoChip>
+          <InfoChip>
+            {{
+              t('OVERVIEW_REPORTS.TEAM_CONVERSATIONS.TABLE_HEADER.UNATTENDED')
+            }}
+            {{ row.original.unattended }}
+          </InfoChip>
+        </template>
+      </ListCard>
+    </div>
     <Pagination
       class="mt-2"
       :table="table"

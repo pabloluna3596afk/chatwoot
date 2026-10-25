@@ -18,6 +18,8 @@ import SummaryReportLink from './SummaryReportLink.vue';
 import ReportHelpLabel from './ReportHelpLabel.vue';
 import { useStatusLabel } from 'dashboard/composables/useStatusLabel';
 import { useAccount } from 'dashboard/composables/useAccount';
+import ListCard from 'dashboard/components-next/ListCard/ListCard.vue';
+import InfoChip from 'dashboard/components-next/ListCard/InfoChip.vue';
 
 const props = defineProps({
   type: {
@@ -231,6 +233,9 @@ const columns = computed(() => [
     cell: info => displayCell(info.row.original.resolutionsCountDisplay),
   }),
 ]);
+const nameColumnLabel = computed(
+  () => columns.value.find(column => column.accessorKey === 'name')?.header
+);
 
 const fetchReportsWithRetry = async () => {
   const params = {
@@ -318,8 +323,72 @@ defineExpose({ downloadReports });
     :disabled="isLoading"
     @filter-change="onFilterChange"
   />
+  <div class="mt-5 flex flex-col gap-3 md:hidden">
+    <label class="sr-only" for="summary-report-sort">
+      {{ t('SETTINGS.SORT_BY') }}
+    </label>
+    <select
+      id="summary-report-sort"
+      class="min-h-11 rounded-lg border border-n-weak bg-n-solid-2 px-3 text-body-main text-n-slate-12"
+      :value="table.getState().sorting[0]?.id || 'conversationsCount'"
+      @change="table.setSorting([{ id: $event.target.value, desc: false }])"
+    >
+      <option value="rank">{{ t('SUMMARY_REPORTS.RANK') }}</option>
+      <option value="name">
+        {{ nameColumnLabel }}
+      </option>
+      <option value="conversationsCount">
+        {{ t('SUMMARY_REPORTS.CONVERSATIONS') }}
+      </option>
+      <option value="sharePercent">{{ t('SUMMARY_REPORTS.SHARE') }}</option>
+      <option value="avgFirstResponseTime">
+        {{ t('SUMMARY_REPORTS.AVG_FIRST_RESPONSE_TIME') }}
+      </option>
+      <option value="avgResolutionTime">
+        {{ t('SUMMARY_REPORTS.AVG_RESOLUTION_TIME') }}
+      </option>
+      <option value="avgReplyTime">
+        {{ t('SUMMARY_REPORTS.AVG_REPLY_TIME') }}
+      </option>
+      <option value="resolutionsCount">{{ getResolutionCountLabel() }}</option>
+    </select>
+    <ListCard
+      v-for="row in table.getRowModel().rows"
+      :key="row.original.id"
+      :title="row.original.name"
+      :subtitle="`${t('SUMMARY_REPORTS.RANK')} ${row.original.rank}`"
+    >
+      <template #title><SummaryReportLink :row="row" /></template>
+      <template #chips>
+        <InfoChip>
+          {{ t('SUMMARY_REPORTS.CONVERSATIONS') }}
+          {{ row.original.conversationsCountDisplay }}
+        </InfoChip>
+        <InfoChip>
+          {{ t('SUMMARY_REPORTS.SHARE') }}
+          {{ row.original.sharePercentDisplay }}
+        </InfoChip>
+        <InfoChip>
+          {{ t('SUMMARY_REPORTS.AVG_FIRST_RESPONSE_TIME') }}
+          {{ row.original.avgFirstResponseTimeDisplay }}
+        </InfoChip>
+        <InfoChip>
+          {{ t('SUMMARY_REPORTS.AVG_RESOLUTION_TIME') }}
+          {{ row.original.avgResolutionTimeDisplay }}
+        </InfoChip>
+        <InfoChip>
+          {{ t('SUMMARY_REPORTS.AVG_REPLY_TIME') }}
+          {{ row.original.avgReplyTimeDisplay }}
+        </InfoChip>
+        <InfoChip>
+          {{ getResolutionCountLabel() }}
+          {{ row.original.resolutionsCountDisplay }}
+        </InfoChip>
+      </template>
+    </ListCard>
+  </div>
   <div
-    class="relative flex-1 overflow-x-auto overflow-y-auto mt-5 shadow outline-1 outline outline-n-container rounded-xl bg-n-solid-2"
+    class="relative hidden flex-1 overflow-x-auto overflow-y-auto mt-5 shadow outline-1 outline outline-n-container rounded-xl bg-n-solid-2 md:block"
   >
     <Table :table="table" type="relaxed" />
     <Transition

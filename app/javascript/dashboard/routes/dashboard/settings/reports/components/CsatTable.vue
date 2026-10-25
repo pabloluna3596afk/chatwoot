@@ -13,6 +13,9 @@ import CsatContactCell from './CsatContactCell.vue';
 import CsatExpandedRow from './CsatExpandedRow.vue';
 import CsatEmptyState from './CsatEmptyState.vue';
 import CsatTableLoader from './CsatTableLoader.vue';
+import ListCard from 'dashboard/components-next/ListCard/ListCard.vue';
+import InfoChip from 'dashboard/components-next/ListCard/InfoChip.vue';
+import Button from 'dashboard/components-next/button/Button.vue';
 
 import { CSAT_RATINGS } from 'shared/constants/messages';
 
@@ -56,12 +59,17 @@ const toggleRow = id => {
 
 const isRowExpanded = id => !!expandedRows.value[id];
 
+const getRatingData = rating => {
+  return CSAT_RATINGS.find(r => r.value === rating) || {};
+};
+
 const tableData = computed(() => {
   return csatResponses.value.map(response => ({
     id: response.id,
     contact: response.contact,
     assignedAgent: response.assigned_agent,
     rating: response.rating,
+    ratingLabel: t(getRatingData(response.rating).translationKey),
     feedbackText: response.feedback_message || '',
     conversationId: response.conversation_id,
     csatReviewNotes: response.csat_review_notes,
@@ -70,10 +78,6 @@ const tableData = computed(() => {
     _original: response,
   }));
 });
-
-const getRatingData = rating => {
-  return CSAT_RATINGS.find(r => r.value === rating) || {};
-};
 
 const columnHelper = createColumnHelper();
 
@@ -144,9 +148,9 @@ const table = useVueTable({
   <div
     class="shadow outline-1 outline outline-n-container rounded-xl bg-n-solid-2 overflow-hidden"
   >
-    <CsatTableLoader v-if="isLoading" />
+    <CsatTableLoader v-if="isLoading" class="hidden md:block" />
 
-    <div v-else-if="tableData.length" class="overflow-x-auto">
+    <div v-else-if="tableData.length" class="hidden md:block overflow-x-auto">
       <table class="w-full">
         <thead class="bg-n-solid-2 border-b border-n-container">
           <tr>
@@ -188,7 +192,7 @@ const table = useVueTable({
                   }"
                 >
                   <span class="text-sm font-medium text-n-slate-12 truncate">
-                    {{ $t(getRatingData(row.rating).translationKey) }}
+                    {{ row.ratingLabel }}
                   </span>
                 </div>
               </td>
@@ -243,6 +247,76 @@ const table = useVueTable({
 
     <CsatEmptyState
       v-else
+      class="hidden md:block"
+      :title="$t('CSAT_REPORTS.NO_RECORDS')"
+      :description="$t('CSAT_REPORTS.NO_RECORDS_DESCRIPTION')"
+    />
+
+    <CsatTableLoader v-if="isLoading" class="md:hidden" />
+    <div v-else-if="tableData.length" class="flex flex-col gap-3 p-3 md:hidden">
+      <ListCard
+        v-for="row in tableData"
+        :key="row.id"
+        :title="row.contact?.name || '—'"
+        :subtitle="row.createdAgo"
+      >
+        <template #title>
+          <a
+            :href="`/app/accounts/${$route.params.accountId}/conversations/${row.conversationId}`"
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            class="text-n-slate-12 hover:underline"
+          >
+            {{ row.contact?.name || '—' }}
+          </a>
+        </template>
+        <template #chips>
+          <InfoChip>
+            {{ $t('CSAT_REPORTS.TABLE.HEADER.RATING') }}
+            {{ row.ratingLabel }}
+          </InfoChip>
+          <InfoChip>
+            {{ $t('CSAT_REPORTS.TABLE.HEADER.HANDLED_BY') }}
+            {{ row.assignedAgent?.name || $t('CSAT_REPORTS.NO_AGENT') }}
+          </InfoChip>
+        </template>
+        <template #after>
+          <div class="mt-3 flex flex-col gap-3">
+            <div class="text-sm text-n-slate-12">
+              <span v-if="!row.feedbackText" class="text-n-slate-10 italic">
+                {{ $t('CSAT_REPORTS.NO_FEEDBACK') }}
+              </span>
+              <ShowMore v-else :text="row.feedbackText" :limit="100" />
+            </div>
+            <Button
+              v-if="showExpandableRows"
+              variant="ghost"
+              size="sm"
+              class="min-h-11 self-start"
+              :icon="
+                isRowExpanded(row.id)
+                  ? 'i-lucide-chevron-up'
+                  : 'i-lucide-chevron-down'
+              "
+              :aria-expanded="isRowExpanded(row.id)"
+              :label="
+                isRowExpanded(row.id)
+                  ? $t('SETTINGS.SHOW_MORE_BLOCK.SHOW_LESS')
+                  : $t('SETTINGS.SHOW_MORE_BLOCK.SHOW_MORE')
+              "
+              @click="toggleRow(row.id)"
+            />
+            <CsatExpandedRow
+              v-if="showExpandableRows && isRowExpanded(row.id)"
+              :response="row._original"
+            />
+          </div>
+        </template>
+      </ListCard>
+    </div>
+    <CsatEmptyState
+      v-else
+      class="md:hidden"
       :title="$t('CSAT_REPORTS.NO_RECORDS')"
       :description="$t('CSAT_REPORTS.NO_RECORDS_DESCRIPTION')"
     />

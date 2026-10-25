@@ -25,7 +25,7 @@ const { t } = useI18n();
       <div class="shrink-0"><slot name="avatar" /></div>
       <div class="min-w-0">
         <h3 :title="title" class="m-0 truncate text-heading-3 text-n-slate-12">
-          {{ title }}
+          <slot name="title">{{ title }}</slot>
         </h3>
         <p
           v-if="subtitle"
@@ -42,6 +42,7 @@ const { t } = useI18n();
         <slot name="chips" />
       </div>
       <MenuPopover
+        v-if="menuItems.length"
         class="col-start-3 row-start-1 shrink-0 -mt-2 md:col-start-4 md:mt-0"
         :menu-items="menuItems"
         :label="t('CONVERSATION.HEADER.MORE_ACTIONS')"
@@ -58,7 +59,6 @@ const { t } = useI18n();
             :aria-label="`${t('CONVERSATION.HEADER.MORE_ACTIONS')}: ${title}`"
             aria-haspopup="dialog"
             :aria-expanded="open"
-            :disabled="!menuItems.length"
             @click="toggle"
           />
         </template>

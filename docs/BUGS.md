@@ -1,5 +1,13 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-241 — Tablas de informes legibles en móviles (UI-T4)
+
+- **Problema:** varias tablas de informes se comprimían o requerían desplazamiento lateral en pantallas pequeñas.
+- **Cambio:** agentes, equipos, resumen, CSAT, SLA y paneles guardados muestran tarjetas móviles reutilizando `ListCard` e `InfoChip`; los datos y acciones disponibles se conservan. Las tablas configurables de panel mantienen su desplazamiento dentro del widget.
+- **Escritorio:** las tablas actuales se mantienen desde `md`; el orden, las columnas y la presentación existente permanecen.
+- **Verificación:** specs de las seis tablas, `ListCard` y reportes en UTC y America/Guayaquil; ESLint sin errores. No se capturó imagen porque no hay navegador disponible en esta sesión; detalle en `tmp/PR-UI-T4.md`.
+- **Archivos:** `reports/components/{CsatTable,SummaryReports,overview/AgentTable,overview/TeamTable,SLA/SLATable}.vue`, `reports/panels/Index.vue`, `components-next/ListCard/ListCard.vue`. Sin cambios de servidor ni migraciones.
+
 ### B-NEW-238 — Checkbox, pestañas y selección de escenarios por teclado (UI-15)
 
 - **Problema:** atributos accesibles del checkbox no llegaban al input; las pestañas no tenían semántica ni navegación de teclado; selección y expansión de escenarios dependían del puntero.
