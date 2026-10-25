@@ -1,5 +1,12 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-244 — Base móvil de pestañas y cabecera Captain (UI-CAPTAIN-1)
+
+- **Problema:** las pestañas de ajustes tenían un objetivo táctil de 36 px y las búsquedas FAQ conservaban 256 px en móvil; la cabecera compartida no podía envolver sus controles estrechos.
+- **Arreglo:** tabs de 44 px bajo `md`, búsquedas FAQ fluidas bajo `sm` y cabecera Captain con grupos flexibles bajo `md`; desde los breakpoints indicados se conservan tamaños de escritorio.
+- **Verificación:** ESLint y `git diff --check` limpios. Suites de Captain/Help Center: 36 archivos y 297 tests pasan en UTC y America/Guayaquil; 7 suites no cargan porque falta `@amplitude/plugin-page-view-tracking-browser`. Sin capturas por instrucción del brief.
+- **Archivos:** `components-next/vertical-tabs/VerticalTabs.vue`, `components-next/captain/PageLayout.vue`, rutas Captain `responses/{Index,FaqSuggestions}.vue`.
+
 ### B-NEW-243 — Tablas de informes legibles en móviles (UI-T4)
 
 - **Problema:** varias tablas de informes se comprimían o requerían desplazamiento lateral en pantallas pequeñas.
