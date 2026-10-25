@@ -3,6 +3,8 @@ import { createI18n } from 'vue-i18n';
 import { nextTick, ref } from 'vue';
 import ScenariosCard from '../ScenariosCard.vue';
 
+vi.mock('@amplitude/analytics-browser', () => ({}));
+
 vi.mock('@vueuse/core', async importOriginal => {
   const original = await importOriginal();
   return {
@@ -89,6 +91,7 @@ const mountCard = () =>
       selectable: true,
       onUpdate: async () => true,
     },
+    attachTo: document.body,
     global: { plugins: [i18n], stubs },
   });
 
@@ -102,6 +105,8 @@ describe('ScenariosCard keyboard access', () => {
     expect(expand.text()).toBe('Show more');
     expect(expand.attributes('aria-expanded')).toBe('false');
     expect(expand.attributes('type')).toBe('button');
+    expect(expand.classes()).toContain('inset-x-0');
+    expect(wrapper.get('#scenario-instruction-7').classes()).toContain('pb-10');
     await expand.trigger('keydown', { key: 'Enter' });
     await expand.trigger('click');
     expect(expand.attributes('aria-expanded')).toBe('true');
@@ -110,6 +115,7 @@ describe('ScenariosCard keyboard access', () => {
     await expand.trigger('keydown', { key: ' ' });
     await expand.trigger('click');
     expect(expand.attributes('aria-expanded')).toBe('false');
+    wrapper.unmount();
   });
 
   it('keeps selection and edit actions named and closes editing on Escape', async () => {
@@ -124,10 +130,14 @@ describe('ScenariosCard keyboard access', () => {
       wrapper.get('button[aria-label="Delete scenario: Refunds"]').exists()
     ).toBe(true);
 
-    await wrapper
-      .get('button[aria-label="Edit scenario: Refunds"]')
-      .trigger('click');
+    const editButton = wrapper.get(
+      'button[aria-label="Edit scenario: Refunds"]'
+    );
+    await editButton.trigger('click');
     expect(wrapper.find('input[aria-label="Title"]').exists()).toBe(true);
+    expect(document.activeElement).toBe(
+      wrapper.get('input[aria-label="Title"]').element
+    );
     const escape = new KeyboardEvent('keydown', {
       key: 'Escape',
       bubbles: true,
@@ -138,5 +148,9 @@ describe('ScenariosCard keyboard access', () => {
     expect(escape.defaultPrevented).toBe(true);
     expect(wrapper.find('input[aria-label="Title"]').exists()).toBe(false);
     expect(wrapper.text()).toContain('Refunds');
+    expect(document.activeElement).toBe(
+      wrapper.get('[data-testid="scenario-edit-button"]').element
+    );
+    wrapper.unmount();
   });
 });

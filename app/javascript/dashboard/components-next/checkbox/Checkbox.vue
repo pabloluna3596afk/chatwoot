@@ -46,7 +46,7 @@ const handleChange = event => {
       :indeterminate="indeterminate"
       type="checkbox"
       :disabled="disabled"
-      class="peer absolute start-1/2 top-1/2 z-10 h-4 w-4 -translate-x-1/2 -translate-y-1/2 appearance-none border-0 bg-transparent focus-visible:ring-2 focus-visible:ring-n-brand focus-visible:ring-offset-1 max-sm:h-11 max-sm:w-11 cursor-pointer disabled:cursor-not-allowed"
+      class="peer absolute start-1/2 top-1/2 z-10 h-4 w-4 ltr:-translate-x-1/2 rtl:translate-x-1/2 -translate-y-1/2 appearance-none border-0 bg-transparent focus-visible:ring-2 focus-visible:ring-n-brand focus-visible:ring-offset-1 max-sm:h-11 max-sm:w-11 cursor-pointer disabled:cursor-not-allowed"
       @change="handleChange"
     />
     <span

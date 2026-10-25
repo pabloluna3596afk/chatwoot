@@ -151,6 +151,9 @@ const handleAvatarHover = isHovered => {
               >
                 <Checkbox
                   :model-value="isSelected"
+                  :aria-label="
+                    t('GENERAL.ACCESSIBILITY.SELECT_CONTACT', { name })
+                  "
                   @change="event => toggleSelect(event.target.checked)"
                 />
               </label>

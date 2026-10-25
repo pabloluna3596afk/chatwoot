@@ -29,6 +29,8 @@ describe('Checkbox', () => {
     expect(input.classes()).toContain('focus-visible:ring-2');
     expect(input.classes()).toContain('max-sm:h-11');
     expect(input.classes()).toContain('max-sm:w-11');
+    expect(input.classes()).toContain('ltr:-translate-x-1/2');
+    expect(input.classes()).toContain('rtl:translate-x-1/2');
   });
 
   it('preserves v-model, indeterminate, disabled and change behavior', async () => {
