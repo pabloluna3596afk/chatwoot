@@ -1,5 +1,11 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-241 — Specs de reportes y recordatorios aislados de la zona horaria
+
+- **Causa:** `spec/models/working_hour_spec.rb` cambiaba `Time.zone` a `Australia/Sydney` sin restaurarla. Si el runner reutilizaba el proceso, el offset alteraba el rango esperado por el spec de reportes y el día del `cap_date` comparado por el spec de recordatorios.
+- **Arreglo:** cada spec afectado fija `Time.use_zone('UTC')`; reportes además congela el reloj a una fecha/hora fija. El spec de WorkingHour restaura la zona al terminar cada ejemplo.
+- **Verificación:** revisión estática; RSpec no se ejecutó en este entorno. No se modificó código de producción.
+
 ### B-NEW-238 — Checkbox, pestañas y selección de escenarios por teclado (UI-15)
 
 - **Problema:** atributos accesibles del checkbox no llegaban al input; las pestañas no tenían semántica ni navegación de teclado; selección y expansión de escenarios dependían del puntero.
