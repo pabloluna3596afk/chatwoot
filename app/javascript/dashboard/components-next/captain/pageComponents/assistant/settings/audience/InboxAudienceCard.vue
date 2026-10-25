@@ -286,7 +286,7 @@ const save = async () => {
         role="radiogroup"
         :aria-label="t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.INBOX.ATTENDS')"
         data-testid="inbox-audience-mode"
-        class="grid h-8 grid-cols-3 gap-0.5 rounded-lg bg-n-alpha-1 p-0.5 max-sm:h-11"
+        class="grid h-8 grid-cols-3 gap-0.5 rounded-lg bg-n-alpha-1 p-0.5 max-sm:h-12"
       >
         <button
           v-for="option in segmentModes"
