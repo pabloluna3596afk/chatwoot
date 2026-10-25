@@ -6,6 +6,8 @@ import Icon from 'dashboard/components-next/icon/Icon.vue';
 import {
   VARIANT_OPTIONS,
   COLOR_OPTIONS,
+  INTENT_OPTIONS,
+  INTENT_STYLES,
   JUSTIFY_OPTIONS,
   SIZE_OPTIONS,
   EXCLUDED_ATTRS,
@@ -22,6 +24,11 @@ const props = defineProps({
     type: String,
     default: null,
     validator: value => COLOR_OPTIONS.includes(value) || value === null,
+  },
+  intent: {
+    type: String,
+    default: null,
+    validator: value => INTENT_OPTIONS.includes(value) || value === null,
   },
   size: {
     type: String,
@@ -41,6 +48,17 @@ const props = defineProps({
 
 const slots = useSlots();
 const attrs = useAttrs();
+const intentStyle = computed(() =>
+  INTENT_OPTIONS.includes(props.intent) ? INTENT_STYLES[props.intent] : null
+);
+const hasStyleOverride = computed(() => {
+  const legacyStyleAttrs = [...VARIANT_OPTIONS, ...COLOR_OPTIONS];
+  return Boolean(
+    props.variant ||
+      props.color ||
+      legacyStyleAttrs.some(name => attrs[name] || attrs[name] === '')
+  );
+});
 
 defineOptions({
   inheritAttrs: false,
@@ -66,6 +84,8 @@ const computedVariant = computed(() => {
   if (attrs.faded || attrs.faded === '') return 'faded';
   if (attrs.link || attrs.link === '') return 'link';
   if (attrs.ghost || attrs.ghost === '') return 'ghost';
+  if (intentStyle.value && !hasStyleOverride.value)
+    return intentStyle.value.variant;
   return 'solid'; // Default variant
 });
 
@@ -76,6 +96,8 @@ const computedColor = computed(() => {
   if (attrs.amber || attrs.amber === '') return 'amber';
   if (attrs.slate || attrs.slate === '') return 'slate';
   if (attrs.teal || attrs.teal === '') return 'teal';
+  if (intentStyle.value && !hasStyleOverride.value)
+    return intentStyle.value.color;
   return 'blue'; // Default color
 });
 
