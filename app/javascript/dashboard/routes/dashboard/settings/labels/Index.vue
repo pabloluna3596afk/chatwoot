@@ -154,7 +154,7 @@ onBeforeMount(() => {
           <template #avatar>
             <span
               :title="label.color"
-              class="size-10 shrink-0 rounded-full border border-n-weak"
+              class="block size-10 shrink-0 rounded-full border border-n-weak"
               :style="{ backgroundColor: label.color }"
               aria-hidden="true"
             />
