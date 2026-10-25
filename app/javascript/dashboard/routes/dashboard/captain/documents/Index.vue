@@ -13,7 +13,7 @@ import DeleteDialog from 'dashboard/components-next/captain/pageComponents/Delet
 import DocumentCard from 'dashboard/components-next/captain/assistant/DocumentCard.vue';
 import DocumentFilter from 'dashboard/components-next/captain/assistant/DocumentFilter.vue';
 import DocumentBulkActions from 'dashboard/components-next/captain/assistant/DocumentBulkActions.vue';
-import Input from 'dashboard/components-next/input/Input.vue';
+import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
 import Policy from 'dashboard/components/policy.vue';
 import PageLayout from 'dashboard/components-next/captain/PageLayout.vue';
 import CaptainPaywall from 'dashboard/components-next/captain/pageComponents/Paywall.vue';
@@ -336,12 +336,11 @@ onUnmounted(() => {
         v-if="bulkSelectedIds.size === 0"
         class="flex gap-3 justify-between w-full items-center"
       >
-        <Input
+        <SearchInput
           v-model="searchQuery"
           :placeholder="$t('CAPTAIN.DOCUMENTS.FILTERS.SEARCH_PLACEHOLDER')"
           class="max-w-64 min-w-0 w-full"
           size="sm"
-          type="search"
           @input="debouncedSearch"
         />
       </div>

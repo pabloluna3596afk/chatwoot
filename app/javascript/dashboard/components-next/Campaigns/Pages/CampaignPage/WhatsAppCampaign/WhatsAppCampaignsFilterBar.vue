@@ -3,8 +3,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Button from 'dashboard/components-next/button/Button.vue';
-import Input from 'dashboard/components-next/input/Input.vue';
-import Icon from 'dashboard/components-next/icon/Icon.vue';
+import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
 import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 
@@ -123,20 +122,12 @@ const handleInboxSelect = ({ value }) => {
     <div class="flex flex-wrap items-center justify-between gap-3">
       <span class="text-sm font-medium text-n-slate-12">{{ countLabel }}</span>
       <div class="flex flex-wrap items-center gap-2">
-        <Input
+        <SearchInput
           v-model="searchQuery"
           :placeholder="t('CAMPAIGN.WHATSAPP.LIST.FILTERS.SEARCH_PLACEHOLDER')"
-          class="group w-56 min-w-0 [&>input]:ltr:!pl-8 [&>input]:rtl:!pr-8 [&>input]:!rounded-[0.625rem]"
+          class="w-56 min-w-0"
           size="sm"
-          type="search"
-        >
-          <template #prefix>
-            <Icon
-              icon="i-lucide-search"
-              class="absolute top-1/2 -translate-y-1/2 text-n-slate-11 group-focus-within:text-n-brand size-3.5 ltr:left-2.5 rtl:right-2.5"
-            />
-          </template>
-        </Input>
+        />
         <MenuPopover
           v-if="showInboxFilter"
           v-model:open="inboxMenuOpen"

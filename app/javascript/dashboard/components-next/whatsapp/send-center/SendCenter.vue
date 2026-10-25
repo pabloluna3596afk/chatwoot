@@ -8,7 +8,7 @@ import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
-import Input from 'dashboard/components-next/input/Input.vue';
+import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import WhatsAppTemplateParser from '../WhatsAppTemplateParser.vue';
@@ -451,9 +451,8 @@ const overlayDescriptionId = useId();
               />
             </div>
 
-            <Input
+            <SearchInput
               v-model="query"
-              type="search"
               size="sm"
               class="w-full shrink-0"
               :placeholder="$t(`${prefix}.SEARCH`)"

@@ -14,7 +14,7 @@ import CaptainPaywall from 'dashboard/components-next/captain/pageComponents/Pay
 import EmptyStateLayout from 'dashboard/components-next/EmptyStateLayout.vue';
 import FaqSuggestionCard from 'dashboard/components-next/captain/assistant/FaqSuggestionCard.vue';
 import FaqSuggestionReviewDialog from 'dashboard/components-next/captain/pageComponents/response/FaqSuggestionReviewDialog.vue';
-import Input from 'dashboard/components-next/input/Input.vue';
+import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
 import PageLayout from 'dashboard/components-next/captain/PageLayout.vue';
 
 const route = useRoute();
@@ -183,12 +183,11 @@ onUnmounted(() => {
     @update:current-page="fetchSuggestions"
   >
     <template #search>
-      <Input
+      <SearchInput
         v-model="searchQuery"
         :placeholder="$t('CAPTAIN.FAQ_SUGGESTIONS.SEARCH_PLACEHOLDER')"
         class="w-64"
         size="sm"
-        type="search"
         autofocus
         @input="handleSearchInput"
       />

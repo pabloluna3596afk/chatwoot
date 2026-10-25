@@ -1,4 +1,5 @@
 <script setup>
+import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store';
@@ -188,17 +189,14 @@ const hasNoUsedAttributes = computed(() => usedAttributes.value.length === 0);
       <div class="flex-1 h-[1px] bg-n-slate-5" />
     </div>
     <div class="flex flex-col gap-3">
-      <div v-if="!hasNoUnusedAttributes" class="relative">
-        <span class="absolute i-lucide-search size-3.5 top-2 left-3" />
-        <input
-          v-model="searchQuery"
-          type="search"
-          :placeholder="
-            t('CONTACTS_LAYOUT.SIDEBAR.ATTRIBUTES.SEARCH_PLACEHOLDER')
-          "
-          class="w-full h-8 py-2 pl-10 pr-2 text-sm reset-base outline-none border-none rounded-lg bg-n-alpha-black2 dark:bg-n-solid-1 text-n-slate-12"
-        />
-      </div>
+      <SearchInput
+        v-if="!hasNoUnusedAttributes"
+        v-model="searchQuery"
+        :placeholder="
+          t('CONTACTS_LAYOUT.SIDEBAR.ATTRIBUTES.SEARCH_PLACEHOLDER')
+        "
+        size="sm"
+      />
       <div
         v-if="filteredUnusedAttributes.length === 0 && !hasNoUnusedAttributes"
         class="flex items-center justify-start h-11"

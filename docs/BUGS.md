@@ -5,6 +5,12 @@
 - **Causa:** `spec/models/working_hour_spec.rb` cambiaba `Time.zone` a `Australia/Sydney` sin restaurarla. Si el runner reutilizaba el proceso, el offset alteraba el rango esperado por el spec de reportes y el día del `cap_date` comparado por el spec de recordatorios.
 - **Arreglo:** cada spec afectado fija `Time.use_zone('UTC')`; reportes además congela el reloj a una fecha/hora fija. El spec de WorkingHour restaura la zona al terminar cada ejemplo.
 - **Verificación:** revisión estática; RSpec no se ejecutó en este entorno. No se modificó código de producción.
+### B-NEW-241 — Buscadores con estructura distinta entre módulos (UI-S2)
+
+- **Problema:** los campos de búsqueda independientes tenían lupa, relleno y control de limpieza implementados de forma distinta.
+- **Arreglo:** 20 consumidores independientes usan `components-next/input/SearchInput.vue`; se conservan modelos, eventos, debounce, foco, placeholder y anchos. Controles compuestos (combobox, dropdown, emoji y búsqueda global) permanecen con su estructura especializada.
+- **Verificación:** `SearchInput.spec.js`, `BaseSettingsHeader.spec.js`, `FlowPublicationPanel.spec.js` y `SendCenter.spec.js`; suites de carpetas consumidoras en UTC y America/Guayaquil; ESLint focalizado. Detalle y límites en `tmp/PR-UI-S2.md`.
+- **Pendiente de evidencia:** no hay servidor Rails/Vite local activo para capturas pareadas; falta ampliar specs de evento/modelo por cada consumidor migrado.
 
 ### B-NEW-238 — Checkbox, pestañas y selección de escenarios por teclado (UI-15)
 
@@ -2282,6 +2288,24 @@ antes” (recordatorio de cita).
 **Cómo probar:** Automations → By time → atributo de fecha. After N=1 + fecha
 ayer → dispara; On + fecha hoy → dispara; Before N=3 + fecha hoy+3 → dispara.
 Reglas viejas sin `relative_to` siguen siendo after.
+
+### B-NEW-219 — Etiquetas y Macros con tarjetas de lista adaptables
+
+**Problema:** Etiquetas y Macros cambiaban a tablas o filas de acciones separadas
+en tablet y escritorio, y Macros no conservaba en una sola tarjeta el contexto,
+los permisos y las acciones principales.
+
+**Fix:** ambas pantallas usan `ListCard` en móvil, tablet y escritorio. Las
+etiquetas conservan color, visibilidad, permisos y confirmación de borrado;
+Macros conserva creador, carpeta, visibilidad, filtros, orden, permisos y los
+flujos de edición, duplicación y borrado.
+
+**Archivos:** `settings/labels/Index.vue`, `settings/macros/Index.vue`,
+`settings/macros/MacroListItem.vue`.
+
+**Cómo probar:** abrir Ajustes → Etiquetas y Macros a 390, 768 y 1280 px en tema
+claro y oscuro; buscar una etiqueta larga y una macro con carpeta; probar editar,
+duplicar y borrar, además de las restricciones de macros públicas.
 
 ### B-NEW-50 — Business rules safety: lint + dry-run + kill switch
 

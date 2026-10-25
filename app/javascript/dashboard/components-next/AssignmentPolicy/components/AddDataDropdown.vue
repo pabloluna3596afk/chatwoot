@@ -7,7 +7,7 @@ import { picoSearch } from '@chatwoot/pico-search';
 import Avatar from 'next/avatar/Avatar.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
-import Input from 'dashboard/components-next/input/Input.vue';
+import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
 
 const props = defineProps({
   label: {
@@ -107,18 +107,7 @@ const handleClickOutside = () => {
       ]"
     >
       <div class="flex flex-col divide-y divide-n-slate-4 w-full">
-        <Input
-          v-model="searchValue"
-          :placeholder="searchPlaceholder"
-          custom-input-class="bg-transparent !outline-none w-full ltr:!pl-10 rtl:!pr-10 h-10"
-        >
-          <template #prefix>
-            <Icon
-              icon="i-lucide-search"
-              class="absolute -translate-y-1/2 text-n-slate-11 size-4 top-1/2 ltr:left-3 rtl:right-3"
-            />
-          </template>
-        </Input>
+        <SearchInput v-model="searchValue" :placeholder="searchPlaceholder" />
 
         <div
           v-for="item in filteredItems"
