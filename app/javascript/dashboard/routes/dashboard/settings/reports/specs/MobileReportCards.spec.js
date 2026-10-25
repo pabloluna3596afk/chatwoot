@@ -1,4 +1,4 @@
-import { defineComponent, ref } from 'vue';
+import { defineComponent, h, ref } from 'vue';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import reportMessages from 'dashboard/i18n/locale/en/report.json';
@@ -27,6 +27,8 @@ vi.mock('dashboard/composables/useUISettings', () => ({
     updateUISettings: vi.fn(),
   }),
 }));
+vi.mock('@amplitude/analytics-browser', () => ({}));
+vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 vi.mock('dashboard/composables/store', () => ({
   useMapGetter: key => {
     const getter = Array.isArray(key) ? key[0] : key;
@@ -71,6 +73,28 @@ const CardStub = defineComponent({
     '<article class="report-card"><h3><slot name="title">{{ $attrs.title }}</slot></h3><p>{{ $attrs.subtitle }}</p><div><slot name="chips" /></div><slot name="after" /></article>',
 });
 const ChipStub = defineComponent({ template: '<span><slot /></span>' });
+const ComboBoxStub = defineComponent({
+  name: 'ComboBox',
+  props: {
+    options: { type: Array, default: () => [] },
+    modelValue: { type: String, default: '' },
+    ariaLabel: { type: String, default: '' },
+  },
+  emits: ['update:modelValue'],
+  setup(props, { emit }) {
+    return () =>
+      h('div', [
+        h('button', { 'aria-label': props.ariaLabel }, props.modelValue),
+        ...props.options.map(option =>
+          h(
+            'button',
+            { onClick: () => emit('update:modelValue', option.value) },
+            option.label
+          )
+        ),
+      ]);
+  },
+});
 const i18n = createI18n({
   legacy: false,
   locale: 'en',
@@ -117,6 +141,7 @@ const i18n = createI18n({
 const stubs = {
   ListCard: CardStub,
   InfoChip: ChipStub,
+  ComboBox: ComboBoxStub,
   Table: true,
   Pagination: true,
   Avatar: true,
@@ -171,7 +196,7 @@ describe('report table mobile cards preserve the rendered metrics', () => {
     });
     expect(agents.find('.report-card').text()).toContain('12');
     expect(agents.find('.report-card').text()).toContain('3');
-    expect(agents.find('[class~="md:block"]').exists()).toBe(true);
+    expect(agents.find('[class~="md:table"]').exists()).toBe(true);
 
     const teams = mountReport(TeamTable, {
       teams: [{ id: 2, name: 'Soporte' }],
@@ -179,11 +204,14 @@ describe('report table mobile cards preserve the rendered metrics', () => {
     });
     expect(teams.find('.report-card').text()).toContain('8');
     expect(teams.find('.report-card').text()).toContain('2');
-    expect(teams.find('[class~="md:block"]').exists()).toBe(true);
+    expect(teams.find('[class~="md:table"]').exists()).toBe(true);
   });
 
   it('renders all summary metrics in their existing formatted units and keeps the report link', async () => {
-    reportState.rows = [{ id: 3, name: 'WhatsApp' }];
+    reportState.rows = [
+      { id: 3, name: 'Zulu' },
+      { id: 4, name: 'Alpha' },
+    ];
     reportState.metrics = [
       {
         id: 3,
@@ -192,6 +220,14 @@ describe('report table mobile cards preserve the rendered metrics', () => {
         avgResolutionTime: 120,
         avgReplyTime: 30,
         resolvedConversationsCount: 5,
+      },
+      {
+        id: 4,
+        conversationsCount: 8,
+        avgFirstResponseTime: 30,
+        avgResolutionTime: 60,
+        avgReplyTime: 10,
+        resolvedConversationsCount: 2,
       },
     ];
     const wrapper = mountReport(SummaryReports, {
@@ -203,13 +239,26 @@ describe('report table mobile cards preserve the rendered metrics', () => {
     });
     await flushPromises();
     const card = wrapper.find('.report-card');
-    expect(card.text()).toContain('WhatsApp');
+    expect(card.text()).toContain('Zulu');
     expect(card.text()).toContain('12');
     expect(card.text()).toContain('5');
     expect(card.text()).toContain('1 Min');
     expect(card.text()).toContain('2 Min');
     expect(card.text()).toContain('30 Sec');
-    expect(wrapper.find('#summary-report-sort').exists()).toBe(true);
+    const cards = wrapper.findAll('.report-card');
+    expect(cards.map(item => item.text()).join(' ')).toMatch(/Zulu.*Alpha/);
+    expect(wrapper.find('select').exists()).toBe(false);
+    const sortPicker = wrapper.findComponent(ComboBoxStub);
+    expect(sortPicker.props('options')).toHaveLength(8);
+    expect(sortPicker.props('ariaLabel')).toBe('Sort by');
+    sortPicker.vm.$emit('update:modelValue', 'name');
+    await flushPromises();
+    expect(
+      wrapper
+        .findAll('.report-card')
+        .map(item => item.text())
+        .join(' ')
+    ).toMatch(/Alpha.*Zulu/);
   });
 
   it('renders CSAT contact, rating, feedback, agent, and preserves expansion affordance', () => {

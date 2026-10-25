@@ -127,7 +127,7 @@ const table = useVueTable({
   <div class="flex flex-col flex-1">
     <Table
       :table="table"
-      class="hidden md:block max-h-[calc(100vh-21.875rem)]"
+      class="hidden md:table max-h-[calc(100vh-21.875rem)]"
     />
     <div class="flex flex-col gap-3 md:hidden">
       <ListCard

@@ -106,12 +106,18 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex items-center justify-between">
-    <div class="flex flex-1 items-center gap-2 justify-between">
-      <p class="text-sm truncate text-n-slate-11 mb-0">
+  <div
+    class="flex items-center justify-between max-md:flex-wrap max-md:gap-y-2 max-md:min-w-0"
+  >
+    <div
+      class="flex flex-1 items-center gap-2 justify-between max-md:w-full max-md:min-w-0 max-md:flex-wrap"
+    >
+      <p
+        class="text-sm truncate text-n-slate-11 mb-0 max-md:whitespace-normal max-md:break-words max-md:overflow-visible max-md:text-clip"
+      >
         {{ $t('REPORT.PAGINATION.RESULTS', { start, end, total }) }}
       </p>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 max-md:min-w-0 max-md:flex-wrap">
         <FilterSelect
           v-if="showPageSizeSelector"
           v-model="currentPageSize"

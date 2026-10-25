@@ -20,6 +20,7 @@ import { useStatusLabel } from 'dashboard/composables/useStatusLabel';
 import { useAccount } from 'dashboard/composables/useAccount';
 import ListCard from 'dashboard/components-next/ListCard/ListCard.vue';
 import InfoChip from 'dashboard/components-next/ListCard/InfoChip.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 
 const props = defineProps({
   type: {
@@ -289,6 +290,30 @@ const table = useVueTable({
   getSortedRowModel: getSortedRowModel(),
 });
 
+const sortOptions = computed(() => [
+  { value: 'rank', label: t('SUMMARY_REPORTS.RANK') },
+  { value: 'name', label: nameColumnLabel.value },
+  {
+    value: 'conversationsCount',
+    label: t('SUMMARY_REPORTS.CONVERSATIONS'),
+  },
+  { value: 'sharePercent', label: t('SUMMARY_REPORTS.SHARE') },
+  {
+    value: 'avgFirstResponseTime',
+    label: t('SUMMARY_REPORTS.AVG_FIRST_RESPONSE_TIME'),
+  },
+  {
+    value: 'avgResolutionTime',
+    label: t('SUMMARY_REPORTS.AVG_RESOLUTION_TIME'),
+  },
+  { value: 'avgReplyTime', label: t('SUMMARY_REPORTS.AVG_REPLY_TIME') },
+  { value: 'resolutionsCount', label: getResolutionCountLabel() },
+]);
+const sortBy = computed({
+  get: () => table.getState().sorting[0]?.id || 'conversationsCount',
+  set: value => table.setSorting([{ id: value, desc: false }]),
+});
+
 const downloadReports = (exportFormat = 'csv') => {
   const dispatchMethods = {
     agent: 'downloadAgentReports',
@@ -324,34 +349,15 @@ defineExpose({ downloadReports });
     @filter-change="onFilterChange"
   />
   <div class="mt-5 flex flex-col gap-3 md:hidden">
-    <label class="sr-only" for="summary-report-sort">
-      {{ t('SETTINGS.SORT_BY') }}
-    </label>
-    <select
+    <ComboBox
       id="summary-report-sort"
-      class="min-h-11 rounded-lg border border-n-weak bg-n-solid-2 px-3 text-body-main text-n-slate-12"
-      :value="table.getState().sorting[0]?.id || 'conversationsCount'"
-      @change="table.setSorting([{ id: $event.target.value, desc: false }])"
-    >
-      <option value="rank">{{ t('SUMMARY_REPORTS.RANK') }}</option>
-      <option value="name">
-        {{ nameColumnLabel }}
-      </option>
-      <option value="conversationsCount">
-        {{ t('SUMMARY_REPORTS.CONVERSATIONS') }}
-      </option>
-      <option value="sharePercent">{{ t('SUMMARY_REPORTS.SHARE') }}</option>
-      <option value="avgFirstResponseTime">
-        {{ t('SUMMARY_REPORTS.AVG_FIRST_RESPONSE_TIME') }}
-      </option>
-      <option value="avgResolutionTime">
-        {{ t('SUMMARY_REPORTS.AVG_RESOLUTION_TIME') }}
-      </option>
-      <option value="avgReplyTime">
-        {{ t('SUMMARY_REPORTS.AVG_REPLY_TIME') }}
-      </option>
-      <option value="resolutionsCount">{{ getResolutionCountLabel() }}</option>
-    </select>
+      v-model="sortBy"
+      :options="sortOptions"
+      :aria-label="t('SETTINGS.SORT_BY')"
+      :allow-deselect="false"
+      class="w-full"
+      trigger-class="max-sm:!min-h-11"
+    />
     <ListCard
       v-for="row in table.getRowModel().rows"
       :key="row.original.id"
