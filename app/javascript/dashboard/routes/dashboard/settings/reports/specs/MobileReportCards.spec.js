@@ -83,6 +83,8 @@ const i18n = createI18n({
       CONVERSATION: { HEADER: { MORE_ACTIONS: 'More actions' } },
       SETTINGS: {
         SORT_BY: 'Sort by',
+      },
+      COMPONENTS: {
         SHOW_MORE_BLOCK: { SHOW_MORE: 'Show more', SHOW_LESS: 'Show less' },
       },
       REPORT_PANELS: {

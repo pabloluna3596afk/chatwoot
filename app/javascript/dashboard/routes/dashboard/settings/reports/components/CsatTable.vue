@@ -301,8 +301,8 @@ const table = useVueTable({
               :aria-expanded="isRowExpanded(row.id)"
               :label="
                 isRowExpanded(row.id)
-                  ? $t('SETTINGS.SHOW_MORE_BLOCK.SHOW_LESS')
-                  : $t('SETTINGS.SHOW_MORE_BLOCK.SHOW_MORE')
+                  ? $t('COMPONENTS.SHOW_MORE_BLOCK.SHOW_LESS')
+                  : $t('COMPONENTS.SHOW_MORE_BLOCK.SHOW_MORE')
               "
               @click="toggleRow(row.id)"
             />
