@@ -115,7 +115,6 @@ const load = async () => {
     loadFailed.value = false;
   } catch {
     loadFailed.value = true;
-    useAlert(t('CALENDAR_ACTIVATION_KIT.LOAD_ERROR'));
   } finally {
     loading.value = false;
   }

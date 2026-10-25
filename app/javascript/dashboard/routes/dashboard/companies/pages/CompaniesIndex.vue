@@ -6,10 +6,12 @@ import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAlert } from 'dashboard/composables';
 import { debounce } from '@chatwoot/utils';
 import { useCompaniesStore } from 'dashboard/stores/companies';
+import { parseAPIErrorResponse } from 'dashboard/store/utils/api';
 
 import CompaniesListLayout from 'dashboard/components-next/Companies/CompaniesListLayout.vue';
 import CompaniesCard from 'dashboard/components-next/Companies/CompaniesCard/CompaniesCard.vue';
 import CompanyCreateDialog from 'dashboard/components-next/Companies/CompanyCreateDialog.vue';
+import LoadErrorNotice from 'dashboard/components-next/LoadErrorNotice.vue';
 
 const DEFAULT_SORT_FIELD = 'name';
 const DEBOUNCE_DELAY = 300;
@@ -30,6 +32,9 @@ const searchQuery = computed(() => route.query?.search || '');
 const searchValue = ref(searchQuery.value);
 const createCompanyDialogRef = ref(null);
 const pageNumber = computed(() => Number(route.query?.page) || 1);
+const loadError = ref('');
+const hasLoadError = ref(false);
+const hasLoaded = ref(false);
 
 const parseSortSettings = (sortString = '') => {
   const hasDescending = sortString.startsWith('-');
@@ -92,17 +97,25 @@ const fetchCompanies = async (page, search, sort) => {
     updateURLParams(currentPage, currentSearch, currentSort);
   }
 
-  if (currentSearch) {
-    await companiesStore.search({
-      search: currentSearch,
-      page: currentPage,
-      sort: currentSort,
-    });
-  } else {
-    await companiesStore.get({
-      page: currentPage,
-      sort: currentSort,
-    });
+  try {
+    if (currentSearch) {
+      await companiesStore.search({
+        search: currentSearch,
+        page: currentPage,
+        sort: currentSort,
+      });
+    } else {
+      await companiesStore.get({
+        page: currentPage,
+        sort: currentSort,
+      });
+    }
+    hasLoaded.value = true;
+    loadError.value = '';
+    hasLoadError.value = false;
+  } catch (error) {
+    loadError.value = parseAPIErrorResponse(error);
+    hasLoadError.value = true;
   }
 };
 
@@ -176,31 +189,57 @@ onMounted(() => {
     @search="onSearch"
     @create="openCreateCompanyDialog"
   >
-    <div v-if="isFetchingList" class="flex items-center justify-center p-8">
-      <span class="text-n-slate-11 text-base">{{
-        t('COMPANIES.LOADING')
-      }}</span>
-    </div>
-    <div
-      v-else-if="companies.length === 0"
-      class="flex items-center justify-center p-8"
-    >
-      <span class="text-n-slate-11 text-base">{{
-        t('COMPANIES.EMPTY_STATE.TITLE')
-      }}</span>
-    </div>
-    <div v-else class="flex flex-col gap-4">
-      <CompaniesCard
-        v-for="company in companies"
-        :id="company.id"
-        :key="company.id"
-        :name="company.name"
-        :domain="company.domain"
-        :contacts-count="company.contactsCount || 0"
-        :avatar-url="company.avatarUrl"
-        :last-activity-at="company.lastActivityAt"
-        @show-company="showCompany"
+    <div data-testid="companies-content" :aria-busy="isFetchingList">
+      <div
+        v-if="isFetchingList && !hasLoaded && !hasLoadError"
+        class="flex items-center justify-center p-8"
+        aria-hidden="true"
+        inert
+      >
+        <span class="text-n-slate-11 text-base">{{
+          t('COMPANIES.LOADING')
+        }}</span>
+      </div>
+      <LoadErrorNotice
+        v-else-if="hasLoadError && !hasLoaded"
+        :title="t('COMPANIES.LOAD_ERROR')"
+        :message="loadError"
+        :retry-label="t('INTERNAL_TASKS.KANBAN.RETRY')"
+        :retrying="isFetchingList"
+        @retry="fetchCompanies()"
       />
+      <div v-else>
+        <LoadErrorNotice
+          v-if="hasLoadError"
+          compact
+          :title="t('COMPANIES.LOAD_ERROR')"
+          :message="loadError"
+          :retry-label="t('INTERNAL_TASKS.KANBAN.RETRY')"
+          :retrying="isFetchingList"
+          @retry="fetchCompanies()"
+        />
+        <div
+          v-if="companies.length === 0"
+          class="flex items-center justify-center p-8"
+        >
+          <span class="text-n-slate-11 text-base">{{
+            t('COMPANIES.EMPTY_STATE.TITLE')
+          }}</span>
+        </div>
+        <div v-else class="flex flex-col gap-4">
+          <CompaniesCard
+            v-for="company in companies"
+            :id="company.id"
+            :key="company.id"
+            :name="company.name"
+            :domain="company.domain"
+            :contacts-count="company.contactsCount || 0"
+            :avatar-url="company.avatarUrl"
+            :last-activity-at="company.lastActivityAt"
+            @show-company="showCompany"
+          />
+        </div>
+      </div>
     </div>
     <CompanyCreateDialog
       ref="createCompanyDialogRef"

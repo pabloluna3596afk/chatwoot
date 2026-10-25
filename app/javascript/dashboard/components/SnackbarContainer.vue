@@ -57,6 +57,10 @@ onUnmounted(() => {
 <template>
   <div
     ref="snackbarContainer"
+    role="status"
+    aria-live="polite"
+    aria-atomic="false"
+    aria-relevant="additions text"
     popover="manual"
     class="fixed top-4 left-1/2 -translate-x-1/2 max-w-[25rem] w-[calc(100%-2rem)] text-center bg-transparent border-0 p-0 m-0 outline-none overflow-visible"
   >

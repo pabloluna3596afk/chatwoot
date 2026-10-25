@@ -1,6 +1,7 @@
 {
   "COMPANIES": {
     "HEADER": "Companies",
+    "LOAD_ERROR": "Companies could not be loaded.",
     "SORT_BY": {
       "LABEL": "Sort by",
       "OPTIONS": {

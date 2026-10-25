@@ -33,7 +33,6 @@ const handleSubmit = async newDocument => {
   } catch (error) {
     const errorMessage = error.message || t(`${i18nKey}.ERROR_MESSAGE`);
     saveError.value = errorMessage;
-    useAlert(errorMessage);
   }
 };
 

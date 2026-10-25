@@ -188,7 +188,6 @@ const bulkDeleteScenarios = async () => {
               succeeded: deletedIds.length,
               failed: failedIds.length,
             });
-      useAlert(deleteError.value);
     } else {
       deleteDialog.value.close();
       useAlert(t('CAPTAIN.ASSISTANTS.SCENARIOS.API.DELETE.SUCCESS'));

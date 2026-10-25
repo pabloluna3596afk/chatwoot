@@ -13,8 +13,9 @@ import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { usePolicy } from 'dashboard/composables/usePolicy';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
+import { parseAPIErrorResponse } from 'dashboard/store/utils/api';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
-import Button from 'dashboard/components-next/button/Button.vue';
+import LoadErrorNotice from 'dashboard/components-next/LoadErrorNotice.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import TemplatesToolbar from '../TemplatesToolbar.vue';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
@@ -49,6 +50,7 @@ const state = ref('all');
 const category = ref('all');
 const page = ref(1);
 const failed = ref(false);
+const loadMessage = ref('');
 const hasLoaded = ref(false);
 const loadedAt = ref(null);
 const toDelete = ref(null);
@@ -94,7 +96,6 @@ const categoryOptions = computed(() => [
 ]);
 const columns = computed(() => templateTableColumns(t, ['SCREENS']));
 const load = async () => {
-  failed.value = false;
   try {
     await run(async signal => {
       const { data } = await WhatsappFlowsAPI.list(
@@ -112,13 +113,15 @@ const load = async () => {
       total.value = data.meta.total_count;
       facets.value = data.facets;
       hasLoaded.value = true;
+      failed.value = false;
+      loadMessage.value = '';
       loadedAt.value = new Date();
       if (!flows.value.length && total.value && page.value > 1)
         page.value = Math.ceil(total.value / PAGE_SIZE);
     });
-  } catch {
+  } catch (error) {
     failed.value = true;
-    useAlert(t('WHATSAPP_FLOWS.LIST.LOAD_ERROR'));
+    loadMessage.value = parseAPIErrorResponse(error);
   }
 };
 watch(
@@ -207,97 +210,113 @@ defineExpose({ reload: load, loadedAt, isPending });
         </div>
       </template>
     </TemplatesToolbar>
-    <div
-      v-if="isPending && !hasLoaded"
-      class="grid gap-3 animate-pulse"
-      data-testid="flows-skeleton"
-      aria-busy="true"
-    >
+    <div data-testid="flows-content" :aria-busy="isPending">
       <div
-        v-for="row in PAGE_SIZE"
-        :key="row"
-        class="h-12 rounded bg-n-alpha-2"
-      />
-    </div>
-    <div v-else-if="failed && !hasLoaded">
-      <Button
-        type="button"
-        faded
-        slate
-        :label="$t('WHATSAPP_FLOWS.META.RETRY')"
-        @click="load"
-      />
-    </div>
-    <p
-      v-else-if="!total"
-      class="py-8 text-center text-n-slate-11"
-      data-testid="flows-empty"
-    >
-      {{
-        $t(
-          search || state !== 'all' || category !== 'all'
-            ? 'WHATSAPP_FLOWS.LIST.NO_RESULTS'
-            : 'WHATSAPP_FLOWS.LIST.EMPTY'
-        )
-      }}
-    </p>
-    <TemplatesTable
-      v-else
-      v-model:page="page"
-      :columns="columns"
-      :items="flows"
-      :total="total"
-      :page-size="PAGE_SIZE"
-      @open="previewDrawer.open"
-    >
-      <template #NAME="{ item: flow }">
-        <span class="block max-w-56 truncate text-heading-3 text-n-slate-12">{{
-          flow.name
-        }}</span>
-        <span
-          v-if="flow.unpublished_changes"
-          class="block mt-1 text-xs text-n-amber-11"
-          data-testid="flow-unpublished-badge"
-          >{{ $t('WHATSAPP_FLOWS.META.UNPUBLISHED_CHANGES_BADGE') }}</span
-        >
-      </template>
-      <template #CATEGORY="{ item: flow }">
-        <span
-          class="px-2 py-1 text-xs rounded-md whitespace-nowrap bg-n-alpha-2"
-          >{{ categoryLabel(flow) }}</span
-        >
-      </template>
-      <template #SCREENS="{ item: flow }">
-        <span
-          :aria-label="$t('WHATSAPP_FLOWS.LIST.SCREENS', { n: flow.screens })"
-          >{{ flow.screens }}</span
-        >
-      </template>
-      <template #INBOX>
-        <span>{{ $t('WHATSAPP_TEMPLATE_MGMT.FILTERS.ALL_INBOXES') }}</span>
-      </template>
-      <template #UPDATED="{ item: flow }">
-        {{ dateOf(flow.updated_at) }}
-      </template>
-      <template #STATUS="{ item: flow }">
-        <FlowPublicationSummary
-          v-if="isAdmin"
-          :summary="flow.publication_summary"
-          @click.stop
-          @details="publicationPanel.open(flow)"
+        v-if="isPending && !hasLoaded && !failed"
+        class="grid gap-3 animate-pulse"
+        data-testid="flows-skeleton"
+        aria-hidden="true"
+        inert
+      >
+        <div
+          v-for="row in PAGE_SIZE"
+          :key="row"
+          class="h-12 rounded bg-n-alpha-2"
         />
-      </template>
-      <template #ACTIONS="{ item: flow }">
-        <TemplateRowActions
-          :labels="actionLabels"
-          :can-manage="isAdmin"
-          :can-edit="isAdmin"
-          @edit="edit(flow)"
-          @duplicate="askDuplicate(flow)"
-          @delete="askDelete(flow)"
+      </div>
+      <LoadErrorNotice
+        v-else-if="failed && !hasLoaded"
+        :title="$t('WHATSAPP_FLOWS.LIST.LOAD_ERROR')"
+        :message="loadMessage"
+        :retry-label="$t('WHATSAPP_FLOWS.META.RETRY')"
+        :retrying="isPending"
+        @retry="load"
+      />
+      <div v-else class="relative">
+        <LoadErrorNotice
+          v-if="failed"
+          compact
+          :title="$t('WHATSAPP_FLOWS.LIST.LOAD_ERROR')"
+          :message="loadMessage"
+          :retry-label="$t('WHATSAPP_FLOWS.META.RETRY')"
+          :retrying="isPending"
+          @retry="load"
         />
-      </template>
-    </TemplatesTable>
+        <p
+          v-if="!total"
+          class="py-8 text-center text-n-slate-11"
+          data-testid="flows-empty"
+        >
+          {{
+            $t(
+              search || state !== 'all' || category !== 'all'
+                ? 'WHATSAPP_FLOWS.LIST.NO_RESULTS'
+                : 'WHATSAPP_FLOWS.LIST.EMPTY'
+            )
+          }}
+        </p>
+        <TemplatesTable
+          v-else
+          v-model:page="page"
+          :columns="columns"
+          :items="flows"
+          :total="total"
+          :page-size="PAGE_SIZE"
+          @open="previewDrawer.open"
+        >
+          <template #NAME="{ item: flow }">
+            <span
+              class="block max-w-56 truncate text-heading-3 text-n-slate-12"
+              >{{ flow.name }}</span
+            >
+            <span
+              v-if="flow.unpublished_changes"
+              class="block mt-1 text-xs text-n-amber-11"
+              data-testid="flow-unpublished-badge"
+              >{{ $t('WHATSAPP_FLOWS.META.UNPUBLISHED_CHANGES_BADGE') }}</span
+            >
+          </template>
+          <template #CATEGORY="{ item: flow }">
+            <span
+              class="px-2 py-1 text-xs rounded-md whitespace-nowrap bg-n-alpha-2"
+              >{{ categoryLabel(flow) }}</span
+            >
+          </template>
+          <template #SCREENS="{ item: flow }">
+            <span
+              :aria-label="
+                $t('WHATSAPP_FLOWS.LIST.SCREENS', { n: flow.screens })
+              "
+              >{{ flow.screens }}</span
+            >
+          </template>
+          <template #INBOX>
+            <span>{{ $t('WHATSAPP_TEMPLATE_MGMT.FILTERS.ALL_INBOXES') }}</span>
+          </template>
+          <template #UPDATED="{ item: flow }">
+            {{ dateOf(flow.updated_at) }}
+          </template>
+          <template #STATUS="{ item: flow }">
+            <FlowPublicationSummary
+              v-if="isAdmin"
+              :summary="flow.publication_summary"
+              @click.stop
+              @details="publicationPanel.open(flow)"
+            />
+          </template>
+          <template #ACTIONS="{ item: flow }">
+            <TemplateRowActions
+              :labels="actionLabels"
+              :can-manage="isAdmin"
+              :can-edit="isAdmin"
+              @edit="edit(flow)"
+              @duplicate="askDuplicate(flow)"
+              @delete="askDelete(flow)"
+            />
+          </template>
+        </TemplatesTable>
+      </div>
+    </div>
     <Dialog
       v-if="isAdmin"
       ref="duplicateDialog"
