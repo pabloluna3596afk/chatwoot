@@ -1,12 +1,11 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
-### B-NEW-247 — Overview y Playground de Captain adaptados a móvil (UI-CAPTAIN-5)
+### B-NEW-244 — Base móvil de pestañas y cabecera Captain (UI-CAPTAIN-1)
 
-- **Problema:** el rango de fechas no aprovechaba el ancho móvil, las gráficas podían ensanchar el Overview, el drawer quedaba con márgenes y ancho máximo, y el Playground no reservaba una zona flexible para el hilo con mensajes largos.
-- **Arreglo:** selector a ancho completo en móvil; métricas apiladas, scroll horizontal dentro de las gráficas, y SidePanel con modo de pantalla completa opcional activado solo por el drilldown. Playground con hilo flexible/desplazable, caja de mensaje fija al pie y wrap de contenido largo. Controles modificados alcanzan 44 px.
-- **Escritorio:** las clases añadidas aplican bajo `md`; el SidePanel conserva el tamaño actual por defecto.
-- **Verificación:** SidePanel y MessageList: 5 tests pasan en UTC y America/Guayaquil. Suites completas Captain: 35 archivos pasan y 7 no cargan por falta de `@amplitude/plugin-page-view-tracking-browser`; ESLint focalizado limpio. Sin navegador ni capturas por instrucción.
-- **Archivos:** Overview y sus tarjetas V1/V2, drilldown, Playground y SidePanel. Sin cambios de lógica de producto, datos, textos, backend ni migraciones.
+- **Problema:** las pestañas de ajustes tenían un objetivo táctil de 36 px y las búsquedas FAQ conservaban 256 px en móvil; la cabecera compartida no podía envolver sus controles estrechos.
+- **Arreglo:** tabs de 44 px bajo `md`, búsquedas FAQ fluidas bajo `sm` y cabecera Captain con grupos flexibles bajo `md`; desde los breakpoints indicados se conservan tamaños de escritorio.
+- **Verificación:** ESLint y `git diff --check` limpios. Suites de Captain/Help Center: 36 archivos y 297 tests pasan en UTC y America/Guayaquil; 7 suites no cargan porque falta `@amplitude/plugin-page-view-tracking-browser`. Sin capturas por instrucción del brief.
+- **Archivos:** `components-next/vertical-tabs/VerticalTabs.vue`, `components-next/captain/PageLayout.vue`, rutas Captain `responses/{Index,FaqSuggestions}.vue`.
 
 ### B-NEW-243 — Tablas de informes legibles en móviles (UI-T4)
 
