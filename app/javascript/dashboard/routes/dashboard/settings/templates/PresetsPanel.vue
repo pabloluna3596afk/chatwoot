@@ -1,7 +1,10 @@
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import Button from 'dashboard/components-next/button/Button.vue';
+import PresetCard from 'dashboard/components-next/preset/PresetCard.vue';
+import PresetPicker from 'dashboard/components-next/preset/PresetPicker.vue';
 import LibraryPanel from './LibraryPanel.vue';
 import { PRESETS, PRESET_GROUPS } from './presets';
 import { variableTokens } from './templateForm';
@@ -13,15 +16,34 @@ defineProps({
 });
 
 const emit = defineEmits(['use', 'created']);
+const { t } = useI18n();
 
-const grouped = computed(() =>
-  PRESET_GROUPS.map(group => ({
-    group,
-    presets: PRESETS.filter(preset => preset.group === group).map(preset => ({
-      ...preset,
-      variables: variableTokens(preset.body),
-    })),
-  })).filter(section => section.presets.length)
+const groups = computed(() =>
+  PRESET_GROUPS.map(id => ({
+    id,
+    label: t(`WHATSAPP_TEMPLATE_MGMT.PRESETS.GROUPS.${id}`),
+  }))
+);
+
+const presets = computed(() =>
+  PRESETS.map(preset => ({
+    ...preset,
+    title: t(`WHATSAPP_TEMPLATE_MGMT.PRESETS.ITEMS.${preset.id}.TITLE`),
+    description: t(
+      `WHATSAPP_TEMPLATE_MGMT.PRESETS.ITEMS.${preset.id}.DESCRIPTION`
+    ),
+    tags: [
+      {
+        label: t(
+          `WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.${preset.category}.LABEL`
+        ),
+        color: preset.category === 'UTILITY' ? 'teal' : 'amber',
+      },
+    ],
+    actionLabel: t('WHATSAPP_TEMPLATE_MGMT.PRESETS.USE'),
+    actionIcon: 'i-lucide-wand-sparkles',
+    variables: variableTokens(preset.body),
+  }))
 );
 </script>
 
@@ -36,79 +58,61 @@ const grouped = computed(() =>
       </p>
     </div>
 
-    <section v-for="section in grouped" :key="section.group" class="grid gap-3">
-      <h3 class="text-sm font-medium text-n-slate-12">
-        {{ $t(`WHATSAPP_TEMPLATE_MGMT.PRESETS.GROUPS.${section.group}`) }}
-      </h3>
-      <div class="grid gap-3 sm:grid-cols-2">
-        <article
-          v-for="preset in section.presets"
-          :key="preset.id"
-          class="flex flex-col gap-2 p-4 border rounded-xl border-n-weak"
-          :class="{ 'opacity-60': preset.disabled }"
-          :data-testid="`preset-${preset.id}`"
+    <PresetPicker
+      :items="presets"
+      :groups="groups"
+      :columns="2"
+      @apply="preset => emit('use', preset)"
+    >
+      <template #card="{ item, apply }">
+        <PresetCard
+          :id="item.id"
+          :title="item.title"
+          :description="item.description"
+          :tags="item.tags"
+          :action-label="item.actionLabel"
+          :action-icon="item.actionIcon"
+          :disabled="item.disabled"
+          @apply="apply"
         >
-          <div class="flex items-start justify-between gap-2">
-            <h4 class="text-heading-3 text-n-slate-12">
+          <template #preview>
+            <p class="rounded-lg bg-n-alpha-2 p-2 text-xs">
+              {{ item.body }}
+            </p>
+          </template>
+          <template #meta>
+            <p class="text-xs text-n-slate-10">
               {{
-                $t(`WHATSAPP_TEMPLATE_MGMT.PRESETS.ITEMS.${preset.id}.TITLE`)
+                $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.VARIABLES', {
+                  variables: item.variables.join(', '),
+                })
               }}
-            </h4>
-            <span
-              class="inline-flex shrink-0 px-2 py-0.5 text-xs font-medium rounded-md"
-              :class="
-                preset.category === 'UTILITY'
-                  ? 'bg-n-teal-3 text-n-teal-11'
-                  : 'bg-n-amber-3 text-n-amber-11'
-              "
-            >
+            </p>
+            <p class="mt-2 text-xs text-n-slate-10">
               {{
                 $t(
-                  `WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.${preset.category}.LABEL`
+                  `WHATSAPP_TEMPLATE_MGMT.PRESETS.CATEGORY_NOTE.${item.category}`
                 )
               }}
-            </span>
-          </div>
-          <p class="text-body-main text-n-slate-11">
-            {{
-              $t(
-                `WHATSAPP_TEMPLATE_MGMT.PRESETS.ITEMS.${preset.id}.DESCRIPTION`
-              )
-            }}
-          </p>
-          <p class="p-2 text-xs rounded-lg text-n-slate-12 bg-n-alpha-2">
-            {{ preset.body }}
-          </p>
-          <p class="text-xs text-n-slate-10">
-            {{
-              $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.VARIABLES', {
-                variables: preset.variables.join(', '),
-              })
-            }}
-          </p>
-          <p class="text-xs text-n-slate-10">
-            {{
-              $t(
-                `WHATSAPP_TEMPLATE_MGMT.PRESETS.CATEGORY_NOTE.${preset.category}`
-              )
-            }}
-          </p>
-          <p v-if="preset.disabled" class="text-xs text-n-amber-11">
-            {{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.DISABLED_FORMS') }}
-          </p>
-          <div class="mt-auto">
+            </p>
+            <p v-if="item.disabled" class="mt-2 text-xs text-n-amber-11">
+              {{ $t('WHATSAPP_TEMPLATE_MGMT.PRESETS.DISABLED_FORMS') }}
+            </p>
+          </template>
+          <template #actions>
             <Button
-              :label="$t('WHATSAPP_TEMPLATE_MGMT.PRESETS.USE')"
-              icon="i-lucide-wand-sparkles"
+              :label="item.actionLabel"
+              :icon="item.actionIcon"
               size="sm"
-              :disabled="preset.disabled"
-              :data-testid="`use-${preset.id}`"
-              @click="emit('use', preset)"
+              intent="primary"
+              :disabled="item.disabled"
+              :data-testid="`use-${item.id}`"
+              @click="apply"
             />
-          </div>
-        </article>
-      </div>
-    </section>
+          </template>
+        </PresetCard>
+      </template>
+    </PresetPicker>
 
     <LibraryPanel
       :inboxes="inboxes"

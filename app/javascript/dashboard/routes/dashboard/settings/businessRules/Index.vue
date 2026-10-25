@@ -294,14 +294,15 @@ const dialogTitle = computed(() =>
         <div class="flex flex-col gap-2">
           <PresetActivationCard
             v-for="preset in unusedPresets"
+            :id="preset.id"
             :key="preset.id"
-            :name="$t(preset.nameKey)"
+            :title="$t(preset.nameKey)"
             :description="
               preset.descriptionKey ? $t(preset.descriptionKey) : ''
             "
-            :activate-label="$t('BUSINESS_RULES.ACTIVATE_PRESET')"
+            :action-label="$t('BUSINESS_RULES.ACTIVATE_PRESET')"
             :loading="saving"
-            @activate="activatePreset(preset)"
+            @apply="activatePreset(preset)"
           />
         </div>
       </div>

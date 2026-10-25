@@ -1,11 +1,10 @@
 <script setup>
 import Button from 'dashboard/components-next/button/Button.vue';
+import PresetCard from 'dashboard/components-next/preset/PresetCard.vue';
 
 defineProps({
-  name: {
-    type: String,
-    required: true,
-  },
+  id: { type: [String, Number], required: true },
+  title: { type: String, required: true },
   description: {
     type: String,
     default: '',
@@ -14,34 +13,37 @@ defineProps({
     type: Boolean,
     default: false,
   },
-  activateLabel: {
+  actionLabel: {
     type: String,
     required: true,
   },
 });
 
-defineEmits(['activate']);
+const emit = defineEmits(['apply']);
 </script>
 
 <template>
-  <div
-    class="flex flex-wrap items-center justify-between gap-2 rounded-md border border-n-weak bg-n-solid-1 p-3"
+  <PresetCard
+    :id="id"
+    layout="row"
+    :title="title"
+    :description="description"
+    :action-label="actionLabel"
+    @apply="emit('apply', id)"
   >
-    <div>
-      <p class="m-0 text-sm font-medium text-n-slate-12">
-        {{ name }}
-      </p>
-      <p v-if="description" class="mb-0 mt-1 text-xs text-n-slate-11">
-        {{ description }}
-      </p>
-    </div>
-    <Button
-      sm
-      faded
-      icon="i-lucide-sparkles"
-      :label="activateLabel"
-      :is-loading="loading"
-      @click="$emit('activate')"
-    />
-  </div>
+    <template #actions>
+      <Button
+        sm
+        faded
+        icon="i-lucide-sparkles"
+        :label="actionLabel"
+        :is-loading="loading"
+        :aria-label="`${actionLabel}: ${title}`"
+        @click="emit('apply', id)"
+      />
+    </template>
+    <template v-if="$slots.meta" #meta>
+      <slot name="meta" />
+    </template>
+  </PresetCard>
 </template>

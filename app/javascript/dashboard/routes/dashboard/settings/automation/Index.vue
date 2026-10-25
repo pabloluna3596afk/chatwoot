@@ -483,13 +483,14 @@ const tableHeaders = computed(() => {
         <div class="flex flex-col gap-2">
           <PresetActivationCard
             v-for="preset in unactivatedTimePresets"
+            :id="preset.id"
             :key="preset.id"
-            :name="$t(preset.nameKey)"
+            :title="$t(preset.nameKey)"
             :description="
               preset.descriptionKey ? $t(preset.descriptionKey) : ''
             "
-            :activate-label="$t('BUSINESS_RULES.ACTIVATE_PRESET')"
-            @activate="activateTimePreset(preset)"
+            :action-label="$t('BUSINESS_RULES.ACTIVATE_PRESET')"
+            @apply="activateTimePreset(preset)"
           />
         </div>
       </div>
@@ -504,13 +505,14 @@ const tableHeaders = computed(() => {
         <div class="flex flex-col gap-2">
           <PresetActivationCard
             v-for="preset in unactivatedContactPresets"
+            :id="preset.id"
             :key="preset.id"
-            :name="$t(preset.nameKey)"
+            :title="$t(preset.nameKey)"
             :description="
               preset.descriptionKey ? $t(preset.descriptionKey) : ''
             "
-            :activate-label="$t('BUSINESS_RULES.ACTIVATE_PRESET')"
-            @activate="openContactRecipeDialog(preset)"
+            :action-label="$t('BUSINESS_RULES.ACTIVATE_PRESET')"
+            @apply="openContactRecipeDialog(preset)"
           />
         </div>
       </div>
