@@ -15,6 +15,8 @@ import {
   BaseTableRow,
   BaseTableCell,
 } from 'dashboard/components-next/table';
+import ListCard from 'dashboard/components-next/ListCard/ListCard.vue';
+import InfoChip from 'dashboard/components-next/ListCard/InfoChip.vue';
 
 const getters = useStoreGetters();
 const store = useStore();
@@ -92,6 +94,26 @@ const tableHeaders = computed(() => {
   ];
 });
 
+const getLabelMenuItems = label => [
+  {
+    action: 'edit',
+    label: t('LABEL_MGMT.FORM.EDIT'),
+    icon: 'i-lucide-pencil',
+    disabled: !!loading.value[label.id],
+  },
+  {
+    action: 'delete',
+    label: t('LABEL_MGMT.FORM.DELETE'),
+    icon: 'i-lucide-trash',
+    disabled: !!loading.value[label.id],
+  },
+];
+
+const handleLabelAction = (label, { action }) => {
+  if (action === 'edit') openEditPopup(label);
+  if (action === 'delete') openDeletePopup(label);
+};
+
 onBeforeMount(() => {
   store.dispatch('labels/get');
 });
@@ -128,7 +150,37 @@ onBeforeMount(() => {
       </BaseSettingsHeader>
     </template>
     <template #body>
+      <p
+        v-if="records.length && searchQuery && !filteredRecords.length"
+        class="py-20 text-center text-body-main text-n-slate-11 md:hidden"
+      >
+        {{ $t('LABEL_MGMT.NO_RESULTS') }}
+      </p>
+      <div class="flex min-w-0 flex-col gap-3 md:hidden">
+        <ListCard
+          v-for="label in filteredRecords"
+          :key="label.id"
+          :title="label.title"
+          :subtitle="label.description"
+          :menu-items="getLabelMenuItems(label)"
+          @action="handleLabelAction(label, $event)"
+        >
+          <template #chips>
+            <InfoChip>
+              <span
+                class="me-1 size-2.5 shrink-0 rounded-full border border-n-weak"
+                :style="{ backgroundColor: label.color }"
+              />
+              <span class="truncate">{{ label.color }}</span>
+            </InfoChip>
+            <InfoChip v-if="label.show_on_sidebar">
+              {{ $t('LABEL_MGMT.FORM.SHOW_ON_SIDEBAR.LABEL') }}
+            </InfoChip>
+          </template>
+        </ListCard>
+      </div>
       <BaseTable
+        class="hidden md:block"
         :headers="tableHeaders"
         :items="filteredRecords"
         :no-data-message="

@@ -3262,3 +3262,10 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - Causa: el selector separado reducía el ancho disponible para escribir valores en la tercera columna de Enviar por WhatsApp; Twilio no ofrecía el mismo patrón.
 - Arreglo: reutilizar Input y VariablePicker en modo insert con icono de llaves dentro del campo, a la derecha, etiqueta accesible y tooltip «Insertar variable». Reservar padding lógico y mínimos de altura para resistir los estilos compactos de SendCenter. Objetivo de 40 px en escritorio y 44 px en móvil. Header y cuerpo de Meta y cuerpo de Twilio comparten la pieza; los consumidores heredan el cambio. Catálogo, filtros, validaciones y contratos de envío conservados.
 - Verificación: integración con ambos parsers reales para editar, abrir el picker con el icono, insertar en el campo elegido y enviar el payload esperado; suites de consumidores y compilación i18n en UTC y America/Guayaquil. Capturas `fixenvio3-*` de reposo, picker, texto largo, dos variables, oscuro y Twilio a 1280x900 y 390x844; geometría sin scroll horizontal.
+
+### B-NEW-240 - Aislar el scroll de tablas y usar tarjetas en listas de etiquetas y SLA (2026-10-24)
+
+- Archivos: `components-next/table/BaseTable.vue`, vistas de Etiquetas y SLA, consumidores de tablas con overflow redundante y specs correspondientes.
+- Causa: tablas anchas podían ampliar el viewport y las listas de Etiquetas/SLA se comprimían en móvil.
+- Arreglo: scroll horizontal local compartido en BaseTable; reutilizar ListCard/InfoChip para las listas móviles de Etiquetas y SLA conservando búsqueda, acciones y confirmación.
+- Verificación: specs focalizados pasan; suites amplias UTC y America/Guayaquil con 199 archivos aprobados y dos fallas ajenas al cambio en formato monetario en ShopifyBilling. Capturas y mediciones de navegador pendientes si el servidor local no está disponible.
