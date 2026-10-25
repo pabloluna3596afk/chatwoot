@@ -91,6 +91,9 @@ describe('ComboBoxDropdown adapter', () => {
       expect(wrapper.emitted('update:searchValue').at(-1)).toEqual([
         'no local label match',
       ]);
+      expect(menu.findAll('[role="option"]')).toHaveLength(0);
+      expect(menu.get('[role="status"]').text()).toBeTruthy();
+      await wrapper.setProps({ loading: false });
       expect(menu.findAll('[role="option"]')).toHaveLength(2);
       await wrapper.setProps({ searchValue: '' });
       expect(menu.get('input').element.value).toBe('');
@@ -99,6 +102,60 @@ describe('ComboBoxDropdown adapter', () => {
         emptyState: 'No compatible results',
       });
       expect(menu.text()).toContain('No compatible results');
+    } finally {
+      wrapper.unmount();
+    }
+  });
+
+  it('keeps retry in the keyboard tab order and closes after focus leaves', async () => {
+    const wrapper = mount(ComboBoxDropdown, {
+      attachTo: document.body,
+      props: { open: true, options: [], searchError: true },
+    });
+    try {
+      const menu = wrapper.getComponent(DropdownMenu);
+      const search = menu.get('input').element;
+      const retry = menu.get('button').element;
+      search.focus();
+
+      // jsdom does not implement Tab's default focus movement, so move focus
+      // as the browser does after the user's Tab key.
+      const tab = new KeyboardEvent('keydown', {
+        key: 'Tab',
+        bubbles: true,
+        cancelable: true,
+      });
+      search.dispatchEvent(tab);
+      retry.focus();
+      expect(tab.defaultPrevented).toBe(false);
+      expect(document.activeElement).toBe(retry);
+      expect(wrapper.emitted('close')).toBeUndefined();
+
+      ['Enter', ' '].forEach(key => {
+        const activation = new KeyboardEvent('keydown', {
+          key,
+          bubbles: true,
+          cancelable: true,
+        });
+        retry.dispatchEvent(activation);
+        expect(activation.defaultPrevented).toBe(false);
+      });
+
+      const leave = document.createElement('button');
+      document.body.appendChild(leave);
+      leave.focus();
+      expect(wrapper.emitted('close')).toEqual([[false]]);
+      leave.remove();
+
+      search.focus();
+      const escape = new KeyboardEvent('keydown', {
+        key: 'Escape',
+        bubbles: true,
+        cancelable: true,
+      });
+      search.dispatchEvent(escape);
+      expect(escape.defaultPrevented).toBe(true);
+      expect(wrapper.emitted('close')).toHaveLength(2);
     } finally {
       wrapper.unmount();
     }

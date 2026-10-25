@@ -8,7 +8,6 @@ import es from 'dashboard/i18n/locale/es';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TeamForm from 'dashboard/routes/dashboard/settings/teams/TeamForm.vue';
-import FormInput from 'v3/components/Form/Input.vue';
 import AssistantBasicSettingsForm from './AssistantBasicSettingsForm.vue';
 import AssistantSystemSettingsForm from './AssistantSystemSettingsForm.vue';
 import DurationSelect from './DurationSelect.vue';
@@ -171,10 +170,10 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
     const wrapper = shallowMount(TeamForm, {
       props: { onSubmit, formData: { name: value } },
     });
-    const title = wrapper.findAllComponents(FormInput)[0];
+    const title = wrapper.findAllComponents(Input)[0];
     title.vm.$emit('blur');
     await nextTick();
-    expect(title.props('errorMessage')).toBe(
+    expect(title.props('message')).toBe(
       i18n.global.t(`GENERAL.VALIDATION.${key}`, params)
     );
     await wrapper.find('form').trigger('submit');
