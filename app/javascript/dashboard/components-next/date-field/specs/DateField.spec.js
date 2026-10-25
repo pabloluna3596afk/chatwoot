@@ -21,7 +21,7 @@ describe('DateField', () => {
     const wrapper = mountField({}, locale);
     expect(wrapper.text()).toContain(text);
     await wrapper.get('[aria-haspopup]').trigger('click');
-    await wrapper.get('[aria-label="2030-01-16"]').trigger('click');
+    await wrapper.get('[data-date="2030-01-16"]').trigger('click');
     expect(wrapper.emitted('update:modelValue')).toEqual([['2030-01-16']]);
     expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
     wrapper.unmount();
@@ -32,12 +32,12 @@ describe('DateField', () => {
     const wrapper = mountField({ min: '2030-01-14' });
     await wrapper.get('[aria-haspopup]').trigger('click');
     expect(
-      wrapper.get('[aria-label="2030-01-13"]').attributes('disabled')
+      wrapper.get('[data-date="2030-01-13"]').attributes('disabled')
     ).toBeDefined();
     expect(
       wrapper.get('[aria-current="date"]').attributes('aria-pressed')
     ).toBe('true');
-    await wrapper.get('[aria-label="2030-01-13"]').trigger('click');
+    await wrapper.get('[data-date="2030-01-13"]').trigger('click');
     expect(wrapper.emitted('update:modelValue')).toBeUndefined();
     wrapper.unmount();
   });
@@ -47,12 +47,52 @@ describe('DateField', () => {
     await wrapper
       .get('[aria-label="DATE_FIELD.PREVIOUS_MONTH"]')
       .trigger('click');
-    expect(wrapper.find('[aria-label="2029-12-31"]').exists()).toBe(true);
+    expect(wrapper.find('[data-date="2029-12-31"]').exists()).toBe(true);
     await wrapper.get('[aria-label="DATE_FIELD.NEXT_MONTH"]').trigger('click');
-    expect(wrapper.find('[aria-label="2030-01-31"]').exists()).toBe(true);
+    expect(wrapper.find('[data-date="2030-01-31"]').exists()).toBe(true);
     await wrapper.get('[aria-haspopup]').trigger('keydown', { key: 'Escape' });
     await flushPromises();
     expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
     wrapper.unmount();
   });
+});
+
+it('moves days across months using arrows, selects ISO and restores focus, while Tab is free', async () => {
+  const wrapper = mount(DateField, {
+    attachTo: document.body,
+    props: { label: 'Date', modelValue: '2030-01-31', min: '2030-01-30' },
+  });
+  const trigger = wrapper.get('[aria-haspopup]');
+  await trigger.trigger('click');
+  await flushPromises();
+  expect(document.activeElement.dataset.date).toBe('2030-01-31');
+  document.activeElement.dispatchEvent(
+    new KeyboardEvent('keydown', {
+      key: 'ArrowRight',
+      bubbles: true,
+      cancelable: true,
+    })
+  );
+  await flushPromises();
+  expect(document.activeElement.dataset.date).toBe('2030-02-01');
+  expect(document.activeElement.getAttribute('aria-label')).toContain('2030');
+  document.activeElement.click();
+  await flushPromises();
+  expect(wrapper.emitted('update:modelValue')).toEqual([['2030-02-01']]);
+  expect(document.activeElement).toBe(trigger.element);
+  await trigger.trigger('click');
+  await flushPromises();
+  const tab = new KeyboardEvent('keydown', {
+    key: 'Tab',
+    bubbles: true,
+    cancelable: true,
+  });
+  document.activeElement.dispatchEvent(tab);
+  expect(tab.defaultPrevented).toBe(false);
+  document.activeElement.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+  );
+  await flushPromises();
+  expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
+  wrapper.unmount();
 });

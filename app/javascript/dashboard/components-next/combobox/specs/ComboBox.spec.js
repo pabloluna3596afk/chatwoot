@@ -326,3 +326,24 @@ describe('ComboBox', () => {
     expect(wrapper.emitted('update:modelValue').at(-1)).toEqual([[8]]);
   });
 });
+
+it.each([
+  { value: '007', multiple: false, initial: '', expected: '007' },
+  { value: 7, multiple: false, initial: '', expected: 7 },
+  { value: 7, multiple: true, initial: ['007'], expected: ['007', 7] },
+])(
+  'preserves the exact selection type for $expected',
+  async ({ value, multiple, initial, expected }) => {
+    const wrapper = mount(ComboBox, {
+      props: {
+        options: [{ value, label: 'Option' }],
+        modelValue: initial,
+        multiple,
+      },
+    });
+    await wrapper.get('button').trigger('click');
+    await wrapper.get('[role="option"]').trigger('click');
+    expect(wrapper.emitted('update:modelValue')).toEqual([[expected]]);
+    wrapper.unmount();
+  }
+);

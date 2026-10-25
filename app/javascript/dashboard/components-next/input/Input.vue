@@ -1,5 +1,12 @@
 <script setup>
-import { computed, ref, onMounted, nextTick, getCurrentInstance } from 'vue';
+import {
+  computed,
+  ref,
+  onMounted,
+  nextTick,
+  getCurrentInstance,
+  useAttrs,
+} from 'vue';
 const props = defineProps({
   modelValue: { type: [String, Number], default: '' },
   type: { type: String, default: 'text' },
@@ -12,6 +19,7 @@ const props = defineProps({
     default: 'md',
     validator: value => ['sm', 'md'].includes(value),
   },
+  help: { type: String, default: '' },
   message: { type: String, default: '' },
   disabled: { type: Boolean, default: false },
   messageType: {
@@ -32,9 +40,19 @@ const emit = defineEmits([
   'enter',
 ]);
 
+defineOptions({ inheritAttrs: false });
+
 // Generate a unique ID per component instance when `id` prop is not provided.
 const { uid } = getCurrentInstance();
 const uniqueId = computed(() => props.id || `input-${uid}`);
+const attrs = useAttrs();
+// Keep caller layout and container selectors; accessible attributes belong to the input.
+const containerAttrs = () =>
+  Object.fromEntries(
+    Object.entries(attrs).filter(
+      ([name]) => ['class', 'style'].includes(name) || name.startsWith('data-')
+    )
+  );
 
 const isFocused = ref(false);
 const inputRef = ref(null);
@@ -104,7 +122,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="relative flex flex-col min-w-0 gap-1">
+  <div v-bind="containerAttrs()" class="relative flex flex-col min-w-0 gap-1">
     <label
       v-if="label"
       :for="uniqueId"
@@ -118,6 +136,16 @@ onMounted(() => {
       :id="uniqueId"
       v-bind="$attrs"
       ref="inputRef"
+      :aria-invalid="messageType === 'error' ? true : $attrs['aria-invalid']"
+      :aria-describedby="
+        [
+          $attrs['aria-describedby'],
+          help ? `${uniqueId}-help` : '',
+          message ? `${uniqueId}-message` : '',
+        ]
+          .filter(Boolean)
+          .join(' ') || undefined
+      "
       :value="modelValue"
       :class="[
         customInputClass,
@@ -137,15 +165,24 @@ onMounted(() => {
           ? max
           : undefined
       "
-      class="block w-full reset-base text-sm !mb-0 outline outline-1 border-none border-0 outline-offset-[-1px] rounded-lg bg-n-alpha-black2 file:border-0 file:bg-transparent file:text-sm file:font-medium text-ellipsis placeholder:text-n-slate-10 dark:placeholder:text-n-slate-10 disabled:cursor-not-allowed disabled:opacity-50 text-n-slate-12 transition-all duration-500 ease-in-out [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+      class="max-sm:!min-h-11 block w-full reset-base text-sm !mb-0 outline outline-1 border-none border-0 outline-offset-[-1px] rounded-lg bg-n-alpha-black2 file:border-0 file:bg-transparent file:text-sm file:font-medium text-ellipsis placeholder:text-n-slate-10 dark:placeholder:text-n-slate-10 disabled:cursor-not-allowed disabled:opacity-50 text-n-slate-12 transition-all duration-500 ease-in-out [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       @input="handleInput"
       @focus="handleFocus"
       @blur="handleBlur"
       @keyup.enter="handleEnter"
     />
     <p
+      v-if="help"
+      :id="`${uniqueId}-help`"
+      class="mb-0 text-label-small text-n-slate-11 whitespace-pre-line break-words"
+    >
+      {{ help }}
+    </p>
+    <p
       v-if="message"
-      class="min-w-0 mt-1 mb-0 text-label-small truncate transition-all duration-500 ease-in-out"
+      :id="`${uniqueId}-message`"
+      :role="messageType === 'error' ? 'alert' : undefined"
+      class="min-w-0 mt-1 mb-0 text-label-small whitespace-pre-line break-words transition-all duration-500 ease-in-out"
       :class="messageClass"
     >
       {{ message }}

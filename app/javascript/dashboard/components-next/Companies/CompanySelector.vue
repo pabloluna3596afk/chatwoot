@@ -31,6 +31,8 @@ const CREATE_PREFIX = 'create:';
 
 const options = ref([]);
 const searchQuery = ref('');
+const loading = ref(false);
+const searchError = ref(false);
 const createDialogRef = ref(null);
 const isCreatingCompany = ref(false);
 
@@ -71,6 +73,8 @@ const comboboxOptions = computed(() => {
 });
 
 const fetchCompanies = async query => {
+  loading.value = true;
+  searchError.value = false;
   try {
     const {
       data: { payload },
@@ -79,7 +83,9 @@ const fetchCompanies = async query => {
       : await CompanyAPI.get({ page: 1 });
     options.value = (payload || []).map(toOption);
   } catch {
-    options.value = [];
+    searchError.value = true;
+  } finally {
+    loading.value = false;
   }
 };
 
@@ -134,6 +140,8 @@ const handleSelect = value => {
     :display-label="selectedName"
     :placeholder="t('COMPANIES.SELECTOR.PLACEHOLDER')"
     :search-placeholder="t('COMPANIES.SEARCH_PLACEHOLDER')"
+    :loading="loading"
+    :search-error="searchError"
     use-api-results
     class="[&>div>button]:h-8 [&>div>div_ul]:max-h-56"
     :class="{

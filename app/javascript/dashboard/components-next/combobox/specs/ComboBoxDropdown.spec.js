@@ -91,6 +91,9 @@ describe('ComboBoxDropdown adapter', () => {
       expect(wrapper.emitted('update:searchValue').at(-1)).toEqual([
         'no local label match',
       ]);
+      expect(menu.findAll('[role="option"]')).toHaveLength(0);
+      expect(menu.get('[role="status"]').text()).toBeTruthy();
+      await wrapper.setProps({ loading: false });
       expect(menu.findAll('[role="option"]')).toHaveLength(2);
       await wrapper.setProps({ searchValue: '' });
       expect(menu.get('input').element.value).toBe('');

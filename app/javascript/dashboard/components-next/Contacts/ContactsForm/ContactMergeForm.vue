@@ -39,7 +39,7 @@ const { t } = useI18n();
   <div class="flex flex-col">
     <div class="flex flex-col gap-2">
       <div class="flex items-center justify-between h-5 gap-2">
-        <label class="text-sm text-n-slate-12">
+        <label for="inbox" class="text-sm text-n-slate-12">
           {{ t('CONTACTS_LAYOUT.SIDEBAR.MERGE.PRIMARY') }}
         </label>
         <span
@@ -50,6 +50,7 @@ const { t } = useI18n();
       </div>
       <ComboBox
         id="inbox"
+        :loading="isSearching"
         use-api-results
         :model-value="primaryContactId"
         :options="primaryContactList"
