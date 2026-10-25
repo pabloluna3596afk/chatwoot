@@ -76,9 +76,9 @@ const saveReviewNotes = async () => {
   <div class="py-4 px-5 border-t border-n-container bg-n-background">
     <CsatReviewNotesPaywall v-if="showPaywall" />
     <div v-else-if="isFeatureEnabled" class="flex flex-col gap-3">
-      <div class="flex items-start gap-4">
+      <div class="flex flex-col md:flex-row items-start gap-2 md:gap-4">
         <div
-          class="flex items-center gap-1.5 text-n-slate-11 shrink-0 w-36 pt-3"
+          class="flex items-center gap-1.5 text-n-slate-11 shrink-0 md:w-36 md:pt-3"
         >
           <i class="i-lucide-notebook-pen size-4" />
           <span class="text-sm font-medium">
@@ -86,7 +86,7 @@ const saveReviewNotes = async () => {
           </span>
         </div>
 
-        <div class="flex-1 max-w-2xl">
+        <div class="flex-1 min-w-0 w-full max-w-2xl">
           <div
             v-if="hasExistingReviewNotes && !isEditing"
             class="group flex items-start gap-2 py-2 px-3 rounded-lg hover:bg-n-slate-2 dark:hover:bg-n-solid-3 cursor-pointer transition-colors"
@@ -142,15 +142,17 @@ const saveReviewNotes = async () => {
           !isEditing &&
           response.review_notes_updated_by
         "
-        class="flex items-center gap-4"
+        class="flex flex-col md:flex-row md:items-center gap-2 md:gap-4"
       >
-        <div class="flex items-center gap-1.5 text-n-slate-11 shrink-0 w-36">
+        <div class="flex items-center gap-1.5 text-n-slate-11 shrink-0 md:w-36">
           <i class="i-lucide-user-pen size-4" />
           <span class="text-sm font-medium">
             {{ $t('CSAT_REPORTS.REVIEW_NOTES.UPDATED_BY_LABEL') }}
           </span>
         </div>
-        <div class="flex items-center gap-1 flex-1 max-w-2xl px-3">
+        <div
+          class="flex items-center gap-1 flex-1 min-w-0 flex-wrap max-w-2xl md:px-3"
+        >
           <span class="text-sm text-n-slate-12">
             {{ response.review_notes_updated_by.name }}
           </span>

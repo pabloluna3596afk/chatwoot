@@ -1,5 +1,12 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-243 — Tablas de informes legibles en móviles (UI-T4)
+
+- **Problema:** varias tablas de informes se comprimían o requerían desplazamiento lateral en pantallas pequeñas.
+- **Cambio:** agentes, equipos, resumen, CSAT, SLA y paneles guardados muestran tarjetas móviles reutilizando `ListCard` e `InfoChip`; los datos y acciones disponibles se conservan. Las tablas configurables de panel mantienen su desplazamiento dentro del widget.
+- **Escritorio:** las tablas actuales se mantienen desde `md`; el orden, las columnas y la presentación existente permanecen.
+- **Verificación:** specs de las seis tablas, `ListCard` y reportes en UTC y America/Guayaquil; ESLint sin errores. No se capturó imagen porque no hay navegador disponible en esta sesión; detalle en `tmp/PR-UI-T4.md`.
+- **Archivos:** `reports/components/{CsatTable,SummaryReports,overview/AgentTable,overview/TeamTable,SLA/SLATable}.vue`, `reports/panels/Index.vue`, `components-next/ListCard/ListCard.vue`. Sin cambios de servidor ni migraciones.
 ### B-NEW-242 — Specs de reportes y recordatorios aislados de la zona horaria
 
 - **Causa:** `spec/models/working_hour_spec.rb` cambiaba `Time.zone` a `Australia/Sydney` sin restaurarla. Si el runner reutilizaba el proceso, el offset alteraba el rango esperado por el spec de reportes y el día del `cap_date` comparado por el spec de recordatorios.

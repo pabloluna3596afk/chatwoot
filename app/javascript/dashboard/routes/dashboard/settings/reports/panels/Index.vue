@@ -8,6 +8,8 @@ import { useAlert } from 'dashboard/composables';
 import ReportHeader from '../components/ReportHeader.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
+import ListCard from 'dashboard/components-next/ListCard/ListCard.vue';
+import InfoChip from 'dashboard/components-next/ListCard/InfoChip.vue';
 import SavedReportPanelsAPI from 'dashboard/api/savedReportPanels';
 import fromUnixTime from 'date-fns/fromUnixTime';
 import { formatPanelDate } from './panelConstants';
@@ -121,7 +123,7 @@ onMounted(fetchPanels);
 
     <div
       v-else
-      class="rounded-xl border border-n-weak bg-n-solid-2 overflow-x-auto min-w-0 max-w-full"
+      class="hidden md:block rounded-xl border border-n-weak bg-n-solid-2 overflow-x-auto min-w-0 max-w-full"
     >
       <table class="w-full min-w-[40rem] table-fixed divide-y divide-n-weak">
         <thead class="border-t border-n-weak">
@@ -273,6 +275,72 @@ onMounted(fetchPanels);
           </tr>
         </tbody>
       </table>
+    </div>
+    <div v-if="sortedPanels.length" class="flex flex-col gap-3 md:hidden">
+      <ListCard
+        v-for="panel in sortedPanels"
+        :key="panel.id"
+        :title="panel.name"
+        :subtitle="panel.description"
+      >
+        <template #title>
+          <button
+            type="button"
+            class="min-h-11 max-w-full truncate text-start text-heading-3 text-n-slate-12"
+            @click="openPanel(panel.id)"
+          >
+            {{ panel.name }}
+          </button>
+          <InfoChip v-if="panel.favorite" tone="warning">
+            {{ t('REPORT_PANELS.FAVORITE') }}
+          </InfoChip>
+        </template>
+        <template #chips>
+          <InfoChip>{{ periodLabel(panel) }}</InfoChip>
+          <InfoChip>
+            {{ t('REPORT_PANELS.LIST.COLUMNS.WIDGETS') }}
+            {{ numberFormatter.format(widgetCount(panel)) }}
+          </InfoChip>
+          <InfoChip>
+            {{ t('REPORT_PANELS.LIST.COLUMNS.FILTERS') }}
+            {{ numberFormatter.format(filterCount(panel)) }}
+          </InfoChip>
+          <InfoChip>
+            {{ t('REPORT_PANELS.LIST.COLUMNS.UPDATED') }}
+            {{ updatedLabel(panel) }}
+          </InfoChip>
+        </template>
+        <template #after>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              class="size-11 min-h-11 min-w-11"
+              icon="i-lucide-star"
+              :class="panel.favorite ? 'text-n-amber-11' : 'text-n-slate-9'"
+              :aria-label="t('REPORT_PANELS.FAVORITE')"
+              :aria-pressed="panel.favorite"
+              @click="toggleFavorite(panel)"
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              class="size-11 min-h-11 min-w-11"
+              icon="i-lucide-pencil"
+              :aria-label="t('REPORT_PANELS.EDIT')"
+              @click="editPanel(panel.id)"
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              class="size-11 min-h-11 min-w-11"
+              icon="i-lucide-arrow-right"
+              :aria-label="t('REPORT_PANELS.OPEN')"
+              @click="openPanel(panel.id)"
+            />
+          </div>
+        </template>
+      </ListCard>
     </div>
   </div>
 </template>

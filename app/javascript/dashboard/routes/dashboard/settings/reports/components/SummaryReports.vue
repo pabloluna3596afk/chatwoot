@@ -18,6 +18,9 @@ import SummaryReportLink from './SummaryReportLink.vue';
 import ReportHelpLabel from './ReportHelpLabel.vue';
 import { useStatusLabel } from 'dashboard/composables/useStatusLabel';
 import { useAccount } from 'dashboard/composables/useAccount';
+import ListCard from 'dashboard/components-next/ListCard/ListCard.vue';
+import InfoChip from 'dashboard/components-next/ListCard/InfoChip.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 
 const props = defineProps({
   type: {
@@ -231,6 +234,9 @@ const columns = computed(() => [
     cell: info => displayCell(info.row.original.resolutionsCountDisplay),
   }),
 ]);
+const nameColumnLabel = computed(
+  () => columns.value.find(column => column.accessorKey === 'name')?.header
+);
 
 const fetchReportsWithRetry = async () => {
   const params = {
@@ -284,6 +290,30 @@ const table = useVueTable({
   getSortedRowModel: getSortedRowModel(),
 });
 
+const sortOptions = computed(() => [
+  { value: 'rank', label: t('SUMMARY_REPORTS.RANK') },
+  { value: 'name', label: nameColumnLabel.value },
+  {
+    value: 'conversationsCount',
+    label: t('SUMMARY_REPORTS.CONVERSATIONS'),
+  },
+  { value: 'sharePercent', label: t('SUMMARY_REPORTS.SHARE') },
+  {
+    value: 'avgFirstResponseTime',
+    label: t('SUMMARY_REPORTS.AVG_FIRST_RESPONSE_TIME'),
+  },
+  {
+    value: 'avgResolutionTime',
+    label: t('SUMMARY_REPORTS.AVG_RESOLUTION_TIME'),
+  },
+  { value: 'avgReplyTime', label: t('SUMMARY_REPORTS.AVG_REPLY_TIME') },
+  { value: 'resolutionsCount', label: getResolutionCountLabel() },
+]);
+const sortBy = computed({
+  get: () => table.getState().sorting[0]?.id || 'conversationsCount',
+  set: value => table.setSorting([{ id: value, desc: false }]),
+});
+
 const downloadReports = (exportFormat = 'csv') => {
   const dispatchMethods = {
     agent: 'downloadAgentReports',
@@ -318,8 +348,53 @@ defineExpose({ downloadReports });
     :disabled="isLoading"
     @filter-change="onFilterChange"
   />
+  <div class="mt-5 flex flex-col gap-3 md:hidden">
+    <ComboBox
+      id="summary-report-sort"
+      v-model="sortBy"
+      :options="sortOptions"
+      :aria-label="t('SETTINGS.SORT_BY')"
+      :allow-deselect="false"
+      class="w-full"
+      trigger-class="max-sm:!min-h-11"
+    />
+    <ListCard
+      v-for="row in table.getRowModel().rows"
+      :key="row.original.id"
+      :title="row.original.name"
+      :subtitle="`${t('SUMMARY_REPORTS.RANK')} ${row.original.rank}`"
+    >
+      <template #title><SummaryReportLink :row="row" /></template>
+      <template #chips>
+        <InfoChip>
+          {{ t('SUMMARY_REPORTS.CONVERSATIONS') }}
+          {{ row.original.conversationsCountDisplay }}
+        </InfoChip>
+        <InfoChip>
+          {{ t('SUMMARY_REPORTS.SHARE') }}
+          {{ row.original.sharePercentDisplay }}
+        </InfoChip>
+        <InfoChip>
+          {{ t('SUMMARY_REPORTS.AVG_FIRST_RESPONSE_TIME') }}
+          {{ row.original.avgFirstResponseTimeDisplay }}
+        </InfoChip>
+        <InfoChip>
+          {{ t('SUMMARY_REPORTS.AVG_RESOLUTION_TIME') }}
+          {{ row.original.avgResolutionTimeDisplay }}
+        </InfoChip>
+        <InfoChip>
+          {{ t('SUMMARY_REPORTS.AVG_REPLY_TIME') }}
+          {{ row.original.avgReplyTimeDisplay }}
+        </InfoChip>
+        <InfoChip>
+          {{ getResolutionCountLabel() }}
+          {{ row.original.resolutionsCountDisplay }}
+        </InfoChip>
+      </template>
+    </ListCard>
+  </div>
   <div
-    class="relative flex-1 overflow-x-auto overflow-y-auto mt-5 shadow outline-1 outline outline-n-container rounded-xl bg-n-solid-2"
+    class="relative hidden flex-1 overflow-x-auto overflow-y-auto mt-5 shadow outline-1 outline outline-n-container rounded-xl bg-n-solid-2 md:block"
   >
     <Table :table="table" type="relaxed" />
     <Transition

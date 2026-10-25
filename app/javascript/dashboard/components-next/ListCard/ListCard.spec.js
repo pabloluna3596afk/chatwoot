@@ -14,7 +14,7 @@ describe('ListCard', () => {
     expect(wrapper.text()).toContain('Avatar');
     expect(wrapper.get('[data-list-chips]').text()).toBe('Role');
     expect(wrapper.text()).toContain('Details');
-    expect(wrapper.get('button').attributes('disabled')).toBeDefined();
+    expect(wrapper.find('button').exists()).toBe(false);
     wrapper.unmount();
   });
 
