@@ -41,15 +41,18 @@ const FLOW_NODE_COLORS = {
 };
 const DEFAULT_FLOW_NODE_COLOR = 'rgb(var(--amber-9))';
 
+/* eslint-disable @intlify/vue-i18n/no-dynamic-keys */
 const reasonLabel = category =>
   t(
     `CAPTAIN.OVERVIEW.V2.HANDOFF_REASONS.${REASON_LABELS[category] || 'UNCLASSIFIED'}`
   );
+/* eslint-enable @intlify/vue-i18n/no-dynamic-keys */
 
 const nodeLabel = id => {
   if (id.startsWith('handoff_reason_')) {
     return reasonLabel(id.replace('handoff_reason_', ''));
   }
+  // eslint-disable-next-line @intlify/vue-i18n/no-dynamic-keys
   return t(
     `CAPTAIN.OVERVIEW.V2.RESOLUTION_FLOW.NODES.${FLOW_NODE_LABELS[id] || 'OTHER_REASONS'}`
   );
@@ -85,23 +88,24 @@ const formatCount = value => Number(value).toLocaleString();
 <template>
   <OverviewPanel>
     <div
-      class="flex flex-col min-w-0 gap-5 p-5 lg:flex-row lg:items-center lg:justify-between lg:gap-0"
+      class="flex min-w-0 flex-col gap-5 p-5 lg:flex-row lg:items-center lg:justify-between lg:gap-0"
     >
-      <div class="w-full min-w-0 lg:w-[47.1875rem]">
+      <div class="w-full min-w-0 max-md:overflow-x-auto lg:w-[47.1875rem]">
         <div
           v-if="loading"
           class="h-[16.25rem] rounded-lg bg-n-slate-3 animate-pulse"
         />
-        <SankeyChart
-          v-else-if="hasData"
-          :data="chartData"
-          :format-value="formatCount"
-          :height="260"
-          :node-padding="24"
-          show-label-background
-          :aria-label="$t('CAPTAIN.OVERVIEW.V2.RESOLUTION_FLOW.ARIA_LABEL')"
-          class="[--cw-viz-sankey-label-color:rgb(var(--slate-11))] [--cw-viz-sankey-label-value-color:rgb(var(--slate-12))] [--cw-viz-sankey-label-background:rgb(var(--slate-1))] [--cw-viz-sankey-label-border-color:rgb(var(--slate-4))] [--cw-viz-sankey-label-font-size:0.75rem] [&_.cw-viz-sankey__label-background--terminal]:fill-[rgb(var(--card-color))] [&_.cw-viz-sankey__label-text]:font-[440] [&_.cw-viz-sankey__label-text]:tracking-[-0.015rem] [&_.cw-viz-sankey__label-value]:font-[440] [&_.cw-viz-sankey__label-value]:tracking-[-0.015rem]"
-        />
+        <div v-else-if="hasData" class="max-md:min-w-[32rem]">
+          <SankeyChart
+            :data="chartData"
+            :format-value="formatCount"
+            :height="260"
+            :node-padding="24"
+            show-label-background
+            :aria-label="$t('CAPTAIN.OVERVIEW.V2.RESOLUTION_FLOW.ARIA_LABEL')"
+            class="[--cw-viz-sankey-label-color:rgb(var(--slate-11))] [--cw-viz-sankey-label-value-color:rgb(var(--slate-12))] [--cw-viz-sankey-label-background:rgb(var(--slate-1))] [--cw-viz-sankey-label-border-color:rgb(var(--slate-4))] [--cw-viz-sankey-label-font-size:0.75rem] [&_.cw-viz-sankey__label-background--terminal]:fill-[rgb(var(--card-color))] [&_.cw-viz-sankey__label-text]:font-[440] [&_.cw-viz-sankey__label-text]:tracking-[-0.015rem] [&_.cw-viz-sankey__label-value]:font-[440] [&_.cw-viz-sankey__label-value]:tracking-[-0.015rem]"
+          />
+        </div>
         <div
           v-else
           class="grid h-[16.25rem] text-body-main place-content-center text-n-slate-11"

@@ -33,3 +33,20 @@ it('opens a named native modal with description, retains close events and delega
   expect(wrapper.emitted('close')).toHaveLength(1);
   wrapper.unmount();
 });
+
+it('uses the full mobile viewport only when requested', async () => {
+  HTMLDialogElement.prototype.showModal = vi.fn(function showModal() {
+    this.setAttribute('open', '');
+  });
+  const wrapper = mount(SidePanel, {
+    props: { title: 'Details', fullScreenOnMobile: true },
+    global: { stubs: { teleport: true } },
+  });
+  await wrapper.vm.open();
+
+  expect(wrapper.find('dialog').classes()).toContain('max-md:inset-0');
+  expect(wrapper.find('dialog').classes()).toContain('max-md:h-dvh');
+  expect(wrapper.find('dialog').classes()).toContain('max-md:w-full');
+
+  wrapper.unmount();
+});

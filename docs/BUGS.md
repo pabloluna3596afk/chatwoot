@@ -1,5 +1,13 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-247 — Overview y Playground de Captain adaptados a móvil (UI-CAPTAIN-5)
+
+- **Problema:** el rango de fechas no aprovechaba el ancho móvil, las gráficas podían ensanchar el Overview, el drawer quedaba con márgenes y ancho máximo, y el Playground no reservaba una zona flexible para el hilo con mensajes largos.
+- **Arreglo:** selector a ancho completo en móvil; métricas apiladas, scroll horizontal dentro de las gráficas, y SidePanel con modo de pantalla completa opcional activado solo por el drilldown. Playground con hilo flexible/desplazable, caja de mensaje fija al pie y wrap de contenido largo. Controles modificados alcanzan 44 px.
+- **Escritorio:** las clases añadidas aplican bajo `md`; el SidePanel conserva el tamaño actual por defecto.
+- **Verificación:** SidePanel y MessageList: 5 tests pasan en UTC y America/Guayaquil. Suites completas Captain: 35 archivos pasan y 7 no cargan por falta de `@amplitude/plugin-page-view-tracking-browser`; ESLint focalizado limpio. Sin navegador ni capturas por instrucción.
+- **Archivos:** Overview y sus tarjetas V1/V2, drilldown, Playground y SidePanel. Sin cambios de lógica de producto, datos, textos, backend ni migraciones.
+
 ### B-NEW-243 — Tablas de informes legibles en móviles (UI-T4)
 
 - **Problema:** varias tablas de informes se comprimían o requerían desplazamiento lateral en pantallas pequeñas.

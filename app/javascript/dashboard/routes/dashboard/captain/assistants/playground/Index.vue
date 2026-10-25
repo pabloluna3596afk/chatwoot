@@ -21,7 +21,7 @@ const isV2 = computed(() => isFeatureFlagEnabled(FEATURE_FLAGS.CAPTAIN_V2));
     class="h-full"
   >
     <template #body>
-      <div class="flex flex-col h-full">
+      <div class="flex h-full flex-col max-md:min-h-0">
         <AssistantPlayground
           :assistant-id="assistantId"
           class="bg-n-surface-1"

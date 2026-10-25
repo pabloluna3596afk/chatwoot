@@ -111,7 +111,7 @@ const handleAction = ({ value }) => {
 <template>
   <div
     v-on-click-outside="() => toggleDropdown(false)"
-    class="relative flex items-center group"
+    class="relative flex w-full items-center group md:w-auto"
   >
     <Button
       sm
@@ -121,7 +121,7 @@ const handleAction = ({ value }) => {
       icon="i-lucide-chevron-down"
       :label="selectedLabel"
       :disabled="!menuItems.length"
-      class="rounded-md group-hover:bg-n-alpha-2"
+      class="w-full rounded-md group-hover:bg-n-alpha-2 max-md:justify-between md:w-auto"
       @click="toggleDropdown()"
     />
     <DropdownMenu

@@ -14,7 +14,7 @@ defineProps({
       <template #default="{ isOpen }">
         <button
           type="button"
-          class="inline-flex p-0 transition-colors bg-transparent border-0 cursor-help"
+          class="inline-flex p-0 transition-colors bg-transparent border-0 cursor-help max-md:min-h-11 max-md:min-w-11 max-md:justify-center"
           :class="
             isOpen ? 'text-n-slate-12' : 'text-n-slate-8 hover:text-n-slate-12'
           "
