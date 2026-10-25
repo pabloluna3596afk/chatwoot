@@ -4,11 +4,23 @@ import Button from './Button.vue';
 // Constants for documentation
 const VARIANTS = ['solid', 'outline', 'faded', 'link', 'ghost'];
 const COLORS = ['blue', 'ruby', 'amber', 'slate', 'teal'];
+const INTENTS = ['primary', 'secondary', 'tertiary', 'link', 'destructive'];
 const SIZES = ['default', 'sm', 'lg'];
 </script>
 
 <template>
   <Story title="Components/Button" :layout="{ type: 'grid', width: '800px' }">
+    <Variant title="Intents">
+      <div class="flex flex-wrap gap-2 p-4 bg-n-background">
+        <Button
+          v-for="intent in INTENTS"
+          :key="intent"
+          :label="intent"
+          :intent="intent"
+        />
+      </div>
+    </Variant>
+
     <!-- Basic Variants -->
     <Variant title="Basic Variants">
       <div class="flex flex-wrap gap-2 p-4 bg-n-background">

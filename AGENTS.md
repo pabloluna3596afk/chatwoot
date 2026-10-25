@@ -207,6 +207,16 @@ Si dudas: `pnpm exec vite build && docker compose -f docker-compose.dokploy.yml 
 - Extract repeated or domain-specific strings, thresholds, colors, and durations into named constants.
 - Use shared request-cancellation utilities instead of local `AbortController` logic.
 
+### Button intent
+| Función | Intent | Estilo |
+|---|---|---|
+| Principal | `primary` | Azul sólido |
+| Secundaria | `secondary` | Gris tenue |
+| Terciaria | `tertiary` | Gris fantasma |
+| Navegación | `link` | Texto subrayado |
+| Destructiva | `destructive` | Rojo; confirmar siempre |
+Los botones nuevos usan `intent`; verde azulado y ámbar solo para estado, salvo Enviar de nota privada en ámbar.
+
 ## Enterprise Edition Notes
 
 - Chatwoot has an Enterprise overlay under `enterprise/` that extends/overrides OSS code.
