@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'dashboard/composables/store';
+import { parseAPIErrorResponse } from 'dashboard/store/utils/api';
 import camelcaseKeys from 'camelcase-keys';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import LoadErrorNotice from 'dashboard/components-next/LoadErrorNotice.vue';
@@ -28,6 +29,8 @@ const selectedTeamId = ref(null);
 const boardTasks = ref([]);
 const isFetching = ref(false);
 const loadError = ref(null);
+const hasLoadError = ref(false);
+const hasLoaded = ref(false);
 const selectedTaskId = computed(() => Number(props.taskId) || 0);
 
 const columns = computed(() =>
@@ -41,7 +44,6 @@ const groupedTasks = computed(() => groupTasksByKanbanColumn(boardTasks.value));
 
 const fetchBoard = async () => {
   isFetching.value = true;
-  loadError.value = null;
   try {
     const { data } = await InternalTasksAPI.getTasks(
       taskListParams(
@@ -51,8 +53,11 @@ const fetchBoard = async () => {
       )
     );
     boardTasks.value = camelcaseKeys(data, { deep: true });
+    hasLoaded.value = true;
+    hasLoadError.value = false;
   } catch (error) {
-    loadError.value = error?.message || t('INTERNAL_TASKS.KANBAN.LOAD_ERROR');
+    loadError.value = parseAPIErrorResponse(error);
+    hasLoadError.value = true;
   } finally {
     isFetching.value = false;
   }
@@ -104,7 +109,7 @@ defineExpose({ refresh });
     </header>
 
     <div
-      v-if="isFetching && !boardTasks.length"
+      v-if="isFetching && !hasLoaded && !hasLoadError"
       class="flex justify-center py-16"
       aria-hidden="true"
       inert
@@ -114,7 +119,7 @@ defineExpose({ refresh });
 
     <main v-else class="flex-1 min-h-0 overflow-hidden" :aria-busy="isFetching">
       <LoadErrorNotice
-        v-if="loadError && !boardTasks.length"
+        v-if="hasLoadError && !hasLoaded"
         :title="$t('INTERNAL_TASKS.KANBAN.LOAD_ERROR')"
         :message="loadError"
         :retry-label="$t('INTERNAL_TASKS.KANBAN.RETRY')"
@@ -123,7 +128,7 @@ defineExpose({ refresh });
       />
       <div v-else class="flex h-full min-h-0 flex-col">
         <LoadErrorNotice
-          v-if="loadError"
+          v-if="hasLoadError"
           compact
           :title="$t('INTERNAL_TASKS.KANBAN.LOAD_ERROR')"
           :message="loadError"

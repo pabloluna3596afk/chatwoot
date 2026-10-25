@@ -1,16 +1,21 @@
 <script setup>
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 
-defineProps({
+const props = defineProps({
   title: { type: String, required: true },
   message: { type: String, default: '' },
-  retryLabel: { type: String, default: 'Retry' },
+  retryLabel: { type: String, default: '' },
   retrying: { type: Boolean, default: false },
   compact: { type: Boolean, default: false },
 });
-
 defineEmits(['retry']);
+const { t } = useI18n();
+const resolvedRetryLabel = computed(
+  () => props.retryLabel || t('COMPONENTS.LOAD_ERROR_NOTICE.RETRY')
+);
 </script>
 
 <template>
@@ -32,7 +37,7 @@ defineEmits(['retry']);
     <Button
       faded
       slate
-      :label="retryLabel"
+      :label="resolvedRetryLabel"
       :disabled="retrying"
       :aria-busy="retrying"
       @click="$emit('retry')"

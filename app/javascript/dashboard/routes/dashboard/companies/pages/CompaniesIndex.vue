@@ -6,6 +6,7 @@ import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAlert } from 'dashboard/composables';
 import { debounce } from '@chatwoot/utils';
 import { useCompaniesStore } from 'dashboard/stores/companies';
+import { parseAPIErrorResponse } from 'dashboard/store/utils/api';
 
 import CompaniesListLayout from 'dashboard/components-next/Companies/CompaniesListLayout.vue';
 import CompaniesCard from 'dashboard/components-next/Companies/CompaniesCard/CompaniesCard.vue';
@@ -32,6 +33,7 @@ const searchValue = ref(searchQuery.value);
 const createCompanyDialogRef = ref(null);
 const pageNumber = computed(() => Number(route.query?.page) || 1);
 const loadError = ref('');
+const hasLoadError = ref(false);
 const hasLoaded = ref(false);
 
 const parseSortSettings = (sortString = '') => {
@@ -86,7 +88,6 @@ const updateURLParams = (page, search = '', sort = '') => {
 };
 
 const fetchCompanies = async (page, search, sort) => {
-  loadError.value = '';
   const currentPage = page ?? pageNumber.value;
   const currentSearch = search ?? searchQuery.value;
   const currentSort = sort ?? sortParam.value;
@@ -110,8 +111,11 @@ const fetchCompanies = async (page, search, sort) => {
       });
     }
     hasLoaded.value = true;
+    loadError.value = '';
+    hasLoadError.value = false;
   } catch (error) {
-    loadError.value = error?.message || t('COMPANIES.LOAD_ERROR');
+    loadError.value = parseAPIErrorResponse(error);
+    hasLoadError.value = true;
   }
 };
 
@@ -185,54 +189,56 @@ onMounted(() => {
     @search="onSearch"
     @create="openCreateCompanyDialog"
   >
-    <div
-      v-if="isFetchingList && !hasLoaded"
-      class="flex items-center justify-center p-8"
-      aria-hidden="true"
-      inert
-    >
-      <span class="text-n-slate-11 text-base">{{
-        t('COMPANIES.LOADING')
-      }}</span>
-    </div>
-    <LoadErrorNotice
-      v-else-if="loadError && !hasLoaded"
-      :title="t('COMPANIES.LOAD_ERROR')"
-      :message="loadError"
-      :retry-label="t('INTERNAL_TASKS.KANBAN.RETRY')"
-      :retrying="isFetchingList"
-      @retry="fetchCompanies()"
-    />
-    <div v-else :aria-busy="isFetchingList">
+    <div data-testid="companies-content" :aria-busy="isFetchingList">
+      <div
+        v-if="isFetchingList && !hasLoaded && !hasLoadError"
+        class="flex items-center justify-center p-8"
+        aria-hidden="true"
+        inert
+      >
+        <span class="text-n-slate-11 text-base">{{
+          t('COMPANIES.LOADING')
+        }}</span>
+      </div>
       <LoadErrorNotice
-        v-if="loadError"
-        compact
+        v-else-if="hasLoadError && !hasLoaded"
         :title="t('COMPANIES.LOAD_ERROR')"
         :message="loadError"
         :retry-label="t('INTERNAL_TASKS.KANBAN.RETRY')"
         :retrying="isFetchingList"
         @retry="fetchCompanies()"
       />
-      <div
-        v-if="companies.length === 0"
-        class="flex items-center justify-center p-8"
-      >
-        <span class="text-n-slate-11 text-base">{{
-          t('COMPANIES.EMPTY_STATE.TITLE')
-        }}</span>
-      </div>
-      <div v-else class="flex flex-col gap-4">
-        <CompaniesCard
-          v-for="company in companies"
-          :id="company.id"
-          :key="company.id"
-          :name="company.name"
-          :domain="company.domain"
-          :contacts-count="company.contactsCount || 0"
-          :avatar-url="company.avatarUrl"
-          :last-activity-at="company.lastActivityAt"
-          @show-company="showCompany"
+      <div v-else>
+        <LoadErrorNotice
+          v-if="hasLoadError"
+          compact
+          :title="t('COMPANIES.LOAD_ERROR')"
+          :message="loadError"
+          :retry-label="t('INTERNAL_TASKS.KANBAN.RETRY')"
+          :retrying="isFetchingList"
+          @retry="fetchCompanies()"
         />
+        <div
+          v-if="companies.length === 0"
+          class="flex items-center justify-center p-8"
+        >
+          <span class="text-n-slate-11 text-base">{{
+            t('COMPANIES.EMPTY_STATE.TITLE')
+          }}</span>
+        </div>
+        <div v-else class="flex flex-col gap-4">
+          <CompaniesCard
+            v-for="company in companies"
+            :id="company.id"
+            :key="company.id"
+            :name="company.name"
+            :domain="company.domain"
+            :contacts-count="company.contactsCount || 0"
+            :avatar-url="company.avatarUrl"
+            :last-activity-at="company.lastActivityAt"
+            @show-company="showCompany"
+          />
+        </div>
       </div>
     </div>
     <CompanyCreateDialog

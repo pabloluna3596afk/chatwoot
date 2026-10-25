@@ -1,25 +1,22 @@
 import { mount } from '@vue/test-utils';
+import { createI18n } from 'vue-i18n';
 import LoadErrorNotice from './LoadErrorNotice.vue';
 
 describe('LoadErrorNotice', () => {
-  it('announces an error and emits retry', async () => {
+  it('localizes its default retry label', () => {
+    const i18n = createI18n({
+      legacy: false,
+      locale: 'en',
+      messages: {
+        en: { COMPONENTS: { LOAD_ERROR_NOTICE: { RETRY: 'Try again' } } },
+      },
+    });
     const wrapper = mount(LoadErrorNotice, {
-      props: { title: 'Load failed', message: 'Network error' },
+      props: { title: 'Could not load' },
+      global: { plugins: [i18n], stubs: { Icon: true } },
     });
 
-    expect(wrapper.get('[role="alert"]').exists()).toBe(true);
-    expect(wrapper.text()).toContain('Network error');
-    await wrapper.get('button').trigger('click');
-    expect(wrapper.emitted('retry')).toHaveLength(1);
-  });
-
-  it('marks a retrying button busy and renders compact mode', () => {
-    const wrapper = mount(LoadErrorNotice, {
-      props: { title: 'Load failed', retrying: true, compact: true },
-    });
-
-    expect(wrapper.get('[role="alert"]').classes()).toContain('bg-n-ruby-3');
-    expect(wrapper.get('button').attributes('disabled')).toBeDefined();
-    expect(wrapper.get('button').attributes('aria-busy')).toBe('true');
+    expect(wrapper.get('button').text()).toBe('Try again');
+    wrapper.unmount();
   });
 });

@@ -65,13 +65,11 @@ describe('CompaniesIndex load errors', () => {
 
   it('shows a retry block after the initial request fails and recovers', async () => {
     store.get
-      .mockRejectedValueOnce(new Error('Network unavailable'))
+      .mockRejectedValueOnce(new Error('Network Error'))
       .mockResolvedValueOnce();
     const wrapper = await mountIndex();
 
-    expect(wrapper.get('[role="alert"]').text()).toContain(
-      'Network unavailable'
-    );
+    expect(wrapper.get('[role="alert"]').text()).not.toContain('Network Error');
     expect(wrapper.find('article').exists()).toBe(false);
     await wrapper.get('[role="alert"] button').trigger('click');
     await flushPromises();
@@ -94,7 +92,9 @@ describe('CompaniesIndex load errors', () => {
       .vm.$emit('update:currentPage', 3);
     await flushPromises();
 
-    expect(wrapper.get('[role="alert"]').text()).toContain('Refresh failed');
+    expect(wrapper.get('[role="alert"]').text()).not.toContain(
+      'Refresh failed'
+    );
     expect(wrapper.get('article').text()).toBe('Northwind');
     await wrapper.get('[role="alert"] button').trigger('click');
     await flushPromises();
@@ -130,6 +130,9 @@ describe('CompaniesIndex load errors', () => {
     await flushPromises();
 
     expect(wrapper.get('[aria-hidden="true"][inert]').exists()).toBe(true);
+    expect(
+      wrapper.get('[data-testid="companies-content"]').attributes('aria-busy')
+    ).toBe('true');
     finish();
     await flushPromises();
     wrapper.unmount();

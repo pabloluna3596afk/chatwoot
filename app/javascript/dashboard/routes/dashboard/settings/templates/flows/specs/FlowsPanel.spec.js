@@ -110,7 +110,7 @@ const mountPanel = async () => {
 describe('FlowsPanel', () => {
   it('shows a persistent first-load error and retries the same request', async () => {
     WhatsappFlowsAPI.list
-      .mockRejectedValueOnce(new Error('Network unavailable'))
+      .mockRejectedValueOnce(new Error('Network Error'))
       .mockResolvedValueOnce({
         data: {
           payload: flows,
@@ -121,9 +121,10 @@ describe('FlowsPanel', () => {
 
     const wrapper = await mountPanel();
 
-    expect(wrapper.get('[role="alert"]').text()).toContain(
-      'Network unavailable'
-    );
+    expect(wrapper.get('[role="alert"]').text()).not.toContain('Network Error');
+    expect(
+      wrapper.get('[data-testid="flows-content"]').attributes('aria-busy')
+    ).toBe('false');
     await wrapper.get('[role="alert"] button').trigger('click');
     await flushPromises();
 
@@ -134,6 +135,49 @@ describe('FlowsPanel', () => {
       { page: 1, per_page: 8 },
       expect.any(Object)
     );
+    wrapper.unmount();
+  });
+
+  it('shows a useful server message without exposing transport errors', async () => {
+    WhatsappFlowsAPI.list.mockRejectedValueOnce({
+      message: 'Request failed with status code 500',
+      response: { data: { message: 'The Flow service is unavailable.' } },
+    });
+    const wrapper = await mountPanel();
+
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      'The Flow service is unavailable.'
+    );
+    expect(wrapper.get('[role="alert"]').text()).not.toContain(
+      'status code 500'
+    );
+    wrapper.unmount();
+  });
+
+  it('keeps the retry notice visible and disabled while the request is pending', async () => {
+    let reject;
+    WhatsappFlowsAPI.list
+      .mockRejectedValueOnce(new Error('Network Error'))
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve, rejectRequest) => {
+            reject = rejectRequest;
+          })
+      );
+    const wrapper = await mountPanel();
+
+    await wrapper.get('[role="alert"] button').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.get('[role="alert"]').exists()).toBe(true);
+    expect(
+      wrapper.get('[role="alert"] button').attributes('disabled')
+    ).toBeDefined();
+    reject(new Error('Network Error'));
+    await flushPromises();
+    expect(
+      wrapper.get('[role="alert"] button').attributes('disabled')
+    ).toBeUndefined();
     wrapper.unmount();
   });
 
@@ -159,6 +203,9 @@ describe('FlowsPanel', () => {
     });
     await flushPromises();
     expect(wrapper.find('[data-testid="flows-skeleton"]').exists()).toBe(true);
+    expect(
+      wrapper.get('[data-testid="flows-content"]').attributes('aria-busy')
+    ).toBe('true');
     resolve(response);
     await flushPromises();
     expect(wrapper.find('[data-testid="flows-skeleton"]').exists()).toBe(false);

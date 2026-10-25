@@ -49,21 +49,80 @@ describe('TaskKanban load errors', () => {
 
   it('shows a retry block after a failed initial load and recovers', async () => {
     InternalTasksAPI.getTasks
-      .mockRejectedValueOnce(new Error('Network unavailable'))
+      .mockRejectedValueOnce(new Error('Network Error'))
       .mockResolvedValueOnce({ data: tasks });
     const wrapper = mountBoard();
     await flushPromises();
 
-    expect(wrapper.get('[role="alert"]').text()).toContain(
-      'Network unavailable'
-    );
+    expect(wrapper.get('[role="alert"]').text()).not.toContain('Network Error');
     expect(wrapper.find('article').exists()).toBe(false);
+    expect(wrapper.get('[aria-busy="false"]').exists()).toBe(true);
     await wrapper.get('[role="alert"] button').trigger('click');
     await flushPromises();
 
     expect(wrapper.find('[role="alert"]').exists()).toBe(false);
     expect(wrapper.get('article').text()).toBe('Follow up');
     expect(InternalTasksAPI.getTasks).toHaveBeenCalledTimes(2);
+    wrapper.unmount();
+  });
+
+  it('shows a useful server message without exposing transport errors', async () => {
+    InternalTasksAPI.getTasks.mockRejectedValueOnce({
+      message: 'Request failed with status code 500',
+      response: {
+        data: { message: 'The task service is temporarily offline.' },
+      },
+    });
+    const wrapper = mountBoard();
+    await flushPromises();
+
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      'The task service is temporarily offline.'
+    );
+    expect(wrapper.get('[role="alert"]').text()).not.toContain(
+      'status code 500'
+    );
+    wrapper.unmount();
+  });
+
+  it('keeps the retry notice visible and disabled while the request is pending', async () => {
+    let reject;
+    InternalTasksAPI.getTasks
+      .mockRejectedValueOnce(new Error('Network Error'))
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve, rejectRequest) => {
+            reject = rejectRequest;
+          })
+      );
+    const wrapper = mountBoard();
+    await flushPromises();
+
+    await wrapper.get('[role="alert"] button').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.get('[role="alert"]').exists()).toBe(true);
+    expect(
+      wrapper.get('[role="alert"] button').attributes('disabled')
+    ).toBeDefined();
+    reject(new Error('Network Error'));
+    await flushPromises();
+    expect(
+      wrapper.get('[role="alert"] button').attributes('disabled')
+    ).toBeUndefined();
+    wrapper.unmount();
+  });
+
+  it('uses a compact notice after a successful empty load fails to refresh', async () => {
+    InternalTasksAPI.getTasks
+      .mockResolvedValueOnce({ data: [] })
+      .mockRejectedValueOnce(new Error('Network Error'));
+    const wrapper = mountBoard();
+    await flushPromises();
+    await wrapper.vm.refresh();
+    await flushPromises();
+
+    expect(wrapper.get('[role="alert"]').classes()).toContain('bg-n-ruby-3');
     wrapper.unmount();
   });
 
@@ -81,7 +140,9 @@ describe('TaskKanban load errors', () => {
     await wrapper.vm.refresh();
     await flushPromises();
 
-    expect(wrapper.get('[role="alert"]').text()).toContain('Refresh failed');
+    expect(wrapper.get('[role="alert"]').text()).not.toContain(
+      'Refresh failed'
+    );
     expect(wrapper.get('[role="alert"]').classes()).toContain('bg-n-ruby-3');
     expect(wrapper.get('article').text()).toBe('Follow up');
     const failedRequest = InternalTasksAPI.getTasks.mock.calls[2][0];
