@@ -55,7 +55,14 @@ const selectedModel = computed({
           class="flex items-center justify-center rounded-md cursor-pointer absolute inset-0 z-10 backdrop-blur-[2px] size-6"
           @click.stop
         >
-          <Checkbox v-model="selectedModel" />
+          <Checkbox
+            v-model="selectedModel"
+            :aria-label="
+              $t('GENERAL.ACCESSIBILITY.SELECT_CONVERSATION', {
+                name: contact.name,
+              })
+            "
+          />
         </div>
       </template>
     </Avatar>

@@ -169,7 +169,12 @@ const handleViewConversations = () => {
     @mouseleave="emit('hover', false)"
   >
     <div v-show="selectable" class="absolute top-7 ltr:left-3 rtl:right-3">
-      <Checkbox v-model="modelValue" />
+      <Checkbox
+        v-model="modelValue"
+        :aria-label="
+          $t('GENERAL.ACCESSIBILITY.SELECT_RESPONSE', { content: question })
+        "
+      />
     </div>
     <div class="flex relative justify-between w-full gap-1">
       <span class="text-base text-n-slate-12 line-clamp-1">

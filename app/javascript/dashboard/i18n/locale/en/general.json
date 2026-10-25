@@ -17,6 +17,21 @@
     "BETA_DESCRIPTION": "This feature is in beta and may change as we improve it.",
     "ACCEPT": "Accept",
     "DISCARD": "Discard",
+    "TABS": {
+      "SCROLL_LEFT": "Scroll tabs left",
+      "SCROLL_RIGHT": "Scroll tabs right"
+    },
+    "ACCESSIBILITY": {
+      "SELECT_ALL": "Select all",
+      "SELECT_AGENT": "Select {name}",
+      "SELECT_CONVERSATION": "Select conversation {name}",
+      "SELECT_CONTACT": "Select contact {name}",
+      "SELECT_SCENARIO": "Select scenario {title}",
+      "SELECT_RULE": "Select rule {content}",
+      "SELECT_RESPONSE": "Select response {content}",
+      "SELECT_DOCUMENT": "Select document {name}",
+      "SELECT_ARTICLE": "Select article {title}"
+    },
     "PREFERRED": "Preferred",
     "COLOR_PREVIEW": {
       "TITLE": "Preview",

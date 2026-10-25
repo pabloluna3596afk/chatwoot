@@ -1,5 +1,12 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-238 — Checkbox, pestañas y selección de escenarios por teclado (UI-15)
+
+- **Problema:** atributos accesibles del checkbox no llegaban al input; las pestañas no tenían semántica ni navegación de teclado; selección y expansión de escenarios dependían del puntero.
+- **Arreglo:** reenviar attrs y nombres al input, conservar el control visual de 16 px con objetivo táctil móvil de 44 px, usar roles/tabindex/flechas/Home/End en tabs, y añadir botón Mostrar más/menos, foco de selección y cierre Esc dentro de edición.
+- **Verificación:** 187 tests en UTC y 187 en America/Guayaquil; ESLint sin errores y `git diff --check`. Capturas pareadas `ui-15-controls-{390,1280}-{antes,despues}.png` y foco para pestaña, checkbox y Mostrar más en `studio-video/referencias/chathub/montaje/`. Se añadieron specs dedicados de `ConversationBox` y `CreateOrLinkIssue`.
+- **Localización:** claves nuevas en inglés y español para acciones de pestañas, selección y expansión.
+
 ### B-NEW-237 — Campos accesibles y búsqueda remota recuperable (UI-14)
 
 - **Problema:** la ayuda y los errores de Input/ComboBox no describían el control real y se recortaban; las búsquedas remotas no distinguían carga, fallo y vacío. Fecha y duración carecían de parte del recorrido por teclado o de nombres accesibles.

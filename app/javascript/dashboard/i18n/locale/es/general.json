@@ -17,6 +17,21 @@
     "BETA_DESCRIPTION": "Esta función está en beta y puede cambiar mientras la mejoramos.",
     "ACCEPT": "Accept",
     "DISCARD": "Descartar",
+    "TABS": {
+      "SCROLL_LEFT": "Desplazar pestañas a la izquierda",
+      "SCROLL_RIGHT": "Desplazar pestañas a la derecha"
+    },
+    "ACCESSIBILITY": {
+      "SELECT_ALL": "Seleccionar todo",
+      "SELECT_AGENT": "Seleccionar a {name}",
+      "SELECT_CONVERSATION": "Seleccionar la conversación {name}",
+      "SELECT_CONTACT": "Seleccionar al contacto {name}",
+      "SELECT_SCENARIO": "Seleccionar el escenario {title}",
+      "SELECT_RULE": "Seleccionar la regla {content}",
+      "SELECT_RESPONSE": "Seleccionar la respuesta {content}",
+      "SELECT_DOCUMENT": "Seleccionar el documento {name}",
+      "SELECT_ARTICLE": "Seleccionar el artículo {title}"
+    },
     "PREFERRED": "Preferred",
     "COLOR_PREVIEW": {
       "TITLE": "Vista previa",

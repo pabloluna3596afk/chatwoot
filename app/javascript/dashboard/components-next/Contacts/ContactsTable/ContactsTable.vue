@@ -17,18 +17,16 @@ import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import ContactTableLabels from 'dashboard/components-next/Contacts/ContactsTable/ContactTableLabels.vue';
 
-// Must match checkbox column width (padding + control) so name sticky offset aligns
-const CHECKBOX_COL_WIDTH = '2.75rem';
-const EMPTY = '--';
-
 const props = defineProps({
   contacts: { type: Array, required: true },
   selectedContactIds: { type: Array, default: () => [] },
   activeSort: { type: String, default: 'last_activity_at' },
   activeOrdering: { type: String, default: '' },
 });
-
 const emit = defineEmits(['toggleContact', 'showContact', 'update:sort']);
+// Must match checkbox column width (padding + control) so name sticky offset aligns
+const CHECKBOX_COL_WIDTH = '2.75rem';
+const EMPTY = '--';
 
 const { t } = useI18n();
 const { uiSettings } = useUISettings();
@@ -194,7 +192,8 @@ const cellText = (contact, column) => {
         ? t('CONTACTS_LAYOUT.TABLE.COLUMNS.BLOCKED_YES')
         : t('CONTACTS_LAYOUT.TABLE.COLUMNS.BLOCKED_NO');
     default:
-      if (isCustomColumnKey(column.key)) return customAttrValue(contact, column);
+      if (isCustomColumnKey(column.key))
+        return customAttrValue(contact, column);
       return EMPTY;
   }
 };
@@ -247,6 +246,7 @@ const stickyNameStyle = { left: CHECKBOX_COL_WIDTH };
               :model-value="allSelected"
               :indeterminate="someSelected"
               :title="selectPageTitle"
+              :aria-label="selectPageTitle"
               @change="event => toggleSelectAll(event.target.checked)"
             />
           </th>
@@ -298,6 +298,11 @@ const stickyNameStyle = { left: CHECKBOX_COL_WIDTH };
           >
             <Checkbox
               :model-value="selectedIdsSet.has(contact.id)"
+              :aria-label="
+                $t('GENERAL.ACCESSIBILITY.SELECT_CONTACT', {
+                  name: contact.name,
+                })
+              "
               @change="event => toggleContact(contact.id, event.target.checked)"
             />
           </td>
