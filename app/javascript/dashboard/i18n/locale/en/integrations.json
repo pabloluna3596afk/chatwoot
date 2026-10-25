@@ -1350,6 +1350,11 @@
       "SCENARIOS": {
         "TITLE": "Scenarios",
         "DESCRIPTION": "Give your assistant some context—like “what to do when a user is stuck,” or “how to act during a refund request.”",
+        "SHOW_MORE": "Show more",
+        "SHOW_LESS": "Show less",
+        "SELECT_SCENARIO": "Select scenario: {title}",
+        "EDIT_SCENARIO": "Edit scenario: {title}",
+        "DELETE_SCENARIO": "Delete scenario: {title}",
         "BULK_ACTION": {
           "SELECTED": "{count} item selected | {count} items selected",
           "SELECT_ALL": "Select all ({count})",

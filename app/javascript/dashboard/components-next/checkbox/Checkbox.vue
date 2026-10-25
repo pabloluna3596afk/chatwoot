@@ -12,6 +12,8 @@ defineProps({
 
 const emit = defineEmits(['change']);
 
+defineOptions({ inheritAttrs: false });
+
 const modelValue = defineModel('modelValue', {
   type: Boolean,
   default: false,
@@ -26,12 +28,16 @@ const handleChange = event => {
 <template>
   <div class="relative w-4 h-4">
     <input
+      v-bind="$attrs"
       :checked="modelValue"
       :indeterminate="indeterminate"
       type="checkbox"
       :disabled="disabled"
-      class="peer absolute inset-0 z-10 h-4 w-4 disabled:opacity-50 appearance-none rounded border border-n-slate-6 ring-transparent transition-all duration-200 checked:border-n-brand checked:bg-n-brand dark:border-n-slate-6 dark:checked:border-n-brand indeterminate:border-n-brand indeterminate:bg-n-brand hover:enabled:bg-n-blue-border cursor-pointer"
+      class="peer absolute start-1/2 top-1/2 z-10 h-4 w-4 -translate-x-1/2 -translate-y-1/2 appearance-none border-0 bg-transparent focus-visible:ring-2 focus-visible:ring-n-brand focus-visible:ring-offset-1 max-sm:h-11 max-sm:w-11 cursor-pointer disabled:cursor-not-allowed"
       @change="handleChange"
+    />
+    <span
+      class="pointer-events-none absolute inset-0 rounded border border-n-slate-6 bg-transparent transition-all duration-200 peer-checked:border-n-brand peer-checked:bg-n-brand dark:border-n-slate-6 dark:peer-checked:border-n-brand peer-indeterminate:border-n-brand peer-indeterminate:bg-n-brand peer-disabled:opacity-50 peer-hover:bg-n-blue-border"
     />
     <!-- Checkmark SVG -->
     <svg

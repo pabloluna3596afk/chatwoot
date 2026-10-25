@@ -92,7 +92,14 @@ const selectedModel = computed({
     <!-- LEFT SECTION -->
     <div class="flex items-center gap-2 min-w-0 flex-1">
       <div class="flex items-center justify-center flex-shrink-0" @click.stop>
-        <Checkbox v-model="selectedModel" />
+        <Checkbox
+          v-model="selectedModel"
+          :aria-label="
+            $t('GENERAL.ACCESSIBILITY.SELECT_CONVERSATION', {
+              name: currentContact.name,
+            })
+          "
+        />
       </div>
 
       <div class="w-px h-3 bg-n-slate-6 flex-shrink-0" />

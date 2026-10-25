@@ -85,6 +85,7 @@ const bulkCheckboxState = computed({
           <Checkbox
             v-model="bulkCheckboxState"
             :indeterminate="isIndeterminate"
+            :aria-label="$t('GENERAL.ACCESSIBILITY.SELECT_ALL')"
           />
           <span
             class="text-sm font-medium truncate text-n-slate-12 tabular-nums"

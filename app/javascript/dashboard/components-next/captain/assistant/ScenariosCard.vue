@@ -143,6 +143,13 @@ const instructionError = computed(() =>
     : ''
 );
 
+const onEscapeEdit = event => {
+  if (!isEditing.value) return;
+  event.preventDefault();
+  event.stopPropagation();
+  toggleEditing(false);
+};
+
 const LINK_INSTRUCTION_CLASS =
   '[&_a[href^="tool://"]]:text-n-iris-11 [&_a:not([href^="tool://"])]:text-n-slate-12 [&_a]:pointer-events-none [&_a]:cursor-default';
 </script>
@@ -150,20 +157,31 @@ const LINK_INSTRUCTION_CLASS =
 <template>
   <CardLayout
     selectable
-    class="relative [&>div]:!py-4"
+    class="group relative [&>div]:!py-4"
     :class="{
       '[&>div]:ltr:!pr-4 [&>div]:rtl:!pl-4': !isEditing,
       '[&>div]:ltr:!pr-10 [&>div]:rtl:!pl-10': isEditing,
     }"
     layout="row"
+    @keydown.esc="onEscapeEdit"
     @mouseenter="emit('hover', true)"
     @mouseleave="emit('hover', false)"
   >
     <div
-      v-show="selectable && !isEditing"
-      class="absolute top-[1.125rem] ltr:left-3 rtl:right-3"
+      v-show="!isEditing"
+      class="absolute top-[1.125rem] ltr:left-3 rtl:right-3 z-10 transition-opacity"
+      :class="{
+        'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-100':
+          !isSelected && !selectable,
+        'opacity-100': selectable || isSelected,
+      }"
     >
-      <Checkbox v-model="modelValue" />
+      <Checkbox
+        v-model="modelValue"
+        :aria-label="
+          t('CAPTAIN.ASSISTANTS.SCENARIOS.SELECT_SCENARIO', { title })
+        "
+      />
     </div>
 
     <div v-if="!isEditing" class="flex flex-col w-full">
@@ -195,10 +213,22 @@ const LINK_INSTRUCTION_CLASS =
           <span class="w-px h-4 bg-n-weak" />
           <!-- <Button label="Test" slate xs ghost class="!text-sm" />
           <span class="w-px h-4 bg-n-weak" /> -->
-          <Button icon="i-lucide-pen" slate xs ghost @click="startEdit" />
+          <Button
+            icon="i-lucide-pen"
+            :aria-label="
+              t('CAPTAIN.ASSISTANTS.SCENARIOS.EDIT_SCENARIO', { title })
+            "
+            slate
+            xs
+            ghost
+            @click="startEdit"
+          />
           <span class="w-px h-4 bg-n-weak" />
           <Button
             icon="i-lucide-trash"
+            :aria-label="
+              t('CAPTAIN.ASSISTANTS.SCENARIOS.DELETE_SCENARIO', { title })
+            "
             slate
             xs
             ghost
@@ -215,7 +245,7 @@ const LINK_INSTRUCTION_CLASS =
         }"
         @click="needsOverlay ? toggleInstructionExpanded() : null"
       >
-        <div ref="instructionContentRef">
+        <div :id="`scenario-instruction-${id}`" ref="instructionContentRef">
           <p
             v-dompurify-html:toolLinks="formatMessage(instruction, false)"
             class="text-sm text-n-slate-12 py-4 mb-0 prose prose-sm min-w-0 break-words max-w-none"
@@ -235,6 +265,24 @@ const LINK_INSTRUCTION_CLASS =
             class="text-n-slate-7 mb-4 size-4 group-hover/expandable:text-n-slate-11 transition-colors duration-200"
           />
         </div>
+        <Button
+          v-if="needsOverlay"
+          :label="
+            t(
+              isInstructionExpanded
+                ? 'CAPTAIN.ASSISTANTS.SCENARIOS.SHOW_LESS'
+                : 'CAPTAIN.ASSISTANTS.SCENARIOS.SHOW_MORE'
+            )
+          "
+          :aria-expanded="isInstructionExpanded"
+          :aria-controls="`scenario-instruction-${id}`"
+          type="button"
+          class="absolute bottom-2 start-1/2 z-10 -translate-x-1/2"
+          ghost
+          xs
+          slate
+          @click.stop="toggleInstructionExpanded()"
+        />
       </div>
       <span
         v-if="tools?.length"

@@ -1342,6 +1342,11 @@
       "SCENARIOS": {
         "TITLE": "Escenarios",
         "DESCRIPTION": "Dale contexto a tu asistente, como \"qué hacer cuando un usuario está atascado\" o \"cómo actuar en una solicitud de reembolso\".",
+        "SHOW_MORE": "Mostrar más",
+        "SHOW_LESS": "Mostrar menos",
+        "SELECT_SCENARIO": "Seleccionar escenario: {title}",
+        "EDIT_SCENARIO": "Editar escenario: {title}",
+        "DELETE_SCENARIO": "Eliminar escenario: {title}",
         "BULK_ACTION": {
           "SELECTED": "{count} elemento seleccionado | {count} elementos seleccionados",
           "SELECT_ALL": "Seleccionar todos ({count})",

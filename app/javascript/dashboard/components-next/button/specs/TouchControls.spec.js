@@ -46,7 +46,7 @@ describe('shared touch controls', () => {
   it('uses a valid checkbox border while preserving selection and indeterminate state', async () => {
     const wrapper = mount(Checkbox, { props: { indeterminate: true } });
     const input = wrapper.get('input');
-    expect(input.classes()).toContain('dark:border-n-slate-6');
+    expect(wrapper.get('span').classes()).toContain('dark:border-n-slate-6');
     expect(input.element.indeterminate).toBe(true);
     await input.setValue(true);
     expect(wrapper.emitted('update:modelValue')[0]).toEqual([true]);
@@ -84,8 +84,8 @@ describe('shared touch controls', () => {
       props: { name: 'Tasks', index: 1, isCompact: true },
       global: { provide: { activeIndex: ref(0), updateActiveIndex } },
     });
-    expect(wrapper.get('a').classes()).toContain('max-sm:min-h-11');
-    await wrapper.get('a').trigger('click');
+    expect(wrapper.get('button').classes()).toContain('max-sm:min-h-11');
+    await wrapper.get('button').trigger('click');
     expect(updateActiveIndex).toHaveBeenCalledWith(1);
   });
 
