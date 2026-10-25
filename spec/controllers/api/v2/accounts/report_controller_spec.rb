@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe 'Reports API', type: :request do
   around do |example|
-    Time.use_zone('UTC') { travel_to(Time.utc(2026, 10, 25, 12)) { example.run } }
+    Time.use_zone('UTC') { travel_to(Time.utc(2026, 1, 15, 12)) { example.run } }
   end
 
   let(:account) { create(:account) }
