@@ -148,6 +148,43 @@ describe('AssistantMessagingForm', () => {
     ).toHaveLength(1);
   });
 
+  it('wraps long WhatsApp resource rows below md and keeps desktop rows single-line', async () => {
+    const wrapper = mountForm({
+      config: {
+        messaging: {
+          inboxes: [
+            {
+              inbox_id: 10,
+              enabled: true,
+              flows: [{ flow_id: 7, purpose: 'Reserva' }],
+              templates: [
+                { name: 'reserva', language: 'es', purpose: 'Confirmar' },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    await flushPromises();
+
+    expect(
+      wrapper.get('[data-testid="messaging-flow-row"]').classes()
+    ).toContain('flex-wrap');
+    expect(
+      wrapper.get('[data-testid="messaging-flow-row"]').classes()
+    ).toContain('md:flex-nowrap');
+    expect(
+      wrapper.get('[data-testid="messaging-template-row"]').classes()
+    ).toContain('flex-wrap');
+    expect(
+      wrapper.get('[data-testid="messaging-template-row"]').classes()
+    ).toContain('md:flex-nowrap');
+    const addTemplateButton = wrapper.get(
+      '[data-testid="messaging-add-template"]'
+    ).element;
+    expect(addTemplateButton.parentElement.classList).toContain('flex-wrap');
+  });
+
   it('adds a Flow with its purpose and saves the whole messaging block, without empty inboxes', async () => {
     const wrapper = mountForm({ config: { allow_paid_templates: true } });
     await flushPromises();

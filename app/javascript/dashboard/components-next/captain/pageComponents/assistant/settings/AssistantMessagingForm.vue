@@ -322,7 +322,7 @@ onMounted(async () => {
         class="flex flex-col gap-3 p-4 rounded-xl bg-n-alpha-1"
         data-testid="messaging-flows"
       >
-        <div class="flex items-start gap-3">
+        <div class="flex flex-wrap items-start gap-3 md:flex-nowrap">
           <span
             class="grid shrink-0 size-9 place-items-center rounded-lg bg-n-teal-3 text-n-teal-11"
           >
@@ -330,7 +330,7 @@ onMounted(async () => {
           </span>
           <div class="flex flex-col min-w-0 gap-0.5 grow">
             <h3
-              class="flex items-center gap-2 mb-0 text-heading-3 text-n-slate-12"
+              class="flex min-w-0 flex-wrap items-center gap-2 mb-0 text-heading-3 text-n-slate-12 md:flex-nowrap"
             >
               {{ t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.FLOWS') }}
               <span
@@ -366,7 +366,7 @@ onMounted(async () => {
           <li
             v-for="(row, index) in flowRows"
             :key="row.flow_id"
-            class="flex items-center gap-3 p-3 rounded-lg bg-n-solid-2"
+            class="flex flex-wrap items-center gap-3 p-3 rounded-lg bg-n-solid-2 md:flex-nowrap"
             data-testid="messaging-flow-row"
           >
             <div class="flex flex-col min-w-0 gap-1.5 grow">
@@ -390,7 +390,7 @@ onMounted(async () => {
                   ? ''
                   : t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.UNAVAILABLE_FLOW')
               "
-              class="px-2 py-0.5 text-xs font-medium rounded-md shrink-0"
+              class="max-w-full break-words px-2 py-0.5 text-xs font-medium rounded-md md:shrink-0 md:whitespace-nowrap"
               :class="
                 row.available
                   ? 'bg-n-teal-3 text-n-teal-11'
@@ -419,7 +419,7 @@ onMounted(async () => {
         class="flex flex-col gap-3 p-4 rounded-xl bg-n-alpha-1"
         data-testid="messaging-templates"
       >
-        <div class="flex items-start gap-3">
+        <div class="flex flex-wrap items-start gap-3 md:flex-nowrap">
           <span
             class="grid shrink-0 size-9 place-items-center rounded-lg bg-n-blue-3 text-n-blue-11"
           >
@@ -427,7 +427,7 @@ onMounted(async () => {
           </span>
           <div class="flex flex-col min-w-0 gap-0.5 grow">
             <h3
-              class="flex items-center gap-2 mb-0 text-heading-3 text-n-slate-12"
+              class="flex min-w-0 flex-wrap items-center gap-2 mb-0 text-heading-3 text-n-slate-12 md:flex-nowrap"
             >
               {{ t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.TEMPLATES') }}
               <span
@@ -463,7 +463,7 @@ onMounted(async () => {
           <li
             v-for="(row, index) in templateRows"
             :key="`${row.name}|${row.language}`"
-            class="flex items-center gap-3 p-3 rounded-lg bg-n-solid-2"
+            class="flex flex-wrap items-center gap-3 p-3 rounded-lg bg-n-solid-2 md:flex-nowrap"
             data-testid="messaging-template-row"
           >
             <div class="flex flex-col min-w-0 gap-1.5 grow">
@@ -487,7 +487,7 @@ onMounted(async () => {
                   ? ''
                   : t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.UNAVAILABLE_TEMPLATE')
               "
-              class="px-2 py-0.5 text-xs font-medium rounded-md shrink-0"
+              class="max-w-full break-words px-2 py-0.5 text-xs font-medium rounded-md md:shrink-0 md:whitespace-nowrap"
               :class="
                 row.available && row.complete
                   ? 'bg-n-alpha-2 text-n-slate-11'

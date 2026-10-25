@@ -18,6 +18,15 @@ const mountComponent = () =>
   shallowMount(AssistantBasicSettingsForm, { props: { assistant } });
 
 describe('AssistantBasicSettingsForm avatar', () => {
+  it('gives feature checkboxes a 44 px touch target below md', () => {
+    const labels = mountComponent().findAll('label');
+
+    expect(labels).toHaveLength(4);
+    labels.forEach(label => {
+      expect(label.classes()).toContain('max-md:min-h-11');
+    });
+  });
+
   it('shows the assistant photo with the upload control enabled', () => {
     const avatar = mountComponent().findComponent(Avatar);
 

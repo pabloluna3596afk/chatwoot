@@ -286,7 +286,7 @@ const save = async () => {
         role="radiogroup"
         :aria-label="t('CAPTAIN.ASSISTANTS.FORM.AUDIENCE.INBOX.ATTENDS')"
         data-testid="inbox-audience-mode"
-        class="grid h-8 grid-cols-3 gap-0.5 rounded-lg bg-n-alpha-1 p-0.5"
+        class="grid h-8 grid-cols-3 gap-0.5 rounded-lg bg-n-alpha-1 p-0.5 max-sm:h-11"
       >
         <button
           v-for="option in segmentModes"
@@ -394,7 +394,7 @@ const save = async () => {
       <p v-if="error" role="alert" class="break-words text-sm text-n-ruby-11">
         {{ error }}
       </p>
-      <div v-if="canEdit" class="flex justify-end gap-2">
+      <div v-if="canEdit" class="flex flex-wrap justify-end gap-2">
         <Button
           ghost
           slate

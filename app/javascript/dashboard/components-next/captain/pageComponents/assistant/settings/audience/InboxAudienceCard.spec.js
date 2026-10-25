@@ -258,6 +258,7 @@ describe('inbox audience', () => {
     await open(wrapper);
     const control = wrapper.get('[data-testid="inbox-audience-mode"]');
     expect(control.classes()).toContain('h-8');
+    expect(control.classes()).toContain('max-sm:h-11');
     expect(control.classes()).toContain('grid-cols-3');
     expect(control.findAll('[role="radio"]')).toHaveLength(3);
     expect(
