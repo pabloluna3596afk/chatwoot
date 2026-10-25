@@ -19,12 +19,11 @@ const mountComponent = () =>
 
 describe('AssistantBasicSettingsForm avatar', () => {
   it('gives feature checkboxes a 44 px touch target below md', () => {
-    const labels = mountComponent().findAll('label');
+    const labels = mountComponent()
+      .findAll('label')
+      .filter(label => label.classes().includes('max-md:min-h-11'));
 
     expect(labels).toHaveLength(4);
-    labels.forEach(label => {
-      expect(label.classes()).toContain('max-md:min-h-11');
-    });
   });
 
   it('shows the assistant photo with the upload control enabled', () => {
