@@ -7,6 +7,14 @@
 - **Verificación:** 187 tests en UTC y 187 en America/Guayaquil; ESLint sin errores y `git diff --check`. Capturas pareadas `ui-15-controls-{390,1280}-{antes,despues}.png` y foco para pestaña, checkbox y Mostrar más en `studio-video/referencias/chathub/montaje/`. Se añadieron specs dedicados de `ConversationBox` y `CreateOrLinkIssue`.
 - **Localización:** claves nuevas en inglés y español para acciones de pestañas, selección y expansión.
 
+### B-NEW-237 — Campos accesibles y búsqueda remota recuperable (UI-14)
+
+- **Problema:** la ayuda y los errores de Input/ComboBox no describían el control real y se recortaban; las búsquedas remotas no distinguían carga, fallo y vacío. Fecha y duración carecían de parte del recorrido por teclado o de nombres accesibles.
+- **Cambio:** asociación label/control y ayuda/error multilínea; anuncio único del error; estados controlados `loading`/`searchError`, búsqueda visible desde cero resultados y reintento explícito con la misma consulta. CompanySelector conserva resultados y selección ante errores. DateField navega días con flechas y devuelve el foco al elegir; DurationInput expone nombres localizados. Los controles modificados alcanzan 44 px en móvil.
+- **Pilotos:** `settings/teams/TeamForm.vue` (unidades) y `settings/profile/UserBasicDetails.vue`; mismo payload, validación y geometría de escritorio. No cambia el tipo de los valores emitidos ni el backend.
+- **Verificación:** pruebas de accesibilidad, promesa pendiente/rechazada/reintento, tipos string/number/array, teclado y pilotos; suites de consumidores en UTC y America/Guayaquil. Capturas pareadas 390×844/1280×900, claro/oscuro. Evidencia, resultados y limitaciones en `tmp/PR-UI-14.md`.
+- **Archivos:** `components-next/input/{Input,DurationInput}.vue`, `components-next/combobox/{ComboBox,ComboBoxDropdown}.vue`, `components-next/date-field/DateField.vue`, CompanySelector, ContactMergeForm y los dos pilotos. Sin migraciones. Nuevas traducciones españolas pendientes de Crowdin.
+
 ### B-NEW-236 — Nombre, foco y altura de las ventanas emergentes (UI-13)
 
 - **Problema:** los diálogos no asociaban sus títulos y descripciones; los paneles laterales y las ventanas móviles no impedían llegar al fondo con el teclado. Los campos se montaban después de elegir el foco inicial.

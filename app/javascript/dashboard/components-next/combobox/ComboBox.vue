@@ -1,5 +1,12 @@
 <script setup>
-import { ref, computed, watch, nextTick, inject } from 'vue';
+import {
+  ref,
+  computed,
+  watch,
+  nextTick,
+  inject,
+  getCurrentInstance,
+} from 'vue';
 import {
   onClickOutside,
   useElementBounding,
@@ -18,6 +25,11 @@ const props = defineProps({
     validator: value =>
       value.every(option => 'value' in option && 'label' in option),
   },
+  id: { type: String, default: '' },
+  label: { type: String, default: '' },
+  help: { type: String, default: '' },
+  loading: { type: Boolean, default: false },
+  searchError: { type: Boolean, default: false },
   placeholder: { type: String, default: '' },
   ariaLabel: { type: String, default: '' },
   // Opt in to a caller's field style without changing other dashboard pickers.
@@ -45,6 +57,8 @@ const props = defineProps({
   menuMinWidth: { type: String, default: '' },
 });
 const emit = defineEmits(['update:modelValue', 'search', 'open', 'close']);
+const { uid } = getCurrentInstance();
+const uniqueId = computed(() => props.id || `combobox-${uid}`);
 const SEARCH_OPTION_THRESHOLD = 6;
 const MENU_MAX_HEIGHT = 320;
 const MENU_GAP = 8;
@@ -102,7 +116,7 @@ const teleportTarget = computed(() => {
 
 const showSearchField = computed(() => {
   if (typeof props.showSearch === 'boolean') return props.showSearch;
-  return props.options.length > SEARCH_OPTION_THRESHOLD;
+  return props.useApiResults || props.options.length > SEARCH_OPTION_THRESHOLD;
 });
 
 const filteredOptions = computed(() => {
@@ -195,11 +209,39 @@ onClickOutside(
       'cursor-not-allowed': disabled,
       'group/combobox': !disabled,
     }"
+    @focusout="
+      event => {
+        if (
+          event.relatedTarget &&
+          !comboboxRef?.contains(event.relatedTarget) &&
+          !dropdownRef?.$el?.contains(event.relatedTarget)
+        )
+          open = false;
+      }
+    "
     @click.prevent
   >
+    <label
+      v-if="label"
+      :for="uniqueId"
+      class="block mb-1.5 text-heading-3 text-n-slate-12"
+    >
+      {{ label }}
+    </label>
     <div ref="triggerRef" class="w-full">
       <slot name="trigger" :toggle="toggleDropdown" :open="open">
         <Button
+          :id="uniqueId"
+          :aria-invalid="hasError || undefined"
+          :aria-describedby="
+            [
+              $attrs['aria-describedby'],
+              help ? `${uniqueId}-help` : '',
+              message ? `${uniqueId}-message` : '',
+            ]
+              .filter(Boolean)
+              .join(' ') || undefined
+          "
           variant="outline"
           :color="hasError && !open ? 'ruby' : open ? 'blue' : 'slate'"
           :label="selectedLabel"
@@ -209,7 +251,7 @@ onClickOutside(
           :aria-label="ariaLabel || undefined"
           :aria-expanded="open"
           no-animation
-          class="justify-between w-full"
+          class="justify-between w-full max-sm:!min-h-11"
           :class="[
             triggerClass ||
               '!px-3 !py-2.5 text-n-slate-12 font-normal group-hover/combobox:border-n-slate-6 focus:outline-n-brand',
@@ -220,6 +262,8 @@ onClickOutside(
             },
           ]"
           :icon="open ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+          @keydown.down.prevent="open ? dropdownRef?.focus() : toggleDropdown()"
+          @keydown.up.prevent="open ? dropdownRef?.focus() : toggleDropdown()"
           @click="toggleDropdown"
         />
       </slot>
@@ -231,6 +275,8 @@ onClickOutside(
         v-model:search-value="search"
         class="text-n-slate-12"
         :open="open"
+        :loading="loading"
+        :search-error="searchError"
         :options="filteredOptions"
         :groups="groups"
         :multiple="multiple"
@@ -242,11 +288,13 @@ onClickOutside(
         :scroll-class="dropdownMaxHeight"
         :placement="position.class"
         :style="teleport ? dropdownStyle : position.style"
+        @retry="emit('search', search)"
         @search="emit('search', $event)"
         @select="selectOption"
         @close="
           open = false;
-          triggerRef?.querySelector('button')?.focus({ preventScroll: true });
+          if ($event !== false)
+            triggerRef?.querySelector('button')?.focus({ preventScroll: true });
           emit('close');
         "
       >
@@ -257,8 +305,17 @@ onClickOutside(
     </Teleport>
 
     <p
+      v-if="help"
+      :id="`${uniqueId}-help`"
+      class="mt-2 mb-0 text-xs text-n-slate-11 whitespace-pre-line break-words"
+    >
+      {{ help }}
+    </p>
+    <p
       v-if="message"
-      class="mt-2 mb-0 text-xs truncate transition-all duration-500 ease-in-out"
+      :id="`${uniqueId}-message`"
+      :role="hasError ? 'alert' : undefined"
+      class="mt-2 mb-0 text-xs whitespace-pre-line break-words transition-all duration-500 ease-in-out"
       :class="{
         'text-n-ruby-9': hasError,
         'text-n-slate-11': !hasError,

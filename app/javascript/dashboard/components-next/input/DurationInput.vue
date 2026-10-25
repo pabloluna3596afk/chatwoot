@@ -12,6 +12,8 @@ const props = defineProps({
   disabled: { type: Boolean, default: false },
 });
 
+defineOptions({ inheritAttrs: false });
+
 const { t } = useI18n();
 const unitOptions = computed(() => [
   {
@@ -87,6 +89,10 @@ watch(unit, () => {
 <template>
   <Input
     v-model="transformedValue"
+    v-bind="$attrs"
+    :aria-label="
+      $attrs['aria-label'] || $attrs.label || t('DURATION_INPUT.PLACEHOLDER')
+    "
     :size="customUnitSelect ? 'sm' : 'md'"
     type="number"
     autocomplete="off"
@@ -101,6 +107,7 @@ watch(unit, () => {
     v-model="unit"
     class="basis-32 max-w-32 shrink-0"
     trigger-class="h-8"
+    :aria-label="t('DURATION_INPUT.UNIT')"
     :options="unitOptions"
     :disabled="disabled"
     :allow-deselect="false"
@@ -109,8 +116,9 @@ watch(unit, () => {
   <select
     v-else
     v-model="unit"
+    :aria-label="t('DURATION_INPUT.UNIT')"
     :disabled="disabled"
-    class="mb-0 text-sm disabled:outline-n-weak disabled:opacity-40"
+    class="max-sm:!min-h-11 mb-0 text-sm disabled:outline-n-weak disabled:opacity-40"
   >
     <option :value="DURATION_UNITS.MINUTES">
       {{ t('DURATION_INPUT.MINUTES') }}
