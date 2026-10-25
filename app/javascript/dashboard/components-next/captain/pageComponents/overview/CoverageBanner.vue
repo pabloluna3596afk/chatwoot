@@ -66,10 +66,10 @@ const goToSuggestions = () => {
 
 <template>
   <div
-    class="flex items-center justify-between gap-3 px-3 py-2 text-sm border rounded-xl bg-n-amber-2 border-n-amber-4 text-n-amber-11"
+    class="flex items-center justify-between gap-3 px-3 py-2 text-sm border rounded-xl bg-n-amber-2 border-n-amber-4 text-n-amber-11 max-md:flex-wrap"
     :class="{ hidden: !showBanner }"
   >
-    <div class="flex items-center gap-2 min-w-0">
+    <div class="flex min-w-0 items-center gap-2 max-md:flex-1">
       <span class="shrink-0 i-lucide-triangle-alert size-4" />
       <span class="truncate">
         {{
@@ -80,10 +80,10 @@ const goToSuggestions = () => {
         }}
       </span>
     </div>
-    <div class="flex items-center gap-1 shrink-0">
+    <div class="flex shrink-0 items-center gap-1">
       <button
         type="button"
-        class="px-3 py-1 rounded-lg bg-n-amber-4 hover:bg-n-amber-5"
+        class="rounded-lg bg-n-amber-4 px-3 py-1 hover:bg-n-amber-5 max-md:min-h-11"
         @click="goToSuggestions"
       >
         {{ $t('CAPTAIN.OVERVIEW.COVERAGE_BANNER.ACTION') }}
@@ -91,7 +91,7 @@ const goToSuggestions = () => {
       <span aria-hidden="true" class="w-px h-5 mx-1 bg-n-amber-4" />
       <button
         type="button"
-        class="grid rounded-lg size-7 place-content-center hover:bg-n-amber-4"
+        class="grid rounded-lg place-content-center hover:bg-n-amber-4 max-md:min-h-11 max-md:min-w-11"
         :aria-label="$t('CAPTAIN.OVERVIEW.COVERAGE_BANNER.DISMISS')"
         @click="dismiss"
       >

@@ -64,7 +64,7 @@ watch(() => props.messages.length, scrollToBottom);
 <template>
   <div
     ref="messageContainer"
-    class="flex-1 overflow-y-auto mb-4 px-6 space-y-6"
+    class="flex-1 overflow-y-auto mb-4 px-6 space-y-6 max-md:min-h-0 max-md:min-w-0"
   >
     <div
       v-for="(message, index) in messages"
@@ -73,7 +73,7 @@ watch(() => props.messages.length, scrollToBottom);
       :class="getMessageAlignment(message.sender)"
     >
       <div
-        class="flex max-w-[90%] items-end gap-1.5 md:max-w-[75%]"
+        class="flex max-w-[90%] items-end gap-1.5 md:max-w-[75%] max-md:min-w-0"
         :class="getMessageDirection(message.sender)"
       >
         <Avatar
@@ -84,7 +84,7 @@ watch(() => props.messages.length, scrollToBottom);
           class="shrink-0"
         />
         <div
-          class="px-4 py-3 text-sm [overflow-wrap:break-word]"
+          class="px-4 py-3 text-sm [overflow-wrap:break-word] max-md:min-w-0 max-md:[overflow-wrap:anywhere]"
           :class="messageStyle(message)"
         >
           <div v-dompurify-html="formatMessage(message.content)" />

@@ -68,7 +68,7 @@ const stats = computed(() => [
         :style="{ width: `${approvedPct}%` }"
       />
     </div>
-    <div class="grid grid-cols-3 gap-3">
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
       <RouterLink
         v-for="stat in stats"
         :key="stat.key"

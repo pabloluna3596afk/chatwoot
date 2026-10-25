@@ -32,6 +32,10 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  fullScreenOnMobile: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 // `afterLeave` fires once the slide-out transition finishes, so consumers
@@ -147,7 +151,12 @@ defineExpose({ open, close });
         "
         tabindex="-1"
         class="fixed m-0 border-0 p-0 start-auto max-h-none h-[calc(100dvh-1.5rem)] [&::backdrop]:bg-n-alpha-black1 z-50 flex flex-col w-[calc(100%-1.5rem)] overflow-hidden rounded-xl shadow-lg outline outline-1 outline-n-container inset-y-3 end-3 bg-n-solid-1 will-change-transform"
-        :class="maxWidthClass"
+        :class="[
+          maxWidthClass,
+          fullScreenOnMobile
+            ? 'max-md:inset-0 max-md:h-dvh max-md:w-full max-md:max-w-none max-md:rounded-none'
+            : '',
+        ]"
         @cancel.prevent="$event.target === panelRef && close()"
         @close="$event.target === panelRef && close()"
         @click="onBackdropClick"

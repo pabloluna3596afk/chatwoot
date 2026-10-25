@@ -224,11 +224,11 @@ const usesProviderBilling = computed(
 
 <template>
   <div
-    class="h-full rounded-xl border border-n-weak text-n-slate-11"
+    class="h-full rounded-xl border border-n-weak text-n-slate-11 max-md:min-h-0"
     :class="isV2 ? 'flex overflow-hidden' : 'flex flex-col'"
   >
-    <div class="flex min-w-0 flex-1 flex-col py-6">
-      <div class="mb-8 px-6">
+    <div class="flex min-w-0 flex-1 flex-col py-6 max-md:min-h-0 max-sm:py-3">
+      <div class="mb-8 shrink-0 px-6 max-sm:mb-4">
         <div class="mb-1 flex items-center justify-between gap-3">
           <h3 class="text-lg font-medium">
             {{ t('CAPTAIN.PLAYGROUND.HEADER') }}
@@ -265,12 +265,12 @@ const usesProviderBilling = computed(
       />
 
       <div
-        class="mx-6 flex items-center rounded-xl bg-n-background p-3 outline outline-1 outline-n-weak"
+        class="mx-6 flex shrink-0 items-center rounded-xl bg-n-background p-3 outline outline-1 outline-n-weak"
       >
         <input
           v-model="newMessage"
           :maxlength="PLAYGROUND_MESSAGE_LIMIT"
-          class="mb-0 flex-1 border-none bg-transparent text-sm text-n-slate-12 placeholder:text-n-slate-10 focus:outline-none"
+          class="mb-0 flex-1 border-none bg-transparent text-sm text-n-slate-12 placeholder:text-n-slate-10 focus:outline-none max-md:min-h-11 max-md:min-w-0"
           :placeholder="t('CAPTAIN.PLAYGROUND.MESSAGE_PLACEHOLDER')"
           @keydown.enter.exact="handleEnterKey"
         />

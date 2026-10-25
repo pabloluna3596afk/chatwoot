@@ -82,7 +82,7 @@ onUnmounted(stopAutoRotation);
             <button
               v-tooltip="$t('CAPTAIN.OVERVIEW.V2.SUMMARY.PREVIOUS')"
               type="button"
-              class="grid rounded-md size-6 place-content-center text-n-slate-11 transition-colors hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
+              class="grid size-6 place-content-center rounded-md text-n-slate-11 transition-colors hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand max-md:!size-11"
               :aria-label="$t('CAPTAIN.OVERVIEW.V2.SUMMARY.PREVIOUS')"
               @click="selectPoint(-1)"
             >
@@ -95,7 +95,7 @@ onUnmounted(stopAutoRotation);
             <button
               v-tooltip="$t('CAPTAIN.OVERVIEW.V2.SUMMARY.NEXT')"
               type="button"
-              class="grid rounded-md size-6 place-content-center text-n-slate-11 transition-colors hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
+              class="grid size-6 place-content-center rounded-md text-n-slate-11 transition-colors hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand max-md:!size-11"
               :aria-label="$t('CAPTAIN.OVERVIEW.V2.SUMMARY.NEXT')"
               @click="selectPoint(1)"
             >
