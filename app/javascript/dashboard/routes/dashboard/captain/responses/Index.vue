@@ -302,7 +302,7 @@ onUnmounted(() => {
         <SearchInput
           v-model="searchQuery"
           :placeholder="$t('CAPTAIN.RESPONSES.SEARCH_PLACEHOLDER')"
-          class="w-64"
+          class="w-full min-w-0 sm:w-64"
           size="sm"
           autofocus
           @input="handleSearchInput"
