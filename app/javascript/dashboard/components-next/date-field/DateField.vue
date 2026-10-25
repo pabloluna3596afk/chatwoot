@@ -89,7 +89,14 @@ const onDateKeydown = async event => {
   event.preventDefault();
   event.stopPropagation();
   const date = new Date(`${event.target.dataset.date}T12:00:00`);
-  date.setDate(date.getDate() + KEYBOARD_DAY_OFFSETS[event.key]);
+  const direction =
+    event.target.closest('[dir]')?.getAttribute('dir') ||
+    document.querySelector('#app[dir]')?.getAttribute('dir');
+  const isRtl = direction === 'rtl';
+  const horizontal = ['ArrowLeft', 'ArrowRight'].includes(event.key);
+  const offset =
+    KEYBOARD_DAY_OFFSETS[event.key] * (isRtl && horizontal ? -1 : 1);
+  date.setDate(date.getDate() + offset);
   const value = dateValue(date);
   if (props.min && value < props.min) return;
   focusedDate.value = value;

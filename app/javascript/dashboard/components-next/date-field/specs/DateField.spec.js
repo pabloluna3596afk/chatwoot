@@ -96,3 +96,43 @@ it('moves days across months using arrows, selects ISO and restores focus, while
   expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
   wrapper.unmount();
 });
+
+it('moves horizontally with the visual neighbor in RTL', async () => {
+  const app = document.createElement('div');
+  app.id = 'app';
+  app.dir = 'rtl';
+  document.body.appendChild(app);
+  const wrapper = mount(DateField, {
+    attachTo: app,
+    props: { label: 'Date', modelValue: '2030-01-15' },
+  });
+  try {
+    await wrapper.get('[aria-haspopup]').trigger('click');
+    await flushPromises();
+    const selectedDate = document.querySelector('[data-date="2030-01-15"]');
+    selectedDate.focus();
+
+    selectedDate.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'ArrowLeft',
+        bubbles: true,
+        cancelable: true,
+      })
+    );
+    await flushPromises();
+    expect(document.activeElement.dataset.date).toBe('2030-01-16');
+
+    document.activeElement.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'ArrowRight',
+        bubbles: true,
+        cancelable: true,
+      })
+    );
+    await flushPromises();
+    expect(document.activeElement.dataset.date).toBe('2030-01-15');
+  } finally {
+    wrapper.unmount();
+    app.remove();
+  }
+});
