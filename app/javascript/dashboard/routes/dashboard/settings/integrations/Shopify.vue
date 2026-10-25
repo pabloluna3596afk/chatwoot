@@ -117,7 +117,7 @@ onMounted(() => {
         >
           <template #action>
             <Button
-              teal
+              intent="primary"
               :label="t('INTEGRATION_SETTINGS.CONNECT.BUTTON_TEXT')"
               @click="openStoreUrlDialog"
             />

@@ -519,7 +519,7 @@ const overlayDescriptionId = useId();
           <NextButton
             v-else
             type="button"
-            color="teal"
+            intent="primary"
             :disabled="!canContinue"
             :is-loading="isLoading"
             @click="reconnect"

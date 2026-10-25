@@ -545,8 +545,7 @@ onMounted(() => {
                   <NextButton
                     icon="i-lucide-plus"
                     :label="$t('INBOX_MGMT.ASSIGNMENT.CREATE_NEW_POLICY')"
-                    slate
-                    faded
+                    intent="primary"
                     sm
                     @click="navigateToCreatePolicy"
                   />
@@ -692,7 +691,7 @@ onMounted(() => {
         </p>
         <div class="flex justify-end gap-2">
           <NextButton
-            color="slate"
+            intent="secondary"
             :label="$t('INBOX_MGMT.ASSIGNMENT_POLICY.CANCEL')"
             @click="cancelDeletePolicy"
           />
