@@ -1257,6 +1257,11 @@
           "NOTE": "Captain Assistant engages directly with customers, learns from your help docs and past conversations, and delivers instant, accurate responses. It handles the initial queries, providing quick resolutions before  transferring to an agent when needed."
         }
       },
+      "SUGGESTED_RULES": {
+        "SENSITIVE_INFORMATION": "Block queries that share or request sensitive personal information (e.g. phone numbers, passwords).",
+        "OFFENSIVE_LANGUAGE": "Reject queries that include offensive, discriminatory, or threatening language.",
+        "MEDICAL_LEGAL_ADVICE": "Deflect when the assistant is asked for legal or medical diagnosis or treatment."
+      },
       "GUARDRAILS": {
         "TITLE": "Safety limits",
         "DESCRIPTION": "Define topics and requests your assistant must not answer. Safety limits restrict behavior, not response quotas.",

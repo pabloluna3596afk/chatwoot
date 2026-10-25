@@ -1,5 +1,12 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-245 — Ejemplos de pautas y límites traducibles (UI-CAPTAIN-2)
+
+- **Problema:** los tres ejemplos sugeridos de pautas y límites se mostraban y guardaban en inglés aunque la interfaz estuviera en español.
+- **Arreglo:** los ejemplos ahora usan claves compartidas de `CAPTAIN.ASSISTANTS` y se traducen según el idioma activo; la selección sigue preparando el mismo borrador editable.
+- **Verificación:** `suggestedRules.spec.js` pasa en UTC y America/Guayaquil; ESLint focalizado limpio. Las suites Captain aprobaron 298 pruebas, pero 7 suites no cargaron porque falta `@amplitude/plugin-page-view-tracking-browser` en el entorno.
+- **Archivos:** Guidelines, Guardrails, helper compartido y catálogos `en/es`. Sin cambios de backend ni migraciones.
+
 ### B-NEW-243 — Tablas de informes legibles en móviles (UI-T4)
 
 - **Problema:** varias tablas de informes se comprimían o requerían desplazamiento lateral en pantallas pequeñas.
