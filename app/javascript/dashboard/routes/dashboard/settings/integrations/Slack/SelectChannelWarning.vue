@@ -81,7 +81,7 @@ const updateIntegration = async () => {
     <div v-if="!hasConnectedAChannel" class="mb-2 mt-1 ml-8">
       <Button
         v-if="!availableChannels.length"
-        amber
+        intent="primary"
         sm
         :is-loading="uiFlags.isFetchingSlackChannels"
         @click="fetchChannels"
@@ -105,7 +105,7 @@ const updateIntegration = async () => {
           </option>
         </select>
         <Button
-          teal
+          intent="primary"
           sm
           :is-loading="uiFlags.isUpdatingSlack"
           @click="updateIntegration"

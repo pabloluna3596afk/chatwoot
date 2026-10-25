@@ -119,8 +119,7 @@ const confirmDeletion = () => {
         <slot name="action">
           <a :href="integrationAction">
             <Button
-              faded
-              blue
+              intent="primary"
               :label="t('INTEGRATION_SETTINGS.CONNECT.BUTTON_TEXT')"
             />
           </a>

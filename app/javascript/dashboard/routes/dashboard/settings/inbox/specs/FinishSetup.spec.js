@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import FinishSetup from '../FinishSetup.vue';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
+import Button from 'dashboard/components-next/button/Button.vue';
 
 const mocks = vi.hoisted(() => ({
   inbox: {},
@@ -48,7 +49,7 @@ const mountComponent = () =>
       stubs: {
         EmptyState: { template: '<div><slot /></div>' },
         RouterLink: { template: '<div><slot /></div>' },
-        NextButton: true,
+        NextButton: Button,
         DuplicateInboxBanner: true,
         EmailInboxFinish: true,
         'woot-code': {
@@ -64,6 +65,18 @@ describe('FinishSetup', () => {
     mocks.inbox = {};
     mocks.toDataURL.mockReset();
     mocks.toDataURL.mockResolvedValue('data:image/png;base64,qr');
+  });
+
+  it('renders the final action with primary button classes', async () => {
+    const wrapper = mountComponent();
+    await flushPromises();
+
+    const button = wrapper
+      .findAll('button')
+      .find(element => element.text() === 'INBOX_MGMT.FINISH.BUTTON_TEXT');
+
+    expect(button.classes()).toContain('bg-n-brand');
+    expect(button.classes()).toContain('text-white');
   });
 
   it('does not show SMS setup guidance for a Twilio voice inbox', async () => {

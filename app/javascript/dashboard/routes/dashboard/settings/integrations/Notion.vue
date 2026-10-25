@@ -74,8 +74,7 @@ onMounted(() => {
       >
         <template #action>
           <ButtonNext
-            faded
-            blue
+            intent="primary"
             :label="t('INTEGRATION_SETTINGS.CONNECT.BUTTON_TEXT')"
             @click="authorize"
           />
