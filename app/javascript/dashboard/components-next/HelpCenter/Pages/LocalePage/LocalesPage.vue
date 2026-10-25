@@ -6,7 +6,7 @@ import { useI18n } from 'vue-i18n';
 
 import HelpCenterLayout from 'dashboard/components-next/HelpCenter/HelpCenterLayout.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
-import Input from 'dashboard/components-next/input/Input.vue';
+import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
 import EmptyStateLayout from 'dashboard/components-next/EmptyStateLayout.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import LocaleList from 'dashboard/components-next/HelpCenter/Pages/LocalePage/LocaleList.vue';
@@ -63,10 +63,9 @@ const hasResults = computed(() => filteredLocales.value?.length > 0);
           </span>
         </div>
         <div class="flex items-center gap-2">
-          <Input
+          <SearchInput
             v-model="searchQuery"
             :placeholder="$t('HELP_CENTER.LOCALES_PAGE.SEARCH_PLACEHOLDER')"
-            type="search"
             size="sm"
             class="w-48"
           />

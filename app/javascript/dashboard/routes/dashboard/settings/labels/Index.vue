@@ -10,11 +10,6 @@ import EditLabel from './EditLabel.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
-import {
-  BaseTable,
-  BaseTableRow,
-  BaseTableCell,
-} from 'dashboard/components-next/table';
 import ListCard from 'dashboard/components-next/ListCard/ListCard.vue';
 import InfoChip from 'dashboard/components-next/ListCard/InfoChip.vue';
 
@@ -85,15 +80,6 @@ const confirmDeletion = () => {
   deleteLabel(selectedLabel.value.id);
 };
 
-const tableHeaders = computed(() => {
-  return [
-    t('LABEL_MGMT.LIST.TABLE_HEADER.NAME'),
-    t('LABEL_MGMT.LIST.TABLE_HEADER.DESCRIPTION'),
-    t('LABEL_MGMT.LIST.TABLE_HEADER.COLOR'),
-    t('LABEL_MGMT.LIST.TABLE_HEADER.ACTION'),
-  ];
-});
-
 const getLabelMenuItems = label => [
   {
     action: 'edit',
@@ -152,11 +138,11 @@ onBeforeMount(() => {
     <template #body>
       <p
         v-if="records.length && searchQuery && !filteredRecords.length"
-        class="py-20 text-center text-body-main text-n-slate-11 md:hidden"
+        class="py-20 text-center text-body-main text-n-slate-11"
       >
         {{ $t('LABEL_MGMT.NO_RESULTS') }}
       </p>
-      <div class="flex min-w-0 flex-col gap-3 md:hidden">
+      <div class="flex min-w-0 flex-col gap-3">
         <ListCard
           v-for="label in filteredRecords"
           :key="label.id"
@@ -165,6 +151,14 @@ onBeforeMount(() => {
           :menu-items="getLabelMenuItems(label)"
           @action="handleLabelAction(label, $event)"
         >
+          <template #avatar>
+            <span
+              :title="label.color"
+              class="block size-10 shrink-0 rounded-full border border-n-weak"
+              :style="{ backgroundColor: label.color }"
+              aria-hidden="true"
+            />
+          </template>
           <template #chips>
             <InfoChip>
               <span
@@ -179,66 +173,6 @@ onBeforeMount(() => {
           </template>
         </ListCard>
       </div>
-      <BaseTable
-        class="hidden md:block"
-        :headers="tableHeaders"
-        :items="filteredRecords"
-        :no-data-message="
-          searchQuery ? $t('LABEL_MGMT.NO_RESULTS') : $t('LABEL_MGMT.LIST.404')
-        "
-      >
-        <template #row="{ items }">
-          <BaseTableRow v-for="label in items" :key="label.title" :item="label">
-            <template #default>
-              <BaseTableCell>
-                <span class="text-body-main text-n-slate-12">
-                  {{ label.title }}
-                </span>
-              </BaseTableCell>
-
-              <BaseTableCell>
-                <span class="text-body-main text-n-slate-11">
-                  {{ label.description }}
-                </span>
-              </BaseTableCell>
-
-              <BaseTableCell>
-                <div class="flex items-center">
-                  <span
-                    class="w-4 h-4 ltr:mr-2 rtl:ml-2 border border-solid rounded border-n-weak"
-                    :style="{ backgroundColor: label.color }"
-                  />
-                  <span class="text-body-main text-n-slate-12">
-                    {{ label.color }}
-                  </span>
-                </div>
-              </BaseTableCell>
-
-              <BaseTableCell align="end">
-                <div class="flex gap-3 justify-end flex-shrink-0">
-                  <Button
-                    v-tooltip.top="$t('LABEL_MGMT.FORM.EDIT')"
-                    icon="i-woot-edit-pen"
-                    slate
-                    sm
-                    :is-loading="loading[label.id]"
-                    @click="openEditPopup(label)"
-                  />
-                  <Button
-                    v-tooltip.top="$t('LABEL_MGMT.FORM.DELETE')"
-                    icon="i-woot-bin"
-                    slate
-                    sm
-                    class="hover:enabled:text-n-ruby-11 hover:enabled:bg-n-ruby-2"
-                    :is-loading="loading[label.id]"
-                    @click="openDeletePopup(label)"
-                  />
-                </div>
-              </BaseTableCell>
-            </template>
-          </BaseTableRow>
-        </template>
-      </BaseTable>
     </template>
 
     <woot-modal v-model:show="showAddPopup" :on-close="hideAddPopup">

@@ -6,6 +6,7 @@ import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsFilterDropdown from '../components/SettingsFilterDropdown.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import {
   useStoreGetters,
@@ -18,6 +19,7 @@ import { useAdmin } from 'dashboard/composables/useAdmin';
 const getters = useStoreGetters();
 const store = useStore();
 const { t } = useI18n();
+const router = useRouter();
 const { isAdmin } = useAdmin();
 const currentUser = useMapGetter('getCurrentUser');
 
@@ -119,6 +121,10 @@ const deleteMacro = async id => {
 const openDeletePopup = response => {
   showDeleteConfirmationPopup.value = true;
   selectedMacro.value = response;
+};
+
+const openEditMacro = macro => {
+  router.push({ name: 'macros_edit', params: { macroId: macro.id } });
 };
 
 const closeDeletePopup = () => {
@@ -231,7 +237,7 @@ const duplicateMacro = async macro => {
           }}
         </span>
       </div>
-      <div v-else class="border-t divide-y divide-n-weak border-n-weak">
+      <div v-else class="flex min-w-0 flex-col gap-3">
         <MacroListItem
           v-for="macro in sortedRecords"
           :key="macro.id"
@@ -240,6 +246,7 @@ const duplicateMacro = async macro => {
           :is-duplicating="duplicatingId === macro.id"
           @delete="openDeletePopup(macro)"
           @duplicate="duplicateMacro(macro)"
+          @edit="openEditMacro(macro)"
         />
       </div>
       <woot-delete-modal

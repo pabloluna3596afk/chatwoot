@@ -6,7 +6,12 @@ import { OnClickOutside } from '@vueuse/components';
 import { useStore, useMapGetter } from 'dashboard/composables/store.js';
 import { useConfig } from 'dashboard/composables/useConfig';
 import { debounce } from '@chatwoot/utils';
-import { ARTICLE_TABS, CATEGORY_ALL } from 'dashboard/helper/portalHelper';
+import {
+  ARTICLE_STATUSES,
+  ARTICLE_TABS,
+  CATEGORY_ALL,
+} from 'dashboard/helper/portalHelper';
+import { hasPendingChanges } from 'dashboard/helper/articleDiffHelper';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { useAlert } from 'dashboard/composables';
 import articlesAPI from 'dashboard/api/helpCenter/articles';
@@ -19,7 +24,7 @@ import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import ArticleEmptyState from 'dashboard/components-next/HelpCenter/EmptyState/Article/ArticleEmptyState.vue';
 import BulkSelectBar from 'dashboard/components-next/captain/assistant/BulkSelectBar.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
-import Input from 'dashboard/components-next/input/Input.vue';
+import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import BulkTranslateDialog from './BulkTranslateDialog.vue';
@@ -344,13 +349,12 @@ watch(
     @update:current-page="handlePageChange"
   >
     <template #title-actions>
-      <Input
+      <SearchInput
         v-if="!isSwitchingPortal"
         v-model="searchQuery"
         :placeholder="
           t('HELP_CENTER.ARTICLES_PAGE.ARTICLES_HEADER.SEARCH_PLACEHOLDER')
         "
-        type="search"
         size="sm"
         class="w-full max-w-[16rem] min-w-0"
         @input="debouncedSearch"
