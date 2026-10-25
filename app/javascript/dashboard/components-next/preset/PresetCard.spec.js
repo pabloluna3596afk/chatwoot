@@ -61,4 +61,15 @@ describe('PresetCard', () => {
     expect(wrapper.text()).toContain('Activate');
     expect(wrapper.text()).not.toContain('Use example');
   });
+
+  it('uses a compact horizontal layout when layout is row', () => {
+    const wrapper = mount(PresetCard, {
+      props: { id: 'r1', title: 'Rule', layout: 'row', actionLabel: 'Use' },
+    });
+    const root = wrapper.get('article');
+
+    expect(root.classes()).toContain('flex-wrap');
+    expect(root.classes()).toContain('justify-between');
+    expect(root.classes()).not.toContain('flex-col');
+  });
 });

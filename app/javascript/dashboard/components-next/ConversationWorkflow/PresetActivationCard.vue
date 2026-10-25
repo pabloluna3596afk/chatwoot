@@ -25,6 +25,7 @@ const emit = defineEmits(['apply']);
 <template>
   <PresetCard
     :id="id"
+    layout="row"
     :title="title"
     :description="description"
     :action-label="actionLabel"

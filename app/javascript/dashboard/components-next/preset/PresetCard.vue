@@ -1,8 +1,14 @@
 <script setup>
+import { computed } from 'vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 
-defineProps({
+const props = defineProps({
+  layout: {
+    type: String,
+    default: 'stacked',
+    validator: value => ['stacked', 'row'].includes(value),
+  },
   id: { type: [String, Number], required: true },
   title: { type: String, required: true },
   description: { type: String, default: '' },
@@ -14,6 +20,8 @@ defineProps({
 });
 
 const emit = defineEmits(['apply']);
+
+const isRow = computed(() => props.layout === 'row');
 
 const tagClasses = color => {
   const colors = {
@@ -28,40 +36,68 @@ const tagClasses = color => {
 
 <template>
   <article
-    class="flex flex-col gap-2 rounded-xl border border-n-weak p-4"
-    :class="{ 'opacity-60': disabled }"
+    class="flex gap-2 border border-n-weak"
+    :class="[
+      isRow
+        ? 'flex-wrap items-center justify-between rounded-md bg-n-solid-1 p-3'
+        : 'flex-col rounded-xl p-4',
+      { 'opacity-60': disabled },
+    ]"
     :data-testid="`preset-${id}`"
   >
-    <div class="flex items-start justify-between gap-2">
-      <div class="flex min-w-0 items-start gap-2">
-        <Icon
-          v-if="icon"
-          :icon="icon"
-          class="mt-0.5 shrink-0 text-n-slate-11"
-        />
-        <h3 class="text-heading-3 text-n-slate-12">{{ title }}</h3>
-      </div>
-      <div v-if="tags.length" class="flex shrink-0 flex-wrap justify-end gap-1">
-        <span
-          v-for="(tag, index) in tags"
-          :key="`${tag.label}-${index}`"
-          class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium"
-          :class="tagClasses(tag.color)"
+    <div
+      class="flex min-w-0 flex-col"
+      :class="isRow ? 'gap-1' : 'flex-1 gap-2'"
+    >
+      <div class="flex items-start justify-between gap-2">
+        <div class="flex min-w-0 items-start gap-2">
+          <Icon
+            v-if="icon"
+            :icon="icon"
+            class="mt-0.5 shrink-0 text-n-slate-11"
+          />
+          <h3
+            :class="
+              isRow
+                ? 'm-0 text-sm font-medium text-n-slate-12'
+                : 'text-heading-3 text-n-slate-12'
+            "
+          >
+            {{ title }}
+          </h3>
+        </div>
+        <div
+          v-if="tags.length"
+          class="flex shrink-0 flex-wrap justify-end gap-1"
         >
-          {{ tag.label }}
-        </span>
+          <span
+            v-for="(tag, index) in tags"
+            :key="`${tag.label}-${index}`"
+            class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium"
+            :class="tagClasses(tag.color)"
+          >
+            {{ tag.label }}
+          </span>
+        </div>
+      </div>
+      <p
+        v-if="description"
+        :class="
+          isRow
+            ? 'mb-0 text-xs text-n-slate-11'
+            : 'text-body-main text-n-slate-11'
+        "
+      >
+        {{ description }}
+      </p>
+      <div v-if="$slots.preview" class="text-n-slate-12">
+        <slot name="preview" />
+      </div>
+      <div v-if="$slots.meta" class="text-xs text-n-slate-10">
+        <slot name="meta" />
       </div>
     </div>
-    <p v-if="description" class="text-body-main text-n-slate-11">
-      {{ description }}
-    </p>
-    <div v-if="$slots.preview" class="text-n-slate-12">
-      <slot name="preview" />
-    </div>
-    <div v-if="$slots.meta" class="text-xs text-n-slate-10">
-      <slot name="meta" />
-    </div>
-    <div v-if="$slots.actions || actionLabel" class="mt-auto">
+    <div v-if="$slots.actions || actionLabel" :class="{ 'mt-auto': !isRow }">
       <slot name="actions">
         <Button
           :label="actionLabel"
