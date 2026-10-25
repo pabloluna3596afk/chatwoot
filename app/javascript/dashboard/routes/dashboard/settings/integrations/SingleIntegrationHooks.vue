@@ -54,8 +54,7 @@ const { replaceInstallationName } = useBranding();
         </div>
         <div v-else>
           <Button
-            blue
-            faded
+            intent="primary"
             :label="$t('INTEGRATION_APPS.CONNECT.BUTTON_TEXT')"
             @click="$emit('add')"
           />

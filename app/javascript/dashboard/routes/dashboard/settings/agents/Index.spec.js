@@ -1,6 +1,7 @@
-import { shallowMount } from '@vue/test-utils';
+import { mount } from '@vue/test-utils';
 import Index from './Index.vue';
 import ListCard from 'dashboard/components-next/ListCard/ListCard.vue';
+import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
 
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 vi.mock('./AddAgent.vue', () => ({
@@ -9,8 +10,12 @@ vi.mock('./AddAgent.vue', () => ({
 vi.mock('./EditAgent.vue', () => ({
   default: { name: 'EditAgent', props: ['id'], template: '<div />' },
 }));
-vi.mock('../components/BaseSettingsHeader.vue', () => ({
-  default: { name: 'BaseSettingsHeader', template: '<div />' },
+vi.mock('dashboard/components-next/page/PageLayout.vue', () => ({
+  default: {
+    name: 'PageLayout',
+    template:
+      '<div><slot name="title"/><slot name="moreInfo"/><slot name="toolbar"/><slot/></div>',
+  },
 }));
 
 const agents = [
@@ -52,7 +57,7 @@ const agents = [
 describe('Agents ListCard integration', () => {
   it('preserves permissions, roles, status, search and existing edit/delete dialogs', async () => {
     const dispatch = vi.fn().mockResolvedValue();
-    const wrapper = shallowMount(Index, {
+    const wrapper = mount(Index, {
       global: {
         renderStubDefaultSlot: true,
         plugins: [
@@ -75,10 +80,8 @@ describe('Agents ListCard integration', () => {
           },
         ],
         stubs: {
-          SettingsLayout: {
-            template:
-              '<div><slot name="header"/><slot name="body"/><slot/></div>',
-          },
+          CustomBrandPolicyWrapper: { template: '<div><slot /></div>' },
+          WootLoadingState: { template: '<div />' },
           ListCard: {
             ...ListCard,
             template: '<div><slot name="avatar"/><slot name="chips"/></div>',
@@ -131,8 +134,8 @@ describe('Agents ListCard integration', () => {
     expect(cards[2].props('title')).toBe('Pending');
     expect(cards[2].props('menuItems').every(item => item.disabled)).toBe(true);
     await wrapper
-      .getComponent({ name: 'BaseSettingsHeader' })
-      .vm.$emit('update:searchQuery', 'custom@test.co');
+      .getComponent(SearchInput)
+      .vm.$emit('update:modelValue', 'custom@test.co');
     await wrapper.vm.$nextTick();
     cards = wrapper.findAllComponents(ListCard);
     expect(cards).toHaveLength(1);

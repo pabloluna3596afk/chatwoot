@@ -293,8 +293,7 @@ onMounted(async () => {
             </p>
           </div>
           <Button
-            faded
-            blue
+            intent="primary"
             class="shrink-0"
             :label="$t('INTEGRATION_SETTINGS.CALENDARS.CONNECT_GOOGLE')"
             :disabled="!configured || connecting"

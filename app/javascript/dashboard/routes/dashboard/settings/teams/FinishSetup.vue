@@ -23,7 +23,10 @@ export default {
             name: 'settings_teams_list',
           }"
         >
-          <NextButton teal :label="$t('TEAMS_SETTINGS.FINISH.BUTTON_TEXT')" />
+          <NextButton
+            intent="primary"
+            :label="$t('TEAMS_SETTINGS.FINISH.BUTTON_TEXT')"
+          />
         </router-link>
       </div>
     </EmptyState>

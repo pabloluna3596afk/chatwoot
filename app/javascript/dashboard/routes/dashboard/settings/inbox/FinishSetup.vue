@@ -350,8 +350,7 @@ watch(
             }"
           >
             <NextButton
-              solid
-              teal
+              intent="primary"
               :label="$t('INBOX_MGMT.FINISH.BUTTON_TEXT')"
             />
           </router-link>

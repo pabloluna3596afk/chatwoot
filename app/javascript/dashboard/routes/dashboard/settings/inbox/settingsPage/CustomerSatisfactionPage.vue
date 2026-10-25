@@ -593,8 +593,7 @@ const handleConfirmTemplateUpdate = async () => {
                     </p>
                     <NextButton
                       sm
-                      faded
-                      slate
+                      intent="primary"
                       :label="$t('INBOX_MGMT.CSAT.UTILITY_ANALYZER.APPLY')"
                       @click="applyUtilitySuggestion"
                     />
