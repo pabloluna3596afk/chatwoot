@@ -136,6 +136,14 @@ const toggleTry = async wrapper => {
 };
 
 describe('FlowBuilderPage', () => {
+  it('renders Guardar as the primary blue action', async () => {
+    const { wrapper } = await mountPage();
+
+    expect(wrapper.get('[data-testid="flow-editor-save"]').classes()).toContain(
+      'bg-n-brand'
+    );
+  });
+
   it('has no Editar/Probar switch: Probar and Enviar are Acciones items', async () => {
     const { wrapper } = await mountPage();
     expect(wrapper.find('[role="group"][aria-label]').exists()).toBe(false);

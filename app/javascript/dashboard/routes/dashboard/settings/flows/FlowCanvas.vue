@@ -537,8 +537,7 @@ const onAutoLayout = async () => {
           @click="onAutoLayout"
         />
         <NextButton
-          solid
-          teal
+          intent="secondary"
           sm
           icon="i-lucide-plus-circle"
           :label="t('FLOWS.EDIT.ADD_BTN_TOOLTIP')"

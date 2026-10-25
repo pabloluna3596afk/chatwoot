@@ -535,7 +535,7 @@ defineExpose({ save });
         </MenuPopover>
         <Button
           type="button"
-          slate
+          intent="primary"
           sm
           :label="$t('WHATSAPP_FLOWS.EDITOR.SAVE')"
           :is-loading="isSaving"
@@ -546,6 +546,7 @@ defineExpose({ save });
         <Button
           v-if="hasCloud"
           type="button"
+          intent="secondary"
           sm
           icon="i-lucide-send"
           :label="$t('WHATSAPP_FLOWS.META.PUBLISH')"

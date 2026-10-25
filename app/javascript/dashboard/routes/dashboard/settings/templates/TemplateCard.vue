@@ -119,7 +119,7 @@ const categoryClasses = computed(() =>
         v-if="canManage && canEdit"
         v-tooltip.top="$t('WHATSAPP_TEMPLATE_MGMT.EDIT')"
         icon="i-lucide-pencil"
-        color="slate"
+        intent="secondary"
         size="sm"
         data-testid="template-edit"
         :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.EDIT')"

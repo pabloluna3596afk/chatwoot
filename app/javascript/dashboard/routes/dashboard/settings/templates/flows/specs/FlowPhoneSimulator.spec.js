@@ -99,6 +99,9 @@ describe('FlowPhoneSimulator', () => {
   });
 
   it('validates required fields only on submit and focuses the first error', async () => {
+    expect(
+      wrapper.get('[data-testid="flow-preview-next"]').classes()
+    ).toContain('bg-n-brand');
     expect(wrapper.text()).not.toContain('Completa este campo');
     await wrapper.get('form').trigger('submit');
     expect(wrapper.text()).toContain('Completa este campo para continuar');

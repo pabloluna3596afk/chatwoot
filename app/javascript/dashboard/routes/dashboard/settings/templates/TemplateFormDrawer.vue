@@ -1080,7 +1080,7 @@ const buttonChoices = computed(() =>
                 />
                 <Button
                   type="button"
-                  slate
+                  intent="secondary"
                   sm
                   :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD')"
                   :disabled="!customVariable || customVariableInvalid"
@@ -1332,7 +1332,7 @@ const buttonChoices = computed(() =>
         <Button
           type="button"
           class="basis-full sm:basis-0 sm:flex-1"
-          outline
+          intent="primary"
           :is-loading="isSaving"
           :disabled="
             isSaving || isLoading || (isEdit && (!liveLoaded || !rules.canEdit))

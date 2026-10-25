@@ -312,7 +312,7 @@ watch(() => props.definition, reset, { deep: true });
         </div>
         <Button
           type="submit"
-          color="teal"
+          intent="primary"
           class="w-full mt-auto shrink-0"
           :label="
             screen.button ||

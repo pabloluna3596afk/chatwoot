@@ -90,8 +90,7 @@ export default {
         <NextButton
           :title="$t('MACROS.EDITOR.ADD_BTN_TOOLTIP')"
           class="shadow-sm"
-          solid
-          teal
+          intent="secondary"
           icon="i-lucide-plus-circle"
           @click="$emit('addNewNode')"
         >
