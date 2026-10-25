@@ -121,9 +121,11 @@ const handleCreateAssistant = () => {
     <header class="sticky top-0 z-10 px-6">
       <div class="w-full mx-auto" :class="containerClass">
         <div
-          class="flex items-start lg:items-center justify-between w-full py-6 lg:py-0 lg:h-20 gap-4 lg:gap-2 flex-col lg:flex-row"
+          class="flex flex-wrap items-start lg:items-center justify-between w-full py-6 lg:py-0 lg:h-20 gap-4 lg:gap-2 md:flex-col lg:flex-row"
         >
-          <div class="flex flex-wrap min-w-0 max-w-full gap-3 items-center">
+          <div
+            class="flex flex-wrap w-full min-w-0 max-w-full gap-3 items-center lg:w-auto"
+          >
             <BackButton v-if="backUrl" :back-url="backUrl" />
             <div
               v-if="showAssistantSwitcher && !showPaywall"
@@ -175,7 +177,7 @@ const handleCreateAssistant = () => {
               />
               <span
                 v-if="headerTitle"
-                class="text-xl font-medium text-n-slate-12"
+                class="min-w-0 max-w-full text-xl font-medium text-n-slate-12"
               >
                 {{ headerTitle }}
               </span>
@@ -189,7 +191,9 @@ const handleCreateAssistant = () => {
             </div>
           </div>
 
-          <div class="flex items-center min-w-0 max-w-full gap-2">
+          <div
+            class="flex flex-wrap items-center w-full min-w-0 max-w-full gap-2 md:flex-nowrap lg:w-auto lg:justify-end"
+          >
             <slot name="headerActions" />
             <slot name="search" />
             <div

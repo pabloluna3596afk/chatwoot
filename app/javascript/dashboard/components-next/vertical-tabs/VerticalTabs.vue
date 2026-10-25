@@ -26,7 +26,7 @@ const activeTab = defineModel({ type: String, required: true });
         v-for="tab in tabs"
         :key="tab.id"
         type="button"
-        class="flex items-center gap-2 px-2.5 py-2 text-sm text-start transition-colors rounded-lg shrink-0 min-h-9 md:w-full"
+        class="flex items-center gap-2 px-2.5 py-2 text-sm text-start transition-colors rounded-lg shrink-0 min-h-11 md:min-h-9 md:w-full"
         :class="
           activeTab === tab.id
             ? 'bg-n-alpha-2 text-n-slate-12 font-medium'

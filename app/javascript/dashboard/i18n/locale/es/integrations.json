@@ -1249,6 +1249,11 @@
           "NOTE": "El asistente Captain conversa directamente con tus clientes, aprende de tus artículos de ayuda y conversaciones pasadas, y da respuestas precisas al instante. Resuelve las consultas iniciales, dando soluciones rápidas antes de transferir a un agente cuando hace falta."
         }
       },
+      "SUGGESTED_RULES": {
+        "SENSITIVE_INFORMATION": "Bloquea las consultas que compartan o soliciten datos personales sensibles, como teléfonos o contraseñas.",
+        "OFFENSIVE_LANGUAGE": "Rechaza las consultas con lenguaje ofensivo, discriminatorio o amenazante.",
+        "MEDICAL_LEGAL_ADVICE": "Deriva las consultas que soliciten un diagnóstico o tratamiento médico o legal."
+      },
       "GUARDRAILS": {
         "TITLE": "Guardrails",
         "DESCRIPTION": "Mantiene todo encaminado: solo el tipo de preguntas que quieres que tu asistente responda, nada prohibido ni fuera de tema.",
