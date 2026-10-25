@@ -11,7 +11,7 @@ import { useAccount } from 'dashboard/composables/useAccount';
 import CaptainResponseAPI from 'dashboard/api/captain/response';
 
 import Banner from 'dashboard/components-next/banner/Banner.vue';
-import Input from 'dashboard/components-next/input/Input.vue';
+import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
 import BulkSelectBar from 'dashboard/components-next/captain/assistant/BulkSelectBar.vue';
 import DeleteDialog from 'dashboard/components-next/captain/pageComponents/DeleteDialog.vue';
 import BulkDeleteDialog from 'dashboard/components-next/captain/pageComponents/BulkDeleteDialog.vue';
@@ -299,12 +299,11 @@ onUnmounted(() => {
         v-if="bulkSelectedIds.size === 0"
         class="flex gap-3 justify-between w-full items-center"
       >
-        <Input
+        <SearchInput
           v-model="searchQuery"
           :placeholder="$t('CAPTAIN.RESPONSES.SEARCH_PLACEHOLDER')"
           class="w-64"
           size="sm"
-          type="search"
           autofocus
           @input="handleSearchInput"
         />

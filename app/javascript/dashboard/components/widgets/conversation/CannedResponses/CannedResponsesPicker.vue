@@ -1,4 +1,5 @@
 <script setup>
+import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
@@ -60,17 +61,12 @@ const previewContent = content => {
 
 <template>
   <div class="w-full">
-    <div
-      class="flex flex-1 gap-1 items-center px-2.5 py-0 mb-2.5 rounded-lg bg-n-alpha-black2 outline outline-1 outline-n-weak hover:outline-n-slate-6 dark:hover:outline-n-slate-6 focus-within:outline-n-brand dark:focus-within:outline-n-brand"
-    >
-      <fluent-icon icon="search" class="text-n-slate-12" size="16" />
-      <input
-        v-model="query"
-        type="search"
-        :placeholder="t('CANNED_MGMT.PICKER.SEARCH_PLACEHOLDER')"
-        class="reset-base w-full h-9 bg-transparent text-n-slate-12 !text-sm !outline-0"
-      />
-    </div>
+    <SearchInput
+      v-model="query"
+      :placeholder="t('CANNED_MGMT.PICKER.SEARCH_PLACEHOLDER')"
+      class="mb-2.5"
+      size="sm"
+    />
 
     <div
       v-if="categories.length || (cannedResponses || []).some(r => !r.category)"

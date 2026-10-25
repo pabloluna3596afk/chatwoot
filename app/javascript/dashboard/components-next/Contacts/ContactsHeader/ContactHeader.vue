@@ -1,7 +1,6 @@
 <script setup>
 import Button from 'dashboard/components-next/button/Button.vue';
-import Input from 'dashboard/components-next/input/Input.vue';
-import Icon from 'dashboard/components-next/icon/Icon.vue';
+import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
 import ContactSortMenu from './components/ContactSortMenu.vue';
 import ContactColumnMenu from './components/ContactColumnMenu.vue';
 import ContactMoreActions from './components/ContactMoreActions.vue';
@@ -42,23 +41,14 @@ const emit = defineEmits([
       </span>
       <div class="flex items-center flex-col sm:flex-row flex-shrink-0 gap-4">
         <div v-if="showSearch" class="flex items-center gap-2 w-full">
-          <Input
+          <SearchInput
             :model-value="searchValue"
-            type="search"
             :placeholder="$t('CONTACTS_LAYOUT.HEADER.SEARCH_PLACEHOLDER')"
-            :custom-input-class="[
-              'h-8 [&:not(.focus)]:!border-transparent bg-n-alpha-2 dark:bg-n-solid-1 ltr:!pl-8 !py-1 rtl:!pr-8',
-            ]"
+            custom-input-class="h-8 [&:not(.focus)]:!border-transparent bg-n-alpha-2 dark:bg-n-solid-1 !py-1"
             class="w-full"
+            size="sm"
             @input="emit('search', $event.target.value)"
-          >
-            <template #prefix>
-              <Icon
-                icon="i-lucide-search"
-                class="absolute -translate-y-1/2 text-n-slate-11 size-4 top-1/2 ltr:left-2 rtl:right-2"
-              />
-            </template>
-          </Input>
+          />
         </div>
         <div class="flex items-center flex-shrink-0 gap-4">
           <div class="flex items-center gap-2">

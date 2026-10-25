@@ -6,7 +6,7 @@ import { useAlert } from 'dashboard/composables';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 import SidePanel from 'dashboard/components-next/side-panel/SidePanel.vue';
-import Input from 'dashboard/components-next/input/Input.vue';
+import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
@@ -159,9 +159,8 @@ defineExpose({ open });
         {{ $t('WHATSAPP_FLOWS.META.DETAIL.UNIT') }}
       </p>
       <div class="flex gap-2">
-        <Input
+        <SearchInput
           v-model="search"
-          type="search"
           :placeholder="$t('WHATSAPP_FLOWS.META.DETAIL.SEARCH')"
           :aria-label="$t('WHATSAPP_FLOWS.META.DETAIL.SEARCH')"
           class="flex-1 min-w-0"

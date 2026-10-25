@@ -6,7 +6,7 @@ import { OnClickOutside } from '@vueuse/components';
 import { useStoreGetters } from 'dashboard/composables/store.js';
 
 import Button from 'dashboard/components-next/button/Button.vue';
-import Input from 'dashboard/components-next/input/Input.vue';
+import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
 import Breadcrumb from 'dashboard/components-next/breadcrumb/Breadcrumb.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import CategoryDialog from 'dashboard/components-next/HelpCenter/Pages/CategoryPage/CategoryDialog.vue';
@@ -169,12 +169,11 @@ const handleBreadcrumbClick = () => {
       @click="handleBreadcrumbClick"
     />
     <div v-if="!hasSelectedCategory" class="flex items-center gap-2">
-      <Input
+      <SearchInput
         v-model="searchQuery"
         :placeholder="
           t('HELP_CENTER.CATEGORY_PAGE.CATEGORY_HEADER.SEARCH_PLACEHOLDER')
         "
-        type="search"
         size="sm"
         class="w-48"
       />

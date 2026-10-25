@@ -1,4 +1,5 @@
 <script setup>
+import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
 import { ref, computed } from 'vue';
 import { useAlert } from 'dashboard/composables';
 import { useStore } from 'dashboard/composables/store';
@@ -63,17 +64,12 @@ const refreshTemplates = async () => {
 <template>
   <div class="w-full">
     <div class="flex gap-2 mb-2.5">
-      <div
-        class="flex flex-1 gap-1 items-center px-2.5 py-0 rounded-lg bg-n-alpha-black2 outline outline-1 outline-n-weak hover:outline-n-slate-6 dark:hover:outline-n-slate-6 focus-within:outline-n-brand dark:focus-within:outline-n-brand"
-      >
-        <fluent-icon icon="search" class="text-n-slate-12" size="16" />
-        <input
-          v-model="query"
-          type="search"
-          :placeholder="t('CONTENT_TEMPLATES.PICKER.SEARCH_PLACEHOLDER')"
-          class="reset-base w-full h-9 bg-transparent text-n-slate-12 !text-sm !outline-0"
-        />
-      </div>
+      <SearchInput
+        v-model="query"
+        :placeholder="t('CONTENT_TEMPLATES.PICKER.SEARCH_PLACEHOLDER')"
+        class="flex-1"
+        size="sm"
+      />
       <button
         :disabled="isRefreshing"
         class="flex justify-center items-center w-9 h-9 rounded-lg bg-n-alpha-black2 outline outline-1 outline-n-weak hover:outline-n-slate-6 dark:hover:outline-n-slate-6 hover:bg-n-alpha-2 dark:hover:bg-n-solid-2 disabled:opacity-50 disabled:cursor-not-allowed"
