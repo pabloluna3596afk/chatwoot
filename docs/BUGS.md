@@ -1,6 +1,6 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
-### B-NEW-241 — Tablas de informes legibles en móviles (UI-T4)
+### B-NEW-243 — Tablas de informes legibles en móviles (UI-T4)
 
 - **Problema:** varias tablas de informes se comprimían o requerían desplazamiento lateral en pantallas pequeñas.
 - **Cambio:** agentes, equipos, resumen, CSAT, SLA y paneles guardados muestran tarjetas móviles reutilizando `ListCard` e `InfoChip`; los datos y acciones disponibles se conservan. Las tablas configurables de panel mantienen su desplazamiento dentro del widget.
