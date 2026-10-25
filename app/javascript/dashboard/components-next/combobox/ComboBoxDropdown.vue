@@ -65,7 +65,6 @@ const portalDirection = computed(() =>
     : undefined
 );
 const onKeydown = event => {
-  if (event.key === 'Tab') emit('close', false);
   if (event.key === 'Escape') {
     event.preventDefault();
     event.stopPropagation();
@@ -149,6 +148,10 @@ defineExpose({
     @search="onInputSearch"
     @action="emit('select', $event.option)"
     @keydown="onKeydown"
+    @focusout="
+      if (open && !menu.$el.contains($event.relatedTarget))
+        emit('close', false);
+    "
   >
     <template v-if="loading || searchError" #content>
       <p v-if="loading" role="status" class="p-2 mb-0 text-sm text-n-slate-11">

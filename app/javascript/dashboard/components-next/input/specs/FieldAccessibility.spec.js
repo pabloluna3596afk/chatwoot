@@ -93,9 +93,13 @@ it('completes a duration with keyboard and preserves numeric minutes and string 
     cancelable: true,
   });
   document.activeElement.dispatchEvent(event);
+  const nextControl = document.createElement('button');
+  document.body.appendChild(nextControl);
+  nextControl.focus();
   await flushPromises();
   expect(event.defaultPrevented).toBe(false);
   expect(trigger.attributes('aria-expanded')).toBe('false');
+  nextControl.remove();
   wrapper.unmount();
 });
 
