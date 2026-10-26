@@ -1,8 +1,9 @@
 class Captain::Tools::ConfirmAppointmentTool < Captain::Tools::BaseAppointmentTool
   description "Mark one of the customer's own appointments as confirmed. Call it when the customer taps or writes the confirm button " \
               'of a reminder (e.g. "Confirmo · jue 16/01 10:00"). It needs no further question to the customer.'
-  param :event_id, type: 'string',
-                   desc: 'The id of the appointment, from appointment_list, or the customer\'s button reply text unchanged (e.g. "Confirmo · jue 16/01 10:00")'
+  parameter :event_id, type: 'string',
+                       description: 'The id of the appointment, from appointment_list, or the customer\'s button reply text unchanged ' \
+                                    '(e.g. "Confirmo · jue 16/01 10:00")'
 
   def perform(tool_context, event_id:)
     conversation, error = conversation_for(tool_context)

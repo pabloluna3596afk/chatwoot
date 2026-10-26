@@ -4,14 +4,17 @@ module Concerns::Agentable
   DEFAULT_TEMPERATURE = 0.5
 
   def agent(runtime_configuration: nil, runtime_agent_name: nil)
-    Agents::Agent.new(
+    model = agent_model
+    attributes = {
       name: runtime_agent_name || agent_name,
       instructions: ->(context) { agent_instructions(context, runtime_configuration: runtime_configuration) },
       tools: agent_tools,
-      model: agent_model,
-      temperature: temperature.presence&.to_f || DEFAULT_TEMPERATURE,
+      model: model,
       response_schema: agent_response_schema
-    )
+    }
+    model_temperature = Llm::Models.temperature_for(model, temperature.presence&.to_f || DEFAULT_TEMPERATURE)
+    attributes[:temperature] = model_temperature if model_temperature
+    Agents::Agent.new(**attributes)
   end
 
   def agent_instructions(context = nil, prompt_template: template_name, runtime_configuration: nil)

@@ -1,6 +1,6 @@
 class Captain::Tools::SendEmailVerificationCodeTool < Captain::Tools::BasePublicTool
   description 'Send a one-time code to an email address the customer confirmed.'
-  param :email, type: 'string', desc: 'Email address confirmed by the customer'
+  parameter :email, type: 'string', description: 'Email address confirmed by the customer'
 
   def perform(tool_context, email:)
     conversation = find_conversation(tool_context.state)
