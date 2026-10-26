@@ -141,27 +141,13 @@ class Enterprise::Api::V1::AccountsController < Api::BaseController
 
   def default_limits
     usage_period = @account.current_usage_period
-    captain_limits = @account.usage_limits[:captain].dup
-    # Remove documents limit as per owner's decision - storage is the only limit now
-    captain_limits.delete(:documents)
-    responses_data = captain_limits[:responses]
-
-    # Add split responses data
-    responses_data[:copilot_consumed] = usage_period&.copilot_responses_consumed || 0
-    responses_data[:customer_consumed] = usage_period&.customer_responses_consumed || 0
-
-    # Captain keeps its full plan quota; Copilot gets a separate pool of half
-    # that size (Account#copilot_responses_available?). They do not share.
-    captain_total = responses_data[:total_count].to_i
-    responses_data[:customer_total_count] = captain_total
-    responses_data[:copilot_total_count] = (captain_total / 2).to_i
 
     {
       'conversation' => {},
       'non_web_inboxes' => {},
       'agents' => { 'allowed' => @account.usage_limits[:agents], 'consumed' => agents(@account) },
       'inboxes' => { 'allowed' => @account.usage_limits[:inboxes], 'consumed' => @account.inboxes.count },
-      'captain' => captain_limits,
+      'captain' => captain_limits_for_billing(usage_period),
       'plan' => @account.plan.present? ? {
         'id' => @account.plan.id,
         'slug' => @account.plan.slug,
@@ -171,6 +157,17 @@ class Enterprise::Api::V1::AccountsController < Api::BaseController
         'period_end' => usage_period&.period_end
       } : nil
     }
+  end
+
+  def captain_limits_for_billing(usage_period)
+    captain_limits = @account.usage_limits[:captain].dup
+    captain_limits.delete(:documents)
+    responses = captain_limits[:responses]
+    responses[:customer_consumed] = usage_period&.responses_consumed || 0
+    responses[:customer_total_count] = responses[:total_count]
+    responses[:copilot_consumed] = usage_period&.copilot_responses_consumed || 0
+    responses[:copilot_total_count] = captain_limits.dig(:copilot, :total_count) || responses[:total_count]
+    captain_limits
   end
 
   def fetch_account

@@ -14,7 +14,7 @@ module CaptainPlanHelpers
   end
 
   def captain_responses_used(account)
-    account.reload.current_usage_period&.responses_consumed.to_i
+    account.reload.usage_limits.dig(:captain, :responses, :consumed).to_i
   end
 
   def copilot_responses_used(account)

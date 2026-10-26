@@ -23,6 +23,8 @@ const {
   captainEnabled,
   captainLimits,
   responseLimits,
+  copilotLimits,
+  internalLimits,
   storageLimits,
   fetchLimits,
   isFetchingLimits,
@@ -384,15 +386,19 @@ onMounted(handleBillingPageLogic);
             <div class="grid lg:grid-cols-2 gap-4">
               <BillingMeter
                 v-if="responseLimits"
-                :title="$t('BILLING_SETTINGS.CAPTAIN.RESPONSES_CUSTOMER')"
-                :consumed="responseLimits.customerConsumed"
-                :total-count="responseLimits.customerTotalCount"
+                :title="$t('BILLING_SETTINGS.CAPTAIN.RESPONSES')"
+                :consumed="responseLimits.consumed"
+                :total-count="responseLimits.totalCount"
               />
               <BillingMeter
-                v-if="responseLimits"
+                v-if="copilotLimits"
                 :title="$t('BILLING_SETTINGS.CAPTAIN.RESPONSES_COPILOT')"
-                :consumed="responseLimits.copilotConsumed"
-                :total-count="responseLimits.copilotTotalCount"
+                v-bind="copilotLimits"
+              />
+              <BillingMeter
+                v-if="internalLimits"
+                :title="$t('BILLING_SETTINGS.CAPTAIN.INTERNAL_AI')"
+                v-bind="internalLimits"
               />
             </div>
 

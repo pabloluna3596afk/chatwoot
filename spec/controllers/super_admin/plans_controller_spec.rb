@@ -15,8 +15,10 @@ RSpec.describe 'Super Admin plans', type: :request do
     sign_in(super_admin, scope: :super_admin)
     get "/super_admin/plans/#{plan.id}/edit"
 
-    expect(response).to have_http_status(:ok)
-    expect(response.body).to include('plan[coming_soon]', 'plan[feature_keys][]')
+    expect(response).to have_http_status(:ok), response.body
+    expect(response.body).to include(
+      'plan[coming_soon]', 'plan[feature_keys][]', 'plan[captain_copilot_responses]', 'plan[captain_internal_calls]'
+    )
   end
 
   it 'edits availability and features without changing account flags' do
@@ -39,6 +41,17 @@ RSpec.describe 'Super Admin plans', type: :request do
 
     expect(response).to have_http_status(:redirect)
     expect(plan.reload.feature_keys).to eq([])
+  end
+
+  it 'saves optional Copilot and internal AI limits' do
+    sign_in(super_admin, scope: :super_admin)
+
+    patch "/super_admin/plans/#{plan.id}", params: {
+      plan: { captain_copilot_responses: '25', captain_internal_calls: '100' }
+    }
+
+    expect(response).to have_http_status(:redirect)
+    expect(plan.reload).to have_attributes(captain_copilot_responses: 25, captain_internal_calls: 100)
   end
 
   it 'rejects unknown features' do

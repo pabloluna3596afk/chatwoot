@@ -15,9 +15,12 @@ class AccountPlanUsageDashboard < Administrate::BaseDashboard
     period_end: Field::DateTime,
     responses_consumed: Field::Number,
     copilot_responses_consumed: Field::Number,
+    internal_calls_consumed: Field::Number,
     customer_responses_consumed: Field::Number,
     documents_consumed: Field::Number,
     limit_responses: Field::Number,
+    limit_copilot_responses: Field::Number,
+    limit_internal_calls: Field::Number,
     limit_documents: Field::Number,
     closed_at: Field::DateTime,
     created_at: Field::DateTime,
@@ -37,6 +40,7 @@ class AccountPlanUsageDashboard < Administrate::BaseDashboard
     period_end
     responses_consumed
     copilot_responses_consumed
+    internal_calls_consumed
     customer_responses_consumed
     documents_consumed
   ].freeze
@@ -51,9 +55,12 @@ class AccountPlanUsageDashboard < Administrate::BaseDashboard
     period_end
     responses_consumed
     copilot_responses_consumed
+    internal_calls_consumed
     customer_responses_consumed
     documents_consumed
     limit_responses
+    limit_copilot_responses
+    limit_internal_calls
     limit_documents
     closed_at
     created_at
@@ -71,6 +78,8 @@ class AccountPlanUsageDashboard < Administrate::BaseDashboard
     period_start
     period_end
     responses_consumed
+    copilot_responses_consumed
+    internal_calls_consumed
     documents_consumed
     limit_responses
     limit_documents
@@ -88,6 +97,7 @@ class AccountPlanUsageDashboard < Administrate::BaseDashboard
   # Overwrite this method to customize how account plan usages are displayed
   # across all pages of the admin dashboard.
   def display_resource(account_plan_usage)
-    "Cuenta #{account_plan_usage.account_id} - Período #{account_plan_usage.period_start.strftime('%Y-%m-%d')} a #{account_plan_usage.period_end.strftime('%Y-%m-%d')}"
+    "Cuenta #{account_plan_usage.account_id} - Período #{account_plan_usage.period_start.strftime('%Y-%m-%d')} " \
+      "a #{account_plan_usage.period_end.strftime('%Y-%m-%d')}"
   end
 end
