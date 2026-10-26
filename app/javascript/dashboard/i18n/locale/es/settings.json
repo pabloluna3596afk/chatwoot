@@ -979,6 +979,17 @@
         "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
         "ASK_ADMIN": "Por favor, comuníquese con su administrador para la actualización."
       }
+    },
+    "TRANSLATION": {
+      "TITLE": "Traducción automática",
+      "DESCRIPTION": "Traduce los mensajes entrantes de clientes al idioma del panel del agente cuando aparecen en una conversación.",
+      "PROVIDER": "Proveedor de traducción",
+      "SELECT_PROVIDER": "Selecciona un proveedor para activar la traducción automática.",
+      "SAVED": "Se actualizaron los ajustes de traducción.",
+      "ERROR": "No se pudieron actualizar los ajustes de traducción. Inténtalo de nuevo.",
+      "PROVIDER_UNAVAILABLE": "El proveedor de traducción seleccionado no está disponible. Revisa su conexión en Integraciones.",
+      "CAPTAIN": "Captain",
+      "GOOGLE_TRANSLATE": "Google Translate"
     }
   },
   "CREATE_ACCOUNT": {
