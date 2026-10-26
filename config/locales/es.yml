@@ -579,7 +579,7 @@ es:
         disabled: 'No se asignó a Captain: Captain no está habilitado en esta cuenta.'
         disconnected: 'No se asignó a Captain: Esta Bandeja no tiene Captain conectado.'
         different: 'No se asignó a Captain: El asistente elegido no está conectado a esta Bandeja.'
-        external_bot: 'No se asignó a Captain: Esta bandeja tiene un conector activo.'
+        external_bot: 'No se asignó a Captain: Esta Bandeja tiene un conector activo.'
         missing_key: 'No se asignó a Captain: Captain está en pausa porque falta la clave de IA.'
         quota_exhausted: 'No se asignó a Captain: Captain está en pausa porque no quedan respuestas disponibles.'
     playground:
