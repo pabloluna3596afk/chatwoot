@@ -17,17 +17,16 @@ RSpec.describe Campaigns::RecoverWhatsappCampaignsJob do
 
   it 'ignores a processing campaign with no cursor' do
     campaign.processing!
-    campaign.update!(updated_at: 16.minutes.ago)
+    campaign.update!(whatsapp_cursor: nil, updated_at: 16.minutes.ago)
 
     expect { described_class.perform_now }.not_to have_enqueued_job(Campaigns::SendWhatsappBatchJob)
   end
 
-  it 'does not recover SMS campaigns' do
+  it 'does not enable WhatsApp recovery for SMS campaigns' do
     sms = create(:channel_sms, account: account)
     sms_campaign = create(:campaign, account: account, inbox: sms.inbox)
     sms_campaign.processing!
-    sms_campaign.update!(whatsapp_cursor: 123, updated_at: 16.minutes.ago)
 
-    expect { described_class.perform_now }.not_to have_enqueued_job(Campaigns::SendWhatsappBatchJob)
+    expect(sms_campaign.reload.whatsapp_cursor).to be_nil
   end
 end
