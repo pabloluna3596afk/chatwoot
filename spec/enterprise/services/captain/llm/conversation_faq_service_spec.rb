@@ -270,7 +270,7 @@ RSpec.describe Captain::Llm::ConversationFaqService do
       context 'when the comparison provider fails' do
         before do
           allow(mock_chat).to receive(:ask) do |input|
-            raise RubyLLM::Error.new(nil, 'API Error') if input.start_with?('{')
+            raise RubyLLM::Error.new('API Error') if input.start_with?('{')
 
             mock_response
           end
@@ -471,7 +471,7 @@ RSpec.describe Captain::Llm::ConversationFaqService do
 
     context 'when LLM API fails' do
       before do
-        allow(mock_chat).to receive(:ask).and_raise(RubyLLM::Error.new(nil, 'API Error'))
+        allow(mock_chat).to receive(:ask).and_raise(RubyLLM::Error.new('API Error'))
         allow(Rails.logger).to receive(:error)
       end
 

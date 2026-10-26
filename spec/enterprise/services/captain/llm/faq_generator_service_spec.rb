@@ -71,7 +71,7 @@ RSpec.describe Captain::Llm::FaqGeneratorService do
 
     context 'when LLM API fails' do
       before do
-        allow(mock_chat).to receive(:ask).and_raise(RubyLLM::Error.new(nil, 'API Error'))
+        allow(mock_chat).to receive(:ask).and_raise(RubyLLM::Error.new('API Error'))
         allow(Rails.logger).to receive(:error)
       end
 
