@@ -4,9 +4,22 @@ import {
   convertToAttributeSlug,
   convertToCategorySlug,
   convertToPortalSlug,
+  convertToArticleSlug,
   sanitizeVariableSearchKey,
   formatToTitleCase,
 } from '../commons';
+
+describe('#convertToArticleSlug', () => {
+  it('normalizes accents, punctuation, and whitespace', () => {
+    expect(convertToArticleSlug(' Guía de Atención — Rápida! ')).toBe(
+      'guia-de-atencion-rapida'
+    );
+  });
+
+  it('returns an empty string when the title has no slug characters', () => {
+    expect(convertToArticleSlug('你好')).toBe('');
+  });
+});
 
 describe('#getTypingUsersText', () => {
   it('returns the correct text is there is only one typing user', () => {

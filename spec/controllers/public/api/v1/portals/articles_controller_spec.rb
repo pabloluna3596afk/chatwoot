@@ -141,6 +141,16 @@ RSpec.describe 'Public Articles API', type: :request do
       expect(response).to have_http_status(:success)
     end
 
+    it 'keeps the locale switcher on the matching published translation' do
+      translated_article = create(:article, category: category_2, portal: portal, account_id: account.id,
+                                            author_id: agent.id, associated_article_id: article.id, status: :published)
+
+      get "/hc/#{portal.slug}/articles/#{article.slug}"
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("value=\"/hc/#{portal.slug}/articles/#{translated_article.slug}\"")
+    end
+
     it 'resolves the locale from the article itself for an uncategorized article' do
       uncategorized_article = create(:article, category: nil, locale: 'es', portal: portal,
                                                account_id: account.id, author_id: agent.id)

@@ -235,6 +235,7 @@ Rails.application.routes.draw do
             end
             scope module: :conversations do
               resources :messages, only: [:index, :create, :destroy, :update] do
+                post :auto_translate, on: :collection if ChatwootApp.enterprise?
                 member do
                   post :translate
                   post :retry

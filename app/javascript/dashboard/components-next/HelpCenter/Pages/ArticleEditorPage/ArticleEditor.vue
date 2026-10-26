@@ -119,7 +119,13 @@ watch(
 );
 
 const scheduleSave = () => {
-  if (isNewArticle.value) return;
+  if (isNewArticle.value) {
+    emit('saveArticle', {
+      title: localTitle.value,
+      content: localContent.value,
+    });
+    return;
+  }
   debouncedSave();
 };
 
@@ -228,6 +234,7 @@ const handleCreateArticle = event => {
           @save-article="values => emit('saveArticle', values)"
           @set-author="setAuthorId"
           @set-category="setCategoryId"
+          @preview-article="previewArticle"
         />
       </div>
       <FullEditor

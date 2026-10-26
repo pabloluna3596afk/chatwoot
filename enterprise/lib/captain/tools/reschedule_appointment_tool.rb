@@ -1,12 +1,12 @@
 class Captain::Tools::RescheduleAppointmentTool < Captain::Tools::BaseAppointmentTool
   description "Move one of the customer's own appointments to another time. Get the id from appointment_list and the new " \
               'time from check_availability, ask the customer to confirm, then call it with customer_confirmed true.'
-  param :new_start, type: 'string',
-                    desc: 'The new start: the exact value from check_availability, or the customer\'s button reply text unchanged ' \
-                          '(e.g. "Sí, cambiarla · jue 16/01 10:00")'
-  param :event_id, type: 'string', required: false,
-                   desc: 'The id of the appointment, from appointment_list. Optional when the reply to a "move it" button carries it'
-  param :customer_confirmed, type: 'boolean', desc: 'true only if the customer explicitly confirmed the new time', required: false
+  parameter :new_start, type: 'string',
+                        description: 'The new start: the exact value from check_availability, or the customer\'s button reply text unchanged ' \
+                                     '(e.g. "Sí, cambiarla · jue 16/01 10:00")'
+  parameter :event_id, type: 'string', required: false,
+                       description: 'The id of the appointment, from appointment_list. Optional when the reply to a "move it" button carries it'
+  parameter :customer_confirmed, type: 'boolean', description: 'true only if the customer explicitly confirmed the new time', required: false
 
   def perform(tool_context, new_start:, event_id: nil, customer_confirmed: false)
     conversation, error = conversation_for(tool_context)

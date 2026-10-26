@@ -1,6 +1,6 @@
 class Captain::Tools::VerifyEmailCodeTool < Captain::Tools::BasePublicTool
   description 'Verify the one-time code entered by the customer.'
-  param :code, type: 'string', desc: 'The one-time code entered by the customer'
+  parameter :code, type: 'string', description: 'The one-time code entered by the customer'
 
   def perform(tool_context, code:)
     conversation = find_conversation(tool_context.state)

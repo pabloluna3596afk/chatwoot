@@ -19,10 +19,10 @@ module Concerns::Toolable
       define_method(:name) { tool_slug }
 
       custom_tool_record.tool_parameter_definitions(base_class).each do |param_def|
-        param param_def['name'].to_sym,
-              type: param_def['type'],
-              desc: param_def['description'],
-              required: param_def['source'].present? || param_def.fetch('required', true)
+        parameter param_def['name'].to_sym,
+                  type: param_def['type'],
+                  description: param_def['description'],
+                  required: param_def['source'].present? || param_def.fetch('required', true)
       end
     end
 

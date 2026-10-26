@@ -8,18 +8,18 @@ class Captain::Tools::CheckAvailabilityTool < Captain::Tools::BaseAppointmentToo
               'value to use when booking. Pass what the customer asked for: the day (from_date and to_date, the same day for ' \
               '"tomorrow" or "on Friday") and the part of the day. With nothing specific it offers the next day that has ' \
               'availability. Never invent times: only offer what this tool returns.'
-  param :from_date, type: 'string', desc: 'First day to look at, YYYY-MM-DD (optional, defaults to today)', required: false
-  param :to_date, type: 'string',
-                  desc: 'Last day to look at, YYYY-MM-DD (optional; leave it out to get the next day with availability)', required: false
-  param :part_of_day, type: 'string', required: false,
-                      desc: 'morning (before 12:00), afternoon (12:00 to 18:00) or evening (after 18:00), when the customer asked for one'
-  param :event_id, type: 'string', required: false,
-                   desc: 'Only when the customer wants to move an existing appointment: its id from appointment_list, or the reply ' \
-                         '"Cambiar hora" unchanged. The times offered then move THAT appointment.'
-  param :at_time, type: 'string', required: false,
-                  desc: 'The exact time the customer asked for, HH:MM in 24 hours (for example "10:15"), together with from_date. ' \
-                        'Any start on a 15 minute grid is accepted when it is free; when it is not, the answer says why in one line ' \
-                        'and lists the closest times.'
+  parameter :from_date, type: 'string', description: 'First day to look at, YYYY-MM-DD (optional, defaults to today)', required: false
+  parameter :to_date, type: 'string',
+                      description: 'Last day to look at, YYYY-MM-DD (optional; leave it out to get the next day with availability)', required: false
+  parameter :part_of_day, type: 'string', required: false,
+                          description: 'morning (before 12:00), afternoon (12:00 to 18:00) or evening (after 18:00), when the customer asked for one'
+  parameter :event_id, type: 'string', required: false,
+                       description: 'Only when the customer wants to move an existing appointment: its id from appointment_list, or the reply ' \
+                                    '"Cambiar hora" unchanged. The times offered then move THAT appointment.'
+  parameter :at_time, type: 'string', required: false,
+                      description: 'The exact time the customer asked for, HH:MM in 24 hours (for example "10:15"), together with from_date. ' \
+                                   'Any start on a 15 minute grid is accepted when it is free; when it is not, the answer says why in one line ' \
+                                   'and lists the closest times.'
 
   # The signature is the tool's parameters, so the long list cannot be shortened.
   def perform(tool_context, from_date: nil, to_date: nil, part_of_day: nil, at_time: nil, event_id: nil) # rubocop:disable Metrics/ParameterLists

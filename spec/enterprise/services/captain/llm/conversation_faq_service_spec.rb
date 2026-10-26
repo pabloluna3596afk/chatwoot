@@ -23,7 +23,7 @@ RSpec.describe Captain::Llm::ConversationFaqService do
     allow(Captain::Llm::EmbeddingService).to receive(:new).and_return(embedding_service)
     allow(RubyLLM).to receive(:chat).and_return(mock_chat)
     allow(mock_chat).to receive(:with_temperature).and_return(mock_chat)
-    allow(mock_chat).to receive(:with_params).and_return(mock_chat)
+    allow(mock_chat).to receive(:with_provider_options).and_return(mock_chat)
     allow(mock_chat).to receive(:with_instructions).and_return(mock_chat)
     allow(mock_chat).to receive(:ask).and_return(mock_response)
   end
@@ -270,7 +270,7 @@ RSpec.describe Captain::Llm::ConversationFaqService do
       context 'when the comparison provider fails' do
         before do
           allow(mock_chat).to receive(:ask) do |input|
-            raise RubyLLM::Error.new(nil, 'API Error') if input.start_with?('{')
+            raise RubyLLM::Error, 'API Error' if input.start_with?('{')
 
             mock_response
           end
@@ -471,7 +471,7 @@ RSpec.describe Captain::Llm::ConversationFaqService do
 
     context 'when LLM API fails' do
       before do
-        allow(mock_chat).to receive(:ask).and_raise(RubyLLM::Error.new(nil, 'API Error'))
+        allow(mock_chat).to receive(:ask).and_raise(RubyLLM::Error.new('API Error'))
         allow(Rails.logger).to receive(:error)
       end
 

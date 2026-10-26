@@ -3,6 +3,34 @@ require 'rails_helper'
 RSpec.describe Message do
   let!(:conversation) { create(:conversation) }
 
+  describe 'automatic translation marker' do
+    it 'does not mark messages when the account feature is disabled' do
+      account = create(:account, settings: { auto_translate: true, translation_provider: 'captain' })
+      account.enable_features!(:captain_tasks)
+      inbox = create(:inbox, account: account)
+      conversation = create(:conversation, account: account, inbox: inbox)
+      agent = create(:user, account: account, role: :agent)
+
+      message = create(:message, account: account, inbox: inbox, conversation: conversation,
+                                 message_type: :outgoing, sender: agent, content: 'Hello')
+
+      expect(message.content_attributes).not_to have_key('translation_pending')
+    end
+
+    it 'does not mark private notes even when automatic translation is enabled' do
+      account = create(:account, settings: { auto_translate: true, translation_provider: 'captain' })
+      account.enable_features!(:auto_translate, :captain_tasks)
+      inbox = create(:inbox, account: account)
+      conversation = create(:conversation, account: account, inbox: inbox)
+      agent = create(:user, account: account, role: :agent)
+
+      message = create(:message, account: account, inbox: inbox, conversation: conversation,
+                                 message_type: :outgoing, sender: agent, private: true, content: 'Internal note')
+
+      expect(message.content_attributes).not_to have_key('translation_pending')
+    end
+  end
+
   it 'updates first reply if the message is human and even if there are messages from captain' do
     skip 'TODO(chathub): fallo previo del fork: regla B-NEW-11 del fork: un mensaje de Captain cuenta como primera respuesta'
     captain_assistant = create(:captain_assistant, account: conversation.account)
@@ -148,6 +176,7 @@ RSpec.describe Message do
       end
     end
   end
+
   describe 'reopening a resolved conversation that predates Captain ownership' do
     let(:conversation) { create(:conversation, status: :resolved) }
     let(:captain_assistant) { create(:captain_assistant, account: conversation.account) }

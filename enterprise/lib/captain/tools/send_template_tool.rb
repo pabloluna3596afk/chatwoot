@@ -3,8 +3,8 @@ class Captain::Tools::SendTemplateTool < Captain::Tools::BaseMessagingTool
               'template_catalog. It does not send right away: the template goes out as your reply to this message, so ' \
               'do not write it yourself and never promise it unless this tool says it is prepared. The values of its variables ' \
               'are filled in by the system, you do not provide them.'
-  param :template_name, type: 'string', desc: 'The name of the template, from template_catalog'
-  param :language, type: 'string', desc: 'The language code of the template, from template_catalog'
+  parameter :template_name, type: 'string', description: 'The name of the template, from template_catalog'
+  parameter :language, type: 'string', description: 'The language code of the template, from template_catalog'
 
   def perform(tool_context, template_name:, language:)
     conversation, error = conversation_for(tool_context)

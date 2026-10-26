@@ -1,12 +1,15 @@
 require 'rails_helper'
 
 RSpec.describe Llm::Config do
-  let(:agents_config) { Struct.new(:openai_api_key, :openai_api_base, :default_model, :debug).new }
+  let(:agents_config) do
+    Struct.new(:openai_api_key, :openai_api_base, :default_model, :openai_protocol, :model_registry_file, :debug).new
+  end
+  let(:ruby_llm_config) { Struct.new(:openai_api_key, :openai_api_base, :openai_protocol, :model_registry_file, :logger).new }
 
   before do
     InstallationConfig.where(name: described_class::SETTING_NAMES).destroy_all
     described_class.reset!
-    allow(RubyLLM).to receive(:configure)
+    allow(RubyLLM).to receive(:configure).and_yield(ruby_llm_config)
     allow(Agents).to receive(:configure).and_yield(agents_config)
   end
 
@@ -50,6 +53,19 @@ RSpec.describe Llm::Config do
     end
   end
 
+  describe '.with_api_key' do
+    it 'provides request credentials through an isolated RubyLLM context' do
+      global_key = RubyLLM.config.openai_api_key
+
+      described_class.with_api_key('account-key', api_base: 'https://llm.example.test/v1') do |context|
+        expect(context.config.openai_api_key).to eq('account-key')
+        expect(context.config.openai_api_base).to eq('https://llm.example.test/v1')
+      end
+
+      expect(RubyLLM.config.openai_api_key).to eq(global_key)
+    end
+  end
+
   describe '.with_chat_context' do
     it 'supplies account credentials to both direct SDK and RubyLLM chat constructors without changing globals' do
       global_key = RubyLLM.config.openai_api_key
@@ -58,7 +74,7 @@ RSpec.describe Llm::Config do
         legacy_chat = RubyLLM.chat(model: 'gpt-5.2')
         expect(sdk_chat.instance_variable_get(:@config).openai_api_key).to eq('account-key')
         expect(legacy_chat.instance_variable_get(:@config).openai_api_key).to eq('account-key')
-        expect(sdk_chat.instance_variable_get(:@config).openai_api_base).to be_nil
+        expect(sdk_chat.instance_variable_get(:@config).openai_api_base).to eq("#{LlmConstants::OPENAI_API_ENDPOINT.chomp('/')}/v1")
         expect(Thread.new { ActiveSupport::IsolatedExecutionState[:llm_chat_context] }.value).to be_nil
       end
       expect(RubyLLM.config.openai_api_key).to eq(global_key)
@@ -76,11 +92,17 @@ RSpec.describe Llm::Config do
   end
 
   describe '.refresh!' do
-    it 'configures RubyLLM but not the Agents SDK while there is no key' do
+    it 'configures both SDKs for chat completions while there is no installation key' do
       described_class.refresh!
 
       expect(RubyLLM).to have_received(:configure).once
-      expect(Agents).not_to have_received(:configure)
+      expect(Agents).to have_received(:configure).once
+      expect(ruby_llm_config).to have_attributes(openai_protocol: :chat_completions)
+      expect(agents_config).to have_attributes(
+        openai_protocol: :chat_completions,
+        default_model: LlmConstants::DEFAULT_MODEL,
+        debug: false
+      )
     end
 
     it 'applies a key saved after the first refresh' do
@@ -88,8 +110,10 @@ RSpec.describe Llm::Config do
       save_setting('CAPTAIN_OPEN_AI_API_KEY', 'sk-new')
       described_class.refresh!
 
-      expect(Agents).to have_received(:configure).once
-      expect(agents_config).to have_attributes(openai_api_key: 'sk-new', default_model: LlmConstants::DEFAULT_MODEL, debug: false)
+      expect(Agents).to have_received(:configure).twice
+      expect(agents_config).to have_attributes(
+        openai_api_key: 'sk-new', default_model: LlmConstants::DEFAULT_MODEL, debug: false, openai_protocol: :chat_completions
+      )
       expect(RubyLLM).to have_received(:configure).twice
     end
 
@@ -115,7 +139,8 @@ RSpec.describe Llm::Config do
 
       expect(Agents).to have_received(:configure).exactly(4).times
       expect(agents_config).to have_attributes(
-        openai_api_key: 'sk-two', default_model: 'gpt-5-mini', openai_api_base: 'https://llm.example.test/v1'
+        openai_api_key: 'sk-two', default_model: 'gpt-5-mini', openai_api_base: 'https://llm.example.test/v1',
+        openai_protocol: :chat_completions
       )
     end
 
