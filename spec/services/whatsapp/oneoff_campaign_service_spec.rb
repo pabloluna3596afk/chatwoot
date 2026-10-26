@@ -115,14 +115,12 @@ describe Whatsapp::OneoffCampaignService do
       end
 
       it 'persists sent recipients with source_id and execution_stats' do
-        skip 'TODO(chathub): fallo previo del fork: execution_stats[sent] queda en nil tras enviar (revisar con Q4)'
-
         contact = create(:contact, :with_phone_number, account: account)
         contact.update_labels([label1.title])
 
         allow(whatsapp_channel).to receive(:send_template).and_return('wamid.campaign_1')
 
-        described_class.new(campaign: campaign).perform_batch(0)
+        Campaigns::SendWhatsappBatchJob.perform_now(campaign)
 
         recipient = campaign.campaign_recipients.find_by(contact_id: contact.id)
         expect(recipient).to be_sent

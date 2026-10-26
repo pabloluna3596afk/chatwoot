@@ -87,6 +87,15 @@ en:
       expired: 'This verification code has expired. Sign in again to request a new code.'
       invalid_code: 'The verification code is incorrect.'
       code_field_required: 'Enter the code sent to your email.'
+    account_saml_settings:
+      invalid_certificate: must be a valid X.509 certificate in PEM format
+      metadata_url:
+        invalid_url: must be a valid HTTPS URL
+        blocked_address: points to a private or reserved network address
+        http_error: returned an HTTP error
+        unreachable: could not be reached securely
+        too_large: returned a response larger than the SAML metadata limit
+        not_metadata: did not return valid SAML identity provider metadata
     auto_translate:
       invalid_messages: 'Invalid messages'
     downloads:
