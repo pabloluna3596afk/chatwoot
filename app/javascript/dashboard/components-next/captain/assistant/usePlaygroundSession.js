@@ -269,7 +269,9 @@ export function usePlaygroundSession({ assistantId }) {
         store.dispatch('captainScenarios/get', {
           assistantId: targetAssistantId,
         }),
-        store.dispatch('captainTools/getTools'),
+        store.dispatch('captainTools/getTools', {
+          assistantId: targetAssistantId,
+        }),
         CaptainAssistant.getFaqStats({ assistantId: targetAssistantId }).catch(
           () => null
         ),

@@ -3,6 +3,7 @@ require 'rails_helper'
 RSpec.describe Captain::CustomTool, type: :model do
   describe 'associations' do
     it { is_expected.to belong_to(:account) }
+    it { is_expected.to belong_to(:assistant).class_name('Captain::Assistant') }
   end
 
   describe 'validations' do
@@ -18,20 +19,22 @@ RSpec.describe Captain::CustomTool, type: :model do
     describe 'slug uniqueness' do
       let(:account) { create(:account) }
 
-      it 'validates uniqueness of slug scoped to account' do
-        create(:captain_custom_tool, account: account, slug: 'custom_test_tool')
-        duplicate = build(:captain_custom_tool, account: account, slug: 'custom_test_tool')
+      it 'validates uniqueness of slug scoped to assistant' do
+        assistant = create(:captain_assistant, account: account)
+        create(:captain_custom_tool, account: account, assistant: assistant, slug: 'custom_test_tool')
+        duplicate = build(:captain_custom_tool, account: account, assistant: assistant, slug: 'custom_test_tool')
 
         expect(duplicate).not_to be_valid
         expect(duplicate.errors[:slug]).to include('has already been taken')
       end
 
-      it 'allows same slug across different accounts' do
-        account2 = create(:account)
-        create(:captain_custom_tool, account: account, slug: 'custom_test_tool')
-        different_account_tool = build(:captain_custom_tool, account: account2, slug: 'custom_test_tool')
+      it 'allows same slug for different assistants in one account' do
+        assistant = create(:captain_assistant, account: account)
+        other_assistant = create(:captain_assistant, account: account)
+        create(:captain_custom_tool, account: account, assistant: assistant, slug: 'custom_test_tool')
+        different_assistant_tool = build(:captain_custom_tool, account: account, assistant: other_assistant, slug: 'custom_test_tool')
 
-        expect(different_account_tool).to be_valid
+        expect(different_assistant_tool).to be_valid
       end
     end
 
@@ -94,6 +97,19 @@ RSpec.describe Captain::CustomTool, type: :model do
     end
   end
 
+  describe 'assistant limit' do
+    let(:account) { create(:account) }
+    let(:assistant) { create(:captain_assistant, account: account) }
+
+    it 'allows at most 50 custom tools per assistant' do
+      create_list(:captain_custom_tool, Captain::CustomTool::MAX_PER_ASSISTANT, account: account, assistant: assistant)
+
+      expect do
+        create(:captain_custom_tool, account: account, assistant: assistant)
+      end.to raise_error(Captain::CustomTool::LimitExceededError)
+    end
+  end
+
   describe 'scopes' do
     let(:account) { create(:account) }
 
@@ -111,36 +127,37 @@ RSpec.describe Captain::CustomTool, type: :model do
 
   describe 'slug generation' do
     let(:account) { create(:account) }
+    let(:assistant) { create(:captain_assistant, account: account) }
 
     it 'generates slug from title on creation' do
-      tool = create(:captain_custom_tool, account: account, title: 'Fetch Order Status')
+      tool = create(:captain_custom_tool, account: account, assistant: assistant, title: 'Fetch Order Status')
 
       expect(tool.slug).to eq('custom_fetch_order_status')
     end
 
     it 'adds custom_ prefix to generated slug' do
-      tool = create(:captain_custom_tool, account: account, title: 'My Tool')
+      tool = create(:captain_custom_tool, account: account, assistant: assistant, title: 'My Tool')
 
       expect(tool.slug).to start_with('custom_')
     end
 
     it 'does not override manually set slug' do
-      tool = create(:captain_custom_tool, account: account, title: 'Test Tool', slug: 'custom_manual_slug')
+      tool = create(:captain_custom_tool, account: account, assistant: assistant, title: 'Test Tool', slug: 'custom_manual_slug')
 
       expect(tool.slug).to eq('custom_manual_slug')
     end
 
     it 'handles slug collisions by appending random suffix' do
-      create(:captain_custom_tool, account: account, title: 'Test Tool', slug: 'custom_test_tool')
-      tool2 = create(:captain_custom_tool, account: account, title: 'Test Tool')
+      create(:captain_custom_tool, account: account, assistant: assistant, title: 'Test Tool', slug: 'custom_test_tool')
+      tool2 = create(:captain_custom_tool, account: account, assistant: assistant, title: 'Test Tool')
 
       expect(tool2.slug).to match(/^custom_test_tool_[a-z0-9]{6}$/)
     end
 
     it 'handles multiple slug collisions' do
-      create(:captain_custom_tool, account: account, title: 'Test Tool', slug: 'custom_test_tool')
-      create(:captain_custom_tool, account: account, title: 'Test Tool', slug: 'custom_test_tool_abc123')
-      tool3 = create(:captain_custom_tool, account: account, title: 'Test Tool')
+      create(:captain_custom_tool, account: account, assistant: assistant, title: 'Test Tool', slug: 'custom_test_tool')
+      create(:captain_custom_tool, account: account, assistant: assistant, title: 'Test Tool', slug: 'custom_test_tool_abc123')
+      tool3 = create(:captain_custom_tool, account: account, assistant: assistant, title: 'Test Tool')
 
       expect(tool3.slug).to match(/^custom_test_tool_[a-z0-9]{6}$/)
       expect(tool3.slug).not_to eq('custom_test_tool')
@@ -148,14 +165,14 @@ RSpec.describe Captain::CustomTool, type: :model do
     end
 
     it 'does not generate slug when title is blank' do
-      tool = build(:captain_custom_tool, account: account, title: nil)
+      tool = build(:captain_custom_tool, account: account, assistant: assistant, title: nil)
 
       expect(tool).not_to be_valid
       expect(tool.errors[:title]).to include("can't be blank")
     end
 
     it 'parameterizes title correctly' do
-      tool = create(:captain_custom_tool, account: account, title: 'Fetch Order Status & Details!')
+      tool = create(:captain_custom_tool, account: account, assistant: assistant, title: 'Fetch Order Status & Details!')
 
       expect(tool.slug).to eq('custom_fetch_order_status_details')
     end

@@ -1,5 +1,6 @@
 <script setup>
-import { computed, onMounted, ref, nextTick } from 'vue';
+import { computed, watch, ref, nextTick } from 'vue';
+import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
@@ -15,6 +16,8 @@ import DeleteDialog from 'dashboard/components-next/captain/pageComponents/Delet
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 
 const store = useStore();
+const route = useRoute();
+const assistantId = computed(() => route.params.assistantId);
 const { t } = useI18n();
 const { isFeatureFlagEnabled, shouldShowPaywall } = usePolicy();
 
@@ -22,7 +25,10 @@ const SOFT_LIMIT = 10;
 const isV2 = computed(() => isFeatureFlagEnabled(FEATURE_FLAGS.CAPTAIN_V2));
 
 const uiFlags = useMapGetter('captainCustomTools/getUIFlags');
-const customTools = useMapGetter('captainCustomTools/getRecords');
+const records = useMapGetter('captainCustomTools/getRecords');
+const customTools = computed(() =>
+  records.value.filter(tool => tool.assistant_id === Number(assistantId.value))
+);
 const isFetching = computed(() => uiFlags.value.fetchingList);
 const customToolsMeta = useMapGetter('captainCustomTools/getMeta');
 
@@ -67,7 +73,10 @@ const setTogglePending = (id, isPending) => {
 };
 
 const fetchCustomTools = (page = 1) => {
-  store.dispatch('captainCustomTools/get', { page });
+  store.dispatch('captainCustomTools/get', {
+    page,
+    assistantId: assistantId.value,
+  });
 };
 
 const onPageChange = page => fetchCustomTools(page);
@@ -100,7 +109,11 @@ const handleAction = ({ action, id }) => {
 
 const updateCustomToolStatus = async ({ id, enabled }) => {
   try {
-    await store.dispatch('captainCustomTools/update', { id, enabled });
+    await store.dispatch('captainCustomTools/update', {
+      id,
+      enabled,
+      assistantId: assistantId.value,
+    });
     const successMessage = enabled
       ? t('CAPTAIN.CUSTOM_TOOLS.TOGGLE.ENABLED')
       : t('CAPTAIN.CUSTOM_TOOLS.TOGGLE.DISABLED');
@@ -119,7 +132,10 @@ const toggleCustomTool = async ({ id, enabled }) => {
 
   if (!enabled) {
     try {
-      const tool = await store.dispatch('captainCustomTools/show', id);
+      const tool = await store.dispatch('captainCustomTools/show', {
+        id,
+        assistantId: assistantId.value,
+      });
       if (tool.enabled_scenarios_count > 0) {
         pendingDisable.value = {
           id,
@@ -177,11 +193,15 @@ const onDeleteSuccess = () => {
   }
 };
 
-onMounted(() => {
-  if (!shouldShowPaywall(FEATURE_FLAGS.CAPTAIN_CUSTOM_TOOLS)) {
-    fetchCustomTools();
-  }
-});
+watch(
+  assistantId,
+  () => {
+    if (!shouldShowPaywall(FEATURE_FLAGS.CAPTAIN_CUSTOM_TOOLS)) {
+      fetchCustomTools();
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <template>
@@ -242,6 +262,7 @@ onMounted(() => {
     ref="createDialogRef"
     :type="dialogType"
     :selected-tool="selectedTool"
+    :assistant-id="assistantId"
     @close="handleDialogClose"
   />
 
@@ -250,6 +271,7 @@ onMounted(() => {
     ref="deleteDialogRef"
     :entity="selectedTool"
     type="CustomTools"
+    :delete-payload="{ id: selectedTool.id, assistantId }"
     translation-key="CUSTOM_TOOLS"
     @delete-success="onDeleteSuccess"
   />
