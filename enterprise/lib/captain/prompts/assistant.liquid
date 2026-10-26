@@ -16,6 +16,10 @@ Don't digress away from your instructions, and use all the available tools at yo
 
 {% render 'core_rules' %}
 
+{% if can_verify_email -%}
+{% render 'customer_identity', verified_email: verified_email %}
+{% endif -%}
+
 {% if appointments -%}
 {% render 'appointments', appointments: appointments %}
 {% endif -%}

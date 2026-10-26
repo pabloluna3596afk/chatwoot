@@ -625,6 +625,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_23_140000) do
     t.datetime "updated_at", null: false
     t.bigint "assistant_id"
     t.jsonb "headers", default: {}, null: false
+    t.jsonb "settings", default: {}, null: false
     t.index ["account_id"], name: "index_captain_custom_tools_on_account_id"
     t.index ["assistant_id", "slug"], name: "index_captain_custom_tools_on_assistant_id_and_slug", unique: true
   end

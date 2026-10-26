@@ -533,4 +533,56 @@ RSpec.describe Captain::Tools::HttpTool, type: :model do
       end
     end
   end
+
+  describe 'email verification' do
+    it 'blocks a public tool marked as requiring email verification' do
+      custom_tool.update!(settings: { 'requires_email_verification' => true })
+      public_tool = Captain::Tools::PublicHttpTool.new(assistant, custom_tool)
+
+      expect(public_tool.perform(tool_context)).to eq(I18n.t('captain.custom_tool.email_verification_required'))
+    end
+
+    it 'keeps the verification gate opt-in for existing tools' do
+      public_tool = Captain::Tools::PublicHttpTool.new(assistant, custom_tool)
+      allow(public_tool).to receive(:variable_drops).and_return({})
+      allow(public_tool).to receive(:execute_http_request).and_return('ok')
+
+      expect(public_tool.perform(tool_context)).to eq('ok')
+    end
+
+    it 'hides verified email parameters from customer agents and exposes them to Copilot' do
+      custom_tool.update!(param_schema: [
+                            { 'name' => 'email', 'type' => 'string', 'description' => 'Verified email', 'source' => 'verified.email' }
+                          ])
+
+      public_tool = custom_tool.tool(assistant, base_class: Captain::Tools::PublicHttpTool)
+      copilot_tool = custom_tool.tool(assistant, base_class: Captain::Tools::CopilotHttpTool)
+
+      expect(public_tool.class.declared_parameters.keys).to be_empty
+      expect(copilot_tool.class.declared_parameters.keys).to contain_exactly(:email)
+    end
+
+    it 'replaces a model supplied email with the verified address before building the request' do
+      conversation = create(:conversation, account: account)
+      custom_tool.update!(endpoint_url: 'https://example.com/orders/{{ email }}', param_schema: [
+                            { 'name' => 'email', 'type' => 'string', 'description' => 'Verified email', 'source' => 'verified.email' }
+                          ])
+      public_tool = Captain::Tools::PublicHttpTool.new(assistant, custom_tool)
+      context = Struct.new(:state).new({ conversation: { id: conversation.id }, verified_email: 'trusted@example.com' })
+      allow(public_tool).to receive(:execute_http_request).and_return('ok')
+
+      public_tool.perform(context, email: 'attacker@example.com')
+
+      expect(public_tool).to have_received(:execute_http_request).with('https://example.com/orders/trusted@example.com', nil, context)
+    end
+
+    it 'does not apply the customer verification gate to Copilot tools' do
+      custom_tool.update!(settings: { 'requires_email_verification' => true })
+      copilot_tool = Captain::Tools::CopilotHttpTool.new(assistant, custom_tool)
+      allow(copilot_tool).to receive(:variable_drops).and_return({})
+      allow(copilot_tool).to receive(:execute_http_request).and_return('ok')
+
+      expect(copilot_tool.perform(tool_context)).to eq('ok')
+    end
+  end
 end

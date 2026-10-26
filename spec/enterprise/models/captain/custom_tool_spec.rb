@@ -94,6 +94,21 @@ RSpec.describe Captain::CustomTool, type: :model do
 
         expect(tool).to be_valid
       end
+
+      it 'accepts a verified email source only for string parameters' do
+        verified_param = { 'name' => 'email', 'type' => 'string', 'description' => 'Verified email', 'source' => 'verified.email' }
+        tool = build(:captain_custom_tool, account: account, param_schema: [verified_param])
+
+        expect(tool).to be_valid
+        expect(tool).to be_requires_email_verification
+        expect(tool.verified_email_param).to eq('email')
+      end
+
+      it 'rejects verified email sources for non-string parameters' do
+        verified_param = { 'name' => 'email', 'type' => 'number', 'description' => 'Verified email', 'source' => 'verified.email' }
+
+        expect(build(:captain_custom_tool, account: account, param_schema: [verified_param])).not_to be_valid
+      end
     end
   end
 
@@ -107,6 +122,17 @@ RSpec.describe Captain::CustomTool, type: :model do
       expect do
         create(:captain_custom_tool, account: account, assistant: assistant)
       end.to raise_error(Captain::CustomTool::LimitExceededError)
+    end
+  end
+
+  describe 'email verification settings' do
+    it 'leaves existing tools unprotected by default' do
+      expect(build(:captain_custom_tool)).not_to be_requires_email_verification
+    end
+
+    it 'rejects unknown settings and non-boolean values' do
+      expect(build(:captain_custom_tool, settings: { 'require_email' => true })).not_to be_valid
+      expect(build(:captain_custom_tool, settings: { 'requires_email_verification' => 'true' })).not_to be_valid
     end
   end
 

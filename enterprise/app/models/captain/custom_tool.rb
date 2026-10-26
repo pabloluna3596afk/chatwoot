@@ -13,6 +13,7 @@
 #  param_schema      :jsonb
 #  request_template  :text
 #  response_template :text
+#  settings          :jsonb            not null
 #  slug              :string           not null
 #  title             :string           not null
 #  created_at        :datetime         not null
@@ -37,6 +38,8 @@ class Captain::CustomTool < ApplicationRecord
 
   NAME_PREFIX = 'custom'.freeze
   NAME_SEPARATOR = '_'.freeze
+  SETTING_KEYS = %w[requires_email_verification].freeze
+  VERIFIED_SOURCES = %w[verified.email].freeze
   # OpenAI enforces a 64-char limit on function names. The slug is used
   # verbatim as the tool name in LLM requests, so it must fit within this limit.
   MAX_SLUG_LENGTH = 64
@@ -49,11 +52,19 @@ class Captain::CustomTool < ApplicationRecord
         'name': { 'type': 'string' },
         'type': { 'type': 'string' },
         'description': { 'type': 'string' },
-        'required': { 'type': 'boolean' }
+        'required': { 'type': 'boolean' },
+        'source': { 'enum': VERIFIED_SOURCES }
       },
       'required': %w[name type description],
+      'if': { 'required': ['source'] },
+      'then': { 'properties': { 'type': { 'const': 'string' } } },
       'additionalProperties': false
     }
+  }.to_json.freeze
+  SETTINGS_VALIDATION = {
+    'type': 'object',
+    'properties': SETTING_KEYS.index_with { { 'type': 'boolean' } },
+    'additionalProperties': false
   }.to_json.freeze
 
   belongs_to :account
@@ -73,6 +84,9 @@ class Captain::CustomTool < ApplicationRecord
   validates_with JsonSchemaValidator,
                  schema: PARAM_SCHEMA_VALIDATION,
                  attribute_resolver: ->(record) { record.param_schema }
+  validates_with JsonSchemaValidator,
+                 schema: SETTINGS_VALIDATION,
+                 attribute_resolver: ->(record) { record.settings }
 
   scope :enabled, -> { where(enabled: true) }
 
@@ -83,6 +97,14 @@ class Captain::CustomTool < ApplicationRecord
       description: description,
       custom: true
     }
+  end
+
+  def requires_email_verification?
+    settings['requires_email_verification'] == true || verified_email_param.present?
+  end
+
+  def verified_email_param
+    param_schema.find { |param_def| param_def['source'] == 'verified.email' }&.dig('name')
   end
 
   def enabled_scenarios_count

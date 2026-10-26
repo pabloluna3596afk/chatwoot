@@ -113,6 +113,7 @@ class Captain::Assistant::AgentRunnerService
 
   def build_and_wire_agents
     return [reply_suggestion_agent] if reply_suggestion?
+
     # The initial test chat must not run account tools or live scenarios.
     if @source == ONBOARDING_PLAYGROUND_SOURCE
       agent = @assistant.agent
@@ -121,22 +122,41 @@ class Captain::Assistant::AgentRunnerService
 
     return default_agent_graph unless @runtime_configuration
 
-    assistant_agent = with_messaging_tools(with_appointment_tools(@assistant.agent(runtime_configuration: @runtime_configuration)))
+    assistant_agent = configure_custom_tools(@assistant.agent(runtime_configuration: @runtime_configuration))
+    assistant_agent = with_messaging_tools(with_appointment_tools(assistant_agent))
     scenario_agents = @runtime_configuration.scenarios.map do |scenario|
-      scenario.agent(
-        runtime_configuration: @runtime_configuration,
-        runtime_agent_name: @runtime_configuration.agent_name_for(scenario)
-      )
+      configure_custom_tools(scenario.agent(
+                               runtime_configuration: @runtime_configuration,
+                               runtime_agent_name: @runtime_configuration.agent_name_for(scenario)
+                             ))
     end
 
     wire_agents(assistant_agent, scenario_agents)
   end
 
   def default_agent_graph
-    assistant_agent = with_messaging_tools(with_appointment_tools(@assistant.agent))
-    scenario_agents = @assistant.scenarios.enabled.map(&:agent)
+    assistant_agent = with_messaging_tools(with_appointment_tools(configure_custom_tools(@assistant.agent)))
+    scenario_agents = @assistant.scenarios.enabled.map { |scenario| configure_custom_tools(scenario.agent) }
 
     wire_agents(assistant_agent, scenario_agents)
+  end
+
+  def configure_custom_tools(agent)
+    return agent unless agent.tools.any?(Captain::Tools::HttpTool) || can_verify_email?
+
+    tool_class = @source.present? ? Captain::Tools::CopilotHttpTool : Captain::Tools::PublicHttpTool
+    tools = agent.tools.map do |tool|
+      next tool unless tool.is_a?(Captain::Tools::HttpTool)
+
+      tool.custom_tool.tool(@assistant, base_class: tool_class)
+    end
+    agent.clone(tools: tools + email_verification_tools)
+  end
+
+  def email_verification_tools
+    return [] unless can_verify_email?
+
+    [Captain::Tools::SendEmailVerificationCodeTool.new(@assistant), Captain::Tools::VerifyEmailCodeTool.new(@assistant)]
   end
 
   def wire_agents(assistant_agent, scenario_agents)
@@ -162,6 +182,7 @@ class Captain::Assistant::AgentRunnerService
 
   def reply_suggestion_agent
     agent = @assistant.agent
+    agent = configure_custom_tools(agent)
     agent.clone(
       instructions: ->(context) { @assistant.agent_instructions(context, prompt_template: 'copilot_reply_suggestion') },
       tools: agent.tools.select { |tool| available_in_reply_suggestion?(tool) }
