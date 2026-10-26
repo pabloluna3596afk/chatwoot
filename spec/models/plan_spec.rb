@@ -53,4 +53,14 @@ RSpec.describe Plan do
       expect(plan.errors[:captain_daily_tests]).to be_present
     end
   end
+
+  it 'allows AI usage limits to remain unconfigured or be nonnegative integers' do
+    expect(plan).to be_valid
+
+    plan.assign_attributes(captain_copilot_responses: 20, captain_internal_calls: 100)
+    expect(plan).to be_valid
+
+    plan.captain_internal_calls = -1
+    expect(plan).not_to be_valid
+  end
 end

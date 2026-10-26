@@ -586,6 +586,7 @@ es:
       playground_history_invalid: 'El historial de la prueba no es válido'
     copilot_message_required: El mensaje es obligatorio
     copilot_error: 'Conecte un asistente a esta bandeja de entrada para utilizar Copilot'
+    internal_limit: 'Se alcanzó el límite mensual de acciones internas de IA.'
     copilot_limit: 'Te quedaste sin créditos de Copilot. Puedes comprar más créditos desde la sección de facturación.'
     upgrade: 'Actualiza tu plan para habilitar Captain AI'
     disabled: 'Captain AI está deshabilitado para esta cuenta.'

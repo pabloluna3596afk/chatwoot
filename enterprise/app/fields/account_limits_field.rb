@@ -1,7 +1,7 @@
 require 'administrate/field/base'
 
 class AccountLimitsField < Administrate::Field::Base
-  KEYS = %i[agents inboxes captain_responses captain_documents emails captain_storage].freeze
+  KEYS = %i[agents inboxes captain_responses captain_documents captain_copilot captain_internal emails captain_storage].freeze
 
   # Manual per-account overrides only (raw `limits` jsonb) — nil where no
   # override is set. This is what the form binds as the submitted value, so
@@ -27,6 +27,8 @@ class AccountLimitsField < Administrate::Field::Base
       captain_responses: limits.dig(:captain, :responses, :total_count),
       captain_documents: limits.dig(:captain, :documents, :total_count),
       captain_storage: limits.dig(:captain, :storage, :total_count),
+      captain_copilot: limits.dig(:captain, :copilot, :total_count),
+      captain_internal: limits.dig(:captain, :internal, :total_count),
       emails: resource.respond_to?(:email_rate_limit) ? resource.email_rate_limit : nil
     }.to_json
   end

@@ -197,9 +197,8 @@ class Account < ApplicationRecord
   end
 
   def copilot_responses_available?
-    captain_limit = (captain_monthly_limit[:responses] || 0) / 2
-    copilot_consumed = current_usage_period&.copilot_responses_consumed || 0
-    (captain_limit - copilot_consumed) > 0
+    response_limit = usage_limits.dig(:captain, :responses)
+    response_limit.nil? || response_limit[:current_available].to_i.positive?
   end
 
   # The account's current billing-period usage row (see AccountPlanUsage),
@@ -313,6 +312,8 @@ class Account < ApplicationRecord
         period_start: window[:start],
         period_end: window[:end],
         limit_responses: plan&.monthly_messages,
+        limit_copilot_responses: plan&.captain_copilot_responses,
+        limit_internal_calls: plan&.captain_internal_calls,
         limit_documents: plan&.max_documents,
         created_at: Time.current,
         updated_at: Time.current

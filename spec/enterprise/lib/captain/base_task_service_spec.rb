@@ -11,7 +11,7 @@ RSpec.describe Captain::BaseTaskService, type: :model do
     {
       agents: ChatwootApp.max_limit,
       inboxes: ChatwootApp.max_limit,
-      captain: { responses: { current_available: 0 } }
+      captain: { internal: { total_count: 0, current_available: 0 } }
     }
   end
 
@@ -47,77 +47,38 @@ RSpec.describe Captain::BaseTaskService, type: :model do
 
     context 'when usage limit is exceeded' do
       before do
-        allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(true)
-        allow(account).to receive(:usage_limits).and_return(exhausted_usage_limits)
+        account.plan.update!(captain_internal_calls: 1)
+        account.current_usage_period.update!(internal_calls_consumed: 1)
       end
 
       it 'returns usage limit exceeded error' do
         result = service.perform
-        expect(result[:error]).to eq(I18n.t('captain.copilot_limit'))
+        expect(result[:error]).to eq(I18n.t('captain.internal_limit'))
         expect(result[:error_code]).to eq(429)
       end
 
       it 'does not increment usage' do
-        expect(account).not_to receive(:increment_response_usage)
-        service.perform
+        expect { service.perform }.not_to(change { account.reload.current_usage_period.internal_calls_consumed })
       end
     end
 
-    it 'increments response usage on successful execution' do
-      expect(account).to receive(:increment_response_usage)
-      service.perform
+    it 'does not charge an internal pool until the plan configures an internal limit' do
+      expect { service.perform }.not_to(change { account.current_usage_period&.internal_calls_consumed })
     end
 
-    context 'when result has an error' do
+    it 'reserves internal usage before executing when a limit is configured' do
+      account.plan.update!(captain_internal_calls: 1)
+      expect { service.perform }.to change { (account.reload.current_usage_period.internal_calls_consumed) }.by(1)
+    end
+
+    context 'when the provider call returns an error' do
       let(:perform_result) { { error: 'API Error' } }
 
-      it 'does not increment usage' do
-        expect(account).not_to receive(:increment_response_usage)
-        service.perform
+      it 'reserves internal usage before receiving the provider result' do
+        account.plan.update!(captain_internal_calls: 1)
+
+        expect { service.perform }.to change { (account.reload.current_usage_period.internal_calls_consumed) }.by(1)
       end
-    end
-
-    context 'when result is nil' do
-      let(:perform_result) { nil }
-
-      it 'does not increment usage' do
-        expect(account).not_to receive(:increment_response_usage)
-        service.perform
-      end
-    end
-
-    context 'when result is empty hash' do
-      let(:perform_result) { {} }
-
-      it 'does not increment usage' do
-        expect(account).not_to receive(:increment_response_usage)
-        service.perform
-      end
-    end
-
-    context 'when result has blank message' do
-      let(:perform_result) { { message: '' } }
-
-      it 'does not increment usage' do
-        expect(account).not_to receive(:increment_response_usage)
-        service.perform
-      end
-    end
-
-    context 'when result has nil message' do
-      let(:perform_result) { { message: nil } }
-
-      it 'does not increment usage' do
-        expect(account).not_to receive(:increment_response_usage)
-        service.perform
-      end
-    end
-
-    it 'actually increments the Copilot usage of the current period' do
-      expect do
-        service.perform
-        account.reload
-      end.to change { copilot_responses_used(account) }.by(1)
     end
 
     context 'when account has its own OpenAI hook key' do
@@ -125,20 +86,21 @@ RSpec.describe Captain::BaseTaskService, type: :model do
         create(:integrations_hook, :openai, account: account, settings: { 'api_key' => 'customer-own-key' })
       end
 
-      it 'still increments usage for services that do not opt into BYOK' do
-        expect(account).to receive(:increment_response_usage)
-        service.perform
+      it 'reserves internal usage for services that do not opt into BYOK' do
+        account.plan.update!(captain_internal_calls: 1)
+
+        expect { service.perform }.to change { (account.reload.current_usage_period.internal_calls_consumed) }.by(1)
       end
 
-      context 'when the captain_responses quota is exhausted on Cloud' do
+      context 'when the internal AI quota is exhausted on Cloud' do
         before do
-          allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(true)
-          allow(account).to receive(:usage_limits).and_return(exhausted_usage_limits)
+          account.plan.update!(captain_internal_calls: 1)
+          account.current_usage_period.update!(internal_calls_consumed: 1)
         end
 
         it 'returns usage limit exceeded error for services that do not opt into BYOK' do
           result = service.perform
-          expect(result[:error]).to eq(I18n.t('captain.copilot_limit'))
+          expect(result[:error]).to eq(I18n.t('captain.internal_limit'))
           expect(result[:error_code]).to eq(429)
         end
       end
@@ -160,9 +122,8 @@ RSpec.describe Captain::BaseTaskService, type: :model do
         create(:integrations_hook, :openai, account: account, settings: { 'api_key' => 'customer-own-key' })
       end
 
-      it 'does not increment usage on a successful result' do
-        expect(account).not_to receive(:increment_response_usage)
-        service.perform
+      it 'does not reserve usage when the subclass opts out' do
+        expect { service.perform }.not_to(change { account.reload.current_usage_period.internal_calls_consumed })
       end
 
       context 'when the captain_responses quota is exhausted on Cloud' do
@@ -193,9 +154,8 @@ RSpec.describe Captain::BaseTaskService, type: :model do
           expect(result[:error]).to eq(I18n.t('captain.upgrade'))
         end
 
-        it 'does not increment usage' do
-          expect(account).not_to receive(:increment_response_usage)
-          service.perform
+        it 'does not reserve usage' do
+          expect { service.perform }.not_to(change { account.reload.current_usage_period.internal_calls_consumed })
         end
       end
 
@@ -209,9 +169,8 @@ RSpec.describe Captain::BaseTaskService, type: :model do
           expect(result[:error]).to eq(I18n.t('captain.disabled'))
         end
 
-        it 'does not increment usage' do
-          expect(account).not_to receive(:increment_response_usage)
-          service.perform
+        it 'does not reserve usage' do
+          expect { service.perform }.not_to(change { account.reload.current_usage_period.internal_calls_consumed })
         end
       end
     end
@@ -225,11 +184,6 @@ RSpec.describe Captain::BaseTaskService, type: :model do
         result = service.perform
         expect(result[:message]).to eq('Test response')
         expect(result[:error]).to be_nil
-      end
-
-      it 'increments usage' do
-        expect(account).to receive(:increment_response_usage)
-        service.perform
       end
     end
 
@@ -245,9 +199,8 @@ RSpec.describe Captain::BaseTaskService, type: :model do
         klass
       end
 
-      it 'does not increment usage even on a successful result' do
-        expect(account).not_to receive(:increment_response_usage)
-        service.perform
+      it 'does not reserve usage when the subclass opts out' do
+        expect { service.perform }.not_to(change { account.reload.current_usage_period.internal_calls_consumed })
       end
 
       context 'when the captain_responses quota is exhausted on Cloud' do

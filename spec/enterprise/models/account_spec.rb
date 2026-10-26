@@ -218,10 +218,29 @@ RSpec.describe Account, type: :model do
         expect(account.usage_limits[:captain][:responses]).to include(total_count: 100, consumed: 1, current_available: 99)
       end
 
-      it 'counts Copilot responses apart from the customer ones' do
+      it 'charges Copilot to Captain responses until a Copilot limit is configured' do
         account.increment_response_usage(source: :copilot)
 
         expect(copilot_responses_used(account)).to eq(1)
+        expect(captain_responses_used(account)).to eq(1)
+      end
+
+      it 'uses a configured Copilot pool independently from Captain responses' do
+        account.plan.update!(captain_copilot_responses: 2)
+
+        expect(account.reserve_captain_ai_usage!(bucket: :copilot)).to be(true)
+        expect(account.reserve_captain_ai_usage!(bucket: :copilot)).to be(true)
+        expect(account.reserve_captain_ai_usage!(bucket: :copilot)).to be(false)
+        expect(captain_responses_used(account)).to eq(0)
+        expect(copilot_responses_used(account)).to eq(2)
+      end
+
+      it 'enforces configured internal AI usage without charging Captain responses' do
+        account.plan.update!(captain_internal_calls: 1)
+
+        expect(account.reserve_captain_ai_usage!(bucket: :internal)).to be(true)
+        expect(account.reserve_captain_ai_usage!(bucket: :internal)).to be(false)
+        expect(account.usage_limits.dig(:captain, :internal)).to include(total_count: 1, consumed: 1, current_available: 0)
         expect(captain_responses_used(account)).to eq(0)
       end
 

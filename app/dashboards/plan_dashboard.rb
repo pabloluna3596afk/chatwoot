@@ -16,6 +16,8 @@ class PlanDashboard < Administrate::BaseDashboard
     feature_keys: PlanFeaturesField,
     captain_daily_tests: Field::Number,
     monthly_messages: Field::Number,
+    captain_copilot_responses: Field::Number,
+    captain_internal_calls: Field::Number,
     storage_mb: Field::Number,
     max_documents: Field::Number,
     max_captain_assistants: Field::Number,
@@ -48,6 +50,8 @@ class PlanDashboard < Administrate::BaseDashboard
     name
     price_monthly
     monthly_messages
+    captain_copilot_responses
+    captain_internal_calls
     max_human_agents
     max_inboxes
     is_active
@@ -65,6 +69,8 @@ class PlanDashboard < Administrate::BaseDashboard
     feature_keys
     captain_daily_tests
     monthly_messages
+    captain_copilot_responses
+    captain_internal_calls
     storage_mb
     max_documents
     max_captain_assistants
@@ -98,6 +104,8 @@ class PlanDashboard < Administrate::BaseDashboard
     feature_keys
     captain_daily_tests
     monthly_messages
+    captain_copilot_responses
+    captain_internal_calls
     storage_mb
     max_documents
     max_captain_assistants

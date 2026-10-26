@@ -55,6 +55,20 @@ export function useCaptain() {
     return null;
   });
 
+  const copilotLimits = computed(() => {
+    if (captainLimits.value?.copilot?.total_count != null) {
+      return useCamelCase(captainLimits.value.copilot);
+    }
+    return null;
+  });
+
+  const internalLimits = computed(() => {
+    if (captainLimits.value?.internal?.total_count != null) {
+      return useCamelCase(captainLimits.value.internal);
+    }
+    return null;
+  });
+
   const storageLimits = computed(() => {
     if (captainLimits.value?.storage) {
       return useCamelCase(captainLimits.value.storage);
@@ -236,6 +250,8 @@ export function useCaptain() {
     captainLimits,
     documentLimits,
     responseLimits,
+    copilotLimits,
+    internalLimits,
     storageLimits,
     fetchLimits,
     isFetchingLimits,

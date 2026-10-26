@@ -10,6 +10,8 @@ class Captain::Llm::AssistantActionClassifierService < Llm::BaseAiService
   end
 
   def classify(message_history:, assistant_response:)
+    return internal_quota_error unless internal_usage_available?
+
     user_prompt = assistant_response_inspection_prompt(
       message_history: message_history,
       assistant_response: assistant_response,
@@ -26,14 +28,27 @@ class Captain::Llm::AssistantActionClassifierService < Llm::BaseAiService
     parsed = parse_response(response.content)
     normalize_response(parsed, response.content)
   rescue StandardError => e
-    ChatwootExceptionTracker.new(e, account: @conversation.account).capture_exception
-    Rails.logger.warn(
-      "[CAPTAIN][AssistantActionClassifier] Failed for conversation #{@conversation.display_id}: #{e.class.name}: #{e.message}"
-    )
-    { 'action' => nil, 'action_reason' => nil, 'error' => e.message, 'model' => @model }
+    classification_error_response(e)
   end
 
   private
+
+  def classification_error_response(error)
+    ChatwootExceptionTracker.new(error, account: @conversation.account).capture_exception
+    Rails.logger.warn(
+      "[CAPTAIN][AssistantActionClassifier] Failed for conversation #{@conversation.display_id}: " \
+      "#{error.class.name}: #{error.message}"
+    )
+    { 'action' => nil, 'action_reason' => nil, 'error' => error.message, 'model' => @model }
+  end
+
+  def internal_usage_available?
+    @conversation.account.reserve_captain_ai_usage!(bucket: :internal)
+  end
+
+  def internal_quota_error
+    { 'action' => nil, 'error' => I18n.t('captain.internal_limit'), 'model' => @model }
+  end
 
   def normalize_response(parsed, raw_content)
     action = parsed['action'].to_s

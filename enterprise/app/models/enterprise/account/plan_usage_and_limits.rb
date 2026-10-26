@@ -9,6 +9,8 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
       captain: {
         documents: get_captain_limits(:documents),
         responses: get_captain_limits(:responses),
+        copilot: get_captain_limits(:copilot),
+        internal: get_captain_limits(:internal),
         storage: get_captain_limits(:storage)
       }
     }
@@ -19,7 +21,27 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
   # an account with no plan — nothing to meter, usage_limits already falls
   # back to ChatwootApp.max_limit for those.
   def increment_response_usage(source: :customer)
-    current_usage_period&.increment_responses!(source: source)
+    current_usage_period&.increment_responses!(source: source, shared_response_pool: source == :copilot && copilot_limit.nil?)
+  end
+
+  def reserve_captain_ai_usage!(bucket:)
+    return true unless current_period_window
+    return true if bucket == :internal && internal_limit.nil?
+
+    with_lock do
+      usage = current_usage_period
+      limit, consumed = ai_usage_reservation_limit(bucket, usage)
+      return false if limit && consumed >= limit
+
+      usage.reserve_ai_call!(bucket: bucket, shared_response_pool: bucket == :copilot && copilot_limit.nil?)
+    end
+    true
+  end
+
+  def copilot_responses_available?
+    return usage_limits.dig(:captain, :copilot, :current_available).to_i.positive? if copilot_limit
+
+    usage_limits.dig(:captain, :responses, :current_available).to_i.positive?
   end
 
   # Force-closes the open usage period and reanchors it to now. Historically
@@ -72,6 +94,8 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
     {
       documents: self[:limits][CAPTAIN_DOCUMENTS] || default_limits['documents'],
       responses: self[:limits][CAPTAIN_RESPONSES] || default_limits['responses'],
+      copilot: copilot_limit,
+      internal: self[:limits]['captain_internal'] || plan&.captain_internal_calls,
       storage: self[:limits]['captain_storage'] || default_limits['storage']
     }.with_indifferent_access
   end
@@ -83,25 +107,42 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
   # their own limit_responses/limit_documents snapshot for reporting.
   # `consumed` comes from the current usage period, not custom_attributes.
   def get_captain_limits(type)
-    total_count = captain_monthly_limit[type.to_s].to_i
+    configured_limit = captain_monthly_limit[type.to_s]
+    total_count = configured_limit&.to_i
     usage = current_usage_period
-
-    consumed = if usage.nil?
-                 0
-               elsif type == :documents
-                 usage.documents_consumed
-               elsif type == :storage
-                 captain_documents.reload.to_a.sum(&:effective_size_bytes)
-               else
-                 usage.responses_consumed
-               end
+    consumed = captain_usage_consumed(type, usage)
     consumed = 0 if consumed.negative?
 
     {
       total_count: total_count,
-      current_available: (total_count - consumed).clamp(0, total_count),
+      current_available: total_count ? (total_count - consumed).clamp(0, total_count) : ChatwootApp.max_limit,
       consumed: consumed
     }
+  end
+
+  def captain_usage_consumed(type, usage)
+    return 0 unless usage
+    return captain_documents.reload.to_a.sum(&:effective_size_bytes) if type == :storage
+    return usage.responses_consumed + (copilot_limit.nil? ? usage.copilot_responses_consumed : 0) if type == :responses
+
+    counter = { documents: :documents_consumed, copilot: :copilot_responses_consumed, internal: :internal_calls_consumed }
+    usage.public_send(counter.fetch(type, :responses_consumed))
+  end
+
+  def ai_usage_reservation_limit(bucket, usage)
+    return [captain_monthly_limit[:responses].to_i, captain_usage_consumed(:responses, usage)] if bucket == :copilot && copilot_limit.nil?
+
+    limit_key = bucket == :copilot ? :copilot : :internal
+    limits = usage_limits[:captain]
+    [limits.dig(limit_key, :total_count), limits.dig(limit_key, :consumed).to_i]
+  end
+
+  def copilot_limit
+    self[:limits]['captain_copilot'] || plan&.captain_copilot_responses
+  end
+
+  def internal_limit
+    self[:limits]['captain_internal'] || plan&.captain_internal_calls
   end
 
   def plan_email_limit
@@ -227,7 +268,9 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
         'captain_responses' => { 'type': 'number' },
         'captain_documents' => { 'type': 'number' },
         'emails' => { 'type': 'number' },
-        'captain_storage' => { 'type': 'number' }
+        'captain_storage' => { 'type': 'number' },
+        'captain_copilot' => { 'type': 'number' },
+        'captain_internal' => { 'type': 'number' }
       },
       'required' => [],
       'additionalProperties' => false

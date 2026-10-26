@@ -103,9 +103,24 @@ RSpec.describe Captain::Copilot::ChatService do
     it 'increments response usage for the account' do
       expect do
         service.generate_response('Hello')
-      end.to(change { copilot_responses_used(account) }.by(1))
+      end.to(change { captain_responses_used(account) }.by(1))
     end
 
+    it 'blocks before the provider when the shared Captain pool is exhausted' do
+      account.current_usage_period.update!(responses_consumed: 100)
+
+      expect(mock_chat).not_to receive(:ask)
+      expect(service.generate_response('Hello')).to include(error_code: 429)
+    end
+
+    it 'uses a configured Copilot pool separately from Captain responses' do
+      account.plan.update!(captain_copilot_responses: 1)
+
+      expect do
+        service.generate_response('Hello')
+      end.to change { copilot_responses_used(account) }.by(1)
+      expect(captain_responses_used(account)).to eq(0)
+    end
   end
 
   describe 'user setup behavior' do
