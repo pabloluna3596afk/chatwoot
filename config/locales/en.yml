@@ -577,7 +577,9 @@ en:
       unavailable: 'La verificación de correo no está disponible ahora. Ofrece atención de un agente.'
       rate_limited: 'Se solicitaron demasiados códigos. Espera o solicita atención de un agente.'
       invalid_email: 'El correo electrónico no es válido. Solicita una dirección correcta.'
-      verified: 'Correo verificado: %{email}. La verificación dura %{hours} h.'
+      verified:
+        one: 'Correo verificado: %{email}. La verificación dura %{count} hora.'
+        other: 'Correo verificado: %{email}. La verificación dura %{count} horas.'
       invalid_code: 'El código no coincide. Intentos restantes: %{attempts}.'
       no_attempts: 'El código no coincide y no quedan intentos. Envía un código nuevo o solicita atención de un agente.'
       locked: 'Se agotaron los intentos. Envía un código nuevo o solicita atención de un agente.'

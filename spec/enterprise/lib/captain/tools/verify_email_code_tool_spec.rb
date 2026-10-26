@@ -20,6 +20,13 @@ RSpec.describe Captain::Tools::VerifyEmailCodeTool, type: :model do
     expect(tool_context.state[:verified_email]).to eq('jane@example.com')
   end
 
+  it 'uses the plural duration for multiple hours' do
+    allow(verification).to receive(:verify).with('482913').and_return(:verified)
+    allow(verification).to receive(:verified_ttl).and_return(3.hours)
+
+    expect(tool.perform(tool_context, code: '482913')).to include('3 horas')
+  end
+
   it 'reports a wrong code with the attempts left' do
     allow(verification).to receive(:verify).and_return(:invalid_code)
 

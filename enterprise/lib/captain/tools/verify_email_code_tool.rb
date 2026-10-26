@@ -11,7 +11,7 @@ class Captain::Tools::VerifyEmailCodeTool < Captain::Tools::BasePublicTool
     case result
     when :verified
       tool_context.state[:verified_email] = verification.verified_email
-      I18n.t('captain.email_verification.verified', email: verification.verified_email, hours: verification.verified_ttl.in_hours.to_i)
+      I18n.t('captain.email_verification.verified', email: verification.verified_email, count: verification.verified_ttl.in_hours.to_i)
     when :invalid_code
       key = verification.attempts_left.zero? ? 'captain.email_verification.no_attempts' : 'captain.email_verification.invalid_code'
       I18n.t(key, attempts: verification.attempts_left)

@@ -155,6 +155,7 @@ RSpec.describe Captain::Assistant::AgentRunnerService do
     it 'adds verification tools only to customer runs with an enabled sensitive tool' do
       create(:captain_custom_tool, account: account, assistant: assistant, settings: { 'requires_email_verification' => true })
       allow(assistant).to receive(:scenarios).and_return(Captain::Scenario.none)
+      allow(assistant).to receive(:agent).and_call_original
 
       configured_assistant = described_class.new(assistant: assistant, conversation: conversation)
                                             .send(:build_and_wire_agents).first
