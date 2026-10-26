@@ -11,8 +11,10 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import ParamRow from './ParamRow.vue';
 import AuthConfig from './AuthConfig.vue';
+import { RISK_LEVELS, toolRiskLevel } from './toolRisk';
 
 const props = defineProps({
   mode: {
@@ -44,6 +46,7 @@ const initialState = {
   response_template: '',
   auth_type: 'none',
   auth_config: {},
+  settings: { requires_email_verification: false },
   param_schema: [],
 };
 
@@ -62,6 +65,10 @@ watch(
       state.response_template = newTool.response_template || '';
       state.auth_type = newTool.auth_type || 'none';
       state.auth_config = newTool.auth_config || {};
+      state.settings = {
+        requires_email_verification:
+          newTool.settings?.requires_email_verification === true,
+      };
       state.param_schema = newTool.param_schema || [];
     }
   },
@@ -109,22 +116,31 @@ const isLoading = computed(() =>
     : formState.uiFlags.value.creatingItem
 );
 
-const getErrorMessage = (field, errorKey) => {
+const getErrorMessage = field => {
   if (!v$.value[field].$error) return '';
 
   const failedRule = v$.value[field].$errors[0]?.$validator;
   if (failedRule === 'maxLength') {
-    return t(`CAPTAIN.CUSTOM_TOOLS.FORM.${errorKey}.MAX_LENGTH_ERROR`, {
+    const params = {
       max: MAX_TOOL_NAME_LENGTH,
-    });
+    };
+    return field === 'title'
+      ? t('CAPTAIN.CUSTOM_TOOLS.FORM.TITLE.MAX_LENGTH_ERROR', params)
+      : t('CAPTAIN.CUSTOM_TOOLS.FORM.ENDPOINT_URL.MAX_LENGTH_ERROR', params);
   }
-  return t(`CAPTAIN.CUSTOM_TOOLS.FORM.${errorKey}.ERROR`);
+  return field === 'title'
+    ? t('CAPTAIN.CUSTOM_TOOLS.FORM.TITLE.ERROR')
+    : t('CAPTAIN.CUSTOM_TOOLS.FORM.ENDPOINT_URL.ERROR');
 };
 
 const formErrors = computed(() => ({
-  title: getErrorMessage('title', 'TITLE'),
-  endpoint_url: getErrorMessage('endpoint_url', 'ENDPOINT_URL'),
+  title: getErrorMessage('title'),
+  endpoint_url: getErrorMessage('endpoint_url'),
 }));
+
+const submitLabel = computed(() =>
+  props.mode === 'edit' ? t('CAPTAIN.FORM.EDIT') : t('CAPTAIN.FORM.CREATE')
+);
 
 const paramsRef = useTemplateRef('paramsRef');
 
@@ -151,11 +167,20 @@ const handleSubmit = async () => {
     return;
   }
 
-  emit('submit', state);
+  const param_schema = state.param_schema.map(({ source, ...param }) =>
+    source ? { ...param, source } : param
+  );
+  emit('submit', { ...state, param_schema });
 };
 
 const isTesting = ref(false);
 const testResult = ref(null);
+const riskLevel = computed(() => toolRiskLevel(state));
+const shouldRecommendVerification = computed(
+  () =>
+    riskLevel.value !== RISK_LEVELS.NONE &&
+    !state.settings.requires_email_verification
+);
 const isTestDisabled = computed(
   () => state.endpoint_url.includes('{{') || !!state.request_template
 );
@@ -239,6 +264,21 @@ const handleTest = async () => {
       :auth-type="state.auth_type"
     />
 
+    <label class="flex items-start gap-2 rounded-lg border border-n-weak p-3">
+      <Checkbox v-model="state.settings.requires_email_verification" />
+      <span class="flex flex-col gap-1">
+        <span class="text-sm font-medium text-n-slate-12">{{
+          t('CAPTAIN.CUSTOM_TOOLS.FORM.EMAIL_VERIFICATION.LABEL')
+        }}</span>
+        <span class="text-xs text-n-slate-11">{{
+          t('CAPTAIN.CUSTOM_TOOLS.FORM.EMAIL_VERIFICATION.HELP')
+        }}</span>
+      </span>
+    </label>
+    <p v-if="shouldRecommendVerification" class="text-xs text-n-amber-11">
+      {{ t('CAPTAIN.CUSTOM_TOOLS.FORM.EMAIL_VERIFICATION.RECOMMENDATION') }}
+    </p>
+
     <div class="flex flex-col gap-2">
       <label class="text-sm font-medium text-n-slate-12">
         {{ t('CAPTAIN.CUSTOM_TOOLS.FORM.PARAMETERS.LABEL') }}
@@ -255,6 +295,7 @@ const handleTest = async () => {
           v-model:type="param.type"
           v-model:description="param.description"
           v-model:required="param.required"
+          v-model:source="param.source"
           @remove="removeParam(index)"
         />
       </ul>
@@ -338,9 +379,7 @@ const handleTest = async () => {
       />
       <Button
         type="submit"
-        :label="
-          t(mode === 'edit' ? 'CAPTAIN.FORM.EDIT' : 'CAPTAIN.FORM.CREATE')
-        "
+        :label="submitLabel"
         class="w-full"
         :is-loading="isLoading"
         :disabled="isLoading"

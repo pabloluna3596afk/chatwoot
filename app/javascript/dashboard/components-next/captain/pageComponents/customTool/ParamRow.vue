@@ -30,6 +30,14 @@ const required = defineModel('required', {
   default: false,
 });
 
+const source = defineModel('source', { type: String, default: null });
+const verifiedEmail = computed({
+  get: () => source.value === 'verified.email',
+  set: enabled => {
+    source.value = enabled ? 'verified.email' : null;
+  },
+});
+
 const paramTypeOptions = computed(() => [
   { value: 'string', label: t('CAPTAIN.CUSTOM_TOOLS.FORM.PARAM_TYPES.STRING') },
   { value: 'number', label: t('CAPTAIN.CUSTOM_TOOLS.FORM.PARAM_TYPES.NUMBER') },
@@ -50,6 +58,10 @@ const validationError = computed(() => {
 
 watch([name, type, description, required], () => {
   showErrors.value = false;
+});
+
+watch(type, value => {
+  if (value !== 'string') source.value = null;
 });
 
 const validate = () => {
@@ -94,6 +106,15 @@ defineExpose({ validate });
             {{ t('CAPTAIN.CUSTOM_TOOLS.FORM.PARAM_REQUIRED.LABEL') }}
           </span>
         </label>
+        <label
+          v-if="type === 'string'"
+          class="flex items-center gap-2 cursor-pointer"
+        >
+          <Checkbox v-model="verifiedEmail" />
+          <span class="text-sm text-n-slate-11">
+            {{ t('CAPTAIN.CUSTOM_TOOLS.FORM.VERIFIED_EMAIL.LABEL') }}
+          </span>
+        </label>
       </div>
       <Button
         solid
@@ -107,7 +128,7 @@ defineExpose({ validate });
       v-if="showErrors && validationError"
       class="block mt-1 text-sm text-n-ruby-11"
     >
-      {{ t(`CAPTAIN.CUSTOM_TOOLS.FORM.ERRORS.${validationError}`) }}
+      {{ t('CAPTAIN.CUSTOM_TOOLS.FORM.ERRORS.PARAM_NAME_REQUIRED') }}
     </span>
   </li>
 </template>

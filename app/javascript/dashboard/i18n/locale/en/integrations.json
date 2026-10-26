@@ -1707,6 +1707,14 @@
         "PARAM_REQUIRED": {
           "LABEL": "Required"
         },
+        "EMAIL_VERIFICATION": {
+          "LABEL": "Require verified email",
+          "HELP": "Customers must verify an email address with a one-time code before Captain runs this tool. This does not affect Copilot.",
+          "RECOMMENDATION": "This tool may access or change customer data. Consider requiring a verified email."
+        },
+        "VERIFIED_EMAIL": {
+          "LABEL": "Fill this parameter with the verified email"
+        },
         "REQUEST_TEMPLATE": {
           "LABEL": "Request Body Template (Optional)",
           "PLACEHOLDER": "{'{'}\n  \"order_id\": \"{'{{'} order_id {'}}'}\"\n{'}'}"
