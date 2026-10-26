@@ -49,6 +49,8 @@ RSpec.describe Captain::Assistant::AgentRunnerService do
     allow(mock_runner).to receive(:on_run_complete).and_return(mock_runner)
     allow(mock_agent).to receive(:register_handoffs)
     allow(mock_scenario_agent).to receive(:register_handoffs)
+    allow(mock_agent).to receive(:tools).and_return([])
+    allow(mock_scenario_agent).to receive(:tools).and_return([])
   end
 
   describe '#initialize' do
@@ -143,8 +145,25 @@ RSpec.describe Captain::Assistant::AgentRunnerService do
 
       configured_assistant = service.send(:build_and_wire_agents).sole
 
-      expect(configured_assistant.tools).to contain_exactly(faq_tool, get_tool)
+      expect(configured_assistant.tools.first).to be(faq_tool)
+      expect(configured_assistant.tools.second).to be_a(Captain::Tools::CopilotHttpTool)
+      expect(configured_assistant.tools.second.custom_tool).to eq(get_tool.custom_tool)
+      expect(configured_assistant.tools.size).to eq(2)
       expect(configured_assistant.handoff_agents).to be_empty
+    end
+
+    it 'adds verification tools only to customer runs with an enabled sensitive tool' do
+      create(:captain_custom_tool, account: account, assistant: assistant, settings: { 'requires_email_verification' => true })
+      allow(assistant).to receive(:scenarios).and_return(Captain::Scenario.none)
+      allow(assistant).to receive(:agent).and_call_original
+
+      configured_assistant = described_class.new(assistant: assistant, conversation: conversation)
+                                            .send(:build_and_wire_agents).first
+
+      expect(configured_assistant.tools).to include(an_instance_of(Captain::Tools::SendEmailVerificationCodeTool),
+                                                    an_instance_of(Captain::Tools::VerifyEmailCodeTool))
+      expect(configured_assistant.tools.find { |tool| tool.is_a?(Captain::Tools::HttpTool) })
+        .to be_a(Captain::Tools::PublicHttpTool)
     end
 
     it 'uses the Copilot prompt without changing the Assistant prompt path' do
@@ -883,6 +902,23 @@ RSpec.describe Captain::Assistant::AgentRunnerService do
       state = service.send(:build_state)
 
       expect(state).not_to have_key(:campaign)
+    end
+
+    it 'enables email verification only when an enabled custom tool requires it' do
+      create(:captain_custom_tool, account: account, assistant: assistant, settings: { 'requires_email_verification' => true })
+
+      expect(service.send(:build_state)[:can_verify_email]).to be(true)
+    end
+
+    it 'does not enable email verification when no custom tool requires it' do
+      expect(service.send(:build_state)[:can_verify_email]).to be(false)
+    end
+
+    it 'does not enable customer verification in Copilot' do
+      create(:captain_custom_tool, account: account, assistant: assistant, settings: { 'requires_email_verification' => true })
+      copilot = described_class.new(assistant: assistant, conversation: conversation, run_options: run_options(source: 'playground'))
+
+      expect(copilot.send(:build_state)[:can_verify_email]).to be(false)
     end
 
     context 'when conversation has a campaign' do

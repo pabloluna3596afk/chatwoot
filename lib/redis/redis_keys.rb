@@ -101,6 +101,11 @@ module Redis::RedisKeys
   CRM_PROCESS_MUTEX = 'CRM_PROCESS_MUTEX::%<hook_id>s'.freeze
   CAPTAIN_DOCUMENT_SYNC_MUTEX = 'CAPTAIN_DOCUMENT_SYNC_LOCK::%<document_id>s'.freeze
   CAPTAIN_CONVERSATION_FAQ_MUTEX = 'CAPTAIN_CONVERSATION_FAQ_LOCK::%<assistant_id>s::%<language>s'.freeze
+  CAPTAIN_EMAIL_VERIFICATION_CODE = 'CAPTAIN_EMAIL_VERIFICATION::%<conversation_id>d::CODE'.freeze
+  CAPTAIN_EMAIL_VERIFICATION_ATTEMPTS = 'CAPTAIN_EMAIL_VERIFICATION::%<conversation_id>d::ATTEMPTS'.freeze
+  CAPTAIN_EMAIL_VERIFICATION_VERIFIED = 'CAPTAIN_EMAIL_VERIFICATION::%<conversation_id>d::VERIFIED'.freeze
+  CAPTAIN_EMAIL_VERIFICATION_SENDS = 'CAPTAIN_EMAIL_VERIFICATION::%<contact_inbox_id>d::SENDS'.freeze
+  CAPTAIN_EMAIL_VERIFICATION_EMAIL_SENDS = 'CAPTAIN_EMAIL_VERIFICATION::EMAIL::%<email_digest>s::SENDS'.freeze
 
   ## Auto Assignment Keys
   # Track conversation assignments to agents for rate limiting

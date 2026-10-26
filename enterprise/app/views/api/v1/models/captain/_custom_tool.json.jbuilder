@@ -9,6 +9,7 @@ json.response_template custom_tool.response_template
 json.auth_type custom_tool.auth_type
 json.auth_config custom_tool.auth_config if Current.user&.administrator?
 json.param_schema custom_tool.param_schema
+json.settings custom_tool.settings
 json.enabled custom_tool.enabled
 json.account_id custom_tool.account_id
 json.assistant_id custom_tool.assistant_id

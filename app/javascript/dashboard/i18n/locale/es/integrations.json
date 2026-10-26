@@ -1699,6 +1699,14 @@
         "PARAM_REQUIRED": {
           "LABEL": "Obligatorio"
         },
+        "EMAIL_VERIFICATION": {
+          "LABEL": "Exigir correo verificado",
+          "HELP": "El cliente debe verificar su correo con un código de un solo uso antes de que Captain use esta herramienta. No afecta a Copilot.",
+          "RECOMMENDATION": "Esta herramienta podría consultar o modificar datos del cliente. Considera exigir un correo verificado."
+        },
+        "VERIFIED_EMAIL": {
+          "LABEL": "Completar este parámetro con el correo verificado"
+        },
         "REQUEST_TEMPLATE": {
           "LABEL": "Plantilla del cuerpo de la solicitud (opcional)",
           "PLACEHOLDER": "{'{'}\n  \"order_id\": \"{'{{'} order_id {'}}'}\"\n{'}'}"

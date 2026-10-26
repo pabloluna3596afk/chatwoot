@@ -25,7 +25,9 @@ module Concerns::Agentable
         conversation: state[:conversation] || {},
         contact: config['feature_contact_attributes'].present? ? state[:contact] : nil,
         campaign: state[:campaign] || {},
-        message_length_limit: state[:message_length_limit]
+        message_length_limit: state[:message_length_limit],
+        can_verify_email: state[:can_verify_email],
+        verified_email: state[:verified_email]
       ).merge(conversation_prompt_context(state))
     end
 

@@ -153,6 +153,22 @@ RSpec.describe 'Api::V1::Accounts::Captain::CustomTools', type: :request do
                                                    ])
       end
 
+      it 'saves and returns the opt-in email verification setting' do
+        attributes = valid_attributes.deep_merge(custom_tool: { settings: { requires_email_verification: true } })
+        post "/api/v1/accounts/#{account.id}/captain/custom_tools", params: attributes, headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(json_response.dig(:settings, :requires_email_verification)).to be(true)
+        expect(Captain::CustomTool.last).to be_requires_email_verification
+      end
+
+      it 'rejects unknown settings rather than silently dropping them' do
+        attributes = valid_attributes.deep_merge(custom_tool: { settings: { require_email: true } })
+        post "/api/v1/accounts/#{account.id}/captain/custom_tools", params: attributes, headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
       context 'with invalid parameters' do
         let(:invalid_attributes) do
           {
@@ -237,6 +253,15 @@ RSpec.describe 'Api::V1::Accounts::Captain::CustomTools', type: :request do
         expect(json_response[:title]).to eq('Updated Tool Title')
         expect(json_response[:enabled]).to be(false)
         expect(custom_tool.reload.enabled).to be(false)
+      end
+
+      it 'merges a partial settings update without clearing existing settings' do
+        custom_tool.update!(settings: { 'requires_email_verification' => true })
+        patch "/api/v1/accounts/#{account.id}/captain/custom_tools/#{custom_tool.id}?assistant_id=#{assistant.id}",
+              params: { custom_tool: { title: 'Updated Tool Title', settings: {} } }, headers: admin.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(custom_tool.reload).to be_requires_email_verification
       end
 
       context 'with invalid parameters' do

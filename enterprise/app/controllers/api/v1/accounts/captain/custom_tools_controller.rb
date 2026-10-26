@@ -2,6 +2,10 @@ class Api::V1::Accounts::Captain::CustomToolsController < Api::V1::Accounts::Bas
   before_action :ensure_custom_tools_enabled
   before_action -> { check_authorization(Captain::CustomTool) }
   before_action :set_custom_tool, only: [:show, :update, :destroy]
+  before_action :validate_settings_param, only: [:create, :update]
+  before_action :validate_param_schema_param, only: [:create, :update]
+
+  PARAM_FIELDS = %w[name type description required source].freeze
 
   def index
     @custom_tools = assistant_custom_tools
@@ -16,7 +20,7 @@ class Api::V1::Accounts::Captain::CustomToolsController < Api::V1::Accounts::Bas
   end
 
   def update
-    @custom_tool.update!(custom_tool_params)
+    @custom_tool.update!(custom_tool_params.merge(merged_settings))
   end
 
   def destroy
@@ -53,6 +57,42 @@ class Api::V1::Accounts::Captain::CustomToolsController < Api::V1::Accounts::Bas
     http_tool.send(:execute_http_request, tool.endpoint_url, nil, nil)
   end
 
+  def validate_settings_param
+    return unless params[:custom_tool]&.key?(:settings)
+
+    settings = params[:custom_tool][:settings]
+    return render_settings_error(I18n.t('captain.custom_tool.settings.invalid')) unless settings.is_a?(ActionController::Parameters)
+
+    unknown_keys = settings.keys - Captain::CustomTool::SETTING_KEYS
+    return render_settings_error(I18n.t('captain.custom_tool.settings.unknown', names: unknown_keys.join(', '))) if unknown_keys.any?
+
+    render_settings_error(I18n.t('captain.custom_tool.settings.not_boolean')) unless settings.values.all? { |value| [true, false].include?(value) }
+  end
+
+  def validate_param_schema_param
+    return unless params[:custom_tool]&.key?(:param_schema)
+
+    schema = params[:custom_tool][:param_schema]
+    return if schema.is_a?(Array) && schema.all? { |item| plain_param?(item) }
+
+    render_could_not_create_error("#{Captain::CustomTool.human_attribute_name(:param_schema)} #{I18n.t('captain.custom_tool.param_schema.invalid')}")
+  end
+
+  def plain_param?(param_def)
+    param_def.is_a?(ActionController::Parameters) && (param_def.keys - PARAM_FIELDS).empty? &&
+      param_def.values.all? { |value| value.is_a?(String) || value.is_a?(Numeric) || [true, false, nil].include?(value) }
+  end
+
+  def render_settings_error(message)
+    render_could_not_create_error("#{Captain::CustomTool.human_attribute_name(:settings)} #{message}")
+  end
+
+  def merged_settings
+    return {} unless custom_tool_params.key?(:settings)
+
+    { settings: @custom_tool.settings.merge(custom_tool_params[:settings]) }
+  end
+
   def custom_tool_params
     params.require(:custom_tool).permit(
       :title,
@@ -64,7 +104,8 @@ class Api::V1::Accounts::Captain::CustomToolsController < Api::V1::Accounts::Bas
       :auth_type,
       :enabled,
       auth_config: {},
-      param_schema: [:name, :type, :description, :required]
+      settings: Captain::CustomTool::SETTING_KEYS,
+      param_schema: PARAM_FIELDS.map(&:to_sym)
     )
   end
 end

@@ -18,11 +18,11 @@ module Concerns::Toolable
       # that RubyLLM's default normalization would produce (e.g., "captain--tools--custom_dog_facts").
       define_method(:name) { tool_slug }
 
-      custom_tool_record.param_schema.each do |param_def|
+      custom_tool_record.tool_parameter_definitions(base_class).each do |param_def|
         param param_def['name'].to_sym,
               type: param_def['type'],
               desc: param_def['description'],
-              required: param_def.fetch('required', true)
+              required: param_def['source'].present? || param_def.fetch('required', true)
       end
     end
 
@@ -40,6 +40,10 @@ module Concerns::Toolable
     return endpoint_url if endpoint_url.blank?
 
     render_template(endpoint_url, params.deep_stringify_keys.merge(drops), path: 'endpoint_url')
+  end
+
+  def tool_parameter_definitions(base_class)
+    param_schema.select { |param_def| param_def['source'].blank? || base_class.model_fills_verified_values? }
   end
 
   def build_request_body(params, drops: {})

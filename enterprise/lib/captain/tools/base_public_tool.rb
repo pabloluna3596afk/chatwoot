@@ -1,6 +1,8 @@
 require 'agents'
 
 class Captain::Tools::BasePublicTool < Agents::Tool
+  def self.model_fills_verified_values? = false
+
   def initialize(assistant)
     @assistant = assistant
     super()

@@ -26,7 +26,21 @@ module Captain::Assistant::RunnerStateHelper
     state[:responding_to_message_id] = @responding_to_message_id if @responding_to_message_id.present?
 
     build_conversation_state(state) if @conversation
+    add_email_verification_state(state)
     state
+  end
+
+  def add_email_verification_state(state)
+    state[:can_verify_email] = can_verify_email?
+    state[:verified_email] = email_verification.verified_email if @conversation && @source.blank?
+  end
+
+  def can_verify_email?
+    @conversation.present? && @source.blank? && @assistant.custom_tools.enabled.any?(&:requires_email_verification?)
+  end
+
+  def email_verification
+    @email_verification ||= Captain::EmailVerification.new(@conversation)
   end
 
   def build_conversation_state(state)

@@ -510,6 +510,10 @@ es:
       short_description: 'Sync your contacts and conversations with LeadSquared CRM.'
       description: 'Sync your contacts and conversations with LeadSquared CRM. This integration automatically creates leads in LeadSquared when new contacts are added, and logs conversation activity to provide your sales team with complete context.'
   captain:
+    email_verification:
+      verified:
+        one: 'Correo verificado: %{email}. La verificación dura %{count} hora.'
+        other: 'Correo verificado: %{email}. La verificación dura %{count} horas.'
     button_choice_changed: '[El cliente cambió su elección de «%{previous}» a «%{current}»]'
     engagement:
       out_of_hours: >-

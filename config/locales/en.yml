@@ -566,6 +566,24 @@ en:
       short_description: 'Sync your contacts and conversations with LeadSquared CRM.'
       description: 'Sync your contacts and conversations with LeadSquared CRM. This integration automatically creates leads in LeadSquared when new contacts are added, and logs conversation activity to provide your sales team with complete context.'
   captain:
+    email_verification:
+      subject: 'Código de verificación para %{inbox_name}'
+      heading: 'Verifica tu correo electrónico'
+      instructions: 'Ingresa este código en la conversación con %{inbox_name}. El código vence en %{minutes} minutos.'
+      ignore: 'Si no solicitaste este código, puedes ignorar este mensaje.'
+      unavailable_conversation: 'No se puede verificar el correo electrónico en esta conversación.'
+      code_sent: 'Enviamos un código de verificación a %{email}. Vence en %{minutes} minutos. Pide al cliente que lo ingrese aquí para continuar.'
+      already_verified: 'Este correo electrónico ya está verificado. Puedes continuar.'
+      unavailable: 'La verificación de correo no está disponible ahora. Ofrece atención de un agente.'
+      rate_limited: 'Se solicitaron demasiados códigos. Espera o solicita atención de un agente.'
+      invalid_email: 'El correo electrónico no es válido. Solicita una dirección correcta.'
+      verified:
+        one: 'Correo verificado: %{email}. La verificación dura %{count} hora.'
+        other: 'Correo verificado: %{email}. La verificación dura %{count} horas.'
+      invalid_code: 'El código no coincide. Intentos restantes: %{attempts}.'
+      no_attempts: 'El código no coincide y no quedan intentos. Envía un código nuevo o solicita atención de un agente.'
+      locked: 'Se agotaron los intentos. Envía un código nuevo o solicita atención de un agente.'
+      expired: 'El código venció o no existe. Solicita un código nuevo.'
     contracts:
       invalid_rules: '%{field} must be an array of non-blank strings.'
       expected_rules_required: 'Send the original %{field} list before saving changes.'
@@ -697,6 +715,13 @@ en:
     custom_tool:
       slug_generation_failed: 'Unable to generate unique slug after 5 attempts'
       limit_exceeded: 'You can create a maximum of %{limit} custom tools per assistant'
+      email_verification_required: 'Verifica el correo del cliente antes de usar esta herramienta.'
+      param_schema:
+        invalid: 'debe contener solo parámetros válidos con valores simples.'
+      settings:
+        invalid: 'debe ser un objeto.'
+        unknown: 'contiene opciones desconocidas: %{names}.'
+        not_boolean: 'las opciones deben ser verdaderas o falsas.'
     assistant:
       limit_exceeded: 'You can create a maximum of %{limit} assistants per account'
     messaging:

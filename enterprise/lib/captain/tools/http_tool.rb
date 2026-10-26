@@ -11,12 +11,10 @@ class Captain::Tools::HttpTool < Captain::Tools::BasePublicTool
   end
 
   def perform(tool_context, **params)
-    drops = variable_drops(tool_context.state)
-    url = @custom_tool.build_request_url(params, drops: drops)
-    body = @custom_tool.build_request_body(params, drops: drops)
+    return email_verification_failure(tool_context.state) if email_verification_required?(tool_context.state)
 
-    response_body = execute_http_request(url, body, tool_context)
-    @custom_tool.format_response(response_body, drops: drops)
+    params = fill_verified_email(params, tool_context.state)
+    execute_tool_request(tool_context, params)
   rescue Variables::DeliveryRenderer::Error => e
     failure_result(I18n.t('variables.tool_render_failed', locale: @assistant.account.locale, path: e.path, status: e.status), tool_context.state)
   rescue StandardError => e
@@ -24,11 +22,37 @@ class Captain::Tools::HttpTool < Captain::Tools::BasePublicTool
     failure_result('An error occurred while executing the request', tool_context.state)
   end
 
+  attr_reader :custom_tool
+
   def available_in_reply_suggestion?
     @custom_tool.http_method == 'GET'
   end
 
   private
+
+  def execute_tool_request(tool_context, params)
+    drops = variable_drops(tool_context.state)
+    url = @custom_tool.build_request_url(params, drops: drops)
+    body = @custom_tool.build_request_body(params, drops: drops)
+
+    response_body = execute_http_request(url, body, tool_context)
+    @custom_tool.format_response(response_body, drops: drops)
+  end
+
+  def email_verification_failure(state)
+    failure_result(I18n.t('captain.custom_tool.email_verification_required'), state)
+  end
+
+  def email_verification_required?(state)
+    @custom_tool.requires_email_verification? && !self.class.model_fills_verified_values? && state[:verified_email].blank?
+  end
+
+  def fill_verified_email(params, state)
+    email_param = @custom_tool.verified_email_param
+    return params if email_param.blank? || state[:verified_email].blank?
+
+    params.merge(email_param => state[:verified_email])
+  end
 
   def variable_drops(state)
     conversation = find_conversation(state)
