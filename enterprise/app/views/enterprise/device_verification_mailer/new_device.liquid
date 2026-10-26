@@ -1,0 +1,7 @@
+<h1>New device signed in to {{ brand_name }}</h1>
+<p>Hello {{ recipient_name }},</p>
+<p>A new device signed in to your account.</p>
+{% if browser_name or platform_name %}<p>Device: {{ browser_name }} {{ platform_name }}</p>{% endif %}
+{% if ip %}<p>IP address: {{ ip }}</p>{% endif %}
+<p>If this was not you, reset your password immediately.</p>
+<p><a href="{{ reset_password_url }}">Reset your password</a></p>

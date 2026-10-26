@@ -78,6 +78,15 @@ en:
       cannot_revoke_current: You cannot revoke the current session.
 
   errors:
+    device_verification:
+      delivery_unavailable: 'We could not send a verification code. Sign-in was not completed. Contact your administrator.'
+      rate_limited: 'Too many device verification emails were requested. Try again later or contact your administrator.'
+      invalid_token: 'This device verification request is invalid. Sign in again.'
+      stale: 'This device verification request has expired. Sign in again.'
+      locked: 'Too many incorrect codes were entered. Sign in again to request a new code.'
+      expired: 'This verification code has expired. Sign in again to request a new code.'
+      invalid_code: 'The verification code is incorrect.'
+      code_field_required: 'Enter the code sent to your email.'
     account_saml_settings:
       invalid_certificate: must be a valid X.509 certificate in PEM format
       metadata_url:

@@ -46,6 +46,7 @@ const loginApi = reactive({
 });
 const mfaRequired = ref(false);
 const mfaToken = ref(null);
+const verificationChannel = ref(null);
 const mfaSetup = ref(null);
 const sessionsLimitReached = ref(false);
 const limitedSessions = ref([]);
@@ -142,6 +143,7 @@ function submitLogin() {
         loginApi.showLoading = false;
         mfaRequired.value = true;
         mfaToken.value = result.mfaToken;
+        verificationChannel.value = result.verificationChannel;
         return;
       }
       if (result?.mfaSetupRequired) {
@@ -192,7 +194,15 @@ function handleMfaVerified() {
 function handleMfaCancel() {
   mfaRequired.value = false;
   mfaToken.value = null;
+  verificationChannel.value = null;
   credentials.password = '';
+}
+
+function handleMfaSetupRequired(data) {
+  mfaRequired.value = false;
+  mfaToken.value = null;
+  verificationChannel.value = null;
+  mfaSetup.value = data;
 }
 
 function handleMfaSetupVerified() {
@@ -284,7 +294,9 @@ if (props.ssoAuthToken) {
     <section v-else-if="mfaRequired">
       <MfaVerification
         :mfa-token="mfaToken"
+        :verification-channel="verificationChannel"
         @verified="handleMfaVerified"
+        @setup-required="handleMfaSetupRequired"
         @cancel="handleMfaCancel"
       />
     </section>

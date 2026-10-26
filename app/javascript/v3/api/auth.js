@@ -24,6 +24,7 @@ export const login = async ({
       return {
         mfaRequired: true,
         mfaToken: response.data.mfa_token,
+        verificationChannel: response.data.verification_channel || null,
       };
     }
     if (response.status === 206 && response.data.mfa_setup_required) {
@@ -44,6 +45,7 @@ export const login = async ({
       return {
         mfaRequired: true,
         mfaToken: error.response.data.mfa_token,
+        verificationChannel: error.response.data.verification_channel || null,
       };
     }
     if (
