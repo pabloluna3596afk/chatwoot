@@ -490,7 +490,7 @@ RSpec.describe Account do
       end
 
       it 'accepts valid model for a feature' do
-        account.captain_models = { 'editor' => 'gpt-5.2', 'label_suggestion' => 'gpt-5.2' }
+        account.captain_models = { 'editor' => 'gpt-5.2', 'label_suggestion' => 'gpt-5-mini' }
 
         expect(account).to be_valid
       end
