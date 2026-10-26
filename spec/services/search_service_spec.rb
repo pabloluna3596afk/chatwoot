@@ -398,6 +398,41 @@ describe SearchService do
     let(:params) { { q: 'test' } }
     let(:search_type) { 'Message' }
 
+    it 'uses the default 90 day search window' do
+      old_message = create(:message, account: account, inbox: inbox, content: 'old test message', created_at: 120.days.ago)
+
+      with_modified_env SEARCH_TIME_RANGE_LIMIT_DAYS: nil do
+        expect(Limits.search_time_range_limit_days).to eq(90)
+        expect(search.send(:search_window_start)).to be_within(1.second).of(90.days.ago)
+        expect(search.send(:message_base_query)).not_to include(old_message)
+      end
+    end
+
+    it 'uses the configured search window' do
+      with_modified_env SEARCH_TIME_RANGE_LIMIT_DAYS: '180' do
+        expect(Limits.search_time_range_limit_days).to eq(180)
+        expect(search.send(:search_window_start)).to be_within(1.second).of(180.days.ago)
+      end
+    end
+
+    it 'includes older messages when the configured window is extended' do
+      old_message = create(:message, account: account, inbox: inbox, content: 'old test message', created_at: 120.days.ago)
+
+      with_modified_env SEARCH_TIME_RANGE_LIMIT_DAYS: '180' do
+        expect(search.send(:message_base_query)).to include(old_message)
+      end
+    end
+
+    it 'rejects a non-positive or non-integer search window' do
+      with_modified_env SEARCH_TIME_RANGE_LIMIT_DAYS: '0' do
+        expect { Limits.search_time_range_limit_days }.to raise_error(ArgumentError, /positive integer/)
+      end
+
+      with_modified_env SEARCH_TIME_RANGE_LIMIT_DAYS: 'invalid' do
+        expect { Limits.search_time_range_limit_days }.to raise_error(ArgumentError, /positive integer/)
+      end
+    end
+
     context 'when user is admin' do
       let(:admin_user) { create(:user) }
       let(:admin_search) do
@@ -572,7 +607,7 @@ describe SearchService do
           'test',
           hash_including(
             where: hash_including(
-              created_at: hash_including(gte: be_within(1.second).of(Limits::MESSAGE_SEARCH_TIME_RANGE_LIMIT_DAYS.days.ago))
+              created_at: hash_including(gte: be_within(1.second).of(Limits.search_time_range_limit_days.days.ago))
             )
           )
         ).and_return([])
@@ -581,7 +616,7 @@ describe SearchService do
       end
 
       it 'silently caps since timestamp to 90 day limit when exceeded' do
-        since_timestamp = (Limits::MESSAGE_SEARCH_TIME_RANGE_LIMIT_DAYS * 2).days.ago.to_i
+        since_timestamp = (Limits.search_time_range_limit_days * 2).days.ago.to_i
         params = { q: 'test', since: since_timestamp }
         search_service = described_class.new(current_user: user, current_account: account, params: params, search_type: search_type)
 
@@ -589,7 +624,7 @@ describe SearchService do
           'test',
           hash_including(
             where: hash_including(
-              created_at: hash_including(gte: be_within(1.second).of(Limits::MESSAGE_SEARCH_TIME_RANGE_LIMIT_DAYS.days.ago))
+              created_at: hash_including(gte: be_within(1.second).of(Limits.search_time_range_limit_days.days.ago))
             )
           )
         ).and_return([])

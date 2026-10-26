@@ -10,9 +10,16 @@ module Limits
   COMPANY_DESCRIPTION_LENGTH_LIMIT = 1000
   MAX_CUSTOM_FILTERS_PER_USER = 1000
   MAX_SAVED_REPORT_PANELS_PER_ACCOUNT = 50
-  MESSAGE_SEARCH_TIME_RANGE_LIMIT_DAYS = 90
-
   def self.conversation_message_per_minute_limit
     ENV.fetch('CONVERSATION_MESSAGE_PER_MINUTE_LIMIT', '200').to_i
+  end
+
+  def self.search_time_range_limit_days
+    days = Integer(ENV.fetch('SEARCH_TIME_RANGE_LIMIT_DAYS', '90'), 10)
+    raise ArgumentError, 'SEARCH_TIME_RANGE_LIMIT_DAYS must be a positive integer' unless days.positive?
+
+    days
+  rescue ArgumentError
+    raise ArgumentError, 'SEARCH_TIME_RANGE_LIMIT_DAYS must be a positive integer'
   end
 end
