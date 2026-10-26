@@ -339,7 +339,7 @@ describe ActionCableListener do
 
     it 'filters translation metadata from the last message sent to the contact' do
       message = create(:message, message_type: :outgoing, account: account, inbox: inbox, conversation: conversation,
-                                 content_attributes: { translations: { en: 'Hello' }, source_language: 'es', items: [{ title: 'Option' }] })
+                                 content_attributes: { translations: { en: 'Hello' }, source_language: 'es', items: [{ title: 'Option' }] }).reload
       data = conversation.push_event_data
       public_data = data.merge(messages: [message.push_event_data.merge(content_attributes: message.public_content_attributes)])
 

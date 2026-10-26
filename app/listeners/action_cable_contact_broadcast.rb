@@ -6,11 +6,13 @@ module ActionCableContactBroadcast
     broadcast(account, tokens - contact_tokens, event_name, data)
     return if contact_tokens.blank?
 
-    contact_data = data.deep_dup
+    # Shallow copies only: deep_dup would duplicate ActiveRecord objects (no id) and break job serialization.
+    contact_data = data.dup
     contact_data[:content_attributes] = message.public_content_attributes
     previous_content_attributes = contact_data.dig(:previous_changes, :content_attributes) ||
                                   contact_data.dig(:previous_changes, 'content_attributes')
     if previous_content_attributes
+      contact_data[:previous_changes] = contact_data[:previous_changes].dup
       contact_data[:previous_changes].delete('content_attributes')
       contact_data[:previous_changes][:content_attributes] = previous_content_attributes.map do |attributes|
         message.public_content_attributes(attributes)
@@ -24,7 +26,7 @@ module ActionCableContactBroadcast
     broadcast(account, tokens - contact_tokens, event_name, data)
     return if contact_tokens.blank?
 
-    contact_data = data.deep_dup
+    contact_data = data.dup
     last_message = conversation.messages.where(account_id: account.id).chat.last
     contact_data[:messages] = if last_message
                                 [last_message.push_event_data.merge(content_attributes: last_message.public_content_attributes)]
