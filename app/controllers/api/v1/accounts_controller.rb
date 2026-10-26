@@ -9,6 +9,7 @@ class Api::V1::AccountsController < Api::BaseController
   before_action :fetch_account, except: [:create]
   before_action :validate_token_api_access, if: :authenticate_by_access_token?, except: [:create]
   before_action :check_authorization, except: [:create]
+  before_action :validate_mfa_enforcement_setting, only: [:update]
 
   rescue_from CustomExceptions::Account::InvalidEmail,
               CustomExceptions::Account::InvalidParams,
@@ -82,6 +83,12 @@ class Api::V1::AccountsController < Api::BaseController
   end
 
   private
+
+  def validate_mfa_enforcement_setting
+    return unless ActiveModel::Type::Boolean.new.cast(settings_params[:enforce_mfa]) && !Chatwoot.mfa_enabled?
+
+    render json: { error: I18n.t('errors.mfa.feature_unavailable') }, status: :unprocessable_entity
+  end
 
   def latest_chatwoot_version
     Redis::Alfred.get(Redis::Alfred::LATEST_CHATWOOT_VERSION)
@@ -173,7 +180,7 @@ class Api::V1::AccountsController < Api::BaseController
   def permitted_settings_attributes
     [:auto_resolve_after, :auto_resolve_message, :auto_resolve_ignore_waiting, :audio_transcriptions, :auto_resolve_label,
      :auto_translate, :translation_provider,
-     :resolved_label_key, :business_rules_paused, :reporting_timezone, {
+     :resolved_label_key, :business_rules_paused, :reporting_timezone, :enforce_mfa, {
        business_rules: [:id, :preset_id, :type, :enabled, :name, { config: {} },
                         { conditions: [:attribute_key, :filter_operator, :query_operator, :custom_attribute_type,
                                        { values: [] }] }]

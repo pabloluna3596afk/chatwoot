@@ -370,6 +370,18 @@ RSpec.describe 'Accounts API', type: :request do
         end
       end
 
+      it 'persists account MFA enforcement when encryption is configured' do
+        skip('Skipping since MFA is not configured in this environment') unless Chatwoot.encryption_configured?
+
+        patch "/api/v1/accounts/#{account.id}",
+              params: { enforce_mfa: true },
+              headers: admin.create_new_auth_token,
+              as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(account.reload.enforce_mfa?).to be true
+      end
+
       it 'updates onboarding step to invite_team if onboarding step is present in account custom attributes' do
         account.update(custom_attributes: { onboarding_step: 'account_update' })
         patch "/api/v1/accounts/#{account.id}",

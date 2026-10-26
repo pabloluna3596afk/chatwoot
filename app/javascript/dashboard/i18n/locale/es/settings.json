@@ -823,6 +823,12 @@
   "SECURITY_SETTINGS": {
     "TITLE": "Security",
     "DESCRIPTION": "Administra la configuración de seguridad de tu cuenta.",
+    "MFA": {
+      "TITLE": "Exigir autenticación de dos factores",
+      "DESCRIPTION": "Exige que los miembros del equipo configuren la autenticación de dos factores antes de iniciar sesión.",
+      "SUCCESS": "Se actualizó el requisito de MFA.",
+      "ERROR": "No se pudo actualizar el requisito de MFA."
+    },
     "LINK_TEXT": "Más información sobre SAML SSO",
     "SAML_DISABLED_MESSAGE": "SAML SSO está deshabilitado actualmente. Contacta a tu administrador para habilitar esta función.",
     "SAML": {
