@@ -558,8 +558,8 @@ RSpec.describe Captain::Tools::HttpTool, type: :model do
       public_tool = custom_tool.tool(assistant, base_class: Captain::Tools::PublicHttpTool)
       copilot_tool = custom_tool.tool(assistant, base_class: Captain::Tools::CopilotHttpTool)
 
-      expect(public_tool.class.declared_parameters.keys).to be_empty
-      expect(copilot_tool.class.declared_parameters.keys).to contain_exactly(:email)
+      expect(public_tool.class.parameters.keys).to be_empty
+      expect(copilot_tool.class.parameters.keys).to contain_exactly(:email)
     end
 
     it 'replaces a model supplied email with the verified address before building the request' do

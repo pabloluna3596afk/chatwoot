@@ -10,7 +10,7 @@ class Captain::EmailVerificationMailer < ApplicationMailer
     @code = Captain::EmailVerification.decrypt_code(encrypted_code)
     send_mail_with_liquid(
       to: email,
-      from: format_email_with_name(@inbox_name, default_sender_email_address),
+      from: Mail::Address.new(default_sender_email_address).tap { |address| address.display_name = @inbox_name }.format,
       subject: I18n.t('captain.email_verification.subject', inbox_name: @inbox_name)
     )
   end
