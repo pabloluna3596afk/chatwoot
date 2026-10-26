@@ -35,7 +35,7 @@ class Integrations::GoogleTranslate::DetectLanguageService
 
   def client
     @client ||= ::Google::Cloud::Translate::V3::TranslationService::Client.new do |config|
-      config.credentials = hook.settings['credentials']
+      config.credentials = hook.google_translate_credentials
     end
   end
 end

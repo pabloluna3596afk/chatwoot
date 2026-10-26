@@ -10,6 +10,7 @@ import Linear from './Linear.vue';
 import Notion from './Notion.vue';
 import Shopify from './Shopify.vue';
 import Calendars from './Calendars.vue';
+import GoogleTranslate from './GoogleTranslate.vue';
 
 export default {
   routes: [
@@ -95,6 +96,15 @@ export default {
           component: Calendars,
           meta: {
             featureFlag: FEATURE_FLAGS.CALENDAR,
+            permissions: ['administrator'],
+          },
+        },
+        {
+          path: 'google_translate',
+          name: 'settings_integrations_google_translate',
+          component: GoogleTranslate,
+          meta: {
+            featureFlag: FEATURE_FLAGS.INTEGRATIONS,
             permissions: ['administrator'],
           },
         },

@@ -1,5 +1,24 @@
 {
   "INTEGRATION_SETTINGS": {
+    "GOOGLE_TRANSLATE": {
+      "HEADER": "Google Translate",
+      "STATUS": "Estado de la conexión",
+      "CONNECTED": "Conectado",
+      "NOT_CONNECTED": "Sin conectar",
+      "CONNECT_TITLE": "Conectar Google Cloud Translation",
+      "PROJECT_ID": "ID del proyecto de Google Cloud",
+      "CREDENTIALS": "Credenciales de la cuenta de servicio (JSON)",
+      "CREDENTIALS_HELP": "Pega la clave JSON de la cuenta de servicio. Se cifra antes de guardarla y la API nunca la devuelve.",
+      "REQUIRED_FIELDS": "Ingresa el ID del proyecto y la clave JSON de la cuenta de servicio.",
+      "CONNECT": "Conectar",
+      "DISCONNECT": "Desconectar",
+      "DISCONNECT_CONFIRM": "¿Desconectar Google Translate de esta cuenta?",
+      "CANCEL": "Cancelar",
+      "CONNECT_SUCCESS": "Google Translate se conectó",
+      "DISCONNECT_SUCCESS": "Google Translate se desconectó",
+      "INVALID_CREDENTIALS": "No se pudieron validar estas credenciales de Google Cloud.",
+      "ERROR": "No se pudo desconectar Google Translate. Inténtalo de nuevo."
+    },
     "SHOPIFY": {
       "HEADER": "Shopify",
       "DELETE": {
