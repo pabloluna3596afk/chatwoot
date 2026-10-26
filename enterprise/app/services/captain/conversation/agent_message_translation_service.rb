@@ -9,6 +9,7 @@ class Captain::Conversation::AgentMessageTranslationService
     detect_contact_language
     translate_reply if conversation.language.present?
     message.content_attributes.delete('translation_pending')
+    message.content_attributes['translation_status'] = message.translation_failed == true ? 'failed' : 'completed'
     message.save!
   end
 

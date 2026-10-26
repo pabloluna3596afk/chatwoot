@@ -85,7 +85,11 @@ class Integrations::GoogleTranslate::ProcessorService
 
   def client
     @client ||= ::Google::Cloud::Translate::V3::TranslationService::Client.new do |config|
-      config.credentials = resolved_hook.settings['credentials']
+      config.credentials = credentials
     end
+  end
+
+  def credentials
+    resolved_hook.google_translate_credentials
   end
 end

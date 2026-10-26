@@ -10,7 +10,17 @@ RSpec.describe Enterprise::Whatsapp::IncomingMessageBaseService do
     }
   end
 
-  before { channel.account.enable_features!(:whatsapp_campaign) }
+  before do
+    channel.account.enable_features!(:whatsapp_campaign)
+    stub_request(:get, 'https://waba.360dialog.io/v1/configs/templates')
+      .to_return(status: 200, body: { waba_templates: [] }.to_json,
+                 headers: { 'Content-Type' => 'application/json' })
+    stub_request(:post, 'https://waba.360dialog.io/v1/configs/webhook')
+      .to_return(status: 200, body: {}.to_json, headers: { 'Content-Type' => 'application/json' })
+    stub_request(:post, 'https://waba.360dialog.io/v1/messages')
+      .to_return(status: 200, body: { messages: [{ id: 'wamid.stub' }] }.to_json,
+                 headers: { 'Content-Type' => 'application/json' })
+  end
 
   it 'defers a campaign status when neither a recipient nor a message is persisted yet' do
     expect do
@@ -44,32 +54,25 @@ RSpec.describe Enterprise::Whatsapp::IncomingMessageBaseService do
 
   describe 'campaign conversation attribution' do
     let(:contact) { create(:contact, account: channel.account, phone_number: '+16503071063') }
-    let!(:contact_inbox) { create(:contact_inbox, contact: contact, inbox: channel.inbox, source_id: '16503071063') }
+    let(:contact_inbox) { create(:contact_inbox, contact: contact, inbox: channel.inbox, source_id: '16503071063') }
     let(:campaign) { create(:campaign, :whatsapp, account: channel.account, inbox: channel.inbox, campaign_type: :one_off) }
+    let(:reply_message_id) { SecureRandom.uuid }
     let(:reply_params) do
       {
-        phone_number: channel.phone_number,
-        object: 'whatsapp_business_account',
-        entry: [{
-          changes: [{
-            value: {
-              contacts: [{ profile: { name: 'Pranav' }, wa_id: '16503071063' }],
-              messages: [{
-                context: { from: '16503071063', id: 'wamid.CAMPAIGN_TEMPLATE' },
-                from: '16503071063',
-                id: 'wamid.REPLY_MESSAGE_ID',
-                timestamp: '1770407829',
-                text: { body: 'Yes' },
-                type: 'text'
-              }]
-            }
-          }]
+        contacts: [{ profile: { name: 'Pranav' }, wa_id: '16503071063' }],
+        messages: [{
+          context: { from: '16503071063', id: 'wamid.CAMPAIGN_TEMPLATE' },
+          from: '16503071063',
+          id: reply_message_id,
+          timestamp: '1770407829',
+          text: { body: 'Yes' },
+          type: 'text'
         }]
       }.with_indifferent_access
     end
 
     it 'attributes the conversation when the reply references a campaign recipient' do
-      skip 'TODO(chathub): fallo previo del fork: WebMock bloquea el POST a waba.360dialog.io al crear el canal (falta registrar el stub)'
+      contact_inbox
       CampaignRecipient.create!(
         account: channel.account,
         campaign: campaign,

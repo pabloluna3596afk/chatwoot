@@ -34,6 +34,11 @@
     "SEARCH_MESSAGES": "Search for messages in conversations",
     "VIEW_ORIGINAL": "View original",
     "VIEW_TRANSLATED": "View translated",
+    "TRANSLATION_STATUS": {
+      "PENDING": "Translating…",
+      "FAILED": "Could not translate this message.",
+      "RETRY": "Retry"
+    },
     "EMPTY_STATE": {
       "CMD_BAR": "to open command menu",
       "KEYBOARD_SHORTCUTS": "to view keyboard shortcuts"

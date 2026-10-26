@@ -194,14 +194,15 @@ RSpec.describe 'Integration Apps API', type: :request do
 
       it 'hides credentials and keeps visible settings for google credential integrations' do
         hook = create(:integrations_hook, :google_translate, account: account,
-                                                             settings: { project_id: 'project-1',
-                                                                         credentials: { private_key: 'secret' } })
+                                                             access_token: 'secret-key',
+                                                             settings: { project_id: 'project-1' })
         get api_v1_account_integrations_app_url(account_id: account.id, id: hook.app.id),
             headers: admin.create_new_auth_token,
             as: :json
 
         app = response.parsed_body
         expect(app['hooks'].first['settings']).to eq('project_id' => 'project-1')
+        expect(response.body).not_to include('secret-key')
       end
 
       it 'returns empty settings for oauth integrations with no visible properties' do

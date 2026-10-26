@@ -96,4 +96,20 @@ describe('MessageList automatic translation', () => {
     await wrapper.setProps({ messages: [...messages] });
     expect(MessageApi.autoTranslate).toHaveBeenCalledTimes(1);
   });
+
+  it('does not automatically request messages already pending or failed', async () => {
+    render([
+      {
+        ...incomingMessage(1),
+        content_attributes: { translation_status: 'pending' },
+      },
+      {
+        ...incomingMessage(2),
+        content_attributes: { translation_status: 'failed' },
+      },
+    ]);
+    await nextTick();
+
+    expect(MessageApi.autoTranslate).not.toHaveBeenCalled();
+  });
 });
