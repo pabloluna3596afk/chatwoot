@@ -751,6 +751,8 @@
       "RESPONSES_CUSTOMER": "Respuestas de Captain",
       "RESPONSES_COPILOT": "Copilot",
       "INTERNAL_AI": "Acciones internas de IA",
+      "RESETS_ON": "Se reinicia el {date}",
+      "LIMIT_REACHED": "Se alcanzó un límite de uso de IA. Revisa tu plan para ampliar la cuota. Puedes seguir respondiendo manualmente.",
       "STORAGE": "Almacenamiento",
       "AGENTS": "Agentes",
       "INBOXES": "Bandejas de entrada",

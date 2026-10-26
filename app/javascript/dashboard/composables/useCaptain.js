@@ -49,7 +49,7 @@ export function useCaptain() {
   });
 
   const responseLimits = computed(() => {
-    if (captainLimits.value?.responses) {
+    if (captainLimits.value?.responses?.total_count != null) {
       return useCamelCase(captainLimits.value.responses);
     }
     return null;

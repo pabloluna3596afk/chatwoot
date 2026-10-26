@@ -1,5 +1,7 @@
 <script setup>
 import { computed } from 'vue';
+import { format } from 'date-fns';
+import { useI18n } from 'vue-i18n';
 import { formatBytes } from 'shared/helpers/FileHelper';
 
 const props = defineProps({
@@ -20,7 +22,13 @@ const props = defineProps({
     type: String,
     default: null,
   },
+  periodEnd: {
+    type: String,
+    default: null,
+  },
 });
+
+const { t } = useI18n();
 
 const displayConsumed = computed(() =>
   props.unit === 'bytes' ? formatBytes(props.consumed) : props.consumed
@@ -31,7 +39,9 @@ const displayTotal = computed(() =>
 );
 
 const percent = computed(() =>
-  Math.round((props.consumed / props.totalCount) * 100)
+  props.totalCount > 0
+    ? Math.min(100, Math.round((props.consumed / props.totalCount) * 100))
+    : 100
 );
 
 const colorClass = computed(() => {
@@ -50,6 +60,13 @@ const colorClass = computed(() => {
     <div class="text-n-slate-11 text-xs">{{ title }}</div>
     <div class="mt-2 text-xs tabular-nums text-n-slate-10">
       {{ displayConsumed }} / {{ displayTotal }}
+    </div>
+    <div v-if="periodEnd" class="mt-1 text-xs text-n-slate-9">
+      {{
+        t('BILLING_SETTINGS.CAPTAIN.RESETS_ON', {
+          date: format(new Date(periodEnd), 'dd MMM, yyyy'),
+        })
+      }}
     </div>
     <div class="mt-2">
       <div class="rounded-full overflow-hidden h-2.5 w-full bg-n-slate-4">

@@ -148,6 +148,16 @@ const inboxesMeterData = computed(() => {
   return { consumed: inboxes.consumed ?? 0, totalCount: inboxes.allowed };
 });
 
+const captainPeriodEnd = computed(
+  () => currentAccount.value.limits?.plan?.period_end || null
+);
+
+const exhaustedCaptainBag = computed(() =>
+  [responseLimits.value, copilotLimits.value, internalLimits.value].some(
+    bag => bag && bag.currentAvailable <= 0
+  )
+);
+
 const fetchAccountDetails = async () => {
   if (!hasABillingPlan.value) {
     const data = await store.dispatch('accounts/subscription');
@@ -370,7 +380,7 @@ onMounted(handleBillingPageLogic);
               </ButtonV4>
               <!-- Buy Credits Button -->
               <ButtonV4
-                v-if="canPurchaseCredits"
+                v-if="isOnChatwootCloud && canPurchaseCredits"
                 sm
                 solid
                 blue
@@ -383,22 +393,35 @@ onMounted(handleBillingPageLogic);
 
           <!-- Captain Usage Section -->
           <div v-if="captainLimits" class="space-y-4">
+            <div
+              v-if="exhaustedCaptainBag"
+              class="flex flex-wrap items-center gap-2 text-sm text-n-amber-11"
+              role="status"
+            >
+              <span>{{ $t('BILLING_SETTINGS.CAPTAIN.LIMIT_REACHED') }}</span>
+              <ButtonV4 sm variant="link" @click="comparingPlans = true">
+                {{ $t('BILLING_SETTINGS.VIEW_PRICING') }}
+              </ButtonV4>
+            </div>
             <div class="grid lg:grid-cols-2 gap-4">
               <BillingMeter
                 v-if="responseLimits"
                 :title="$t('BILLING_SETTINGS.CAPTAIN.RESPONSES')"
                 :consumed="responseLimits.consumed"
                 :total-count="responseLimits.totalCount"
+                :period-end="captainPeriodEnd"
               />
               <BillingMeter
                 v-if="copilotLimits"
                 :title="$t('BILLING_SETTINGS.CAPTAIN.RESPONSES_COPILOT')"
                 v-bind="copilotLimits"
+                :period-end="captainPeriodEnd"
               />
               <BillingMeter
                 v-if="internalLimits"
                 :title="$t('BILLING_SETTINGS.CAPTAIN.INTERNAL_AI')"
                 v-bind="internalLimits"
+                :period-end="captainPeriodEnd"
               />
             </div>
 
