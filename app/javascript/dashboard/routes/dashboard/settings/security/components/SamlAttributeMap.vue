@@ -32,13 +32,13 @@ const toggleExpanded = () => {
 
     <div
       class="transition-[height] duration-200 ease-in-out overflow-hidden"
-      :class="isExpanded ? 'h-auto' : 'h-0'"
+      :class="isExpanded ? 'h-auto' : 'invisible h-0'"
     >
       <div class="px-4 pb-3">
         <p class="text-n-slate-11 mb-2">
           {{ t('SECURITY_SETTINGS.SAML.ATTRIBUTE_MAPPING.DESCRIPTION') }}
         </p>
-        <!-- eslint-disable vue/no-bare-strings-in-template -->
+        <!-- eslint-disable vue/no-bare-strings-in-template, @intlify/vue-i18n/no-raw-text -->
         <ul class="list-none text-n-slate-12 space-y-1">
           <li><code class="px-1 rounded bg-n-slate-3">email</code></li>
           <li><code class="px-1 rounded bg-n-slate-3">first_name</code></li>

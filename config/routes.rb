@@ -127,7 +127,9 @@ Rails.application.routes.draw do
               post :follow_up
             end
           end
-          resource :saml_settings, only: [:show, :create, :update, :destroy]
+          resource :saml_settings, only: [:show, :create, :update, :destroy] do
+            post :refresh_metadata
+          end
           resources :agent_bots, only: [:index, :create, :show, :update, :destroy] do
             delete :avatar, on: :member
             post :reset_access_token, on: :member

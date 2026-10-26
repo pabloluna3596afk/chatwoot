@@ -262,4 +262,42 @@ RSpec.describe 'Api::V1::Accounts::SamlSettings', type: :request do
       end
     end
   end
+
+  describe 'POST /api/v1/accounts/{account.id}/saml_settings/refresh_metadata' do
+    let(:saml_settings) do
+      create(:account_saml_settings, account: account).tap do |settings|
+        settings.update_column(:metadata_url, 'https://idp.example.com/metadata') # rubocop:disable Rails/SkipsModelValidations
+      end
+    end
+
+    it 'refreshes metadata for an administrator and returns refresh state' do
+      settings = saml_settings
+      allow(Saml::IdpMetadataService).to receive(:new).and_return(instance_double(
+                                                                    Saml::IdpMetadataService,
+                                                                    perform: {
+                                                                      sso_url: 'https://new-idp.example.com/sso',
+                                                                      idp_entity_id: 'https://new-idp.example.com/entity',
+                                                                      signing_certificates: [settings.certificate]
+                                                                    }
+                                                                  ))
+
+      post "/api/v1/accounts/#{account.id}/saml_settings/refresh_metadata",
+           headers: administrator.create_new_auth_token,
+           as: :json
+
+      expect(response).to have_http_status(:success), response.body
+      expect(json_response[:metadata_url]).to eq('https://idp.example.com/metadata')
+      expect(json_response[:metadata_refreshed_at]).to be_present
+      expect(settings.reload.sso_url).to eq('https://new-idp.example.com/sso')
+    end
+
+    it 'rejects refresh requests from agents' do
+      saml_settings
+      post "/api/v1/accounts/#{account.id}/saml_settings/refresh_metadata",
+           headers: agent.create_new_auth_token,
+           as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+  end
 end
