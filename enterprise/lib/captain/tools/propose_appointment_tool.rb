@@ -4,14 +4,14 @@ class Captain::Tools::ProposeAppointmentTool < Captain::Tools::BaseAppointmentTo
               'only an explicit yes from the customer does, through book_appointment or reschedule_appointment. For a new ' \
               'appointment it first checks the customer\'s contact details: when some are missing it says which, and you ask for ' \
               'them BEFORE proposing the time (then call it again with them).'
-  param :start, type: 'string',
-                desc: 'The time you are proposing: the exact start value from check_availability, or the customer\'s button reply text ' \
-                      'unchanged (e.g. "jue 1 oct · 11:30")'
-  param :event_id, type: 'string', required: false,
-                   desc: 'Only when moving an existing appointment: its id from appointment_list, or the reply "Cambiar hora" unchanged'
-  param :name, type: 'string', desc: "The customer's full name, only if the tool asked for it", required: false
-  param :phone, type: 'string', desc: "The customer's phone with country code, only if the tool asked for it", required: false
-  param :email, type: 'string', desc: "The customer's email, only if the tool asked for it", required: false
+  parameter :start, type: 'string',
+                    description: 'The time you are proposing: the exact start value from check_availability, or the customer\'s button reply text ' \
+                                 'unchanged (e.g. "jue 1 oct · 11:30")'
+  parameter :event_id, type: 'string', required: false,
+                       description: 'Only when moving an existing appointment: its id from appointment_list, or the reply "Cambiar hora" unchanged'
+  parameter :name, type: 'string', description: "The customer's full name, only if the tool asked for it", required: false
+  parameter :phone, type: 'string', description: "The customer's phone with country code, only if the tool asked for it", required: false
+  parameter :email, type: 'string', description: "The customer's email, only if the tool asked for it", required: false
 
   def perform(tool_context, start:, event_id: nil, name: nil, phone: nil, email: nil)
     conversation, error = conversation_for(tool_context)
@@ -32,6 +32,7 @@ class Captain::Tools::ProposeAppointmentTool < Captain::Tools::BaseAppointmentTo
 
     missing = event_ref.present? ? [] : missing_contact_fields(conversation.contact)
     return translate('missing_before_proposing', fields: missing_fields_text(missing)) if missing.any?
+
     reason, options = unavailable_reason(start_at, minutes(event))
     return translate(reason, **options) if reason
 

@@ -51,12 +51,13 @@ module Llm::Config
       yield context
     end
 
-    # ai-agents 0.12 builds RubyLLM::Chat directly, without accepting a context.
-    # Scope its constructors to this request, including handoffs and rewrites.
+    # The Agents runner builds RubyLLM::Chat directly. Scope those constructors to this request,
+    # including handoffs and rewrites.
     # Never mutate global credentials or expose the key in the agent's trace context.
     def with_chat_context(api_key)
       previous = ActiveSupport::IsolatedExecutionState[:llm_chat_context]
-      with_api_key(api_key) do |context|
+      endpoint = InstallationConfig.find_by(name: 'CAPTAIN_OPEN_AI_ENDPOINT')&.value.presence || LlmConstants::OPENAI_API_ENDPOINT
+      with_api_key(api_key, api_base: "#{endpoint.chomp('/')}/v1") do |context|
         ActiveSupport::IsolatedExecutionState[:llm_chat_context] = context
         yield
       end
@@ -74,8 +75,10 @@ module Llm::Config
       api_key = current['CAPTAIN_OPEN_AI_API_KEY']
       endpoint = current['CAPTAIN_OPEN_AI_ENDPOINT']
       RubyLLM.configure do |config|
-        config.openai_api_key = api_key if api_key.present?
-        config.openai_api_base = endpoint.chomp('/') if endpoint.present?
+        config.openai_api_key = api_key
+        api_base = endpoint.presence || LlmConstants::OPENAI_API_ENDPOINT
+        config.openai_api_base = "#{api_base.chomp('/')}/v1"
+        config.openai_protocol = :chat_completions
         config.model_registry_file = Rails.root.join('config/llm_models.json').to_s
         config.logger = Rails.logger
       end
@@ -83,14 +86,14 @@ module Llm::Config
 
     def configure_agents(current)
       api_key = current['CAPTAIN_OPEN_AI_API_KEY']
-      return if api_key.blank?
-
       model = current['CAPTAIN_OPEN_AI_MODEL'].presence || LlmConstants::DEFAULT_MODEL
-      endpoint = current['CAPTAIN_OPEN_AI_ENDPOINT'] || LlmConstants::OPENAI_API_ENDPOINT
+      endpoint = current['CAPTAIN_OPEN_AI_ENDPOINT'].presence || LlmConstants::OPENAI_API_ENDPOINT
       Agents.configure do |config|
         config.openai_api_key = api_key
         config.openai_api_base = "#{endpoint.chomp('/')}/v1" if endpoint.present?
         config.default_model = model
+        config.openai_protocol = :chat_completions
+        config.model_registry_file = Rails.root.join('config/llm_models.json').to_s
         config.debug = false
       end
     end

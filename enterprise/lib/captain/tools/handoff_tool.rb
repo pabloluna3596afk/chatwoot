@@ -125,7 +125,7 @@ class Captain::Tools::HandoffTool < Captain::Tools::BasePublicTool
   # 4. Support escalation levels (L1 -> L2 -> L3)
   #
   # Example future signature:
-  # param :team_id, type: 'string', desc: 'ID of team to assign conversation to', required: false
-  # param :priority, type: 'string', desc: 'Priority level (low/medium/high/urgent)', required: false
-  # param :escalation_level, type: 'string', desc: 'Support level (L1/L2/L3)', required: false
+  # parameter :team_id, type: 'string', description: 'ID of team to assign conversation to', required: false
+  # parameter :priority, type: 'string', description: 'Priority level (low/medium/high/urgent)', required: false
+  # parameter :escalation_level, type: 'string', description: 'Support level (L1/L2/L3)', required: false
 end

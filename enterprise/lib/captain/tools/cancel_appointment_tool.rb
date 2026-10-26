@@ -1,9 +1,10 @@
 class Captain::Tools::CancelAppointmentTool < Captain::Tools::BaseAppointmentTool
   description "Cancel one of the customer's own appointments. Get the id from appointment_list, ask the customer to confirm " \
               'the cancellation, then call it with customer_confirmed true.'
-  param :event_id, type: 'string',
-                   desc: 'The id of the appointment, from appointment_list, or the customer\'s button reply text unchanged (e.g. "Cancelar cita")'
-  param :customer_confirmed, type: 'boolean', desc: 'true only if the customer explicitly confirmed the cancellation', required: false
+  parameter :event_id, type: 'string',
+                       description: 'The id of the appointment, from appointment_list, or the customer\'s button reply text unchanged ' \
+                                    '(e.g. "Cancelar cita")'
+  parameter :customer_confirmed, type: 'boolean', description: 'true only if the customer explicitly confirmed the cancellation', required: false
 
   def perform(tool_context, event_id:, customer_confirmed: false)
     conversation, error = conversation_for(tool_context)

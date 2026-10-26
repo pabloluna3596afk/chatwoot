@@ -2,14 +2,14 @@ class Captain::Tools::BookAppointmentTool < Captain::Tools::BaseAppointmentTool
   description 'Book an appointment for the customer. Only call it after the customer has explicitly said yes to ONE specific ' \
               'time that check_availability returned; then pass customer_confirmed true and that exact start value. If contact ' \
               'details are missing the tool says which to ask for.'
-  param :start, type: 'string',
-                desc: 'The start of the time the customer confirmed: the exact value from check_availability, or the customer\'s button ' \
-                      'reply text unchanged (e.g. "Sí, reservar · jue 1 oct · 11:30")'
-  param :customer_confirmed, type: 'boolean', desc: 'true only if the customer explicitly confirmed this exact time', required: false
-  param :name, type: 'string', desc: "The customer's full name, only if the tool asked for it", required: false
-  param :phone, type: 'string', desc: "The customer's phone with country code, only if the tool asked for it", required: false
-  param :email, type: 'string', desc: "The customer's email, only if the tool asked for it", required: false
-  param :reason, type: 'string', desc: 'Short reason for the appointment, used as its title (optional)', required: false
+  parameter :start, type: 'string',
+                    description: 'The start of the time the customer confirmed: the exact value from check_availability, or the customer\'s button ' \
+                                 'reply text unchanged (e.g. "Sí, reservar · jue 1 oct · 11:30")'
+  parameter :customer_confirmed, type: 'boolean', description: 'true only if the customer explicitly confirmed this exact time', required: false
+  parameter :name, type: 'string', description: "The customer's full name, only if the tool asked for it", required: false
+  parameter :phone, type: 'string', description: "The customer's phone with country code, only if the tool asked for it", required: false
+  parameter :email, type: 'string', description: "The customer's email, only if the tool asked for it", required: false
+  parameter :reason, type: 'string', description: 'Short reason for the appointment, used as its title (optional)', required: false
 
   def perform(tool_context, start:, customer_confirmed: false, name: nil, phone: nil, email: nil, reason: nil)
     conversation, error = conversation_for(tool_context)

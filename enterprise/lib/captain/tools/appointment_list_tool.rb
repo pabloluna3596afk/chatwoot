@@ -1,8 +1,9 @@
 class Captain::Tools::AppointmentListTool < Captain::Tools::BaseAppointmentTool
   description "List this customer's upcoming appointments with their ids. Use it before rescheduling or cancelling, " \
               'and only act on appointments this tool returns.'
-  param :offer_changes, type: 'boolean', required: false,
-                        desc: 'true when the customer asked to change or cancel an appointment: change/cancel/keep buttons are attached to your reply'
+  parameter :offer_changes, type: 'boolean', required: false,
+                            description: 'true when the customer asked to change or cancel an appointment: ' \
+                                         'change/cancel/keep buttons are attached to your reply'
 
   def perform(tool_context, offer_changes: false)
     conversation, error = conversation_for(tool_context)

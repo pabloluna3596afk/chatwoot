@@ -59,6 +59,26 @@ RSpec.describe Llm::Models do
     end
   end
 
+  describe '.temperature_for' do
+    it 'returns the requested temperature when the model supports it' do
+      expect(described_class.temperature_for('gpt-6-luna', 0.2)).to eq(0.2)
+    end
+
+    it 'omits temperature when the model does not support it' do
+      allow(described_class).to receive(:model_config).with('gpt-5.2').and_return('temperature' => false)
+
+      expect(described_class.temperature_for('gpt-5.2', 0.2)).to be_nil
+    end
+
+    it 'uses RubyLLM model metadata when config/llm.yml has no override' do
+      model = instance_double(RubyLLM::Model, metadata: { temperature: false })
+      allow(described_class).to receive(:model_config).with('gpt-5.2').and_return({})
+      allow(RubyLLM.models).to receive(:find).with('gpt-5.2').and_return(model)
+
+      expect(described_class.temperature_for('gpt-5.2', 0.2)).to be_nil
+    end
+  end
+
   describe '.feature_config' do
     it 'returns model metadata for a feature' do
       config = described_class.feature_config('editor')
