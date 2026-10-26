@@ -26,6 +26,9 @@ export const login = async ({
         mfaToken: response.data.mfa_token,
       };
     }
+    if (response.status === 206 && response.data.mfa_setup_required) {
+      return { mfaSetupRequired: true, ...response.data };
+    }
 
     setAuthCredentials(response);
     clearLocalStorageOnLogout();
@@ -42,6 +45,12 @@ export const login = async ({
         mfaRequired: true,
         mfaToken: error.response.data.mfa_token,
       };
+    }
+    if (
+      error.response?.status === 206 &&
+      error.response?.data?.mfa_setup_required
+    ) {
+      return { mfaSetupRequired: true, ...error.response.data };
     }
     if (
       error.response?.status === 409 &&

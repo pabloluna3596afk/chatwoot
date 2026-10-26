@@ -57,4 +57,48 @@ RSpec.describe 'Enterprise Conversation Messages API', type: :request do
       end.not_to change(Enterprise::AuditLog, :count)
     end
   end
+
+  describe 'POST /api/v1/accounts/{account.id}/conversations/:conversation_id/messages/auto_translate' do
+    let(:conversation) { create(:conversation, account: account) }
+    let(:agent) { create(:user, account: account, role: :agent, ui_settings: { locale: 'es' }) }
+
+    before do
+      create(:inbox_member, inbox: conversation.inbox, user: agent)
+      account.enable_features!(:auto_translate, :captain_tasks)
+      account.update!(auto_translate: true, translation_provider: 'captain')
+    end
+
+    def post_auto_translate(message_ids)
+      post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/messages/auto_translate",
+           params: { message_ids: message_ids }, headers: agent.create_new_auth_token, as: :json
+    end
+
+    it 'enqueues translations only for incoming public text messages' do
+      incoming = create(:message, conversation: conversation, message_type: :incoming, content: 'Bonjour')
+      outgoing = create(:message, conversation: conversation, message_type: :outgoing, content: 'Hello')
+      private_message = create(:message, conversation: conversation, message_type: :incoming, private: true, content: 'Private')
+      attachment = create(:message, conversation: conversation, message_type: :incoming, content_type: :incoming_email, content: '')
+
+      expect do
+        post_auto_translate([incoming.id, outgoing.id, private_message.id, attachment.id])
+      end.to have_enqueued_job(Captain::Conversation::ContactMessageTranslationJob).with(incoming, 'es')
+      expect(response).to have_http_status(:accepted)
+    end
+
+    it 'rejects ids not belonging to the conversation' do
+      message = create(:message, message_type: :incoming)
+      post_auto_translate([message.id])
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it 'rejects duplicate ids and lists over the limit' do
+      message = create(:message, conversation: conversation, message_type: :incoming)
+      post_auto_translate([message.id, message.id])
+      expect(response).to have_http_status(:unprocessable_entity)
+
+      post_auto_translate((1..21).to_a)
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+  end
 end

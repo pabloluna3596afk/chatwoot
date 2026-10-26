@@ -22,6 +22,14 @@ vi.mock('dashboard/components/auth/MfaVerification.vue', () => ({
     template: '<div />',
   },
 }));
+vi.mock('dashboard/components/auth/MfaEnforcedSetup.vue', () => ({
+  default: {
+    name: 'MfaEnforcedSetup',
+    props: ['mfaSetupToken', 'provisioningUrl', 'secret'],
+    emits: ['verified'],
+    template: '<div />',
+  },
+}));
 vi.mock('dashboard/components/auth/SessionLimitOverlay.vue', () => ({
   default: {
     name: 'SessionLimitOverlay',
@@ -265,6 +273,29 @@ describe('login', () => {
     expect(wrapper.get('input[type="email"]').element.value).toBe(
       'agent@example.com'
     );
+  });
+
+  it('shows enforced MFA enrollment when the account requires it', async () => {
+    login.mockResolvedValue({
+      mfaSetupRequired: true,
+      mfa_setup_token: 'setup-token',
+      provisioning_url: 'otpauth://setup',
+      secret: 'secret',
+    });
+    wrapper = mount(Login);
+    await wrapper.get('input[type="email"]').setValue('agent@example.com');
+    await wrapper.get('input[type="password"]').setValue('secret');
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+
+    expect(
+      wrapper.getComponent({ name: 'MfaEnforcedSetup' }).props()
+    ).toMatchObject({
+      mfaSetupToken: 'setup-token',
+      provisioningUrl: 'otpauth://setup',
+      secret: 'secret',
+    });
+    expect(wrapper.find('form').exists()).toBe(false);
   });
 
   it('retains session revocation and cancellation', async () => {

@@ -823,6 +823,12 @@
   "SECURITY_SETTINGS": {
     "TITLE": "Security",
     "DESCRIPTION": "Manage your account security settings.",
+    "MFA": {
+      "TITLE": "Require two-factor authentication",
+      "DESCRIPTION": "Require team members to enroll in two-factor authentication before signing in.",
+      "SUCCESS": "MFA requirement updated.",
+      "ERROR": "Could not update the MFA requirement."
+    },
     "LINK_TEXT": "Learn more about SAML SSO",
     "SAML_DISABLED_MESSAGE": "SAML SSO is currently disabled. Please contact your administrator to enable this feature.",
     "SAML": {
