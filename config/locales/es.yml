@@ -62,6 +62,10 @@ es:
     sessions:
       cannot_revoke_current: No puede revocar la sesión actual.
   errors:
+    auto_translate:
+      invalid_messages: 'Mensajes no válidos'
+    google_translate:
+      invalid_credentials: 'No se pudieron validar las credenciales de Google Cloud'
     account_saml_settings:
       invalid_certificate: debe ser un certificado X.509 válido en formato PEM
       metadata_url:

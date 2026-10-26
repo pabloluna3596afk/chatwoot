@@ -5,18 +5,49 @@ import FormattedContent from './FormattedContent.vue';
 import AttachmentChips from 'next/message/chips/AttachmentChips.vue';
 import SuggestedAttributeChips from './SuggestedAttributeChips.vue';
 import TranslationToggle from 'dashboard/components-next/message/TranslationToggle.vue';
+import TranslationStatus from 'dashboard/components-next/message/TranslationStatus.vue';
 import { MESSAGE_TYPES } from '../../constants';
 import { MESSAGE_STATUS } from 'shared/constants/messages';
 import { useMessageContext } from '../../provider.js';
 import { useTranslations } from 'dashboard/composables/useTranslations';
+import { useAccount } from 'dashboard/composables/useAccount';
+import { useMapGetter } from 'dashboard/composables/store';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
-const { content, attachments, contentAttributes, messageType, status } =
-  useMessageContext();
+const {
+  id,
+  conversationId,
+  content,
+  attachments,
+  contentAttributes,
+  messageType,
+  status,
+} = useMessageContext();
 
 const { hasTranslations, translationContent } =
   useTranslations(contentAttributes);
 
 const renderOriginal = ref(false);
+const { currentAccount } = useAccount();
+const isFeatureEnabledonAccount = useMapGetter(
+  'accounts/isFeatureEnabledonAccount'
+);
+const showTranslationStatus = computed(
+  () =>
+    isFeatureEnabledonAccount.value(
+      currentAccount.value?.id,
+      FEATURE_FLAGS.AUTO_TRANSLATE
+    ) && currentAccount.value?.settings?.auto_translate === true
+);
+const translationStatus = computed(
+  () =>
+    contentAttributes.value?.translationStatus ||
+    (contentAttributes.value?.translationPending ? 'pending' : null) ||
+    (contentAttributes.value?.translationFailed ? 'failed' : null)
+);
+const canRetryTranslation = computed(
+  () => messageType.value === MESSAGE_TYPES.INCOMING
+);
 
 const renderContent = computed(() => {
   if (renderOriginal.value) {
@@ -89,6 +120,13 @@ const handleSeeOriginal = () => {
       >
         {{ $t('CONVERSATION.REQUEST_CONTACT_INFO.STATES.IDENTITY_CONFLICT') }}
       </span>
+      <TranslationStatus
+        v-if="showTranslationStatus && translationStatus"
+        :status="translationStatus"
+        :conversation-id="conversationId"
+        :message-id="id"
+        :can-retry="canRetryTranslation"
+      />
       <TranslationToggle
         v-if="hasTranslations"
         class="-mt-3"

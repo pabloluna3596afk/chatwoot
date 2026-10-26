@@ -39,6 +39,17 @@ class IntegrationsAPI extends ApiClient {
       shop_domain: shopDomain,
     });
   }
+
+  connectGoogleTranslate({ projectId, credentials }) {
+    return axios.post(`${this.baseUrl()}/integrations/google_translate`, {
+      project_id: projectId,
+      credentials,
+    });
+  }
+
+  disconnectGoogleTranslate() {
+    return axios.delete(`${this.baseUrl()}/integrations/google_translate`);
+  }
 }
 
 export default new IntegrationsAPI();

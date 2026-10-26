@@ -176,7 +176,7 @@ dialogflow:
   visible_properties: ['project_id', 'region', 'language_code']
 google_translate:
   id: google_translate
-  logo: google-translate.png
+  logo: google_translate.png
   i18n_key: google_translate
   action: /google_translate
   hook_type: account
@@ -187,9 +187,8 @@ google_translate:
       'properties':
         {
           'project_id': { 'type': 'string' },
-          'credentials': { 'type': 'object' },
         },
-      'required': ['project_id', 'credentials'],
+      'required': ['project_id'],
       'additionalProperties': false,
     }
   settings_form_schema:

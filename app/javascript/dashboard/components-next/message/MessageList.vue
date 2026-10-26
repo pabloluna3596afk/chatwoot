@@ -81,6 +81,7 @@ watch(
           message.message_type === MESSAGE_TYPES.INCOMING &&
           !message.private &&
           message.content &&
+          !['pending', 'failed'].includes(attributes.translation_status) &&
           !attributes.translations?.[
             uiSettings.value?.locale || currentAccount.value?.locale
           ] &&

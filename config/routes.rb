@@ -501,6 +501,7 @@ Rails.application.routes.draw do
                 get :list_all_channels
               end
             end
+            resource :google_translate, only: [:create, :destroy], controller: 'google_translate'
             resource :dyte, controller: 'dyte', only: [] do
               collection do
                 post :create_a_meeting
