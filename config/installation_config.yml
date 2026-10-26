@@ -659,6 +659,17 @@
 ## ---- End of LLM Observability ---- ##
 
 ## ------ PaluHub / InboxHub features ------ ##
+- name: DEVICE_VERIFICATION_ENABLED
+  display_title: 'Device verification for password sign-in'
+  value: false
+  locked: false
+  description: 'Require an email code when a password sign-in comes from an unrecognized device. Confirm SMTP delivery before enabling.'
+  type: boolean
+- name: DEVICE_VERIFICATION_EXEMPT_EMAILS
+  display_title: 'Device verification exempt emails'
+  value: ''
+  locked: false
+  description: 'One email per line; use temporarily for account recovery or a staged pilot.'
 - name: INTERNAL_CHATS_ENABLED
   display_title: 'Enable internal team chats (global kill-switch)'
   value: false
