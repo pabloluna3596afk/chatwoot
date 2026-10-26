@@ -2,7 +2,7 @@ require 'ruby_llm'
 require 'agents'
 
 module Llm::Config
-  DEFAULT_MODEL = 'gpt-4.1-mini'.freeze
+  DEFAULT_MODEL = 'gpt-6-luna'.freeze
   SETTING_NAMES = %w[CAPTAIN_OPEN_AI_API_KEY CAPTAIN_OPEN_AI_MODEL CAPTAIN_OPEN_AI_ENDPOINT].freeze
 
   class << self
@@ -34,6 +34,11 @@ module Llm::Config
 
     def api_key_configured?
       settings['CAPTAIN_OPEN_AI_API_KEY'].present?
+    end
+
+    def standard_openai_endpoint?
+      endpoint = InstallationConfig.find_by(name: 'CAPTAIN_OPEN_AI_ENDPOINT')&.value
+      endpoint.blank? || endpoint.chomp('/') == LlmConstants::OPENAI_API_ENDPOINT
     end
 
     def with_api_key(api_key, api_base: nil)

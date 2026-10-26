@@ -43,7 +43,7 @@ RSpec.describe Captain::Llm::ConversationFaqService do
       end
 
       it 'uses the conversation FAQ default ahead of the legacy global installation model' do
-        create(:installation_config, name: 'CAPTAIN_OPEN_AI_MODEL', value: 'gpt-4.1-mini')
+        create(:installation_config, name: 'CAPTAIN_OPEN_AI_MODEL', value: 'gpt-5.2')
 
         expect(RubyLLM).to receive(:chat).with(
           model: Llm::Models.default_model_for('conversation_faq_generation')
@@ -53,10 +53,10 @@ RSpec.describe Captain::Llm::ConversationFaqService do
       end
 
       it 'keeps account conversation FAQ model overrides ahead of the feature default' do
-        create(:installation_config, name: 'CAPTAIN_OPEN_AI_MODEL', value: 'gpt-4.1')
-        conversation.account.update!(captain_models: { 'conversation_faq_generation' => 'gpt-4.1-mini' })
+        create(:installation_config, name: 'CAPTAIN_OPEN_AI_MODEL', value: 'gpt-5.2')
+        conversation.account.update!(captain_models: { 'conversation_faq_generation' => 'gpt-5.2' })
 
-        expect(RubyLLM).to receive(:chat).with(model: 'gpt-4.1-mini').and_return(mock_chat)
+        expect(RubyLLM).to receive(:chat).with(model: 'gpt-5.2').and_return(mock_chat)
 
         described_class.new(captain_assistant, conversation).generate_suggestions
       end

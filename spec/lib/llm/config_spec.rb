@@ -36,12 +36,26 @@ RSpec.describe Llm::Config do
     end
   end
 
+  describe '.standard_openai_endpoint?' do
+    it 'accepts the default OpenAI endpoint' do
+      save_setting('CAPTAIN_OPEN_AI_ENDPOINT', 'https://api.openai.com/')
+
+      expect(described_class.standard_openai_endpoint?).to be(true)
+    end
+
+    it 'rejects a custom endpoint' do
+      save_setting('CAPTAIN_OPEN_AI_ENDPOINT', 'https://azure.example.test/openai')
+
+      expect(described_class.standard_openai_endpoint?).to be(false)
+    end
+  end
+
   describe '.with_chat_context' do
     it 'supplies account credentials to both direct SDK and RubyLLM chat constructors without changing globals' do
       global_key = RubyLLM.config.openai_api_key
       described_class.with_chat_context('account-key') do
-        sdk_chat = RubyLLM::Chat.new(model: 'gpt-4.1-mini')
-        legacy_chat = RubyLLM.chat(model: 'gpt-4.1-mini')
+        sdk_chat = RubyLLM::Chat.new(model: 'gpt-5.2')
+        legacy_chat = RubyLLM.chat(model: 'gpt-5.2')
         expect(sdk_chat.instance_variable_get(:@config).openai_api_key).to eq('account-key')
         expect(legacy_chat.instance_variable_get(:@config).openai_api_key).to eq('account-key')
         expect(sdk_chat.instance_variable_get(:@config).openai_api_base).to be_nil
