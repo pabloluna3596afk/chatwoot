@@ -5,6 +5,22 @@ require 'rails_helper'
 RSpec.describe Account, type: :model do
   include ActiveJob::TestHelper
 
+  describe '#auto_translate_enabled?' do
+    it 'requires the feature, account opt-in, and an explicitly available provider' do
+      account = create(:account, settings: { auto_translate: true })
+      account.enable_features!(:auto_translate, :captain_tasks)
+
+      expect(account.auto_translate_enabled?).to be(false)
+
+      account.update!(translation_provider: 'captain')
+      expect(account.auto_translate_enabled?).to be(true)
+
+      account.disable_features(:auto_translate)
+      account.save!
+      expect(account.reload.auto_translate_enabled?).to be(false)
+    end
+  end
+
   describe 'version 2 onboarding Captain defaults' do
     it 'enables both Captain features without a paid installation or a trial plan' do
       allow(ChatwootApp).to receive(:self_hosted_paid?).and_return(false)

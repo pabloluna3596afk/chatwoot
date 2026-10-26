@@ -64,6 +64,20 @@ module Enterprise::Account
     interval_hours.hours
   end
 
+  def auto_translate_enabled? = feature_enabled?('auto_translate') && auto_translate == true && translation_service_available?
+
+  def translation_service = translation_provider.presence
+
+  def google_translate_hook = hooks.find_by(app_id: 'google_translate', status: 'enabled')
+
+  def translation_service_available?
+    case translation_service
+    when 'captain' then feature_enabled?('captain_tasks')
+    when 'google_translate' then google_translate_hook.present?
+    else false
+    end
+  end
+
   def saml_enabled?
     saml_settings&.saml_enabled? || false
   end
