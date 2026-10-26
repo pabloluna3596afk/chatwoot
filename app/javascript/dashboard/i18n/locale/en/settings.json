@@ -965,6 +965,17 @@
         "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
         "ASK_ADMIN": "Please reach out to your administrator for the upgrade."
       }
+    },
+    "TRANSLATION": {
+      "TITLE": "Automatic translation",
+      "DESCRIPTION": "Translate incoming customer messages into the agent’s dashboard language when they appear in a conversation.",
+      "PROVIDER": "Translation provider",
+      "SELECT_PROVIDER": "Choose a provider to enable automatic translation.",
+      "SAVED": "Translation settings updated.",
+      "ERROR": "Could not update translation settings. Try again.",
+      "PROVIDER_UNAVAILABLE": "The selected translation provider is unavailable. Check its connection in Integrations.",
+      "CAPTAIN": "Captain",
+      "GOOGLE_TRANSLATE": "Google Translate"
     }
   },
   "CREATE_ACCOUNT": {

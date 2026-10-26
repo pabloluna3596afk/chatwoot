@@ -7,6 +7,7 @@ import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import ConversationRequiredAttributes from 'dashboard/components-next/ConversationWorkflow/ConversationRequiredAttributes.vue';
 import AutoResolve from 'dashboard/routes/dashboard/settings/account/components/AutoResolve.vue';
+import TranslationSettings from './TranslationSettings.vue';
 
 const store = useStore();
 const { accountId } = useAccount();
@@ -24,6 +25,10 @@ const showAutoResolutionConfig = computed(() => {
     FEATURE_FLAGS.AUTO_RESOLVE_CONVERSATIONS
   );
 });
+
+const showTranslationConfig = computed(() =>
+  isFeatureEnabledonAccount.value(accountId.value, FEATURE_FLAGS.AUTO_TRANSLATE)
+);
 
 const showRequiredAttributes = computed(() => {
   return isFeatureEnabledonAccount.value(
@@ -45,6 +50,7 @@ const showRequiredAttributes = computed(() => {
 
     <template #body>
       <div class="flex flex-col gap-6 mt-4">
+        <TranslationSettings v-if="showTranslationConfig" />
         <AutoResolve v-if="showAutoResolutionConfig" />
         <ConversationRequiredAttributes :is-enabled="showRequiredAttributes" />
       </div>

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import Message from './Message.vue';
 import { MESSAGE_TYPES } from './constants.js';
 import { useCamelCase } from 'dashboard/composables/useTransformKeys';
@@ -8,6 +8,9 @@ import { useDarkMode } from 'dashboard/composables/useDarkMode';
 import { useChatCanvas } from 'dashboard/composables/useChatCanvas';
 import { chatPanelStyle } from 'dashboard/helper/chatSkin';
 import MessageApi from 'dashboard/api/inbox/message.js';
+import { useAccount } from 'dashboard/composables/useAccount';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import { useUISettings } from 'dashboard/composables/useUISettings';
 
 /**
  * Props definition for the component
@@ -44,6 +47,62 @@ const props = defineProps({
 
 const emit = defineEmits(['retry']);
 
+const { currentAccount } = useAccount();
+const currentChat = useMapGetter('getSelectedChat');
+const { uiSettings } = useUISettings();
+const isFeatureEnabledonAccount = useMapGetter(
+  'accounts/isFeatureEnabledonAccount'
+);
+const requestedTranslations = new Set();
+const translationProviderUnavailable = ref(false);
+const autoTranslateEnabled = computed(
+  () =>
+    isFeatureEnabledonAccount.value(
+      currentAccount.value?.id,
+      FEATURE_FLAGS.AUTO_TRANSLATE
+    ) && currentAccount.value?.settings?.auto_translate === true
+);
+
+watch(
+  () => [
+    props.messages,
+    autoTranslateEnabled.value,
+    currentAccount.value?.id,
+    currentChat.value?.id,
+  ],
+  async ([messages, isEnabled, accountId, conversationId]) => {
+    if (!isEnabled || !accountId || !conversationId) return;
+
+    const messageIds = messages
+      .slice(-20)
+      .filter(message => {
+        const attributes = message.content_attributes || {};
+        return (
+          message.message_type === MESSAGE_TYPES.INCOMING &&
+          !message.private &&
+          message.content &&
+          !attributes.translations?.[
+            uiSettings.value?.locale || currentAccount.value?.locale
+          ] &&
+          !requestedTranslations.has(message.id)
+        );
+      })
+      .map(message => message.id);
+
+    if (!messageIds.length) return;
+    messageIds.forEach(id => requestedTranslations.add(id));
+
+    try {
+      await MessageApi.autoTranslate(conversationId, messageIds);
+      translationProviderUnavailable.value = false;
+    } catch {
+      // Keep the request bounded to one attempt per message in this view.
+      translationProviderUnavailable.value = true;
+    }
+  },
+  { immediate: true, deep: true }
+);
+
 const allMessages = computed(() => {
   return useCamelCase(props.messages, {
     deep: true,
@@ -54,7 +113,6 @@ const allMessages = computed(() => {
   });
 });
 
-const currentChat = useMapGetter('getSelectedChat');
 const { isDark } = useDarkMode();
 const { currentCanvasId } = useChatCanvas();
 const panelStyle = computed(() =>
@@ -176,6 +234,13 @@ const getInReplyToMessage = parentMessage => {
 <template>
   <ul class="px-2" :style="panelStyle">
     <slot name="beforeAll" />
+    <li
+      v-if="autoTranslateEnabled && translationProviderUnavailable"
+      class="text-xs text-n-slate-11 py-2"
+      role="status"
+    >
+      {{ $t('CONVERSATION_WORKFLOW.TRANSLATION.PROVIDER_UNAVAILABLE') }}
+    </li>
     <template v-for="(message, index) in allMessages" :key="message.id">
       <slot
         v-if="firstUnreadId && message.id === firstUnreadId"
