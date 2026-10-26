@@ -1,6 +1,10 @@
 <script>
-import { ref, provide, useTemplateRef } from 'vue';
-import { useElementSize } from '@vueuse/core';
+import { ref, computed, provide, nextTick, useTemplateRef } from 'vue';
+import {
+  useElementSize,
+  useEventListener,
+  useSessionStorage,
+} from '@vueuse/core';
 // composable
 import { useLabelSuggestions } from 'dashboard/composables/useLabelSuggestions';
 import { useSnakeCase } from 'dashboard/composables/useTransformKeys';
@@ -13,6 +17,7 @@ import ConversationLabelSuggestion from './conversation/LabelSuggestion.vue';
 import ContactConversationLink from './ContactConversationLink.vue';
 import Banner from 'dashboard/components/ui/Banner.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
+import CollapsedReplyBar from './CollapsedReplyBar.vue';
 import ResizableEditorWrapper from './ResizableEditorWrapper.vue';
 import ReferralBubble from 'dashboard/components-next/Conversation/ReferralBubble.vue';
 
@@ -24,6 +29,7 @@ import inboxMixin, { INBOX_FEATURES } from 'shared/mixins/inboxMixin';
 
 // utils
 import { emitter } from 'shared/helpers/mitt';
+import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
 import { getTypingUsersText } from '../../../helper/commons';
 import { calculateScrollTop } from './helpers/scrollTopCalculationHelper';
 import { LocalStorage } from 'shared/helpers/localStorage';
@@ -40,6 +46,8 @@ import wootConstants, {
   META_RESTRICTION_STATUS_URL,
 } from 'dashboard/constants/globals';
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
+import { SESSION_STORAGE_KEYS } from 'dashboard/constants/sessionStorage';
+import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/constants';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
 
 export default {
@@ -50,6 +58,7 @@ export default {
     ConversationLabelSuggestion,
     ContactConversationLink,
     Spinner,
+    CollapsedReplyBar,
     ResizableEditorWrapper,
     ReferralBubble,
   },
@@ -57,6 +66,7 @@ export default {
   setup() {
     const conversationPanelRef = ref(null);
     const resizableEditorWrapperRef = ref(null);
+    const replyBoxRef = ref(null);
     const messagesViewRef = useTemplateRef('messagesViewRef');
     const topBannerRef = useTemplateRef('topBannerRef');
     const { height: containerHeight } = useElementSize(messagesViewRef);
@@ -73,6 +83,39 @@ export default {
 
     provide('contextMenuElementTarget', conversationPanelRef);
 
+    const isReplyBoxCollapsed = useSessionStorage(
+      SESSION_STORAGE_KEYS.REPLY_BOX_COLLAPSED,
+      false
+    );
+    const canSendPublicReply = computed(
+      () => replyBoxRef.value?.canSendPublicReply ?? true
+    );
+    const showReplyBox = () => {
+      isReplyBoxCollapsed.value = false;
+    };
+    const revealReplyBox = mode => {
+      if (!isReplyBoxCollapsed.value) return;
+      showReplyBox();
+      nextTick(() => {
+        const replyBox = replyBoxRef.value;
+        if (mode && replyBox.replyType !== mode) replyBox.setReplyMode(mode);
+        replyBox.messageEditor?.focusEditorInputField();
+      });
+    };
+    useKeyboardEvents({
+      'Alt+KeyL': {
+        action: () => revealReplyBox(REPLY_EDITOR_MODES.REPLY),
+        allowOnFocusedInput: false,
+      },
+      'Alt+KeyP': {
+        action: () => revealReplyBox(REPLY_EDITOR_MODES.NOTE),
+        allowOnFocusedInput: false,
+      },
+    });
+    useEventListener(document, 'paste', event => {
+      if (event.clipboardData?.files.length) revealReplyBox();
+    });
+
     return {
       captainTasksEnabled,
       getLabelSuggestions,
@@ -80,6 +123,12 @@ export default {
       olderConversation,
       newerConversation,
       buildConversationPath,
+      isReplyBoxCollapsed,
+      canSendPublicReply,
+      replyBoxRef,
+      showReplyBox,
+      revealReplyBox,
+      replyEditorModes: REPLY_EDITOR_MODES,
       conversationPanelRef,
       resizableEditorWrapperRef,
       messagesViewRef,
@@ -581,9 +630,34 @@ export default {
       <ResizableEditorWrapper
         ref="resizableEditorWrapperRef"
         :container-height="Math.max(0, containerHeight - topBannerHeight)"
+        @collapse="isReplyBoxCollapsed = true"
       >
-        <ReplyBox @toggle-editor-size="toggleReplyEditorSize" />
+        <div
+          class="grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:duration-0"
+          :class="
+            isReplyBoxCollapsed
+              ? '[grid-template-rows:0fr] opacity-0'
+              : '[grid-template-rows:1fr] opacity-100'
+          "
+          :aria-hidden="isReplyBoxCollapsed"
+          :inert="isReplyBoxCollapsed"
+        >
+          <div class="min-h-0 overflow-hidden">
+            <ReplyBox
+              ref="replyBoxRef"
+              @toggle-editor-size="toggleReplyEditorSize"
+            />
+          </div>
+        </div>
       </ResizableEditorWrapper>
+      <div v-if="isReplyBoxCollapsed" class="absolute inset-x-0 bottom-0 z-10">
+        <CollapsedReplyBar
+          class="m-2"
+          :reply-label="$t('CONVERSATION.REPLYBOX.REPLY')"
+          :can-reply="canSendPublicReply"
+          @open="revealReplyBox"
+        />
+      </div>
     </div>
   </div>
 </template>

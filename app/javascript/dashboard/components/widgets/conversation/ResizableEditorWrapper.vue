@@ -14,12 +14,14 @@ import { BUS_EVENTS } from 'shared/constants/busEvents';
 const props = defineProps({
   containerHeight: { type: Number, default: 0 },
 });
+const emit = defineEmits(['collapse']);
 
 const DEFAULT_HEIGHT = 64;
 const MIN_HEIGHT = 48;
 const MIN_MESSAGES_HEIGHT = 200;
 const EXPAND_RATIO = 0.5;
 const RESET_DELAY_MS = 120;
+const COLLAPSE_DISTANCE = 48;
 
 const wrapperRef = useTemplateRef('wrapperRef');
 const surroundingHeight = ref(0);
@@ -28,6 +30,7 @@ const isResizing = ref(false);
 const startY = ref(0);
 const startHeight = ref(0);
 const requestedHeight = ref(0);
+const collapseProgress = ref(0);
 let resetTimeoutId = null;
 
 const clamp = (val, min, max) => Math.min(Math.max(val, min), max);
@@ -83,6 +86,7 @@ const getClientY = e => (e.touches ? e.touches[0].clientY : e.clientY);
 
 const onResizeStart = event => {
   measureSurroundingHeight();
+  collapseProgress.value = 0;
   isResizing.value = true;
   startY.value = getClientY(event);
   startHeight.value = appliedHeight.value;
@@ -97,14 +101,25 @@ const onResizeStart = event => {
 const onResizeMove = event => {
   if (!isResizing.value) return;
   if (event.touches) event.preventDefault();
-  editorHeight.value = clampToBounds(
-    startHeight.value + startY.value - getClientY(event)
+  const draggedHeight = startHeight.value + startY.value - getClientY(event);
+  editorHeight.value = clampToBounds(draggedHeight);
+  collapseProgress.value = clamp(
+    (sizeBounds.value.min - draggedHeight) / COLLAPSE_DISTANCE,
+    0,
+    1
   );
+  if (collapseProgress.value === 1) {
+    isResizing.value = false;
+    clearDragStyles();
+    editorHeight.value = sizeBounds.value.default;
+    emit('collapse');
+  }
 };
 
 const onResizeEnd = () => {
   if (!isResizing.value) return;
   isResizing.value = false;
+  collapseProgress.value = 0;
   clearDragStyles();
 };
 
@@ -162,6 +177,7 @@ defineExpose({ toggleEditorExpand, resetEditorHeight });
       '--editor-height-transition': isResizing
         ? '0s'
         : '200ms cubic-bezier(0.4, 0, 0.2, 1)',
+      '--editor-collapse-progress': collapseProgress,
     }"
   >
     <div
@@ -172,7 +188,10 @@ defineExpose({ toggleEditorExpand, resetEditorHeight });
     >
       <div
         class="w-8 h-0.5 mt-1 rounded-full bg-n-slate-6 group-hover:bg-n-slate-8 transition-all duration-200 motion-safe:group-hover:animate-bounce"
-        :class="{ 'bg-n-slate-8 animate-bounce': isResizing }"
+        :class="{
+          'bg-n-slate-8 animate-bounce': isResizing,
+          '!bg-n-brand w-12': collapseProgress > 0,
+        }"
       />
     </div>
     <slot />
