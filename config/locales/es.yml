@@ -62,6 +62,15 @@ es:
     sessions:
       cannot_revoke_current: No puede revocar la sesión actual.
   errors:
+    account_saml_settings:
+      invalid_certificate: debe ser un certificado X.509 válido en formato PEM
+      metadata_url:
+        invalid_url: debe ser una URL HTTPS válida
+        blocked_address: apunta a una dirección de red privada o reservada
+        http_error: devolvió un error HTTP
+        unreachable: no se pudo acceder de forma segura
+        too_large: devolvió una respuesta que supera el límite de tamaño de metadatos SAML
+        not_metadata: no devolvió metadatos válidos de un proveedor de identidad SAML
     downloads:
       disabled: Las descargas están deshabilitadas para esta cuenta por el administrador del sistema.
     account:
