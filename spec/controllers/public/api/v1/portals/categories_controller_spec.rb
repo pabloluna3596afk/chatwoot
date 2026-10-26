@@ -31,6 +31,7 @@ RSpec.describe 'Public Categories API', type: :request do
     end
 
     it 'keeps the locale switcher on a translated category when available' do
+      portal.update!(config: { allowed_locales: %w[en es], default_locale: 'en' })
       category = create(:category, portal: portal, account: account, locale: 'en', slug: 'help-en')
       translated_category = create(:category, portal: portal, account: account, locale: 'es', slug: 'help-es',
                                               associated_category_id: category.id)
