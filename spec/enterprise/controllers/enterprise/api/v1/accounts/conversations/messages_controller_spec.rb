@@ -83,6 +83,22 @@ RSpec.describe 'Enterprise Conversation Messages API', type: :request do
         post_auto_translate([incoming.id, outgoing.id, private_message.id, attachment.id])
       end.to have_enqueued_job(Captain::Conversation::ContactMessageTranslationJob).with(incoming, 'es')
       expect(response).to have_http_status(:accepted)
+      expect(incoming.reload.content_attributes['translation_status']).to eq('pending')
+    end
+
+    it 'does not enqueue a second pending translation and allows retry after failure' do
+      incoming = create(:message, conversation: conversation, message_type: :incoming, content: 'Bonjour',
+                                  content_attributes: { 'translation_status' => 'pending' })
+
+      expect do
+        post_auto_translate([incoming.id])
+      end.not_to have_enqueued_job(Captain::Conversation::ContactMessageTranslationJob)
+
+      incoming.update!(content_attributes: { 'translation_status' => 'failed' })
+      expect do
+        post_auto_translate([incoming.id])
+      end.to have_enqueued_job(Captain::Conversation::ContactMessageTranslationJob).with(incoming, 'es')
+      expect(incoming.reload.content_attributes['translation_status']).to eq('pending')
     end
 
     it 'rejects ids not belonging to the conversation' do
