@@ -362,8 +362,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_23_140000) do
     t.jsonb "schedule", default: {}, null: false
     t.integer "execution_delay"
     t.string "preset_id"
-    t.index ["account_id", "preset_id"], name: "index_automation_rules_on_account_id_and_preset_id"
     t.boolean "enforces_business_rules", default: false, null: false
+    t.index ["account_id", "preset_id"], name: "index_automation_rules_on_account_id_and_preset_id"
     t.index ["account_id"], name: "index_automation_rules_on_account_id"
   end
 
@@ -455,7 +455,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_23_140000) do
     t.index ["created_by_id"], name: "index_calendar_events_on_created_by_id"
     t.index ["deleted_at"], name: "index_calendar_events_on_deleted_at"
     t.index ["deleted_by_id"], name: "index_calendar_events_on_deleted_by_id"
-    t.index ["start_at"], name: "index_calendar_events_on_pending_customer_reminder", where: "((deleted_at IS NULL) AND (customer_reminder_sent_at IS NULL) AND ((customer_reminder_status IS NULL) OR ((customer_reminder_status)::text = ANY ((ARRAY['no_template'::character varying, 'retry_1'::character varying, 'retry_2'::character varying])::text[]))))"
+    t.index ["start_at"], name: "index_calendar_events_on_pending_customer_reminder", where: "((deleted_at IS NULL) AND (customer_reminder_sent_at IS NULL) AND ((customer_reminder_status IS NULL) OR ((customer_reminder_status)::text = ANY (ARRAY[('no_template'::character varying)::text, ('retry_1'::character varying)::text, ('retry_2'::character varying)::text]))))"
     t.index ["updated_by_id"], name: "index_calendar_events_on_updated_by_id"
   end
 
@@ -502,6 +502,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_23_140000) do
     t.string "error_code"
     t.string "error_title"
     t.text "message_content"
+    t.datetime "send_attempted_at"
     t.index ["account_id", "campaign_id"], name: "index_campaign_recipients_on_account_id_and_campaign_id"
     t.index ["account_id"], name: "index_campaign_recipients_on_account_id"
     t.index ["campaign_id", "contact_id"], name: "index_campaign_recipients_on_campaign_id_and_contact_id", unique: true
@@ -534,6 +535,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_23_140000) do
     t.datetime "started_at"
     t.datetime "completed_at"
     t.string "color", default: "#1f93ff", null: false
+    t.bigint "whatsapp_cursor"
     t.index ["account_id"], name: "index_campaigns_on_account_id"
     t.index ["campaign_status"], name: "index_campaigns_on_campaign_status"
     t.index ["campaign_type"], name: "index_campaigns_on_campaign_type"
@@ -1630,33 +1632,6 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_23_140000) do
     t.index ["user_id"], name: "index_notifications_on_user_id"
   end
 
-  create_table "platform_app_permissibles", force: :cascade do |t|
-    t.bigint "platform_app_id", null: false
-    t.string "permissible_type", null: false
-    t.bigint "permissible_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["permissible_type", "permissible_id"], name: "index_platform_app_permissibles_on_permissibles"
-    t.index ["platform_app_id", "permissible_id", "permissible_type"], name: "unique_permissibles_index", unique: true
-    t.index ["platform_app_id"], name: "index_platform_app_permissibles_on_platform_app_id"
-  end
-
-  create_table "platform_apps", force: :cascade do |t|
-    t.string "name", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-  end
-
-  create_table "platform_banners", force: :cascade do |t|
-    t.text "banner_message", null: false
-    t.integer "banner_type", default: 0, null: false
-    t.boolean "active", default: true, null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.string "title"
-    t.string "video_url"
-  end
-
   create_table "plans", force: :cascade do |t|
     t.integer "captain_daily_tests", default: 0, null: false
     t.string "name", null: false
@@ -1686,6 +1661,33 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_23_140000) do
     t.jsonb "feature_keys", default: [], null: false
     t.index ["is_default_trial"], name: "index_plans_on_is_default_trial", unique: true, where: "is_default_trial"
     t.index ["slug"], name: "index_plans_on_slug", unique: true
+  end
+
+  create_table "platform_app_permissibles", force: :cascade do |t|
+    t.bigint "platform_app_id", null: false
+    t.string "permissible_type", null: false
+    t.bigint "permissible_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["permissible_type", "permissible_id"], name: "index_platform_app_permissibles_on_permissibles"
+    t.index ["platform_app_id", "permissible_id", "permissible_type"], name: "unique_permissibles_index", unique: true
+    t.index ["platform_app_id"], name: "index_platform_app_permissibles_on_platform_app_id"
+  end
+
+  create_table "platform_apps", force: :cascade do |t|
+    t.string "name", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "platform_banners", force: :cascade do |t|
+    t.text "banner_message", null: false
+    t.integer "banner_type", default: 0, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "title"
+    t.string "video_url"
   end
 
   create_table "portals", force: :cascade do |t|
