@@ -43,6 +43,14 @@ describe('#ConversationAPI', () => {
         }
       );
     });
+
+    it('#autoTranslate', () => {
+      messageAPI.autoTranslate(12, [21, 22]);
+      expect(axiosMock.post).toHaveBeenCalledWith(
+        '/api/v1/conversations/12/messages/auto_translate',
+        { message_ids: [21, 22] }
+      );
+    });
   });
   describe('#buildCreatePayload', () => {
     it('builds form payload if file is available', () => {
