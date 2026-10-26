@@ -29,5 +29,16 @@ RSpec.describe 'Public Categories API', type: :request do
 
       expect(response).to have_http_status(:success)
     end
+
+    it 'keeps the locale switcher on a translated category when available' do
+      category = create(:category, portal: portal, account: account, locale: 'en', slug: 'help-en')
+      translated_category = create(:category, portal: portal, account: account, locale: 'es', slug: 'help-es',
+                                              associated_category_id: category.id)
+
+      get "/hc/#{portal.slug}/#{category.locale}/categories/#{category.slug}"
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("href=\"/hc/#{portal.slug}/es/categories/#{translated_category.slug}\"")
+    end
   end
 end
