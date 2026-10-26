@@ -24,7 +24,10 @@ class Captain::Copilot::ChatService < Llm::BaseAiService
 
   def generate_response(input)
     @messages << { role: 'user', content: input } if input.present?
-    return { error: I18n.t('captain.copilot_limit'), error_code: 429 } unless @account.reserve_captain_ai_usage!(bucket: :copilot)
+    unless @account.reserve_captain_ai_usage!(bucket: :copilot)
+      reset_date = @account.current_usage_period.period_end.to_date
+      return { error: I18n.t('captain.copilot_limit', reset_date: reset_date), error_code: 429 }
+    end
 
     request_chat_completion
   end

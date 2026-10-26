@@ -48,9 +48,15 @@ class AccountPlanUsage < ApplicationRecord
 
   # Atomic — safe under concurrent inbound messages hitting the same period.
   # rubocop:disable Rails/SkipsModelValidations
-  def increment_responses!(source: :customer, shared_response_pool: false)
+  def increment_responses!(source: :customer, shared_response_pool: false, warning_limit: limit_responses)
     increment_usage_counters!(source)
-    check_usage_limit_warnings(shared_response_pool ? shared_response_pool_consumed : responses_consumed)
+    if shared_response_pool
+      check_usage_limit_warning(:responses, shared_response_pool_consumed, warning_limit)
+    elsif source == :copilot
+      check_usage_limit_warning(:copilot, copilot_responses_consumed, warning_limit)
+    else
+      check_usage_limit_warning(:responses, responses_consumed, warning_limit)
+    end
   end
 
   private
@@ -64,22 +70,21 @@ class AccountPlanUsage < ApplicationRecord
     self.copilot_responses_consumed = self.class.where(id: id).pick(:copilot_responses_consumed) if source == :copilot
   end
 
-  def check_usage_limit_warnings(consumed = responses_consumed)
-    # Check for usage limit warnings (80% and 100%)
-    # Only warn accounts with a real plan (limit_responses.present? accounts without a plan have no meaningful percentage)
-    return unless limit_responses.present? && limit_responses.positive?
+  def check_usage_limit_warning(bucket, consumed, limit)
+    return unless limit&.positive?
 
-    usage_percentage = (consumed.to_f / limit_responses) * 100
+    [80, 100].each do |threshold|
+      next unless (consumed.to_f / limit) * 100 >= threshold
 
-    warn_at_threshold(usage_percentage, 80, :warned_at_80_percent)
-    warn_at_threshold(usage_percentage, 100, :warned_at_100_percent)
+      warning_column = "warned_at_#{bucket}_#{threshold}_percent"
+      claimed = self.class.where(id: id).where(warning_column => false).update_all(warning_column => true)
+      Captain::UsageLimitWarningJob.perform_later(self, bucket, threshold, consumed, limit) if claimed.positive?
+    end
   end
 
-  def warn_at_threshold(usage_percentage, threshold, warning_column)
-    return unless usage_percentage >= threshold && !public_send(warning_column)
-
-    Captain::UsageLimitWarningJob.perform_later(self, threshold)
-    self.class.where(id: id).update_all(warning_column => true)
+  def check_ai_usage_warning(bucket, shared_response_pool, column, limit)
+    consumed = shared_response_pool ? shared_response_pool_consumed : self[column]
+    check_usage_limit_warning(shared_response_pool ? :responses : bucket, consumed, limit)
   end
 
   public
@@ -95,7 +100,7 @@ class AccountPlanUsage < ApplicationRecord
 
   # Charge AI calls before contacting the provider so concurrent workers
   # cannot consume the same remaining credit.
-  def reserve_ai_call!(bucket:, shared_response_pool: false)
+  def reserve_ai_call!(bucket:, limit:, shared_response_pool: false)
     column = case bucket
              when :internal then :internal_calls_consumed
              when :copilot then :copilot_responses_consumed
@@ -103,9 +108,9 @@ class AccountPlanUsage < ApplicationRecord
              end
     updates = ["#{column} = #{column} + 1"]
     self.class.where(id: id).update_all(updates.join(', '))
-    public_send("#{column}=", self.class.where(id: id).pick(column))
+    self[column] = self.class.where(id: id).pick(column)
     self.responses_consumed = self.class.where(id: id).pick(:responses_consumed)
-    check_usage_limit_warnings(shared_response_pool_consumed) if shared_response_pool
+    check_ai_usage_warning(bucket, shared_response_pool, column, limit)
   end
 
   def set_documents_consumed!(count)
@@ -117,5 +122,6 @@ class AccountPlanUsage < ApplicationRecord
     self.class.where(id: id).update_all(storage_consumed: bytes)
     self.storage_consumed = bytes
   end
+
   # rubocop:enable Rails/SkipsModelValidations
 end

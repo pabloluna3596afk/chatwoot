@@ -235,6 +235,44 @@ RSpec.describe Account, type: :model do
         expect(copilot_responses_used(account)).to eq(2)
       end
 
+      it 'notifies once at 80% and once at 100% for each configured AI bag' do
+        usage = account.current_usage_period
+        expect(usage).to have_attributes(limit_copilot_responses: nil, limit_internal_calls: nil)
+        account.plan.update!(captain_copilot_responses: 5, captain_internal_calls: 5)
+
+        expect do
+          4.times { account.reserve_captain_ai_usage!(bucket: :copilot) }
+        end.to have_enqueued_job(Captain::UsageLimitWarningJob).with(account.current_usage_period, :copilot, 80, 4, 5)
+
+        expect do
+          4.times { account.reserve_captain_ai_usage!(bucket: :internal) }
+        end.to have_enqueued_job(Captain::UsageLimitWarningJob).with(account.current_usage_period, :internal, 80, 4, 5)
+
+        expect do
+          account.reserve_captain_ai_usage!(bucket: :copilot)
+        end.to have_enqueued_job(Captain::UsageLimitWarningJob).with(account.current_usage_period, :copilot, 100, 5, 5)
+
+        expect do
+          account.reserve_captain_ai_usage!(bucket: :internal)
+        end.to have_enqueued_job(Captain::UsageLimitWarningJob).with(account.current_usage_period, :internal, 100, 5, 5)
+      end
+
+      it 'sends response-pool warnings at 80% and 100%' do
+        account.current_usage_period.update!(limit_responses: 5)
+
+        expect do
+          4.times { account.increment_response_usage }
+        end.to have_enqueued_job(Captain::UsageLimitWarningJob).with(account.current_usage_period, :responses, 80, 4, 5)
+
+        expect do
+          account.increment_response_usage
+        end.to have_enqueued_job(Captain::UsageLimitWarningJob).with(account.current_usage_period, :responses, 100, 5, 5)
+
+        expect do
+          2.times { account.increment_response_usage }
+        end.not_to have_enqueued_job(Captain::UsageLimitWarningJob)
+      end
+
       it 'enforces configured internal AI usage without charging Captain responses' do
         account.plan.update!(captain_internal_calls: 1)
 

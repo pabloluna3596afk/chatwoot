@@ -21,7 +21,9 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
   # an account with no plan — nothing to meter, usage_limits already falls
   # back to ChatwootApp.max_limit for those.
   def increment_response_usage(source: :customer)
-    current_usage_period&.increment_responses!(source: source, shared_response_pool: source == :copilot && copilot_limit.nil?)
+    shared_response_pool = source == :copilot && copilot_limit.nil?
+    limit = source == :copilot && !shared_response_pool ? copilot_limit : captain_monthly_limit[:responses]
+    current_usage_period&.increment_responses!(source: source, shared_response_pool: shared_response_pool, warning_limit: limit)
   end
 
   def reserve_captain_ai_usage!(bucket:)
@@ -33,7 +35,7 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
       limit, consumed = ai_usage_reservation_limit(bucket, usage)
       return false if limit && consumed >= limit
 
-      usage.reserve_ai_call!(bucket: bucket, shared_response_pool: bucket == :copilot && copilot_limit.nil?)
+      usage.reserve_ai_call!(bucket: bucket, shared_response_pool: bucket == :copilot && copilot_limit.nil?, limit: limit)
     end
     true
   end
@@ -176,7 +178,11 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
   def default_captain_limits
     return shopify_captain_limits if shopify_billing?
 
-    max_limits = { documents: ChatwootApp.max_limit, responses: ChatwootApp.max_limit, storage: ChatwootApp.max_limit.megabytes }.with_indifferent_access
+    max_limits = {
+      documents: ChatwootApp.max_limit,
+      responses: ChatwootApp.max_limit,
+      storage: ChatwootApp.max_limit.megabytes
+    }.with_indifferent_access
 
     # No ChatHub plan assigned yet — don't block the account, fall back to max usage.
     return max_limits if plan.blank?

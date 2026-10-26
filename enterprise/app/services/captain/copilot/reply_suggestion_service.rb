@@ -30,7 +30,11 @@ class Captain::Copilot::ReplySuggestionService
     target_message = latest_public_message(conversation)
     with_trace(conversation, target_message) do
       next persist_discarded_response unless target_message&.incoming?
-      next({ error: I18n.t('captain.copilot_limit'), error_code: 429 }) unless @account.reserve_captain_ai_usage!(bucket: :copilot)
+
+      unless @account.reserve_captain_ai_usage!(bucket: :copilot)
+        reset_date = @account.current_usage_period.period_end.to_date
+        next({ error: I18n.t('captain.copilot_limit', reset_date: reset_date), error_code: 429 })
+      end
 
       response, runner = generate_reply(conversation)
       raise GenerationError, response['reasoning'] if response['error']
