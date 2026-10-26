@@ -337,7 +337,7 @@ es:
         open_with_reason: 'La conversación fue marcada como abierta por %{user_name} (%{reason})'
         auto_opened_after_agent_reply: 'La conversación se marcó como abierta automáticamente tras la respuesta de un agente'
       agent_bot:
-        error_moved_to_open: 'Conversation was marked open by system due to an error with the agent bot.'
+        error_moved_to_open: 'La conversación se abrió automáticamente por un error del conector.'
       status:
         resolved: 'La conversación fue marcada como %{status_label} por %{user_name}'
         contact_resolved: 'La conversación fue %{status_label} por %{contact_name}'
@@ -448,8 +448,8 @@ es:
       description: 'Los eventos de webhook proporcionan actualizaciones en tiempo real sobre las actividades en tu cuenta de ChatHub. Puedes suscribirte a los eventos que prefieras y ChatHub te enviará llamadas HTTP con las actualizaciones.'
     dialogflow:
       name: 'Dialogflow'
-      short_description: 'Build chatbots to handle initial queries before transferring to agents.'
-      description: 'Construye chatbots con Dialogflow e intégralos fácilmente en tu bandeja de entrada. Estos bots pueden manejar consultas iniciales antes de transferirlas a un agente de servicio al cliente.'
+      short_description: 'Integración heredada de Dialogflow.'
+      description: 'Integración heredada de Dialogflow. Aquí puedes administrar las configuraciones existentes.'
     google_translate:
       name: 'Traductor de Google'
       short_description: 'Automatically translate customer messages for agents.'
@@ -579,7 +579,7 @@ es:
         disabled: 'No se asignó a Captain: Captain no está habilitado en esta cuenta.'
         disconnected: 'No se asignó a Captain: Esta Bandeja no tiene Captain conectado.'
         different: 'No se asignó a Captain: El asistente elegido no está conectado a esta Bandeja.'
-        external_bot: 'No se asignó a Captain: Esta Bandeja tiene un bot externo activo.'
+        external_bot: 'No se asignó a Captain: Esta Bandeja tiene un conector activo.'
         missing_key: 'No se asignó a Captain: Captain está en pausa porque falta la clave de IA.'
         quota_exhausted: 'No se asignó a Captain: Captain está en pausa porque no quedan respuestas disponibles.'
     playground:

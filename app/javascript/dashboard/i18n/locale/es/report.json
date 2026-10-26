@@ -52,12 +52,12 @@
       "BOT_RESOLUTION_COUNT": {
         "NAME": "Número de resoluciones",
         "DESC": "( Total )",
-        "HELP": "Número total de conversaciones resueltas por el bot en el período seleccionado."
+        "HELP": "Número total de conversaciones resueltas por el asistente en el período seleccionado."
       },
       "BOT_HANDOFF_COUNT": {
         "NAME": "Recuento de traspasos",
         "DESC": "( Total )",
-        "HELP": "Número total de conversaciones traspasadas del bot a agentes."
+        "HELP": "Número total de conversaciones transferidas del asistente a los agentes."
       },
       "REPLY_TIME": {
         "NAME": "Tiempo de espera del cliente",
@@ -541,23 +541,23 @@
     }
   },
   "BOT_REPORTS": {
-    "HEADER": "Informes de bot",
+    "HEADER": "Informes del asistente",
     "METRIC": {
       "TOTAL_CONVERSATIONS": {
         "LABEL": "Núm. de conversaciones",
-        "TOOLTIP": "Número total de conversaciones manejadas por el bot"
+        "TOOLTIP": "Número total de conversaciones gestionadas por el asistente"
       },
       "TOTAL_RESPONSES": {
         "LABEL": "Total de respuestas",
-        "TOOLTIP": "Número total de respuestas enviadas por el bot"
+        "TOOLTIP": "Número total de respuestas enviadas por el asistente"
       },
       "RESOLUTION_RATE": {
         "LABEL": "Tasa de resolución",
-        "TOOLTIP": "Número total de conversaciones resueltas por el bot / Número total de conversaciones manejadas por el bot * 100"
+        "TOOLTIP": "Número total de conversaciones resueltas por el asistente / Número total de conversaciones gestionadas por el asistente * 100"
       },
       "HANDOFF_RATE": {
         "LABEL": "Tasa de traspasos",
-        "TOOLTIP": "Número total de conversaciones transmitidas a agentes / Número total de conversaciones manejadas por el bot * 100"
+        "TOOLTIP": "Número total de conversaciones transferidas a agentes / Número total de conversaciones gestionadas por el asistente * 100"
       }
     }
   },
@@ -579,7 +579,7 @@
         "OPEN": "Conversaciones que están actualmente en estado abierto.",
         "UNATTENDED": "Conversaciones abiertas que aún no han recibido respuesta de un agente.",
         "UNASSIGNED": "Conversaciones que no tienen un agente asignado.",
-        "PENDING": "Conversaciones que están actualmente en estado pendiente (bot)."
+        "PENDING": "Conversaciones que están actualmente pendientes (asistente)."
       }
     },
     "CONVERSATION_HEATMAP": {

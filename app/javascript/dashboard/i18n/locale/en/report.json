@@ -52,12 +52,12 @@
       "BOT_RESOLUTION_COUNT": {
         "NAME": "Resolution Count",
         "DESC": "( Total )",
-        "HELP": "Total number of conversations resolved by the bot in the selected period."
+        "HELP": "Total number of conversations resolved by the assistant in the selected period."
       },
       "BOT_HANDOFF_COUNT": {
         "NAME": "Handoff Count",
         "DESC": "( Total )",
-        "HELP": "Total number of conversations handed off from the bot to agents."
+        "HELP": "Total number of conversations handed off from the assistant to agents."
       },
       "REPLY_TIME": {
         "NAME": "Customer waiting time",
@@ -541,23 +541,23 @@
     }
   },
   "BOT_REPORTS": {
-    "HEADER": "Bot Reports",
+    "HEADER": "Assistant reports",
     "METRIC": {
       "TOTAL_CONVERSATIONS": {
         "LABEL": "No. of Conversations",
-        "TOOLTIP": "Total number of conversations handled by the bot"
+        "TOOLTIP": "Total number of conversations handled by the assistant"
       },
       "TOTAL_RESPONSES": {
         "LABEL": "Total Responses",
-        "TOOLTIP": "Total number of responses sent by the bot"
+        "TOOLTIP": "Total number of responses sent by the assistant"
       },
       "RESOLUTION_RATE": {
         "LABEL": "Resolution Rate",
-        "TOOLTIP": "Total number of conversations resolved by the bot / Total number of conversations handled by the bot * 100"
+        "TOOLTIP": "Total number of conversations resolved by the assistant / Total number of conversations handled by the assistant * 100"
       },
       "HANDOFF_RATE": {
         "LABEL": "Handoff Rate",
-        "TOOLTIP": "Total number of conversations handed off to agents / Total number of conversations handled by the bot * 100"
+        "TOOLTIP": "Total number of conversations handed off to agents / Total number of conversations handled by the assistant * 100"
       }
     }
   },
@@ -580,7 +580,7 @@
         "OPEN": "Conversations currently in open status.",
         "UNATTENDED": "Open conversations that have not received an agent reply yet.",
         "UNASSIGNED": "Conversations that do not have an assigned agent.",
-        "PENDING": "Conversations currently in pending (bot) status."
+    "PENDING": "Conversations currently in pending (assistant) status."
       }
     },
     "CONVERSATION_HEATMAP": {

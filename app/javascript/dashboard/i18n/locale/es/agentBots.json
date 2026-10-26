@@ -1,49 +1,49 @@
 {
   "AGENT_BOTS": {
-    "HEADER": "Bots",
+    "HEADER": "Conectores",
     "LOADING_EDITOR": "Cargando el editor...",
-    "DESCRIPTION": "Los bots de agentes son como los miembros más fabulosos de tu equipo. Ellos pueden manejar las cosas pequeñas, así que usted puede centrarse en las cosas que importan. Inténtalos. Puedes administrar tus bots desde esta página o crear nuevos usando el botón 'Configurar un nuevo bot'.",
-    "LEARN_MORE": "Conoce los bots de agente",
-    "COUNT": "{n} bot | {n} bots",
-    "SEARCH_PLACEHOLDER": "Buscar bots...",
-    "NO_RESULTS": "No se encontraron bots de agente que coincidan con tu búsqueda",
-    "GLOBAL_BOT": "Bot del sistema",
+    "DESCRIPTION": "Conecta tu espacio de trabajo con servicios externos mediante webhooks. Estos servicios pueden procesar eventos de conversaciones y responder a los clientes.",
+    "LEARN_MORE": "Más información sobre conectores",
+    "COUNT": "{n} conector | {n} conectores",
+    "SEARCH_PLACEHOLDER": "Buscar conectores...",
+    "NO_RESULTS": "No se encontraron conectores que coincidan con tu búsqueda",
+    "GLOBAL_BOT": "Conector del sistema",
     "GLOBAL_BOT_BADGE": "Sistema",
     "AVATAR": {
-      "SUCCESS_DELETE": "Avatar del bot eliminado correctamente",
-      "ERROR_DELETE": "Error al borrar el bot, por favor intentar más tarde"
+      "SUCCESS_DELETE": "Avatar del conector eliminado correctamente",
+      "ERROR_DELETE": "No se pudo borrar el avatar del conector. Inténtalo de nuevo."
     },
     "BOT_CONFIGURATION": {
-      "TITLE": "Seleccione un bot de agente",
-      "DESC": "Asigne un bot de agente a su bandeja de entrada. Pueden manejar conversaciones iniciales y transferirlas a un agente en vivo cuando sea necesario.",
+      "TITLE": "Selecciona un conector",
+      "DESC": "Conecta un servicio externo a tu bandeja de entrada. Puede procesar eventos de conversaciones y responder a los clientes.",
       "SUBMIT": "Actualizar",
-      "DISCONNECT": "Desconectar Bot",
-      "SUCCESS_MESSAGE": "El bot del agente se ha actualizado con éxito.",
-      "DISCONNECTED_SUCCESS_MESSAGE": "Desconectado correctamente el bot agente.",
-      "ERROR_MESSAGE": "No se pudo actualizar el bot de agente, por favor inténtalo de nuevo más tarde.",
-      "DISCONNECTED_ERROR_MESSAGE": "No se pudo desconectar el bot de agente, por favor inténtalo de nuevo más tarde.",
-      "SELECT_PLACEHOLDER": "Seleccionar bot"
+      "DISCONNECT": "Desconectar conector",
+      "SUCCESS_MESSAGE": "El conector se ha actualizado con éxito.",
+      "DISCONNECTED_SUCCESS_MESSAGE": "Desconectado correctamente el conector.",
+      "ERROR_MESSAGE": "No se pudo actualizar el conector, por favor inténtalo de nuevo más tarde.",
+      "DISCONNECTED_ERROR_MESSAGE": "No se pudo desconectar el conector, por favor inténtalo de nuevo más tarde.",
+      "SELECT_PLACEHOLDER": "Seleccionar conector"
     },
     "ADD": {
-      "TITLE": "Agregar Bot",
+      "TITLE": "Agregar conector",
       "CANCEL_BUTTON_TEXT": "Cancelar",
       "API": {
-        "SUCCESS_MESSAGE": "Bot añadido correctamente.",
-        "ERROR_MESSAGE": "No se pudo agregar el bot, Inténtalo de nuevo más tarde."
+        "SUCCESS_MESSAGE": "El conector se agregó correctamente.",
+        "ERROR_MESSAGE": "No se pudo agregar el conector. Inténtalo de nuevo."
       }
     },
     "LIST": {
-      "404": "No sé encontró ningún bot. Puedes crear uno haciendo clic en 'crear un Bot'.",
-      "LOADING": "Obteniendo bots...",
+      "404": "No se encontraron conectores. Puedes crear uno con el botón «Agregar conector».",
+      "LOADING": "Cargando conectores...",
       "TABLE_HEADER": {
-        "DETAILS": "Detalles del Bot",
+        "DETAILS": "Detalles del conector",
         "URL": "URL de Webhook",
         "ACTIONS": "Acciones"
       }
     },
     "DELETE": {
       "BUTTON_TEXT": "Eliminar",
-      "TITLE": "Eliminar bot",
+      "TITLE": "Eliminar conector",
       "CONFIRM": {
         "TITLE": "Confirmar eliminación",
         "MESSAGE": "¿Está seguro que desea borrar {name}?",
@@ -51,16 +51,16 @@
         "NO": "No, mantenerlo"
       },
       "API": {
-        "SUCCESS_MESSAGE": "Bot eliminado correctamente.",
-        "ERROR_MESSAGE": "No se pudo eliminar el bot. Por favor, inténtalo de nuevo."
+        "SUCCESS_MESSAGE": "El conector se eliminó correctamente.",
+        "ERROR_MESSAGE": "No se pudo eliminar el conector. Inténtalo de nuevo."
       }
     },
     "EDIT": {
       "BUTTON_TEXT": "Editar",
-      "TITLE": "Editar bot",
+      "TITLE": "Editar conector",
       "API": {
-        "SUCCESS_MESSAGE": "Bot actualizado correctamente.",
-        "ERROR_MESSAGE": "No se pudo actualizar el bot, por favor inténtalo de nuevo más tarde."
+        "SUCCESS_MESSAGE": "El conector se actualizó correctamente.",
+        "ERROR_MESSAGE": "No se pudo actualizar el conector. Inténtalo de nuevo."
       }
     },
     "SECRET": {
@@ -68,7 +68,7 @@
       "COPY": "Copiar el código secreto al portapapeles",
       "COPY_SUCCESS": "Código secreto copiado al portapapeles",
       "TOGGLE": "Mostrar u ocultar el código secreto",
-      "CREATED_DESC": "Usa el siguiente secreto para verificar las firmas de los webhooks. Cópialo ahora; también puedes encontrarlo más tarde en la configuración del bot.",
+      "CREATED_DESC": "Usa el siguiente secreto para verificar las firmas de los webhooks. Cópialo ahora; también puedes encontrarlo más tarde en la configuración del conector.",
       "DONE": "Listo",
       "RESET_SUCCESS": "El código secreto del webhook se regeneró correctamente",
       "RESET_ERROR": "No se pudo regenerar el código secreto del webhook. Inténtalo de nuevo"
@@ -82,16 +82,16 @@
     },
     "FORM": {
       "AVATAR": {
-        "LABEL": "Avatar del Bot"
+        "LABEL": "Avatar del conector"
       },
       "NAME": {
-        "LABEL": "Nombre del bot",
-        "PLACEHOLDER": "Nombre del Bot",
-        "REQUIRED": "El nombre del bot es obligatorio"
+        "LABEL": "Nombre del conector",
+        "PLACEHOLDER": "Nombre del conector",
+        "REQUIRED": "El nombre del conector es obligatorio"
       },
       "DESCRIPTION": {
         "LABEL": "Descripción",
-        "PLACEHOLDER": "¿Qué hace este bot?"
+        "PLACEHOLDER": "¿Qué hace este conector?"
       },
       "WEBHOOK_URL": {
         "LABEL": "URL de Webhook",
@@ -99,19 +99,19 @@
         "REQUIRED": "Dirección del webhook es requerida"
       },
       "ERRORS": {
-        "NAME": "El nombre del bot es obligatorio",
+        "NAME": "El nombre del conector es obligatorio",
         "URL": "Dirección del webhook es requerida",
         "VALID_URL": "Por favor, introduzca una URL válida comenzando con http:// o https://"
       },
       "CANCEL": "Cancelar",
-      "CREATE": "Crear Bot",
-      "UPDATE": "Actualizar Bot"
+      "CREATE": "Crear conector",
+      "UPDATE": "Actualizar conector"
     },
     "WEBHOOK": {
-      "DESCRIPTION": "Configure el webhook del bot para integrarse con sus servicios personalizados. El bot recibirá y procesará eventos de conversaciones y podrá responder a ellos."
+      "DESCRIPTION": "Configura un webhook para integrar tus servicios personalizados. El conector recibirá y procesará eventos de conversaciones y podrá responder a los clientes."
     },
     "TYPES": {
-      "WEBHOOK": "Webhook Bot"
+      "WEBHOOK": "Conector de webhook"
     }
   }
 }

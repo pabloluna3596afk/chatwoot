@@ -72,7 +72,7 @@
       "if_attribute_then_require": "Only when the When conditions match. Then require extra conversation and/or contact fields. On resolve, the same modal collects missing values. 0 is treated as empty for numeric fields.",
       "require_reason_on_status": "When moving to pending/snoozed, require a recent private note and/or a conversation reason attribute.",
       "forbid_status_if": "Block the status change if the conversation has the given label.",
-      "require_assignee_on_status": "Block the status change unless a team or human agent is assigned. An inbox bot does not count."
+      "require_assignee_on_status": "Block the status change unless a team or human agent is assigned. An inbox connector does not count."
     },
     "TYPES": {
       "require_attributes_on_status": "Require attributes on status change",
@@ -99,7 +99,7 @@
       "FORBID_RESOLVE_LABEL": "Forbid resolve with label",
       "FORBID_RESOLVE_LABEL_DESC": "Block resolve when a conversation has a given label.",
       "REQUIRE_ASSIGNEE_ON_OPEN": "Require assignee on open",
-      "REQUIRE_ASSIGNEE_ON_OPEN_DESC": "Opening requires a team or human agent (inbox bot does not count).",
+      "REQUIRE_ASSIGNEE_ON_OPEN_DESC": "Opening requires a team or human agent (inbox connector does not count).",
       "POST_COMPRA": "Post-purchase follow-up (N days)",
       "POST_COMPRA_DESC": "After N days from a date attribute, run actions (label, message, etc.).",
       "POST_COMPRA_ATTRIBUTE_NAME": "Sale date",

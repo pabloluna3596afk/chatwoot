@@ -38,7 +38,7 @@ const getWrittenBy = note => {
   const isCurrentUser = note?.user?.id === currentUser.value.id;
   return isCurrentUser
     ? t('CONTACTS_LAYOUT.SIDEBAR.NOTES.YOU')
-    : note?.user?.name || 'Bot';
+    : note?.user?.name || 'Assistant';
 };
 
 const openContact = contactId => {
