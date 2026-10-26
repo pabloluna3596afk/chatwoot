@@ -95,7 +95,7 @@ RSpec.describe Llm::SpeechToTextService, type: :service do
 
     it 'uses the audio transcription feature model' do
       expect(audio_api).to receive(:transcribe).with(
-        parameters: hash_including(model: 'gpt-4o-mini-transcribe', temperature: 0.0)
+        parameters: hash_including(model: 'gpt-transcribe', temperature: 0.0)
       ).and_return({ 'text' => 'Audio transcript' })
 
       expect(service.perform).to eq('Audio transcript')

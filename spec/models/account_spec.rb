@@ -459,11 +459,11 @@ RSpec.describe Account do
 
     describe 'with saved model preferences' do
       it 'returns saved preferences merged with defaults' do
-        account.update!(captain_models: { 'editor' => 'gpt-4.1-mini', 'assistant' => 'gpt-5.2' })
+        account.update!(captain_models: { 'editor' => 'gpt-5.2', 'assistant' => 'gpt-5.2' })
 
         prefs = account.captain_preferences
 
-        expect(prefs[:models]['editor']).to eq('gpt-4.1-mini')
+        expect(prefs[:models]['editor']).to eq('gpt-5.2')
         expect(prefs[:models]['assistant']).to eq('gpt-5.2')
         expect(prefs[:models]['copilot']).to eq(Llm::Models.default_model_for('copilot'))
       end
@@ -490,13 +490,13 @@ RSpec.describe Account do
       end
 
       it 'accepts valid model for a feature' do
-        account.captain_models = { 'editor' => 'gpt-4.1-mini', 'label_suggestion' => 'gpt-4.1-nano' }
+        account.captain_models = { 'editor' => 'gpt-5.2', 'label_suggestion' => 'gpt-5.2' }
 
         expect(account).to be_valid
       end
 
       it 'rejects unknown feature keys' do
-        account.captain_models = { 'unknown_feature' => 'gpt-4.1' }
+        account.captain_models = { 'unknown_feature' => 'gpt-5.2' }
 
         expect(account).not_to be_valid
         expect(account.errors[:captain_models]).to include("'unknown_feature' is not a known feature")
