@@ -90,6 +90,10 @@
   "MFA_VERIFICATION": {
     "TITLE": "Two-Factor Authentication",
     "DESCRIPTION": "Enter your verification code to continue",
+    "DEVICE_TITLE": "Verify this device",
+    "DEVICE_DESCRIPTION": "Enter the 6-digit code sent to your email address.",
+    "ENTER_EMAIL_CODE": "Enter the 6-digit code sent to your email",
+    "REMEMBER_DEVICE": "Trust this device for 30 days",
     "AUTHENTICATOR_APP": "Authenticator App",
     "BACKUP_CODE": "Backup Code",
     "ENTER_OTP_CODE": "Enter 6-digit code from your authenticator app",

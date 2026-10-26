@@ -6,6 +6,8 @@ import { login } from '../../api/auth';
 import { useAlert } from 'dashboard/composables';
 import en from 'dashboard/i18n/locale/en/login.json';
 import es from 'dashboard/i18n/locale/es/login.json';
+import enMfa from 'dashboard/i18n/locale/en/mfa.json';
+import esMfa from 'dashboard/i18n/locale/es/mfa.json';
 import Login from './Index.vue';
 import AuthSplitLayout from '../../components/Auth/AuthSplitLayout.vue';
 
@@ -17,8 +19,8 @@ vi.mock('dashboard/helper/AnalyticsHelper', () => ({
 vi.mock('dashboard/components/auth/MfaVerification.vue', () => ({
   default: {
     name: 'MfaVerification',
-    props: ['mfaToken'],
-    emits: ['verified', 'cancel'],
+    props: ['mfaToken', 'verificationChannel'],
+    emits: ['verified', 'cancel', 'setupRequired'],
     template: '<div />',
   },
 }));
@@ -274,6 +276,36 @@ describe('login', () => {
       'agent@example.com'
     );
   });
+
+  it.each(['en', 'es'])(
+    'shows the email verification challenge in %s and keeps localized copy',
+    async locale => {
+      i18n.global.locale.value = locale;
+      login.mockResolvedValue({
+        mfaRequired: true,
+        mfaToken: 'device-token',
+        verificationChannel: 'email',
+      });
+      wrapper = mount(Login);
+      await wrapper.get('input[type="email"]').setValue('agent@example.com');
+      await wrapper.get('input[type="password"]').setValue('secret');
+      await wrapper.get('form').trigger('submit');
+      await flushPromises();
+
+      expect(
+        wrapper.getComponent({ name: 'MfaVerification' }).props()
+      ).toMatchObject({
+        mfaToken: 'device-token',
+        verificationChannel: 'email',
+      });
+      expect(
+        { en: enMfa, es: esMfa }[locale].MFA_VERIFICATION.DEVICE_TITLE
+      ).toBeTruthy();
+      expect(
+        { en: enMfa, es: esMfa }[locale].MFA_VERIFICATION.REMEMBER_DEVICE
+      ).toBeTruthy();
+    }
+  );
 
   it('shows enforced MFA enrollment when the account requires it', async () => {
     login.mockResolvedValue({
