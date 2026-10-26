@@ -56,9 +56,8 @@ class Migration::ReplaceRetiredCaptainModelsJob < ApplicationJob
       next if changes.empty?
 
       models = account.captain_models.transform_values { |model| RETIRED_MODELS.fetch(model, model) }
-      account.update!(captain_models: models)
-    rescue ActiveRecord::RecordInvalid => e
-      Rails.logger.error("[retired-captain-models] account_id=#{account.id} #{e.record.errors.full_messages.to_sentence}")
+      # Skip validation on purpose: an unrelated model already outside the allowed list must not block the replacement.
+      account.update_column(:settings, account.settings.merge('captain_models' => models)) # rubocop:disable Rails/SkipsModelValidations
     end
   end
 end
