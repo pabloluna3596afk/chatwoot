@@ -12,7 +12,8 @@ export const ONGOING_CAMPAIGN_EMPTY_STATE_CONTENT = [
       id: 1,
       name: 'Alexa Rivera',
     },
-    message: 'Hello! 👋 Need help with our chatbot features? Feel free to ask!',
+    message:
+      'Hello! 👋 Need help with our AI assistant features? Feel free to ask!',
     campaign_status: 'active',
     enabled: true,
     campaign_type: 'ongoing',
