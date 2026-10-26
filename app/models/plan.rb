@@ -55,6 +55,8 @@ class Plan < ApplicationRecord
 
   validate :valid_feature_keys
   validates :captain_daily_tests, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+  validates :captain_copilot_responses, :captain_internal_calls,
+            numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   validates :name, presence: true
   validates :slug, presence: true, uniqueness: true
   # DB partial unique index enforces this too; the validation just gives a

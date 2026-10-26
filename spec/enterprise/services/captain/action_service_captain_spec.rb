@@ -71,7 +71,7 @@ RSpec.describe ActionService do
     disabled: 'Captain no está habilitado en esta cuenta.',
     disconnected: 'Esta Bandeja no tiene Captain conectado.',
     different: 'El asistente elegido no está conectado a esta Bandeja.',
-    external_bot: 'Esta Bandeja tiene un bot externo activo.',
+    external_bot: 'Esta Bandeja tiene un conector activo.',
     missing_key: 'Captain está en pausa porque falta la clave de IA.',
     quota_exhausted: 'Captain está en pausa porque no quedan respuestas disponibles.'
   }.each do |reason, text|

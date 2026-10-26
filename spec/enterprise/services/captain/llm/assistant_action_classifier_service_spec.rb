@@ -77,6 +77,24 @@ RSpec.describe Captain::Llm::AssistantActionClassifierService do
       expect(result).to include('model' => 'gpt-5.2')
     end
 
+    it 'reserves an internal call when the plan has an internal limit' do
+      put_account_on_plan(account, captain_internal_calls: 1)
+      allow(mock_chat).to receive(:ask).and_return(mock_response)
+
+      expect do
+        service.classify(message_history: message_history, assistant_response: 'Would you like to talk to support?')
+      end.to change { account.reload.current_usage_period.internal_calls_consumed }.by(1)
+    end
+
+    it 'blocks before the provider when the internal allowance is exhausted' do
+      put_account_on_plan(account, captain_internal_calls: 0)
+      expect(mock_chat).not_to receive(:ask)
+
+      result = service.classify(message_history: message_history, assistant_response: 'Would you like to talk to support?')
+
+      expect(result).to include('action' => nil, 'error' => I18n.t('captain.internal_limit'))
+    end
+
     context 'when the assistant has no custom instructions' do
       before do
         assistant.update!(config: assistant.config.except('instructions'))

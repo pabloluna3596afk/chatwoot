@@ -6,7 +6,8 @@ RSpec.describe 'Plan catalog API', type: :request do
   let(:path) { "/api/v1/accounts/#{account.id}/plans" }
   let!(:plan) do
     Plan.create!(name: 'Catalog', slug: 'catalog', description: 'USD 149, promotional USD 119',
-                 monthly_messages: 200, storage_mb: 3, max_captain_assistants: 2, max_human_agents: 4,
+                 monthly_messages: 200, captain_copilot_responses: 25, captain_internal_calls: 80,
+                 storage_mb: 3, max_captain_assistants: 2, max_human_agents: 4,
                  max_inboxes: 5, max_emails_per_day: 50, captain_daily_tests: 10,
                  trial_days: 15, trial_messages: 200, feature_keys: ['automations'])
   end
@@ -36,7 +37,8 @@ RSpec.describe 'Plan catalog API', type: :request do
                                            'id' => plan.id, 'slug' => 'catalog', 'name' => 'Catalog', 'description' => nil,
                                            'display_order' => 0, 'state' => 'available', 'feature_keys' => ['automations'],
                                            'limits' => {
-                                             'monthly_responses' => 200, 'storage_bytes' => 3.megabytes, 'assistants' => 2,
+                                             'monthly_responses' => 200, 'copilot_responses' => 25, 'internal_ai_calls' => 80,
+                                             'storage_bytes' => 3.megabytes, 'assistants' => 2,
                                              'users' => 4, 'inboxes' => 5, 'emails_per_day' => 50, 'tests_per_day' => 10,
                                              'trial_days' => 15, 'trial_responses' => 200
                                            }

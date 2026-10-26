@@ -223,6 +223,9 @@ en:
       invalid_token: Invalid or expired MFA token
       invalid_credentials: Invalid credentials or verification code
       feature_unavailable: MFA feature is not available. Please configure encryption keys.
+      setup_required: This account requires MFA enrollment.
+      enrollment_required: MFA enrollment is required to use this access token.
+      enforced: MFA cannot be disabled while an account requires it.
     billing:
       invalid_currency: Invalid billing currency
       currency_locked: Billing currency cannot be changed after billing has been set up
@@ -392,7 +395,7 @@ en:
         open_with_reason: 'Conversation was marked open by %{user_name} (%{reason})'
         auto_opened_after_agent_reply: 'Conversation was marked open automatically after an agent reply'
       agent_bot:
-        error_moved_to_open: 'Conversation was marked open by system due to an error with the agent bot.'
+        error_moved_to_open: 'Conversation was marked open by system due to an error with the connector.'
       status:
         resolved: 'Conversation was marked %{status_label} by %{user_name}'
         contact_resolved: 'Conversation was %{status_label} by %{contact_name}'
@@ -503,8 +506,8 @@ en:
       description: 'Webhook events provide real-time updates about activities in your ChatHub account. You can subscribe to your preferred events, and ChatHub will send you HTTP callbacks with the updates.'
     dialogflow:
       name: 'Dialogflow'
-      short_description: 'Build chatbots to handle initial queries before transferring to agents.'
-      description: 'Build chatbots with Dialogflow and easily integrate them into your inbox. These bots can handle initial queries before transferring them to a customer service agent.'
+      short_description: 'Legacy Dialogflow integration.'
+      description: 'Legacy Dialogflow integration. Existing configurations can be managed here.'
     google_translate:
       name: 'Google Translate'
       short_description: 'Automatically translate customer messages for agents.'
@@ -654,7 +657,7 @@ en:
         disabled: 'Captain assignment skipped: Captain is not enabled for this account.'
         disconnected: 'Captain assignment skipped: This inbox has no Captain connected.'
         different: 'Captain assignment skipped: The selected assistant is not connected to this inbox.'
-        external_bot: 'Captain assignment skipped: This inbox has an active external bot.'
+        external_bot: 'Captain assignment skipped: This inbox has an active connector.'
         missing_key: 'Captain assignment skipped: Captain is paused because the AI key is missing.'
         quota_exhausted: 'Captain assignment skipped: Captain is paused because no responses are available.'
     playground:
@@ -665,6 +668,7 @@ en:
     copilot_message_required: Message is required
     copilot_error: 'Please connect an assistant to this inbox to use Copilot'
     copilot_limit: 'You are out of Copilot credits. You can buy more credits from the billing section.'
+    internal_limit: 'The monthly limit for internal AI actions has been reached.'
     upgrade: 'Upgrade your plan to enable Captain AI'
     disabled: 'Captain AI is disabled for this account.'
     api_key_missing: 'Captain AI API key is not configured.'

@@ -6,6 +6,7 @@ import { picoSearch } from '@chatwoot/pico-search';
 import IntegrationItem from './IntegrationItem.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
+import { isIntegrationVisible } from './integrationVisibility';
 
 const store = useStore();
 const getters = useStoreGetters();
@@ -18,10 +19,17 @@ const integrationList = computed(
   () => getters['integrations/getAppIntegrations'].value
 );
 
+const visibleIntegrationList = computed(() =>
+  integrationList.value.filter(isIntegrationVisible)
+);
+
 const filteredIntegrationList = computed(() => {
   const query = searchQuery.value.trim();
-  if (!query) return integrationList.value;
-  return picoSearch(integrationList.value, query, ['name', 'description']);
+  if (!query) return visibleIntegrationList.value;
+  return picoSearch(visibleIntegrationList.value, query, [
+    'name',
+    'description',
+  ]);
 });
 
 onMounted(() => {

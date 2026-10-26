@@ -178,6 +178,19 @@ RSpec.describe 'MFA API', type: :request do
         end
       end
 
+      it 'prevents disabling MFA while an associated account enforces it' do
+        account.update!(enforce_mfa: true)
+
+        delete '/api/v1/profile/mfa',
+               params: { password: 'Test@123456', otp_code: user.current_otp },
+               headers: user.create_new_auth_token,
+               as: :json
+
+        expect(response).to have_http_status(:forbidden)
+        expect(user.reload).to be_mfa_enabled
+        expect(user.otp_backup_codes).to be_present
+      end
+
       context 'with invalid password' do
         it 'returns error message' do
           otp_code = user.current_otp

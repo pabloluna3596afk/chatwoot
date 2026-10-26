@@ -653,7 +653,7 @@
         "LAST_MESSAGE_FROM": {
           "CONTACT": "Contact",
           "AGENT": "Agent",
-          "BOT": "Bot",
+          "BOT": "Assistant",
           "TEMPLATE": "Template"
         },
         "LAST_MESSAGE_ATTACHMENT": "Attachment"

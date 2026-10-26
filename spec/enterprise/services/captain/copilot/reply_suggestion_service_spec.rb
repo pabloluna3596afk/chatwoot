@@ -152,10 +152,17 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
     )
   end
 
-  it 'increments response usage after persisting the suggestion' do
+  it 'charges the shared Captain response pool before the provider call' do
     expect do
       service.generate_response
-    end.to change { copilot_responses_used(account) }.by(1)
+    end.to change { captain_responses_used(account) }.by(1)
+  end
+
+  it 'blocks before the provider when the shared Captain pool is exhausted' do
+    account.current_usage_period.update!(responses_consumed: 100)
+
+    expect(runner).not_to receive(:generate_response)
+    expect(service.generate_response).to include(error_code: 429)
   end
 
   it 'charges at most once if the same action is retried after completion' do
@@ -168,7 +175,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
     expect(runner).to have_received(:generate_response).once
   end
 
-  it 'discards a generated response without charging when an agent replies during the run' do
+  it 'charges the call even when an agent replies during the provider run' do
     allow(runner).to receive(:generate_response) do
       create(:message, conversation: conversation, account: account, inbox: inbox, message_type: :outgoing,
                        content: 'An agent handled this message.')
@@ -177,7 +184,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
 
     expect do
       expect(service.generate_response['discarded']).to be true
-    end.not_to(change { copilot_responses_used(account) })
+    end.to(change { copilot_responses_used(account) }.by(1))
 
     message = copilot_thread.copilot_messages.last
     expect(message).to be_assistant
@@ -186,7 +193,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
     )
   end
 
-  it 'charges once when a failed attempt is retried successfully' do
+  it 'charges each provider attempt, including a failed attempt' do
     allow(runner).to receive(:generate_response).and_return(
       { 'error' => true, 'reasoning' => 'Temporary model failure.' },
       response
@@ -197,7 +204,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
         Captain::Copilot::ReplySuggestionService::GenerationError,
         'Temporary model failure.'
       )
-    end.not_to(change { copilot_responses_used(account) })
+    end.to(change { copilot_responses_used(account) }.by(1))
 
     expect do
       service.generate_response
@@ -250,7 +257,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
 
     expect do
       expect(service.generate_response['discarded']).to be false
-    end.not_to(change { copilot_responses_used(account) })
+    end.to(change { copilot_responses_used(account) }.by(1))
 
     expect(copilot_thread.copilot_messages.last.message).to eq(
       'content' => "Copilot couldn't generate a reply. Please try again."

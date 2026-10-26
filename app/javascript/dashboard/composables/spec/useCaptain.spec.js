@@ -66,6 +66,38 @@ describe('useCaptain', () => {
     expect(draftMessage.value).toBe('Draft message');
   });
 
+  it('only exposes Copilot and internal meters when their limits are configured', () => {
+    const withoutLimits = useCaptain();
+    expect(withoutLimits.copilotLimits.value).toBeNull();
+    expect(withoutLimits.internalLimits.value).toBeNull();
+
+    useAccount.mockReturnValue({
+      isCloudFeatureEnabled: vi.fn().mockReturnValue(true),
+      currentAccount: {
+        value: {
+          limits: {
+            captain: {
+              copilot: { total_count: 5, consumed: 2, current_available: 3 },
+              internal: { total_count: 20, consumed: 6, current_available: 14 },
+            },
+          },
+        },
+      },
+    });
+
+    const withLimits = useCaptain();
+    expect(withLimits.copilotLimits.value).toEqual({
+      totalCount: 5,
+      consumed: 2,
+      currentAvailable: 3,
+    });
+    expect(withLimits.internalLimits.value).toEqual({
+      totalCount: 20,
+      consumed: 6,
+      currentAvailable: 14,
+    });
+  });
+
   it('rewrites content', async () => {
     TasksAPI.rewrite.mockResolvedValue({
       data: { message: 'Rewritten content', follow_up_context: { id: 'ctx1' } },

@@ -197,6 +197,9 @@ es:
       invalid_token: Invalid or expired MFA token
       invalid_credentials: Invalid credentials or verification code
       feature_unavailable: MFA feature is not available. Please configure encryption keys.
+      setup_required: Esta cuenta requiere configurar MFA.
+      enrollment_required: Se requiere configurar MFA para usar este token de acceso.
+      enforced: No se puede desactivar MFA mientras una cuenta lo exija.
     billing:
       invalid_currency: Moneda de facturación no válida
       currency_locked: La moneda de facturación no se puede cambiar después de que se haya configurado la facturación
@@ -334,7 +337,7 @@ es:
         open_with_reason: 'La conversación fue marcada como abierta por %{user_name} (%{reason})'
         auto_opened_after_agent_reply: 'La conversación se marcó como abierta automáticamente tras la respuesta de un agente'
       agent_bot:
-        error_moved_to_open: 'Conversation was marked open by system due to an error with the agent bot.'
+        error_moved_to_open: 'La conversación se abrió automáticamente por un error del conector.'
       status:
         resolved: 'La conversación fue marcada como %{status_label} por %{user_name}'
         contact_resolved: 'La conversación fue %{status_label} por %{contact_name}'
@@ -445,8 +448,8 @@ es:
       description: 'Los eventos de webhook proporcionan actualizaciones en tiempo real sobre las actividades en tu cuenta de ChatHub. Puedes suscribirte a los eventos que prefieras y ChatHub te enviará llamadas HTTP con las actualizaciones.'
     dialogflow:
       name: 'Dialogflow'
-      short_description: 'Build chatbots to handle initial queries before transferring to agents.'
-      description: 'Construye chatbots con Dialogflow e intégralos fácilmente en tu bandeja de entrada. Estos bots pueden manejar consultas iniciales antes de transferirlas a un agente de servicio al cliente.'
+      short_description: 'Integración heredada de Dialogflow.'
+      description: 'Integración heredada de Dialogflow. Aquí puedes administrar las configuraciones existentes.'
     google_translate:
       name: 'Traductor de Google'
       short_description: 'Automatically translate customer messages for agents.'
@@ -576,7 +579,7 @@ es:
         disabled: 'No se asignó a Captain: Captain no está habilitado en esta cuenta.'
         disconnected: 'No se asignó a Captain: Esta Bandeja no tiene Captain conectado.'
         different: 'No se asignó a Captain: El asistente elegido no está conectado a esta Bandeja.'
-        external_bot: 'No se asignó a Captain: Esta Bandeja tiene un bot externo activo.'
+        external_bot: 'No se asignó a Captain: Esta Bandeja tiene un conector activo.'
         missing_key: 'No se asignó a Captain: Captain está en pausa porque falta la clave de IA.'
         quota_exhausted: 'No se asignó a Captain: Captain está en pausa porque no quedan respuestas disponibles.'
     playground:
@@ -586,6 +589,7 @@ es:
       playground_history_invalid: 'El historial de la prueba no es válido'
     copilot_message_required: El mensaje es obligatorio
     copilot_error: 'Conecte un asistente a esta bandeja de entrada para utilizar Copilot'
+    internal_limit: 'Se alcanzó el límite mensual de acciones internas de IA.'
     copilot_limit: 'Te quedaste sin créditos de Copilot. Puedes comprar más créditos desde la sección de facturación.'
     upgrade: 'Actualiza tu plan para habilitar Captain AI'
     disabled: 'Captain AI está deshabilitado para esta cuenta.'

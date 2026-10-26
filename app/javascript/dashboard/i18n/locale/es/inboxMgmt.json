@@ -561,7 +561,7 @@
         "DESC": "Integre con el canal de Telegram y comience a apoyar a sus clientes.",
         "BOT_TOKEN": {
           "LABEL": "Bot Token",
-          "SUBTITLE": "Configura el token de bot que has obtenido de Telegram BotFather.",
+          "SUBTITLE": "Configura el token del bot que obtuviste de Telegram BotFather.",
           "PLACEHOLDER": "Bot Token"
         },
         "SUBMIT_BUTTON": "Crear canal de Telegram",
@@ -765,7 +765,7 @@
       "PRE_CHAT_FORM": "Pre-formulario de chat",
       "BUSINESS_HOURS": "Horarios",
       "WIDGET_BUILDER": "Constructor de Widget",
-      "BOT_CONFIGURATION": "Configuración del bot",
+      "BOT_CONFIGURATION": "Configuración del conector",
       "ACCOUNT_HEALTH": "Salud de la cuenta",
       "CSAT": "Encuestas de Satisfacción",
       "VOICE": "Voz",
@@ -987,7 +987,7 @@
       "DISPLAY_FILE_PICKER": "Mostrar el selector de archivos en el widget",
       "DISPLAY_EMOJI_PICKER": "Mostrar el selector de emoji en el widget",
       "ALLOW_END_CONVERSATION": "Permitir a los usuarios finalizar conversaciones desde el widget",
-      "USE_INBOX_AVATAR_FOR_BOT": "Usar nombre de bandeja de entrada y avatar para el bot"
+      "USE_INBOX_AVATAR_FOR_BOT": "Usar el nombre de la bandeja de entrada y el avatar para el conector"
     },
     "SETTINGS_POPUP": {
       "MESSENGER_HEADING": "Script de Messenger",
@@ -1144,7 +1144,7 @@
         "STEPS": {
           "BEFORE_YOU_START": {
             "TITLE": "Antes de empezar",
-            "DESCRIPTION": "Esto vuelve a conectar los detalles de la API de WhatsApp para esta bandeja de entrada. Se conservarán las conversaciones, colaboradores, enrutamiento, horas laborables, CSAT y configuración del bot."
+            "DESCRIPTION": "Esto vuelve a conectar los datos de la API de WhatsApp para esta bandeja de entrada. Se conservarán las conversaciones, los colaboradores, el enrutamiento, el horario laboral, CSAT y la configuración del conector."
           },
           "BUSINESS_DETAILS": {
             "TITLE": "Detalles del negocio",

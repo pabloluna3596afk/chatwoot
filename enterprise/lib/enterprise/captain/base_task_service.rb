@@ -1,30 +1,15 @@
 module Enterprise::Captain::BaseTaskService
   def perform
-    return { error: I18n.t('captain.copilot_limit'), error_code: 429 } if counts_toward_usage? && !responses_available?
-
     unless captain_tasks_enabled?
       return { error: I18n.t('captain.upgrade') } if ChatwootApp.chatwoot_cloud?
 
       return { error: I18n.t('captain.disabled') }
     end
 
-    result = super
-    increment_usage if counts_toward_usage? && successful_result?(result)
-    result
-  end
+    if counts_toward_usage? && !account.reserve_captain_ai_usage!(bucket: :internal)
+      return { error: I18n.t('captain.internal_limit'), error_code: 429 }
+    end
 
-  private
-
-  def responses_available?
-    account.usage_limits[:captain][:responses][:current_available].positive?
-  end
-
-  def successful_result?(result)
-    result.is_a?(Hash) && result[:message].present? && !result[:error]
-  end
-
-  def increment_usage
-    Rails.logger.info("[CAPTAIN][#{self.class.name}] Incrementing response usage for account #{account.id}")
-    account.increment_response_usage(source: :copilot)
+    super
   end
 end

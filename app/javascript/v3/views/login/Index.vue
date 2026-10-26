@@ -17,6 +17,7 @@ import FormInput from '../../components/Form/Input.vue';
 import GoogleOAuthButton from '../../components/GoogleOauth/Button.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import MfaVerification from 'dashboard/components/auth/MfaVerification.vue';
+import MfaEnforcedSetup from 'dashboard/components/auth/MfaEnforcedSetup.vue';
 import SessionLimitOverlay from 'dashboard/components/auth/SessionLimitOverlay.vue';
 import AuthSplitLayout from '../../components/Auth/AuthSplitLayout.vue';
 
@@ -45,6 +46,7 @@ const loginApi = reactive({
 });
 const mfaRequired = ref(false);
 const mfaToken = ref(null);
+const mfaSetup = ref(null);
 const sessionsLimitReached = ref(false);
 const limitedSessions = ref([]);
 const v$ = useVuelidate(
@@ -142,6 +144,11 @@ function submitLogin() {
         mfaToken.value = result.mfaToken;
         return;
       }
+      if (result?.mfaSetupRequired) {
+        loginApi.showLoading = false;
+        mfaSetup.value = result;
+        return;
+      }
       if (result?.sessionsLimitReached) {
         loginApi.showLoading = false;
         sessionsLimitReached.value = true;
@@ -186,6 +193,10 @@ function handleMfaCancel() {
   mfaRequired.value = false;
   mfaToken.value = null;
   credentials.password = '';
+}
+
+function handleMfaSetupVerified() {
+  window.location = '/app';
 }
 
 function retryLoginWithParams(extraParams) {
@@ -252,7 +263,16 @@ if (props.ssoAuthToken) {
       </p>
     </header>
 
-    <section v-if="sessionsLimitReached">
+    <section v-if="mfaSetup">
+      <MfaEnforcedSetup
+        :mfa-setup-token="mfaSetup.mfa_setup_token"
+        :provisioning-url="mfaSetup.provisioning_url"
+        :secret="mfaSetup.secret"
+        @verified="handleMfaSetupVerified"
+      />
+    </section>
+
+    <section v-else-if="sessionsLimitReached">
       <SessionLimitOverlay
         :sessions="limitedSessions"
         @revoke="handleSessionRevoke"
