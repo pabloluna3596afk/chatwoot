@@ -78,6 +78,8 @@ en:
       cannot_revoke_current: You cannot revoke the current session.
 
   errors:
+    auto_translate:
+      invalid_messages: 'Invalid messages'
     downloads:
       disabled: Downloads are disabled for this account by the system administrator.
     account:
@@ -1052,6 +1054,8 @@ en:
         help_center_article_generation: 'Help center article generation'
         onboarding_content_generation: 'Onboarding content generation'
         help_center_query_translation: 'Help center query translation'
+        message_translation: 'Message translation'
+        language_detection: 'Language detection'
         audio_transcription: 'Audio transcription'
         help_center_search: 'Help center search'
     push_diagnostics:
