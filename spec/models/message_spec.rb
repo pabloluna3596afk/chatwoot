@@ -388,6 +388,16 @@ RSpec.describe Message do
   end
 
   context 'with webhook_data' do
+    it 'filters internal translation metadata from public webhook payloads and keeps legitimate content attributes' do
+      message = create(:message, content_attributes: {
+                         translations: { en: 'Hello' }, source_language: 'es', conversation_language: 'en',
+                         translation_status: 'completed', translation_provider: 'captain', items: [{ title: 'Option' }]
+                       })
+
+      expect(message.webhook_data[:content_attributes]).to eq('items' => [{ 'title' => 'Option' }])
+      expect(message.webhook_push_event_data[:content_attributes]).to eq('items' => [{ 'title' => 'Option' }])
+    end
+
     it 'contains the message attachment when attachment is present' do
       message = create(:message)
       attachment = message.attachments.new(account_id: message.account_id, file_type: :image)

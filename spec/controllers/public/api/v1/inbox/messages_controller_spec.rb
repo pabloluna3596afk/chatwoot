@@ -17,6 +17,23 @@ RSpec.describe 'Public Inbox Contact Conversation Messages API', type: :request 
       expect(data.length).to eq 2
     end
 
+    it 'does not expose agent translation metadata' do
+      message = create(:message, message_type: :outgoing, content: 'Bonjour', account: conversation.account,
+                                 inbox: conversation.inbox, conversation: conversation,
+                                 content_attributes: {
+                                   translations: { en: 'Hello' }, source_language: 'en', conversation_language: 'fr',
+                                   translation_status: 'completed', translation_provider: 'captain', items: [{ title: 'Option' }]
+                                 })
+
+      get "/public/api/v1/inboxes/#{api_channel.identifier}/contacts/#{contact_inbox.source_id}/conversations/#{conversation.display_id}/messages"
+
+      data = response.parsed_body.index_by { |item| item['id'] }.fetch(message.id)
+      expect(data['content']).to eq('Bonjour')
+      expect(data['content_attributes']).to include('items' => [{ 'title' => 'Option' }])
+      expect(data['content_attributes'].keys).not_to include('translations', 'source_language', 'conversation_language',
+                                                             'translation_status', 'translation_provider')
+    end
+
     it 'does not return messages from a conversation in another inbox even when both share the same contact' do
       other_channel = create(:channel_api, account: conversation.account)
       other_contact_inbox = create(:contact_inbox, contact: contact, inbox: other_channel.inbox)

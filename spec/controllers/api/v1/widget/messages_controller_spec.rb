@@ -28,6 +28,35 @@ RSpec.describe '/api/v1/widget/messages', type: :request do
         expect(json_response['meta']).not_to be_empty
       end
 
+      it 'hides translation metadata for human, Captain, and contact messages while preserving widget attributes' do
+        private_translation_data = {
+          translations: { en: 'Hello' }, source_language: 'es', conversation_language: 'en',
+          translation_status: 'completed', translation_provider: 'captain', translation_failed: false
+        }
+        human_message = create(:message, message_type: :outgoing, content: 'Hello', account: account, inbox: web_widget.inbox,
+                                         conversation: conversation, content_attributes: private_translation_data.merge(items: [{ title: 'Option' }]))
+        captain_message = create(:message, :bot_message, content: 'Welcome', account: account, inbox: web_widget.inbox,
+                                                         conversation: conversation, content_attributes: private_translation_data)
+        contact_message = create(:message, message_type: :incoming, content: 'Hola', account: account, inbox: web_widget.inbox,
+                                           conversation: conversation,
+                                           content_attributes: private_translation_data.merge(submitted_values: [{ name: 'email' }]))
+
+        get api_v1_widget_messages_url,
+            params: { website_token: web_widget.website_token },
+            headers: { 'X-Auth-Token' => token },
+            as: :json
+
+        messages = response.parsed_body['payload'].index_by { |message| message['id'] }
+        [human_message, captain_message, contact_message].each do |message|
+          attrs = messages.fetch(message.id)['content_attributes']
+          expect(attrs.keys).not_to include('translations', 'source_language', 'conversation_language', 'translation_status',
+                                            'translation_provider', 'translation_failed')
+        end
+        expect(messages.fetch(human_message.id)['content']).to eq('Hello')
+        expect(messages.fetch(human_message.id)['content_attributes']['items']).to eq([{ 'title' => 'Option' }])
+        expect(messages.fetch(contact_message.id)['content_attributes']['submitted_values']).to eq([{ 'name' => 'email' }])
+      end
+
       it 'returns empty messages', :skip_before do
         get api_v1_widget_messages_url,
             params: { website_token: web_widget.website_token },

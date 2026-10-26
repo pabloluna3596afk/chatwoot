@@ -77,11 +77,12 @@ describe ActionCableListener do
       expect(conversation.inbox.reload.inbox_members.count).to eq(1)
 
       expect(ActionCableBroadcastJob).to receive(:perform_later).with(
-        a_collection_containing_exactly(
-          agent.pubsub_token, admin.pubsub_token, conversation.contact_inbox.pubsub_token
-        ),
-        'message.created',
+        a_collection_containing_exactly(agent.pubsub_token, admin.pubsub_token), 'message.created',
         message.push_event_data.merge(account_id: account.id)
+      )
+      expect(ActionCableBroadcastJob).to receive(:perform_later).with(
+        [conversation.contact_inbox.pubsub_token], 'message.created',
+        message.push_event_data.merge(content_attributes: message.public_content_attributes, account_id: account.id)
       )
       listener.message_created(event)
     end
@@ -95,13 +96,65 @@ describe ActionCableListener do
       verified_contact_inbox = create(:contact_inbox, contact: conversation.contact, inbox: inbox, hmac_verified: true)
 
       expect(ActionCableBroadcastJob).to receive(:perform_later).with(
-        a_collection_containing_exactly(
-          agent.pubsub_token, admin.pubsub_token, conversation.contact_inbox.pubsub_token, verified_contact_inbox.pubsub_token
-        ),
-        'message.created',
+        a_collection_containing_exactly(agent.pubsub_token, admin.pubsub_token), 'message.created',
         message.push_event_data.merge(account_id: account.id)
       )
+      expect(ActionCableBroadcastJob).to receive(:perform_later).with(
+        a_collection_containing_exactly(conversation.contact_inbox.pubsub_token, verified_contact_inbox.pubsub_token),
+        'message.created', message.push_event_data.merge(content_attributes: message.public_content_attributes, account_id: account.id)
+      )
       listener.message_created(event)
+    end
+
+    it 'filters translation metadata from contact events but keeps it for agents' do
+      message.update!(content_attributes: { translations: { en: 'Hello' }, source_language: 'es', translation_provider: 'captain',
+                                            items: [{ title: 'Option' }] })
+      expect(ActionCableBroadcastJob).to receive(:perform_later).with(
+        a_collection_containing_exactly(agent.pubsub_token, admin.pubsub_token), 'message.created',
+        message.push_event_data.merge(account_id: account.id)
+      )
+      expect(ActionCableBroadcastJob).to receive(:perform_later).with(
+        [conversation.contact_inbox.pubsub_token], 'message.created',
+        message.push_event_data.merge(content_attributes: message.public_content_attributes, account_id: account.id)
+      )
+
+      listener.message_created(event)
+    end
+  end
+
+  describe '#message_updated' do
+    let(:message) do
+      create(:message, message_type: :outgoing, account: account, inbox: inbox, conversation: conversation,
+                       content_attributes: { translations: { en: 'Hello' }, source_language: 'es', items: [{ title: 'Option' }] })
+    end
+    let(:previous_attributes) do
+      { translations: { en: 'Previous' }, source_language: 'es', translation_provider: 'captain', items: [{ title: 'Option' }] }
+    end
+    let(:current_attributes) do
+      { translations: { en: 'Hello' }, source_language: 'es', translation_provider: 'captain', items: [{ title: 'Option' }] }
+    end
+    let(:previous_changes) { { content_attributes: [previous_attributes, current_attributes] } }
+    let(:event) { Events::Base.new(:'message.updated', Time.zone.now, message: message, previous_changes: previous_changes) }
+
+    it 'filters current and previous translation metadata for the contact only' do
+      expect(conversation.inbox.reload.inbox_members.count).to eq(1)
+      agent_payload = message.push_event_data.merge(previous_changes: previous_changes, account_id: account.id)
+      contact_previous_changes = {
+        content_attributes: [
+          message.public_content_attributes(previous_attributes), message.public_content_attributes(current_attributes)
+        ]
+      }
+      contact_payload = message.push_event_data.merge(content_attributes: message.public_content_attributes,
+                                                      previous_changes: contact_previous_changes, account_id: account.id)
+
+      expect(ActionCableBroadcastJob).to receive(:perform_later).with(
+        a_collection_containing_exactly(agent.pubsub_token, admin.pubsub_token), 'message.updated', agent_payload
+      )
+      expect(ActionCableBroadcastJob).to receive(:perform_later).with(
+        [conversation.contact_inbox.pubsub_token], 'message.updated', contact_payload
+      )
+
+      listener.message_updated(event)
     end
   end
 
@@ -264,9 +317,10 @@ describe ActionCableListener do
       expect(conversation.inbox.reload.inbox_members.count).to eq(1)
 
       expect(ActionCableBroadcastJob).to receive(:perform_later).with(
-        [agent.pubsub_token, admin.pubsub_token, conversation.contact_inbox.pubsub_token],
-        'conversation.updated',
-        conversation.push_event_data.merge(account_id: account.id)
+        [agent.pubsub_token, admin.pubsub_token], 'conversation.updated', conversation.push_event_data.merge(account_id: account.id)
+      )
+      expect(ActionCableBroadcastJob).to receive(:perform_later).with(
+        [conversation.contact_inbox.pubsub_token], 'conversation.updated', conversation.push_event_data.merge(account_id: account.id)
       )
       listener.conversation_updated(event)
     end
@@ -275,10 +329,27 @@ describe ActionCableListener do
       expect(conversation.reload.push_event_data[:labels]).to eq(conversation.labels.pluck(:name))
 
       expect(ActionCableBroadcastJob).to receive(:perform_later).with(
-        [agent.pubsub_token, admin.pubsub_token, conversation.contact_inbox.pubsub_token],
-        'conversation.updated',
-        conversation.push_event_data.merge(account_id: account.id)
+        [agent.pubsub_token, admin.pubsub_token], 'conversation.updated', conversation.push_event_data.merge(account_id: account.id)
       )
+      expect(ActionCableBroadcastJob).to receive(:perform_later).with(
+        [conversation.contact_inbox.pubsub_token], 'conversation.updated', conversation.push_event_data.merge(account_id: account.id)
+      )
+      listener.conversation_updated(event)
+    end
+
+    it 'filters translation metadata from the last message sent to the contact' do
+      message = create(:message, message_type: :outgoing, account: account, inbox: inbox, conversation: conversation,
+                                 content_attributes: { translations: { en: 'Hello' }, source_language: 'es', items: [{ title: 'Option' }] }).reload
+      data = conversation.push_event_data
+      public_data = data.merge(messages: [message.push_event_data.merge(content_attributes: message.public_content_attributes)])
+
+      expect(ActionCableBroadcastJob).to receive(:perform_later).with(
+        [agent.pubsub_token, admin.pubsub_token], 'conversation.updated', data.merge(account_id: account.id)
+      )
+      expect(ActionCableBroadcastJob).to receive(:perform_later).with(
+        [conversation.contact_inbox.pubsub_token], 'conversation.updated', public_data.merge(account_id: account.id)
+      )
+
       listener.conversation_updated(event)
     end
   end

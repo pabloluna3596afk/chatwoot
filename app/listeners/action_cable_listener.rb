@@ -1,5 +1,6 @@
 class ActionCableListener < BaseListener
   include Events::Types
+  include ActionCableContactBroadcast
 
   def notification_created(event)
     notification, account, unread_count, count = extract_notification_and_account(event)
@@ -44,7 +45,7 @@ class ActionCableListener < BaseListener
     tokens = user_tokens(account, message_broadcast_members(conversation, message)) +
              contact_tokens(conversation.contact_inbox, message)
 
-    broadcast(account, tokens, MESSAGE_CREATED, message.push_event_data)
+    broadcast_message_to_agents_and_contact(account, tokens, MESSAGE_CREATED, message)
   end
 
   def message_updated(event)
@@ -53,7 +54,8 @@ class ActionCableListener < BaseListener
     tokens = user_tokens(account, message_broadcast_members(conversation, message)) +
              contact_tokens(conversation.contact_inbox, message)
 
-    broadcast(account, tokens, MESSAGE_UPDATED, message.push_event_data.merge(previous_changes: event.data[:previous_changes]))
+    data = message.push_event_data.merge(previous_changes: event.data[:previous_changes])
+    broadcast_message_to_agents_and_contact(account, tokens, MESSAGE_UPDATED, message, data)
   end
 
   def first_reply_created(event)
@@ -68,7 +70,7 @@ class ActionCableListener < BaseListener
     conversation, account = extract_conversation_and_account(event)
     tokens = user_tokens(account, conversation.inbox.members) + contact_inbox_tokens(conversation.contact_inbox)
 
-    broadcast(account, tokens, CONVERSATION_CREATED, conversation.push_event_data)
+    broadcast_conversation_to_agents_and_contact(account, tokens, CONVERSATION_CREATED, conversation)
   end
 
   def internal_task_created(event)
@@ -113,14 +115,14 @@ class ActionCableListener < BaseListener
     conversation, account = extract_conversation_and_account(event)
     tokens = user_tokens(account, conversation.inbox.members) + contact_inbox_tokens(conversation.contact_inbox)
 
-    broadcast(account, tokens, CONVERSATION_STATUS_CHANGED, conversation.push_event_data)
+    broadcast_conversation_to_agents_and_contact(account, tokens, CONVERSATION_STATUS_CHANGED, conversation)
   end
 
   def conversation_updated(event)
     conversation, account = extract_conversation_and_account(event)
     tokens = user_tokens(account, conversation.inbox.members) + contact_inbox_tokens(conversation.contact_inbox)
 
-    broadcast(account, tokens, CONVERSATION_UPDATED, conversation.push_event_data)
+    broadcast_conversation_to_agents_and_contact(account, tokens, CONVERSATION_UPDATED, conversation)
   end
 
   def conversation_unread_count_changed(event)
