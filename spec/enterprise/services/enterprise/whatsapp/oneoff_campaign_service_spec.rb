@@ -37,7 +37,7 @@ RSpec.describe Enterprise::Whatsapp::OneoffCampaignService do
 
     expect(whatsapp_channel).not_to receive(:send_template)
 
-    Whatsapp::OneoffCampaignService.new(campaign: campaign).perform
+    Whatsapp::OneoffCampaignService.new(campaign: campaign).perform_batch(0)
 
     expect(CampaignRecipient.find_by!(campaign: campaign, contact: contact)).to be_skipped
   end
@@ -50,7 +50,7 @@ RSpec.describe Enterprise::Whatsapp::OneoffCampaignService do
 
     expect(whatsapp_channel).not_to receive(:send_template)
 
-    Whatsapp::OneoffCampaignService.new(campaign: campaign).perform
+    Whatsapp::OneoffCampaignService.new(campaign: campaign).perform_batch(0)
 
     expect(CampaignRecipient.find_by!(campaign: campaign, contact: contact)).to be_skipped
   end
@@ -71,8 +71,40 @@ RSpec.describe Enterprise::Whatsapp::OneoffCampaignService do
 
     expect(whatsapp_channel).not_to receive(:send_template)
 
-    Whatsapp::OneoffCampaignService.new(campaign: campaign).perform
+    Whatsapp::OneoffCampaignService.new(campaign: campaign).perform_batch(0)
 
     expect(CampaignRecipient.find_by!(campaign: campaign, contact: contact)).to be_skipped
+  end
+
+  it 'does not resend a recipient whose send result was lost' do
+    contact = create(:contact, :with_phone_number, account: account)
+    contact.update_labels([label.title])
+    recipient = campaign.campaign_recipients.create!(
+      account: account,
+      inbox: whatsapp_inbox,
+      contact: contact,
+      send_attempted_at: 1.minute.ago
+    )
+
+    expect(whatsapp_channel).not_to receive(:send_template)
+
+    Whatsapp::OneoffCampaignService.new(campaign: campaign).perform_batch(0)
+
+    expect(recipient.reload).to have_attributes(
+      status: 'queued',
+      error_message: 'Send outcome unknown after interruption; review before retrying'
+    )
+  end
+
+  it 'persists the send claim before calling WhatsApp' do
+    contact = create(:contact, :with_phone_number, account: account)
+    contact.update_labels([label.title])
+
+    expect(whatsapp_channel).to receive(:send_template) do
+      expect(CampaignRecipient.find_by!(campaign: campaign, contact: contact).send_attempted_at).to be_present
+      'wamid.claimed'
+    end
+
+    Whatsapp::OneoffCampaignService.new(campaign: campaign).perform_batch(0)
   end
 end

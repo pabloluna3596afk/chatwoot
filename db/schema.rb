@@ -502,6 +502,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_23_140000) do
     t.string "error_code"
     t.string "error_title"
     t.text "message_content"
+    t.datetime "send_attempted_at"
     t.index ["account_id", "campaign_id"], name: "index_campaign_recipients_on_account_id_and_campaign_id"
     t.index ["account_id"], name: "index_campaign_recipients_on_account_id"
     t.index ["campaign_id", "contact_id"], name: "index_campaign_recipients_on_campaign_id_and_contact_id", unique: true
@@ -534,6 +535,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_23_140000) do
     t.datetime "started_at"
     t.datetime "completed_at"
     t.string "color", default: "#1f93ff", null: false
+    t.bigint "whatsapp_cursor"
     t.index ["account_id"], name: "index_campaigns_on_account_id"
     t.index ["campaign_status"], name: "index_campaigns_on_campaign_status"
     t.index ["campaign_type"], name: "index_campaigns_on_campaign_type"

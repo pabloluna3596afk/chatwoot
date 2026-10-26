@@ -1,11 +1,17 @@
 class Whatsapp::OneoffCampaignService
   pattr_initialize [:campaign!]
 
+  BATCH_SIZE = 100
+
   def perform
     validate_campaign!
-    process_audience(extract_audience_labels)
-    campaign.refresh_execution_stats!
-    campaign.completed!
+    Campaigns::SendWhatsappBatchJob.perform_later(campaign)
+  end
+
+  def perform_batch(cursor)
+    contacts = audience_contacts.where('contacts.id > ?', cursor).order(:id).limit(BATCH_SIZE).to_a
+    process_contacts(contacts)
+    contacts.last.id if contacts.size == BATCH_SIZE
   end
 
   private
@@ -45,53 +51,47 @@ class Whatsapp::OneoffCampaignService
     campaign.account.labels.where(id: audience_label_ids).pluck(:title)
   end
 
-  def build_recipient(contact)
-    campaign.campaign_recipients.create!(
-      account_id: campaign.account_id,
-      inbox_id: campaign.inbox_id,
-      contact_id: contact.id,
-      phone_number: contact.phone_number,
-      status: :queued
-    )
-  end
-
   def process_contact(contact)
     Rails.logger.info "Processing contact: #{contact.name} (#{contact.phone_number})"
-    recipient = build_recipient(contact)
-
-    destination, destination_error = campaign_destination(contact)
-    if destination.blank?
-      Rails.logger.warn "Skipping campaign recipient contact_id=#{contact.id}: #{destination_error}"
-      recipient.mark_skipped!(destination_error)
+    recipient = recipient_for(contact)
+    unless recipient.previously_new_record?
+      recipient.update!(error_message: 'Send outcome unknown after interruption; review before retrying') if recipient.queued?
       return
     end
 
-    if campaign.template_params.blank?
-      Rails.logger.error "Skipping contact #{contact.name} - no template_params found for WhatsApp campaign"
-      recipient.mark_skipped!('no template_params')
-      return
-    end
-
-    processed_template_params = process_liquid_template_params(contact)
-    if processed_template_params.nil?
-      recipient.mark_skipped!(@template_resolution_error)
-      return
-    end
-
-    send_whatsapp_template_message(
-      recipient: recipient,
-      to: destination,
-      template_params: processed_template_params
-    )
+    process_recipient(recipient)
+  rescue StandardError => e
+    Rails.logger.error "Failed to process WhatsApp campaign recipient contact_id=#{contact.id}: #{e.message}"
+    recipient&.mark_failed!(message: e.message) if recipient&.queued?
   end
 
-  def process_audience(audience_labels)
-    contacts = campaign.account.contacts.tagged_with(audience_labels, any: true)
-    Rails.logger.info "Processing #{contacts.count} contacts for campaign #{campaign.id}"
+  def process_recipient(recipient)
+    contact = recipient.contact
+    destination, destination_error = campaign_destination(contact)
+    return recipient.mark_skipped!(destination_error) if destination.blank?
+    return recipient.mark_skipped!('no template_params') if campaign.template_params.blank?
 
+    processed_template_params = process_liquid_template_params(contact)
+    return recipient.mark_skipped!(@template_resolution_error) if processed_template_params.nil?
+
+    send_whatsapp_template_message(recipient: recipient, to: destination, template_params: processed_template_params)
+  end
+
+  def audience_contacts
+    campaign.account.contacts.tagged_with(extract_audience_labels, any: true)
+  end
+
+  def process_contacts(contacts)
     contacts.each { |contact| process_contact(contact) }
+  end
 
-    Rails.logger.info "Campaign #{campaign.id} processing completed"
+  def recipient_for(contact)
+    campaign.campaign_recipients.find_or_create_by!(contact: contact) do |recipient|
+      recipient.account = campaign.account
+      recipient.inbox = campaign.inbox
+      recipient.phone_number = contact.phone_number
+      recipient.send_attempted_at = Time.current
+    end
   end
 
   def process_liquid_template_params(contact)
@@ -112,30 +112,26 @@ class Whatsapp::OneoffCampaignService
       template_params: template_params
     )
 
-    name, namespace, lang_code, processed_parameters = processor.call
+    template_info = processor.call
+    return recipient.mark_skipped!('invalid template') if template_info.first.blank?
 
-    if name.blank?
-      recipient.mark_skipped!('invalid template')
-      return
-    end
+    send_template_to_provider(recipient, to, template_info)
+  rescue StandardError => e
+    Rails.logger.error "Failed to send WhatsApp template message to #{to}: #{e.message}"
+    Rails.logger.error "Backtrace: #{e.backtrace.first(5).join('\n')}"
+    recipient.mark_failed!(message: e.message)
+    nil
+  end
 
+  def send_template_to_provider(recipient, to, template_info)
+    name, namespace, lang_code, processed_parameters = template_info
     wamid = channel.send_template(to, {
                                     name: name,
                                     namespace: namespace,
                                     lang_code: lang_code,
                                     parameters: processed_parameters
                                   }, nil)
-
-    if wamid.present?
-      recipient.mark_sent!(wamid)
-    else
-      recipient.mark_failed!('WhatsApp API returned no message id')
-    end
-  rescue StandardError => e
-    Rails.logger.error "Failed to send WhatsApp template message to #{to}: #{e.message}"
-    Rails.logger.error "Backtrace: #{e.backtrace.first(5).join('\n')}"
-    recipient.mark_failed!(e.message)
-    nil
+    wamid.present? ? recipient.mark_sent!(wamid) : recipient.mark_failed!(message: 'WhatsApp API returned no message id')
   end
 
   def authentication_template_block_reason(destination, params)

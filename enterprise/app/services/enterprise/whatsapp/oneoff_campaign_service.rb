@@ -1,13 +1,39 @@
 module Enterprise::Whatsapp::OneoffCampaignService
-  def perform
-    validate_campaign!
-    recipients = create_recipients(extract_audience_labels)
-    process_recipients(recipients)
-    campaign.refresh_execution_stats!
-    campaign.completed!
+  def perform_batch(cursor)
+    next_cursor = super(campaign.whatsapp_cursor || cursor)
+    if next_cursor && campaign.whatsapp_cursor.present?
+      campaign.with_lock do
+        campaign.update!(whatsapp_cursor: next_cursor) if !campaign.completed? && next_cursor > campaign.whatsapp_cursor
+      end
+    end
+    next_cursor
   end
 
   private
+
+  def process_contacts(contacts)
+    contacts.each do |contact|
+      recipient = recipient_for(contact)
+      unless recipient.previously_new_record?
+        recipient.update!(error_message: 'Send outcome unknown after interruption; review before retrying') if recipient.queued?
+        next
+      end
+
+      process_recipient(recipient)
+    rescue StandardError => e
+      Rails.logger.error "Failed to process WhatsApp campaign recipient contact_id=#{contact.id}: #{e.message}"
+      recipient&.mark_failed!(message: e.message) if recipient&.queued?
+    end
+  end
+
+  def recipient_for(contact)
+    campaign.campaign_recipients.find_or_create_by!(contact: contact) do |recipient|
+      recipient.account = campaign.account
+      recipient.inbox = campaign.inbox
+      recipient.phone_number = contact.phone_number
+      recipient.send_attempted_at = Time.current
+    end
+  end
 
   def process_recipient(recipient)
     contact = recipient.contact
@@ -34,24 +60,6 @@ module Enterprise::Whatsapp::OneoffCampaignService
     recipient.update!(message_content: rendered_message_content(contact))
 
     send_whatsapp_template_message(recipient: recipient, to: destination, template_params: processed_template_params)
-  end
-
-  def create_recipients(audience_labels)
-    contacts = campaign.account.contacts.tagged_with(audience_labels, any: true)
-    Rails.logger.info "Processing #{contacts.count} contacts for campaign #{campaign.id}"
-
-    contacts.find_each.map do |contact|
-      campaign.campaign_recipients.find_or_create_by!(contact: contact) do |recipient|
-        recipient.account = campaign.account
-        recipient.inbox = campaign.inbox
-      end
-    end
-  end
-
-  def process_recipients(recipients)
-    recipients.each { |recipient| process_recipient(recipient) }
-
-    Rails.logger.info "Campaign #{campaign.id} processing completed"
   end
 
   def rendered_message_content(contact)
