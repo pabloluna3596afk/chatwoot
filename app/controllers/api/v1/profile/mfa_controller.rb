@@ -1,6 +1,7 @@
 class Api::V1::Profile::MfaController < Api::BaseController
   before_action :check_mfa_feature_available
   before_action :check_mfa_enabled, only: [:destroy, :backup_codes]
+  before_action :prevent_disabling_enforced_mfa, only: [:destroy]
   before_action :check_mfa_disabled, only: [:create, :verify]
   before_action :validate_password, only: [:destroy]
   before_action :validate_otp, only: [:verify, :backup_codes, :destroy]
@@ -31,6 +32,12 @@ class Api::V1::Profile::MfaController < Api::BaseController
 
   def check_mfa_enabled
     render_could_not_create_error(I18n.t('errors.mfa.not_enabled')) unless current_user.mfa_enabled?
+  end
+
+  def prevent_disabling_enforced_mfa
+    return unless current_user.mfa_enforced?
+
+    render json: { error: I18n.t('errors.mfa.enforced') }, status: :forbidden
   end
 
   def check_mfa_feature_available

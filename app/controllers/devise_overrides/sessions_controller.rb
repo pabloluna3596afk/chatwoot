@@ -1,4 +1,5 @@
 class DeviseOverrides::SessionsController < DeviseTokenAuth::SessionsController
+  include MfaAuthenticationHelper
   # Prevent session parameter from being passed
   # Unpermitted parameter: session
   wrap_parameters format: []
@@ -13,11 +14,12 @@ class DeviseOverrides::SessionsController < DeviseTokenAuth::SessionsController
   end
 
   def create
+    return handle_mfa_setup_verification if mfa_setup_verification_request?
     return handle_mfa_verification if mfa_verification_request?
     return handle_sso_authentication if sso_authentication_request?
 
     user = find_user_for_authentication
-    return handle_mfa_required(user) if user&.mfa_enabled?
+    return if intercept_mfa_for_password_login(user)
     return if user && enforce_session_limit_for_password_login(user)
 
     # Only proceed with standard authentication if no MFA is required
@@ -26,7 +28,11 @@ class DeviseOverrides::SessionsController < DeviseTokenAuth::SessionsController
 
   def render_create_success
     track_user_session unless @impersonation
-    render partial: 'devise/auth', formats: [:json], locals: { resource: @resource }
+    if @backup_codes.present?
+      render 'devise_overrides/sessions/create_with_backup_codes', formats: [:json]
+    else
+      render partial: 'devise/auth', formats: [:json], locals: { resource: @resource }
+    end
   end
 
   private
@@ -64,11 +70,27 @@ class DeviseOverrides::SessionsController < DeviseTokenAuth::SessionsController
   end
 
   def handle_sso_authentication
+    return if intercept_mfa_for_sso
     return if !@impersonation && enforce_session_limit_for_password_login(@resource)
 
     authenticate_resource_with_sso_token
     yield @resource if block_given?
     render_create_success
+  end
+
+  def intercept_mfa_for_password_login(user)
+    return false unless user
+    return handle_mfa_setup_required(user) if user.mfa_enforcement_pending?
+    return handle_mfa_required(user) if user.mfa_enabled?
+
+    false
+  end
+
+  def intercept_mfa_for_sso
+    return handle_mfa_setup_required(@resource) if @resource.mfa_enforcement_pending?
+    return handle_mfa_required(@resource) if @resource.mfa_enforced? && @resource.mfa_enabled?
+
+    false
   end
 
   def login_page_url(error: nil)
@@ -106,42 +128,6 @@ class DeviseOverrides::SessionsController < DeviseTokenAuth::SessionsController
     @impersonation = user.sso_auth_token_impersonation?(params[:sso_auth_token])
   end
 
-  def handle_mfa_required(user)
-    render json: {
-      mfa_required: true,
-      mfa_token: Mfa::TokenService.new(user: user).generate_token
-    }, status: :partial_content
-  end
-
-  def handle_mfa_verification
-    user = Mfa::TokenService.new(token: params[:mfa_token]).verify_token
-    return render_mfa_error('errors.mfa.invalid_token', :unauthorized) unless user
-
-    authenticated = Mfa::AuthenticationService.new(
-      user: user,
-      otp_code: params[:otp_code],
-      backup_code: params[:backup_code]
-    ).authenticate
-
-    return render_mfa_error('errors.mfa.invalid_code') unless authenticated
-
-    sign_in_mfa_user(user)
-  end
-
-  def sign_in_mfa_user(user)
-    evict_oldest_session(user) if sessions_limit_reached?(user)
-    @resource = user
-    @token = @resource.create_token
-    @resource.save!
-
-    sign_in(:user, @resource, store: false, bypass: false)
-    render_create_success
-  end
-
-  def render_mfa_error(message_key, status = :bad_request)
-    render json: { error: I18n.t(message_key) }, status: status
-  end
-
   def sessions_limit_reached?(user)
     limit = ENV.fetch('MAX_USER_SESSIONS', 25).to_i
     active_token_count(user) >= limit
@@ -149,11 +135,9 @@ class DeviseOverrides::SessionsController < DeviseTokenAuth::SessionsController
 
   def active_token_count(user)
     now = Time.current.to_i
-    (user.tokens || {}).count { |_, v| v['expiry'].to_i > now }
+    (user.tokens || {}).count { |_, value| value['expiry'].to_i > now }
   end
 
-  # Returns true when a response has been rendered (e.g., 409 picker). Non-browser clients
-  # auto-evict instead of getting stuck on a UI they can't render.
   def enforce_session_limit_for_password_login(user)
     if revoking_sessions?
       revoke_sessions_for_login(user)
@@ -162,8 +146,6 @@ class DeviseOverrides::SessionsController < DeviseTokenAuth::SessionsController
 
     return false unless sessions_limit_reached?(user)
 
-    # Picker only when every token has a tracked session; partial tracking would
-    # show a misleading count, so fall through to silent eviction instead.
     if browser_request? && user.user_sessions.count >= user.tokens.size
       handle_sessions_limit_for_login(user)
       true
@@ -197,7 +179,6 @@ class DeviseOverrides::SessionsController < DeviseTokenAuth::SessionsController
   end
 
   def evict_oldest_session(user)
-    # Drop pre-rollout untracked tokens first so freshly tracked logins aren't evicted.
     return evict_oldest_token(user) if user.user_sessions.count < user.tokens.size
 
     oldest_session = user.user_sessions.order(Arel.sql('COALESCE(last_activity_at, created_at) ASC')).first
@@ -208,22 +189,21 @@ class DeviseOverrides::SessionsController < DeviseTokenAuth::SessionsController
     oldest_session.destroy!
   end
 
-  # Fallback if a token exists without a UserSession row (e.g., legacy data before tracking shipped).
   def evict_oldest_token(user)
     return if user.tokens.blank?
 
-    oldest_client_id = user.tokens.min_by { |_, v| v['expiry'].to_i }&.first
+    oldest_client_id = user.tokens.min_by { |_, value| value['expiry'].to_i }&.first
     return unless oldest_client_id
 
     user.tokens.delete(oldest_client_id)
     user.save!
   end
 
-  PICKER_SESSION_FIELDS = %i[id browser_name browser_version device_name platform_name platform_version
-                             ip_address city country last_activity_at created_at].freeze
+  SESSION_FIELDS = %i[id browser_name browser_version device_name platform_name platform_version
+                      ip_address city country last_activity_at created_at].freeze
 
   def handle_sessions_limit_for_login(user)
-    sessions = user.user_sessions.order(last_activity_at: :desc).map { |s| s.slice(*PICKER_SESSION_FIELDS) }
+    sessions = user.user_sessions.order(last_activity_at: :desc).map { |session| session.slice(*SESSION_FIELDS) }
     render json: { sessions_limit_reached: true, sessions: sessions }, status: :conflict
   end
 
@@ -231,11 +211,7 @@ class DeviseOverrides::SessionsController < DeviseTokenAuth::SessionsController
     client_id = @token&.try(:client) || response.headers['client']
     return unless client_id.present? && @resource.present?
 
-    UserSessionTrackingService.new(
-      user: @resource,
-      request: request,
-      client_id: client_id
-    ).create_or_update!
+    UserSessionTrackingService.new(user: @resource, request: request, client_id: client_id).create_or_update!
   rescue StandardError => e
     Rails.logger.warn "Session tracking failed: #{e.message}"
   end

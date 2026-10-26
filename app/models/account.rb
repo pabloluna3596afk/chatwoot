@@ -67,6 +67,11 @@ class Account < ApplicationRecord
   store_accessor :settings, :captain_auto_resolve_mode, :captain_false_promise_harness_enabled
   store_accessor :settings, :resolved_label_key
   store_accessor :settings, :business_rules
+  store_accessor :settings, :enforce_mfa
+
+  def enforce_mfa?
+    ActiveModel::Type::Boolean.new.cast(enforce_mfa)
+  end
   include AccountCaptainAutoResolve
 
   RESOLVED_LABEL_KEYS = %w[resolved closed sold finished].freeze

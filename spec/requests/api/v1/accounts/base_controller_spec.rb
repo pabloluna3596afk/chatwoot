@@ -23,6 +23,18 @@ RSpec.describe 'Api::V1::Accounts::BaseController', type: :request do
     end
   end
 
+  context 'when an account enforces MFA' do
+    it 'blocks an unenrolled user access token with the enrollment error' do
+      skip('Skipping since MFA is not configured in this environment') unless Chatwoot.encryption_configured?
+      account.update!(enforce_mfa: true)
+
+      get api_v1_account_conversations_url(account_id: account.id), headers: { api_access_token: agent.access_token.token }, as: :json
+
+      expect(response).to have_http_status(:forbidden)
+      expect(response.parsed_body['error_code']).to eq('mfa_enrollment_required')
+    end
+  end
+
   context 'when agent bot belongs to another account' do
     let(:other_account) { create(:account) }
     let(:external_bot) { create(:agent_bot, account: other_account) }

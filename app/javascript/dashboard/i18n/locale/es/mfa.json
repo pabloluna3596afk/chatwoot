@@ -111,5 +111,9 @@
       "CONTACT_DESC_SELF_HOSTED": "Si perdiste el acceso a tu aplicación de autenticación y a tus códigos de respaldo, contacta a tu administrador para recibir ayuda."
     },
     "VERIFICATION_FAILED": "La verificación falló. Inténtalo de nuevo."
+  },
+  "MFA_ENFORCED_SETUP": {
+    "TITLE": "Configura la autenticación de dos factores",
+    "DESCRIPTION": "Tu cuenta exige autenticación de dos factores. Configúrala para continuar."
   }
 }
