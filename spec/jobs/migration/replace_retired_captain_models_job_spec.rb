@@ -6,7 +6,7 @@ RSpec.describe Migration::ReplaceRetiredCaptainModelsJob do
   let(:account) { create(:account) }
 
   def store_captain_models(account, models)
-    account.update_column(:settings, account.settings.merge('captain_models' => models))
+    account.update!(settings: account.settings.merge('captain_models' => models))
     account.reload
   end
 
@@ -54,7 +54,7 @@ RSpec.describe Migration::ReplaceRetiredCaptainModelsJob do
   end
 
   it 'tolerates accounts without model settings' do
-    account.update_column(:settings, account.settings.except('captain_models'))
+    account.update!(settings: account.settings.except('captain_models'))
 
     expect { described_class.perform_now }.not_to raise_error
   end
