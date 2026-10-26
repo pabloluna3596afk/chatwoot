@@ -13,6 +13,7 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
+  assistantId: { type: [String, Number], required: true },
   type: {
     type: String,
     default: 'create',
@@ -29,6 +30,7 @@ const dialogRef = ref(null);
 const updateTool = toolDetails =>
   store.dispatch('captainCustomTools/update', {
     id: props.selectedTool.id,
+    assistantId: props.assistantId,
     ...toolDetails,
   });
 
@@ -37,7 +39,10 @@ const i18nKey = computed(
 );
 
 const createTool = toolDetails =>
-  store.dispatch('captainCustomTools/create', toolDetails);
+  store.dispatch('captainCustomTools/create', {
+    ...toolDetails,
+    assistantId: props.assistantId,
+  });
 
 const handleSubmit = async updatedTool => {
   try {
@@ -79,6 +84,7 @@ defineExpose({ dialogRef });
     <CustomToolForm
       :mode="type"
       :tool="selectedTool"
+      :assistant-id="assistantId"
       @submit="handleSubmit"
       @cancel="handleCancel"
     />

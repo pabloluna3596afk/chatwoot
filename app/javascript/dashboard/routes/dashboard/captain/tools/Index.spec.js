@@ -1,4 +1,5 @@
 import { flushPromises, shallowMount } from '@vue/test-utils';
+import { createMemoryHistory, createRouter } from 'vue-router';
 import Index from './Index.vue';
 
 const mocks = vi.hoisted(() => ({
@@ -25,8 +26,18 @@ vi.mock('dashboard/composables/store', async () => {
     'captainCustomTools/getRecords': ref([
       {
         id: 7,
+        assistant_id: 42,
         title: 'Order lookup',
         description: 'Looks up an order',
+        enabled: true,
+        created_at: 1_700_000_000,
+        updated_at: 1_700_000_000,
+      },
+      {
+        id: 8,
+        assistant_id: 43,
+        title: 'Other assistant tool',
+        description: 'Belongs to another assistant',
         enabled: true,
         created_at: 1_700_000_000,
         updated_at: 1_700_000_000,
@@ -92,10 +103,23 @@ const DialogStub = {
   `,
 };
 
-const mountIndex = () =>
-  shallowMount(Index, {
+const mountIndex = async () => {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      {
+        path: '/accounts/:accountId/captain/:assistantId/tools',
+        component: Index,
+      },
+    ],
+  });
+  await router.push('/accounts/1/captain/42/tools');
+  await router.isReady();
+
+  return shallowMount(Index, {
     global: {
       mocks: { $t: translate },
+      plugins: [router],
       stubs: {
         PageLayout: PageLayoutStub,
         CaptainPaywall: true,
@@ -107,11 +131,21 @@ const mountIndex = () =>
       },
     },
   });
+};
 
 describe('Captain custom tools', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.dispatch.mockResolvedValue(undefined);
+  });
+
+  it('shows only tools belonging to the selected assistant', async () => {
+    const wrapper = await mountIndex();
+
+    await flushPromises();
+
+    expect(wrapper.findAllComponents(CustomToolCardStub)).toHaveLength(1);
+    expect(wrapper.findComponent(CustomToolCardStub).props('id')).toBe(7);
   });
 
   it('confirms before disabling a tool used by enabled scenarios', async () => {
@@ -125,13 +159,16 @@ describe('Captain custom tools', () => {
       }
       return Promise.resolve();
     });
-    const wrapper = mountIndex();
+    const wrapper = await mountIndex();
 
     await flushPromises();
     await wrapper.get('[data-test="toggle"]').trigger('click');
     await flushPromises();
 
-    expect(mocks.dispatch).toHaveBeenCalledWith('captainCustomTools/show', 7);
+    expect(mocks.dispatch).toHaveBeenCalledWith('captainCustomTools/show', {
+      id: 7,
+      assistantId: '42',
+    });
     expect(mocks.dispatch).not.toHaveBeenCalledWith(
       'captainCustomTools/update',
       expect.anything()
@@ -147,6 +184,7 @@ describe('Captain custom tools', () => {
     expect(mocks.dispatch).toHaveBeenCalledWith('captainCustomTools/update', {
       id: 7,
       enabled: false,
+      assistantId: '42',
     });
     expect(mocks.dialogClose).toHaveBeenCalledOnce();
   });
@@ -162,7 +200,7 @@ describe('Captain custom tools', () => {
       }
       return Promise.resolve();
     });
-    const wrapper = mountIndex();
+    const wrapper = await mountIndex();
 
     await flushPromises();
     await wrapper.get('[data-test="toggle"]').trigger('click');
@@ -171,6 +209,7 @@ describe('Captain custom tools', () => {
     expect(mocks.dispatch).toHaveBeenCalledWith('captainCustomTools/update', {
       id: 7,
       enabled: false,
+      assistantId: '42',
     });
     expect(mocks.dialogOpen).not.toHaveBeenCalled();
   });
