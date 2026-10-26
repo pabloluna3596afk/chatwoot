@@ -840,7 +840,14 @@
         "META_TITLE": "Título Meta",
         "META_TITLE_PLACEHOLDER": "Agregar meta title",
         "META_TAGS": "Meta etiquetas",
-        "META_TAGS_PLACEHOLDER": "Agregar meta tags"
+        "META_TAGS_PLACEHOLDER": "Agregar meta tags",
+        "SLUG": "Slug",
+        "SLUG_PLACEHOLDER": "Agregar slug",
+        "SLUG_USE_TITLE": "Usar el título como slug",
+        "SLUG_WARNING": "La URL actual dejará de funcionar y los enlaces existentes dejarán de funcionar.",
+        "SLUG_UPDATE": "Actualizar",
+        "SLUG_UPDATED": "Slug actualizado. El artículo ya está disponible en la nueva URL.",
+        "SLUG_OPEN": "Abrir URL"
       },
       "API": {
         "ERROR": "Error al guardar el artículo"

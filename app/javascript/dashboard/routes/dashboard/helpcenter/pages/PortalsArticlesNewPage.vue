@@ -37,6 +37,7 @@ const isCategoryArticles = computed(
 const article = ref({});
 const isUpdating = ref(false);
 const isSaved = ref(false);
+const createdArticleId = ref(null);
 
 const setAuthorId = authorId => {
   selectedAuthorId.value = authorId;
@@ -46,6 +47,23 @@ const setCategoryId = newCategoryId => {
   selectedCategoryId.value = newCategoryId;
 };
 
+const saveArticle = values => Object.assign(article.value, values);
+
+const currentArticle = () => ({
+  title: article.value.title,
+  content: article.value.content,
+  author_id: selectedAuthorId.value || currentUserId.value,
+  category_id: selectedCategoryId.value || categoryId.value,
+});
+
+const saveEditsMadeWhileCreating = async (articleId, saved) => {
+  const latest = currentArticle();
+  if (Object.keys(latest).every(key => latest[key] === saved[key])) return;
+
+  await store.dispatch('articles/update', { portalSlug, articleId, ...latest });
+  await saveEditsMadeWhileCreating(articleId, latest);
+};
+
 const createNewArticle = async ({ title, content }) => {
   if (title) article.value.title = title;
   if (content) article.value.content = content;
@@ -53,24 +71,35 @@ const createNewArticle = async ({ title, content }) => {
   if (!article.value.title || isUpdating.value) return;
 
   isUpdating.value = true;
+  const creationRoute = route.fullPath;
   try {
     const { locale } = route.params;
-    const resolvedCategoryId = selectedCategoryId.value || categoryId.value;
-    const articleId = await store.dispatch('articles/create', {
-      portalSlug,
-      content: article.value.content,
-      title: article.value.title,
-      locale: locale,
-      authorId: selectedAuthorId.value || currentUserId.value,
-      categoryId: resolvedCategoryId,
-    });
+    const created = currentArticle();
+    const articleId =
+      createdArticleId.value ||
+      (await store.dispatch('articles/create', {
+        portalSlug,
+        content: created.content,
+        title: created.title,
+        locale,
+        authorId: created.author_id,
+        categoryId: created.category_id,
+      }));
+    createdArticleId.value = articleId;
 
     useTrack(PORTALS_EVENTS.CREATE_ARTICLE, { locale });
 
+    await saveEditsMadeWhileCreating(articleId, created).catch(error =>
+      useAlert(error?.message || t('HELP_CENTER.EDIT_ARTICLE_PAGE.API.ERROR'))
+    );
+
+    const resolvedCategoryId = currentArticle().category_id;
     const resolvedSlug = categories.value?.find(
       c => c.id === resolvedCategoryId
     )?.slug;
     const startedFromCategorySlug = route.params.categorySlug;
+
+    if (route.fullPath !== creationRoute) return;
 
     await router.replace({
       name: isCategoryArticles.value
@@ -116,6 +145,7 @@ const goBackToArticles = () => {
     :is-updating="isUpdating"
     :is-saved="isSaved"
     @create-article="createNewArticle"
+    @save-article="saveArticle"
     @go-back="goBackToArticles"
     @set-author="setAuthorId"
     @set-category="setCategoryId"

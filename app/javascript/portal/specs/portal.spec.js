@@ -12,7 +12,7 @@ describe('InitializationHelpers.navigateToLocalePage', () => {
 
   beforeEach(() => {
     dom = new JSDOM(
-      '<!DOCTYPE html><html><body><div class="locale-switcher" data-portal-slug="test-slug"><select><option value="en">English</option><option value="fr">French</option></select></div></body></html>',
+      '<!DOCTYPE html><html><body><div class="locale-switcher"><select><option value="/hc/test-slug/en">English</option><option value="/hc/test-slug/fr">French</option></select></div></body></html>',
       { url: 'http://localhost/' }
     );
     document = dom.window.document;
