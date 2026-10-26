@@ -18,6 +18,10 @@ class SamlSettingsAPI extends ApiClient {
     return axios.put(this.url, { saml_settings: data });
   }
 
+  refresh() {
+    return axios.post(`${this.url}/refresh_metadata`);
+  }
+
   delete() {
     return axios.delete(this.url);
   }

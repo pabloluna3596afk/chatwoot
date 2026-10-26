@@ -71,14 +71,14 @@ const handleCopy = async text => {
       />
     </div>
     <section
-      class="rounded-xl border border-n-weak bg-n-solid-1 w-full text-sm text-n-slate-12 divide-y divide-n-weak"
+      class="rounded-xl border border-n-weak bg-n-solid-1 w-full min-w-0 text-sm text-n-slate-12 divide-y divide-n-weak"
     >
       <div
         v-for="item in visibleInfoItems"
         :key="item.key"
-        class="ps-4 pe-1 py-1 flex justify-between items-center"
+        class="ps-4 pe-1 py-1 flex justify-between items-center min-w-0"
       >
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 min-w-0 flex-1">
           <span class="text-n-slate-11 w-32 flex items-center gap-1">
             {{ item.label }}
             <i
@@ -86,10 +86,11 @@ const handleCopy = async text => {
               class="i-lucide-info text-n-slate-9 w-3 h-3 cursor-help"
             />
           </span>
-          <span class="flex-1">{{ item.value }}</span>
+          <span class="flex-1 min-w-0 break-all">{{ item.value }}</span>
         </div>
         <NextButton
           type="button"
+          class="shrink-0"
           ghost
           sm
           slate

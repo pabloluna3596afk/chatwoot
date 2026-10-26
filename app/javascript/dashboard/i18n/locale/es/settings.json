@@ -835,6 +835,17 @@
     "SAML": {
       "TITLE": "SAML SSO",
       "NOTE": "Configura SAML SSO para tu cuenta. Los usuarios se autenticarán a través de tu proveedor de identidad en lugar de usar correo y contraseña.",
+      "SOURCE": {
+        "METADATA_URL": "Usar URL de metadatos",
+        "MANUAL": "Configurar manualmente"
+      },
+      "METADATA_URL": {
+        "LABEL": "URL de metadatos del proveedor de identidad",
+        "HELP": "Usa la URL HTTPS de metadatos que proporciona tu proveedor de identidad. Debe ser accesible públicamente.",
+        "PLACEHOLDER": "https://idp.example.com/metadata.xml",
+        "LAST_REFRESHED": "Último intento de actualización de metadatos: {date}"
+      },
+      "REFRESH_BUTTON": "Actualizar metadatos",
       "ACS_URL": {
         "LABEL": "ACS URL",
         "TOOLTIP": "URL del servicio de consumo de aserción: configura esta URL en tu IdP como el destino de las respuestas SAML"
@@ -869,11 +880,14 @@
         "SUCCESS": "Los ajustes de SAML se han actualizado correctamente",
         "ERROR": "No se pudieron actualizar los ajustes de SAML",
         "ERROR_LOADING": "No se pudieron cargar los ajustes de SAML",
-        "DISABLED": "Los ajustes de SAML se han deshabilitado correctamente"
+        "DISABLED": "Los ajustes de SAML se han deshabilitado correctamente",
+        "REFRESH_SUCCESS": "Los metadatos del proveedor de identidad se actualizaron correctamente",
+        "REFRESH_ERROR": "No se pudieron actualizar los metadatos del proveedor de identidad"
       },
       "VALIDATION": {
         "REQUIRED_FIELDS": "La URL de SSO, el ID de entidad del proveedor de identidad y el certificado son campos obligatorios",
         "SSO_URL_ERROR": "Ingresa una URL de SSO válida",
+        "METADATA_URL_ERROR": "Ingresa una URL HTTPS de metadatos válida",
         "CERTIFICATE_ERROR": "El certificado es obligatorio",
         "IDP_ENTITY_ID_ERROR": "El ID de entidad del proveedor de identidad es obligatorio"
       },
