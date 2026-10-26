@@ -59,6 +59,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_23_140000) do
     t.json "role_mappings", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "metadata_url"
+    t.datetime "metadata_refreshed_at"
     t.index ["account_id"], name: "index_account_saml_settings_on_account_id"
   end
 
@@ -247,6 +249,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_23_140000) do
     t.index ["account_id"], name: "index_articles_on_account_id"
     t.index ["associated_article_id"], name: "index_articles_on_associated_article_id"
     t.index ["author_id"], name: "index_articles_on_author_id"
+    t.index ["category_id"], name: "index_articles_on_category_id"
     t.index ["portal_id"], name: "index_articles_on_portal_id"
     t.index ["slug"], name: "index_articles_on_slug", unique: true
     t.index ["status"], name: "index_articles_on_status"
@@ -1650,6 +1653,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_23_140000) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "title"
+    t.string "video_url"
   end
 
   create_table "plans", force: :cascade do |t|
@@ -1929,6 +1934,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_23_140000) do
     t.integer "consumed_timestep"
     t.boolean "otp_required_for_login", default: false
     t.text "otp_backup_codes"
+    t.integer "device_trust_version", default: 0, null: false
     t.index ["email"], name: "index_users_on_email"
     t.index ["otp_required_for_login"], name: "index_users_on_otp_required_for_login"
     t.index ["otp_secret"], name: "index_users_on_otp_secret", unique: true
