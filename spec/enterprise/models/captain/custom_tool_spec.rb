@@ -531,23 +531,23 @@ RSpec.describe Captain::CustomTool, type: :model do
         tool = create(:captain_custom_tool, :with_params, account: account)
 
         tool_instance = tool.tool(assistant)
-        params = tool_instance.class.declared_parameters
+        schema = tool_instance.parameters_schema
+        properties = schema.fetch('properties')
 
-        expect(params.keys).to contain_exactly(:order_id, :include_details)
-        expect(params[:order_id].name).to eq(:order_id)
-        expect(params[:order_id].type).to eq('string')
-        expect(params[:order_id].description).to eq('The order ID')
-        expect(params[:order_id].required).to be true
+        expect(properties.keys).to contain_exactly('order_id', 'include_details')
+        expect(properties['order_id']['type']).to eq('string')
+        expect(properties['order_id']['description']).to eq('The order ID')
+        expect(schema.fetch('required')).to include('order_id')
 
-        expect(params[:include_details].name).to eq(:include_details)
-        expect(params[:include_details].required).to be false
+        expect(properties['include_details']['type']).to eq('boolean')
+        expect(schema.fetch('required')).not_to include('include_details')
       end
 
       it 'works with empty param_schema' do
         tool = create(:captain_custom_tool, account: account, param_schema: [])
 
         tool_instance = tool.tool(assistant)
-        expect(tool_instance.class.declared_parameters).to be_empty
+        expect(tool_instance.parameters_schema.fetch('properties')).to be_empty
       end
     end
   end

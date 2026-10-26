@@ -62,7 +62,9 @@ module Captain::ChatHelper
   def add_messages_to_chat(chat)
     conversation_messages[0...-1].each do |msg|
       text, attachments = Captain::OpenAiMessageBuilderService.extract_text_and_attachments(msg[:content])
-      chat.add_message(role: msg[:role].to_sym, content: text, attachments: attachments)
+      message = { role: msg[:role].to_sym, content: text }
+      message[:attachments] = attachments if attachments.any?
+      chat.add_message(**message)
     end
   end
 

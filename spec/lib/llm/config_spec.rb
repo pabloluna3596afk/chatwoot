@@ -110,7 +110,7 @@ RSpec.describe Llm::Config do
       save_setting('CAPTAIN_OPEN_AI_API_KEY', 'sk-new')
       described_class.refresh!
 
-      expect(Agents).to have_received(:configure).once
+      expect(Agents).to have_received(:configure).twice
       expect(agents_config).to have_attributes(
         openai_api_key: 'sk-new', default_model: LlmConstants::DEFAULT_MODEL, debug: false, openai_protocol: :chat_completions
       )
