@@ -621,8 +621,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_23_140000) do
     t.boolean "enabled", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["account_id", "slug"], name: "index_captain_custom_tools_on_account_id_and_slug", unique: true
+    t.bigint "assistant_id"
+    t.jsonb "headers", default: {}, null: false
     t.index ["account_id"], name: "index_captain_custom_tools_on_account_id"
+    t.index ["assistant_id", "slug"], name: "index_captain_custom_tools_on_assistant_id_and_slug", unique: true
   end
 
   create_table "captain_documents", force: :cascade do |t|

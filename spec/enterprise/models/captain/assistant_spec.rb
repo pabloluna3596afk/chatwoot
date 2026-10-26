@@ -390,8 +390,8 @@ RSpec.describe Captain::Assistant, type: :model do
   end
 
   describe '#agent_tools' do
-    it 'includes enabled custom tools from the assistant account' do
-      custom_tool = create(:captain_custom_tool, account: account)
+    it 'includes enabled custom tools from the assistant' do
+      custom_tool = create(:captain_custom_tool, account: account, assistant: assistant)
 
       tools = assistant.send(:agent_tools)
 
@@ -400,7 +400,7 @@ RSpec.describe Captain::Assistant, type: :model do
     end
 
     it 'excludes disabled custom tools' do
-      custom_tool = create(:captain_custom_tool, :disabled, account: account)
+      custom_tool = create(:captain_custom_tool, :disabled, account: account, assistant: assistant)
 
       tools = assistant.send(:agent_tools)
 
@@ -426,9 +426,17 @@ RSpec.describe Captain::Assistant, type: :model do
   end
 
   describe '#available_tool_ids' do
+    it 'includes only custom tools assigned to this assistant' do
+      custom_tool = create(:captain_custom_tool, account: account, assistant: assistant, slug: 'custom_own_tool')
+      other_assistant_tool = create(:captain_custom_tool, account: account, slug: 'custom_other_tool')
+
+      expect(assistant.available_tool_ids).to include(custom_tool.slug)
+      expect(assistant.available_tool_ids).not_to include(other_assistant_tool.slug)
+    end
+
     it 'excludes disabled custom tools' do
-      enabled_tool = create(:captain_custom_tool, account: account)
-      disabled_tool = create(:captain_custom_tool, :disabled, account: account)
+      enabled_tool = create(:captain_custom_tool, account: account, assistant: assistant)
+      disabled_tool = create(:captain_custom_tool, :disabled, account: account, assistant: assistant)
 
       expect(assistant.available_tool_ids).to include(enabled_tool.slug)
       expect(assistant.available_tool_ids).not_to include(disabled_tool.slug)
@@ -437,7 +445,7 @@ RSpec.describe Captain::Assistant, type: :model do
 
   describe '#known_tool_ids' do
     it 'includes disabled custom tools as valid references' do
-      disabled_tool = create(:captain_custom_tool, :disabled, account: account)
+      disabled_tool = create(:captain_custom_tool, :disabled, account: account, assistant: assistant)
 
       expect(assistant.known_tool_ids).to include(disabled_tool.slug)
     end
