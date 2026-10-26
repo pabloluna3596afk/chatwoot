@@ -18,6 +18,8 @@ class Imap::ImapMailbox
     return unless incoming_email_from_valid_email?
 
     ActiveRecord::Base.transaction do
+      next if duplicate_email?
+
       find_or_create_contact
       find_or_create_conversation
       create_message
@@ -37,6 +39,16 @@ class Imap::ImapMailbox
 
   def decorate_mail
     @processed_mail = MailPresenter.new(@inbound_mail, @account)
+  end
+
+  # Overlapping fetch jobs can pass their earlier duplicate checks before either saves the email.
+  # The transaction lock makes the second job wait, then the uncached check sees the committed message.
+  def duplicate_email?
+    source_id = sanitize_mailbox_value(@processed_mail.message_id)
+    lock_key = Digest::SHA256.digest(source_id).unpack1('l>')
+    ActiveRecord::Base.connection.select_value("SELECT pg_advisory_xact_lock(#{@inbox.id}, #{lock_key})")
+
+    Message.uncached { @inbox.messages.exists?(source_id: source_id) }
   end
 
   def find_conversation_by_in_reply_to
