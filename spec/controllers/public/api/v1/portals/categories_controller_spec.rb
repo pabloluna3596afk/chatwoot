@@ -39,7 +39,7 @@ RSpec.describe 'Public Categories API', type: :request do
       get "/hc/#{portal.slug}/#{category.locale}/categories/#{category.slug}"
 
       expect(response).to have_http_status(:success)
-      expect(response.body).to include("href=\"/hc/#{portal.slug}/es/categories/#{translated_category.slug}\"")
+      expect(response.body).to include("value=\"/hc/#{portal.slug}/es/categories/#{translated_category.slug}\"")
     end
   end
 end
