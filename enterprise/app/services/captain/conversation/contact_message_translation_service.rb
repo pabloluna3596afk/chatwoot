@@ -36,8 +36,10 @@ class Captain::Conversation::ContactMessageTranslationService
           translations: message.translations.to_h.merge(target_language => translation), translation_provider: translator.provider,
           translation_failed: nil
         )
+        message.content_attributes['translation_status'] = 'completed'
       else
         message.translation_failed = true
+        message.content_attributes['translation_status'] = 'failed'
       end
       message.save!
     end

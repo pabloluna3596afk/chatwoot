@@ -71,6 +71,10 @@ es:
       expired: 'El código de verificación venció. Inicia sesión para solicitar uno nuevo.'
       invalid_code: 'El código de verificación es incorrecto.'
       code_field_required: 'Ingresa el código que enviamos a tu correo.'
+    auto_translate:
+      invalid_messages: 'Mensajes no válidos'
+    google_translate:
+      invalid_credentials: 'No se pudieron validar las credenciales de Google Cloud'
     account_saml_settings:
       invalid_certificate: debe ser un certificado X.509 válido en formato PEM
       metadata_url:

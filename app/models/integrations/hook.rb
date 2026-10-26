@@ -85,6 +85,12 @@ class Integrations::Hook < ApplicationRecord
     app_id == 'shopify'
   end
 
+  def google_translate_credentials
+    return settings['credentials'] unless access_token&.start_with?('{')
+
+    JSON.parse(access_token)
+  end
+
   def disable
     update(status: 'disabled')
   end

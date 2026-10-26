@@ -12,6 +12,7 @@ module Enterprise::Concerns::Message
 
   def mark_for_translation
     content_attributes['translation_pending'] = true
+    content_attributes['translation_status'] = 'pending'
   end
 
   def translation_enabled?

@@ -20,6 +20,16 @@ RSpec.describe Captain::Conversation::ContactMessageTranslationService do
 
     expect(message.reload.translations).to eq('en' => 'Hello')
     expect(message.translation_provider).to eq('captain')
+    expect(message.content_attributes['translation_status']).to eq('completed')
+  end
+
+  it 'marks a translation as failed when the provider returns no text' do
+    allow(translator).to receive(:translate).and_return(nil)
+
+    described_class.new(message: message, target_language: 'en').perform
+
+    expect(message.reload.translation_failed).to be true
+    expect(message.content_attributes['translation_status']).to eq('failed')
   end
 
   it 'does not translate a private note' do

@@ -98,6 +98,8 @@ en:
         not_metadata: did not return valid SAML identity provider metadata
     auto_translate:
       invalid_messages: 'Invalid messages'
+    google_translate:
+      invalid_credentials: 'Google Cloud credentials could not be validated'
     downloads:
       disabled: Downloads are disabled for this account by the system administrator.
     account:

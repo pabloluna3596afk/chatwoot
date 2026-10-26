@@ -84,5 +84,26 @@ describe('#integrationAPI', () => {
         '/api/v1/integrations/hooks/2'
       );
     });
+
+    it('#connectGoogleTranslate', () => {
+      const credentials = { client_email: 'translator@example.com' };
+      integrationAPI.connectGoogleTranslate({
+        projectId: 'project-1',
+        credentials,
+      });
+
+      expect(axiosMock.post).toHaveBeenCalledWith(
+        '/api/v1/integrations/google_translate',
+        { project_id: 'project-1', credentials }
+      );
+    });
+
+    it('#disconnectGoogleTranslate', () => {
+      integrationAPI.disconnectGoogleTranslate();
+
+      expect(axiosMock.delete).toHaveBeenCalledWith(
+        '/api/v1/integrations/google_translate'
+      );
+    });
   });
 });

@@ -21,11 +21,7 @@ module Enterprise::Api::V1::Accounts::Conversations::MessagesController
       return render json: { error: I18n.t('errors.auto_translate.invalid_messages') }, status: :unprocessable_entity
     end
 
-    @conversation.messages.where(id: message_ids).find_each do |contact_message|
-      next unless translatable_contact_message?(contact_message)
-
-      Captain::Conversation::ContactMessageTranslationJob.perform_later(contact_message, agent_language)
-    end
+    @conversation.messages.where(id: message_ids).find_each { |contact_message| enqueue_contact_translation(contact_message) }
     head :accepted
   end
 
@@ -65,5 +61,22 @@ module Enterprise::Api::V1::Accounts::Conversations::MessagesController
 
   def agent_language
     Current.user.ui_settings['locale'].presence || Current.account.locale
+  end
+
+  def enqueue_contact_translation(contact_message)
+    return unless translatable_contact_message?(contact_message)
+    return if contact_message.translations&.key?(agent_language)
+
+    should_enqueue = contact_message.with_lock do
+      next false if contact_message.content_attributes['translation_status'] == 'pending'
+
+      contact_message.content_attributes['translation_status'] = 'pending'
+      contact_message.translation_failed = nil
+      contact_message.save!
+      true
+    end
+    return unless should_enqueue
+
+    Captain::Conversation::ContactMessageTranslationJob.perform_later(contact_message, agent_language)
   end
 end

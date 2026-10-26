@@ -27,6 +27,11 @@
     "SEARCH_MESSAGES": "Buscar mensajes en conversaciones",
     "VIEW_ORIGINAL": "Ver original",
     "VIEW_TRANSLATED": "Ver traducido",
+    "TRANSLATION_STATUS": {
+      "PENDING": "Traduciendo…",
+      "FAILED": "No se pudo traducir este mensaje.",
+      "RETRY": "Reintentar"
+    },
     "EMPTY_STATE": {
       "CMD_BAR": "para abrir el menú de comandos",
       "KEYBOARD_SHORTCUTS": "para ver los atajos del teclado"
