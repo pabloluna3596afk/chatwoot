@@ -79,9 +79,7 @@ describe ContactDrop do
     end
 
     it 'exposes country_code' do
-      skip 'TODO(chathub): fallo previo del fork: ContactDrop#country_code devuelve nil para un contacto con country_code; revisar'
-
-      contact.update!(country_code: 'AR')
+      contact.update!(additional_attributes: { country: 'AR' })
       expect(contact_drop.country_code).to eq 'AR'
     end
 

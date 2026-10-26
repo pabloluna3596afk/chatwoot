@@ -56,8 +56,6 @@ describe Whatsapp::Providers::Whatsapp360DialogService do
       end
 
       it 'calls message endpoints with list payload when descriptions are present' do
-        skip 'TODO(chathub): fallo previo del fork: falta el stub de WebMock para POST /v1/messages de 360dialog'
-
         items = [
           { title: 'Burito', value: 'Burito', description: 'A tortilla wrap with fillings' },
           { title: 'Pasta', value: 'Pasta', description: 'An Italian noodle dish' },
@@ -75,7 +73,7 @@ describe Whatsapp::Providers::Whatsapp360DialogService do
               end
             }
           ]
-        }.to_json
+        }
 
         stub_request(:post, 'https://waba.360dialog.io/v1/messages')
           .with(
@@ -95,8 +93,6 @@ describe Whatsapp::Providers::Whatsapp360DialogService do
       end
 
       it 'calls message endpoints with list payload when number of items is greater than 3' do
-        skip 'TODO(chathub): fallo previo del fork: falta el stub de WebMock para POST /v1/messages de 360dialog'
-
         items = [
           { title: 'Burito', value: 'Burito', description: 'A tortilla wrap with fillings' },
           { title: 'Pasta', value: 'Pasta', description: 'An Italian noodle dish' },
@@ -115,7 +111,7 @@ describe Whatsapp::Providers::Whatsapp360DialogService do
               end
             }
           ]
-        }.to_json
+        }
 
         stub_request(:post, 'https://waba.360dialog.io/v1/messages')
           .with(
