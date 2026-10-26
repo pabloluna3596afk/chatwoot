@@ -99,6 +99,34 @@ RSpec.describe Imap::ImapMailbox do
       end
     end
 
+    context 'when reply-to contains an empty quoted address' do
+      let(:inbound_mail) { create_inbound_email_from_fixture('malformed_reply_to.eml') }
+      let(:mail) { inbound_mail.mail }
+
+      it 'creates a conversation and message using the valid from address' do
+        expect(mail.reply_to).to eq([nil])
+
+        expect do
+          class_instance.process(mail, channel)
+        end.to change(Conversation, :count).by(1).and change(Message, :count).by(1)
+
+        expect(conversation.contact.email).to eq('sender@example.com')
+        expect(conversation.messages.last.content_attributes.dig('email', 'from')).to eq(['sender@example.com'])
+      end
+    end
+
+    context 'when another fetch job has already saved the email' do
+      let(:inbound_mail) { create_inbound_email_from_mail(from: 'email@gmail.com', to: 'imap@gmail.com', subject: 'Hello!') }
+
+      it 'does not create a second conversation or message' do
+        create(:message, account: account, inbox: inbox, source_id: inbound_mail.mail.message_id)
+
+        expect do
+          class_instance.process(inbound_mail.mail, channel)
+        end.to not_change(Conversation, :count).and not_change(Message, :count)
+      end
+    end
+
     context 'when a new email contains null bytes' do
       let(:inbound_mail) do
         Mail.new.tap do |mail|

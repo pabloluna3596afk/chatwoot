@@ -18,6 +18,7 @@ RSpec.describe AutoAssignment::RateLimiter do
   let(:agent) { create(:user, account: account, role: :agent) }
   let(:conversation) { create(:conversation, inbox: inbox) }
   let(:rate_limiter) { described_class.new(inbox: inbox, agent: agent) }
+  let(:assignment_key) { format(Redis::RedisKeys::ASSIGNMENT_KEY, inbox_id: inbox.id, agent_id: agent.id) }
 
   describe '#within_limit?' do
     context 'when rate limiting is not enabled' do
@@ -60,9 +61,9 @@ RSpec.describe AutoAssignment::RateLimiter do
       end
 
       it 'still tracks the assignment with default window' do
-        expected_key = format(Redis::RedisKeys::ASSIGNMENT_KEY, inbox_id: inbox.id, agent_id: agent.id, conversation_id: conversation.id)
-        expect(Redis::Alfred).to receive(:set).with(expected_key, conversation.id.to_s, ex: 5.minutes.to_i)
         rate_limiter.track_assignment(conversation)
+
+        expect(Redis::Alfred.ttl(assignment_key)).to eq(5.minutes.to_i)
       end
     end
 
@@ -77,14 +78,21 @@ RSpec.describe AutoAssignment::RateLimiter do
         allow(inbox).to receive(:assignment_policy).and_return(assignment_policy)
       end
 
-      it 'creates a Redis key with correct expiry' do
-        expected_key = format(Redis::RedisKeys::ASSIGNMENT_KEY, inbox_id: inbox.id, agent_id: agent.id, conversation_id: conversation.id)
-        expect(Redis::Alfred).to receive(:set).with(
-          expected_key,
-          conversation.id.to_s,
-          ex: 3600
-        )
+      it 'records the assignment time and the configured expiry' do
+        freeze_time do
+          rate_limiter.track_assignment(conversation)
+
+          expect(Redis::Alfred.zscore(assignment_key, conversation.id)).to eq(Time.now.to_i)
+          expect(Redis::Alfred.ttl(assignment_key)).to eq(3600)
+        end
+      end
+
+      it 'drops assignments that fell out of the window' do
+        travel_to(70.minutes.ago) { rate_limiter.track_assignment(create(:conversation, inbox: inbox)) }
+        travel_to(50.minutes.ago) { rate_limiter.track_assignment(create(:conversation, inbox: inbox)) }
         rate_limiter.track_assignment(conversation)
+
+        expect(Redis::Alfred.zcard(assignment_key)).to eq(2)
       end
     end
   end
@@ -111,11 +119,11 @@ RSpec.describe AutoAssignment::RateLimiter do
         allow(inbox).to receive(:assignment_policy).and_return(assignment_policy)
       end
 
-      it 'counts matching Redis keys' do
-        pattern = format(Redis::RedisKeys::ASSIGNMENT_KEY_PATTERN, inbox_id: inbox.id, agent_id: agent.id)
-        allow(Redis::Alfred).to receive(:keys_count).with(pattern).and_return(3)
+      it 'counts only assignments made within the window' do
+        travel_to(70.minutes.ago) { rate_limiter.track_assignment(create(:conversation, inbox: inbox)) }
+        travel_to(50.minutes.ago) { rate_limiter.track_assignment(create(:conversation, inbox: inbox)) }
 
-        expect(rate_limiter.current_count).to eq(3)
+        expect(rate_limiter.current_count).to eq(1)
       end
     end
   end
@@ -133,13 +141,9 @@ RSpec.describe AutoAssignment::RateLimiter do
       end
 
       it 'uses the custom window value' do
-        expected_key = format(Redis::RedisKeys::ASSIGNMENT_KEY, inbox_id: inbox.id, agent_id: agent.id, conversation_id: conversation.id)
-        expect(Redis::Alfred).to receive(:set).with(
-          expected_key,
-          conversation.id.to_s,
-          ex: 7200
-        )
         rate_limiter.track_assignment(conversation)
+
+        expect(Redis::Alfred.ttl(assignment_key)).to eq(7200)
       end
     end
 
@@ -155,13 +159,9 @@ RSpec.describe AutoAssignment::RateLimiter do
       end
 
       it 'uses the default window value of 5 minutes' do
-        expected_key = format(Redis::RedisKeys::ASSIGNMENT_KEY, inbox_id: inbox.id, agent_id: agent.id, conversation_id: conversation.id)
-        expect(Redis::Alfred).to receive(:set).with(
-          expected_key,
-          conversation.id.to_s,
-          ex: 5.minutes.to_i
-        )
         rate_limiter.track_assignment(conversation)
+
+        expect(Redis::Alfred.ttl(assignment_key)).to eq(5.minutes.to_i)
       end
     end
   end
