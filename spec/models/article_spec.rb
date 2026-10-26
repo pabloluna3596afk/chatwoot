@@ -21,6 +21,17 @@ RSpec.describe Article do
       expect(article.errors[:content]).to include("can't be blank")
     end
 
+    it 'validates uniqueness and format when changing a slug' do
+      existing = create(:article, portal: portal_1, author: user, slug: 'existing-slug')
+      article = create(:article, portal: portal_1, author: user, slug: 'another-slug')
+
+      article.slug = existing.slug
+      expect(article).not_to be_valid
+
+      article.slug = 'invalid slug'
+      expect(article).not_to be_valid
+    end
+
     it 'rejects reserved slugs that collide with help center routes' do
       Article::RESERVED_SLUGS.each do |reserved_slug|
         article = build(:article, portal_id: portal_1.id, author_id: user.id, category_id: category_1.id,
@@ -74,6 +85,17 @@ RSpec.describe Article do
                                  slug: 'this-is-title', title: 'this is title',
                                  portal_id: portal.id, author_id: user.id, locale: '')
       expect(article.locale).to eq(portal.default_locale)
+    end
+  end
+
+  describe '#translation_family' do
+    let(:article_root) { create(:article, portal: portal_1, author: user, locale: 'en') }
+
+    it 'returns the root article and its translations from the same portal' do
+      translation = create(:article, portal: portal_1, author: user, locale: 'es', associated_article_id: nil)
+      translation.update!(associated_article_id: article_root.id)
+
+      expect(translation.translation_family).to contain_exactly(article_root, translation)
     end
   end
 
@@ -182,6 +204,7 @@ RSpec.describe Article do
         article = create(:article, category_id: category_1.id, title: 'the awesome article 1', content: 'This is the content', portal_id: portal_1.id,
                                    author_id: user.id)
         expect(article.slug).to include('the-awesome-article-1')
+        expect(article.slug).to match(/\A\d{10}-the-awesome-article-1-[a-f0-9]{8}\z/)
       end
     end
   end
