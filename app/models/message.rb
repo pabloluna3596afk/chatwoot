@@ -44,6 +44,9 @@ class Message < ApplicationRecord
   include MessageFilterHelpers
   include Liquidable
   NUMBER_OF_PERMITTED_ATTACHMENTS = 15
+  PRIVATE_TRANSLATION_CONTENT_ATTRIBUTES = %w[
+    translations translation_failed translation_pending source_language conversation_language translation_status translation_provider
+  ].freeze
 
   TEMPLATE_PARAMS_SCHEMA = {
     'type': 'object',
@@ -160,6 +163,17 @@ class Message < ApplicationRecord
     merge_sender_attributes(data)
   end
 
+  # Translation metadata is for agents and must not be exposed to contacts.
+  # Outgoing message content is already translated for the contact when needed.
+  def public_content_attributes(attributes = content_attributes)
+    public_attributes = (attributes || {}).deep_dup
+    PRIVATE_TRANSLATION_CONTENT_ATTRIBUTES.each do |key|
+      public_attributes.delete(key)
+      public_attributes.delete(key.to_sym)
+    end
+    public_attributes
+  end
+
   # Only the visual template/Flow metadata belongs in dashboard payloads.
   def dashboard_additional_attributes
     return additional_attributes unless inbox.channel_type == 'Channel::Whatsapp'
@@ -190,7 +204,8 @@ class Message < ApplicationRecord
   def webhook_push_event_data
     push_event_data.merge(
       content: Messages::WebhookContentNormalizer.normalize(content),
-      processed_message_content: Messages::WebhookContentNormalizer.normalize(processed_message_content)
+      processed_message_content: Messages::WebhookContentNormalizer.normalize(processed_message_content),
+      content_attributes: public_content_attributes
     )
   end
 
@@ -198,7 +213,7 @@ class Message < ApplicationRecord
     data = {
       account: account.webhook_data,
       additional_attributes: additional_attributes,
-      content_attributes: content_attributes,
+      content_attributes: public_content_attributes,
       content_type: content_type,
       content: webhook_content,
       conversation: conversation.webhook_data,
