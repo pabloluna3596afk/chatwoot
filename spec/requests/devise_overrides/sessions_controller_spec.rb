@@ -17,12 +17,51 @@ RSpec.describe 'Session authentication responses', type: :request do
     expect(Current.user).to be_nil
   end
 
+  it 'keeps the existing password sign-in response when account MFA is not enforced' do
+    post '/auth/sign_in', params: { email: user.email, password: 'Test@123456' }, as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body).not_to have_key('mfa_setup_required')
+    expect(response.parsed_body).not_to have_key('mfa_required')
+  end
+
+  it 'requires enrollment during password sign-in when account MFA is enforced' do
+    skip('Skipping since MFA is not configured in this environment') unless Chatwoot.encryption_configured?
+    account.update!(enforce_mfa: true)
+
+    post '/auth/sign_in', params: { email: user.email, password: 'Test@123456' }, as: :json
+
+    expect(response).to have_http_status(:partial_content)
+    expect(response.parsed_body).to include('mfa_setup_required' => true)
+    expect(response.parsed_body['mfa_setup_token']).to be_present
+  end
+
   it 'returns self credentials after SSO sign-in' do
     post '/auth/sign_in', params: { email: user.email, sso_auth_token: user.generate_sso_auth_token }, as: :json
 
     expect(response).to have_http_status(:success)
     expect(response_data).to include('access_token' => user.access_token.token, 'pubsub_token' => user.pubsub_token)
     expect(Current.user).to be_nil
+  end
+
+  it 'requires MFA enrollment before creating a Panel AI SSO session when enforcement is enabled' do
+    skip('Skipping since MFA is not configured in this environment') unless Chatwoot.encryption_configured?
+    account.update!(enforce_mfa: true)
+
+    post '/auth/sign_in', params: { email: user.email, sso_auth_token: user.generate_sso_auth_token }, as: :json
+
+    expect(response).to have_http_status(:partial_content)
+    expect(response.parsed_body).to include('mfa_setup_required' => true)
+  end
+
+  it 'keeps Google OAuth sign-in exempt from account MFA enforcement' do
+    account.update!(enforce_mfa: true)
+    user.update!(provider: 'google_oauth2')
+
+    post '/auth/sign_in', params: { email: user.email, sso_auth_token: user.generate_sso_auth_token }, as: :json
+
+    expect(response).to have_http_status(:success)
+    expect(response.parsed_body).not_to have_key('mfa_setup_required')
   end
 
   it 'does not return self credentials for an invalid password' do
