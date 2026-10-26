@@ -28,6 +28,34 @@ RSpec.describe AccountSamlSettings, type: :model do
       expect(settings).not_to be_valid
       expect(settings.errors[:idp_entity_id]).to include("can't be blank")
     end
+
+    it 'accepts metadata-backed settings without manual IdP fields' do
+      settings = build(:account_saml_settings, account: account, metadata_url: 'https://idp.example.com/metadata')
+      allow(Saml::IdpMetadataService).to receive(:new).and_return(instance_double(Saml::IdpMetadataService, perform: {
+                                                                                    sso_url: 'https://idp.example.com/sso',
+                                                                                    idp_entity_id: 'idp',
+                                                                                    signing_certificates: [settings.certificate]
+                                                                                  }))
+
+      expect(settings).to be_valid
+    end
+  end
+
+  describe '#refresh_metadata' do
+    it 'keeps the previous IdP values if metadata refresh fails' do
+      settings = create(:account_saml_settings, account: account)
+      settings.update_column(:metadata_url, 'https://idp.example.com/metadata') # rubocop:disable Rails/SkipsModelValidations
+      previous_values = settings.attributes.slice('sso_url', 'certificate', 'idp_entity_id')
+      allow(Saml::IdpMetadataService).to receive(:new).and_return(instance_double(Saml::IdpMetadataService, perform: {
+                                                                                    sso_url: 'https://evil.example.com/sso',
+                                                                                    idp_entity_id: 'new',
+                                                                                    signing_certificates: ['invalid']
+                                                                                  }))
+
+      expect(settings.refresh_metadata).to be false
+      expect(settings.reload.attributes.slice('sso_url', 'certificate', 'idp_entity_id')).to eq(previous_values)
+      expect(settings.metadata_refreshed_at).to be_present
+    end
   end
 
   describe '#saml_enabled?' do
