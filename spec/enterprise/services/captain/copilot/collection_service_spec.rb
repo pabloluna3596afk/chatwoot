@@ -162,6 +162,17 @@ RSpec.describe Captain::Copilot::CollectionService do
       end.to raise_error(ArgumentError, /cannot be combined/)
     end
 
+    it 'returns zero counts and a nil numeric aggregate when no rows match' do
+      create(:custom_attribute_definition, account: account, attribute_model: 'conversation_attribute',
+                                           attribute_display_type: 'number', attribute_key: 'score')
+
+      result = service.create(resource: 'conversations', filters: { status: 'resolved' },
+                              aggregate: { function: 'sum', key: 'score' })
+
+      expect(result[:total]).to eq(0)
+      expect(result[:aggregate][:value]).to be_nil
+    end
+
     it 'rejects unknown custom attribute keys' do
       expect do
         service.create(resource: 'conversations', filters: { custom_attribute: { key: 'missing', value: 'x' } })
