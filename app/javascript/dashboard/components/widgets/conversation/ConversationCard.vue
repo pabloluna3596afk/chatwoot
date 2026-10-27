@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, toRef, watch } from 'vue';
+import { useStore } from 'vuex';
 import { getLastMessage } from 'dashboard/helper/conversationHelper';
 import Avatar from 'next/avatar/Avatar.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
@@ -36,6 +37,10 @@ const emit = defineEmits([
 ]);
 
 const hovered = ref(false);
+const store = useStore();
+const typingUsers = computed(() =>
+  store.getters['conversationTypingStatus/getUserList'](props.chat.id)
+);
 
 const {
   showAssistantAvatar,
@@ -43,7 +48,7 @@ const {
   ringClass: captainRingClass,
   tooltip: captainTooltip,
   isEscalated: isCaptainEscalated,
-} = useCaptainState(toRef(props, 'chat'));
+} = useCaptainState(toRef(props, 'chat'), typingUsers);
 
 const unreadCount = computed(() => props.chat.unread_count);
 const hasUnread = computed(() => unreadCount.value > 0);

@@ -48,6 +48,31 @@ describe('ActionCableConnector - Copilot Tests', () => {
     vi.clearAllTimers();
     vi.useRealTimers();
   });
+
+  it('expires Captain typing after 30 seconds if no typing_off event arrives', () => {
+    vi.useFakeTimers();
+    const conversation = { id: 42 };
+    const user = {
+      id: 7,
+      name: 'Aurora',
+      avatar_url: '/aurora.png',
+      type: 'captain_assistant',
+    };
+
+    actionCable.onTypingOn({ conversation, user });
+    expect(mockDispatch).toHaveBeenCalledWith(
+      'conversationTypingStatus/create',
+      { conversationId: 42, user }
+    );
+
+    vi.advanceTimersByTime(30000);
+
+    expect(mockDispatch).toHaveBeenLastCalledWith(
+      'conversationTypingStatus/destroy',
+      { conversationId: 42, user }
+    );
+  });
+
   it('routes calendar invalidations through the shared bus only for the selected account', () => {
     const data = { account_id: 1, contact_ids: [7] };
     actionCable.onReceived({ event: 'calendar.events_changed', data });

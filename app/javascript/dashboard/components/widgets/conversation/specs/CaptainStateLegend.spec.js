@@ -27,7 +27,9 @@ describe('CaptainStateLegend', () => {
       .find('[data-testid="captain-legend"]');
 
     expect(legend.exists()).toBe(true);
-    expect(legend.findAll('li')).toHaveLength(3);
+    expect(legend.findAll('li')).toHaveLength(4);
+    expect(legend.text()).toContain('CHAT_LIST.CAPTAIN_LEGEND.TYPING');
+    expect(legend.text()).toContain('CHAT_LIST.CAPTAIN_LEGEND.ASSIGNED');
     expect(legend.text()).toContain('CHAT_LIST.CAPTAIN_LEGEND.TAKEN');
   });
 });

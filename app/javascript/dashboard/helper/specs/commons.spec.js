@@ -29,6 +29,14 @@ describe('#getTypingUsersText', () => {
     ]);
   });
 
+  it('shows Captain assistants by the name serialized in the typing event', () => {
+    expect(
+      getTypingUsersText([
+        { id: 42, name: 'Aurora', type: 'captain_assistant' },
+      ])
+    ).toEqual(['TYPING.ONE', { user: 'Aurora' }]);
+  });
+
   it('returns the correct text is there are two typing users', () => {
     expect(
       getTypingUsersText([{ name: 'Pranav' }, { name: 'Nithin' }])
