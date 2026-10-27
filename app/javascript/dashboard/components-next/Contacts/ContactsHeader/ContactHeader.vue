@@ -114,7 +114,7 @@ const emit = defineEmits([
           <div class="hidden sm:block w-px h-4 bg-n-strong" />
           <ComposeConversation>
             <template #trigger>
-              <Button :label="buttonLabel" size="sm" />
+              <Button :label="buttonLabel" size="sm" class="max-sm:min-h-11" />
             </template>
           </ComposeConversation>
         </div>

@@ -238,7 +238,7 @@ const handleAvatarHover = isHovered => {
                 size="sm"
                 variant="outline"
                 color="slate"
-                class="self-start"
+                class="self-start min-h-11"
                 @click="onClickViewDetails"
               />
               <ContactsForm
@@ -252,6 +252,7 @@ const handleAvatarHover = isHovered => {
                     t('CONTACTS_LAYOUT.CARD.EDIT_DETAILS_FORM.UPDATE_BUTTON')
                   "
                   size="sm"
+                  class="min-h-11"
                   :is-loading="isUpdating"
                   :disabled="isUpdating || isFormInvalid"
                   @click.stop="handleUpdateContact"

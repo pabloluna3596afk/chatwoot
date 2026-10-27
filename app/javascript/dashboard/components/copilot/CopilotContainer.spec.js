@@ -90,6 +90,17 @@ describe('CopilotContainer', () => {
     expect(copilot.props('messages')).toEqual([]);
   });
 
+  it('keeps the floating panel available with or without a selected conversation', async () => {
+    const wrapper = mountComponent();
+
+    expect(wrapper.find('.fixed.top-16').exists()).toBe(true);
+
+    testState.refs.getSelectedChat.value = null;
+    await nextTick();
+
+    expect(wrapper.find('.fixed.top-16').exists()).toBe(true);
+  });
+
   it('ignores a thread created for a conversation that is no longer selected', async () => {
     let resolveRequest;
     testState.dispatch.mockImplementation(action => {

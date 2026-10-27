@@ -76,6 +76,7 @@ useKeyboardEvents(keyboardEvents);
       ghost
       slate
       sm
+      :aria-label="$t('CONVERSATION.SIDEBAR.COPILOT')"
       class="!rounded-full transition-all duration-[250ms] ease-out active:!scale-95 active:duration-75"
       :class="{
         'bg-n-alpha-2 !text-n-iris-9 active:!brightness-105 active:shadow-sm':
