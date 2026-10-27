@@ -1,5 +1,13 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-246 — Indicador de typing real para Captain
+
+- **Problema:** el panel de conversación y el tooltip de la lista afirmaban que Captain respondía solo por estar asignado, aunque no estuviera generando una respuesta.
+- **Arreglo:** `ResponseBuilderJob` emite typing de Captain antes de generar y `typing_off` en `ensure`; el listener transmite su identidad y avatar solo a agentes. El panel distingue escribiendo, asignado y esperando al cliente; lista, pill de mensajes y CaptainStateLegend se alinean. Los Flows humanizados conservan el emisor existente.
+- **Canales:** el job despacha los eventos sin usar `TypingStatusManager`, que además activa typing de WhatsApp. El token del widget público se omite para Captain; el widget público no muestra typing de Captain.
+- **Verificación:** Vitest focalizado 91/91 en UTC y America/Guayaquil; RSpec de éxito, error, descarte, límite y ActionCable 5/5, burst programado 2/2, ActionCable/webhooks existentes 53/53. Capturas 390 px `captainescribe-{typing,assigned,waiting}.png`, sin desbordes, solapes ni objetivos pequeños. ESLint sin errores; RuboCop 4 archivos inspeccionados, solo dos advertencias preexistentes `Metrics/ClassLength` en archivos extensos. Seguimiento en `tmp/PR-CAPTAIN-ESCRIBIENDO.md`.
+- **Archivos:** `enterprise/app/jobs/captain/conversation/response_builder_job.rb`, `app/listeners/action_cable_listener.rb`, barra de herramientas del contacto, estado Captain, lista, pill de mensajes, locales y specs.
+
 ### B-NEW-245 — Ejemplos de pautas y límites traducibles (UI-CAPTAIN-2)
 
 - **Problema:** los tres ejemplos sugeridos de pautas y límites se mostraban y guardaban en inglés aunque la interfaz estuviera en español.

@@ -232,7 +232,9 @@ class ActionCableListener < BaseListener
                            user.pubsub_token
                          end
 
-    tokens = user_tokens(account, conversation.inbox.members) + [conversation.contact_inbox.pubsub_token]
+    tokens = user_tokens(account, conversation.inbox.members)
+    is_captain_assistant = user.push_event_data[:type] == 'captain_assistant'
+    tokens += [conversation.contact_inbox.pubsub_token] unless is_captain_assistant
     current_user_token.present? ? tokens - [current_user_token] : tokens
   end
 

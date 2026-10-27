@@ -167,7 +167,17 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       end
 
       it 'generates and processes response' do
+        allow(Rails.configuration.dispatcher).to receive(:dispatch).and_call_original
+
         described_class.perform_now(conversation, assistant)
+        expect(Rails.configuration.dispatcher).to have_received(:dispatch).with(
+          Events::Types::CONVERSATION_TYPING_ON, kind_of(Time),
+          conversation: conversation, user: assistant, is_private: false
+        ).once
+        expect(Rails.configuration.dispatcher).to have_received(:dispatch).with(
+          Events::Types::CONVERSATION_TYPING_OFF, kind_of(Time),
+          conversation: conversation, user: assistant, is_private: false
+        ).once
         expect(conversation.messages.count).to eq(2)
         expect(conversation.messages.outgoing.count).to eq(1)
         expect(conversation.messages.last.content).to eq('Hey, welcome to Captain Specs')
@@ -200,6 +210,17 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         described_class.perform_now(conversation, assistant)
         account.reload
         expect(account.usage_limits[:captain][:responses][:consumed]).to eq(1)
+      end
+
+      it 'turns typing off after generation raises' do
+        allow(mock_llm_chat_service).to receive(:generate_response).and_raise(StandardError, 'LLM unavailable')
+        allow(Rails.configuration.dispatcher).to receive(:dispatch).and_call_original
+
+        described_class.perform_now(conversation, assistant)
+        expect(Rails.configuration.dispatcher).to have_received(:dispatch).with(
+          Events::Types::CONVERSATION_TYPING_OFF, kind_of(Time),
+          conversation: conversation, user: assistant, is_private: false
+        ).once
       end
 
       it 'keeps customer response metering independent of all playground limits' do
@@ -510,9 +531,14 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
             { 'response' => 'Stale response', 'handoff_tool_called' => false }
           end
           allow(mock_agent_runner_service).to receive(:response_discarded?).and_return(true)
+          allow(Rails.configuration.dispatcher).to receive(:dispatch).and_call_original
 
           described_class.perform_now(conversation, assistant, responding_to_message.id)
 
+          expect(Rails.configuration.dispatcher).to have_received(:dispatch).with(
+            Events::Types::CONVERSATION_TYPING_OFF, kind_of(Time),
+            conversation: conversation, user: assistant, is_private: false
+          ).once
           expect(conversation.messages.outgoing.count).to eq(0)
           expect(account.reload.usage_limits[:captain][:responses][:consumed]).to eq(0)
         end
@@ -1363,7 +1389,17 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
     end
 
     it 'says goodbye with the handoff message once and leaves the conversation to the team' do
+      allow(Rails.configuration.dispatcher).to receive(:dispatch).and_call_original
+
       expect { described_class.perform_now(conversation, assistant) }.to change { conversation.messages.outgoing.count }.by(1)
+      expect(Rails.configuration.dispatcher).to have_received(:dispatch).with(
+        Events::Types::CONVERSATION_TYPING_ON, kind_of(Time),
+        conversation: conversation, user: assistant, is_private: false
+      ).once
+      expect(Rails.configuration.dispatcher).to have_received(:dispatch).with(
+        Events::Types::CONVERSATION_TYPING_OFF, kind_of(Time),
+        conversation: conversation, user: assistant, is_private: false
+      ).once
 
       expect(conversation.messages.outgoing.last.content).to eq(I18n.t('conversations.captain.handoff'))
       expect(conversation.reload).to have_attributes(status: 'open', captain_state: 'escalated')
