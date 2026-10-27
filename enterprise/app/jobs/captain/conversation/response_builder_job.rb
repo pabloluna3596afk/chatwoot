@@ -1,4 +1,4 @@
-class Captain::Conversation::ResponseBuilderJob < ApplicationJob
+class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disable Metrics/ClassLength
   include Captain::Conversation::V1ActionClassifier
   include Captain::Conversation::V1FalsePromiseHandler
   include Captain::Conversation::V2LifecycleEvents
