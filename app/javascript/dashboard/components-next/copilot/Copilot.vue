@@ -9,6 +9,7 @@ import CopilotAssistantMessage from './CopilotAssistantMessage.vue';
 import CopilotThinkingGroup from './CopilotThinkingGroup.vue';
 import ToggleCopilotAssistant from './ToggleCopilotAssistant.vue';
 import CopilotEmptyState from './CopilotEmptyState.vue';
+import CopilotActionCard from './CopilotActionCard.vue';
 
 const props = defineProps({
   messages: { type: Array, default: () => [] },
@@ -22,6 +23,10 @@ const props = defineProps({
   hasMoreHistory: { type: Boolean, default: false },
   contextId: { type: [Number, String], default: null },
   contextName: { type: String, default: '' },
+  actionItems: { type: Array, default: () => [] },
+  actionLabels: { type: Array, default: () => [] },
+  actionAgents: { type: Array, default: () => [] },
+  actionTeams: { type: Array, default: () => [] },
 });
 const emit = defineEmits([
   'setAssistant',
@@ -32,6 +37,9 @@ const emit = defineEmits([
   'openHistory',
   'closeHistory',
   'loadMoreHistory',
+  'approveAction',
+  'rejectAction',
+  'editAction',
 ]);
 const sendMessage = async message => {
   const success = await props.onSendMessage(message);
@@ -49,7 +57,24 @@ const scrollToBottom = async () => {
 const groupedMessages = computed(() => {
   const result = [];
   let thinkingGroup = [];
-  props.messages.forEach(message => {
+  const timeline = [
+    ...props.messages,
+    ...props.actionItems.map(item => ({
+      ...item,
+      message_type: 'action_item',
+    })),
+  ].sort((a, b) => {
+    const aTime =
+      typeof a.created_at === 'number'
+        ? a.created_at * 1000
+        : new Date(a.created_at).getTime();
+    const bTime =
+      typeof b.created_at === 'number'
+        ? b.created_at * 1000
+        : new Date(b.created_at).getTime();
+    return aTime - bTime;
+  });
+  timeline.forEach(message => {
     if (message.message_type === 'assistant_thinking')
       thinkingGroup.push(message);
     else {
@@ -76,7 +101,9 @@ const isLastMessageFromAssistant = computed(
   () => groupedMessages.value.at(-1)?.message_type === 'assistant'
 );
 const hasAssistants = computed(() => props.assistants.length > 0);
-const hasMessages = computed(() => props.messages.length > 0);
+const hasMessages = computed(
+  () => props.messages.length > 0 || props.actionItems.length > 0
+);
 const relativeTime = createdAt => {
   const minutes = Math.round((createdAt * 1000 - Date.now()) / 60000);
   const value = Math.abs(minutes) < 60 ? minutes : Math.round(minutes / 60);
@@ -265,6 +292,26 @@ watch(
                 {{ relativeTime(item.created_at) }}
               </time>
             </div>
+          </div>
+          <div
+            v-else-if="item.message_type === 'action_item'"
+            class="flex items-start gap-2"
+          >
+            <span
+              class="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full bg-n-alpha-2 text-n-slate-12"
+            >
+              <i class="i-woot-captain text-base" />
+            </span>
+            <CopilotActionCard
+              :item="item"
+              :labels="actionLabels"
+              :agents="actionAgents"
+              :teams="actionTeams"
+              class="min-w-0 flex-1"
+              @approve="emit('approveAction', $event)"
+              @reject="emit('rejectAction', $event)"
+              @edit="emit('editAction', $event)"
+            />
           </div>
           <CopilotThinkingGroup
             v-else

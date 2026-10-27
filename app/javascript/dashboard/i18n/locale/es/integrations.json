@@ -719,6 +719,41 @@
           "LABEL": "Listar contactos",
           "CONTENT": "Muéstrame la lista de los 10 contactos principales. Incluye nombre, correo o teléfono (si está disponible), última vez visto, y etiquetas (si tiene)."
         }
+      },
+      "ACTIONS": {
+        "CONTACT_TARGET": "{name} · contacto n.º {id}",
+        "CONVERSATION_TARGET": "{name} · conversación n.º {id}",
+        "UNKNOWN_TARGET": "Sin nombre",
+        "ADD_LABEL_TITLE": "Añadir una etiqueta a {target}",
+        "PRIVATE_NOTE_TITLE": "Nota privada",
+        "ASSIGNMENT_TITLE": "Asignar conversación",
+        "LABEL_FALLBACK": "Etiqueta n.º {id}",
+        "ASSIGNMENT_PREVIEW": "Asignación propuesta",
+        "FAILED_DESCRIPTION": "No se pudo completar la acción. Revísala e inténtalo de nuevo.",
+        "LABEL": "Etiqueta",
+        "NOTE": "Nota privada",
+        "AGENT": "Agente",
+        "TEAM": "Equipo",
+        "NO_AGENT": "Sin agente",
+        "NO_TEAM": "Sin equipo",
+        "SAVE": "Guardar cambios",
+        "CANCEL": "Cancelar",
+        "APPROVE": "Aprobar",
+        "REJECT": "Rechazar",
+        "EDIT": "Editar",
+        "STATUS": {
+          "PENDING": "Pendiente",
+          "APPROVED": "Aprobada",
+          "EXECUTED": "Ejecutada",
+          "REJECTED": "Rechazada",
+          "EXPIRED": "Caducó",
+          "FAILED": "Fallida"
+        },
+        "RESULT": {
+          "LABEL_ADDED": "Etiqueta añadida: {label}",
+          "PRIVATE_NOTE_ADDED": "Nota privada añadida",
+          "ASSIGNMENT_UPDATED": "Asignación actualizada"
+        }
       }
     },
     "PLAYGROUND": {

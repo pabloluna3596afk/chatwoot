@@ -66,6 +66,7 @@ class ActionCableConnector extends BaseActionCableConnector {
       'account.enrichment_completed': this.onEnrichmentCompleted,
       'export.completed': this.onExportCompleted,
       'copilot.message.created': this.onCopilotMessageCreated,
+      'copilot.action_item.changed': this.onCopilotActionItemChanged,
       'internal_task.created': this.onInternalTaskCreated,
       'internal_task.updated': this.onInternalTaskUpdated,
       'internal_message.created': this.onInternalMessageCreated,
@@ -418,6 +419,11 @@ class ActionCableConnector extends BaseActionCableConnector {
 
   onCopilotMessageCreated = data => {
     this.app.$store.dispatch('copilotMessages/upsert', data);
+  };
+
+  // eslint-disable-next-line class-methods-use-this
+  onCopilotActionItemChanged = data => {
+    emitter.emit('copilot_action_item_changed', data);
   };
 
   onEnrichmentCompleted = () => {

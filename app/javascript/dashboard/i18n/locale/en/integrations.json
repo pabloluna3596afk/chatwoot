@@ -726,6 +726,41 @@
           "LABEL": "List contacts",
           "CONTENT": "Show me the list of top 10 contacts. Include name, email or phone number (if available), last seen time, tags (if any)."
         }
+      },
+      "ACTIONS": {
+        "CONTACT_TARGET": "{name} · contact #{id}",
+        "CONVERSATION_TARGET": "{name} · conversation #{id}",
+        "UNKNOWN_TARGET": "Unknown",
+        "ADD_LABEL_TITLE": "Add a label to {target}",
+        "PRIVATE_NOTE_TITLE": "Private note",
+        "ASSIGNMENT_TITLE": "Assign conversation",
+        "LABEL_FALLBACK": "Label #{id}",
+        "ASSIGNMENT_PREVIEW": "Proposed assignment",
+        "FAILED_DESCRIPTION": "The action could not be completed. Review it and try again.",
+        "LABEL": "Label",
+        "NOTE": "Private note",
+        "AGENT": "Agent",
+        "TEAM": "Team",
+        "NO_AGENT": "No agent",
+        "NO_TEAM": "No team",
+        "SAVE": "Save changes",
+        "CANCEL": "Cancel",
+        "APPROVE": "Approve",
+        "REJECT": "Reject",
+        "EDIT": "Edit",
+        "STATUS": {
+          "PENDING": "Pending",
+          "APPROVED": "Approved",
+          "EXECUTED": "Executed",
+          "REJECTED": "Rejected",
+          "EXPIRED": "Expired",
+          "FAILED": "Failed"
+        },
+        "RESULT": {
+          "LABEL_ADDED": "Label added: {label}",
+          "PRIVATE_NOTE_ADDED": "Private note added",
+          "ASSIGNMENT_UPDATED": "Assignment updated"
+        }
       }
     },
     "PLAYGROUND": {
