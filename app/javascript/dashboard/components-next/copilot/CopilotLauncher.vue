@@ -16,7 +16,12 @@ const toggleSidebar = () => {
 <template>
   <div
     v-if="showCopilotLauncher"
-    class="fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] ltr:right-4 rtl:left-4 z-50"
+    class="fixed ltr:right-4 rtl:left-4 z-50"
+    :class="
+      uiSettings.is_contact_sidebar_open
+        ? 'bottom-[calc(env(safe-area-inset-bottom)+8rem)]'
+        : 'bottom-[calc(env(safe-area-inset-bottom)+1rem)]'
+    "
   >
     <ButtonGroup
       class="relative rounded-full bg-n-alpha-2 backdrop-blur-lg p-1 shadow hover:shadow-md"
