@@ -8,7 +8,7 @@ import CalendarWeek from '../../../components/ui/DatePicker/components/CalendarW
 
 describe('shared touch controls', () => {
   it.each(['xs', 'sm', 'md', 'lg'])(
-    'keeps the mobile target for %s buttons, links and icons',
+    'keeps the upstream size for %s buttons, links and icons',
     size => {
       [
         { label: 'Save' },
@@ -19,8 +19,8 @@ describe('shared touch controls', () => {
           props: { ...props, size },
           attrs: { class: '!h-6 !w-8' },
         });
-        expect(wrapper.classes()).toContain('max-sm:!min-h-11');
-        expect(wrapper.classes()).toContain('max-sm:!min-w-11');
+        expect(wrapper.classes()).not.toContain('max-sm:!min-h-11');
+        expect(wrapper.classes()).not.toContain('max-sm:!min-w-11');
         expect(wrapper.classes()).toContain('focus-visible:ring-2');
         expect(
           wrapper.classes().some(name => /^focus:|^ring-/.test(name))
