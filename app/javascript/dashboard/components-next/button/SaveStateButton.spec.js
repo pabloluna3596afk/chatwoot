@@ -24,6 +24,13 @@ describe('SaveStateButton', () => {
     expect(wrapper.emitted('save')).toBeUndefined();
   });
 
+  it('allows a compact save action to keep the Save label when clean', () => {
+    const wrapper = mount(SaveStateButton, {
+      props: { labelClean: 'GENERAL.SAVE_STATE.SAVE' },
+    });
+    expect(wrapper.text()).toContain('GENERAL.SAVE_STATE.SAVE');
+  });
+
   it('emits save when dirty and valid', async () => {
     const wrapper = mount(SaveStateButton, { props: { dirty: true } });
     expect(wrapper.text()).toContain('GENERAL.SAVE_STATE.SAVE');

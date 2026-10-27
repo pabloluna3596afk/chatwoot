@@ -479,7 +479,8 @@
     },
     "CARD": {
       "OF": "of",
-      "EXPAND": "Expand",
+      "OPEN": "Open",
+      "DELETE": "Delete",
       "EDIT_DETAILS_FORM": {
         "TITLE": "Edit contact details",
         "INVALID": "Correct the form errors before saving.",
