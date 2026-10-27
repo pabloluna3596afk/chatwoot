@@ -112,7 +112,7 @@ const handleRemoveLabels = labels => {
       compact-selection
       :select-all-label="selectAllLabel"
       :selected-count-label="selectedCountLabel"
-      class="py-2 ltr:!pr-3 rtl:!pl-3 justify-between border border-n-weak shadow-lg md:shadow-sm max-md:fixed max-md:inset-x-3 max-md:bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] max-md:z-50 max-md:!m-0 max-md:rounded-xl max-md:bg-n-solid-2 max-md:backdrop-blur-md"
+      class="py-2 ltr:!pr-3 rtl:!pl-3 justify-between border border-n-weak shadow-lg md:shadow-sm max-md:fixed max-md:inset-x-3 max-md:bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] max-md:z-50 max-md:!m-0 max-md:rounded-xl max-md:bg-n-solid-2 max-md:backdrop-blur-md"
     >
       <template #primaryActions>
         <Button
