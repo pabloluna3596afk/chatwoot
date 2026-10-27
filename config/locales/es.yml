@@ -611,8 +611,15 @@ es:
       playground_history_invalid: 'El historial de la prueba no es válido'
     copilot_message_required: El mensaje es obligatorio
     copilot_error: 'Conecte un asistente a esta bandeja de entrada para utilizar Copilot'
-    internal_limit: 'Se alcanzó el límite mensual de acciones internas de IA.'
-    copilot_limit: 'Te quedaste sin créditos de Copilot. Puedes comprar más créditos desde la sección de facturación.'
+    internal_limit: 'Se alcanzó el límite mensual de acciones internas de IA. Esta acción de IA se omitió; puedes continuar manualmente.'
+    copilot_limit: 'Se alcanzó el límite de Copilot. Las sugerencias se pausan hasta el %{reset_date}, cuando se reinicie tu plan; puedes seguir respondiendo manualmente.'
+    usage_limit_warning:
+      subject: 'El uso de %{bag} alcanzó el %{percent}% del límite del plan'
+      message: 'La cuenta %{account_name} ha usado %{consumed} de %{limit} %{bag} en este período.'
+      bags:
+        responses: respuestas de Captain
+        copilot: sugerencias de Copilot
+        internal: acciones internas de IA
     upgrade: 'Actualiza tu plan para habilitar Captain AI'
     disabled: 'Captain AI está deshabilitado para esta cuenta.'
     api_key_missing: 'La clave API de Captain AI no está configurada.'

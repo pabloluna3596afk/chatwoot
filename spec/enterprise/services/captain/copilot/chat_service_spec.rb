@@ -113,6 +113,16 @@ RSpec.describe Captain::Copilot::ChatService do
       expect(service.generate_response('Hello')).to include(error_code: 429)
     end
 
+    it 'reports the reset date when the separate Copilot pool is exhausted' do
+      account.plan.update!(captain_copilot_responses: 1)
+      usage = account.current_usage_period
+      usage.update!(copilot_responses_consumed: 1)
+      expected_error = I18n.t('captain.copilot_limit', reset_date: usage.period_end.to_date)
+
+      expect(mock_chat).not_to receive(:ask)
+      expect(service.generate_response('Hello')).to include(error: expected_error, error_code: 429)
+    end
+
     it 'uses a configured Copilot pool separately from Captain responses' do
       account.plan.update!(captain_copilot_responses: 1)
 

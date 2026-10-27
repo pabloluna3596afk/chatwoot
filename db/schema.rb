@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_26_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_26_130000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -48,6 +48,12 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_26_120000) do
     t.integer "internal_calls_consumed", default: 0, null: false
     t.integer "limit_copilot_responses"
     t.integer "limit_internal_calls"
+    t.boolean "warned_at_responses_80_percent", default: false, null: false
+    t.boolean "warned_at_responses_100_percent", default: false, null: false
+    t.boolean "warned_at_copilot_80_percent", default: false, null: false
+    t.boolean "warned_at_copilot_100_percent", default: false, null: false
+    t.boolean "warned_at_internal_80_percent", default: false, null: false
+    t.boolean "warned_at_internal_100_percent", default: false, null: false
     t.index ["account_id", "period_start"], name: "index_account_plan_usages_on_account_and_period_start", unique: true
     t.index ["account_id"], name: "index_account_plan_usages_on_account_id_open", where: "(closed_at IS NULL)"
     t.index ["storage_consumed"], name: "index_account_plan_usages_on_storage_consumed"

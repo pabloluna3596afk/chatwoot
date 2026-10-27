@@ -28,6 +28,8 @@ vi.mock('dashboard/composables/useCaptain', () => ({
       copilotConsumed: 3,
       copilotTotalCount: 100,
     },
+    copilotLimits: { value: null },
+    internalLimits: { value: null },
     storageLimits: { consumed: 512, totalCount: 1048576 },
     fetchLimits: vi.fn(),
     isFetchingLimits: false,

@@ -56,12 +56,22 @@ class AdministratorNotifications::AccountNotificationMailer < AdministratorNotif
     send_notification(subject, to: email_to, action_url: file_url)
   end
 
-  def usage_limit_warning(percent, total_count)
-    subject = "Your AI response usage is at #{percent}% of your plan limit"
-    action_url = settings_url('billing')
-    meta = { 'account_name' => Current.account.name, 'percent' => percent, 'total_count' => total_count }
+  def usage_limit_warning(bucket, percent, consumed, limit)
+    I18n.with_locale(Current.account.locale) do
+      bag = I18n.t("captain.usage_limit_warning.bags.#{bucket}")
+      subject = I18n.t('captain.usage_limit_warning.subject', bag: bag, percent: percent)
+      message = I18n.t(
+        'captain.usage_limit_warning.message',
+        account_name: Current.account.name,
+        bag: bag,
+        consumed: consumed,
+        limit: limit
+      )
+      action_url = settings_url('billing')
+      meta = { 'message' => message }
 
-    send_notification(subject, action_url: action_url, meta: meta)
+      send_notification(subject, action_url: action_url, meta: meta)
+    end
   end
 
   def automation_rule_disabled(rule)

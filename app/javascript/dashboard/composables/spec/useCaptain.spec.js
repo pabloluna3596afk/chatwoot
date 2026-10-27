@@ -68,6 +68,7 @@ describe('useCaptain', () => {
 
   it('only exposes Copilot and internal meters when their limits are configured', () => {
     const withoutLimits = useCaptain();
+    expect(withoutLimits.responseLimits.value).toBeNull();
     expect(withoutLimits.copilotLimits.value).toBeNull();
     expect(withoutLimits.internalLimits.value).toBeNull();
 
@@ -77,6 +78,11 @@ describe('useCaptain', () => {
         value: {
           limits: {
             captain: {
+              responses: {
+                total_count: null,
+                consumed: 0,
+                current_available: 1000000,
+              },
               copilot: { total_count: 5, consumed: 2, current_available: 3 },
               internal: { total_count: 20, consumed: 6, current_available: 14 },
             },
@@ -86,6 +92,7 @@ describe('useCaptain', () => {
     });
 
     const withLimits = useCaptain();
+    expect(withLimits.responseLimits.value).toBeNull();
     expect(withLimits.copilotLimits.value).toEqual({
       totalCount: 5,
       consumed: 2,
@@ -95,6 +102,31 @@ describe('useCaptain', () => {
       totalCount: 20,
       consumed: 6,
       currentAvailable: 14,
+    });
+  });
+
+  it('exposes the response meter only when a limit is configured', () => {
+    useAccount.mockReturnValue({
+      isCloudFeatureEnabled: vi.fn().mockReturnValue(true),
+      currentAccount: {
+        value: {
+          limits: {
+            captain: {
+              responses: {
+                total_count: 200,
+                consumed: 20,
+                current_available: 180,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    expect(useCaptain().responseLimits.value).toEqual({
+      totalCount: 200,
+      consumed: 20,
+      currentAvailable: 180,
     });
   });
 

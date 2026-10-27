@@ -99,8 +99,9 @@ RSpec.describe 'Api::V1::Accounts::Captain::CopilotThreads', type: :request do
 
           expect(response).to have_http_status(:success)
 
+          reset_date = account.current_usage_period.period_end.to_date
           expect(CopilotMessage.last.message['content']).to eq(
-            'You are out of Copilot credits. You can buy more credits from the billing section.'
+            "Your Copilot limit is reached. Suggestions are paused until #{reset_date}, when your plan resets; manual replies are still available."
           )
         end
 

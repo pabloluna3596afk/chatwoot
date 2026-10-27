@@ -11,6 +11,10 @@ RSpec.describe Rake::Task do
     expect(Plan.find_by!(slug: 'prueba')).to have_attributes(coming_soon: false, is_public: true)
     expect(Plan.where(slug: %w[inicio crecimiento negocio escala]).pluck(:coming_soon)).to eq([true] * 4)
     expect(Plan.find_by!(slug: 'developer').catalog_state).to eq('hidden')
+    expect(Plan.where(slug: %w[prueba inicio crecimiento negocio escala]).order(:display_order).pluck(
+             :captain_copilot_responses, :captain_internal_calls
+           )).to eq([[0, 0], [500, 500], [1_500, 1_500], [4_000, 4_000], [10_000, 10_000]])
+    expect(Plan.find_by!(slug: 'developer')).to have_attributes(captain_copilot_responses: nil, captain_internal_calls: nil)
   end
 
   it 'preserves every persisted attribute, assignment and usage on repeated runs' do
@@ -29,5 +33,27 @@ RSpec.describe Rake::Task do
     expect(plan.reload.attributes).to eq(original)
     expect(account.reload.attributes).to eq(original_account)
     expect(account.account_plan_usages.reload.map(&:attributes)).to eq(original_usage)
+  end
+
+  describe 'plans:fill_ai_bags' do
+    subject(:fill_task) { described_class['plans:fill_ai_bags'] }
+
+    before { fill_task.reenable }
+
+    it 'previews NULL values without changing them' do
+      plan = Plan.create!(name: 'Inicio', slug: 'inicio', captain_copilot_responses: nil, captain_internal_calls: nil)
+      ClimateControl.modify(DRY_RUN: 'true') do
+        expect { fill_task.invoke }.to output(/Would fill inicio/).to_stdout
+      end
+      expect(plan.reload).to have_attributes(captain_copilot_responses: nil, captain_internal_calls: nil)
+    end
+
+    it 'fills only NULL values and preserves edited limits on repeated runs' do
+      plan = Plan.create!(name: 'Inicio', slug: 'inicio', captain_copilot_responses: 25, captain_internal_calls: nil)
+      expect { fill_task.invoke }.to output(/Filled inicio/).to_stdout
+      expect(plan.reload).to have_attributes(captain_copilot_responses: 25, captain_internal_calls: 500)
+      fill_task.reenable
+      expect { fill_task.invoke }.not_to output.to_stdout
+    end
   end
 end
