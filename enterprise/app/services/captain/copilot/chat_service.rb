@@ -87,6 +87,7 @@ class Captain::Copilot::ChatService < Llm::BaseAiService
     tools << Captain::Tools::Copilot::GetDataService.new(@assistant, user: @user)
     tools << Captain::Tools::Copilot::ListLabelsService.new(@assistant, user: @user)
     tools << Captain::Tools::Copilot::ListCustomAttributesService.new(@assistant, user: @user)
+    tools << Captain::Tools::Copilot::DescribeSchemaService.new(@assistant, user: @user)
 
     tools.select(&:active?)
   end

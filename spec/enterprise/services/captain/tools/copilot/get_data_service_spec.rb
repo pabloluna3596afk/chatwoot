@@ -8,7 +8,7 @@ RSpec.describe Captain::Tools::Copilot::GetDataService do
 
   it 'registers the get_data name and typed parameters' do
     expect(service.name).to eq('get_data')
-    expect(service.parameters_schema.fetch('properties').keys).to contain_exactly('resource', 'filters', 'group_by')
+    expect(service.parameters_schema.fetch('properties').keys).to contain_exactly('resource', 'filters', 'group_by', 'aggregate')
   end
 
   it 'returns clear validation errors and enforces a per-turn call limit' do

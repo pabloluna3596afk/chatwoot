@@ -1,5 +1,6 @@
 class Captain::Copilot::Resources::Contacts < Captain::Copilot::Resources::BaseResource
   NAME = 'contacts'.freeze
+  ATTRIBUTE_MODEL = 'contact_attribute'.freeze
   DATE_FIELDS = %w[created_at last_activity_at].freeze
   FILTERS = Captain::Copilot::Resources::BaseResource::CONTACT_FILTERS
   GROUPS = %w[label country blocked].freeze

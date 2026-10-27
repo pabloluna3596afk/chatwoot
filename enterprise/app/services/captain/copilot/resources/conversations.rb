@@ -1,5 +1,6 @@
 class Captain::Copilot::Resources::Conversations < Captain::Copilot::Resources::BaseResource
   NAME = 'conversations'.freeze
+  ATTRIBUTE_MODEL = 'conversation_attribute'.freeze
   DATE_FIELDS = %w[created_at last_activity_at].freeze
   FILTERS = Captain::Copilot::Resources::BaseResource::CONVERSATION_FILTERS.merge(contact_id: { type: 'integer', minimum: 1 }).freeze
   GROUPS = %w[status priority inbox assignee team label].freeze

@@ -4,15 +4,24 @@ class Captain::Copilot::Resources::BaseResource
   PERIODS = { 'day' => '%Y-%m-%d', 'week' => 'week of %Y-%m-%d', 'month' => '%Y-%m', 'year' => '%Y' }.freeze
   MAX_GROUPS = 100
   MAX_RANGE = 366.days
+  RELATIVE_RANGE_BUILDERS = {
+    'this_month' => ->(now) { [now.beginning_of_month, now.next_month.beginning_of_month] },
+    'last_month' => ->(now) { [now.prev_month.beginning_of_month, now.beginning_of_month] },
+    'last_7_days' => ->(now) { [now.to_date - 6.days, now.to_date + 1.day] },
+    'yesterday_today' => ->(now) { [now.to_date - 1.day, now.to_date + 1.day] }
+  }.freeze
 
   DATE_FILTERS = {
     since: { type: 'string', description: 'ISO 8601 date or timestamp, inclusive, in the account timezone' },
     before: { type: 'string', description: 'ISO 8601 date or timestamp, exclusive, in the account timezone' },
+    relative_range: { type: 'string', enum: %w[this_month last_month last_7_days yesterday_today] },
     date_field: { type: 'string', enum: %w[created_at last_activity_at] },
     custom_attribute: {
       type: 'object', additionalProperties: false,
-      properties: { key: { type: 'string' }, value: { type: %w[string number boolean] } },
-      required: %w[key value]
+      properties: {
+        key: { type: 'string' }, operator: { type: 'string', enum: %w[eq neq gt gte lt lte between contains is_null] },
+        value: { type: %w[string number boolean] }, values: { type: 'array', minItems: 2, maxItems: 2, items: { type: %w[string number] } }
+      }, required: %w[key]
     }
   }.freeze
   CONVERSATION_FILTERS = DATE_FILTERS.merge(
@@ -56,8 +65,10 @@ class Captain::Copilot::Resources::BaseResource
 
     filters = filters.deep_stringify_keys
     field = filters['date_field'] || self.class::DATE_FIELDS.first
+    relative_range = filters.key?('relative_range')
+    filters = resolve_relative_range(filters, as_of)
     relation = filter(scope, filters)
-    apply_dates(relation, filters, as_of, field).reorder(nil)
+    apply_dates(relation, filters, as_of, field, allow_future_before: relative_range).reorder(nil)
   end
 
   def group_counts(relation, group, date_field: self.class::DATE_FIELDS.first)
@@ -75,33 +86,37 @@ class Captain::Copilot::Resources::BaseResource
     counts.sort_by { |_, count| -count }.map { |value, count| { group: value.to_s, count: count } }
   end
 
+  def aggregate_value(relation, aggregate)
+    aggregate_value_for(relation, aggregate)
+  end
+
   private
 
   def timezone
     ActiveSupport::TimeZone[@account.reporting_timezone.presence || Time.zone.name] || Time.zone
   end
 
-  def apply_dates(relation, filters, as_of, field)
+  def apply_dates(relation, filters, as_of, field, allow_future_before: false)
     return relation unless filters['since'] || filters['before']
 
-    since, before = date_range(filters, as_of)
+    since, before = date_range(filters, as_of, allow_future_before: allow_future_before)
     range = relation.where(relation.klass.arel_table[field].gteq(since)) if since
     (range || relation).where(relation.klass.arel_table[field].lt(before))
   end
 
-  def date_range(filters, as_of)
+  def date_range(filters, as_of, allow_future_before:)
     since = parse_date(filters['since']) if filters['since']
     before = parse_date(filters['before']) if filters['before']
     before ||= as_of
-    validate_date_range(since, before, as_of)
+    validate_date_range(since, before, as_of, allow_future_before: allow_future_before)
 
     [since, before]
   end
 
-  def validate_date_range(since, before, as_of)
+  def validate_date_range(since, before, as_of, allow_future_before:)
     validate_date_order(since, before)
     validate_date_limit(since, before)
-    validate_before_not_future(before, as_of)
+    validate_before_not_future(before, as_of, allow_future_before: allow_future_before)
   end
 
   def validate_date_order(since, before)
@@ -113,7 +128,9 @@ class Captain::Copilot::Resources::BaseResource
     raise ArgumentError, "date range cannot exceed #{MAX_RANGE.to_i / 1.day.to_i} days" if since && before - since > MAX_RANGE
   end
 
-  def validate_before_not_future(before, as_of)
+  def validate_before_not_future(before, as_of, allow_future_before:)
+    return if allow_future_before
+
     raise ArgumentError, 'before cannot be in the future' if before > as_of
   end
 
@@ -129,19 +146,29 @@ class Captain::Copilot::Resources::BaseResource
     attribute = filters['custom_attribute']
     return relation unless attribute
 
-    definition = @account.custom_attribute_definitions.find_by(attribute_model: model, attribute_key: attribute['key'])
-    raise ArgumentError, "Unknown #{model.delete_suffix('_attribute')} custom attribute key: #{attribute['key']}" unless definition
+    query = Captain::Copilot::Resources::CustomAttributeQuery.new(account: @account, user: @user, model: model)
+    query.filter(relation, attribute)
+  end
 
-    if model == 'contact_attribute'
-      payload = ActionController::Parameters.new(
-        payload: [{ attribute_key: attribute['key'], custom_attribute_type: model, filter_operator: 'equal_to',
-                    values: [attribute['value']], query_operator: '' }]
-      )
-      matching_contacts = Contacts::FilterService.new(@account, @user, payload).perform[:contacts]
-      return relation.where(id: matching_contacts.reselect(:id))
-    end
+  def aggregate_value_for(relation, aggregate)
+    return { function: 'count', value: relation.count } if aggregate.nil?
 
-    relation.where("#{relation.klass.table_name}.custom_attributes ->> ? = ?", definition.attribute_key, attribute['value'].to_s)
+    query = Captain::Copilot::Resources::CustomAttributeQuery.new(
+      account: @account, user: @user, model: self.class::ATTRIBUTE_MODEL
+    )
+    query.aggregate(relation, function: aggregate['function'], key: aggregate['key'])
+  end
+
+  def resolve_relative_range(filters, as_of)
+    period = filters['relative_range']
+    return filters unless period
+    raise ArgumentError, 'relative_range cannot be combined with since or before' if filters['since'] || filters['before']
+
+    builder = RELATIVE_RANGE_BUILDERS[period]
+    raise ArgumentError, "Unknown relative_range #{period}" unless builder
+
+    since, before = builder.call(as_of.in_time_zone(timezone))
+    filters.except('relative_range').merge('since' => since.iso8601, 'before' => before.iso8601)
   end
 
   def column_counts(relation, column, names: nil)

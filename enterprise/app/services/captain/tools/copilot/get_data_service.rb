@@ -5,7 +5,7 @@ class Captain::Tools::Copilot::GetDataService < Captain::Tools::BaseTool
 
   RESOURCES_DESCRIPTION = Captain::Copilot::Resources.all.map(&:help).join("\n").freeze
   description <<~DESCRIPTION
-    Count and group conversations or contacts without returning records.
+    Count, aggregate, and group conversations or contacts without returning records.
     Resources:
     #{RESOURCES_DESCRIPTION}
   DESCRIPTION
@@ -13,10 +13,17 @@ class Captain::Tools::Copilot::GetDataService < Captain::Tools::BaseTool
              properties: {
                resource: { type: 'string', enum: Captain::Copilot::Resources.all.map { |resource| resource::NAME } },
                filters: { type: 'object', description: 'Typed filters allowed for the selected resource' },
-               group_by: { type: 'string', description: 'Optional allowed group from the selected resource' }
+               group_by: { type: 'string', description: 'Optional allowed group from the selected resource' },
+               aggregate: {
+                 type: 'object', additionalProperties: false, required: %w[function],
+                 properties: {
+                   function: { type: 'string', enum: %w[count sum avg min max] },
+                   key: { type: 'string', description: 'Required for sum, avg, min, or max; must be numeric custom attribute' }
+                 }
+               }
              }
 
-  def execute(resource:, filters:, group_by: nil)
+  def execute(resource:, filters:, group_by: nil, aggregate: nil)
     @get_data_calls ||= 0
     @get_data_calls += 1
     if @get_data_calls > Captain::Copilot::CollectionService::MAX_TOOL_CALLS
@@ -24,7 +31,7 @@ class Captain::Tools::Copilot::GetDataService < Captain::Tools::BaseTool
     end
 
     Captain::Copilot::CollectionService.new(account: @assistant.account, user: @user)
-                                       .create(resource: resource, filters: filters, group_by: group_by)
+                                       .create(resource: resource, filters: filters, group_by: group_by, aggregate: aggregate)
   rescue ArgumentError, ActiveRecord::RecordNotFound => e
     { error: e.message }
   end

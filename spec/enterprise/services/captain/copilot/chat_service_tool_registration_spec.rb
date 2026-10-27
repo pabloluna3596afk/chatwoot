@@ -14,6 +14,6 @@ RSpec.describe Captain::Copilot::ChatService do
     service = described_class.new(assistant, user_id: user.id)
     tool_names = service.instance_variable_get(:@tools).map(&:name)
 
-    expect(tool_names).to include('get_data', 'list_labels', 'list_custom_attributes')
+    expect(tool_names).to include('get_data', 'list_labels', 'list_custom_attributes', 'describe_schema')
   end
 end
