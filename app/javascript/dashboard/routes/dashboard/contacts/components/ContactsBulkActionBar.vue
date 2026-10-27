@@ -104,22 +104,25 @@ const handleRemoveLabels = labels => {
 
 <template>
   <div
-    class="sticky top-0 z-10 bg-gradient-to-b from-n-surface-1 from-90% to-transparent pt-1 pb-2"
+    class="z-30 pt-1 pb-2 md:sticky md:top-0 md:z-10 md:bg-gradient-to-b md:from-n-surface-1 md:from-90% md:to-transparent"
   >
     <BulkSelectBar
       v-model="selectionModel"
       :all-items="allItems"
+      compact-selection
       :select-all-label="selectAllLabel"
       :selected-count-label="selectedCountLabel"
-      class="py-2 ltr:!pr-3 rtl:!pl-3 justify-between"
+      class="py-2 ltr:!pr-3 rtl:!pl-3 justify-between border border-n-weak shadow-lg md:shadow-sm max-md:fixed max-md:inset-x-3 max-md:bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] max-md:z-50 max-md:!m-0 max-md:rounded-xl max-md:bg-n-solid-2 max-md:backdrop-blur-md"
     >
       <template #primaryActions>
         <Button
           sm
           ghost
           slate
+          icon="i-lucide-x"
           :label="t('CONTACTS_BULK_ACTIONS.CLEAR_SELECTION')"
-          class="!px-1"
+          :aria-label="t('CONTACTS_BULK_ACTIONS.CLEAR_SELECTION')"
+          class="!px-1 [&>span:nth-child(2)]:hidden md:[&>span:nth-child(2)]:inline-flex"
           @click="emit('clearSelection')"
         />
         <Button

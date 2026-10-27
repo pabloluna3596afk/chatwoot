@@ -20,6 +20,10 @@ const props = defineProps({
     type: String,
     default: 'Delete',
   },
+  compactSelection: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits(['bulkDelete']);
@@ -86,9 +90,11 @@ const bulkCheckboxState = computed({
             v-model="bulkCheckboxState"
             :indeterminate="isIndeterminate"
             :aria-label="$t('GENERAL.ACCESSIBILITY.SELECT_ALL')"
+            :title="$t('GENERAL.ACCESSIBILITY.SELECT_ALL')"
           />
           <span
             class="text-sm font-medium truncate text-n-slate-12 tabular-nums"
+            :class="{ 'max-md:hidden': compactSelection }"
           >
             {{ selectAllLabel }}
           </span>

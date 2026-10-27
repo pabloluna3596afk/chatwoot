@@ -101,10 +101,6 @@ const toggleExpanded = id => {
 
 const isSelected = id => selectedIdsSet.value.has(id);
 
-const shouldShowSelection = id => {
-  return hoveredAvatarId.value === id || isSelected(id);
-};
-
 const handleSelect = payload => {
   emit('toggleContact', payload);
 };
@@ -148,12 +144,12 @@ const handleSort = sortPayload => {
           :availability-status="contact.availabilityStatus"
           :is-expanded="expandedCardId === contact.id"
           :is-updating="isUpdating"
-          :selectable="shouldShowSelection(contact.id)"
+          selectable
           :is-selected="isSelected(contact.id)"
           @toggle="toggleExpanded(contact.id)"
           @update-contact="updateContact"
           @show-contact="onClickViewDetails"
-          @select="value => handleSelect(contact.id, value)"
+          @select="value => handleSelect({ id: contact.id, value })"
           @avatar-hover="value => handleAvatarHover(contact.id, value)"
         />
       </div>

@@ -29,9 +29,10 @@ const mountCard = (props = {}) =>
           data: () => ({ state: {} }),
           template: '<div data-test="contact-form" />',
         },
-        Avatar: true,
+        Avatar: {
+          template: '<div><slot name="overlay" :size="42" /></div>',
+        },
         Flag: true,
-        Checkbox: true,
         FeaturedAttributeBadges: true,
         ConfirmContactDeleteDialog: {
           props: ['selectedContact'],
@@ -99,5 +100,17 @@ describe('ContactsCard', () => {
 
     expect(wrapper.emitted('showContact')).toEqual([[9]]);
     expect(openDelete).not.toHaveBeenCalled();
+  });
+
+  it('shows the selection checkbox without hover and emits the checked value', async () => {
+    const wrapper = mountCard({ selectable: true });
+    const checkbox = wrapper.get('input[type="checkbox"]');
+
+    expect(checkbox.attributes('aria-label')).toBe(
+      'GENERAL.ACCESSIBILITY.SELECT_CONTACT'
+    );
+    await checkbox.setValue(true);
+
+    expect(wrapper.emitted('select')).toEqual([[true]]);
   });
 });
