@@ -102,7 +102,7 @@ describe('ContactsCard', () => {
     expect(openDelete).not.toHaveBeenCalled();
   });
 
-  it('shows the selection checkbox without hover and emits the checked value', async () => {
+  it('shows the centered avatar overlay and emits the checked value', async () => {
     const wrapper = mountCard({ selectable: true });
     const checkbox = wrapper.get('input[type="checkbox"]');
 
@@ -112,7 +112,11 @@ describe('ContactsCard', () => {
     expect(wrapper.get('label[title]').attributes('title')).toBe(
       'CONTACTS_BULK_ACTIONS.SELECT_CONTACT_ACCESSIBILITY'
     );
-    expect(wrapper.get('label[title]').classes()).toContain('size-11');
+    expect(wrapper.get('label[title]').classes()).toContain('inset-0');
+    expect(wrapper.get('label[title]').classes()).toContain(
+      'backdrop-blur-[2px]'
+    );
+    expect(wrapper.get('label[title]').classes()).toContain('border-n-slate-8');
     await checkbox.setValue(true);
 
     expect(wrapper.emitted('select')).toEqual([[true]]);
@@ -126,5 +130,23 @@ describe('ContactsCard', () => {
     expect(wrapper.get('label[title] > div').classes()).toContain(
       '[&>input:checked+span]:!bg-n-brand'
     );
+  });
+
+  it('selects from the avatar without expanding the card', async () => {
+    const wrapper = mountCard({ selectable: true });
+
+    await wrapper.find('.relative.shrink-0').trigger('click');
+
+    expect(wrapper.emitted('select')).toEqual([[true]]);
+    expect(wrapper.emitted('toggle')).toBeUndefined();
+  });
+
+  it('expands the card when clicking outside the avatar without selecting', async () => {
+    const wrapper = mountCard({ selectable: true });
+
+    await wrapper.get('span[title="Ana Contacto"]').trigger('click');
+
+    expect(wrapper.emitted('toggle')).toEqual([[]]);
+    expect(wrapper.emitted('select')).toBeUndefined();
   });
 });

@@ -12,58 +12,79 @@ vi.mock('vue-router', () => ({
 }));
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: key => key }) }));
 
-const contact = { id: 9, name: 'Ana Contacto' };
+const contacts = [
+  { id: 9, name: 'Ana Contacto' },
+  { id: 10, name: 'Luis Contacto' },
+];
 
-describe('ContactsList mobile selection', () => {
-  it('always exposes card selection and emits the id with checked state', async () => {
-    const wrapper = mount(ContactsList, {
-      props: { contacts: [contact], selectedContactIds: [] },
-      global: {
-        stubs: {
-          ContactsTable: true,
-          ContactsCard: {
-            inheritAttrs: false,
-            emits: ['select'],
-            template:
-              '<button data-test="select" :data-selectable="$attrs.selectable" @click="$emit(\'select\', true)">select</button>',
-          },
+const mountList = selectedContactIds =>
+  mount(ContactsList, {
+    props: { contacts, selectedContactIds },
+    global: {
+      stubs: {
+        ContactsTable: true,
+        ContactsCard: {
+          props: ['id', 'selectable', 'isSelected'],
+          emits: ['select', 'avatarHover', 'toggle'],
+          template: `<div data-test="card" :data-id="id"
+            :data-selectable="selectable" :data-is-selected="isSelected">
+            <button data-test="avatar" @click="$emit('select', !isSelected)"
+              @mouseenter="$emit('avatarHover', true)"
+              @mouseleave="$emit('avatarHover', false)">avatar</button>
+            <button data-test="outside" @click="$emit('toggle')">outside</button>
+          </div>`,
         },
       },
-    });
+    },
+  });
+
+describe('ContactsList mobile selection', () => {
+  it('shows checkboxes on every card while any contact is selected', () => {
+    const wrapper = mountList([9]);
 
     expect(
-      wrapper.get('[data-test="select"]').attributes('data-selectable')
-    ).toBeDefined();
-    await wrapper.get('[data-test="select"]').trigger('click');
+      wrapper
+        .findAll('[data-test="card"]')
+        .map(card => card.attributes('data-selectable'))
+    ).toEqual(['true', 'true']);
+  });
+
+  it('shows a checkbox on hover and hides it after leaving without selection', async () => {
+    const wrapper = mountList([]);
+    const firstAvatar = wrapper.findAll('[data-test="avatar"]')[0];
+
+    expect(
+      wrapper.findAll('[data-test="card"]')[0].attributes('data-selectable')
+    ).toBe('false');
+
+    await firstAvatar.trigger('mouseenter');
+    expect(
+      wrapper
+        .findAll('[data-test="card"]')
+        .map(card => card.attributes('data-selectable'))
+    ).toEqual(['true', 'false']);
+
+    await firstAvatar.trigger('mouseleave');
+    expect(
+      wrapper
+        .findAll('[data-test="card"]')
+        .map(card => card.attributes('data-selectable'))
+    ).toEqual(['false', 'false']);
+  });
+
+  it('emits the contact id and checked state from the avatar selector', async () => {
+    const wrapper = mountList([]);
+
+    await wrapper.findAll('[data-test="avatar"]')[0].trigger('click');
+
     expect(wrapper.emitted('toggleContact')).toEqual([
       [{ id: 9, value: true }],
     ]);
   });
 
-  it('passes selected state back to the card for unchecking', () => {
+  it('keeps the desktop table selection event contract', async () => {
     const wrapper = mount(ContactsList, {
-      props: { contacts: [contact], selectedContactIds: [9] },
-      global: {
-        stubs: {
-          ContactsTable: true,
-          ContactsCard: {
-            inheritAttrs: false,
-            template:
-              '<div data-test="selection" :data-selectable="$attrs.selectable" :data-is-selected="$attrs[\'is-selected\']" />',
-          },
-        },
-      },
-    });
-
-    expect(wrapper.get('[data-test="selection"]').attributes()).toMatchObject({
-      'data-selectable': '',
-      'data-is-selected': 'true',
-    });
-  });
-
-  it('preserves the desktop table selection event contract', async () => {
-    const wrapper = mount(ContactsList, {
-      props: { contacts: [contact], selectedContactIds: [] },
+      props: { contacts, selectedContactIds: [] },
       global: {
         stubs: {
           ContactsTable: {

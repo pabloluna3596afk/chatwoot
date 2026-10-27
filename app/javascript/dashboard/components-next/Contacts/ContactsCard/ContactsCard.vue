@@ -139,6 +139,10 @@ const toggleSelect = checked => {
 const handleAvatarHover = isHovered => {
   emit('avatarHover', isHovered);
 };
+
+const handleAvatarClick = () => {
+  toggleSelect(!props.isSelected);
+};
 </script>
 
 <template>
@@ -156,7 +160,7 @@ const handleAvatarHover = isHovered => {
       <div class="flex items-start w-full min-w-0 gap-3">
         <div
           class="relative shrink-0"
-          @click.stop
+          @click.stop="handleAvatarClick"
           @mouseenter="handleAvatarHover(true)"
           @mouseleave="handleAvatarHover(false)"
         >
@@ -166,28 +170,31 @@ const handleAvatarHover = isHovered => {
             :size="42"
             :status="availabilityStatus"
             hide-offline-status
-          />
-          <label
-            v-if="selectable"
-            class="absolute -start-1 -top-1 z-10 size-11 cursor-pointer"
-            :title="
-              t('CONTACTS_BULK_ACTIONS.SELECT_CONTACT_ACCESSIBILITY', {
-                name,
-              })
-            "
-            @click.stop
           >
-            <Checkbox
-              :model-value="isSelected"
-              :aria-label="
-                t('CONTACTS_BULK_ACTIONS.SELECT_CONTACT_ACCESSIBILITY', {
-                  name,
-                })
-              "
-              class="[&>span]:!border-n-slate-8 [&>span]:!bg-n-surface-1 [&>input:checked+span]:!border-n-brand [&>input:checked+span]:!bg-n-brand [&>input:indeterminate+span]:!border-n-brand [&>input:indeterminate+span]:!bg-n-brand dark:[&>span]:!border-n-slate-7 dark:[&>span]:!bg-n-solid-3 dark:[&>input:checked+span]:!border-n-brand dark:[&>input:checked+span]:!bg-n-brand dark:[&>input:indeterminate+span]:!border-n-brand dark:[&>input:indeterminate+span]:!bg-n-brand"
-              @change="event => toggleSelect(event.target.checked)"
-            />
-          </label>
+            <template v-if="selectable" #overlay="{ size }">
+              <label
+                class="absolute inset-0 z-10 flex cursor-pointer items-center justify-center rounded-full border border-n-slate-8 backdrop-blur-[2px] dark:border-n-slate-7"
+                :style="{ width: `${size}px`, height: `${size}px` }"
+                :title="
+                  t('CONTACTS_BULK_ACTIONS.SELECT_CONTACT_ACCESSIBILITY', {
+                    name,
+                  })
+                "
+                @click.stop
+              >
+                <Checkbox
+                  :model-value="isSelected"
+                  :aria-label="
+                    t('CONTACTS_BULK_ACTIONS.SELECT_CONTACT_ACCESSIBILITY', {
+                      name,
+                    })
+                  "
+                  class="[&>span]:!border-n-slate-8 [&>span]:!bg-n-surface-1 [&>input:checked+span]:!border-n-brand [&>input:checked+span]:!bg-n-brand dark:[&>span]:!border-n-slate-7 dark:[&>span]:!bg-n-solid-3 dark:[&>input:checked+span]:!border-n-brand dark:[&>input:checked+span]:!bg-n-brand"
+                  @change="event => toggleSelect(event.target.checked)"
+                />
+              </label>
+            </template>
+          </Avatar>
         </div>
         <div class="flex flex-col gap-1 flex-1 min-w-0">
           <div class="flex flex-col min-w-0">
