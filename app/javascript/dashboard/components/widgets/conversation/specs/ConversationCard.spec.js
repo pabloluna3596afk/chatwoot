@@ -25,6 +25,13 @@ const mountComponent = (chat, currentContact = {}, props = {}) =>
       ...props,
     },
     global: {
+      provide: {
+        store: {
+          getters: {
+            'conversationTypingStatus/getUserList': () => [],
+          },
+        },
+      },
       stubs: {
         'fluent-icon': true,
       },
