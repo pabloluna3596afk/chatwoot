@@ -19,7 +19,7 @@ export const getCopilotEntryPoints = ({
 
   return {
     showSidepanelCopilotTab,
-    showLauncher: enabled && !copilotPanelOpen && !showSidepanelCopilotTab,
+    showLauncher: enabled && (copilotPanelOpen || !showSidepanelCopilotTab),
   };
 };
 

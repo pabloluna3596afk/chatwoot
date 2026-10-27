@@ -291,7 +291,7 @@ onBeforeUnmount(() => {
       aria-modal="false"
       :aria-label="t('CAPTAIN.COPILOT.TITLE')"
       data-copilot-panel
-      class="fixed z-50 flex flex-col overflow-hidden border border-n-weak bg-n-surface-2 shadow-2xl ltr:right-4 rtl:left-4 bottom-20 h-[min(600px,calc(100dvh-6rem))] w-[min(380px,calc(100vw-2rem))] rounded-2xl ltr:origin-bottom-right rtl:origin-bottom-left"
+      class="fixed z-[60] flex flex-col overflow-hidden border border-n-weak bg-n-surface-2 shadow-2xl ltr:right-4 rtl:left-4 bottom-[calc(env(safe-area-inset-bottom)+5.25rem)] h-[min(600px,calc(100dvh-6rem))] w-[min(380px,calc(100vw-2rem))] rounded-2xl ltr:origin-bottom-right rtl:origin-bottom-left"
     >
       <Copilot
         :messages="messages"
