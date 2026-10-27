@@ -218,6 +218,29 @@ describe ActionCableListener do
     end
   end
 
+  describe '#typing_on with Captain assistant' do
+    let(:event_name) { :'conversation.typing_on' }
+    let!(:assistant) { create(:captain_assistant, account: account) }
+    let!(:event) do
+      Events::Base.new(event_name, Time.zone.now, conversation: conversation, user: assistant, is_private: false)
+    end
+
+    it 'sends the assistant identity to inbox agents without exposing typing to the public widget' do
+      expect(ActionCableBroadcastJob).to receive(:perform_later).with(
+        a_collection_containing_exactly(admin.pubsub_token, agent.pubsub_token),
+        'conversation.typing_on',
+        {
+          conversation: conversation.push_event_data,
+          user: assistant.push_event_data,
+          account_id: account.id,
+          is_private: false
+        }
+      )
+
+      listener.conversation_typing_on(event)
+    end
+  end
+
   describe '#typing_off' do
     let(:event_name) { :'conversation.typing_off' }
     let!(:event) { Events::Base.new(event_name, Time.zone.now, conversation: conversation, user: agent, is_private: false) }

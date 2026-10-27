@@ -129,7 +129,8 @@
       "HIDE_LABELS": "Ocultar etiquetas",
       "LABELS_COUNT": "{count} etiquetas",
       "CAPTAIN_STATE_ESCALATED": "Escalada",
-      "CAPTAIN_ANSWERING": "{name} · contestando",
+      "CAPTAIN_ASSIGNED": "{name} · asignado",
+      "CAPTAIN_TYPING": "{name} está escribiendo…",
       "CAPTAIN_WAITING_CUSTOMER": "{name} · esperando al cliente"
     },
     "VOICE_CALL": {
@@ -544,16 +545,18 @@
       "CONVERSATION": "Conversación",
       "EMPTY": "Sin datos:",
       "SCHEDULE": "Agendar",
-      "CAPTAIN_REPLYING": "{name} está respondiendo",
-      "CAPTAIN_WAITING": "{name} espera al cliente",
+      "CAPTAIN_ASSIGNED": "{name} está asignado",
+      "CAPTAIN_TYPING": "{name} está escribiendo…",
+      "CAPTAIN_WAITING": "{name} está atento · esperando al cliente",
       "CAPTAIN_ESCALATED": "{name} pasó la conversación al equipo",
       "CALENDAR_IDLE": "Sin próximas citas · Agendar",
       "NEXT_APPOINTMENT": "Próxima cita: {when}"
     },
     "RESPONDER": {
       "IDLE": "Captain no atiende esta conversación",
-      "ANSWERING": "Responde: {name}",
-      "WAITING_CUSTOMER": "esperando al cliente",
+      "ASSIGNED": "{name} está asignado",
+      "TYPING": "{name} está escribiendo…",
+      "WAITING_CUSTOMER": "{name} está atento · esperando al cliente",
       "ESCALATED": "Pasó la conversación al equipo"
     },
     "ASSIGNEE_LABEL": "Responsable de la conversación",

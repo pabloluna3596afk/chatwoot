@@ -6,7 +6,8 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 
 const isOpen = ref(false);
 const ITEMS = [
-  { key: 'ANSWERING', swatch: 'bg-n-teal-9' },
+  { key: 'TYPING', swatch: 'bg-n-teal-9' },
+  { key: 'ASSIGNED', swatch: 'bg-n-teal-9' },
   { key: 'WAITING', swatch: 'bg-n-amber-9' },
   { key: 'ESCALATED', swatch: 'bg-n-ruby-9 animate-pulse' },
 ];

@@ -20,6 +20,7 @@ import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import CollapsedReplyBar from './CollapsedReplyBar.vue';
 import ResizableEditorWrapper from './ResizableEditorWrapper.vue';
 import ReferralBubble from 'dashboard/components-next/Conversation/ReferralBubble.vue';
+import TypingDots from './TypingDots.vue';
 
 // stores and apis
 import { mapGetters } from 'vuex';
@@ -61,6 +62,7 @@ export default {
     CollapsedReplyBar,
     ResizableEditorWrapper,
     ReferralBubble,
+    TypingDots,
   },
   mixins: [inboxMixin],
   setup() {
@@ -620,11 +622,7 @@ export default {
           class="flex py-2 pr-4 pl-5 shadow-md rounded-full bg-white dark:bg-n-solid-3 text-n-slate-11 text-xs font-semibold my-2.5 mx-auto"
         >
           {{ typingUserNames }}
-          <img
-            class="w-6 ltr:ml-2 rtl:mr-2"
-            src="assets/images/typing.gif"
-            alt="Someone is typing"
-          />
+          <TypingDots class="ltr:ml-2 rtl:mr-2" />
         </div>
       </div>
       <ResizableEditorWrapper

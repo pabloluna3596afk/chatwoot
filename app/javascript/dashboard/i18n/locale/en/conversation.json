@@ -152,7 +152,8 @@
       "HIDE_LABELS": "Hide labels",
       "LABELS_COUNT": "{count} labels",
       "CAPTAIN_STATE_ESCALATED": "Escalated",
-      "CAPTAIN_ANSWERING": "{name} · answering",
+      "CAPTAIN_ASSIGNED": "{name} · assigned",
+      "CAPTAIN_TYPING": "{name} is typing…",
       "CAPTAIN_WAITING_CUSTOMER": "{name} · waiting for the customer"
     },
     "VOICE_CALL": {
@@ -544,16 +545,18 @@
       "CONVERSATION": "Conversation",
       "EMPTY": "No data:",
       "SCHEDULE": "Schedule",
-      "CAPTAIN_REPLYING": "{name} is replying",
-      "CAPTAIN_WAITING": "{name} is waiting for the customer",
+      "CAPTAIN_ASSIGNED": "{name} is assigned",
+      "CAPTAIN_TYPING": "{name} is typing…",
+      "CAPTAIN_WAITING": "{name} is attentive · waiting for the customer",
       "CAPTAIN_ESCALATED": "{name} handed the conversation to the team",
       "CALENDAR_IDLE": "No upcoming appointments · Schedule",
       "NEXT_APPOINTMENT": "Next appointment: {when}"
     },
     "RESPONDER": {
       "IDLE": "Captain is not answering this conversation",
-      "ANSWERING": "Answering: {name}",
-      "WAITING_CUSTOMER": "waiting for the customer",
+      "ASSIGNED": "{name} is assigned",
+      "TYPING": "{name} is typing…",
+      "WAITING_CUSTOMER": "{name} is attentive · waiting for the customer",
       "ESCALATED": "Handed the conversation to the team"
     },
     "ASSIGNEE_LABEL": "Conversation owner",

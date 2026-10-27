@@ -7,7 +7,9 @@ const tools = [
     icon: 'i-woot-captain',
     tone: 'teal',
     label: 'Captain',
-    legend: 'Aurora está respondiendo',
+    legend: 'Aurora está escribiendo…',
+    isTyping: true,
+    assistantAvatar: 'https://x/aurora.png',
   },
   {
     key: 'calendar',
@@ -48,8 +50,10 @@ describe('ContactToolsBar', () => {
       wrapper.findAll('[data-tool]').map(item => item.attributes('data-tool'))
     ).toEqual(['captain', 'calendar', 'payment', 'cart']);
     expect(wrapper.find('[data-tool="captain"]').text()).toBe(
-      'Aurora está respondiendo'
+      'Aurora está escribiendo…'
     );
+    expect(wrapper.find('[data-testid="typing-dots"]').exists()).toBe(true);
+    expect(wrapper.find('img').attributes('src')).toBe('https://x/aurora.png');
     expect(wrapper.find('[data-tool="calendar"]').text()).toBe(
       'Próxima cita: mañana 10:00'
     );
@@ -65,7 +69,7 @@ describe('ContactToolsBar', () => {
       wrapper.find('[data-tool="cart"]').element.parentElement
     );
     expect(wrapper.findAll('[data-testid="idle-tools"]')).toHaveLength(1);
-    await wrapper.find('[data-tool="calendar"] .truncate').trigger('click');
+    await wrapper.find('button[data-tool="calendar"]').trigger('click');
     await wrapper.find('[data-tool="calendar"] .size-4').trigger('click');
     await wrapper.find('[data-tool="cart"]').trigger('click');
     expect(onClick).toHaveBeenCalledTimes(3);
@@ -115,7 +119,9 @@ describe('ContactToolsBar', () => {
     });
     expect(wrapper.findAll('[data-tool]')).toHaveLength(1);
     expect(wrapper.find('.text-n-amber-11').exists()).toBe(true);
-    expect(wrapper.find('button').attributes('title')).toBe('Captain');
+    expect(wrapper.find('[data-tool="captain"]').attributes('title')).toBe(
+      'Captain'
+    );
   });
 
   it('renders nothing when all tools are hidden', () => {

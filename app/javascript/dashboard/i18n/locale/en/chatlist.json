@@ -206,7 +206,8 @@
     },
     "CAPTAIN_LEGEND": {
       "TITLE": "Captain conversation status",
-      "ANSWERING": "Captain is answering",
+      "TYPING": "Captain is typing",
+      "ASSIGNED": "Captain is assigned and awaiting a reply",
       "WAITING": "Waiting for the customer",
       "ESCALATED": "Escalated: needs a person",
       "TAKEN": "If a person takes it, the color disappears."

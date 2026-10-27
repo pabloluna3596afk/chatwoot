@@ -3,6 +3,12 @@ import { createI18n } from 'vue-i18n';
 import CaptainStateBadge from '../CaptainStateBadge.vue';
 import ConversationCard from '../ConversationCard.vue';
 
+vi.mock('vuex', () => ({
+  useStore: () => ({
+    getters: { 'conversationTypingStatus/getUserList': () => [] },
+  }),
+}));
+
 const i18n = createI18n({
   legacy: false,
   locale: 'en',
@@ -11,7 +17,7 @@ const i18n = createI18n({
       CONVERSATION: {
         CARD: {
           CAPTAIN_STATE_ESCALATED: 'Escalated',
-          CAPTAIN_ANSWERING: '{name} · answering',
+          CAPTAIN_ASSIGNED: '{name} · assigned',
           CAPTAIN_WAITING_CUSTOMER: '{name} · waiting for the customer',
         },
       },
@@ -83,7 +89,7 @@ describe('ConversationCard captain state', () => {
   const ring = wrapper =>
     wrapper.find('[data-testid="captain-assistant-avatar"]');
 
-  it('shows a teal ring when Captain is answering (last message from the contact)', () => {
+  it('shows a teal ring while Captain is assigned and no reply has arrived yet', () => {
     const wrapper = mountCard({
       chat: {
         captain_state: 'ai',
