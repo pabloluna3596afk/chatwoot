@@ -49,6 +49,35 @@ it('honors disabled confirmation on submit and restores cancel after loading', a
   wrapper.unmount();
 });
 
+it('uses ruby for alert confirmation and blue for edit confirmation', () => {
+  const mountWithButtonColors = type =>
+    shallowMount(Dialog, {
+      props: { type, confirmButtonLabel: 'Confirm' },
+      global: {
+        stubs: {
+          TeleportWithDirection: { template: '<div><slot /></div>' },
+          OnClickOutside: { template: '<div><slot /></div>' },
+          Button: {
+            props: ['color'],
+            template: '<button :data-color="color" />',
+          },
+        },
+      },
+    });
+
+  const alertDialog = mountWithButtonColors('alert');
+  const editDialog = mountWithButtonColors('edit');
+
+  expect(alertDialog.findAll('[data-color]')[1].attributes('data-color')).toBe(
+    'ruby'
+  );
+  expect(editDialog.findAll('[data-color]')[1].attributes('data-color')).toBe(
+    'blue'
+  );
+  alertDialog.unmount();
+  editDialog.unmount();
+});
+
 it('associates the visible title and description, including a description slot', () => {
   const wrapper = shallowMount(Dialog, {
     props: { title: 'Delete', description: 'Cannot undo' },

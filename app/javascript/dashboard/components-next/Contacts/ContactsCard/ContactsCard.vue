@@ -283,6 +283,7 @@ const handleAvatarClick = () => {
                     size="sm"
                     variant="outline"
                     color="ruby"
+                    class="[&>span:nth-child(2)]:hidden md:[&>span:nth-child(2)]:inline-flex"
                     @click="openConfirmDeleteContactDialog"
                   />
                 </div>

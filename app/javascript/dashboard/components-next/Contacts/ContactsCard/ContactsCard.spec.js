@@ -68,6 +68,22 @@ describe('ContactsCard', () => {
       'CONTACTS_LAYOUT.CARD.DELETE',
     ]);
     expect(actions.every(button => button.props('size') === 'sm')).toBe(true);
+    const deleteButton = actions.find(
+      button => button.props('label') === 'CONTACTS_LAYOUT.CARD.DELETE'
+    );
+    expect(deleteButton.props('color')).toBe('ruby');
+    expect(deleteButton.attributes('title')).toBe(
+      'CONTACTS_LAYOUT.DETAILS.DELETE_CONTACT'
+    );
+    expect(deleteButton.attributes('aria-label')).toBe(
+      'CONTACTS_LAYOUT.DETAILS.DELETE_CONTACT'
+    );
+    expect(deleteButton.attributes('class')).toContain(
+      '[&>span:nth-child(2)]:hidden'
+    );
+    expect(deleteButton.attributes('class')).toContain(
+      'md:[&>span:nth-child(2)]:inline-flex'
+    );
     expect(wrapper.findComponent(SaveStateButton).props('labelClean')).toBe(
       'GENERAL.SAVE_STATE.SAVE'
     );
