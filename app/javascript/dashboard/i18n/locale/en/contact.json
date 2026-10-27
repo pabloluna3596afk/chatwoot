@@ -376,17 +376,11 @@
           "OPTIONS": {
             "NAME": "Name",
             "EMAIL": "Email",
-            "DOCUMENT_NUMBER": "Document number",
-            "PHONE_NUMBER": "Phone number",
-            "IDENTIFIER": "Identifier",
             "COMPANY": "Company",
             "COUNTRY": "Country",
             "CITY": "City",
-            "LABELS": "Labels",
-            "ASSIGNED_AGENT": "Contact agent",
             "LAST_ACTIVITY": "Last activity",
-            "CREATED_AT": "Created at",
-            "BLOCKED": "Blocked"
+            "CREATED_AT": "Created at"
           }
         },
         "ORDER": {
@@ -479,7 +473,8 @@
     },
     "CARD": {
       "OF": "of",
-      "EXPAND": "Expand",
+      "OPEN": "Open",
+      "DELETE": "Delete",
       "EDIT_DETAILS_FORM": {
         "TITLE": "Edit contact details",
         "INVALID": "Correct the form errors before saving.",
@@ -732,7 +727,9 @@
   },
   "CONTACTS_BULK_ACTIONS": {
     "ASSIGN_LABELS": "Assign Labels",
+    "ASSIGN_LABELS_SHORT": "Tag",
     "REMOVE_LABELS": "Remove Labels",
+    "REMOVE_LABELS_SHORT": "Untag",
     "ASSIGN_LABELS_SUCCESS": "Labels are being applied. They will appear shortly.",
     "ASSIGN_LABELS_FAILED": "Failed to assign labels",
     "REMOVE_LABELS_SUCCESS": "Labels are being removed. Changes will appear shortly.",
@@ -740,9 +737,12 @@
     "DESCRIPTION": "Select the labels you want to add to the selected contacts.",
     "NO_LABELS_FOUND": "No labels available yet.",
     "SELECTED_COUNT": "{count} selected",
+    "SELECT_CONTACT_ACCESSIBILITY": "Select {name} for bulk actions",
     "CLEAR_SELECTION": "Clear selection",
     "SELECT_ALL": "Select page ({count})",
     "SELECT_ALL_MATCHING": "Select all matching ({count})",
+    "SELECT_ALL_MATCHING_SHORT": "All matching ({count})",
+    "SELECT_ALL_MATCHING_ACCESSIBILITY": "Select all {count} matching contacts",
     "DELETE_CONTACTS": "Delete",
     "DELETE_SUCCESS": "Contacts deleted successfully.",
     "DELETE_FAILED": "Failed to delete contacts.",

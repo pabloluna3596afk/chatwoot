@@ -3,24 +3,13 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Button from 'dashboard/components-next/button/Button.vue';
-import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
+import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import { usePolicy } from 'dashboard/composables/usePolicy';
-import { useAccount } from 'dashboard/composables/useAccount';
-import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
 const emit = defineEmits(['add', 'import', 'export']);
 
 const { t } = useI18n();
 const { checkPermissions } = usePolicy();
-const { isCloudFeatureEnabled } = useAccount();
-
-// Importing is not a download, so it stays available even when the super admin
-// has turned customer data downloads off for this account.
-const canExportContacts = computed(
-  () =>
-    checkPermissions(['administrator', 'contact_manage']) &&
-    isCloudFeatureEnabled(FEATURE_FLAGS.CUSTOMER_DATA_EXPORT)
-);
 
 const contactMenuItems = computed(() => [
   {
@@ -29,7 +18,7 @@ const contactMenuItems = computed(() => [
     value: 'add',
     icon: 'i-lucide-plus',
   },
-  ...(canExportContacts.value
+  ...(checkPermissions(['administrator', 'contact_manage'])
     ? [
         {
           label: t(
@@ -68,22 +57,20 @@ const handleContactAction = ({ action }) => {
 </script>
 
 <template>
-  <MenuPopover
-    v-model:open="showActionsDropdown"
-    :menu-items="contactMenuItems"
-    :label="t('CONTACTS_LAYOUT.HEADER.ACTIONS.CONTACT_CREATION.ADD_CONTACT')"
-    panel-class="w-52 max-w-[calc(100vw-2rem)]"
-    @action="handleContactAction"
-  >
-    <template #trigger>
-      <Button
-        icon="i-lucide-ellipsis-vertical"
-        color="slate"
-        variant="ghost"
-        size="sm"
-        :class="showActionsDropdown ? 'bg-n-alpha-2' : ''"
-        @click="showActionsDropdown = !showActionsDropdown"
-      />
-    </template>
-  </MenuPopover>
+  <div v-on-clickaway="() => (showActionsDropdown = false)" class="relative">
+    <Button
+      icon="i-lucide-ellipsis-vertical"
+      color="slate"
+      variant="ghost"
+      size="sm"
+      :class="showActionsDropdown ? 'bg-n-alpha-2' : ''"
+      @click="showActionsDropdown = !showActionsDropdown"
+    />
+    <DropdownMenu
+      v-if="showActionsDropdown"
+      :menu-items="contactMenuItems"
+      class="ltr:right-0 rtl:left-0 mt-1 w-52 top-full"
+      @action="handleContactAction($event)"
+    />
+  </div>
 </template>

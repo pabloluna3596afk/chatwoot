@@ -7,6 +7,7 @@ import { vOnClickOutside } from '@vueuse/components';
 import { CONVERSATION_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import { useConversationFilterContext } from './provider.js';
 import { useSnakeCase } from 'dashboard/composables/useTransformKeys';
+import { provideDropdownTeleport } from 'dashboard/components-next/dropdown-menu/base/provider';
 
 import Button from 'next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -41,6 +42,7 @@ const DEFAULT_FILTER = {
 
 const { t } = useI18n();
 const store = useStore();
+provideDropdownTeleport();
 
 const resetFilter = () => {
   filters.value = [{ ...DEFAULT_FILTER }];
@@ -105,7 +107,7 @@ const outsideClickHandler = [
 <template>
   <div
     v-on-click-outside="outsideClickHandler"
-    class="z-40 w-[min(34rem,calc(100vw-2rem))] lg:w-[750px] overflow-visible border border-n-weak bg-n-alpha-3 backdrop-blur-[100px] shadow-lg rounded-xl p-6 grid gap-6"
+    class="z-40 w-[min(34rem,calc(100vw-2rem))] lg:w-[750px] max-h-[calc(100dvh-2rem)] overflow-y-auto overflow-x-hidden border border-n-weak bg-n-alpha-3 backdrop-blur-[100px] shadow-lg rounded-xl p-4 sm:p-6 grid gap-4 sm:gap-6"
   >
     <h3 class="text-base font-medium leading-6 text-n-slate-12">
       {{ filterModalHeaderTitle }}
@@ -119,7 +121,7 @@ const outsideClickHandler = [
         />
       </div>
     </div>
-    <ul class="grid gap-4 list-none min-w-0">
+    <ul class="grid gap-4 list-none min-w-0 overflow-x-hidden">
       <template v-for="(filter, index) in filters" :key="filter.id">
         <ConditionRow
           v-if="index === 0"
@@ -146,11 +148,11 @@ const outsideClickHandler = [
         />
       </template>
     </ul>
-    <div class="flex gap-2 justify-between">
+    <div class="flex flex-wrap items-center gap-2 justify-between">
       <Button sm ghost blue @click="addFilter">
         {{ $t('FILTER.ADD_NEW_FILTER') }}
       </Button>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap justify-end gap-2">
         <Button sm faded slate @click="resetFilter">
           {{ t('FILTER.CLEAR_BUTTON_LABEL') }}
         </Button>

@@ -60,18 +60,24 @@ const updateContact = async (updatedData, onSuccess) => {
     onSuccess?.();
     return true;
   } catch (error) {
-    const i18nPrefix = 'CONTACTS_LAYOUT.CARD.EDIT_DETAILS_FORM.FORM';
-
     if (error instanceof DuplicateContactException) {
       if (error.data.includes('email')) {
-        useAlert(t(`${i18nPrefix}.EMAIL_ADDRESS.DUPLICATE`));
+        useAlert(
+          t(
+            'CONTACTS_LAYOUT.CARD.EDIT_DETAILS_FORM.FORM.EMAIL_ADDRESS.DUPLICATE'
+          )
+        );
       } else if (error.data.includes('phone_number')) {
-        useAlert(t(`${i18nPrefix}.PHONE_NUMBER.DUPLICATE`));
+        useAlert(
+          t(
+            'CONTACTS_LAYOUT.CARD.EDIT_DETAILS_FORM.FORM.PHONE_NUMBER.DUPLICATE'
+          )
+        );
       }
     } else if (error instanceof ExceptionWithMessage) {
       useAlert(error.data);
     } else {
-      useAlert(t(`${i18nPrefix}.ERROR_MESSAGE`));
+      useAlert(t('CONTACTS_LAYOUT.CARD.EDIT_DETAILS_FORM.FORM.ERROR_MESSAGE'));
     }
     return false;
   }
@@ -101,9 +107,8 @@ const toggleExpanded = id => {
 
 const isSelected = id => selectedIdsSet.value.has(id);
 
-const shouldShowSelection = id => {
-  return hoveredAvatarId.value === id || isSelected(id);
-};
+const shouldShowSelection = id =>
+  selectedIdsSet.value.size > 0 || hoveredAvatarId.value === id;
 
 const handleSelect = payload => {
   emit('toggleContact', payload);
@@ -133,7 +138,10 @@ const handleSort = sortPayload => {
     />
 
     <!-- Mobile: card view -->
-    <div class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto md:hidden">
+    <div
+      class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto md:hidden"
+      :class="{ 'mb-24 pb-24': selectedContactIds.length > 0 }"
+    >
       <div v-for="contact in contacts" :key="contact.id" class="relative">
         <ContactsCard
           :id="contact.id"
@@ -153,7 +161,7 @@ const handleSort = sortPayload => {
           @toggle="toggleExpanded(contact.id)"
           @update-contact="updateContact"
           @show-contact="onClickViewDetails"
-          @select="value => handleSelect(contact.id, value)"
+          @select="value => handleSelect({ id: contact.id, value })"
           @avatar-hover="value => handleAvatarHover(contact.id, value)"
         />
       </div>

@@ -8,10 +8,11 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import SaveStateButton from 'dashboard/components-next/button/SaveStateButton.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import Flag from 'dashboard/components-next/flag/Flag.vue';
-import ContactDeleteSection from 'dashboard/components-next/Contacts/ContactsCard/ContactDeleteSection.vue';
+import ConfirmContactDeleteDialog from 'dashboard/components-next/Contacts/ContactsForm/ConfirmContactDeleteDialog.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import FeaturedAttributeBadges from 'dashboard/components-next/FeaturedAttributes/FeaturedAttributeBadges.vue';
 import { useFeaturedAttributes } from 'dashboard/composables/useFeaturedAttributes';
+import { usePolicy } from 'dashboard/composables/usePolicy';
 import countries from 'shared/constants/countries';
 
 const props = defineProps({
@@ -50,6 +51,9 @@ const { featuredBadges } = useFeaturedAttributes(
 );
 
 const contactsFormRef = ref(null);
+const confirmDeleteContactDialogRef = ref(null);
+const { checkPermissions } = usePolicy();
+const canDeleteContact = computed(() => checkPermissions(['administrator']));
 
 const getInitialContactData = () => ({
   id: props.id,
@@ -124,12 +128,20 @@ const onClickExpand = () => {
 
 const onClickViewDetails = () => emit('showContact', props.id);
 
+const openConfirmDeleteContactDialog = () => {
+  confirmDeleteContactDialogRef.value?.dialogRef.open();
+};
+
 const toggleSelect = checked => {
   emit('select', checked);
 };
 
 const handleAvatarHover = isHovered => {
   emit('avatarHover', isHovered);
+};
+
+const handleAvatarClick = () => {
+  toggleSelect(!props.isSelected);
 };
 </script>
 
@@ -148,7 +160,7 @@ const handleAvatarHover = isHovered => {
       <div class="flex items-start w-full min-w-0 gap-3">
         <div
           class="relative shrink-0"
-          @click.stop
+          @click.stop="handleAvatarClick"
           @mouseenter="handleAvatarHover(true)"
           @mouseleave="handleAvatarHover(false)"
         >
@@ -161,15 +173,23 @@ const handleAvatarHover = isHovered => {
           >
             <template v-if="selectable" #overlay="{ size }">
               <label
-                class="flex items-center justify-center rounded-full cursor-pointer absolute inset-0 z-10 backdrop-blur-[2px] border border-n-weak"
+                class="absolute inset-0 z-10 flex cursor-pointer items-center justify-center rounded-full border border-n-slate-8 backdrop-blur-[2px] dark:border-n-slate-7"
                 :style="{ width: `${size}px`, height: `${size}px` }"
+                :title="
+                  t('CONTACTS_BULK_ACTIONS.SELECT_CONTACT_ACCESSIBILITY', {
+                    name,
+                  })
+                "
                 @click.stop
               >
                 <Checkbox
                   :model-value="isSelected"
                   :aria-label="
-                    t('GENERAL.ACCESSIBILITY.SELECT_CONTACT', { name })
+                    t('CONTACTS_BULK_ACTIONS.SELECT_CONTACT_ACCESSIBILITY', {
+                      name,
+                    })
                   "
+                  class="[&>span]:!border-n-slate-8 [&>span]:!bg-n-surface-1 [&>input:checked+span]:!border-n-brand [&>input:checked+span]:!bg-n-brand dark:[&>span]:!border-n-slate-7 dark:[&>span]:!bg-n-solid-3 dark:[&>input:checked+span]:!border-n-brand dark:[&>input:checked+span]:!bg-n-brand"
                   @change="event => toggleSelect(event.target.checked)"
                 />
               </label>
@@ -246,17 +266,31 @@ const handleAvatarHover = isHovered => {
               @click.stop
             >
               <div class="flex w-full items-center justify-between gap-2">
-                <Button
-                  :label="t('CONTACTS_LAYOUT.CARD.EXPAND')"
-                  size="sm"
-                  variant="outline"
-                  color="slate"
-                  @click="onClickViewDetails"
-                />
+                <div class="flex min-w-0 items-center gap-2">
+                  <Button
+                    :label="t('CONTACTS_LAYOUT.CARD.OPEN')"
+                    size="sm"
+                    variant="outline"
+                    color="slate"
+                    @click="onClickViewDetails"
+                  />
+                  <Button
+                    v-if="canDeleteContact"
+                    :label="t('CONTACTS_LAYOUT.CARD.DELETE')"
+                    :title="t('CONTACTS_LAYOUT.DETAILS.DELETE_CONTACT')"
+                    :aria-label="t('CONTACTS_LAYOUT.DETAILS.DELETE_CONTACT')"
+                    icon="i-lucide-trash-2"
+                    size="sm"
+                    variant="outline"
+                    color="ruby"
+                    @click="openConfirmDeleteContactDialog"
+                  />
+                </div>
                 <SaveStateButton
                   :dirty="isDirty"
                   :loading="isUpdating"
                   :invalid="isFormInvalid"
+                  :label-clean="t('GENERAL.SAVE_STATE.SAVE')"
                   :invalid-reason="
                     isFormInvalid
                       ? t('CONTACTS_LAYOUT.CARD.EDIT_DETAILS_FORM.INVALID')
@@ -272,11 +306,10 @@ const handleAvatarHover = isHovered => {
                 @update="handleFormUpdate"
               />
             </div>
-            <ContactDeleteSection
-              :selected-contact="{
-                id: props.id,
-                name: props.name,
-              }"
+            <ConfirmContactDeleteDialog
+              v-if="canDeleteContact"
+              ref="confirmDeleteContactDialogRef"
+              :selected-contact="{ id: props.id, name: props.name }"
             />
           </div>
         </div>

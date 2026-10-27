@@ -72,6 +72,18 @@ const selectedCountLabel = computed(() =>
   })
 );
 
+const selectAllMatchingLabel = computed(() =>
+  t('CONTACTS_BULK_ACTIONS.SELECT_ALL_MATCHING', {
+    count: props.totalMatchingCount,
+  })
+);
+
+const selectAllMatchingShortLabel = computed(() =>
+  t('CONTACTS_BULK_ACTIONS.SELECT_ALL_MATCHING_SHORT', {
+    count: props.totalMatchingCount,
+  })
+);
+
 const allItems = computed(() =>
   props.visibleContactIds.map(id => ({
     id: normalizeId(id),
@@ -104,43 +116,68 @@ const handleRemoveLabels = labels => {
 
 <template>
   <div
-    class="sticky top-0 z-10 bg-gradient-to-b from-n-surface-1 from-90% to-transparent pt-1 pb-2"
+    class="z-30 pt-1 pb-2 md:sticky md:top-0 md:z-10 md:bg-gradient-to-b md:from-n-surface-1 md:from-90% md:to-transparent"
   >
     <BulkSelectBar
       v-model="selectionModel"
       :all-items="allItems"
+      compact-selection
       :select-all-label="selectAllLabel"
       :selected-count-label="selectedCountLabel"
-      class="py-2 ltr:!pr-3 rtl:!pl-3 justify-between"
+      :mobile-selected-count="selectedCount"
+      class="py-2 ltr:!pr-3 rtl:!pl-3 justify-between border border-n-weak shadow-lg md:shadow-sm max-md:fixed max-md:inset-x-3 max-md:bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] max-md:z-50 max-md:!m-0 max-md:!items-stretch max-md:!flex-col max-md:gap-2 max-md:rounded-xl max-md:bg-n-solid-2 max-md:backdrop-blur-md"
     >
       <template #primaryActions>
-        <Button
-          sm
-          ghost
-          slate
-          :label="t('CONTACTS_BULK_ACTIONS.CLEAR_SELECTION')"
-          class="!px-1"
-          @click="emit('clearSelection')"
-        />
         <Button
           v-if="showSelectAllMatching"
           sm
           ghost
           blue
-          :label="
-            t('CONTACTS_BULK_ACTIONS.SELECT_ALL_MATCHING', {
+          icon="i-lucide-check-check"
+          :label="selectAllMatchingLabel"
+          :title="
+            t('CONTACTS_BULK_ACTIONS.SELECT_ALL_MATCHING_ACCESSIBILITY', {
               count: totalMatchingCount,
             })
           "
-          class="!px-1"
+          :aria-label="
+            t('CONTACTS_BULK_ACTIONS.SELECT_ALL_MATCHING_ACCESSIBILITY', {
+              count: totalMatchingCount,
+            })
+          "
+          class="!px-2 max-md:!px-2"
           @click="emit('selectAllMatching')"
+        >
+          <template #default>
+            <span class="hidden whitespace-nowrap md:inline-flex">{{
+              selectAllMatchingLabel
+            }}</span>
+            <span class="whitespace-nowrap md:hidden">{{
+              selectAllMatchingShortLabel
+            }}</span>
+          </template>
+        </Button>
+        <Button
+          sm
+          ghost
+          slate
+          icon="i-lucide-x"
+          :label="t('CONTACTS_BULK_ACTIONS.CLEAR_SELECTION')"
+          :aria-label="t('CONTACTS_BULK_ACTIONS.CLEAR_SELECTION')"
+          class="!px-2 [&>span:nth-child(2)]:hidden md:[&>span:nth-child(2)]:inline-flex"
+          @click="emit('clearSelection')"
         />
       </template>
       <template #actions>
-        <div class="flex items-center gap-2 ml-auto">
+        <div
+          class="flex items-center gap-1 rounded-xl md:ms-auto md:bg-n-alpha-2 md:p-1 max-md:w-full max-md:justify-end"
+        >
           <BulkLabelActions
             type="contact"
             placement="bottom"
+            :mobile-button-label="
+              t('CONTACTS_BULK_ACTIONS.ASSIGN_LABELS_SHORT')
+            "
             :is-loading="isLoading"
             :disabled="!selectedCount"
             @assign="handleAssignLabels"
@@ -149,23 +186,26 @@ const handleRemoveLabels = labels => {
             type="contact"
             placement="bottom"
             action="remove"
+            :mobile-button-label="
+              t('CONTACTS_BULK_ACTIONS.REMOVE_LABELS_SHORT')
+            "
             :is-loading="isLoading"
             :disabled="!selectedCount"
             @remove="handleRemoveLabels"
           />
-          <div class="w-px h-3 bg-n-weak rounded-lg" />
+          <div class="mx-1 h-5 w-px rounded-lg bg-n-strong max-md:hidden" />
           <Policy :permissions="['administrator']">
             <Button
               v-tooltip.bottom="t('CONTACTS_BULK_ACTIONS.DELETE_CONTACTS')"
               sm
               ghost
-              ruby
+              intent="destructive"
               icon="i-lucide-trash"
               :label="t('CONTACTS_BULK_ACTIONS.DELETE_CONTACTS')"
               :aria-label="t('CONTACTS_BULK_ACTIONS.DELETE_CONTACTS')"
               :disabled="!selectedCount || isLoading || selectAllMatching"
               :is-loading="isLoading"
-              class="!px-2 [&>span:nth-child(2)]:hidden md:[&>span:nth-child(2)]:inline-flex"
+              class="!px-2 [&>span:nth-child(2)]:hidden md:[&>span:nth-child(2)]:inline-flex max-md:ms-1 max-md:border-s max-md:border-n-weak max-md:ps-3"
               @click="emit('deleteSelected')"
             />
           </Policy>

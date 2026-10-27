@@ -173,6 +173,7 @@ defineExpose({
     :tabindex="listbox ? -1 : undefined"
     class="bg-n-alpha-3 backdrop-blur-[100px] border-0 outline outline-1 outline-n-container z-50 flex flex-col min-w-[136px] shadow-lg overflow-hidden"
     :class="[
+      $slots.content ? '!overflow-visible' : '',
       portal ? 'fixed' : 'absolute',
       compact ? 'rounded-lg pt-1' : 'rounded-xl pt-2',
     ]"
@@ -213,7 +214,11 @@ defineExpose({
       :role="listbox ? 'listbox' : undefined"
       :aria-multiselectable="listbox ? multiple : undefined"
       class="flex flex-col overflow-y-auto min-h-0"
-      :class="[compact ? 'gap-0.5 px-1 pb-1' : 'gap-2 px-2 pb-2', scrollClass]"
+      :class="[
+        compact ? 'gap-0.5 px-1 pb-1' : 'gap-2 px-2 pb-2',
+        scrollClass,
+        $slots.content ? '!overflow-visible' : '',
+      ]"
     >
       <slot name="content">
         <template v-if="hasSections">

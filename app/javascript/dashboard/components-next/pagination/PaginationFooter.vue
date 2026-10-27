@@ -26,6 +26,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  hideEdgeNavigationOnMobile: {
+    type: Boolean,
+    default: false,
+  },
 });
 const emit = defineEmits(['update:currentPage', 'update:itemsPerPage']);
 const { t } = useI18n();
@@ -127,6 +131,7 @@ const selectPerPage = value => {
         size="sm"
         color="slate"
         class="!w-8 !h-6"
+        :class="{ 'max-sm:hidden': hideEdgeNavigationOnMobile }"
         :disabled="isFirstPage"
         @click="changePage(1)"
       />
@@ -164,6 +169,7 @@ const selectPerPage = value => {
         color="slate"
         size="sm"
         class="!w-8 !h-6"
+        :class="{ 'max-sm:hidden': hideEdgeNavigationOnMobile }"
         :disabled="isLastPage"
         @click="changePage(totalPages)"
       />
