@@ -26,7 +26,11 @@ export const getCopilotEntryPoints = ({
 export const isCopilotConversationSelected = route =>
   (isAConversationRoute(route.name, true, true) ||
     isAInboxViewRoute(route.name, true)) &&
-  !!(route.params.id || route.params.conversationId);
+  !!(
+    route.params.id ||
+    route.params.conversationId ||
+    route.params.conversation_id
+  );
 
 export const useCopilotEntryPoints = () => {
   const route = useRoute();

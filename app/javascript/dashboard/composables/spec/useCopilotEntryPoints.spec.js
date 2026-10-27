@@ -8,6 +8,12 @@ describe('useCopilotEntryPoints decisions', () => {
     ['conversation without a selected message view', 'home', {}, false],
     ['selected conversation', 'home', { conversationId: '42' }, true],
     [
+      'selected legacy conversation route',
+      'inbox_conversation',
+      { conversation_id: '42' },
+      true,
+    ],
+    [
       'selected inbox conversation',
       'inbox_view_conversation',
       { id: '42' },
@@ -22,7 +28,7 @@ describe('useCopilotEntryPoints decisions', () => {
 
   it.each([
     [
-      'selected conversation, contact panel closed',
+      'conversation, contact panel closed, Copilot minimized',
       true,
       false,
       false,
@@ -30,17 +36,40 @@ describe('useCopilotEntryPoints decisions', () => {
       true,
     ],
     [
-      'selected conversation, contact panel open',
+      'conversation, contact panel closed, Copilot open',
+      true,
+      false,
+      true,
+      false,
+      true,
+    ],
+    [
+      'conversation, contact panel open, Copilot minimized',
       true,
       true,
       false,
       true,
       false,
     ],
-    ['selected conversation, Copilot open', true, false, true, false, true],
+    [
+      'conversation, contact panel open, Copilot open',
+      true,
+      true,
+      true,
+      false,
+      false,
+    ],
     ['contacts with bulk selection', false, false, false, true, false],
     ['calendar', false, false, false, true, false],
-    ['Captain disabled', false, false, false, false, false, false],
+    [
+      'Captain disabled on a selected conversation',
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ],
   ])(
     '%s',
     (
