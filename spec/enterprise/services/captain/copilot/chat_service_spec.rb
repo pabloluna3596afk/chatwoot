@@ -131,6 +131,49 @@ RSpec.describe Captain::Copilot::ChatService do
       end.to change { copilot_responses_used(account) }.by(1)
       expect(captain_responses_used(account)).to eq(0)
     end
+
+    it 'answers the four owner analytics prompts through simulated LLM tool calls' do
+      create(:custom_attribute_definition, account: account, attribute_model: 'conversation_attribute',
+                                           attribute_display_type: 'currency', attribute_key: 'sales')
+      AccountUser.find_by!(account: account, user: user).update!(role: :administrator)
+      first = create(:conversation, account: account, custom_attributes: { sales: 12 })
+      create(:conversation, account: account, custom_attributes: { sales: 6 })
+      contact.update!(contact_type: 'customer', email: 'copilot-contact@example.test')
+      contact.add_labels(['vip'])
+      copilot = service
+      get_data = copilot.instance_variable_get(:@tools).find { |tool| tool.name == 'get_data' }
+      tool_results = []
+      simulated_tool_call = nil
+      allow(mock_chat).to receive(:ask) do
+        tool_results << get_data.execute(**simulated_tool_call)
+        mock_response
+      end
+
+      prompts = [
+        ['conversaciones con atributo ventas > 0',
+         { resource: 'conversations', filters: { custom_attribute: { key: 'sales', operator: 'gt', value: 0 } } }, 2],
+        ['cuántas ventas hice este mes',
+         { resource: 'conversations', filters: { relative_range: 'this_month' }, aggregate: { function: 'sum', key: 'sales' } }, BigDecimal(18)],
+        ['contactos con etiqueta X',
+         { resource: 'contacts', filters: { labels: ['vip'] } }, 1],
+        ['agrupar por agente', { resource: 'conversations', filters: {}, group_by: 'assignee' }, 3]
+      ]
+
+      prompts.each do |question, arguments, expected_value|
+        simulated_tool_call = arguments
+        copilot.generate_response(question)
+        result = tool_results.last
+        value = if arguments[:aggregate]
+                  result.dig(:aggregate, :value)
+                elsif arguments[:group_by]
+                  result.dig(:groups, 0, :count)
+                else
+                  result[:total]
+                end
+        expect(value).to eq(expected_value), question
+      end
+      expect(first).to be_persisted
+    end
   end
 
   describe 'user setup behavior' do
@@ -148,7 +191,7 @@ RSpec.describe Captain::Copilot::ChatService do
   describe 'message history behavior' do
     context 'when copilot_thread_id is present' do
       it 'finds the copilot thread and sets previous history from it' do
-        service = described_class.new(assistant, { copilot_thread_id: copilot_thread.id })
+        service = described_class.new(assistant, { copilot_thread_id: copilot_thread.id, user_id: user.id })
 
         expect(service.copilot_thread).to eq(copilot_thread)
         expect(service.previous_history).to eq previous_history
@@ -262,7 +305,7 @@ RSpec.describe Captain::Copilot::ChatService do
     context 'when copilot_thread is present' do
       it 'creates a copilot message with the response' do
         expect do
-          described_class.new(assistant, { copilot_thread_id: copilot_thread.id }).generate_response('Hello')
+          described_class.new(assistant, { copilot_thread_id: copilot_thread.id, user_id: user.id }).generate_response('Hello')
         end.to change(CopilotMessage, :count).by(1)
 
         last_message = CopilotMessage.last

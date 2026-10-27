@@ -8,4 +8,11 @@ module Enterprise::ActionCableListener
 
     broadcast(account, [user.pubsub_token], COPILOT_MESSAGE_CREATED, copilot_message.push_event_data)
   end
+
+  def copilot_action_item_changed(event)
+    item = event.data[:copilot_action_item]
+    thread = item.copilot_thread
+    broadcast(thread.account, [thread.user.pubsub_token], COPILOT_ACTION_ITEM_CHANGED,
+              item.push_event_data.merge(copilot_thread_id: thread.id))
+  end
 end

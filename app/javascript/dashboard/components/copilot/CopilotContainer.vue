@@ -15,6 +15,8 @@ import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useConfig } from 'dashboard/composables/useConfig';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { MESSAGE_TYPE } from 'shared/constants/messages';
+import { emitter } from 'shared/helpers/mitt';
+import CopilotActionItemsAPI from 'dashboard/api/captain/copilotActionItems';
 
 const store = useStore();
 const { t } = useI18n();
@@ -27,6 +29,9 @@ const inboxAssistant = useMapGetter('getCopilotAssistant');
 const currentChat = useMapGetter('getSelectedChat');
 const lastPublicMessage = useMapGetter('getLastEmailInSelectedChat');
 const currentAccountId = useMapGetter('getCurrentAccountId');
+const labels = useMapGetter('labels/getLabels');
+const agents = useMapGetter('agents/getVerifiedAgents');
+const teams = useMapGetter('teams/getTeams');
 const isFeatureEnabledonAccount = useMapGetter(
   'accounts/isFeatureEnabledonAccount'
 );
@@ -39,6 +44,7 @@ const isHistoryOpen = ref(false);
 const isLoadingHistory = ref(false);
 const historyPage = ref(1);
 const hasMoreHistory = ref(false);
+const actionItems = ref([]);
 const unreadCount = ref(uiSettings.value.copilot_unread_count || 0);
 
 const messages = computed(() =>
@@ -82,7 +88,52 @@ const contextName = computed(
 
 const persistThread = threadId => {
   selectedCopilotThreadId.value = threadId;
+  actionItems.value = [];
   updateUISettings({ copilot_active_thread_id: threadId });
+};
+const loadActionItems = async threadId => {
+  if (!threadId) {
+    actionItems.value = [];
+    return;
+  }
+  try {
+    const { data } = await CopilotActionItemsAPI.get(threadId);
+    if (Number(threadId) === Number(selectedCopilotThreadId.value))
+      actionItems.value = data;
+  } catch (_error) {
+    useAlert(t('CAPTAIN.COPILOT.ERROR'));
+  }
+};
+const upsertActionItem = item => {
+  if (Number(item.copilot_thread_id) !== Number(selectedCopilotThreadId.value))
+    return;
+  const index = actionItems.value.findIndex(
+    existing => existing.id === item.id
+  );
+  if (index === -1) actionItems.value.push(item);
+  else actionItems.value[index] = item;
+};
+const handleActionItemEvent = item => upsertActionItem(item);
+const updateActionItem = async ({ id, payload }) => {
+  try {
+    const { data } = await CopilotActionItemsAPI.update(id, payload);
+    upsertActionItem(data);
+  } catch (_error) {
+    useAlert(t('CAPTAIN.COPILOT.ERROR'));
+  }
+};
+const decideActionItem = async (id, decision) => {
+  try {
+    const { data } =
+      decision === 'approve'
+        ? await CopilotActionItemsAPI.approve(id)
+        : await CopilotActionItemsAPI.reject(id);
+    upsertActionItem(data);
+  } catch (_error) {
+    if (_error.response?.data?.id) upsertActionItem(_error.response.data);
+    useAlert(t('CAPTAIN.COPILOT.ERROR'));
+    await loadActionItems(selectedCopilotThreadId.value);
+  }
 };
 const setAssistant = async assistant => {
   await updateUISettings({ preferred_captain_assistant_id: assistant.id });
@@ -140,6 +191,7 @@ const selectThread = async thread => {
   try {
     await store.dispatch('copilotMessages/get', thread.id);
     persistThread(thread.id);
+    await loadActionItems(thread.id);
     isHistoryOpen.value = false;
     unreadCount.value = 0;
     updateUISettings({ copilot_unread_count: 0 });
@@ -167,6 +219,7 @@ const sendMessage = async payload => {
         ...(requestType && { request_type: requestType }),
       });
       persistThread(response.id);
+      await loadActionItems(response.id);
       threads.value = [
         response,
         ...threads.value.filter(thread => thread.id !== response.id),
@@ -210,13 +263,23 @@ onMounted(async () => {
           'copilotMessages/get',
           selectedCopilotThreadId.value
         );
+        await loadActionItems(selectedCopilotThreadId.value);
       }
     } catch (_error) {
       useAlert(t('CAPTAIN.COPILOT.ERROR'));
     }
   }
 });
-onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown));
+onMounted(() => {
+  emitter.on('copilot_action_item_changed', handleActionItemEvent);
+  store.dispatch('labels/get');
+  store.dispatch('agents/get');
+  store.dispatch('teams/get');
+});
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown);
+  emitter.off('copilot_action_item_changed', handleActionItemEvent);
+});
 </script>
 
 <template>
@@ -248,6 +311,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown));
         :has-more-history="hasMoreHistory"
         :context-id="currentChat?.id"
         :context-name="contextName"
+        :action-items="actionItems"
+        :action-labels="labels"
+        :action-agents="agents"
+        :action-teams="teams"
+        @approve-action="decideActionItem($event, 'approve')"
+        @reject-action="decideActionItem($event, 'reject')"
+        @edit-action="updateActionItem"
         @set-assistant="setAssistant"
         @reset="newChat"
         @new-chat="newChat"

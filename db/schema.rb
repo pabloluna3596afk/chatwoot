@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_26_140000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_27_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1103,6 +1103,46 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_26_140000) do
     t.index ["waiting_since"], name: "index_conversations_on_waiting_since"
   end
 
+  create_table "copilot_action_events", force: :cascade do |t|
+    t.bigint "item_id", null: false
+    t.bigint "account_id", null: false
+    t.bigint "user_id", null: false
+    t.string "event", null: false
+    t.jsonb "payload_snapshot", default: {}, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.index ["account_id"], name: "index_copilot_action_events_on_account_id"
+    t.index ["item_id"], name: "index_copilot_action_events_on_item"
+    t.index ["user_id"], name: "index_copilot_action_events_on_user_id"
+  end
+
+  create_table "copilot_action_items", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "user_id", null: false
+    t.bigint "copilot_thread_id", null: false
+    t.bigint "copilot_message_id"
+    t.string "action", null: false
+    t.string "target_type", null: false
+    t.bigint "target_id", null: false
+    t.jsonb "payload", default: {}, null: false
+    t.string "payload_hash", null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "expires_at", null: false
+    t.string "idempotency_key", null: false
+    t.jsonb "result"
+    t.text "error"
+    t.datetime "decided_at"
+    t.datetime "executed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "user_id", "status"], name: "index_copilot_action_items_on_owner_and_status"
+    t.index ["account_id"], name: "index_copilot_action_items_on_account_id"
+    t.index ["copilot_message_id"], name: "index_copilot_action_items_on_copilot_message_id"
+    t.index ["copilot_thread_id"], name: "index_copilot_action_items_on_copilot_thread_id"
+    t.index ["idempotency_key"], name: "index_copilot_action_items_on_idempotency_key", unique: true
+    t.index ["user_id"], name: "index_copilot_action_items_on_user_id"
+  end
+
   create_table "copilot_messages", force: :cascade do |t|
     t.bigint "copilot_thread_id", null: false
     t.bigint "account_id", null: false
@@ -2050,6 +2090,13 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_26_140000) do
   add_foreign_key "canned_responses", "users", column: "created_by_id"
   add_foreign_key "canned_responses", "users", column: "reviewed_by_id"
   add_foreign_key "contacts", "users", column: "assigned_agent_id"
+  add_foreign_key "copilot_action_events", "accounts"
+  add_foreign_key "copilot_action_events", "copilot_action_items", column: "item_id"
+  add_foreign_key "copilot_action_events", "users"
+  add_foreign_key "copilot_action_items", "accounts"
+  add_foreign_key "copilot_action_items", "copilot_messages"
+  add_foreign_key "copilot_action_items", "copilot_threads"
+  add_foreign_key "copilot_action_items", "users"
   add_foreign_key "flow_events", "flow_runs", on_delete: :cascade
   add_foreign_key "flow_runs", "accounts", on_delete: :cascade
   add_foreign_key "flow_runs", "conversations", on_delete: :cascade
