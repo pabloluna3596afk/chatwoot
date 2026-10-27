@@ -8,7 +8,7 @@ const mountBar = () =>
     props: {
       visibleContactIds: [1, 2, 3],
       selectedContactIds: [1, 2],
-      totalMatchingCount: 3,
+      totalMatchingCount: 10,
     },
     global: {
       stubs: {
@@ -55,7 +55,7 @@ describe('ContactsBulkActionBar', () => {
       'max-md:fixed'
     );
     expect(wrapper.get('[data-test="bulk-select"]').classes()).toContain(
-      'max-md:bottom-[calc(env(safe-area-inset-bottom)+4.5rem)]'
+      'max-md:bottom-[calc(env(safe-area-inset-bottom)+5.5rem)]'
     );
   });
 

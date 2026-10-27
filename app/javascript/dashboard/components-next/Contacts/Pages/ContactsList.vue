@@ -131,7 +131,7 @@ const handleSort = sortPayload => {
     <!-- Mobile: card view -->
     <div
       class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto md:hidden"
-      :class="{ 'mb-16 pb-16': selectedContactIds.length > 0 }"
+      :class="{ 'mb-24 pb-24': selectedContactIds.length > 0 }"
     >
       <div v-for="contact in contacts" :key="contact.id" class="relative">
         <ContactsCard

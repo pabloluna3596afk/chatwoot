@@ -733,7 +733,9 @@
   },
   "CONTACTS_BULK_ACTIONS": {
     "ASSIGN_LABELS": "Asignar etiquetas",
+    "ASSIGN_LABELS_SHORT": "Etiquetar",
     "REMOVE_LABELS": "Quitar etiquetas",
+    "REMOVE_LABELS_SHORT": "Quitar",
     "ASSIGN_LABELS_SUCCESS": "Se están aplicando las etiquetas. Aparecerán en unos segundos.",
     "ASSIGN_LABELS_FAILED": "No se pudieron asignar las etiquetas",
     "REMOVE_LABELS_SUCCESS": "Se están quitando las etiquetas. Los cambios aparecerán en unos segundos.",
@@ -745,6 +747,7 @@
     "CLEAR_SELECTION": "Quitar selección",
     "SELECT_ALL": "Seleccionar la página ({count})",
     "SELECT_ALL_MATCHING": "Seleccionar todos los que coinciden ({count})",
+    "SELECT_ALL_MATCHING_SHORT": "Elegir todos ({count})",
     "SELECT_ALL_MATCHING_ACCESSIBILITY": "Seleccionar los {count} contactos coincidentes",
     "DELETE_CONTACTS": "Eliminar",
     "DELETE_SUCCESS": "Los contactos se eliminaron.",

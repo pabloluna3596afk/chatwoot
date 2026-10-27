@@ -727,7 +727,9 @@
   },
   "CONTACTS_BULK_ACTIONS": {
     "ASSIGN_LABELS": "Assign Labels",
+    "ASSIGN_LABELS_SHORT": "Tag",
     "REMOVE_LABELS": "Remove Labels",
+    "REMOVE_LABELS_SHORT": "Untag",
     "ASSIGN_LABELS_SUCCESS": "Labels are being applied. They will appear shortly.",
     "ASSIGN_LABELS_FAILED": "Failed to assign labels",
     "REMOVE_LABELS_SUCCESS": "Labels are being removed. Changes will appear shortly.",
@@ -739,6 +741,7 @@
     "CLEAR_SELECTION": "Clear selection",
     "SELECT_ALL": "Select page ({count})",
     "SELECT_ALL_MATCHING": "Select all matching ({count})",
+    "SELECT_ALL_MATCHING_SHORT": "All matching ({count})",
     "SELECT_ALL_MATCHING_ACCESSIBILITY": "Select all {count} matching contacts",
     "DELETE_CONTACTS": "Delete",
     "DELETE_SUCCESS": "Contacts deleted successfully.",

@@ -36,6 +36,10 @@ const props = defineProps({
     type: Boolean,
     default: undefined,
   },
+  mobileButtonLabel: {
+    type: String,
+    default: '',
+  },
   // Where the menu opens relative to the button. Bars at the top of a scrolling list must open downward.
   placement: {
     type: String,
@@ -149,6 +153,8 @@ const handleDismiss = () => {
     <NextButton
       v-tooltip="tooltipLabel"
       :label="shouldShowButtonLabel ? buttonLabel : ''"
+      :title="tooltipLabel"
+      :aria-label="tooltipLabel"
       :icon="
         isTypeContact
           ? isRemoveAction
@@ -171,7 +177,16 @@ const handleDismiss = () => {
       :disabled="disabled || isLoading"
       :is-loading="isLoading"
       @click.stop="toggleDropdown()"
-    />
+    >
+      <template v-if="shouldShowButtonLabel" #default>
+        <span class="hidden whitespace-nowrap md:inline-flex">{{
+          buttonLabel
+        }}</span>
+        <span class="whitespace-nowrap md:hidden">{{
+          mobileButtonLabel || buttonLabel
+        }}</span>
+      </template>
+    </NextButton>
     <Transition
       enter-active-class="transition-all duration-150 ease-out"
       enter-from-class="opacity-0 scale-95"
