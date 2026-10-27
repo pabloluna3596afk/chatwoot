@@ -4,6 +4,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
   include Captain::Conversation::V2LifecycleEvents
   include Captain::Conversation::MessageBuilder
   include Captain::Conversation::ResponseLifecycleLogging
+  include Captain::Conversation::ResponseBuilderMessageGuard
 
   MAX_MESSAGE_LENGTH = 10_000
   retry_on ActiveStorage::FileNotFoundError, attempts: 3, wait: 2.seconds
@@ -17,8 +18,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
 
     return log_non_pending unless conversation_pending?
 
-    assignment_message_id = conversation.additional_attributes['captain_assignment_message_id']
-    return if assignment_message_id && !conversation.messages.captain_response_triggering.exists?(['messages.id > ?', assignment_message_id])
+    return unless assignment_boundary_passes?
 
     return log_pre_generation_discard if newer_customer_message_arrived?
 
@@ -232,15 +232,5 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
       "[CAPTAIN][ResponseBuilderJob] V1 handoff requested but not executed for account=#{account.id} " \
       "conversation=#{@conversation.display_id}"
     )
-  end
-
-  def newer_customer_message_arrived?
-    return false if @responding_to_message_id.blank?
-
-    Conversation.uncached do
-      @conversation.messages
-                   .captain_response_triggering
-                   .exists?(['messages.id > ?', @responding_to_message_id])
-    end
   end
 end

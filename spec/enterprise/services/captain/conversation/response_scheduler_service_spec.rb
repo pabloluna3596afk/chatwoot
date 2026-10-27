@@ -27,6 +27,14 @@ RSpec.describe Captain::Conversation::ResponseSchedulerService, type: :job do
       .with(conversation, assistant, message.id).at(:no_wait)
   end
 
+  it 'does not enqueue the same customer message twice' do
+    expect do
+      described_class.new(message: message).perform
+      described_class.new(message: message).perform
+    end.to have_enqueued_job(Captain::Conversation::ResponseBuilderJob)
+      .with(conversation, assistant, message.id).exactly(:once)
+  end
+
   it 'uses the configured ten second delay' do
     assistant.update!(reply_delay_seconds: 10)
 
@@ -39,6 +47,7 @@ RSpec.describe Captain::Conversation::ResponseSchedulerService, type: :job do
   it 'preserves the five second attachment cap for a V2 burst with zero configured delay' do
     account.enable_features!(:captain_integration_v2)
     assistant.update!(reply_delay_seconds: 0)
+    allow(inbox).to receive(:captain_active?).and_return(false)
 
     freeze_time do
       create_list(:message, 4, :with_attachment, conversation: conversation, account: account, inbox: inbox, message_type: :incoming)

@@ -121,6 +121,34 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
 
           expect(conversation.messages.outgoing.count).to eq(0)
         end
+
+        it 'allows only the explicitly scheduled reassignment message past the assignment boundary' do
+          conversation.update!(additional_attributes: {
+                                 captain_assignment_message_id: responding_to_message.id,
+                                 captain_assignment_response_message_id: responding_to_message.id
+                               })
+
+          described_class.perform_now(conversation.reload, assistant, responding_to_message.id)
+
+          expect(conversation.messages.where(sender: assistant, private: false, message_type: :outgoing).count).to eq(1)
+        end
+
+        it 'discards the reassignment response when a newer customer message arrives and answers only the newer message' do
+          conversation.update!(additional_attributes: {
+                                 captain_assignment_message_id: responding_to_message.id,
+                                 captain_assignment_response_message_id: responding_to_message.id
+                               })
+          newer_message = create(:message, conversation: conversation, content: 'New context', message_type: :incoming)
+
+          described_class.perform_now(conversation.reload, assistant, responding_to_message.id)
+          expect(conversation.messages.where(sender: assistant, private: false, message_type: :outgoing)).to be_empty
+
+          described_class.perform_now(conversation.reload, assistant, newer_message.id)
+
+          expect(conversation.messages.where(sender: assistant, private: false, message_type: :outgoing).count).to eq(1)
+          generator = v2_enabled ? mock_agent_runner_service : mock_llm_chat_service
+          expect(generator).to have_received(:generate_response).once
+        end
       end
     end
 

@@ -8,6 +8,8 @@ class Captain::Conversation::ResponseSchedulerService
   end
 
   def perform
+    return unless reserve_response_slot
+
     wait_time = [@assistant.reply_delay_seconds.seconds, attachment_wait_time].max
     return Captain::Conversation::ResponseBuilderJob.perform_later(*job_args) if wait_time.zero?
 
@@ -15,6 +17,18 @@ class Captain::Conversation::ResponseSchedulerService
   end
 
   private
+
+  def reserve_response_slot
+    @conversation.reload.with_lock do
+      scheduled_message_id = @conversation.additional_attributes['captain_scheduled_response_message_id'].to_i
+      next false if scheduled_message_id >= @message.id
+
+      @conversation.update!(additional_attributes: @conversation.additional_attributes.merge(
+        'captain_scheduled_response_message_id' => @message.id
+      ))
+      true
+    end
+  end
 
   def job_args
     [@conversation, @assistant, @message.id]
