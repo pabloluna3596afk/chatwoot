@@ -8,6 +8,20 @@ const items = [
 ];
 
 describe('DropdownMenu optional picker behavior', () => {
+  it('wraps long option labels instead of truncating them', () => {
+    const longLabel =
+      'Assigned agent with the most recent conversation activity';
+    const wrapper = mount(DropdownMenu, {
+      props: { menuItems: [{ label: longLabel }] },
+    });
+    const label = wrapper.get('button span');
+
+    expect(label.text()).toBe(longLabel);
+    expect(label.classes()).toContain('whitespace-normal');
+    expect(label.classes()).toContain('break-words');
+    expect(label.classes()).not.toContain('truncate');
+  });
+
   it('preserves default action-menu styles, local filtering and action payloads', async () => {
     const wrapper = mount(DropdownMenu, {
       props: { menuItems: items, showSearch: true },

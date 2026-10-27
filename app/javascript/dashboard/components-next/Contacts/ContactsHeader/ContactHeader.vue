@@ -32,15 +32,20 @@ const emit = defineEmits([
 </script>
 
 <template>
-  <header class="relative z-30 shrink-0 bg-n-surface-1 px-6">
+  <header class="relative z-30 shrink-0 bg-n-surface-1 px-4 sm:px-6">
     <div
-      class="flex items-start sm:items-center justify-between w-full py-4 gap-2 mx-auto max-w-full"
+      class="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full py-3 sm:py-4 gap-3 sm:gap-2 mx-auto max-w-full"
     >
-      <span class="text-xl font-medium truncate text-n-slate-12">
+      <span class="text-xl font-medium text-n-slate-12 leading-tight">
         {{ headerTitle }}
       </span>
-      <div class="flex items-center flex-col sm:flex-row flex-shrink-0 gap-4">
-        <div v-if="showSearch" class="flex items-center gap-2 w-full">
+      <div
+        class="flex items-center flex-col sm:flex-row flex-shrink-0 gap-2 sm:gap-4 min-w-0"
+      >
+        <div
+          v-if="showSearch"
+          class="flex items-center gap-2 w-full sm:w-56 min-w-0"
+        >
           <SearchInput
             :model-value="searchValue"
             :placeholder="$t('CONTACTS_LAYOUT.HEADER.SEARCH_PLACEHOLDER')"
@@ -50,8 +55,10 @@ const emit = defineEmits([
             @input="emit('search', $event.target.value)"
           />
         </div>
-        <div class="flex items-center flex-shrink-0 gap-4">
-          <div class="flex items-center gap-2">
+        <div
+          class="flex items-center flex-shrink-0 justify-between w-full sm:w-auto gap-2 sm:gap-4"
+        >
+          <div class="flex items-center gap-1 sm:gap-2">
             <div v-if="!isLabelView && !isActiveView" class="relative">
               <Button
                 id="toggleContactsFilterButton"
@@ -104,10 +111,10 @@ const emit = defineEmits([
               @export="emit('export')"
             />
           </div>
-          <div class="w-px h-4 bg-n-strong" />
+          <div class="hidden sm:block w-px h-4 bg-n-strong" />
           <ComposeConversation>
             <template #trigger>
-              <Button :label="buttonLabel" size="sm" />
+              <Button :label="buttonLabel" size="sm" class="max-sm:min-h-11" />
             </template>
           </ComposeConversation>
         </div>

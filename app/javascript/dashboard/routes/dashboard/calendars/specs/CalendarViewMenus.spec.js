@@ -56,6 +56,7 @@ it('uses the real floating menu for calendar accounts and keeps provider logos a
         teleport: false,
         MenuPopover: false,
         DropdownMenu: false,
+        MenuItem: false,
         OutlinedAttributeField: false,
       },
     },

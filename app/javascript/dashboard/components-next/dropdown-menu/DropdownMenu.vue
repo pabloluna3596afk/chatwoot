@@ -6,6 +6,7 @@ import Icon from 'dashboard/components-next/icon/Icon.vue';
 import EmojiIcon from 'dashboard/components-next/emoji-icon-picker/EmojiIcon.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
+import MenuItem from './MenuItem.vue';
 
 const props = defineProps({
   menuItems: {
@@ -239,19 +240,12 @@ defineExpose({
             >
               {{ section.emptyState }}
             </div>
-            <button
+            <MenuItem
               v-for="(item, itemIndex) in section.items"
               :key="item.value || itemIndex"
-              type="button"
-              class="inline-flex items-center justify-start w-full min-w-0 transition-all duration-200 ease-in-out border-0 rounded-lg z-60 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-2 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
-              :class="[
-                compact ? 'h-7 gap-1.5 px-1.5 py-1' : 'h-8 gap-2 px-2 py-1.5',
-                {
-                  'bg-n-alpha-1 dark:bg-n-solid-active': item.isSelected,
-                  'text-n-ruby-11': item.action === 'delete',
-                  'text-n-slate-12': item.action !== 'delete',
-                },
-              ]"
+              :compact="compact"
+              :selected="item.isSelected"
+              :action="item.action"
               :disabled="item.disabled"
               :title="item.title"
               :data-testid="item.testId"
@@ -285,14 +279,14 @@ defineExpose({
               <slot name="label" :item="item">
                 <span
                   v-if="item.label"
-                  class="min-w-0 text-sm font-420 truncate"
+                  class="min-w-0 text-sm font-420 whitespace-normal break-words"
                   :class="labelClass"
                 >
                   {{ item.label }}
                 </span>
               </slot>
               <slot name="trailing-icon" :item="item" />
-            </button>
+            </MenuItem>
             <div
               v-if="
                 showSectionDividers &&
@@ -306,19 +300,12 @@ defineExpose({
           <div v-if="isLoading" class="flex items-center justify-center py-2">
             <Spinner :size="24" />
           </div>
-          <button
+          <MenuItem
             v-for="(item, index) in filteredMenuItems"
             :key="index"
-            type="button"
-            class="inline-flex items-center justify-start w-full min-w-0 transition-all duration-200 ease-in-out border-0 rounded-lg z-60 hover:bg-n-alpha-1 dark:hover:bg-n-alpha-2 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50"
-            :class="[
-              compact ? 'h-7 gap-1.5 px-1.5 py-1' : 'h-8 gap-2 px-2 py-1.5',
-              {
-                'bg-n-alpha-1 dark:bg-n-solid-active': item.isSelected,
-                'text-n-ruby-11': item.action === 'delete',
-                'text-n-slate-12': item.action !== 'delete',
-              },
-            ]"
+            :compact="compact"
+            :selected="item.isSelected"
+            :action="item.action"
             :disabled="item.disabled"
             :title="item.title"
             :data-testid="item.testId"
@@ -352,14 +339,14 @@ defineExpose({
             <slot name="label" :item="item">
               <span
                 v-if="item.label"
-                class="min-w-0 text-sm font-420 truncate"
+                class="min-w-0 text-sm font-420 whitespace-normal break-words"
                 :class="labelClass"
               >
                 {{ item.label }}
               </span>
             </slot>
             <slot name="trailing-icon" :item="item" />
-          </button>
+          </MenuItem>
         </template>
         <div
           v-if="shouldShowEmptyState"

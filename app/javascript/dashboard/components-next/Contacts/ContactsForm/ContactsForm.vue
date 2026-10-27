@@ -89,6 +89,10 @@ const defaultState = {
 };
 
 const state = reactive({ ...defaultState });
+const phoneNumberInputRef = ref(null);
+const setPhoneNumberInputRef = component => {
+  phoneNumberInputRef.value = component;
+};
 
 const validationRules = {
   firstName: { required },
@@ -97,7 +101,9 @@ const validationRules = {
 
 const v$ = useVuelidate(validationRules, state);
 
-const isFormInvalid = computed(() => v$.value.$invalid);
+const isFormInvalid = computed(
+  () => v$.value.$invalid || phoneNumberInputRef.value?.isInvalid
+);
 const normalizeWhatsAppUsername = value => value?.toString().replace(/^@+/, '');
 const hasCompaniesFeature = computed(
   () =>
@@ -369,6 +375,7 @@ defineExpose({
           />
           <PhoneNumberInput
             v-else-if="item.key === 'PHONE_NUMBER'"
+            :ref="setPhoneNumberInputRef"
             v-model="getFormBinding(item.key).value"
             :placeholder="item.placeholder"
             :show-border="isDetailsView"

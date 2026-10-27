@@ -1,5 +1,10 @@
 {
   "GENERAL": {
+    "SAVE_STATE": {
+      "CLEAN": "No changes",
+      "SAVE": "Save",
+      "SAVING": "Saving…"
+    },
     "VALIDATION": {
       "REQUIRED": "This field is required.",
       "MIN_LENGTH": "Enter at least {min} characters.",

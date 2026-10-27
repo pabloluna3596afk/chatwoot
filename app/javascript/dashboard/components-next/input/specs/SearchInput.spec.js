@@ -13,8 +13,7 @@ describe('SearchInput', () => {
     expect(base.props('type')).toBe('search');
     expect(base.classes()).toContain('[&>input]:ltr:!pl-8');
     expect(base.classes()).toContain('[&>input]:rtl:!pr-8');
-    expect(base.classes()).toContain('[&>input]:min-h-11');
-    expect(base.classes()).toContain('md:[&>input]:min-h-0');
+    expect(base.classes()).not.toContain('[&>input]:min-h-11');
     expect(icon.classes()).toContain('start-2.5');
     expect(icon.classes()).toContain('group-focus-within:text-n-brand');
     expect(icon.attributes('aria-hidden')).toBe('true');
@@ -66,7 +65,7 @@ describe('SearchInput', () => {
     const button = wrapper.get('button');
     expect(button.attributes('type')).toBe('button');
     expect(button.attributes('aria-label')).toBeTruthy();
-    expect(button.classes()).toContain('size-11');
+    expect(button.classes()).toContain('size-8');
     expect(wrapper.getComponent(Input).classes()).toContain(
       '[&>input]:ltr:!pr-11'
     );

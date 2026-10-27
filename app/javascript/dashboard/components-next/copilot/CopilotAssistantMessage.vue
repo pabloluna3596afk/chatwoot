@@ -59,6 +59,7 @@ const useCopilotResponse = () => {
       <Button
         v-if="showUseButton"
         :label="$t('CAPTAIN.COPILOT.USE')"
+        class="min-h-11"
         faded
         sm
         slate

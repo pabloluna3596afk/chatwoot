@@ -1,5 +1,6 @@
 <script setup>
-import { useTemplateRef, onBeforeUnmount, computed, ref } from 'vue';
+import { useTemplateRef, onBeforeUnmount, onMounted, computed, ref } from 'vue';
+import { useWindowSize } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import { useTrack } from 'dashboard/composables';
 import { useStore } from 'dashboard/composables/store';
@@ -41,6 +42,9 @@ const DEFAULT_FILTER = {
 
 const { t } = useI18n();
 const store = useStore();
+const filterPanel = ref(null);
+const { width } = useWindowSize();
+const isMobile = computed(() => width.value < 768);
 
 const resetFilter = () => {
   emit('clearFilters');
@@ -94,7 +98,14 @@ const filterModalHeaderTitle = computed(() => {
     : t('CONTACTS_LAYOUT.FILTER.EDIT_SEGMENT');
 });
 
-onBeforeUnmount(() => emit('close'));
+onMounted(() => {
+  if (isMobile.value) filterPanel.value?.showModal();
+});
+
+onBeforeUnmount(() => {
+  if (filterPanel.value?.open) filterPanel.value.close();
+  emit('close');
+});
 const outsideClickHandler = [
   () => emit('close'),
   { ignore: ['#toggleContactsFilterButton'] },
@@ -102,9 +113,14 @@ const outsideClickHandler = [
 </script>
 
 <template>
-  <div
+  <component
+    :is="isMobile ? 'dialog' : 'div'"
+    ref="filterPanel"
     v-on-click-outside="outsideClickHandler"
-    class="z-40 w-[min(34rem,calc(100vw-2rem))] lg:w-[750px] overflow-visible border border-n-weak bg-n-alpha-3 backdrop-blur-[100px] shadow-lg rounded-xl p-6 grid gap-6"
+    class="z-40 w-[min(34rem,calc(100vw-2rem))] lg:w-[750px] max-h-[calc(100dvh-2rem)] overflow-y-auto border border-n-weak bg-n-alpha-3 backdrop-blur-[100px] shadow-lg rounded-xl p-4 sm:p-6 grid gap-4 sm:gap-6"
+    :class="isMobile ? 'fixed inset-0 m-auto' : ''"
+    @click.self="isMobile && emit('close')"
+    @cancel.prevent="emit('close')"
   >
     <h3 class="text-base font-medium leading-6 text-n-slate-12">
       {{ filterModalHeaderTitle }}
@@ -168,5 +184,5 @@ const outsideClickHandler = [
         </Button>
       </div>
     </div>
-  </div>
+  </component>
 </template>

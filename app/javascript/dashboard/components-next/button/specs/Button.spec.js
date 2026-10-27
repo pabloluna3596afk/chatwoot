@@ -52,3 +52,15 @@ describe('Button intent', () => {
     expect(invalid.classes()).toEqual(defaultButton.classes());
   });
 });
+
+describe('Button alignment', () => {
+  it('supports spreading selector labels and keeps action buttons centered by default', () => {
+    const selector = mount(Button, {
+      props: { label: 'All states', justify: 'between' },
+    });
+    const action = mount(Button, { props: { label: 'Update contact' } });
+
+    expect(selector.classes()).toContain('justify-between');
+    expect(action.classes()).toContain('justify-center');
+  });
+});
