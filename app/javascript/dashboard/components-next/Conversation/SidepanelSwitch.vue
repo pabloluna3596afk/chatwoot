@@ -20,20 +20,17 @@ const { showSidepanelCopilotTab } = useCopilotEntryPoints();
 const handleConversationSidebarToggle = () => {
   updateUISettings({
     is_contact_sidebar_open: !isContactSidebarOpen.value,
-    is_copilot_panel_open: false,
   });
 };
 
 const handleContactSidebarToggle = () => {
   updateUISettings({
     is_contact_sidebar_open: !isContactSidebarOpen.value,
-    is_copilot_panel_open: false,
   });
 };
 
 const handleCopilotSidebarToggle = () => {
   updateUISettings({
-    is_contact_sidebar_open: false,
     is_copilot_panel_open: !isCopilotPanelOpen.value,
   });
 };
@@ -49,14 +46,19 @@ useKeyboardEvents(keyboardEvents);
 <template>
   <ButtonGroup
     v-show="!isContactSidebarOpen"
-    class="flex flex-col justify-center items-center absolute top-24 ltr:right-2 rtl:left-2 bg-n-solid-2/90 backdrop-blur-lg border border-n-weak/50 rounded-full gap-1.5 p-1.5 shadow-sm transition-shadow duration-200 hover:shadow !z-20"
+    class="flex flex-col justify-center items-center absolute top-24 ltr:right-2 rtl:left-2 bg-n-solid-2/90 backdrop-blur-lg border border-n-weak/50 rounded-full gap-1.5 p-1.5 shadow-sm transition-shadow duration-200 hover:shadow !z-50"
   >
     <Button
       v-tooltip.bottom="$t('CONVERSATION.SIDEBAR.CONTACT')"
       ghost
       slate
       sm
+      :aria-pressed="isContactSidebarOpen"
       class="!rounded-full transition-all duration-[250ms] ease-out active:!scale-95 active:duration-75"
+      :class="{
+        'bg-n-alpha-2 !text-n-iris-9 active:!brightness-105 active:shadow-sm':
+          isContactSidebarOpen,
+      }"
       :aria-label="$t('CONVERSATION.SIDEBAR.CONTACT')"
       icon="i-lucide-user-round"
       @click="handleContactSidebarToggle"
@@ -69,6 +71,7 @@ useKeyboardEvents(keyboardEvents);
       slate
       sm
       :aria-label="$t('CONVERSATION.SIDEBAR.COPILOT')"
+      :aria-pressed="isCopilotPanelOpen"
       class="!rounded-full transition-all duration-[250ms] ease-out active:!scale-95 active:duration-75"
       :class="{
         'bg-n-alpha-2 !text-n-iris-9 active:!brightness-105 active:shadow-sm':

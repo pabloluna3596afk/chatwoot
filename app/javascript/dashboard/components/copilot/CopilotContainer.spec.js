@@ -83,6 +83,7 @@ describe('CopilotContainer', () => {
   });
 
   it('minimizes without reopening or clearing the active thread and unread count', async () => {
+    testState.uiSettings.value.is_contact_sidebar_open = true;
     testState.uiSettings.value.copilot_active_thread_id = 23;
     const wrapper = mountComponent();
     const copilot = wrapper.findComponent({ name: 'Copilot' });
@@ -92,10 +93,11 @@ describe('CopilotContainer', () => {
 
     expect(testState.uiSettings.value).toMatchObject({
       is_copilot_panel_open: false,
+      is_contact_sidebar_open: true,
       copilot_active_thread_id: 23,
       copilot_unread_count: 2,
     });
-    expect(wrapper.find('.fixed.z-40').exists()).toBe(false);
+    expect(wrapper.find('.fixed.z-50').exists()).toBe(false);
   });
 
   it('minimizes with Escape while preserving the active thread', async () => {
@@ -109,7 +111,7 @@ describe('CopilotContainer', () => {
       is_copilot_panel_open: false,
       copilot_active_thread_id: 23,
     });
-    expect(wrapper.find('.fixed.z-40').exists()).toBe(false);
+    expect(wrapper.find('.fixed.z-50').exists()).toBe(false);
   });
 
   it('keeps the panel minimized when initialized from persisted settings', async () => {
@@ -118,7 +120,7 @@ describe('CopilotContainer', () => {
 
     await nextTick();
 
-    expect(wrapper.find('.fixed.z-40').exists()).toBe(false);
+    expect(wrapper.find('.fixed.z-50').exists()).toBe(false);
     expect(testState.uiSettings.value.is_copilot_panel_open).toBe(false);
   });
 
@@ -146,12 +148,12 @@ describe('CopilotContainer', () => {
   it('keeps the floating panel available with or without a selected conversation', async () => {
     const wrapper = mountComponent();
 
-    expect(wrapper.find('.fixed.z-40').exists()).toBe(true);
+    expect(wrapper.find('.fixed.z-50').exists()).toBe(true);
 
     testState.refs.getSelectedChat.value = null;
     await nextTick();
 
-    expect(wrapper.find('.fixed.z-40').exists()).toBe(true);
+    expect(wrapper.find('.fixed.z-50').exists()).toBe(true);
   });
 
   it('retains a thread created while the selected conversation changes', async () => {

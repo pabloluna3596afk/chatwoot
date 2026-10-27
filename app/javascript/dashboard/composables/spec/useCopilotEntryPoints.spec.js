@@ -39,7 +39,7 @@ describe('useCopilotEntryPoints decisions', () => {
       'conversation, contact panel closed, Copilot open',
       true,
       false,
-      true,
+      false,
       false,
       true,
     ],

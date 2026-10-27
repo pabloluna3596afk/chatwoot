@@ -8,7 +8,6 @@ const { showCopilotLauncher } = useCopilotEntryPoints();
 const toggleSidebar = () => {
   updateUISettings({
     is_copilot_panel_open: !uiSettings.value.is_copilot_panel_open,
-    is_contact_sidebar_open: false,
   });
 };
 </script>
@@ -16,12 +15,7 @@ const toggleSidebar = () => {
 <template>
   <div
     v-if="showCopilotLauncher"
-    class="fixed ltr:right-4 rtl:left-4 z-50"
-    :class="
-      uiSettings.is_contact_sidebar_open
-        ? 'bottom-[calc(env(safe-area-inset-bottom)+8rem)]'
-        : 'bottom-[calc(env(safe-area-inset-bottom)+1rem)]'
-    "
+    class="fixed ltr:right-4 rtl:left-4 bottom-[calc(env(safe-area-inset-bottom)+1rem)] z-50"
   >
     <ButtonGroup
       class="relative rounded-full bg-n-alpha-2 backdrop-blur-lg p-1 shadow hover:shadow-md"

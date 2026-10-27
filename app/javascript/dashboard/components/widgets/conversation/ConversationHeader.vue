@@ -100,7 +100,6 @@ const toggleContactSidebar = () => {
   const isContactSidebarOpen = uiSettings.value.is_contact_sidebar_open;
   updateUISettings({
     is_contact_sidebar_open: !isContactSidebarOpen,
-    is_copilot_panel_open: false,
   });
 };
 </script>

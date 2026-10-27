@@ -33,7 +33,6 @@ const closeContactPanel = () => {
   if (isSmallScreen.value && uiSettings.value?.is_contact_sidebar_open) {
     updateUISettings({
       is_contact_sidebar_open: false,
-      is_copilot_panel_open: false,
     });
   }
 };
@@ -46,6 +45,8 @@ const closeContactPanel = () => {
       {
         ignore: [
           'dialog.ProseMirror-prompt-backdrop',
+          '[data-copilot-panel]',
+          '#copilot-launcher-button',
           '[data-popover-content]',
           '[data-popover-backdrop]',
         ],
