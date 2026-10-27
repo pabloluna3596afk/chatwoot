@@ -62,6 +62,8 @@ const v$ = useVuelidate(rules, {
 
 const hasError = computed(() => v$.value.$invalid);
 
+defineExpose({ isInvalid: hasError });
+
 const countryList = computed(() => {
   return countries.map(country => ({
     value: country.id,

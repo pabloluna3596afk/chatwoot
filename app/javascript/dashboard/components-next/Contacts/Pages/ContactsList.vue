@@ -52,11 +52,13 @@ const hoveredAvatarId = ref(null);
 
 const selectedIdsSet = computed(() => new Set(props.selectedContactIds || []));
 
-const updateContact = async updatedData => {
+const updateContact = async (updatedData, onSuccess) => {
   try {
     await store.dispatch('contacts/update', updatedData);
 
     useAlert(t('CONTACTS_LAYOUT.CARD.EDIT_DETAILS_FORM.SUCCESS_MESSAGE'));
+    onSuccess?.();
+    return true;
   } catch (error) {
     const i18nPrefix = 'CONTACTS_LAYOUT.CARD.EDIT_DETAILS_FORM.FORM';
 
@@ -71,6 +73,7 @@ const updateContact = async updatedData => {
     } else {
       useAlert(t(`${i18nPrefix}.ERROR_MESSAGE`));
     }
+    return false;
   }
 };
 

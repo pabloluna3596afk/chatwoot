@@ -482,6 +482,7 @@
       "EXPAND": "Expand",
       "EDIT_DETAILS_FORM": {
         "TITLE": "Edit contact details",
+        "INVALID": "Correct the form errors before saving.",
         "FORM": {
           "FIRST_NAME": {
             "PLACEHOLDER": "Enter the first name"

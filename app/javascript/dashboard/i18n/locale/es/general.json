@@ -1,5 +1,10 @@
 {
   "GENERAL": {
+    "SAVE_STATE": {
+      "CLEAN": "Sin cambios",
+      "SAVE": "Guardar",
+      "SAVING": "Guardando…"
+    },
     "VALIDATION": {
       "REQUIRED": "Este campo es obligatorio.",
       "MIN_LENGTH": "Ingresa al menos {min} caracteres.",

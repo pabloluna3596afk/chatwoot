@@ -1,10 +1,11 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import CardLayout from 'dashboard/components-next/CardLayout.vue';
 import ContactsForm from 'dashboard/components-next/Contacts/ContactsForm/ContactsForm.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
+import SaveStateButton from 'dashboard/components-next/button/SaveStateButton.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import Flag from 'dashboard/components-next/flag/Flag.vue';
 import ContactDeleteSection from 'dashboard/components-next/Contacts/ContactsCard/ContactDeleteSection.vue';
@@ -61,6 +62,15 @@ const getInitialContactData = () => ({
 });
 
 const contactData = ref(getInitialContactData());
+const snapshotForm = () => JSON.stringify(contactsFormRef.value?.state || {});
+const initialContactSnapshot = ref('');
+const isDirty = computed(() => snapshotForm() !== initialContactSnapshot.value);
+const resetSnapshot = async () => {
+  await nextTick();
+  initialContactSnapshot.value = snapshotForm();
+};
+onMounted(resetSnapshot);
+watch(() => props.isExpanded, resetSnapshot);
 
 const isFormInvalid = computed(() => contactsFormRef.value?.isFormInvalid);
 
@@ -102,7 +112,9 @@ const handleFormUpdate = updatedData => {
 };
 
 const handleUpdateContact = () => {
-  emit('updateContact', contactData.value);
+  emit('updateContact', contactData.value, () => {
+    initialContactSnapshot.value = snapshotForm();
+  });
 };
 
 const onClickExpand = () => {
@@ -233,31 +245,32 @@ const handleAvatarHover = isHovered => {
               class="flex flex-col gap-6 p-4 border-t border-n-strong"
               @click.stop
             >
-              <Button
-                :label="t('CONTACTS_LAYOUT.CARD.EXPAND')"
-                size="sm"
-                variant="outline"
-                color="slate"
-                class="self-start min-h-11"
-                @click="onClickViewDetails"
-              />
+              <div class="flex w-full items-center justify-between gap-2">
+                <Button
+                  :label="t('CONTACTS_LAYOUT.CARD.EXPAND')"
+                  size="sm"
+                  variant="outline"
+                  color="slate"
+                  @click="onClickViewDetails"
+                />
+                <SaveStateButton
+                  :dirty="isDirty"
+                  :loading="isUpdating"
+                  :invalid="isFormInvalid"
+                  :invalid-reason="
+                    isFormInvalid
+                      ? t('CONTACTS_LAYOUT.CARD.EDIT_DETAILS_FORM.INVALID')
+                      : ''
+                  "
+                  @save="handleUpdateContact"
+                />
+              </div>
               <ContactsForm
+                :key="`${id}-${isExpanded}`"
                 ref="contactsFormRef"
                 :contact-data="contactData"
                 @update="handleFormUpdate"
               />
-              <div>
-                <Button
-                  :label="
-                    t('CONTACTS_LAYOUT.CARD.EDIT_DETAILS_FORM.UPDATE_BUTTON')
-                  "
-                  size="sm"
-                  class="min-h-11"
-                  :is-loading="isUpdating"
-                  :disabled="isUpdating || isFormInvalid"
-                  @click.stop="handleUpdateContact"
-                />
-              </div>
             </div>
             <ContactDeleteSection
               :selected-contact="{
