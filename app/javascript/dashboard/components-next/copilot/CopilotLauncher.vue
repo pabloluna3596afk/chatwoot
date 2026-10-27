@@ -1,24 +1,10 @@
 <script setup>
-import { computed } from 'vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ButtonGroup from 'dashboard/components-next/buttonGroup/ButtonGroup.vue';
 import { useUISettings } from 'dashboard/composables/useUISettings';
-import { useMapGetter } from 'dashboard/composables/store';
-import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import { useCopilotEntryPoints } from 'dashboard/composables/useCopilotEntryPoints';
 const { uiSettings, updateUISettings } = useUISettings();
-
-const currentAccountId = useMapGetter('getCurrentAccountId');
-const isFeatureEnabledonAccount = useMapGetter(
-  'accounts/isFeatureEnabledonAccount'
-);
-
-const showCopilotLauncher = computed(() => {
-  const isCaptainEnabled = isFeatureEnabledonAccount.value(
-    currentAccountId.value,
-    FEATURE_FLAGS.CAPTAIN
-  );
-  return isCaptainEnabled && !uiSettings.value.is_copilot_panel_open;
-});
+const { showCopilotLauncher } = useCopilotEntryPoints();
 const toggleSidebar = () => {
   updateUISettings({
     is_copilot_panel_open: !uiSettings.value.is_copilot_panel_open,

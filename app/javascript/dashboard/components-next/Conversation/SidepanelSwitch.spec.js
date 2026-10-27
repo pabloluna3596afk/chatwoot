@@ -34,6 +34,13 @@ vi.mock('dashboard/composables/useKeyboardEvents', () => ({
   useKeyboardEvents: vi.fn(),
 }));
 
+vi.mock('dashboard/composables/useCopilotEntryPoints', async () => {
+  const { ref: createRef } = await import('vue');
+  return {
+    useCopilotEntryPoints: () => ({ showSidepanelCopilotTab: createRef(true) }),
+  };
+});
+
 describe('SidepanelSwitch', () => {
   it('opens, closes, and switches to the contact panel', async () => {
     const wrapper = mount(SidepanelSwitch, {

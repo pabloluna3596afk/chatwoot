@@ -141,7 +141,10 @@ const setAssistant = async assistant => {
 const minimize = async () => {
   updateUISettings({ is_copilot_panel_open: false });
   await nextTick();
-  document.getElementById('copilot-launcher-button')?.focus();
+  const entryPoint =
+    document.getElementById('copilot-launcher-button') ||
+    document.getElementById('copilot-sidepanel-button');
+  entryPoint?.focus();
 };
 const newChat = () => {
   persistThread(null);

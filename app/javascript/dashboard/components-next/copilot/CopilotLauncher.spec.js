@@ -24,6 +24,17 @@ vi.mock('dashboard/composables/store', () => ({
     ref(key === 'accounts/isFeatureEnabledonAccount' ? () => true : 1),
 }));
 
+vi.mock('dashboard/composables/useCopilotEntryPoints', async () => {
+  const { computed: createComputed } = await import('vue');
+  return {
+    useCopilotEntryPoints: () => ({
+      showCopilotLauncher: createComputed(
+        () => !testState.uiSettings.value.is_copilot_panel_open
+      ),
+    }),
+  };
+});
+
 describe('CopilotLauncher', () => {
   beforeEach(() => {
     testState.uiSettings.value = { is_copilot_panel_open: false };
