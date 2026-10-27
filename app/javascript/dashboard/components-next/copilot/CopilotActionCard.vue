@@ -185,14 +185,12 @@ const edit = () => {
               :label="$t('CAPTAIN.COPILOT.ACTIONS.SAVE')"
               intent="primary"
               size="sm"
-              class="min-h-11"
               @click="edit"
             />
             <Button
               :label="$t('CAPTAIN.COPILOT.ACTIONS.CANCEL')"
               intent="secondary"
               size="sm"
-              class="min-h-11"
               @click="isEditing = false"
             />
           </template>
@@ -201,21 +199,18 @@ const edit = () => {
               :label="$t('CAPTAIN.COPILOT.ACTIONS.APPROVE')"
               intent="primary"
               size="sm"
-              class="min-h-11"
               @click="emit('approve', item.id)"
             />
             <Button
               :label="$t('CAPTAIN.COPILOT.ACTIONS.REJECT')"
               intent="secondary"
               size="sm"
-              class="min-h-11"
               @click="emit('reject', item.id)"
             />
             <Button
               :label="$t('CAPTAIN.COPILOT.ACTIONS.EDIT')"
               intent="tertiary"
               size="sm"
-              class="min-h-11"
               @click="isEditing = true"
             />
           </template>
