@@ -96,9 +96,13 @@ const loadActionItems = async threadId => {
     actionItems.value = [];
     return;
   }
-  const { data } = await CopilotActionItemsAPI.get(threadId);
-  if (Number(threadId) === Number(selectedCopilotThreadId.value))
-    actionItems.value = data;
+  try {
+    const { data } = await CopilotActionItemsAPI.get(threadId);
+    if (Number(threadId) === Number(selectedCopilotThreadId.value))
+      actionItems.value = data;
+  } catch (_error) {
+    useAlert(t('CAPTAIN.COPILOT.ERROR'));
+  }
 };
 const upsertActionItem = item => {
   if (Number(item.copilot_thread_id) !== Number(selectedCopilotThreadId.value))

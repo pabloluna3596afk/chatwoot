@@ -1,5 +1,6 @@
 import { nextTick, ref } from 'vue';
 import { shallowMount } from '@vue/test-utils';
+import CopilotActionItemsAPI from 'dashboard/api/captain/copilotActionItems';
 import CopilotContainer from './CopilotContainer.vue';
 
 const testState = vi.hoisted(() => ({
@@ -8,6 +9,9 @@ const testState = vi.hoisted(() => ({
 }));
 
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
+vi.mock('dashboard/api/captain/copilotActionItems', () => ({
+  default: { get: vi.fn().mockResolvedValue({ data: [] }) },
+}));
 vi.mock('dashboard/composables/useConfig', () => ({
   useConfig: () => ({ isEnterprise: true }),
 }));
@@ -121,6 +125,24 @@ describe('CopilotContainer', () => {
 
     expect(await sendPromise).toBe(true);
 
+    expect(copilot.props('messages')).toEqual([{ id: 99 }]);
+  });
+
+  it('keeps a successful send when loading action items fails', async () => {
+    testState.dispatch.mockImplementation(action =>
+      action === 'copilotThreads/create'
+        ? Promise.resolve({ id: 99 })
+        : Promise.resolve()
+    );
+    vi.mocked(CopilotActionItemsAPI.get).mockRejectedValueOnce(
+      new Error('Could not load action items')
+    );
+    const wrapper = mountComponent();
+    const copilot = wrapper.findComponent({ name: 'Copilot' });
+
+    const result = await copilot.props('onSendMessage')('Draft a reply');
+
+    expect(result).toBe(true);
     expect(copilot.props('messages')).toEqual([{ id: 99 }]);
   });
 
