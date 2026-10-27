@@ -191,7 +191,7 @@ RSpec.describe Captain::Copilot::ChatService do
   describe 'message history behavior' do
     context 'when copilot_thread_id is present' do
       it 'finds the copilot thread and sets previous history from it' do
-        service = described_class.new(assistant, { copilot_thread_id: copilot_thread.id })
+        service = described_class.new(assistant, { copilot_thread_id: copilot_thread.id, user_id: user.id })
 
         expect(service.copilot_thread).to eq(copilot_thread)
         expect(service.previous_history).to eq previous_history
@@ -305,7 +305,7 @@ RSpec.describe Captain::Copilot::ChatService do
     context 'when copilot_thread is present' do
       it 'creates a copilot message with the response' do
         expect do
-          described_class.new(assistant, { copilot_thread_id: copilot_thread.id }).generate_response('Hello')
+          described_class.new(assistant, { copilot_thread_id: copilot_thread.id, user_id: user.id }).generate_response('Hello')
         end.to change(CopilotMessage, :count).by(1)
 
         last_message = CopilotMessage.last
