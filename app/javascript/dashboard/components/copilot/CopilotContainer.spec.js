@@ -54,6 +54,7 @@ const mountComponent = () =>
     global: {
       directives: { onClickOutside: {} },
       stubs: {
+        Transition: { template: '<div><slot /></div>' },
         Copilot: {
           name: 'Copilot',
           props: ['messages', 'onSendMessage'],
@@ -70,7 +71,7 @@ describe('CopilotContainer', () => {
     testState.refs.getSelectedChat.value = { id: 1 };
   });
 
-  it('clears the selected thread when the conversation changes', async () => {
+  it('keeps the selected thread when the conversation changes', async () => {
     testState.dispatch.mockImplementation(action =>
       action === 'copilotThreads/create'
         ? Promise.resolve({ id: 99 })
@@ -87,21 +88,21 @@ describe('CopilotContainer', () => {
     testState.refs.getSelectedChat.value = { id: 2 };
     await nextTick();
 
-    expect(copilot.props('messages')).toEqual([]);
+    expect(copilot.props('messages')).toEqual([{ id: 99 }]);
   });
 
   it('keeps the floating panel available with or without a selected conversation', async () => {
     const wrapper = mountComponent();
 
-    expect(wrapper.find('.fixed.top-16').exists()).toBe(true);
+    expect(wrapper.find('.fixed.z-40').exists()).toBe(true);
 
     testState.refs.getSelectedChat.value = null;
     await nextTick();
 
-    expect(wrapper.find('.fixed.top-16').exists()).toBe(true);
+    expect(wrapper.find('.fixed.z-40').exists()).toBe(true);
   });
 
-  it('ignores a thread created for a conversation that is no longer selected', async () => {
+  it('retains a thread created while the selected conversation changes', async () => {
     let resolveRequest;
     testState.dispatch.mockImplementation(action => {
       if (action !== 'copilotThreads/create') return Promise.resolve();
@@ -120,11 +121,15 @@ describe('CopilotContainer', () => {
 
     expect(await sendPromise).toBe(true);
 
-    expect(copilot.props('messages')).toEqual([]);
+    expect(copilot.props('messages')).toEqual([{ id: 99 }]);
   });
 
   it('reports a failed send', async () => {
-    testState.dispatch.mockRejectedValue(new Error('Could not send'));
+    testState.dispatch.mockImplementation(action =>
+      action === 'copilotThreads/create'
+        ? Promise.reject(new Error('Could not send'))
+        : Promise.resolve()
+    );
     const wrapper = mountComponent();
     const copilot = wrapper.findComponent({ name: 'Copilot' });
 

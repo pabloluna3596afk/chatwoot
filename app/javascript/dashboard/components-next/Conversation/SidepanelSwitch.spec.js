@@ -68,5 +68,11 @@ describe('SidepanelSwitch', () => {
     await nextTick();
     expect(testState.uiSettings.value.is_contact_sidebar_open).toBe(false);
     expect(testState.uiSettings.value.is_copilot_panel_open).toBe(true);
+
+    await wrapper
+      .get('button[aria-label="CONVERSATION.SIDEBAR.CONTACT"]')
+      .trigger('click');
+    expect(testState.uiSettings.value.is_copilot_panel_open).toBe(false);
+    expect(testState.uiSettings.value.is_contact_sidebar_open).toBe(true);
   });
 });

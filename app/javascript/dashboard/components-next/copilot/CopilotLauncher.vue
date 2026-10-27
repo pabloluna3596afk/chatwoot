@@ -30,18 +30,30 @@ const toggleSidebar = () => {
 <template>
   <div
     v-if="showCopilotLauncher"
-    class="fixed bottom-4 ltr:right-4 rtl:left-4 z-50"
+    class="fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] ltr:right-4 rtl:left-4 z-50"
   >
     <ButtonGroup
-      class="rounded-full bg-n-alpha-2 backdrop-blur-lg p-1 shadow hover:shadow-md"
+      class="relative rounded-full bg-n-alpha-2 backdrop-blur-lg p-1 shadow hover:shadow-md"
     >
       <Button
+        id="copilot-launcher-button"
         icon="i-woot-captain"
+        :aria-label="$t('CAPTAIN.COPILOT.OPEN')"
         no-animation
-        class="!rounded-full !bg-n-solid-3 dark:!bg-n-alpha-2 !text-n-slate-12 text-xl transition-all duration-200 ease-out hover:brightness-110"
-        sm
+        class="!size-12 !p-0 !rounded-full !bg-n-solid-3 dark:!bg-n-alpha-2 !text-n-slate-12 text-xl transition-all duration-200 ease-out hover:brightness-110"
         @click="toggleSidebar"
       />
+      <span
+        v-if="uiSettings.copilot_unread_count"
+        class="absolute -top-1 -right-1 flex min-w-4 h-4 items-center justify-center rounded-full bg-n-ruby-9 px-1 text-[10px] font-medium text-white"
+        aria-live="polite"
+      >
+        {{
+          uiSettings.copilot_unread_count > 9
+            ? $t('CAPTAIN.COPILOT.MANY_UNREAD')
+            : uiSettings.copilot_unread_count
+        }}
+      </span>
     </ButtonGroup>
   </div>
   <template v-else />

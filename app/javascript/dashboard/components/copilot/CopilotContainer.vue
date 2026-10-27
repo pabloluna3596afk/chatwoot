@@ -1,104 +1,156 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import {
+  ref,
+  computed,
+  onMounted,
+  watch,
+  nextTick,
+  onBeforeUnmount,
+} from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
-import { useStore } from 'dashboard/composables/store';
+import { useStore, useMapGetter } from 'dashboard/composables/store';
 import Copilot from 'dashboard/components-next/copilot/Copilot.vue';
-import { useMapGetter } from 'dashboard/composables/store';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useConfig } from 'dashboard/composables/useConfig';
-import { vOnClickOutside } from '@vueuse/components';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { MESSAGE_TYPE } from 'shared/constants/messages';
 
 const store = useStore();
+const { t } = useI18n();
 const { uiSettings, updateUISettings } = useUISettings();
 const { isEnterprise } = useConfig();
-
 const currentUser = useMapGetter('getCurrentUser');
 const assistants = useMapGetter('captainAssistants/getRecords');
 const uiFlags = useMapGetter('captainAssistants/getUIFlags');
 const inboxAssistant = useMapGetter('getCopilotAssistant');
 const currentChat = useMapGetter('getSelectedChat');
 const lastPublicMessage = useMapGetter('getLastEmailInSelectedChat');
-
-const canSuggestReply = computed(
-  () => lastPublicMessage.value?.message_type === MESSAGE_TYPE.INCOMING
-);
-
-const selectedCopilotThreadId = ref(null);
-const messages = computed(() =>
-  store.getters['copilotMessages/getMessagesByThreadId'](
-    selectedCopilotThreadId.value
-  )
-);
-
 const currentAccountId = useMapGetter('getCurrentAccountId');
 const isFeatureEnabledonAccount = useMapGetter(
   'accounts/isFeatureEnabledonAccount'
 );
 
-const selectedAssistantId = ref(null);
+const selectedCopilotThreadId = ref(
+  uiSettings.value.copilot_active_thread_id || null
+);
+const threads = ref([]);
+const isHistoryOpen = ref(false);
+const isLoadingHistory = ref(false);
+const historyPage = ref(1);
+const hasMoreHistory = ref(false);
+const unreadCount = ref(uiSettings.value.copilot_unread_count || 0);
 
+const messages = computed(() =>
+  store.getters['copilotMessages/getMessagesByThreadId'](
+    selectedCopilotThreadId.value
+  )
+);
+const canSuggestReply = computed(
+  () => lastPublicMessage.value?.message_type === MESSAGE_TYPE.INCOMING
+);
 const activeAssistant = computed(() => {
   const preferredId = uiSettings.value.preferred_captain_assistant_id;
-
-  // If the user has selected a specific assistant, it takes first preference for Copilot.
   if (preferredId) {
     const preferredAssistant = assistants.value.find(a => a.id === preferredId);
-    // Return the preferred assistant if found, otherwise continue to next cases
     if (preferredAssistant) return preferredAssistant;
   }
-
-  // If the above is not available, the assistant connected to the inbox takes preference.
   if (inboxAssistant.value) {
     const inboxMatchedAssistant = assistants.value.find(
       a => a.id === inboxAssistant.value.id
     );
     if (inboxMatchedAssistant) return inboxMatchedAssistant;
   }
-  // If neither of the above is available, the first assistant in the account takes preference.
   return assistants.value[0];
 });
-
-const closeCopilotPanel = () => {
-  if (uiSettings.value?.is_copilot_panel_open) {
-    updateUISettings({
-      is_contact_sidebar_open: false,
-      is_copilot_panel_open: false,
-    });
-  }
-};
-
-const setAssistant = async assistant => {
-  selectedAssistantId.value = assistant.id;
-  await updateUISettings({
-    preferred_captain_assistant_id: assistant.id,
-  });
-};
-
+const isOpen = computed(() => !!uiSettings.value.is_copilot_panel_open);
 const shouldShowCopilotPanel = computed(() => {
-  if (!isEnterprise) {
-    return false;
-  }
-  const isCaptainEnabled = isFeatureEnabledonAccount.value(
+  if (!isEnterprise) return false;
+  const enabled = isFeatureEnabledonAccount.value(
     currentAccountId.value,
     FEATURE_FLAGS.CAPTAIN
   );
-  const { is_copilot_panel_open: isCopilotPanelOpen } = uiSettings.value;
-  return isCaptainEnabled && isCopilotPanelOpen && !uiFlags.value.fetchingList;
+  return enabled && isOpen.value && !uiFlags.value.fetchingList;
 });
+const contextName = computed(
+  () =>
+    currentChat.value?.meta?.sender?.name ||
+    currentChat.value?.contact?.name ||
+    currentChat.value?.sender?.name ||
+    ''
+);
 
-const handleReset = () => {
-  selectedCopilotThreadId.value = null;
+const persistThread = threadId => {
+  selectedCopilotThreadId.value = threadId;
+  updateUISettings({ copilot_active_thread_id: threadId });
 };
-
-watch(() => currentChat.value?.id, handleReset);
-
+const setAssistant = async assistant => {
+  await updateUISettings({ preferred_captain_assistant_id: assistant.id });
+};
+const minimize = async () => {
+  updateUISettings({ is_copilot_panel_open: false });
+  await nextTick();
+  document.getElementById('copilot-launcher-button')?.focus();
+};
+const close = () => {
+  persistThread(null);
+  unreadCount.value = 0;
+  updateUISettings({
+    is_copilot_panel_open: false,
+    copilot_active_thread_id: null,
+    copilot_unread_count: 0,
+  });
+};
+const newChat = () => {
+  persistThread(null);
+  isHistoryOpen.value = false;
+};
+const loadHistory = async () => {
+  isLoadingHistory.value = true;
+  try {
+    historyPage.value = 1;
+    threads.value = await store.dispatch('copilotThreads/get', {
+      page: historyPage.value,
+    });
+    hasMoreHistory.value = threads.value.length === 5;
+    isHistoryOpen.value = true;
+  } catch (_error) {
+    useAlert(t('CAPTAIN.COPILOT.ERROR'));
+  } finally {
+    isLoadingHistory.value = false;
+  }
+};
+const loadMoreHistory = async () => {
+  if (isLoadingHistory.value || !hasMoreHistory.value) return;
+  isLoadingHistory.value = true;
+  try {
+    historyPage.value += 1;
+    const nextPage = await store.dispatch('copilotThreads/get', {
+      page: historyPage.value,
+    });
+    threads.value = [...threads.value, ...nextPage];
+    hasMoreHistory.value = nextPage.length === 5;
+  } catch (_error) {
+    useAlert(t('CAPTAIN.COPILOT.ERROR'));
+  } finally {
+    isLoadingHistory.value = false;
+  }
+};
+const selectThread = async thread => {
+  try {
+    await store.dispatch('copilotMessages/get', thread.id);
+    persistThread(thread.id);
+    isHistoryOpen.value = false;
+    unreadCount.value = 0;
+    updateUISettings({ copilot_unread_count: 0 });
+  } catch (_error) {
+    useAlert(t('CAPTAIN.COPILOT.ERROR'));
+  }
+};
 const sendMessage = async payload => {
   const message = typeof payload === 'string' ? payload : payload.message;
   const requestType =
     typeof payload === 'string' ? undefined : payload.requestType;
-
   try {
     if (selectedCopilotThreadId.value) {
       await store.dispatch('copilotMessages/create', {
@@ -108,53 +160,104 @@ const sendMessage = async payload => {
         message,
       });
     } else {
-      const conversationId = currentChat.value?.id;
       const response = await store.dispatch('copilotThreads/create', {
         assistant_id: activeAssistant.value.id,
-        conversation_id: conversationId,
+        conversation_id: currentChat.value?.id,
         message,
         ...(requestType && { request_type: requestType }),
       });
-      if (currentChat.value?.id === conversationId) {
-        selectedCopilotThreadId.value = response.id;
-      }
+      persistThread(response.id);
+      threads.value = [
+        response,
+        ...threads.value.filter(thread => thread.id !== response.id),
+      ];
     }
     return true;
-  } catch (error) {
-    useAlert(error.message);
+  } catch (_error) {
+    useAlert(t('CAPTAIN.COPILOT.ERROR'));
     return false;
   }
 };
+const handleKeydown = event => {
+  if (event.key === 'Escape' && isOpen.value) minimize();
+};
 
-onMounted(() => {
-  if (isEnterprise) {
-    store.dispatch('captainAssistants/get');
+watch(
+  () =>
+    messages.value.filter(message => message.message_type === 'assistant')
+      .length,
+  (count, previousCount) => {
+    if (!isOpen.value && count > previousCount) {
+      unreadCount.value += count - previousCount;
+      updateUISettings({ copilot_unread_count: unreadCount.value });
+    }
+  }
+);
+watch(isOpen, open => {
+  if (open) {
+    unreadCount.value = 0;
+    updateUISettings({ copilot_unread_count: 0 });
   }
 });
+
+onMounted(async () => {
+  window.addEventListener('keydown', handleKeydown);
+  if (isEnterprise) {
+    try {
+      await store.dispatch('captainAssistants/get');
+      if (selectedCopilotThreadId.value) {
+        await store.dispatch(
+          'copilotMessages/get',
+          selectedCopilotThreadId.value
+        );
+      }
+    } catch (_error) {
+      useAlert(t('CAPTAIN.COPILOT.ERROR'));
+    }
+  }
+});
+onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown));
 </script>
 
 <template>
-  <div
-    v-if="shouldShowCopilotPanel"
-    v-on-click-outside="() => closeCopilotPanel()"
-    class="bg-n-surface-2 overflow-hidden flex-col fixed top-16 bottom-4 ltr:right-4 rtl:left-4 z-40 w-[min(24rem,calc(100vw-2rem))] max-h-[calc(100dvh-5rem)] border border-n-weak rounded-xl shadow-xl transition-transform duration-300 ease-in-out"
-    :class="[
-      {
-        'md:flex': shouldShowCopilotPanel,
-        'md:hidden': !shouldShowCopilotPanel,
-      },
-    ]"
+  <Transition
+    enter-active-class="transition duration-200 ease-out"
+    enter-from-class="scale-95 opacity-0"
+    enter-to-class="scale-100 opacity-100"
+    leave-active-class="transition duration-150 ease-in"
+    leave-from-class="scale-100 opacity-100"
+    leave-to-class="scale-95 opacity-0"
   >
-    <Copilot
-      :messages="messages"
-      :support-agent="currentUser"
-      :assistants="assistants"
-      :active-assistant="activeAssistant"
-      :can-suggest-reply="canSuggestReply"
-      :on-send-message="sendMessage"
-      @set-assistant="setAssistant"
-      @reset="handleReset"
-    />
-  </div>
-  <template v-else />
+    <section
+      v-if="shouldShowCopilotPanel"
+      role="dialog"
+      aria-modal="false"
+      :aria-label="t('CAPTAIN.COPILOT.TITLE')"
+      class="fixed z-40 flex flex-col overflow-hidden border border-n-weak bg-n-surface-2 shadow-2xl ltr:right-4 rtl:left-4 bottom-20 h-[min(600px,calc(100dvh-6rem))] w-[min(380px,calc(100vw-2rem))] rounded-2xl ltr:origin-bottom-right rtl:origin-bottom-left max-sm:inset-0 max-sm:h-[100dvh] max-sm:w-full max-sm:rounded-none max-sm:pb-[env(safe-area-inset-bottom)]"
+    >
+      <Copilot
+        :messages="messages"
+        :support-agent="currentUser"
+        :assistants="assistants"
+        :active-assistant="activeAssistant"
+        :can-suggest-reply="canSuggestReply"
+        :on-send-message="sendMessage"
+        :threads="threads"
+        :is-history-open="isHistoryOpen"
+        :is-loading-history="isLoadingHistory"
+        :has-more-history="hasMoreHistory"
+        :context-id="currentChat?.id"
+        :context-name="contextName"
+        @set-assistant="setAssistant"
+        @reset="newChat"
+        @new-chat="newChat"
+        @open-history="loadHistory"
+        @load-more-history="loadMoreHistory"
+        @close-history="isHistoryOpen = false"
+        @select-thread="selectThread"
+        @minimize="minimize"
+        @close="close"
+      />
+    </section>
+  </Transition>
 </template>

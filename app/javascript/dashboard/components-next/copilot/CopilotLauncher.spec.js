@@ -39,7 +39,7 @@ describe('CopilotLauncher', () => {
       },
     });
 
-    await wrapper.get('button[aria-label="Open Copilot"]').trigger('click');
+    await wrapper.get('#copilot-launcher-button').trigger('click');
     await nextTick();
 
     expect(testState.uiSettings.value.is_copilot_panel_open).toBe(true);
