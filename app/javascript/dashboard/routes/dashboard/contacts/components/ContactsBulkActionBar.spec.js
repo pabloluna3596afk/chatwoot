@@ -13,15 +13,19 @@ const mountBar = () =>
     global: {
       stubs: {
         BulkSelectBar: {
-          props: ['selectedCountLabel', 'compactSelection'],
+          props: [
+            'selectedCountLabel',
+            'mobileSelectedCount',
+            'compactSelection',
+          ],
           template:
-            '<div data-test="bulk-select" :data-count="selectedCountLabel" :data-compact="compactSelection"><slot name="primaryActions"/><slot name="actions"/></div>',
+            '<div data-test="bulk-select" :data-count="selectedCountLabel" :data-mobile-count="mobileSelectedCount" :data-compact="compactSelection"><slot name="primaryActions"/><slot name="actions"/></div>',
         },
         Button: {
-          props: ['label', 'icon', 'ariaLabel'],
+          props: ['label', 'icon', 'ariaLabel', 'title'],
           emits: ['click'],
           template:
-            '<button :aria-label="ariaLabel" :data-label="label" :data-icon="icon" @click="$emit(\'click\')">{{ label }}</button>',
+            '<button :aria-label="ariaLabel" :title="title" :data-label="label" :data-icon="icon" @click="$emit(\'click\')">{{ label }}</button>',
         },
         BulkLabelActions: {
           props: ['action'],
@@ -41,6 +45,7 @@ describe('ContactsBulkActionBar', () => {
     expect(wrapper.get('[data-test="bulk-select"]').attributes()).toMatchObject(
       {
         'data-count': 'CONTACTS_BULK_ACTIONS.SELECTED_COUNT',
+        'data-mobile-count': '2',
       }
     );
     expect(
@@ -48,6 +53,24 @@ describe('ContactsBulkActionBar', () => {
     ).toBeDefined();
     expect(wrapper.get('[data-test="bulk-select"]').classes()).toContain(
       'max-md:fixed'
+    );
+    expect(wrapper.get('[data-test="bulk-select"]').classes()).toContain(
+      'max-md:bottom-[calc(env(safe-area-inset-bottom)+4.5rem)]'
+    );
+  });
+
+  it('uses an accessible icon for selecting every matching contact', () => {
+    const wrapper = mountBar();
+    const selectMatching = wrapper.get(
+      '[data-label="CONTACTS_BULK_ACTIONS.SELECT_ALL_MATCHING"]'
+    );
+
+    expect(selectMatching.attributes('data-icon')).toBe('i-lucide-check-check');
+    expect(selectMatching.attributes('title')).toBe(
+      'CONTACTS_BULK_ACTIONS.SELECT_ALL_MATCHING_ACCESSIBILITY'
+    );
+    expect(selectMatching.attributes('aria-label')).toBe(
+      'CONTACTS_BULK_ACTIONS.SELECT_ALL_MATCHING_ACCESSIBILITY'
     );
   });
 

@@ -112,7 +112,8 @@ const handleRemoveLabels = labels => {
       compact-selection
       :select-all-label="selectAllLabel"
       :selected-count-label="selectedCountLabel"
-      class="py-2 ltr:!pr-3 rtl:!pl-3 justify-between border border-n-weak shadow-lg md:shadow-sm max-md:fixed max-md:inset-x-3 max-md:bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] max-md:z-50 max-md:!m-0 max-md:rounded-xl max-md:bg-n-solid-2 max-md:backdrop-blur-md"
+      :mobile-selected-count="selectedCount"
+      class="py-2 ltr:!pr-3 rtl:!pl-3 justify-between border border-n-weak shadow-lg md:shadow-sm max-md:fixed max-md:inset-x-3 max-md:bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] max-md:z-50 max-md:!m-0 max-md:rounded-xl max-md:bg-n-solid-2 max-md:backdrop-blur-md"
     >
       <template #primaryActions>
         <Button
@@ -130,17 +131,28 @@ const handleRemoveLabels = labels => {
           sm
           ghost
           blue
+          icon="i-lucide-check-check"
           :label="
             t('CONTACTS_BULK_ACTIONS.SELECT_ALL_MATCHING', {
               count: totalMatchingCount,
             })
           "
-          class="!px-1"
+          :title="
+            t('CONTACTS_BULK_ACTIONS.SELECT_ALL_MATCHING_ACCESSIBILITY', {
+              count: totalMatchingCount,
+            })
+          "
+          :aria-label="
+            t('CONTACTS_BULK_ACTIONS.SELECT_ALL_MATCHING_ACCESSIBILITY', {
+              count: totalMatchingCount,
+            })
+          "
+          class="!px-1 [&>span:nth-child(2)]:hidden md:[&>span:nth-child(2)]:inline-flex"
           @click="emit('selectAllMatching')"
         />
       </template>
       <template #actions>
-        <div class="flex items-center gap-2 ml-auto">
+        <div class="flex items-center gap-2 ml-auto max-md:gap-1">
           <BulkLabelActions
             type="contact"
             placement="bottom"

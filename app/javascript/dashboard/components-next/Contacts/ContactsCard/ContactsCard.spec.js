@@ -107,10 +107,24 @@ describe('ContactsCard', () => {
     const checkbox = wrapper.get('input[type="checkbox"]');
 
     expect(checkbox.attributes('aria-label')).toBe(
-      'GENERAL.ACCESSIBILITY.SELECT_CONTACT'
+      'CONTACTS_BULK_ACTIONS.SELECT_CONTACT_ACCESSIBILITY'
     );
+    expect(wrapper.get('label[title]').attributes('title')).toBe(
+      'CONTACTS_BULK_ACTIONS.SELECT_CONTACT_ACCESSIBILITY'
+    );
+    expect(wrapper.get('label[title]').classes()).toContain('size-11');
     await checkbox.setValue(true);
 
     expect(wrapper.emitted('select')).toEqual([[true]]);
+    expect(wrapper.emitted('toggle')).toBeUndefined();
+  });
+
+  it('keeps the selected checkbox filled with the brand color', () => {
+    const wrapper = mountCard({ selectable: true, isSelected: true });
+
+    expect(wrapper.get('input[type="checkbox"]').element.checked).toBe(true);
+    expect(wrapper.get('label[title] > div').classes()).toContain(
+      '[&>input:checked+span]:!bg-n-brand'
+    );
   });
 });

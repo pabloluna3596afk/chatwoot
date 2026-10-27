@@ -16,6 +16,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  mobileSelectedCount: {
+    type: [Number, String],
+    default: '',
+  },
   deleteLabel: {
     type: String,
     default: 'Delete',
@@ -82,10 +86,10 @@ const bulkCheckboxState = computed({
   >
     <div
       v-if="hasSelected"
-      class="flex items-center gap-3 py-1 ltr:pl-3 rtl:pr-3 ltr:pr-4 rtl:pl-4 rounded-lg bg-n-solid-2 outline outline-1 outline-n-container shadow"
+      class="flex items-center gap-3 py-1 ltr:pl-3 rtl:pr-3 ltr:pr-4 rtl:pl-4 rounded-lg bg-n-solid-2 outline outline-1 outline-n-container shadow max-md:gap-1 max-md:ltr:pr-2 max-md:rtl:pl-2"
     >
-      <div class="flex items-center gap-3 min-w-0">
-        <div class="flex items-center gap-1.5 min-w-0">
+      <div class="flex items-center gap-3 min-w-0 max-md:gap-1">
+        <div class="flex items-center gap-1.5 min-w-0 max-md:gap-1">
           <Checkbox
             v-model="bulkCheckboxState"
             :indeterminate="isIndeterminate"
@@ -99,16 +103,26 @@ const bulkCheckboxState = computed({
             {{ selectAllLabel }}
           </span>
         </div>
-        <span class="text-sm text-n-slate-11 truncate tabular-nums">
-          {{ selectedCountLabel }}
+        <span class="text-sm text-n-slate-11 tabular-nums">
+          <span :class="{ 'max-md:hidden': compactSelection }">
+            {{ selectedCountLabel }}
+          </span>
+          <span
+            v-if="compactSelection"
+            class="hidden max-md:inline-flex min-w-6 h-6 items-center justify-center rounded-full bg-n-surface-1 px-1.5 text-xs font-semibold text-n-slate-12"
+            :aria-label="selectedCountLabel"
+            :title="selectedCountLabel"
+          >
+            {{ mobileSelectedCount }}
+          </span>
         </span>
         <div v-if="$slots.primaryActions" class="h-4 w-px bg-n-strong" />
         <slot v-if="$slots.primaryActions" name="primaryActions" />
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 max-md:gap-1">
         <slot v-if="$slots.secondaryActions" name="secondaryActions" />
         <div v-if="$slots.secondaryActions" class="h-4 w-px bg-n-strong" />
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 max-md:gap-1">
           <slot name="actions" :selected-count="selectedCount">
             <Button
               :label="deleteLabel"
