@@ -125,14 +125,18 @@ const handleAvatarHover = isHovered => {
   <div class="relative">
     <CardLayout
       :key="id"
-      layout="row"
+      layout="col"
+      padding="compact"
+      class="min-w-0 dark:bg-n-solid-3 cursor-pointer"
       :class="{
         'outline-n-weak !bg-n-slate-3 dark:!bg-n-solid-3': isSelected,
       }"
+      @click="onClickExpand"
     >
-      <div class="flex items-center justify-start flex-1 gap-4">
+      <div class="flex items-start w-full min-w-0 gap-3">
         <div
-          class="relative"
+          class="relative shrink-0"
+          @click.stop
           @mouseenter="handleAvatarHover(true)"
           @mouseleave="handleAvatarHover(false)"
         >
@@ -160,72 +164,60 @@ const handleAvatarHover = isHovered => {
             </template>
           </Avatar>
         </div>
-        <div class="flex flex-col gap-0.5 flex-1">
-          <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <span class="text-base font-medium truncate text-n-slate-12">
+        <div class="flex flex-col gap-1 flex-1 min-w-0">
+          <div class="flex flex-col min-w-0">
+            <span
+              :title="name"
+              class="text-base font-medium truncate text-n-slate-12"
+            >
               {{ name }}
             </span>
-            <span class="inline-flex items-center gap-1">
-              <span
-                v-if="additionalAttributes?.companyName"
-                class="i-ph-building-light size-4 text-n-slate-10 mb-0.5"
-              />
-              <span
-                v-if="additionalAttributes?.companyName"
-                class="text-sm truncate text-n-slate-11"
-              >
-                {{ additionalAttributes.companyName }}
-              </span>
+            <span
+              v-if="email"
+              :title="email"
+              class="text-sm truncate text-n-slate-11"
+            >
+              {{ email }}
+            </span>
+            <span
+              v-if="phoneNumber"
+              :title="phoneNumber"
+              class="text-sm truncate text-n-slate-11"
+            >
+              {{ phoneNumber }}
             </span>
           </div>
-          <FeaturedAttributeBadges :badges="featuredBadges" emphasized />
-          <div
-            class="flex flex-wrap items-center justify-start gap-x-3 gap-y-1"
-          >
-            <div v-if="email" class="truncate max-w-72" :title="email">
-              <span class="text-sm text-n-slate-11">
-                {{ email }}
-              </span>
-            </div>
-            <div v-if="email" class="w-px h-3 truncate bg-n-slate-6" />
+          <div class="flex flex-wrap items-center gap-1.5 min-w-0">
+            <span
+              v-if="additionalAttributes?.companyName"
+              class="inline-flex min-w-0 items-center gap-1 rounded-md bg-n-alpha-2 px-2 py-0.5 text-xs text-n-slate-11"
+            >
+              <span class="i-ph-building-light size-3.5 shrink-0" />
+              <span class="truncate">{{
+                additionalAttributes.companyName
+              }}</span>
+            </span>
+            <span
+              v-if="countryDetails"
+              class="inline-flex min-w-0 items-center gap-1 rounded-md bg-n-alpha-2 px-2 py-0.5 text-xs text-n-slate-11"
+            >
+              <Flag
+                :country="countryDetails.countryCode"
+                class="size-3.5 shrink-0"
+              />
+              <span class="truncate">{{ formattedLocation }}</span>
+            </span>
             <span
               v-if="documentNumber"
-              class="text-sm truncate text-n-slate-11"
               :title="documentNumber"
+              class="max-w-full truncate rounded-md bg-n-alpha-2 px-2 py-0.5 text-xs text-n-slate-11"
             >
               {{ documentNumber }}
             </span>
-            <div v-if="documentNumber" class="w-px h-3 truncate bg-n-slate-6" />
-            <span v-if="phoneNumber" class="text-sm truncate text-n-slate-11">
-              {{ phoneNumber }}
-            </span>
-            <div v-if="phoneNumber" class="w-px h-3 truncate bg-n-slate-6" />
-            <span
-              v-if="countryDetails"
-              class="inline-flex items-center gap-2 text-sm truncate text-n-slate-11"
-            >
-              <Flag :country="countryDetails.countryCode" class="size-3.5" />
-              {{ formattedLocation }}
-            </span>
-            <div v-if="countryDetails" class="w-px h-3 truncate bg-n-slate-6" />
-            <Button
-              :label="t('CONTACTS_LAYOUT.CARD.VIEW_DETAILS')"
-              variant="link"
-              size="xs"
-              @click="onClickViewDetails"
-            />
           </div>
+          <FeaturedAttributeBadges :badges="featuredBadges" emphasized />
         </div>
       </div>
-
-      <Button
-        icon="i-lucide-chevron-down"
-        variant="ghost"
-        color="slate"
-        size="xs"
-        :class="{ 'rotate-180': isExpanded }"
-        @click="onClickExpand"
-      />
 
       <template #after>
         <div
@@ -237,7 +229,18 @@ const handleAvatarHover = isHovered => {
           "
         >
           <div class="overflow-hidden">
-            <div class="flex flex-col gap-6 p-6 border-t border-n-strong">
+            <div
+              class="flex flex-col gap-6 p-4 border-t border-n-strong"
+              @click.stop
+            >
+              <Button
+                :label="t('CONTACTS_LAYOUT.CARD.EXPAND')"
+                size="sm"
+                variant="outline"
+                color="slate"
+                class="self-start"
+                @click="onClickViewDetails"
+              />
               <ContactsForm
                 ref="contactsFormRef"
                 :contact-data="contactData"
@@ -251,7 +254,7 @@ const handleAvatarHover = isHovered => {
                   size="sm"
                   :is-loading="isUpdating"
                   :disabled="isUpdating || isFormInvalid"
-                  @click="handleUpdateContact"
+                  @click.stop="handleUpdateContact"
                 />
               </div>
             </div>

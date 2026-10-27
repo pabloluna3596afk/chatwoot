@@ -77,7 +77,7 @@ const handleSelect = value => {
         variant="ghost"
         color="slate"
         trailing-icon
-        class="!justify-start !px-2.5 !h-auto min-h-7 [&_span]:whitespace-normal [&_span]:overflow-visible [&_span]:text-clip [&_span]:break-words"
+        class="!justify-start !text-start !px-2.5 !h-auto min-h-7 [&_span]:max-w-full [&_span]:truncate [&_span]:whitespace-nowrap"
         :class="{ '!bg-n-alpha-2': option.value === modelValue }"
         @click="handleSelect(option.value)"
       />

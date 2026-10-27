@@ -213,7 +213,7 @@ const STYLE_CONFIG = {
     center: 'justify-center',
     end: 'justify-end',
   },
-  base: 'focus-visible:ring-2 focus-visible:ring-n-blue-11 focus-visible:ring-offset-2 focus-visible:ring-offset-n-surface-1 max-sm:!min-h-11 max-sm:!min-w-11 inline-flex items-center min-w-0 gap-2 transition-all duration-100 ease-out border-0 rounded-lg outline-1 outline disabled:opacity-50',
+  base: 'focus-visible:ring-2 focus-visible:ring-n-blue-11 focus-visible:ring-offset-2 focus-visible:ring-offset-n-surface-1 inline-flex items-center min-w-0 gap-2 transition-all duration-100 ease-out border-0 rounded-lg outline-1 outline disabled:opacity-50',
 };
 
 const variantClasses = computed(() => {

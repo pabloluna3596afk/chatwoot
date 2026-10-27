@@ -479,7 +479,7 @@
     },
     "CARD": {
       "OF": "of",
-      "VIEW_DETAILS": "View details",
+      "EXPAND": "Expand",
       "EDIT_DETAILS_FORM": {
         "TITLE": "Edit contact details",
         "FORM": {

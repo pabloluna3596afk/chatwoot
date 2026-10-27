@@ -479,7 +479,7 @@
     },
     "CARD": {
       "OF": "de",
-      "VIEW_DETAILS": "Ver detalles",
+      "EXPAND": "Expandir",
       "EDIT_DETAILS_FORM": {
         "TITLE": "Editar detalles del contacto",
         "FORM": {

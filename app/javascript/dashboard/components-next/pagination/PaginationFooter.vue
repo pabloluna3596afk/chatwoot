@@ -104,7 +104,7 @@ const selectPerPage = value => {
             v-for="option in perPageOptions"
             :key="option"
             type="button"
-            class="max-sm:min-w-11 max-sm:min-h-11 min-w-[2.25rem] h-6 px-2 rounded-md text-xs font-medium transition-colors"
+            class="min-w-[2.25rem] h-6 px-2 rounded-md text-xs font-medium transition-colors"
             :class="
               Number(option) === itemsPerPage
                 ? 'bg-n-surface-1 text-n-slate-12 shadow-sm'

@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 import SelectMenu from 'dashboard/components-next/selectmenu/SelectMenu.vue';
+import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
 
 const props = defineProps({
   activeSort: {
@@ -117,44 +118,50 @@ const handleOrderChange = value => {
 </script>
 
 <template>
-  <div class="relative">
-    <Button
-      icon="i-lucide-arrow-down-up"
-      color="slate"
-      size="sm"
-      variant="ghost"
-      :class="isMenuOpen ? 'bg-n-alpha-2' : ''"
-      @click="isMenuOpen = !isMenuOpen"
-    />
-    <div
-      v-if="isMenuOpen"
-      v-on-clickaway="() => (isMenuOpen = false)"
-      class="absolute top-full mt-1 ltr:-right-32 rtl:-left-32 sm:ltr:right-0 sm:rtl:left-0 flex flex-col bg-n-alpha-3 backdrop-blur-[100px] border border-n-weak w-72 rounded-xl p-4 z-50"
-    >
-      <div class="flex flex-col gap-1.5 last:mt-4">
-        <span class="text-sm text-n-slate-12">
-          {{ t('CONTACTS_LAYOUT.HEADER.ACTIONS.SORT_BY.LABEL') }}
-        </span>
-        <SelectMenu
-          class="w-full"
-          :model-value="activeSort"
-          :options="sortMenus"
-          :label="activeSortLabel"
-          @update:model-value="handleSortChange"
-        />
+  <MenuPopover
+    v-model:open="isMenuOpen"
+    :label="t('CONTACTS_LAYOUT.HEADER.ACTIONS.SORT_BY.LABEL')"
+    panel-class="w-72 max-w-[calc(100vw-2rem)] p-4"
+  >
+    <template #trigger>
+      <Button
+        icon="i-lucide-arrow-down-up"
+        color="slate"
+        size="sm"
+        variant="ghost"
+        :class="isMenuOpen ? 'bg-n-alpha-2' : ''"
+        @click="isMenuOpen = !isMenuOpen"
+      />
+    </template>
+    <template #content>
+      <div class="flex flex-col gap-4">
+        <div class="flex flex-col gap-1.5 last:mt-4">
+          <span class="text-sm text-n-slate-12">
+            {{ t('CONTACTS_LAYOUT.HEADER.ACTIONS.SORT_BY.LABEL') }}
+          </span>
+          <SelectMenu
+            class="w-full"
+            sub-menu-position="bottom"
+            :model-value="activeSort"
+            :options="sortMenus"
+            :label="activeSortLabel"
+            @update:model-value="handleSortChange"
+          />
+        </div>
+        <div class="flex flex-col gap-1.5 last:mt-4">
+          <span class="text-sm text-n-slate-12">
+            {{ t('CONTACTS_LAYOUT.HEADER.ACTIONS.ORDER.LABEL') }}
+          </span>
+          <SelectMenu
+            class="w-full"
+            sub-menu-position="bottom"
+            :model-value="activeOrdering"
+            :options="orderingMenus"
+            :label="activeOrderingLabel"
+            @update:model-value="handleOrderChange"
+          />
+        </div>
       </div>
-      <div class="flex flex-col gap-1.5 last:mt-4">
-        <span class="text-sm text-n-slate-12">
-          {{ t('CONTACTS_LAYOUT.HEADER.ACTIONS.ORDER.LABEL') }}
-        </span>
-        <SelectMenu
-          class="w-full"
-          :model-value="activeOrdering"
-          :options="orderingMenus"
-          :label="activeOrderingLabel"
-          @update:model-value="handleOrderChange"
-        />
-      </div>
-    </div>
-  </div>
+    </template>
+  </MenuPopover>
 </template>
