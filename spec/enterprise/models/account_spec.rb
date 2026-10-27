@@ -258,7 +258,7 @@ RSpec.describe Account, type: :model do
       end
 
       it 'sends response-pool warnings at 80% and 100%' do
-        account.current_usage_period.update!(limit_responses: 5)
+        account.plan.update!(monthly_messages: 5)
 
         expect do
           4.times { account.increment_response_usage }

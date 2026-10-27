@@ -49,9 +49,8 @@ RSpec.describe AdministratorNotifications::AccountNotificationMailer do
       account.update!(locale: 'es')
       allow(class_instance).to receive(:send_notification)
 
-      Current.set(account: account) do
-        mailer.usage_limit_warning(:copilot, 80, 4, 5)
-      end
+      Current.account = account
+      mailer.usage_limit_warning(:copilot, 80, 4, 5).message
 
       expect(class_instance).to have_received(:send_notification).with(
         'El uso de sugerencias de Copilot alcanzó el 80% del límite del plan',
