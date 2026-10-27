@@ -50,6 +50,8 @@ describe('FilterDropdown', () => {
   it('shows counts and the active check, leaves zero selectable, and omits counts on the trigger', async () => {
     const wrapper = mountFilter();
     expect(wrapper.get('button').text()).toBe('All states');
+    expect(wrapper.get('button').classes()).toContain('justify-between');
+    expect(wrapper.get('button').classes()).toContain('text-start');
     await wrapper.get('button').trigger('click');
     const rows = wrapper.getComponent(DropdownMenu).findAll('button');
     expect(rows.map(row => row.text())).toEqual([

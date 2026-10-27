@@ -54,7 +54,8 @@ const choose = item => {
         :icon="icon"
         color="slate"
         size="sm"
-        class="max-w-full"
+        justify="between"
+        class="max-w-full text-start"
         :class="{ 'bg-n-slate-9/10': isOpen }"
         :aria-label="label"
         :title="selected?.label || label"
@@ -73,8 +74,9 @@ const choose = item => {
         class="min-w-0 truncate text-sm font-420"
         :aria-current="item.isSelected ? 'true' : undefined"
         :class="{ 'text-n-slate-11': item.count === 0 }"
-        >{{ item.label }}</span
       >
+        {{ item.label }}
+      </span>
     </template>
     <template #trailing-icon="{ item }">
       <span class="ms-auto text-xs tabular-nums text-n-slate-11">{{

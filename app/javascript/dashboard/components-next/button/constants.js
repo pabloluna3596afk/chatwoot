@@ -15,7 +15,7 @@ export const INTENT_STYLES = {
   destructive: { color: 'ruby', variant: 'solid' },
 };
 export const SIZE_OPTIONS = ['xs', 'sm', 'md', 'lg'];
-export const JUSTIFY_OPTIONS = ['start', 'center', 'end'];
+export const JUSTIFY_OPTIONS = ['start', 'center', 'end', 'between'];
 
 export const EXCLUDED_ATTRS = [
   'variant',

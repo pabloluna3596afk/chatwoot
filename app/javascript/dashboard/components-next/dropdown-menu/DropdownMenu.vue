@@ -279,7 +279,7 @@ defineExpose({
               <slot name="label" :item="item">
                 <span
                   v-if="item.label"
-                  class="min-w-0 text-sm font-420 truncate"
+                  class="min-w-0 text-sm font-420 whitespace-normal break-words"
                   :class="labelClass"
                 >
                   {{ item.label }}
@@ -339,7 +339,7 @@ defineExpose({
             <slot name="label" :item="item">
               <span
                 v-if="item.label"
-                class="min-w-0 text-sm font-420 truncate"
+                class="min-w-0 text-sm font-420 whitespace-normal break-words"
                 :class="labelClass"
               >
                 {{ item.label }}

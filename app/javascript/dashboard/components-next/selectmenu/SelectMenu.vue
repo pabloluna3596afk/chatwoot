@@ -50,9 +50,10 @@ const handleSelect = value => {
       icon="i-lucide-chevron-down"
       size="sm"
       trailing-icon
+      justify="between"
       color="slate"
       variant="faded"
-      class="!w-full max-w-full"
+      class="!w-full max-w-full text-start"
       :class="{ 'dark:!bg-n-alpha-2 !bg-n-slate-9/20': isOpen }"
       :label="labelValue"
       @click="toggleMenu"
@@ -77,7 +78,7 @@ const handleSelect = value => {
         variant="ghost"
         color="slate"
         trailing-icon
-        class="!justify-start !text-start !px-2.5 !h-auto min-h-7 [&_span]:max-w-full [&_span]:truncate [&_span]:whitespace-nowrap"
+        class="!justify-start !text-start !px-2.5 !h-auto min-h-7 [&_span]:max-w-full [&_span]:whitespace-normal [&_span]:break-words"
         :class="{ '!bg-n-alpha-2': option.value === modelValue }"
         @click="handleSelect(option.value)"
       />
