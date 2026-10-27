@@ -1,14 +1,13 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useToggle } from '@vueuse/core';
+import { vOnClickOutside } from '@vueuse/components';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useMapGetter, useStore } from 'dashboard/composables/store.js';
-import { useStatusLabel } from 'dashboard/composables/useStatusLabel';
 import wootConstants from 'dashboard/constants/globals';
-import { buildConversationSortOptions } from 'dashboard/helper/conversationSortOptions';
 import SelectMenu from 'dashboard/components-next/selectmenu/SelectMenu.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
-import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
 
 defineProps({
   isOnExpandedLayout: {
@@ -25,15 +24,13 @@ const emit = defineEmits(['changeFilter']);
 
 const store = useStore();
 const { t } = useI18n();
-const { getStatusLabel } = useStatusLabel();
 
 const { updateUISettings } = useUISettings();
 
 const chatStatusFilter = useMapGetter('getChatStatusFilter');
 const chatSortFilter = useMapGetter('getChatSortFilter');
-const getAttributesByModel = useMapGetter('attributes/getAttributesByModel');
 
-const showActionsDropdown = ref(false);
+const [showActionsDropdown, toggleDropdown] = useToggle();
 
 const currentStatusFilter = computed(() => {
   return chatStatusFilter.value || wootConstants.STATUS_TYPE.OPEN;
@@ -47,19 +44,19 @@ const currentSortBy = computed(() => {
 
 const chatStatusOptions = computed(() => [
   {
-    label: getStatusLabel('open'),
+    label: t('CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.open.TEXT'),
     value: 'open',
   },
   {
-    label: getStatusLabel('resolved'),
+    label: t('CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.resolved.TEXT'),
     value: 'resolved',
   },
   {
-    label: getStatusLabel('pending'),
+    label: t('CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.pending.TEXT'),
     value: 'pending',
   },
   {
-    label: getStatusLabel('snoozed'),
+    label: t('CHAT_LIST.CHAT_STATUS_FILTER_ITEMS.snoozed.TEXT'),
     value: 'snoozed',
   },
   {
@@ -68,16 +65,48 @@ const chatStatusOptions = computed(() => [
   },
 ]);
 
-const conversationAttributeDefs = computed(() => {
-  const getter = getAttributesByModel.value;
-  return typeof getter === 'function'
-    ? getter('conversation_attribute') || []
-    : [];
-});
-
-const chatSortOptions = computed(() =>
-  buildConversationSortOptions(t, conversationAttributeDefs.value)
-);
+const chatSortOptions = computed(() => [
+  {
+    label: t('CHAT_LIST.SORT_ORDER_ITEMS.last_activity_at_asc.TEXT'),
+    value: 'last_activity_at_asc',
+  },
+  {
+    label: t('CHAT_LIST.SORT_ORDER_ITEMS.last_activity_at_desc.TEXT'),
+    value: 'last_activity_at_desc',
+  },
+  {
+    label: t('CHAT_LIST.SORT_ORDER_ITEMS.created_at_desc.TEXT'),
+    value: 'created_at_desc',
+  },
+  {
+    label: t('CHAT_LIST.SORT_ORDER_ITEMS.created_at_asc.TEXT'),
+    value: 'created_at_asc',
+  },
+  {
+    label: t('CHAT_LIST.SORT_ORDER_ITEMS.unread.TEXT'),
+    value: 'unread',
+  },
+  {
+    label: t('CHAT_LIST.SORT_ORDER_ITEMS.priority_desc.TEXT'),
+    value: 'priority_desc',
+  },
+  {
+    label: t('CHAT_LIST.SORT_ORDER_ITEMS.priority_asc.TEXT'),
+    value: 'priority_asc',
+  },
+  {
+    label: t('CHAT_LIST.SORT_ORDER_ITEMS.priority_desc_created_at_asc.TEXT'),
+    value: 'priority_desc_created_at_asc',
+  },
+  {
+    label: t('CHAT_LIST.SORT_ORDER_ITEMS.waiting_since_asc.TEXT'),
+    value: 'waiting_since_asc',
+  },
+  {
+    label: t('CHAT_LIST.SORT_ORDER_ITEMS.waiting_since_desc.TEXT'),
+    value: 'waiting_since_desc',
+  },
+]);
 
 const activeChatStatusLabel = computed(
   () =>
@@ -114,51 +143,54 @@ const handleSortChange = value => {
 </script>
 
 <template>
-  <MenuPopover
-    v-model:open="showActionsDropdown"
-    :label="$t('CHAT_LIST.SORT_TOOLTIP_LABEL')"
-    :align="isOnExpandedLayout ? 'end' : 'start'"
-    panel-class="w-72 max-w-[calc(100vw-2rem)] p-4"
-  >
-    <template #trigger>
-      <NextButton
-        v-tooltip.right="$t('CHAT_LIST.SORT_TOOLTIP_LABEL')"
-        icon="i-lucide-arrow-up-down"
-        slate
-        faded
-        xs
-        @click="showActionsDropdown = !showActionsDropdown"
-      />
-    </template>
-    <template #content>
-      <div class="flex flex-col gap-4">
-        <div v-if="showStatusFilter" class="flex flex-col gap-1.5 last:mt-4">
-          <span class="text-sm text-n-slate-12">
-            {{ $t('CHAT_LIST.CHAT_SORT.STATUS') }}
-          </span>
-          <SelectMenu
-            class="w-full"
-            :model-value="chatStatusFilter"
-            :options="chatStatusOptions"
-            :label="activeChatStatusLabel"
-            sub-menu-position="bottom"
-            @update:model-value="handleStatusChange"
-          />
-        </div>
-        <div class="flex flex-col gap-1.5 last:mt-4">
-          <span class="text-sm text-n-slate-12">
-            {{ $t('CHAT_LIST.CHAT_SORT.ORDER_BY') }}
-          </span>
-          <SelectMenu
-            class="w-full"
-            :model-value="chatSortFilter"
-            :options="chatSortOptions"
-            :label="activeChatSortLabel"
-            sub-menu-position="bottom"
-            @update:model-value="handleSortChange"
-          />
-        </div>
+  <div class="relative flex">
+    <NextButton
+      v-tooltip.right="$t('CHAT_LIST.SORT_TOOLTIP_LABEL')"
+      icon="i-lucide-arrow-up-down"
+      slate
+      faded
+      xs
+      @click="toggleDropdown()"
+    />
+    <div
+      v-if="showActionsDropdown"
+      v-on-click-outside="() => toggleDropdown()"
+      class="mt-1 bg-n-alpha-3 backdrop-blur-[100px] border border-n-weak w-72 rounded-xl p-4 absolute z-40 top-full"
+      :class="{
+        'ltr:left-0 rtl:right-0': !isOnExpandedLayout,
+        'ltr:right-0 rtl:left-0': isOnExpandedLayout,
+      }"
+    >
+      <div
+        v-if="showStatusFilter"
+        class="flex items-center justify-between gap-2"
+      >
+        <span class="text-sm truncate text-n-slate-12">
+          {{ $t('CHAT_LIST.CHAT_SORT.STATUS') }}
+        </span>
+        <SelectMenu
+          :model-value="chatStatusFilter"
+          :options="chatStatusOptions"
+          :label="activeChatStatusLabel"
+          :sub-menu-position="isOnExpandedLayout ? 'left' : 'right'"
+          @update:model-value="handleStatusChange"
+        />
       </div>
-    </template>
-  </MenuPopover>
+      <div
+        class="flex items-center justify-between gap-2"
+        :class="{ 'mt-4': showStatusFilter }"
+      >
+        <span class="text-sm truncate text-n-slate-12">
+          {{ $t('CHAT_LIST.CHAT_SORT.ORDER_BY') }}
+        </span>
+        <SelectMenu
+          :model-value="chatSortFilter"
+          :options="chatSortOptions"
+          :label="activeChatSortLabel"
+          :sub-menu-position="isOnExpandedLayout ? 'left' : 'right'"
+          @update:model-value="handleSortChange"
+        />
+      </div>
+    </div>
+  </div>
 </template>

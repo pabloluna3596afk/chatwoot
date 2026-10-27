@@ -1,26 +1,21 @@
 import { mount, flushPromises } from '@vue/test-utils';
-import { ref } from 'vue';
 import MenuPopover from '../MenuPopover.vue';
 import DropdownMenu from '../DropdownMenu.vue';
 
 describe('MenuPopover', () => {
-  it('keeps the menu in the native dialog top layer when a dialog provides its portal', () => {
-    const dialog = document.createElement('dialog');
-    document.body.appendChild(dialog);
+  it('keeps the mobile menu anchored as a viewport-positioned popover', () => {
     const wrapper = mount(MenuPopover, {
       props: { open: true, menuItems: [{ label: 'All', value: 'all' }] },
-      global: { provide: { dialogPortalTarget: ref(dialog) } },
+      attachTo: document.body,
     });
     try {
-      expect(wrapper.getComponent(DropdownMenu).attributes()).toHaveProperty(
-        'data-menu-popover'
-      );
-      expect(wrapper.getComponent(DropdownMenu).element.parentElement).toBe(
-        dialog
-      );
+      const menu = wrapper.getComponent(DropdownMenu);
+      expect(menu.attributes()).toHaveProperty('data-menu-popover');
+      expect(menu.element.parentElement).toBe(document.body);
+      expect(menu.classes()).toContain('fixed');
+      expect(document.querySelector('dialog[open]')).toBeNull();
     } finally {
       wrapper.unmount();
-      dialog.remove();
     }
   });
 

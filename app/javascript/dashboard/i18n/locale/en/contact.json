@@ -376,17 +376,11 @@
           "OPTIONS": {
             "NAME": "Name",
             "EMAIL": "Email",
-            "DOCUMENT_NUMBER": "Document number",
-            "PHONE_NUMBER": "Phone number",
-            "IDENTIFIER": "Identifier",
             "COMPANY": "Company",
             "COUNTRY": "Country",
             "CITY": "City",
-            "LABELS": "Labels",
-            "ASSIGNED_AGENT": "Contact agent",
             "LAST_ACTIVITY": "Last activity",
-            "CREATED_AT": "Created at",
-            "BLOCKED": "Blocked"
+            "CREATED_AT": "Created at"
           }
         },
         "ORDER": {
