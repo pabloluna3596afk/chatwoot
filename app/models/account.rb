@@ -272,6 +272,10 @@ class Account < ApplicationRecord
     I18n.t("reports.resolution_count_labels.#{normalized_resolved_label_key}")
   end
 
+  def plan_limit(key)
+    plan&.limit(key)
+  end
+
   private
 
   # Same flags Enterprise::Account#enable_default_features turns on for
@@ -316,10 +320,10 @@ class Account < ApplicationRecord
         plan_id: plan_id,
         period_start: window[:start],
         period_end: window[:end],
-        limit_responses: plan&.monthly_messages,
-        limit_copilot_responses: plan&.captain_copilot_responses,
-        limit_internal_calls: plan&.captain_internal_calls,
-        limit_documents: plan&.max_documents,
+        limit_responses: plan_limit(:monthly_messages),
+        limit_copilot_responses: plan_limit(:captain_copilot_responses),
+        limit_internal_calls: plan_limit(:captain_internal_calls),
+        limit_documents: plan_limit(:max_documents),
         created_at: Time.current,
         updated_at: Time.current
       }],

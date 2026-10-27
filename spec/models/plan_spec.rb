@@ -63,4 +63,32 @@ RSpec.describe Plan do
     plan.captain_internal_calls = -1
     expect(plan).not_to be_valid
   end
+
+  it 'defines bilingual metadata and reads every registered limit from columns or JSONB' do
+    expect(described_class::LIMITS).to all(include(:key, :group, :label_en, :label_es, :unit_en, :unit_es, :help_en, :help_es, :enforcement))
+
+    described_class::LIMITS.each do |definition|
+      key = definition[:key]
+      plan.limit_values = { key => '17' }
+      expect(plan.limit(key)).to eq(17), "expected #{key} to read its configured value"
+    end
+  end
+
+  it 'treats an absent JSONB value and a NULL column value as unlimited' do
+    described_class::LIMITS.select { |definition| definition[:column].nil? }.each do |definition|
+      expect(plan.limit(definition[:key])).to be_nil
+    end
+    plan.limit_values = { storage_mb: '' }
+    expect(plan.limit(:storage_mb)).to be_nil
+    expect(plan.unlimited_limit?(:storage_mb)).to be(true)
+  end
+
+  it 'rejects non-integer and negative dynamic limits' do
+    plan.limit_values = { max_flows: '2.5' }
+    expect(plan).not_to be_valid
+
+    plan = described_class.new(name: 'Catalog', slug: 'catalog')
+    plan.limit_values = { max_flows: '-1' }
+    expect(plan).not_to be_valid
+  end
 end

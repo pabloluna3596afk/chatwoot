@@ -11,6 +11,7 @@
 #  description        :string
 #  display_order      :integer          default(0), not null
 #  feature_keys       :jsonb            default([]), not null
+#  limits             :jsonb            default({}), not null
 #  is_active          :boolean          default(TRUE), not null
 #  is_default_trial   :boolean          default(FALSE), not null
 #  is_public          :boolean          default(TRUE), not null
@@ -46,7 +47,148 @@
 # sidebar resolves a resource's model class by convention from its route name
 # ("plan".classify => "Plan"), and a namespaced class name breaks navigation
 # rendering across all of SuperAdmin, not just this resource's own pages.
-class Plan < ApplicationRecord
+class Plan < ApplicationRecord # rubocop:disable Metrics/ClassLength
+  # The complete plan-limit catalog. Existing values stay in their columns;
+  # JSONB stores new limits and explicit unlimited overrides for old columns.
+  LIMITS = [
+    {
+      key: :max_human_agents, column: :max_human_agents, group: :team,
+      label_en: 'Human agents', label_es: 'Agentes humanos', unit_en: 'agents', unit_es: 'agentes',
+      help_en: 'Maximum human agents in the account.', help_es: 'Máximo de agentes humanos en la cuenta.',
+      enforcement: 'Enterprise::Account::PlanUsageAndLimits#agent_limits'
+    },
+    {
+      key: :max_captain_assistants, column: :max_captain_assistants, group: :ai,
+      label_en: 'Captain assistants', label_es: 'Asistentes de Captain', unit_en: 'assistants', unit_es: 'asistentes',
+      help_en: 'Maximum Captain assistants.', help_es: 'Máximo de asistentes de Captain.',
+      enforcement: 'Captain::Assistant#ensure_within_plan_limit'
+    },
+    {
+      key: :max_inboxes, column: :max_inboxes, group: :channels,
+      label_en: 'Inboxes', label_es: 'Canales', unit_en: 'inboxes', unit_es: 'canales',
+      help_en: 'Maximum inboxes.', help_es: 'Máximo de canales.',
+      enforcement: 'Enterprise::Account::PlanUsageAndLimits#inbox_limits'
+    },
+    {
+      key: :max_integrations, group: :channels,
+      label_en: 'Integrations', label_es: 'Integraciones', unit_en: 'integrations', unit_es: 'integraciones',
+      help_en: 'Maximum integrations. Enforcement is planned with PLAN-GRATIS.',
+      help_es: 'Máximo de integraciones. PLAN-GRATIS implementará su aplicación.', enforcement: 'TODO PLAN-GRATIS'
+    },
+    {
+      key: :monthly_messages, column: :monthly_messages, group: :ai,
+      label_en: 'AI responses', label_es: 'Respuestas de IA', unit_en: 'per month', unit_es: 'por mes',
+      help_en: 'Monthly Captain response pool.', help_es: 'Bolsa mensual de respuestas de Captain.',
+      enforcement: 'Enterprise::Account::PlanUsageAndLimits#captain_monthly_limit'
+    },
+    {
+      key: :captain_copilot_responses, column: :captain_copilot_responses, group: :ai,
+      label_en: 'Copilot responses', label_es: 'Respuestas de Copilot', unit_en: 'per month', unit_es: 'por mes',
+      help_en: 'Monthly Copilot response allowance.', help_es: 'Cupo mensual de respuestas de Copilot.',
+      enforcement: 'Enterprise::Account::PlanUsageAndLimits#copilot_limit'
+    },
+    {
+      key: :captain_internal_calls, column: :captain_internal_calls, group: :ai,
+      label_en: 'Internal AI calls', label_es: 'Llamadas internas de IA', unit_en: 'per month', unit_es: 'por mes',
+      help_en: 'Monthly internal Captain action allowance.', help_es: 'Cupo mensual de acciones internas de Captain.',
+      enforcement: 'Enterprise::Account::PlanUsageAndLimits#internal_limit'
+    },
+    {
+      key: :captain_daily_tests, column: :captain_daily_tests, group: :ai,
+      label_en: 'Captain playground tests', label_es: 'Pruebas del Playground de Captain', unit_en: 'per day', unit_es: 'por día',
+      help_en: 'Daily tests before using the plan response pool.',
+      help_es: 'Pruebas diarias antes de usar la bolsa de respuestas del plan.',
+      enforcement: 'Captain::Playground::Usage#enforce_plan_limit!'
+    },
+    {
+      key: :max_documents, column: :max_documents, group: :storage,
+      label_en: 'Documents', label_es: 'Documentos', unit_en: 'documents', unit_es: 'documentos',
+      help_en: 'Maximum documents added by a Captain web crawl.',
+      help_es: 'Máximo de documentos agregados por un rastreo web de Captain.',
+      enforcement: 'Captain::Documents::CrawlJob#perform_firecrawl_crawl (crawl size only)'
+    },
+    {
+      key: :storage_mb, column: :storage_mb, group: :storage,
+      label_en: 'Storage', label_es: 'Almacenamiento', unit_en: 'MB', unit_es: 'MB',
+      help_en: 'Captain document storage allowance.', help_es: 'Cupo de almacenamiento de documentos de Captain.',
+      enforcement: 'Enterprise::Captain::Document#ensure_within_plan_limit'
+    },
+    {
+      key: :max_synced_templates, group: :templates,
+      label_en: 'Synced templates', label_es: 'Plantillas sincronizadas', unit_en: 'templates', unit_es: 'plantillas',
+      help_en: 'Maximum synced message templates. Enforcement is planned with PLAN-GRATIS.',
+      help_es: 'Máximo de plantillas sincronizadas. PLAN-GRATIS implementará su aplicación.',
+      enforcement: 'TODO PLAN-GRATIS'
+    },
+    {
+      key: :template_sends_per_month, group: :templates,
+      label_en: 'Template sends', label_es: 'Envíos de plantillas', unit_en: 'per month', unit_es: 'por mes',
+      help_en: 'Monthly template sends. Enforcement is planned with PLAN-GRATIS.',
+      help_es: 'Envíos mensuales de plantillas. PLAN-GRATIS implementará su aplicación.', enforcement: 'TODO PLAN-GRATIS'
+    },
+    {
+      key: :max_flows, group: :appointments,
+      label_en: 'Flows', label_es: 'Flows', unit_en: 'flows', unit_es: 'flows',
+      help_en: 'Maximum Flows. Enforcement is planned with PLAN-GRATIS.',
+      help_es: 'Máximo de Flows. PLAN-GRATIS implementará su aplicación.', enforcement: 'TODO PLAN-GRATIS'
+    },
+    {
+      key: :max_appointments, group: :appointments,
+      label_en: 'Appointments', label_es: 'Citas', unit_en: 'appointments', unit_es: 'citas',
+      help_en: 'Maximum appointments. Enforcement is planned with PLAN-GRATIS.',
+      help_es: 'Máximo de citas. PLAN-GRATIS implementará su aplicación.', enforcement: 'TODO PLAN-GRATIS'
+    },
+    {
+      key: :max_calendars, group: :appointments,
+      label_en: 'Calendars', label_es: 'Calendarios', unit_en: 'calendars', unit_es: 'calendarios',
+      help_en: 'Maximum connected calendars. Enforcement is planned with PLAN-GRATIS.',
+      help_es: 'Máximo de calendarios conectados. PLAN-GRATIS implementará su aplicación.', enforcement: 'TODO PLAN-GRATIS'
+    },
+    {
+      key: :max_campaigns_per_month, group: :campaigns,
+      label_en: 'Campaigns', label_es: 'Campañas', unit_en: 'per month', unit_es: 'por mes',
+      help_en: 'Monthly campaign allowance. Enforcement is planned with PLAN-GRATIS.',
+      help_es: 'Cupo mensual de campañas. PLAN-GRATIS implementará su aplicación.', enforcement: 'TODO PLAN-GRATIS'
+    },
+    {
+      key: :max_emails_per_day, column: :max_emails_per_day, group: :emails,
+      label_en: 'Emails', label_es: 'Correos', unit_en: 'per day', unit_es: 'por día',
+      help_en: 'Daily account email allowance.', help_es: 'Cupo diario de correos de la cuenta.',
+      enforcement: 'Enterprise::Account::PlanUsageAndLimits#plan_email_limit'
+    },
+    {
+      key: :max_api_users, group: :api,
+      label_en: 'API users', label_es: 'Usuarios de API', unit_en: 'users', unit_es: 'usuarios',
+      help_en: 'Maximum API users. Enforcement is planned with PLAN-GRATIS.',
+      help_es: 'Máximo de usuarios de API. PLAN-GRATIS implementará su aplicación.', enforcement: 'TODO PLAN-GRATIS'
+    },
+    {
+      key: :max_automations, group: :automation,
+      label_en: 'Automations', label_es: 'Automatizaciones', unit_en: 'automations', unit_es: 'automatizaciones',
+      help_en: 'Maximum automations. Enforcement is planned with PLAN-GRATIS.',
+      help_es: 'Máximo de automatizaciones. PLAN-GRATIS implementará su aplicación.', enforcement: 'TODO PLAN-GRATIS'
+    },
+    {
+      key: :max_macros, group: :automation,
+      label_en: 'Macros', label_es: 'Macros', unit_en: 'macros', unit_es: 'macros',
+      help_en: 'Maximum macros. Enforcement is planned with PLAN-GRATIS.',
+      help_es: 'Máximo de macros. PLAN-GRATIS implementará su aplicación.', enforcement: 'TODO PLAN-GRATIS'
+    },
+    {
+      key: :trial_days, column: :trial_days, group: :trial,
+      label_en: 'Trial duration', label_es: 'Duración de prueba', unit_en: 'days', unit_es: 'días',
+      help_en: 'Trial duration included with this plan.', help_es: 'Duración de prueba incluida con este plan.',
+      enforcement: 'Plan catalog/API; no runtime enforcement found'
+    },
+    {
+      key: :trial_messages, column: :trial_messages, group: :trial,
+      label_en: 'Trial responses', label_es: 'Respuestas de prueba', unit_en: 'responses', unit_es: 'respuestas',
+      help_en: 'Trial response allowance.', help_es: 'Cupo de respuestas de prueba.',
+      enforcement: 'Plan catalog/API; no runtime enforcement found'
+    }
+  ].map(&:freeze).freeze
+  LIMITS_BY_KEY = LIMITS.index_by { |limit| limit[:key] }.freeze
+
   # Catalog labels only; these keys never grant account features.
   FEATURE_KEYS = %w[captain_integration automations campaigns help_center api_and_webhooks
                     custom_roles sla saml calendar_integration].freeze
@@ -57,6 +199,9 @@ class Plan < ApplicationRecord
   validates :captain_daily_tests, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :captain_copilot_responses, :captain_internal_calls,
             numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
+  validate :valid_extra_limits
+  validate :validate_limit_values
+  validate :valid_column_limits
   validates :name, presence: true
   validates :slug, presence: true, uniqueness: true
   # DB partial unique index enforces this too; the validation just gives a
@@ -68,6 +213,35 @@ class Plan < ApplicationRecord
   scope :ordered, -> { order(:display_order, :price_monthly) }
   scope :catalog, -> { active.public_plans.where.not(slug: 'developer').order(:display_order, :id) }
 
+  def limit(key)
+    definition = LIMITS_BY_KEY.fetch(key.to_sym)
+    return nil if unlimited_limit?(key)
+
+    value = self[definition[:column]] if definition[:column]
+    value.nil? ? stored_limit(key) : value
+  end
+
+  def unlimited_limit?(key)
+    stored_key = limits&.key?(key.to_s) ? key.to_s : key.to_sym
+    limits&.key?(stored_key) && limits[stored_key].nil?
+  end
+
+  def limit_values
+    LIMITS.to_h { |definition| [definition[:key], limit(definition[:key])] }
+  end
+
+  def limit_values=(values)
+    @invalid_limit_values = false
+    unless values.respond_to?(:each_pair)
+      @invalid_limit_values = true
+      return
+    end
+
+    values.each_pair { |key, value| assign_limit_value(key, value) }
+  rescue ArgumentError, KeyError, TypeError
+    @invalid_limit_values = true
+  end
+
   def catalog_state
     return 'hidden' unless is_active? && is_public? && slug != 'developer'
 
@@ -75,6 +249,65 @@ class Plan < ApplicationRecord
   end
 
   private
+
+  def valid_extra_limits
+    unless limits.is_a?(Hash)
+      errors.add(:limits, :invalid)
+      return
+    end
+
+    valid = limits.all? do |key, value|
+      LIMITS_BY_KEY.key?(key.to_sym) && (value.nil? || (value.is_a?(Integer) && value >= 0))
+    end
+    return if valid
+
+    errors.add(:limits, :invalid)
+  end
+
+  def stored_limit(key)
+    stored_key = limits&.key?(key.to_s) ? key.to_s : key.to_sym
+    limits&.[](stored_key)
+  end
+
+  def valid_column_limits
+    LIMITS.filter_map { |definition| definition[:column] }.uniq.each do |column|
+      value = self[column]
+      errors.add(column, :greater_than_or_equal_to, count: 0) if value.present? && value.negative?
+    end
+  end
+
+  def assign_limit_value(key, raw_value)
+    definition = LIMITS_BY_KEY.fetch(key.to_sym)
+    value = raw_value.to_s.empty? ? nil : Integer(raw_value.to_s, 10)
+    extras = (limits || {}).dup
+    if definition[:column]
+      assign_column_limit(key, definition[:column], value, extras)
+    else
+      assign_json_limit(key, value, extras)
+    end
+    self.limits = extras
+  end
+
+  def assign_column_limit(key, column, value, extras)
+    if value.nil?
+      extras[key.to_s] = nil unless self[column].nil? && !extras.key?(key.to_s)
+    else
+      self[column] = value
+      extras.delete(key.to_s)
+    end
+  end
+
+  def assign_json_limit(key, value, extras)
+    if value.nil?
+      extras.delete(key.to_s)
+    else
+      extras[key.to_s] = value
+    end
+  end
+
+  def validate_limit_values
+    errors.add(:limits, :invalid) if @invalid_limit_values
+  end
 
   def valid_feature_keys
     return if feature_keys.is_a?(Array) && feature_keys.all? { |key| FEATURE_KEYS.include?(key) }

@@ -4,6 +4,14 @@ RSpec.describe Captain::Document, type: :model do
   let(:account) { create(:account) }
   let(:assistant) { create(:captain_assistant, account: account) }
 
+  it 'allows document creation when storage is configured as unlimited' do
+    plan = Plan.create!(name: 'Unlimited storage', slug: 'unlimited-storage')
+    account.update!(plan: plan)
+    plan.update!(limits: { storage_mb: nil })
+
+    expect { create(:captain_document, assistant: assistant, account: account) }.not_to raise_error
+  end
+
   describe 'URL normalization' do
     it 'removes a trailing slash before validation' do
       document = create(:captain_document,

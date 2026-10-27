@@ -14,6 +14,7 @@ class PlanDashboard < Administrate::BaseDashboard
     description: Field::String,
     coming_soon: Field::Boolean,
     feature_keys: PlanFeaturesField,
+    limit_values: PlanLimitsField,
     captain_daily_tests: Field::Number,
     monthly_messages: Field::Number,
     captain_copilot_responses: Field::Number,
@@ -49,11 +50,7 @@ class PlanDashboard < Administrate::BaseDashboard
     id
     name
     price_monthly
-    monthly_messages
-    captain_copilot_responses
-    captain_internal_calls
-    max_human_agents
-    max_inboxes
+    limit_values
     is_active
     is_public
   ].freeze
@@ -67,20 +64,9 @@ class PlanDashboard < Administrate::BaseDashboard
     description
     coming_soon
     feature_keys
-    captain_daily_tests
-    monthly_messages
-    captain_copilot_responses
-    captain_internal_calls
-    storage_mb
-    max_documents
-    max_captain_assistants
-    max_human_agents
-    max_inboxes
-    max_emails_per_day
+    limit_values
     price_monthly
     price_yearly
-    trial_days
-    trial_messages
     is_default_trial
     addon_agent_price
     addon_bot_price
@@ -102,20 +88,9 @@ class PlanDashboard < Administrate::BaseDashboard
     description
     coming_soon
     feature_keys
-    captain_daily_tests
-    monthly_messages
-    captain_copilot_responses
-    captain_internal_calls
-    storage_mb
-    max_documents
-    max_captain_assistants
-    max_human_agents
-    max_inboxes
-    max_emails_per_day
+    limit_values
     price_monthly
     price_yearly
-    trial_days
-    trial_messages
     is_default_trial
     addon_agent_price
     addon_bot_price

@@ -13,7 +13,7 @@ module Enterprise::Api::V1::Accounts::OnboardingsController
     @assistant = Onboarding::CaptainDraftService.new(account: @account, **assistant_draft_params.to_h.symbolize_keys).perform
     render_assistant_draft
   rescue Captain::Assistant::LimitExceededError
-    limit = @account.plan.max_captain_assistants
+    limit = @account.plan_limit(:max_captain_assistants)
     render json: { error: I18n.t('captain.assistant.limit_exceeded', locale: @account.locale, limit: limit),
                    error_code: 'assistant_limit', limit: limit }, status: :unprocessable_entity
   rescue Onboarding::CaptainDraftService::Unavailable

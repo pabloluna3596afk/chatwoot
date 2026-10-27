@@ -40,6 +40,9 @@ export const usePlaygroundUsage = () => {
     if (usage.uses_plan_pool && usage.plan_remaining <= 0) {
       return t('CAPTAIN.PLAYGROUND.USAGE.responses_limit_reached');
     }
+    if (usage.daily_total === null) {
+      return t('CAPTAIN.PLAYGROUND.USAGE.UNLIMITED_DAILY');
+    }
     if (usage.plan_kind === 'free') {
       return t('CAPTAIN.PLAYGROUND.USAGE.FREE', {
         count: usage.plan_remaining,
