@@ -33,13 +33,21 @@ const {
 } = useConversationAssignee();
 
 const showMenu = ref(false);
+const typingUsers = computed(() =>
+  store.getters['conversationTypingStatus/getUserList'](
+    store.getters.getSelectedChat?.id
+  )
+);
 
 // While Captain answers, the chip shows the assistant's own photo inside the state ring (as the conversation card does).
 const {
   showAssistantAvatar,
   assistant: captainAssistant,
   ringClass: captainRingClass,
-} = useCaptainState(computed(() => store.getters.getSelectedChat));
+} = useCaptainState(
+  computed(() => store.getters.getSelectedChat),
+  typingUsers
+);
 const chipThumbnail = computed(() =>
   showAssistantAvatar.value
     ? captainAssistant.value.thumbnail || assignedAgent.value?.thumbnail

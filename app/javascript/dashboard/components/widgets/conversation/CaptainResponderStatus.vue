@@ -3,10 +3,18 @@ import { computed } from 'vue';
 import { useStore } from 'vuex';
 import { useCaptainState } from 'dashboard/composables/useCaptainState';
 
-// Who is answering right now, pinned at the top of the contact panel so it is the first thing seen on opening a conversation.
+// Captain's current status is pinned at the top of the contact panel.
 const store = useStore();
-const { isAiAttended, isEscalated, assistant, isWaitingForCustomer } =
-  useCaptainState(computed(() => store.getters.getSelectedChat));
+const typingUsers = computed(() =>
+  store.getters['conversationTypingStatus/getUserList'](
+    store.getters.getSelectedChat?.id
+  )
+);
+const { isAiAttended, isEscalated, assistant, isWaitingForCustomer, isTyping } =
+  useCaptainState(
+    computed(() => store.getters.getSelectedChat),
+    typingUsers
+  );
 </script>
 
 <template>
@@ -21,13 +29,26 @@ const { isAiAttended, isEscalated, assistant, isWaitingForCustomer } =
     />
     <span class="min-w-0">
       <template v-if="isAiAttended">
-        {{
-          $t('CONVERSATION_SIDEBAR.RESPONDER.ANSWERING', {
-            name: assistant?.name || 'Captain',
-          })
-        }}
-        <template v-if="isWaitingForCustomer">
-          · {{ $t('CONVERSATION_SIDEBAR.RESPONDER.WAITING_CUSTOMER') }}
+        <template v-if="isTyping">
+          {{
+            $t('CONVERSATION_SIDEBAR.RESPONDER.TYPING', {
+              name: assistant?.name || 'Captain',
+            })
+          }}
+        </template>
+        <template v-else-if="isWaitingForCustomer">
+          {{
+            $t('CONVERSATION_SIDEBAR.RESPONDER.WAITING_CUSTOMER', {
+              name: assistant?.name || 'Captain',
+            })
+          }}
+        </template>
+        <template v-else>
+          {{
+            $t('CONVERSATION_SIDEBAR.RESPONDER.ASSIGNED', {
+              name: assistant?.name || 'Captain',
+            })
+          }}
         </template>
       </template>
       <template v-else>

@@ -1,4 +1,4 @@
-class Captain::Conversation::ResponseBuilderJob < ApplicationJob
+class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disable Metrics/ClassLength
   include Captain::Conversation::V1ActionClassifier
   include Captain::Conversation::V1FalsePromiseHandler
   include Captain::Conversation::V2LifecycleEvents
@@ -22,22 +22,42 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
 
     return log_pre_generation_discard if newer_customer_message_arrived?
 
-    Current.executed_by = @assistant
-    return process_reply_limit if @assistant.reply_limit_reached?(conversation)
-
-    return generate_and_process_response unless captain_v2_enabled?
-
-    generate_response_with_v2
+    process_pending_response
   rescue ActiveStorage::FileNotFoundError, Faraday::BadRequestError => e
     handle_error(e)
     raise e
   rescue StandardError => e
     handle_error(e)
   ensure
-    Current.executed_by = nil
+    begin
+      trigger_typing_event(:off) if @typing_started
+    ensure
+      Current.executed_by = nil
+    end
   end
 
   private
+
+  def trigger_typing_event(status)
+    event = if status == :on
+              Events::Types::CONVERSATION_TYPING_ON
+            else
+              Events::Types::CONVERSATION_TYPING_OFF
+            end
+    Rails.configuration.dispatcher.dispatch(
+      event, Time.zone.now, conversation: @conversation, user: @assistant, is_private: false
+    )
+    @typing_started = status == :on
+  end
+
+  def process_pending_response
+    trigger_typing_event(:on)
+    Current.executed_by = @assistant
+    return process_reply_limit if @assistant.reply_limit_reached?(@conversation)
+    return generate_and_process_response unless captain_v2_enabled?
+
+    generate_response_with_v2
+  end
 
   delegate :account, :inbox, to: :@conversation
 

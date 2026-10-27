@@ -21,7 +21,12 @@ const mountStatus = state =>
   });
 
 vi.mock('vuex', () => ({
-  useStore: () => ({ getters: { getSelectedChat: {} } }),
+  useStore: () => ({
+    getters: {
+      getSelectedChat: {},
+      'conversationTypingStatus/getUserList': () => [],
+    },
+  }),
 }));
 const mockState = vi.hoisted(() => ({ value: {} }));
 vi.mock('dashboard/composables/useCaptainState', async () => {
@@ -32,17 +37,16 @@ vi.mock('dashboard/composables/useCaptainState', async () => {
       isEscalated: ref(Boolean(mockState.value.escalated)),
       assistant: ref({ name: 'Aurora' }),
       isWaitingForCustomer: ref(false),
+      isTyping: ref(false),
     }),
   };
 });
 
 describe('CaptainResponderStatus', () => {
-  it('says who answers, without repeating the Captain name next to its icon', () => {
+  it('shows the assigned state while Captain is idle', () => {
     mockState.value = { attended: true };
     const wrapper = mountStatus();
-    expect(wrapper.text()).toContain(
-      'CONVERSATION_SIDEBAR.RESPONDER.ANSWERING'
-    );
+    expect(wrapper.text()).toContain('CONVERSATION_SIDEBAR.RESPONDER.ASSIGNED');
     expect(wrapper.text()).toContain('Aurora');
   });
 

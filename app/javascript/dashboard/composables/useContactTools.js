@@ -1,5 +1,6 @@
 import { computed, toValue } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useStore } from 'vuex';
 import { useCaptainState } from './useCaptainState';
 import { useCalendarTime } from './useCalendarTime';
 
@@ -15,8 +16,17 @@ export function useContactTools({
   onOpenCalendar,
 }) {
   const { t, locale } = useI18n();
-  const { isAiAttended, isEscalated, isWaitingForCustomer, assistant } =
-    useCaptainState(chat);
+  const store = useStore();
+  const typingUsers = computed(() =>
+    store.getters['conversationTypingStatus/getUserList'](toValue(chat)?.id)
+  );
+  const {
+    isAiAttended,
+    isEscalated,
+    isWaitingForCustomer,
+    isTyping,
+    assistant,
+  } = useCaptainState(chat, typingUsers);
   const { formatEventWhen, eventDateKey, todayKey, formatTime } =
     useCalendarTime();
   return computed(() => {
@@ -28,9 +38,21 @@ export function useContactTools({
       captainName
     );
     if (isAiAttended.value) {
-      captainLegend = isWaitingForCustomer.value
-        ? t('CONVERSATION_SIDEBAR.TOOLS.CAPTAIN_WAITING', captainName)
-        : t('CONVERSATION_SIDEBAR.TOOLS.CAPTAIN_REPLYING', captainName);
+      if (isTyping.value)
+        captainLegend = t(
+          'CONVERSATION_SIDEBAR.TOOLS.CAPTAIN_TYPING',
+          captainName
+        );
+      else if (isWaitingForCustomer.value)
+        captainLegend = t(
+          'CONVERSATION_SIDEBAR.TOOLS.CAPTAIN_WAITING',
+          captainName
+        );
+      else
+        captainLegend = t(
+          'CONVERSATION_SIDEBAR.TOOLS.CAPTAIN_ASSIGNED',
+          captainName
+        );
     }
     const appointment = toValue(nextEvent);
     let captainState = 'hidden';
@@ -64,6 +86,9 @@ export function useContactTools({
             ? captainLegend
             : t('CONVERSATION_SIDEBAR.RESPONDER.IDLE'),
         legend: captainLegend,
+        assistantAvatar:
+          assistant.value?.avatar_url || assistant.value?.thumbnail,
+        isTyping: isAiAttended.value && isTyping.value,
         onClick: undefined,
       },
       {
