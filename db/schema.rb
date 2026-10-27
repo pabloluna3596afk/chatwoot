@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_26_130000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_26_140000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1673,6 +1673,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_26_130000) do
     t.jsonb "feature_keys", default: [], null: false
     t.integer "captain_copilot_responses"
     t.integer "captain_internal_calls"
+    t.jsonb "limits", default: {}, null: false
     t.index ["is_default_trial"], name: "index_plans_on_is_default_trial", unique: true, where: "is_default_trial"
     t.index ["slug"], name: "index_plans_on_slug", unique: true
   end

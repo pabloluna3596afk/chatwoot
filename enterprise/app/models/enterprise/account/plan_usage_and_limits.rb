@@ -97,7 +97,7 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
       documents: self[:limits][CAPTAIN_DOCUMENTS] || default_limits['documents'],
       responses: self[:limits][CAPTAIN_RESPONSES] || default_limits['responses'],
       copilot: copilot_limit,
-      internal: self[:limits]['captain_internal'] || plan&.captain_internal_calls,
+      internal: self[:limits]['captain_internal'] || plan_limit(:captain_internal_calls),
       storage: self[:limits]['captain_storage'] || default_limits['storage']
     }.with_indifferent_access
   end
@@ -140,15 +140,21 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
   end
 
   def copilot_limit
-    self[:limits]['captain_copilot'] || plan&.captain_copilot_responses
+    return ChatwootApp.max_limit if plan&.unlimited_limit?(:captain_copilot_responses)
+
+    self[:limits]['captain_copilot'] || plan_limit(:captain_copilot_responses)
   end
 
   def internal_limit
-    self[:limits]['captain_internal'] || plan&.captain_internal_calls
+    return ChatwootApp.max_limit if plan&.unlimited_limit?(:captain_internal_calls)
+
+    self[:limits]['captain_internal'] || plan_limit(:captain_internal_calls)
   end
 
   def plan_email_limit
-    return plan.max_emails_per_day if plan.present? && plan.max_emails_per_day.to_i.positive?
+    configured_limit = configured_plan_email_limit
+    return configured_limit if configured_limit
+
     return shopify_plan_limits.fetch('emails', 0) if shopify_billing?
 
     base_limit = plan_base_email_limit
@@ -166,6 +172,14 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
     parsed[plan_name.downcase]&.to_i
   rescue StandardError
     nil
+  end
+
+  def configured_plan_email_limit
+    return if plan.blank?
+    return ChatwootApp.max_limit if plan.unlimited_limit?(:max_emails_per_day)
+
+    value = plan_limit(:max_emails_per_day)
+    value if value.to_i.positive?
   end
 
   def free_plan?
@@ -188,9 +202,9 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
     return max_limits if plan.blank?
 
     {
-      documents: plan.max_documents,
-      responses: plan.monthly_messages,
-      storage: plan.storage_mb.megabytes
+      documents: plan_limit(:max_documents),
+      responses: plan_limit(:monthly_messages),
+      storage: plan_limit(:storage_mb)&.megabytes
     }.with_indifferent_access
   end
 
@@ -206,14 +220,18 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
   end
 
   def agent_limits
+    return ChatwootApp.max_limit if !shopify_billing? && plan&.unlimited_limit?(:max_human_agents)
+
     subscribed_quantity = custom_attributes['subscribed_quantity'] unless shopify_billing?
     return subscribed_quantity if subscribed_quantity.present?
 
-    get_limits(:agents, plan_value: plan&.max_human_agents)
+    get_limits(:agents, plan_value: plan_limit(:max_human_agents))
   end
 
   def inbox_limits
-    get_limits(:inboxes, plan_value: plan&.max_inboxes)
+    return ChatwootApp.max_limit if !shopify_billing? && plan&.unlimited_limit?(:max_inboxes)
+
+    get_limits(:inboxes, plan_value: plan_limit(:max_inboxes))
   end
 
   def get_limits(limit_name, plan_value: nil)

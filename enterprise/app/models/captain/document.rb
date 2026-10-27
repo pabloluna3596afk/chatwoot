@@ -199,13 +199,13 @@ class Captain::Document < ApplicationRecord
   def ensure_within_plan_limit
     # Check storage limit
     storage_limits = account.usage_limits[:captain][:storage]
-    if storage_limits[:total_count].positive? # Only check if storage limit is set (> 0)
-      current_storage = storage_limits[:consumed]
-      new_storage = current_storage + effective_size_bytes
-      unless (storage_limits[:total_count] - new_storage) >= 0
-        raise LimitExceededError, I18n.t('captain.documents.storage_limit_exceeded')
-      end
-    end
+    return unless storage_limits[:total_count].to_i.positive? # Only check if storage limit is set (> 0)
+
+    current_storage = storage_limits[:consumed]
+    new_storage = current_storage + effective_size_bytes
+    return if (storage_limits[:total_count] - new_storage) >= 0
+
+    raise LimitExceededError, I18n.t('captain.documents.storage_limit_exceeded')
   end
 
   def validate_pdf_format

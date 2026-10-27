@@ -1,0 +1,24 @@
+<div class="field-unit__label">
+  <%= f.label field.attribute %>
+</div>
+<div class="field-unit__field">
+  <% group_order = %i[team channels ai templates storage appointments campaigns emails api automation trial] %>
+  <% Plan::LIMITS.group_by { |limit| limit[:group] }.sort_by { |group, _| group_order.index(group) || group_order.length }.each do |group, limits| %>
+    <% groups_en = { team: 'Team', channels: 'Channels', ai: 'AI', storage: 'Storage', templates: 'Templates', appointments: 'Appointments and Flows', campaigns: 'Campaigns', emails: 'Email', api: 'API', automation: 'Automation', trial: 'Trial' } %>
+    <% groups_es = { team: 'Equipo', channels: 'Canales', ai: 'IA', storage: 'Almacenamiento', templates: 'Plantillas', appointments: 'Citas, calendarios y Flows', campaigns: 'Campañas', emails: 'Correo', api: 'API', automation: 'Automatización', trial: 'Prueba' } %>
+    <fieldset class="mb-6">
+      <legend class="font-semibold mb-2"><%= I18n.locale == :es ? groups_es.fetch(group) : groups_en.fetch(group) %></legend>
+      <% limits.each do |limit| %>
+        <% label = I18n.locale == :es ? limit[:label_es] : limit[:label_en] %>
+        <% unit = I18n.locale == :es ? limit[:unit_es] : limit[:unit_en] %>
+        <% help = I18n.locale == :es ? limit[:help_es] : limit[:help_en] %>
+        <div class="mb-3">
+          <%= label_tag "plan_limit_values_#{limit[:key]}", "#{label} (#{unit})" %>
+          <%= number_field_tag "plan[limit_values][#{limit[:key]}]", field.data[limit[:key]], min: 0, step: 1,
+                              id: "plan_limit_values_#{limit[:key]}", class: 'w-full' %>
+          <p class="text-sm text-slate-500"><%= help %></p>
+        </div>
+      <% end %>
+    </fieldset>
+  <% end %>
+</div>

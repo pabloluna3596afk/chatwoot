@@ -1,0 +1,13 @@
+<dl>
+  <% groups_en = { team: 'Team', channels: 'Channels', ai: 'AI', storage: 'Storage', templates: 'Templates', appointments: 'Appointments and Flows', campaigns: 'Campaigns', emails: 'Email', api: 'API', automation: 'Automation', trial: 'Trial' } %>
+  <% groups_es = { team: 'Equipo', channels: 'Canales', ai: 'IA', storage: 'Almacenamiento', templates: 'Plantillas', appointments: 'Citas, calendarios y Flows', campaigns: 'Campañas', emails: 'Correo', api: 'API', automation: 'Automatización', trial: 'Prueba' } %>
+  <% group_order = %i[team channels ai templates storage appointments campaigns emails api automation trial] %>
+  <% Plan::LIMITS.group_by { |limit| limit[:group] }.sort_by { |group, _| group_order.index(group) || group_order.length }.each do |group, limits| %>
+    <dt class="font-semibold"><%= I18n.locale == :es ? groups_es.fetch(group) : groups_en.fetch(group) %></dt>
+    <% limits.each do |limit| %>
+      <% label = I18n.locale == :es ? limit[:label_es] : limit[:label_en] %>
+      <% unit = I18n.locale == :es ? limit[:unit_es] : limit[:unit_en] %>
+      <dd><%= label %>: <%= field.data[limit[:key]].nil? ? '—' : "#{field.data[limit[:key]]} #{unit}" %></dd>
+    <% end %>
+  <% end %>
+</dl>

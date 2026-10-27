@@ -1,0 +1,1 @@
+<%= Plan::LIMITS.map { |limit| "#{limit[:key]}=#{field.data[limit[:key]] || '—'}" }.join(', ') %>

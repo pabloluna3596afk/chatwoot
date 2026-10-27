@@ -823,6 +823,7 @@
         "FREE": "Each test uses 1 plan response ({count} remaining)",
         "PLAN": "You used your {total} free tests today. Further tests use plan responses ({count} remaining)",
         "DAILY": "Today's free tests: {used} of {total}",
+        "UNLIMITED_DAILY": "Unlimited daily tests",
         "PLANS": "View plans",
         "responses_limit_reached": "Your plan responses have run out",
         "playground_rate_limit": "Wait a few seconds and retry (up to {seconds} seconds)",

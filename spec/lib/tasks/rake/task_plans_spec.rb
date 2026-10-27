@@ -56,4 +56,18 @@ RSpec.describe Rake::Task do
       expect { fill_task.invoke }.not_to output.to_stdout
     end
   end
+
+  describe 'plans:limits_report' do
+    subject(:report_task) { described_class['plans:limits_report'] }
+
+    before { report_task.reenable }
+
+    it 'prints every registered limit for each plan without changing plans' do
+      plan = Plan.create!(name: 'Report', slug: 'report', limits: { 'max_flows' => 4 })
+      original = plan.attributes
+
+      expect { report_task.invoke }.to output(/Report \(report\).*max_flows: 4.*max_calendars: unlimited/m).to_stdout
+      expect(plan.reload.attributes).to eq(original)
+    end
+  end
 end

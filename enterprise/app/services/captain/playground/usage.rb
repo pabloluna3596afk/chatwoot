@@ -49,14 +49,20 @@ class Captain::Playground::Usage
     return if @account.plan.nil? || @account.own_ai_key_configured?
 
     free = @account.plan.price_monthly.zero? || @account.plan.is_default_trial?
-    total = free ? 0 : @account.plan.captain_daily_tests
+    total = daily_test_limit(free)
     used = Redis::Alfred.get(daily_key).to_i
-    remaining = [total - used, 0].max
+    remaining = total.nil? ? ChatwootApp.max_limit : [total - used, 0].max
     { plan_kind: free ? 'free' : 'paid', daily_total: total, daily_used: used,
       daily_remaining: remaining, uses_plan_pool: remaining.zero?, plan_remaining: plan_remaining }
   end
 
   private
+
+  def daily_test_limit(free)
+    return if @account.plan.unlimited_limit?(:captain_daily_tests)
+
+    free ? 0 : @account.plan_limit(:captain_daily_tests)
+  end
 
   def perform_locked
     snapshot = test_usage

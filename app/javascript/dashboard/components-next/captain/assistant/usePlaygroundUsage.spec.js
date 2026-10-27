@@ -95,3 +95,42 @@ describe.each([
     wrapper.unmount();
   });
 });
+
+it('shows the unlimited daily allowance in English', () => {
+  let usage;
+  const wrapper = mount(
+    {
+      setup() {
+        usage = usePlaygroundUsage();
+        usage.update({
+          test_usage: {
+            plan_kind: 'free',
+            daily_total: null,
+            daily_used: 3,
+            daily_remaining: 1_000_000,
+            uses_plan_pool: false,
+            plan_remaining: 50,
+          },
+        });
+        return usage;
+      },
+      template: '<p>{{ label }}</p>',
+    },
+    {
+      global: {
+        plugins: [
+          createI18n({
+            legacy: false,
+            locale: 'en',
+            messages: { en: integrationsEn },
+          }),
+        ],
+      },
+    }
+  );
+
+  expect(wrapper.text()).toBe(
+    integrationsEn.CAPTAIN.PLAYGROUND.USAGE.UNLIMITED_DAILY
+  );
+  wrapper.unmount();
+});

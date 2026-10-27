@@ -24,6 +24,14 @@ RSpec.describe Captain::Playground::Usage, :real_redis do
     expect(usage.test_usage[:daily_remaining]).to eq(0)
   end
 
+  it 'treats an explicitly empty daily test limit as unlimited, including on a free plan' do
+    plan = put_account_on_plan(account, captain_daily_tests: 10)
+    plan.update!(limits: { captain_daily_tests: nil })
+    account.reload
+
+    expect(usage.test_usage).to include(daily_total: nil, daily_remaining: ChatwootApp.max_limit, uses_plan_pool: false)
+  end
+
   it 'uses the paid daily allowance first, then the plan without a hard daily ceiling' do
     put_account_on_plan(account, price_monthly: 79, captain_daily_tests: 1)
     expect(usage.perform { success }[:test_usage]).to include(daily_used: 1, daily_remaining: 0, plan_remaining: 100)

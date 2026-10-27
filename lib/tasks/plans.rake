@@ -108,4 +108,15 @@ namespace :plans do
       end
     end
   end
+
+  desc 'Print every registered plan limit without changing data'
+  task limits_report: :environment do
+    Plan.ordered.each do |plan|
+      puts "#{plan.name} (#{plan.slug})"
+      Plan::LIMITS.each do |definition|
+        value = plan.limit(definition[:key])
+        puts "  #{definition[:key]}: #{value.nil? ? 'unlimited' : value} [#{definition[:enforcement]}]"
+      end
+    end
+  end
 end

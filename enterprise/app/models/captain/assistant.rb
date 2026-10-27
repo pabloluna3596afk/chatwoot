@@ -270,9 +270,10 @@ class Captain::Assistant < ApplicationRecord
 
     # Lock the account row to serialize concurrent creates and prevent exceeding the cap
     Account.lock.find(account_id)
-    return if account.captain_assistants.count < account.plan.max_captain_assistants
+    limit = account.plan_limit(:max_captain_assistants)
+    return if limit.nil? || account.captain_assistants.count < limit
 
-    raise LimitExceededError, I18n.t('captain.assistant.limit_exceeded', limit: account.plan.max_captain_assistants)
+    raise LimitExceededError, I18n.t('captain.assistant.limit_exceeded', limit: limit)
   end
 
   def assistant_event_data
