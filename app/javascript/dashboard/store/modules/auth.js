@@ -5,6 +5,8 @@ import { setUser, clearCookiesOnLogout } from '../utils/api';
 import SessionStorage from 'shared/helpers/sessionStorage';
 import { SESSION_STORAGE_KEYS } from 'dashboard/constants/sessionStorage';
 
+let uiSettingsUpdateQueue = Promise.resolve();
+
 const initialState = {
   currentUser: {
     id: null,
@@ -155,19 +157,21 @@ export const actions = {
   },
 
   updateUISettings: async ({ commit }, params) => {
-    try {
-      commit(types.SET_CURRENT_USER_UI_SETTINGS, params);
+    commit(types.SET_CURRENT_USER_UI_SETTINGS, params);
 
-      const isImpersonating = SessionStorage.get(
-        SESSION_STORAGE_KEYS.IMPERSONATION_USER
-      );
+    const isImpersonating = SessionStorage.get(
+      SESSION_STORAGE_KEYS.IMPERSONATION_USER
+    );
 
-      if (!isImpersonating) {
-        const response = await authAPI.updateUISettings(params);
-        commit(types.SET_CURRENT_USER, response.data);
-      }
-    } catch (error) {
-      // Ignore error
+    if (!isImpersonating) {
+      const request = uiSettingsUpdateQueue
+        .catch(() => {})
+        .then(async () => {
+          const response = await authAPI.updateUISettings(params);
+          commit(types.SET_CURRENT_USER, response.data);
+        });
+      uiSettingsUpdateQueue = request;
+      await request.catch(() => {});
     }
   },
 

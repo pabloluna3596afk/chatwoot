@@ -6,6 +6,7 @@ import CopilotContainer from './CopilotContainer.vue';
 const testState = vi.hoisted(() => ({
   dispatch: vi.fn(),
   refs: {},
+  uiSettings: null,
 }));
 
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
@@ -17,10 +18,12 @@ vi.mock('dashboard/composables/useConfig', () => ({
 }));
 vi.mock('dashboard/composables/useUISettings', async () => {
   const { ref: createRef } = await import('vue');
+  const uiSettings = createRef({});
+  testState.uiSettings = uiSettings;
   return {
     useUISettings: () => ({
-      uiSettings: createRef({ is_copilot_panel_open: true }),
-      updateUISettings: vi.fn(),
+      uiSettings,
+      updateUISettings: settings => Object.assign(uiSettings.value, settings),
     }),
   };
 });
@@ -73,9 +76,54 @@ describe('CopilotContainer', () => {
     testState.dispatch.mockReset();
     testState.dispatch.mockResolvedValue(undefined);
     testState.refs.getSelectedChat.value = { id: 1 };
+    testState.uiSettings.value = {
+      is_copilot_panel_open: true,
+      copilot_unread_count: 2,
+    };
+  });
+
+  it('minimizes without reopening or clearing the active thread and unread count', async () => {
+    testState.uiSettings.value.copilot_active_thread_id = 23;
+    const wrapper = mountComponent();
+    const copilot = wrapper.findComponent({ name: 'Copilot' });
+
+    await copilot.vm.$emit('minimize');
+    await nextTick();
+
+    expect(testState.uiSettings.value).toMatchObject({
+      is_copilot_panel_open: false,
+      copilot_active_thread_id: 23,
+      copilot_unread_count: 2,
+    });
+    expect(wrapper.find('.fixed.z-40').exists()).toBe(false);
+  });
+
+  it('minimizes with Escape while preserving the active thread', async () => {
+    testState.uiSettings.value.copilot_active_thread_id = 23;
+    const wrapper = mountComponent();
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await nextTick();
+
+    expect(testState.uiSettings.value).toMatchObject({
+      is_copilot_panel_open: false,
+      copilot_active_thread_id: 23,
+    });
+    expect(wrapper.find('.fixed.z-40').exists()).toBe(false);
+  });
+
+  it('keeps the panel minimized when initialized from persisted settings', async () => {
+    testState.uiSettings.value.is_copilot_panel_open = false;
+    const wrapper = mountComponent();
+
+    await nextTick();
+
+    expect(wrapper.find('.fixed.z-40').exists()).toBe(false);
+    expect(testState.uiSettings.value.is_copilot_panel_open).toBe(false);
   });
 
   it('keeps the selected thread when the conversation changes', async () => {
+    testState.uiSettings.value.copilot_active_thread_id = null;
     testState.dispatch.mockImplementation(action =>
       action === 'copilotThreads/create'
         ? Promise.resolve({ id: 99 })
@@ -107,6 +155,7 @@ describe('CopilotContainer', () => {
   });
 
   it('retains a thread created while the selected conversation changes', async () => {
+    testState.uiSettings.value.copilot_active_thread_id = null;
     let resolveRequest;
     testState.dispatch.mockImplementation(action => {
       if (action !== 'copilotThreads/create') return Promise.resolve();
@@ -129,6 +178,7 @@ describe('CopilotContainer', () => {
   });
 
   it('keeps a successful send when loading action items fails', async () => {
+    testState.uiSettings.value.copilot_active_thread_id = null;
     testState.dispatch.mockImplementation(action =>
       action === 'copilotThreads/create'
         ? Promise.resolve({ id: 99 })
@@ -147,6 +197,7 @@ describe('CopilotContainer', () => {
   });
 
   it('reports a failed send', async () => {
+    testState.uiSettings.value.copilot_active_thread_id = null;
     testState.dispatch.mockImplementation(action =>
       action === 'copilotThreads/create'
         ? Promise.reject(new Error('Could not send'))

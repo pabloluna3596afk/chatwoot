@@ -25,6 +25,10 @@ vi.mock('dashboard/composables/store', () => ({
 }));
 
 describe('CopilotLauncher', () => {
+  beforeEach(() => {
+    testState.uiSettings.value = { is_copilot_panel_open: false };
+  });
+
   it('opens the floating panel from a dashboard view', async () => {
     const wrapper = mount(CopilotLauncher, {
       global: {
@@ -44,5 +48,26 @@ describe('CopilotLauncher', () => {
 
     expect(testState.uiSettings.value.is_copilot_panel_open).toBe(true);
     expect(wrapper.find('button').exists()).toBe(false);
+  });
+
+  it('shows the unread count on the launcher while the panel is minimized', async () => {
+    testState.uiSettings.value.copilot_unread_count = 2;
+    const wrapper = mount(CopilotLauncher, {
+      global: {
+        stubs: {
+          Button: {
+            emits: ['click'],
+            template:
+              '<button aria-label="Open Copilot" @click="$emit(\'click\')" />',
+          },
+          ButtonGroup: { template: '<div><slot /></div>' },
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain('2');
+    await wrapper.get('#copilot-launcher-button').trigger('click');
+
+    expect(testState.uiSettings.value.is_copilot_panel_open).toBe(true);
   });
 });

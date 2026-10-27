@@ -143,15 +143,6 @@ const minimize = async () => {
   await nextTick();
   document.getElementById('copilot-launcher-button')?.focus();
 };
-const close = () => {
-  persistThread(null);
-  unreadCount.value = 0;
-  updateUISettings({
-    is_copilot_panel_open: false,
-    copilot_active_thread_id: null,
-    copilot_unread_count: 0,
-  });
-};
 const newChat = () => {
   persistThread(null);
   isHistoryOpen.value = false;
@@ -326,7 +317,6 @@ onBeforeUnmount(() => {
         @close-history="isHistoryOpen = false"
         @select-thread="selectThread"
         @minimize="minimize"
-        @close="close"
       />
     </section>
   </Transition>
