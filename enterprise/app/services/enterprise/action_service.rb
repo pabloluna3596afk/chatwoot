@@ -8,12 +8,9 @@ module Enterprise::ActionService
       return if @conversation.pending? && @conversation.ai_assignee == assistant
 
       # An explicit assignment bypasses audience and response hours, just like manual assignment.
-      # Exclude existing messages even if their inbound hook runs after this action.
-      message_id = @conversation.messages.maximum(:id) || 0
       Conversations::AssignmentService.new(
         conversation: @conversation, assignee_id: assistant.id, assignee_type: 'Captain::Assistant'
       ).perform
-      @conversation.update!(additional_attributes: @conversation.additional_attributes.merge(captain_assignment_message_id: message_id))
     end
     record_captain_assignment(assistant)
   end

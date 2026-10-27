@@ -114,15 +114,17 @@ RSpec.describe ActionService do
     end
   end
 
-  it 'does not schedule the triggering message but schedules the next customer message' do
+  it 'schedules the existing customer message on assignment and later messages through the normal hook' do
     message = create(:message, :incoming, conversation: conversation, account: account, inbox: inbox)
+    scheduler = instance_double(Captain::Conversation::ResponseSchedulerService, perform: nil)
+    expect(Captain::Conversation::ResponseSchedulerService).to receive(:new).with(message: message).once.and_return(scheduler)
     service.assign_agent(['captain'])
-    expect(Captain::Conversation::ResponseSchedulerService).not_to receive(:new).with(message: message)
     MessageTemplates::HookExecutionService.new(message: message).perform
 
-    scheduler = instance_double(Captain::Conversation::ResponseSchedulerService, perform: nil)
-    expect(Captain::Conversation::ResponseSchedulerService).to receive(:new).and_return(scheduler)
-    create(:message, :incoming, conversation: conversation, account: account, inbox: inbox)
+    next_message = build(:message, :incoming, conversation: conversation, account: account, inbox: inbox)
+    next_scheduler = instance_double(Captain::Conversation::ResponseSchedulerService, perform: nil)
+    expect(Captain::Conversation::ResponseSchedulerService).to receive(:new).with(message: next_message).once.and_return(next_scheduler)
+    next_message.save!
   end
 
   it 'discards an already queued response until another customer message arrives' do
