@@ -1,5 +1,5 @@
 <script setup>
-import { useTemplateRef, onBeforeUnmount, computed, ref } from 'vue';
+import { useTemplateRef, onBeforeUnmount, onMounted, computed, ref } from 'vue';
 import { useWindowSize } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import { useTrack } from 'dashboard/composables';
@@ -8,7 +8,6 @@ import { vOnClickOutside } from '@vueuse/components';
 import { CONTACTS_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import { useContactFilterContext } from './contactProvider.js';
 import { useSnakeCase } from 'dashboard/composables/useTransformKeys';
-import { provideDropdownTeleport } from 'dashboard/components-next/dropdown-menu/base/provider';
 
 import Button from 'next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -43,7 +42,7 @@ const DEFAULT_FILTER = {
 
 const { t } = useI18n();
 const store = useStore();
-provideDropdownTeleport();
+const filterPanel = ref(null);
 const { width } = useWindowSize();
 const isMobile = computed(() => width.value < 768);
 
@@ -99,7 +98,14 @@ const filterModalHeaderTitle = computed(() => {
     : t('CONTACTS_LAYOUT.FILTER.EDIT_SEGMENT');
 });
 
-onBeforeUnmount(() => emit('close'));
+onMounted(() => {
+  if (isMobile.value) filterPanel.value?.showModal();
+});
+
+onBeforeUnmount(() => {
+  if (filterPanel.value?.open) filterPanel.value.close();
+  emit('close');
+});
 const outsideClickHandler = [
   () => emit('close'),
   { ignore: ['#toggleContactsFilterButton'] },
@@ -107,10 +113,14 @@ const outsideClickHandler = [
 </script>
 
 <template>
-  <div
+  <component
+    :is="isMobile ? 'dialog' : 'div'"
+    ref="filterPanel"
     v-on-click-outside="outsideClickHandler"
-    class="z-40 w-[min(34rem,calc(100vw-2rem))] lg:w-[750px] max-h-[calc(100dvh-2rem)] overflow-y-auto overflow-x-hidden border border-n-weak bg-n-alpha-3 backdrop-blur-[100px] shadow-lg rounded-xl p-4 sm:p-6 grid gap-4 sm:gap-6"
-    :class="isMobile ? 'fixed inset-x-4 top-1/2 -translate-y-1/2' : ''"
+    class="z-40 w-[min(34rem,calc(100vw-2rem))] lg:w-[750px] max-h-[calc(100dvh-2rem)] overflow-y-auto border border-n-weak bg-n-alpha-3 backdrop-blur-[100px] shadow-lg rounded-xl p-4 sm:p-6 grid gap-4 sm:gap-6"
+    :class="isMobile ? 'fixed inset-0 m-auto' : ''"
+    @click.self="isMobile && emit('close')"
+    @cancel.prevent="emit('close')"
   >
     <h3 class="text-base font-medium leading-6 text-n-slate-12">
       {{ filterModalHeaderTitle }}
@@ -124,7 +134,7 @@ const outsideClickHandler = [
         />
       </div>
     </div>
-    <ul class="grid gap-4 list-none min-w-0 overflow-x-hidden">
+    <ul class="grid gap-4 list-none min-w-0">
       <template v-for="(filter, index) in filters" :key="filter.id">
         <ConditionRow
           v-if="index === 0"
@@ -151,11 +161,11 @@ const outsideClickHandler = [
         />
       </template>
     </ul>
-    <div class="flex flex-wrap items-center justify-between gap-2">
+    <div class="flex justify-between gap-2">
       <Button sm ghost blue class="flex-shrink-0" @click="addFilter">
         {{ $t('CONTACTS_LAYOUT.FILTER.BUTTONS.ADD_FILTER') }}
       </Button>
-      <div class="flex flex-wrap justify-end gap-2">
+      <div class="flex gap-2 flex-shrink-0">
         <Button sm faded slate @click="resetFilter">
           {{ $t('CONTACTS_LAYOUT.FILTER.BUTTONS.CLEAR_FILTERS') }}
         </Button>
@@ -174,5 +184,5 @@ const outsideClickHandler = [
         </Button>
       </div>
     </div>
-  </div>
+  </component>
 </template>
