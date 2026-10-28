@@ -53,26 +53,55 @@ module Captain::ChatResponseHelper
     persist_message(
       {
         'content' => "Using #{tool_name}",
-        'function_name' => tool_name
+        'function_name' => tool_name,
+        'tool_status' => 'in_progress'
       },
       'assistant_thinking'
     )
   end
 
-  def persist_tool_completion
+  def persist_tool_completion(result)
     return if @copilot_thread.blank?
 
     tool_call = @pending_tool_calls&.pop
     return unless tool_call
 
     tool_name = tool_call.name.to_s
+    status = tool_result_status(result)
 
     persist_message(
       {
-        'content' => "Completed #{tool_name}",
-        'function_name' => tool_name
+        'content' => status == 'error' ? 'Tool failed' : "Completed #{tool_name}",
+        'function_name' => tool_name,
+        'tool_status' => status
       },
       'assistant_thinking'
     )
+  end
+
+  def persist_pending_tool_errors
+    return if @copilot_thread.blank?
+
+    while (tool_call = @pending_tool_calls&.pop)
+      persist_message(
+        {
+          'content' => 'Tool failed',
+          'function_name' => tool_call.name.to_s,
+          'tool_status' => 'error'
+        },
+        'assistant_thinking'
+      )
+    end
+  end
+
+  def tool_result_status(result)
+    return 'error' if result.is_a?(Hash) && (result.key?(:error) || result.key?('error'))
+    return 'error' if result.is_a?(String) && result.match?(/\A(?:error|failed|exception)\b/i)
+    return 'empty' if result.nil? || result == []
+    return 'empty' if result.is_a?(Hash) && (result[:total] || result['total']) == 0
+    return 'empty' if result.is_a?(String) && result.match?(/\A(?:no results|no .+ found)\b/i)
+    return 'empty' if result.respond_to?(:empty?) && result.empty?
+
+    'completed'
   end
 end

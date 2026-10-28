@@ -151,11 +151,11 @@ watch(
         <span
           class="flex size-9 shrink-0 items-center justify-center rounded-full bg-n-alpha-2 text-xl text-n-slate-12"
         >
-          <i class="i-woot-captain" />
+          <i class="i-lucide-sparkles" />
         </span>
         <div class="min-w-0 flex-1">
           <div class="truncate font-medium text-n-slate-12">
-            {{ $t('CAPTAIN.COPILOT.TITLE') }}
+            {{ $t('CAPTAIN.COPILOT.COPILOT_LABEL') }}
           </div>
           <div class="text-xs text-n-slate-10">
             {{
@@ -266,7 +266,7 @@ watch(
             <span
               class="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full bg-n-alpha-2 text-n-slate-12"
             >
-              <i class="i-woot-captain text-base" />
+              <i class="i-lucide-sparkles text-base" />
             </span>
             <div
               class="max-w-[88%] rounded-2xl rounded-bl-sm bg-n-surface-3 px-3 py-2"
@@ -290,7 +290,7 @@ watch(
             <span
               class="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full bg-n-alpha-2 text-n-slate-12"
             >
-              <i class="i-woot-captain text-base" />
+              <i class="i-lucide-sparkles text-base" />
             </span>
             <CopilotActionCard
               :item="item"

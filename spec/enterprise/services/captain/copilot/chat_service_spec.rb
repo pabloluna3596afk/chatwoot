@@ -176,6 +176,48 @@ RSpec.describe Captain::Copilot::ChatService do
     end
   end
 
+  describe 'tool progress persistence' do
+    let(:service) { described_class.new(assistant, config) }
+    let(:tool_call) { Struct.new(:name).new('search_contacts') }
+
+    it 'stores a human-safe empty status without exposing tool output' do
+      service.send(:persist_thinking_message, tool_call)
+      service.send(:persist_tool_completion, 'No contacts found')
+
+      saved_message = copilot_thread.copilot_messages.order(:id).last.message
+      expect(saved_message).to include(
+        'function_name' => 'search_contacts',
+        'tool_status' => 'empty'
+      )
+      expect(saved_message['content']).to eq('Completed search_contacts')
+      expect(saved_message['content']).not_to include('No contacts found')
+    end
+
+    it 'stores a generic error state without persisting the tool error details' do
+      service.send(:persist_thinking_message, tool_call)
+      service.send(:persist_tool_completion, error: 'sensitive database detail')
+
+      saved_message = copilot_thread.copilot_messages.order(:id).last.message
+      expect(saved_message).to include(
+        'content' => 'Tool failed',
+        'function_name' => 'search_contacts',
+        'tool_status' => 'error'
+      )
+      expect(saved_message.to_s).not_to include('sensitive database detail')
+    end
+
+    it 'persists a generic error when tool execution raises' do
+      service.send(:persist_thinking_message, tool_call)
+      service.instance_variable_set(:@pending_tool_calls, [tool_call])
+      service.send(:persist_pending_tool_errors)
+
+      expect(copilot_thread.copilot_messages.order(:id).last.message).to include(
+        'content' => 'Tool failed',
+        'tool_status' => 'error'
+      )
+    end
+  end
+
   describe 'user setup behavior' do
     it 'sets user when user_id is present in config' do
       service = described_class.new(assistant, { user_id: user.id })
