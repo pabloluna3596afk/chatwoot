@@ -11,11 +11,25 @@
     "SEARCH_404": "No hay elementos que coincidan con esta consulta.",
     "ALL_CATEGORIES": "Todas las categorías",
     "UNCATEGORIZED": "Sin categoría",
+    "MORE_OPTIONS": "Más opciones",
+    "TRACE": {
+      "CREATED": "Creada",
+      "REVIEWED": "Revisada",
+      "STATUS": "Estado",
+      "VISIBILITY": "Visibilidad",
+      "NOT_AVAILABLE": "No disponible"
+    },
+    "CATEGORY": {
+      "CREATE": "Crear categoría",
+      "CLEAR": "Quitar categoría"
+    },
     "FILTER_VISIBILITY": {
       "ALL": "Todas",
       "MINE": "Mías",
       "ACCOUNT": "Cuenta",
-      "PENDING": "Pendientes"
+      "PENDING": "Pendientes",
+      "APPROVED": "Aprobadas",
+      "REJECTED": "Rechazadas"
     },
     "STATUS_LABEL": {
       "pending": "Pendiente",
@@ -123,13 +137,17 @@
       }
     },
     "APPROVE": {
+      "BUTTON": "Aprobar para la cuenta",
       "PERSONAL": "Aprobar para el agente",
       "ACCOUNT": "Aprobar para la cuenta",
       "SUCCESS": "Respuesta aprobada.",
       "ERROR": "No se pudo aprobar la respuesta."
     },
     "REJECT": {
+      "TITLE": "Rechazar respuesta predefinida",
       "BUTTON": "Rechazar",
+      "REASON_LABEL": "Motivo (opcional)",
+      "REASON_NOT_SAVED": "El motivo no se guarda porque esta función todavía no tiene un campo para el motivo de rechazo.",
       "SUCCESS": "Respuesta rechazada.",
       "ERROR": "No se pudo rechazar la respuesta."
     },

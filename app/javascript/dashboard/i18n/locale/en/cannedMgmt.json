@@ -8,6 +8,18 @@
     "LOADING": "Fetching canned responses...",
     "SEARCH_PLACEHOLDER": "Search canned responses...",
     "NO_RESULTS": "No canned responses found matching your search",
+    "MORE_OPTIONS": "More options",
+    "TRACE": {
+      "CREATED": "Created",
+      "REVIEWED": "Reviewed",
+      "STATUS": "Status",
+      "VISIBILITY": "Visibility",
+      "NOT_AVAILABLE": "Not available"
+    },
+    "CATEGORY": {
+      "CREATE": "Create category",
+      "CLEAR": "Clear category"
+    },
     "SEARCH_404": "There are no items matching this query.",
     "ALL_CATEGORIES": "All categories",
     "UNCATEGORIZED": "Uncategorized",
@@ -15,7 +27,9 @@
       "ALL": "All",
       "MINE": "Mine",
       "ACCOUNT": "Account",
-      "PENDING": "Pending review"
+      "PENDING": "Pending review",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected"
     },
     "STATUS_LABEL": {
       "pending": "Pending",
@@ -123,13 +137,17 @@
       }
     },
     "APPROVE": {
+      "BUTTON": "Approve for account",
       "PERSONAL": "Approve for agent",
       "ACCOUNT": "Approve for account",
       "SUCCESS": "Canned response approved.",
       "ERROR": "Could not approve canned response."
     },
     "REJECT": {
+      "TITLE": "Reject canned response",
       "BUTTON": "Reject",
+      "REASON_LABEL": "Reason (optional)",
+      "REASON_NOT_SAVED": "The reason is not saved because this feature does not have a rejection reason field yet.",
       "SUCCESS": "Canned response rejected.",
       "ERROR": "Could not reject canned response."
     },

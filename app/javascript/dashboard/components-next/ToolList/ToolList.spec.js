@@ -32,6 +32,27 @@ describe('ToolList', () => {
     });
   });
 
+  it('omits actions hidden for a given item without disabling other actions', () => {
+    const wrapper = mount(ToolList, {
+      props: {
+        items: [{ id: 1 }, { id: 2 }],
+        actions: [
+          { key: 'edit', label: 'Edit' },
+          {
+            key: 'approve',
+            label: 'Approve',
+            visible: item => item.id === 1,
+          },
+        ],
+      },
+    });
+
+    const menus = wrapper.findAll('[role="menu"]');
+    expect(menus[0].text()).toContain('Approve');
+    expect(menus[1].text()).not.toContain('Approve');
+    expect(menus[1].text()).toContain('Edit');
+  });
+
   it('announces loading, error and empty states and supports selection', async () => {
     const loading = mount(ToolList, { props: { loading: true } });
     expect(loading.find('[role="status"]').exists()).toBe(true);

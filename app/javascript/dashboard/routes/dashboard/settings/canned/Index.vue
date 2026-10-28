@@ -2,7 +2,8 @@
 import { useAlert } from 'dashboard/composables';
 import AddCanned from './AddCanned.vue';
 import EditCanned from './EditCanned.vue';
-import CannedListItem from './CannedListItem.vue';
+import ToolList from 'dashboard/components-next/ToolList/ToolList.vue';
+import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsFilterDropdown from '../components/SettingsFilterDropdown.vue';
@@ -15,6 +16,7 @@ import {
 } from 'dashboard/composables/store';
 import { picoSearch } from '@chatwoot/pico-search';
 import { useAdmin } from 'dashboard/composables/useAdmin';
+import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 
@@ -25,6 +27,7 @@ defineOptions({
 const getters = useStoreGetters();
 const store = useStore();
 const { t } = useI18n();
+const { getPlainText } = useMessageFormatter();
 const { isAdmin } = useAdmin();
 const currentUser = useMapGetter('getCurrentUser');
 
@@ -32,6 +35,9 @@ const showAddPopup = ref(false);
 const loading = ref({});
 const showEditPopup = ref(false);
 const showDeleteConfirmationPopup = ref(false);
+const showRejectPopup = ref(false);
+const rejectionReason = ref('');
+const responseToReject = ref(null);
 const activeResponse = ref({});
 const cannedResponseAPI = ref({ message: '' });
 
@@ -44,12 +50,23 @@ const records = computed(() =>
   getters.getSortedCannedResponses.value(sortOrder.value)
 );
 
+const normalizeCategory = value =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase();
+
 const categories = computed(() => {
-  const set = new Set();
+  const unique = new Map();
   records.value.forEach(item => {
-    if (item.category) set.add(item.category);
+    if (!item.category) return;
+    const category = item.category.trim().replace(/\s+/g, ' ');
+    const key = normalizeCategory(category);
+    if (!unique.has(key)) unique.set(key, category);
   });
-  return [...set].sort((a, b) => a.localeCompare(b));
+  return [...unique.values()].sort((a, b) => a.localeCompare(b));
 });
 
 const hasUncategorized = computed(() =>
@@ -67,6 +84,16 @@ const visibilityOptions = computed(() => {
       value: 'pending',
       label: t('CANNED_MGMT.FILTER_VISIBILITY.PENDING'),
     });
+    filters.push(
+      {
+        value: 'approved',
+        label: t('CANNED_MGMT.FILTER_VISIBILITY.APPROVED'),
+      },
+      {
+        value: 'rejected',
+        label: t('CANNED_MGMT.FILTER_VISIBILITY.REJECTED'),
+      }
+    );
   }
   return filters;
 });
@@ -99,6 +126,11 @@ const visibilityFilteredRecords = computed(() => {
   if (visibilityFilter.value === 'pending') {
     return records.value.filter(item => item.approval_status === 'pending');
   }
+  if (['approved', 'rejected'].includes(visibilityFilter.value)) {
+    return records.value.filter(
+      item => item.approval_status === visibilityFilter.value
+    );
+  }
   return records.value;
 });
 
@@ -108,7 +140,9 @@ const categoryFilteredRecords = computed(() => {
     return visibilityFilteredRecords.value.filter(item => !item.category);
   }
   return visibilityFilteredRecords.value.filter(
-    item => item.category === selectedCategory.value
+    item =>
+      normalizeCategory(item.category || '') ===
+      normalizeCategory(selectedCategory.value)
   );
 });
 
@@ -121,6 +155,40 @@ const filteredRecords = computed(() => {
     'content',
   ]);
 });
+const listColumns = computed(() => [
+  { key: 'title', label: t('CANNED_MGMT.ADD.FORM.SHORT_CODE.LABEL') },
+  { key: 'category', label: t('CANNED_MGMT.ADD.FORM.CATEGORY.LABEL') },
+  { key: 'approval_status', label: t('CANNED_MGMT.TRACE.STATUS') },
+  { key: 'visibility', label: t('CANNED_MGMT.TRACE.VISIBILITY') },
+  { key: 'created_at', label: t('CANNED_MGMT.TRACE.CREATED') },
+]);
+const listActions = computed(() => [
+  { key: 'edit', label: t('CANNED_MGMT.EDIT.BUTTON_TEXT') },
+  { key: 'duplicate', label: t('CANNED_MGMT.DUPLICATE.TOOLTIP') },
+  {
+    key: 'approve-global',
+    label: t('CANNED_MGMT.APPROVE.BUTTON'),
+    variant: 'success',
+    visible: item => isAdmin.value && item.approval_status === 'pending',
+  },
+  {
+    key: 'approve-personal',
+    label: t('CANNED_MGMT.APPROVE.PERSONAL'),
+    variant: 'success',
+    visible: item => isAdmin.value && item.approval_status === 'pending',
+  },
+  {
+    key: 'reject',
+    label: t('CANNED_MGMT.REJECT.BUTTON'),
+    variant: 'danger',
+    visible: item => isAdmin.value && item.approval_status === 'pending',
+  },
+  {
+    key: 'delete',
+    label: t('CANNED_MGMT.DELETE.BUTTON_TEXT'),
+    variant: 'danger',
+  },
+]);
 const uiFlags = computed(() => getters.getUIFlags.value);
 
 const deleteConfirmText = computed(
@@ -228,6 +296,26 @@ const rejectResponse = async item => {
   }
 };
 
+const openRejectPopup = item => {
+  responseToReject.value = item;
+  rejectionReason.value = '';
+  showRejectPopup.value = true;
+};
+
+const confirmRejection = async () => {
+  const item = responseToReject.value;
+  showRejectPopup.value = false;
+  await rejectResponse(item);
+  responseToReject.value = null;
+};
+
+const formatDate = value =>
+  value
+    ? new Date(value).toLocaleDateString()
+    : t('CANNED_MGMT.TRACE.NOT_AVAILABLE');
+
+const personName = person => person?.available_name || person?.email || '';
+
 const uniqueShortCode = baseCode => {
   const taken = new Set(records.value.map(item => item.short_code));
   let candidate = `${baseCode}_copy`;
@@ -263,6 +351,15 @@ const duplicateCanned = async item => {
   } finally {
     loading.value[item.id] = false;
   }
+};
+
+const handleListAction = ({ action, item }) => {
+  if (action === 'edit') openEditPopup(item);
+  if (action === 'duplicate') duplicateCanned(item);
+  if (action === 'approve-global') approveResponse(item, 'global');
+  if (action === 'approve-personal') approveResponse(item, 'personal');
+  if (action === 'reject') openRejectPopup(item);
+  if (action === 'delete') openDeletePopup(item);
 };
 </script>
 
@@ -316,7 +413,7 @@ const duplicateCanned = async item => {
 
     <template #body>
       <div
-        v-if="!filteredRecords.length"
+        v-if="!filteredRecords.length && !uiFlags.fetchingList"
         class="flex items-center justify-center p-8"
       >
         <span class="text-base text-n-slate-11">
@@ -331,23 +428,74 @@ const duplicateCanned = async item => {
           }}
         </span>
       </div>
-      <div v-else class="border-t divide-y divide-n-weak border-n-weak">
-        <CannedListItem
-          v-for="cannedItem in filteredRecords"
-          :key="cannedItem.id || cannedItem.short_code"
-          :canned="cannedItem"
-          :is-admin="isAdmin"
-          :is-loading="!!loading[cannedItem.id]"
-          @edit="openEditPopup(cannedItem)"
-          @delete="openDeletePopup(cannedItem)"
-          @duplicate="duplicateCanned(cannedItem)"
-          @approve="visibility => approveResponse(cannedItem, visibility)"
-          @reject="rejectResponse(cannedItem)"
-        />
+      <div v-else class="border-t border-n-weak">
+        <ToolList
+          :items="filteredRecords"
+          :columns="listColumns"
+          :actions="listActions"
+          :loading="uiFlags.fetchingList"
+          :empty-message="$t('CANNED_MGMT.NO_RESULTS')"
+          :more-options-label="$t('CANNED_MGMT.MORE_OPTIONS')"
+          @action="handleListAction"
+        >
+          <template #lead="{ item }">
+            <div class="flex min-w-0 items-center gap-3">
+              <Avatar
+                :name="personName(item.created_by)"
+                :src="item.created_by?.avatar_url"
+                :size="32"
+                rounded-full
+              />
+              <div class="min-w-0">
+                <div class="truncate font-medium text-n-slate-12">
+                  {{ item.short_code }}
+                </div>
+                <div class="truncate text-xs text-n-slate-10">
+                  {{ getPlainText(item.content) }}
+                </div>
+                <span
+                  class="mt-1 inline-flex rounded-md bg-n-alpha-2 px-2 py-0.5 text-xs text-n-slate-11"
+                >
+                  {{ $t(`CANNED_MGMT.VISIBILITY_LABEL.${item.visibility}`) }}
+                </span>
+              </div>
+            </div>
+          </template>
+          <template #cell-category="{ item }">
+            <span
+              v-if="item.category"
+              class="inline-flex rounded-md bg-n-alpha-2 px-2 py-1 text-xs text-n-slate-11"
+            >
+              {{ item.category }}
+            </span>
+            <span v-else class="text-n-slate-10">
+              {{ $t('CANNED_MGMT.TRACE.NOT_AVAILABLE') }}
+            </span>
+          </template>
+          <template #cell-approval_status="{ item }">
+            {{ $t(`CANNED_MGMT.STATUS_LABEL.${item.approval_status}`) }}
+          </template>
+          <template #cell-visibility="{ item }">
+            {{ $t(`CANNED_MGMT.VISIBILITY_LABEL.${item.visibility}`) }}
+          </template>
+          <template #cell-created_at="{ item }">
+            <div>{{ formatDate(item.created_at) }}</div>
+            <div class="text-xs text-n-slate-10">
+              {{ personName(item.created_by) }}
+            </div>
+            <div v-if="item.reviewed_at" class="mt-1 text-xs text-n-slate-10">
+              {{ $t('CANNED_MGMT.TRACE.REVIEWED') }}
+              {{ personName(item.reviewed_by) }}
+            </div>
+            <div v-if="item.reviewed_at" class="text-xs text-n-slate-10">
+              {{ formatDate(item.reviewed_at) }}
+            </div>
+          </template>
+        </ToolList>
       </div>
     </template>
     <woot-modal v-model:show="showAddPopup" :on-close="hideAddPopup">
-      <AddCanned :on-close="hideAddPopup" />
+      <AddCanned :categories="categories" :on-close="hideAddPopup" />
     </woot-modal>
 
     <woot-modal v-model:show="showEditPopup" :on-close="hideEditPopup">
@@ -358,6 +506,7 @@ const duplicateCanned = async item => {
         :edcontent="activeResponse.content"
         :edcategory="activeResponse.category"
         :edvisibility="activeResponse.visibility"
+        :categories="categories"
         :on-close="hideEditPopup"
       />
     </woot-modal>
@@ -372,5 +521,31 @@ const duplicateCanned = async item => {
       :confirm-text="deleteConfirmText"
       :reject-text="deleteRejectText"
     />
+    <woot-modal v-model:show="showRejectPopup">
+      <div class="flex flex-col gap-4 p-6">
+        <h3 class="text-heading-3 text-n-slate-12">
+          {{ $t('CANNED_MGMT.REJECT.TITLE') }}
+        </h3>
+        <p class="text-sm text-n-slate-11">
+          {{ $t('CANNED_MGMT.REJECT.REASON_NOT_SAVED') }}
+        </p>
+        <label class="flex flex-col gap-2 text-sm text-n-slate-12">
+          {{ $t('CANNED_MGMT.REJECT.REASON_LABEL') }}
+          <textarea v-model="rejectionReason" class="min-h-20" />
+        </label>
+        <div class="flex justify-end gap-2">
+          <Button
+            :label="$t('CANNED_MGMT.ADD.CANCEL_BUTTON_TEXT')"
+            intent="secondary"
+            @click="showRejectPopup = false"
+          />
+          <Button
+            :label="$t('CANNED_MGMT.REJECT.BUTTON')"
+            intent="destructive"
+            @click="confirmRejection"
+          />
+        </div>
+      </div>
+    </woot-modal>
   </SettingsLayout>
 </template>
