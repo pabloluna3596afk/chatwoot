@@ -36,7 +36,7 @@ class PlanDashboard < Administrate::BaseDashboard
     is_active: Field::Boolean,
     is_public: Field::Boolean,
     display_order: Field::Number,
-    accounts: Field::HasMany,
+    accounts: CountField,
     created_at: Field::DateTime,
     updated_at: Field::DateTime
   }.freeze
@@ -50,7 +50,10 @@ class PlanDashboard < Administrate::BaseDashboard
     id
     name
     price_monthly
+    price_yearly
     limit_values
+    feature_keys
+    accounts
     is_active
     is_public
   ].freeze

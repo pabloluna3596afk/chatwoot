@@ -46,6 +46,7 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
       params[:account].delete(:web_widget_branding)
     end
 
+    apply_suspension_metadata
     super
   end
 
@@ -56,11 +57,6 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
     permitted_params[:captain_models] = permitted_params[:captain_models].to_h.compact_blank.presence if permitted_params.key?(:captain_models)
     permitted_params[:selected_feature_flags] = params[:enabled_features].keys.map(&:to_sym) if params[:enabled_features].present?
     permitted_params
-  end
-
-  def update
-    apply_suspension_metadata
-    super
   end
 
   # See https://administrate-prototype.herokuapp.com/customizing_controller_actions
@@ -78,6 +74,23 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
     # rubocop:disable Rails/I18nLocaleTexts
     redirect_back(fallback_location: [namespace, requested_resource], notice: 'Cache keys cleared')
     # rubocop:enable Rails/I18nLocaleTexts
+  end
+
+  def feature_override
+    feature_key = params.require(:feature_key)
+    feature = Plan::ACCOUNT_FEATURES_BY_KEY.fetch(feature_key)
+    enabled = params.require(:enabled).to_s
+    return head :unprocessable_entity unless %w[true false].include?(enabled)
+
+    account_feature_override(feature_key).update!(feature_override_attributes(enabled))
+    redirect_to [namespace, requested_resource], notice: I18n.t('super_admin.account_features.override_saved', feature: feature[:label_en])
+  rescue KeyError
+    head :unprocessable_entity
+  end
+
+  def destroy_feature_override
+    requested_resource.account_feature_overrides.find_by!(feature_key: params.require(:feature_key)).destroy!
+    redirect_to [namespace, requested_resource], notice: I18n.t('super_admin.account_features.returned_to_plan')
   end
 
   def destroy
@@ -102,6 +115,19 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
     render :edit,
            locals: { page: Administrate::Page::Form.new(dashboard, requested_resource) },
            status: :unprocessable_entity
+  end
+
+  def account_feature_override(feature_key)
+    requested_resource.account_feature_overrides.find_or_initialize_by(feature_key: feature_key)
+  end
+
+  def feature_override_attributes(enabled)
+    {
+      enabled: enabled == 'true',
+      reason: params.require(:reason).to_s.strip,
+      expires_at: params[:expires_at].presence,
+      created_by_id: current_super_admin.id
+    }
   end
 
   def validate_suspension_category
