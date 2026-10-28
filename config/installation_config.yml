@@ -659,6 +659,64 @@
 ## ---- End of LLM Observability ---- ##
 
 ## ------ PaluHub / InboxHub features ------ ##
+- name: ENABLE_PAYPHONE
+  display_title: 'super_admin.payphone.fields.enable'
+  description: 'super_admin.payphone.descriptions.enable'
+  value: false
+  locked: false
+  type: boolean
+- name: PAYPHONE_STORE_ID
+  display_title: 'super_admin.payphone.fields.store_id'
+  description: 'super_admin.payphone.descriptions.store_id'
+  value: ''
+  locked: false
+- name: PAYPHONE_TOKEN
+  display_title: 'super_admin.payphone.fields.token'
+  description: 'super_admin.payphone.descriptions.token'
+  value: ''
+  locked: false
+  type: secret
+- name: PAYPHONE_ENVIRONMENT
+  display_title: 'super_admin.payphone.fields.environment'
+  description: 'super_admin.payphone.descriptions.environment'
+  value: test
+  locked: false
+  type: select
+  options:
+    test: 'Test'
+    production: 'Production'
+- name: PAYPHONE_RESPONSE_URL
+  display_title: 'super_admin.payphone.fields.response_url'
+  description: 'super_admin.payphone.descriptions.response_url'
+  value: ''
+  locked: false
+- name: PAYPHONE_EXTERNAL_NOTIFICATION_ENABLED
+  display_title: 'super_admin.payphone.fields.external_notification'
+  description: 'super_admin.payphone.descriptions.external_notification'
+  value: false
+  locked: false
+  type: boolean
+- name: PAYPHONE_TAX_RATE
+  display_title: 'super_admin.payphone.fields.tax_rate'
+  description: 'super_admin.payphone.descriptions.tax_rate'
+  value: '15'
+  locked: false
+- name: PAYPHONE_CARD_COMMISSION_RATE
+  display_title: 'super_admin.payphone.fields.commission_rate'
+  description: 'super_admin.payphone.descriptions.commission_rate'
+  value: '5.75'
+  locked: false
+- name: PAYPHONE_COMMISSION_ENABLED
+  display_title: 'super_admin.payphone.fields.commission_enabled'
+  description: 'super_admin.payphone.descriptions.commission_enabled'
+  value: true
+  locked: false
+  type: boolean
+- name: PAYPHONE_GRACE_DAYS
+  display_title: 'super_admin.payphone.fields.grace_days'
+  description: 'super_admin.payphone.descriptions.grace_days'
+  value: 3
+  locked: false
 - name: DEVICE_VERIFICATION_ENABLED
   display_title: 'Device verification for password sign-in'
   value: false
