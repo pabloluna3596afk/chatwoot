@@ -144,6 +144,12 @@ watch(
   },
   { deep: true }
 );
+watch(
+  () => props.actionItems.length,
+  () => {
+    if (isNearBottom.value) scrollToBottom();
+  }
+);
 </script>
 
 <template>
