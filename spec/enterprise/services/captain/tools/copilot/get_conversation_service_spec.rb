@@ -14,7 +14,7 @@ RSpec.describe Captain::Tools::Copilot::GetConversationService do
 
   describe '#description' do
     it 'returns the service description' do
-      expect(service.description).to eq('Get details of a conversation including messages and contact information')
+      expect(service.description).to include('Get details of a conversation including messages and contact information')
     end
   end
 
@@ -110,7 +110,7 @@ RSpec.describe Captain::Tools::Copilot::GetConversationService do
 
       it 'returns the conversation in llm text format' do
         result = service.execute(conversation_id: conversation.display_id)
-        expect(result).to eq(conversation.to_llm_text)
+        expect(result).to include('UNTRUSTED_DATA_BEGIN', conversation.to_llm_text, 'UNTRUSTED_DATA_END')
       end
 
       it 'includes private messages in the llm text format' do
@@ -159,7 +159,8 @@ RSpec.describe Captain::Tools::Copilot::GetConversationService do
         let(:user) { create(:user, :administrator, account: account) }
 
         it 'returns the conversation in llm text format' do
-          expect(service.execute(conversation_id: conversation.display_id)).to eq(conversation.to_llm_text)
+          result = service.execute(conversation_id: conversation.display_id)
+          expect(result).to include('UNTRUSTED_DATA_BEGIN', conversation.to_llm_text, 'UNTRUSTED_DATA_END')
         end
       end
     end
@@ -171,7 +172,8 @@ RSpec.describe Captain::Tools::Copilot::GetConversationService do
       before { create(:team_member, team: team, user: user) }
 
       it 'returns the conversation in llm text format' do
-        expect(service.execute(conversation_id: conversation.display_id)).to eq(conversation.to_llm_text)
+        result = service.execute(conversation_id: conversation.display_id)
+        expect(result).to include('UNTRUSTED_DATA_BEGIN', conversation.to_llm_text, 'UNTRUSTED_DATA_END')
       end
     end
 
@@ -191,7 +193,8 @@ RSpec.describe Captain::Tools::Copilot::GetConversationService do
 
       it 'returns the conversation when it is assigned to them' do
         conversation.update(assignee: user)
-        expect(service.execute(conversation_id: conversation.display_id)).to eq(conversation.to_llm_text)
+        result = service.execute(conversation_id: conversation.display_id)
+        expect(result).to include('UNTRUSTED_DATA_BEGIN', conversation.to_llm_text, 'UNTRUSTED_DATA_END')
       end
     end
 
@@ -231,7 +234,8 @@ RSpec.describe Captain::Tools::Copilot::GetConversationService do
       it 'returns a conversation assigned to the user outside their inboxes' do
         assigned_conversation = create(:conversation, account: account, assignee: user)
 
-        expect(service.execute(conversation_id: assigned_conversation.display_id)).to eq(assigned_conversation.to_llm_text)
+        result = service.execute(conversation_id: assigned_conversation.display_id)
+        expect(result).to include('UNTRUSTED_DATA_BEGIN', assigned_conversation.to_llm_text, 'UNTRUSTED_DATA_END')
       end
     end
 
@@ -243,7 +247,8 @@ RSpec.describe Captain::Tools::Copilot::GetConversationService do
       before { AccountUser.find_by(user: user, account: account).update!(custom_role: custom_role) }
 
       it 'returns a conversation outside their inboxes' do
-        expect(service.execute(conversation_id: conversation.display_id)).to eq(conversation.to_llm_text)
+        result = service.execute(conversation_id: conversation.display_id)
+        expect(result).to include('UNTRUSTED_DATA_BEGIN', conversation.to_llm_text, 'UNTRUSTED_DATA_END')
       end
     end
   end
