@@ -41,7 +41,7 @@ module Integrations::LlmInstrumentationSpans
     span = tracer.start_span(format(TOOL_SPAN_NAME, tool_name))
     apply_current_langfuse_attributes(span)
     span.set_attribute(ATTR_LANGFUSE_OBSERVATION_TYPE, 'tool')
-    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, tool_call.arguments.to_json)
+    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, '[REDACTED]')
 
     @pending_tool_spans ||= []
     @pending_tool_spans.push(span)
@@ -49,14 +49,13 @@ module Integrations::LlmInstrumentationSpans
     Rails.logger.warn "Failed to start tool span: #{e.message}"
   end
 
-  def end_tool_span(result)
+  def end_tool_span(_result)
     return unless ChatwootApp.otel_enabled?
 
     span = @pending_tool_spans&.pop
     return unless span
 
-    output = result.is_a?(String) ? result : result.to_json
-    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, output)
+    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, '[REDACTED]')
     span.finish
   rescue StandardError => e
     Rails.logger.warn "Failed to end tool span: #{e.message}"
@@ -92,16 +91,16 @@ module Integrations::LlmInstrumentationSpans
   def set_llm_turn_prompt_attributes(span, messages)
     messages.each_with_index do |msg, idx|
       span.set_attribute(format(ATTR_GEN_AI_PROMPT_ROLE, idx), msg[:role])
-      span.set_attribute(format(ATTR_GEN_AI_PROMPT_CONTENT, idx), msg[:content])
+      span.set_attribute(format(ATTR_GEN_AI_PROMPT_CONTENT, idx), '[REDACTED]')
     end
-    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, messages.to_json)
+    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, '[REDACTED]')
   end
 
   def set_llm_turn_response_attributes(span, message)
     span.set_attribute(ATTR_GEN_AI_COMPLETION_ROLE, message.role.to_s) if message.respond_to?(:role)
-    span.set_attribute(ATTR_GEN_AI_COMPLETION_CONTENT, message.content.to_s) if message.respond_to?(:content)
+    span.set_attribute(ATTR_GEN_AI_COMPLETION_CONTENT, '[REDACTED]') if message.respond_to?(:content)
     set_llm_turn_usage_attributes(span, message)
-    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, message.content.to_s) if message.respond_to?(:content)
+    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, '[REDACTED]') if message.respond_to?(:content)
   end
 
   def set_llm_turn_usage_attributes(span, message)
