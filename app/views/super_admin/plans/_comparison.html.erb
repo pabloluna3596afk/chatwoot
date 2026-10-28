@@ -1,0 +1,48 @@
+<div class="main-content__body mb-6 overflow-x-auto">
+  <h2 class="mb-3 text-lg font-semibold"><%= t('super_admin.plans.comparison') %></h2>
+  <table class="min-w-full text-left text-sm">
+    <thead>
+      <tr>
+        <th class="p-2"><%= t('super_admin.plans.feature') %></th>
+        <% plans.each do |plan| %>
+          <th class="p-2"><%= link_to plan.name, super_admin_plan_path(plan) %></th>
+        <% end %>
+      </tr>
+    </thead>
+    <tbody>
+      <% [
+        ['price_monthly', ->(plan) { number_to_currency(plan.price_monthly, unit: '$') }],
+        ['price_yearly', ->(plan) { number_to_currency(plan.price_yearly, unit: '$') }],
+        ['accounts', ->(plan) { plan.accounts_count }]
+      ].each do |key, formatter| %>
+        <tr class="border-t border-n-weak">
+          <th class="p-2"><%= t("super_admin.plans.#{key}") %></th>
+          <% plans.each do |plan| %><td class="p-2"><%= formatter.call(plan) %></td><% end %>
+        </tr>
+      <% end %>
+      <% Plan::LIMITS.each do |limit| %>
+        <tr class="border-t border-n-weak">
+          <th class="p-2"><%= limit["label_#{I18n.locale}".to_sym] || limit[:label_en] %></th>
+          <% plans.each do |plan| %>
+            <% value = plan.limit(limit[:key]) %>
+            <td class="p-2"><%= value.nil? ? '∞' : number_with_delimiter(value) %></td>
+          <% end %>
+        </tr>
+      <% end %>
+      <% Plan::FEATURES.each do |feature| %>
+        <tr class="border-t border-n-weak">
+          <th class="p-2"><%= feature["label_#{I18n.locale}".to_sym] || feature[:label_en] %></th>
+          <% plans.each do |plan| %>
+            <td class="p-2"><%= plan.feature_keys.include?(feature[:key]) ? '✓' : '—' %></td>
+          <% end %>
+        </tr>
+      <% end %>
+      <tr class="border-t border-n-weak">
+        <th class="p-2"><%= t('super_admin.plans.copilot_allowance') %></th>
+        <% plans.each do |plan| %>
+          <td class="p-2"><%= plan.copilot_available? ? '✓' : '—' %></td>
+        <% end %>
+      </tr>
+    </tbody>
+  </table>
+</div>

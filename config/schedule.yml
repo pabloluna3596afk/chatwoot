@@ -120,3 +120,8 @@ automation_rule_runs_retention_job:
   cron: '0 4 * * *'
   class: 'AutomationRules::PurgeRunsJob'
   queue: purgable
+
+plan_feature_overrides_expiry_job:
+  cron: '0 5 * * *'
+  class: 'Plans::ExpireAccountFeatureOverridesJob'
+  queue: scheduled_jobs
