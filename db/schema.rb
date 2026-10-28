@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_27_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_27_130000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1684,6 +1684,50 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_27_120000) do
     t.index ["user_id"], name: "index_notifications_on_user_id"
   end
 
+  create_table "payphone_payments", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "user_id", null: false
+    t.bigint "plan_id", null: false
+    t.string "client_transaction_id", null: false
+    t.integer "amount", null: false
+    t.integer "amount_without_tax", default: 0, null: false
+    t.integer "amount_with_tax", default: 0, null: false
+    t.integer "tax", default: 0, null: false
+    t.integer "base_cents", null: false
+    t.integer "tax_cents", default: 0, null: false
+    t.integer "commission_cents", default: 0, null: false
+    t.string "currency", limit: 3, default: "USD", null: false
+    t.string "status", default: "pending", null: false
+    t.string "payphone_transaction_id"
+    t.string "authorization_code"
+    t.jsonb "raw_response", default: {}, null: false
+    t.jsonb "status_history", default: [], null: false
+    t.boolean "needs_invoice", default: false, null: false
+    t.string "billing_tax_id_type"
+    t.string "billing_tax_id"
+    t.string "billing_name"
+    t.string "billing_email"
+    t.string "billing_phone"
+    t.string "billing_address"
+    t.text "card_token"
+    t.datetime "paid_at"
+    t.datetime "period_start"
+    t.datetime "period_end"
+    t.datetime "confirmed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "status"], name: "index_payphone_payments_on_account_id_and_status"
+    t.index ["account_id"], name: "index_payphone_payments_on_account_id"
+    t.index ["client_transaction_id"], name: "index_payphone_payments_on_client_transaction_id", unique: true
+    t.index ["payphone_transaction_id"], name: "index_payphone_payments_on_payphone_transaction_id", unique: true, where: "(payphone_transaction_id IS NOT NULL)"
+    t.index ["plan_id"], name: "index_payphone_payments_on_plan_id"
+    t.index ["status", "created_at"], name: "index_payphone_payments_on_status_and_created_at"
+    t.index ["user_id"], name: "index_payphone_payments_on_user_id"
+    t.check_constraint "amount = (amount_without_tax + amount_with_tax + tax + commission_cents)", name: "payphone_payments_amount_breakdown_check"
+    t.check_constraint "currency::text = 'USD'::text", name: "payphone_payments_currency_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'approved'::character varying, 'cancelled'::character varying, 'failed'::character varying, 'expired'::character varying]::text[])", name: "payphone_payments_status_check"
+  end
+
   create_table "plans", force: :cascade do |t|
     t.integer "captain_daily_tests", default: 0, null: false
     t.string "name", null: false
@@ -2118,6 +2162,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_27_120000) do
   add_foreign_key "internal_tasks", "teams"
   add_foreign_key "internal_tasks", "users", column: "assigned_to_id"
   add_foreign_key "internal_tasks", "users", column: "created_by_id"
+  add_foreign_key "payphone_payments", "accounts", on_delete: :restrict
+  add_foreign_key "payphone_payments", "plans", on_delete: :restrict
+  add_foreign_key "payphone_payments", "users", on_delete: :restrict
   add_foreign_key "saved_report_panels", "accounts", on_delete: :cascade
   add_foreign_key "saved_report_panels", "users", column: "created_by_id"
   add_foreign_key "task_templates", "accounts", on_delete: :cascade
