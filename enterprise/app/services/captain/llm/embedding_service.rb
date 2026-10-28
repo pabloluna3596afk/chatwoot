@@ -17,8 +17,8 @@ class Captain::Llm::EmbeddingService
     return [] if content.blank?
 
     instrument_embedding_call(instrumentation_params(content, model)) do
-      RubyLLM.embed(content, model: model).vectors
-    end
+      RubyLLM.embed(content, model: model)
+    end.vectors
   rescue RubyLLM::Error => e
     Rails.logger.error "Embedding API Error: #{e.message}"
     raise EmbeddingsError, "Failed to create an embedding: #{e.message}"

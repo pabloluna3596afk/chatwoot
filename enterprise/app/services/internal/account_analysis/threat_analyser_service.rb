@@ -22,7 +22,7 @@ class Internal::AccountAnalysis::ThreatAnalyserService
       Domain: #{@domain}
       Content: #{website_content}
     MESSAGE
-    threat_analysis = Internal::AccountAnalysis::ContentEvaluatorService.new.evaluate(content)
+    threat_analysis = evaluate_content(content)
     Rails.logger.info("Completed threat analysis: level=#{threat_analysis['threat_level']} for account-id: #{@account.id}")
 
     Internal::AccountAnalysis::AccountUpdaterService.new(@account).update_with_analysis(threat_analysis)
@@ -31,6 +31,12 @@ class Internal::AccountAnalysis::ThreatAnalyserService
   end
 
   private
+
+  def evaluate_content(content)
+    Llm::UsageContext.with(account: @account, bucket: :internal, feature: 'content_evaluator') do
+      Internal::AccountAnalysis::ContentEvaluatorService.new.evaluate(content)
+    end
+  end
 
   def extract_domain_from_email(email)
     return nil if email.blank?

@@ -59,6 +59,22 @@ RSpec.describe AiUsageEvent do
       expect(event.latency_ms).to be >= 0
     end
 
+    it 'records token usage from non-chat RubyLLM operations' do
+      account = create(:account)
+      tokens = Struct.new(:input, :output, :cached_input, :reasoning).new(250, 0, 0, 0)
+      response = Struct.new(:model, :tokens).new('text-embedding-3-small', tokens)
+      group_id = SecureRandom.uuid
+
+      Llm::UsageContext.with(account: account, bucket: :internal, feature: 'embedding', usage_group_id: group_id) do
+        Llm::UsageContext.record_operation(
+          model: response.model, provider: 'openai', response: response, status: 'ok'
+        )
+      end
+
+      event = described_class.find_by!(usage_group_id: group_id)
+      expect(event).to have_attributes(bucket: 'internal', input_tokens: 250, output_tokens: 0)
+    end
+
     it 'stores the event cost without changing it when a later price takes effect' do
       account = create(:account)
       price = AiModelPrice.create!(model: 'gpt-6-luna', input_per_million: 0.10,
