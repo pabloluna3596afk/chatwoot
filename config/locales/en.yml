@@ -1044,6 +1044,7 @@ en:
       custom_domain_not_configured: 'Custom domain is not configured'
   super_admin:
     ai_usage:
+      dashboard: 'Dashboard'
       title: 'AI usage'
       subtitle: 'Tokens, real calls, and cost by account.'
       month: 'Month'

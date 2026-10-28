@@ -948,6 +948,7 @@ es:
       custom_domain_not_configured: 'Custom domain is not configured'
   super_admin:
     ai_usage:
+      dashboard: 'Panel'
       title: 'Uso de IA'
       subtitle: 'Tokens, llamadas reales y costo por empresa.'
       month: 'Mes'

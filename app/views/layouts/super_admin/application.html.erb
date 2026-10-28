@@ -32,7 +32,7 @@ By default, it renders:
     <%= render "navigation" -%>
     <main class="w-full overflow-auto" role="main">
       <nav class="sm:hidden flex items-center gap-4 border-b border-slate-200 px-4 py-3 text-sm" aria-label="Super Admin">
-        <%= link_to 'Dashboard', super_admin_root_path, class: 'text-blue-700' %>
+        <%= link_to t('super_admin.ai_usage.dashboard'), super_admin_root_path, class: 'text-blue-700' %>
         <%= link_to t('super_admin.ai_usage.title'), super_admin_ai_usage_path, class: 'font-medium text-slate-900' %>
       </nav>
       <%= render "flashes" -%>
