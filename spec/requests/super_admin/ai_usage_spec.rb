@@ -49,6 +49,12 @@ RSpec.describe 'Super Admin AI usage', type: :request do
       provider: 'openai', input_tokens: 100, output_tokens: 20,
       usage_group_id: SecureRandom.uuid, created_at: Time.zone.local(2026, 10, 10)
     )
+    other_account = create(:account)
+    AiUsageEvent.create!(
+      account: other_account, bucket: 'copilot', feature: 'other_account_feature', model: 'gpt-6-luna',
+      provider: 'openai', input_tokens: 100, output_tokens: 20,
+      usage_group_id: SecureRandom.uuid, created_at: Time.zone.local(2026, 10, 10)
+    )
     sign_in(super_admin, scope: :super_admin)
 
     get '/super_admin/ai_usage/export', params: { month: '2026-10', account_id: account.id }
@@ -56,5 +62,6 @@ RSpec.describe 'Super Admin AI usage', type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.media_type).to eq('text/csv')
     expect(response.body).to include('usage_group_id', 'copilot_reply')
+    expect(response.body).not_to include('other_account_feature')
   end
 end

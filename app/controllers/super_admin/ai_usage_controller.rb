@@ -14,6 +14,7 @@ class SuperAdmin::AiUsageController < SuperAdmin::ApplicationController
   end
 
   def export
+    @account = Account.find(params[:account_id]) if params[:account_id].present?
     events = month_events.includes(:account).order(:created_at)
     send_data usage_csv(events), filename: "ai-usage-#{parsed_month.strftime('%Y-%m')}.csv", type: 'text/csv'
   end
