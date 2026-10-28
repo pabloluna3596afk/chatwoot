@@ -45,11 +45,13 @@ class PayphonePayment < ApplicationRecord
     'expired' => []
   }.freeze
   BILLING_TAX_ID_TYPES = %w[cedula ruc passport].freeze
-  RAW_RESPONSE_KEYS = %w[status transactionId clientTransactionId authorizationCode message].freeze
+  RAW_RESPONSE_KEYS = %w[status statusCode transactionId clientTransactionId authorizationCode message amount currency].freeze
 
   belongs_to :account
   belongs_to :user
   belongs_to :plan
+
+  STATUSES.each { |value| define_method("#{value}?") { status == value } }
 
   validates :client_transaction_id, presence: true, uniqueness: true, length: { maximum: 255 }
   validates :status, inclusion: { in: STATUSES }

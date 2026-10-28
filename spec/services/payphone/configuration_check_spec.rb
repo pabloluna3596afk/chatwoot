@@ -5,6 +5,7 @@ RSpec.describe Payphone::ConfigurationCheck do
     {
       'PAYPHONE_STORE_ID' => 'store-123',
       'PAYPHONE_TOKEN' => 'test-token',
+      'PAYPHONE_BOX_TOKEN' => 'public-test-token',
       'PAYPHONE_ENVIRONMENT' => 'test',
       'PAYPHONE_RESPONSE_URL' => 'https://inbox.example.test/payphone/response',
       'PAYPHONE_TAX_RATE' => '15',
@@ -38,6 +39,7 @@ RSpec.describe Payphone::ConfigurationCheck do
 
   it 'rejects missing credentials and out-of-range settings' do
     values['PAYPHONE_TOKEN'] = ''
+    values['PAYPHONE_BOX_TOKEN'] = ''
     values['PAYPHONE_TAX_RATE'] = '101'
     values['PAYPHONE_GRACE_DAYS'] = '-1'
     result = described_class.call(values: values)

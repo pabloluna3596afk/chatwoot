@@ -17,6 +17,7 @@ import ButtonV4 from 'next/button/Button.vue';
 import PlanPricingView from 'next/plans/PlanPricingView.vue';
 import { getCurrencyConfig } from 'dashboard/constants/billing';
 import { useI18n } from 'vue-i18n';
+import PayphonePaymentsAPI from 'dashboard/api/payphonePayments';
 
 const { currentAccount, isOnChatwootCloud } = useAccount();
 const {
@@ -40,6 +41,28 @@ const BILLING_REFRESH_ATTEMPTED = 'billing_refresh_attempted';
 const isWaitingForBilling = ref(false);
 const purchaseCreditsModalRef = ref(null);
 const comparingPlans = ref(false);
+const payphoneEnabled = ref(false);
+const payphoneHistory = ref([]);
+const latestApprovedPayphonePayment = computed(() =>
+  payphoneHistory.value.find(payment => payment.status === 'approved')
+);
+const payphonePlanId = ref(null);
+const payphoneQuote = ref(null);
+const payphoneNeedsInvoice = ref(false);
+const payphoneInvoice = ref({
+  billing_tax_id_type: 'cedula',
+  billing_tax_id: '',
+  billing_name: '',
+  billing_email: '',
+  billing_phone: '',
+  billing_address: '',
+});
+const payphonePayment = ref(null);
+const payphoneError = ref('');
+const payphoneStatus = ref(
+  new URLSearchParams(window.location.search).get('payphone') || ''
+);
+const payphoneBusy = ref(false);
 const currentPlanId = computed(
   () =>
     currentAccount.value.limits?.plan?.id ??
@@ -231,7 +254,101 @@ const handleTopupSuccess = () => {
   fetchLimits();
 };
 
-onMounted(handleBillingPageLogic);
+const loadPayphone = async () => {
+  if (isOnChatwootCloud.value) return;
+  try {
+    const { data } = await PayphonePaymentsAPI.get();
+    payphoneEnabled.value = data.enabled;
+    payphoneHistory.value = data.payments;
+  } catch {
+    payphoneEnabled.value = false;
+  }
+};
+
+async function quotePayphone() {
+  if (!payphonePlanId.value) return;
+  try {
+    const { data } = await PayphonePaymentsAPI.quote({
+      plan_id: payphonePlanId.value,
+      needs_invoice: payphoneNeedsInvoice.value,
+    });
+    payphoneQuote.value = data;
+  } catch (error) {
+    payphoneError.value = error.response?.data?.error || t('PAYPHONE.ERROR');
+  }
+}
+
+const selectPayphonePlan = async planId => {
+  payphonePlanId.value = planId;
+  payphoneNeedsInvoice.value = false;
+  payphoneError.value = '';
+  await quotePayphone();
+};
+
+const beginPayphonePayment = async () => {
+  payphoneBusy.value = true;
+  payphoneError.value = '';
+  try {
+    const { data } = await PayphonePaymentsAPI.create({
+      plan_id: payphonePlanId.value,
+      needs_invoice: payphoneNeedsInvoice.value,
+      ...payphoneInvoice.value,
+    });
+    payphonePayment.value = data;
+    payphoneQuote.value = { ...payphoneQuote.value, amount: data.amount };
+    if (data.box.preview) return;
+    if (!document.getElementById('payphone-sdk')) {
+      const css = document.createElement('link');
+      css.rel = 'stylesheet';
+      css.href =
+        'https://cdn.payphonetodoesposible.com/box/v2.0/payphone-payment-box.css';
+      document.head.appendChild(css);
+      const script = document.createElement('script');
+      script.id = 'payphone-sdk';
+      script.type = 'module';
+      script.src =
+        'https://cdn.payphonetodoesposible.com/box/v2.0/payphone-payment-box.js';
+      document.head.appendChild(script);
+      await new Promise((resolve, reject) => {
+        script.onload = resolve;
+        script.onerror = reject;
+      });
+    }
+    new window.PPaymentButtonBox(data.box).render('payphone-box');
+  } catch (error) {
+    payphoneError.value = error.response?.data?.error || t('PAYPHONE.ERROR');
+  } finally {
+    payphoneBusy.value = false;
+  }
+};
+
+const previewPayphone = async status => {
+  payphoneBusy.value = true;
+  try {
+    const { data } = await PayphonePaymentsAPI.previewConfirm(
+      payphonePayment.value.id,
+      status
+    );
+    payphonePayment.value = { ...payphonePayment.value, ...data };
+    payphoneStatus.value = data.status || 'verifying';
+    await loadPayphone();
+    if (data.status === 'approved') await fetchLimits();
+    if (['cancelled', 'failed'].includes(data.status))
+      payphonePayment.value = null;
+  } catch (error) {
+    payphoneStatus.value = 'verifying';
+  } finally {
+    payphoneBusy.value = false;
+  }
+};
+
+const formattedPayphoneDate = value =>
+  value ? format(new Date(value), 'dd MMM, yyyy') : '';
+
+onMounted(async () => {
+  await handleBillingPageLogic();
+  await loadPayphone();
+});
 </script>
 
 <template>
@@ -272,10 +389,237 @@ onMounted(handleBillingPageLogic);
         v-if="comparingPlans"
         context="billing"
         :current-plan-id="currentPlanId"
+        :can-select="payphoneEnabled"
+        :can-purchase="payphoneEnabled"
+        @select="selectPayphonePlan"
         @close="comparingPlans = false"
       />
     </template>
     <template #body>
+      <div
+        v-if="payphoneStatus"
+        role="status"
+        class="mb-4 rounded-xl border border-n-weak bg-n-slate-2 p-4 text-sm"
+      >
+        <template v-if="payphoneStatus === 'verifying'">
+          <span
+            class="i-lucide-loader-circle me-2 inline-block size-4 animate-spin"
+            aria-hidden="true"
+          />
+          {{ t('PAYPHONE.VERIFYING') }}
+        </template>
+        <template v-else-if="payphoneStatus === 'approved'">
+          {{ t('PAYPHONE.APPROVED') }}
+          {{ formattedPayphoneDate(latestApprovedPayphonePayment?.period_end) }}
+          <a
+            v-if="payphoneHistory.length"
+            href="#payphone-history"
+            class="ms-2 text-n-blue-11 underline"
+          >
+            {{ t('PAYPHONE.HISTORY_LINK') }}
+          </a>
+        </template>
+        <template v-else-if="['cancelled', 'failed'].includes(payphoneStatus)">
+          {{ t('PAYPHONE.REJECTED') }}
+        </template>
+        <template v-else-if="payphoneStatus === 'conflict'">
+          {{ t('PAYPHONE.CONFLICT') }}
+        </template>
+        <ButtonV4
+          v-if="['cancelled', 'failed'].includes(payphoneStatus)"
+          :label="t('PAYPHONE.RETRY')"
+          class="ms-3"
+          variant="outline"
+          sm
+          @click="comparingPlans = true"
+        />
+      </div>
+      <section
+        v-if="payphonePlanId && payphoneEnabled"
+        class="mb-4 rounded-xl border border-n-weak bg-n-solid-1 p-4 sm:p-6 dark:bg-n-solid-3"
+        aria-live="polite"
+      >
+        <div class="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h2 class="m-0 text-heading-2">
+              {{ t('PAYPHONE.CONFIRM_TITLE') }}
+            </h2>
+            <p class="mb-0 mt-1 text-sm text-n-slate-11">
+              {{ t('PAYPHONE.DURATION') }}
+            </p>
+          </div>
+          <ButtonV4
+            :label="t('PAYPHONE.CLOSE')"
+            variant="outline"
+            sm
+            @click="
+              payphonePlanId = null;
+              payphoneQuote = null;
+              payphonePayment = null;
+            "
+          />
+        </div>
+        <label class="mb-4 flex items-center gap-3 text-sm">
+          <input
+            v-model="payphoneNeedsInvoice"
+            type="checkbox"
+            class="size-4 accent-n-blue-9"
+            :disabled="payphoneBusy || !!payphonePayment"
+            @change="quotePayphone"
+          />
+          <span>{{ t('PAYPHONE.NEEDS_INVOICE') }}</span>
+        </label>
+        <div v-if="payphoneNeedsInvoice" class="mb-4 grid gap-3 sm:grid-cols-2">
+          <input
+            v-for="field in [
+              'billing_tax_id_type',
+              'billing_tax_id',
+              'billing_name',
+              'billing_email',
+              'billing_phone',
+              'billing_address',
+            ]"
+            :key="field"
+            v-model="payphoneInvoice[field]"
+            :placeholder="t(`PAYPHONE.INVOICE.${field}`)"
+            :aria-label="t(`PAYPHONE.INVOICE.${field}`)"
+            :disabled="payphoneBusy || !!payphonePayment"
+            class="min-w-0 rounded-lg border border-n-weak bg-n-solid-1 px-3 py-2 text-sm dark:bg-n-solid-3"
+          />
+        </div>
+        <dl
+          v-if="payphoneQuote"
+          class="grid grid-cols-2 gap-2 text-sm sm:max-w-md"
+        >
+          <dt class="text-n-slate-11">{{ t('PAYPHONE.SUBTOTAL') }}</dt>
+          <dd class="m-0 text-end">
+            {{ (payphoneQuote.base_cents / 100).toFixed(2) }}
+            {{ payphoneQuote.currency }}
+          </dd>
+          <dt class="text-n-slate-11">{{ t('PAYPHONE.TAX') }}</dt>
+          <dd class="m-0 text-end">
+            {{ (payphoneQuote.tax_cents / 100).toFixed(2) }}
+            {{ payphoneQuote.currency }}
+          </dd>
+          <dt class="text-n-slate-11">{{ t('PAYPHONE.COMMISSION') }}</dt>
+          <dd class="m-0 text-end">
+            {{ (payphoneQuote.commission_cents / 100).toFixed(2) }}
+            {{ payphoneQuote.currency }}
+          </dd>
+          <dt class="font-medium">{{ t('PAYPHONE.TOTAL') }}</dt>
+          <dd class="m-0 text-end font-semibold">
+            {{ (payphoneQuote.amount / 100).toFixed(2) }}
+            {{ payphoneQuote.currency }}
+          </dd>
+        </dl>
+        <p
+          v-if="payphoneError"
+          role="alert"
+          class="mt-3 text-sm text-n-ruby-11"
+        >
+          {{ payphoneError }}
+        </p>
+        <div v-if="!payphonePayment" class="mt-4">
+          <ButtonV4
+            :label="t('PAYPHONE.CONTINUE')"
+            sm
+            solid
+            blue
+            :is-loading="payphoneBusy || !payphoneQuote"
+            :disabled="payphoneBusy || !payphoneQuote"
+            @click="beginPayphonePayment"
+          />
+        </div>
+        <div
+          v-else-if="payphonePayment.box.preview"
+          class="mt-4 space-y-3 rounded-lg border border-n-weak bg-n-slate-2 p-4"
+        >
+          <p class="m-0 text-sm">{{ t('PAYPHONE.PREVIEW_BOX') }}</p>
+          <div class="flex flex-wrap gap-2">
+            <ButtonV4
+              :label="t('PAYPHONE.SIMULATE_APPROVED')"
+              sm
+              solid
+              blue
+              :disabled="payphoneBusy"
+              @click="previewPayphone('approved')"
+            />
+            <ButtonV4
+              :label="t('PAYPHONE.SIMULATE_REJECTED')"
+              sm
+              variant="outline"
+              :disabled="payphoneBusy"
+              @click="previewPayphone('cancelled')"
+            />
+            <ButtonV4
+              :label="t('PAYPHONE.SIMULATE_PENDING')"
+              sm
+              variant="outline"
+              :disabled="payphoneBusy"
+              @click="previewPayphone('pending')"
+            />
+          </div>
+        </div>
+        <div v-else id="payphone-box" class="mt-4 min-h-12" />
+        <p
+          v-if="payphoneStatus === 'verifying'"
+          role="status"
+          class="mt-3 text-sm text-n-slate-11"
+        >
+          {{ t('PAYPHONE.VERIFYING') }}
+        </p>
+        <p
+          v-else-if="payphoneStatus === 'approved'"
+          role="status"
+          class="mt-3 text-sm text-n-teal-11"
+        >
+          {{ t('PAYPHONE.APPROVED') }}
+          {{ formattedPayphoneDate(payphonePayment?.period_end) }}
+          <a
+            v-if="payphoneHistory.length"
+            href="#payphone-history"
+            class="ms-2 text-n-blue-11 underline"
+          >
+            {{ t('PAYPHONE.HISTORY_LINK') }}
+          </a>
+        </p>
+        <p
+          v-else-if="['cancelled', 'failed'].includes(payphoneStatus)"
+          role="status"
+          class="mt-3 text-sm text-n-slate-11"
+        >
+          {{ t('PAYPHONE.REJECTED') }}
+        </p>
+      </section>
+      <section
+        v-if="payphoneHistory.length"
+        id="payphone-history"
+        class="mb-4 rounded-xl border border-n-weak bg-n-solid-1 p-4 sm:p-6 dark:bg-n-solid-3"
+      >
+        <h2 class="mb-4 mt-0 text-heading-2">{{ t('PAYPHONE.HISTORY') }}</h2>
+        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <article
+            v-for="payment in payphoneHistory"
+            :key="payment.id"
+            class="rounded-lg border border-n-weak p-3 text-sm"
+          >
+            <div class="flex justify-between gap-3">
+              <strong>{{ payment.plan }}</strong>
+              <span>{{ t(`PAYPHONE.STATES.${payment.status}`) }}</span>
+            </div>
+            <div class="mt-2 flex justify-between gap-3 text-n-slate-11">
+              <span>{{ payment.created_at }}</span>
+              <span>
+                {{ (payment.amount / 100).toFixed(2) }}
+                {{ payment.currency }}
+              </span>
+            </div>
+            <p class="mb-0 mt-1 break-all text-xs text-n-slate-10">
+              {{ payment.client_transaction_id }}
+            </p>
+          </article>
+        </div>
+      </section>
       <!-- Currency Selection Section (Cloud only) -->
       <section
         v-if="isOnChatwootCloud && currencySelectionRequired"

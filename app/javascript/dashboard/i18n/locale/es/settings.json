@@ -715,6 +715,32 @@
       "ERROR": "No se pudo actualizar la configuración de Captain. Inténtalo de nuevo."
     }
   },
+  "PAYPHONE": {
+    "CHOOSE": "Elegir",
+    "CONFIRM_TITLE": "Confirma tu plan",
+    "DURATION": "El pago cubre 30 días desde su aprobación.",
+    "CLOSE": "Cerrar",
+    "NEEDS_INVOICE": "Necesito factura",
+    "INVOICE": { "billing_tax_id_type": "Tipo de identificación", "billing_tax_id": "Identificación tributaria", "billing_name": "Nombre o empresa", "billing_email": "Correo de facturación", "billing_phone": "Teléfono", "billing_address": "Dirección" },
+    "SUBTOTAL": "Subtotal",
+    "TAX": "IVA",
+    "COMMISSION": "Comisión de tarjeta",
+    "TOTAL": "Total",
+    "CONTINUE": "Continuar al pago",
+    "PREVIEW_BOX": "Cajita de pago de vista previa. No se realizará ningún cobro real.",
+    "SIMULATE_APPROVED": "Simular aprobación",
+    "SIMULATE_REJECTED": "Simular rechazo",
+    "SIMULATE_PENDING": "Simular demora de verificación",
+    "VERIFYING": "Estamos verificando el pago. El plan se actualizará al confirmarse.",
+    "APPROVED": "Pago aprobado. Tu plan está vigente hasta",
+    "REJECTED": "El pago no fue aprobado. Puedes intentarlo de nuevo.",
+    "CONFLICT": "No se puede cambiar el plan de pago hasta que venza.",
+    "RETRY": "Elegir un plan para volver a intentarlo",
+    "HISTORY_LINK": "Ver historial de pagos",
+    "HISTORY": "Historial de pagos",
+    "ERROR": "No pudimos preparar el pago. Inténtalo de nuevo.",
+    "STATES": { "pending": "Verificando", "approved": "Aprobado", "cancelled": "Cancelado", "failed": "Fallido", "expired": "Vencido" }
+  },
   "BILLING_SETTINGS": {
     "TITLE": "Facturación",
     "DESCRIPTION": "Gestiona tu suscripción aquí, mejora tu plan y consigue más para tu equipo.",

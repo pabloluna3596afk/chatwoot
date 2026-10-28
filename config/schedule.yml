@@ -15,6 +15,11 @@ close_expired_usage_periods_job:
   cron: '30 0 * * *'
   class: 'Internal::CloseExpiredUsagePeriodsJob'
   queue: scheduled_jobs
+
+payphone_expire_pending_payments_job:
+  cron: '*/5 * * * *'
+  class: 'Payphone::ExpirePendingPaymentsJob'
+  queue: scheduled_jobs
 # # executed At every 5th minute..
 trigger_scheduled_items_job:
   cron: '*/5 * * * *'

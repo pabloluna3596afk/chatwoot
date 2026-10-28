@@ -676,6 +676,12 @@
   value: ''
   locked: false
   type: secret
+- name: PAYPHONE_BOX_TOKEN
+  display_title: 'super_admin.payphone.fields.box_token'
+  description: 'super_admin.payphone.descriptions.box_token'
+  value: ''
+  locked: false
+  type: secret
 - name: PAYPHONE_ENVIRONMENT
   display_title: 'super_admin.payphone.fields.environment'
   description: 'super_admin.payphone.descriptions.environment'

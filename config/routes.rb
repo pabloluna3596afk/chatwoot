@@ -39,6 +39,7 @@ Rails.application.routes.draw do
   end
 
   get '/health', to: 'health#show'
+  get '/payphone/response', to: 'payphone/responses#show'
   get '/robots.txt', to: 'robots#show', format: false
   get '/api', to: 'api#index'
 
@@ -66,6 +67,10 @@ Rails.application.routes.draw do
             resource :contact_merge, only: [:create]
           end
           resources :plans, only: [:index]
+          resources :payphone_payments, only: [:index, :create] do
+            collection { post :quote }
+            member { post :preview_confirm }
+          end
           resource :bulk_actions, only: [:create]
           resource :onboarding, only: [:update] do
             get :help_center_generation

@@ -1,0 +1,3 @@
+<p><%= t('payphone.receipt.body', plan: @payment.plan.name) %></p>
+<p><%= t('payphone.receipt.amount', amount: number_to_currency(@payment.amount / 100.0, unit: 'USD ')) %></p>
+<p><%= t('payphone.receipt.period', start: l(@payment.period_start.to_date), end: l(@payment.period_end.to_date)) %></p>

@@ -715,6 +715,32 @@
       "ERROR": "Failed to update Captain settings. Please try again."
     }
   },
+  "PAYPHONE": {
+    "CHOOSE": "Choose",
+    "CONFIRM_TITLE": "Confirm your plan",
+    "DURATION": "Your payment covers 30 days from approval.",
+    "CLOSE": "Close",
+    "NEEDS_INVOICE": "I need an invoice",
+    "INVOICE": { "billing_tax_id_type": "ID type", "billing_tax_id": "Tax ID", "billing_name": "Name or company", "billing_email": "Billing email", "billing_phone": "Phone", "billing_address": "Address" },
+    "SUBTOTAL": "Subtotal",
+    "TAX": "Tax",
+    "COMMISSION": "Card fee",
+    "TOTAL": "Total",
+    "CONTINUE": "Continue to payment",
+    "PREVIEW_BOX": "Preview payment box. No real charge will be made.",
+    "SIMULATE_APPROVED": "Simulate approval",
+    "SIMULATE_REJECTED": "Simulate rejection",
+    "SIMULATE_PENDING": "Simulate verification delay",
+    "VERIFYING": "We are verifying your payment. Your plan will update after confirmation.",
+    "APPROVED": "Payment approved. Your plan is active until",
+    "REJECTED": "Payment was not approved. You can try again.",
+    "CONFLICT": "Your active paid plan cannot be changed until it expires.",
+    "RETRY": "Choose a plan to try again",
+    "HISTORY_LINK": "View payment history",
+    "HISTORY": "Payment history",
+    "ERROR": "We could not prepare the payment. Try again.",
+    "STATES": { "pending": "Verifying", "approved": "Approved", "cancelled": "Cancelled", "failed": "Failed", "expired": "Expired" }
+  },
   "BILLING_SETTINGS": {
     "TITLE": "Billing",
     "DESCRIPTION": "Manage your subscription here, upgrade your plan and get more for your team.",
