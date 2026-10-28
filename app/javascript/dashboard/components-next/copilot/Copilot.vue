@@ -1,6 +1,7 @@
 <script setup>
 import { nextTick, ref, watch, computed } from 'vue';
 import { useTrack } from 'dashboard/composables';
+import { resolveAssistantAvatar } from 'dashboard/helper/assistantAvatar';
 import { COPILOT_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import CopilotInput from './CopilotInput.vue';
 import CopilotLoader from './CopilotLoader.vue';
@@ -99,6 +100,9 @@ const groupedMessages = computed(() => {
 const isLastMessageFromAssistant = computed(
   () => groupedMessages.value.at(-1)?.message_type === 'assistant'
 );
+const copilotAvatar = computed(() =>
+  resolveAssistantAvatar('/assets/images/dashboard/captain/avatar-light.svg')
+);
 const hasAssistants = computed(() => props.assistants.length > 0);
 const hasMessages = computed(
   () => props.messages.length > 0 || props.actionItems.length > 0
@@ -148,11 +152,11 @@ watch(
   >
     <header class="flex flex-col gap-2 border-b border-n-weak px-3 py-2.5">
       <div class="flex items-center gap-2">
-        <span
-          class="flex size-9 shrink-0 items-center justify-center rounded-full bg-n-alpha-2 text-xl text-n-slate-12"
-        >
-          <i class="i-lucide-sparkles" />
-        </span>
+        <img
+          :src="copilotAvatar"
+          :alt="$t('CAPTAIN.COPILOT.COPILOT_LABEL')"
+          class="size-9 shrink-0 rounded-full"
+        />
         <div class="min-w-0 flex-1">
           <div class="truncate font-medium text-n-slate-12">
             {{ $t('CAPTAIN.COPILOT.COPILOT_LABEL') }}
@@ -261,13 +265,8 @@ watch(
           </div>
           <div
             v-else-if="item.message_type === 'assistant'"
-            class="flex items-start gap-2"
+            class="flex items-start"
           >
-            <span
-              class="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full bg-n-alpha-2 text-n-slate-12"
-            >
-              <i class="i-lucide-sparkles text-base" />
-            </span>
             <div
               class="max-w-[88%] rounded-2xl rounded-bl-sm bg-n-surface-3 px-3 py-2"
             >
@@ -285,13 +284,8 @@ watch(
           </div>
           <div
             v-else-if="item.message_type === 'action_item'"
-            class="flex items-start gap-2"
+            class="flex items-start"
           >
-            <span
-              class="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full bg-n-alpha-2 text-n-slate-12"
-            >
-              <i class="i-lucide-sparkles text-base" />
-            </span>
             <CopilotActionCard
               :item="item"
               :labels="actionLabels"
