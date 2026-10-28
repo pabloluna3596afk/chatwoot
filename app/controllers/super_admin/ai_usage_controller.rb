@@ -22,34 +22,32 @@ class SuperAdmin::AiUsageController < SuperAdmin::ApplicationController
   private
 
   def load_dashboard_data
-    @events = month_events.to_a
-    @summary = summary_for(@events)
-    load_charts
-    load_tables
+    events = month_events
+    @summary = summary_for(events)
+    load_charts(events)
+    load_tables(events)
+    @events = events.includes(:account).order(created_at: :desc).page(params[:page]).per(50)
   end
 
-  def load_charts
-    @daily_cost = aggregate_cost_by { |event| event.created_at.to_date }
-    @daily_calls = @events.group_by { |event| [event.created_at.to_date, event.bucket] }.transform_values(&:size)
-    @model_cost = aggregate_cost_by(&:model)
-    @calls_per_message = @events.group_by(&:usage_group_id).values.map(&:size).tally.sort.to_h
+  def load_charts(events)
+    @daily_cost = events.group(Arel.sql('DATE(created_at)')).sum(:cost_usd)
+    @daily_calls = events.group(Arel.sql('DATE(created_at)'), :bucket).count
+    @model_cost = events.group(:model).sum(:cost_usd)
+    @calls_per_message = call_distribution(events)
   end
 
-  def aggregate_cost_by(&)
-    @events.group_by(&).transform_values { |rows| rows.sum(&:cost_usd) }
-  end
-
-  def load_tables
-    @company_ranking = company_ranking(@events)
-    @bag_rows = bag_rows(@events)
-    @alerts = alerts(@events)
+  def load_tables(events)
+    @company_ranking = company_ranking(events)
+    @bag_rows = bag_rows(events)
+    @alerts = SuperAdmin::AiUsageAlerts.new(events, @bag_rows).call
   end
 
   def company_ranking(events)
-    accounts = Account.includes(:plan).where(id: events.map(&:account_id).uniq).index_by(&:id)
-    ranking = events.group_by(&:account_id).filter_map do |account_id, rows|
+    cost_by_account = events.group(:account_id).sum(:cost_usd)
+    accounts = Account.includes(:plan).where(id: cost_by_account.keys).index_by(&:id)
+    ranking = cost_by_account.filter_map do |account_id, cost|
       account = accounts[account_id]
-      [account, rows.sum(&:cost_usd)] if account
+      [account, cost] if account
     end
     ranking.sort_by { |_account, cost| -cost }
   end
@@ -63,7 +61,7 @@ class SuperAdmin::AiUsageController < SuperAdmin::ApplicationController
   def month_events
     month_start = parsed_month.beginning_of_month.beginning_of_day
     month_end = parsed_month.next_month.beginning_of_month.beginning_of_day
-    events = AiUsageEvent.includes(:account).where(created_at: month_start...month_end)
+    events = AiUsageEvent.where(created_at: month_start...month_end)
     @account ? events.where(account_id: @account.id) : events
   end
 
@@ -75,55 +73,74 @@ class SuperAdmin::AiUsageController < SuperAdmin::ApplicationController
   end
 
   def summary_for(events)
-    group_sizes = events.group_by(&:usage_group_id).values.map(&:size).sort
+    cost, calls, input_tokens, output_tokens = events.pick(
+      Arel.sql('COALESCE(SUM(cost_usd), 0)'), Arel.sql('COUNT(*)'),
+      Arel.sql('COALESCE(SUM(input_tokens), 0)'), Arel.sql('COALESCE(SUM(output_tokens), 0)')
+    )
+    distribution = call_distribution(events)
+    messages = distribution.values.sum
     {
-      cost: events.sum(&:cost_usd), calls: events.size, messages: group_sizes.size,
-      avg_calls: average_calls(group_sizes), p95_calls: percentile_95(group_sizes),
-      input_tokens: events.sum(&:input_tokens), output_tokens: events.sum(&:output_tokens),
+      cost: cost, calls: calls, messages: messages,
+      avg_calls: messages.positive? ? distribution.sum { |count, occurrences| count * occurrences }.to_f / messages : 0,
+      p95_calls: percentile_95(distribution, messages),
+      input_tokens: input_tokens, output_tokens: output_tokens,
       plan_cost_percent: plan_cost_percent(events)
     }
   end
 
-  def average_calls(group_sizes)
-    group_sizes.any? ? group_sizes.sum.to_f / group_sizes.size : 0
+  def call_distribution(events)
+    message_calls = events.unscope(:select, :order).group(:usage_group_id).select('COUNT(*) AS call_count')
+    AiUsageEvent.from(message_calls, :message_calls).group(:call_count).order(:call_count).count
   end
 
-  def percentile_95(values)
-    values.empty? ? 0 : values[[(values.length * 0.95).ceil - 1, 0].max]
+  def percentile_95(distribution, messages)
+    return 0 unless messages.positive?
+
+    percentile_rank = (messages * 0.95).ceil
+    distribution.each do |calls, count|
+      percentile_rank -= count
+      return calls if percentile_rank <= 0
+    end
   end
 
   def plan_cost_percent(events)
-    accounts = Account.includes(:plan).where(id: events.map(&:account_id).uniq)
+    accounts = Account.includes(:plan).where(id: events.distinct.pluck(:account_id))
     plan_total = accounts.sum { |account| account.plan&.price_monthly.to_f }
-    plan_total.positive? ? (events.sum(&:cost_usd) / plan_total * 100).round(1) : nil
+    total_cost = events.sum(:cost_usd)
+    plan_total.positive? ? (total_cost / plan_total * 100).round(1) : nil
   end
 
   def bag_rows(events)
-    rows = events.group_by { |event| [event.account_id, event.bucket] }.map do |(account_id, bucket), grouped_events|
-      build_bag_row(account_id, bucket, grouped_events)
-    end
+    aggregates = events.group(:account_id, :bucket).pluck(
+      :account_id, :bucket, Arel.sql('COUNT(DISTINCT usage_group_id)'), Arel.sql('COUNT(*)'),
+      Arel.sql('SUM(input_tokens + output_tokens)'), Arel.sql('SUM(cost_usd)')
+    )
+    account_ids = aggregates.map(&:first).uniq
+    accounts = Account.where(id: account_ids).index_by(&:id)
+    usages = usage_by_account(account_ids)
+    aggregate_fields = %i[account_id bucket messages calls tokens cost]
+    rows = aggregates.map { |values| build_bag_row(aggregate_fields.zip(values).to_h, accounts, usages) }
     rows.sort_by { |row| [row[:account]&.name.to_s, row[:bucket]] }
   end
 
-  def build_bag_row(account_id, bucket, events)
-    account = Account.find_by(id: account_id)
-    consumed, limit = usage_and_limit(usage_for_month(account), bucket)
+  def build_bag_row(aggregate, accounts, usages)
+    account = accounts[aggregate[:account_id]]
+    usage = usages[aggregate[:account_id]]
+    bucket = aggregate[:bucket]
+    consumed, limit = usage_and_limit(usage, bucket)
     {
-      account: account, bucket: bucket, messages: events.map(&:usage_group_id).uniq.size,
-      calls: events.size, tokens: events.sum(&:input_tokens) + events.sum(&:output_tokens),
-      cost: events.sum(&:cost_usd), consumed: consumed, limit: limit,
+      account: account, bucket: bucket, messages: aggregate[:messages], calls: aggregate[:calls],
+      tokens: aggregate[:tokens], cost: aggregate[:cost], consumed: consumed, limit: limit,
       percent: limit.to_i.positive? ? (consumed.to_f / limit * 100).round(1) : nil
     }
   end
 
-  def usage_for_month(account)
-    return unless account
-
-    account.account_plan_usages
-           .where('period_start < ?', @month.next_month.beginning_of_month)
-           .where('period_end >= ?', @month.beginning_of_month)
-           .order(period_start: :desc)
-           .first
+  def usage_by_account(account_ids)
+    AccountPlanUsage.where(account_id: account_ids)
+                    .where('period_start < ? AND period_end >= ?', @month.next_month.beginning_of_month,
+                           @month.beginning_of_month)
+                    .order(period_start: :desc)
+                    .group_by(&:account_id).transform_values(&:first)
   end
 
   def usage_and_limit(usage, bucket)
@@ -140,55 +157,5 @@ class SuperAdmin::AiUsageController < SuperAdmin::ApplicationController
     return [usage.copilot_responses_consumed, usage.limit_copilot_responses] if usage.limit_copilot_responses
 
     [usage.copilot_responses_consumed + usage.responses_consumed, usage.limit_responses]
-  end
-
-  def alerts(events)
-    warnings = (model_alerts(events) + unpriced_alerts(events) + bag_alerts(events) + plan_alerts(events)).uniq
-    warnings.each { |warning| Rails.logger.warn("[AI_USAGE] #{warning}") }
-    warnings
-  end
-
-  def model_alerts(events)
-    events.reject { |event| event.model == 'gpt-6-luna' }
-          .group_by { |event| [event.model, event.account_id] }
-          .values.map do |model_events|
-      event = model_events.max_by(&:created_at)
-      I18n.t('super_admin.ai_usage.model_alert', model: event.model, account: event.account.name, time: event.created_at)
-    end
-  end
-
-  def unpriced_alerts(events)
-    events.filter_map do |event|
-      price = AiModelPrice.current_for(event.model, at: event.created_at)
-      next if price && [price.input_per_million, price.cached_input_per_million, price.output_per_million].any?(&:positive?)
-
-      I18n.t('super_admin.ai_usage.unpriced_alert', model: event.model)
-    end
-  end
-
-  def bag_alerts(events)
-    events.map { |event| [event.account_id, event.bucket] }.uniq.filter_map do |account_id, bucket|
-      account = Account.find_by(id: account_id)
-      consumed, limit = usage_and_limit(usage_for_month(account), bucket)
-      next unless limit.to_i.positive? && consumed.to_f / limit >= 0.8
-
-      I18n.t('super_admin.ai_usage.bag_alert', bucket: bucket, account: account&.name,
-                                               percent: (consumed.to_f / limit * 100).round)
-    end
-  end
-
-  def plan_alerts(events)
-    threshold = ENV.fetch('AI_USAGE_PLAN_COST_PERCENT', '40').to_f / 100
-    events.group_by(&:account_id).filter_map do |account_id, grouped_events|
-      plan_alert(account_id, grouped_events, threshold)
-    end
-  end
-
-  def plan_alert(account_id, events, threshold)
-    account = Account.find_by(id: account_id)
-    monthly_price = account&.plan&.price_monthly.to_f
-    return unless monthly_price.positive? && events.sum(&:cost_usd) > monthly_price * threshold
-
-    I18n.t('super_admin.ai_usage.plan_alert', account: account.name, percent: (threshold * 100).round)
   end
 end
