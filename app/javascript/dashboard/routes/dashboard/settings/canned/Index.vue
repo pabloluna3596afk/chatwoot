@@ -3,6 +3,7 @@ import { useAlert } from 'dashboard/composables';
 import AddCanned from './AddCanned.vue';
 import EditCanned from './EditCanned.vue';
 import ToolList from 'dashboard/components-next/ToolList/ToolList.vue';
+import ToolChip from 'dashboard/components-next/ToolList/ToolChip.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
@@ -163,7 +164,14 @@ const listColumns = computed(() => [
   { key: 'created_at', label: t('CANNED_MGMT.TRACE.CREATED') },
 ]);
 const listActions = computed(() => [
-  { key: 'edit', label: t('CANNED_MGMT.EDIT.BUTTON_TEXT') },
+  {
+    key: 'edit',
+    label: t('CANNED_MGMT.EDIT.BUTTON_TEXT'),
+    visible: item =>
+      isAdmin.value ||
+      (item.visibility !== 'global' &&
+        item.created_by_id === currentUser.value?.id),
+  },
   { key: 'duplicate', label: t('CANNED_MGMT.DUPLICATE.TOOLTIP') },
   {
     key: 'approve-global',
@@ -187,8 +195,16 @@ const listActions = computed(() => [
     key: 'delete',
     label: t('CANNED_MGMT.DELETE.BUTTON_TEXT'),
     variant: 'danger',
+    visible: item =>
+      isAdmin.value ||
+      (item.visibility !== 'global' &&
+        item.created_by_id === currentUser.value?.id),
   },
 ]);
+
+const statusTone = status =>
+  ({ pending: 'amber', approved: 'teal', rejected: 'ruby' })[status] ||
+  'neutral';
 const uiFlags = computed(() => getters.getUIFlags.value);
 
 const deleteConfirmText = computed(
@@ -453,11 +469,6 @@ const handleListAction = ({ action, item }) => {
                 <div class="truncate text-xs text-n-slate-10">
                   {{ getPlainText(item.content) }}
                 </div>
-                <span
-                  class="mt-1 inline-flex rounded-md bg-n-alpha-2 px-2 py-0.5 text-xs text-n-slate-11"
-                >
-                  {{ $t(`CANNED_MGMT.VISIBILITY_LABEL.${item.visibility}`) }}
-                </span>
               </div>
             </div>
           </template>
@@ -473,10 +484,14 @@ const handleListAction = ({ action, item }) => {
             </span>
           </template>
           <template #cell-approval_status="{ item }">
-            {{ $t(`CANNED_MGMT.STATUS_LABEL.${item.approval_status}`) }}
+            <ToolChip :tone="statusTone(item.approval_status)">
+              {{ $t(`CANNED_MGMT.STATUS_LABEL.${item.approval_status}`) }}
+            </ToolChip>
           </template>
           <template #cell-visibility="{ item }">
-            {{ $t(`CANNED_MGMT.VISIBILITY_LABEL.${item.visibility}`) }}
+            <ToolChip>
+              {{ $t(`CANNED_MGMT.VISIBILITY_LABEL.${item.visibility}`) }}
+            </ToolChip>
           </template>
           <template #cell-created_at="{ item }">
             <div>{{ formatDate(item.created_at) }}</div>

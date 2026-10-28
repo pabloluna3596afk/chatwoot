@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import ToolList from './ToolList.vue';
+import ToolChip from './ToolChip.vue';
 
 describe('ToolList', () => {
   it('renders mobile cards and desktop table from the same items', () => {
@@ -51,6 +52,28 @@ describe('ToolList', () => {
     expect(menus[0].text()).toContain('Approve');
     expect(menus[1].text()).not.toContain('Approve');
     expect(menus[1].text()).toContain('Edit');
+  });
+
+  it('renders reusable chips with neutral and status tones', () => {
+    const wrapper = mount({
+      components: { ToolChip },
+      template: `
+        <div>
+          <ToolChip>Cuenta</ToolChip>
+          <ToolChip tone="amber">Pendiente</ToolChip>
+          <ToolChip tone="teal">Aprobada</ToolChip>
+          <ToolChip tone="ruby">Rechazada</ToolChip>
+        </div>
+      `,
+    });
+    const chips = wrapper.findAll('span');
+    expect(chips[0].classes()).toContain('bg-n-alpha-2');
+    expect(chips[1].classes()).toContain('bg-n-amber-3');
+    expect(chips[1].classes()).toContain('text-n-amber-11');
+    expect(chips[2].classes()).toContain('bg-n-teal-3');
+    expect(chips[2].classes()).toContain('text-n-teal-11');
+    expect(chips[3].classes()).toContain('bg-n-ruby-3');
+    expect(chips[3].classes()).toContain('text-n-ruby-11');
   });
 
   it('announces loading, error and empty states and supports selection', async () => {
