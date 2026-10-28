@@ -1,5 +1,6 @@
 class Captain::Copilot::ReplySuggestionService
   include Captain::Copilot::ConversationAccess
+  include Captain::Copilot::ReplySuggestionUsage
   include Integrations::LlmInstrumentationConstants
 
   class GenerationError < StandardError; end
@@ -36,7 +37,7 @@ class Captain::Copilot::ReplySuggestionService
         next({ error: I18n.t('captain.copilot_limit', reset_date: reset_date), error_code: 429 })
       end
 
-      response, runner = generate_reply(conversation)
+      response, runner = generate_metered_reply(conversation, target_message)
       raise GenerationError, response['reasoning'] if response['error']
 
       persist_response(response, runner, conversation, target_message)

@@ -7,7 +7,13 @@ module Integrations::LlmInstrumentation
   include Integrations::LlmInstrumentationHelpers
   include Integrations::LlmInstrumentationSpans
 
-  def instrument_llm_call(params)
+  def instrument_llm_call(params, &)
+    return Llm::UsageContext.with_instrumentation(params) { instrument_llm_call_with_context(params, &) } unless Llm::UsageContext.current
+
+    instrument_llm_call_with_context(params, &)
+  end
+
+  def instrument_llm_call_with_context(params)
     return yield unless ChatwootApp.otel_enabled?
 
     result = nil
@@ -24,7 +30,13 @@ module Integrations::LlmInstrumentation
     executed ? result : yield
   end
 
-  def instrument_agent_session(params)
+  def instrument_agent_session(params, &)
+    return Llm::UsageContext.with_instrumentation(params) { instrument_agent_session_with_context(params, &) } unless Llm::UsageContext.current
+
+    instrument_agent_session_with_context(params, &)
+  end
+
+  def instrument_agent_session_with_context(params)
     return yield unless ChatwootApp.otel_enabled?
 
     result = nil

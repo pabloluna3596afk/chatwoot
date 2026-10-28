@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_27_130000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_28_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -210,6 +210,44 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_27_130000) do
     t.index ["document_ids"], name: "index_agent_sessions_on_document_ids", using: :gin
     t.index ["used_faq_ids"], name: "index_agent_sessions_on_used_faq_ids", using: :gin
     t.index ["user_id"], name: "index_agent_sessions_on_user_id"
+  end
+
+  create_table "ai_model_prices", force: :cascade do |t|
+    t.string "model", null: false
+    t.decimal "input_per_million", precision: 12, scale: 8, default: "0.0", null: false
+    t.decimal "cached_input_per_million", precision: 12, scale: 8, default: "0.0", null: false
+    t.decimal "output_per_million", precision: 12, scale: 8, default: "0.0", null: false
+    t.datetime "effective_from", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["model", "active", "effective_from"], name: "index_ai_model_prices_for_lookup"
+    t.index ["model", "effective_from"], name: "index_ai_model_prices_on_model_and_effective_from", unique: true
+  end
+
+  create_table "ai_usage_events", force: :cascade do |t|
+    t.integer "account_id", null: false
+    t.string "bucket", null: false
+    t.string "feature", null: false
+    t.string "model", null: false
+    t.string "provider", null: false
+    t.integer "input_tokens", default: 0, null: false
+    t.integer "cached_input_tokens", default: 0, null: false
+    t.integer "output_tokens", default: 0, null: false
+    t.integer "reasoning_tokens", default: 0, null: false
+    t.decimal "cost_usd", precision: 12, scale: 8, default: "0.0", null: false
+    t.string "status", default: "ok", null: false
+    t.string "error_class"
+    t.integer "latency_ms"
+    t.uuid "usage_group_id", null: false
+    t.bigint "conversation_id"
+    t.bigint "message_id"
+    t.datetime "created_at", null: false
+    t.index ["account_id", "bucket", "created_at"], name: "index_ai_usage_events_on_account_id_and_bucket_and_created_at"
+    t.index ["account_id", "conversation_id", "message_id"], name: "idx_on_account_id_conversation_id_message_id_9cad35c9e5"
+    t.index ["account_id", "created_at"], name: "index_ai_usage_events_on_account_id_and_created_at"
+    t.index ["account_id"], name: "index_ai_usage_events_on_account_id"
+    t.index ["usage_group_id"], name: "index_ai_usage_events_on_usage_group_id"
   end
 
   create_table "applied_slas", force: :cascade do |t|
@@ -1725,7 +1763,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_27_130000) do
     t.index ["user_id"], name: "index_payphone_payments_on_user_id"
     t.check_constraint "amount = (amount_without_tax + amount_with_tax + tax + commission_cents)", name: "payphone_payments_amount_breakdown_check"
     t.check_constraint "currency::text = 'USD'::text", name: "payphone_payments_currency_check"
-    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'approved'::character varying, 'cancelled'::character varying, 'failed'::character varying, 'expired'::character varying]::text[])", name: "payphone_payments_status_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'approved'::character varying::text, 'cancelled'::character varying::text, 'failed'::character varying::text, 'expired'::character varying::text])", name: "payphone_payments_status_check"
   end
 
   create_table "plans", force: :cascade do |t|
@@ -2113,6 +2151,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_27_130000) do
   add_foreign_key "accounts", "plans"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "ai_usage_events", "accounts", on_delete: :cascade
   add_foreign_key "calendar_connection_calendars", "accounts", on_delete: :cascade
   add_foreign_key "calendar_connection_calendars", "calendar_connections", on_delete: :cascade
   add_foreign_key "calendar_connections", "accounts", on_delete: :cascade
