@@ -44,6 +44,12 @@ module Llm::Models
       temperature unless supported == false
     end
 
+    # OpenAI rejects function tools on chat completions for models that default to reasoning,
+    # so config/llm.yml pins the effort per model and every chat built here must send it.
+    def reasoning_effort_for(model_name)
+      model_config(model_name)&.dig('reasoning_effort')&.to_s.presence
+    end
+
     def feature_config(feature_key)
       feature = features[feature_key.to_s]
       return nil unless feature

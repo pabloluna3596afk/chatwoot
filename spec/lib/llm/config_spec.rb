@@ -153,4 +153,22 @@ RSpec.describe Llm::Config do
       expect(Agents).to have_received(:configure).once
     end
   end
+
+  describe 'pinned reasoning effort' do
+    around { |example| described_class.with_chat_context('test-key') { example.run } }
+
+    it 'sends the effort declared in llm.yml and keeps it when other provider options are set' do
+      chat = RubyLLM.chat(model: 'gpt-6-luna')
+      expect(chat.instance_variable_get(:@provider_options)).to eq(reasoning_effort: 'none')
+
+      chat.with_provider_options(response_format: { type: 'json_object' })
+      expect(chat.instance_variable_get(:@provider_options)).to eq(reasoning_effort: 'none', response_format: { type: 'json_object' })
+    end
+
+    it 'adds nothing for models without a pinned effort' do
+      chat = RubyLLM.chat(model: 'gpt-5.2')
+
+      expect(chat.instance_variable_get(:@provider_options)).to eq({})
+    end
+  end
 end

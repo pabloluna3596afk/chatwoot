@@ -92,4 +92,14 @@ RSpec.describe Llm::Models do
       )
     end
   end
+
+  describe '.reasoning_effort_for' do
+    it 'returns the effort declared in config/llm.yml' do
+      expect(described_class.reasoning_effort_for('gpt-6-luna')).to eq('none')
+    end
+
+    it 'returns nil for unknown models or models without an effort' do
+      expect(described_class.reasoning_effort_for('no-such-model')).to be_nil
+    end
+  end
 end
