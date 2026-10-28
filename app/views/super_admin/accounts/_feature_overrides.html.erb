@@ -7,6 +7,7 @@
         <% Plan::LIMITS.each do |limit| %>
           <li><%= limit["label_#{I18n.locale}".to_sym] || limit[:label_en] %>: <%= account.plan.limit(limit[:key]) || '∞' %></li>
         <% end %>
+        <li><%= t('super_admin.plans.copilot_allowance') %>: <%= account.plan.copilot_available? ? '✓' : '—' %></li>
       </ul>
     </div>
     <div class="overflow-x-auto">
@@ -36,6 +37,12 @@
               </td>
             </tr>
           <% end %>
+          <tr class="border-t border-n-weak">
+            <td class="p-2"><%= t('super_admin.plans.copilot_allowance') %></td>
+            <td class="p-2"><%= account.plan.copilot_available? ? '✓' : '—' %></td>
+            <td class="p-2"><%= t('super_admin.account_features.plan') %></td>
+            <td class="p-2">—</td>
+          </tr>
         </tbody>
       </table>
     </div>

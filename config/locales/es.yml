@@ -961,6 +961,7 @@ es:
       price_yearly: 'Precio anual'
       accounts: 'Empresas'
       feature_limit_mismatch: 'La feature y su límite no coinciden.'
+      copilot_allowance: 'Copilot, según la bolsa del plan'
     account_features:
       title: 'Features'
       plan: 'Plan'

@@ -196,8 +196,9 @@ class Plan < ApplicationRecord # rubocop:disable Metrics/ClassLength
       group: 'AI', flags: %w[captain_integration captain_integration_v2]
     },
     {
-      key: 'copilot', label_en: 'Copilot', label_es: 'Copilot',
-      description_en: 'Copilot assistance for agents.', description_es: 'Asistencia de Copilot para agentes.',
+      key: 'captain_tasks', label_en: 'AI tools for agents', label_es: 'Herramientas de IA para agentes',
+      description_en: 'Summarize, rewrite, and suggest replies with AI.',
+      description_es: 'Resumir, reescribir y sugerir respuestas con IA.',
       group: 'AI', flags: %w[captain_tasks]
     },
     {
@@ -327,6 +328,10 @@ class Plan < ApplicationRecord # rubocop:disable Metrics/ClassLength
 
   def limit_values
     LIMITS.to_h { |definition| [definition[:key], limit(definition[:key])] }
+  end
+
+  def copilot_available?
+    limit(:captain_copilot_responses) != 0
   end
 
   def limit_values=(values)

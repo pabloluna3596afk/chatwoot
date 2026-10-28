@@ -1057,6 +1057,7 @@ en:
       price_yearly: 'Annual price'
       accounts: 'Accounts'
       feature_limit_mismatch: 'Feature and limit do not match.'
+      copilot_allowance: 'Copilot, according to plan allowance'
     account_features:
       title: 'Features'
       plan: 'Plan'

@@ -84,7 +84,7 @@
     },
     "FEATURES": {
       "captain_integration": "Asistente Captain",
-      "copilot": "Asistencia de Copilot",
+      "captain_tasks": "Herramientas de IA para agentes",
       "automations": "Automatizaciones",
       "flows": "Flujos",
       "integrations": "Integraciones con terceros",

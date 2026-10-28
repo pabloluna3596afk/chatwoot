@@ -37,6 +37,12 @@
           <% end %>
         </tr>
       <% end %>
+      <tr class="border-t border-n-weak">
+        <th class="p-2"><%= t('super_admin.plans.copilot_allowance') %></th>
+        <% plans.each do |plan| %>
+          <td class="p-2"><%= plan.copilot_available? ? '✓' : '—' %></td>
+        <% end %>
+      </tr>
     </tbody>
   </table>
 </div>

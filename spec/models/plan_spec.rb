@@ -31,6 +31,14 @@ RSpec.describe Plan do
     expect(plan).to be_valid
   end
 
+  it 'shows Copilot from the response allowance, including shared unlimited allowance' do
+    expect(plan.copilot_available?).to be(true)
+    plan.captain_copilot_responses = 0
+    expect(plan.copilot_available?).to be(false)
+    plan.captain_copilot_responses = 20
+    expect(plan.copilot_available?).to be(true)
+  end
+
   it 'queues account synchronization when plan features change' do
     plan.save!
 
