@@ -34,6 +34,13 @@ vi.mock('dashboard/composables/useKeyboardEvents', () => ({
   useKeyboardEvents: vi.fn(),
 }));
 
+vi.mock('dashboard/composables/useCopilotEntryPoints', async () => {
+  const { ref: createRef } = await import('vue');
+  return {
+    useCopilotEntryPoints: () => ({ showSidepanelCopilotTab: createRef(true) }),
+  };
+});
+
 describe('SidepanelSwitch', () => {
   it('opens, closes, and switches to the contact panel', async () => {
     const wrapper = mount(SidepanelSwitch, {
@@ -72,7 +79,7 @@ describe('SidepanelSwitch', () => {
     await wrapper
       .get('button[aria-label="CONVERSATION.SIDEBAR.CONTACT"]')
       .trigger('click');
-    expect(testState.uiSettings.value.is_copilot_panel_open).toBe(false);
+    expect(testState.uiSettings.value.is_copilot_panel_open).toBe(true);
     expect(testState.uiSettings.value.is_contact_sidebar_open).toBe(true);
   });
 });

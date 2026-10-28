@@ -155,10 +155,7 @@ export function useCopilotReply() {
    */
   async function execute(action, data) {
     if (action === 'ask_copilot') {
-      updateUISettings({
-        is_contact_sidebar_open: false,
-        is_copilot_panel_open: true,
-      });
+      updateUISettings({ is_copilot_panel_open: true });
       return;
     }
 

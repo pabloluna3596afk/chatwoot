@@ -33,7 +33,6 @@ const emit = defineEmits([
   'newChat',
   'selectThread',
   'minimize',
-  'close',
   'openHistory',
   'closeHistory',
   'loadMoreHistory',
@@ -168,7 +167,7 @@ watch(
         </div>
         <button
           type="button"
-          class="min-h-11 min-w-11 rounded-md p-2 text-n-slate-11 hover:bg-n-alpha-2"
+          class="size-8 rounded-md p-2 text-n-slate-11 hover:bg-n-alpha-2"
           :aria-label="$t('CAPTAIN.COPILOT.NEW_CHAT')"
           :title="$t('CAPTAIN.COPILOT.NEW_CHAT')"
           @click="emit('newChat')"
@@ -177,7 +176,7 @@ watch(
         </button>
         <button
           type="button"
-          class="min-h-11 min-w-11 rounded-md p-2 text-n-slate-11 hover:bg-n-alpha-2"
+          class="size-8 rounded-md p-2 text-n-slate-11 hover:bg-n-alpha-2"
           :aria-label="$t('CAPTAIN.COPILOT.HISTORY')"
           :title="$t('CAPTAIN.COPILOT.HISTORY')"
           @click="toggleHistory"
@@ -186,21 +185,12 @@ watch(
         </button>
         <button
           type="button"
-          class="min-h-11 min-w-11 rounded-md p-2 text-n-slate-11 hover:bg-n-alpha-2"
+          class="size-8 rounded-md p-2 text-n-slate-11 hover:bg-n-alpha-2"
           :aria-label="$t('CAPTAIN.COPILOT.MINIMIZE')"
           :title="$t('CAPTAIN.COPILOT.MINIMIZE')"
           @click="emit('minimize')"
         >
           <i class="i-lucide-minus" />
-        </button>
-        <button
-          type="button"
-          class="min-h-11 min-w-11 rounded-md p-2 text-n-slate-11 hover:bg-n-alpha-2"
-          :aria-label="$t('GENERAL.CLOSE')"
-          :title="$t('GENERAL.CLOSE')"
-          @click="emit('close')"
-        >
-          <i class="i-lucide-x" />
         </button>
       </div>
       <div

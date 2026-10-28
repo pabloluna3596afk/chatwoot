@@ -171,6 +171,54 @@ describe('#actions', () => {
         ],
       ]);
     });
+
+    it('serializes writes so an older response cannot reopen a closed panel', async () => {
+      let resolveOpenRequest;
+      let resolveCloseRequest;
+      axios.put
+        .mockImplementationOnce(
+          () =>
+            new Promise(resolve => {
+              resolveOpenRequest = resolve;
+            })
+        )
+        .mockImplementationOnce(
+          () =>
+            new Promise(resolve => {
+              resolveCloseRequest = resolve;
+            })
+        );
+
+      const openRequest = actions.updateUISettings(
+        { commit },
+        { uiSettings: { is_copilot_panel_open: true } }
+      );
+      const closeRequest = actions.updateUISettings(
+        { commit },
+        { uiSettings: { is_copilot_panel_open: false } }
+      );
+
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(axios.put).toHaveBeenCalledTimes(1);
+
+      resolveOpenRequest({
+        data: { ui_settings: { is_copilot_panel_open: true } },
+      });
+      await openRequest;
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(axios.put).toHaveBeenCalledTimes(2);
+      resolveCloseRequest({
+        data: { ui_settings: { is_copilot_panel_open: false } },
+      });
+      await closeRequest;
+
+      expect(commit).toHaveBeenLastCalledWith(types.SET_CURRENT_USER, {
+        ui_settings: { is_copilot_panel_open: false },
+      });
+    });
   });
 
   describe('#setUser', () => {

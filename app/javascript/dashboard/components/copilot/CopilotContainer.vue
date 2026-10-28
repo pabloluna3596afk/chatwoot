@@ -141,16 +141,10 @@ const setAssistant = async assistant => {
 const minimize = async () => {
   updateUISettings({ is_copilot_panel_open: false });
   await nextTick();
-  document.getElementById('copilot-launcher-button')?.focus();
-};
-const close = () => {
-  persistThread(null);
-  unreadCount.value = 0;
-  updateUISettings({
-    is_copilot_panel_open: false,
-    copilot_active_thread_id: null,
-    copilot_unread_count: 0,
-  });
+  const entryPoint =
+    document.getElementById('copilot-launcher-button') ||
+    document.getElementById('copilot-sidepanel-button');
+  entryPoint?.focus();
 };
 const newChat = () => {
   persistThread(null);
@@ -296,7 +290,8 @@ onBeforeUnmount(() => {
       role="dialog"
       aria-modal="false"
       :aria-label="t('CAPTAIN.COPILOT.TITLE')"
-      class="fixed z-40 flex flex-col overflow-hidden border border-n-weak bg-n-surface-2 shadow-2xl ltr:right-4 rtl:left-4 bottom-20 h-[min(600px,calc(100dvh-6rem))] w-[min(380px,calc(100vw-2rem))] rounded-2xl ltr:origin-bottom-right rtl:origin-bottom-left max-sm:inset-0 max-sm:h-[100dvh] max-sm:w-full max-sm:rounded-none max-sm:pb-[env(safe-area-inset-bottom)]"
+      data-copilot-panel
+      class="fixed z-[60] flex flex-col overflow-hidden border border-n-weak bg-n-surface-2 shadow-2xl ltr:right-4 rtl:left-4 bottom-[calc(env(safe-area-inset-bottom)+5.25rem)] h-[min(600px,calc(100dvh-6rem))] w-[min(380px,calc(100vw-2rem))] rounded-2xl ltr:origin-bottom-right rtl:origin-bottom-left"
     >
       <Copilot
         :messages="messages"
@@ -326,7 +321,6 @@ onBeforeUnmount(() => {
         @close-history="isHistoryOpen = false"
         @select-thread="selectThread"
         @minimize="minimize"
-        @close="close"
       />
     </section>
   </Transition>
