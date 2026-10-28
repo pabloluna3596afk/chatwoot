@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import ToolList from './ToolList.vue';
-import ToolChip from './ToolChip.vue';
+import InfoChip from 'dashboard/components-next/ListCard/InfoChip.vue';
 
 describe('ToolList', () => {
   it('renders mobile cards and desktop table from the same items', () => {
@@ -56,13 +56,13 @@ describe('ToolList', () => {
 
   it('renders reusable chips with neutral and status tones', () => {
     const wrapper = mount({
-      components: { ToolChip },
+      components: { InfoChip },
       template: `
         <div>
-          <ToolChip>Cuenta</ToolChip>
-          <ToolChip tone="amber">Pendiente</ToolChip>
-          <ToolChip tone="teal">Aprobada</ToolChip>
-          <ToolChip tone="ruby">Rechazada</ToolChip>
+          <InfoChip>Cuenta</InfoChip>
+          <InfoChip tone="warning">Pendiente</InfoChip>
+          <InfoChip tone="success">Aprobada</InfoChip>
+          <InfoChip tone="error">Rechazada</InfoChip>
         </div>
       `,
     });

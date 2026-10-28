@@ -3,7 +3,7 @@ import { useAlert } from 'dashboard/composables';
 import AddCanned from './AddCanned.vue';
 import EditCanned from './EditCanned.vue';
 import ToolList from 'dashboard/components-next/ToolList/ToolList.vue';
-import ToolChip from 'dashboard/components-next/ToolList/ToolChip.vue';
+import InfoChip from 'dashboard/components-next/ListCard/InfoChip.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
@@ -203,7 +203,7 @@ const listActions = computed(() => [
 ]);
 
 const statusTone = status =>
-  ({ pending: 'amber', approved: 'teal', rejected: 'ruby' })[status] ||
+  ({ pending: 'warning', approved: 'success', rejected: 'error' })[status] ||
   'neutral';
 const uiFlags = computed(() => getters.getUIFlags.value);
 
@@ -484,14 +484,14 @@ const handleListAction = ({ action, item }) => {
             </span>
           </template>
           <template #cell-approval_status="{ item }">
-            <ToolChip :tone="statusTone(item.approval_status)">
+            <InfoChip :tone="statusTone(item.approval_status)">
               {{ $t(`CANNED_MGMT.STATUS_LABEL.${item.approval_status}`) }}
-            </ToolChip>
+            </InfoChip>
           </template>
           <template #cell-visibility="{ item }">
-            <ToolChip>
+            <InfoChip>
               {{ $t(`CANNED_MGMT.VISIBILITY_LABEL.${item.visibility}`) }}
-            </ToolChip>
+            </InfoChip>
           </template>
           <template #cell-created_at="{ item }">
             <div>{{ formatDate(item.created_at) }}</div>
