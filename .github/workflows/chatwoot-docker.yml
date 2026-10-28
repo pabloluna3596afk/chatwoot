@@ -6,6 +6,10 @@ on:
       - develop
   workflow_dispatch:
 
+concurrency:
+  group: docker-image-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/chatwoot
@@ -38,12 +42,12 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/chatwoot
           tags: |
-            type=ref,event=branch
             type=raw,value=staging
-            type=sha,prefix={{branch}}-
+            type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
+        id: image
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -56,3 +60,25 @@ jobs:
             GIT_SHA=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Promote current develop image
+        if: github.ref == 'refs/heads/develop'
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/chatwoot
+          IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          CURRENT_SHA="$(git ls-remote origin refs/heads/develop | cut -f1)"
+          if [ "$CURRENT_SHA" = "$COMMIT_SHA" ]; then
+            docker buildx imagetools create --tag "$IMAGE:develop" "$IMAGE@$IMAGE_DIGEST"
+            echo "Promoted $COMMIT_SHA to $IMAGE:develop"
+          else
+            echo "Skipping develop tag: built $COMMIT_SHA, current develop is $CURRENT_SHA"
+          fi
+
+      - name: Record published image revision and digest
+        if: always() && steps.image.outcome == 'success'
+        env:
+          IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: echo "Built commit $COMMIT_SHA with image digest $IMAGE_DIGEST"
