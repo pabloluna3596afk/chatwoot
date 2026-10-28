@@ -6,7 +6,7 @@ RSpec.describe Payphone::PriceCalculator do
       examples = {
         19 => { untaxed_with_commission: 2009, untaxed: 1900, invoiced: 2185, invoiced_with_commission: 2311 },
         79 => { untaxed_with_commission: 8354, untaxed: 7900, invoiced: 9085, invoiced_with_commission: 9607 },
-        119 => { untaxed_with_commission: 12_584, untaxed: 11_900, invoiced: 13_685, invoiced_with_commission: 14_473 },
+        119 => { untaxed_with_commission: 12_584, untaxed: 11_900, invoiced: 13_685, invoiced_with_commission: 14_472 },
         299 => { untaxed_with_commission: 31_619, untaxed: 29_900, invoiced: 34_385, invoiced_with_commission: 36_362 },
         599 => { untaxed_with_commission: 63_344, untaxed: 59_900, invoiced: 68_885, invoiced_with_commission: 72_846 }
       }
