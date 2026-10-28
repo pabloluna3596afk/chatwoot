@@ -880,6 +880,10 @@ Rails.application.routes.draw do
       end
       resources :plans, only: [:index, :new, :create, :show, :edit, :update, :destroy]
       resources :account_plan_usages, only: [:index, :show]
+      resources :ai_model_prices, only: [:index, :new, :create, :edit, :update, :destroy]
+      get 'ai_usage', to: 'ai_usage#index', as: :ai_usage
+      get 'ai_usage/export', to: 'ai_usage#export', as: :ai_usage_export
+      get 'ai_usage/messages/:usage_group_id', to: 'ai_usage#message', as: :ai_usage_message
       resources :platform_apps, only: [:index, :new, :create, :show, :edit, :update, :destroy]
       resources :platform_banners
       resource :instance_status, only: [:show]

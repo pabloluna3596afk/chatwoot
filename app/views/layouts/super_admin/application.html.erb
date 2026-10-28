@@ -17,7 +17,7 @@ By default, it renders:
 <head>
   <meta charset="utf-8">
   <meta name="robots" content="noindex">
-  <meta name="viewport" content="initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>
     <%= content_for(:title) %> - <%= application_title %>
   </title>
@@ -31,6 +31,10 @@ By default, it renders:
   <div class="flex w-full h-full">
     <%= render "navigation" -%>
     <main class="w-full overflow-auto" role="main">
+      <nav class="sm:hidden flex items-center gap-4 border-b border-slate-200 px-4 py-3 text-sm" aria-label="Super Admin">
+        <%= link_to 'Dashboard', super_admin_root_path, class: 'text-blue-700' %>
+        <%= link_to t('super_admin.ai_usage.title'), super_admin_ai_usage_path, class: 'font-medium text-slate-900' %>
+      </nav>
       <%= render "flashes" -%>
       <%= yield %>
     </main>
