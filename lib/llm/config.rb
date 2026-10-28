@@ -107,3 +107,21 @@ module Llm::Config::ScopedChatContext
 end
 
 RubyLLM::Chat.prepend(Llm::Config::ScopedChatContext)
+
+# OpenAI rejects function tools on chat completions for models that default to reasoning, so
+# config/llm.yml pins `reasoning_effort` per model. RubyLLM replaces provider options on every
+# `with_provider_options` call, so the pinned effort is re-merged each time instead of set once.
+module Llm::Config::PinnedReasoningEffort
+  def initialize(*, **)
+    super
+    with_provider_options({})
+  end
+
+  def with_provider_options(provider_options)
+    effort = Llm::Models.reasoning_effort_for(model&.id)
+    pinned = effort ? { reasoning_effort: effort } : {}
+    super(pinned.merge(provider_options.to_h.symbolize_keys))
+  end
+end
+
+RubyLLM::Chat.prepend(Llm::Config::PinnedReasoningEffort)
