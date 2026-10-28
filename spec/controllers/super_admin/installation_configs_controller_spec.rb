@@ -37,6 +37,23 @@ RSpec.describe 'Super Admin Installation Config API', type: :request do
         expect(response).to have_http_status(:success)
         expect(response.body).to include(config.name)
       end
+
+      it 'keeps the Payphone token out of the generic installation config pages' do
+        secret = create(:installation_config, name: 'PAYPHONE_TOKEN', value: 'hidden-payphone-token', locked: false)
+        sign_in(super_admin, scope: :super_admin)
+
+        get '/super_admin/installation_configs'
+
+        expect(response.body).not_to include('PAYPHONE_TOKEN', 'hidden-payphone-token')
+
+        get "/super_admin/installation_configs/#{secret.id}"
+        expect(response).to have_http_status(:not_found)
+        expect(response.body).not_to include('hidden-payphone-token')
+
+        get "/super_admin/installation_configs/#{secret.id}/edit"
+        expect(response).to have_http_status(:not_found)
+        expect(response.body).not_to include('hidden-payphone-token')
+      end
     end
   end
 

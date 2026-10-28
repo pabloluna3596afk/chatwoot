@@ -947,6 +947,54 @@ es:
     ssl_status:
       custom_domain_not_configured: 'Custom domain is not configured'
   super_admin:
+    payphone:
+      title: 'Configuración de pagos Payphone'
+      save_button: 'Guardar configuración'
+      fields:
+        enable: 'Habilitar Payphone'
+        store_id: 'ID de tienda Payphone'
+        token: 'Token API de Payphone'
+        environment: 'Entorno'
+        response_url: 'URL de respuesta'
+        external_notification: 'Notificaciones externas habilitadas por Payphone'
+        tax_rate: 'Tasa de IVA (%)'
+        commission_rate: 'Comisión de tarjeta (%)'
+        commission_enabled: 'Agregar comisión de tarjeta'
+        grace_days: 'Días de gracia'
+      descriptions:
+        enable: 'Permite usar Payphone para pagar planes.'
+        store_id: 'ID de tienda del portal de comercios Payphone.'
+        token: 'Se guarda cifrado. Déjalo vacío para conservar el token guardado.'
+        environment: 'Usa credenciales de prueba antes de cambiar a producción.'
+        response_url: 'Debe usar HTTPS y el mismo dominio configurado en FRONTEND_URL.'
+        external_notification: 'Actívala solo después de que Payphone apruebe y configure las notificaciones externas.'
+        tax_rate: 'El IVA se suma solo si el cliente solicita factura. Valor inicial: 15%.'
+        commission_rate: 'La comisión se suma al importe después del IVA. Valor inicial: 5,75%.'
+        commission_enabled: 'Desactívala para no incluir comisión de tarjeta en el total.'
+        grace_days: 'Días de gracia antes de pasar el plan pagado a Gratis. Valor inicial: 3 días.'
+      token_configured: 'Token guardado; déjalo vacío para conservarlo'
+      test_button: 'Probar configuración'
+      test_success: 'La configuración es válida. No se envió ninguna solicitud de pago.'
+      test_failure: 'La configuración requiere atención.'
+      rate_labels:
+        tax: 'Tasa de IVA'
+        commission: 'Comisión de tarjeta'
+      errors:
+        environment: 'El entorno debe ser test o production.'
+        tax_rate: 'La tasa de IVA debe estar entre 0 y 100.'
+        commission_rate: 'La comisión de tarjeta debe estar entre 0 y 100.'
+        grace_days: 'Los días de gracia deben ser un número entero no negativo.'
+      validation:
+        store_id_required: 'Falta el ID de tienda.'
+        token_required: 'Falta el token de Payphone.'
+        environment: 'El entorno debe ser test o production.'
+        rate_range: '%{label} debe estar entre 0 y 100.'
+        rate_number: '%{label} debe ser un número.'
+        grace_range: 'Los días de gracia no pueden ser negativos.'
+        grace_number: 'Los días de gracia deben ser un número entero.'
+        response_https: 'La URL de respuesta debe ser HTTPS válida, sin credenciales ni fragmento.'
+        response_domain: 'El dominio de la URL de respuesta debe coincidir con FRONTEND_URL.'
+        frontend_domain_required: 'FRONTEND_URL debe tener configurado un dominio válido.'
     account_suspension:
       categories:
         spam: 'Spam'

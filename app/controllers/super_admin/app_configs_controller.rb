@@ -12,38 +12,32 @@ class SuperAdmin::AppConfigsController < SuperAdmin::ApplicationController
     SHOPIFY_PARTNER_ACCESS_TOKEN
     SHOPIFY_PARTNER_API_VERSION
   ].freeze
+  PAYPHONE_CONFIGS = Payphone::ConfigurationCheck::KEYS
 
   before_action :set_config
   before_action :allowed_configs
   def show
-    # ref: https://github.com/rubocop/rubocop/issues/7767
-    # rubocop:disable Style/HashTransformValues
-    @app_config = InstallationConfig.where(name: @allowed_configs)
-                                    .pluck(:name, :serialized_value)
-                                    .map { |name, serialized_value| [name, serialized_value['value']] }
-                                    .to_h
-    # rubocop:enable Style/HashTransformValues
-    @installation_configs = ConfigLoader.new.general_configs.each_with_object({}) do |config_hash, result|
-      result[config_hash['name']] = config_hash.except('name')
-    end
+    load_config_values
   end
 
   def create
-    errors = shopify_partner_config_errors
-    params['app_config'].each do |key, value|
-      break if errors.any?
-      next unless @allowed_configs.include?(key)
+    errors = initial_config_errors
+    errors.concat(save_app_configs) if errors.empty?
 
-      i = InstallationConfig.where(name: key).first_or_create(value: value, locked: false)
-      i.value = value
-      errors.concat(i.errors.full_messages) unless i.save
-    end
+    return redirect_to super_admin_app_config_path(config: @config), alert: errors.join(', ') if errors.any?
 
-    if errors.any?
-      redirect_to super_admin_app_config_path(config: @config), alert: errors.join(', ')
-    else
-      redirect_to super_admin_settings_path, flash: success_flash
+    redirect_to super_admin_settings_path, flash: success_flash
+  end
+
+  def test
+    submitted_values = params.fetch('app_config', {}).permit(*PAYPHONE_CONFIGS).to_h
+    saved_values = InstallationConfig.where(name: PAYPHONE_CONFIGS).each_with_object({}) do |config, values|
+      values[config.name] = config.value
     end
+    result = Payphone::ConfigurationCheck.call(values: merged_payphone_values(saved_values, submitted_values))
+    @test_result = result
+    load_config_values
+    render :show, status: result.valid? ? :ok : :unprocessable_entity
   end
 
   private
@@ -69,7 +63,8 @@ class SuperAdmin::AppConfigsController < SuperAdmin::ApplicationController
       'google' => %w[GOOGLE_OAUTH_CLIENT_ID GOOGLE_OAUTH_CLIENT_SECRET GOOGLE_OAUTH_REDIRECT_URI ENABLE_GOOGLE_OAUTH_LOGIN],
       'google_calendar' => %w[GOOGLE_CALENDAR_CLIENT_ID GOOGLE_CALENDAR_CLIENT_SECRET],
       'microsoft_calendar' => %w[MICROSOFT_CALENDAR_CLIENT_ID MICROSOFT_CALENDAR_CLIENT_SECRET],
-      'captain' => %w[CAPTAIN_OPEN_AI_API_KEY CAPTAIN_OPEN_AI_MODEL CAPTAIN_OPEN_AI_ENDPOINT]
+      'captain' => %w[CAPTAIN_OPEN_AI_API_KEY CAPTAIN_OPEN_AI_MODEL CAPTAIN_OPEN_AI_ENDPOINT],
+      'payphone' => PAYPHONE_CONFIGS
     }
 
     @allowed_configs = mapping.fetch(@config, general_configs)
@@ -93,6 +88,85 @@ class SuperAdmin::AppConfigsController < SuperAdmin::ApplicationController
     return message unless restart_required_config_saved?
 
     "#{message.delete_suffix('.')}. Restart Chatwoot web and worker processes to apply this change everywhere."
+  end
+
+  def payphone_config_errors(submitted_values)
+    saved_values = InstallationConfig.where(name: PAYPHONE_CONFIGS).each_with_object({}) do |config, values|
+      values[config.name] = config.value
+    end
+    merged = merged_payphone_values(saved_values, submitted_values)
+    errors = payphone_value_errors(merged)
+    grace_days = Integer(merged['PAYPHONE_GRACE_DAYS'].to_s)
+    errors << I18n.t('super_admin.payphone.errors.grace_days') if grace_days.negative?
+    errors.concat(payphone_setup_errors(merged))
+    errors
+  rescue ArgumentError, TypeError
+    [I18n.t('super_admin.payphone.errors.grace_days')]
+  end
+
+  def payphone_value_errors(values)
+    errors = []
+    errors << I18n.t('super_admin.payphone.errors.environment') unless %w[test production].include?(values['PAYPHONE_ENVIRONMENT'].to_s)
+    errors << I18n.t('super_admin.payphone.errors.tax_rate') unless valid_percentage?(values['PAYPHONE_TAX_RATE'])
+    errors << I18n.t('super_admin.payphone.errors.commission_rate') unless valid_percentage?(values['PAYPHONE_CARD_COMMISSION_RATE'])
+    errors
+  end
+
+  def payphone_setup_errors(values)
+    return Payphone::ConfigurationCheck.call(values: values).errors if ActiveModel::Type::Boolean.new.cast(values['ENABLE_PAYPHONE'])
+    return [] if values['PAYPHONE_RESPONSE_URL'].blank?
+
+    check_values = values.merge(
+      'PAYPHONE_STORE_ID' => 'configured', 'PAYPHONE_TOKEN' => 'configured', 'PAYPHONE_ENVIRONMENT' => 'test'
+    )
+    url_errors = %w[response_https response_domain frontend_domain_required].map do |key|
+      I18n.t("super_admin.payphone.validation.#{key}")
+    end
+    Payphone::ConfigurationCheck.call(values: check_values).errors & url_errors
+  end
+
+  def initial_config_errors
+    errors = shopify_partner_config_errors
+    return errors unless @config == 'payphone'
+
+    errors + payphone_config_errors(params.fetch('app_config', {}).permit(*PAYPHONE_CONFIGS).to_h)
+  end
+
+  def merged_payphone_values(saved_values, submitted_values)
+    submitted_values = submitted_values.except('PAYPHONE_TOKEN') if submitted_values['PAYPHONE_TOKEN'].blank?
+    saved_values.merge(submitted_values)
+  end
+
+  def save_app_configs
+    errors = []
+    params['app_config'].each do |key, value|
+      break if errors.any?
+      next unless @allowed_configs.include?(key)
+      next if key == 'PAYPHONE_TOKEN' && value.blank?
+
+      config = InstallationConfig.where(name: key).first_or_initialize(locked: false)
+      config.value = value
+      errors.concat(config.errors.full_messages) unless config.save
+    end
+    errors
+  end
+
+  def valid_percentage?(value)
+    Float(value.to_s).between?(0, 100)
+  rescue ArgumentError, TypeError
+    false
+  end
+
+  def load_config_values
+    @app_config = InstallationConfig.where(name: @allowed_configs)
+                                    .pluck(:name, :serialized_value)
+                                    .to_h
+                                    .transform_values { |serialized_value| serialized_value['value'] }
+    @payphone_token_configured = InstallationConfig.find_by(name: 'PAYPHONE_TOKEN')&.serialized_value&.dig('value').present?
+    @app_config['PAYPHONE_TOKEN'] = nil if @config == 'payphone'
+    @installation_configs = ConfigLoader.new.general_configs.each_with_object({}) do |config_hash, result|
+      result[config_hash['name']] = config_hash.except('name')
+    end
   end
 
   def success_flash

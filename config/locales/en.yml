@@ -1043,6 +1043,54 @@ en:
     ssl_status:
       custom_domain_not_configured: 'Custom domain is not configured'
   super_admin:
+    payphone:
+      title: 'Payphone payment settings'
+      save_button: 'Save configuration'
+      fields:
+        enable: 'Enable Payphone'
+        store_id: 'Payphone Store ID'
+        token: 'Payphone API token'
+        environment: 'Environment'
+        response_url: 'Response URL'
+        external_notification: 'External notifications enabled by Payphone'
+        tax_rate: 'VAT rate (%)'
+        commission_rate: 'Card commission (%)'
+        commission_enabled: 'Add card commission'
+        grace_days: 'Grace period (days)'
+      descriptions:
+        enable: 'Allow paid plans to use Payphone checkout.'
+        store_id: 'Store ID from the Payphone merchant portal.'
+        token: 'Stored encrypted. Leave blank to keep the saved token.'
+        environment: 'Use test credentials before switching to production.'
+        response_url: 'Must use HTTPS and the same domain configured in FRONTEND_URL.'
+        external_notification: 'Turn on only after Payphone approves and configures external notifications.'
+        tax_rate: 'VAT added only when the customer requests an invoice. Default: 15%.'
+        commission_rate: 'Commission added to the amount after VAT. Default: 5.75%.'
+        commission_enabled: 'Disable to include no card commission in the checkout total.'
+        grace_days: 'Paid-plan grace period before the account moves to Free. Default: 3 days.'
+      token_configured: 'Token saved; leave blank to keep it'
+      test_button: 'Test configuration'
+      test_success: 'Configuration is valid. No payment request was sent.'
+      test_failure: 'Configuration needs attention.'
+      rate_labels:
+        tax: 'VAT rate'
+        commission: 'Card commission rate'
+      errors:
+        environment: 'Environment must be test or production.'
+        tax_rate: 'VAT rate must be between 0 and 100.'
+        commission_rate: 'Card commission must be between 0 and 100.'
+        grace_days: 'Grace period must be a nonnegative whole number.'
+      validation:
+        store_id_required: 'Store ID is required.'
+        token_required: 'Payphone token is required.'
+        environment: 'Environment must be test or production.'
+        rate_range: '%{label} must be between 0 and 100.'
+        rate_number: '%{label} must be a number.'
+        grace_range: 'Grace days must be nonnegative.'
+        grace_number: 'Grace days must be a whole number.'
+        response_https: 'Response URL must be a valid HTTPS URL without credentials or a fragment.'
+        response_domain: 'Response URL domain must match FRONTEND_URL.'
+        frontend_domain_required: 'FRONTEND_URL must be configured with a valid domain.'
     account_suspension:
       categories:
         spam: 'Spam'

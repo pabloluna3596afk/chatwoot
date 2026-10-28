@@ -1,5 +1,5 @@
 <% content_for(:title) do %>
-  Configure Settings - <%= @config.titleize %>
+  <%= @config == 'payphone' ? t('super_admin.payphone.title') : "Configure Settings - #{@config.titleize}" %>
 <% end %>
 
 <header class="main-content__header" role="banner">
@@ -19,7 +19,8 @@
     <% @allowed_configs.each do |key| %>
       <div class="flex mb-8">
         <div class="field-unit__label">
-          <%= form.label "app_config[#{key}]", @installation_configs[key]&.dig('display_title') || key %>
+          <% display_title = @installation_configs[key]&.dig('display_title') || key %>
+          <%= form.label "app_config[#{key}]", t(display_title, default: display_title) %>
         </div>
         <div class="-mt-2 field-unit__field ">
           <% if @installation_configs[key]&.dig('type') == 'boolean' %>
@@ -39,7 +40,8 @@
             <div class="relative">
               <%= form.password_field "app_config[#{key}]",
                   id: "app_config_#{key}",
-                  value: @app_config[key],
+                  value: key == 'PAYPHONE_TOKEN' ? nil : @app_config[key],
+                  placeholder: key == 'PAYPHONE_TOKEN' && @payphone_token_configured ? t('super_admin.payphone.token_configured') : nil,
                   class: "mt-2 border border-slate-100 p-1.5 pr-8 rounded-md w-full"
               %>
               <button
@@ -64,14 +66,24 @@
         <% end %>
           <%if @installation_configs[key]&.dig('description').present? %>
             <p class="pt-2 text-xs italic text-slate-400">
-              <%= @installation_configs[key]&.dig('description') %>
+              <% description = @installation_configs[key]&.dig('description') %>
+              <%= t(description, default: description) %>
             </p>
           <% end %>
         </div>
       </div>
     <% end %>
-    <div class="form-actions">
-      <%= form.submit "Submit" %>
+    <div class="form-actions flex gap-3">
+      <%= form.submit(@config == 'payphone' ? t('super_admin.payphone.save_button') : 'Submit') %>
+      <% if @config == 'payphone' %>
+        <%= form.submit t('super_admin.payphone.test_button'), formaction: test_super_admin_app_config_path, formmethod: :post, name: 'test_configuration' %>
+      <% end %>
+    </div>
+  <% end %>
+  <% if @test_result %>
+    <div class="mt-4 rounded border p-3 <%= @test_result.valid? ? 'border-green-500 text-green-700' : 'border-red-500 text-red-700' %>" role="status">
+      <p class="font-medium"><%= t(@test_result.valid? ? 'super_admin.payphone.test_success' : 'super_admin.payphone.test_failure') %></p>
+      <% @test_result.errors.each do |error| %><p class="mb-0"><%= error %></p><% end %>
     </div>
   <% end %>
 </section>

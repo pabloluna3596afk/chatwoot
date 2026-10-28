@@ -11,6 +11,6 @@ module SuperAdmin::NavigationHelper
     # Add general at the beginning
     general_feature = [['general', { 'config_key' => 'general', 'name' => 'General' }]]
 
-    general_feature + features.to_a
+    general_feature + [['payphone', { 'config_key' => 'payphone', 'name' => 'Payphone' }]] + features.to_a
   end
 end
