@@ -51,4 +51,13 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
       plan.update!(feature_keys: keys) unless dry_run
     end
   end
+
+  desc 'Renumber plans display_order by monthly price (DRY_RUN=true by default)'
+  task order_by_price: :environment do
+    dry_run = ActiveModel::Type::Boolean.new.cast(ENV.fetch('DRY_RUN', 'true'))
+    Plan.order(:price_monthly, :id).each_with_index do |plan, index|
+      puts "plan=#{plan.slug} price=#{plan.price_monthly} display_order=#{plan.display_order} -> #{index}"
+      plan.update_column(:display_order, index) unless dry_run || plan.display_order == index # rubocop:disable Rails/SkipsModelValidations
+    end
+  end
 end
