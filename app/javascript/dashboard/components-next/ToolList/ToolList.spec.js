@@ -60,20 +60,20 @@ describe('ToolList', () => {
       template: `
         <div>
           <InfoChip>Cuenta</InfoChip>
-          <InfoChip tone="warning">Pendiente</InfoChip>
-          <InfoChip tone="success">Aprobada</InfoChip>
-          <InfoChip tone="error">Rechazada</InfoChip>
+          <InfoChip tone="warning" class="!text-n-amber-12">Pendiente</InfoChip>
+          <InfoChip tone="success" class="!text-n-teal-12">Aprobada</InfoChip>
+          <InfoChip tone="error" class="!text-n-ruby-11">Rechazada</InfoChip>
         </div>
       `,
     });
     const chips = wrapper.findAll('span');
     expect(chips[0].classes()).toContain('bg-n-alpha-2');
     expect(chips[1].classes()).toContain('bg-n-amber-3');
-    expect(chips[1].classes()).toContain('text-n-amber-11');
+    expect(chips[1].classes()).toContain('!text-n-amber-12');
     expect(chips[2].classes()).toContain('bg-n-teal-3');
-    expect(chips[2].classes()).toContain('text-n-teal-11');
+    expect(chips[2].classes()).toContain('!text-n-teal-12');
     expect(chips[3].classes()).toContain('bg-n-ruby-3');
-    expect(chips[3].classes()).toContain('text-n-ruby-11');
+    expect(chips[3].classes()).toContain('!text-n-ruby-11');
   });
 
   it('announces loading, error and empty states and supports selection', async () => {

@@ -205,6 +205,12 @@ const listActions = computed(() => [
 const statusTone = status =>
   ({ pending: 'warning', approved: 'success', rejected: 'error' })[status] ||
   'neutral';
+const statusTextClass = status =>
+  ({
+    pending: '!text-n-amber-12',
+    approved: '!text-n-teal-12',
+    rejected: '!text-n-ruby-11',
+  })[status] || '!text-n-slate-12';
 const uiFlags = computed(() => getters.getUIFlags.value);
 
 const deleteConfirmText = computed(
@@ -484,7 +490,10 @@ const handleListAction = ({ action, item }) => {
             </span>
           </template>
           <template #cell-approval_status="{ item }">
-            <InfoChip :tone="statusTone(item.approval_status)">
+            <InfoChip
+              :tone="statusTone(item.approval_status)"
+              :class="statusTextClass(item.approval_status)"
+            >
               {{ $t(`CANNED_MGMT.STATUS_LABEL.${item.approval_status}`) }}
             </InfoChip>
           </template>
