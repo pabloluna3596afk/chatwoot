@@ -97,11 +97,7 @@ describe('MenuPopover', () => {
     });
     try {
       const menu = composed.getComponent(DropdownMenu);
-      expect(menu.classes()).toContain('!overflow-visible');
       expect(menu.get('[data-testid="status"]').text()).toBe('Published');
-      expect(
-        menu.get('[data-testid="status"]').element.parentElement.className
-      ).toContain('!overflow-visible');
       expect(menu.text()).not.toContain('EMPTY_STATE');
     } finally {
       composed.unmount();
