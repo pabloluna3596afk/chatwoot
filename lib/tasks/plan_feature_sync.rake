@@ -5,15 +5,12 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
     Account.includes(:plan, :account_feature_overrides).find_each do |account|
       next unless account.plan
 
-      before = Plans::AccountFeatureSync::SYNCED_FLAGS.index_with { |flag| account.feature_enabled?(flag) }
-      desired = Plans::AccountFeatureSync::BASE_FLAGS.index_with { true }
-      Plan::FEATURES.each do |feature|
-        feature[:flags].each { |flag| desired[flag] = account.plan.feature_keys.include?(feature[:key]) }
+      if account.plan.feature_keys.blank?
+        puts "SALTADA: plan sin features account=#{account.id} plan=#{account.plan.slug}"
+        next
       end
-      account.account_feature_overrides.current.each do |override|
-        Plan::ACCOUNT_FEATURES_BY_KEY.fetch(override.feature_key)[:flags].each { |flag| desired[flag] = override.enabled }
-      end
-      changes = desired.filter_map { |flag, value| [flag, [before[flag], value]] if before[flag] != value }.to_h
+
+      changes = Plans::AccountFeatureSync.preview(account)
       puts "account=#{account.id} plan=#{account.plan.slug} changes=#{changes.inspect}"
       Plans::AccountFeatureSync.call(account) unless dry_run
     end
@@ -21,7 +18,7 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
 
   desc 'Fill plan feature keys from the approved ChatHub tier matrix (DRY_RUN=true by default)'
   task fill_feature_keys: :environment do
-    basic = %w[captain_integration copilot calendar_integration integrations flows]
+    basic = %w[captain_integration captain_tasks calendar_integration integrations flows]
     start = basic + %w[campaigns automations macros api_and_webhooks]
     growth = start + %w[help_center]
     matrix = {
@@ -40,6 +37,16 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
       keys = matrix[plan.slug.downcase]
       next unless keys
 
+      puts "plan=#{plan.slug} feature_keys=#{plan.feature_keys.inspect} -> #{keys.inspect}"
+      plan.update!(feature_keys: keys) unless dry_run
+    end
+  end
+
+  desc 'Migrate legacy copilot plan feature keys to captain_tasks (idempotent)'
+  task migrate_copilot_feature_keys: :environment do
+    dry_run = ActiveModel::Type::Boolean.new.cast(ENV.fetch('DRY_RUN', 'true'))
+    Plan.where("feature_keys @> '[\"copilot\"]'::jsonb").find_each do |plan|
+      keys = (plan.feature_keys - ['copilot'] + ['captain_tasks']).uniq
       puts "plan=#{plan.slug} feature_keys=#{plan.feature_keys.inspect} -> #{keys.inspect}"
       plan.update!(feature_keys: keys) unless dry_run
     end

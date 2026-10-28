@@ -15,6 +15,10 @@ class Plans::AccountFeatureSync
     new(account).call
   end
 
+  def self.preview(account)
+    new(account).preview
+  end
+
   def initialize(account)
     @account = account
   end
@@ -22,21 +26,36 @@ class Plans::AccountFeatureSync
   def call
     return if account.plan.blank?
 
-    changes = desired_feature_flags.each_with_object({}) do |(flag, enabled), changed|
-      current = account.feature_enabled?(flag)
-      next if current == enabled
-
-      account.public_send("feature_#{flag}=", enabled)
-      changed[flag] = [current, enabled]
+    if account.plan.feature_keys.blank?
+      Rails.logger.warn("Plan feature sync skipped account=#{account.id} plan=#{account.plan.slug}: plan has no features")
+      return
     end
-    account.save! if changes.any?
-    Rails.logger.info("Plan feature sync account=#{account.id} plan=#{account.plan.slug} changes=#{changes}")
+
+    changes = preview
+    apply(changes)
     changes
+  end
+
+  def preview
+    return {} if account.plan.blank? || account.plan.feature_keys.blank?
+
+    desired_feature_flags.each_with_object({}) do |(flag, enabled), changed|
+      current = account.feature_enabled?(flag)
+      changed[flag] = [current, enabled] if current != enabled
+    end
   end
 
   private
 
   attr_reader :account
+
+  def apply(changes)
+    changes.each do |flag, (_current, enabled)|
+      account.public_send("feature_#{flag}=", enabled)
+    end
+    account.save! if changes.any?
+    Rails.logger.info("Plan feature sync account=#{account.id} plan=#{account.plan.slug} changes=#{changes}")
+  end
 
   def desired_feature_flags
     desired = BASE_FLAGS.index_with { true }

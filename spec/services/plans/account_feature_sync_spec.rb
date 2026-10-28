@@ -68,4 +68,23 @@ RSpec.describe Plans::AccountFeatureSync do
     expect(described_class.call(account)).to be_nil
     expect(account.reload).to be_feature_automations
   end
+
+  it 'does not alter any flags for a plan without features and exposes a read-only preview' do
+    plan.update!(feature_keys: [])
+    account.update!(feature_captain_tasks: true)
+    expect(Rails.logger).to receive(:warn).with(/plan has no features/)
+
+    expect(described_class.preview(account)).to eq({})
+    expect(described_class.call(account)).to be_nil
+    expect(account.reload).to be_feature_captain_tasks
+  end
+
+  it 'previews the same account feature changes that call applies' do
+    account.update!(feature_automations: false, feature_delayed_automations: false)
+    changes = described_class.preview(account)
+
+    expect(changes).to include('automations' => [false, true], 'delayed_automations' => [false, true])
+    expect(described_class.call(account)).to eq(changes)
+    expect(account.reload).to be_feature_automations
+  end
 end
