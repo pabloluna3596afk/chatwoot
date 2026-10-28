@@ -28,14 +28,14 @@ describe('ConfirmContactDeleteDialog', () => {
       global: {
         stubs: {
           Dialog: {
-            props: ['title', 'description', 'confirmButtonLabel'],
+            props: ['type', 'title', 'description', 'confirmButtonLabel'],
             emits: ['confirm', 'cancel'],
             setup(_, { expose }) {
               expose({ open: vi.fn(), close });
               return {};
             },
             template: `
-              <div>
+              <div :data-type="type">
                 <button data-test="cancel" @click="$emit('cancel')">Cancel</button>
                 <button data-test="confirm" @click="$emit('confirm')">{{ confirmButtonLabel }}</button>
               </div>
@@ -53,6 +53,7 @@ describe('ConfirmContactDeleteDialog', () => {
 
   it('does not delete when the confirmation is cancelled', async () => {
     const wrapper = mountDialog();
+    expect(wrapper.get('[data-type="alert"]').exists()).toBe(true);
     await wrapper.get('[data-test="cancel"]').trigger('click');
     await flushPromises();
 

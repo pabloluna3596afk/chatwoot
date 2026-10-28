@@ -22,10 +22,10 @@ const mountBar = () =>
             '<div data-test="bulk-select" :data-count="selectedCountLabel" :data-mobile-count="mobileSelectedCount" :data-compact="compactSelection"><slot name="primaryActions"/><slot name="actions"/></div>',
         },
         Button: {
-          props: ['label', 'icon', 'ariaLabel', 'title'],
+          props: ['label', 'icon', 'ariaLabel', 'title', 'color'],
           emits: ['click'],
           template:
-            '<button :aria-label="ariaLabel" :title="title" :data-label="label" :data-icon="icon" @click="$emit(\'click\')">{{ label }}</button>',
+            '<button :aria-label="ariaLabel" :title="title" :data-label="label" :data-icon="icon" :data-color="color" @click="$emit(\'click\')">{{ label }}</button>',
         },
         BulkLabelActions: {
           props: ['action'],
@@ -89,5 +89,20 @@ describe('ContactsBulkActionBar', () => {
     expect(wrapper.emitted('assignLabels')).toEqual([[['vip']]]);
     expect(wrapper.emitted('removeLabels')).toEqual([[['vip']]]);
     expect(wrapper.emitted('deleteSelected')).toHaveLength(1);
+  });
+
+  it('styles the bulk delete action ruby with an accessible icon label', () => {
+    const button = mountBar().get(
+      '[data-label="CONTACTS_BULK_ACTIONS.DELETE_CONTACTS"]'
+    );
+
+    expect(button.attributes('data-color')).toBe('ruby');
+    expect(button.attributes('data-icon')).toBe('i-lucide-trash');
+    expect(button.attributes('title')).toBe(
+      'CONTACTS_BULK_ACTIONS.DELETE_CONTACTS'
+    );
+    expect(button.attributes('aria-label')).toBe(
+      'CONTACTS_BULK_ACTIONS.DELETE_CONTACTS'
+    );
   });
 });

@@ -199,9 +199,10 @@ const handleRemoveLabels = labels => {
               v-tooltip.bottom="t('CONTACTS_BULK_ACTIONS.DELETE_CONTACTS')"
               sm
               ghost
-              intent="destructive"
+              color="ruby"
               icon="i-lucide-trash"
               :label="t('CONTACTS_BULK_ACTIONS.DELETE_CONTACTS')"
+              :title="t('CONTACTS_BULK_ACTIONS.DELETE_CONTACTS')"
               :aria-label="t('CONTACTS_BULK_ACTIONS.DELETE_CONTACTS')"
               :disabled="!selectedCount || isLoading || selectAllMatching"
               :is-loading="isLoading"
