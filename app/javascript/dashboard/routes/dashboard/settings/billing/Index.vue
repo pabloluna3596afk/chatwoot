@@ -18,6 +18,7 @@ import PlanPricingView from 'next/plans/PlanPricingView.vue';
 import { getCurrencyConfig } from 'dashboard/constants/billing';
 import { useI18n } from 'vue-i18n';
 import PayphonePaymentsAPI from 'dashboard/api/payphonePayments';
+import { shouldShowPayphoneRenewalDate } from './payphoneBilling';
 
 const { currentAccount, isOnChatwootCloud } = useAccount();
 const {
@@ -45,6 +46,10 @@ const payphoneEnabled = ref(false);
 const payphoneHistory = ref([]);
 const payphoneRenewalState = ref(null);
 const payphonePeriodEnd = ref(null);
+const payphoneGraceEnd = ref(null);
+const showPayphoneRenewalDate = computed(() =>
+  shouldShowPayphoneRenewalDate(payphoneRenewalState.value)
+);
 const latestApprovedPayphonePayment = computed(() =>
   payphoneHistory.value.find(payment => payment.status === 'approved')
 );
@@ -126,7 +131,10 @@ const billingCurrency = computed(() => {
 const subscriptionRenewsOn = computed(() => {
   // For self-hosted, read from limits.plan
   if (!isOnChatwootCloud.value) {
-    const planEnd = currentAccount.value.limits?.plan?.period_end;
+    const planEnd =
+      payphoneRenewalState.value === 'due_soon' && payphonePeriodEnd.value
+        ? payphonePeriodEnd.value
+        : currentAccount.value.limits?.plan?.period_end;
     if (!planEnd) return '';
     const endDate = new Date(planEnd);
     // return date as 12 Jan, 2034
@@ -264,6 +272,7 @@ const loadPayphone = async () => {
     payphoneHistory.value = data.payments;
     payphoneRenewalState.value = data.renewal_state;
     payphonePeriodEnd.value = data.period_end;
+    payphoneGraceEnd.value = data.grace_end;
   } catch {
     payphoneEnabled.value = false;
   }
@@ -359,6 +368,7 @@ const payphoneRenewalMessage = () => {
   // eslint-disable-next-line @intlify/vue-i18n/no-dynamic-keys
   return t(`PAYPHONE.RENEWAL.${payphoneRenewalState.value}`, {
     date: formattedPayphoneDate(payphonePeriodEnd.value),
+    grace_end: formattedPayphoneDate(payphoneGraceEnd.value),
   });
 };
 
@@ -719,7 +729,7 @@ onMounted(async () => {
               :value="subscriptionCancelsOn"
             />
             <DetailItem
-              v-else-if="subscriptionRenewsOn"
+              v-else-if="showPayphoneRenewalDate && subscriptionRenewsOn"
               :label="$t('BILLING_SETTINGS.CURRENT_PLAN.RENEWS_ON')"
               :value="subscriptionRenewsOn"
             />

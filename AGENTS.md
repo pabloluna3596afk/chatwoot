@@ -414,6 +414,7 @@ _Última actualización: 2026-07-12_
 
 | Item | Repo | Acción |
 |------|------|--------|
+| **Payphone PR2 / B-NEW-245** (token y fechas de facturacion) | chatwoot | `feat/payphone-pr2-cobro`: cierres focales listos; pendiente PR/merge, migracion `20261027130000_create_payphone_payments.rb` antes de habilitar y verificacion del proveedor real en entorno de pruebas; sin push en esta sesion |
 | **UI-08 / B-NEW-215** (contratos Captain y conflicto de listas) | chatwoot | `feat/ui-08-captain-contratos`, actualizado sobre develop con PR 07: actualizar clientes externos para enviar `expected_response_guidelines` / `expected_guardrails`; capturas y Crowdin pendientes; sin migraciones ni push |
 | **Plan 26 / A09 / B-NEW-200** (crear tarea desde automatizaciones) | chatwoot | `feat/automatizaciones-tareas`: RSpec/RuboCop Docker pendientes del PM; migración `20261023120000` antes de habilitar; regenerar schema; sin push |
 | **Plan 24 / B-NEW-187** (recordatorio humano WhatsApp) | chatwoot | `feat/kit-citas-recordatorio`: RSpec/RuboCop Docker pendientes del PM; migración `20261022120000` antes de desplegar; interruptor apagado por defecto; sin push |

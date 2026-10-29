@@ -7,6 +7,7 @@ class Api::V1::Accounts::PayphonePaymentsController < Api::V1::Accounts::BaseCon
     render json: {
       enabled: ActiveModel::Type::Boolean.new.cast(InstallationConfig.find_by(name: 'ENABLE_PAYPHONE')&.value),
       renewal_state: renewal_state(latest_approved), period_end: latest_approved&.period_end,
+      grace_end: grace_end(latest_approved),
       payments: @current_account.payphone_payments.includes(:plan).order(created_at: :desc).limit(50).map { |payment| serialize(payment) }
     }
   end
@@ -76,6 +77,12 @@ class Api::V1::Accounts::PayphonePaymentsController < Api::V1::Accounts::BaseCon
     'due_soon' if due_date <= Time.current.in_time_zone(Payphone::BillingLifecycle::ZONE).to_date + 7.days
   end
 
+  def grace_end(payment)
+    return unless payment
+
+    payment.period_end + Payphone::BillingLifecycle::GRACE_DAYS.days
+  end
+
   def payment_params
     params.permit(:plan_id, :needs_invoice, :billing_tax_id_type, :billing_tax_id, :billing_name,
                   :billing_email, :billing_phone, :billing_address)
@@ -100,13 +107,18 @@ class Api::V1::Accounts::PayphonePaymentsController < Api::V1::Accounts::BaseCon
     preview = ENV['PAYPHONE_PREVIEW_FAKE'] == '1'
     {
       storeId: preview ? 'preview-store' : InstallationConfig.find_by(name: 'PAYPHONE_STORE_ID')&.value,
-      token: preview ? 'preview-token' : InstallationConfig.find_by(name: 'PAYPHONE_BOX_TOKEN')&.value,
+      token: preview ? 'preview-token' : box_token,
       clientTransactionId: payment.client_transaction_id,
       amount: payment.amount, amountWithoutTax: payment.amount_without_tax,
       amountWithTax: payment.amount_with_tax, tax: payment.tax, service: payment.commission_cents,
       currency: payment.currency, reference: "Plan #{payment.plan.name}",
       preview: preview
     }
+  end
+
+  def box_token
+    InstallationConfig.find_by(name: 'PAYPHONE_BOX_TOKEN')&.value.presence ||
+      InstallationConfig.find_by(name: 'PAYPHONE_TOKEN')&.value
   end
 
   def serialize(payment)

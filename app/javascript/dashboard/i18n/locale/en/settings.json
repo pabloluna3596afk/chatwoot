@@ -742,8 +742,8 @@
     "RENEW": "Renew plan",
     "RENEWAL": {
       "due_soon": "Renewal is coming up. Your plan ends on {date}.",
-      "grace": "Your plan ended on {date}. Access remains active during the 3-day grace period.",
-      "expired": "Your account is on the Free plan. Your data remains available."
+      "grace": "Your plan ended on {date}. Access until {grace_end}.",
+      "expired": "Free plan."
     },
     "ERROR": "We could not prepare the payment. Try again.",
     "STATES": { "pending": "Verifying", "approved": "Approved", "cancelled": "Cancelled", "failed": "Failed", "expired": "Expired" }

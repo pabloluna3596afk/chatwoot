@@ -118,7 +118,7 @@ class SuperAdmin::AppConfigsController < SuperAdmin::ApplicationController
 
     check_values = values.merge(
       'PAYPHONE_STORE_ID' => 'configured', 'PAYPHONE_TOKEN' => 'configured',
-      'PAYPHONE_BOX_TOKEN' => 'configured', 'PAYPHONE_ENVIRONMENT' => 'test'
+      'PAYPHONE_ENVIRONMENT' => 'test'
     )
     url_errors = %w[response_https response_domain frontend_domain_required].map do |key|
       I18n.t("super_admin.payphone.validation.#{key}")

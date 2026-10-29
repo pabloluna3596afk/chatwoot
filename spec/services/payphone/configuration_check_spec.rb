@@ -21,6 +21,13 @@ RSpec.describe Payphone::ConfigurationCheck do
     expect(result.errors).to be_empty
   end
 
+  it 'accepts the Payphone token without a separate Cajita token' do
+    values.delete('PAYPHONE_BOX_TOKEN')
+    result = described_class.call(values: values, frontend_url: 'https://inbox.example.test')
+
+    expect(result).to be_valid
+  end
+
   it 'rejects a non-HTTPS response URL' do
     values['PAYPHONE_RESPONSE_URL'] = 'http://attacker.example/pay'
     result = described_class.call(values: values, frontend_url: 'https://inbox.example.test')

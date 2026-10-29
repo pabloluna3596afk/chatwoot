@@ -22,7 +22,6 @@ class Payphone::ConfigurationCheck
     errors = []
     errors << I18n.t('super_admin.payphone.validation.store_id_required') if value('PAYPHONE_STORE_ID').blank?
     errors << I18n.t('super_admin.payphone.validation.token_required') if value('PAYPHONE_TOKEN').blank?
-    errors << I18n.t('super_admin.payphone.validation.box_token_required') if value('PAYPHONE_BOX_TOKEN').blank?
     errors << I18n.t('super_admin.payphone.validation.environment') unless %w[test production].include?(value('PAYPHONE_ENVIRONMENT'))
     validate_rate(errors, 'PAYPHONE_TAX_RATE', I18n.t('super_admin.payphone.rate_labels.tax'))
     validate_rate(errors, 'PAYPHONE_CARD_COMMISSION_RATE', I18n.t('super_admin.payphone.rate_labels.commission'))

@@ -742,8 +742,8 @@
     "RENEW": "Renovar plan",
     "RENEWAL": {
       "due_soon": "Se acerca la renovación. Tu plan vence el {date}.",
-      "grace": "Tu plan venció el {date}. El acceso se mantiene durante los 3 días de gracia.",
-      "expired": "Tu cuenta está en el plan Gratis. Conservamos tus datos."
+      "grace": "Tu plan venció el {date}. Acceso hasta el {grace_end}.",
+      "expired": "Plan gratuito."
     },
     "ERROR": "No pudimos preparar el pago. Inténtalo de nuevo.",
     "STATES": { "pending": "Verificando", "approved": "Aprobado", "cancelled": "Cancelado", "failed": "Fallido", "expired": "Vencido" }
