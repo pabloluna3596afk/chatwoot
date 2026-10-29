@@ -28,7 +28,7 @@ module Integrations::LlmInstrumentationHelpers
   def record_completion(span, result)
     if result.respond_to?(:content)
       span.set_attribute(ATTR_GEN_AI_COMPLETION_ROLE, result.role.to_s) if result.respond_to?(:role)
-      span.set_attribute(ATTR_GEN_AI_COMPLETION_CONTENT, result.content.to_s)
+      span.set_attribute(ATTR_GEN_AI_COMPLETION_CONTENT, '[REDACTED]')
     elsif result.is_a?(Hash)
       set_completion_attributes(span, result)
     end
@@ -44,10 +44,8 @@ module Integrations::LlmInstrumentationHelpers
   def set_prompt_messages(span, messages)
     messages.each_with_index do |msg, idx|
       role = msg[:role] || msg['role']
-      content = msg[:content] || msg['content']
-
       span.set_attribute(format(ATTR_GEN_AI_PROMPT_ROLE, idx), role)
-      span.set_attribute(format(ATTR_GEN_AI_PROMPT_CONTENT, idx), content.to_s)
+      span.set_attribute(format(ATTR_GEN_AI_PROMPT_CONTENT, idx), '[REDACTED]')
     end
   end
 
@@ -58,7 +56,7 @@ module Integrations::LlmInstrumentationHelpers
 
   def propagated_langfuse_attributes(params)
     attrs = {}
-    session_id = params[:conversation_id].present? ? "#{params[:account_id]}_#{params[:conversation_id]}" : nil
+    session_id = opaque_session_id(params)
 
     attrs[ATTR_LANGFUSE_USER_ID] = params[:account_id].to_s if params[:account_id]
     attrs[ATTR_LANGFUSE_SESSION_ID] = session_id if session_id.present?
@@ -75,7 +73,7 @@ module Integrations::LlmInstrumentationHelpers
 
   def propagated_observation_metadata_attributes(params)
     attrs = {}
-    session_id = params[:conversation_id].present? ? "#{params[:account_id]}_#{params[:conversation_id]}" : nil
+    session_id = opaque_session_id(params)
 
     add_observation_metadata(attrs, 'user_id', params[:account_id])
     add_observation_metadata(attrs, 'account_id', params[:account_id])
@@ -96,6 +94,12 @@ module Integrations::LlmInstrumentationHelpers
     return if value.blank?
 
     attrs[format(ATTR_LANGFUSE_OBSERVATION_METADATA, key)] = value.to_s
+  end
+
+  def opaque_session_id(params)
+    return if params[:conversation_id].blank?
+
+    Digest::SHA256.hexdigest("#{params[:account_id]}:#{params[:conversation_id]}")
   end
 
   def set_langfuse_attributes(span, attrs)

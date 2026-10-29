@@ -1,12 +1,23 @@
 class Captain::Tools::BaseTool < RubyLLM::Tool
-  prepend Captain::Tools::Instrumentation
+  attr_accessor :assistant, :copilot_tool_call_limiter
 
-  attr_accessor :assistant
+  def self.inherited(subclass)
+    super
+    subclass.prepend(Captain::Tools::Instrumentation)
+  end
 
   def initialize(assistant, user: nil)
     @assistant = assistant
     @user = user
     super()
+  end
+
+  def parameters_schema
+    schema = super
+    return schema unless self.class.name.start_with?('Captain::Tools::Copilot::') ||
+                         instance_of?(Captain::Tools::SearchDocumentationService)
+
+    schema.merge('additionalProperties' => false)
   end
 
   def active?

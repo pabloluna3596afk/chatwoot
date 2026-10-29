@@ -83,7 +83,7 @@ RSpec.describe Captain::Tools::Copilot::GetContactService do
 
       it 'returns the contact in llm text format' do
         result = service.execute(contact_id: contact.id)
-        expect(result).to eq(contact.to_llm_text)
+        expect(result).to include('UNTRUSTED_DATA_BEGIN', contact.to_llm_text, 'UNTRUSTED_DATA_END')
       end
 
       context 'when contact belongs to different account' do
