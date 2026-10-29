@@ -86,6 +86,86 @@ RSpec.describe 'Api::V1::Accounts::Captain::CopilotThreads', type: :request do
 
           expect(response).to have_http_status(:not_found)
         end
+
+        it 'does not accept an assistant from another account' do
+          other_assistant = create(:captain_assistant)
+
+          post "/api/v1/accounts/#{account.id}/captain/copilot_threads",
+               params: { message: 'Hello', assistant_id: other_assistant.id },
+               headers: agent.create_new_auth_token,
+               as: :json
+
+          expect(response).to have_http_status(:not_found)
+          expect(CopilotThread.count).to be_zero
+        end
+
+        it 'rejects a malformed assistant id without creating an internal assistant' do
+          expect do
+            post "/api/v1/accounts/#{account.id}/captain/copilot_threads",
+                 params: { message: 'Hello', assistant_id: [] },
+                 headers: agent.create_new_auth_token,
+                 as: :json
+          end.not_to change(Captain::Assistant, :count)
+
+          expect(response).to have_http_status(:unprocessable_entity)
+        end
+      end
+
+      it 'lets an agent create a thread with the account internal assistant when none exists' do
+        put_account_on_plan(account, monthly_messages: 2)
+
+        expect do
+          post "/api/v1/accounts/#{account.id}/captain/copilot_threads",
+               params: { message: 'Help me with this account' },
+               headers: agent.create_new_auth_token,
+               as: :json
+        end.to change(CopilotThread, :count).by(1)
+
+        expect(response).to have_http_status(:success)
+        internal_assistant = CopilotThread.last.assistant
+        expect(account.internal_captain_assistants.count).to eq(1)
+        expect(internal_assistant).to have_attributes(
+          internal?: true,
+          name: 'Copilot',
+          product_name: account.name
+        )
+        expect(internal_assistant.documents).to be_empty
+        expect(internal_assistant.inboxes).to be_empty
+      end
+
+      it 'reuses the same internal assistant on subsequent resolutions' do
+        first = Captain::Copilot::AssistantResolver.new(account: account).perform
+        second = Captain::Copilot::AssistantResolver.new(account: account).perform
+
+        expect(first).to eq(second)
+        expect(account.internal_captain_assistants.count).to eq(1)
+      end
+
+      it 'does not create an internal assistant when the feature flag is disabled' do
+        account.disable_features!('captain_integration')
+
+        expect do
+          post "/api/v1/accounts/#{account.id}/captain/copilot_threads",
+               params: { message: 'Help me' },
+               headers: agent.create_new_auth_token,
+               as: :json
+        end.not_to change(Captain::Assistant, :count)
+
+        expect(response).to have_http_status(:forbidden)
+      end
+
+      it 'keeps an existing thread on its original assistant after a real assistant is created' do
+        put_account_on_plan(account, monthly_messages: 3)
+        post "/api/v1/accounts/#{account.id}/captain/copilot_threads",
+             params: { message: 'First thread' }, headers: agent.create_new_auth_token, as: :json
+        internal_assistant = CopilotThread.last.assistant
+        real_assistant = create(:captain_assistant, account: account)
+
+        post "/api/v1/accounts/#{account.id}/captain/copilot_threads",
+             params: { message: 'Second thread' }, headers: agent.create_new_auth_token, as: :json
+
+        expect(CopilotThread.order(:id).first.assistant).to eq(internal_assistant)
+        expect(CopilotThread.order(:id).last.assistant).to eq(real_assistant)
       end
 
       context 'with valid params' do

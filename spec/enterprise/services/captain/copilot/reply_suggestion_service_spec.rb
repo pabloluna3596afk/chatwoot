@@ -210,10 +210,10 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
     )
 
     expect do
-      expect { service.generate_response }.to raise_error(
-        Captain::Copilot::ReplySuggestionService::GenerationError,
-        'Temporary model failure.'
-      )
+      expect { service.generate_response }.to raise_error do |error|
+        expect(error.class.name).to eq('Captain::Copilot::ReplySuggestionService::GenerationError')
+        expect(error.message).to eq('Temporary model failure.')
+      end
     end.to(change { copilot_responses_used(account) }.by(1))
 
     expect do
@@ -280,10 +280,10 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
       'reasoning' => 'The model request failed.'
     )
 
-    expect { service.generate_response }.to raise_error(
-      Captain::Copilot::ReplySuggestionService::GenerationError,
-      'The model request failed.'
-    )
+    expect { service.generate_response }.to raise_error do |error|
+      expect(error.class.name).to eq('Captain::Copilot::ReplySuggestionService::GenerationError')
+      expect(error.message).to eq('The model request failed.')
+    end
     expect(copilot_thread.copilot_messages).to be_empty
   end
 

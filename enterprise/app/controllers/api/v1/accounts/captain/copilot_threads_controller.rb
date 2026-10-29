@@ -2,6 +2,7 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
   include Captain::Copilot::ConversationAccess
 
   before_action :ensure_captain_integration_enabled
+  before_action :ensure_assistant_id, only: :create
   before_action :ensure_message, only: :create
   before_action :ensure_accessible_conversation, only: :create
 
@@ -19,7 +20,7 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
       @copilot_thread = Current.account.copilot_threads.create!(
         title: copilot_thread_params[:message].truncate(ApplicationRecord::MAX_STRING_COLUMN_LENGTH, omission: ''),
         user: Current.user,
-        assistant: assistant
+        assistant: resolved_assistant
       )
 
       copilot_message = @copilot_thread.copilot_messages.create!(
@@ -63,6 +64,13 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
     return render_could_not_create_error(I18n.t('captain.copilot_message_required')) if copilot_thread_params[:message].blank?
   end
 
+  def ensure_assistant_id
+    return unless params.key?(:assistant_id)
+    return if params[:assistant_id].is_a?(Integer) || params[:assistant_id].is_a?(String)
+
+    render_could_not_create_error(I18n.t('captain.copilot_assistant_invalid'))
+  end
+
   def ensure_accessible_conversation
     return unless reply_suggestion?
 
@@ -78,8 +86,11 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
     copilot_thread_params[:request_type] == 'reply_suggestion'
   end
 
-  def assistant
-    Current.account.captain_assistants.find(copilot_thread_params[:assistant_id])
+  def resolved_assistant
+    Captain::Copilot::AssistantResolver.new(
+      account: Current.account,
+      assistant_id: copilot_thread_params[:assistant_id]
+    ).perform
   end
 
   def copilot_thread_params

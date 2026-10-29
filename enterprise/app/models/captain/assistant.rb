@@ -96,7 +96,13 @@ class Captain::Assistant < ApplicationRecord
 
   scope :ordered, -> { order(created_at: :desc) }
 
-  scope :for_account, ->(account_id) { where(account_id: account_id) }
+  scope :for_account, ->(account_id) { where(account_id: account_id).customer_visible }
+  scope :internal, -> { where('config @> ?', { internal: true }.to_json) }
+  scope :customer_visible, -> { where.not('config @> ?', { internal: true }.to_json) }
+
+  def internal?
+    config['internal'] == true
+  end
 
   def available_name
     name
@@ -166,6 +172,8 @@ class Captain::Assistant < ApplicationRecord
   end
 
   def engages?(contact, conversation)
+    return false if internal?
+
     engagement_result(contact, conversation)[:engages]
   end
 
@@ -174,6 +182,8 @@ class Captain::Assistant < ApplicationRecord
   end
 
   def responds_to_audience?(contact, conversation)
+    return false if internal?
+
     return true if config['audience'].blank?
 
     Captain::AudienceMatcher.new(config['audience']).matches?(contact, conversation)
@@ -265,13 +275,15 @@ class Captain::Assistant < ApplicationRecord
   private
 
   def ensure_within_plan_limit
+    return if internal?
+
     # Guard: do not enforce limit for accounts without a plan (fallback to unlimited)
     return if account.plan.blank?
 
     # Lock the account row to serialize concurrent creates and prevent exceeding the cap
     Account.lock.find(account_id)
     limit = account.plan_limit(:max_captain_assistants)
-    return if limit.nil? || account.captain_assistants.count < limit
+    return if limit.nil? || account.captain_assistants.customer_visible.count < limit
 
     raise LimitExceededError, I18n.t('captain.assistant.limit_exceeded', limit: limit)
   end
