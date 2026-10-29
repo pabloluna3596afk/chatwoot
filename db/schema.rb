@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_27_130000) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_28_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -26,6 +26,21 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_27_130000) do
     t.datetime "updated_at", null: false
     t.index ["owner_type", "owner_id"], name: "index_access_tokens_on_owner_type_and_owner_id"
     t.index ["token"], name: "index_access_tokens_on_token", unique: true
+  end
+
+  create_table "account_feature_overrides", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "feature_key", null: false
+    t.boolean "enabled", default: false, null: false
+    t.text "reason", null: false
+    t.datetime "expires_at"
+    t.bigint "created_by_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "feature_key"], name: "index_account_feature_overrides_on_account_id_and_feature_key", unique: true
+    t.index ["account_id"], name: "index_account_feature_overrides_on_account_id"
+    t.index ["created_by_id"], name: "index_account_feature_overrides_on_created_by_id"
+    t.index ["expires_at"], name: "index_account_feature_overrides_on_expires_at"
   end
 
   create_table "account_plan_usages", force: :cascade do |t|
@@ -2108,6 +2123,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_27_130000) do
     t.index ["inbox_id"], name: "index_working_hours_on_inbox_id"
   end
 
+  add_foreign_key "account_feature_overrides", "accounts"
+  add_foreign_key "account_feature_overrides", "users", column: "created_by_id"
   add_foreign_key "account_plan_usages", "accounts", on_delete: :cascade
   add_foreign_key "account_plan_usages", "plans"
   add_foreign_key "accounts", "plans"

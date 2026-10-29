@@ -3,10 +3,26 @@
 </div>
 <div class="field-unit__field">
   <%= hidden_field_tag "plan[#{field.attribute}][]", '' %>
-  <% Plan::FEATURE_KEYS.each do |key| %>
-    <label class="block">
-      <%= check_box_tag "plan[#{field.attribute}][]", key, field.data.include?(key), id: "plan_feature_#{key}" %>
-      <%= key.humanize %>
-    </label>
+  <% Plan::FEATURES.group_by { |feature| feature[:group] }.each do |group, features| %>
+    <fieldset class="mb-4">
+      <legend class="font-semibold"><%= t("super_admin.plans.groups.#{group.downcase}", default: group) %></legend>
+      <% features.each do |feature| %>
+        <% key = feature[:key] %>
+        <label class="block py-1">
+          <%= check_box_tag "plan[#{field.attribute}][]", key, field.data.include?(key), id: "plan_feature_#{key}" %>
+          <%= feature["label_#{I18n.locale}".to_sym] || feature[:label_en] %>
+          <span class="block text-sm text-n-slate-11"><%= feature["description_#{I18n.locale}".to_sym] || feature[:description_en] %></span>
+          <% limit_key = Plan::FEATURE_LIMITS[key] %>
+          <% limit_value = f.object.limit(limit_key) if limit_key %>
+          <% if !limit_value.nil? && ((field.data.include?(key) && limit_value.zero?) || (!field.data.include?(key) && limit_value.positive?)) %>
+            <span class="block text-sm text-n-ruby-11"><%= t('super_admin.plans.feature_limit_mismatch') %></span>
+          <% end %>
+        </label>
+      <% end %>
+    </fieldset>
   <% end %>
+  <p class="mt-2 text-sm text-n-slate-11">
+    <%= t('super_admin.plans.copilot_allowance') %>:
+    <%= f.object.copilot_available? ? '✓' : '—' %>
+  </p>
 </div>

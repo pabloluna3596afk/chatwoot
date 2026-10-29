@@ -189,9 +189,109 @@ class Plan < ApplicationRecord # rubocop:disable Metrics/ClassLength
   ].map(&:freeze).freeze
   LIMITS_BY_KEY = LIMITS.index_by { |limit| limit[:key] }.freeze
 
-  # Catalog labels only; these keys never grant account features.
-  FEATURE_KEYS = %w[captain_integration automations campaigns help_center api_and_webhooks
-                    custom_roles sla saml calendar_integration].freeze
+  FEATURES = [
+    {
+      key: 'captain_integration', label_en: 'Captain', label_es: 'Captain',
+      description_en: 'Captain AI assistants.', description_es: 'Asistentes de IA de Captain.',
+      group: 'AI', flags: %w[captain_integration captain_integration_v2]
+    },
+    {
+      key: 'captain_tasks', label_en: 'AI tools for agents', label_es: 'Herramientas de IA para agentes',
+      description_en: 'Summarize, rewrite, and suggest replies with AI.',
+      description_es: 'Resumir, reescribir y sugerir respuestas con IA.',
+      group: 'AI', flags: %w[captain_tasks]
+    },
+    {
+      key: 'calendar_integration', label_en: 'Calendars', label_es: 'Calendarios',
+      description_en: 'Calendar integrations.', description_es: 'Integraciones de calendario.',
+      group: 'Integrations', flags: %w[calendar_integration]
+    },
+    {
+      key: 'integrations', label_en: 'Integrations', label_es: 'Integraciones',
+      description_en: 'Third-party integrations.', description_es: 'Integraciones con terceros.',
+      group: 'Integrations', flags: %w[integrations]
+    },
+    {
+      key: 'flows', label_en: 'Flows', label_es: 'Flows',
+      description_en: 'Conversation flows.', description_es: 'Flujos de conversación.',
+      group: 'Automation', flags: %w[flows_v1]
+    },
+    {
+      key: 'campaigns', label_en: 'Campaigns', label_es: 'Campañas',
+      description_en: 'Campaigns including WhatsApp campaigns.', description_es: 'Campañas, incluidas las de WhatsApp.',
+      group: 'Messaging', flags: %w[campaigns whatsapp_campaign]
+    },
+    {
+      key: 'automations', label_en: 'Automations', label_es: 'Automatizaciones',
+      description_en: 'Automation rules and delayed automations.', description_es: 'Reglas y automatizaciones programadas.',
+      group: 'Automation', flags: %w[automations delayed_automations]
+    },
+    {
+      key: 'macros', label_en: 'Macros', label_es: 'Macros',
+      description_en: 'Reusable conversation actions.', description_es: 'Acciones reutilizables para conversaciones.',
+      group: 'Automation', flags: %w[macros]
+    },
+    {
+      key: 'api_and_webhooks', label_en: 'API and webhooks', label_es: 'API y webhooks',
+      description_en: 'Account API and outgoing webhooks.', description_es: 'API de cuenta y webhooks salientes.',
+      group: 'Integrations', flags: %w[api_and_webhooks]
+    },
+    {
+      key: 'help_center', label_en: 'Help Center', label_es: 'Centro de ayuda',
+      description_en: 'Public help center.', description_es: 'Centro de ayuda público.',
+      group: 'Support', flags: %w[help_center]
+    },
+    {
+      key: 'custom_roles', label_en: 'Custom roles', label_es: 'Roles personalizados',
+      description_en: 'Fine-grained access roles.', description_es: 'Roles de acceso detallados.',
+      group: 'Security', flags: %w[custom_roles]
+    },
+    {
+      key: 'sla', label_en: 'SLA', label_es: 'SLA',
+      description_en: 'Service level policies.', description_es: 'Políticas de nivel de servicio.',
+      group: 'Support', flags: %w[sla]
+    },
+    {
+      key: 'help_center_semantic_search', label_en: 'Help Center semantic search',
+      label_es: 'Búsqueda semántica del Centro de ayuda',
+      description_en: 'Semantic search over help articles.',
+      description_es: 'Búsqueda semántica en artículos de ayuda.',
+      group: 'Support', flags: %w[help_center_embedding_search]
+    },
+    {
+      key: 'saml', label_en: 'SAML SSO', label_es: 'SSO SAML',
+      description_en: 'SAML single sign-on.', description_es: 'Inicio de sesión único con SAML.',
+      group: 'Security', flags: %w[saml]
+    }
+  ].map(&:freeze).freeze
+  FEATURES_BY_KEY = FEATURES.index_by { |feature| feature[:key] }.freeze
+  FEATURES_BY_FLAG = FEATURES.each_with_object({}) do |feature, map|
+    feature[:flags].each { |flag| map[flag] = feature }
+  end.freeze
+  FEATURE_KEYS = FEATURES_BY_KEY.keys.freeze
+  PLAN_FLAGS = FEATURES_BY_FLAG.keys.freeze
+  BASE_FEATURES = Featurable::FEATURE_LIST.filter_map do |flag|
+    next if PLAN_FLAGS.include?(flag['name'])
+    next if flag['chatwoot_internal'] || flag['deprecated'] || flag['premium'] == true || flag['name'] == 'chatwoot_v4'
+    next unless flag['enabled'] == true
+
+    {
+      key: flag['name'], label_en: flag['display_name'], label_es: flag['display_name'],
+      description_en: flag['description'].to_s, description_es: flag['description'].to_s,
+      group: flag['category'].presence || 'Other', flags: [flag['name']].freeze, base: true
+    }.freeze
+  end.freeze
+  ACCOUNT_FEATURES = (FEATURES + BASE_FEATURES).freeze
+  ACCOUNT_FEATURES_BY_KEY = ACCOUNT_FEATURES.index_by { |feature| feature[:key] }.freeze
+  FEATURE_LIMITS = {
+    'integrations' => :max_integrations,
+    'flows' => :max_flows,
+    'campaigns' => :max_campaigns_per_month,
+    'automations' => :max_automations,
+    'macros' => :max_macros,
+    'api_and_webhooks' => :max_api_users,
+    'calendar_integration' => :max_calendars
+  }.freeze
 
   has_many :accounts, dependent: :nullify, inverse_of: :plan
 
@@ -228,6 +328,10 @@ class Plan < ApplicationRecord # rubocop:disable Metrics/ClassLength
 
   def limit_values
     LIMITS.to_h { |definition| [definition[:key], limit(definition[:key])] }
+  end
+
+  def copilot_available?
+    limit(:captain_copilot_responses) != 0
   end
 
   def limit_values=(values)
@@ -313,5 +417,11 @@ class Plan < ApplicationRecord # rubocop:disable Metrics/ClassLength
     return if feature_keys.is_a?(Array) && feature_keys.all? { |key| FEATURE_KEYS.include?(key) }
 
     errors.add(:feature_keys, :inclusion)
+  end
+
+  after_update_commit :sync_account_features, if: :saved_change_to_feature_keys?
+
+  def sync_account_features
+    Plans::SyncPlanAccountsJob.perform_later(id)
   end
 end
