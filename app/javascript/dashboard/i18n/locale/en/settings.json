@@ -716,6 +716,7 @@
     }
   },
   "PAYPHONE": {
+    "HISTORY_TABLE": { "DATE": "Date", "PLAN": "Plan", "STATUS": "Status", "AMOUNT": "Amount" },
     "CHOOSE": "Choose",
     "CONFIRM_TITLE": "Confirm your plan",
     "DURATION": "Your payment covers 30 days from approval.",
@@ -751,6 +752,28 @@
   "BILLING_SETTINGS": {
     "TITLE": "Billing",
     "DESCRIPTION": "Manage your subscription here, upgrade your plan and get more for your team.",
+    "TABS": { "LABEL": "Billing sections", "USO": "Usage", "FACTURACION": "Billing" },
+    "USAGE": {
+      "CURRENT_PLAN": "Current plan",
+      "STATUS": { "ACTIVE": "Active", "GRACE": "In grace period", "FREE": "Free" },
+      "BAGS": { "ASSISTANT": "Assistant AI responses", "COPILOT": "Copilot", "INTERNAL": "Internal AI actions" },
+      "FREE_PLAN": "Free plan",
+      "EXPIRED_ON": "Expired on {date}",
+      "EXPIRED_BANNER": "Your plan expired on {date}. Choose a plan to restore paid access.",
+      "GO_TO_BILLING": "Go to billing",
+      "USED_INCLUDED": "{used} used of {included}",
+      "PERCENT_USED": "{percent}% used",
+      "RESET_DATE": "Resets on {date}",
+      "NO_INCLUDED_BAGS": "Your plan does not include AI usage allowances.",
+      "DAILY_TITLE": "Daily usage this period",
+      "PLAN_RESOURCES": "Plan resources",
+      "CHART_LABEL": "Daily AI messages by usage type",
+      "DATE": "Date",
+      "TOP_SOURCES": "What uses the most",
+      "EMPTY": "No AI usage recorded in this period yet.",
+      "ERROR": "Usage could not be loaded. Try again later.",
+      "SOURCES": { "ASSISTANT": "Customer assistant", "COPILOT": "Copilot", "INTERNAL": "Internal processes" }
+    },
     "CURRENT_PLAN": {
       "TITLE": "Current Plan",
       "PLAN_NOTE": "You are currently subscribed to the **{plan}** plan with **{quantity}** licenses",
