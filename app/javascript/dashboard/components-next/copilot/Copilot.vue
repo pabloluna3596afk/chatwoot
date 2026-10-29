@@ -97,8 +97,10 @@ const groupedMessages = computed(() => {
     });
   return result;
 });
-const isLastMessageFromAssistant = computed(
-  () => groupedMessages.value.at(-1)?.message_type === 'assistant'
+const isLastMessageFromAssistant = computed(() =>
+  ['assistant', 'action_item'].includes(
+    groupedMessages.value.at(-1)?.message_type
+  )
 );
 const copilotAvatar = computed(() =>
   resolveAssistantAvatar('/assets/images/dashboard/captain/avatar-light.svg')
