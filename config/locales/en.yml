@@ -1345,3 +1345,20 @@ payphone:
     body: 'Your payment for %{plan} was approved.'
     amount: 'Amount paid: %{amount}'
     period: 'Plan period: %{start} to %{end}'
+  billing_notice:
+    manage_billing: 'Manage billing'
+    renewal_reminder_7:
+      subject: '%{plan} renews in 7 days'
+      body: 'Your %{plan} plan expires on %{date}, in %{days} days.'
+    renewal_reminder_3:
+      subject: '%{plan} renews in 3 days'
+      body: 'Your %{plan} plan expires on %{date}, in %{days} days.'
+    renewal_reminder_1:
+      subject: '%{plan} renews tomorrow'
+      body: 'Your %{plan} plan expires on %{date}, in %{days} day.'
+    grace_started:
+      subject: '%{plan} payment is due'
+      body: 'Your %{plan} plan period ended on %{date}. Your access remains active during the 3-day grace period.'
+    downgraded_to_free:
+      subject: 'Your account moved to the Free plan'
+      body: 'The grace period for %{plan} ended on %{date}. Your account is now on the Free plan; your data remains available.'

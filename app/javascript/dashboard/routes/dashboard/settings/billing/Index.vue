@@ -43,6 +43,8 @@ const purchaseCreditsModalRef = ref(null);
 const comparingPlans = ref(false);
 const payphoneEnabled = ref(false);
 const payphoneHistory = ref([]);
+const payphoneRenewalState = ref(null);
+const payphonePeriodEnd = ref(null);
 const latestApprovedPayphonePayment = computed(() =>
   payphoneHistory.value.find(payment => payment.status === 'approved')
 );
@@ -260,6 +262,8 @@ const loadPayphone = async () => {
     const { data } = await PayphonePaymentsAPI.get();
     payphoneEnabled.value = data.enabled;
     payphoneHistory.value = data.payments;
+    payphoneRenewalState.value = data.renewal_state;
+    payphonePeriodEnd.value = data.period_end;
   } catch {
     payphoneEnabled.value = false;
   }
@@ -295,6 +299,7 @@ const beginPayphonePayment = async () => {
       ...payphoneInvoice.value,
     });
     payphonePayment.value = data;
+    payphoneStatus.value = 'pending';
     payphoneQuote.value = { ...payphoneQuote.value, amount: data.amount };
     if (data.box.preview) return;
     if (!document.getElementById('payphone-sdk')) {
@@ -332,7 +337,12 @@ const previewPayphone = async status => {
     payphonePayment.value = { ...payphonePayment.value, ...data };
     payphoneStatus.value = data.status || 'verifying';
     await loadPayphone();
-    if (data.status === 'approved') await fetchLimits();
+    if (data.status === 'approved') {
+      payphonePlanId.value = null;
+      payphonePayment.value = null;
+      payphoneQuote.value = null;
+      await fetchLimits();
+    }
     if (['cancelled', 'failed'].includes(data.status))
       payphonePayment.value = null;
   } catch (error) {
@@ -344,6 +354,13 @@ const previewPayphone = async status => {
 
 const formattedPayphoneDate = value =>
   value ? format(new Date(value), 'dd MMM, yyyy') : '';
+
+const payphoneRenewalMessage = () => {
+  // eslint-disable-next-line @intlify/vue-i18n/no-dynamic-keys
+  return t(`PAYPHONE.RENEWAL.${payphoneRenewalState.value}`, {
+    date: formattedPayphoneDate(payphonePeriodEnd.value),
+  });
+};
 
 onMounted(async () => {
   await handleBillingPageLogic();
@@ -397,11 +414,24 @@ onMounted(async () => {
     </template>
     <template #body>
       <div
+        v-if="payphoneEnabled && payphoneRenewalState"
+        role="status"
+        class="mb-4 flex flex-col gap-3 rounded-xl border border-n-weak bg-n-slate-2 p-4 text-sm sm:flex-row sm:items-center sm:justify-between dark:bg-n-solid-3"
+      >
+        <span>{{ payphoneRenewalMessage() }}</span>
+        <ButtonV4
+          :label="t('PAYPHONE.RENEW')"
+          variant="outline"
+          sm
+          @click="comparingPlans = true"
+        />
+      </div>
+      <div
         v-if="payphoneStatus"
         role="status"
         class="mb-4 rounded-xl border border-n-weak bg-n-slate-2 p-4 text-sm"
       >
-        <template v-if="payphoneStatus === 'verifying'">
+        <template v-if="['pending', 'verifying'].includes(payphoneStatus)">
           <span
             class="i-lucide-loader-circle me-2 inline-block size-4 animate-spin"
             aria-hidden="true"
@@ -562,7 +592,7 @@ onMounted(async () => {
         </div>
         <div v-else id="payphone-box" class="mt-4 min-h-12" />
         <p
-          v-if="payphoneStatus === 'verifying'"
+          v-if="['pending', 'verifying'].includes(payphoneStatus)"
           role="status"
           class="mt-3 text-sm text-n-slate-11"
         >

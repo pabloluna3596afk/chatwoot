@@ -3,8 +3,10 @@ class Api::V1::Accounts::PayphonePaymentsController < Api::V1::Accounts::BaseCon
   before_action :validate_invoice_flag, only: %i[create quote]
 
   def index
+    latest_approved = @current_account.payphone_payments.where(status: 'approved').order(period_end: :desc).first
     render json: {
       enabled: ActiveModel::Type::Boolean.new.cast(InstallationConfig.find_by(name: 'ENABLE_PAYPHONE')&.value),
+      renewal_state: renewal_state(latest_approved), period_end: latest_approved&.period_end,
       payments: @current_account.payphone_payments.includes(:plan).order(created_at: :desc).limit(50).map { |payment| serialize(payment) }
     }
   end
@@ -52,6 +54,27 @@ class Api::V1::Accounts::PayphonePaymentsController < Api::V1::Accounts::BaseCon
   end
 
   private
+
+  def check_admin_authorization?
+    return if Current.account_user&.administrator?
+
+    render json: { error: I18n.t('errors.access_denied') }, status: :forbidden
+  end
+
+  def account_accessible_for_user?(account)
+    @current_account_user = account.account_users.find_by(user_id: current_user.id)
+    Current.account_user = @current_account_user
+    render json: { error: I18n.t('errors.account.not_authorized') }, status: :not_found unless @current_account_user
+  end
+
+  def renewal_state(payment)
+    return unless payment
+    return 'expired' if Time.current >= payment.period_end + Payphone::BillingLifecycle::GRACE_DAYS.days
+    return 'grace' if Time.current >= payment.period_end
+
+    due_date = payment.period_end.in_time_zone(Payphone::BillingLifecycle::ZONE).to_date
+    'due_soon' if due_date <= Time.current.in_time_zone(Payphone::BillingLifecycle::ZONE).to_date + 7.days
+  end
 
   def payment_params
     params.permit(:plan_id, :needs_invoice, :billing_tax_id_type, :billing_tax_id, :billing_name,

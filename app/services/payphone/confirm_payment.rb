@@ -63,10 +63,17 @@ class Payphone::ConfirmPayment
   end
 
   def verify!(response)
-    valid = response.is_a?(Hash) && response['clientTransactionId'] == @payment.client_transaction_id &&
-            response['transactionId'].to_s == @transaction_id && response['amount'] == @payment.amount &&
-            response['currency'] == @payment.currency && response['statusCode'].is_a?(Integer)
-    raise Payphone::IncongruentConfirmation unless valid
+    raise Payphone::IncongruentConfirmation unless valid_confirmation?(response)
+  end
+
+  def valid_confirmation?(response)
+    return false unless response.is_a?(Hash)
+    return false unless response['clientTransactionId'] == @payment.client_transaction_id
+    return false unless response['transactionId'].to_s == @transaction_id
+    return false unless response['amount'] == @payment.amount && response['currency'] == @payment.currency
+    return false unless response['statusCode'].is_a?(Integer)
+
+    PayphonePayment.where(payphone_transaction_id: @transaction_id).where.not(id: @payment.id).none?
   end
 
   def activate_period!

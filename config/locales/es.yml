@@ -1242,3 +1242,20 @@ payphone:
     body: 'Se aprobó el pago de %{plan}.'
     amount: 'Importe pagado: %{amount}'
     period: 'Vigencia del plan: %{start} al %{end}'
+  billing_notice:
+    manage_billing: 'Administrar facturación'
+    renewal_reminder_7:
+      subject: 'Tu plan %{plan} vence en 7 días'
+      body: 'Tu plan %{plan} vence el %{date}, dentro de %{days} días.'
+    renewal_reminder_3:
+      subject: 'Tu plan %{plan} vence en 3 días'
+      body: 'Tu plan %{plan} vence el %{date}, dentro de %{days} días.'
+    renewal_reminder_1:
+      subject: 'Tu plan %{plan} vence mañana'
+      body: 'Tu plan %{plan} vence mañana, el %{date}.'
+    grace_started:
+      subject: 'Tu plan %{plan} requiere renovación'
+      body: 'El período de %{plan} terminó el %{date}. Tu acceso seguirá activo durante los 3 días de gracia.'
+    downgraded_to_free:
+      subject: 'Tu cuenta cambió al plan Gratis'
+      body: 'El período de gracia de %{plan} terminó el %{date}. Tu cuenta ahora usa el plan Gratis; conservamos tus datos.'

@@ -731,6 +731,7 @@
     "SIMULATE_APPROVED": "Simular aprobación",
     "SIMULATE_REJECTED": "Simular rechazo",
     "SIMULATE_PENDING": "Simular demora de verificación",
+    "PENDING": "El pago está iniciado. Completa el formulario de Payphone; verificaremos el pago antes de activar el plan.",
     "VERIFYING": "Estamos verificando el pago. El plan se actualizará al confirmarse.",
     "APPROVED": "Pago aprobado. Tu plan está vigente hasta",
     "REJECTED": "El pago no fue aprobado. Puedes intentarlo de nuevo.",
@@ -738,6 +739,12 @@
     "RETRY": "Elegir un plan para volver a intentarlo",
     "HISTORY_LINK": "Ver historial de pagos",
     "HISTORY": "Historial de pagos",
+    "RENEW": "Renovar plan",
+    "RENEWAL": {
+      "due_soon": "Se acerca la renovación. Tu plan vence el {date}.",
+      "grace": "Tu plan venció el {date}. El acceso se mantiene durante los 3 días de gracia.",
+      "expired": "Tu cuenta está en el plan Gratis. Conservamos tus datos."
+    },
     "ERROR": "No pudimos preparar el pago. Inténtalo de nuevo.",
     "STATES": { "pending": "Verificando", "approved": "Aprobado", "cancelled": "Cancelado", "failed": "Fallido", "expired": "Vencido" }
   },
