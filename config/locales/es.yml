@@ -610,6 +610,7 @@ es:
       playground_message_invalid: 'Escribe un mensaje de hasta 500 caracteres'
       playground_history_invalid: 'El historial de la prueba no es válido'
     copilot_message_required: El mensaje es obligatorio
+    copilot_assistant_invalid: 'El identificador del asistente no es válido'
     copilot_error: 'Conecte un asistente a esta bandeja de entrada para utilizar Copilot'
     internal_limit: 'Se alcanzó el límite mensual de acciones internas de IA. Esta acción de IA se omitió; puedes continuar manualmente.'
     copilot_limit: 'Se alcanzó el límite de Copilot. Las sugerencias se pausan hasta el %{reset_date}, cuando se reinicie tu plan; puedes seguir respondiendo manualmente.'

@@ -49,6 +49,24 @@ RSpec.describe Captain::Assistant, type: :model do
     end
   end
 
+  describe 'internal assistants' do
+    it 'does not count an internal assistant toward the customer assistant limit' do
+      put_account_on_plan(account, max_captain_assistants: 1)
+      Captain::Copilot::AssistantResolver.new(account: account).perform
+
+      expect { create(:captain_assistant, account: account) }.to change(account.captain_assistants, :count).by(1)
+    end
+
+    it 'never engages a customer conversation' do
+      internal_assistant = Captain::Copilot::AssistantResolver.new(account: account).perform
+
+      expect(described_class.for_account(account.id)).to be_empty
+      expect(described_class.internal).to contain_exactly(internal_assistant)
+      expect(internal_assistant.engages?(contact, conversation)).to be(false)
+      expect(internal_assistant.responds_to_audience?(contact, conversation)).to be(false)
+    end
+  end
+
   describe 'inactive conversation settings' do
     it 'uses safe defaults when settings are unavailable' do
       assistant.account.enable_features('captain_integration_v2')

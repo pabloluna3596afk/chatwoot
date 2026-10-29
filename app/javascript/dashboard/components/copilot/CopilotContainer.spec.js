@@ -79,6 +79,7 @@ describe('CopilotContainer', () => {
     vi.mocked(useAlert).mockClear();
     testState.refs.getCurrentAccountId.value = 1;
     testState.refs.getSelectedChat.value = { id: 1 };
+    testState.refs['captainAssistants/getRecords'].value = [{ id: 7 }];
     testState.uiSettings.value = {
       is_copilot_panel_open: true,
       copilot_unread_count: 2,
@@ -146,6 +147,29 @@ describe('CopilotContainer', () => {
     await nextTick();
 
     expect(copilot.props('messages')).toEqual([{ id: 99 }]);
+  });
+
+  it('creates a Copilot thread without an assistant id when none is available', async () => {
+    testState.refs['captainAssistants/getRecords'].value = [];
+    testState.uiSettings.value.copilot_active_thread_id = null;
+    testState.dispatch.mockImplementation(action =>
+      action === 'copilotThreads/create'
+        ? Promise.resolve({ id: 99 })
+        : Promise.resolve()
+    );
+    const wrapper = mountComponent();
+    const copilot = wrapper.findComponent({ name: 'Copilot' });
+
+    expect(await copilot.props('onSendMessage')('Help me')).toBe(true);
+
+    expect(testState.dispatch).toHaveBeenCalledWith(
+      'copilotThreads/create',
+      expect.objectContaining({ message: 'Help me' })
+    );
+    const createCall = testState.dispatch.mock.calls.find(
+      ([action]) => action === 'copilotThreads/create'
+    );
+    expect(createCall[1]).not.toHaveProperty('assistant_id');
   });
 
   it('keeps the floating panel available with or without a selected conversation', async () => {

@@ -1,19 +1,10 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRoute } from 'vue-router';
 import Icon from '../icon/Icon.vue';
-
-defineProps({
-  hasAssistants: {
-    type: Boolean,
-    default: false,
-  },
-});
 
 const emit = defineEmits(['useSuggestion']);
 const { t } = useI18n();
-const route = useRoute();
 
 const promptOptions = computed(() => [
   {
@@ -55,23 +46,7 @@ const handleSuggestion = opt => {
         </p>
       </div>
     </div>
-    <div v-if="!hasAssistants" class="w-full space-y-2">
-      <p class="text-sm text-n-slate-11 leading-6">
-        {{ $t('CAPTAIN.ASSISTANTS.COPILOT_SETUP_REQUIRED') }}
-      </p>
-      <router-link
-        :to="{
-          name: 'captain_assistants_create_index',
-          params: {
-            accountId: route.params.accountId,
-          },
-        }"
-        class="text-n-slate-11 underline hover:text-n-slate-12"
-      >
-        {{ $t('CAPTAIN.ASSISTANTS.CREATE_FOR_COPILOT') }}
-      </router-link>
-    </div>
-    <div v-else class="w-full space-y-2">
+    <div class="w-full space-y-2">
       <span class="text-xs text-n-slate-10 block">
         {{ $t('CAPTAIN.COPILOT.TRY_THESE_PROMPTS') }}
       </span>
