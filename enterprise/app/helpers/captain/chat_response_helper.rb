@@ -95,13 +95,27 @@ module Captain::ChatResponseHelper
   end
 
   def tool_result_status(result)
-    return 'error' if result.is_a?(Hash) && (result.key?(:error) || result.key?('error'))
-    return 'error' if result.is_a?(String) && result.match?(/\A(?:error|failed|exception)\b/i)
-    return 'empty' if result.nil? || result == []
-    return 'empty' if result.is_a?(Hash) && (result[:total] || result['total']) == 0
-    return 'empty' if result.is_a?(String) && result.match?(/\A(?:no results|no .+ found)\b/i)
-    return 'empty' if result.respond_to?(:empty?) && result.empty?
+    return 'error' if tool_result_error?(result)
+    return 'empty' if tool_result_empty?(result)
 
     'completed'
+  end
+
+  def tool_result_error?(result)
+    return result.key?(:error) || result.key?('error') if result.is_a?(Hash)
+
+    result.is_a?(String) && result.match?(/\A(?:error|failed|exception)\b/i)
+  end
+
+  def tool_result_empty?(result)
+    return result.empty? || result.match?(/\A(?:no results|no .+ found)\b/i) if result.is_a?(String)
+    return result.empty? || tool_result_total_zero?(result) if result.is_a?(Hash)
+
+    result.nil? || (result.respond_to?(:empty?) && result.empty?)
+  end
+
+  def tool_result_total_zero?(result)
+    total = result[:total] || result['total']
+    total.is_a?(Numeric) && total.zero?
   end
 end

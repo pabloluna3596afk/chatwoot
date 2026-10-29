@@ -181,7 +181,7 @@ RSpec.describe Captain::Copilot::ChatService do
     let(:tool_call) { Struct.new(:name).new('search_contacts') }
 
     it 'stores a human-safe empty status without exposing tool output' do
-      service.send(:persist_thinking_message, tool_call)
+      service.send(:handle_tool_call, tool_call)
       service.send(:persist_tool_completion, 'No contacts found')
 
       saved_message = copilot_thread.copilot_messages.order(:id).last.message
@@ -194,7 +194,7 @@ RSpec.describe Captain::Copilot::ChatService do
     end
 
     it 'stores a generic error state without persisting the tool error details' do
-      service.send(:persist_thinking_message, tool_call)
+      service.send(:handle_tool_call, tool_call)
       service.send(:persist_tool_completion, error: 'sensitive database detail')
 
       saved_message = copilot_thread.copilot_messages.order(:id).last.message
