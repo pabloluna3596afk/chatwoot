@@ -47,13 +47,13 @@ class InstallationConfig < ApplicationRecord
 
   def value
     raw_value = serialized_value[:value]
-    return Payphone::TokenCipher.decrypt(raw_value) if name == 'PAYPHONE_TOKEN'
+    return Payphone::TokenCipher.decrypt(raw_value) if %w[PAYPHONE_TOKEN PAYPHONE_BOX_TOKEN].include?(name)
 
     raw_value
   end
 
   def value=(value_to_assigned)
-    value_to_assigned = Payphone::TokenCipher.encrypt(value_to_assigned) if name == 'PAYPHONE_TOKEN'
+    value_to_assigned = Payphone::TokenCipher.encrypt(value_to_assigned) if %w[PAYPHONE_TOKEN PAYPHONE_BOX_TOKEN].include?(name)
     self.serialized_value = {
       value: value_to_assigned
     }.with_indifferent_access

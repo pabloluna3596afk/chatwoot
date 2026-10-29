@@ -676,6 +676,12 @@
   value: ''
   locked: false
   type: secret
+- name: PAYPHONE_BOX_TOKEN
+  display_title: 'super_admin.payphone.fields.box_token'
+  description: 'super_admin.payphone.descriptions.box_token'
+  value: ''
+  locked: false
+  type: secret
 - name: PAYPHONE_ENVIRONMENT
   display_title: 'super_admin.payphone.fields.environment'
   description: 'super_admin.payphone.descriptions.environment'
@@ -685,6 +691,11 @@
   options:
     test: 'Test'
     production: 'Production'
+- name: PAYPHONE_TEST_ACCOUNT_IDS
+  display_title: 'super_admin.payphone.fields.test_account_ids'
+  description: 'super_admin.payphone.descriptions.test_account_ids'
+  value: ''
+  locked: false
 - name: PAYPHONE_RESPONSE_URL
   display_title: 'super_admin.payphone.fields.response_url'
   description: 'super_admin.payphone.descriptions.response_url'

@@ -1060,7 +1060,9 @@ es:
         enable: 'Habilitar Payphone'
         store_id: 'ID de tienda Payphone'
         token: 'Token API de Payphone'
+        box_token: 'Token de la Cajita de Payphone'
         environment: 'Entorno'
+        test_account_ids: 'IDs de cuentas permitidas en pruebas'
         response_url: 'URL de respuesta'
         external_notification: 'Notificaciones externas habilitadas por Payphone'
         tax_rate: 'Tasa de IVA (%)'
@@ -1071,7 +1073,9 @@ es:
         enable: 'Permite usar Payphone para pagar planes.'
         store_id: 'ID de tienda del portal de comercios Payphone.'
         token: 'Se guarda cifrado. Déjalo vacío para conservar el token guardado.'
+        box_token: 'Opcional. Reemplaza el token de Payphone solo en la Cajita; déjalo vacío para usar el token principal.'
         environment: 'Usa credenciales de prueba antes de cambiar a producción.'
+        test_account_ids: 'Solo estas cuentas pueden pagar mientras el entorno sea de pruebas. Ingresa IDs separados por coma; vacío bloquea todas las cuentas.'
         response_url: 'Debe usar HTTPS y el mismo dominio configurado en FRONTEND_URL.'
         external_notification: 'Actívala solo después de que Payphone apruebe y configure las notificaciones externas.'
         tax_rate: 'El IVA se suma solo si el cliente solicita factura. Valor inicial: 15%.'
@@ -1094,11 +1098,13 @@ es:
         store_id_required: 'Falta el ID de tienda.'
         token_required: 'Falta el token de Payphone.'
         environment: 'El entorno debe ser test o production.'
+        test_account_ids: 'Los IDs de cuentas de prueba deben ser enteros positivos separados por coma y corresponder a cuentas existentes.'
         rate_range: '%{label} debe estar entre 0 y 100.'
         rate_number: '%{label} debe ser un número.'
         grace_range: 'Los días de gracia no pueden ser negativos.'
         grace_number: 'Los días de gracia deben ser un número entero.'
         response_https: 'La URL de respuesta debe ser HTTPS válida, sin credenciales ni fragmento.'
+        response_path: 'La URL de respuesta debe usar la ruta fija /payphone/response y no incluir parámetros.'
         response_domain: 'El dominio de la URL de respuesta debe coincidir con FRONTEND_URL.'
         frontend_domain_required: 'FRONTEND_URL debe tener configurado un dominio válido.'
     account_suspension:
@@ -1224,3 +1230,36 @@ es:
       invalid_state: 'Esta solicitud de conexión venció, ya se utilizó o pertenece a otra sesión. Inicia de nuevo la conexión con Google Calendar.'
       cancelled: 'Se canceló la autorización de Google Calendar. Inicia de nuevo la conexión cuando lo desees.'
       failed: 'No se pudo conectar Google Calendar. Inicia de nuevo la conexión.'
+
+payphone:
+  errors:
+    disabled: 'Los pagos con Payphone no están disponibles.'
+    test_account_not_allowed: 'Payphone en entorno de pruebas solo está habilitado para cuentas autorizadas.'
+    plan_unavailable: 'Este plan no se puede comprar en este momento.'
+    stripe_active: 'Cancela o espera a que termine tu suscripción activa de Stripe antes de usar Payphone.'
+    paid_plan_active: 'Tu plan de pago está vigente. Podrás cambiar de plan cuando venza.'
+    pending_order_active: 'Completa el intento de pago actual o espera a que venza antes de elegir otro plan.'
+    verifying: 'Estamos verificando tu pago.'
+    invalid_request: 'Revisa los datos del pago e inténtalo de nuevo.'
+  receipt:
+    subject: 'Recibo de pago de %{plan}'
+    body: 'Se aprobó el pago de %{plan}.'
+    amount: 'Importe pagado: %{amount}'
+    period: 'Vigencia del plan: %{start} al %{end}'
+  billing_notice:
+    manage_billing: 'Administrar facturación'
+    renewal_reminder_7:
+      subject: 'Tu plan %{plan} vence en 7 días'
+      body: 'Tu plan %{plan} vence el %{date}, dentro de %{days} días.'
+    renewal_reminder_3:
+      subject: 'Tu plan %{plan} vence en 3 días'
+      body: 'Tu plan %{plan} vence el %{date}, dentro de %{days} días.'
+    renewal_reminder_1:
+      subject: 'Tu plan %{plan} vence mañana'
+      body: 'Tu plan %{plan} vence mañana, el %{date}.'
+    grace_started:
+      subject: 'Tu plan %{plan} requiere renovación'
+      body: 'El período de %{plan} terminó el %{date}. Tu acceso seguirá activo durante los 3 días de gracia.'
+    downgraded_to_free:
+      subject: 'Tu cuenta cambió al plan Gratis'
+      body: 'El período de gracia de %{plan} terminó el %{date}. Tu cuenta ahora usa el plan Gratis; conservamos tus datos.'

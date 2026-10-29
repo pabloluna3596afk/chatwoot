@@ -8,6 +8,7 @@ export const planViewProps = {
   currentPlanId: { type: [Number, String], default: null },
   selectedPlanId: { type: [Number, String], default: null },
   canSelect: { type: Boolean, default: false },
+  canPurchase: { type: Boolean, default: false },
 };
 
 export const matchesPlan = (plan, id) =>

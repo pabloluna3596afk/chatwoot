@@ -15,7 +15,6 @@ const props = defineProps({
   plan: { type: Object, required: true },
   compact: { type: Boolean, default: false },
 });
-// Reserved for the checkout PR; paid plans have no active action today.
 // eslint-disable-next-line vue/no-unused-emit-declarations
 const emit = defineEmits(['select', 'requestUpgrade', 'continue']);
 const { t } = useI18n();
@@ -23,7 +22,10 @@ const { summary } = usePlanPresentation();
 const current = computed(() => matchesPlan(props.plan, props.currentPlanId));
 const selected = computed(() => matchesPlan(props.plan, props.selectedPlanId));
 const selectable = computed(
-  () => props.canSelect && current.value && props.plan.state === 'available'
+  () =>
+    props.canSelect &&
+    (props.canPurchase || current.value) &&
+    props.plan.state === 'available'
 );
 const choose = () => {
   if (!selectable.value) return;
@@ -121,7 +123,7 @@ const choose = () => {
     >
       {{
         selectable
-          ? t('PLAN_CATALOG.CONTINUE', { plan: plan.name })
+          ? t('PAYPHONE.CHOOSE')
           : t(`PLAN_CATALOG.STATES.${plan.state}`)
       }}
     </Button>

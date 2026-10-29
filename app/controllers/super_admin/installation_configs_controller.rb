@@ -22,12 +22,12 @@ class SuperAdmin::InstallationConfigsController < SuperAdmin::ApplicationControl
   # this will be used to set the records shown on the `index` action.
   #
   def scoped_resource
-    resource_class.editable.where.not(name: 'PAYPHONE_TOKEN')
+    resource_class.editable.where.not(name: %w[PAYPHONE_TOKEN PAYPHONE_BOX_TOKEN])
   end
 
   def find_resource(param)
     resource = resource_class.find(param)
-    raise ActiveRecord::RecordNotFound if resource.name == 'PAYPHONE_TOKEN'
+    raise ActiveRecord::RecordNotFound if %w[PAYPHONE_TOKEN PAYPHONE_BOX_TOKEN].include?(resource.name)
 
     resource
   end

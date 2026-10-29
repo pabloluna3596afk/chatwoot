@@ -1156,7 +1156,9 @@ en:
         enable: 'Enable Payphone'
         store_id: 'Payphone Store ID'
         token: 'Payphone API token'
+        box_token: 'Payphone Cajita token'
         environment: 'Environment'
+        test_account_ids: 'Allowed test account IDs'
         response_url: 'Response URL'
         external_notification: 'External notifications enabled by Payphone'
         tax_rate: 'VAT rate (%)'
@@ -1167,7 +1169,9 @@ en:
         enable: 'Allow paid plans to use Payphone checkout.'
         store_id: 'Store ID from the Payphone merchant portal.'
         token: 'Stored encrypted. Leave blank to keep the saved token.'
+        box_token: 'Optional. Overrides the Payphone token for Cajita only; leave blank to use the main token.'
         environment: 'Use test credentials before switching to production.'
+        test_account_ids: 'Only these accounts can pay while the environment is in test mode. Enter comma-separated IDs; empty blocks all accounts.'
         response_url: 'Must use HTTPS and the same domain configured in FRONTEND_URL.'
         external_notification: 'Turn on only after Payphone approves and configures external notifications.'
         tax_rate: 'VAT added only when the customer requests an invoice. Default: 15%.'
@@ -1190,11 +1194,13 @@ en:
         store_id_required: 'Store ID is required.'
         token_required: 'Payphone token is required.'
         environment: 'Environment must be test or production.'
+        test_account_ids: 'Test account IDs must be comma-separated positive integers matching existing accounts.'
         rate_range: '%{label} must be between 0 and 100.'
         rate_number: '%{label} must be a number.'
         grace_range: 'Grace days must be nonnegative.'
         grace_number: 'Grace days must be a whole number.'
         response_https: 'Response URL must be a valid HTTPS URL without credentials or a fragment.'
+        response_path: 'Response URL must use the fixed /payphone/response path without query parameters.'
         response_domain: 'Response URL domain must match FRONTEND_URL.'
         frontend_domain_required: 'FRONTEND_URL must be configured with a valid domain.'
     account_suspension:
@@ -1327,3 +1333,36 @@ helpers:
   label:
     account:
       web_widget_branding: 'Branding by channel'
+
+payphone:
+  errors:
+    disabled: 'Payphone payments are not available.'
+    test_account_not_allowed: 'Payphone in test mode is enabled only for authorized accounts.'
+    plan_unavailable: 'This plan cannot be purchased right now.'
+    stripe_active: 'Cancel or wait for your active Stripe subscription before using Payphone.'
+    paid_plan_active: 'Your paid plan is active. You can change plans when it expires.'
+    pending_order_active: 'Finish or wait for your current payment attempt to expire before choosing another plan.'
+    verifying: 'We are verifying your payment.'
+    invalid_request: 'Check the payment details and try again.'
+  receipt:
+    subject: 'Payment receipt for %{plan}'
+    body: 'Your payment for %{plan} was approved.'
+    amount: 'Amount paid: %{amount}'
+    period: 'Plan period: %{start} to %{end}'
+  billing_notice:
+    manage_billing: 'Manage billing'
+    renewal_reminder_7:
+      subject: '%{plan} renews in 7 days'
+      body: 'Your %{plan} plan expires on %{date}, in %{days} days.'
+    renewal_reminder_3:
+      subject: '%{plan} renews in 3 days'
+      body: 'Your %{plan} plan expires on %{date}, in %{days} days.'
+    renewal_reminder_1:
+      subject: '%{plan} renews tomorrow'
+      body: 'Your %{plan} plan expires on %{date}, in %{days} day.'
+    grace_started:
+      subject: '%{plan} payment is due'
+      body: 'Your %{plan} plan period ended on %{date}. Your access remains active during the 3-day grace period.'
+    downgraded_to_free:
+      subject: 'Your account moved to the Free plan'
+      body: 'The grace period for %{plan} ended on %{date}. Your account is now on the Free plan; your data remains available.'
