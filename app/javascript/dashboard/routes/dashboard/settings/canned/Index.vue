@@ -3,12 +3,14 @@ import { useAlert } from 'dashboard/composables';
 import AddCanned from './AddCanned.vue';
 import EditCanned from './EditCanned.vue';
 import ToolList from 'dashboard/components-next/ToolList/ToolList.vue';
+import ToolCards from 'dashboard/components-next/ToolList/ToolCards.vue';
 import InfoChip from 'dashboard/components-next/ListCard/InfoChip.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsFilterDropdown from '../components/SettingsFilterDropdown.vue';
 import { computed, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import {
   useStoreGetters,
@@ -30,6 +32,7 @@ const store = useStore();
 const { t } = useI18n();
 const { getPlainText } = useMessageFormatter();
 const { isAdmin } = useAdmin();
+const route = useRoute();
 const currentUser = useMapGetter('getCurrentUser');
 
 const showAddPopup = ref(false);
@@ -50,6 +53,10 @@ const visibilityFilter = ref('all');
 const records = computed(() =>
   getters.getSortedCannedResponses.value(sortOrder.value)
 );
+const cardsVariant = computed(() => {
+  const variants = { keep: 'keep', desplegable: 'accordion', panel: 'panel' };
+  return variants[route.query.vista] || '';
+});
 
 const normalizeCategory = value =>
   value
@@ -83,7 +90,10 @@ const visibilityOptions = computed(() => {
   if (isAdmin.value) {
     filters.splice(1, 0, {
       value: 'pending',
-      label: t('CANNED_MGMT.FILTER_VISIBILITY.PENDING'),
+      label: t('CANNED_MGMT.FILTER_VISIBILITY.PENDING_COUNT', {
+        count: records.value.filter(item => item.approval_status === 'pending')
+          .length,
+      }),
     });
     filters.push(
       {
@@ -201,6 +211,9 @@ const listActions = computed(() => [
         item.created_by_id === currentUser.value?.id),
   },
 ]);
+const cardActions = computed(() =>
+  listActions.value.filter(action => action.key !== 'edit')
+);
 
 const statusTone = status =>
   ({ pending: 'warning', approved: 'success', rejected: 'error' })[status] ||
@@ -451,7 +464,42 @@ const handleListAction = ({ action, item }) => {
         </span>
       </div>
       <div v-else class="border-t border-n-weak">
+        <ToolCards
+          v-if="cardsVariant"
+          :items="filteredRecords"
+          :variant="cardsVariant"
+          :actions="cardActions"
+          title-key="short_code"
+          content-key="content"
+          status-key="approval_status"
+          :empty-message="$t('CANNED_MGMT.NO_RESULTS')"
+          :more-options-label="$t('CANNED_MGMT.MORE_OPTIONS')"
+          :show-more-label="$t('CANNED_MGMT.CARDS.SHOW_MORE')"
+          :show-less-label="$t('CANNED_MGMT.CARDS.SHOW_LESS')"
+          :edit-label="$t('CANNED_MGMT.EDIT.BUTTON_TEXT')"
+          :copy-label="$t('CANNED_MGMT.CARDS.COPY')"
+          :close-preview-label="$t('CANNED_MGMT.CARDS.CLOSE_PREVIEW')"
+          :creator-label="$t('CANNED_MGMT.CARDS.CREATED_BY')"
+          :reviewer-label="$t('CANNED_MGMT.CARDS.APPROVED_BY')"
+          :created-at="item => formatDate(item.created_at)"
+          :reviewed-at="item => formatDate(item.reviewed_at)"
+          :can-edit="
+            item =>
+              isAdmin ||
+              (item.visibility !== 'global' &&
+                item.created_by_id === currentUser?.id)
+          "
+          :status-label="
+            item => $t(`CANNED_MGMT.STATUS_LABEL.${item.approval_status}`)
+          "
+          :visibility-label="
+            item => $t(`CANNED_MGMT.VISIBILITY_LABEL.${item.visibility}`)
+          "
+          @edit="openEditPopup"
+          @action="handleListAction"
+        />
         <ToolList
+          v-else
           :items="filteredRecords"
           :columns="listColumns"
           :actions="listActions"

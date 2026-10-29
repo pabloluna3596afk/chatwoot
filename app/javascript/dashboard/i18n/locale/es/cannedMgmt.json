@@ -28,6 +28,7 @@
       "MINE": "Mías",
       "ACCOUNT": "Cuenta",
       "PENDING": "Pendientes",
+      "PENDING_COUNT": "Pendientes {count}",
       "APPROVED": "Aprobadas",
       "REJECTED": "Rechazadas"
     },
@@ -187,6 +188,14 @@
         "SUCCESS_MESSAGE_PENDING": "Duplicación enviada. Un administrador debe aprobarla antes de poder usarla.",
         "ERROR_MESSAGE": "No se pudo duplicar la respuesta rápida. Inténtalo de nuevo."
       }
+    },
+    "CARDS": {
+      "SHOW_MORE": "Ver más",
+      "SHOW_LESS": "Ver menos",
+      "CREATED_BY": "Creó",
+      "APPROVED_BY": "Aprobó",
+      "COPY": "Copiar",
+      "CLOSE_PREVIEW": "Cerrar vista previa"
     }
   }
 }

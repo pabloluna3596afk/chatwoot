@@ -28,6 +28,7 @@
       "MINE": "Mine",
       "ACCOUNT": "Account",
       "PENDING": "Pending review",
+      "PENDING_COUNT": "Pending {count}",
       "APPROVED": "Approved",
       "REJECTED": "Rejected"
     },
@@ -187,6 +188,14 @@
     "VISIBILITY_LABEL": {
       "personal": "Personal",
       "global": "Account"
+    },
+    "CARDS": {
+      "SHOW_MORE": "Show more",
+      "SHOW_LESS": "Show less",
+      "CREATED_BY": "Created",
+      "APPROVED_BY": "Approved",
+      "COPY": "Copy",
+      "CLOSE_PREVIEW": "Close preview"
     }
   }
 }
