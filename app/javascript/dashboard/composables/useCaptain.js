@@ -36,6 +36,18 @@ export function useCaptain() {
     return isCloudFeatureEnabled(FEATURE_FLAGS.CAPTAIN_TASKS);
   });
 
+  const latestPublicMessageIsIncoming = computed(() => {
+    const latestPublicMessage = currentChat.value?.messages
+      ?.filter(
+        message =>
+          !message.private &&
+          ['incoming', 'outgoing'].includes(message.message_type)
+      )
+      .at(-1);
+
+    return latestPublicMessage?.message_type === 'incoming';
+  });
+
   // === Limits (Enterprise) ===
   const captainLimits = computed(() => {
     return currentAccount.value?.limits?.captain;
@@ -68,6 +80,13 @@ export function useCaptain() {
     }
     return null;
   });
+
+  const internalLimitReached = computed(
+    () => Number(internalLimits.value?.currentAvailable) === 0
+  );
+  const usagePeriodEnd = computed(
+    () => currentAccount.value?.limits?.plan?.period_end
+  );
 
   const storageLimits = computed(() => {
     if (captainLimits.value?.storage) {
@@ -245,6 +264,8 @@ export function useCaptain() {
     // Feature flags
     captainEnabled,
     captainTasksEnabled,
+    isEnterprise,
+    latestPublicMessageIsIncoming,
 
     // Limits (Enterprise)
     captainLimits,
@@ -252,6 +273,8 @@ export function useCaptain() {
     responseLimits,
     copilotLimits,
     internalLimits,
+    internalLimitReached,
+    usagePeriodEnd,
     storageLimits,
     fetchLimits,
     isFetchingLimits,

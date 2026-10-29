@@ -28,6 +28,22 @@ const props = defineProps({
     type: Number,
     default: null,
   },
+  captainTasksEnabled: {
+    type: Boolean,
+    default: true,
+  },
+  captainEnabled: {
+    type: Boolean,
+    default: true,
+  },
+  replySuggestionDisabledReason: {
+    type: String,
+    default: '',
+  },
+  quotaResetDate: {
+    type: String,
+    default: '',
+  },
 });
 
 const emit = defineEmits(['executeCopilotAction']);
@@ -39,6 +55,7 @@ const replyMode = useMapGetter('draftMessages/getReplyEditorMode');
 // Selection-based menu items (when text is selected)
 const menuItems = computed(() => {
   const items = [];
+  if (!props.captainTasksEnabled) return items;
   // for now, we don't allow improving just  aprt of the selection
   // we will add this feature later. Once we do, we can revert the change
   const hasSelection = false;
@@ -118,15 +135,39 @@ const menuItems = computed(() => {
 const generalMenuItems = computed(() => {
   const items = [];
   if (props.conversationId && replyMode.value === REPLY_EDITOR_MODES.REPLY) {
+    const reason = props.replySuggestionDisabledReason;
+    let reasonText = '';
+    if (reason === 'plan') {
+      reasonText = t(
+        'INTEGRATION_SETTINGS.OPEN_AI.REPLY_OPTIONS.SUGGESTION_PLAN_REQUIRED'
+      );
+    } else if (reason === 'limit' && props.quotaResetDate) {
+      reasonText = t(
+        'INTEGRATION_SETTINGS.OPEN_AI.REPLY_OPTIONS.SUGGESTION_LIMIT_REACHED',
+        { date: props.quotaResetDate }
+      );
+    } else if (reason === 'limit') {
+      reasonText = t(
+        'INTEGRATION_SETTINGS.OPEN_AI.REPLY_OPTIONS.SUGGESTION_LIMIT_REACHED_NO_DATE'
+      );
+    } else if (reason === 'incoming') {
+      reasonText = t(
+        'INTEGRATION_SETTINGS.OPEN_AI.REPLY_OPTIONS.SUGGESTION_INCOMING_REQUIRED'
+      );
+    }
+
     items.push({
       label: t('INTEGRATION_SETTINGS.OPEN_AI.REPLY_OPTIONS.SUGGESTION'),
       key: 'reply_suggestion',
       icon: 'i-fluent-chat-sparkle-16-regular',
+      disabled: !!reason,
+      reason: reasonText,
     });
   }
 
   if (
     props.conversationId &&
+    props.captainTasksEnabled &&
     (replyMode.value === REPLY_EDITOR_MODES.NOTE || true)
   ) {
     items.push({
@@ -136,11 +177,13 @@ const generalMenuItems = computed(() => {
     });
   }
 
-  items.push({
-    label: t('INTEGRATION_SETTINGS.OPEN_AI.REPLY_OPTIONS.ASK_COPILOT'),
-    key: 'ask_copilot',
-    icon: 'i-fluent-circle-sparkle-24-regular',
-  });
+  if (props.captainEnabled) {
+    items.push({
+      label: t('INTEGRATION_SETTINGS.OPEN_AI.REPLY_OPTIONS.ASK_COPILOT'),
+      key: 'ask_copilot',
+      icon: 'i-fluent-circle-sparkle-24-regular',
+    });
+  }
 
   return items;
 });
@@ -177,7 +220,7 @@ const selectionMenuStyle = computed(() => {
 
 const handleMenuItemClick = item => {
   // For items with submenus, do nothing on click (hover will show submenu)
-  if (!item.subMenuItems) {
+  if (!item.subMenuItems && !item.disabled) {
     emit('executeCopilotAction', item.key);
   }
 };
@@ -219,7 +262,6 @@ const handleSubMenuItemClick = (parentItem, subItem) => {
             </div>
           </template>
         </Button>
-
         <!-- Hover Submenu -->
         <DropdownBody
           v-if="item.subMenuItems"
@@ -243,17 +285,26 @@ const handleSubMenuItemClick = (parentItem, subItem) => {
     <div v-if="menuItems.length > 0" class="h-px w-full bg-n-strong" />
 
     <div class="flex flex-col items-start gap-3">
-      <Button
-        v-for="(item, index) in generalMenuItems"
-        :key="index"
-        :label="item.label"
-        :icon="item.icon"
-        slate
-        link
-        sm
-        class="hover:!no-underline text-n-slate-12 font-normal text-xs w-full !justify-start"
-        @click="handleMenuItemClick(item)"
-      />
+      <div v-for="(item, index) in generalMenuItems" :key="index">
+        <Button
+          :label="item.label"
+          :icon="item.icon"
+          slate
+          link
+          sm
+          class="hover:!no-underline text-n-slate-12 font-normal text-xs w-full !justify-start"
+          :disabled="item.disabled"
+          :title="item.reason"
+          @click="handleMenuItemClick(item)"
+        />
+        <p
+          v-if="item.reason"
+          class="ms-7 mt-1 text-xs text-n-slate-10"
+          role="note"
+        >
+          {{ item.reason }}
+        </p>
+      </div>
     </div>
   </DropdownBody>
 </template>

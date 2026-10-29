@@ -105,6 +105,41 @@ describe('useCaptain', () => {
     });
   });
 
+  it('detects the latest public message and exhausted internal allowance', () => {
+    useMapGetter.mockImplementation(getter => {
+      const mockValues = {
+        'accounts/getUIFlags': { isFetchingLimits: false },
+        getSelectedChat: {
+          id: '123',
+          messages: [
+            { message_type: 'incoming', private: false },
+            { message_type: 'outgoing', private: true },
+          ],
+        },
+        'draftMessages/getReplyEditorMode': 'reply',
+      };
+      return { value: mockValues[getter] };
+    });
+    useAccount.mockReturnValue({
+      isCloudFeatureEnabled: vi.fn().mockReturnValue(true),
+      currentAccount: {
+        value: {
+          limits: {
+            plan: { period_end: '2026-11-01T00:00:00Z' },
+            captain: {
+              internal: { total_count: 10, consumed: 10, current_available: 0 },
+            },
+          },
+        },
+      },
+    });
+
+    const captain = useCaptain();
+    expect(captain.latestPublicMessageIsIncoming.value).toBe(true);
+    expect(captain.internalLimitReached.value).toBe(true);
+    expect(captain.usagePeriodEnd.value).toBe('2026-11-01T00:00:00Z');
+  });
+
   it('exposes the response meter only when a limit is configured', () => {
     useAccount.mockReturnValue({
       isCloudFeatureEnabled: vi.fn().mockReturnValue(true),

@@ -1,5 +1,6 @@
 <script>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
 import { useCaptain } from 'dashboard/composables/useCaptain';
 import { useTrack } from 'dashboard/composables';
@@ -78,7 +79,30 @@ export default {
       setReplyMode(newMode);
     };
 
-    const { captainTasksEnabled } = useCaptain();
+    const {
+      captainTasksEnabled,
+      captainEnabled,
+      isEnterprise,
+      latestPublicMessageIsIncoming,
+      internalLimitReached,
+      usagePeriodEnd,
+    } = useCaptain();
+    const { locale } = useI18n();
+    const showCopilotMenuButton = computed(
+      () => isEnterprise || captainTasksEnabled.value
+    );
+    const replySuggestionDisabledReason = computed(() => {
+      if (!captainTasksEnabled.value) return 'plan';
+      if (internalLimitReached.value) return 'limit';
+      if (!latestPublicMessageIsIncoming.value) return 'incoming';
+      return '';
+    });
+    const quotaResetDate = computed(() => {
+      if (!usagePeriodEnd.value) return '';
+      return new Intl.DateTimeFormat(locale.value, { timeZone: 'UTC' }).format(
+        new Date(usagePeriodEnd.value)
+      );
+    });
     const showCopilotMenu = ref(false);
     const copilotToggleRef = ref(null);
 
@@ -119,7 +143,11 @@ export default {
       handleReplyClick,
       handleNoteClick,
       REPLY_EDITOR_MODES,
+      captainEnabled,
       captainTasksEnabled,
+      showCopilotMenuButton,
+      replySuggestionDisabledReason,
+      quotaResetDate,
       handleCopilotAction,
       showCopilotMenu,
       copilotToggleRef,
@@ -167,7 +195,7 @@ export default {
         </span>
       </div>
     </div>
-    <div v-if="captainTasksEnabled" class="flex items-center gap-2">
+    <div v-if="showCopilotMenuButton" class="flex items-center gap-2">
       <div class="relative">
         <NextButton
           ref="copilotToggleRef"
@@ -190,6 +218,10 @@ export default {
           :has-selection="false"
           :has-content="hasContent"
           :conversation-id="conversationId"
+          :captain-tasks-enabled="captainTasksEnabled"
+          :captain-enabled="captainEnabled"
+          :reply-suggestion-disabled-reason="replySuggestionDisabledReason"
+          :quota-reset-date="quotaResetDate"
           class="ltr:right-0 rtl:left-0 bottom-full mb-2"
           @execute-copilot-action="handleCopilotAction"
         />

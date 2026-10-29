@@ -157,6 +157,21 @@ describe('ReplyBox', () => {
       requestContactInfoOnly: true,
     });
   });
+
+  it('passes the selected conversation and reply context to the top panel', async () => {
+    const { wrapper } = mountWith({
+      inbox: { channel_type: 'Channel::Api' },
+      chat: {
+        id: 45,
+        messages: [{ message_type: 'incoming', private: false }],
+      },
+    });
+
+    expect(topPanel(wrapper)).toMatchObject({
+      conversationId: 45,
+      mode: REPLY_EDITOR_MODES.REPLY,
+    });
+  });
   describe('Instagram incident restriction', () => {
     it('opens in note mode and restores only the private-note draft', async () => {
       const { wrapper, store } = mountWith({
