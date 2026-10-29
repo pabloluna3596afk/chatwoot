@@ -12,6 +12,10 @@ class Captain::Copilot::Resources::BaseResource
   }.freeze
 
   DATE_FILTERS = {
+    created_after: { type: 'string', description: 'ISO 8601 or today, yesterday, last_7_days, last_30_days in the account timezone' },
+    created_before: { type: 'string', description: 'Exclusive ISO 8601 or relative upper bound in the account timezone' },
+    last_activity_after: { type: 'string', description: 'ISO 8601 or relative date in the account timezone' },
+    last_activity_before: { type: 'string', description: 'Exclusive ISO 8601 or relative upper bound in the account timezone' },
     since: { type: 'string', description: 'ISO 8601 date or timestamp, inclusive, in the account timezone' },
     before: { type: 'string', description: 'ISO 8601 date or timestamp, exclusive, in the account timezone' },
     relative_range: { type: 'string', enum: %w[this_month last_month last_7_days yesterday_today] },
@@ -27,7 +31,11 @@ class Captain::Copilot::Resources::BaseResource
   CONVERSATION_FILTERS = DATE_FILTERS.merge(
     status: { type: 'string', enum: Conversation.statuses.keys },
     priority: { type: %w[string null], enum: Conversation.priorities.keys + [nil] },
-    inbox_id: { type: 'integer', minimum: 1 }, assignee_id: { type: %w[integer null], minimum: 1 },
+    inbox_id: { type: 'integer', minimum: 1 },
+    assignee_id: {
+      anyOf: [{ type: 'integer', minimum: 1 }, { type: 'string', enum: %w[me unassigned] }, { type: 'null' }],
+      description: 'Agent id, me, or unassigned'
+    },
     team_id: { type: %w[integer null], minimum: 1 }, labels: { type: 'array', items: { type: 'string' } }
   ).freeze
   CONTACT_FILTERS = DATE_FILTERS.merge(
@@ -68,15 +76,15 @@ class Captain::Copilot::Resources::BaseResource
     relative_range = filters.key?('relative_range')
     filters = resolve_relative_range(filters, as_of)
     relation = filter(scope, filters)
-    apply_dates(relation, filters, as_of, field, allow_future_before: relative_range).reorder(nil)
+    relation = apply_dates(relation, filters, as_of, field, allow_future_before: relative_range)
+    apply_explicit_date_filters(relation, filters, as_of).reorder(nil)
   end
 
   def group_counts(relation, group, date_field: self.class::DATE_FIELDS.first)
     raise ArgumentError, "group_by must be one of: #{self.class.group_options.join(', ')}" unless self.class.group_options.include?(group)
 
     counts = if PERIODS.key?(group)
-               relation.where.not(date_field => nil).group_by_period(group, date_field, time_zone: timezone.name,
-                                                                                        week_start: :monday).count
+               relation.where.not(date_field => nil).group_by_period(group, date_field, **period_options(group)).count
                        .transform_keys { |date| date.strftime(PERIODS.fetch(group)) }
              else
                counts_by(relation, group)
@@ -96,12 +104,32 @@ class Captain::Copilot::Resources::BaseResource
     ActiveSupport::TimeZone[@account.reporting_timezone.presence || Time.zone.name] || Time.zone
   end
 
+  def period_options(group)
+    { time_zone: timezone.name }.tap do |options|
+      options[:week_start] = :monday if group == 'week'
+    end
+  end
+
   def apply_dates(relation, filters, as_of, field, allow_future_before: false)
     return relation unless filters['since'] || filters['before']
 
     since, before = date_range(filters, as_of, allow_future_before: allow_future_before)
     range = relation.where(relation.klass.arel_table[field].gteq(since)) if since
     (range || relation).where(relation.klass.arel_table[field].lt(before))
+  end
+
+  def apply_explicit_date_filters(relation, filters, as_of)
+    { 'created_at' => %w[created_after created_before], 'last_activity_at' => %w[last_activity_after last_activity_before] }.each do |field, keys|
+      after_key, before_key = keys
+      next unless filters.key?(after_key) || filters.key?(before_key)
+
+      date_filter = Captain::Copilot::DateFilter.new(timezone: timezone, now: as_of)
+      after_at, before_at = date_filter.range(filters[after_key], filters[before_key])
+      column = relation.klass.arel_table[field]
+      relation = relation.where(column.gteq(after_at)) if after_at
+      relation = relation.where(column.lt(before_at)) if before_at
+    end
+    relation
   end
 
   def date_range(filters, as_of, allow_future_before:)
