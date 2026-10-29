@@ -54,4 +54,22 @@ RSpec.describe Payphone::ConfigurationCheck do
     expect(result).not_to be_valid
     expect(result.errors.join).to include('token', 'VAT rate', 'Grace days')
   end
+
+  it 'accepts an empty test account list and rejects malformed or unknown IDs' do
+    values['PAYPHONE_TEST_ACCOUNT_IDS'] = ''
+    expect(described_class.call(values: values, frontend_url: 'https://inbox.example.test')).to be_valid
+
+    account = create(:account)
+    values['PAYPHONE_TEST_ACCOUNT_IDS'] = account.id.to_s
+    expect(described_class.call(values: values, frontend_url: 'https://inbox.example.test')).to be_valid
+
+    values['PAYPHONE_TEST_ACCOUNT_IDS'] = '1, nope'
+    result = described_class.call(values: values, frontend_url: 'https://inbox.example.test')
+    expect(result).not_to be_valid
+    expect(result.errors.join).to include('positive integers')
+
+    values['PAYPHONE_TEST_ACCOUNT_IDS'] = '999999999'
+    expect(described_class.call(values: values, frontend_url: 'https://inbox.example.test').errors.join)
+      .to include('existing accounts')
+  end
 end

@@ -32,6 +32,25 @@ RSpec.describe 'Payphone payments API' do
     expect(response).to have_http_status(:unauthorized)
   end
 
+  it 'reports Payphone disabled for a non-allowlisted account in test mode and forbids its orders' do
+    plan = Plan.create!(name: 'Payphone Plan', slug: SecureRandom.hex(4), price_monthly: 19,
+                        is_active: true, is_public: true)
+    allow(InstallationConfig).to receive(:find_by).and_call_original
+    {
+      'ENABLE_PAYPHONE' => 'true', 'PAYPHONE_ENVIRONMENT' => 'test', 'PAYPHONE_TEST_ACCOUNT_IDS' => ''
+    }.each do |key, value|
+      allow(InstallationConfig).to receive(:find_by).with(name: key)
+                                                    .and_return(instance_double(InstallationConfig, value: value))
+    end
+
+    get path, headers: admin.create_new_auth_token
+    expect(response.parsed_body['enabled']).to be(false)
+    expect(response.parsed_body['environment']).to eq('test')
+
+    post path, params: { plan_id: plan.id }, headers: admin.create_new_auth_token
+    expect(response).to have_http_status(:forbidden)
+  end
+
   it 'returns the real paid-period end and grace access end' do
     plan = Plan.create!(name: 'Payphone Plan', slug: SecureRandom.hex(4), price_monthly: 19,
                         is_active: true, is_public: true)
@@ -84,7 +103,7 @@ RSpec.describe 'Payphone payments API' do
     plan = Plan.create!(name: 'Payphone Plan', slug: SecureRandom.hex(4), price_monthly: 19,
                         is_active: true, is_public: true)
     configs = {
-      'ENABLE_PAYPHONE' => 'true', 'PAYPHONE_STORE_ID' => 'store-id',
+      'ENABLE_PAYPHONE' => 'true', 'PAYPHONE_ENVIRONMENT' => 'production', 'PAYPHONE_STORE_ID' => 'store-id',
       'PAYPHONE_TOKEN' => 'confirm-bearer-token',
       'PAYPHONE_TAX_RATE' => '15', 'PAYPHONE_CARD_COMMISSION_RATE' => '5.75',
       'PAYPHONE_COMMISSION_ENABLED' => 'true'
@@ -115,7 +134,7 @@ RSpec.describe 'Payphone payments API' do
     plan = Plan.create!(name: 'Payphone Plan', slug: SecureRandom.hex(4), price_monthly: 19,
                         is_active: true, is_public: true)
     configs = {
-      'ENABLE_PAYPHONE' => 'true', 'PAYPHONE_STORE_ID' => 'store-id',
+      'ENABLE_PAYPHONE' => 'true', 'PAYPHONE_ENVIRONMENT' => 'production', 'PAYPHONE_STORE_ID' => 'store-id',
       'PAYPHONE_BOX_TOKEN' => 'box-sdk-token', 'PAYPHONE_TOKEN' => 'confirm-bearer-token',
       'PAYPHONE_TAX_RATE' => '15', 'PAYPHONE_CARD_COMMISSION_RATE' => '5.75',
       'PAYPHONE_COMMISSION_ENABLED' => 'true'

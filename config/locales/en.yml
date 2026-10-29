@@ -1158,6 +1158,7 @@ en:
         token: 'Payphone API token'
         box_token: 'Payphone Cajita token'
         environment: 'Environment'
+        test_account_ids: 'Allowed test account IDs'
         response_url: 'Response URL'
         external_notification: 'External notifications enabled by Payphone'
         tax_rate: 'VAT rate (%)'
@@ -1170,6 +1171,7 @@ en:
         token: 'Stored encrypted. Leave blank to keep the saved token.'
         box_token: 'Optional. Overrides the Payphone token for Cajita only; leave blank to use the main token.'
         environment: 'Use test credentials before switching to production.'
+        test_account_ids: 'Only these accounts can pay while the environment is in test mode. Enter comma-separated IDs; empty blocks all accounts.'
         response_url: 'Must use HTTPS and the same domain configured in FRONTEND_URL.'
         external_notification: 'Turn on only after Payphone approves and configures external notifications.'
         tax_rate: 'VAT added only when the customer requests an invoice. Default: 15%.'
@@ -1192,6 +1194,7 @@ en:
         store_id_required: 'Store ID is required.'
         token_required: 'Payphone token is required.'
         environment: 'Environment must be test or production.'
+        test_account_ids: 'Test account IDs must be comma-separated positive integers matching existing accounts.'
         rate_range: '%{label} must be between 0 and 100.'
         rate_number: '%{label} must be a number.'
         grace_range: 'Grace days must be nonnegative.'
@@ -1334,6 +1337,7 @@ helpers:
 payphone:
   errors:
     disabled: 'Payphone payments are not available.'
+    test_account_not_allowed: 'Payphone in test mode is enabled only for authorized accounts.'
     plan_unavailable: 'This plan cannot be purchased right now.'
     stripe_active: 'Cancel or wait for your active Stripe subscription before using Payphone.'
     paid_plan_active: 'Your paid plan is active. You can change plans when it expires.'
