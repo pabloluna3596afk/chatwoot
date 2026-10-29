@@ -1,12 +1,12 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useMapGetter, useStore } from 'dashboard/composables/store.js';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useCaptain } from 'dashboard/composables/useCaptain';
 import { format } from 'date-fns';
 import sessionStorage from 'shared/helpers/sessionStorage';
 
-import BillingMeter from './components/BillingMeter.vue';
 import BillingCard from './components/BillingCard.vue';
 import BillingHeader from './components/BillingHeader.vue';
 import DetailItem from './components/DetailItem.vue';
@@ -19,11 +19,12 @@ import { getCurrencyConfig } from 'dashboard/constants/billing';
 import { useI18n } from 'vue-i18n';
 import PayphonePaymentsAPI from 'dashboard/api/payphonePayments';
 import { shouldShowPayphoneRenewalDate } from './payphoneBilling';
+import BillingTabs from './components/BillingTabs.vue';
+import UsageDashboard from './UsageDashboard.vue';
 
 const { currentAccount, isOnChatwootCloud } = useAccount();
 const {
   captainEnabled,
-  captainLimits,
   responseLimits,
   copilotLimits,
   internalLimits,
@@ -35,6 +36,9 @@ const {
 const uiFlags = useMapGetter('accounts/getUIFlags');
 const store = useStore();
 const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
+const activeTab = computed(() => route.query.tab || 'uso');
 
 const BILLING_REFRESH_ATTEMPTED = 'billing_refresh_attempted';
 
@@ -167,29 +171,22 @@ const hasABillingPlan = computed(() => {
   return !!planName.value;
 });
 
-// Computed property for agents meter data
-const agentsMeterData = computed(() => {
-  const agents = currentAccount.value.limits?.agents;
-  if (!agents) return null;
-  return { consumed: agents.consumed ?? 0, totalCount: agents.allowed };
-});
-
-// Computed property for inboxes meter data
-const inboxesMeterData = computed(() => {
-  const inboxes = currentAccount.value.limits?.inboxes;
-  if (!inboxes) return null;
-  return { consumed: inboxes.consumed ?? 0, totalCount: inboxes.allowed };
-});
-
 const captainPeriodEnd = computed(
   () => currentAccount.value.limits?.plan?.period_end || null
 );
 
-const exhaustedCaptainBag = computed(() =>
-  [responseLimits.value, copilotLimits.value, internalLimits.value].some(
-    bag => bag && bag.currentAvailable <= 0
-  )
-);
+const agentsMeterData = computed(() => {
+  const agents = currentAccount.value.limits?.agents;
+  return agents
+    ? { consumed: agents.consumed ?? 0, totalCount: agents.allowed }
+    : null;
+});
+const inboxesMeterData = computed(() => {
+  const inboxes = currentAccount.value.limits?.inboxes;
+  return inboxes
+    ? { consumed: inboxes.consumed ?? 0, totalCount: inboxes.allowed }
+    : null;
+});
 
 const fetchAccountDetails = async () => {
   if (!hasABillingPlan.value) {
@@ -371,6 +368,33 @@ const payphoneRenewalMessage = () => {
     grace_end: formattedPayphoneDate(payphoneGraceEnd.value),
   });
 };
+const usageRenewalLabel = computed(() => {
+  if (['grace', 'expired'].includes(payphoneRenewalState.value)) {
+    return t('BILLING_SETTINGS.USAGE.EXPIRED_ON', {
+      date: formattedPayphoneDate(payphonePeriodEnd.value),
+    });
+  }
+  if (subscriptionRenewsOn.value) {
+    return `${t('BILLING_SETTINGS.CURRENT_PLAN.RENEWS_ON')} ${subscriptionRenewsOn.value}`;
+  }
+  return t('BILLING_SETTINGS.USAGE.FREE_PLAN');
+});
+const usagePlanStatus = computed(() => {
+  const state = payphoneRenewalState.value;
+  if (state === 'grace') return t('BILLING_SETTINGS.USAGE.STATUS.GRACE');
+  if (state === 'expired' || !planName.value)
+    return t('BILLING_SETTINGS.USAGE.STATUS.FREE');
+  return t('BILLING_SETTINGS.USAGE.STATUS.ACTIVE');
+});
+const expiredUsageMessage = computed(() => {
+  if (payphoneRenewalState.value === 'expired') {
+    return t('BILLING_SETTINGS.USAGE.EXPIRED_BANNER', {
+      date: formattedPayphoneDate(payphonePeriodEnd.value),
+    });
+  }
+  if (payphoneRenewalState.value === 'grace') return payphoneRenewalMessage();
+  return '';
+});
 
 onMounted(async () => {
   await handleBillingPageLogic();
@@ -386,9 +410,7 @@ onMounted(async () => {
         ? $t('BILLING_SETTINGS.NO_BILLING_USER')
         : $t('ATTRIBUTES_MGMT.LOADING')
     "
-    :no-records-found="
-      !hasABillingPlan && !isWaitingForBilling && !currencySelectionRequired
-    "
+    :no-records-found="false"
     :no-records-message="
       isOnChatwootCloud
         ? $t('BILLING_SETTINGS.NO_BILLING_USER')
@@ -423,6 +445,28 @@ onMounted(async () => {
       />
     </template>
     <template #body>
+      <BillingTabs />
+      <UsageDashboard
+        v-if="activeTab === 'uso'"
+        :plan-name="planName"
+        :plan-status="usagePlanStatus"
+        :is-loading-limits="isFetchingLimits"
+        :renewal-date="usageRenewalLabel"
+        :period-end="captainPeriodEnd"
+        :response-limits="responseLimits"
+        :copilot-limits="copilotLimits"
+        :internal-limits="internalLimits"
+        :storage-limits="storageLimits"
+        :agents-meter-data="agentsMeterData"
+        :inboxes-meter-data="inboxesMeterData"
+        :expired-message="expiredUsageMessage"
+        @compare-plans="comparingPlans = true"
+        @billing="
+          router.replace({ query: { ...route.query, tab: 'facturacion' } })
+        "
+      />
+      <!-- prettier-ignore -->
+      <div v-else id="billing-panel-facturacion" role="tabpanel" aria-labelledby="billing-tab-facturacion">
       <div
         v-if="payphoneEnabled && payphoneRenewalState"
         role="status"
@@ -492,6 +536,7 @@ onMounted(async () => {
             :label="t('PAYPHONE.CLOSE')"
             variant="outline"
             sm
+          class="shrink-0"
             @click="
               payphonePlanId = null;
               payphoneQuote = null;
@@ -637,7 +682,7 @@ onMounted(async () => {
         class="mb-4 rounded-xl border border-n-weak bg-n-solid-1 p-4 sm:p-6 dark:bg-n-solid-3"
       >
         <h2 class="mb-4 mt-0 text-heading-2">{{ t('PAYPHONE.HISTORY') }}</h2>
-        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div class="grid gap-3 md:hidden">
           <article
             v-for="payment in payphoneHistory"
             :key="payment.id"
@@ -658,6 +703,26 @@ onMounted(async () => {
               {{ payment.client_transaction_id }}
             </p>
           </article>
+        </div>
+        <div class="hidden overflow-x-auto md:block">
+          <table class="w-full text-start text-sm">
+            <thead class="text-n-slate-11">
+              <tr>
+                <th class="p-3">{{ t('PAYPHONE.HISTORY_TABLE.DATE') }}</th>
+                <th class="p-3">{{ t('PAYPHONE.HISTORY_TABLE.PLAN') }}</th>
+                <th class="p-3">{{ t('PAYPHONE.HISTORY_TABLE.STATUS') }}</th>
+                <th class="p-3 text-end">{{ t('PAYPHONE.HISTORY_TABLE.AMOUNT') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="payment in payphoneHistory" :key="payment.id" class="border-t border-n-weak">
+                <td class="p-3">{{ formattedPayphoneDate(payment.created_at) }}</td>
+                <td class="p-3">{{ payment.plan }}</td>
+                <td class="p-3">{{ t(`PAYPHONE.STATES.${payment.status}`) }}</td>
+                <td class="p-3 text-end">{{ (payment.amount / 100).toFixed(2) }} {{ payment.currency }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
       <!-- Currency Selection Section (Cloud only) -->
@@ -774,67 +839,7 @@ onMounted(async () => {
               </ButtonV4>
             </div>
           </template>
-
-          <!-- Captain Usage Section -->
-          <div v-if="captainLimits" class="space-y-4">
-            <div
-              v-if="exhaustedCaptainBag"
-              class="flex flex-wrap items-center gap-2 text-sm text-n-amber-11"
-              role="status"
-            >
-              <span>{{ $t('BILLING_SETTINGS.CAPTAIN.LIMIT_REACHED') }}</span>
-              <ButtonV4 sm variant="link" @click="comparingPlans = true">
-                {{ $t('BILLING_SETTINGS.VIEW_PRICING') }}
-              </ButtonV4>
-            </div>
-            <div class="grid lg:grid-cols-2 gap-4">
-              <BillingMeter
-                v-if="responseLimits"
-                :title="$t('BILLING_SETTINGS.CAPTAIN.RESPONSES')"
-                :consumed="responseLimits.consumed"
-                :total-count="responseLimits.totalCount"
-                :period-end="captainPeriodEnd"
-              />
-              <BillingMeter
-                v-if="copilotLimits"
-                :title="$t('BILLING_SETTINGS.CAPTAIN.RESPONSES_COPILOT')"
-                v-bind="copilotLimits"
-                :period-end="captainPeriodEnd"
-              />
-              <BillingMeter
-                v-if="internalLimits"
-                :title="$t('BILLING_SETTINGS.CAPTAIN.INTERNAL_AI')"
-                v-bind="internalLimits"
-                :period-end="captainPeriodEnd"
-              />
-            </div>
-
-            <div class="grid lg:grid-cols-2 gap-4">
-              <BillingMeter
-                v-if="captainLimits && storageLimits"
-                :title="$t('BILLING_SETTINGS.CAPTAIN.STORAGE')"
-                v-bind="storageLimits"
-                unit="bytes"
-              />
-            </div>
-          </div>
-
-          <!-- Account Usage Section -->
-          <div v-if="agentsMeterData || inboxesMeterData" class="space-y-4">
-            <div class="grid lg:grid-cols-2 gap-4">
-              <BillingMeter
-                v-if="agentsMeterData"
-                :title="$t('BILLING_SETTINGS.CAPTAIN.AGENTS')"
-                v-bind="agentsMeterData"
-              />
-              <BillingMeter
-                v-if="inboxesMeterData"
-                :title="$t('BILLING_SETTINGS.CAPTAIN.INBOXES')"
-                v-bind="inboxesMeterData"
-              />
-            </div>
-          </div>
-        </BillingCard>
+</BillingCard>
 
         <!-- Captain Upgrade Prompt (when not enabled) -->
         <BillingCard
@@ -875,6 +880,7 @@ onMounted(async () => {
         ref="purchaseCreditsModalRef"
         @success="handleTopupSuccess"
       />
+      </div>
     </template>
   </SettingsLayout>
 </template>
