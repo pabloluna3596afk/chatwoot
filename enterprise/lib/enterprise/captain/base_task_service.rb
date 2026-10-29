@@ -10,6 +10,11 @@ module Enterprise::Captain::BaseTaskService
       return { error: I18n.t('captain.internal_limit'), error_code: 429 }
     end
 
-    super
+    Llm::UsageContext.with(
+      account: account,
+      bucket: :internal,
+      feature: event_name,
+      context: { conversation_id: conversation&.id }
+    ) { super }
   end
 end

@@ -1,5 +1,6 @@
 require 'ruby_llm'
 require 'agents'
+require 'json'
 
 module Llm::Config
   DEFAULT_MODEL = 'gpt-6-luna'.freeze
@@ -107,6 +108,74 @@ module Llm::Config::ScopedChatContext
 end
 
 RubyLLM::Chat.prepend(Llm::Config::ScopedChatContext)
+
+# Record one event per provider request while the caller's account usage context is active.
+module Llm::Config::UsageRecordingChat
+  def generate_once(stream_tracker: nil, usage_start: nil, &)
+    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    response = super
+    Llm::UsageContext.record(
+      chat: self,
+      response: response,
+      status: 'ok',
+      latency_ms: elapsed_milliseconds(started_at)
+    )
+    response
+  rescue StandardError => e
+    Llm::UsageContext.record(
+      chat: self,
+      response: error_usage_response(e),
+      status: 'error',
+      error: e,
+      latency_ms: elapsed_milliseconds(started_at)
+    )
+    raise
+  end
+
+  private
+
+  def error_usage_response(error)
+    response = error.response if error.respond_to?(:response)
+    return response if response.respond_to?(:tokens)
+
+    usage = error_usage(error)
+    return unless usage
+
+    Struct.new(:tokens).new(error_tokens(usage))
+  rescue StandardError
+    nil
+  end
+
+  def error_usage(error)
+    response = error.response if error.respond_to?(:response)
+    body = response.respond_to?(:body) ? response.body : response
+    payload = body.is_a?(String) ? JSON.parse(body) : body
+    payload&.dig('usage') || payload&.dig(:usage)
+  rescue StandardError
+    nil
+  end
+
+  def error_tokens(usage)
+    input_details = usage_value(usage, 'prompt_tokens_details', 'input_tokens_details') || {}
+    output_details = usage_value(usage, 'completion_tokens_details', 'output_tokens_details') || {}
+    Struct.new(:input, :output, :cached_input, :reasoning).new(
+      usage_value(usage, 'prompt_tokens', 'input_tokens'),
+      usage_value(usage, 'completion_tokens', 'output_tokens'),
+      usage_value(input_details, 'cached_tokens') || 0,
+      usage_value(output_details, 'reasoning_tokens') || 0
+    )
+  end
+
+  def usage_value(usage, *keys)
+    keys.lazy.map { |key| usage[key] || usage[key.to_sym] }.find(&:itself)
+  end
+
+  def elapsed_milliseconds(started_at)
+    ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1000).round
+  end
+end
+
+RubyLLM::Chat.prepend(Llm::Config::UsageRecordingChat)
 
 # OpenAI rejects function tools on chat completions for models that default to reasoning, so
 # config/llm.yml pins `reasoning_effort` per model. RubyLLM replaces provider options on every
