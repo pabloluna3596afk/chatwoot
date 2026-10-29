@@ -931,8 +931,6 @@
     "ASSISTANTS": {
       "HEADER": "Assistants",
       "NO_ASSISTANTS_AVAILABLE": "There are no assistants available in your account.",
-      "COPILOT_SETUP_REQUIRED": "Copilot needs a configured assistant. Create one to get started.",
-      "CREATE_FOR_COPILOT": "Create an assistant for Copilot",
       "ADD_NEW": "Create a new assistant",
       "DELETE": {
         "TITLE": "Are you sure to delete the assistant?",

@@ -37,6 +37,16 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       allow(mock_false_promise_service).to receive(:detect).and_return({ 'decision' => 'safe', 'reason' => 'safe_response' })
     end
 
+    it 'never runs the internal Copilot assistant against a customer conversation' do
+      internal_assistant = Captain::Copilot::AssistantResolver.new(account: account).perform
+      expect(mock_llm_chat_service).not_to receive(:generate_response)
+      expect(mock_agent_runner_service).not_to receive(:generate_response)
+
+      described_class.perform_now(conversation, internal_assistant, responding_to_message.id)
+
+      expect(conversation.messages.outgoing).to be_empty
+    end
+
     [false, true].each do |v2_enabled|
       context "with scheduled bursts and Captain V2 enabled: #{v2_enabled}" do
         before do

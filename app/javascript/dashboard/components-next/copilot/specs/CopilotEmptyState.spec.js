@@ -6,25 +6,11 @@ vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: key => key }),
 }));
 
-vi.mock('vue-router', () => ({
-  useRoute: () => ({
-    path: '/app/accounts/1/conversations/1',
-    params: { accountId: '1' },
-  }),
-}));
-
 const mountComponent = (props = {}) =>
   shallowMount(CopilotEmptyState, {
-    props: { hasAssistants: true, ...props },
+    props,
     global: {
       mocks: { $t: key => key },
-      stubs: {
-        RouterLink: {
-          name: 'RouterLink',
-          props: ['to'],
-          template: '<a><slot /></a>',
-        },
-      },
     },
   });
 
@@ -56,16 +42,12 @@ describe('CopilotEmptyState', () => {
     );
   });
 
-  it('explains the assistant requirement and links to assistant creation', () => {
-    const wrapper = mountComponent({ hasAssistants: false });
+  it('offers the prompts without requiring a Captain assistant', () => {
+    const wrapper = mountComponent();
 
-    expect(wrapper.text()).toContain(
+    expect(wrapper.findAll('button')).toHaveLength(4);
+    expect(wrapper.text()).not.toContain(
       'CAPTAIN.ASSISTANTS.COPILOT_SETUP_REQUIRED'
     );
-    expect(wrapper.text()).toContain('CAPTAIN.ASSISTANTS.CREATE_FOR_COPILOT');
-    expect(wrapper.findComponent({ name: 'RouterLink' }).props('to')).toEqual({
-      name: 'captain_assistants_create_index',
-      params: { accountId: '1' },
-    });
   });
 });

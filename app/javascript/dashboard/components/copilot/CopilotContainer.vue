@@ -252,14 +252,15 @@ const sendMessage = async payload => {
   try {
     if (selectedCopilotThreadId.value) {
       await store.dispatch('copilotMessages/create', {
-        assistant_id: activeAssistant.value.id,
         conversation_id: currentChat.value?.id,
         threadId: selectedCopilotThreadId.value,
         message,
       });
     } else {
       const response = await store.dispatch('copilotThreads/create', {
-        assistant_id: activeAssistant.value.id,
+        ...(activeAssistant.value?.id && {
+          assistant_id: activeAssistant.value.id,
+        }),
         conversation_id: currentChat.value?.id,
         message,
         ...(requestType && { request_type: requestType }),
