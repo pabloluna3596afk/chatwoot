@@ -25,7 +25,7 @@ module Enterprise::Conversations::AssignmentService
 
   def captain_assistant
     assistant = conversation.inbox.captain_assistant
-    assistant if assistant&.id == assignee_id.to_i
+    assistant if assistant&.id == assignee_id.to_i && !assistant.internal?
   end
 
   def latest_unanswered_customer_message(assignment_message_id)

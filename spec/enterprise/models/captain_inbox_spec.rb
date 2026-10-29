@@ -8,6 +8,16 @@ RSpec.describe CaptainInbox do
     expect(connection).to have_attributes(audience_mode: 'inherit', audience_rules: {})
   end
 
+  it 'does not allow the internal Copilot assistant to connect to an inbox' do
+    account = create(:account)
+    internal_assistant = Captain::Copilot::AssistantResolver.new(account: account).perform
+    connection.captain_assistant = internal_assistant
+    connection.inbox = create(:inbox, account: account)
+
+    expect(connection).not_to be_valid
+    expect(connection.errors[:captain_assistant]).to be_present
+  end
+
   %w[inherit everyone custom].each do |mode|
     it "accepts #{mode} mode" do
       connection.audience_mode = mode

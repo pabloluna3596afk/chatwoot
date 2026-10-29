@@ -155,10 +155,11 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
 
   def set_assistant
     @assistant = account_assistants.find(params[:id])
+    authorize(@assistant)
   end
 
   def account_assistants
-    @account_assistants ||= Captain::Assistant.for_account(Current.account.id)
+    @account_assistants ||= Captain::Assistant.for_account(Current.account.id).customer_visible
   end
 
   def assistant_params

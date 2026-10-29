@@ -686,6 +686,7 @@ en:
       playground_message_invalid: 'Enter a message of up to 500 characters'
       playground_history_invalid: 'Invalid test message history'
     copilot_message_required: Message is required
+    copilot_assistant_invalid: 'Invalid assistant id'
     copilot_error: 'Please connect an assistant to this inbox to use Copilot'
     copilot_limit: 'Your Copilot limit is reached. Suggestions are paused until %{reset_date}, when your plan resets; manual replies are still available.'
     internal_limit: 'The monthly limit for internal AI actions has been reached. This AI action was skipped; you can continue manually.'
