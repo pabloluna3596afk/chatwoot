@@ -46,6 +46,7 @@ class Captain::Document < ApplicationRecord
   validate :validate_pdf_format, if: :pdf_document?
   validate :validate_pdf_file_size, if: -> { pdf_file.attached? }
   validate :validate_single_file_attachment
+  validate :assistant_must_be_customer_visible
   before_validation :ensure_account_id
   before_validation :set_external_link_for_pdf
   before_validation :normalize_external_link
@@ -226,6 +227,10 @@ class Captain::Document < ApplicationRecord
     return unless pdf_file.attached? && markdown_file.attached?
 
     errors.add(:base, I18n.t('captain.documents.multiple_files_error'))
+  end
+
+  def assistant_must_be_customer_visible
+    errors.add(:assistant, :invalid) if assistant&.internal?
   end
 
   def set_external_link_for_pdf

@@ -21,11 +21,18 @@ class CaptainInbox < ApplicationRecord
 
   validates :inbox_id, uniqueness: true
   validates_with Captain::InboxAudienceValidator
+  validate :captain_assistant_must_be_customer_visible
   after_commit -> { inbox.update_account_cache }, on: [:create, :destroy]
 
   # Appointments run on this channel only when the assistant has them on and the channel's own
   # switch is on (the switch defaults to on, so channels inherit the assistant setting).
   def appointments_active?
     appointments_enabled && captain_assistant.appointments.enabled?
+  end
+
+  private
+
+  def captain_assistant_must_be_customer_visible
+    errors.add(:captain_assistant, :invalid) if captain_assistant&.internal?
   end
 end

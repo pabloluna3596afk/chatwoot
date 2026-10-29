@@ -12,7 +12,6 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
 
   let(:account) { create(:account) }
 
-  before { put_account_on_plan(account) }
   let(:user) { create(:user, account: account) }
   let(:assistant) { create(:captain_assistant, account: account) }
   let(:inbox) { create(:inbox, account: account) }
@@ -45,6 +44,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
   let!(:inbox_member) { create(:inbox_member, user: user, inbox: inbox) }
 
   before do
+    put_account_on_plan(account)
     incoming_message
     allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(true)
     allow(Captain::Assistant::AgentRunnerService).to receive(:new).with(
@@ -210,10 +210,10 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
     )
 
     expect do
-      expect { service.generate_response }.to raise_error(
-        Captain::Copilot::ReplySuggestionService::GenerationError,
-        'Temporary model failure.'
-      )
+      expect { service.generate_response }.to raise_error do |error|
+        expect(error.class.name).to eq('Captain::Copilot::ReplySuggestionService::GenerationError')
+        expect(error.message).to eq('Temporary model failure.')
+      end
     end.to(change { copilot_responses_used(account) }.by(1))
 
     expect do
@@ -280,10 +280,10 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
       'reasoning' => 'The model request failed.'
     )
 
-    expect { service.generate_response }.to raise_error(
-      Captain::Copilot::ReplySuggestionService::GenerationError,
-      'The model request failed.'
-    )
+    expect { service.generate_response }.to raise_error do |error|
+      expect(error.class.name).to eq('Captain::Copilot::ReplySuggestionService::GenerationError')
+      expect(error.message).to eq('The model request failed.')
+    end
     expect(copilot_thread.copilot_messages).to be_empty
   end
 

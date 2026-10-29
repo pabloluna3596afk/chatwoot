@@ -229,6 +229,10 @@
         },
         "GRAMMAR": "Corregir gramática y ortografía",
         "SUGGESTION": "Sugerir una respuesta",
+        "SUGGESTION_PLAN_REQUIRED": "Las sugerencias de respuesta están disponibles desde el plan Básico.",
+        "SUGGESTION_LIMIT_REACHED": "Has agotado las acciones de IA del mes. Se reinician el {date}.",
+        "SUGGESTION_LIMIT_REACHED_NO_DATE": "Has agotado las acciones de IA del mes.",
+        "SUGGESTION_INCOMING_REQUIRED": "Espera un mensaje del cliente para sugerir una respuesta.",
         "SUMMARIZE": "Resumir la conversación",
         "ASK_COPILOT": "Preguntar a Copilot"
       },
@@ -691,17 +695,57 @@
       "PANEL_TITLE": "Empieza con Copilot",
       "KICK_OFF_MESSAGE": "¿Necesitas un resumen rápido, revisar conversaciones anteriores o redactar una mejor respuesta? Copilot está para ayudarte a ir más rápido.",
       "SEND_MESSAGE": "Enviar mensaje...",
+      "MESSAGE_LABEL": "Mensaje para Copilot",
+      "SEND": "Enviar mensaje",
       "EMPTY_MESSAGE": "Hubo un error generando la respuesta. Inténtalo de nuevo.",
-      "LOADER": "Captain está pensando",
+      "COPY_RESPONSE": "Copiar respuesta",
+      "COPIED": "Respuesta copiada",
+      "COPY_ERROR": "No se pudo copiar la respuesta",
+      "LOADER": "Copilot está pensando",
       "YOU": "Tú",
-      "USE": "Usar esto",
+      "USE_RESPONSE": "Usar como respuesta",
       "RESET": "Restablecer",
       "SHOW_STEPS": "Mostrar pasos",
+      "COPILOT_LABEL": "Copilot",
+      "STEPS_LABEL": "Pasos de herramientas de Copilot",
+      "STEPS_SUMMARY_ONE": "1 paso",
+      "STEPS_SUMMARY": "{count} pasos",
+      "STEPS_DURATION_seconds": "· {duration} s",
+      "STEPS_DURATION_minutes": "· {duration} min",
+      "STEP_ERROR": "No se pudo completar este paso. Inténtalo de nuevo.",
+      "STEP_EMPTY": "No se encontraron resultados coincidentes.",
+      "TOOLS": {
+        "search_conversation": "Buscando conversaciones",
+        "get_conversation": "Leyendo la conversación",
+        "search_contacts": "Buscando contactos",
+        "get_contact": "Leyendo el contacto",
+        "get_data": "Contando datos",
+        "list_labels": "Cargando etiquetas",
+        "describe_schema": "Revisando los datos disponibles",
+        "search_articles": "Consultando el centro de ayuda",
+        "get_article": "Leyendo un artículo de ayuda",
+        "search_documentation": "Consultando el centro de ayuda",
+        "search_linear_issues": "Buscando incidencias",
+        "propose_action": "Preparando una propuesta",
+        "generic": "Consultando datos"
+      },
       "SELECT_ASSISTANT": "Seleccionar asistente",
       "PROMPTS": {
         "SUMMARIZE": {
           "LABEL": "Resumir esta conversación",
-          "CONTENT": "Resume los puntos clave tratados entre el cliente y el agente de soporte, incluidas las inquietudes y preguntas del cliente, y las soluciones o respuestas que dio el agente de soporte"
+          "CONTENT": "Resume la conversación actual, incluida la inquietud principal del cliente y lo que se ha hecho hasta ahora."
+        },
+        "OPEN_BY_AGENT": {
+          "LABEL": "Conversaciones abiertas por agente",
+          "CONTENT": "¿Cuántas conversaciones abiertas hay asignadas a cada agente?"
+        },
+        "VIP_CONTACTS": {
+          "LABEL": "Buscar contactos VIP",
+          "CONTENT": "Busca contactos con la etiqueta VIP."
+        },
+        "PROPOSE_URGENT": {
+          "LABEL": "Sugerir la etiqueta urgente",
+          "CONTENT": "Propón añadir la etiqueta urgente a esta conversación."
         },
         "SUGGEST": {
           "LABEL": "Sugerir una respuesta",
@@ -713,17 +757,18 @@
         },
         "HIGH_PRIORITY": {
           "LABEL": "Conversaciones de alta prioridad",
-          "CONTENT": "Dame un resumen de todas las conversaciones abiertas de alta prioridad. Incluye el ID de la conversación, el nombre del cliente (si está disponible), el contenido del último mensaje y el agente asignado. Agrupa por estado si es relevante."
+          "CONTENT": "Resume las conversaciones abiertas de alta prioridad."
         },
         "LIST_CONTACTS": {
-          "LABEL": "Listar contactos",
-          "CONTENT": "Muéstrame la lista de los 10 contactos principales. Incluye nombre, correo o teléfono (si está disponible), última vez visto, y etiquetas (si tiene)."
+          "LABEL": "Buscar contactos",
+          "CONTENT": "Busca contactos con la etiqueta VIP."
         }
       },
       "ACTIONS": {
         "CONTACT_TARGET": "{name} · contacto n.º {id}",
         "CONVERSATION_TARGET": "{name} · conversación n.º {id}",
         "UNKNOWN_TARGET": "Sin nombre",
+        "GENERIC_TITLE": "Acción sugerida",
         "ADD_LABEL_TITLE": "Añadir una etiqueta a {target}",
         "PRIVATE_NOTE_TITLE": "Nota privada",
         "ASSIGNMENT_TITLE": "Asignar conversación",

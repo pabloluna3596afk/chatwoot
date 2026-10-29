@@ -7,7 +7,9 @@ class Captain::Tools::SearchDocumentationService < Captain::Tools::BaseTool
   parameter :query, description: 'Search Query', required: true
 
   def execute(query:)
-    Rails.logger.info { "#{self.class.name}: #{query}" }
+    Rails.logger.info do
+      "#{self.class.name}: query_length=#{query.length}, query_sha256=#{Digest::SHA256.hexdigest(query)}"
+    end
 
     translated_query = Captain::Llm::TranslateQueryService
                        .new(account: assistant.account)

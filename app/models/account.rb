@@ -26,7 +26,7 @@
 #  index_accounts_on_status   (status)
 #
 
-class Account < ApplicationRecord
+class Account < ApplicationRecord # rubocop:disable Metrics/ClassLength
   # used for multi-flag bitset columns
   include FlagShihTzu
   include Reportable
@@ -35,6 +35,7 @@ class Account < ApplicationRecord
   include CaptainFeaturable
   include AccountEmailRateLimitable
   include AccountSettingsSchema
+  include AccountPlanFeatures
 
   DEFAULT_QUERY_SETTING = {
     flag_query_mode: :bit_operator,
@@ -83,6 +84,8 @@ class Account < ApplicationRecord
   has_many :agent_bots, dependent: :destroy_async
   belongs_to :plan, optional: true
   has_many :account_plan_usages, dependent: :destroy_async
+  has_many :payphone_payments, dependent: :restrict_with_exception
+  has_many :account_feature_overrides, dependent: :destroy
   has_many :api_channels, dependent: :destroy_async, class_name: '::Channel::Api'
   has_many :articles, dependent: :destroy_async, class_name: '::Article'
   has_many :assignment_policies, dependent: :destroy_async
@@ -129,6 +132,7 @@ class Account < ApplicationRecord
   # Virtual attribute used by the Super Admin dashboard to toggle widget branding per channel.
   # The actual values are stored on Channel::WebWidget.
   attr_accessor :web_widget_branding
+
   has_many :webhooks, dependent: :destroy_async
   has_many :whatsapp_channels, dependent: :destroy_async, class_name: '::Channel::Whatsapp'
   has_many :working_hours, dependent: :destroy_async
@@ -147,7 +151,6 @@ class Account < ApplicationRecord
 
   before_validation :validate_limit_keys
   before_validation :assign_default_plan, on: :create
-  before_save :enable_captain_features_for_plan, if: -> { plan_id.present? && will_save_change_to_plan_id? }
   after_create_commit :notify_creation
   after_create_commit :seed_default_task_templates
   after_create_commit :seed_default_report_panels
@@ -221,8 +224,12 @@ class Account < ApplicationRecord
 
     now = Time.current
     account_plan_usages.where(closed_at: nil)
-                        .where('period_start <= ? AND period_end > ?', now, now)
-                        .first || create_usage_period(window)
+                       .where('period_start <= ? AND period_end > ?', now, now)
+                       .first || create_usage_period(window)
+  end
+
+  def restart_usage_period_for_billing!(anchor:)
+    restart_usage_period(anchor: anchor)
   end
 
   # The enabled OpenAI integration already stores account-owned credentials.
@@ -278,13 +285,6 @@ class Account < ApplicationRecord
 
   private
 
-  # Same flags Enterprise::Account#enable_default_features turns on for
-  # self-hosted enterprise, and the ones the sidebar, billing card and Captain
-  # routes check. Removing a plan does not turn them off.
-  def enable_captain_features_for_plan
-    enable_features('captain_integration', 'captain_integration_v2')
-  end
-
   def assign_default_plan
     self.plan_id ||= Plan.active.find_by(is_default_trial: true)&.id
     self.plan_started_at ||= Time.current if plan_id.present?
@@ -294,11 +294,13 @@ class Account < ApplicationRecord
   # proration — there's no billing yet) and reanchor so the new plan's
   # numbers apply from now. The next `current_usage_period` read lazily opens
   # the fresh period against the new anchor.
-  def restart_usage_period
-    now = Time.current
+  def restart_usage_period(anchor: nil)
+    now = anchor || Time.current
     account_plan_usages.where(closed_at: nil).where('period_start <= ?', now)
-                        .update_all(closed_at: now, period_end: now) # rubocop:disable Rails/SkipsModelValidations
-    update_column(:plan_started_at, now) # rubocop:disable Rails/SkipsModelValidations
+                       .update_all(closed_at: now, period_end: now) # rubocop:disable Rails/SkipsModelValidations
+    payphone_start = payphone_payments.where(status: 'approved').where(plan_id: plan_id)
+                                      .order(period_start: :desc).pick(:period_start)
+    update_column(:plan_started_at, anchor || payphone_start || now) # rubocop:disable Rails/SkipsModelValidations
   end
 
   # The [start, end) window (monthly, anchored to plan_started_at) that
@@ -308,13 +310,19 @@ class Account < ApplicationRecord
   def current_period_window(now = Time.current)
     return nil if plan_started_at.blank?
 
+    paid_period = payphone_payments.where(status: 'approved').where(plan_id: plan_id)
+                                   .where('period_start <= ? AND period_end > ?', now, now)
+                                   .order(period_start: :desc).first
+    return { start: paid_period.period_start, end: paid_period.period_end } if paid_period
+    return nil if plan_started_at > now
+
     start = plan_started_at
     start += 1.month while start + 1.month <= now
     { start: start, end: start + 1.month }
   end
 
   def create_usage_period(window)
-    AccountPlanUsage.insert_all(
+    AccountPlanUsage.insert_all( # rubocop:disable Rails/SkipsModelValidations
       [{
         account_id: id,
         plan_id: plan_id,

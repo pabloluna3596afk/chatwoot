@@ -3350,3 +3350,22 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - Causa: tablas anchas podían ampliar el viewport y las listas de Etiquetas/SLA se comprimían en móvil.
 - Arreglo: scroll horizontal local compartido en BaseTable; reutilizar ListCard/InfoChip para las listas móviles de Etiquetas y SLA conservando búsqueda, acciones y confirmación.
 - Verificación: specs focalizados pasan; suites amplias UTC y America/Guayaquil con 199 archivos aprobados y dos fallas ajenas al cambio en formato monetario en ShopifyBilling. Capturas y mediciones de navegador pendientes si el servidor local no está disponible.
+
+### B-NEW-241 — Recuperar Copilot al cambiar de cuenta (2026-10-28)
+
+- Archivos: `CopilotContainer.vue` y `CopilotContainer.spec.js`; estado vacío de Copilot y `integrations.json` en inglés/español; spec request de `CopilotMessagesController`.
+- Causa: `copilot_active_thread_id` se guardaba en los ajustes globales del usuario, pero el endpoint busca el hilo dentro de la cuenta actual y del mismo usuario. Al cambiar de cuenta, la petición recibía 404 y mostraba una alerta roja.
+- Arreglo: persistir el hilo activo por cuenta, migrar el identificador antiguo tras validarlo, y limpiar en silencio los hilos persistidos que devuelven 403/404. El estado vacío explica el requisito de asistente y enlaza a su creación.
+- Verificación: Vitest UTC y America/Guayaquil, ESLint, RSpec focalizado y RuboCop CI registrados en `tmp/PR-COPILOT-SIN-ASISTENTE.md`.
+- Resultados: Vitest UTC/Guayaquil 14/14 cada zona; RSpec 6 ejemplos sin fallos; RuboCop CI 1 archivo inspeccionado y 0 infracciones; ESLint 0 errores y 2 advertencias preexistentes.
+
+### B-NEW-245 — Unificar el token Payphone y corregir fechas de facturación (2026-10-29)
+
+- **Archivos:** `app/services/payphone/configuration_check.rb`, `app/controllers/api/v1/accounts/payphone_payments_controller.rb`, `app/controllers/super_admin/app_configs_controller.rb`, facturación Vue y locales `en/es`, specs de configuración/API.
+- **Problema:** producción solo tenía `PAYPHONE_TOKEN`, pero la configuración requería `PAYPHONE_BOX_TOKEN`; Facturación mostraba una renovación futura durante gracia y después del downgrade a Gratis.
+- **Arreglo:** `PAYPHONE_BOX_TOKEN` queda opcional y solo reemplaza el token en `box.token` para el SDK. Sin override, el SDK recibe `PAYPHONE_TOKEN`; Confirm continúa usando `PAYPHONE_TOKEN`. El índice devuelve `grace_end`; la UI usa el fin real del período y oculta `Renews on` durante gracia/vencido. Traducciones nuevas en español e inglés.
+- **Riesgo residual:** Cajita y Confirm comparten el mismo `PAYPHONE_TOKEN` si no hay override. Si se filtra, rotarlo; nunca registrar su valor; conservar `PAYPHONE_RESPONSE_URL` en HTTPS, en el mismo dominio de `FRONTEND_URL` y con ruta fija `/payphone/response`.
+- **Verificación:** Vitest 38/38 en UTC y America/Guayaquil; specs focales RSpec 28/28 (en dos corridas; el ejemplo nuevo se repitió tras alinear precisión JSON de milisegundos); RuboCop CI 5 archivos, 0 infracciones; ESLint de los archivos cambiados, 0 errores y 5 avisos dinámicos preexistentes. Build Vite y captura real del preview `payphone-real-gracia-y-vencido.png` verificada en móvil/tablet/escritorio con perfil QA `ui_settings.locale=es`. No se llamó a Payphone real. La auditoría de ESLint de todo `app/` reportó 190 errores y 809 avisos en otros archivos.
+- **Deploy:** requiere aplicar `20261027130000_create_payphone_payments.rb` antes de habilitar Payphone; producción todavía no tiene la tabla.
+- **Anual:** no implementado por decisión pendiente. Estimación para agregarlo: 4–6 horas, incluyendo `Payphone::PriceCalculator` con precio mensual × 10, selección/contrato de intervalo, períodos de 365 días en confirmación y ajustes de recordatorios/avisos y specs.
+- **Informe de cierre:** `tmp/PR-PAYPHONE-PR2.md`.

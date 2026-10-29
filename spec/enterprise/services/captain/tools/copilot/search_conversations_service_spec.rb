@@ -14,13 +14,17 @@ RSpec.describe Captain::Tools::Copilot::SearchConversationsService do
 
   describe '#description' do
     it 'returns the service description' do
-      expect(service.description).to eq('Search conversations based on parameters')
+      expect(service.description).to include('order_by=last_activity_at', 'repeat once without filters')
     end
   end
 
   describe '#parameters_schema' do
     it 'defines the expected parameters' do
-      expect(service.parameters_schema.fetch('properties').keys).to contain_exactly('status', 'contact_id', 'priority', 'labels')
+      expect(service.parameters_schema.fetch('properties').keys).to contain_exactly(
+        'status', 'contact_id', 'priority', 'labels', 'created_after', 'created_before', 'last_activity_after',
+        'last_activity_before', 'inbox_id', 'assignee_id', 'team_id', 'order_by', 'direction', 'limit'
+      )
+      expect(service.parameters_schema.fetch('additionalProperties')).to be false
     end
   end
 
@@ -94,6 +98,22 @@ RSpec.describe Captain::Tools::Copilot::SearchConversationsService do
       expect(result).to include(resolved_conversation.to_llm_text(include_contact_details: true))
     end
 
+    it 'orders recent conversations deterministically and defaults to ten results' do
+      open_conversation.update!(last_activity_at: 2.days.ago)
+      resolved_conversation.update!(last_activity_at: 1.day.ago)
+
+      result = service.execute(order_by: 'last_activity_at')
+
+      expect(result.index("Conversation ##{resolved_conversation.display_id}")).to be < result.index("Conversation ##{open_conversation.display_id}")
+      expect(result).to include('status: resolved', 'last_activity_at:')
+    end
+
+    it 'rejects unsupported order values, directions, and limits' do
+      expect(service.execute(order_by: 'random_column')).to include(error: 'order_by must be last_activity_at or created_at')
+      expect(service.execute(order_by: 'created_at', direction: 'sideways')).to include(error: 'direction must be asc or desc')
+      expect(service.execute(order_by: 'created_at', limit: 101)).to include(error: 'limit must be an integer from 1 to 100')
+    end
+
     it 'filters conversations by status' do
       result = service.execute(status: 'open')
       expect(result).to include('Total number of conversations: 1')
@@ -120,41 +140,39 @@ RSpec.describe Captain::Tools::Copilot::SearchConversationsService do
       expect(result).to eq('No conversations found')
     end
 
-    context 'when invalid status is provided' do
-      it 'ignores invalid status and returns all conversations' do
-        result = service.execute(status: 'all')
-        expect(result).to include('Total number of conversations: 2')
-        expect(result).to include(open_conversation.to_llm_text(include_contact_details: true))
-        expect(result).to include(resolved_conversation.to_llm_text(include_contact_details: true))
-      end
-
-      it 'ignores random invalid status values' do
-        result = service.execute(status: 'invalid_status')
-        expect(result).to include('Total number of conversations: 2')
-      end
+    it 'rejects an invalid status instead of dropping the filter' do
+      expect(service.execute(status: 'all')).to include(error: 'status must be open, resolved, pending, or snoozed')
     end
 
-    context 'when invalid priority is provided' do
-      it 'ignores invalid priority and returns all conversations' do
-        result = service.execute(priority: 'all')
-        expect(result).to include('Total number of conversations: 2')
-        expect(result).to include(open_conversation.to_llm_text(include_contact_details: true))
-        expect(result).to include(resolved_conversation.to_llm_text(include_contact_details: true))
-      end
-
-      it 'ignores random invalid priority values' do
-        result = service.execute(priority: 'invalid_priority')
-        expect(result).to include('Total number of conversations: 2')
-      end
+    it 'rejects an invalid priority instead of dropping the filter' do
+      expect(service.execute(priority: 'all')).to include(error: 'priority must be low, medium, high, or urgent')
     end
 
-    context 'when combining valid and invalid parameters' do
-      it 'applies valid filters and ignores invalid ones' do
-        result = service.execute(status: 'all', contact_id: contact.id)
-        expect(result).to include('Total number of conversations: 1')
-        expect(result).to include(open_conversation.to_llm_text(include_contact_details: true))
-        expect(result).not_to include(resolved_conversation.to_llm_text(include_contact_details: true))
-      end
+    it 'rejects invalid filters even when another filter is valid' do
+      expect(service.execute(status: 'all', contact_id: contact.id)).to include(error: 'status must be open, resolved, pending, or snoozed')
+    end
+
+    it 'filters by date, inbox, agent, and team within the authorized scope' do
+      open_conversation.update!(assignee: user)
+      result = service.execute(created_after: 1.day.ago.iso8601, inbox_id: open_conversation.inbox_id,
+                               assignee_id: 'me', team_id: open_conversation.team_id)
+
+      expect(result).to include("Conversation ##{open_conversation.display_id}")
+      expect(result).not_to include("Conversation ##{resolved_conversation.display_id}")
+    end
+
+    it 'returns no records for an inbox outside the accessible scope without revealing it' do
+      other_inbox = create(:inbox, account: create(:account))
+
+      expect(service.execute(inbox_id: other_inbox.id)).to eq('No conversations found')
+    end
+
+    it 'rejects malformed dates and invalid date ranges' do
+      expect(service.execute(created_after: 'last year')).to include(error: /date filters/)
+      result = service.execute(created_after: '2026-05-02', created_before: '2026-05-01')
+
+      expect(result).to include(error: 'date after must be earlier than date before')
+      expect(service.execute(created_after: '2024-01-01', created_before: '2026-01-02')).to include(error: /cannot exceed 366 days/)
     end
 
     context 'when the user has team access without inbox access' do

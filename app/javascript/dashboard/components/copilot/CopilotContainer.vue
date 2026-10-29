@@ -36,9 +36,12 @@ const isFeatureEnabledonAccount = useMapGetter(
   'accounts/isFeatureEnabledonAccount'
 );
 
-const selectedCopilotThreadId = ref(
-  uiSettings.value.copilot_active_thread_id || null
-);
+const activeThreads = uiSettings.value.copilot_active_threads || {};
+const hasAccountThreadSettings = Object.keys(activeThreads).length > 0;
+const initialThreadId = hasAccountThreadSettings
+  ? activeThreads[currentAccountId.value]
+  : uiSettings.value.copilot_active_thread_id;
+const selectedCopilotThreadId = ref(initialThreadId || null);
 const threads = ref([]);
 const isHistoryOpen = ref(false);
 const isLoadingHistory = ref(false);
@@ -89,7 +92,39 @@ const contextName = computed(
 const persistThread = threadId => {
   selectedCopilotThreadId.value = threadId;
   actionItems.value = [];
-  updateUISettings({ copilot_active_thread_id: threadId });
+  updateUISettings({
+    copilot_active_thread_id: threadId,
+    copilot_active_threads: {
+      ...uiSettings.value.copilot_active_threads,
+      [currentAccountId.value]: threadId,
+    },
+  });
+};
+const isMissingThreadError = error =>
+  [403, 404].includes(error.response?.status);
+const clearInvalidThread = (threadId, accountId) => {
+  const accountThreads = uiSettings.value.copilot_active_threads || {};
+  const isPersistedThread =
+    Number(accountThreads[accountId]) === Number(threadId) ||
+    Number(uiSettings.value.copilot_active_thread_id) === Number(threadId);
+  if (!isPersistedThread) return;
+
+  const isCurrentSelection =
+    Number(currentAccountId.value) === Number(accountId) &&
+    Number(selectedCopilotThreadId.value) === Number(threadId);
+  if (isCurrentSelection) {
+    selectedCopilotThreadId.value = null;
+    actionItems.value = [];
+  }
+  const settings = {
+    copilot_active_threads: {
+      ...accountThreads,
+      [accountId]: null,
+    },
+  };
+  if (Number(uiSettings.value.copilot_active_thread_id) === Number(threadId))
+    settings.copilot_active_thread_id = null;
+  updateUISettings(settings);
 };
 const loadActionItems = async threadId => {
   if (!threadId) {
@@ -102,6 +137,21 @@ const loadActionItems = async threadId => {
       actionItems.value = data;
   } catch (_error) {
     useAlert(t('CAPTAIN.COPILOT.ERROR'));
+  }
+};
+const restoreActiveThread = async accountId => {
+  const threadId = selectedCopilotThreadId.value;
+  if (!threadId) return;
+  try {
+    await store.dispatch('copilotMessages/get', threadId);
+    if (Number(currentAccountId.value) === Number(accountId)) {
+      const accountThreads = uiSettings.value.copilot_active_threads || {};
+      if (!Object.hasOwn(accountThreads, accountId)) persistThread(threadId);
+      await loadActionItems(threadId);
+    }
+  } catch (error) {
+    if (isMissingThreadError(error)) clearInvalidThread(threadId, accountId);
+    else useAlert(t('CAPTAIN.COPILOT.ERROR'));
   }
 };
 const upsertActionItem = item => {
@@ -189,8 +239,10 @@ const selectThread = async thread => {
     isHistoryOpen.value = false;
     unreadCount.value = 0;
     updateUISettings({ copilot_unread_count: 0 });
-  } catch (_error) {
-    useAlert(t('CAPTAIN.COPILOT.ERROR'));
+  } catch (error) {
+    if (isMissingThreadError(error))
+      clearInvalidThread(thread.id, currentAccountId.value);
+    else useAlert(t('CAPTAIN.COPILOT.ERROR'));
   }
 };
 const sendMessage = async payload => {
@@ -200,14 +252,15 @@ const sendMessage = async payload => {
   try {
     if (selectedCopilotThreadId.value) {
       await store.dispatch('copilotMessages/create', {
-        assistant_id: activeAssistant.value.id,
         conversation_id: currentChat.value?.id,
         threadId: selectedCopilotThreadId.value,
         message,
       });
     } else {
       const response = await store.dispatch('copilotThreads/create', {
-        assistant_id: activeAssistant.value.id,
+        ...(activeAssistant.value?.id && {
+          assistant_id: activeAssistant.value.id,
+        }),
         conversation_id: currentChat.value?.id,
         message,
         ...(requestType && { request_type: requestType }),
@@ -252,17 +305,21 @@ onMounted(async () => {
   if (isEnterprise) {
     try {
       await store.dispatch('captainAssistants/get');
-      if (selectedCopilotThreadId.value) {
-        await store.dispatch(
-          'copilotMessages/get',
-          selectedCopilotThreadId.value
-        );
-        await loadActionItems(selectedCopilotThreadId.value);
-      }
+      await restoreActiveThread(currentAccountId.value);
     } catch (_error) {
       useAlert(t('CAPTAIN.COPILOT.ERROR'));
     }
   }
+});
+watch(currentAccountId, async (accountId, previousAccountId) => {
+  if (!previousAccountId || Number(accountId) === Number(previousAccountId))
+    return;
+  const accountThreads = uiSettings.value.copilot_active_threads || {};
+  selectedCopilotThreadId.value = Object.hasOwn(accountThreads, accountId)
+    ? accountThreads[accountId]
+    : null;
+  actionItems.value = [];
+  await restoreActiveThread(accountId);
 });
 onMounted(() => {
   emitter.on('copilot_action_item_changed', handleActionItemEvent);

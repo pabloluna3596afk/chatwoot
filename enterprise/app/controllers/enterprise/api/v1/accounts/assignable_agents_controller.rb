@@ -4,7 +4,7 @@ module Enterprise::Api::V1::Accounts::AssignableAgentsController
     return unless @include_ai_assignees
     return unless Current.account.feature_enabled?('captain_integration')
 
-    assistants = @inboxes.filter_map(&:captain_assistant)
+    assistants = @inboxes.filter_map(&:captain_assistant).reject(&:internal?)
     @captain_assistants = assistants.uniq if assistants.size == @inboxes.size && assistants.uniq.one?
   end
 end

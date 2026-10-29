@@ -229,6 +229,10 @@
         },
         "GRAMMAR": "Fix grammar & spelling",
         "SUGGESTION": "Suggest a reply",
+        "SUGGESTION_PLAN_REQUIRED": "Reply suggestions are available from the Basic plan.",
+        "SUGGESTION_LIMIT_REACHED": "You’ve used all AI actions for this month. They reset on {date}.",
+        "SUGGESTION_LIMIT_REACHED_NO_DATE": "You’ve used all AI actions for this month.",
+        "SUGGESTION_INCOMING_REQUIRED": "Wait for a customer message to suggest a reply.",
         "SUMMARIZE": "Summarize the conversation",
         "ASK_COPILOT": "Ask Copilot"
       },
@@ -698,17 +702,57 @@
       "PANEL_TITLE": "Get started with Copilot",
       "KICK_OFF_MESSAGE": "Need a quick summary, want to check past conversations, or draft a better reply? Copilot’s here to speed things up.",
       "SEND_MESSAGE": "Send message...",
+      "MESSAGE_LABEL": "Message Copilot",
+      "SEND": "Send message",
       "EMPTY_MESSAGE": "There was an error generating the response. Please try again.",
-      "LOADER": "Captain is thinking",
+      "COPY_RESPONSE": "Copy response",
+      "COPIED": "Response copied",
+      "COPY_ERROR": "Could not copy the response",
+      "LOADER": "Copilot is thinking",
       "YOU": "You",
-      "USE": "Use this",
+      "USE_RESPONSE": "Use as reply",
       "RESET": "Reset",
       "SHOW_STEPS": "Show steps",
+      "COPILOT_LABEL": "Copilot",
+      "STEPS_LABEL": "Copilot tool steps",
+      "STEPS_SUMMARY_ONE": "1 step",
+      "STEPS_SUMMARY": "{count} steps",
+      "STEPS_DURATION_seconds": "· {duration} sec",
+      "STEPS_DURATION_minutes": "· {duration} min",
+      "STEP_ERROR": "This step could not be completed. Try again.",
+      "STEP_EMPTY": "No matching results were found.",
+      "TOOLS": {
+        "search_conversation": "Searching conversations",
+        "get_conversation": "Reading conversation",
+        "search_contacts": "Searching contacts",
+        "get_contact": "Reading contact",
+        "get_data": "Counting data",
+        "list_labels": "Loading labels",
+        "describe_schema": "Checking available data",
+        "search_articles": "Searching the help center",
+        "get_article": "Reading a help article",
+        "search_documentation": "Searching the help center",
+        "search_linear_issues": "Searching issues",
+        "propose_action": "Preparing a proposal",
+        "generic": "Checking data"
+      },
       "SELECT_ASSISTANT": "Select Assistant",
       "PROMPTS": {
         "SUMMARIZE": {
           "LABEL": "Summarize this conversation",
-          "CONTENT": "Summarize the key points discussed between the customer and the support agent, including the customer's concerns, questions, and the solutions or responses provided by the support agent"
+          "CONTENT": "Summarize the current conversation, including the customer's main concern and what has been done so far."
+        },
+        "OPEN_BY_AGENT": {
+          "LABEL": "Open conversations by agent",
+          "CONTENT": "How many open conversations are assigned to each agent?"
+        },
+        "VIP_CONTACTS": {
+          "LABEL": "Find VIP contacts",
+          "CONTENT": "Find contacts with the VIP label."
+        },
+        "PROPOSE_URGENT": {
+          "LABEL": "Suggest an urgent label",
+          "CONTENT": "Propose adding the urgent label to this conversation."
         },
         "SUGGEST": {
           "LABEL": "Suggest an answer",
@@ -720,17 +764,18 @@
         },
         "HIGH_PRIORITY": {
           "LABEL": "High priority conversations",
-          "CONTENT": "Give me a summary of all high priority open conversations. Include the conversation ID, customer name (if available), last message content, and assigned agent. Group by status if relevant."
+          "CONTENT": "Give me a summary of open high priority conversations."
         },
         "LIST_CONTACTS": {
           "LABEL": "List contacts",
-          "CONTENT": "Show me the list of top 10 contacts. Include name, email or phone number (if available), last seen time, tags (if any)."
+          "CONTENT": "Find contacts with the VIP label."
         }
       },
       "ACTIONS": {
         "CONTACT_TARGET": "{name} · contact #{id}",
         "CONVERSATION_TARGET": "{name} · conversation #{id}",
         "UNKNOWN_TARGET": "Unknown",
+        "GENERIC_TITLE": "Suggested action",
         "ADD_LABEL_TITLE": "Add a label to {target}",
         "PRIVATE_NOTE_TITLE": "Private note",
         "ASSIGNMENT_TITLE": "Assign conversation",

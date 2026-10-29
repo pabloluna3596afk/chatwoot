@@ -1,5 +1,6 @@
 import { nextTick, ref } from 'vue';
-import { shallowMount } from '@vue/test-utils';
+import { flushPromises, shallowMount } from '@vue/test-utils';
+import { useAlert } from 'dashboard/composables';
 import CopilotActionItemsAPI from 'dashboard/api/captain/copilotActionItems';
 import CopilotContainer from './CopilotContainer.vue';
 
@@ -75,7 +76,10 @@ describe('CopilotContainer', () => {
   beforeEach(() => {
     testState.dispatch.mockReset();
     testState.dispatch.mockResolvedValue(undefined);
+    vi.mocked(useAlert).mockClear();
+    testState.refs.getCurrentAccountId.value = 1;
     testState.refs.getSelectedChat.value = { id: 1 };
+    testState.refs['captainAssistants/getRecords'].value = [{ id: 7 }];
     testState.uiSettings.value = {
       is_copilot_panel_open: true,
       copilot_unread_count: 2,
@@ -145,6 +149,29 @@ describe('CopilotContainer', () => {
     expect(copilot.props('messages')).toEqual([{ id: 99 }]);
   });
 
+  it('creates a Copilot thread without an assistant id when none is available', async () => {
+    testState.refs['captainAssistants/getRecords'].value = [];
+    testState.uiSettings.value.copilot_active_thread_id = null;
+    testState.dispatch.mockImplementation(action =>
+      action === 'copilotThreads/create'
+        ? Promise.resolve({ id: 99 })
+        : Promise.resolve()
+    );
+    const wrapper = mountComponent();
+    const copilot = wrapper.findComponent({ name: 'Copilot' });
+
+    expect(await copilot.props('onSendMessage')('Help me')).toBe(true);
+
+    expect(testState.dispatch).toHaveBeenCalledWith(
+      'copilotThreads/create',
+      expect.objectContaining({ message: 'Help me' })
+    );
+    const createCall = testState.dispatch.mock.calls.find(
+      ([action]) => action === 'copilotThreads/create'
+    );
+    expect(createCall[1]).not.toHaveProperty('assistant_id');
+  });
+
   it('keeps the floating panel available with or without a selected conversation', async () => {
     const wrapper = mountComponent();
 
@@ -211,5 +238,78 @@ describe('CopilotContainer', () => {
     const result = await copilot.props('onSendMessage')('Draft a reply');
 
     expect(result).toBe(false);
+  });
+
+  it('silently clears a legacy thread that is missing from the current account', async () => {
+    testState.uiSettings.value.copilot_active_thread_id = 23;
+    const notFound = new Error('Not found');
+    notFound.response = { status: 404 };
+    testState.dispatch.mockImplementation(action =>
+      action === 'copilotMessages/get'
+        ? Promise.reject(notFound)
+        : Promise.resolve()
+    );
+
+    const wrapper = mountComponent();
+    await flushPromises();
+    await nextTick();
+
+    expect(testState.dispatch).toHaveBeenCalledWith('copilotMessages/get', 23);
+    expect(testState.uiSettings.value).toMatchObject({
+      copilot_active_thread_id: null,
+      copilot_active_threads: { 1: null },
+    });
+    expect(useAlert).not.toHaveBeenCalled();
+    expect(
+      wrapper.findComponent({ name: 'Copilot' }).props('messages')
+    ).toEqual([]);
+
+    wrapper.unmount();
+    mountComponent();
+    await flushPromises();
+
+    expect(
+      testState.dispatch.mock.calls.filter(
+        ([action]) => action === 'copilotMessages/get'
+      )
+    ).toEqual([['copilotMessages/get', 23]]);
+  });
+
+  it('migrates a valid legacy thread to its account before switching accounts', async () => {
+    testState.uiSettings.value.copilot_active_thread_id = 23;
+    const wrapper = mountComponent();
+
+    await flushPromises();
+    testState.refs.getCurrentAccountId.value = 2;
+    await flushPromises();
+
+    expect(testState.uiSettings.value.copilot_active_threads).toEqual({
+      1: 23,
+    });
+    expect(
+      testState.dispatch.mock.calls.filter(
+        ([action]) => action === 'copilotMessages/get'
+      )
+    ).toEqual([['copilotMessages/get', 23]]);
+    expect(
+      wrapper.findComponent({ name: 'Copilot' }).props('messages')
+    ).toEqual([]);
+  });
+
+  it('restores a different active thread for each account', async () => {
+    testState.uiSettings.value.copilot_active_threads = { 1: 23, 2: 45 };
+    testState.dispatch.mockResolvedValue(undefined);
+    const wrapper = mountComponent();
+
+    await nextTick();
+    testState.refs.getCurrentAccountId.value = 2;
+    await nextTick();
+    await nextTick();
+
+    expect(testState.dispatch).toHaveBeenCalledWith('copilotMessages/get', 23);
+    expect(testState.dispatch).toHaveBeenCalledWith('copilotMessages/get', 45);
+    expect(
+      wrapper.findComponent({ name: 'Copilot' }).props('messages')
+    ).toEqual([{ id: 45 }]);
   });
 });

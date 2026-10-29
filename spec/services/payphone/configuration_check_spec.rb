@@ -5,6 +5,7 @@ RSpec.describe Payphone::ConfigurationCheck do
     {
       'PAYPHONE_STORE_ID' => 'store-123',
       'PAYPHONE_TOKEN' => 'test-token',
+      'PAYPHONE_BOX_TOKEN' => 'public-test-token',
       'PAYPHONE_ENVIRONMENT' => 'test',
       'PAYPHONE_RESPONSE_URL' => 'https://inbox.example.test/payphone/response',
       'PAYPHONE_TAX_RATE' => '15',
@@ -18,6 +19,13 @@ RSpec.describe Payphone::ConfigurationCheck do
 
     expect(result).to be_valid
     expect(result.errors).to be_empty
+  end
+
+  it 'accepts the Payphone token without a separate Cajita token' do
+    values.delete('PAYPHONE_BOX_TOKEN')
+    result = described_class.call(values: values, frontend_url: 'https://inbox.example.test')
+
+    expect(result).to be_valid
   end
 
   it 'rejects a non-HTTPS response URL' do
@@ -38,11 +46,30 @@ RSpec.describe Payphone::ConfigurationCheck do
 
   it 'rejects missing credentials and out-of-range settings' do
     values['PAYPHONE_TOKEN'] = ''
+    values['PAYPHONE_BOX_TOKEN'] = ''
     values['PAYPHONE_TAX_RATE'] = '101'
     values['PAYPHONE_GRACE_DAYS'] = '-1'
     result = described_class.call(values: values)
 
     expect(result).not_to be_valid
     expect(result.errors.join).to include('token', 'VAT rate', 'Grace days')
+  end
+
+  it 'accepts an empty test account list and rejects malformed or unknown IDs' do
+    values['PAYPHONE_TEST_ACCOUNT_IDS'] = ''
+    expect(described_class.call(values: values, frontend_url: 'https://inbox.example.test')).to be_valid
+
+    account = create(:account)
+    values['PAYPHONE_TEST_ACCOUNT_IDS'] = account.id.to_s
+    expect(described_class.call(values: values, frontend_url: 'https://inbox.example.test')).to be_valid
+
+    values['PAYPHONE_TEST_ACCOUNT_IDS'] = '1, nope'
+    result = described_class.call(values: values, frontend_url: 'https://inbox.example.test')
+    expect(result).not_to be_valid
+    expect(result.errors.join).to include('positive integers')
+
+    values['PAYPHONE_TEST_ACCOUNT_IDS'] = '999999999'
+    expect(described_class.call(values: values, frontend_url: 'https://inbox.example.test').errors.join)
+      .to include('existing accounts')
   end
 end

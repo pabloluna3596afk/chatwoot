@@ -10,6 +10,7 @@ end
 
 ## Seeds for Local Development
 unless Rails.env.production?
+  AiModelPrice.seed_defaults!
 
   # Enables creating additional accounts from dashboard
   installation_config = InstallationConfig.find_by(name: 'CREATE_NEW_ACCOUNT_FROM_DASHBOARD')

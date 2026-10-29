@@ -18,7 +18,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
 
     return log_non_pending unless conversation_pending?
 
-    return unless assignment_boundary_passes?
+    return if assistant.internal? || !assignment_boundary_passes?
 
     return log_pre_generation_discard if newer_customer_message_arrived?
 
@@ -74,7 +74,15 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
   def generate_response_with_v2
     runner_service = v2_runner_service
     message_history = Captain::Conversation::MessageHistoryBuilderService.new(conversation: @conversation).perform
-    @response = runner_service.generate_response(message_history: message_history)
+    Llm::UsageContext.with(
+      account: account,
+      bucket: :captain_responses,
+      feature: 'captain_reply',
+      context: { conversation_id: @conversation.id, message_id: @responding_to_message_id },
+      usage_group_id: (@ai_usage_group_id ||= SecureRandom.uuid)
+    ) do
+      @response = runner_service.generate_response(message_history: message_history)
+    end
     @run_result = runner_service.last_run_result
 
     @v2_handoff_tool_completed = runner_service.handoff_completed?

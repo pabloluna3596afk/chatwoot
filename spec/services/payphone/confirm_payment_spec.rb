@@ -1,0 +1,227 @@
+require 'rails_helper'
+
+RSpec.describe Payphone::ConfirmPayment do
+  let(:account) { create(:account) }
+  let(:user) { create(:user) }
+  let(:plan) { Plan.create!(name: 'Starter', slug: 'starter', price_monthly: 19, is_active: true, is_public: true) }
+  let(:payment) do
+    PayphonePayment.create!(account: account, user: user, plan: plan, client_transaction_id: SecureRandom.uuid,
+                            amount: 2009, amount_without_tax: 1900, amount_with_tax: 0, tax: 0,
+                            base_cents: 1900, tax_cents: 0, commission_cents: 109)
+  end
+  let(:response) do
+    { 'statusCode' => 3, 'status' => 'Approved', 'transactionId' => '123',
+      'clientTransactionId' => payment.client_transaction_id, 'authorizationCode' => 'AUTH',
+      'amount' => payment.amount, 'currency' => 'USD' }
+  end
+  let(:client) { instance_double(Payphone::FakeClient, confirm: response) }
+
+  before do
+    allow(InstallationConfig).to receive(:find_by).and_call_original
+    allow(InstallationConfig).to receive(:find_by).with(name: 'PAYPHONE_ENVIRONMENT')
+                                                  .and_return(instance_double(InstallationConfig, value: 'test'))
+    allow(InstallationConfig).to receive(:find_by).with(name: 'PAYPHONE_TEST_ACCOUNT_IDS')
+                                                  .and_return(instance_double(InstallationConfig, value: account.id.to_s))
+  end
+
+  it 'activates the plan for 30 days and treats a repeated confirmation as idempotent' do
+    mailer = instance_double(PayphoneReceiptMailer)
+    delivery = instance_double(ActionMailer::MessageDelivery)
+    allow(mailer).to receive(:receipt).and_return(delivery)
+    allow(delivery).to receive(:deliver_later)
+    expect(PayphoneReceiptMailer).to receive(:with).once.and_return(mailer)
+    service = described_class.new(payment: payment, transaction_id: '123',
+                                  client_transaction_id: payment.client_transaction_id, client: client)
+
+    service.call
+    service.call
+
+    expect(payment.reload.status).to eq('approved')
+    expect(payment.period_end - payment.period_start).to eq(30.days)
+    expect(account.reload.plan_id).to eq(plan.id)
+    expect(account.current_usage_period.period_start).to eq(payment.period_start)
+    expect(account.current_usage_period.period_end).to eq(payment.period_end)
+    expect(client).to have_received(:confirm).once
+  end
+
+  it 'does not activate the plan when the confirmed amount differs from the order' do
+    response['amount'] += 1
+    service = described_class.new(payment: payment, transaction_id: '123',
+                                  client_transaction_id: payment.client_transaction_id, client: client)
+
+    expect { service.call }.to raise_error(Payphone::IncongruentConfirmation)
+    expect(payment.reload.status).to eq('failed')
+    expect(account.reload.plan_id).not_to eq(plan.id)
+  end
+
+  it 'does not activate the plan when Payphone returns a different currency' do
+    response['currency'] = 'EUR'
+
+    expect do
+      described_class.new(payment: payment, transaction_id: '123',
+                          client_transaction_id: payment.client_transaction_id, client: client).call
+    end.to raise_error(Payphone::IncongruentConfirmation)
+    expect(payment.reload.status).to eq('failed')
+    expect(account.reload.plan_id).not_to eq(plan.id)
+  end
+
+  it 'does not activate the plan when the browser returns another client transaction ID' do
+    expect do
+      described_class.new(payment: payment, transaction_id: '123', client_transaction_id: SecureRandom.uuid,
+                          client: client).call
+    end.to raise_error(Payphone::ConfirmationError)
+    expect(payment.reload.status).to eq('pending')
+    expect(account.reload.plan_id).not_to eq(plan.id)
+    expect(client).not_to have_received(:confirm)
+  end
+
+  it 'does not activate the plan when Payphone reuses a transaction ID' do
+    previous = PayphonePayment.create!(
+      account: account, user: user, plan: plan, client_transaction_id: SecureRandom.uuid, amount: 2009,
+      amount_without_tax: 1900, amount_with_tax: 0, tax: 0, base_cents: 1900, tax_cents: 0,
+      commission_cents: 109
+    )
+    previous.transition_to!('approved', attributes: {
+                              paid_at: 10.days.ago, period_start: 10.days.ago, period_end: 20.days.from_now,
+                              confirmed_at: 10.days.ago, payphone_transaction_id: '123'
+                            })
+
+    expect do
+      described_class.new(payment: payment, transaction_id: previous.payphone_transaction_id,
+                          client_transaction_id: payment.client_transaction_id, client: client).call
+    end.to raise_error(Payphone::IncongruentConfirmation)
+    expect(payment.reload.status).to eq('failed')
+    expect(account.reload.plan_id).not_to eq(plan.id)
+  end
+
+  it 'extends an early renewal from the current paid period end' do
+    previous = PayphonePayment.create!(
+      account: account, user: user, plan: plan, client_transaction_id: SecureRandom.uuid,
+      amount: 2009, amount_without_tax: 1900, amount_with_tax: 0, tax: 0,
+      base_cents: 1900, tax_cents: 0, commission_cents: 109
+    )
+    previous.transition_to!('approved', attributes: {
+                              paid_at: 10.days.ago, period_start: 10.days.ago,
+                              period_end: 5.days.from_now, confirmed_at: 10.days.ago
+                            })
+    account.update!(plan: plan, plan_started_at: previous.period_start)
+
+    described_class.new(payment: payment, transaction_id: '123',
+                        client_transaction_id: payment.client_transaction_id, client: client).call
+
+    expect(payment.reload.period_start).to be_within(1.second).of(previous.period_end)
+    expect(payment.period_end - payment.period_start).to eq(30.days)
+  end
+
+  it 'starts a renewal from payment time during the grace period' do
+    travel_to(Time.zone.parse('2026-11-20 12:00:00')) do
+      previous = PayphonePayment.create!(
+        account: account, user: user, plan: plan, client_transaction_id: SecureRandom.uuid,
+        amount: 2009, amount_without_tax: 1900, amount_with_tax: 0, tax: 0,
+        base_cents: 1900, tax_cents: 0, commission_cents: 109
+      )
+      previous.transition_to!('approved', attributes: {
+                                paid_at: 30.days.ago, period_start: 30.days.ago,
+                                period_end: 1.day.ago, confirmed_at: 30.days.ago
+                              })
+      account.update!(plan: plan, plan_started_at: previous.period_start)
+
+      described_class.new(payment: payment, transaction_id: '123',
+                          client_transaction_id: payment.client_transaction_id, client: client).call
+
+      expect(payment.reload.period_start).to eq(Time.current)
+      expect(payment.period_end - payment.period_start).to eq(30.days)
+    end
+  end
+
+  it 'starts a renewal from payment time after the grace period' do
+    free_plan = Plan.create!(name: 'Gratis', slug: 'gratis', price_monthly: 0, is_active: true, is_public: true)
+
+    travel_to(Time.zone.parse('2026-11-25 12:00:00')) do
+      previous = PayphonePayment.create!(
+        account: account, user: user, plan: plan, client_transaction_id: SecureRandom.uuid,
+        amount: 2009, amount_without_tax: 1900, amount_with_tax: 0, tax: 0,
+        base_cents: 1900, tax_cents: 0, commission_cents: 109
+      )
+      previous.transition_to!('approved', attributes: {
+                                paid_at: 35.days.ago, period_start: 35.days.ago,
+                                period_end: 5.days.ago, confirmed_at: 35.days.ago
+                              })
+      account.update!(plan: free_plan, plan_started_at: previous.period_end + 3.days)
+
+      described_class.new(payment: payment, transaction_id: '123',
+                          client_transaction_id: payment.client_transaction_id, client: client).call
+
+      expect(payment.reload.period_start).to eq(Time.current)
+      expect(payment.period_end - payment.period_start).to eq(30.days)
+      expect(account.reload.plan_id).to eq(plan.id)
+    end
+  end
+
+  it 'syncs plan features, restarts usage, and preserves account feature overrides' do
+    plan.update!(feature_keys: %w[captain_integration automations])
+    old_plan = Plan.create!(name: 'Old plan', slug: 'old-plan', feature_keys: ['captain_integration'])
+    account.update!(plan: old_plan)
+    override = AccountFeatureOverride.create!(
+      account: account, created_by: user, feature_key: 'automations', enabled: false, reason: 'Manual exception'
+    )
+    old_period = account.current_usage_period
+
+    described_class.new(payment: payment, transaction_id: '123',
+                        client_transaction_id: payment.client_transaction_id, client: client).call
+
+    expect(account.reload.plan_id).to eq(plan.id)
+    expect(account).not_to be_feature_automations
+    expect(override.reload).to be_persisted
+    expect(old_period.reload.closed_at).to be_present
+    expect(account.current_usage_period.plan_id).to eq(plan.id)
+    expect(account.current_usage_period.period_start).to eq(payment.reload.period_start)
+  end
+
+  it 'does not activate the plan when Payphone cancels the transaction' do
+    response['statusCode'] = 2
+    response['status'] = 'Canceled'
+    expect(PayphoneReceiptMailer).not_to receive(:with)
+
+    described_class.new(payment: payment, transaction_id: '123',
+                        client_transaction_id: payment.client_transaction_id, client: client).call
+
+    expect(payment.reload.status).to eq('cancelled')
+    expect(account.reload.plan_id).not_to eq(plan.id)
+  end
+
+  it 'records a pending confirmation for review when the account was removed from the test allowlist' do
+    allow(InstallationConfig).to receive(:find_by).with(name: 'PAYPHONE_TEST_ACCOUNT_IDS')
+                                                  .and_return(instance_double(InstallationConfig, value: ''))
+    expect(Rails.logger).to receive(:warn).with(/account_id=#{account.id} payment_id=#{payment.id}/)
+
+    described_class.new(payment: payment, transaction_id: '123',
+                        client_transaction_id: payment.client_transaction_id, client: client).call
+
+    expect(payment.reload.status).to eq('failed')
+    expect(account.reload.plan_id).not_to eq(plan.id)
+    expect(client).not_to have_received(:confirm)
+  end
+
+  it 'confirms payments for any account in production' do
+    allow(InstallationConfig).to receive(:find_by).with(name: 'PAYPHONE_ENVIRONMENT')
+                                                  .and_return(instance_double(InstallationConfig, value: 'production'))
+    allow(InstallationConfig).to receive(:find_by).with(name: 'PAYPHONE_TEST_ACCOUNT_IDS')
+                                                  .and_return(instance_double(InstallationConfig, value: ''))
+
+    described_class.new(payment: payment, transaction_id: '123',
+                        client_transaction_id: payment.client_transaction_id, client: client).call
+
+    expect(payment.reload.status).to eq('approved')
+    expect(account.reload.plan_id).to eq(plan.id)
+  end
+
+  it 'activates an allowlisted test account through the FakeClient flow' do
+    fake_client = Payphone::FakeClient.new(payment: payment, status_code: 3)
+    described_class.new(payment: payment, transaction_id: (payment.id + 10_000).to_s,
+                        client_transaction_id: payment.client_transaction_id, client: fake_client).call
+
+    expect(payment.reload.status).to eq('approved')
+    expect(account.reload.plan_id).to eq(plan.id)
+  end
+end

@@ -2,9 +2,9 @@ require 'uri'
 
 class Payphone::ConfigurationCheck
   KEYS = %w[
-    ENABLE_PAYPHONE PAYPHONE_STORE_ID PAYPHONE_TOKEN PAYPHONE_ENVIRONMENT PAYPHONE_RESPONSE_URL
+    ENABLE_PAYPHONE PAYPHONE_STORE_ID PAYPHONE_TOKEN PAYPHONE_BOX_TOKEN PAYPHONE_ENVIRONMENT PAYPHONE_RESPONSE_URL
     PAYPHONE_EXTERNAL_NOTIFICATION_ENABLED PAYPHONE_TAX_RATE PAYPHONE_CARD_COMMISSION_RATE
-    PAYPHONE_COMMISSION_ENABLED PAYPHONE_GRACE_DAYS
+    PAYPHONE_COMMISSION_ENABLED PAYPHONE_GRACE_DAYS PAYPHONE_TEST_ACCOUNT_IDS
   ].freeze
 
   Result = Struct.new(:valid?, :errors, keyword_init: true)
@@ -26,6 +26,7 @@ class Payphone::ConfigurationCheck
     validate_rate(errors, 'PAYPHONE_TAX_RATE', I18n.t('super_admin.payphone.rate_labels.tax'))
     validate_rate(errors, 'PAYPHONE_CARD_COMMISSION_RATE', I18n.t('super_admin.payphone.rate_labels.commission'))
     validate_grace_days(errors)
+    validate_test_account_ids(errors)
     validate_response_url(errors)
 
     Result.new(valid?: errors.empty?, errors: errors)
@@ -51,17 +52,28 @@ class Payphone::ConfigurationCheck
     errors << I18n.t('super_admin.payphone.validation.grace_number')
   end
 
+  def validate_test_account_ids(errors)
+    return if Payphone::AccountAccess.valid_account_ids?(value('PAYPHONE_TEST_ACCOUNT_IDS'))
+
+    errors << I18n.t('super_admin.payphone.validation.test_account_ids')
+  end
+
   def validate_response_url(errors)
     uri = URI.parse(value('PAYPHONE_RESPONSE_URL'))
-    return errors << I18n.t('super_admin.payphone.validation.response_https') unless valid_response_uri?(uri)
+    validate_response_uri(errors, uri)
+  rescue URI::InvalidURIError
+    errors << I18n.t('super_admin.payphone.validation.response_https')
+  end
 
+  def validate_response_uri(errors, uri)
+    return errors << I18n.t('super_admin.payphone.validation.response_https') unless valid_response_uri?(uri)
     return errors << I18n.t('super_admin.payphone.validation.frontend_domain_required') if @frontend_url.blank?
 
     expected_host = frontend_host
-    errors << I18n.t('super_admin.payphone.validation.frontend_domain_required') if expected_host.blank?
-    errors << I18n.t('super_admin.payphone.validation.response_domain') if expected_host.present? && uri.host != expected_host
-  rescue URI::InvalidURIError
-    errors << I18n.t('super_admin.payphone.validation.response_https')
+    return errors << I18n.t('super_admin.payphone.validation.frontend_domain_required') if expected_host.blank?
+
+    errors << I18n.t('super_admin.payphone.validation.response_domain') if uri.host != expected_host
+    errors << I18n.t('super_admin.payphone.validation.response_path') unless uri.path == '/payphone/response' && uri.query.nil?
   end
 
   def valid_response_uri?(uri)

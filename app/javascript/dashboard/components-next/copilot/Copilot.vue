@@ -1,6 +1,7 @@
 <script setup>
 import { nextTick, ref, watch, computed } from 'vue';
 import { useTrack } from 'dashboard/composables';
+import { resolveAssistantAvatar } from 'dashboard/helper/assistantAvatar';
 import { COPILOT_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import CopilotInput from './CopilotInput.vue';
 import CopilotLoader from './CopilotLoader.vue';
@@ -96,10 +97,14 @@ const groupedMessages = computed(() => {
     });
   return result;
 });
-const isLastMessageFromAssistant = computed(
-  () => groupedMessages.value.at(-1)?.message_type === 'assistant'
+const isLastMessageFromAssistant = computed(() =>
+  ['assistant', 'action_item'].includes(
+    groupedMessages.value.at(-1)?.message_type
+  )
 );
-const hasAssistants = computed(() => props.assistants.length > 0);
+const copilotAvatar = computed(() =>
+  resolveAssistantAvatar('/assets/images/dashboard/captain/avatar-light.svg')
+);
 const hasMessages = computed(
   () => props.messages.length > 0 || props.actionItems.length > 0
 );
@@ -140,6 +145,12 @@ watch(
   },
   { deep: true }
 );
+watch(
+  () => props.actionItems.length,
+  () => {
+    if (isNearBottom.value) scrollToBottom();
+  }
+);
 </script>
 
 <template>
@@ -148,14 +159,14 @@ watch(
   >
     <header class="flex flex-col gap-2 border-b border-n-weak px-3 py-2.5">
       <div class="flex items-center gap-2">
-        <span
-          class="flex size-9 shrink-0 items-center justify-center rounded-full bg-n-alpha-2 text-xl text-n-slate-12"
-        >
-          <i class="i-woot-captain" />
-        </span>
+        <img
+          :src="copilotAvatar"
+          :alt="$t('CAPTAIN.COPILOT.COPILOT_LABEL')"
+          class="size-9 shrink-0 rounded-full"
+        />
         <div class="min-w-0 flex-1">
           <div class="truncate font-medium text-n-slate-12">
-            {{ $t('CAPTAIN.COPILOT.TITLE') }}
+            {{ $t('CAPTAIN.COPILOT.COPILOT_LABEL') }}
           </div>
           <div class="text-xs text-n-slate-10">
             {{
@@ -261,37 +272,24 @@ watch(
           </div>
           <div
             v-else-if="item.message_type === 'assistant'"
-            class="flex items-start gap-2"
+            class="flex items-start"
           >
-            <span
-              class="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full bg-n-alpha-2 text-n-slate-12"
-            >
-              <i class="i-woot-captain text-base" />
-            </span>
             <div
               class="max-w-[88%] rounded-2xl rounded-bl-sm bg-n-surface-3 px-3 py-2"
             >
               <CopilotAssistantMessage
                 :message="item.message"
                 :is-last-message="index === groupedMessages.length - 1"
+                :time-label="
+                  item.created_at ? relativeTime(item.created_at) : ''
+                "
               />
-              <time
-                v-if="item.created_at"
-                class="mt-1 block text-end text-[10px] text-n-slate-10"
-              >
-                {{ relativeTime(item.created_at) }}
-              </time>
             </div>
           </div>
           <div
             v-else-if="item.message_type === 'action_item'"
-            class="flex items-start gap-2"
+            class="flex items-start"
           >
-            <span
-              class="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full bg-n-alpha-2 text-n-slate-12"
-            >
-              <i class="i-woot-captain text-base" />
-            </span>
             <CopilotActionCard
               :item="item"
               :labels="actionLabels"
@@ -313,7 +311,6 @@ watch(
       </div>
       <CopilotEmptyState
         v-else
-        :has-assistants="hasAssistants"
         :can-suggest-reply="canSuggestReply"
         @use-suggestion="sendMessage"
       />
@@ -336,11 +333,7 @@ watch(
         />
         <div v-else />
       </div>
-      <CopilotInput
-        v-if="hasAssistants"
-        class="mb-1 w-full"
-        :on-send="sendMessage"
-      />
+      <CopilotInput :on-send="sendMessage" />
     </div>
   </div>
 </template>

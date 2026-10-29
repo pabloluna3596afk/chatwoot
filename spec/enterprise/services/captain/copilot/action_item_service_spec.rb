@@ -53,6 +53,35 @@ RSpec.describe Captain::Copilot::ActionItemService do
     expect(item.events.pluck(:event)).to eq(%w[proposed approved executed])
   end
 
+  it 'revalidates target existence and permission when an action is approved' do
+    contact = create(:contact, account: account)
+    label = create(:label, account: account)
+    item = service.propose(action_name: 'add_label', target_type: 'Contact', target_id: contact.id,
+                           payload: { label_id: label.id }, turn_count: 1)
+    contact.destroy!
+
+    service.decide(item: item, decision: 'approve')
+
+    expect(item.reload.status).to eq('failed')
+    expect(Contact.exists?(contact.id)).to be false
+  end
+
+  it 'rechecks the users permission before executing an approved action' do
+    inbox = create(:inbox, account: account)
+    create(:inbox_member, user: user, inbox: inbox)
+    conversation = create(:conversation, account: account, inbox: inbox, assignee: user)
+    create(:message, conversation: conversation, message_type: 'incoming', content: 'Customer question')
+    item = service.propose(action_name: 'private_note', target_type: 'Conversation', target_id: conversation.display_id,
+                           payload: { content: 'Approved note' }, turn_count: 1)
+    restricted_role = create(:custom_role, account: account, permissions: [])
+    AccountUser.find_by!(user: user, account: account).update!(role: :agent, custom_role: restricted_role)
+
+    service.decide(item: item, decision: 'approve')
+
+    expect(item.reload.status).to eq('failed')
+    expect(conversation.messages.where(content: 'Approved note')).to be_empty
+  end
+
   it 'rejects edits once the proposal has been decided' do
     item = service.propose(
       action_name: 'registered_test_action', target_type: 'Conversation', target_id: 42,
