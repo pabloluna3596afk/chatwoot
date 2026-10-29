@@ -57,7 +57,7 @@ const handleSuggestion = opt => {
     </div>
     <div v-if="!hasAssistants" class="w-full space-y-2">
       <p class="text-sm text-n-slate-11 leading-6">
-        {{ $t('CAPTAIN.ASSISTANTS.NO_ASSISTANTS_AVAILABLE') }}
+        {{ $t('CAPTAIN.ASSISTANTS.COPILOT_SETUP_REQUIRED') }}
       </p>
       <router-link
         :to="{
@@ -68,7 +68,7 @@ const handleSuggestion = opt => {
         }"
         class="text-n-slate-11 underline hover:text-n-slate-12"
       >
-        {{ $t('CAPTAIN.ASSISTANTS.ADD_NEW') }}
+        {{ $t('CAPTAIN.ASSISTANTS.CREATE_FOR_COPILOT') }}
       </router-link>
     </div>
     <div v-else class="w-full space-y-2">

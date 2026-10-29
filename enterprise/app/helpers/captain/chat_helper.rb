@@ -1,9 +1,10 @@
 module Captain::ChatHelper
+  include Captain::ChatUsageContext
   include Integrations::LlmInstrumentation
   include Captain::ChatResponseHelper
   include Captain::ChatGenerationRecorder
 
-  def request_chat_completion
+  def request_chat_completion_with_usage_context
     log_chat_completion_request
     chat = build_chat
 

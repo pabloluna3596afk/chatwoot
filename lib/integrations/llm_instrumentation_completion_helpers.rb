@@ -27,8 +27,9 @@ module Integrations::LlmInstrumentationCompletionHelpers
   end
 
   def set_embedding_result_attributes(span, result)
-    span.set_attribute('embedding.dimensions', result&.length || 0) if result.is_a?(Array)
-    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, "[#{result&.length || 0} dimensions]")
+    vectors = result.respond_to?(:vectors) ? result.vectors : result
+    span.set_attribute('embedding.dimensions', vectors&.length || 0) if vectors.is_a?(Array)
+    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, "[#{vectors&.length || 0} dimensions]")
   end
 
   def set_transcription_result_attributes(span, result)

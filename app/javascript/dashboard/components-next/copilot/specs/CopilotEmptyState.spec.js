@@ -7,7 +7,10 @@ vi.mock('vue-i18n', () => ({
 }));
 
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ path: '/app/accounts/1/conversations/1' }),
+  useRoute: () => ({
+    path: '/app/accounts/1/conversations/1',
+    params: { accountId: '1' },
+  }),
 }));
 
 const mountComponent = (props = {}) =>
@@ -15,7 +18,13 @@ const mountComponent = (props = {}) =>
     props: { hasAssistants: true, ...props },
     global: {
       mocks: { $t: key => key },
-      stubs: { RouterLink: true },
+      stubs: {
+        RouterLink: {
+          name: 'RouterLink',
+          props: ['to'],
+          template: '<a><slot /></a>',
+        },
+      },
     },
   });
 
@@ -45,5 +54,18 @@ describe('CopilotEmptyState', () => {
     expect(wrapper.emitted('useSuggestion')[0][0]).toBe(
       'CAPTAIN.COPILOT.PROMPTS.SUMMARIZE.CONTENT'
     );
+  });
+
+  it('explains the assistant requirement and links to assistant creation', () => {
+    const wrapper = mountComponent({ hasAssistants: false });
+
+    expect(wrapper.text()).toContain(
+      'CAPTAIN.ASSISTANTS.COPILOT_SETUP_REQUIRED'
+    );
+    expect(wrapper.text()).toContain('CAPTAIN.ASSISTANTS.CREATE_FOR_COPILOT');
+    expect(wrapper.findComponent({ name: 'RouterLink' }).props('to')).toEqual({
+      name: 'captain_assistants_create_index',
+      params: { accountId: '1' },
+    });
   });
 });
