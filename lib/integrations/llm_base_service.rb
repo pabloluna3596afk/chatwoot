@@ -103,9 +103,11 @@ class Integrations::LlmBaseService
     model = parsed_body['model']
     credential = llm_credential
 
-    Llm::Config.with_api_key(credential[:api_key], api_base: api_base) do |context|
-      chat = context.chat(model: model)
-      setup_chat_with_messages(chat, messages)
+    Llm::UsageContext.with_instrumentation(build_instrumentation_params(parsed_body)) do
+      Llm::Config.with_api_key(credential[:api_key], api_base: api_base) do |context|
+        chat = context.chat(model: model)
+        setup_chat_with_messages(chat, messages)
+      end
     end
   rescue StandardError => e
     capture_llm_exception(e, credential: credential)
@@ -161,6 +163,7 @@ class Integrations::LlmBaseService
       conversation_id: conversation&.display_id,
       feature_name: event_name,
       model: parsed_body['model'],
+      provider: 'openai',
       messages: parsed_body['messages'],
       temperature: parsed_body['temperature']
     }

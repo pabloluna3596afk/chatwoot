@@ -12,7 +12,6 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
 
   let(:account) { create(:account) }
 
-  before { put_account_on_plan(account) }
   let(:user) { create(:user, account: account) }
   let(:assistant) { create(:captain_assistant, account: account) }
   let(:inbox) { create(:inbox, account: account) }
@@ -45,6 +44,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
   let!(:inbox_member) { create(:inbox_member, user: user, inbox: inbox) }
 
   before do
+    put_account_on_plan(account)
     incoming_message
     allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(true)
     allow(Captain::Assistant::AgentRunnerService).to receive(:new).with(

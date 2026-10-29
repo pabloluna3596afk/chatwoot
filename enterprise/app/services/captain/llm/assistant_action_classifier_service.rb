@@ -18,13 +18,7 @@ class Captain::Llm::AssistantActionClassifierService < Llm::BaseAiService
       response_tag: 'assistant_response_to_classify'
     )
 
-    response = instrument_llm_call(instrumentation_params(user_prompt)) do
-      chat(model: @model, temperature: @temperature)
-        .with_schema(Captain::AssistantActionSchema)
-        .with_instructions(system_prompt)
-        .ask(user_prompt)
-    end
-
+    response = generate_classification(user_prompt)
     parsed = parse_response(response.content)
     normalize_response(parsed, response.content)
   rescue StandardError => e
@@ -32,6 +26,22 @@ class Captain::Llm::AssistantActionClassifierService < Llm::BaseAiService
   end
 
   private
+
+  def generate_classification(user_prompt)
+    Llm::UsageContext.with(
+      account: @conversation.account,
+      bucket: :internal,
+      feature: 'assistant_action_classifier',
+      context: { conversation_id: @conversation.id }
+    ) do
+      instrument_llm_call(instrumentation_params(user_prompt)) do
+        chat(model: @model, temperature: @temperature)
+          .with_schema(Captain::AssistantActionSchema)
+          .with_instructions(system_prompt)
+          .ask(user_prompt)
+      end
+    end
+  end
 
   def classification_error_response(error)
     ChatwootExceptionTracker.new(error, account: @conversation.account).capture_exception

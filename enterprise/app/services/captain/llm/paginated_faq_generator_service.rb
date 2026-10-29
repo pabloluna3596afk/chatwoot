@@ -51,12 +51,13 @@ class Captain::Llm::PaginatedFaqGeneratorService < Llm::LegacyBaseOpenAiService
       account_id: @document&.account_id,
       feature_name: 'faq_generation',
       model: @model,
+      provider: 'openai',
       messages: params[:messages],
       metadata: document_metadata
     }
 
-    response = instrument_llm_call(instrumentation_params) do
-      @client.chat(parameters: params)
+    response = with_usage_recording(instrumentation_params) do
+      instrument_llm_call(instrumentation_params) { @client.chat(parameters: params) }
     end
 
     parse_response(response)
@@ -102,8 +103,8 @@ class Captain::Llm::PaginatedFaqGeneratorService < Llm::LegacyBaseOpenAiService
 
     instrumentation_params = build_instrumentation_params(params, start_page, end_page)
 
-    response = instrument_llm_call(instrumentation_params) do
-      @client.chat(parameters: params)
+    response = with_usage_recording(instrumentation_params) do
+      instrument_llm_call(instrumentation_params) { @client.chat(parameters: params) }
     end
 
     result = parse_chunk_response(response)
@@ -214,6 +215,7 @@ class Captain::Llm::PaginatedFaqGeneratorService < Llm::LegacyBaseOpenAiService
       account_id: @document&.account_id,
       feature_name: 'paginated_faq_generation',
       model: @model,
+      provider: 'openai',
       messages: params[:messages],
       metadata: document_metadata.merge(start_page: start_page, end_page: end_page, iteration: @iterations_completed + 1)
     }
