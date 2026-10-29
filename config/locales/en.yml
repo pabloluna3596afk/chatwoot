@@ -1167,7 +1167,7 @@ en:
         enable: 'Allow paid plans to use Payphone checkout.'
         store_id: 'Store ID from the Payphone merchant portal.'
         token: 'Stored encrypted. Leave blank to keep the saved token.'
-        box_token: 'Cajita token sent to the browser for the Payphone SDK. Stored encrypted; leave blank to keep it.'
+        box_token: 'Optional. Overrides the Payphone token for Cajita only; leave blank to use the main token.'
         environment: 'Use test credentials before switching to production.'
         response_url: 'Must use HTTPS and the same domain configured in FRONTEND_URL.'
         external_notification: 'Turn on only after Payphone approves and configures external notifications.'
@@ -1190,7 +1190,6 @@ en:
       validation:
         store_id_required: 'Store ID is required.'
         token_required: 'Payphone token is required.'
-        box_token_required: 'Payphone Cajita token is required.'
         environment: 'Environment must be test or production.'
         rate_range: '%{label} must be between 0 and 100.'
         rate_number: '%{label} must be a number.'

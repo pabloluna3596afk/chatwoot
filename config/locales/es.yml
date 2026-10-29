@@ -1071,7 +1071,7 @@ es:
         enable: 'Permite usar Payphone para pagar planes.'
         store_id: 'ID de tienda del portal de comercios Payphone.'
         token: 'Se guarda cifrado. Déjalo vacío para conservar el token guardado.'
-        box_token: 'Token que recibe el navegador para usar el SDK de Payphone. Se guarda cifrado; déjalo vacío para conservarlo.'
+        box_token: 'Opcional. Reemplaza el token de Payphone solo en la Cajita; déjalo vacío para usar el token principal.'
         environment: 'Usa credenciales de prueba antes de cambiar a producción.'
         response_url: 'Debe usar HTTPS y el mismo dominio configurado en FRONTEND_URL.'
         external_notification: 'Actívala solo después de que Payphone apruebe y configure las notificaciones externas.'
@@ -1094,7 +1094,6 @@ es:
       validation:
         store_id_required: 'Falta el ID de tienda.'
         token_required: 'Falta el token de Payphone.'
-        box_token_required: 'Falta el token de la Cajita de Payphone.'
         environment: 'El entorno debe ser test o production.'
         rate_range: '%{label} debe estar entre 0 y 100.'
         rate_number: '%{label} debe ser un número.'
