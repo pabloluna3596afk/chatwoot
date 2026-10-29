@@ -48,10 +48,10 @@ module Integrations::LlmInstrumentation
         set_metadata_attributes(span, params)
 
         # By default, the input and output of a trace are set from the root observation
-        span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, params[:messages].to_json)
+        span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, '[REDACTED]')
         result = yield
         executed = true
-        span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, result.to_json)
+        span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, '[REDACTED]')
         set_error_attributes(span, result) if result.is_a?(Hash)
         result
       end
@@ -61,7 +61,7 @@ module Integrations::LlmInstrumentation
     executed ? result : yield
   end
 
-  def instrument_tool_call(tool_name, arguments)
+  def instrument_tool_call(tool_name, _arguments)
     # There is no error handling because tools can fail and LLMs should be
     # aware of those failures and factor them into their response.
     return yield unless ChatwootApp.otel_enabled?
@@ -69,9 +69,9 @@ module Integrations::LlmInstrumentation
     tracer.in_span(format(TOOL_SPAN_NAME, tool_name)) do |span|
       apply_current_langfuse_attributes(span)
       span.set_attribute(ATTR_LANGFUSE_OBSERVATION_TYPE, 'tool')
-      span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, arguments.to_json)
+      span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, '[REDACTED]')
       result = yield
-      span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, result.to_json)
+      span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, '[REDACTED]')
       set_error_attributes(span, result) if result.is_a?(Hash)
       result
     end

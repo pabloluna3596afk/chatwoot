@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils';
+import OutlinedSelectField from 'dashboard/components-next/CustomAttributes/OutlinedSelectField.vue';
 import CopilotActionCard from './CopilotActionCard.vue';
 
 vi.mock('vue-i18n', () => ({
@@ -39,9 +40,17 @@ describe('CopilotActionCard', () => {
       global: { mocks: { $t: key => key } },
     });
 
-    await wrapper.findAll('button')[2].trigger('click');
-    await wrapper.find('select').setValue(9);
-    await wrapper.findAll('button')[0].trigger('click');
+    const editButton = wrapper
+      .findAll('button')
+      .find(button => button.text().includes('CAPTAIN.COPILOT.ACTIONS.EDIT'));
+    await editButton.trigger('click');
+    await wrapper
+      .findComponent(OutlinedSelectField)
+      .vm.$emit('select', { id: 9, name: 'Billing' });
+    const saveButton = wrapper
+      .findAll('button')
+      .find(button => button.text().includes('CAPTAIN.COPILOT.ACTIONS.SAVE'));
+    await saveButton.trigger('click');
 
     expect(wrapper.emitted('edit')[0][0]).toEqual({
       id: 1,

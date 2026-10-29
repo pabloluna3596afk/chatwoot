@@ -61,6 +61,24 @@ RSpec.describe Captain::Tools::SearchDocumentationService do
       it 'returns an empty string' do
         expect(service.execute(query: question)).to eq('No FAQs found for the given query')
       end
+
+      it 'logs only the query length and digest' do
+        private_query = 'customer@example.invalid asks for account deletion'
+        translator = instance_double(Captain::Llm::TranslateQueryService, translate: private_query)
+        allow(Captain::Llm::TranslateQueryService).to receive(:new).and_return(translator)
+        approved_responses = assistant.responses.approved
+        allow(approved_responses).to receive(:search).with(private_query).and_return([])
+        allow(assistant.responses).to receive(:approved).and_return(approved_responses)
+        log_messages = []
+        allow(Rails.logger).to receive(:info) do |message = nil, &block|
+          log_messages << (block ? block.call : message)
+        end
+
+        service.execute(query: private_query)
+
+        expect(log_messages.join).to include("query_length=#{private_query.length}", Digest::SHA256.hexdigest(private_query))
+        expect(log_messages.join).not_to include(private_query, 'customer@example.invalid')
+      end
     end
   end
 end

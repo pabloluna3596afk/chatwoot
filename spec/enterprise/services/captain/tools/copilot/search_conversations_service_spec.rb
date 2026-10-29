@@ -14,13 +14,16 @@ RSpec.describe Captain::Tools::Copilot::SearchConversationsService do
 
   describe '#description' do
     it 'returns the service description' do
-      expect(service.description).to eq('Search conversations based on parameters')
+      expect(service.description).to include('order_by=last_activity_at', 'repeat once without filters')
     end
   end
 
   describe '#parameters_schema' do
     it 'defines the expected parameters' do
-      expect(service.parameters_schema.fetch('properties').keys).to contain_exactly('status', 'contact_id', 'priority', 'labels')
+      expect(service.parameters_schema.fetch('properties').keys).to contain_exactly(
+        'status', 'contact_id', 'priority', 'labels', 'order_by', 'direction', 'limit'
+      )
+      expect(service.parameters_schema.fetch('additionalProperties')).to be false
     end
   end
 
@@ -92,6 +95,22 @@ RSpec.describe Captain::Tools::Copilot::SearchConversationsService do
       expect(result).to include('Total number of conversations: 2')
       expect(result).to include(open_conversation.to_llm_text(include_contact_details: true))
       expect(result).to include(resolved_conversation.to_llm_text(include_contact_details: true))
+    end
+
+    it 'orders recent conversations deterministically and defaults to ten results' do
+      open_conversation.update!(last_activity_at: 2.days.ago)
+      resolved_conversation.update!(last_activity_at: 1.day.ago)
+
+      result = service.execute(order_by: 'last_activity_at')
+
+      expect(result.index("Conversation ##{resolved_conversation.display_id}")).to be < result.index("Conversation ##{open_conversation.display_id}")
+      expect(result).to include('status: resolved', 'last_activity_at:')
+    end
+
+    it 'rejects unsupported order values, directions, and limits' do
+      expect(service.execute(order_by: 'random_column')).to include(error: 'order_by must be last_activity_at or created_at')
+      expect(service.execute(order_by: 'created_at', direction: 'sideways')).to include(error: 'direction must be asc or desc')
+      expect(service.execute(order_by: 'created_at', limit: 101)).to include(error: 'limit must be an integer from 1 to 100')
     end
 
     it 'filters conversations by status' do

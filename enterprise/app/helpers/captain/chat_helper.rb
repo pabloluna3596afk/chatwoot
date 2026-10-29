@@ -17,6 +17,7 @@ module Captain::ChatHelper
       build_response(response)
     end
   rescue StandardError => e
+    persist_pending_tool_errors
     Rails.logger.error "#{self.class.name} Assistant: #{@assistant.id}, Error in chat completion: #{e}"
     raise e
   end
@@ -57,7 +58,7 @@ module Captain::ChatHelper
 
   def handle_tool_result(result)
     end_tool_span(result)
-    persist_tool_completion
+    persist_tool_completion(result)
   end
 
   def add_messages_to_chat(chat)
