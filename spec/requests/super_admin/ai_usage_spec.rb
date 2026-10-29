@@ -4,6 +4,15 @@ RSpec.describe 'Super Admin AI usage', type: :request do
   let(:account) { create(:account) }
   let(:super_admin) { create(:super_admin) }
 
+  # Request specs assert the rendered HTML without requiring a built Vite manifest.
+  # rubocop:disable RSpec/AnyInstance
+  before do
+    allow_any_instance_of(ActionView::Base).to receive(:vite_client_tag).and_return('')
+    allow_any_instance_of(ActionView::Base).to receive(:vite_javascript_tag).and_return('')
+    allow_any_instance_of(ActionView::Base).to receive(:vite_stylesheet_tag).and_return('')
+  end
+  # rubocop:enable RSpec/AnyInstance
+
   it 'requires a Super Admin session' do
     get '/super_admin/ai_usage'
 
@@ -20,7 +29,7 @@ RSpec.describe 'Super Admin AI usage', type: :request do
       )
     end
     AiUsageEvent.create!(
-      account: account, bucket: 'internal', feature: 'summary', model: 'gpt-6-luna',
+      account: account, bucket: 'internal', feature: 'november_only_feature', model: 'gpt-6-luna',
       provider: 'openai', input_tokens: 100, output_tokens: 20,
       usage_group_id: SecureRandom.uuid, created_at: Time.zone.local(2026, 11, 1)
     )
@@ -30,7 +39,7 @@ RSpec.describe 'Super Admin AI usage', type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include('AI usage', '2', 'gpt-6-luna')
-    expect(response.body).not_to include('summary')
+    expect(response.body).not_to include('november_only_feature')
   end
 
   it 'renders the empty state for an account without events' do

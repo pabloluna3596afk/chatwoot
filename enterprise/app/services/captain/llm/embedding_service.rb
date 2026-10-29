@@ -30,6 +30,7 @@ class Captain::Llm::EmbeddingService
     {
       span_name: 'llm.captain.embedding',
       model: model,
+      provider: 'openai',
       input: content,
       feature_name: 'embedding',
       account_id: @account_id

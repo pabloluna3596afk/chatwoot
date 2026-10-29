@@ -46,7 +46,7 @@ module Integrations::LlmUsageRecording
   end
 
   def record_usage_operation(params, response, status:, started_at:, error: nil)
-    model = response&.model.presence || params[:model]
+    model = params[:model]
     Llm::UsageContext.record_operation(
       model: model, status: status, provider: params[:provider], response: response,
       error: error,

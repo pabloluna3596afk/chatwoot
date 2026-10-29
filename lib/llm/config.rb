@@ -111,7 +111,7 @@ RubyLLM::Chat.prepend(Llm::Config::ScopedChatContext)
 
 # Record one event per provider request while the caller's account usage context is active.
 module Llm::Config::UsageRecordingChat
-  def ask(*args, **kwargs, &)
+  def generate_once(stream_tracker: nil, usage_start: nil, &)
     started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     response = super
     Llm::UsageContext.record(
