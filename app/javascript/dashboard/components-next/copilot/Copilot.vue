@@ -281,13 +281,10 @@ watch(
               <CopilotAssistantMessage
                 :message="item.message"
                 :is-last-message="index === groupedMessages.length - 1"
+                :time-label="
+                  item.created_at ? relativeTime(item.created_at) : ''
+                "
               />
-              <time
-                v-if="item.created_at"
-                class="mt-1 block text-end text-[10px] text-n-slate-10"
-              >
-                {{ relativeTime(item.created_at) }}
-              </time>
             </div>
           </div>
           <div
