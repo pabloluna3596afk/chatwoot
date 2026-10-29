@@ -163,7 +163,7 @@ describe('ReplyBox', () => {
       inbox: { channel_type: 'Channel::Api' },
       chat: {
         id: 45,
-        messages: [{ message_type: 'incoming', private: false }],
+        messages: [{ message_type: 0, private: false }],
       },
     });
 

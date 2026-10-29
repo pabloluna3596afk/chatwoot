@@ -12,6 +12,7 @@ import { useI18n } from 'vue-i18n';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import TasksAPI from 'dashboard/api/captain/tasks';
 import { CAPTAIN_ERROR_TYPES } from 'dashboard/composables/captain/constants';
+import { MESSAGE_TYPE } from 'shared/constants/messages';
 
 export function useCaptain() {
   const store = useStore();
@@ -41,11 +42,13 @@ export function useCaptain() {
       ?.filter(
         message =>
           !message.private &&
-          ['incoming', 'outgoing'].includes(message.message_type)
+          [MESSAGE_TYPE.INCOMING, MESSAGE_TYPE.OUTGOING].includes(
+            message.message_type
+          )
       )
       .at(-1);
 
-    return latestPublicMessage?.message_type === 'incoming';
+    return latestPublicMessage?.message_type === MESSAGE_TYPE.INCOMING;
   });
 
   // === Limits (Enterprise) ===

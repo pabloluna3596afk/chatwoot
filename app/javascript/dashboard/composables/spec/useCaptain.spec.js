@@ -105,6 +105,22 @@ describe('useCaptain', () => {
     });
   });
 
+  it('ignores string message types because the chat store uses numeric ones', () => {
+    useMapGetter.mockImplementation(getter => {
+      const mockValues = {
+        'accounts/getUIFlags': { isFetchingLimits: false },
+        getSelectedChat: {
+          id: '123',
+          messages: [{ message_type: 'incoming', private: false }],
+        },
+        'draftMessages/getReplyEditorMode': 'reply',
+      };
+      return { value: mockValues[getter] };
+    });
+
+    expect(useCaptain().latestPublicMessageIsIncoming.value).toBe(false);
+  });
+
   it('detects the latest public message and exhausted internal allowance', () => {
     useMapGetter.mockImplementation(getter => {
       const mockValues = {
@@ -112,8 +128,8 @@ describe('useCaptain', () => {
         getSelectedChat: {
           id: '123',
           messages: [
-            { message_type: 'incoming', private: false },
-            { message_type: 'outgoing', private: true },
+            { message_type: 0, private: false },
+            { message_type: 1, private: true },
           ],
         },
         'draftMessages/getReplyEditorMode': 'reply',
