@@ -8,31 +8,15 @@ export const planViewProps = {
   currentPlanId: { type: [Number, String], default: null },
   selectedPlanId: { type: [Number, String], default: null },
   canSelect: { type: Boolean, default: false },
+  canPurchase: { type: Boolean, default: false },
 };
 
 export const matchesPlan = (plan, id) =>
   id !== null && (plan.id === id || plan.slug === id);
 
-// Presentation metadata describes the API fields, never commercial plan values.
-const LIMIT_ICONS = {
-  inboxes: 'i-lucide-inbox',
-  assistants: 'i-woot-captain',
-  monthly_responses: 'i-lucide-sparkles',
-  users: 'i-lucide-users',
-  storage_bytes: 'i-lucide-hard-drive',
-  emails_per_day: 'i-lucide-mail',
-  tests_per_day: 'i-lucide-flask-conical',
-  trial_days: 'i-lucide-calendar',
-  trial_responses: 'i-lucide-sparkles',
-};
-export const SUMMARY_FIELDS = [
-  'inboxes',
-  'assistants',
-  'monthly_responses',
-  'users',
-];
 const MEBIBYTE = 1024 ** 2;
 const GIBIBYTE = 1024 ** 3;
+const SUMMARY_FIELDS = ['inboxes', 'assistants', 'monthly_responses', 'users'];
 
 export function usePlanPresentation() {
   const { t, n, locale } = useI18n();
@@ -55,11 +39,8 @@ export function usePlanPresentation() {
     return number(amount);
   };
   const summary = plan =>
-    SUMMARY_FIELDS.filter(
-      key => plan.limits[key] !== null && plan.limits[key] !== undefined
-    ).map(key => ({
+    SUMMARY_FIELDS.filter(key => Number(plan.limits[key]) > 0).map(key => ({
       key,
-      icon: LIMIT_ICONS[key],
       text: t(
         `PLAN_CATALOG.COUNTS.${key}`,
         { count: number(plan.limits[key]) },
@@ -67,19 +48,52 @@ export function usePlanPresentation() {
       ),
     }));
   const rows = plans =>
-    [...new Set(plans.flatMap(plan => Object.keys(plan.limits)))].map(key => ({
-      key,
-      label: label(key),
-      icon: LIMIT_ICONS[key],
-    }));
+    [...new Set(plans.flatMap(plan => Object.keys(plan.limits)))]
+      .filter(key => plans.some(plan => Number(plan.limits[key]) > 0))
+      .map(key => ({
+        key,
+        label: label(key),
+      }));
   const features = plans => [
     ...new Set(plans.flatMap(plan => plan.feature_keys)),
   ];
+  const featureChanges = (plans, plan) => {
+    const ordered = [...plans].sort(
+      (left, right) =>
+        (left.display_order ?? 0) - (right.display_order ?? 0) ||
+        Number(left.id) - Number(right.id)
+    );
+    const index = ordered.findIndex(item => item.id === plan.id);
+    const previousPlan = index > 0 ? ordered[index - 1] : null;
+    const before = previousPlan?.feature_keys || [];
+    return {
+      previousPlan,
+      added: plan.feature_keys.filter(key => !before.includes(key)),
+      removed: before.filter(key => !plan.feature_keys.includes(key)),
+    };
+  };
+  const money = amount =>
+    new Intl.NumberFormat(
+      locale.value.startsWith('es') ? 'es-EC' : locale.value,
+      {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: 2,
+      }
+    ).format(amount);
+  const pricing = plan => ({
+    monthly: Number(plan.price_monthly) || 0,
+    annual: (Number(plan.price_monthly) || 0) * 10,
+  });
   return {
     label,
     value,
     summary,
     rows,
     features,
+    featureChanges,
+    money,
+    pricing,
+    isIncluded: amount => Number(amount) > 0,
   };
 }

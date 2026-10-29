@@ -12,11 +12,11 @@
     "EYEBROW": "PLANES CHATHUB",
     "DETAIL": "Más claridad para elegir tu camino.",
     "TABLE_HINT": "Desliza la tabla para comparar todos los planes",
-    "NOTICE": "Solo puedes continuar con tu plan actual. Los planes de pago estarán disponibles próximamente.",
-    "CONFIGURATION": "Las funciones mostradas existen en ChatHub. Su disponibilidad depende de las funciones habilitadas y los canales conectados; no son exclusivas de un plan.",
-    "TABLE_NOTE": "Las pruebas de IA pueden consumir las respuestas incluidas. Los límites de los futuros planes pueden cambiar.",
+    "NOTICE": "Cada plan muestra su precio y estado actual. La contratación depende de las opciones habilitadas para tu cuenta.",
+    "CONFIGURATION": "Las funciones y los límites disponibles para tu cuenta dependen del plan asignado.",
+    "TABLE_NOTE": "Las pruebas de IA pueden consumir las respuestas incluidas. Copilot se usa en el chat del agente; las llamadas internas corresponden a procesos de IA de la cuenta.",
     "AFTER": "Qué pasa después de la prueba",
-    "AFTER_SUB": "Hoy la prueba no vence automáticamente. Estos son tus próximos pasos.",
+    "AFTER_SUB": "Tu acceso y sus límites dependen del plan asignado. Consulta aquí sus condiciones y el estado de cada plan.",
     "FAQ": "Preguntas frecuentes",
     "BACK": "Volver a mi plan",
     "NEXT": {
@@ -29,31 +29,31 @@
         "TEXT": "Configura Captain y conoce cómo responde usando tu cupo incluido."
       },
       "3": {
-        "TITLE": "Cuando haya planes de pago te avisamos",
-        "TEXT": "Aún no hay fecha confirmada. Hoy no necesitas contratar nada."
+        "TITLE": "Compara el estado de cada plan",
+        "TEXT": "Disponible indica que el plan está habilitado en el catálogo; Próximamente indica que aún no está disponible."
       }
     },
     "QUESTIONS": {
       "1": {
         "TITLE": "¿La prueba tiene fecha de vencimiento?",
-        "TEXT": "Hoy no vence automáticamente. Incluye los límites que ves aquí; no significa uso ilimitado."
+        "TEXT": "La vigencia y los límites dependen de las condiciones de tu plan. Revisa los valores que aparecen en esta comparación."
       },
       "2": {
         "TITLE": "¿Necesito una tarjeta para empezar?",
         "TEXT": "No necesitas una tarjeta para continuar con la prueba."
       },
       "3": {
-        "TITLE": "¿Puedo contratar un plan de pago ahora?",
-        "TEXT": "Todavía no. Los planes marcados como no disponibles no se pueden contratar. No hay una fecha confirmada."
+        "TITLE": "¿Cómo sé si un plan está disponible?",
+        "TEXT": "El estado aparece en cada tarjeta. Las opciones de contratación se muestran cuando están habilitadas para tu cuenta."
       },
       "4": {
         "TITLE": "¿Qué ocurre si agoto las respuestas de IA?",
-        "TEXT": "El asistente deja de responder al agotar el cupo. Puedes entrar al panel y revisar tu consumo en Facturación; hoy no puedes ampliar el plan desde aquí."
+        "TEXT": "El asistente deja de responder al agotar el cupo. Puedes revisar el consumo y los límites de tu cuenta en Facturación."
       }
     },
     "STATES": {
       "available": "Disponible",
-      "coming_soon": "Disponible pronto"
+      "coming_soon": "Próximamente"
     },
     "LOADING": "Cargando planes",
     "ERROR": "No pudimos cargar los planes.",
@@ -74,7 +74,9 @@
       "emails_per_day": "Correos salientes al día",
       "tests_per_day": "Pruebas de IA adicionales al día",
       "trial_days": "Días de prueba incluidos",
-      "trial_responses": "Respuestas de prueba"
+      "trial_responses": "Respuestas de prueba",
+      "copilot_responses": "Respuestas de Copilot al mes",
+      "internal_ai_calls": "Llamadas internas de IA"
     },
     "COUNTS": {
       "inboxes": "{count} bandeja | {count} bandejas",
@@ -98,6 +100,13 @@
       "saml": "SAML",
       "calendar_integration": "Calendario y citas"
     },
-    "MANAGE_INSTALLATION": "Administrar instalación"
+    "MANAGE_INSTALLATION": "Administrar instalación",
+    "FREE": "Gratis",
+    "PRICE": "Precio",
+    "PER_MONTH": "/ mes",
+    "ANNUAL_PRICE": "{price} al año (2 meses gratis)",
+    "INHERITS": "Todo lo de {plan}, más:",
+    "REMOVED_FEATURES": "Este plan no incluye:",
+    "NOT_INCLUDED": "No incluido"
   }
 }

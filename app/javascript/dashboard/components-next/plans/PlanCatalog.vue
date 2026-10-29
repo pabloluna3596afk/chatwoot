@@ -97,6 +97,7 @@ const hasCurrentPlan = computed(() => props.currentPlanId !== null);
             :key="plan.id"
             v-bind="props"
             :plan="plan"
+            :plans="plans"
             class="w-[min(85vw,17rem)] shrink-0 snap-start xl:w-auto xl:min-w-52 xl:flex-1"
             @select="emit('select', $event)"
             @request-upgrade="emit('requestUpgrade', $event)"

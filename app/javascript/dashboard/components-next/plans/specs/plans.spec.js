@@ -3,6 +3,7 @@ import { createStore } from 'vuex';
 import { createI18n } from 'vue-i18n';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { defineComponent } from 'vue';
+import { readFileSync } from 'node:fs';
 import { mount, flushPromises } from '@vue/test-utils';
 import plans from 'dashboard/store/modules/plans';
 import PlansAPI from 'dashboard/api/plans';
@@ -134,11 +135,12 @@ describe('catalog presentation', () => {
     expect(wrapper.text()).toContain('12.500');
     expect(wrapper.text()).toContain('1 GB');
     expect(wrapper.text()).toContain('1 MB');
-    expect(wrapper.text()).toContain('1 bandeja');
-    expect(wrapper.text()).toContain('5 bandejas');
+    expect(wrapper.text()).toContain('Bandejas');
+    expect(wrapper.text()).toContain(es.PLAN_CATALOG.LIMITS.copilot_responses);
+    expect(wrapper.text()).toContain(es.PLAN_CATALOG.LIMITS.internal_ai_calls);
     expect(wrapper.text()).toContain('Calendario y citas');
     expect(wrapper.text()).not.toContain('Hidden');
-    expect(wrapper.find('.i-woot-captain').exists()).toBe(true);
+    expect(wrapper.find('.i-woot-captain').exists()).toBe(false);
     expect(wrapper.findAll('button:disabled')).toHaveLength(2);
     await wrapper.get('[data-plan-id="7"] button').trigger('click');
     expect(wrapper.emitted('select')).toEqual([[7]]);
@@ -171,7 +173,7 @@ describe('catalog presentation', () => {
     expect(wrapper.find('table').exists()).toBe(false);
   });
 
-  it('does not render null/missing limits as zero', async () => {
+  it('hides zero and missing limits instead of rendering empty values or zeroes', async () => {
     PlansAPI.get.mockResolvedValueOnce({
       data: [{ ...catalog[0], limits: { storage_bytes: null } }],
     });
@@ -179,8 +181,125 @@ describe('catalog presentation', () => {
       global: { plugins: [store, router, i18n] },
     });
     await flushPromises();
-    expect(wrapper.get('td').text()).toBe(es.PLAN_CATALOG.UNKNOWN);
     expect(wrapper.text()).not.toContain('0 MB');
+    expect(
+      wrapper
+        .findAll('tbody tr')
+        .some(row => row.text().includes('Almacenamiento'))
+    ).toBe(false);
+    expect(wrapper.findAll('td').some(cell => cell.text().trim() === '0')).toBe(
+      false
+    );
+  });
+
+  it('shows catalog prices and inherited feature changes from plan data', async () => {
+    wrapper = mount(PlanCatalog, {
+      props: { currentPlanId: 7 },
+      global: { plugins: [store, router, i18n] },
+    });
+    await flushPromises();
+    expect(wrapper.text()).toContain(es.PLAN_CATALOG.FREE);
+    expect(wrapper.text()).toContain('$119');
+    expect(wrapper.text()).toContain('$1.190');
+    expect(wrapper.text()).toContain(
+      es.PLAN_CATALOG.INHERITS.replace('{plan}', 'Prueba')
+    );
+    expect(wrapper.text()).toContain(es.PLAN_CATALOG.FEATURES.captain_tasks);
+    expect(wrapper.get('[data-plan-id="7"] button').text()).toBe(
+      es.PLAN_CATALOG.CURRENT
+    );
+    expect(wrapper.text()).not.toContain(es.PLAN_CATALOG.UNKNOWN);
+    expect(wrapper.text()).not.toMatch(/PLAN_CATALOG\.(LIMITS|FEATURES)\./);
+  });
+
+  it('hides inheritance copy when the catalog has no feature differences', () => {
+    const emptyFeaturePlans = catalog.map(plan => ({
+      ...plan,
+      feature_keys: [],
+    }));
+    const card = mount(PlanCard, {
+      props: { plan: emptyFeaturePlans[1], plans: emptyFeaturePlans },
+      global: { plugins: [i18n] },
+    });
+
+    expect(card.text()).not.toContain(
+      es.PLAN_CATALOG.INHERITS.replace('{plan}', 'Prueba')
+    );
+  });
+
+  it('calls out features removed from a higher plan', async () => {
+    PlansAPI.get.mockResolvedValueOnce({
+      data: [
+        { ...catalog[0], feature_keys: ['captain_integration', 'automations'] },
+        { ...catalog[1], feature_keys: ['captain_integration'] },
+      ],
+    });
+    wrapper = mount(PlanCatalog, {
+      global: { plugins: [store, router, i18n] },
+    });
+    await flushPromises();
+    expect(wrapper.text()).toContain(es.PLAN_CATALOG.REMOVED_FEATURES);
+    expect(wrapper.text()).toContain(es.PLAN_CATALOG.FEATURES.automations);
+  });
+
+  it('keeps every PLAN_CATALOG key used by the UI present in Spanish and English', () => {
+    const files = [
+      '../PlanCatalog.vue',
+      '../PlanCard.vue',
+      '../PlanComparisonTable.vue',
+      '../PlanPricingView.vue',
+      '../planPresentation.js',
+    ];
+    const source = files
+      .map(file => readFileSync(new URL(file, import.meta.url), 'utf8'))
+      .join('\n');
+    const keys = [
+      ...source.matchAll(
+        /PLAN_CATALOG\.([A-Z][A-Z0-9_]*(?:\.[A-Z][A-Z0-9_]*)*)/g
+      ),
+    ].map(([, key]) => key);
+    const hasPath = (object, path) =>
+      path.split('.').every(part => {
+        if (object == null || !Object.hasOwn(object, part)) return false;
+        object = object[part];
+        return true;
+      });
+    keys.forEach(key => {
+      expect(hasPath(es.PLAN_CATALOG, key), `es PLAN_CATALOG.${key}`).toBe(
+        true
+      );
+      expect(hasPath(en.PLAN_CATALOG, key), `en PLAN_CATALOG.${key}`).toBe(
+        true
+      );
+    });
+    catalog
+      .flatMap(plan => plan.feature_keys)
+      .forEach(feature => {
+        expect(es.PLAN_CATALOG.FEATURES[feature]).toBeTruthy();
+        expect(en.PLAN_CATALOG.FEATURES[feature]).toBeTruthy();
+      });
+    [...new Set(catalog.map(plan => plan.state))].forEach(state => {
+      expect(es.PLAN_CATALOG.STATES[state]).toBeTruthy();
+      expect(en.PLAN_CATALOG.STATES[state]).toBeTruthy();
+    });
+    [...new Set(catalog.flatMap(plan => Object.keys(plan.limits)))].forEach(
+      limit => {
+        expect(es.PLAN_CATALOG.LIMITS[limit]).toBeTruthy();
+        expect(en.PLAN_CATALOG.LIMITS[limit]).toBeTruthy();
+      }
+    );
+    ['MB', 'GB'].forEach(unit => {
+      expect(es.PLAN_CATALOG[unit]).toBeTruthy();
+      expect(en.PLAN_CATALOG[unit]).toBeTruthy();
+    });
+    ['inboxes', 'assistants', 'monthly_responses', 'users'].forEach(key => {
+      expect(es.PLAN_CATALOG.COUNTS[key]).toBeTruthy();
+      expect(en.PLAN_CATALOG.COUNTS[key]).toBeTruthy();
+    });
+    ['1', '2', '3', '4'].forEach(step => {
+      expect(es.PLAN_CATALOG.QUESTIONS[step]).toBeTruthy();
+      expect(en.PLAN_CATALOG.QUESTIONS[step]).toBeTruthy();
+    });
   });
 
   it('only permits selection of an available current plan, including slug identity', async () => {
@@ -198,15 +317,14 @@ describe('catalog presentation', () => {
     expect(wrapper.get('button').attributes('disabled')).toBeDefined();
   });
 
-  it('keeps translation keys in parity and formats English plurals', async () => {
+  it('keeps translation keys in parity and formats English numbers', async () => {
     expect(Object.keys(en.PLAN_CATALOG)).toEqual(Object.keys(es.PLAN_CATALOG));
     i18n.global.locale.value = 'en';
     wrapper = mount(PlanCatalog, {
       global: { plugins: [store, router, i18n] },
     });
     await flushPromises();
-    expect(wrapper.text()).toContain('1 inbox');
-    expect(wrapper.text()).toContain('5 inboxes');
+    expect(wrapper.text()).toContain('Inboxes');
     expect(wrapper.text()).toContain('3,000');
   });
 });
