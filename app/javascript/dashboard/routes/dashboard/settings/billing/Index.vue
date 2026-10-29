@@ -410,7 +410,9 @@ onMounted(async () => {
         ? $t('BILLING_SETTINGS.NO_BILLING_USER')
         : $t('ATTRIBUTES_MGMT.LOADING')
     "
-    :no-records-found="false"
+    :no-records-found="
+      !hasABillingPlan && !isWaitingForBilling && !currencySelectionRequired
+    "
     :no-records-message="
       isOnChatwootCloud
         ? $t('BILLING_SETTINGS.NO_BILLING_USER')
