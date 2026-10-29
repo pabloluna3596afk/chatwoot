@@ -18,8 +18,18 @@ RSpec.describe 'Super Admin plans', type: :request do
     expect(response).to have_http_status(:ok), response.body
     expect(response.body).to include(
       'plan[coming_soon]', 'plan[feature_keys][]', 'plan[limit_values][captain_copilot_responses]',
-      'plan[limit_values][max_flows]', 'plan[limit_values][trial_days]'
+      'plan[limit_values][max_flows]', 'plan[limit_values][trial_days]',
+      'plan_feature_captain_tasks', 'Copilot, according to plan allowance'
     )
+  end
+
+  it 'shows Copilot as a plan allowance indicator in the comparison grid' do
+    sign_in(super_admin, scope: :super_admin)
+    plan.update!(captain_copilot_responses: 0)
+
+    get '/super_admin/plans'
+
+    expect(response.body).to include('Copilot, according to plan allowance', 'AI tools for agents')
   end
 
   it 'edits availability and features without changing account flags' do

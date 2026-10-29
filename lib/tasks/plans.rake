@@ -1,6 +1,6 @@
-namespace :plans do
+namespace :plans do # rubocop:disable Metrics/BlockLength
   desc 'Seed the real ChatHub pricing plans (Prueba, Inicio, Crecimiento, Negocio, Escala, Developer) as Plan rows'
-  task seed: :environment do
+  task seed: :environment do # rubocop:disable Metrics/BlockLength
     common = {
       addon_agent_price: 18,
       addon_bot_price: 35,
