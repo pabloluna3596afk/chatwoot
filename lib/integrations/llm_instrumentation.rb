@@ -1,13 +1,21 @@
 # frozen_string_literal: true
 
 require 'opentelemetry_config'
+require_relative 'llm_usage_recording'
 
 module Integrations::LlmInstrumentation
   include Integrations::LlmInstrumentationConstants
   include Integrations::LlmInstrumentationHelpers
   include Integrations::LlmInstrumentationSpans
+  include Integrations::LlmUsageRecording
 
-  def instrument_llm_call(params)
+  def instrument_llm_call(params, &)
+    return Llm::UsageContext.with_instrumentation(params) { instrument_llm_call_with_context(params, &) } unless Llm::UsageContext.current
+
+    instrument_llm_call_with_context(params, &)
+  end
+
+  def instrument_llm_call_with_context(params)
     return yield unless ChatwootApp.otel_enabled?
 
     result = nil
@@ -24,7 +32,13 @@ module Integrations::LlmInstrumentation
     executed ? result : yield
   end
 
-  def instrument_agent_session(params)
+  def instrument_agent_session(params, &)
+    return Llm::UsageContext.with_instrumentation(params) { instrument_agent_session_with_context(params, &) } unless Llm::UsageContext.current
+
+    instrument_agent_session_with_context(params, &)
+  end
+
+  def instrument_agent_session_with_context(params)
     return yield unless ChatwootApp.otel_enabled?
 
     result = nil
@@ -63,18 +77,6 @@ module Integrations::LlmInstrumentation
     end
   end
 
-  def instrument_embedding_call(params)
-    return yield unless ChatwootApp.otel_enabled?
-
-    instrument_with_span(params[:span_name] || 'llm.embedding', params) do |span, track_result|
-      set_embedding_span_attributes(span, params)
-      result = yield
-      track_result.call(result)
-      set_embedding_result_attributes(span, result)
-      result
-    end
-  end
-
   def instrument_audio_transcription(params)
     return yield unless ChatwootApp.otel_enabled?
 
@@ -87,19 +89,19 @@ module Integrations::LlmInstrumentation
     end
   end
 
-  def instrument_moderation_call(params)
-    return yield unless ChatwootApp.otel_enabled?
+  private
 
-    instrument_with_span(params[:span_name] || 'llm.moderation', params) do |span, track_result|
-      set_moderation_span_attributes(span, params)
-      result = yield
-      track_result.call(result)
-      set_moderation_result_attributes(span, result)
-      result
+  def with_usage_recording(params)
+    Llm::UsageContext.with_instrumentation(params) do
+      started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      response = yield
+      record_usage_operation(params, response, status: 'ok', started_at: started_at)
+      response
+    rescue StandardError => e
+      record_usage_operation(params, nil, status: 'error', error: e, started_at: started_at)
+      raise
     end
   end
-
-  private
 
   def resolve_account(params)
     return params[:account] if params[:account].is_a?(Account)

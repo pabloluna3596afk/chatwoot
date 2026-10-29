@@ -36,19 +36,16 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
     transcribed_text = nil
 
     File.open(temp_file_path, 'rb') do |file|
-      transcribed_text = instrument_audio_transcription(instrumentation_params(temp_file_path)) do
-        # temperature: 0.0 minimises hallucinations on silence / near-silent
-        # audio; non-zero values trigger spiraling repeats — well-documented
-        # behaviour across OpenAI transcription models.
-        response = @client.audio.transcribe(
-          parameters: {
-            model: transcription_model,
-            file: file,
-            temperature: 0.0
-          }
-        )
-        response['text']
+      params = instrumentation_params(temp_file_path)
+      response = with_usage_recording(params) do
+        instrument_audio_transcription(params) do
+          # temperature: 0.0 minimises hallucinations on silence / near-silent
+          # audio; non-zero values trigger spiraling repeats — well-documented
+          # behaviour across OpenAI transcription models.
+          transcribe_audio(file)
+        end
       end
+      transcribed_text = response['text']
     end
 
     account.increment_response_usage if transcribed_text.present?
@@ -58,6 +55,16 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
   end
 
   private
+
+  def transcribe_audio(file)
+    @client.audio.transcribe(
+      parameters: {
+        model: transcription_model,
+        file: file,
+        temperature: 0.0
+      }
+    )
+  end
 
   def fetch_audio_file
     temp_dir = Rails.root.join('tmp/uploads/audio-transcriptions')
@@ -95,6 +102,7 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
     {
       span_name: 'llm.messages.audio_transcription',
       model: transcription_model,
+      provider: 'openai',
       account_id: account&.id,
       feature_name: 'audio_transcription',
       file_path: file_path
