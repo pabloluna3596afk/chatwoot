@@ -68,4 +68,34 @@ describe('ReplyTopPanel', () => {
         .props('replySuggestionDisabledReason')
     ).toBe('plan');
   });
+
+  it('passes the exhausted internal quota and UTC reset date to the menu', async () => {
+    const periodEnd = '2026-11-01T00:00:00Z';
+    useCaptain.mockReturnValue({
+      captainTasksEnabled: ref(true),
+      captainEnabled: true,
+      isEnterprise: true,
+      latestPublicMessageIsIncoming: ref(true),
+      internalLimitReached: ref(true),
+      usagePeriodEnd: ref(periodEnd),
+    });
+    const wrapper = mount(ReplyTopPanel, {
+      props: { conversationId: 12 },
+      global: {
+        mocks: { $t: key => key },
+        stubs: { EditorModeToggle: true, CopilotMenuBar: true },
+      },
+    });
+
+    await wrapper.findAll('button')[0].trigger('click');
+
+    expect(
+      wrapper.findComponent({ name: 'CopilotMenuBar' }).props()
+    ).toMatchObject({
+      replySuggestionDisabledReason: 'limit',
+      quotaResetDate: new Intl.DateTimeFormat('en', {
+        timeZone: 'UTC',
+      }).format(new Date(periodEnd)),
+    });
+  });
 });

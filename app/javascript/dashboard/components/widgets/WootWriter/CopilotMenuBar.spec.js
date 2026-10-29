@@ -70,4 +70,30 @@ describe('CopilotMenuBar', () => {
       }
     );
   });
+
+  it('shows the quota reset date when internal actions are exhausted', () => {
+    useMapGetter.mockReturnValue({ value: REPLY_EDITOR_MODES.REPLY });
+    const wrapper = mount(CopilotMenuBar, {
+      props: {
+        conversationId: 12,
+        captainTasksEnabled: true,
+        replySuggestionDisabledReason: 'limit',
+        quotaResetDate: 'Nov 1, 2026',
+      },
+      global: {
+        mocks: { $t: key => key },
+        stubs: { DropdownBody: { template: '<div><slot /></div>' } },
+      },
+    });
+    const suggestion = wrapper
+      .findAllComponents(Button)
+      .find(button =>
+        button.props('label')?.includes('REPLY_OPTIONS.SUGGESTION')
+      );
+
+    expect(suggestion.element.disabled).toBe(true);
+    expect(suggestion.attributes('title')).toContain(
+      'SUGGESTION_LIMIT_REACHED'
+    );
+  });
 });
