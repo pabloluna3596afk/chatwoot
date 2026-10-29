@@ -2,11 +2,11 @@ require 'rails_helper'
 
 RSpec.describe 'Api::V1::Accounts::Captain::CopilotMessagesController', type: :request do
   let(:account) { create(:account) }
-
-  before { account.enable_features!('captain_integration') }
   let(:user) { create(:user, account: account, role: :administrator) }
   let(:copilot_thread) { create(:captain_copilot_thread, account: account, user: user) }
   let!(:copilot_message) { create(:captain_copilot_message, copilot_thread: copilot_thread, account: account) }
+
+  before { account.enable_features!('captain_integration') }
 
   describe 'GET /api/v1/accounts/{account.id}/captain/copilot_threads/{thread.id}/copilot_messages' do
     context 'when it is an authenticated user' do
@@ -25,6 +25,23 @@ RSpec.describe 'Api::V1::Accounts::Captain::CopilotMessagesController', type: :r
     context 'when thread id is invalid' do
       it 'returns not found error' do
         get "/api/v1/accounts/#{account.id}/captain/copilot_threads/999999999/copilot_messages",
+            headers: user.create_new_auth_token,
+            as: :json
+
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    context 'when the current account is different from the thread account' do
+      let(:another_account) { create(:account) }
+
+      before do
+        another_account.enable_features!('captain_integration')
+        create(:account_user, account: another_account, user: user, role: :administrator)
+      end
+
+      it 'returns not found for the same user after switching accounts' do
+        get "/api/v1/accounts/#{another_account.id}/captain/copilot_threads/#{copilot_thread.id}/copilot_messages",
             headers: user.create_new_auth_token,
             as: :json
 
