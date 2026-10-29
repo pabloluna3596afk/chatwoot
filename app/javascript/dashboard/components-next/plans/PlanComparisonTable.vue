@@ -83,11 +83,12 @@ const featureRows = computed(() => features(props.plans));
               :class="{ 'bg-n-blue-3': matchesPlan(plan, currentPlanId) }"
             >
               <div class="font-semibold">
-                {{
-                  pricing(plan).monthly === 0
-                    ? t('PLAN_CATALOG.FREE')
-                    : money(pricing(plan).monthly)
-                }}
+                <template v-if="pricing(plan).monthly > 0">
+                  {{ money(pricing(plan).monthly) }}
+                </template>
+                <template v-else-if="plan.name !== t('PLAN_CATALOG.FREE')">
+                  {{ t('PLAN_CATALOG.FREE') }}
+                </template>
                 <span
                   v-if="pricing(plan).monthly > 0"
                   class="font-normal text-n-slate-11"

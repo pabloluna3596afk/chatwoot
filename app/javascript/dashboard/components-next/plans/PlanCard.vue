@@ -22,6 +22,7 @@ const { t } = useI18n();
 const { featureChanges, money, pricing, summary } = usePlanPresentation();
 const current = computed(() => matchesPlan(props.plan, props.currentPlanId));
 const selected = computed(() => matchesPlan(props.plan, props.selectedPlanId));
+const freeName = computed(() => props.plan.name === t('PLAN_CATALOG.FREE'));
 const changes = computed(() =>
   featureChanges(props.plans.length ? props.plans : [props.plan], props.plan)
 );
@@ -74,9 +75,10 @@ const choose = () => {
     </div>
     <div class="space-y-1 border-b border-n-weak pb-4">
       <p class="m-0 text-2xl font-semibold text-n-slate-12">
-        {{
-          prices.monthly === 0 ? t('PLAN_CATALOG.FREE') : money(prices.monthly)
-        }}
+        <template v-if="prices.monthly > 0">
+          {{ money(prices.monthly) }}
+        </template>
+        <template v-else-if="!freeName">{{ t('PLAN_CATALOG.FREE') }}</template>
         <span
           v-if="prices.monthly > 0"
           class="text-sm font-normal text-n-slate-11"

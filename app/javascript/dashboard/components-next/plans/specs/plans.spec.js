@@ -212,6 +212,24 @@ describe('catalog presentation', () => {
     expect(wrapper.text()).not.toMatch(/PLAN_CATALOG\.(LIMITS|FEATURES)\./);
   });
 
+  it('does not repeat Gratis when the free plan is named Gratis', async () => {
+    PlansAPI.get.mockResolvedValueOnce({
+      data: [{ ...catalog[0], name: es.PLAN_CATALOG.FREE }],
+    });
+    wrapper = mount(PlanCatalog, {
+      global: { plugins: [store, router, i18n] },
+    });
+    await flushPromises();
+
+    const card = wrapper.get('[data-plan-id="7"]');
+    expect(card.get('h3').text()).toBe(es.PLAN_CATALOG.FREE);
+    expect(card.text().split(es.PLAN_CATALOG.FREE)).toHaveLength(2);
+    expect(wrapper.get('thead th:nth-child(2)').text()).toBe(
+      es.PLAN_CATALOG.FREE
+    );
+    expect(wrapper.get('tbody tr:first-child td').text()).toBe('');
+  });
+
   it('hides inheritance copy when the catalog has no feature differences', () => {
     const emptyFeaturePlans = catalog.map(plan => ({
       ...plan,
