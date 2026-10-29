@@ -2,8 +2,9 @@ module Captain::Tools::CopilotToolCallLogging
   SAFE_CATEGORY_VALUES = {
     'order_by' => %w[last_activity_at created_at],
     'direction' => %w[asc desc],
+    'group_by' => %w[status priority inbox assignee team label country blocked day week month year],
     'resource' => %w[conversations contacts],
-    'group_by' => %w[status priority inbox assignee team label country blocked day week month year]
+    'assignee_id' => %w[me unassigned]
   }.freeze
 
   private
@@ -18,14 +19,16 @@ module Captain::Tools::CopilotToolCallLogging
 
   def safe_category?(key, value)
     return Conversation.statuses.key?(value) if key == 'status'
+
     return Conversation.priorities.key?(value) if key == 'priority'
+
     return value.is_a?(Integer) && value.between?(1, 100) if key == 'limit'
 
     SAFE_CATEGORY_VALUES[key]&.include?(value) || false
   end
 
   def delimit_untrusted_result(result)
-    return result unless %w[search_conversation get_conversation search_contacts get_contact].include?(name.to_s)
+    return result unless %w[search_conversation get_conversation summarize_conversation search_contacts get_contact].include?(name.to_s)
     return result unless result.is_a?(String) && result.present?
 
     "UNTRUSTED_DATA_BEGIN\n#{result}\nUNTRUSTED_DATA_END"
@@ -49,7 +52,10 @@ module Captain::Tools::CopilotToolCallLogging
     context.slice(:attempt).merge(
       result: context[:status], event: 'copilot_tool_call', tool_name: name, turn_id: context[:limiter]&.turn_id,
       filter_names: filter_names(arguments), filter_values: safe_filter_values(arguments),
-      order_by: arguments[:order_by], direction: arguments[:direction]
+      order_by: safe_category_value('order_by', arguments[:order_by]),
+      direction: safe_category_value('direction', arguments[:direction]),
+      group_by: safe_category_value('group_by', arguments[:group_by]),
+      resource: safe_category_value('resource', arguments[:resource])
     ).merge(tool_result_counts(context[:result], context[:status]))
   end
 
@@ -99,7 +105,13 @@ module Captain::Tools::CopilotToolCallLogging
 
   def safe_filter_values(arguments)
     filters = arguments[:filters].is_a?(Hash) ? arguments[:filters].stringify_keys : {}
-    values = arguments.slice(:status, :priority).stringify_keys.merge(filters.slice('status', 'priority'))
+    values = arguments.slice(:status, :priority, :assignee_id).stringify_keys.merge(filters.slice('status', 'priority', 'assignee_id'))
     values.select { |key, value| safe_category?(key, value) }
+  end
+
+  def safe_category_value(key, value)
+    return if value.blank?
+
+    safe_category?(key, value) ? value : 'invalid'
   end
 end

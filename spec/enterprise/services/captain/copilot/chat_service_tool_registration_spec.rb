@@ -14,7 +14,7 @@ RSpec.describe Captain::Copilot::ChatService do
     service = described_class.new(assistant, user_id: user.id)
     tool_names = service.instance_variable_get(:@tools).map(&:name)
 
-    expect(tool_names).to include('get_data', 'list_labels', 'list_custom_attributes', 'describe_schema')
+    expect(tool_names).to include('get_data', 'summarize_conversation', 'list_labels', 'list_custom_attributes', 'describe_schema')
   end
 
   it 'registers propose_action only for an owned persisted thread' do
