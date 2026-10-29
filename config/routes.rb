@@ -71,6 +71,7 @@ Rails.application.routes.draw do
             collection { post :quote }
             member { post :preview_confirm }
           end
+          get :ai_usage, to: 'ai_usage#index'
           resource :bulk_actions, only: [:create]
           resource :onboarding, only: [:update] do
             get :help_center_generation
