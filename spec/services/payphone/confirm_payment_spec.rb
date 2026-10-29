@@ -16,6 +16,14 @@ RSpec.describe Payphone::ConfirmPayment do
   end
   let(:client) { instance_double(Payphone::FakeClient, confirm: response) }
 
+  before do
+    allow(InstallationConfig).to receive(:find_by).and_call_original
+    allow(InstallationConfig).to receive(:find_by).with(name: 'PAYPHONE_ENVIRONMENT')
+                                                  .and_return(instance_double(InstallationConfig, value: 'test'))
+    allow(InstallationConfig).to receive(:find_by).with(name: 'PAYPHONE_TEST_ACCOUNT_IDS')
+                                                  .and_return(instance_double(InstallationConfig, value: account.id.to_s))
+  end
+
   it 'activates the plan for 30 days and treats a repeated confirmation as idempotent' do
     mailer = instance_double(PayphoneReceiptMailer)
     delivery = instance_double(ActionMailer::MessageDelivery)
@@ -180,5 +188,40 @@ RSpec.describe Payphone::ConfirmPayment do
 
     expect(payment.reload.status).to eq('cancelled')
     expect(account.reload.plan_id).not_to eq(plan.id)
+  end
+
+  it 'records a pending confirmation for review when the account was removed from the test allowlist' do
+    allow(InstallationConfig).to receive(:find_by).with(name: 'PAYPHONE_TEST_ACCOUNT_IDS')
+                                                  .and_return(instance_double(InstallationConfig, value: ''))
+    expect(Rails.logger).to receive(:warn).with(/account_id=#{account.id} payment_id=#{payment.id}/)
+
+    described_class.new(payment: payment, transaction_id: '123',
+                        client_transaction_id: payment.client_transaction_id, client: client).call
+
+    expect(payment.reload.status).to eq('failed')
+    expect(account.reload.plan_id).not_to eq(plan.id)
+    expect(client).not_to have_received(:confirm)
+  end
+
+  it 'confirms payments for any account in production' do
+    allow(InstallationConfig).to receive(:find_by).with(name: 'PAYPHONE_ENVIRONMENT')
+                                                  .and_return(instance_double(InstallationConfig, value: 'production'))
+    allow(InstallationConfig).to receive(:find_by).with(name: 'PAYPHONE_TEST_ACCOUNT_IDS')
+                                                  .and_return(instance_double(InstallationConfig, value: ''))
+
+    described_class.new(payment: payment, transaction_id: '123',
+                        client_transaction_id: payment.client_transaction_id, client: client).call
+
+    expect(payment.reload.status).to eq('approved')
+    expect(account.reload.plan_id).to eq(plan.id)
+  end
+
+  it 'activates an allowlisted test account through the FakeClient flow' do
+    fake_client = Payphone::FakeClient.new(payment: payment, status_code: 3)
+    described_class.new(payment: payment, transaction_id: (payment.id + 10_000).to_s,
+                        client_transaction_id: payment.client_transaction_id, client: fake_client).call
+
+    expect(payment.reload.status).to eq('approved')
+    expect(account.reload.plan_id).to eq(plan.id)
   end
 end

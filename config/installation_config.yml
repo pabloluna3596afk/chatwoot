@@ -691,6 +691,11 @@
   options:
     test: 'Test'
     production: 'Production'
+- name: PAYPHONE_TEST_ACCOUNT_IDS
+  display_title: 'super_admin.payphone.fields.test_account_ids'
+  description: 'super_admin.payphone.descriptions.test_account_ids'
+  value: ''
+  locked: false
 - name: PAYPHONE_RESPONSE_URL
   display_title: 'super_admin.payphone.fields.response_url'
   description: 'super_admin.payphone.descriptions.response_url'

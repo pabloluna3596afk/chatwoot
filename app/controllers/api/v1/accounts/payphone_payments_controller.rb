@@ -5,7 +5,9 @@ class Api::V1::Accounts::PayphonePaymentsController < Api::V1::Accounts::BaseCon
   def index
     latest_approved = @current_account.payphone_payments.where(status: 'approved').order(period_end: :desc).first
     render json: {
-      enabled: ActiveModel::Type::Boolean.new.cast(InstallationConfig.find_by(name: 'ENABLE_PAYPHONE')&.value),
+      enabled: ActiveModel::Type::Boolean.new.cast(InstallationConfig.find_by(name: 'ENABLE_PAYPHONE')&.value) &&
+               Payphone::AccountAccess.allowed?(@current_account),
+      environment: Payphone::AccountAccess.environment,
       renewal_state: renewal_state(latest_approved), period_end: latest_approved&.period_end,
       grace_end: grace_end(latest_approved),
       payments: @current_account.payphone_payments.includes(:plan).order(created_at: :desc).limit(50).map { |payment| serialize(payment) }
@@ -17,6 +19,8 @@ class Api::V1::Accounts::PayphonePaymentsController < Api::V1::Accounts::BaseCon
     render json: serialize(payment).merge(box: box_config(payment), created: created), status: created ? :created : :ok
   rescue Payphone::ConfigurationError
     render json: { error: I18n.t('payphone.errors.disabled') }, status: :unprocessable_entity
+  rescue Payphone::AccountNotAllowed
+    render json: { error: I18n.t('payphone.errors.test_account_not_allowed') }, status: :forbidden
   rescue Payphone::UnavailablePlan, ActiveRecord::RecordNotFound
     render json: { error: I18n.t('payphone.errors.plan_unavailable') }, status: :unprocessable_entity
   rescue Payphone::StripeSubscriptionActive

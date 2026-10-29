@@ -13,6 +13,7 @@ class Payphone::OrderCreator
 
   def create_order
     raise Payphone::ConfigurationError unless enabled?
+    raise Payphone::AccountNotAllowed unless Payphone::AccountAccess.allowed?(@account)
 
     plan = purchasable_plan
     ensure_provider_and_plan_eligible!(plan)

@@ -12,6 +12,7 @@ import { useI18n } from 'vue-i18n';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import TasksAPI from 'dashboard/api/captain/tasks';
 import { CAPTAIN_ERROR_TYPES } from 'dashboard/composables/captain/constants';
+import { MESSAGE_TYPE } from 'shared/constants/messages';
 
 export function useCaptain() {
   const store = useStore();
@@ -34,6 +35,20 @@ export function useCaptain() {
 
   const captainTasksEnabled = computed(() => {
     return isCloudFeatureEnabled(FEATURE_FLAGS.CAPTAIN_TASKS);
+  });
+
+  const latestPublicMessageIsIncoming = computed(() => {
+    const latestPublicMessage = currentChat.value?.messages
+      ?.filter(
+        message =>
+          !message.private &&
+          [MESSAGE_TYPE.INCOMING, MESSAGE_TYPE.OUTGOING].includes(
+            message.message_type
+          )
+      )
+      .at(-1);
+
+    return latestPublicMessage?.message_type === MESSAGE_TYPE.INCOMING;
   });
 
   // === Limits (Enterprise) ===
@@ -68,6 +83,13 @@ export function useCaptain() {
     }
     return null;
   });
+
+  const internalLimitReached = computed(
+    () => Number(internalLimits.value?.currentAvailable) === 0
+  );
+  const usagePeriodEnd = computed(
+    () => currentAccount.value?.limits?.plan?.period_end
+  );
 
   const storageLimits = computed(() => {
     if (captainLimits.value?.storage) {
@@ -245,6 +267,8 @@ export function useCaptain() {
     // Feature flags
     captainEnabled,
     captainTasksEnabled,
+    isEnterprise,
+    latestPublicMessageIsIncoming,
 
     // Limits (Enterprise)
     captainLimits,
@@ -252,6 +276,8 @@ export function useCaptain() {
     responseLimits,
     copilotLimits,
     internalLimits,
+    internalLimitReached,
+    usagePeriodEnd,
     storageLimits,
     fetchLimits,
     isFetchingLimits,

@@ -10,6 +10,7 @@ class Payphone::ConfirmPayment
     return @payment if @payment.approved?
     raise Payphone::ConfirmationError unless @payment.pending? && @payment.client_transaction_id == @client_transaction_id
     raise Payphone::ConfirmationError if @payment.created_at <= 15.minutes.ago
+    return reject_disallowed_account unless Payphone::AccountAccess.allowed?(@payment.account)
 
     response = @client.confirm(transaction_id: @transaction_id, client_transaction_id: @client_transaction_id)
     begin
@@ -28,11 +29,18 @@ class Payphone::ConfirmPayment
     @payment.with_lock do
       return @payment if @payment.approved?
       raise Payphone::ConfirmationError unless @payment.pending?
+      return reject_disallowed_account unless Payphone::AccountAccess.allowed?(@payment.account)
 
       @payment.transition_to!(payment_status(response), attributes: payment_attributes(response))
       newly_approved = @payment.approved?
     end
     send_receipt if newly_approved
+    @payment
+  end
+
+  def reject_disallowed_account
+    Rails.logger.warn("Payphone confirmation requires review for disallowed account_id=#{@payment.account_id} payment_id=#{@payment.id}")
+    @payment.transition_to!('failed')
     @payment
   end
 

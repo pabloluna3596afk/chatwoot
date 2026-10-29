@@ -229,6 +229,10 @@
         },
         "GRAMMAR": "Fix grammar & spelling",
         "SUGGESTION": "Suggest a reply",
+        "SUGGESTION_PLAN_REQUIRED": "Reply suggestions are available from the Basic plan.",
+        "SUGGESTION_LIMIT_REACHED": "You’ve used all AI actions for this month. They reset on {date}.",
+        "SUGGESTION_LIMIT_REACHED_NO_DATE": "You’ve used all AI actions for this month.",
+        "SUGGESTION_INCOMING_REQUIRED": "Wait for a customer message to suggest a reply.",
         "SUMMARIZE": "Summarize the conversation",
         "ASK_COPILOT": "Ask Copilot"
       },

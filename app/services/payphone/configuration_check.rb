@@ -4,7 +4,7 @@ class Payphone::ConfigurationCheck
   KEYS = %w[
     ENABLE_PAYPHONE PAYPHONE_STORE_ID PAYPHONE_TOKEN PAYPHONE_BOX_TOKEN PAYPHONE_ENVIRONMENT PAYPHONE_RESPONSE_URL
     PAYPHONE_EXTERNAL_NOTIFICATION_ENABLED PAYPHONE_TAX_RATE PAYPHONE_CARD_COMMISSION_RATE
-    PAYPHONE_COMMISSION_ENABLED PAYPHONE_GRACE_DAYS
+    PAYPHONE_COMMISSION_ENABLED PAYPHONE_GRACE_DAYS PAYPHONE_TEST_ACCOUNT_IDS
   ].freeze
 
   Result = Struct.new(:valid?, :errors, keyword_init: true)
@@ -26,6 +26,7 @@ class Payphone::ConfigurationCheck
     validate_rate(errors, 'PAYPHONE_TAX_RATE', I18n.t('super_admin.payphone.rate_labels.tax'))
     validate_rate(errors, 'PAYPHONE_CARD_COMMISSION_RATE', I18n.t('super_admin.payphone.rate_labels.commission'))
     validate_grace_days(errors)
+    validate_test_account_ids(errors)
     validate_response_url(errors)
 
     Result.new(valid?: errors.empty?, errors: errors)
@@ -49,6 +50,12 @@ class Payphone::ConfigurationCheck
     errors << I18n.t('super_admin.payphone.validation.grace_range') if days.negative?
   rescue ArgumentError, TypeError
     errors << I18n.t('super_admin.payphone.validation.grace_number')
+  end
+
+  def validate_test_account_ids(errors)
+    return if Payphone::AccountAccess.valid_account_ids?(value('PAYPHONE_TEST_ACCOUNT_IDS'))
+
+    errors << I18n.t('super_admin.payphone.validation.test_account_ids')
   end
 
   def validate_response_url(errors)

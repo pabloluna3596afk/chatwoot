@@ -15,6 +15,10 @@ RSpec.describe Payphone::OrderCreator do
                                                   .and_return(instance_double(InstallationConfig, value: '5.75'))
     allow(InstallationConfig).to receive(:find_by).with(name: 'PAYPHONE_COMMISSION_ENABLED')
                                                   .and_return(instance_double(InstallationConfig, value: true))
+    allow(InstallationConfig).to receive(:find_by).with(name: 'PAYPHONE_ENVIRONMENT')
+                                                  .and_return(instance_double(InstallationConfig, value: 'test'))
+    allow(InstallationConfig).to receive(:find_by).with(name: 'PAYPHONE_TEST_ACCOUNT_IDS')
+                                                  .and_return(instance_double(InstallationConfig, value: account.id.to_s))
   end
 
   it 'prices from the plan and reuses the open order when the browser retries' do
@@ -35,5 +39,26 @@ RSpec.describe Payphone::OrderCreator do
     expect do
       described_class.new(account: account, user: user, params: { plan_id: plan.id }).call
     end.to raise_error(Payphone::StripeSubscriptionActive)
+  end
+
+  it 'blocks order creation for an account outside the test allowlist and reads changes immediately' do
+    config = instance_double(InstallationConfig, value: '')
+    allow(InstallationConfig).to receive(:find_by).with(name: 'PAYPHONE_TEST_ACCOUNT_IDS').and_return(config)
+    expect { described_class.new(account: account, user: user, params: { plan_id: plan.id, needs_invoice: false }).call }
+      .to raise_error(Payphone::AccountNotAllowed)
+
+    allow(config).to receive(:value).and_return(account.id.to_s)
+    expect { described_class.new(account: account, user: user, params: { plan_id: plan.id, needs_invoice: false }).call }
+      .not_to raise_error
+  end
+
+  it 'allows every account in production regardless of the test allowlist' do
+    allow(InstallationConfig).to receive(:find_by).with(name: 'PAYPHONE_ENVIRONMENT')
+                                                  .and_return(instance_double(InstallationConfig, value: 'production'))
+    allow(InstallationConfig).to receive(:find_by).with(name: 'PAYPHONE_TEST_ACCOUNT_IDS')
+                                                  .and_return(instance_double(InstallationConfig, value: ''))
+
+    expect { described_class.new(account: account, user: user, params: { plan_id: plan.id, needs_invoice: false }).call }
+      .not_to raise_error
   end
 end
