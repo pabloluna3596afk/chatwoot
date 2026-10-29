@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'dashboard/components-next/button/Button.vue';
+import OutlinedSelectField from 'dashboard/components-next/CustomAttributes/OutlinedSelectField.vue';
 
 const props = defineProps({
   item: { type: Object, required: true },
@@ -28,6 +29,35 @@ const actionIcon = computed(
     })[props.item.action] || 'i-lucide-circle-help'
 );
 const isPending = computed(() => props.item.status === 'pending');
+const labelOptions = computed(() =>
+  props.labels.map(label => ({ id: label.id, name: label.title }))
+);
+const selectedLabel = computed(
+  () =>
+    labelOptions.value.find(
+      label => Number(label.id) === Number(draft.value.label_id)
+    ) || null
+);
+const agentOptions = computed(() => [
+  { id: null, name: t('CAPTAIN.COPILOT.ACTIONS.NO_AGENT') },
+  ...props.agents.map(agent => ({ id: agent.id, name: agent.name })),
+]);
+const selectedAgent = computed(
+  () =>
+    agentOptions.value.find(
+      agent => Number(agent.id) === Number(draft.value.assignee_id)
+    ) || agentOptions.value[0]
+);
+const teamOptions = computed(() => [
+  { id: null, name: t('CAPTAIN.COPILOT.ACTIONS.NO_TEAM') },
+  ...props.teams.map(team => ({ id: team.id, name: team.name })),
+]);
+const selectedTeam = computed(
+  () =>
+    teamOptions.value.find(
+      team => Number(team.id) === Number(draft.value.team_id)
+    ) || teamOptions.value[0]
+);
 const targetLabel = computed(() => {
   const values = {
     name: props.item.target_name || t('CAPTAIN.COPILOT.ACTIONS.UNKNOWN_TARGET'),
@@ -46,7 +76,7 @@ const title = computed(() => {
     return t('CAPTAIN.COPILOT.ACTIONS.PRIVATE_NOTE_TITLE');
   if (props.item.action === 'assignment')
     return t('CAPTAIN.COPILOT.ACTIONS.ASSIGNMENT_TITLE');
-  return props.item.action;
+  return t('CAPTAIN.COPILOT.ACTIONS.GENERIC_TITLE');
 });
 const description = computed(() => {
   if (props.item.action === 'add_label') {
@@ -82,6 +112,14 @@ const statusLabel = computed(() => {
     failed: t('CAPTAIN.COPILOT.ACTIONS.STATUS.FAILED'),
   };
   return labels[props.item.status] || props.item.status;
+});
+const statusClass = computed(() => {
+  if (props.item.status === 'approved' || props.item.status === 'executed')
+    return 'text-n-teal-11';
+  if (props.item.status === 'rejected' || props.item.status === 'failed')
+    return 'text-n-slate-11';
+  if (props.item.status === 'expired') return 'text-n-amber-11';
+  return 'text-n-slate-10';
 });
 const resultLabel = computed(() => {
   const result = props.item.result;
@@ -120,16 +158,14 @@ const edit = () => {
           {{ description }}
         </div>
         <div v-else class="mt-2 flex flex-col gap-2">
-          <select
+          <OutlinedSelectField
             v-if="item.action === 'add_label'"
-            v-model="draft.label_id"
-            class="min-h-9 rounded-md border border-n-weak bg-n-surface-1 px-2"
-            :aria-label="$t('CAPTAIN.COPILOT.ACTIONS.LABEL')"
-          >
-            <option v-for="label in labels" :key="label.id" :value="label.id">
-              {{ label.title }}
-            </option>
-          </select>
+            :label="$t('CAPTAIN.COPILOT.ACTIONS.LABEL')"
+            :options="labelOptions"
+            :selected-item="selectedLabel"
+            :placeholder="$t('CAPTAIN.COPILOT.ACTIONS.LABEL')"
+            @select="draft.label_id = $event?.id"
+          />
           <textarea
             v-else-if="item.action === 'private_note'"
             v-model="draft.content"
@@ -138,33 +174,23 @@ const edit = () => {
             :aria-label="$t('CAPTAIN.COPILOT.ACTIONS.NOTE')"
           />
           <template v-else>
-            <select
-              v-model="draft.assignee_id"
-              class="min-h-9 rounded-md border border-n-weak bg-n-surface-1 px-2"
-              :aria-label="$t('CAPTAIN.COPILOT.ACTIONS.AGENT')"
-            >
-              <option value="">
-                {{ $t('CAPTAIN.COPILOT.ACTIONS.NO_AGENT') }}
-              </option>
-              <option v-for="agent in agents" :key="agent.id" :value="agent.id">
-                {{ agent.name }}
-              </option>
-            </select>
-            <select
-              v-model="draft.team_id"
-              class="min-h-9 rounded-md border border-n-weak bg-n-surface-1 px-2"
-              :aria-label="$t('CAPTAIN.COPILOT.ACTIONS.TEAM')"
-            >
-              <option value="">
-                {{ $t('CAPTAIN.COPILOT.ACTIONS.NO_TEAM') }}
-              </option>
-              <option v-for="team in teams" :key="team.id" :value="team.id">
-                {{ team.name }}
-              </option>
-            </select>
+            <OutlinedSelectField
+              :label="$t('CAPTAIN.COPILOT.ACTIONS.AGENT')"
+              :options="agentOptions"
+              :selected-item="selectedAgent"
+              :placeholder="$t('CAPTAIN.COPILOT.ACTIONS.NO_AGENT')"
+              @select="draft.assignee_id = $event?.id"
+            />
+            <OutlinedSelectField
+              :label="$t('CAPTAIN.COPILOT.ACTIONS.TEAM')"
+              :options="teamOptions"
+              :selected-item="selectedTeam"
+              :placeholder="$t('CAPTAIN.COPILOT.ACTIONS.NO_TEAM')"
+              @select="draft.team_id = $event?.id"
+            />
           </template>
         </div>
-        <div class="mt-2 text-xs text-n-slate-10">{{ statusLabel }}</div>
+        <div class="mt-2 text-xs" :class="statusClass">{{ statusLabel }}</div>
         <div
           v-if="item.status === 'executed'"
           class="mt-1 flex items-center gap-1 text-xs text-n-teal-11"
@@ -198,6 +224,7 @@ const edit = () => {
             <Button
               :label="$t('CAPTAIN.COPILOT.ACTIONS.APPROVE')"
               intent="primary"
+              color="teal"
               size="sm"
               @click="emit('approve', item.id)"
             />

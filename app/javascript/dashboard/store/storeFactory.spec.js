@@ -149,6 +149,9 @@ describe('storeFactory', () => {
       });
       expect(metaState.meta).toEqual({ totalCount: 10, page: 2 });
 
+      mutations[mutationTypes.SET_META](metaState, undefined);
+      expect(metaState.meta).toEqual({ totalCount: 10, page: 2 });
+
       expect(mutations[mutationTypes.SET]).toBe(MutationHelpers.set);
       expect(mutations[mutationTypes.ADD]).toBe(MutationHelpers.create);
       expect(mutations[mutationTypes.EDIT]).toBe(MutationHelpers.update);

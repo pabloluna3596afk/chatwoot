@@ -20,35 +20,30 @@ const mountComponent = (props = {}) =>
   });
 
 describe('CopilotEmptyState', () => {
-  it('marks only the reply suggestion prompt with its request type', async () => {
+  it('offers the four working Copilot prompts', () => {
+    const wrapper = mountComponent();
+    const prompts = wrapper.findAll('button');
+
+    expect(prompts).toHaveLength(4);
+    expect(wrapper.text()).toContain(
+      'CAPTAIN.COPILOT.PROMPTS.OPEN_BY_AGENT.LABEL'
+    );
+    expect(wrapper.text()).toContain(
+      'CAPTAIN.COPILOT.PROMPTS.VIP_CONTACTS.LABEL'
+    );
+    expect(wrapper.text()).toContain(
+      'CAPTAIN.COPILOT.PROMPTS.PROPOSE_URGENT.LABEL'
+    );
+  });
+
+  it('sends the current conversation summary prompt', async () => {
     const wrapper = mountComponent();
     const prompts = wrapper.findAll('button');
 
     await prompts[1].trigger('click');
 
-    expect(wrapper.emitted('useSuggestion')[0][0]).toEqual({
-      message: 'CAPTAIN.COPILOT.PROMPTS.SUGGEST.CONTENT',
-      requestType: 'reply_suggestion',
-    });
-  });
-
-  it('keeps other Copilot prompts unchanged', async () => {
-    const wrapper = mountComponent();
-    const prompts = wrapper.findAll('button');
-
-    await prompts[0].trigger('click');
-
     expect(wrapper.emitted('useSuggestion')[0][0]).toBe(
       'CAPTAIN.COPILOT.PROMPTS.SUMMARIZE.CONTENT'
-    );
-  });
-
-  it('hides the reply suggestion when the latest message is not incoming', () => {
-    const wrapper = mountComponent({ canSuggestReply: false });
-
-    expect(wrapper.findAll('button')).toHaveLength(2);
-    expect(wrapper.text()).not.toContain(
-      'CAPTAIN.COPILOT.PROMPTS.SUGGEST.LABEL'
     );
   });
 });

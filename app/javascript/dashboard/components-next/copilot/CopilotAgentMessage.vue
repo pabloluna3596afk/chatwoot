@@ -9,7 +9,6 @@ defineProps({
 
 <template>
   <div class="space-y-1 text-inherit">
-    <div class="font-medium">{{ $t('CAPTAIN.COPILOT.YOU') }}</div>
     <div class="break-words">
       {{ message.content }}
     </div>
