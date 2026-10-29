@@ -1,5 +1,6 @@
 <script setup>
 import { ref, nextTick, onMounted } from 'vue';
+import Button from 'dashboard/components-next/button/Button.vue';
 
 const props = defineProps({
   onSend: {
@@ -61,17 +62,21 @@ onMounted(() => {
       autofocus
       :readonly="isSending"
       :placeholder="$t('CAPTAIN.COPILOT.SEND_MESSAGE')"
+      :aria-label="$t('CAPTAIN.COPILOT.MESSAGE_LABEL')"
       class="w-full reset-base bg-n-alpha-3 ltr:pl-4 ltr:pr-12 rtl:pl-12 rtl:pr-4 py-3 text-sm border border-n-weak rounded-lg focus:outline-0 focus:outline-none focus:ring-2 focus:ring-n-blue-11 focus:border-n-blue-11 resize-none overflow-y-auto max-h-[200px] mb-0 text-n-slate-12 read-only:cursor-wait read-only:opacity-60"
       rows="1"
       @input="handleInput"
       @keydown.enter.exact="handleEnterKey"
     />
-    <button
+    <Button
       :disabled="isSending"
-      class="absolute ltr:right-1 rtl:left-1 top-1/2 -translate-y-1/2 h-11 w-11 flex items-center justify-center text-n-slate-11 hover:text-n-blue-11 disabled:cursor-not-allowed disabled:opacity-60"
+      class="absolute ltr:right-1 rtl:left-1 top-1/2 -translate-y-1/2"
       type="submit"
-    >
-      <i class="i-ph-arrow-up" />
-    </button>
+      :aria-label="$t('CAPTAIN.COPILOT.SEND')"
+      icon="i-lucide-arrow-up"
+      intent="primary"
+      size="sm"
+      :is-loading="isSending"
+    />
   </form>
 </template>

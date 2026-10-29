@@ -23,6 +23,7 @@ class Internal::AccountAnalysis::ContentEvaluatorService
     {
       span_name: 'llm.internal.content_moderation',
       model: 'text-moderation-latest',
+      provider: 'openai',
       input: content,
       feature_name: 'content_evaluator'
     }

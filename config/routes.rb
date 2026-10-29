@@ -872,6 +872,8 @@ Rails.application.routes.draw do
       resources :accounts, only: [:index, :new, :create, :show, :edit, :update, :destroy] do
         post :seed, on: :member
         post :reset_cache, on: :member
+        post :feature_override, on: :member
+        delete :feature_override, on: :member, action: :destroy_feature_override
       end
       resources :users, only: [:index, :new, :create, :show, :edit, :update, :destroy] do
         delete :avatar, on: :member, action: :destroy_avatar
@@ -885,6 +887,10 @@ Rails.application.routes.draw do
       end
       resources :plans, only: [:index, :new, :create, :show, :edit, :update, :destroy]
       resources :account_plan_usages, only: [:index, :show]
+      resources :ai_model_prices, only: [:index, :new, :create, :edit, :update, :destroy]
+      get 'ai_usage', to: 'ai_usage#index', as: :ai_usage
+      get 'ai_usage/export', to: 'ai_usage#export', as: :ai_usage_export
+      get 'ai_usage/messages/:usage_group_id', to: 'ai_usage#message', as: :ai_usage_message
       resources :platform_apps, only: [:index, :new, :create, :show, :edit, :update, :destroy]
       resources :platform_banners
       resource :instance_status, only: [:show]

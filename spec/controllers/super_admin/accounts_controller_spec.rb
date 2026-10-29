@@ -27,6 +27,21 @@ RSpec.describe 'Super Admin accounts API', type: :request do
 
   describe 'GET /super_admin/accounts/{account_id}' do
     context 'when it is an authenticated user' do
+      it 'shows Copilot allowance separately from feature overrides' do
+        plan = Plan.create!(name: 'Developer', slug: 'developer', captain_copilot_responses: nil,
+                            feature_keys: %w[captain_integration captain_tasks automations])
+        account.update!(plan: plan)
+        AccountFeatureOverride.create!(account: account, created_by: super_admin, feature_key: 'automations',
+                                       enabled: false, reason: 'Temporary exception', expires_at: 1.week.from_now)
+        sign_in(super_admin, scope: :super_admin)
+
+        get "/super_admin/accounts/#{account.id}"
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include('Copilot, according to plan allowance', 'Temporary exception', 'Plan')
+        expect(response.body).not_to include('feature_override_copilot')
+      end
+
       it 'shows effective Captain model routing', if: ChatwootApp.enterprise? do
         account.update!(captain_models: { 'editor' => 'gpt-5.2', 'conversation_completion' => 'gpt-5.2' })
         sign_in(super_admin, scope: :super_admin)

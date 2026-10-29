@@ -127,9 +127,9 @@ RSpec.describe Integrations::LlmInstrumentation do
         instance.instrument_llm_call(custom_params) { 'result' }
 
         expect(mock_span).to have_received(:set_attribute).with('gen_ai.prompt.0.role', 'system')
-        expect(mock_span).to have_received(:set_attribute).with('gen_ai.prompt.0.content', 'You are a helpful assistant')
+        expect(mock_span).to have_received(:set_attribute).with('gen_ai.prompt.0.content', '[REDACTED]')
         expect(mock_span).to have_received(:set_attribute).with('gen_ai.prompt.1.role', 'user')
-        expect(mock_span).to have_received(:set_attribute).with('gen_ai.prompt.1.content', 'Hello')
+        expect(mock_span).to have_received(:set_attribute).with('gen_ai.prompt.1.content', '[REDACTED]')
       end
 
       it 'sets correct metadata attributes' do
@@ -143,10 +143,10 @@ RSpec.describe Integrations::LlmInstrumentation do
         instance.instrument_llm_call(params) { 'result' }
 
         expect(mock_span).to have_received(:set_attribute).with('langfuse.user.id', '123')
-        expect(mock_span).to have_received(:set_attribute).with('langfuse.session.id', '123_456')
+        expect(mock_span).to have_received(:set_attribute).with('langfuse.session.id', Digest::SHA256.hexdigest('123:456'))
         expect(mock_span).to have_received(:set_attribute).with('langfuse.trace.tags', ['reply_suggestion'])
         expect(mock_span).to have_received(:set_attribute).with('langfuse.observation.metadata.user_id', '123')
-        expect(mock_span).to have_received(:set_attribute).with('langfuse.observation.metadata.session_id', '123_456')
+        expect(mock_span).to have_received(:set_attribute).with('langfuse.observation.metadata.session_id', Digest::SHA256.hexdigest('123:456'))
         expect(mock_span).to have_received(:set_attribute).with('langfuse.observation.metadata.feature_name', 'reply_suggestion')
       end
 
@@ -164,7 +164,7 @@ RSpec.describe Integrations::LlmInstrumentation do
 
         expect(result).to eq({ message: 'AI response here' })
         expect(mock_span).to have_received(:set_attribute).with('gen_ai.completion.0.role', 'assistant')
-        expect(mock_span).to have_received(:set_attribute).with('gen_ai.completion.0.content', 'AI response here')
+        expect(mock_span).to have_received(:set_attribute).with('gen_ai.completion.0.content', '[REDACTED]')
       end
 
       it 'sets usage metrics when result contains usage data' do
@@ -209,9 +209,9 @@ RSpec.describe Integrations::LlmInstrumentation do
 
         expect(result[:error]).to eq('API rate limit exceeded')
         expect(mock_span).to have_received(:set_attribute)
-          .with('gen_ai.response.error', '"API rate limit exceeded"')
+          .with('gen_ai.response.error', '[REDACTED]')
         expect(mock_span).to have_received(:status=).with(mock_status)
-        expect(OpenTelemetry::Trace::Status).to have_received(:error).with('API rate limit exceeded')
+        expect(OpenTelemetry::Trace::Status).to have_received(:error).with('LLM request failed')
       end
     end
 
@@ -252,8 +252,8 @@ RSpec.describe Integrations::LlmInstrumentation do
           result_data = { content: 'AI response' }
           instance.instrument_agent_session(params) { result_data }
 
-          expect(mock_span).to have_received(:set_attribute).with('langfuse.observation.input', params[:messages].to_json)
-          expect(mock_span).to have_received(:set_attribute).with('langfuse.observation.output', result_data.to_json)
+          expect(mock_span).to have_received(:set_attribute).with('langfuse.observation.input', '[REDACTED]')
+          expect(mock_span).to have_received(:set_attribute).with('langfuse.observation.output', '[REDACTED]')
         end
 
         it 'propagates trace attributes as observation metadata to child tool spans' do
@@ -272,7 +272,7 @@ RSpec.describe Integrations::LlmInstrumentation do
           end
 
           expect(tool_span).to have_received(:set_attribute).with('langfuse.observation.metadata.user_id', '123')
-          expect(tool_span).to have_received(:set_attribute).with('langfuse.observation.metadata.session_id', '123_456')
+          expect(tool_span).to have_received(:set_attribute).with('langfuse.observation.metadata.session_id', Digest::SHA256.hexdigest('123:456'))
           expect(tool_span).to have_received(:set_attribute).with('langfuse.observation.metadata.feature_name', 'reply_suggestion')
         end
 
@@ -292,9 +292,9 @@ RSpec.describe Integrations::LlmInstrumentation do
             nested_instance.instrument_llm_call(nested_params) { 'translated query' }
           end
 
-          expect(nested_span).to have_received(:set_attribute).with('langfuse.session.id', '123_456')
+          expect(nested_span).to have_received(:set_attribute).with('langfuse.session.id', Digest::SHA256.hexdigest('123:456'))
           expect(nested_span).to have_received(:set_attribute).with('langfuse.trace.tags', ['translate_query'])
-          expect(nested_span).to have_received(:set_attribute).with('langfuse.observation.metadata.session_id', '123_456')
+          expect(nested_span).to have_received(:set_attribute).with('langfuse.observation.metadata.session_id', Digest::SHA256.hexdigest('123:456'))
           expect(nested_span).to have_received(:set_attribute).with('langfuse.observation.metadata.feature_name', 'translate_query')
         end
 
@@ -320,9 +320,10 @@ RSpec.describe Integrations::LlmInstrumentation do
             embedding_instance.instrument_embedding_call(embedding_params) { [0.1, 0.2, 0.3] }
           end
 
-          expect(embedding_span).to have_received(:set_attribute).with('langfuse.session.id', '123_456')
+          expect(embedding_span).to have_received(:set_attribute).with('langfuse.session.id', Digest::SHA256.hexdigest('123:456'))
           expect(embedding_span).to have_received(:set_attribute).with('langfuse.trace.tags', ['embedding'])
-          expect(embedding_span).to have_received(:set_attribute).with('langfuse.observation.metadata.session_id', '123_456')
+          expect(embedding_span).to have_received(:set_attribute)
+            .with('langfuse.observation.metadata.session_id', Digest::SHA256.hexdigest('123:456'))
           expect(embedding_span).to have_received(:set_attribute).with('langfuse.observation.metadata.feature_name', 'embedding')
         end
 

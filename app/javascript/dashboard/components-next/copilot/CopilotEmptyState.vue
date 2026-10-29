@@ -4,14 +4,10 @@ import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import Icon from '../icon/Icon.vue';
 
-const props = defineProps({
+defineProps({
   hasAssistants: {
     type: Boolean,
     default: false,
-  },
-  canSuggestReply: {
-    type: Boolean,
-    default: true,
   },
 });
 
@@ -19,49 +15,24 @@ const emit = defineEmits(['useSuggestion']);
 const { t } = useI18n();
 const route = useRoute();
 
-const routePromptMap = {
-  conversations: [
-    {
-      label: 'CAPTAIN.COPILOT.PROMPTS.SUMMARIZE.LABEL',
-      prompt: 'CAPTAIN.COPILOT.PROMPTS.SUMMARIZE.CONTENT',
-    },
-    {
-      label: 'CAPTAIN.COPILOT.PROMPTS.SUGGEST.LABEL',
-      prompt: 'CAPTAIN.COPILOT.PROMPTS.SUGGEST.CONTENT',
-      requestType: 'reply_suggestion',
-    },
-    {
-      label: 'CAPTAIN.COPILOT.PROMPTS.RATE.LABEL',
-      prompt: 'CAPTAIN.COPILOT.PROMPTS.RATE.CONTENT',
-    },
-  ],
-  dashboard: [
-    {
-      label: 'CAPTAIN.COPILOT.PROMPTS.HIGH_PRIORITY.LABEL',
-      prompt: 'CAPTAIN.COPILOT.PROMPTS.HIGH_PRIORITY.CONTENT',
-    },
-    {
-      label: 'CAPTAIN.COPILOT.PROMPTS.LIST_CONTACTS.LABEL',
-      prompt: 'CAPTAIN.COPILOT.PROMPTS.LIST_CONTACTS.CONTENT',
-    },
-  ],
-};
-
-const getCurrentRoute = () => {
-  const path = route.path;
-  if (path.includes('/conversations')) return 'conversations';
-  if (path.includes('/dashboard')) return 'dashboard';
-  return 'dashboard';
-};
-
-const promptOptions = computed(() => {
-  const currentRoute = getCurrentRoute();
-  const prompts = routePromptMap[currentRoute] || routePromptMap.conversations;
-
-  return prompts.filter(
-    prompt => prompt.requestType !== 'reply_suggestion' || props.canSuggestReply
-  );
-});
+const promptOptions = computed(() => [
+  {
+    label: 'CAPTAIN.COPILOT.PROMPTS.OPEN_BY_AGENT.LABEL',
+    prompt: 'CAPTAIN.COPILOT.PROMPTS.OPEN_BY_AGENT.CONTENT',
+  },
+  {
+    label: 'CAPTAIN.COPILOT.PROMPTS.SUMMARIZE.LABEL',
+    prompt: 'CAPTAIN.COPILOT.PROMPTS.SUMMARIZE.CONTENT',
+  },
+  {
+    label: 'CAPTAIN.COPILOT.PROMPTS.VIP_CONTACTS.LABEL',
+    prompt: 'CAPTAIN.COPILOT.PROMPTS.VIP_CONTACTS.CONTENT',
+  },
+  {
+    label: 'CAPTAIN.COPILOT.PROMPTS.PROPOSE_URGENT.LABEL',
+    prompt: 'CAPTAIN.COPILOT.PROMPTS.PROPOSE_URGENT.CONTENT',
+  },
+]);
 
 const handleSuggestion = opt => {
   const message = t(opt.prompt);
@@ -75,7 +46,6 @@ const handleSuggestion = opt => {
 <template>
   <div class="flex-1 flex flex-col gap-6 px-2">
     <div class="flex flex-col space-y-4 py-4">
-      <Icon icon="i-woot-captain" class="text-n-slate-9 text-4xl" />
       <div class="space-y-1">
         <h3 class="text-base font-medium text-n-slate-12 leading-8">
           {{ $t('CAPTAIN.COPILOT.PANEL_TITLE') }}
@@ -87,7 +57,7 @@ const handleSuggestion = opt => {
     </div>
     <div v-if="!hasAssistants" class="w-full space-y-2">
       <p class="text-sm text-n-slate-11 leading-6">
-        {{ $t('CAPTAIN.ASSISTANTS.NO_ASSISTANTS_AVAILABLE') }}
+        {{ $t('CAPTAIN.ASSISTANTS.COPILOT_SETUP_REQUIRED') }}
       </p>
       <router-link
         :to="{
@@ -98,7 +68,7 @@ const handleSuggestion = opt => {
         }"
         class="text-n-slate-11 underline hover:text-n-slate-12"
       >
-        {{ $t('CAPTAIN.ASSISTANTS.ADD_NEW') }}
+        {{ $t('CAPTAIN.ASSISTANTS.CREATE_FOR_COPILOT') }}
       </router-link>
     </div>
     <div v-else class="w-full space-y-2">
@@ -109,7 +79,7 @@ const handleSuggestion = opt => {
         <button
           v-for="prompt in promptOptions"
           :key="prompt.label"
-          class="w-full px-3 py-2 rounded-md border border-n-weak bg-n-slate-2 text-n-slate-11 flex items-center justify-between hover:bg-n-slate-3 transition-colors"
+          class="flex min-h-11 w-full items-center justify-between rounded-lg border border-n-weak bg-n-surface-2 px-3 py-2 text-start text-n-slate-12 transition-colors hover:bg-n-alpha-2"
           @click="handleSuggestion(prompt)"
         >
           <span>{{ t(prompt.label) }}</span>

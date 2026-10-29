@@ -3350,3 +3350,11 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - Causa: tablas anchas podían ampliar el viewport y las listas de Etiquetas/SLA se comprimían en móvil.
 - Arreglo: scroll horizontal local compartido en BaseTable; reutilizar ListCard/InfoChip para las listas móviles de Etiquetas y SLA conservando búsqueda, acciones y confirmación.
 - Verificación: specs focalizados pasan; suites amplias UTC y America/Guayaquil con 199 archivos aprobados y dos fallas ajenas al cambio en formato monetario en ShopifyBilling. Capturas y mediciones de navegador pendientes si el servidor local no está disponible.
+
+### B-NEW-241 — Recuperar Copilot al cambiar de cuenta (2026-10-28)
+
+- Archivos: `CopilotContainer.vue` y `CopilotContainer.spec.js`; estado vacío de Copilot y `integrations.json` en inglés/español; spec request de `CopilotMessagesController`.
+- Causa: `copilot_active_thread_id` se guardaba en los ajustes globales del usuario, pero el endpoint busca el hilo dentro de la cuenta actual y del mismo usuario. Al cambiar de cuenta, la petición recibía 404 y mostraba una alerta roja.
+- Arreglo: persistir el hilo activo por cuenta, migrar el identificador antiguo tras validarlo, y limpiar en silencio los hilos persistidos que devuelven 403/404. El estado vacío explica el requisito de asistente y enlaza a su creación.
+- Verificación: Vitest UTC y America/Guayaquil, ESLint, RSpec focalizado y RuboCop CI registrados en `tmp/PR-COPILOT-SIN-ASISTENTE.md`.
+- Resultados: Vitest UTC/Guayaquil 14/14 cada zona; RSpec 6 ejemplos sin fallos; RuboCop CI 1 archivo inspeccionado y 0 infracciones; ESLint 0 errores y 2 advertencias preexistentes.

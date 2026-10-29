@@ -11,6 +11,11 @@ RSpec.describe Captain::Tools::Copilot::GetDataService do
     expect(service.parameters_schema.fetch('properties').keys).to contain_exactly('resource', 'filters', 'group_by', 'aggregate')
   end
 
+  it 'explains that conversation records should be retrieved with search_conversation' do
+    expect(service.description).to include('use search_conversation to retrieve conversation records')
+    expect(service.execute(resource: 'unknown', filters: {})).to include(error: /get_data returns counts only; use search_conversation/)
+  end
+
   it 'returns clear validation errors and enforces a per-turn call limit' do
     expect(service.execute(resource: 'unknown', filters: {})).to include(error: /Unknown resource/)
     Captain::Copilot::CollectionService::MAX_TOOL_CALLS.times do

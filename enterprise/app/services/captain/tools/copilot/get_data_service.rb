@@ -5,7 +5,7 @@ class Captain::Tools::Copilot::GetDataService < Captain::Tools::BaseTool
 
   RESOURCES_DESCRIPTION = Captain::Copilot::Resources.all.map(&:help).join("\n").freeze
   description <<~DESCRIPTION
-    Count, aggregate, and group conversations or contacts without returning records.
+    Count, aggregate, and group conversations or contacts without returning records. This tool never lists records; use search_conversation to retrieve conversation records.
     Resources:
     #{RESOURCES_DESCRIPTION}
   DESCRIPTION
@@ -27,13 +27,16 @@ class Captain::Tools::Copilot::GetDataService < Captain::Tools::BaseTool
     @get_data_calls ||= 0
     @get_data_calls += 1
     if @get_data_calls > Captain::Copilot::CollectionService::MAX_TOOL_CALLS
-      return { error: "get_data allows at most #{Captain::Copilot::CollectionService::MAX_TOOL_CALLS} calls per turn" }
+      return {
+        error: "get_data allows at most #{Captain::Copilot::CollectionService::MAX_TOOL_CALLS} calls per turn. " \
+               'It returns counts only; use search_conversation to retrieve conversation records.'
+      }
     end
 
     Captain::Copilot::CollectionService.new(account: @assistant.account, user: @user)
                                        .create(resource: resource, filters: filters, group_by: group_by, aggregate: aggregate)
   rescue ArgumentError, ActiveRecord::RecordNotFound => e
-    { error: e.message }
+    { error: "#{e.message}. get_data returns counts only; use search_conversation to retrieve conversation records." }
   end
 
   def active?

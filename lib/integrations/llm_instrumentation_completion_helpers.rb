@@ -9,32 +9,33 @@ module Integrations::LlmInstrumentationCompletionHelpers
     span.set_attribute(ATTR_GEN_AI_PROVIDER, determine_provider(params[:model]))
     span.set_attribute(ATTR_GEN_AI_REQUEST_MODEL, params[:model])
     span.set_attribute('embedding.input_length', params[:input]&.length || 0)
-    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, params[:input].to_s)
+    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, '[REDACTED]')
   end
 
   def set_audio_transcription_span_attributes(span, params)
     span.set_attribute(ATTR_GEN_AI_PROVIDER, 'openai')
     span.set_attribute(ATTR_GEN_AI_REQUEST_MODEL, params[:model])
     span.set_attribute('audio.duration_seconds', params[:duration]) if params[:duration]
-    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, params[:file_path].to_s) if params[:file_path]
+    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, '[REDACTED]') if params[:file_path]
   end
 
   def set_moderation_span_attributes(span, params)
     span.set_attribute(ATTR_GEN_AI_PROVIDER, 'openai')
     span.set_attribute(ATTR_GEN_AI_REQUEST_MODEL, params[:model] || 'text-moderation-latest')
     span.set_attribute('moderation.input_length', params[:input]&.length || 0)
-    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, params[:input].to_s)
+    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, '[REDACTED]')
   end
 
   def set_embedding_result_attributes(span, result)
-    span.set_attribute('embedding.dimensions', result&.length || 0) if result.is_a?(Array)
-    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, "[#{result&.length || 0} dimensions]")
+    vectors = result.respond_to?(:vectors) ? result.vectors : result
+    span.set_attribute('embedding.dimensions', vectors&.length || 0) if vectors.is_a?(Array)
+    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, "[#{vectors&.length || 0} dimensions]")
   end
 
   def set_transcription_result_attributes(span, result)
     transcribed_text = result.respond_to?(:text) ? result.text : result.to_s
     span.set_attribute('transcription.length', transcribed_text&.length || 0)
-    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, transcribed_text.to_s)
+    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, '[REDACTED]')
   end
 
   def set_moderation_result_attributes(span, result)
@@ -58,7 +59,7 @@ module Integrations::LlmInstrumentationCompletionHelpers
     return if message.blank?
 
     span.set_attribute(ATTR_GEN_AI_COMPLETION_ROLE, 'assistant')
-    span.set_attribute(ATTR_GEN_AI_COMPLETION_CONTENT, message.is_a?(String) ? message : message.to_json)
+    span.set_attribute(ATTR_GEN_AI_COMPLETION_CONTENT, '[REDACTED]')
   end
 
   def set_usage_metrics(span, result)
@@ -74,7 +75,7 @@ module Integrations::LlmInstrumentationCompletionHelpers
     error = result[:error] || result['error']
     return if error.blank?
 
-    span.set_attribute(ATTR_GEN_AI_RESPONSE_ERROR, error.to_json)
-    span.status = OpenTelemetry::Trace::Status.error(error.to_s.truncate(1000))
+    span.set_attribute(ATTR_GEN_AI_RESPONSE_ERROR, '[REDACTED]')
+    span.status = OpenTelemetry::Trace::Status.error('LLM request failed')
   end
 end

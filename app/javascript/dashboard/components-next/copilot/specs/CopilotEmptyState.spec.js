@@ -7,7 +7,10 @@ vi.mock('vue-i18n', () => ({
 }));
 
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ path: '/app/accounts/1/conversations/1' }),
+  useRoute: () => ({
+    path: '/app/accounts/1/conversations/1',
+    params: { accountId: '1' },
+  }),
 }));
 
 const mountComponent = (props = {}) =>
@@ -15,40 +18,54 @@ const mountComponent = (props = {}) =>
     props: { hasAssistants: true, ...props },
     global: {
       mocks: { $t: key => key },
-      stubs: { RouterLink: true },
+      stubs: {
+        RouterLink: {
+          name: 'RouterLink',
+          props: ['to'],
+          template: '<a><slot /></a>',
+        },
+      },
     },
   });
 
 describe('CopilotEmptyState', () => {
-  it('marks only the reply suggestion prompt with its request type', async () => {
+  it('offers the four working Copilot prompts', () => {
+    const wrapper = mountComponent();
+    const prompts = wrapper.findAll('button');
+
+    expect(prompts).toHaveLength(4);
+    expect(wrapper.text()).toContain(
+      'CAPTAIN.COPILOT.PROMPTS.OPEN_BY_AGENT.LABEL'
+    );
+    expect(wrapper.text()).toContain(
+      'CAPTAIN.COPILOT.PROMPTS.VIP_CONTACTS.LABEL'
+    );
+    expect(wrapper.text()).toContain(
+      'CAPTAIN.COPILOT.PROMPTS.PROPOSE_URGENT.LABEL'
+    );
+  });
+
+  it('sends the current conversation summary prompt', async () => {
     const wrapper = mountComponent();
     const prompts = wrapper.findAll('button');
 
     await prompts[1].trigger('click');
-
-    expect(wrapper.emitted('useSuggestion')[0][0]).toEqual({
-      message: 'CAPTAIN.COPILOT.PROMPTS.SUGGEST.CONTENT',
-      requestType: 'reply_suggestion',
-    });
-  });
-
-  it('keeps other Copilot prompts unchanged', async () => {
-    const wrapper = mountComponent();
-    const prompts = wrapper.findAll('button');
-
-    await prompts[0].trigger('click');
 
     expect(wrapper.emitted('useSuggestion')[0][0]).toBe(
       'CAPTAIN.COPILOT.PROMPTS.SUMMARIZE.CONTENT'
     );
   });
 
-  it('hides the reply suggestion when the latest message is not incoming', () => {
-    const wrapper = mountComponent({ canSuggestReply: false });
+  it('explains the assistant requirement and links to assistant creation', () => {
+    const wrapper = mountComponent({ hasAssistants: false });
 
-    expect(wrapper.findAll('button')).toHaveLength(2);
-    expect(wrapper.text()).not.toContain(
-      'CAPTAIN.COPILOT.PROMPTS.SUGGEST.LABEL'
+    expect(wrapper.text()).toContain(
+      'CAPTAIN.ASSISTANTS.COPILOT_SETUP_REQUIRED'
     );
+    expect(wrapper.text()).toContain('CAPTAIN.ASSISTANTS.CREATE_FOR_COPILOT');
+    expect(wrapper.findComponent({ name: 'RouterLink' }).props('to')).toEqual({
+      name: 'captain_assistants_create_index',
+      params: { accountId: '1' },
+    });
   });
 });

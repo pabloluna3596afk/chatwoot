@@ -14,6 +14,15 @@ describe Enterprise::Billing::ReconcilePlanFeaturesService do
   end
 
   describe '#perform' do
+    it 'uses the ChatHub plan catalog when the account has a local plan' do
+      plan = Plan.create!(name: 'Local plan', slug: 'local-plan', feature_keys: ['captain_integration'])
+      account.update!(plan: plan, feature_api_and_webhooks: true)
+
+      described_class.new(account: account).perform
+
+      expect(account.reload).not_to be_feature_api_and_webhooks
+    end
+
     context 'with api_and_webhooks feature' do
       it 'enables the feature for a paid plan with an active subscription' do
         account.update!(custom_attributes: { 'plan_name' => 'Startups', 'subscription_status' => 'active' })
