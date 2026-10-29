@@ -1,5 +1,5 @@
 json.array! @plans do |plan|
-  json.extract! plan, :id, :slug, :name, :display_order, :feature_keys
+  json.extract! plan, :id, :slug, :name, :display_order, :feature_keys, :price_monthly, :price_yearly
   # Descriptions are withheld until existing promotional copy is reviewed.
   json.description nil
   json.state plan.catalog_state

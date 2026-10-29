@@ -9,7 +9,8 @@ RSpec.describe 'Plan catalog API', type: :request do
                  monthly_messages: 200, captain_copilot_responses: 25, captain_internal_calls: 80,
                  storage_mb: 3, max_captain_assistants: 2, max_human_agents: 4,
                  max_inboxes: 5, max_emails_per_day: 50, captain_daily_tests: 10,
-                 trial_days: 15, trial_messages: 200, feature_keys: ['automations'])
+                 trial_days: 15, trial_messages: 200, feature_keys: ['automations'],
+                 price_monthly: 79, price_yearly: 790)
   end
 
   it 'requires authentication' do
@@ -36,6 +37,7 @@ RSpec.describe 'Plan catalog API', type: :request do
                                          {
                                            'id' => plan.id, 'slug' => 'catalog', 'name' => 'Catalog', 'description' => nil,
                                            'display_order' => 0, 'state' => 'available', 'feature_keys' => ['automations'],
+                                           'price_monthly' => '79.0', 'price_yearly' => '790.0',
                                            'limits' => {
                                              'monthly_responses' => 200, 'copilot_responses' => 25, 'internal_ai_calls' => 80,
                                              'storage_bytes' => 3.megabytes, 'assistants' => 2,
@@ -44,7 +46,7 @@ RSpec.describe 'Plan catalog API', type: :request do
                                            }
                                          }
                                        ])
-    expect(response.body).not_to match(/price|USD|promotional|addon|stripe|shopify/i)
+    expect(response.body).not_to match(/USD|promotional|addon|stripe|shopify/i)
   end
 
   it 'includes coming soon but excludes inactive, private and Developer rows' do
