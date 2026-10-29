@@ -20,9 +20,30 @@ RSpec.describe Plan do
     end
   end
 
+  it 'defines bilingual feature metadata and maps each catalog key to account flags' do
+    expect(described_class::FEATURES).to all(include(:key, :label_en, :label_es, :description_en, :description_es, :group, :flags))
+    expect(described_class::FEATURE_KEYS).to match_array(described_class::FEATURES.pluck(:key))
+    expect(described_class::FEATURES.flat_map { |feature| feature[:flags] }).to all(be_in(Featurable::FEATURE_LIST.pluck('name')))
+  end
+
   it 'accepts an empty feature list' do
     plan.feature_keys = []
     expect(plan).to be_valid
+  end
+
+  it 'shows Copilot from the response allowance, including shared unlimited allowance' do
+    expect(plan.copilot_available?).to be(true)
+    plan.captain_copilot_responses = 0
+    expect(plan.copilot_available?).to be(false)
+    plan.captain_copilot_responses = 20
+    expect(plan.copilot_available?).to be(true)
+  end
+
+  it 'queues account synchronization when plan features change' do
+    plan.save!
+
+    expect { plan.update!(feature_keys: ['automations']) }
+      .to have_enqueued_job(Plans::SyncPlanAccountsJob).with(plan.id)
   end
 
   it 'derives coming soon from the flag' do

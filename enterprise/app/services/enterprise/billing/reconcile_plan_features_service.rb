@@ -39,6 +39,14 @@ class Enterprise::Billing::ReconcilePlanFeaturesService
   pattr_initialize [:account!, { shopify_lifecycle_cleanup: false }]
 
   def perform
+    return Plans::AccountFeatureSync.call(account) if account.plan_id.present?
+
+    perform_legacy_reconciliation
+  end
+
+  private
+
+  def perform_legacy_reconciliation
     return if shopify_billing? && !shopify_lifecycle_cleanup && !Shopify::FeatureGate.enabled?(account: account)
 
     account.disable_features(*managed_plan_features)
@@ -49,8 +57,6 @@ class Enterprise::Billing::ReconcilePlanFeaturesService
     update_shopify_managed_features
     account.save!
   end
-
-  private
 
   def current_plan_features
     return [] if default_plan?
