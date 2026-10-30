@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_28_130100) do
+ActiveRecord::Schema[7.2].define(version: 2026_10_29_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -264,6 +264,17 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_28_130100) do
     t.index ["account_id"], name: "index_ai_usage_events_on_account_id"
     t.index ["created_at"], name: "index_ai_usage_events_on_created_at"
     t.index ["usage_group_id"], name: "index_ai_usage_events_on_usage_group_id"
+  end
+
+  create_table "ai_usage_reservations", force: :cascade do |t|
+    t.bigint "account_plan_usage_id", null: false
+    t.string "reservation_id", null: false
+    t.string "bucket", null: false
+    t.datetime "released_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_plan_usage_id"], name: "index_ai_usage_reservations_on_account_plan_usage_id"
+    t.index ["reservation_id"], name: "index_ai_usage_reservations_on_reservation_id", unique: true
   end
 
   create_table "applied_slas", force: :cascade do |t|
@@ -2170,6 +2181,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_28_130100) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "ai_usage_events", "accounts", on_delete: :cascade
+  add_foreign_key "ai_usage_reservations", "account_plan_usages"
   add_foreign_key "calendar_connection_calendars", "accounts", on_delete: :cascade
   add_foreign_key "calendar_connection_calendars", "calendar_connections", on_delete: :cascade
   add_foreign_key "calendar_connections", "accounts", on_delete: :cascade

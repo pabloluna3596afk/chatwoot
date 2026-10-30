@@ -7,6 +7,7 @@ RSpec.describe Captain::BaseTaskService, type: :model do
   let(:inbox) { create(:inbox, account: account) }
   let(:conversation) { create(:conversation, account: account, inbox: inbox) }
   let(:perform_result) { { message: 'Test response' } }
+  let(:perform_error) { nil }
   let(:exhausted_usage_limits) do
     {
       agents: ChatwootApp.max_limit,
@@ -18,11 +19,16 @@ RSpec.describe Captain::BaseTaskService, type: :model do
   # Create a concrete test service class with enterprise module prepended
   let(:test_service_class) do
     result = perform_result
+    error = perform_error
     klass = Class.new(described_class) do
-      define_method(:perform) { result }
+      define_method(:perform) do
+        raise error if error
+
+        result
+      end
 
       def event_name
-        'test_event'
+        'follow_up'
       end
     end
     # Manually prepend enterprise module to test class
@@ -74,10 +80,31 @@ RSpec.describe Captain::BaseTaskService, type: :model do
     context 'when the provider call returns an error' do
       let(:perform_result) { { error: 'API Error' } }
 
-      it 'reserves internal usage before receiving the provider result' do
+      it 'releases the reservation when the provider returns an error' do
         account.plan.update!(captain_internal_calls: 1)
 
-        expect { service.perform }.to change { (account.reload.current_usage_period.internal_calls_consumed) }.by(1)
+        expect { service.perform }.not_to change { account.reload.current_usage_period.internal_calls_consumed }
+      end
+    end
+
+    it 'charges once when a retry succeeds after a returned error' do
+      account.plan.update!(captain_internal_calls: 1)
+      perform_result.replace(error: 'temporary provider error')
+
+      expect(service.perform).to include(error: 'temporary provider error')
+      perform_result.replace(message: 'recovered')
+
+      expect { service.perform }.to change { account.reload.current_usage_period.internal_calls_consumed }.by(1)
+    end
+
+    context 'when the task raises after reserving' do
+      let(:perform_error) { Timeout::Error.new }
+
+      it 'releases the reservation and propagates the exception' do
+        account.plan.update!(captain_internal_calls: 1)
+
+        expect { service.perform }.to raise_error(Timeout::Error)
+        expect(account.reload.current_usage_period.internal_calls_consumed).to eq(0)
       end
     end
 
@@ -111,7 +138,7 @@ RSpec.describe Captain::BaseTaskService, type: :model do
         result = perform_result
         klass = Class.new(described_class) do
           define_method(:perform) { result }
-          define_method(:event_name) { 'test_event' }
+          define_method(:event_name) { 'follow_up' }
           define_method(:use_account_openai_hook?) { true }
         end
         klass.prepend(Enterprise::Captain::BaseTaskService)
@@ -192,7 +219,7 @@ RSpec.describe Captain::BaseTaskService, type: :model do
         result = perform_result
         klass = Class.new(described_class) do
           define_method(:perform) { result }
-          define_method(:event_name) { 'test_event' }
+          define_method(:event_name) { 'follow_up' }
           define_method(:counts_toward_usage?) { false }
         end
         klass.prepend(Enterprise::Captain::BaseTaskService)

@@ -26,16 +26,60 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
     current_usage_period&.increment_responses!(source: source, shared_response_pool: shared_response_pool, warning_limit: limit)
   end
 
-  def reserve_captain_ai_usage!(bucket:)
+  def reserve_captain_ai_usage!(bucket:, reservation_id: SecureRandom.uuid)
     return true unless current_period_window
     return true if bucket == :internal && internal_limit.nil?
 
     with_lock do
+      AiUsageReservation.joins(:account_plan_usage)
+                        .where(account_plan_usages: { account_id: id })
+                        .where.not(account_plan_usages: { closed_at: nil })
+                        .delete_all
+      reservation = AiUsageReservation.joins(:account_plan_usage)
+                                     .find_by(reservation_id: reservation_id, account_plan_usages: { account_id: id })
+      return reservation.bucket == bucket.to_s && reservation.released_at.nil? if reservation
+
       usage = current_usage_period
       limit, consumed = ai_usage_reservation_limit(bucket, usage)
       return false if limit && consumed >= limit
 
+      usage.ai_usage_reservations.create!(reservation_id: reservation_id, bucket: bucket)
       usage.reserve_ai_call!(bucket: bucket, shared_response_pool: bucket == :copilot && copilot_limit.nil?, limit: limit)
+    end
+    true
+  end
+
+  # Finish a successful reservation without refunding it. Successful receipts
+  # are consumed so the table holds only in-flight calls and failed-attempt
+  # markers for the active billing period.
+  def finish_captain_ai_usage!(bucket:, reservation_id:)
+    close_captain_ai_usage_reservation(bucket: bucket, reservation_id: reservation_id, release: false)
+  end
+
+  # A reservation may be released after a provider failure. The durable receipt
+  # makes this safe to call from ensure/retry paths: only the matching account,
+  # bucket and reservation can decrement a counter, and only once.
+  def release_captain_ai_usage!(bucket:, reservation_id:)
+    close_captain_ai_usage_reservation(bucket: bucket, reservation_id: reservation_id, release: true)
+  end
+
+  def close_captain_ai_usage_reservation(bucket:, reservation_id:, release:)
+    with_lock do
+      reservation = AiUsageReservation.joins(:account_plan_usage)
+                                      .where(account_plan_usages: { account_id: id })
+                                      .find_by(reservation_id: reservation_id, bucket: bucket)
+      return false unless reservation
+
+      reservation.with_lock do
+        return false if reservation.released_at
+
+        reservation.account_plan_usage.release_ai_call!(bucket: bucket) if release
+        if release
+          reservation.update!(released_at: Time.current)
+        else
+          reservation.destroy!
+        end
+      end
     end
     true
   end

@@ -22,6 +22,7 @@ class Captain::Copilot::ReplySuggestionService
   end
 
   def generate_response
+    reservation_id = nil
     conversation = accessible_conversation(account: @account, user: @user, display_id: @conversation_id)
     return persist_failure_response if conversation.blank?
 
@@ -32,7 +33,8 @@ class Captain::Copilot::ReplySuggestionService
     with_trace(conversation, target_message) do
       next persist_discarded_response unless target_message&.incoming?
 
-      unless @account.reserve_captain_ai_usage!(bucket: :copilot)
+      reservation_id = SecureRandom.uuid
+      unless @account.reserve_captain_ai_usage!(bucket: :copilot, reservation_id: reservation_id)
         reset_date = @account.current_usage_period.period_end.to_date
         next({ error: I18n.t('captain.copilot_limit', reset_date: reset_date), error_code: 429 })
       end
@@ -41,6 +43,14 @@ class Captain::Copilot::ReplySuggestionService
       raise GenerationError, response['reasoning'] if response['error']
 
       persist_response(response, runner, conversation, target_message)
+    end
+  ensure
+    if reservation_id
+      if @credit_used
+        @account.finish_captain_ai_usage!(bucket: :copilot, reservation_id: reservation_id)
+      else
+        @account.release_captain_ai_usage!(bucket: :copilot, reservation_id: reservation_id)
+      end
     end
   end
 
@@ -93,6 +103,7 @@ class Captain::Copilot::ReplySuggestionService
       return response_from(existing_message) if existing_message
       return create_failure_response unless conversation_accessible?(conversation)
       return create_discarded_response if latest_public_message(conversation)&.id != target_message.id
+      return create_failure_response if content.blank?
 
       create_reply_suggestion(response, content)
     end

@@ -282,6 +282,51 @@ RSpec.describe Account, type: :model do
         expect(captain_responses_used(account)).to eq(0)
       end
 
+      it 'releases a failed internal reservation exactly once' do
+        account.plan.update!(captain_internal_calls: 1)
+        reservation_id = SecureRandom.uuid
+        expect(account.reserve_captain_ai_usage!(bucket: :internal, reservation_id: reservation_id)).to be(true)
+        expect(account.reserve_captain_ai_usage!(bucket: :internal, reservation_id: reservation_id)).to be(true)
+        expect(account.usage_limits.dig(:captain, :internal)).to include(consumed: 1)
+
+        expect(account.release_captain_ai_usage!(bucket: :internal, reservation_id: reservation_id)).to be(true)
+        expect(account.release_captain_ai_usage!(bucket: :internal, reservation_id: reservation_id)).to be(false)
+        expect(account.reserve_captain_ai_usage!(bucket: :internal, reservation_id: reservation_id)).to be(false)
+        expect(account.usage_limits.dig(:captain, :internal)).to include(consumed: 0, current_available: 1)
+        expect(account.reserve_captain_ai_usage!(bucket: :internal)).to be(true)
+      end
+
+      it 'does not release another attempt when an unknown or mismatched receipt is given' do
+        account.plan.update!(captain_internal_calls: 2)
+        reservation_id = SecureRandom.uuid
+        account.reserve_captain_ai_usage!(bucket: :internal, reservation_id: reservation_id)
+
+        expect(account.release_captain_ai_usage!(bucket: :internal, reservation_id: SecureRandom.uuid)).to be(false)
+        expect(account.release_captain_ai_usage!(bucket: :copilot, reservation_id: reservation_id)).to be(false)
+        expect(account.usage_limits.dig(:captain, :internal)).to include(consumed: 1)
+      end
+
+      it 'releases a Copilot reservation from the shared response pool when its limit is nil' do
+        account.plan.update!(captain_copilot_responses: nil, monthly_messages: 1)
+        reservation_id = SecureRandom.uuid
+        expect(account.reserve_captain_ai_usage!(bucket: :copilot, reservation_id: reservation_id)).to be(true)
+        expect(account.usage_limits.dig(:captain, :responses)).to include(consumed: 1)
+
+        account.release_captain_ai_usage!(bucket: :copilot, reservation_id: reservation_id)
+
+        expect(account.usage_limits.dig(:captain, :responses)).to include(consumed: 0, current_available: 1)
+      end
+
+      it 'does not create a receipt or change usage for unlimited internal calls' do
+        account.plan.update!(captain_internal_calls: nil)
+        reservation_id = SecureRandom.uuid
+
+        expect(account.reserve_captain_ai_usage!(bucket: :internal, reservation_id: reservation_id)).to be(true)
+        expect(account.release_captain_ai_usage!(bucket: :internal, reservation_id: reservation_id)).to be(false)
+        expect(account.current_usage_period.ai_usage_reservations).to be_empty
+        expect(account.usage_limits.dig(:captain, :internal)).to include(consumed: 0)
+      end
+
       it 'keeps current_available inside its bounds' do
         account.current_usage_period.update!(responses_consumed: 3000)
 
@@ -605,5 +650,41 @@ RSpec.describe Account, type: :model do
         expect(account.unmark_for_deletion).to be_truthy
       end
     end
+  end
+end
+
+RSpec.describe Account, 'concurrent AI quota reservations', type: :model do
+  before(:context) do
+    @concurrent_account = create(:account)
+    put_account_on_plan(@concurrent_account, captain_internal_calls: 1)
+  end
+
+  after(:context) do
+    @concurrent_account.destroy!
+  end
+
+  it 'admits only one of two simultaneous reservations for the last internal credit' do
+    ready = Queue.new
+    start = Queue.new
+    attempts = 2.times.map do
+      Thread.new do
+        ActiveRecord::Base.connection_pool.with_connection do
+          ready << true
+          start.pop
+          Account.find(@concurrent_account.id).reserve_captain_ai_usage!(
+            bucket: :internal,
+            reservation_id: SecureRandom.uuid
+          )
+        end
+      end
+    end
+    2.times { ready.pop }
+    2.times { start << true }
+
+    expect(attempts.map(&:value).count(true)).to eq(1)
+    expect(@concurrent_account.reload.current_usage_period.internal_calls_consumed).to eq(1)
+  ensure
+    attempts&.each { |attempt| attempt.kill if attempt.alive? }
+    ActiveRecord::Base.connection_pool.release_connection
   end
 end

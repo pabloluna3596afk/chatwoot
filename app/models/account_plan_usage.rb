@@ -43,6 +43,7 @@
 class AccountPlanUsage < ApplicationRecord
   belongs_to :account
   belongs_to :plan, optional: true
+  has_many :ai_usage_reservations, dependent: :delete_all
 
   scope :open, -> { where(closed_at: nil) }
 
@@ -111,6 +112,18 @@ class AccountPlanUsage < ApplicationRecord
     self[column] = self.class.where(id: id).pick(column)
     self.responses_consumed = self.class.where(id: id).pick(:responses_consumed)
     check_ai_usage_warning(bucket, shared_response_pool, column, limit)
+  end
+
+  # The caller holds the account lock and a matching unreleased reservation
+  # receipt, so a retry cannot refund a different in-flight request.
+  def release_ai_call!(bucket:)
+    column = case bucket
+             when :internal then :internal_calls_consumed
+             when :copilot then :copilot_responses_consumed
+             else raise ArgumentError, "Unsupported AI usage bucket: #{bucket}"
+             end
+    self.class.where(id: id).where("#{column} > 0").update_all("#{column} = #{column} - 1")
+    self[column] = self.class.where(id: id).pick(column)
   end
 
   def set_documents_consumed!(count)

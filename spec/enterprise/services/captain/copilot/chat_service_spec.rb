@@ -106,6 +106,35 @@ RSpec.describe Captain::Copilot::ChatService do
       end.to(change { captain_responses_used(account) }.by(1))
     end
 
+    it 'releases the Copilot reservation when the request returns an error' do
+      allow(service).to receive(:request_chat_completion).and_return('error' => 'provider unavailable')
+
+      expect { service.generate_response('Hello') }.not_to(change { copilot_responses_used(account) })
+    end
+
+    it 'releases the Copilot reservation when the response is empty' do
+      allow(service).to receive(:request_chat_completion).and_return('content' => '')
+
+      expect { service.generate_response('Hello') }.not_to(change { copilot_responses_used(account) })
+    end
+
+    it 'charges once when a retry succeeds after a returned error' do
+      allow(service).to receive(:request_chat_completion).and_return(
+        { 'error' => 'provider unavailable' },
+        { 'content' => 'recovered' }
+      )
+
+      expect { service.generate_response('Hello') }.not_to(change { copilot_responses_used(account) })
+      expect { service.generate_response('Hello') }.to(change { copilot_responses_used(account) }.by(1))
+    end
+
+    it 'releases the Copilot reservation and propagates an exception' do
+      allow(service).to receive(:request_chat_completion).and_raise(Timeout::Error)
+
+      expect { service.generate_response('Hello') }.to raise_error(Timeout::Error)
+      expect(copilot_responses_used(account)).to eq(0)
+    end
+
     it 'blocks before the provider when the shared Captain pool is exhausted' do
       account.current_usage_period.update!(responses_consumed: 100)
 

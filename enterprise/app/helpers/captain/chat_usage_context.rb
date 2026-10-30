@@ -1,6 +1,6 @@
 module Captain::ChatUsageContext
   def request_chat_completion
-    bucket = feature_name.to_s == 'copilot' ? :copilot : :captain_responses
+    bucket = Llm::UsageContext::FEATURE_BUCKETS.fetch(feature_name.to_s)
     # This module wraps a Captain service method; these are service state values, not view locals.
     # rubocop:disable Rails/HelperInstanceVariable
     Llm::UsageContext.with(

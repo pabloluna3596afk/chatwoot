@@ -60,6 +60,57 @@ end
 module Llm::UsageContext
   KEY = :llm_usage_context
 
+  FEATURE_BUCKETS = {
+    'assistant_action_classifier' => :internal,
+    'assistant_false_promise_detector' => :internal,
+    'assistant_migration_instruction_auditor' => :internal,
+    'assistant_migration_instruction_classifier' => :internal,
+    'article_translation' => :captain_responses,
+    'article_writer' => :captain_responses,
+    'assistant' => :captain_responses,
+    'assistant_playground' => :captain_responses,
+    'audio_transcription' => :captain_responses,
+    'captain.conversation_completion' => :internal,
+    'captain_assistant_overview_summary' => :internal,
+    'captain_overview_summary' => :internal,
+    'captain_reply' => :captain_responses,
+    'contact_attributes' => :captain_responses,
+    'contact_notes' => :captain_responses,
+    'content_evaluator' => :internal,
+    'conversation_faq' => :captain_responses,
+    'conversation_faq_match' => :captain_responses,
+    'copilot' => :copilot,
+    'copilot_reply' => :copilot,
+    'copilot_reply_suggestion' => :copilot,
+    'csat_utility_analysis' => :internal,
+    'document_faq_generation' => :captain_responses,
+    'embedding' => :internal,
+    'faq_generation' => :captain_responses,
+    'faq_generator' => :captain_responses,
+    'follow_up' => :internal,
+    'help_center_article_generation' => :captain_responses,
+    'help_center_curation' => :captain_responses,
+    'help_center_query_translation' => :captain_responses,
+    'improve' => :internal,
+    'label_suggestion' => :internal,
+    'language_detection' => :captain_responses,
+    'message_translation' => :captain_responses,
+    'onboarding_content_generation' => :captain_responses,
+    'paginated_faq_generation' => :captain_responses,
+    'professional' => :internal,
+    'casual' => :internal,
+    'friendly' => :internal,
+    'confident' => :internal,
+    'straightforward' => :internal,
+    'fix_spelling_grammar' => :internal,
+    'reply_suggestion' => :internal,
+    'summary' => :internal,
+    'summarize' => :internal,
+    'translate_query' => :captain_responses,
+    'website_analyzer' => :captain_responses,
+    'widget_tagline' => :captain_responses
+  }.freeze
+
   class << self
     def current
       ActiveSupport::IsolatedExecutionState[KEY]
@@ -77,11 +128,16 @@ module Llm::UsageContext
            context: { conversation_id: conversation_id }, &)
     end
 
-    def with(account:, bucket:, feature:, context: {}, usage_group_id: SecureRandom.uuid)
+    def with(account:, feature:, bucket: nil, context: {}, usage_group_id: SecureRandom.uuid)
+      mapped_bucket = bucket_for(feature.to_s)
+      if bucket.present? && bucket.to_sym != mapped_bucket
+        raise ArgumentError, "AI usage bucket mismatch for #{feature}: #{bucket} != #{mapped_bucket}"
+      end
+
       previous = current
       ActiveSupport::IsolatedExecutionState[KEY] = {
         account_id: account&.id,
-        bucket: bucket.to_s,
+        bucket: mapped_bucket.to_s,
         feature: feature.to_s,
         usage_group_id: usage_group_id
       }.merge(context)
@@ -109,10 +165,9 @@ module Llm::UsageContext
     private
 
     def bucket_for(feature)
-      return :copilot if feature.match?(/copilot/i)
-      return :internal if feature.match?(/assistant_action_classifier|task|internal|embedding|moderation|transcription|content_evaluator/i)
-
-      :captain_responses
+      FEATURE_BUCKETS.fetch(feature) do
+        raise ArgumentError, "Unmapped AI usage feature: #{feature}"
+      end
     end
 
     def resolve_account(params)
