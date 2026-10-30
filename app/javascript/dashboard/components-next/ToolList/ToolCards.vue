@@ -231,7 +231,7 @@ const cards = computed(() => props.items);
               >
                 <span
                   v-if="part.startsWith('{{')"
-                  class="inline break-words rounded bg-n-brand/10 px-1 text-n-brand"
+                  class="inline break-words rounded bg-n-brand/10 px-1 text-n-blue-12"
                   :title="part"
                   >{{ visibleVariableText(part) }}</span
                 ><span v-else>{{ part }}</span>
@@ -260,7 +260,7 @@ const cards = computed(() => props.items);
                 >
                   <span
                     v-if="part.startsWith('{{')"
-                    class="inline break-words rounded bg-n-brand/10 px-1 text-n-brand"
+                    class="inline break-words rounded bg-n-brand/10 px-1 text-n-blue-12"
                     :title="part"
                     >{{ visibleVariableText(part) }}</span
                   ><span v-else>{{ part }}</span>
@@ -316,7 +316,7 @@ const cards = computed(() => props.items);
           /></span>
         </div>
         <footer
-          class="flex flex-wrap gap-x-3 gap-y-1 border-t border-n-weak px-4 py-2 text-xs text-n-slate-10 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:transition-opacity [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-within:opacity-100 motion-reduce:transition-none"
+          class="flex flex-wrap gap-x-3 gap-y-1 border-t border-n-weak px-4 py-2 text-xs text-n-slate-11 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:transition-opacity [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-within:opacity-100 motion-reduce:transition-none"
         >
           <span
             v-if="createdBy(item)"

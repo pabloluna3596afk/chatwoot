@@ -27,8 +27,8 @@ describe('ToolCards', () => {
       variableLabels: { 'contact.name': 'Nombre del contacto' },
     });
 
-    expect(wrapper.find('.text-n-brand').text()).toBe('Nombre del contacto');
-    expect(wrapper.find('.text-n-brand').attributes('title')).toBe(
+    expect(wrapper.find('.text-n-blue-12').text()).toBe('Nombre del contacto');
+    expect(wrapper.find('.text-n-blue-12').attributes('title')).toBe(
       '{{contact.name}}'
     );
   });
@@ -57,8 +57,8 @@ describe('ToolCards', () => {
         },
       });
 
-      expect(wrapper.find('.text-n-brand').text()).toBe(label);
-      expect(wrapper.find('.text-n-brand').attributes('title')).toBe(token);
+      expect(wrapper.find('.text-n-blue-12').text()).toBe(label);
+      expect(wrapper.find('.text-n-blue-12').attributes('title')).toBe(token);
     }
   );
 
@@ -69,8 +69,8 @@ describe('ToolCards', () => {
       variableLabels: { 'contact.custom_attribute': 'Atributo' },
     });
 
-    expect(wrapper.find('.text-n-brand').text()).toBe('Atributo: monto');
-    expect(wrapper.find('.text-n-brand').attributes('title')).toBe(token);
+    expect(wrapper.find('.text-n-blue-12').text()).toBe('Atributo: monto');
+    expect(wrapper.find('.text-n-blue-12').attributes('title')).toBe(token);
   });
 
   it('keeps English and Spanish variable label keys in parity', () => {
