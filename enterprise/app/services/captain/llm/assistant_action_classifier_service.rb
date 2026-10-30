@@ -12,29 +12,25 @@ class Captain::Llm::AssistantActionClassifierService < Llm::BaseAiService
   def classify(message_history:, assistant_response:)
     return internal_quota_error unless internal_usage_available?
 
-    begin
-      user_prompt = assistant_response_inspection_prompt(
-        message_history: message_history,
-        assistant_response: assistant_response,
-        response_tag: 'assistant_response_to_classify'
-      )
-      response = generate_classification(user_prompt)
-      parsed = parse_response(response.content)
-      result = normalize_response(parsed, response.content)
-    rescue StandardError => e
-      release_internal_reservation
-      return classification_error_response(e)
-    end
-
-    if result['error'].present?
-      release_internal_reservation
-    else
-      finish_internal_reservation
-    end
+    result = classify_response(message_history, assistant_response)
+    result['error'].present? ? release_internal_reservation : finish_internal_reservation
     result
+  rescue StandardError => e
+    release_internal_reservation
+    classification_error_response(e)
   end
 
   private
+
+  def classify_response(message_history, assistant_response)
+    user_prompt = assistant_response_inspection_prompt(
+      message_history: message_history,
+      assistant_response: assistant_response,
+      response_tag: 'assistant_response_to_classify'
+    )
+    response = generate_classification(user_prompt)
+    normalize_response(parse_response(response.content), response.content)
+  end
 
   def generate_classification(user_prompt)
     Llm::UsageContext.with(

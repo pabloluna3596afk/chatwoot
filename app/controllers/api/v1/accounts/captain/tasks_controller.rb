@@ -66,28 +66,25 @@ class Api::V1::Accounts::Captain::TasksController < Api::V1::Accounts::BaseContr
     if result.nil?
       render json: { message: nil }
     elsif result[:error]
-      error_code = result[:error_code].present? ? result[:error_code].to_i : nil
-      status = if error_code&.between?(400, 599)
-                 error_code
-               elsif Current.account.feature_enabled?('captain_tasks')
-                 :bad_gateway
-               else
-                 :forbidden
-               end
-      response = {
-        error: result[:error],
-        error_code: if error_code&.between?(400, 599)
-                      error_code
-                    else
-                      Rack::Utils.status_code(status)
-                    end
-      }
-      render json: response, status: status
+      status = task_error_status(result[:error_code])
+      code = valid_error_code(result[:error_code]) || Rack::Utils.status_code(status)
+      render json: { error: result[:error], error_code: code }, status: status
     else
       response_data = { message: result[:message] }
       response_data[:follow_up_context] = result[:follow_up_context] if result[:follow_up_context]
       render json: response_data
     end
+  end
+
+  def task_error_status(error_code)
+    return valid_error_code(error_code) if valid_error_code(error_code)
+
+    Current.account.feature_enabled?('captain_tasks') ? :bad_gateway : :forbidden
+  end
+
+  def valid_error_code(error_code)
+    code = error_code.to_i if error_code.present?
+    code if code&.between?(400, 599)
   end
 
   def check_authorization
