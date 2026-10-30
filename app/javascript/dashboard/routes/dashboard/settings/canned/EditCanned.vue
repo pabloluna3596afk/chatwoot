@@ -9,6 +9,7 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import Modal from '../../../../components/Modal.vue';
 import InsertVariableButton from 'dashboard/components-next/variable/InsertVariableButton.vue';
+import ToolCategoryPicker from 'dashboard/components-next/ToolList/ToolCategoryPicker.vue';
 
 export default {
   components: {
@@ -17,12 +18,14 @@ export default {
     Modal,
     WootMessageEditor,
     InsertVariableButton,
+    ToolCategoryPicker,
   },
   props: {
     id: { type: Number, default: null },
     edcontent: { type: String, default: '' },
     edshortCode: { type: String, default: '' },
     edcategory: { type: String, default: '' },
+    categories: { type: Array, default: () => [] },
     edvisibility: { type: String, default: 'personal' },
     onClose: { type: Function, default: () => {} },
   },
@@ -138,14 +141,14 @@ export default {
         </div>
 
         <div class="w-full">
-          <label>
-            {{ $t('CANNED_MGMT.EDIT.FORM.CATEGORY.LABEL') }}
-            <input
-              v-model="category"
-              type="text"
-              :placeholder="$t('CANNED_MGMT.EDIT.FORM.CATEGORY.PLACEHOLDER')"
-            />
-          </label>
+          <ToolCategoryPicker
+            v-model="category"
+            :categories="categories"
+            :label="$t('CANNED_MGMT.EDIT.FORM.CATEGORY.LABEL')"
+            :placeholder="$t('CANNED_MGMT.EDIT.FORM.CATEGORY.PLACEHOLDER')"
+            :create-label="$t('CANNED_MGMT.CATEGORY.CREATE')"
+            :clear-label="$t('CANNED_MGMT.CATEGORY.CLEAR')"
+          />
           <p class="mb-0 text-xs text-n-slate-11">
             {{ $t('CANNED_MGMT.EDIT.FORM.CATEGORY.HELP') }}
           </p>

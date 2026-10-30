@@ -30,6 +30,29 @@ RSpec.describe 'Canned Responses API', type: :request do
         )
       end
 
+      it 'includes creator and reviewer details for settings traceability' do
+        reviewer = create(:user, account: account, role: :administrator)
+        canned_response = create(
+          :canned_response,
+          account: account,
+          created_by: agent,
+          reviewed_by: reviewer,
+          reviewed_at: Time.zone.parse('2026-10-20 12:00:00'),
+          approval_status: :approved,
+          short_code: 'traceable'
+        )
+
+        get "/api/v1/accounts/#{account.id}/canned_responses",
+            headers: reviewer.create_new_auth_token,
+            as: :json
+
+        row = response.parsed_body.find { |item| item['id'] == canned_response.id }
+        expect(row.dig('created_by', 'id')).to eq(agent.id)
+        expect(row.dig('created_by', 'available_name')).to eq(agent.available_name)
+        expect(row.dig('reviewed_by', 'id')).to eq(reviewer.id)
+        expect(row['reviewed_at']).to be_present
+      end
+
       it 'returns only usable responses when usable=true' do
         pending = create(
           :canned_response,
@@ -74,7 +97,7 @@ RSpec.describe 'Canned Responses API', type: :request do
             as: :json
 
         expect(response).to have_http_status(:success)
-        expect(response.parsed_body).to eq([matching_response].as_json)
+        expect(response.parsed_body.map { |row| row['id'] }).to eq([matching_response.id])
       end
     end
   end

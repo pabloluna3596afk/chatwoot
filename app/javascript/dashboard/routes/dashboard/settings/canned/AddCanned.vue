@@ -10,6 +10,7 @@ import Icon from 'dashboard/components-next/icon/Icon.vue';
 import Modal from '../../../../components/Modal.vue';
 import WootMessageEditor from 'dashboard/components/widgets/WootWriter/Editor.vue';
 import InsertVariableButton from 'dashboard/components-next/variable/InsertVariableButton.vue';
+import ToolCategoryPicker from 'dashboard/components-next/ToolList/ToolCategoryPicker.vue';
 
 export default {
   name: 'AddCanned',
@@ -19,12 +20,14 @@ export default {
     Modal,
     WootMessageEditor,
     InsertVariableButton,
+    ToolCategoryPicker,
   },
   props: {
     responseContent: {
       type: String,
       default: '',
     },
+    categories: { type: Array, default: () => [] },
     onClose: {
       type: Function,
       default: () => {},
@@ -146,14 +149,14 @@ export default {
         </div>
 
         <div class="w-full">
-          <label>
-            {{ $t('CANNED_MGMT.ADD.FORM.CATEGORY.LABEL') }}
-            <input
-              v-model="category"
-              type="text"
-              :placeholder="$t('CANNED_MGMT.ADD.FORM.CATEGORY.PLACEHOLDER')"
-            />
-          </label>
+          <ToolCategoryPicker
+            v-model="category"
+            :categories="categories"
+            :label="$t('CANNED_MGMT.ADD.FORM.CATEGORY.LABEL')"
+            :placeholder="$t('CANNED_MGMT.ADD.FORM.CATEGORY.PLACEHOLDER')"
+            :create-label="$t('CANNED_MGMT.CATEGORY.CREATE')"
+            :clear-label="$t('CANNED_MGMT.CATEGORY.CLEAR')"
+          />
           <p class="mb-0 text-xs text-n-slate-11">
             {{ $t('CANNED_MGMT.ADD.FORM.CATEGORY.HELP') }}
           </p>
