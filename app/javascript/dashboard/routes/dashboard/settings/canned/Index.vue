@@ -360,12 +360,36 @@ const variableLabels = computed(() => {
     ),
     'agent.name': accountT('CANNED_MGMT.VARIABLES.agent_name'),
     'conversation.id': accountT('CANNED_MGMT.VARIABLES.conversation_id'),
+    'conversation.inbox.name': accountT(
+      'CANNED_MGMT.VARIABLES.conversation_inbox_name'
+    ),
+    'conversation.inbox_name': accountT(
+      'CANNED_MGMT.VARIABLES.conversation_inbox_name'
+    ),
+    'inbox.name': accountT('CANNED_MGMT.VARIABLES.inbox_name'),
+    'account.name': accountT('CANNED_MGMT.VARIABLES.account_name'),
+    'assistant.name': accountT('CANNED_MGMT.VARIABLES.assistant_name'),
+    'appointment.title': accountT('CANNED_MGMT.VARIABLES.appointment_title'),
+    'appointment.date': accountT('CANNED_MGMT.VARIABLES.appointment_date'),
+    'appointment.time': accountT('CANNED_MGMT.VARIABLES.appointment_time'),
+    'appointment.datetime': accountT(
+      'CANNED_MGMT.VARIABLES.appointment_datetime'
+    ),
   };
   (customAttributes.value || []).forEach(attribute => {
     const { attribute_key: key, attribute_display_name: name } = attribute;
     labels[`contact.custom_attribute['${key}']`] = name;
     labels[`contact.custom_attribute.${key}`] = name;
   });
+  labels['contact.custom_attribute'] = accountT(
+    'CANNED_MGMT.VARIABLES.unknown_attribute'
+  );
+  labels['conversation.custom_attribute'] = accountT(
+    'CANNED_MGMT.VARIABLES.unknown_attribute'
+  );
+  labels['company.custom_attribute'] = accountT(
+    'CANNED_MGMT.VARIABLES.unknown_attribute'
+  );
   return labels;
 });
 

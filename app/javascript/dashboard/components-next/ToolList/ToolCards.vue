@@ -42,6 +42,15 @@ const contentParts = content =>
     .filter(Boolean);
 const variableName = part => {
   const path = part.replace(/[{}]/g, '').trim();
+  if (props.variableLabels[path]) return props.variableLabels[path];
+  const customAttribute = path.match(
+    /^(?:contact|conversation|company)\.custom_attribute(?:\[['"]?(.+?)['"]?\]|\.(.+))?$/
+  );
+  if (customAttribute) {
+    const key = customAttribute[1] || customAttribute[2];
+    const label = props.variableLabels['contact.custom_attribute'];
+    return key ? `${label}: ${key}` : label;
+  }
   return props.variableLabels[path] || path.replace(/[._]/g, ' ');
 };
 const needsExpansion = content =>
@@ -109,6 +118,13 @@ const onCardKeydown = (event, item) => {
     editItem(item);
   }
 };
+const closeMenuOnEscape = event => {
+  if (event.key !== 'Escape') return;
+  const details = event.currentTarget;
+  if (!details.open) return;
+  details.open = false;
+  details.querySelector('summary')?.focus();
+};
 const cards = computed(() => props.items);
 </script>
 
@@ -160,6 +176,7 @@ const cards = computed(() => props.items);
           <details
             v-if="visibleActions(item).length"
             class="relative z-10 shrink-0"
+            @keydown="closeMenuOnEscape"
           >
             <summary
               class="flex size-8 cursor-pointer list-none items-center justify-center rounded-lg text-n-slate-11 hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-2"

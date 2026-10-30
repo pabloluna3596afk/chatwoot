@@ -204,7 +204,16 @@
       "contact_country_code": "Contact country",
       "contact_document_number": "Contact document number",
       "agent_name": "Agent name",
-      "conversation_id": "Conversation number"
+      "conversation_id": "Conversation number",
+      "conversation_inbox_name": "Conversation inbox",
+      "inbox_name": "Inbox name",
+      "account_name": "Account name",
+      "assistant_name": "Assistant name",
+      "appointment_title": "Appointment title",
+      "appointment_date": "Appointment date",
+      "appointment_time": "Appointment time",
+      "appointment_datetime": "Appointment date and time",
+      "unknown_attribute": "Attribute"
     },
     "CARDS": {
       "SHOW_MORE": "Show more",

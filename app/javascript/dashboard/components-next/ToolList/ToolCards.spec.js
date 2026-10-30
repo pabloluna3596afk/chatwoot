@@ -1,6 +1,8 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import ToolCards from './ToolCards.vue';
+import en from 'dashboard/i18n/locale/en/cannedMgmt.json';
+import es from 'dashboard/i18n/locale/es/cannedMgmt.json';
 
 const canned = {
   id: 7,
@@ -31,6 +33,52 @@ describe('ToolCards', () => {
     );
   });
 
+  it.each([
+    ['{{contact.email}}', 'Correo del contacto'],
+    ['{{agent.name}}', 'Nombre del agente'],
+    ['{{conversation.id}}', 'Número de conversación'],
+    ['{{inbox.name}}', 'Nombre de la bandeja'],
+    ['{{account.name}}', 'Nombre de la cuenta'],
+    ['{{assistant.name}}', 'Nombre del asistente'],
+    ['{{appointment.datetime}}', 'Fecha y hora de la cita'],
+  ])(
+    'renders localized labels for standard variable family %s',
+    (token, label) => {
+      const wrapper = mountCards({
+        items: [{ ...canned, content: token }],
+        variableLabels: {
+          'contact.email': 'Correo del contacto',
+          'agent.name': 'Nombre del agente',
+          'conversation.id': 'Número de conversación',
+          'inbox.name': 'Nombre de la bandeja',
+          'account.name': 'Nombre de la cuenta',
+          'assistant.name': 'Nombre del asistente',
+          'appointment.datetime': 'Fecha y hora de la cita',
+        },
+      });
+
+      expect(wrapper.find('.text-n-brand').text()).toBe(label);
+      expect(wrapper.find('.text-n-brand').attributes('title')).toBe(token);
+    }
+  );
+
+  it('labels an unknown custom attribute without changing its key or source', () => {
+    const token = '{{ conversation.custom_attribute.monto }}';
+    const wrapper = mountCards({
+      items: [{ ...canned, content: token }],
+      variableLabels: { 'contact.custom_attribute': 'Atributo' },
+    });
+
+    expect(wrapper.find('.text-n-brand').text()).toBe('Atributo: monto');
+    expect(wrapper.find('.text-n-brand').attributes('title')).toBe(token);
+  });
+
+  it('keeps English and Spanish variable label keys in parity', () => {
+    expect(Object.keys(es.CANNED_MGMT.VARIABLES).sort()).toEqual(
+      Object.keys(en.CANNED_MGMT.VARIABLES).sort()
+    );
+  });
+
   it('shows the card actions with icons and emits the selected action', async () => {
     const wrapper = mountCards({
       actions: [{ key: 'duplicate', label: 'Duplicar', icon: 'i-lucide-copy' }],
@@ -44,6 +92,20 @@ describe('ToolCards', () => {
       action: 'duplicate',
       item: canned,
     });
+  });
+
+  it('closes the action menu on Escape and returns focus to its trigger', async () => {
+    const wrapper = mountCards({
+      actions: [{ key: 'edit', label: 'Edit' }],
+    });
+    const menu = wrapper.find('details');
+    const trigger = menu.find('summary');
+    menu.element.open = true;
+
+    await trigger.trigger('keydown', { key: 'Escape' });
+
+    expect(menu.element.open).toBe(false);
+    expect(document.activeElement).toBe(trigger.element);
   });
 
   it('expands a long response in place for touch screens', async () => {

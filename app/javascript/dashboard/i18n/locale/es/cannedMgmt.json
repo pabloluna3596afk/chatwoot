@@ -196,7 +196,16 @@
       "contact_country_code": "País del contacto",
       "contact_document_number": "Documento del contacto",
       "agent_name": "Nombre del agente",
-      "conversation_id": "Número de conversación"
+      "conversation_id": "Número de conversación",
+      "conversation_inbox_name": "Bandeja de la conversación",
+      "inbox_name": "Nombre de la bandeja",
+      "account_name": "Nombre de la cuenta",
+      "assistant_name": "Nombre del asistente",
+      "appointment_title": "Título de la cita",
+      "appointment_date": "Fecha de la cita",
+      "appointment_time": "Hora de la cita",
+      "appointment_datetime": "Fecha y hora de la cita",
+      "unknown_attribute": "Atributo"
     },
     "DUPLICATE": {
       "TOOLTIP": "Duplicar",
