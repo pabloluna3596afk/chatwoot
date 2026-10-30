@@ -2181,7 +2181,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_29_120000) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "ai_usage_events", "accounts", on_delete: :cascade
-  add_foreign_key "ai_usage_reservations", "account_plan_usages"
+  add_foreign_key "ai_usage_reservations", "account_plan_usages", on_delete: :cascade
   add_foreign_key "calendar_connection_calendars", "accounts", on_delete: :cascade
   add_foreign_key "calendar_connection_calendars", "calendar_connections", on_delete: :cascade
   add_foreign_key "calendar_connections", "accounts", on_delete: :cascade

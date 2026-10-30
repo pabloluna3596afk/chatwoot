@@ -298,9 +298,16 @@ class Account < ApplicationRecord # rubocop:disable Metrics/ClassLength
     now = anchor || Time.current
     account_plan_usages.where(closed_at: nil).where('period_start <= ?', now)
                        .update_all(closed_at: now, period_end: now) # rubocop:disable Rails/SkipsModelValidations
+    cleanup_closed_ai_usage_reservations(now)
     payphone_start = payphone_payments.where(status: 'approved').where(plan_id: plan_id)
                                       .order(period_start: :desc).pick(:period_start)
     update_column(:plan_started_at, anchor || payphone_start || now) # rubocop:disable Rails/SkipsModelValidations
+  end
+
+  def cleanup_closed_ai_usage_reservations(now)
+    reservations = AiUsageReservation.joins(:account_plan_usage).where(account_plan_usages: { account_id: id })
+    reservations.where.not(account_plan_usages: { closed_at: nil }).delete_all
+    reservations.where(released_at: ...now - 30.days).delete_all
   end
 
   # The [start, end) window (monthly, anchored to plan_started_at) that

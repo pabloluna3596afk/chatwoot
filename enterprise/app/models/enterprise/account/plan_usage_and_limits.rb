@@ -1,6 +1,7 @@
 module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleLength
   CAPTAIN_RESPONSES = 'captain_responses'.freeze
   CAPTAIN_DOCUMENTS = 'captain_documents'.freeze
+  AI_USAGE_RESERVATION_RETENTION = 30.days
 
   def usage_limits
     {
@@ -30,23 +31,7 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
     return true unless current_period_window
     return true if bucket == :internal && internal_limit.nil?
 
-    with_lock do
-      AiUsageReservation.joins(:account_plan_usage)
-                        .where(account_plan_usages: { account_id: id })
-                        .where.not(account_plan_usages: { closed_at: nil })
-                        .delete_all
-      reservation = AiUsageReservation.joins(:account_plan_usage)
-                                     .find_by(reservation_id: reservation_id, account_plan_usages: { account_id: id })
-      return reservation.bucket == bucket.to_s && reservation.released_at.nil? if reservation
-
-      usage = current_usage_period
-      limit, consumed = ai_usage_reservation_limit(bucket, usage)
-      return false if limit && consumed >= limit
-
-      usage.ai_usage_reservations.create!(reservation_id: reservation_id, bucket: bucket)
-      usage.reserve_ai_call!(bucket: bucket, shared_response_pool: bucket == :copilot && copilot_limit.nil?, limit: limit)
-    end
-    true
+    with_lock { reserve_captain_ai_usage_in_current_period!(bucket, reservation_id) }
   end
 
   # Finish a successful reservation without refunding it. Successful receipts
@@ -177,10 +162,32 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
 
   def ai_usage_reservation_limit(bucket, usage)
     return [captain_monthly_limit[:responses].to_i, captain_usage_consumed(:responses, usage)] if bucket == :copilot && copilot_limit.nil?
+    return [captain_monthly_limit[:responses], captain_usage_consumed(:responses, usage)] if bucket == :captain_responses
 
     limit_key = bucket == :copilot ? :copilot : :internal
     limits = usage_limits[:captain]
     [limits.dig(limit_key, :total_count), limits.dig(limit_key, :consumed).to_i]
+  end
+
+  def reserve_captain_ai_usage_in_current_period!(bucket, reservation_id)
+    cleanup_ai_usage_reservations
+    reservation = AiUsageReservation.joins(:account_plan_usage)
+                                    .find_by(reservation_id: reservation_id, account_plan_usages: { account_id: id })
+    return reservation.bucket == bucket.to_s && reservation.released_at.nil? if reservation
+
+    usage = current_usage_period
+    limit, consumed = ai_usage_reservation_limit(bucket, usage)
+    return false if limit && consumed >= limit
+
+    usage.ai_usage_reservations.create!(reservation_id: reservation_id, bucket: bucket)
+    usage.reserve_ai_call!(bucket: bucket, shared_response_pool: bucket == :copilot && copilot_limit.nil?, limit: limit)
+    true
+  end
+
+  def cleanup_ai_usage_reservations
+    reservations = AiUsageReservation.joins(:account_plan_usage).where(account_plan_usages: { account_id: id })
+    reservations.where.not(account_plan_usages: { closed_at: nil }).delete_all
+    reservations.where(released_at: ...AI_USAGE_RESERVATION_RETENTION.ago).delete_all
   end
 
   def copilot_limit

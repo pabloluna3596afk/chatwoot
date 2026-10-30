@@ -6,5 +6,5 @@ class AiUsageReservation < ApplicationRecord
   belongs_to :account_plan_usage
 
   validates :reservation_id, presence: true, uniqueness: true
-  validates :bucket, inclusion: { in: %w[internal copilot] }
+  validates :bucket, inclusion: { in: %w[internal copilot captain_responses] }
 end

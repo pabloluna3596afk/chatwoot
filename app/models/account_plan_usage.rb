@@ -85,7 +85,8 @@ class AccountPlanUsage < ApplicationRecord
 
   def check_ai_usage_warning(bucket, shared_response_pool, column, limit)
     consumed = shared_response_pool ? shared_response_pool_consumed : self[column]
-    check_usage_limit_warning(shared_response_pool ? :responses : bucket, consumed, limit)
+    warning_bucket = shared_response_pool || bucket == :captain_responses ? :responses : bucket
+    check_usage_limit_warning(warning_bucket, consumed, limit)
   end
 
   public
@@ -105,6 +106,7 @@ class AccountPlanUsage < ApplicationRecord
     column = case bucket
              when :internal then :internal_calls_consumed
              when :copilot then :copilot_responses_consumed
+             when :captain_responses then :responses_consumed
              else raise ArgumentError, "Unsupported AI usage bucket: #{bucket}"
              end
     updates = ["#{column} = #{column} + 1"]
@@ -120,10 +122,12 @@ class AccountPlanUsage < ApplicationRecord
     column = case bucket
              when :internal then :internal_calls_consumed
              when :copilot then :copilot_responses_consumed
+             when :captain_responses then :responses_consumed
              else raise ArgumentError, "Unsupported AI usage bucket: #{bucket}"
              end
     self.class.where(id: id).where("#{column} > 0").update_all("#{column} = #{column} - 1")
     self[column] = self.class.where(id: id).pick(column)
+    self.responses_consumed = self[column] if column == :responses_consumed
   end
 
   def set_documents_consumed!(count)

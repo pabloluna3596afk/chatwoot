@@ -1,7 +1,7 @@
 class CreateAiUsageReservations < ActiveRecord::Migration[7.0]
   def change
     create_table :ai_usage_reservations do |t|
-      t.references :account_plan_usage, null: false, foreign_key: true, index: true
+      t.references :account_plan_usage, null: false, foreign_key: { on_delete: :cascade }, index: true
       t.string :reservation_id, null: false
       t.string :bucket, null: false
       t.datetime :released_at
