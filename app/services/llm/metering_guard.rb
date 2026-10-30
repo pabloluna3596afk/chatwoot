@@ -1,6 +1,3 @@
-# Fails provider calls that bypass the account usage context in tests and CI.
-class Llm::UnmeteredCall < StandardError; end
-
 module Llm::MeteringGuard
   extend self
 
