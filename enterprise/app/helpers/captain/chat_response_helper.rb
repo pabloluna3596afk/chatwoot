@@ -19,7 +19,18 @@ module Captain::ChatResponseHelper
     JSON.parse(content)
   rescue JSON::ParserError => e
     Rails.logger.error "#{self.class.name} Assistant: #{@assistant.id}, Error parsing JSON response: #{e.message}"
-    { 'content' => content }
+    first_json_object(content) || { 'content' => content }
+  end
+
+  # Models sometimes emit the same JSON object twice in a row. Keep the first valid
+  # one instead of showing the raw text to the agent.
+  def first_json_object(content)
+    content.split(/(?<=\})\s*(?=\{)/).filter_map do |candidate|
+      parsed = JSON.parse(candidate)
+      parsed if parsed.is_a?(Hash)
+    rescue JSON::ParserError
+      nil
+    end.first
   end
 
   def apply_credit_usage_metadata(parsed_response)
