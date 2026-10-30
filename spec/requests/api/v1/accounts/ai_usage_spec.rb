@@ -32,6 +32,18 @@ RSpec.describe 'AI usage API' do
     expect(response.body).not_to match(/token|cost|model|provider/i)
   end
 
+  it 'does not count failed attempts as used messages' do
+    AccountPlanUsage.create!(account: account, period_start: 10.days.ago, period_end: 20.days.from_now)
+    AiUsageEvent.create!(account: account, bucket: 'internal', feature: 'summarize', model: 'private-model',
+                         provider: 'internal', usage_group_id: SecureRandom.uuid, created_at: 1.day.ago, status: 'ok')
+    AiUsageEvent.create!(account: account, bucket: 'internal', feature: 'summarize', model: 'private-model',
+                         provider: 'internal', usage_group_id: SecureRandom.uuid, created_at: 1.day.ago, status: 'error')
+
+    get path, headers: admin.create_new_auth_token
+
+    expect(response.parsed_body['daily']).to contain_exactly(a_hash_including('bucket' => 'internal', 'messages' => 1))
+  end
+
   it 'rejects agents because billing settings are administrator-only' do
     get path, headers: agent.create_new_auth_token
 

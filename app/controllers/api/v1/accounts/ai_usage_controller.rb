@@ -18,7 +18,8 @@ class Api::V1::Accounts::AiUsageController < Api::V1::Accounts::BaseController
 
   def daily_usage(period)
     usage_messages = AiUsageEvent
-                     .where(account_id: @current_account.id, created_at: period.period_start...period.period_end)
+                     .where(account_id: @current_account.id, status: 'ok',
+                            created_at: period.period_start...period.period_end)
                      .select(:usage_group_id, :bucket, 'MIN(created_at) AS created_at')
                      .group(:usage_group_id, :bucket)
     AiUsageEvent.from(usage_messages, :usage_messages)
