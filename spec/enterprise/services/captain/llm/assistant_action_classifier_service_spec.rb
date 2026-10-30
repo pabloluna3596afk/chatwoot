@@ -86,6 +86,50 @@ RSpec.describe Captain::Llm::AssistantActionClassifierService do
       end.to change { account.reload.current_usage_period.internal_calls_consumed }.by(1)
     end
 
+    it 'releases the internal reservation when the provider raises' do
+      put_account_on_plan(account, captain_internal_calls: 1)
+      allow(mock_chat).to receive(:ask).and_raise(Timeout::Error)
+
+      result = service.classify(message_history: message_history, assistant_response: 'Would you like to talk to support?')
+
+      expect(result['error']).to include('Timeout::Error')
+      expect(account.reload.current_usage_period.internal_calls_consumed).to eq(0)
+    end
+
+    it 'releases the internal reservation when prompt construction raises' do
+      put_account_on_plan(account, captain_internal_calls: 1)
+      allow(service).to receive(:assistant_response_inspection_prompt).and_raise(ArgumentError)
+
+      result = service.classify(message_history: message_history, assistant_response: 'Would you like to talk to support?')
+
+      expect(result['error']).to include('ArgumentError')
+      expect(account.reload.current_usage_period.internal_calls_consumed).to eq(0)
+    end
+
+    it 'charges once when a retry succeeds after a provider exception' do
+      put_account_on_plan(account, captain_internal_calls: 1)
+      allow(mock_chat).to receive(:ask).and_raise(Timeout::Error)
+
+      service.classify(message_history: message_history, assistant_response: 'Would you like to talk to support?')
+      expect(account.reload.current_usage_period.internal_calls_consumed).to eq(0)
+      allow(mock_chat).to receive(:ask).and_return(mock_response)
+
+      expect do
+        service.classify(message_history: message_history, assistant_response: 'Would you like to talk to support?')
+      end.to change { account.reload.current_usage_period.internal_calls_consumed }.by(1)
+    end
+
+    it 'releases the internal reservation when the classifier response is invalid' do
+      put_account_on_plan(account, captain_internal_calls: 1)
+      allow(mock_response).to receive(:content).and_return({ 'action' => 'not_allowed' })
+      allow(mock_chat).to receive(:ask).and_return(mock_response)
+
+      result = service.classify(message_history: message_history, assistant_response: 'Would you like to talk to support?')
+
+      expect(result['error']).to eq('invalid_classifier_response')
+      expect(account.reload.current_usage_period.internal_calls_consumed).to eq(0)
+    end
+
     it 'blocks before the provider when the internal allowance is exhausted' do
       put_account_on_plan(account, captain_internal_calls: 0)
       expect(mock_chat).not_to receive(:ask)

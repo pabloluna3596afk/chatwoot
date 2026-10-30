@@ -26,6 +26,11 @@ const loading = ref(true);
 const isLoadingUsage = computed(() => loading.value || props.isLoadingLimits);
 const error = ref(false);
 const usage = ref({ daily: [] });
+const bagModeLabels = computed(() => ({
+  shared: t('BILLING_SETTINGS.USAGE.BAG_MODES.SHARED'),
+  unlimited: t('BILLING_SETTINGS.USAGE.BAG_MODES.UNLIMITED'),
+  not_included: t('BILLING_SETTINGS.USAGE.BAG_MODES.NOT_INCLUDED'),
+}));
 
 const bags = computed(() =>
   [
@@ -44,7 +49,12 @@ const bags = computed(() =>
       title: t('BILLING_SETTINGS.USAGE.BAGS.INTERNAL'),
       limits: props.internalLimits,
     },
-  ].filter(bag => bag.limits?.totalCount > 0)
+  ].map(bag => ({
+    ...bag,
+    mode:
+      usage.value.bag_modes?.[bag.key] ||
+      (bag.limits?.totalCount > 0 ? 'included' : 'not_included'),
+  }))
 );
 
 const chartRows = computed(() => {
@@ -180,7 +190,10 @@ onMounted(async () => {
         class="rounded-xl border border-n-weak bg-n-solid-1 p-4 dark:bg-n-solid-3"
       >
         <h3 class="m-0 text-base font-medium">{{ bag.title }}</h3>
-        <p class="mb-3 mt-2 text-sm text-n-slate-11">
+        <p
+          v-if="bag.mode === 'included'"
+          class="mb-3 mt-2 text-sm text-n-slate-11"
+        >
           {{
             t('BILLING_SETTINGS.USAGE.USED_INCLUDED', {
               used: bag.limits.consumed,
@@ -189,6 +202,7 @@ onMounted(async () => {
           }}
         </p>
         <div
+          v-if="bag.mode === 'included'"
           class="h-2 overflow-hidden rounded-full bg-n-slate-3"
           role="progressbar"
           :aria-label="bag.title"
@@ -229,7 +243,10 @@ onMounted(async () => {
             />
           </svg>
         </div>
-        <p class="mb-0 mt-2 text-xs text-n-slate-11">
+        <p
+          v-if="bag.mode === 'included'"
+          class="mb-0 mt-2 text-xs text-n-slate-11"
+        >
           {{
             t('BILLING_SETTINGS.USAGE.PERCENT_USED', {
               percent: Math.round(
@@ -240,6 +257,9 @@ onMounted(async () => {
           <span v-if="resetDate" class="block pt-1">
             {{ t('BILLING_SETTINGS.USAGE.RESET_DATE', { date: resetDate }) }}
           </span>
+        </p>
+        <p v-else class="mb-0 mt-2 text-sm text-n-slate-11">
+          {{ bagModeLabels[bag.mode] }}
         </p>
       </article>
     </div>

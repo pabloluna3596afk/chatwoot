@@ -78,6 +78,7 @@ en:
       cannot_revoke_current: You cannot revoke the current session.
 
   errors:
+    access_denied: 'You do not have permission to access this resource.'
     device_verification:
       delivery_unavailable: 'We could not send a verification code. Sign-in was not completed. Contact your administrator.'
       rate_limited: 'Too many device verification emails were requested. Try again later or contact your administrator.'
@@ -690,6 +691,8 @@ en:
     copilot_error: 'Please connect an assistant to this inbox to use Copilot'
     copilot_limit: 'Your Copilot limit is reached. Suggestions are paused until %{reset_date}, when your plan resets; manual replies are still available.'
     internal_limit: 'The monthly limit for internal AI actions has been reached. This AI action was skipped; you can continue manually.'
+    invalid_rewrite_operation: 'This rewrite operation is not supported.'
+    conversation_not_found: 'Conversation not found.'
     usage_limit_warning:
       subject: 'Your %{bag} usage is at %{percent}% of its plan limit'
       message: 'The account %{account_name} has used %{consumed} of %{limit} %{bag} this billing period.'

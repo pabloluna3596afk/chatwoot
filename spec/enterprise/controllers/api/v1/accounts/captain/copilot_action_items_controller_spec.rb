@@ -37,4 +37,48 @@ RSpec.describe 'Api::V1::Accounts::Captain::CopilotActionItemsController', type:
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  describe 'action item client contract' do
+    let(:contact) { create(:contact, account: account) }
+    let(:first_label) { create(:label, account: account) }
+    let(:second_label) { create(:label, account: account) }
+    let(:item) do
+      CopilotActionItem.create!(
+        account: account,
+        user: owner,
+        copilot_thread: thread,
+        action: 'add_label',
+        target_type: 'Contact',
+        target_id: contact.id,
+        payload: { label_id: first_label.id },
+        payload_hash: Digest::SHA256.hexdigest(first_label.id.to_s),
+        expires_at: 24.hours.from_now,
+        idempotency_key: SecureRandom.uuid
+      )
+    end
+
+    it 'updates and approves a proposal when each request includes its thread id' do
+      patch "/api/v1/accounts/#{account.id}/captain/copilot_action_items/#{item.id}",
+            params: { copilot_thread_id: thread.id, payload: { label_id: second_label.id } },
+            headers: owner.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body['payload']['label_id']).to eq(second_label.id)
+
+      post "/api/v1/accounts/#{account.id}/captain/copilot_action_items/#{item.id}/approve",
+           params: { copilot_thread_id: thread.id }, headers: owner.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body['status']).to eq('executed')
+      expect(contact.reload.label_list).to include(second_label.title)
+    end
+
+    it 'rejects a proposal when the request includes its thread id' do
+      post "/api/v1/accounts/#{account.id}/captain/copilot_action_items/#{item.id}/reject",
+           params: { copilot_thread_id: thread.id }, headers: owner.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body['status']).to eq('rejected')
+    end
+  end
 end

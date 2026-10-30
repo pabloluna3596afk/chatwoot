@@ -16,7 +16,7 @@ import { MESSAGE_TYPE } from 'shared/constants/messages';
 
 export function useCaptain() {
   const store = useStore();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { isCloudFeatureEnabled, currentAccount } = useAccount();
   const { isEnterprise } = useConfig();
   const uiFlags = useMapGetter('accounts/getUIFlags');
@@ -107,6 +107,37 @@ export function useCaptain() {
   };
 
   // === Error Handling ===
+  const getTaskErrorMessage = errorOrType => {
+    const errorTypeStatus = String(errorOrType).startsWith(
+      CAPTAIN_ERROR_TYPES.HTTP_PREFIX
+    )
+      ? Number(
+          String(errorOrType).slice(CAPTAIN_ERROR_TYPES.HTTP_PREFIX.length)
+        )
+      : undefined;
+    const status =
+      errorOrType?.response?.status ?? errorTypeStatus ?? errorOrType;
+    const errorCode = errorOrType?.response?.data?.error_code;
+
+    if (status === 403 || errorCode === 403) {
+      return t('INTEGRATION_SETTINGS.OPEN_AI.TASKS_PLAN_REQUIRED');
+    }
+    if (status === 429 || errorCode === 429) {
+      const resetDate = usagePeriodEnd.value
+        ? new Intl.DateTimeFormat(locale.value, { timeZone: 'UTC' }).format(
+            new Date(usagePeriodEnd.value)
+          )
+        : '';
+      if (resetDate) {
+        return t('INTEGRATION_SETTINGS.OPEN_AI.TASKS_LIMIT_REACHED', {
+          date: resetDate,
+        });
+      }
+      return t('INTEGRATION_SETTINGS.OPEN_AI.TASKS_LIMIT_REACHED_NO_DATE');
+    }
+    return t('INTEGRATION_SETTINGS.OPEN_AI.TASKS_PROVIDER_ERROR');
+  };
+
   /**
    * Handles API errors and displays appropriate error messages.
    * Silently returns for aborted requests.
@@ -119,10 +150,7 @@ export function useCaptain() {
     ) {
       return;
     }
-    const errorMessage =
-      error.response?.data?.error ||
-      t('INTEGRATION_SETTINGS.OPEN_AI.GENERATE_ERROR');
-    useAlert(errorMessage);
+    useAlert(getTaskErrorMessage(error));
   };
 
   /**
@@ -147,7 +175,7 @@ export function useCaptain() {
   /**
    * Rewrites content with a specific operation.
    * @param {string} content - The content to rewrite.
-   * @param {string} operation - The operation (fix_spelling_grammar, casual, professional, expand, shorten, improve, etc).
+   * @param {string} operation - A supported rewrite operation.
    * @param {Object} [options={}] - Additional options.
    * @param {AbortSignal} [options.signal] - AbortSignal to cancel the request.
    * @returns {Promise<{message: string, followUpContext?: Object}>} The rewritten content and optional follow-up context.
@@ -168,7 +196,11 @@ export function useCaptain() {
       return { message: generatedMessage, followUpContext };
     } catch (error) {
       handleAPIError(error);
-      return { message: '', errorType: getErrorType(error) };
+      return {
+        message: '',
+        errorType: getErrorType(error),
+        errorMessage: getTaskErrorMessage(error),
+      };
     }
   };
 
@@ -190,7 +222,11 @@ export function useCaptain() {
       return { message: generatedMessage, followUpContext };
     } catch (error) {
       handleAPIError(error);
-      return { message: '', errorType: getErrorType(error) };
+      return {
+        message: '',
+        errorType: getErrorType(error),
+        errorMessage: getTaskErrorMessage(error),
+      };
     }
   };
 
@@ -212,7 +248,11 @@ export function useCaptain() {
       return { message: generatedMessage, followUpContext };
     } catch (error) {
       handleAPIError(error);
-      return { message: '', errorType: getErrorType(error) };
+      return {
+        message: '',
+        errorType: getErrorType(error),
+        errorMessage: getTaskErrorMessage(error),
+      };
     }
   };
 
@@ -240,6 +280,7 @@ export function useCaptain() {
         message: '',
         followUpContext,
         errorType: getErrorType(error),
+        errorMessage: getTaskErrorMessage(error),
       };
     }
   };
@@ -292,5 +333,6 @@ export function useCaptain() {
     getReplySuggestion,
     followUp,
     processEvent,
+    getTaskErrorMessage,
   };
 }

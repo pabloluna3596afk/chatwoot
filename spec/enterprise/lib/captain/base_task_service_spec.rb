@@ -2,11 +2,10 @@ require 'rails_helper'
 
 RSpec.describe Captain::BaseTaskService, type: :model do
   let(:account) { create(:account) }
-
-  before { put_account_on_plan(account) }
   let(:inbox) { create(:inbox, account: account) }
   let(:conversation) { create(:conversation, account: account, inbox: inbox) }
   let(:perform_result) { { message: 'Test response' } }
+  let(:perform_error) { nil }
   let(:exhausted_usage_limits) do
     {
       agents: ChatwootApp.max_limit,
@@ -18,11 +17,16 @@ RSpec.describe Captain::BaseTaskService, type: :model do
   # Create a concrete test service class with enterprise module prepended
   let(:test_service_class) do
     result = perform_result
+    error = perform_error
     klass = Class.new(described_class) do
-      define_method(:perform) { result }
+      define_method(:perform) do
+        raise error if error
+
+        result
+      end
 
       def event_name
-        'test_event'
+        'follow_up'
       end
     end
     # Manually prepend enterprise module to test class
@@ -33,6 +37,7 @@ RSpec.describe Captain::BaseTaskService, type: :model do
   let(:service) { test_service_class.new(account: account, conversation_display_id: conversation.display_id) }
 
   before do
+    put_account_on_plan(account)
     create(:installation_config, name: 'CAPTAIN_OPEN_AI_API_KEY', value: 'test-key')
   end
 
@@ -71,13 +76,50 @@ RSpec.describe Captain::BaseTaskService, type: :model do
       expect { service.perform }.to change { (account.reload.current_usage_period.internal_calls_consumed) }.by(1)
     end
 
+    {
+      'non-message hashes' => { labels: ['sales'] },
+      'arrays' => ['summary'],
+      'strings' => 'translated query'
+    }.each do |result_shape, result|
+      context "when the task returns #{result_shape}" do
+        let(:perform_result) { result }
+
+        it 'charges the successful result' do
+          account.plan.update!(captain_internal_calls: 1)
+
+          expect { service.perform }.to change { account.reload.current_usage_period.internal_calls_consumed }.by(1)
+        end
+      end
+    end
+
     context 'when the provider call returns an error' do
       let(:perform_result) { { error: 'API Error' } }
 
-      it 'reserves internal usage before receiving the provider result' do
+      it 'releases the reservation when the provider returns an error' do
         account.plan.update!(captain_internal_calls: 1)
 
-        expect { service.perform }.to change { (account.reload.current_usage_period.internal_calls_consumed) }.by(1)
+        expect { service.perform }.not_to change(account.current_usage_period, :internal_calls_consumed)
+      end
+    end
+
+    it 'charges once when a retry succeeds after a returned error' do
+      account.plan.update!(captain_internal_calls: 1)
+      perform_result.replace(error: 'temporary provider error')
+
+      expect(service.perform).to include(error: 'temporary provider error')
+      perform_result.replace(message: 'recovered')
+
+      expect { service.perform }.to change { account.reload.current_usage_period.internal_calls_consumed }.by(1)
+    end
+
+    context 'when the task raises after reserving' do
+      let(:perform_error) { Timeout::Error.new }
+
+      it 'releases the reservation and propagates the exception' do
+        account.plan.update!(captain_internal_calls: 1)
+
+        expect { service.perform }.to raise_error(Timeout::Error)
+        expect(account.reload.current_usage_period.internal_calls_consumed).to eq(0)
       end
     end
 
@@ -111,7 +153,7 @@ RSpec.describe Captain::BaseTaskService, type: :model do
         result = perform_result
         klass = Class.new(described_class) do
           define_method(:perform) { result }
-          define_method(:event_name) { 'test_event' }
+          define_method(:event_name) { 'follow_up' }
           define_method(:use_account_openai_hook?) { true }
         end
         klass.prepend(Enterprise::Captain::BaseTaskService)
@@ -192,7 +234,7 @@ RSpec.describe Captain::BaseTaskService, type: :model do
         result = perform_result
         klass = Class.new(described_class) do
           define_method(:perform) { result }
-          define_method(:event_name) { 'test_event' }
+          define_method(:event_name) { 'follow_up' }
           define_method(:counts_toward_usage?) { false }
         end
         klass.prepend(Enterprise::Captain::BaseTaskService)
@@ -212,6 +254,46 @@ RSpec.describe Captain::BaseTaskService, type: :model do
         it 'bypasses the 429 gate and returns the underlying result' do
           result = service.perform
           expect(result).to eq(perform_result)
+        end
+      end
+    end
+
+    [
+      [Captain::SummaryService, 'summary', { message: 'Summary' }, :internal_calls_consumed],
+      [Captain::RewriteService, 'improve', { message: 'Rewritten text' }, :internal_calls_consumed],
+      [Captain::ReplySuggestionService, 'reply_suggestion', { message: 'Suggested reply' }, :internal_calls_consumed],
+      [Captain::LabelSuggestionService, 'label_suggestion', { message: 'billing' }, :internal_calls_consumed],
+      [Captain::FollowUpService, 'follow_up', { message: 'Follow up', follow_up_context: {} }, :internal_calls_consumed],
+      [Captain::CsatUtilityAnalysisService, 'csat_utility_analysis', { score: 4, message: '{"score":4}' }, :internal_calls_consumed],
+      [Captain::Llm::ArticleTranslationService, 'article_translation', { message: 'translated article' }, :responses_consumed],
+      [Captain::Llm::MessageTranslationService, 'message_translation', { message: 'translated message' }, :responses_consumed]
+    ].each do |service_class, feature_name, successful_result, counter_column|
+      context "when tracking #{service_class}" do
+        let(:metered_service_class) do
+          Class.new(service_class) do
+            define_method(:initialize) do |account:, result:|
+              @account = account
+              @test_result = result
+            end
+
+            define_method(:perform) { @test_result }
+            define_method(:event_name) { feature_name }
+            define_method(:counts_toward_usage?) { true }
+          end
+        end
+        let(:service) { metered_service_class.new(account: account, result: successful_result) }
+
+        it 'charges a successful service result once' do
+          account.plan.update!(captain_internal_calls: 1)
+
+          expect { service.perform }.to change { account.reload.current_usage_period.public_send(counter_column) }.by(1)
+        end
+
+        it 'releases a failed service result' do
+          account.plan.update!(captain_internal_calls: 1)
+          failed_service = metered_service_class.new(account: account, result: { error: 'provider failed' })
+
+          expect { failed_service.perform }.not_to(change { account.reload.current_usage_period.public_send(counter_column) })
         end
       end
     end

@@ -98,4 +98,26 @@ describe('ReplyTopPanel', () => {
       }).format(new Date(periodEnd)),
     });
   });
+
+  it('passes the task error message to the Copilot menu', async () => {
+    const wrapper = mount(ReplyTopPanel, {
+      props: {
+        conversationId: 12,
+        copilotTaskErrorMessage:
+          'The AI provider could not complete this request.',
+      },
+      global: {
+        mocks: { $t: key => key },
+        stubs: { EditorModeToggle: true, CopilotMenuBar: true },
+      },
+    });
+
+    await wrapper.findAll('button')[0].trigger('click');
+
+    expect(
+      wrapper
+        .findComponent({ name: 'CopilotMenuBar' })
+        .props('taskErrorMessage')
+    ).toBe('The AI provider could not complete this request.');
+  });
 });

@@ -58,6 +58,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    copilotTaskErrorMessage: {
+      type: String,
+      default: '',
+    },
   },
   emits: ['setReplyMode', 'toggleEditorSize', 'executeCopilotAction'],
   setup(props, { emit }) {
@@ -222,6 +226,7 @@ export default {
           :captain-enabled="captainEnabled"
           :reply-suggestion-disabled-reason="replySuggestionDisabledReason"
           :quota-reset-date="quotaResetDate"
+          :task-error-message="copilotTaskErrorMessage"
           class="ltr:right-0 rtl:left-0 bottom-full mb-2"
           @execute-copilot-action="handleCopilotAction"
         />

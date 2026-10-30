@@ -96,4 +96,21 @@ describe('CopilotMenuBar', () => {
       'SUGGESTION_LIMIT_REACHED'
     );
   });
+
+  it.each([
+    'AI writing actions are not included in your plan.',
+    'Your AI action quota resets on Nov 1.',
+    'The AI provider could not complete this request. Please try again.',
+  ])('displays the task error message: %s', taskErrorMessage => {
+    useMapGetter.mockReturnValue({ value: REPLY_EDITOR_MODES.REPLY });
+    const wrapper = mount(CopilotMenuBar, {
+      props: { conversationId: 12, taskErrorMessage },
+      global: {
+        mocks: { $t: key => key },
+        stubs: { DropdownBody: { template: '<div><slot /></div>' } },
+      },
+    });
+
+    expect(wrapper.get('[role="alert"]').text()).toBe(taskErrorMessage);
+  });
 });

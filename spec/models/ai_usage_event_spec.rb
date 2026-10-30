@@ -1,6 +1,31 @@
 require 'rails_helper'
 
 RSpec.describe AiUsageEvent do
+  describe 'instrumented feature bucket mapping' do
+    it 'maps every feature emitted by instrumented Ruby call sites' do
+      ruby_files = %w[app enterprise lib spec].flat_map do |directory|
+        Dir.glob(Rails.root.join(directory, '**', '*.rb'))
+      end
+      source_features = ruby_files.flat_map do |path|
+        source = File.read(path)
+        source.scan(/feature_name:\s*['"]([^'"]+)['"]/).flatten +
+          source.scan(/def (?:event_name|feature_name)\s+['"]([^'"]+)['"]/).flatten +
+          source.scan(/Llm::UsageContext\.with\([\s\S]{0,500}?feature:\s*['"]([^'"]+)['"]/).flatten
+      end
+      source_features.concat(Integrations::LlmBaseService::ALLOWED_EVENT_NAMES)
+      source_features.concat(Captain::RewriteService::ALLOWED_OPERATIONS.map(&:to_s))
+
+      expect(source_features.uniq - Llm::UsageFeatureBuckets::FEATURE_BUCKETS.keys).to be_empty
+      expect(Llm::UsageFeatureBuckets::FEATURE_BUCKETS.fetch('audio_transcription')).to eq(:captain_responses)
+      expect(Llm::UsageFeatureBuckets::FEATURE_BUCKETS.fetch('assistant_playground')).to eq(:captain_responses)
+    end
+
+    it 'fails loudly when a feature has not been assigned a bucket' do
+      expect { Llm::UsageContext.send(:bucket_for, 'new_unmapped_feature') }
+        .to raise_error(ArgumentError, 'Unmapped AI usage feature: new_unmapped_feature')
+    end
+  end
+
   describe '.calculate_cost' do
     it 'uses the active price and separates cached input tokens' do
       AiModelPrice.create!(model: 'gpt-6-luna', input_per_million: 0.10,

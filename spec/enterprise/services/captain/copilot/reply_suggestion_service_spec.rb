@@ -135,6 +135,12 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
     )
   end
 
+  it 'releases the Copilot reservation when the generated response is empty' do
+    allow(runner).to receive(:generate_response).and_return('response' => '')
+
+    expect { service.generate_response }.not_to(change { copilot_responses_used(account) })
+  end
+
   it 'preserves raw links without adding citations when citations are disabled' do
     assistant.update!(config: assistant.config.merge('feature_citation' => false))
     allow(assistant).to receive(:trusted_citation_urls).and_call_original
@@ -185,7 +191,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
     expect(runner).to have_received(:generate_response).once
   end
 
-  it 'charges the call even when an agent replies during the provider run' do
+  it 'releases the reservation when an agent reply makes the generated suggestion stale' do
     allow(runner).to receive(:generate_response) do
       create(:message, conversation: conversation, account: account, inbox: inbox, message_type: :outgoing,
                        content: 'An agent handled this message.')
@@ -194,7 +200,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
 
     expect do
       expect(service.generate_response['discarded']).to be true
-    end.to(change { copilot_responses_used(account) }.by(1))
+    end.not_to(change { copilot_responses_used(account) })
 
     message = copilot_thread.copilot_messages.last
     expect(message).to be_assistant
@@ -203,7 +209,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
     )
   end
 
-  it 'charges each provider attempt, including a failed attempt' do
+  it 'releases a failed attempt and charges one retry that succeeds' do
     allow(runner).to receive(:generate_response).and_return(
       { 'error' => true, 'reasoning' => 'Temporary model failure.' },
       response
@@ -214,7 +220,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
         expect(error.class.name).to eq('Captain::Copilot::ReplySuggestionService::GenerationError')
         expect(error.message).to eq('Temporary model failure.')
       end
-    end.to(change { copilot_responses_used(account) }.by(1))
+    end.not_to(change { copilot_responses_used(account) })
 
     expect do
       service.generate_response
@@ -259,7 +265,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
     )
   end
 
-  it 'does not persist a generated response when the user loses access during the run' do
+  it 'releases the reservation when access is lost during the provider run' do
     allow(runner).to receive(:generate_response) do
       inbox_member.destroy!
       response
@@ -267,7 +273,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
 
     expect do
       expect(service.generate_response['discarded']).to be false
-    end.to(change { copilot_responses_used(account) }.by(1))
+    end.not_to(change { copilot_responses_used(account) })
 
     expect(copilot_thread.copilot_messages.last.message).to eq(
       'content' => "Copilot couldn't generate a reply. Please try again."

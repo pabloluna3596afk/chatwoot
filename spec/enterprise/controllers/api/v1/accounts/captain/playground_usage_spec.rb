@@ -29,6 +29,27 @@ RSpec.describe 'Captain playground quotas', :real_redis, type: :request do
     expect(captain_responses_used(account)).to eq(1)
   end
 
+  it 'records each generated playground call in the AI usage ledger' do
+    allow(model).to receive(:generate_response) do
+      Llm::UsageContext.record_operation(
+        model: 'test-model', provider: 'internal', status: 'ok',
+        response: { usage: { input_tokens: 12, output_tokens: 8 } }
+      )
+      { 'response' => 'Hello back' }
+    end
+
+    expect do
+      post endpoint, params: params, headers: headers, as: :json
+    end.to change { AiUsageEvent.where(account: account, feature: 'assistant_playground').count }.by(1)
+
+    event = AiUsageEvent.find_by!(account: account, feature: 'assistant_playground')
+    expect(event.bucket).to eq('captain_responses')
+    expect(event.input_tokens).to eq(12)
+    expect(event.output_tokens).to eq(8)
+    expect(captain_responses_used(account)).to eq(1)
+    expect(Redis::Alfred.get("captain:playground:daily:#{account.id}:#{Time.current.utc.to_date}")).to be_nil
+  end
+
   it 'applies the same quota to the onboarding v2 runner' do
     account.enable_features!('captain_integration_v2')
     account.update!(custom_attributes: { onboarding_version: 2, onboarding_step: 'assistant', onboarding_assistant_id: assistant.id })
@@ -72,12 +93,14 @@ RSpec.describe 'Captain playground quotas', :real_redis, type: :request do
   end
 
   it 'returns Retry-After on the seventh request in a rolling minute' do
-    6.times { post endpoint, params: params, headers: headers, as: :json }
-    post endpoint, params: params, headers: headers, as: :json
-    expect(response).to have_http_status(:too_many_requests)
-    expect(response.parsed_body['error_code']).to eq('playground_rate_limit')
-    expect(response.headers['Retry-After'].to_i).to be_between(1, 60)
-    expect(model).to have_received(:generate_response).exactly(6).times
+    freeze_time do
+      6.times { post endpoint, params: params, headers: headers, as: :json }
+      post endpoint, params: params, headers: headers, as: :json
+      expect(response).to have_http_status(:too_many_requests)
+      expect(response.parsed_body['error_code']).to eq('playground_rate_limit')
+      expect(response.headers['Retry-After'].to_i).to eq(60)
+      expect(model).to have_received(:generate_response).exactly(6).times
+    end
   end
 
   it 'rejects oversized input before model construction' do

@@ -77,11 +77,16 @@ module Llm::UsageContext
            context: { conversation_id: conversation_id }, &)
     end
 
-    def with(account:, bucket:, feature:, context: {}, usage_group_id: SecureRandom.uuid)
+    def with(account:, feature:, bucket: nil, context: {}, usage_group_id: SecureRandom.uuid)
+      mapped_bucket = bucket_for(feature.to_s)
+      if bucket.present? && bucket.to_sym != mapped_bucket
+        raise ArgumentError, "AI usage bucket mismatch for #{feature}: #{bucket} != #{mapped_bucket}"
+      end
+
       previous = current
       ActiveSupport::IsolatedExecutionState[KEY] = {
         account_id: account&.id,
-        bucket: bucket.to_s,
+        bucket: mapped_bucket.to_s,
         feature: feature.to_s,
         usage_group_id: usage_group_id
       }.merge(context)
@@ -106,14 +111,13 @@ module Llm::UsageContext
       Rails.logger.warn("Failed to record AI usage: #{e.class}: #{e.message}")
     end
 
-    private
-
     def bucket_for(feature)
-      return :copilot if feature.match?(/copilot/i)
-      return :internal if feature.match?(/assistant_action_classifier|task|internal|embedding|moderation|transcription|content_evaluator/i)
-
-      :captain_responses
+      Llm::UsageFeatureBuckets::FEATURE_BUCKETS.fetch(feature) do
+        raise ArgumentError, "Unmapped AI usage feature: #{feature}"
+      end
     end
+
+    private
 
     def resolve_account(params)
       params[:account] || Account.find_by(id: params[:account_id])

@@ -43,6 +43,33 @@ describe('Usage dashboard', () => {
     wrapper.unmount();
   });
 
+  it('explains shared, unlimited, and not included AI pools', async () => {
+    AiUsageAPI.get.mockResolvedValueOnce({
+      data: {
+        daily: [],
+        bag_modes: {
+          captain_responses: 'unlimited',
+          copilot: 'shared',
+          internal: 'not_included',
+        },
+      },
+    });
+    const wrapper = mount(UsageDashboard, {
+      global: { stubs: { ButtonV4: true } },
+    });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain(
+      'BILLING_SETTINGS.USAGE.BAG_MODES.UNLIMITED'
+    );
+    expect(wrapper.text()).toContain('BILLING_SETTINGS.USAGE.BAG_MODES.SHARED');
+    expect(wrapper.text()).toContain(
+      'BILLING_SETTINGS.USAGE.BAG_MODES.NOT_INCLUDED'
+    );
+    expect(wrapper.findAll('[role="progressbar"]')).toHaveLength(0);
+    wrapper.unmount();
+  });
+
   it('shows a clear empty state when the account has not used AI', async () => {
     const wrapper = mount(UsageDashboard, {
       global: { stubs: { ButtonV4: true } },

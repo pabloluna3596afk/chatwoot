@@ -765,6 +765,11 @@
       "PERCENT_USED": "{percent}% used",
       "RESET_DATE": "Resets on {date}",
       "NO_INCLUDED_BAGS": "Your plan does not include AI usage allowances.",
+      "BAG_MODES": {
+        "SHARED": "Shares the assistant response pool",
+        "UNLIMITED": "Unlimited",
+        "NOT_INCLUDED": "Not included in your plan"
+      },
       "DAILY_TITLE": "Daily usage this period",
       "PLAN_RESOURCES": "Plan resources",
       "CHART_LABEL": "Daily AI messages by usage type",
