@@ -2,15 +2,11 @@
 import { useAlert } from 'dashboard/composables';
 import AddCanned from './AddCanned.vue';
 import EditCanned from './EditCanned.vue';
-import ToolList from 'dashboard/components-next/ToolList/ToolList.vue';
 import ToolCards from 'dashboard/components-next/ToolList/ToolCards.vue';
-import InfoChip from 'dashboard/components-next/ListCard/InfoChip.vue';
-import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsFilterDropdown from '../components/SettingsFilterDropdown.vue';
 import { computed, onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import {
   useStoreGetters,
@@ -19,7 +15,6 @@ import {
 } from 'dashboard/composables/store';
 import { picoSearch } from '@chatwoot/pico-search';
 import { useAdmin } from 'dashboard/composables/useAdmin';
-import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 
@@ -30,10 +25,10 @@ defineOptions({
 const getters = useStoreGetters();
 const store = useStore();
 const { t } = useI18n();
-const { getPlainText } = useMessageFormatter();
 const { isAdmin } = useAdmin();
-const route = useRoute();
 const currentUser = useMapGetter('getCurrentUser');
+const currentAccount = useMapGetter('getCurrentAccount');
+const customAttributes = useMapGetter('attributes/getAttributes');
 
 const showAddPopup = ref(false);
 const loading = ref({});
@@ -53,11 +48,6 @@ const visibilityFilter = ref('all');
 const records = computed(() =>
   getters.getSortedCannedResponses.value(sortOrder.value)
 );
-const cardsVariant = computed(() => {
-  const variants = { keep: 'keep', desplegable: 'accordion', panel: 'panel' };
-  return variants[route.query.vista] || '';
-});
-
 const normalizeCategory = value =>
   value
     .normalize('NFD')
@@ -166,13 +156,6 @@ const filteredRecords = computed(() => {
     'content',
   ]);
 });
-const listColumns = computed(() => [
-  { key: 'title', label: t('CANNED_MGMT.ADD.FORM.SHORT_CODE.LABEL') },
-  { key: 'category', label: t('CANNED_MGMT.ADD.FORM.CATEGORY.LABEL') },
-  { key: 'approval_status', label: t('CANNED_MGMT.TRACE.STATUS') },
-  { key: 'visibility', label: t('CANNED_MGMT.TRACE.VISIBILITY') },
-  { key: 'created_at', label: t('CANNED_MGMT.TRACE.CREATED') },
-]);
 const listActions = computed(() => [
   {
     key: 'edit',
@@ -182,29 +165,37 @@ const listActions = computed(() => [
       (item.visibility !== 'global' &&
         item.created_by_id === currentUser.value?.id),
   },
-  { key: 'duplicate', label: t('CANNED_MGMT.DUPLICATE.TOOLTIP') },
+  {
+    key: 'duplicate',
+    label: t('CANNED_MGMT.DUPLICATE.TOOLTIP'),
+    icon: 'i-lucide-copy',
+  },
   {
     key: 'approve-global',
     label: t('CANNED_MGMT.APPROVE.BUTTON'),
     variant: 'success',
+    icon: 'i-lucide-check',
     visible: item => isAdmin.value && item.approval_status === 'pending',
   },
   {
     key: 'approve-personal',
     label: t('CANNED_MGMT.APPROVE.PERSONAL'),
     variant: 'success',
+    icon: 'i-lucide-user-round-check',
     visible: item => isAdmin.value && item.approval_status === 'pending',
   },
   {
     key: 'reject',
     label: t('CANNED_MGMT.REJECT.BUTTON'),
     variant: 'danger',
+    icon: 'i-lucide-x',
     visible: item => isAdmin.value && item.approval_status === 'pending',
   },
   {
     key: 'delete',
     label: t('CANNED_MGMT.DELETE.BUTTON_TEXT'),
     variant: 'danger',
+    icon: 'i-lucide-trash-2',
     visible: item =>
       isAdmin.value ||
       (item.visibility !== 'global' &&
@@ -215,15 +206,6 @@ const cardActions = computed(() =>
   listActions.value.filter(action => action.key !== 'edit')
 );
 
-const statusTone = status =>
-  ({ pending: 'warning', approved: 'success', rejected: 'error' })[status] ||
-  'neutral';
-const statusTextClass = status =>
-  ({
-    pending: '!text-n-amber-12',
-    approved: '!text-n-teal-12',
-    rejected: '!text-n-ruby-11',
-  })[status] || '!text-n-slate-12';
 const uiFlags = computed(() => getters.getUIFlags.value);
 
 const deleteConfirmText = computed(
@@ -246,7 +228,10 @@ const emptyListMessage = computed(() =>
 
 const fetchCannedResponses = async () => {
   try {
-    await store.dispatch('getCannedResponse');
+    await Promise.all([
+      store.dispatch('getCannedResponse'),
+      store.dispatch('attributes/get'),
+    ]);
   } catch (error) {
     // Ignore Error
   }
@@ -344,12 +329,58 @@ const confirmRejection = async () => {
   responseToReject.value = null;
 };
 
-const formatDate = value =>
-  value
-    ? new Date(value).toLocaleDateString()
-    : t('CANNED_MGMT.TRACE.NOT_AVAILABLE');
+const formatDate = value => {
+  if (!value) return t('CANNED_MGMT.TRACE.NOT_AVAILABLE');
+  return new Intl.DateTimeFormat(currentAccount.value?.locale || 'en', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(value));
+};
 
-const personName = person => person?.available_name || person?.email || '';
+const accountT = key => t(key, currentAccount.value?.locale || 'en');
+
+const variableLabels = computed(() => {
+  const labels = {
+    'contact.name': accountT('CANNED_MGMT.VARIABLES.contact_name'),
+    'contact.first_name': accountT('CANNED_MGMT.VARIABLES.contact_first_name'),
+    'contact.last_name': accountT('CANNED_MGMT.VARIABLES.contact_last_name'),
+    'contact.email': accountT('CANNED_MGMT.VARIABLES.contact_email'),
+    'contact.phone': accountT('CANNED_MGMT.VARIABLES.contact_phone'),
+    'contact.company_name': accountT(
+      'CANNED_MGMT.VARIABLES.contact_company_name'
+    ),
+    'contact.city': accountT('CANNED_MGMT.VARIABLES.contact_city'),
+    'contact.country_code': accountT(
+      'CANNED_MGMT.VARIABLES.contact_country_code'
+    ),
+    'contact.document_number': accountT(
+      'CANNED_MGMT.VARIABLES.contact_document_number'
+    ),
+    'agent.name': accountT('CANNED_MGMT.VARIABLES.agent_name'),
+    'conversation.id': accountT('CANNED_MGMT.VARIABLES.conversation_id'),
+  };
+  (customAttributes.value || []).forEach(attribute => {
+    const { attribute_key: key, attribute_display_name: name } = attribute;
+    labels[`contact.custom_attribute['${key}']`] = name;
+    labels[`contact.custom_attribute.${key}`] = name;
+  });
+  return labels;
+});
+
+const cardStatusLabel = item =>
+  ({
+    pending: accountT('CANNED_MGMT.STATUS_LABEL.pending'),
+    approved: accountT('CANNED_MGMT.STATUS_LABEL.approved'),
+    rejected: accountT('CANNED_MGMT.STATUS_LABEL.rejected'),
+  })[item.approval_status];
+
+const cardVisibilityLabel = item =>
+  ({
+    personal: accountT('CANNED_MGMT.VISIBILITY_ICON_LABEL.personal'),
+    global: accountT('CANNED_MGMT.VISIBILITY_ICON_LABEL.global'),
+  })[item.visibility];
 
 const uniqueShortCode = baseCode => {
   const taken = new Set(records.value.map(item => item.short_code));
@@ -465,9 +496,7 @@ const handleListAction = ({ action, item }) => {
       </div>
       <div v-else class="border-t border-n-weak">
         <ToolCards
-          v-if="cardsVariant"
           :items="filteredRecords"
-          :variant="cardsVariant"
           :actions="cardActions"
           title-key="short_code"
           content-key="content"
@@ -478,92 +507,23 @@ const handleListAction = ({ action, item }) => {
           :show-less-label="$t('CANNED_MGMT.CARDS.SHOW_LESS')"
           :edit-label="$t('CANNED_MGMT.EDIT.BUTTON_TEXT')"
           :copy-label="$t('CANNED_MGMT.CARDS.COPY')"
-          :close-preview-label="$t('CANNED_MGMT.CARDS.CLOSE_PREVIEW')"
+          :copied-label="$t('CANNED_MGMT.CARDS.COPIED')"
           :creator-label="$t('CANNED_MGMT.CARDS.CREATED_BY')"
           :reviewer-label="$t('CANNED_MGMT.CARDS.APPROVED_BY')"
           :created-at="item => formatDate(item.created_at)"
           :reviewed-at="item => formatDate(item.reviewed_at)"
+          :variable-labels="variableLabels"
           :can-edit="
             item =>
               isAdmin ||
               (item.visibility !== 'global' &&
                 item.created_by_id === currentUser?.id)
           "
-          :status-label="
-            item => $t(`CANNED_MGMT.STATUS_LABEL.${item.approval_status}`)
-          "
-          :visibility-label="
-            item => $t(`CANNED_MGMT.VISIBILITY_LABEL.${item.visibility}`)
-          "
+          :status-label="cardStatusLabel"
+          :visibility-label="cardVisibilityLabel"
           @edit="openEditPopup"
           @action="handleListAction"
         />
-        <ToolList
-          v-else
-          :items="filteredRecords"
-          :columns="listColumns"
-          :actions="listActions"
-          :loading="uiFlags.fetchingList"
-          :empty-message="$t('CANNED_MGMT.NO_RESULTS')"
-          :more-options-label="$t('CANNED_MGMT.MORE_OPTIONS')"
-          @action="handleListAction"
-        >
-          <template #lead="{ item }">
-            <div class="flex min-w-0 items-center gap-3">
-              <Avatar
-                :name="personName(item.created_by)"
-                :src="item.created_by?.avatar_url"
-                :size="32"
-                rounded-full
-              />
-              <div class="min-w-0">
-                <div class="truncate font-medium text-n-slate-12">
-                  {{ item.short_code }}
-                </div>
-                <div class="truncate text-xs text-n-slate-10">
-                  {{ getPlainText(item.content) }}
-                </div>
-              </div>
-            </div>
-          </template>
-          <template #cell-category="{ item }">
-            <span
-              v-if="item.category"
-              class="inline-flex rounded-md bg-n-alpha-2 px-2 py-1 text-xs text-n-slate-11"
-            >
-              {{ item.category }}
-            </span>
-            <span v-else class="text-n-slate-10">
-              {{ $t('CANNED_MGMT.TRACE.NOT_AVAILABLE') }}
-            </span>
-          </template>
-          <template #cell-approval_status="{ item }">
-            <InfoChip
-              :tone="statusTone(item.approval_status)"
-              :class="statusTextClass(item.approval_status)"
-            >
-              {{ $t(`CANNED_MGMT.STATUS_LABEL.${item.approval_status}`) }}
-            </InfoChip>
-          </template>
-          <template #cell-visibility="{ item }">
-            <InfoChip>
-              {{ $t(`CANNED_MGMT.VISIBILITY_LABEL.${item.visibility}`) }}
-            </InfoChip>
-          </template>
-          <template #cell-created_at="{ item }">
-            <div>{{ formatDate(item.created_at) }}</div>
-            <div class="text-xs text-n-slate-10">
-              {{ personName(item.created_by) }}
-            </div>
-            <div v-if="item.reviewed_at" class="mt-1 text-xs text-n-slate-10">
-              {{ $t('CANNED_MGMT.TRACE.REVIEWED') }}
-              {{ personName(item.reviewed_by) }}
-            </div>
-            <div v-if="item.reviewed_at" class="text-xs text-n-slate-10">
-              {{ formatDate(item.reviewed_at) }}
-            </div>
-          </template>
-        </ToolList>
       </div>
     </template>
     <woot-modal v-model:show="showAddPopup" :on-close="hideAddPopup">

@@ -181,6 +181,23 @@
       "personal": "Personal",
       "global": "Cuenta"
     },
+    "VISIBILITY_ICON_LABEL": {
+      "personal": "Personal",
+      "global": "De la cuenta"
+    },
+    "VARIABLES": {
+      "contact_name": "Nombre del contacto",
+      "contact_first_name": "Nombre del contacto",
+      "contact_last_name": "Apellido del contacto",
+      "contact_email": "Correo del contacto",
+      "contact_phone": "Teléfono del contacto",
+      "contact_company_name": "Empresa del contacto",
+      "contact_city": "Ciudad del contacto",
+      "contact_country_code": "País del contacto",
+      "contact_document_number": "Documento del contacto",
+      "agent_name": "Nombre del agente",
+      "conversation_id": "Número de conversación"
+    },
     "DUPLICATE": {
       "TOOLTIP": "Duplicar",
       "API": {
@@ -195,7 +212,7 @@
       "CREATED_BY": "Creó",
       "APPROVED_BY": "Aprobó",
       "COPY": "Copiar",
-      "CLOSE_PREVIEW": "Cerrar vista previa"
+      "COPIED": "Copiado"
     }
   }
 }

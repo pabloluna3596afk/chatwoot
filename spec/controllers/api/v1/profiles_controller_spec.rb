@@ -16,7 +16,14 @@ RSpec.describe 'Profile API', type: :request do
       let(:agent) { create(:user, account: account, custom_attributes: { test: 'test' }, role: :agent) }
 
       it 'exposes onboarding metadata per account without leaking internal account attributes' do
-        account.update!(custom_attributes: { onboarding_version: 2, onboarding_step: 'inbox_setup', stripe_customer_id: 'cus_private' })
+        account.update!(
+          custom_attributes: {
+            onboarding_version: 2,
+            onboarding_step: 'inbox_setup',
+            stripe_customer_id: 'cus_private',
+          },
+          locale: 'es'
+        )
         legacy_account = create(:account, custom_attributes: { onboarding_step: 'inbox_setup' })
         create(:account_user, account: legacy_account, user: agent)
 
@@ -25,7 +32,11 @@ RSpec.describe 'Profile API', type: :request do
         expect(response).to have_http_status(:success)
         accounts = response.parsed_body['accounts']
         membership = accounts.find { |item| item['id'] == account.id }
-        expect(membership).to include('onboarding_version' => 2, 'onboarding_step' => 'inbox_setup')
+        expect(membership).to include(
+          'onboarding_version' => 2,
+          'onboarding_step' => 'inbox_setup',
+          'locale' => 'es'
+        )
         expect(membership).not_to include('custom_attributes', 'stripe_customer_id')
         legacy_membership = accounts.find { |item| item['id'] == legacy_account.id }
         expect(legacy_membership['onboarding_step']).to eq('inbox_setup')

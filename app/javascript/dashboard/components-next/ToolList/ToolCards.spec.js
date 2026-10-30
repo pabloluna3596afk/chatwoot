@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import ToolCards from './ToolCards.vue';
 
 const canned = {
@@ -10,7 +10,7 @@ const canned = {
   approval_status: 'pending',
   visibility: 'personal',
   created_by: { available_name: 'Ana' },
-  created_at: '28 oct',
+  created_at: '2026-10-24T12:00:00Z',
 };
 
 const mountCards = props =>
@@ -20,29 +20,25 @@ const mountCards = props =>
   });
 
 describe('ToolCards', () => {
-  it('highlights template variables and displays trace details', () => {
-    const wrapper = mountCards({ variant: 'keep' });
-
-    expect(wrapper.find('.text-n-brand').text()).toBe('{{contact.name}}');
-    expect(wrapper.text()).toContain('Created Ana · 28 oct');
-    expect(wrapper.attributes('data-variant')).toBe('keep');
-  });
-
-  it('uses an accessible accordion and expands the complete response', async () => {
-    const wrapper = mountCards({ variant: 'accordion' });
-    const toggle = wrapper.find('[aria-expanded]');
-
-    expect(toggle.attributes('aria-expanded')).toBe('false');
-    await toggle.trigger('click');
-    expect(toggle.attributes('aria-expanded')).toBe('true');
-    expect(wrapper.text()).toContain('{{contact.name}}');
-  });
-
-  it('emits actions from the overflow menu', async () => {
+  it('shows readable variable labels while preserving source text in the tooltip', () => {
     const wrapper = mountCards({
-      actions: [{ key: 'duplicate', label: 'Duplicate' }],
+      variableLabels: { 'contact.name': 'Nombre del contacto' },
     });
 
+    expect(wrapper.find('.text-n-brand').text()).toBe('Nombre del contacto');
+    expect(wrapper.find('.text-n-brand').attributes('title')).toBe(
+      '{{contact.name}}'
+    );
+  });
+
+  it('shows the card actions with icons and emits the selected action', async () => {
+    const wrapper = mountCards({
+      actions: [{ key: 'duplicate', label: 'Duplicar', icon: 'i-lucide-copy' }],
+    });
+
+    expect(wrapper.find('[role="menuitem"] .i-lucide-copy').exists()).toBe(
+      true
+    );
     await wrapper.find('[role="menuitem"]').trigger('click');
     expect(wrapper.emitted('action')[0][0]).toEqual({
       action: 'duplicate',
@@ -50,17 +46,36 @@ describe('ToolCards', () => {
     });
   });
 
-  it('renders a selectable preview panel with the response metadata', () => {
+  it('expands a long response in place for touch screens', async () => {
+    const longResponse = { ...canned, content: 'Respuesta larga. '.repeat(40) };
+    const wrapper = mountCards({ items: [longResponse] });
+    const toggle = wrapper.find('[aria-expanded]');
+
+    expect(toggle.attributes('aria-expanded')).toBe('false');
+    await toggle.trigger('click');
+    expect(toggle.attributes('aria-expanded')).toBe('true');
+    expect(wrapper.find('.line-clamp-none').exists()).toBe(true);
+  });
+
+  it('provides icon labels, short trace text and the copy confirmation live region', async () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn().mockResolvedValue() },
+    });
     const wrapper = mountCards({
-      variant: 'panel',
       statusKey: 'approval_status',
-      statusLabel: item => item.approval_status,
+      statusLabel: () => 'Pendiente',
+      visibilityLabel: () => 'Personal',
+      createdAt: () => '24 oct 2026',
+      creatorLabel: 'Creó',
+      copiedLabel: 'Copiado',
     });
 
-    expect(wrapper.find('[data-variant="panel"]').exists()).toBe(true);
-    expect(wrapper.text()).toContain('Saludo');
-    expect(wrapper.text()).toContain('pending');
-    expect(wrapper.text()).toContain('personal');
-    expect(wrapper.text()).toContain('{{contact.name}}');
+    expect(wrapper.find('[aria-label="Pendiente"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="Personal"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Creó Ana · 24 oct 2026');
+    await wrapper.find('button[title="Copy"]').trigger('click');
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(canned.content);
+    expect(wrapper.find('[aria-live="polite"]').text()).toBe('Copiado');
   });
 });
