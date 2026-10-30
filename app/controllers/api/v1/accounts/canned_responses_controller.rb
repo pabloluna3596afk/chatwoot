@@ -19,9 +19,7 @@ class Api::V1::Accounts::CannedResponsesController < Api::V1::Accounts::BaseCont
 
   def update
     @canned_response.assign_attributes(canned_response_params.except(:visibility, :approval_status))
-    if current_user.administrator? && canned_response_params[:visibility].present?
-      @canned_response.visibility = canned_response_params[:visibility]
-    end
+    @canned_response.visibility = canned_response_params[:visibility] if current_user.administrator? && canned_response_params[:visibility].present?
     @canned_response.apply_update_rules(current_user)
     @canned_response.save!
     render json: response_json(@canned_response)

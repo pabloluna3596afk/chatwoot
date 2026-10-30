@@ -20,7 +20,7 @@ RSpec.describe 'Profile API', type: :request do
           custom_attributes: {
             onboarding_version: 2,
             onboarding_step: 'inbox_setup',
-            stripe_customer_id: 'cus_private',
+            stripe_customer_id: 'cus_private'
           },
           locale: 'es'
         )
