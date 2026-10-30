@@ -12,7 +12,12 @@ const testState = vi.hoisted(() => ({
 
 vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
 vi.mock('dashboard/api/captain/copilotActionItems', () => ({
-  default: { get: vi.fn().mockResolvedValue({ data: [] }) },
+  default: {
+    get: vi.fn().mockResolvedValue({ data: [] }),
+    approve: vi.fn().mockResolvedValue({ data: { id: 7, status: 'approved' } }),
+    reject: vi.fn().mockResolvedValue({ data: { id: 8, status: 'rejected' } }),
+    update: vi.fn().mockResolvedValue({ data: { id: 7, status: 'pending' } }),
+  },
 }));
 vi.mock('dashboard/composables/useConfig', () => ({
   useConfig: () => ({ isEnterprise: true }),
@@ -238,6 +243,77 @@ describe('CopilotContainer', () => {
     const result = await copilot.props('onSendMessage')('Draft a reply');
 
     expect(result).toBe(false);
+  });
+
+  it('sends the thread id when approving, rejecting and editing a proposal', async () => {
+    testState.uiSettings.value.copilot_active_thread_id = 40;
+    const wrapper = mountComponent();
+    await flushPromises();
+    const copilot = wrapper.findComponent({ name: 'Copilot' });
+
+    copilot.vm.$emit('approveAction', 7);
+    copilot.vm.$emit('rejectAction', 8);
+    copilot.vm.$emit('editAction', {
+      id: 7,
+      payload: { label_name: 'Urgente' },
+    });
+    await flushPromises();
+
+    expect(CopilotActionItemsAPI.approve).toHaveBeenCalledWith(7, 40);
+    expect(CopilotActionItemsAPI.reject).toHaveBeenCalledWith(8, 40);
+    expect(CopilotActionItemsAPI.update).toHaveBeenCalledWith(
+      7,
+      { label_name: 'Urgente' },
+      40
+    );
+  });
+
+  it('starts a new thread when the remembered one no longer exists', async () => {
+    testState.uiSettings.value.copilot_active_thread_id = 40;
+    const notFound = new Error('');
+    notFound.response = { status: 404 };
+    testState.dispatch.mockImplementation(action => {
+      if (action === 'copilotMessages/create') return Promise.reject(notFound);
+      if (action === 'copilotThreads/create')
+        return Promise.resolve({ id: 77 });
+      return Promise.resolve();
+    });
+    vi.mocked(CopilotActionItemsAPI.get).mockResolvedValue({ data: [] });
+    const wrapper = mountComponent();
+    await flushPromises();
+    const copilot = wrapper.findComponent({ name: 'Copilot' });
+
+    const result = await copilot.props('onSendMessage')('How many open chats?');
+
+    expect(result).toBe(true);
+    expect(testState.dispatch).toHaveBeenCalledWith(
+      'copilotThreads/create',
+      expect.objectContaining({ message: 'How many open chats?' })
+    );
+    expect(testState.uiSettings.value.copilot_active_thread_id).toBe(77);
+    expect(useAlert).not.toHaveBeenCalled();
+  });
+
+  it('still reports other send failures without creating a new thread', async () => {
+    testState.uiSettings.value.copilot_active_thread_id = 40;
+    testState.dispatch.mockImplementation(action =>
+      action === 'copilotMessages/create'
+        ? Promise.reject(
+            Object.assign(new Error('Server'), { response: { status: 500 } })
+          )
+        : Promise.resolve()
+    );
+    const wrapper = mountComponent();
+    await flushPromises();
+    const copilot = wrapper.findComponent({ name: 'Copilot' });
+
+    const result = await copilot.props('onSendMessage')('Hello');
+
+    expect(result).toBe(false);
+    expect(testState.dispatch).not.toHaveBeenCalledWith(
+      'copilotThreads/create',
+      expect.anything()
+    );
   });
 
   it('silently clears a legacy thread that is missing from the current account', async () => {
