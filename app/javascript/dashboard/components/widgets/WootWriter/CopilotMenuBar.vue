@@ -44,6 +44,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  taskErrorMessage: {
+    type: String,
+    default: '',
+  },
 });
 
 const emit = defineEmits(['executeCopilotAction']);
@@ -237,6 +241,13 @@ const handleSubMenuItemClick = (parentItem, subItem) => {
     :class="{ 'selection-menu': hasSelection && isEditorMenuPopover }"
     :style="hasSelection && isEditorMenuPopover ? selectionMenuStyle : {}"
   >
+    <p
+      v-if="taskErrorMessage"
+      class="text-xs text-n-ruby-11 max-w-64 whitespace-normal"
+      role="alert"
+    >
+      {{ taskErrorMessage }}
+    </p>
     <div v-if="menuItems.length > 0" class="flex flex-col items-start gap-2.5">
       <div
         v-for="item in menuItems"

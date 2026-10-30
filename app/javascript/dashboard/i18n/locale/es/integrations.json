@@ -273,7 +273,11 @@
         "GENERATING": "Generando...",
         "CANCEL": "Cancelar"
       },
-      "GENERATE_ERROR": "Hubo un error al procesar el contenido, verifica tu clave API de OpenAI e inténtalo de nuevo"
+      "GENERATE_ERROR": "Hubo un error al procesar el contenido, verifica tu clave API de OpenAI e inténtalo de nuevo",
+      "TASKS_PLAN_REQUIRED": "Tu plan no incluye las acciones de escritura con IA. Pide al administrador de la cuenta que las habilite.",
+      "TASKS_LIMIT_REACHED": "Agotaste las acciones mensuales de escritura con IA. Se reinician el {date}.",
+      "TASKS_LIMIT_REACHED_NO_DATE": "Agotaste las acciones mensuales de escritura con IA.",
+      "TASKS_PROVIDER_ERROR": "El proveedor de IA no pudo completar la solicitud. Inténtalo de nuevo."
     },
     "DELETE": {
       "BUTTON_TEXT": "Eliminar",

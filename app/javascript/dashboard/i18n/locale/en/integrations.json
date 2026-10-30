@@ -273,7 +273,11 @@
         "GENERATING": "Generating...",
         "CANCEL": "Cancel"
       },
-      "GENERATE_ERROR": "There was an error processing the content, please verify your OpenAI API key and try again"
+      "GENERATE_ERROR": "There was an error processing the content, please verify your OpenAI API key and try again",
+      "TASKS_PLAN_REQUIRED": "AI writing actions are not included in your plan. Contact your account owner to enable them.",
+      "TASKS_LIMIT_REACHED": "You have used all monthly AI writing actions. They reset on {date}.",
+      "TASKS_LIMIT_REACHED_NO_DATE": "You have used all monthly AI writing actions.",
+      "TASKS_PROVIDER_ERROR": "The AI provider could not complete this request. Please try again."
     },
     "DELETE": {
       "BUTTON_TEXT": "Delete",

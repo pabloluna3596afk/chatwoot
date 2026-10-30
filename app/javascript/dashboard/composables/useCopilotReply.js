@@ -14,12 +14,9 @@ const REWRITE_ACTIONS = [
   'fix_spelling_grammar',
   'casual',
   'professional',
-  'expand',
-  'shorten',
-  'rephrase',
-  'make_friendly',
-  'make_formal',
-  'simplify',
+  'friendly',
+  'confident',
+  'straightforward',
 ];
 
 /**
@@ -77,7 +74,8 @@ function trackGenerationFailure({
  * @returns {Object} Copilot reply state and methods
  */
 export function useCopilotReply() {
-  const { processEvent, followUp, currentChat } = useCaptain();
+  const { processEvent, followUp, currentChat, getTaskErrorMessage } =
+    useCaptain();
   const { updateUISettings } = useUISettings();
 
   const showEditor = ref(false);
@@ -85,6 +83,7 @@ export function useCopilotReply() {
   const isContentReady = ref(false);
   const generatedContent = ref('');
   const followUpContext = ref(null);
+  const errorMessage = ref('');
   const abortController = ref(null);
 
   // Tracking state
@@ -129,6 +128,7 @@ export function useCopilotReply() {
     isContentReady.value = false;
     generatedContent.value = '';
     followUpContext.value = null;
+    errorMessage.value = '';
     currentAction.value = null;
     followUpCount.value = 0;
     trackedConversationId.value = null;
@@ -165,6 +165,7 @@ export function useCopilotReply() {
     abortController.value = requestController;
     isGenerating.value = true;
     isContentReady.value = false;
+    errorMessage.value = '';
     currentAction.value = action;
     followUpCount.value = 0;
     trackedConversationId.value = conversationId.value;
@@ -174,6 +175,7 @@ export function useCopilotReply() {
         message: content,
         followUpContext: newContext,
         errorType,
+        errorMessage: taskErrorMessage,
       } = await processEvent(action, data, {
         signal: requestController.signal,
       });
@@ -186,6 +188,9 @@ export function useCopilotReply() {
         return;
       }
 
+      errorMessage.value = errorType
+        ? taskErrorMessage || getTaskErrorMessage?.(errorType) || ''
+        : '';
       generatedContent.value = content;
       followUpContext.value = newContext;
       if (content) {
@@ -226,6 +231,7 @@ export function useCopilotReply() {
         stage: 'initial',
         reason: error?.name || CAPTAIN_GENERATION_FAILURE_REASONS.EXCEPTION,
       });
+      errorMessage.value = getTaskErrorMessage?.(error) || '';
       isGenerating.value = false;
     } finally {
       if (abortController.value === requestController) {
@@ -245,6 +251,7 @@ export function useCopilotReply() {
     abortController.value = requestController;
     isGenerating.value = true;
     isContentReady.value = false;
+    errorMessage.value = '';
 
     // Track follow-up sent event
     useTrack(CAPTAIN_EVENTS.FOLLOW_UP_SENT, {
@@ -257,6 +264,7 @@ export function useCopilotReply() {
         message: content,
         followUpContext: updatedContext,
         errorType,
+        errorMessage: taskErrorMessage,
       } = await followUp({
         followUpContext: followUpContext.value,
         message,
@@ -271,6 +279,9 @@ export function useCopilotReply() {
         return;
       }
 
+      errorMessage.value = errorType
+        ? taskErrorMessage || getTaskErrorMessage?.(errorType) || ''
+        : '';
       if (content) {
         generatedContent.value = content;
         followUpContext.value = updatedContext;
@@ -308,6 +319,7 @@ export function useCopilotReply() {
         stage: 'follow_up',
         reason: error?.name || CAPTAIN_GENERATION_FAILURE_REASONS.EXCEPTION,
       });
+      errorMessage.value = getTaskErrorMessage?.(error) || '';
       isGenerating.value = false;
     } finally {
       if (abortController.value === requestController) {
@@ -355,6 +367,7 @@ export function useCopilotReply() {
     isContentReady,
     generatedContent,
     followUpContext,
+    errorMessage,
 
     isActive,
     isButtonDisabled,
