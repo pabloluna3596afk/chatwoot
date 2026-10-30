@@ -101,6 +101,8 @@ module Llm::Config
   end
 end
 
+require_relative 'entitlement'
+
 module Llm::Config::ScopedChatContext
   def initialize(context: nil, **)
     super(context: context || ActiveSupport::IsolatedExecutionState[:llm_chat_context], **)

@@ -1,6 +1,7 @@
 module Enterprise::Captain::BaseTaskService
   def perform
-    return disabled_response unless captain_tasks_enabled?
+    entitlement = Llm::Entitlement.new(account: account, feature: event_name).call
+    return disabled_response unless entitlement[:allowed] || entitlement[:reason] == :usage_limit_reached
 
     reservation_id = reserve_usage
     return usage_limit_response if reservation_id == false
