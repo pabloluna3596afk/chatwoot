@@ -2,7 +2,7 @@
 import { useAlert } from 'dashboard/composables';
 import AddCanned from './AddCanned.vue';
 import EditCanned from './EditCanned.vue';
-import CannedListItem from './CannedListItem.vue';
+import ToolCards from 'dashboard/components-next/ToolList/ToolCards.vue';
 import SettingsLayout from '../SettingsLayout.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsFilterDropdown from '../components/SettingsFilterDropdown.vue';
@@ -27,11 +27,16 @@ const store = useStore();
 const { t } = useI18n();
 const { isAdmin } = useAdmin();
 const currentUser = useMapGetter('getCurrentUser');
+const currentAccount = useMapGetter('getCurrentAccount');
+const customAttributes = useMapGetter('attributes/getAttributes');
 
 const showAddPopup = ref(false);
 const loading = ref({});
 const showEditPopup = ref(false);
 const showDeleteConfirmationPopup = ref(false);
+const showRejectPopup = ref(false);
+const rejectionReason = ref('');
+const responseToReject = ref(null);
 const activeResponse = ref({});
 const cannedResponseAPI = ref({ message: '' });
 
@@ -43,13 +48,23 @@ const visibilityFilter = ref('all');
 const records = computed(() =>
   getters.getSortedCannedResponses.value(sortOrder.value)
 );
+const normalizeCategory = value =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase();
 
 const categories = computed(() => {
-  const set = new Set();
+  const unique = new Map();
   records.value.forEach(item => {
-    if (item.category) set.add(item.category);
+    if (!item.category) return;
+    const category = item.category.trim().replace(/\s+/g, ' ');
+    const key = normalizeCategory(category);
+    if (!unique.has(key)) unique.set(key, category);
   });
-  return [...set].sort((a, b) => a.localeCompare(b));
+  return [...unique.values()].sort((a, b) => a.localeCompare(b));
 });
 
 const hasUncategorized = computed(() =>
@@ -65,8 +80,21 @@ const visibilityOptions = computed(() => {
   if (isAdmin.value) {
     filters.splice(1, 0, {
       value: 'pending',
-      label: t('CANNED_MGMT.FILTER_VISIBILITY.PENDING'),
+      label: t('CANNED_MGMT.FILTER_VISIBILITY.PENDING_COUNT', {
+        count: records.value.filter(item => item.approval_status === 'pending')
+          .length,
+      }),
     });
+    filters.push(
+      {
+        value: 'approved',
+        label: t('CANNED_MGMT.FILTER_VISIBILITY.APPROVED'),
+      },
+      {
+        value: 'rejected',
+        label: t('CANNED_MGMT.FILTER_VISIBILITY.REJECTED'),
+      }
+    );
   }
   return filters;
 });
@@ -99,6 +127,11 @@ const visibilityFilteredRecords = computed(() => {
   if (visibilityFilter.value === 'pending') {
     return records.value.filter(item => item.approval_status === 'pending');
   }
+  if (['approved', 'rejected'].includes(visibilityFilter.value)) {
+    return records.value.filter(
+      item => item.approval_status === visibilityFilter.value
+    );
+  }
   return records.value;
 });
 
@@ -108,7 +141,9 @@ const categoryFilteredRecords = computed(() => {
     return visibilityFilteredRecords.value.filter(item => !item.category);
   }
   return visibilityFilteredRecords.value.filter(
-    item => item.category === selectedCategory.value
+    item =>
+      normalizeCategory(item.category || '') ===
+      normalizeCategory(selectedCategory.value)
   );
 });
 
@@ -121,6 +156,56 @@ const filteredRecords = computed(() => {
     'content',
   ]);
 });
+const listActions = computed(() => [
+  {
+    key: 'edit',
+    label: t('CANNED_MGMT.EDIT.BUTTON_TEXT'),
+    visible: item =>
+      isAdmin.value ||
+      (item.visibility !== 'global' &&
+        item.created_by_id === currentUser.value?.id),
+  },
+  {
+    key: 'duplicate',
+    label: t('CANNED_MGMT.DUPLICATE.TOOLTIP'),
+    icon: 'i-lucide-copy',
+  },
+  {
+    key: 'approve-global',
+    label: t('CANNED_MGMT.APPROVE.BUTTON'),
+    variant: 'success',
+    icon: 'i-lucide-check',
+    visible: item => isAdmin.value && item.approval_status === 'pending',
+  },
+  {
+    key: 'approve-personal',
+    label: t('CANNED_MGMT.APPROVE.PERSONAL'),
+    variant: 'success',
+    icon: 'i-lucide-user-round-check',
+    visible: item => isAdmin.value && item.approval_status === 'pending',
+  },
+  {
+    key: 'reject',
+    label: t('CANNED_MGMT.REJECT.BUTTON'),
+    variant: 'danger',
+    icon: 'i-lucide-x',
+    visible: item => isAdmin.value && item.approval_status === 'pending',
+  },
+  {
+    key: 'delete',
+    label: t('CANNED_MGMT.DELETE.BUTTON_TEXT'),
+    variant: 'danger',
+    icon: 'i-lucide-trash-2',
+    visible: item =>
+      isAdmin.value ||
+      (item.visibility !== 'global' &&
+        item.created_by_id === currentUser.value?.id),
+  },
+]);
+const cardActions = computed(() =>
+  listActions.value.filter(action => action.key !== 'edit')
+);
+
 const uiFlags = computed(() => getters.getUIFlags.value);
 
 const deleteConfirmText = computed(
@@ -143,7 +228,10 @@ const emptyListMessage = computed(() =>
 
 const fetchCannedResponses = async () => {
   try {
-    await store.dispatch('getCannedResponse');
+    await Promise.all([
+      store.dispatch('getCannedResponse'),
+      store.dispatch('attributes/get'),
+    ]);
   } catch (error) {
     // Ignore Error
   }
@@ -228,6 +316,96 @@ const rejectResponse = async item => {
   }
 };
 
+const openRejectPopup = item => {
+  responseToReject.value = item;
+  rejectionReason.value = '';
+  showRejectPopup.value = true;
+};
+
+const confirmRejection = async () => {
+  const item = responseToReject.value;
+  showRejectPopup.value = false;
+  await rejectResponse(item);
+  responseToReject.value = null;
+};
+
+const formatDate = value => {
+  if (!value) return t('CANNED_MGMT.TRACE.NOT_AVAILABLE');
+  return new Intl.DateTimeFormat(currentAccount.value?.locale || 'en', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(value));
+};
+
+const accountT = key => t(key, currentAccount.value?.locale || 'en');
+
+const variableLabels = computed(() => {
+  const labels = {
+    'contact.name': accountT('CANNED_MGMT.VARIABLES.contact_name'),
+    'contact.first_name': accountT('CANNED_MGMT.VARIABLES.contact_first_name'),
+    'contact.last_name': accountT('CANNED_MGMT.VARIABLES.contact_last_name'),
+    'contact.email': accountT('CANNED_MGMT.VARIABLES.contact_email'),
+    'contact.phone': accountT('CANNED_MGMT.VARIABLES.contact_phone'),
+    'contact.company_name': accountT(
+      'CANNED_MGMT.VARIABLES.contact_company_name'
+    ),
+    'contact.city': accountT('CANNED_MGMT.VARIABLES.contact_city'),
+    'contact.country_code': accountT(
+      'CANNED_MGMT.VARIABLES.contact_country_code'
+    ),
+    'contact.document_number': accountT(
+      'CANNED_MGMT.VARIABLES.contact_document_number'
+    ),
+    'agent.name': accountT('CANNED_MGMT.VARIABLES.agent_name'),
+    'conversation.id': accountT('CANNED_MGMT.VARIABLES.conversation_id'),
+    'conversation.inbox.name': accountT(
+      'CANNED_MGMT.VARIABLES.conversation_inbox_name'
+    ),
+    'conversation.inbox_name': accountT(
+      'CANNED_MGMT.VARIABLES.conversation_inbox_name'
+    ),
+    'inbox.name': accountT('CANNED_MGMT.VARIABLES.inbox_name'),
+    'account.name': accountT('CANNED_MGMT.VARIABLES.account_name'),
+    'assistant.name': accountT('CANNED_MGMT.VARIABLES.assistant_name'),
+    'appointment.title': accountT('CANNED_MGMT.VARIABLES.appointment_title'),
+    'appointment.date': accountT('CANNED_MGMT.VARIABLES.appointment_date'),
+    'appointment.time': accountT('CANNED_MGMT.VARIABLES.appointment_time'),
+    'appointment.datetime': accountT(
+      'CANNED_MGMT.VARIABLES.appointment_datetime'
+    ),
+  };
+  (customAttributes.value || []).forEach(attribute => {
+    const { attribute_key: key, attribute_display_name: name } = attribute;
+    labels[`contact.custom_attribute['${key}']`] = name;
+    labels[`contact.custom_attribute.${key}`] = name;
+  });
+  labels['contact.custom_attribute'] = accountT(
+    'CANNED_MGMT.VARIABLES.unknown_attribute'
+  );
+  labels['conversation.custom_attribute'] = accountT(
+    'CANNED_MGMT.VARIABLES.unknown_attribute'
+  );
+  labels['company.custom_attribute'] = accountT(
+    'CANNED_MGMT.VARIABLES.unknown_attribute'
+  );
+  return labels;
+});
+
+const cardStatusLabel = item =>
+  ({
+    pending: accountT('CANNED_MGMT.STATUS_LABEL.pending'),
+    approved: accountT('CANNED_MGMT.STATUS_LABEL.approved'),
+    rejected: accountT('CANNED_MGMT.STATUS_LABEL.rejected'),
+  })[item.approval_status];
+
+const cardVisibilityLabel = item =>
+  ({
+    personal: accountT('CANNED_MGMT.VISIBILITY_ICON_LABEL.personal'),
+    global: accountT('CANNED_MGMT.VISIBILITY_ICON_LABEL.global'),
+  })[item.visibility];
+
 const uniqueShortCode = baseCode => {
   const taken = new Set(records.value.map(item => item.short_code));
   let candidate = `${baseCode}_copy`;
@@ -263,6 +441,15 @@ const duplicateCanned = async item => {
   } finally {
     loading.value[item.id] = false;
   }
+};
+
+const handleListAction = ({ action, item }) => {
+  if (action === 'edit') openEditPopup(item);
+  if (action === 'duplicate') duplicateCanned(item);
+  if (action === 'approve-global') approveResponse(item, 'global');
+  if (action === 'approve-personal') approveResponse(item, 'personal');
+  if (action === 'reject') openRejectPopup(item);
+  if (action === 'delete') openDeletePopup(item);
 };
 </script>
 
@@ -316,7 +503,7 @@ const duplicateCanned = async item => {
 
     <template #body>
       <div
-        v-if="!filteredRecords.length"
+        v-if="!filteredRecords.length && !uiFlags.fetchingList"
         class="flex items-center justify-center p-8"
       >
         <span class="text-base text-n-slate-11">
@@ -331,23 +518,40 @@ const duplicateCanned = async item => {
           }}
         </span>
       </div>
-      <div v-else class="border-t divide-y divide-n-weak border-n-weak">
-        <CannedListItem
-          v-for="cannedItem in filteredRecords"
-          :key="cannedItem.id || cannedItem.short_code"
-          :canned="cannedItem"
-          :is-admin="isAdmin"
-          :is-loading="!!loading[cannedItem.id]"
-          @edit="openEditPopup(cannedItem)"
-          @delete="openDeletePopup(cannedItem)"
-          @duplicate="duplicateCanned(cannedItem)"
-          @approve="visibility => approveResponse(cannedItem, visibility)"
-          @reject="rejectResponse(cannedItem)"
+      <div v-else class="border-t border-n-weak">
+        <ToolCards
+          :items="filteredRecords"
+          :actions="cardActions"
+          title-key="short_code"
+          content-key="content"
+          status-key="approval_status"
+          :empty-message="$t('CANNED_MGMT.NO_RESULTS')"
+          :more-options-label="$t('CANNED_MGMT.MORE_OPTIONS')"
+          :show-more-label="$t('CANNED_MGMT.CARDS.SHOW_MORE')"
+          :show-less-label="$t('CANNED_MGMT.CARDS.SHOW_LESS')"
+          :edit-label="$t('CANNED_MGMT.EDIT.BUTTON_TEXT')"
+          :copy-label="$t('CANNED_MGMT.CARDS.COPY')"
+          :copied-label="$t('CANNED_MGMT.CARDS.COPIED')"
+          :creator-label="$t('CANNED_MGMT.CARDS.CREATED_BY')"
+          :reviewer-label="$t('CANNED_MGMT.CARDS.APPROVED_BY')"
+          :created-at="item => formatDate(item.created_at)"
+          :reviewed-at="item => formatDate(item.reviewed_at)"
+          :variable-labels="variableLabels"
+          :can-edit="
+            item =>
+              isAdmin ||
+              (item.visibility !== 'global' &&
+                item.created_by_id === currentUser?.id)
+          "
+          :status-label="cardStatusLabel"
+          :visibility-label="cardVisibilityLabel"
+          @edit="openEditPopup"
+          @action="handleListAction"
         />
       </div>
     </template>
     <woot-modal v-model:show="showAddPopup" :on-close="hideAddPopup">
-      <AddCanned :on-close="hideAddPopup" />
+      <AddCanned :categories="categories" :on-close="hideAddPopup" />
     </woot-modal>
 
     <woot-modal v-model:show="showEditPopup" :on-close="hideEditPopup">
@@ -358,6 +562,7 @@ const duplicateCanned = async item => {
         :edcontent="activeResponse.content"
         :edcategory="activeResponse.category"
         :edvisibility="activeResponse.visibility"
+        :categories="categories"
         :on-close="hideEditPopup"
       />
     </woot-modal>
@@ -372,5 +577,31 @@ const duplicateCanned = async item => {
       :confirm-text="deleteConfirmText"
       :reject-text="deleteRejectText"
     />
+    <woot-modal v-model:show="showRejectPopup">
+      <div class="flex flex-col gap-4 p-6">
+        <h3 class="text-heading-3 text-n-slate-12">
+          {{ $t('CANNED_MGMT.REJECT.TITLE') }}
+        </h3>
+        <p class="text-sm text-n-slate-11">
+          {{ $t('CANNED_MGMT.REJECT.REASON_NOT_SAVED') }}
+        </p>
+        <label class="flex flex-col gap-2 text-sm text-n-slate-12">
+          {{ $t('CANNED_MGMT.REJECT.REASON_LABEL') }}
+          <textarea v-model="rejectionReason" class="min-h-20" />
+        </label>
+        <div class="flex justify-end gap-2">
+          <Button
+            :label="$t('CANNED_MGMT.ADD.CANCEL_BUTTON_TEXT')"
+            intent="secondary"
+            @click="showRejectPopup = false"
+          />
+          <Button
+            :label="$t('CANNED_MGMT.REJECT.BUTTON')"
+            intent="destructive"
+            @click="confirmRejection"
+          />
+        </div>
+      </div>
+    </woot-modal>
   </SettingsLayout>
 </template>
