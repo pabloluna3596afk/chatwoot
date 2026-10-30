@@ -15,10 +15,11 @@ const canned = {
   created_at: '2026-10-24T12:00:00Z',
 };
 
-const mountCards = props =>
+const mountCards = (props, options = {}) =>
   mount(ToolCards, {
     props: { items: [canned], titleKey: 'short_code', ...props },
     global: { mocks: { $t: key => key } },
+    ...options,
   });
 
 describe('ToolCards', () => {
@@ -95,9 +96,12 @@ describe('ToolCards', () => {
   });
 
   it('closes the action menu on Escape and returns focus to its trigger', async () => {
-    const wrapper = mountCards({
-      actions: [{ key: 'edit', label: 'Edit' }],
-    });
+    const wrapper = mountCards(
+      {
+        actions: [{ key: 'edit', label: 'Edit' }],
+      },
+      { attachTo: document.body }
+    );
     const menu = wrapper.find('details');
     const trigger = menu.find('summary');
     menu.element.open = true;
@@ -106,6 +110,7 @@ describe('ToolCards', () => {
 
     expect(menu.element.open).toBe(false);
     expect(document.activeElement).toBe(trigger.element);
+    wrapper.unmount();
   });
 
   it('expands a long response in place for touch screens', async () => {
