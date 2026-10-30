@@ -765,6 +765,11 @@
       "PERCENT_USED": "{percent}% usado",
       "RESET_DATE": "Se reinicia el {date}",
       "NO_INCLUDED_BAGS": "Tu plan no incluye bolsas de uso de IA.",
+      "BAG_MODES": {
+        "SHARED": "Comparte la bolsa de respuestas del asistente",
+        "UNLIMITED": "Ilimitado",
+        "NOT_INCLUDED": "No incluido en tu plan"
+      },
       "DAILY_TITLE": "Uso diario del período",
       "PLAN_RESOURCES": "Recursos del plan",
       "CHART_LABEL": "Mensajes diarios de IA por tipo de uso",

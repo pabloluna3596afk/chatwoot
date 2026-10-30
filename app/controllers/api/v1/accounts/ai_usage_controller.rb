@@ -5,7 +5,9 @@ class Api::V1::Accounts::AiUsageController < Api::V1::Accounts::BaseController
     now = Time.current
     period = @current_account.account_plan_usages.open
                              .where('period_start <= ? AND period_end > ?', now, now).first
-    return render json: { period_start: nil, period_end: nil, daily: [] } unless period
+    unless period
+      return render json: { period_start: nil, period_end: nil, daily: [], bag_modes: bag_modes }
+    end
 
     usage_messages = AiUsageEvent
                      .where(account_id: @current_account.id, created_at: period.period_start...period.period_end)
@@ -17,7 +19,7 @@ class Api::V1::Accounts::AiUsageController < Api::V1::Accounts::BaseController
                         .order('DATE(usage_messages.created_at)')
                         .map { |row| { day: row.day, bucket: row.bucket, messages: row.messages.to_i } }
 
-    render json: { period_start: period.period_start, period_end: period.period_end, daily: daily }
+    render json: { period_start: period.period_start, period_end: period.period_end, daily: daily, bag_modes: bag_modes }
   end
 
   private
@@ -26,5 +28,21 @@ class Api::V1::Accounts::AiUsageController < Api::V1::Accounts::BaseController
     return if Current.account_user&.administrator?
 
     render json: { error: I18n.t('errors.access_denied') }, status: :forbidden
+  end
+
+  def bag_modes
+    limits = @current_account.usage_limits.dig(:captain)
+    {
+      captain_responses: mode_for(limits[:responses], unlimited_without_plan: @current_account.plan.nil?),
+      copilot: limits[:copilot][:total_count].nil? ? 'shared' : mode_for(limits[:copilot]),
+      internal: mode_for(limits[:internal])
+    }
+  end
+
+  def mode_for(limits, unlimited_without_plan: false)
+    total = limits[:total_count]
+    return 'unlimited' if total.nil? || (unlimited_without_plan && total >= ChatwootApp.max_limit)
+
+    total.zero? ? 'not_included' : 'included'
   end
 end

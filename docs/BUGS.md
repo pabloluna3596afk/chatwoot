@@ -1,5 +1,13 @@
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
+### B-NEW-247 — Cuotas IA, contratos de tareas y ledger
+
+- **Problema:** los intentos fallidos de Captain/Copilot consumían cupo, los eventos inferían la bolsa por regex y varios contratos perdían estado HTTP o no explicaban las bolsas disponibles.
+- **Arreglo:** reservas con recibo por intento y liberación idempotente ante error/excepción/descarte; mapa explícito `feature → bucket` (la transcripción usa `captain_responses` porque esa es la bolsa que descuenta); Playground registra cada generación en `ai_usage_events` sin cambiar su cuota diaria. Tareas preservan códigos HTTP, validan operaciones/conversaciones y el editor distingue plan, límite y proveedor; tablero explica bolsas compartidas, ilimitadas y no incluidas.
+- **Registro de costo:** las llamadas fallidas conservan eventos `error` porque el proveedor puede haber cobrado tokens, aunque se libere el cupo del producto.
+- **Verificación:** RSpec 277 ejemplos, 0 fallos y 2 pendientes obsoletos; specs focales finales 65/65; Vitest 25/25 en UTC y America/Guayaquil; ESLint limpio. RuboCop inspeccionó 23 archivos y reportó 58 ofensas (28 autocorregibles), así que R10 queda pendiente. No se verificó el preview ni la UI real; evidencia en `tmp/PR-IA-ARREGLOS.md`.
+- **Archivos:** cuotas Captain/Copilot, `Llm::UsageContext`, Playground, `ai_usage`, tareas del editor, traducciones y specs de contrato.
+
 ### B-NEW-246 — Indicador de typing real para Captain
 
 - **Problema:** el panel de conversación y el tooltip de la lista afirmaban que Captain respondía solo por estar asignado, aunque no estuviera generando una respuesta.

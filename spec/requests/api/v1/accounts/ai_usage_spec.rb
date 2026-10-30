@@ -50,6 +50,39 @@ RSpec.describe 'AI usage API' do
     get path, headers: admin.create_new_auth_token
 
     expect(response).to have_http_status(:ok)
-    expect(response.parsed_body).to include('daily' => [], 'period_start' => nil, 'period_end' => nil)
+    expect(response.parsed_body).to include(
+      'daily' => [], 'period_start' => nil, 'period_end' => nil,
+      'bag_modes' => { 'captain_responses' => 'unlimited', 'copilot' => 'shared', 'internal' => 'unlimited' }
+    )
+  end
+
+  it 'returns the bag modes when an account period exists' do
+    AccountPlanUsage.create!(account: account, period_start: 10.days.ago, period_end: 20.days.from_now)
+
+    get path, headers: admin.create_new_auth_token
+
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body['bag_modes']).to include(
+      'captain_responses' => 'unlimited', 'copilot' => 'shared', 'internal' => 'unlimited'
+    )
+  end
+
+  it 'marks zero-limit bags as not included' do
+    account.update!(limits: { 'captain_responses' => 0, 'captain_copilot' => 0, 'captain_internal' => 0 })
+
+    get path, headers: admin.create_new_auth_token
+
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body['bag_modes']).to eq(
+      'captain_responses' => 'not_included', 'copilot' => 'not_included', 'internal' => 'not_included'
+    )
+  end
+
+  it 'returns a translated access denied message to agents' do
+    account.update!(locale: 'es')
+    get path, headers: agent.create_new_auth_token
+
+    expect(response).to have_http_status(:forbidden)
+    expect(response.parsed_body['error']).to eq('No tienes permiso para acceder a este recurso.')
   end
 end

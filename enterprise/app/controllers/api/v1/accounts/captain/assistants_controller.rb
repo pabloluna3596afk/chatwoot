@@ -54,7 +54,9 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
       message: params.require(:assistant)[:message_content], history: params[:assistant][:message_history]
     ).messages
     @playground_usage = Captain::Playground::Usage.new(account: Current.account)
-    result = @playground_usage.perform { generate_playground_response.with_indifferent_access }
+    result = Llm::UsageContext.with(account: Current.account, bucket: :captain_responses, feature: 'assistant_playground') do
+      @playground_usage.perform { generate_playground_response.with_indifferent_access }
+    end
 
     render json: result
   rescue Captain::Playground::Usage::LimitExceeded => e
