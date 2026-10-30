@@ -75,6 +75,15 @@ describe('#throwErrorMessage', () => {
     }
   });
 
+  it('keeps the HTTP response so callers can detect a missing record', () => {
+    expect.assertions(1);
+    try {
+      throwErrorMessage({ response: { status: 404, data: {} } });
+    } catch (error) {
+      expect(error.response.status).toBe(404);
+    }
+  });
+
   it('throws correct error', () => {
     const errorFn = function throwErrorMessageFn() {
       throwErrorMessage({

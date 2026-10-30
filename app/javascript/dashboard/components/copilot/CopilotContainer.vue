@@ -245,32 +245,49 @@ const selectThread = async thread => {
     else useAlert(t('CAPTAIN.COPILOT.ERROR'));
   }
 };
+const createThread = async (message, requestType) => {
+  const response = await store.dispatch('copilotThreads/create', {
+    ...(activeAssistant.value?.id && {
+      assistant_id: activeAssistant.value.id,
+    }),
+    conversation_id: currentChat.value?.id,
+    message,
+    ...(requestType && { request_type: requestType }),
+  });
+  persistThread(response.id);
+  await loadActionItems(response.id);
+  threads.value = [
+    response,
+    ...threads.value.filter(thread => thread.id !== response.id),
+  ];
+};
 const sendMessage = async payload => {
   const message = typeof payload === 'string' ? payload : payload.message;
   const requestType =
     typeof payload === 'string' ? undefined : payload.requestType;
+  const threadId = selectedCopilotThreadId.value;
+  const accountId = currentAccountId.value;
   try {
-    if (selectedCopilotThreadId.value) {
-      await store.dispatch('copilotMessages/create', {
-        conversation_id: currentChat.value?.id,
-        threadId: selectedCopilotThreadId.value,
-        message,
-      });
+    if (threadId) {
+      try {
+        await store.dispatch('copilotMessages/create', {
+          conversation_id: currentChat.value?.id,
+          threadId,
+          message,
+        });
+      } catch (error) {
+        // The remembered thread no longer exists for this account or user:
+        // forget it and start a fresh one instead of failing the message.
+        if (!isMissingThreadError(error)) throw error;
+        clearInvalidThread(threadId, accountId);
+        if (Number(selectedCopilotThreadId.value) === Number(threadId)) {
+          selectedCopilotThreadId.value = null;
+          actionItems.value = [];
+        }
+        await createThread(message, requestType);
+      }
     } else {
-      const response = await store.dispatch('copilotThreads/create', {
-        ...(activeAssistant.value?.id && {
-          assistant_id: activeAssistant.value.id,
-        }),
-        conversation_id: currentChat.value?.id,
-        message,
-        ...(requestType && { request_type: requestType }),
-      });
-      persistThread(response.id);
-      await loadActionItems(response.id);
-      threads.value = [
-        response,
-        ...threads.value.filter(thread => thread.id !== response.id),
-      ];
+      await createThread(message, requestType);
     }
     return true;
   } catch (_error) {

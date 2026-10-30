@@ -240,6 +240,54 @@ describe('CopilotContainer', () => {
     expect(result).toBe(false);
   });
 
+  it('starts a new thread when the remembered one no longer exists', async () => {
+    testState.uiSettings.value.copilot_active_thread_id = 40;
+    const notFound = new Error('');
+    notFound.response = { status: 404 };
+    testState.dispatch.mockImplementation(action => {
+      if (action === 'copilotMessages/create') return Promise.reject(notFound);
+      if (action === 'copilotThreads/create')
+        return Promise.resolve({ id: 77 });
+      return Promise.resolve();
+    });
+    vi.mocked(CopilotActionItemsAPI.get).mockResolvedValue({ data: [] });
+    const wrapper = mountComponent();
+    await flushPromises();
+    const copilot = wrapper.findComponent({ name: 'Copilot' });
+
+    const result = await copilot.props('onSendMessage')('How many open chats?');
+
+    expect(result).toBe(true);
+    expect(testState.dispatch).toHaveBeenCalledWith(
+      'copilotThreads/create',
+      expect.objectContaining({ message: 'How many open chats?' })
+    );
+    expect(testState.uiSettings.value.copilot_active_thread_id).toBe(77);
+    expect(useAlert).not.toHaveBeenCalled();
+  });
+
+  it('still reports other send failures without creating a new thread', async () => {
+    testState.uiSettings.value.copilot_active_thread_id = 40;
+    testState.dispatch.mockImplementation(action =>
+      action === 'copilotMessages/create'
+        ? Promise.reject(
+            Object.assign(new Error('Server'), { response: { status: 500 } })
+          )
+        : Promise.resolve()
+    );
+    const wrapper = mountComponent();
+    await flushPromises();
+    const copilot = wrapper.findComponent({ name: 'Copilot' });
+
+    const result = await copilot.props('onSendMessage')('Hello');
+
+    expect(result).toBe(false);
+    expect(testState.dispatch).not.toHaveBeenCalledWith(
+      'copilotThreads/create',
+      expect.anything()
+    );
+  });
+
   it('silently clears a legacy thread that is missing from the current account', async () => {
     testState.uiSettings.value.copilot_active_thread_id = 23;
     const notFound = new Error('Not found');
