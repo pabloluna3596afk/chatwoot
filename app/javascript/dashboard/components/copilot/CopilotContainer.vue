@@ -166,7 +166,11 @@ const upsertActionItem = item => {
 const handleActionItemEvent = item => upsertActionItem(item);
 const updateActionItem = async ({ id, payload }) => {
   try {
-    const { data } = await CopilotActionItemsAPI.update(id, payload);
+    const { data } = await CopilotActionItemsAPI.update(
+      id,
+      payload,
+      selectedCopilotThreadId.value
+    );
     upsertActionItem(data);
   } catch (_error) {
     useAlert(t('CAPTAIN.COPILOT.ERROR'));
@@ -176,8 +180,8 @@ const decideActionItem = async (id, decision) => {
   try {
     const { data } =
       decision === 'approve'
-        ? await CopilotActionItemsAPI.approve(id)
-        : await CopilotActionItemsAPI.reject(id);
+        ? await CopilotActionItemsAPI.approve(id, selectedCopilotThreadId.value)
+        : await CopilotActionItemsAPI.reject(id, selectedCopilotThreadId.value);
     upsertActionItem(data);
   } catch (_error) {
     if (_error.response?.data?.id) upsertActionItem(_error.response.data);
