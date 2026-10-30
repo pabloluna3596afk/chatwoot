@@ -1,5 +1,5 @@
 class Payphone::ResponsesController < ApplicationController
-  skip_before_action :authenticate_user!, :set_current_user, only: :show
+  skip_before_action :authenticate_user!, :set_current_user, only: :show, raise: false
 
   def show
     transaction_id = params[:id]
