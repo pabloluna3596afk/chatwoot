@@ -44,8 +44,8 @@ class Captain::Copilot::ChatService < Llm::BaseAiService
 
   def generate_response(input)
     @messages << { role: 'user', content: input } if input.present?
-    reservation_id = SecureRandom.uuid
-    unless @account.reserve_captain_ai_usage!(bucket: :copilot, reservation_id: reservation_id)
+    @usage_reservation_id = SecureRandom.uuid
+    unless @account.reserve_captain_ai_usage!(bucket: :copilot, reservation_id: @usage_reservation_id)
       reset_date = @account.current_usage_period.period_end.to_date
       return { error: I18n.t('captain.copilot_limit', reset_date: reset_date), error_code: 429 }
     end
@@ -53,14 +53,14 @@ class Captain::Copilot::ChatService < Llm::BaseAiService
     begin
       result = request_chat_completion
     rescue StandardError
-      @account.release_captain_ai_usage!(bucket: :copilot, reservation_id: reservation_id)
+      @account.release_captain_ai_usage!(bucket: :copilot, reservation_id: @usage_reservation_id)
       raise
     end
 
     if successful_ai_result?(result)
-      @account.finish_captain_ai_usage!(bucket: :copilot, reservation_id: reservation_id)
+      @account.finish_captain_ai_usage!(bucket: :copilot, reservation_id: @usage_reservation_id)
     else
-      @account.release_captain_ai_usage!(bucket: :copilot, reservation_id: reservation_id)
+      @account.release_captain_ai_usage!(bucket: :copilot, reservation_id: @usage_reservation_id)
     end
     result
   end

@@ -57,7 +57,9 @@ module Llm::UsageTokenAttributes
   end
 end
 
+# rubocop:disable Metrics/ModuleLength
 module Llm::UsageContext
+  # Shared context construction deliberately stays together with its feature map boundary.
   KEY = :llm_usage_context
 
   class << self
@@ -72,15 +74,37 @@ module Llm::UsageContext
       account = resolve_account(params)
       return yield unless account
 
+      begin
+        mapped_bucket = bucket_for(feature)
+      rescue ArgumentError => e
+        raise Llm::UnmeteredCall, e.message if Rails.env.test? || ENV['CI'].present?
+
+        Rails.logger.error("Unmapped AI usage feature #{feature}: #{e.message}")
+        return with_unmapped_bucket(account, feature, params, &)
+      end
+
       conversation_id = resolve_conversation_id(account, params[:conversation_id])
-      with(account: account, bucket: bucket_for(feature), feature: feature,
+      with(account: account, bucket: mapped_bucket, feature: feature,
            context: { conversation_id: conversation_id }, &)
     end
 
-    def with(account:, feature:, bucket: nil, context: {}, usage_group_id: SecureRandom.uuid)
-      mapped_bucket = bucket_for(feature.to_s)
+    # Keep the public block API explicit for callers that scope provider work.
+    # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/ParameterLists, Metrics/PerceivedComplexity
+    def with(account:, feature:, bucket: nil, context: {}, reservation_id: nil, usage_group_id: SecureRandom.uuid)
+      begin
+        mapped_bucket = bucket_for(feature.to_s)
+      rescue ArgumentError => e
+        raise Llm::UnmeteredCall, e.message if Rails.env.test? || ENV['CI'].present?
+
+        Rails.logger.error(e.message)
+        mapped_bucket = :unmapped
+      end
       if bucket.present? && bucket.to_sym != mapped_bucket
-        raise ArgumentError, "AI usage bucket mismatch for #{feature}: #{bucket} != #{mapped_bucket}"
+        message = "AI usage bucket mismatch for #{feature}: #{bucket} != #{mapped_bucket}"
+        raise Llm::UnmeteredCall, message if Rails.env.test? || ENV['CI'].present?
+
+        Rails.logger.error(message)
+        mapped_bucket = :unmapped
       end
 
       previous = current
@@ -88,12 +112,15 @@ module Llm::UsageContext
         account_id: account&.id,
         bucket: mapped_bucket.to_s,
         feature: feature.to_s,
-        usage_group_id: usage_group_id
+        usage_group_id: usage_group_id,
+        reservation_id: reservation_id,
+        required_plan: account&.plan&.slug
       }.merge(context)
       yield usage_group_id
     ensure
       ActiveSupport::IsolatedExecutionState[KEY] = previous
     end
+    # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/ParameterLists, Metrics/PerceivedComplexity
 
     def record(chat:, response:, status:, error: nil, latency_ms: nil)
       record_operation(
@@ -119,6 +146,18 @@ module Llm::UsageContext
 
     private
 
+    def with_unmapped_bucket(account, feature, params)
+      previous = current
+      ActiveSupport::IsolatedExecutionState[KEY] = {
+        account_id: account.id, bucket: 'unmapped', feature: feature,
+        usage_group_id: SecureRandom.uuid, required_plan: account.plan&.slug,
+        required_gate: params[:required_gate]
+      }
+      yield
+    ensure
+      ActiveSupport::IsolatedExecutionState[KEY] = previous
+    end
+
     def resolve_account(params)
       params[:account] || Account.find_by(id: params[:account_id])
     rescue StandardError => e
@@ -135,7 +174,8 @@ module Llm::UsageContext
 
     def record_event(model:, context:, details:)
       response = details[:response]
-      AiUsageEvent.create!(context.except(:account_id).merge(
+      event_context = context.except(:account_id, :reservation_id, :reservation_required, :required_gate, :required_plan)
+      AiUsageEvent.create!(event_context.merge(
                              event_identity(model, context, details, response),
                              token_attributes(model, response),
                              status: details[:status], error_class: details[:error]&.class&.name,
@@ -163,3 +203,4 @@ module Llm::UsageContext
     end
   end
 end
+# rubocop:enable Metrics/ModuleLength

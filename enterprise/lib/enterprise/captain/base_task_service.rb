@@ -6,7 +6,7 @@ module Enterprise::Captain::BaseTaskService
     return usage_limit_response if reservation_id == false
 
     begin
-      result = perform_with_usage_context { super }
+      result = perform_with_usage_context(reservation_id) { super }
     rescue StandardError
       release_reservation(reservation_id)
       raise
@@ -37,12 +37,13 @@ module Enterprise::Captain::BaseTaskService
     reservation_id
   end
 
-  def perform_with_usage_context(&)
+  def perform_with_usage_context(reservation_id, &)
     Llm::UsageContext.with(
       account: account,
       bucket: usage_bucket,
       feature: event_name,
-      context: { conversation_id: conversation&.id }, &
+      context: { conversation_id: conversation&.id, reservation_required: reservation_id.present?, required_gate: 'captain_tasks' },
+      reservation_id: reservation_id, &
     )
   end
 

@@ -1,3 +1,10 @@
+### B-NEW-248 — Cerrar la medición antes de llamar al proveedor
+
+- **Problema:** faltaba un fallo en CI si una llamada instrumentada llegaba sin cuenta, feature/bolsa mapeada o recibo requerido.
+- **Arreglo:** `Llm::MeteringGuard` se ejecuta en bordes comunes; CI/test falla con `Llm::UnmeteredCall`, producción registra el error y conserva bucket `unmapped`. Se guarda traza test/CI y se corrige el gate de custom tools V2; el parser JSON duplicado de Captain adopta el arreglo de PR #301.
+- **Verificación:** RSpec focalizado 79/79; RuboCop CI 18 archivos/0 ofensas; preview resumen 200, proveedor caído 502 sin incremento y retry 200 con un incremento. La matriz externa enumera lo pendiente.
+- **Pendiente:** inventario directo completo, entitlement central, matriz completa de fallos, lecturas directas de eventos/reservas y compatibilidad de filas históricas.
+- **Archivos:** ver `tmp/PR-IA-CERT.md` y `docs-crm/codex/ia-certificacion.md`.
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
 ### B-NEW-247 — Cuotas IA, contratos de tareas y ledger

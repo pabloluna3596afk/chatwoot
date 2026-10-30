@@ -5,7 +5,7 @@ class SuperAdmin::AiUsageAlerts
   end
 
   def call
-    warnings = (model_alerts + unpriced_alerts + bag_alerts + plan_alerts).uniq
+    warnings = (model_alerts + unpriced_alerts + bag_alerts + plan_alerts + unmapped_alerts).uniq
     warnings.each { |warning| Rails.logger.warn("[AI_USAGE] #{warning}") }
     warnings
   end
@@ -13,6 +13,13 @@ class SuperAdmin::AiUsageAlerts
   private
 
   attr_reader :events, :bag_rows
+
+  def unmapped_alerts
+    count = events.where(bucket: 'unmapped').count
+    return [] if count.zero?
+
+    [I18n.t('super_admin.ai_usage.unmapped_alert', count: count)]
+  end
 
   def model_alerts
     latest_calls = events.where.not(model: 'gpt-6-luna').group(:model, :account_id).maximum(:created_at)

@@ -38,7 +38,8 @@ module Captain::Copilot::ReplySuggestionUsage
       account: @account,
       bucket: :copilot,
       feature: 'copilot_reply_suggestion',
-      context: { conversation_id: conversation.id, message_id: target_message.id }
+      context: { conversation_id: conversation.id, message_id: target_message.id, reservation_required: true, required_gate: 'captain_integration' },
+      reservation_id: @usage_reservation_id
     ) { generate_reply(conversation) }
   end
 end
