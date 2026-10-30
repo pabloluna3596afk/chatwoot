@@ -67,7 +67,8 @@ class Captain::Copilot::Actions::Base
     raise NotImplementedError
   end
 
-  def validate_payload_keys!(allowed_keys)
-    raise ArgumentError, 'Payload contains unsupported fields' if (@payload.keys - allowed_keys).any?
+  def validate_payload_keys!(allowed_keys, guidance = 'Use only the documented fields for this action.')
+    extra_keys = @payload.keys - allowed_keys
+    raise ArgumentError, "Payload contains unsupported fields: #{extra_keys.join(', ')}. #{guidance}" if extra_keys.any?
   end
 end

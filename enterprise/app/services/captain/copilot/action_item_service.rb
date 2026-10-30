@@ -12,26 +12,13 @@ class Captain::Copilot::ActionItemService
   end
 
   def propose(action_name:, target_type:, target_id:, payload:, turn_count:)
-    raise ArgumentError, 'At most three proposals are allowed per turn' if turn_count > MAX_PROPOSALS_PER_TURN
-
     @thread.with_lock do
-      raise ArgumentError, 'At most five proposals may be pending in this thread' if pending_limit_reached?
-
       action_class = Captain::Copilot::ActionRegistry.fetch(action_name)
-      action = action_class.new(account: @account, user: @user, target_type: target_type, target_id: target_id, payload: payload)
-      action.validate
-      item = @thread.copilot_action_items.create!(
-        copilot_message: @thread.copilot_messages.user.order(id: :desc).first,
-        action: action_name,
-        target_type: target_type,
-        target_id: target_id,
-        payload: payload,
-        payload_hash: payload_hash(payload),
-        idempotency_key: SecureRandom.uuid,
-        expires_at: EXPIRATION.from_now
-      )
-      item.record_event!('proposed')
-      item
+      existing = find_identical_pending_proposal(action_name, target_type, target_id, payload)
+      next existing if existing
+
+      enforce_proposal_limits!(turn_count)
+      create_proposal(action_class, action_name, target_type, target_id, payload)
     end
   end
 
@@ -78,6 +65,30 @@ class Captain::Copilot::ActionItemService
 
   def pending_limit_reached?
     @thread.copilot_action_items.where(status: 'pending').count >= MAX_PENDING_PER_THREAD
+  end
+
+  def find_identical_pending_proposal(action_name, target_type, target_id, payload)
+    @thread.copilot_action_items.find_by(
+      action: action_name, target_type: target_type, target_id: target_id,
+      payload_hash: payload_hash(payload), status: 'pending'
+    )
+  end
+
+  def enforce_proposal_limits!(turn_count)
+    raise ArgumentError, 'At most three proposals are allowed per turn' if turn_count > MAX_PROPOSALS_PER_TURN
+    raise ArgumentError, 'At most five proposals may be pending in this thread' if pending_limit_reached?
+  end
+
+  def create_proposal(action_class, action_name, target_type, target_id, payload)
+    action = action_class.new(account: @account, user: @user, target_type: target_type, target_id: target_id, payload: payload)
+    action.validate
+    item = @thread.copilot_action_items.create!(
+      copilot_message: @thread.copilot_messages.user.order(id: :desc).first,
+      action: action_name, target_type: target_type, target_id: target_id, payload: payload,
+      payload_hash: payload_hash(payload), idempotency_key: SecureRandom.uuid, expires_at: EXPIRATION.from_now
+    )
+    item.record_event!('proposed')
+    item
   end
 
   def record_decision!(item, status)
