@@ -95,6 +95,43 @@ RSpec.describe Integrations::LlmInstrumentation do
         expect(ChatwootExceptionTracker).to have_received(:new)
       end
 
+      it 'does not retry a provider call when it raises' do
+        allow(ChatwootApp).to receive(:otel_enabled?).and_return(true)
+        mock_span = instance_double(OpenTelemetry::Trace::Span)
+        allow(mock_span).to receive(:set_attribute)
+        mock_tracer = instance_double(OpenTelemetry::Trace::Tracer)
+        allow(instance).to receive(:tracer).and_return(mock_tracer)
+        allow(mock_tracer).to receive(:in_span).and_yield(mock_span)
+        tracker = instance_double(ChatwootExceptionTracker, capture_exception: nil)
+        allow(ChatwootExceptionTracker).to receive(:new).and_return(tracker)
+        provider_calls = 0
+
+        expect do
+          instance.instrument_llm_call(params) do
+            provider_calls += 1
+            raise IOError, 'provider failed'
+          end
+        end.to raise_error(IOError, 'provider failed')
+
+        expect(provider_calls).to eq(1)
+      end
+
+      it 'does not retry a provider failure in the untraced path' do
+        allow(ChatwootApp).to receive(:otel_enabled?).and_return(false)
+        tracker = instance_double(ChatwootExceptionTracker, capture_exception: nil)
+        allow(ChatwootExceptionTracker).to receive(:new).and_return(tracker)
+        provider_calls = 0
+
+        expect do
+          instance.instrument_llm_call(params) do
+            provider_calls += 1
+            raise IOError, 'provider failed'
+          end
+        end.to raise_error(IOError, 'provider failed')
+
+        expect(provider_calls).to eq(1)
+      end
+
       it 'sets correct request attributes on the span' do
         mock_span = instance_double(OpenTelemetry::Trace::Span)
         allow(mock_span).to receive(:set_attribute)
@@ -248,6 +285,21 @@ RSpec.describe Integrations::LlmInstrumentation do
           result = instance.instrument_agent_session(params) { 'my_result' }
 
           expect(result).to eq('my_result')
+        end
+
+        it 'does not retry a failed agent provider call' do
+          tracker = instance_double(ChatwootExceptionTracker, capture_exception: nil)
+          allow(ChatwootExceptionTracker).to receive(:new).and_return(tracker)
+          provider_calls = 0
+
+          expect do
+            instance.instrument_agent_session(params) do
+              provider_calls += 1
+              raise IOError, 'provider failed'
+            end
+          end.to raise_error(IOError, 'provider failed')
+
+          expect(provider_calls).to eq(1)
         end
 
         it 'sets trace input and output attributes' do
