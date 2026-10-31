@@ -667,10 +667,10 @@
   },
   "CAPTAIN_SETTINGS": {
     "TITLE": "Captain Settings",
-    "DESCRIPTION": "Configure your AI models and features for Captain. Captain follows a credit based billing, you will be charged credits for every action Captain takes based on the model selected.",
+    "DESCRIPTION": "Configure Captain AI models and features. Usage counts against the AI bags configured for your account plan.",
     "LOADING": "Loading Captain configuration...",
-    "LINK_TEXT": "Learn more about Captain Credits",
-    "NOT_ENABLED": "Captain is not enabled for your account. Please upgrade your plan to access Captain features.",
+    "LINK_TEXT": "Learn about Captain AI usage",
+    "NOT_ENABLED": "Captain is not enabled for your account. Review its plan and AI bags in account billing settings.",
     "MODEL_CONFIG": {
       "TITLE": "Model Configuration",
       "DESCRIPTION": "Select AI models for different features.",
@@ -813,11 +813,11 @@
       "RESPONSES_COPILOT": "Copilot",
       "INTERNAL_AI": "Internal AI actions",
       "RESETS_ON": "Resets on {date}",
-      "LIMIT_REACHED": "An AI usage limit has been reached. Review your plan to increase the allowance. Human replies remain available.",
+      "LIMIT_REACHED": "An AI bag limit has been reached. Review your plan and bag usage in account billing settings. Human replies remain available.",
       "STORAGE": "Storage",
       "AGENTS": "Agents",
       "INBOXES": "Inboxes",
-      "UPGRADE": "Captain is not available on the free plan, upgrade now to get access to assistants, copilot and more.",
+      "UPGRADE": "Captain features depend on your plan and AI bags. Review account billing settings.",
       "REFRESH_CREDITS": "Refresh"
     },
     "CHAT_WITH_US": {

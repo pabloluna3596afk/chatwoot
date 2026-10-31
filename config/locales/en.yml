@@ -700,7 +700,7 @@ en:
         responses: Captain responses
         copilot: Copilot suggestions
         internal: internal AI actions
-    upgrade: 'Upgrade your plan to enable Captain AI'
+    upgrade: 'Review the account plan and AI bags in billing settings to enable Captain AI.'
     disabled: 'Captain AI is disabled for this account.'
     api_key_missing: 'Captain AI API key is not configured.'
     notes:

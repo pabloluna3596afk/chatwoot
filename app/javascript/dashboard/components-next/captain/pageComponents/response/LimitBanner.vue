@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, computed } from 'vue';
 import { useAccount } from 'dashboard/composables/useAccount';
+import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useCaptain } from 'dashboard/composables/useCaptain';
 import { useRouter } from 'vue-router';
 
@@ -9,10 +10,14 @@ import PlanCompareButton from 'next/plans/PlanCompareButton.vue';
 
 const router = useRouter();
 const { accountId, currentAccount, isOnChatwootCloud } = useAccount();
+const { isAdmin } = useAdmin();
 const usesProviderBilling = computed(
   () =>
     isOnChatwootCloud.value ||
     currentAccount.value?.billing_provider === 'shopify'
+);
+const canOpenBilling = computed(
+  () => usesProviderBilling.value || isAdmin.value
 );
 
 const { responseLimits, fetchLimits } = useCaptain();
@@ -42,7 +47,7 @@ onMounted(fetchLimits);
     color="amber"
     :class="{ '!text-n-amber-12': !usesProviderBilling }"
     :action-label="
-      usesProviderBilling ? $t('CAPTAIN.PAYWALL.UPGRADE_NOW') : null
+      canOpenBilling ? $t('CAPTAIN.PAYWALL.UPGRADE_NOW') : null
     "
     @action="openBilling"
   >

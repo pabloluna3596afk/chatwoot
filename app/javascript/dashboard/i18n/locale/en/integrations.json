@@ -916,20 +916,20 @@
       }
     },
     "PAYWALL": {
-      "TITLE": "Upgrade to use Captain AI",
+      "TITLE": "Captain AI is not enabled",
       "AVAILABLE_ON": "This feature is not enabled for your account.",
-      "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
-      "UPGRADE_NOW": "Upgrade now",
-      "CANCEL_ANYTIME": "You can change or cancel your plan anytime"
+      "UPGRADE_PROMPT": "Review this account's plan and AI bags in account billing settings.",
+      "UPGRADE_NOW": "Open account billing",
+      "CANCEL_ANYTIME": "Manage your account plan"
     },
     "ENTERPRISE_PAYWALL": {
       "AVAILABLE_ON": "This feature is not enabled for your account.",
-      "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
-      "ASK_ADMIN": "Please reach out to your administrator for the upgrade."
+      "UPGRADE_PROMPT": "Review this account's plan and AI bags in account billing settings.",
+      "ASK_ADMIN": "Ask your account administrator to review the plan and AI bags."
     },
     "BANNER": {
-      "RESPONSES": "You are approaching your response limit. Review your plan and usage.",
-      "DOCUMENTS": "Document limit reached. Review your plan and usage."
+      "RESPONSES": "You are approaching your response bag limit. Review your plan and AI bag usage.",
+      "DOCUMENTS": "The document bag is empty. Review your plan and AI bag usage."
     },
     "FORM": {
       "CANCEL": "Cancel",
@@ -1744,16 +1744,16 @@
         "ERROR_MESSAGE": "Failed to delete custom tool"
       },
       "PAYWALL": {
-        "TITLE": "Upgrade to use tools with Captain",
+        "TITLE": "Captain tools are not enabled",
         "AVAILABLE_ON": "This feature is not enabled for your account.",
-        "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
+        "UPGRADE_PROMPT": "Review this account's plan and AI bags in account billing settings.",
         "UPGRADE_NOW": "Open billing",
         "CANCEL_ANYTIME": ""
       },
       "ENTERPRISE_PAYWALL": {
         "AVAILABLE_ON": "This feature is not enabled for your account.",
-        "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
-        "ASK_ADMIN": "Please reach out to your administrator for the upgrade."
+        "UPGRADE_PROMPT": "Review this account's plan and AI bags in account billing settings.",
+        "ASK_ADMIN": "Ask your account administrator to review the plan and AI bags."
       },
       "TEST": {
         "BUTTON": "Test connection",

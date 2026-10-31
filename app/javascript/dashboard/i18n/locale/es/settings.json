@@ -667,10 +667,10 @@
   },
   "CAPTAIN_SETTINGS": {
     "TITLE": "Ajustes de Captain",
-    "DESCRIPTION": "Configura los modelos de IA y las funciones de Captain. Captain usa facturación por créditos: se cobran créditos por cada acción según el modelo seleccionado.",
+    "DESCRIPTION": "Configura los modelos y las funciones de IA de Captain. El consumo se descuenta de las bolsas de IA incluidas en el plan de tu cuenta.",
     "LOADING": "Cargando configuración de Captain...",
-    "LINK_TEXT": "Más información sobre créditos de Captain",
-    "NOT_ENABLED": "Captain no está habilitado en tu cuenta. Actualiza tu plan para acceder a las funciones de Captain.",
+    "LINK_TEXT": "Más información sobre el consumo de IA de Captain",
+    "NOT_ENABLED": "Captain no está habilitado en tu cuenta. Revisa su plan y sus bolsas de IA en la facturación de la cuenta.",
     "MODEL_CONFIG": {
       "TITLE": "Configuración de modelos",
       "DESCRIPTION": "Selecciona modelos de IA para distintas funciones.",
@@ -813,11 +813,11 @@
       "RESPONSES_COPILOT": "Copilot",
       "INTERNAL_AI": "Acciones internas de IA",
       "RESETS_ON": "Se reinicia el {date}",
-      "LIMIT_REACHED": "Se alcanzó un límite de uso de IA. Revisa tu plan para ampliar la cuota. Puedes seguir respondiendo manualmente.",
+      "LIMIT_REACHED": "Se agotó una bolsa de IA. Revisa tu plan y el consumo de bolsas en la facturación de la cuenta. Puedes responder manualmente.",
       "STORAGE": "Almacenamiento",
       "AGENTS": "Agentes",
       "INBOXES": "Bandejas de entrada",
-      "UPGRADE": "Captain no está disponible en el plan gratuito, actualiza tu plan para acceder a asistentes, Copilot y más.",
+      "UPGRADE": "Las funciones de Captain dependen del plan y de las bolsas de IA. Revisa la facturación de la cuenta.",
       "REFRESH_CREDITS": "Actualizar"
     },
     "CHAT_WITH_US": {

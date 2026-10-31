@@ -622,7 +622,7 @@ es:
         responses: respuestas de Captain
         copilot: sugerencias de Copilot
         internal: acciones internas de IA
-    upgrade: 'Actualiza tu plan para habilitar Captain AI'
+    upgrade: 'Revisa el plan y las bolsas de IA en la facturación de esta cuenta para habilitar Captain AI.'
     disabled: 'Captain AI está deshabilitado para esta cuenta.'
     api_key_missing: 'La clave API de Captain AI no está configurada.'
     notes:

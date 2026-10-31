@@ -19,11 +19,8 @@ const currentUser = useMapGetter('getCurrentUser');
 const isSuperAdmin = computed(() => {
   return currentUser.value.type === 'SuperAdmin';
 });
-const { accountId, isOnChatwootCloud } = useAccount();
-
-const i18nKey = computed(() =>
-  isOnChatwootCloud.value ? 'PAYWALL' : 'ENTERPRISE_PAYWALL'
-);
+const { accountId } = useAccount();
+const i18nKey = computed(() => 'PAYWALL');
 const openBilling = () => {
   router.push({
     name: 'billing_settings_index',
@@ -41,8 +38,8 @@ const openBilling = () => {
       class="mx-auto"
       :feature-prefix="featurePrefix"
       :i18n-key="i18nKey"
+      :show-billing-action="true"
       :is-super-admin="isSuperAdmin"
-      :is-on-chatwoot-cloud="isOnChatwootCloud"
       @upgrade="openBilling"
     />
   </div>
