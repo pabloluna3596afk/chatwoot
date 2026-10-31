@@ -40,6 +40,8 @@
 # `limit_responses` and `limit_documents` are captured at creation time so a
 # later edit to a Plan's numbers (or reassigning the account to a different
 # plan) never rewrites history.
+# `responses_consumed` remains the source of truth for customer Captain replies;
+# Copilot has its own counter, and a shared response bag sums both counters.
 class AccountPlanUsage < ApplicationRecord
   belongs_to :account
   belongs_to :plan, optional: true

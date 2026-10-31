@@ -1,3 +1,9 @@
+### B-NEW-250 - Fuente única para cuotas visibles de IA
+
+- **Fuente de verdad por métrica:** `AccountPlanUsage` es la fuente del cupo y consumo visible en `usage_limits`, el contrato de facturación y las columnas de consumo de `ai_usage`. `responses_consumed` conserva las respuestas de Captain a clientes; `copilot_responses_consumed` es el contador separado de Copilot y ambos se suman solo cuando comparten bolsa. `AiUsageEvent` es la fuente del detalle diario de llamadas, tokens y costo del panel de auditoría; no reemplaza los contadores de cupo.
+- **Filas antiguas:** para cuentas con plan pero sin fila del período vigente, `Account#current_usage_period` la crea de forma perezosa al leer `usage_limits`; la prueba comprueba la lectura y creación sin tocar las columnas existentes.
+- **Verificación:** `spec/enterprise/models/account_spec.rb` cubre la primera lectura sin fila y el contador de período actual.
+
 ### B-NEW-248 — Cerrar la medición antes de llamar al proveedor
 
 - **Problema:** faltaba un fallo en CI si una llamada instrumentada llegaba sin cuenta, feature/bolsa mapeada o recibo requerido.

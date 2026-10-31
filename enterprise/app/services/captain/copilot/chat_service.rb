@@ -186,11 +186,7 @@ class Captain::Copilot::ChatService < Llm::BaseAiService
   end
 
   def entitlement_error(entitlement)
-    if entitlement[:reason] == :feature_disabled
-      { error: 'Captain integration is not enabled for this account', error_code: 403 }
-    else
-      { error: I18n.t('captain.copilot_limit', reset_date: @account.current_usage_period.period_end.to_date), error_code: 429 }
-    end
+    { error: entitlement[:error], error_code: entitlement[:error_code] }
   end
 
   def reserve_copilot_usage
@@ -200,7 +196,6 @@ class Captain::Copilot::ChatService < Llm::BaseAiService
     @usage_reservation_id = SecureRandom.uuid
     return if @account.reserve_captain_ai_usage!(bucket: :copilot, reservation_id: @usage_reservation_id)
 
-    reset_date = @account.current_usage_period.period_end.to_date
-    { error: I18n.t('captain.copilot_limit', reset_date: reset_date), error_code: 429 }
+    entitlement_error(Llm::Entitlement.new(account: @account, feature: feature_name).call)
   end
 end

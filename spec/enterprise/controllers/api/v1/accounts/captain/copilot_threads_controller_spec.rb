@@ -172,17 +172,47 @@ RSpec.describe 'Api::V1::Accounts::Captain::CopilotThreads', type: :request do
         it 'returns error when usage limit is exceeded' do
           put_account_on_plan(account, monthly_messages: 2, used: 2)
 
+          expect do
+            post "/api/v1/accounts/#{account.id}/captain/copilot_threads",
+                 params: valid_params,
+                 headers: agent.create_new_auth_token,
+                 as: :json
+          end.not_to change(CopilotThread, :count)
+
+          expect(response).to have_http_status(:too_many_requests)
+          expect(json_response[:error]).to eq(I18n.t('captain.copilot_limit', reset_date: account.current_usage_period.period_end.to_date))
+        end
+
+        it 'returns the same entitlement contract for new threads, later messages, and reply suggestions in a shared bag' do
+          put_account_on_plan(account, monthly_messages: 1, used: 1)
+          thread = create(:captain_copilot_thread, account: account, user: agent, assistant: assistant)
+          create(:inbox_member, user: agent, inbox: inbox)
+          expected_error = I18n.t('captain.copilot_limit', reset_date: account.current_usage_period.period_end.to_date)
+
+          expect(account.usage_limits.dig(:captain, :copilot, :total_count)).to be_nil
+
           post "/api/v1/accounts/#{account.id}/captain/copilot_threads",
                params: valid_params,
                headers: agent.create_new_auth_token,
                as: :json
+          first_response = [response.status, response.parsed_body]
 
-          expect(response).to have_http_status(:success)
+          post "/api/v1/accounts/#{account.id}/captain/copilot_threads/#{thread.id}/copilot_messages",
+               params: { message: { content: 'Follow up' } },
+               headers: agent.create_new_auth_token,
+               as: :json
+          second_response = [response.status, response.parsed_body]
 
-          reset_date = account.current_usage_period.period_end.to_date
-          expect(CopilotMessage.last.message['content']).to eq(
-            "Your Copilot limit is reached. Suggestions are paused until #{reset_date}, when your plan resets; manual replies are still available."
-          )
+          post "/api/v1/accounts/#{account.id}/captain/copilot_threads",
+               params: valid_params.merge(request_type: 'reply_suggestion'),
+               headers: agent.create_new_auth_token,
+               as: :json
+          suggestion_response = [response.status, response.parsed_body]
+
+          [first_response, second_response, suggestion_response].each do |result|
+            expect(result.first).to eq(429)
+            expect(result.last['error']).to eq(expected_error)
+          end
         end
 
         it 'creates a new copilot thread with initial message' do
