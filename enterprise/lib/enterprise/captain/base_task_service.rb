@@ -32,10 +32,23 @@ module Enterprise::Captain::BaseTaskService
     return unless counts_toward_usage?
 
     @usage_bucket = Llm::UsageContext.bucket_for(event_name)
+    # Without a billable period and configured limit, reservation succeeds without a receipt.
+    return unless reservation_receipt_required?
+
     reservation_id = SecureRandom.uuid
     return false unless account.reserve_captain_ai_usage!(bucket: @usage_bucket, reservation_id: reservation_id)
 
     reservation_id
+  end
+
+  def reservation_receipt_required?
+    captain_limits = account.usage_limits[:captain]
+    limit_bucket = case usage_bucket
+                   when :captain_responses then :responses
+                   when :copilot then captain_limits.dig(:copilot, :total_count).present? ? :copilot : :responses
+                   else usage_bucket
+                   end
+    account.current_usage_period.present? && captain_limits.dig(limit_bucket, :total_count).present?
   end
 
   def perform_with_usage_context(reservation_id, &)
