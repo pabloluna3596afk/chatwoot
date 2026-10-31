@@ -56,12 +56,14 @@ RSpec.describe Llm::MeteringGuard do
       account = create(:account)
       allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new('production'))
 
-      expect do
-        Llm::UsageContext.with_instrumentation(account: account, feature_name: 'unreviewed_feature') do
-          described_class.check!
-          Llm::UsageContext.record_operation(model: 'gpt-6-luna', provider: 'openai', status: 'error')
-        end
-      end.to change { AiUsageEvent.where(account: account, feature: 'unreviewed_feature', bucket: 'unmapped').count }.by(1)
+      ClimateControl.modify(CI: nil) do
+        expect do
+          Llm::UsageContext.with_instrumentation(account: account, feature_name: 'unreviewed_feature') do
+            described_class.check!
+            Llm::UsageContext.record_operation(model: 'gpt-6-luna', provider: 'openai', status: 'error')
+          end
+        end.to change { AiUsageEvent.where(account: account, feature: 'unreviewed_feature', bucket: 'unmapped').count }.by(1)
+      end
     end
   end
 
