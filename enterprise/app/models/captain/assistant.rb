@@ -16,6 +16,7 @@
 #
 #  index_captain_assistants_on_account_id  (account_id)
 #
+# rubocop:disable Metrics/ClassLength
 class Captain::Assistant < ApplicationRecord
   DESCRIPTION_LENGTH_LIMIT = 500
   CITATION_SOURCES_STATE_KEY = :captain_v2_citation_sources
@@ -230,7 +231,7 @@ class Captain::Assistant < ApplicationRecord
   def available_agent_tools
     tools = self.class.built_in_agent_tools.dup
 
-    tools.concat(custom_tools.enabled.map(&:to_tool_metadata))
+    tools.concat(custom_tools.enabled.map(&:to_tool_metadata)) if custom_tools_enabled?
 
     tools
   end
@@ -239,6 +240,10 @@ class Captain::Assistant < ApplicationRecord
 
   def known_tool_ids
     self.class.built_in_tool_ids + custom_tools.pluck(:slug)
+  end
+
+  def custom_tools_enabled?
+    account.feature_enabled?('custom_tools')
   end
 
   def avatar_or_default_url
@@ -375,7 +380,7 @@ class Captain::Assistant < ApplicationRecord
     [
       self.class.resolve_tool_class('faq_lookup').new(self),
       self.class.resolve_tool_class('handoff').new(self),
-      *custom_tools.enabled.map { |custom_tool| custom_tool.tool(self) }
+      *(custom_tools.enabled.map { |custom_tool| custom_tool.tool(self) } if custom_tools_enabled?)
     ]
   end
 
@@ -401,3 +406,4 @@ class Captain::Assistant < ApplicationRecord
     "#{ENV.fetch('FRONTEND_URL', nil)}/assets/images/dashboard/captain/avatar-light.svg"
   end
 end
+# rubocop:enable Metrics/ClassLength

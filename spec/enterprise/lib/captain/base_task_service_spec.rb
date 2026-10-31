@@ -47,6 +47,7 @@ RSpec.describe Captain::BaseTaskService, type: :model do
       allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(true)
       allow(account).to receive(:feature_enabled?).and_call_original
       allow(account).to receive(:feature_enabled?).with('captain_tasks').and_return(true)
+      allow(account).to receive(:feature_enabled?).with('captain_integration').and_return(true)
       allow(Integrations::Openai::KeyValidator).to receive(:valid?).and_return(true)
     end
 
@@ -284,17 +285,25 @@ RSpec.describe Captain::BaseTaskService, type: :model do
         let(:service) { metered_service_class.new(account: account, result: successful_result) }
 
         it 'charges a successful service result once' do
-          account.plan.update!(captain_internal_calls: 1)
+          configure_feature_limit(feature_name)
 
           expect { service.perform }.to change { account.reload.current_usage_period.public_send(counter_column) }.by(1)
         end
 
         it 'releases a failed service result' do
-          account.plan.update!(captain_internal_calls: 1)
+          configure_feature_limit(feature_name)
           failed_service = metered_service_class.new(account: account, result: { error: 'provider failed' })
 
           expect { failed_service.perform }.not_to(change { account.reload.current_usage_period.public_send(counter_column) })
         end
+      end
+    end
+
+    def configure_feature_limit(feature_name)
+      if Llm::UsageContext.bucket_for(feature_name) == :internal
+        account.plan.update!(captain_internal_calls: 1)
+      else
+        account.plan.update!(monthly_messages: 1)
       end
     end
   end

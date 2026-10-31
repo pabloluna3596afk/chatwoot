@@ -35,7 +35,7 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
   private
 
   def build_copilot_response(copilot_message)
-    if Current.account.copilot_responses_available?
+    if Llm::Entitlement.new(account: Current.account, feature: 'copilot').call[:allowed]
       enqueue_copilot_response(copilot_message)
     else
       copilot_message.copilot_thread.copilot_messages.create!(
@@ -101,10 +101,9 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
     params.permit(:page)
   end
 
-  private
-
   def ensure_captain_integration_enabled
-    return if Current.account.feature_enabled?('captain_integration')
+    decision = Llm::Entitlement.new(account: Current.account, feature: 'copilot').call
+    return unless decision[:reason] == :feature_disabled
 
     render json: { error: 'Captain integration is not enabled for this account' }, status: :forbidden
   end

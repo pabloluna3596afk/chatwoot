@@ -35,6 +35,7 @@ module Integrations::LlmUsageRecording
 
   def with_usage_recording(params)
     Llm::UsageContext.with_instrumentation(params) do
+      Llm::MeteringGuard.check!
       started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       response = yield
       record_usage_operation(params, response, status: 'ok', started_at: started_at)

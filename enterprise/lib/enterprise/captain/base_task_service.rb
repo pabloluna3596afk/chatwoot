@@ -1,12 +1,13 @@
 module Enterprise::Captain::BaseTaskService
   def perform
-    return disabled_response unless captain_tasks_enabled?
+    entitlement = Llm::Entitlement.new(account: account, feature: event_name).call
+    return disabled_response unless entitlement[:allowed] || entitlement[:reason] == :usage_limit_reached
 
     reservation_id = reserve_usage
     return usage_limit_response if reservation_id == false
 
     begin
-      result = perform_with_usage_context { super }
+      result = perform_with_usage_context(reservation_id) { super }
     rescue StandardError
       release_reservation(reservation_id)
       raise
@@ -37,12 +38,13 @@ module Enterprise::Captain::BaseTaskService
     reservation_id
   end
 
-  def perform_with_usage_context(&)
+  def perform_with_usage_context(reservation_id, &)
     Llm::UsageContext.with(
       account: account,
       bucket: usage_bucket,
       feature: event_name,
-      context: { conversation_id: conversation&.id }, &
+      context: { conversation_id: conversation&.id, reservation_required: reservation_id.present?, required_gate: 'captain_tasks' },
+      reservation_id: reservation_id, &
     )
   end
 
