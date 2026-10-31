@@ -68,6 +68,20 @@ RSpec.describe 'AI usage API' do
     )
   end
 
+  it 'returns the lazily opened period for an older account on a plan' do
+    put_account_on_plan(account, monthly_messages: 100)
+    account.account_plan_usages.delete_all
+
+    get path, headers: admin.create_new_auth_token
+
+    usage_period = account.account_plan_usages.open.sole
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body).to include(
+      'period_start' => usage_period.period_start.as_json,
+      'period_end' => usage_period.period_end.as_json
+    )
+  end
+
   it 'returns the bag modes when an account period exists' do
     AccountPlanUsage.create!(account: account, period_start: 10.days.ago, period_end: 20.days.from_now)
 

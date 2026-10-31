@@ -2,9 +2,7 @@ class Api::V1::Accounts::AiUsageController < Api::V1::Accounts::BaseController
   before_action :check_admin_authorization?
 
   def index
-    now = Time.current
-    period = @current_account.account_plan_usages.open
-                             .where('period_start <= ? AND period_end > ?', now, now).first
+    period = @current_account.current_usage_period
     return render json: { period_start: nil, period_end: nil, daily: [], bag_modes: bag_modes } unless period
 
     render json: usage_report(period)
