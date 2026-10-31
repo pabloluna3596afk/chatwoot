@@ -3,8 +3,9 @@ class Captain::Onboarding::WebsiteAnalyzerService < Llm::BaseAiService
 
   MAX_CONTENT_LENGTH = 8000
 
-  def initialize(website_url)
-    super(feature: 'onboarding_content_generation')
+  def initialize(website_url, account:)
+    @account = account
+    super(feature: 'onboarding_content_generation', account: account)
     @website_url = normalize_url(website_url)
     @website_content = nil
     @favicon_url = nil
@@ -75,6 +76,7 @@ class Captain::Onboarding::WebsiteAnalyzerService < Llm::BaseAiService
       span_name: 'llm.captain.website_analyzer',
       model: @model,
       temperature: 0.1,
+      account_id: @account.id,
       feature_name: 'website_analyzer',
       messages: [
         { role: 'system', content: build_analysis_prompt },

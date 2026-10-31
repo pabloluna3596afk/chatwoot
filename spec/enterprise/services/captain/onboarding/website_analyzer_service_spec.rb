@@ -2,7 +2,8 @@ require 'rails_helper'
 
 RSpec.describe Captain::Onboarding::WebsiteAnalyzerService do
   let(:website_url) { 'https://example.com' }
-  let(:service) { described_class.new(website_url) }
+  let(:account) { create(:account) }
+  let(:service) { described_class.new(website_url, account: account) }
   let(:mock_crawler) { instance_double(Captain::Tools::SimplePageCrawlService) }
   let(:mock_chat) { instance_double(RubyLLM::Chat) }
   let(:business_info) do
@@ -17,6 +18,7 @@ RSpec.describe Captain::Onboarding::WebsiteAnalyzerService do
   end
 
   before do
+    put_account_on_plan(account)
     create(:installation_config, name: 'CAPTAIN_OPEN_AI_API_KEY', value: 'test-key')
     allow(Captain::Tools::SimplePageCrawlService).to receive(:new).and_return(mock_crawler)
     allow(RubyLLM).to receive(:chat).and_return(mock_chat)
