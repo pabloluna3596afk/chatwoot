@@ -37,7 +37,10 @@ class Captain::Llm::AssistantActionClassifierService < Llm::BaseAiService
       account: @conversation.account,
       bucket: :internal,
       feature: 'assistant_action_classifier',
-      context: { conversation_id: @conversation.id, reservation_required: true, required_gate: 'captain_tasks' },
+      context: {
+        conversation_id: @conversation.id, reservation_required: internal_reservation_required?,
+        required_gate: 'captain_tasks'
+      },
       reservation_id: @usage_reservation_id
     ) do
       instrument_llm_call(instrumentation_params(user_prompt)) do
@@ -61,6 +64,11 @@ class Captain::Llm::AssistantActionClassifierService < Llm::BaseAiService
   def internal_usage_available?
     @usage_reservation_id = SecureRandom.uuid
     @conversation.account.reserve_captain_ai_usage!(bucket: :internal, reservation_id: @usage_reservation_id)
+  end
+
+  def internal_reservation_required?
+    account = @conversation.account
+    account.current_usage_period.present? && account.usage_limits.dig(:captain, :internal, :total_count).present?
   end
 
   def release_internal_reservation

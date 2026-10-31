@@ -16,6 +16,7 @@ module Integrations::LlmInstrumentation
   end
 
   def instrument_llm_call_with_context(params)
+    Llm::MeteringGuard.check!
     return yield unless ChatwootApp.otel_enabled?
 
     result = nil
@@ -28,6 +29,8 @@ module Integrations::LlmInstrumentation
       result
     end
   rescue StandardError => e
+    raise if e.is_a?(Llm::UnmeteredCall)
+
     ChatwootExceptionTracker.new(e, account: resolve_account(params)).capture_exception
     executed ? result : yield
   end
@@ -39,6 +42,7 @@ module Integrations::LlmInstrumentation
   end
 
   def instrument_agent_session_with_context(params)
+    Llm::MeteringGuard.check!
     return yield unless ChatwootApp.otel_enabled?
 
     result = nil
@@ -57,6 +61,8 @@ module Integrations::LlmInstrumentation
       end
     end
   rescue StandardError => e
+    raise if e.is_a?(Llm::UnmeteredCall)
+
     ChatwootExceptionTracker.new(e, account: resolve_account(params)).capture_exception
     executed ? result : yield
   end

@@ -8,6 +8,7 @@ RSpec.describe Integrations::LlmInstrumentation do
   end
 
   let(:instance) { test_class.new }
+  let(:account) { create(:account) }
   let!(:otel_config) do
     InstallationConfig.find_or_create_by(name: 'OTEL_PROVIDER') do |config|
       config.value = 'langfuse'
@@ -17,7 +18,7 @@ RSpec.describe Integrations::LlmInstrumentation do
   let(:params) do
     {
       span_name: 'llm.test',
-      account_id: 123,
+      account_id: account.id,
       conversation_id: 456,
       feature_name: 'reply_suggestion',
       model: 'gpt-4o-mini',
@@ -142,11 +143,12 @@ RSpec.describe Integrations::LlmInstrumentation do
 
         instance.instrument_llm_call(params) { 'result' }
 
-        expect(mock_span).to have_received(:set_attribute).with('langfuse.user.id', '123')
-        expect(mock_span).to have_received(:set_attribute).with('langfuse.session.id', Digest::SHA256.hexdigest('123:456'))
+        expect(mock_span).to have_received(:set_attribute).with('langfuse.user.id', account.id.to_s)
+        expect(mock_span).to have_received(:set_attribute).with('langfuse.session.id', Digest::SHA256.hexdigest("#{account.id}:456"))
         expect(mock_span).to have_received(:set_attribute).with('langfuse.trace.tags', ['reply_suggestion'])
-        expect(mock_span).to have_received(:set_attribute).with('langfuse.observation.metadata.user_id', '123')
-        expect(mock_span).to have_received(:set_attribute).with('langfuse.observation.metadata.session_id', Digest::SHA256.hexdigest('123:456'))
+        expect(mock_span).to have_received(:set_attribute).with('langfuse.observation.metadata.user_id', account.id.to_s)
+        expect(mock_span).to have_received(:set_attribute)
+          .with('langfuse.observation.metadata.session_id', Digest::SHA256.hexdigest("#{account.id}:456"))
         expect(mock_span).to have_received(:set_attribute).with('langfuse.observation.metadata.feature_name', 'reply_suggestion')
       end
 
@@ -271,8 +273,9 @@ RSpec.describe Integrations::LlmInstrumentation do
             tool_instance.instrument_tool_call('search', { query: 'test' }) { 'tool result' }
           end
 
-          expect(tool_span).to have_received(:set_attribute).with('langfuse.observation.metadata.user_id', '123')
-          expect(tool_span).to have_received(:set_attribute).with('langfuse.observation.metadata.session_id', Digest::SHA256.hexdigest('123:456'))
+          expect(tool_span).to have_received(:set_attribute).with('langfuse.observation.metadata.user_id', account.id.to_s)
+          expect(tool_span).to have_received(:set_attribute)
+            .with('langfuse.observation.metadata.session_id', Digest::SHA256.hexdigest("#{account.id}:456"))
           expect(tool_span).to have_received(:set_attribute).with('langfuse.observation.metadata.feature_name', 'reply_suggestion')
         end
 
@@ -292,9 +295,11 @@ RSpec.describe Integrations::LlmInstrumentation do
             nested_instance.instrument_llm_call(nested_params) { 'translated query' }
           end
 
-          expect(nested_span).to have_received(:set_attribute).with('langfuse.session.id', Digest::SHA256.hexdigest('123:456'))
+          expect(nested_span).to have_received(:set_attribute)
+            .with('langfuse.session.id', Digest::SHA256.hexdigest("#{account.id}:456"))
           expect(nested_span).to have_received(:set_attribute).with('langfuse.trace.tags', ['translate_query'])
-          expect(nested_span).to have_received(:set_attribute).with('langfuse.observation.metadata.session_id', Digest::SHA256.hexdigest('123:456'))
+          expect(nested_span).to have_received(:set_attribute)
+            .with('langfuse.observation.metadata.session_id', Digest::SHA256.hexdigest("#{account.id}:456"))
           expect(nested_span).to have_received(:set_attribute).with('langfuse.observation.metadata.feature_name', 'translate_query')
         end
 
@@ -304,7 +309,7 @@ RSpec.describe Integrations::LlmInstrumentation do
           embedding_instance = test_class.new
           embedding_params = {
             span_name: 'llm.captain.embedding',
-            account_id: 123,
+            account_id: account.id,
             feature_name: 'embedding',
             model: 'text-embedding-3-small',
             input: 'search result'
@@ -320,10 +325,11 @@ RSpec.describe Integrations::LlmInstrumentation do
             embedding_instance.instrument_embedding_call(embedding_params) { [0.1, 0.2, 0.3] }
           end
 
-          expect(embedding_span).to have_received(:set_attribute).with('langfuse.session.id', Digest::SHA256.hexdigest('123:456'))
+          expect(embedding_span).to have_received(:set_attribute)
+            .with('langfuse.session.id', Digest::SHA256.hexdigest("#{account.id}:456"))
           expect(embedding_span).to have_received(:set_attribute).with('langfuse.trace.tags', ['embedding'])
           expect(embedding_span).to have_received(:set_attribute)
-            .with('langfuse.observation.metadata.session_id', Digest::SHA256.hexdigest('123:456'))
+            .with('langfuse.observation.metadata.session_id', Digest::SHA256.hexdigest("#{account.id}:456"))
           expect(embedding_span).to have_received(:set_attribute).with('langfuse.observation.metadata.feature_name', 'embedding')
         end
 
