@@ -44,6 +44,7 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
   let!(:inbox_member) { create(:inbox_member, user: user, inbox: inbox) }
 
   before do
+    account.enable_features!('captain_integration')
     put_account_on_plan(account)
     incoming_message
     allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(true)
