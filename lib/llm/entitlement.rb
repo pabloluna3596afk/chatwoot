@@ -1,4 +1,6 @@
 class Llm::Entitlement
+  # These utilities use the response allowance but are exposed by the Captain Tasks feature.
+  TASK_FEATURE_GATES = %w[article_translation language_detection message_translation].freeze
   FEATURE_GATES = {
     internal: 'captain_tasks',
     copilot: 'captain_integration',
@@ -9,11 +11,13 @@ class Llm::Entitlement
     @account = account
     @feature = feature.to_s
     @bucket = Llm::UsageContext.bucket_for(@feature)
-    @required_gate = FEATURE_GATES.fetch(@bucket)
+    @required_gate = TASK_FEATURE_GATES.include?(@feature) ? 'captain_tasks' : FEATURE_GATES.fetch(@bucket)
   end
 
   def call
-    remaining = @account.usage_limits.dig(:captain, usage_limit_key, :current_available)
+    captain_limits = @account.usage_limits[:captain]
+    remaining = captain_limits.dig(usage_limit_key, :current_available)
+    remaining = captain_limits.dig(:responses, :current_available) if @bucket == :copilot && captain_limits.dig(:copilot, :total_count).nil?
     reason = if !@account.feature_enabled?(@required_gate)
                :feature_disabled
              elsif remaining.to_i.zero?
@@ -29,6 +33,8 @@ class Llm::Entitlement
   private
 
   def usage_limit_key
-    @bucket == :captain_responses ? :responses : @bucket
+    return :responses if @bucket == :captain_responses
+
+    @bucket
   end
 end

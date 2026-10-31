@@ -3384,3 +3384,10 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Deploy:** requiere aplicar `20261027130000_create_payphone_payments.rb` antes de habilitar Payphone; producción todavía no tiene la tabla.
 - **Anual:** no implementado por decisión pendiente. Estimación para agregarlo: 4–6 horas, incluyendo `Payphone::PriceCalculator` con precio mensual × 10, selección/contrato de intervalo, períodos de 365 días en confirmación y ajustes de recordatorios/avisos y specs.
 - **Informe de cierre:** `tmp/PR-PAYPHONE-PR2.md`.
+
+### B-NEW-247 - Preservar gates de Captain Tasks y cuota compartida de Copilot (2026-10-31)
+
+- **Archivos:** `lib/llm/entitlement.rb`, specs de entitlement y specs de herramientas custom de Captain.
+- **Causa:** `Llm::Entitlement` aplicaba `captain_integration` a traduccion/deteccion aunque esos servicios se exponen bajo `captain_tasks`; sin una cuota Copilot propia, interpretaba el allowance ilimitado derivado del bucket `copilot` en vez de leer la cuota compartida de respuestas. Los specs de escenarios y AgentRunner tampoco habilitaban `custom_tools`, cuyo gate es intencional.
+- **Arreglo:** evaluar traduccion/deteccion con `captain_tasks` conservando su bucket de cuota, tomar el allowance de respuestas cuando Copilot comparte ese pool y habilitar `custom_tools` explicitamente en los specs que esperan ejecutarlo.
+- **Verificacion:** 133/133 en `wt-develop-check`; 138/138 focales y 1749/1749 consumidores en la rama; RuboCop CI 41 archivos inspeccionados, 0 infracciones. Informe: `tmp/PR-IA-CERT-REGRESIONES.md`.
