@@ -1,5 +1,5 @@
 class AiUsageEvent < ApplicationRecord
-  BUCKETS = %w[captain_responses copilot internal].freeze
+  BUCKETS = %w[captain_responses copilot internal unmapped].freeze
 
   belongs_to :account
 

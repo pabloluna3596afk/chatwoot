@@ -2,7 +2,8 @@ class Captain::Copilot::Actions::Assignment < Captain::Copilot::Actions::Base
   def self.action_name = 'assignment'
 
   def self.schema
-    { type: 'object', additionalProperties: false,
+    { type: 'object', description: 'Assign an agent, a team, or both. Use the corresponding list tool to get integer ids.',
+      examples: [{ assignee_id: 7 }, { team_id: 3 }], additionalProperties: false,
       properties: { assignee_id: { type: 'integer' }, team_id: { type: 'integer' } } }
   end
 
@@ -15,7 +16,7 @@ class Captain::Copilot::Actions::Assignment < Captain::Copilot::Actions::Base
   end
 
   def validate_payload!
-    validate_payload_keys!(%w[assignee_id team_id])
+    validate_payload_keys!(%w[assignee_id team_id], 'Use list agents/teams tools to get the integer ids.')
     validate_assignment_ids!
     validate_assignment_targets!
   end

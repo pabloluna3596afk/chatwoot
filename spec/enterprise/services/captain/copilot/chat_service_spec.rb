@@ -3,7 +3,6 @@ require 'rails_helper'
 RSpec.describe Captain::Copilot::ChatService do
   let(:account) { create(:account, custom_attributes: { plan_name: 'startups' }) }
 
-  before { put_account_on_plan(account) }
   let(:user) { create(:user, account: account) }
   let(:inbox) { create(:inbox, account: account) }
   let(:assistant) { create(:captain_assistant, account: account) }
@@ -28,7 +27,10 @@ RSpec.describe Captain::Copilot::ChatService do
   end
 
   before do
+    put_account_on_plan(account)
     allow(ChatwootApp).to receive(:chatwoot_cloud?).and_return(true)
+    allow(account).to receive(:feature_enabled?).and_call_original
+    allow(account).to receive(:feature_enabled?).with('captain_integration').and_return(true)
     InstallationConfig.find_or_create_by(name: 'CAPTAIN_OPEN_AI_API_KEY') do |c|
       c.value = 'test-key'
     end

@@ -1,3 +1,10 @@
+### B-NEW-248 — Cerrar la medición antes de llamar al proveedor
+
+- **Problema:** faltaba un fallo en CI si una llamada instrumentada llegaba sin cuenta, feature/bolsa mapeada o recibo requerido.
+- **Arreglo:** `Llm::MeteringGuard` se ejecuta en bordes comunes; CI/test falla con `Llm::UnmeteredCall`, producción registra el error y conserva bucket `unmapped`. Se guarda traza test/CI y se corrige el gate de custom tools V2; el parser JSON duplicado de Captain adopta el arreglo de PR #301.
+- **Verificación:** RSpec focalizado 79/79; RuboCop CI 18 archivos/0 ofensas; preview resumen 200, proveedor caído 502 sin incremento y retry 200 con un incremento. La matriz externa enumera lo pendiente.
+- **Pendiente:** inventario directo completo, entitlement central, matriz completa de fallos, lecturas directas de eventos/reservas y compatibilidad de filas históricas.
+- **Archivos:** ver `tmp/PR-IA-CERT.md` y `docs-crm/codex/ia-certificacion.md`.
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
 
 ### B-NEW-247 — Cuotas IA, contratos de tareas y ledger
@@ -3377,3 +3384,10 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Deploy:** requiere aplicar `20261027130000_create_payphone_payments.rb` antes de habilitar Payphone; producción todavía no tiene la tabla.
 - **Anual:** no implementado por decisión pendiente. Estimación para agregarlo: 4–6 horas, incluyendo `Payphone::PriceCalculator` con precio mensual × 10, selección/contrato de intervalo, períodos de 365 días en confirmación y ajustes de recordatorios/avisos y specs.
 - **Informe de cierre:** `tmp/PR-PAYPHONE-PR2.md`.
+
+### B-NEW-249 - Preservar gates de Captain Tasks y cuota compartida de Copilot (2026-10-31)
+
+- **Archivos:** `lib/llm/entitlement.rb`, specs de entitlement y specs de herramientas custom de Captain.
+- **Causa:** `Llm::Entitlement` aplicaba `captain_integration` a traduccion/deteccion aunque esos servicios se exponen bajo `captain_tasks`; sin una cuota Copilot propia, interpretaba el allowance ilimitado derivado del bucket `copilot` en vez de leer la cuota compartida de respuestas. Los specs de escenarios y AgentRunner tampoco habilitaban `custom_tools`, cuyo gate es intencional.
+- **Arreglo:** evaluar traduccion/deteccion con `captain_tasks` conservando su bucket de cuota, tomar el allowance de respuestas cuando Copilot comparte ese pool y habilitar `custom_tools` explicitamente en los specs que esperan ejecutarlo.
+- **Verificacion:** 133/133 en `wt-develop-check`; 138/138 focales y 1749/1749 consumidores en la rama; RuboCop CI 41 archivos inspeccionados, 0 infracciones. Informe: `tmp/PR-IA-CERT-REGRESIONES.md`.

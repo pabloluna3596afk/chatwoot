@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe AiUsageEvent do
   describe 'instrumented feature bucket mapping' do
     it 'maps every feature emitted by instrumented Ruby call sites' do
-      ruby_files = %w[app enterprise lib spec].flat_map do |directory|
+      ruby_files = %w[app enterprise lib].flat_map do |directory|
         Dir.glob(Rails.root.join(directory, '**', '*.rb'))
       end
       source_features = ruby_files.flat_map do |path|

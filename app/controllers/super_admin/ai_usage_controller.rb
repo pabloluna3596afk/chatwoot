@@ -149,7 +149,8 @@ class SuperAdmin::AiUsageController < SuperAdmin::ApplicationController
     case bucket
     when 'copilot' then copilot_usage_and_limit(usage)
     when 'internal' then [usage.internal_calls_consumed, usage.limit_internal_calls]
-    else [usage.responses_consumed, usage.limit_responses]
+    when 'captain_responses' then [usage.responses_consumed, usage.limit_responses]
+    else [nil, nil]
     end
   end
 

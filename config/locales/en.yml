@@ -1094,6 +1094,7 @@ en:
       model_alert: '%{model} used for account %{account} at %{time}'
       unpriced_alert: 'No active price is configured for %{model}; its recorded cost is zero.'
       plan_alert: 'AI cost for %{account} exceeded %{percent}% of the monthly plan price'
+      unmapped_alert: '%{count} AI calls have an unmapped usage bucket.'
     plans:
       comparison: 'Plan comparison'
       groups:

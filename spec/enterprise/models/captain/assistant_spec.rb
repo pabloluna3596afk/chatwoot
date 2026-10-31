@@ -408,6 +408,11 @@ RSpec.describe Captain::Assistant, type: :model do
   end
 
   describe '#agent_tools' do
+    before do
+      allow(account).to receive(:feature_enabled?).and_call_original
+      allow(account).to receive(:feature_enabled?).with('custom_tools').and_return(true)
+    end
+
     it 'includes enabled custom tools from the assistant' do
       custom_tool = create(:captain_custom_tool, account: account, assistant: assistant)
 
@@ -433,6 +438,13 @@ RSpec.describe Captain::Assistant, type: :model do
       expect(tools.map(&:name)).not_to include(custom_tool.slug)
     end
 
+    it 'does not expose custom tools when the account feature is disabled' do
+      custom_tool = create(:captain_custom_tool, account: account, assistant: assistant)
+      allow(account).to receive(:feature_enabled?).with('custom_tools').and_return(false)
+
+      expect(assistant.send(:agent_tools).map(&:name)).not_to include(custom_tool.slug)
+    end
+
     it 'keeps the built-in FAQ lookup and handoff tools' do
       tools = assistant.send(:agent_tools)
 
@@ -444,6 +456,11 @@ RSpec.describe Captain::Assistant, type: :model do
   end
 
   describe '#available_tool_ids' do
+    before do
+      allow(account).to receive(:feature_enabled?).and_call_original
+      allow(account).to receive(:feature_enabled?).with('custom_tools').and_return(true)
+    end
+
     it 'includes only custom tools assigned to this assistant' do
       custom_tool = create(:captain_custom_tool, account: account, assistant: assistant, slug: 'custom_own_tool')
       other_assistant_tool = create(:captain_custom_tool, account: account, slug: 'custom_other_tool')
