@@ -23,6 +23,7 @@ RSpec.describe Llm::Entitlement do
   end
 
   it 'denies an exhausted bucket' do
+    put_account_on_plan(account)
     allow(account).to receive(:feature_enabled?).with('captain_integration').and_return(true)
     allow(account).to receive(:usage_limits).and_return(captain: { copilot: { current_available: 0 } })
 
@@ -32,6 +33,7 @@ RSpec.describe Llm::Entitlement do
   end
 
   it 'uses the shared response allowance when no Copilot-specific limit is configured' do
+    put_account_on_plan(account)
     allow(account).to receive(:feature_enabled?).with('captain_integration').and_return(true)
     allow(account).to receive(:usage_limits).and_return(
       captain: {

@@ -9,7 +9,8 @@ RSpec.describe 'AI usage API' do
   let(:path) { "/api/v1/accounts/#{account.id}/ai_usage" }
 
   it 'returns per day and bucket counts to admins without cost data' do
-    AccountPlanUsage.create!(account: account, period_start: 10.days.ago, period_end: 20.days.from_now)
+    put_account_on_plan(account)
+    account.current_usage_period.update!(period_start: 10.days.ago, period_end: 20.days.from_now)
     usage_group_id = SecureRandom.uuid
     %w[captain_responses copilot].each do |bucket|
       AiUsageEvent.create!(account: account, bucket: bucket, feature: 'reply', model: 'private-model',
@@ -33,7 +34,8 @@ RSpec.describe 'AI usage API' do
   end
 
   it 'does not count failed attempts as used messages' do
-    AccountPlanUsage.create!(account: account, period_start: 10.days.ago, period_end: 20.days.from_now)
+    put_account_on_plan(account)
+    account.current_usage_period.update!(period_start: 10.days.ago, period_end: 20.days.from_now)
     AiUsageEvent.create!(account: account, bucket: 'internal', feature: 'summarize', model: 'private-model',
                          provider: 'internal', usage_group_id: SecureRandom.uuid, created_at: 1.day.ago, status: 'ok')
     AiUsageEvent.create!(account: account, bucket: 'internal', feature: 'summarize', model: 'private-model',
@@ -70,7 +72,7 @@ RSpec.describe 'AI usage API' do
 
   it 'returns the lazily opened period for an older account on a plan' do
     put_account_on_plan(account, monthly_messages: 100)
-    account.account_plan_usages.delete_all
+    account.account_plan_usages.destroy_all
 
     get path, headers: admin.create_new_auth_token
 
