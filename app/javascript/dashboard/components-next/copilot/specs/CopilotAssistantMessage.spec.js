@@ -34,12 +34,17 @@ describe('CopilotAssistantMessage', () => {
       },
       global: {
         mocks: { $t: key => key },
-        directives: { 'dompurify-html': {} },
+        directives: {
+          'dompurify-html': (element, binding) => {
+            element.innerHTML = binding.value;
+          },
+        },
         stubs: {
           Button: {
             template:
-              '<button v-bind="$attrs" @click="$emit(\'click\')"><span :data-icon="icon" /></button>',
-            props: ['icon'],
+              '<button v-bind="$attrs" @click="$emit(\'click\')">{{ label }}<span :data-icon="icon" /></button>',
+            props: ['icon', 'label'],
+            emits: ['click'],
           },
         },
       },
@@ -159,5 +164,18 @@ describe('CopilotAssistantMessage', () => {
     expect(earlier.findAll('button')).toHaveLength(1);
     expect(notSuggested.findAll('button')).toHaveLength(1);
     expect(empty.findAll('button')).toHaveLength(0);
+  });
+
+  it('renders failed responses with a retry action', async () => {
+    const wrapper = mountAssistant({
+      isLastMessage: true,
+      message: { content: 'Could not respond', error: true },
+    });
+
+    expect(wrapper.vm.messageContent).toBe('Could not respond');
+    expect(wrapper.text()).toContain('CAPTAIN.COPILOT.RETRY');
+    expect(wrapper.classes()).toContain('text-n-ruby-11');
+    await wrapper.findAll('button').at(0).trigger('click');
+    expect(wrapper.emitted('retry')).toHaveLength(1);
   });
 });
