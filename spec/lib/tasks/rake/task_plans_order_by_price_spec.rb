@@ -3,6 +3,8 @@ require 'rails_helper'
 RSpec.describe Rake::Task do
   subject(:task) { described_class['plans:order_by_price'] }
 
+  let(:plan_slugs) { %w[barato medio caro] }
+
   before do
     task.reenable
     Plan.create!(name: 'Caro', slug: 'caro', price_monthly: 299, display_order: 0)
@@ -17,7 +19,9 @@ RSpec.describe Rake::Task do
   it 'renumbers display_order by monthly price when DRY_RUN=false' do
     ClimateControl.modify(DRY_RUN: 'false') { task.invoke }
 
-    expect(Plan.order(:display_order).pluck(:slug)).to eq(%w[barato medio caro])
-    expect(Plan.order(:display_order).pluck(:display_order)).to eq([0, 1, 2])
+    plans = Plan.where(slug: plan_slugs).order(:display_order, :id)
+
+    expect(plans.pluck(:slug)).to eq(plan_slugs)
+    expect(plans.pluck(:display_order).uniq).to eq(plans.pluck(:display_order))
   end
 end

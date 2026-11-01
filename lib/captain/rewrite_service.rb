@@ -54,7 +54,7 @@ class Captain::RewriteService < Captain::BaseTaskService
   end
 
   def event_name
-    operation
+    ALLOWED_OPERATIONS.include?(operation.to_sym) ? operation.to_s : 'improve'
   end
 
   def use_account_openai_hook?

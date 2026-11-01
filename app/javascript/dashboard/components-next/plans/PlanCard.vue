@@ -143,12 +143,7 @@ const choose = () => {
     >
       {{
         selectable
-          ? t(
-              current
-                ? 'PLAN_CATALOG.CONTINUE'
-                : 'PLAN_CATALOG.STATES.available',
-              { plan: plan.name }
-            )
+          ? t('PAYPHONE.CHOOSE')
           : t(
               current
                 ? 'PLAN_CATALOG.CURRENT'

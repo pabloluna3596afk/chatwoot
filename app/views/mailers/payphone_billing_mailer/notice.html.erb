@@ -1,0 +1,2 @@
+<p><%= t("payphone.billing_notice.#{@event}.body", plan: @payment.plan.name, date: l(@payment.period_end.in_time_zone(Payphone::BillingLifecycle::ZONE).to_date), days: @days_remaining) %></p>
+<p><%= link_to t('payphone.billing_notice.manage_billing'), @billing_url %></p>

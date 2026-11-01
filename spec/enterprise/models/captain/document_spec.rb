@@ -23,6 +23,14 @@ RSpec.describe Captain::Document, type: :model do
     end
   end
 
+  it 'does not allow documents on an internal Copilot assistant' do
+    internal_assistant = Captain::Copilot::AssistantResolver.new(account: account).perform
+    document = build(:captain_document, assistant: internal_assistant, account: account)
+
+    expect(document).not_to be_valid
+    expect(document.errors[:assistant]).to be_present
+  end
+
   describe '#customer_visible_source_url' do
     let(:document) do
       build(:captain_document, assistant: assistant, account: account, external_link: 'https://example.com/runbooks')

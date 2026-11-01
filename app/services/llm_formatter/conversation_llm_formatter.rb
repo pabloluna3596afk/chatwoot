@@ -28,44 +28,57 @@ class LlmFormatter::ConversationLlmFormatter < LlmFormatter::DefaultLlmFormatter
     return "No messages in this conversation\n" if @record.messages.empty?
 
     messages = @record.messages.where.not(message_type: [:activity, :template])
+    messages = messages.where(private: false) unless config[:include_private_messages]
+    message_limit = config[:message_limit]
+    omitted_count = messages.count - message_limit if message_limit
+    if message_limit
+      recent_message_ids = messages.order(created_at: :desc, id: :desc).limit(message_limit).select(:id)
+      messages = messages.where(id: recent_message_ids)
+    end
 
     if config[:token_limit]
-      build_limited_messages(messages, config)
+      build_limited_messages(messages, config, omitted_count)
     else
-      build_all_messages(messages, config)
+      build_all_messages(messages, config, omitted_count)
     end
   end
 
-  def build_all_messages(messages, config)
+  def build_all_messages(messages, config, omitted_count)
     message_text = ''
-    messages.order(created_at: :asc).each do |message|
+    messages.order(created_at: :asc, id: :asc).each do |message|
       # Skip private messages unless explicitly included in config
       next if message.private? && !config[:include_private_messages]
 
-      message_text << format_message(message)
+      message_text << format_message(message, config)
     end
-    message_text
+    truncation_notice(omitted_count) + message_text
   end
 
-  def build_limited_messages(messages, config)
+  def build_limited_messages(messages, config, omitted_count)
     selected = []
     character_count = 0
+    total_count = messages.count
 
-    messages.reorder(created_at: :desc).each do |message|
+    messages.reorder(created_at: :desc, id: :desc).each do |message|
       # Skip private messages unless explicitly included in config
       next if message.private? && !config[:include_private_messages]
 
-      formatted = format_message(message)
+      formatted = format_message(message, config)
       break if character_count + formatted.length > config[:token_limit]
 
       selected.prepend(formatted)
       character_count += formatted.length
     end
 
-    selected.join
+    omitted_count = [omitted_count.to_i, total_count - selected.length].max
+    truncation_notice(omitted_count) + selected.join
   end
 
-  def format_message(message)
+  def truncation_notice(omitted_count)
+    omitted_count&.positive? ? "+#{omitted_count} earlier messages not included\n" : ''
+  end
+
+  def format_message(message, config = {})
     sender = case message.sender_type
              when 'User'
                'Support Agent'
@@ -75,6 +88,7 @@ class LlmFormatter::ConversationLlmFormatter < LlmFormatter::DefaultLlmFormatter
                'Bot'
              end
     sender = "[Private Note] #{sender}" if message.private?
+    sender = "#{sender} (#{message.created_at.iso8601})" if config[:include_message_metadata]
     "#{sender}: #{message.content_for_llm}\n"
   end
 

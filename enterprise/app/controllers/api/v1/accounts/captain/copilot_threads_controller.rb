@@ -1,9 +1,11 @@
 class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::BaseController
   include Captain::Copilot::ConversationAccess
 
-  before_action :ensure_captain_integration_enabled
+  before_action :ensure_captain_integration_enabled, only: :index
+  before_action :ensure_assistant_id, only: :create
   before_action :ensure_message, only: :create
   before_action :ensure_accessible_conversation, only: :create
+  before_action :ensure_entitlement, only: :create
 
   def index
     @copilot_threads = Current.account.copilot_threads
@@ -19,7 +21,7 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
       @copilot_thread = Current.account.copilot_threads.create!(
         title: copilot_thread_params[:message].truncate(ApplicationRecord::MAX_STRING_COLUMN_LENGTH, omission: ''),
         user: Current.user,
-        assistant: assistant
+        assistant: resolved_assistant
       )
 
       copilot_message = @copilot_thread.copilot_messages.create!(
@@ -27,22 +29,11 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
         message: { content: copilot_thread_params[:message] }
       )
 
-      build_copilot_response(copilot_message)
+      enqueue_copilot_response(copilot_message)
     end
   end
 
   private
-
-  def build_copilot_response(copilot_message)
-    if Current.account.copilot_responses_available?
-      enqueue_copilot_response(copilot_message)
-    else
-      copilot_message.copilot_thread.copilot_messages.create!(
-        message_type: :assistant,
-        message: { content: I18n.t('captain.copilot_limit', reset_date: Current.account.current_usage_period.period_end.to_date) }
-      )
-    end
-  end
 
   def enqueue_copilot_response(copilot_message)
     return enqueue_reply_suggestion if reply_suggestion?
@@ -63,6 +54,13 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
     return render_could_not_create_error(I18n.t('captain.copilot_message_required')) if copilot_thread_params[:message].blank?
   end
 
+  def ensure_assistant_id
+    return unless params.key?(:assistant_id)
+    return if params[:assistant_id].is_a?(Integer) || params[:assistant_id].is_a?(String)
+
+    render_could_not_create_error(I18n.t('captain.copilot_assistant_invalid'))
+  end
+
   def ensure_accessible_conversation
     return unless reply_suggestion?
 
@@ -78,8 +76,11 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
     copilot_thread_params[:request_type] == 'reply_suggestion'
   end
 
-  def assistant
-    Current.account.captain_assistants.find(copilot_thread_params[:assistant_id])
+  def resolved_assistant
+    Captain::Copilot::AssistantResolver.new(
+      account: Current.account,
+      assistant_id: copilot_thread_params[:assistant_id]
+    ).perform
   end
 
   def copilot_thread_params
@@ -90,11 +91,17 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
     params.permit(:page)
   end
 
-  private
-
   def ensure_captain_integration_enabled
-    return if Current.account.feature_enabled?('captain_integration')
+    decision = Llm::Entitlement.new(account: Current.account, feature: 'copilot').call
+    return unless decision[:reason] == :feature_disabled
 
-    render json: { error: 'Captain integration is not enabled for this account' }, status: :forbidden
+    render json: { error: decision[:error] }, status: decision[:error_code]
+  end
+
+  def ensure_entitlement
+    decision = Llm::Entitlement.new(account: Current.account, feature: 'copilot').call
+    return if decision[:allowed]
+
+    render json: { error: decision[:error] }, status: decision[:error_code]
   end
 end

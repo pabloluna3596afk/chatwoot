@@ -667,10 +667,10 @@
   },
   "CAPTAIN_SETTINGS": {
     "TITLE": "Captain Settings",
-    "DESCRIPTION": "Configure your AI models and features for Captain. Captain follows a credit based billing, you will be charged credits for every action Captain takes based on the model selected.",
+    "DESCRIPTION": "Configure Captain AI models and features. Usage counts against the AI bags configured for your account plan.",
     "LOADING": "Loading Captain configuration...",
-    "LINK_TEXT": "Learn more about Captain Credits",
-    "NOT_ENABLED": "Captain is not enabled for your account. Please upgrade your plan to access Captain features.",
+    "LINK_TEXT": "Learn about Captain AI usage",
+    "NOT_ENABLED": "Captain is not enabled for your account. Review its plan and AI bags in account billing settings.",
     "MODEL_CONFIG": {
       "TITLE": "Model Configuration",
       "DESCRIPTION": "Select AI models for different features.",
@@ -715,9 +715,70 @@
       "ERROR": "Failed to update Captain settings. Please try again."
     }
   },
+  "PAYPHONE": {
+    "HISTORY_TABLE": { "DATE": "Date", "PLAN": "Plan", "STATUS": "Status", "AMOUNT": "Amount" },
+    "CHOOSE": "Choose",
+    "CONFIRM_TITLE": "Confirm your plan",
+    "DURATION": "Your payment covers 30 days from approval.",
+    "CLOSE": "Close",
+    "NEEDS_INVOICE": "I need an invoice",
+    "INVOICE": { "billing_tax_id_type": "ID type", "billing_tax_id": "Tax ID", "billing_name": "Name or company", "billing_email": "Billing email", "billing_phone": "Phone", "billing_address": "Address" },
+    "SUBTOTAL": "Subtotal",
+    "TAX": "Tax",
+    "COMMISSION": "Card fee",
+    "TOTAL": "Total",
+    "CONTINUE": "Continue to payment",
+    "PREVIEW_BOX": "Preview payment box. No real charge will be made.",
+    "SIMULATE_APPROVED": "Simulate approval",
+    "SIMULATE_REJECTED": "Simulate rejection",
+    "SIMULATE_PENDING": "Simulate verification delay",
+    "PENDING": "Payment started. Complete the Payphone form; we will verify it before activating your plan.",
+    "VERIFYING": "We are verifying your payment. Your plan will update after confirmation.",
+    "APPROVED": "Payment approved. Your plan is active until",
+    "REJECTED": "Payment was not approved. You can try again.",
+    "CONFLICT": "Your active paid plan cannot be changed until it expires.",
+    "RETRY": "Choose a plan to try again",
+    "HISTORY_LINK": "View payment history",
+    "HISTORY": "Payment history",
+    "RENEW": "Renew plan",
+    "RENEWAL": {
+      "due_soon": "Renewal is coming up. Your plan ends on {date}.",
+      "grace": "Your plan ended on {date}. Access until {grace_end}.",
+      "expired": "Free plan."
+    },
+    "ERROR": "We could not prepare the payment. Try again.",
+    "STATES": { "pending": "Verifying", "approved": "Approved", "cancelled": "Cancelled", "failed": "Failed", "expired": "Expired" }
+  },
   "BILLING_SETTINGS": {
     "TITLE": "Billing",
     "DESCRIPTION": "Manage your subscription here, upgrade your plan and get more for your team.",
+    "TABS": { "LABEL": "Billing sections", "USO": "Usage", "FACTURACION": "Billing" },
+    "USAGE": {
+      "CURRENT_PLAN": "Current plan",
+      "STATUS": { "ACTIVE": "Active", "GRACE": "In grace period", "FREE": "Free" },
+      "BAGS": { "ASSISTANT": "Assistant AI responses", "COPILOT": "Copilot", "INTERNAL": "Internal AI actions" },
+      "FREE_PLAN": "Free plan",
+      "EXPIRED_ON": "Expired on {date}",
+      "EXPIRED_BANNER": "Your plan expired on {date}. Choose a plan to restore paid access.",
+      "GO_TO_BILLING": "Go to billing",
+      "USED_INCLUDED": "{used} used of {included}",
+      "PERCENT_USED": "{percent}% used",
+      "RESET_DATE": "Resets on {date}",
+      "NO_INCLUDED_BAGS": "Your plan does not include AI usage allowances.",
+      "BAG_MODES": {
+        "SHARED": "Shares the assistant response pool",
+        "UNLIMITED": "Unlimited",
+        "NOT_INCLUDED": "Not included in your plan"
+      },
+      "DAILY_TITLE": "Daily usage this period",
+      "PLAN_RESOURCES": "Plan resources",
+      "CHART_LABEL": "Daily AI messages by usage type",
+      "DATE": "Date",
+      "TOP_SOURCES": "What uses the most",
+      "EMPTY": "No AI usage recorded in this period yet.",
+      "ERROR": "Usage could not be loaded. Try again later.",
+      "SOURCES": { "ASSISTANT": "Customer assistant", "COPILOT": "Copilot", "INTERNAL": "Internal processes" }
+    },
     "CURRENT_PLAN": {
       "TITLE": "Current Plan",
       "PLAN_NOTE": "You are currently subscribed to the **{plan}** plan with **{quantity}** licenses",
@@ -752,11 +813,11 @@
       "RESPONSES_COPILOT": "Copilot",
       "INTERNAL_AI": "Internal AI actions",
       "RESETS_ON": "Resets on {date}",
-      "LIMIT_REACHED": "An AI usage limit has been reached. Review your plan to increase the allowance. Human replies remain available.",
+      "LIMIT_REACHED": "An AI bag limit has been reached. Review your plan and bag usage in account billing settings. Human replies remain available.",
       "STORAGE": "Storage",
       "AGENTS": "Agents",
       "INBOXES": "Inboxes",
-      "UPGRADE": "Captain is not available on the free plan, upgrade now to get access to assistants, copilot and more.",
+      "UPGRADE": "Captain features depend on your plan and AI bags. Review account billing settings.",
       "REFRESH_CREDITS": "Refresh"
     },
     "CHAT_WITH_US": {

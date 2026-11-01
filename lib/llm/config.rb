@@ -101,6 +101,8 @@ module Llm::Config
   end
 end
 
+require_relative 'entitlement'
+
 module Llm::Config::ScopedChatContext
   def initialize(context: nil, **)
     super(context: context || ActiveSupport::IsolatedExecutionState[:llm_chat_context], **)
@@ -112,6 +114,7 @@ RubyLLM::Chat.prepend(Llm::Config::ScopedChatContext)
 # Record one event per provider request while the caller's account usage context is active.
 module Llm::Config::UsageRecordingChat
   def generate_once(stream_tracker: nil, usage_start: nil, &)
+    Llm::MeteringGuard.check!
     started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     response = super
     Llm::UsageContext.record(

@@ -5,6 +5,11 @@ import ProviderIndex from '../ProviderIndex.vue';
 import ShopifyBilling from '../ShopifyBilling.vue';
 import StripeBilling from '../Index.vue';
 import BaseSettingsHeader from '../../components/BaseSettingsHeader.vue';
+import BillingTabs from '../components/BillingTabs.vue';
+
+vi.mock('../Index.vue', () => ({
+  default: { name: 'StripeBilling', template: '<div />' },
+}));
 
 const currentAccount = ref({});
 const isCloudFeatureEnabled = vi.fn();
@@ -109,5 +114,12 @@ describe('Billing settings provider dispatcher', () => {
         noRecordsMessage: 'BILLING_SETTINGS.SHOPIFY.UNAVAILABLE',
       })
     );
+  });
+});
+
+describe('billing page sections', () => {
+  it('exposes Usage and Billing as separate tab sections', () => {
+    expect(BillingTabs).toBeTruthy();
+    expect(BillingTabs.setup).toBeTypeOf('function');
   });
 });

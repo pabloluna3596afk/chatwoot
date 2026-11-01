@@ -13,20 +13,22 @@ RSpec.describe 'Super Admin Payphone configuration', type: :request do
     end
   end
 
-  it 'shows an empty masked field when a token is already stored' do
+  it 'shows empty masked fields when tokens are already stored' do
     InstallationConfig.create!(name: 'PAYPHONE_TOKEN', value: 'saved-token', locked: false)
+    InstallationConfig.create!(name: 'PAYPHONE_BOX_TOKEN', value: 'saved-box-token', locked: false)
 
     get '/super_admin/app_config?config=payphone'
 
     expect(response).to have_http_status(:success)
     expect(response.body).to include('Token saved; leave blank to keep it')
     expect(response.body).not_to include('saved-token')
+    expect(response.body).not_to include('saved-box-token')
   end
 
   it 'tests the submitted configuration locally without saving or calling Payphone' do
     post '/super_admin/app_config/test?config=payphone', params: {
       app_config: {
-        PAYPHONE_STORE_ID: 'store-1', PAYPHONE_TOKEN: 'test-token', PAYPHONE_ENVIRONMENT: 'test',
+        PAYPHONE_STORE_ID: 'store-1', PAYPHONE_TOKEN: 'test-token', PAYPHONE_BOX_TOKEN: 'public-token', PAYPHONE_ENVIRONMENT: 'test',
         PAYPHONE_RESPONSE_URL: 'https://inbox.example.test/payphone/response', PAYPHONE_TAX_RATE: '15',
         PAYPHONE_CARD_COMMISSION_RATE: '5.75', PAYPHONE_GRACE_DAYS: '3'
       }
@@ -40,8 +42,9 @@ RSpec.describe 'Super Admin Payphone configuration', type: :request do
   it 'uses the saved token when the test form leaves the secret blank' do
     ConfigLoader.new.process
     InstallationConfig.find_by!(name: 'PAYPHONE_TOKEN').update!(value: 'saved-token')
+    InstallationConfig.find_by!(name: 'PAYPHONE_BOX_TOKEN').update!(value: 'saved-box-token')
     {
-      'PAYPHONE_STORE_ID' => 'store-1', 'PAYPHONE_ENVIRONMENT' => 'production',
+      'PAYPHONE_STORE_ID' => 'store-1', 'PAYPHONE_BOX_TOKEN' => 'public-saved-token', 'PAYPHONE_ENVIRONMENT' => 'production',
       'PAYPHONE_RESPONSE_URL' => 'https://inbox.example.test/payphone/response',
       'PAYPHONE_TAX_RATE' => '15', 'PAYPHONE_CARD_COMMISSION_RATE' => '5.75', 'PAYPHONE_GRACE_DAYS' => '3'
     }.each do |name, value|
@@ -60,7 +63,7 @@ RSpec.describe 'Super Admin Payphone configuration', type: :request do
   it 'rejects a response URL from another domain' do
     post '/super_admin/app_config/test?config=payphone', params: {
       app_config: {
-        PAYPHONE_STORE_ID: 'store-1', PAYPHONE_TOKEN: 'test-token', PAYPHONE_ENVIRONMENT: 'production',
+        PAYPHONE_STORE_ID: 'store-1', PAYPHONE_TOKEN: 'test-token', PAYPHONE_BOX_TOKEN: 'public-token', PAYPHONE_ENVIRONMENT: 'production',
         PAYPHONE_RESPONSE_URL: 'https://attacker.example/pay', PAYPHONE_TAX_RATE: '15',
         PAYPHONE_CARD_COMMISSION_RATE: '5.75', PAYPHONE_GRACE_DAYS: '3'
       }
@@ -76,7 +79,7 @@ RSpec.describe 'Super Admin Payphone configuration', type: :request do
 
     post '/super_admin/app_config?config=payphone', params: {
       app_config: {
-        ENABLE_PAYPHONE: 'true', PAYPHONE_STORE_ID: 'changed-store', PAYPHONE_TOKEN: 'test-token',
+        ENABLE_PAYPHONE: 'true', PAYPHONE_STORE_ID: 'changed-store', PAYPHONE_TOKEN: 'test-token', PAYPHONE_BOX_TOKEN: 'public-token',
         PAYPHONE_ENVIRONMENT: 'test', PAYPHONE_RESPONSE_URL: 'http://inbox.example.test/response',
         PAYPHONE_TAX_RATE: '15', PAYPHONE_CARD_COMMISSION_RATE: '5.75', PAYPHONE_GRACE_DAYS: '3'
       }
@@ -90,7 +93,7 @@ RSpec.describe 'Super Admin Payphone configuration', type: :request do
   it 'validates production settings locally without contacting Payphone' do
     post '/super_admin/app_config/test?config=payphone', params: {
       app_config: {
-        ENABLE_PAYPHONE: 'true', PAYPHONE_STORE_ID: 'store-1', PAYPHONE_TOKEN: 'production-token',
+        ENABLE_PAYPHONE: 'true', PAYPHONE_STORE_ID: 'store-1', PAYPHONE_TOKEN: 'production-token', PAYPHONE_BOX_TOKEN: 'public-token',
         PAYPHONE_ENVIRONMENT: 'production', PAYPHONE_RESPONSE_URL: 'https://inbox.example.test/payphone/response',
         PAYPHONE_TAX_RATE: '15', PAYPHONE_CARD_COMMISSION_RATE: '5.75', PAYPHONE_GRACE_DAYS: '3'
       }
@@ -109,6 +112,7 @@ RSpec.describe 'Super Admin Payphone configuration', type: :request do
     post '/super_admin/app_config?config=payphone', params: {
       app_config: config_values.merge(
         'PAYPHONE_TOKEN' => '',
+        'PAYPHONE_BOX_TOKEN' => '',
         'PAYPHONE_RESPONSE_URL' => 'https://inbox.example.test/payphone/response'
       )
     }

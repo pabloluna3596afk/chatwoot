@@ -229,6 +229,10 @@
         },
         "GRAMMAR": "Corregir gramática y ortografía",
         "SUGGESTION": "Sugerir una respuesta",
+        "SUGGESTION_PLAN_REQUIRED": "Las sugerencias de respuesta están disponibles desde el plan Básico.",
+        "SUGGESTION_LIMIT_REACHED": "Has agotado las acciones de IA del mes. Se reinician el {date}.",
+        "SUGGESTION_LIMIT_REACHED_NO_DATE": "Has agotado las acciones de IA del mes.",
+        "SUGGESTION_INCOMING_REQUIRED": "Espera un mensaje del cliente para sugerir una respuesta.",
         "SUMMARIZE": "Resumir la conversación",
         "ASK_COPILOT": "Preguntar a Copilot"
       },
@@ -269,7 +273,11 @@
         "GENERATING": "Generando...",
         "CANCEL": "Cancelar"
       },
-      "GENERATE_ERROR": "Hubo un error al procesar el contenido, verifica tu clave API de OpenAI e inténtalo de nuevo"
+      "GENERATE_ERROR": "Hubo un error al procesar el contenido, verifica tu clave API de OpenAI e inténtalo de nuevo",
+      "TASKS_PLAN_REQUIRED": "Tu plan no incluye las acciones de escritura con IA. Pide al administrador de la cuenta que las habilite.",
+      "TASKS_LIMIT_REACHED": "Agotaste las acciones mensuales de escritura con IA. Se reinician el {date}.",
+      "TASKS_LIMIT_REACHED_NO_DATE": "Agotaste las acciones mensuales de escritura con IA.",
+      "TASKS_PROVIDER_ERROR": "El proveedor de IA no pudo completar la solicitud. Inténtalo de nuevo."
     },
     "DELETE": {
       "BUTTON_TEXT": "Eliminar",
@@ -899,20 +907,20 @@
       }
     },
     "PAYWALL": {
-      "TITLE": "Actualiza tu plan para usar Captain AI",
+      "TITLE": "Captain AI no está habilitado",
       "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
-      "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
-      "UPGRADE_NOW": "Actualizar ahora",
-      "CANCEL_ANYTIME": "Puedes cambiar o cancelar tu plan cuando quieras"
+      "UPGRADE_PROMPT": "Revisa el plan y las bolsas de IA de esta cuenta en la facturación.",
+      "UPGRADE_NOW": "Abrir facturación de la cuenta",
+      "CANCEL_ANYTIME": "Administra el plan de tu cuenta"
     },
     "ENTERPRISE_PAYWALL": {
       "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
-      "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
-      "ASK_ADMIN": "Contacta a tu administrador para hacer la actualización."
+      "UPGRADE_PROMPT": "Revisa el plan y las bolsas de IA de esta cuenta en la facturación.",
+      "ASK_ADMIN": "Pide al administrador de la cuenta que revise el plan y las bolsas de IA."
     },
     "BANNER": {
-      "RESPONSES": "Te estás acercando al límite de respuestas. Revisa tu plan y consumo.",
-      "DOCUMENTS": "Has alcanzado el límite de documentos. Revisa tu plan y consumo."
+      "RESPONSES": "Te acercas al límite de la bolsa de respuestas. Revisa tu plan y el consumo de bolsas de IA.",
+      "DOCUMENTS": "La bolsa de documentos está agotada. Revisa tu plan y el consumo de bolsas de IA."
     },
     "FORM": {
       "CANCEL": "Cancelar",
@@ -922,8 +930,6 @@
     "ASSISTANTS": {
       "HEADER": "Asistentes",
       "NO_ASSISTANTS_AVAILABLE": "No hay asistentes disponibles en tu cuenta.",
-      "COPILOT_SETUP_REQUIRED": "Copilot necesita un asistente configurado. Crea uno para empezar.",
-      "CREATE_FOR_COPILOT": "Crear un asistente para Copilot",
       "ADD_NEW": "Crear un nuevo asistente",
       "DELETE": {
         "TITLE": "¿Seguro que quieres eliminar el asistente?",
@@ -1729,16 +1735,16 @@
         "ERROR_MESSAGE": "No se pudo eliminar la herramienta personalizada"
       },
       "PAYWALL": {
-        "TITLE": "Actualiza tu plan para usar herramientas con Captain",
+        "TITLE": "Las herramientas de Captain no están habilitadas",
         "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
-        "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
+        "UPGRADE_PROMPT": "Revisa el plan y las bolsas de IA de esta cuenta en la facturación.",
         "UPGRADE_NOW": "Abrir facturación",
         "CANCEL_ANYTIME": ""
       },
       "ENTERPRISE_PAYWALL": {
         "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
-        "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
-        "ASK_ADMIN": "Contacta a tu administrador para hacer la actualización."
+        "UPGRADE_PROMPT": "Revisa el plan y las bolsas de IA de esta cuenta en la facturación.",
+        "ASK_ADMIN": "Pide al administrador de la cuenta que revise el plan y las bolsas de IA."
       },
       "TEST": {
         "BUTTON": "Probar conexión",

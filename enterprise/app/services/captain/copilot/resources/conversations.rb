@@ -11,7 +11,12 @@ class Captain::Copilot::Resources::Conversations < Captain::Copilot::Resources::
   end
 
   def filter(relation, filters)
-    relation = relation.where(filters.slice('status', 'priority', 'inbox_id', 'assignee_id', 'team_id', 'contact_id'))
+    relation = relation.where(filters.slice('status', 'priority', 'inbox_id', 'team_id', 'contact_id'))
+    if filters.key?('assignee_id')
+      assignee_id = filters['assignee_id'] == 'me' ? @user&.id : filters['assignee_id']
+      assignee_id = nil if filters['assignee_id'] == 'unassigned'
+      relation = relation.where(assignee_id: assignee_id)
+    end
     relation = relation.tagged_with(filters['labels'], any: true) if filters['labels'].present?
     custom_attribute_filter(relation, filters, 'conversation_attribute')
   end

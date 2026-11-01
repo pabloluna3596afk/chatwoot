@@ -18,7 +18,16 @@ class Captain::Tools::Copilot::ProposeActionService < Captain::Tools::BaseTool
                    id: { type: 'integer' }
                  }
                },
-               payload: { type: 'object', description: 'Action-specific values to show and validate before approval' }
+               payload: {
+                 type: 'object', description: 'Use the matching action schema. For add_label, call list_labels and pass its integer id as label_id.',
+                 oneOf: Captain::Copilot::ActionRegistry.all.map do |action_class|
+                   action_class.schema.merge(
+                     title: action_class.action_name,
+                     description: action_class.schema[:description],
+                     examples: action_class.schema[:examples]
+                   ).compact
+                 end
+               }
              }
 
   def execute(action:, target:, payload:)
@@ -34,9 +43,14 @@ class Captain::Tools::Copilot::ProposeActionService < Captain::Tools::BaseTool
       action_name: action, target_type: target.fetch('type'), target_id: target.fetch('id'),
       payload: payload, turn_count: @propose_action_calls
     )
-    { status: item.status, message: 'Proposal created and waiting for user approval' }
+    (@created_proposal_ids ||= []) << item.id
+    { status: item.status, proposal_id: item.id, message: 'Proposal created and waiting for user approval in the action card' }
   rescue ArgumentError, KeyError, ActiveRecord::RecordNotFound => e
     { error: e.message }
+  end
+
+  def created_proposal_ids
+    @created_proposal_ids || []
   end
 
   def active?

@@ -89,4 +89,19 @@ RSpec.describe Captain::Tools::Copilot::SearchConversationsService do
 
     expect(get.execute(contact_id: 1)).to include(error: /at most 20 tool calls per turn/)
   end
+
+  it 'logs names and safe date categories without filter values or record identifiers' do
+    inbox = create(:inbox, account: account)
+    log_messages = []
+    allow(Rails.logger).to receive(:info) { |message, &_block| log_messages << message }
+    search = described_class.new(assistant, user: user)
+
+    search.execute(created_after: '2026-01-02', inbox_id: inbox.id)
+    logged = JSON.parse(log_messages.last)
+
+    expect(logged['filter_names']).to include('created_after', 'inbox_id')
+    expect(logged['filter_values']).not_to have_key('created_after')
+    expect(logged['filter_values']).not_to have_key('inbox_id')
+    expect(logged.to_s).not_to include('2026-01-02')
+  end
 end

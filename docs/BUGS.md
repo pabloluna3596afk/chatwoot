@@ -1,4 +1,25 @@
+### B-NEW-250 - Fuente única para cuotas visibles de IA
+
+- **Fuente de verdad por métrica:** `AccountPlanUsage` es la fuente del cupo y consumo visible en `usage_limits`, el contrato de facturación y las columnas de consumo de `ai_usage`. `responses_consumed` conserva las respuestas de Captain a clientes; `copilot_responses_consumed` es el contador separado de Copilot y ambos se suman solo cuando comparten bolsa. `AiUsageEvent` es la fuente del detalle diario de llamadas, tokens y costo del panel de auditoría; no reemplaza los contadores de cupo.
+- **Filas antiguas:** para cuentas con plan pero sin fila del período vigente, `Account#current_usage_period` la crea de forma perezosa. `usage_limits` y el endpoint `ai_usage` leen esa misma fila; la prueba de request comprueba el período y su creación sin tocar las columnas existentes.
+- **Verificación:** `spec/enterprise/models/account_spec.rb` cubre la primera lectura sin fila y el contador de período actual.
+
+### B-NEW-248 — Cerrar la medición antes de llamar al proveedor
+
+- **Problema:** faltaba un fallo en CI si una llamada instrumentada llegaba sin cuenta, feature/bolsa mapeada o recibo requerido.
+- **Arreglo:** `Llm::MeteringGuard` se ejecuta en bordes comunes; CI/test falla con `Llm::UnmeteredCall`, producción registra el error y conserva bucket `unmapped`. Se guarda traza test/CI y se corrige el gate de custom tools V2; el parser JSON duplicado de Captain adopta el arreglo de PR #301.
+- **Verificación:** RSpec focalizado 79/79; RuboCop CI 18 archivos/0 ofensas; preview resumen 200, proveedor caído 502 sin incremento y retry 200 con un incremento. La matriz externa enumera lo pendiente.
+- **Pendiente:** inventario directo completo, entitlement central, matriz completa de fallos, lecturas directas de eventos/reservas y compatibilidad de filas históricas.
+- **Archivos:** ver `tmp/PR-IA-CERT.md` y `docs-crm/codex/ia-certificacion.md`.
 # Bugs abiertos y fixes aplicados — fork PaluHub (Chatwoot)
+
+### B-NEW-247 — Cuotas IA, contratos de tareas y ledger
+
+- **Problema:** los intentos fallidos de Captain/Copilot consumían cupo, los eventos inferían la bolsa por regex y varios contratos perdían estado HTTP o no explicaban las bolsas disponibles.
+- **Arreglo:** reservas con recibo por intento y liberación idempotente ante error/excepción/descarte; mapa explícito `feature → bucket` (la transcripción usa `captain_responses` porque esa es la bolsa que descuenta); Playground registra cada generación en `ai_usage_events` sin cambiar su cuota diaria. Se limpian recibos de períodos cerrados y reservas liberadas antiguas; la FK elimina recibos al borrar su período. Tareas preservan códigos HTTP, validan operaciones/conversaciones y el editor distingue plan, límite y proveedor; tablero explica bolsas compartidas, ilimitadas y no incluidas.
+- **Registro de costo:** las llamadas fallidas conservan eventos `error` porque el proveedor puede haber cobrado tokens, aunque se libere el cupo del producto.
+- **Verificación:** suite integrada RSpec 267 ejemplos; los 10 fallos iniciales eran referencias al mapa extraído. Corregidas, ChatService + mapa pasan 45/45 y `BaseTaskService` 37/37; `application_eager_load_spec` incluido. RuboCop CI inspeccionó 27 archivos: 14 avisos preexistentes en `chat_service_spec.rb:6-30`, cero en líneas añadidas. ESLint limpio; Vitest 25/25 en UTC y America/Guayaquil; `db:schema:load` y migración pasan en DB aislada. R10 PASS. R11 pendiente de preview visual/capturas y gate de Claude/app real; evidencia en `tmp/PR-IA-ARREGLOS.md`.
+- **Archivos:** cuotas Captain/Copilot, `Llm::UsageContext`, Playground, `ai_usage`, tareas del editor, traducciones y specs de contrato.
 
 ### B-NEW-246 — Indicador de typing real para Captain
 
@@ -3358,3 +3379,21 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - Arreglo: persistir el hilo activo por cuenta, migrar el identificador antiguo tras validarlo, y limpiar en silencio los hilos persistidos que devuelven 403/404. El estado vacío explica el requisito de asistente y enlaza a su creación.
 - Verificación: Vitest UTC y America/Guayaquil, ESLint, RSpec focalizado y RuboCop CI registrados en `tmp/PR-COPILOT-SIN-ASISTENTE.md`.
 - Resultados: Vitest UTC/Guayaquil 14/14 cada zona; RSpec 6 ejemplos sin fallos; RuboCop CI 1 archivo inspeccionado y 0 infracciones; ESLint 0 errores y 2 advertencias preexistentes.
+
+### B-NEW-245 — Unificar el token Payphone y corregir fechas de facturación (2026-10-29)
+
+- **Archivos:** `app/services/payphone/configuration_check.rb`, `app/controllers/api/v1/accounts/payphone_payments_controller.rb`, `app/controllers/super_admin/app_configs_controller.rb`, facturación Vue y locales `en/es`, specs de configuración/API.
+- **Problema:** producción solo tenía `PAYPHONE_TOKEN`, pero la configuración requería `PAYPHONE_BOX_TOKEN`; Facturación mostraba una renovación futura durante gracia y después del downgrade a Gratis.
+- **Arreglo:** `PAYPHONE_BOX_TOKEN` queda opcional y solo reemplaza el token en `box.token` para el SDK. Sin override, el SDK recibe `PAYPHONE_TOKEN`; Confirm continúa usando `PAYPHONE_TOKEN`. El índice devuelve `grace_end`; la UI usa el fin real del período y oculta `Renews on` durante gracia/vencido. Traducciones nuevas en español e inglés.
+- **Riesgo residual:** Cajita y Confirm comparten el mismo `PAYPHONE_TOKEN` si no hay override. Si se filtra, rotarlo; nunca registrar su valor; conservar `PAYPHONE_RESPONSE_URL` en HTTPS, en el mismo dominio de `FRONTEND_URL` y con ruta fija `/payphone/response`.
+- **Verificación:** Vitest 38/38 en UTC y America/Guayaquil; specs focales RSpec 28/28 (en dos corridas; el ejemplo nuevo se repitió tras alinear precisión JSON de milisegundos); RuboCop CI 5 archivos, 0 infracciones; ESLint de los archivos cambiados, 0 errores y 5 avisos dinámicos preexistentes. Build Vite y captura real del preview `payphone-real-gracia-y-vencido.png` verificada en móvil/tablet/escritorio con perfil QA `ui_settings.locale=es`. No se llamó a Payphone real. La auditoría de ESLint de todo `app/` reportó 190 errores y 809 avisos en otros archivos.
+- **Deploy:** requiere aplicar `20261027130000_create_payphone_payments.rb` antes de habilitar Payphone; producción todavía no tiene la tabla.
+- **Anual:** no implementado por decisión pendiente. Estimación para agregarlo: 4–6 horas, incluyendo `Payphone::PriceCalculator` con precio mensual × 10, selección/contrato de intervalo, períodos de 365 días en confirmación y ajustes de recordatorios/avisos y specs.
+- **Informe de cierre:** `tmp/PR-PAYPHONE-PR2.md`.
+
+### B-NEW-249 - Preservar gates de Captain Tasks y cuota compartida de Copilot (2026-10-31)
+
+- **Archivos:** `lib/llm/entitlement.rb`, specs de entitlement y specs de herramientas custom de Captain.
+- **Causa:** `Llm::Entitlement` aplicaba `captain_integration` a traduccion/deteccion aunque esos servicios se exponen bajo `captain_tasks`; sin una cuota Copilot propia, interpretaba el allowance ilimitado derivado del bucket `copilot` en vez de leer la cuota compartida de respuestas. Los specs de escenarios y AgentRunner tampoco habilitaban `custom_tools`, cuyo gate es intencional.
+- **Arreglo:** evaluar traduccion/deteccion con `captain_tasks` conservando su bucket de cuota, tomar el allowance de respuestas cuando Copilot comparte ese pool y habilitar `custom_tools` explicitamente en los specs que esperan ejecutarlo.
+- **Verificacion:** 133/133 en `wt-develop-check`; 138/138 focales y 1749/1749 consumidores en la rama; RuboCop CI 41 archivos inspeccionados, 0 infracciones. Informe: `tmp/PR-IA-CERT-REGRESIONES.md`.

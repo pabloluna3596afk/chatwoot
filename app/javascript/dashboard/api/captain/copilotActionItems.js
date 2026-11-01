@@ -10,16 +10,25 @@ class CopilotActionItems extends ApiClient {
     return axios.get(this.url, { params: { copilot_thread_id: threadId } });
   }
 
-  update(id, payload) {
-    return axios.patch(`${this.url}/${id}`, { payload });
+  // The controller finds the item through its thread, so every call needs it.
+  update(id, payload, threadId) {
+    return axios.patch(
+      `${this.url}/${id}`,
+      { payload },
+      { params: { copilot_thread_id: threadId } }
+    );
   }
 
-  approve(id) {
-    return axios.post(`${this.url}/${id}/approve`);
+  approve(id, threadId) {
+    return axios.post(`${this.url}/${id}/approve`, null, {
+      params: { copilot_thread_id: threadId },
+    });
   }
 
-  reject(id) {
-    return axios.post(`${this.url}/${id}/reject`);
+  reject(id, threadId) {
+    return axios.post(`${this.url}/${id}/reject`, null, {
+      params: { copilot_thread_id: threadId },
+    });
   }
 }
 

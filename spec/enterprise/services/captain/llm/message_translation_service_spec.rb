@@ -13,6 +13,7 @@ RSpec.describe Captain::Llm::MessageTranslationService do
 
       def self.fields = @fields || []
     end)
+    stub_const('Captain::Llm::MessageTranslationSchema', Class.new(Schematist::Schema) { string :translation })
     allow(account).to receive(:feature_enabled?).and_call_original
     allow(account).to receive(:feature_enabled?).with('captain_tasks').and_return(true)
   end

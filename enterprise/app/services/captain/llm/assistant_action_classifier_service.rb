@@ -12,27 +12,36 @@ class Captain::Llm::AssistantActionClassifierService < Llm::BaseAiService
   def classify(message_history:, assistant_response:)
     return internal_quota_error unless internal_usage_available?
 
+    result = classify_response(message_history, assistant_response)
+    result['error'].present? ? release_internal_reservation : finish_internal_reservation
+    result
+  rescue StandardError => e
+    release_internal_reservation
+    classification_error_response(e)
+  end
+
+  private
+
+  def classify_response(message_history, assistant_response)
     user_prompt = assistant_response_inspection_prompt(
       message_history: message_history,
       assistant_response: assistant_response,
       response_tag: 'assistant_response_to_classify'
     )
-
     response = generate_classification(user_prompt)
-    parsed = parse_response(response.content)
-    normalize_response(parsed, response.content)
-  rescue StandardError => e
-    classification_error_response(e)
+    normalize_response(parse_response(response.content), response.content)
   end
-
-  private
 
   def generate_classification(user_prompt)
     Llm::UsageContext.with(
       account: @conversation.account,
       bucket: :internal,
       feature: 'assistant_action_classifier',
-      context: { conversation_id: @conversation.id }
+      context: {
+        conversation_id: @conversation.id, reservation_required: internal_reservation_required?,
+        required_gate: 'captain_tasks'
+      },
+      reservation_id: @usage_reservation_id
     ) do
       instrument_llm_call(instrumentation_params(user_prompt)) do
         chat(model: @model, temperature: @temperature)
@@ -53,7 +62,25 @@ class Captain::Llm::AssistantActionClassifierService < Llm::BaseAiService
   end
 
   def internal_usage_available?
-    @conversation.account.reserve_captain_ai_usage!(bucket: :internal)
+    @usage_reservation_id = SecureRandom.uuid
+    @conversation.account.reserve_captain_ai_usage!(bucket: :internal, reservation_id: @usage_reservation_id)
+  end
+
+  def internal_reservation_required?
+    account = @conversation.account
+    account.current_usage_period.present? && account.usage_limits.dig(:captain, :internal, :total_count).present?
+  end
+
+  def release_internal_reservation
+    return unless @usage_reservation_id
+
+    @conversation.account.release_captain_ai_usage!(bucket: :internal, reservation_id: @usage_reservation_id)
+  end
+
+  def finish_internal_reservation
+    return unless @usage_reservation_id
+
+    @conversation.account.finish_captain_ai_usage!(bucket: :internal, reservation_id: @usage_reservation_id)
   end
 
   def internal_quota_error

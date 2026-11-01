@@ -11,6 +11,7 @@ RSpec.describe Captain::Llm::LanguageDetectionService do
 
       def self.fields = @fields || []
     end)
+    stub_const('Captain::Llm::LanguageDetectionSchema', Class.new(Schematist::Schema) { string :language })
     allow(account).to receive(:feature_enabled?).and_call_original
     allow(account).to receive(:feature_enabled?).with('captain_tasks').and_return(true)
   end

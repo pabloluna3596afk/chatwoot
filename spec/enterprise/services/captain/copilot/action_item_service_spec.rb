@@ -107,10 +107,10 @@ RSpec.describe Captain::Copilot::ActionItemService do
   end
 
   it 'limits the number of pending proposals in a thread' do
-    5.times do
+    5.times do |index|
       service.propose(
         action_name: 'registered_test_action', target_type: 'Conversation', target_id: 42,
-        payload: {}, turn_count: 1
+        payload: { value: index }, turn_count: 1
       )
     end
 
@@ -120,6 +120,35 @@ RSpec.describe Captain::Copilot::ActionItemService do
         payload: {}, turn_count: 1
       )
     end.to raise_error(ArgumentError, 'At most five proposals may be pending in this thread')
+  end
+
+  it 'returns an identical pending proposal without creating a duplicate, even after the turn limit' do
+    params = {
+      action_name: 'registered_test_action', target_type: 'Conversation', target_id: 42,
+      payload: { value: 1 }, turn_count: 1
+    }
+    original = service.propose(**params)
+
+    repeated = service.propose(**params, turn_count: 4)
+
+    expect(repeated.id).to eq(original.id)
+    expect(thread.copilot_action_items.count).to eq(1)
+    expect(original.events.pluck(:event)).to eq(['proposed'])
+  end
+
+  it 'creates a separate proposal when the action, target, or payload differs' do
+    original = service.propose(
+      action_name: 'registered_test_action', target_type: 'Conversation', target_id: 42,
+      payload: { value: 1 }, turn_count: 1
+    )
+
+    distinct = service.propose(
+      action_name: 'registered_test_action', target_type: 'Conversation', target_id: 42,
+      payload: { value: 2 }, turn_count: 2
+    )
+
+    expect(distinct.id).not_to eq(original.id)
+    expect(thread.copilot_action_items.count).to eq(2)
   end
 
   it 'rejects a fourth proposal in the same turn' do

@@ -2,6 +2,11 @@ class Api::V1::Accounts::Captain::TasksController < Api::V1::Accounts::BaseContr
   before_action :check_authorization
 
   def rewrite
+    operation = params[:operation].to_s
+    unless Captain::RewriteService::ALLOWED_OPERATIONS.map(&:to_s).include?(operation)
+      return render_result({ error: I18n.t('captain.invalid_rewrite_operation'), error_code: 422 })
+    end
+
     result = Captain::RewriteService.new(
       account: Current.account,
       content: params[:content],
@@ -13,6 +18,10 @@ class Api::V1::Accounts::Captain::TasksController < Api::V1::Accounts::BaseContr
   end
 
   def summarize
+    unless Current.account.conversations.exists?(display_id: params[:conversation_display_id])
+      return render_result({ error: I18n.t('captain.conversation_not_found'), error_code: 404 })
+    end
+
     result = Captain::SummaryService.new(
       account: Current.account,
       conversation_display_id: params[:conversation_display_id]
@@ -57,12 +66,25 @@ class Api::V1::Accounts::Captain::TasksController < Api::V1::Accounts::BaseContr
     if result.nil?
       render json: { message: nil }
     elsif result[:error]
-      render json: { error: result[:error] }, status: :unprocessable_content
+      status = task_error_status(result[:error_code])
+      code = valid_error_code(result[:error_code]) || Rack::Utils.status_code(status)
+      render json: { error: result[:error], error_code: code }, status: status
     else
       response_data = { message: result[:message] }
       response_data[:follow_up_context] = result[:follow_up_context] if result[:follow_up_context]
       render json: response_data
     end
+  end
+
+  def task_error_status(error_code)
+    return valid_error_code(error_code) if valid_error_code(error_code)
+
+    Current.account.feature_enabled?('captain_tasks') ? :bad_gateway : :forbidden
+  end
+
+  def valid_error_code(error_code)
+    code = error_code.to_i if error_code.present?
+    code if code&.between?(400, 599)
   end
 
   def check_authorization

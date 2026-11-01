@@ -40,8 +40,8 @@
             <div class="relative">
               <%= form.password_field "app_config[#{key}]",
                   id: "app_config_#{key}",
-                  value: key == 'PAYPHONE_TOKEN' ? nil : @app_config[key],
-                  placeholder: key == 'PAYPHONE_TOKEN' && @payphone_token_configured ? t('super_admin.payphone.token_configured') : nil,
+                  value: %w[PAYPHONE_TOKEN PAYPHONE_BOX_TOKEN].include?(key) ? nil : @app_config[key],
+                  placeholder: @payphone_tokens_configured&.dig(key) ? t('super_admin.payphone.token_configured') : nil,
                   class: "mt-2 border border-slate-100 p-1.5 pr-8 rounded-md w-full"
               %>
               <button

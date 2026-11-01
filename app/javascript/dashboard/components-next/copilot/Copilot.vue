@@ -105,7 +105,6 @@ const isLastMessageFromAssistant = computed(() =>
 const copilotAvatar = computed(() =>
   resolveAssistantAvatar('/assets/images/dashboard/captain/avatar-light.svg')
 );
-const hasAssistants = computed(() => props.assistants.length > 0);
 const hasMessages = computed(
   () => props.messages.length > 0 || props.actionItems.length > 0
 );
@@ -144,7 +143,7 @@ watch(
     if (isNearBottom.value) scrollToBottom();
     else newMessageCount.value += 1;
   },
-  { deep: true }
+  { deep: true, immediate: true }
 );
 watch(
   () => props.actionItems.length,
@@ -312,7 +311,6 @@ watch(
       </div>
       <CopilotEmptyState
         v-else
-        :has-assistants="hasAssistants"
         :can-suggest-reply="canSuggestReply"
         @use-suggestion="sendMessage"
       />
@@ -335,11 +333,7 @@ watch(
         />
         <div v-else />
       </div>
-      <CopilotInput
-        v-if="hasAssistants"
-        class="mb-1 w-full"
-        :on-send="sendMessage"
-      />
+      <CopilotInput :on-send="sendMessage" />
     </div>
   </div>
 </template>

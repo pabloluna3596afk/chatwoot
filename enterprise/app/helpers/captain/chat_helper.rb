@@ -2,6 +2,7 @@ module Captain::ChatHelper
   include Captain::ChatUsageContext
   include Integrations::LlmInstrumentation
   include Captain::ChatResponseHelper
+  include Captain::ProposalToolResultHelper
   include Captain::ChatGenerationRecorder
 
   def request_chat_completion_with_usage_context
@@ -51,14 +52,14 @@ module Captain::ChatHelper
   end
 
   def handle_tool_call(tool_call)
-    persist_thinking_message(tool_call)
+    thinking_message = persist_thinking_message(tool_call)
     start_tool_span(tool_call)
-    (@pending_tool_calls ||= []).push(tool_call)
+    (@pending_tool_calls ||= []).push(tool_call: tool_call, thinking_message: thinking_message)
   end
 
   def handle_tool_result(result)
     end_tool_span(result)
-    persist_tool_completion(result)
+    persist_tool_result(result, @pending_tool_calls&.pop, copilot_thread: @copilot_thread)
   end
 
   def add_messages_to_chat(chat)

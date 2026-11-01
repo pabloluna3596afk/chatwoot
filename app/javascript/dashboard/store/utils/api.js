@@ -103,7 +103,10 @@ export const parseAPIErrorResponse = error => {
 
 export const throwErrorMessage = error => {
   const errorMessage = parseAPIErrorResponse(error);
-  throw new Error(errorMessage);
+  const wrappedError = new Error(errorMessage);
+  // Keep the HTTP response so callers can tell a 404/403 from other failures.
+  wrappedError.response = error?.response;
+  throw wrappedError;
 };
 
 export const parseLinearAPIErrorResponse = (error, defaultMessage) => {

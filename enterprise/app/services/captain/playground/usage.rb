@@ -34,10 +34,12 @@ class Captain::Playground::Usage
   end
 
   def perform(&)
-    check_rate!
-    # All playground entry points share this lock, including different assistants/tabs.
-    @account.with_lock do
-      perform_locked(&)
+    Llm::UsageContext.with(account: @account, bucket: :captain_responses, feature: 'assistant_playground') do
+      check_rate!
+      # All playground entry points share this lock, including different assistants/tabs.
+      @account.with_lock do
+        perform_locked(&)
+      end
     end
   end
 

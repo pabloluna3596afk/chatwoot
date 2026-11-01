@@ -640,7 +640,12 @@ export default {
           :aria-hidden="isReplyBoxCollapsed"
           :inert="isReplyBoxCollapsed"
         >
-          <div class="min-h-0 overflow-hidden">
+          <div
+            class="min-h-0"
+            :class="
+              isReplyBoxCollapsed ? 'overflow-hidden' : 'overflow-visible'
+            "
+          >
             <ReplyBox
               ref="replyBoxRef"
               @toggle-editor-size="toggleReplyEditorSize"

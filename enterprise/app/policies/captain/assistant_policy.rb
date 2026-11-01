@@ -1,4 +1,10 @@
 class Captain::AssistantPolicy < ApplicationPolicy
+  class Scope < ApplicationPolicy::Scope
+    def resolve
+      scope.for_account(account.id).customer_visible
+    end
+  end
+
   def index?
     true
   end
@@ -32,7 +38,7 @@ class Captain::AssistantPolicy < ApplicationPolicy
   end
 
   def update?
-    @account_user.administrator?
+    @account_user.administrator? && (record.is_a?(Class) || !record.internal?)
   end
 
   def approve?
@@ -44,7 +50,7 @@ class Captain::AssistantPolicy < ApplicationPolicy
   end
 
   def destroy?
-    @account_user.administrator?
+    @account_user.administrator? && (record.is_a?(Class) || !record.internal?)
   end
 
   def avatar?

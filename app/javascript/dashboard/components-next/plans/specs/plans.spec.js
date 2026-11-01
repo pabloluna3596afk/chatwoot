@@ -9,6 +9,8 @@ import plans from 'dashboard/store/modules/plans';
 import PlansAPI from 'dashboard/api/plans';
 import en from 'dashboard/i18n/locale/en/planCatalog.json';
 import es from 'dashboard/i18n/locale/es/planCatalog.json';
+import enSettings from 'dashboard/i18n/locale/en/settings.json';
+import esSettings from 'dashboard/i18n/locale/es/settings.json';
 import PlanCatalog from '../PlanCatalog.vue';
 import PlanPricingView from '../PlanPricingView.vue';
 import PlanCard from '../PlanCard.vue';
@@ -42,7 +44,14 @@ beforeEach(async () => {
     ],
   });
   await router.push('/accounts/1');
-  i18n = createI18n({ legacy: false, locale: 'es', messages: { en, es } });
+  i18n = createI18n({
+    legacy: false,
+    locale: 'es',
+    messages: {
+      en: { ...en, ...enSettings },
+      es: { ...es, ...esSettings },
+    },
+  });
 });
 afterEach(() => wrapper?.unmount());
 
@@ -333,6 +342,19 @@ describe('catalog presentation', () => {
       plan: { ...catalog[0], state: 'coming_soon' },
     });
     expect(wrapper.get('button').attributes('disabled')).toBeDefined();
+  });
+
+  it('routes an available paid plan through the Payphone selection action', async () => {
+    const paidPlan = { ...catalog[1], state: 'available' };
+    wrapper = mount(PlanCard, {
+      props: { plan: paidPlan, canSelect: true, canPurchase: true },
+      global: { plugins: [i18n] },
+    });
+
+    expect(wrapper.get('button').text()).toBe(esSettings.PAYPHONE.CHOOSE);
+    await wrapper.get('button').trigger('click');
+    expect(wrapper.emitted('select')).toEqual([[paidPlan.id]]);
+    expect(wrapper.emitted('continue')).toEqual([[paidPlan.id]]);
   });
 
   it('keeps translation keys in parity and formats English numbers', async () => {

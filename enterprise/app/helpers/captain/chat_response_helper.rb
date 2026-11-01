@@ -19,7 +19,18 @@ module Captain::ChatResponseHelper
     JSON.parse(content)
   rescue JSON::ParserError => e
     Rails.logger.error "#{self.class.name} Assistant: #{@assistant.id}, Error parsing JSON response: #{e.message}"
-    { 'content' => content }
+    first_json_object(content) || { 'content' => content }
+  end
+
+  # Models sometimes emit the same JSON object twice in a row. Keep the first valid
+  # one instead of showing the raw text to the agent.
+  def first_json_object(content)
+    content.split(/(?<=\})\s*(?=\{)/).filter_map do |candidate|
+      parsed = JSON.parse(candidate)
+      parsed if parsed.is_a?(Hash)
+    rescue JSON::ParserError
+      nil
+    end.first
   end
 
   def apply_credit_usage_metadata(parsed_response)
@@ -60,12 +71,12 @@ module Captain::ChatResponseHelper
     )
   end
 
-  def persist_tool_completion(result)
+  def persist_tool_completion(result = nil, pending_call = nil, **pending_call_attributes)
     return if @copilot_thread.blank?
 
-    tool_call = @pending_tool_calls&.pop
-    return unless tool_call
-
+    pending_call ||= next_pending_tool_call
+    result = pending_call_attributes.presence || result
+    tool_call = extract_tool_call(pending_call || pending_call_attributes)
     tool_name = tool_call.name.to_s
     status = tool_result_status(result)
 
@@ -82,7 +93,8 @@ module Captain::ChatResponseHelper
   def persist_pending_tool_errors
     return if @copilot_thread.blank?
 
-    while (tool_call = @pending_tool_calls&.pop)
+    while (pending_call = @pending_tool_calls&.pop)
+      tool_call = extract_tool_call(pending_call)
       persist_message(
         {
           'content' => 'Tool failed',
@@ -93,6 +105,10 @@ module Captain::ChatResponseHelper
       )
     end
   end
+
+  def extract_tool_call(pending_call) = pending_call.is_a?(Hash) ? pending_call[:tool_call] || pending_call['tool_call'] : pending_call
+
+  def next_pending_tool_call = @pending_tool_calls&.pop
 
   def tool_result_status(result)
     return 'error' if tool_result_error?(result)
@@ -114,8 +130,5 @@ module Captain::ChatResponseHelper
     result.nil? || (result.respond_to?(:empty?) && result.empty?)
   end
 
-  def tool_result_total_zero?(result)
-    total = result[:total] || result['total']
-    total.is_a?(Numeric) && total.zero?
-  end
+  def tool_result_total_zero?(result) = (total = result[:total] || result['total']).is_a?(Numeric) && total.zero?
 end

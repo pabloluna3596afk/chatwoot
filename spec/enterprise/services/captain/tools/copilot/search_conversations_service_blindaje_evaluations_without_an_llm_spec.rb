@@ -40,6 +40,43 @@ RSpec.describe Captain::Tools::Copilot::SearchConversationsService do
     end
   end
 
+  it 'evaluates at least twenty new filter and date scenarios without an LLM' do
+    conversation.update!(assignee: user)
+    tomorrow = Time.zone.tomorrow.to_date.iso8601
+    yesterday = 1.day.ago.to_date.iso8601
+    cases = [
+      [{ status: 'open' }, 'Total number of conversations: 1'],
+      [{ status: 'resolved' }, 'No conversations found'],
+      [{ status: 'invalid' }, 'status must be open'],
+      [{ priority: 'urgent' }, 'Total number of conversations: 1'],
+      [{ priority: 'invalid' }, 'priority must be low'],
+      [{ created_after: 'today' }, 'Total number of conversations: 1'],
+      [{ created_after: 'today', created_before: tomorrow }, 'Total number of conversations: 1'],
+      [{ created_after: 'yesterday', created_before: 'today' }, 'No conversations found'],
+      [{ created_after: 'last_7_days' }, 'Total number of conversations: 1'],
+      [{ created_after: 'last_30_days' }, 'Total number of conversations: 1'],
+      [{ last_activity_after: 'yesterday' }, 'Total number of conversations: 1'],
+      [{ last_activity_after: 'last_7_days', last_activity_before: tomorrow }, 'Total number of conversations: 1'],
+      [{ created_after: 'not-a-date' }, 'date filters'],
+      [{ created_after: tomorrow, created_before: yesterday }, 'date after must be earlier'],
+      [{ created_after: '2024-01-01', created_before: '2026-01-02' }, 'cannot exceed 366 days'],
+      [{ inbox_id: conversation.inbox_id }, 'Total number of conversations: 1'],
+      [{ inbox_id: conversation.inbox_id + 10_000 }, 'No conversations found'],
+      [{ team_id: 10_000 }, 'No conversations found'],
+      [{ assignee_id: 'me' }, 'Total number of conversations: 1'],
+      [{ assignee_id: 'unassigned' }, 'No conversations found'],
+      [{ assignee_id: 'someone' }, 'assignee_id must be'],
+      [{ contact_id: '42' }, 'contact_id must be a positive integer'],
+      [{ created_after: 'last_30_days', last_activity_after: 'last_7_days' }, 'Total number of conversations: 1'],
+      [{ created_before: '2020-01-01' }, 'date after is required when date before is provided'],
+      [{ created_after: '2020-01-01', created_before: '2020-01-02' }, 'No conversations found']
+    ]
+
+    cases.each do |arguments, expected|
+      expect(tool.execute(**arguments).to_s).to include(expected), arguments.inspect
+    end
+  end
+
   %w[delete_conversation delete_contact resolve send_message merge invented_action].each do |action_name|
     it "rejects unapproved action attempt #{action_name}" do
       thread = create(:captain_copilot_thread, account: account, user: user, assistant: assistant)

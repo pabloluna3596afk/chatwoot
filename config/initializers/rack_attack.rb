@@ -90,6 +90,14 @@ class Rack::Attack
 
   throttle('req/ip', limit: ENV.fetch('RACK_ATTACK_LIMIT', '3000').to_i, period: 1.minute, &:ip)
 
+  throttle('payphone/return/ip', limit: 30, period: 1.minute) do |req|
+    req.ip if req.path_without_extensions == '/payphone/response' && req.get?
+  end
+
+  throttle('payphone/orders/ip', limit: 20, period: 1.minute) do |req|
+    req.ip if req.post? && req.path_without_extensions.match?(%r{\A/api/v1/accounts/\d+/payphone_payments(?:/quote)?\z})
+  end
+
   ###-----------------------------------------------###
   ###-----Authentication Related Throttling---------###
   ###-----------------------------------------------###

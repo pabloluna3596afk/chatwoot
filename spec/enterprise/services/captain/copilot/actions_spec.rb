@@ -40,6 +40,24 @@ RSpec.describe Captain::Copilot::Actions do
       payload: { label_id: label.id }
     )
 
-    expect { action.validate }.to raise_error(ArgumentError, 'Label does not exist in this account')
+    expect { action.validate }.to raise_error(ArgumentError, /label_id was not found.*list_labels/)
+  end
+
+  it 'explains that label_id must be an integer from list_labels' do
+    action = Captain::Copilot::Actions::AddLabel.new(
+      account: account, user: user, target_type: 'Conversation', target_id: conversation.display_id,
+      payload: { label_id: '12' }
+    )
+
+    expect { action.validate }.to raise_error(ArgumentError, /label_id: integer.*list_labels/)
+  end
+
+  it 'reports missing and extra assignment keys with guidance' do
+    action = Captain::Copilot::Actions::Assignment.new(
+      account: account, user: user, target_type: 'Conversation', target_id: conversation.display_id,
+      payload: { agent_name: 'Sam' }
+    )
+
+    expect { action.validate }.to raise_error(ArgumentError, %r{agent_name.*list agents/teams})
   end
 end

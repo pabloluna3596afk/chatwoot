@@ -16,6 +16,7 @@
 #
 #  index_captain_assistants_on_account_id  (account_id)
 #
+# rubocop:disable Metrics/ClassLength
 class Captain::Assistant < ApplicationRecord
   DESCRIPTION_LENGTH_LIMIT = 500
   CITATION_SOURCES_STATE_KEY = :captain_v2_citation_sources
@@ -96,7 +97,13 @@ class Captain::Assistant < ApplicationRecord
 
   scope :ordered, -> { order(created_at: :desc) }
 
-  scope :for_account, ->(account_id) { where(account_id: account_id) }
+  scope :for_account, ->(account_id) { where(account_id: account_id).customer_visible }
+  scope :internal, -> { where('config @> ?', { internal: true }.to_json) }
+  scope :customer_visible, -> { where.not('config @> ?', { internal: true }.to_json) }
+
+  def internal?
+    config['internal'] == true
+  end
 
   def available_name
     name
@@ -166,6 +173,8 @@ class Captain::Assistant < ApplicationRecord
   end
 
   def engages?(contact, conversation)
+    return false if internal?
+
     engagement_result(contact, conversation)[:engages]
   end
 
@@ -174,6 +183,8 @@ class Captain::Assistant < ApplicationRecord
   end
 
   def responds_to_audience?(contact, conversation)
+    return false if internal?
+
     return true if config['audience'].blank?
 
     Captain::AudienceMatcher.new(config['audience']).matches?(contact, conversation)
@@ -220,7 +231,7 @@ class Captain::Assistant < ApplicationRecord
   def available_agent_tools
     tools = self.class.built_in_agent_tools.dup
 
-    tools.concat(custom_tools.enabled.map(&:to_tool_metadata))
+    tools.concat(custom_tools.enabled.map(&:to_tool_metadata)) if custom_tools_enabled?
 
     tools
   end
@@ -229,6 +240,10 @@ class Captain::Assistant < ApplicationRecord
 
   def known_tool_ids
     self.class.built_in_tool_ids + custom_tools.pluck(:slug)
+  end
+
+  def custom_tools_enabled?
+    account.feature_enabled?('custom_tools')
   end
 
   def avatar_or_default_url
@@ -265,13 +280,15 @@ class Captain::Assistant < ApplicationRecord
   private
 
   def ensure_within_plan_limit
+    return if internal?
+
     # Guard: do not enforce limit for accounts without a plan (fallback to unlimited)
     return if account.plan.blank?
 
     # Lock the account row to serialize concurrent creates and prevent exceeding the cap
     Account.lock.find(account_id)
     limit = account.plan_limit(:max_captain_assistants)
-    return if limit.nil? || account.captain_assistants.count < limit
+    return if limit.nil? || account.captain_assistants.customer_visible.count < limit
 
     raise LimitExceededError, I18n.t('captain.assistant.limit_exceeded', limit: limit)
   end
@@ -363,7 +380,7 @@ class Captain::Assistant < ApplicationRecord
     [
       self.class.resolve_tool_class('faq_lookup').new(self),
       self.class.resolve_tool_class('handoff').new(self),
-      *custom_tools.enabled.map { |custom_tool| custom_tool.tool(self) }
+      *(custom_tools.enabled.map { |custom_tool| custom_tool.tool(self) } if custom_tools_enabled?)
     ]
   end
 
@@ -389,3 +406,4 @@ class Captain::Assistant < ApplicationRecord
     "#{ENV.fetch('FRONTEND_URL', nil)}/assets/images/dashboard/captain/avatar-light.svg"
   end
 end
+# rubocop:enable Metrics/ClassLength

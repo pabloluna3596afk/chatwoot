@@ -89,6 +89,35 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
           { total_count: 3, page: 1 }
         )
       end
+
+      it 'does not include the internal Copilot assistant' do
+        internal_assistant = Captain::Copilot::AssistantResolver.new(account: account).perform
+
+        get "/api/v1/accounts/#{account.id}/captain/assistants",
+            headers: agent.create_new_auth_token,
+            as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(json_response[:payload]).to be_empty
+        expect(json_response[:meta][:total_count]).to eq(0)
+        expect(json_response[:payload].pluck(:id)).not_to include(internal_assistant.id)
+      end
+    end
+  end
+
+  describe 'internal assistant protection' do
+    let(:internal_assistant) { Captain::Copilot::AssistantResolver.new(account: account).perform }
+
+    it 'rejects updates and deletion through the assistants API' do
+      patch "/api/v1/accounts/#{account.id}/captain/assistants/#{internal_assistant.id}",
+            params: { assistant: { name: 'Changed' } }, headers: admin.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:not_found)
+      expect(internal_assistant.reload.name).to eq('Copilot')
+
+      delete "/api/v1/accounts/#{account.id}/captain/assistants/#{internal_assistant.id}",
+             headers: admin.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:not_found)
+      expect(internal_assistant.reload).to be_present
     end
   end
 

@@ -3,7 +3,7 @@ class Api::V1::Accounts::CannedResponsesController < Api::V1::Accounts::BaseCont
   before_action :check_authorization, only: [:update, :destroy, :approve, :reject]
 
   def index
-    render json: canned_responses
+    render json: canned_responses.includes(:created_by, :reviewed_by).map { |response| response_json(response) }
   end
 
   def create
@@ -14,17 +14,15 @@ class Api::V1::Accounts::CannedResponsesController < Api::V1::Accounts::BaseCont
     @canned_response.visibility = canned_response_params[:visibility] if canned_response_params[:visibility].present?
     @canned_response.apply_create_rules(current_user)
     @canned_response.save!
-    render json: @canned_response
+    render json: response_json(@canned_response)
   end
 
   def update
     @canned_response.assign_attributes(canned_response_params.except(:visibility, :approval_status))
-    if current_user.administrator? && canned_response_params[:visibility].present?
-      @canned_response.visibility = canned_response_params[:visibility]
-    end
+    @canned_response.visibility = canned_response_params[:visibility] if current_user.administrator? && canned_response_params[:visibility].present?
     @canned_response.apply_update_rules(current_user)
     @canned_response.save!
-    render json: @canned_response
+    render json: response_json(@canned_response)
   end
 
   def approve
@@ -35,12 +33,12 @@ class Api::V1::Accounts::CannedResponsesController < Api::V1::Accounts::BaseCont
     end
 
     @canned_response.approve!(current_user, visibility: visibility)
-    render json: @canned_response
+    render json: response_json(@canned_response)
   end
 
   def reject
     @canned_response.reject!(current_user)
-    render json: @canned_response
+    render json: response_json(@canned_response)
   end
 
   def destroy
@@ -81,5 +79,18 @@ class Api::V1::Accounts::CannedResponsesController < Api::V1::Accounts::BaseCont
     else
       records.order(:id)
     end
+  end
+
+  def response_json(response)
+    response.as_json.merge(
+      created_by: user_trace_json(response.created_by),
+      reviewed_by: user_trace_json(response.reviewed_by)
+    )
+  end
+
+  def user_trace_json(user)
+    return unless user
+
+    { id: user.id, available_name: user.available_name, email: user.email, avatar_url: user.avatar_url }
   end
 end

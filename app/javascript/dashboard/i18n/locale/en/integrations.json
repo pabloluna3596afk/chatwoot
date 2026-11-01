@@ -229,6 +229,10 @@
         },
         "GRAMMAR": "Fix grammar & spelling",
         "SUGGESTION": "Suggest a reply",
+        "SUGGESTION_PLAN_REQUIRED": "Reply suggestions are available from the Basic plan.",
+        "SUGGESTION_LIMIT_REACHED": "You’ve used all AI actions for this month. They reset on {date}.",
+        "SUGGESTION_LIMIT_REACHED_NO_DATE": "You’ve used all AI actions for this month.",
+        "SUGGESTION_INCOMING_REQUIRED": "Wait for a customer message to suggest a reply.",
         "SUMMARIZE": "Summarize the conversation",
         "ASK_COPILOT": "Ask Copilot"
       },
@@ -269,7 +273,11 @@
         "GENERATING": "Generating...",
         "CANCEL": "Cancel"
       },
-      "GENERATE_ERROR": "There was an error processing the content, please verify your OpenAI API key and try again"
+      "GENERATE_ERROR": "There was an error processing the content, please verify your OpenAI API key and try again",
+      "TASKS_PLAN_REQUIRED": "AI writing actions are not included in your plan. Contact your account owner to enable them.",
+      "TASKS_LIMIT_REACHED": "You have used all monthly AI writing actions. They reset on {date}.",
+      "TASKS_LIMIT_REACHED_NO_DATE": "You have used all monthly AI writing actions.",
+      "TASKS_PROVIDER_ERROR": "The AI provider could not complete this request. Please try again."
     },
     "DELETE": {
       "BUTTON_TEXT": "Delete",
@@ -908,20 +916,20 @@
       }
     },
     "PAYWALL": {
-      "TITLE": "Upgrade to use Captain AI",
+      "TITLE": "Captain AI is not enabled",
       "AVAILABLE_ON": "This feature is not enabled for your account.",
-      "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
-      "UPGRADE_NOW": "Upgrade now",
-      "CANCEL_ANYTIME": "You can change or cancel your plan anytime"
+      "UPGRADE_PROMPT": "Review this account's plan and AI bags in account billing settings.",
+      "UPGRADE_NOW": "Open account billing",
+      "CANCEL_ANYTIME": "Manage your account plan"
     },
     "ENTERPRISE_PAYWALL": {
       "AVAILABLE_ON": "This feature is not enabled for your account.",
-      "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
-      "ASK_ADMIN": "Please reach out to your administrator for the upgrade."
+      "UPGRADE_PROMPT": "Review this account's plan and AI bags in account billing settings.",
+      "ASK_ADMIN": "Ask your account administrator to review the plan and AI bags."
     },
     "BANNER": {
-      "RESPONSES": "You are approaching your response limit. Review your plan and usage.",
-      "DOCUMENTS": "Document limit reached. Review your plan and usage."
+      "RESPONSES": "You are approaching your response bag limit. Review your plan and AI bag usage.",
+      "DOCUMENTS": "The document bag is empty. Review your plan and AI bag usage."
     },
     "FORM": {
       "CANCEL": "Cancel",
@@ -931,8 +939,6 @@
     "ASSISTANTS": {
       "HEADER": "Assistants",
       "NO_ASSISTANTS_AVAILABLE": "There are no assistants available in your account.",
-      "COPILOT_SETUP_REQUIRED": "Copilot needs a configured assistant. Create one to get started.",
-      "CREATE_FOR_COPILOT": "Create an assistant for Copilot",
       "ADD_NEW": "Create a new assistant",
       "DELETE": {
         "TITLE": "Are you sure to delete the assistant?",
@@ -1738,16 +1744,16 @@
         "ERROR_MESSAGE": "Failed to delete custom tool"
       },
       "PAYWALL": {
-        "TITLE": "Upgrade to use tools with Captain",
+        "TITLE": "Captain tools are not enabled",
         "AVAILABLE_ON": "This feature is not enabled for your account.",
-        "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
+        "UPGRADE_PROMPT": "Review this account's plan and AI bags in account billing settings.",
         "UPGRADE_NOW": "Open billing",
         "CANCEL_ANYTIME": ""
       },
       "ENTERPRISE_PAYWALL": {
         "AVAILABLE_ON": "This feature is not enabled for your account.",
-        "UPGRADE_PROMPT": "Review plan availability and contact your administrator to enable this feature.",
-        "ASK_ADMIN": "Please reach out to your administrator for the upgrade."
+        "UPGRADE_PROMPT": "Review this account's plan and AI bags in account billing settings.",
+        "ASK_ADMIN": "Ask your account administrator to review the plan and AI bags."
       },
       "TEST": {
         "BUTTON": "Test connection",

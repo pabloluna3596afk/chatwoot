@@ -57,4 +57,13 @@ RSpec.describe Captain::AssistantPolicy, type: :policy do
       it { expect(assistant_policy).not_to permit(agent_context, assistant) }
     end
   end
+
+  permissions :update?, :destroy? do
+    let(:assistant) { create(:captain_assistant, account: account, config: { internal: true }) }
+
+    it 'does not permit changes to internal assistants even for administrators' do
+      expect(assistant_policy).not_to permit(administrator_context, assistant)
+      expect(assistant_policy).not_to permit(agent_context, assistant)
+    end
+  end
 end

@@ -18,7 +18,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
 
     return log_non_pending unless conversation_pending?
 
-    return unless assignment_boundary_passes?
+    return if assistant.internal? || !assignment_boundary_passes?
 
     return log_pre_generation_discard if newer_customer_message_arrived?
 

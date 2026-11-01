@@ -117,7 +117,8 @@ class SuperAdmin::AppConfigsController < SuperAdmin::ApplicationController
     return [] if values['PAYPHONE_RESPONSE_URL'].blank?
 
     check_values = values.merge(
-      'PAYPHONE_STORE_ID' => 'configured', 'PAYPHONE_TOKEN' => 'configured', 'PAYPHONE_ENVIRONMENT' => 'test'
+      'PAYPHONE_STORE_ID' => 'configured', 'PAYPHONE_TOKEN' => 'configured',
+      'PAYPHONE_ENVIRONMENT' => 'test'
     )
     url_errors = %w[response_https response_domain frontend_domain_required].map do |key|
       I18n.t("super_admin.payphone.validation.#{key}")
@@ -133,7 +134,9 @@ class SuperAdmin::AppConfigsController < SuperAdmin::ApplicationController
   end
 
   def merged_payphone_values(saved_values, submitted_values)
-    submitted_values = submitted_values.except('PAYPHONE_TOKEN') if submitted_values['PAYPHONE_TOKEN'].blank?
+    %w[PAYPHONE_TOKEN PAYPHONE_BOX_TOKEN].each do |key|
+      submitted_values = submitted_values.except(key) if submitted_values[key].blank?
+    end
     saved_values.merge(submitted_values)
   end
 
@@ -142,7 +145,7 @@ class SuperAdmin::AppConfigsController < SuperAdmin::ApplicationController
     params['app_config'].each do |key, value|
       break if errors.any?
       next unless @allowed_configs.include?(key)
-      next if key == 'PAYPHONE_TOKEN' && value.blank?
+      next if %w[PAYPHONE_TOKEN PAYPHONE_BOX_TOKEN].include?(key) && value.blank?
 
       config = InstallationConfig.where(name: key).first_or_initialize(locked: false)
       config.value = value
@@ -162,8 +165,13 @@ class SuperAdmin::AppConfigsController < SuperAdmin::ApplicationController
                                     .pluck(:name, :serialized_value)
                                     .to_h
                                     .transform_values { |serialized_value| serialized_value['value'] }
-    @payphone_token_configured = InstallationConfig.find_by(name: 'PAYPHONE_TOKEN')&.serialized_value&.dig('value').present?
-    @app_config['PAYPHONE_TOKEN'] = nil if @config == 'payphone'
+    @payphone_tokens_configured = %w[PAYPHONE_TOKEN PAYPHONE_BOX_TOKEN].index_with do |key|
+      InstallationConfig.find_by(name: key)&.serialized_value&.dig('value').present?
+    end
+    if @config == 'payphone'
+      @app_config['PAYPHONE_TOKEN'] = nil
+      @app_config['PAYPHONE_BOX_TOKEN'] = nil
+    end
     @installation_configs = ConfigLoader.new.general_configs.each_with_object({}) do |config_hash, result|
       result[config_hash['name']] = config_hash.except('name')
     end

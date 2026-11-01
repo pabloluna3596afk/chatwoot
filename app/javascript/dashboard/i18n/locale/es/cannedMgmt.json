@@ -11,11 +11,26 @@
     "SEARCH_404": "No hay elementos que coincidan con esta consulta.",
     "ALL_CATEGORIES": "Todas las categorías",
     "UNCATEGORIZED": "Sin categoría",
+    "MORE_OPTIONS": "Más opciones",
+    "TRACE": {
+      "CREATED": "Creada",
+      "REVIEWED": "Revisada",
+      "STATUS": "Estado",
+      "VISIBILITY": "Visibilidad",
+      "NOT_AVAILABLE": "No disponible"
+    },
+    "CATEGORY": {
+      "CREATE": "Crear categoría",
+      "CLEAR": "Quitar categoría"
+    },
     "FILTER_VISIBILITY": {
       "ALL": "Todas",
       "MINE": "Mías",
       "ACCOUNT": "Cuenta",
-      "PENDING": "Pendientes"
+      "PENDING": "Pendientes",
+      "PENDING_COUNT": "Pendientes {count}",
+      "APPROVED": "Aprobadas",
+      "REJECTED": "Rechazadas"
     },
     "STATUS_LABEL": {
       "pending": "Pendiente",
@@ -123,13 +138,17 @@
       }
     },
     "APPROVE": {
+      "BUTTON": "Aprobar para la cuenta",
       "PERSONAL": "Aprobar para el agente",
       "ACCOUNT": "Aprobar para la cuenta",
       "SUCCESS": "Respuesta aprobada.",
       "ERROR": "No se pudo aprobar la respuesta."
     },
     "REJECT": {
+      "TITLE": "Rechazar respuesta predefinida",
       "BUTTON": "Rechazar",
+      "REASON_LABEL": "Motivo (opcional)",
+      "REASON_NOT_SAVED": "El motivo no se guarda porque esta función todavía no tiene un campo para el motivo de rechazo.",
       "SUCCESS": "Respuesta rechazada.",
       "ERROR": "No se pudo rechazar la respuesta."
     },
@@ -162,6 +181,32 @@
       "personal": "Personal",
       "global": "Cuenta"
     },
+    "VISIBILITY_ICON_LABEL": {
+      "personal": "Personal",
+      "global": "De la cuenta"
+    },
+    "VARIABLES": {
+      "contact_name": "Nombre del contacto",
+      "contact_first_name": "Nombre del contacto",
+      "contact_last_name": "Apellido del contacto",
+      "contact_email": "Correo del contacto",
+      "contact_phone": "Teléfono del contacto",
+      "contact_company_name": "Empresa del contacto",
+      "contact_city": "Ciudad del contacto",
+      "contact_country_code": "País del contacto",
+      "contact_document_number": "Documento del contacto",
+      "agent_name": "Nombre del agente",
+      "conversation_id": "Número de conversación",
+      "conversation_inbox_name": "Bandeja de la conversación",
+      "inbox_name": "Nombre de la bandeja",
+      "account_name": "Nombre de la cuenta",
+      "assistant_name": "Nombre del asistente",
+      "appointment_title": "Título de la cita",
+      "appointment_date": "Fecha de la cita",
+      "appointment_time": "Hora de la cita",
+      "appointment_datetime": "Fecha y hora de la cita",
+      "unknown_attribute": "Atributo"
+    },
     "DUPLICATE": {
       "TOOLTIP": "Duplicar",
       "API": {
@@ -169,6 +214,14 @@
         "SUCCESS_MESSAGE_PENDING": "Duplicación enviada. Un administrador debe aprobarla antes de poder usarla.",
         "ERROR_MESSAGE": "No se pudo duplicar la respuesta rápida. Inténtalo de nuevo."
       }
+    },
+    "CARDS": {
+      "SHOW_MORE": "Ver más",
+      "SHOW_LESS": "Ver menos",
+      "CREATED_BY": "Creó",
+      "APPROVED_BY": "Aprobó",
+      "COPY": "Copiar",
+      "COPIED": "Copiado"
     }
   }
 }

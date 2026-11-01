@@ -13,7 +13,7 @@ RSpec.describe Captain::BaseTaskService do
       end
 
       def event_name
-        'test_event'
+        'follow_up'
       end
     end
   end
@@ -44,7 +44,7 @@ RSpec.describe Captain::BaseTaskService do
     end
 
     it 'returns custom event name in subclass' do
-      expect(service.send(:event_name)).to eq('test_event')
+      expect(service.send(:event_name)).to eq('follow_up')
     end
   end
 
@@ -174,7 +174,7 @@ RSpec.describe Captain::BaseTaskService do
 
       expect(mock_context).to receive(:chat).with(model: 'gpt-5.2').and_return(mock_chat)
       expect(service).to receive(:instrument_llm_call).with(
-        hash_including(model: 'gpt-5.2', feature_name: 'test_event')
+        hash_including(model: 'gpt-5.2', feature_name: 'follow_up')
       ).and_call_original
 
       service.send(:make_api_call, feature: 'editor', messages: messages)
@@ -321,7 +321,7 @@ RSpec.describe Captain::BaseTaskService do
       let(:test_service_class) do
         Class.new(described_class) do
           def event_name
-            'test_event'
+            'follow_up'
           end
 
           def use_account_openai_hook?

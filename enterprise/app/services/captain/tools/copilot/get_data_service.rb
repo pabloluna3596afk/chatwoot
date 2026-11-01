@@ -5,7 +5,7 @@ class Captain::Tools::Copilot::GetDataService < Captain::Tools::BaseTool
 
   RESOURCES_DESCRIPTION = Captain::Copilot::Resources.all.map(&:help).join("\n").freeze
   description <<~DESCRIPTION
-    Count, aggregate, and group conversations or contacts without returning records. This tool never lists records; use search_conversation to retrieve conversation records.
+    Count, aggregate, and group conversations or contacts without returning records. Use created_after/created_before or last_activity_after/last_activity_before for ISO 8601 or relative date bounds in the account timezone. Date ranges are limited to 366 days. Group conversations by inbox, assignee, team, day, or week when useful, for example: "how many conversations arrived this week by inbox?" This tool never lists records; use search_conversation to retrieve conversation records.
     Resources:
     #{RESOURCES_DESCRIPTION}
   DESCRIPTION
@@ -13,7 +13,7 @@ class Captain::Tools::Copilot::GetDataService < Captain::Tools::BaseTool
              properties: {
                resource: { type: 'string', enum: Captain::Copilot::Resources.all.map { |resource| resource::NAME } },
                filters: { type: 'object', description: 'Typed filters allowed for the selected resource' },
-               group_by: { type: 'string', description: 'Optional allowed group from the selected resource' },
+               group_by: { type: 'string', description: 'Allowed resource group or day/week/month/year temporal grouping' },
                aggregate: {
                  type: 'object', additionalProperties: false, required: %w[function],
                  properties: {

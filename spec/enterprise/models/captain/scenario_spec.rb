@@ -233,6 +233,8 @@ RSpec.describe Captain::Scenario, type: :model do
     let(:assistant) { create(:captain_assistant, account: account) }
 
     before do
+      allow(account).to receive(:feature_enabled?).and_call_original
+      allow(account).to receive(:feature_enabled?).with('custom_tools').and_return(true)
       allow(described_class).to receive(:built_in_tool_ids).and_return(%w[add_contact_note])
       allow(described_class).to receive(:built_in_agent_tools).and_return([
                                                                             { id: 'add_contact_note', title: 'Add Contact Note',

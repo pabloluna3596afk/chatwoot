@@ -3,6 +3,7 @@
 require 'opentelemetry_config'
 require_relative 'llm_usage_recording'
 
+# rubocop:disable Metrics/ModuleLength
 module Integrations::LlmInstrumentation
   include Integrations::LlmInstrumentationConstants
   include Integrations::LlmInstrumentationHelpers
@@ -15,22 +16,34 @@ module Integrations::LlmInstrumentation
     instrument_llm_call_with_context(params, &)
   end
 
+  # rubocop:disable Metrics/MethodLength
   def instrument_llm_call_with_context(params)
-    return yield unless ChatwootApp.otel_enabled?
+    Llm::MeteringGuard.check!
+    provider_called = false
+    unless ChatwootApp.otel_enabled?
+      provider_called = true
+      return yield
+    end
 
     result = nil
     executed = false
     tracer.in_span(params[:span_name]) do |span|
       setup_span_attributes(span, params)
+      provider_called = true
       result = yield
       executed = true
       record_completion(span, result)
       result
     end
   rescue StandardError => e
+    raise if e.is_a?(Llm::UnmeteredCall)
+
     ChatwootExceptionTracker.new(e, account: resolve_account(params)).capture_exception
+    raise if provider_called && !executed
+
     executed ? result : yield
   end
+  # rubocop:enable Metrics/MethodLength
 
   def instrument_agent_session(params, &)
     return Llm::UsageContext.with_instrumentation(params) { instrument_agent_session_with_context(params, &) } unless Llm::UsageContext.current
@@ -38,8 +51,14 @@ module Integrations::LlmInstrumentation
     instrument_agent_session_with_context(params, &)
   end
 
+  # rubocop:disable Metrics/CyclomaticComplexity, Metrics/MethodLength
   def instrument_agent_session_with_context(params)
-    return yield unless ChatwootApp.otel_enabled?
+    Llm::MeteringGuard.check!
+    provider_called = false
+    unless ChatwootApp.otel_enabled?
+      provider_called = true
+      return yield
+    end
 
     result = nil
     executed = false
@@ -49,6 +68,7 @@ module Integrations::LlmInstrumentation
 
         # By default, the input and output of a trace are set from the root observation
         span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, '[REDACTED]')
+        provider_called = true
         result = yield
         executed = true
         span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, '[REDACTED]')
@@ -57,9 +77,14 @@ module Integrations::LlmInstrumentation
       end
     end
   rescue StandardError => e
+    raise if e.is_a?(Llm::UnmeteredCall)
+
     ChatwootExceptionTracker.new(e, account: resolve_account(params)).capture_exception
+    raise if provider_called && !executed
+
     executed ? result : yield
   end
+  # rubocop:enable Metrics/CyclomaticComplexity, Metrics/MethodLength
 
   def instrument_tool_call(tool_name, _arguments)
     # There is no error handling because tools can fail and LLMs should be
@@ -110,3 +135,4 @@ module Integrations::LlmInstrumentation
     nil
   end
 end
+# rubocop:enable Metrics/ModuleLength
