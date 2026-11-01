@@ -212,6 +212,13 @@ RSpec.describe Account, type: :model do
     describe 'when the account is on a plan' do
       before { put_account_on_plan(account, monthly_messages: 100, max_documents: 50) }
 
+      it 'opens a usage period on first read for an older plan account without a usage row' do
+        account.account_plan_usages.destroy_all
+
+        expect(account.usage_limits.dig(:captain, :responses)).to include(consumed: 0, current_available: 100)
+        expect(account.account_plan_usages.open.count).to eq(1)
+      end
+
       it 'counts the responses of the current period against the plan' do
         account.increment_response_usage
 

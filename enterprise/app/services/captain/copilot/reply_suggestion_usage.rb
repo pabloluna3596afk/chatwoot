@@ -20,6 +20,9 @@ module Captain::Copilot::ReplySuggestionUsage
 
   def generate_metered_response(conversation, target_message)
     return persist_discarded_response unless target_message&.incoming?
+
+    entitlement = Llm::Entitlement.new(account: @account, feature: 'copilot').call
+    return { error: entitlement[:error], error_code: entitlement[:error_code] } unless entitlement[:allowed]
     return copilot_limit_response unless reserve_copilot_usage
 
     response, runner = generate_metered_reply(conversation, target_message)
@@ -29,8 +32,8 @@ module Captain::Copilot::ReplySuggestionUsage
   end
 
   def copilot_limit_response
-    reset_date = @account.current_usage_period.period_end.to_date
-    { error: I18n.t('captain.copilot_limit', reset_date: reset_date), error_code: 429 }
+    entitlement = Llm::Entitlement.new(account: @account, feature: 'copilot').call
+    { error: entitlement[:error], error_code: entitlement[:error_code] }
   end
 
   def generate_metered_reply(conversation, target_message)

@@ -907,20 +907,20 @@
       }
     },
     "PAYWALL": {
-      "TITLE": "Actualiza tu plan para usar Captain AI",
+      "TITLE": "Captain AI no está habilitado",
       "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
-      "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
-      "UPGRADE_NOW": "Actualizar ahora",
-      "CANCEL_ANYTIME": "Puedes cambiar o cancelar tu plan cuando quieras"
+      "UPGRADE_PROMPT": "Revisa el plan y las bolsas de IA de esta cuenta en la facturación.",
+      "UPGRADE_NOW": "Abrir facturación de la cuenta",
+      "CANCEL_ANYTIME": "Administra el plan de tu cuenta"
     },
     "ENTERPRISE_PAYWALL": {
       "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
-      "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
-      "ASK_ADMIN": "Contacta a tu administrador para hacer la actualización."
+      "UPGRADE_PROMPT": "Revisa el plan y las bolsas de IA de esta cuenta en la facturación.",
+      "ASK_ADMIN": "Pide al administrador de la cuenta que revise el plan y las bolsas de IA."
     },
     "BANNER": {
-      "RESPONSES": "Te estás acercando al límite de respuestas. Revisa tu plan y consumo.",
-      "DOCUMENTS": "Has alcanzado el límite de documentos. Revisa tu plan y consumo."
+      "RESPONSES": "Te acercas al límite de la bolsa de respuestas. Revisa tu plan y el consumo de bolsas de IA.",
+      "DOCUMENTS": "La bolsa de documentos está agotada. Revisa tu plan y el consumo de bolsas de IA."
     },
     "FORM": {
       "CANCEL": "Cancelar",
@@ -1735,16 +1735,16 @@
         "ERROR_MESSAGE": "No se pudo eliminar la herramienta personalizada"
       },
       "PAYWALL": {
-        "TITLE": "Actualiza tu plan para usar herramientas con Captain",
+        "TITLE": "Las herramientas de Captain no están habilitadas",
         "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
-        "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
+        "UPGRADE_PROMPT": "Revisa el plan y las bolsas de IA de esta cuenta en la facturación.",
         "UPGRADE_NOW": "Abrir facturación",
         "CANCEL_ANYTIME": ""
       },
       "ENTERPRISE_PAYWALL": {
         "AVAILABLE_ON": "Esta función no está habilitada para tu cuenta.",
-        "UPGRADE_PROMPT": "Revisa la disponibilidad de los planes y contacta a tu administrador para habilitar esta función.",
-        "ASK_ADMIN": "Contacta a tu administrador para hacer la actualización."
+        "UPGRADE_PROMPT": "Revisa el plan y las bolsas de IA de esta cuenta en la facturación.",
+        "ASK_ADMIN": "Pide al administrador de la cuenta que revise el plan y las bolsas de IA."
       },
       "TEST": {
         "BUTTON": "Probar conexión",

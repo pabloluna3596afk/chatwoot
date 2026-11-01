@@ -615,6 +615,7 @@ es:
     copilot_error: 'Conecte un asistente a esta bandeja de entrada para utilizar Copilot'
     internal_limit: 'Se alcanzó el límite mensual de acciones internas de IA. Esta acción de IA se omitió; puedes continuar manualmente.'
     copilot_limit: 'Se alcanzó el límite de Copilot. Las sugerencias se pausan hasta el %{reset_date}, cuando se reinicie tu plan; puedes seguir respondiendo manualmente.'
+    copilot_limit_no_date: 'Se alcanzó el límite de Copilot. Las sugerencias están en pausa; puedes seguir respondiendo manualmente.'
     usage_limit_warning:
       subject: 'El uso de %{bag} alcanzó el %{percent}% del límite del plan'
       message: 'La cuenta %{account_name} ha usado %{consumed} de %{limit} %{bag} en este período.'
@@ -622,7 +623,7 @@ es:
         responses: respuestas de Captain
         copilot: sugerencias de Copilot
         internal: acciones internas de IA
-    upgrade: 'Actualiza tu plan para habilitar Captain AI'
+    upgrade: 'Revisa el plan y las bolsas de IA en la facturación de esta cuenta para habilitar Captain AI.'
     disabled: 'Captain AI está deshabilitado para esta cuenta.'
     api_key_missing: 'La clave API de Captain AI no está configurada.'
     notes:

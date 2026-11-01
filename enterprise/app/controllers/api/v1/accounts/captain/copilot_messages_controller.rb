@@ -1,5 +1,6 @@
 class Api::V1::Accounts::Captain::CopilotMessagesController < Api::V1::Accounts::BaseController
-  before_action :ensure_captain_integration_enabled
+  before_action :ensure_captain_integration_enabled, only: :index
+  before_action :ensure_entitlement, only: :create
   before_action :set_copilot_thread
 
   def index
@@ -32,11 +33,17 @@ class Api::V1::Accounts::Captain::CopilotMessagesController < Api::V1::Accounts:
     params.permit(:page)
   end
 
-  private
-
   def ensure_captain_integration_enabled
-    return if Current.account.feature_enabled?('captain_integration')
+    decision = Llm::Entitlement.new(account: Current.account, feature: 'copilot').call
+    return unless decision[:reason] == :feature_disabled
 
-    render json: { error: 'Captain integration is not enabled for this account' }, status: :forbidden
+    render json: { error: decision[:error] }, status: decision[:error_code]
+  end
+
+  def ensure_entitlement
+    decision = Llm::Entitlement.new(account: Current.account, feature: 'copilot').call
+    return if decision[:allowed]
+
+    render json: { error: decision[:error] }, status: decision[:error_code]
   end
 end

@@ -22,6 +22,10 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  showBillingAction: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits(['upgrade']);
@@ -58,15 +62,18 @@ const { isAdmin } = useAdmin();
       <span v-if="isOnChatwootCloud && !isAdmin">
         {{ $t('GENERAL_SETTINGS.LIMIT_MESSAGES.NON_ADMIN') }}
       </span>
-      <span v-else-if="!isOnChatwootCloud && !isSuperAdmin">
+      <span v-else-if="!showBillingAction && !isOnChatwootCloud && !isSuperAdmin">
         {{ $t(`${featurePrefix}.ENTERPRISE_PAYWALL.ASK_ADMIN`) }}
       </span>
     </p>
-    <template v-if="isOnChatwootCloud && isAdmin">
+    <template v-if="(showBillingAction || isOnChatwootCloud) && isAdmin">
       <ButtonV4 blue solid md @click="emit('upgrade')">
         {{ $t(`${featurePrefix}.PAYWALL.UPGRADE_NOW`) }}
       </ButtonV4>
-      <span class="mt-2 text-xs tracking-tight text-center text-n-slate-11">
+      <span
+        v-if="isOnChatwootCloud && !showBillingAction"
+        class="mt-2 text-xs tracking-tight text-center text-n-slate-11"
+      >
         {{ $t(`${featurePrefix}.PAYWALL.CANCEL_ANYTIME`) }}
       </span>
     </template>

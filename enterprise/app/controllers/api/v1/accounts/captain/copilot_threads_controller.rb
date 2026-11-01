@@ -1,10 +1,11 @@
 class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::BaseController
   include Captain::Copilot::ConversationAccess
 
-  before_action :ensure_captain_integration_enabled
+  before_action :ensure_captain_integration_enabled, only: :index
   before_action :ensure_assistant_id, only: :create
   before_action :ensure_message, only: :create
   before_action :ensure_accessible_conversation, only: :create
+  before_action :ensure_entitlement, only: :create
 
   def index
     @copilot_threads = Current.account.copilot_threads
@@ -28,22 +29,11 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
         message: { content: copilot_thread_params[:message] }
       )
 
-      build_copilot_response(copilot_message)
+      enqueue_copilot_response(copilot_message)
     end
   end
 
   private
-
-  def build_copilot_response(copilot_message)
-    if Llm::Entitlement.new(account: Current.account, feature: 'copilot').call[:allowed]
-      enqueue_copilot_response(copilot_message)
-    else
-      copilot_message.copilot_thread.copilot_messages.create!(
-        message_type: :assistant,
-        message: { content: I18n.t('captain.copilot_limit', reset_date: Current.account.current_usage_period.period_end.to_date) }
-      )
-    end
-  end
 
   def enqueue_copilot_response(copilot_message)
     return enqueue_reply_suggestion if reply_suggestion?
@@ -105,6 +95,13 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
     decision = Llm::Entitlement.new(account: Current.account, feature: 'copilot').call
     return unless decision[:reason] == :feature_disabled
 
-    render json: { error: 'Captain integration is not enabled for this account' }, status: :forbidden
+    render json: { error: decision[:error] }, status: decision[:error_code]
+  end
+
+  def ensure_entitlement
+    decision = Llm::Entitlement.new(account: Current.account, feature: 'copilot').call
+    return if decision[:allowed]
+
+    render json: { error: decision[:error] }, status: decision[:error_code]
   end
 end

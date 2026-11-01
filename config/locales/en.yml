@@ -690,6 +690,7 @@ en:
     copilot_assistant_invalid: 'Invalid assistant id'
     copilot_error: 'Please connect an assistant to this inbox to use Copilot'
     copilot_limit: 'Your Copilot limit is reached. Suggestions are paused until %{reset_date}, when your plan resets; manual replies are still available.'
+    copilot_limit_no_date: 'Your Copilot limit is reached. Suggestions are paused; manual replies are still available.'
     internal_limit: 'The monthly limit for internal AI actions has been reached. This AI action was skipped; you can continue manually.'
     invalid_rewrite_operation: 'This rewrite operation is not supported.'
     conversation_not_found: 'Conversation not found.'
@@ -700,7 +701,7 @@ en:
         responses: Captain responses
         copilot: Copilot suggestions
         internal: internal AI actions
-    upgrade: 'Upgrade your plan to enable Captain AI'
+    upgrade: 'Review the account plan and AI bags in billing settings to enable Captain AI.'
     disabled: 'Captain AI is disabled for this account.'
     api_key_missing: 'Captain AI API key is not configured.'
     notes:
