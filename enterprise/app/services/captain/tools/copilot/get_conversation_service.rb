@@ -13,7 +13,7 @@ class Captain::Tools::Copilot::GetConversationService < Captain::Tools::BaseTool
     return 'Conversation not found' if conversation.blank?
 
     conversation.to_llm_text(
-      include_private_messages: true,
+      include_private_messages: false,
       message_limit: Captain::Copilot::Limits::CONVERSATION_MESSAGES,
       token_limit: Captain::Copilot::Limits::CONVERSATION_CHARACTERS
     ).gsub(/\+\d+ earlier messages not included/, '[transcripción recortada]')

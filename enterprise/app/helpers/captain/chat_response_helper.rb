@@ -4,7 +4,7 @@ module Captain::ChatResponseHelper
   private
 
   def build_response(response)
-    Rails.logger.debug { "#{self.class.name} Assistant: #{@assistant.id}, Received response #{response}" }
+    Rails.logger.debug { "#{self.class.name} Assistant: #{@assistant.id}, Received response (#{response.content.to_s.length} chars)" }
 
     parsed = parse_json_response(response.content)
     apply_credit_usage_metadata(parsed)
@@ -18,7 +18,7 @@ module Captain::ChatResponseHelper
     content = content.strip
     JSON.parse(content)
   rescue JSON::ParserError => e
-    Rails.logger.error "#{self.class.name} Assistant: #{@assistant.id}, Error parsing JSON response: #{e.message}"
+    Rails.logger.error "#{self.class.name} Assistant: #{@assistant.id}, Error parsing JSON response (#{e.class})"
     first_json_object(content) || { 'content' => content }
   end
 
@@ -41,7 +41,7 @@ module Captain::ChatResponseHelper
       credit_used_for_response?(parsed_response).to_s
     )
   rescue StandardError => e
-    Rails.logger.warn "#{self.class.name} Assistant: #{@assistant.id}, Failed to set credit usage metadata: #{e.message}"
+    Rails.logger.warn "#{self.class.name} Assistant: #{@assistant.id}, Failed to set credit usage metadata (#{e.class})"
   end
 
   def credit_used_for_response?(parsed_response)

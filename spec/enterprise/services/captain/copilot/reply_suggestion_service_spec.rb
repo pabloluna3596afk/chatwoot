@@ -304,11 +304,38 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
       allow(tracer).to receive(:in_span).and_yield(span)
     end
 
+    around do |example|
+      with_modified_env('LANGFUSE_CAPTURE_CONTENT' => nil) { example.run }
+    end
+
     it 'records a successful suggestion as not discarded and charged' do
       service.generate_response
 
       expect(span).to have_received(:set_attribute).with('langfuse.trace.metadata.discarded', 'false')
       expect(span).to have_received(:set_attribute).with('langfuse.trace.metadata.credit_used', 'true')
+    end
+
+    it 'redacts generated customer text from traces by default' do
+      secret_response = response.merge('response' => 'SECRETO-XYZ-123',
+                                       'response_parts' => [{ 'text' => 'SECRETO-XYZ-123', 'citation_indexes' => [] }])
+      allow(runner).to receive(:generate_response).and_return(secret_response)
+
+      service.generate_response
+
+      expect(span).to have_received(:set_attribute).with(
+        'langfuse.trace.output', Integrations::LlmInstrumentationHelpers.instrumentation_content(secret_response.to_json)
+      )
+      expect(span).not_to have_received(:set_attribute).with('langfuse.trace.output', include('SECRETO-XYZ-123'))
+    end
+
+    it 'captures generated customer text only when explicitly enabled' do
+      secret_response = response.merge('response' => 'SECRETO-XYZ-123',
+                                       'response_parts' => [{ 'text' => 'SECRETO-XYZ-123', 'citation_indexes' => [] }])
+      allow(runner).to receive(:generate_response).and_return(secret_response)
+
+      with_modified_env('LANGFUSE_CAPTURE_CONTENT' => 'true') { service.generate_response }
+
+      expect(span).to have_received(:set_attribute).with('langfuse.trace.output', secret_response.to_json)
     end
 
     it 'records a stale suggestion as discarded and not charged' do

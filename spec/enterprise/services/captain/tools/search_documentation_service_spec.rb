@@ -62,7 +62,7 @@ RSpec.describe Captain::Tools::SearchDocumentationService do
         expect(service.execute(query: question)).to eq('No FAQs found for the given query')
       end
 
-      it 'logs only the query length and digest' do
+      it 'logs only the query length' do
         private_query = 'customer@example.invalid asks for account deletion'
         translator = instance_double(Captain::Llm::TranslateQueryService, translate: private_query)
         allow(Captain::Llm::TranslateQueryService).to receive(:new).and_return(translator)
@@ -76,9 +76,30 @@ RSpec.describe Captain::Tools::SearchDocumentationService do
 
         service.execute(query: private_query)
 
-        expect(log_messages.join).to include("query_length=#{private_query.length}", Digest::SHA256.hexdigest(private_query))
+        expect(log_messages.join).to include("query_length=#{private_query.length}")
         expect(log_messages.join).not_to include(private_query, 'customer@example.invalid')
       end
+    end
+  end
+
+  describe 'SearchReplyDocumentationService logging' do
+    it 'logs query length without query text' do
+      private_query = 'SECRETO-XYZ-123'
+      reply_service = Captain::Tools::SearchReplyDocumentationService.new(account: assistant.account, assistant: assistant)
+      translator = instance_double(Captain::Llm::TranslateQueryService, translate: private_query)
+      approved_responses = assistant.responses.approved
+      allow(Captain::Llm::TranslateQueryService).to receive(:new).and_return(translator)
+      allow(approved_responses).to receive(:search).with(private_query, account_id: assistant.account.id).and_return([])
+      allow(assistant.responses).to receive(:approved).and_return(approved_responses)
+      log_messages = []
+      allow(Rails.logger).to receive(:info) do |message = nil, &block|
+        log_messages << (block ? block.call : message)
+      end
+
+      reply_service.method(:execute).super_method.call(query: private_query)
+
+      expect(log_messages.join).to include("query_length=#{private_query.length}")
+      expect(log_messages.join).not_to include(private_query)
     end
   end
 end

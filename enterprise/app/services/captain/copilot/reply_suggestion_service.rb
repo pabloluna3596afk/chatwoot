@@ -160,7 +160,7 @@ class Captain::Copilot::ReplySuggestionService
 
     OpentelemetryConfig.tracer.in_span(TRACE_NAME, attributes: trace_attributes(conversation, target_message)) do |span|
       response = yield
-      span.set_attribute(ATTR_LANGFUSE_TRACE_OUTPUT, response.to_json)
+      span.set_attribute(ATTR_LANGFUSE_TRACE_OUTPUT, Integrations::LlmInstrumentationHelpers.instrumentation_content(response.to_json))
       response
     ensure
       write_final_trace_metadata(span)

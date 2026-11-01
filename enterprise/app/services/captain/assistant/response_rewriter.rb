@@ -1,5 +1,6 @@
 require 'agents'
 require 'agents/instrumentation'
+require_relative 'trace_content_redaction'
 
 class Captain::Assistant::ResponseRewriter
   include Integrations::LlmInstrumentationConstants

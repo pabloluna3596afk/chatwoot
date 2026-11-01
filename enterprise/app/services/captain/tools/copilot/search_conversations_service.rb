@@ -139,7 +139,7 @@ class Captain::Tools::Copilot::SearchConversationsService < Captain::Tools::Base
                 "last_activity_at: #{conversation.last_activity_at&.iso8601}"].join(' | ')
     text = conversation.to_llm_text(
       include_contact_details: true,
-      include_private_messages: true,
+      include_private_messages: false,
       message_limit: Captain::Copilot::Limits::SEARCH_MESSAGES,
       token_limit: Captain::Copilot::Limits::SEARCH_MESSAGE_CHARACTERS
     )
