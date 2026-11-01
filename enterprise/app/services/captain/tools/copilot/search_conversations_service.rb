@@ -134,7 +134,7 @@ class Captain::Tools::Copilot::SearchConversationsService < Captain::Tools::Base
     inbox = conversation.inbox&.name || 'No inbox'
     metadata = ["Conversation ##{conversation.display_id}", "status: #{conversation.status}", "inbox: #{inbox}",
                 "last_activity_at: #{conversation.last_activity_at&.iso8601}"].join(' | ')
-    "#{metadata}\n#{conversation.to_llm_text(include_contact_details: true, include_private_messages: true)}"
+    "#{metadata}\n#{conversation.to_llm_text(include_contact_details: true, include_private_messages: false)}"
   end
 
   def get_conversations(filters)

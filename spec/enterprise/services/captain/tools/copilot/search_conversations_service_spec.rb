@@ -98,6 +98,12 @@ RSpec.describe Captain::Tools::Copilot::SearchConversationsService do
       expect(result).to include(resolved_conversation.to_llm_text(include_contact_details: true))
     end
 
+    it 'excludes private notes from conversation results' do
+      create(:message, conversation: open_conversation, private: true, content: 'SECRETO-XYZ-123')
+
+      expect(service.execute).not_to include('SECRETO-XYZ-123')
+    end
+
     it 'orders recent conversations deterministically and defaults to ten results' do
       open_conversation.update!(last_activity_at: 2.days.ago)
       resolved_conversation.update!(last_activity_at: 1.day.ago)

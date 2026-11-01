@@ -16,7 +16,7 @@ class Captain::Tools::SearchReplyDocumentationService < RubyLLM::Tool
   end
 
   def execute(query:)
-    Rails.logger.info { "#{self.class.name}: #{query}" }
+    Rails.logger.info { "#{self.class.name}: query_length=#{query.to_s.length}" }
 
     translated_query = Captain::Llm::TranslateQueryService
                        .new(account: @account)

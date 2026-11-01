@@ -33,6 +33,10 @@ RSpec.describe Integrations::LlmInstrumentation do
     end
   end
 
+  around do |example|
+    with_modified_env('LANGFUSE_CAPTURE_CONTENT' => nil) { example.run }
+  end
+
   describe '#instrument_llm_call' do
     context 'when OTEL provider is not configured' do
       before { otel_config.update(value: '') }
@@ -165,9 +169,28 @@ RSpec.describe Integrations::LlmInstrumentation do
         instance.instrument_llm_call(custom_params) { 'result' }
 
         expect(mock_span).to have_received(:set_attribute).with('gen_ai.prompt.0.role', 'system')
-        expect(mock_span).to have_received(:set_attribute).with('gen_ai.prompt.0.content', '[REDACTED]')
+        expect(mock_span).to have_received(:set_attribute).with(
+          'gen_ai.prompt.0.content', Integrations::LlmInstrumentationHelpers.instrumentation_content('You are a helpful assistant')
+        )
         expect(mock_span).to have_received(:set_attribute).with('gen_ai.prompt.1.role', 'user')
-        expect(mock_span).to have_received(:set_attribute).with('gen_ai.prompt.1.content', '[REDACTED]')
+        expect(mock_span).to have_received(:set_attribute).with(
+          'gen_ai.prompt.1.content', Integrations::LlmInstrumentationHelpers.instrumentation_content('Hello')
+        )
+      end
+
+      it 'captures prompt content only when explicitly enabled' do
+        mock_span = instance_double(OpenTelemetry::Trace::Span)
+        allow(mock_span).to receive(:set_attribute)
+        allow(mock_span).to receive(:status=)
+        mock_tracer = instance_double(OpenTelemetry::Trace::Tracer)
+        allow(instance).to receive(:tracer).and_return(mock_tracer)
+        allow(mock_tracer).to receive(:in_span).and_yield(mock_span)
+
+        with_modified_env('LANGFUSE_CAPTURE_CONTENT' => 'true') do
+          instance.instrument_llm_call(params.merge(messages: [{ role: 'user', content: 'SECRETO-XYZ-123' }])) { 'result' }
+        end
+
+        expect(mock_span).to have_received(:set_attribute).with('gen_ai.prompt.0.content', 'SECRETO-XYZ-123')
       end
 
       it 'sets correct metadata attributes' do
@@ -203,7 +226,9 @@ RSpec.describe Integrations::LlmInstrumentation do
 
         expect(result).to eq({ message: 'AI response here' })
         expect(mock_span).to have_received(:set_attribute).with('gen_ai.completion.0.role', 'assistant')
-        expect(mock_span).to have_received(:set_attribute).with('gen_ai.completion.0.content', '[REDACTED]')
+        expect(mock_span).to have_received(:set_attribute).with(
+          'gen_ai.completion.0.content', Integrations::LlmInstrumentationHelpers.instrumentation_content('AI response here')
+        )
       end
 
       it 'sets usage metrics when result contains usage data' do
@@ -306,8 +331,12 @@ RSpec.describe Integrations::LlmInstrumentation do
           result_data = { content: 'AI response' }
           instance.instrument_agent_session(params) { result_data }
 
-          expect(mock_span).to have_received(:set_attribute).with('langfuse.observation.input', '[REDACTED]')
-          expect(mock_span).to have_received(:set_attribute).with('langfuse.observation.output', '[REDACTED]')
+          expect(mock_span).to have_received(:set_attribute).with(
+            'langfuse.observation.input', Integrations::LlmInstrumentationHelpers.instrumentation_content(params[:messages].to_json)
+          )
+          expect(mock_span).to have_received(:set_attribute).with(
+            'langfuse.observation.output', Integrations::LlmInstrumentationHelpers.instrumentation_content({ content: 'AI response' }.to_json)
+          )
         end
 
         it 'propagates trace attributes as observation metadata to child tool spans' do

@@ -113,7 +113,7 @@ RSpec.describe Captain::Tools::Copilot::GetConversationService do
         expect(result).to include('UNTRUSTED_DATA_BEGIN', conversation.to_llm_text, 'UNTRUSTED_DATA_END')
       end
 
-      it 'includes private messages in the llm text format' do
+      it 'excludes private messages from the llm text format' do
         # Create a regular message
         create(:message,
                conversation: conversation,
@@ -130,10 +130,10 @@ RSpec.describe Captain::Tools::Copilot::GetConversationService do
 
         result = service.execute(conversation_id: conversation.display_id)
 
-        # Verify that the result includes both regular and private messages
+        # Only public conversation messages are supplied to the model.
         expect(result).to include('Regular message')
-        expect(result).to include('Private note content')
-        expect(result).to include('[Private Note]')
+        expect(result).not_to include('Private note content')
+        expect(result).not_to include('[Private Note]')
       end
 
       context 'when conversation belongs to different account' do

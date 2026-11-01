@@ -35,4 +35,31 @@ RSpec.describe Captain::ChatResponseHelper do
   it 'falls back to the raw text when there is no valid JSON' do
     expect(helper.parse('Hola, no es JSON')).to eq('content' => 'Hola, no es JSON')
   end
+
+  it 'logs response size without logging response content' do
+    host.class_eval do
+      def build(response)
+        build_response(response)
+      end
+
+      private
+
+      def parse_json_response(_content) = { 'content' => 'SECRETO-XYZ-123' }
+
+      def apply_credit_usage_metadata(_parsed); end
+
+      def persist_message(_parsed, _role); end
+
+      def captain_v1_assistant? = false
+    end
+    log_messages = []
+    allow(Rails.logger).to receive(:debug) { |&block| log_messages << block.call }
+    allow(Rails.logger).to receive(:error)
+    response = instance_double(RubyLLM::Message, content: 'SECRETO-XYZ-123')
+
+    helper.build(response)
+
+    expect(log_messages.join).to include('Received response (15 chars)')
+    expect(log_messages.join).not_to include('SECRETO-XYZ-123')
+  end
 end

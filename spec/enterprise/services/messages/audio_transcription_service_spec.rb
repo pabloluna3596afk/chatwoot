@@ -66,8 +66,11 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
       end
 
       it 'returns successful transcription' do
+        allow(Rails.logger).to receive(:info)
         result = service.perform
         expect(result).to eq({ success: true, transcriptions: 'Hello world transcription' })
+        expect(Rails.logger).to have_received(:info).with('Audio transcription successful (25 chars)')
+        expect(Rails.logger).not_to have_received(:info).with(include('Hello world transcription'))
       end
     end
 
