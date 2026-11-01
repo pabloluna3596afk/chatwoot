@@ -31,7 +31,11 @@ class Llm::Entitlement
     return if reason.nil?
     return 'Captain integration is not enabled for this account' if reason == :feature_disabled
 
-    I18n.t('captain.copilot_limit', reset_date: @account.current_usage_period.period_end.to_date)
+    # Accounts without a billing period (self-hosted, legacy) have no reset date to show.
+    period_end = @account.current_usage_period&.period_end
+    return I18n.t('captain.copilot_limit_no_date') if period_end.nil?
+
+    I18n.t('captain.copilot_limit', reset_date: period_end.to_date)
   end
 
   private

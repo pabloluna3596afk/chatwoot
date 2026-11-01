@@ -55,4 +55,14 @@ RSpec.describe Llm::Entitlement do
       allowed: true, reason: nil, bucket: :captain_responses, remaining: 4, required_gate: 'captain_tasks'
     )
   end
+
+  it 'explains an exhausted allowance without a billing period instead of raising' do
+    allow(account).to receive(:feature_enabled?).with('captain_tasks').and_return(true)
+    allow(account).to receive(:usage_limits).and_return(captain: { responses: { current_available: 0 } })
+    allow(account).to receive(:current_usage_period).and_return(nil)
+
+    expect(described_class.new(account: account, feature: 'summarize').call).to include(
+      allowed: false, reason: :usage_limit_reached, error_code: 429, error: I18n.t('captain.copilot_limit_no_date')
+    )
+  end
 end
