@@ -144,7 +144,7 @@ RSpec.describe Captain::Tools::Copilot::SearchConversationsService do
     it 'passes the shared transcript limits for each search result' do
       expect(open_conversation).to receive(:to_llm_text).with(
         include_contact_details: true,
-        include_private_messages: true,
+        include_private_messages: false,
         message_limit: Captain::Copilot::Limits::SEARCH_MESSAGES,
         token_limit: Captain::Copilot::Limits::SEARCH_MESSAGE_CHARACTERS
       ).and_return('bounded transcript')
