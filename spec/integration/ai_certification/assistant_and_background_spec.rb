@@ -227,10 +227,14 @@ RSpec.describe AiCertification::AssistantAndBackground do
 
   # rubocop:disable Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
   def scenario_exclusion(flow, scenario, limited)
+    # These rows are intentionally excluded for every quota-limited response flow: Plan.monthly_messages is NOT NULL,
+    # so captain_responses cannot exercise NULL-as-unlimited. NULL sharing is a Copilot-specific bucket contract.
     if scenario == 'null_bucket' && limited && flow[:bucket] == :captain_responses
       return result_row('EXCLUDED', 'response pool cannot be NULL on a plan',
                         'Plan.monthly_messages is NOT NULL; NULL semantics apply to Copilot sharing or internal unlimited usage.')
     end
+    # These rows are excluded only for measure_only services. Entitlement has no quota gate to exhaust or disable,
+    # and no reservation receipt exists to race for a final credit; adding a quota would change their billing contract.
     if %w[exhausted no_flag_or_plan].include?(scenario) && !limited
       return result_row('EXCLUDED', 'scenario requires a quota-enforced flow',
                         "#{flow[:feature]} is measure_only; it has no quota gate to exhaust or disable.")
@@ -239,11 +243,15 @@ RSpec.describe AiCertification::AssistantAndBackground do
       return result_row('EXCLUDED', 'one-cup concurrency contract',
                         "#{flow[:feature]} is measure_only and creates no reservation receipt, so it cannot race for a quota cup.")
     end
+    # These rows ask for JSON normalization from consumers whose public service result is text, vector, audio, or a
+    # moderation decision. Parsing JSON here would test a different contract and could corrupt the consumer output.
     if scenario == 'malformed_or_duplicate_json' && !json_flow?(flow)
       return result_row('EXCLUDED', 'provider response contract',
                         "#{flow[:feature]} consumes unstructured text, vectors, audio, or moderation output; " \
                         'JSON parsing is not part of this flow.')
     end
+    # EmbeddingService treats blank input as a local no-op and returns [] before opening UsageContext or calling the
+    # provider. There is no provider-produced empty response to meter for this service contract.
     return unless scenario == 'empty_response' && flow[:contract] == :embedding
 
     result_row('EXCLUDED', 'embedding input contract',
