@@ -4,7 +4,14 @@ RSpec.describe CopilotThread, type: :model do
   describe 'associations' do
     it { is_expected.to belong_to(:user) }
     it { is_expected.to belong_to(:account) }
-    it { is_expected.to belong_to(:assistant).class_name('Captain::Assistant') }
+
+    it 'belongs to Captain::Assistant' do
+      reflection = described_class.reflect_on_association(:assistant)
+
+      expect(reflection.macro).to eq(:belongs_to)
+      expect(reflection.class_name).to eq('Captain::Assistant')
+    end
+
     it { is_expected.to have_many(:copilot_messages).dependent(:destroy_async) }
   end
 

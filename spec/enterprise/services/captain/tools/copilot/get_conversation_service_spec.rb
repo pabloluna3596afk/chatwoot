@@ -114,6 +114,7 @@ RSpec.describe Captain::Tools::Copilot::GetConversationService do
       end
 
       it 'passes the shared transcript limits to the formatter' do
+        allow(service).to receive(:accessible_conversation).and_return(conversation)
         expect(conversation).to receive(:to_llm_text).with(
           include_private_messages: true,
           message_limit: Captain::Copilot::Limits::CONVERSATION_MESSAGES,
