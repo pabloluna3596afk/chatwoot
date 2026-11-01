@@ -14,7 +14,7 @@ module Captain::ChatGenerationRecorder
       set_generation_span_attributes(span, chat, message)
     end
   rescue StandardError => e
-    Rails.logger.warn "Failed to record LLM generation: #{e.message}"
+    Rails.logger.warn "Failed to record LLM generation (#{e.class})"
   end
 
   # Skip non-LLM messages (e.g., tool results that RubyLLM processes internally).
@@ -38,10 +38,18 @@ module Captain::ChatGenerationRecorder
       ATTR_GEN_AI_REQUEST_TEMPERATURE => temperature,
       ATTR_GEN_AI_USAGE_INPUT_TOKENS => tokens.input,
       ATTR_GEN_AI_USAGE_OUTPUT_TOKENS => tokens.output,
-      ATTR_LANGFUSE_OBSERVATION_INPUT => format_input_messages(chat),
-      ATTR_LANGFUSE_OBSERVATION_OUTPUT => message.respond_to?(:content) ? message.content.to_s : nil,
+      ATTR_LANGFUSE_OBSERVATION_INPUT => Integrations::LlmInstrumentationHelpers.instrumentation_content(
+        format_input_messages(chat)
+      ),
+      ATTR_LANGFUSE_OBSERVATION_OUTPUT => generation_output(message),
       format(ATTR_LANGFUSE_OBSERVATION_METADATA, 'generation_stage') => generation_stage(message)
     }
+  end
+
+  def generation_output(message)
+    return unless message.respond_to?(:content)
+
+    Integrations::LlmInstrumentationHelpers.instrumentation_content(message.content)
   end
 
   def format_input_messages(chat)

@@ -23,7 +23,7 @@ module Captain::Assistant::RunnerCallbacksHelper
     runner.on_agent_thinking do |*args|
       @callbacks[:on_agent_thinking].call(*args)
     rescue StandardError => e
-      Rails.logger.warn "[Captain] Callback error for agent_thinking: #{e.message}"
+      Rails.logger.warn "[Captain] Callback error for agent_thinking: #{e.class}"
     end
   end
 
@@ -31,7 +31,7 @@ module Captain::Assistant::RunnerCallbacksHelper
     runner.on_tool_start do |*args|
       @callbacks[:on_tool_start].call(*args)
     rescue StandardError => e
-      Rails.logger.warn "[Captain] Callback error for tool_start: #{e.message}"
+      Rails.logger.warn "[Captain] Callback error for tool_start: #{e.class}"
     end
   end
 
@@ -39,7 +39,7 @@ module Captain::Assistant::RunnerCallbacksHelper
     runner.on_tool_complete do |*args|
       @callbacks[:on_tool_complete].call(*args)
     rescue StandardError => e
-      Rails.logger.warn "[Captain] Callback error for tool_complete: #{e.message}"
+      Rails.logger.warn "[Captain] Callback error for tool_complete: #{e.class}"
     end
   end
 
@@ -47,7 +47,7 @@ module Captain::Assistant::RunnerCallbacksHelper
     runner.on_agent_handoff do |*args|
       @callbacks[:on_agent_handoff].call(*args)
     rescue StandardError => e
-      Rails.logger.warn "[Captain] Callback error for agent_handoff: #{e.message}"
+      Rails.logger.warn "[Captain] Callback error for agent_handoff: #{e.class}"
     end
   end
 end

@@ -302,10 +302,12 @@ RSpec.describe Captain::Assistant::AgentRunnerService do
         service.generate_response(message_history: history_with_prior_image)
       end
 
-      it 'stores multimodal trace payloads in runner context' do
+      it 'redacts multimodal trace payloads in runner context' do
         expect(mock_runner).to receive(:run) do |_input, context:, max_turns:|
-          expect(context[:captain_v2_trace_input]).to include('image_url')
-          expect(context[:captain_v2_trace_current_input]).to include('image_url')
+          expect(context[:captain_v2_trace_input]).to include('[REDACTED]', 'chars')
+          expect(context[:captain_v2_trace_current_input]).to include('[REDACTED]', 'chars')
+          expect(context[:captain_v2_trace_input]).not_to include('image_url', 'example.com/error.png')
+          expect(context[:captain_v2_trace_current_input]).not_to include('image_url', 'example.com/error.png')
           expect(max_turns).to eq(10)
         end
 
@@ -581,8 +583,8 @@ RSpec.describe Captain::Assistant::AgentRunnerService do
                              })
       end
 
-      it 'logs error details' do
-        expect(Rails.logger).to receive(:error).with('[Captain V2] AgentRunnerService error: Test error')
+      it 'logs the error class without the exception message' do
+        expect(Rails.logger).to receive(:error).with('[Captain V2] AgentRunnerService error: StandardError')
         expect(Rails.logger).to receive(:error).with(kind_of(String))
 
         service.generate_response(message_history: message_history)
