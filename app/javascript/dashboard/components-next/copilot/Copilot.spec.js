@@ -93,4 +93,63 @@ describe('Copilot', () => {
 
     expect(wrapper.text()).toContain('CAPTAIN.COPILOT.TYPING');
   });
+
+  it('scrolls to the latest restored message when the thread loads', async () => {
+    const wrapper = mountWith({ messages: [] });
+    const chat = wrapper.get('.overflow-y-auto').element;
+    Object.defineProperties(chat, {
+      scrollHeight: { configurable: true, value: 500 },
+      clientHeight: { configurable: true, value: 200 },
+    });
+
+    await wrapper.setProps({
+      messages: [
+        {
+          id: 1,
+          message_type: 'assistant',
+          created_at: 1,
+          message: { content: 'Restored answer' },
+        },
+      ],
+    });
+    await wrapper.vm.$nextTick();
+
+    expect(chat.scrollTop).toBe(500);
+  });
+
+  it('keeps the reader position when new messages arrive above the viewport', async () => {
+    const wrapper = mountWith({
+      messages: [
+        {
+          id: 1,
+          message_type: 'assistant',
+          created_at: 1,
+          message: { content: 'Earlier answer' },
+        },
+      ],
+    });
+    const chat = wrapper.get('.overflow-y-auto').element;
+    Object.defineProperties(chat, {
+      scrollHeight: { configurable: true, value: 500 },
+      clientHeight: { configurable: true, value: 200 },
+    });
+    await wrapper.vm.$nextTick();
+    chat.scrollTop = 0;
+    await wrapper.get('.overflow-y-auto').trigger('scroll');
+
+    await wrapper.setProps({
+      messages: [
+        ...wrapper.props('messages'),
+        {
+          id: 2,
+          message_type: 'assistant',
+          created_at: 2,
+          message: { content: 'New answer' },
+        },
+      ],
+    });
+
+    expect(chat.scrollTop).toBe(0);
+    expect(wrapper.text()).toContain('CAPTAIN.COPILOT.NEW_MESSAGES');
+  });
 });

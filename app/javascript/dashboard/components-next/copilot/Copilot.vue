@@ -143,7 +143,7 @@ watch(
     if (isNearBottom.value) scrollToBottom();
     else newMessageCount.value += 1;
   },
-  { deep: true }
+  { deep: true, immediate: true }
 );
 watch(
   () => props.actionItems.length,
