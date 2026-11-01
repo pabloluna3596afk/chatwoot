@@ -7,15 +7,15 @@ RSpec.describe Captain::Tools::Copilot::SummarizeConversationService do
   let(:conversation) { create(:conversation, account: account) }
   let(:service) { described_class.new(assistant, user: user) }
 
-  it 'returns authorized messages with source references and marks private notes' do
+  it 'returns authorized public messages with source references and excludes private notes' do
     public_message = create(:message, conversation: conversation, content: 'Public response', sender: conversation.contact)
     private_message = create(:message, conversation: conversation, content: 'Private internal note', private: true, sender: user)
 
     result = service.execute(conversation_id: conversation.display_id)
 
     expect(result).to include('UNTRUSTED_DATA_BEGIN', 'UNTRUSTED_DATA_END', "message_id=#{public_message.id}",
-                              public_message.created_at.iso8601, 'Public response', "message_id=#{private_message.id}",
-                              '[PRIVATE NOTE]', 'Private internal note')
+                              public_message.created_at.iso8601, 'Public response')
+    expect(result).not_to include("message_id=#{private_message.id}", '[PRIVATE NOTE]', 'Private internal note')
   end
 
   it 'rejects a conversation outside the user scope and another account' do
