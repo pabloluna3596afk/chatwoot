@@ -16,7 +16,7 @@ import ButtonV4 from 'next/button/Button.vue';
 const route = useRoute();
 const router = useRouter();
 const store = useStore();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const { replaceInstallationName } = useBranding();
 
 const summary = ref(null);
@@ -60,7 +60,7 @@ const actionLabel = computed(() => {
 const formattedPrice = computed(() => {
   if (summary.value?.amount == null || !summary.value?.currency) return '';
 
-  return new Intl.NumberFormat(undefined, {
+  return new Intl.NumberFormat(locale.value, {
     style: 'currency',
     currency: summary.value.currency,
   }).format(Number(summary.value.amount));
