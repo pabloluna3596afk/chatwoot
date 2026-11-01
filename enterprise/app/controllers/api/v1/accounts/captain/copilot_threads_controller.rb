@@ -4,6 +4,7 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
   before_action :ensure_captain_integration_enabled, only: :index
   before_action :ensure_assistant_id, only: :create
   before_action :ensure_message, only: :create
+  before_action :ensure_message_length, only: :create
   before_action :ensure_accessible_conversation, only: :create
   before_action :ensure_entitlement, only: :create
 
@@ -52,6 +53,13 @@ class Api::V1::Accounts::Captain::CopilotThreadsController < Api::V1::Accounts::
 
   def ensure_message
     return render_could_not_create_error(I18n.t('captain.copilot_message_required')) if copilot_thread_params[:message].blank?
+  end
+
+  def ensure_message_length
+    message = copilot_thread_params[:message]
+    return if message.is_a?(String) && message.length <= Captain::Copilot::Limits::USER_MESSAGE_CHARACTERS
+
+    render_could_not_create_error(I18n.t('captain.copilot_message_too_long'))
   end
 
   def ensure_assistant_id
