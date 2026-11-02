@@ -14,9 +14,19 @@ const props = defineProps({
   plans: { type: Array, required: true },
 });
 const { t } = useI18n();
-const { rows, features, value } = usePlanPresentation();
+const {
+  rows,
+  features,
+  baseFeatures,
+  limitValue,
+  value,
+  money,
+  pricing,
+  isIncluded,
+} = usePlanPresentation();
 const limitRows = computed(() => rows(props.plans));
 const featureRows = computed(() => features(props.plans));
+const baseFeatureRows = computed(() => baseFeatures(props.plans));
 </script>
 
 <template>
@@ -68,19 +78,12 @@ const featureRows = computed(() => features(props.plans));
           </tr>
         </thead>
         <tbody>
-          <tr v-for="row in limitRows" :key="row.key">
+          <tr>
             <th
               scope="row"
-              class="sticky start-0 z-10 border-b border-n-weak bg-n-solid-1 p-4 text-start font-normal dark:bg-n-solid-3"
+              class="sticky start-0 z-10 border-b border-n-weak bg-n-solid-1 p-4 text-start font-medium dark:bg-n-solid-3"
             >
-              <div class="flex items-center gap-2">
-                <div
-                  :class="row.icon"
-                  class="size-4 shrink-0"
-                  aria-hidden="true"
-                />
-                {{ row.label }}
-              </div>
+              {{ t('PLAN_CATALOG.PRICE') }}
             </th>
             <td
               v-for="plan in plans"
@@ -88,7 +91,84 @@ const featureRows = computed(() => features(props.plans));
               class="border-b border-n-weak p-4 text-center"
               :class="{ 'bg-n-blue-3': matchesPlan(plan, currentPlanId) }"
             >
-              {{ value(row.key, plan.limits[row.key]) }}
+              <div class="font-semibold">
+                <template v-if="pricing(plan).monthly > 0">
+                  {{ money(pricing(plan).monthly) }}
+                </template>
+                <template v-else>
+                  {{ t('PLAN_CATALOG.FREE') }}
+                </template>
+                <span
+                  v-if="pricing(plan).monthly > 0"
+                  class="font-normal text-n-slate-11"
+                >
+                  {{ t('PLAN_CATALOG.PER_MONTH') }}
+                </span>
+              </div>
+              <div
+                v-if="pricing(plan).monthly > 0"
+                class="mt-1 text-xs text-n-slate-11"
+              >
+                {{
+                  t('PLAN_CATALOG.ANNUAL_PRICE', {
+                    price: money(pricing(plan).annual),
+                  })
+                }}
+              </div>
+            </td>
+          </tr>
+          <tr v-for="row in limitRows" :key="row.key">
+            <th
+              scope="row"
+              class="sticky start-0 z-10 border-b border-n-weak bg-n-solid-1 p-4 text-start font-normal dark:bg-n-solid-3"
+            >
+              {{ row.label }}
+            </th>
+            <td
+              v-for="plan in plans"
+              :key="plan.id"
+              class="border-b border-n-weak p-4 text-center"
+              :class="{ 'bg-n-blue-3': matchesPlan(plan, currentPlanId) }"
+            >
+              <template v-if="isIncluded(limitValue(plan, row.key))">
+                {{ value(row.key, limitValue(plan, row.key)) }}
+              </template>
+              <span v-else class="inline-flex items-center justify-center">
+                <span
+                  class="i-lucide-x size-4 text-n-slate-8"
+                  aria-hidden="true"
+                />
+                <span class="sr-only">{{
+                  t('PLAN_CATALOG.NOT_INCLUDED')
+                }}</span>
+              </span>
+            </td>
+          </tr>
+          <tr v-if="baseFeatureRows.length" data-testid="base-capabilities-row">
+            <th
+              scope="row"
+              class="sticky start-0 z-10 border-b border-n-weak bg-n-solid-1 p-4 text-start font-medium dark:bg-n-solid-3"
+            >
+              <div>{{ t('PLAN_CATALOG.BASE_FEATURES') }}</div>
+              <ul
+                class="m-0 mt-2 list-none space-y-1 p-0 text-xs font-normal text-n-slate-11"
+              >
+                <li v-for="feature in baseFeatureRows" :key="feature">
+                  {{ t(`PLAN_CATALOG.FEATURES.${feature}`) }}
+                </li>
+              </ul>
+            </th>
+            <td
+              v-for="plan in plans"
+              :key="plan.id"
+              class="border-b border-n-weak p-4 text-center"
+              :class="{ 'bg-n-blue-3': matchesPlan(plan, currentPlanId) }"
+            >
+              <span
+                class="i-lucide-check size-4 text-n-slate-10"
+                aria-hidden="true"
+              />
+              <span class="sr-only">{{ t('PLAN_CATALOG.INCLUDED') }}</span>
             </td>
           </tr>
           <tr
@@ -115,22 +195,25 @@ const featureRows = computed(() => features(props.plans));
               class="border-b border-n-weak p-4 text-center"
               :class="{ 'bg-n-blue-3': matchesPlan(plan, currentPlanId) }"
             >
-              <div
+              <span
                 v-if="plan.feature_keys.includes(feature)"
-                class="i-lucide-check inline-block size-5 text-n-blue-11"
-                aria-hidden="true"
-              />
-              <div
-                :class="plan.feature_keys.includes(feature) ? 'sr-only' : ''"
+                class="inline-flex items-center justify-center"
               >
-                {{
-                  t(
-                    plan.feature_keys.includes(feature)
-                      ? 'PLAN_CATALOG.INCLUDED'
-                      : 'PLAN_CATALOG.UNKNOWN'
-                  )
-                }}
-              </div>
+                <span
+                  class="i-lucide-check size-4 text-n-slate-10"
+                  aria-hidden="true"
+                />
+                <span class="sr-only">{{ t('PLAN_CATALOG.INCLUDED') }}</span>
+              </span>
+              <span v-else class="inline-flex items-center justify-center">
+                <span
+                  class="i-lucide-x size-4 text-n-slate-8"
+                  aria-hidden="true"
+                />
+                <span class="sr-only">{{
+                  t('PLAN_CATALOG.NOT_INCLUDED')
+                }}</span>
+              </span>
             </td>
           </tr>
         </tbody>

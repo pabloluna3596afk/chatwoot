@@ -18,6 +18,7 @@ const canCompare = computed(
 );
 const currentPlanId = computed(
   () =>
+    currentAccount.value?.plan_id ??
     currentAccount.value?.limits?.plan?.id ??
     currentAccount.value?.limits?.plan?.slug ??
     null

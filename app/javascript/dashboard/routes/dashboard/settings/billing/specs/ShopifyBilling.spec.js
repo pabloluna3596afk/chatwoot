@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   route: { query: {}, params: { accountId: 1 } },
   replace: vi.fn(),
   dispatch: vi.fn(),
+  locale: { value: 'en' },
   translate: (key, params) => {
     const translations = {
       'BILLING_SETTINGS.SHOPIFY.DESCRIPTION':
@@ -36,7 +37,7 @@ vi.mock('vue-i18n', async importOriginal => {
   const actual = await importOriginal();
   return {
     ...actual,
-    useI18n: () => ({ t: mocks.translate }),
+    useI18n: () => ({ t: mocks.translate, locale: mocks.locale }),
   };
 });
 

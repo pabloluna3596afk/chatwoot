@@ -208,6 +208,15 @@ RSpec.describe 'Accounts API', type: :request do
         expect(attributes).not_to have_key('onboarding_version')
       end
 
+      it 'exposes the assigned plan id' do
+        plan = Plan.create!(name: 'Catalog', slug: 'catalog')
+        account.update!(plan: plan)
+
+        get "/api/v1/accounts/#{account.id}", headers: admin.create_new_auth_token, as: :json
+
+        expect(response.parsed_body['plan_id']).to eq(plan.id)
+      end
+
       it 'shows an account' do
         account.update(name: 'new name')
 

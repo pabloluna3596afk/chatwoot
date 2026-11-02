@@ -15,6 +15,7 @@ const { t } = useI18n();
 const config = useMapGetter('globalConfig/get');
 const overlay = ref(null);
 const scrollLocked = useScrollLock(document.body);
+const sidebarOffset = ref(0);
 const previousFocus = document.activeElement;
 const previousLock = scrollLocked.value;
 let background = [];
@@ -40,8 +41,15 @@ const onKeydown = event => {
     first.focus();
   }
 };
+const updateSidebarOffset = () => {
+  const sidebar = document.querySelector('aside');
+  sidebarOffset.value =
+    window.innerWidth >= 768 ? sidebar?.getBoundingClientRect().width || 0 : 0;
+};
 onMounted(() =>
   nextTick(() => {
+    updateSidebarOffset();
+    window.addEventListener('resize', updateSidebarOffset);
     background = [...document.body.children]
       .filter(element => element !== overlay.value)
       .map(element => ({ element, inert: element.inert }));
@@ -53,6 +61,7 @@ onMounted(() =>
   })
 );
 onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateSidebarOffset);
   background.forEach(({ element, inert }) => {
     element.inert = inert;
   });
@@ -68,7 +77,14 @@ onBeforeUnmount(() => {
       role="dialog"
       aria-modal="true"
       aria-labelledby="plan-pricing-title"
-      class="fixed inset-0 z-[1000] flex h-dvh flex-col bg-n-solid-1 text-n-slate-12 dark:bg-n-solid-3"
+      class="fixed inset-y-0 start-0 end-0 z-[1000] flex h-dvh flex-col bg-n-solid-1 text-n-slate-12 dark:bg-n-solid-3"
+      :class="
+        sidebarOffset >= 112
+          ? 'md:start-[16rem]'
+          : sidebarOffset > 0
+            ? 'md:start-[4rem]'
+            : ''
+      "
       @keydown="onKeydown"
     >
       <header

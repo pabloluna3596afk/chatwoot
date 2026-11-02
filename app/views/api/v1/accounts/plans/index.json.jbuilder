@@ -1,6 +1,7 @@
 payphone_enabled = ActiveModel::Type::Boolean.new.cast(InstallationConfig.find_by(name: 'ENABLE_PAYPHONE')&.value)
 json.array! @plans do |plan|
-  json.extract! plan, :id, :slug, :name, :display_order, :feature_keys
+  json.extract! plan, :id, :slug, :name, :display_order, :feature_keys, :price_monthly, :price_yearly
+  json.base_feature_keys Plan::CATALOG_BASE_CAPABILITIES.pluck(:key)
   # Descriptions are withheld until existing promotional copy is reviewed.
   json.description nil
   json.state payphone_enabled && plan.price_monthly.positive? ? 'available' : plan.catalog_state

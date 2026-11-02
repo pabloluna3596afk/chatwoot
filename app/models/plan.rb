@@ -281,6 +281,16 @@ class Plan < ApplicationRecord # rubocop:disable Metrics/ClassLength
       group: flag['category'].presence || 'Other', flags: [flag['name']].freeze, base: true
     }.freeze
   end.freeze
+  CATALOG_BASE_CAPABILITIES = [
+    { key: 'conversation_inbox', flags: [].freeze },
+    { key: 'contacts_companies', flags: %w[crm].freeze },
+    { key: 'labels', flags: %w[labels].freeze },
+    { key: 'custom_fields', flags: %w[custom_attributes].freeze },
+    { key: 'quick_replies', flags: %w[canned_responses].freeze },
+    { key: 'reports', flags: %w[reports].freeze },
+    { key: 'teams_assignment', flags: %w[team_management assignment_v2].freeze },
+    { key: 'auto_resolution', flags: %w[auto_resolve_conversations].freeze }
+  ].map(&:freeze).freeze
   ACCOUNT_FEATURES = (FEATURES + BASE_FEATURES).freeze
   ACCOUNT_FEATURES_BY_KEY = ACCOUNT_FEATURES.index_by { |feature| feature[:key] }.freeze
   FEATURE_LIMITS = {

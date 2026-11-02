@@ -63,11 +63,12 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
         is_default_trial: false
       }
     ]
+    force_update = ActiveModel::Type::Boolean.new.cast(ENV.fetch('FORCE_UPDATE', nil))
 
     plans.each do |attrs|
       plan = Plan.find_or_initialize_by(slug: attrs[:slug])
       was_new = plan.new_record?
-      unless was_new
+      unless was_new || force_update
         puts "Unchanged: #{plan.name} (#{plan.slug})"
         next
       end
@@ -76,7 +77,7 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
                                is_active: true, is_public: attrs[:slug] != 'developer', coming_soon: !attrs[:is_default_trial]
                              ))
       plan.save!
-      puts "Created: #{plan.name} (#{plan.slug})"
+      puts "#{was_new ? 'Created' : 'Updated'}: #{plan.name} (#{plan.slug})"
     end
   end
 
