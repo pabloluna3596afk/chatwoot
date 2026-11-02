@@ -10,6 +10,28 @@ RSpec.describe 'Api::V1::Accounts::Captain::CopilotMessagesController', type: :r
 
   describe 'GET /api/v1/accounts/{account.id}/captain/copilot_threads/{thread.id}/copilot_messages' do
     context 'when it is an authenticated user' do
+      it 'rejects a message over the shared limit before entitlement or job enqueue' do
+        expect(Llm::Entitlement).not_to receive(:new)
+        expect do
+          post "/api/v1/accounts/#{account.id}/captain/copilot_threads/#{copilot_thread.id}/copilot_messages",
+               params: { message: 'x' * (Captain::Copilot::Limits::USER_MESSAGE_CHARACTERS + 1) },
+               headers: user.create_new_auth_token,
+               as: :json
+        end.not_to change(CopilotMessage, :count)
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(Captain::Copilot::ResponseJob).not_to have_been_enqueued
+      end
+
+      it 'accepts a message exactly at the shared limit' do
+        post "/api/v1/accounts/#{account.id}/captain/copilot_threads/#{copilot_thread.id}/copilot_messages",
+             params: { message: 'x' * Captain::Copilot::Limits::USER_MESSAGE_CHARACTERS },
+             headers: user.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:success)
+      end
+
       it 'returns all messages' do
         get "/api/v1/accounts/#{account.id}/captain/copilot_threads/#{copilot_thread.id}/copilot_messages",
             headers: user.create_new_auth_token,
@@ -53,7 +75,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::CopilotMessagesController', type: :r
   describe 'POST /api/v1/accounts/{account.id}/captain/copilot_threads/{thread.id}/copilot_messages' do
     context 'when it is an authenticated user' do
       it 'creates a new message' do
-        message_content = { 'content' => 'This is a test message' }
+        message_content = 'This is a test message'
 
         expect do
           post "/api/v1/accounts/#{account.id}/captain/copilot_threads/#{copilot_thread.id}/copilot_messages",
@@ -72,7 +94,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::CopilotMessagesController', type: :r
     context 'when thread does not exist' do
       it 'returns not found error' do
         post "/api/v1/accounts/#{account.id}/captain/copilot_threads/999999999/copilot_messages",
-             params: { message: { text: 'Test message' } },
+             params: { message: 'Test message' },
              headers: user.create_new_auth_token,
              as: :json
 
@@ -86,7 +108,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::CopilotMessagesController', type: :r
 
       it 'returns not found error' do
         post "/api/v1/accounts/#{account.id}/captain/copilot_threads/#{another_thread.id}/copilot_messages",
-             params: { message: { text: 'Test message' } },
+             params: { message: 'Test message' },
              headers: user.create_new_auth_token,
              as: :json
 

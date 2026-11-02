@@ -46,6 +46,13 @@ const sendMessage = async message => {
   useTrack(COPILOT_EVENTS.SEND_MESSAGE);
   return success;
 };
+const retryLastUserMessage = () => {
+  const lastUserMessage = [...props.messages]
+    .reverse()
+    .find(item => item.message_type === 'user');
+  if (lastUserMessage?.message?.content)
+    sendMessage(lastUserMessage.message.content);
+};
 const chatContainer = ref(null);
 const isNearBottom = ref(true);
 const newMessageCount = ref(0);
@@ -283,6 +290,7 @@ watch(
                 :time-label="
                   item.created_at ? relativeTime(item.created_at) : ''
                 "
+                @retry="retryLastUserMessage"
               />
             </div>
           </div>

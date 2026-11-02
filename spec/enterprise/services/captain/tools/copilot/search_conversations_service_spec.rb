@@ -114,10 +114,68 @@ RSpec.describe Captain::Tools::Copilot::SearchConversationsService do
       expect(result).to include('status: resolved', 'last_activity_at:')
     end
 
+    it 'defaults to ten results without ordering and enforces a twenty-five result maximum' do
+      create_list(:conversation, 10, account: account, contact: contact)
+
+      expect(service.execute).to include('showing first 10')
+      expect(service.execute(order_by: 'created_at', limit: 25)).to include('Total number of conversations: 12')
+    end
+
+    it 'keeps the full search response within its shared character budget' do
+      maximum = Captain::Copilot::Limits::SEARCH_RESPONSE_CHARACTERS
+      prefix_length = "Total number of conversations: 10\n".length
+      record_characters = maximum - prefix_length - (9 * 5)
+      per_record, remainder = record_characters.divmod(10)
+      records = Array.new(10) { 'x' * per_record }
+      records[0] += 'x' * remainder
+      conversations = double
+      allow(conversations).to receive(:count).and_return(10)
+      allow(conversations).to receive(:limit).with(10).and_return(records)
+      allow(service).to receive(:conversation_summary) { |record| record }
+
+      expect(service.send(:format_conversations, conversations, 10).length).to eq(maximum)
+
+      records[0] += 'x'
+      result = service.send(:format_conversations, conversations, 10)
+      expect(result.length).to be <= Captain::Copilot::Limits::SEARCH_RESPONSE_CHARACTERS
+      expect(result).to include('[response truncated]')
+    end
+
+    it 'passes the shared transcript limits for each search result' do
+      expect(open_conversation).to receive(:to_llm_text).with(
+        include_contact_details: true,
+        include_private_messages: false,
+        message_limit: Captain::Copilot::Limits::SEARCH_MESSAGES,
+        token_limit: Captain::Copilot::Limits::SEARCH_MESSAGE_CHARACTERS
+      ).and_return('bounded transcript')
+
+      expect(service.send(:conversation_summary, open_conversation)).to include('bounded transcript')
+    end
+
+    it 'keeps a search transcript exactly at its character budget' do
+      content = 'x' * (Captain::Copilot::Limits::SEARCH_MESSAGE_CHARACTERS - 7)
+      create(:message, conversation: open_conversation, content: content)
+
+      result = service.send(:conversation_summary, open_conversation)
+
+      expect(result).to include(content)
+      expect(result).not_to include('earlier messages not included')
+    end
+
+    it 'truncates a search transcript one character above its character budget' do
+      create(:message, conversation: open_conversation,
+                       content: 'x' * (Captain::Copilot::Limits::SEARCH_MESSAGE_CHARACTERS - 6))
+
+      result = service.send(:conversation_summary, open_conversation)
+
+      expect(result).not_to include('x' * (Captain::Copilot::Limits::SEARCH_MESSAGE_CHARACTERS - 6))
+      expect(result).to include('earlier messages not included')
+    end
+
     it 'rejects unsupported order values, directions, and limits' do
       expect(service.execute(order_by: 'random_column')).to include(error: 'order_by must be last_activity_at or created_at')
       expect(service.execute(order_by: 'created_at', direction: 'sideways')).to include(error: 'direction must be asc or desc')
-      expect(service.execute(order_by: 'created_at', limit: 101)).to include(error: 'limit must be an integer from 1 to 100')
+      expect(service.execute(order_by: 'created_at', limit: 26)).to include(error: 'limit must be an integer from 1 to 25')
     end
 
     it 'filters conversations by status' do

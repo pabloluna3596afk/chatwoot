@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick, onMounted } from 'vue';
+import { computed, ref, nextTick, onMounted } from 'vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 
 const props = defineProps({
@@ -11,6 +11,7 @@ const props = defineProps({
 const message = ref('');
 const textareaRef = ref(null);
 const isSending = ref(false);
+const messageCharacterCount = computed(() => Array.from(message.value).length);
 
 const adjustHeight = () => {
   if (!textareaRef.value) return;
@@ -68,6 +69,14 @@ onMounted(() => {
       @input="handleInput"
       @keydown.enter.exact="handleEnterKey"
     />
+    <span
+      class="absolute bottom-1 start-2 text-[10px] text-n-slate-10"
+      aria-live="polite"
+    >
+      {{
+        $t('CAPTAIN.COPILOT.MESSAGE_LENGTH', { count: messageCharacterCount })
+      }}
+    </span>
     <Button
       :disabled="isSending"
       class="absolute ltr:right-1 rtl:left-1 top-1/2 -translate-y-1/2"

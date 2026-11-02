@@ -44,8 +44,8 @@ class Captain::Tools::Copilot::SearchConversationsService < Captain::Tools::Base
                team_id: { type: 'integer', minimum: 1, description: 'Team id' },
                order_by: { type: 'string', enum: %w[last_activity_at created_at] },
                direction: { type: 'string', enum: %w[asc desc] },
-               limit: { type: 'integer', minimum: 1, maximum: 100,
-                        description: 'Defaults to 10 when order_by is set' }
+               limit: { type: 'integer', minimum: 1, maximum: Captain::Copilot::Limits::SEARCH_RESULTS_MAX,
+                        description: 'Defaults to 10; maximum 25' }
              }
 
   # RubyLLM exposes each keyword as a separate JSON Schema tool parameter.
@@ -80,7 +80,8 @@ class Captain::Tools::Copilot::SearchConversationsService < Captain::Tools::Base
 
   def normalized_order(order_by, direction, limit)
     validate_order!(order_by, direction, limit)
-    [direction || 'desc', order_by.present? ? (limit || 10) : 100]
+    result_limit = limit || Captain::Copilot::Limits::SEARCH_RESULTS_DEFAULT
+    [direction || 'desc', result_limit]
   end
 
   def validate_order!(order_by, direction, limit)
@@ -107,9 +108,9 @@ class Captain::Tools::Copilot::SearchConversationsService < Captain::Tools::Base
   def validate_limit!(order_by, limit)
     return if limit.nil?
     raise ArgumentError, 'limit requires order_by' if order_by.nil?
-    return if limit.is_a?(Integer) && limit.between?(1, 100)
+    return if limit.is_a?(Integer) && limit.between?(1, Captain::Copilot::Limits::SEARCH_RESULTS_MAX)
 
-    raise ArgumentError, 'limit must be an integer from 1 to 100'
+    raise ArgumentError, 'limit must be an integer from 1 to 25'
   end
 
   def format_conversations(conversations, result_limit)
@@ -120,8 +121,10 @@ class Captain::Tools::Copilot::SearchConversationsService < Captain::Tools::Base
                        "Total number of conversations: #{total_count}"
                      end
     records = conversations.limit(result_limit).map { |conversation| conversation_summary(conversation) }.join("\n---\n")
-
-    "#{result_summary}\n#{records}"
+    "#{result_summary}\n#{records}".truncate(
+      Captain::Copilot::Limits::SEARCH_RESPONSE_CHARACTERS,
+      omission: ' [response truncated]'
+    )
   end
 
   def order_conversations(conversations, order_by, direction)
@@ -134,7 +137,13 @@ class Captain::Tools::Copilot::SearchConversationsService < Captain::Tools::Base
     inbox = conversation.inbox&.name || 'No inbox'
     metadata = ["Conversation ##{conversation.display_id}", "status: #{conversation.status}", "inbox: #{inbox}",
                 "last_activity_at: #{conversation.last_activity_at&.iso8601}"].join(' | ')
-    "#{metadata}\n#{conversation.to_llm_text(include_contact_details: true, include_private_messages: false)}"
+    text = conversation.to_llm_text(
+      include_contact_details: true,
+      include_private_messages: false,
+      message_limit: Captain::Copilot::Limits::SEARCH_MESSAGES,
+      token_limit: Captain::Copilot::Limits::SEARCH_MESSAGE_CHARACTERS
+    )
+    "#{metadata}\n#{text}"
   end
 
   def get_conversations(filters)
