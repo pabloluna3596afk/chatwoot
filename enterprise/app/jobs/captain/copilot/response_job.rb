@@ -40,6 +40,10 @@ class Captain::Copilot::ResponseJob < ApplicationJob
     )
     # When using copilot_thread, message is already in previous_history
     # Pass nil to avoid duplicate
-    service.generate_response(copilot_thread_id.present? ? nil : message)
+    result = service.generate_response(copilot_thread_id.present? ? nil : message)
+    return result if result.is_a?(Hash) && result['error'].blank? && result[:error].blank? &&
+                     (result['content'].presence || result[:content].presence)
+
+    raise StandardError, 'Copilot returned no usable response'
   end
 end
