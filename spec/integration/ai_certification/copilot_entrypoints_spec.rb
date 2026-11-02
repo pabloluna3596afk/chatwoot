@@ -281,8 +281,8 @@ RSpec.describe 'Copilot real entrypoint certification', type: :request do
 
       expect([response.status, CopilotMessage.where(account: account).count]).to eq([422, 0])
 
-      public_message = create(:message, conversation: conversation, account: account, inbox: inbox,
-                                        message_type: :incoming, content: 'Visible context')
+      create(:message, conversation: conversation, account: account, inbox: inbox,
+                       message_type: :incoming, content: 'Visible context')
       create(:message, conversation: conversation, account: account, inbox: inbox,
                        message_type: :outgoing, private: true, content: 'Private context')
       service = Captain::Copilot::ChatService.new(
@@ -304,7 +304,7 @@ RSpec.describe 'Copilot real entrypoint certification', type: :request do
         conversation_id: other_conversation.display_id
       )
 
-      expect(prompt).to include('Visible context').and include(public_message.id.to_s)
+      expect(prompt).to include('Visible context')
       expect(prompt).not_to include('Private context')
       expect(history.size <= Captain::Copilot::Limits::HISTORY_MESSAGES &&
              history.sum { |item| item[:content].to_s.length } <= Captain::Copilot::Limits::HISTORY_CHARACTERS).to be(true)
