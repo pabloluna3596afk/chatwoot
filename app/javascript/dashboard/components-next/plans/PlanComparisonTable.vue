@@ -14,8 +14,16 @@ const props = defineProps({
   plans: { type: Array, required: true },
 });
 const { t } = useI18n();
-const { rows, features, baseFeatures, value, money, pricing, isIncluded } =
-  usePlanPresentation();
+const {
+  rows,
+  features,
+  baseFeatures,
+  limitValue,
+  value,
+  money,
+  pricing,
+  isIncluded,
+} = usePlanPresentation();
 const limitRows = computed(() => rows(props.plans));
 const featureRows = computed(() => features(props.plans));
 const baseFeatureRows = computed(() => baseFeatures(props.plans));
@@ -122,8 +130,8 @@ const baseFeatureRows = computed(() => baseFeatures(props.plans));
               class="border-b border-n-weak p-4 text-center"
               :class="{ 'bg-n-blue-3': matchesPlan(plan, currentPlanId) }"
             >
-              <template v-if="isIncluded(plan.limits[row.key])">
-                {{ value(row.key, plan.limits[row.key]) }}
+              <template v-if="isIncluded(limitValue(plan, row.key))">
+                {{ value(row.key, limitValue(plan, row.key)) }}
               </template>
               <span v-else class="inline-flex items-center justify-center">
                 <span
@@ -136,12 +144,19 @@ const baseFeatureRows = computed(() => baseFeatures(props.plans));
               </span>
             </td>
           </tr>
-          <tr v-if="baseFeatureRows.length">
+          <tr v-if="baseFeatureRows.length" data-testid="base-capabilities-row">
             <th
               scope="row"
               class="sticky start-0 z-10 border-b border-n-weak bg-n-solid-1 p-4 text-start font-medium dark:bg-n-solid-3"
             >
-              {{ t('PLAN_CATALOG.BASE_FEATURES') }}
+              <div>{{ t('PLAN_CATALOG.BASE_FEATURES') }}</div>
+              <ul
+                class="m-0 mt-2 list-none space-y-1 p-0 text-xs font-normal text-n-slate-11"
+              >
+                <li v-for="feature in baseFeatureRows" :key="feature">
+                  {{ t(`PLAN_CATALOG.FEATURES.${feature}`) }}
+                </li>
+              </ul>
             </th>
             <td
               v-for="plan in plans"
@@ -149,19 +164,11 @@ const baseFeatureRows = computed(() => baseFeatures(props.plans));
               class="border-b border-n-weak p-4 text-center"
               :class="{ 'bg-n-blue-3': matchesPlan(plan, currentPlanId) }"
             >
-              <ul class="m-0 list-none space-y-2 p-0 text-start">
-                <li
-                  v-for="feature in plan.base_feature_keys || []"
-                  :key="feature"
-                  class="flex items-start gap-2"
-                >
-                  <span
-                    class="i-lucide-check mt-0.5 size-4 shrink-0 text-n-slate-10"
-                    aria-hidden="true"
-                  />
-                  {{ t(`PLAN_CATALOG.FEATURES.${feature}`) }}
-                </li>
-              </ul>
+              <span
+                class="i-lucide-check size-4 text-n-slate-10"
+                aria-hidden="true"
+              />
+              <span class="sr-only">{{ t('PLAN_CATALOG.INCLUDED') }}</span>
             </td>
           </tr>
           <tr

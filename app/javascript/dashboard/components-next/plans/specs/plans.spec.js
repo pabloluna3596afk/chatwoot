@@ -214,13 +214,63 @@ describe('catalog presentation', () => {
     );
     expect(wrapper.text()).toContain(es.PLAN_CATALOG.FEATURES.captain_tasks);
     expect(wrapper.text()).toContain(es.PLAN_CATALOG.BASE_FEATURES);
-    expect(wrapper.text()).toContain(es.PLAN_CATALOG.FEATURES.crm);
+    expect(
+      wrapper.get('[data-testid="catalog-base-capabilities"]').text()
+    ).toContain(es.PLAN_CATALOG.FEATURES.contacts_companies);
+    expect(
+      wrapper.findAll('[data-testid="catalog-base-capabilities"]')
+    ).toHaveLength(1);
+    expect(
+      wrapper.findAll('[data-testid="base-capabilities-row"]')
+    ).toHaveLength(1);
+    expect(wrapper.get('[data-plan-id="7"]').text()).not.toContain(
+      es.PLAN_CATALOG.FEATURES.contacts_companies
+    );
     expect(wrapper.get('[data-plan-id="7"]').text()).toContain(
       es.PLAN_CATALOG.CURRENT
     );
     expect(wrapper.find('[data-plan-id="7"] button').exists()).toBe(false);
     expect(wrapper.text()).not.toContain(es.PLAN_CATALOG.UNKNOWN);
     expect(wrapper.text()).not.toMatch(/PLAN_CATALOG\.(LIMITS|FEATURES)\./);
+  });
+
+  it('shows trial limits and Captain in the Prueba card without repeating base tools', async () => {
+    wrapper = mount(PlanCatalog, {
+      props: { currentPlanId: 7 },
+      global: { plugins: [store, router, i18n] },
+    });
+    await flushPromises();
+
+    const trialCard = wrapper.get('[data-plan-id="7"]');
+    expect(trialCard.text()).toContain(
+      es.PLAN_CATALOG.COUNTS.inboxes
+        .split('|')[0]
+        .replace('{count}', '1')
+        .trim()
+    );
+    expect(trialCard.text()).toContain(
+      es.PLAN_CATALOG.COUNTS.users.split('|')[0].replace('{count}', '1').trim()
+    );
+    expect(trialCard.text()).toContain(
+      es.PLAN_CATALOG.COUNTS.assistants
+        .split('|')[0]
+        .replace('{count}', '1')
+        .trim()
+    );
+    expect(trialCard.text()).toContain(
+      es.PLAN_CATALOG.COUNTS.trial_responses
+        .split('|')[1]
+        .replace('{count}', '200')
+        .trim()
+    );
+    expect(trialCard.text()).toContain('Almacenamiento: 1 MB');
+    expect(trialCard.text()).toContain(
+      es.PLAN_CATALOG.FEATURES.captain_integration
+    );
+    expect(trialCard.text()).not.toContain('200 respuestas de IA al mes');
+    expect(trialCard.text()).not.toContain(
+      es.PLAN_CATALOG.FEATURES.contacts_companies
+    );
   });
 
   it('shows Gratis as the price regardless of the free plan name', async () => {
@@ -241,8 +291,13 @@ describe('catalog presentation', () => {
     expect(wrapper.get('tbody tr:first-child td').text()).toBe(
       es.PLAN_CATALOG.FREE
     );
-    expect(card.text()).toContain(es.PLAN_CATALOG.BASE_FEATURES);
-    expect(wrapper.text()).toContain(es.PLAN_CATALOG.BASE_FEATURES);
+    expect(card.text()).not.toContain(es.PLAN_CATALOG.BASE_FEATURES);
+    expect(
+      wrapper.get('[data-testid="catalog-base-capabilities"]').text()
+    ).toContain(es.PLAN_CATALOG.BASE_FEATURES);
+    expect(
+      wrapper.findAll('[data-testid="base-capabilities-row"]')
+    ).toHaveLength(1);
   });
 
   it('hides inheritance copy when the catalog has no feature differences', () => {
@@ -325,9 +380,30 @@ describe('catalog presentation', () => {
       expect(es.PLAN_CATALOG[unit]).toBeTruthy();
       expect(en.PLAN_CATALOG[unit]).toBeTruthy();
     });
-    ['inboxes', 'assistants', 'monthly_responses', 'users'].forEach(key => {
+    [
+      'inboxes',
+      'assistants',
+      'monthly_responses',
+      'trial_responses',
+      'users',
+    ].forEach(key => {
       expect(es.PLAN_CATALOG.COUNTS[key]).toBeTruthy();
       expect(en.PLAN_CATALOG.COUNTS[key]).toBeTruthy();
+    });
+    const translationPaths = object =>
+      Object.entries(object).flatMap(([key, value]) =>
+        value && typeof value === 'object'
+          ? translationPaths(value).map(path => `${key}.${path}`)
+          : [key]
+      );
+    expect(translationPaths(es.PLAN_CATALOG).sort()).toEqual(
+      translationPaths(en.PLAN_CATALOG).sort()
+    );
+    catalog[0].base_feature_keys.forEach(key => {
+      expect(en.PLAN_CATALOG.FEATURES[key]).not.toMatch(/[áéíóúñ¿¡]/i);
+      expect(en.PLAN_CATALOG.FEATURES[key]).not.toBe(
+        es.PLAN_CATALOG.FEATURES[key]
+      );
     });
     ['1', '2', '3', '4'].forEach(step => {
       expect(es.PLAN_CATALOG.QUESTIONS[step]).toBeTruthy();
@@ -345,10 +421,18 @@ describe('catalog presentation', () => {
 
     await wrapper.setProps({
       currentPlanId: null,
+      plan: { ...catalog[0], state: 'available' },
+      canPurchase: false,
+    });
+    expect(wrapper.find('button').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain(es.PLAN_CATALOG.MANAGE_PLAN_NOTE);
+
+    await wrapper.setProps({
       plan: { ...catalog[0], state: 'coming_soon' },
     });
     expect(wrapper.find('button').exists()).toBe(false);
     expect(wrapper.text()).toContain(es.PLAN_CATALOG.STATES.coming_soon);
+    expect(wrapper.text()).toContain(es.PLAN_CATALOG.COMING_SOON_NOTE);
 
     await wrapper.setProps({
       plan: { ...catalog[1], state: 'available' },

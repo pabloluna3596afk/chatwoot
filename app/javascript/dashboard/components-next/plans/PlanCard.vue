@@ -94,24 +94,6 @@ const choose = () => {
       <li v-for="field in summary(plan)" :key="field.key">
         {{ field.text }}
       </li>
-      <li v-if="plan.base_feature_keys?.length" class="space-y-2">
-        <p class="m-0 font-medium text-n-slate-12">
-          {{ t('PLAN_CATALOG.BASE_FEATURES') }}
-        </p>
-        <ul class="m-0 list-none space-y-2 p-0">
-          <li
-            v-for="feature in plan.base_feature_keys"
-            :key="feature"
-            class="flex items-start gap-2"
-          >
-            <span
-              class="i-lucide-check mt-0.5 size-4 shrink-0 text-n-slate-10"
-              aria-hidden="true"
-            />
-            {{ t(`PLAN_CATALOG.FEATURES.${feature}`) }}
-          </li>
-        </ul>
-      </li>
       <li
         v-for="feature in plan.feature_keys"
         :key="feature"
@@ -125,23 +107,12 @@ const choose = () => {
       </li>
     </ul>
     <ul v-if="!compact" class="m-0 flex-1 list-none space-y-3 p-0 text-sm">
-      <li v-if="plan.base_feature_keys?.length" class="space-y-2">
-        <p class="m-0 font-medium text-n-slate-12">
-          {{ t('PLAN_CATALOG.BASE_FEATURES') }}
-        </p>
-        <ul class="m-0 list-none space-y-2 p-0">
-          <li
-            v-for="feature in plan.base_feature_keys"
-            :key="feature"
-            class="flex items-start gap-2"
-          >
-            <span
-              class="i-lucide-check mt-0.5 size-4 shrink-0 text-n-slate-10"
-              aria-hidden="true"
-            />
-            {{ t(`PLAN_CATALOG.FEATURES.${feature}`) }}
-          </li>
-        </ul>
+      <li
+        v-for="field in summary(plan)"
+        :key="field.key"
+        class="text-n-slate-11"
+      >
+        {{ field.text }}
       </li>
       <li
         v-if="
@@ -186,10 +157,21 @@ const choose = () => {
       {{ t('PAYPHONE.CHOOSE') }}
     </Button>
     <p
-      v-else-if="!compact && !current && plan.state === 'available'"
+      v-else-if="
+        !compact &&
+        !current &&
+        plan.state === 'available' &&
+        Number(plan.price_monthly) > 0
+      "
       class="m-0 rounded-lg bg-n-slate-2 p-3 text-sm text-n-slate-11"
     >
       {{ t('PLAN_CATALOG.MANAGE_PLAN_NOTE') }}
+    </p>
+    <p
+      v-else-if="!compact && !current && plan.state === 'coming_soon'"
+      class="m-0 rounded-lg bg-n-slate-2 p-3 text-sm text-n-slate-11"
+    >
+      {{ t('PLAN_CATALOG.COMING_SOON_NOTE') }}
     </p>
   </article>
 </template>

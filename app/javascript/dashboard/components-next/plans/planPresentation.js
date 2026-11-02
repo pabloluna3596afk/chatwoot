@@ -16,7 +16,14 @@ export const matchesPlan = (plan, id) =>
 
 const MEBIBYTE = 1024 ** 2;
 const GIBIBYTE = 1024 ** 3;
-const SUMMARY_FIELDS = ['inboxes', 'assistants', 'monthly_responses', 'users'];
+const SUMMARY_FIELDS = [
+  'inboxes',
+  'users',
+  'assistants',
+  'monthly_responses',
+  'trial_responses',
+  'storage_bytes',
+];
 
 export function usePlanPresentation() {
   const { t, n, locale } = useI18n();
@@ -38,18 +45,27 @@ export function usePlanPresentation() {
     }
     return number(amount);
   };
+  const limitValue = (plan, key) =>
+    key === 'monthly_responses' && Number(plan.limits.trial_responses) > 0
+      ? null
+      : plan.limits[key];
   const summary = plan =>
-    SUMMARY_FIELDS.filter(key => Number(plan.limits[key]) > 0).map(key => ({
-      key,
-      text: t(
-        `PLAN_CATALOG.COUNTS.${key}`,
-        { count: number(plan.limits[key]) },
-        plan.limits[key]
-      ),
-    }));
+    SUMMARY_FIELDS.filter(key => Number(limitValue(plan, key)) > 0).map(
+      key => ({
+        key,
+        text:
+          key === 'storage_bytes'
+            ? `${label(key)}: ${value(key, plan.limits[key])}`
+            : t(
+                `PLAN_CATALOG.COUNTS.${key}`,
+                { count: number(plan.limits[key]) },
+                plan.limits[key]
+              ),
+      })
+    );
   const rows = plans =>
     [...new Set(plans.flatMap(plan => Object.keys(plan.limits)))]
-      .filter(key => plans.some(plan => Number(plan.limits[key]) > 0))
+      .filter(key => plans.some(plan => Number(limitValue(plan, key)) > 0))
       .map(key => ({
         key,
         label: label(key),
@@ -57,9 +73,12 @@ export function usePlanPresentation() {
   const features = plans => [
     ...new Set(plans.flatMap(plan => plan.feature_keys)),
   ];
-  const baseFeatures = plans => [
-    ...new Set(plans.flatMap(plan => plan.base_feature_keys || [])),
-  ];
+  const baseFeatures = plans => {
+    const [firstPlan, ...otherPlans] = plans;
+    return (firstPlan?.base_feature_keys || []).filter(key =>
+      otherPlans.every(plan => plan.base_feature_keys?.includes(key))
+    );
+  };
   const featureChanges = (plans, plan) => {
     const ordered = [...plans].sort(
       (left, right) =>
@@ -91,6 +110,7 @@ export function usePlanPresentation() {
   return {
     label,
     value,
+    limitValue,
     summary,
     rows,
     features,
