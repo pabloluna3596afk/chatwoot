@@ -281,6 +281,7 @@ class Plan < ApplicationRecord # rubocop:disable Metrics/ClassLength
       group: flag['category'].presence || 'Other', flags: [flag['name']].freeze, base: true
     }.freeze
   end.freeze
+  BASE_FEATURE_KEYS = BASE_FEATURES.pluck(:key).freeze
   ACCOUNT_FEATURES = (FEATURES + BASE_FEATURES).freeze
   ACCOUNT_FEATURES_BY_KEY = ACCOUNT_FEATURES.index_by { |feature| feature[:key] }.freeze
   FEATURE_LIMITS = {
