@@ -12,6 +12,9 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
 
   attr_reader :blob, :account, :transcription_model
 
+  USAGE_BUCKET = :captain_responses
+  USAGE_FEATURE = 'audio_transcription'.freeze
+
   # Transcription runs on Captain's OpenAI credentials and consumes its response credits.
   def self.available_for?(account)
     return false unless account.feature_enabled?('captain_integration')
@@ -32,29 +35,73 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
   end
 
   def perform
+    @usage_reservation_id = reserve_usage
+    return if @usage_reservation_id == false
+
     temp_file_path = fetch_audio_file
     transcribed_text = nil
 
     File.open(temp_file_path, 'rb') do |file|
-      params = instrumentation_params(temp_file_path)
-      response = with_usage_recording(params) do
-        instrument_audio_transcription(params) do
-          # temperature: 0.0 minimises hallucinations on silence / near-silent
-          # audio; non-zero values trigger spiraling repeats — well-documented
-          # behaviour across OpenAI transcription models.
-          transcribe_audio(file)
-        end
-      end
-      transcribed_text = response['text']
+      transcribed_text = transcribe_with_usage(file, temp_file_path)['text']
     end
 
-    account.increment_response_usage if transcribed_text.present?
+    if transcribed_text.present?
+      account.finish_captain_ai_usage!(bucket: USAGE_BUCKET, reservation_id: @usage_reservation_id) if @usage_reservation_id
+      @usage_reservation_id = nil
+    else
+      release_usage
+    end
     transcribed_text
+  rescue StandardError
+    release_usage
+    raise
   ensure
     FileUtils.rm_f(temp_file_path) if temp_file_path.present?
   end
 
+  def quota_exceeded?
+    @usage_reservation_id == false
+  end
+
   private
+
+  def reserve_usage
+    return unless reservation_receipt_required?
+
+    reservation_id = SecureRandom.uuid
+    return false unless account.reserve_captain_ai_usage!(bucket: USAGE_BUCKET, reservation_id: reservation_id)
+
+    reservation_id
+  end
+
+  def reservation_receipt_required?
+    captain_limits = account.usage_limits[:captain]
+    account.current_usage_period.present? && captain_limits.dig(:responses, :total_count).present?
+  end
+
+  def release_usage
+    return unless @usage_reservation_id
+
+    account.release_captain_ai_usage!(bucket: USAGE_BUCKET, reservation_id: @usage_reservation_id)
+    @usage_reservation_id = nil
+  end
+
+  def transcribe_with_usage(file, temp_file_path)
+    params = instrumentation_params(temp_file_path)
+    Llm::UsageContext.with(
+      account: account, bucket: USAGE_BUCKET, feature: USAGE_FEATURE,
+      reservation_id: @usage_reservation_id,
+      context: { reservation_required: @usage_reservation_id.present?, required_gate: 'captain_integration' }
+    ) do
+      with_usage_recording(params) do
+        instrument_audio_transcription(params) do
+          # temperature: 0.0 minimises hallucinations on silence / near-silent
+          # audio; non-zero values trigger spiraling repeats.
+          transcribe_audio(file)
+        end
+      end
+    end
+  end
 
   def transcribe_audio(file)
     @client.audio.transcribe(
@@ -104,7 +151,7 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
       model: transcription_model,
       provider: 'openai',
       account_id: account&.id,
-      feature_name: 'audio_transcription',
+      feature_name: USAGE_FEATURE,
       file_path: file_path
     }
   end

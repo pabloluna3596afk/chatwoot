@@ -22,7 +22,7 @@ RSpec.describe Voice::CallTranscriptionService, type: :service do
   describe '#perform' do
     it 'stores the transcript on the call' do
       allow(Llm::SpeechToTextService).to receive(:new).and_return(
-        instance_double(Llm::SpeechToTextService, perform: 'Hello, how can I help?')
+        instance_double(Llm::SpeechToTextService, perform: 'Hello, how can I help?', quota_exceeded?: false)
       )
 
       described_class.new(call: call).perform
@@ -66,11 +66,20 @@ RSpec.describe Voice::CallTranscriptionService, type: :service do
 
     it 'leaves the transcript blank when nothing comes back' do
       allow(Llm::SpeechToTextService).to receive(:new).and_return(
-        instance_double(Llm::SpeechToTextService, perform: '')
+        instance_double(Llm::SpeechToTextService, perform: '', quota_exceeded?: false)
       )
 
       described_class.new(call: call).perform
 
+      expect(call.reload.transcript).to be_nil
+    end
+
+    it 'keeps the call transcript blank when the atomic quota reservation is rejected' do
+      allow(Llm::SpeechToTextService).to receive(:new).and_return(
+        instance_double(Llm::SpeechToTextService, perform: nil, quota_exceeded?: true)
+      )
+
+      expect(described_class.new(call: call).perform).to be_nil
       expect(call.reload.transcript).to be_nil
     end
 
