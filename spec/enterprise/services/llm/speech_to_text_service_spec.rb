@@ -85,7 +85,6 @@ RSpec.describe Llm::SpeechToTextService, type: :service do
     before do
       File.binwrite(audio_file_path, 'audio')
       allow(service).to receive(:fetch_audio_file).and_return(audio_file_path)
-      allow(account).to receive(:increment_response_usage)
       allow(service.client).to receive(:audio).and_return(audio_api)
     end
 
@@ -101,20 +100,59 @@ RSpec.describe Llm::SpeechToTextService, type: :service do
       expect(service.perform).to eq('Audio transcript')
     end
 
-    it 'consumes a captain response credit when text comes back' do
+    it 'reserves and charges one captain response credit when text comes back' do
+      put_account_on_plan(account, monthly_messages: 1)
       allow(audio_api).to receive(:transcribe).and_return({ 'text' => 'Audio transcript' })
 
       service.perform
 
-      expect(account).to have_received(:increment_response_usage)
+      expect(captain_responses_used(account)).to eq(1)
+      expect(AiUsageEvent.where(account: account, feature: 'audio_transcription', bucket: 'captain_responses', status: 'ok').count).to eq(1)
     end
 
-    it 'does not consume a credit when the transcription is blank' do
+    it 'does not consume a credit when the transcription is blank and releases the reservation' do
+      put_account_on_plan(account, monthly_messages: 1)
       allow(audio_api).to receive(:transcribe).and_return({ 'text' => '' })
 
       service.perform
 
-      expect(account).not_to have_received(:increment_response_usage)
+      expect(captain_responses_used(account)).to eq(0)
+      expect(AiUsageReservation.joins(:account_plan_usage).where(account_plan_usages: { account_id: account.id }, released_at: nil)).to be_empty
+    end
+
+    it 'rejects a concurrent request before calling the provider when the last credit is reserved' do
+      put_account_on_plan(account, monthly_messages: 1)
+      second_service = described_class.new(blob: attachment.file.blob, account: account)
+      allow(second_service).to receive(:fetch_audio_file).and_return(audio_file_path)
+      allow(service.client).to receive(:audio).and_return(audio_api)
+      allow(second_service.client).to receive(:audio).and_return(audio_api)
+      allow(audio_api).to receive(:transcribe).and_return({ 'text' => 'Audio transcript' })
+
+      expect(service.perform).to eq('Audio transcript')
+      expect(second_service.perform).to be_nil
+      expect(second_service.quota_exceeded?).to be(true)
+      expect(audio_api).to have_received(:transcribe).once
+      expect(captain_responses_used(account)).to eq(1)
+    end
+
+    it 'releases the reservation when the provider fails so a retry can charge once' do
+      put_account_on_plan(account, monthly_messages: 1)
+      allow(audio_api).to receive(:transcribe).and_raise(Faraday::ConnectionFailed, 'provider unavailable')
+
+      expect { service.perform }.to raise_error(Faraday::ConnectionFailed)
+      expect(captain_responses_used(account)).to eq(0)
+
+      File.binwrite(audio_file_path, 'audio')
+      allow(audio_api).to receive(:transcribe).and_return({ 'text' => 'Audio transcript' })
+      expect(service.perform).to eq('Audio transcript')
+      expect(captain_responses_used(account)).to eq(1)
+    end
+
+    it 'transcribes without requiring a receipt when the account has no usage period' do
+      allow(audio_api).to receive(:transcribe).and_return({ 'text' => 'Audio transcript' })
+
+      expect(account).not_to receive(:reserve_captain_ai_usage!)
+      expect(service.perform).to eq('Audio transcript')
     end
   end
 end

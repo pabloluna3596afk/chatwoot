@@ -74,6 +74,19 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
       end
     end
 
+    context 'when quota is exhausted after the pre-check' do
+      before do
+        allow(Llm::SpeechToTextService).to receive(:available_for?).and_return(true)
+        allow(Llm::SpeechToTextService).to receive(:new).and_return(
+          instance_double(Llm::SpeechToTextService, perform: nil, quota_exceeded?: true)
+        )
+      end
+
+      it 'returns the existing limit error shape' do
+        expect(service.perform).to eq({ error: 'Transcription limit exceeded' })
+      end
+    end
+
     context 'when audio transcriptions are disabled' do
       before do
         account.update!(audio_transcriptions: false)

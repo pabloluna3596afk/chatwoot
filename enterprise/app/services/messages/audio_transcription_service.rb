@@ -13,15 +13,21 @@ class Messages::AudioTranscriptionService
     return { error: 'Transcription limit exceeded' } unless Llm::SpeechToTextService.available_for?(account)
     return { error: 'Audio too large for transcription' } if Llm::SpeechToTextService.too_large?(attachment.file&.blob)
 
-    transcriptions = transcribe_audio
-    Rails.logger.info "Audio transcription successful (#{transcriptions.to_s.length} chars)"
-    { success: true, transcriptions: transcriptions }
+    transcription_response
   rescue Faraday::UnauthorizedError
     Rails.logger.warn('Skipping audio transcription: OpenAI configuration is invalid or disabled (401 Unauthorized).')
     { error: 'OpenAI configuration is invalid or disabled (401)' }
   end
 
   private
+
+  def transcription_response
+    transcriptions = transcribe_audio
+    return transcriptions if transcriptions.is_a?(Hash)
+
+    Rails.logger.info "Audio transcription successful (#{transcriptions.to_s.length} chars)"
+    { success: true, transcriptions: transcriptions }
+  end
 
   # Call recordings honour the inbox's "Transcribe recordings" setting; ordinary voice notes don't.
   def call_recording_transcription_disabled?
@@ -32,7 +38,10 @@ class Messages::AudioTranscriptionService
     transcribed_text = attachment.meta&.[]('transcribed_text') || ''
     return transcribed_text if transcribed_text.present?
 
-    transcribed_text = Llm::SpeechToTextService.new(blob: attachment.file.blob, account: account).perform
+    service = Llm::SpeechToTextService.new(blob: attachment.file.blob, account: account)
+    transcribed_text = service.perform
+    return { error: 'Transcription limit exceeded' } if service.quota_exceeded?
+
     update_transcription(transcribed_text)
     transcribed_text
   end
