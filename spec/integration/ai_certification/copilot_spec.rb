@@ -1,22 +1,4 @@
 require 'rails_helper'
-require 'csv'
-
-module CopilotCertificationResults
-  def self.rows = @rows ||= []
-end
-
-RSpec.configure do |config|
-  config.after(:each, :copilot_certification) do |example|
-    CopilotCertificationResults.rows << [example.full_description, example.exception ? 'FAIL' : 'PASS']
-  end
-
-  config.after(:suite) do
-    csv = CSV.generate do |rows|
-      ([%w[scenario result]] + CopilotCertificationResults.rows).each { |row| rows << row }
-    end
-    RSpec.configuration.reporter.message("\nCopilot certification CSV\n#{csv}")
-  end
-end
 
 # This integration spec covers several Copilot services, so it does not follow a unit spec filename.
 # rubocop:disable RSpec/SpecFilePathFormat
