@@ -19,9 +19,9 @@ RSpec.describe 'Plan catalog translations', type: :request do
     expect(response).to have_http_status(:ok)
     catalog_plan = response.parsed_body.first
     expect(catalog_plan.fetch('id')).to eq(plan_id)
-    expect(catalog_plan.fetch('base_feature_keys')).to eq(Plan::BASE_FEATURE_KEYS)
+    expect(catalog_plan.fetch('base_feature_keys')).to eq(Plan::CATALOG_BASE_CAPABILITIES.pluck(:key))
 
-    feature_keys = Plan::FEATURES.pluck(:key) + Plan::BASE_FEATURES.pluck(:key)
+    feature_keys = Plan::FEATURES.pluck(:key) + Plan::CATALOG_BASE_CAPABILITIES.pluck(:key)
     limit_keys = catalog_plan.fetch('limits').keys
 
     %w[es en].each do |locale|

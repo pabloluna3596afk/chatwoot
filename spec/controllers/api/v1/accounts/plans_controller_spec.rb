@@ -37,7 +37,7 @@ RSpec.describe 'Plan catalog API', type: :request do
                                          {
                                            'id' => plan.id, 'slug' => 'catalog', 'name' => 'Catalog', 'description' => nil,
                                            'display_order' => 0, 'state' => 'available', 'feature_keys' => ['automations'],
-                                           'base_feature_keys' => Plan::BASE_FEATURE_KEYS,
+                                           'base_feature_keys' => Plan::CATALOG_BASE_CAPABILITIES.pluck(:key),
                                            'price_monthly' => '79.0', 'price_yearly' => '790.0',
                                            'limits' => {
                                              'monthly_responses' => 200, 'copilot_responses' => 25, 'internal_ai_calls' => 80,
