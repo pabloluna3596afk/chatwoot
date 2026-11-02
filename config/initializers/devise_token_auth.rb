@@ -1,4 +1,7 @@
 DeviseTokenAuth.setup do |config|
+  # Keep API request specs fast while retaining the production token cost.
+  config.token_cost = Rails.env.test? ? 4 : 10
+
   # By default the authorization headers will change after each request. The
   # client is responsible for keeping track of the changing tokens. Change
   # this to false to prevent the Authorization header from changing after

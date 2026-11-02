@@ -1,5 +1,6 @@
 require 'rails_helper'
 require 'csv'
+require 'timeout'
 
 module CopilotCertificationResults
   def self.rows = @rows ||= []
@@ -42,7 +43,7 @@ RSpec.describe 'Copilot real entrypoint certification', type: :request do
   end
 
   def post_new_turn(message: valid_message, extra: {})
-    perform_enqueued_jobs do
+    perform_enqueued_jobs(only: Captain::Copilot::ResponseJob) do
       post endpoint,
            params: { message: message, assistant_id: assistant.id }.merge(extra),
            headers: agent.create_new_auth_token,
@@ -51,7 +52,7 @@ RSpec.describe 'Copilot real entrypoint certification', type: :request do
   end
 
   def post_follow_up(message: valid_message)
-    perform_enqueued_jobs do
+    perform_enqueued_jobs(only: Captain::Copilot::ResponseJob) do
       post message_endpoint,
            params: { message: message },
            headers: agent.create_new_auth_token,
@@ -110,7 +111,7 @@ RSpec.describe 'Copilot real entrypoint certification', type: :request do
   end
 
   def post_reply_suggestion
-    perform_enqueued_jobs do
+    perform_enqueued_jobs(only: Captain::Copilot::ReplySuggestionJob) do
       post endpoint,
            params: { message: 'Suggest a reply.', assistant_id: assistant.id,
                      conversation_id: conversation.display_id, request_type: 'reply_suggestion' },
@@ -243,7 +244,7 @@ RSpec.describe 'Copilot real entrypoint certification', type: :request do
         end
         service
       end
-      perform_enqueued_jobs do
+      perform_enqueued_jobs(only: Captain::Copilot::ResponseJob) do
         post "/api/v1/accounts/#{account.id}/captain/copilot_threads/#{created_thread.id}/copilot_messages",
              params: { message: 'Try again' }, headers: agent.create_new_auth_token, as: :json
       end
@@ -440,17 +441,18 @@ RSpec.describe 'Copilot real entrypoint certification', type: :request do
         Thread.new do
           ActiveRecord::Base.connection_pool.with_connection do
             ready << true
-            start.pop
+            Timeout.timeout(30.seconds) { start.pop }
             limited_account.reload.reserve_captain_ai_usage!(
               bucket: :copilot, reservation_id: SecureRandom.uuid
             )
           end
         end
       end
-      2.times { ready.pop }
+      Timeout.timeout(30.seconds) { 2.times { ready.pop } }
       2.times { start << true }
 
-      expect(attempts.map(&:value).count(true)).to eq(1)
+      reservations = Timeout.timeout(30.seconds) { attempts.map(&:value) }
+      expect(reservations.count(true)).to eq(1)
       expect(limited_account.reload.current_usage_period.copilot_responses_consumed).to eq(1)
     ensure
       attempts&.each { |attempt| attempt.kill if attempt.alive? }
