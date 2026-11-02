@@ -36,14 +36,14 @@ class CopilotThread < ApplicationRecord
   end
 
   def previous_history
-    copilot_messages
-      .where(message_type: %w[user assistant])
-      .order(created_at: :asc)
-      .map do |copilot_message|
-        {
-          content: copilot_message.message['content'],
-          role: copilot_message.message_type
-        }
-      end
+    history = copilot_messages.where(message_type: %w[user assistant])
+                              .where("message ->> 'error' IS DISTINCT FROM ?", 'true')
+                              .order(created_at: :desc, id: :desc)
+                              .limit(Captain::Copilot::Limits::HISTORY_MESSAGES)
+                              .map { |copilot_message| { content: copilot_message.message['content'], role: copilot_message.message_type } }
+    history.reverse!
+    history.shift while history.sum { |item| item[:content].to_s.length } > Captain::Copilot::Limits::HISTORY_CHARACTERS
+    history.shift while history.first && history.first[:role] != 'user'
+    history
   end
 end

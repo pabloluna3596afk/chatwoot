@@ -1,3 +1,5 @@
+require_relative 'trace_content_redaction'
+
 module Captain::Assistant::RunnerInstrumentationHelper
   include Integrations::LlmInstrumentationConstants
 

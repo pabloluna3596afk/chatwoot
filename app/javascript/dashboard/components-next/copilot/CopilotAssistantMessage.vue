@@ -25,6 +25,7 @@ const props = defineProps({
     default: '',
   },
 });
+const emit = defineEmits(['retry']);
 const { t } = useI18n();
 const hasEmptyMessageContent = computed(() => !props.message?.content);
 const copied = ref(false);
@@ -69,7 +70,10 @@ const useCopilotResponse = () => {
 </script>
 
 <template>
-  <div class="group flex flex-col gap-1 text-n-slate-12">
+  <div
+    class="group flex flex-col gap-1"
+    :class="message.error ? 'text-n-ruby-11' : 'text-n-slate-12'"
+  >
     <div class="font-medium">{{ $t('CAPTAIN.COPILOT.COPILOT_LABEL') }}</div>
     <span v-if="hasEmptyMessageContent" class="text-n-ruby-11">
       {{ $t('CAPTAIN.COPILOT.EMPTY_MESSAGE') }}
@@ -78,6 +82,13 @@ const useCopilotResponse = () => {
       v-else
       v-dompurify-html="messageContent"
       class="prose-sm max-w-none break-words [&_a]:text-n-blue-11 [&_a]:underline [&_code]:rounded [&_code]:bg-n-alpha-2 [&_code]:px-1 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-n-surface-1 [&_pre]:p-3 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_th]:border [&_td]:border [&_th]:border-n-weak [&_td]:border-n-weak [&_th]:px-2 [&_td]:px-2"
+    />
+    <Button
+      v-if="message.error && isLastMessage"
+      :label="$t('CAPTAIN.COPILOT.RETRY')"
+      intent="secondary"
+      size="sm"
+      @click="emit('retry')"
     />
     <div
       v-if="!hasEmptyMessageContent || timeLabel"

@@ -113,7 +113,59 @@ RSpec.describe Captain::Tools::Copilot::GetConversationService do
         expect(result).to include('UNTRUSTED_DATA_BEGIN', conversation.to_llm_text, 'UNTRUSTED_DATA_END')
       end
 
-      it 'includes private messages in the llm text format' do
+      it 'passes the shared transcript limits to the formatter' do
+        allow(service).to receive(:accessible_conversation).and_return(conversation)
+        expect(conversation).to receive(:to_llm_text).with(
+          include_private_messages: false,
+          message_limit: Captain::Copilot::Limits::CONVERSATION_MESSAGES,
+          token_limit: Captain::Copilot::Limits::CONVERSATION_CHARACTERS
+        ).and_return('bounded transcript')
+
+        expect(service.execute(conversation_id: conversation.display_id)).to include('bounded transcript')
+      end
+
+      it 'omits messages older than the latest fifty and marks the transcript as truncated' do
+        51.times do |index|
+          create(:message, conversation: conversation, content: "conversation message #{index}")
+        end
+
+        result = service.execute(conversation_id: conversation.display_id)
+
+        expect(result).to include('[transcripción recortada]', 'conversation message 50')
+        expect(result).not_to include('conversation message 0')
+      end
+
+      it 'keeps all messages when the transcript contains exactly fifty' do
+        50.times do |index|
+          create(:message, conversation: conversation, content: "conversation message #{index}")
+        end
+
+        result = service.execute(conversation_id: conversation.display_id)
+
+        expect(result).to include('conversation message 0', 'conversation message 49')
+        expect(result).not_to include('[transcripción recortada]')
+      end
+
+      it 'keeps a transcript exactly at its character budget' do
+        content = 'x' * (Captain::Copilot::Limits::CONVERSATION_CHARACTERS - 7)
+        create(:message, conversation: conversation, content: content)
+
+        result = service.execute(conversation_id: conversation.display_id)
+
+        expect(result).to include(content)
+        expect(result).not_to include('[transcripción recortada]')
+      end
+
+      it 'marks a transcript truncated one character above its character budget' do
+        create(:message, conversation: conversation,
+                         content: 'x' * (Captain::Copilot::Limits::CONVERSATION_CHARACTERS - 6))
+
+        result = service.execute(conversation_id: conversation.display_id)
+
+        expect(result).to include('[transcripción recortada]')
+      end
+
+      it 'excludes private messages from the llm text format' do
         # Create a regular message
         create(:message,
                conversation: conversation,
@@ -130,10 +182,10 @@ RSpec.describe Captain::Tools::Copilot::GetConversationService do
 
         result = service.execute(conversation_id: conversation.display_id)
 
-        # Verify that the result includes both regular and private messages
+        # Only public conversation messages are supplied to the model.
         expect(result).to include('Regular message')
-        expect(result).to include('Private note content')
-        expect(result).to include('[Private Note]')
+        expect(result).not_to include('Private note content')
+        expect(result).not_to include('[Private Note]')
       end
 
       context 'when conversation belongs to different account' do

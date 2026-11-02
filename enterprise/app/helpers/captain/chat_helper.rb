@@ -19,7 +19,7 @@ module Captain::ChatHelper
     end
   rescue StandardError => e
     persist_pending_tool_errors
-    Rails.logger.error "#{self.class.name} Assistant: #{@assistant.id}, Error in chat completion: #{e}"
+    Rails.logger.error "#{self.class.name} Assistant: #{@assistant.id}, Chat completion failed (#{e.class})"
     raise e
   end
 
@@ -127,6 +127,8 @@ module Captain::ChatHelper
   end
 
   def log_chat_completion_request
-    Rails.logger.info("#{self.class.name} Assistant: #{@assistant.id}, requesting completion for #{@messages} with #{@tools&.length || 0} tools")
+    content_chars = conversation_messages.sum { |message| message[:content].to_s.length }
+    Rails.logger.info("#{self.class.name} Assistant: #{@assistant.id}, requesting completion " \
+                      "messages=#{conversation_messages.length} content_chars=#{content_chars} tools=#{@tools&.length || 0}")
   end
 end

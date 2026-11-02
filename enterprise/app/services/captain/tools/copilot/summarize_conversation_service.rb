@@ -8,7 +8,7 @@ class Captain::Tools::Copilot::SummarizeConversationService < Captain::Tools::Ba
   end
 
   description <<~DESCRIPTION.strip
-    Read a conversation transcript with message IDs, timestamps, and authors for citations. Private notes are clearly marked.
+    Read a conversation transcript with message IDs, timestamps, and authors for citations. Private notes are excluded.
     Only conversations available to the current user are returned.
   DESCRIPTION
 
@@ -23,7 +23,7 @@ class Captain::Tools::Copilot::SummarizeConversationService < Captain::Tools::Ba
     conversation = accessible_conversation(account: @assistant.account, user: @user, display_id: conversation_id)
     return 'Conversation not found' if conversation.blank?
 
-    messages = conversation.messages.where.not(message_type: %i[activity template])
+    messages = conversation.messages.where(private: false).where.not(message_type: %i[activity template])
     total = messages.count
     selected = messages.includes(:sender).order(created_at: :desc, id: :desc).limit(limit).to_a.reverse
     omitted_count = total - selected.length
@@ -48,8 +48,7 @@ class Captain::Tools::Copilot::SummarizeConversationService < Captain::Tools::Ba
 
   def format_message(message)
     author = message.sender&.name || message.sender_type || 'Unknown author'
-    privacy = message.private? ? ' [PRIVATE NOTE]' : ''
     content = message.content_for_llm.to_s.truncate(MAX_MESSAGE_CHARS)
-    "[message_id=#{message.id} at=#{message.created_at.iso8601} author=#{author}#{privacy}] #{content}"
+    "[message_id=#{message.id} at=#{message.created_at.iso8601} author=#{author}] #{content}"
   end
 end

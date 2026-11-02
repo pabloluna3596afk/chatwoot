@@ -68,6 +68,35 @@ RSpec.describe 'Api::V1::Accounts::Captain::CopilotThreads', type: :request do
 
     context 'when it is an authenticated user' do
       context 'with invalid params' do
+        it 'rejects a message over the shared limit before creating a thread or enqueuing work' do
+          long_message = 'x' * (Captain::Copilot::Limits::USER_MESSAGE_CHARACTERS + 1)
+          expect(Llm::Entitlement).not_to receive(:new)
+
+          expect do
+            post "/api/v1/accounts/#{account.id}/captain/copilot_threads",
+                 params: valid_params.merge(message: long_message),
+                 headers: agent.create_new_auth_token,
+                 as: :json
+          end.not_to change(CopilotThread, :count)
+
+          expect(response).to have_http_status(:unprocessable_entity)
+          expect(CopilotMessage.count).to be_zero
+          expect(Captain::Copilot::ResponseJob).not_to have_been_enqueued
+          expect(Captain::Copilot::ReplySuggestionJob).not_to have_been_enqueued
+        end
+
+        it 'accepts a message exactly at the shared limit' do
+          put_account_on_plan(account, monthly_messages: 2)
+          message = 'x' * Captain::Copilot::Limits::USER_MESSAGE_CHARACTERS
+
+          post "/api/v1/accounts/#{account.id}/captain/copilot_threads",
+               params: valid_params.merge(message: message),
+               headers: agent.create_new_auth_token,
+               as: :json
+
+          expect(response).to have_http_status(:success)
+        end
+
         it 'returns error when message is blank' do
           post "/api/v1/accounts/#{account.id}/captain/copilot_threads",
                params: { message: '', assistant_id: assistant.id },
@@ -164,8 +193,8 @@ RSpec.describe 'Api::V1::Accounts::Captain::CopilotThreads', type: :request do
         post "/api/v1/accounts/#{account.id}/captain/copilot_threads",
              params: { message: 'Second thread' }, headers: agent.create_new_auth_token, as: :json
 
-        expect(CopilotThread.order(:id).first.assistant).to eq(internal_assistant)
-        expect(CopilotThread.order(:id).last.assistant).to eq(real_assistant)
+        expect(CopilotThread.order(:id).first.assistant_id).to eq(internal_assistant.id)
+        expect(CopilotThread.order(:id).last.assistant_id).to eq(real_assistant.id)
       end
 
       context 'with valid params' do
@@ -198,7 +227,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::CopilotThreads', type: :request do
           first_response = [response.status, response.parsed_body]
 
           post "/api/v1/accounts/#{account.id}/captain/copilot_threads/#{thread.id}/copilot_messages",
-               params: { message: { content: 'Follow up' } },
+               params: { message: 'Follow up' },
                headers: agent.create_new_auth_token,
                as: :json
           second_response = [response.status, response.parsed_body]

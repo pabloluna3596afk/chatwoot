@@ -2,7 +2,7 @@ module Captain::Assistant::AgentRunResponse
   private
 
   def process_agent_result(run_result)
-    Rails.logger.info "[Captain V2] Agent result: #{run_result.inspect}"
+    Rails.logger.info "[Captain V2] Agent result received (#{run_result.output.to_s.length} chars)"
     model_output = run_result.output
     structured_response = if model_output.is_a?(Hash)
                             model_output.with_indifferent_access

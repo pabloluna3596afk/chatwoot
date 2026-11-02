@@ -14,7 +14,7 @@ class Messages::AudioTranscriptionService
     return { error: 'Audio too large for transcription' } if Llm::SpeechToTextService.too_large?(attachment.file&.blob)
 
     transcriptions = transcribe_audio
-    Rails.logger.info "Audio transcription successful: #{transcriptions}"
+    Rails.logger.info "Audio transcription successful (#{transcriptions.to_s.length} chars)"
     { success: true, transcriptions: transcriptions }
   rescue Faraday::UnauthorizedError
     Rails.logger.warn('Skipping audio transcription: OpenAI configuration is invalid or disabled (401 Unauthorized).')

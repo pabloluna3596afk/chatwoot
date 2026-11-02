@@ -67,11 +67,11 @@ module Integrations::LlmInstrumentation
         set_metadata_attributes(span, params)
 
         # By default, the input and output of a trace are set from the root observation
-        span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, '[REDACTED]')
+        set_agent_session_trace_input(span, params)
         provider_called = true
         result = yield
         executed = true
-        span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, '[REDACTED]')
+        set_agent_session_trace_output(span, result)
         set_error_attributes(span, result) if result.is_a?(Hash)
         result
       end
@@ -86,7 +86,7 @@ module Integrations::LlmInstrumentation
   end
   # rubocop:enable Metrics/CyclomaticComplexity, Metrics/MethodLength
 
-  def instrument_tool_call(tool_name, _arguments)
+  def instrument_tool_call(tool_name, arguments)
     # There is no error handling because tools can fail and LLMs should be
     # aware of those failures and factor them into their response.
     return yield unless ChatwootApp.otel_enabled?
@@ -94,9 +94,9 @@ module Integrations::LlmInstrumentation
     tracer.in_span(format(TOOL_SPAN_NAME, tool_name)) do |span|
       apply_current_langfuse_attributes(span)
       span.set_attribute(ATTR_LANGFUSE_OBSERVATION_TYPE, 'tool')
-      span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, '[REDACTED]')
+      span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, Integrations::LlmInstrumentationHelpers.instrumentation_content(arguments.to_json))
       result = yield
-      span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, '[REDACTED]')
+      span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, Integrations::LlmInstrumentationHelpers.instrumentation_content(result.to_json))
       set_error_attributes(span, result) if result.is_a?(Hash)
       result
     end
@@ -133,6 +133,16 @@ module Integrations::LlmInstrumentation
     return Account.find_by(id: params[:account_id]) if params[:account_id].present?
 
     nil
+  end
+
+  def set_agent_session_trace_input(span, params)
+    content = Integrations::LlmInstrumentationHelpers.instrumentation_content(params[:messages].to_json)
+    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, content)
+  end
+
+  def set_agent_session_trace_output(span, result)
+    content = Integrations::LlmInstrumentationHelpers.instrumentation_content(result.to_json)
+    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, content)
   end
 end
 # rubocop:enable Metrics/ModuleLength

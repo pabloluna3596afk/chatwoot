@@ -708,6 +708,8 @@
       "SEND_MESSAGE": "Send message...",
       "MESSAGE_LABEL": "Message Copilot",
       "SEND": "Send message",
+      "RETRY": "Retry",
+      "MESSAGE_LENGTH": "{count}/4000 characters",
       "EMPTY_MESSAGE": "There was an error generating the response. Please try again.",
       "COPY_RESPONSE": "Copy response",
       "COPIED": "Response copied",

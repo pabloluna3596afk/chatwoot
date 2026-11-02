@@ -14,7 +14,7 @@ class Captain::Llm::TranslateQueryService < Captain::BaseTaskService
 
     response[:message].strip
   rescue StandardError => e
-    Rails.logger.warn "TranslateQueryService failed: #{e.message}, falling back to original query"
+    Rails.logger.warn "TranslateQueryService failed (#{e.class}), falling back to original query"
     query
   end
 

@@ -1,3 +1,10 @@
+### B-NEW-251 — Limitar el tamaño y recuperación de errores de Copilot (2026-11-01)
+
+- **Archivos:** límites compartidos de Copilot, controladores de hilos y mensajes, historial, herramientas `get_conversation`/`search_conversations`, `ResponseJob`, UI next de Copilot, traducciones y specs correspondientes.
+- **Causa:** mensajes, historiales y resultados de herramientas no tenían topes coherentes; un fallo del proveedor podía dejar el chat esperando sin respuesta persistida.
+- **Arreglo:** validar mensajes de hasta 4.000 caracteres antes de cuota y escritura; limitar historial a 20 mensajes/12.000 caracteres, transcripciones a 50/12.000 y búsquedas a 10 por defecto, 25 máximo, 10/2.000 por transcripción y 24.000 caracteres totales. Los fallos del job guardan un mensaje localizado marcado como error, excluido del historial, con reintento del último mensaje desde la UI; se registran clase e IDs sin detalle del proveedor.
+- **Verificación:** Vitest y ESLint focalizados, locales en/es y RuboCop CI: PASS. `ci-local files` se intentó con 2, 4 y 1 workers; los workers quedaron bloqueados en `p9_client_rpc` al leer el bind mount y PostgreSQL no recibió consultas. Evidencia y estado final en `tmp/PR-IA-LIMITES.md`.
+
 ### B-NEW-250 - Fuente única para cuotas visibles de IA
 
 - **Fuente de verdad por métrica:** `AccountPlanUsage` es la fuente del cupo y consumo visible en `usage_limits`, el contrato de facturación y las columnas de consumo de `ai_usage`. `responses_consumed` conserva las respuestas de Captain a clientes; `copilot_responses_consumed` es el contador separado de Copilot y ambos se suman solo cuando comparten bolsa. `AiUsageEvent` es la fuente del detalle diario de llamadas, tokens y costo del panel de auditoría; no reemplaza los contadores de cupo.

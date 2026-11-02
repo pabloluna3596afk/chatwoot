@@ -15,7 +15,10 @@ module Captain::ToolInstrumentation
         set_tool_session_attributes(span, params)
         response = yield
         executed = true
-        span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, response[:message] || response.to_json)
+        output = response[:message] || response.to_json
+        span.set_attribute(
+          ATTR_LANGFUSE_OBSERVATION_OUTPUT, Integrations::LlmInstrumentationHelpers.instrumentation_content(output)
+        )
         set_tool_session_error_attributes(span, response) if response.is_a?(Hash)
       end
     end
@@ -27,15 +30,18 @@ module Captain::ToolInstrumentation
 
   def set_tool_session_attributes(span, params)
     set_metadata_attributes(span, params)
-    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, params[:messages].to_json)
+    span.set_attribute(
+      ATTR_LANGFUSE_OBSERVATION_INPUT,
+      Integrations::LlmInstrumentationHelpers.instrumentation_content(params[:messages].to_json)
+    )
   end
 
   def set_tool_session_error_attributes(span, response)
     error = response[:error] || response['error']
     return if error.blank?
 
-    span.set_attribute(ATTR_GEN_AI_RESPONSE_ERROR, error.to_json)
-    span.status = OpenTelemetry::Trace::Status.error(error.to_s.truncate(1000))
+    span.set_attribute(ATTR_GEN_AI_RESPONSE_ERROR, '[REDACTED]')
+    span.status = OpenTelemetry::Trace::Status.error('Tool execution failed')
   end
 
   def record_generation(chat, message, model)
@@ -47,8 +53,12 @@ module Captain::ToolInstrumentation
       span.set_attribute(ATTR_GEN_AI_PROVIDER, 'openai')
       span.set_attribute(ATTR_GEN_AI_REQUEST_MODEL, model)
       set_generation_usage_attributes(span, message)
-      span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, format_chat_messages(chat))
-      span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, message.content.to_s) if message.respond_to?(:content)
+      input = Integrations::LlmInstrumentationHelpers.instrumentation_content(format_chat_messages(chat))
+      span.set_attribute(ATTR_LANGFUSE_OBSERVATION_INPUT, input)
+      next unless message.respond_to?(:content)
+
+      output = Integrations::LlmInstrumentationHelpers.instrumentation_content(message.content)
+      span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, output)
     end
   rescue StandardError => e
     Rails.logger.warn "Failed to record generation: #{e.message}"

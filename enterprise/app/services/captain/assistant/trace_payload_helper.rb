@@ -1,3 +1,5 @@
+require_relative 'trace_content_redaction'
+
 module Captain::Assistant::TracePayloadHelper
   private
 
@@ -7,19 +9,21 @@ module Captain::Assistant::TracePayloadHelper
   end
 
   def serialize_trace_messages(message_history)
-    message_history.map do |message|
+    payload = message_history.map do |message|
       {
         role: message[:role].to_s,
         content: trace_content_payload(message[:content])
       }
     end.to_json
+    Integrations::LlmInstrumentationHelpers.instrumentation_content(payload)
   end
 
   def serialize_trace_content(content)
     payload = trace_content_payload(content)
     return '' if payload.blank?
 
-    payload.is_a?(String) ? payload : payload.to_json
+    serialized = payload.is_a?(String) ? payload : payload.to_json
+    Integrations::LlmInstrumentationHelpers.instrumentation_content(serialized)
   end
 
   def trace_content_payload(content)

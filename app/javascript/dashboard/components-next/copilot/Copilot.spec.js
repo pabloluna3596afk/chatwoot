@@ -94,6 +94,52 @@ describe('Copilot', () => {
     expect(wrapper.text()).toContain('CAPTAIN.COPILOT.TYPING');
   });
 
+  it('stops typing and retries the latest user message after an error', async () => {
+    const onSendMessage = vi.fn().mockResolvedValue(true);
+    const wrapper = mount(Copilot, {
+      props: {
+        onSendMessage,
+        messages: [
+          {
+            id: 1,
+            message_type: 'user',
+            created_at: 1,
+            message: { content: 'Try again' },
+          },
+          {
+            id: 2,
+            message_type: 'assistant',
+            created_at: 2,
+            message: { content: 'Failed', error: true },
+          },
+        ],
+      },
+      global: {
+        mocks: { $t: key => key },
+        stubs: {
+          CopilotInput: true,
+          CopilotLoader: true,
+          CopilotAgentMessage: true,
+          CopilotAssistantMessage: {
+            props: ['onRetry'],
+            template: '<button class="retry" @click="onRetry">retry</button>',
+          },
+          CopilotThinkingGroup: true,
+          ToggleCopilotAssistant: true,
+          CopilotEmptyState: true,
+          CopilotActionCard: true,
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain('CAPTAIN.COPILOT.ONLINE');
+    expect(wrapper.findComponent({ name: 'CopilotLoader' }).exists()).toBe(
+      false
+    );
+    await wrapper.get('.retry').trigger('click');
+    expect(onSendMessage).toHaveBeenCalledWith('Try again');
+  });
+
   it('scrolls to the latest restored message when the thread loads', async () => {
     const wrapper = mountWith({ messages: [] });
     const chat = wrapper.get('.overflow-y-auto').element;

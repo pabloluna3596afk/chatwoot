@@ -32,7 +32,7 @@ class LlmFormatter::ConversationLlmFormatter < LlmFormatter::DefaultLlmFormatter
     message_limit = config[:message_limit]
     omitted_count = messages.count - message_limit if message_limit
     if message_limit
-      recent_message_ids = messages.order(created_at: :desc, id: :desc).limit(message_limit).select(:id)
+      recent_message_ids = messages.reorder(created_at: :desc, id: :desc).limit(message_limit).select(:id)
       messages = messages.where(id: recent_message_ids)
     end
 

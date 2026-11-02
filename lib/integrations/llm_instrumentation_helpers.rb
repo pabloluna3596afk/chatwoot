@@ -5,6 +5,13 @@ module Integrations::LlmInstrumentationHelpers
   include Integrations::LlmInstrumentationContext
   include Integrations::LlmInstrumentationCompletionHelpers
 
+  def self.instrumentation_content(value)
+    content = value.to_s
+    return content if ENV['LANGFUSE_CAPTURE_CONTENT'] == 'true'
+
+    "[REDACTED] (#{content.length} chars)"
+  end
+
   def determine_provider(model_name)
     return 'openai' if model_name.blank?
 
@@ -28,7 +35,7 @@ module Integrations::LlmInstrumentationHelpers
   def record_completion(span, result)
     if result.respond_to?(:content)
       span.set_attribute(ATTR_GEN_AI_COMPLETION_ROLE, result.role.to_s) if result.respond_to?(:role)
-      span.set_attribute(ATTR_GEN_AI_COMPLETION_CONTENT, '[REDACTED]')
+      span.set_attribute(ATTR_GEN_AI_COMPLETION_CONTENT, Integrations::LlmInstrumentationHelpers.instrumentation_content(result.content))
     elsif result.is_a?(Hash)
       set_completion_attributes(span, result)
     end
@@ -45,7 +52,10 @@ module Integrations::LlmInstrumentationHelpers
     messages.each_with_index do |msg, idx|
       role = msg[:role] || msg['role']
       span.set_attribute(format(ATTR_GEN_AI_PROMPT_ROLE, idx), role)
-      span.set_attribute(format(ATTR_GEN_AI_PROMPT_CONTENT, idx), '[REDACTED]')
+      content = msg[:content] || msg['content']
+      span.set_attribute(
+        format(ATTR_GEN_AI_PROMPT_CONTENT, idx), Integrations::LlmInstrumentationHelpers.instrumentation_content(content)
+      )
     end
   end
 

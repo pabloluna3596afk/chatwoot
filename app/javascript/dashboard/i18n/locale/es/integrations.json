@@ -701,6 +701,8 @@
       "SEND_MESSAGE": "Enviar mensaje...",
       "MESSAGE_LABEL": "Mensaje para Copilot",
       "SEND": "Enviar mensaje",
+      "RETRY": "Reintentar",
+      "MESSAGE_LENGTH": "{count}/4000 caracteres",
       "EMPTY_MESSAGE": "Hubo un error generando la respuesta. Inténtalo de nuevo.",
       "COPY_RESPONSE": "Copiar respuesta",
       "COPIED": "Respuesta copiada",

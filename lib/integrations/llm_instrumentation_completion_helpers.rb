@@ -35,7 +35,7 @@ module Integrations::LlmInstrumentationCompletionHelpers
   def set_transcription_result_attributes(span, result)
     transcribed_text = result.respond_to?(:text) ? result.text : result.to_s
     span.set_attribute('transcription.length', transcribed_text&.length || 0)
-    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, '[REDACTED]')
+    span.set_attribute(ATTR_LANGFUSE_OBSERVATION_OUTPUT, Integrations::LlmInstrumentationHelpers.instrumentation_content(transcribed_text))
   end
 
   def set_moderation_result_attributes(span, result)
@@ -59,7 +59,7 @@ module Integrations::LlmInstrumentationCompletionHelpers
     return if message.blank?
 
     span.set_attribute(ATTR_GEN_AI_COMPLETION_ROLE, 'assistant')
-    span.set_attribute(ATTR_GEN_AI_COMPLETION_CONTENT, '[REDACTED]')
+    span.set_attribute(ATTR_GEN_AI_COMPLETION_CONTENT, Integrations::LlmInstrumentationHelpers.instrumentation_content(message))
   end
 
   def set_usage_metrics(span, result)

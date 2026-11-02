@@ -41,5 +41,19 @@ RSpec.describe Captain::Copilot::ResponseJob, type: :job do
         message: message
       )
     end
+
+    it 'persists an error message and swallows provider errors' do
+      allow(chat_service).to receive(:generate_response).and_raise(StandardError, 'sensitive provider details')
+
+      expect do
+        described_class.perform_now(assistant: assistant, conversation_id: conversation_id, user_id: user.id,
+                                    copilot_thread_id: copilot_thread.id, message: message)
+      end.to change(CopilotMessage, :count).by(1)
+
+      error_message = copilot_thread.copilot_messages.last
+      expect(error_message.message_type).to eq('assistant')
+      expect(error_message.message).to include('error' => true, 'content' => I18n.t('captain.copilot_response_failed'))
+      expect(error_message.message.to_s).not_to include('sensitive provider details')
+    end
   end
 end
