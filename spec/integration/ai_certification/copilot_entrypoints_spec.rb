@@ -545,9 +545,17 @@ RSpec.describe 'Copilot real entrypoint certification', type: :request do
     end
   end
 
-  describe 'read_tools/E7 feature and role admission N/A', copilot_matrix_cell: 'read_tools/E7', copilot_matrix_result: 'N/A' do
-    it 'documents that tool availability is decided by the ChatService registry' do
-      expect('Inactive tools are filtered before invocation; entry admission is covered by chat/E7.').not_to be_empty
+  describe 'read_tools/E7 role without read permission', copilot_matrix_cell: 'read_tools/E7' do
+    it 'removes conversation read tools from the real ChatService registry for a role without access' do
+      custom_role = create(:custom_role, account: account, permissions: [])
+      account.account_users.find_by!(user: agent).update!(role: :agent, custom_role: custom_role)
+      service = Captain::Copilot::ChatService.new(
+        assistant, user_id: agent.id, copilot_thread_id: thread.id
+      )
+
+      expect(service.instance_variable_get(:@tools).map(&:name))
+        .not_to include('get_conversation', 'search_conversation', 'summarize_conversation')
+      expect(AiUsageEvent.where(account: account, feature: 'copilot')).to be_empty
     end
   end
 
