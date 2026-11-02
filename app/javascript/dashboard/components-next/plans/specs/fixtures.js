@@ -9,6 +9,7 @@ export const catalog = [
     price_monthly: 0,
     price_yearly: 0,
     feature_keys: ['captain_integration'],
+    base_feature_keys: ['inbox_management', 'labels', 'crm'],
     limits: {
       inboxes: 1,
       assistants: 1,
@@ -37,6 +38,7 @@ export const catalog = [
       'captain_tasks',
       'calendar_integration',
     ],
+    base_feature_keys: ['inbox_management', 'labels', 'crm'],
     limits: {
       inboxes: 5,
       assistants: 3,

@@ -57,6 +57,9 @@ export function usePlanPresentation() {
   const features = plans => [
     ...new Set(plans.flatMap(plan => plan.feature_keys)),
   ];
+  const baseFeatures = plans => [
+    ...new Set(plans.flatMap(plan => plan.base_feature_keys || [])),
+  ];
   const featureChanges = (plans, plan) => {
     const ordered = [...plans].sort(
       (left, right) =>
@@ -83,7 +86,7 @@ export function usePlanPresentation() {
     ).format(amount);
   const pricing = plan => ({
     monthly: Number(plan.price_monthly) || 0,
-    annual: (Number(plan.price_monthly) || 0) * 10,
+    annual: Number(plan.price_yearly) || 0,
   });
   return {
     label,
@@ -91,6 +94,7 @@ export function usePlanPresentation() {
     summary,
     rows,
     features,
+    baseFeatures,
     featureChanges,
     money,
     pricing,

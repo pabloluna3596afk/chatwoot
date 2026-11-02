@@ -22,7 +22,6 @@ const { t } = useI18n();
 const { featureChanges, money, pricing, summary } = usePlanPresentation();
 const current = computed(() => matchesPlan(props.plan, props.currentPlanId));
 const selected = computed(() => matchesPlan(props.plan, props.selectedPlanId));
-const freeName = computed(() => props.plan.name === t('PLAN_CATALOG.FREE'));
 const changes = computed(() =>
   featureChanges(props.plans.length ? props.plans : [props.plan], props.plan)
 );
@@ -30,7 +29,8 @@ const prices = computed(() => pricing(props.plan));
 const selectable = computed(
   () =>
     props.canSelect &&
-    (props.canPurchase || current.value) &&
+    props.canPurchase &&
+    Number(props.plan.price_monthly) > 0 &&
     props.plan.state === 'available'
 );
 const choose = () => {
@@ -78,7 +78,7 @@ const choose = () => {
         <template v-if="prices.monthly > 0">
           {{ money(prices.monthly) }}
         </template>
-        <template v-else-if="!freeName">{{ t('PLAN_CATALOG.FREE') }}</template>
+        <template v-else>{{ t('PLAN_CATALOG.FREE') }}</template>
         <span
           v-if="prices.monthly > 0"
           class="text-sm font-normal text-n-slate-11"
@@ -90,15 +90,59 @@ const choose = () => {
         {{ t('PLAN_CATALOG.ANNUAL_PRICE', { price: money(prices.annual) }) }}
       </p>
     </div>
-    <ul
-      v-if="compact && summary(plan).length"
-      class="m-0 flex-1 list-none space-y-2 p-0 text-sm"
-    >
+    <ul v-if="compact" class="m-0 flex-1 list-none space-y-2 p-0 text-sm">
       <li v-for="field in summary(plan)" :key="field.key">
         {{ field.text }}
       </li>
+      <li v-if="plan.base_feature_keys?.length" class="space-y-2">
+        <p class="m-0 font-medium text-n-slate-12">
+          {{ t('PLAN_CATALOG.BASE_FEATURES') }}
+        </p>
+        <ul class="m-0 list-none space-y-2 p-0">
+          <li
+            v-for="feature in plan.base_feature_keys"
+            :key="feature"
+            class="flex items-start gap-2"
+          >
+            <span
+              class="i-lucide-check mt-0.5 size-4 shrink-0 text-n-slate-10"
+              aria-hidden="true"
+            />
+            {{ t(`PLAN_CATALOG.FEATURES.${feature}`) }}
+          </li>
+        </ul>
+      </li>
+      <li
+        v-for="feature in plan.feature_keys"
+        :key="feature"
+        class="flex items-start gap-2"
+      >
+        <span
+          class="i-lucide-check mt-0.5 size-4 shrink-0 text-n-slate-10"
+          aria-hidden="true"
+        />
+        {{ t(`PLAN_CATALOG.FEATURES.${feature}`) }}
+      </li>
     </ul>
     <ul v-if="!compact" class="m-0 flex-1 list-none space-y-3 p-0 text-sm">
+      <li v-if="plan.base_feature_keys?.length" class="space-y-2">
+        <p class="m-0 font-medium text-n-slate-12">
+          {{ t('PLAN_CATALOG.BASE_FEATURES') }}
+        </p>
+        <ul class="m-0 list-none space-y-2 p-0">
+          <li
+            v-for="feature in plan.base_feature_keys"
+            :key="feature"
+            class="flex items-start gap-2"
+          >
+            <span
+              class="i-lucide-check mt-0.5 size-4 shrink-0 text-n-slate-10"
+              aria-hidden="true"
+            />
+            {{ t(`PLAN_CATALOG.FEATURES.${feature}`) }}
+          </li>
+        </ul>
+      </li>
       <li
         v-if="
           changes.previousPlan &&
@@ -132,24 +176,20 @@ const choose = () => {
       </li>
     </ul>
     <Button
-      v-if="!compact"
-      :disabled="!selectable"
-      :variant="selectable ? 'solid' : 'outline'"
+      v-if="!compact && selectable"
+      variant="solid"
       color="blue"
       size="sm"
-      class="!h-auto !min-h-10 w-full !whitespace-normal py-2"
-      :class="selectable ? '!bg-n-blue-11 !text-n-solid-1' : ''"
+      class="!h-auto !min-h-10 w-full !whitespace-normal !bg-n-blue-11 !text-n-solid-1 py-2"
       @click="choose"
     >
-      {{
-        selectable
-          ? t('PAYPHONE.CHOOSE')
-          : t(
-              current
-                ? 'PLAN_CATALOG.CURRENT'
-                : `PLAN_CATALOG.STATES.${plan.state}`
-            )
-      }}
+      {{ t('PAYPHONE.CHOOSE') }}
     </Button>
+    <p
+      v-else-if="!compact && !current && plan.state === 'available'"
+      class="m-0 rounded-lg bg-n-slate-2 p-3 text-sm text-n-slate-11"
+    >
+      {{ t('PLAN_CATALOG.MANAGE_PLAN_NOTE') }}
+    </p>
   </article>
 </template>

@@ -14,10 +14,11 @@ const props = defineProps({
   plans: { type: Array, required: true },
 });
 const { t } = useI18n();
-const { rows, features, value, money, pricing, isIncluded } =
+const { rows, features, baseFeatures, value, money, pricing, isIncluded } =
   usePlanPresentation();
 const limitRows = computed(() => rows(props.plans));
 const featureRows = computed(() => features(props.plans));
+const baseFeatureRows = computed(() => baseFeatures(props.plans));
 </script>
 
 <template>
@@ -86,7 +87,7 @@ const featureRows = computed(() => features(props.plans));
                 <template v-if="pricing(plan).monthly > 0">
                   {{ money(pricing(plan).monthly) }}
                 </template>
-                <template v-else-if="plan.name !== t('PLAN_CATALOG.FREE')">
+                <template v-else>
                   {{ t('PLAN_CATALOG.FREE') }}
                 </template>
                 <span
@@ -133,6 +134,34 @@ const featureRows = computed(() => features(props.plans));
                   t('PLAN_CATALOG.NOT_INCLUDED')
                 }}</span>
               </span>
+            </td>
+          </tr>
+          <tr v-if="baseFeatureRows.length">
+            <th
+              scope="row"
+              class="sticky start-0 z-10 border-b border-n-weak bg-n-solid-1 p-4 text-start font-medium dark:bg-n-solid-3"
+            >
+              {{ t('PLAN_CATALOG.BASE_FEATURES') }}
+            </th>
+            <td
+              v-for="plan in plans"
+              :key="plan.id"
+              class="border-b border-n-weak p-4 text-center"
+              :class="{ 'bg-n-blue-3': matchesPlan(plan, currentPlanId) }"
+            >
+              <ul class="m-0 list-none space-y-2 p-0 text-start">
+                <li
+                  v-for="feature in plan.base_feature_keys || []"
+                  :key="feature"
+                  class="flex items-start gap-2"
+                >
+                  <span
+                    class="i-lucide-check mt-0.5 size-4 shrink-0 text-n-slate-10"
+                    aria-hidden="true"
+                  />
+                  {{ t(`PLAN_CATALOG.FEATURES.${feature}`) }}
+                </li>
+              </ul>
             </td>
           </tr>
           <tr

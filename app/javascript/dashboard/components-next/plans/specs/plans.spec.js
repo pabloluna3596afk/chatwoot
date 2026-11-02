@@ -150,10 +150,9 @@ describe('catalog presentation', () => {
     expect(wrapper.text()).toContain('Calendario y citas');
     expect(wrapper.text()).not.toContain('Hidden');
     expect(wrapper.find('.i-woot-captain').exists()).toBe(false);
-    expect(wrapper.findAll('button:disabled')).toHaveLength(2);
-    await wrapper.get('[data-plan-id="7"] button').trigger('click');
-    expect(wrapper.emitted('select')).toEqual([[7]]);
-    expect(wrapper.emitted('continue')).toEqual([[7]]);
+    expect(wrapper.findAll('button:disabled')).toHaveLength(0);
+    expect(wrapper.emitted('select')).toBeUndefined();
+    expect(wrapper.emitted('continue')).toBeUndefined();
     expect(wrapper.emitted('requestUpgrade')).toBeUndefined();
     expect(PlansAPI.get).toHaveBeenCalledOnce();
   });
@@ -168,7 +167,7 @@ describe('catalog presentation', () => {
     });
     await flushPromises();
     expect(wrapper.text()).toContain(es.PLAN_CATALOG[key]);
-    expect(wrapper.findAll('button:disabled')).toHaveLength(2);
+    expect(wrapper.findAll('button:disabled')).toHaveLength(0);
   });
 
   it('renders loading then empty catalog without inventing values', async () => {
@@ -214,14 +213,17 @@ describe('catalog presentation', () => {
       es.PLAN_CATALOG.INHERITS.replace('{plan}', 'Prueba')
     );
     expect(wrapper.text()).toContain(es.PLAN_CATALOG.FEATURES.captain_tasks);
-    expect(wrapper.get('[data-plan-id="7"] button').text()).toBe(
+    expect(wrapper.text()).toContain(es.PLAN_CATALOG.BASE_FEATURES);
+    expect(wrapper.text()).toContain(es.PLAN_CATALOG.FEATURES.crm);
+    expect(wrapper.get('[data-plan-id="7"]').text()).toContain(
       es.PLAN_CATALOG.CURRENT
     );
+    expect(wrapper.find('[data-plan-id="7"] button').exists()).toBe(false);
     expect(wrapper.text()).not.toContain(es.PLAN_CATALOG.UNKNOWN);
     expect(wrapper.text()).not.toMatch(/PLAN_CATALOG\.(LIMITS|FEATURES)\./);
   });
 
-  it('does not repeat Gratis when the free plan is named Gratis', async () => {
+  it('shows Gratis as the price regardless of the free plan name', async () => {
     PlansAPI.get.mockResolvedValueOnce({
       data: [{ ...catalog[0], name: es.PLAN_CATALOG.FREE }],
     });
@@ -232,11 +234,15 @@ describe('catalog presentation', () => {
 
     const card = wrapper.get('[data-plan-id="7"]');
     expect(card.get('h3').text()).toBe(es.PLAN_CATALOG.FREE);
-    expect(card.text().split(es.PLAN_CATALOG.FREE)).toHaveLength(2);
+    expect(card.text().split(es.PLAN_CATALOG.FREE)).toHaveLength(3);
     expect(wrapper.get('thead th:nth-child(2)').text()).toBe(
       es.PLAN_CATALOG.FREE
     );
-    expect(wrapper.get('tbody tr:first-child td').text()).toBe('');
+    expect(wrapper.get('tbody tr:first-child td').text()).toBe(
+      es.PLAN_CATALOG.FREE
+    );
+    expect(card.text()).toContain(es.PLAN_CATALOG.BASE_FEATURES);
+    expect(wrapper.text()).toContain(es.PLAN_CATALOG.BASE_FEATURES);
   });
 
   it('hides inheritance copy when the catalog has no feature differences', () => {
@@ -329,19 +335,34 @@ describe('catalog presentation', () => {
     });
   });
 
-  it('only permits selection of an available current plan, including slug identity', async () => {
+  it('shows current, upcoming, unavailable-to-user and purchasable plan actions clearly', async () => {
     wrapper = mount(PlanCard, {
       props: { plan: catalog[0], currentPlanId: 'trial', canSelect: true },
       global: { plugins: [i18n] },
     });
-    expect(wrapper.get('button').attributes('disabled')).toBeUndefined();
-    await wrapper.setProps({ currentPlanId: 9 });
-    expect(wrapper.get('button').attributes('disabled')).toBeDefined();
+    expect(wrapper.find('button').exists()).toBe(false);
+    expect(wrapper.text()).toContain(es.PLAN_CATALOG.CURRENT);
+
     await wrapper.setProps({
-      currentPlanId: 7,
+      currentPlanId: null,
       plan: { ...catalog[0], state: 'coming_soon' },
     });
-    expect(wrapper.get('button').attributes('disabled')).toBeDefined();
+    expect(wrapper.find('button').exists()).toBe(false);
+    expect(wrapper.text()).toContain(es.PLAN_CATALOG.STATES.coming_soon);
+
+    await wrapper.setProps({
+      plan: { ...catalog[1], state: 'available' },
+      canPurchase: false,
+    });
+    expect(wrapper.find('button').exists()).toBe(false);
+    expect(wrapper.text()).toContain(es.PLAN_CATALOG.MANAGE_PLAN_NOTE);
+
+    await wrapper.setProps({
+      plan: { ...catalog[1], state: 'available' },
+      canPurchase: true,
+    });
+    expect(wrapper.get('button').attributes('disabled')).toBeUndefined();
+    expect(wrapper.get('button').text()).toBe(esSettings.PAYPHONE.CHOOSE);
   });
 
   it('routes an available paid plan through the Payphone selection action', async () => {
@@ -358,7 +379,9 @@ describe('catalog presentation', () => {
   });
 
   it('keeps translation keys in parity and formats English numbers', async () => {
-    expect(Object.keys(en.PLAN_CATALOG)).toEqual(Object.keys(es.PLAN_CATALOG));
+    expect(Object.keys(en.PLAN_CATALOG).sort()).toEqual(
+      Object.keys(es.PLAN_CATALOG).sort()
+    );
     i18n.global.locale.value = 'en';
     wrapper = mount(PlanCatalog, {
       global: { plugins: [store, router, i18n] },
@@ -415,15 +438,25 @@ describe('comparison overlay', () => {
     expect(document.body.style.overflow).not.toBe('hidden');
   });
 
-  it('continues by closing the comparison without changing a subscription', async () => {
+  it('continues by closing the comparison after selecting a purchasable plan', async () => {
+    PlansAPI.get.mockResolvedValueOnce({
+      data: catalog.map(plan =>
+        plan.id === 9 ? { ...plan, state: 'available' } : plan
+      ),
+    });
     wrapper = mount(PlanPricingView, {
-      props: { currentPlanId: 7, canSelect: true },
+      props: {
+        currentPlanId: 7,
+        canSelect: true,
+        canPurchase: true,
+      },
       global: { plugins: [store, router, i18n] },
     });
     await flushPromises();
-    document.querySelector('[data-plan-id="7"] button').click();
+    document.querySelector('[data-plan-id="9"] button').click();
     await flushPromises();
-    expect(wrapper.emitted('continue')).toEqual([[7]]);
+    expect(wrapper.emitted('select')).toEqual([[9]]);
+    expect(wrapper.emitted('continue')).toEqual([[9]]);
     expect(wrapper.emitted('close')).toHaveLength(1);
     expect(wrapper.emitted('requestUpgrade')).toBeUndefined();
   });
@@ -435,12 +468,16 @@ it('keeps onboarding completion on the simple screen and reuses its cached catal
     global: { plugins: [store, router, i18n] },
   });
   await flushPromises();
+  expect(wrapper.text()).toContain(es.PLAN_CATALOG.BASE_FEATURES);
+  expect(wrapper.text()).toContain(
+    es.PLAN_CATALOG.FEATURES.captain_integration
+  );
   const compare = wrapper
     .findAll('button')
     .find(button => button.text() === es.PLAN_CATALOG.COMPARE);
   await compare.trigger('click');
   await flushPromises();
-  document.querySelector('[role="dialog"] [data-plan-id="7"] button').click();
+  document.querySelector('[role="dialog"] button[aria-label="Cerrar"]').click();
   await flushPromises();
   expect(wrapper.emitted('continue')).toBeUndefined();
   expect(wrapper.findComponent(PlanPricingView).exists()).toBe(false);
