@@ -28,6 +28,7 @@ const changes = computed(() =>
 const prices = computed(() => pricing(props.plan));
 const selectable = computed(
   () =>
+    !current.value &&
     props.canSelect &&
     props.canPurchase &&
     Number(props.plan.price_monthly) > 0 &&

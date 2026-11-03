@@ -462,6 +462,22 @@ describe('catalog presentation', () => {
     expect(wrapper.emitted('continue')).toEqual([[paidPlan.id]]);
   });
 
+  it('does not offer a purchase button on the current plan', () => {
+    const paidPlan = { ...catalog[1], state: 'available' };
+    wrapper = mount(PlanCard, {
+      props: {
+        plan: paidPlan,
+        currentPlanId: paidPlan.id,
+        canSelect: true,
+        canPurchase: true,
+      },
+      global: { plugins: [i18n] },
+    });
+
+    expect(wrapper.find('button').exists()).toBe(false);
+    expect(wrapper.text()).toContain(es.PLAN_CATALOG.CURRENT);
+  });
+
   it('keeps translation keys in parity and formats English numbers', async () => {
     expect(Object.keys(en.PLAN_CATALOG).sort()).toEqual(
       Object.keys(es.PLAN_CATALOG).sort()
