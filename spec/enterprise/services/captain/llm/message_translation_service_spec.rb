@@ -33,6 +33,18 @@ RSpec.describe Captain::Llm::MessageTranslationService do
     expect(service.perform).to eq(error: 'failed', error_code: 500)
   end
 
+  it 'returns the internal limit error without making a provider call when the internal quota is exhausted' do
+    put_account_on_plan(account, captain_internal_calls: 0)
+    expect(service).not_to receive(:make_api_call)
+
+    result = service.perform
+
+    expect(result[:error]).to eq(I18n.t('captain.internal_limit'))
+    expect(result[:error_code]).to eq(429)
+    expect(account.reload.usage_limits.dig(:captain, :internal, :consumed)).to eq(0)
+    expect(AiUsageEvent.where(account: account, feature: 'message_translation')).to be_empty
+  end
+
   it 'compares base language tags' do
     expect(described_class.same_language?('pt-BR', 'pt_BR')).to be(true)
     expect(described_class.same_language?('en', 'es')).to be(false)
