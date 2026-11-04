@@ -5,6 +5,7 @@ RSpec.describe Captain::Llm::LanguageDetectionService do
   let(:service) { described_class.new(account: account, text: 'Bonjour') }
 
   before do
+    put_account_on_plan(account, captain_internal_calls: 1)
     stub_const('Schematist', Module.new)
     stub_const('Schematist::Schema', Class.new do
       def self.string(name, **) = (@fields ||= []) << name
@@ -37,6 +38,23 @@ RSpec.describe Captain::Llm::LanguageDetectionService do
   it 'returns nil and logs when detection fails' do
     allow(service).to receive(:perform).and_return(error: 'unavailable')
     expect(Rails.logger).to receive(:warn).with('[AutoTranslate] language detection failed: unavailable')
+    expect(service.language).to be_nil
+  end
+
+  it 'reserves and consumes one internal call after a successful detection' do
+    allow(service).to receive(:make_api_call).and_return(message: { 'language' => 'fr' })
+    expect(account).to receive(:reserve_captain_ai_usage!).with(bucket: :internal, reservation_id: anything).and_return(true)
+    expect(account).to receive(:finish_captain_ai_usage!).with(bucket: :internal, reservation_id: anything).and_return(true)
+
+    expect(service.language).to eq('fr')
+  end
+
+  it 'releases the internal reservation after a provider error' do
+    allow(service).to receive(:make_api_call).and_return(error: 'provider unavailable')
+    expect(account).to receive(:reserve_captain_ai_usage!).with(bucket: :internal, reservation_id: anything).and_return(true)
+    expect(account).to receive(:release_captain_ai_usage!).with(bucket: :internal, reservation_id: anything).and_return(true)
+    expect(account).not_to receive(:finish_captain_ai_usage!)
+
     expect(service.language).to be_nil
   end
 end

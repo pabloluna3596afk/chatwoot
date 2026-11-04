@@ -266,6 +266,7 @@ RSpec.describe Captain::BaseTaskService, type: :model do
       [Captain::LabelSuggestionService, 'label_suggestion', { message: 'billing' }, :internal_calls_consumed],
       [Captain::FollowUpService, 'follow_up', { message: 'Follow up', follow_up_context: {} }, :internal_calls_consumed],
       [Captain::CsatUtilityAnalysisService, 'csat_utility_analysis', { score: 4, message: '{"score":4}' }, :internal_calls_consumed],
+      [Captain::SummaryService, 'summarize', { message: 'Summary' }, :internal_calls_consumed],
       [Captain::Llm::ArticleTranslationService, 'article_translation', { message: 'translated article' }, :responses_consumed],
       [Captain::Llm::MessageTranslationService, 'message_translation', { message: 'translated message' }, :internal_calls_consumed]
     ].each do |service_class, feature_name, successful_result, counter_column|

@@ -10,18 +10,16 @@ module AiCertification::AssistantAndBackground
     measure_and_limit: %w[
       assistant assistant_action_classifier assistant_playground article_translation audio_transcription captain_reply
       copilot copilot_reply copilot_reply_suggestion csat_utility_analysis follow_up improve label_suggestion
-      message_translation
-      professional casual friendly confident straightforward fix_spelling_grammar reply_suggestion
-      summary
+      message_translation professional casual friendly confident straightforward fix_spelling_grammar reply_suggestion
+      summary summarize language_detection contact_notes contact_attributes assistant_false_promise_detector
+      assistant_migration_instruction_classifier assistant_migration_instruction_auditor content_evaluator
     ],
     measure_only: %w[
-      assistant_false_promise_detector assistant_migration_instruction_auditor
-      assistant_migration_instruction_classifier article_writer captain.conversation_completion
-      captain_assistant_overview_summary captain_overview_summary
-      content_evaluator conversation_faq conversation_faq_match document_faq_generation embedding
+      article_writer captain.conversation_completion captain_assistant_overview_summary captain_overview_summary
+      conversation_faq conversation_faq_match document_faq_generation embedding
       faq_generation faq_generator help_center_article_generation help_center_curation
-      help_center_query_translation contact_attributes contact_notes language_detection onboarding_content_generation paginated_faq_generation
-      summarize translate_query website_analyzer widget_tagline
+      help_center_query_translation onboarding_content_generation paginated_faq_generation translate_query
+      website_analyzer widget_tagline
     ],
     prohibit: []
   }.freeze
@@ -62,7 +60,7 @@ module AiCertification::AssistantAndBackground
     { name: 'action classifier', feature: 'assistant_action_classifier', bucket: :internal,
       decision: :measure_and_limit, contract: :llm },
     { name: 'auto-resolve evaluator', feature: 'content_evaluator', bucket: :internal,
-      decision: :measure_only, contract: :moderation },
+      decision: :measure_and_limit, contract: :moderation },
     { name: 'playground', feature: 'assistant_playground', bucket: :captain_responses,
       decision: :measure_and_limit, contract: :llm },
     { name: 'FAQ and documents', feature: 'document_faq_generation', bucket: :captain_responses,

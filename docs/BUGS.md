@@ -3404,3 +3404,10 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Causa:** `Llm::Entitlement` aplicaba `captain_integration` a traduccion/deteccion aunque esos servicios se exponen bajo `captain_tasks`; sin una cuota Copilot propia, interpretaba el allowance ilimitado derivado del bucket `copilot` en vez de leer la cuota compartida de respuestas. Los specs de escenarios y AgentRunner tampoco habilitaban `custom_tools`, cuyo gate es intencional.
 - **Arreglo:** evaluar traduccion/deteccion con `captain_tasks` conservando su bucket de cuota, tomar el allowance de respuestas cuando Copilot comparte ese pool y habilitar `custom_tools` explicitamente en los specs que esperan ejecutarlo.
 - **Verificacion:** 133/133 en `wt-develop-check`; 138/138 focales y 1749/1749 consumidores en la rama; RuboCop CI 41 archivos inspeccionados, 0 infracciones. Informe: `tmp/PR-IA-CERT-REGRESIONES.md`.
+
+### B-NEW-251 - Descontar llamadas internas de Captain y evaluacion de contenido (2026-11-04)
+
+- **Archivos:** servicios de deteccion de idioma, notas/atributos de contacto, detector de promesas, clasificador/auditor de instrucciones de migracion y evaluador de contenido; certificacion de IA y specs asociados.
+- **Causa:** varias llamadas internas solo registraban uso o no participaban del consumo del pool `internal`, permitiendo que excedieran la cuota asignada.
+- **Arreglo:** contar/reservar cada llamada contra `internal`; terminar la reserva al tener exito y liberarla ante fallo del proveedor. Cuando la cuota esta agotada, los helpers anidados en respuestas de Captain omiten esa ayuda sin bloquear la respuesta. `summarize` queda en `measure_and_limit`; su caller real es `Captain::SummaryService` desde `Captain::TasksController#summarize`.
+- **Verificacion:** ver `tmp/PR-INTERNAS-DESCUENTO.md`; incluye resultados amplios y focales, RuboCop, limites y autoevaluacion A1-A5.

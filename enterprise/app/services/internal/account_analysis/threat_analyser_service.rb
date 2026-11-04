@@ -33,9 +33,7 @@ class Internal::AccountAnalysis::ThreatAnalyserService
   private
 
   def evaluate_content(content)
-    Llm::UsageContext.with(account: @account, bucket: :internal, feature: 'content_evaluator') do
-      Internal::AccountAnalysis::ContentEvaluatorService.new.evaluate(content)
-    end
+    Internal::AccountAnalysis::ContentEvaluatorService.new(account: @account).evaluate(content)
   end
 
   def extract_domain_from_email(email)

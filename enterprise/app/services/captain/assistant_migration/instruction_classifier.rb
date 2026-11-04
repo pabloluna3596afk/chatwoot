@@ -184,7 +184,7 @@ class Captain::AssistantMigration::InstructionClassifier < Captain::BaseTaskServ
   end
 
   def counts_toward_usage?
-    false
+    true
   end
 
   def build_follow_up_context?

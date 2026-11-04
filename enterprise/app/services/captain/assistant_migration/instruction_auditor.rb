@@ -39,7 +39,7 @@ class Captain::AssistantMigration::InstructionAuditor < Captain::BaseTaskService
   end
 
   def counts_toward_usage?
-    false
+    true
   end
 
   def build_follow_up_context?
