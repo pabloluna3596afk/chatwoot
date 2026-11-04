@@ -43,8 +43,11 @@ const toggleAudioTranscription = async () => {
     with-border
   >
     <template #headerActions>
-      <div class="flex justify-end">
+      <div class="flex flex-col items-end gap-2">
         <Switch v-model="isEnabled" @change="toggleAudioTranscription" />
+        <p class="text-xs text-end text-n-slate-11">
+          {{ t('GENERAL_SETTINGS.FORM.AUDIO_TRANSCRIPTION.USAGE_NOTE') }}
+        </p>
       </div>
     </template>
   </SectionLayout>
