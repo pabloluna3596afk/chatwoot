@@ -16,7 +16,7 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
       {
         agents: ChatwootApp.max_limit,
         inboxes: ChatwootApp.max_limit,
-        captain: { responses: { current_available: 100 } }
+        captain: { internal: { current_available: 100 } }
       }
     )
   end
@@ -71,6 +71,18 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
         expect(result).to eq({ success: true, transcriptions: 'Hello world transcription' })
         expect(Rails.logger).to have_received(:info).with('Audio transcription successful (25 chars)')
         expect(Rails.logger).not_to have_received(:info).with(include('Hello world transcription'))
+      end
+    end
+
+    context 'when the internal AI quota is exhausted' do
+      before do
+        allow(Llm::SpeechToTextService).to receive(:available_for?).and_return(false)
+      end
+
+      it 'returns the existing limit error without creating a transcription service' do
+        expect(Llm::SpeechToTextService).not_to receive(:new)
+
+        expect(service.perform).to eq({ error: 'Transcription limit exceeded' })
       end
     end
 

@@ -12,15 +12,15 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
 
   attr_reader :blob, :account, :transcription_model
 
-  USAGE_BUCKET = :captain_responses
+  USAGE_BUCKET = :internal
   USAGE_FEATURE = 'audio_transcription'.freeze
 
-  # Transcription runs on Captain's OpenAI credentials and consumes its response credits.
+  # Transcription runs on Captain's OpenAI credentials and consumes internal AI credits.
   def self.available_for?(account)
     return false unless account.feature_enabled?('captain_integration')
     return false if account.audio_transcriptions.blank?
 
-    account.usage_limits[:captain][:responses][:current_available].positive?
+    account.usage_limits[:captain][:internal][:current_available].positive?
   end
 
   def self.too_large?(blob)
@@ -76,7 +76,7 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
 
   def reservation_receipt_required?
     captain_limits = account.usage_limits[:captain]
-    account.current_usage_period.present? && captain_limits.dig(:responses, :total_count).present?
+    account.current_usage_period.present? && captain_limits.dig(USAGE_BUCKET, :total_count).present?
   end
 
   def release_usage

@@ -10,16 +10,17 @@ module AiCertification::AssistantAndBackground
     measure_and_limit: %w[
       assistant assistant_action_classifier assistant_playground article_translation audio_transcription captain_reply
       copilot copilot_reply copilot_reply_suggestion csat_utility_analysis follow_up improve label_suggestion
-      message_translation professional casual friendly confident straightforward fix_spelling_grammar reply_suggestion
+      message_translation
+      professional casual friendly confident straightforward fix_spelling_grammar reply_suggestion
       summary
     ],
     measure_only: %w[
       assistant_false_promise_detector assistant_migration_instruction_auditor
       assistant_migration_instruction_classifier article_writer captain.conversation_completion
-      captain_assistant_overview_summary captain_overview_summary contact_attributes contact_notes
+      captain_assistant_overview_summary captain_overview_summary
       content_evaluator conversation_faq conversation_faq_match document_faq_generation embedding
       faq_generation faq_generator help_center_article_generation help_center_curation
-      help_center_query_translation language_detection onboarding_content_generation paginated_faq_generation
+      help_center_query_translation contact_attributes contact_notes language_detection onboarding_content_generation paginated_faq_generation
       summarize translate_query website_analyzer widget_tagline
     ],
     prohibit: []
@@ -68,8 +69,16 @@ module AiCertification::AssistantAndBackground
       decision: :measure_only, contract: :llm },
     { name: 'embeddings and moderation', feature: 'embedding', bucket: :internal,
       decision: :measure_only, contract: :embedding },
-    { name: 'audio transcription', feature: 'audio_transcription', bucket: :captain_responses,
+    { name: 'audio transcription', feature: 'audio_transcription', bucket: :internal,
       decision: :measure_and_limit, contract: :audio },
+    { name: 'message translation', feature: 'message_translation', bucket: :internal,
+      decision: :measure_and_limit, contract: :llm },
+    { name: 'language detection', feature: 'language_detection', bucket: :internal,
+      decision: :measure_only, contract: :llm },
+    { name: 'contact notes', feature: 'contact_notes', bucket: :internal,
+      decision: :measure_only, contract: :llm },
+    { name: 'contact attributes', feature: 'contact_attributes', bucket: :internal,
+      decision: :measure_only, contract: :llm },
     { name: 'legacy Integrations::LlmBaseService', feature: 'captain_reply', bucket: :captain_responses,
       decision: :measure_and_limit, contract: :llm }
   ].freeze

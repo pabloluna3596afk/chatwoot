@@ -24,7 +24,7 @@ RSpec.describe Llm::SpeechToTextService, type: :service do
         {
           agents: ChatwootApp.max_limit,
           inboxes: ChatwootApp.max_limit,
-          captain: { responses: { current_available: 100 } }
+          captain: { internal: { current_available: 100 } }
         }
       )
     end
@@ -42,15 +42,24 @@ RSpec.describe Llm::SpeechToTextService, type: :service do
       expect(described_class.available_for?(account)).to be(false)
     end
 
-    it 'is false when no captain responses are available' do
+    it 'is false when no internal AI credits are available' do
       account.enable_features!('captain_integration')
-      allow(account).to receive(:usage_limits).and_return(captain: { responses: { current_available: 0 } })
+      allow(account).to receive(:usage_limits).and_return(captain: { internal: { current_available: 0 } })
 
       expect(described_class.available_for?(account)).to be(false)
     end
 
     it 'is true when the feature, setting and credits are all present' do
       account.enable_features!('captain_integration')
+
+      expect(described_class.available_for?(account)).to be(true)
+    end
+
+    it 'uses internal availability even when the response pool is exhausted' do
+      account.enable_features!('captain_integration')
+      allow(account).to receive(:usage_limits).and_return(
+        captain: { internal: { current_available: 1 }, responses: { current_available: 0 } }
+      )
 
       expect(described_class.available_for?(account)).to be(true)
     end
@@ -100,28 +109,39 @@ RSpec.describe Llm::SpeechToTextService, type: :service do
       expect(service.perform).to eq('Audio transcript')
     end
 
-    it 'reserves and charges one captain response credit when text comes back' do
-      put_account_on_plan(account, monthly_messages: 1)
+    it 'reserves and charges one internal AI credit when text comes back' do
+      put_account_on_plan(account, captain_internal_calls: 1)
       allow(audio_api).to receive(:transcribe).and_return({ 'text' => 'Audio transcript' })
 
       service.perform
 
-      expect(captain_responses_used(account)).to eq(1)
-      expect(AiUsageEvent.where(account: account, feature: 'audio_transcription', bucket: 'captain_responses', status: 'ok').count).to eq(1)
+      expect(account.reload.usage_limits.dig(:captain, :internal, :consumed)).to eq(1)
+      expect(captain_responses_used(account)).to eq(0)
+      expect(AiUsageEvent.where(account: account, feature: 'audio_transcription', bucket: 'internal', status: 'ok').count).to eq(1)
     end
 
     it 'does not consume a credit when the transcription is blank and releases the reservation' do
-      put_account_on_plan(account, monthly_messages: 1)
+      put_account_on_plan(account, captain_internal_calls: 1)
       allow(audio_api).to receive(:transcribe).and_return({ 'text' => '' })
 
       service.perform
 
-      expect(captain_responses_used(account)).to eq(0)
+      expect(account.reload.usage_limits.dig(:captain, :internal, :consumed)).to eq(0)
       expect(AiUsageReservation.joins(:account_plan_usage).where(account_plan_usages: { account_id: account.id }, released_at: nil)).to be_empty
     end
 
+    it 'rejects the request before the provider when the internal limit is zero' do
+      put_account_on_plan(account, captain_internal_calls: 0)
+
+      expect(audio_api).not_to receive(:transcribe)
+      expect(service.perform).to be_nil
+      expect(service.quota_exceeded?).to be(true)
+      expect(account.reload.usage_limits.dig(:captain, :internal, :consumed)).to eq(0)
+      expect(account.reload.usage_limits.dig(:captain, :responses, :consumed)).to eq(0)
+    end
+
     it 'rejects a concurrent request before calling the provider when the last credit is reserved' do
-      put_account_on_plan(account, monthly_messages: 1)
+      put_account_on_plan(account, captain_internal_calls: 1)
       second_service = described_class.new(blob: attachment.file.blob, account: account)
       allow(second_service).to receive(:fetch_audio_file).and_return(audio_file_path)
       allow(service.client).to receive(:audio).and_return(audio_api)
@@ -132,20 +152,20 @@ RSpec.describe Llm::SpeechToTextService, type: :service do
       expect(second_service.perform).to be_nil
       expect(second_service.quota_exceeded?).to be(true)
       expect(audio_api).to have_received(:transcribe).once
-      expect(captain_responses_used(account)).to eq(1)
+      expect(account.reload.usage_limits.dig(:captain, :internal, :consumed)).to eq(1)
     end
 
     it 'releases the reservation when the provider fails so a retry can charge once' do
-      put_account_on_plan(account, monthly_messages: 1)
+      put_account_on_plan(account, captain_internal_calls: 1)
       allow(audio_api).to receive(:transcribe).and_raise(Faraday::ConnectionFailed, 'provider unavailable')
 
       expect { service.perform }.to raise_error(Faraday::ConnectionFailed)
-      expect(captain_responses_used(account)).to eq(0)
+      expect(account.reload.usage_limits.dig(:captain, :internal, :consumed)).to eq(0)
 
       File.binwrite(audio_file_path, 'audio')
       allow(audio_api).to receive(:transcribe).and_return({ 'text' => 'Audio transcript' })
       expect(service.perform).to eq('Audio transcript')
-      expect(captain_responses_used(account)).to eq(1)
+      expect(account.reload.usage_limits.dig(:captain, :internal, :consumed)).to eq(1)
     end
 
     it 'transcribes without requiring a receipt when the account has no usage period' do

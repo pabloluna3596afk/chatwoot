@@ -16,7 +16,7 @@ RSpec.describe AiUsageEvent do
       source_features.concat(Captain::RewriteService::ALLOWED_OPERATIONS.map(&:to_s))
 
       expect(source_features.uniq - Llm::UsageFeatureBuckets::FEATURE_BUCKETS.keys).to be_empty
-      expect(Llm::UsageFeatureBuckets::FEATURE_BUCKETS.fetch('audio_transcription')).to eq(:captain_responses)
+      expect(Llm::UsageFeatureBuckets::FEATURE_BUCKETS.fetch('audio_transcription')).to eq(:internal)
       expect(Llm::UsageFeatureBuckets::FEATURE_BUCKETS.fetch('assistant_playground')).to eq(:captain_responses)
     end
 
