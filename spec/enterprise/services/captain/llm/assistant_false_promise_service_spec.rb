@@ -34,6 +34,7 @@ RSpec.describe Captain::Llm::AssistantFalsePromiseService do
 
       expect(RubyLLM).to receive(:chat).with(model: 'gpt-5.2').and_return(mock_chat)
       allow(mock_chat).to receive(:ask).and_return(mock_response)
+      expect(account).to receive(:finish_captain_ai_usage!).with(bucket: :internal, reservation_id: anything).and_call_original
 
       result = service.detect(message_history: message_history, assistant_response: 'Try restarting the app.')
 

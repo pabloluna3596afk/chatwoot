@@ -23,6 +23,8 @@ RSpec.describe Internal::AccountAnalysis::ContentEvaluatorService do
   describe '#evaluate' do
     context 'when content is safe' do
       it 'returns safe evaluation with approval recommendation' do
+        expect(account).to receive(:finish_captain_ai_usage!).with(bucket: :internal, reservation_id: anything).and_call_original
+
         result = service.evaluate(content)
 
         expect(result).to include(
