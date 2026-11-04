@@ -27,11 +27,13 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
     current_usage_period&.increment_responses!(source: source, shared_response_pool: shared_response_pool, warning_limit: limit)
   end
 
-  def reserve_captain_ai_usage!(bucket:, reservation_id: SecureRandom.uuid)
+  def reserve_captain_ai_usage!(bucket:, reservation_id: SecureRandom.uuid, units: 1)
+    raise ArgumentError, 'units must be a positive integer' unless units.is_a?(Integer) && units.positive?
+
     return true unless current_period_window
     return true if bucket == :internal && internal_limit.nil?
 
-    with_lock { reserve_captain_ai_usage_in_current_period!(bucket, reservation_id) }
+    with_lock { reserve_captain_ai_usage_in_current_period!(bucket, reservation_id, units) }
   end
 
   # Finish a successful reservation without refunding it. Successful receipts
@@ -58,7 +60,7 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
       reservation.with_lock do
         return false if reservation.released_at
 
-        reservation.account_plan_usage.release_ai_call!(bucket: bucket) if release
+        reservation.account_plan_usage.release_ai_call!(bucket: bucket, units: reservation.units) if release
         if release
           reservation.update!(released_at: Time.current)
         else
@@ -169,18 +171,18 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
     [limits.dig(limit_key, :total_count), limits.dig(limit_key, :consumed).to_i]
   end
 
-  def reserve_captain_ai_usage_in_current_period!(bucket, reservation_id)
+  def reserve_captain_ai_usage_in_current_period!(bucket, reservation_id, units)
     cleanup_ai_usage_reservations
     reservation = AiUsageReservation.joins(:account_plan_usage)
                                     .find_by(reservation_id: reservation_id, account_plan_usages: { account_id: id })
-    return reservation.bucket == bucket.to_s && reservation.released_at.nil? if reservation
+    return reservation.bucket == bucket.to_s && reservation.released_at.nil? && reservation.units == units if reservation
 
     usage = current_usage_period
     limit, consumed = ai_usage_reservation_limit(bucket, usage)
-    return false if limit && consumed >= limit
+    return false if limit && consumed + units > limit
 
-    usage.ai_usage_reservations.create!(reservation_id: reservation_id, bucket: bucket)
-    usage.reserve_ai_call!(bucket: bucket, shared_response_pool: bucket == :copilot && copilot_limit.nil?, limit: limit)
+    usage.ai_usage_reservations.create!(reservation_id: reservation_id, bucket: bucket, units: units)
+    usage.reserve_ai_call!(bucket: bucket, units: units, shared_response_pool: bucket == :copilot && copilot_limit.nil?, limit: limit)
     true
   end
 

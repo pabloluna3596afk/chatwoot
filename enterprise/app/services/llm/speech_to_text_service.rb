@@ -14,23 +14,45 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
 
   USAGE_BUCKET = :internal
   USAGE_FEATURE = 'audio_transcription'.freeze
+  UNKNOWN_DURATION_SECONDS = 24.hours.to_i
+
+  def self.units_for(attachment)
+    (duration_seconds(attachment) / 60.0).ceil.clamp(1, UNKNOWN_DURATION_SECONDS / 60)
+  end
+
+  def self.duration_seconds(attachment)
+    duration = (attachment.meta || {}).values_at('duration_seconds', 'duration').compact.first
+    seconds = Float(duration) if duration.present?
+    # Missing duration metadata is charged at the documented 24-hour ceiling.
+    return seconds if seconds&.finite? && seconds.positive?
+
+    UNKNOWN_DURATION_SECONDS
+  rescue ArgumentError, TypeError
+    UNKNOWN_DURATION_SECONDS
+  end
+  private_class_method :duration_seconds
 
   # Transcription runs on Captain's OpenAI credentials and consumes internal AI credits.
-  def self.available_for?(account)
+  def self.available_for?(account, require_auto_setting: true)
     return false unless account.feature_enabled?('captain_integration')
-    return false if account.audio_transcriptions.blank?
+    return false unless account.feature_enabled?('captain_tasks')
+    return false if require_auto_setting && account.audio_transcriptions.blank?
 
-    account.usage_limits[:captain][:internal][:current_available].positive?
+    internal_limits = account.usage_limits.dig(:captain, :internal)
+    return false if account.plan.present? && internal_limits[:total_count].nil?
+
+    internal_limits[:current_available].to_i.positive?
   end
 
   def self.too_large?(blob)
     blob.present? && blob.byte_size > BYTE_LIMIT
   end
 
-  def initialize(blob:, account:)
+  def initialize(blob:, account:, units: 1)
     super()
     @blob = blob
     @account = account
+    @units = units
     @transcription_model = Llm::FeatureRouter.resolve(feature: 'audio_transcription', account: account)[:model]
   end
 
@@ -69,7 +91,7 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
     return unless reservation_receipt_required?
 
     reservation_id = SecureRandom.uuid
-    return false unless account.reserve_captain_ai_usage!(bucket: USAGE_BUCKET, reservation_id: reservation_id)
+    return false unless account.reserve_captain_ai_usage!(bucket: USAGE_BUCKET, reservation_id: reservation_id, units: @units)
 
     reservation_id
   end

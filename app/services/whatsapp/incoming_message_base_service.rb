@@ -169,9 +169,9 @@ class Whatsapp::IncomingMessageBaseService
 
   def whatsapp_attachment_meta(attachment_payload, type)
     return {} unless file_content_type(type) == :audio
-    return { 'is_voice_message' => true } if attachment_payload[:voice]
+    return { 'is_voice_message' => true, 'duration_seconds' => attachment_payload[:duration] }.compact if attachment_payload[:voice]
 
-    {}
+    { 'duration_seconds' => attachment_payload[:duration] }.compact
   end
 
   def attach_location

@@ -7,4 +7,5 @@ class AiUsageReservation < ApplicationRecord
 
   validates :reservation_id, presence: true, uniqueness: true
   validates :bucket, inclusion: { in: %w[internal copilot captain_responses] }
+  validates :units, numericality: { only_integer: true, greater_than: 0 }
 end

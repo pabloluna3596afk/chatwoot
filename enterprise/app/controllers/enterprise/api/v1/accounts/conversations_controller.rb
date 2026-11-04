@@ -15,6 +15,13 @@ module Enterprise::Api::V1::Accounts::ConversationsController
     @reporting_events = @conversation.reporting_events.order(created_at: :asc)
   end
 
+  def transcribe_audio
+    attachment = @conversation.attachments.audio.find(params.require(:attachment_id))
+    result = Messages::AudioTranscriptionService.new(attachment).perform(manual: true)
+    status = result[:error] ? :unprocessable_entity : :ok
+    render json: result, status: status
+  end
+
   def permitted_update_params
     # SLA is a premium feature; only accept sla_policy_id assignment when it is enabled for the account.
     return super unless Current.account.feature_enabled?('sla')

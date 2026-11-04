@@ -155,6 +155,7 @@ class Telegram::IncomingMessageService
     @message.attachments.new(
       account_id: @message.account_id,
       file_type: file_content_type,
+      meta: audio_duration_metadata,
       file: {
         io: attachment_file,
         # Telegram's download URL uses an internal storage path, so Down derives a generic name from it.
@@ -193,6 +194,12 @@ class Telegram::IncomingMessageService
 
   def file
     @file ||= visual_media_params || params[:message][:voice].presence || params[:message][:audio].presence || params[:message][:document].presence
+  end
+
+  def audio_duration_metadata
+    return {} unless file_content_type == :audio
+
+    { duration_seconds: file[:duration] }.compact
   end
 
   def location_fallback_title

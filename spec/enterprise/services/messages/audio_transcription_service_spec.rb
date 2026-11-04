@@ -7,6 +7,13 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
   let(:attachment) { message.attachments.create!(account: account, file_type: :audio) }
 
   before do
+    account.enable_features!('captain_integration', 'captain_tasks')
+    attachment.update!(meta: { duration_seconds: 10 })
+    attachment.file.attach(
+      io: File.open(Rails.public_path.join('audio/widget/ding.mp3')),
+      filename: 'voice.mp3',
+      content_type: 'audio/mpeg'
+    )
     # Create required installation configs
     InstallationConfig.find_or_create_by!(name: 'CAPTAIN_OPEN_AI_API_KEY') { |config| config.value = 'test-api-key' }
     InstallationConfig.find_or_create_by!(name: 'CAPTAIN_OPEN_AI_MODEL') { |config| config.value = 'gpt-4o-mini' }
@@ -30,7 +37,7 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
       end
 
       it 'returns transcription limit exceeded' do
-        expect(service.perform).to eq({ error: 'Transcription limit exceeded' })
+        expect(service.perform).to include(error: 'plan_unavailable')
       end
     end
 
@@ -43,7 +50,9 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
 
       before do
         channel.update!(provider_config: channel.provider_config.merge('transcription_enabled' => false))
-        allow(Llm::SpeechToTextService).to receive(:new)
+        allow(Llm::SpeechToTextService).to receive(:new).and_return(
+          instance_double(Llm::SpeechToTextService, perform: 'Voice note transcript', quota_exceeded?: false)
+        )
       end
 
       it 'skips transcription' do
@@ -74,28 +83,60 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
       end
     end
 
+    context 'when automatic transcription uses duration-based usage' do
+      it 'passes the same started-minute unit cost to the speech service' do
+        attachment.update!(meta: { duration_seconds: 300 })
+        speech_service = instance_double(Llm::SpeechToTextService, perform: 'Five-minute transcript', quota_exceeded?: false)
+        expect(Llm::SpeechToTextService).to receive(:new).with(
+          blob: attachment.file.blob,
+          account: account,
+          units: 5
+        ).and_return(speech_service)
+
+        result = service.perform
+
+        expect(result).to eq({ success: true, transcriptions: 'Five-minute transcript' })
+      end
+    end
+
     context 'when the internal AI quota is exhausted' do
       before do
-        allow(Llm::SpeechToTextService).to receive(:available_for?).and_return(false)
+        allow(account).to receive(:usage_limits).and_return(captain: { internal: { current_available: 0 } })
       end
 
       it 'returns the existing limit error without creating a transcription service' do
         expect(Llm::SpeechToTextService).not_to receive(:new)
 
-        expect(service.perform).to eq({ error: 'Transcription limit exceeded' })
+        expect(service.perform).to include(error: 'quota_exhausted')
+      end
+    end
+
+    context 'when the audio costs more units than remain' do
+      before do
+        attachment.update!(meta: { duration_seconds: 300 })
+        allow(account).to receive(:usage_limits).and_return(captain: { internal: { current_available: 4 } })
+      end
+
+      it 'returns the unit cost and remaining quota without contacting the provider' do
+        expect(Llm::SpeechToTextService).not_to receive(:new)
+
+        expect(service.perform(manual: true)).to include(
+          error: 'quota_insufficient',
+          quota: { units: 5, remaining: 4, reason: 'quota_insufficient' }
+        )
       end
     end
 
     context 'when quota is exhausted after the pre-check' do
       before do
-        allow(Llm::SpeechToTextService).to receive(:available_for?).and_return(true)
+        allow(account).to receive(:usage_limits).and_return(captain: { internal: { current_available: 100 } })
         allow(Llm::SpeechToTextService).to receive(:new).and_return(
           instance_double(Llm::SpeechToTextService, perform: nil, quota_exceeded?: true)
         )
       end
 
       it 'returns the existing limit error shape' do
-        expect(service.perform).to eq({ error: 'Transcription limit exceeded' })
+        expect(service.perform).to include(error: 'quota_exhausted')
       end
     end
 
@@ -106,17 +147,19 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
 
       it 'returns error for transcription limit exceeded' do
         result = service.perform
-        expect(result).to eq({ error: 'Transcription limit exceeded' })
+        expect(result).to include(error: 'plan_unavailable')
       end
     end
 
     context 'when attachment already has transcribed text' do
       before do
         attachment.update!(meta: { transcribed_text: 'Existing transcription' })
-        allow(Llm::SpeechToTextService).to receive(:available_for?).and_return(true)
+        allow(account).to receive(:usage_limits).and_return(captain: { internal: { current_available: 0 } })
       end
 
       it 'returns existing transcription without calling API' do
+        expect(Llm::SpeechToTextService).not_to receive(:new)
+
         result = service.perform
         expect(result).to eq({ success: true, transcriptions: 'Existing transcription' })
       end

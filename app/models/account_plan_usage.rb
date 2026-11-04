@@ -104,14 +104,14 @@ class AccountPlanUsage < ApplicationRecord
 
   # Charge AI calls before contacting the provider so concurrent workers
   # cannot consume the same remaining credit.
-  def reserve_ai_call!(bucket:, limit:, shared_response_pool: false)
+  def reserve_ai_call!(bucket:, limit:, units: 1, shared_response_pool: false)
     column = case bucket
              when :internal then :internal_calls_consumed
              when :copilot then :copilot_responses_consumed
              when :captain_responses then :responses_consumed
              else raise ArgumentError, "Unsupported AI usage bucket: #{bucket}"
              end
-    updates = ["#{column} = #{column} + 1"]
+    updates = ["#{column} = #{column} + #{Integer(units)}"]
     self.class.where(id: id).update_all(updates.join(', '))
     self[column] = self.class.where(id: id).pick(column)
     self.responses_consumed = self.class.where(id: id).pick(:responses_consumed)
@@ -120,14 +120,14 @@ class AccountPlanUsage < ApplicationRecord
 
   # The caller holds the account lock and a matching unreleased reservation
   # receipt, so a retry cannot refund a different in-flight request.
-  def release_ai_call!(bucket:)
+  def release_ai_call!(bucket:, units: 1)
     column = case bucket
              when :internal then :internal_calls_consumed
              when :copilot then :copilot_responses_consumed
              when :captain_responses then :responses_consumed
              else raise ArgumentError, "Unsupported AI usage bucket: #{bucket}"
              end
-    self.class.where(id: id).where("#{column} > 0").update_all("#{column} = #{column} - 1")
+    self.class.where(id: id).where("#{column} >= #{Integer(units)}").update_all("#{column} = #{column} - #{Integer(units)}")
     self[column] = self.class.where(id: id).pick(column)
     self.responses_consumed = self[column] if column == :responses_consumed
   end
