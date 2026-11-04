@@ -99,8 +99,23 @@ RSpec.describe Llm::SpeechToTextService, type: :service do
       expect(described_class.units_for(attachment)).to eq(5)
     end
 
-    it 'uses a conservative 24-hour allowance when duration metadata is unavailable' do
-      expect(described_class.units_for(attachment)).to eq(1440)
+    it 'estimates duration from blob size when metadata is unavailable' do
+      allow(attachment.file.blob).to receive(:byte_size).and_return(4_000 * 61)
+
+      expect(described_class.units_for(attachment)).to eq(2)
+    end
+
+    it 'estimates duration from blob size when metadata is invalid' do
+      attachment.update!(meta: { duration_seconds: 'invalid' })
+      allow(attachment.file.blob).to receive(:byte_size).and_return(4_000 * 300)
+
+      expect(described_class.units_for(attachment)).to eq(5)
+    end
+
+    it 'caps the estimated duration at the maximum transcribable size' do
+      allow(attachment.file.blob).to receive(:byte_size).and_return(described_class::BYTE_LIMIT * 2)
+
+      expect(described_class.units_for(attachment)).to eq(described_class::MAX_ESTIMATED_DURATION_UNITS)
     end
   end
 

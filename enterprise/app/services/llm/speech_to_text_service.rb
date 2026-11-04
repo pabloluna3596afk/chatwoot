@@ -9,28 +9,35 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
   # range to the API as 413s. Long audio (~70+ min Opus) keeps the source audio but
   # skips transcription.
   BYTE_LIMIT = 25_000_000
+  ESTIMATED_BYTES_PER_SECOND = 4_000.0
+  MAX_ESTIMATED_DURATION_SECONDS = BYTE_LIMIT / ESTIMATED_BYTES_PER_SECOND
+  MAX_ESTIMATED_DURATION_UNITS = (MAX_ESTIMATED_DURATION_SECONDS / 60).ceil
 
   attr_reader :blob, :account, :transcription_model
 
   USAGE_BUCKET = :internal
   USAGE_FEATURE = 'audio_transcription'.freeze
-  UNKNOWN_DURATION_SECONDS = 24.hours.to_i
 
   def self.units_for(attachment)
-    (duration_seconds(attachment) / 60.0).ceil.clamp(1, UNKNOWN_DURATION_SECONDS / 60)
+    (duration_seconds(attachment) / 60.0).ceil.clamp(1, MAX_ESTIMATED_DURATION_UNITS)
   end
 
   def self.duration_seconds(attachment)
     duration = (attachment.meta || {}).values_at('duration_seconds', 'duration').compact.first
     seconds = Float(duration) if duration.present?
-    # Missing duration metadata is charged at the documented 24-hour ceiling.
     return seconds if seconds&.finite? && seconds.positive?
 
-    UNKNOWN_DURATION_SECONDS
+    estimated_duration_seconds(attachment)
   rescue ArgumentError, TypeError
-    UNKNOWN_DURATION_SECONDS
+    estimated_duration_seconds(attachment)
   end
   private_class_method :duration_seconds
+
+  def self.estimated_duration_seconds(attachment)
+    byte_size = attachment.file&.attached? ? attachment.file.blob.byte_size : 0
+    [byte_size / ESTIMATED_BYTES_PER_SECOND, MAX_ESTIMATED_DURATION_SECONDS].min
+  end
+  private_class_method :estimated_duration_seconds
 
   # Transcription runs on Captain's OpenAI credentials and consumes internal AI credits.
   def self.available_for?(account, require_auto_setting: true)
