@@ -712,6 +712,13 @@
   "GALLERY_VIEW": {
     "ERROR_DOWNLOADING": "Unable to download attachment. Please try again"
   },
+  "AUDIO_TRANSCRIPTION": {
+    "BUTTON": "Transcribe audio",
+    "PLAN_REQUIRED": "Available on higher plans",
+    "QUOTA_EXHAUSTED": "No internal actions left this month",
+    "INSUFFICIENT": "This audio costs {units} internal actions; {remaining} remaining",
+    "ERROR": "Audio transcription failed. Please try again"
+  },
   "MESSAGE_SOURCE": {
     "AUTOMATION": "Sent by automation «{name}»",
     "MACRO": "Sent by macro «{name}»",

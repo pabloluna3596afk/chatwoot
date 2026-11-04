@@ -113,7 +113,7 @@
       "AUDIO_TRANSCRIPTION": {
         "TITLE": "Transcribir mensajes de audio",
         "NOTE": "Transcribe automáticamente los mensajes de audio en las conversaciones. Genera una transcripción de texto cuando se envía o recibe un audio y la muestra junto al mensaje.",
-        "USAGE_NOTE": "Cada audio transcrito se descuenta de tus acciones internas de IA.",
+        "USAGE_NOTE": "La transcripción consume una acción interna de IA por cada minuto iniciado (mínimo una).",
         "API": {
           "SUCCESS": "Configuración de transcripción de audio actualizada correctamente",
           "ERROR": "No se pudo actualizar la configuración de transcripción de audio"

@@ -121,6 +121,12 @@ class ConversationApi extends ApiClient {
     return axios.post(`${this.url}/${conversationId}/transcript`, { email });
   }
 
+  transcribeAudio({ conversationId, attachmentId }) {
+    return axios.post(`${this.url}/${conversationId}/transcribe_audio`, {
+      attachment_id: attachmentId,
+    });
+  }
+
   getContactInfoRequestAvailability(conversationId, { signal } = {}) {
     return axios.get(`${this.url}/${conversationId}/contact_info_request`, {
       signal,
