@@ -42,8 +42,8 @@ class Attachment < ApplicationRecord
   belongs_to :message
   has_one_attached :file
   # Declared first so it runs before Active Storage's own cleanup of the file.
-  before_save :set_extension
   before_destroy :keep_template_header_blob, prepend: true
+  before_save :set_extension # rubocop:disable Rails/ActiveRecordCallbacksOrder
   after_create_commit :normalize_opus_audio_content_type!
   validate :acceptable_file
   validates :external_url, length: { maximum: Limits::URL_LENGTH_LIMIT }
@@ -123,7 +123,7 @@ class Attachment < ApplicationRecord
         # Resolve via the configured Active Storage route so proxy setups (S3/CORS) are honoured.
         data_url: inline_audio_url,
         transcribed_text: meta&.[]('transcribed_text') || '',
-        transcription_quota: Messages::AudioTranscriptionService.new(self).quota_preview
+        transcription_quota: (Messages::AudioTranscriptionService.new(self).quota_preview if ChatwootApp.enterprise?)
       }
     )
   end

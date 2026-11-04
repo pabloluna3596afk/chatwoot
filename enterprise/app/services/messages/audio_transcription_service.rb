@@ -18,9 +18,10 @@ class Messages::AudioTranscriptionService
   end
 
   def quota_preview
-    quota_details(manual: true).then do |details|
-      { units: details[:units], remaining: details[:remaining], available: details[:error].nil?, reason: details[:error] }
-    end
+    units = Llm::SpeechToTextService.units_for(attachment)
+    enabled = account.feature_enabled?('captain_integration') && account.feature_enabled?('captain_tasks') &&
+              internal_bag_configured_for_preview?
+    { units: units, available: enabled, reason: enabled ? nil : 'plan_unavailable' }
   end
 
   private
@@ -79,6 +80,10 @@ class Messages::AudioTranscriptionService
 
   def internal_bag_available?(internal_limits)
     account.plan.blank? || internal_limits[:total_count].present?
+  end
+
+  def internal_bag_configured_for_preview?
+    (account[:limits] || {})['captain_internal'].present?
   end
 
   def automatic_transcription_enabled?(manual)

@@ -5,6 +5,7 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
   let(:conversation) { create(:conversation, account: account) }
   let(:message) { create(:message, account: account, conversation: conversation) }
   let(:attachment) { message.attachments.create!(account: account, file_type: :audio) }
+  let(:service) { described_class.new(attachment) }
 
   before do
     account.enable_features!('captain_integration', 'captain_tasks')
@@ -28,9 +29,22 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
     )
   end
 
-  describe '#perform' do
-    let(:service) { described_class.new(attachment) }
+  describe '#quota_preview' do
+    it 'checks plan flags and the configured internal bag without loading usage limits' do
+      account.update_columns(limits: { captain_internal: 5 }) # rubocop:disable Rails/SkipsModelValidations
+      expect(account).not_to receive(:usage_limits)
 
+      expect(service.quota_preview).to eq(units: 1, available: true, reason: nil)
+    end
+
+    it 'marks the preview unavailable when no internal bag is configured' do
+      expect(account).not_to receive(:usage_limits)
+
+      expect(service.quota_preview).to eq(units: 1, available: false, reason: 'plan_unavailable')
+    end
+  end
+
+  describe '#perform' do
     context 'when captain_integration feature is not enabled' do
       before do
         account.disable_features!('captain_integration')

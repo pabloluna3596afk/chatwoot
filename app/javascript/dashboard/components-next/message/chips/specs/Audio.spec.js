@@ -46,7 +46,7 @@ describe('Audio transcription button', () => {
     const wrapper = mountAudio({
       id: 8,
       dataUrl: 'http://localhost/audio.ogg',
-      transcriptionQuota: { available: true, units: 1, remaining: 4 },
+      transcriptionQuota: { available: true, units: 1 },
     });
     const button = wrapper.get('button[aria-label="Transcribe audio"]');
 
@@ -82,7 +82,7 @@ describe('Audio transcription button', () => {
     const wrapper = mountAudio({
       id: 8,
       dataUrl: 'http://localhost/audio.ogg',
-      transcriptionQuota: { available: true, units: 1, remaining: 4 },
+      transcriptionQuota: { available: true, units: 1 },
     });
 
     await wrapper.get('button[aria-label]').trigger('click');
