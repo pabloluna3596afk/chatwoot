@@ -333,12 +333,35 @@ const downloadAudio = async () => {
       >
         <Icon class="size-4" icon="i-lucide-download" />
       </button>
+      <button
+        v-if="!transcribedText && showTranscribedText"
+        v-tooltip.top="transcriptionTooltip"
+        type="button"
+        class="p-0 border-0 size-8 grid place-content-center disabled:cursor-not-allowed disabled:opacity-50"
+        :disabled="!transcriptionQuota.available || isTranscribing"
+        :aria-label="transcriptionTooltip"
+        @click="transcribeAudio"
+      >
+        <Icon
+          class="size-4"
+          :class="{ 'animate-spin': isTranscribing }"
+          :icon="
+            isTranscribing
+              ? 'i-lucide-loader-circle'
+              : 'i-material-symbols-speech-to-text'
+          "
+        />
+      </button>
     </div>
 
     <div
       v-if="transcribedText && showTranscribedText"
-      class="text-n-slate-12 p-3 text-sm bg-n-alpha-1 rounded-lg w-full break-words"
+      class="relative text-n-slate-12 p-3 pe-8 text-sm bg-n-alpha-1 rounded-lg w-full break-words"
     >
+      <span
+        class="i-lucide-sparkles absolute end-2 top-2 size-3 text-n-slate-10"
+        aria-hidden="true"
+      />
       {{ displayedTranscript }}
       <button
         v-if="isTranscriptLong"
@@ -352,20 +375,5 @@ const downloadAudio = async () => {
         }}
       </button>
     </div>
-    <button
-      v-else-if="showTranscribedText"
-      v-tooltip.top="transcriptionTooltip"
-      type="button"
-      class="size-8 self-end grid place-content-center rounded-lg border-0 bg-transparent text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12 disabled:cursor-not-allowed disabled:opacity-50"
-      :disabled="!transcriptionQuota.available || isTranscribing"
-      :aria-label="transcriptionTooltip"
-      @click="transcribeAudio"
-    >
-      <Icon
-        class="size-4"
-        :class="{ 'animate-spin': isTranscribing }"
-        :icon="isTranscribing ? 'i-lucide-loader-circle' : 'i-lucide-sparkles'"
-      />
-    </button>
   </div>
 </template>

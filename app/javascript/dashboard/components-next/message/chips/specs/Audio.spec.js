@@ -1,5 +1,5 @@
 import { defineComponent, ref } from 'vue';
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import ConversationAPI from 'dashboard/api/inbox/conversation';
 import messages from 'dashboard/i18n/locale/en/conversation.json';
@@ -52,6 +52,14 @@ describe('Audio transcription button', () => {
 
     expect(button.text()).toBe('');
     expect(button.attributes('disabled')).toBeUndefined();
+    expect(button.element.parentElement).toBe(
+      wrapper.get('audio + div > div').element
+    );
+    expect(button.classes()).toEqual(
+      expect.arrayContaining(['p-0', 'border-0', 'size-8'])
+    );
+    expect(button.html()).toContain('i-material-symbols-speech-to-text');
+    expect(wrapper.find('[aria-hidden="true"]').exists()).toBe(false);
   });
 
   it.each([
@@ -75,6 +83,33 @@ describe('Audio transcription button', () => {
     expect(button.attributes('aria-label')).toBe(tooltip);
   });
 
+  it('shows a spinning loader in the player row while transcription is pending', async () => {
+    let finishTranscription;
+    ConversationAPI.transcribeAudio.mockReturnValue(
+      new Promise(resolve => {
+        finishTranscription = resolve;
+      })
+    );
+    const wrapper = mountAudio({
+      id: 8,
+      dataUrl: 'http://localhost/audio.ogg',
+      transcriptionQuota: { available: true, units: 1 },
+    });
+    const button = wrapper.get('button[aria-label="Transcribe audio"]');
+
+    await button.trigger('click');
+
+    expect(button.attributes('disabled')).toBeDefined();
+    expect(button.element.parentElement).toBe(
+      wrapper.get('audio + div > div').element
+    );
+    expect(button.html()).toContain('i-lucide-loader-circle');
+    expect(button.find('icon-stub').classes()).toContain('animate-spin');
+
+    finishTranscription({ data: { transcriptions: '' } });
+    await flushPromises();
+  });
+
   it('replaces the button with the transcript after a successful request', async () => {
     ConversationAPI.transcribeAudio.mockResolvedValue({
       data: { success: true, transcriptions: 'Recognized words' },
@@ -93,5 +128,9 @@ describe('Audio transcription button', () => {
     });
     expect(wrapper.text()).toContain('Recognized words');
     expect(wrapper.find('button[aria-label]').exists()).toBe(false);
+    expect(
+      wrapper.find('[aria-hidden="true"].i-lucide-sparkles').exists()
+    ).toBe(true);
+    expect(wrapper.find('.text-n-slate-12.p-3.pe-8').exists()).toBe(true);
   });
 });
