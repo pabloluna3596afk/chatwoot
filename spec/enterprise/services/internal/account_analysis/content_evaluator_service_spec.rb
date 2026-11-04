@@ -1,7 +1,8 @@
 require 'rails_helper'
 
 RSpec.describe Internal::AccountAnalysis::ContentEvaluatorService do
-  let(:service) { described_class.new }
+  let(:account) { create(:account) }
+  let(:service) { described_class.new(account: account) }
   let(:content) { 'This is some test content' }
   let(:mock_moderation_result) do
     instance_double(
@@ -13,6 +14,8 @@ RSpec.describe Internal::AccountAnalysis::ContentEvaluatorService do
   end
 
   before do
+    put_account_on_plan(account, captain_internal_calls: 1)
+    allow(account).to receive(:reserve_captain_ai_usage!).and_return(true)
     create(:installation_config, name: 'CAPTAIN_OPEN_AI_API_KEY', value: 'test-key')
     allow(RubyLLM).to receive(:moderate).and_return(mock_moderation_result)
   end
@@ -113,6 +116,16 @@ RSpec.describe Internal::AccountAnalysis::ContentEvaluatorService do
       end
     end
 
+    context 'when the internal allowance is exhausted' do
+      before { allow(account).to receive(:reserve_captain_ai_usage!).and_return(false) }
+
+      it 'returns the default evaluation without calling moderation' do
+        expect(RubyLLM).not_to receive(:moderate)
+
+        expect(service.evaluate(content)).to include('threat_level' => 'unknown')
+      end
+    end
+
     context 'when error occurs during evaluation' do
       before do
         allow(RubyLLM).to receive(:moderate).and_raise(StandardError.new('Test error'))
@@ -130,6 +143,12 @@ RSpec.describe Internal::AccountAnalysis::ContentEvaluatorService do
           'illegal_activities_detected' => false,
           'recommendation' => 'review'
         )
+      end
+
+      it 'releases the internal reservation' do
+        expect(account).to receive(:release_captain_ai_usage!).with(bucket: :internal, reservation_id: anything).and_return(true)
+
+        service.evaluate(content)
       end
     end
 

@@ -1,18 +1,22 @@
 class Internal::AccountAnalysis::ContentEvaluatorService
+  include Enterprise::Captain::InternalUsage
   include Integrations::LlmInstrumentation
 
-  def initialize
+  def initialize(account:)
     Llm::Config.initialize!
+    @account = account
   end
 
   def evaluate(content)
     return default_evaluation if content.blank?
 
-    moderation_result = instrument_moderation_call(instrumentation_params(content)) do
-      RubyLLM.moderate(content.to_s[0...10_000])
+    result = with_internal_usage(account: @account, feature: 'content_evaluator') do
+      moderation_result = instrument_moderation_call(instrumentation_params(content)) do
+        RubyLLM.moderate(content.to_s[0...10_000])
+      end
+      build_evaluation(moderation_result)
     end
-
-    build_evaluation(moderation_result)
+    result || default_evaluation
   rescue StandardError => e
     handle_evaluation_error(e)
   end

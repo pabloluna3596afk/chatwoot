@@ -1,6 +1,7 @@
 class Captain::Llm::AssistantFalsePromiseService < Llm::BaseAiService
   DETECTOR_MODEL = 'gpt-5.2'.freeze
 
+  include Enterprise::Captain::InternalUsage
   include Integrations::LlmInstrumentation
   include Captain::Llm::AssistantResponseInspectionHelpers
 
@@ -12,6 +13,22 @@ class Captain::Llm::AssistantFalsePromiseService < Llm::BaseAiService
   end
 
   def detect(message_history:, assistant_response:)
+    result = with_internal_usage(account: @conversation.account, feature: 'assistant_false_promise_detector',
+                                 conversation_id: @conversation.id) do
+      detect_with_usage(message_history: message_history, assistant_response: assistant_response)
+    end
+    result || { 'decision' => nil, 'reason' => nil, 'model' => @model }
+  rescue StandardError => e
+    ChatwootExceptionTracker.new(e, account: @conversation.account).capture_exception
+    Rails.logger.warn(
+      "[CAPTAIN][AssistantFalsePromise] Failed for conversation #{@conversation.display_id}: #{e.class.name}: #{e.message}"
+    )
+    { 'decision' => nil, 'reason' => nil, 'error' => e.message, 'model' => @model }
+  end
+
+  private
+
+  def detect_with_usage(message_history:, assistant_response:)
     user_prompt = assistant_response_inspection_prompt(
       message_history: message_history,
       assistant_response: assistant_response,
@@ -27,15 +44,7 @@ class Captain::Llm::AssistantFalsePromiseService < Llm::BaseAiService
 
     parsed = parse_response(response.content)
     normalize_response(parsed, response.content)
-  rescue StandardError => e
-    ChatwootExceptionTracker.new(e, account: @conversation.account).capture_exception
-    Rails.logger.warn(
-      "[CAPTAIN][AssistantFalsePromise] Failed for conversation #{@conversation.display_id}: #{e.class.name}: #{e.message}"
-    )
-    { 'decision' => nil, 'reason' => nil, 'error' => e.message, 'model' => @model }
   end
-
-  private
 
   def setup_model
     @model = DETECTOR_MODEL

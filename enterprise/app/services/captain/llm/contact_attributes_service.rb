@@ -1,4 +1,5 @@
 class Captain::Llm::ContactAttributesService < Llm::BaseAiService
+  include Enterprise::Captain::InternalUsage
   include Integrations::LlmInstrumentation
 
   def initialize(assistant, conversation)
@@ -10,7 +11,11 @@ class Captain::Llm::ContactAttributesService < Llm::BaseAiService
   end
 
   def generate_and_update_attributes
-    generate_attributes
+    with_internal_usage(account: @conversation.account, feature: 'contact_attributes',
+                        conversation_id: @conversation.id) { generate_attributes }
+  rescue RubyLLM::Error => e
+    ChatwootExceptionTracker.new(e, account: @conversation.account).capture_exception
+    []
     # to implement the update attributes
   end
 
@@ -26,9 +31,6 @@ class Captain::Llm::ContactAttributesService < Llm::BaseAiService
         .ask(@content)
     end
     parse_response(response.content)
-  rescue RubyLLM::Error => e
-    ChatwootExceptionTracker.new(e, account: @conversation.account).capture_exception
-    []
   end
 
   def instrumentation_params

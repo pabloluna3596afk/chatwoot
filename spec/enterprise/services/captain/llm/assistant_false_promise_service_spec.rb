@@ -14,6 +14,7 @@ RSpec.describe Captain::Llm::AssistantFalsePromiseService do
   end
 
   before do
+    put_account_on_plan(account, captain_internal_calls: 1)
     allow(RubyLLM).to receive(:chat).and_return(mock_chat)
     allow(mock_chat).to receive(:with_temperature).and_return(mock_chat)
     allow(mock_chat).to receive(:with_schema).and_return(mock_chat)
@@ -56,6 +57,29 @@ RSpec.describe Captain::Llm::AssistantFalsePromiseService do
       result = service.detect(message_history: message_history, assistant_response: 'Try restarting the app.')
 
       expect(result).to include('decision' => 'safe', 'reason' => 'answer_stays_within_known_context')
+    end
+
+    it 'skips detection when the internal allowance is exhausted' do
+      allow(account).to receive(:reserve_captain_ai_usage!).with(bucket: :internal, reservation_id: anything).and_return(false)
+
+      expect(RubyLLM).not_to receive(:chat)
+      result = service.detect(message_history: message_history, assistant_response: 'Try restarting the app.')
+
+      expect(result).to include('decision' => nil, 'reason' => nil)
+      expect(result).not_to have_key('error')
+    end
+
+    it 'releases the reservation when the provider raises' do
+      reservation_id = 'promise-detection-reservation'
+      allow(SecureRandom).to receive(:uuid).and_return(reservation_id)
+      allow(mock_chat).to receive(:ask).and_raise(IOError, 'provider unavailable')
+      expect(account).to receive(:reserve_captain_ai_usage!).with(bucket: :internal, reservation_id: reservation_id).and_call_original
+      expect(account).to receive(:release_captain_ai_usage!).with(bucket: :internal, reservation_id: reservation_id).and_return(true)
+      expect(account).not_to receive(:finish_captain_ai_usage!)
+
+      result = service.detect(message_history: message_history, assistant_response: 'Try restarting the app.')
+
+      expect(result['error']).to eq('provider unavailable')
     end
   end
 end

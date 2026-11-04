@@ -1,4 +1,5 @@
 class Captain::Llm::ContactNotesService < Llm::BaseAiService
+  include Enterprise::Captain::InternalUsage
   include Integrations::LlmInstrumentation
 
   def initialize(assistant, conversation)
@@ -10,9 +11,14 @@ class Captain::Llm::ContactNotesService < Llm::BaseAiService
   end
 
   def generate_and_update_notes
-    generate_notes.each do |note|
+    notes = with_internal_usage(account: @conversation.account, feature: 'contact_notes',
+                                conversation_id: @conversation.id) { generate_notes }
+    Array(notes).each do |note|
       @contact.notes.create!(content: note)
     end
+  rescue RubyLLM::Error => e
+    ChatwootExceptionTracker.new(e, account: @conversation.account).capture_exception
+    []
   end
 
   private
@@ -27,9 +33,6 @@ class Captain::Llm::ContactNotesService < Llm::BaseAiService
         .ask(@content)
     end
     parse_response(response.content)
-  rescue RubyLLM::Error => e
-    ChatwootExceptionTracker.new(e, account: @conversation.account).capture_exception
-    []
   end
 
   def instrumentation_params

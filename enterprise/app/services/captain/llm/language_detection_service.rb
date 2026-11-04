@@ -19,7 +19,7 @@ class Captain::Llm::LanguageDetectionService < Captain::BaseTaskService
   end
 
   def counts_toward_usage?
-    false
+    true
   end
 
   def messages

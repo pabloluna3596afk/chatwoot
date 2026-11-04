@@ -1,6 +1,31 @@
 require 'rails_helper'
 
 RSpec.describe Captain::AssistantMigration::InstructionClassifier do
+  describe 'usage metering' do
+    let(:account) { create(:account) }
+    let(:assistant) { create(:captain_assistant, account: account) }
+    let(:service) { described_class.new(assistant: assistant) }
+
+    before do
+      put_account_on_plan(account, captain_internal_calls: 2)
+      allow(account).to receive(:feature_enabled?).and_call_original
+      allow(account).to receive(:feature_enabled?).with('captain_tasks').and_return(true)
+      allow(service).to receive(:make_api_call).and_return(message: {})
+    end
+
+    it 'charges one internal call for the classifier and one for its auditor' do
+      auditor = Captain::AssistantMigration::InstructionAuditor.new(
+        assistant: assistant, source_payload: {}, draft: {},
+        available_additions: { response_guidelines: 0, guardrails: 0, scenario_candidates: 0,
+                               faq_document_candidates: 0, needs_review: 0 }
+      )
+      allow(auditor).to receive(:make_api_call).and_return(message: { guardrails: ['Keep customer data private.'] })
+      allow(Captain::AssistantMigration::InstructionAuditor).to receive(:new).and_return(auditor)
+
+      expect { service.perform }.to change { account.reload.current_usage_period.internal_calls_consumed }.by(2)
+    end
+  end
+
   describe Captain::AssistantMigration::InstructionClassifierSchema do
     it 'does not request classification notes' do
       expect(described_class.as_json.to_s).not_to include('classification_notes')
