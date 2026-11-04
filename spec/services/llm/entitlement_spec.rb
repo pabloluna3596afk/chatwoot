@@ -47,12 +47,12 @@ RSpec.describe Llm::Entitlement do
     )
   end
 
-  it 'uses the Captain Tasks gate while keeping translation usage in the response bucket' do
+  it 'uses the Captain Tasks gate while charging translation usage to the internal bucket' do
     allow(account).to receive(:feature_enabled?).with('captain_tasks').and_return(true)
-    allow(account).to receive(:usage_limits).and_return(captain: { responses: { current_available: 4 } })
+    allow(account).to receive(:usage_limits).and_return(captain: { internal: { current_available: 4 } })
 
     expect(described_class.new(account: account, feature: 'message_translation').call).to include(
-      allowed: true, reason: nil, bucket: :captain_responses, remaining: 4, required_gate: 'captain_tasks'
+      allowed: true, reason: nil, bucket: :internal, remaining: 4, required_gate: 'captain_tasks'
     )
   end
 
