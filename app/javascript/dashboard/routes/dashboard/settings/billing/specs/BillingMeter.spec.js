@@ -2,7 +2,10 @@ import { shallowMount } from '@vue/test-utils';
 import BillingMeter from '../components/BillingMeter.vue';
 
 vi.mock('vue-i18n', () => ({
-  useI18n: () => ({ t: (key, params) => `${key} ${params?.date || ''}` }),
+  useI18n: () => ({
+    t: (key, params) => `${key} ${params?.date || ''}`,
+    locale: { value: 'en' },
+  }),
 }));
 
 const mountComponent = props =>
@@ -21,7 +24,7 @@ describe('BillingMeter', () => {
 
     expect(wrapper.text()).toContain('8 / 10');
     expect(wrapper.text()).toContain(
-      'BILLING_SETTINGS.CAPTAIN.RESETS_ON 26 Oct, 2026'
+      'BILLING_SETTINGS.CAPTAIN.RESETS_ON Oct 26, 2026'
     );
   });
 

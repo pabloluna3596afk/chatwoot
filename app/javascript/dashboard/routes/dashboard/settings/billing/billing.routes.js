@@ -22,6 +22,7 @@ export default {
           component: ProviderIndex,
           meta: {
             permissions: ['administrator'],
+            reuseOnQueryChange: true,
           },
         },
       ],

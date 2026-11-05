@@ -122,6 +122,7 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
     Llm::UsageContext.with(
       account: account, bucket: USAGE_BUCKET, feature: USAGE_FEATURE,
       reservation_id: @usage_reservation_id,
+      units: @units,
       context: {
         conversation_id: @conversation_id, message_id: @message_id,
         reservation_required: @usage_reservation_id.present?, required_gate: 'captain_integration'
