@@ -112,7 +112,7 @@
       },
       "AUDIO_TRANSCRIPTION": {
         "TITLE": "Transcribir mensajes de audio",
-        "NOTE": "Activa la transcripci?n de audio. Cada agente decide desde su perfil si quiere transcribir los audios autom?ticamente.",
+        "NOTE": "Activa la transcripción de audio. Cada agente decide desde su perfil si quiere transcribir los audios automáticamente.",
         "USAGE_NOTE": "La transcripción consume una acción interna de IA por cada minuto iniciado (mínimo una).",
         "API": {
           "SUCCESS": "Configuración de transcripción de audio actualizada correctamente",

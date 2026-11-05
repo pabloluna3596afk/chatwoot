@@ -221,6 +221,26 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
       end
     end
 
+    context 'when the Captain assistant reads a voice note on an unassigned conversation' do
+      let(:service) { described_class.new(attachment, assistant: true) }
+
+      before do
+        conversation.update!(assignee: nil)
+        allow(Llm::SpeechToTextService).to receive(:available_for?).and_return(true)
+        allow(service).to receive(:transcribe_audio).and_return('Hola')
+      end
+
+      it 'transcribes without needing an agent switch' do
+        expect(service.perform).to eq({ success: true, transcriptions: 'Hola' })
+      end
+
+      it 'still requires the account switch' do
+        account.update!(audio_transcriptions: false)
+
+        expect(service.perform).to eq(error: 'automatic_transcription_disabled')
+      end
+    end
+
     context 'when the conversation is reassigned after the audio arrives' do
       before do
         attachment.update!(meta: (attachment.meta || {}).merge('auto_transcription_assignee_id' => agent.id))
@@ -236,7 +256,7 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
 
     context 'when attachment already has transcribed text' do
       before do
-        attachment.update!(meta: { transcribed_text: 'Existing transcription' })
+        attachment.update!(meta: (attachment.meta || {}).merge('transcribed_text' => 'Existing transcription'))
         allow(account).to receive(:usage_limits).and_return(captain: { internal: { current_available: 0 } })
       end
 

@@ -1,8 +1,11 @@
 class Messages::AudioTranscriptionService
   attr_reader :attachment, :message, :account
 
-  def initialize(attachment)
+  # assistant: true is the Captain assistant reading a customer's voice note to answer; it has no
+  # agent in the loop, so only the account switch (not an agent's personal one) gates it.
+  def initialize(attachment, assistant: false)
     @attachment = attachment
+    @assistant = assistant
     @message = attachment.message
     @account = message&.account
   end
@@ -30,10 +33,17 @@ class Messages::AudioTranscriptionService
 
   def preflight_error(manual:)
     return 'Message not found' if message.blank?
-    return 'feature_disabled' if manual && account.audio_transcriptions.blank?
-    return 'automatic_transcription_disabled' if !manual && !auto_transcription_allowed?
+
+    error = switch_error(manual)
+    return error if error
     return 'Transcription disabled for this inbox' if call_recording_transcription_disabled?
     return 'Audio too large for transcription' if Llm::SpeechToTextService.too_large?(attachment.file&.blob)
+  end
+
+  def switch_error(manual)
+    return ('feature_disabled' if account.audio_transcriptions.blank?) if manual
+
+    'automatic_transcription_disabled' unless auto_transcription_allowed?
   end
 
   def perform_locked(manual:)
@@ -92,6 +102,8 @@ class Messages::AudioTranscriptionService
   end
 
   def auto_transcription_allowed?
+    return account.audio_transcriptions.present? if @assistant
+
     assignee = message.conversation.assignee
     return false if assignee.blank?
     return false unless attachment.meta&.[]('auto_transcription_assignee_id').to_s == assignee.id.to_s

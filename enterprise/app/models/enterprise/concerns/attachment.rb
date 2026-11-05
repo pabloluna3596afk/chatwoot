@@ -2,11 +2,7 @@ module Enterprise::Concerns::Attachment
   extend ActiveSupport::Concern
 
   included do
-    before_create do
-      if file_type.to_sym == :audio
-        self.meta = (meta || {}).merge('auto_transcription_assignee_id' => message&.conversation&.assignee_id)
-      end
-    end
+    before_create :remember_audio_assignee
     after_create_commit :enqueue_audio_transcription
     # Broadcast the message update so the FE bubble picks up the new audio
     # attachment immediately. Without this, the FE has to wait until Whisper
@@ -16,6 +12,13 @@ module Enterprise::Concerns::Attachment
   end
 
   private
+
+  # Auto-transcription follows whoever owned the conversation when the audio arrived.
+  def remember_audio_assignee
+    return unless file_type.to_sym == :audio
+
+    self.meta = (meta || {}).merge('auto_transcription_assignee_id' => message&.conversation&.assignee_id)
+  end
 
   def enqueue_audio_transcription
     return unless file_type.to_sym == :audio

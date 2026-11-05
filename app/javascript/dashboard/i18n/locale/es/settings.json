@@ -137,9 +137,9 @@
         "RESET_ERROR": "No se puede regenerar el token de acceso. Por favor, inténtalo de nuevo"
       },
       "AUTO_AUDIO_TRANSCRIPTION": {
-        "TITLE": "Transcribir audios autom?ticamente",
-        "NOTE": "Decide si tus audios se transcriben autom?ticamente cuando el administrador de la cuenta activa la transcripci?n de audio.",
-        "ADMIN_REQUIRED": "El administrador de la cuenta debe activar la transcripci?n de audio"
+        "TITLE": "Transcribir audios automáticamente",
+        "NOTE": "Decide si tus audios se transcriben automáticamente cuando el administrador de la cuenta activa la transcripción de audio.",
+        "ADMIN_REQUIRED": "El administrador de la cuenta debe activar la transcripción de audio"
       },
       "AUDIO_NOTIFICATIONS_SECTION": {
         "TITLE": "Alertas de audio",

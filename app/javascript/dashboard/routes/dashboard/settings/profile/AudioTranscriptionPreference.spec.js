@@ -46,7 +46,10 @@ describe('AudioTranscriptionPreference', () => {
 
   it.each([
     ['en', 'The account administrator must enable audio transcription.'],
-    ['es', 'El administrador de la cuenta debe activar la transcripción de audio'],
+    [
+      'es',
+      'El administrador de la cuenta debe activar la transcripción de audio',
+    ],
   ])(
     'shows the disabled reason in %s when the account feature is off',
     (locale, reason) => {

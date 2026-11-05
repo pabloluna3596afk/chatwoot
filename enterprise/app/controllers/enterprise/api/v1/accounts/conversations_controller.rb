@@ -17,10 +17,6 @@ module Enterprise::Api::V1::Accounts::ConversationsController
 
   def transcribe_audio
     attachment = @conversation.attachments.audio.find(params.require(:attachment_id))
-    if Current.account.audio_transcriptions.blank?
-      return render json: { error: 'feature_disabled' }, status: :unprocessable_entity
-    end
-
     result = Messages::AudioTranscriptionService.new(attachment).perform(manual: true)
     status = result[:error] ? :unprocessable_entity : :ok
     render json: result, status: status
