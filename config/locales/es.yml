@@ -618,6 +618,40 @@ es:
     internal_limit: 'Se alcanzó el límite mensual de acciones internas de IA. Esta acción de IA se omitió; puedes continuar manualmente.'
     copilot_limit: 'Se alcanzó el límite de Copilot. Las sugerencias se pausan hasta el %{reset_date}, cuando se reinicie tu plan; puedes seguir respondiendo manualmente.'
     copilot_limit_no_date: 'Se alcanzó el límite de Copilot. Las sugerencias están en pausa; puedes seguir respondiendo manualmente.'
+    usage_breakdown:
+      features:
+        action_classification: Clasificar acciones del asistente
+        assistant_migration: Migrar instrucciones del asistente
+        article_translation: Traducir artÃ­culos
+        article_generation: Generar artÃ­culos
+        assistant: Respuestas del asistente
+        assistant_playground: Probar respuestas del asistente
+        audio_transcription: Transcribir audio
+        conversation_completion: Completar conversaciones
+        assistant_summary: Resumir el rendimiento del asistente
+        captain_reply: Respuestas de Captain
+        contact_attributes: Extraer atributos del contacto
+        contact_notes: Resumir notas del contacto
+        content_evaluation: Evaluar contenido
+        conversation_faq: Generar preguntas frecuentes de conversaciones
+        copilot: Copilot
+        copilot_reply: Respuestas de Copilot
+        csat_analysis: Analizar respuestas de CSAT
+        document_faq_generation: Generar preguntas frecuentes de documentos
+        embeddings: Crear representaciones vectoriales
+        follow_up: Generar seguimientos
+        help_center_article_generation: Generar artÃ­culos del centro de ayuda
+        help_center_curation: Organizar contenido del centro de ayuda
+        help_center_query_translation: Traducir bÃºsquedas del centro de ayuda
+        rewrite_message: Reescribir mensajes
+        label_suggestion: Sugerir etiquetas
+        language_detection: Detectar el idioma
+        message_translation: Traducir mensajes
+        onboarding_content_generation: Generar contenido de bienvenida
+        conversation_summary: Resumir conversaciones
+        translate_query: Traducir bÃºsquedas
+        website_analysis: Analizar sitios web
+        widget_tagline: Generar frases para el widget
     usage_limit_warning:
       subject: 'El uso de %{bag} alcanzó el %{percent}% del límite del plan'
       message: 'La cuenta %{account_name} ha usado %{consumed} de %{limit} %{bag} en este período.'

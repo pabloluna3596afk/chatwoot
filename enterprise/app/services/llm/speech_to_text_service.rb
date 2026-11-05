@@ -120,6 +120,7 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
     Llm::UsageContext.with(
       account: account, bucket: USAGE_BUCKET, feature: USAGE_FEATURE,
       reservation_id: @usage_reservation_id,
+      usage_group_id: @usage_reservation_id || SecureRandom.uuid,
       context: { reservation_required: @usage_reservation_id.present?, required_gate: 'captain_integration' }
     ) do
       with_usage_recording(params) do

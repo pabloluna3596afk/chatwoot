@@ -36,16 +36,14 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
     with_lock { reserve_captain_ai_usage_in_current_period!(bucket, reservation_id, units) }
   end
 
-  # Finish a successful reservation without refunding it. Successful receipts
-  # are consumed so the table holds only in-flight calls and failed-attempt
-  # markers for the active billing period.
+  # Finish a successful reservation without refunding it. Keep its closed
+  # receipt through the normal retention window so usage events can recover units.
   def finish_captain_ai_usage!(bucket:, reservation_id:)
     close_captain_ai_usage_reservation(bucket: bucket, reservation_id: reservation_id, release: false)
   end
 
-  # A reservation may be released after a provider failure. The durable receipt
-  # makes this safe to call from ensure/retry paths: only the matching account,
-  # bucket and reservation can decrement a counter, and only once.
+  # A reservation may be released after a provider failure. Only a matching
+  # account, bucket and reservation can decrement a counter, and only once.
   def release_captain_ai_usage!(bucket:, reservation_id:)
     close_captain_ai_usage_reservation(bucket: bucket, reservation_id: reservation_id, release: true)
   end
@@ -61,11 +59,7 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
         return false if reservation.released_at
 
         reservation.account_plan_usage.release_ai_call!(bucket: bucket, units: reservation.units) if release
-        if release
-          reservation.update!(released_at: Time.current)
-        else
-          reservation.destroy!
-        end
+        reservation.update!(released_at: Time.current)
       end
     end
     true

@@ -9,7 +9,7 @@ module Captain::ChatUsageContext
       feature: feature_name,
       context: { conversation_id: @conversation&.id, reservation_required: @usage_reservation_id.present?, required_gate: 'captain_integration' },
       reservation_id: @usage_reservation_id,
-      usage_group_id: (@ai_usage_group_id ||= SecureRandom.uuid)
+      usage_group_id: @usage_reservation_id || (@ai_usage_group_id ||= SecureRandom.uuid)
     ) do
       request_chat_completion_with_usage_context
     end
