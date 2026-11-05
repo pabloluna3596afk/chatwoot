@@ -65,6 +65,7 @@ const isMobile = computed(() => windowWidth.value < 768);
 
 const accountId = useMapGetter('getCurrentAccountId');
 const currentUserId = useMapGetter('getCurrentUserID');
+const currentRole = useMapGetter('getCurrentRole');
 const isFeatureEnabledonAccount = useMapGetter(
   'accounts/isFeatureEnabledonAccount'
 );
@@ -927,6 +928,16 @@ const menuItems = computed(() => {
           icon: 'i-lucide-briefcase',
           to: accountScopedRoute('general_settings_index'),
         },
+        ...(currentRole.value === 'administrator'
+          ? [
+              {
+                name: 'Settings AI',
+                label: t('SIDEBAR.AI'),
+                icon: 'i-lucide-sparkles',
+                to: accountScopedRoute('ai_settings_index'),
+              },
+            ]
+          : []),
         // {
         //   name: 'Settings Captain',
         //   label: t('SIDEBAR.CAPTAIN_AI'),

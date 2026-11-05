@@ -6,7 +6,6 @@ import { useAlert } from 'dashboard/composables';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useConfig } from 'dashboard/composables/useConfig';
 import { useAccount } from 'dashboard/composables/useAccount';
-import { FEATURE_FLAGS } from '../../../../featureFlags';
 import WithLabel from 'v3/components/Form/WithLabel.vue';
 import NextInput from 'next/input/Input.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
@@ -14,7 +13,6 @@ import NextButton from 'dashboard/components-next/button/Button.vue';
 import AccountId from './components/AccountId.vue';
 import BuildInfo from './components/BuildInfo.vue';
 import AccountDelete from './components/AccountDelete.vue';
-import AudioTranscription from './components/AudioTranscription.vue';
 import ResolvedStatusLabel from './components/ResolvedStatusLabel.vue';
 import SectionLayout from './components/SectionLayout.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
@@ -30,7 +28,6 @@ export default {
     AccountId,
     BuildInfo,
     AccountDelete,
-    AudioTranscription,
     ResolvedStatusLabel,
     SectionLayout,
     WithLabel,
@@ -68,15 +65,8 @@ export default {
     ...mapGetters({
       getAccount: 'accounts/getAccount',
       uiFlags: 'accounts/getUIFlags',
-      isFeatureEnabledonAccount: 'accounts/isFeatureEnabledonAccount',
       isOnChatwootCloud: 'globalConfig/isOnChatwootCloud',
     }),
-    showAudioTranscriptionConfig() {
-      return this.isFeatureEnabledonAccount(
-        this.accountId,
-        FEATURE_FLAGS.CAPTAIN
-      );
-    },
     languagesSortedByCode() {
       const enabledLanguages = [...this.enabledLanguages];
       return enabledLanguages.sort((l1, l2) =>
@@ -277,7 +267,6 @@ export default {
       <woot-loading-state v-if="uiFlags.isFetchingItem" />
     </div>
     <ResolvedStatusLabel />
-    <AudioTranscription v-if="showAudioTranscriptionConfig" />
     <AccountId />
     <div v-if="!uiFlags.isFetchingItem && isOnChatwootCloud">
       <AccountDelete />
