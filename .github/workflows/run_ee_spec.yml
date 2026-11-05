@@ -158,9 +158,15 @@ jobs:
         shell: bash
         run: |
           # The whole spec/ tree, enterprise included (the CE workflow strips enterprise/ and is disabled).
-          # Round-robin split across all runner processes, so slow files spread evenly.
           mapfile -t SPEC_FILES < <(find spec -name '*_spec.rb' | sort)
           mkdir -p tmp
+          printf '%s\n' "${SPEC_FILES[@]}" > tmp/spec_files.txt
+          SLICE_COUNT=$(( BACKEND_PROCESSES * 2 ))
+          python3 .github/scripts/split_rspec_specs.py \
+            --slices "$SLICE_COUNT" \
+            --timings .github/rspec_spec_timings.json \
+            --spec-list tmp/spec_files.txt \
+            --output tmp/spec_slices.tsv
           PIDS=()
           for (( p=0; p<BACKEND_PROCESSES; p++ )); do
             (
@@ -169,13 +175,12 @@ jobs:
               export REDIS_URL="redis://127.0.0.1:6379/$p"
               TESTS=()
               SLICE_INDEX=$(( BACKEND_RUNNER_INDEX * BACKEND_PROCESSES + p ))
-              for i in "${!SPEC_FILES[@]}"; do
-                if [ $(( i % (BACKEND_PROCESSES * 2) )) -eq "$SLICE_INDEX" ]; then
-                  TESTS+=("${SPEC_FILES[$i]}")
-                fi
-              done
+              mapfile -t TESTS < <(
+                awk -F '\t' -v slice="$SLICE_INDEX" '$1 == slice { print $3 }' tmp/spec_slices.tsv
+              )
+              ESTIMATED_WEIGHT=$(awk -F '\t' -v slice="$SLICE_INDEX" '$1 == slice { total += $2 } END { printf "%.3f", total }' tmp/spec_slices.tsv)
 
-              echo "Running slice $p/$BACKEND_PROCESSES (${#TESTS[@]} spec files)"
+              echo "Running slice $SLICE_INDEX/$SLICE_COUNT (${#TESTS[@]} spec files, estimated ${ESTIMATED_WEIGHT:-0}s)"
               if [ "${#TESTS[@]}" -gt 0 ]; then
                 if ! bundle exec rspec --profile=10 --format progress --format json --out "tmp/rspec_results_${BACKEND_RUNNER_INDEX}_$p.json" "${TESTS[@]}"; then
                   # Timing-sensitive specs fail now and then on a busy runner: run only the failed examples once more.
@@ -204,11 +209,12 @@ jobs:
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
-        # Store test results only when needed to investigate failures, like Rails logs.
-        if: failure()
+        # Keep successful timings available to refresh .github/rspec_spec_timings.json.
+        if: always()
         with:
           name: ee-rspec-results-${{ matrix.runner }}
           path: tmp/rspec_results_*.json
+          if-no-files-found: ignore
 
       - name: Upload rails log folder
         uses: actions/upload-artifact@v4
