@@ -204,6 +204,11 @@ class Captain::Document < ApplicationRecord
   end
 
   def ensure_within_plan_limit
+    document_limits = account.usage_limits.dig(:captain, :documents)
+    if document_limits[:total_count].present? && document_limits[:current_available].zero?
+      raise LimitExceededError, I18n.t('captain.documents.limit_exceeded')
+    end
+
     # Check storage limit
     storage_limits = account.usage_limits[:captain][:storage]
     return unless storage_limits[:total_count].to_i.positive? # Only check if storage limit is set (> 0)

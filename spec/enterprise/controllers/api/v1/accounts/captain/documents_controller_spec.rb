@@ -452,6 +452,25 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
           expect(json_response[:external_link]).to eq('https://example.com/doc')
         end
       end
+
+      context 'when the document quota is exhausted' do
+        it 'rejects creation without enqueueing ingestion' do
+          put_account_on_plan(account, max_documents: 1)
+          create(:captain_document, assistant: assistant, account: account)
+          clear_enqueued_jobs
+
+          expect do
+            post "/api/v1/accounts/#{account.id}/captain/documents",
+                 params: valid_attributes,
+                 headers: admin.create_new_auth_token, as: :json
+          end.not_to change(Captain::Document, :count)
+
+          expect(response).to have_http_status(:unprocessable_entity)
+          expect(json_response[:error]).to eq(I18n.t('captain.documents.limit_exceeded'))
+          expect(Captain::Documents::CrawlJob).not_to have_been_enqueued
+        end
+      end
+
       context 'with invalid parameters' do
         before do
           post "/api/v1/accounts/#{account.id}/captain/documents",

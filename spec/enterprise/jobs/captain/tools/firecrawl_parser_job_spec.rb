@@ -61,6 +61,29 @@ RSpec.describe Captain::Tools::FirecrawlParserJob, type: :job do
       end
     end
 
+    it 'updates an existing document when the account has no remaining document quota' do
+      account = assistant.account
+      existing_document = create(:captain_document,
+                                 assistant: assistant,
+                                 account: account,
+                                 external_link: 'https://www.firecrawl.dev',
+                                 content: 'old content',
+                                 name: 'old title')
+      allow(account).to receive(:usage_limits).and_return(
+        captain: {
+          documents: { total_count: 1, current_available: 0 },
+          storage: { total_count: nil, consumed: 0 }
+        }
+      )
+
+      expect do
+        described_class.perform_now(assistant_id: assistant.id, payload: payload)
+      end.not_to change(assistant.documents, :count)
+
+      expect(existing_document.reload.content).to eq(payload[:markdown])
+      expect(existing_document.name).to eq(payload[:metadata]['title'])
+    end
+
     it 'stores external links longer than 255 characters' do
       long_url = "https://example.com/#{'arabic-product-slug-' * 300}"
       payload[:metadata]['url'] = long_url

@@ -26,7 +26,7 @@ class Captain::Documents::CrawlJob < ApplicationJob
   def perform_simple_crawl(document)
     page_links = Captain::Tools::SimplePageCrawlService.new(document.external_link).page_links
 
-    page_links.each do |page_link|
+    links_within_limit(document, page_links).each do |page_link|
       Captain::Tools::SimplePageCrawlParserJob.perform_later(
         assistant_id: document.assistant_id,
         page_link: page_link
@@ -37,6 +37,16 @@ class Captain::Documents::CrawlJob < ApplicationJob
       assistant_id: document.assistant_id,
       page_link: document.external_link
     )
+  end
+
+  # Pages already stored refresh without using quota, so only new ones are capped.
+  def links_within_limit(document, page_links)
+    current_available = document.account.usage_limits.dig(:captain, :documents, :current_available)
+    links = page_links.uniq
+    stored = document.assistant.documents.where(external_link: links.map { |link| link.to_s.delete_suffix('/') }).pluck(:external_link)
+    known, unknown = links.partition { |link| stored.include?(link.to_s.delete_suffix('/')) }
+
+    known + unknown.first(current_available)
   end
 
   def perform_firecrawl_crawl(document)

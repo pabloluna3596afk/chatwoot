@@ -681,7 +681,7 @@ es:
       reply_suggestion_discarded: 'La conversación cambió mientras Copilot estaba redactando el borrador, así que la sugerencia fue descartada.'
       reply_suggestion_failed: "Copilot no pudo generar una respuesta. Por favor, inténtelo de nuevo."
     documents:
-      limit_exceeded: 'Document limit exceeded'
+      limit_exceeded: 'Se alcanzó el límite de documentos de este plan'
       storage_limit_exceeded: 'Límite de almacenamiento excedido'
       pdf_format_error: 'must be a PDF file'
       pdf_size_error: 'must be less than 10MB'

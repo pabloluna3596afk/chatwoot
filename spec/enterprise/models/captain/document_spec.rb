@@ -12,6 +12,27 @@ RSpec.describe Captain::Document, type: :model do
     expect { create(:captain_document, assistant: assistant, account: account) }.not_to raise_error
   end
 
+  it 'rejects a new document when the plan document limit is exhausted' do
+    allow(account).to receive(:usage_limits).and_return(
+      captain: {
+        documents: { total_count: 1, current_available: 0 },
+        storage: { total_count: nil, consumed: 0 }
+      }
+    )
+    document = build(:captain_document, assistant: assistant, account: account)
+
+    expect { document.save! }
+      .to raise_error(Captain::Document::LimitExceededError, I18n.t('captain.documents.limit_exceeded'))
+  end
+
+  it 'allows document creation when the document limit is not configured' do
+    plan = Plan.create!(name: 'Unlimited documents', slug: 'unlimited-documents')
+    account.update!(plan: plan)
+    plan.update!(limits: { max_documents: nil, storage_mb: nil })
+
+    expect { create(:captain_document, assistant: assistant, account: account) }.not_to raise_error
+  end
+
   describe 'URL normalization' do
     it 'removes a trailing slash before validation' do
       document = create(:captain_document,

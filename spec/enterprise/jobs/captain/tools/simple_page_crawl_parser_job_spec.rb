@@ -62,6 +62,24 @@ RSpec.describe Captain::Tools::SimplePageCrawlParserJob, type: :job do
         end
       end
 
+      it 'updates an existing document when the account has no remaining document quota' do
+        existing_document = create(:captain_document,
+                                   assistant: assistant,
+                                   external_link: 'https://example.com/page',
+                                   name: 'Old Title',
+                                   content: 'Old content')
+        allow(assistant.account).to receive(:usage_limits).and_return(
+          captain: { documents: { current_available: 0 } }
+        )
+
+        expect do
+          described_class.perform_now(assistant_id: assistant.id, page_link: page_link)
+        end.not_to change(assistant.documents, :count)
+
+        expect(existing_document.reload.name).to eq(page_title)
+        expect(existing_document.content).to eq(content)
+      end
+
       context 'when title or content exceed maximum length' do
         let(:long_title) { 'x' * 300 }
         let(:long_content) { 'x' * 20_000 }

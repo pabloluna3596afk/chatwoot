@@ -104,6 +104,31 @@ RSpec.describe Captain::Documents::CrawlJob, type: :job do
         expect(simple_crawler).to receive(:page_links)
         described_class.perform_now(document)
       end
+
+      it 'keeps refreshing stored pages when no quota is left' do
+        create(:captain_document, assistant: document.assistant, account: document.account, external_link: 'https://example.com/stored')
+        allow(document.account).to receive(:usage_limits).and_return(
+          captain: { documents: { current_available: 0 } }
+        )
+        allow(simple_crawler).to receive(:page_links).and_return(['https://example.com/stored/', 'https://example.com/new'])
+
+        expect do
+          described_class.perform_now(document)
+        end.to have_enqueued_job(Captain::Tools::SimplePageCrawlParserJob).exactly(2).times
+      end
+
+      it 'enqueues no more pages than the available document quota' do
+        allow(document.account).to receive(:usage_limits).and_return(
+          captain: { documents: { current_available: 2 } }
+        )
+        allow(simple_crawler).to receive(:page_links).and_return(
+          ['https://example.com/page1', 'https://example.com/page2', 'https://example.com/page3']
+        )
+
+        expect do
+          described_class.perform_now(document)
+        end.to have_enqueued_job(Captain::Tools::SimplePageCrawlParserJob).exactly(3).times
+      end
     end
 
     context 'when document is a PDF' do
