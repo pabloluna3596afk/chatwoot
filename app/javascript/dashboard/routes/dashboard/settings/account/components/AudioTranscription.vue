@@ -44,13 +44,13 @@ const toggleAudioTranscription = async () => {
     with-border
   >
     <template #headerActions>
-      <div class="flex flex-col items-end gap-2">
+      <div class="flex justify-end">
         <Switch v-model="isEnabled" @change="toggleAudioTranscription" />
-        <p class="flex items-center gap-1 text-xs text-end text-n-slate-11">
-          <BagIcon bag="internal" class="size-3.5 shrink-0" />
-          {{ t('GENERAL_SETTINGS.FORM.AUDIO_TRANSCRIPTION.USAGE_NOTE') }}
-        </p>
       </div>
     </template>
+    <p class="flex items-center gap-1.5 text-body-small text-n-slate-11">
+      <BagIcon bag="internal" class="size-3.5 shrink-0" />
+      {{ t('GENERAL_SETTINGS.FORM.AUDIO_TRANSCRIPTION.USAGE_NOTE') }}
+    </p>
   </SectionLayout>
 </template>

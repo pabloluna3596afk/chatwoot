@@ -927,6 +927,16 @@ const menuItems = computed(() => {
           icon: 'i-lucide-briefcase',
           to: accountScopedRoute('general_settings_index'),
         },
+        ...(hasCaptain.value
+          ? [
+              {
+                name: 'Settings AI',
+                label: t('SIDEBAR.AI'),
+                icon: 'i-lucide-sparkles',
+                to: accountScopedRoute('ai_settings_index'),
+              },
+            ]
+          : []),
         // {
         //   name: 'Settings Captain',
         //   label: t('SIDEBAR.CAPTAIN_AI'),

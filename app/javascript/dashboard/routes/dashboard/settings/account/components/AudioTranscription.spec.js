@@ -27,7 +27,7 @@ describe('AudioTranscription', () => {
           SectionLayout: {
             props: ['title', 'description'],
             template:
-              '<section><h2>{{ title }}</h2><p>{{ description }}</p><slot name="headerActions" /></section>',
+              '<section><h2>{{ title }}</h2><p>{{ description }}</p><slot name="headerActions" /><slot /></section>',
           },
           Switch: { template: '<button />' },
         },
