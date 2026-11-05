@@ -24,7 +24,7 @@ RSpec.describe Rake::Task do
     expect(Plan.where(slug: %w[gratis basico inicio crecimiento]).order(:display_order).pluck(:feature_keys))
       .to eq(expected_features)
     expect(Plan.where(slug: %w[negocio escala]).pluck(:is_active, :coming_soon)).to eq([[false, true], [false, true]])
-    expect(Plan.where(slug: %w[prueba developer]).pluck(:is_active, :is_public)).to eq([[false, true], [false, false]])
+    expect(Plan.where(slug: %w[prueba developer]).pluck(:is_active, :is_public)).to eq([[false, false], [false, false]])
     expect(Plan.find_by!(slug: 'gratis')).to have_attributes(is_default_trial: true, coming_soon: false)
     expect(Plan.find_by!(slug: 'developer').catalog_state).to eq('hidden')
   end
