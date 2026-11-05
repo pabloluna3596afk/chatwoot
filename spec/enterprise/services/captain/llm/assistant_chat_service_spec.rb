@@ -58,7 +58,7 @@ RSpec.describe Captain::Llm::AssistantChatService do
     end
 
     it 'passes channel_type to the agent session instrumentation' do
-      service = described_class.new(assistant: assistant, conversation: conversation)
+      service = described_class.new(assistant: assistant, conversation: conversation, message_id: 123)
 
       expect(service).to receive(:instrument_agent_session).with(
         hash_including(metadata: hash_including(channel_type: conversation.inbox.channel_type))
@@ -66,6 +66,16 @@ RSpec.describe Captain::Llm::AssistantChatService do
 
       allow(mock_chat).to receive(:ask).and_return(mock_response)
       service.generate_response(message_history: [{ role: 'user', content: 'Hello' }])
+    end
+
+    it 'includes the triggering message in usage context' do
+      message = create(:message, account: account, conversation: conversation)
+      service = described_class.new(assistant: assistant, conversation: conversation, message_id: message.id)
+      expect(service).to receive(:request_chat_completion_with_usage_context) do
+        expect(Llm::UsageContext.current).to include(conversation_id: conversation.id, message_id: message.id)
+      end
+
+      service.request_chat_completion
     end
 
     it 'marks final response generations for observation-level evaluators' do

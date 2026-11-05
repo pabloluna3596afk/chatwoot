@@ -7,10 +7,13 @@ RSpec.describe Captain::Conversation::TranslatorService do
   it 'uses Captain to translate and detect language' do
     translation = instance_double(Captain::Llm::MessageTranslationService, perform: { message: 'Hola' })
     detection = instance_double(Captain::Llm::LanguageDetectionService, language: 'es')
+    service = described_class.new(account: account, conversation_display_id: 17, message_id: 42)
     expect(Captain::Llm::MessageTranslationService).to receive(:new).with(
-      account: account, text: 'Hello', target_language: 'es', conversation_display_id: 17
+      account: account, text: 'Hello', target_language: 'es', conversation_display_id: 17, message_id: 42
     ).and_return(translation)
-    expect(Captain::Llm::LanguageDetectionService).to receive(:new).with(account: account, text: 'Hola').and_return(detection)
+    expect(Captain::Llm::LanguageDetectionService).to receive(:new).with(
+      account: account, text: 'Hola', conversation_display_id: 17, message_id: 42
+    ).and_return(detection)
 
     expect(service.translate('Hello', 'es')).to eq('Hola')
     expect(service.language('Hola')).to eq('es')

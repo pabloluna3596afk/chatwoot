@@ -37,6 +37,15 @@ RSpec.describe Captain::Llm::AssistantActionClassifierService do
       ]
     end
 
+    it 'passes the triggering message to usage instrumentation' do
+      message = create(:message, account: account, conversation: conversation)
+      contextual_service = described_class.new(assistant: assistant, conversation: conversation, message_id: message.id)
+
+      expect(contextual_service.send(:instrumentation_params, 'prompt')).to include(
+        conversation_id: conversation.display_id, message_id: message.id
+      )
+    end
+
     it 'passes delimited custom instructions and classifier context to the LLM' do
       expect(mock_chat).to receive(:with_schema).with(Captain::AssistantActionSchema).and_return(mock_chat)
       expect(mock_chat).to receive(:with_instructions).with(

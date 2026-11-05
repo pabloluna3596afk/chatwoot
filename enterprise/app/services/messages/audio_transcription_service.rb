@@ -68,7 +68,10 @@ class Messages::AudioTranscriptionService
   end
 
   def transcribe_audio(units)
-    service = Llm::SpeechToTextService.new(blob: attachment.file.blob, account: account, units: units)
+    service = Llm::SpeechToTextService.new(
+      blob: attachment.file.blob, account: account, units: units,
+      conversation_id: message.conversation_id, message_id: message.id
+    )
     transcribed_text = service.perform
     if service.quota_exceeded?
       details = quota_details(manual: true)

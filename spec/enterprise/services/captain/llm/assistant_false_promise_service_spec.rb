@@ -29,6 +29,15 @@ RSpec.describe Captain::Llm::AssistantFalsePromiseService do
       ]
     end
 
+    it 'passes the triggering message to usage instrumentation' do
+      message = create(:message, account: account, conversation: conversation)
+      contextual_service = described_class.new(assistant: assistant, conversation: conversation, message_id: message.id)
+
+      expect(contextual_service.send(:instrumentation_params, 'prompt')).to include(
+        conversation_id: conversation.display_id, message_id: message.id
+      )
+    end
+
     it 'uses the detector model even when the assistant feature model is overridden' do
       account.update!(captain_models: { 'assistant' => 'gpt-5-mini' })
 

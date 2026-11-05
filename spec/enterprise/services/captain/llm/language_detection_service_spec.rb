@@ -28,6 +28,18 @@ RSpec.describe Captain::Llm::LanguageDetectionService do
     expect(Captain::Llm::LanguageDetectionSchema.fields).to eq([:language])
   end
 
+  it 'keeps source message context in the metered task wrapper' do
+    conversation = create(:conversation, account: account)
+    message = create(:message, account: account, conversation: conversation)
+    contextual_service = described_class.new(
+      account: account, text: 'Bonjour', conversation_display_id: conversation.display_id, message_id: message.id
+    )
+
+    contextual_service.send(:perform_with_usage_context, nil) do
+      expect(Llm::UsageContext.current).to include(conversation_id: conversation.id, message_id: message.id)
+    end
+  end
+
   it 'returns nil for unknown or missing languages' do
     allow(service).to receive(:perform).and_return(message: { 'language' => 'und' })
     expect(service.language).to be_nil

@@ -114,6 +114,16 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
         expect(Rails.logger).to have_received(:info).with('Audio transcription successful (25 chars)')
         expect(Rails.logger).not_to have_received(:info).with(include('Hello world transcription'))
       end
+
+      it 'reuses the saved transcript on a repeated request without opening another metered service' do
+        speech_service = instance_double(Llm::SpeechToTextService, perform: 'Hello world transcription', quota_exceeded?: false)
+        allow(Llm::SpeechToTextService).to receive(:new).and_return(speech_service)
+
+        2.times { described_class.new(attachment).perform }
+
+        expect(Llm::SpeechToTextService).to have_received(:new).once
+        expect(attachment.reload.meta['transcribed_text']).to eq('Hello world transcription')
+      end
     end
 
     context 'when automatic transcription uses duration-based usage' do
@@ -123,7 +133,9 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
         expect(Llm::SpeechToTextService).to receive(:new).with(
           blob: attachment.file.blob,
           account: account,
-          units: 5
+          units: 5,
+          conversation_id: conversation.id,
+          message_id: message.id
         ).and_return(speech_service)
 
         result = service.perform
@@ -265,6 +277,7 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
 
         result = service.perform
         expect(result).to eq({ success: true, transcriptions: 'Existing transcription' })
+        expect(AiUsageEvent.where(account: account, feature: 'audio_transcription')).to be_empty
       end
     end
 

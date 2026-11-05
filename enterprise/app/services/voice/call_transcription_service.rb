@@ -2,8 +2,10 @@ class Voice::CallTranscriptionService
   pattr_initialize [:call!]
 
   def perform
-    # Split so a publish failure can retry without re-running (and re-charging) transcription.
-    transcribe if call.transcript.blank?
+    call.with_lock do
+      # Split so a publish failure can retry without re-running (and re-charging) transcription.
+      transcribe if call.transcript.blank?
+    end
     publish(call.message) if call.transcript.present?
   end
 
@@ -15,7 +17,10 @@ class Voice::CallTranscriptionService
     return unless Llm::SpeechToTextService.available_for?(call.account)
     return if Llm::SpeechToTextService.too_large?(recording_blob)
 
-    service = Llm::SpeechToTextService.new(blob: recording_blob, account: call.account)
+    service = Llm::SpeechToTextService.new(
+      blob: recording_blob, account: call.account,
+      conversation_id: call.conversation_id, message_id: call.message_id
+    )
     transcript = service.perform
     return if service.quota_exceeded?
 

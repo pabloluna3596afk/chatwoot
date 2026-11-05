@@ -1,5 +1,5 @@
 class Captain::Conversation::TranslatorService
-  pattr_initialize [:account!, { conversation_display_id: nil }]
+  pattr_initialize [:account!, { conversation_display_id: nil, message_id: nil }]
 
   def provider
     account.translation_service
@@ -9,7 +9,8 @@ class Captain::Conversation::TranslatorService
     return translate_with_google(text, target_language) if provider == 'google_translate'
 
     response = Captain::Llm::MessageTranslationService.new(
-      account: account, text: text, target_language: target_language, conversation_display_id: conversation_display_id
+      account: account, text: text, target_language: target_language,
+      conversation_display_id: conversation_display_id, message_id: message_id
     ).perform
     response[:message].presence
   end
@@ -17,7 +18,9 @@ class Captain::Conversation::TranslatorService
   def language(text)
     return google.detect(text) if provider == 'google_translate'
 
-    Captain::Llm::LanguageDetectionService.new(account: account, text: text).language
+    Captain::Llm::LanguageDetectionService.new(
+      account: account, text: text, conversation_display_id: conversation_display_id, message_id: message_id
+    ).language
   rescue Google::Cloud::Error => e
     Rails.logger.warn("[AutoTranslate] Google language detection failed: #{e.message}")
     nil
