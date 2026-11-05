@@ -6,8 +6,8 @@ class Captain::Documents::ResponseBuilderJob < ApplicationJob
 
     faqs = generate_faqs(document, options)
     create_responses_from_faqs(faqs, document)
-  ensure
-    delete_pdf_from_openai(document) if document&.pdf_document? && document.openai_file_id.present?
+    # Only after success: a failed run is retried and still needs the uploaded file.
+    delete_pdf_from_openai(document) if document.pdf_document? && document.openai_file_id.present?
   end
 
   private

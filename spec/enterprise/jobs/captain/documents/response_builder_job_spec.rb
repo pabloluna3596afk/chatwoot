@@ -103,11 +103,11 @@ RSpec.describe Captain::Documents::ResponseBuilderJob, type: :job do
         described_class.new.perform(pdf_document)
       end
 
-      it 'deletes the OpenAI file when FAQ generation fails and preserves the original error' do
+      it 'keeps the OpenAI file when FAQ generation fails so the retry can still use it' do
         cleanup_service = instance_double(Captain::Llm::PdfProcessingService)
         allow(Captain::Llm::PdfProcessingService).to receive(:new).with(pdf_document).and_return(cleanup_service)
         allow(paginated_service).to receive(:generate).and_raise(StandardError, 'generation failed')
-        expect(cleanup_service).to receive(:delete_openai_file)
+        expect(cleanup_service).not_to receive(:delete_openai_file)
 
         expect { described_class.new.perform(pdf_document) }.to raise_error('generation failed')
       end
