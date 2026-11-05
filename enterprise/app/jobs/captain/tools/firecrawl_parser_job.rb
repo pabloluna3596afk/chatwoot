@@ -20,6 +20,8 @@ class Captain::Tools::FirecrawlParserJob < ApplicationJob
       last_sync_attempted_at: Time.current,
       last_sync_error_code: nil
     )
+  rescue Captain::Document::LimitExceededError => e
+    Rails.logger.info "Skipping FireCrawl page for assistant #{assistant_id}: #{e.message}"
   rescue StandardError => e
     raise "Failed to parse FireCrawl data: #{e.message}"
   end
