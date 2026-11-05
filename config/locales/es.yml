@@ -622,8 +622,8 @@ es:
       features:
         action_classification: Clasificar acciones del asistente
         assistant_migration: Migrar instrucciones del asistente
-        article_translation: Traducir artÃ­culos
-        article_generation: Generar artÃ­culos
+        article_translation: Traducir artículos
+        article_generation: Generar artículos
         assistant: Respuestas del asistente
         assistant_playground: Probar respuestas del asistente
         audio_transcription: Transcribir audio
@@ -640,16 +640,16 @@ es:
         document_faq_generation: Generar preguntas frecuentes de documentos
         embeddings: Crear representaciones vectoriales
         follow_up: Generar seguimientos
-        help_center_article_generation: Generar artÃ­culos del centro de ayuda
+        help_center_article_generation: Generar artículos del centro de ayuda
         help_center_curation: Organizar contenido del centro de ayuda
-        help_center_query_translation: Traducir bÃºsquedas del centro de ayuda
+        help_center_query_translation: Traducir búsquedas del centro de ayuda
         rewrite_message: Reescribir mensajes
         label_suggestion: Sugerir etiquetas
         language_detection: Detectar el idioma
         message_translation: Traducir mensajes
         onboarding_content_generation: Generar contenido de bienvenida
         conversation_summary: Resumir conversaciones
-        translate_query: Traducir bÃºsquedas
+        translate_query: Traducir búsquedas
         website_analysis: Analizar sitios web
         widget_tagline: Generar frases para el widget
     usage_limit_warning:

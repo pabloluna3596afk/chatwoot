@@ -10,12 +10,11 @@ RSpec.describe 'Captain usage breakdown API' do
     put_account_on_plan(account)
     period = account.current_usage_period
     period.update!(period_start: 10.days.ago, period_end: 10.days.from_now)
-    reservation_id = SecureRandom.uuid
-    period.ai_usage_reservations.create!(reservation_id: reservation_id, bucket: 'captain_responses', units: 3)
+    usage_group_id = SecureRandom.uuid
     2.times do
       AiUsageEvent.create!(account: account, bucket: 'captain_responses', feature: 'faq_generation',
-                           model: 'private-model', provider: 'private-provider', usage_group_id: reservation_id,
-                           created_at: 1.day.ago, input_tokens: 10, output_tokens: 20, cost_usd: 5, status: 'ok')
+                           model: 'private-model', provider: 'private-provider', usage_group_id: usage_group_id,
+                           created_at: 1.day.ago, input_tokens: 10, output_tokens: 20, cost_usd: 5, units: 5, status: 'ok')
     end
     AiUsageEvent.create!(account: account, bucket: 'captain_responses', feature: 'faq_generation', model: 'm',
                          provider: 'p', usage_group_id: SecureRandom.uuid, created_at: 2.months.ago, status: 'ok')
@@ -26,7 +25,7 @@ RSpec.describe 'Captain usage breakdown API' do
     expect(response.parsed_body['buckets']).to include(
       'captain_responses' => [
         a_hash_including('feature' => 'document_faq_generation', 'name' => 'Generate document FAQs',
-                         'operations' => 1, 'units' => 3)
+                         'operations' => 1, 'units' => 5)
       ]
     )
     expect(response.body).not_to match(/cost|model|provider|tokens/i)

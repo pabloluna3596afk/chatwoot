@@ -61,7 +61,7 @@ class Captain::UsageBreakdownBuilder
     return empty_result unless period
 
     rows = event_rows
-    buckets = build_buckets(rows, reservations_for(rows))
+    buckets = build_buckets(rows)
     { period_start: period.period_start, period_end: period.period_end, buckets: buckets }
   end
 
@@ -72,33 +72,26 @@ class Captain::UsageBreakdownBuilder
   def event_rows
     events = AiUsageEvent.where(account_id: account.id, status: 'ok', created_at: period.period_start...period.period_end)
     events = events.where(bucket: bucket) if bucket
-    events.pluck(:bucket, :feature, :usage_group_id, :created_at)
+    events.pluck(:bucket, :feature, :usage_group_id, :units, :created_at)
   end
 
-  def reservations_for(rows)
-    period.ai_usage_reservations.where(reservation_id: rows.pluck(2).uniq)
-          .pluck(:reservation_id, :bucket, :units).index_by(&:first)
-  end
-
-  def build_buckets(rows, reservations)
+  def build_buckets(rows)
     buckets = BUCKETS.index_with { [] }
-    grouped_events(rows).each do |(event_bucket, feature_group, group_id), group_events|
-      buckets[event_bucket] << operation_summary(event_bucket, feature_group, group_id, group_events, reservations)
+    grouped_events(rows).each do |(event_bucket, feature_group, _group_id), group_events|
+      buckets[event_bucket] << operation_summary(feature_group, group_events)
     end
     buckets.transform_values! { |features| summarize_features(features) }
     bucket ? buckets.slice(bucket) : buckets
   end
 
   def grouped_events(rows)
-    rows.group_by do |event_bucket, feature, group_id, _created_at|
+    rows.group_by do |event_bucket, feature, group_id, _units, _created_at|
       [event_bucket, FEATURE_GROUPS.fetch(feature), group_id]
     end
   end
 
-  def operation_summary(event_bucket, feature_group, group_id, events, reservations)
-    reservation = reservations[group_id]
-    units = reservation && reservation[1] == event_bucket ? reservation[2] : 1
-    { feature: feature_group, units: units, last_used_at: events.map(&:last).max }
+  def operation_summary(feature_group, events)
+    { feature: feature_group, units: events.pluck(3).max, last_used_at: events.pluck(4).max }
   end
 
   def summarize_features(features)

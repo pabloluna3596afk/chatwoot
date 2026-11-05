@@ -6,18 +6,18 @@ RSpec.describe Captain::UsageBreakdownBuilder do
     AccountPlanUsage.create!(account: account, period_start: 10.days.ago, period_end: 10.days.from_now)
   end
 
-  it 'groups feature variants, counts distinct operations, and uses reservation units' do
-    rewrite_reservation_id = SecureRandom.uuid
-    rewrite_group_id = rewrite_reservation_id
+  it 'groups feature variants, counts distinct operations, and uses the maximum units per group' do
+    rewrite_group_id = SecureRandom.uuid
     faq_group_id = SecureRandom.uuid
-    period.ai_usage_reservations.create!(reservation_id: rewrite_reservation_id, bucket: 'internal', units: 4)
+    latest_rewrite_event_at = 1.day.ago
+    latest_faq_event_at = 1.hour.ago
     [
-      ['professional', rewrite_group_id, 2.days.ago], ['professional', rewrite_group_id, 1.day.ago],
-      ['friendly', SecureRandom.uuid, 3.days.ago], ['faq_generation', faq_group_id, 1.hour.ago]
-    ].each do |feature, group_id, created_at|
+      ['professional', rewrite_group_id, 2.days.ago, 2], ['professional', rewrite_group_id, latest_rewrite_event_at, 4],
+      ['friendly', SecureRandom.uuid, 3.days.ago, 1], ['faq_generation', faq_group_id, latest_faq_event_at, 1]
+    ].each do |feature, group_id, created_at, units|
       AiUsageEvent.create!(account: account, bucket: Llm::UsageFeatureBuckets::FEATURE_BUCKETS.fetch(feature).to_s,
                            feature: feature, model: 'private-model', provider: 'private-provider',
-                           usage_group_id: group_id, created_at: created_at, status: 'ok', cost_usd: 12,
+                           usage_group_id: group_id, created_at: created_at, status: 'ok', cost_usd: 12, units: units,
                            input_tokens: 100)
     end
     AiUsageEvent.create!(account: account, bucket: 'internal', feature: 'summary', model: 'm', provider: 'p',
@@ -27,10 +27,11 @@ RSpec.describe Captain::UsageBreakdownBuilder do
 
     expect(result[:buckets]['internal']).to contain_exactly(
       include(feature: :rewrite_message, name: 'Rewrite messages', operations: 2, units: 5,
-              last_used_at: be_within(1.second).of(1.day.ago))
+              last_used_at: be_within(1.second).of(latest_rewrite_event_at))
     )
     expect(result[:buckets]['captain_responses']).to contain_exactly(
-      include(feature: :document_faq_generation, operations: 1, units: 1, last_used_at: be_within(1.second).of(1.hour.ago))
+      include(feature: :document_faq_generation, operations: 1, units: 1,
+              last_used_at: be_within(1.second).of(latest_faq_event_at))
     )
   end
 

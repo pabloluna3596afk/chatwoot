@@ -1,7 +1,7 @@
 # Durable receipt tying one preflight quota reservation to its eventual
-# success or release. Closed receipts keep their units until the existing
-# retention cleanup so usage events can be reconciled; released calls are
-# refunded while successful calls remain consumed. Provider events are separate.
+# success or release. Failed receipts remain as per-period idempotency markers;
+# successful receipts are consumed. Provider usage events remain separate: a
+# failed provider call can incur cost while its quota reservation is refunded.
 class AiUsageReservation < ApplicationRecord
   belongs_to :account_plan_usage
 

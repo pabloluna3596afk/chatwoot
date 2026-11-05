@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_04_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_05_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -258,6 +258,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_04_120000) do
     t.bigint "conversation_id"
     t.bigint "message_id"
     t.datetime "created_at", null: false
+    t.integer "units", default: 1, null: false
     t.index ["account_id", "bucket", "created_at"], name: "index_ai_usage_events_on_account_id_and_bucket_and_created_at"
     t.index ["account_id", "conversation_id", "message_id"], name: "idx_on_account_id_conversation_id_message_id_9cad35c9e5"
     t.index ["account_id", "created_at"], name: "index_ai_usage_events_on_account_id_and_created_at"

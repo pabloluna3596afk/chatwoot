@@ -41,8 +41,7 @@ class Captain::Llm::AssistantActionClassifierService < Llm::BaseAiService
         conversation_id: @conversation.id, reservation_required: internal_reservation_required?,
         required_gate: 'captain_tasks'
       },
-      reservation_id: @usage_reservation_id,
-      usage_group_id: @usage_reservation_id
+      reservation_id: @usage_reservation_id
     ) do
       instrument_llm_call(instrumentation_params(user_prompt)) do
         chat(model: @model, temperature: @temperature)

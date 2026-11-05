@@ -42,6 +42,18 @@ RSpec.describe AiUsageEvent do
   end
 
   describe 'recording a usage group' do
+    it 'records one unit for a normal usage context' do
+      account = create(:account)
+      group_id = SecureRandom.uuid
+
+      Llm::UsageContext.with(account: account, bucket: :captain_responses, feature: 'captain_reply',
+                             usage_group_id: group_id) do
+        Llm::UsageContext.record_operation(model: 'gpt-6-luna', provider: 'openai', status: 'ok')
+      end
+
+      expect(described_class.find_by!(usage_group_id: group_id).units).to eq(1)
+    end
+
     it 'records each call under one isolated message group' do
       account = create(:account)
       model = Struct.new(:id, :provider).new('gpt-6-luna', 'openai')
