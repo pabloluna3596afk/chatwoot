@@ -63,7 +63,9 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
 
   def generate_and_process_response
     message_history = collect_previous_messages
-    @response = Captain::Llm::AssistantChatService.new(assistant: @assistant, conversation: @conversation).generate_response(
+    @response = Captain::Llm::AssistantChatService.new(
+      assistant: @assistant, conversation: @conversation, message_id: @responding_to_message_id
+    ).generate_response(
       message_history: message_history
     )
     classify_v1_response_action(message_history) if conversation_pending?

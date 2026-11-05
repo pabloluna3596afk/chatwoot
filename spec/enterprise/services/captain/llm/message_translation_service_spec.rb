@@ -28,6 +28,19 @@ RSpec.describe Captain::Llm::MessageTranslationService do
     expect(Captain::Llm::MessageTranslationSchema.fields).to eq([:translation])
   end
 
+  it 'keeps source message context in the metered task wrapper' do
+    conversation = create(:conversation, account: account)
+    message = create(:message, account: account, conversation: conversation)
+    contextual_service = described_class.new(
+      account: account, text: 'Hello', target_language: 'es',
+      conversation_display_id: conversation.display_id, message_id: message.id
+    )
+
+    contextual_service.send(:perform_with_usage_context, nil) do
+      expect(Llm::UsageContext.current).to include(conversation_id: conversation.id, message_id: message.id)
+    end
+  end
+
   it 'preserves API errors' do
     allow(service).to receive(:make_api_call).and_return(error: 'failed', error_code: 500)
     expect(service.perform).to eq(error: 'failed', error_code: 500)

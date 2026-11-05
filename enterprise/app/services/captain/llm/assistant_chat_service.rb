@@ -1,12 +1,13 @@
 class Captain::Llm::AssistantChatService < Llm::BaseAiService
   include Captain::ChatHelper
 
-  def initialize(assistant: nil, conversation: nil, source: nil)
+  def initialize(assistant: nil, conversation: nil, source: nil, message_id: nil)
     super(feature: 'assistant', account: assistant&.account || conversation&.account)
 
     @assistant = assistant
     @conversation = conversation
     @conversation_id = conversation&.display_id
+    @message_id = message_id
     @source = source
 
     @messages = [system_message]

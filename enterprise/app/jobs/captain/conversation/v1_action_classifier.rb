@@ -11,7 +11,8 @@ module Captain::Conversation::V1ActionClassifier
 
     classification = Captain::Llm::AssistantActionClassifierService.new(
       assistant: @assistant,
-      conversation: @conversation
+      conversation: @conversation,
+      message_id: @responding_to_message_id
     ).classify(message_history: message_history, assistant_response: @response['response'])
 
     apply_v1_action_classification(classification)

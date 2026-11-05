@@ -52,13 +52,24 @@ module Enterprise::Captain::BaseTaskService
   end
 
   def perform_with_usage_context(reservation_id, &)
+    source_message = source_message_for_usage
     Llm::UsageContext.with(
       account: account,
       bucket: usage_bucket,
       feature: event_name,
-      context: { conversation_id: conversation&.id, reservation_required: reservation_id.present?, required_gate: 'captain_tasks' },
+      context: {
+        conversation_id: conversation&.id || source_message&.conversation_id, message_id: source_message&.id,
+        reservation_required: reservation_id.present?, required_gate: 'captain_tasks'
+      },
       reservation_id: reservation_id, &
     )
+  end
+
+  def source_message_for_usage
+    return message if respond_to?(:message, true) && message.is_a?(Message)
+    return unless respond_to?(:message_id, true) && message_id.present?
+
+    account.messages.find_by(id: message_id)
   end
 
   def successful_ai_result?(result)

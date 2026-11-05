@@ -7,7 +7,9 @@ RSpec.describe Captain::Conversation::MessageLanguageService do
   let(:translator) { instance_double(Captain::Conversation::TranslatorService, language: 'fr') }
 
   it 'detects, saves and applies the language from the latest incoming public text message' do
-    allow(Captain::Conversation::TranslatorService).to receive(:new).with(account: account).and_return(translator)
+    expect(Captain::Conversation::TranslatorService).to receive(:new).with(
+      account: account, conversation_display_id: conversation.display_id, message_id: message.id
+    ).and_return(translator)
 
     expect(described_class.new(conversation: conversation, message: message).perform).to eq('fr')
     expect(message.reload.source_language).to eq('fr')
@@ -22,7 +24,9 @@ RSpec.describe Captain::Conversation::MessageLanguageService do
 
   it 'does not persist an undetected language' do
     allow(translator).to receive(:language).and_return(nil)
-    allow(Captain::Conversation::TranslatorService).to receive(:new).with(account: account).and_return(translator)
+    allow(Captain::Conversation::TranslatorService).to receive(:new).with(
+      account: account, conversation_display_id: conversation.display_id, message_id: message.id
+    ).and_return(translator)
     expect(described_class.new(conversation: conversation, message: message).perform).to be_nil
     expect(message.reload.source_language).to be_nil
   end

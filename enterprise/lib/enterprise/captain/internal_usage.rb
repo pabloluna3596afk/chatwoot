@@ -1,7 +1,7 @@
 module Enterprise::Captain::InternalUsage
   private
 
-  def with_internal_usage(account:, feature:, conversation_id: nil, &)
+  def with_internal_usage(account:, feature:, conversation_id: nil, message_id: nil, &)
     reservation_id = reserve_internal_usage(account)
     return if reservation_id == false
 
@@ -9,7 +9,7 @@ module Enterprise::Captain::InternalUsage
       account: account,
       bucket: :internal,
       feature: feature,
-      context: { conversation_id: conversation_id, reservation_required: reservation_id.present? },
+      context: { conversation_id: conversation_id, message_id: message_id, reservation_required: reservation_id.present? },
       reservation_id: reservation_id,
       &
     )

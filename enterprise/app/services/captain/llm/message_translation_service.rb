@@ -2,7 +2,7 @@ class Captain::Llm::MessageTranslationService < Captain::BaseTaskService
   LANGUAGE_NAMES = YAML.load_file(Rails.root.join('config/languages/language_map.yml')).freeze
   CONTROL_CHARACTERS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/
 
-  pattr_initialize [:account!, :text!, :target_language!, { conversation_display_id: nil }]
+  pattr_initialize [:account!, :text!, :target_language!, { conversation_display_id: nil, message_id: nil }]
 
   def self.same_language?(first, second)
     first.to_s.split(/[-_]/).first == second.to_s.split(/[-_]/).first
@@ -19,6 +19,10 @@ class Captain::Llm::MessageTranslationService < Captain::BaseTaskService
 
   def event_name
     'message_translation'
+  end
+
+  def build_instrumentation_params(model, messages)
+    super.merge(message_id: message_id)
   end
 
   def messages

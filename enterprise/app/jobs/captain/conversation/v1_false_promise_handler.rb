@@ -40,7 +40,9 @@ module Captain::Conversation::V1FalsePromiseHandler
 
   def regenerate_v1_false_promise_response(message_history)
     repair_message_history = message_history + [{ role: 'assistant', content: @response['response'] }]
-    @response = Captain::Llm::AssistantChatService.new(assistant: @assistant, conversation: @conversation).generate_response(
+    @response = Captain::Llm::AssistantChatService.new(
+      assistant: @assistant, conversation: @conversation, message_id: @responding_to_message_id
+    ).generate_response(
       message_history: repair_message_history,
       additional_message: FUTURE_PROMISE_REPAIR_INSTRUCTION
     )
@@ -57,7 +59,8 @@ module Captain::Conversation::V1FalsePromiseHandler
   def detect_v1_false_promise(message_history)
     detection = Captain::Llm::AssistantFalsePromiseService.new(
       assistant: @assistant,
-      conversation: @conversation
+      conversation: @conversation,
+      message_id: @responding_to_message_id
     ).detect(message_history: message_history, assistant_response: @response['response'])
 
     log_v1_false_promise_detection(detection)

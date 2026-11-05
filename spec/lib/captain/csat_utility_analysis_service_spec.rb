@@ -33,6 +33,20 @@ RSpec.describe Captain::CsatUtilityAnalysisService do
 
       service.perform
     end
+
+    it 'includes source conversation and message in metering context when given a message record' do
+      conversation = create(:conversation, account: account)
+      message = create(:message, account: account, conversation: conversation)
+      source_service = described_class.new(account: account, message: message, language: 'en', baseline: {})
+
+      params = source_service.send(:build_instrumentation_params, 'gpt-6-luna', [])
+
+      expect(params).to include(conversation_id: conversation.display_id, message_id: message.id)
+
+      source_service.send(:perform_with_usage_context, nil) do
+        expect(Llm::UsageContext.current).to include(conversation_id: conversation.id, message_id: message.id)
+      end
+    end
   end
 
   describe '#api_key' do

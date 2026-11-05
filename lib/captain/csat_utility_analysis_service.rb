@@ -64,6 +64,11 @@ class Captain::CsatUtilityAnalysisService < Captain::BaseTaskService
     'csat_utility_analysis'
   end
 
+  def build_instrumentation_params(model, messages)
+    source_message = message if message.is_a?(Message)
+    super.merge(conversation_id: source_message&.conversation&.display_id, message_id: source_message&.id)
+  end
+
   def use_account_openai_hook?
     true
   end

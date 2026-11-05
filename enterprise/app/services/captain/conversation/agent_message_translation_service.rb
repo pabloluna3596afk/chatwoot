@@ -41,7 +41,9 @@ class Captain::Conversation::AgentMessageTranslationService
   end
 
   def translator
-    @translator ||= Captain::Conversation::TranslatorService.new(account: account, conversation_display_id: conversation.display_id)
+    @translator ||= Captain::Conversation::TranslatorService.new(
+      account: account, conversation_display_id: conversation.display_id, message_id: message.id
+    )
   end
 
   def reply_language
