@@ -65,7 +65,6 @@ const isMobile = computed(() => windowWidth.value < 768);
 
 const accountId = useMapGetter('getCurrentAccountId');
 const currentUserId = useMapGetter('getCurrentUserID');
-const currentRole = useMapGetter('getCurrentRole');
 const isFeatureEnabledonAccount = useMapGetter(
   'accounts/isFeatureEnabledonAccount'
 );
@@ -928,7 +927,7 @@ const menuItems = computed(() => {
           icon: 'i-lucide-briefcase',
           to: accountScopedRoute('general_settings_index'),
         },
-        ...(currentRole.value === 'administrator'
+        ...(hasCaptain.value
           ? [
               {
                 name: 'Settings AI',
