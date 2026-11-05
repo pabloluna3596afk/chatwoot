@@ -188,6 +188,7 @@ RSpec.describe Llm::SpeechToTextService, type: :service do
 
       expect(service.perform).to eq('Audio transcript')
       expect(account.reload.usage_limits.dig(:captain, :internal, :consumed)).to eq(5)
+      expect(AiUsageEvent.find_by!(account: account, feature: 'audio_transcription', status: 'ok').units).to eq(5)
     end
 
     it 'does not consume a credit when the transcription is blank and releases the reservation' do

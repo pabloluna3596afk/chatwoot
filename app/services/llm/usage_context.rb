@@ -91,7 +91,8 @@ module Llm::UsageContext
 
     # Keep the public block API explicit for callers that scope provider work.
     # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/ParameterLists, Metrics/PerceivedComplexity
-    def with(account:, feature:, bucket: nil, context: {}, reservation_id: nil, usage_group_id: SecureRandom.uuid)
+    def with(account:, feature:, bucket: nil, context: {}, reservation_id: nil, usage_group_id: SecureRandom.uuid,
+             units: 1)
       begin
         mapped_bucket = bucket_for(feature.to_s)
       rescue ArgumentError => e
@@ -115,6 +116,7 @@ module Llm::UsageContext
         feature: feature.to_s,
         usage_group_id: usage_group_id,
         reservation_id: reservation_id,
+        units: units,
         required_plan: account&.plan&.slug
       }.merge(context)
       yield usage_group_id
@@ -182,10 +184,11 @@ module Llm::UsageContext
 
     def record_event(model:, context:, details:)
       response = details[:response]
-      event_context = context.except(:account_id, :reservation_id, :reservation_required, :required_gate, :required_plan)
+      event_context = context.except(:account_id, :reservation_id, :reservation_required, :required_gate, :required_plan, :units)
       AiUsageEvent.create!(event_context.merge(
                              event_identity(model, context, details, response),
                              token_attributes(model, response),
+                             units: context.fetch(:units, 1),
                              status: details[:status], error_class: details[:error]&.class&.name,
                              latency_ms: details[:latency_ms], created_at: Time.current
                            ))

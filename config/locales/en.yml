@@ -696,6 +696,40 @@ en:
     internal_limit: 'The monthly limit for internal AI actions has been reached. This AI action was skipped; you can continue manually.'
     invalid_rewrite_operation: 'This rewrite operation is not supported.'
     conversation_not_found: 'Conversation not found.'
+    usage_breakdown:
+      features:
+        action_classification: Classify assistant actions
+        assistant_migration: Migrate assistant instructions
+        article_translation: Translate articles
+        article_generation: Generate articles
+        assistant: Assistant responses
+        assistant_playground: Test assistant responses
+        audio_transcription: Transcribe audio
+        conversation_completion: Complete conversations
+        assistant_summary: Summarize assistant performance
+        captain_reply: Captain replies
+        contact_attributes: Extract contact attributes
+        contact_notes: Summarize contact notes
+        content_evaluation: Evaluate content
+        conversation_faq: Generate conversation FAQs
+        copilot: Copilot
+        copilot_reply: Copilot replies
+        csat_analysis: Analyze CSAT responses
+        document_faq_generation: Generate document FAQs
+        embeddings: Create embeddings
+        follow_up: Generate follow-ups
+        help_center_article_generation: Generate help center articles
+        help_center_curation: Curate help center content
+        help_center_query_translation: Translate help center searches
+        rewrite_message: Rewrite messages
+        label_suggestion: Suggest labels
+        language_detection: Detect language
+        message_translation: Translate messages
+        onboarding_content_generation: Generate onboarding content
+        conversation_summary: Summarize conversations
+        translate_query: Translate searches
+        website_analysis: Analyze websites
+        widget_tagline: Generate widget taglines
     usage_limit_warning:
       subject: 'Your %{bag} usage is at %{percent}% of its plan limit'
       message: 'The account %{account_name} has used %{consumed} of %{limit} %{bag} this billing period.'

@@ -82,6 +82,7 @@ Rails.application.routes.draw do
             post :bulk_create, on: :collection
           end
           namespace :captain do
+            get :usage_breakdown, to: 'usage_breakdown#show'
             resource :preferences, only: [:show, :update]
             resources :assistants do
               member do
