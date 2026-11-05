@@ -1,9 +1,11 @@
 <script setup>
 import { computed } from 'vue';
 import { PercentageChart } from '@chatwoot/viz';
+import BagIcon from 'next/plans/BagIcon.vue';
 
 const props = defineProps({
   label: { type: String, required: true },
+  bag: { type: String, default: '' },
   showLabel: { type: Boolean, default: true },
   used: { type: Number, default: 0 },
   total: { type: Number, default: 0 },
@@ -29,7 +31,8 @@ const chartData = computed(() => ({
 <template>
   <div class="flex flex-col gap-2">
     <div class="flex items-center justify-between gap-3 text-body-main">
-      <span class="text-n-slate-11">
+      <span class="flex items-center text-n-slate-11">
+        <BagIcon v-if="bag" :bag="bag" class="me-1 size-4 shrink-0" />
         <span v-if="showLabel" class="me-1">{{ label }} </span>
         <span v-if="usageLabel" :class="{ 'text-n-teal-11': showLabel }">
           {{ usageLabel }}

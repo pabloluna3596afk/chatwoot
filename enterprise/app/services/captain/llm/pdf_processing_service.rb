@@ -15,6 +15,17 @@ class Captain::Llm::PdfProcessingService < Llm::LegacyBaseOpenAiService
     document.store_openai_file_id(file_id)
   end
 
+  def delete_openai_file
+    file_id = document.openai_file_id
+    return if file_id.blank?
+
+    @client.files.delete(id: file_id)
+    clear_openai_file_id
+  rescue StandardError => e
+    Rails.logger.error("[Captain::PdfProcessingService] Failed to delete OpenAI file #{file_id}: #{e.message}")
+    clear_openai_file_id if not_found_error?(e)
+  end
+
   private
 
   attr_reader :document
@@ -31,6 +42,14 @@ class Captain::Llm::PdfProcessingService < Llm::LegacyBaseOpenAiService
         response['id']
       end
     end
+  end
+
+  def clear_openai_file_id
+    document.update!(openai_file_id: nil) unless document.destroyed?
+  end
+
+  def not_found_error?(error)
+    (error.respond_to?(:response_status) && error.response_status == 404) || error.message.match?(/\b404\b/)
   end
 
   def instrument_file_upload(&)

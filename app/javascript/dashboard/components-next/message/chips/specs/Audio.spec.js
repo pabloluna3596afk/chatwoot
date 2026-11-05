@@ -83,6 +83,16 @@ describe('Audio transcription button', () => {
     expect(button.attributes('aria-label')).toBe(tooltip);
   });
 
+  it('hides the transcription button when the account administrator disabled it', () => {
+    const wrapper = mountAudio({
+      id: 8,
+      dataUrl: 'http://localhost/audio.ogg',
+      transcriptionQuota: { available: false, reason: 'account_disabled' },
+    });
+
+    expect(wrapper.find('button[aria-label]').exists()).toBe(false);
+  });
+
   it('shows a spinning loader in the player row while transcription is pending', async () => {
     let finishTranscription;
     ConversationAPI.transcribeAudio.mockReturnValue(

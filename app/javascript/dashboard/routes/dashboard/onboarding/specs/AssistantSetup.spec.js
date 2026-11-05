@@ -398,6 +398,9 @@ describe('Assistant onboarding', () => {
         false
       );
       if (code === 'responses_limit_reached') {
+        expect(
+          wrapper.find('[data-testid="assistant-response-bag-icon"]').classes()
+        ).toContain('i-woot-captain');
         expect(wrapper.get('#assistant-chat-error').text()).toContain(
           planEs.PLAN_CATALOG.COMPARE
         );

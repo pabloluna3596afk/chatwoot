@@ -25,6 +25,7 @@ const meters = computed(() =>
   [
     {
       key: 'responses',
+      bag: 'captain_responses',
       label: t('CAPTAIN.OVERVIEW.V2.USAGE.CREDITS'),
       limits: props.responseLimits,
     },
@@ -97,6 +98,7 @@ const meters = computed(() =>
           v-if="meter.known || loading"
           v-bind="meter"
           :loading="loading"
+          :bag="meter.bag"
         />
         <div
           v-else

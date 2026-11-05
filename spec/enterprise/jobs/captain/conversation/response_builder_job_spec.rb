@@ -169,7 +169,9 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       end
 
       it 'uses Captain::Llm::AssistantChatService' do
-        expect(Captain::Llm::AssistantChatService).to receive(:new).with(assistant: assistant, conversation: conversation)
+        expect(Captain::Llm::AssistantChatService).to receive(:new).with(
+          assistant: assistant, conversation: conversation, message_id: nil
+        )
         expect(Captain::Assistant::AgentRunnerService).not_to receive(:new)
 
         described_class.perform_now(conversation, assistant)
@@ -423,7 +425,8 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         it 'keeps the conversation pending when the classifier returns continue' do
           expect(Captain::Llm::AssistantActionClassifierService).to receive(:new).with(
             assistant: assistant,
-            conversation: conversation
+            conversation: conversation,
+            message_id: nil
           ).and_return(mock_action_classifier_service)
           expect(mock_action_classifier_service).to receive(:classify).with(
             message_history: [{ content: 'Hello', role: 'user' }],

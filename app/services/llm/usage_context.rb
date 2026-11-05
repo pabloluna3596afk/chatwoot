@@ -84,8 +84,9 @@ module Llm::UsageContext
       end
 
       conversation_id = resolve_conversation_id(account, params[:conversation_id])
+      message_id = resolve_message_id(account, params[:message_id])
       with(account: account, bucket: mapped_bucket, feature: feature,
-           context: { conversation_id: conversation_id }, &)
+           context: { conversation_id: conversation_id, message_id: message_id }, &)
     end
 
     # Keep the public block API explicit for callers that scope provider work.
@@ -171,6 +172,13 @@ module Llm::UsageContext
       account.conversations.find_by(display_id: display_id)&.id if display_id.present?
     rescue StandardError => e
       Rails.logger.warn("Failed to resolve AI usage conversation: #{e.class}: #{e.message}")
+      nil
+    end
+
+    def resolve_message_id(account, message_id)
+      account.messages.find_by(id: message_id)&.id if message_id.present?
+    rescue StandardError => e
+      Rails.logger.warn("Failed to resolve AI usage message: #{e.class}: #{e.message}")
       nil
     end
 

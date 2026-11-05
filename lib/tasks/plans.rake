@@ -1,5 +1,7 @@
 namespace :plans do # rubocop:disable Metrics/BlockLength
-  desc 'Seed the real ChatHub pricing plans (Prueba, Inicio, Crecimiento, Negocio, Escala, Developer) as Plan rows'
+  # Seeds the catalog from the production plan table. Existing rows are left
+  # untouched unless FORCE=1 is explicitly set (for intentional reconciliation).
+  desc 'Seed ChatHub plans; existing rows change only with FORCE=1'
   task seed: :environment do # rubocop:disable Metrics/BlockLength
     common = {
       addon_agent_price: 18,
@@ -9,61 +11,74 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
 
     plans = [
       {
-        name: 'Prueba', slug: 'prueba', description: 'Plan de prueba gratuito, 15 dias.',
-        captain_daily_tests: 0,
-        captain_copilot_responses: 0, captain_internal_calls: 0,
-        monthly_messages: 200, storage_mb: 1, max_documents: 1, max_captain_assistants: 1, max_human_agents: 1,
-        max_inboxes: 1, max_emails_per_day: 50,
-        price_monthly: 0, price_yearly: 0, trial_days: 15, trial_messages: 200, display_order: 0,
+        name: 'Gratis', slug: 'gratis', description: 'Plan gratuito de ChatHub.',
+        captain_daily_tests: 0, captain_copilot_responses: 0, captain_internal_calls: 0,
+        monthly_messages: 200, storage_mb: 25, max_documents: 0, max_captain_assistants: 1, max_human_agents: 1,
+        max_inboxes: 1, max_emails_per_day: 0,
+        price_monthly: 0, price_yearly: 0, trial_days: 0, trial_messages: 0, display_order: 0,
         is_default_trial: true
       },
       {
+        name: 'Básico', slug: 'basico', description: 'Plan básico para equipos pequeños.',
+        captain_daily_tests: 0, captain_copilot_responses: 100, captain_internal_calls: 100,
+        monthly_messages: 500, storage_mb: 250, max_documents: 25, max_captain_assistants: 1, max_human_agents: 2,
+        max_inboxes: 2, max_emails_per_day: 0,
+        price_monthly: 19, price_yearly: 19 * 12, trial_days: 0, trial_messages: 0, display_order: 1,
+        is_default_trial: false
+      },
+      {
         name: 'Inicio', slug: 'inicio', description: 'Para equipos que estan arrancando con IA.',
-        captain_daily_tests: 10,
-        captain_copilot_responses: 500, captain_internal_calls: 500,
+        captain_daily_tests: 10, captain_copilot_responses: 500, captain_internal_calls: 500,
         monthly_messages: 1_000, storage_mb: 100, max_documents: 100, max_captain_assistants: 1, max_human_agents: 2,
         max_inboxes: 2, max_emails_per_day: 500,
-        price_monthly: 79, price_yearly: 79 * 12, trial_days: 0, trial_messages: 0, display_order: 1,
+        price_monthly: 79, price_yearly: 79 * 12, trial_days: 0, trial_messages: 0, display_order: 2,
         is_default_trial: false
       },
       {
-        name: 'Crecimiento', slug: 'crecimiento', description: 'El mas elegido. Precio regular USD 149, promocional USD 119.',
-        captain_daily_tests: 20,
-        captain_copilot_responses: 1_500, captain_internal_calls: 1_500,
+        name: 'Crecimiento', slug: 'crecimiento', description: 'El mas elegido.',
+        captain_daily_tests: 20, captain_copilot_responses: 1_500, captain_internal_calls: 1_500,
         monthly_messages: 3_000, storage_mb: 250, max_documents: 250, max_captain_assistants: 3, max_human_agents: 5,
-        max_inboxes: 5, max_emails_per_day: 2_000,
-        price_monthly: 119, price_yearly: 119 * 12, trial_days: 0, trial_messages: 0, display_order: 2,
+        max_inboxes: 5, max_emails_per_day: 2000,
+        price_monthly: 149, price_yearly: 149 * 12, trial_days: 0, trial_messages: 0, display_order: 3,
         is_default_trial: false
       },
       {
-        name: 'Negocio', slug: 'negocio', description: 'Para equipos con volumen alto de conversaciones.',
-        captain_daily_tests: 35,
-        captain_copilot_responses: 4_000, captain_internal_calls: 4_000,
+        name: 'Negocio', slug: 'negocio', description: 'Disponible próximamente.',
+        captain_daily_tests: 35, captain_copilot_responses: 4_000, captain_internal_calls: 4_000,
         monthly_messages: 8_000, storage_mb: 1024, max_documents: 1024, max_captain_assistants: 5, max_human_agents: 15,
-        max_inboxes: 10, max_emails_per_day: 5_000,
-        price_monthly: 299, price_yearly: 299 * 12, trial_days: 0, trial_messages: 0, display_order: 3,
+        max_inboxes: 10, max_emails_per_day: 5000,
+        price_monthly: 299, price_yearly: 299 * 12, trial_days: 0, trial_messages: 0, display_order: 4,
         is_default_trial: false
       },
       {
-        name: 'Escala', slug: 'escala', description: 'Para operaciones grandes, multiples equipos.',
-        captain_daily_tests: 50,
-        captain_copilot_responses: 10_000, captain_internal_calls: 10_000,
+        name: 'Escala', slug: 'escala', description: 'Disponible próximamente.',
+        captain_daily_tests: 50, captain_copilot_responses: 10_000, captain_internal_calls: 10_000,
         monthly_messages: 20_000, storage_mb: 2048, max_documents: 2048, max_captain_assistants: 15, max_human_agents: 40,
         max_inboxes: 25, max_emails_per_day: 15_000,
-        price_monthly: 599, price_yearly: 599 * 12, trial_days: 0, trial_messages: 0, display_order: 4,
+        price_monthly: 599, price_yearly: 599 * 12, trial_days: 0, trial_messages: 0, display_order: 5,
         is_default_trial: false
       },
       {
-        name: 'Developer', slug: 'developer', description: 'BYOK (trae tu propia llave de IA), sin cupo de mensajes incluidos.',
-        captain_daily_tests: 10,
-        captain_copilot_responses: nil, captain_internal_calls: nil,
+        name: 'Prueba', slug: 'prueba', description: 'Plan legado de prueba.',
+        captain_daily_tests: 0, captain_copilot_responses: 0, captain_internal_calls: 0,
+        monthly_messages: 200, storage_mb: 1, max_documents: 1, max_captain_assistants: 1, max_human_agents: 1,
+        max_inboxes: 1, max_emails_per_day: 50,
+        price_monthly: 0, price_yearly: 0, trial_days: 15, trial_messages: 200, display_order: 6,
+        is_default_trial: false
+      },
+      {
+        name: 'Developer', slug: 'developer', description: 'BYOK, sin cupo de mensajes incluidos.',
+        captain_daily_tests: 10, captain_copilot_responses: nil, captain_internal_calls: nil,
         monthly_messages: 0, storage_mb: 100, max_documents: 100, max_captain_assistants: 3, max_human_agents: 5,
         max_inboxes: 3, max_emails_per_day: 1_000,
-        price_monthly: 49, price_yearly: 49 * 12, trial_days: 0, trial_messages: 0, display_order: 5,
+        price_monthly: 49, price_yearly: 49 * 12, trial_days: 0, trial_messages: 0, display_order: 7,
         is_default_trial: false
       }
     ]
-    force_update = ActiveModel::Type::Boolean.new.cast(ENV.fetch('FORCE_UPDATE', nil))
+    force_update = ENV['FORCE'] == '1'
+    active_slugs = %w[gratis basico inicio crecimiento]
+    public_slugs = (active_slugs + %w[negocio escala]).freeze
+    coming_soon_slugs = %w[negocio escala]
 
     plans.each do |attrs|
       plan = Plan.find_or_initialize_by(slug: attrs[:slug])
@@ -74,7 +89,9 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
       end
 
       plan.assign_attributes(common.merge(attrs).merge(
-                               is_active: true, is_public: attrs[:slug] != 'developer', coming_soon: !attrs[:is_default_trial]
+                               is_active: active_slugs.include?(attrs[:slug]),
+                               is_public: public_slugs.include?(attrs[:slug]),
+                               coming_soon: coming_soon_slugs.include?(attrs[:slug])
                              ))
       plan.save!
       puts "#{was_new ? 'Created' : 'Updated'}: #{plan.name} (#{plan.slug})"

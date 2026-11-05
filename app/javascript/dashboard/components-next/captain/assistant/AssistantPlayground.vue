@@ -1,5 +1,6 @@
 <script setup>
 import PlanCompareButton from 'next/plans/PlanCompareButton.vue';
+import BagIcon from 'next/plans/BagIcon.vue';
 import { computed, reactive, ref, toRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { breakpointsTailwind, useBreakpoints } from '@vueuse/core';
@@ -284,7 +285,10 @@ const usesProviderBilling = computed(
         />
       </div>
 
-      <p class="pt-2 text-center text-xs text-n-slate-11">
+      <p
+        class="flex items-center justify-center gap-1 pt-2 text-center text-xs text-n-slate-11"
+      >
+        <BagIcon bag="captain_responses" class="size-3.5 shrink-0" />
         {{ usageLabel || t('CAPTAIN.PLAYGROUND.CREDIT_NOTE') }}
       </p>
       <template

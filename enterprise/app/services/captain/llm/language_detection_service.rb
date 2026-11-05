@@ -1,5 +1,5 @@
 class Captain::Llm::LanguageDetectionService < Captain::BaseTaskService
-  pattr_initialize [:account!, :text!]
+  pattr_initialize [:account!, :text!, { conversation_display_id: nil, message_id: nil }]
 
   def perform
     make_api_call(feature: 'language_detection', messages: messages, schema: Captain::Llm::LanguageDetectionSchema)
@@ -16,6 +16,10 @@ class Captain::Llm::LanguageDetectionService < Captain::BaseTaskService
 
   def event_name
     'language_detection'
+  end
+
+  def build_instrumentation_params(model, messages)
+    super.merge(message_id: message_id)
   end
 
   def counts_toward_usage?

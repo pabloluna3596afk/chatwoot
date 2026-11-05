@@ -55,11 +55,13 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
     blob.present? && blob.byte_size > BYTE_LIMIT
   end
 
-  def initialize(blob:, account:, units: 1)
+  def initialize(blob:, account:, units: 1, conversation_id: nil, message_id: nil)
     super()
     @blob = blob
     @account = account
     @units = units
+    @conversation_id = conversation_id
+    @message_id = message_id
     @transcription_model = Llm::FeatureRouter.resolve(feature: 'audio_transcription', account: account)[:model]
   end
 
@@ -121,7 +123,10 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
       account: account, bucket: USAGE_BUCKET, feature: USAGE_FEATURE,
       reservation_id: @usage_reservation_id,
       units: @units,
-      context: { reservation_required: @usage_reservation_id.present?, required_gate: 'captain_integration' }
+      context: {
+        conversation_id: @conversation_id, message_id: @message_id,
+        reservation_required: @usage_reservation_id.present?, required_gate: 'captain_integration'
+      }
     ) do
       with_usage_recording(params) do
         instrument_audio_transcription(params) do
@@ -181,6 +186,8 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
       model: transcription_model,
       provider: 'openai',
       account_id: account&.id,
+      conversation_id: @conversation_id,
+      message_id: @message_id,
       feature_name: USAGE_FEATURE,
       file_path: file_path
     }

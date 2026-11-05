@@ -1,5 +1,6 @@
 <script setup>
 import PlanCompareButton from 'next/plans/PlanCompareButton.vue';
+import BagIcon from 'next/plans/BagIcon.vue';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -581,8 +582,9 @@ const usesProviderBilling = computed(
             <p
               v-if="usageLabel"
               role="status"
-              class="m-0 text-sm text-n-slate-11"
+              class="m-0 flex items-center gap-1 text-sm text-n-slate-11"
             >
+              <BagIcon bag="captain_responses" class="size-4 shrink-0" />
               {{ usageLabel }}
             </p>
             <template
@@ -634,6 +636,12 @@ const usesProviderBilling = computed(
               </AuthButton>
             </div>
             <AuthFeedback v-if="chatError" id="assistant-chat-error" error>
+              <BagIcon
+                v-if="errorCode === 'responses_limit_reached'"
+                data-testid="assistant-response-bag-icon"
+                bag="captain_responses"
+                class="me-1 inline-block size-4 align-text-bottom"
+              />
               <p class="m-0">{{ chatError }}</p>
               <template v-if="errorCode === 'responses_limit_reached'">
                 <a

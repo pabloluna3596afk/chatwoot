@@ -28,6 +28,19 @@ RSpec.describe Voice::CallTranscriptionService, type: :service do
       described_class.new(call: call).perform
 
       expect(call.reload.transcript).to eq('Hello, how can I help?')
+      expect(Llm::SpeechToTextService).to have_received(:new).with(
+        blob: call.recording.blob, account: account, conversation_id: conversation.id, message_id: message.id
+      )
+    end
+
+    it 'does not transcribe or charge again after a retry sees the saved transcript' do
+      allow(Llm::SpeechToTextService).to receive(:new).and_return(
+        instance_double(Llm::SpeechToTextService, perform: 'Hello, how can I help?', quota_exceeded?: false)
+      )
+
+      2.times { described_class.new(call: call).perform }
+
+      expect(Llm::SpeechToTextService).to have_received(:new).once
     end
 
     it 'skips calls whose inbox has transcription turned off' do

@@ -162,6 +162,22 @@ RSpec.describe Llm::SpeechToTextService, type: :service do
       expect(AiUsageEvent.where(account: account, feature: 'audio_transcription', bucket: 'internal', status: 'ok').count).to eq(1)
     end
 
+    it 'records the source conversation and message when available' do
+      tracked_service = described_class.new(
+        blob: attachment.file.blob, account: account, conversation_id: conversation.id, message_id: message.id
+      )
+      allow(tracked_service).to receive(:fetch_audio_file).and_return(audio_file_path)
+      allow(tracked_service.client).to receive(:audio).and_return(audio_api)
+      allow(audio_api).to receive(:transcribe).and_return({ 'text' => 'Audio transcript' })
+
+      tracked_service.perform
+
+      expect(AiUsageEvent.find_by!(account: account, feature: 'audio_transcription')).to have_attributes(
+        conversation_id: conversation.id,
+        message_id: message.id
+      )
+    end
+
     it 'charges five internal credits for a five-minute audio' do
       put_account_on_plan(account, captain_internal_calls: 5)
       attachment.update!(meta: { duration_seconds: 300 })

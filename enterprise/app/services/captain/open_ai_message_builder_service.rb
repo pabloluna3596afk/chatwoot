@@ -73,7 +73,7 @@ class Captain::OpenAiMessageBuilderService
     return '' if audio_attachments.blank?
 
     audio_attachments.map do |attachment|
-      result = Messages::AudioTranscriptionService.new(attachment).perform
+      result = Messages::AudioTranscriptionService.new(attachment, assistant: true).perform
       result[:success] ? result[:transcriptions] : ''
     end.join
   end

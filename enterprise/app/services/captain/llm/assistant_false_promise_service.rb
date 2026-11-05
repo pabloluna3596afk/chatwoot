@@ -5,16 +5,17 @@ class Captain::Llm::AssistantFalsePromiseService < Llm::BaseAiService
   include Integrations::LlmInstrumentation
   include Captain::Llm::AssistantResponseInspectionHelpers
 
-  def initialize(assistant:, conversation:)
+  def initialize(assistant:, conversation:, message_id: nil)
     super()
     @assistant = assistant
     @conversation = conversation
+    @message_id = message_id
     @temperature = 0.0
   end
 
   def detect(message_history:, assistant_response:)
     result = with_internal_usage(account: @conversation.account, feature: 'assistant_false_promise_detector',
-                                 conversation_id: @conversation.id) do
+                                 conversation_id: @conversation.id, message_id: @message_id) do
       detect_with_usage(message_history: message_history, assistant_response: assistant_response)
     end
     result || { 'decision' => nil, 'reason' => nil, 'model' => @model }
@@ -80,6 +81,7 @@ class Captain::Llm::AssistantFalsePromiseService < Llm::BaseAiService
       temperature: @temperature,
       account_id: @conversation.account_id,
       conversation_id: @conversation.display_id,
+      message_id: @message_id,
       feature_name: 'assistant_false_promise_detector',
       messages: [
         { role: 'system', content: system_prompt },

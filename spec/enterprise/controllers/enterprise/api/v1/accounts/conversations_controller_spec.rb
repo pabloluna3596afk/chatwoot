@@ -4,6 +4,30 @@ RSpec.describe 'Enterprise Conversations API', type: :request do
   let(:account) { create(:account) }
   let(:admin) { create(:user, account: account, role: :administrator) }
 
+  describe 'POST /api/v1/accounts/{account.id}/conversations/:id/transcribe_audio' do
+    let(:conversation) { create(:conversation, account: account) }
+    let(:message) { create(:message, account: account, conversation: conversation) }
+    let(:attachment) do
+      message.attachments.create!(
+        account: account,
+        file_type: :audio,
+        file: fixture_file_upload('public/audio/widget/ding.mp3')
+      )
+    end
+
+    it 'rejects manual transcription when the account administrator disabled the feature' do
+      account.update!(audio_transcriptions: false)
+
+      post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/transcribe_audio",
+           params: { attachment_id: attachment.id },
+           headers: admin.create_new_auth_token,
+           as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['error']).to eq('feature_disabled')
+    end
+  end
+
   describe 'PATCH /api/v1/accounts/{account.id}/conversations/:id' do
     let(:conversation) { create(:conversation, account: account) }
     let(:sla_policy) { create(:sla_policy, account: account) }

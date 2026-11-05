@@ -96,6 +96,27 @@ RSpec.describe AiUsageEvent do
       expect(event.latency_ms).to be >= 0
     end
 
+    it 'resolves the source message within the account when instrumentation has message context' do
+      account = create(:account)
+      conversation = create(:conversation, account: account)
+      message = create(:message, account: account, conversation: conversation)
+      response = { usage: { prompt_tokens: 5, completion_tokens: 2 } }
+      group_id = nil
+
+      Llm::UsageContext.with_instrumentation(
+        account: account, feature_name: 'audio_transcription', conversation_id: conversation.display_id,
+        message_id: message.id
+      ) do
+        group_id = Llm::UsageContext.current[:usage_group_id]
+        Llm::UsageContext.record_operation(model: 'gpt-6-luna', provider: 'openai', response: response, status: 'ok')
+      end
+
+      expect(described_class.find_by!(usage_group_id: group_id)).to have_attributes(
+        conversation_id: conversation.id,
+        message_id: message.id
+      )
+    end
+
     it 'keeps a successful provider response when writing the event fails' do
       account = create(:account)
       response = Struct.new(:tokens).new(Struct.new(:input, :output, :cached_input, :reasoning).new(5, 2, 0, 0))

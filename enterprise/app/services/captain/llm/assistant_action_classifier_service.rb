@@ -2,10 +2,11 @@ class Captain::Llm::AssistantActionClassifierService < Llm::BaseAiService
   include Integrations::LlmInstrumentation
   include Captain::Llm::AssistantResponseInspectionHelpers
 
-  def initialize(assistant:, conversation:)
+  def initialize(assistant:, conversation:, message_id: nil)
     super(feature: 'assistant', account: conversation.account)
     @assistant = assistant
     @conversation = conversation
+    @message_id = message_id
     @temperature = 0.0
   end
 
@@ -38,7 +39,8 @@ class Captain::Llm::AssistantActionClassifierService < Llm::BaseAiService
       bucket: :internal,
       feature: 'assistant_action_classifier',
       context: {
-        conversation_id: @conversation.id, reservation_required: internal_reservation_required?,
+        conversation_id: @conversation.id, message_id: @message_id,
+        reservation_required: internal_reservation_required?,
         required_gate: 'captain_tasks'
       },
       reservation_id: @usage_reservation_id
@@ -117,6 +119,7 @@ class Captain::Llm::AssistantActionClassifierService < Llm::BaseAiService
       temperature: @temperature,
       account_id: @conversation.account_id,
       conversation_id: @conversation.display_id,
+      message_id: @message_id,
       feature_name: 'assistant_action_classifier',
       messages: [
         { role: 'system', content: system_prompt },

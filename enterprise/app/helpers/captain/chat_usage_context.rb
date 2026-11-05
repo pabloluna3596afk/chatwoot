@@ -7,7 +7,10 @@ module Captain::ChatUsageContext
       account: @account || @assistant&.account,
       bucket: bucket,
       feature: feature_name,
-      context: { conversation_id: @conversation&.id, reservation_required: @usage_reservation_id.present?, required_gate: 'captain_integration' },
+      context: {
+        conversation_id: @conversation&.id, message_id: @message_id,
+        reservation_required: @usage_reservation_id.present?, required_gate: 'captain_integration'
+      },
       reservation_id: @usage_reservation_id,
       usage_group_id: (@ai_usage_group_id ||= SecureRandom.uuid)
     ) do

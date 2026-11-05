@@ -22,6 +22,18 @@ RSpec.describe User do
     it { is_expected.to have_many(:teams) }
   end
 
+  describe '#auto_transcribe_audio?' do
+    it 'defaults to false when the preference is absent' do
+      expect(user.auto_transcribe_audio?).to be(false)
+    end
+
+    it 'returns true only when explicitly enabled' do
+      user.update!(ui_settings: { auto_transcribe_audio: true })
+
+      expect(user.auto_transcribe_audio?).to be(true)
+    end
+  end
+
   describe 'concerns' do
     it_behaves_like 'access_tokenable'
     it_behaves_like 'avatarable'
