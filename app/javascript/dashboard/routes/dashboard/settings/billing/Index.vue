@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useMapGetter, useStore } from 'dashboard/composables/store.js';
 import { useAccount } from 'dashboard/composables/useAccount';
@@ -40,6 +40,14 @@ const route = useRoute();
 const router = useRouter();
 const activeTab = computed(() =>
   route.query.tab === 'facturacion' ? 'facturacion' : 'uso'
+);
+const hasOpenedBilling = ref(false);
+watch(
+  activeTab,
+  tab => {
+    if (tab === 'facturacion') hasOpenedBilling.value = true;
+  },
+  { immediate: true }
 );
 
 const BILLING_REFRESH_ATTEMPTED = 'billing_refresh_attempted';
@@ -196,6 +204,9 @@ const fetchAccountDetails = async () => {
     const data = await store.dispatch('accounts/subscription');
     currencySelectionRequired.value = !!data?.currency_selection_required;
     currencyOptions.value = data?.currency_options || [];
+    if (currencySelectionRequired.value) {
+      await router.replace({ query: { ...route.query, tab: 'facturacion' } });
+    }
   }
   // Always fetch limits for billing page to show credit usage
   fetchLimits();
@@ -444,7 +455,7 @@ onMounted(async () => {
         "
         feature-name="billing"
       >
-        <template v-if="hasABillingPlan" #tabs>
+        <template v-if="hasABillingPlan || currencySelectionRequired" #tabs>
           <BillingTabs />
         </template>
         <template
@@ -492,7 +503,7 @@ onMounted(async () => {
         "
       />
       <!-- prettier-ignore -->
-      <div v-else id="billing-panel-facturacion" role="tabpanel" aria-labelledby="billing-tab-facturacion">
+      <div v-if="hasOpenedBilling" v-show="activeTab === 'facturacion'" id="billing-panel-facturacion" role="tabpanel" aria-labelledby="billing-tab-facturacion">
       <div
         v-if="payphoneEnabled && payphoneRenewalState"
         role="status"
