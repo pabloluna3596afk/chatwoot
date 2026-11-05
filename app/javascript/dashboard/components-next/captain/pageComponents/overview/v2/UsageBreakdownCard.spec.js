@@ -116,9 +116,13 @@ describe('UsageBreakdownCard', () => {
     await wrapper.get('[role="tab"]:nth-child(1)').trigger('click');
     expect(wrapper.text()).toContain('Respuestas automáticas');
     expect(wrapper.text()).toContain('Resumen');
-    const bars = wrapper.findAll('progress');
-    expect(bars.map(bar => bar.element.value)).toEqual([7, 3]);
-    expect(bars[0].element.max).toBe(7);
+    const bars = wrapper.findAll('[role="progressbar"]');
+    expect(bars.map(bar => bar.attributes('aria-valuenow'))).toEqual([
+      '7',
+      '3',
+    ]);
+    expect(bars[0].attributes('aria-valuemax')).toBe('7');
+    expect(bars[0].get('div').attributes('style')).toContain('width: 100%');
   });
 
   it('does not request the endpoint for non-admins', async () => {

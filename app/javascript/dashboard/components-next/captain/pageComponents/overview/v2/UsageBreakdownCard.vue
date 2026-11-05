@@ -38,6 +38,9 @@ const maxUnits = computed(() =>
   Math.max(0, ...selectedRows.value.map(row => Number(row.units) || 0))
 );
 
+const barWidth = row =>
+  `${maxUnits.value ? ((Number(row.units) || 0) / maxUnits.value) * 100 : 0}%`;
+
 const load = async () => {
   if (!isAdmin.value) return;
   loading.value = true;
@@ -80,32 +83,30 @@ onMounted(load);
 <template>
   <OverviewPanel :title="$t('CAPTAIN.OVERVIEW.V2.USAGE_BREAKDOWN.TITLE')">
     <template #actions>
-      <div class="flex flex-wrap items-center gap-3">
-        <p
-          v-if="result?.period_start"
-          class="text-body-small text-n-slate-11"
-          data-testid="usage-period"
-        >
-          {{
-            $t('CAPTAIN.OVERVIEW.V2.USAGE_BREAKDOWN.PERIOD', {
-              start: formatDate(result.period_start),
-              end: formatDate(result.period_end),
-            })
-          }}
-        </p>
-        <Button
-          sm
-          slate
-          outline
-          icon="i-lucide-refresh-cw"
-          :aria-label="$t('CAPTAIN.OVERVIEW.V2.USAGE_BREAKDOWN.REFRESH')"
-          :is-loading="loading"
-          @click="load"
-        />
-      </div>
+      <Button
+        sm
+        slate
+        outline
+        icon="i-lucide-refresh-cw"
+        :aria-label="$t('CAPTAIN.OVERVIEW.V2.USAGE_BREAKDOWN.REFRESH')"
+        :is-loading="loading"
+        @click="load"
+      />
     </template>
 
     <div class="flex flex-col gap-5 p-5">
+      <p
+        v-if="result?.period_start"
+        class="text-body-small text-n-slate-11"
+        data-testid="usage-period"
+      >
+        {{
+          $t('CAPTAIN.OVERVIEW.V2.USAGE_BREAKDOWN.PERIOD', {
+            start: formatDate(result.period_start),
+            end: formatDate(result.period_end),
+          })
+        }}
+      </p>
       <div
         class="flex flex-wrap gap-2"
         role="tablist"
@@ -193,16 +194,23 @@ onMounted(load);
               </span>
             </span>
           </div>
-          <progress
-            class="h-1 w-full accent-n-brand"
-            :value="Number(row.units) || 0"
-            :max="maxUnits || 1"
+          <div
+            class="h-1.5 w-full overflow-hidden rounded-full bg-n-slate-3"
+            role="progressbar"
+            aria-valuemin="0"
+            :aria-valuemax="maxUnits || 1"
+            :aria-valuenow="Number(row.units) || 0"
             :aria-label="
               $t('CAPTAIN.OVERVIEW.V2.USAGE_BREAKDOWN.BAR_LABEL', {
                 name: row.name,
               })
             "
-          />
+          >
+            <div
+              class="h-full rounded-full bg-n-brand"
+              :style="{ width: barWidth(row) }"
+            />
+          </div>
           <p class="text-caption text-n-slate-10">
             {{
               $t('CAPTAIN.OVERVIEW.V2.USAGE_BREAKDOWN.LAST_USED', {
