@@ -26,7 +26,10 @@ RSpec.describe Llm::Config::UsageRecordingChat do
           id: 'call-usage-ledger', type: 'function',
           function: { name: 'ai_usage_ledger_test_tool', arguments: '{"query":"answer"}' }
         }] }, finish_reason: 'tool_calls' }],
-        usage: { prompt_tokens: 100, completion_tokens: 10, total_tokens: 110 }
+        usage: {
+          prompt_tokens: 100, prompt_tokens_details: { cached_tokens: 25 },
+          completion_tokens: 10, completion_tokens_details: { reasoning_tokens: 4 }, total_tokens: 110
+        }
       },
       {
         choices: [{ index: 0, message: { role: 'assistant', content: nil, tool_calls: [{
@@ -61,6 +64,7 @@ RSpec.describe Llm::Config::UsageRecordingChat do
     events = AiUsageEvent.where(usage_group_id: group_id).order(:created_at)
     expect(events.count).to eq(3)
     expect(events.pluck(:input_tokens, :output_tokens)).to eq([[100, 10], [120, 20], [150, 25]])
+    expect(events.first).to have_attributes(cached_input_tokens: 25, reasoning_tokens: 4)
     expect(events.pluck(:bucket).uniq).to eq(['captain_responses'])
     expect(events.sum(:cost_usd)).to be > 0
     expect(WebMock).to have_requested(:post, %r{api\.openai\.com/v1/chat/completions}).times(3)

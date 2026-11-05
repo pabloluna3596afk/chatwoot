@@ -9,7 +9,7 @@ module Llm::UsageTokenAttributes
   def call(model:, response:, audio_duration_seconds: nil)
     tokens = response_detail(response, :tokens) || response_detail(response, :usage)
     tokens ||= response['usage'] || response[:usage] if response.is_a?(Hash)
-    input_tokens = token_value(tokens, :input)
+    input_tokens = total_input_tokens(tokens)
     cached_tokens = token_value(tokens, :cached_input)
     output_tokens = token_value(tokens, :output)
     {
@@ -30,13 +30,28 @@ module Llm::UsageTokenAttributes
 
     aliases = {
       input: %i[input prompt_tokens input_tokens],
-      cached_input: %i[cached_input cached_input_tokens cached_tokens],
+      cached_input: %i[cached_input cached_input_tokens cached_tokens cache_read cache_read_tokens],
+      cache_read: %i[cache_read cache_read_tokens],
+      cache_write: %i[cache_write cache_write_tokens],
       output: %i[output completion_tokens output_tokens],
-      reasoning: %i[reasoning reasoning_tokens]
+      reasoning: %i[reasoning reasoning_tokens thinking thinking_tokens]
     }
     value = aliases.fetch(key).lazy.filter_map { |name| token_detail(tokens, name) }.first
     value ||= nested_token_detail(tokens, key)
     value.to_i
+  end
+
+  # RubyLLM 2.x separates cache reads and writes from standard input. Our cost
+  # calculation expects total input, with cache reads as a subset of that total.
+  def total_input_tokens(tokens)
+    input_tokens = token_value(tokens, :input)
+    return input_tokens unless ruby_llm_token_buckets?(tokens)
+
+    input_tokens + token_value(tokens, :cache_read) + token_value(tokens, :cache_write)
+  end
+
+  def ruby_llm_token_buckets?(tokens)
+    tokens.respond_to?(:cache_read) || token_detail(tokens, :cache_read_tokens)
   end
 
   def nested_token_detail(tokens, key)
