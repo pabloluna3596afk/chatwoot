@@ -17,6 +17,7 @@ import MetricCard from 'dashboard/components-next/captain/pageComponents/overvie
 import AssistantDrilldownDrawer from 'dashboard/components-next/captain/pageComponents/overview/AssistantDrilldownDrawer.vue';
 import KnowledgeCard from 'dashboard/components-next/captain/pageComponents/overview/KnowledgeCard.vue';
 import QuickLinks from 'dashboard/components-next/captain/pageComponents/overview/QuickLinks.vue';
+import UsageBreakdownCard from 'dashboard/components-next/captain/pageComponents/overview/v2/UsageBreakdownCard.vue';
 import InboxBanner from 'dashboard/components-next/captain/pageComponents/overview/InboxBanner.vue';
 import CoverageBanner from 'dashboard/components-next/captain/pageComponents/overview/CoverageBanner.vue';
 
@@ -249,6 +250,8 @@ const closeDrilldown = () => {
         </div>
 
         <KnowledgeCard :knowledge="faqStats ?? undefined" />
+
+        <UsageBreakdownCard v-if="canDrilldown" />
 
         <QuickLinks />
       </div>
