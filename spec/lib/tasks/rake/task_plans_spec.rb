@@ -8,21 +8,11 @@ RSpec.describe Rake::Task do
   it 'creates the current catalog and legacy plans with the expected visibility and limits' do
     expect { task.invoke }.to change(Plan, :count).by(8)
 
-    expected_features = [
-      ['captain_integration'],
-      %w[captain_integration captain_tasks calendar_integration integrations flows],
-      %w[captain_integration captain_tasks calendar_integration integrations flows campaigns automations macros
-         api_and_webhooks],
-      %w[captain_integration captain_tasks calendar_integration integrations flows campaigns automations macros
-         api_and_webhooks help_center]
-    ]
     expect(Plan.where(slug: %w[gratis basico inicio crecimiento]).order(:display_order).pluck(
              :price_monthly, :monthly_messages, :captain_copilot_responses, :captain_internal_calls,
              :max_documents, :storage_mb, :max_captain_assistants, :max_human_agents, :max_inboxes
            )).to eq([[0, 200, 0, 0, 0, 25, 1, 1, 1], [19, 500, 100, 100, 25, 250, 1, 2, 2],
                      [79, 1_000, 500, 500, 100, 100, 1, 2, 2], [149, 3_000, 1_500, 1_500, 250, 250, 3, 5, 5]])
-    expect(Plan.where(slug: %w[gratis basico inicio crecimiento]).order(:display_order).pluck(:feature_keys))
-      .to eq(expected_features)
     expect(Plan.where(slug: %w[negocio escala]).pluck(:is_active, :coming_soon)).to eq([[false, true], [false, true]])
     expect(Plan.where(slug: %w[prueba developer]).pluck(:is_active, :is_public)).to eq([[false, false], [false, false]])
     expect(Plan.find_by!(slug: 'gratis')).to have_attributes(is_default_trial: true, coming_soon: false)
@@ -56,10 +46,7 @@ RSpec.describe Rake::Task do
 
     task.reenable
     ClimateControl.modify(FORCE: '1') { task.invoke }
-    expect(plan.reload).to have_attributes(price_monthly: 149, monthly_messages: 3_000,
-                                           feature_keys: %w[captain_integration captain_tasks calendar_integration
-                                                            integrations flows campaigns automations macros
-                                                            api_and_webhooks help_center])
+    expect(plan.reload).to have_attributes(price_monthly: 149, monthly_messages: 3_000)
   end
 
   describe 'plans:fill_ai_bags' do

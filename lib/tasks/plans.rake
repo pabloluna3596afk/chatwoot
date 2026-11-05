@@ -16,7 +16,7 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
         monthly_messages: 200, storage_mb: 25, max_documents: 0, max_captain_assistants: 1, max_human_agents: 1,
         max_inboxes: 1, max_emails_per_day: 0,
         price_monthly: 0, price_yearly: 0, trial_days: 0, trial_messages: 0, display_order: 0,
-        is_default_trial: true, feature_keys: %w[captain_integration]
+        is_default_trial: true
       },
       {
         name: 'Básico', slug: 'basico', description: 'Plan básico para equipos pequeños.',
@@ -24,8 +24,7 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
         monthly_messages: 500, storage_mb: 250, max_documents: 25, max_captain_assistants: 1, max_human_agents: 2,
         max_inboxes: 2, max_emails_per_day: 0,
         price_monthly: 19, price_yearly: 19 * 12, trial_days: 0, trial_messages: 0, display_order: 1,
-        is_default_trial: false,
-        feature_keys: %w[captain_integration captain_tasks calendar_integration integrations flows]
+        is_default_trial: false
       },
       {
         name: 'Inicio', slug: 'inicio', description: 'Para equipos que estan arrancando con IA.',
@@ -33,8 +32,7 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
         monthly_messages: 1_000, storage_mb: 100, max_documents: 100, max_captain_assistants: 1, max_human_agents: 2,
         max_inboxes: 2, max_emails_per_day: 500,
         price_monthly: 79, price_yearly: 79 * 12, trial_days: 0, trial_messages: 0, display_order: 2,
-        is_default_trial: false,
-        feature_keys: %w[captain_integration captain_tasks calendar_integration integrations flows campaigns automations macros api_and_webhooks]
+        is_default_trial: false
       },
       {
         name: 'Crecimiento', slug: 'crecimiento', description: 'El mas elegido.',
@@ -42,9 +40,7 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
         monthly_messages: 3_000, storage_mb: 250, max_documents: 250, max_captain_assistants: 3, max_human_agents: 5,
         max_inboxes: 5, max_emails_per_day: 2000,
         price_monthly: 149, price_yearly: 149 * 12, trial_days: 0, trial_messages: 0, display_order: 3,
-        is_default_trial: false,
-        feature_keys: %w[captain_integration captain_tasks calendar_integration integrations flows campaigns automations macros
-                         api_and_webhooks help_center]
+        is_default_trial: false
       },
       {
         name: 'Negocio', slug: 'negocio', description: 'Disponible próximamente.',
@@ -52,9 +48,7 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
         monthly_messages: 8_000, storage_mb: 1024, max_documents: 1024, max_captain_assistants: 5, max_human_agents: 15,
         max_inboxes: 10, max_emails_per_day: 5000,
         price_monthly: 299, price_yearly: 299 * 12, trial_days: 0, trial_messages: 0, display_order: 4,
-        is_default_trial: false,
-        feature_keys: %w[captain_integration captain_tasks calendar_integration integrations flows campaigns automations macros
-                         api_and_webhooks help_center sla help_center_semantic_search custom_roles]
+        is_default_trial: false
       },
       {
         name: 'Escala', slug: 'escala', description: 'Disponible próximamente.',
@@ -62,9 +56,7 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
         monthly_messages: 20_000, storage_mb: 2048, max_documents: 2048, max_captain_assistants: 15, max_human_agents: 40,
         max_inboxes: 25, max_emails_per_day: 15_000,
         price_monthly: 599, price_yearly: 599 * 12, trial_days: 0, trial_messages: 0, display_order: 5,
-        is_default_trial: false,
-        feature_keys: %w[captain_integration captain_tasks calendar_integration integrations flows campaigns automations macros
-                         api_and_webhooks help_center sla help_center_semantic_search custom_roles saml]
+        is_default_trial: false
       },
       {
         name: 'Prueba', slug: 'prueba', description: 'Plan legado de prueba.',
@@ -72,7 +64,7 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
         monthly_messages: 200, storage_mb: 1, max_documents: 1, max_captain_assistants: 1, max_human_agents: 1,
         max_inboxes: 1, max_emails_per_day: 50,
         price_monthly: 0, price_yearly: 0, trial_days: 15, trial_messages: 200, display_order: 6,
-        is_default_trial: false, feature_keys: []
+        is_default_trial: false
       },
       {
         name: 'Developer', slug: 'developer', description: 'BYOK, sin cupo de mensajes incluidos.',
@@ -80,7 +72,7 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
         monthly_messages: 0, storage_mb: 100, max_documents: 100, max_captain_assistants: 3, max_human_agents: 5,
         max_inboxes: 3, max_emails_per_day: 1_000,
         price_monthly: 49, price_yearly: 49 * 12, trial_days: 0, trial_messages: 0, display_order: 7,
-        is_default_trial: false, feature_keys: []
+        is_default_trial: false
       }
     ]
     force_update = ENV['FORCE'] == '1'
