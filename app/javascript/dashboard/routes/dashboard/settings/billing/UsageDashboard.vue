@@ -4,6 +4,7 @@ import { parseISO } from 'date-fns';
 import { useI18n } from 'vue-i18n';
 import AiUsageAPI from 'dashboard/api/aiUsage';
 import ButtonV4 from 'next/button/Button.vue';
+import BagIcon from 'next/plans/BagIcon.vue';
 import BillingMeter from './components/BillingMeter.vue';
 
 const props = defineProps({
@@ -36,21 +37,25 @@ const bags = computed(() =>
   [
     {
       key: 'captain_responses',
+      bag: 'captain_responses',
       title: t('BILLING_SETTINGS.USAGE.BAGS.ASSISTANT'),
       limits: props.responseLimits,
     },
     {
       key: 'copilot',
+      bag: 'copilot',
       title: t('BILLING_SETTINGS.USAGE.BAGS.COPILOT'),
       limits: props.copilotLimits,
     },
     {
       key: 'internal',
+      bag: 'internal',
       title: t('BILLING_SETTINGS.USAGE.BAGS.INTERNAL'),
       limits: props.internalLimits,
     },
   ].map(bag => ({
     ...bag,
+    bag: bag.key,
     mode:
       usage.value.bag_modes?.[bag.key] ||
       (bag.limits?.totalCount > 0 ? 'included' : 'not_included'),
@@ -74,6 +79,7 @@ const sourceTotals = computed(() =>
   ]
     .map(([key, label]) => ({
       key,
+      bag: key,
       label,
       total: chartRows.value.reduce((sum, row) => sum + row[key], 0),
     }))
@@ -189,7 +195,10 @@ onMounted(async () => {
         :key="bag.key"
         class="rounded-xl border border-n-weak bg-n-solid-1 p-4 dark:bg-n-solid-3"
       >
-        <h3 class="m-0 text-base font-medium">{{ bag.title }}</h3>
+        <h3 class="m-0 flex items-center gap-2 text-base font-medium">
+          <BagIcon :bag="bag.bag" class="size-4 shrink-0" />
+          {{ bag.title }}
+        </h3>
         <p
           v-if="bag.mode === 'included'"
           class="mb-3 mt-2 text-sm text-n-slate-11"
@@ -369,7 +378,10 @@ onMounted(async () => {
             :key="source.key"
             class="flex justify-between gap-3"
           >
-            <span>{{ source.label }}</span>
+            <span class="flex items-center gap-2">
+              <BagIcon :bag="source.bag" class="size-4 shrink-0" />
+              {{ source.label }}
+            </span>
             <strong>{{ source.total }}</strong>
           </li>
         </ol>

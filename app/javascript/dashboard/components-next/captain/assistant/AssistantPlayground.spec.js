@@ -134,6 +134,9 @@ describe('AssistantPlayground', () => {
     await wrapper.get('input').trigger('keydown', { key: 'Enter' });
     await flushPromises();
     expect(wrapper.text()).toContain('CAPTAIN.PLAYGROUND.USAGE.DAILY');
+    expect(wrapper.get('bag-icon-stub').attributes('bag')).toBe(
+      'captain_responses'
+    );
     mocks.playground.mockResolvedValueOnce({
       data: {
         response: 'Again',

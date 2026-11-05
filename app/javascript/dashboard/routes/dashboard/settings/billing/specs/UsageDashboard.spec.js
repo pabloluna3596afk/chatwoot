@@ -40,6 +40,15 @@ describe('Usage dashboard', () => {
     expect(bars[0].find('rect').classes()).toContain('fill-n-blue-9');
     expect(bars[1].find('rect').classes()).toContain('fill-n-amber-9');
     expect(bars[2].find('rect').classes()).toContain('fill-n-ruby-9');
+    expect(
+      wrapper
+        .findAll('article h3 span')
+        .map(icon => icon.classes().find(name => name.startsWith('i-')))
+    ).toEqual([
+      'i-woot-captain',
+      'i-fluent-pen-sparkle-24-regular',
+      'i-lucide-sparkles',
+    ]);
     wrapper.unmount();
   });
 

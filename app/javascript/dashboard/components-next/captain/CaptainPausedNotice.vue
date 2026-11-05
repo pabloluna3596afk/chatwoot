@@ -8,6 +8,7 @@ import { usePolicy } from 'dashboard/composables/usePolicy';
 
 import Banner from 'dashboard/components-next/banner/Banner.vue';
 import PlanCompareButton from 'next/plans/PlanCompareButton.vue';
+import BagIcon from 'next/plans/BagIcon.vue';
 
 const SUPER_ADMIN_CAPTAIN_SETTINGS = '/super_admin/app_config?config=captain';
 
@@ -52,6 +53,11 @@ const message = computed(() =>
   >
     <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
       <span class="i-lucide-triangle-alert size-4 shrink-0" />
+      <BagIcon
+        v-if="!isMissingKey"
+        bag="captain_responses"
+        class="size-4 shrink-0"
+      />
       <span data-testid="captain-paused-message">{{ message }}</span>
       <template v-if="isMissingKey">
         <a
