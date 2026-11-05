@@ -7,6 +7,7 @@ import { useRouter } from 'vue-router';
 
 import Banner from 'dashboard/components-next/banner/Banner.vue';
 import PlanCompareButton from 'next/plans/PlanCompareButton.vue';
+import BagIcon from 'next/plans/BagIcon.vue';
 
 const router = useRouter();
 const { accountId, currentAccount, isOnChatwootCloud } = useAccount();
@@ -46,11 +47,13 @@ onMounted(fetchLimits);
     v-show="showBanner"
     color="amber"
     :class="{ '!text-n-amber-12': !usesProviderBilling }"
-    :action-label="
-      canOpenBilling ? $t('CAPTAIN.PAYWALL.UPGRADE_NOW') : null
-    "
+    :action-label="canOpenBilling ? $t('CAPTAIN.PAYWALL.UPGRADE_NOW') : null"
     @action="openBilling"
   >
+    <BagIcon
+      bag="captain_responses"
+      class="me-2 inline-block size-4 align-text-bottom"
+    />
     {{ $t('CAPTAIN.BANNER.RESPONSES') }}
     <PlanCompareButton class="mt-2" />
   </Banner>

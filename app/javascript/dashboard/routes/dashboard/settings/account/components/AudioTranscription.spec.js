@@ -49,6 +49,9 @@ describe('AudioTranscription', () => {
       'La transcripción consume una acción interna de IA por cada minuto iniciado (mínimo una).',
     ],
   ])('shows the usage note in %s', (locale, note) => {
-    expect(mountComponent(locale).text()).toContain(note);
+    const wrapper = mountComponent(locale);
+
+    expect(wrapper.text()).toContain(note);
+    expect(wrapper.find('.i-lucide-sparkles').exists()).toBe(true);
   });
 });

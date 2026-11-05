@@ -5,6 +5,7 @@ import { useAccount } from 'dashboard/composables/useAccount';
 import { useAlert } from 'dashboard/composables';
 import SectionLayout from './SectionLayout.vue';
 import Switch from 'next/switch/Switch.vue';
+import BagIcon from 'next/plans/BagIcon.vue';
 
 const { t } = useI18n();
 const isEnabled = ref(false);
@@ -45,7 +46,8 @@ const toggleAudioTranscription = async () => {
     <template #headerActions>
       <div class="flex flex-col items-end gap-2">
         <Switch v-model="isEnabled" @change="toggleAudioTranscription" />
-        <p class="text-xs text-end text-n-slate-11">
+        <p class="flex items-center gap-1 text-xs text-end text-n-slate-11">
+          <BagIcon bag="internal" class="size-3.5 shrink-0" />
           {{ t('GENERAL_SETTINGS.FORM.AUDIO_TRANSCRIPTION.USAGE_NOTE') }}
         </p>
       </div>

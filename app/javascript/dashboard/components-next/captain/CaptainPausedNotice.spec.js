@@ -114,6 +114,7 @@ describe('CaptainPausedNotice', () => {
     expect(
       wrapper.find('[data-testid="captain-paused-billing-link"]').exists()
     ).toBe(true);
+    expect(wrapper.find('.i-woot-captain').exists()).toBe(true);
     expect(
       wrapper.find('[data-testid="captain-paused-key-link"]').exists()
     ).toBe(false);
