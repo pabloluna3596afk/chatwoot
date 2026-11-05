@@ -34,6 +34,45 @@ it('opens a named native modal with description, retains close events and delega
   wrapper.unmount();
 });
 
+it('ignores a click that bubbles up after a button closed the panel', async () => {
+  HTMLDialogElement.prototype.showModal = vi.fn(function showModal() {
+    this.setAttribute('open', '');
+  });
+  HTMLDialogElement.prototype.close = vi.fn(function close() {
+    this.removeAttribute('open');
+  });
+  const errorHandler = vi.fn();
+  const wrapper = mount(SidePanel, {
+    props: { title: 'Edit' },
+    global: { stubs: { teleport: true }, config: { errorHandler } },
+  });
+  await wrapper.vm.open();
+  const dialog = wrapper.find('dialog').element;
+
+  wrapper.vm.close();
+  await flushPromises();
+  dialog.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+  expect(errorHandler).not.toHaveBeenCalled();
+  wrapper.unmount();
+});
+
+it('does not trap fixed dropdowns once the panel is open', async () => {
+  HTMLDialogElement.prototype.showModal = vi.fn(function showModal() {
+    this.setAttribute('open', '');
+  });
+  const wrapper = mount(SidePanel, {
+    props: { title: 'Edit' },
+    global: { stubs: { teleport: true, transition: true } },
+  });
+  await wrapper.vm.open();
+
+  expect(wrapper.find('dialog').classes()).not.toContain(
+    'will-change-transform'
+  );
+  wrapper.unmount();
+});
+
 it('uses the full mobile viewport only when requested', async () => {
   HTMLDialogElement.prototype.showModal = vi.fn(function showModal() {
     this.setAttribute('open', '');

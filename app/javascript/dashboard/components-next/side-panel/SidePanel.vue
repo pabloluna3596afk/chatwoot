@@ -110,6 +110,8 @@ const onOverlayClick = () => {
 };
 
 const onBackdropClick = event => {
+  // A button that closes the panel clears the ref before its click bubbles here.
+  if (!panelRef.value) return;
   const rect = panelRef.value.getBoundingClientRect();
   if (
     event.clientX < rect.left ||
@@ -132,9 +134,9 @@ defineExpose({ open, close });
   <span ref="sourceRef" class="hidden" />
   <TeleportWithDirection to="body">
     <Transition
-      enter-active-class="transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+      enter-active-class="transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform"
       enter-from-class="translate-x-[calc(100%+0.75rem)] rtl:translate-x-[calc(-100%-0.75rem)]"
-      leave-active-class="transition-transform duration-200 ease-in"
+      leave-active-class="transition-transform duration-200 ease-in will-change-transform"
       leave-to-class="translate-x-[calc(100%+0.75rem)] rtl:translate-x-[calc(-100%-0.75rem)]"
       @after-enter="onAfterEnter"
       @after-leave="emit('afterLeave')"
@@ -150,7 +152,7 @@ defineExpose({ open, close });
           description && !$slots.header ? descriptionId : undefined
         "
         tabindex="-1"
-        class="fixed m-0 border-0 p-0 start-auto max-h-none h-[calc(100dvh-1.5rem)] [&::backdrop]:bg-n-alpha-black1 z-50 flex flex-col w-[calc(100%-1.5rem)] overflow-hidden rounded-xl shadow-lg outline outline-1 outline-n-container inset-y-3 end-3 bg-n-solid-1 will-change-transform"
+        class="fixed m-0 border-0 p-0 start-auto max-h-none h-[calc(100dvh-1.5rem)] [&::backdrop]:bg-n-alpha-black1 z-50 flex flex-col w-[calc(100%-1.5rem)] overflow-hidden rounded-xl shadow-lg outline outline-1 outline-n-container inset-y-3 end-3 bg-n-solid-1"
         :class="[
           maxWidthClass,
           fullScreenOnMobile
