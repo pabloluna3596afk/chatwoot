@@ -334,7 +334,11 @@ const downloadAudio = async () => {
         <Icon class="size-4" icon="i-lucide-download" />
       </button>
       <button
-        v-if="!transcribedText && showTranscribedText"
+        v-if="
+          !transcribedText &&
+          showTranscribedText &&
+          transcriptionQuota.reason !== 'account_disabled'
+        "
         v-tooltip.top="transcriptionTooltip"
         type="button"
         class="p-0 border-0 size-8 grid place-content-center disabled:cursor-not-allowed disabled:opacity-50"

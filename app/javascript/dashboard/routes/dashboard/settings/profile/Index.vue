@@ -17,6 +17,7 @@ import UserLanguageSelect from './UserLanguageSelect.vue';
 import ChangePassword from './ChangePassword.vue';
 import NotificationPreferences from './NotificationPreferences.vue';
 import AudioNotifications from './AudioNotifications.vue';
+import AudioTranscriptionPreference from './AudioTranscriptionPreference.vue';
 import SectionLayout from '../account/components/SectionLayout.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import AccessToken from './AccessToken.vue';
@@ -43,6 +44,7 @@ export default {
     ChangePassword,
     NotificationPreferences,
     AudioNotifications,
+    AudioTranscriptionPreference,
     AccessToken,
     MfaSettingsCard,
     ActiveSessions,
@@ -365,6 +367,13 @@ export default {
         <AudioNotifications />
       </SectionLayout>
     </Policy>
+    <SectionLayout
+      with-border
+      :title="$t('PROFILE_SETTINGS.FORM.AUTO_AUDIO_TRANSCRIPTION.TITLE')"
+      :description="$t('PROFILE_SETTINGS.FORM.AUTO_AUDIO_TRANSCRIPTION.NOTE')"
+    >
+      <AudioTranscriptionPreference />
+    </SectionLayout>
     <Policy :permissions="notificationPermissions">
       <SectionLayout
         with-border

@@ -2,6 +2,11 @@ module Enterprise::Concerns::Attachment
   extend ActiveSupport::Concern
 
   included do
+    before_create do
+      if file_type.to_sym == :audio
+        self.meta = (meta || {}).merge('auto_transcription_assignee_id' => message&.conversation&.assignee_id)
+      end
+    end
     after_create_commit :enqueue_audio_transcription
     # Broadcast the message update so the FE bubble picks up the new audio
     # attachment immediately. Without this, the FE has to wait until Whisper

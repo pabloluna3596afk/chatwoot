@@ -141,6 +141,10 @@ class User < ApplicationRecord
     administrator? ? Current.account.inboxes : inboxes.where(account_id: Current.account.id)
   end
 
+  def auto_transcribe_audio?
+    ui_settings&.[]('auto_transcribe_audio') == true
+  end
+
   def serializable_hash(options = nil)
     super(options).merge(confirmed: confirmed?)
   end
