@@ -29,18 +29,18 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
       },
       {
         name: 'Inicio', slug: 'inicio', description: 'Para equipos que estan arrancando con IA.',
-        captain_daily_tests: 0, captain_copilot_responses: 500, captain_internal_calls: 500,
+        captain_daily_tests: 10, captain_copilot_responses: 500, captain_internal_calls: 500,
         monthly_messages: 1_000, storage_mb: 100, max_documents: 100, max_captain_assistants: 1, max_human_agents: 2,
-        max_inboxes: 2, max_emails_per_day: 0,
+        max_inboxes: 2, max_emails_per_day: 500,
         price_monthly: 79, price_yearly: 79 * 12, trial_days: 0, trial_messages: 0, display_order: 2,
         is_default_trial: false,
         feature_keys: %w[captain_integration captain_tasks calendar_integration integrations flows campaigns automations macros api_and_webhooks]
       },
       {
         name: 'Crecimiento', slug: 'crecimiento', description: 'El mas elegido.',
-        captain_daily_tests: 0, captain_copilot_responses: 1_500, captain_internal_calls: 1_500,
+        captain_daily_tests: 20, captain_copilot_responses: 1_500, captain_internal_calls: 1_500,
         monthly_messages: 3_000, storage_mb: 250, max_documents: 250, max_captain_assistants: 3, max_human_agents: 5,
-        max_inboxes: 5, max_emails_per_day: 0,
+        max_inboxes: 5, max_emails_per_day: 2000,
         price_monthly: 149, price_yearly: 149 * 12, trial_days: 0, trial_messages: 0, display_order: 3,
         is_default_trial: false,
         feature_keys: %w[captain_integration captain_tasks calendar_integration integrations flows campaigns automations macros
@@ -48,9 +48,9 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
       },
       {
         name: 'Negocio', slug: 'negocio', description: 'Disponible próximamente.',
-        captain_daily_tests: 0, captain_copilot_responses: 4_000, captain_internal_calls: 4_000,
+        captain_daily_tests: 35, captain_copilot_responses: 4_000, captain_internal_calls: 4_000,
         monthly_messages: 8_000, storage_mb: 1024, max_documents: 1024, max_captain_assistants: 5, max_human_agents: 15,
-        max_inboxes: 10, max_emails_per_day: 0,
+        max_inboxes: 10, max_emails_per_day: 5000,
         price_monthly: 299, price_yearly: 299 * 12, trial_days: 0, trial_messages: 0, display_order: 4,
         is_default_trial: false,
         feature_keys: %w[captain_integration captain_tasks calendar_integration integrations flows campaigns automations macros
@@ -58,9 +58,9 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
       },
       {
         name: 'Escala', slug: 'escala', description: 'Disponible próximamente.',
-        captain_daily_tests: 0, captain_copilot_responses: 10_000, captain_internal_calls: 10_000,
+        captain_daily_tests: 50, captain_copilot_responses: 10_000, captain_internal_calls: 10_000,
         monthly_messages: 20_000, storage_mb: 2048, max_documents: 2048, max_captain_assistants: 15, max_human_agents: 40,
-        max_inboxes: 25, max_emails_per_day: 0,
+        max_inboxes: 25, max_emails_per_day: 15_000,
         price_monthly: 599, price_yearly: 599 * 12, trial_days: 0, trial_messages: 0, display_order: 5,
         is_default_trial: false,
         feature_keys: %w[captain_integration captain_tasks calendar_integration integrations flows campaigns automations macros
@@ -85,7 +85,7 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
     ]
     force_update = ENV['FORCE'] == '1'
     active_slugs = %w[gratis basico inicio crecimiento]
-    public_slugs = (active_slugs + %w[negocio escala prueba]).freeze
+    public_slugs = (active_slugs + %w[negocio escala]).freeze
     coming_soon_slugs = %w[negocio escala]
 
     plans.each do |attrs|
