@@ -21,6 +21,7 @@ RSpec.describe Voice::CallTranscriptionService, type: :service do
 
   describe '#perform' do
     it 'stores the transcript on the call' do
+      call.update!(duration_seconds: 60)
       allow(Llm::SpeechToTextService).to receive(:new).and_return(
         instance_double(Llm::SpeechToTextService, perform: 'Hello, how can I help?', quota_exceeded?: false)
       )
@@ -29,7 +30,8 @@ RSpec.describe Voice::CallTranscriptionService, type: :service do
 
       expect(call.reload.transcript).to eq('Hello, how can I help?')
       expect(Llm::SpeechToTextService).to have_received(:new).with(
-        blob: call.recording.blob, account: account, conversation_id: conversation.id, message_id: message.id
+        blob: call.recording.blob, account: account,
+        context: { audio_duration_seconds: 60, conversation_id: conversation.id, message_id: message.id }
       )
     end
 

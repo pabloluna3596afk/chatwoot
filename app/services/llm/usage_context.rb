@@ -6,7 +6,7 @@ module Llm::UsageTokenAttributes
     reasoning: [[:completion_tokens_details, :reasoning_tokens]]
   }.freeze
 
-  def call(model:, response:)
+  def call(model:, response:, audio_duration_seconds: nil)
     tokens = response_detail(response, :tokens) || response_detail(response, :usage)
     tokens ||= response['usage'] || response[:usage] if response.is_a?(Hash)
     input_tokens = token_value(tokens, :input)
@@ -18,7 +18,8 @@ module Llm::UsageTokenAttributes
       cost_usd: AiUsageEvent.calculate_cost(
         model: model, input_tokens: input_tokens, cached_input_tokens: cached_tokens,
         output_tokens: output_tokens
-      )
+      ) + AiUsageEvent.calculate_audio_cost(model: model, duration_seconds: audio_duration_seconds),
+      audio_duration_seconds: audio_duration_seconds
     }
   end
 
@@ -184,10 +185,13 @@ module Llm::UsageContext
 
     def record_event(model:, context:, details:)
       response = details[:response]
-      event_context = context.except(:account_id, :reservation_id, :reservation_required, :required_gate, :required_plan, :units)
+      event_context = context.except(
+        :account_id, :reservation_id, :reservation_required, :required_gate, :required_plan, :units,
+        :audio_duration_seconds
+      )
       AiUsageEvent.create!(event_context.merge(
                              event_identity(model, context, details, response),
-                             token_attributes(model, response),
+                             token_attributes(model, response, context[:audio_duration_seconds]),
                              units: context.fetch(:units, 1),
                              status: details[:status], error_class: details[:error]&.class&.name,
                              latency_ms: details[:latency_ms], created_at: Time.current
@@ -209,8 +213,10 @@ module Llm::UsageContext
       end
     end
 
-    def token_attributes(model, response)
-      Llm::UsageTokenAttributes.call(model: model, response: response)
+    def token_attributes(model, response, audio_duration_seconds)
+      Llm::UsageTokenAttributes.call(
+        model: model, response: response, audio_duration_seconds: audio_duration_seconds
+      )
     end
   end
 end

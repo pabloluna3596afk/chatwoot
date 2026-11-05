@@ -15,16 +15,28 @@ class Voice::CallTranscriptionService
     return unless call.recording.attached?
     return unless call.inbox.channel.transcription_enabled?
     return unless Llm::SpeechToTextService.available_for?(call.account)
-    return if Llm::SpeechToTextService.too_large?(recording_blob)
+    return if recording_too_large?
 
-    service = Llm::SpeechToTextService.new(
-      blob: recording_blob, account: call.account,
-      conversation_id: call.conversation_id, message_id: call.message_id
-    )
+    transcribe_recording
+  end
+
+  def recording_too_large?
+    Llm::SpeechToTextService.too_large?(recording_blob)
+  end
+
+  def transcribe_recording
+    service = Llm::SpeechToTextService.new(blob: recording_blob, account: call.account, context: transcription_context)
     transcript = service.perform
     return if service.quota_exceeded?
 
     call.update!(transcript: transcript) if transcript.present?
+  end
+
+  def transcription_context
+    {
+      audio_duration_seconds: call.duration_seconds || Llm::SpeechToTextService.estimated_duration_seconds_for_blob(recording_blob),
+      conversation_id: call.conversation_id, message_id: call.message_id
+    }
   end
 
   def publish(message)
