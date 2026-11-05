@@ -88,6 +88,7 @@ it('opens the shared catalog with the current plan identity and preserves meters
     },
   });
   await flushPromises();
+  expect(wrapper.find('#billing-panel-facturacion').exists()).toBe(false);
   const meters = wrapper
     .findAllComponents({ name: 'BillingMeter' })
     .map(meter => meter.props());
@@ -112,4 +113,23 @@ it('opens the shared catalog with the current plan identity and preserves meters
   expect(wrapper.getComponent(PlanPricingView).props('currentPlanId')).toBe(
     'growth'
   );
+
+  await router.replace({ query: { tab: 'facturacion' } });
+  await flushPromises();
+  const billingPanel = wrapper.get('#billing-panel-facturacion').element;
+  const sdkContent = document.createElement('div');
+  sdkContent.textContent = 'Payment SDK content';
+  billingPanel.appendChild(sdkContent);
+
+  await router.replace({ query: { tab: 'uso' } });
+  await flushPromises();
+  expect(wrapper.get('#billing-panel-facturacion').element).toBe(billingPanel);
+  expect(billingPanel.contains(sdkContent)).toBe(true);
+  expect(billingPanel.style.display).toBe('none');
+
+  await router.replace({ query: { tab: 'facturacion' } });
+  await flushPromises();
+  expect(wrapper.get('#billing-panel-facturacion').element).toBe(billingPanel);
+  expect(billingPanel.contains(sdkContent)).toBe(true);
+  expect(billingPanel.style.display).not.toBe('none');
 });
