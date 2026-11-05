@@ -667,6 +667,20 @@
           "REFRESH": "Actualizar uso",
           "BUY_MORE": "Comprar más créditos"
         },
+        "USAGE_BREAKDOWN": {
+          "TITLE": "Uso por función",
+          "PERIOD": "Del {start} al {end}",
+          "BAGS_LABEL": "Bolsas de uso de IA",
+          "REFRESH": "Actualizar uso por función",
+          "LOADING": "Cargando uso por función",
+          "ERROR": "No se pudo cargar el uso por función.",
+          "RETRY": "Reintentar",
+          "EMPTY": "Aún no hay uso en este período.",
+          "OPERATIONS": "{count} operación | {count} operaciones",
+          "UNITS": "{count} unidad | {count} unidades",
+          "LAST_USED": "Último uso {date}",
+          "BAR_LABEL": "Uso de {name}"
+        },
         "KNOWLEDGE": {
           "SUGGESTED": "Preguntas frecuentes sugeridas",
           "REVIEW": "Revisar FAQs"

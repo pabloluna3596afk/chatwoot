@@ -23,9 +23,12 @@ import ResolutionFlowCard from './ResolutionFlowCard.vue';
 import ResolutionTrendCard from './ResolutionTrendCard.vue';
 import CsatCard from './CsatCard.vue';
 import UsageCard from './UsageCard.vue';
+import UsageBreakdownCard from './UsageBreakdownCard.vue';
 import KnowledgeCoverageCard from './KnowledgeCoverageCard.vue';
+import { useAdmin } from 'dashboard/composables/useAdmin';
 
 const { t } = useI18n();
+const { isAdmin } = useAdmin();
 const route = useRoute();
 const router = useRouter();
 const currentUser = useMapGetter('getCurrentUser');
@@ -417,6 +420,8 @@ const reviewFaqs = () =>
             @review="reviewFaqs"
           />
         </div>
+
+        <UsageBreakdownCard v-if="isAdmin" />
 
         <QuickLinks />
       </div>
