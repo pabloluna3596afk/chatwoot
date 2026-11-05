@@ -164,7 +164,8 @@ RSpec.describe Llm::SpeechToTextService, type: :service do
 
     it 'records the source conversation and message when available' do
       tracked_service = described_class.new(
-        blob: attachment.file.blob, account: account, conversation_id: conversation.id, message_id: message.id
+        blob: attachment.file.blob, account: account,
+        context: { conversation_id: conversation.id, message_id: message.id }
       )
       allow(tracked_service).to receive(:fetch_audio_file).and_return(audio_file_path)
       allow(tracked_service.client).to receive(:audio).and_return(audio_api)

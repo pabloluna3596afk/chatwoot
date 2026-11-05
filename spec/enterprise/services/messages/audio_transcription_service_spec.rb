@@ -134,8 +134,11 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
           blob: attachment.file.blob,
           account: account,
           units: 5,
-          conversation_id: conversation.id,
-          message_id: message.id
+          context: {
+            audio_duration_seconds: 300.0,
+            conversation_id: conversation.id,
+            message_id: message.id
+          }
         ).and_return(speech_service)
 
         result = service.perform

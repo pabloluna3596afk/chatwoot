@@ -31,13 +31,17 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
   rescue ArgumentError, TypeError
     estimated_duration_seconds(attachment)
   end
-  private_class_method :duration_seconds
 
   def self.estimated_duration_seconds(attachment)
     byte_size = attachment.file&.attached? ? attachment.file.blob.byte_size : 0
     [byte_size / ESTIMATED_BYTES_PER_SECOND, MAX_ESTIMATED_DURATION_SECONDS].min
   end
   private_class_method :estimated_duration_seconds
+
+  def self.estimated_duration_seconds_for_blob(blob)
+    byte_size = blob&.byte_size || 0
+    [byte_size / ESTIMATED_BYTES_PER_SECOND, MAX_ESTIMATED_DURATION_SECONDS].min
+  end
 
   # Transcription runs on Captain's OpenAI credentials and consumes internal AI credits.
   def self.available_for?(account, require_auto_setting: true)
@@ -55,13 +59,14 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
     blob.present? && blob.byte_size > BYTE_LIMIT
   end
 
-  def initialize(blob:, account:, units: 1, conversation_id: nil, message_id: nil)
+  def initialize(blob:, account:, units: 1, context: {})
     super()
     @blob = blob
     @account = account
     @units = units
-    @conversation_id = conversation_id
-    @message_id = message_id
+    @audio_duration_seconds = context[:audio_duration_seconds]
+    @conversation_id = context[:conversation_id]
+    @message_id = context[:message_id]
     @transcription_model = Llm::FeatureRouter.resolve(feature: 'audio_transcription', account: account)[:model]
   end
 
@@ -124,7 +129,7 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
       reservation_id: @usage_reservation_id,
       units: @units,
       context: {
-        conversation_id: @conversation_id, message_id: @message_id,
+        conversation_id: @conversation_id, message_id: @message_id, audio_duration_seconds: @audio_duration_seconds,
         reservation_required: @usage_reservation_id.present?, required_gate: 'captain_integration'
       }
     ) do

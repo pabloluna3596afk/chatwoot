@@ -3,6 +3,7 @@ class AiModelPrice < ApplicationRecord
   validates :model, uniqueness: { scope: :effective_from }
   validates :input_per_million, :cached_input_per_million, :output_per_million,
             numericality: { greater_than_or_equal_to: 0 }
+  validates :audio_per_minute, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
 
   scope :active, -> { where(active: true) }
 

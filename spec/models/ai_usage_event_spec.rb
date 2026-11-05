@@ -39,6 +39,22 @@ RSpec.describe AiUsageEvent do
 
       expect(cost).to eq(BigDecimal('0.134'))
     end
+
+    it 'calculates audio cost at the active per-minute price' do
+      AiModelPrice.create!(model: 'fake-audio-model', input_per_million: 0, cached_input_per_million: 0,
+                           output_per_million: 0, audio_per_minute: '0.12345678', effective_from: 1.day.ago)
+
+      expect(described_class.calculate_audio_cost(model: 'fake-audio-model', duration_seconds: 30))
+        .to eq(BigDecimal('0.06172839'))
+    end
+
+    it 'leaves audio cost at zero when no per-minute price exists' do
+      AiModelPrice.create!(model: 'fake-audio-model', input_per_million: 0, cached_input_per_million: 0,
+                           output_per_million: 0, effective_from: 1.day.ago)
+
+      expect(described_class.calculate_audio_cost(model: 'fake-audio-model', duration_seconds: 30))
+        .to eq(0.to_d)
+    end
   end
 
   describe 'recording a usage group' do
@@ -195,6 +211,24 @@ RSpec.describe AiUsageEvent do
 
       event = described_class.find_by!(usage_group_id: group_id)
       expect(event).to have_attributes(bucket: 'internal', input_tokens: 250, output_tokens: 0)
+    end
+
+    it 'stores audio duration and per-minute cost on the usage event' do
+      account = create(:account)
+      AiModelPrice.create!(model: 'fake-audio-model', input_per_million: 0, cached_input_per_million: 0,
+                           output_per_million: 0, audio_per_minute: '0.12345678', effective_from: 1.day.ago)
+      group_id = SecureRandom.uuid
+
+      Llm::UsageContext.with(account: account, bucket: :internal, feature: 'audio_transcription',
+                             usage_group_id: group_id, context: { audio_duration_seconds: 30 }) do
+        Llm::UsageContext.record_operation(model: 'fake-audio-model', provider: 'openai', status: 'ok')
+      end
+
+      event = described_class.find_by!(usage_group_id: group_id)
+      expect(event).to have_attributes(
+        audio_duration_seconds: BigDecimal(30), cost_usd: BigDecimal('0.06172839'),
+        input_tokens: 0, output_tokens: 0
+      )
     end
 
     it 'stores the event cost without changing it when a later price takes effect' do
