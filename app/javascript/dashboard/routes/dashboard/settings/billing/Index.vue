@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router';
 import { useMapGetter, useStore } from 'dashboard/composables/store.js';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useCaptain } from 'dashboard/composables/useCaptain';
-import { format } from 'date-fns';
 import sessionStorage from 'shared/helpers/sessionStorage';
 
 import BillingCard from './components/BillingCard.vue';
@@ -21,6 +20,7 @@ import PayphonePaymentsAPI from 'dashboard/api/payphonePayments';
 import { shouldShowPayphoneRenewalDate } from './payphoneBilling';
 import BillingTabs from './components/BillingTabs.vue';
 import UsageDashboard from './UsageDashboard.vue';
+import { formatBillingDate } from './billingDate';
 
 const { currentAccount, isOnChatwootCloud } = useAccount();
 const {
@@ -35,10 +35,12 @@ const {
 
 const uiFlags = useMapGetter('accounts/getUIFlags');
 const store = useStore();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
-const activeTab = computed(() => route.query.tab || 'uso');
+const activeTab = computed(() =>
+  route.query.tab === 'facturacion' ? 'facturacion' : 'uso'
+);
 
 const BILLING_REFRESH_ATTEMPTED = 'billing_refresh_attempted';
 
@@ -48,6 +50,8 @@ const purchaseCreditsModalRef = ref(null);
 const comparingPlans = ref(false);
 const payphoneEnabled = ref(false);
 const payphoneHistory = ref([]);
+const isLoadingPayphone = ref(true);
+const payphoneLoadFailed = ref(false);
 const payphoneRenewalState = ref(null);
 const payphonePeriodEnd = ref(null);
 const payphoneGraceEnd = ref(null);
@@ -136,26 +140,25 @@ const subscriptionRenewsOn = computed(() => {
   // For self-hosted, read from limits.plan
   if (!isOnChatwootCloud.value) {
     const planEnd =
-      payphoneRenewalState.value === 'due_soon' && payphonePeriodEnd.value
-        ? payphonePeriodEnd.value
-        : currentAccount.value.limits?.plan?.period_end;
+      payphonePeriodEnd.value || currentAccount.value.limits?.plan?.period_end;
     if (!planEnd) return '';
-    const endDate = new Date(planEnd);
-    // return date as 12 Jan, 2034
-    return format(endDate, 'dd MMM, yyyy');
+    return formatBillingDate(planEnd, locale.value);
   }
   // For cloud, read from custom_attributes (existing behavior)
   if (!customAttributes.value.subscription_ends_on) return '';
-  const endDate = new Date(customAttributes.value.subscription_ends_on);
-  // return date as 12 Jan, 2034
-  return format(endDate, 'dd MMM, yyyy');
+  return formatBillingDate(
+    customAttributes.value.subscription_ends_on,
+    locale.value
+  );
 });
 
 // Set only while a cancellation is scheduled; the plan stays active until this date.
 const subscriptionCancelsOn = computed(() => {
   if (!customAttributes.value.subscription_cancels_on) return '';
-  const cancelDate = new Date(customAttributes.value.subscription_cancels_on);
-  return format(cancelDate, 'dd MMM, yyyy');
+  return formatBillingDate(
+    customAttributes.value.subscription_cancels_on,
+    locale.value
+  );
 });
 
 /**
@@ -263,6 +266,8 @@ const handleTopupSuccess = () => {
 
 const loadPayphone = async () => {
   if (isOnChatwootCloud.value) return;
+  isLoadingPayphone.value = true;
+  payphoneLoadFailed.value = false;
   try {
     const { data } = await PayphonePaymentsAPI.get();
     payphoneEnabled.value = data.enabled;
@@ -272,6 +277,9 @@ const loadPayphone = async () => {
     payphoneGraceEnd.value = data.grace_end;
   } catch {
     payphoneEnabled.value = false;
+    payphoneLoadFailed.value = true;
+  } finally {
+    isLoadingPayphone.value = false;
   }
 };
 
@@ -292,6 +300,8 @@ const selectPayphonePlan = async planId => {
   payphonePlanId.value = planId;
   payphoneNeedsInvoice.value = false;
   payphoneError.value = '';
+  comparingPlans.value = false;
+  await router.replace({ query: { ...route.query, tab: 'facturacion' } });
   await quotePayphone();
 };
 
@@ -358,8 +368,13 @@ const previewPayphone = async status => {
   }
 };
 
+const formatPayphoneAmount = (cents, currency) =>
+  new Intl.NumberFormat(locale.value, { style: 'currency', currency }).format(
+    cents / 100
+  );
+
 const formattedPayphoneDate = value =>
-  value ? format(new Date(value), 'dd MMM, yyyy') : '';
+  value ? formatBillingDate(value, locale.value) : '';
 
 const payphoneRenewalMessage = () => {
   // eslint-disable-next-line @intlify/vue-i18n/no-dynamic-keys
@@ -404,6 +419,7 @@ onMounted(async () => {
 
 <template>
   <SettingsLayout
+    class="min-w-0"
     :is-loading="uiFlags.isFetchingItem || isWaitingForBilling"
     :loading-message="
       isWaitingForBilling
@@ -428,10 +444,19 @@ onMounted(async () => {
         "
         feature-name="billing"
       >
-        <template v-if="!isOnChatwootCloud" #actions>
+        <template v-if="hasABillingPlan" #tabs>
+          <BillingTabs />
+        </template>
+        <template
+          v-if="
+            !isOnChatwootCloud &&
+            (activeTab === 'facturacion' || !hasABillingPlan)
+          "
+          #actions
+        >
           <ButtonV4
             :label="t('PLAN_CATALOG.COMPARE')"
-            variant="outline"
+            intent="secondary"
             @click="comparingPlans = true"
           />
         </template>
@@ -447,7 +472,6 @@ onMounted(async () => {
       />
     </template>
     <template #body>
-      <BillingTabs />
       <UsageDashboard
         v-if="activeTab === 'uso'"
         :plan-name="planName"
@@ -580,23 +604,19 @@ onMounted(async () => {
         >
           <dt class="text-n-slate-11">{{ t('PAYPHONE.SUBTOTAL') }}</dt>
           <dd class="m-0 text-end">
-            {{ (payphoneQuote.base_cents / 100).toFixed(2) }}
-            {{ payphoneQuote.currency }}
+            {{ formatPayphoneAmount(payphoneQuote.base_cents, payphoneQuote.currency) }}
           </dd>
           <dt class="text-n-slate-11">{{ t('PAYPHONE.TAX') }}</dt>
           <dd class="m-0 text-end">
-            {{ (payphoneQuote.tax_cents / 100).toFixed(2) }}
-            {{ payphoneQuote.currency }}
+            {{ formatPayphoneAmount(payphoneQuote.tax_cents, payphoneQuote.currency) }}
           </dd>
           <dt class="text-n-slate-11">{{ t('PAYPHONE.COMMISSION') }}</dt>
           <dd class="m-0 text-end">
-            {{ (payphoneQuote.commission_cents / 100).toFixed(2) }}
-            {{ payphoneQuote.currency }}
+            {{ formatPayphoneAmount(payphoneQuote.commission_cents, payphoneQuote.currency) }}
           </dd>
           <dt class="font-medium">{{ t('PAYPHONE.TOTAL') }}</dt>
           <dd class="m-0 text-end font-semibold">
-            {{ (payphoneQuote.amount / 100).toFixed(2) }}
-            {{ payphoneQuote.currency }}
+            {{ formatPayphoneAmount(payphoneQuote.amount, payphoneQuote.currency) }}
           </dd>
         </dl>
         <p
@@ -678,13 +698,46 @@ onMounted(async () => {
           {{ t('PAYPHONE.REJECTED') }}
         </p>
       </section>
+      <BillingCard
+        v-if="!isOnChatwootCloud"
+        class="mb-4"
+        :title="$t('BILLING_SETTINGS.CURRENT_PLAN.TITLE')"
+        :description="$t('BILLING_SETTINGS.SELF_HOSTED.DESCRIPTION')"
+      >
+        <template #action>
+          <ButtonV4
+            :label="t('BILLING_SETTINGS.TABS.USO')"
+            intent="secondary"
+            sm
+            @click="router.replace({ query: { ...route.query, tab: 'uso' } })"
+          />
+        </template>
+        <div class="grid grid-cols-1 gap-4 divide-n-weak sm:grid-cols-3 sm:divide-x">
+          <DetailItem :label="$t('BILLING_SETTINGS.CURRENT_PLAN.TITLE')" :value="planName" />
+          <DetailItem :label="$t('PAYPHONE.HISTORY_TABLE.STATUS')" :value="usagePlanStatus" />
+          <DetailItem
+            v-if="showPayphoneRenewalDate && payphonePeriodEnd"
+            :label="$t('BILLING_SETTINGS.SELF_HOSTED.PAID_UNTIL')"
+            :value="formattedPayphoneDate(payphonePeriodEnd)"
+          />
+        </div>
+      </BillingCard>
       <section
-        v-if="payphoneHistory.length"
+        v-if="!isOnChatwootCloud || payphoneHistory.length"
         id="payphone-history"
         class="mb-4 rounded-xl border border-n-weak bg-n-solid-1 p-4 sm:p-6 dark:bg-n-solid-3"
       >
         <h2 class="mb-4 mt-0 text-heading-2">{{ t('PAYPHONE.HISTORY') }}</h2>
-        <div class="grid gap-3 md:hidden">
+        <p v-if="isLoadingPayphone" class="m-0 text-sm text-n-slate-11" role="status">
+          {{ t('ATTRIBUTES_MGMT.LOADING') }}
+        </p>
+        <p v-else-if="payphoneLoadFailed" class="m-0 text-sm text-n-ruby-11" role="alert">
+          {{ t('PAYPHONE.HISTORY_ERROR') }}
+        </p>
+        <p v-else-if="!payphoneHistory.length" class="m-0 text-sm text-n-slate-11">
+          {{ t('PAYPHONE.HISTORY_EMPTY') }}
+        </p>
+        <div v-else class="grid gap-3 md:hidden">
           <article
             v-for="payment in payphoneHistory"
             :key="payment.id"
@@ -695,10 +748,9 @@ onMounted(async () => {
               <span>{{ t(`PAYPHONE.STATES.${payment.status}`) }}</span>
             </div>
             <div class="mt-2 flex justify-between gap-3 text-n-slate-11">
-              <span>{{ payment.created_at }}</span>
+              <span>{{ formattedPayphoneDate(payment.created_at) }}</span>
               <span>
-                {{ (payment.amount / 100).toFixed(2) }}
-                {{ payment.currency }}
+                {{ formatPayphoneAmount(payment.amount, payment.currency) }}
               </span>
             </div>
             <p class="mb-0 mt-1 break-all text-xs text-n-slate-10">
@@ -706,13 +758,13 @@ onMounted(async () => {
             </p>
           </article>
         </div>
-        <div class="hidden overflow-x-auto md:block">
+        <div v-if="payphoneHistory.length" class="hidden overflow-x-auto md:block">
           <table class="w-full text-start text-sm">
             <thead class="text-n-slate-11">
               <tr>
-                <th class="p-3">{{ t('PAYPHONE.HISTORY_TABLE.DATE') }}</th>
-                <th class="p-3">{{ t('PAYPHONE.HISTORY_TABLE.PLAN') }}</th>
-                <th class="p-3">{{ t('PAYPHONE.HISTORY_TABLE.STATUS') }}</th>
+                <th class="p-3 text-start">{{ t('PAYPHONE.HISTORY_TABLE.DATE') }}</th>
+                <th class="p-3 text-start">{{ t('PAYPHONE.HISTORY_TABLE.PLAN') }}</th>
+                <th class="p-3 text-start">{{ t('PAYPHONE.HISTORY_TABLE.STATUS') }}</th>
                 <th class="p-3 text-end">{{ t('PAYPHONE.HISTORY_TABLE.AMOUNT') }}</th>
               </tr>
             </thead>
@@ -721,7 +773,7 @@ onMounted(async () => {
                 <td class="p-3">{{ formattedPayphoneDate(payment.created_at) }}</td>
                 <td class="p-3">{{ payment.plan }}</td>
                 <td class="p-3">{{ t(`PAYPHONE.STATES.${payment.status}`) }}</td>
-                <td class="p-3 text-end">{{ (payment.amount / 100).toFixed(2) }} {{ payment.currency }}</td>
+                <td class="p-3 text-end">{{ formatPayphoneAmount(payment.amount, payment.currency) }}</td>
               </tr>
             </tbody>
           </table>
@@ -756,7 +808,7 @@ onMounted(async () => {
       </section>
 
       <!-- Main Billing Section -->
-      <section v-else class="grid gap-4">
+      <section v-else-if="isOnChatwootCloud" class="grid gap-4">
         <!-- Subscription Management Section -->
         <BillingCard
           :title="$t('BILLING_SETTINGS.MANAGE_SUBSCRIPTION.TITLE')"
@@ -778,7 +830,7 @@ onMounted(async () => {
           <!-- Plan Details -->
           <div
             v-if="planName || subscriptionRenewsOn"
-            class="grid lg:grid-cols-4 sm:grid-cols-3 grid-cols-1 gap-2 divide-x divide-n-weak"
+            class="grid grid-cols-1 gap-4 divide-n-weak sm:grid-cols-3 sm:divide-x lg:grid-cols-4"
           >
             <DetailItem
               :label="$t('BILLING_SETTINGS.CURRENT_PLAN.TITLE')"
@@ -861,7 +913,7 @@ onMounted(async () => {
             </ButtonV4>
           </template>
         </BillingCard>
-
+      </section>
         <BillingHeader
           class="px-1 mt-5"
           :title="$t('BILLING_SETTINGS.CHAT_WITH_US.TITLE')"
@@ -877,8 +929,8 @@ onMounted(async () => {
             {{ $t('BILLING_SETTINGS.CHAT_WITH_US.BUTTON_TXT') }}
           </ButtonV4>
         </BillingHeader>
-      </section>
       <PurchaseCreditsModal
+        v-if="isOnChatwootCloud"
         ref="purchaseCreditsModalRef"
         @success="handleTopupSuccess"
       />

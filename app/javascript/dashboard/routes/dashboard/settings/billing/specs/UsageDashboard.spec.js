@@ -16,7 +16,11 @@ vi.mock('vue-i18n', () => ({
 describe('Usage dashboard', () => {
   beforeEach(() => {
     AiUsageAPI.get.mockResolvedValue({
-      data: { period_end: '2026-11-01T00:00:00Z', daily: [] },
+      data: {
+        period_start: '2026-10-01T00:00:00Z',
+        period_end: '2026-11-01T00:00:00Z',
+        daily: [],
+      },
     });
   });
 
@@ -89,10 +93,11 @@ describe('Usage dashboard', () => {
     wrapper.unmount();
   });
 
-  it('formats period day labels consistently across time zones', async () => {
+  it('keeps UTC daily labels and formats reset timestamps in local time', async () => {
     AiUsageAPI.get.mockResolvedValueOnce({
       data: {
-        period_end: '2026-11-01T00:00:00Z',
+        period_start: '2026-11-01T00:00:00Z',
+        period_end: '2026-11-02T00:00:00Z',
         daily: [
           { day: '2026-11-01', bucket: 'captain_responses', messages: 1 },
         ],
@@ -105,7 +110,10 @@ describe('Usage dashboard', () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain('Nov 1');
-    expect(wrapper.text()).toContain('Nov 1, 2026');
+    const resetDay = new Date('2026-11-02T00:00:00Z').getDate();
+    expect(wrapper.text()).toContain(
+      resetDay === 1 ? 'Nov 1, 2026' : 'Nov 2, 2026'
+    );
     wrapper.unmount();
   });
 

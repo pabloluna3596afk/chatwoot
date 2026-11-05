@@ -1,8 +1,8 @@
 <script setup>
 import { computed } from 'vue';
-import { format } from 'date-fns';
 import { useI18n } from 'vue-i18n';
 import { formatBytes } from 'shared/helpers/FileHelper';
+import { formatBillingDate } from '../billingDate';
 
 const props = defineProps({
   title: {
@@ -28,7 +28,7 @@ const props = defineProps({
   },
 });
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const displayConsumed = computed(() =>
   props.unit === 'bytes' ? formatBytes(props.consumed) : props.consumed
@@ -64,7 +64,7 @@ const colorClass = computed(() => {
     <div v-if="periodEnd" class="mt-1 text-xs text-n-slate-9">
       {{
         t('BILLING_SETTINGS.CAPTAIN.RESETS_ON', {
-          date: format(new Date(periodEnd), 'dd MMM, yyyy'),
+          date: formatBillingDate(periodEnd, locale.value),
         })
       }}
     </div>
