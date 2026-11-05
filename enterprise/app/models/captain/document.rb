@@ -59,9 +59,9 @@ class Captain::Document < ApplicationRecord
   enum :sync_status, { syncing: 0, synced: 1, failed: 2 }, prefix: :sync
 
   before_create :ensure_within_plan_limit
-  after_create_commit :enqueue_crawl_job
-  after_create_commit :update_document_usage
+  after_create_commit :enqueue_crawl_job, :update_document_usage
   after_destroy :update_document_usage
+  after_destroy_commit :delete_openai_pdf
   after_commit :enqueue_response_builder_job
   scope :ordered, -> { order(created_at: :desc) }
 
@@ -191,6 +191,12 @@ class Captain::Document < ApplicationRecord
 
   def update_document_usage
     account.update_document_usage
+  end
+
+  def delete_openai_pdf
+    Captain::Llm::PdfProcessingService.new(self).delete_openai_file if pdf_document? && openai_file_id.present?
+  rescue StandardError => e
+    Rails.logger.error("[Captain::Document] Failed to clean up OpenAI PDF for document #{id}: #{e.message}")
   end
 
   def ensure_account_id
