@@ -137,6 +137,29 @@ RSpec.describe Captain::Document, type: :model do
       end
     end
 
+    describe 'OpenAI file cleanup' do
+      it 'deletes the OpenAI file after the document is destroyed' do
+        pdf_document.external_link = 'PDF: report'
+        pdf_document.save!
+        pdf_document.update!(openai_file_id: 'file-abc123')
+        cleanup_service = instance_double(Captain::Llm::PdfProcessingService)
+        allow(Captain::Llm::PdfProcessingService).to receive(:new).with(pdf_document).and_return(cleanup_service)
+        expect(cleanup_service).to receive(:delete_openai_file)
+
+        pdf_document.destroy!
+      end
+
+      it 'does not prevent destruction when cleanup initialization fails' do
+        pdf_document.external_link = 'PDF: report'
+        pdf_document.save!
+        pdf_document.update!(openai_file_id: 'file-abc123')
+        allow(Captain::Llm::PdfProcessingService).to receive(:new).and_raise(StandardError, 'provider unavailable')
+
+        expect { pdf_document.destroy! }.not_to raise_error
+        expect(pdf_document).to be_destroyed
+      end
+    end
+
     describe 'automatic external_link generation' do
       it 'generates unique external_link for PDFs' do
         pdf_document.external_link = nil

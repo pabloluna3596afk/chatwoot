@@ -6,6 +6,8 @@ class Captain::Documents::ResponseBuilderJob < ApplicationJob
 
     faqs = generate_faqs(document, options)
     create_responses_from_faqs(faqs, document)
+  ensure
+    delete_pdf_from_openai(document) if document&.pdf_document? && document.openai_file_id.present?
   end
 
   private
@@ -27,6 +29,12 @@ class Captain::Documents::ResponseBuilderJob < ApplicationJob
 
   def generate_standard_faqs(document)
     Captain::Llm::FaqGeneratorService.new(document: document).generate
+  end
+
+  def delete_pdf_from_openai(document)
+    Captain::Llm::PdfProcessingService.new(document).delete_openai_file
+  rescue StandardError => e
+    Rails.logger.error("[Captain::Documents::ResponseBuilderJob] Failed to clean up OpenAI PDF for document #{document.id}: #{e.message}")
   end
 
   def build_paginated_service(document, options)
