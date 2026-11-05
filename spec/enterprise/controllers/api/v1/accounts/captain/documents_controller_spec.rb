@@ -470,6 +470,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
           expect(Captain::Documents::CrawlJob).not_to have_been_enqueued
         end
       end
+
       context 'with invalid parameters' do
         before do
           post "/api/v1/accounts/#{account.id}/captain/documents",
