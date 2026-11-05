@@ -70,14 +70,19 @@ jobs:
             echo "ruby=$ruby"
           } >> "$GITHUB_OUTPUT"
 
-  backend-tests:
+  backend-test-slices:
     # Avoid provisioning backend services for frontend/documentation-only PRs.
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [0, 1]
     env:
       # Match runner CPU capacity; a repository variable can override the count.
       BACKEND_PROCESSES: ${{ vars.BACKEND_PROCESSES || '4' }}
+      BACKEND_RUNNER_INDEX: ${{ matrix.runner }}
       RAILS_ENV: test
       # Without it Rails writes tmp/local_secret.txt on first use; the parallel processes raced on that file and one of
       # them read it empty ("secret_key_base for test environment must be a type of String"). CI-only value.
@@ -153,7 +158,7 @@ jobs:
         shell: bash
         run: |
           # The whole spec/ tree, enterprise included (the CE workflow strips enterprise/ and is disabled).
-          # Round-robin split across processes, so slow files spread evenly.
+          # Round-robin split across all runner processes, so slow files spread evenly.
           mapfile -t SPEC_FILES < <(find spec -name '*_spec.rb' | sort)
           mkdir -p tmp
           PIDS=()
@@ -163,22 +168,23 @@ jobs:
               export POSTGRES_DATABASE="chatwoot_test_$p"
               export REDIS_URL="redis://127.0.0.1:6379/$p"
               TESTS=()
+              SLICE_INDEX=$(( BACKEND_RUNNER_INDEX * BACKEND_PROCESSES + p ))
               for i in "${!SPEC_FILES[@]}"; do
-                if [ $(( i % BACKEND_PROCESSES )) -eq "$p" ]; then
+                if [ $(( i % (BACKEND_PROCESSES * 2) )) -eq "$SLICE_INDEX" ]; then
                   TESTS+=("${SPEC_FILES[$i]}")
                 fi
               done
 
               echo "Running slice $p/$BACKEND_PROCESSES (${#TESTS[@]} spec files)"
               if [ "${#TESTS[@]}" -gt 0 ]; then
-                if ! bundle exec rspec --profile=10 --format progress --format json --out "tmp/rspec_results_$p.json" "${TESTS[@]}"; then
+                if ! bundle exec rspec --profile=10 --format progress --format json --out "tmp/rspec_results_${BACKEND_RUNNER_INDEX}_$p.json" "${TESTS[@]}"; then
                   # Timing-sensitive specs fail now and then on a busy runner: run only the failed examples once more.
-                  mapfile -t FAILED < <(jq -r '.examples[] | select(.status == "failed") | .id' "tmp/rspec_results_$p.json")
+                  mapfile -t FAILED < <(jq -r '.examples[] | select(.status == "failed") | .id' "tmp/rspec_results_${BACKEND_RUNNER_INDEX}_$p.json")
                   if [ "${#FAILED[@]}" -eq 0 ] || [ "${#FAILED[@]}" -gt 10 ]; then
                     exit 1
                   fi
                   echo "::warning::Slice $p: retrying ${#FAILED[@]} failed example(s) once: ${FAILED[*]}"
-                  bundle exec rspec --format progress --format json --out "tmp/rspec_retry_$p.json" "${FAILED[@]}"
+                  bundle exec rspec --format progress --format json --out "tmp/rspec_retry_${BACKEND_RUNNER_INDEX}_$p.json" "${FAILED[@]}"
                 fi
               fi
             ) &
@@ -201,15 +207,25 @@ jobs:
         # Store test results only when needed to investigate failures, like Rails logs.
         if: failure()
         with:
-          name: ee-rspec-results
+          name: ee-rspec-results-${{ matrix.runner }}
           path: tmp/rspec_results_*.json
 
       - name: Upload rails log folder
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ee-rails-log-folder
+          name: ee-rails-log-folder-${{ matrix.runner }}
           path: log
+
+  # Keep the required PR check name stable while the matrix jobs run independently.
+  backend-tests:
+    needs: [changes, backend-test-slices]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify backend result
+        if: needs.changes.result != 'success' || (needs.changes.outputs.backend == 'true' && needs.backend-test-slices.result != 'success')
+        run: exit 1
 
   # Rubocop on the Ruby files the change touches (the whole-repo run belongs to the disabled CE workflow).
   rubocop-changed:
