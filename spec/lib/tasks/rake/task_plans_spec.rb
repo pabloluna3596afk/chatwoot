@@ -5,16 +5,28 @@ RSpec.describe Rake::Task do
 
   before { task.reenable }
 
-  it 'creates missing plans with safe catalog visibility' do
-    expect { task.invoke }.to change(Plan, :count).by(6)
+  it 'creates the current catalog and legacy plans with the expected visibility and limits' do
+    expect { task.invoke }.to change(Plan, :count).by(8)
 
-    expect(Plan.find_by!(slug: 'prueba')).to have_attributes(coming_soon: false, is_public: true)
-    expect(Plan.where(slug: %w[inicio crecimiento negocio escala]).pluck(:coming_soon)).to eq([true] * 4)
+    expected_features = [
+      ['captain_integration'],
+      %w[captain_integration captain_tasks calendar_integration integrations flows],
+      %w[captain_integration captain_tasks calendar_integration integrations flows campaigns automations macros
+         api_and_webhooks],
+      %w[captain_integration captain_tasks calendar_integration integrations flows campaigns automations macros
+         api_and_webhooks help_center]
+    ]
+    expect(Plan.where(slug: %w[gratis basico inicio crecimiento]).order(:display_order).pluck(
+             :price_monthly, :monthly_messages, :captain_copilot_responses, :captain_internal_calls,
+             :max_documents, :storage_mb, :max_captain_assistants, :max_human_agents, :max_inboxes
+           )).to eq([[0, 200, 0, 0, 0, 25, 1, 1, 1], [19, 500, 100, 100, 25, 250, 1, 2, 2],
+                     [79, 1_000, 500, 500, 100, 100, 1, 2, 2], [149, 3_000, 1_500, 1_500, 250, 250, 3, 5, 5]])
+    expect(Plan.where(slug: %w[gratis basico inicio crecimiento]).order(:display_order).pluck(:feature_keys))
+      .to eq(expected_features)
+    expect(Plan.where(slug: %w[negocio escala]).pluck(:is_active, :coming_soon)).to eq([[false, true], [false, true]])
+    expect(Plan.where(slug: %w[prueba developer]).pluck(:is_active, :is_public)).to eq([[false, true], [false, false]])
+    expect(Plan.find_by!(slug: 'gratis')).to have_attributes(is_default_trial: true, coming_soon: false)
     expect(Plan.find_by!(slug: 'developer').catalog_state).to eq('hidden')
-    expect(Plan.where(slug: %w[prueba inicio crecimiento negocio escala]).order(:display_order).pluck(
-             :captain_copilot_responses, :captain_internal_calls
-           )).to eq([[0, 0], [500, 500], [1_500, 1_500], [4_000, 4_000], [10_000, 10_000]])
-    expect(Plan.find_by!(slug: 'developer')).to have_attributes(captain_copilot_responses: nil, captain_internal_calls: nil)
   end
 
   it 'preserves every persisted attribute, assignment and usage on repeated runs' do
@@ -26,13 +38,28 @@ RSpec.describe Rake::Task do
     original_account = account.reload.attributes
     original_usage = account.account_plan_usages.reload.map(&:attributes)
 
-    expect { task.invoke }.to change(Plan, :count).by(5)
+    expect { task.invoke }.to change(Plan, :count).by(7)
     task.reenable
     expect { task.invoke }.not_to change(Plan, :count)
 
     expect(plan.reload.attributes).to eq(original)
     expect(account.reload.attributes).to eq(original_account)
     expect(account.account_plan_usages.reload.map(&:attributes)).to eq(original_usage)
+  end
+
+  it 'does not overwrite existing catalog values unless FORCE=1' do
+    plan = Plan.create!(name: 'Crecimiento custom', slug: 'crecimiento', price_monthly: 123,
+                        monthly_messages: 321, feature_keys: ['automations'])
+
+    task.invoke
+    expect(plan.reload).to have_attributes(price_monthly: 123, monthly_messages: 321, feature_keys: ['automations'])
+
+    task.reenable
+    ClimateControl.modify(FORCE: '1') { task.invoke }
+    expect(plan.reload).to have_attributes(price_monthly: 149, monthly_messages: 3_000,
+                                           feature_keys: %w[captain_integration captain_tasks calendar_integration
+                                                            integrations flows campaigns automations macros
+                                                            api_and_webhooks help_center])
   end
 
   describe 'plans:fill_ai_bags' do
