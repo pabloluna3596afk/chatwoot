@@ -1,11 +1,13 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { parseISO } from 'date-fns';
 import { useI18n } from 'vue-i18n';
 import AiUsageAPI from 'dashboard/api/aiUsage';
 import ButtonV4 from 'next/button/Button.vue';
+import InfoChip from 'next/ListCard/InfoChip.vue';
 import BagIcon from 'next/plans/BagIcon.vue';
+import BarChart from 'shared/components/charts/BarChart.vue';
 import BillingMeter from './components/BillingMeter.vue';
+import { formatBillingDate, formatBillingDateRange } from './billingDate';
 
 const props = defineProps({
   planName: { type: String, default: '' },
@@ -33,83 +35,104 @@ const bagModeLabels = computed(() => ({
   not_included: t('BILLING_SETTINGS.USAGE.BAG_MODES.NOT_INCLUDED'),
 }));
 
+const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
+const numberFormatter = computed(() => new Intl.NumberFormat(locale.value));
 const bags = computed(() =>
   [
     {
       key: 'captain_responses',
-      bag: 'captain_responses',
       title: t('BILLING_SETTINGS.USAGE.BAGS.ASSISTANT'),
       limits: props.responseLimits,
+      color: 'rgb(var(--blue-9))',
+      legendColor: 'bg-n-blue-9',
     },
     {
       key: 'copilot',
-      bag: 'copilot',
       title: t('BILLING_SETTINGS.USAGE.BAGS.COPILOT'),
       limits: props.copilotLimits,
+      color: 'rgb(var(--violet-9))',
+      legendColor: 'bg-n-violet-9',
     },
     {
       key: 'internal',
-      bag: 'internal',
       title: t('BILLING_SETTINGS.USAGE.BAGS.INTERNAL'),
       limits: props.internalLimits,
+      color: 'rgb(var(--teal-9))',
+      legendColor: 'bg-n-teal-9',
     },
-  ].map(bag => ({
-    ...bag,
-    bag: bag.key,
-    mode:
-      usage.value.bag_modes?.[bag.key] ||
-      (bag.limits?.totalCount > 0 ? 'included' : 'not_included'),
-  }))
+  ].map(bag => {
+    const percent =
+      bag.limits?.totalCount > 0
+        ? (bag.limits.consumed / bag.limits.totalCount) * 100
+        : 0;
+    return {
+      ...bag,
+      percent: Math.min(100, percent),
+      percentLabel: t('BILLING_SETTINGS.USAGE.PERCENT_USED', {
+        percent:
+          percent > 0 && percent < 1
+            ? `<${numberFormatter.value.format(1)}`
+            : numberFormatter.value.format(Math.round(percent)),
+      }),
+      mode:
+        usage.value.bag_modes?.[bag.key] ||
+        (bag.limits?.totalCount > 0 ? 'included' : 'not_included'),
+    };
+  })
 );
 
 const chartRows = computed(() => {
+  const { period_start: start, period_end: end, daily } = usage.value;
+  if (!start || !end) return [];
+
+  // API buckets are UTC dates; period_end is an exclusive timestamp.
+  const firstDay = Date.parse(
+    `${new Date(start).toISOString().slice(0, 10)}T00:00:00Z`
+  );
+  const lastInstant = Math.min(Date.now(), Date.parse(end) - 1);
   const days = new Map();
-  usage.value.daily.forEach(({ day, bucket, messages }) => {
-    if (!days.has(day))
-      days.set(day, { day, captain_responses: 0, copilot: 0, internal: 0 });
-    days.get(day)[bucket] = messages;
+  for (let day = firstDay; day <= lastInstant; day += DAY_IN_MILLISECONDS) {
+    const key = new Date(day).toISOString().slice(0, 10);
+    days.set(key, { day: key, captain_responses: 0, copilot: 0, internal: 0 });
+  }
+  daily.forEach(({ day, bucket, messages }) => {
+    if (days.has(day)) days.get(day)[bucket] = messages;
   });
-  return [...days.values()].sort((a, b) => a.day.localeCompare(b.day));
+  return [...days.values()];
 });
-const sourceTotals = computed(() =>
-  [
-    ['captain_responses', t('BILLING_SETTINGS.USAGE.SOURCES.ASSISTANT')],
-    ['copilot', t('BILLING_SETTINGS.USAGE.SOURCES.COPILOT')],
-    ['internal', t('BILLING_SETTINGS.USAGE.SOURCES.INTERNAL')],
-  ]
-    .map(([key, label]) => ({
-      key,
-      bag: key,
-      label,
-      total: chartRows.value.reduce((sum, row) => sum + row[key], 0),
-    }))
-    .sort((a, b) => b.total - a.total)
-);
-const maxDaily = computed(() =>
-  Math.max(
-    1,
-    ...chartRows.value.map(
-      row => row.captain_responses + row.copilot + row.internal
-    )
-  )
-);
 const dateLabel = day =>
   new Intl.DateTimeFormat(locale.value, {
     day: 'numeric',
     month: 'short',
-  }).format(parseISO(`${day}T12:00:00Z`));
+    timeZone: 'UTC',
+  }).format(new Date(`${day}T00:00:00Z`));
+const chartData = computed(() => ({
+  categories: chartRows.value.map(row => dateLabel(row.day)),
+  series: bags.value.map(bag => ({
+    id: bag.key,
+    label: bag.title,
+    color: bag.color,
+    data: chartRows.value.map(row => row[bag.key]),
+  })),
+}));
+const formatChartValue = value => numberFormatter.value.format(value);
+const chartStepSize = ({ min, max, tickCount }) =>
+  Math.max(1, Math.ceil((max - min) / Math.max(tickCount - 1, 1)));
 const dateRange = computed(() => usage.value.period_end || props.periodEnd);
 const resetDate = computed(() =>
-  dateRange.value
-    ? new Intl.DateTimeFormat(locale.value, {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      }).format(parseISO(`${dateRange.value.slice(0, 10)}T12:00:00Z`))
+  dateRange.value ? formatBillingDate(dateRange.value, locale.value) : ''
+);
+const periodLabel = computed(() =>
+  usage.value.period_start && usage.value.period_end
+    ? formatBillingDateRange(
+        usage.value.period_start,
+        usage.value.period_end,
+        locale.value
+      )
     : ''
 );
 const empty = computed(
-  () => !isLoadingUsage.value && !error.value && chartRows.value.length === 0
+  () => !isLoadingUsage.value && !error.value && usage.value.daily.length === 0
 );
 
 onMounted(async () => {
@@ -129,11 +152,9 @@ onMounted(async () => {
     id="billing-panel-uso"
     role="tabpanel"
     aria-labelledby="billing-tab-uso"
-    class="space-y-4"
+    class="min-w-0 space-y-4"
   >
-    <article
-      class="rounded-xl border border-n-weak bg-n-solid-1 p-4 sm:p-6 dark:bg-n-solid-3"
-    >
+    <article class="rounded-xl shadow-sm border border-n-weak bg-n-solid-2 p-5">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p class="m-0 text-sm text-n-slate-11">
@@ -143,20 +164,21 @@ onMounted(async () => {
             <h2 class="mb-1 mt-1 text-heading-2">
               {{ planName || t('BILLING_SETTINGS.USAGE.FREE_PLAN') }}
             </h2>
-            <span
-              class="rounded-full bg-n-slate-3 px-2 py-1 text-xs text-n-slate-11"
-            >
+            <InfoChip>
               {{ planStatus }}
-            </span>
+            </InfoChip>
           </div>
           <p class="m-0 text-sm text-n-slate-11">
             {{ renewalDate || t('BILLING_SETTINGS.USAGE.FREE_PLAN') }}
+          </p>
+          <p v-if="resetDate" class="m-0 text-sm text-n-slate-11">
+            {{ t('BILLING_SETTINGS.USAGE.RESET_DATE', { date: resetDate }) }}
           </p>
         </div>
         <ButtonV4
           :label="t('PLAN_CATALOG.COMPARE')"
           sm
-          variant="outline"
+          intent="secondary"
           @click="emit('comparePlans')"
         />
       </div>
@@ -169,7 +191,7 @@ onMounted(async () => {
         <ButtonV4
           :label="t('BILLING_SETTINGS.USAGE.GO_TO_BILLING')"
           sm
-          variant="outline"
+          intent="secondary"
           @click="emit('billing')"
         />
       </div>
@@ -193,10 +215,10 @@ onMounted(async () => {
       <article
         v-for="bag in bags"
         :key="bag.key"
-        class="rounded-xl border border-n-weak bg-n-solid-1 p-4 dark:bg-n-solid-3"
+        class="rounded-xl shadow-sm border border-n-weak bg-n-solid-2 p-5"
       >
         <h3 class="m-0 flex items-center gap-2 text-base font-medium">
-          <BagIcon :bag="bag.bag" class="size-4 shrink-0" />
+          <BagIcon :bag="bag.key" class="size-4 shrink-0" />
           {{ bag.title }}
         </h3>
         <p
@@ -205,8 +227,8 @@ onMounted(async () => {
         >
           {{
             t('BILLING_SETTINGS.USAGE.USED_INCLUDED', {
-              used: bag.limits.consumed,
-              included: bag.limits.totalCount,
+              used: numberFormatter.format(bag.limits.consumed),
+              included: numberFormatter.format(bag.limits.totalCount),
             })
           }}
         </p>
@@ -215,12 +237,8 @@ onMounted(async () => {
           class="h-2 overflow-hidden rounded-full bg-n-slate-3"
           role="progressbar"
           :aria-label="bag.title"
-          :aria-valuenow="
-            Math.min(
-              100,
-              Math.round((bag.limits.consumed / bag.limits.totalCount) * 100)
-            )
-          "
+          :aria-valuenow="bag.percent"
+          :aria-valuetext="bag.percentLabel"
           aria-valuemin="0"
           aria-valuemax="100"
         >
@@ -233,14 +251,7 @@ onMounted(async () => {
             <rect
               x="0"
               y="0"
-              :width="
-                Math.min(
-                  100,
-                  Math.round(
-                    (bag.limits.consumed / bag.limits.totalCount) * 100
-                  )
-                )
-              "
+              :width="bag.percent"
               height="8"
               :class="
                 bag.limits.consumed >= bag.limits.totalCount
@@ -256,16 +267,7 @@ onMounted(async () => {
           v-if="bag.mode === 'included'"
           class="mb-0 mt-2 text-xs text-n-slate-11"
         >
-          {{
-            t('BILLING_SETTINGS.USAGE.PERCENT_USED', {
-              percent: Math.round(
-                (bag.limits.consumed / bag.limits.totalCount) * 100
-              ),
-            })
-          }}
-          <span v-if="resetDate" class="block pt-1">
-            {{ t('BILLING_SETTINGS.USAGE.RESET_DATE', { date: resetDate }) }}
-          </span>
+          {{ bag.percentLabel }}
         </p>
         <p v-else class="mb-0 mt-2 text-sm text-n-slate-11">
           {{ bagModeLabels[bag.mode] }}
@@ -279,65 +281,54 @@ onMounted(async () => {
       {{ t('BILLING_SETTINGS.USAGE.NO_INCLUDED_BAGS') }}
     </p>
 
-    <div class="grid gap-4 lg:grid-cols-3">
-      <section
-        class="min-h-60 rounded-xl border border-n-weak bg-n-solid-1 p-4 dark:bg-n-solid-3 lg:col-span-2"
-        aria-labelledby="usage-chart-heading"
+    <section
+      class="min-w-0 rounded-xl shadow-sm border border-n-weak bg-n-solid-2 p-5"
+      aria-labelledby="usage-chart-heading"
+    >
+      <h2 id="usage-chart-heading" class="mb-1 mt-0 text-heading-3">
+        {{ t('BILLING_SETTINGS.USAGE.DAILY_TITLE') }}
+      </h2>
+      <p v-if="periodLabel" class="mb-3 mt-0 text-sm text-n-slate-11">
+        {{ periodLabel }}
+      </p>
+      <ul
+        class="mb-3 mt-0 flex flex-wrap gap-x-5 gap-y-2 p-0 list-none text-sm text-n-slate-11"
       >
-        <h2 id="usage-chart-heading" class="mb-3 mt-0 text-heading-3">
-          {{ t('BILLING_SETTINGS.USAGE.DAILY_TITLE') }}
-        </h2>
-        <div
-          v-if="isLoadingUsage && !error"
-          class="h-48 animate-pulse rounded-lg bg-n-slate-2 dark:bg-n-solid-3"
-          aria-hidden="true"
+        <li v-for="bag in bags" :key="bag.key" class="flex items-center gap-2">
+          <span
+            class="size-2 rounded-sm"
+            :class="bag.legendColor"
+            aria-hidden="true"
+          />
+          <BagIcon :bag="bag.key" class="size-4 shrink-0" />
+          {{ bag.title }}
+        </li>
+      </ul>
+      <div
+        v-if="isLoadingUsage && !error"
+        class="h-48 animate-pulse rounded-lg bg-n-slate-2 dark:bg-n-solid-3"
+        aria-hidden="true"
+      />
+      <p v-if="error" class="m-0 text-sm text-n-ruby-11" role="alert">
+        {{ t('BILLING_SETTINGS.USAGE.ERROR') }}
+      </p>
+      <p v-else-if="empty" class="m-0 text-sm text-n-slate-11">
+        {{ t('BILLING_SETTINGS.USAGE.EMPTY') }}
+      </p>
+      <div
+        v-if="!isLoadingUsage && !error && chartRows.length"
+        class="min-w-0 max-w-full"
+      >
+        <BarChart
+          :data="chartData"
+          :aria-label="t('BILLING_SETTINGS.USAGE.CHART_LABEL')"
+          :format-value="formatChartValue"
+          :y-step-size="chartStepSize"
+          :height="256"
+          timeseries
         />
-        <p v-if="error" class="m-0 text-sm text-n-ruby-11" role="alert">
-          {{ t('BILLING_SETTINGS.USAGE.ERROR') }}
-        </p>
-        <p v-else-if="empty" class="m-0 text-sm text-n-slate-11">
-          {{ t('BILLING_SETTINGS.USAGE.EMPTY') }}
-        </p>
-        <div v-else-if="!isLoadingUsage" class="overflow-x-auto">
-          <svg
-            class="h-48 min-w-[32rem] w-full"
-            viewBox="0 0 600 190"
-            role="img"
-            :aria-label="t('BILLING_SETTINGS.USAGE.CHART_LABEL')"
-          >
-            <g
-              v-for="(row, index) in chartRows"
-              :key="row.day"
-              :transform="`translate(${index * (560 / chartRows.length) + 24}, 0)`"
-            >
-              <rect
-                v-for="(segment, segmentIndex) in [
-                  row.captain_responses,
-                  row.copilot,
-                  row.internal,
-                ]"
-                :key="segmentIndex"
-                :x="segmentIndex * 8"
-                :y="160 - (segment / maxDaily) * 130"
-                width="6"
-                :height="Math.max(1, (segment / maxDaily) * 130)"
-                :class="
-                  ['fill-n-blue-9', 'fill-n-violet-9', 'fill-n-teal-9'][
-                    segmentIndex
-                  ]
-                "
-              />
-              <text
-                v-if="index % Math.ceil(chartRows.length / 8) === 0"
-                x="0"
-                y="180"
-                class="fill-n-slate-11 text-[10px]"
-              >
-                {{ dateLabel(row.day) }}
-              </text>
-            </g>
-          </svg>
-          <table class="sr-only">
+        <div class="sr-only">
+          <table>
             <caption>
               {{
                 t('BILLING_SETTINGS.USAGE.CHART_LABEL')
@@ -361,43 +352,18 @@ onMounted(async () => {
             </tbody>
           </table>
         </div>
-      </section>
-      <section
-        class="min-h-60 rounded-xl border border-n-weak bg-n-solid-1 p-4 dark:bg-n-solid-3"
-        aria-labelledby="usage-sources-heading"
-      >
-        <h2 id="usage-sources-heading" class="mb-3 mt-0 text-heading-3">
-          {{ t('BILLING_SETTINGS.USAGE.TOP_SOURCES') }}
-        </h2>
-        <p v-if="error" class="m-0 text-sm text-n-slate-11">
-          {{ t('BILLING_SETTINGS.USAGE.ERROR') }}
-        </p>
-        <ol v-else class="m-0 space-y-3 ps-5 text-sm">
-          <li
-            v-for="source in sourceTotals"
-            :key="source.key"
-            class="flex justify-between gap-3"
-          >
-            <span class="flex items-center gap-2">
-              <BagIcon :bag="source.bag" class="size-4 shrink-0" />
-              {{ source.label }}
-            </span>
-            <strong>{{ source.total }}</strong>
-          </li>
-        </ol>
-      </section>
-    </div>
+      </div>
+    </section>
 
     <section
       v-if="storageLimits || agentsMeterData || inboxesMeterData"
-      class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+      class="grid gap-5 rounded-xl shadow-sm border border-n-weak bg-n-solid-2 py-5 sm:grid-cols-2 xl:grid-cols-3"
       :aria-label="t('BILLING_SETTINGS.USAGE.PLAN_RESOURCES')"
     >
       <BillingMeter
         v-if="storageLimits"
         :title="t('BILLING_SETTINGS.CAPTAIN.STORAGE')"
         v-bind="storageLimits"
-        :period-end="periodEnd"
         unit="bytes"
       />
       <BillingMeter

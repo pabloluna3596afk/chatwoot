@@ -7,6 +7,10 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
+  tabListLabel: {
+    type: String,
+    default: '',
+  },
   tabs: {
     type: Array,
     required: true,
@@ -58,6 +62,22 @@ const selectTab = index => {
   emit('tabChanged', props.tabs[index]);
 };
 
+const onKeydown = (event, index) => {
+  if (!props.tabListLabel) return;
+  const offsets = { ArrowLeft: -1, ArrowRight: 1 };
+  let nextIndex;
+  if (event.key === 'Home') nextIndex = 0;
+  else if (event.key === 'End') nextIndex = props.tabs.length - 1;
+  else if (event.key in offsets) {
+    nextIndex =
+      (index + offsets[event.key] + props.tabs.length) % props.tabs.length;
+  } else return;
+
+  event.preventDefault();
+  selectTab(nextIndex);
+  tabRefs.value[nextIndex]?.focus();
+};
+
 const showDivider = index => {
   return (
     // Show dividers after the active tab, but not after the last tab
@@ -70,6 +90,8 @@ const showDivider = index => {
 
 <template>
   <div
+    :role="tabListLabel ? 'tablist' : undefined"
+    :aria-label="tabListLabel || undefined"
     class="relative flex items-center h-8 rounded-lg bg-n-alpha-1 dark:bg-n-solid-1 w-fit transition-all duration-200 ease-out has-[button:active]:scale-[1.01]"
   >
     <div
@@ -80,15 +102,22 @@ const showDivider = index => {
 
     <template v-for="(tab, index) in tabs" :key="index">
       <button
+        :id="tab.id"
         :ref="el => (tabRefs[index] = el)"
         type="button"
+        :role="tabListLabel ? 'tab' : undefined"
+        :aria-selected="tabListLabel ? activeTab === index : undefined"
+        :aria-controls="tab.controls"
+        :tabindex="tabListLabel ? (activeTab === index ? 0 : -1) : undefined"
         class="relative z-10 px-4 truncate py-1.5 text-sm border-0 outline-1 outline-transparent rounded-lg transition-all duration-200 ease-out hover:text-n-brand active:scale-[1.02]"
         :class="[
           activeTab === index
             ? 'text-n-blue-11 scale-100'
             : 'text-n-slate-10 scale-[0.98]',
+          { 'focus-visible:outline-n-blue-9': tabListLabel },
         ]"
         @click="selectTab(index)"
+        @keydown="onKeydown($event, index)"
       >
         {{ tab.label }} {{ tab.count ? `(${tab.count})` : '' }}
       </button>

@@ -1,5 +1,11 @@
 # Chatwoot Development Guidelines
 
+## Visual changes — required review before PR
+
+- Reuse existing ChatHub components, design tokens and interaction patterns; do not invent a separate visual style.
+- Run the actual app and provide real browser screenshots or a localhost preview before creating a PR. Demo data is allowed when clearly identified.
+- Obtain the user's visual approval before creating the PR. Mockups do not count as verification.
+
 ## Build / Test / Lint
 
 - **Setup**: `bundle install && pnpm install`
