@@ -674,6 +674,20 @@
           "REFRESH": "Refresh usage",
           "BUY_MORE": "Buy more credits"
         },
+        "USAGE_BREAKDOWN": {
+          "TITLE": "Usage by feature",
+          "PERIOD": "From {start} to {end}",
+          "BAGS_LABEL": "AI usage pools",
+          "REFRESH": "Refresh feature usage",
+          "LOADING": "Loading feature usage",
+          "ERROR": "Could not load feature usage.",
+          "RETRY": "Try again",
+          "EMPTY": "There is no usage in this period yet.",
+          "OPERATIONS": "{count} operation | {count} operations",
+          "UNITS": "{count} unit | {count} units",
+          "LAST_USED": "Last used {date}",
+          "BAR_LABEL": "Usage for {name}"
+        },
         "KNOWLEDGE": {
           "SUGGESTED": "Suggested FAQs",
           "REVIEW": "Review FAQs"
