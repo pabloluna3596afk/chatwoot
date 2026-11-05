@@ -9,28 +9,57 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
   # range to the API as 413s. Long audio (~70+ min Opus) keeps the source audio but
   # skips transcription.
   BYTE_LIMIT = 25_000_000
+  ESTIMATED_BYTES_PER_SECOND = 4_000.0
+  MAX_ESTIMATED_DURATION_SECONDS = BYTE_LIMIT / ESTIMATED_BYTES_PER_SECOND
+  MAX_ESTIMATED_DURATION_UNITS = (MAX_ESTIMATED_DURATION_SECONDS / 60).ceil
 
   attr_reader :blob, :account, :transcription_model
 
   USAGE_BUCKET = :internal
   USAGE_FEATURE = 'audio_transcription'.freeze
 
-  # Transcription runs on Captain's OpenAI credentials and consumes internal AI credits.
-  def self.available_for?(account)
-    return false unless account.feature_enabled?('captain_integration')
-    return false if account.audio_transcriptions.blank?
+  def self.units_for(attachment)
+    (duration_seconds(attachment) / 60.0).ceil.clamp(1, MAX_ESTIMATED_DURATION_UNITS)
+  end
 
-    account.usage_limits[:captain][:internal][:current_available].positive?
+  def self.duration_seconds(attachment)
+    duration = (attachment.meta || {}).values_at('duration_seconds', 'duration').compact.first
+    seconds = Float(duration) if duration.present?
+    return seconds if seconds&.finite? && seconds.positive?
+
+    estimated_duration_seconds(attachment)
+  rescue ArgumentError, TypeError
+    estimated_duration_seconds(attachment)
+  end
+  private_class_method :duration_seconds
+
+  def self.estimated_duration_seconds(attachment)
+    byte_size = attachment.file&.attached? ? attachment.file.blob.byte_size : 0
+    [byte_size / ESTIMATED_BYTES_PER_SECOND, MAX_ESTIMATED_DURATION_SECONDS].min
+  end
+  private_class_method :estimated_duration_seconds
+
+  # Transcription runs on Captain's OpenAI credentials and consumes internal AI credits.
+  def self.available_for?(account, require_auto_setting: true)
+    return false unless account.feature_enabled?('captain_integration')
+    return false unless account.feature_enabled?('captain_tasks')
+    return false if require_auto_setting && account.audio_transcriptions.blank?
+
+    internal_limits = account.usage_limits.dig(:captain, :internal)
+    return false if account.plan.present? && internal_limits[:total_count].nil?
+
+    internal_limits[:current_available].to_i.positive?
   end
 
   def self.too_large?(blob)
     blob.present? && blob.byte_size > BYTE_LIMIT
   end
 
-  def initialize(blob:, account:)
+  def initialize(blob:, account:, units: 1)
     super()
     @blob = blob
     @account = account
+    @units = units
     @transcription_model = Llm::FeatureRouter.resolve(feature: 'audio_transcription', account: account)[:model]
   end
 
@@ -69,7 +98,7 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
     return unless reservation_receipt_required?
 
     reservation_id = SecureRandom.uuid
-    return false unless account.reserve_captain_ai_usage!(bucket: USAGE_BUCKET, reservation_id: reservation_id)
+    return false unless account.reserve_captain_ai_usage!(bucket: USAGE_BUCKET, reservation_id: reservation_id, units: @units)
 
     reservation_id
   end

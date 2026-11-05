@@ -289,6 +289,26 @@ RSpec.describe Account, type: :model do
         expect(captain_responses_used(account)).to eq(0)
       end
 
+      it 'reserves multiple internal units atomically and rejects a reservation above the remainder' do
+        account.plan.update!(captain_internal_calls: 4)
+        reservation_id = SecureRandom.uuid
+
+        expect(account.reserve_captain_ai_usage!(bucket: :internal, units: 3, reservation_id: reservation_id)).to be(true)
+        expect(account.usage_limits.dig(:captain, :internal)).to include(consumed: 3, current_available: 1)
+        expect(account.reserve_captain_ai_usage!(bucket: :internal, units: 2)).to be(false)
+        expect(AiUsageReservation.find_by!(reservation_id: reservation_id).units).to eq(3)
+      end
+
+      it 'releases all units from a failed multi-unit reservation' do
+        account.plan.update!(captain_internal_calls: 5)
+        reservation_id = SecureRandom.uuid
+        account.reserve_captain_ai_usage!(bucket: :internal, units: 5, reservation_id: reservation_id)
+
+        expect(account.usage_limits.dig(:captain, :internal)).to include(consumed: 5, current_available: 0)
+        expect(account.release_captain_ai_usage!(bucket: :internal, reservation_id: reservation_id)).to be(true)
+        expect(account.usage_limits.dig(:captain, :internal)).to include(consumed: 0, current_available: 5)
+      end
+
       it 'releases a failed internal reservation exactly once', :aggregate_failures do
         account.plan.update!(captain_internal_calls: 1)
         reservation_id = SecureRandom.uuid

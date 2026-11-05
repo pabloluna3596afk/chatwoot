@@ -36,27 +36,34 @@ RSpec.describe Llm::SpeechToTextService, type: :service do
     end
 
     it 'is false when audio transcriptions are disabled on the account' do
-      account.enable_features!('captain_integration')
+      account.enable_features!('captain_integration', 'captain_tasks')
       account.update!(audio_transcriptions: false)
 
       expect(described_class.available_for?(account)).to be(false)
     end
 
     it 'is false when no internal AI credits are available' do
-      account.enable_features!('captain_integration')
+      account.enable_features!('captain_integration', 'captain_tasks')
       allow(account).to receive(:usage_limits).and_return(captain: { internal: { current_available: 0 } })
 
       expect(described_class.available_for?(account)).to be(false)
     end
 
+    it 'is false when the assigned plan has no internal action bag' do
+      put_account_on_plan(account, captain_internal_calls: nil)
+      account.enable_features!('captain_integration', 'captain_tasks')
+
+      expect(described_class.available_for?(account)).to be(false)
+    end
+
     it 'is true when the feature, setting and credits are all present' do
-      account.enable_features!('captain_integration')
+      account.enable_features!('captain_integration', 'captain_tasks')
 
       expect(described_class.available_for?(account)).to be(true)
     end
 
     it 'uses internal availability even when the response pool is exhausted' do
-      account.enable_features!('captain_integration')
+      account.enable_features!('captain_integration', 'captain_tasks')
       allow(account).to receive(:usage_limits).and_return(
         captain: { internal: { current_available: 1 }, responses: { current_available: 0 } }
       )
@@ -74,6 +81,41 @@ RSpec.describe Llm::SpeechToTextService, type: :service do
       allow(attachment.file.blob).to receive(:byte_size).and_return(described_class::BYTE_LIMIT + 1)
 
       expect(described_class.too_large?(attachment.file.blob)).to be(true)
+    end
+  end
+
+  describe '.units_for' do
+    it 'charges one unit for ten seconds and rounds started minutes up' do
+      attachment.update!(meta: { duration_seconds: 10 })
+      expect(described_class.units_for(attachment)).to eq(1)
+
+      attachment.update!(meta: { duration_seconds: 61 })
+      expect(described_class.units_for(attachment)).to eq(2)
+    end
+
+    it 'charges five units for five minutes' do
+      attachment.update!(meta: { duration_seconds: 300 })
+
+      expect(described_class.units_for(attachment)).to eq(5)
+    end
+
+    it 'estimates duration from blob size when metadata is unavailable' do
+      allow(attachment.file.blob).to receive(:byte_size).and_return(4_000 * 61)
+
+      expect(described_class.units_for(attachment)).to eq(2)
+    end
+
+    it 'estimates duration from blob size when metadata is invalid' do
+      attachment.update!(meta: { duration_seconds: 'invalid' })
+      allow(attachment.file.blob).to receive(:byte_size).and_return(4_000 * 300)
+
+      expect(described_class.units_for(attachment)).to eq(5)
+    end
+
+    it 'caps the estimated duration at the maximum transcribable size' do
+      allow(attachment.file.blob).to receive(:byte_size).and_return(described_class::BYTE_LIMIT * 2)
+
+      expect(described_class.units_for(attachment)).to eq(described_class::MAX_ESTIMATED_DURATION_UNITS)
     end
   end
 
@@ -118,6 +160,18 @@ RSpec.describe Llm::SpeechToTextService, type: :service do
       expect(account.reload.usage_limits.dig(:captain, :internal, :consumed)).to eq(1)
       expect(captain_responses_used(account)).to eq(0)
       expect(AiUsageEvent.where(account: account, feature: 'audio_transcription', bucket: 'internal', status: 'ok').count).to eq(1)
+    end
+
+    it 'charges five internal credits for a five-minute audio' do
+      put_account_on_plan(account, captain_internal_calls: 5)
+      attachment.update!(meta: { duration_seconds: 300 })
+      service = described_class.new(blob: attachment.file.blob, account: account, units: described_class.units_for(attachment))
+      allow(service).to receive(:fetch_audio_file).and_return(audio_file_path)
+      allow(service.client).to receive(:audio).and_return(audio_api)
+      allow(audio_api).to receive(:transcribe).and_return({ 'text' => 'Audio transcript' })
+
+      expect(service.perform).to eq('Audio transcript')
+      expect(account.reload.usage_limits.dig(:captain, :internal, :consumed)).to eq(5)
     end
 
     it 'does not consume a credit when the transcription is blank and releases the reservation' do
@@ -166,6 +220,19 @@ RSpec.describe Llm::SpeechToTextService, type: :service do
       allow(audio_api).to receive(:transcribe).and_return({ 'text' => 'Audio transcript' })
       expect(service.perform).to eq('Audio transcript')
       expect(account.reload.usage_limits.dig(:captain, :internal, :consumed)).to eq(1)
+    end
+
+    it 'reserves and releases all duration-based units when the provider fails' do
+      put_account_on_plan(account, captain_internal_calls: 5)
+      attachment.update!(meta: { duration_seconds: 300 })
+      service = described_class.new(blob: attachment.file.blob, account: account, units: 5)
+      allow(service).to receive(:fetch_audio_file).and_return(audio_file_path)
+      allow(service.client).to receive(:audio).and_return(audio_api)
+      allow(audio_api).to receive(:transcribe).and_raise(Faraday::ConnectionFailed, 'provider unavailable')
+
+      expect { service.perform }.to raise_error(Faraday::ConnectionFailed)
+      expect(account.reload.usage_limits.dig(:captain, :internal, :consumed)).to eq(0)
+      expect(AiUsageReservation.joins(:account_plan_usage).where(account_plan_usages: { account_id: account.id }, released_at: nil)).to be_empty
     end
 
     it 'transcribes without requiring a receipt when the account has no usage period' do

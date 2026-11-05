@@ -268,6 +268,7 @@ Rails.application.routes.draw do
               post :mute
               post :unmute
               post :transcript
+              post :transcribe_audio if ChatwootApp.enterprise?
               post :toggle_status
               post :toggle_priority
               post :toggle_typing_status

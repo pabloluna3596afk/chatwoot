@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_10_29_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_04_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -271,6 +271,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_10_29_120000) do
     t.string "reservation_id", null: false
     t.string "bucket", null: false
     t.datetime "released_at"
+    t.integer "units", default: 1, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["account_plan_usage_id"], name: "index_ai_usage_reservations_on_account_plan_usage_id"

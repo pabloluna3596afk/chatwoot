@@ -40,10 +40,13 @@ describe('AudioTranscription', () => {
   });
 
   it.each([
-    ['en', 'Each transcribed audio uses one internal AI action.'],
+    [
+      'en',
+      'Transcription uses one internal AI action per started minute (minimum one).',
+    ],
     [
       'es',
-      'Cada audio transcrito se descuenta de tus acciones internas de IA.',
+      'La transcripción consume una acción interna de IA por cada minuto iniciado (mínimo una).',
     ],
   ])('shows the usage note in %s', (locale, note) => {
     expect(mountComponent(locale).text()).toContain(note);

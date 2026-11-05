@@ -6,12 +6,17 @@ import {
   ref,
   watch,
   getCurrentInstance,
+  watchEffect,
 } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Icon from 'next/icon/Icon.vue';
 import { timeStampAppendedURL } from 'dashboard/helper/URLHelper';
 import { downloadFile } from '@chatwoot/utils';
 import { useEmitter } from 'dashboard/composables/emitter';
 import { emitter } from 'shared/helpers/mitt';
+import { useAlert } from 'dashboard/composables';
+import ConversationAPI from 'dashboard/api/inbox/conversation';
+import { useMessageContext } from '../provider.js';
 
 const { attachment } = defineProps({
   attachment: {
@@ -23,6 +28,8 @@ const { attachment } = defineProps({
     default: true,
   },
 });
+const { conversationId } = useMessageContext();
+const { t } = useI18n();
 
 defineOptions({
   inheritAttrs: false,
@@ -33,15 +40,58 @@ const timeStampURL = computed(() => {
 });
 
 const TRANSCRIPT_PREVIEW_LENGTH = 200;
+const transcribedText = ref(attachment.transcribedText || '');
+const transcriptionQuota = ref(attachment.transcriptionQuota || {});
+const isTranscribing = ref(false);
 const isTranscriptExpanded = ref(false);
 const isTranscriptLong = computed(
-  () => (attachment.transcribedText?.length || 0) > TRANSCRIPT_PREVIEW_LENGTH
+  () => (transcribedText.value?.length || 0) > TRANSCRIPT_PREVIEW_LENGTH
 );
 const displayedTranscript = computed(() => {
-  const text = attachment.transcribedText || '';
+  const text = transcribedText.value || '';
   if (!isTranscriptLong.value || isTranscriptExpanded.value) return text;
   return `${text.slice(0, TRANSCRIPT_PREVIEW_LENGTH).trimEnd()}…`;
 });
+watchEffect(() => {
+  transcribedText.value = attachment.transcribedText || '';
+  transcriptionQuota.value = attachment.transcriptionQuota || {};
+});
+const transcriptionTooltip = computed(() => {
+  if (transcriptionQuota.value.reason === 'plan_unavailable') {
+    return t('CONVERSATION.AUDIO_TRANSCRIPTION.PLAN_REQUIRED');
+  }
+  if (transcriptionQuota.value.reason === 'quota_insufficient') {
+    return t('CONVERSATION.AUDIO_TRANSCRIPTION.INSUFFICIENT', {
+      units: transcriptionQuota.value.units,
+      remaining: transcriptionQuota.value.remaining,
+    });
+  }
+  if (transcriptionQuota.value.reason === 'quota_exhausted') {
+    return t('CONVERSATION.AUDIO_TRANSCRIPTION.QUOTA_EXHAUSTED');
+  }
+  return t('CONVERSATION.AUDIO_TRANSCRIPTION.BUTTON');
+});
+const transcribeAudio = async () => {
+  if (isTranscribing.value || !transcriptionQuota.value.available) return;
+  isTranscribing.value = true;
+  try {
+    const { data } = await ConversationAPI.transcribeAudio({
+      conversationId: conversationId.value,
+      attachmentId: attachment.id,
+    });
+    transcribedText.value = data.transcriptions || '';
+  } catch (error) {
+    const result = error?.response?.data;
+    if (result?.quota) {
+      transcriptionQuota.value = { ...result.quota, available: false };
+      useAlert(transcriptionTooltip.value);
+    } else {
+      useAlert(t('CONVERSATION.AUDIO_TRANSCRIPTION.ERROR'));
+    }
+  } finally {
+    isTranscribing.value = false;
+  }
+};
 
 const audioPlayer = useTemplateRef('audioPlayer');
 
@@ -168,12 +218,18 @@ const toggleMute = () => {
 const onTimeUpdate = () => {
   if (isProbingDuration.value) return;
 
-  const t = audioPlayer.value?.currentTime;
-  if (!Number.isFinite(t) || t < 0 || t > MAX_DISPLAY_SECONDS) return;
+  const currentPlaybackTime = audioPlayer.value?.currentTime;
+  if (
+    !Number.isFinite(currentPlaybackTime) ||
+    currentPlaybackTime < 0 ||
+    currentPlaybackTime > MAX_DISPLAY_SECONDS
+  ) {
+    return;
+  }
   // Ignore probe overshoots if duration is already known
-  if (duration.value > 0 && t > duration.value + 1) return;
+  if (duration.value > 0 && currentPlaybackTime > duration.value + 1) return;
 
-  currentTime.value = t;
+  currentTime.value = currentPlaybackTime;
 };
 
 const seek = event => {
@@ -277,12 +333,35 @@ const downloadAudio = async () => {
       >
         <Icon class="size-4" icon="i-lucide-download" />
       </button>
+      <button
+        v-if="!transcribedText && showTranscribedText"
+        v-tooltip.top="transcriptionTooltip"
+        type="button"
+        class="p-0 border-0 size-8 grid place-content-center disabled:cursor-not-allowed disabled:opacity-50"
+        :disabled="!transcriptionQuota.available || isTranscribing"
+        :aria-label="transcriptionTooltip"
+        @click="transcribeAudio"
+      >
+        <Icon
+          class="size-4"
+          :class="{ 'animate-spin': isTranscribing }"
+          :icon="
+            isTranscribing
+              ? 'i-lucide-loader-circle'
+              : 'i-material-symbols-speech-to-text'
+          "
+        />
+      </button>
     </div>
 
     <div
-      v-if="attachment.transcribedText && showTranscribedText"
-      class="text-n-slate-12 p-3 text-sm bg-n-alpha-1 rounded-lg w-full break-words"
+      v-if="transcribedText && showTranscribedText"
+      class="relative text-n-slate-12 p-3 pe-8 text-sm bg-n-alpha-1 rounded-lg w-full break-words"
     >
+      <span
+        class="i-lucide-sparkles absolute end-2 top-2 size-3 text-n-slate-10"
+        aria-hidden="true"
+      />
       {{ displayedTranscript }}
       <button
         v-if="isTranscriptLong"
