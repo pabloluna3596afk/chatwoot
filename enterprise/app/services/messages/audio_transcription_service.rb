@@ -1,14 +1,17 @@
 class Messages::AudioTranscriptionService
   attr_reader :attachment, :message, :account
 
-  def initialize(attachment)
+  # assistant: true is the Captain assistant reading a customer's voice note to answer; it has no
+  # agent in the loop, so only the account switch (not an agent's personal one) gates it.
+  def initialize(attachment, assistant: false)
     @attachment = attachment
+    @assistant = assistant
     @message = attachment.message
     @account = message&.account
   end
 
   def perform(manual: false)
-    error = preflight_error
+    error = preflight_error(manual: manual)
     return { error: error } if error
 
     attachment.with_lock { perform_locked(manual: manual) }
@@ -19,6 +22,8 @@ class Messages::AudioTranscriptionService
 
   def quota_preview
     units = Llm::SpeechToTextService.units_for(attachment)
+    return { units: units, available: false, reason: 'account_disabled' } if account.audio_transcriptions.blank?
+
     enabled = account.feature_enabled?('captain_integration') && account.feature_enabled?('captain_tasks') &&
               internal_bag_configured_for_preview?
     { units: units, available: enabled, reason: enabled ? nil : 'plan_unavailable' }
@@ -26,10 +31,19 @@ class Messages::AudioTranscriptionService
 
   private
 
-  def preflight_error
+  def preflight_error(manual:)
     return 'Message not found' if message.blank?
+
+    error = switch_error(manual)
+    return error if error
     return 'Transcription disabled for this inbox' if call_recording_transcription_disabled?
     return 'Audio too large for transcription' if Llm::SpeechToTextService.too_large?(attachment.file&.blob)
+  end
+
+  def switch_error(manual)
+    return ('feature_disabled' if account.audio_transcriptions.blank?) if manual
+
+    'automatic_transcription_disabled' unless auto_transcription_allowed?
   end
 
   def perform_locked(manual:)
@@ -74,7 +88,8 @@ class Messages::AudioTranscriptionService
     remaining = internal_limits[:current_available].to_i
     units = Llm::SpeechToTextService.units_for(attachment)
     enabled = account.feature_enabled?('captain_integration') && account.feature_enabled?('captain_tasks')
-    enabled &&= internal_bag_available?(internal_limits) && automatic_transcription_enabled?(manual)
+    enabled &&= internal_bag_available?(internal_limits) && account.audio_transcriptions.present? &&
+                (manual || auto_transcription_allowed?)
     { error: quota_error_reason(enabled, remaining, units), units: units, remaining: remaining }
   end
 
@@ -86,8 +101,14 @@ class Messages::AudioTranscriptionService
     (account[:limits] || {})['captain_internal'].present?
   end
 
-  def automatic_transcription_enabled?(manual)
-    manual || account.audio_transcriptions.present?
+  def auto_transcription_allowed?
+    return account.audio_transcriptions.present? if @assistant
+
+    assignee = message.conversation.assignee
+    return false if assignee.blank?
+    return false unless attachment.meta&.[]('auto_transcription_assignee_id').to_s == assignee.id.to_s
+
+    account.audio_transcriptions.present? && assignee.auto_transcribe_audio?
   end
 
   def quota_error_reason(enabled, remaining, units)

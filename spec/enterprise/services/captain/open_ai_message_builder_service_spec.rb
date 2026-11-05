@@ -118,7 +118,7 @@ RSpec.describe Captain::OpenAiMessageBuilderService do
       end
 
       before do
-        allow(Messages::AudioTranscriptionService).to receive(:new).with(audio_attachment).and_return(
+        allow(Messages::AudioTranscriptionService).to receive(:new).with(audio_attachment, assistant: true).and_return(
           instance_double(Messages::AudioTranscriptionService, perform: { success: true, transcriptions: 'Audio transcription text' })
         )
       end
@@ -162,7 +162,7 @@ RSpec.describe Captain::OpenAiMessageBuilderService do
       end
 
       before do
-        allow(Messages::AudioTranscriptionService).to receive(:new).with(audio_attachment).and_return(
+        allow(Messages::AudioTranscriptionService).to receive(:new).with(audio_attachment, assistant: true).and_return(
           instance_double(Messages::AudioTranscriptionService, perform: { success: true, transcriptions: 'Audio text' })
         )
       end
@@ -294,10 +294,10 @@ RSpec.describe Captain::OpenAiMessageBuilderService do
       end
 
       before do
-        allow(Messages::AudioTranscriptionService).to receive(:new).with(audio1).and_return(
+        allow(Messages::AudioTranscriptionService).to receive(:new).with(audio1, assistant: true).and_return(
           instance_double(Messages::AudioTranscriptionService, perform: { success: true, transcriptions: 'First audio text. ' })
         )
-        allow(Messages::AudioTranscriptionService).to receive(:new).with(audio2).and_return(
+        allow(Messages::AudioTranscriptionService).to receive(:new).with(audio2, assistant: true).and_return(
           instance_double(Messages::AudioTranscriptionService, perform: { success: true, transcriptions: 'Second audio text.' })
         )
       end
@@ -320,7 +320,7 @@ RSpec.describe Captain::OpenAiMessageBuilderService do
       end
 
       before do
-        allow(Messages::AudioTranscriptionService).to receive(:new).with(audio_attachment).and_return(
+        allow(Messages::AudioTranscriptionService).to receive(:new).with(audio_attachment, assistant: true).and_return(
           instance_double(Messages::AudioTranscriptionService, perform: { success: false, transcriptions: nil })
         )
       end

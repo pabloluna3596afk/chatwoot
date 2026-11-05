@@ -112,7 +112,7 @@
       },
       "AUDIO_TRANSCRIPTION": {
         "TITLE": "Transcribe Audio Messages",
-        "NOTE": "Automatically transcribe audio messages in conversations. Generate a text transcript whenever an audio message is sent or received, and display it alongside the message.",
+        "NOTE": "Enable audio transcription. Each agent can choose in their profile whether to transcribe audio automatically.",
         "USAGE_NOTE": "Transcription uses one internal AI action per started minute (minimum one).",
         "API": {
           "SUCCESS": "Audio transcription setting updated successfully",

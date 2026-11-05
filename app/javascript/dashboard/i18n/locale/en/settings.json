@@ -136,6 +136,11 @@
         "RESET_SUCCESS": "Access token regenerated successfully",
         "RESET_ERROR": "Unable to regenerate access token. Please try again"
       },
+      "AUTO_AUDIO_TRANSCRIPTION": {
+        "TITLE": "Automatically transcribe audio",
+        "NOTE": "Choose whether your audio messages are transcribed automatically when your account administrator enables audio transcription.",
+        "ADMIN_REQUIRED": "The account administrator must enable audio transcription."
+      },
       "AUDIO_NOTIFICATIONS_SECTION": {
         "TITLE": "Audio Alerts",
         "NOTE": "Enable audio alerts in dashboard for new messages and conversations.",
