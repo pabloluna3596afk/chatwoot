@@ -252,6 +252,7 @@ Full change brief for AI/human review of the Tasks + alerts PR: [`docs/INTERNAL_
 - Dashboard ding is **not** browser push sound. Agents must enable **Profile → Audio notifications** (`assigned` / `unassigned` / etc.). Default remains `none`.
 - Tone `ding` now initializes `Audio` on first `set()` (previously stayed `null` until tone changed).
 - Incoming contact messages on **pending** (bot) conversations can alert; other pending traffic stays quiet.
+- Public plan catalog: `GET /public/api/v1/plans` (no auth, `Plan.catalog` through `Plans::PublicSerializer` allowlist, ETag + short TTL). CORS only for the website origins in `PLANS_CORS_ORIGINS` (comma separated, default `https://paluhub.com,https://www.paluhub.com`); the other `/public/api/*` routes keep `origins '*'`.
 - Presence: client ping **60s**, server `PRESENCE_DURATION` default **90** (set in `.env` / Dokploy). If agents look offline after switching tabs, raise `PRESENCE_DURATION` further.
 - Background tab “disconnect”: ActionCable stale monitor (~6s) + browser timer throttling. On tab visible again we `reopen()` + `ReconnectService` refetch. Infra: ensure Traefik/Cloudflare WS idle ≥ 60–120s; cuts at ~100s → proxy; cuts at ~5–15s → client stale/freeze.
 
