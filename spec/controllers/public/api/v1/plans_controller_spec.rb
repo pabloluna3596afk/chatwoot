@@ -47,12 +47,37 @@ RSpec.describe 'Public Plans API', type: :request do
 
       plan = response.parsed_body['plans'].find { |p| p['slug'] == 'inicio' }
       expect(plan.keys).to match_array(%w[slug name description display_order state price_monthly price_yearly trial_days
-                                          limits feature_keys base_feature_keys])
+                                          limits feature_keys base_feature_keys features base_features])
       expect(plan['limits'].keys).to match_array(%w[monthly_responses assistants users inboxes storage_bytes
                                                     emails_per_day trial_responses])
       expect(plan).to include('price_monthly' => 79.0, 'price_yearly' => 790.0, 'trial_days' => 15)
       expect(plan['limits']['storage_bytes']).to eq(512.megabytes)
       expect(response.parsed_body.keys).to match_array(%w[currency updated_at plans])
+    end
+
+    it 'returns translated feature labels and preserves the key-only fields' do
+      get '/public/api/v1/plans'
+
+      plan = response.parsed_body['plans'].find { |item| item['slug'] == 'inicio' }
+      expect(plan['feature_keys']).to eq(['captain_integration'])
+      expect(plan['base_feature_keys']).to include('contacts_companies')
+      expect(plan['features']).to eq([{ 'key' => 'captain_integration', 'label' => 'Agente de IA' }])
+      expect(plan['base_features']).to include({
+                                                 'key' => 'contacts_companies', 'label' => 'Contactos y empresas'
+                                               })
+      labels = plan['features'].pluck('label') + plan['base_features'].pluck('label')
+      expect(labels.join(' ')).not_to match(/captain/i)
+    end
+
+    it 'omits labels for unknown feature keys without changing compatibility fields' do
+      plan = Plan.find_by!(slug: 'inicio')
+      plan.update_column(:feature_keys, %w[captain_integration internal_unknown]) # rubocop:disable Rails/SkipsModelValidations
+
+      get '/public/api/v1/plans'
+
+      public_plan = response.parsed_body['plans'].find { |item| item['slug'] == 'inicio' }
+      expect(public_plan['feature_keys']).to eq(%w[captain_integration internal_unknown])
+      expect(public_plan['features']).to eq([{ 'key' => 'captain_integration', 'label' => 'Agente de IA' }])
     end
 
     it 'does not leak internal ids, add-on prices, costs or payment keys anywhere' do

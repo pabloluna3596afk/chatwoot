@@ -8,9 +8,9 @@ describe 'Rack::Attack auth throttles' do
     Rack::Attack.throttles.fetch(name).block.call(Rack::Attack::Request.new(env))
   end
 
-  def build_env(path, body, content_type)
+  def build_env(path, body, content_type, method: 'POST')
     {
-      'REQUEST_METHOD' => 'POST',
+      'REQUEST_METHOD' => method,
       'PATH_INFO' => path,
       'SCRIPT_NAME' => '',
       'QUERY_STRING' => '',
@@ -46,6 +46,19 @@ describe 'Rack::Attack auth throttles' do
 
     it 'skips JSON verification submissions carrying mfa_token' do
       expect(throttle_key('login/ip', json_env({ mfa_token: 'tok', otp_code: '123456' }))).to be_nil
+    end
+  end
+
+  describe 'public plan catalog safelist' do
+    it 'bypasses shared-IP throttles for GET requests to the catalog only' do
+      catalog_request = Rack::Attack::Request.new(build_env('/public/api/v1/plans', '', '', method: 'GET'))
+      another_public_request = Rack::Attack::Request.new(build_env('/public/api/v1/csat_survey', '', '', method: 'GET'))
+      catalog_preflight = Rack::Attack::Request.new(build_env('/public/api/v1/plans', '', '', method: 'OPTIONS'))
+
+      safelist = Rack::Attack.safelists.fetch('public plan catalog')
+      expect(safelist.block.call(catalog_request)).to be(true)
+      expect(safelist.block.call(catalog_preflight)).to be(true)
+      expect(safelist.block.call(another_public_request)).to be(false)
     end
   end
 
