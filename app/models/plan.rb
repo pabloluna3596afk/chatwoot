@@ -14,6 +14,7 @@
 #  limits             :jsonb            default({}), not null
 #  is_active          :boolean          default(TRUE), not null
 #  is_default_trial   :boolean          default(FALSE), not null
+#  is_recommended     :boolean          default(FALSE), not null
 #  is_public          :boolean          default(TRUE), not null
 #  max_captain_assistants :integer      default(1), not null
 #  max_documents      :integer          default(10), not null
@@ -34,6 +35,7 @@
 # Indexes
 #
 #  index_plans_on_is_default_trial  (is_default_trial) UNIQUE WHERE is_default_trial
+#  index_plans_on_is_recommended  (is_recommended) UNIQUE WHERE is_recommended
 #  index_plans_on_slug              (slug) UNIQUE
 #
 
@@ -317,6 +319,7 @@ class Plan < ApplicationRecord # rubocop:disable Metrics/ClassLength
   # DB partial unique index enforces this too; the validation just gives a
   # friendly SuperAdmin form error instead of a raw StatementInvalid.
   validates :is_default_trial, uniqueness: true, if: :is_default_trial?
+  validates :is_recommended, uniqueness: true, if: :is_recommended?
 
   scope :active, -> { where(is_active: true) }
   scope :public_plans, -> { where(is_public: true) }

@@ -1,6 +1,7 @@
 # Allowlist serializer for the unauthenticated plans endpoint consumed by the
 # marketing website. Every exposed field is listed explicitly so that a column
-# added to `plans` later (costs, add-on prices, payment keys, ids) never leaks.
+# added to `plans` later (internal costs, payment keys, ids) never leaks. The
+# three add-on prices below are public catalog data by design.
 class Plans::PublicSerializer
   CURRENCY = 'USD'.freeze
   FEATURE_LABELS = JSON.parse(
@@ -14,7 +15,7 @@ class Plans::PublicSerializer
     plans = plans.to_a
     {
       currency: CURRENCY,
-      updated_at: plans.map(&:updated_at).max&.utc&.iso8601(3),
+      updated_at: plans.map(&:updated_at).max&.utc&.iso8601(6),
       plans: plans.map { |plan| new(plan).as_json }
     }
   end
@@ -30,8 +31,12 @@ class Plans::PublicSerializer
       description: @plan.description,
       display_order: @plan.display_order,
       state: @plan.catalog_state,
+      recommended: @plan.is_recommended?,
       price_monthly: @plan.price_monthly.to_f,
       price_yearly: @plan.price_yearly.to_f,
+      addon_agent_price: public_price(@plan.addon_agent_price),
+      addon_bot_price: public_price(@plan.addon_bot_price),
+      credit_unit_price: public_price(@plan.credit_unit_price),
       trial_days: @plan.limit(:trial_days),
       limits: limits,
       feature_keys: Array(@plan.feature_keys),
@@ -42,6 +47,10 @@ class Plans::PublicSerializer
   end
 
   private
+
+  def public_price(value)
+    value.to_f if value.positive?
+  end
 
   def base_feature_keys
     Plan::CATALOG_BASE_CAPABILITIES.pluck(:key)

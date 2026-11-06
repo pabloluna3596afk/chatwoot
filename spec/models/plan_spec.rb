@@ -9,6 +9,15 @@ RSpec.describe Plan do
     expect(plan.catalog_state).to eq('available')
   end
 
+  it 'allows only one recommended plan at a time' do
+    plan.save!
+    another = described_class.new(name: 'Another', slug: 'another', is_recommended: true)
+    plan.update!(is_recommended: true)
+
+    expect(another).not_to be_valid
+    expect(another.errors[:is_recommended]).to be_present
+  end
+
   it 'accepts only arrays of supported string identifiers' do
     plan.feature_keys = described_class::FEATURE_KEYS
     expect(plan).to be_valid

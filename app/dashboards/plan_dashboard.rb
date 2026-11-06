@@ -30,6 +30,7 @@ class PlanDashboard < Administrate::BaseDashboard
     trial_days: Field::Number,
     trial_messages: Field::Number,
     is_default_trial: Field::Boolean,
+    is_recommended: Field::Boolean,
     addon_agent_price: Field::Number.with_options(decimals: 2),
     addon_bot_price: Field::Number.with_options(decimals: 2),
     credit_unit_price: Field::Number.with_options(decimals: 4),
@@ -56,6 +57,7 @@ class PlanDashboard < Administrate::BaseDashboard
     accounts
     is_active
     is_public
+    is_recommended
   ].freeze
 
   # SHOW_PAGE_ATTRIBUTES
@@ -71,6 +73,7 @@ class PlanDashboard < Administrate::BaseDashboard
     price_monthly
     price_yearly
     is_default_trial
+    is_recommended
     addon_agent_price
     addon_bot_price
     credit_unit_price
@@ -95,6 +98,7 @@ class PlanDashboard < Administrate::BaseDashboard
     price_monthly
     price_yearly
     is_default_trial
+    is_recommended
     addon_agent_price
     addon_bot_price
     credit_unit_price
