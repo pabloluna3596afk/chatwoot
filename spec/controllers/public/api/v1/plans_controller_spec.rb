@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe 'Public Plans API', type: :request do
   let(:allowed_origin) { 'https://paluhub.com' }
   let(:other_origin) { 'https://evil.example.com' }
-  let(:forbidden_keys) { %w[id addon_agent_price addon_bot_price credit_unit_price captain_daily_tests is_active is_public is_default_trial] }
+  let(:forbidden_keys) { %w[id captain_daily_tests is_active is_public is_default_trial is_recommended] }
 
   before do
     Plan.delete_all
@@ -46,11 +46,14 @@ RSpec.describe 'Public Plans API', type: :request do
       get '/public/api/v1/plans'
 
       plan = response.parsed_body['plans'].find { |p| p['slug'] == 'inicio' }
-      expect(plan.keys).to match_array(%w[slug name description display_order state price_monthly price_yearly trial_days
-                                          limits feature_keys base_feature_keys features base_features])
+      expect(plan.keys).to match_array(%w[slug name description display_order state recommended price_monthly price_yearly
+                                          addon_agent_price addon_bot_price credit_unit_price trial_days limits feature_keys
+                                          base_feature_keys features base_features])
       expect(plan['limits'].keys).to match_array(%w[monthly_responses assistants users inboxes storage_bytes
                                                     emails_per_day trial_responses])
       expect(plan).to include('price_monthly' => 79.0, 'price_yearly' => 790.0, 'trial_days' => 15)
+      expect(plan).to include('recommended' => false, 'addon_agent_price' => 18.0, 'addon_bot_price' => 35.0,
+                              'credit_unit_price' => 0.025)
       expect(plan['limits']['storage_bytes']).to eq(512.megabytes)
       expect(response.parsed_body.keys).to match_array(%w[currency updated_at plans])
     end
@@ -80,14 +83,23 @@ RSpec.describe 'Public Plans API', type: :request do
       expect(public_plan['features']).to eq([{ 'key' => 'captain_integration', 'label' => 'Agente de IA' }])
     end
 
-    it 'does not leak internal ids, add-on prices, costs or payment keys anywhere' do
+    it 'does not leak internal ids, costs or payment keys anywhere' do
       get '/public/api/v1/plans'
 
       body = response.parsed_body
       all_keys = body['plans'].flat_map { |plan| plan_keys(plan) }.map { |key| key.split('.').last }
       expect(all_keys & forbidden_keys).to be_empty
-      expect(all_keys.grep(/addon_|payphone|captain_|cost|margin|credit/)).to be_empty
-      expect(response.body).not_to match(/addon_|credit_unit_price|payphone/i)
+      expect(all_keys.grep(/payphone|captain_|cost|margin/)).to be_empty
+      expect(response.body).not_to match(/payphone/i)
+    end
+
+    it 'returns null for nonpositive add-on prices and numbers for positive prices' do
+      Plan.find_by!(slug: 'inicio').update!(addon_agent_price: 0, addon_bot_price: -2, credit_unit_price: 0.04)
+
+      get '/public/api/v1/plans'
+
+      plan = response.parsed_body['plans'].find { |item| item['slug'] == 'inicio' }
+      expect(plan).to include('addon_agent_price' => nil, 'addon_bot_price' => nil, 'credit_unit_price' => 0.04)
     end
 
     it 'sends cache headers and an ETag' do
@@ -120,6 +132,21 @@ RSpec.describe 'Public Plans API', type: :request do
       get '/public/api/v1/plans'
       expect(response.headers['ETag']).not_to eq(etag)
       expect(response.parsed_body['plans'].pluck('slug')).not_to include('negocio')
+    end
+
+    it 'changes updated_at and ETag when any newly public field changes' do
+      %i[addon_agent_price addon_bot_price credit_unit_price is_recommended].each do |attribute|
+        get '/public/api/v1/plans'
+        etag = response.headers['ETag']
+        timestamp = response.parsed_body['updated_at']
+        plan = Plan.find_by!(slug: 'inicio')
+        value = attribute == :is_recommended ? true : plan.public_send(attribute) + 1
+        plan.update!(attribute => value)
+
+        get '/public/api/v1/plans'
+        expect(response.headers['ETag']).not_to eq(etag), "expected #{attribute} to invalidate the ETag"
+        expect(response.parsed_body['updated_at']).not_to eq(timestamp), "expected #{attribute} to update the catalog timestamp"
+      end
     end
   end
 

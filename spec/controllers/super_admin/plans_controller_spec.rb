@@ -18,9 +18,20 @@ RSpec.describe 'Super Admin plans', type: :request do
     expect(response).to have_http_status(:ok), response.body
     expect(response.body).to include(
       'plan[coming_soon]', 'plan[feature_keys][]', 'plan[limit_values][captain_copilot_responses]',
-      'plan[limit_values][max_flows]', 'plan[limit_values][trial_days]',
+      'plan[limit_values][max_flows]', 'plan[limit_values][trial_days]', 'plan[is_recommended]',
       'plan_feature_captain_tasks', 'Copilot, according to plan allowance'
     )
+  end
+
+  it 'saves and displays the recommended plan field' do
+    sign_in(super_admin, scope: :super_admin)
+
+    patch "/super_admin/plans/#{plan.id}", params: { plan: { is_recommended: '1' } }
+
+    expect(response).to have_http_status(:redirect)
+    expect(plan.reload.is_recommended).to be(true)
+    get "/super_admin/plans/#{plan.id}"
+    expect(response.body).to include('Recommended plan')
   end
 
   it 'shows Copilot as a plan allowance indicator in the comparison grid' do
