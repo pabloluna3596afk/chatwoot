@@ -280,7 +280,7 @@ describe('FlowBlockEditor', () => {
         .exists()
     ).toBe(false);
   });
-  it('writes the name of the answer from the label until the name is set by hand', async () => {
+  it('keeps existing answer keys stable when labels change', async () => {
     const wrapper = mountBlock(1, {
       modelValue: { type: 'short_text', key: 'short_text', label: '' },
     });
@@ -290,7 +290,7 @@ describe('FlowBlockEditor', () => {
       .setValue('Número de cédula');
     expect(lastUpdate(wrapper)).toMatchObject({
       label: 'Número de cédula',
-      key: 'numero_de_cedula',
+      key: 'short_text',
     });
 
     const custom = mountBlock(1, {
@@ -306,20 +306,67 @@ describe('FlowBlockEditor', () => {
     });
   });
 
-  it('gives an option its id from its title and adds and removes options', async () => {
+  it('keeps an option id when its title changes and adds options', async () => {
     const wrapper = mountBlock(0);
 
     await wrapper
       .findAll('[data-testid="flow-options"] input')[0]
       .setValue('Sí, claro');
     expect(lastUpdate(wrapper).options[0]).toEqual({
-      id: 'si_claro',
+      id: 'a',
       title: 'Sí, claro',
     });
 
     await wrapper.get('[data-testid="flow-option-add"]').trigger('click');
     expect(lastUpdate(wrapper).options).toHaveLength(3);
   });
+
+  it('commits a key rename once after typing finishes, even through a duplicate intermediate value', async () => {
+    const wrapper = mountBlock(1);
+    const input = wrapper.get('[data-testid="flow-block-key"] input');
+    await input.setValue('tipo');
+    await input.setValue('tipo_nuevo');
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+
+    await input.trigger('blur');
+    expect(wrapper.emitted('update:modelValue')).toHaveLength(1);
+    expect(lastUpdate(wrapper)).toMatchObject({ key: 'tipo_nuevo' });
+  });
+
+  it('commits a valid key on Enter and synchronizes later model changes', async () => {
+    const wrapper = mountBlock(1);
+    const input = wrapper.get('[data-testid="flow-block-key"] input');
+    await input.setValue('detalle_nuevo');
+    await input.trigger('keyup', { key: 'Enter' });
+    expect(lastUpdate(wrapper).key).toBe('detalle_nuevo');
+
+    await wrapper.setProps({
+      modelValue: { ...definition.screens[0].blocks[1], key: 'actualizado' },
+    });
+    expect(input.element.value).toBe('actualizado');
+  });
+
+  it.each([
+    ['', 'key_invalid'],
+    ['1detalle', 'key_invalid'],
+    ['Detalle', 'key_invalid'],
+    ['a'.repeat(41), 'key_invalid'],
+    ['tipo', 'key_duplicate'],
+  ])(
+    'reverts an invalid key %j visibly without changing the saved definition',
+    async (value, error) => {
+      const wrapper = mountBlock(1);
+      const field = wrapper.get('[data-testid="flow-block-key"]');
+      const input = field.get('input');
+      await input.setValue(value);
+      await input.trigger('blur');
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+      expect(input.element.value).toBe('detalle');
+      expect(field.text()).toContain(`WHATSAPP_FLOWS.ERRORS.${error}`);
+      expect(input.attributes('aria-invalid')).toBe('true');
+    }
+  );
 
   describe('"Mostrar este campo" (the condition)', () => {
     const comboOf = (wrapper, testid) =>
@@ -434,6 +481,53 @@ describe('FlowBlockEditor', () => {
       false
     );
     expect(wrapper.text()).not.toContain('WHATSAPP_FLOWS.BLOCKS.');
+  });
+
+  it('groups basic fields, options and advanced settings without hiding errors or configured state', async () => {
+    const wrapper = mountBlock(0, {
+      errors: [
+        {
+          code: 'option_title_required',
+          path: 'screens.0.blocks.0.options.0.title',
+          details: {},
+        },
+      ],
+    });
+    expect(
+      wrapper.get('[data-testid="flow-basic-settings"]').attributes('open')
+    ).toBeDefined();
+    expect(
+      wrapper.get('[data-testid="flow-option-settings"]').attributes('open')
+    ).toBeDefined();
+    expect(
+      wrapper.get('[data-testid="flow-advanced-settings"]').attributes('open')
+    ).toBeUndefined();
+    const errors = wrapper.get('[data-testid="flow-block-errors"]');
+    expect(errors.element.closest('details')).toBeNull();
+    expect(errors.text()).toContain('option_title_required');
+    await wrapper.setProps({
+      modelValue: {
+        ...definition.screens[0].blocks[0],
+        visible_when: { key: 'earlier', op: 'equals', value: 'yes' },
+        save_to: { target: 'contact.email' },
+      },
+    });
+    const advanced = wrapper.get('[data-testid="flow-advanced-settings"]');
+    expect(advanced.attributes('open')).toBeDefined();
+    advanced.element.open = false;
+    expect(advanced.get('summary').text()).toContain(
+      'WHATSAPP_FLOWS.EDITOR.HAS_CONDITION'
+    );
+    expect(advanced.get('summary').text()).toContain(
+      'WHATSAPP_FLOWS.EDITOR.HAS_DESTINATION'
+    );
+    await wrapper.setProps({
+      errors: [
+        { code: 'key_duplicate', path: 'screens.0.blocks.0.key', details: {} },
+      ],
+    });
+    expect(errors.text()).toContain('key_duplicate');
+    wrapper.unmount();
   });
 
   it('edits a text block with its text only and shows the errors of the block', () => {

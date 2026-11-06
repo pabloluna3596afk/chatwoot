@@ -2,7 +2,12 @@
 // The full page of a flow, under Settings → Templates & Flows: a new flow and a saved one open the same builder (nothing
 // is created until it is saved). Back goes to the Flows tab of the list.
 import { nextTick, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import {
+  onBeforeRouteLeave,
+  onBeforeRouteUpdate,
+  useRoute,
+  useRouter,
+} from 'vue-router';
 import { useI18n } from 'vue-i18n';
 
 import { useAlert } from 'dashboard/composables';
@@ -16,6 +21,16 @@ const { t } = useI18n();
 
 const flow = ref(null);
 const newDialog = ref(null);
+const builder = ref(null);
+onBeforeRouteLeave(() => builder.value?.requestLeave() ?? true);
+onBeforeRouteUpdate(to => {
+  if (
+    to.name === 'settings_flow_edit' &&
+    String(to.params.flowId) === String(flow.value?.id)
+  )
+    return true;
+  return builder.value?.requestLeave() ?? true;
+});
 // A new builder is mounted for each flow that is loaded, not for the first save of a new one.
 const builderKey = ref(0);
 
@@ -63,13 +78,14 @@ watch(() => [route.name, route.params.flowId], load, { immediate: true });
 
 <template>
   <div
-    class="flex flex-col w-full h-full px-6 pt-4 pb-8 overflow-auto bg-n-surface-1"
+    class="flex flex-col w-full h-full px-4 pt-4 pb-5 overflow-auto bg-n-surface-1"
     data-testid="flow-page"
   >
-    <div class="w-full mx-auto max-w-[80rem]">
+    <div class="w-full mx-auto max-w-[100rem]">
       <FlowNewDialog ref="newDialog" @create="onCreated" @cancel="toList" />
       <FlowBuilderPage
         v-if="flow"
+        ref="builder"
         :key="builderKey"
         :flow="flow"
         @back="toList"

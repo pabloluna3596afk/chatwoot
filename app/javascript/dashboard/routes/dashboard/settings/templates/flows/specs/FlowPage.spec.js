@@ -2,6 +2,19 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { createStore } from 'vuex';
 import FlowPage from '../FlowPage.vue';
 import FlowNewDialog from '../FlowNewDialog.vue';
+const DialogStub = {
+  name: 'Dialog',
+  data: () => ({ isOpen: false }),
+  methods: {
+    open() {
+      this.isOpen = true;
+    },
+    close() {
+      this.isOpen = false;
+    },
+  },
+  template: '<div v-if="isOpen"><slot /><slot name="footer" /></div>',
+};
 const NewDialogStub = {
   template: '<div/>',
   methods: { open: vi.fn() },
@@ -10,13 +23,20 @@ const NewDialogStub = {
 import FlowBuilderPage from '../FlowBuilderPage.vue';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 
-const { route, push, replace } = vi.hoisted(() => ({
+const { route, push, replace, guards } = vi.hoisted(() => ({
   route: { name: 'settings_flow_new', params: {}, fullPath: '/' },
+  guards: {},
   push: vi.fn(),
   replace: vi.fn(),
 }));
 
 vi.mock('vue-router', () => ({
+  onBeforeRouteLeave: guard => {
+    guards.leave = guard;
+  },
+  onBeforeRouteUpdate: guard => {
+    guards.update = guard;
+  },
   useRoute: () => route,
   useRouter: () => ({ push, replace }),
 }));
@@ -65,7 +85,7 @@ const mountPage = async routeState => {
         }),
       ],
       mocks: { $t: key => key },
-      stubs: { Dialog: true, FlowNewDialog: NewDialogStub },
+      stubs: { Dialog: DialogStub, FlowNewDialog: NewDialogStub },
     },
   });
   await flushPromises();
@@ -152,4 +172,33 @@ describe('FlowPage', () => {
 
     expect(push).toHaveBeenCalledWith(list);
   });
+});
+
+it('guards route exits and route changes while allowing the first saved address', async () => {
+  WhatsappFlowsAPI.show.mockResolvedValue({ data: savedFlow });
+  const wrapper = await mountPage({
+    name: 'settings_flow_edit',
+    params: { flowId: '5' },
+  });
+  const builder = wrapper.findComponent(FlowBuilderPage);
+  await builder
+    .get('[data-testid="flow-editor-name"] input')
+    .setValue('Unsaved edit');
+  const leaving = guards.leave();
+  await flushPromises();
+  builder.findComponent('[data-testid="flow-leave-dialog"]').vm.$emit('close');
+  await expect(leaving).resolves.toBe(false);
+  const changing = guards.update({
+    name: 'settings_flow_edit',
+    params: { flowId: '6' },
+  });
+  await flushPromises();
+  builder
+    .findComponent('[data-testid="flow-leave-dialog"]')
+    .vm.$emit('confirm');
+  await expect(changing).resolves.toBe(true);
+  expect(
+    guards.update({ name: 'settings_flow_edit', params: { flowId: '5' } })
+  ).toBe(true);
+  wrapper.unmount();
 });

@@ -193,9 +193,9 @@ export const newBlock = (type, definition = { screens: [] }) => {
 };
 
 // `number` is the position of the new screen, which names it until the user gives it a title.
-export const newScreen = number => ({
+export const newScreen = (number, button = '') => ({
   title: `Pantalla ${number}`,
-  button: '',
+  button,
   blocks: [],
 });
 
@@ -206,6 +206,7 @@ export const newOption = block => {
 
 // An option's id comes from its title, once, so answers keep their name when the title is reworded.
 export const optionIdFor = (title, block, index) => {
+  if (block.options?.[index]?.id) return block.options[index].id;
   const taken = (block.options || [])
     .filter((_, position) => position !== index)
     .map(option => option.id);
@@ -384,8 +385,12 @@ export const STARTING_POINTS = {
   }),
 };
 
-export const startingDefinition = id =>
-  (STARTING_POINTS[id] || STARTING_POINTS.blank)();
+export const startingDefinition = (id, button = '') => {
+  const definition = (STARTING_POINTS[id] || STARTING_POINTS.blank)();
+  if (id === 'blank' || !STARTING_POINTS[id])
+    definition.screens[0].button = button;
+  return definition;
+};
 
 // Meta's error code is mapped to a key of WHATSAPP_FLOWS.ERRORS; its place in the form to the screen and block.
 export const errorPlace = path => {

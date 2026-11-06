@@ -4,6 +4,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { startingDefinition } from '../flowDefinition';
 import FlowBuilderPage from '../FlowBuilderPage.vue';
 import FlowPhoneCanvas from '../FlowPhoneCanvas.vue';
+import FlowBlockEditor from '../FlowBlockEditor.vue';
 import Draggable from 'vuedraggable';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
@@ -116,7 +117,7 @@ const mountPage = async (flow = sampleFlow(), api = makeApi()) => {
   return { wrapper, api };
 };
 
-const tabs = wrapper => wrapper.findAll('[data-testid="flow-screen-tab"]');
+const tabs = wrapper => wrapper.findAll('[data-testid="flow-screen-select"]');
 const canvasBlocks = wrapper =>
   wrapper.findAll('[data-testid="flow-canvas-block"]');
 // Portal content is intentionally outside the page's DOM subtree.
@@ -126,12 +127,24 @@ const popover = wrapper =>
     .find(menu => menu.findComponent(DropdownMenu).exists())
     .getComponent(DropdownMenu);
 
-// Probar now lives in the Acciones menu: the same item starts the test and, while testing, goes back to editing.
 const toggleTry = async wrapper => {
-  await wrapper.get('[data-testid="flow-actions"]').trigger('click');
+  await wrapper.get('[data-testid="flow-preview-try"]').trigger('click');
+  await flushPromises();
+};
+
+const menuAction = async (wrapper, kind, index, action) => {
+  const item = ['up', 'down'].includes(action) ? `move-${action}` : action;
+  await wrapper
+    .findAll(`[data-testid="flow-${kind}-actions"]`)
+    [index].trigger('click');
   await popover(wrapper)
-    .get('[data-testid="flow-preview-try"]')
+    .get(`[data-testid="flow-${kind}-${item}"]`)
     .trigger('click');
+  await flushPromises();
+};
+const addField = async (wrapper, kind) => {
+  await wrapper.get('[data-testid="flow-field-add"]').trigger('click');
+  await wrapper.get(`[data-testid="flow-add-${kind}"]`).trigger('click');
   await flushPromises();
 };
 
@@ -144,24 +157,16 @@ describe('FlowBuilderPage', () => {
     );
   });
 
-  it('has no Editar/Probar switch: Probar and Enviar are Acciones items', async () => {
+  it('shows local testing beside Save and keeps JSON in advanced tools', async () => {
     const { wrapper } = await mountPage();
-    expect(wrapper.find('[role="group"][aria-label]').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="flow-preview-try"]').exists()).toBe(true);
     await wrapper.get('[data-testid="flow-actions"]').trigger('click');
-    const items = popover(wrapper)
-      .findAll('[data-testid]')
-      .map(el => el.attributes('data-testid'));
-    expect(items).toContain('flow-preview-try');
-    expect(items).toContain('flow-json-toggle');
-    // Enviar (the old Probar) appears only with a WhatsApp Cloud inbox; its own specs cover it.
-    // Acciones stays usable while testing so the same item can go back to editing.
-    await popover(wrapper)
-      .get('[data-testid="flow-preview-try"]')
-      .trigger('click');
-    await flushPromises();
     expect(
-      wrapper.get('[data-testid="flow-actions"]').attributes('disabled')
-    ).toBeUndefined();
+      popover(wrapper).get('[data-testid="flow-json-toggle"]').exists()
+    ).toBe(true);
+    expect(
+      popover(wrapper).find('[data-testid="flow-preview-try"]').exists()
+    ).toBe(false);
   });
 
   it('dims the existing panels in Try, resets on mode exit and never sends simulator answers to the API', async () => {
@@ -172,7 +177,7 @@ describe('FlowBuilderPage', () => {
     const calls = api.validate.mock.calls.length;
     await toggleTry(wrapper);
     expect(
-      wrapper.get('[data-testid="flow-palette"]').attributes()
+      wrapper.get('[data-testid="flow-structure"]').attributes()
     ).toHaveProperty('inert');
     expect(
       wrapper.get('[data-testid="flow-properties"]').attributes()
@@ -215,6 +220,41 @@ describe('FlowBuilderPage', () => {
     expect(fresh.wrapper.get('[data-testid="flow-save-state"]').text()).toBe(
       'WHATSAPP_FLOWS.EDITOR.UNSAVED'
     );
+  });
+
+  it('keeps changes made while saving dirty and sends an immutable payload', async () => {
+    const api = makeApi();
+    let complete;
+    api.update.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          complete = resolve;
+        })
+    );
+    const { wrapper } = await mountPage(sampleFlow(), api);
+    await wrapper
+      .get('[data-testid="flow-editor-name"] input')
+      .setValue('Submitted');
+    await wrapper.get('[data-testid="flow-editor-save"]').trigger('click');
+    await wrapper
+      .get('[data-testid="flow-editor-name"] input')
+      .setValue('Edited while saving');
+    complete({ data: { id: 7 } });
+    await flushPromises();
+    expect(api.update.mock.calls[0][1].name).toBe('Submitted');
+    expect(wrapper.get('[data-testid="flow-save-state"]').text()).toBe(
+      'WHATSAPP_FLOWS.EDITOR.UNSAVED'
+    );
+    const event = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    const leave = wrapper.vm.requestLeave();
+    await flushPromises();
+    await wrapper
+      .get('[data-testid="flow-leave-dialog"] [data-testid="stub-confirm"]')
+      .trigger('click');
+    await expect(leave).resolves.toBe(true);
+    wrapper.unmount();
   });
 
   it('shows saved unpublished changes immediately after saving an edit', async () => {
@@ -269,133 +309,182 @@ describe('FlowBuilderPage', () => {
     expect(canvasBlocks(wrapper)).toHaveLength(2);
   });
 
-  describe('screens as tabs above the phone', () => {
-    it('has a tab per screen and the "+ Pantalla" tab at the end of the row', async () => {
+  describe('the structure panel', () => {
+    it('lists screens and fields at the left and keeps the phone free of editing controls', async () => {
       const { wrapper } = await mountPage();
-
       expect(tabs(wrapper)).toHaveLength(2);
       expect(tabs(wrapper)[0].text()).toContain('Tus datos');
-      expect(tabs(wrapper)[0].text()).toContain('"n":1');
-      const row = wrapper.get('[data-testid="flow-screen-tabs"]');
-      expect(
-        row
-          .get('[data-testid="flow-screen-add"]')
-          .element.previousElementSibling.getAttribute('data-testid')
-      ).toBe('flow-screen-draggable');
+      expect(wrapper.findAll('[data-testid="flow-field-select"]')).toHaveLength(
+        2
+      );
+      expect(wrapper.find('[data-testid="flow-screen-tabs"]').exists()).toBe(
+        false
+      );
+      const canvas = wrapper.findComponent(FlowPhoneCanvas);
+      expect(canvas.find('[data-testid="flow-block-handle"]').exists()).toBe(
+        false
+      );
+      expect(canvas.findAll('button')).toHaveLength(0);
+      expect(canvas.findAll('h3')).toHaveLength(1);
     });
-
-    it('shows the screen of the tab clicked in the phone', async () => {
+    it('selects a screen from the list and adds a new screen there', async () => {
       const { wrapper } = await mountPage();
-      expect(canvasBlocks(wrapper)).toHaveLength(2);
-
       await tabs(wrapper)[1].trigger('click');
-
-      expect(tabs(wrapper)[1].attributes('aria-selected')).toBe('true');
-      expect(wrapper.findComponent(FlowPhoneCanvas).props('screenIndex')).toBe(
-        1
-      );
+      expect(tabs(wrapper)[1].attributes('aria-pressed')).toBe('true');
       expect(canvasBlocks(wrapper)[0].text()).toContain('¿Qué necesitas?');
-    });
-
-    it('adds a screen with "+ Pantalla" and opens it', async () => {
-      const { wrapper } = await mountPage();
-
       await wrapper.get('[data-testid="flow-screen-add"]').trigger('click');
-
       expect(tabs(wrapper)).toHaveLength(3);
-      expect(tabs(wrapper)[2].attributes('aria-selected')).toBe('true');
-      expect(tabs(wrapper)[2].text()).toContain('Pantalla 3');
+      expect(tabs(wrapper)[2].attributes('aria-pressed')).toBe('true');
     });
-
-    it('removes a screen with its × and keeps at least one', async () => {
-      const { wrapper } = await mountPage();
-
-      await wrapper
-        .findAll('[data-testid="flow-screen-remove"]')[1]
-        .trigger('click');
-
-      expect(tabs(wrapper)).toHaveLength(1);
-      expect(wrapper.find('[data-testid="flow-screen-remove"]').exists()).toBe(
-        false
-      );
-    });
-
-    it('has no "add screen" button at the bottom of the page', async () => {
-      const { wrapper } = await mountPage();
-
-      expect(wrapper.findAll('[data-testid="flow-screen-add"]')).toHaveLength(
-        1
-      );
-    });
-
-    it('has no "Move screen" buttons any more', async () => {
-      const { wrapper } = await mountPage();
-
-      expect(wrapper.find('[data-testid="flow-screen-left"]').exists()).toBe(
-        false
-      );
-      expect(wrapper.find('[data-testid="flow-screen-right"]').exists()).toBe(
-        false
-      );
-    });
-
-    it('reorders the tabs when one is dragged, and the selected screen stays selected', async () => {
-      const { wrapper } = await mountPage();
-      const draggable = wrapper.findComponent(Draggable);
-      const [first, second] = draggable.props('modelValue');
-
-      draggable.vm.$emit('update:modelValue', [second, first]);
-      await flushPromises();
-
-      expect(tabs(wrapper)[0].text()).toContain('Tu cita');
-      expect(tabs(wrapper)[1].text()).toContain('Tus datos');
-      expect(tabs(wrapper)[1].attributes('aria-selected')).toBe('true');
-    });
-
-    it('keeps "+ Pantalla" after the tabs and out of the drag list', async () => {
-      const { wrapper } = await mountPage();
-
-      const draggable = wrapper.findComponent(Draggable);
-      expect(draggable.find('[data-testid="flow-screen-add"]').exists()).toBe(
-        false
-      );
-      expect(
-        wrapper.get('[data-testid="flow-screen-add"]').element
-          .previousElementSibling
-      ).toBe(draggable.element);
-    });
-
-    it('moves the focused tab with Alt + arrow keys and announces it', async () => {
-      const { wrapper } = await mountPage();
-      const first = tabs(wrapper)[0];
-
-      expect(first.attributes('aria-keyshortcuts')).toContain('Alt+ArrowRight');
-      await first.trigger('keydown', { key: 'ArrowRight', altKey: true });
-
-      expect(tabs(wrapper)[1].text()).toContain('Tus datos');
-      expect(tabs(wrapper)[1].attributes('aria-selected')).toBe('true');
-      expect(wrapper.get('[role="status"]').text()).toContain(
-        'WHATSAPP_FLOWS.EDITOR.TAB_MOVED'
-      );
-
-      await tabs(wrapper)[1].trigger('keydown', {
-        key: 'ArrowLeft',
-        ctrlKey: true,
+    it('confirms screen removal, preserves the active screen by identity and keeps at least one', async () => {
+      const flow = sampleFlow();
+      flow.definition.screens.push({
+        title: 'Third',
+        button: 'Finish',
+        blocks: [],
       });
-      expect(tabs(wrapper)[0].text()).toContain('Tus datos');
+      const { wrapper } = await mountPage(flow);
+      await tabs(wrapper)[1].trigger('click');
+      await canvasBlocks(wrapper)[0].trigger('click');
+      const editorUid = wrapper.findComponent(FlowBlockEditor).vm.$.uid;
+      await menuAction(wrapper, 'screen', 0, 'remove');
+      expect(tabs(wrapper)).toHaveLength(3);
+      await wrapper
+        .get(
+          '[data-testid="flow-remove-screen-dialog"] [data-testid="stub-confirm"]'
+        )
+        .trigger('click');
+      expect(tabs(wrapper)).toHaveLength(2);
+      expect(tabs(wrapper)[0].text()).toContain('Tu cita');
+      expect(tabs(wrapper)[0].attributes('aria-pressed')).toBe('true');
+      expect(wrapper.findComponent(FlowBlockEditor).vm.$.uid).toBe(editorUid);
+      await menuAction(wrapper, 'screen', 1, 'remove');
+      await wrapper
+        .get(
+          '[data-testid="flow-remove-screen-dialog"] [data-testid="stub-confirm"]'
+        )
+        .trigger('click');
+      await wrapper.get('[data-testid="flow-screen-actions"]').trigger('click');
+      expect(
+        popover(wrapper)
+          .get('[data-testid="flow-screen-remove"]')
+          .attributes('disabled')
+      ).toBeDefined();
+      wrapper.unmount();
     });
-
-    it('ignores the arrow keys at the ends and without a modifier', async () => {
+    it('reorders isolated screen and field lists and supports keyboard movement', async () => {
       const { wrapper } = await mountPage();
-
-      await tabs(wrapper)[0].trigger('keydown', {
-        key: 'ArrowLeft',
+      const screens = wrapper.findComponent(
+        '[data-testid="flow-screen-draggable"]'
+      );
+      const fields = wrapper.findComponent(
+        '[data-testid="flow-field-draggable"]'
+      );
+      expect(screens.vm.$attrs.group).toEqual({
+        name: 'whatsapp-flow-screens',
+        pull: false,
+        put: false,
+      });
+      expect(fields.vm.$attrs.group).toEqual({
+        name: 'whatsapp-flow-fields',
+        pull: false,
+        put: false,
+      });
+      const [first, second] = screens.props('modelValue');
+      screens.vm.$emit('update:modelValue', [second, first]);
+      await flushPromises();
+      expect(tabs(wrapper)[1].attributes('aria-pressed')).toBe('true');
+      await tabs(wrapper)[1].trigger('keydown', {
+        key: 'ArrowUp',
         altKey: true,
       });
-      await tabs(wrapper)[0].trigger('keydown', { key: 'ArrowRight' });
-
       expect(tabs(wrapper)[0].text()).toContain('Tus datos');
+      expect(wrapper.get('[role="status"]').text()).toContain('ITEM_MOVED');
+      await menuAction(wrapper, 'screen', 0, 'down');
+      expect(tabs(wrapper)[1].attributes('aria-pressed')).toBe('true');
+      await menuAction(wrapper, 'screen', 0, 'rename');
+      expect(
+        wrapper.get('[data-testid="flow-screen-title"] input').element.value
+      ).toBe('Tu cita');
+      wrapper.unmount();
     });
+    it.each([
+      [
+        'localized',
+        'WHATSAPP_FLOWS.EDITOR.BUTTON_NEXT',
+        'WHATSAPP_FLOWS.EDITOR.BUTTON_LAST',
+      ],
+      ['official template', 'Continuar', 'Enviar'],
+    ])(
+      'updates %s default buttons after screen changes and preserves custom or empty text',
+      async (_source, next, last) => {
+        const flow = sampleFlow();
+        flow.definition.screens[0].button = next;
+        flow.definition.screens[1].button = last;
+        flow.definition.screens.splice(
+          1,
+          0,
+          { title: 'Custom', button: 'Book now', blocks: [] },
+          { title: 'Empty', button: '', blocks: [] }
+        );
+        const { wrapper } = await mountPage(flow);
+        const draggable = wrapper.findComponent(Draggable);
+        const [first, custom, empty, final] = draggable.props('modelValue');
+        const buttons = () =>
+          wrapper
+            .findComponent(FlowPhoneCanvas)
+            .props('definition')
+            .screens.map(item => item.button);
+        const expectedNext = 'WHATSAPP_FLOWS.EDITOR.BUTTON_NEXT';
+        const expectedLast = 'WHATSAPP_FLOWS.EDITOR.BUTTON_LAST';
+
+        draggable.vm.$emit('update:modelValue', [final, custom, empty, first]);
+        await flushPromises();
+        expect(buttons()).toEqual([expectedNext, 'Book now', '', expectedLast]);
+
+        // Moving the selected final screen by keyboard uses the same normalization.
+        await tabs(wrapper)[3].trigger('keydown', {
+          key: 'ArrowUp',
+          altKey: true,
+        });
+        expect(buttons()).toEqual([expectedNext, 'Book now', expectedNext, '']);
+        await tabs(wrapper)[2].trigger('keydown', {
+          key: 'ArrowDown',
+          altKey: true,
+        });
+        expect(buttons()).toEqual([expectedNext, 'Book now', '', expectedLast]);
+
+        await wrapper.get('[data-testid="flow-screen-add"]').trigger('click');
+        expect(buttons()).toEqual([
+          expectedNext,
+          'Book now',
+          '',
+          expectedNext,
+          expectedLast,
+        ]);
+        await [
+          [expectedNext, 'Book now', '', expectedLast],
+          [expectedNext, 'Book now', ''],
+          [expectedNext, 'Book now'],
+          [expectedLast],
+        ].reduce(async (completed, expected) => {
+          await completed;
+          await menuAction(
+            wrapper,
+            'screen',
+            tabs(wrapper).length - 1,
+            'remove'
+          );
+          await wrapper
+            .get(
+              '[data-testid="flow-remove-screen-dialog"] [data-testid="stub-confirm"]'
+            )
+            .trigger('click');
+          expect(buttons()).toEqual(expected);
+        }, Promise.resolve());
+        wrapper.unmount();
+      }
+    );
   });
 
   describe('blocks are edited by clicking them on the phone', () => {
@@ -434,7 +523,7 @@ describe('FlowBuilderPage', () => {
       const { wrapper } = await mountPage();
       await tabs(wrapper)[1].trigger('click');
 
-      await wrapper.get('[data-testid="flow-add-email"]').trigger('click');
+      await addField(wrapper, 'email');
 
       expect(canvasBlocks(wrapper)).toHaveLength(3);
       expect(canvasBlocks(wrapper)[2].attributes('data-selected')).toBe('true');
@@ -443,36 +532,31 @@ describe('FlowBuilderPage', () => {
       );
     });
 
-    it('groups the buttons as text, answers, options and files', async () => {
+    it('opens the grouped catalog from Add field', async () => {
       const { wrapper } = await mountPage();
-
+      expect(wrapper.find('[data-testid="flow-palette"]').exists()).toBe(false);
+      await wrapper.get('[data-testid="flow-field-add"]').trigger('click');
       const groups = wrapper
         .get('[data-testid="flow-palette"]')
-        .findAll('p')
+        .findAll('h3')
         .map(group => group.text());
       expect(groups).toEqual([
         'WHATSAPP_FLOWS.EDITOR.GROUPS.text',
         'WHATSAPP_FLOWS.EDITOR.GROUPS.answer',
-        'WHATSAPP_FLOWS.EDITOR.GROUPS.options',
         'WHATSAPP_FLOWS.EDITOR.GROUPS.file',
       ]);
-    });
-
-    it('keeps two palette columns and a wider properties panel', async () => {
-      const { wrapper } = await mountPage();
-
-      const group = wrapper.get('[data-testid="flow-palette"] > div');
-      expect(group.classes()).toContain('grid-cols-2');
-      expect(wrapper.html()).toContain(
-        'min-[1100px]:grid-cols-[16rem_minmax(0,1fr)_22.5rem]'
-      );
     });
 
     it('removes the selected block from the phone', async () => {
       const { wrapper } = await mountPage();
       await canvasBlocks(wrapper)[0].trigger('click');
 
-      await wrapper.get('[data-testid="flow-canvas-remove"]').trigger('click');
+      await menuAction(wrapper, 'field', 0, 'remove');
+      await wrapper
+        .get(
+          '[data-testid="flow-block-remove-dialog"] [data-testid="stub-confirm"]'
+        )
+        .trigger('click');
 
       expect(canvasBlocks(wrapper)).toHaveLength(1);
       expect(wrapper.find('[data-testid="flow-block-props"]').exists()).toBe(
@@ -480,11 +564,140 @@ describe('FlowBuilderPage', () => {
       );
     });
 
+    it('adds fresh catalog fields with independent options and unique answer keys', async () => {
+      const { wrapper } = await mountPage();
+      await addField(wrapper, 'radio');
+      await addField(wrapper, 'radio');
+      const added = wrapper
+        .findComponent(FlowPhoneCanvas)
+        .props('definition')
+        .screens[0].blocks.slice(-2);
+      expect(added.map(item => item.key)).toEqual(['radio', 'radio_2']);
+      expect(added[0].options).not.toBe(added[1].options);
+      expect(added[0].options[0]).not.toBe(added[1].options[0]);
+      expect(added[0].options.map(option => option.id)).toEqual([
+        'opcion_1',
+        'opcion_2',
+      ]);
+      expect(canvasBlocks(wrapper).at(-1).attributes('data-selected')).toBe(
+        'true'
+      );
+      expect(wrapper.get('[data-testid="flow-save-state"]').text()).toBe(
+        'WHATSAPP_FLOWS.EDITOR.UNSAVED'
+      );
+      wrapper.unmount();
+    });
+    it('preserves the selected inspector when another field is removed and supports cancelling deletion', async () => {
+      const { wrapper } = await mountPage();
+      await wrapper
+        .findAll('[data-testid="flow-field-select"]')[1]
+        .trigger('click');
+      const uid = wrapper.findComponent(FlowBlockEditor).vm.$.uid;
+      await menuAction(wrapper, 'field', 0, 'remove');
+      wrapper
+        .findComponent('[data-testid="flow-block-remove-dialog"]')
+        .vm.$emit('close');
+      await flushPromises();
+      expect(canvasBlocks(wrapper)).toHaveLength(2);
+      await menuAction(wrapper, 'field', 0, 'remove');
+      await wrapper
+        .get(
+          '[data-testid="flow-block-remove-dialog"] [data-testid="stub-confirm"]'
+        )
+        .trigger('click');
+      expect(canvasBlocks(wrapper)).toHaveLength(1);
+      expect(canvasBlocks(wrapper)[0].text()).toContain('Correo');
+      expect(canvasBlocks(wrapper)[0].attributes('data-selected')).toBe('true');
+      expect(wrapper.findComponent(FlowBlockEditor).vm.$.uid).toBe(uid);
+      wrapper.unmount();
+    });
+
+    it('keeps the selected inspector and its uncommitted key when blocks are dragged', async () => {
+      const { wrapper } = await mountPage();
+      await canvasBlocks(wrapper)[1].trigger('click');
+      const editor = wrapper.findComponent(FlowBlockEditor);
+      const label = wrapper.get(
+        '[data-testid="flow-block-label"] input'
+      ).element;
+      await wrapper
+        .get('[data-testid="flow-block-key"] input')
+        .setValue('email_address');
+      const canvas = wrapper.findComponent(FlowPhoneCanvas);
+      const [first, second] = canvas.props('definition').screens[0].blocks;
+      wrapper
+        .findComponent('[data-testid="flow-field-draggable"]')
+        .vm.$emit('update:modelValue', [second, first]);
+      await flushPromises();
+      expect(canvasBlocks(wrapper)[0].attributes('data-selected')).toBe('true');
+      const activeEditor = wrapper.findComponent(FlowBlockEditor);
+      expect(activeEditor.vm.$.uid).toBe(editor.vm.$.uid);
+      expect(
+        wrapper.get('[data-testid="flow-block-label"] input').element
+      ).toBe(label);
+      expect(
+        wrapper.get('[data-testid="flow-block-key"] input').element.value
+      ).toBe('email_address');
+      await wrapper.get('[data-testid="flow-block-key"] input').trigger('blur');
+      await wrapper
+        .get('[data-testid="flow-block-label"] input')
+        .setValue('Your email');
+      expect(
+        wrapper.get('[data-testid="flow-block-label"] input').element
+      ).toBe(label);
+      expect(
+        canvas.props('definition').screens[0].blocks.map(item => item.key)
+      ).toEqual(['email_address', 'nombre']);
+      wrapper.unmount();
+    });
+
+    it('preserves condition references after dragging and displays their ordering error', async () => {
+      const { wrapper, api } = await mountPage();
+      await tabs(wrapper)[1].trigger('click');
+      await canvasBlocks(wrapper)[1].trigger('click');
+      const canvas = wrapper.findComponent(FlowPhoneCanvas);
+      const [question, dependent] =
+        canvas.props('definition').screens[1].blocks;
+      api.validate.mockResolvedValue({
+        data: {
+          errors: [
+            {
+              code: 'condition_not_earlier',
+              path: 'screens.1.blocks.0.visible_when',
+              details: {},
+            },
+          ],
+          flow_json: null,
+        },
+      });
+      wrapper
+        .findComponent('[data-testid="flow-field-draggable"]')
+        .vm.$emit('update:modelValue', [dependent, question]);
+      await flushPromises();
+      expect(
+        canvas.props('definition').screens[1].blocks[0].visible_when
+      ).toEqual({ key: 'necesitas', op: 'equals', value: 'otro' });
+      expect(question.options.map(option => option.id)).toEqual([
+        'consulta',
+        'otro',
+      ]);
+      await vi.waitFor(
+        () =>
+          expect(
+            wrapper.get('[data-testid="flow-block-errors"]').text()
+          ).toContain('condition_not_earlier'),
+        { timeout: 2000 }
+      );
+      expect(
+        wrapper.get('[data-testid="flow-advanced-settings"]').attributes('open')
+      ).toBeDefined();
+      wrapper.unmount();
+    });
+
     it('moves the selected block down', async () => {
       const { wrapper } = await mountPage();
       await canvasBlocks(wrapper)[0].trigger('click');
 
-      await wrapper.get('[data-testid="flow-canvas-down"]').trigger('click');
+      await menuAction(wrapper, 'field', 0, 'down');
 
       expect(canvasBlocks(wrapper)[1].text()).toContain('Nombre');
       expect(canvasBlocks(wrapper)[1].attributes('data-selected')).toBe('true');
@@ -507,8 +720,15 @@ describe('FlowBuilderPage', () => {
       const { wrapper } = await mountPage();
       await tabs(wrapper)[1].trigger('click');
       expect(
-        canvasBlocks(wrapper)[1]
+        wrapper
+          .findComponent(FlowPhoneCanvas)
           .find('[data-testid="flow-canvas-cond"]')
+          .exists()
+      ).toBe(false);
+      expect(
+        wrapper
+          .findAll('[data-testid="flow-field-select"]')[1]
+          .find('[aria-label="WHATSAPP_FLOWS.EDITOR.HAS_CONDITION"]')
           .exists()
       ).toBe(true);
 
@@ -553,16 +773,17 @@ describe('FlowBuilderPage', () => {
       );
     });
 
-    it('keeps the header slim and moves categories and name into the editor', async () => {
+    it('edits the name in the header and keeps categories in Flow settings', async () => {
       const { wrapper } = await mountPage();
 
       const ids = [
         'flow-editor-back',
-        'flow-editor-status',
-        'flow-editor-category',
-        'flow-actions',
-        'flow-editor-save',
         'flow-editor-name',
+        'flow-editor-status',
+        'flow-actions',
+        'flow-preview-try',
+        'flow-editor-save',
+        'flow-editor-category',
       ];
       const html = wrapper.html();
       const positions = ids.map(id => html.indexOf(`data-testid="${id}"`));
@@ -686,7 +907,7 @@ describe('FlowBuilderPage', () => {
   const chooser = wrapper => wrapper.find('[data-testid="flow-starting"]');
 
   describe('the creation template never reappears', () => {
-    it('hides blank validation until interaction and reveals only the touched field', async () => {
+    it('shows the empty footer honestly while withholding untouched validation summaries', async () => {
       const api = makeApi();
       api.validate.mockResolvedValue({
         data: {
@@ -707,7 +928,9 @@ describe('FlowBuilderPage', () => {
         api
       );
       expect(wrapper.text()).not.toContain('ERRORS_COUNT');
-      expect(wrapper.text()).not.toContain('button_required');
+      expect(
+        wrapper.get('[data-testid="flow-canvas-footer"]').text()
+      ).toContain('button_required');
       expect(wrapper.text()).not.toContain('blocks_required');
       await wrapper
         .get('[data-testid="flow-screen-button"] input')
@@ -725,8 +948,14 @@ describe('FlowBuilderPage', () => {
       expect(chooser(wrapper).exists()).toBe(false);
       expect(tabs(wrapper)).toHaveLength(1);
       expect(canvasBlocks(wrapper)).toHaveLength(0);
-      await wrapper.get('[data-testid="flow-add-heading"]').trigger('click');
-      await wrapper.get('[data-testid="flow-canvas-remove"]').trigger('click');
+      await addField(wrapper, 'heading');
+      await menuAction(wrapper, 'field', 0, 'remove');
+      await wrapper
+        .get(
+          '[data-testid="flow-block-remove-dialog"] [data-testid="stub-confirm"]'
+        )
+        .trigger('click');
+      expect(canvasBlocks(wrapper)).toHaveLength(0);
       expect(chooser(wrapper).exists()).toBe(false);
     });
     it('loads the selected template directly', async () => {
@@ -909,7 +1138,7 @@ describe('FlowBuilderPage', () => {
           },
         ])
       );
-      expect(wrapper.get('[data-testid="flow-editor-status"]').text()).toBe(
+      expect(wrapper.findAllComponents({ name: 'InfoChip' })[0].text()).toBe(
         'WHATSAPP_FLOWS.META.STATE.error'
       );
       expect(wrapper.find('[data-testid="flow-meta-errors"]').exists()).toBe(

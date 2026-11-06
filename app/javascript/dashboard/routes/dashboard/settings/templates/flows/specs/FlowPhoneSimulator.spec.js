@@ -131,6 +131,18 @@ describe('FlowPhoneSimulator', () => {
     expect(wrapper.text()).toContain('Completa este campo');
   });
 
+  it('requires real button text before the preview can advance', async () => {
+    await wrapper.setProps({
+      definition: {
+        screens: [{ title: 'Empty', button: '', blocks: [] }],
+      },
+    });
+    const next = wrapper.get('[data-testid="flow-preview-next"]');
+    expect(next.attributes('disabled')).toBeDefined();
+    await wrapper.get('form').trigger('submit');
+    expect(wrapper.findComponent(FlowPreviewResult).exists()).toBe(false);
+  });
+
   it('navigates screens, renders the real answer card and sent bubble, omits empties, and makes no requests', async () => {
     const before = JSON.stringify(definition);
     await wrapper.get('#flow-preview-name').setValue('Ana');
@@ -171,7 +183,7 @@ describe('FlowPhoneSimulator', () => {
     expect(requests).not.toHaveBeenCalled();
   });
 
-  it('keeps the same fixed phone frame as Editar and contains scrolling inside it', () => {
+  it('keeps the same responsive phone frame as Editar and contains scrolling inside it', () => {
     const canvas = mount(FlowPhoneCanvas, {
       props: { definition, screenIndex: 0 },
       global,
@@ -180,7 +192,10 @@ describe('FlowPhoneSimulator', () => {
     const trying = wrapper.get('[data-testid="flow-phone-frame"]');
     expect(trying.attributes('class')).toBe(edit.attributes('class'));
     expect(trying.classes()).toContain('w-[var(--phone-preview-width)]');
-    expect(trying.classes()).toContain('h-[var(--phone-height,46.25rem)]');
+    expect(trying.classes()).toContain('max-w-full');
+    expect(trying.classes()).toContain(
+      'h-[clamp(24rem,calc(100dvh-15rem),38rem)]'
+    );
     expect(
       wrapper.get('[data-testid="flow-phone-scroll"]').classes()
     ).toContain('overflow-y-auto');

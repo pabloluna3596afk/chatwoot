@@ -34,7 +34,7 @@ describe('naming', () => {
     expect(uniqueKey('', [])).toBe('campo');
   });
 
-  it('gives an option its id from the title, apart from the ones the others have', () => {
+  it('keeps existing option ids and generates unique ids only for new options', () => {
     const block = {
       options: [
         { id: 'si', title: 'Sí' },
@@ -43,7 +43,7 @@ describe('naming', () => {
     };
 
     expect(optionIdFor('Quizás', block, 2)).toBe('quizas');
-    expect(optionIdFor('Sí', block, 1)).toBe('si_2');
+    expect(optionIdFor('Sí', block, 1)).toBe('no');
     expect(optionIdFor('Sí', block, 0)).toBe('si');
     expect(newOption(block).id).toBe('opcion');
   });
@@ -242,5 +242,13 @@ describe('default screen titles', () => {
   it('names the blank start and new screens by position, never "Formulario"', () => {
     expect(STARTING_POINTS.blank().screens[0].title).toBe('Pantalla 1');
     expect(newScreen(3).title).toBe('Pantalla 3');
+  });
+
+  it('stores the localized button supplied by the caller', () => {
+    expect(newScreen(3, 'Send').button).toBe('Send');
+    expect(startingDefinition('blank', 'Send').screens[0].button).toBe('Send');
+    expect(startingDefinition('survey', 'Send').screens[0].button).toBe(
+      'Continuar'
+    );
   });
 });

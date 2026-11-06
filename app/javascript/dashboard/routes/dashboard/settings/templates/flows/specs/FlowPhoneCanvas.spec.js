@@ -39,7 +39,16 @@ const definition = {
 const mountCanvas = (props = {}) =>
   mount(FlowPhoneCanvas, {
     props: { definition, screenIndex: 0, ...props },
-    global: { mocks: { $t: key => key } },
+    global: {
+      mocks: { $t: key => key },
+      stubs: {
+        Dialog: {
+          name: 'Dialog',
+          template: '<div />',
+          methods: { open: vi.fn(), close: vi.fn() },
+        },
+      },
+    },
   });
 
 describe('FlowPhoneCanvas', () => {
@@ -65,31 +74,47 @@ describe('FlowPhoneCanvas', () => {
     expect(wrapper.emitted('select')[0]).toEqual([2]);
   });
 
-  it('marks a conditional block with the question and the answer it depends on', () => {
-    const wrapper = mountCanvas();
-
-    const chip = wrapper.get('[data-testid="flow-canvas-cond"]');
-    expect(chip.text()).toContain('ONLY_IF');
-    expect(chip.text()).toContain('¿Qué necesitas?');
-    expect(chip.text()).toContain('Otro');
-  });
-
-  it('shows move and remove on the selected block only', async () => {
-    const none = mountCanvas();
-    expect(none.find('[data-testid="flow-canvas-remove"]').exists()).toBe(
+  it('keeps editing actions and technical condition badges outside the customer preview', async () => {
+    const wrapper = mountCanvas({ selected: 1 });
+    expect(wrapper.find('[data-testid="flow-canvas-cond"]').exists()).toBe(
       false
     );
-
-    const wrapper = mountCanvas({ selected: 1 });
-    await wrapper.get('[data-testid="flow-canvas-up"]').trigger('click');
-    await wrapper.get('[data-testid="flow-canvas-remove"]').trigger('click');
-    expect(wrapper.emitted('move')[0]).toEqual([1, -1]);
-    expect(wrapper.emitted('remove')[0]).toEqual([1]);
+    expect(wrapper.findAll('button')).toHaveLength(0);
+    expect(wrapper.find('[data-testid="flow-block-handle"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.find('[data-testid="flow-canvas-remove"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.findAll('h3')).toHaveLength(1);
+    expect(wrapper.get('h3').text()).toBe('Tu cita');
+    const selected = wrapper.findAll('[data-testid="flow-canvas-block"]')[1];
+    expect(selected.classes()).toContain('border-n-brand');
+    expect(selected.classes()).not.toContain('bg-n-brand/10');
+    await selected.trigger('keydown', { key: 'Enter' });
+    expect(wrapper.emitted('select')[0]).toEqual([1]);
   });
 
-  it('uses Enviar on the last screen when the screen has no button text', () => {
+  it('shows a missing button error instead of inventing button text', () => {
     const wrapper = mountCanvas();
 
-    expect(wrapper.text()).toContain('WHATSAPP_FLOWS.EDITOR.BUTTON_LAST');
+    expect(wrapper.get('[data-testid="flow-canvas-footer"]').text()).toBe(
+      'WHATSAPP_FLOWS.ERRORS.button_required'
+    );
+    expect(wrapper.text()).not.toContain('WHATSAPP_FLOWS.EDITOR.BUTTON_LAST');
+  });
+
+  it('guides the user on an empty screen and supports selecting a block with Space', async () => {
+    const empty = mountCanvas({
+      definition: { screens: [{ title: 'Empty', button: 'Send', blocks: [] }] },
+    });
+    expect(empty.get('[data-testid="flow-canvas-empty"]').text()).toContain(
+      'WHATSAPP_FLOWS.EDITOR.EMPTY_SCREEN_HINT'
+    );
+    const wrapper = mountCanvas();
+    await wrapper.get('[data-testid="flow-canvas-block"]').trigger('keydown', {
+      key: ' ',
+    });
+    expect(wrapper.emitted('select')[0]).toEqual([0]);
   });
 });
