@@ -192,7 +192,7 @@ RSpec.describe Concerns::Agentable do
       create(:installation_config, name: 'CAPTAIN_OPEN_AI_MODEL', value: 'gpt-5.2')
       account.enable_features!('captain_integration_v2')
 
-      expect(dummy_instance.send(:agent_model)).to eq('gpt-5.2')
+      expect(dummy_instance.send(:agent_model)).to eq('gpt-6-luna')
       expect(account.reload.captain_models).to be_nil
     end
 

@@ -10,7 +10,7 @@ module Llm::UsageFeatureDecisions
       assistant_migration_instruction_classifier assistant_migration_instruction_auditor content_evaluator
     ],
     measure_only: %w[
-      article_writer captain.conversation_completion captain_assistant_overview_summary captain_overview_summary
+      article_writer article_search_terms captain.conversation_completion captain_assistant_overview_summary captain_overview_summary
       conversation_faq conversation_faq_match document_faq_generation embedding
       faq_generation faq_generator help_center_article_generation help_center_curation
       help_center_query_translation onboarding_content_generation paginated_faq_generation translate_query

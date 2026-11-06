@@ -8,6 +8,7 @@ module Llm::UsageFeatureBuckets
     'article_writer' => :captain_responses,
     'assistant' => :captain_responses,
     'assistant_playground' => :captain_responses,
+    'article_search_terms' => :internal,
     'audio_transcription' => :internal,
     'captain.conversation_completion' => :internal,
     'captain_assistant_overview_summary' => :internal,

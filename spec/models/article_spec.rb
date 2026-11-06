@@ -47,6 +47,29 @@ RSpec.describe Article do
     it { is_expected.to belong_to(:author) }
   end
 
+  describe '#generate_article_search_terms' do
+    it 'uses the routed LLM inside an internal usage context and returns search terms' do
+      article = build(:article, account: account, portal: portal_1, category: category_1, author: user)
+      chat = double('chat') # rubocop:disable RSpec/VerifiedDoubles
+      service = instance_double(Llm::BaseAiService, chat: chat)
+      response = double('response', content: '{"search_terms":["billing help"]}') # rubocop:disable RSpec/VerifiedDoubles
+      user_prompt = "title: #{article.title} \n description: #{article.description} \n content: #{article.content}"
+
+      allow(Llm::Config).to receive(:api_key_configured?).and_return(true)
+      expect(Llm::BaseAiService).to receive(:new).with(feature: 'article_search_terms', account: account).and_return(service)
+      expect(chat).to receive(:with_instructions).with(article.article_to_search_terms_prompt).and_return(chat)
+      expect(chat).to receive(:with_provider_options).with(response_format: { type: 'json_object' }).and_return(chat)
+      expect(chat).to receive(:ask).with(user_prompt) do
+        expect(Llm::UsageContext.current).to include(
+          account_id: account.id, bucket: 'internal', feature: 'article_search_terms'
+        )
+        response
+      end
+
+      expect(article.generate_article_search_terms).to eq(['billing help'])
+    end
+  end
+
   # This validation happens in ApplicationRecord
   describe 'length validations' do
     let(:article) do

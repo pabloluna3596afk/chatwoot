@@ -8,6 +8,7 @@ class Captain::UsageBreakdownBuilder
     'article_writer' => :article_generation,
     'assistant' => :assistant,
     'assistant_playground' => :assistant_playground,
+    'article_search_terms' => :help_center_article_generation,
     'audio_transcription' => :audio_transcription,
     'captain.conversation_completion' => :conversation_completion,
     'captain_assistant_overview_summary' => :assistant_summary,

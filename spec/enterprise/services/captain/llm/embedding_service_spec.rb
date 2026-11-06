@@ -25,7 +25,10 @@ RSpec.describe Captain::Llm::EmbeddingService, type: :service do
 
   describe '#get_embedding' do
     let(:account) { create(:account) }
-    let(:embedding_response) { double('embedding_response', vectors: [0.1, 0.2]) } # rubocop:disable RSpec/VerifiedDoubles
+    let(:embedding_response) do
+      tokens = RubyLLM::Tokens.new(input: 17)
+      double('embedding_response', vectors: [0.1, 0.2], tokens: tokens) # rubocop:disable RSpec/VerifiedDoubles
+    end
 
     it 'sends the installation embedding model to RubyLLM' do
       configure_embedding_model('custom-embedding-model')
@@ -33,6 +36,19 @@ RSpec.describe Captain::Llm::EmbeddingService, type: :service do
       expect(RubyLLM).to receive(:embed).with('search text', model: 'custom-embedding-model').and_return(embedding_response)
 
       expect(described_class.new(account_id: account.id).get_embedding('search text')).to eq([0.1, 0.2])
+    end
+
+    it 'records provider-reported embedding input tokens' do
+      allow(RubyLLM).to receive(:embed).and_return(embedding_response)
+
+      expect do
+        described_class.new(account_id: account.id).get_embedding('search text')
+      end.to change(AiUsageEvent, :count).by(1)
+
+      usage_event = AiUsageEvent.last
+      expect(usage_event).to have_attributes(
+        account_id: account.id, feature: 'embedding', bucket: 'internal', input_tokens: 17
+      )
     end
   end
 end

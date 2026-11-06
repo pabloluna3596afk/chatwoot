@@ -213,6 +213,26 @@ RSpec.describe AiUsageEvent do
       expect(event).to have_attributes(bucket: 'internal', input_tokens: 250, output_tokens: 0)
     end
 
+    it 'includes RubyLLM cache buckets in total input and maps thinking tokens to reasoning' do
+      account = create(:account)
+      AiModelPrice.create!(model: 'gpt-6-luna', input_per_million: 0.10,
+                           cached_input_per_million: 0.01, output_per_million: 0.50,
+                           effective_from: 1.day.ago)
+      response = Struct.new(:tokens).new(
+        RubyLLM::Tokens.new(input: 75, output: 10, cache_read: 25, cache_write: 5, thinking: 4)
+      )
+      group_id = SecureRandom.uuid
+
+      Llm::UsageContext.with(account: account, bucket: :captain_responses, feature: 'captain_reply',
+                             usage_group_id: group_id) do
+        Llm::UsageContext.record_operation(model: 'gpt-6-luna', provider: 'openai', response: response, status: 'ok')
+      end
+
+      event = described_class.find_by!(usage_group_id: group_id)
+      expect(event).to have_attributes(input_tokens: 105, cached_input_tokens: 25, output_tokens: 10, reasoning_tokens: 4)
+      expect(event.cost_usd).to eq(BigDecimal('0.00001325'))
+    end
+
     it 'stores audio duration and per-minute cost on the usage event' do
       account = create(:account)
       AiModelPrice.create!(model: 'fake-audio-model', input_per_million: 0, cached_input_per_million: 0,
