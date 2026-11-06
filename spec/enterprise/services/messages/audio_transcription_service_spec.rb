@@ -31,17 +31,54 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
   end
 
   describe '#quota_preview' do
-    it 'checks plan flags and the configured internal bag without loading usage limits' do
-      account.update_columns(limits: { captain_internal: 5 }) # rubocop:disable Rails/SkipsModelValidations
+    it 'allows a plan account whose internal bag comes from the plan without loading usage limits' do
+      allow(account).to receive(:plan).and_return(instance_double(Plan))
+      allow(account).to receive(:plan_limit).with(:captain_internal_calls).and_return(1500)
+      allow(account).to receive(:usage_limits).and_return(
+        captain: { internal: { total_count: 1500, current_available: 100 } }
+      )
+      manual_available = service.send(:quota_details, manual: true)[:error].nil?
       expect(account).not_to receive(:usage_limits)
 
-      expect(service.quota_preview).to eq(units: 1, available: true, reason: nil)
+      preview = service.quota_preview
+      expect(preview).to eq(units: 1, available: manual_available, reason: nil)
     end
 
-    it 'marks the preview unavailable when no internal bag is configured' do
+    it 'allows an account without a plan without loading usage limits' do
+      allow(account).to receive(:plan).and_return(nil)
+      allow(account).to receive(:plan_limit).with(:captain_internal_calls).and_return(nil)
+      manual_available = service.send(:quota_details, manual: true)[:error].nil?
       expect(account).not_to receive(:usage_limits)
 
-      expect(service.quota_preview).to eq(units: 1, available: false, reason: 'plan_unavailable')
+      preview = service.quota_preview
+      expect(preview).to eq(units: 1, available: manual_available, reason: nil)
+    end
+
+    it 'allows an account with an internal bag override without loading usage limits' do
+      account.update_columns(limits: { captain_internal: 5 }) # rubocop:disable Rails/SkipsModelValidations
+      allow(account).to receive(:plan).and_return(instance_double(Plan))
+      allow(account).to receive(:plan_limit).with(:captain_internal_calls).and_return(nil)
+      allow(account).to receive(:usage_limits).and_return(
+        captain: { internal: { total_count: 5, current_available: 5 } }
+      )
+      manual_available = service.send(:quota_details, manual: true)[:error].nil?
+      expect(account).not_to receive(:usage_limits)
+
+      preview = service.quota_preview
+      expect(preview).to eq(units: 1, available: manual_available, reason: nil)
+    end
+
+    it 'marks a plan account unavailable when its plan has no internal bag' do
+      allow(account).to receive(:plan).and_return(instance_double(Plan))
+      allow(account).to receive(:plan_limit).with(:captain_internal_calls).and_return(nil)
+      allow(account).to receive(:usage_limits).and_return(
+        captain: { internal: { total_count: nil, current_available: 100 } }
+      )
+      manual_available = service.send(:quota_details, manual: true)[:error].nil?
+      expect(account).not_to receive(:usage_limits)
+
+      preview = service.quota_preview
+      expect(preview).to eq(units: 1, available: manual_available, reason: 'plan_unavailable')
     end
 
     it 'marks the preview unavailable when the account administrator disabled transcription' do
