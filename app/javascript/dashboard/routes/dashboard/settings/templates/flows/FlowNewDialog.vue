@@ -49,7 +49,10 @@ const create = () => {
     id: null,
     name: name.value.trim(),
     categories: categories.value.length ? [...categories.value] : ['OTHER'],
-    definition: startingDefinition(template.value),
+    definition: startingDefinition(
+      template.value,
+      t('WHATSAPP_FLOWS.EDITOR.BUTTON_LAST')
+    ),
   };
   confirmed = true;
   dialog.value.close();

@@ -39,7 +39,10 @@ describe('FlowNewDialog', () => {
       id: null,
       name: 'Datos',
       categories: ['OTHER'],
-      definition: startingDefinition('blank'),
+      definition: startingDefinition(
+        'blank',
+        'WHATSAPP_FLOWS.EDITOR.BUTTON_LAST'
+      ),
     });
     expect(
       wrapper.emitted('create')[0][0].definition.screens[0].blocks

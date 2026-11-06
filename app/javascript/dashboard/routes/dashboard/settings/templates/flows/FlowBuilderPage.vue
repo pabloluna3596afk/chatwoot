@@ -2,7 +2,7 @@
 // The flow builder as a full page: the screens as tabs, the blocks to add on the left, the phone in the middle (blocks
 // are edited by clicking them there) and the settings of the selected screen and block on the right. The mistakes Meta
 // would refuse are shown while typing and the draft is saved on demand. A new flow is built in this same page: its
-// name stays editable in properties; categories are in the header. The creation dialog chooses the starting content.
+// name is editable in the header; categories live in Flow settings. The creation dialog chooses the starting content.
 import {
   computed,
   nextTick,
@@ -12,7 +12,7 @@ import {
   toRaw,
   watch,
 } from 'vue';
-import Draggable from 'vuedraggable';
+import { useEventListener } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 
@@ -21,10 +21,12 @@ import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
+import InfoChip from 'dashboard/components-next/ListCard/InfoChip.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import MenuPopover from 'dashboard/components-next/dropdown-menu/MenuPopover.vue';
 import FlowBlockEditor from './FlowBlockEditor.vue';
+import FlowStructurePanel from './FlowStructurePanel.vue';
 import FlowPhoneCanvas from './FlowPhoneCanvas.vue';
 import FlowPhoneSimulator from './FlowPhoneSimulator.vue';
 import FlowPublicationBadges from './FlowPublicationBadges.vue';
@@ -34,7 +36,6 @@ import { useFlowPublications } from './useFlowPublications';
 import {
   CATEGORIES,
   LIMITS,
-  PALETTE,
   groupErrors,
   newBlock,
   newScreen,
@@ -55,15 +56,8 @@ const attributes = computed(() => store.getters['attributes/getAttributes']);
 store.dispatch('attributes/get');
 
 const VALIDATE_DELAY = 500;
-// A short press before a drag starts on a touch screen, so scrolling the page with a finger still works.
-const DRAG_OPTIONS = {
-  animation: 150,
-  ghostClass: 'opacity-40',
-  filter: '.flow-tab-remove',
-  delay: 150,
-  delayOnTouchOnly: true,
-};
-
+// The official starting templates store these button labels in their definition.
+const TEMPLATE_BUTTON_LABELS = ['Continuar', 'Enviar'];
 const name = ref(props.flow.name || '');
 const categories = ref([...(props.flow.categories || [])]);
 const definition = reactive(JSON.parse(JSON.stringify(props.flow.definition)));
@@ -74,9 +68,7 @@ const triedToSave = ref(false);
 const errors = ref([]);
 const flowJson = ref(null);
 const jsonDialog = ref(null);
-const tabsRef = ref(null);
 const jsonCopied = ref(false);
-const announcement = ref('');
 const currentScreen = ref(0);
 const selected = ref(null);
 const isTrying = ref(false);
@@ -118,12 +110,37 @@ const statusLabel = computed(() => {
 });
 const publishDialog = ref(null);
 const testDialog = ref(null);
+const leaveDialog = ref(null);
+const removeScreenDialog = ref(null);
+const pendingScreen = ref(null);
+const screenTitleInput = ref(null);
+const structurePanel = ref(null);
+let resolveLeave = null;
 
 // What was last saved (or loaded); anything different is a change Meta would not see yet.
 const snapshot = () =>
   JSON.stringify([name.value.trim(), categories.value, definition]);
 const savedSnapshot = ref(snapshot());
 const dirty = computed(() => snapshot() !== savedSnapshot.value);
+const requestLeave = () => {
+  if (!dirty.value && flowId.value) return Promise.resolve(true);
+  if (resolveLeave) return Promise.resolve(false);
+  leaveDialog.value?.open();
+  return new Promise(resolve => {
+    resolveLeave = resolve;
+  });
+};
+const finishLeave = leave => {
+  resolveLeave?.(leave);
+  resolveLeave = null;
+  leaveDialog.value?.close();
+};
+const goBack = () => emit('back');
+useEventListener(window, 'beforeunload', event => {
+  if (!dirty.value && flowId.value) return;
+  event.preventDefault();
+  event.returnValue = '';
+});
 
 const visibleErrors = computed(() =>
   triedToSave.value
@@ -145,15 +162,6 @@ const metaHint = computed(() => {
   return '';
 });
 const actionItems = computed(() => [
-  // Probar = try the Flow right here in the phone; Enviar = send the saved Flow to a number (the old "Probar").
-  {
-    action: 'try',
-    label: isTrying.value
-      ? t('WHATSAPP_FLOWS.SIMULATOR.BACK_TO_EDIT')
-      : t('WHATSAPP_FLOWS.EDITOR.ACTION_TRY'),
-    icon: isTrying.value ? 'i-lucide-pencil' : 'i-lucide-play',
-    testId: 'flow-preview-try',
-  },
   ...(hasCloud.value
     ? [
         {
@@ -211,6 +219,7 @@ onBeforeUnmount(() => {
   stopMeta();
   clearTimeout(timer);
   clearTimeout(copiedTimer);
+  resolveLeave?.(false);
 });
 
 const categoryOptions = computed(() =>
@@ -229,68 +238,76 @@ const goToScreen = index => {
   currentScreen.value = index;
   selected.value = null;
 };
+const normalizeScreenButtons = () => {
+  const next = t('WHATSAPP_FLOWS.EDITOR.BUTTON_NEXT');
+  const last = t('WHATSAPP_FLOWS.EDITOR.BUTTON_LAST');
+  const defaults = new Set([next, last, ...TEMPLATE_BUTTON_LABELS]);
+  definition.screens.forEach((item, index) => {
+    if (defaults.has(item.button)) {
+      item.button = index === definition.screens.length - 1 ? last : next;
+    }
+  });
+};
 const addScreen = () => {
-  definition.screens.push(newScreen(definition.screens.length + 1));
+  definition.screens.push(
+    newScreen(
+      definition.screens.length + 1,
+      t('WHATSAPP_FLOWS.EDITOR.BUTTON_LAST')
+    )
+  );
+  normalizeScreenButtons();
   goToScreen(definition.screens.length - 1);
 };
 const removeScreen = index => {
+  pendingScreen.value = definition.screens[index];
+  removeScreenDialog.value?.open();
+};
+const confirmRemoveScreen = () => {
+  const index = definition.screens.indexOf(pendingScreen.value);
+  if (index < 0 || definition.screens.length === 1) return;
+  const active = toRaw(screen.value);
   definition.screens.splice(index, 1);
-  goToScreen(Math.min(currentScreen.value, definition.screens.length - 1));
+  normalizeScreenButtons();
+  const activeIndex = definition.screens.findIndex(
+    item => toRaw(item) === active
+  );
+  if (activeIndex < 0)
+    goToScreen(Math.min(index, definition.screens.length - 1));
+  else currentScreen.value = activeIndex;
+  removeScreenDialog.value?.close();
 };
-// The tabs are dragged with the mouse or a finger; the keyboard moves the focused tab with Alt/Ctrl + ← →.
-// Each screen gets a key of its own so the tabs keep their identity while they are reordered.
-const screenKeys = new WeakMap();
-let screenKeyCount = 0;
-const screenKey = item => {
-  const raw = toRaw(item);
-  if (!screenKeys.has(raw)) {
-    screenKeyCount += 1;
-    screenKeys.set(raw, screenKeyCount);
-  }
-  return screenKeys.get(raw);
+const restoreScreenFocus = () => {
+  const index = definition.screens.indexOf(pendingScreen.value);
+  structurePanel.value?.focusScreen(index >= 0 ? index : currentScreen.value);
+  pendingScreen.value = null;
 };
-
+const renameScreen = index => {
+  goToScreen(index);
+  nextTick(() => {
+    const input = screenTitleInput.value?.$el?.querySelector('input');
+    input?.focus();
+    input?.select();
+  });
+};
 const reorderScreens = ordered => {
   const selectedScreen = toRaw(screen.value);
   definition.screens.splice(0, definition.screens.length, ...ordered);
+  normalizeScreenButtons();
   currentScreen.value = definition.screens.findIndex(
     item => toRaw(item) === selectedScreen
   );
 };
 
-const focusTab = index => {
-  nextTick(() => {
-    tabsRef.value?.$el?.querySelectorAll('[role="tab"]')[index]?.focus();
-  });
+const blockKeys = new WeakMap();
+let blockKeyCount = 0;
+const blockKey = item => {
+  const raw = toRaw(item);
+  if (!blockKeys.has(raw)) {
+    blockKeyCount += 1;
+    blockKeys.set(raw, blockKeyCount);
+  }
+  return blockKeys.get(raw);
 };
-
-const moveTab = (index, step) => {
-  const target = index + step;
-  if (target < 0 || target >= definition.screens.length) return;
-  const ordered = [...definition.screens];
-  const [moved] = ordered.splice(index, 1);
-  ordered.splice(target, 0, moved);
-  reorderScreens(ordered);
-  announcement.value = t('WHATSAPP_FLOWS.EDITOR.TAB_MOVED', {
-    n: target + 1,
-    total: ordered.length,
-  });
-  focusTab(target);
-};
-
-const onTabKeydown = (event, index) => {
-  if (!(event.altKey || event.ctrlKey)) return;
-  if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-  event.preventDefault();
-  moveTab(index, event.key === 'ArrowLeft' ? -1 : 1);
-};
-
-const tabTitle = (item, index) =>
-  t('WHATSAPP_FLOWS.EDITOR.SCREEN_TAB', {
-    n: index + 1,
-    title: item.title || t('WHATSAPP_FLOWS.EDITOR.SCREEN_UNTITLED'),
-  });
-
 const addBlock = item => {
   const created = newBlock(item.type, definition);
   if (item.input) created.input = item.input;
@@ -304,20 +321,34 @@ const updateBlock = value => {
     if (JSON.stringify(value[key]) !== JSON.stringify(previous[key]))
       touch(`screens.${currentScreen.value}.blocks.${selected.value}.${key}`);
   });
+  if (previous.key && value.key && previous.key !== value.key) {
+    definition.screens.forEach(item =>
+      item.blocks.forEach(candidate => {
+        if (candidate.visible_when?.key === previous.key)
+          candidate.visible_when.key = value.key;
+      })
+    );
+  }
+  blockKeys.set(toRaw(value), blockKey(previous));
   screen.value.blocks.splice(selected.value, 1, value);
 };
 const removeBlock = index => {
+  const active = block.value && toRaw(block.value);
   touch(`screens.${currentScreen.value}.blocks`);
   screen.value.blocks.splice(index, 1);
-  selected.value = null;
+  const activeIndex = active
+    ? screen.value.blocks.findIndex(item => toRaw(item) === active)
+    : -1;
+  selected.value = activeIndex < 0 ? null : activeIndex;
 };
-const moveBlock = (index, step) => {
-  const { blocks } = screen.value;
-  const target = index + step;
-  if (target < 0 || target >= blocks.length) return;
-  const [moved] = blocks.splice(index, 1);
-  blocks.splice(target, 0, moved);
-  selected.value = target;
+const reorderBlocks = ordered => {
+  const active = block.value && toRaw(block.value);
+  screen.value.blocks.splice(0, screen.value.blocks.length, ...ordered);
+  const index = active
+    ? screen.value.blocks.findIndex(item => toRaw(item) === active)
+    : -1;
+  selected.value = index < 0 ? null : index;
+  touch(`screens.${currentScreen.value}.blocks`);
 };
 
 const flowJsonText = computed(() =>
@@ -354,9 +385,14 @@ const save = async () => {
   isSaving.value = true;
   const payload = {
     name: name.value.trim(),
-    categories: categories.value,
+    categories: [...categories.value],
     definition: JSON.parse(JSON.stringify(definition)),
   };
+  const submittedSnapshot = JSON.stringify([
+    payload.name,
+    payload.categories,
+    payload.definition,
+  ]);
   try {
     const { data } = flowId.value
       ? await props.api.update(flowId.value, payload)
@@ -364,7 +400,7 @@ const save = async () => {
     flowId.value = data.id;
     savedUnpublishedChanges.value = data.unpublished_changes;
     metaUnpublishedChanges.value = data.unpublished_changes;
-    savedSnapshot.value = snapshot();
+    savedSnapshot.value = submittedSnapshot;
     useAlert(t('WHATSAPP_FLOWS.EDITOR.SAVED'));
     emit('saved', data);
     loadMeta();
@@ -419,7 +455,7 @@ const onMenuAction = item => {
 const sendTest = ({ channelId, phoneNumber }) =>
   props.api.test(flowId.value, { channelId, phoneNumber });
 
-defineExpose({ save });
+defineExpose({ save, requestLeave });
 </script>
 
 <template>
@@ -430,18 +466,29 @@ defineExpose({ save });
       <div class="flex items-center min-w-0 gap-3">
         <Button
           type="button"
-          ghost
-          slate
+          intent="tertiary"
           sm
           icon="i-lucide-arrow-left"
           :aria-label="$t('WHATSAPP_FLOWS.EDITOR.BACK_TO_LIST')"
           data-testid="flow-editor-back"
-          @click="emit('back')"
+          @click="goBack"
         />
         <div class="min-w-0">
-          <h1 class="m-0 text-heading-2 text-n-slate-12 truncate max-w-64">
-            {{ name || $t('WHATSAPP_FLOWS.EDITOR.NAME_PLACEHOLDER') }}
-          </h1>
+          <Input
+            v-model="name"
+            size="sm"
+            :label="$t('WHATSAPP_FLOWS.EDITOR.NAME')"
+            :placeholder="$t('WHATSAPP_FLOWS.EDITOR.NAME_PLACEHOLDER')"
+            :message="
+              showMissing('name')
+                ? $t('WHATSAPP_FLOWS.EDITOR.NAME_REQUIRED')
+                : ''
+            "
+            :message-type="showMissing('name') ? 'error' : 'info'"
+            :disabled="isTrying"
+            class="w-60 max-w-full"
+            data-testid="flow-editor-name"
+          />
           <p class="m-0 text-xs text-n-slate-11" data-testid="flow-save-state">
             {{
               $t(
@@ -452,16 +499,15 @@ defineExpose({ save });
             }}
           </p>
         </div>
+        <InfoChip>{{ statusLabel }}</InfoChip>
         <MenuPopover panel-class="w-72 max-w-[calc(100vw-2rem)]">
           <template #trigger="{ toggle }">
             <Button
               type="button"
-              slate
-              faded
+              intent="tertiary"
               sm
-              trailing-icon
-              icon="i-lucide-chevron-down"
-              :label="statusLabel"
+              icon="i-lucide-info"
+              :label="$t('WHATSAPP_FLOWS.META.STATUS_TITLE')"
               data-testid="flow-editor-status"
               :disabled="isTrying"
               @click="toggle"
@@ -502,37 +548,37 @@ defineExpose({ save });
         >
       </div>
       <div class="flex items-center gap-2">
-        <div class="w-44" data-testid="flow-editor-category">
-          <ComboBox
-            v-model="categories"
-            multiple
-            teleport
-            :options="categoryOptions"
-            :aria-label="$t('WHATSAPP_FLOWS.NEW.CATEGORIES')"
-            :placeholder="$t('WHATSAPP_FLOWS.CATEGORIES.OTHER')"
-            data-testid="flow-category-select"
-            :disabled="isTrying"
-          />
-        </div>
         <MenuPopover
           :menu-items="actionItems"
-          :label="$t('WHATSAPP_FLOWS.EDITOR.ACTIONS')"
+          :label="$t('WHATSAPP_FLOWS.EDITOR.ADVANCED')"
           @action="onMenuAction"
         >
           <template #trigger="{ toggle }">
             <Button
               type="button"
-              ghost
-              slate
+              intent="tertiary"
               sm
               trailing-icon
               icon="i-lucide-chevron-down"
-              :label="$t('WHATSAPP_FLOWS.EDITOR.ACTIONS')"
+              :label="$t('WHATSAPP_FLOWS.EDITOR.ADVANCED')"
               data-testid="flow-actions"
               @click="toggle"
             />
           </template>
         </MenuPopover>
+        <Button
+          type="button"
+          intent="secondary"
+          sm
+          :icon="isTrying ? 'i-lucide-pencil' : 'i-lucide-play'"
+          :label="
+            isTrying
+              ? $t('WHATSAPP_FLOWS.SIMULATOR.BACK_TO_EDIT')
+              : $t('WHATSAPP_FLOWS.EDITOR.ACTION_TRY')
+          "
+          data-testid="flow-preview-try"
+          @click="isTrying = !isTrying"
+        />
         <Button
           type="button"
           intent="primary"
@@ -558,6 +604,27 @@ defineExpose({ save });
       </div>
     </header>
 
+    <Dialog
+      ref="leaveDialog"
+      type="alert"
+      :title="$t('WHATSAPP_FLOWS.EDITOR.LEAVE_TITLE')"
+      :description="$t('WHATSAPP_FLOWS.EDITOR.LEAVE_DESCRIPTION')"
+      :confirm-button-label="$t('WHATSAPP_FLOWS.EDITOR.LEAVE_CONFIRM')"
+      :cancel-button-label="$t('WHATSAPP_FLOWS.EDITOR.KEEP_EDITING')"
+      data-testid="flow-leave-dialog"
+      @confirm="finishLeave(true)"
+      @close="finishLeave(false)"
+    />
+    <Dialog
+      ref="removeScreenDialog"
+      type="alert"
+      :title="$t('WHATSAPP_FLOWS.EDITOR.REMOVE_SCREEN_TITLE')"
+      :description="$t('WHATSAPP_FLOWS.EDITOR.REMOVE_SCREEN_DESCRIPTION')"
+      :confirm-button-label="$t('WHATSAPP_FLOWS.EDITOR.REMOVE_SCREEN')"
+      data-testid="flow-remove-screen-dialog"
+      @confirm="confirmRemoveScreen"
+      @close="restoreScreenFocus"
+    />
     <FlowPublishDialog
       ref="publishDialog"
       :rows="metaRows"
@@ -607,110 +674,29 @@ defineExpose({ save });
     </Dialog>
 
     <div
-      class="flex flex-wrap items-center gap-2"
-      data-testid="flow-screen-tabs"
-      :inert="isTrying"
-      :class="{ 'opacity-50': isTrying }"
+      class="grid items-start gap-4 min-[1200px]:grid-cols-[15rem_minmax(18rem,1fr)_20rem] min-[1440px]:grid-cols-[17rem_minmax(20rem,1fr)_23rem]"
     >
-      <span id="flow-tabs-hint" class="sr-only">
-        {{ $t('WHATSAPP_FLOWS.EDITOR.TAB_HINT') }}
-      </span>
-      <span class="sr-only" role="status" aria-live="polite">
-        {{ announcement }}
-      </span>
-      <Draggable
-        ref="tabsRef"
-        :model-value="definition.screens"
-        :item-key="screenKey"
-        class="flex flex-wrap items-center gap-2"
-        role="tablist"
-        aria-describedby="flow-tabs-hint"
-        v-bind="DRAG_OPTIONS"
-        data-testid="flow-screen-draggable"
-        @update:model-value="reorderScreens"
-      >
-        <template #item="{ element: item, index }">
-          <div
-            class="flex items-center gap-1 py-1 text-sm font-semibold border-[1.5px] rounded-full ps-3.5 pe-1.5 cursor-grab select-none"
-            :class="
-              index === currentScreen
-                ? 'border-n-brand bg-n-brand/10 text-n-blue-text'
-                : 'border-n-weak bg-n-solid-1 text-n-slate-12'
-            "
-            role="tab"
-            tabindex="0"
-            aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight"
-            :aria-selected="index === currentScreen"
-            data-testid="flow-screen-tab"
-            @click="goToScreen(index)"
-            @keydown.enter.self="goToScreen(index)"
-            @keydown="onTabKeydown($event, index)"
-          >
-            <span class="truncate max-w-40">{{ tabTitle(item, index) }}</span>
-            <button
-              v-if="definition.screens.length > 1"
-              type="button"
-              class="grid px-1.5 flow-tab-remove text-n-slate-11 hover:text-n-ruby-11 place-items-center"
-              :aria-label="$t('WHATSAPP_FLOWS.EDITOR.REMOVE_SCREEN')"
-              data-testid="flow-screen-remove"
-              @click.stop="removeScreen(index)"
-            >
-              <span class="i-lucide-x size-3.5" />
-            </button>
-          </div>
-        </template>
-      </Draggable>
-      <button
-        type="button"
-        class="px-3.5 py-1 text-sm font-semibold border-[1.5px] border-dashed rounded-full border-n-weak text-n-slate-11 hover:border-n-brand"
-        data-testid="flow-screen-add"
-        @click="addScreen"
-      >
-        {{ $t('WHATSAPP_FLOWS.EDITOR.ADD_SCREEN_TAB') }}
-      </button>
-    </div>
-
-    <div
-      class="grid items-start gap-4 min-[1100px]:grid-cols-[16rem_minmax(0,1fr)_22.5rem] min-[1360px]:grid-cols-[19rem_minmax(0,1fr)_27rem]"
-    >
-      <section
-        class="min-w-0 pe-3 border-e border-n-weak"
-        data-testid="flow-palette"
+      <FlowStructurePanel
+        ref="structurePanel"
+        :screens="definition.screens"
+        :screen-index="currentScreen"
+        :selected="selected"
+        :block-key="blockKey"
         :inert="isTrying"
-        :class="{ 'opacity-50': isTrying }"
-      >
-        <h2
-          class="mb-3 text-xs font-semibold tracking-wider uppercase text-n-slate-11"
-        >
-          {{ $t('WHATSAPP_FLOWS.EDITOR.ADD_PANEL') }}
-        </h2>
-        <div
-          v-for="group in PALETTE"
-          :key="group.group"
-          class="grid grid-cols-2 gap-1"
-        >
-          <p class="sr-only">
-            {{ $t(`WHATSAPP_FLOWS.EDITOR.GROUPS.${group.group}`) }}
-          </p>
-          <button
-            v-for="item in group.items"
-            :key="item.id"
-            type="button"
-            class="flex items-center gap-2 px-2 py-2 text-sm text-start rounded-lg leading-tight text-n-slate-12 hover:bg-n-alpha-2"
-            :data-testid="`flow-add-${item.id}`"
-            @click="addBlock(item)"
-          >
-            <span
-              class="grid size-5 shrink-0 place-items-center text-n-slate-11"
-            >
-              <span :class="item.icon" class="size-3.5" />
-            </span>
-            {{ $t(`WHATSAPP_FLOWS.BLOCKS.${item.id}`) }}
-          </button>
-        </div>
-      </section>
+        class="min-w-0 min-[1200px]:max-h-[calc(100dvh-12rem)] min-[1200px]:overflow-y-auto"
+        :class="isTrying ? 'hidden opacity-50 min-[1200px]:flex' : ''"
+        @select-screen="goToScreen"
+        @add-screen="addScreen"
+        @rename-screen="renameScreen"
+        @remove-screen="removeScreen"
+        @reorder-screens="reorderScreens"
+        @select-block="selected = $event"
+        @add-block="addBlock"
+        @remove-block="removeBlock"
+        @reorder-blocks="reorderBlocks"
+      />
 
-      <div class="grid gap-4">
+      <div class="grid min-w-0 gap-4">
         <FlowPhoneSimulator
           v-if="isTrying"
           :definition="definition"
@@ -724,16 +710,14 @@ defineExpose({ save });
           :screen-index="currentScreen"
           :selected="selected"
           @select="selected = $event"
-          @remove="removeBlock"
-          @move="moveBlock"
         />
       </div>
 
       <aside
-        class="flex flex-col min-w-0 gap-5 ps-4 border-s border-n-weak"
+        class="flex flex-col min-w-0 gap-5 ps-4 border-s border-n-weak min-[1200px]:max-h-[calc(100dvh-12rem)] min-[1200px]:overflow-y-auto"
         data-testid="flow-properties"
         :inert="isTrying"
-        :class="{ 'opacity-50': isTrying }"
+        :class="isTrying ? 'hidden opacity-50 min-[1200px]:flex' : ''"
       >
         <div
           v-if="block"
@@ -750,7 +734,7 @@ defineExpose({ save });
             }}
           </h2>
           <FlowBlockEditor
-            :key="`${currentScreen}-${selected}`"
+            :key="blockKey(block)"
             :model-value="block"
             :attributes="attributes"
             :definition="definition"
@@ -778,33 +762,44 @@ defineExpose({ save });
             {{ $t('WHATSAPP_FLOWS.EDITOR.PICK_HINT') }}
           </p>
         </div>
-        <div class="grid gap-3">
-          <h2
-            class="m-0 text-xs font-semibold tracking-wider uppercase text-n-slate-11"
+        <details v-if="!block" open class="group" data-testid="flow-settings">
+          <summary
+            class="flex items-center justify-between text-sm font-medium cursor-pointer text-n-slate-12"
           >
             {{ $t('WHATSAPP_FLOWS.EDITOR.FLOW_PROPS') }}
-          </h2>
-          <Input
-            v-model="name"
-            size="sm"
-            :label="$t('WHATSAPP_FLOWS.EDITOR.NAME')"
-            :placeholder="$t('WHATSAPP_FLOWS.EDITOR.NAME_PLACEHOLDER')"
-            :message="
-              showMissing('name')
-                ? $t('WHATSAPP_FLOWS.EDITOR.NAME_REQUIRED')
-                : ''
-            "
-            :message-type="showMissing('name') ? 'error' : 'info'"
-            data-testid="flow-editor-name"
-          />
-        </div>
-        <div v-if="screen" class="grid gap-3 grid-cols-[minmax(0,1fr)]">
+            <span class="i-lucide-chevron-down size-4 group-open:rotate-180" />
+          </summary>
+          <div class="grid gap-2 mt-3" data-testid="flow-editor-category">
+            <label for="flow-category" class="text-sm text-n-slate-12">{{
+              $t('WHATSAPP_FLOWS.NEW.CATEGORIES')
+            }}</label>
+            <ComboBox
+              id="flow-category"
+              v-model="categories"
+              multiple
+              teleport
+              :options="categoryOptions"
+              :aria-label="$t('WHATSAPP_FLOWS.NEW.CATEGORIES')"
+              :placeholder="$t('WHATSAPP_FLOWS.EDITOR.CATEGORY')"
+              data-testid="flow-category-select"
+              :disabled="isTrying"
+            />
+            <p class="m-0 text-xs text-n-slate-11">
+              {{ $t('WHATSAPP_FLOWS.NEW.CATEGORIES_HINT') }}
+            </p>
+          </div>
+        </details>
+        <div
+          v-if="screen && !block"
+          class="grid gap-3 grid-cols-[minmax(0,1fr)]"
+        >
           <h2
             class="m-0 text-xs font-semibold tracking-wider uppercase text-n-slate-11"
           >
             {{ $t('WHATSAPP_FLOWS.EDITOR.SCREEN_PROPS') }}
           </h2>
           <Input
+            ref="screenTitleInput"
             v-model="screen.title"
             size="sm"
             :label="$t('WHATSAPP_FLOWS.EDITOR.SCREEN_TITLE')"

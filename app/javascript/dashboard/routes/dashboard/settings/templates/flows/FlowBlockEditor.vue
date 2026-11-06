@@ -2,10 +2,11 @@
 // The settings of the selected block (the right column of the builder): its text or question, the options of a choice,
 // the files allowed and the condition that shows it. It never changes the block it receives: every edit goes out as a
 // new block.
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Button from 'dashboard/components-next/button/Button.vue';
+import InfoChip from 'dashboard/components-next/ListCard/InfoChip.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
@@ -52,6 +53,36 @@ const hasHelper = computed(
 const patch = changes =>
   emit('update:modelValue', { ...props.modelValue, ...changes });
 
+// Keep intermediate edits local: conditions must follow one complete, unique rename.
+const KEY_FORMAT = /^[a-z][a-z0-9_]{0,39}$/;
+const draftKey = ref(props.modelValue.key || '');
+const keyError = ref('');
+watch(
+  () => props.modelValue.key,
+  value => {
+    draftKey.value = value || '';
+    keyError.value = '';
+  }
+);
+const editKey = value => {
+  draftKey.value = value;
+  keyError.value = '';
+};
+const commitKey = () => {
+  if (draftKey.value === props.modelValue.key) return;
+  const duplicate = fieldsOf(props.definition).some(
+    field =>
+      field.key === draftKey.value &&
+      (field.screen !== props.screenIndex || field.block !== props.blockIndex)
+  );
+  if (!KEY_FORMAT.test(draftKey.value) || duplicate) {
+    keyError.value = duplicate ? 'key_duplicate' : 'key_invalid';
+    draftKey.value = props.modelValue.key || '';
+    return;
+  }
+  patch({ key: draftKey.value });
+};
+
 const setSaveTo = target => {
   const block = { ...props.modelValue };
   if (target) block.save_to = { target };
@@ -59,25 +90,11 @@ const setSaveTo = target => {
   emit('update:modelValue', block);
 };
 
-const otherKeys = computed(() =>
-  fieldsOf(props.definition)
-    .filter(
-      field =>
-        !(
-          field.screen === props.screenIndex && field.block === props.blockIndex
-        )
-    )
-    .map(field => field.key)
-);
-
-// The name of the answer follows the label until someone sets it by hand.
+// Labels can change without breaking conditions that reference this answer.
 const onLabel = value => {
-  const automatic =
-    !props.modelValue.label ||
-    props.modelValue.key === uniqueKey(props.modelValue.label, otherKeys.value);
   patch({
     label: value,
-    ...(automatic && value ? { key: uniqueKey(value, otherKeys.value) } : {}),
+    ...(!props.modelValue.key && value ? { key: uniqueKey(value, []) } : {}),
   });
 };
 
@@ -169,6 +186,14 @@ const errorText = error => {
   return te(key) ? t(key, error.details || {}) : error.code;
 };
 
+const hasAdvancedErrors = computed(() =>
+  props.errors.some(error =>
+    ['condition_', 'key_', 'save_to_'].some(prefix =>
+      error.code.startsWith(prefix)
+    )
+  )
+);
+
 const keepValue = (apply, value) => {
   if (value) apply(value);
 };
@@ -176,189 +201,254 @@ const keepValue = (apply, value) => {
 
 <template>
   <div class="flex flex-col gap-3" data-testid="flow-block">
-    <TextArea
-      v-if="isText"
-      :model-value="modelValue.text"
-      :max-length="textLimit(modelValue.type)"
-      :placeholder="$t('WHATSAPP_FLOWS.EDITOR.TEXT_PLACEHOLDER')"
-      @update:model-value="patch({ text: $event })"
-    />
-
-    <template v-else>
-      <Input
-        :model-value="modelValue.label"
-        :placeholder="$t('WHATSAPP_FLOWS.EDITOR.LABEL_PLACEHOLDER')"
-        :max-length="labelLimit(modelValue.type)"
-        data-testid="flow-block-label"
-        @update:model-value="onLabel"
-      />
-      <div v-if="!isFile" class="grid gap-1.5 text-sm text-n-slate-12">
-        <span>{{ $t('WHATSAPP_FLOWS.EDITOR.SAVE_TO') }}</span>
-        <VariablePicker
-          value-format="path"
-          mode="write"
-          :model-value="modelValue.save_to?.target || ''"
-          :scopes="['system', 'contact']"
-          :filter="binding => writableFor(binding, modelValue)"
-          :aria-label="$t('WHATSAPP_FLOWS.EDITOR.SAVE_TO')"
-          allow-none
-          data-testid="flow-save-to"
-          @update:model-value="setSaveTo"
-        />
-      </div>
-      <div v-if="hasHelper" class="grid gap-1">
-        <Input
-          :model-value="modelValue.helper || ''"
-          size="sm"
-          :placeholder="$t('WHATSAPP_FLOWS.EDITOR.HELPER_PLACEHOLDER')"
-          :max-length="LIMITS.helper"
-          @update:model-value="patch({ helper: $event })"
-        />
-      </div>
-
-      <div v-if="modelValue.type === 'short_text'" class="grid gap-1">
-        <span class="text-xs text-n-slate-11">
-          {{ $t('WHATSAPP_FLOWS.EDITOR.INPUT_KIND') }}
-        </span>
-        <ComboBox
-          :model-value="modelValue.input || 'text'"
-          :options="kindOptions"
-          @update:model-value="
-            keepValue(value => patch({ input: value }), $event)
-          "
-        />
-      </div>
-
-      <div v-if="hasOptions" class="grid gap-2" data-testid="flow-options">
-        <span class="text-xs text-n-slate-11">
-          {{ $t('WHATSAPP_FLOWS.EDITOR.OPTIONS') }}
-        </span>
-        <div
-          v-for="(option, index) in modelValue.options"
-          :key="index"
-          class="flex items-center gap-2"
-        >
-          <Input
-            class="flex-1"
-            size="sm"
-            :model-value="option.title"
-            :max-length="LIMITS.optionTitle"
-            :placeholder="$t('WHATSAPP_FLOWS.EDITOR.OPTION_PLACEHOLDER')"
-            @update:model-value="onOptionTitle(index, $event)"
-          />
-          <Button
-            type="button"
-            ghost
-            slate
-            xs
-            icon="i-lucide-x"
-            :disabled="modelValue.options.length <= 1"
-            :aria-label="$t('WHATSAPP_FLOWS.EDITOR.REMOVE_OPTION')"
-            @click="removeOption(index)"
-          />
-        </div>
-        <div>
-          <Button
-            type="button"
-            slate
-            xs
-            icon="i-lucide-plus"
-            :label="$t('WHATSAPP_FLOWS.EDITOR.ADD_OPTION')"
-            data-testid="flow-option-add"
-            @click="addOption"
-          />
-        </div>
-        <div
-          v-if="modelValue.type === 'checkbox'"
-          class="grid grid-cols-2 gap-2"
-        >
-          <Input
-            size="sm"
-            type="number"
-            :label="$t('WHATSAPP_FLOWS.EDITOR.MIN_CHOICES')"
-            :model-value="String(modelValue.min || '')"
-            @update:model-value="patch({ min: Number($event) || 0 })"
-          />
-          <Input
-            size="sm"
-            type="number"
-            :label="$t('WHATSAPP_FLOWS.EDITOR.MAX_CHOICES')"
-            :model-value="String(modelValue.max || '')"
-            @update:model-value="patch({ max: Number($event) || 0 })"
-          />
-        </div>
-      </div>
-
-      <Input
-        v-if="isFile"
-        size="sm"
-        type="number"
-        :label="$t('WHATSAPP_FLOWS.EDITOR.MAX_FILES')"
-        :model-value="String(modelValue.max_files || 1)"
-        @update:model-value="patch({ max_files: Number($event) || 1 })"
-      />
-
-      <div class="flex items-center gap-2">
-        <Switch
-          :model-value="modelValue.required === true"
-          @update:model-value="patch({ required: $event })"
-        />
-        <span class="text-sm text-n-slate-12">
-          {{ $t('WHATSAPP_FLOWS.EDITOR.REQUIRED') }}
-        </span>
-      </div>
-
-      <Input
-        size="sm"
-        :model-value="modelValue.key"
-        :label="$t('WHATSAPP_FLOWS.EDITOR.KEY')"
-        data-testid="flow-block-key"
-        @update:model-value="patch({ key: $event })"
-      />
-      <p class="m-0 -mt-2 text-xs text-n-slate-11" data-testid="flow-key-help">
-        {{ $t('WHATSAPP_FLOWS.EDITOR.KEY_HELP') }}
-      </p>
-    </template>
-
-    <div class="grid gap-2" data-testid="flow-condition">
-      <span class="text-sm font-medium text-n-slate-12">
-        {{ $t('WHATSAPP_FLOWS.EDITOR.SHOW_FIELD') }}
-      </span>
-      <ComboBox
-        :model-value="condition.key || ''"
-        :options="showOptions"
-        data-testid="flow-show"
-        @update:model-value="setShow($event || '')"
-      />
-      <p
-        v-if="!sources.length"
-        class="text-xs text-n-slate-11"
-        data-testid="flow-condition-hint"
+    <details
+      open
+      class="group border-b border-n-weak pb-3"
+      data-testid="flow-basic-settings"
+    >
+      <summary
+        class="flex items-center justify-between gap-2 text-sm font-medium cursor-pointer list-none text-n-slate-12"
       >
-        {{ $t('WHATSAPP_FLOWS.EDITOR.SHOW_NEEDS_QUESTION') }}
-      </p>
-      <template v-if="hasCondition">
-        <div class="grid grid-cols-2 gap-2">
-          <ComboBox
-            :model-value="condition.op"
-            :options="operatorOptions"
-            @update:model-value="
-              keepValue(value => setCondition({ op: value }), $event)
-            "
-          />
-          <ComboBox
-            :model-value="condition.value"
-            :options="valueOptions"
-            data-testid="flow-show-value"
-            @update:model-value="
-              keepValue(value => setCondition({ value }), $event)
-            "
-          />
-        </div>
-      </template>
-    </div>
+        {{ $t('WHATSAPP_FLOWS.EDITOR.BASIC_SETTINGS') }}
+        <span class="i-lucide-chevron-down size-4 group-open:rotate-180" />
+      </summary>
+      <div class="grid gap-3 pt-3">
+        <TextArea
+          v-if="isText"
+          :model-value="modelValue.text"
+          :label="$t('WHATSAPP_FLOWS.EDITOR.TEXT_LABEL')"
+          :max-length="textLimit(modelValue.type)"
+          :placeholder="$t('WHATSAPP_FLOWS.EDITOR.TEXT_PLACEHOLDER')"
+          @update:model-value="patch({ text: $event })"
+        />
 
-    <ul v-if="errors.length" class="grid gap-1 text-xs text-n-ruby-11">
+        <template v-if="!isText">
+          <Input
+            :model-value="modelValue.label"
+            :label="$t('WHATSAPP_FLOWS.EDITOR.FIELD_TITLE')"
+            :placeholder="$t('WHATSAPP_FLOWS.EDITOR.LABEL_PLACEHOLDER')"
+            :max-length="labelLimit(modelValue.type)"
+            data-testid="flow-block-label"
+            @update:model-value="onLabel"
+          />
+          <div v-if="hasHelper" class="grid gap-1">
+            <Input
+              :model-value="modelValue.helper || ''"
+              :label="$t('WHATSAPP_FLOWS.EDITOR.HELPER')"
+              size="sm"
+              :placeholder="$t('WHATSAPP_FLOWS.EDITOR.HELPER_PLACEHOLDER')"
+              :max-length="LIMITS.helper"
+              @update:model-value="patch({ helper: $event })"
+            />
+          </div>
+
+          <div v-if="modelValue.type === 'short_text'" class="grid gap-1">
+            <span class="text-xs text-n-slate-11">
+              {{ $t('WHATSAPP_FLOWS.EDITOR.INPUT_KIND') }}
+            </span>
+            <ComboBox
+              :model-value="modelValue.input || 'text'"
+              :options="kindOptions"
+              @update:model-value="
+                keepValue(value => patch({ input: value }), $event)
+              "
+            />
+          </div>
+
+          <Input
+            v-if="isFile"
+            size="sm"
+            type="number"
+            :label="$t('WHATSAPP_FLOWS.EDITOR.MAX_FILES')"
+            :model-value="String(modelValue.max_files || 1)"
+            @update:model-value="patch({ max_files: Number($event) || 1 })"
+          />
+
+          <div class="flex items-center gap-2">
+            <Switch
+              :model-value="modelValue.required === true"
+              @update:model-value="patch({ required: $event })"
+            />
+            <span class="text-sm text-n-slate-12">
+              {{ $t('WHATSAPP_FLOWS.EDITOR.REQUIRED') }}
+            </span>
+          </div>
+        </template>
+      </div>
+    </details>
+    <details
+      v-if="hasOptions"
+      open
+      class="group border-b border-n-weak pb-3"
+      data-testid="flow-option-settings"
+    >
+      <summary
+        class="flex items-center justify-between gap-2 text-sm font-medium cursor-pointer list-none text-n-slate-12"
+      >
+        {{ $t('WHATSAPP_FLOWS.EDITOR.OPTIONS') }}
+        <span class="i-lucide-chevron-down size-4 group-open:rotate-180" />
+      </summary>
+      <div class="pt-3">
+        <div class="grid gap-2" data-testid="flow-options">
+          <div
+            v-for="(option, index) in modelValue.options"
+            :key="index"
+            class="flex items-center gap-2"
+          >
+            <Input
+              class="flex-1"
+              size="sm"
+              :model-value="option.title"
+              :max-length="LIMITS.optionTitle"
+              :placeholder="$t('WHATSAPP_FLOWS.EDITOR.OPTION_PLACEHOLDER')"
+              @update:model-value="onOptionTitle(index, $event)"
+            />
+            <Button
+              type="button"
+              ghost
+              slate
+              xs
+              icon="i-lucide-x"
+              :disabled="modelValue.options.length <= 1"
+              :aria-label="$t('WHATSAPP_FLOWS.EDITOR.REMOVE_OPTION')"
+              @click="removeOption(index)"
+            />
+          </div>
+          <div>
+            <Button
+              type="button"
+              slate
+              xs
+              icon="i-lucide-plus"
+              :label="$t('WHATSAPP_FLOWS.EDITOR.ADD_OPTION')"
+              data-testid="flow-option-add"
+              @click="addOption"
+            />
+          </div>
+          <div
+            v-if="modelValue.type === 'checkbox'"
+            class="grid grid-cols-2 gap-2"
+          >
+            <Input
+              size="sm"
+              type="number"
+              :label="$t('WHATSAPP_FLOWS.EDITOR.MIN_CHOICES')"
+              :model-value="String(modelValue.min || '')"
+              @update:model-value="patch({ min: Number($event) || 0 })"
+            />
+            <Input
+              size="sm"
+              type="number"
+              :label="$t('WHATSAPP_FLOWS.EDITOR.MAX_CHOICES')"
+              :model-value="String(modelValue.max || '')"
+              @update:model-value="patch({ max: Number($event) || 0 })"
+            />
+          </div>
+        </div>
+      </div>
+    </details>
+    <details
+      :open="
+        hasCondition ||
+        Boolean(modelValue.save_to) ||
+        Boolean(keyError) ||
+        hasAdvancedErrors
+      "
+      class="group border-b border-n-weak pb-3"
+      data-testid="flow-advanced-settings"
+    >
+      <summary
+        class="flex flex-wrap items-center justify-between gap-2 text-sm font-medium cursor-pointer list-none text-n-slate-12"
+      >
+        <span>{{ $t('WHATSAPP_FLOWS.EDITOR.ADVANCED') }}</span>
+        <span class="flex items-center gap-1">
+          <InfoChip v-if="hasCondition">{{
+            $t('WHATSAPP_FLOWS.EDITOR.HAS_CONDITION')
+          }}</InfoChip>
+          <InfoChip v-if="modelValue.save_to">{{
+            $t('WHATSAPP_FLOWS.EDITOR.HAS_DESTINATION')
+          }}</InfoChip>
+          <span class="i-lucide-chevron-down size-4 group-open:rotate-180" />
+        </span>
+      </summary>
+      <div class="grid gap-3 pt-3">
+        <template v-if="!isText">
+          <div v-if="!isFile" class="grid gap-1.5 text-sm text-n-slate-12">
+            <span>{{ $t('WHATSAPP_FLOWS.EDITOR.SAVE_TO') }}</span>
+            <VariablePicker
+              value-format="path"
+              mode="write"
+              :model-value="modelValue.save_to?.target || ''"
+              :scopes="['system', 'contact']"
+              :filter="binding => writableFor(binding, modelValue)"
+              :aria-label="$t('WHATSAPP_FLOWS.EDITOR.SAVE_TO')"
+              allow-none
+              data-testid="flow-save-to"
+              @update:model-value="setSaveTo"
+            />
+          </div>
+          <Input
+            size="sm"
+            :model-value="draftKey"
+            :label="$t('WHATSAPP_FLOWS.EDITOR.KEY')"
+            :message="keyError ? $t(`WHATSAPP_FLOWS.ERRORS.${keyError}`) : ''"
+            :message-type="keyError ? 'error' : 'info'"
+            data-testid="flow-block-key"
+            @update:model-value="editKey"
+            @blur="commitKey"
+            @enter="commitKey"
+          />
+          <p
+            class="m-0 -mt-2 text-xs text-n-slate-11"
+            data-testid="flow-key-help"
+          >
+            {{ $t('WHATSAPP_FLOWS.EDITOR.KEY_HELP') }}
+          </p>
+        </template>
+        <div class="grid gap-2" data-testid="flow-condition">
+          <span class="text-sm font-medium text-n-slate-12">
+            {{ $t('WHATSAPP_FLOWS.EDITOR.SHOW_FIELD') }}
+          </span>
+          <ComboBox
+            :model-value="condition.key || ''"
+            :options="showOptions"
+            data-testid="flow-show"
+            @update:model-value="setShow($event || '')"
+          />
+          <p
+            v-if="!sources.length"
+            class="text-xs text-n-slate-11"
+            data-testid="flow-condition-hint"
+          >
+            {{ $t('WHATSAPP_FLOWS.EDITOR.SHOW_NEEDS_QUESTION') }}
+          </p>
+          <template v-if="hasCondition">
+            <div class="grid grid-cols-2 gap-2">
+              <ComboBox
+                :model-value="condition.op"
+                :options="operatorOptions"
+                @update:model-value="
+                  keepValue(value => setCondition({ op: value }), $event)
+                "
+              />
+              <ComboBox
+                :model-value="condition.value"
+                :options="valueOptions"
+                data-testid="flow-show-value"
+                @update:model-value="
+                  keepValue(value => setCondition({ value }), $event)
+                "
+              />
+            </div>
+          </template>
+        </div>
+      </div>
+    </details>
+    <ul
+      v-if="errors.length"
+      class="grid gap-1 text-xs text-n-ruby-11"
+      data-testid="flow-block-errors"
+    >
       <li v-for="error in errors" :key="`${error.code}-${error.path}`">
         {{ errorText(error) }}
       </li>

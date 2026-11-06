@@ -48,7 +48,9 @@ const focusHeading = () =>
     scroll.scrollTop = 0;
     root.value
       .querySelector(
-        '[data-testid="flow-preview-heading"], [data-testid="flow-result-heading"]'
+        completed.value
+          ? '[data-testid="flow-result-heading"]'
+          : '[data-testid="flow-preview-heading"]'
       )
       ?.focus();
   });
@@ -83,6 +85,7 @@ const addFile = block =>
     },
   ]);
 const advance = () => {
+  if (!screen.value.button?.trim()) return;
   errors.value = validateAnswers(screen.value, collected.value);
   const invalid = Object.keys(errors.value)[0];
   if (invalid) {
@@ -106,7 +109,7 @@ watch(() => props.definition, reset, { deep: true });
 <template>
   <div
     ref="root"
-    class="flex flex-col items-center gap-2"
+    class="flex flex-col items-center w-full min-w-0 gap-2"
     data-testid="flow-simulator"
   >
     <FlowPhoneFrame
@@ -129,13 +132,6 @@ watch(() => props.definition, reset, { deep: true });
         novalidate
         @submit.prevent="advance"
       >
-        <h3
-          tabindex="-1"
-          class="text-heading-3"
-          data-testid="flow-preview-heading"
-        >
-          {{ screen.title }}
-        </h3>
         <div
           v-for="(block, index) in blocks"
           :key="block.key || index"
@@ -315,14 +311,10 @@ watch(() => props.definition, reset, { deep: true });
           intent="primary"
           class="w-full mt-auto shrink-0"
           :label="
-            screen.button ||
-            $t(
-              screenIndex === definition.screens.length - 1
-                ? 'WHATSAPP_FLOWS.EDITOR.BUTTON_LAST'
-                : 'WHATSAPP_FLOWS.EDITOR.BUTTON_NEXT'
-            )
+            screen.button?.trim() || $t('WHATSAPP_FLOWS.ERRORS.button_required')
           "
           data-testid="flow-preview-next"
+          :disabled="!screen.button?.trim()"
         />
       </form>
     </FlowPhoneFrame>
