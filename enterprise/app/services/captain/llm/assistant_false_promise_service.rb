@@ -1,5 +1,5 @@
 class Captain::Llm::AssistantFalsePromiseService < Llm::BaseAiService
-  DETECTOR_MODEL = 'gpt-5.2'.freeze
+  DETECTOR_MODEL = 'gpt-6-luna'.freeze
 
   include Enterprise::Captain::InternalUsage
   include Integrations::LlmInstrumentation
