@@ -72,9 +72,9 @@ module Enterprise::Concerns::Article
     ai_service = Llm::BaseAiService.new(feature: 'article_search_terms', account: account)
     Llm::UsageContext.with(account: account, bucket: :internal, feature: 'article_search_terms') do
       response = ai_service.chat
-                          .with_instructions(messages.first[:content])
-                          .with_provider_options(response_format: { type: 'json_object' })
-                          .ask(messages.last[:content])
+                           .with_instructions(messages.first[:content])
+                           .with_provider_options(response_format: { type: 'json_object' })
+                           .ask(messages.last[:content])
       JSON.parse(response.content)['search_terms']
     end
   end
