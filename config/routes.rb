@@ -775,6 +775,7 @@ Rails.application.routes.draw do
         end
 
         resources :csat_survey, only: [:show, :update]
+        resources :plans, only: [:index]
       end
     end
   end
