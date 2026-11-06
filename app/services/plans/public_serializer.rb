@@ -5,7 +5,10 @@ class Plans::PublicSerializer
   CURRENCY = 'USD'.freeze
   FEATURE_LABELS = JSON.parse(
     Rails.root.join('app/javascript/dashboard/i18n/locale/es/planCatalog.json').read
-  ).fetch('PLAN_CATALOG').fetch('FEATURES').freeze
+  ).fetch('PLAN_CATALOG').fetch('FEATURES').merge(
+    # Captain is the name inside the CRM; the public site says "agente de IA".
+    'captain_integration' => 'Agente de IA'
+  ).freeze
 
   def self.payload(plans = Plan.catalog)
     plans = plans.to_a
