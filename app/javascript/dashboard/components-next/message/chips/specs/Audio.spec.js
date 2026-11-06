@@ -30,7 +30,7 @@ const mountAudio = attachment => {
         createI18n({
           legacy: false,
           locale: 'en',
-          messages: { en: { CONVERSATION: messages } },
+          messages: { en: { ...messages, CONVERSATION: messages } },
         }),
       ],
       stubs: { Icon: true },
@@ -41,6 +41,18 @@ const mountAudio = attachment => {
 
 describe('Audio transcription button', () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it('uses translation keys defined at the conversation locale root', () => {
+    expect(messages.AUDIO_TRANSCRIPTION).toEqual(
+      expect.objectContaining({
+        BUTTON: expect.any(String),
+        ERROR: expect.any(String),
+        INSUFFICIENT: expect.any(String),
+        PLAN_REQUIRED: expect.any(String),
+        QUOTA_EXHAUSTED: expect.any(String),
+      })
+    );
+  });
 
   it('renders an icon-only button with a transcription tooltip', () => {
     const wrapper = mountAudio({
