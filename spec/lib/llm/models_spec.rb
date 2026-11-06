@@ -28,7 +28,7 @@ RSpec.describe Llm::Models do
 
     it 'routes each FAQ operation independently' do
       expect(described_class.default_model_for('document_faq_generation')).to eq('gpt-6-luna')
-      expect(described_class.default_model_for('conversation_faq_generation')).to eq('gpt-5.2')
+      expect(described_class.default_model_for('conversation_faq_generation')).to eq('gpt-6-luna')
       expect(described_class.default_model_for('conversation_faq_matching')).to eq('gpt-6-luna')
     end
 

@@ -450,10 +450,10 @@ RSpec.describe Account do
         end
       end
 
-      it 'returns GPT-5.2 for assistant when Captain V2 is enabled' do
+      it 'returns GPT-6 Luna for assistant when Captain V2 is enabled' do
         account.enable_features!('captain_integration_v2')
 
-        expect(account.captain_preferences[:models]['assistant']).to eq('gpt-5.2')
+        expect(account.captain_preferences[:models]['assistant']).to eq('gpt-6-luna')
         expect(account.reload.captain_models).to be_nil
       end
     end
