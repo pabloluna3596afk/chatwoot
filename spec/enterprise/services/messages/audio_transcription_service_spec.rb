@@ -32,7 +32,7 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
 
   describe '#quota_preview' do
     it 'allows a plan account whose internal bag comes from the plan without loading usage limits' do
-      allow(account).to receive(:plan).and_return(instance_double(Plan))
+      allow(account).to receive(:plan).and_return(instance_double(Plan, unlimited_limit?: false))
       allow(account).to receive(:plan_limit).with(:captain_internal_calls).and_return(1500)
       allow(account).to receive(:usage_limits).and_return(
         captain: { internal: { total_count: 1500, current_available: 100 } }
@@ -56,7 +56,7 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
 
     it 'allows an account with an internal bag override without loading usage limits' do
       account.update_columns(limits: { captain_internal: 5 }) # rubocop:disable Rails/SkipsModelValidations
-      allow(account).to receive(:plan).and_return(instance_double(Plan))
+      allow(account).to receive(:plan).and_return(instance_double(Plan, unlimited_limit?: false))
       allow(account).to receive(:plan_limit).with(:captain_internal_calls).and_return(nil)
       allow(account).to receive(:usage_limits).and_return(
         captain: { internal: { total_count: 5, current_available: 5 } }
@@ -69,7 +69,7 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
     end
 
     it 'marks a plan account unavailable when its plan has no internal bag' do
-      allow(account).to receive(:plan).and_return(instance_double(Plan))
+      allow(account).to receive(:plan).and_return(instance_double(Plan, unlimited_limit?: false))
       allow(account).to receive(:plan_limit).with(:captain_internal_calls).and_return(nil)
       allow(account).to receive(:usage_limits).and_return(
         captain: { internal: { total_count: nil, current_available: 100 } }
@@ -81,6 +81,14 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
       expect(preview).to eq(units: 1, available: manual_available, reason: 'plan_unavailable')
     end
 
+    it 'allows an unlimited plan without loading usage limits' do
+      unlimited_plan = instance_double(Plan, unlimited_limit?: true)
+      allow(account).to receive(:plan).and_return(unlimited_plan)
+      expect(account).not_to receive(:usage_limits)
+
+      expect(service.quota_preview).to eq(units: 1, available: true, reason: nil)
+    end
+
     it 'marks the preview unavailable when the account administrator disabled transcription' do
       account.update!(audio_transcriptions: false)
 
@@ -89,6 +97,23 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
   end
 
   describe '#perform' do
+    context 'when the internal bag is unlimited by plan' do
+      before do
+        allow(account).to receive(:plan).and_return(instance_double(Plan, unlimited_limit?: true))
+        allow(account).to receive(:usage_limits).and_return(
+          captain: { internal: { total_count: nil, current_available: ChatwootApp.max_limit } }
+        )
+        allow(service).to receive(:transcribe_audio).and_return('Unlimited plan transcript')
+      end
+
+      it 'transcribes even though the usage limit total is nil' do
+        expect(service.perform(manual: true)).to eq(
+          success: true,
+          transcriptions: 'Unlimited plan transcript'
+        )
+      end
+    end
+
     context 'when captain_integration feature is not enabled' do
       before do
         account.disable_features!('captain_integration')

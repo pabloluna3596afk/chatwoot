@@ -100,10 +100,13 @@ class Messages::AudioTranscriptionService
   end
 
   def internal_bag_available?(internal_limits)
-    account.plan.blank? || internal_limits[:total_count].present?
+    account.plan.blank? || account.plan.unlimited_limit?(:captain_internal_calls) ||
+      internal_limits[:total_count].present?
   end
 
   def internal_bag_available_for_preview?
+    return true if account.plan&.unlimited_limit?(:captain_internal_calls)
+
     configured_limit = (account[:limits] || {})['captain_internal'] || account.plan_limit(:captain_internal_calls)
     account.plan.blank? || configured_limit.present?
   end
