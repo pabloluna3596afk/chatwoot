@@ -25,7 +25,7 @@ class Messages::AudioTranscriptionService
     return { units: units, available: false, reason: 'account_disabled' } if account.audio_transcriptions.blank?
 
     enabled = account.feature_enabled?('captain_integration') && account.feature_enabled?('captain_tasks') &&
-              internal_bag_configured_for_preview?
+              internal_bag_available_for_preview?
     { units: units, available: enabled, reason: enabled ? nil : 'plan_unavailable' }
   end
 
@@ -100,11 +100,15 @@ class Messages::AudioTranscriptionService
   end
 
   def internal_bag_available?(internal_limits)
-    account.plan.blank? || internal_limits[:total_count].present?
+    account.plan.blank? || account.plan.unlimited_limit?(:captain_internal_calls) ||
+      internal_limits[:total_count].present?
   end
 
-  def internal_bag_configured_for_preview?
-    (account[:limits] || {})['captain_internal'].present?
+  def internal_bag_available_for_preview?
+    return true if account.plan&.unlimited_limit?(:captain_internal_calls)
+
+    configured_limit = (account[:limits] || {})['captain_internal'] || account.plan_limit(:captain_internal_calls)
+    account.plan.blank? || configured_limit.present?
   end
 
   def auto_transcription_allowed?

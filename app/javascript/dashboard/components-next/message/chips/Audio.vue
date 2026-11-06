@@ -58,18 +58,18 @@ watchEffect(() => {
 });
 const transcriptionTooltip = computed(() => {
   if (transcriptionQuota.value.reason === 'plan_unavailable') {
-    return t('CONVERSATION.AUDIO_TRANSCRIPTION.PLAN_REQUIRED');
+    return t('AUDIO_TRANSCRIPTION.PLAN_REQUIRED');
   }
   if (transcriptionQuota.value.reason === 'quota_insufficient') {
-    return t('CONVERSATION.AUDIO_TRANSCRIPTION.INSUFFICIENT', {
+    return t('AUDIO_TRANSCRIPTION.INSUFFICIENT', {
       units: transcriptionQuota.value.units,
       remaining: transcriptionQuota.value.remaining,
     });
   }
   if (transcriptionQuota.value.reason === 'quota_exhausted') {
-    return t('CONVERSATION.AUDIO_TRANSCRIPTION.QUOTA_EXHAUSTED');
+    return t('AUDIO_TRANSCRIPTION.QUOTA_EXHAUSTED');
   }
-  return t('CONVERSATION.AUDIO_TRANSCRIPTION.BUTTON');
+  return t('AUDIO_TRANSCRIPTION.BUTTON');
 });
 const transcribeAudio = async () => {
   if (isTranscribing.value || !transcriptionQuota.value.available) return;
@@ -86,7 +86,7 @@ const transcribeAudio = async () => {
       transcriptionQuota.value = { ...result.quota, available: false };
       useAlert(transcriptionTooltip.value);
     } else {
-      useAlert(t('CONVERSATION.AUDIO_TRANSCRIPTION.ERROR'));
+      useAlert(t('AUDIO_TRANSCRIPTION.ERROR'));
     }
   } finally {
     isTranscribing.value = false;
