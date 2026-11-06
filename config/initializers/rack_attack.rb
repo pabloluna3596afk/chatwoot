@@ -74,6 +74,12 @@ class Rack::Attack
     req.path == '/health'
   end
 
+  # The public plan catalog is cached at the edge and may be requested by many
+  # website visitors behind a small set of shared Cloudflare IPs.
+  Rack::Attack.safelist('public plan catalog') do |req|
+    (req.get? || req.options?) && req.path_without_extensions == '/public/api/v1/plans'
+  end
+
   ### Throttle Spammy Clients ###
 
   # If any single client IP is making tons of requests, then they're
