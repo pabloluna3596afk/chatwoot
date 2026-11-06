@@ -67,23 +67,15 @@ module Enterprise::Concerns::Article
       { role: 'system', content: article_to_search_terms_prompt },
       { role: 'user', content: "title: #{title} \n description: #{description} \n content: #{content}" }
     ]
-    headers = { 'Content-Type' => 'application/json', 'Authorization' => "Bearer #{openai_api_key}" }
-    body = { model: 'gpt-4o', messages: messages, response_format: { type: 'json_object' } }.to_json
-    Rails.logger.info "Requesting Chat GPT with body: #{body}"
-    response = HTTParty.post(openai_api_url, headers: headers, body: body)
-    Rails.logger.info "Chat GPT response: #{response.body}"
-    JSON.parse(response.parsed_response['choices'][0]['message']['content'])['search_terms']
-  end
+    raise(I18n.t('captain.api_key_missing')) unless Llm::Config.api_key_configured?
 
-  private
-
-  def openai_api_key
-    InstallationConfig.find_by(name: 'CAPTAIN_OPEN_AI_API_KEY')&.value.presence || raise(I18n.t('captain.api_key_missing'))
-  end
-
-  def openai_api_url
-    endpoint = InstallationConfig.find_by(name: 'CAPTAIN_OPEN_AI_ENDPOINT')&.value.presence || 'https://api.openai.com/'
-    endpoint = endpoint.chomp('/')
-    "#{endpoint}/v1/chat/completions"
+    ai_service = Llm::BaseAiService.new(feature: 'article_search_terms', account: account)
+    Llm::UsageContext.with(account: account, bucket: :internal, feature: 'article_search_terms') do
+      response = ai_service.chat
+                          .with_instructions(messages.first[:content])
+                          .with_provider_options(response_format: { type: 'json_object' })
+                          .ask(messages.last[:content])
+      JSON.parse(response.content)['search_terms']
+    end
   end
 end

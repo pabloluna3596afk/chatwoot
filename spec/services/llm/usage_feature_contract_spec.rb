@@ -11,6 +11,7 @@ module Llm::UsageFeatureContract
   # records why it remains an exception; adding a measure_only feature requires an explicit review.
   MEASURE_ONLY_EXCEPTIONS = {
     'article_writer' => 'Legacy article writing records usage but has no reservation flow.',
+    'article_search_terms' => 'Background article search-term generation is measured without a quota reservation.',
     'captain.conversation_completion' => 'Background completion records usage without a user quota reservation.',
     'captain_assistant_overview_summary' => 'Background overview summaries record usage without a quota reservation.',
     'captain_overview_summary' => 'Background overview summaries record usage without a quota reservation.',
@@ -44,6 +45,7 @@ module Llm::UsageFeatureContract
     'conversation_faq_matching' => %w[conversation_faq_match],
     'pdf_faq_generation' => %w[faq_generation paginated_faq_generation],
     'help_center_article_generation' => %w[help_center_article_generation],
+    'article_search_terms' => %w[article_search_terms],
     'onboarding_content_generation' => %w[onboarding_content_generation],
     'help_center_query_translation' => %w[help_center_query_translation],
     'message_translation' => %w[message_translation],

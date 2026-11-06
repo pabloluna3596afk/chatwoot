@@ -21,6 +21,12 @@ RSpec.describe Llm::FeatureRouter do
       )
     end
 
+    it 'routes article search-term generation to GPT-6 Luna by default' do
+      expect(described_class.resolve(feature: 'article_search_terms', account: account)).to include(
+        feature: 'article_search_terms', provider: 'openai', model: 'gpt-6-luna', source: :default
+      )
+    end
+
     it 'uses a valid account model override' do
       account.update!(captain_models: { 'editor' => 'gpt-5.2' })
 
