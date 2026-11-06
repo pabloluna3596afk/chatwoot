@@ -1035,7 +1035,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           subject_type: 'Conversation',
           result_id: conversation.messages.outgoing.last.id,
           result_type: 'Message',
-          llm_model: 'openai-gpt-5.2',
+          llm_model: 'openai-gpt-6-luna',
           credits_consumed: 1.0,
           faq_ids: [7, 9],
           cited_document_ids: [],
