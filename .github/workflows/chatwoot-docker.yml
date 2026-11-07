@@ -4,11 +4,19 @@ on:
   push:
     branches:
       - develop
+    # Nothing in these paths reaches the image.
+    paths-ignore:
+      - 'docs/**'
+      - 'docs-crm/**'
+      - 'spec/**'
+      - '**.md'
+      - '.github/workflows/run_ee_spec.yml'
   workflow_dispatch:
 
+# Several merges in a row only need the image of the latest one.
 concurrency:
   group: docker-image-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io

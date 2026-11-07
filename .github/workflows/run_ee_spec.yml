@@ -4,19 +4,16 @@ name: Run ChatHub EE spec
 permissions:
   contents: read
 on:
-  push:
-    branches:
-      - develop
-      # Feature changes run through PRs only; keep the develop push run.
+  # PRs already test every change; a develop push run repeated them and GitHub disabled Actions on this fork twice.
   pull_request:
     branches:
       - develop
   workflow_dispatch:
 
-# Replace superseded runs per ref, while letting develop runs finish.
+# Replace superseded runs per ref.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/develop' }}
+  cancel-in-progress: true
 
 jobs:
   # Filter jobs rather than workflow triggers so skipped jobs still pass PR checks.
@@ -37,7 +34,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          # Preserve full test runs for develop pushes and manual dispatches.
+          # Preserve full test runs for manual dispatches.
           backend=true
           frontend=true
           ruby=true
@@ -51,12 +48,12 @@ jobs:
               case "$path" in
                 # The CI definition itself is not ignorable: a broken workflow must fail on its own PR, not after merging.
                 .github/workflows/run_ee_spec.yml|.github/scripts/*) backend=true; frontend=true; ruby=true ;;
-                app/javascript/*|docs/*|docs-crm/*|.github/*|*.md) ;;
+                app/javascript/*|theme/*|public/assets/*|docs/*|docs-crm/*|.github/*|*.md) ;;
                 *) backend=true ;;
               esac
               # Keep dashboard tests for frontend source and package dependency changes.
               case "$path" in
-                app/javascript/*|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|*/package.json) frontend=true ;;
+                app/javascript/*|theme/*|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|*/package.json) frontend=true ;;
               esac
               # Ruby changes alone enable the existing changed-lines Rubocop job.
               case "$path" in
