@@ -137,7 +137,7 @@ RSpec.describe Captain::Llm::PaginatedFaqGeneratorService do
           model: 'gpt-5.2', text: { format: { type: 'json_object' } }, store: false,
           input: [include(role: 'user', content: include({ type: 'input_file', file_id: 'file-123' }))]
         )
-        expect(parameters).to include(reasoning: { effort: :medium })
+        expect(parameters).not_to have_key(:reasoning)
         response
       end
       expect(openai_client).not_to receive(:chat)
@@ -145,12 +145,15 @@ RSpec.describe Captain::Llm::PaginatedFaqGeneratorService do
       expect(service.generate).to eq([])
     end
 
-    it 'sends the configured reasoning effort for PDF FAQ generation' do
+    it 'sends GPT-6 Luna none reasoning effort for PDF FAQ generation' do
       document.account.update!(captain_models: { 'pdf_faq_generation' => 'gpt-6-luna' })
+      model = RubyLLM.models.find('gpt-6-luna')
+      expect(model.reasoning_option_values(:effort)).to include('none')
+
       response = { 'output' => [{ 'type' => 'message', 'content' => [{ 'type' => 'output_text', 'text' => '{"faqs":[],"has_content":false}' }] }] }
       expect(openai_client).to receive(:json_post).with(
         path: 'responses',
-        parameters: hash_including(model: 'gpt-6-luna', store: false, reasoning: { effort: :medium })
+        parameters: hash_including(model: 'gpt-6-luna', store: false, reasoning: { effort: :none })
       ).and_return(response)
 
       service.generate
