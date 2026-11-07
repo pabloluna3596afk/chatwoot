@@ -34,13 +34,15 @@ class Llm::LegacyBaseOpenAiService
     @client.chat(parameters: chat_parameters)
   end
 
-  def log_empty_response(document:, model:, pages:, response:, has_content:)
+  def log_empty_response(document:, model:, pages:, response:, result:)
+    return unless (result['faqs'] || []).empty?
+
     Rails.logger.warn(
       '[Captain::Llm::PaginatedFaqGeneratorService] Empty FAQ chunk ' \
-      "document_id=#{document.id} model=#{model} pages=#{pages} " \
+      "document_id=#{document.id} model=#{model} pages=#{pages.join('-')} " \
       "finish_reason=#{response.dig('choices', 0, 'finish_reason')} " \
       "content_length=#{response.dig('choices', 0, 'message', 'content').to_s.length} " \
-      "has_content=#{has_content}"
+      "has_content=#{result['has_content'] != false}"
     )
   end
 

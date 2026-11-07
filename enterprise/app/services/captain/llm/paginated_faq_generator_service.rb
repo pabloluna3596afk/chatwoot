@@ -108,13 +108,8 @@ class Captain::Llm::PaginatedFaqGeneratorService < Llm::LegacyBaseOpenAiService
     end
 
     result = parse_chunk_response(response)
-    faqs = result['faqs'] || []
-    has_content = result['has_content'] != false
-    if faqs.empty?
-      log_empty_response(document: @document, model: @model, pages: "#{start_page}-#{end_page}",
-                         response: response, has_content: has_content)
-    end
-    { faqs: faqs, has_content: has_content }
+    log_empty_response(document: @document, model: @model, pages: [start_page, end_page], response: response, result: result)
+    { faqs: result['faqs'] || [], has_content: result['has_content'] != false }
   rescue OpenAI::Error => e
     Rails.logger.error I18n.t('captain.documents.page_processing_error', start: start_page, end: end_page, error: e.message)
     { faqs: [], has_content: false }
