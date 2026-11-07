@@ -48,11 +48,7 @@ describe('Usage dashboard', () => {
       wrapper
         .findAll('article h3 span')
         .map(icon => icon.classes().find(name => name.startsWith('i-')))
-    ).toEqual([
-      'i-woot-captain',
-      'i-fluent-pen-sparkle-24-regular',
-      'i-lucide-sparkles',
-    ]);
+    ).toEqual(['i-woot-captain', 'i-woot-copilot', 'i-lucide-sparkles']);
     wrapper.unmount();
   });
 
