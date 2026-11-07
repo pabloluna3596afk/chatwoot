@@ -1,3 +1,10 @@
+### B-NEW-255 — Mantener el esfuerzo de razonamiento según el protocolo (2026-11-07)
+
+- **Archivos:** `lib/llm/config.rb`, `lib/captain/responses_config.rb`, `enterprise/app/helpers/captain/chat_helper.rb` y specs de configuración/solicitudes RubyLLM.
+- **Causa:** `Llm::Config::PinnedReasoningEffort` agregaba `reasoning_effort` a todos los chats RubyLLM, incluidos los de Responses API, que requieren `reasoning.effort`.
+- **Arreglo:** quitar el prepend global. `with_thinking` conserva el formato Responses; las herramientas de Assistant/Copilot mantienen el `reasoning_effort` de modelo solo en Chat Completions con endpoint personalizado.
+- **Verificación:** suites solicitadas: 1.578 ejemplos, 0 fallos; spec de cuerpo HTTP real con WebMock, 2 ejemplos, 0 fallos; RuboCop `chathub-rubocop-ci`, 5 archivos, 0 infracciones. No se llamó a OpenAI en vivo.
+
 ### B-NEW-254 — PDF FAQ vacío con modelo de razonamiento (2026-11-06)
 
 - **Archivos:** `enterprise/app/services/llm/legacy_base_open_ai_service.rb`, `enterprise/app/services/captain/llm/paginated_faq_generator_service.rb`, `enterprise/app/jobs/captain/documents/response_builder_job.rb` y el partial JSON de documentos Captain.

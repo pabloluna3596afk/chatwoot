@@ -28,7 +28,9 @@ module Captain::ChatHelper
   def build_chat
     options = Captain::ResponsesConfig.options(model: @model, temperature: temperature, feature: @llm_feature)
     llm_chat = chat(model: @model, **options)
-    llm_chat = Captain::ResponsesConfig.configure_copilot_chat(llm_chat, protocol: options[:protocol])
+    llm_chat = Captain::ResponsesConfig.configure_copilot_chat(
+      llm_chat, protocol: options[:protocol], model: @model, feature: @llm_feature
+    )
 
     llm_chat = llm_chat.with_tools(*Array(@tools))
     llm_chat = setup_system_instructions(llm_chat)

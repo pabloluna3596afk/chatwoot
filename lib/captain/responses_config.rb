@@ -33,9 +33,15 @@ module Captain::ResponsesConfig
     { response_format: format }
   end
 
-  def self.configure_copilot_chat(chat, protocol:)
+  def self.configure_copilot_chat(chat, protocol:, model:, feature:)
     format = protocol == :responses ? COPILOT_RESPONSE_FORMAT : { type: 'json_object' }
-    chat.with_provider_options(**json_format_options(protocol: protocol, format: format))
+    provider_options = json_format_options(protocol: protocol, format: format)
+    if protocol != :responses && %w[assistant copilot].include?(feature.to_s) && !Llm::FeatureRouter.standard_openai_endpoint?
+      effort = Llm::Models.reasoning_effort_for(model)
+      provider_options[:reasoning_effort] = effort if effort
+    end
+
+    chat.with_provider_options(**provider_options)
   end
 
   def self.metadata(chat, protocol: nil)
