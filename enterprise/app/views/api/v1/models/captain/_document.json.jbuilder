@@ -6,6 +6,7 @@ json.content resource.content
 json.content_type resource.content_type
 json.created_at resource.created_at.to_i
 json.external_link resource.external_link
+json.faq_generation_empty_result resource.metadata.to_h.dig('faq_generation', 'empty_result') == true
 json.display_url resource.display_url
 json.file_size resource.file_size
 json.pdf_document resource.pdf_document?

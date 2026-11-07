@@ -317,7 +317,7 @@ onMounted(async () => {
       </p>
       <div
         v-if="!isLoadingUsage && !error && chartRows.length"
-        class="min-w-0 max-w-full"
+        class="relative min-w-0 max-w-full"
       >
         <BarChart
           :data="chartData"

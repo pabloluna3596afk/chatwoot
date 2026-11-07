@@ -105,16 +105,6 @@ const baseFeatureRows = computed(() => baseFeatures(props.plans));
                   {{ t('PLAN_CATALOG.PER_MONTH') }}
                 </span>
               </div>
-              <div
-                v-if="pricing(plan).monthly > 0"
-                class="mt-1 text-xs text-n-slate-11"
-              >
-                {{
-                  t('PLAN_CATALOG.ANNUAL_PRICE', {
-                    price: money(pricing(plan).annual),
-                  })
-                }}
-              </div>
             </td>
           </tr>
           <tr v-for="row in limitRows" :key="row.key">

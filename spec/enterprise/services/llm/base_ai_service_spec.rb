@@ -68,4 +68,44 @@ RSpec.describe Llm::BaseAiService do
       expect(service.send(:sanitize_json_response, input)).to eq('{"key": "value"}')
     end
   end
+
+  describe '#chat' do
+    let(:mock_chat) { instance_double(RubyLLM::Chat) }
+
+    before do
+      allow(RubyLLM).to receive(:chat).and_return(mock_chat)
+      allow(mock_chat).to receive(:with_thinking).and_return(mock_chat)
+      allow(mock_chat).to receive(:with_temperature).and_return(mock_chat)
+    end
+
+    it 'uses Responses with the configured assistant reasoning effort' do
+      service = described_class.new(feature: 'assistant', account: account)
+
+      expect(RubyLLM).to receive(:chat).with(model: 'gpt-6-luna', protocol: :responses).and_return(mock_chat)
+      expect(mock_chat).to receive(:with_thinking).with(effort: :none).and_return(mock_chat)
+
+      service.chat
+    end
+  end
+
+  describe '#json_chat' do
+    let(:mock_chat) { instance_double(RubyLLM::Chat) }
+
+    before do
+      allow(RubyLLM).to receive(:chat).and_return(mock_chat)
+      allow(mock_chat).to receive(:with_thinking).and_return(mock_chat)
+      allow(mock_chat).to receive(:with_temperature).and_return(mock_chat)
+      allow(mock_chat).to receive(:add_message).and_return(mock_chat)
+      allow(mock_chat).to receive(:with_provider_options).and_return(mock_chat)
+    end
+
+    it 'adds JSON mode and a JSON instruction for Responses requests' do
+      service = described_class.new(feature: 'assistant', account: account)
+
+      expect(mock_chat).to receive(:add_message).with(role: :user, content: 'Respond with valid JSON.').and_return(mock_chat)
+      expect(mock_chat).to receive(:with_provider_options).with({ text: { format: { type: 'json_object' } } }).and_return(mock_chat)
+
+      service.json_chat
+    end
+  end
 end

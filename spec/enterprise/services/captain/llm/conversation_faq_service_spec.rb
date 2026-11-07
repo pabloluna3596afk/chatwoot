@@ -22,8 +22,10 @@ RSpec.describe Captain::Llm::ConversationFaqService do
     create(:installation_config, name: 'CAPTAIN_OPEN_AI_API_KEY', value: 'test-key')
     allow(Captain::Llm::EmbeddingService).to receive(:new).and_return(embedding_service)
     allow(RubyLLM).to receive(:chat).and_return(mock_chat)
+    allow(mock_chat).to receive(:with_thinking).and_return(mock_chat)
     allow(mock_chat).to receive(:with_temperature).and_return(mock_chat)
     allow(mock_chat).to receive(:with_provider_options).and_return(mock_chat)
+    allow(mock_chat).to receive(:add_message).with(role: :user, content: 'Respond with valid JSON.')
     allow(mock_chat).to receive(:with_instructions).and_return(mock_chat)
     allow(mock_chat).to receive(:ask).and_return(mock_response)
   end
@@ -36,7 +38,7 @@ RSpec.describe Captain::Llm::ConversationFaqService do
 
       it 'uses the conversation FAQ generation feature model' do
         expect(RubyLLM).to receive(:chat).with(
-          model: Llm::Models.default_model_for('conversation_faq_generation')
+          model: Llm::Models.default_model_for('conversation_faq_generation'), protocol: :responses
         ).and_return(mock_chat)
 
         described_class.new(captain_assistant, conversation).generate_suggestions
@@ -46,7 +48,7 @@ RSpec.describe Captain::Llm::ConversationFaqService do
         create(:installation_config, name: 'CAPTAIN_OPEN_AI_MODEL', value: 'gpt-5.2')
 
         expect(RubyLLM).to receive(:chat).with(
-          model: Llm::Models.default_model_for('conversation_faq_generation')
+          model: Llm::Models.default_model_for('conversation_faq_generation'), protocol: :responses
         ).and_return(mock_chat)
 
         described_class.new(captain_assistant, conversation).generate_suggestions
@@ -56,7 +58,7 @@ RSpec.describe Captain::Llm::ConversationFaqService do
         create(:installation_config, name: 'CAPTAIN_OPEN_AI_MODEL', value: 'gpt-5.2')
         conversation.account.update!(captain_models: { 'conversation_faq_generation' => 'gpt-5.2' })
 
-        expect(RubyLLM).to receive(:chat).with(model: 'gpt-5.2').and_return(mock_chat)
+        expect(RubyLLM).to receive(:chat).with(model: 'gpt-5.2', protocol: :responses).and_return(mock_chat)
 
         described_class.new(captain_assistant, conversation).generate_suggestions
       end
@@ -196,7 +198,7 @@ RSpec.describe Captain::Llm::ConversationFaqService do
 
       it 'uses the conversation FAQ matching feature model' do
         expect(RubyLLM).to receive(:chat).with(
-          model: Llm::Models.default_model_for('conversation_faq_matching')
+          model: Llm::Models.default_model_for('conversation_faq_matching'), protocol: :responses
         ).at_least(:once).and_return(mock_chat)
 
         service.generate_suggestions
@@ -205,7 +207,7 @@ RSpec.describe Captain::Llm::ConversationFaqService do
       it 'uses the account model override for conversation FAQ matching' do
         conversation.account.update!(captain_models: { 'conversation_faq_matching' => 'gpt-5-mini' })
 
-        expect(RubyLLM).to receive(:chat).with(model: 'gpt-5-mini').at_least(:once).and_return(mock_chat)
+        expect(RubyLLM).to receive(:chat).with(model: 'gpt-5-mini', protocol: :responses).at_least(:once).and_return(mock_chat)
 
         service.generate_suggestions
       end

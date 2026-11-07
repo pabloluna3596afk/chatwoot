@@ -105,7 +105,6 @@ export function usePlanPresentation() {
     ).format(amount);
   const pricing = plan => ({
     monthly: Number(plan.price_monthly) || 0,
-    annual: Number(plan.price_yearly) || 0,
   });
   return {
     label,

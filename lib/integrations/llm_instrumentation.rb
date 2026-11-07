@@ -25,6 +25,7 @@ module Integrations::LlmInstrumentation
       return yield
     end
 
+    params = decorate_instrumentation_params(params)
     result = nil
     executed = false
     tracer.in_span(params[:span_name]) do |span|
@@ -115,6 +116,10 @@ module Integrations::LlmInstrumentation
   end
 
   private
+
+  def decorate_instrumentation_params(params)
+    respond_to?(:llm_instrumentation_params, true) ? llm_instrumentation_params(params) : params
+  end
 
   def with_usage_recording(params)
     Llm::UsageContext.with_instrumentation(params) do

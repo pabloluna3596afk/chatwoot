@@ -71,5 +71,6 @@ module Captain::ToolInstrumentation
   def set_generation_usage_attributes(span, message)
     span.set_attribute(ATTR_GEN_AI_USAGE_INPUT_TOKENS, message.tokens.input) if message.tokens.input
     span.set_attribute(ATTR_GEN_AI_USAGE_OUTPUT_TOKENS, message.tokens.output) if message.tokens.output
+    span.set_attribute(ATTR_GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, message.tokens.thinking) if message.tokens.thinking
   end
 end

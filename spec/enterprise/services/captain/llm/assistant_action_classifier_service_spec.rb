@@ -23,6 +23,7 @@ RSpec.describe Captain::Llm::AssistantActionClassifierService do
 
   before do
     allow(RubyLLM).to receive(:chat).and_return(mock_chat)
+    allow(mock_chat).to receive(:with_thinking).and_return(mock_chat)
     allow(mock_chat).to receive(:with_temperature).and_return(mock_chat)
     allow(mock_chat).to receive(:with_schema).and_return(mock_chat)
     allow(mock_chat).to receive(:with_instructions).and_return(mock_chat)
@@ -78,7 +79,7 @@ RSpec.describe Captain::Llm::AssistantActionClassifierService do
     it 'uses the assistant feature model' do
       account.update!(captain_models: { 'assistant' => 'gpt-5.2' })
 
-      expect(RubyLLM).to receive(:chat).with(model: 'gpt-5.2').and_return(mock_chat)
+      expect(RubyLLM).to receive(:chat).with(model: 'gpt-5.2', protocol: :responses).and_return(mock_chat)
       allow(mock_chat).to receive(:ask).and_return(mock_response)
 
       result = service.classify(message_history: message_history, assistant_response: 'Would you like to talk to support?')

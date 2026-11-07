@@ -1,3 +1,17 @@
+### B-NEW-255 — Mantener el esfuerzo de razonamiento según el protocolo (2026-11-07)
+
+- **Archivos:** `lib/llm/config.rb`, `lib/captain/responses_config.rb`, `enterprise/app/helpers/captain/chat_helper.rb` y specs de configuración/solicitudes RubyLLM.
+- **Causa:** `Llm::Config::PinnedReasoningEffort` agregaba `reasoning_effort` a todos los chats RubyLLM, incluidos los de Responses API, que requieren `reasoning.effort`.
+- **Arreglo:** quitar el prepend global. `with_thinking` conserva el formato Responses; las herramientas de Assistant/Copilot mantienen el `reasoning_effort` de modelo solo en Chat Completions con endpoint personalizado.
+- **Verificación:** suites solicitadas: 1.578 ejemplos, 0 fallos; spec de cuerpo HTTP real con WebMock, 2 ejemplos, 0 fallos; RuboCop `chathub-rubocop-ci`, 5 archivos, 0 infracciones. No se llamó a OpenAI en vivo.
+
+### B-NEW-254 — PDF FAQ vacío con modelo de razonamiento (2026-11-06)
+
+- **Archivos:** `enterprise/app/services/llm/legacy_base_open_ai_service.rb`, `enterprise/app/services/captain/llm/paginated_faq_generator_service.rb`, `enterprise/app/jobs/captain/documents/response_builder_job.rb` y el partial JSON de documentos Captain.
+- **Problema:** las llamadas del cliente OpenAI legado omitían el `reasoning_effort` fijado para el modelo; un PDF podía finalizar disponible con cero preguntas sin diagnóstico.
+- **Arreglo:** aplicar la fijación en el envío de chat común, conservar valores explícitos, registrar metadatos técnicos de chunks vacíos sin contenido del cliente y guardar/exponer `faq_generation_empty_result`.
+- **Verificación:** RSpec aislado, 176 ejemplos y 0 fallos (servicios Captain LLM, servicio base, job y controller). RuboCop en `chathub-rubocop-ci` inspeccionó 7 archivos; sin alertas en servicios ni specs nuevos/modificados. Quedaron 22 alertas `RSpec/EmptyLine*` preexistentes en secciones anteriores del spec de documentos. `git diff --check` limpio.
+
 ### B-NEW-253 - Proteger el borrador y unificar el editor de WhatsApp Flows (2026-11-05)
 
 - **Archivos:** `FlowBuilderPage.vue`, `FlowPage.vue`, `FlowPhoneFrame.vue`, `FlowNewDialog.vue`, `FlowBlockEditor.vue`, `FlowPhoneCanvas.vue`, `FlowPhoneSimulator.vue`, `flowDefinition.js` y `en/whatsappFlows.json`.

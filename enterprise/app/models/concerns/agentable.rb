@@ -12,8 +12,7 @@ module Concerns::Agentable
       model: model,
       response_schema: agent_response_schema
     }
-    model_temperature = Llm::Models.temperature_for(model, temperature.presence&.to_f || DEFAULT_TEMPERATURE)
-    attributes[:temperature] = model_temperature if model_temperature
+    attributes.merge!(Captain::ResponsesConfig.options(model: model, temperature: temperature.presence&.to_f || DEFAULT_TEMPERATURE))
     Agents::Agent.new(**attributes)
   end
 

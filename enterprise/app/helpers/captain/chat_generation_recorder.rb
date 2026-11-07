@@ -43,7 +43,9 @@ module Captain::ChatGenerationRecorder
       ),
       ATTR_LANGFUSE_OBSERVATION_OUTPUT => generation_output(message),
       format(ATTR_LANGFUSE_OBSERVATION_METADATA, 'generation_stage') => generation_stage(message)
-    }
+    }.merge(Captain::ResponsesConfig.request_metadata(model: model, feature: feature_name).transform_keys do |key|
+      format(ATTR_LANGFUSE_OBSERVATION_METADATA, key)
+    end.transform_values(&:to_s))
   end
 
   def generation_output(message)

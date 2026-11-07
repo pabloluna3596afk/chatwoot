@@ -77,6 +77,17 @@ RSpec.describe 'Api::V1::Accounts::Captain::Documents', type: :request do
           matching_document = json_response[:payload].find { |item| item[:id] == document.id }
           expect(matching_document[:responses_count]).to eq(2)
         end
+
+        it 'exposes an empty PDF FAQ generation result' do
+          document = create(:captain_document, assistant: assistant, account: account,
+                                               metadata: { 'faq_generation' => { 'empty_result' => true } })
+
+          get "/api/v1/accounts/#{account.id}/captain/documents",
+              headers: agent.create_new_auth_token, as: :json
+
+          matching_document = json_response[:payload].find { |item| item[:id] == document.id }
+          expect(matching_document[:faq_generation_empty_result]).to be(true)
+        end
       end
       context 'when filtering by assistant_id' do
         before do

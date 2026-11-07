@@ -17,6 +17,7 @@ RSpec.describe Captain::Llm::AssistantChatService do
     create(:installation_config, name: 'CAPTAIN_OPEN_AI_API_KEY', value: 'test-key')
 
     allow(RubyLLM).to receive(:chat).and_return(mock_chat)
+    allow(mock_chat).to receive(:with_thinking).and_return(mock_chat)
     allow(mock_chat).to receive(:with_temperature).and_return(mock_chat)
     allow(mock_chat).to receive(:with_provider_options).and_return(mock_chat)
     allow(mock_chat).to receive(:with_tools).and_return(mock_chat)
@@ -32,7 +33,7 @@ RSpec.describe Captain::Llm::AssistantChatService do
     it 'uses the assistant feature model' do
       account.update!(captain_models: { 'assistant' => 'gpt-5.2' })
 
-      expect(RubyLLM).to receive(:chat).with(model: 'gpt-5.2').and_return(mock_chat)
+      expect(RubyLLM).to receive(:chat).with(model: 'gpt-5.2', protocol: :responses).and_return(mock_chat)
       allow(mock_chat).to receive(:ask).and_return(mock_response)
 
       service = described_class.new(assistant: assistant, conversation: conversation)
