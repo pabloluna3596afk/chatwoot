@@ -34,6 +34,16 @@ class Llm::LegacyBaseOpenAiService
     @client.chat(parameters: chat_parameters)
   end
 
+  def log_empty_response(document:, model:, pages:, response:, has_content:)
+    Rails.logger.warn(
+      '[Captain::Llm::PaginatedFaqGeneratorService] Empty FAQ chunk ' \
+      "document_id=#{document.id} model=#{model} pages=#{pages} " \
+      "finish_reason=#{response.dig('choices', 0, 'finish_reason')} " \
+      "content_length=#{response.dig('choices', 0, 'message', 'content').to_s.length} " \
+      "has_content=#{has_content}"
+    )
+  end
+
   # Strips markdown code fences (```json ... ``` or ``` ... ```) that some
   # LLM providers/gateways wrap around JSON responses despite response_format hints.
   def sanitize_json_response(response)
