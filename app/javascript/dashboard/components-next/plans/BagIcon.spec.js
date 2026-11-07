@@ -5,7 +5,7 @@ describe('BagIcon', () => {
   it.each([
     ['internal', 'i-lucide-sparkles'],
     ['captain_responses', 'i-woot-captain'],
-    ['copilot', 'i-fluent-pen-sparkle-24-regular'],
+    ['copilot', 'i-woot-copilot'],
   ])('uses the shared %s icon', (bag, icon) => {
     const wrapper = mount(BagIcon, { props: { bag } });
 

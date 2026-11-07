@@ -3,7 +3,7 @@ import Icon from 'next/icon/Icon.vue';
 </script>
 
 <template>
-  <Icon v-once icon="i-woot-captain" class="jumping-logo" />
+  <Icon v-once icon="i-woot-copilot" class="jumping-logo" />
 </template>
 
 <style scoped>

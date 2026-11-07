@@ -68,7 +68,7 @@ describe('CopilotLauncher', () => {
     await wrapper.get('#copilot-launcher-button').trigger('click');
     await nextTick();
     expect(testState.uiSettings.value.is_copilot_panel_open).toBe(false);
-    expect(wrapper.find('i').classes()).toContain('i-woot-captain');
+    expect(wrapper.find('i').classes()).toContain('i-woot-copilot');
   });
 
   it('opens above the contact panel without changing its state', async () => {
