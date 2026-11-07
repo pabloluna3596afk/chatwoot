@@ -9,6 +9,8 @@ RSpec.describe Captain::ChatGenerationRecorder do
 
       def temperature = 0.5
 
+      def feature_name = 'assistant'
+
       def determine_provider(_model) = 'openai'
 
       def attributes(chat, message)
