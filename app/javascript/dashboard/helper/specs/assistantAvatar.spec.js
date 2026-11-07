@@ -1,6 +1,8 @@
 import {
   DEFAULT_ASSISTANT_AVATAR_DARK,
   DEFAULT_ASSISTANT_AVATAR_LIGHT,
+  COPILOT_AVATAR_DARK,
+  COPILOT_AVATAR_LIGHT,
   resolveAssistantAvatar,
   swapDefaultAssistantAvatar,
 } from '../assistantAvatar';
@@ -16,6 +18,14 @@ describe('assistantAvatar', () => {
   describe('swapDefaultAssistantAvatar', () => {
     it('swaps the default light avatar for the dark one in dark mode', () => {
       expect(swapDefaultAssistantAvatar(LIGHT_URL, true)).toBe(DARK_URL);
+    });
+
+    it('swaps the Copilot avatar for its dark version in dark mode', () => {
+      const light = `https://chat.example.com/assets/images/dashboard/${COPILOT_AVATAR_LIGHT}`;
+      const dark = `https://chat.example.com/assets/images/dashboard/${COPILOT_AVATAR_DARK}`;
+
+      expect(swapDefaultAssistantAvatar(light, true)).toBe(dark);
+      expect(swapDefaultAssistantAvatar(light, false)).toBe(light);
     });
 
     it('keeps the light avatar in light mode', () => {

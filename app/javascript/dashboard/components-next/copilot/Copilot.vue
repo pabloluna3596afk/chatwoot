@@ -110,7 +110,7 @@ const isLastMessageFromAssistant = computed(() =>
   )
 );
 const copilotAvatar = computed(() =>
-  resolveAssistantAvatar('/assets/images/dashboard/captain/avatar-light.svg')
+  resolveAssistantAvatar('/assets/images/dashboard/copilot/copilot-light.svg')
 );
 const hasMessages = computed(
   () => props.messages.length > 0 || props.actionItems.length > 0
@@ -169,7 +169,7 @@ watch(
         <img
           :src="copilotAvatar"
           :alt="$t('CAPTAIN.COPILOT.COPILOT_LABEL')"
-          class="size-9 shrink-0 rounded-full"
+          class="size-9 shrink-0 rounded-full object-contain"
         />
         <div class="min-w-0 flex-1">
           <div class="truncate font-medium text-n-slate-12">

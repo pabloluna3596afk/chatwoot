@@ -49,7 +49,7 @@ const toggleSidebar = () => {
               :key="isCopilotPanelOpen ? 'minimize' : 'captain'"
               class="inline-block"
               :class="
-                isCopilotPanelOpen ? 'i-lucide-chevron-down' : 'i-woot-captain'
+                isCopilotPanelOpen ? 'i-lucide-chevron-down' : 'i-woot-copilot'
               "
             />
           </Transition>
