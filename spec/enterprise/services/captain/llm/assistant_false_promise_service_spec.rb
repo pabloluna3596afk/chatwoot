@@ -16,6 +16,7 @@ RSpec.describe Captain::Llm::AssistantFalsePromiseService do
   before do
     put_account_on_plan(account, captain_internal_calls: 1)
     allow(RubyLLM).to receive(:chat).and_return(mock_chat)
+    allow(mock_chat).to receive(:with_thinking).and_return(mock_chat)
     allow(mock_chat).to receive(:with_temperature).and_return(mock_chat)
     allow(mock_chat).to receive(:with_schema).and_return(mock_chat)
     allow(mock_chat).to receive(:with_instructions).and_return(mock_chat)
@@ -41,7 +42,7 @@ RSpec.describe Captain::Llm::AssistantFalsePromiseService do
     it 'uses the detector model even when the assistant feature model is overridden' do
       account.update!(captain_models: { 'assistant' => 'gpt-5-mini' })
 
-      expect(RubyLLM).to receive(:chat).with(model: 'gpt-6-luna').and_return(mock_chat)
+      expect(RubyLLM).to receive(:chat).with(model: 'gpt-6-luna', protocol: :responses).and_return(mock_chat)
       allow(mock_chat).to receive(:ask).and_return(mock_response)
       expect(account).to receive(:finish_captain_ai_usage!).with(bucket: :internal, reservation_id: anything).and_call_original
 

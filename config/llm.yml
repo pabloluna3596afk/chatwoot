@@ -86,6 +86,7 @@ features:
       ]
     default: gpt-6-luna
   assistant:
+    reasoning_effort: none
     models:
       [
         gpt-6-luna,
@@ -99,6 +100,7 @@ features:
       ]
     default: gpt-6-luna
   copilot:
+    reasoning_effort: none
     models:
       [
         gpt-6-luna,
@@ -155,6 +157,7 @@ features:
       ]
     default: gpt-6-luna
   pdf_faq_generation:
+    reasoning_effort: medium
     models: [gpt-6-luna, gpt-5-mini, gpt-5.1, gpt-5.2]
     default: gpt-6-luna
   help_center_article_generation:

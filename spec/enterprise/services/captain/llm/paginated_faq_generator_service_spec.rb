@@ -6,6 +6,7 @@ RSpec.describe Captain::Llm::PaginatedFaqGeneratorService do
   let(:openai_client) { instance_double(OpenAI::Client) }
 
   before do
+    allow(Llm::FeatureRouter).to receive(:standard_openai_endpoint?).and_return(false)
     # Mock OpenAI configuration
     installation_config = instance_double(InstallationConfig, value: 'test-api-key')
     allow(InstallationConfig).to receive(:find_by!)
@@ -75,13 +76,13 @@ RSpec.describe Captain::Llm::PaginatedFaqGeneratorService do
         expect(faqs.first['question']).to eq('What is this document about?')
       end
 
-      it 'sends the pinned reasoning effort for the PDF chunk chat request' do
+      it 'keeps a custom endpoint on Chat Completions' do
         allow(openai_client).to receive(:chat).and_return(empty_response)
 
         service.generate
 
         expect(openai_client).to have_received(:chat).with(
-          parameters: hash_including(model: 'gpt-6-luna', reasoning_effort: 'none')
+          parameters: hash_including(model: 'gpt-6-luna', messages: array_including(hash_including(role: 'user')))
         )
       end
 
@@ -96,17 +97,6 @@ RSpec.describe Captain::Llm::PaginatedFaqGeneratorService do
         expect(log_entry).to include("document_id=#{document.id}", 'model=gpt-6-luna', 'pages=1-5',
                                      'finish_reason=stop', "content_length=#{response_content.length}", 'has_content=false')
         expect(log_entry).not_to include(response_content)
-      end
-
-      it 'sends pinned reasoning effort for standard FAQ chat requests' do
-        allow(openai_client).to receive(:chat).and_return(faq_response)
-        service.instance_variable_set(:@content, 'Document text')
-
-        service.send(:generate_standard_faqs)
-
-        expect(openai_client).to have_received(:chat).with(
-          parameters: hash_including(model: 'gpt-6-luna', reasoning_effort: 'none')
-        )
       end
 
       it 'stops when no more content' do
@@ -126,6 +116,44 @@ RSpec.describe Captain::Llm::PaginatedFaqGeneratorService do
         service.generate
         expect(service.iterations_completed).to eq(20)
       end
+    end
+  end
+
+  describe 'Responses PDF requests' do
+    before do
+      allow(Llm::FeatureRouter).to receive(:standard_openai_endpoint?).and_return(true)
+      allow(document).to receive(:openai_file_id).and_return('file-123')
+      document.account.update!(captain_models: { 'pdf_faq_generation' => 'gpt-5.2' })
+    end
+
+    it 'sends file input and JSON format to Responses without storing it, and parses message output after reasoning' do
+      response = { 'output' => [
+        { 'type' => 'reasoning' },
+        { 'type' => 'message', 'content' => [{ 'type' => 'output_text', 'text' => '{"faqs":[],"has_content":false}' }] }
+      ] }
+      expect(openai_client).to receive(:json_post) do |path:, parameters:|
+        expect(path).to eq('responses')
+        expect(parameters).to include(
+          model: 'gpt-5.2', text: { format: { type: 'json_object' } }, store: false,
+          input: [include(role: 'user', content: include({ type: 'input_file', file_id: 'file-123' }))]
+        )
+        expect(parameters).to include(reasoning: { effort: :medium })
+        response
+      end
+      expect(openai_client).not_to receive(:chat)
+
+      expect(service.generate).to eq([])
+    end
+
+    it 'sends the configured reasoning effort for PDF FAQ generation' do
+      document.account.update!(captain_models: { 'pdf_faq_generation' => 'gpt-6-luna' })
+      response = { 'output' => [{ 'type' => 'message', 'content' => [{ 'type' => 'output_text', 'text' => '{"faqs":[],"has_content":false}' }] }] }
+      expect(openai_client).to receive(:json_post).with(
+        path: 'responses',
+        parameters: hash_including(model: 'gpt-6-luna', store: false, reasoning: { effort: :medium })
+      ).and_return(response)
+
+      service.generate
     end
   end
 

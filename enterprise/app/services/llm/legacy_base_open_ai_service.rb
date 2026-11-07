@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
 # DEPRECATED: This class uses the legacy OpenAI Ruby gem directly.
-# Only used for PDF/file operations that require OpenAI's files API:
-# - Captain::Llm::PdfProcessingService (files.upload for assistants)
-# - Captain::Llm::PaginatedFaqGeneratorService (uses file_id from uploaded files)
+# Only used for OpenAI APIs that need the legacy client:
+# - PDF upload and deletion in Captain::Llm::PdfProcessingService
+# - File-backed Responses in Captain::Llm::PaginatedFaqGeneratorService
+# - Audio transcription in Llm::SpeechToTextService
 #
 # For all other LLM operations, use Llm::BaseAiService with RubyLLM instead.
 class Llm::LegacyBaseOpenAiService
@@ -24,24 +25,14 @@ class Llm::LegacyBaseOpenAiService
 
   private
 
-  def chat(parameters:)
-    chat_parameters = parameters.dup
-    unless chat_parameters.key?(:reasoning_effort)
-      reasoning_effort = Llm::Models.reasoning_effort_for(chat_parameters[:model] || @model)
-      chat_parameters[:reasoning_effort] = reasoning_effort if reasoning_effort.present?
-    end
-
-    @client.chat(parameters: chat_parameters)
-  end
-
   def log_empty_response(document:, model:, pages:, response:, result:)
     return unless (result['faqs'] || []).empty?
 
     Rails.logger.warn(
       '[Captain::Llm::PaginatedFaqGeneratorService] Empty FAQ chunk ' \
       "document_id=#{document.id} model=#{model} pages=#{pages.join('-')} " \
-      "finish_reason=#{response.dig('choices', 0, 'finish_reason')} " \
-      "content_length=#{response.dig('choices', 0, 'message', 'content').to_s.length} " \
+      "finish_reason=#{response.dig('choices', 0, 'finish_reason') || response['status']} " \
+      "content_length=#{(response.dig('choices', 0, 'message', 'content') || response.dig('output', 0, 'content', 0, 'text')).to_s.length} " \
       "has_content=#{result['has_content'] != false}"
     )
   end

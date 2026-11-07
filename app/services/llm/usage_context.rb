@@ -3,7 +3,7 @@ module Llm::UsageTokenAttributes
 
   NESTED_DETAILS = {
     cached_input: [[:input_tokens_details, :cached_tokens], [:prompt_tokens_details, :cached_tokens]],
-    reasoning: [[:completion_tokens_details, :reasoning_tokens]]
+    reasoning: [[:completion_tokens_details, :reasoning_tokens], [:output_tokens_details, :reasoning_tokens]]
   }.freeze
 
   def call(model:, response:, audio_duration_seconds: nil)
