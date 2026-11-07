@@ -37,7 +37,7 @@ RSpec.describe 'Captain editor task certification', certification: 'editor', typ
       RubyLLM::Message,
       content: 'A generated response',
       parsed: { 'points' => [] },
-      tokens: instance_double(RubyLLM::Tokens, input: 10, output: 5)
+      tokens: instance_double(RubyLLM::Tokens, input: 10, output: 5, thinking: nil)
     )
   end
 
@@ -49,6 +49,8 @@ RSpec.describe 'Captain editor task certification', certification: 'editor', typ
     allow(Integrations::Openai::KeyValidator).to receive(:valid?).and_return(true)
     allow(Llm::Config).to receive(:with_api_key).and_yield(mock_context)
     allow(mock_chat).to receive(:with_instructions).and_return(mock_chat)
+    allow(mock_chat).to receive(:with_temperature).and_return(mock_chat)
+    allow(mock_chat).to receive(:with_thinking).and_return(mock_chat)
     allow(mock_chat).to receive(:add_message).and_return(mock_chat)
   end
 
@@ -153,7 +155,7 @@ RSpec.describe 'Captain editor task certification', certification: 'editor', typ
   describe 'reflected BaseTaskService descendants' do
     it 'discovers the complete family and verifies Enterprise usage wrapping' do
       Rails.application.eager_load!
-      descendants = Captain::BaseTaskService.descendants.sort_by(&:name)
+      descendants = Captain::BaseTaskService.descendants.select(&:name).sort_by(&:name)
 
       expect(descendants).not_to be_empty
       expect(descendants).to all(satisfy { |service_class|

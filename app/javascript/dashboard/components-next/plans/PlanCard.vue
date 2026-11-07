@@ -87,9 +87,6 @@ const choose = () => {
           {{ t('PLAN_CATALOG.PER_MONTH') }}
         </span>
       </p>
-      <p v-if="prices.monthly > 0" class="m-0 text-xs text-n-slate-11">
-        {{ t('PLAN_CATALOG.ANNUAL_PRICE', { price: money(prices.annual) }) }}
-      </p>
     </div>
     <ul v-if="compact" class="m-0 flex-1 list-none space-y-2 p-0 text-sm">
       <li v-for="field in summary(plan)" :key="field.key">

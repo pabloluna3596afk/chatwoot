@@ -208,7 +208,8 @@ describe('catalog presentation', () => {
     await flushPromises();
     expect(wrapper.text()).toContain(es.PLAN_CATALOG.FREE);
     expect(wrapper.text()).toContain('$119');
-    expect(wrapper.text()).toContain('$1.190');
+    expect(wrapper.text()).not.toContain('$1.190');
+    expect(wrapper.text()).not.toContain('al año');
     expect(wrapper.text()).toContain(
       es.PLAN_CATALOG.INHERITS.replace('{plan}', 'Prueba')
     );

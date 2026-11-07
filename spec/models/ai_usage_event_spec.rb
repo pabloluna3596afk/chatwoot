@@ -197,6 +197,35 @@ RSpec.describe AiUsageEvent do
       expect(event.cost_usd).to eq(BigDecimal('0.000013'))
     end
 
+    it 'records Responses input, cached input, output, reasoning, and cost' do
+      account = create(:account)
+      AiModelPrice.create!(model: 'gpt-6-luna', input_per_million: 0.10,
+                           cached_input_per_million: 0.02, output_per_million: 0.50,
+                           effective_from: 1.day.ago)
+      group_id = SecureRandom.uuid
+      response = {
+        'output' => [
+          { 'type' => 'reasoning', 'summary' => [] },
+          { 'type' => 'message', 'content' => [{ 'type' => 'output_text', 'text' => 'Answer' }] }
+        ],
+        'usage' => {
+          'input_tokens' => 100,
+          'input_tokens_details' => { 'cached_tokens' => 25 },
+          'output_tokens' => 10,
+          'output_tokens_details' => { 'reasoning_tokens' => 4 }
+        }
+      }
+
+      Llm::UsageContext.with(account: account, bucket: :captain_responses, feature: 'paginated_faq_generation',
+                             usage_group_id: group_id) do
+        Llm::UsageContext.record_operation(model: 'gpt-6-luna', provider: 'openai', response: response, status: 'ok')
+      end
+
+      event = described_class.find_by!(usage_group_id: group_id)
+      expect(event).to have_attributes(input_tokens: 100, cached_input_tokens: 25, output_tokens: 10, reasoning_tokens: 4)
+      expect(event.cost_usd).to eq(BigDecimal('0.000013'))
+    end
+
     it 'records token usage from non-chat RubyLLM operations' do
       account = create(:account)
       tokens = Struct.new(:input, :output, :cached_input, :reasoning).new(250, 0, 0, 0)

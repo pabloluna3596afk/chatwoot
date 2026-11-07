@@ -1,0 +1,55 @@
+module Captain::ResponsesConfig
+  COPILOT_RESPONSE_FORMAT = {
+    type: 'json_schema',
+    name: 'copilot_response',
+    schema: { type: 'object', additionalProperties: true },
+    strict: false
+  }.freeze
+
+  def self.options(model:, temperature:, feature: 'assistant')
+    options = { temperature: Llm::Models.temperature_for(model, temperature) }
+    return options unless Llm::Models.provider_for(model) == 'openai' && Llm::FeatureRouter.standard_openai_endpoint?
+
+    options[:protocol] = :responses
+    effort = Llm::FeatureRouter.reasoning_effort(feature: feature, model: model)
+    options[:thinking] = { effort: effort } if effort
+    options[:temperature] = nil if effort && effort != :none
+    options
+  end
+
+  def self.request_metadata(model:, feature: nil)
+    return {} unless Llm::Models.provider_for(model) == 'openai'
+
+    request_options = options(model: model, temperature: nil, feature: feature)
+    {
+      api_protocol: (request_options[:protocol] || :chat_completions).to_s,
+      reasoning_effort: request_options.dig(:thinking, :effort)
+    }.compact
+  end
+
+  def self.json_format_options(protocol:, format: { type: 'json_object' })
+    return { text: { format: format } } if protocol == :responses
+
+    { response_format: format }
+  end
+
+  def self.configure_copilot_chat(chat, protocol:, model:, feature:)
+    format = protocol == :responses ? COPILOT_RESPONSE_FORMAT : { type: 'json_object' }
+    provider_options = json_format_options(protocol: protocol, format: format)
+    if protocol != :responses && %w[assistant copilot].include?(feature.to_s) && !Llm::FeatureRouter.standard_openai_endpoint?
+      effort = Llm::Models.reasoning_effort_for(model)
+      provider_options[:reasoning_effort] = effort if effort
+    end
+
+    chat.with_provider_options(**provider_options)
+  end
+
+  def self.metadata(chat, protocol: nil)
+    return {} unless chat.provider.slug == 'openai'
+
+    {
+      api_protocol: protocol || chat.provider.config.openai_protocol,
+      reasoning_effort: chat.thinking&.dig(:effort)
+    }.compact
+  end
+end

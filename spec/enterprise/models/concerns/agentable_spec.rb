@@ -50,6 +50,8 @@ RSpec.describe Concerns::Agentable do
         tools: [],
         model: Llm::Models.default_model_for('assistant'),
         temperature: 0.8,
+        protocol: :responses,
+        thinking: { effort: :none },
         response_schema: Captain::ResponseSchema
       )
 

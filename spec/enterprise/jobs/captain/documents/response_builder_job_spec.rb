@@ -95,6 +95,15 @@ RSpec.describe Captain::Documents::ResponseBuilderJob, type: :job do
         described_class.new.perform(pdf_document)
       end
 
+      it 'marks an empty FAQ result in pagination metadata' do
+        allow(paginated_service).to receive(:generate).and_return([])
+        expect(pdf_document).to receive(:update!).with(
+          hash_including(metadata: hash_including('faq_generation' => hash_including('empty_result' => true)))
+        )
+
+        described_class.new.perform(pdf_document)
+      end
+
       it 'deletes the OpenAI file after generating FAQs' do
         cleanup_service = instance_double(Captain::Llm::PdfProcessingService)
         allow(Captain::Llm::PdfProcessingService).to receive(:new).with(pdf_document).and_return(cleanup_service)
