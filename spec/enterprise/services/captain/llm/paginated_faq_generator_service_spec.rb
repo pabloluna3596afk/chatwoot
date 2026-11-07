@@ -51,6 +51,7 @@ RSpec.describe Captain::Llm::PaginatedFaqGeneratorService do
       let(:empty_response) do
         {
           'choices' => [{
+            'finish_reason' => 'stop',
             'message' => {
               'content' => JSON.generate({
                                            'faqs' => [],
@@ -72,6 +73,40 @@ RSpec.describe Captain::Llm::PaginatedFaqGeneratorService do
 
         expect(faqs).to have_attributes(size: 1)
         expect(faqs.first['question']).to eq('What is this document about?')
+      end
+
+      it 'sends the pinned reasoning effort for the PDF chunk chat request' do
+        allow(openai_client).to receive(:chat).and_return(empty_response)
+
+        service.generate
+
+        expect(openai_client).to have_received(:chat).with(
+          parameters: hash_including(model: 'gpt-6-luna', reasoning_effort: 'none')
+        )
+      end
+
+      it 'logs empty chunk diagnostics without logging the response content' do
+        allow(openai_client).to receive(:chat).and_return(empty_response)
+        log_entry = nil
+        response_content = empty_response.dig('choices', 0, 'message', 'content')
+        expect(Rails.logger).to receive(:warn) { |message| log_entry = message }
+
+        service.generate
+
+        expect(log_entry).to include("document_id=#{document.id}", 'model=gpt-6-luna', 'pages=1-5',
+                                     'finish_reason=stop', "content_length=#{response_content.length}", 'has_content=false')
+        expect(log_entry).not_to include(response_content)
+      end
+
+      it 'sends pinned reasoning effort for standard FAQ chat requests' do
+        allow(openai_client).to receive(:chat).and_return(faq_response)
+        service.instance_variable_set(:@content, 'Document text')
+
+        service.send(:generate_standard_faqs)
+
+        expect(openai_client).to have_received(:chat).with(
+          parameters: hash_including(model: 'gpt-6-luna', reasoning_effort: 'none')
+        )
       end
 
       it 'stops when no more content' do

@@ -23,7 +23,7 @@ class Captain::Documents::ResponseBuilderJob < ApplicationJob
   def generate_paginated_faqs(document, options)
     service = build_paginated_service(document, options)
     faqs = service.generate
-    store_paginated_metadata(document, service)
+    store_paginated_metadata(document, service, faqs)
     faqs
   end
 
@@ -46,13 +46,14 @@ class Captain::Documents::ResponseBuilderJob < ApplicationJob
     )
   end
 
-  def store_paginated_metadata(document, service)
+  def store_paginated_metadata(document, service, faqs)
     document.update!(
       metadata: (document.metadata || {}).merge(
         'faq_generation' => {
           'method' => 'paginated',
           'pages_processed' => service.total_pages_processed,
           'iterations' => service.iterations_completed,
+          'empty_result' => faqs.empty?,
           'timestamp' => Time.current.iso8601
         }
       )

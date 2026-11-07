@@ -1,3 +1,10 @@
+### B-NEW-254 — PDF FAQ vacío con modelo de razonamiento (2026-11-06)
+
+- **Archivos:** `enterprise/app/services/llm/legacy_base_open_ai_service.rb`, `enterprise/app/services/captain/llm/paginated_faq_generator_service.rb`, `enterprise/app/jobs/captain/documents/response_builder_job.rb` y el partial JSON de documentos Captain.
+- **Problema:** las llamadas del cliente OpenAI legado omitían el `reasoning_effort` fijado para el modelo; un PDF podía finalizar disponible con cero preguntas sin diagnóstico.
+- **Arreglo:** aplicar la fijación en el envío de chat común, conservar valores explícitos, registrar metadatos técnicos de chunks vacíos sin contenido del cliente y guardar/exponer `faq_generation_empty_result`.
+- **Verificación:** pendiente de RSpec y RuboCop en contenedores aislados.
+
 ### B-NEW-253 - Proteger el borrador y unificar el editor de WhatsApp Flows (2026-11-05)
 
 - **Archivos:** `FlowBuilderPage.vue`, `FlowPage.vue`, `FlowPhoneFrame.vue`, `FlowNewDialog.vue`, `FlowBlockEditor.vue`, `FlowPhoneCanvas.vue`, `FlowPhoneSimulator.vue`, `flowDefinition.js` y `en/whatsappFlows.json`.

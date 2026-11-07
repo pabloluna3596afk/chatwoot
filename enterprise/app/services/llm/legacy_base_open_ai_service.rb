@@ -24,6 +24,16 @@ class Llm::LegacyBaseOpenAiService
 
   private
 
+  def chat(parameters:)
+    chat_parameters = parameters.dup
+    unless chat_parameters.key?(:reasoning_effort)
+      reasoning_effort = Llm::Models.reasoning_effort_for(chat_parameters[:model] || @model)
+      chat_parameters[:reasoning_effort] = reasoning_effort if reasoning_effort.present?
+    end
+
+    @client.chat(parameters: chat_parameters)
+  end
+
   # Strips markdown code fences (```json ... ``` or ``` ... ```) that some
   # LLM providers/gateways wrap around JSON responses despite response_format hints.
   def sanitize_json_response(response)

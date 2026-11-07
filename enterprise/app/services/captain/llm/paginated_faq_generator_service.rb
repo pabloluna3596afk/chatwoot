@@ -57,7 +57,7 @@ class Captain::Llm::PaginatedFaqGeneratorService < Llm::LegacyBaseOpenAiService
     }
 
     response = with_usage_recording(instrumentation_params) do
-      instrument_llm_call(instrumentation_params) { @client.chat(parameters: params) }
+      instrument_llm_call(instrumentation_params) { chat(parameters: params) }
     end
 
     parse_response(response)
@@ -104,11 +104,14 @@ class Captain::Llm::PaginatedFaqGeneratorService < Llm::LegacyBaseOpenAiService
     instrumentation_params = build_instrumentation_params(params, start_page, end_page)
 
     response = with_usage_recording(instrumentation_params) do
-      instrument_llm_call(instrumentation_params) { @client.chat(parameters: params) }
+      instrument_llm_call(instrumentation_params) { chat(parameters: params) }
     end
 
     result = parse_chunk_response(response)
-    { faqs: result['faqs'] || [], has_content: result['has_content'] != false }
+    faqs = result['faqs'] || []
+    has_content = result['has_content'] != false
+    log_empty_faq_chunk(response, start_page, end_page, has_content) if faqs.empty?
+    { faqs: faqs, has_content: has_content }
   rescue OpenAI::Error => e
     Rails.logger.error I18n.t('captain.documents.page_processing_error', start: start_page, end: end_page, error: e.message)
     { faqs: [], has_content: false }
@@ -179,6 +182,16 @@ class Captain::Llm::PaginatedFaqGeneratorService < Llm::LegacyBaseOpenAiService
   rescue JSON::ParserError => e
     Rails.logger.error "Error parsing chunk response: #{e.message}"
     { 'faqs' => [], 'has_content' => false }
+  end
+
+  def log_empty_faq_chunk(response, start_page, end_page, has_content)
+    Rails.logger.warn(
+      "[Captain::Llm::PaginatedFaqGeneratorService] Empty FAQ chunk " \
+      "document_id=#{@document.id} model=#{@model} pages=#{start_page}-#{end_page} " \
+      "finish_reason=#{response.dig('choices', 0, 'finish_reason')} " \
+      "content_length=#{response.dig('choices', 0, 'message', 'content').to_s.length} " \
+      "has_content=#{has_content}"
+    )
   end
 
   def deduplicate_faqs(faqs)
