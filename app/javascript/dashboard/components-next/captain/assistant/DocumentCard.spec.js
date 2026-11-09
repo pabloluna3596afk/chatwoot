@@ -118,4 +118,34 @@ describe('DocumentCard', () => {
     expect(wrapper.find('a').exists()).toBe(false);
     expect(wrapper.find('document-sync-status-stub').exists()).toBe(false);
   });
+
+  it('replaces sync status with the incomplete warning and offers Continue for admins', async () => {
+    const wrapper = mountCard({ quotaExceeded: true, status: 'in_progress' });
+    expect(wrapper.text()).toContain('CAPTAIN.DOCUMENTS.RESUME.INCOMPLETE');
+    expect(wrapper.find('document-sync-status-stub').exists()).toBe(false);
+    await wrapper.findAll('button').at(-1).trigger('click');
+    const dropdown = wrapper.findComponent({ name: 'DropdownMenu' });
+    expect(dropdown.props('menuItems')).toContainEqual(
+      expect.objectContaining({ action: 'resume', icon: 'i-lucide-play' })
+    );
+    dropdown.vm.$emit('action', { action: 'resume', value: 'resume' });
+    expect(wrapper.emitted('action')).toEqual([
+      [{ action: 'resume', value: 'resume', id: 42 }],
+    ]);
+  });
+
+  it('shows quota status to agents without a management action', () => {
+    checkPermissions.mockReturnValue(false);
+    const wrapper = mountCard({ quotaExceeded: true, status: 'in_progress' });
+    expect(wrapper.text()).toContain('CAPTAIN.DOCUMENTS.RESUME.INCOMPLETE');
+    expect(wrapper.vm.menuItems).toEqual([]);
+  });
+
+  it('does not offer Continue for other document states', () => {
+    const wrapper = mountCard();
+    expect(wrapper.vm.menuItems.some(item => item.action === 'resume')).toBe(
+      false
+    );
+    expect(wrapper.text()).not.toContain('CAPTAIN.DOCUMENTS.RESUME.INCOMPLETE');
+  });
 });

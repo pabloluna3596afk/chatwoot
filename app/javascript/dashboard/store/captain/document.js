@@ -26,6 +26,25 @@ export default createStore({
     getRecords: state => state.records,
   },
   actions: mutations => ({
+    async estimate(_, data) {
+      const response = await CaptainDocumentAPI.estimate(data);
+      return response.data;
+    },
+    async resume({ commit, getters }, id) {
+      try {
+        await CaptainDocumentAPI.resume(id);
+        commit(
+          mutations.SET,
+          getters.getRecords.map(record =>
+            record.id === id
+              ? { ...record, quota_exceeded: false, last_sync_error_code: null }
+              : record
+          )
+        );
+      } catch (error) {
+        throwErrorMessage(error);
+      }
+    },
     setFetchingList({ commit }, isFetching) {
       commit(mutations.SET_UI_FLAG, { fetchingList: isFetching });
     },

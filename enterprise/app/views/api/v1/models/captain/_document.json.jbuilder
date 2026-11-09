@@ -22,4 +22,5 @@ json.sync_in_progress resource.sync_in_progress?
 json.last_synced_at resource.last_synced_at&.to_i
 json.last_sync_attempted_at resource.last_sync_attempted_at&.to_i
 json.last_sync_error_code resource.last_sync_error_code
+json.quota_exceeded resource.last_sync_error_code == 'usage_quota_exceeded'
 json.updated_at resource.updated_at.to_i
