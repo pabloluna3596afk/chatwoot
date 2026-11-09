@@ -1711,7 +1711,8 @@
       },
       "ESTIMATE": {
         "CALCULATING": "Calculating…",
-        "PDF": "{pages} pages · costs ~{units} internal actions · {remaining} remaining",
+        "PDF": "{pages} · costs ~{units} internal actions · {remaining} remaining",
+        "PAGES": "{count} page | {count} pages",
         "URL": "Costs at least {units} internal actions · {remaining} remaining",
         "UNLIMITED": "unlimited",
         "INSUFFICIENT": "Not enough actions. Wait until next month or upgrade your plan."

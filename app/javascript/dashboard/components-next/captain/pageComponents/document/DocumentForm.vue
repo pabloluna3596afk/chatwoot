@@ -50,7 +50,10 @@ const estimateText = computed(() => {
       estimate.value.remaining ?? t('CAPTAIN.DOCUMENTS.ESTIMATE.UNLIMITED'),
   };
   return state.documentType === 'pdf'
-    ? t('CAPTAIN.DOCUMENTS.ESTIMATE.PDF', values)
+    ? t('CAPTAIN.DOCUMENTS.ESTIMATE.PDF', {
+        ...values,
+        pages: t('CAPTAIN.DOCUMENTS.ESTIMATE.PAGES', values.pages),
+      })
     : t('CAPTAIN.DOCUMENTS.ESTIMATE.URL', values);
 });
 

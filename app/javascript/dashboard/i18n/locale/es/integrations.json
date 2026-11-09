@@ -1702,7 +1702,8 @@
       },
       "ESTIMATE": {
         "CALCULATING": "Calculando…",
-        "PDF": "{pages} páginas · cuesta ~{units} acciones internas · te quedan {remaining}",
+        "PDF": "{pages} · cuesta ~{units} acciones internas · te quedan {remaining}",
+        "PAGES": "{count} página | {count} páginas",
         "URL": "Cuesta al menos {units} acciones internas · te quedan {remaining}",
         "UNLIMITED": "ilimitadas",
         "INSUFFICIENT": "No alcanza. Espera al próximo mes o amplía tu plan."
