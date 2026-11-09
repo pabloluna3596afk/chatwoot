@@ -16,6 +16,7 @@ RSpec.describe Account do
     plan = account.plan
     account.destroy!
     plan.destroy!
+    Audited::Audit.where(auditable_type: 'Account', auditable_id: account.id).delete_all
   end
 
   it 'admits only one of two concurrent reservations for the same last extra unit' do

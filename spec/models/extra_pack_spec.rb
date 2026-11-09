@@ -3,11 +3,12 @@ require 'rails_helper'
 RSpec.describe ExtraPack do
   it 'seeds the approved catalog without overwriting administrative edits' do
     described_class.seed_defaults!
-    expect(described_class.order(:bucket, :units).pluck(:bucket, :units, :price_usd)).to eq([
+    expected = [
       ['captain_responses', 500, 20], ['captain_responses', 2000, 64], ['captain_responses', 5000, 140],
       ['copilot', 1000, 5], ['copilot', 5000, 20],
       ['internal', 500, 6], ['internal', 2000, 20], ['internal', 5000, 45]
-    ])
+    ]
+    expect(described_class.order(:bucket, :units).pluck(:bucket, :units, :price_usd)).to eq(expected)
     pack = described_class.find_by!(bucket: :internal, units: 500)
     pack.update!(price_usd: 9, active: false)
     described_class.seed_defaults!
