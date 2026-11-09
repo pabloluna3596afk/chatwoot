@@ -701,6 +701,8 @@ es:
       using_standard_faq: 'Using standard FAQ generation for document %{document_id}'
       response_creation_error: 'Error in creating response document: %{error}'
       usage_quota_exceeded: 'Incompleto: no hay suficientes acciones internas para continuar generando conocimiento.'
+      invalid_pdf: 'El PDF está vacío, dañado o no es compatible.'
+      resume_not_pending: 'Solo pueden continuar los documentos en pausa por falta de acciones internas.'
       missing_openai_file_id: 'Document must have openai_file_id for paginated processing'
       openai_api_error: 'OpenAI API Error: %{error}'
       starting_paginated_faq: 'Starting paginated FAQ generation (%{pages_per_chunk} pages per chunk)'
