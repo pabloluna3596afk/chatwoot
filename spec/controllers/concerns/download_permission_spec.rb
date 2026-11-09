@@ -117,4 +117,30 @@ RSpec.describe 'Download permissions', type: :request do
       expect(response).to have_http_status(:forbidden)
     end
   end
+  describe 'plan-managed customer exports' do
+    let(:plan) { Plan.create!(name: 'Paid', slug: 'paid', price_monthly: 19, feature_keys: %w[captain_integration customer_data_export]) }
+
+    before { account.update!(plan: plan) }
+
+    it 'allows a synchronized paid account to export contacts' do
+      post "/api/v1/accounts/#{account.id}/contacts/export", headers: headers, as: :json
+      expect(response).to have_http_status(:ok)
+    end
+
+    it 'refuses exports after a free downgrade with the server reason' do
+      free = Plan.create!(name: 'Gratis', slug: 'gratis', feature_keys: ['captain_integration'])
+      account.update!(plan: free)
+      post "/api/v1/accounts/#{account.id}/contacts/export", headers: headers, as: :json
+      expect(response).to have_http_status(:forbidden)
+      expect(response.parsed_body['error']).to eq(I18n.t('errors.downloads.disabled'))
+    end
+
+    it 'refuses exports when the owner overrides a paid plan' do
+      AccountFeatureOverride.create!(account: account, created_by: admin, feature_key: 'customer_data_export',
+                                     enabled: false, reason: 'Owner restriction')
+      post "/api/v1/accounts/#{account.id}/contacts/export", headers: headers, as: :json
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
+
 end

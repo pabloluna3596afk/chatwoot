@@ -193,6 +193,12 @@ class Plan < ApplicationRecord # rubocop:disable Metrics/ClassLength
 
   FEATURES = [
     {
+      key: 'customer_data_export', label_en: 'Customer data downloads', label_es: 'Descarga de datos de clientes',
+      description_en: 'Download contacts, conversations, campaign recipients, CSAT responses, and import logs.',
+      description_es: 'Descarga contactos, conversaciones, destinatarios de campañas, respuestas CSAT y registros de importación.',
+      group: 'Support', flags: %w[customer_data_export]
+    },
+    {
       key: 'captain_integration', label_en: 'Captain', label_es: 'Captain',
       description_en: 'Captain AI assistants.', description_es: 'Asistentes de IA de Captain.',
       group: 'AI', flags: %w[captain_integration captain_integration_v2]

@@ -87,4 +87,22 @@ RSpec.describe Plans::AccountFeatureSync do
     expect(described_class.call(account)).to eq(changes)
     expect(account.reload).to be_feature_automations
   end
+  it 'enables paid customer exports and honors an account exception' do
+    plan.update!(price_monthly: 19, feature_keys: %w[captain_integration customer_data_export])
+    described_class.call(account)
+    expect(account.reload).to be_feature_customer_data_export
+    expect(account).not_to be_feature_report_export
+
+    AccountFeatureOverride.create!(account: account, created_by: create(:user), feature_key: 'customer_data_export',
+                                   enabled: false, reason: 'Owner restriction')
+    described_class.call(account)
+    expect(account.reload).not_to be_feature_customer_data_export
+  end
+
+  it 'disables customer exports on a free plan without that feature' do
+    account.enable_features!('customer_data_export')
+    described_class.call(account)
+    expect(account.reload).not_to be_feature_customer_data_export
+  end
+
 end

@@ -84,4 +84,11 @@ RSpec.describe Rake::Task do
       expect(plan.reload.attributes).to eq(original)
     end
   end
+  it 'seeds customer downloads only in paid non-trial plans' do
+    task.invoke
+    Plan.find_each do |plan|
+      expect(plan.feature_keys.include?('customer_data_export')).to eq(plan.price_monthly.positive? && !plan.is_default_trial?)
+    end
+  end
+
 end

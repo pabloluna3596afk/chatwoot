@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-# Lets a super admin decide, per account, whether that account's admins may pull
-# data out of the tool at all.
+# Customer data downloads are included in paid plans, with per-account
+# exceptions managed by the super admin.
 #
 # Two separate switches because the risk is not the same: customer_data_export
 # covers downloads that carry personal data (contacts, conversations, campaign
@@ -45,3 +45,5 @@ module DownloadPermission
     )
   end
 end
+
+DownloadPermission.prepend_mod_with('DownloadPermission')
