@@ -11,7 +11,11 @@ const props = defineProps({
 const message = ref('');
 const textareaRef = ref(null);
 const isSending = ref(false);
+const MESSAGE_COUNTER_THRESHOLD = 3600;
 const messageCharacterCount = computed(() => Array.from(message.value).length);
+const showCharacterCount = computed(
+  () => messageCharacterCount.value >= MESSAGE_COUNTER_THRESHOLD
+);
 
 const adjustHeight = () => {
   if (!textareaRef.value) return;
@@ -70,7 +74,8 @@ onMounted(() => {
       @keydown.enter.exact="handleEnterKey"
     />
     <span
-      class="absolute bottom-1 start-2 text-[10px] text-n-slate-10"
+      v-if="showCharacterCount"
+      class="absolute -top-4 end-1 text-[10px] text-n-slate-10"
       aria-live="polite"
     >
       {{
