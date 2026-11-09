@@ -25,6 +25,9 @@ class Api::V1::Accounts::Captain::DocumentsController < Api::V1::Accounts::BaseC
     if input.key?(:pdf_file) == input.key?(:external_link) || (input.key?(:external_link) && !valid_external_link?(input[:external_link]))
       return render_could_not_create_error(I18n.t('captain.contracts.invalid_url'))
     end
+    if input.key?(:pdf_file) && !input[:pdf_file].is_a?(ActionDispatch::Http::UploadedFile)
+      return render_could_not_create_error(I18n.t('captain.documents.pdf_format_error'))
+    end
 
     render json: Captain::Documents::UsageEstimate.for_upload(account: Current.account, pdf_file: input[:pdf_file])
   rescue Captain::Documents::UsageEstimate::InvalidPdf => e
@@ -54,11 +57,7 @@ class Api::V1::Accounts::Captain::DocumentsController < Api::V1::Accounts::BaseC
       return render_could_not_create_error(I18n.t('captain.contracts.invalid_url'))
     end
 
-    if document_params[:pdf_file] || document_params[:external_link]
-      estimate = Captain::Documents::UsageEstimate.for_upload(account: Current.account, pdf_file: document_params[:pdf_file])
-      return render_could_not_create_error(I18n.t('captain.documents.usage_quota_exceeded')) unless estimate[:sufficient]
-    end
-
+    ensure_upload_quota!
     @document = @assistant.documents.build(document_params)
     @document.save!
   rescue Captain::Document::LimitExceededError, Captain::Documents::UsageEstimate::InvalidPdf => e
@@ -92,6 +91,13 @@ class Api::V1::Accounts::Captain::DocumentsController < Api::V1::Accounts::BaseC
 
   private
 
+  def ensure_upload_quota!
+    return unless document_params[:pdf_file] || document_params[:external_link]
+
+    estimate = Captain::Documents::UsageEstimate.for_upload(account: Current.account, pdf_file: document_params[:pdf_file])
+    raise Captain::Document::LimitExceededError, I18n.t('captain.documents.usage_quota_exceeded') unless estimate[:sufficient]
+  end
+
   def valid_external_link?(value)
     return false unless value.is_a?(String)
 
@@ -102,7 +108,8 @@ class Api::V1::Accounts::Captain::DocumentsController < Api::V1::Accounts::BaseC
   end
 
   def set_documents
-    @documents = Current.account.captain_documents.with_attached_pdf_file.with_attached_markdown_file.includes(assistant: { avatar_attachment: :blob })
+    @documents = Current.account.captain_documents.with_attached_pdf_file.with_attached_markdown_file
+                        .includes(assistant: { avatar_attachment: :blob })
   end
 
   def filtered_documents

@@ -27,8 +27,8 @@ RSpec.describe 'Captain document usage', type: :request do
 
   describe 'POST estimate' do
     before do
-      expect(OpenAI::Client).not_to receive(:new)
-      expect(RubyLLM).not_to receive(:chat)
+      allow(OpenAI::Client).to receive(:new).and_raise('Estimate must not contact OpenAI')
+      allow(RubyLLM).to receive(:chat).and_raise('Estimate must not contact an LLM')
     end
 
     [[1, 2], [10, 2], [11, 4], [200, 40], [201, 40]].each do |pages, units|
@@ -38,7 +38,7 @@ RSpec.describe 'Captain document usage', type: :request do
         it 'counts real PDF pages, caps the estimate, and writes no ingestion or reservation rows' do
           expect do
             post "#{base_url}/estimate", params: { pdf_file: pdf }, headers: headers
-          end.not_to change { [Captain::Document.count, ActiveStorage::Blob.count, AiUsageReservation.count, AiUsageEvent.count] }
+          end.not_to(change { [Captain::Document.count, ActiveStorage::Blob.count, AiUsageReservation.count, AiUsageEvent.count] })
           expect(response).to have_http_status(:ok)
           expect(response.parsed_body).to eq('pages' => pages, 'units' => units, 'remaining' => nil, 'sufficient' => true)
         end
@@ -100,7 +100,7 @@ RSpec.describe 'Captain document usage', type: :request do
       end
     end
 
-    [{}, { external_link: 'ftp://example.com' }, { external_link: [] }, { pdf_file: 'not an upload' }].each do |input|
+    [{}, { external_link: 'ftp://example.com' }, { external_link: [] }, { pdf_file: nil }, { pdf_file: 'not an upload' }].each do |input|
       it "rejects malformed input #{input.inspect}" do
         post "#{base_url}/estimate", params: input, headers: headers, as: :json
 
