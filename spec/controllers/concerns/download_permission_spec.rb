@@ -117,6 +117,7 @@ RSpec.describe 'Download permissions', type: :request do
       expect(response).to have_http_status(:forbidden)
     end
   end
+
   describe 'plan-managed customer exports' do
     let(:plan) { Plan.create!(name: 'Paid', slug: 'paid', price_monthly: 19, feature_keys: %w[captain_integration customer_data_export]) }
 
@@ -142,5 +143,4 @@ RSpec.describe 'Download permissions', type: :request do
       expect(response).to have_http_status(:forbidden)
     end
   end
-
 end

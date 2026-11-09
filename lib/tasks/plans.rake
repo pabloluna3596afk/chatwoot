@@ -93,9 +93,7 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
                                is_public: public_slugs.include?(attrs[:slug]),
                                coming_soon: coming_soon_slugs.include?(attrs[:slug])
                              ))
-      if plan.price_monthly.positive? && !plan.is_default_trial?
-        plan.feature_keys = (plan.feature_keys + ['customer_data_export']).uniq
-      end
+      plan.feature_keys = (plan.feature_keys + ['customer_data_export']).uniq if plan.price_monthly.positive? && !plan.is_default_trial?
       plan.save!
       puts "#{was_new ? 'Created' : 'Updated'}: #{plan.name} (#{plan.slug})"
     end

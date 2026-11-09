@@ -40,7 +40,7 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
       keys = matrix[plan.slug.downcase]
       next unless keys
 
-      keys = keys + ['customer_data_export'] if plan.price_monthly.positive? && !plan.is_default_trial?
+      keys += ['customer_data_export'] if plan.price_monthly.positive? && !plan.is_default_trial?
 
       puts "plan=#{plan.slug} feature_keys=#{plan.feature_keys.inspect} -> #{keys.inspect}"
       plan.update!(feature_keys: keys) unless dry_run

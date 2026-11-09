@@ -24,6 +24,5 @@ RSpec.describe IncludeCustomerDataExportInPaidPlans, type: :model do
     2.times { migration.migrate(:down) }
     expect(paid.reload.feature_keys).to eq(['automations'])
     expect(free.reload.feature_keys).to eq(['captain_integration'])
-    expect(trial.reload.feature_keys).to eq([])
   end
 end

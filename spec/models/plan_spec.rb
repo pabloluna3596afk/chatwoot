@@ -121,6 +121,7 @@ RSpec.describe Plan do
     plan.limit_values = { max_flows: '-1' }
     expect(plan).not_to be_valid
   end
+
   it 'classifies customer data export as a valid plan feature and keeps reports separate' do
     plan.feature_keys = ['customer_data_export']
     expect(plan).to be_valid
@@ -128,5 +129,4 @@ RSpec.describe Plan do
     expect(Plans::AccountFeatureSync::SYSTEM_FLAGS).not_to include('customer_data_export')
     expect(Plans::AccountFeatureSync::SYSTEM_FLAGS).to include('report_export')
   end
-
 end
