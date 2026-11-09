@@ -73,6 +73,7 @@ class Account < ApplicationRecord # rubocop:disable Metrics/ClassLength
   def enforce_mfa?
     ActiveModel::Type::Boolean.new.cast(enforce_mfa)
   end
+  include AccountExtraCredits
   include AccountCaptainAutoResolve
 
   RESOLVED_LABEL_KEYS = %w[resolved closed sold finished].freeze
@@ -306,7 +307,7 @@ class Account < ApplicationRecord # rubocop:disable Metrics/ClassLength
 
   def cleanup_closed_ai_usage_reservations(now)
     reservations = AiUsageReservation.joins(:account_plan_usage).where(account_plan_usages: { account_id: id })
-    reservations.where.not(account_plan_usages: { closed_at: nil }).delete_all
+    reservations.where(extra_allocations: {}).where.not(account_plan_usages: { closed_at: nil }).delete_all
     reservations.where(released_at: ...now - 30.days).delete_all
   end
 

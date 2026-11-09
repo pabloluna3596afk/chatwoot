@@ -208,9 +208,20 @@ module Llm::UsageContext
                              event_identity(model, context, details, response),
                              token_attributes(model, response, context[:audio_duration_seconds]),
                              units: context.fetch(:units, 1),
+                             extra_units: reservation_extra_units(context),
                              status: details[:status], error_class: details[:error]&.class&.name,
                              latency_ms: details[:latency_ms], created_at: Time.current
                            ))
+    end
+
+    def reservation_extra_units(context)
+      return 0 unless context[:reservation_id]
+
+      reservation = AiUsageReservation.joins(:account_plan_usage).find_by(
+        reservation_id: context[:reservation_id], bucket: context[:bucket],
+        account_plan_usages: { account_id: context[:account_id] }
+      )
+      reservation ? reservation.extra_allocations.values.sum : 0
     end
 
     def event_identity(model, context, details, response)
