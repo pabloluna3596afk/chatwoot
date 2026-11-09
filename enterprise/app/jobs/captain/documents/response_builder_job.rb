@@ -2,15 +2,40 @@ class Captain::Documents::ResponseBuilderJob < ApplicationJob
   queue_as :low
 
   def perform(document, options = {})
-    reset_previous_responses(document)
+    signature = source_signature(document)
+    return if document.metadata.to_h.dig('faq_generation', 'source_signature') == signature
 
+    document.update!(last_sync_error_code: nil) if document.last_sync_error_code == 'usage_quota_exceeded'
     faqs = generate_faqs(document, options)
-    create_responses_from_faqs(faqs, document)
+    return unless replace_generated_responses(document, faqs)
+
+    mark_completed(document, signature)
     # Only after success: a failed run is retried and still needs the uploaded file.
     delete_pdf_from_openai(document) if document.pdf_document? && document.openai_file_id.present?
+  rescue Llm::KnowledgeUsage::QuotaExceeded
+    document.update!(status: :in_progress, last_sync_error_code: 'usage_quota_exceeded')
   end
 
   private
+
+  def source_signature(document)
+    document.pdf_document? ? document.external_link : Digest::SHA256.hexdigest(document.content.to_s)
+  end
+
+  def mark_completed(document, signature)
+    progress = document.metadata.to_h.fetch('faq_generation', {})
+    document.update!(status: :available, last_sync_error_code: nil,
+                     metadata: document.metadata.to_h.merge('faq_generation' => progress.merge('source_signature' => signature)))
+  end
+
+  def replace_generated_responses(document, faqs)
+    return false if faqs.empty? && document.last_sync_error_code == 'usage_quota_exceeded'
+
+    reset_previous_responses(document)
+    capacity = [Llm::UnitCosts.fetch(:max_faqs_per_document) - document.responses.count, 0].max
+    create_responses_from_faqs(faqs.first(capacity), document)
+    document.last_sync_error_code != 'usage_quota_exceeded'
+  end
 
   def generate_faqs(document, options)
     if should_use_pagination?(document)
@@ -28,7 +53,13 @@ class Captain::Documents::ResponseBuilderJob < ApplicationJob
   end
 
   def generate_standard_faqs(document)
-    Captain::Llm::FaqGeneratorService.new(document: document).generate
+    progress = document.metadata.to_h.fetch('faq_generation', {})
+    signature = source_signature(document)
+    return progress.fetch('faqs') if progress['content_fingerprint'] == signature
+
+    faqs = Captain::Llm::FaqGeneratorService.new(document: document).generate
+    document.update!(metadata: document.metadata.to_h.merge('faq_generation' => { 'content_fingerprint' => signature, 'faqs' => faqs }))
+    faqs
   end
 
   def delete_pdf_from_openai(document)
@@ -49,13 +80,13 @@ class Captain::Documents::ResponseBuilderJob < ApplicationJob
   def store_paginated_metadata(document, service, faqs)
     document.update!(
       metadata: (document.metadata || {}).merge(
-        'faq_generation' => {
+        'faq_generation' => document.metadata.to_h.fetch('faq_generation', {}).merge(
           'method' => 'paginated',
           'pages_processed' => service.total_pages_processed,
           'iterations' => service.iterations_completed,
           'empty_result' => faqs.empty?,
           'timestamp' => Time.current.iso8601
-        }
+        )
       )
     )
   end

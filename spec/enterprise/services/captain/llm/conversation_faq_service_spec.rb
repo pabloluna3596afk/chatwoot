@@ -36,6 +36,23 @@ RSpec.describe Captain::Llm::ConversationFaqService do
         allow(embedding_service).to receive(:get_embedding).and_return(embedding_one, embedding_two)
       end
 
+      it 'charges one internal unit for the processed conversation including all generated suggestions' do
+        put_account_on_plan(conversation.account, captain_internal_calls: 1)
+
+        service.generate_suggestions
+
+        expect(conversation.account.reload.current_usage_period.internal_calls_consumed).to eq(1)
+        expect(conversation.account.current_usage_period.responses_consumed).to eq(0)
+        expect(AiUsageReservation.where(account_plan_usage: conversation.account.current_usage_period)).to be_empty
+      end
+
+      it 'skips the provider when the internal quota is exhausted' do
+        put_account_on_plan(conversation.account, captain_internal_calls: 0)
+        expect(mock_chat).not_to receive(:ask)
+
+        expect(service.generate_suggestions).to eq([])
+      end
+
       it 'uses the conversation FAQ generation feature model' do
         expect(RubyLLM).to receive(:chat).with(
           model: Llm::Models.default_model_for('conversation_faq_generation'), protocol: :responses

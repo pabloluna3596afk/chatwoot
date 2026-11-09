@@ -15,7 +15,9 @@ class Captain::Onboarding::WebsiteAnalyzerService < Llm::BaseAiService
     fetch_website_content
     return error_response('Failed to fetch website content') unless @website_content
 
-    extract_business_info
+    Llm::KnowledgeUsage.with_reserved(account: @account, feature: 'website_analyzer', units: Llm::UnitCosts.fetch(:short_call)) do
+      extract_business_info
+    end
   rescue StandardError => e
     Rails.logger.error "[Captain Onboarding] Website analysis error: #{e.message}"
     error_response(e.message)

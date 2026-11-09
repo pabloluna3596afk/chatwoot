@@ -27,12 +27,11 @@ RSpec.describe Captain::UsageBreakdownBuilder do
 
     expect(result[:buckets]['internal']).to contain_exactly(
       include(feature: :rewrite_message, name: 'Rewrite messages', operations: 2, units: 5,
-              last_used_at: be_within(1.second).of(latest_rewrite_event_at))
-    )
-    expect(result[:buckets]['captain_responses']).to contain_exactly(
+              last_used_at: be_within(1.second).of(latest_rewrite_event_at)),
       include(feature: :document_faq_generation, operations: 1, units: 1,
               last_used_at: be_within(1.second).of(latest_faq_event_at))
     )
+    expect(result[:buckets]['captain_responses']).to be_blank
   end
 
   it 'assigns every configured feature to exactly one friendly group' do

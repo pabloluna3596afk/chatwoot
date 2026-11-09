@@ -11,7 +11,6 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
   BYTE_LIMIT = 25_000_000
   ESTIMATED_BYTES_PER_SECOND = 4_000.0
   MAX_ESTIMATED_DURATION_SECONDS = BYTE_LIMIT / ESTIMATED_BYTES_PER_SECOND
-  MAX_ESTIMATED_DURATION_UNITS = (MAX_ESTIMATED_DURATION_SECONDS / 60).ceil
 
   attr_reader :blob, :account, :transcription_model
 
@@ -19,7 +18,7 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
   USAGE_FEATURE = 'audio_transcription'.freeze
 
   def self.units_for(attachment)
-    (duration_seconds(attachment) / 60.0).ceil.clamp(1, MAX_ESTIMATED_DURATION_UNITS)
+    Llm::UnitCosts.audio_units(duration_seconds(attachment))
   end
 
   def self.duration_seconds(attachment)
@@ -59,12 +58,12 @@ class Llm::SpeechToTextService < Llm::LegacyBaseOpenAiService
     blob.present? && blob.byte_size > BYTE_LIMIT
   end
 
-  def initialize(blob:, account:, units: 1, context: {})
+  def initialize(blob:, account:, units: nil, context: {})
     super()
     @blob = blob
     @account = account
-    @units = units
-    @audio_duration_seconds = context[:audio_duration_seconds]
+    @audio_duration_seconds = context[:audio_duration_seconds] || self.class.estimated_duration_seconds_for_blob(blob)
+    @units = units || Llm::UnitCosts.audio_units(@audio_duration_seconds)
     @conversation_id = context[:conversation_id]
     @message_id = context[:message_id]
     @transcription_model = Llm::FeatureRouter.resolve(feature: 'audio_transcription', account: account)[:model]

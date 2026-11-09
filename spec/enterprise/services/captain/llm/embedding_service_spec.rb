@@ -47,7 +47,7 @@ RSpec.describe Captain::Llm::EmbeddingService, type: :service do
 
       usage_event = AiUsageEvent.last
       expect(usage_event).to have_attributes(
-        account_id: account.id, feature: 'embedding', bucket: 'internal', input_tokens: 17
+        account_id: account.id, feature: 'embedding', bucket: 'internal', input_tokens: 17, units: 0
       )
     end
   end

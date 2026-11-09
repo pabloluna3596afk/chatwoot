@@ -15,19 +15,11 @@ module Llm::UsageFeatureContract
     'captain.conversation_completion' => 'Background completion records usage without a user quota reservation.',
     'captain_assistant_overview_summary' => 'Background overview summaries record usage without a quota reservation.',
     'captain_overview_summary' => 'Background overview summaries record usage without a quota reservation.',
-    'conversation_faq' => 'FAQ suggestion generation records usage without a quota reservation.',
-    'conversation_faq_match' => 'FAQ matching records usage without a quota reservation.',
-    'document_faq_generation' => 'Document FAQ generation records usage without a quota reservation.',
     'embedding' => 'Embeddings are measured internally and do not consume a response reservation.',
-    'faq_generation' => 'Legacy FAQ generation records usage without a quota reservation.',
-    'faq_generator' => 'FAQ generation records usage without a quota reservation.',
     'help_center_article_generation' => 'Article generation records usage without a quota reservation.',
     'help_center_curation' => 'Help center curation records usage without a quota reservation.',
     'help_center_query_translation' => 'Query translation records usage without a quota reservation.',
     'onboarding_content_generation' => 'Onboarding content records usage without a quota reservation.',
-    'paginated_faq_generation' => 'Paginated FAQ generation records usage without a quota reservation.',
-    'translate_query' => 'Legacy query translation records usage without a quota reservation.',
-    'website_analyzer' => 'Website analysis records usage without a quota reservation.',
     'widget_tagline' => 'Widget tagline generation records usage without a quota reservation.'
   }.freeze
 

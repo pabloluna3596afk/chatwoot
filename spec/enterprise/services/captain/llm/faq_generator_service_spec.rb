@@ -77,9 +77,9 @@ RSpec.describe Captain::Llm::FaqGeneratorService do
         allow(Rails.logger).to receive(:error)
       end
 
-      it 'returns empty array and logs the error' do
+      it 'logs and raises so the job can retry' do
         expect(Rails.logger).to receive(:error).with('LLM API Error: API Error')
-        expect(service.generate).to eq([])
+        expect { service.generate }.to raise_error(RubyLLM::Error)
       end
     end
 
@@ -118,6 +118,59 @@ RSpec.describe Captain::Llm::FaqGeneratorService do
       it 'returns empty array via KeyError rescue' do
         expect(service.generate).to eq([])
       end
+    end
+  end
+
+  describe 'internal knowledge quota' do
+    it 'charges by each started 50000 characters with a minimum of two units' do
+      put_account_on_plan(document.account, captain_internal_calls: 20)
+      [1, 50_000, 50_001].each do |characters|
+        document.update!(content: 'a' * characters)
+        described_class.new(document: document).generate
+      end
+
+      expect(document.account.reload.current_usage_period.internal_calls_consumed).to eq(8)
+      expect(document.account.current_usage_period.responses_consumed).to eq(0)
+    end
+
+    it 'does not call the provider when the text estimate exceeds the remaining quota' do
+      put_account_on_plan(document.account, captain_internal_calls: 3)
+      document.update!(content: 'a' * 50_001)
+      expect(mock_chat).not_to receive(:ask)
+
+      expect { described_class.new(document: document).generate }.to raise_error(Llm::KnowledgeUsage::QuotaExceeded)
+      expect(document.account.reload.current_usage_period.internal_calls_consumed).to eq(0)
+    end
+
+    it 'releases the text reservation after a provider error' do
+      put_account_on_plan(document.account, captain_internal_calls: 2)
+      allow(mock_chat).to receive(:ask).and_raise(RubyLLM::Error.new('API Error'))
+
+      expect { service.generate }.to raise_error(RubyLLM::Error)
+      expect(document.account.reload.current_usage_period.internal_calls_consumed).to eq(0)
+      expect(AiUsageReservation.where(account_plan_usage: document.account.current_usage_period).where.not(released_at: nil).count).to eq(1)
+    end
+
+    it 'charges changed URL content again, but skips an unchanged fingerprint and a completed job retry' do
+      put_account_on_plan(document.account, captain_internal_calls: 10)
+      document.update!(status: :available)
+      allow(Captain::Llm::EmbeddingService).to receive(:new).and_return(
+        instance_double(Captain::Llm::EmbeddingService, get_embedding: Array.new(1536, 0.1))
+      )
+      Captain::Documents::ResponseBuilderJob.perform_now(document)
+      fetcher = instance_double(Captain::Documents::SinglePageFetcher)
+      allow(Captain::Documents::SinglePageFetcher).to receive(:new).and_return(fetcher)
+      result = Captain::Documents::SinglePageFetcher::Result.new(success: true, title: 'Updated', content: 'Changed content')
+      allow(fetcher).to receive(:fetch).and_return(result)
+      sync = Captain::Documents::SyncService.new(document)
+
+      sync.perform
+      Captain::Documents::ResponseBuilderJob.perform_now(document)
+      expect(sync.perform).to eq(:unchanged)
+      Captain::Documents::ResponseBuilderJob.perform_now(document)
+
+      expect(document.account.reload.current_usage_period.internal_calls_consumed).to eq(4)
+      expect(mock_chat).to have_received(:ask).twice
     end
   end
 end

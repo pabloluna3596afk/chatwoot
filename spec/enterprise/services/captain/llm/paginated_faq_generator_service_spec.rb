@@ -107,14 +107,11 @@ RSpec.describe Captain::Llm::PaginatedFaqGeneratorService do
         expect(faqs).to be_empty
       end
 
-      it 'respects max iterations limit' do
+      it 'respects the configured page limit' do
         allow(openai_client).to receive(:chat).and_return(faq_response)
 
-        # Force max iterations
-        service.instance_variable_set(:@iterations_completed, 19)
-
         service.generate
-        expect(service.iterations_completed).to eq(20)
+        expect(service.total_pages_processed).to eq(Llm::UnitCosts.fetch(:pdf, :max_pages))
       end
     end
   end
@@ -162,7 +159,7 @@ RSpec.describe Captain::Llm::PaginatedFaqGeneratorService do
 
   describe '#should_continue_processing?' do
     it 'stops at max iterations' do
-      service.instance_variable_set(:@iterations_completed, 20)
+      service.instance_variable_set(:@total_pages_processed, Llm::UnitCosts.fetch(:pdf, :max_pages))
       expect(service.should_continue_processing?(faqs: ['faq'], has_content: true)).to be false
     end
 

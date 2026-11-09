@@ -1,3 +1,10 @@
+### B-NEW-256 — Cobrar la generación de conocimiento y completar la medición de audio (2026-11-08)
+
+- **Archivos:** `config/ai_units.yml`, `app/services/llm/{unit_costs,knowledge_usage,usage_feature_buckets}.rb`, `AiUsageEvent`, generadores de FAQs de documentos y conversaciones, `ResponseBuilderJob`, embeddings, análisis web, traducción de consultas y transcripción de audio.
+- **Problema:** generar conocimiento solo registraba uso y no reservaba acciones; borrar documentos permitía repetir sin descontar. Las grabaciones de llamadas usaban una unidad predeterminada y podían omitir la duración en el evento.
+- **Arreglo:** reservar `internal` antes de llamar al proveedor; finalizar o liberar con el mecanismo existente. PDF: dos unidades por bloque iniciado de diez páginas; texto: dos por 50.000 caracteres iniciados; conversación: una con comparaciones incluidas; audio: tres por minuto iniciado. Embeddings incluidos con eventos de cero unidades. Tabla única, límite de 200 páginas y 500 FAQs por documento. Guardar avance, conservar FAQs y dejar pendiente con `usage_quota_exceeded` cuando se agota el cupo; los reintentos usan el avance guardado. Una huella idéntica de URL no regenera. Sin migraciones.
+- **Cómo probar:** ejecutar `spec/enterprise/integration/knowledge_billing_spec.rb`, los servicios de FAQ, embeddings y audio, el inventario de buckets y la certificación de IA. Verificar PDF de un bloque, once páginas con cupo parcial, error y reintento del proveedor, borrar y subir, URL cambiada e idéntica, y audio de 61 segundos (seis unidades). Los proveedores están simulados: ninguna llamada real a OpenAI.
+
 ### B-NEW-255 — Mantener el esfuerzo de razonamiento según el protocolo (2026-11-07)
 
 - **Archivos:** `lib/llm/config.rb`, `lib/captain/responses_config.rb`, `enterprise/app/helpers/captain/chat_helper.rb` y specs de configuración/solicitudes RubyLLM.

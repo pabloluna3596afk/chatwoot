@@ -10,16 +10,17 @@ class Captain::Llm::FaqGeneratorService < Llm::BaseAiService
   end
 
   def generate
-    response = instrument_llm_call(instrumentation_params) do
-      json_chat
-        .with_instructions(system_prompt)
-        .ask(@content)
+    Llm::KnowledgeUsage.with_reserved(account: @document.account, feature: 'faq_generator', units: Llm::UnitCosts.text_units(@content.length)) do
+      response = instrument_llm_call(instrumentation_params) do
+        json_chat
+          .with_instructions(system_prompt)
+          .ask(@content)
+      end
+      parse_response(response.content).first(Llm::UnitCosts.fetch(:max_faqs_per_document))
     end
-
-    parse_response(response.content)
   rescue RubyLLM::Error => e
     Rails.logger.error "LLM API Error: #{e.message}"
-    []
+    raise
   end
 
   private

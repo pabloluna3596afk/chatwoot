@@ -9,7 +9,9 @@ class Captain::Llm::TranslateQueryService < Captain::BaseTaskService
       { role: 'user', content: query }
     ]
 
-    response = make_api_call(feature: 'help_center_query_translation', messages: messages)
+    response = Llm::KnowledgeUsage.with_reserved(account: account, feature: 'translate_query', units: Llm::UnitCosts.fetch(:short_call)) do
+      make_api_call(feature: 'help_center_query_translation', messages: messages)
+    end
     return query if response[:error]
 
     response[:message].strip
@@ -28,10 +30,6 @@ class Captain::Llm::TranslateQueryService < Captain::BaseTaskService
   # It should always use the installation key.
   def llm_credential
     @llm_credential ||= system_llm_credential
-  end
-
-  def counts_toward_usage?
-    false
   end
 
   def query_in_target_language?(query)
