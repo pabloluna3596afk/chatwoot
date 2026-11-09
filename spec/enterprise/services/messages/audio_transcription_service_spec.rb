@@ -41,7 +41,7 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
       expect(account).not_to receive(:usage_limits)
 
       preview = service.quota_preview
-      expect(preview).to eq(units: 1, available: manual_available, reason: nil)
+      expect(preview).to eq(units: 3, available: manual_available, reason: nil)
     end
 
     it 'allows an account without a plan without loading usage limits' do
@@ -51,7 +51,7 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
       expect(account).not_to receive(:usage_limits)
 
       preview = service.quota_preview
-      expect(preview).to eq(units: 1, available: manual_available, reason: nil)
+      expect(preview).to eq(units: 3, available: manual_available, reason: nil)
     end
 
     it 'allows an account with an internal bag override without loading usage limits' do
@@ -65,7 +65,7 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
       expect(account).not_to receive(:usage_limits)
 
       preview = service.quota_preview
-      expect(preview).to eq(units: 1, available: manual_available, reason: nil)
+      expect(preview).to eq(units: 3, available: manual_available, reason: nil)
     end
 
     it 'marks a plan account unavailable when its plan has no internal bag' do
@@ -78,7 +78,7 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
       expect(account).not_to receive(:usage_limits)
 
       preview = service.quota_preview
-      expect(preview).to eq(units: 1, available: manual_available, reason: 'plan_unavailable')
+      expect(preview).to eq(units: 3, available: manual_available, reason: 'plan_unavailable')
     end
 
     it 'allows an unlimited plan without loading usage limits' do
@@ -86,13 +86,13 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
       allow(account).to receive(:plan).and_return(unlimited_plan)
       expect(account).not_to receive(:usage_limits)
 
-      expect(service.quota_preview).to eq(units: 1, available: true, reason: nil)
+      expect(service.quota_preview).to eq(units: 3, available: true, reason: nil)
     end
 
     it 'marks the preview unavailable when the account administrator disabled transcription' do
       account.update!(audio_transcriptions: false)
 
-      expect(service.quota_preview).to eq(units: 1, available: false, reason: 'account_disabled')
+      expect(service.quota_preview).to eq(units: 3, available: false, reason: 'account_disabled')
     end
   end
 
@@ -195,7 +195,7 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
         expect(Llm::SpeechToTextService).to receive(:new).with(
           blob: attachment.file.blob,
           account: account,
-          units: 5,
+          units: 15,
           context: {
             audio_duration_seconds: 300.0,
             conversation_id: conversation.id,
@@ -232,7 +232,7 @@ RSpec.describe Messages::AudioTranscriptionService, type: :service do
 
         expect(service.perform(manual: true)).to include(
           error: 'quota_insufficient',
-          quota: { units: 5, remaining: 4, reason: 'quota_insufficient' }
+          quota: { units: 15, remaining: 4, reason: 'quota_insufficient' }
         )
       end
     end
