@@ -1687,7 +1687,8 @@
         "VIEW_DETAILS": "Ver detalles",
         "SYNC_NOW": "Actualizar ahora",
         "RETRY_SYNC": "Reintentar actualización",
-        "DELETE_DOCUMENT": "Eliminar documento"
+        "DELETE_DOCUMENT": "Eliminar documento",
+        "RESUME": "Continuar"
       },
       "EMPTY_STATE": {
         "TITLE": "No hay documentos disponibles",
@@ -1698,6 +1699,18 @@
           "TITLE": "Documentos de Captain",
           "NOTE": "Un documento en Captain es una fuente de conocimiento para el asistente. Al conectar tu centro de ayuda o tus guías, Captain puede analizar el contenido y dar respuestas precisas a las consultas de tus clientes."
         }
+      },
+      "ESTIMATE": {
+        "CALCULATING": "Calculando…",
+        "PDF": "{pages} páginas · cuesta ~{units} acciones internas · te quedan {remaining}",
+        "URL": "Cuesta al menos {units} acciones internas · te quedan {remaining}",
+        "UNLIMITED": "ilimitadas",
+        "INSUFFICIENT": "No alcanza. Espera al próximo mes o amplía tu plan."
+      },
+      "RESUME": {
+        "INCOMPLETE": "Incompleto · sin acciones internas",
+        "SUCCESS_MESSAGE": "Continuando…",
+        "ERROR_MESSAGE": "No se pudo continuar el procesamiento del documento."
       }
     },
     "CUSTOM_TOOLS": {

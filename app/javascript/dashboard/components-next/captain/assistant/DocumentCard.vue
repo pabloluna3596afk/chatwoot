@@ -68,6 +68,10 @@ const props = defineProps({
     type: String,
     default: null,
   },
+  quotaExceeded: {
+    type: Boolean,
+    default: false,
+  },
   syncInProgress: {
     type: Boolean,
     default: false,
@@ -142,6 +146,14 @@ const menuItems = computed(() => {
   }
 
   if (canManage.value) {
+    if (props.quotaExceeded) {
+      allOptions.push({
+        label: t('CAPTAIN.DOCUMENTS.OPTIONS.RESUME'),
+        value: 'resume',
+        action: 'resume',
+        icon: 'i-lucide-play',
+      });
+    }
     allOptions.push({
       label: t('CAPTAIN.DOCUMENTS.OPTIONS.DELETE_DOCUMENT'),
       value: 'delete',
@@ -261,8 +273,17 @@ const handleRetry = () => {
       <span class="text-sm shrink-0 text-n-slate-11">
         {{ responsesCountLabel }}
       </span>
+      <span
+        v-if="quotaExceeded"
+        class="flex gap-1.5 items-center text-sm truncate text-n-amber-11"
+      >
+        <Icon icon="i-lucide-circle-alert" class="shrink-0 size-3.5" />
+        <span class="truncate">{{
+          t('CAPTAIN.DOCUMENTS.RESUME.INCOMPLETE')
+        }}</span>
+      </span>
       <DocumentSyncStatus
-        v-if="showSyncStatus"
+        v-else-if="showSyncStatus"
         :status="syncStatus"
         :last-synced-at="lastSyncedAt"
         :error-code="lastSyncErrorCode"

@@ -100,6 +100,17 @@ RSpec.describe 'Captain document usage', type: :request do
       end
     end
 
+    context 'with a zero-page PDF' do
+      let(:page_count) { 0 }
+
+      it 'rejects a document with no pages' do
+        post "#{base_url}/estimate", params: { pdf_file: pdf }, headers: headers
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body['error']).to eq(I18n.t('captain.documents.invalid_pdf'))
+      end
+    end
+
     [{}, { external_link: 'ftp://example.com' }, { external_link: [] }, { pdf_file: nil }, { pdf_file: 'not an upload' }].each do |input|
       it "rejects malformed input #{input.inspect}" do
         post "#{base_url}/estimate", params: input, headers: headers, as: :json
@@ -128,6 +139,16 @@ RSpec.describe 'Captain document usage', type: :request do
   end
 
   describe 'POST create' do
+    it 'does not ingest a URL when the minimum estimate exceeds quota' do
+      put_account_on_plan(account, captain_internal_calls: 1)
+
+      expect do
+        post base_url, params: { document: { assistant_id: assistant.id, external_link: 'https://example.com/help' } }, headers: headers
+      end.not_to change(Captain::Document, :count)
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(Captain::Documents::CrawlJob).not_to have_been_enqueued
+    end
+
     it 'does not persist or enqueue a PDF when the estimate exceeds quota' do
       put_account_on_plan(account, captain_internal_calls: 1)
 
@@ -176,6 +197,13 @@ RSpec.describe 'Captain document usage', type: :request do
     end
 
     it 'supports accounts without a plan' do
+      expect { post resume_url, headers: headers }.to have_enqueued_job(Captain::Documents::ResponseBuilderJob)
+      expect(response).to have_http_status(:accepted)
+    end
+
+    it 'supports a plan with unlimited internal actions' do
+      put_account_on_plan(account, captain_internal_calls: nil)
+
       expect { post resume_url, headers: headers }.to have_enqueued_job(Captain::Documents::ResponseBuilderJob)
       expect(response).to have_http_status(:accepted)
     end

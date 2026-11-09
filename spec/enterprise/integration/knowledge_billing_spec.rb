@@ -83,7 +83,7 @@ RSpec.describe 'Knowledge billing', type: :request do
     expect(response).to have_http_status(:ok)
     payload = response.parsed_body.fetch('payload').find { |item| item['id'] == document.id }
     expect(payload).to include('status' => 'in_progress', 'last_sync_error_code' => 'usage_quota_exceeded',
-                              'quota_exceeded' => true, 'responses_count' => 0)
+                               'quota_exceeded' => true, 'responses_count' => 0)
   end
 
   it 'keeps the first chunk FAQs when quota runs out before page eleven' do

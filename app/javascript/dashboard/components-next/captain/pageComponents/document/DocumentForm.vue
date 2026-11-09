@@ -1,9 +1,9 @@
 <script setup>
-import { reactive, computed, ref, nextTick } from 'vue';
+import { reactive, computed, ref, nextTick, watch, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useVuelidate } from '@vuelidate/core';
 import { requiredIf, url } from '@vuelidate/validators';
-import { useMapGetter } from 'dashboard/composables/store';
+import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -22,6 +22,10 @@ const emit = defineEmits(['submit', 'cancel']);
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const { t } = useI18n();
+const store = useStore();
+const estimate = shallowRef(null);
+const estimating = shallowRef(false);
+const insufficient = computed(() => estimate.value?.sufficient === false);
 
 const formState = {
   uiFlags: useMapGetter('captainDocuments/getUIFlags'),
@@ -36,6 +40,19 @@ const initialState = {
 
 const state = reactive({ ...initialState });
 const fileInputRef = ref(null);
+const estimateText = computed(() => {
+  if (estimating.value) return t('CAPTAIN.DOCUMENTS.ESTIMATE.CALCULATING');
+  if (!estimate.value) return '';
+
+  const values = {
+    ...estimate.value,
+    remaining:
+      estimate.value.remaining ?? t('CAPTAIN.DOCUMENTS.ESTIMATE.UNLIMITED'),
+  };
+  return state.documentType === 'pdf'
+    ? t('CAPTAIN.DOCUMENTS.ESTIMATE.PDF', values)
+    : t('CAPTAIN.DOCUMENTS.ESTIMATE.URL', values);
+});
 
 const validationRules = {
   url: {
@@ -55,6 +72,35 @@ const documentTypeOptions = [
 ];
 
 const v$ = useVuelidate(validationRules, state);
+
+watch(
+  () => [state.documentType, state.url, state.pdfFile],
+  async (_, __, onCleanup) => {
+    let current = true;
+    onCleanup(() => {
+      current = false;
+    });
+    estimate.value = null;
+    estimating.value = false;
+    const isPdf = state.documentType === 'pdf';
+    if (isPdf ? !state.pdfFile : v$.value.url.$invalid) return;
+
+    const data = new FormData();
+    data.append(
+      isPdf ? 'pdf_file' : 'external_link',
+      isPdf ? state.pdfFile : state.url
+    );
+    estimating.value = true;
+    try {
+      const result = await store.dispatch('captainDocuments/estimate', data);
+      if (current) estimate.value = result;
+    } catch {
+      // Estimation is advisory; creation still validates quota on the server.
+    } finally {
+      if (current) estimating.value = false;
+    }
+  }
+);
 
 const isLoading = computed(() => formState.uiFlags.value.creatingItem);
 
@@ -121,6 +167,7 @@ const prepareDocumentDetails = () => {
 };
 
 const handleSubmit = async () => {
+  if (isLoading.value || estimating.value || insufficient.value) return;
   const isFormValid = await v$.value.$validate();
   if (!isFormValid) {
     return;
@@ -209,6 +256,18 @@ const handleSubmit = async () => {
       </p>
     </div>
 
+    <div
+      v-if="estimateText"
+      aria-live="polite"
+      class="text-xs"
+      :class="insufficient ? 'text-n-amber-11' : 'text-n-slate-11'"
+    >
+      <p class="m-0">{{ estimateText }}</p>
+      <p v-if="insufficient" class="m-0">
+        {{ t('CAPTAIN.DOCUMENTS.ESTIMATE.INSUFFICIENT') }}
+      </p>
+    </div>
+
     <Input
       v-model="state.name"
       :label="t('CAPTAIN.DOCUMENTS.FORM.NAME.LABEL')"
@@ -229,7 +288,7 @@ const handleSubmit = async () => {
         :label="t('CAPTAIN.FORM.CREATE')"
         class="w-full"
         :is-loading="isLoading"
-        :disabled="isLoading"
+        :disabled="isLoading || estimating || insufficient"
       />
     </div>
   </form>

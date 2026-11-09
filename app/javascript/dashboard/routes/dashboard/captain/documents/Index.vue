@@ -165,7 +165,11 @@ const debouncedSearch = debounce(() => {
 const syncPollStartedAt = ref(null);
 
 const hasDocumentsSyncing = computed(() =>
-  (documents.value || []).some(doc => doc.sync_in_progress)
+  (documents.value || []).some(
+    doc =>
+      doc.sync_in_progress ||
+      (doc.status === 'in_progress' && !doc.quota_exceeded)
+  )
 );
 
 const hasSyncingDocuments = computed(() => hasDocumentsSyncing.value);
@@ -225,6 +229,22 @@ const handleSync = async id => {
   }
 };
 
+const resumingIds = new Set();
+const handleResume = async id => {
+  if (resumingIds.has(id)) return;
+  resumingIds.add(id);
+  try {
+    await store.dispatch('captainDocuments/resume', id);
+    useAlert(t('CAPTAIN.DOCUMENTS.RESUME.SUCCESS_MESSAGE'));
+    await refreshDocumentsPage();
+    scheduleSyncPoll({ extendWindow: true });
+  } catch (error) {
+    useAlert(error.message || t('CAPTAIN.DOCUMENTS.RESUME.ERROR_MESSAGE'));
+  } finally {
+    resumingIds.delete(id);
+  }
+};
+
 const handleAction = ({ action, id }) => {
   selectedDocument.value = documents.value.find(
     captainDocument => id === captainDocument.id
@@ -237,6 +257,8 @@ const handleAction = ({ action, id }) => {
       handleShowDocumentDetails();
     } else if (action === 'sync') {
       handleSync(id);
+    } else if (action === 'resume') {
+      handleResume(id);
     }
   });
 };
@@ -413,6 +435,7 @@ onUnmounted(() => {
           :sync-status="doc.sync_status"
           :last-synced-at="doc.last_synced_at"
           :last-sync-error-code="doc.last_sync_error_code"
+          :quota-exceeded="doc.quota_exceeded"
           :sync-in-progress="doc.sync_in_progress"
           :sync-stale-after-hours="syncIntervalHours"
           :responses-count="doc.responses_count"

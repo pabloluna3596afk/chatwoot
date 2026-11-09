@@ -23,6 +23,14 @@ class CaptainDocument extends ApiClient {
     return axios.post(`${this.url}/${id}/sync`);
   }
 
+  estimate(data) {
+    return axios.post(`${this.url}/estimate`, data);
+  }
+
+  resume(id) {
+    return axios.post(`${this.url}/${id}/resume`);
+  }
+
   getDrilldown({ documentId, page, signal }) {
     const requestConfig = { params: { page } };
     if (signal) requestConfig.signal = signal;

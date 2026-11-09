@@ -1,3 +1,10 @@
+### B-NEW-257 — Mostrar el costo del conocimiento y continuar documentos sin cupo (2026-11-09)
+
+- **Archivos:** `Captain::Documents::UsageEstimate`, controlador/policy/rutas/serializador de documentos, cliente/store de Captain, `DocumentForm`, `DocumentCard`, índice de documentos y textos en inglés/español de `integrations.json`.
+- **Problema:** al agotarse las acciones internas, el documento quedaba en proceso sin explicación ni una acción para continuar; subir un PDF no mostraba su costo previo.
+- **Arreglo:** estimar páginas con `pdf-reader` sin proveedor ni reservas, aplicar la tabla única de unidades y comprobar cupo al crear. Exponer `quota_exceeded`, mostrar advertencia y permitir a administradores continuar desde el checkpoint cuando alcance para el siguiente trozo. Bloquear el documento al encolar evita duplicar trabajos por doble clic. Sin migraciones.
+- **Cómo probar:** requests `document_usage_spec.rb`, integración `knowledge_billing_spec.rb` y Vitest de formulario, tarjeta, página y store. Cubrir PDF vacío/corrupto/grande, 1/10/11/201 páginas, cupo exacto/insuficiente/ilimitado, permisos, documento ajeno y doble clic. Usar el preview local con datos de demostración para aprobar la apariencia en claro/oscuro y móvil; sin llamadas reales a OpenAI.
+
 ### B-NEW-256 — Cobrar la generación de conocimiento y completar la medición de audio (2026-11-08)
 
 - **Archivos:** `config/ai_units.yml`, `app/services/llm/{unit_costs,knowledge_usage,usage_feature_buckets}.rb`, `AiUsageEvent`, generadores de FAQs de documentos y conversaciones, `ResponseBuilderJob`, embeddings, análisis web, traducción de consultas y transcripción de audio.
