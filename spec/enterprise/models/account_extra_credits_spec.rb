@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe Account, 'extra AI credits' do
+RSpec.describe Account do
   let(:account) { create(:account) }
   let(:reference) { SecureRandom.uuid }
   let(:balance) do

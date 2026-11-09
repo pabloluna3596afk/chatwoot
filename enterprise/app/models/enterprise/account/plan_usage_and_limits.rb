@@ -181,11 +181,11 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
     cleanup_ai_usage_reservations
     reservation = AiUsageReservation.joins(:account_plan_usage)
                                     .find_by(reservation_id: reservation_id, account_plan_usages: { account_id: id })
-    return reservation.bucket == bucket.to_s && reservation.released_at.nil? && reservation.units == units if reservation
+    return reservation.matches?(bucket, units) if reservation
 
     usage = current_usage_period
     limit, consumed = ai_usage_reservation_limit(bucket, usage)
-    plan_units = limit ? [units, [limit - consumed, 0].max].min : units
+    plan_units = limit ? (limit - consumed).clamp(0, units) : units
     extra_units = units - plan_units
     allocations = reserve_extra_units!(bucket, extra_units)
     return false unless allocations

@@ -26,7 +26,7 @@ class CreateExtraPacksAndBalances < ActiveRecord::Migration[7.0]
 
   def create_account_extra_balances
     create_table :account_extra_balances do |t|
-      t.references :account, null: false, foreign_key: true
+      t.references :account, null: false, foreign_key: { on_delete: :cascade }
       t.string :bucket, null: false
       t.integer :units_total, null: false
       t.integer :units_remaining, null: false

@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe Account, 'concurrent extra credit reservations' do
+RSpec.describe Account do
   self.use_transactional_tests = false
 
   let!(:account) { create(:account) }
@@ -26,7 +26,7 @@ RSpec.describe Account, 'concurrent extra credit reservations' do
         ActiveRecord::Base.connection_pool.with_connection do
           ready << true
           start.pop
-          Account.find(account.id).reserve_captain_ai_usage!(bucket: :internal)
+          described_class.find(account.id).reserve_captain_ai_usage!(bucket: :internal)
         end
       end
     end
