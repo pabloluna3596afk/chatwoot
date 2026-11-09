@@ -3,16 +3,16 @@ require 'pdf/reader'
 class Captain::Documents::UsageEstimate
   def self.pdf_pages(file)
     unless file.is_a?(ActionDispatch::Http::UploadedFile) && file.content_type == 'application/pdf'
-      raise CustomExceptions::Pdf::ValidationError, I18n.t('captain.documents.pdf_format_error')
+      raise CustomExceptions::Pdf::EstimateError, I18n.t('captain.documents.pdf_format_error')
     end
-    raise CustomExceptions::Pdf::ValidationError, I18n.t('captain.documents.pdf_size_error') if file.size > 10.megabytes
+    raise CustomExceptions::Pdf::EstimateError, I18n.t('captain.documents.pdf_size_error') if file.size > 10.megabytes
 
     pages = PDF::Reader.new(file.tempfile).page_count
-    raise CustomExceptions::Pdf::ValidationError, I18n.t('captain.documents.invalid_pdf') unless pages.positive?
+    raise CustomExceptions::Pdf::EstimateError, I18n.t('captain.documents.invalid_pdf') unless pages.positive?
 
     pages
   rescue PDF::Reader::MalformedPDFError, PDF::Reader::UnsupportedFeatureError
-    raise CustomExceptions::Pdf::ValidationError, I18n.t('captain.documents.invalid_pdf')
+    raise CustomExceptions::Pdf::EstimateError, I18n.t('captain.documents.invalid_pdf')
   end
 
   def self.for_upload(account:, pdf_file: nil)

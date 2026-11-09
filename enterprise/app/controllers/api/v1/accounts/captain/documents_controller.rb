@@ -28,7 +28,7 @@ class Api::V1::Accounts::Captain::DocumentsController < Api::V1::Accounts::BaseC
     return render_could_not_create_error(I18n.t('captain.documents.pdf_format_error')) if input.key?(:pdf_file) && input[:pdf_file].nil?
 
     render json: Captain::Documents::UsageEstimate.for_upload(account: Current.account, pdf_file: input[:pdf_file])
-  rescue CustomExceptions::Pdf::ValidationError => e
+  rescue CustomExceptions::Pdf::EstimateError => e
     render_could_not_create_error(e.message)
   end
 
@@ -58,7 +58,7 @@ class Api::V1::Accounts::Captain::DocumentsController < Api::V1::Accounts::BaseC
     ensure_upload_quota!
     @document = @assistant.documents.build(document_params)
     @document.save!
-  rescue Captain::Document::LimitExceededError, CustomExceptions::Pdf::ValidationError => e
+  rescue Captain::Document::LimitExceededError, CustomExceptions::Pdf::EstimateError => e
     render_could_not_create_error(e.message)
   rescue ActiveRecord::RecordInvalid => e
     render_could_not_create_error(e.record.errors.full_messages.join(', '))
