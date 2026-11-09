@@ -90,7 +90,7 @@ es:
         too_large: devolvió una respuesta que supera el límite de tamaño de metadatos SAML
         not_metadata: no devolvió metadatos válidos de un proveedor de identidad SAML
     downloads:
-      disabled: Las descargas están deshabilitadas para esta cuenta por el administrador del sistema.
+      disabled: La descarga de datos está desactivada para esta cuenta. Pide al administrador de la plataforma que la habilite.
     account:
       not_authorized: No está autorizado a acceder a esta cuenta
       email_limit_exceeded: Se ha alcanzado el límite diario de correos electrónicos de esta cuenta
