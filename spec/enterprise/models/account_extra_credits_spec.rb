@@ -51,6 +51,29 @@ RSpec.describe Account do
     expect(balance.reload.units_remaining).to eq(0)
   end
 
+  it 'rolls back extra debits and receipts if a later write fails' do
+    account.plan.update!(captain_internal_calls: 2)
+    balance
+    usage = account.current_usage_period
+    allow(account).to receive(:current_usage_period).and_return(usage)
+    allow(usage).to receive(:reserve_ai_call!).and_raise('counter write failed')
+    expect do
+      account.reserve_captain_ai_usage!(bucket: :internal, reservation_id: reference, units: 3)
+    end.to raise_error(RuntimeError, 'counter write failed')
+    expect(balance.reload.units_remaining).to eq(100)
+    expect(AiUsageReservation.find_by(reservation_id: reference)).to be_nil
+    expect(usage.reload.internal_calls_consumed).to eq(0)
+  end
+
+  it 'finishes a successful call after its extra balance expires without refunding it' do
+    balance
+    account.reserve_captain_ai_usage!(bucket: :internal, reservation_id: reference, units: 10)
+    balance.update!(expires_at: 1.second.ago)
+    expect(account.finish_captain_ai_usage!(bucket: :internal, reservation_id: reference)).to be(true)
+    expect(balance.reload.units_remaining).to eq(90)
+    expect(account.extra_available(:internal)).to eq(0)
+  end
+
   it 'excludes expired balances and does not resurrect units when released after expiry' do
     travel_to(1.second.from_now.change(usec: 0)) do
       balance.update!(expires_at: 1.minute.from_now)

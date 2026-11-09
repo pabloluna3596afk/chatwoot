@@ -1,0 +1,12 @@
+# Bootstrap data only. Live catalog prices are edited in Super Admin.
+captain_responses:
+  - [500, 20]
+  - [2000, 64]
+  - [5000, 140]
+internal:
+  - [500, 6]
+  - [2000, 20]
+  - [5000, 45]
+copilot:
+  - [1000, 5]
+  - [5000, 20]

@@ -9,4 +9,17 @@ class ExtraPack < ApplicationRecord
   validates :display_order, numericality: { only_integer: true }
 
   scope :catalog, -> { where(active: true).order(:bucket, :display_order, :id) }
+
+  # Fresh installations may load schema.rb instead of replaying data migrations.
+  # Never replace a price or availability already edited in Super Admin.
+  def self.seed_defaults!
+    YAML.safe_load_file(Rails.root.join('db/seeds/extra_packs.yml')).each do |bucket, prices|
+      prices.each_with_index do |(units, price), order|
+        find_or_create_by!(bucket: bucket, units: units) do |pack|
+          pack.price_usd = price
+          pack.display_order = order
+        end
+      end
+    end
+  end
 end

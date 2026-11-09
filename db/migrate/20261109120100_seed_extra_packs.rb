@@ -1,9 +1,5 @@
 class SeedExtraPacks < ActiveRecord::Migration[7.0]
-  PACKS = {
-    captain_responses: [[500, 20], [2000, 64], [5000, 140]],
-    internal: [[500, 6], [2000, 20], [5000, 45]],
-    copilot: [[1000, 5], [5000, 20]]
-  }.freeze
+  PACKS = YAML.safe_load_file(Rails.root.join('db/seeds/extra_packs.yml')).freeze
 
   def up
     packs = Class.new(ActiveRecord::Base) { self.table_name = 'extra_packs' }
