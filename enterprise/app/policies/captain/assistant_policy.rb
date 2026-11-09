@@ -61,6 +61,14 @@ class Captain::AssistantPolicy < ApplicationPolicy
     @account_user.administrator?
   end
 
+  def estimate?
+    create?
+  end
+
+  def resume?
+    sync?
+  end
+
   def playground?
     true
   end

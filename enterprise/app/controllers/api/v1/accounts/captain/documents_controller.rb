@@ -2,8 +2,8 @@ class Api::V1::Accounts::Captain::DocumentsController < Api::V1::Accounts::BaseC
   before_action -> { check_authorization(Captain::Assistant) }
 
   before_action :set_current_page, only: [:index]
-  before_action :set_documents, except: [:create]
-  before_action :set_document, only: [:show, :destroy, :sync, :drilldown]
+  before_action :set_documents, except: [:create, :estimate]
+  before_action :set_document, only: [:show, :destroy, :sync, :resume, :drilldown]
   before_action :set_assistant, only: [:create]
   RESULTS_PER_PAGE = 25
 
@@ -20,6 +20,33 @@ class Api::V1::Accounts::Captain::DocumentsController < Api::V1::Accounts::BaseC
 
   def show; end
 
+  def estimate
+    input = params.permit(:pdf_file, :external_link)
+    if input.key?(:pdf_file) == input.key?(:external_link) || (input.key?(:external_link) && !valid_external_link?(input[:external_link]))
+      return render_could_not_create_error(I18n.t('captain.contracts.invalid_url'))
+    end
+
+    render json: Captain::Documents::UsageEstimate.for_upload(account: Current.account, pdf_file: input[:pdf_file])
+  rescue Captain::Documents::UsageEstimate::InvalidPdf => e
+    render_could_not_create_error(e.message)
+  end
+
+  def resume
+    @document.with_lock do
+      unless @document.last_sync_error_code == 'usage_quota_exceeded'
+        return render_could_not_create_error(I18n.t('captain.documents.resume_not_pending'))
+      end
+
+      units = @document.pdf_document? ? Llm::UnitCosts.fetch(:pdf, :units_per_chunk) : Llm::UnitCosts.text_units(@document.content.length)
+      estimate = Captain::Documents::UsageEstimate.for_units(account: Current.account, units: units)
+      return render_could_not_create_error(I18n.t('captain.documents.usage_quota_exceeded')) unless estimate[:sufficient]
+
+      @document.update!(last_sync_error_code: nil)
+      Captain::Documents::ResponseBuilderJob.perform_later(@document)
+    end
+    head :accepted
+  end
+
   def create
     return render_could_not_create_error('Missing Assistant') if @assistant.nil?
 
@@ -27,9 +54,14 @@ class Api::V1::Accounts::Captain::DocumentsController < Api::V1::Accounts::BaseC
       return render_could_not_create_error(I18n.t('captain.contracts.invalid_url'))
     end
 
+    if document_params[:pdf_file] || document_params[:external_link]
+      estimate = Captain::Documents::UsageEstimate.for_upload(account: Current.account, pdf_file: document_params[:pdf_file])
+      return render_could_not_create_error(I18n.t('captain.documents.usage_quota_exceeded')) unless estimate[:sufficient]
+    end
+
     @document = @assistant.documents.build(document_params)
     @document.save!
-  rescue Captain::Document::LimitExceededError => e
+  rescue Captain::Document::LimitExceededError, Captain::Documents::UsageEstimate::InvalidPdf => e
     render_could_not_create_error(e.message)
   rescue ActiveRecord::RecordInvalid => e
     render_could_not_create_error(e.record.errors.full_messages.join(', '))

@@ -127,6 +127,8 @@ Rails.application.routes.draw do
               post :test, on: :collection
             end
             resources :documents, only: [:index, :show, :create, :destroy] do
+              post :estimate, on: :collection
+              post :resume, on: :member
               post :sync, on: :member
               get :drilldown, on: :member
             end

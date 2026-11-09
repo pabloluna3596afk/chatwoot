@@ -82,7 +82,8 @@ RSpec.describe 'Knowledge billing', type: :request do
 
     expect(response).to have_http_status(:ok)
     payload = response.parsed_body.fetch('payload').find { |item| item['id'] == document.id }
-    expect(payload).to include('status' => 'in_progress', 'last_sync_error_code' => 'usage_quota_exceeded', 'responses_count' => 0)
+    expect(payload).to include('status' => 'in_progress', 'last_sync_error_code' => 'usage_quota_exceeded', 'quota_exceeded' => true,
+                              'responses_count' => 0)
   end
 
   it 'keeps the first chunk FAQs when quota runs out before page eleven' do
@@ -107,6 +108,33 @@ RSpec.describe 'Knowledge billing', type: :request do
     expect(account.reload.current_usage_period.internal_calls_consumed).to eq(4)
     expect(document.reload.metadata.dig('faq_generation', 'pages_processed')).to eq(11)
     expect(client).to have_received(:chat).twice
+  end
+
+  it 'resumes through the authorized endpoint at the saved PDF checkpoint and charges only the next chunk' do
+    plan = put_account_on_plan(account, captain_internal_calls: 2)
+    admin = create(:user, account: account, role: :administrator)
+    allow(client).to receive(:chat).and_return(first_chunk, last_chunk)
+    Captain::Documents::ResponseBuilderJob.perform_now(document, max_pages: 11)
+    expect(document.reload.metadata.dig('faq_generation', 'pages_processed')).to eq(10)
+
+    post "/api/v1/accounts/#{account.id}/captain/documents/#{document.id}/resume", headers: admin.create_new_auth_token, as: :json
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(client).to have_received(:chat).once
+    plan.update!(captain_internal_calls: 4)
+
+    perform_enqueued_jobs(only: Captain::Documents::ResponseBuilderJob) do
+      post "/api/v1/accounts/#{account.id}/captain/documents/#{document.id}/resume", headers: admin.create_new_auth_token, as: :json
+    end
+
+    expect(response).to have_http_status(:accepted)
+    expect(account.reload.current_usage_period.internal_calls_consumed).to eq(4)
+    expect(document.reload).to have_attributes(status: 'available', last_sync_error_code: nil)
+    expect(document.metadata.dig('faq_generation', 'pages_processed')).to eq(20)
+    expect(document.responses.count).to eq(1)
+    expect(client).to have_received(:chat).twice
+    expect(client).to have_received(:chat).with(parameters: hash_including(
+      messages: array_including(hash_including(content: array_including(hash_including(type: 'text', text: /11.*20/m))))
+    ))
   end
 
   it 'releases a failed chunk and retries from the saved page without charging the first chunk again' do
