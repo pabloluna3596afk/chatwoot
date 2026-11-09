@@ -18,14 +18,19 @@ class Plans::PublicSerializer
       updated_at: (plans.map(&:updated_at) + [ExtraPack.maximum(:updated_at)]).compact.max&.utc&.iso8601(6),
       plans: plans.map { |plan| new(plan).as_json },
       extras: {
-        packs: ExtraPack.catalog.map do |pack|
-          { id: pack.id, bucket: pack.bucket, units: pack.units, price_usd: pack.price_usd.to_f,
-            display_order: pack.display_order, validity_days: AccountExtraBalance::VALIDITY.in_days.to_i }
-        end,
+        packs: pack_catalog,
         monthly: plans.to_h { |plan| [plan.slug, new(plan).monthly_extras] }
       }
     }
   end
+
+  def self.pack_catalog
+    ExtraPack.catalog.map do |pack|
+      { id: pack.id, bucket: pack.bucket, units: pack.units, price_usd: pack.price_usd.to_f,
+        display_order: pack.display_order, validity_days: AccountExtraBalance::VALIDITY.in_days.to_i }
+    end
+  end
+  private_class_method :pack_catalog
 
   def initialize(plan)
     @plan = plan

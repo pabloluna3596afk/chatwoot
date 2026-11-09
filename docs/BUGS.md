@@ -1,3 +1,11 @@
+### B-NEW-258 ? Cupos extra de IA despu?s del cupo del plan (2026-11-09)
+
+- **Archivos:** `ExtraPack`, `AccountExtraBalance`, `AccountExtraCredits`, reservas/eventos IA, `Enterprise::Account::PlanUsageAndLimits`, cat?logo p?blico y recursos de Super Admin; migraciones `20261109120000` y `20261109120100`.
+- **Problema:** agotado el plan, una cuenta no pod?a usar saldo adicional; un precio ?nico no representaba las tres bolsas.
+- **Cambio:** cat?logo editable con ocho packs; saldos con referencia idempotente y vencimiento; reserva at?mica primero del plan y luego del extra que vence antes. El recibo conserva unidades del plan y asignaciones por saldo; release devuelve solo a los saldos vigentes y finish mantiene el consumo. Los eventos conservan `extra_units`. Los recibos con extras pendientes sobreviven al cambio de per?odo. Tres precios mensuales nuevos en planes; `credit_unit_price` queda deprecado y compatible. Semilla idempotente para instalaciones por schema, sin sobrescribir precios editados.
+- **C?mo probar:** specs de extras, `knowledge_billing_spec.rb`, requests de planes/Super Admin, estimaci?n de documentos y certificaci?n IA. Cubrir mezcla y saldo exacto, error transaccional, release antes/despu?s del vencimiento, concurrencia, referencias repetidas y cuentas sin plan/ilimitadas. Preview local con datos de demostraci?n: `http://localhost:3051/super_admin/sign_in`. La revisi?n visual queda pendiente: el servicio de navegador no estuvo disponible. Sin llamadas reales a OpenAI, sin push ni PR.
+- **Despliegue:** aplicar ambas migraciones antes del c?digo nuevo. Compra Payphone y derechos de extras mensuales quedan fuera de este PR. Evidencias y autoevaluaci?n en `tmp/PR-EXTRAS.md` (local, no versionado).
+
 ### B-NEW-257 — Mostrar el costo del conocimiento y continuar documentos sin cupo (2026-11-09)
 
 - **Archivos:** `Captain::Documents::UsageEstimate`, controlador/policy/rutas/serializador de documentos, cliente/store de Captain, `DocumentForm`, `DocumentCard`, índice de documentos y textos en inglés/español de `integrations.json`.
