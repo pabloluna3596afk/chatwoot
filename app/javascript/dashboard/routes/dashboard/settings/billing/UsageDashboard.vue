@@ -230,7 +230,10 @@ onMounted(async () => {
           <BagIcon :bag="bag.key" class="size-4 shrink-0" />
           {{ bag.title }}
         </h3>
-        <div v-if="showExtras" class="mt-2 flex flex-wrap items-center gap-2">
+        <div
+          v-if="showExtras && (bag.extraAvailable > 0 || bag.limits)"
+          class="mt-2 flex min-h-6 flex-wrap items-center gap-2"
+        >
           <InfoChip v-if="bag.extraAvailable > 0">
             {{
               t('BILLING_SETTINGS.EXTRAS.CHIP', {

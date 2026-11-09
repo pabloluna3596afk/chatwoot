@@ -770,6 +770,8 @@
       "NEXT_EXPIRY": "Next expiry: {date}",
       "BEST_VALUE": "Lowest price per unit",
       "UNITS": "{count} units",
+      "UNITS_RESPONSES": "{count} responses",
+      "UNITS_ACTIONS": "{count} actions",
       "UNIT_PRICE": "USD {price} per unit",
       "VALIDITY": "Expires {days} days after purchase",
       "REQUEST": "Request",

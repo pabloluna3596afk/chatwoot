@@ -13,6 +13,12 @@ const { t, locale } = useI18n();
 const units = computed(() =>
   new Intl.NumberFormat(locale.value).format(props.pack.units)
 );
+const unitsKey = computed(() => {
+  if (props.pack.bucket === 'internal') {
+    return 'BILLING_SETTINGS.EXTRAS.UNITS_ACTIONS';
+  }
+  return 'BILLING_SETTINGS.EXTRAS.UNITS_RESPONSES';
+});
 const price = computed(
   () =>
     `USD ${new Intl.NumberFormat(locale.value).format(props.pack.price_usd)}`
@@ -35,7 +41,7 @@ const unitPrice = computed(() =>
       </InfoChip>
     </div>
     <h4 class="m-0 text-heading-2">
-      {{ t('BILLING_SETTINGS.EXTRAS.UNITS', { count: units }) }}
+      {{ t(unitsKey, { count: units }) }}
     </h4>
     <p class="m-0 text-heading-3">{{ price }}</p>
     <p class="m-0 text-sm text-n-slate-11">

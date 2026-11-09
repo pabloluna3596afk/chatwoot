@@ -768,6 +768,8 @@
       "NEXT_EXPIRY": "Próximo vencimiento: {date}",
       "BEST_VALUE": "Menor precio por unidad",
       "UNITS": "{count} unidades",
+      "UNITS_RESPONSES": "{count} respuestas",
+      "UNITS_ACTIONS": "{count} acciones",
       "UNIT_PRICE": "USD {price} por unidad",
       "VALIDITY": "Vence a los {days} días de la compra",
       "REQUEST": "Solicitar",
