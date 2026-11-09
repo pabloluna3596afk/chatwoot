@@ -2215,7 +2215,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_09_120100) do
   end
 
   add_foreign_key "account_extra_balances", "accounts", on_delete: :cascade
-  add_foreign_key "account_extra_balances", "extra_packs"
+  add_foreign_key "account_extra_balances", "extra_packs", on_delete: :nullify
   add_foreign_key "account_feature_overrides", "accounts"
   add_foreign_key "account_feature_overrides", "users", column: "created_by_id"
   add_foreign_key "account_plan_usages", "accounts", on_delete: :cascade
