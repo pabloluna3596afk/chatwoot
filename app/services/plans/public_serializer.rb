@@ -15,7 +15,7 @@ class Plans::PublicSerializer
     plans = plans.to_a
     {
       currency: CURRENCY,
-      updated_at: plans.map(&:updated_at).max&.utc&.iso8601(6),
+      updated_at: (plans.map(&:updated_at) + [ExtraPack.maximum(:updated_at)]).compact.max&.utc&.iso8601(6),
       plans: plans.map { |plan| new(plan).as_json },
       extras: {
         packs: ExtraPack.catalog.map do |pack|

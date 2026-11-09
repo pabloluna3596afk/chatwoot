@@ -43,6 +43,7 @@ RSpec.describe 'Public Plans API', type: :request do
       get '/public/api/v1/plans', headers: { 'If-None-Match' => etag }
       expect(response).to have_http_status(:ok)
       expect(response.parsed_body.dig('extras', 'packs', 0, 'price_usd')).to eq(7.0)
+      expect(response.parsed_body['updated_at']).to eq(pack.updated_at.utc.iso8601(6))
     end
 
     it 'returns the public catalog without authentication' do
