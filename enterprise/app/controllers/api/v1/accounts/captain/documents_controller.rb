@@ -25,12 +25,12 @@ class Api::V1::Accounts::Captain::DocumentsController < Api::V1::Accounts::BaseC
     if input.key?(:pdf_file) == input.key?(:external_link) || (input.key?(:external_link) && !valid_external_link?(input[:external_link]))
       return render_could_not_create_error(I18n.t('captain.contracts.invalid_url'))
     end
-    if input.key?(:pdf_file) && !input[:pdf_file].is_a?(ActionDispatch::Http::UploadedFile)
+    if input.key?(:pdf_file) && input[:pdf_file].nil?
       return render_could_not_create_error(I18n.t('captain.documents.pdf_format_error'))
     end
 
     render json: Captain::Documents::UsageEstimate.for_upload(account: Current.account, pdf_file: input[:pdf_file])
-  rescue Captain::Documents::UsageEstimate::InvalidPdf => e
+  rescue CustomExceptions::Pdf::ValidationError => e
     render_could_not_create_error(e.message)
   end
 
@@ -60,7 +60,7 @@ class Api::V1::Accounts::Captain::DocumentsController < Api::V1::Accounts::BaseC
     ensure_upload_quota!
     @document = @assistant.documents.build(document_params)
     @document.save!
-  rescue Captain::Document::LimitExceededError, Captain::Documents::UsageEstimate::InvalidPdf => e
+  rescue Captain::Document::LimitExceededError, CustomExceptions::Pdf::ValidationError => e
     render_could_not_create_error(e.message)
   rescue ActiveRecord::RecordInvalid => e
     render_could_not_create_error(e.record.errors.full_messages.join(', '))
