@@ -302,15 +302,16 @@ RSpec.describe 'Enterprise Billing APIs', type: :request do
               },
               'conversation' => {},
               'captain' => {
-                'copilot' => { 'consumed' => 0, 'current_available' => ChatwootApp.max_limit, 'total_count' => nil },
-                'internal' => { 'consumed' => 0, 'current_available' => ChatwootApp.max_limit, 'total_count' => nil },
+                'copilot' => { 'consumed' => 0, 'current_available' => ChatwootApp.max_limit, 'extra_available' => 0, 'total_count' => nil },
+                'internal' => { 'consumed' => 0, 'current_available' => ChatwootApp.max_limit, 'extra_available' => 0, 'total_count' => nil },
                 'responses' => {
                   'consumed' => 0, 'copilot_consumed' => 0, 'copilot_total_count' => ChatwootApp.max_limit,
-                  'current_available' => ChatwootApp.max_limit, 'customer_consumed' => 0,
+                  'current_available' => ChatwootApp.max_limit, 'customer_consumed' => 0, 'extra_available' => 0,
                   'customer_total_count' => ChatwootApp.max_limit, 'total_count' => ChatwootApp.max_limit
                 },
                 'storage' => {
-                  'consumed' => 0, 'current_available' => ChatwootApp.max_limit.megabytes, 'total_count' => ChatwootApp.max_limit.megabytes
+                  'consumed' => 0, 'current_available' => ChatwootApp.max_limit.megabytes, 'extra_available' => 0,
+                  'total_count' => ChatwootApp.max_limit.megabytes
                 }
               },
               'inboxes' => { 'allowed' => ChatwootApp.max_limit, 'consumed' => account.inboxes.count },

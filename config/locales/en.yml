@@ -1091,6 +1091,10 @@ en:
     ssl_status:
       custom_domain_not_configured: 'Custom domain is not configured'
   super_admin:
+    extra_balances:
+      title: "Extra AI balances"
+      validity: "Courtesy balances expire after 90 days. Expired balances cannot be used."
+      grant: "Grant courtesy units"
     ai_usage:
       dashboard: 'Dashboard'
       title: 'AI usage'

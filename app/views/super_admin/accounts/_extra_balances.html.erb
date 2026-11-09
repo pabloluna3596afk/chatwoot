@@ -1,0 +1,24 @@
+<section class="main-content__body">
+  <h2><%= t('super_admin.extra_balances.title') %></h2>
+  <p><%= t('super_admin.extra_balances.validity') %></p>
+  <%= link_to t('super_admin.extra_balances.grant'), new_super_admin_account_extra_balance_path(account_id: account.id), class: 'button' %>
+  <table>
+    <thead>
+      <tr>
+        <% %w[bucket units_remaining expires_at source].each do |attribute| %>
+          <th><%= AccountExtraBalance.human_attribute_name(attribute) %></th>
+        <% end %>
+      </tr>
+    </thead>
+    <tbody>
+      <% account.account_extra_balances.order(expires_at: :desc).each do |balance| %>
+        <tr>
+          <td><%= link_to balance.bucket, super_admin_account_extra_balance_path(balance) %></td>
+          <td><%= balance.units_remaining %> / <%= balance.units_total %></td>
+          <td><%= l(balance.expires_at, format: :short) %></td>
+          <td><%= balance.source %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>

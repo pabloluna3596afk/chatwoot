@@ -320,6 +320,8 @@ class Plan < ApplicationRecord # rubocop:disable Metrics/ClassLength
   validate :valid_extra_limits
   validate :validate_limit_values
   validate :valid_column_limits
+  validates :addon_inbox_price, :addon_storage_100mb_price, :addon_storage_250mb_price,
+            numericality: { greater_than_or_equal_to: 0 }
   validates :name, presence: true
   validates :slug, presence: true, uniqueness: true
   # DB partial unique index enforces this too; the validation just gives a

@@ -1,7 +1,7 @@
 # Allowlist serializer for the unauthenticated plans endpoint consumed by the
 # marketing website. Every exposed field is listed explicitly so that a column
 # added to `plans` later (internal costs, payment keys, ids) never leaks. The
-# three add-on prices below are public catalog data by design.
+# add-on prices and pack catalog are public data by design.
 class Plans::PublicSerializer
   CURRENCY = 'USD'.freeze
   FEATURE_LABELS = JSON.parse(
@@ -15,10 +15,22 @@ class Plans::PublicSerializer
     plans = plans.to_a
     {
       currency: CURRENCY,
-      updated_at: plans.map(&:updated_at).max&.utc&.iso8601(6),
-      plans: plans.map { |plan| new(plan).as_json }
+      updated_at: (plans.map(&:updated_at) + [ExtraPack.maximum(:updated_at)]).compact.max&.utc&.iso8601(6),
+      plans: plans.map { |plan| new(plan).as_json },
+      extras: {
+        packs: pack_catalog,
+        monthly: plans.to_h { |plan| [plan.slug, new(plan).monthly_extras] }
+      }
     }
   end
+
+  def self.pack_catalog
+    ExtraPack.catalog.map do |pack|
+      { id: pack.id, bucket: pack.bucket, units: pack.units, price_usd: pack.price_usd.to_f,
+        display_order: pack.display_order, validity_days: AccountExtraBalance::VALIDITY.in_days.to_i }
+    end
+  end
+  private_class_method :pack_catalog
 
   def initialize(plan)
     @plan = plan
@@ -34,19 +46,36 @@ class Plans::PublicSerializer
       recommended: @plan.is_recommended?,
       price_monthly: @plan.price_monthly.to_f,
       price_yearly: @plan.price_yearly.to_f,
-      addon_agent_price: public_price(@plan.addon_agent_price),
-      addon_bot_price: public_price(@plan.addon_bot_price),
-      credit_unit_price: public_price(@plan.credit_unit_price),
       trial_days: @plan.limit(:trial_days),
       limits: limits,
       feature_keys: Array(@plan.feature_keys),
       base_feature_keys: base_feature_keys,
       features: feature_labels(Array(@plan.feature_keys)),
       base_features: feature_labels(base_feature_keys)
+    }.merge(addon_prices)
+  end
+
+  def monthly_extras
+    {
+      agent: @plan.addon_agent_price.to_f, bot: @plan.addon_bot_price.to_f,
+      inbox: @plan.addon_inbox_price.to_f, storage_100mb: @plan.addon_storage_100mb_price.to_f,
+      storage_250mb: @plan.addon_storage_250mb_price.to_f
     }
   end
 
   private
+
+  def addon_prices
+    {
+      addon_agent_price: public_price(@plan.addon_agent_price),
+      addon_bot_price: public_price(@plan.addon_bot_price),
+      # Deprecated: retained for existing website clients. Use extras.packs instead.
+      credit_unit_price: public_price(@plan.credit_unit_price),
+      addon_inbox_price: public_price(@plan.addon_inbox_price),
+      addon_storage_100mb_price: public_price(@plan.addon_storage_100mb_price),
+      addon_storage_250mb_price: public_price(@plan.addon_storage_250mb_price)
+    }
+  end
 
   def public_price(value)
     value.to_f if value.positive?
