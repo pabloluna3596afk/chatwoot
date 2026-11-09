@@ -25,6 +25,25 @@ RSpec.describe 'Public Plans API', type: :request do
   end
 
   describe 'GET /public/api/v1/plans' do
+    it 'publishes active packs and editable monthly prices per public plan' do
+      pack = ExtraPack.create!(bucket: :internal, units: 500, price_usd: 6)
+      ExtraPack.create!(bucket: :copilot, units: 1000, price_usd: 5, active: false)
+      get '/public/api/v1/plans'
+
+      extras = response.parsed_body.fetch('extras')
+      expect(extras.fetch('packs')).to eq([
+        { 'id' => pack.id, 'bucket' => 'internal', 'units' => 500, 'price_usd' => 6.0, 'display_order' => 0, 'validity_days' => 90 }
+      ])
+      expect(extras.dig('monthly', 'inicio')).to eq(
+        'agent' => 18.0, 'bot' => 35.0, 'inbox' => 12.0, 'storage_100mb' => 1.0, 'storage_250mb' => 2.0
+      )
+      etag = response.headers['ETag']
+      pack.update!(price_usd: 7)
+      get '/public/api/v1/plans', headers: { 'If-None-Match' => etag }
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body.dig('extras', 'packs', 0, 'price_usd')).to eq(7.0)
+    end
+
     it 'returns the public catalog without authentication' do
       get '/public/api/v1/plans'
 
@@ -47,7 +66,8 @@ RSpec.describe 'Public Plans API', type: :request do
 
       plan = response.parsed_body['plans'].find { |p| p['slug'] == 'inicio' }
       expect(plan.keys).to match_array(%w[slug name description display_order state recommended price_monthly price_yearly
-                                          addon_agent_price addon_bot_price credit_unit_price trial_days limits feature_keys
+                                          addon_agent_price addon_bot_price credit_unit_price addon_inbox_price addon_storage_100mb_price
+                                          addon_storage_250mb_price trial_days limits feature_keys
                                           base_feature_keys features base_features])
       expect(plan['limits'].keys).to match_array(%w[monthly_responses assistants users inboxes storage_bytes
                                                     emails_per_day trial_responses])
@@ -55,7 +75,7 @@ RSpec.describe 'Public Plans API', type: :request do
       expect(plan).to include('recommended' => false, 'addon_agent_price' => 18.0, 'addon_bot_price' => 35.0,
                               'credit_unit_price' => 0.025)
       expect(plan['limits']['storage_bytes']).to eq(512.megabytes)
-      expect(response.parsed_body.keys).to match_array(%w[currency updated_at plans])
+      expect(response.parsed_body.keys).to match_array(%w[currency updated_at plans extras])
     end
 
     it 'returns translated feature labels and preserves the key-only fields' do

@@ -16,7 +16,14 @@ class Plans::PublicSerializer
     {
       currency: CURRENCY,
       updated_at: plans.map(&:updated_at).max&.utc&.iso8601(6),
-      plans: plans.map { |plan| new(plan).as_json }
+      plans: plans.map { |plan| new(plan).as_json },
+      extras: {
+        packs: ExtraPack.catalog.map do |pack|
+          { id: pack.id, bucket: pack.bucket, units: pack.units, price_usd: pack.price_usd.to_f,
+            display_order: pack.display_order, validity_days: AccountExtraBalance::VALIDITY.in_days.to_i }
+        end,
+        monthly: plans.to_h { |plan| [plan.slug, new(plan).monthly_extras] }
+      }
     }
   end
 
@@ -36,13 +43,25 @@ class Plans::PublicSerializer
       price_yearly: @plan.price_yearly.to_f,
       addon_agent_price: public_price(@plan.addon_agent_price),
       addon_bot_price: public_price(@plan.addon_bot_price),
+      # Deprecated: retained for existing website clients. Use extras.packs instead.
       credit_unit_price: public_price(@plan.credit_unit_price),
+      addon_inbox_price: public_price(@plan.addon_inbox_price),
+      addon_storage_100mb_price: public_price(@plan.addon_storage_100mb_price),
+      addon_storage_250mb_price: public_price(@plan.addon_storage_250mb_price),
       trial_days: @plan.limit(:trial_days),
       limits: limits,
       feature_keys: Array(@plan.feature_keys),
       base_feature_keys: base_feature_keys,
       features: feature_labels(Array(@plan.feature_keys)),
       base_features: feature_labels(base_feature_keys)
+    }
+  end
+
+  def monthly_extras
+    {
+      agent: @plan.addon_agent_price.to_f, bot: @plan.addon_bot_price.to_f,
+      inbox: @plan.addon_inbox_price.to_f, storage_100mb: @plan.addon_storage_100mb_price.to_f,
+      storage_250mb: @plan.addon_storage_250mb_price.to_f
     }
   end
 
