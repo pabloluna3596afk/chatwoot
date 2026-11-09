@@ -1,7 +1,7 @@
 # Allowlist serializer for the unauthenticated plans endpoint consumed by the
 # marketing website. Every exposed field is listed explicitly so that a column
 # added to `plans` later (internal costs, payment keys, ids) never leaks. The
-# three add-on prices below are public catalog data by design.
+# add-on prices and pack catalog are public data by design.
 class Plans::PublicSerializer
   CURRENCY = 'USD'.freeze
   FEATURE_LABELS = JSON.parse(
