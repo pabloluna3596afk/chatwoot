@@ -1,5 +1,5 @@
 require 'rails_helper'
-require Rails.root.join('db/migrate/20261109120000_include_customer_data_export_in_paid_plans')
+require Rails.root.join('db/migrate/20261109170000_include_customer_data_export_in_paid_plans')
 
 RSpec.describe IncludeCustomerDataExportInPaidPlans, type: :model do
   let(:migration) { described_class.new }

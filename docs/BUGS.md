@@ -1,6 +1,6 @@
 ### B-NEW-258 - Exportar datos de clientes en planes de pago (2026-11-09)
 
-- **Archivos:** `Plan`, migración `20261109120000`, tareas de planes, catálogo en/es y `DownloadPermission` (extensión Enterprise de auditoría).
+- **Archivos:** `Plan`, migración `20261109170000`, tareas de planes, catálogo en/es y `DownloadPermission` (extensión Enterprise de auditoría).
 - **Causa:** `customer_data_export` era una bandera de sistema apagada, ajena a la sincronización de planes.
 - **Arreglo:** incluirla en el catálogo y en planes de precio mensual positivo que no sean de prueba; respetar overrides por cuenta. Conservar el log y registrar bloqueos en associated audits. `report_export` conserva su elegibilidad.
 - **Despliegue pendiente:** ejecutar migración y revisar `bundle exec rake plans:sync_features` (simulación por defecto); aplicar con `DRY_RUN=false bundle exec rake plans:sync_features`. La migración SQL no dispara el callback de planes. No se ha ejecutado contra producción.
