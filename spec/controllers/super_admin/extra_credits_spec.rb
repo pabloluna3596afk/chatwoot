@@ -52,7 +52,8 @@ RSpec.describe 'Super Admin extra credits', type: :request do
   it 'rejects unsupported buckets and malformed courtesy amounts' do
     sign_in(admin, scope: :super_admin)
     ['-1', '1.5', '1junk', '0'].each do |units|
-      post '/super_admin/account_extra_balances', params: { account_extra_balance: { account_id: account.id, bucket: 'internal', units_total: units } }
+      post '/super_admin/account_extra_balances',
+           params: { account_extra_balance: { account_id: account.id, bucket: 'internal', units_total: units } }
       expect(response).to have_http_status(:unprocessable_entity)
     end
     post '/super_admin/account_extra_balances', params: { account_extra_balance: { account_id: account.id, bucket: 'other', units_total: '1' } }

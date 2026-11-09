@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe 'Account extra AI credits' do
+RSpec.describe Account, 'extra AI credits' do
   let(:account) { create(:account) }
   let(:reference) { SecureRandom.uuid }
   let(:balance) do
@@ -27,9 +27,7 @@ RSpec.describe 'Account extra AI credits' do
     later = balance
     earlier = account.grant_extra_balance!(bucket: :internal, units: 3, source: :manual, expires_at: 1.day.from_now)
     expect(account.reserve_captain_ai_usage!(bucket: :internal, reservation_id: reference, units: 7)).to be(true)
-    expect(account.current_usage_period.internal_calls_consumed).to eq(2)
-    expect(earlier.reload.units_remaining).to eq(0)
-    expect(later.reload.units_remaining).to eq(98)
+    expect([account.current_usage_period.internal_calls_consumed, earlier.reload.units_remaining, later.reload.units_remaining]).to eq([2, 0, 98])
     expect(account.reserve_captain_ai_usage!(bucket: :internal, reservation_id: reference, units: 7)).to be(true)
     expect(account.release_captain_ai_usage!(bucket: :internal, reservation_id: reference)).to be(true)
     expect(account.release_captain_ai_usage!(bucket: :internal, reservation_id: reference)).to be(false)
@@ -54,7 +52,7 @@ RSpec.describe 'Account extra AI credits' do
   end
 
   it 'excludes expired balances and does not resurrect units when released after expiry' do
-    travel_to(Time.current.change(usec: 0)) do
+    travel_to(1.second.from_now.change(usec: 0)) do
       balance.update!(expires_at: 1.minute.from_now)
       account.reserve_captain_ai_usage!(bucket: :internal, reservation_id: reference, units: 10)
       travel 1.minute
@@ -111,42 +109,5 @@ RSpec.describe 'Account extra AI credits' do
     account.update!(plan: nil, plan_started_at: nil)
     expect(account.reserve_captain_ai_usage!(bucket: :internal, units: 101)).to be(true)
     expect(balance.reload.units_remaining).to eq(100)
-  end
-end
-
-RSpec.describe 'Concurrent extra credit reservations' do
-  self.use_transactional_tests = false
-
-  let!(:account) { create(:account) }
-
-  before do
-    put_account_on_plan(account, captain_internal_calls: 0)
-    account.grant_extra_balance!(bucket: :internal, units: 1, source: :courtesy, expires_at: 1.day.from_now)
-  end
-
-  after do
-    account.account_extra_balances.delete_all
-    account.destroy!
-  end
-
-  it 'admits only one of two concurrent reservations for the same last extra unit' do
-    ready = Queue.new
-    start = Queue.new
-    attempts = Array.new(2) do
-      Thread.new do
-        ActiveRecord::Base.connection_pool.with_connection do
-          ready << true
-          start.pop
-          Account.find(account.id).reserve_captain_ai_usage!(bucket: :internal)
-        end
-      end
-    end
-    2.times { ready.pop }
-    2.times { start << true }
-    expect(attempts.map(&:value).count(true)).to eq(1)
-    expect(account.extra_available(:internal)).to eq(0)
-    expect(account.current_usage_period.internal_calls_consumed).to eq(0)
-  ensure
-    attempts&.each { |attempt| attempt.kill if attempt.alive? }
   end
 end

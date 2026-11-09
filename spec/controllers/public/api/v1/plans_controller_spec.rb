@@ -32,8 +32,9 @@ RSpec.describe 'Public Plans API', type: :request do
 
       extras = response.parsed_body.fetch('extras')
       expect(extras.fetch('packs')).to eq([
-        { 'id' => pack.id, 'bucket' => 'internal', 'units' => 500, 'price_usd' => 6.0, 'display_order' => 0, 'validity_days' => 90 }
-      ])
+                                            { 'id' => pack.id, 'bucket' => 'internal', 'units' => 500, 'price_usd' => 6.0, 'display_order' => 0,
+                                              'validity_days' => 90 }
+                                          ])
       expect(extras.dig('monthly', 'inicio')).to eq(
         'agent' => 18.0, 'bot' => 35.0, 'inbox' => 12.0, 'storage_100mb' => 1.0, 'storage_250mb' => 2.0
       )

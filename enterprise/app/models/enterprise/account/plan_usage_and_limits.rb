@@ -187,16 +187,24 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
     limit, consumed = ai_usage_reservation_limit(bucket, usage)
     plan_units = limit ? [units, [limit - consumed, 0].max].min : units
     extra_units = units - plan_units
-    balances = account_extra_balances.available.where(bucket: bucket).expiring_first.lock.to_a if extra_units.positive?
-    return false if extra_units.positive? && balances.sum(&:units_remaining) < extra_units
+    allocations = reserve_extra_units!(bucket, extra_units)
+    return false unless allocations
 
-    allocations = allocate_extra_units!(balances || [], extra_units)
     usage.ai_usage_reservations.create!(reservation_id: reservation_id, bucket: bucket, units: units,
                                         plan_units: plan_units, extra_allocations: allocations)
     if plan_units.positive?
       usage.reserve_ai_call!(bucket: bucket, units: plan_units, shared_response_pool: bucket == :copilot && copilot_limit.nil?, limit: limit)
     end
     true
+  end
+
+  def reserve_extra_units!(bucket, units)
+    return {} if units.zero?
+
+    balances = account_extra_balances.available.where(bucket: bucket).expiring_first.lock.to_a
+    return if balances.sum(&:units_remaining) < units
+
+    allocate_extra_units!(balances, units)
   end
 
   def allocate_extra_units!(balances, units)

@@ -41,20 +41,13 @@ class Plans::PublicSerializer
       recommended: @plan.is_recommended?,
       price_monthly: @plan.price_monthly.to_f,
       price_yearly: @plan.price_yearly.to_f,
-      addon_agent_price: public_price(@plan.addon_agent_price),
-      addon_bot_price: public_price(@plan.addon_bot_price),
-      # Deprecated: retained for existing website clients. Use extras.packs instead.
-      credit_unit_price: public_price(@plan.credit_unit_price),
-      addon_inbox_price: public_price(@plan.addon_inbox_price),
-      addon_storage_100mb_price: public_price(@plan.addon_storage_100mb_price),
-      addon_storage_250mb_price: public_price(@plan.addon_storage_250mb_price),
       trial_days: @plan.limit(:trial_days),
       limits: limits,
       feature_keys: Array(@plan.feature_keys),
       base_feature_keys: base_feature_keys,
       features: feature_labels(Array(@plan.feature_keys)),
       base_features: feature_labels(base_feature_keys)
-    }
+    }.merge(addon_prices)
   end
 
   def monthly_extras
@@ -66,6 +59,18 @@ class Plans::PublicSerializer
   end
 
   private
+
+  def addon_prices
+    {
+      addon_agent_price: public_price(@plan.addon_agent_price),
+      addon_bot_price: public_price(@plan.addon_bot_price),
+      # Deprecated: retained for existing website clients. Use extras.packs instead.
+      credit_unit_price: public_price(@plan.credit_unit_price),
+      addon_inbox_price: public_price(@plan.addon_inbox_price),
+      addon_storage_100mb_price: public_price(@plan.addon_storage_100mb_price),
+      addon_storage_250mb_price: public_price(@plan.addon_storage_250mb_price)
+    }
+  end
 
   def public_price(value)
     value.to_f if value.positive?
