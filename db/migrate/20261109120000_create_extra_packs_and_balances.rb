@@ -32,7 +32,7 @@ class CreateExtraPacksAndBalances < ActiveRecord::Migration[7.0]
       t.integer :units_remaining, null: false
       t.datetime :expires_at, null: false
       t.string :source, null: false
-      t.references :extra_pack, foreign_key: true
+      t.references :extra_pack, foreign_key: { on_delete: :nullify }
       t.string :external_reference
       t.timestamps
     end
