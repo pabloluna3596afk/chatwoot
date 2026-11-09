@@ -756,6 +756,42 @@
     "STATES": { "pending": "Verificando", "approved": "Aprobado", "cancelled": "Cancelado", "failed": "Fallido", "expired": "Vencido" }
   },
   "BILLING_SETTINGS": {
+    "EXTRAS": {
+      "TAB": "Extras",
+      "BALANCES": "Tus saldos extra",
+      "PACKS": "Packs disponibles",
+      "MONTHLY_TITLE": "Extras mensuales",
+      "MONTHLY_NOTE": "El equipo los activa y los suma a tu cobro mensual.",
+      "EMPTY": "No tienes saldo extra.",
+      "NO_BALANCE": "Sin saldo extra",
+      "AVAILABLE": "{count} unidades disponibles",
+      "NEXT_EXPIRY": "Próximo vencimiento: {date}",
+      "BEST_VALUE": "Menor precio por unidad",
+      "UNITS": "{count} unidades",
+      "UNIT_PRICE": "USD {price} por unidad",
+      "VALIDITY": "Vence a los {days} días de la compra",
+      "REQUEST": "Solicitar",
+      "RULES": "Se usan después de lo incluido en tu plan, primero el que vence antes. Pago prepago.",
+      "MONTHLY_PRICE": "USD {price} / mes",
+      "NO_MONTHLY": "No hay extras mensuales disponibles para tu plan actual.",
+      "NO_PACKS": "No hay packs disponibles para esta bolsa.",
+      "CHIP": "+{count} extra",
+      "VIEW": "Ver extras",
+      "LOADING": "Cargando extras…",
+      "ERROR": "No se pudieron cargar los extras. Actualiza la página para intentar de nuevo.",
+      "BAGS": {
+        "RESPONSES": "Respuestas del agente de IA",
+        "COPILOT": "Copilot",
+        "INTERNAL": "Acciones internas"
+      },
+      "MONTHLY": {
+        "AGENT": "Agente humano",
+        "BOT": "Agente de IA",
+        "INBOX": "Bandeja",
+        "STORAGE_100MB": "Almacenamiento +100 MB",
+        "STORAGE_250MB": "Almacenamiento +250 MB"
+      }
+    },
     "TITLE": "Facturación",
     "DESCRIPTION": "Gestiona tu suscripción aquí, mejora tu plan y consigue más para tu equipo.",
     "TABS": { "LABEL": "Secciones de facturación", "USO": "Uso", "FACTURACION": "Facturación" },

@@ -139,3 +139,53 @@ describe('Usage dashboard', () => {
     wrapper.unmount();
   });
 });
+
+it('shows extra balances and opens Extras only for exhausted pools without extras', async () => {
+  AiUsageAPI.get.mockResolvedValue({ data: { daily: [] } });
+  const wrapper = mount(UsageDashboard, {
+    props: {
+      showExtras: true,
+      responseLimits: { consumed: 100, totalCount: 100, extraAvailable: 75 },
+      copilotLimits: { consumed: 110, totalCount: 100, extraAvailable: 0 },
+      internalLimits: { consumed: 10, totalCount: 100, extraAvailable: 0 },
+    },
+    global: { stubs: { ButtonV4: true } },
+  });
+  await flushPromises();
+  expect(wrapper.text()).toContain('BILLING_SETTINGS.EXTRAS.CHIP');
+  const link = wrapper
+    .findAll('button')
+    .find(button => button.text() === 'BILLING_SETTINGS.EXTRAS.VIEW');
+  expect(link).toBeTruthy();
+  await link.trigger('click');
+  expect(wrapper.emitted('extras')).toHaveLength(1);
+  expect(
+    wrapper
+      .findAll('[role="progressbar"]')
+      .map(bar => bar.attributes('aria-valuenow'))
+  ).toEqual(['100', '100', '10']);
+  await wrapper.setProps({ showExtras: false });
+  expect(wrapper.text()).not.toContain('BILLING_SETTINGS.EXTRAS.VIEW');
+  expect(wrapper.text()).not.toContain('BILLING_SETTINGS.EXTRAS.CHIP');
+  wrapper.unmount();
+});
+
+it('shows the Copilot extra balance even when its allowance is shared', async () => {
+  AiUsageAPI.get.mockResolvedValue({
+    data: { daily: [], bag_modes: { copilot: 'shared' } },
+  });
+  const wrapper = mount(UsageDashboard, {
+    props: {
+      showExtras: true,
+      copilotLimits: null,
+      extraBalances: { copilot: { extra_available: 123 } },
+    },
+    global: { stubs: { ButtonV4: true } },
+  });
+  await flushPromises();
+  expect(wrapper.findAll('article')[2].text()).toContain(
+    'BILLING_SETTINGS.EXTRAS.CHIP'
+  );
+  expect(wrapper.findAll('[role="progressbar"]')).toHaveLength(0);
+  wrapper.unmount();
+});

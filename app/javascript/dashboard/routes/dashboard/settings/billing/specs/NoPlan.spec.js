@@ -8,6 +8,7 @@ const currentAccount = ref({});
 const isOnChatwootCloud = ref(false);
 const fetchLimits = vi.fn();
 const dispatch = vi.fn();
+const role = ref('agent');
 const route = reactive({ query: {} });
 const replace = vi.fn();
 
@@ -36,7 +37,7 @@ vi.mock('dashboard/composables/useCaptain', () => ({
 }));
 
 vi.mock('dashboard/composables/store.js', () => ({
-  useMapGetter: () => ref({}),
+  useMapGetter: key => (key === 'getCurrentRole' ? role : ref({})),
   useStore: () => ({ dispatch }),
 }));
 
@@ -45,6 +46,11 @@ const mountBilling = () =>
     global: {
       mocks: { $t: key => key },
       stubs: {
+        ExtrasDashboard: {
+          name: 'ExtrasDashboard',
+          template:
+            '<button class="request-extra" @click="$emit(\'request\')">Request</button>',
+        },
         BillingCard: {
           template: '<section><slot name="action" /><slot /></section>',
         },
@@ -69,6 +75,7 @@ describe('Billing settings without a plan', () => {
     fetchLimits.mockReset();
     dispatch.mockResolvedValue(undefined);
     route.query = {};
+    role.value = 'agent';
     replace.mockImplementation(async location => {
       route.query = location.query;
     });
@@ -129,4 +136,48 @@ describe('Billing settings without a plan', () => {
     );
     wrapper.unmount();
   });
+});
+
+it('allows an administrator without a plan to open Extras directly', async () => {
+  role.value = 'administrator';
+  isOnChatwootCloud.value = false;
+  route.query = { tab: 'extras' };
+  const wrapper = mountBilling();
+  await flushPromises();
+  expect(wrapper.findComponent(BillingTabs).props('showExtras')).toBe(true);
+  expect(wrapper.findComponent({ name: 'ExtrasDashboard' }).exists()).toBe(
+    true
+  );
+  expect(
+    wrapper.findComponent({ name: 'SettingsLayout' }).props('noRecordsFound')
+  ).toBe(false);
+  wrapper.unmount();
+});
+
+it.each([
+  ['agent', false],
+  ['administrator', true],
+])('hides Extras for role %s on Cloud %s', async (userRole, cloud) => {
+  role.value = userRole;
+  isOnChatwootCloud.value = cloud;
+  route.query = { tab: 'extras' };
+  const wrapper = mountBilling();
+  await flushPromises();
+  expect(wrapper.findComponent({ name: 'ExtrasDashboard' }).exists()).toBe(
+    false
+  );
+  wrapper.unmount();
+});
+
+it('opens the support widget when an extra is requested', async () => {
+  role.value = 'administrator';
+  isOnChatwootCloud.value = false;
+  route.query = { tab: 'extras' };
+  window.$chatwoot = { toggle: vi.fn() };
+  const wrapper = mountBilling();
+  await flushPromises();
+  await wrapper.find('.request-extra').trigger('click');
+  expect(window.$chatwoot.toggle).toHaveBeenCalledTimes(1);
+  delete window.$chatwoot;
+  wrapper.unmount();
 });
