@@ -111,4 +111,19 @@ describe('CopilotInput', () => {
     expect(textarea.classes()).toContain('overflow-y-auto');
     expect(textarea.classes()).not.toContain('overflow-hidden');
   });
+
+  it('hides the character counter until the message nears the limit', async () => {
+    const wrapper = mountCopilotInput(vi.fn());
+    const textarea = wrapper.find('textarea');
+
+    expect(wrapper.find('[aria-live="polite"]').exists()).toBe(false);
+
+    await textarea.setValue('a'.repeat(3599));
+    expect(wrapper.find('[aria-live="polite"]').exists()).toBe(false);
+
+    await textarea.setValue('a'.repeat(3600));
+    expect(wrapper.find('[aria-live="polite"]').text()).toContain(
+      'CAPTAIN.COPILOT.MESSAGE_LENGTH'
+    );
+  });
 });

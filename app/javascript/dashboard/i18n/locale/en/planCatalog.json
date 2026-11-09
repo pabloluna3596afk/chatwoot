@@ -88,6 +88,7 @@
       "users": "{count} agent | {count} agents"
     },
     "FEATURES": {
+      "customer_data_export": "Customer data downloads",
       "conversation_inbox": "Conversations and shared inbox",
       "contacts_companies": "Contacts and companies",
       "custom_fields": "Custom fields",

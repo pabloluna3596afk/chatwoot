@@ -106,7 +106,7 @@ en:
     google_translate:
       invalid_credentials: 'Google Cloud credentials could not be validated'
     downloads:
-      disabled: Downloads are disabled for this account by the system administrator.
+      disabled: Data downloads are turned off for this account. Ask the platform administrator to enable them.
     account:
       not_authorized: You are not authorized to access this account
       email_limit_exceeded: The daily email limit for this account has been reached

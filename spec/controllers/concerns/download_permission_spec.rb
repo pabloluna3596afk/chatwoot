@@ -40,6 +40,22 @@ RSpec.describe 'Download permissions', type: :request do
         expect(response).to have_http_status(:forbidden)
       end
 
+      it 'refuses a campaign recipient export' do
+        campaign = create(:campaign, account: account, inbox: create(:inbox, account: account),
+                                     trigger_rules: { url: 'https://test.com' })
+        get "/api/v1/accounts/#{account.id}/campaigns/#{campaign.display_id}/export_recipients", headers: headers
+        expect(response).to have_http_status(:forbidden)
+      end
+
+      it 'refuses import error and skip logs' do
+        account.enable_features!('data_import')
+        data_import = create(:data_import, :intercom, account: account, initiated_by: admin)
+        %w[error_logs skip_logs].each do |action|
+          get "/api/v1/accounts/#{account.id}/data_imports/#{data_import.id}/#{action}.csv", headers: headers
+          expect(response).to have_http_status(:forbidden)
+        end
+      end
+
       it 'answers with a readable reason rather than a bare status' do
         post "/api/v1/accounts/#{account.id}/contacts/export", headers: headers, as: :json
         expect(response.parsed_body['error']).to be_present
@@ -113,6 +129,32 @@ RSpec.describe 'Download permissions', type: :request do
           headers: headers
       expect(response).to have_http_status(:success)
 
+      post "/api/v1/accounts/#{account.id}/contacts/export", headers: headers, as: :json
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
+
+  describe 'plan-managed customer exports' do
+    let(:plan) { Plan.create!(name: 'Paid', slug: 'paid', price_monthly: 19, feature_keys: %w[captain_integration customer_data_export]) }
+
+    before { account.update!(plan: plan) }
+
+    it 'allows a synchronized paid account to export contacts' do
+      post "/api/v1/accounts/#{account.id}/contacts/export", headers: headers, as: :json
+      expect(response).to have_http_status(:ok)
+    end
+
+    it 'refuses exports after a free downgrade with the server reason' do
+      free = Plan.create!(name: 'Gratis', slug: 'gratis', feature_keys: ['captain_integration'])
+      account.update!(plan: free)
+      post "/api/v1/accounts/#{account.id}/contacts/export", headers: headers, as: :json
+      expect(response).to have_http_status(:forbidden)
+      expect(response.parsed_body['error']).to eq(I18n.t('errors.downloads.disabled'))
+    end
+
+    it 'refuses exports when the owner overrides a paid plan' do
+      AccountFeatureOverride.create!(account: account, created_by: admin, feature_key: 'customer_data_export',
+                                     enabled: false, reason: 'Owner restriction')
       post "/api/v1/accounts/#{account.id}/contacts/export", headers: headers, as: :json
       expect(response).to have_http_status(:forbidden)
     end

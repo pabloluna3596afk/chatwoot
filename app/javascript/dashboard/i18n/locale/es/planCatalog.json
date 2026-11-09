@@ -88,6 +88,7 @@
       "users": "{count} agente | {count} agentes"
     },
     "FEATURES": {
+      "customer_data_export": "Descarga de datos de clientes",
       "conversation_inbox": "Conversaciones y bandeja compartida",
       "contacts_companies": "Contactos y empresas",
       "custom_fields": "Campos personalizados",

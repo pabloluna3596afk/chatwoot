@@ -16,6 +16,9 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
     end
   end
 
+  desc 'Preview or apply account feature synchronization (DRY_RUN=true by default)'
+  task sync_features: :sync_account_features
+
   desc 'Fill plan feature keys from the approved ChatHub tier matrix (DRY_RUN=true by default)'
   task fill_feature_keys: :environment do
     basic = %w[captain_integration captain_tasks calendar_integration integrations flows]
@@ -36,6 +39,8 @@ namespace :plans do # rubocop:disable Metrics/BlockLength
     Plan.find_each do |plan|
       keys = matrix[plan.slug.downcase]
       next unless keys
+
+      keys += ['customer_data_export'] if plan.price_monthly.positive? && !plan.is_default_trial?
 
       puts "plan=#{plan.slug} feature_keys=#{plan.feature_keys.inspect} -> #{keys.inspect}"
       plan.update!(feature_keys: keys) unless dry_run

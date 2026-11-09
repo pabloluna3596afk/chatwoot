@@ -230,7 +230,10 @@ export const actions = {
     }
   },
 
-  export: async ({ commit }, { payload, label, export_format, column_names }) => {
+  export: async (
+    { commit },
+    { payload, label, export_format, column_names }
+  ) => {
     commit(types.SET_CONTACT_UI_FLAG, { isExporting: true });
     try {
       await ContactAPI.exportContacts({
@@ -243,8 +246,10 @@ export const actions = {
       commit(types.SET_CONTACT_UI_FLAG, { isExporting: false });
     } catch (error) {
       commit(types.SET_CONTACT_UI_FLAG, { isExporting: false });
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+      const serverMessage =
+        error.response?.data?.message || error.response?.data?.error;
+      if (serverMessage) {
+        throw new Error(serverMessage);
       } else {
         throw new Error(error);
       }

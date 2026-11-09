@@ -14,4 +14,11 @@ RSpec.describe Plans::PublicSerializer do
       credit_unit_price: nil
     )
   end
+
+  it 'exposes the customer download label from the public catalog' do
+    plan.feature_keys = ['customer_data_export']
+    expect(described_class.new(plan).as_json[:features]).to include(
+      key: 'customer_data_export', label: 'Descarga de datos de clientes'
+    )
+  end
 end
