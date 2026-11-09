@@ -892,6 +892,8 @@ Rails.application.routes.draw do
         delete :avatar, on: :member, action: :destroy_avatar
       end
       resources :plans, only: [:index, :new, :create, :show, :edit, :update, :destroy]
+      resources :extra_packs
+      resources :account_extra_balances, only: [:index, :show, :new, :create]
       resources :account_plan_usages, only: [:index, :show]
       resources :ai_model_prices, only: [:index, :new, :create, :edit, :update, :destroy]
       get 'ai_usage', to: 'ai_usage#index', as: :ai_usage

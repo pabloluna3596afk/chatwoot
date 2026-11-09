@@ -8,4 +8,17 @@ class AiUsageReservation < ApplicationRecord
   validates :reservation_id, presence: true, uniqueness: true
   validates :bucket, inclusion: { in: %w[internal copilot captain_responses] }
   validates :units, numericality: { only_integer: true, greater_than: 0 }
+  def matches?(requested_bucket, requested_units)
+    bucket == requested_bucket.to_s && released_at.nil? && units == requested_units
+  end
+
+  def refund!
+    account_plan_usage.release_ai_call!(bucket: bucket.to_sym, units: plan_units || units)
+    extra_allocations.each do |balance_id, refunded_units|
+      balance = account_plan_usage.account.account_extra_balances.lock.find(balance_id)
+      next unless balance.expires_at > Time.current
+
+      balance.update!(units_remaining: balance.units_remaining + refunded_units)
+    end
+  end
 end

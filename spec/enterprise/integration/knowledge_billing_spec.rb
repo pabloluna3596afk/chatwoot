@@ -32,6 +32,19 @@ RSpec.describe 'Knowledge billing', type: :request do
     )
   end
 
+  it 'builds PDF FAQs using extra credit when the plan is exhausted and persists the funding on the event' do
+    put_account_on_plan(account, captain_internal_calls: 0)
+    balance = account.grant_extra_balance!(bucket: :internal, units: 2, source: :courtesy, expires_at: 90.days.from_now)
+
+    Captain::Documents::ResponseBuilderJob.perform_now(document, max_pages: 1)
+
+    expect(balance.reload.units_remaining).to eq(0)
+    expect(account.reload.current_usage_period.internal_calls_consumed).to eq(0)
+    expect(AiUsageEvent.find_by!(account: account, feature: 'paginated_faq_generation')).to have_attributes(units: 2, extra_units: 2)
+    expect(AiUsageReservation.where(account_plan_usage: account.current_usage_period)).to be_empty
+    expect(document.responses.count).to eq(1)
+  end
+
   [1, 10].each do |pages|
     it "charges two internal units for a final #{pages}-page PDF chunk and finishes the receipt" do
       put_account_on_plan(account, captain_internal_calls: 2)

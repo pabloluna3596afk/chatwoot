@@ -1,3 +1,12 @@
+### B-NEW-258 → Cupos extra de IA después del cupo del plan (2026-11-09)
+
+- **Archivos:** `ExtraPack`, `AccountExtraBalance`, `AccountExtraCredits`, reservas/eventos IA, `Enterprise::Account::PlanUsageAndLimits`, catálogo público y recursos de Super Admin; migraciones `20261109120000` y `20261109120100`.
+- **Problema:** agotado el plan, una cuenta no podÍa usar saldo adicional; un precio único no representaba las tres bolsas.
+- **Cambio:** catálogo editable con ocho packs; saldos con referencia idempotente y vencimiento; reserva atómica primero del plan y luego del extra que vence antes. El recibo conserva unidades del plan y asignaciones por saldo; release devuelve solo a los saldos vigentes y finish mantiene el consumo. Los eventos conservan `extra_units`. Los recibos con extras pendientes sobreviven al cambio de período. Tres precios mensuales nuevos en planes; `credit_unit_price` queda deprecado y compatible. Semilla idempotente para instalaciones por schema, sin sobrescribir precios editados.
+- **Cómo probar:** specs de extras, `knowledge_billing_spec.rb`, requests de planes/Super Admin, estimación de documentos y certificación IA. Cubrir mezcla y saldo exacto, error transaccional, release antes/después del vencimiento, concurrencia, referencias repetidas y cuentas sin plan/ilimitadas. Preview local con datos de demostración: `http://localhost:3051/super_admin/sign_in`. La revisión visual queda pendiente: el servicio de navegador no estuvo disponible. Sin llamadas reales a OpenAI, sin push ni PR.
+- **Verificación:** cuatro lotes locales, 826 ejecuciones y cero fallos; RuboCop, 25 archivos y cero infracciones. Rollback/reaplicación, carga limpia de schema y reversión de semilla con saldo comprado preservado. Las corridas combinadas no fueron completamente verdes; el fallo de auditoría también aparece en la base original, y tres fallos de certificación/registro no se reprodujeron en sus lotes aislados. Detalle completo en el informe local.
+- **Despliegue:** aplicar ambas migraciones antes del código nuevo. Compra Payphone y derechos de extras mensuales quedan fuera de este PR. Evidencias y autoevaluación en `tmp/PR-EXTRAS.md` (local, no versionado).
+
 ### B-NEW-257 — Mostrar el costo del conocimiento y continuar documentos sin cupo (2026-11-09)
 
 - **Archivos:** `Captain::Documents::UsageEstimate`, controlador/policy/rutas/serializador de documentos, cliente/store de Captain, `DocumentForm`, `DocumentCard`, índice de documentos y textos en inglés/español de `integrations.json`.

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_11_06_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_11_09_120100) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -26,6 +26,24 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_06_120000) do
     t.datetime "updated_at", null: false
     t.index ["owner_type", "owner_id"], name: "index_access_tokens_on_owner_type_and_owner_id"
     t.index ["token"], name: "index_access_tokens_on_token", unique: true
+  end
+
+  create_table "account_extra_balances", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "bucket", null: false
+    t.integer "units_total", null: false
+    t.integer "units_remaining", null: false
+    t.datetime "expires_at", null: false
+    t.string "source", null: false
+    t.bigint "extra_pack_id"
+    t.string "external_reference"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "bucket", "expires_at"], name: "index_extra_balances_on_account_bucket_expiry"
+    t.index ["account_id"], name: "index_account_extra_balances_on_account_id"
+    t.index ["external_reference"], name: "index_account_extra_balances_on_external_reference", unique: true
+    t.index ["extra_pack_id"], name: "index_account_extra_balances_on_extra_pack_id"
+    t.check_constraint "units_total > 0 AND units_remaining >= 0 AND units_remaining <= units_total", name: "extra_balance_units_valid"
   end
 
   create_table "account_feature_overrides", force: :cascade do |t|
@@ -261,6 +279,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_06_120000) do
     t.datetime "created_at", null: false
     t.integer "units", default: 1, null: false
     t.decimal "audio_duration_seconds", precision: 12, scale: 3
+    t.integer "extra_units", default: 0, null: false
     t.index ["account_id", "bucket", "created_at"], name: "index_ai_usage_events_on_account_id_and_bucket_and_created_at"
     t.index ["account_id", "conversation_id", "message_id"], name: "idx_on_account_id_conversation_id_message_id_9cad35c9e5"
     t.index ["account_id", "created_at"], name: "index_ai_usage_events_on_account_id_and_created_at"
@@ -277,6 +296,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_06_120000) do
     t.integer "units", default: 1, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "plan_units"
+    t.jsonb "extra_allocations", default: {}, null: false
     t.index ["account_plan_usage_id"], name: "index_ai_usage_reservations_on_account_plan_usage_id"
     t.index ["reservation_id"], name: "index_ai_usage_reservations_on_reservation_id", unique: true
   end
@@ -1402,6 +1423,17 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_06_120000) do
     t.index ["name", "template_type", "locale"], name: "index_email_templates_on_installation_scope", unique: true, where: "((account_id IS NULL) AND (inbox_id IS NULL))"
   end
 
+  create_table "extra_packs", force: :cascade do |t|
+    t.string "bucket", null: false
+    t.integer "units", null: false
+    t.decimal "price_usd", precision: 10, scale: 2, null: false
+    t.boolean "active", default: true, null: false
+    t.integer "display_order", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["bucket", "units"], name: "index_extra_packs_on_bucket_and_units", unique: true
+  end
+
   create_table "flow_events", force: :cascade do |t|
     t.bigint "flow_run_id", null: false
     t.string "event_type", null: false
@@ -1828,6 +1860,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_06_120000) do
     t.integer "captain_internal_calls"
     t.jsonb "limits", default: {}, null: false
     t.boolean "is_recommended", default: false, null: false
+    t.decimal "addon_inbox_price", precision: 10, scale: 2, default: "12.0", null: false
+    t.decimal "addon_storage_100mb_price", precision: 10, scale: 2, default: "1.0", null: false
+    t.decimal "addon_storage_250mb_price", precision: 10, scale: 2, default: "2.0", null: false
     t.index ["is_default_trial"], name: "index_plans_on_is_default_trial", unique: true, where: "is_default_trial"
     t.index ["is_recommended"], name: "index_plans_on_is_recommended", unique: true, where: "is_recommended"
     t.index ["slug"], name: "index_plans_on_slug", unique: true
@@ -2179,6 +2214,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_11_06_120000) do
     t.index ["inbox_id"], name: "index_working_hours_on_inbox_id"
   end
 
+  add_foreign_key "account_extra_balances", "accounts", on_delete: :cascade
+  add_foreign_key "account_extra_balances", "extra_packs", on_delete: :nullify
   add_foreign_key "account_feature_overrides", "accounts"
   add_foreign_key "account_feature_overrides", "users", column: "created_by_id"
   add_foreign_key "account_plan_usages", "accounts", on_delete: :cascade

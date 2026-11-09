@@ -33,6 +33,9 @@ class PlanDashboard < Administrate::BaseDashboard
     is_recommended: Field::Boolean,
     addon_agent_price: Field::Number.with_options(decimals: 2),
     addon_bot_price: Field::Number.with_options(decimals: 2),
+    addon_inbox_price: Field::Number.with_options(decimals: 2),
+    addon_storage_100mb_price: Field::Number.with_options(decimals: 2),
+    addon_storage_250mb_price: Field::Number.with_options(decimals: 2),
     credit_unit_price: Field::Number.with_options(decimals: 4),
     is_active: Field::Boolean,
     is_public: Field::Boolean,
@@ -76,6 +79,9 @@ class PlanDashboard < Administrate::BaseDashboard
     is_recommended
     addon_agent_price
     addon_bot_price
+    addon_inbox_price
+    addon_storage_100mb_price
+    addon_storage_250mb_price
     credit_unit_price
     is_active
     is_public
@@ -101,6 +107,9 @@ class PlanDashboard < Administrate::BaseDashboard
     is_recommended
     addon_agent_price
     addon_bot_price
+    addon_inbox_price
+    addon_storage_100mb_price
+    addon_storage_250mb_price
     credit_unit_price
     is_active
     is_public

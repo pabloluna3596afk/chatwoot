@@ -1,6 +1,7 @@
 # loading installation configs
 GlobalConfig.clear_cache
 ConfigLoader.new.process
+ExtraPack.seed_defaults!
 
 ## Seeds productions
 if Rails.env.production?

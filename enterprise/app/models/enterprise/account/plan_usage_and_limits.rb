@@ -60,7 +60,7 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
       reservation.with_lock do
         return false if reservation.released_at
 
-        reservation.account_plan_usage.release_ai_call!(bucket: bucket, units: reservation.units) if release
+        reservation.refund! if release
         if release
           reservation.update!(released_at: Time.current)
         else
@@ -74,7 +74,8 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
   def copilot_responses_available?
     return usage_limits.dig(:captain, :copilot, :current_available).to_i.positive? if copilot_limit
 
-    usage_limits.dig(:captain, :responses, :current_available).to_i.positive?
+    limits = usage_limits.dig(:captain, :responses)
+    captain_available_with_extras(limits[:total_count], limits[:consumed], extra_available(:copilot)).positive?
   end
 
   # Force-closes the open usage period and reanchors it to now. Historically
@@ -146,11 +147,25 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
     consumed = captain_usage_consumed(type, usage)
     consumed = 0 if consumed.negative?
 
+    extra_bucket = { responses: :captain_responses, copilot: :copilot, internal: :internal }[type]
+    extra = extra_bucket ? extra_available(extra_bucket) : 0
+    available = captain_available_with_extras(total_count, consumed, extra)
+
     {
       total_count: total_count,
-      current_available: total_count ? (total_count - consumed).clamp(0, total_count) : ChatwootApp.max_limit,
+      extra_available: extra,
+      current_available: available,
       consumed: consumed
     }
+  end
+
+  def captain_available_with_extras(total_count, consumed, extra)
+    return ChatwootApp.max_limit unless total_count
+
+    available = (total_count - consumed).clamp(0, total_count)
+    return available if plan.nil? || total_count >= ChatwootApp.max_limit
+
+    available + extra
   end
 
   def captain_usage_consumed(type, usage)
@@ -175,20 +190,46 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
     cleanup_ai_usage_reservations
     reservation = AiUsageReservation.joins(:account_plan_usage)
                                     .find_by(reservation_id: reservation_id, account_plan_usages: { account_id: id })
-    return reservation.bucket == bucket.to_s && reservation.released_at.nil? && reservation.units == units if reservation
+    return reservation.matches?(bucket, units) if reservation
 
     usage = current_usage_period
     limit, consumed = ai_usage_reservation_limit(bucket, usage)
-    return false if limit && consumed + units > limit
+    plan_units = limit ? (limit - consumed).clamp(0, units) : units
+    extra_units = units - plan_units
+    allocations = reserve_extra_units!(bucket, extra_units)
+    return false unless allocations
 
-    usage.ai_usage_reservations.create!(reservation_id: reservation_id, bucket: bucket, units: units)
-    usage.reserve_ai_call!(bucket: bucket, units: units, shared_response_pool: bucket == :copilot && copilot_limit.nil?, limit: limit)
+    usage.ai_usage_reservations.create!(reservation_id: reservation_id, bucket: bucket, units: units,
+                                        plan_units: plan_units, extra_allocations: allocations)
+    if plan_units.positive?
+      usage.reserve_ai_call!(bucket: bucket, units: plan_units, shared_response_pool: bucket == :copilot && copilot_limit.nil?, limit: limit)
+    end
     true
+  end
+
+  def reserve_extra_units!(bucket, units)
+    return {} if units.zero?
+
+    balances = account_extra_balances.available.where(bucket: bucket).expiring_first.lock.to_a
+    return if balances.sum(&:units_remaining) < units
+
+    allocate_extra_units!(balances, units)
+  end
+
+  def allocate_extra_units!(balances, units)
+    balances.each_with_object({}) do |balance, allocations|
+      break allocations if units.zero?
+
+      taken = [balance.units_remaining, units].min
+      balance.update!(units_remaining: balance.units_remaining - taken)
+      allocations[balance.id.to_s] = taken
+      units -= taken
+    end
   end
 
   def cleanup_ai_usage_reservations
     reservations = AiUsageReservation.joins(:account_plan_usage).where(account_plan_usages: { account_id: id })
-    reservations.where.not(account_plan_usages: { closed_at: nil }).delete_all
+    reservations.where(extra_allocations: {}).where.not(account_plan_usages: { closed_at: nil }).delete_all
     reservations.where(released_at: ...AI_USAGE_RESERVATION_RETENTION.ago).delete_all
   end
 
