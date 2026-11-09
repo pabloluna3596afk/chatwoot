@@ -25,9 +25,7 @@ class Api::V1::Accounts::Captain::DocumentsController < Api::V1::Accounts::BaseC
     if input.key?(:pdf_file) == input.key?(:external_link) || (input.key?(:external_link) && !valid_external_link?(input[:external_link]))
       return render_could_not_create_error(I18n.t('captain.contracts.invalid_url'))
     end
-    if input.key?(:pdf_file) && input[:pdf_file].nil?
-      return render_could_not_create_error(I18n.t('captain.documents.pdf_format_error'))
-    end
+    return render_could_not_create_error(I18n.t('captain.documents.pdf_format_error')) if input.key?(:pdf_file) && input[:pdf_file].nil?
 
     render json: Captain::Documents::UsageEstimate.for_upload(account: Current.account, pdf_file: input[:pdf_file])
   rescue CustomExceptions::Pdf::ValidationError => e
