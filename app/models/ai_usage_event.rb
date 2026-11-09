@@ -6,7 +6,7 @@ class AiUsageEvent < ApplicationRecord
   validates :bucket, inclusion: { in: BUCKETS }
   validates :feature, :model, :provider, :usage_group_id, :created_at, presence: true
   validates :status, inclusion: { in: %w[ok error] }
-  validates :units, numericality: { only_integer: true, greater_than: 0 }
+  validates :units, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :input_tokens, :cached_input_tokens, :output_tokens, :reasoning_tokens,
             numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :audio_duration_seconds, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true

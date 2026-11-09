@@ -2,8 +2,7 @@ class Captain::Llm::PaginatedFaqGeneratorService < Llm::LegacyBaseOpenAiService
   include Integrations::LlmInstrumentation
 
   # Default pages per chunk - easily configurable
-  DEFAULT_PAGES_PER_CHUNK = 10
-  MAX_ITERATIONS = 20 # Safety limit to prevent infinite loops
+  DEFAULT_PAGES_PER_CHUNK = Llm::UnitCosts.fetch(:pdf, :pages_per_chunk)
 
   attr_reader :total_pages_processed, :iterations_completed
 
@@ -11,8 +10,8 @@ class Captain::Llm::PaginatedFaqGeneratorService < Llm::LegacyBaseOpenAiService
     super()
     @document = document
     @language = options[:language] || 'english'
-    @pages_per_chunk = options[:pages_per_chunk] || DEFAULT_PAGES_PER_CHUNK
-    @max_pages = options[:max_pages] # Optional limit from UI
+    @pages_per_chunk = (options[:pages_per_chunk] || DEFAULT_PAGES_PER_CHUNK).clamp(1, DEFAULT_PAGES_PER_CHUNK)
+    @max_pages = [options[:max_pages] || Llm::UnitCosts.fetch(:pdf, :max_pages), Llm::UnitCosts.fetch(:pdf, :max_pages)].min
     @total_pages_processed = 0
     @iterations_completed = 0
     @model = Llm::FeatureRouter.resolve(feature: 'pdf_faq_generation', account: document.account)[:model]
@@ -27,7 +26,7 @@ class Captain::Llm::PaginatedFaqGeneratorService < Llm::LegacyBaseOpenAiService
   # Method to check if we should continue processing
   def should_continue_processing?(last_chunk_result)
     # Stop if we've hit the maximum iterations
-    return false if @iterations_completed >= MAX_ITERATIONS
+    return false if @total_pages_processed >= Llm::UnitCosts.fetch(:pdf, :max_pages)
 
     # Stop if we've processed the maximum pages specified
     return false if @max_pages && @total_pages_processed >= @max_pages
@@ -45,19 +44,37 @@ class Captain::Llm::PaginatedFaqGeneratorService < Llm::LegacyBaseOpenAiService
   private
 
   def generate_paginated_faqs
-    all_faqs = []
-    current_page = 1
+    progress = @document.metadata.to_h.fetch('faq_generation', {})
+    all_faqs = progress.fetch('faqs', [])
+    @total_pages_processed = progress.fetch('pages_processed', 0)
+    @iterations_completed = progress.fetch('iterations', 0)
+    return all_faqs if progress['completed']
+
+    current_page = @total_pages_processed + 1
 
     loop do
       end_page = calculate_end_page(current_page)
       chunk_result = process_chunk_and_update_state(current_page, end_page, all_faqs)
 
-      break unless should_continue_processing?(chunk_result)
+      completed = !should_continue_processing?(chunk_result) || all_faqs.size >= Llm::UnitCosts.fetch(:max_faqs_per_document)
+      all_faqs = deduplicate_faqs(all_faqs).first(Llm::UnitCosts.fetch(:max_faqs_per_document))
+      save_progress(all_faqs, completed)
+      break if completed
 
       current_page = end_page + 1
     end
 
     deduplicate_faqs(all_faqs)
+  rescue Llm::KnowledgeUsage::QuotaExceeded
+    @document.update!(status: :in_progress, last_sync_error_code: 'usage_quota_exceeded')
+    deduplicate_faqs(all_faqs)
+  end
+
+  def save_progress(faqs, completed)
+    @document.update!(metadata: @document.metadata.to_h.merge('faq_generation' => {
+                                                                'faqs' => faqs, 'pages_processed' => @total_pages_processed,
+                                                                'iterations' => @iterations_completed, 'completed' => completed
+                                                              }))
   end
 
   def calculate_end_page(current_page)
@@ -81,16 +98,17 @@ class Captain::Llm::PaginatedFaqGeneratorService < Llm::LegacyBaseOpenAiService
 
     instrumentation_params = build_instrumentation_params(params, start_page, end_page)
 
-    response = with_usage_recording(instrumentation_params) do
-      instrument_llm_call(instrumentation_params) { request_completion(params) }
+    response = Llm::KnowledgeUsage.with_reserved(
+      account: @document.account, feature: 'paginated_faq_generation', units: Llm::UnitCosts.fetch(:pdf, :units_per_chunk)
+    ) do
+      with_usage_recording(instrumentation_params) do
+        instrument_llm_call(instrumentation_params) { request_completion(params) }
+      end
     end
 
     result = parse_chunk_response(response)
     log_empty_response(document: @document, model: @model, pages: [start_page, end_page], response: response, result: result)
     { faqs: result['faqs'] || [], has_content: result['has_content'] != false }
-  rescue OpenAI::Error => e
-    Rails.logger.error I18n.t('captain.documents.page_processing_error', start: start_page, end: end_page, error: e.message)
-    { faqs: [], has_content: false }
   end
 
   def build_chunk_parameters(start_page, end_page)

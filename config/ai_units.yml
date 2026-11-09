@@ -1,0 +1,24 @@
+# One internal unit targets approximately USD 0.002 of provider cost, rounded up.
+# Estimates approved for ingestion; adjust rates here without changing call logic.
+# Observed short-call costs: approximately USD 0.00004-0.00010 (see design brief).
+short_call: 1
+pdf:
+  # Estimated USD 0.0025 per ten-page chunk, including FAQ embeddings.
+  pages_per_chunk: 10
+  units_per_chunk: 2
+  max_pages: 200
+text:
+  # Estimated USD 0.002-0.004 per 50k characters with the default small model, including embeddings.
+  characters_per_chunk: 50000
+  units_per_chunk: 2
+audio:
+  # Approximately USD 0.0045/minute; rounded up to three internal units.
+  seconds_per_minute: 60
+  units_per_minute: 3
+# Approved conversation budget: approximately USD 0.002; no separate matching charge.
+conversation_faq: 1
+# Matching calls belong to the same reserved conversation operation.
+conversation_faq_match: 0
+embedding: 0
+# Bound embedding fan-out and persisted FAQ results for each source document.
+max_faqs_per_document: 500

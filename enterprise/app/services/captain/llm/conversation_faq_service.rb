@@ -1,7 +1,8 @@
-class Captain::Llm::ConversationFaqService < Llm::BaseAiService
+class Captain::Llm::ConversationFaqService < Llm::BaseAiService # rubocop:disable Metrics/ClassLength
   include Integrations::LlmInstrumentation
 
   class SuggestionChangedError < StandardError; end
+  class GenerationError < StandardError; end
 
   DISTANCE_THRESHOLD = 0.3
   MATCH_LIMIT = 5
@@ -29,7 +30,18 @@ class Captain::Llm::ConversationFaqService < Llm::BaseAiService
   def generate_suggestions
     return [] if no_human_interaction?
 
-    generate.map { |faq| route_candidate(faq) }
+    Llm::KnowledgeUsage.with_reserved(
+      account: conversation.account, feature: 'conversation_faq', units: Llm::UnitCosts.fetch(:conversation_faq),
+      context: { conversation_id: conversation.id }
+    ) do
+      generate.map { |faq| route_candidate(faq) }
+    end
+  rescue Llm::KnowledgeUsage::QuotaExceeded => e
+    Rails.logger.info("Conversation FAQ generation stopped: #{e.message}")
+    []
+  rescue GenerationError => e
+    Rails.logger.error("LLM API Error: #{e.message}")
+    []
   end
 
   private
@@ -83,11 +95,7 @@ class Captain::Llm::ConversationFaqService < Llm::BaseAiService
     }
     prompt = Captain::Llm::ConversationFaqPromptsService.same_faq
     faq_match_model = Llm::FeatureRouter.resolve(feature: 'conversation_faq_matching', account: conversation.account)[:model]
-    response = instrument_llm_call(match_instrumentation_params(prompt, comparison, faq_match_model)) do
-      json_chat(model: faq_match_model, feature: 'conversation_faq_matching')
-        .with_instructions(prompt)
-        .ask(comparison.to_json)
-    end
+    response = request_match(prompt, comparison, faq_match_model)
 
     same_faq = JSON.parse(sanitize_json_response(response.content)).fetch('same_faq')
     raise TypeError, 'same_faq must be a boolean' unless [true, false].include?(same_faq)
@@ -96,6 +104,14 @@ class Captain::Llm::ConversationFaqService < Llm::BaseAiService
   rescue JSON::ParserError, KeyError, TypeError, RubyLLM::Error => e
     Rails.logger.error "FAQ match failed: #{e.message}"
     raise
+  end
+
+  def request_match(prompt, comparison, faq_match_model)
+    Llm::KnowledgeUsage.with_included_matching(account: conversation.account) do
+      instrument_llm_call(match_instrumentation_params(prompt, comparison, faq_match_model)) do
+        json_chat(model: faq_match_model, feature: 'conversation_faq_matching').with_instructions(prompt).ask(comparison.to_json)
+      end
+    end
   end
 
   def attach_observation(suggestion, faq, matched_content)
@@ -152,8 +168,7 @@ class Captain::Llm::ConversationFaqService < Llm::BaseAiService
     end
     parse_generation_response(response.content)
   rescue RubyLLM::Error => e
-    Rails.logger.error "LLM API Error: #{e.message}"
-    []
+    raise GenerationError, e.message
   end
 
   def generation_instrumentation_params

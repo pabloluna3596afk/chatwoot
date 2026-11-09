@@ -58,6 +58,18 @@ RSpec.describe AiUsageEvent do
   end
 
   describe 'recording a usage group' do
+    it 'records included operations with zero units while rejecting negative units' do
+      account = create(:account)
+      Llm::UsageContext.with(account: account, feature: 'embedding', units: 0) do
+        Llm::UsageContext.record_operation(model: 'text-embedding-3-small', provider: 'openai', status: 'ok')
+      end
+
+      event = described_class.find_by!(account: account, feature: 'embedding')
+      expect(event.units).to eq(0)
+      event.units = -1
+      expect(event).not_to be_valid
+    end
+
     it 'records one unit for a normal usage context' do
       account = create(:account)
       group_id = SecureRandom.uuid
@@ -187,7 +199,7 @@ RSpec.describe AiUsageEvent do
         }
       }
 
-      Llm::UsageContext.with(account: account, bucket: :captain_responses, feature: 'paginated_faq_generation',
+      Llm::UsageContext.with(account: account, bucket: :internal, feature: 'paginated_faq_generation',
                              usage_group_id: group_id) do
         Llm::UsageContext.record_operation(model: 'gpt-6-luna', provider: 'openai', response: response, status: 'ok')
       end
@@ -216,7 +228,7 @@ RSpec.describe AiUsageEvent do
         }
       }
 
-      Llm::UsageContext.with(account: account, bucket: :captain_responses, feature: 'paginated_faq_generation',
+      Llm::UsageContext.with(account: account, bucket: :internal, feature: 'paginated_faq_generation',
                              usage_group_id: group_id) do
         Llm::UsageContext.record_operation(model: 'gpt-6-luna', provider: 'openai', response: response, status: 'ok')
       end

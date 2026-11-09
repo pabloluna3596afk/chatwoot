@@ -326,7 +326,7 @@ class Captain::Llm::SystemPromptsService
 
         IMPORTANT:#{' '}
         • Generate FAQs for all content that exists in this range, even if the document ends before the expected page count
-        • Set "has_content" to false when the document ends within this range, so no later range is requested
+        • Set "has_content" to false when the document ends at or before the end of this range, so no later range is requested
         • DO NOT include page numbers in questions or answers
         • DO NOT reference page numbers at all in the output
         • Focus on the actual content, not pagination
