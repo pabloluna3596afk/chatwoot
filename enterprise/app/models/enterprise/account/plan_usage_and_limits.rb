@@ -75,7 +75,7 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
     return usage_limits.dig(:captain, :copilot, :current_available).to_i.positive? if copilot_limit
 
     limits = usage_limits.dig(:captain, :responses)
-    (limits[:current_available] - limits[:extra_available] + extra_available(:copilot)).positive?
+    captain_available_with_extras(limits[:total_count], limits[:consumed], extra_available(:copilot)).positive?
   end
 
   # Force-closes the open usage period and reanchors it to now. Historically
@@ -149,7 +149,7 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
 
     extra_bucket = { responses: :captain_responses, copilot: :copilot, internal: :internal }[type]
     extra = extra_bucket ? extra_available(extra_bucket) : 0
-    available = total_count ? (total_count - consumed).clamp(0, total_count) + extra : ChatwootApp.max_limit
+    available = captain_available_with_extras(total_count, consumed, extra)
 
     {
       total_count: total_count,
@@ -157,6 +157,15 @@ module Enterprise::Account::PlanUsageAndLimits # rubocop:disable Metrics/ModuleL
       current_available: available,
       consumed: consumed
     }
+  end
+
+  def captain_available_with_extras(total_count, consumed, extra)
+    return ChatwootApp.max_limit unless total_count
+
+    available = (total_count - consumed).clamp(0, total_count)
+    return available if plan.nil? || total_count >= ChatwootApp.max_limit
+
+    available + extra
   end
 
   def captain_usage_consumed(type, usage)

@@ -127,10 +127,18 @@ RSpec.describe Account do
     expect(balance.reload.units_remaining).to eq(100)
   end
 
+  it 'keeps explicitly unlimited Copilot availability unchanged when extras exist' do
+    account.plan.update!(limits: { 'captain_copilot_responses' => nil })
+    account.grant_extra_balance!(bucket: :copilot, units: 100, source: :manual, expires_at: 1.day.from_now)
+    expect(account.usage_limits.dig(:captain, :copilot, :current_available)).to eq(ChatwootApp.max_limit)
+  end
+
   it 'preserves unmetered behavior for accounts without a plan' do
     balance
     account.update!(plan: nil, plan_started_at: nil)
     expect(account.reserve_captain_ai_usage!(bucket: :internal, units: 101)).to be(true)
     expect(balance.reload.units_remaining).to eq(100)
+    account.grant_extra_balance!(bucket: :captain_responses, units: 100, source: :manual, expires_at: 1.day.from_now)
+    expect(account.usage_limits.dig(:captain, :responses, :current_available)).to eq(ChatwootApp.max_limit)
   end
 end
