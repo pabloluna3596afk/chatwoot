@@ -7,6 +7,7 @@ import TemplateVariableInput from 'dashboard/components-next/variable/TemplateVa
 import VariablesAPI from 'dashboard/api/variables';
 import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
 import EditableBody from '../EditableBody.vue';
+import ChatPreview from '../ChatPreview.vue';
 import es from 'dashboard/i18n/locale/es/whatsappTemplates.json';
 
 vi.mock('dashboard/components-next/variable-picker/VariablePicker.vue', () => ({
@@ -41,22 +42,35 @@ describe('inline parser contract', () => {
       },
       slots: {
         preview: preview =>
-          h(EditableBody, {
-            text: preview.bodyText,
-            values: preview.bodyValues,
-            labelFor: key => key,
-            messageFor: preview.bodyMessage,
-            variableFilter: preview.variableFilter,
-            onChange: preview.setBodyValue,
-            onSelect: preview.insertBodyVariable,
-          }),
+          h(
+            ChatPreview,
+            {
+              messages: [preview.bodyMessage('name')].filter(Boolean),
+            },
+            {
+              default: () =>
+                h(EditableBody, {
+                  text: preview.bodyText,
+                  values: preview.bodyValues,
+                  labelFor: key => key,
+                  variableFilter: preview.variableFilter,
+                  onChange: preview.setBodyValue,
+                  onSelect: preview.insertBodyVariable,
+                }),
+            }
+          ),
         'body-fields': () => null,
       },
     });
     await flushPromises();
     expect(wrapper.findAll('textarea')).toHaveLength(1);
     expect(wrapper.findAllComponents(TemplateVariableInput)).toHaveLength(0);
-    expect(wrapper.text()).toContain('WHATSAPP_TEMPLATES.PARSER.NO_VALUE');
+    expect(wrapper.get('[data-testid=preview-help]').text()).toBe(
+      'WHATSAPP_TEMPLATES.PARSER.NO_VALUE'
+    );
+    expect(wrapper.get('[data-testid=editable-body]').text()).not.toContain(
+      'WHATSAPP_TEMPLATES.PARSER.NO_VALUE'
+    );
     const picker = wrapper.findComponent(VariablePicker);
     expect(picker.props('filter')({ requiresContext: ['conversation'] })).toBe(
       true

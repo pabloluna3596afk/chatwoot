@@ -18,6 +18,7 @@ import CategoryChip from './CategoryChip.vue';
 import { lastSendCenterTab } from './session';
 import ChatPreview from './ChatPreview.vue';
 import {
+  bodySegments,
   supportsFlows,
   usesContentTemplates,
   sendCenterIcon,
@@ -466,6 +467,16 @@ watch(
   },
   { immediate: true }
 );
+const previewMessages = preview => [
+  ...new Set(
+    ['header', 'body'].flatMap(section =>
+      bodySegments(preview[`${section}Text`] || '')
+        .filter(part => part.key)
+        .map(part => preview[`${section}Message`]?.(part.key))
+        .filter(Boolean)
+    )
+  ),
+];
 const overlayTitleId = useId();
 const overlayDescriptionId = useId();
 </script>
@@ -520,12 +531,27 @@ const overlayDescriptionId = useId();
           @click="close"
         />
       </div>
+      <p
+        class="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+        data-testid="center-selection"
+      >
+        {{
+          selected
+            ? $t(
+                `${prefix}.${selected.type === 'flow' ? 'FLOW_SELECTED' : 'TEMPLATE_SELECTED'}`,
+                { name: selected.name }
+              )
+            : ''
+        }}
+      </p>
       <div
-        class="grid min-h-0 flex-1 gap-4 grid-cols-1 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]"
+        class="grid min-h-0 flex-1 gap-6 grid-cols-1 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]"
         data-testid="center-columns"
       >
         <section
-          class="flex min-h-0 min-w-0 flex-col gap-2 md:border-e md:border-n-weak md:pe-4"
+          class="flex min-h-0 min-w-0 flex-col gap-2 md:border-e md:border-n-weak md:pe-6"
         >
           <div class="flex flex-col gap-2" data-testid="center-controls">
             <div
@@ -608,8 +634,17 @@ const overlayDescriptionId = useId();
               @click="selectedKey = row.key"
             >
               <div class="flex items-start justify-between gap-2">
-                <p class="break-all text-sm font-semibold text-n-slate-12">
-                  {{ row.name }}
+                <p
+                  class="min-w-0 [overflow-wrap:anywhere] text-sm font-semibold text-n-slate-12"
+                  :title="row.name"
+                >
+                  <template
+                    v-for="(part, index) in row.name.split('_')"
+                    :key="index"
+                  >
+                    <wbr v-if="index" />{{ part
+                    }}{{ index < row.name.split('_').length - 1 ? '_' : '' }}
+                  </template>
                 </p>
                 <div
                   class="flex shrink-0 flex-wrap justify-end items-center gap-1"
@@ -678,29 +713,8 @@ const overlayDescriptionId = useId();
           v-if="selected"
           class="min-h-0 min-w-0 overflow-y-auto overscroll-contain flex flex-col gap-3"
           data-testid="center-detail"
+          :aria-label="selected.name"
         >
-          <div
-            class="flex shrink-0 items-center justify-between gap-3 border-b border-n-weak pb-3"
-          >
-            <h3
-              class="min-w-0 truncate text-sm font-semibold text-n-slate-12"
-              :title="selected.name"
-            >
-              {{ selected.name }}
-            </h3>
-            <div class="flex shrink-0 flex-wrap justify-end items-center gap-1">
-              <CategoryChip
-                v-if="selected.type === 'template'"
-                :category="selected.data.category"
-              />
-              <span
-                v-if="selected.data.language"
-                class="rounded-md bg-n-alpha-2 px-2 py-1 text-xxs font-medium text-n-slate-11"
-              >
-                {{ languageChip(selected.data.language) }}
-              </span>
-            </div>
-          </div>
           <FlowDetail
             v-if="selected.type === 'flow'"
             :key="selected.key"
@@ -720,6 +734,7 @@ const overlayDescriptionId = useId();
               <template #preview="preview">
                 <ChatPreview
                   :key="selected.key"
+                  :messages="previewMessages(preview)"
                   :header="preview.header"
                   :body="preview.body"
                   :footer="footer"
@@ -734,7 +749,6 @@ const overlayDescriptionId = useId();
                       :attempted="attempted"
                       :expressions="parser?.processedParams?.header"
                       :label-for="fieldLabel"
-                      :message-for="preview.headerMessage"
                       :variable-filter="preview.variableFilter"
                       :variable-surface="preview.variableSurface"
                       @change="preview.setHeaderValue"
@@ -756,7 +770,6 @@ const overlayDescriptionId = useId();
                     :attempted="attempted"
                     :label-for="fieldLabel"
                     :examples="bodyExamples"
-                    :message-for="preview.bodyMessage"
                     :variable-filter="preview.variableFilter"
                     :variable-surface="preview.variableSurface"
                     @change="preview.setBodyValue"

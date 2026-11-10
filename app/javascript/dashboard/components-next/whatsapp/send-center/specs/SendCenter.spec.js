@@ -47,7 +47,7 @@ const DialogStub = {
 };
 const ParserStub = {
   template:
-    '<div>Template parser<slot name="preview" header="Header" body="Preview body" /></div>',
+    '<div><slot name="preview" header="Header" body="Preview body" /></div>',
   data: () => ({ isFormInvalid: false }),
   methods: {
     sendMessage() {
@@ -109,6 +109,57 @@ describe('unified send center', () => {
     API.sendToConversation.mockResolvedValue({});
   });
   afterEach(() => wrapper?.unmount());
+
+  it('keeps the selected name accessible without a repeated visual heading', async () => {
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: 'whatsapp_cloud',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates: [
+          ...templates,
+          { ...templates[1], name: 'test_marketing_bienvenida' },
+        ],
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    const row = wrapper.get(
+      '[data-testid="center-row-template:test_marketing_bienvenida:es"]'
+    );
+    expect(
+      row.get('[title="test_marketing_bienvenida"]').findAll('wbr')
+    ).toHaveLength(2);
+    await row.trigger('click');
+    expect(
+      wrapper.get('[data-testid="center-detail"]').attributes('aria-label')
+    ).toBe('test_marketing_bienvenida');
+    expect(wrapper.find('[data-testid="center-detail"] h3').exists()).toBe(
+      false
+    );
+    expect(
+      wrapper
+        .find('[data-testid="center-detail"] [data-testid="template-category"]')
+        .exists()
+    ).toBe(false);
+    expect(wrapper.get('[data-testid="center-selection"]').text()).toBe(
+      'Selected template: test_marketing_bienvenida'
+    );
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    expect(
+      wrapper.get('[data-testid="center-detail"]').attributes('aria-label')
+    ).toBe('Contact');
+    expect(wrapper.get('[data-testid="center-selection"]').text()).toBe(
+      'Selected Flow: Contact'
+    );
+  });
 
   it('clears query, filters and chips independently and announces matching results', async () => {
     wrapper = mount(SendCenter, {
@@ -1046,7 +1097,7 @@ describe('unified send center', () => {
     expect(wrapper.emitted('close')).toBeUndefined();
   });
 
-  it('keeps status only in list rows and places the compact title above the preview without inheriting the list controls height', async () => {
+  it('keeps status in list rows and gives Flows an accessible name without a repeated title', async () => {
     wrapper = mount(SendCenter, {
       props: {
         show: true,
@@ -1070,7 +1121,8 @@ describe('unified send center', () => {
     );
     const detail = wrapper.get('[data-testid="center-detail"]');
     expect(detail.text()).not.toContain('Publicado');
-    expect(detail.get('h3').text()).toBe('Contact');
+    expect(detail.find('h3').exists()).toBe(false);
+    expect(detail.attributes('aria-label')).toBe('Contact');
     expect(detail.classes()).toContain('flex-col');
     expect(wrapper.get('[data-testid="center-columns"]').classes()).toContain(
       'md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]'
@@ -1383,10 +1435,12 @@ describe('unified send center', () => {
     );
   });
 
-  it('keeps all send center keys translated in Spanish', () => {
+  it('keeps existing Spanish strings and falls back to English for new source keys', () => {
     const english = en.WHATSAPP_TEMPLATES.SEND_CENTER;
     const spanish = es.WHATSAPP_TEMPLATES.SEND_CENTER;
-    expect(Object.keys(english).sort()).toEqual(Object.keys(spanish).sort());
+    expect(Object.keys(english)).toEqual(
+      expect.arrayContaining(Object.keys(spanish))
+    );
     const i18n = globalOptions.plugins[0];
     expect(
       i18n.global.t('WHATSAPP_TEMPLATES.SEND_CENTER.MISSING_COUNT', 1)

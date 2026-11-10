@@ -12,7 +12,6 @@ const props = defineProps({
   invalidKeys: { type: Array, default: () => [] },
   attempted: { type: Boolean, default: false },
   examples: { type: Object, default: () => ({}) },
-  messageFor: { type: Function, default: () => '' },
   variableFilter: { type: Function, default: () => true },
   variableSurface: { type: String, default: 'message' },
 });
@@ -45,9 +44,6 @@ const dataLabel = part =>
     total: keys.value.length,
     example: placeholder(part.key),
   });
-const messages = computed(() => [
-  ...new Set(keys.value.map(key => props.messageFor(key)).filter(Boolean)),
-]);
 const isInvalid = key =>
   (props.invalidKeys.includes(key) ||
     !String(props.values[key] || '').trim()) &&
@@ -156,7 +152,7 @@ defineExpose({ missingLabels });
         />
         <span
           :id="`${id}-hint-${index}`"
-          class="pointer-events-none absolute bottom-full opacity-0 z-10 flex w-max max-w-[min(10rem,60vw)] items-center gap-2 rounded-md border border-solid border-n-weak bg-n-solid-1 p-1 text-xs leading-4 text-n-slate-11 shadow-md group-hover/data:pointer-events-auto group-hover/data:opacity-100 group-focus-within/data:pointer-events-auto group-focus-within/data:opacity-100"
+          class="pointer-events-none absolute top-full mt-1 opacity-0 z-10 flex w-max max-w-[20rem] whitespace-nowrap items-center gap-2 rounded-md border border-solid border-n-weak bg-n-solid-1 p-1 text-xs leading-4 text-n-slate-11 shadow-md group-hover/data:pointer-events-auto group-hover/data:opacity-100 group-focus-within/data:pointer-events-auto group-focus-within/data:opacity-100"
           :class="hintOnEnd[part.key] ? 'end-0' : 'start-0'"
         >
           <span
@@ -199,12 +195,4 @@ defineExpose({ missingLabels });
       {{ $t(`${prefix}.DATA_REQUIRED`, { index: index + 1 }) }}
     </p>
   </template>
-  <p
-    v-for="message in messages"
-    :key="message"
-    class="mt-2 text-xs text-n-slate-11"
-    role="status"
-  >
-    {{ message }}
-  </p>
 </template>

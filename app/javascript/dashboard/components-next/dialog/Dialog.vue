@@ -88,7 +88,7 @@ provide('dialogPortalTarget', dialogRef);
 // Explicit width: native <dialog> otherwise shrinks to content.
 const widthClass = computed(() => {
   const classesMap = {
-    sendCenter: 'w-[min(100vw-2rem,72.5rem)] max-w-none',
+    sendCenter: 'w-[min(100vw-2rem,58rem)] max-w-none',
     '3xl': 'w-[min(100vw-2rem,48rem)]',
     '2xl': 'w-[min(100vw-2rem,42rem)]',
     xl: 'w-[min(100vw-2rem,36rem)]',
