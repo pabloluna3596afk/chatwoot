@@ -69,6 +69,8 @@
       "TITLE": "Enviar por WhatsApp",
       "TEMPLATE_TITLE": "Enviar una plantilla",
       "DESCRIPTION": "Elige una plantilla o un Flow para esta conversación.",
+      "TEMPLATE_SELECTED": "Plantilla elegida: {name}",
+      "FLOW_SELECTED": "Flow elegido: {name}",
       "TEMPLATES": "Plantillas",
       "FLOWS": "Flows",
       "SEARCH": "Buscar plantillas",

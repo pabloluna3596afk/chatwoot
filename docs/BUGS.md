@@ -1,23 +1,10 @@
-### B-NEW-262 - Buscador y filtros coherentes en el centro de envio (2026-11-10)
+### B-NEW-260 - Ventana "Enviar por WhatsApp" estable, con datos en la vista previa (2026-11-10)
 
-- **Archivos:** `send-center/SendCenter.vue`, nuevo `SendCenterFilters.vue`, locales en/es de WhatsApp y specs de SendCenter.
-- **Problema:** lupa fuera del campo, filtros visualmente dispares y sin resumen cerrado, sin limpieza rapida ni contador de resultados.
-- **Arreglo:** controles locales de 36 px reutilizando FilterDropdown sin modificar sus consumidores; insignia, chips removibles, limpieza independiente, contador pluralizado y aria-live. Escape limpia texto o cierra el panel devolviendo el foco. La seleccion se desplaza al area visible sin animacion. Se conserva el calculo de resultados y el envio.
-- **Como probar:** buscar por nombre/cuerpo, combinar categoria/estado, cerrar el panel y quitar chips, limpiar solo filtros o todo, probar Escape y Tab. Revisar 768/1024/1440 claro/oscuro. Vitest 271/271 en UTC y America/Guayaquil; ESLint sin errores. Informe y evidencia local en `tmp/PR-PLANTILLAS-BUSCADOR.md`. Aprobacion visual pendiente antes de PR; sin migraciones.
-
-### B-NEW-261 - Unificar datos y aislar el catalogo de Flows al enviar plantillas (2026-11-09)
-
-- **Archivos:** `send-center/{EditableBody,ChatPreview,SendCenter}.vue`, parsers WhatsApp/Content, slot opcional de encabezado de `WhatsAppBubble.vue`, locales `en/es/whatsappTemplates.json` y specs.
-- **Causa:** los slots vacios activaban los inputs de respaldo de Vue; los inputs inline heredaban alto/margen globales; faltaba MISSING_COUNT en es y Flows compartia su error con el pie de Plantillas.
-- **Arreglo:** suprimir el respaldo cuando se proporciona el slot, integrar el selector y aviso del parser en la burbuja (incluido encabezado de texto), usar ejemplos como pistas sin completar valores, reset-base y encabezado multimedia a ancho completo. Completar claves es/en, pluralizar, acortar buscador y aislar error/carga de Flows con Reintentar. Sin cambios de payload, elegibilidad ni comportamiento por defecto de los consumidores sin slots.
-- **Verificacion:** Vitest 10 suites / 270 pruebas en UTC y America/Guayaquil; contratos de payload WhatsApp/API/Twilio y encabezado. ESLint: 0 errores, 45 avisos. Navegador con componentes reales y datos ficticios: 768/1024/1440, claro/oscuro; selector funcional, campos de 22 px sin margen y multimedia de ancho completo/maximo 9 rem. No equivale al CRM completo. Capturas y aprobacion visual del PM pendientes antes de PR. Informe local `tmp/PR-PLANTILLAS-RONDA3.md`; sin migraciones.
-
-### B-NEW-260 — Pulido de plantillas en el centro de envío (2026-11-09)
-
-- **Archivos:** `send-center/EditableBody.vue`, `ChatPreview.vue`, `SendCenter.vue` y sus specs; fuente inglesa `whatsappTemplates.json`.
-- **Problema:** variables recortadas y rojas al abrir; el mensaje corto dejaba espacio vacío y el largo no tenía un viewport de scroll adecuado; faltaba un estado claro en el pie.
-- **Arreglo:** medir el texto con un elemento invisible, mostrar errores tras blur o intento de envío, reutilizar WhatsAppBubble dentro de un viewport local con sombras y hora simulada, compactar controles/chips y resumir los datos pendientes. Sin cambios en parsers, payloads ni elegibilidad.
-- **Cómo probar:** preview de componentes reales con datos ficticios en `http://127.0.0.1:5178/`; revisar 1440/1024/768, claro/oscuro, campos vacíos/completos, mensaje largo con imagen y movimiento reducido. Vitest: 10 suites/265 pruebas por zona (UTC y America/Guayaquil); ESLint sin errores. Falta revisión dentro del CRM completo: Docker no está disponible. Fotos y aprobación visual a cargo del dueño, antes de crear PR. Sin migraciones.
+- **Archivos:** `send-center/{SendCenter,SendCenterFilters,EditableBody,ChatPreview,CategoryChip,FlowDetail}`, parsers WhatsApp/Content (slots opcionales), `WhatsAppBubble.vue`, `Dialog.vue`, locales en/es de `whatsappTemplates.json` y specs.
+- **Problema:** la ventana calculaba su posicion con el ancho de tres columnas aunque mostrara dos y saltaba de 784 a 1160 px al aparecer las variables (quedaba descentrada; en pantallas medianas el formulario tapaba la lista). Las variables estaban en un formulario aparte, sin categoria visible, con buscador y filtros dispares.
+- **Arreglo:** ancho fijo `min(58rem, 100vw-2rem)` centrado y dos columnas 5/12 y 7/12 sin los selectores `dialog:has(&)`; datos del cuerpo editables dentro de la vista previa (numerados, con ejemplo, selector de variables del contacto bajo demanda); encabezado multimedia y botones con parametros debajo; chips de categoria (Marketing, Utilidad, Autenticacion); buscador y filtros coherentes con chips y contador; errores de Flows aislados a su pestana. Los parsers conservan su comportamiento por defecto para los otros consumidores. Sin cambios de payload, elegibilidad ni migraciones.
+- **Como probar:** abrir una conversacion de WhatsApp Cloud y pulsar el icono de WhatsApp del campo de respuesta; elegir plantillas con 0, 3 y 6 datos, con imagen y con boton; escribir y navegar con Tab/Enter; filtrar por categoria y estado; revisar 768/1024/1440 en claro y oscuro.
+- **Verificacion:** Vitest 26 archivos / 338 pruebas en UTC y America/Guayaquil (send-center y todos los consumidores de los parsers); ESLint sin errores. Fotos del CRM real aprobadas por el dueno antes del PR.
 
 ### B-NEW-259 - Exportar datos de clientes en planes de pago (2026-11-09)
 
