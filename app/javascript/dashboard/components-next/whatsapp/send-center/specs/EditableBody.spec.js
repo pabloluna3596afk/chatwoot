@@ -1,6 +1,10 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import EditableBody from '../EditableBody.vue';
 
+vi.mock('dashboard/components-next/variable-picker/VariablePicker.vue', () => ({
+  default: { template: '<span />' },
+}));
+
 describe('inline template fields', () => {
   it('shows errors only after leaving a missing field or attempting send', async () => {
     const wrapper = mount(EditableBody, {

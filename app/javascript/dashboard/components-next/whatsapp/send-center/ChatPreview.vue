@@ -30,12 +30,19 @@ useResizeObserver([viewport, message], measure);
     >
       <div ref="message" class="my-auto w-full shrink-0">
         <MessagePreview
-          class="mx-auto w-full max-w-[26rem] [&>div]:p-0 [&_[data-testid=bubble-media]]:aspect-video [&_[data-testid=bubble-media]]:h-auto [&_[data-testid=bubble-media]]:max-h-36"
+          class="mx-auto w-full max-w-[26rem] [&>div]:p-0 [&>div>div]:w-full [&_[data-testid=bubble-media]]:w-full [&_[data-testid=bubble-media]]:object-cover [&_[data-testid=bubble-media]]:aspect-video [&_[data-testid=bubble-media]]:h-auto [&_[data-testid=bubble-media]]:max-h-36"
           :header="header"
           :body="body"
           :buttons="buttons"
           :header-media="headerMedia"
         >
+          <template #header>
+            <slot name="header">
+              <p v-if="header" class="font-semibold whitespace-pre-wrap">
+                {{ header }}
+              </p>
+            </slot>
+          </template>
           <template #body>
             <slot>
               <p class="whitespace-pre-wrap">{{ body }}</p>

@@ -189,6 +189,11 @@ defineExpose({
       :body-values="processedParams"
       :invalid-body-keys="invalidBodyKeys"
       :set-body-value="(key, value) => (processedParams[key] = value)"
+      :insert-body-variable="
+        (key, expression) =>
+          (processedParams[key] +=
+            `${processedParams[key] ? ' ' : ''}${expression}`)
+      "
     >
       <div
         data-template-preview
@@ -236,7 +241,7 @@ defineExpose({
       </div>
 
       <!-- Body Variables Section -->
-      <slot name="body-fields">
+      <template v-if="!$slots['body-fields']">
         <div v-if="hasVariables">
           <p class="mb-2.5 text-sm font-semibold">
             {{ $t('CONTENT_TEMPLATES.PARSER.VARIABLES_LABEL') }}
@@ -261,7 +266,8 @@ defineExpose({
             />
           </div>
         </div>
-      </slot>
+      </template>
+      <slot name="body-fields" />
       <p
         v-if="v$.$dirty && (v$.$invalid || isFormInvalid)"
         class="p-2.5 text-center rounded-md bg-n-ruby-9/20 text-n-ruby-9"

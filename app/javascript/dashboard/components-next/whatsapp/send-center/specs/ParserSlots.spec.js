@@ -4,21 +4,75 @@ import { mount, flushPromises } from '@vue/test-utils';
 import WhatsAppTemplateParser from '../../WhatsAppTemplateParser.vue';
 import ContentTemplateParser from 'dashboard/components-next/content-templates/ContentTemplateParser.vue';
 import TemplateVariableInput from 'dashboard/components-next/variable/TemplateVariableInput.vue';
+import VariablesAPI from 'dashboard/api/variables';
+import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
 import EditableBody from '../EditableBody.vue';
 import es from 'dashboard/i18n/locale/es/whatsappTemplates.json';
 
 vi.mock('dashboard/components-next/variable-picker/VariablePicker.vue', () => ({
-  default: { template: '<span />' },
+  default: { props: ['filter', 'surface'], template: '<span />' },
 }));
 
 vi.mock('dashboard/composables/store', () => ({
   useMapGetter: () => ({ value: () => ({ provider: '360dialog' }) }),
 }));
 vi.mock('dashboard/api/variables', () => ({
-  default: { catalog: vi.fn(async () => ({ data: { variables: [] } })) },
+  default: {
+    catalog: vi.fn(async () => ({ data: { variables: [] } })),
+    preview: vi.fn(),
+  },
 }));
 
 describe('inline parser contract', () => {
+  it('replaces fallback inputs and preserves missing-contact hints and variable insertion', async () => {
+    VariablesAPI.preview.mockImplementation(async payload => ({
+      data: {
+        results: [payload.texts.map(() => ({ value: '', status: 'missing' }))],
+      },
+    }));
+    const wrapper = mount(WhatsAppTemplateParser, {
+      props: {
+        template: {
+          name: 'contact',
+          components: [{ type: 'BODY', text: 'Hi {{name}}' }],
+        },
+        defaultValues: { name: '{{ contact.name }}' },
+        resolveContext: { contact: { id: 1 }, conversation: { id: 2 } },
+      },
+      slots: {
+        preview: preview =>
+          h(EditableBody, {
+            text: preview.bodyText,
+            values: preview.bodyValues,
+            labelFor: key => key,
+            messageFor: preview.bodyMessage,
+            variableFilter: preview.variableFilter,
+            onChange: preview.setBodyValue,
+            onSelect: preview.insertBodyVariable,
+          }),
+        'body-fields': () => null,
+      },
+    });
+    await flushPromises();
+    expect(wrapper.findAll('input')).toHaveLength(1);
+    expect(wrapper.findAllComponents(TemplateVariableInput)).toHaveLength(0);
+    expect(wrapper.text()).toContain('WHATSAPP_TEMPLATES.PARSER.NO_VALUE');
+    const picker = wrapper.findComponent(VariablePicker);
+    expect(picker.props('filter')({ requiresContext: ['conversation'] })).toBe(
+      true
+    );
+    picker.vm.$emit('select', { expression: '{{ contact.email }}' });
+    await flushPromises();
+    expect(wrapper.vm.processedParams.body.name).toBe(
+      '{{ contact.name }} {{ contact.email }}'
+    );
+    await wrapper.get('input').setValue('Ana');
+    await flushPromises();
+    expect(wrapper.text()).not.toContain('WHATSAPP_TEMPLATES.PARSER.NO_VALUE');
+    expect(wrapper.vm.isFormInvalid).toBe(false);
+    wrapper.unmount();
+  });
+
   it('numbers repeated fields in reading order while sharing the same value', async () => {
     const wrapper = mount(EditableBody, {
       props: {
@@ -97,6 +151,8 @@ describe('inline parser contract', () => {
       const values = ['Ana', '2026-11-09', '12:30', 'Six', 'Order', '{{2}}'];
       const inputs = inline.findAll('[data-testid="editable-body"] input');
       expect(inputs).toHaveLength(6);
+      expect(inline.findAllComponents(TemplateVariableInput)).toHaveLength(0);
+      expect(classic.findAllComponents(TemplateVariableInput)).toHaveLength(6);
       await Promise.all(
         values.map(async (value, index) => {
           classic
@@ -162,6 +218,8 @@ describe('inline parser contract', () => {
     classic
       .findAllComponents(TemplateVariableInput)[1]
       .vm.$emit('update:modelValue', '{{1}}');
+    expect(inline.findAllComponents(TemplateVariableInput)).toHaveLength(0);
+    expect(classic.findAllComponents(TemplateVariableInput)).toHaveLength(2);
     const inputs = inline.findAll('input');
     await inputs[0].setValue('Ana');
     await inputs[1].setValue('{{1}}');

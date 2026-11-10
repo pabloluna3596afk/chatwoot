@@ -61,9 +61,11 @@ const items = computed(() =>
         <div
           class="px-2.5 py-1.5 flex flex-col gap-1.5 text-sm leading-5 break-words"
         >
-          <p v-if="header" class="font-semibold whitespace-pre-wrap">
-            {{ header }}
-          </p>
+          <slot name="header">
+            <p v-if="header" class="font-semibold whitespace-pre-wrap">
+              {{ header }}
+            </p>
+          </slot>
           <div data-testid="send-center-preview-body">
             <slot name="body">
               <template v-for="(line, index) in bodyLines" :key="index">

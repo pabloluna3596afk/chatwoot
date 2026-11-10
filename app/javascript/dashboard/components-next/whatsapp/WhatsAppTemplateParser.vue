@@ -579,10 +579,23 @@ defineExpose({
         name="preview"
         :header="renderedHeader"
         :body="renderedTemplate"
+        :header-text="headerText"
+        :header-values="displayed('header')"
+        :set-header-value="(key, value) => setValue('header', key, value)"
+        :insert-header-variable="
+          (key, expression) => insertVariable('header', key, expression)
+        "
+        :header-message="key => missingMessage('header', key)"
         :body-text="bodyText"
         :body-values="displayed('body')"
         :invalid-body-keys="invalidBodyKeys"
         :set-body-value="(key, value) => setValue('body', key, value)"
+        :insert-body-variable="
+          (key, expression) => insertVariable('body', key, expression)
+        "
+        :body-message="key => missingMessage('body', key)"
+        :variable-filter="pickerEligible"
+        :variable-surface="variableSurface"
       >
         <div class="flex flex-col gap-4 p-4 mb-4 rounded-lg bg-n-alpha-black2">
           <div class="flex justify-between items-center">
@@ -731,7 +744,13 @@ defineExpose({
       </div>
 
       <!-- Text Header Variables Section -->
-      <div v-if="hasTextHeaderVariables && processedParams.header">
+      <div
+        v-if="
+          !$slots['header-fields'] &&
+          hasTextHeaderVariables &&
+          processedParams.header
+        "
+      >
         <p class="mb-2.5 text-sm font-semibold">
           {{ $t('WHATSAPP_TEMPLATES.PARSER.HEADER_VARIABLES_LABEL') }}
         </p>
@@ -757,8 +776,10 @@ defineExpose({
         </div>
       </div>
 
+      <slot name="header-fields" />
+
       <!-- Body Variables Section -->
-      <slot name="body-fields">
+      <template v-if="!$slots['body-fields']">
         <div v-if="processedParams.body">
           <p class="mb-2.5 text-sm font-semibold">
             {{ $t('WHATSAPP_TEMPLATES.PARSER.VARIABLES_LABEL') }}
@@ -786,7 +807,8 @@ defineExpose({
         </div>
 
         <!-- Button Variables Section -->
-      </slot>
+      </template>
+      <slot name="body-fields" />
       <div v-if="processedParams.buttons">
         <p class="mb-2.5 text-sm font-semibold">
           {{ t('WHATSAPP_TEMPLATES.PARSER.BUTTON_PARAMETERS') }}
