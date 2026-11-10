@@ -196,11 +196,12 @@ describe('ChatHub field presentation', () => {
     wrapper.unmount();
   });
 
-  it('opens the system menu from the braces button and searches resolved options', async () => {
+  it('opens the system menu from the field without a picker button and searches resolved options', async () => {
     const wrapper = mount(TemplateDataField, {
       props: { label: 'Detail', options },
     });
-    await wrapper.get('button[aria-haspopup=listbox]').trigger('click');
+    expect(wrapper.find('button').exists()).toBe(false);
+    await wrapper.get('textarea').trigger('click');
     const search = wrapper.get('input[type=search]');
     expect(search.attributes('placeholder')).toBe('Search variables\u2026');
     await search.setValue('alex@example');
@@ -213,7 +214,7 @@ describe('ChatHub field presentation', () => {
   });
 });
 
-it('anchors the braces menu to the whole field inside a narrow bubble', async () => {
+it('anchors the field menu inside a narrow bubble', async () => {
   const bubble = document.createElement('div');
   bubble.dataset.testid = 'editable-body';
   document.body.appendChild(bubble);
@@ -224,13 +225,43 @@ it('anchors the braces menu to the whole field inside a narrow bubble', async ()
   document.documentElement.style.fontSize = '16px';
   bubble.getBoundingClientRect = () => ({ left: 100, right: 450 });
   wrapper.element.getBoundingClientRect = () => ({ left: 100, right: 250 });
-  const button = wrapper.get('button[aria-haspopup=listbox]');
-  button.element.getBoundingClientRect = () => ({ left: 240, right: 250 });
-  await button.trigger('click');
+  await wrapper.get('textarea').trigger('click');
   expect(
     wrapper.get('[role=listbox]').element.parentElement.classList
   ).toContain('start-0');
   wrapper.unmount();
   bubble.remove();
   document.documentElement.style.removeProperty('font-size');
+});
+
+it('sizes to content with an example minimum and reserves a second column only for a selected variable', async () => {
+  const wrapper = mount(TemplateDataField, {
+    props: { label: 'Detail', placeholder: 'Full example', options },
+  });
+  expect(wrapper.classes()).toContain('w-max');
+  expect(wrapper.classes()).toContain('max-w-full');
+  expect(wrapper.classes()).toContain('grid-cols-[minmax(0,1fr)]');
+  expect(wrapper.classes()).not.toContain('gap-x-1');
+  expect(wrapper.find('button').exists()).toBe(false);
+  const mirrors = wrapper.findAll('[aria-hidden=true]');
+  expect(mirrors[0].text()).toBe('Full example');
+  await wrapper.setProps({ value: 'A longer current value' });
+  expect(mirrors[0].text()).toBe('Full example');
+  expect(mirrors[1].text()).toBe('A longer current value');
+  await wrapper.setProps({ value: 'A' });
+  expect(mirrors[1].text()).toBe('A');
+  await wrapper.setProps({ value: '' });
+  expect(mirrors[1].text()).toBe('');
+  expect(mirrors[0].text()).toBe('Full example');
+  await wrapper.setProps({ expression: '{{ contact.name }}' });
+  expect(wrapper.get('textarea').element.value).toBe('Alex');
+  expect(wrapper.classes()).toContain('grid-cols-[minmax(0,1fr)_auto]');
+  expect(wrapper.classes()).toContain('gap-x-1');
+  expect(wrapper.findAll('button')).toHaveLength(1);
+  expect(wrapper.get('button').attributes('aria-label')).toBe(
+    'Remove Contact name and type a value'
+  );
+  await wrapper.get('button').trigger('click');
+  expect(wrapper.emitted('change')).toEqual([['']]);
+  wrapper.unmount();
 });

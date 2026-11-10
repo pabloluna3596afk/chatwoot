@@ -1,7 +1,6 @@
 <script setup>
 import { computed, nextTick, ref, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
-import Button from 'dashboard/components-next/button/Button.vue';
 
 const props = defineProps({
   value: { type: String, default: '' },
@@ -138,14 +137,17 @@ const clear = async () => {
 
 <template>
   <span
-    class="relative inline-grid max-w-full grid-cols-[minmax(0,1fr)_auto] items-start gap-x-1 rounded-md border border-solid px-1 align-baseline whitespace-normal focus-within:ring-2"
-    :class="
+    class="relative inline-grid w-max max-w-full items-start rounded-md border border-solid px-1 align-baseline whitespace-normal focus-within:ring-2"
+    :class="[
+      selected
+        ? 'grid-cols-[minmax(0,1fr)_auto] gap-x-1'
+        : 'grid-cols-[minmax(0,1fr)]',
       pending
         ? attempted
           ? 'border-n-ruby-9 bg-n-ruby-3 ring-2 ring-n-ruby-9/30'
           : 'border-n-ruby-7 bg-n-ruby-3 hover:border-n-ruby-8 focus-within:ring-n-ruby-9/30'
-        : 'border-n-brand/30 bg-n-brand/10 hover:border-n-brand/50 focus-within:ring-n-brand/30'
-    "
+        : 'border-n-brand/30 bg-n-brand/10 hover:border-n-brand/50 focus-within:ring-n-brand/30',
+    ]"
     @focusout="
       !$event.currentTarget.contains($event.relatedTarget) &&
         (close(), emit('leave'))
@@ -191,22 +193,6 @@ const clear = async () => {
       @compositionend="
         $event.target.composing = false;
         update($event);
-      "
-      @keydown="keydown"
-    />
-    <Button
-      v-if="!selected"
-      type="button"
-      intent="tertiary"
-      size="xs"
-      icon="i-lucide-braces"
-      :aria-label="t(`${prefix}.DATA_PICKER`)"
-      aria-haspopup="listbox"
-      :aria-expanded="open"
-      class="col-start-2 row-start-1 !size-5 !rounded-md !p-0 text-n-slate-11"
-      @click="
-        query = '';
-        open ? close() : showMenu($event);
       "
       @keydown="keydown"
     />
