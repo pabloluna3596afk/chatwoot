@@ -1,3 +1,10 @@
+### B-NEW-261 - La app instalada en Android mostraba el nombre e icono de Chatwoot (2026-11-10)
+
+- **Archivos:** `public/manifest.json`, `public/android-icon-512x512.png`, `public/android-icon-maskable-512x512.png`.
+- **Problema:** el manifiesto seguia llamandose "Chatwoot" y no traia icono de 512 px ni "maskable", asi que Android instalaba la app con la marca vieja o recortaba el icono.
+- **Arreglo:** nombre "ChatHub" y iconos de 192 y 512 px (`any`) mas uno `maskable` con margen de seguridad.
+- **Como probar:** en Chrome de Android, desinstalar la app instalada y volver a instalarla desde el menu "Instalar app"; el nombre y el icono deben ser los de ChatHub.
+
 ### B-NEW-260 - Ventana "Enviar por WhatsApp" estable, con datos en la vista previa (2026-11-10)
 
 - **Archivos:** `send-center/{SendCenter,SendCenterFilters,EditableBody,ChatPreview,CategoryChip,FlowDetail}`, parsers WhatsApp/Content (slots opcionales), `WhatsAppBubble.vue`, `Dialog.vue`, locales en/es de `whatsappTemplates.json` y specs.
