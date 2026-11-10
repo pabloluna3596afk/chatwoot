@@ -156,6 +156,8 @@ describe('field examples and pending state', () => {
     expect(input.element.value).toBe('12');
     expect(input.attributes('placeholder')).toBe('12 de noviembre');
     expect(wrapper.classes()).not.toContain('bg-n-ruby-3');
+    expect(wrapper.classes()).toContain('bg-n-brand/10');
+    expect(wrapper.classes()).toContain('border-n-brand/30');
     await input.setValue('');
     expect(wrapper.emitted('change')).toEqual([['']]);
     await wrapper.setProps({ value: '', missing: true, attempted: true });
@@ -164,4 +166,71 @@ describe('field examples and pending state', () => {
     expect(wrapper.classes()).toContain('bg-n-ruby-3');
     wrapper.unmount();
   });
+});
+
+describe('ChatHub field presentation', () => {
+  it('shows the example until a default resolves, then the actual value in blue', async () => {
+    const expression = '{{ contact.name }}';
+    const wrapper = mount(TemplateDataField, {
+      props: {
+        label: 'Detail 1 of 1',
+        value: expression,
+        expression,
+        placeholder: 'Alex Example',
+        status: 'loading',
+      },
+    });
+    const input = wrapper.get('textarea');
+    expect(input.element.value).toBe('');
+    expect(input.attributes('placeholder')).toBe('Alex Example');
+    expect(wrapper.text()).not.toContain(expression);
+    expect(wrapper.classes()).toContain('bg-n-ruby-3');
+    await wrapper.setProps({ value: 'Alex', options, status: 'ready' });
+    expect(input.element.value).toBe('Alex');
+    expect(input.attributes('title')).toBe('Contact name');
+    expect(wrapper.classes()).toContain('bg-n-brand/10');
+    expect(wrapper.classes()).toContain('border-n-brand/30');
+    expect(wrapper.text()).not.toContain('Contact name');
+    expect(wrapper.text()).not.toContain(expression);
+    expect(wrapper.emitted('change')).toBeUndefined();
+    wrapper.unmount();
+  });
+
+  it('opens the system menu from the braces button and searches resolved options', async () => {
+    const wrapper = mount(TemplateDataField, {
+      props: { label: 'Detail', options },
+    });
+    await wrapper.get('button[aria-haspopup=listbox]').trigger('click');
+    const search = wrapper.get('input[type=search]');
+    expect(search.attributes('placeholder')).toBe('Search variables\u2026');
+    await search.setValue('alex@example');
+    expect(wrapper.findAll('[role=option]')).toHaveLength(1);
+    await search.trigger('keydown', { key: 'ArrowDown' });
+    await search.trigger('keydown', { key: 'Enter' });
+    expect(wrapper.emitted('select')).toEqual([['{{ contact.email }}']]);
+    expect(wrapper.find('[role=listbox]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+});
+
+it('anchors the braces menu to the whole field inside a narrow bubble', async () => {
+  const bubble = document.createElement('div');
+  bubble.dataset.testid = 'editable-body';
+  document.body.appendChild(bubble);
+  const wrapper = mount(TemplateDataField, {
+    attachTo: bubble,
+    props: { label: 'Detail', options },
+  });
+  document.documentElement.style.fontSize = '16px';
+  bubble.getBoundingClientRect = () => ({ left: 100, right: 450 });
+  wrapper.element.getBoundingClientRect = () => ({ left: 100, right: 250 });
+  const button = wrapper.get('button[aria-haspopup=listbox]');
+  button.element.getBoundingClientRect = () => ({ left: 240, right: 250 });
+  await button.trigger('click');
+  expect(
+    wrapper.get('[role=listbox]').element.parentElement.classList
+  ).toContain('start-0');
+  wrapper.unmount();
+  bubble.remove();
+  document.documentElement.style.removeProperty('font-size');
 });

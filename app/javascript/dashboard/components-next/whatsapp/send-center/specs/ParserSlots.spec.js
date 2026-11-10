@@ -9,6 +9,7 @@ import TemplateDataField from '../TemplateDataField.vue';
 import EditableBody from '../EditableBody.vue';
 import ChatPreview from '../ChatPreview.vue';
 import es from 'dashboard/i18n/locale/es/whatsappTemplates.json';
+import esFilters from 'dashboard/i18n/locale/es/advancedFilters.json';
 
 vi.mock('dashboard/components-next/variable-picker/VariablePicker.vue', () => ({
   default: { props: ['filter', 'surface'], template: '<span />' },
@@ -93,16 +94,20 @@ describe('inline parser contract', () => {
       },
       global: {
         plugins: [
-          createI18n({ legacy: false, locale: 'es', messages: { es } }),
+          createI18n({
+            legacy: false,
+            locale: 'es',
+            messages: { es: { ...es, ...esFilters } },
+          }),
         ],
       },
     });
     await flushPromises();
     const inputs = wrapper.findAll('textarea');
     expect(inputs.map(input => input.attributes('aria-label'))).toEqual([
-      'Dato 1 de 2: Dato 1',
-      'Dato 2 de 2: Dato 2',
-      'Dato 1 de 2: Dato 1',
+      `Dato 1 de 2: ${esFilters.FILTER.INPUT_PLACEHOLDER}`,
+      `Dato 2 de 2: ${esFilters.FILTER.INPUT_PLACEHOLDER}`,
+      `Dato 1 de 2: ${esFilters.FILTER.INPUT_PLACEHOLDER}`,
     ]);
     expect(inputs.map(input => input.element.value)).toEqual([
       'Ana',
@@ -251,7 +256,11 @@ describe('inline parser contract', () => {
     const wrapper = mount(EditableBody, {
       global: {
         plugins: [
-          createI18n({ legacy: false, locale: 'es', messages: { es } }),
+          createI18n({
+            legacy: false,
+            locale: 'es',
+            messages: { es: { ...es, ...esFilters } },
+          }),
         ],
       },
       attachTo: document.body,
@@ -272,8 +281,8 @@ describe('inline parser contract', () => {
     await inputs[0].trigger('compositionend');
     expect(wrapper.emitted('change')).toEqual([['name', '日本']]);
     expect(inputs.map(input => input.attributes('placeholder'))).toEqual([
-      'Dato 1',
-      'Dato 2',
+      esFilters.FILTER.INPUT_PLACEHOLDER,
+      esFilters.FILTER.INPUT_PLACEHOLDER,
     ]);
     expect(inputs.every(input => !input.attributes('tabindex'))).toBe(true);
     wrapper.unmount();
@@ -372,4 +381,62 @@ describe('formatted field payload parity', () => {
       selectedInline.unmount();
     }
   );
+});
+
+describe('resolved named defaults in the send center bubble', () => {
+  it('preloads contact values without exposing parameter names or changing stored bindings', async () => {
+    const expression = '{{ contact.name }}';
+    VariablesAPI.preview.mockImplementation(async payload => ({
+      data: {
+        results: [
+          payload.texts.map(text => ({
+            value: text === expression ? 'Alex Contact' : text,
+            status: 'value',
+          })),
+        ],
+      },
+    }));
+    const wrapper = mount(WhatsAppTemplateParser, {
+      props: {
+        template: {
+          name: 'welcome',
+          components: [{ type: 'BODY', text: 'Hello {{customer_name}}' }],
+        },
+        defaultValues: { customer_name: expression },
+        resolveContext: { contact: { id: 1 }, conversation: { id: 2 } },
+      },
+      slots: {
+        preview: preview =>
+          h(EditableBody, {
+            text: preview.bodyText,
+            values: preview.bodyValues,
+            expressions: { customer_name: expression },
+            examples: { customer_name: 'Example Customer' },
+            labelFor: key => key,
+            onChange: preview.setBodyValue,
+          }),
+        'body-fields': () => null,
+      },
+    });
+    await flushPromises();
+    expect(wrapper.get('textarea').element.value).toBe('Alex Contact');
+    expect(wrapper.findComponent(TemplateDataField).classes()).toContain(
+      'bg-n-brand/10'
+    );
+    expect(wrapper.get('[data-testid=editable-body]').text()).not.toContain(
+      'customer_name'
+    );
+    expect(wrapper.get('[data-testid=editable-body]').text()).not.toContain(
+      expression
+    );
+    expect(wrapper.vm.processedParams.body.customer_name).toBe(expression);
+    expect(wrapper.vm.isFormInvalid).toBe(false);
+    expect(VariablesAPI.preview).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contexts: [{ contact_id: 1, conversation_id: 2 }],
+      }),
+      expect.anything()
+    );
+    wrapper.unmount();
+  });
 });

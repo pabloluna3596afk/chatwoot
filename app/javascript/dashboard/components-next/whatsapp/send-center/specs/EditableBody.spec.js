@@ -23,7 +23,7 @@ describe('inline template fields', () => {
       'false',
       'false',
     ]);
-    expect(fields[0].attributes('placeholder')).toBe('Data 1');
+    expect(fields[0].attributes('placeholder')).toBe('Enter value');
     await fields[0].trigger('blur');
     expect(fields[0].attributes('aria-invalid')).toBe('false');
     expect(

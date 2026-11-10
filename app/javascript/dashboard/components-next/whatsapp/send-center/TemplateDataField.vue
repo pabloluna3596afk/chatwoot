@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, ref, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
+import Button from 'dashboard/components-next/button/Button.vue';
 
 const props = defineProps({
   value: { type: String, default: '' },
@@ -29,10 +30,17 @@ const selected = computed(() =>
     option => !option.disabled && option.expression === props.expression
   )
 );
-const display = computed(() =>
-  selected.value ? String(selected.value.value) : props.value
-);
+const display = computed(() => {
+  if (selected.value) return String(selected.value.value);
+  // The parser keeps Liquid defaults while the server resolves the context.
+  // Show the example during that interval, never the expression itself.
+  return props.expression.includes('{{') && props.value === props.expression
+    ? ''
+    : props.value;
+});
+const pending = computed(() => props.missing || !display.value.trim());
 const query = ref('');
+const searching = ref(false);
 const options = computed(() =>
   props.options.filter(option =>
     `${option.label} ${option.value}`
@@ -48,10 +56,10 @@ const focus = event => {
   emit('focus', event);
   query.value = selected.value ? '' : props.value;
 };
-const showMenu = event => {
-  if (selected.value) return;
-  const rect = event.target.getBoundingClientRect();
-  const bubble = event.target
+const showMenu = () => {
+  if (selected.value || open.value) return;
+  const rect = input.value.parentElement.getBoundingClientRect();
+  const bubble = input.value
     .closest('[data-testid=editable-body]')
     ?.getBoundingClientRect();
   const rem = Number.parseFloat(
@@ -61,7 +69,7 @@ const showMenu = event => {
   alignment.value = 'start';
   if (bubble && rect.left + menuWidth > bubble.right)
     alignment.value = rect.right - menuWidth >= bubble.left ? 'end' : 'center';
-  const viewport = event.target
+  const viewport = input.value
     .closest('[data-testid=chat-preview-scroll]')
     ?.getBoundingClientRect();
   above.value =
@@ -72,6 +80,7 @@ const showMenu = event => {
 };
 const update = event => {
   if (event.isComposing || event.target.composing) return;
+  searching.value = false;
   query.value = event.target.value;
   active.value = -1;
   showMenu(event);
@@ -131,11 +140,11 @@ const clear = async () => {
   <span
     class="relative inline-grid max-w-full grid-cols-[minmax(0,1fr)_auto] items-start gap-x-1 rounded-md border border-solid px-1 align-baseline whitespace-normal focus-within:ring-2"
     :class="
-      missing
+      pending
         ? attempted
           ? 'border-n-ruby-9 bg-n-ruby-3 ring-2 ring-n-ruby-9/30'
           : 'border-n-ruby-7 bg-n-ruby-3 hover:border-n-ruby-8 focus-within:ring-n-ruby-9/30'
-        : 'border-n-weak bg-n-alpha-2 focus-within:ring-n-brand/30'
+        : 'border-n-brand/30 bg-n-brand/10 hover:border-n-brand/50 focus-within:ring-n-brand/30'
     "
     @focusout="
       !$event.currentTarget.contains($event.relatedTarget) &&
@@ -167,13 +176,13 @@ const clear = async () => {
       :aria-activedescendant="
         open && active >= 0 ? `${id}-option-${active}` : undefined
       "
-      :aria-invalid="missing && attempted"
+      :aria-invalid="pending && attempted"
       :placeholder="placeholder"
       :readonly="Boolean(selected)"
       :title="selected?.label"
       class="reset-base col-start-1 row-start-1 !m-0 !h-full !min-h-0 w-full min-w-0 resize-none overflow-hidden whitespace-pre-wrap [overflow-wrap:anywhere] !appearance-none !rounded-none !border-0 !bg-transparent !p-0 !shadow-none ![outline:none] [font-size:inherit] [font-family:inherit] [font-weight:inherit] [font-style:inherit] [text-decoration:inherit] leading-5 text-n-slate-12"
       :class="
-        missing ? 'placeholder:!text-n-ruby-11' : 'placeholder:text-n-slate-10'
+        pending ? 'placeholder:!text-n-ruby-11' : 'placeholder:text-n-slate-10'
       "
       @focus="focus"
       @click="showMenu"
@@ -182,6 +191,22 @@ const clear = async () => {
       @compositionend="
         $event.target.composing = false;
         update($event);
+      "
+      @keydown="keydown"
+    />
+    <Button
+      v-if="!selected"
+      type="button"
+      intent="tertiary"
+      size="xs"
+      icon="i-lucide-braces"
+      :aria-label="t(`${prefix}.DATA_PICKER`)"
+      aria-haspopup="listbox"
+      :aria-expanded="open"
+      class="col-start-2 row-start-1 !size-5 !rounded-md !p-0 text-n-slate-11"
+      @click="
+        query = '';
+        open ? close() : showMenu($event);
       "
       @keydown="keydown"
     />
@@ -196,7 +221,7 @@ const clear = async () => {
     </button>
     <span
       v-if="open && !selected"
-      class="absolute z-50 w-56 max-w-[calc(100vw-6rem)] rounded-lg border border-n-weak bg-n-solid-1 p-1 font-sans text-xs font-normal not-italic text-n-slate-12 shadow-lg"
+      class="absolute z-50 w-56 max-w-[calc(100vw-6rem)] rounded-lg border border-n-weak bg-n-alpha-3 p-2 backdrop-blur-[100px] font-sans text-sm font-normal not-italic text-n-slate-12 shadow-lg"
       :class="[
         {
           'start-0': alignment === 'start',
@@ -207,9 +232,24 @@ const clear = async () => {
       ]"
       @mousedown.prevent
     >
-      <span :id="`${id}-title`" class="block px-2 py-1.5 font-medium">{{
-        t(`${prefix}.SYSTEM_VARIABLES`)
-      }}</span>
+      <input
+        v-model="query"
+        type="search"
+        :aria-label="t('VARIABLE_PICKER.SEARCH')"
+        :placeholder="t('VARIABLE_PICKER.SEARCH')"
+        class="!m-0 !mb-2 !h-8 !rounded-md !border-n-weak !bg-n-alpha-2 !px-2 !py-1 !text-sm !text-n-slate-12 placeholder:!text-n-slate-10 focus:!border-n-brand focus:!ring-n-brand/30"
+        @mousedown.stop
+        @input="
+          searching = true;
+          active = -1;
+        "
+        @keydown="keydown"
+      />
+      <span
+        :id="`${id}-title`"
+        class="block px-2 py-2 text-xs font-medium uppercase tracking-wide text-n-slate-11"
+        >{{ t(`${prefix}.SYSTEM_VARIABLES`) }}</span
+      >
       <span
         :id="`${id}-list`"
         role="listbox"
@@ -217,7 +257,7 @@ const clear = async () => {
         class="block max-h-40 overflow-y-auto overscroll-contain"
       >
         <span
-          v-if="query"
+          v-if="query && !searching"
           role="option"
           aria-selected="false"
           class="sticky top-0 block truncate rounded bg-n-solid-1 px-2 py-2 text-n-blue-11 cursor-pointer"

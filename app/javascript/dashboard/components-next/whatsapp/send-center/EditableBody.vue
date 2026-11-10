@@ -30,9 +30,7 @@ const keys = computed(() => [
   ),
 ]);
 const label = key => props.labelFor(key, keys.value.indexOf(key));
-const placeholder = key =>
-  props.examples[key] ||
-  t(`${prefix}.DATA`, { index: keys.value.indexOf(key) + 1 });
+const placeholder = key => props.examples[key] || t('FILTER.INPUT_PLACEHOLDER');
 const dataLabel = part =>
   t(`${prefix}.DATA_LABEL`, {
     index: part.ordinal,

@@ -10,6 +10,7 @@ import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import API from 'dashboard/api/whatsappFlows';
 import en from 'dashboard/i18n/locale/en/whatsappTemplates.json';
 import es from 'dashboard/i18n/locale/es/whatsappTemplates.json';
+import esFilters from 'dashboard/i18n/locale/es/advancedFilters.json';
 import esFlows from 'dashboard/i18n/locale/es/whatsappFlows.json';
 
 vi.mock('dashboard/api/variables', () => ({
@@ -71,7 +72,7 @@ describe('unified send center', () => {
           legacy: false,
           locale: 'es',
           fallbackLocale: 'en',
-          messages: { es: { ...es, ...esFlows }, en },
+          messages: { es: { ...es, ...esFlows, ...esFilters }, en },
         }),
         createStore({
           getters: {
@@ -814,7 +815,7 @@ describe('unified send center', () => {
             legacy: false,
             locale: 'es',
             fallbackLocale: 'en',
-            messages: { es: { ...es, ...esFlows }, en },
+            messages: { es: { ...es, ...esFlows, ...esFilters }, en },
           }),
           createStore({
             getters: {
@@ -875,7 +876,7 @@ describe('unified send center', () => {
             legacy: false,
             locale: 'es',
             fallbackLocale: 'en',
-            messages: { es: { ...es, ...esFlows }, en },
+            messages: { es: { ...es, ...esFlows, ...esFilters }, en },
           }),
           createStore({
             getters: {
@@ -981,7 +982,7 @@ describe('unified send center', () => {
             legacy: false,
             locale: 'es',
             fallbackLocale: 'en',
-            messages: { es: { ...es, ...esFlows }, en },
+            messages: { es: { ...es, ...esFlows, ...esFilters }, en },
           }),
           createStore({
             getters: {
@@ -1028,7 +1029,7 @@ describe('unified send center', () => {
             legacy: false,
             locale: 'es',
             fallbackLocale: 'en',
-            messages: { es: { ...es, ...esFlows }, en },
+            messages: { es: { ...es, ...esFlows, ...esFilters }, en },
           }),
           createStore({
             getters: {
@@ -1443,8 +1444,12 @@ describe('unified send center', () => {
       const inputs = wrapper.findAll('[data-testid="editable-body"] textarea');
       expect(inputs[0].attributes('placeholder')).toBe('Ana');
       expect(inputs[1].attributes('placeholder')).toContain('12 de noviembre');
-      expect(inputs[2].attributes('placeholder')).toBe('Dato 3');
-      expect(inputs[2].attributes('aria-label')).toBe('Dato 3 de 3: Dato 3');
+      expect(inputs[2].attributes('placeholder')).toBe(
+        esFilters.FILTER.INPUT_PLACEHOLDER
+      );
+      expect(inputs[2].attributes('aria-label')).toBe(
+        `Dato 3 de 3: ${esFilters.FILTER.INPUT_PLACEHOLDER}`
+      );
       expect(inputs.map(input => input.element.value)).toEqual(['', '', '']);
       expect(wrapper.findAll('[data-template-field]')).toHaveLength(3);
       const hint = wrapper.get('[data-testid="preview-field-hint"]');
