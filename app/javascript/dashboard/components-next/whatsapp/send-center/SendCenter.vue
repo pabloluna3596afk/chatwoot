@@ -60,6 +60,7 @@ const serverCanReply = ref(true);
 const isSending = ref(false);
 const isRefreshing = ref(false);
 const error = ref('');
+const flowError = ref('');
 const tab = ref(0);
 const newTabState = () => ({
   query: '',
@@ -94,6 +95,9 @@ const selectedKey = computed({
   },
 });
 const { run, abort, isPending } = useAbortableRequest();
+const activeLoading = computed(
+  () => isRefreshing.value || (tab.value === 1 && isPending.value)
+);
 const hasFlows = computed(() => supportsFlows(props.inbox));
 const content = computed(() => usesContentTemplates(props.inbox));
 const tabs = computed(() => [
@@ -272,7 +276,7 @@ const missingLabels = computed(() => {
 });
 const missingSummary = computed(() => {
   if (missingLabels.value.length > 3)
-    return t(`${prefix}.MISSING_COUNT`, { count: missingLabels.value.length });
+    return t(`${prefix}.MISSING_COUNT`, missingLabels.value.length);
   if (missingLabels.value.length)
     return t(`${prefix}.COMPLETE`, {
       field: missingLabels.value.join(' \u00b7 '),
@@ -286,6 +290,22 @@ watch(selectedKey, () => {
 const component = type =>
   selected.value?.data.components?.find(c => c.type === type);
 const header = computed(() => component('HEADER')?.text || '');
+const bodyExamples = computed(() => {
+  const example = component('BODY')?.example;
+  if (example?.body_text_named_params)
+    return Object.fromEntries(
+      example.body_text_named_params.map(item => [
+        item.param_name,
+        item.example,
+      ])
+    );
+  return Object.fromEntries(
+    (example?.body_text?.[0] || []).map((value, index) => [
+      String(index + 1),
+      value,
+    ])
+  );
+});
 const body = computed(
   () => component('BODY')?.text || selected.value?.data.body || ''
 );
@@ -326,7 +346,7 @@ const close = () => {
   emit('close');
 };
 const loadFlows = async () => {
-  error.value = '';
+  flowError.value = '';
   try {
     const response = await run(signal =>
       WhatsappFlowsAPI.conversationFlows(props.conversationId, { signal })
@@ -335,7 +355,7 @@ const loadFlows = async () => {
     flows.value = response.data.payload;
     serverCanReply.value = response.data.can_reply;
   } catch (e) {
-    error.value = e.response?.data?.error || t(`${prefix}.LOAD_ERROR`);
+    flowError.value = e.response?.data?.error || t(`${prefix}.LOAD_ERROR`);
   }
 };
 const refresh = async () => {
@@ -343,6 +363,7 @@ const refresh = async () => {
   error.value = '';
   try {
     await store.dispatch('inboxes/syncTemplates', props.inbox.id);
+    isRefreshing.value = false;
     if (hasFlows.value) await loadFlows();
   } catch (e) {
     error.value = e.response?.data?.error || t(`${prefix}.LOAD_ERROR`);
@@ -402,6 +423,7 @@ watch(
     abort();
     flows.value = [];
     error.value = '';
+    flowError.value = '';
     if (!props.show) {
       dialog.value?.close();
       return;
@@ -492,7 +514,7 @@ const overlayDescriptionId = useId();
                 icon="i-lucide-refresh-cw"
                 :title="$t(`${prefix}.REFRESH`)"
                 :aria-label="$t(`${prefix}.REFRESH`)"
-                :is-loading="isRefreshing || isPending"
+                :is-loading="activeLoading"
                 :disabled="isSending || isRefreshing || isPending"
                 data-testid="center-refresh"
                 @click="refresh"
@@ -548,9 +570,23 @@ const overlayDescriptionId = useId();
                 data-testid="center-status"
               />
             </div>
-            <p v-if="isPending" class="text-xs text-n-slate-11">
+            <p v-if="activeLoading" class="text-xs text-n-slate-11">
               {{ $t(`${prefix}.LOADING`) }}
             </p>
+          </div>
+          <div
+            v-if="tab === 1 && flowError"
+            class="flex flex-col gap-2"
+            data-testid="center-flow-error"
+          >
+            <p role="alert" class="text-sm text-n-ruby-11">{{ flowError }}</p>
+            <Button
+              intent="secondary"
+              size="sm"
+              :label="$t(`${prefix}.RETRY`)"
+              :disabled="isPending"
+              @click="loadFlows"
+            />
           </div>
           <div
             class="min-h-0 flex-1 overflow-y-auto overscroll-contain flex flex-col gap-1"
@@ -595,7 +631,9 @@ const overlayDescriptionId = useId();
               </span>
             </button>
             <div
-              v-if="!filtered.length && !isPending"
+              v-if="
+                !filtered.length && !activeLoading && !(tab === 1 && flowError)
+              "
               class="flex flex-col items-center gap-3 px-4 py-10 text-center"
             >
               <Icon
@@ -673,6 +711,19 @@ const overlayDescriptionId = useId();
                   :buttons="buttons"
                   :header-media="headerMedia"
                 >
+                  <template #header>
+                    <EditableBody
+                      v-if="preview.headerText"
+                      :text="preview.headerText"
+                      :values="preview.headerValues"
+                      :label-for="fieldLabel"
+                      :message-for="preview.headerMessage"
+                      :variable-filter="preview.variableFilter"
+                      :variable-surface="preview.variableSurface"
+                      @change="preview.setHeaderValue"
+                      @select="preview.insertHeaderVariable"
+                    />
+                  </template>
                   <EditableBody
                     v-if="preview.bodyText"
                     ref="editableBody"
@@ -681,10 +732,16 @@ const overlayDescriptionId = useId();
                     :invalid-keys="preview.invalidBodyKeys"
                     :attempted="attempted"
                     :label-for="fieldLabel"
+                    :examples="bodyExamples"
+                    :message-for="preview.bodyMessage"
+                    :variable-filter="preview.variableFilter"
+                    :variable-surface="preview.variableSurface"
                     @change="preview.setBodyValue"
+                    @select="preview.insertBodyVariable"
                   />
                 </ChatPreview>
               </template>
+              <template #header-fields />
               <template #body-fields />
               <template #actions />
             </component>

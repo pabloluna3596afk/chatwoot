@@ -71,7 +71,7 @@
       "DESCRIPTION": "Choose a template or a Flow for this conversation.",
       "TEMPLATES": "Templates",
       "FLOWS": "Flows",
-      "SEARCH": "Search by name or content?",
+      "SEARCH": "Search templates",
       "FILTER_CATEGORY": "Categories",
       "FILTER_STATUS": "Status",
       "ALL_CATEGORIES": "All categories",
@@ -92,13 +92,13 @@
       "CLOSE": "Close",
       "REFRESH": "Refresh templates",
       "EMPTY": "No matches",
-      "LOADING": "Loading catalog?",
+      "LOADING": "Loading catalog…",
       "LOAD_ERROR": "Could not load the catalog.",
       "SEND_ERROR": "Could not send the message.",
       "READY": "Ready to send",
       "UNAVAILABLE": "Sending unavailable",
       "NO_SELECTION": "Choose an item to see its preview.",
-      "SCREENS": "{count} screens",
+      "SCREENS": "{count} screen | {count} screens",
       "CATEGORY": {
         "UTILITY": "Utility",
         "MARKETING": "Marketing",
@@ -156,10 +156,12 @@
       "EMPTY_HELP": "Try another search or clear the filters.",
       "CLEAR_FILTERS": "Clear filters",
       "COMPLETE": "Complete: {field}",
-      "MISSING_COUNT": "Missing {count} details",
+      "MISSING_COUNT": "Missing {count} detail | Missing {count} details",
       "CHECK_FIELDS": "Check the message fields.",
       "DATA": "Data {index}",
-      "DATA_LABEL": "{name}, data {index} of {total}"
+      "DATA_LABEL": "{name}, data {index} of {total}",
+      "EXAMPLE": "E.g.: {example}",
+      "RETRY": "Retry"
     }
   }
 }

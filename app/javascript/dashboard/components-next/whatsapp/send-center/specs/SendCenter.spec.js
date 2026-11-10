@@ -357,7 +357,7 @@ describe('unified send center', () => {
     expect(wrapper.findAllComponents(DialogStub)).toHaveLength(1);
   });
 
-  it('keeps refresh spinning and disabled during template synchronization and Flow loading', async () => {
+  it('stops the template loading indicator while background Flows finish', async () => {
     let resolveSync;
     let resolveFlows;
     const sync = vi.fn(
@@ -410,7 +410,7 @@ describe('unified send center', () => {
     resolveSync();
     await flushPromises();
     expect(refresh.attributes('disabled')).toBeDefined();
-    expect(refresh.find('.animate-spin').exists()).toBe(true);
+    expect(refresh.find('.animate-spin').exists()).toBe(false);
     resolveFlows({ data: { payload: [], can_reply: true } });
     await flushPromises();
     expect(refresh.attributes('disabled')).toBeUndefined();
@@ -1113,7 +1113,7 @@ describe('unified send center', () => {
     });
     await flushPromises();
     expect(wrapper.get('[data-testid="center-invalid-reason"]').text()).toBe(
-      'Missing 4 details'
+      'Faltan 4 datos'
     );
     expect(
       wrapper.get('[data-testid="center-send"]').attributes('disabled')
@@ -1132,13 +1132,194 @@ describe('unified send center', () => {
     ).toBeUndefined();
   });
 
-  it('preserves translated keys while new source keys await Crowdin', () => {
+  it('isolates pending and failed Flow catalogs and retries inside the Flow tab', async () => {
+    let rejectFlows;
+    API.conversationFlows.mockImplementationOnce(
+      () =>
+        new Promise((resolve, reject) => {
+          rejectFlows = reject;
+        })
+    );
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: 'whatsapp_cloud',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates,
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    expect(wrapper.text()).not.toContain(
+      es.WHATSAPP_TEMPLATES.SEND_CENTER.LOADING
+    );
+    expect(
+      wrapper
+        .get('[data-testid="center-refresh"]')
+        .find('.animate-spin')
+        .exists()
+    ).toBe(false);
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    expect(wrapper.text()).toContain(es.WHATSAPP_TEMPLATES.SEND_CENTER.LOADING);
+    rejectFlows(new Error('offline'));
+    await flushPromises();
+    expect(wrapper.text()).not.toContain(
+      es.WHATSAPP_TEMPLATES.SEND_CENTER.LOADING
+    );
+    expect(wrapper.get('[data-testid="center-flow-error"]').text()).toContain(
+      'No se pudo cargar'
+    );
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 0 });
+    await flushPromises();
+    expect(wrapper.find('[data-testid="center-flow-error"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.get('[data-testid="center-footer"]').text()).not.toContain(
+      'No se pudo cargar'
+    );
+    expect(
+      wrapper.get('[data-testid="center-send"]').attributes('disabled')
+    ).toBeUndefined();
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    await wrapper
+      .get('[data-testid="center-flow-error"] button')
+      .trigger('click');
+    await flushPromises();
+    expect(wrapper.find('[data-testid="center-flow-error"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.get('[data-testid="center-list"]').text()).toContain(
+      'Contact'
+    );
+  });
+
+  it.each([
+    [{ body_text: [['Ana', '12 de noviembre']] }, '1', '2'],
+    [
+      {
+        body_text_named_params: [
+          { param_name: 'name', example: 'Ana' },
+          { param_name: 'date', example: '12 de noviembre' },
+        ],
+      },
+      'name',
+      'date',
+    ],
+  ])(
+    'uses body examples only as hints, with accessible labels and a fallback',
+    async (example, first, second) => {
+      wrapper = mount(SendCenter, {
+        props: {
+          show: true,
+          inbox: {
+            id: 3,
+            channel_type: 'Channel::Whatsapp',
+            provider: '360dialog',
+          },
+          conversationId: 5,
+          canReply: true,
+          templates: [
+            {
+              name: 'sample',
+              status: 'APPROVED',
+              language: 'es',
+              category: 'UTILITY',
+              components: [
+                {
+                  type: 'BODY',
+                  text: `Hi {{${first}}}}, {{${second}}}, {{3}}`,
+                  example,
+                },
+              ],
+            },
+          ],
+          sendTemplate: vi.fn(),
+        },
+        global: { ...globalOptions, stubs: { Dialog: DialogStub } },
+      });
+      await flushPromises();
+      const inputs = wrapper.findAll('[data-testid="editable-body"] input');
+      expect(inputs[0].attributes('placeholder')).toContain('Ej.: Ana');
+      expect(inputs[1].attributes('placeholder')).toContain(
+        'Ej.: 12 de noviembre'
+      );
+      expect(inputs[2].attributes('placeholder')).toBe('Dato 3');
+      expect(inputs[2].attributes('aria-label')).toBe('Dato 3, dato 3 de 3');
+      expect(inputs.map(input => input.element.value)).toEqual(['', '', '']);
+      expect(wrapper.findAll('input[type=text]')).toHaveLength(3);
+    }
+  );
+
+  it('edits a text header only inside the bubble and preserves its payload', async () => {
+    const send = vi.fn(async () => false);
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: '360dialog',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates: [
+          {
+            name: 'header',
+            status: 'APPROVED',
+            language: 'es',
+            category: 'UTILITY',
+            components: [
+              { type: 'HEADER', format: 'TEXT', text: 'Order {{1}}' },
+              { type: 'BODY', text: 'Ready' },
+            ],
+          },
+        ],
+        sendTemplate: send,
+      },
+      global: { ...globalOptions, stubs: { Dialog: DialogStub } },
+    });
+    await flushPromises();
+    expect(wrapper.findAll('[data-template-fields] input')).toHaveLength(0);
+    const fields = wrapper.findAll('[data-testid="editable-body"] input');
+    expect(fields).toHaveLength(1);
+    await fields[0].setValue('123');
+    await wrapper.get('[data-testid="center-send"]').trigger('click');
+    await flushPromises();
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        templateParams: expect.objectContaining({
+          processed_params: expect.objectContaining({ header: { 1: '123' } }),
+        }),
+      })
+    );
+  });
+
+  it('keeps all send center keys translated in Spanish', () => {
     const english = en.WHATSAPP_TEMPLATES.SEND_CENTER;
     const spanish = es.WHATSAPP_TEMPLATES.SEND_CENTER;
-    expect(Object.keys(english)).toEqual(
-      expect.arrayContaining(Object.keys(spanish))
-    );
-    expect(english.MISSING_COUNT).toBe('Missing {count} details');
+    expect(Object.keys(english).sort()).toEqual(Object.keys(spanish).sort());
+    const i18n = globalOptions.plugins[0];
+    expect(
+      i18n.global.t('WHATSAPP_TEMPLATES.SEND_CENTER.MISSING_COUNT', 1)
+    ).toBe('Falta 1 dato');
+    expect(
+      i18n.global.t('WHATSAPP_TEMPLATES.SEND_CENTER.MISSING_COUNT', 6)
+    ).toBe('Faltan 6 datos');
+    i18n.global.locale.value = 'en';
+    expect(
+      i18n.global.t('WHATSAPP_TEMPLATES.SEND_CENTER.MISSING_COUNT', 1)
+    ).toBe('Missing 1 detail');
+    expect(
+      i18n.global.t('WHATSAPP_TEMPLATES.SEND_CENTER.MISSING_COUNT', 6)
+    ).toBe('Missing 6 details');
     ['CATEGORY', 'STATUS', 'REASONS', 'MEDIA_FORMATS'].forEach(key =>
       expect(Object.keys(english[key])).toEqual(Object.keys(spanish[key]))
     );

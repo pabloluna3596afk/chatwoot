@@ -1,3 +1,10 @@
+### B-NEW-261 - Unificar datos y aislar el catalogo de Flows al enviar plantillas (2026-11-09)
+
+- **Archivos:** `send-center/{EditableBody,ChatPreview,SendCenter}.vue`, parsers WhatsApp/Content, slot opcional de encabezado de `WhatsAppBubble.vue`, locales `en/es/whatsappTemplates.json` y specs.
+- **Causa:** los slots vacios activaban los inputs de respaldo de Vue; los inputs inline heredaban alto/margen globales; faltaba MISSING_COUNT en es y Flows compartia su error con el pie de Plantillas.
+- **Arreglo:** suprimir el respaldo cuando se proporciona el slot, integrar el selector y aviso del parser en la burbuja (incluido encabezado de texto), usar ejemplos como pistas sin completar valores, reset-base y encabezado multimedia a ancho completo. Completar claves es/en, pluralizar, acortar buscador y aislar error/carga de Flows con Reintentar. Sin cambios de payload, elegibilidad ni comportamiento por defecto de los consumidores sin slots.
+- **Verificacion:** Vitest 10 suites / 270 pruebas en UTC y America/Guayaquil; contratos de payload WhatsApp/API/Twilio y encabezado. ESLint: 0 errores, 45 avisos. Navegador con componentes reales y datos ficticios: 768/1024/1440, claro/oscuro; selector funcional, campos de 22 px sin margen y multimedia de ancho completo/maximo 9 rem. No equivale al CRM completo. Capturas y aprobacion visual del PM pendientes antes de PR. Informe local `tmp/PR-PLANTILLAS-RONDA3.md`; sin migraciones.
+
 ### B-NEW-260 — Pulido de plantillas en el centro de envío (2026-11-09)
 
 - **Archivos:** `send-center/EditableBody.vue`, `ChatPreview.vue`, `SendCenter.vue` y sus specs; fuente inglesa `whatsappTemplates.json`.

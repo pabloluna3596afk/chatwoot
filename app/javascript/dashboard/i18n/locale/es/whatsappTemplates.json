@@ -71,7 +71,7 @@
       "DESCRIPTION": "Elige una plantilla o un Flow para esta conversación.",
       "TEMPLATES": "Plantillas",
       "FLOWS": "Flows",
-      "SEARCH": "Buscar por nombre o contenido…",
+      "SEARCH": "Buscar plantillas",
       "FILTER_CATEGORY": "Categorías",
       "FILTER_STATUS": "Estados",
       "ALL_CATEGORIES": "Todas las categorías",
@@ -98,7 +98,7 @@
       "READY": "Listo para enviar",
       "UNAVAILABLE": "Envío no disponible",
       "NO_SELECTION": "Elige un elemento para ver su vista previa.",
-      "SCREENS": "{count} pantallas",
+      "SCREENS": "{count} pantalla | {count} pantallas",
       "CATEGORY": {
         "UTILITY": "Utilidad",
         "MARKETING": "Marketing",
@@ -158,7 +158,10 @@
       "COMPLETE": "Completa: {field}",
       "CHECK_FIELDS": "Revisa los datos del mensaje.",
       "DATA": "Dato {index}",
-      "DATA_LABEL": "{name}, dato {index} de {total}"
+      "DATA_LABEL": "{name}, dato {index} de {total}",
+      "MISSING_COUNT": "Falta {count} dato | Faltan {count} datos",
+      "EXAMPLE": "Ej.: {example}",
+      "RETRY": "Reintentar"
     }
   }
 }
