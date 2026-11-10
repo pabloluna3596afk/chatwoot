@@ -65,10 +65,12 @@ const items = computed(() =>
             {{ header }}
           </p>
           <div data-testid="send-center-preview-body">
-            <template v-for="(line, index) in bodyLines" :key="index">
-              <p v-if="line" class="whitespace-pre-wrap">{{ line }}</p>
-              <div v-else class="h-1.5" />
-            </template>
+            <slot name="body">
+              <template v-for="(line, index) in bodyLines" :key="index">
+                <p v-if="line" class="whitespace-pre-wrap">{{ line }}</p>
+                <div v-else class="h-1.5" />
+              </template>
+            </slot>
           </div>
           <p
             v-if="footer"

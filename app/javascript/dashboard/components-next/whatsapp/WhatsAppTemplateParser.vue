@@ -523,7 +523,34 @@ watch(
   { immediate: true }
 );
 
+// Presentation hint only; sending still uses the existing completeness validator.
+const invalidBodyKeys = computed(() =>
+  Object.keys(processedParams.value.body || {}).filter(
+    key => !displayValue('body', key) || isMissing('body', key)
+  )
+);
+const missingField = computed(() => {
+  if (invalidBodyKeys.value.length)
+    return { section: 'body', key: invalidBodyKeys.value[0] };
+  if (hasMediaHeader.value && !processedParams.value.header?.media_url)
+    return { section: 'header', key: 'media_url' };
+  if (hasTextHeaderVariables.value) {
+    const key = Object.keys(processedParams.value.header || {}).find(
+      name => !displayValue('header', name) || isMissing('header', name)
+    );
+    if (key) return { section: 'header', key };
+  }
+  if (
+    Object.values(processedParams.value.buttons || {}).some(
+      button => !button.parameter
+    )
+  )
+    return { section: 'buttons' };
+  return null;
+});
+
 defineExpose({
+  missingField,
   processedParams,
   hasVariables,
   hasMediaHeader,
@@ -548,7 +575,15 @@ defineExpose({
 <template>
   <div>
     <div data-template-preview>
-      <slot name="preview" :header="renderedHeader" :body="renderedTemplate">
+      <slot
+        name="preview"
+        :header="renderedHeader"
+        :body="renderedTemplate"
+        :body-text="bodyText"
+        :body-values="displayed('body')"
+        :invalid-body-keys="invalidBodyKeys"
+        :set-body-value="(key, value) => setValue('body', key, value)"
+      >
         <div class="flex flex-col gap-4 p-4 mb-4 rounded-lg bg-n-alpha-black2">
           <div class="flex justify-between items-center">
             <h3 class="text-sm font-medium text-n-slate-12">
@@ -579,7 +614,14 @@ defineExpose({
         </div>
       </slot>
     </div>
-    <div v-if="hasVariables || hasMediaHeader" data-template-fields>
+    <div
+      v-if="
+        hasVariables ||
+        hasMediaHeader ||
+        ($slots['body-fields'] && processedParams.buttons)
+      "
+      data-template-fields
+    >
       <p v-if="previewFailed" class="mb-2 text-sm text-n-ruby-11">
         {{ $t('WHATSAPP_TEMPLATES.PARSER.PREVIEW_FAILED') }}
       </p>
@@ -716,33 +758,35 @@ defineExpose({
       </div>
 
       <!-- Body Variables Section -->
-      <div v-if="processedParams.body">
-        <p class="mb-2.5 text-sm font-semibold">
-          {{ $t('WHATSAPP_TEMPLATES.PARSER.VARIABLES_LABEL') }}
-        </p>
-        <div
-          v-for="(variable, key) in processedParams.body"
-          :key="`body-${key}`"
-          class="flex min-w-0 flex-wrap items-center gap-y-2 mb-2.5"
-        >
-          <TemplateVariableInput
-            :model-value="displayValue('body', key)"
-            class="min-w-0 flex-1"
-            :message="missingMessage('body', key)"
-            :placeholder="
-              t('WHATSAPP_TEMPLATES.PARSER.VARIABLE_PLACEHOLDER', {
-                variable: key,
-              })
-            "
-            :surface="variableSurface"
-            :filter="pickerEligible"
-            @update:model-value="setValue('body', key, $event)"
-            @select="insertVariable('body', key, $event.expression)"
-          />
+      <slot name="body-fields">
+        <div v-if="processedParams.body">
+          <p class="mb-2.5 text-sm font-semibold">
+            {{ $t('WHATSAPP_TEMPLATES.PARSER.VARIABLES_LABEL') }}
+          </p>
+          <div
+            v-for="(variable, key) in processedParams.body"
+            :key="`body-${key}`"
+            class="flex min-w-0 flex-wrap items-center gap-y-2 mb-2.5"
+          >
+            <TemplateVariableInput
+              :model-value="displayValue('body', key)"
+              class="min-w-0 flex-1"
+              :message="missingMessage('body', key)"
+              :placeholder="
+                t('WHATSAPP_TEMPLATES.PARSER.VARIABLE_PLACEHOLDER', {
+                  variable: key,
+                })
+              "
+              :surface="variableSurface"
+              :filter="pickerEligible"
+              @update:model-value="setValue('body', key, $event)"
+              @select="insertVariable('body', key, $event.expression)"
+            />
+          </div>
         </div>
-      </div>
 
-      <!-- Button Variables Section -->
+        <!-- Button Variables Section -->
+      </slot>
       <div v-if="processedParams.buttons">
         <p class="mb-2.5 text-sm font-semibold">
           {{ t('WHATSAPP_TEMPLATES.PARSER.BUTTON_PARAMETERS') }}

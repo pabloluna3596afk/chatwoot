@@ -154,7 +154,20 @@ watch(
   { deep: true }
 );
 
+const missingField = computed(() => {
+  const key = Object.keys(processedParams.value).find(
+    name => !processedParams.value[name]?.trim()
+  );
+  return key
+    ? { section: key === mediaVariableKey.value ? 'header' : 'body', key }
+    : null;
+});
+const invalidBodyKeys = computed(() =>
+  variablePattern.value.filter(key => !processedParams.value[key]?.trim())
+);
+
 defineExpose({
+  missingField,
   processedParams,
   hasVariables,
   hasMediaTemplate,
@@ -169,32 +182,40 @@ defineExpose({
 
 <template>
   <div>
-    <div
-      data-template-preview
-      class="flex flex-col gap-4 p-4 mb-4 rounded-lg bg-n-alpha-black2"
+    <slot
+      name="preview"
+      :body="renderedTemplate"
+      :body-text="templateBody"
+      :body-values="processedParams"
+      :invalid-body-keys="invalidBodyKeys"
+      :set-body-value="(key, value) => (processedParams[key] = value)"
     >
-      <div class="flex justify-between items-center">
-        <h3 class="text-sm font-medium text-n-slate-12">
-          {{ template.friendly_name }}
-        </h3>
-        <span class="text-xs text-n-slate-11">
-          {{ languageLabel }}
-        </span>
-      </div>
+      <div
+        data-template-preview
+        class="flex flex-col gap-4 p-4 mb-4 rounded-lg bg-n-alpha-black2"
+      >
+        <div class="flex justify-between items-center">
+          <h3 class="text-sm font-medium text-n-slate-12">
+            {{ template.friendly_name }}
+          </h3>
+          <span class="text-xs text-n-slate-11">
+            {{ languageLabel }}
+          </span>
+        </div>
 
-      <div class="flex flex-col gap-2">
-        <div class="rounded-md">
-          <div class="text-sm whitespace-pre-wrap text-n-slate-12">
-            {{ renderedTemplate }}
+        <div class="flex flex-col gap-2">
+          <div class="rounded-md">
+            <div class="text-sm whitespace-pre-wrap text-n-slate-12">
+              {{ renderedTemplate }}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="text-xs text-n-slate-11">
-        {{ categoryLabel }}
+        <div class="text-xs text-n-slate-11">
+          {{ categoryLabel }}
+        </div>
       </div>
-    </div>
-
+    </slot>
     <div v-if="hasVariables || hasMediaVariable" data-template-fields>
       <!-- Media URL for media templates -->
       <div v-if="hasMediaVariable" class="mb-4">
@@ -215,31 +236,32 @@ defineExpose({
       </div>
 
       <!-- Body Variables Section -->
-      <div v-if="hasVariables">
-        <p class="mb-2.5 text-sm font-semibold">
-          {{ $t('CONTENT_TEMPLATES.PARSER.VARIABLES_LABEL') }}
-        </p>
-        <div
-          v-for="variable in variablePattern"
-          :key="`variable-${variable}`"
-          class="flex items-center mb-2.5"
-        >
-          <TemplateVariableInput
-            v-model="processedParams[variable]"
-            class="flex-1"
-            :placeholder="
-              t('CONTENT_TEMPLATES.PARSER.VARIABLE_PLACEHOLDER', {
-                variable: variable,
-              })
-            "
-            @select="
-              processedParams[variable] +=
-                `${processedParams[variable] ? ' ' : ''}${$event.expression}`
-            "
-          />
+      <slot name="body-fields">
+        <div v-if="hasVariables">
+          <p class="mb-2.5 text-sm font-semibold">
+            {{ $t('CONTENT_TEMPLATES.PARSER.VARIABLES_LABEL') }}
+          </p>
+          <div
+            v-for="variable in variablePattern"
+            :key="`variable-${variable}`"
+            class="flex items-center mb-2.5"
+          >
+            <TemplateVariableInput
+              v-model="processedParams[variable]"
+              class="flex-1"
+              :placeholder="
+                t('CONTENT_TEMPLATES.PARSER.VARIABLE_PLACEHOLDER', {
+                  variable: variable,
+                })
+              "
+              @select="
+                processedParams[variable] +=
+                  `${processedParams[variable] ? ' ' : ''}${$event.expression}`
+              "
+            />
+          </div>
         </div>
-      </div>
-
+      </slot>
       <p
         v-if="v$.$dirty && (v$.$invalid || isFormInvalid)"
         class="p-2.5 text-center rounded-md bg-n-ruby-9/20 text-n-ruby-9"
