@@ -8,7 +8,7 @@ vi.mock('dashboard/components-next/variable-picker/VariablePicker.vue', () => ({
 }));
 
 describe('inline template fields', () => {
-  it('shows errors only after leaving a missing field or attempting send', async () => {
+  it('shows amber immediately and red only after attempting send', async () => {
     const wrapper = mount(EditableBody, {
       props: {
         text: 'Hello {{name}}, order {{order}}',
@@ -25,7 +25,10 @@ describe('inline template fields', () => {
     ]);
     expect(fields[0].attributes('placeholder')).toBe('Data 1');
     await fields[0].trigger('blur');
-    expect(fields[0].attributes('aria-invalid')).toBe('true');
+    expect(fields[0].attributes('aria-invalid')).toBe('false');
+    expect(
+      fields[0].element.parentElement.classList.contains('bg-n-amber-3')
+    ).toBe(true);
     expect(fields[1].attributes('aria-invalid')).toBe('false');
     await wrapper.setProps({ attempted: true });
     expect(fields[1].attributes('aria-invalid')).toBe('true');
@@ -40,7 +43,7 @@ describe('inline template fields', () => {
     });
     await flushPromises();
     await wrapper.get('textarea').trigger('blur');
-    expect(wrapper.get('textarea').attributes('aria-invalid')).toBe('true');
+    expect(wrapper.get('textarea').attributes('aria-invalid')).toBe('false');
     await wrapper.setProps({ text: 'New template {{name}}' });
     await flushPromises();
     expect(wrapper.get('textarea').attributes('aria-invalid')).toBe('false');
@@ -75,14 +78,23 @@ describe('inline field keyboard and values', () => {
         labelFor: key => key,
         values: { 1: 'Ana' },
         expressions: { 1: '{{contact.name}}' },
+        systemVariables: [
+          {
+            id: 'name',
+            expression: '{{contact.name}}',
+            label: 'Contact name',
+            value: 'Ana',
+            disabled: false,
+          },
+        ],
       },
     });
     await flushPromises();
     expect(wrapper.get('textarea').element.value).toBe('Ana');
-    expect(wrapper.get('textarea').attributes('title')).toBe(
-      '{{contact.name}}'
-    );
-    expect(wrapper.find('.bg-n-teal-9').exists()).toBe(true);
+    expect(wrapper.get('textarea').attributes('title')).toBe('Contact name');
+    expect(wrapper.get('textarea').attributes('readonly')).toBeDefined();
+    await wrapper.get('button').trigger('click');
+    expect(wrapper.emitted('change')).toEqual([['1', '']]);
     wrapper.unmount();
   });
 });
@@ -104,13 +116,7 @@ describe('field help and variable keyboard access', () => {
     expect(wrapper.emitted('hint').at(-1)).toEqual([
       'Detail 1 of 2 · E.g.: Alex',
     ]);
-    const picker = wrapper.get('button');
-    expect(picker.attributes('aria-label')).toBe('Insert variable');
-    picker.element.focus();
-    await flushPromises();
-    expect(wrapper.emitted('hint').at(-1)).toEqual([
-      'Detail 1 of 2 · E.g.: Alex',
-    ]);
+    expect(wrapper.get('[role=listbox]').exists()).toBe(true);
     fields[1].element.focus();
     await flushPromises();
     expect(wrapper.emitted('hint').at(-1)).toEqual(['Detail 2 of 2']);
@@ -119,6 +125,27 @@ describe('field help and variable keyboard access', () => {
     expect(wrapper.emitted('hint').at(-1)).toEqual(['']);
     expect(wrapper.emitted('change')).toBeUndefined();
     expect(wrapper.find('[role="tooltip"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+});
+
+describe('safe variable and template text', () => {
+  it.each([
+    '<script>alert(1)</script>',
+    '<img src=x onerror=alert(1)>',
+    '&lt;',
+  ])('renders source and values literally: %s', value => {
+    const wrapper = mount(EditableBody, {
+      props: {
+        text: `${value} *{{1}}*`,
+        values: { 1: value },
+        labelFor: key => key,
+      },
+    });
+    expect(wrapper.find('script,img').exists()).toBe(false);
+    expect(wrapper.element.textContent).toContain(value);
+    expect(wrapper.get('textarea').element.value).toBe(value);
+    expect(wrapper.findAll('strong')).toHaveLength(1);
     wrapper.unmount();
   });
 });

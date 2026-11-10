@@ -5,7 +5,7 @@ import WhatsAppTemplateParser from '../../WhatsAppTemplateParser.vue';
 import ContentTemplateParser from 'dashboard/components-next/content-templates/ContentTemplateParser.vue';
 import TemplateVariableInput from 'dashboard/components-next/variable/TemplateVariableInput.vue';
 import VariablesAPI from 'dashboard/api/variables';
-import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
+import TemplateDataField from '../TemplateDataField.vue';
 import EditableBody from '../EditableBody.vue';
 import ChatPreview from '../ChatPreview.vue';
 import es from 'dashboard/i18n/locale/es/whatsappTemplates.json';
@@ -71,11 +71,8 @@ describe('inline parser contract', () => {
     expect(wrapper.get('[data-testid=editable-body]').text()).not.toContain(
       'WHATSAPP_TEMPLATES.PARSER.NO_VALUE'
     );
-    const picker = wrapper.findComponent(VariablePicker);
-    expect(picker.props('filter')({ requiresContext: ['conversation'] })).toBe(
-      true
-    );
-    picker.vm.$emit('select', { expression: '{{ contact.email }}' });
+    const picker = wrapper.findComponent(TemplateDataField);
+    picker.vm.$emit('select', '{{ contact.email }}');
     await flushPromises();
     expect(wrapper.vm.processedParams.body.name).toBe(
       '{{ contact.name }} {{ contact.email }}'
@@ -281,4 +278,98 @@ describe('inline parser contract', () => {
     expect(inputs.every(input => !input.attributes('tabindex'))).toBe(true);
     wrapper.unmount();
   });
+});
+
+describe('formatted field payload parity', () => {
+  it.each([false, true])(
+    'preserves typed and selected values with rendered content %s',
+    async sendRenderedContent => {
+      VariablesAPI.preview.mockImplementation(async payload => ({
+        data: {
+          results: [
+            payload.texts.map(() => ({ status: 'value', value: 'Alex Demo' })),
+          ],
+        },
+      }));
+      const props = {
+        sendRenderedContent,
+        resolveContext: { contact: { id: 1 } },
+        template: {
+          name: 'formatted',
+          category: 'UTILITY',
+          language: 'en',
+          components: [{ type: 'BODY', text: '*Hello {{1}}*' }],
+        },
+      };
+      const classic = mount(WhatsAppTemplateParser, { props });
+      const inline = mount(WhatsAppTemplateParser, {
+        props,
+        slots: {
+          preview: preview =>
+            h(EditableBody, {
+              text: preview.bodyText,
+              values: preview.bodyValues,
+              labelFor: key => key,
+              onChange: preview.setBodyValue,
+              onSelect: (key, expression) => {
+                inline.vm.processedParams.body[key] = '';
+                preview.insertBodyVariable(key, expression);
+              },
+            }),
+        },
+      });
+      await flushPromises();
+      const value = '*literal* <img onerror=x>';
+      classic
+        .getComponent(TemplateVariableInput)
+        .vm.$emit('update:modelValue', value);
+      inline.getComponent(TemplateDataField).vm.$emit('change', value);
+      await flushPromises();
+      classic.vm.sendMessage();
+      inline.vm.sendMessage();
+      expect(inline.emitted('sendMessage')).toEqual(
+        classic.emitted('sendMessage')
+      );
+      expect(
+        inline.emitted('sendMessage')[0][0].templateParams.processed_params
+          .body['1']
+      ).toBe(value);
+      classic.unmount();
+      inline.unmount();
+      const selected = mount(WhatsAppTemplateParser, { props });
+      const selectedInline = mount(WhatsAppTemplateParser, {
+        props,
+        slots: {
+          preview: preview =>
+            h(EditableBody, {
+              text: preview.bodyText,
+              values: preview.bodyValues,
+              labelFor: key => key,
+              onSelect: (key, expression) => {
+                selectedInline.vm.processedParams.body[key] = '';
+                preview.insertBodyVariable(key, expression);
+              },
+            }),
+        },
+      });
+      await flushPromises();
+      selected
+        .getComponent(TemplateVariableInput)
+        .vm.$emit('select', { expression: '{{ contact.name }}' });
+      selectedInline
+        .getComponent(TemplateDataField)
+        .vm.$emit('select', '{{ contact.name }}');
+      await flushPromises();
+      selected.vm.sendMessage();
+      selectedInline.vm.sendMessage();
+      expect(selectedInline.emitted('sendMessage')).toEqual(
+        selected.emitted('sendMessage')
+      );
+      expect(
+        selectedInline.emitted('sendMessage')[0][0].pendingMessageContent
+      ).toBe('*Hello Alex Demo*');
+      selected.unmount();
+      selectedInline.unmount();
+    }
+  );
 });

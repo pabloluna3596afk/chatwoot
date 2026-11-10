@@ -17,6 +17,7 @@ import EditableBody from './EditableBody.vue';
 import CategoryChip from './CategoryChip.vue';
 import { lastSendCenterTab } from './session';
 import ChatPreview from './ChatPreview.vue';
+import { useSystemVariables } from './useSystemVariables';
 import {
   bodySegments,
   supportsFlows,
@@ -51,9 +52,17 @@ const resolveContext = computed(() => ({
   conversation: chat.value,
   agent: agent.value,
 }));
+const { options: systemVariables, status: variablesStatus } =
+  useSystemVariables(
+    bindings,
+    resolveContext,
+    computed(() => props.inbox.id)
+  );
 const dialog = ref(null);
 const parser = ref(null);
 const editableBody = ref(null);
+const editableHeader = ref(null);
+const centerBody = ref(null);
 const fieldHint = ref('');
 const sendButton = ref(null);
 const attempted = ref(false);
@@ -300,7 +309,9 @@ const missingLabels = computed(() => {
   ];
 });
 const missingSummary = computed(() => {
-  const missingBodyCount = editableBody.value?.missingLabels.length;
+  const missingBodyCount =
+    (editableBody.value?.missingLabels.length || 0) +
+    (editableHeader.value?.missingLabels.length || 0);
   if (missingBodyCount) return t(`${prefix}.MISSING_COUNT`, missingBodyCount);
   if (missingLabels.value.length)
     return t(`${prefix}.COMPLETE`, {
@@ -367,6 +378,18 @@ const parserProps = computed(() => ({
         resolveContext: resolveContext.value,
       }),
 }));
+// Selection replaces the field, then uses the parser's existing insertion path.
+// Do not mark it as typed text: untouched variables retain server resolution.
+const selectVariable = (preview, section, key, expression) => {
+  const params = content.value
+    ? parser.value.processedParams
+    : parser.value.processedParams[section];
+  params[key] = '';
+  preview[section === 'header' ? 'insertHeaderVariable' : 'insertBodyVariable'](
+    key,
+    expression
+  );
+};
 const canSend = computed(
   () =>
     selected.value &&
@@ -419,7 +442,15 @@ const sendTemplatePayload = async payload => {
 };
 const submit = async () => {
   attempted.value = true;
-  if (!canSend.value) return;
+  if (!canSend.value) {
+    await nextTick();
+    const field = centerBody.value?.querySelector(
+      '[data-template-field][aria-invalid="true"]'
+    );
+    field?.scrollIntoView?.({ block: 'center', inline: 'nearest' });
+    field?.focus();
+    return;
+  }
   if (selected.value.type === 'template') {
     parser.value.sendMessage();
     return;
@@ -497,6 +528,7 @@ const overlayDescriptionId = useId();
     @close="close"
   >
     <div
+      ref="centerBody"
       class="flex max-md:h-auto md:h-[min(40rem,calc(90dvh-11rem))] min-h-0 flex-col gap-4"
       data-columns="2"
       data-testid="center-body"
@@ -749,15 +781,21 @@ const overlayDescriptionId = useId();
                   <template #header>
                     <EditableBody
                       v-if="preview.headerText"
+                      ref="editableHeader"
+                      class="font-semibold"
                       :text="preview.headerText"
                       :values="preview.headerValues"
                       :attempted="attempted"
                       :expressions="parser?.processedParams?.header"
                       :label-for="fieldLabel"
                       :variable-filter="preview.variableFilter"
-                      :variable-surface="preview.variableSurface"
+                      :system-variables="systemVariables"
+                      :variables-status="variablesStatus"
                       @change="preview.setHeaderValue"
-                      @select="preview.insertHeaderVariable"
+                      @select="
+                        (key, expression) =>
+                          selectVariable(preview, 'header', key, expression)
+                      "
                       @advance="focusNextData"
                       @hint="fieldHint = $event"
                     />
@@ -777,9 +815,13 @@ const overlayDescriptionId = useId();
                     :label-for="fieldLabel"
                     :examples="bodyExamples"
                     :variable-filter="preview.variableFilter"
-                    :variable-surface="preview.variableSurface"
+                    :system-variables="systemVariables"
+                    :variables-status="variablesStatus"
                     @change="preview.setBodyValue"
-                    @select="preview.insertBodyVariable"
+                    @select="
+                      (key, expression) =>
+                        selectVariable(preview, 'body', key, expression)
+                    "
                     @advance="focusNextData"
                     @hint="fieldHint = $event"
                   />
@@ -821,10 +863,10 @@ const overlayDescriptionId = useId();
               parser?.isFormInvalid
             "
             role="status"
-            class="flex items-center gap-2 text-sm text-n-slate-11"
+            class="flex items-center gap-2 text-sm text-n-amber-11"
             data-testid="center-invalid-reason"
           >
-            <Icon icon="i-lucide-info" class="size-4 shrink-0" />
+            <Icon icon="i-lucide-triangle-alert" class="size-4 shrink-0" />
             {{ missingSummary }}
           </p>
           <p
@@ -864,7 +906,12 @@ const overlayDescriptionId = useId();
           class="shrink-0"
           :label="$t(`${prefix}.SEND`)"
           icon="i-lucide-send"
-          :disabled="!canSend"
+          :disabled="
+            !selected ||
+            Boolean(selected.reason) ||
+            isSending ||
+            (selected.type === 'flow' && !canSend)
+          "
           :is-loading="isSending"
           data-testid="center-send"
           @click="submit"

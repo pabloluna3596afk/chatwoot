@@ -179,7 +179,11 @@
       },
       "DATA_PICKER": "Insert contact variable (Tab from the detail)",
       "DATA_REQUIRED": "Complete detail {index}",
-      "DATA_POSITION": "Detail {index} of {total}"
+      "DATA_POSITION": "Detail {index} of {total}",
+      "SYSTEM_VARIABLES": "System variables",
+      "USE_TEXT": "Use \u201c{text}\u201d",
+      "NO_DATA": "No data",
+      "REMOVE_VARIABLE": "Remove {variable} and type a value"
     }
   }
 }

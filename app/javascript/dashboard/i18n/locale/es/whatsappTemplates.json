@@ -179,7 +179,11 @@
       },
       "DATA_PICKER": "Insertar variable del contacto (Tab desde el dato)",
       "DATA_REQUIRED": "Completa el dato {index}",
-      "DATA_POSITION": "Dato {index} de {total}"
+      "DATA_POSITION": "Dato {index} de {total}",
+      "SYSTEM_VARIABLES": "Variables del sistema",
+      "USE_TEXT": "Usar \u00ab{text}\u00bb",
+      "NO_DATA": "Sin dato",
+      "REMOVE_VARIABLE": "Quitar {variable} y escribir un valor"
     }
   }
 }

@@ -1256,7 +1256,10 @@ describe('unified send center', () => {
     );
     expect(
       wrapper.get('[data-testid="center-send"]').attributes('disabled')
-    ).toBeDefined();
+    ).toBeUndefined();
+    await wrapper.get('[data-testid="center-send"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.findAll('[aria-invalid="true"]')).toHaveLength(4);
     const fields = wrapper.findAll('[data-testid="editable-body"] textarea');
     await fields[0].setValue('Ana');
     expect(wrapper.get('[data-testid="center-invalid-reason"]').text()).toBe(
