@@ -10,6 +10,8 @@ import BillingMeter from './components/BillingMeter.vue';
 import { formatBillingDate, formatBillingDateRange } from './billingDate';
 
 const props = defineProps({
+  extraBalances: { type: Object, default: () => ({}) },
+  showExtras: { type: Boolean, default: false },
   planName: { type: String, default: '' },
   planStatus: { type: String, default: '' },
   isLoadingLimits: { type: Boolean, default: false },
@@ -23,7 +25,7 @@ const props = defineProps({
   inboxesMeterData: { type: Object, default: null },
   expiredMessage: { type: String, default: '' },
 });
-const emit = defineEmits(['comparePlans', 'billing']);
+const emit = defineEmits(['comparePlans', 'billing', 'extras']);
 const { t, locale } = useI18n();
 const loading = ref(true);
 const isLoadingUsage = computed(() => loading.value || props.isLoadingLimits);
@@ -41,6 +43,7 @@ const bags = computed(() =>
   [
     {
       key: 'captain_responses',
+      balanceKey: 'responses',
       title: t('BILLING_SETTINGS.USAGE.BAGS.ASSISTANT'),
       limits: props.responseLimits,
       color: 'rgb(var(--blue-9))',
@@ -48,6 +51,7 @@ const bags = computed(() =>
     },
     {
       key: 'copilot',
+      balanceKey: 'copilot',
       title: t('BILLING_SETTINGS.USAGE.BAGS.COPILOT'),
       limits: props.copilotLimits,
       color: 'rgb(var(--violet-9))',
@@ -55,6 +59,7 @@ const bags = computed(() =>
     },
     {
       key: 'internal',
+      balanceKey: 'internal',
       title: t('BILLING_SETTINGS.USAGE.BAGS.INTERNAL'),
       limits: props.internalLimits,
       color: 'rgb(var(--teal-9))',
@@ -67,6 +72,10 @@ const bags = computed(() =>
         : 0;
     return {
       ...bag,
+      extraAvailable:
+        props.extraBalances?.[bag.balanceKey]?.extra_available ??
+        bag.limits?.extraAvailable ??
+        0,
       percent: Math.min(100, percent),
       percentLabel: t('BILLING_SETTINGS.USAGE.PERCENT_USED', {
         percent:
@@ -221,6 +230,30 @@ onMounted(async () => {
           <BagIcon :bag="bag.key" class="size-4 shrink-0" />
           {{ bag.title }}
         </h3>
+        <div
+          v-if="showExtras && (bag.extraAvailable > 0 || bag.limits)"
+          class="mt-2 flex min-h-6 flex-wrap items-center gap-2"
+        >
+          <InfoChip v-if="bag.extraAvailable > 0">
+            {{
+              t('BILLING_SETTINGS.EXTRAS.CHIP', {
+                count: numberFormatter.format(bag.extraAvailable),
+              })
+            }}
+          </InfoChip>
+          <button
+            v-else-if="
+              bag.mode !== 'unlimited' &&
+              bag.limits &&
+              bag.limits.consumed >= bag.limits.totalCount
+            "
+            type="button"
+            class="text-sm text-n-blue-11 underline"
+            @click="emit('extras')"
+          >
+            {{ t('BILLING_SETTINGS.EXTRAS.VIEW') }}
+          </button>
+        </div>
         <p
           v-if="bag.mode === 'included'"
           class="mb-3 mt-2 text-sm text-n-slate-11"

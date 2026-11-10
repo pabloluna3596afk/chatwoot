@@ -20,6 +20,7 @@ import PayphonePaymentsAPI from 'dashboard/api/payphonePayments';
 import { shouldShowPayphoneRenewalDate } from './payphoneBilling';
 import BillingTabs from './components/BillingTabs.vue';
 import UsageDashboard from './UsageDashboard.vue';
+import ExtrasDashboard from './ExtrasDashboard.vue';
 import { formatBillingDate } from './billingDate';
 
 const { currentAccount, isOnChatwootCloud } = useAccount();
@@ -38,9 +39,17 @@ const store = useStore();
 const { t, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
-const activeTab = computed(() =>
-  route.query.tab === 'facturacion' ? 'facturacion' : 'uso'
+const currentRole = useMapGetter('getCurrentRole');
+const showExtras = computed(
+  () =>
+    currentRole.value === 'administrator' &&
+    !isOnChatwootCloud.value &&
+    currentAccount.value.billing_provider !== 'shopify'
 );
+const activeTab = computed(() => {
+  if (route.query.tab === 'extras' && showExtras.value) return 'extras';
+  return route.query.tab === 'facturacion' ? 'facturacion' : 'uso';
+});
 const hasOpenedBilling = ref(false);
 watch(
   activeTab,
@@ -438,7 +447,10 @@ onMounted(async () => {
         : $t('ATTRIBUTES_MGMT.LOADING')
     "
     :no-records-found="
-      !hasABillingPlan && !isWaitingForBilling && !currencySelectionRequired
+      !hasABillingPlan &&
+      !isWaitingForBilling &&
+      !currencySelectionRequired &&
+      activeTab !== 'extras'
     "
     :no-records-message="
       isOnChatwootCloud
@@ -455,8 +467,11 @@ onMounted(async () => {
         "
         feature-name="billing"
       >
-        <template v-if="hasABillingPlan || currencySelectionRequired" #tabs>
-          <BillingTabs />
+        <template
+          v-if="hasABillingPlan || currencySelectionRequired || showExtras"
+          #tabs
+        >
+          <BillingTabs :show-extras="showExtras" />
         </template>
         <template
           v-if="
@@ -497,10 +512,21 @@ onMounted(async () => {
         :agents-meter-data="agentsMeterData"
         :inboxes-meter-data="inboxesMeterData"
         :expired-message="expiredUsageMessage"
+        :show-extras="showExtras"
+        :extra-balances="currentAccount.limits?.captain"
+        @extras="router.replace({ query: { ...route.query, tab: 'extras' } })"
         @compare-plans="comparingPlans = true"
         @billing="
           router.replace({ query: { ...route.query, tab: 'facturacion' } })
         "
+      />
+      <ExtrasDashboard
+        v-if="activeTab === 'extras'"
+        :catalog="currentAccount.limits?.extras"
+        :captain-limits="hasABillingPlan ? currentAccount.limits?.captain : {}"
+        :plan-slug="currentAccount.limits?.plan?.slug"
+        :is-loading="isFetchingLimits"
+        @request="onToggleChatWindow"
       />
       <!-- prettier-ignore -->
       <div v-if="hasOpenedBilling" v-show="activeTab === 'facturacion'" id="billing-panel-facturacion" role="tabpanel" aria-labelledby="billing-tab-facturacion">

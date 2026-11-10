@@ -56,7 +56,7 @@ class Enterprise::Api::V1::AccountsController < Api::BaseController
              end
 
     # include id in response to ensure that the store can be updated on the frontend
-    render json: { id: @account.id, limits: limits }, status: :ok
+    render json: { id: @account.id, limits: limits_with_extras(limits) }, status: :ok
   end
 
   def checkout
@@ -137,6 +137,19 @@ class Enterprise::Api::V1::AccountsController < Api::BaseController
       currency_options: Enterprise::Billing::Currencies::SUPPORTED,
       suggested_currency: Enterprise::Billing::Currencies.for_locale(@account.locale)
     }
+  end
+
+  def limits_with_extras(limits)
+    return limits if ChatwootApp.chatwoot_cloud? || shopify_billing?
+    return limits unless @current_account_user.administrator?
+
+    limits['extras'] = Plans::PublicSerializer.extras([@account.plan].compact)
+    return limits unless limits['captain']
+
+    { responses: :captain_responses, copilot: :copilot, internal: :internal }.each do |key, bucket|
+      limits['captain'][key][:extra_next_expiry] = @account.account_extra_balances.available.where(bucket: bucket).minimum(:expires_at)
+    end
+    limits
   end
 
   def default_limits

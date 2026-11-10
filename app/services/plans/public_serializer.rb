@@ -17,11 +17,12 @@ class Plans::PublicSerializer
       currency: CURRENCY,
       updated_at: (plans.map(&:updated_at) + [ExtraPack.maximum(:updated_at)]).compact.max&.utc&.iso8601(6),
       plans: plans.map { |plan| new(plan).as_json },
-      extras: {
-        packs: pack_catalog,
-        monthly: plans.to_h { |plan| [plan.slug, new(plan).monthly_extras] }
-      }
+      extras: extras(plans)
     }
+  end
+
+  def self.extras(plans)
+    { packs: pack_catalog, monthly: plans.to_h { |plan| [plan.slug, new(plan).monthly_extras] } }
   end
 
   def self.pack_catalog

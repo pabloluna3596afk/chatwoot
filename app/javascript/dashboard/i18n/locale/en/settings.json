@@ -758,6 +758,44 @@
     "STATES": { "pending": "Verifying", "approved": "Approved", "cancelled": "Cancelled", "failed": "Failed", "expired": "Expired" }
   },
   "BILLING_SETTINGS": {
+    "EXTRAS": {
+      "TAB": "Extras",
+      "BALANCES": "Your extra balances",
+      "PACKS": "Available packs",
+      "MONTHLY_TITLE": "Monthly extras",
+      "MONTHLY_NOTE": "The team activates them and adds them to your monthly bill.",
+      "EMPTY": "You have no extra balance.",
+      "NO_BALANCE": "No extra balance",
+      "AVAILABLE": "{count} available units",
+      "NEXT_EXPIRY": "Next expiry: {date}",
+      "BEST_VALUE": "Lowest price per unit",
+      "UNITS": "{count} units",
+      "UNITS_RESPONSES": "{count} responses",
+      "UNITS_ACTIONS": "{count} actions",
+      "UNIT_PRICE": "USD {price} per unit",
+      "VALIDITY": "Expires {days} days after purchase",
+      "REQUEST": "Request",
+      "RULES": "Used after your plan allowance, earliest expiry first. Prepaid.",
+      "MONTHLY_PRICE": "USD {price} / month",
+      "NO_MONTHLY": "No monthly extras available for your current plan.",
+      "NO_PACKS": "No packs available for this pool.",
+      "CHIP": "+{count} extra",
+      "VIEW": "View extras",
+      "LOADING": "Loading extras…",
+      "ERROR": "Could not load extras. Refresh the page to try again.",
+      "BAGS": {
+        "RESPONSES": "AI agent responses",
+        "COPILOT": "Copilot",
+        "INTERNAL": "Internal actions"
+      },
+      "MONTHLY": {
+        "AGENT": "Human agent",
+        "BOT": "AI agent",
+        "INBOX": "Inbox",
+        "STORAGE_100MB": "Storage +100 MB",
+        "STORAGE_250MB": "Storage +250 MB"
+      }
+    },
     "TITLE": "Billing",
     "DESCRIPTION": "Manage your subscription here, upgrade your plan and get more for your team.",
     "TABS": { "LABEL": "Billing sections", "USO": "Usage", "FACTURACION": "Billing" },
