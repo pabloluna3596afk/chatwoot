@@ -81,12 +81,12 @@ const escape = async event => {
           v-model="query"
           type="search"
           :placeholder="searchLabel"
-          class="m-0 h-9 w-full min-w-0 rounded-lg border border-n-weak bg-n-alpha-2 py-0 ps-9 pe-9 text-sm text-n-slate-12 placeholder:text-n-slate-11 focus:outline focus:outline-2 focus:outline-n-brand"
+          class="reset-base m-0 h-9 w-full min-w-0 rounded-lg border border-n-weak bg-n-alpha-2 py-0 ps-9 pe-9 text-sm text-n-slate-12 placeholder:text-n-slate-11 focus:outline focus:outline-2 focus:outline-n-brand [&::-webkit-search-cancel-button]:appearance-none"
         />
         <button
           v-if="query"
           type="button"
-          class="absolute end-1 top-1 flex size-7 items-center justify-center rounded-md text-n-slate-11 hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
+          class="absolute end-1 top-1 flex size-7 items-center justify-center rounded-md p-0 text-n-slate-11 hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
           :aria-label="t(`${prefix}.CLEAR_SEARCH`)"
           @click="clearSearch"
         >
@@ -96,8 +96,8 @@ const escape = async event => {
       <button
         ref="toggle"
         type="button"
-        class="flex h-9 shrink-0 items-center gap-2 rounded-lg border border-n-weak px-2.5 text-sm text-n-slate-12 hover:bg-n-alpha-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
-        :class="open ? 'bg-n-alpha-2' : 'bg-n-solid-1'"
+        class="flex !h-9 shrink-0 items-center gap-2 !rounded-lg !border !border-solid !border-n-weak !px-2.5 text-sm text-n-slate-12 hover:!bg-n-alpha-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
+        :class="open ? '!bg-n-alpha-2' : '!bg-n-solid-1'"
         :aria-label="t(`${prefix}.FILTERS`)"
         :title="t(`${prefix}.FILTERS`)"
         :aria-expanded="open"
@@ -125,7 +125,7 @@ const escape = async event => {
     >
       <FilterDropdown
         v-model="category"
-        class="min-w-0 [&_button]:!h-9 [&_button]:!w-full [&_button]:!rounded-lg [&_button]:!border [&_button]:!border-n-weak [&_button]:!bg-n-alpha-2 [&_button]:focus-visible:!outline-n-brand [&_.i-lucide-folder]:hidden"
+        class="min-w-0 [&_button]:!h-9 [&_button]:!w-full [&_button]:!rounded-lg [&_button]:!border [&_button]:!border-solid [&_button]:!border-n-weak [&_button]:!bg-n-alpha-2 [&_button]:focus-visible:!outline-n-brand [&_.i-lucide-folder]:hidden"
         :class="
           category === 'ALL'
             ? '[&_button]:!text-n-slate-11'
@@ -139,7 +139,7 @@ const escape = async event => {
       />
       <FilterDropdown
         v-model="status"
-        class="min-w-0 [&_button]:!h-9 [&_button]:!w-full [&_button]:!rounded-lg [&_button]:!border [&_button]:!border-n-weak [&_button]:!bg-n-alpha-2 [&_button]:focus-visible:!outline-n-brand [&_.i-lucide-circle-check]:hidden"
+        class="min-w-0 [&_button]:!h-9 [&_button]:!w-full [&_button]:!rounded-lg [&_button]:!border [&_button]:!border-solid [&_button]:!border-n-weak [&_button]:!bg-n-alpha-2 [&_button]:focus-visible:!outline-n-brand [&_.i-lucide-circle-check]:hidden"
         :class="
           status === 'ALL'
             ? '[&_button]:!text-n-slate-11'

@@ -1,3 +1,10 @@
+### B-NEW-262 - Buscador y filtros coherentes en el centro de envio (2026-11-10)
+
+- **Archivos:** `send-center/SendCenter.vue`, nuevo `SendCenterFilters.vue`, locales en/es de WhatsApp y specs de SendCenter.
+- **Problema:** lupa fuera del campo, filtros visualmente dispares y sin resumen cerrado, sin limpieza rapida ni contador de resultados.
+- **Arreglo:** controles locales de 36 px reutilizando FilterDropdown sin modificar sus consumidores; insignia, chips removibles, limpieza independiente, contador pluralizado y aria-live. Escape limpia texto o cierra el panel devolviendo el foco. La seleccion se desplaza al area visible sin animacion. Se conserva el calculo de resultados y el envio.
+- **Como probar:** buscar por nombre/cuerpo, combinar categoria/estado, cerrar el panel y quitar chips, limpiar solo filtros o todo, probar Escape y Tab. Revisar 768/1024/1440 claro/oscuro. Vitest 271/271 en UTC y America/Guayaquil; ESLint sin errores. Informe y evidencia local en `tmp/PR-PLANTILLAS-BUSCADOR.md`. Aprobacion visual pendiente antes de PR; sin migraciones.
+
 ### B-NEW-261 - Unificar datos y aislar el catalogo de Flows al enviar plantillas (2026-11-09)
 
 - **Archivos:** `send-center/{EditableBody,ChatPreview,SendCenter}.vue`, parsers WhatsApp/Content, slot opcional de encabezado de `WhatsAppBubble.vue`, locales `en/es/whatsappTemplates.json` y specs.
