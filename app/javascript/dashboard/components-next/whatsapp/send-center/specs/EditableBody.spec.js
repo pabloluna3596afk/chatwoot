@@ -116,10 +116,13 @@ describe('field help and variable keyboard access', () => {
     expect(wrapper.emitted('hint').at(-1)).toEqual([
       'Detail 1 of 2 · E.g.: Alex',
     ]);
+    expect(wrapper.find('[role=listbox]').exists()).toBe(false);
+    await fields[0].trigger('click');
     expect(wrapper.get('[role=listbox]').exists()).toBe(true);
     fields[1].element.focus();
     await flushPromises();
     expect(wrapper.emitted('hint').at(-1)).toEqual(['Detail 2 of 2']);
+    expect(wrapper.find('[role=listbox]').exists()).toBe(false);
     fields[1].element.blur();
     await flushPromises();
     expect(wrapper.emitted('hint').at(-1)).toEqual(['']);

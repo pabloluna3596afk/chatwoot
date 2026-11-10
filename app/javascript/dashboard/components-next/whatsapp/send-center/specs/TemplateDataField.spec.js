@@ -36,6 +36,9 @@ describe('free text and system variable combobox', () => {
     const input = wrapper.get('textarea');
     input.element.focus();
     await flushPromises();
+    expect(input.attributes('aria-expanded')).toBe('false');
+    expect(wrapper.find('[role=listbox]').exists()).toBe(false);
+    await input.trigger('click');
     expect(wrapper.findAll('[role=option]')).toHaveLength(3);
     expect(wrapper.get('[aria-disabled=true]').attributes('title')).toBe(
       'No data'
@@ -64,6 +67,7 @@ describe('free text and system variable combobox', () => {
     });
     const input = wrapper.get('textarea');
     await input.trigger('focus');
+    await input.trigger('click');
     await wrapper.get('[aria-disabled=true]').trigger('click');
     expect(wrapper.emitted('select')).toBeUndefined();
     await input.trigger('keydown', { key: 'ArrowDown' });
@@ -91,11 +95,50 @@ describe('free text and system variable combobox', () => {
     });
     const input = wrapper.get('textarea');
     await input.trigger('focus');
+    await input.trigger('click');
     await input.trigger('keydown', { key: 'Escape' });
     expect(wrapper.find('[role=listbox]').exists()).toBe(false);
     expect(wrapper.emitted('change')).toBeUndefined();
     await input.trigger('focus');
+    expect(input.attributes('aria-expanded')).toBe('false');
+    await input.trigger('click');
     await wrapper.findAll('[role=option]')[2].trigger('click');
     expect(wrapper.emitted('select')).toEqual([['{{ contact.email }}']]);
+    expect(input.attributes('aria-expanded')).toBe('false');
+    await input.trigger('focus');
+    expect(wrapper.find('[role=listbox]').exists()).toBe(false);
+  });
+
+  it('keeps Tab focus closed and opens with ArrowDown or filtered typing', async () => {
+    const wrapper = mount(TemplateDataField, {
+      attachTo: document.body,
+      props: { label: 'Detail', options },
+    });
+    const input = wrapper.get('textarea');
+    input.element.focus();
+    await flushPromises();
+    expect(wrapper.find('[role=listbox]').exists()).toBe(false);
+    await input.trigger('keydown', { key: 'ArrowUp' });
+    expect(input.attributes('aria-expanded')).toBe('false');
+    await input.trigger('keydown', { key: 'ArrowDown' });
+    expect(input.attributes('aria-expanded')).toBe('true');
+    await input.trigger('keydown', { key: 'Tab' });
+    input.element.blur();
+    input.element.focus();
+    await flushPromises();
+    expect(input.attributes('aria-expanded')).toBe('false');
+    await input.setValue('Email');
+    expect(input.attributes('aria-expanded')).toBe('true');
+    expect(wrapper.findAll('[role=option]')).toHaveLength(2);
+    expect(wrapper.findAll('[role=option]')[1].text()).toContain('Email');
+    await wrapper.get('[role=option]').trigger('click');
+    expect(input.attributes('aria-expanded')).toBe('false');
+    await input.trigger('focus');
+    expect(input.attributes('aria-expanded')).toBe('false');
+    await input.trigger('keydown', { key: 'Enter' });
+    expect(input.attributes('aria-expanded')).toBe('false');
+    await input.trigger('click');
+    expect(input.attributes('aria-expanded')).toBe('true');
+    wrapper.unmount();
   });
 });

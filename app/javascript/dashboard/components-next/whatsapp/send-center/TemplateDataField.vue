@@ -47,6 +47,9 @@ const close = () => {
 const focus = event => {
   emit('focus', event);
   query.value = selected.value ? '' : props.value;
+};
+const showMenu = event => {
+  if (selected.value) return;
   const rect = event.target.getBoundingClientRect();
   const bubble = event.target
     .closest('[data-testid=editable-body]')
@@ -71,7 +74,7 @@ const update = event => {
   if (event.isComposing || event.target.composing) return;
   query.value = event.target.value;
   active.value = -1;
-  open.value = true;
+  showMenu(event);
   emit('change', event.target.value);
 };
 const choose = option => {
@@ -90,9 +93,10 @@ const keydown = async event => {
     return;
   }
   if (selected.value && ['ArrowDown', 'ArrowUp'].includes(event.key)) return;
+  if (event.key === 'ArrowUp' && !open.value) return;
   if (['ArrowDown', 'ArrowUp'].includes(event.key)) {
     event.preventDefault();
-    open.value = true;
+    showMenu(event);
     const enabled = options.value
       .map((option, index) => (option.disabled ? -1 : index))
       .filter(index => index !== -1);
@@ -171,7 +175,7 @@ const clear = async () => {
           : 'placeholder:text-n-slate-10'
       "
       @focus="focus"
-      @click="!open && focus($event)"
+      @click="showMenu"
       @input="update"
       @compositionstart="$event.target.composing = true"
       @compositionend="
