@@ -1445,10 +1445,10 @@ describe('unified send center', () => {
       expect(inputs[0].attributes('placeholder')).toBe('Ana');
       expect(inputs[1].attributes('placeholder')).toContain('12 de noviembre');
       expect(inputs[2].attributes('placeholder')).toBe(
-        esFilters.FILTER.INPUT_PLACEHOLDER
+        es.WHATSAPP_TEMPLATES.SEND_CENTER.DATA_PLACEHOLDER
       );
       expect(inputs[2].attributes('aria-label')).toBe(
-        `Dato 3 de 3: ${esFilters.FILTER.INPUT_PLACEHOLDER}`
+        `Dato 3 de 3: ${es.WHATSAPP_TEMPLATES.SEND_CENTER.DATA_PLACEHOLDER}`
       );
       expect(inputs.map(input => input.element.value)).toEqual(['', '', '']);
       expect(wrapper.findAll('[data-template-field]')).toHaveLength(3);

@@ -23,7 +23,7 @@ describe('inline template fields', () => {
       'false',
       'false',
     ]);
-    expect(fields[0].attributes('placeholder')).toBe('Enter value');
+    expect(fields[0].attributes('placeholder')).toBe('Type the value');
     await fields[0].trigger('blur');
     expect(fields[0].attributes('aria-invalid')).toBe('false');
     expect(
@@ -94,7 +94,13 @@ describe('inline field keyboard and values', () => {
     });
     await flushPromises();
     expect(wrapper.get('textarea').element.value).toBe('Ana');
-    expect(wrapper.get('textarea').attributes('title')).toBe('Contact name');
+    expect(wrapper.get('textarea').attributes('title')).toBe(
+      'Contact name · {{1}}'
+    );
+    await wrapper.get('textarea').trigger('focus');
+    expect(wrapper.emitted('hint').at(-1)).toEqual([
+      'Detail 1 of 1 · Contact name · {{1}}',
+    ]);
     expect(wrapper.get('textarea').attributes('readonly')).toBeDefined();
     await wrapper.get('button').trigger('click');
     expect(wrapper.emitted('change')).toEqual([['1', '']]);
@@ -117,14 +123,16 @@ describe('field help and variable keyboard access', () => {
     fields[0].element.focus();
     await flushPromises();
     expect(wrapper.emitted('hint').at(-1)).toEqual([
-      'Detail 1 of 2 · E.g.: Alex',
+      'Detail 1 of 2 · {{name}} · E.g.: Alex',
     ]);
     expect(wrapper.find('[role=listbox]').exists()).toBe(false);
     await fields[0].trigger('click');
     expect(wrapper.get('[role=listbox]').exists()).toBe(true);
     fields[1].element.focus();
     await flushPromises();
-    expect(wrapper.emitted('hint').at(-1)).toEqual(['Detail 2 of 2']);
+    expect(wrapper.emitted('hint').at(-1)).toEqual([
+      'Detail 2 of 2 · {{order}}',
+    ]);
     expect(wrapper.find('[role=listbox]').exists()).toBe(false);
     fields[1].element.blur();
     await flushPromises();
@@ -155,3 +163,23 @@ describe('safe variable and template text', () => {
     wrapper.unmount();
   });
 });
+
+it.each(['1', 'nombre_y_apellido'])(
+  'keeps the exact Meta variable %s in the title and keyboard help',
+  async key => {
+    const wrapper = mount(EditableBody, {
+      props: { text: `Hola {{${key}}}`, labelFor: () => 'Customer name' },
+    });
+    await flushPromises();
+    const field = wrapper.get('textarea');
+    expect(field.attributes('title')).toBe(`{{${key}}}`);
+    expect(field.attributes('placeholder')).toBe('Type the value');
+    await field.trigger('focus');
+    expect(wrapper.emitted('hint').at(-1)).toEqual([
+      `Detail 1 of 1 · {{${key}}}`,
+    ]);
+    await wrapper.setProps({ values: { [key]: 'Ana' } });
+    expect(field.attributes('title')).toBe(`{{${key}}}`);
+    wrapper.unmount();
+  }
+);

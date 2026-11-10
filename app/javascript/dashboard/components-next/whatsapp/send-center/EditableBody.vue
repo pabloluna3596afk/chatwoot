@@ -30,7 +30,8 @@ const keys = computed(() => [
   ),
 ]);
 const label = key => props.labelFor(key, keys.value.indexOf(key));
-const placeholder = key => props.examples[key] || t('FILTER.INPUT_PLACEHOLDER');
+const placeholder = key =>
+  props.examples[key] || t(`${prefix}.DATA_PLACEHOLDER`);
 const dataLabel = part =>
   t(`${prefix}.DATA_LABEL`, {
     index: part.ordinal,
@@ -51,11 +52,12 @@ const focusField = (part, event) => {
     index: part.ordinal,
     total: keys.value.length,
   });
+  const reference = `${position} · ${event.target.title}`;
   emit(
     'hint',
     props.examples[part.key]
-      ? `${position} · ${t(`${prefix}.EXAMPLE`, { example: props.examples[part.key] })}`
-      : position
+      ? `${reference} · ${t(`${prefix}.EXAMPLE`, { example: props.examples[part.key] })}`
+      : reference
   );
 };
 watch(
@@ -88,6 +90,7 @@ defineExpose({ missingLabels });
           :expression="expressions[key] || ''"
           :label="dataLabel({ key, ordinal: keys.indexOf(key) + 1 })"
           :placeholder="placeholder(key)"
+          :meta-variable="`{{${key}}}`"
           :missing="isMissing(key)"
           :attempted="attempted"
           :options="options"

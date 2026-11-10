@@ -7,6 +7,7 @@ const props = defineProps({
   expression: { type: String, default: '' },
   label: { type: String, required: true },
   placeholder: { type: String, default: '' },
+  metaVariable: { type: String, default: '' },
   missing: { type: Boolean, default: false },
   attempted: { type: Boolean, default: false },
   options: { type: Array, default: () => [] },
@@ -28,6 +29,9 @@ const selected = computed(() =>
   props.options.find(
     option => !option.disabled && option.expression === props.expression
   )
+);
+const title = computed(() =>
+  [selected.value?.label, props.metaVariable].filter(Boolean).join(' · ')
 );
 const display = computed(() => {
   if (selected.value) return String(selected.value.value);
@@ -181,7 +185,7 @@ const clear = async () => {
       :aria-invalid="pending && attempted"
       :placeholder="placeholder"
       :readonly="Boolean(selected)"
-      :title="selected?.label"
+      :title="title"
       class="reset-base col-start-1 row-start-1 !m-0 !h-full !min-h-0 w-full min-w-0 resize-none overflow-hidden whitespace-pre-wrap [overflow-wrap:anywhere] !appearance-none !rounded-none !border-0 !bg-transparent !p-0 !shadow-none ![outline:none] [font-size:inherit] [font-family:inherit] [font-weight:inherit] [font-style:inherit] [text-decoration:inherit] leading-5 text-n-slate-12"
       :class="
         pending ? 'placeholder:!text-n-ruby-11' : 'placeholder:text-n-slate-10'

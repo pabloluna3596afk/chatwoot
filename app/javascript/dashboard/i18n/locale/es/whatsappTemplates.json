@@ -160,6 +160,7 @@
       "COMPLETE": "Completa: {field}",
       "CHECK_FIELDS": "Revisa los datos del mensaje.",
       "DATA": "Dato {index}",
+      "DATA_PLACEHOLDER": "Escribe el dato",
       "DATA_LABEL": "Dato {index} de {total}: {example}",
       "MISSING_COUNT": "Falta {count} dato | Faltan {count} datos",
       "EXAMPLE": "Ej.: {example}",

@@ -105,9 +105,9 @@ describe('inline parser contract', () => {
     await flushPromises();
     const inputs = wrapper.findAll('textarea');
     expect(inputs.map(input => input.attributes('aria-label'))).toEqual([
-      `Dato 1 de 2: ${esFilters.FILTER.INPUT_PLACEHOLDER}`,
-      `Dato 2 de 2: ${esFilters.FILTER.INPUT_PLACEHOLDER}`,
-      `Dato 1 de 2: ${esFilters.FILTER.INPUT_PLACEHOLDER}`,
+      `Dato 1 de 2: ${es.WHATSAPP_TEMPLATES.SEND_CENTER.DATA_PLACEHOLDER}`,
+      `Dato 2 de 2: ${es.WHATSAPP_TEMPLATES.SEND_CENTER.DATA_PLACEHOLDER}`,
+      `Dato 1 de 2: ${es.WHATSAPP_TEMPLATES.SEND_CENTER.DATA_PLACEHOLDER}`,
     ]);
     expect(inputs.map(input => input.element.value)).toEqual([
       'Ana',
@@ -280,9 +280,12 @@ describe('inline parser contract', () => {
     inputs[0].element.value = '日本';
     await inputs[0].trigger('compositionend');
     expect(wrapper.emitted('change')).toEqual([['name', '日本']]);
+    expect(es.WHATSAPP_TEMPLATES.SEND_CENTER.DATA_PLACEHOLDER).toBe(
+      'Escribe el dato'
+    );
     expect(inputs.map(input => input.attributes('placeholder'))).toEqual([
-      esFilters.FILTER.INPUT_PLACEHOLDER,
-      esFilters.FILTER.INPUT_PLACEHOLDER,
+      es.WHATSAPP_TEMPLATES.SEND_CENTER.DATA_PLACEHOLDER,
+      es.WHATSAPP_TEMPLATES.SEND_CENTER.DATA_PLACEHOLDER,
     ]);
     expect(inputs.every(input => !input.attributes('tabindex'))).toBe(true);
     wrapper.unmount();
