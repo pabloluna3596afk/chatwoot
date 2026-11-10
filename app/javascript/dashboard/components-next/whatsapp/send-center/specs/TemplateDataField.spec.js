@@ -142,3 +142,26 @@ describe('free text and system variable combobox', () => {
     wrapper.unmount();
   });
 });
+
+describe('field examples and pending state', () => {
+  it('keeps the full example available while editing and clearing a value', async () => {
+    const wrapper = mount(TemplateDataField, {
+      props: { label: 'Date', placeholder: '12 de noviembre', missing: true },
+    });
+    const input = wrapper.get('textarea');
+    expect(input.attributes('placeholder')).toBe('12 de noviembre');
+    expect(input.attributes('aria-invalid')).toBe('false');
+    expect(wrapper.classes()).toContain('bg-n-ruby-3');
+    await wrapper.setProps({ value: '12', missing: false });
+    expect(input.element.value).toBe('12');
+    expect(input.attributes('placeholder')).toBe('12 de noviembre');
+    expect(wrapper.classes()).not.toContain('bg-n-ruby-3');
+    await input.setValue('');
+    expect(wrapper.emitted('change')).toEqual([['']]);
+    await wrapper.setProps({ value: '', missing: true, attempted: true });
+    expect(input.attributes('aria-invalid')).toBe('true');
+    expect(wrapper.classes()).toContain('border-n-ruby-9');
+    expect(wrapper.classes()).toContain('bg-n-ruby-3');
+    wrapper.unmount();
+  });
+});

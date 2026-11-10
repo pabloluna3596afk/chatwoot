@@ -869,7 +869,7 @@ const overlayDescriptionId = useId();
               parser?.isFormInvalid
             "
             role="status"
-            class="flex items-center gap-2 text-sm text-n-amber-11"
+            class="flex items-center gap-2 text-sm text-n-ruby-11"
             data-testid="center-invalid-reason"
           >
             <Icon icon="i-lucide-triangle-alert" class="size-4 shrink-0" />

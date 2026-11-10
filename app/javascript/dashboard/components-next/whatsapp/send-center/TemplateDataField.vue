@@ -129,13 +129,13 @@ const clear = async () => {
 
 <template>
   <span
-    class="relative inline-grid max-w-full grid-cols-[minmax(0,1fr)_auto] items-start gap-x-1 rounded-md border border-solid px-1 align-baseline whitespace-normal focus-within:ring-2 focus-within:ring-n-brand/30"
+    class="relative inline-grid max-w-full grid-cols-[minmax(0,1fr)_auto] items-start gap-x-1 rounded-md border border-solid px-1 align-baseline whitespace-normal focus-within:ring-2"
     :class="
       missing
         ? attempted
-          ? 'border-n-ruby-8 bg-n-ruby-3'
-          : 'border-n-amber-7 bg-n-amber-3'
-        : 'border-n-weak bg-n-alpha-2'
+          ? 'border-n-ruby-9 bg-n-ruby-3 ring-2 ring-n-ruby-9/30'
+          : 'border-n-ruby-7 bg-n-ruby-3 hover:border-n-ruby-8 focus-within:ring-n-ruby-9/30'
+        : 'border-n-weak bg-n-alpha-2 focus-within:ring-n-brand/30'
     "
     @focusout="
       !$event.currentTarget.contains($event.relatedTarget) &&
@@ -144,8 +144,13 @@ const clear = async () => {
   >
     <span
       aria-hidden="true"
-      class="invisible col-start-1 row-start-1 min-w-[6ch] whitespace-pre-wrap break-all leading-5"
-      >{{ display || placeholder }}{{ ' ' }}</span
+      class="invisible col-start-1 row-start-1 whitespace-pre-wrap [overflow-wrap:anywhere] leading-5"
+      >{{ placeholder }}{{ ' ' }}</span
+    >
+    <span
+      aria-hidden="true"
+      class="invisible col-start-1 row-start-1 whitespace-pre-wrap [overflow-wrap:anywhere] leading-5"
+      >{{ display }}{{ ' ' }}</span
     >
     <textarea
       ref="input"
@@ -166,13 +171,9 @@ const clear = async () => {
       :placeholder="placeholder"
       :readonly="Boolean(selected)"
       :title="selected?.label"
-      class="reset-base col-start-1 row-start-1 m-0 h-full min-h-0 w-full min-w-0 resize-none overflow-hidden whitespace-pre-wrap break-all border-0 bg-transparent p-0 [font-size:inherit] [font-family:inherit] [font-weight:inherit] [font-style:inherit] [text-decoration:inherit] leading-5 text-n-slate-12 focus:outline-none focus:ring-0"
+      class="reset-base col-start-1 row-start-1 !m-0 !h-full !min-h-0 w-full min-w-0 resize-none overflow-hidden whitespace-pre-wrap [overflow-wrap:anywhere] !appearance-none !rounded-none !border-0 !bg-transparent !p-0 !shadow-none ![outline:none] [font-size:inherit] [font-family:inherit] [font-weight:inherit] [font-style:inherit] [text-decoration:inherit] leading-5 text-n-slate-12"
       :class="
-        missing
-          ? attempted
-            ? 'placeholder:text-n-ruby-11'
-            : 'placeholder:text-n-amber-11'
-          : 'placeholder:text-n-slate-10'
+        missing ? 'placeholder:!text-n-ruby-11' : 'placeholder:text-n-slate-10'
       "
       @focus="focus"
       @click="showMenu"

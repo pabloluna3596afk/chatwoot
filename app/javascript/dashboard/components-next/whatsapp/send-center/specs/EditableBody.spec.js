@@ -8,7 +8,7 @@ vi.mock('dashboard/components-next/variable-picker/VariablePicker.vue', () => ({
 }));
 
 describe('inline template fields', () => {
-  it('shows amber immediately and red only after attempting send', async () => {
+  it('shows ruby immediately and marks invalid only after attempting send', async () => {
     const wrapper = mount(EditableBody, {
       props: {
         text: 'Hello {{name}}, order {{order}}',
@@ -27,11 +27,14 @@ describe('inline template fields', () => {
     await fields[0].trigger('blur');
     expect(fields[0].attributes('aria-invalid')).toBe('false');
     expect(
-      fields[0].element.parentElement.classList.contains('bg-n-amber-3')
+      fields[0].element.parentElement.classList.contains('bg-n-ruby-3')
     ).toBe(true);
     expect(fields[1].attributes('aria-invalid')).toBe('false');
     await wrapper.setProps({ attempted: true });
     expect(fields[1].attributes('aria-invalid')).toBe('true');
+    expect(
+      fields[1].element.parentElement.classList.contains('border-n-ruby-9')
+    ).toBe(true);
     await wrapper.setProps({ values: { name: 'Ana' }, invalidKeys: ['order'] });
     expect(fields[0].attributes('aria-invalid')).toBe('false');
     wrapper.unmount();
