@@ -149,7 +149,16 @@
         "IMAGE": "Imagen",
         "VIDEO": "Video",
         "DOCUMENT": "Documento"
-      }
+      },
+      "FILTERS": "Filtros",
+      "EMPTY_CATALOG": "Todavía no hay mensajes",
+      "EMPTY_CATALOG_HELP": "Actualiza el catálogo para ver los mensajes disponibles.",
+      "EMPTY_HELP": "Prueba otra búsqueda o elimina los filtros.",
+      "CLEAR_FILTERS": "Limpiar filtros",
+      "COMPLETE": "Completa: {field}",
+      "CHECK_FIELDS": "Revisa los datos del mensaje.",
+      "DATA": "Dato {index}",
+      "DATA_LABEL": "{name}, dato {index} de {total}"
     }
   }
 }

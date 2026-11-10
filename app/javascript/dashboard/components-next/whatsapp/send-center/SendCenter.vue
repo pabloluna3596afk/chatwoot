@@ -13,13 +13,11 @@ import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDrop
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import WhatsAppTemplateParser from '../WhatsAppTemplateParser.vue';
 import ContentTemplateParser from 'dashboard/components-next/content-templates/ContentTemplateParser.vue';
-import { PHONE_PREVIEW_WIDTH } from '../phonePreview';
 import FlowDetail from './FlowDetail.vue';
-import SyncStatus from '../sync-status/SyncStatus.vue';
+import EditableBody from './EditableBody.vue';
 import { lastSendCenterTab } from './session';
 import MessagePreview from '../WhatsAppBubble.vue';
 import {
-  SEND_CENTER_COLUMN_UNIT_CLASS,
   supportsFlows,
   usesContentTemplates,
   sendCenterIcon,
@@ -29,6 +27,7 @@ import {
   TEMPLATE_CATEGORIES,
   TEMPLATE_STATUSES,
   FLOW_STATUSES,
+  templateFieldLabel,
 } from './helpers';
 
 const props = defineProps({
@@ -43,7 +42,7 @@ const emit = defineEmits(['close']);
 const { t, te } = useI18n();
 const prefix = 'WHATSAPP_TEMPLATES.SEND_CENTER';
 const store = useStore();
-const { defaultValues } = useTemplateBindings('message');
+const { defaultValues, bindings } = useTemplateBindings('message');
 const chat = useMapGetter('getSelectedChat');
 const agent = useMapGetter('getCurrentUser');
 const resolveContext = computed(() => ({
@@ -217,22 +216,49 @@ const statusGroups = computed(() => [
     ),
   },
 ]);
-const hasCustomization = computed(() => {
-  if (!selected.value || selected.value.reason) return false;
-  if (selected.value.type === 'flow') return !!flowDetail.value?.customizing;
-  if (content.value)
-    return Object.keys(parser.value?.processedParams || {}).length > 0;
-  return !!(
-    parser.value?.hasVariables ||
-    parser.value?.hasMediaHeader ||
-    Object.keys(parser.value?.processedParams?.buttons || {}).length
+const filtersOpen = ref(false);
+const filterCount = computed(
+  () => Number(category.value !== 'ALL') + Number(status.value !== 'ALL')
+);
+const catalogEmpty = computed(
+  () =>
+    !rows.value.some(
+      row => row.type === (tab.value === 0 ? 'template' : 'flow')
+    )
+);
+const clearFilters = () => {
+  query.value = '';
+  category.value = 'ALL';
+  status.value = 'ALL';
+};
+const snippet = row =>
+  row.data.components?.find(c => c.type === 'BODY')?.text ||
+  row.data.body ||
+  row.name;
+const fieldLabel = (key, index = 0) =>
+  templateFieldLabel(
+    key,
+    index,
+    bindings.value,
+    selected.value?.data.variable_bindings,
+    t
+  );
+const missingLabel = computed(() => {
+  const field = parser.value?.missingField;
+  if (!field) return '';
+  if (field.section === 'body')
+    return fieldLabel(
+      field.key,
+      Object.keys(
+        content.value
+          ? parser.value.processedParams
+          : parser.value.processedParams.body || {}
+      ).indexOf(field.key)
+    );
+  return t(
+    `${prefix}.${field.section === 'buttons' ? 'BUTTON_TEXT' : 'HEADER'}`
   );
 });
-const parserColumns = computed(() =>
-  hasCustomization.value
-    ? 'grid-cols-1 md:grid-cols-[var(--phone-preview-width)] xl:grid-cols-[var(--phone-preview-width)_var(--send-center-unit)] md:max-xl:[&>[data-template-fields]]:absolute md:max-xl:[&>[data-template-fields]]:top-0 md:max-xl:[&>[data-template-fields]]:start-[calc(-1*var(--send-center-unit)-1.5rem)] md:max-xl:[&>[data-template-fields]]:w-[var(--send-center-unit)] md:max-xl:[&>[data-template-fields]]:z-10 md:max-xl:[&>[data-template-fields]]:bg-n-solid-1'
-    : 'grid-cols-1 md:grid-cols-[var(--phone-preview-width)]'
-);
 const component = type =>
   selected.value?.data.components?.find(c => c.type === type);
 const header = computed(() => component('HEADER')?.text || '');
@@ -252,6 +278,17 @@ const headerMedia = computed(() => {
     ? format
     : '';
 });
+const parserProps = computed(() => ({
+  template: selected.value?.data,
+  ...(content.value
+    ? {}
+    : {
+        mediaInboxId: props.inbox.id,
+        sendRenderedContent: props.inbox.channel_type === 'Channel::Api',
+        defaultValues: defaultValues.value,
+        resolveContext: resolveContext.value,
+      }),
+}));
 const canSend = computed(
   () =>
     selected.value &&
@@ -277,14 +314,12 @@ const loadFlows = async () => {
     error.value = e.response?.data?.error || t(`${prefix}.LOAD_ERROR`);
   }
 };
-const lastRefreshedAt = ref(new Date());
 const refresh = async () => {
   isRefreshing.value = true;
   error.value = '';
   try {
     await store.dispatch('inboxes/syncTemplates', props.inbox.id);
     if (hasFlows.value) await loadFlows();
-    lastRefreshedAt.value = new Date();
   } catch (e) {
     error.value = e.response?.data?.error || t(`${prefix}.LOAD_ERROR`);
   } finally {
@@ -364,22 +399,15 @@ const overlayDescriptionId = useId();
     ref="dialog"
     :aria-labelledby="overlayTitleId"
     :aria-describedby="overlayDescriptionId"
-    width="3xl"
+    width="sendCenter"
     body-scroll
     :show-confirm-button="false"
     :show-cancel-button="false"
     @close="close"
   >
     <div
-      class="flex max-md:h-auto md:h-[min(52rem,calc(90dvh-11rem))] md:[div:has(>&)]:!overflow-visible min-h-0 flex-col gap-5 [dialog:has(&)]:!max-w-[calc(100vw-2rem)] [dialog:has(&)]:!left-[max(1rem,calc((100vw-(2*var(--send-center-unit)+var(--phone-preview-width)+6rem))/2))] [dialog:has(&)]:!right-auto [dialog:has(&)]:!mx-0 [dialog:has(&)]:!transition-[width] [dialog:has(&)]:!duration-300 [dialog:has(&)]:!ease-in-out motion-reduce:[dialog:has(&)]:!transition-none max-xl:[dialog:has(&)]:[--send-center-unit:calc(100vw-var(--phone-preview-width)-6.5rem)] max-xl:[dialog:has(&)]:!left-4 [form:has(&)>div:last-child]:!border-0 [form:has(&)>div:last-child]:!pt-0"
-      :class="[
-        SEND_CENTER_COLUMN_UNIT_CLASS,
-        PHONE_PREVIEW_WIDTH,
-        hasCustomization
-          ? 'xl:[dialog:has(&)]:!w-[calc(2*var(--send-center-unit)+var(--phone-preview-width)+6rem)] max-xl:[dialog:has(&)]:!w-[calc(100vw-2rem)]'
-          : '[dialog:has(&)]:!w-[calc(var(--send-center-unit)+var(--phone-preview-width)+4.5rem)]',
-      ]"
-      :data-columns="hasCustomization ? 3 : 2"
+      class="flex max-md:h-auto md:h-[min(40rem,calc(90dvh-11rem))] min-h-0 flex-col gap-5"
+      data-columns="2"
       data-testid="center-body"
       @keydown.esc="handleEscape"
     >
@@ -417,21 +445,15 @@ const overlayDescriptionId = useId();
         />
       </div>
       <div
-        class="grid min-h-0 flex-1 gap-x-6 gap-y-3 grid-cols-1 md:grid-rows-[auto_minmax(0,1fr)] md:grid-cols-[var(--send-center-unit)_minmax(0,1fr)]"
+        class="grid min-h-0 flex-1 gap-4 grid-cols-1 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]"
         data-testid="center-columns"
       >
         <section
-          class="md:row-span-2 grid gap-3 md:grid-rows-subgrid min-h-0 min-w-0"
+          class="flex min-h-0 min-w-0 flex-col gap-3 md:border-e md:border-n-weak md:pe-4"
         >
-          <div
-            class="flex flex-col gap-3"
-            data-testid="center-controls"
-            :class="{
-              'md:max-xl:[&>:not(:first-child)]:invisible': hasCustomization,
-            }"
-          >
+          <div class="flex flex-col gap-3" data-testid="center-controls">
             <div
-              class="flex flex-wrap shrink-0 items-center gap-3"
+              class="flex items-center justify-between gap-2"
               data-testid="center-toolbar"
             >
               <TabBar
@@ -439,33 +461,52 @@ const overlayDescriptionId = useId();
                 :initial-active-tab="tab"
                 @tab-changed="tab = $event.index"
               />
-              <SyncStatus
-                short
-                label-key="WHATSAPP_TEMPLATE_MGMT.UPDATED_AT"
-                :date="lastRefreshedAt"
+              <Button
+                intent="tertiary"
+                size="sm"
+                icon="i-lucide-refresh-cw"
+                :title="$t(`${prefix}.REFRESH`)"
+                :aria-label="$t(`${prefix}.REFRESH`)"
                 :is-loading="isRefreshing || isPending"
-                :disabled="isSending"
-                :button-label="$t(`${prefix}.REFRESH`)"
-                button-testid="center-refresh"
-                @refresh="refresh"
+                :disabled="isSending || isRefreshing || isPending"
+                data-testid="center-refresh"
+                @click="refresh"
               />
             </div>
-
-            <SearchInput
-              v-model="query"
-              size="sm"
-              class="w-full shrink-0"
-              :placeholder="$t(`${prefix}.SEARCH`)"
-              :aria-label="$t(`${prefix}.SEARCH`)"
-              data-testid="center-search"
-            />
+            <div class="flex min-w-0 gap-2 items-center">
+              <Icon
+                icon="i-lucide-search"
+                class="size-3.5 shrink-0 text-n-slate-11"
+              />
+              <SearchInput
+                v-model="query"
+                size="sm"
+                class="flex-1 [&_.i-lucide-search]:hidden"
+                :placeholder="$t(`${prefix}.SEARCH`)"
+                :aria-label="$t(`${prefix}.SEARCH`)"
+                data-testid="center-search"
+              />
+              <Button
+                intent="secondary"
+                size="sm"
+                class="shrink-0"
+                icon="i-lucide-filter"
+                :label="`${$t(`${prefix}.FILTERS`)}${filterCount ? ` (${filterCount})` : ''}`"
+                :aria-expanded="filtersOpen"
+                :aria-controls="`${overlayTitleId}-filters`"
+                data-testid="center-filter-toggle"
+                @click="filtersOpen = !filtersOpen"
+              />
+            </div>
             <div
-              class="grid shrink-0 grid-cols-2 gap-2"
+              v-show="filtersOpen"
+              :id="`${overlayTitleId}-filters`"
+              class="grid grid-cols-2 gap-2"
               data-testid="center-filters"
             >
               <FilterDropdown
                 v-model="category"
-                class="[&_button]:w-full"
+                class="min-w-0"
                 icon="i-lucide-folder"
                 :label="$t(`${prefix}.FILTER_CATEGORY`)"
                 :options="categoryOptions"
@@ -474,7 +515,7 @@ const overlayDescriptionId = useId();
               />
               <FilterDropdown
                 v-model="status"
-                class="[&_button]:w-full"
+                class="min-w-0"
                 icon="i-lucide-circle-check"
                 :label="$t(`${prefix}.FILTER_STATUS`)"
                 :options="statusOptions"
@@ -487,64 +528,95 @@ const overlayDescriptionId = useId();
             </p>
           </div>
           <div
-            :class="{
-              'md:max-xl:invisible': hasCustomization,
-            }"
-            class="min-h-0 flex-1 overflow-y-auto overscroll-contain flex flex-col gap-2"
+            class="min-h-0 flex-1 overflow-y-auto overscroll-contain flex flex-col gap-1"
             role="list"
             data-testid="center-list"
           >
-            <Button
+            <button
               v-for="row in filtered"
               :key="row.key"
               type="button"
-              ghost
-              slate
-              class="!h-auto !p-3 !justify-start shrink-0 text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
+              class="w-full min-w-0 rounded-lg border-s-[0.1875rem] p-3 text-start shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
               :class="
-                row.key === selectedKey ? '!bg-n-alpha-2 !text-n-slate-12' : ''
+                row.key === selectedKey
+                  ? 'border-n-brand bg-n-alpha-2'
+                  : 'border-transparent hover:bg-n-alpha-1'
               "
               :disabled="isSending"
               :aria-pressed="row.key === selectedKey"
               :data-testid="`center-row-${row.key}`"
               @click="selectedKey = row.key"
             >
-              <span class="flex flex-col gap-1 w-full min-w-0"
-                ><span class="flex gap-2 justify-between items-center"
-                  ><span
-                    class="truncate text-xs font-semibold text-n-slate-12"
-                    >{{ row.name }}</span
-                  ><Icon
-                    :icon="
-                      row.type === 'flow'
-                        ? 'i-lucide-workflow'
-                        : 'i-lucide-layout-template'
-                    "
-                    class="size-4 shrink-0 text-n-slate-10" /></span
-                ><span
-                  class="text-xs"
-                  :class="row.reason ? 'text-n-amber-11' : 'text-n-teal-11'"
-                  >{{ statusLabel(row.status) }}</span
-                ><span
-                  v-if="row.reason"
-                  class="text-xs font-normal whitespace-normal text-n-slate-11"
-                  >{{ reasonLabel(row.reason) }}</span
-                ></span
+              <div class="flex items-start justify-between gap-2">
+                <p class="break-all text-sm font-semibold text-n-slate-12">
+                  {{ row.name }}
+                </p>
+                <p
+                  v-if="row.data.language"
+                  class="shrink-0 rounded bg-n-alpha-2 px-1.5 py-0.5 text-xxs text-n-slate-11"
+                >
+                  {{ row.data.language }}
+                </p>
+              </div>
+              <p class="mt-1 line-clamp-2 text-xs leading-5 text-n-slate-11">
+                {{ snippet(row) }}
+              </p>
+              <span
+                v-if="row.reason"
+                class="mt-2 block text-xs text-n-amber-11"
               >
-            </Button>
-            <p
+                <span>{{ statusLabel(row.status) }}</span>
+                <span class="ms-1">{{ reasonLabel(row.reason) }}</span>
+              </span>
+            </button>
+            <div
               v-if="!filtered.length && !isPending"
-              class="p-4 text-sm text-n-slate-11"
+              class="flex flex-col items-center gap-3 px-4 py-10 text-center"
             >
-              {{ $t(`${prefix}.EMPTY`) }}
-            </p>
+              <p class="text-sm font-semibold text-n-slate-12">
+                {{
+                  $t(`${prefix}.${catalogEmpty ? 'EMPTY_CATALOG' : 'EMPTY'}`)
+                }}
+              </p>
+              <p class="text-xs text-n-slate-11">
+                {{
+                  $t(
+                    `${prefix}.${catalogEmpty ? 'EMPTY_CATALOG_HELP' : 'EMPTY_HELP'}`
+                  )
+                }}
+              </p>
+              <Button
+                intent="secondary"
+                size="sm"
+                :label="
+                  $t(`${prefix}.${catalogEmpty ? 'REFRESH' : 'CLEAR_FILTERS'}`)
+                "
+                @click="catalogEmpty ? refresh() : clearFilters()"
+              />
+            </div>
           </div>
         </section>
         <section
           v-if="selected"
-          class="min-h-0 min-w-0 overflow-hidden max-xl:overflow-visible md:row-span-2 flex flex-col gap-6"
+          class="min-h-0 min-w-0 overflow-y-auto overscroll-contain flex flex-col gap-4"
           data-testid="center-detail"
         >
+          <div
+            class="flex shrink-0 items-center justify-between gap-3 border-b border-n-weak pb-3"
+          >
+            <h3
+              class="min-w-0 truncate text-sm font-semibold text-n-slate-12"
+              :title="selected.name"
+            >
+              {{ selected.name }}
+            </h3>
+            <p
+              v-if="selected.data.language"
+              class="shrink-0 text-xs text-n-slate-11"
+            >
+              {{ selected.data.language }}
+            </p>
+          </div>
           <FlowDetail
             v-if="selected.type === 'flow'"
             :key="selected.key"
@@ -553,43 +625,45 @@ const overlayDescriptionId = useId();
             :readonly="!!selected.reason"
           />
           <template v-else-if="!selected.reason">
-            <ContentTemplateParser
-              v-if="content"
+            <component
+              :is="content ? ContentTemplateParser : WhatsAppTemplateParser"
               :key="selected.key"
               ref="parser"
-              class="relative grid min-h-0 min-w-0 flex-1 content-start items-start gap-6 [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto [&_input]:!h-8 [&_input]:!py-1.5"
-              :class="parserColumns"
-              :template="selected.data"
-              @send-message="sendTemplatePayload"
-            >
-              <template #actions />
-            </ContentTemplateParser>
-            <WhatsAppTemplateParser
-              v-else
-              :key="selected.key"
-              ref="parser"
-              class="relative grid min-h-0 min-w-0 flex-1 content-start items-start gap-6 [&>div]:min-w-0 [&>div]:max-h-full [&>div]:overflow-y-auto [&_input]:!h-8 [&_input]:!py-1.5"
-              :class="parserColumns"
-              :template="selected.data"
-              :media-inbox-id="inbox.id"
-              :send-rendered-content="inbox.channel_type === 'Channel::Api'"
-              :default-values="defaultValues"
-              :resolve-context="resolveContext"
+              class="flex min-h-0 min-w-0 flex-col gap-4 [&>[data-template-fields]:empty]:hidden"
+              v-bind="parserProps"
               @send-message="sendTemplatePayload"
             >
               <template #preview="preview">
-                <MessagePreview
-                  :header="preview.header"
-                  :body="preview.body"
-                  :footer="footer"
-                  :buttons="buttons"
-                  :header-media="headerMedia"
-                /> </template
-              ><template #actions />
-            </WhatsAppTemplateParser>
+                <div
+                  data-template-preview
+                  class="mx-auto w-full max-w-[22.5rem] max-h-[24rem] overflow-y-auto overscroll-contain rounded-xl"
+                >
+                  <MessagePreview
+                    :header="preview.header"
+                    :body="preview.body"
+                    :footer="footer"
+                    :buttons="buttons"
+                    :header-media="headerMedia"
+                  >
+                    <template v-if="preview.bodyText" #body>
+                      <EditableBody
+                        :text="preview.bodyText"
+                        :values="preview.bodyValues"
+                        :invalid-keys="preview.invalidBodyKeys"
+                        :label-for="fieldLabel"
+                        @change="preview.setBodyValue"
+                      />
+                    </template>
+                  </MessagePreview>
+                </div>
+              </template>
+              <template #body-fields />
+              <template #actions />
+            </component>
           </template>
           <MessagePreview
             v-else
+            class="mx-auto w-full max-w-[22.5rem]"
             :header="header"
             :body="body"
             :footer="footer"
@@ -613,6 +687,22 @@ const overlayDescriptionId = useId();
             {{ error }}
           </p>
           <p
+            v-else-if="
+              selected?.type === 'template' &&
+              !selected.reason &&
+              parser?.isFormInvalid
+            "
+            role="status"
+            class="text-sm text-n-slate-11"
+            data-testid="center-invalid-reason"
+          >
+            {{
+              missingLabel
+                ? $t(`${prefix}.COMPLETE`, { field: missingLabel })
+                : $t(`${prefix}.CHECK_FIELDS`)
+            }}
+          </p>
+          <p
             v-else-if="selected?.type === 'flow' && flowDetail?.invalidReason"
             class="text-xs text-n-ruby-11"
             role="status"
@@ -632,6 +722,7 @@ const overlayDescriptionId = useId();
           </p>
         </div>
         <Button
+          intent="primary"
           :label="$t(`${prefix}.SEND`)"
           icon="i-lucide-send"
           :disabled="!canSend"

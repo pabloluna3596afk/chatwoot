@@ -4,7 +4,43 @@ import {
   supportsFlows,
   sendCenterIcon,
   usesContentTemplates,
+  bodySegments,
+  templateFieldLabel,
 } from '../helpers';
+
+describe('body presentation', () => {
+  it('keeps text, whitespace, repeats and named variables in reading order', () => {
+    expect(bodySegments('Hola {{ nombre }}\n{{1}} / {{nombre}}')).toEqual([
+      { text: 'Hola ' },
+      { key: 'nombre' },
+      { text: '\n' },
+      { key: '1' },
+      { text: ' / ' },
+      { key: 'nombre' },
+      { text: '' },
+    ]);
+  });
+  it('uses catalog labels for names and saved numeric bindings', () => {
+    const bindings = [
+      { name: 'nombre', key: 'contact.name', label: 'Nombre del cliente' },
+    ];
+    expect(templateFieldLabel('nombre', 0, bindings, {}, vi.fn())).toBe(
+      'Nombre del cliente'
+    );
+    expect(
+      templateFieldLabel('1', 0, bindings, { 1: 'contact.name' }, vi.fn())
+    ).toBe('Nombre del cliente');
+    const translate = vi.fn(() => 'Dato 2');
+    expect(templateFieldLabel('2', 1, [], {}, translate)).toBe('Dato 2');
+    expect(translate).toHaveBeenCalledWith(
+      'WHATSAPP_TEMPLATES.SEND_CENTER.DATA',
+      { index: 2 }
+    );
+    expect(templateFieldLabel('fecha_cita', 0, [], {}, translate)).toBe(
+      'fecha cita'
+    );
+  });
+});
 
 describe('send center eligibility', () => {
   it.each(['PENDING', 'REJECTED', 'PAUSED', 'DISABLED'])(
