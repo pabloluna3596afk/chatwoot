@@ -7,10 +7,10 @@ import SendCenter from '../SendCenter.vue';
 import { lastSendCenterTab } from '../session';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
-import { SEND_CENTER_COLUMN_UNIT_CLASS } from '../helpers';
 import API from 'dashboard/api/whatsappFlows';
 import en from 'dashboard/i18n/locale/en/whatsappTemplates.json';
 import es from 'dashboard/i18n/locale/es/whatsappTemplates.json';
+import esFilters from 'dashboard/i18n/locale/es/advancedFilters.json';
 import esFlows from 'dashboard/i18n/locale/es/whatsappFlows.json';
 
 vi.mock('dashboard/api/variables', () => ({
@@ -48,7 +48,7 @@ const DialogStub = {
 };
 const ParserStub = {
   template:
-    '<div>Template parser<slot name="preview" header="Header" body="Preview body" /></div>',
+    '<div><slot name="preview" header="Header" body="Preview body" /></div>',
   data: () => ({ isFormInvalid: false }),
   methods: {
     sendMessage() {
@@ -64,13 +64,15 @@ describe('unified send center', () => {
   let wrapper;
   let globalOptions;
   beforeEach(() => {
+    Element.prototype.scrollIntoView = vi.fn();
     lastSendCenterTab.value = 0;
     globalOptions = {
       plugins: [
         createI18n({
           legacy: false,
           locale: 'es',
-          messages: { es: { ...es, ...esFlows } },
+          fallbackLocale: 'en',
+          messages: { es: { ...es, ...esFlows, ...esFilters }, en },
         }),
         createStore({
           getters: {
@@ -108,6 +110,190 @@ describe('unified send center', () => {
     API.sendToConversation.mockResolvedValue({});
   });
   afterEach(() => wrapper?.unmount());
+
+  it('formats only the list snippet and keeps body search and filter counts', async () => {
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: { id: 3, channel_type: 'Channel::Api' },
+        conversationId: 5,
+        canReply: true,
+        templates: [
+          ...templates,
+          {
+            ...templates[1],
+            name: 'rich',
+            components: [
+              {
+                type: 'BODY',
+                text: '*Hello {{1}}* _italic_ ~removed~ `code`\n- pickup\n1. first\n> quote\nhttps://example.com <img src=x onerror=alert(1)>',
+              },
+            ],
+          },
+        ],
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    const snippet = wrapper.get(
+      '[data-testid="center-row-template:rich:es"] p.line-clamp-2'
+    );
+    expect(snippet.classes()).toContain('line-clamp-2');
+    expect(snippet.get('strong').text()).toBe('Hello {{1}}');
+    expect(snippet.get('em').text()).toBe('italic');
+    expect(snippet.get('s').text()).toBe('removed');
+    expect(snippet.get('code').text()).toBe('code');
+    expect(snippet.find('a, img, script').exists()).toBe(false);
+    expect(snippet.text()).toContain('pickup first quote https://example.com');
+    expect(wrapper.get('[data-testid="center-count"]').text()).toBe(
+      '4 plantillas'
+    );
+    await wrapper.get('[data-testid="center-search"] input').setValue('pickup');
+    expect(wrapper.get('[data-testid="center-count"]').text()).toContain(
+      '1 resultado'
+    );
+    expect(
+      wrapper.findAll('[data-testid^="center-row-template:"]')
+    ).toHaveLength(1);
+    expect(
+      wrapper
+        .findAllComponents(FilterDropdown)
+        .map(filter => filter.props('options')[0].count)
+    ).toEqual([1, 1]);
+  });
+
+  it('keeps the selected name accessible without a repeated visual heading', async () => {
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: 'whatsapp_cloud',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates: [
+          ...templates,
+          { ...templates[1], name: 'test_marketing_bienvenida' },
+        ],
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    const row = wrapper.get(
+      '[data-testid="center-row-template:test_marketing_bienvenida:es"]'
+    );
+    expect(
+      row.get('[title="test_marketing_bienvenida"]').findAll('wbr')
+    ).toHaveLength(2);
+    await row.trigger('click');
+    expect(
+      wrapper.get('[data-testid="center-detail"]').attributes('aria-label')
+    ).toBe('test_marketing_bienvenida');
+    expect(wrapper.find('[data-testid="center-detail"] h3').exists()).toBe(
+      false
+    );
+    expect(
+      wrapper
+        .find('[data-testid="center-detail"] [data-testid="template-category"]')
+        .exists()
+    ).toBe(false);
+    expect(wrapper.get('[data-testid="center-selection"]').text()).toBe(
+      wrapper.vm.$t('WHATSAPP_TEMPLATES.SEND_CENTER.TEMPLATE_SELECTED', {
+        name: 'test_marketing_bienvenida',
+      })
+    );
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    expect(
+      wrapper.get('[data-testid="center-detail"]').attributes('aria-label')
+    ).toBe('Contact');
+    expect(wrapper.get('[data-testid="center-selection"]').text()).toBe(
+      wrapper.vm.$t('WHATSAPP_TEMPLATES.SEND_CENTER.FLOW_SELECTED', {
+        name: 'Contact',
+      })
+    );
+  });
+
+  it('clears query, filters and chips independently and announces matching results', async () => {
+    wrapper = mount(SendCenter, {
+      attachTo: document.body,
+      props: {
+        show: true,
+        inbox: { id: 3, channel_type: 'Channel::Api' },
+        conversationId: 5,
+        canReply: true,
+        templates,
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    expect(wrapper.get('[data-testid="center-count"]').text()).toBe(
+      '3 plantillas'
+    );
+    const input = wrapper.get('[data-testid="center-search"] input');
+    await input.setValue('Discount');
+    expect(wrapper.get('[data-testid="center-count"]').text()).toContain(
+      '1 resultado'
+    );
+    expect(wrapper.get('[data-testid="center-list"]').text()).toContain(
+      'offer'
+    );
+    expect(wrapper.get('[data-testid="center-list"]').text()).not.toContain(
+      'appointment'
+    );
+    const event = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true,
+    });
+    input.element.dispatchEvent(event);
+    await flushPromises();
+    expect(event.defaultPrevented).toBe(true);
+    expect(input.element.value).toBe('');
+    expect(wrapper.emitted('close')).toBeUndefined();
+    const filters = wrapper.findAllComponents(FilterDropdown);
+    filters[0].vm.$emit('update:modelValue', 'template:MARKETING');
+    filters[1].vm.$emit('update:modelValue', 'APPROVED');
+    await flushPromises();
+    expect(wrapper.get('[data-testid="center-filter-count"]').text()).toBe('2');
+    expect(
+      wrapper.get('[data-testid="center-filter-chips"]').findAll('button')
+    ).toHaveLength(2);
+    await wrapper
+      .get('[data-testid="center-filter-chips"] button')
+      .trigger('click');
+    expect(wrapper.get('[data-testid="center-filter-count"]').text()).toBe('1');
+    const toggle = wrapper.get('[data-testid="center-filter-toggle"]');
+    await toggle.trigger('click');
+    expect(wrapper.find('[data-testid="center-filter-chips"]').exists()).toBe(
+      false
+    );
+    await input.setValue('no match');
+    await wrapper.get('[data-testid="center-clear-filters"]').trigger('click');
+    expect(input.element.value).toBe('no match');
+    expect(wrapper.get('[data-testid="center-count"]').text()).toBe(
+      'Sin resultados'
+    );
+    await input.setValue('');
+    await filters[0].get('button').trigger('keydown', { key: 'Escape' });
+    expect(toggle.attributes('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(toggle.element);
+    await input.setValue('no match');
+    await wrapper.get('[data-testid="center-list"] button').trigger('click');
+    expect(input.element.value).toBe('');
+    expect(wrapper.get('[data-testid="center-count"]').text()).toBe(
+      '3 plantillas'
+    );
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
+      block: 'nearest',
+      behavior: 'instant',
+    });
+  });
 
   it('keeps native dialog close synchronized while a send is pending', async () => {
     let resolveSend;
@@ -301,7 +487,7 @@ describe('unified send center', () => {
     expect(
       wrapper.get('[data-testid="center-detail"]').element.parentElement
     ).toBe(columns.element);
-    expect(toolbar.classes()).not.toContain('justify-between');
+    expect(toolbar.classes()).toContain('justify-between');
     expect(toolbar.findAll('button').map(button => button.text())).toEqual([
       'Plantillas',
       'Flows',
@@ -318,14 +504,13 @@ describe('unified send center', () => {
     const filterRow = wrapper.get('[data-testid="center-filters"]');
     expect(filterRow.findAllComponents(FilterDropdown)).toHaveLength(2);
     expect(filterRow.classes()).toContain('grid-cols-2');
-    expect(
-      wrapper.get('[data-testid="center-search"]').element.parentElement
-        .nextElementSibling
-    ).toBe(filterRow.element);
+    expect(filterRow.attributes('style')).toContain('display: none');
+    await wrapper.get('[data-testid="center-filter-toggle"]').trigger('click');
+    expect(filterRow.attributes('style') || '').not.toContain('display: none');
     const filters = wrapper.findAllComponents(FilterDropdown);
     expect(filters.map(filter => filter.get('button').text())).toEqual([
-      'Categor\u00edas',
-      'Estados',
+      'Categor\u00eda',
+      'Estado',
     ]);
     expect(
       filters.map(filter => filter.get('button').attributes('title'))
@@ -358,7 +543,7 @@ describe('unified send center', () => {
     expect(wrapper.findAllComponents(DialogStub)).toHaveLength(1);
   });
 
-  it('keeps refresh spinning and disabled during template synchronization and Flow loading', async () => {
+  it('stops the template loading indicator while background Flows finish', async () => {
     let resolveSync;
     let resolveFlows;
     const sync = vi.fn(
@@ -411,14 +596,14 @@ describe('unified send center', () => {
     resolveSync();
     await flushPromises();
     expect(refresh.attributes('disabled')).toBeDefined();
-    expect(refresh.find('.animate-spin').exists()).toBe(true);
+    expect(refresh.find('.animate-spin').exists()).toBe(false);
     resolveFlows({ data: { payload: [], can_reply: true } });
     await flushPromises();
     expect(refresh.attributes('disabled')).toBeUndefined();
     expect(refresh.find('.animate-spin').exists()).toBe(false);
   });
 
-  it('uses one width unit for two or three columns and shrinks again when customization closes', async () => {
+  it('keeps two columns and the same dialog width while customizing a Flow', async () => {
     wrapper = mount(SendCenter, {
       props: {
         show: true,
@@ -436,32 +621,21 @@ describe('unified send center', () => {
     });
     await flushPromises();
     const body = wrapper.get('[data-testid="center-body"]');
-    expect(body.classes()).toContain(SEND_CENTER_COLUMN_UNIT_CLASS);
-    expect(body.attributes('data-columns')).toBe('2');
-    expect(body.classes()).toContain(
-      '[dialog:has(&)]:!w-[calc(var(--send-center-unit)+var(--phone-preview-width)+4.5rem)]'
-    );
-    expect(body.classes()).toContain('[dialog:has(&)]:!transition-[width]');
-    expect(body.classes()).toContain(
-      'motion-reduce:[dialog:has(&)]:!transition-none'
+    const before = body.attributes('class');
+    expect(wrapper.findComponent(DialogStub).attributes('width')).toBe(
+      'sendCenter'
     );
     wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
     await flushPromises();
     await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
-    expect(body.attributes('data-columns')).toBe('3');
-    expect(body.classes()).toContain(
-      'xl:[dialog:has(&)]:!w-[calc(2*var(--send-center-unit)+var(--phone-preview-width)+6rem)]'
-    );
-    expect(body.classes()).toContain(
-      'max-xl:[dialog:has(&)]:!w-[calc(100vw-2rem)]'
-    );
-    expect(
-      wrapper.get('[data-testid="flow-send-preview-column"]').classes()
-    ).not.toContain('max-xl:hidden');
+    expect(body.attributes('data-columns')).toBe('2');
+    expect(body.attributes('class')).toBe(before);
+    expect(body.attributes('class')).not.toContain('dialog:has');
+    expect(wrapper.get('[data-testid="center-list"]').isVisible()).toBe(true);
     await wrapper
       .get('[data-testid="flow-send-close-customize"]')
       .trigger('click');
-    expect(body.attributes('data-columns')).toBe('2');
+    expect(body.attributes('class')).toBe(before);
   });
 
   it.each([
@@ -486,9 +660,10 @@ describe('unified send center', () => {
       },
     ],
   ])(
-    'allocates a third unit for editable template fields on %j',
+    'edits body variables in the real bubble with two stable columns on %j',
     async (inbox, template) => {
       wrapper = mount(SendCenter, {
+        attachTo: document.body,
         props: {
           show: true,
           inbox,
@@ -502,31 +677,43 @@ describe('unified send center', () => {
       await flushPromises();
       expect(
         wrapper.get('[data-testid="center-body"]').attributes('data-columns')
-      ).toBe('3');
-      expect(wrapper.get('[data-testid="center-body"]').classes()).toContain(
-        'xl:[dialog:has(&)]:!w-[calc(2*var(--send-center-unit)+var(--phone-preview-width)+6rem)]'
-      );
-      const input = wrapper.get('[data-testid="center-detail"] input');
-      const fields = wrapper.get('[data-template-fields]');
-      const preview = wrapper.get('[data-template-preview]');
-      expect(fields.element.parentElement).toBe(preview.element.parentElement);
-      expect(fields.element.parentElement.children).toHaveLength(2);
-      expect(wrapper.get('[data-testid="center-columns"]').classes()).toContain(
-        'grid-cols-1'
-      );
+      ).toBe('2');
+      const input = wrapper.get('[data-testid="editable-body"] textarea');
       expect(
-        wrapper.get('[data-testid="center-list"]').attributes('class')
-      ).toContain('md:max-xl:invisible');
-      const layout = fields.element.parentElement.classList;
-      expect(layout).toContain(
-        'xl:grid-cols-[var(--phone-preview-width)_var(--send-center-unit)]'
-      );
-      expect(layout).toContain('grid-cols-1');
-      expect(preview.element.parentElement.children[0]).toBe(preview.element);
-      expect(preview.element.parentElement.children[1]).toBe(fields.element);
+        wrapper
+          .get('[data-testid="send-center-preview-body"]')
+          .element.contains(input.element)
+      ).toBe(true);
+      expect(wrapper.get('[data-testid="center-list"]').isVisible()).toBe(true);
+      expect(
+        wrapper.get('[data-testid="center-invalid-reason"]').text()
+      ).toContain('Falta 1 dato');
       await input.setValue('Ana');
-      expect(wrapper.get('[data-testid="center-detail"]').text()).toContain(
-        'Hello Ana'
+      expect(input.element.value).toBe('Ana');
+      expect(
+        wrapper.get('[data-testid="center-send"]').attributes('disabled')
+      ).toBeUndefined();
+      await input.trigger('keydown', { key: 'Enter' });
+      expect(document.activeElement).toBe(
+        wrapper.get('[data-testid="center-send"]').element
+      );
+      await wrapper.get('[data-testid="center-send"]').trigger('click');
+      await flushPromises();
+      expect(wrapper.props('sendTemplate')).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message:
+            inbox.channel_type === 'Channel::TwilioSms'
+              ? 'Hello Ana'
+              : 'Hello {{1}}',
+          templateParams: expect.objectContaining({
+            name: 'editable',
+            language: 'es',
+            processed_params:
+              inbox.channel_type === 'Channel::TwilioSms'
+                ? { 1: 'Ana' }
+                : { body: { 1: 'Ana' } },
+          }),
+        })
       );
     }
   );
@@ -627,7 +814,8 @@ describe('unified send center', () => {
           createI18n({
             legacy: false,
             locale: 'es',
-            messages: { es: { ...es, ...esFlows } },
+            fallbackLocale: 'en',
+            messages: { es: { ...es, ...esFlows, ...esFilters }, en },
           }),
           createStore({
             getters: {
@@ -687,7 +875,8 @@ describe('unified send center', () => {
           createI18n({
             legacy: false,
             locale: 'es',
-            messages: { es: { ...es, ...esFlows } },
+            fallbackLocale: 'en',
+            messages: { es: { ...es, ...esFlows, ...esFilters }, en },
           }),
           createStore({
             getters: {
@@ -792,7 +981,8 @@ describe('unified send center', () => {
           createI18n({
             legacy: false,
             locale: 'es',
-            messages: { es: { ...es, ...esFlows } },
+            fallbackLocale: 'en',
+            messages: { es: { ...es, ...esFlows, ...esFilters }, en },
           }),
           createStore({
             getters: {
@@ -838,7 +1028,8 @@ describe('unified send center', () => {
           createI18n({
             legacy: false,
             locale: 'es',
-            messages: { es: { ...es, ...esFlows } },
+            fallbackLocale: 'en',
+            messages: { es: { ...es, ...esFlows, ...esFilters }, en },
           }),
           createStore({
             getters: {
@@ -963,7 +1154,7 @@ describe('unified send center', () => {
     expect(wrapper.emitted('close')).toBeUndefined();
   });
 
-  it('keeps status only in list rows and places the compact title above the preview without inheriting the list controls height', async () => {
+  it('keeps status in list rows and gives Flows an accessible name without a repeated title', async () => {
     wrapper = mount(SendCenter, {
       props: {
         show: true,
@@ -983,23 +1174,15 @@ describe('unified send center', () => {
     wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
     await flushPromises();
     expect(wrapper.get('[data-testid="center-list"]').text()).toContain(
-      'Publicado'
+      'Sin enviar'
     );
     const detail = wrapper.get('[data-testid="center-detail"]');
     expect(detail.text()).not.toContain('Publicado');
-    // The selected name already shows in the list: the detail column starts at the top, with no title.
-    expect(detail.find('[data-testid="center-detail-header"]').exists()).toBe(
-      false
-    );
+    expect(detail.find('h3').exists()).toBe(false);
+    expect(detail.attributes('aria-label')).toBe('Contact');
     expect(detail.classes()).toContain('flex-col');
-    expect(detail.classes()).toContain('gap-6');
-    expect(
-      wrapper
-        .get('[data-testid="center-list"]')
-        .element.parentElement.classList.contains('md:grid-rows-subgrid')
-    ).toBe(true);
     expect(wrapper.get('[data-testid="center-columns"]').classes()).toContain(
-      'md:grid-rows-[auto_minmax(0,1fr)]'
+      'md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]'
     );
     await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
     expect(
@@ -1009,13 +1192,343 @@ describe('unified send center', () => {
       wrapper.get('[data-testid="flow-send-preview-column"]').element
         .parentElement
     );
-    expect(wrapper.text()).not.toContain('Listo para enviar');
+    expect(wrapper.get('[data-testid="center-ready"]').text()).toBe(
+      'Listo para enviar'
+    );
   });
 
-  it('ships matching English and Spanish send-center keys', () => {
+  it('distinguishes no search results from an empty catalog and offers recovery', async () => {
+    const sync = vi.fn();
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: { id: 3, channel_type: 'Channel::Api' },
+        conversationId: 5,
+        canReply: true,
+        templates: [templates[1]],
+        sendTemplate: vi.fn(),
+      },
+      global: {
+        ...globalOptions,
+        plugins: [
+          ...globalOptions.plugins,
+          createStore({
+            getters: {
+              'attributes/getAttributes': () => [],
+              getSelectedChat: () => ({}),
+              getCurrentUser: () => ({}),
+            },
+            actions: { 'inboxes/syncTemplates': sync },
+          }),
+        ],
+      },
+    });
+    await flushPromises();
+    await wrapper
+      .get('[data-testid="center-search"] input')
+      .setValue('no-match');
+    expect(wrapper.get('[data-testid="center-list"]').text()).toContain(
+      es.WHATSAPP_TEMPLATES.SEND_CENTER.EMPTY
+    );
+    await wrapper.get('[data-testid="center-list"] button').trigger('click');
+    expect(
+      wrapper
+        .find('[data-testid="center-row-template:appointment:es"]')
+        .exists()
+    ).toBe(true);
+    await wrapper.setProps({ templates: [] });
+    expect(wrapper.get('[data-testid="center-list"]').text()).toContain(
+      es.WHATSAPP_TEMPLATES.SEND_CENTER.EMPTY_CATALOG
+    );
+    await wrapper.get('[data-testid="center-list"] button').trigger('click');
+    expect(sync).toHaveBeenCalledWith(expect.anything(), 3);
+  });
+
+  it('shows a language chip and snippet, hides ready status and counts active filters', async () => {
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: { id: 3, channel_type: 'Channel::Api' },
+        conversationId: 5,
+        canReply: true,
+        templates,
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    const row = wrapper.get(
+      '[data-testid="center-row-template:appointment:es"]'
+    );
+    expect(row.text()).toContain('ES');
+    expect(row.text()).toContain('Your appointment');
+    expect(row.text()).not.toContain(
+      es.WHATSAPP_TEMPLATES.SEND_CENTER.STATUS.APPROVED
+    );
+    const filters = wrapper.findAllComponents(FilterDropdown);
+    filters[0].vm.$emit('update:modelValue', 'template:UTILITY');
+    filters[1].vm.$emit('update:modelValue', 'APPROVED');
+    await flushPromises();
+    expect(wrapper.get('[data-testid="center-filter-toggle"]').text()).toBe(
+      'Filtros2'
+    );
+  });
+
+  it('summarizes missing data and restores ready status after inline editing', async () => {
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: '360dialog',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates: [
+          {
+            name: 'order',
+            language: 'es_ES',
+            status: 'APPROVED',
+            category: 'UTILITY',
+            components: [
+              {
+                type: 'BODY',
+                text: 'Hello {{name}}, {{date}}, {{time}}, {{order}}',
+              },
+            ],
+          },
+        ],
+        sendTemplate: vi.fn(),
+      },
+      global: { ...globalOptions, stubs: { Dialog: DialogStub } },
+    });
+    await flushPromises();
+    expect(wrapper.get('[data-testid="center-invalid-reason"]').text()).toBe(
+      'Faltan 4 datos'
+    );
+    expect(
+      wrapper.get('[data-testid="center-send"]').attributes('disabled')
+    ).toBeUndefined();
+    await wrapper.get('[data-testid="center-send"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.findAll('[aria-invalid="true"]')).toHaveLength(4);
+    const fields = wrapper.findAll('[data-testid="editable-body"] textarea');
+    await fields[0].setValue('Ana');
+    expect(wrapper.get('[data-testid="center-invalid-reason"]').text()).toBe(
+      'Faltan 3 datos'
+    );
+    await Promise.all(fields.slice(1).map(field => field.setValue('Value')));
+    expect(wrapper.get('[data-testid="center-ready"]').text()).toBe(
+      'Listo para enviar'
+    );
+    expect(
+      wrapper.get('[data-testid="center-send"]').attributes('disabled')
+    ).toBeUndefined();
+  });
+
+  it('isolates pending and failed Flow catalogs and retries inside the Flow tab', async () => {
+    let rejectFlows;
+    API.conversationFlows.mockImplementationOnce(
+      () =>
+        new Promise((resolve, reject) => {
+          rejectFlows = reject;
+        })
+    );
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: 'whatsapp_cloud',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates,
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    expect(wrapper.text()).not.toContain(
+      es.WHATSAPP_TEMPLATES.SEND_CENTER.LOADING
+    );
+    expect(
+      wrapper
+        .get('[data-testid="center-refresh"]')
+        .find('.animate-spin')
+        .exists()
+    ).toBe(false);
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    expect(wrapper.text()).toContain(es.WHATSAPP_TEMPLATES.SEND_CENTER.LOADING);
+    rejectFlows(new Error('offline'));
+    await flushPromises();
+    expect(wrapper.text()).not.toContain(
+      es.WHATSAPP_TEMPLATES.SEND_CENTER.LOADING
+    );
+    expect(wrapper.get('[data-testid="center-flow-error"]').text()).toContain(
+      'No se pudo cargar'
+    );
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 0 });
+    await flushPromises();
+    expect(wrapper.find('[data-testid="center-flow-error"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.get('[data-testid="center-footer"]').text()).not.toContain(
+      'No se pudo cargar'
+    );
+    expect(
+      wrapper.get('[data-testid="center-send"]').attributes('disabled')
+    ).toBeUndefined();
+    wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
+    await flushPromises();
+    await wrapper
+      .get('[data-testid="center-flow-error"] button')
+      .trigger('click');
+    await flushPromises();
+    expect(wrapper.find('[data-testid="center-flow-error"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.get('[data-testid="center-list"]').text()).toContain(
+      'Contact'
+    );
+  });
+
+  it.each([
+    [{ body_text: [['Ana', '12 de noviembre']] }, '1', '2'],
+    [
+      {
+        body_text_named_params: [
+          { param_name: 'name', example: 'Ana' },
+          { param_name: 'date', example: '12 de noviembre' },
+        ],
+      },
+      'name',
+      'date',
+    ],
+  ])(
+    'uses body examples only as hints, with accessible labels and a fallback',
+    async (example, first, second) => {
+      wrapper = mount(SendCenter, {
+        props: {
+          show: true,
+          inbox: {
+            id: 3,
+            channel_type: 'Channel::Whatsapp',
+            provider: '360dialog',
+          },
+          conversationId: 5,
+          canReply: true,
+          templates: [
+            {
+              name: 'sample',
+              status: 'APPROVED',
+              language: 'es',
+              category: 'UTILITY',
+              components: [
+                {
+                  type: 'BODY',
+                  text: `Hi {{${first}}}}, {{${second}}}, {{3}}`,
+                  example,
+                },
+              ],
+            },
+          ],
+          sendTemplate: vi.fn(),
+        },
+        global: { ...globalOptions, stubs: { Dialog: DialogStub } },
+      });
+      await flushPromises();
+      const inputs = wrapper.findAll('[data-testid="editable-body"] textarea');
+      expect(inputs[0].attributes('placeholder')).toBe('Ana');
+      expect(inputs[1].attributes('placeholder')).toContain('12 de noviembre');
+      expect(inputs[2].attributes('placeholder')).toBe(
+        es.WHATSAPP_TEMPLATES.SEND_CENTER.DATA_PLACEHOLDER
+      );
+      expect(inputs[2].attributes('aria-label')).toBe(
+        `Dato 3 de 3: ${es.WHATSAPP_TEMPLATES.SEND_CENTER.DATA_PLACEHOLDER}`
+      );
+      expect(inputs.map(input => input.element.value)).toEqual(['', '', '']);
+      expect(wrapper.findAll('[data-template-field]')).toHaveLength(3);
+      const hint = wrapper.get('[data-testid="preview-field-hint"]');
+      await inputs[0].trigger('focus');
+      expect(hint.text()).toContain('Dato 1 de 3');
+      expect(hint.text()).toContain('Ana');
+      await inputs[0].trigger('blur');
+      await inputs[1].trigger('focus');
+      expect(hint.text()).toContain('Dato 2 de 3');
+      expect(hint.text()).toContain('12 de noviembre');
+      await inputs[1].trigger('focusout');
+      expect(hint.text()).toBe('');
+    }
+  );
+
+  it('edits a text header only inside the bubble and preserves its payload', async () => {
+    const send = vi.fn(async () => false);
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: '360dialog',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates: [
+          {
+            name: 'header',
+            status: 'APPROVED',
+            language: 'es',
+            category: 'UTILITY',
+            components: [
+              { type: 'HEADER', format: 'TEXT', text: 'Order {{1}}' },
+              { type: 'BODY', text: 'Ready' },
+            ],
+          },
+        ],
+        sendTemplate: send,
+      },
+      global: { ...globalOptions, stubs: { Dialog: DialogStub } },
+    });
+    await flushPromises();
+    expect(wrapper.findAll('[data-template-fields] input')).toHaveLength(0);
+    const fields = wrapper.findAll('[data-testid="editable-body"] textarea');
+    expect(fields).toHaveLength(1);
+    await fields[0].setValue('123');
+    await wrapper.get('[data-testid="center-send"]').trigger('click');
+    await flushPromises();
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        templateParams: expect.objectContaining({
+          processed_params: expect.objectContaining({ header: { 1: '123' } }),
+        }),
+      })
+    );
+  });
+
+  it('keeps existing Spanish strings and falls back to English for new source keys', () => {
     const english = en.WHATSAPP_TEMPLATES.SEND_CENTER;
     const spanish = es.WHATSAPP_TEMPLATES.SEND_CENTER;
-    expect(Object.keys(english)).toEqual(Object.keys(spanish));
+    expect(Object.keys(english)).toEqual(
+      expect.arrayContaining(Object.keys(spanish))
+    );
+    const i18n = globalOptions.plugins[0];
+    expect(
+      i18n.global.t('WHATSAPP_TEMPLATES.SEND_CENTER.MISSING_COUNT', 1)
+    ).toBe('Falta 1 dato');
+    expect(
+      i18n.global.t('WHATSAPP_TEMPLATES.SEND_CENTER.MISSING_COUNT', 6)
+    ).toBe('Faltan 6 datos');
+    i18n.global.locale.value = 'en';
+    expect(
+      i18n.global.t('WHATSAPP_TEMPLATES.SEND_CENTER.MISSING_COUNT', 1)
+    ).toBe('Missing 1 detail');
+    expect(
+      i18n.global.t('WHATSAPP_TEMPLATES.SEND_CENTER.MISSING_COUNT', 6)
+    ).toBe('Missing 6 details');
     ['CATEGORY', 'STATUS', 'REASONS', 'MEDIA_FORMATS'].forEach(key =>
       expect(Object.keys(english[key])).toEqual(Object.keys(spanish[key]))
     );

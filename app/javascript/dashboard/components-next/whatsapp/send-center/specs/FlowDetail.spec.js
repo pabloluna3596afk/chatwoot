@@ -1,7 +1,5 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import FlowDetail from '../FlowDetail.vue';
-import { PHONE_PREVIEW_WIDTH } from '../../phonePreview';
-import FlowPhoneFrame from 'dashboard/routes/dashboard/settings/templates/flows/FlowPhoneFrame.vue';
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
@@ -59,92 +57,25 @@ describe('Flow message customization', () => {
     expect(wrapper.vm.payload.header).toBe('');
     expect(wrapper.find('[data-testid="flow-send-body"]').exists()).toBe(false);
   });
-  it('opens customization beside the preview within two independently scrolling columns', async () => {
+  it('expands customization below the preview within the right column', async () => {
     const wrapper = mount(FlowDetail, {
       props: { flow: { id: 12, name: 'Appointment' } },
     });
     const columns = wrapper.get('[data-testid="flow-send-columns"]');
-    expect(columns.classes()).toContain(
-      'grid-cols-[var(--phone-preview-width)]'
-    );
+    const before = columns.attributes('class');
     await wrapper.get('[data-testid="flow-send-customize"]').trigger('click');
-    expect(columns.classes()).toContain(
-      'xl:grid-cols-[var(--phone-preview-width)_var(--send-center-unit)]'
-    );
-    const preview = wrapper.get('[data-testid="flow-send-preview-column"]');
+    expect(columns.attributes('class')).toBe(before);
+    expect(columns.classes()).toContain('flex-col');
     const fields = wrapper.get('[data-testid="flow-send-fields-column"]');
-    expect(preview.element.parentElement).toBe(columns.element);
-    expect(fields.element.parentElement).toBe(columns.element);
-    expect(preview.classes()).toContain('overflow-y-auto');
-    expect(preview.classes()).not.toContain('max-xl:hidden');
+    const preview = wrapper.get('[data-testid="flow-send-preview-column"]');
+    expect(fields.element.previousElementSibling).toBe(preview.element);
+    expect(fields.classes()).not.toContain('absolute');
     expect(wrapper.vm.customizing).toBe(true);
-    expect(fields.classes()).toContain('overflow-y-auto');
-    // No title above the columns anymore: the panel starts at the same top as the preview.
-    expect(fields.classes()).not.toContain('xl:-mt-11');
-    expect(fields.classes()).toContain('xl:max-h-full');
-    expect(fields.get('[data-testid="flow-send-restore"]').classes()).toContain(
-      'justify-self-start'
-    );
-    expect(fields.get('[data-testid="flow-send-restore"]').classes()).toContain(
-      '!w-fit'
-    );
     expect(wrapper.find('[data-testid="flow-send-customize"]').exists()).toBe(
       false
     );
-    expect(fields.get('[data-testid="flow-send-panel-header"]').element).toBe(
-      fields.element.firstElementChild
-    );
-    expect(
-      fields.get('[data-testid="flow-send-close-customize"]').exists()
-    ).toBe(true);
+    wrapper.unmount();
   });
-
-  it.each([
-    [1440, false],
-    [1440, true],
-    [900, true],
-  ])(
-    'keeps the shared 360px preview track at viewport %i with customization %s',
-    async (viewport, expanded) => {
-      vi.stubGlobal('innerWidth', viewport);
-      const wrapper = mount(FlowDetail, {
-        props: { flow: { id: 12, name: 'Appointment' } },
-      });
-      if (expanded)
-        await wrapper
-          .get('[data-testid="flow-send-customize"]')
-          .trigger('click');
-      const columns = wrapper.get('[data-testid="flow-send-columns"]');
-      expect(columns.classes()).toContain(
-        'grid-cols-[var(--phone-preview-width)]'
-      );
-      expect(
-        columns
-          .classes()
-          .filter(c => c.includes('grid-cols') && c.includes('xl:'))
-      ).toEqual(
-        expanded
-          ? [
-              'xl:grid-cols-[var(--phone-preview-width)_var(--send-center-unit)]',
-            ]
-          : []
-      );
-      expect(
-        wrapper.get('[data-testid="flow-send-preview-column"]').classes()
-      ).not.toContain('max-xl:hidden');
-      const simulator = mount(FlowPhoneFrame, {
-        props: { title: 'Appointment', screenIndex: 0, screenCount: 1 },
-      });
-      PHONE_PREVIEW_WIDTH.split(' ').forEach(token =>
-        expect(simulator.classes()).toContain(token)
-      );
-      expect(PHONE_PREVIEW_WIDTH).toContain('[--phone-preview-width:22.5rem]');
-      expect(simulator.classes()).toContain('w-[var(--phone-preview-width)]');
-      simulator.unmount();
-      wrapper.unmount();
-      vi.unstubAllGlobals();
-    }
-  );
 
   it('keeps the closed customization button directly after the bubble without caption or field labels', () => {
     const wrapper = mount(FlowDetail, {

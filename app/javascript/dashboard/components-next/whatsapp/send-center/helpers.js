@@ -1,9 +1,5 @@
 import { isSendableTemplate } from '@chatwoot/utils';
 
-// 352 px per desktop column: three columns plus gaps/padding fit comfortably at 1440 px.
-export const SEND_CENTER_COLUMN_UNIT_CLASS =
-  '[dialog:has(&)]:[--send-center-unit:22rem]';
-
 export const TEMPLATE_CATEGORIES = ['UTILITY', 'MARKETING', 'AUTHENTICATION'];
 export const TEMPLATE_STATUSES = [
   'APPROVED',
@@ -58,3 +54,20 @@ export const flowReason = (flow, canReply) => {
   if (!canReply) return 'outside_window';
   return flow.can_send ? '' : 'unavailable';
 };
+
+// Catalog labels are the account's human names; numeric Meta placeholders have no name.
+export const templateFieldLabel = (key, index, bindings, savedBindings, t) => {
+  const binding = bindings.find(
+    item => item.name === key || item.key === savedBindings?.[key]
+  );
+  if (binding) return binding.label;
+  return /^\d+$/.test(key)
+    ? t('WHATSAPP_TEMPLATES.SEND_CENTER.DATA', { index: index + 1 })
+    : key.replace(/[_.]/g, ' ');
+};
+
+export const bodySegments = text =>
+  text.split(/({{[^}]+}})/g).map(part => {
+    const match = part.match(/^{{\s*([^}]+?)\s*}}$/);
+    return match ? { key: match[1] } : { text: part };
+  });

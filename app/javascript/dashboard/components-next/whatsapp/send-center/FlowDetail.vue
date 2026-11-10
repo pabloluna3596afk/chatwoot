@@ -98,17 +98,12 @@ defineExpose({
 <template>
   <div
     ref="columns"
-    class="relative grid min-h-0 min-w-0 flex-1 items-start gap-6"
-    :class="
-      customizing
-        ? 'grid-cols-[var(--phone-preview-width)] xl:grid-cols-[var(--phone-preview-width)_var(--send-center-unit)]'
-        : 'grid-cols-[var(--phone-preview-width)]'
-    "
+    class="flex min-h-0 min-w-0 flex-col gap-4 overflow-y-auto overscroll-contain"
     data-testid="flow-send-columns"
     @keydown.esc="handleEscape"
   >
     <div
-      class="min-h-0 min-w-0 max-h-full overflow-y-auto overscroll-contain flex flex-col gap-3"
+      class="mx-auto w-full max-w-[22.5rem] shrink-0 flex flex-col gap-3"
       data-testid="flow-send-preview-column"
     >
       <MessagePreview :header="header" :body="body" :buttons="[cta]" flow />
@@ -143,7 +138,7 @@ defineExpose({
       ref="fields"
       role="region"
       aria-labelledby="flow-send-panel-title"
-      class="grid min-h-0 min-w-0 max-h-full overflow-y-auto overscroll-contain gap-3 rounded-xl bg-n-solid-2 p-4 xl:max-h-full max-xl:absolute max-xl:top-0 max-xl:left-[calc(-1*var(--send-center-unit)-1.5rem)] max-xl:w-[var(--send-center-unit)] max-xl:z-10"
+      class="grid min-w-0 shrink-0 gap-3 rounded-xl bg-n-solid-2 p-4"
       data-testid="flow-send-fields-column"
     >
       <div class="flex flex-col gap-2" data-testid="flow-send-panel-header">
