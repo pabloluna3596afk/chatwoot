@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useScroll, useResizeObserver } from '@vueuse/core';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import WhatsAppText from './WhatsAppText';
 import MessagePreview from '../WhatsAppBubble.vue';
 
 defineProps({
@@ -41,21 +42,22 @@ useResizeObserver([viewport, message], measure);
         >
           <template #header>
             <slot name="header">
-              <p v-if="header" class="font-semibold whitespace-pre-wrap">
-                {{ header }}
-              </p>
+              <WhatsAppText
+                v-if="header"
+                :text="header"
+                class="font-semibold"
+              />
             </slot>
           </template>
           <template #body>
             <slot>
-              <p class="whitespace-pre-wrap">{{ body }}</p>
+              <WhatsAppText :text="body" />
             </slot>
-            <p
+            <WhatsAppText
               v-if="footer"
-              class="mt-2 whitespace-pre-wrap text-xs text-n-slate-11"
-            >
-              {{ footer }}
-            </p>
+              :text="footer"
+              class="mt-2 text-xs text-n-slate-11"
+            />
             <p
               aria-hidden="true"
               class="mt-1 text-end text-xxs text-n-slate-11"
