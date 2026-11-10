@@ -54,7 +54,7 @@ describe('inline parser contract', () => {
       },
     });
     await flushPromises();
-    expect(wrapper.findAll('input')).toHaveLength(1);
+    expect(wrapper.findAll('textarea')).toHaveLength(1);
     expect(wrapper.findAllComponents(TemplateVariableInput)).toHaveLength(0);
     expect(wrapper.text()).toContain('WHATSAPP_TEMPLATES.PARSER.NO_VALUE');
     const picker = wrapper.findComponent(VariablePicker);
@@ -66,14 +66,14 @@ describe('inline parser contract', () => {
     expect(wrapper.vm.processedParams.body.name).toBe(
       '{{ contact.name }} {{ contact.email }}'
     );
-    await wrapper.get('input').setValue('Ana');
+    await wrapper.get('textarea').setValue('Ana');
     await flushPromises();
     expect(wrapper.text()).not.toContain('WHATSAPP_TEMPLATES.PARSER.NO_VALUE');
     expect(wrapper.vm.isFormInvalid).toBe(false);
     wrapper.unmount();
   });
 
-  it('numbers repeated fields in reading order while sharing the same value', async () => {
+  it('uses the same data number and value for repeated variables', async () => {
     const wrapper = mount(EditableBody, {
       props: {
         text: '{{name}} / {{date}} / {{name}}',
@@ -87,18 +87,18 @@ describe('inline parser contract', () => {
       },
     });
     await flushPromises();
-    const inputs = wrapper.findAll('input');
+    const inputs = wrapper.findAll('textarea');
     expect(inputs.map(input => input.attributes('aria-label'))).toEqual([
-      'Nombre del cliente, dato 1 de 3',
-      'Fecha, dato 2 de 3',
-      'Nombre del cliente, dato 3 de 3',
+      'Dato 1 de 2: Dato 1',
+      'Dato 2 de 2: Dato 2',
+      'Dato 1 de 2: Dato 1',
     ]);
     expect(inputs.map(input => input.element.value)).toEqual([
       'Ana',
       '',
       'Ana',
     ]);
-    expect(wrapper.findAll('input[autofocus]')).toHaveLength(1);
+    expect(wrapper.findAll('textarea')).toHaveLength(3);
     wrapper.unmount();
   });
   it.each([false, true])(
@@ -149,7 +149,7 @@ describe('inline parser contract', () => {
       });
       await flushPromises();
       const values = ['Ana', '2026-11-09', '12:30', 'Six', 'Order', '{{2}}'];
-      const inputs = inline.findAll('[data-testid="editable-body"] input');
+      const inputs = inline.findAll('[data-testid="editable-body"] textarea');
       expect(inputs).toHaveLength(6);
       expect(inline.findAllComponents(TemplateVariableInput)).toHaveLength(0);
       expect(classic.findAllComponents(TemplateVariableInput)).toHaveLength(6);
@@ -220,7 +220,7 @@ describe('inline parser contract', () => {
       .vm.$emit('update:modelValue', '{{1}}');
     expect(inline.findAllComponents(TemplateVariableInput)).toHaveLength(0);
     expect(classic.findAllComponents(TemplateVariableInput)).toHaveLength(2);
-    const inputs = inline.findAll('input');
+    const inputs = inline.findAll('textarea');
     await inputs[0].setValue('Ana');
     await inputs[1].setValue('{{1}}');
     await flushPromises();
@@ -238,6 +238,11 @@ describe('inline parser contract', () => {
 
   it('supports IME without committing partial composition and retains reading order', async () => {
     const wrapper = mount(EditableBody, {
+      global: {
+        plugins: [
+          createI18n({ legacy: false, locale: 'es', messages: { es } }),
+        ],
+      },
       attachTo: document.body,
       props: {
         text: 'Hello {{name}}, {{date}}',
@@ -246,7 +251,7 @@ describe('inline parser contract', () => {
       },
     });
     await flushPromises();
-    const inputs = wrapper.findAll('input');
+    const inputs = wrapper.findAll('textarea');
     expect(document.activeElement).toBe(inputs[0].element);
     await inputs[0].trigger('compositionstart');
     inputs[0].element.value = 'に';
@@ -256,8 +261,8 @@ describe('inline parser contract', () => {
     await inputs[0].trigger('compositionend');
     expect(wrapper.emitted('change')).toEqual([['name', '日本']]);
     expect(inputs.map(input => input.attributes('placeholder'))).toEqual([
-      'name',
-      'date',
+      'Dato 1',
+      'Dato 2',
     ]);
     expect(inputs.every(input => !input.attributes('tabindex'))).toBe(true);
     wrapper.unmount();

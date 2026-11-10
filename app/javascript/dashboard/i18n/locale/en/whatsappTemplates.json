@@ -159,7 +159,7 @@
       "MISSING_COUNT": "Missing {count} detail | Missing {count} details",
       "CHECK_FIELDS": "Check the message fields.",
       "DATA": "Data {index}",
-      "DATA_LABEL": "{name}, data {index} of {total}",
+      "DATA_LABEL": "Detail {index} of {total}: {example}",
       "EXAMPLE": "E.g.: {example}",
       "RETRY": "Retry",
       "SEARCH_FLOWS": "Search Flows",
@@ -169,7 +169,15 @@
       "NO_RESULTS": "No results",
       "TEMPLATE_COUNT": "{count} template | {count} templates",
       "FLOW_COUNT": "{count} Flow | {count} Flows",
-      "SEARCH_RESULTS": "{count} result for “{query}” | {count} results for “{query}”"
+      "SEARCH_RESULTS": "{count} result for “{query}” | {count} results for “{query}”",
+      "CATEGORY_HELP": {
+        "MARKETING": "Marketing message",
+        "UTILITY": "Utility message (orders, appointments, notices)",
+        "AUTHENTICATION": "Authentication message (codes)"
+      },
+      "DATA_PICKER": "Insert contact variable (Tab from the detail)",
+      "DATA_REQUIRED": "Complete detail {index}",
+      "DATA_POSITION": "Detail {index} of {total}"
     }
   }
 }

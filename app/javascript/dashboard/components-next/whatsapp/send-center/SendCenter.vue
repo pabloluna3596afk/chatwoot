@@ -14,6 +14,7 @@ import WhatsAppTemplateParser from '../WhatsAppTemplateParser.vue';
 import ContentTemplateParser from 'dashboard/components-next/content-templates/ContentTemplateParser.vue';
 import FlowDetail from './FlowDetail.vue';
 import EditableBody from './EditableBody.vue';
+import CategoryChip from './CategoryChip.vue';
 import { lastSendCenterTab } from './session';
 import ChatPreview from './ChatPreview.vue';
 import {
@@ -52,6 +53,7 @@ const resolveContext = computed(() => ({
 const dialog = ref(null);
 const parser = ref(null);
 const editableBody = ref(null);
+const sendButton = ref(null);
 const attempted = ref(false);
 const flowDetail = ref(null);
 const flows = ref([]);
@@ -293,14 +295,23 @@ const missingLabels = computed(() => {
   ];
 });
 const missingSummary = computed(() => {
-  if (missingLabels.value.length > 3)
-    return t(`${prefix}.MISSING_COUNT`, missingLabels.value.length);
+  const missingBodyCount = editableBody.value?.missingLabels.length;
+  if (missingBodyCount) return t(`${prefix}.MISSING_COUNT`, missingBodyCount);
   if (missingLabels.value.length)
     return t(`${prefix}.COMPLETE`, {
       field: missingLabels.value.join(' \u00b7 '),
     });
   return t(`${prefix}.CHECK_FIELDS`);
 });
+const focusNextData = field => {
+  const fields = [
+    ...field
+      .closest('[data-testid="center-body"]')
+      .querySelectorAll('[data-template-field]'),
+  ];
+  const next = fields[fields.indexOf(field) + 1];
+  (next || sendButton.value?.$el)?.focus();
+};
 const languageChip = language => language.split(/[-_]/)[0].toUpperCase();
 watch(selectedKey, () => {
   attempted.value = false;
@@ -600,12 +611,20 @@ const overlayDescriptionId = useId();
                 <p class="break-all text-sm font-semibold text-n-slate-12">
                   {{ row.name }}
                 </p>
-                <p
-                  v-if="row.data.language"
-                  class="shrink-0 rounded bg-n-alpha-2 px-1.5 py-0.5 text-xxs text-n-slate-11"
+                <div
+                  class="flex shrink-0 flex-wrap justify-end items-center gap-1"
                 >
-                  {{ languageChip(row.data.language) }}
-                </p>
+                  <CategoryChip
+                    v-if="row.type === 'template'"
+                    :category="row.data.category"
+                  />
+                  <span
+                    v-if="row.data.language"
+                    class="rounded bg-n-alpha-2 px-1.5 py-0.5 text-xxs text-n-slate-11"
+                  >
+                    {{ languageChip(row.data.language) }}
+                  </span>
+                </div>
               </div>
               <p class="mt-1 line-clamp-2 text-xs leading-5 text-n-slate-11">
                 {{ snippet(row) }}
@@ -669,12 +688,18 @@ const overlayDescriptionId = useId();
             >
               {{ selected.name }}
             </h3>
-            <p
-              v-if="selected.data.language"
-              class="shrink-0 rounded-md bg-n-alpha-2 px-2 py-1 text-xxs font-medium text-n-slate-11"
-            >
-              {{ languageChip(selected.data.language) }}
-            </p>
+            <div class="flex shrink-0 flex-wrap justify-end items-center gap-1">
+              <CategoryChip
+                v-if="selected.type === 'template'"
+                :category="selected.data.category"
+              />
+              <span
+                v-if="selected.data.language"
+                class="rounded-md bg-n-alpha-2 px-2 py-1 text-xxs font-medium text-n-slate-11"
+              >
+                {{ languageChip(selected.data.language) }}
+              </span>
+            </div>
           </div>
           <FlowDetail
             v-if="selected.type === 'flow'"
@@ -706,12 +731,15 @@ const overlayDescriptionId = useId();
                       v-if="preview.headerText"
                       :text="preview.headerText"
                       :values="preview.headerValues"
+                      :attempted="attempted"
+                      :expressions="parser?.processedParams?.header"
                       :label-for="fieldLabel"
                       :message-for="preview.headerMessage"
                       :variable-filter="preview.variableFilter"
                       :variable-surface="preview.variableSurface"
                       @change="preview.setHeaderValue"
                       @select="preview.insertHeaderVariable"
+                      @advance="focusNextData"
                     />
                   </template>
                   <EditableBody
@@ -719,6 +747,11 @@ const overlayDescriptionId = useId();
                     ref="editableBody"
                     :text="preview.bodyText"
                     :values="preview.bodyValues"
+                    :expressions="
+                      content
+                        ? parser?.processedParams
+                        : parser?.processedParams?.body
+                    "
                     :invalid-keys="preview.invalidBodyKeys"
                     :attempted="attempted"
                     :label-for="fieldLabel"
@@ -728,6 +761,7 @@ const overlayDescriptionId = useId();
                     :variable-surface="preview.variableSurface"
                     @change="preview.setBodyValue"
                     @select="preview.insertBodyVariable"
+                    @advance="focusNextData"
                   />
                 </ChatPreview>
               </template>
@@ -805,6 +839,7 @@ const overlayDescriptionId = useId();
           </p>
         </div>
         <Button
+          ref="sendButton"
           intent="primary"
           class="shrink-0"
           :label="$t(`${prefix}.SEND`)"

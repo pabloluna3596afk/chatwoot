@@ -555,6 +555,7 @@ describe('unified send center', () => {
     'edits body variables in the real bubble with two stable columns on %j',
     async (inbox, template) => {
       wrapper = mount(SendCenter, {
+        attachTo: document.body,
         props: {
           show: true,
           inbox,
@@ -569,7 +570,7 @@ describe('unified send center', () => {
       expect(
         wrapper.get('[data-testid="center-body"]').attributes('data-columns')
       ).toBe('2');
-      const input = wrapper.get('[data-testid="editable-body"] input');
+      const input = wrapper.get('[data-testid="editable-body"] textarea');
       expect(
         wrapper
           .get('[data-testid="send-center-preview-body"]')
@@ -578,12 +579,16 @@ describe('unified send center', () => {
       expect(wrapper.get('[data-testid="center-list"]').isVisible()).toBe(true);
       expect(
         wrapper.get('[data-testid="center-invalid-reason"]').text()
-      ).toContain('Dato 1');
+      ).toContain('Falta 1 dato');
       await input.setValue('Ana');
       expect(input.element.value).toBe('Ana');
       expect(
         wrapper.get('[data-testid="center-send"]').attributes('disabled')
       ).toBeUndefined();
+      await input.trigger('keydown', { key: 'Enter' });
+      expect(document.activeElement).toBe(
+        wrapper.get('[data-testid="center-send"]').element
+      );
       await wrapper.get('[data-testid="center-send"]').trigger('click');
       await flushPromises();
       expect(wrapper.props('sendTemplate')).toHaveBeenCalledWith(
@@ -1196,10 +1201,10 @@ describe('unified send center', () => {
     expect(
       wrapper.get('[data-testid="center-send"]').attributes('disabled')
     ).toBeDefined();
-    const fields = wrapper.findAll('[data-testid="editable-body"] input');
+    const fields = wrapper.findAll('[data-testid="editable-body"] textarea');
     await fields[0].setValue('Ana');
     expect(wrapper.get('[data-testid="center-invalid-reason"]').text()).toBe(
-      'Completa: date \u00b7 time \u00b7 order'
+      'Faltan 3 datos'
     );
     await Promise.all(fields.slice(1).map(field => field.setValue('Value')));
     expect(wrapper.get('[data-testid="center-ready"]').text()).toBe(
@@ -1324,15 +1329,13 @@ describe('unified send center', () => {
         global: { ...globalOptions, stubs: { Dialog: DialogStub } },
       });
       await flushPromises();
-      const inputs = wrapper.findAll('[data-testid="editable-body"] input');
-      expect(inputs[0].attributes('placeholder')).toContain('Ej.: Ana');
-      expect(inputs[1].attributes('placeholder')).toContain(
-        'Ej.: 12 de noviembre'
-      );
+      const inputs = wrapper.findAll('[data-testid="editable-body"] textarea');
+      expect(inputs[0].attributes('placeholder')).toBe('Ana');
+      expect(inputs[1].attributes('placeholder')).toContain('12 de noviembre');
       expect(inputs[2].attributes('placeholder')).toBe('Dato 3');
-      expect(inputs[2].attributes('aria-label')).toBe('Dato 3, dato 3 de 3');
+      expect(inputs[2].attributes('aria-label')).toBe('Dato 3 de 3: Dato 3');
       expect(inputs.map(input => input.element.value)).toEqual(['', '', '']);
-      expect(wrapper.findAll('input[type=text]')).toHaveLength(3);
+      expect(wrapper.findAll('[data-template-field]')).toHaveLength(3);
     }
   );
 
@@ -1366,7 +1369,7 @@ describe('unified send center', () => {
     });
     await flushPromises();
     expect(wrapper.findAll('[data-template-fields] input')).toHaveLength(0);
-    const fields = wrapper.findAll('[data-testid="editable-body"] input');
+    const fields = wrapper.findAll('[data-testid="editable-body"] textarea');
     expect(fields).toHaveLength(1);
     await fields[0].setValue('123');
     await wrapper.get('[data-testid="center-send"]').trigger('click');

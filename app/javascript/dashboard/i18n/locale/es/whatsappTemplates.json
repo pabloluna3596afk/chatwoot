@@ -158,7 +158,7 @@
       "COMPLETE": "Completa: {field}",
       "CHECK_FIELDS": "Revisa los datos del mensaje.",
       "DATA": "Dato {index}",
-      "DATA_LABEL": "{name}, dato {index} de {total}",
+      "DATA_LABEL": "Dato {index} de {total}: {example}",
       "MISSING_COUNT": "Falta {count} dato | Faltan {count} datos",
       "EXAMPLE": "Ej.: {example}",
       "RETRY": "Reintentar",
@@ -169,7 +169,15 @@
       "NO_RESULTS": "Sin resultados",
       "TEMPLATE_COUNT": "{count} plantilla | {count} plantillas",
       "FLOW_COUNT": "{count} Flow | {count} Flows",
-      "SEARCH_RESULTS": "{count} resultado para “{query}” | {count} resultados para “{query}”"
+      "SEARCH_RESULTS": "{count} resultado para “{query}” | {count} resultados para “{query}”",
+      "CATEGORY_HELP": {
+        "MARKETING": "Mensaje de marketing",
+        "UTILITY": "Mensaje de utilidad (pedidos, citas, avisos)",
+        "AUTHENTICATION": "Mensaje de autenticación (códigos)"
+      },
+      "DATA_PICKER": "Insertar variable del contacto (Tab desde el dato)",
+      "DATA_REQUIRED": "Completa el dato {index}",
+      "DATA_POSITION": "Dato {index} de {total}"
     }
   }
 }

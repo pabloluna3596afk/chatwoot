@@ -25,12 +25,12 @@ useResizeObserver([viewport, message], measure);
   >
     <div
       ref="viewport"
-      class="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain rounded-xl bg-[#efeae2] p-3 dark:bg-[#0b141a]"
+      class="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain rounded-xl bg-[#efeae2] p-3 pt-16 dark:bg-[#0b141a]"
       data-testid="chat-preview-scroll"
     >
       <div ref="message" class="my-auto w-full shrink-0">
         <MessagePreview
-          class="mx-auto w-full max-w-[26rem] [&>div]:p-0 [&>div>div]:w-full [&_[data-testid=bubble-media]]:w-full [&_[data-testid=bubble-media]]:object-cover [&_[data-testid=bubble-media]]:aspect-video [&_[data-testid=bubble-media]]:h-auto [&_[data-testid=bubble-media]]:max-h-36"
+          class="mx-auto w-full max-w-[26rem] [&>div]:p-0 [&>div>div]:w-full [&>div>div]:overflow-visible [&_[data-testid=bubble-media]]:w-full [&_[data-testid=bubble-media]]:object-cover [&_[data-testid=bubble-media]]:aspect-video [&_[data-testid=bubble-media]]:h-auto [&_[data-testid=bubble-media]]:max-h-36 [&_[data-template-field]]:scroll-mt-16"
           :header="header"
           :body="body"
           :buttons="buttons"
