@@ -17,6 +17,7 @@ import EditableBody from './EditableBody.vue';
 import CategoryChip from './CategoryChip.vue';
 import { lastSendCenterTab } from './session';
 import ChatPreview from './ChatPreview.vue';
+import WhatsAppText from './WhatsAppText';
 import { useSystemVariables } from './useSystemVariables';
 import {
   bodySegments,
@@ -698,7 +699,12 @@ const overlayDescriptionId = useId();
                 </div>
               </div>
               <p class="mt-1 line-clamp-2 text-xs leading-5 text-n-slate-11">
-                {{ snippet(row) }}
+                <WhatsAppText
+                  v-if="row.type === 'template'"
+                  :text="snippet(row)"
+                  compact
+                />
+                <template v-else>{{ snippet(row) }}</template>
               </p>
               <span
                 v-if="row.reason"

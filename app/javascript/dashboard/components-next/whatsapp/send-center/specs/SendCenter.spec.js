@@ -110,6 +110,58 @@ describe('unified send center', () => {
   });
   afterEach(() => wrapper?.unmount());
 
+  it('formats only the list snippet and keeps body search and filter counts', async () => {
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: { id: 3, channel_type: 'Channel::Api' },
+        conversationId: 5,
+        canReply: true,
+        templates: [
+          ...templates,
+          {
+            ...templates[1],
+            name: 'rich',
+            components: [
+              {
+                type: 'BODY',
+                text: '*Hello {{1}}* _italic_ ~removed~ `code`\n- pickup\n1. first\n> quote\nhttps://example.com <img src=x onerror=alert(1)>',
+              },
+            ],
+          },
+        ],
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    const snippet = wrapper.get(
+      '[data-testid="center-row-template:rich:es"] p.line-clamp-2'
+    );
+    expect(snippet.classes()).toContain('line-clamp-2');
+    expect(snippet.get('strong').text()).toBe('Hello {{1}}');
+    expect(snippet.get('em').text()).toBe('italic');
+    expect(snippet.get('s').text()).toBe('removed');
+    expect(snippet.get('code').text()).toBe('code');
+    expect(snippet.find('a, img, script').exists()).toBe(false);
+    expect(snippet.text()).toContain('pickup first quote https://example.com');
+    expect(wrapper.get('[data-testid="center-count"]').text()).toBe(
+      '4 plantillas'
+    );
+    await wrapper.get('[data-testid="center-search"] input').setValue('pickup');
+    expect(wrapper.get('[data-testid="center-count"]').text()).toContain(
+      '1 resultado'
+    );
+    expect(
+      wrapper.findAll('[data-testid^="center-row-template:"]')
+    ).toHaveLength(1);
+    expect(
+      wrapper
+        .findAllComponents(FilterDropdown)
+        .map(filter => filter.props('options')[0].count)
+    ).toEqual([1, 1]);
+  });
+
   it('keeps the selected name accessible without a repeated visual heading', async () => {
     wrapper = mount(SendCenter, {
       props: {

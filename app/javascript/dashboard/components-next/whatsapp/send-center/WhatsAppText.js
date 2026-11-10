@@ -4,17 +4,21 @@ import MarkdownIt from 'markdown-it';
 const linkifier = new MarkdownIt({ linkify: true }).linkify;
 
 // Tokenize only template source. Variable values enter afterwards as Vue slots.
-const inline = (text, renderField, isLiteral = false) => {
+const inline = (text, renderField, isLiteral = false, compact = false) => {
   function tokenAt(source, field, literal, lineStart) {
     const variable = source.match(/^{{\s*([^}]+?)\s*}}/);
     if (variable)
-      return { length: variable[0].length, nodes: field(variable[1]) };
+      return {
+        length: variable[0].length,
+        nodes: field(variable[1], variable[0]),
+      };
     if (literal) return null;
     const block = lineStart && source.match(/^(- |\* |\d+\. |> )([^\n]*)/);
     if (block) {
       const quote = block[1] === '> ';
       const bullet = ['- ', '* '].includes(block[1]);
-      const content = inline(block[2], field);
+      const content = inline(block[2], field, false, compact);
+      if (compact) return { length: block[0].length, nodes: content };
       const node = quote
         ? h(
             'span',
@@ -48,13 +52,15 @@ const inline = (text, renderField, isLiteral = false) => {
         length: url.lastIndex,
         nodes: [
           h(
-            'a',
-            {
-              href: url.url,
-              target: '_blank',
-              rel: 'noopener noreferrer',
-              class: 'text-n-blue-11 underline break-all',
-            },
+            compact ? 'span' : 'a',
+            compact
+              ? {}
+              : {
+                  href: url.url,
+                  target: '_blank',
+                  rel: 'noopener noreferrer',
+                  class: 'text-n-blue-11 underline break-all',
+                },
             url.text
           ),
         ],
@@ -82,14 +88,17 @@ const inline = (text, renderField, isLiteral = false) => {
     }
     if (end === -1) return null;
     const code = marker.includes('`');
+    const codeClass = compact ? 'font-mono' : 'font-mono whitespace-pre-wrap';
     const tag = code ? 'code' : { '*': 'strong', _: 'em', '~': 's' }[marker];
     return {
       length: end + marker.length,
       nodes: [
         h(
           tag,
-          { class: code ? 'font-mono whitespace-pre-wrap' : undefined },
-          inline(source.slice(marker.length, end), field, code)
+          {
+            class: code ? codeClass : undefined,
+          },
+          inline(source.slice(marker.length, end), field, code, compact)
         ),
       ],
     };
@@ -104,7 +113,11 @@ const inline = (text, renderField, isLiteral = false) => {
       isLiteral,
       offset === 0 || text[offset - 1] === '\n'
     );
-    nodes.push(...(token ? token.nodes : [text[offset]]));
+    nodes.push(
+      ...(token
+        ? token.nodes
+        : [compact && text[offset] === '\n' ? ' ' : text[offset]])
+    );
     offset += token ? token.length : 1;
   }
   return nodes;
@@ -112,13 +125,30 @@ const inline = (text, renderField, isLiteral = false) => {
 
 export default defineComponent({
   name: 'WhatsAppText',
-  props: { text: { type: String, default: '' } },
+  props: {
+    text: { type: String, default: '' },
+    compact: { type: Boolean, default: false },
+  },
   setup(props, { slots }) {
     return () =>
       h(
-        'div',
-        { class: 'whitespace-pre-wrap leading-[1.5]' },
-        inline(props.text, key => slots.field?.({ key }) || [`{{${key}}}`])
+        props.compact ? 'span' : 'div',
+        {
+          class: props.compact
+            ? 'whitespace-normal'
+            : 'whitespace-pre-wrap leading-[1.5]',
+        },
+        inline(
+          props.text,
+          (key, source) =>
+            slots.field?.({ key }) || [
+              props.compact
+                ? h('span', { class: 'text-n-slate-10' }, source)
+                : `{{${key}}}`,
+            ],
+          false,
+          props.compact
+        )
       );
   },
 });

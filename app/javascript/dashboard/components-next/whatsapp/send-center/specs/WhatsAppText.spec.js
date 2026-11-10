@@ -7,6 +7,41 @@ import { withFullI18n } from 'test-i18n';
 withFullI18n('en');
 
 describe('WhatsApp source formatting', () => {
+  it('renders compact rich snippets with inline blocks, plain links and muted variables', () => {
+    const wrapper = mount(WhatsAppText, {
+      props: {
+        compact: true,
+        text: '*Hello {{1}}* _italic_ ~removed~ `inline`\n- item\n1. first\n> quote\n\nhttps://example.com',
+      },
+    });
+    expect(wrapper.get('strong').text()).toBe('Hello {{1}}');
+    expect(wrapper.get('em').text()).toBe('italic');
+    expect(wrapper.get('s').text()).toBe('removed');
+    expect(wrapper.get('code').text()).toBe('inline');
+    expect(wrapper.get('strong span').classes()).toContain('text-n-slate-10');
+    expect(wrapper.find('a').exists()).toBe(false);
+    expect(wrapper.find('[role=list]').exists()).toBe(false);
+    expect(wrapper.find('.border-s-2').exists()).toBe(false);
+    expect(wrapper.element.textContent).toBe(
+      'Hello {{1}} italic removed inline item first quote  https://example.com'
+    );
+    expect(wrapper.classes()).toContain('whitespace-normal');
+  });
+
+  it.each([
+    '<script>alert(1)</script>',
+    '<img src=x onerror=alert(1)>',
+    '&lt;img src=x onerror=alert(1)&gt;',
+    ['javascript', 'alert(1)'].join(':'),
+  ])('escapes compact source as Vue text: %s', text => {
+    const wrapper = mount(WhatsAppText, {
+      props: { compact: true, text: `*${text}* {{1}}` },
+    });
+    expect(wrapper.find('script, img, a').exists()).toBe(false);
+    expect(wrapper.get('strong').text()).toBe(text);
+    expect(wrapper.text()).toContain('{{1}}');
+  });
+
   it('renders rich source, exact newlines, lists, quotes, links and nested fields', () => {
     const text =
       '*Hello {{1}}*\n*_nested_* _italic_ ~removed~ `inline`\n```mono\n*literal* {{2}}```\n\n- item\n* bullet\n1. first\n2. second\n> quote\nhttps://example.com';
