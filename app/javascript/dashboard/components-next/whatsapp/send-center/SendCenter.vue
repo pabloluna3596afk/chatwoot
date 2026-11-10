@@ -8,8 +8,7 @@ import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
-import SearchInput from 'dashboard/components-next/input/SearchInput.vue';
-import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
+import SendCenterFilters from './SendCenterFilters.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import WhatsAppTemplateParser from '../WhatsAppTemplateParser.vue';
 import ContentTemplateParser from 'dashboard/components-next/content-templates/ContentTemplateParser.vue';
@@ -222,9 +221,28 @@ const statusGroups = computed(() => [
     ),
   },
 ]);
-const filtersOpen = ref(false);
-const filterCount = computed(
-  () => Number(category.value !== 'ALL') + Number(status.value !== 'ALL')
+const listElement = ref(null);
+const resultsLabel = computed(() => {
+  const count = filtered.value.length;
+  if (!count) return t(`${prefix}.NO_RESULTS`);
+  if (query.value)
+    return t(`${prefix}.SEARCH_RESULTS`, { count, query: query.value }, count);
+  return t(
+    `${prefix}.${tab.value === 0 ? 'TEMPLATE_COUNT' : 'FLOW_COUNT'}`,
+    { count },
+    count
+  );
+});
+watch(
+  [selectedKey, () => props.show],
+  async () => {
+    if (!props.show) return;
+    await nextTick();
+    listElement.value
+      ?.querySelector('[aria-pressed="true"]')
+      ?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+  },
+  { flush: 'post' }
 );
 const catalogEmpty = computed(
   () =>
@@ -520,56 +538,25 @@ const overlayDescriptionId = useId();
                 @click="refresh"
               />
             </div>
-            <div class="flex min-w-0 gap-2 items-center">
-              <Icon
-                icon="i-lucide-search"
-                class="size-3.5 shrink-0 text-n-slate-11"
-              />
-              <SearchInput
-                v-model="query"
-                size="sm"
-                class="flex-1 [&_.i-lucide-search]:hidden"
-                :placeholder="$t(`${prefix}.SEARCH`)"
-                :aria-label="$t(`${prefix}.SEARCH`)"
-                data-testid="center-search"
-              />
-              <Button
-                intent="secondary"
-                size="sm"
-                class="shrink-0"
-                icon="i-lucide-filter"
-                :label="`${$t(`${prefix}.FILTERS`)}${filterCount ? ` (${filterCount})` : ''}`"
-                :aria-expanded="filtersOpen"
-                :aria-controls="`${overlayTitleId}-filters`"
-                data-testid="center-filter-toggle"
-                @click="filtersOpen = !filtersOpen"
-              />
-            </div>
-            <div
-              v-show="filtersOpen"
-              :id="`${overlayTitleId}-filters`"
-              class="grid grid-cols-2 gap-2"
-              data-testid="center-filters"
+            <SendCenterFilters
+              :key="`${show}-${conversationId}-${inbox.id}`"
+              v-model:query="query"
+              v-model:category="category"
+              v-model:status="status"
+              :is-flow="tab === 1"
+              :category-options="categoryOptions"
+              :status-options="statusOptions"
+              :category-groups="categoryGroups"
+              :status-groups="statusGroups"
+            />
+            <p
+              class="min-h-4 text-xs text-n-slate-11"
+              aria-live="polite"
+              aria-atomic="true"
+              data-testid="center-count"
             >
-              <FilterDropdown
-                v-model="category"
-                class="min-w-0"
-                icon="i-lucide-folder"
-                :label="$t(`${prefix}.FILTER_CATEGORY`)"
-                :options="categoryOptions"
-                :groups="categoryGroups"
-                data-testid="center-category"
-              />
-              <FilterDropdown
-                v-model="status"
-                class="min-w-0"
-                icon="i-lucide-circle-check"
-                :label="$t(`${prefix}.FILTER_STATUS`)"
-                :options="statusOptions"
-                :groups="statusGroups"
-                data-testid="center-status"
-              />
-            </div>
+              {{ resultsLabel }}
+            </p>
             <p v-if="activeLoading" class="text-xs text-n-slate-11">
               {{ $t(`${prefix}.LOADING`) }}
             </p>
@@ -589,6 +576,7 @@ const overlayDescriptionId = useId();
             />
           </div>
           <div
+            ref="listElement"
             class="min-h-0 flex-1 overflow-y-auto overscroll-contain flex flex-col gap-1"
             role="list"
             data-testid="center-list"
@@ -658,7 +646,9 @@ const overlayDescriptionId = useId();
                 intent="secondary"
                 size="sm"
                 :label="
-                  $t(`${prefix}.${catalogEmpty ? 'REFRESH' : 'CLEAR_FILTERS'}`)
+                  $t(
+                    `${prefix}.${catalogEmpty ? 'REFRESH' : 'CLEAR_SEARCH_FILTERS'}`
+                  )
                 "
                 @click="catalogEmpty ? refresh() : clearFilters()"
               />

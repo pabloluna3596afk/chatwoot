@@ -72,8 +72,8 @@
       "TEMPLATES": "Plantillas",
       "FLOWS": "Flows",
       "SEARCH": "Buscar plantillas",
-      "FILTER_CATEGORY": "Categorías",
-      "FILTER_STATUS": "Estados",
+      "FILTER_CATEGORY": "Categoría",
+      "FILTER_STATUS": "Estado",
       "ALL_CATEGORIES": "Todas las categorías",
       "ALL_STATUSES": "Todos los estados",
       "CATEGORY_GROUP": "Categorías de plantillas",
@@ -161,7 +161,15 @@
       "DATA_LABEL": "{name}, dato {index} de {total}",
       "MISSING_COUNT": "Falta {count} dato | Faltan {count} datos",
       "EXAMPLE": "Ej.: {example}",
-      "RETRY": "Reintentar"
+      "RETRY": "Reintentar",
+      "SEARCH_FLOWS": "Buscar Flows",
+      "CLEAR_SEARCH": "Limpiar búsqueda",
+      "CLEAR_SEARCH_FILTERS": "Limpiar búsqueda y filtros",
+      "REMOVE_FILTER": "Quitar filtro: {filter}",
+      "NO_RESULTS": "Sin resultados",
+      "TEMPLATE_COUNT": "{count} plantilla | {count} plantillas",
+      "FLOW_COUNT": "{count} Flow | {count} Flows",
+      "SEARCH_RESULTS": "{count} resultado para “{query}” | {count} resultados para “{query}”"
     }
   }
 }

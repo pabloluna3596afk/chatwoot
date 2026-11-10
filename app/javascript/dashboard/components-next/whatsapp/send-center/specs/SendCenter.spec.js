@@ -63,6 +63,7 @@ describe('unified send center', () => {
   let wrapper;
   let globalOptions;
   beforeEach(() => {
+    Element.prototype.scrollIntoView = vi.fn();
     lastSendCenterTab.value = 0;
     globalOptions = {
       plugins: [
@@ -108,6 +109,83 @@ describe('unified send center', () => {
     API.sendToConversation.mockResolvedValue({});
   });
   afterEach(() => wrapper?.unmount());
+
+  it('clears query, filters and chips independently and announces matching results', async () => {
+    wrapper = mount(SendCenter, {
+      attachTo: document.body,
+      props: {
+        show: true,
+        inbox: { id: 3, channel_type: 'Channel::Api' },
+        conversationId: 5,
+        canReply: true,
+        templates,
+        sendTemplate: vi.fn(),
+      },
+      global: globalOptions,
+    });
+    await flushPromises();
+    expect(wrapper.get('[data-testid="center-count"]').text()).toBe(
+      '3 plantillas'
+    );
+    const input = wrapper.get('[data-testid="center-search"] input');
+    await input.setValue('Discount');
+    expect(wrapper.get('[data-testid="center-count"]').text()).toContain(
+      '1 resultado'
+    );
+    expect(wrapper.get('[data-testid="center-list"]').text()).toContain(
+      'offer'
+    );
+    expect(wrapper.get('[data-testid="center-list"]').text()).not.toContain(
+      'appointment'
+    );
+    const event = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true,
+    });
+    input.element.dispatchEvent(event);
+    await flushPromises();
+    expect(event.defaultPrevented).toBe(true);
+    expect(input.element.value).toBe('');
+    expect(wrapper.emitted('close')).toBeUndefined();
+    const filters = wrapper.findAllComponents(FilterDropdown);
+    filters[0].vm.$emit('update:modelValue', 'template:MARKETING');
+    filters[1].vm.$emit('update:modelValue', 'APPROVED');
+    await flushPromises();
+    expect(wrapper.get('[data-testid="center-filter-count"]').text()).toBe('2');
+    expect(
+      wrapper.get('[data-testid="center-filter-chips"]').findAll('button')
+    ).toHaveLength(2);
+    await wrapper
+      .get('[data-testid="center-filter-chips"] button')
+      .trigger('click');
+    expect(wrapper.get('[data-testid="center-filter-count"]').text()).toBe('1');
+    const toggle = wrapper.get('[data-testid="center-filter-toggle"]');
+    await toggle.trigger('click');
+    expect(wrapper.find('[data-testid="center-filter-chips"]').exists()).toBe(
+      false
+    );
+    await input.setValue('no match');
+    await wrapper.get('[data-testid="center-clear-filters"]').trigger('click');
+    expect(input.element.value).toBe('no match');
+    expect(wrapper.get('[data-testid="center-count"]').text()).toBe(
+      'Sin resultados'
+    );
+    await input.setValue('');
+    await filters[0].get('button').trigger('keydown', { key: 'Escape' });
+    expect(toggle.attributes('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(toggle.element);
+    await input.setValue('no match');
+    await wrapper.get('[data-testid="center-list"] button').trigger('click');
+    expect(input.element.value).toBe('');
+    expect(wrapper.get('[data-testid="center-count"]').text()).toBe(
+      '3 plantillas'
+    );
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
+      block: 'nearest',
+      behavior: 'instant',
+    });
+  });
 
   it('keeps native dialog close synchronized while a send is pending', async () => {
     let resolveSend;
@@ -323,8 +401,8 @@ describe('unified send center', () => {
     expect(filterRow.attributes('style') || '').not.toContain('display: none');
     const filters = wrapper.findAllComponents(FilterDropdown);
     expect(filters.map(filter => filter.get('button').text())).toEqual([
-      'Categor\u00edas',
-      'Estados',
+      'Categor\u00eda',
+      'Estado',
     ]);
     expect(
       filters.map(filter => filter.get('button').attributes('title'))
@@ -1078,7 +1156,7 @@ describe('unified send center', () => {
     filters[1].vm.$emit('update:modelValue', 'APPROVED');
     await flushPromises();
     expect(wrapper.get('[data-testid="center-filter-toggle"]').text()).toBe(
-      'Filtros (2)'
+      'Filtros2'
     );
   });
 

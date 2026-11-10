@@ -72,7 +72,7 @@
       "TEMPLATES": "Templates",
       "FLOWS": "Flows",
       "SEARCH": "Search templates",
-      "FILTER_CATEGORY": "Categories",
+      "FILTER_CATEGORY": "Category",
       "FILTER_STATUS": "Status",
       "ALL_CATEGORIES": "All categories",
       "ALL_STATUSES": "All statuses",
@@ -161,7 +161,15 @@
       "DATA": "Data {index}",
       "DATA_LABEL": "{name}, data {index} of {total}",
       "EXAMPLE": "E.g.: {example}",
-      "RETRY": "Retry"
+      "RETRY": "Retry",
+      "SEARCH_FLOWS": "Search Flows",
+      "CLEAR_SEARCH": "Clear search",
+      "CLEAR_SEARCH_FILTERS": "Clear search and filters",
+      "REMOVE_FILTER": "Remove filter: {filter}",
+      "NO_RESULTS": "No results",
+      "TEMPLATE_COUNT": "{count} template | {count} templates",
+      "FLOW_COUNT": "{count} Flow | {count} Flows",
+      "SEARCH_RESULTS": "{count} result for “{query}” | {count} results for “{query}”"
     }
   }
 }
