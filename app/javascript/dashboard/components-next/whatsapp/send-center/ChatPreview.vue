@@ -5,6 +5,7 @@ import Icon from 'dashboard/components-next/icon/Icon.vue';
 import MessagePreview from '../WhatsAppBubble.vue';
 
 defineProps({
+  fieldHint: { type: String, default: '' },
   messages: { type: Array, default: () => [] },
   header: { type: String, default: '' },
   headerMedia: { type: String, default: '' },
@@ -64,6 +65,14 @@ useResizeObserver([viewport, message], measure);
             </p>
           </template>
         </MessagePreview>
+        <p
+          class="mx-auto mt-2 h-10 w-full max-w-[22.5rem] overflow-y-auto text-xs text-n-slate-11"
+          aria-live="polite"
+          aria-atomic="true"
+          data-testid="preview-field-hint"
+        >
+          {{ fieldHint }}
+        </p>
         <p
           v-for="messageText in messages"
           :key="messageText"

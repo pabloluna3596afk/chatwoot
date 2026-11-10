@@ -54,6 +54,7 @@ const resolveContext = computed(() => ({
 const dialog = ref(null);
 const parser = ref(null);
 const editableBody = ref(null);
+const fieldHint = ref('');
 const sendButton = ref(null);
 const attempted = ref(false);
 const flowDetail = ref(null);
@@ -95,6 +96,9 @@ const selectedKey = computed({
   set: value => {
     activeState.value.selectedKey = value;
   },
+});
+watch(selectedKey, () => {
+  fieldHint.value = '';
 });
 const { run, abort, isPending } = useAbortableRequest();
 const activeLoading = computed(
@@ -735,6 +739,7 @@ const overlayDescriptionId = useId();
                 <ChatPreview
                   :key="selected.key"
                   :messages="previewMessages(preview)"
+                  :field-hint="fieldHint"
                   :header="preview.header"
                   :body="preview.body"
                   :footer="footer"
@@ -754,6 +759,7 @@ const overlayDescriptionId = useId();
                       @change="preview.setHeaderValue"
                       @select="preview.insertHeaderVariable"
                       @advance="focusNextData"
+                      @hint="fieldHint = $event"
                     />
                   </template>
                   <EditableBody
@@ -775,6 +781,7 @@ const overlayDescriptionId = useId();
                     @change="preview.setBodyValue"
                     @select="preview.insertBodyVariable"
                     @advance="focusNextData"
+                    @hint="fieldHint = $event"
                   />
                 </ChatPreview>
               </template>

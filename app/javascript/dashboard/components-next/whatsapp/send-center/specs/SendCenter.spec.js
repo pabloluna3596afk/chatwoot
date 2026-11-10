@@ -149,7 +149,9 @@ describe('unified send center', () => {
         .exists()
     ).toBe(false);
     expect(wrapper.get('[data-testid="center-selection"]').text()).toBe(
-      'Selected template: test_marketing_bienvenida'
+      wrapper.vm.$t('WHATSAPP_TEMPLATES.SEND_CENTER.TEMPLATE_SELECTED', {
+        name: 'test_marketing_bienvenida',
+      })
     );
     wrapper.findComponent(TabBar).vm.$emit('tabChanged', { index: 1 });
     await flushPromises();
@@ -157,7 +159,9 @@ describe('unified send center', () => {
       wrapper.get('[data-testid="center-detail"]').attributes('aria-label')
     ).toBe('Contact');
     expect(wrapper.get('[data-testid="center-selection"]').text()).toBe(
-      'Selected Flow: Contact'
+      wrapper.vm.$t('WHATSAPP_TEMPLATES.SEND_CENTER.FLOW_SELECTED', {
+        name: 'Contact',
+      })
     );
   });
 
@@ -1388,6 +1392,16 @@ describe('unified send center', () => {
       expect(inputs[2].attributes('aria-label')).toBe('Dato 3 de 3: Dato 3');
       expect(inputs.map(input => input.element.value)).toEqual(['', '', '']);
       expect(wrapper.findAll('[data-template-field]')).toHaveLength(3);
+      const hint = wrapper.get('[data-testid="preview-field-hint"]');
+      await inputs[0].trigger('focus');
+      expect(hint.text()).toContain('Dato 1 de 3');
+      expect(hint.text()).toContain('Ana');
+      await inputs[0].trigger('blur');
+      await inputs[1].trigger('focus');
+      expect(hint.text()).toContain('Dato 2 de 3');
+      expect(hint.text()).toContain('12 de noviembre');
+      await inputs[1].trigger('focusout');
+      expect(hint.text()).toBe('');
     }
   );
 

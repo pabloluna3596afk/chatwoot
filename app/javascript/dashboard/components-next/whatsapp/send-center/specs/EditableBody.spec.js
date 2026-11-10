@@ -4,7 +4,7 @@ import { withFullI18n } from 'test-i18n';
 withFullI18n('en');
 
 vi.mock('dashboard/components-next/variable-picker/VariablePicker.vue', () => ({
-  default: { template: '<span />' },
+  default: { template: '<button type="button">{ }</button>' },
 }));
 
 describe('inline template fields', () => {
@@ -83,6 +83,42 @@ describe('inline field keyboard and values', () => {
       '{{contact.name}}'
     );
     expect(wrapper.find('.bg-n-teal-9').exists()).toBe(true);
+    wrapper.unmount();
+  });
+});
+
+describe('field help and variable keyboard access', () => {
+  it('updates help on focus, keeps it while tabbing to the picker, and clears it on exit', async () => {
+    const wrapper = mount(EditableBody, {
+      attachTo: document.body,
+      props: {
+        text: '{{name}} / {{order}}',
+        labelFor: key => key,
+        examples: { name: 'Alex' },
+      },
+    });
+    await flushPromises();
+    const fields = wrapper.findAll('textarea');
+    fields[0].element.focus();
+    await flushPromises();
+    expect(wrapper.emitted('hint').at(-1)).toEqual([
+      'Detail 1 of 2 · E.g.: Alex',
+    ]);
+    const picker = wrapper.get('button');
+    expect(picker.attributes('aria-label')).toBe('Insert variable');
+    picker.element.focus();
+    await flushPromises();
+    expect(wrapper.emitted('hint').at(-1)).toEqual([
+      'Detail 1 of 2 · E.g.: Alex',
+    ]);
+    fields[1].element.focus();
+    await flushPromises();
+    expect(wrapper.emitted('hint').at(-1)).toEqual(['Detail 2 of 2']);
+    fields[1].element.blur();
+    await flushPromises();
+    expect(wrapper.emitted('hint').at(-1)).toEqual(['']);
+    expect(wrapper.emitted('change')).toBeUndefined();
+    expect(wrapper.find('[role="tooltip"]').exists()).toBe(false);
     wrapper.unmount();
   });
 });
