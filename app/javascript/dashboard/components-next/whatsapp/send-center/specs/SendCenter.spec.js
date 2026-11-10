@@ -69,7 +69,8 @@ describe('unified send center', () => {
         createI18n({
           legacy: false,
           locale: 'es',
-          messages: { es: { ...es, ...esFlows } },
+          fallbackLocale: 'en',
+          messages: { es: { ...es, ...esFlows }, en },
         }),
         createStore({
           getters: {
@@ -622,7 +623,8 @@ describe('unified send center', () => {
           createI18n({
             legacy: false,
             locale: 'es',
-            messages: { es: { ...es, ...esFlows } },
+            fallbackLocale: 'en',
+            messages: { es: { ...es, ...esFlows }, en },
           }),
           createStore({
             getters: {
@@ -682,7 +684,8 @@ describe('unified send center', () => {
           createI18n({
             legacy: false,
             locale: 'es',
-            messages: { es: { ...es, ...esFlows } },
+            fallbackLocale: 'en',
+            messages: { es: { ...es, ...esFlows }, en },
           }),
           createStore({
             getters: {
@@ -787,7 +790,8 @@ describe('unified send center', () => {
           createI18n({
             legacy: false,
             locale: 'es',
-            messages: { es: { ...es, ...esFlows } },
+            fallbackLocale: 'en',
+            messages: { es: { ...es, ...esFlows }, en },
           }),
           createStore({
             getters: {
@@ -833,7 +837,8 @@ describe('unified send center', () => {
           createI18n({
             legacy: false,
             locale: 'es',
-            messages: { es: { ...es, ...esFlows } },
+            fallbackLocale: 'en',
+            messages: { es: { ...es, ...esFlows }, en },
           }),
           createStore({
             getters: {
@@ -995,7 +1000,9 @@ describe('unified send center', () => {
       wrapper.get('[data-testid="flow-send-preview-column"]').element
         .parentElement
     );
-    expect(wrapper.text()).not.toContain('Listo para enviar');
+    expect(wrapper.get('[data-testid="center-ready"]').text()).toBe(
+      'Listo para enviar'
+    );
   });
 
   it('distinguishes no search results from an empty catalog and offers recovery', async () => {
@@ -1061,7 +1068,7 @@ describe('unified send center', () => {
     const row = wrapper.get(
       '[data-testid="center-row-template:appointment:es"]'
     );
-    expect(row.text()).toContain('es');
+    expect(row.text()).toContain('ES');
     expect(row.text()).toContain('Your appointment');
     expect(row.text()).not.toContain(
       es.WHATSAPP_TEMPLATES.SEND_CENTER.STATUS.APPROVED
@@ -1075,10 +1082,63 @@ describe('unified send center', () => {
     );
   });
 
-  it('ships matching English and Spanish send-center keys', () => {
+  it('summarizes missing data and restores ready status after inline editing', async () => {
+    wrapper = mount(SendCenter, {
+      props: {
+        show: true,
+        inbox: {
+          id: 3,
+          channel_type: 'Channel::Whatsapp',
+          provider: '360dialog',
+        },
+        conversationId: 5,
+        canReply: true,
+        templates: [
+          {
+            name: 'order',
+            language: 'es_ES',
+            status: 'APPROVED',
+            category: 'UTILITY',
+            components: [
+              {
+                type: 'BODY',
+                text: 'Hello {{name}}, {{date}}, {{time}}, {{order}}',
+              },
+            ],
+          },
+        ],
+        sendTemplate: vi.fn(),
+      },
+      global: { ...globalOptions, stubs: { Dialog: DialogStub } },
+    });
+    await flushPromises();
+    expect(wrapper.get('[data-testid="center-invalid-reason"]').text()).toBe(
+      'Missing 4 details'
+    );
+    expect(
+      wrapper.get('[data-testid="center-send"]').attributes('disabled')
+    ).toBeDefined();
+    const fields = wrapper.findAll('[data-testid="editable-body"] input');
+    await fields[0].setValue('Ana');
+    expect(wrapper.get('[data-testid="center-invalid-reason"]').text()).toBe(
+      'Completa: date \u00b7 time \u00b7 order'
+    );
+    await Promise.all(fields.slice(1).map(field => field.setValue('Value')));
+    expect(wrapper.get('[data-testid="center-ready"]').text()).toBe(
+      'Listo para enviar'
+    );
+    expect(
+      wrapper.get('[data-testid="center-send"]').attributes('disabled')
+    ).toBeUndefined();
+  });
+
+  it('preserves translated keys while new source keys await Crowdin', () => {
     const english = en.WHATSAPP_TEMPLATES.SEND_CENTER;
     const spanish = es.WHATSAPP_TEMPLATES.SEND_CENTER;
-    expect(Object.keys(english)).toEqual(Object.keys(spanish));
+    expect(Object.keys(english)).toEqual(
+      expect.arrayContaining(Object.keys(spanish))
+    );
+    expect(english.MISSING_COUNT).toBe('Missing {count} details');
     ['CATEGORY', 'STATUS', 'REASONS', 'MEDIA_FORMATS'].forEach(key =>
       expect(Object.keys(english[key])).toEqual(Object.keys(spanish[key]))
     );

@@ -1,3 +1,10 @@
+### B-NEW-260 — Pulido de plantillas en el centro de envío (2026-11-09)
+
+- **Archivos:** `send-center/EditableBody.vue`, `ChatPreview.vue`, `SendCenter.vue` y sus specs; fuente inglesa `whatsappTemplates.json`.
+- **Problema:** variables recortadas y rojas al abrir; el mensaje corto dejaba espacio vacío y el largo no tenía un viewport de scroll adecuado; faltaba un estado claro en el pie.
+- **Arreglo:** medir el texto con un elemento invisible, mostrar errores tras blur o intento de envío, reutilizar WhatsAppBubble dentro de un viewport local con sombras y hora simulada, compactar controles/chips y resumir los datos pendientes. Sin cambios en parsers, payloads ni elegibilidad.
+- **Cómo probar:** preview de componentes reales con datos ficticios en `http://127.0.0.1:5178/`; revisar 1440/1024/768, claro/oscuro, campos vacíos/completos, mensaje largo con imagen y movimiento reducido. Vitest: 10 suites/265 pruebas por zona (UTC y America/Guayaquil); ESLint sin errores. Falta revisión dentro del CRM completo: Docker no está disponible. Fotos y aprobación visual a cargo del dueño, antes de crear PR. Sin migraciones.
+
 ### B-NEW-259 - Exportar datos de clientes en planes de pago (2026-11-09)
 
 - **Archivos:** `Plan`, migración `20261109170000`, tareas de planes, catálogo en/es y `DownloadPermission` (extensión Enterprise de auditoría).

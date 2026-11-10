@@ -16,7 +16,7 @@ import ContentTemplateParser from 'dashboard/components-next/content-templates/C
 import FlowDetail from './FlowDetail.vue';
 import EditableBody from './EditableBody.vue';
 import { lastSendCenterTab } from './session';
-import MessagePreview from '../WhatsAppBubble.vue';
+import ChatPreview from './ChatPreview.vue';
 import {
   supportsFlows,
   usesContentTemplates,
@@ -52,6 +52,8 @@ const resolveContext = computed(() => ({
 }));
 const dialog = ref(null);
 const parser = ref(null);
+const editableBody = ref(null);
+const attempted = ref(false);
 const flowDetail = ref(null);
 const flows = ref([]);
 const serverCanReply = ref(true);
@@ -259,6 +261,28 @@ const missingLabel = computed(() => {
     `${prefix}.${field.section === 'buttons' ? 'BUTTON_TEXT' : 'HEADER'}`
   );
 });
+const missingLabels = computed(() => {
+  const labels = editableBody.value?.missingLabels || [];
+  return [
+    ...new Set([
+      ...labels,
+      ...(missingLabel.value ? [missingLabel.value] : []),
+    ]),
+  ];
+});
+const missingSummary = computed(() => {
+  if (missingLabels.value.length > 3)
+    return t(`${prefix}.MISSING_COUNT`, { count: missingLabels.value.length });
+  if (missingLabels.value.length)
+    return t(`${prefix}.COMPLETE`, {
+      field: missingLabels.value.join(' \u00b7 '),
+    });
+  return t(`${prefix}.CHECK_FIELDS`);
+});
+const languageChip = language => language.split(/[-_]/)[0].toUpperCase();
+watch(selectedKey, () => {
+  attempted.value = false;
+});
 const component = type =>
   selected.value?.data.components?.find(c => c.type === type);
 const header = computed(() => component('HEADER')?.text || '');
@@ -339,6 +363,7 @@ const sendTemplatePayload = async payload => {
   }
 };
 const submit = async () => {
+  attempted.value = true;
   if (!canSend.value) return;
   if (selected.value.type === 'template') {
     parser.value.sendMessage();
@@ -406,7 +431,7 @@ const overlayDescriptionId = useId();
     @close="close"
   >
     <div
-      class="flex max-md:h-auto md:h-[min(40rem,calc(90dvh-11rem))] min-h-0 flex-col gap-5"
+      class="flex max-md:h-auto md:h-[min(40rem,calc(90dvh-11rem))] min-h-0 flex-col gap-4"
       data-columns="2"
       data-testid="center-body"
       @keydown.esc="handleEscape"
@@ -449,9 +474,9 @@ const overlayDescriptionId = useId();
         data-testid="center-columns"
       >
         <section
-          class="flex min-h-0 min-w-0 flex-col gap-3 md:border-e md:border-n-weak md:pe-4"
+          class="flex min-h-0 min-w-0 flex-col gap-2 md:border-e md:border-n-weak md:pe-4"
         >
-          <div class="flex flex-col gap-3" data-testid="center-controls">
+          <div class="flex flex-col gap-2" data-testid="center-controls">
             <div
               class="flex items-center justify-between gap-2"
               data-testid="center-toolbar"
@@ -536,7 +561,7 @@ const overlayDescriptionId = useId();
               v-for="row in filtered"
               :key="row.key"
               type="button"
-              class="w-full min-w-0 rounded-lg border-s-[0.1875rem] p-3 text-start shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
+              class="w-full min-w-0 rounded-lg border-s-[0.1875rem] px-3 py-3 text-start shrink-0 transition-colors duration-150 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
               :class="
                 row.key === selectedKey
                   ? 'border-n-brand bg-n-alpha-2'
@@ -555,7 +580,7 @@ const overlayDescriptionId = useId();
                   v-if="row.data.language"
                   class="shrink-0 rounded bg-n-alpha-2 px-1.5 py-0.5 text-xxs text-n-slate-11"
                 >
-                  {{ row.data.language }}
+                  {{ languageChip(row.data.language) }}
                 </p>
               </div>
               <p class="mt-1 line-clamp-2 text-xs leading-5 text-n-slate-11">
@@ -573,6 +598,12 @@ const overlayDescriptionId = useId();
               v-if="!filtered.length && !isPending"
               class="flex flex-col items-center gap-3 px-4 py-10 text-center"
             >
+              <Icon
+                :icon="
+                  catalogEmpty ? 'i-lucide-layout-template' : 'i-lucide-search'
+                "
+                class="size-8 text-n-slate-10"
+              />
               <p class="text-sm font-semibold text-n-slate-12">
                 {{
                   $t(`${prefix}.${catalogEmpty ? 'EMPTY_CATALOG' : 'EMPTY'}`)
@@ -598,7 +629,7 @@ const overlayDescriptionId = useId();
         </section>
         <section
           v-if="selected"
-          class="min-h-0 min-w-0 overflow-y-auto overscroll-contain flex flex-col gap-4"
+          class="min-h-0 min-w-0 overflow-y-auto overscroll-contain flex flex-col gap-3"
           data-testid="center-detail"
         >
           <div
@@ -612,9 +643,9 @@ const overlayDescriptionId = useId();
             </h3>
             <p
               v-if="selected.data.language"
-              class="shrink-0 text-xs text-n-slate-11"
+              class="shrink-0 rounded-md bg-n-alpha-2 px-2 py-1 text-xxs font-medium text-n-slate-11"
             >
-              {{ selected.data.language }}
+              {{ languageChip(selected.data.language) }}
             </p>
           </div>
           <FlowDetail
@@ -629,41 +660,37 @@ const overlayDescriptionId = useId();
               :is="content ? ContentTemplateParser : WhatsAppTemplateParser"
               :key="selected.key"
               ref="parser"
-              class="flex min-h-0 min-w-0 flex-col gap-4 [&>[data-template-fields]:empty]:hidden"
+              class="flex min-h-0 min-w-0 flex-1 flex-col gap-3 [&>[data-template-preview]]:flex [&>[data-template-preview]]:min-h-0 [&>[data-template-preview]]:flex-1 [&>[data-template-fields]:empty]:hidden [&>[data-template-fields]:not(:empty)]:max-h-40 [&>[data-template-fields]]:shrink-0 [&>[data-template-fields]]:overflow-y-auto"
               v-bind="parserProps"
               @send-message="sendTemplatePayload"
             >
               <template #preview="preview">
-                <div
-                  data-template-preview
-                  class="mx-auto w-full max-w-[22.5rem] max-h-[24rem] overflow-y-auto overscroll-contain rounded-xl"
+                <ChatPreview
+                  :key="selected.key"
+                  :header="preview.header"
+                  :body="preview.body"
+                  :footer="footer"
+                  :buttons="buttons"
+                  :header-media="headerMedia"
                 >
-                  <MessagePreview
-                    :header="preview.header"
-                    :body="preview.body"
-                    :footer="footer"
-                    :buttons="buttons"
-                    :header-media="headerMedia"
-                  >
-                    <template v-if="preview.bodyText" #body>
-                      <EditableBody
-                        :text="preview.bodyText"
-                        :values="preview.bodyValues"
-                        :invalid-keys="preview.invalidBodyKeys"
-                        :label-for="fieldLabel"
-                        @change="preview.setBodyValue"
-                      />
-                    </template>
-                  </MessagePreview>
-                </div>
+                  <EditableBody
+                    v-if="preview.bodyText"
+                    ref="editableBody"
+                    :text="preview.bodyText"
+                    :values="preview.bodyValues"
+                    :invalid-keys="preview.invalidBodyKeys"
+                    :attempted="attempted"
+                    :label-for="fieldLabel"
+                    @change="preview.setBodyValue"
+                  />
+                </ChatPreview>
               </template>
               <template #body-fields />
               <template #actions />
             </component>
           </template>
-          <MessagePreview
+          <ChatPreview
             v-else
-            class="mx-auto w-full max-w-[22.5rem]"
             :header="header"
             :body="body"
             :footer="footer"
@@ -678,7 +705,7 @@ const overlayDescriptionId = useId();
     </div>
     <template #footer>
       <div
-        class="flex items-center justify-between gap-3"
+        class="flex items-center justify-between gap-3 [&>button:disabled]:opacity-100 [&>button:disabled]:bg-n-alpha-2 [&>button:disabled]:text-n-slate-11"
         data-testid="center-footer"
         @keydown.esc="handleEscape"
       >
@@ -693,14 +720,11 @@ const overlayDescriptionId = useId();
               parser?.isFormInvalid
             "
             role="status"
-            class="text-sm text-n-slate-11"
+            class="flex items-center gap-2 text-sm text-n-slate-11"
             data-testid="center-invalid-reason"
           >
-            {{
-              missingLabel
-                ? $t(`${prefix}.COMPLETE`, { field: missingLabel })
-                : $t(`${prefix}.CHECK_FIELDS`)
-            }}
+            <Icon icon="i-lucide-info" class="size-4 shrink-0" />
+            {{ missingSummary }}
           </p>
           <p
             v-else-if="selected?.type === 'flow' && flowDetail?.invalidReason"
@@ -720,9 +744,22 @@ const overlayDescriptionId = useId();
               class="size-4 mt-0.5 shrink-0"
             />{{ reasonLabel(selected.reason) }}
           </p>
+          <p
+            v-else-if="canSend"
+            role="status"
+            class="flex items-center gap-2 text-sm text-n-slate-11"
+            data-testid="center-ready"
+          >
+            <Icon
+              icon="i-lucide-circle-check"
+              class="size-4 shrink-0 text-n-teal-11"
+            />
+            {{ $t(`${prefix}.READY`) }}
+          </p>
         </div>
         <Button
           intent="primary"
+          class="shrink-0"
           :label="$t(`${prefix}.SEND`)"
           icon="i-lucide-send"
           :disabled="!canSend"
