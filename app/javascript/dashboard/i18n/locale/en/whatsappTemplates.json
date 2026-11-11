@@ -162,8 +162,6 @@
       "CHECK_FIELDS": "Check the message fields.",
       "DATA": "Data {index}",
       "DATA_PLACEHOLDER": "Type the value",
-      "DATA_LABEL": "Detail {index} of {total}: {example}",
-      "EXAMPLE": "E.g.: {example}",
       "RETRY": "Retry",
       "SEARCH_FLOWS": "Search Flows",
       "CLEAR_SEARCH": "Clear search",
@@ -178,13 +176,10 @@
         "UTILITY": "Utility message (orders, appointments, notices)",
         "AUTHENTICATION": "Authentication message (codes)"
       },
-      "DATA_PICKER": "Insert contact variable (Tab from the detail)",
-      "DATA_REQUIRED": "Complete detail {index}",
-      "DATA_POSITION": "Detail {index} of {total}",
-      "SYSTEM_VARIABLES": "System variables",
-      "USE_TEXT": "Use \u201c{text}\u201d",
+      "USE_TEXT": "Use “{text}”",
       "NO_DATA": "No data",
-      "REMOVE_VARIABLE": "Remove {variable} and type a value"
+      "SEARCH_OR_TYPE": "Search or type…",
+      "REMOVE_VALUE": "Remove"
     }
   }
 }

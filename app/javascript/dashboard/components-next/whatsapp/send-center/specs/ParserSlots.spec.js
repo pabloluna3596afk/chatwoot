@@ -66,9 +66,7 @@ describe('inline parser contract', () => {
     await flushPromises();
     expect(wrapper.findAll('textarea')).toHaveLength(1);
     expect(wrapper.findAllComponents(TemplateVariableInput)).toHaveLength(0);
-    expect(wrapper.get('[data-testid=preview-help]').text()).toBe(
-      'WHATSAPP_TEMPLATES.PARSER.NO_VALUE'
-    );
+    expect(wrapper.find('[data-testid=preview-help]').exists()).toBe(false);
     expect(wrapper.get('[data-testid=editable-body]').text()).not.toContain(
       'WHATSAPP_TEMPLATES.PARSER.NO_VALUE'
     );
@@ -105,9 +103,9 @@ describe('inline parser contract', () => {
     await flushPromises();
     const inputs = wrapper.findAll('textarea');
     expect(inputs.map(input => input.attributes('aria-label'))).toEqual([
-      `Dato 1 de 2: ${es.WHATSAPP_TEMPLATES.SEND_CENTER.DATA_PLACEHOLDER}`,
-      `Dato 2 de 2: ${es.WHATSAPP_TEMPLATES.SEND_CENTER.DATA_PLACEHOLDER}`,
-      `Dato 1 de 2: ${es.WHATSAPP_TEMPLATES.SEND_CENTER.DATA_PLACEHOLDER}`,
+      'Nombre del cliente',
+      'Fecha',
+      'Nombre del cliente',
     ]);
     expect(inputs.map(input => input.element.value)).toEqual([
       'Ana',

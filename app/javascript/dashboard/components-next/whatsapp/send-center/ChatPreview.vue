@@ -1,13 +1,11 @@
 <script setup>
 import { ref } from 'vue';
 import { useScroll, useResizeObserver } from '@vueuse/core';
-import Icon from 'dashboard/components-next/icon/Icon.vue';
 import WhatsAppText from './WhatsAppText';
 import MessagePreview from '../WhatsAppBubble.vue';
 
 defineProps({
   fieldHint: { type: String, default: '' },
-  messages: { type: Array, default: () => [] },
   header: { type: String, default: '' },
   headerMedia: { type: String, default: '' },
   body: { type: String, default: '' },
@@ -32,7 +30,7 @@ useResizeObserver([viewport, message], measure);
       class="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain rounded-xl bg-[#efeae2] p-3 pb-12 dark:bg-[#0b141a]"
       data-testid="chat-preview-scroll"
     >
-      <div ref="message" class="my-auto w-full shrink-0">
+      <div ref="message" class="w-full shrink-0">
         <MessagePreview
           class="mx-auto w-full max-w-[22.5rem] [&>div]:p-0 [&>div>div]:w-full [&>div>div]:overflow-visible [&_[data-testid=bubble-media]]:w-full [&_[data-testid=bubble-media]]:object-cover [&_[data-testid=bubble-media]]:aspect-video [&_[data-testid=bubble-media]]:h-auto [&_[data-testid=bubble-media]]:max-h-36 [&_[data-template-field]]:scroll-mt-16"
           :header="header"
@@ -74,16 +72,6 @@ useResizeObserver([viewport, message], measure);
           data-testid="preview-field-hint"
         >
           {{ fieldHint }}
-        </p>
-        <p
-          v-for="messageText in messages"
-          :key="messageText"
-          class="mx-auto mt-2 flex w-full max-w-[22.5rem] items-start gap-1 text-xs text-n-slate-11"
-          role="status"
-          data-testid="preview-help"
-        >
-          <Icon icon="i-lucide-info" class="mt-0.5 size-3 shrink-0" />
-          {{ messageText }}
         </p>
       </div>
     </div>

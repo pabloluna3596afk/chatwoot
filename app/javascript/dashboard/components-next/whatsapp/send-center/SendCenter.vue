@@ -20,7 +20,6 @@ import ChatPreview from './ChatPreview.vue';
 import WhatsAppText from './WhatsAppText';
 import { useSystemVariables } from './useSystemVariables';
 import {
-  bodySegments,
   supportsFlows,
   usesContentTemplates,
   sendCenterIcon,
@@ -336,22 +335,6 @@ watch(selectedKey, () => {
 const component = type =>
   selected.value?.data.components?.find(c => c.type === type);
 const header = computed(() => component('HEADER')?.text || '');
-const bodyExamples = computed(() => {
-  const example = component('BODY')?.example;
-  if (example?.body_text_named_params)
-    return Object.fromEntries(
-      example.body_text_named_params.map(item => [
-        item.param_name,
-        item.example,
-      ])
-    );
-  return Object.fromEntries(
-    (example?.body_text?.[0] || []).map((value, index) => [
-      String(index + 1),
-      value,
-    ])
-  );
-});
 const body = computed(
   () => component('BODY')?.text || selected.value?.data.body || ''
 );
@@ -503,16 +486,6 @@ watch(
   },
   { immediate: true }
 );
-const previewMessages = preview => [
-  ...new Set(
-    ['header', 'body'].flatMap(section =>
-      bodySegments(preview[`${section}Text`] || '')
-        .filter(part => part.key)
-        .map(part => preview[`${section}Message`]?.(part.key))
-        .filter(Boolean)
-    )
-  ),
-];
 const overlayTitleId = useId();
 const overlayDescriptionId = useId();
 </script>
@@ -776,7 +749,6 @@ const overlayDescriptionId = useId();
               <template #preview="preview">
                 <ChatPreview
                   :key="selected.key"
-                  :messages="previewMessages(preview)"
                   :field-hint="fieldHint"
                   :header="preview.header"
                   :body="preview.body"
@@ -819,7 +791,6 @@ const overlayDescriptionId = useId();
                     :invalid-keys="preview.invalidBodyKeys"
                     :attempted="attempted"
                     :label-for="fieldLabel"
-                    :examples="bodyExamples"
                     :variable-filter="preview.variableFilter"
                     :system-variables="systemVariables"
                     :variables-status="variablesStatus"

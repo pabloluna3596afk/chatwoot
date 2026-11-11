@@ -94,15 +94,12 @@ describe('inline field keyboard and values', () => {
     });
     await flushPromises();
     expect(wrapper.get('textarea').element.value).toBe('Ana');
-    expect(wrapper.get('textarea').attributes('title')).toBe(
-      'Contact name · {{1}}'
-    );
+    expect(wrapper.get('textarea').attributes('title')).toBe('Contact name');
     await wrapper.get('textarea').trigger('focus');
-    expect(wrapper.emitted('hint').at(-1)).toEqual([
-      'Detail 1 of 1 · Contact name · {{1}}',
-    ]);
-    expect(wrapper.get('textarea').attributes('readonly')).toBeDefined();
-    await wrapper.get('button').trigger('click');
+    expect(wrapper.emitted('hint').at(-1)).toEqual(['Contact name']);
+    expect(wrapper.get('textarea').attributes('readonly')).toBeUndefined();
+    await wrapper.get('textarea').trigger('click');
+    await wrapper.findAll('[role=option]').at(-1).trigger('click');
     expect(wrapper.emitted('change')).toEqual([['1', '']]);
     wrapper.unmount();
   });
@@ -122,17 +119,13 @@ describe('field help and variable keyboard access', () => {
     const fields = wrapper.findAll('textarea');
     fields[0].element.focus();
     await flushPromises();
-    expect(wrapper.emitted('hint').at(-1)).toEqual([
-      'Detail 1 of 2 · {{name}} · E.g.: Alex',
-    ]);
+    expect(wrapper.emitted('hint').at(-1)).toEqual(['name']);
     expect(wrapper.find('[role=listbox]').exists()).toBe(false);
     await fields[0].trigger('click');
     expect(wrapper.get('[role=listbox]').exists()).toBe(true);
     fields[1].element.focus();
     await flushPromises();
-    expect(wrapper.emitted('hint').at(-1)).toEqual([
-      'Detail 2 of 2 · {{order}}',
-    ]);
+    expect(wrapper.emitted('hint').at(-1)).toEqual(['order']);
     expect(wrapper.find('[role=listbox]').exists()).toBe(false);
     fields[1].element.blur();
     await flushPromises();
@@ -165,21 +158,53 @@ describe('safe variable and template text', () => {
 });
 
 it.each(['1', 'nombre_y_apellido'])(
-  'keeps the exact Meta variable %s in the title and keyboard help',
+  'never exposes Meta variable %s in the preview or keyboard help',
   async key => {
     const wrapper = mount(EditableBody, {
       props: { text: `Hola {{${key}}}`, labelFor: () => 'Customer name' },
     });
     await flushPromises();
     const field = wrapper.get('textarea');
-    expect(field.attributes('title')).toBe(`{{${key}}}`);
+    expect(field.attributes('title')).toBe('Customer name');
     expect(field.attributes('placeholder')).toBe('Type the value');
+    expect(wrapper.text()).not.toContain('{{');
+    expect(wrapper.html()).not.toContain('{{');
     await field.trigger('focus');
-    expect(wrapper.emitted('hint').at(-1)).toEqual([
-      `Detail 1 of 1 · {{${key}}}`,
-    ]);
+    expect(wrapper.emitted('hint').at(-1)).toEqual(['Customer name']);
     await wrapper.setProps({ values: { [key]: 'Ana' } });
-    expect(field.attributes('title')).toBe(`{{${key}}}`);
+    expect(field.attributes('title')).toBe('Customer name');
     wrapper.unmount();
   }
 );
+
+it('renders a template without variables without editable fields', () => {
+  const wrapper = mount(EditableBody, {
+    props: { text: 'Hello 👋', labelFor: () => 'Detail' },
+  });
+  expect(wrapper.text()).toBe('Hello 👋');
+  expect(wrapper.find('textarea').exists()).toBe(false);
+  expect(wrapper.vm.missingLabels).toEqual([]);
+  wrapper.unmount();
+});
+
+it('keeps repeated values and counts unique missing data across twelve variables', async () => {
+  const keys = Array.from({ length: 12 }, (_, index) => String(index + 1));
+  const value = '你好 👋 '.repeat(40);
+  const wrapper = mount(EditableBody, {
+    props: {
+      text: [...keys, '1'].map(key => `{{${key}}}`).join(' / '),
+      values: { 1: value },
+      labelFor: () => 'Contact detail',
+    },
+  });
+  const fields = wrapper.findAll('textarea');
+  expect(fields).toHaveLength(13);
+  expect(fields[0].element.value).toBe(value);
+  expect(fields[12].element.value).toBe(value);
+  expect(wrapper.vm.missingLabels).toHaveLength(11);
+  await wrapper.setProps({ values: {} });
+  expect(wrapper.vm.missingLabels).toHaveLength(12);
+  expect(fields[0].attributes('placeholder')).toBe('Type the value');
+  expect(wrapper.html()).not.toContain('{{');
+  wrapper.unmount();
+});

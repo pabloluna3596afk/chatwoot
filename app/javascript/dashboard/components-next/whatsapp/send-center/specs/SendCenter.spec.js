@@ -1409,7 +1409,7 @@ describe('unified send center', () => {
       'date',
     ],
   ])(
-    'uses body examples only as hints, with accessible labels and a fallback',
+    'uses clear placeholders and human help without example or technical variables',
     async (example, first, second) => {
       wrapper = mount(SendCenter, {
         props: {
@@ -1442,24 +1442,19 @@ describe('unified send center', () => {
       });
       await flushPromises();
       const inputs = wrapper.findAll('[data-testid="editable-body"] textarea');
-      expect(inputs[0].attributes('placeholder')).toBe('Ana');
-      expect(inputs[1].attributes('placeholder')).toContain('12 de noviembre');
-      expect(inputs[2].attributes('placeholder')).toBe(
-        es.WHATSAPP_TEMPLATES.SEND_CENTER.DATA_PLACEHOLDER
+      expect(inputs.map(input => input.attributes('placeholder'))).toEqual(
+        Array(3).fill(es.WHATSAPP_TEMPLATES.SEND_CENTER.DATA_PLACEHOLDER)
       );
-      expect(inputs[2].attributes('aria-label')).toBe(
-        `Dato 3 de 3: ${es.WHATSAPP_TEMPLATES.SEND_CENTER.DATA_PLACEHOLDER}`
-      );
+      expect(inputs[2].attributes('aria-label')).toBe('Dato 3');
       expect(inputs.map(input => input.element.value)).toEqual(['', '', '']);
       expect(wrapper.findAll('[data-template-field]')).toHaveLength(3);
       const hint = wrapper.get('[data-testid="preview-field-hint"]');
       await inputs[0].trigger('focus');
-      expect(hint.text()).toContain('Dato 1 de 3');
-      expect(hint.text()).toContain('Ana');
+      expect(hint.text()).toBe(first === '1' ? 'Dato 1' : 'name');
+      expect(hint.text()).not.toContain('{{');
       await inputs[0].trigger('blur');
       await inputs[1].trigger('focus');
-      expect(hint.text()).toContain('Dato 2 de 3');
-      expect(hint.text()).toContain('12 de noviembre');
+      expect(hint.text()).toBe(second === '2' ? 'Dato 2' : 'date');
       await inputs[1].trigger('focusout');
       expect(hint.text()).toBe('');
     }

@@ -61,7 +61,7 @@ describe('free text and system variable combobox', () => {
     wrapper.unmount();
   });
 
-  it('uses arrows and Enter to choose enabled variables, with a resolved removable chip', async () => {
+  it('uses arrows and Enter to choose enabled variables, with an editable resolved value', async () => {
     const wrapper = mount(TemplateDataField, {
       props: { label: 'Detail', options },
     });
@@ -75,7 +75,9 @@ describe('free text and system variable combobox', () => {
       wrapper.get('[aria-selected=true]').attributes('id')
     );
     await input.trigger('keydown', { key: 'ArrowDown' });
-    expect(wrapper.get('[aria-selected=true]').text()).toContain('Email');
+    expect(wrapper.get('[aria-selected=true]').text()).toContain(
+      'alex@example.com'
+    );
     await input.trigger('keydown', { key: 'ArrowUp' });
     await input.trigger('keydown', { key: 'Enter' });
     expect(wrapper.emitted('select')).toEqual([['{{ contact.name }}']]);
@@ -85,7 +87,8 @@ describe('free text and system variable combobox', () => {
     });
     expect(input.element.value).toBe('Alex');
     expect(input.attributes('title')).toBe('Contact name');
-    await wrapper.get('button').trigger('click');
+    await input.trigger('click');
+    await wrapper.findAll('[role=option]').at(-1).trigger('click');
     expect(wrapper.emitted('change')).toEqual([['']]);
   });
 
@@ -130,7 +133,9 @@ describe('free text and system variable combobox', () => {
     await input.setValue('Email');
     expect(input.attributes('aria-expanded')).toBe('true');
     expect(wrapper.findAll('[role=option]')).toHaveLength(2);
-    expect(wrapper.findAll('[role=option]')[1].text()).toContain('Email');
+    expect(wrapper.findAll('[role=option]')[1].text()).toContain(
+      'alex@example.com'
+    );
     await wrapper.get('[role=option]').trigger('click');
     expect(input.attributes('aria-expanded')).toBe('false');
     await input.trigger('focus');
@@ -203,9 +208,10 @@ describe('ChatHub field presentation', () => {
     expect(wrapper.find('button').exists()).toBe(false);
     await wrapper.get('textarea').trigger('click');
     const search = wrapper.get('input[type=search]');
-    expect(search.attributes('placeholder')).toBe('Search variables\u2026');
+    expect(search.attributes('placeholder')).toBe('Search or type\u2026');
     await search.setValue('alex@example');
-    expect(wrapper.findAll('[role=option]')).toHaveLength(1);
+    expect(wrapper.findAll('[role=option]')).toHaveLength(2);
+    await search.trigger('keydown', { key: 'ArrowDown' });
     await search.trigger('keydown', { key: 'ArrowDown' });
     await search.trigger('keydown', { key: 'Enter' });
     expect(wrapper.emitted('select')).toEqual([['{{ contact.email }}']]);
@@ -234,34 +240,62 @@ it('anchors the field menu inside a narrow bubble', async () => {
   document.documentElement.style.removeProperty('font-size');
 });
 
-it('sizes to content with an example minimum and reserves a second column only for a selected variable', async () => {
+it('sizes to the actual value without reserving a remove button column', async () => {
   const wrapper = mount(TemplateDataField, {
-    props: { label: 'Detail', placeholder: 'Full example', options },
+    props: { label: 'Detail', placeholder: 'Type the value', options },
   });
-  expect(wrapper.classes()).toContain('w-max');
-  expect(wrapper.classes()).toContain('max-w-full');
-  expect(wrapper.classes()).toContain('grid-cols-[minmax(0,1fr)]');
-  expect(wrapper.classes()).not.toContain('gap-x-1');
-  expect(wrapper.find('button').exists()).toBe(false);
-  const mirrors = wrapper.findAll('[aria-hidden=true]');
-  expect(mirrors[0].text()).toBe('Full example');
-  await wrapper.setProps({ value: 'A longer current value' });
-  expect(mirrors[0].text()).toBe('Full example');
-  expect(mirrors[1].text()).toBe('A longer current value');
+  expect(wrapper.get('[aria-hidden=true]').text()).toBe('Type the value');
   await wrapper.setProps({ value: 'A' });
-  expect(mirrors[1].text()).toBe('A');
-  await wrapper.setProps({ value: '' });
-  expect(mirrors[1].text()).toBe('');
-  expect(mirrors[0].text()).toBe('Full example');
+  expect(wrapper.get('[aria-hidden=true]').text()).toBe('A');
   await wrapper.setProps({ expression: '{{ contact.name }}' });
   expect(wrapper.get('textarea').element.value).toBe('Alex');
-  expect(wrapper.classes()).toContain('grid-cols-[minmax(0,1fr)_auto]');
-  expect(wrapper.classes()).toContain('gap-x-1');
-  expect(wrapper.findAll('button')).toHaveLength(1);
-  expect(wrapper.get('button').attributes('aria-label')).toBe(
-    'Remove Contact name and type a value'
-  );
-  await wrapper.get('button').trigger('click');
+  expect(wrapper.find('button').exists()).toBe(false);
+  await wrapper.get('textarea').trigger('click');
+  expect(wrapper.findAll('[role=option]').map(row => row.text())).toEqual([
+    'Alex',
+    'No data',
+    'alex@example.com',
+    'Remove',
+  ]);
+  await wrapper.findAll('[role=option]').at(-1).trigger('click');
   expect(wrapper.emitted('change')).toEqual([['']]);
+  wrapper.unmount();
+});
+
+it('shows actual values only, including long values, and accepts custom search text', async () => {
+  const value = 'A very long contact name that must remain completely readable';
+  const wrapper = mount(TemplateDataField, {
+    props: {
+      label: 'Detail',
+      options: [
+        ...options,
+        {
+          id: 'long',
+          label: 'Technical label',
+          value,
+          expression: '{{contact.long}}',
+        },
+      ],
+    },
+  });
+  await wrapper.get('textarea').trigger('click');
+  const rows = wrapper.findAll('[role=option]');
+  expect(rows.map(row => row.text())).toEqual([
+    'Alex',
+    'No data',
+    'alex@example.com',
+    value,
+  ]);
+  expect(wrapper.text()).not.toContain('Contact name');
+  expect(wrapper.text()).not.toContain('Technical label');
+  expect(wrapper.text()).not.toContain('System variables');
+  const search = wrapper.get('input[type=search]');
+  await search.setValue('Custom text');
+  expect(wrapper.get('[role=option]').text()).toBe(
+    'Use \u201cCustom text\u201d'
+  );
+  await search.trigger('keydown', { key: 'Enter' });
+  expect(wrapper.emitted('change')).toEqual([['Custom text']]);
+  expect(wrapper.emitted('select')).toBeUndefined();
   wrapper.unmount();
 });
