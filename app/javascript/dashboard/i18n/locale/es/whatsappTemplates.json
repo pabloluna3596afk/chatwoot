@@ -161,9 +161,7 @@
       "CHECK_FIELDS": "Revisa los datos del mensaje.",
       "DATA": "Dato {index}",
       "DATA_PLACEHOLDER": "Escribe el dato",
-      "DATA_LABEL": "Dato {index} de {total}: {example}",
       "MISSING_COUNT": "Falta {count} dato | Faltan {count} datos",
-      "EXAMPLE": "Ej.: {example}",
       "RETRY": "Reintentar",
       "SEARCH_FLOWS": "Buscar Flows",
       "CLEAR_SEARCH": "Limpiar búsqueda",
@@ -178,13 +176,10 @@
         "UTILITY": "Mensaje de utilidad (pedidos, citas, avisos)",
         "AUTHENTICATION": "Mensaje de autenticación (códigos)"
       },
-      "DATA_PICKER": "Insertar variable del contacto (Tab desde el dato)",
-      "DATA_REQUIRED": "Completa el dato {index}",
-      "DATA_POSITION": "Dato {index} de {total}",
-      "SYSTEM_VARIABLES": "Variables del sistema",
-      "USE_TEXT": "Usar \u00ab{text}\u00bb",
+      "USE_TEXT": "Usar «{text}»",
       "NO_DATA": "Sin dato",
-      "REMOVE_VARIABLE": "Quitar {variable} y escribir un valor"
+      "SEARCH_OR_TYPE": "Buscar o escribir…",
+      "REMOVE_VALUE": "Quitar"
     }
   }
 }

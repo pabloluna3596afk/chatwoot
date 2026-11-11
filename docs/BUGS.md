@@ -3491,3 +3491,11 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Causa:** varias llamadas internas solo registraban uso o no participaban del consumo del pool `internal`, permitiendo que excedieran la cuota asignada.
 - **Arreglo:** contar/reservar cada llamada contra `internal`; terminar la reserva al tener exito y liberarla ante fallo del proveedor. Cuando la cuota esta agotada, los helpers anidados en respuestas de Captain omiten esa ayuda sin bloquear la respuesta. `summarize` queda en `measure_and_limit`; su caller real es `Captain::SummaryService` desde `Captain::TasksController#summarize`.
 - **Verificacion:** ver `tmp/PR-INTERNAS-DESCUENTO.md`; incluye resultados amplios y focales, RuboCop, limites y autoevaluacion A1-A5.
+
+### B-NEW-262 - Pulir los datos editables al enviar una plantilla de WhatsApp (2026-11-11)
+
+- **Archivos:** `send-center/EditableBody.vue`, `TemplateDataField.vue`, `ChatPreview.vue`, `SendCenter.vue`, locales `en/es/whatsappTemplates.json` y specs focales.
+- **Problema:** la vista previa mostraba ejemplos como valores, referencias técnicas en la ayuda y un botón × permanente. El centrado vertical y los avisos de datos ausentes desplazaban la burbuja al editar; la lista priorizaba etiquetas y recortaba los valores.
+- **Arreglo:** valores reales con azul tenue y borde discreto; vacíos con «Escribe el dato» en rojo suave y borde reforzado tras intentar enviar. Menú con valores completos, búsqueda o texto propio, filas sin dato deshabilitadas y opción «Quitar». Burbuja anclada arriba y ayuda humana de alto fijo. Se conserva la validación y el payload; el aviso del parser clásico permanece.
+- **Verificación:** 145/145 Vitest en UTC y America/Guayaquil; ESLint 0 errores, 39 avisos preexistentes (53 en la base). Playwright con SendCenter real y datos ficticios: 0 px de desplazamiento en nueve acciones para 1440×900 y 768×1024; doce capturas claras/oscuras, menú y vacíos antes/después. 
+- **Entrega:** sin migraciones ni cambios de backend. Aprobado visualmente por el dueño (2026-11-11); se desactiva el corrector ortográfico del navegador en el campo.

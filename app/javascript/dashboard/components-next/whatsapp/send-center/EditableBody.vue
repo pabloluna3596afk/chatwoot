@@ -12,14 +12,12 @@ const props = defineProps({
   labelFor: { type: Function, required: true },
   invalidKeys: { type: Array, default: () => [] },
   attempted: { type: Boolean, default: false },
-  examples: { type: Object, default: () => ({}) },
   systemVariables: { type: Array, default: () => [] },
   variablesStatus: { type: String, default: 'ready' },
   variableFilter: { type: Function, default: () => true },
 });
 const emit = defineEmits(['change', 'select', 'advance', 'hint']);
 const { t } = useI18n();
-const prefix = 'WHATSAPP_TEMPLATES.SEND_CENTER';
 const root = ref(null);
 
 const keys = computed(() => [
@@ -30,14 +28,9 @@ const keys = computed(() => [
   ),
 ]);
 const label = key => props.labelFor(key, keys.value.indexOf(key));
-const placeholder = key =>
-  props.examples[key] || t(`${prefix}.DATA_PLACEHOLDER`);
-const dataLabel = part =>
-  t(`${prefix}.DATA_LABEL`, {
-    index: part.ordinal,
-    total: keys.value.length,
-    example: placeholder(part.key),
-  });
+const placeholder = computed(() =>
+  t('WHATSAPP_TEMPLATES.SEND_CENTER.DATA_PLACEHOLDER')
+);
 const isMissing = key =>
   props.invalidKeys.includes(key) || !String(props.values[key] || '').trim();
 const missingLabels = computed(() => keys.value.filter(isMissing).map(label));
@@ -48,17 +41,7 @@ const revealField = event =>
   event.target.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
 const focusField = (part, event) => {
   revealField(event);
-  const position = t(`${prefix}.DATA_POSITION`, {
-    index: part.ordinal,
-    total: keys.value.length,
-  });
-  const reference = `${position} · ${event.target.title}`;
-  emit(
-    'hint',
-    props.examples[part.key]
-      ? `${reference} · ${t(`${prefix}.EXAMPLE`, { example: props.examples[part.key] })}`
-      : reference
-  );
+  emit('hint', event.target.title || label(part.key));
 };
 watch(
   () => props.values,
@@ -88,9 +71,8 @@ defineExpose({ missingLabels });
         <TemplateDataField
           :value="String(values[key] || '')"
           :expression="expressions[key] || ''"
-          :label="dataLabel({ key, ordinal: keys.indexOf(key) + 1 })"
-          :placeholder="placeholder(key)"
-          :meta-variable="`{{${key}}}`"
+          :label="label(key)"
+          :placeholder="placeholder"
           :missing="isMissing(key)"
           :attempted="attempted"
           :options="options"
@@ -98,7 +80,7 @@ defineExpose({ missingLabels });
           @change="emit('change', key, $event)"
           @select="emit('select', key, $event)"
           @advance="emit('advance', $event)"
-          @focus="focusField({ key, ordinal: keys.indexOf(key) + 1 }, $event)"
+          @focus="focusField({ key }, $event)"
           @leave="emit('hint', '')"
         />
       </template>

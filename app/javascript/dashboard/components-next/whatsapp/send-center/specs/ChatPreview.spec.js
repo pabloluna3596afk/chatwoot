@@ -2,26 +2,19 @@ import { mount } from '@vue/test-utils';
 import ChatPreview from '../ChatPreview.vue';
 import MessagePreview from '../../WhatsAppBubble.vue';
 
-describe('preview help', () => {
-  it('renders missing-contact guidance outside the message bubble', () => {
-    const wrapper = mount(ChatPreview, {
-      props: {
-        body: 'Hello',
-        fieldHint: 'Detail 1 of 3 · E.g.: Alex',
-        messages: ['Enter the missing contact value.'],
-      },
-    });
-    const bubble = wrapper.findComponent(MessagePreview);
-    const help = wrapper.get('[data-testid="preview-help"]');
-    expect(bubble.text()).not.toContain('Enter the missing contact value.');
-    expect(bubble.element.contains(help.element)).toBe(false);
-    expect(help.text()).toBe('Enter the missing contact value.');
-    expect(help.attributes('role')).toBe('status');
-    const hint = wrapper.get('[data-testid="preview-field-hint"]');
-    expect(hint.attributes('aria-live')).toBe('polite');
-    expect(bubble.element.contains(hint.element)).toBe(false);
-    expect(hint.element.nextElementSibling).toBe(help.element);
-    expect(hint.text()).toBe('Detail 1 of 3 · E.g.: Alex');
-    wrapper.unmount();
+it('anchors the bubble above fixed-height human help without missing-contact messages', async () => {
+  const wrapper = mount(ChatPreview, {
+    props: { body: 'Hello', fieldHint: 'Contact name' },
   });
+  const bubble = wrapper.findComponent(MessagePreview);
+  const hint = wrapper.get('[data-testid=preview-field-hint]');
+  expect(hint.text()).toBe('Contact name');
+  expect(hint.classes()).toContain('h-10');
+  expect(hint.attributes('aria-live')).toBe('polite');
+  expect(bubble.element.contains(hint.element)).toBe(false);
+  expect(wrapper.find('.my-auto').exists()).toBe(false);
+  expect(wrapper.find('[data-testid=preview-help]').exists()).toBe(false);
+  await wrapper.setProps({ fieldHint: '' });
+  expect(hint.classes()).toContain('h-10');
+  wrapper.unmount();
 });
