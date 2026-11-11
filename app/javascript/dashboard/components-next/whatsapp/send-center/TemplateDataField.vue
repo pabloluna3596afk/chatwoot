@@ -180,6 +180,8 @@ const keydown = async event => {
       :value="display"
       rows="1"
       cols="1"
+      spellcheck="false"
+      autocomplete="off"
       data-template-field
       role="combobox"
       aria-autocomplete="list"
