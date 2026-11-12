@@ -268,6 +268,45 @@ RSpec.describe 'Inbox WhatsApp templates API', type: :request do
     end
   end
 
+  describe 'PATCH the production DFIT ventas_seguimiento template unchanged' do
+    let(:original) do
+      { id: '1448832790499393', name: 'ventas_seguimiento', status: 'APPROVED', category: 'MARKETING', language: 'es_EC',
+        parameter_format: 'NAMED', components: [
+          { type: 'BODY', text: "Hola, {{contact_name}}.\n\nCuéntame, ¿qué necesitas para poder concretar tu compra? " \
+                                'Si hay alguna duda o necesitas más información, estoy a tu disposición para ayudarte.',
+            example: { body_text_named_params: [{ example: 'Cliente', param_name: 'contact_name' }] } },
+          { type: 'BUTTONS', buttons: [{ type: 'QUICK_REPLY', text: 'Precios' }, { type: 'QUICK_REPLY', text: 'Falta información' }] }
+        ] }
+    end
+    let(:edit_form) do
+      { name: 'ventas_seguimiento', language: 'es_EC', category: 'MARKETING', parameter_format: 'NAMED',
+        header: { format: 'NONE' }, body: { text: original[:components].first[:text], examples: ['Cliente'] }, footer: { text: '' },
+        buttons: [{ type: 'QUICK_REPLY', text: 'Precios' }, { type: 'QUICK_REPLY', text: 'Falta información' }],
+        preserved: { components: [], buttons: [] }, variable_bindings: { 'contact_name' => 'contact.name' } }
+    end
+
+    it 'builds identical components and saves the bindings locally through the real service and controller without a Meta edit' do
+      allow(Whatsapp::TemplateManagementService).to receive(:new).and_call_original
+      graph = "https://graph.facebook.com/#{Whatsapp::TemplateManagementService::API_VERSION}/#{original[:id]}"
+      stub_request(:get, graph).with(query: { fields: Whatsapp::TemplateManagementService::FIELDS })
+                               .to_return(status: 200, headers: { 'Content-Type' => 'application/json' }, body: original.to_json)
+      forbidden = stub_request(:post, graph).to_raise('Unexpected Meta edit of ventas_seguimiento')
+      components = Whatsapp::TemplateComponentsBuilder.new(**edit_form.except(:name, :language, :variable_bindings)).components
+
+      expect(components.map(&:deep_stringify_keys)).to eq(original[:components].map(&:deep_stringify_keys))
+      expect(Whatsapp::TemplateEditValidator.new(original).unchanged?(components, category: 'MARKETING')).to be(true)
+      expect(Whatsapp::TemplateManagementService.new(channel).update(original[:id], components: components, category: 'MARKETING'))
+        .to eq(id: original[:id], status: 'APPROVED', meta_skipped: true)
+
+      patch "#{base_url}/#{original[:id]}", params: { template: edit_form }, headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body).to eq('id' => original[:id], 'status' => 'APPROVED', 'meta_skipped' => true)
+      expect(channel.reload.template_variable_bindings['ventas_seguimiento']).to eq('contact_name' => 'contact.name')
+      expect(forbidden).not_to have_been_requested
+    end
+  end
+
   describe 'DELETE destroy' do
     it 'deletes by hsm_id and name' do
       allow(service).to receive(:delete).and_return(deleted: true)
