@@ -135,6 +135,7 @@
       "SAVE_CHANGES": "Save changes",
       "CREATED": "Template sent to Meta for review.",
       "UPDATED": "Changes sent to Meta for review.",
+      "SAVED_LOCALLY": "Saved in ChatHub. Nothing was sent to Meta because the text did not change.",
       "SAVE_ERROR": "The template could not be saved. Please try again.",
       "ERRORS": {
         "CHANNEL_REQUIRED": "Choose a WhatsApp channel.",

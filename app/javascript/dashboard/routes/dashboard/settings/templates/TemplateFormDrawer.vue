@@ -250,6 +250,7 @@ const mediaUnavailableText = computed(() => {
 
 const apiError = error => {
   const data = error?.response?.data;
+  if (data?.error === 'edit_status_locked_by_meta') return data.message;
   const texts = [
     ...new Set([data?.error_user_msg, data?.message].filter(Boolean)),
   ].join(' \u2014 ');
@@ -486,24 +487,24 @@ const save = async () => {
   try {
     const payload = buildPayload(mappedForm.value);
     let created = null;
+    let updated = null;
     if (isEdit.value) {
-      await WhatsappTemplatesAPI.updateTemplate(
+      ({ data: updated } = await WhatsappTemplatesAPI.updateTemplate(
         form.inboxId,
         editing.value.id,
         categoryLocked.value ? { ...payload, category: undefined } : payload
-      );
+      ));
     } else {
       ({ data: created } = await WhatsappTemplatesAPI.createTemplate(
         form.inboxId,
         payload
       ));
     }
+    const editMessage = updated?.meta_skipped
+      ? 'WHATSAPP_TEMPLATE_MGMT.FORM.SAVED_LOCALLY'
+      : 'WHATSAPP_TEMPLATE_MGMT.FORM.UPDATED';
     useAlert(
-      t(
-        isEdit.value
-          ? 'WHATSAPP_TEMPLATE_MGMT.FORM.UPDATED'
-          : 'WHATSAPP_TEMPLATE_MGMT.FORM.CREATED'
-      )
+      t(isEdit.value ? editMessage : 'WHATSAPP_TEMPLATE_MGMT.FORM.CREATED')
     );
     // Meta decides the final category from the wording: say so when it is not the one that was asked for.
     const assigned = String(created?.category || '').toUpperCase();

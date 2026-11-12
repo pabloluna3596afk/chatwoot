@@ -135,6 +135,7 @@
       "SAVE_CHANGES": "Guardar cambios",
       "CREATED": "Plantilla enviada a Meta para revisión.",
       "UPDATED": "Cambios enviados a Meta para revisión.",
+      "SAVED_LOCALLY": "Guardado en ChatHub. No se envió nada a Meta porque el texto no cambió.",
       "SAVE_ERROR": "No se pudo guardar la plantilla. Inténtalo de nuevo.",
       "ERRORS": {
         "CHANNEL_REQUIRED": "Elige una bandeja de WhatsApp.",

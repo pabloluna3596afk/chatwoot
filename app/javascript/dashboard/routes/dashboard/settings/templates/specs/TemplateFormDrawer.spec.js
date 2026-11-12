@@ -494,6 +494,50 @@ describe('TemplateFormDrawer', () => {
     }
   );
 
+  it.each([true, false])(
+    'reports the correct success message when meta_skipped is %s',
+    async metaSkipped => {
+      WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
+      WhatsappTemplatesAPI.updateTemplate.mockResolvedValue({
+        data: { meta_skipped: metaSkipped },
+      });
+      const wrapper = await mountDrawer();
+      await wrapper.vm.open(positional);
+      await wrapper.get('form').trigger('submit');
+      await flushPromises();
+
+      expect(useAlert).toHaveBeenCalledWith(
+        `WHATSAPP_TEMPLATE_MGMT.FORM.${metaSkipped ? 'SAVED_LOCALLY' : 'UPDATED'}`
+      );
+      expect(wrapper.emitted('saved')).toHaveLength(1);
+      wrapper.unmount();
+    }
+  );
+
+  it('shows the translated status rejection without raw Meta detail', async () => {
+    WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
+    WhatsappTemplatesAPI.updateTemplate.mockRejectedValue({
+      response: {
+        data: {
+          error: 'edit_status_locked_by_meta',
+          message: 'Meta no permite editar esta plantilla ahora.',
+          error_user_msg: 'Raw Meta detail',
+        },
+      },
+    });
+    const wrapper = await mountDrawer();
+    await wrapper.vm.open(positional);
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain(
+      'Meta no permite editar esta plantilla ahora.'
+    );
+    expect(wrapper.text()).not.toContain('Raw Meta detail');
+    expect(wrapper.emitted('saved')).toBeUndefined();
+    wrapper.unmount();
+  });
+
   it('loads live positional structure, keeps all examples and locks absent components and format', async () => {
     WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
     WhatsappTemplatesAPI.updateTemplate.mockResolvedValue({ data: {} });
