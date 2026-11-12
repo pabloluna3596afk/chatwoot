@@ -136,7 +136,8 @@ RSpec.describe Whatsapp::TemplateManagementService do
 
   describe '#update' do
     before do
-      original = { name: 'test', status: 'REJECTED', category: 'UTILITY', parameter_format: 'POSITIONAL', components: components }
+      original = { name: 'test', status: 'REJECTED', category: 'UTILITY', parameter_format: 'POSITIONAL',
+                   components: [{ type: 'BODY', text: 'Anterior' }] }
       stub_request(:get, "#{base}/555").with(query: { fields: described_class::FIELDS })
                                        .to_return(status: 200, headers: json, body: original.to_json)
     end
@@ -151,7 +152,10 @@ RSpec.describe Whatsapp::TemplateManagementService do
       expect(provider_service).to have_received(:sync_templates)
     end
 
-    it 'sends the category when it is given' do
+    it 'sends a category-only change for a rejected template' do
+      original = { name: 'test', status: 'REJECTED', category: 'UTILITY', components: components }
+      stub_request(:get, "#{base}/555").with(query: { fields: described_class::FIELDS })
+                                       .to_return(status: 200, headers: json, body: original.to_json)
       stub = stub_request(:post, "#{base}/555").with(body: { components: components, category: 'MARKETING' }.to_json)
                                                .to_return(status: 200, body: { success: true }.to_json,
                                                           headers: json)
@@ -159,6 +163,43 @@ RSpec.describe Whatsapp::TemplateManagementService do
       service.update('555', components: components, category: 'MARKETING')
 
       expect(stub).to have_been_requested
+    end
+
+    %w[APPROVED PENDING PAUSED REJECTED].each do |status|
+      it "skips unchanged components and category while #{status}, without syncing" do
+        original = { name: 'test', status: status, category: 'UTILITY', components: [
+          { type: 'BODY', text: 'Hola {{1}}.', example: { body_text: [[' Ana ']] } }
+        ] }
+        stub_request(:get, "#{base}/555").with(query: { fields: described_class::FIELDS })
+                                         .to_return(status: 200, headers: json, body: original.to_json)
+        forbidden = stub_request(:post, "#{base}/555").to_raise('Unexpected Meta edit')
+        changed = [{ example: { 'body_text' => [['Ana']] }, text: 'Hola {{1}}.', type: 'BODY' }]
+
+        expect(service.update('555', components: changed, category: 'UTILITY')).to eq(id: '555', status: status, meta_skipped: true)
+        expect(forbidden).not_to have_been_requested
+        expect(provider_service).not_to have_received(:sync_templates)
+      end
+    end
+
+    it 'does not send an unchanged category for a real text edit' do
+      edit = stub_request(:post, "#{base}/555").with(body: { components: components }.to_json)
+                                               .to_return(status: 200, headers: json, body: { success: true }.to_json)
+
+      service.update('555', components: components, category: 'UTILITY')
+
+      expect(edit).to have_been_requested.once
+    end
+
+    it 'rejects an approved category change before posting' do
+      stub_request(:get, "#{base}/555").with(query: { fields: described_class::FIELDS })
+                                       .to_return(status: 200, headers: json, body: {
+                                         name: 'test', status: 'APPROVED', category: 'UTILITY', components: components
+                                       }.to_json)
+
+      expect { service.update('555', components: components, category: 'MARKETING') }.to raise_error do |error|
+        expect(error.code).to eq('category_locked')
+      end
+      expect(a_request(:post, "#{base}/555")).not_to have_been_made
     end
 
     it 'blocks a change of parameters before sending an edit to Meta' do
@@ -178,10 +219,12 @@ RSpec.describe Whatsapp::TemplateManagementService do
                    ] }
       stub_request(:get, "#{base}/555").with(query: { fields: described_class::FIELDS })
                                        .to_return(status: 200, headers: json, body: original.to_json)
-      edit = stub_request(:post, "#{base}/555").with(body: { components: original[:components] }.to_json)
+      changed = original[:components].deep_dup
+      changed.first[:text] += ' Gracias.'
+      edit = stub_request(:post, "#{base}/555").with(body: { components: changed }.to_json)
                                                .to_return(status: 200, headers: json, body: { success: true }.to_json)
 
-      service.update('555', components: original[:components], name: original[:name], language: 'es_EC', parameter_format: 'POSITIONAL')
+      service.update('555', components: changed, category: 'UTILITY', name: original[:name], language: 'es_EC', parameter_format: 'POSITIONAL')
 
       expect(edit).to have_been_requested.once
     end
@@ -190,6 +233,15 @@ RSpec.describe Whatsapp::TemplateManagementService do
       stub_request(:post, "#{base}/555").to_return(meta_error(code: 100, message: 'Too many edits: 10 times in 30 days'))
 
       expect(error_of { service.update('555', components: components) }.code).to eq('edit_limit')
+    end
+
+    it 'recognizes the status rejection even when Meta also provides a user message' do
+      stub_request(:post, "#{base}/555").to_return(
+        meta_error(code: 100, message: "The status for this message template can't be changed.", user_msg: 'You can only delete or add templates.')
+      )
+
+      expect(error_of { service.update('555', components: components) }.code).to eq('edit_status_locked_by_meta')
+      expect(provider_service).not_to have_received(:sync_templates)
     end
   end
 

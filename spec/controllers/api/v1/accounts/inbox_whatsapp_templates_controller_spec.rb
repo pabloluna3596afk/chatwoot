@@ -208,14 +208,46 @@ RSpec.describe 'Inbox WhatsApp templates API', type: :request do
                                         .to_return(status: 200, headers: { 'Content-Type' => 'application/json' }, body: original.to_json)
     end
 
+    it 'saves only the bindings without posting or changing the approved status' do
+      forbidden = stub_request(:post, "#{graph}/555").to_raise('Unexpected Meta edit')
+      patch "#{base_url}/555", params: { template: edit_form.merge(variable_bindings: { '1' => 'contact.name' }) },
+                               headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body).to eq('id' => '555', 'status' => 'APPROVED', 'meta_skipped' => true)
+      expect(channel.reload.template_variable_bindings).to eq(original[:name] => { '1' => 'contact.name' })
+      expect(forbidden).not_to have_been_requested
+    end
+
+    it 'keeps bindings intact and translates a Meta status rejection for an actual edit' do
+      channel.update!(template_variable_bindings: { original[:name] => { '1' => 'contact.name' } })
+      stub_request(:post, "#{graph}/555").to_return(
+        status: 400, headers: { 'Content-Type' => 'application/json' },
+        body: { error: { code: 100, message: "The status for this message template can't be changed. " \
+                                             'You can only delete or add templates.' } }.to_json
+      )
+      admin.update!(ui_settings: { 'locale' => 'es' })
+      changed = edit_form.deep_merge(body: { text: "#{edit_form[:body][:text]} Gracias." }, variable_bindings: { '1' => 'contact.city' })
+
+      patch "#{base_url}/555", params: { template: changed }, headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body).to include('error' => 'edit_status_locked_by_meta',
+                                              'message' => I18n.t('whatsapp_templates.errors.edit_status_locked_by_meta', locale: :es))
+      expect(channel.reload.template_variable_bindings).to eq(original[:name] => { '1' => 'contact.name' })
+    end
+
     it 'passes the complete original structure to Meta and returns every error field' do
       allow(Rails.logger).to receive(:warn)
-      edit = stub_request(:post, "#{graph}/555").with(body: { components: original[:components] }.to_json)
+      changed = original[:components].deep_dup
+      changed.first[:text] += ' Gracias.'
+      edit = stub_request(:post, "#{graph}/555").with(body: { components: changed }.to_json)
                                                 .to_return(status: 400, headers: { 'Content-Type' => 'application/json' }, body: {
                                                   error: { message: 'Invalid parameter', code: 100, error_subcode: 123,
                                                            error_user_msg: 'Solo una edición cada 24 horas' }
                                                 }.to_json)
-      patch "#{base_url}/555", params: { template: edit_form }, headers: admin.create_new_auth_token, as: :json
+      patch "#{base_url}/555", params: { template: edit_form.deep_merge(body: { text: changed.first[:text] }) },
+                               headers: admin.create_new_auth_token, as: :json
 
       expect(edit).to have_been_requested.once
       expect(response).to have_http_status(:unprocessable_entity)
@@ -233,6 +265,45 @@ RSpec.describe 'Inbox WhatsApp templates API', type: :request do
         expect(response.parsed_body['error']).to match(/edit_(structure|identity)_locked|variables_mixed/)
       end
       expect(a_request(:post, "#{graph}/555")).not_to have_been_made
+    end
+  end
+
+  describe 'PATCH the production DFIT ventas_seguimiento template unchanged' do
+    let(:original) do
+      { id: '1448832790499393', name: 'ventas_seguimiento', status: 'APPROVED', category: 'MARKETING', language: 'es_EC',
+        parameter_format: 'NAMED', components: [
+          { type: 'BODY', text: "Hola, {{contact_name}}.\n\nCuéntame, ¿qué necesitas para poder concretar tu compra? " \
+                                'Si hay alguna duda o necesitas más información, estoy a tu disposición para ayudarte.',
+            example: { body_text_named_params: [{ example: 'Cliente', param_name: 'contact_name' }] } },
+          { type: 'BUTTONS', buttons: [{ type: 'QUICK_REPLY', text: 'Precios' }, { type: 'QUICK_REPLY', text: 'Falta información' }] }
+        ] }
+    end
+    let(:edit_form) do
+      { name: 'ventas_seguimiento', language: 'es_EC', category: 'MARKETING', parameter_format: 'NAMED',
+        header: { format: 'NONE' }, body: { text: original[:components].first[:text], examples: ['Cliente'] }, footer: { text: '' },
+        buttons: [{ type: 'QUICK_REPLY', text: 'Precios' }, { type: 'QUICK_REPLY', text: 'Falta información' }],
+        preserved: { components: [], buttons: [] }, variable_bindings: { 'contact_name' => 'contact.name' } }
+    end
+
+    it 'builds identical components and saves the bindings locally through the real service and controller without a Meta edit' do
+      allow(Whatsapp::TemplateManagementService).to receive(:new).and_call_original
+      graph = "https://graph.facebook.com/#{Whatsapp::TemplateManagementService::API_VERSION}/#{original[:id]}"
+      stub_request(:get, graph).with(query: { fields: Whatsapp::TemplateManagementService::FIELDS })
+                               .to_return(status: 200, headers: { 'Content-Type' => 'application/json' }, body: original.to_json)
+      forbidden = stub_request(:post, graph).to_raise('Unexpected Meta edit of ventas_seguimiento')
+      components = Whatsapp::TemplateComponentsBuilder.new(**edit_form.except(:name, :language, :variable_bindings)).components
+
+      expect(components.map(&:deep_stringify_keys)).to eq(original[:components].map(&:deep_stringify_keys))
+      expect(Whatsapp::TemplateEditValidator.new(original).unchanged?(components, category: 'MARKETING')).to be(true)
+      expect(Whatsapp::TemplateManagementService.new(channel).update(original[:id], components: components, category: 'MARKETING'))
+        .to eq(id: original[:id], status: 'APPROVED', meta_skipped: true)
+
+      patch "#{base_url}/#{original[:id]}", params: { template: edit_form }, headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body).to eq('id' => original[:id], 'status' => 'APPROVED', 'meta_skipped' => true)
+      expect(channel.reload.template_variable_bindings['ventas_seguimiento']).to eq('contact_name' => 'contact.name')
+      expect(forbidden).not_to have_been_requested
     end
   end
 

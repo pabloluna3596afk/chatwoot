@@ -24,6 +24,7 @@ class Whatsapp::TemplateManagementService
             4 => 'rate_limited', 17 => 'rate_limited', 32 => 'rate_limited', 613 => 'rate_limited', 80_008 => 'rate_limited',
             132_001 => 'not_found' }.freeze
   MESSAGES = [
+    [/status.*(?:cannot|can't|can’t).*be changed/i, 'edit_status_locked_by_meta'],
     [/already exists/i, 'name_exists'],
     [/(being deleted|deleted.*(30|thirty)|wait.*(30|thirty|4 weeks))/i, 'name_locked'],
     [/(edit.*(limit|once|10 times|24 hours|30 days)|too many edits|can only be edited)/i, 'edit_limit'],
@@ -63,9 +64,13 @@ class Whatsapp::TemplateManagementService
   def update(template_id, components:, category: nil, **identity)
     original = fetch(template_id)
     @template_name = original[:name]
-    Whatsapp::TemplateEditValidator.new(original).validate!(components, category: category, **identity)
+    validator = Whatsapp::TemplateEditValidator.new(original)
+    validator.validate!(components, category: category, **identity)
+    return { id: template_id.to_s, status: original[:status], meta_skipped: true } if validator.unchanged?(components, category: category)
+
     body = { components: components }
-    body[:category] = category if category.present?
+    # The validator rejects category changes on approved templates.
+    body[:category] = category if category.present? && category != original[:category]
     response = request(:post, "#{base}/#{template_id}", body: body)
     raise_failure(response) unless response.success? && response.parsed_response.is_a?(Hash) && response.parsed_response['success']
 
@@ -192,7 +197,7 @@ class Whatsapp::TemplateManagementService
 
   def error_code_for(error, detail)
     SUBCODES[error['error_subcode'].to_i] ||
-      MESSAGES.find { |pattern, _code| detail.to_s.match?(pattern) }&.last ||
+      MESSAGES.find { |pattern, _code| "#{error['message']} #{detail}".match?(pattern) }&.last ||
       CODES[error['code'].to_i] ||
       'meta_error'
   end

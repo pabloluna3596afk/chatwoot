@@ -160,7 +160,12 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
 
   def render_meta_error(error)
     status = META_ERROR_STATUS.fetch(error.code, :unprocessable_entity)
-    render json: { error: error.code, message: error.meta_message.presence || error.detail.presence || translate_error(error.code),
+    message = if error.code == 'edit_status_locked_by_meta'
+                translate_error(error.code)
+              else
+                error.meta_message.presence || error.detail.presence || translate_error(error.code)
+              end
+    render json: { error: error.code, message: message,
                    code: error.meta_code, meta_code: error.meta_code, error_subcode: error.error_subcode,
                    error_user_msg: error.error_user_msg }, status: status
   end
