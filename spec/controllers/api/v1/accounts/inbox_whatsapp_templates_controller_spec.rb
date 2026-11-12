@@ -208,14 +208,46 @@ RSpec.describe 'Inbox WhatsApp templates API', type: :request do
                                         .to_return(status: 200, headers: { 'Content-Type' => 'application/json' }, body: original.to_json)
     end
 
+    it 'saves only the bindings without posting or changing the approved status' do
+      forbidden = stub_request(:post, "#{graph}/555").to_raise('Unexpected Meta edit')
+      patch "#{base_url}/555", params: { template: edit_form.merge(variable_bindings: { '1' => 'contact.name' }) },
+                               headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body).to eq('id' => '555', 'status' => 'APPROVED', 'meta_skipped' => true)
+      expect(channel.reload.template_variable_bindings).to eq(original[:name] => { '1' => 'contact.name' })
+      expect(forbidden).not_to have_been_requested
+    end
+
+    it 'keeps bindings intact and translates a Meta status rejection for an actual edit' do
+      channel.update!(template_variable_bindings: { original[:name] => { '1' => 'contact.name' } })
+      stub_request(:post, "#{graph}/555").to_return(
+        status: 400, headers: { 'Content-Type' => 'application/json' },
+        body: { error: { code: 100, message: "The status for this message template can't be changed. " \
+                                             'You can only delete or add templates.' } }.to_json
+      )
+      admin.update!(ui_settings: { 'locale' => 'es' })
+      changed = edit_form.deep_merge(body: { text: "#{edit_form[:body][:text]} Gracias." }, variable_bindings: { '1' => 'contact.city' })
+
+      patch "#{base_url}/555", params: { template: changed }, headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body).to include('error' => 'edit_status_locked_by_meta',
+                                              'message' => I18n.t('whatsapp_templates.errors.edit_status_locked_by_meta', locale: :es))
+      expect(channel.reload.template_variable_bindings).to eq(original[:name] => { '1' => 'contact.name' })
+    end
+
     it 'passes the complete original structure to Meta and returns every error field' do
       allow(Rails.logger).to receive(:warn)
-      edit = stub_request(:post, "#{graph}/555").with(body: { components: original[:components] }.to_json)
+      changed = original[:components].deep_dup
+      changed.first[:text] += ' Gracias.'
+      edit = stub_request(:post, "#{graph}/555").with(body: { components: changed }.to_json)
                                                 .to_return(status: 400, headers: { 'Content-Type' => 'application/json' }, body: {
                                                   error: { message: 'Invalid parameter', code: 100, error_subcode: 123,
                                                            error_user_msg: 'Solo una edición cada 24 horas' }
                                                 }.to_json)
-      patch "#{base_url}/555", params: { template: edit_form }, headers: admin.create_new_auth_token, as: :json
+      patch "#{base_url}/555", params: { template: edit_form.deep_merge(body: { text: changed.first[:text] }) },
+                               headers: admin.create_new_auth_token, as: :json
 
       expect(edit).to have_been_requested.once
       expect(response).to have_http_status(:unprocessable_entity)

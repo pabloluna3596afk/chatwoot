@@ -1319,6 +1319,7 @@ en:
       edit_identity_locked: 'Name, language and parameter format cannot change during an edit.'
       edit_structure_locked: 'Keep the components and the number and order of variables when editing. Create a copy to change them.'
       edit_status_locked: 'Wait for Meta to finish reviewing before editing.'
+      edit_status_locked_by_meta: 'Meta does not allow editing this template now (it may be under review, paused or have reached the edit limit). Internal variable settings can be saved without sending it to Meta.'
       url_example_invalid: 'The example must be a full URL with the same prefix and a value replacing the variable.'
       unknown: 'The template action could not be completed. Please try again.'
       invalid_name: 'The name can only contain lowercase letters, numbers and underscores.'

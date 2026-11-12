@@ -9,13 +9,34 @@ class Whatsapp::TemplateEditValidator
   def validate!(components, category: nil, **identity)
     raise Whatsapp::TemplateComponentsBuilder::Invalid, 'edit_identity_locked' if identity.any? { |key, value| value != @original[key] }
 
-    validate_status!(category)
+    validate_status!(category) unless unchanged?(components, category: category)
     return if signature(components) == signature(@original.fetch(:components))
 
     raise Whatsapp::TemplateComponentsBuilder::Invalid, 'edit_structure_locked'
   end
 
+  # Keep text and array order intact; the form trims example values.
+  def unchanged?(components, category: nil)
+    (category.blank? || category == @original[:category]) &&
+      normalized(components) == normalized(@original.fetch(:components))
+  end
+
   private
+
+  def normalized(value, example: false)
+    case value
+    when Hash then normalized_hash(value, example: example)
+    when Array then value.map { |item| normalized(item, example: example) }
+    when String then example ? value.strip : value
+    else value
+    end
+  end
+
+  def normalized_hash(value, example:)
+    value.to_h.each_with_object({}) do |(key, item), result|
+      result[key.to_s] = normalized(item, example: example || key.to_s == 'example')
+    end
+  end
 
   def validate_status!(category)
     if category.present? && @original[:status] == 'APPROVED' && category != @original[:category]
