@@ -482,6 +482,13 @@
     }
   },
   "CAPTAIN": {
+    "PERSISTENCE": {
+      "DELETE_TITLE": "¿Eliminar los elementos seleccionados?",
+      "DELETE_DESCRIPTION": "Vas a eliminar {count} elementos. Esta acción no se puede deshacer.",
+      "PARTIAL_DELETE": "Eliminados: {succeeded}. No se pudieron eliminar: {failed}. Vuelve a intentarlo para eliminar solo los que faltan.",
+      "DELETE_SINGLE_TITLE": "¿Eliminar el elemento seleccionado?",
+      "DELETE_SINGLE_DESCRIPTION": "Vas a eliminar 1 elemento. Esta acción no se puede deshacer."
+    },
     "ASSIGNMENT": {
       "GENERAL": "Captain",
       "DELETED": "Captain (eliminado)",
@@ -899,6 +906,7 @@
         "SAVE_KNOWLEDGE_ERROR": "No se pudo agregar el conocimiento como documento."
       },
       "RUN_DETAILS": {
+        "HANDOFF": "{from} → {to}",
         "SUMMARY": "Detalles de la ejecución · {duration} ms",
         "HANDLER_VALUE": "Gestionado por: {handler}",
         "SCENARIOS": "Sin escenarios | Un escenario | {count} escenarios",
@@ -919,7 +927,8 @@
         "responses_limit_reached": "Se agotaron las respuestas de tu plan",
         "playground_rate_limit": "Espera unos segundos y reintenta (hasta {seconds} segundos)",
         "playground_message_invalid": "Escribe un mensaje de hasta 500 caracteres",
-        "playground_history_invalid": "El historial de la prueba no es válido"
+        "playground_history_invalid": "El historial de la prueba no es válido",
+        "UNLIMITED_DAILY": "Pruebas diarias ilimitadas"
       }
     },
     "PAYWALL": {
