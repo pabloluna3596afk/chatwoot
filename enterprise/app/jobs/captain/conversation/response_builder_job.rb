@@ -7,10 +7,15 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
   include Captain::Conversation::ResponseBuilderMessageGuard
 
   MAX_MESSAGE_LENGTH = 10_000
-  retry_on ActiveStorage::FileNotFoundError, attempts: 3, wait: 2.seconds
-  retry_on Faraday::BadRequestError, attempts: 3, wait: 2.seconds
+  MAX_GENERATION_ATTEMPTS = 3
+  GENERATION_RETRY_WAITS = [5.seconds, 20.seconds].freeze
+  MAX_ATTEMPT_SECONDS_FOR_RETRY = 45
 
+  # Keep the retry boundary around the existing eligibility gates and guaranteed cleanup.
+  # rubocop:disable Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
   def perform(conversation, assistant, responding_to_message_id = nil)
+    Captain::Assistant::TransientErrors.reset!(conversation.id)
+    @attempt_started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     @conversation = conversation
     @inbox = conversation.inbox
     @assistant = assistant
@@ -23,10 +28,12 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
     return log_pre_generation_discard if newer_customer_message_arrived?
 
     process_pending_response
-  rescue ActiveStorage::FileNotFoundError, Faraday::BadRequestError => e
-    handle_error(e)
-    raise e
+  rescue Captain::Conversation::TransientGenerationError => e
+    retry_generation(e) || handle_error(e)
   rescue StandardError => e
+    return if Captain::Assistant::TransientErrors.retryable?(e, conversation.id) &&
+              retry_generation(Captain::Conversation::TransientGenerationError.new(error_action_reason(e)))
+
     handle_error(e)
   ensure
     begin
@@ -35,8 +42,35 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
       Current.executed_by = nil
     end
   end
+  # rubocop:enable Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
 
   private
+
+  # Returns true when another attempt was scheduled.
+  def retry_generation(error)
+    return false if executions >= MAX_GENERATION_ATTEMPTS
+    return false if slow_attempt?
+
+    wait = GENERATION_RETRY_WAITS.fetch(executions - 1)
+    Rails.logger.info(
+      "[CAPTAIN][ResponseLifecycle] event=generation_retry attempt=#{executions} wait=#{wait.to_i} reason=#{error.reason} " \
+      "conversation_id=#{@conversation.id} responding_to_message_id=#{@responding_to_message_id}"
+    )
+    retry_job(wait: wait)
+    true
+  end
+
+  # A slow failure means timeouts: retrying would keep the customer waiting for minutes.
+  def slow_attempt?
+    seconds = Process.clock_gettime(Process::CLOCK_MONOTONIC) - @attempt_started_at
+    return false if seconds <= MAX_ATTEMPT_SECONDS_FOR_RETRY
+
+    Rails.logger.info(
+      "[CAPTAIN][ResponseLifecycle] event=generation_retry_skipped cause=slow_attempt seconds=#{seconds.round} " \
+      "conversation_id=#{@conversation.id} responding_to_message_id=#{@responding_to_message_id}"
+    )
+    true
+  end
 
   def trigger_typing_event(status)
     event = if status == :on
@@ -86,6 +120,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
       @response = runner_service.generate_response(message_history: message_history)
     end
     @run_result = runner_service.last_run_result
+    raise Captain::Conversation::TransientGenerationError, @response['error_reason'] if @response['error_transient']
 
     @v2_handoff_tool_completed = runner_service.handoff_completed?
     return process_response if v2_handoff_tool_completed?
@@ -147,6 +182,9 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
     end
     return unless message
 
+    if executions > 1
+      Rails.logger.info("[CAPTAIN][ResponseLifecycle] event=generation_retry_recovered attempts=#{executions} conversation_id=#{@conversation.id}")
+    end
     capture_assistant_session(result_message: message, credits_consumed: 1.0)
     record_v2_response_completed(message) if captain_v2_enabled?
   end
@@ -226,7 +264,10 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
   end
 
   def handle_error(error)
-    log_error(error)
+    log_error(error) unless error.is_a?(Captain::Conversation::TransientGenerationError)
+    if error.is_a?(Captain::Conversation::TransientGenerationError)
+      Rails.logger.info("[CAPTAIN][ResponseLifecycle] event=generation_retry_exhausted attempts=#{executions} conversation_id=#{@conversation.id}")
+    end
     @response ||= {}
     @response['action_source'] ||= 'error'
     @response['action_reason'] ||= error_action_reason(error)
@@ -248,6 +289,8 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
   end
 
   def error_action_reason(error)
+    return error.reason if error.is_a?(Captain::Conversation::TransientGenerationError)
+
     error.class.name.underscore.tr('/', '_')
   end
 

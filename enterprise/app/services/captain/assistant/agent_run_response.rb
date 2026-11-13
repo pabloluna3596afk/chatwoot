@@ -60,6 +60,7 @@ module Captain::Assistant::AgentRunResponse
       'response_parts' => [{ 'text' => 'conversation_handoff', 'citation_indexes' => [] }],
       'reasoning' => "Error occurred: #{error.message}",
       'error' => true,
+      'error_transient' => Captain::Assistant::TransientErrors.retryable?(error, @conversation&.id),
       'error_reason' => error.class.name.underscore.tr('/', '_'),
       'handoff_tool_called' => @handoff_tool_called
     }

@@ -35,6 +35,30 @@ RSpec.describe Captain::Tools::HandoffTool, type: :model do
   end
 
   describe '#perform' do
+    blank_reasons = [nil, '', '   '].freeze
+    [true, false].each do |v2|
+      context "with a blank reason (#{v2 ? 'v2' : 'legacy'})" do
+        before do
+          v2 ? account.enable_features!(:captain_integration_v2) : account.disable_features!(:captain_integration_v2)
+          conversation
+        end
+
+        blank_reasons.each do |reason|
+          it "creates no private note when the reason is #{reason.inspect}" do
+            expect do
+              tool.perform(tool_context, reason: reason)
+            end.not_to(change { conversation.messages.where(private: true).count })
+          end
+        end
+
+        it 'still hands off without a reason' do
+          expect(tool.perform(tool_context)).to include('Conversation handed off')
+          expect(conversation.reload).to be_open
+          expect(tool_context.state.dig(:cw_metadata, :handoff_note_id)).to be_nil
+        end
+      end
+    end
+
     context 'when conversation exists' do
       context 'when Captain is responding to a customer message' do
         let(:responding_to_message) do
@@ -246,14 +270,13 @@ RSpec.describe Captain::Tools::HandoffTool, type: :model do
       end
 
       context 'without reason provided' do
-        it 'creates a private note with nil content and hands off conversation' do
+        it 'hands off without creating a private note with nil content' do
           expect do
             result = tool.perform(tool_context)
             expect(result).to eq('Conversation handed off to human support team')
-          end.to change(Message, :count).by(1)
+          end.not_to change(Message, :count)
 
-          created_message = Message.last
-          expect(created_message.content).to be_nil
+          expect(conversation.reload).to be_open
         end
 
         it 'logs tool usage with default reason' do
@@ -265,7 +288,7 @@ RSpec.describe Captain::Tools::HandoffTool, type: :model do
           tool.perform(tool_context)
         end
 
-        it 'does not record a handoff note id since the empty note never renders' do
+        it 'does not record a handoff note id without a reason' do
           tool.perform(tool_context)
 
           expect(tool_context.state[:cw_metadata]).to be_nil

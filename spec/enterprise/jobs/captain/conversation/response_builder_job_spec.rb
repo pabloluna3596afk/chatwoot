@@ -47,6 +47,208 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       expect(conversation.messages.outgoing).to be_empty
     end
 
+    context 'with transient generation failures' do
+      let(:transient_response) do
+        { 'response' => 'conversation_handoff', 'error' => true, 'error_transient' => true,
+          'error_reason' => 'ruby_llm_rate_limit_error', 'handoff_tool_called' => false }
+      end
+
+      before do
+        account.enable_features!(:captain_integration_v2)
+        allow(mock_agent_runner_service).to receive(:generate_response).and_return(transient_response)
+        allow(Rails.logger).to receive(:info).and_call_original
+        allow(Captain::ConversationEvents).to receive(:response_failed).and_call_original
+        allow(Captain::ConversationEvents).to receive(:handed_off).and_call_original
+      end
+
+      after { Captain::Assistant::TransientErrors.reset!(conversation.id) }
+
+      it 'schedules a retry in 5 seconds on the first transient failure and sends nothing to the customer' do
+        freeze_time do
+          expect do
+            described_class.perform_now(conversation, assistant, responding_to_message.id)
+          end.to have_enqueued_job(described_class).with(conversation, assistant, responding_to_message.id).at(5.seconds.from_now)
+          expect(conversation.messages.outgoing).to be_empty
+          expect(conversation.reload).to be_pending
+          expect(account.reload.usage_limits[:captain][:responses][:consumed]).to eq(0)
+          expect(Captain::ConversationEvents).not_to have_received(:response_failed)
+        end
+      end
+
+      it 'schedules a retry in 20 seconds on the second transient failure' do
+        freeze_time do
+          job = described_class.new(conversation, assistant, responding_to_message.id)
+          job.executions = 1
+
+          expect { job.perform_now }.to have_enqueued_job(described_class).at(20.seconds.from_now)
+          expect(conversation.messages.outgoing).to be_empty
+        end
+      end
+
+      it 'hands off once after the third transient failure' do
+        freeze_time do
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+          travel 5.seconds
+          perform_enqueued_jobs(only: described_class, at: Time.current)
+          travel 20.seconds
+          perform_enqueued_jobs(only: described_class, at: Time.current)
+
+          expect(conversation.messages.where(sender: assistant, private: false).pluck(:content)).to eq(
+            [I18n.t('conversations.captain.handoff', locale: account.locale)]
+          )
+          expect(conversation.messages.where(private: true)).to be_empty
+          expect(conversation.reload).to be_open
+          expect(Captain::ConversationEvents).to have_received(:response_failed)
+            .with(conversation: conversation, assistant: assistant, reason: 'ruby_llm_rate_limit_error', at: kind_of(Time)).once
+          expect(Captain::ConversationEvents).to have_received(:handed_off)
+            .with(conversation: conversation, assistant: assistant, source: 'generation_failure',
+                  reason_category: :tool_failure, at: kind_of(Time)).once
+          expect(Rails.logger).to have_received(:info).with(include('event=generation_retry_exhausted attempts=3'))
+          expect(enqueued_jobs.select { |queued| queued[:job] == described_class }).to be_empty
+        end
+      end
+
+      it 'keeps the out of office notice after an exhausted transient failure' do
+        inbox.update!(working_hours_enabled: true, out_of_office_message: 'We are currently closed.')
+        inbox.working_hours.find_by(day_of_week: Time.current.in_time_zone(inbox.timezone).wday)
+             .update!(closed_all_day: true, open_all_day: false)
+        job = described_class.new(conversation, assistant, responding_to_message.id)
+        job.executions = 2
+        job.perform_now
+
+        expect(conversation.messages.where(sender: assistant, private: false).count).to eq(1)
+        expect(conversation.messages.template.pluck(:content)).to eq(['We are currently closed.'])
+        expect(conversation.messages.where(private: true)).to be_empty
+      end
+
+      it 'turns typing off between retry attempts and clears the execution context' do
+        allow(Rails.configuration.dispatcher).to receive(:dispatch).and_call_original
+        described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+        expect(Rails.configuration.dispatcher).to have_received(:dispatch).with(
+          Events::Types::CONVERSATION_TYPING_OFF, kind_of(Time), conversation: conversation, user: assistant, is_private: false
+        ).once
+        expect(Current.executed_by).to be_nil
+      end
+
+      it 'does not retry an attempt that took longer than 45 seconds' do
+        allow(Process).to receive(:clock_gettime).and_call_original
+        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(100.0)
+        allow(mock_agent_runner_service).to receive(:generate_response) do
+          allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(145.01)
+          transient_response
+        end
+        expect(ChatwootExceptionTracker).not_to receive(:new)
+
+        expect do
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+        end.not_to have_enqueued_job(described_class)
+        expect(conversation.reload).to be_open
+        expect(Captain::ConversationEvents).to have_received(:response_failed).once
+        expect(Rails.logger).to have_received(:info).with(include('cause=slow_attempt'))
+        expect(Rails.logger).to have_received(:info).with(include('event=generation_retry_exhausted attempts=1'))
+      end
+
+      it 'retries an attempt that took exactly 45 seconds' do
+        allow(Process).to receive(:clock_gettime).and_call_original
+        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(100.0)
+        allow(mock_agent_runner_service).to receive(:generate_response) do
+          allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(145.0)
+          transient_response
+        end
+
+        expect do
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+        end.to have_enqueued_job(described_class)
+      end
+
+      it 'clears a stale side-effect mark at the start of perform' do
+        account.disable_features!(:captain_integration_v2)
+        Captain::Assistant::TransientErrors.mark_side_effect!(conversation.id)
+        allow(mock_llm_chat_service).to receive(:generate_response).and_raise(Faraday::TimeoutError)
+
+        expect do
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+        end.to have_enqueued_job(described_class)
+        expect(conversation.reload).to be_pending
+      end
+
+      it 'replies normally when the second attempt succeeds and logs the recovery' do
+        freeze_time do
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+          allow(mock_agent_runner_service).to receive(:generate_response).and_return('response' => 'Recovered response')
+          travel 5.seconds
+          perform_enqueued_jobs(only: described_class, at: Time.current)
+
+          expect(conversation.messages.outgoing.pluck(:content)).to eq(['Recovered response'])
+          expect(conversation.reload).to be_pending
+          expect(account.reload.usage_limits[:captain][:responses][:consumed]).to eq(1)
+          expect(Captain::ConversationEvents).not_to have_received(:response_failed)
+          expect(Captain::ConversationEvents).not_to have_received(:handed_off)
+          expect(Rails.logger).to have_received(:info).with(include('event=generation_retry_recovered attempts=2'))
+        end
+      end
+
+      it 'does not retry a non-transient failure' do
+        allow(mock_agent_runner_service).to receive(:generate_response).and_raise(ArgumentError)
+
+        expect do
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+        end.not_to have_enqueued_job(described_class)
+        expect(conversation.reload).to be_open
+      end
+
+      it 'does not retry when a side-effect tool ran in the failed attempt' do
+        allow(mock_agent_runner_service).to receive(:generate_response) do
+          Captain::Assistant::TransientErrors.mark_side_effect!(conversation.id)
+          raise Faraday::TimeoutError
+        end
+
+        expect do
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+        end.not_to have_enqueued_job(described_class)
+        expect(conversation.reload).to be_open
+      end
+
+      it 'does nothing on retry when a human replied meanwhile' do
+        freeze_time do
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+          conversation.update!(status: :open)
+          create(:message, conversation: conversation, sender: create(:user, account: account),
+                           message_type: :outgoing, content: 'Human response')
+          travel 5.seconds
+          perform_enqueued_jobs(only: described_class, at: Time.current)
+
+          expect(mock_agent_runner_service).to have_received(:generate_response).once
+          expect(conversation.messages.where(sender: assistant)).to be_empty
+        end
+      end
+
+      it 'does nothing on retry when a newer customer message arrived' do
+        freeze_time do
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+          create(:message, conversation: conversation, message_type: :incoming, content: 'New question')
+          travel 5.seconds
+          perform_enqueued_jobs(only: described_class, at: Time.current)
+
+          expect(mock_agent_runner_service).to have_received(:generate_response).once
+          expect(conversation.messages.outgoing).to be_empty
+        end
+      end
+
+      it 'emits response_failed only when attempts are exhausted' do
+        freeze_time do
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+          travel 5.seconds
+          perform_enqueued_jobs(only: described_class, at: Time.current)
+          expect(Captain::ConversationEvents).not_to have_received(:response_failed)
+          travel 20.seconds
+          perform_enqueued_jobs(only: described_class, at: Time.current)
+          expect(Captain::ConversationEvents).to have_received(:response_failed).once
+        end
+      end
+    end
+
     [false, true].each do |v2_enabled|
       context "with scheduled bursts and Captain V2 enabled: #{v2_enabled}" do
         before do
@@ -1173,7 +1375,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
     end
   end
 
-  describe 'retry mechanisms for image processing' do
+  describe 'image processing failures' do
     let(:conversation) { create(:conversation, inbox: inbox, account: account, status: :pending) }
     let(:mock_llm_chat_service) { instance_double(Captain::Llm::AssistantChatService) }
     let(:mock_message_builder) { instance_double(Captain::OpenAiMessageBuilderService) }
@@ -1191,10 +1393,10 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         allow(mock_message_builder).to receive(:generate_content)
           .and_raise(ActiveStorage::FileNotFoundError, 'Image file not found')
 
-        # For retryable errors, the job should handle them and proceed with handoff
-        described_class.perform_now(conversation, assistant)
+        expect do
+          described_class.perform_now(conversation, assistant)
+        end.not_to have_enqueued_job(described_class)
 
-        # Verify handoff occurred due to repeated failures
         expect(conversation.reload.status).to eq('open')
       end
 
@@ -1216,7 +1418,9 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           .and_raise(Faraday::BadRequestError, 'Bad request to image service')
         allow(Rails.logger).to receive(:info).and_call_original
 
-        described_class.perform_now(conversation, assistant)
+        expect do
+          described_class.perform_now(conversation, assistant)
+        end.not_to have_enqueued_job(described_class)
         expect(conversation.reload.status).to eq('open')
         expect(Rails.logger).to have_received(:info).with(include('source=error reason=faraday_bad_request_error'))
       end
@@ -1238,14 +1442,12 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           .and_raise(ActiveStorage::FileNotFoundError, 'Image permanently unavailable')
       end
 
-      it 'triggers handoff after max retries' do
-        # Since perform_now re-raises retryable errors, simulate the final failure after retries
-        allow(mock_message_builder).to receive(:generate_content)
-          .and_raise(StandardError, 'Max retries exceeded')
-
+      it 'triggers handoff immediately without retrying or re-raising' do
         expect(ChatwootExceptionTracker).to receive(:new).and_call_original
 
-        described_class.perform_now(conversation, assistant)
+        expect do
+          described_class.perform_now(conversation, assistant)
+        end.not_to have_enqueued_job(described_class)
 
         expect(conversation.reload.status).to eq('open')
       end
@@ -1278,8 +1480,9 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
   end
 
   describe 'job configuration' do
-    it 'has retry_on configuration for retryable errors' do
-      expect(described_class).to respond_to(:retry_on)
+    it 'limits generation to three attempts with waits of five and twenty seconds' do
+      expect(described_class::MAX_GENERATION_ATTEMPTS).to eq(3)
+      expect(described_class::GENERATION_RETRY_WAITS).to eq([5.seconds, 20.seconds])
     end
 
     it 'defines MAX_MESSAGE_LENGTH constant' do

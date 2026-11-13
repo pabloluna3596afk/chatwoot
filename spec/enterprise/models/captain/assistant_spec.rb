@@ -6,6 +6,49 @@ RSpec.describe Captain::Assistant, type: :model do
   let(:contact) { create(:contact, account: account, additional_attributes: { 'country_code' => 'US' }) }
   let(:conversation) { create(:conversation, account: account, contact: contact) }
 
+  describe '#reply_limit_reached?' do
+    it 'counts only replies after the last resolution' do
+      create_list(:message, 20, conversation: conversation, sender: assistant, message_type: :outgoing, created_at: 2.days.ago)
+      create(:message, conversation: conversation, message_type: :activity, created_at: 1.day.ago,
+                       content_attributes: { activity: { type: 'conversation_status_changed', status: 'resolved' } })
+
+      expect(assistant.reply_limit_reached?(conversation)).to be false
+      create_list(:message, 20, conversation: conversation, sender: assistant, message_type: :outgoing)
+      expect(assistant.reply_limit_reached?(conversation)).to be true
+    end
+
+    it 'counts every reply when the conversation was never resolved' do
+      create_list(:message, 20, conversation: conversation, sender: assistant, message_type: :outgoing, created_at: 2.days.ago)
+
+      expect(assistant.reply_limit_reached?(conversation)).to be true
+    end
+
+    it 'does not count follow-up nudges' do
+      create_list(:message, 20, conversation: conversation, sender: assistant, message_type: :outgoing,
+                                content_attributes: { captain_followup: 'nudge' })
+
+      expect(assistant.reply_limit_reached?(conversation)).to be false
+    end
+
+    it 'returns false when the limit is 0' do
+      assistant.update!(max_replies_per_conversation: 0)
+      expect(conversation).not_to receive(:messages)
+
+      expect(assistant.reply_limit_reached?(conversation)).to be false
+    end
+
+    it 'counts a public handoff but excludes private notes and other senders' do
+      assistant.update!(max_replies_per_conversation: 1)
+      create(:message, conversation: conversation, sender: assistant, message_type: :outgoing, private: true)
+      create(:message, conversation: conversation, sender: create(:user), message_type: :outgoing)
+      expect(assistant.reply_limit_reached?(conversation)).to be false
+
+      create(:message, conversation: conversation, sender: assistant, message_type: :outgoing,
+                       content: 'Handoff', content_attributes: { captain_followup: 'handoff' })
+      expect(assistant.reply_limit_reached?(conversation)).to be true
+    end
+  end
+
   describe '#reply_delay_seconds' do
     it 'defaults to six seconds without changing stored config' do
       expect(assistant.reply_delay_seconds).to eq(6)
