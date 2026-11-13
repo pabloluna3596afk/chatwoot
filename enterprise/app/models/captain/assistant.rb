@@ -165,7 +165,10 @@ class Captain::Assistant < ApplicationRecord
   def reply_limit_reached?(conversation)
     return false unless max_replies.positive?
 
-    conversation.messages.where(sender: self, private: false, message_type: :outgoing).count >= max_replies
+    scope = conversation.messages.where(sender: self, private: false, message_type: :outgoing)
+    boundary = Captain::Conversation::EpisodeBoundary.last_resolved_at(conversation)
+    scope = scope.where('messages.created_at > ?', boundary) if boundary
+    scope.select(:id, :content_attributes).count { |message| message.content_attributes.to_h['captain_followup'] != 'nudge' } >= max_replies
   end
 
   def reply_delay_seconds

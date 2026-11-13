@@ -32,7 +32,7 @@ class Captain::Tools::HandoffTool < Captain::Tools::BasePublicTool
 
   private
 
-  def trigger_handoff(tool_context, conversation, reason, reason_category)
+  def trigger_handoff(tool_context, conversation, reason, reason_category) # rubocop:disable Metrics/MethodLength
     return trigger_legacy_handoff(tool_context, conversation, reason, reason_category) unless captain_v2_enabled?
 
     note = nil
@@ -41,10 +41,12 @@ class Captain::Tools::HandoffTool < Captain::Tools::BasePublicTool
       next :stale if newer_customer_message_arrived?(tool_context.state)
 
       # post the reason as a private note
-      note = conversation.messages.create!(
-        message_type: :outgoing, private: true, sender: @assistant,
-        account: conversation.account, inbox: conversation.inbox, content: reason
-      )
+      if reason.present?
+        note = conversation.messages.create!(
+          message_type: :outgoing, private: true, sender: @assistant,
+          account: conversation.account, inbox: conversation.inbox, content: reason
+        )
+      end
 
       conversation.bot_handoff!(dispatch_event: false)
       :completed
@@ -54,8 +56,7 @@ class Captain::Tools::HandoffTool < Captain::Tools::BasePublicTool
 
     # Session capture attributes the run to this note so agents can inspect the
     # generation path on the handoff reason instead of the canned follow-up message.
-    # A reason-less note has no content and never renders in the dashboard, so
-    # leave it unrecorded and let capture fall back to the follow-up message.
+    # Without a reason, capture falls back to the follow-up message.
     record_handoff_note(tool_context, note) if reason.present?
 
     tool_context.state[:captain_v2_handoff_tool_completed] = true
@@ -69,10 +70,12 @@ class Captain::Tools::HandoffTool < Captain::Tools::BasePublicTool
   end
 
   def trigger_legacy_handoff(tool_context, conversation, reason, reason_category)
-    note = conversation.messages.create!(
-      message_type: :outgoing, private: true, sender: @assistant,
-      account: conversation.account, inbox: conversation.inbox, content: reason
-    )
+    if reason.present?
+      note = conversation.messages.create!(
+        message_type: :outgoing, private: true, sender: @assistant,
+        account: conversation.account, inbox: conversation.inbox, content: reason
+      )
+    end
     record_handoff_note(tool_context, note) if reason.present?
     conversation.bot_handoff!
     emit_tool_handoff_event(conversation, reason_category)
