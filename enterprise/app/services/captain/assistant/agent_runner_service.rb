@@ -31,7 +31,8 @@ class Captain::Assistant::AgentRunnerService
     @handoff_tool_completed = false
   end
 
-  def generate_response(message_history: [])
+  def generate_response(message_history: []) # rubocop:disable Metrics/AbcSize
+    Captain::Assistant::TransientErrors.reset!(@conversation&.id)
     message_to_process, context = run_payload(message_history)
     @last_run_result = runner.run(message_to_process, context: context, max_turns: 10)
     raise @last_run_result.error if @last_run_result.error

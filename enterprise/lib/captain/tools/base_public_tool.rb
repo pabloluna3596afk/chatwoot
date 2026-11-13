@@ -9,6 +9,7 @@ class Captain::Tools::BasePublicTool < Agents::Tool
   end
 
   def execute(tool_context, **params)
+    Captain::Assistant::TransientErrors.mark_side_effect!(tool_context.state.dig(:conversation, :id)) unless safe_to_run_after_new_customer_message?
     return super unless captain_v2_enabled?
     return super if safe_to_run_after_new_customer_message?
     if newer_customer_message_arrived?(tool_context.state)

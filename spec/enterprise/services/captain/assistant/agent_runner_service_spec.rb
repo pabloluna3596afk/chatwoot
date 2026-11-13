@@ -343,6 +343,27 @@ RSpec.describe Captain::Assistant::AgentRunnerService do
         )
       end
 
+      context 'with a transient error' do
+        let(:error) { RubyLLM::RateLimitError.new }
+
+        after { Captain::Assistant::TransientErrors.reset!(conversation.id) }
+
+        it 'clears the stale side-effect mark before generating and signals a transient failure' do
+          Captain::Assistant::TransientErrors.mark_side_effect!(conversation.id)
+
+          expect(service.generate_response(message_history: message_history)).to include('error_transient' => true)
+        end
+
+        it 'does not signal a retry after a tool ran on another thread' do
+          allow(mock_runner).to receive(:run) do
+            Thread.new { Captain::Assistant::TransientErrors.mark_side_effect!(conversation.id) }.join
+            mock_result
+          end
+
+          expect(service.generate_response(message_history: message_history)).to include('error_transient' => false)
+        end
+      end
+
       it 'returns an error response instead of formatting an empty output' do
         result = service.generate_response(message_history: message_history)
 
@@ -578,6 +599,7 @@ RSpec.describe Captain::Assistant::AgentRunnerService do
                                'response_parts' => [{ 'text' => 'conversation_handoff', 'citation_indexes' => [] }],
                                'reasoning' => 'Error occurred: Test error',
                                'error' => true,
+                               'error_transient' => false,
                                'error_reason' => 'standard_error',
                                'handoff_tool_called' => false
                              })
@@ -609,6 +631,7 @@ RSpec.describe Captain::Assistant::AgentRunnerService do
                                  'response_parts' => [{ 'text' => 'conversation_handoff', 'citation_indexes' => [] }],
                                  'reasoning' => 'Error occurred: Test error',
                                  'error' => true,
+                                 'error_transient' => false,
                                  'error_reason' => 'standard_error',
                                  'handoff_tool_called' => false
                                })
@@ -637,7 +660,8 @@ RSpec.describe Captain::Assistant::AgentRunnerService do
                                  'reasoning' => 'Error occurred: Test error',
                                  'error' => true,
                                  'error_reason' => 'standard_error',
-                                 'handoff_tool_called' => true
+                                 'handoff_tool_called' => true,
+                                 'error_transient' => false
                                })
         end
       end
