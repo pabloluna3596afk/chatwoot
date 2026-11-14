@@ -122,6 +122,41 @@ describe.each(['en', 'es'])('knowledge estimate (%s)', locale => {
     wrapper.unmount();
   });
 
+  it('shows the PDF limits help', async () => {
+    const wrapper = shallowMount(DocumentForm, {
+      props: { assistantId: 7 },
+      global: {
+        plugins: [createI18n({ legacy: false, locale, messages: { en, es } })],
+        renderStubDefaultSlot: true,
+      },
+    });
+    await wrapper
+      .findComponent({ name: 'ComboBox' })
+      .vm.$emit('update:modelValue', 'pdf');
+    const help = (locale === 'en' ? en : es).CAPTAIN.DOCUMENTS.FORM.PDF_FILE
+      .HELP_TEXT;
+    expect(wrapper.text()).toContain(help);
+    wrapper.unmount();
+  });
+
+  it('shows the URL help only for URL documents', async () => {
+    const wrapper = mountForm();
+    const help = (locale === 'en' ? en : es).CAPTAIN.DOCUMENTS.FORM.URL
+      .HELP_TEXT;
+    expect(wrapper.findComponent({ name: 'Input' }).props('message')).toBe(
+      help
+    );
+    await wrapper
+      .findComponent({ name: 'ComboBox' })
+      .vm.$emit('update:modelValue', 'pdf');
+    expect(
+      wrapper
+        .findAllComponents({ name: 'Input' })
+        .some(input => input.props('message') === help)
+    ).toBe(false);
+    wrapper.unmount();
+  });
+
   it('shows calculating then the URL minimum and unlimited balance', async () => {
     let resolve;
     mocks.dispatch.mockReturnValueOnce(
