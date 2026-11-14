@@ -225,6 +225,8 @@ watch(
         :placeholder="placeholder"
         :max-length="BUSINESS_FACT_MAX_LENGTH"
         show-character-count
+        auto-height
+        min-height="2.5rem"
         :message="
           v$.businessFacts[key].$error
             ? t('CAPTAIN.ASSISTANTS.BUSINESS_FACTS.TOO_LONG')
