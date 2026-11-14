@@ -3499,6 +3499,14 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Arreglo:** valores reales con azul tenue y borde discreto; vacíos con «Escribe el dato» en rojo suave y borde reforzado tras intentar enviar. Menú con valores completos, búsqueda o texto propio, filas sin dato deshabilitadas y opción «Quitar». Burbuja anclada arriba y ayuda humana de alto fijo. Se conserva la validación y el payload; el aviso del parser clásico permanece.
 - **Verificación:** 145/145 Vitest en UTC y America/Guayaquil; ESLint 0 errores, 39 avisos preexistentes (53 en la base). Playwright con SendCenter real y datos ficticios: 0 px de desplazamiento en nueve acciones para 1440×900 y 768×1024; doce capturas claras/oscuras, menú y vacíos antes/después. 
 - **Entrega:** sin migraciones ni cambios de backend. Aprobado visualmente por el dueño (2026-11-11); se desactiva el corrector ortográfico del navegador en el campo.
+### B-NEW-265 - Captain: contexto acotado, adjuntos y hora del negocio (2026-11-14)
+
+- **Hallazgos:** CAP-003, CAP-032, CAP-019, CAP-008 y CAP-035.
+- **Archivos:** `enterprise/app/services/captain/conversation/{history_window,message_history_builder_service}.rb`, `open_ai_message_builder_service.rb`, `assistant/runner_state_helper.rb`, `copilot/reply_suggestion_service.rb`, `enterprise/app/models/captain/assistant.rb` y `enterprise/lib/captain/prompts/snippets/core_rules.liquid`.
+- **Problema:** el historial y las imágenes crecían sin límite; el modelo confundía respuestas humanas con propias, recibía descripciones genéricas de adjuntos y podía usar UTC o un nombre de producto vacío.
+- **Arreglo:** solo con `captain_pilot`, hasta 40 mensajes de los últimos 200, desde diez antes de la última resolución, y fotos de los tres últimos mensajes entrantes con imagen. Según C9, el límite gana sobre el marcador y el último entrante sustituye el elemento más antiguo si queda fuera. Prefijo humano solo en contexto, preservando `agent_name`. Copilot conserva su historial completo. Para todas las cuentas: adjuntos descritos según tipo y dirección (hasta cinco), nombres saneados, coordenadas por defecto omitidas, zona del negocio y nombre de cuenta como producto por defecto.
+- **Cómo probar:** comparar 300 mensajes en piloto (40) y no piloto (300), seis fotos (solo tres recientes), cliente seguido de 40 salientes y resolución seguida de 40 mensajes. Comprobar PDF entrante/saliente, coordenadas 0/0, nombre de archivo largo y zona sin horario. Verificar que Copilot conserve mensajes humanos e imágenes antiguas con y sin piloto. Specs de ventana, historial, adjuntos, runner, asistente, Copilot y prompt. Sin migraciones ni frontend.
+
 ### B-NEW-264 - Captain: relevancia del conocimiento y datos del cliente saneados (2026-11-14)
 
 - **Hallazgos:** CAP-001, CAP-009 y CAP-010.

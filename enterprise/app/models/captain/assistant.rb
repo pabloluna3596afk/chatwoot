@@ -391,7 +391,7 @@ class Captain::Assistant < ApplicationRecord
     {
       name: name,
       description: description,
-      product_name: config['product_name'] || 'this product',
+      product_name: config['product_name'].presence || account.name,
       citation_enabled: citations_enabled?,
       scenarios: scenarios.enabled.map do |scenario|
         {
