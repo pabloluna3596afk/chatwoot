@@ -3499,6 +3499,14 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Arreglo:** valores reales con azul tenue y borde discreto; vacíos con «Escribe el dato» en rojo suave y borde reforzado tras intentar enviar. Menú con valores completos, búsqueda o texto propio, filas sin dato deshabilitadas y opción «Quitar». Burbuja anclada arriba y ayuda humana de alto fijo. Se conserva la validación y el payload; el aviso del parser clásico permanece.
 - **Verificación:** 145/145 Vitest en UTC y America/Guayaquil; ESLint 0 errores, 39 avisos preexistentes (53 en la base). Playwright con SendCenter real y datos ficticios: 0 px de desplazamiento en nueve acciones para 1440×900 y 768×1024; doce capturas claras/oscuras, menú y vacíos antes/después. 
 - **Entrega:** sin migraciones ni cambios de backend. Aprobado visualmente por el dueño (2026-11-11); se desactiva el corrector ortográfico del navegador en el campo.
+### B-NEW-264 - Captain: relevancia del conocimiento y datos del cliente saneados (2026-11-14)
+
+- **Hallazgos:** CAP-001, CAP-009 y CAP-010.
+- **Archivos:** `enterprise/app/services/captain/{pilot,knowledge/relevance,assistant/prompt_data_sanitizer}.rb`, `enterprise/lib/captain/tools/faq_lookup_tool.rb`, prompts `assistant.liquid` y `scenario.liquid`, `enterprise/app/models/concerns/agentable.rb`, `config/features.yml` y `config/installation_config.yml`.
+- **Problema:** la búsqueda entregaba cinco vecinos aunque fueran irrelevantes; atributos internos y nombres sin sanear llegaban al prompt, sin distinguir datos de instrucciones.
+- **Arreglo:** filtro de distancia exclusivamente con `captain_pilot`, apagado por defecto y fuera de planes. Umbral ajustable `CAPTAIN_FAQ_MAX_DISTANCE` (0,55 por defecto; límites 0,20–1,00). Todas las cuentas registran cantidades y distancias, reciben el aviso de material de referencia y datos saneados entre marcadores; se preserva el estado original para herramientas. Se admiten claves cadena y símbolo sin duplicarlas.
+- **Cómo probar:** en fixtures de una cuenta piloto, distancias 0,20 y 0,80 conservan solo la primera; sin piloto se conservan ambas. Cambiar el umbral a 0,90 afecta la siguiente búsqueda sin reiniciar. Comprobar que las fuentes descartadas no figuren en metadatos, que `captain_scheduled_response_message_id` no llegue al prompt y que el nombre no contenga saltos ni supere 80 caracteres. Pruebas nuevas de relevancia, saneado y piloto; ampliadas de herramienta, prompts y runner. Sin migraciones. Evidencia local en `tmp/PR-captain-pr2.md`.
+
 ### B-NEW-263 - Captain: reintentos seguros, límite por episodio y traspasos sin notas vacías (2026-11-13)
 
 - **Hallazgos:** CAP-004, CAP-015, CAP-016 y CAP-024.
