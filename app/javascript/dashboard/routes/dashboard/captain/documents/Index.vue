@@ -436,6 +436,7 @@ onUnmounted(() => {
           :last-synced-at="doc.last_synced_at"
           :last-sync-error-code="doc.last_sync_error_code"
           :quota-exceeded="doc.quota_exceeded"
+          :faqs-truncated="doc.faqs_truncated"
           :sync-in-progress="doc.sync_in_progress"
           :sync-stale-after-hours="syncIntervalHours"
           :responses-count="doc.responses_count"

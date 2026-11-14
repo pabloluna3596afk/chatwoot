@@ -3,7 +3,8 @@ require 'rails_helper'
 RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
   self.use_transactional_tests = false
 
-  let!(:existing_account_ids) { Account.pluck(:id) }
+  include_context 'with an empty database after the example'
+
   let!(:account) { create(:account) }
   let!(:inbox) { create(:inbox, account: account) }
   let!(:assistant) { create(:captain_assistant, account: account) }
@@ -17,21 +18,6 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       generate_response: { 'response_parts' => [{ 'text' => 'Delivered', 'citation_indexes' => [] }] },
       last_run_result: nil, response_discarded?: false, handoff_completed?: false
     )
-  end
-
-  after do
-    account.account_plan_usages.destroy_all
-    plan = account.plan
-    # Factories such as the conversation one create further accounts of their own, so clean up every account made here.
-    account_ids = Account.where.not(id: existing_account_ids).pluck(:id)
-    Account.where(id: account_ids).find_each(&:destroy!)
-    plan.destroy!
-    Audited::Audit.where(auditable_type: 'Account', auditable_id: account_ids).delete_all
-    # Associations are destroyed asynchronously, so remove what they would leave behind in this non-transactional example.
-    connection = ActiveRecord::Base.connection
-    connection.tables.select { |table| connection.column_exists?(table, :account_id) }.each do |table|
-      connection.execute("DELETE FROM #{connection.quote_table_name(table)} WHERE account_id IN (#{account_ids.join(',')})")
-    end
   end
 
   it 'refunds the reservation if delivery rolls back after finishing the receipt' do

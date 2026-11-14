@@ -141,6 +141,26 @@ describe('DocumentCard', () => {
     expect(wrapper.vm.menuItems).toEqual([]);
   });
 
+  it('shows the notice when truncated', () => {
+    const wrapper = mountCard({ faqsTruncated: true });
+    expect(wrapper.text()).toContain('CAPTAIN.DOCUMENTS.TRUNCATED_NOTICE');
+  });
+
+  it('hides the truncated notice otherwise', () => {
+    const wrapper = mountCard();
+    expect(wrapper.text()).not.toContain('CAPTAIN.DOCUMENTS.TRUNCATED_NOTICE');
+  });
+
+  it('shows only the quota notice when both apply', () => {
+    const wrapper = mountCard({
+      faqsTruncated: true,
+      quotaExceeded: true,
+      status: 'in_progress',
+    });
+    expect(wrapper.text()).toContain('CAPTAIN.DOCUMENTS.RESUME.INCOMPLETE');
+    expect(wrapper.text()).not.toContain('CAPTAIN.DOCUMENTS.TRUNCATED_NOTICE');
+  });
+
   it('does not offer Continue for other document states', () => {
     const wrapper = mountCard();
     expect(wrapper.vm.menuItems.some(item => item.action === 'resume')).toBe(
