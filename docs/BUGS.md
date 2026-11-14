@@ -3525,6 +3525,18 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Cómo probar:** simular un fallo transitorio y luego éxito: solo llega la respuesta normal. Tres fallos: un traspaso, sin nota privada; si está fuera de horario, también el aviso habitual. Un fallo de más de 45 segundos o tras herramienta con efectos no programa otro intento. Reabrir una conversación con 20 respuestas anteriores permite atender al contacto de nuevo. Traspaso de herramienta sin motivo no deja nota vacía. Sin migraciones ni bandera piloto.
 
 
+### B-NEW-266 - Captain: política configurable para clientes que no responden (2026-11-14)
+
+- Archivos: enterprise/app/services/captain/conversation/turn.rb, enterprise/app/services/captain/followup/{closer,nudger,dispatcher}.rb, enterprise/app/jobs/captain/inbox_pending_conversations_resolution_job.rb, enterprise/app/models/captain/assistant.rb, lib/tasks/captain_followup.rake y formularios de Ajustes.
+- Cambio: se conserva un único selector de resolución automática. Solo con captain_pilot y modo evaluated, si el cliente debe responder, el job delega al seguimiento activo o cierra sin llamar al modelo ni traspasar; respeta el interruptor de despedida y la ventana de respuesta. Los modos legacy/disabled y las cuentas sin piloto conservan su comportamiento anterior. Se retiró por completo el ajuste duplicado de la interfaz, modelo, API y specs. Turn escanea 10 mensajes; Dispatcher limita el lote a 72 h para todas las cuentas. CAP-007 sigue limitado a pilotos. El camino nuevo recomprueba propiedad y turno bajo bloqueo. close_stale solo procesa pilotos en evaluated y nunca escribe al cliente. Se conservan los dos avisos informativos es/en.
+- Verificación: turn_spec.rb, closer_spec.rb, inbox_pending_conversations_resolution_job_unanswered_spec.rb, followup_spec.rb, assistant_spec.rb, assistants_controller_spec.rb, task_captain_followup_spec.rb y specs de los formularios. Totales y evidencia visual en el informe de entrega de PR4.
+
+### B-NEW-267 - Pendiente: el job viejo puede actuar sobre pendientes asignadas a una persona (2026-11-14)
+
+- Archivo: enterprise/app/jobs/captain/inbox_pending_conversations_resolution_job.rb, métodos perform_locked_transition y resolve_time_based_conversation.
+- Riesgo preexistente: selección y bloqueo comprueban estado pending e inactividad, pero no la propiedad Captain. Asignar una persona limpia ai_assignee sin forzar un cambio de estado; una pendiente asignada a una persona sigue cumpliendo esos criterios.
+- Decisión del PM para PR4: conservar sin cambios los caminos viejos (temporal, evaluación y handoff). Pendiente de decisión del dueño; no se declara corregido por este PR.
+- Cómo comprobarlo: seleccionar una pendiente inactiva, asignar una persona manteniendo pending antes de entrar al bloqueo y ejecutar el camino viejo. Contrastar con inbox_pending_conversations_resolution_job_unanswered_spec.rb, que exige sin acción ni nota para el camino nuevo.
 ### B-NEW-266 — Captain: reservar respuestas antes de generar (2026-11-14)
 
 - **Archivos:** `ResponseBuilderJob`, `ReplyUsage`, `UsageLimitHandoff`, hook de plantillas y `FaqLookupTool`; specs de entrega, concurrencia, traspaso y FAQ.

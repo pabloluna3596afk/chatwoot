@@ -286,4 +286,20 @@ describe('AssistantFollowupForm', () => {
       expect(submitted(wrapper).followup.reengagement_template).toEqual(saved);
     });
   });
+  it('shows the closed-window notice under the inactivity switch', () => {
+    const wrapper = mountForm({ followup: { inactivity_enabled: true } });
+    expect(
+      wrapper.get('[data-testid="followup-window-notice"]').text()
+    ).toContain('CAPTAIN.ASSISTANTS.FOLLOWUP.WINDOW_CLOSED_NOTICE');
+    expect(wrapper.html().indexOf('followup-window-notice')).toBeLessThan(
+      wrapper.html().indexOf('followup-fields')
+    );
+  });
+
+  it('hides the closed-window notice when inactivity followup is off', () => {
+    const wrapper = mountForm({ followup: { inactivity_enabled: false } });
+    expect(
+      wrapper.find('[data-testid="followup-window-notice"]').exists()
+    ).toBe(false);
+  });
 });

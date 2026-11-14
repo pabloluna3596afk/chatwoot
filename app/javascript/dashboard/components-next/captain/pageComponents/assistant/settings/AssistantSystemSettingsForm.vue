@@ -85,6 +85,10 @@ const autoResolveOptions = computed(() => [
   },
 ]);
 
+const showFollowupNotice = computed(
+  () => props.assistant.config?.followup?.inactivity_enabled === true
+);
+
 const shouldShowInactivityDuration = computed(
   () => state.autoResolveMode !== 'disabled'
 );
@@ -227,6 +231,18 @@ watch(
       "
     >
       <div class="flex w-full flex-col gap-4 pt-3">
+        <div
+          v-if="showFollowupNotice"
+          data-testid="followup-notice"
+          class="mx-4 flex items-start gap-2 rounded-xl border border-n-blue-7 bg-n-blue-2 px-3 py-2.5 text-xs text-n-slate-12"
+        >
+          <span class="i-lucide-info size-4 shrink-0 text-n-blue-11" />
+          {{
+            t('CAPTAIN.ASSISTANTS.AUTO_RESOLVE.FOLLOWUP_NOTICE', {
+              assistantName: assistant.name,
+            })
+          }}
+        </div>
         <div
           class="flex flex-col gap-3 px-4"
           role="radiogroup"

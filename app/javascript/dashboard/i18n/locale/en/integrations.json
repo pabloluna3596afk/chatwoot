@@ -1564,6 +1564,12 @@
             "ERROR": "There was an error deleting scenarios, please try again."
           }
         }
+      },
+      "AUTO_RESOLVE": {
+        "FOLLOWUP_NOTICE": "Follow-up is on: when the customer is the one who stops replying, {assistantName} nudges them and closes the conversation without passing it to the team."
+      },
+      "FOLLOWUP": {
+        "WINDOW_CLOSED_NOTICE": "If the 24-hour window is already closed, {assistantName} closes the conversation without sending the nudge."
       }
     },
     "DOCUMENTS": {

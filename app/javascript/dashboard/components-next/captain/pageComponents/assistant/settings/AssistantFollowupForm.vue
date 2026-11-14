@@ -145,6 +145,19 @@ watch(
       :header="t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.TOGGLE')"
       :description="t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.TOGGLE_HELP')"
     >
+      <div v-if="state.inactivityEnabled" class="w-full px-4 pb-3 pt-3">
+        <div
+          data-testid="followup-window-notice"
+          class="flex items-start gap-2 rounded-xl border border-n-blue-7 bg-n-blue-2 px-3 py-2.5 text-xs text-n-slate-12"
+        >
+          <span class="i-lucide-info size-4 shrink-0 text-n-blue-11" />
+          {{
+            t('CAPTAIN.ASSISTANTS.FOLLOWUP.WINDOW_CLOSED_NOTICE', {
+              assistantName: assistant.name,
+            })
+          }}
+        </div>
+      </div>
       <div
         v-if="state.inactivityEnabled"
         data-testid="followup-fields"

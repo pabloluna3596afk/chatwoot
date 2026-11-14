@@ -1564,6 +1564,12 @@
             "ERROR": "Hubo un error al eliminar los escenarios, inténtalo de nuevo."
           }
         }
+      },
+      "AUTO_RESOLVE": {
+        "FOLLOWUP_NOTICE": "El seguimiento está activado: cuando es el cliente quien no responde, {assistantName} le avisa y cierra la conversación sin pasarla al equipo."
+      },
+      "FOLLOWUP": {
+        "WINDOW_CLOSED_NOTICE": "Si la ventana de 24 h ya cerró, {assistantName} cierra la conversación sin enviar el aviso."
       }
     },
     "DOCUMENTS": {

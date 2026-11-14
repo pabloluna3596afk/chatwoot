@@ -132,4 +132,34 @@ describe('AssistantSystemSettingsForm', () => {
 
     expect(wrapper.emitted('submit')).toBeUndefined();
   });
+  it('keeps only the existing resolution control', () => {
+    const wrapper = mountComponent();
+    expect(wrapper.findAll('[role="radiogroup"]')).toHaveLength(1);
+    expect(wrapper.findAllComponents(RadioCard)).toHaveLength(3);
+  });
+
+  it.each([true, false])(
+    'shows the follow-up notice only when inactivity is enabled: %s',
+    async enabled => {
+      const wrapper = mountComponent();
+      await wrapper.setProps({
+        assistant: {
+          name: 'Captain',
+          config: {
+            ...assistant.config,
+            followup: { inactivity_enabled: enabled },
+          },
+        },
+      });
+      expect(wrapper.find('[data-testid="followup-notice"]').exists()).toBe(
+        enabled
+      );
+    }
+  );
+
+  it('hides the follow-up notice when no configuration is present', () => {
+    expect(
+      mountComponent().find('[data-testid="followup-notice"]').exists()
+    ).toBe(false);
+  });
 });

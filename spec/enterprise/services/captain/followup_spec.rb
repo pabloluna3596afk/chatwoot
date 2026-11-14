@@ -40,6 +40,28 @@ RSpec.describe Captain::Followup do
   describe Captain::Followup::Nudger do
     before { captain_says(now - 31.minutes) }
 
+    it 'closes with a closed window and no nudge on a pilot account after the close delay' do
+      account.enable_features!('captain_pilot')
+      allow(conversation).to receive(:can_reply?).and_return(false)
+      expect(nudge(now + 2.hours)).to eq(:closed)
+      expect(conversation.reload).to be_resolved
+      expect(conversation.additional_attributes['captain_followup']).to include('assistant_id' => assistant.id)
+      expect(public_messages.count).to eq(1)
+    end
+
+    it 'does not close with a closed window and no nudge on a non-pilot account' do
+      allow(conversation).to receive(:can_reply?).and_return(false)
+      expect(nudge(now + 2.hours)).to be_nil
+      expect(conversation.reload).to be_pending
+    end
+
+    it 'waits for the close delay even on a pilot account with a closed window' do
+      account.enable_features!('captain_pilot')
+      allow(conversation).to receive(:can_reply?).and_return(false)
+      expect(nudge).to be_nil
+      expect(conversation.reload).to be_pending
+    end
+
     it 'sends nothing before the time is up' do
       expect(nudge(now - 5.minutes)).to be_nil
       expect(public_messages.count).to eq(1)
@@ -106,7 +128,7 @@ RSpec.describe Captain::Followup do
       create(:message, account: account, inbox: api_inbox, conversation: api_conversation, message_type: :outgoing, sender: assistant,
                        created_at: now - 31.minutes)
 
-      Captain::Followup::Nudger.new(api_conversation, assistant, now: now).perform
+      described_class.new(api_conversation, assistant, now: now).perform
 
       message = api_conversation.messages.order(:id).last
       expect(message.content_type).to eq('text')
@@ -199,7 +221,19 @@ RSpec.describe Captain::Followup do
     end
 
     it 'nudges the conversations Captain handles in an inbox of the assistant' do
-      expect { described_class.new(now: now).perform }.to change { public_messages.count }.by(1)
+      expect { described_class.new(now: now).perform }.to change(public_messages, :count).by(1)
+    end
+
+    it 'skips conversations older than 72 hours without letting them fill the batch' do
+      conversation.update_columns(last_activity_at: now - 73.hours) # rubocop:disable Rails/SkipsModelValidations
+      recent = create(:conversation, account: account, inbox: inbox, status: :pending, ai_assignee: assistant)
+      create(:message, account: account, conversation: recent, sender: assistant, message_type: :outgoing, created_at: now - 40.minutes)
+      recent.update!(status: :pending, ai_assignee: assistant)
+      recent.update_columns(last_activity_at: now - 40.minutes) # rubocop:disable Rails/SkipsModelValidations
+      stub_const('Captain::Followup::Dispatcher::BATCH_SIZE', 1)
+
+      expect { described_class.new(now: now).perform }.not_to(change { conversation.messages.count })
+      expect(recent.messages.where(private: false, message_type: :outgoing).order(:id).last.content_attributes['captain_followup']).to eq('nudge')
     end
 
     it 'does nothing when the assistant turned the follow-up off' do
@@ -325,7 +359,7 @@ RSpec.describe Captain::Followup do
     end
 
     it 'waits while the 24 h window is still open' do
-      conversation.messages.incoming.update_all(created_at: now - 1.hour)
+      conversation.messages.incoming.update_all(created_at: now - 1.hour) # rubocop:disable Rails/SkipsModelValidations
 
       expect(reengage).to be_nil
       expect(public_messages.where.not(sender: assistant)).to be_empty
@@ -387,7 +421,7 @@ RSpec.describe Captain::Followup do
       end
 
       it 'sends it when it is on' do
-        expect { Captain::Followup::Dispatcher.new(now: now).perform }.to change { public_messages.count }.by(1)
+        expect { Captain::Followup::Dispatcher.new(now: now).perform }.to change(public_messages, :count).by(1)
       end
     end
   end
