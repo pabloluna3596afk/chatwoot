@@ -6,6 +6,22 @@ RSpec.describe Captain::Assistant, type: :model do
   let(:contact) { create(:contact, account: account, additional_attributes: { 'country_code' => 'US' }) }
   let(:conversation) { create(:conversation, account: account, contact: contact) }
 
+  describe '#prompt_context' do
+    [nil, '', '   '].each do |product_name|
+      it "uses the account name when the product name is blank (#{product_name.inspect})" do
+        assistant.update!(config: assistant.config.merge('product_name' => product_name))
+
+        expect(assistant.send(:prompt_context)[:product_name]).to eq(account.name)
+      end
+    end
+
+    it 'uses the configured product name when present' do
+      assistant.update!(config: assistant.config.merge('product_name' => 'Support desk'))
+
+      expect(assistant.send(:prompt_context)[:product_name]).to eq('Support desk')
+    end
+  end
+
   describe '#reply_limit_reached?' do
     it 'counts only replies after the last resolution' do
       create_list(:message, 20, conversation: conversation, sender: assistant, message_type: :outgoing, created_at: 2.days.ago)

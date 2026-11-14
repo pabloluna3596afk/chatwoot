@@ -20,7 +20,7 @@ module Captain::Assistant::RunnerStateHelper
       account_id: @assistant.account_id,
       assistant_id: @assistant.id,
       assistant_config: @assistant.config,
-      timezone: @conversation&.inbox&.timezone.presence || 'UTC'
+      timezone: prompt_timezone
     }
     state[:source] = @source if @source.present?
     state[:responding_to_message_id] = @responding_to_message_id if @responding_to_message_id.present?
@@ -28,6 +28,14 @@ module Captain::Assistant::RunnerStateHelper
     build_conversation_state(state) if @conversation
     add_email_verification_state(state)
     state
+  end
+
+  # Use the business clock, shared with appointments when inbox working hours are disabled.
+  def prompt_timezone
+    inbox = @conversation&.inbox
+    return inbox.timezone if inbox&.working_hours_enabled? && inbox.timezone.present?
+
+    Integrations::GoogleCalendar::Timezone.for(@assistant.account).tzinfo.name
   end
 
   def add_email_verification_state(state)

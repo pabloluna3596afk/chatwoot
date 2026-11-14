@@ -14,4 +14,11 @@ RSpec.describe 'Captain core rules prompt' do # rubocop:disable RSpec/DescribeCl
 
     expect(prompt).to include('one idea per message')
   end
+
+  it 'identifies human messages as already told to the customer in the assistant prompt' do
+    prompt = Captain::PromptRenderer.render('assistant', { 'product_name' => 'Acme', 'description' => 'Sales' }.with_indifferent_access)
+
+    expect(prompt).to include('Messages that start with `[Human agent]:` were written by a person from the team')
+    expect(prompt).to include('never contradict it, never repeat it, and never claim you wrote it')
+  end
 end
