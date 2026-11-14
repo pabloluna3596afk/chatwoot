@@ -41,7 +41,9 @@ const submitForm = async wrapper => {
 describe('AssistantSystemSettingsForm', () => {
   it('shows the evaluated policy controls from the saved config', () => {
     const wrapper = mountComponent();
-    const modeCards = wrapper.findAllComponents(RadioCard);
+    const modeCards = wrapper
+      .findAllComponents(RadioCard)
+      .filter(card => card.props('name') === 'auto-resolve-mode');
 
     expect(modeCards).toHaveLength(3);
     expect(
@@ -73,6 +75,7 @@ describe('AssistantSystemSettingsForm', () => {
       config: {
         ...assistant.config,
         max_replies_per_conversation: 20,
+        unanswered_action: 'handoff',
         auto_resolve_mode: 'disabled',
       },
     });
@@ -92,6 +95,7 @@ describe('AssistantSystemSettingsForm', () => {
       config: {
         ...assistant.config,
         max_replies_per_conversation: 20,
+        unanswered_action: 'handoff',
         auto_resolve_after: 130,
       },
     });
@@ -132,4 +136,53 @@ describe('AssistantSystemSettingsForm', () => {
 
     expect(wrapper.emitted('submit')).toBeUndefined();
   });
+  it('defaults assistants without the key to handoff', () => {
+    const wrapper = mountComponent();
+    const cards = wrapper
+      .findAllComponents(RadioCard)
+      .filter(card => card.props('name') === 'unanswered-action');
+    expect(cards).toHaveLength(3);
+    expect(cards.map(card => card.props('isActive'))).toEqual([
+      false,
+      true,
+      false,
+    ]);
+  });
+
+  it.each(['close', 'handoff', 'leave_open'])(
+    'sends the selected unanswered action %s',
+    async action => {
+      const wrapper = mountComponent();
+      wrapper.findComponent(`#unanswered-${action}`).vm.$emit('select');
+      await submitForm(wrapper);
+      expect(wrapper.emitted('submit')[0][0].config.unanswered_action).toBe(
+        action
+      );
+    }
+  );
+
+  it.each([
+    ['close', true, true],
+    ['close', false, false],
+    ['handoff', true, false],
+    ['leave_open', true, false],
+  ])(
+    'shows the notice for %s with followup=%s: %s',
+    async (action, followup, visible) => {
+      const wrapper = mountComponent();
+      await wrapper.setProps({
+        assistant: {
+          name: 'Captain',
+          config: {
+            ...assistant.config,
+            unanswered_action: action,
+            followup: { inactivity_enabled: followup },
+          },
+        },
+      });
+      expect(
+        wrapper.find('[data-testid="unanswered-followup-notice"]').exists()
+      ).toBe(visible);
+    }
+  );
 });

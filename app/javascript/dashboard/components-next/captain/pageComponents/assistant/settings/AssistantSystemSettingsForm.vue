@@ -48,6 +48,7 @@ const initialState = {
   resolutionMessage: '',
   instructions: '',
   autoResolveMode: 'evaluated',
+  unansweredAction: 'handoff',
   inactivityThresholdMinutes: 60,
   sendInactivityResolutionMessage: true,
   maxReplies: DEFAULT_MAX_REPLIES,
@@ -84,6 +85,30 @@ const autoResolveOptions = computed(() => [
     ),
   },
 ]);
+
+const unansweredOptions = computed(() => [
+  {
+    value: 'close',
+    label: t('CAPTAIN.ASSISTANTS.AUTO_RESOLVE.UNANSWERED_ACTION.OPTIONS.CLOSE'),
+  },
+  {
+    value: 'handoff',
+    label: t(
+      'CAPTAIN.ASSISTANTS.AUTO_RESOLVE.UNANSWERED_ACTION.OPTIONS.HANDOFF'
+    ),
+  },
+  {
+    value: 'leave_open',
+    label: t(
+      'CAPTAIN.ASSISTANTS.AUTO_RESOLVE.UNANSWERED_ACTION.OPTIONS.LEAVE_OPEN'
+    ),
+  },
+]);
+const showUnansweredFollowupNotice = computed(
+  () =>
+    state.unansweredAction === 'close' &&
+    props.assistant.config?.followup?.inactivity_enabled === true
+);
 
 const shouldShowInactivityDuration = computed(
   () => state.autoResolveMode !== 'disabled'
@@ -154,6 +179,7 @@ const updateStateFromAssistant = assistant => {
   state.resolutionMessage = config.resolution_message;
   state.instructions = config.instructions;
   state.autoResolveMode = config.auto_resolve_mode ?? 'evaluated';
+  state.unansweredAction = config.unanswered_action ?? 'handoff';
   state.inactivityThresholdMinutes = config.auto_resolve_after ?? 60;
   state.sendInactivityResolutionMessage =
     config.send_inactivity_resolution_message ?? true;
@@ -195,6 +221,7 @@ const handleSystemMessagesUpdate = async () => {
   if (isCaptainV2Enabled.value) {
     Object.assign(payload.config, {
       auto_resolve_mode: state.autoResolveMode,
+      unanswered_action: state.unansweredAction,
       auto_resolve_after: state.inactivityThresholdMinutes,
       send_inactivity_resolution_message: state.sendInactivityResolutionMessage,
       resolution_message: state.resolutionMessage,
@@ -244,6 +271,50 @@ watch(
             :is-active="state.autoResolveMode === option.value"
             @select="state.autoResolveMode = option.value"
           />
+        </div>
+
+        <div class="flex flex-col gap-3 border-t border-n-weak px-4 pt-4">
+          <span class="text-body-main font-medium text-n-slate-12">
+            {{ t('CAPTAIN.ASSISTANTS.AUTO_RESOLVE.UNANSWERED_ACTION.LABEL') }}
+          </span>
+          <p class="mb-0 text-body-main text-n-slate-11">
+            {{
+              t('CAPTAIN.ASSISTANTS.AUTO_RESOLVE.UNANSWERED_ACTION.HELP', {
+                assistantName: assistant.name,
+              })
+            }}
+          </p>
+          <div
+            class="flex w-full flex-col gap-3"
+            role="radiogroup"
+            :aria-label="
+              t('CAPTAIN.ASSISTANTS.AUTO_RESOLVE.UNANSWERED_ACTION.LABEL')
+            "
+          >
+            <RadioCard
+              v-for="option in unansweredOptions"
+              :id="`unanswered-${option.value}`"
+              :key="option.value"
+              :label="option.label"
+              description=""
+              name="unanswered-action"
+              :is-active="state.unansweredAction === option.value"
+              @select="state.unansweredAction = option.value"
+            />
+          </div>
+          <div
+            v-if="showUnansweredFollowupNotice"
+            data-testid="unanswered-followup-notice"
+            class="flex items-start gap-2 rounded-xl border border-n-blue-7 bg-n-blue-2 px-3 py-2.5 text-xs text-n-slate-12"
+          >
+            <span class="i-lucide-info size-4 shrink-0 text-n-blue-11" />
+            {{
+              t(
+                'CAPTAIN.ASSISTANTS.AUTO_RESOLVE.UNANSWERED_ACTION.CLOSE_WITH_FOLLOWUP',
+                { assistantName: assistant.name }
+              )
+            }}
+          </div>
         </div>
 
         <div
