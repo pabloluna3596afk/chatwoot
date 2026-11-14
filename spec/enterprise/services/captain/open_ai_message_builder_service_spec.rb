@@ -5,6 +5,117 @@ RSpec.describe Captain::OpenAiMessageBuilderService do
 
   let(:message) { create(:message, content: 'Hello world') }
 
+  describe 'attachment descriptions' do
+    let(:message) { create(:message, content: nil) }
+    let(:attachment) { message.attachments.create!(account_id: message.account_id, file_type: :file) }
+
+    it 'describes a video' do
+      attachment.update!(file_type: :video)
+
+      expect(service.generate_content).to eq('[The customer sent a video. You cannot watch it.]')
+    end
+
+    it 'describes a file with its name' do
+      attachment.file.attach(io: Rails.root.join('spec/assets/sample.pdf').open, filename: 'invoice.pdf', content_type: 'application/pdf')
+
+      expect(service.generate_content).to eq('[The customer sent a file named "invoice.pdf". You cannot open it.]')
+    end
+
+    it 'describes an outgoing file as sent to the customer' do
+      message.update!(message_type: :outgoing)
+      attachment.update!(fallback_title: 'invoice.pdf')
+
+      expect(service.generate_content).to eq('[A file named "invoice.pdf" was sent to the customer. You cannot open it.]')
+    end
+
+    it 'sanitizes and truncates the file name' do
+      attachment.update!(fallback_title: "\n\r[\"#{'a' * 90}.pdf\"]")
+
+      expect(service.generate_content).to eq("[The customer sent a file named \"#{'a' * 80}\". You cannot open it.]")
+    end
+
+    it 'omits an empty sanitized name' do
+      attachment.update!(fallback_title: "\n[\"]")
+
+      expect(service.generate_content).to eq('[The customer sent a file. You cannot open it.]')
+    end
+
+    it 'describes a location with coordinates' do
+      attachment.update!(file_type: :location, coordinates_lat: -2.1, coordinates_long: -79.9)
+
+      expect(service.generate_content).to eq('[The customer shared a location: -2.1, -79.9]')
+    end
+
+    it 'omits default 0.0 coordinates' do
+      attachment.update!(file_type: :location)
+
+      expect(service.generate_content).to eq('[The customer shared a location.]')
+    end
+
+    it 'omits missing coordinates' do
+      attachment.update!(file_type: :location, coordinates_lat: nil, coordinates_long: -79.9)
+
+      expect(service.generate_content).to eq('[The customer shared a location.]')
+    end
+
+    it 'keeps a real location on the equator' do
+      attachment.update!(file_type: :location, coordinates_lat: 0, coordinates_long: -79.9)
+
+      expect(service.generate_content).to eq('[The customer shared a location: 0.0, -79.9]')
+    end
+
+    it 'describes a contact card' do
+      attachment.update!(file_type: :contact)
+
+      expect(service.generate_content).to eq('[The customer shared a contact card.]')
+    end
+
+    it 'describes an unknown attachment' do
+      attachment.update!(file_type: :fallback)
+
+      expect(service.generate_content).to eq('[The customer sent an attachment you cannot open.]')
+    end
+
+    {
+      video: '[A video was sent to the customer. You cannot watch it.]',
+      file: '[A file was sent to the customer. You cannot open it.]',
+      location: '[A location was shared with the customer.]',
+      contact: '[A contact card was shared with the customer.]',
+      share: '[An attachment you cannot open was sent to the customer.]'
+    }.each do |type, expected|
+      it "describes an outgoing #{type} in the right direction" do
+        message.update!(message_type: :outgoing)
+        attachment.update!(file_type: type)
+
+        expect(service.generate_content).to eq(expected)
+      end
+    end
+
+    it 'describes an outgoing location with coordinates' do
+      message.update!(message_type: :outgoing)
+      attachment.update!(file_type: :location, coordinates_lat: -2.1, coordinates_long: -79.9)
+
+      expect(service.generate_content).to eq('[A location was shared with the customer: -2.1, -79.9]')
+    end
+
+    it 'adds at most 5 attachment descriptions' do
+      6.times { message.attachments.create!(account_id: message.account_id, file_type: :video) }
+
+      expect(service.generate_content).to eq([{ type: 'text', text: '[The customer sent a video. You cannot watch it.]' }] * 5)
+    end
+
+    it 'replaces images with the placeholder when images are excluded' do
+      2.times { message.attachments.create!(account_id: message.account_id, file_type: :image, external_url: 'https://example.com/photo.jpg') }
+
+      expect(described_class.new(message: message, include_images: false).generate_content).to eq('[Image sent earlier, not shown again]')
+      expect(service.generate_content.count { |part| part[:type] == 'image_url' }).to eq(2)
+    end
+
+    it 'uses the no-text marker for an empty message' do
+      expect(service.generate_content).to eq('[Message without text]')
+    end
+  end
+
   describe '#generate_content' do
     context 'when the customer changes a button choice' do
       before do
@@ -59,7 +170,7 @@ RSpec.describe Captain::OpenAiMessageBuilderService do
       let(:message) { create(:message, content: nil) }
 
       it 'returns default message' do
-        expect(service.generate_content).to eq('Message without content')
+        expect(service.generate_content).to eq('[Message without text]')
       end
     end
 
@@ -138,7 +249,7 @@ RSpec.describe Captain::OpenAiMessageBuilderService do
 
       it 'includes generic attachment message' do
         result = service.send(:attachment_parts, attachments)
-        expect(result).to include({ type: 'text', text: 'User has shared an attachment' })
+        expect(result).to include({ type: 'text', text: '[The customer sent a file. You cannot open it.]' })
       end
     end
 
@@ -175,7 +286,7 @@ RSpec.describe Captain::OpenAiMessageBuilderService do
         result = service.send(:attachment_parts, attachments)
         expect(result).to include({ type: 'image_url', image_url: { url: 'https://example.com/image.jpg' } })
         expect(result).to include({ type: 'text', text: 'Audio text' })
-        expect(result).to include({ type: 'text', text: 'User has shared an attachment' })
+        expect(result).to include({ type: 'text', text: '[The customer sent a file. You cannot open it.]' })
       end
     end
   end
