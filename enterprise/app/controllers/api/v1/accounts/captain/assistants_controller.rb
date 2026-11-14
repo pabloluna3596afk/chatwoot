@@ -1,3 +1,4 @@
+# rubocop:disable Metrics/ClassLength
 class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::BaseController
   class InvalidRuleList < StandardError; end
 
@@ -49,7 +50,7 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
     render json: Captain::Playground::Usage.new(account: Current.account).remaining
   end
 
-  def playground
+  def playground # rubocop:disable Metrics/AbcSize
     @playground_messages = Captain::Playground::Input.new(
       message: params.require(:assistant)[:message_content], history: params[:assistant][:message_history]
     ).messages
@@ -162,11 +163,11 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
     @account_assistants ||= Captain::Assistant.for_account(Current.account.id).customer_visible
   end
 
-  def assistant_params
+  def assistant_params # rubocop:disable Metrics/MethodLength
     assistant_config_attributes = [
       :product_name, :feature_faq, :feature_memory, :feature_citation,
       :feature_contact_attributes, :welcome_message, :handoff_message,
-      :resolution_message, :instructions, :temperature, :auto_resolve_mode,
+      :resolution_message, :instructions, :temperature, :auto_resolve_mode, :unanswered_action,
       :response_window, :allow_paid_templates, :max_replies_per_conversation, :reply_delay_seconds,
       { followup: [:inactivity_enabled, :inactivity_after_minutes, :max_nudges, :close_after_minutes, :reengagement_enabled,
                    { reengagement_template: [:name, :language, { processed_params: {} }] }] },
@@ -185,9 +186,10 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
                                                   config: assistant_config_attributes)
 
     # Preserve invalid shapes so model validation rejects them instead of silently dropping the setting.
-    if params[:assistant][:config].try(:key?, :reply_delay_seconds)
-      permitted[:config][:reply_delay_seconds] =
-        params[:assistant][:config].slice(:reply_delay_seconds).permit!.to_h['reply_delay_seconds']
+    %i[reply_delay_seconds unanswered_action].each do |key|
+      next unless params[:assistant][:config].try(:key?, key)
+
+      permitted[:config][key] = params[:assistant][:config].slice(key).permit!.to_h[key.to_s]
     end
 
     permit_rule_lists(permitted)
@@ -299,3 +301,4 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
     @assistant.account.feature_enabled?('captain_integration_v2')
   end
 end
+# rubocop:enable Metrics/ClassLength

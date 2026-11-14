@@ -570,4 +570,28 @@ RSpec.describe Captain::Assistant, type: :model do
       expect(instructions).not_to include('# Human Handoff Protocol', scenario.title, "handoff_to_#{scenario.handoff_key}")
     end
   end
+
+  describe '#unanswered_action' do
+    it 'defaults new assistants to close' do
+      expect(create(:captain_assistant).unanswered_action).to eq('close')
+    end
+
+    it 'keeps existing assistants without the key on handoff after unrelated updates' do
+      assistant = create(:captain_assistant)
+      assistant.update!(config: assistant.config.except('unanswered_action'))
+      assistant.update!(name: 'Updated')
+      expect(assistant.reload.unanswered_action).to eq('handoff')
+      expect(assistant.config).not_to have_key('unanswered_action')
+    end
+
+    it 'preserves an explicitly selected policy on creation' do
+      expect(create(:captain_assistant, unanswered_action: 'leave_open').unanswered_action).to eq('leave_open')
+    end
+
+    it 'rejects invalid values' do
+      assistant = build(:captain_assistant, unanswered_action: 'invalid')
+      expect(assistant).not_to be_valid
+      expect(assistant.errors[:unanswered_action]).to be_present
+    end
+  end
 end

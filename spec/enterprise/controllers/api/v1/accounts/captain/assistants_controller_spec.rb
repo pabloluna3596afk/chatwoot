@@ -929,4 +929,42 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
       end
     end
   end
+
+  describe 'unanswered action contract' do
+    let(:assistant) { create(:captain_assistant, account: account) }
+
+    it 'returns close for a new assistant' do
+      post "/api/v1/accounts/#{account.id}/captain/assistants",
+           params: { assistant: { name: 'Support', description: 'Support assistant' } }, headers: admin.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body.dig('config', 'unanswered_action')).to eq('close')
+    end
+
+    it 'serializes existing assistants without the key as handoff' do
+      assistant.update!(config: assistant.config.except('unanswered_action'))
+      get "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}", headers: admin.create_new_auth_token
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body.dig('config', 'unanswered_action')).to eq('handoff')
+    end
+
+    %w[close handoff leave_open].each do |action|
+      it "persists #{action} and preserves the remaining config" do
+        original = assistant.config
+        patch "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}",
+              params: { assistant: { config: { unanswered_action: action } } }, headers: admin.create_new_auth_token, as: :json
+        expect(response).to have_http_status(:success)
+        expect(assistant.reload.config).to eq(original.merge('unanswered_action' => action))
+        expect(response.parsed_body.dig('config', 'unanswered_action')).to eq(action)
+      end
+    end
+
+    [nil, false, 1, 'invalid', [], {}, ['close']].each do |invalid|
+      it "rejects unanswered_action=#{invalid.inspect} with 422" do
+        patch "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}",
+              params: { assistant: { config: { unanswered_action: invalid } } }, headers: admin.create_new_auth_token, as: :json
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(assistant.reload.unanswered_action).to eq('close')
+      end
+    end
+  end
 end

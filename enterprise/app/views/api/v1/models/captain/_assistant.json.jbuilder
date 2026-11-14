@@ -2,6 +2,7 @@ json.account_id resource.account_id
 json.avatar_url resource.avatar_or_default_url
 json.config resource.config.merge(
   'auto_resolve_mode' => resource.auto_resolve_mode,
+  'unanswered_action' => resource.unanswered_action,
   'auto_resolve_after' => resource.inactivity_threshold_minutes,
   'send_inactivity_resolution_message' => resource.send_inactivity_resolution_message?,
   'appointments' => resource.appointments.to_h,
@@ -13,8 +14,8 @@ json.description resource.description
 json.guardrails resource.guardrails
 json.id resource.id
 json.name resource.name
-json.appointment_reminder_readiness resource.captain_inboxes.includes(:inbox).map { |link|
+json.appointment_reminder_readiness(resource.captain_inboxes.includes(:inbox).map do |link|
   Captain::AppointmentReminders::Readiness.new(resource, link.inbox).to_h
-}
+end)
 json.response_guidelines resource.response_guidelines
 json.updated_at resource.updated_at.to_i
