@@ -3,6 +3,8 @@ require 'rails_helper'
 RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
   self.use_transactional_tests = false
 
+  include_context 'with an empty database after the example'
+
   let!(:account) { create(:account) }
   let!(:inbox) { create(:inbox, account: account) }
   let!(:assistant) { create(:captain_assistant, account: account) }
@@ -16,14 +18,6 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       generate_response: { 'response_parts' => [{ 'text' => 'Delivered', 'citation_indexes' => [] }] },
       last_run_result: nil, response_discarded?: false, handoff_completed?: false
     )
-  end
-
-  after do
-    account.account_plan_usages.destroy_all
-    plan = account.plan
-    account.destroy!
-    plan.destroy!
-    Audited::Audit.where(auditable_type: 'Account', auditable_id: account.id).delete_all
   end
 
   it 'refunds the reservation if delivery rolls back after finishing the receipt' do
