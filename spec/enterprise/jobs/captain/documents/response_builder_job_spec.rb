@@ -120,6 +120,22 @@ RSpec.describe Captain::Documents::ResponseBuilderJob, type: :job do
         described_class.new.perform(pdf_document)
       end
 
+      it 'flags a PDF that reached the page limit' do
+        allow(pdf_document).to receive(:metadata).and_return({ 'faq_generation' => { 'pages_processed' => 200 } })
+
+        described_class.new.perform(pdf_document)
+
+        expect(pdf_document).to have_received(:update!).with(hash_including(metadata: hash_including('faqs_truncated' => true)))
+      end
+
+      it 'does not flag a short PDF' do
+        allow(pdf_document).to receive(:metadata).and_return({ 'faq_generation' => { 'pages_processed' => 10 } })
+
+        described_class.new.perform(pdf_document)
+
+        expect(pdf_document).to have_received(:update!).with(hash_including(metadata: hash_including('faqs_truncated' => false)))
+      end
+
       it 'stores pagination metadata' do
         expect(pdf_document).to receive(:update!).with(hash_including(metadata: hash_including('faq_generation')))
 

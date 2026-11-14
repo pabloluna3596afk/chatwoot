@@ -43,8 +43,14 @@ class Captain::Documents::ResponseBuilderJob < ApplicationJob
     generated = document.responses.count
     cap_reached = generated >= Llm::UnitCosts.fetch(:max_faqs_per_document)
     content_cut = document.content.to_s.length >= Captain::Documents::SinglePageFetcher::CONTENT_MAX_LENGTH
+    pages_cut = pages_limit_reached?(document)
     document.update!(metadata: document.metadata.to_h.merge('faqs_generated' => generated,
-                                                            'faqs_truncated' => discarded || cap_reached || content_cut))
+                                                            'faqs_truncated' => discarded || cap_reached || content_cut || pages_cut))
+  end
+
+  # store_paginated_metadata runs earlier (in generate_faqs), so pages_processed is already saved here.
+  def pages_limit_reached?(document)
+    document.metadata.to_h.dig('faq_generation', 'pages_processed').to_i >= Llm::UnitCosts.fetch(:pdf, :max_pages)
   end
 
   def generate_faqs(document, options)

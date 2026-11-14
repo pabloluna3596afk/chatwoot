@@ -1570,7 +1570,7 @@
       "HEADER": "Documentos",
       "ADD_NEW": "Crear un nuevo documento",
       "FAQ_COUNT": "{n} pregunta frecuente | {n} preguntas frecuentes",
-      "TRUNCATED_NOTICE": "Este documento es largo. Solo una parte quedó disponible para {assistantName}.",
+      "TRUNCATED_NOTICE": "Documento demasiado largo: {assistantName} solo aprendió una parte. Divídelo en documentos más pequeños.",
       "USED_IN_CONVERSATIONS": "Usado en {n} conversación | Usado en {n} conversaciones",
       "NO_USED_CONVERSATIONS": "No se encontraron conversaciones para este documento.",
       "SELECTED": "{count} seleccionados",
@@ -1671,13 +1671,14 @@
         "URL": {
           "LABEL": "URL",
           "PLACEHOLDER": "Escribe la URL del documento",
-          "ERROR": "Escribe una URL válida para el documento"
+          "ERROR": "Escribe una URL válida para el documento",
+          "HELP_TEXT": "Las páginas muy largas se leen solo en parte. Si el contenido es extenso, divídelo en varias páginas o documentos."
         },
         "PDF_FILE": {
           "LABEL": "Archivo PDF",
           "CHOOSE_FILE": "Elegir archivo PDF",
           "ERROR": "Elige un archivo PDF",
-          "HELP_TEXT": "Tamaño máximo: 10 MB",
+          "HELP_TEXT": "Máximo 10 MB y 200 páginas. Si tu PDF es más largo, divídelo: solo se leen las primeras 200 páginas.",
           "INVALID_TYPE": "Elige un archivo PDF válido",
           "TOO_LARGE": "El archivo supera el límite de 10 MB"
         },
