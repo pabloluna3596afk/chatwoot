@@ -667,6 +667,7 @@ es:
     disabled: 'Captain AI está deshabilitado para esta cuenta.'
     api_key_missing: 'La clave API de Captain AI no está configurada.'
     notes:
+      closed_unanswered: '%{assistant} cerró la conversación: el cliente no respondió.'
       unavailable:
         missing_key: '%{assistant} no pudo responder: falta configurar la llave de IA.'
         quota_exhausted: '%{assistant} no pudo responder: se agotaron las respuestas del mes.'

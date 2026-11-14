@@ -3,6 +3,7 @@
 # - re-engagement: sends one template to the conversations Captain closed for inactivity (Captain::Followup::Reengager).
 class Captain::Followup::Dispatcher
   BATCH_SIZE = 100
+  MAX_AGE = 72.hours
 
   def initialize(now: Time.current)
     @now = now
@@ -28,7 +29,7 @@ class Captain::Followup::Dispatcher
     return unless settings.inactivity_enabled? && settings.max_nudges.positive?
 
     cutoff = now - [settings.inactivity_after_minutes, settings.close_after_minutes].min.minutes
-    inbox.conversations.attended_by_ai.where(assignee_agent_bot_id: assistant.id).where(last_activity_at: ..cutoff)
+    inbox.conversations.attended_by_ai.where(assignee_agent_bot_id: assistant.id).where(last_activity_at: (now - MAX_AGE)..cutoff)
          .order(:last_activity_at).limit(BATCH_SIZE).each do |conversation|
       run { Captain::Followup::Nudger.new(conversation, assistant, now: now).perform }
     end

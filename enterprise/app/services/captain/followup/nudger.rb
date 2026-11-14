@@ -50,9 +50,7 @@ class Captain::Followup::Nudger
 
   # The last public message that is not one of our nudges.
   def last_message
-    @last_message ||= conversation.messages.where(private: false, message_type: %i[incoming outgoing])
-                                  .select { |message| !nudge?(message) }
-                                  .max_by(&:created_at)
+    @last_message ||= Captain::Conversation::Turn.last_message(conversation)
   end
 
   def nudge?(message)
@@ -60,8 +58,7 @@ class Captain::Followup::Nudger
   end
 
   def awaiting_customer?
-    last_message.present? && last_message.outgoing? && last_message.sender_type == 'Captain::Assistant' &&
-      last_message.sender_id == assistant.id
+    Captain::Conversation::Turn.awaiting_customer?(conversation, assistant)
   end
 
   def nudges
@@ -79,15 +76,19 @@ class Captain::Followup::Nudger
   end
 
   def close_due?
-    nudges.any? && nudges.size >= settings.max_nudges && now - last_activity >= settings.close_after_minutes.minutes
+    return false unless now - last_activity >= settings.close_after_minutes.minutes
+
+    (nudges.any? && nudges.size >= settings.max_nudges) || (Captain::Pilot.enabled?(account) && window_closed?)
   end
+
+  def window_closed? = !conversation.can_reply?
 
   def cap
     @cap ||= Automations::ProactiveSendCap.new(account)
   end
 
-  def translate(key, **options)
-    I18n.t("captain.followup.#{key}", locale: locale, assistant: assistant.name, **options)
+  def translate(key, **)
+    I18n.t("captain.followup.#{key}", locale: locale, assistant: assistant.name, **)
   end
 
   def nudge
@@ -116,43 +117,11 @@ class Captain::Followup::Nudger
   end
 
   def close
-    Current.executed_by = assistant
-    conversation.with_captain_activity_context(reason: 'no reply to the follow-up', reason_type: :inference) do
-      create_note
-      create_resolution_message
-      conversation.resolved!
-      mark_closed
-    end
-    :closed
+    Captain::Followup::Closer.new(conversation, assistant, now: now).perform
   end
 
   def announce_resolution
     Captain::ConversationEvents.resolved(conversation: conversation, assistant: assistant,
                                          source: Captain::ConversationEvents::Sources::TIME_BASED, at: now)
-  end
-
-  def create_note
-    conversation.messages.create!(
-      message_type: :outgoing, private: true, sender: assistant, account_id: account.id,
-      inbox_id: conversation.inbox_id, content: translate('closed_note')
-    )
-  end
-
-  # Same optional goodbye the assistant already sends when it closes for inactivity, only inside the window.
-  def create_resolution_message
-    return unless assistant.send_inactivity_resolution_message? && conversation.can_reply?
-
-    conversation.messages.create!(
-      message_type: :outgoing, sender: assistant, account_id: account.id, inbox_id: conversation.inbox_id,
-      content: assistant.config['resolution_message'].presence || I18n.t('conversations.activity.auto_resolution_message', locale: locale)
-    )
-  end
-
-  # What the re-engagement later needs to find the conversation.
-  def mark_closed
-    attributes = conversation.additional_attributes || {}
-    conversation.update!(additional_attributes: attributes.merge(
-      Captain::Followup::Reengager::STATE_KEY => { 'closed_at' => now.utc.iso8601, 'assistant_id' => assistant.id }
-    ))
   end
 end
