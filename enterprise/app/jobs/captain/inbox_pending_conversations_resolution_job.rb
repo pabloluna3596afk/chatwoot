@@ -53,13 +53,12 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   end
 
   def customer_owes_reply?(conversation)
-    captain_assistant.unanswered_action != 'handoff' && Captain::Conversation::Turn.awaiting_customer?(conversation, captain_assistant)
+    Captain::Pilot.enabled?(conversation.account) && captain_assistant.evaluate_inactive_conversations_before_resolving? &&
+      Captain::Conversation::Turn.awaiting_customer?(conversation, captain_assistant)
   end
 
   def handle_unanswered(conversation)
     closed = with_unanswered_conversation_lock(conversation) do
-      next if captain_assistant.unanswered_action == 'leave_open'
-
       followup = captain_assistant.followup
       next if followup.inactivity_enabled? && followup.max_nudges.positive?
 

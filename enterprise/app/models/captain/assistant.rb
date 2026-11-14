@@ -20,7 +20,6 @@
 class Captain::Assistant < ApplicationRecord
   DESCRIPTION_LENGTH_LIMIT = 500
   CITATION_SOURCES_STATE_KEY = :captain_v2_citation_sources
-  UNANSWERED_ACTIONS = %w[close handoff leave_open].freeze
   AUTO_RESOLVE_MODES = %w[disabled legacy evaluated].freeze
   DEFAULT_INACTIVITY_THRESHOLD_MINUTES = 60
   MINIMUM_INACTIVITY_THRESHOLD_MINUTES = 5
@@ -65,11 +64,10 @@ class Captain::Assistant < ApplicationRecord
                                     dependent: :nullify, inverse_of: :ai_assignee
 
   store_accessor :config, :temperature, :feature_faq, :feature_memory, :feature_contact_attributes, :product_name,
-                 :auto_resolve_mode, :unanswered_action, :auto_resolve_after, :send_inactivity_resolution_message, :response_window,
+                 :auto_resolve_mode, :auto_resolve_after, :send_inactivity_resolution_message, :response_window,
                  :max_replies_per_conversation, :reply_delay_seconds
 
   before_validation :set_default_auto_resolve_mode, on: :create
-  before_validation :set_default_unanswered_action, on: :create
   before_validation :normalize_auto_resolve_after
   before_validation :normalize_appointments_config
   before_validation :normalize_followup_config
@@ -87,8 +85,6 @@ class Captain::Assistant < ApplicationRecord
   validate :validate_response_window
   validate :validate_max_replies_per_conversation
   validate :validate_reply_delay_seconds
-  validate :validate_unanswered_action_type
-  validates :unanswered_action, inclusion: { in: UNANSWERED_ACTIONS }
   validates :auto_resolve_mode, inclusion: { in: AUTO_RESOLVE_MODES }
   validates :send_inactivity_resolution_message, inclusion: { in: [true, false] }
   validates :auto_resolve_after,
@@ -205,10 +201,6 @@ class Captain::Assistant < ApplicationRecord
     return true unless inbox.working_hours_enabled?
 
     response_window == 'business_hours' ? !inbox.out_of_office? : inbox.out_of_office?
-  end
-
-  def unanswered_action
-    config.fetch('unanswered_action') { 'handoff' }
   end
 
   def auto_resolve_mode
@@ -356,14 +348,6 @@ class Captain::Assistant < ApplicationRecord
     return if value.is_a?(Integer) && value.between?(0, MAX_REPLY_DELAY_SECONDS)
 
     errors.add(:config, "reply_delay_seconds must be an integer between 0 and #{MAX_REPLY_DELAY_SECONDS}")
-  end
-
-  def validate_unanswered_action_type
-    errors.add(:unanswered_action, :invalid) unless unanswered_action.is_a?(String)
-  end
-
-  def set_default_unanswered_action
-    self.unanswered_action = 'close' unless config.key?('unanswered_action')
   end
 
   def set_default_auto_resolve_mode

@@ -7,7 +7,7 @@ namespace :captain do
       cutoff = now - Captain::Followup::Dispatcher::MAX_AGE
       CaptainInbox.includes(:inbox, :captain_assistant).find_each do |link|
         assistant = link.captain_assistant
-        next unless assistant.unanswered_action == 'close'
+        next unless Captain::Pilot.enabled?(link.inbox.account) && assistant.evaluate_inactive_conversations_before_resolving?
 
         link.inbox.conversations.attended_by_ai.where(assignee_agent_bot_id: assistant.id)
             .where('last_activity_at < ?', cutoff).find_each do |conversation|

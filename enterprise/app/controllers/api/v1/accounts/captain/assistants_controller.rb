@@ -167,7 +167,7 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
     assistant_config_attributes = [
       :product_name, :feature_faq, :feature_memory, :feature_citation,
       :feature_contact_attributes, :welcome_message, :handoff_message,
-      :resolution_message, :instructions, :temperature, :auto_resolve_mode, :unanswered_action,
+      :resolution_message, :instructions, :temperature, :auto_resolve_mode,
       :response_window, :allow_paid_templates, :max_replies_per_conversation, :reply_delay_seconds,
       { followup: [:inactivity_enabled, :inactivity_after_minutes, :max_nudges, :close_after_minutes, :reengagement_enabled,
                    { reengagement_template: [:name, :language, { processed_params: {} }] }] },
@@ -186,10 +186,9 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
                                                   config: assistant_config_attributes)
 
     # Preserve invalid shapes so model validation rejects them instead of silently dropping the setting.
-    %i[reply_delay_seconds unanswered_action].each do |key|
-      next unless params[:assistant][:config].try(:key?, key)
-
-      permitted[:config][key] = params[:assistant][:config].slice(key).permit!.to_h[key.to_s]
+    if params[:assistant][:config].try(:key?, :reply_delay_seconds)
+      permitted[:config][:reply_delay_seconds] =
+        params[:assistant][:config].slice(:reply_delay_seconds).permit!.to_h['reply_delay_seconds']
     end
 
     permit_rule_lists(permitted)
