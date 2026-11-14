@@ -71,6 +71,42 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
         expect(result).not_to include('Citation index:')
       end
 
+      it 'searches with account_id and records embeddings when the internal pool is zero' do
+        put_account_on_plan(account, captain_internal_calls: 0)
+        account.enable_features!(:captain_pilot)
+        allow(Captain::Llm::EmbeddingService).to receive(:new).and_call_original
+        embedding_result = Struct.new(:vectors).new(Array.new(1536, 0.1))
+        allow(RubyLLM).to receive(:embed).and_return(embedding_result)
+        allow(Captain::AssistantResponse).to receive(:nearest_neighbors).and_call_original
+        response1.update!(embedding: Array.new(1536, 0.1))
+        response2.update!(embedding: Array.new(1536, -0.1))
+        expect(account.usage_limits.dig(:captain, :internal, :current_available)).to eq(0)
+
+        results = assistant.responses.approved.search('password', account_id: account.id).to_a
+
+        expect(results.map(&:id)).to include(response1.id)
+        event = AiUsageEvent.find_by!(account: account, feature: 'embedding')
+        expect(event).to have_attributes(bucket: 'internal', status: 'ok', units: 0)
+        expect(account.current_usage_period.reload.internal_calls_consumed).to eq(0)
+        expect(AiUsageReservation.count).to eq(0)
+      end
+
+      it 'passes account_id from the FAQ tool with zero internal units and records the lookup' do
+        put_account_on_plan(account, captain_internal_calls: 0)
+        account.enable_features!(:captain_pilot)
+        allow(Captain::Llm::EmbeddingService).to receive(:new).and_call_original
+        embedding_result = Struct.new(:vectors).new(Array.new(1536, 0.1))
+        allow(RubyLLM).to receive(:embed).and_return(embedding_result)
+        expect(Captain::Llm::EmbeddingService).to receive(:new).with(account_id: account.id).and_call_original
+
+        result = tool.perform(tool_context, query: 'password')
+
+        expect(result).to include(response1.answer)
+        expect(AiUsageEvent.find_by!(account: account, feature: 'embedding')).to have_attributes(bucket: 'internal', status: 'ok', units: 0)
+        expect(account.current_usage_period.reload.internal_calls_consumed).to eq(0)
+        expect(AiUsageReservation.count).to eq(0)
+      end
+
       it 'preserves neighbor_distance after loading documents and materializing real vector results' do
         response1.update!(embedding: Array.new(1536, 0.1))
         response2.update!(embedding: Array.new(1536, -0.1))
