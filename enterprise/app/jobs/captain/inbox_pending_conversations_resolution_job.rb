@@ -1,3 +1,4 @@
+# rubocop:disable Metrics/ClassLength
 class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   queue_as :low
 
@@ -28,6 +29,8 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
     Current.executed_by = captain_assistant
 
     resolvable_pending_conversations(inbox).each do |conversation|
+      next handle_unanswered(conversation) if customer_owes_reply?(conversation)
+
       resolve_time_based_conversation(conversation, inbox)
     end
   end
@@ -36,6 +39,8 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
     Current.executed_by = captain_assistant
 
     resolvable_pending_conversations(inbox).each do |conversation|
+      next handle_unanswered(conversation) if customer_owes_reply?(conversation)
+
       evaluation = evaluate_conversation(conversation, inbox)
       next unless still_resolvable_after_evaluation?(conversation)
 
@@ -44,6 +49,38 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
       else
         handoff_conversation(conversation, evaluation)
       end
+    end
+  end
+
+  def customer_owes_reply?(conversation)
+    captain_assistant.unanswered_action != 'handoff' && Captain::Conversation::Turn.awaiting_customer?(conversation, captain_assistant)
+  end
+
+  def handle_unanswered(conversation)
+    closed = with_unanswered_conversation_lock(conversation) do
+      next if captain_assistant.unanswered_action == 'leave_open'
+
+      followup = captain_assistant.followup
+      next if followup.inactivity_enabled? && followup.max_nudges.positive?
+
+      Captain::Followup::Closer.new(conversation, captain_assistant, note_key: 'captain.notes.closed_unanswered',
+                                                                     send_resolution_message: false).perform
+    end
+    return unless closed == :closed
+
+    Captain::ConversationEvents.resolved(conversation: conversation, assistant: captain_assistant,
+                                         source: Captain::ConversationEvents::Sources::TIME_BASED, at: Time.current)
+  rescue ActiveRecord::RecordNotFound
+    nil
+  end
+
+  def with_unanswered_conversation_lock(conversation)
+    conversation.with_lock do
+      conversation.reload
+      next unless conversation.captain_attended? && conversation.ai_assignee == captain_assistant
+      next unless inactive_for_initial_action?(conversation) && customer_owes_reply?(conversation)
+
+      yield
     end
   end
 
@@ -171,8 +208,8 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
     translate(conversation, 'captain.notes.evaluation_failed')
   end
 
-  def translate(conversation, key, **options)
-    I18n.t(key, assistant: captain_assistant.name, locale: conversation.account.locale, **options)
+  def translate(conversation, key, **)
+    I18n.t(key, assistant: captain_assistant.name, locale: conversation.account.locale, **)
   end
 
   def create_private_note(conversation, content)
@@ -207,3 +244,4 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
     )
   end
 end
+# rubocop:enable Metrics/ClassLength

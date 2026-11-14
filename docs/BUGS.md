@@ -3523,3 +3523,17 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Arreglo:** hasta tres intentos con esperas de 5 y 20 segundos, solo ante errores transitorios que fallen en 45 segundos o menos y sin herramientas con efectos previas. La marca usa `Concurrent::Map` por conversación porque RubyLLM permite ejecutar herramientas en otros hilos; se limpia al iniciar cada job y generación. Conocimiento y HTTP GET no marcan efecto. Tras agotar intentos se conserva el traspaso y el aviso fuera de horario, sin nota privada nueva. El límite cuenta desde la última resolución y excluye los nudges. Las notas de la herramienta solo se crean con motivo presente.
 - **Verificación:** 1.215 ejemplos RSpec, 0 fallos, en base aislada; todos los consumidores exigidos por la ficha PR 1 incluidos. RuboCop con `chathub-rubocop-ci`: 16 archivos, 0 infracciones. ESLint y Prettier limpios; Vitest: 13 pruebas en UTC y 13 en America/Guayaquil. Paridad CAPTAIN es/en: 1.043 claves por idioma, sin faltantes ni diferencias de interpolación.
 - **Cómo probar:** simular un fallo transitorio y luego éxito: solo llega la respuesta normal. Tres fallos: un traspaso, sin nota privada; si está fuera de horario, también el aviso habitual. Un fallo de más de 45 segundos o tras herramienta con efectos no programa otro intento. Reabrir una conversación con 20 respuestas anteriores permite atender al contacto de nuevo. Traspaso de herramienta sin motivo no deja nota vacía. Sin migraciones ni bandera piloto.
+
+
+### B-NEW-266 - Captain: política configurable para clientes que no responden (2026-11-14)
+
+- Archivos: enterprise/app/services/captain/conversation/turn.rb, enterprise/app/services/captain/followup/{closer,nudger,dispatcher}.rb, enterprise/app/jobs/captain/inbox_pending_conversations_resolution_job.rb, enterprise/app/models/captain/assistant.rb, lib/tasks/captain_followup.rake y formularios de Ajustes.
+- Cambio: close/handoff/leave_open por asistente; existentes sin clave conservan handoff, nuevos usan close. Turn limita el escaneo a 10 mensajes; Dispatcher limita el lote a 72 h. CAP-007 cierra por ventana cerrada solo con captain_pilot. El camino nuevo vuelve a comprobar propiedad y turno bajo bloqueo; el cierre silencioso no consulta al modelo ni envía despedida pública.
+- Verificación: turn_spec.rb, closer_spec.rb, inbox_pending_conversations_resolution_job_unanswered_spec.rb, followup_spec.rb, assistant_spec.rb, assistants_controller_spec.rb, task_captain_followup_spec.rb y specs de los formularios. Totales y evidencia visual en el informe de entrega de PR4.
+
+### B-NEW-267 - Pendiente: el job viejo puede actuar sobre pendientes asignadas a una persona (2026-11-14)
+
+- Archivo: enterprise/app/jobs/captain/inbox_pending_conversations_resolution_job.rb, métodos perform_locked_transition y resolve_time_based_conversation.
+- Riesgo preexistente: selección y bloqueo comprueban estado pending e inactividad, pero no la propiedad Captain. Asignar una persona limpia ai_assignee sin forzar un cambio de estado; una pendiente asignada a una persona sigue cumpliendo esos criterios.
+- Decisión del PM para PR4: conservar sin cambios los caminos viejos (temporal, evaluación y handoff). Pendiente de decisión del dueño; no se declara corregido por este PR.
+- Cómo comprobarlo: seleccionar una pendiente inactiva, asignar una persona manteniendo pending antes de entrar al bloqueo y ejecutar el camino viejo. Contrastar con inbox_pending_conversations_resolution_job_unanswered_spec.rb, que exige sin acción ni nota para el camino nuevo.
