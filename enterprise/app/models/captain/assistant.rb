@@ -389,6 +389,7 @@ class Captain::Assistant < ApplicationRecord
 
   def prompt_context
     {
+      account_language: account.locale_english_name,
       name: name,
       description: description,
       product_name: config['product_name'].presence || account.name,

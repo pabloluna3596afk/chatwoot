@@ -1,6 +1,17 @@
 require 'rails_helper'
 
 RSpec.describe Captain::Scenario, type: :model do
+  describe '#prompt_context' do
+    it 'requests the handoff reason in the account language' do
+      account = create(:account, locale: 'es')
+      assistant = create(:captain_assistant, account: account)
+      scenario = create(:captain_scenario, account: account, assistant: assistant, instruction: 'Use [@Handoff](tool://handoff)')
+
+      expect(scenario.send(:prompt_context)[:account_language]).to eq(account.locale_english_name)
+      expect(scenario.agent_instructions).to include("Write the handoff reason in #{account.locale_english_name}.")
+    end
+  end
+
   describe 'associations' do
     it { is_expected.to belong_to(:assistant).class_name('Captain::Assistant') }
     it { is_expected.to belong_to(:account) }

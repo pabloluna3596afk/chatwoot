@@ -161,7 +161,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
   # The assistant has said all it may in this conversation: one goodbye (its handoff message) and the team takes over.
   def process_reply_limit
     @response = { 'action_source' => 'reply_limit', 'action_reason' => 'max_replies_per_conversation' }
-    process_v1_handoff
+    process_v1_handoff(source: 'reply_limit', reason_category: 'policy_restriction', note_key: 'handoff_reply_limit')
     Captain::ConversationEvents.handed_off(
       conversation: @conversation, assistant: @assistant, source: Captain::ConversationEvents::Sources::REPLY_LIMIT,
       reason_category: :policy_restriction, at: Time.current
@@ -174,8 +174,12 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
     # rather than posting a stale handoff message on top of their reply.
     return unless conversation_pending?
 
-    process_v1_handoff
-    record_v2_failure_handoff(source: Captain::ConversationEvents::Sources::GENERATION_FAILURE) if v2_generation_errored?
+    if v2_generation_errored?
+      process_v1_handoff(source: 'generation_failure', reason_category: 'tool_failure', note_key: 'handoff_generation_failure')
+      record_v2_failure_handoff(source: Captain::ConversationEvents::Sources::GENERATION_FAILURE)
+    else
+      process_v1_handoff
+    end
   end
 
   def process_standard_response
@@ -203,7 +207,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
     if captain_v2_enabled?
       return unless v2_handoff_tool_completed? || conversation_pending?
 
-      v2_handoff_tool_completed? ? process_v2_handoff : process_v1_handoff
+      v2_handoff_tool_completed? ? process_v2_handoff : process_v1_handoff(reason_category: 'tool_failure')
       record_v2_failure_handoff(source: Captain::ConversationEvents::Sources::TOOL) unless v2_handoff_tool_completed?
     else
       conversation_pending? ? process_v1_handoff : process_v2_handoff
@@ -227,7 +231,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
   def v2_handoff_tool_fired? = @response['handoff_tool_called']
   def v2_handoff_tool_completed? = @v2_handoff_tool_completed == true
 
-  def process_v1_handoff
+  def process_v1_handoff(source: 'tool', reason_category: 'unknown', note_key: 'handoff_without_reason')
     I18n.with_locale(@assistant.account.locale) do
       Rails.logger.info(
         "[CAPTAIN][ResponseBuilderJob] V1 handoff requested for account=#{account.id} conversation=#{@conversation.display_id} " \
@@ -235,32 +239,28 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
       )
       create_handoff_message
       @conversation.bot_handoff!
-      report_v1_handoff_not_executed if conversation_pending?
-      send_out_of_office_message_if_applicable
+      return report_v1_handoff_not_executed if conversation_pending?
+
+      @conversation.messages.create!(
+        message_type: :outgoing, private: true, sender: @assistant, account: account, inbox: inbox,
+        content: I18n.t("captain.notes.#{note_key}", assistant: @assistant.name),
+        content_attributes: { captain_handoff: { reason_category: reason_category, source: source } }
+      )
     end
   end
 
   def process_v2_handoff
-    # HandoffTool already ran bot_handoff! + OOO inside the agent loop. Preserve
-    # waiting_since so this message doesn't clear the timestamp it left in place.
+    # HandoffTool already completed the transition and created its note. Customer delivery happens here.
+    @conversation.reload
     I18n.with_locale(@assistant.account.locale) do
-      create_handoff_message(preserve_waiting_since: true)
+      create_handoff_message
     end
   end
 
-  def send_out_of_office_message_if_applicable
-    # Campaign conversations should never receive OOO templates — the campaign itself
-    # serves as the initial outreach, and OOO would be confusing in that context.
-    return if @conversation.campaign.present?
-
-    ::MessageTemplates::Template::OutOfOffice.perform_if_applicable(@conversation)
-  end
-
-  def create_handoff_message(preserve_waiting_since: false)
-    @handoff_message = create_outgoing_message(
-      @assistant.config['handoff_message'].presence || I18n.t('conversations.captain.handoff'),
-      preserve_waiting_since: preserve_waiting_since
-    )
+  def create_handoff_message
+    reply = Captain::Conversation::HandoffReply.new(@conversation, @assistant, fallback: I18n.t('conversations.captain.handoff'))
+    reply.perform
+    @handoff_message = reply.message
   end
 
   # Capture runs outside the delivery transaction and never raises (the service
@@ -291,7 +291,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
     # A rolled-back new message remains in the association target and would be
     # autosaved by the handoff's conversation update unless we discard it.
     @conversation.messages.reset if @reply_reservation_id
-    process_v1_handoff
+    process_v1_handoff(source: 'generation_failure', reason_category: 'tool_failure', note_key: 'handoff_generation_failure')
     record_v2_failure_handoff(source: Captain::ConversationEvents::Sources::GENERATION_FAILURE) if captain_v2_enabled?
   end
 
