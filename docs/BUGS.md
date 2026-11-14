@@ -1,3 +1,11 @@
+### B-NEW-268 — Captain: traspaso con contexto y una sola respuesta al cliente (2026-11-14)
+
+- **Archivos:** `HandoffTool`, `ResponseBuilderJob`, `UsageLimitHandoff`, job de inactividad, coordinador `HandoffReply`, prompts de asistente/escenario, burbuja `CaptainHandoff` y `FailureSpikeJob` con extensión Enterprise.
+- **Problema:** varios traspasos no dejaban motivo interno; fuera de horario podían salir dos mensajes. El envío OOO captura errores y devuelve `true` aunque no guarde ningún mensaje, por lo que omitir el mensaje de traspaso solo por horario podía dejar al cliente sin respuesta.
+- **Arreglo:** todos los caminos dejan una nota con texto y `captain_handoff` (categoría/origen); la sesión de la herramienta se adjunta también a la nota mínima. La tarjeta reutiliza la nota privada ámbar y conserva las notas antiguas. El prompt pide el motivo en el idioma de la cuenta. Un único coordinador intenta el OOO cuando corresponde y comprueba el registro guardado con el contenido resuelto; si no existe, envía el traspaso configurado o su defecto actual. La herramienta delega el envío al job. Una tarea horaria alerta al alcanzar el umbral de fallos técnicos (10 por defecto, 1..1000), con exclusión Redis por hora.
+- **Cómo probar:** specs del coordinador (horario, campaña, variables Liquid y fallo al guardar), traspaso real herramienta → job → sesión, notas por origen, inactividad y alerta con Redis; Vitest de tarjeta en/es, selección de burbuja y ajustes en UTC/America/Guayaquil. Informe local y totales: `tmp/PR-CAPTAIN-6.md`.
+- **Alcance:** todas las cuentas, sin bandera nueva, migraciones, resumen IA, indicador de fuentes ni cambios de cupos. Sin push, PR ni despliegue. Revisión visual pendiente en el entorno del PM; no se publican puertos ni previews en esta sesión.
+
 ### B-NEW-261 - La app instalada en Android mostraba el nombre e icono de Chatwoot (2026-11-10)
 
 - **Archivos:** `public/manifest.json`, `public/android-icon-512x512.png`, `public/android-icon-maskable-512x512.png`.
