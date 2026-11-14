@@ -953,6 +953,31 @@
       "EDIT": "Update"
     },
     "ASSISTANTS": {
+      "BUSINESS_FACTS": {
+        "TITLE": "Business facts",
+        "DESCRIPTION": "{assistantName} uses these facts to answer without searching. Fill in only the ones that apply and keep them consistent with your FAQs.",
+        "HOURS": {
+          "LABEL": "Opening hours",
+          "PLACEHOLDER": "Monday to Friday 9:00 to 18:00, Saturday 9:00 to 13:00"
+        },
+        "ADDRESS": {
+          "LABEL": "Address",
+          "PLACEHOLDER": "120 Main Street, Springfield"
+        },
+        "PAYMENT": {
+          "LABEL": "Payment methods",
+          "PLACEHOLDER": "Cash, bank transfer and card"
+        },
+        "DELIVERY": {
+          "LABEL": "Delivery or coverage",
+          "PLACEHOLDER": "Nationwide delivery in 2 to 3 days"
+        },
+        "BOOKING": {
+          "LABEL": "How to book or order",
+          "PLACEHOLDER": "Message us here and we will confirm the time"
+        },
+        "TOO_LONG": "Maximum 300 characters."
+      },
       "HEADER": "Assistants",
       "NO_ASSISTANTS_AVAILABLE": "There are no assistants available in your account.",
       "ADD_NEW": "Create a new assistant",

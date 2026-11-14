@@ -2,12 +2,13 @@
 import { reactive, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useVuelidate } from '@vuelidate/core';
-import { required, minLength, helpers } from '@vuelidate/validators';
+import { required, minLength, maxLength, helpers } from '@vuelidate/validators';
 
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Editor from 'dashboard/components-next/Editor/Editor.vue';
+import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 
 const props = defineProps({
   assistant: {
@@ -20,10 +21,40 @@ const emit = defineEmits(['submit', 'uploadAvatar', 'deleteAvatar']);
 
 const { t } = useI18n();
 
+const BUSINESS_FACT_MAX_LENGTH = 300;
+const businessFactFields = computed(() => [
+  {
+    key: 'hours',
+    label: t('CAPTAIN.ASSISTANTS.BUSINESS_FACTS.HOURS.LABEL'),
+    placeholder: t('CAPTAIN.ASSISTANTS.BUSINESS_FACTS.HOURS.PLACEHOLDER'),
+  },
+  {
+    key: 'address',
+    label: t('CAPTAIN.ASSISTANTS.BUSINESS_FACTS.ADDRESS.LABEL'),
+    placeholder: t('CAPTAIN.ASSISTANTS.BUSINESS_FACTS.ADDRESS.PLACEHOLDER'),
+  },
+  {
+    key: 'payment_methods',
+    label: t('CAPTAIN.ASSISTANTS.BUSINESS_FACTS.PAYMENT.LABEL'),
+    placeholder: t('CAPTAIN.ASSISTANTS.BUSINESS_FACTS.PAYMENT.PLACEHOLDER'),
+  },
+  {
+    key: 'delivery',
+    label: t('CAPTAIN.ASSISTANTS.BUSINESS_FACTS.DELIVERY.LABEL'),
+    placeholder: t('CAPTAIN.ASSISTANTS.BUSINESS_FACTS.DELIVERY.PLACEHOLDER'),
+  },
+  {
+    key: 'booking',
+    label: t('CAPTAIN.ASSISTANTS.BUSINESS_FACTS.BOOKING.LABEL'),
+    placeholder: t('CAPTAIN.ASSISTANTS.BUSINESS_FACTS.BOOKING.PLACEHOLDER'),
+  },
+]);
+
 const initialState = {
   name: '',
   description: '',
   productName: '',
+  businessFacts: {},
   features: {
     conversationFaqs: false,
     memories: false,
@@ -46,6 +77,17 @@ const validationRules = {
   name: { required: requiredMessage, minLength: minLengthMessage },
   description: { required: requiredMessage, minLength: minLengthMessage },
   productName: { required: requiredMessage, minLength: minLengthMessage },
+  businessFacts: Object.fromEntries(
+    businessFactFields.value.map(({ key }) => [
+      key,
+      {
+        maxLength: helpers.withMessage(
+          () => t('CAPTAIN.ASSISTANTS.BUSINESS_FACTS.TOO_LONG'),
+          maxLength(BUSINESS_FACT_MAX_LENGTH)
+        ),
+      },
+    ])
+  ),
 };
 
 const v$ = useVuelidate(validationRules, state);
@@ -65,6 +107,12 @@ const updateStateFromAssistant = assistant => {
   state.name = assistant.name;
   state.description = assistant.description;
   state.productName = config.product_name;
+  state.businessFacts = Object.fromEntries(
+    businessFactFields.value.map(({ key }) => [
+      key,
+      config.business_facts?.[key] ?? '',
+    ])
+  );
   state.features = {
     conversationFaqs: config.feature_faq || false,
     memories: config.feature_memory || false,
@@ -78,6 +126,7 @@ const handleBasicInfoUpdate = async () => {
     v$.value.name.$validate(),
     v$.value.description.$validate(),
     v$.value.productName.$validate(),
+    v$.value.businessFacts.$validate(),
   ]).then(results => results.every(Boolean));
   if (!result) return;
 
@@ -87,6 +136,7 @@ const handleBasicInfoUpdate = async () => {
     config: {
       ...props.assistant.config,
       product_name: state.productName,
+      business_facts: { ...state.businessFacts },
       feature_faq: state.features.conversationFaqs,
       feature_memory: state.features.memories,
       feature_citation: state.features.citations,
@@ -152,6 +202,37 @@ watch(
       :message-type="formErrors.description ? 'error' : 'info'"
       class="z-0"
     />
+
+    <section class="flex flex-col gap-4">
+      <div class="flex flex-col gap-2">
+        <h6 class="text-base font-medium text-n-slate-12">
+          {{ t('CAPTAIN.ASSISTANTS.BUSINESS_FACTS.TITLE') }}
+        </h6>
+        <span class="text-sm text-n-slate-11">
+          {{
+            t('CAPTAIN.ASSISTANTS.BUSINESS_FACTS.DESCRIPTION', {
+              assistantName: state.name,
+            })
+          }}
+        </span>
+      </div>
+      <TextArea
+        v-for="{ key, label, placeholder } in businessFactFields"
+        :id="`business-fact-${key}`"
+        :key="key"
+        v-model="state.businessFacts[key]"
+        :label="label"
+        :placeholder="placeholder"
+        :max-length="BUSINESS_FACT_MAX_LENGTH"
+        show-character-count
+        :message="
+          v$.businessFacts[key].$error
+            ? t('CAPTAIN.ASSISTANTS.BUSINESS_FACTS.TOO_LONG')
+            : ''
+        "
+        :message-type="v$.businessFacts[key].$error ? 'error' : 'info'"
+      />
+    </section>
 
     <div class="flex flex-col gap-2">
       <label class="text-sm font-medium text-n-slate-12">
