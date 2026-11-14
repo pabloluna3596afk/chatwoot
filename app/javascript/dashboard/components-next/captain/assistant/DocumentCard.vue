@@ -278,17 +278,6 @@ const handleRetry = () => {
         {{ responsesCountLabel }}
       </span>
       <span
-        v-if="faqsTruncated && !quotaExceeded"
-        class="flex gap-1.5 items-center text-sm truncate text-n-amber-11"
-      >
-        <Icon icon="i-lucide-triangle-alert" class="shrink-0 size-3.5" />
-        <span class="truncate">{{
-          t('CAPTAIN.DOCUMENTS.TRUNCATED_NOTICE', {
-            assistantName: assistant?.name || '',
-          })
-        }}</span>
-      </span>
-      <span
         v-if="quotaExceeded"
         class="flex gap-1.5 items-center text-sm truncate text-n-amber-11"
       >
@@ -318,5 +307,18 @@ const handleRetry = () => {
         {{ createdAtLabel }}
       </div>
     </div>
+    <p
+      v-if="faqsTruncated && !quotaExceeded"
+      class="flex gap-1.5 items-start w-full text-sm text-n-amber-11"
+    >
+      <Icon icon="i-lucide-triangle-alert" class="shrink-0 size-3.5 mt-0.5" />
+      <span>
+        {{
+          t('CAPTAIN.DOCUMENTS.TRUNCATED_NOTICE', {
+            assistantName: assistant?.name || '',
+          })
+        }}
+      </span>
+    </p>
   </CardLayout>
 </template>
