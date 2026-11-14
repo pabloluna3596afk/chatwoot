@@ -209,6 +209,11 @@
   display_title: 'Embedding Model (optional)'
   description: 'The embedding model configured for use in Captain AI. Default: text-embedding-3-small'
   locked: false
+- name: CAPTAIN_FAILURE_ALERT_THRESHOLD
+  display_title: 'Captain failure alert threshold'
+  description: 'Failure handoffs in 60 minutes that trigger an alert. Integer from 1 to 1000. Default: 10'
+  value: 10
+  locked: false
 - name: CAPTAIN_FAQ_MAX_DISTANCE
   display_title: 'Knowledge relevance threshold (optional)'
   description: 'Maximum cosine distance for a knowledge result to be used by Captain. Lower is stricter. Default: 0.55'
