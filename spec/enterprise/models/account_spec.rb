@@ -705,11 +705,11 @@ RSpec.describe Account, type: :model do
   describe 'concurrent AI quota reservations' do
     self.use_transactional_tests = false
 
+    include_context 'with an empty database after the example'
+
     let!(:concurrent_account) do
       create(:account).tap { |record| put_account_on_plan(record, captain_internal_calls: 1) }
     end
-
-    after { concurrent_account.destroy! }
 
     it 'admits only one of two simultaneous reservations for the last internal credit' do
       ready = Queue.new

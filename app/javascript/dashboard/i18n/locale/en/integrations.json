@@ -1577,6 +1577,7 @@
       "HEADER": "Documents",
       "ADD_NEW": "Create a new document",
       "FAQ_COUNT": "{n} FAQ | {n} FAQs",
+      "TRUNCATED_NOTICE": "Document too long: {assistantName} only learned part of it. Split it into smaller documents.",
       "USED_IN_CONVERSATIONS": "Used in {n} conversation | Used in {n} conversations",
       "NO_USED_CONVERSATIONS": "No conversations found for this document.",
       "SELECTED": "{count} selected",
@@ -1677,13 +1678,14 @@
         "URL": {
           "LABEL": "URL",
           "PLACEHOLDER": "Enter the URL of the document",
-          "ERROR": "Please provide a valid URL for the document"
+          "ERROR": "Please provide a valid URL for the document",
+          "HELP_TEXT": "Very long pages are only partly read. If the content is extensive, split it into several pages or documents."
         },
         "PDF_FILE": {
           "LABEL": "PDF File",
           "CHOOSE_FILE": "Choose PDF file",
           "ERROR": "Please select a PDF file",
-          "HELP_TEXT": "Maximum file size: 10MB",
+          "HELP_TEXT": "Up to 10 MB and 200 pages. If your PDF is longer, split it: only the first 200 pages are read.",
           "INVALID_TYPE": "Please select a valid PDF file",
           "TOO_LARGE": "File size exceeds 10MB limit"
         },

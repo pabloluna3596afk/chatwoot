@@ -72,6 +72,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  faqsTruncated: {
+    type: Boolean,
+    default: false,
+  },
   syncInProgress: {
     type: Boolean,
     default: false,
@@ -303,5 +307,18 @@ const handleRetry = () => {
         {{ createdAtLabel }}
       </div>
     </div>
+    <p
+      v-if="faqsTruncated && !quotaExceeded"
+      class="flex gap-1.5 items-start w-full text-sm text-n-amber-11"
+    >
+      <Icon icon="i-lucide-triangle-alert" class="shrink-0 size-3.5 mt-0.5" />
+      <span>
+        {{
+          t('CAPTAIN.DOCUMENTS.TRUNCATED_NOTICE', {
+            assistantName: assistant?.name || '',
+          })
+        }}
+      </span>
+    </p>
   </CardLayout>
 </template>

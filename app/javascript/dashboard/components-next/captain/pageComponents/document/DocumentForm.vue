@@ -202,7 +202,7 @@ const handleSubmit = async () => {
       v-model="state.url"
       :label="t('CAPTAIN.DOCUMENTS.FORM.URL.LABEL')"
       :placeholder="t('CAPTAIN.DOCUMENTS.FORM.URL.PLACEHOLDER')"
-      :message="formErrors.url"
+      :message="formErrors.url || t('CAPTAIN.DOCUMENTS.FORM.URL.HELP_TEXT')"
       :message-type="formErrors.url ? 'error' : 'info'"
     />
 
