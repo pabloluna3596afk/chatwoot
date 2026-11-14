@@ -159,7 +159,8 @@ RSpec.describe Account do
         feature_customer_data_export: 1 << 10,
         feature_report_export: 1 << 11,
         feature_audit_log_ip_address: 1 << 12,
-        feature_auto_translate: 1 << 13
+        feature_auto_translate: 1 << 13,
+        feature_captain_pilot: 1 << 14
       )
       expect(described_class.flag_mapping['feature_flags_ext_1'][:feature_whatsapp_manual_transfer]).to eq(1)
       expect(described_class.flag_mapping['feature_flags_ext_1'][:feature_data_import]).to eq(2)
