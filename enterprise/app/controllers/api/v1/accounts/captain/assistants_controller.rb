@@ -1,4 +1,3 @@
-# rubocop:disable Metrics/ClassLength
 class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::BaseController
   class InvalidRuleList < StandardError; end
 
@@ -50,7 +49,7 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
     render json: Captain::Playground::Usage.new(account: Current.account).remaining
   end
 
-  def playground # rubocop:disable Metrics/AbcSize
+  def playground
     @playground_messages = Captain::Playground::Input.new(
       message: params.require(:assistant)[:message_content], history: params[:assistant][:message_history]
     ).messages
@@ -163,7 +162,7 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
     @account_assistants ||= Captain::Assistant.for_account(Current.account.id).customer_visible
   end
 
-  def assistant_params # rubocop:disable Metrics/MethodLength
+  def assistant_params
     assistant_config_attributes = [
       :product_name, :feature_faq, :feature_memory, :feature_citation,
       :feature_contact_attributes, :welcome_message, :handoff_message,
@@ -300,4 +299,3 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
     @assistant.account.feature_enabled?('captain_integration_v2')
   end
 end
-# rubocop:enable Metrics/ClassLength
