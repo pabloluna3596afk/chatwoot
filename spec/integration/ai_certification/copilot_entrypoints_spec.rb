@@ -428,11 +428,11 @@ RSpec.describe 'Copilot real entrypoint certification', type: :request do
   describe 'reply_suggestion/E9 last-credit concurrency', copilot_matrix_cell: 'reply_suggestion/E9' do
     self.use_transactional_tests = false
 
+    include_context 'with an empty database after the example'
+
     let!(:limited_account) do
       create(:account).tap { |record| put_account_on_plan(record, captain_copilot_responses: 1) }
     end
-
-    after { limited_account.destroy! }
 
     it 'uses the same atomic Copilot reservation as chat turns' do
       ready = Queue.new

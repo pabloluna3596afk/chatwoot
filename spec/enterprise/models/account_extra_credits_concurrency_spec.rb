@@ -3,20 +3,13 @@ require 'rails_helper'
 RSpec.describe Account do
   self.use_transactional_tests = false
 
+  include_context 'with an empty database after the example'
+
   let!(:account) { create(:account) }
 
   before do
     put_account_on_plan(account, captain_internal_calls: 0)
     account.grant_extra_balance!(bucket: :internal, units: 1, source: :courtesy, expires_at: 1.day.from_now)
-  end
-
-  after do
-    AccountExtraBalance.where(account: account).delete_all
-    account.account_plan_usages.destroy_all
-    plan = account.plan
-    account.destroy!
-    plan.destroy!
-    Audited::Audit.where(auditable_type: 'Account', auditable_id: account.id).delete_all
   end
 
   it 'admits only one of two concurrent reservations for the same last extra unit' do
