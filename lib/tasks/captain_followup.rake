@@ -17,11 +17,10 @@ namespace :captain do
             next unless conversation.last_activity_at < cutoff && Captain::Conversation::Turn.awaiting_customer?(conversation, assistant)
             next :preview if dry_run
 
-            Captain::Followup::Closer.new(conversation, assistant, now: now, note_key: 'captain.notes.closed_unanswered').perform
+            Captain::Followup::Closer.new(conversation, assistant, now: now, note_key: 'captain.notes.closed_unanswered',
+                                                                   send_resolution_message: false).perform
           end
-          next unless result
-
-          puts "#{dry_run ? 'Would close' : 'Closed'} conversation_id=#{conversation.id} assistant_id=#{assistant.id}"
+          puts "#{dry_run ? 'Would close' : 'Closed'} conversation_id=#{conversation.id} assistant_id=#{assistant.id}" if result
           if result == :closed
             Captain::ConversationEvents.resolved(conversation: conversation, assistant: assistant,
                                                  source: Captain::ConversationEvents::Sources::TIME_BASED, at: now)

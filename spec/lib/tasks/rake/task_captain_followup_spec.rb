@@ -31,6 +31,21 @@ RSpec.describe Rake::Task do
     expect(conversation.additional_attributes['captain_followup']).to include('assistant_id' => assistant.id)
   end
 
+  it 'never sends a public message' do
+    account.enable_features!('captain_integration_v2')
+    assistant.update!(send_inactivity_resolution_message: true)
+    expect(conversation.can_reply?).to be(true)
+
+    with_modified_env(DRY_RUN: 'false') do
+      expect { task.invoke }.not_to(change { conversation.messages.where(private: false, message_type: :outgoing).count })
+    end
+
+    expect(conversation.reload).to be_resolved
+    expect(conversation.messages.where(private: true).last.content).to eq(
+      I18n.t('captain.notes.closed_unanswered', assistant: assistant.name, locale: account.locale)
+    )
+  end
+
   %w[handoff leave_open].each do |action|
     it "does not close assistants configured as #{action}" do
       assistant.update!(unanswered_action: action)
