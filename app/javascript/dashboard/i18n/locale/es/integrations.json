@@ -1566,16 +1566,7 @@
         }
       },
       "AUTO_RESOLVE": {
-        "UNANSWERED_ACTION": {
-          "LABEL": "Cuando el cliente no responde",
-          "HELP": "Se aplica cuando {assistantName} hizo la última pregunta y el cliente no contestó.",
-          "OPTIONS": {
-            "CLOSE": "Cerrar la conversación",
-            "HANDOFF": "Pasar a una persona",
-            "LEAVE_OPEN": "Dejarla abierta"
-          },
-          "CLOSE_WITH_FOLLOWUP": "El seguimiento está activado: {assistantName} primero le avisa al cliente y después cierra."
-        }
+        "FOLLOWUP_NOTICE": "El seguimiento está activado: cuando es el cliente quien no responde, {assistantName} le avisa y cierra la conversación sin pasarla al equipo."
       },
       "FOLLOWUP": {
         "WINDOW_CLOSED_NOTICE": "Si la ventana de 24 h ya cerró, {assistantName} cierra la conversación sin enviar el aviso."

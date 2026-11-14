@@ -1566,16 +1566,7 @@
         }
       },
       "AUTO_RESOLVE": {
-        "UNANSWERED_ACTION": {
-          "LABEL": "When the customer stops replying",
-          "HELP": "Applies when {assistantName} asked the last question and the customer did not reply.",
-          "OPTIONS": {
-            "CLOSE": "Close the conversation",
-            "HANDOFF": "Pass it to a person",
-            "LEAVE_OPEN": "Leave it open"
-          },
-          "CLOSE_WITH_FOLLOWUP": "Follow-up is on: {assistantName} nudges the customer first and then closes."
-        }
+        "FOLLOWUP_NOTICE": "Follow-up is on: when the customer is the one who stops replying, {assistantName} nudges them and closes the conversation without passing it to the team."
       },
       "FOLLOWUP": {
         "WINDOW_CLOSED_NOTICE": "If the 24-hour window is already closed, {assistantName} closes the conversation without sending the nudge."

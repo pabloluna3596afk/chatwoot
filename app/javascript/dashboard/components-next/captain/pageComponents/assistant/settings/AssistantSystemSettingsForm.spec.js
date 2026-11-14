@@ -41,9 +41,7 @@ const submitForm = async wrapper => {
 describe('AssistantSystemSettingsForm', () => {
   it('shows the evaluated policy controls from the saved config', () => {
     const wrapper = mountComponent();
-    const modeCards = wrapper
-      .findAllComponents(RadioCard)
-      .filter(card => card.props('name') === 'auto-resolve-mode');
+    const modeCards = wrapper.findAllComponents(RadioCard);
 
     expect(modeCards).toHaveLength(3);
     expect(
@@ -75,7 +73,6 @@ describe('AssistantSystemSettingsForm', () => {
       config: {
         ...assistant.config,
         max_replies_per_conversation: 20,
-        unanswered_action: 'handoff',
         auto_resolve_mode: 'disabled',
       },
     });
@@ -95,7 +92,6 @@ describe('AssistantSystemSettingsForm', () => {
       config: {
         ...assistant.config,
         max_replies_per_conversation: 20,
-        unanswered_action: 'handoff',
         auto_resolve_after: 130,
       },
     });
@@ -136,53 +132,34 @@ describe('AssistantSystemSettingsForm', () => {
 
     expect(wrapper.emitted('submit')).toBeUndefined();
   });
-  it('defaults assistants without the key to handoff', () => {
+  it('keeps only the existing resolution control', () => {
     const wrapper = mountComponent();
-    const cards = wrapper
-      .findAllComponents(RadioCard)
-      .filter(card => card.props('name') === 'unanswered-action');
-    expect(cards).toHaveLength(3);
-    expect(cards.map(card => card.props('isActive'))).toEqual([
-      false,
-      true,
-      false,
-    ]);
+    expect(wrapper.findAll('[role="radiogroup"]')).toHaveLength(1);
+    expect(wrapper.findAllComponents(RadioCard)).toHaveLength(3);
   });
 
-  it.each(['close', 'handoff', 'leave_open'])(
-    'sends the selected unanswered action %s',
-    async action => {
-      const wrapper = mountComponent();
-      wrapper.findComponent(`#unanswered-${action}`).vm.$emit('select');
-      await submitForm(wrapper);
-      expect(wrapper.emitted('submit')[0][0].config.unanswered_action).toBe(
-        action
-      );
-    }
-  );
-
-  it.each([
-    ['close', true, true],
-    ['close', false, false],
-    ['handoff', true, false],
-    ['leave_open', true, false],
-  ])(
-    'shows the notice for %s with followup=%s: %s',
-    async (action, followup, visible) => {
+  it.each([true, false])(
+    'shows the follow-up notice only when inactivity is enabled: %s',
+    async enabled => {
       const wrapper = mountComponent();
       await wrapper.setProps({
         assistant: {
           name: 'Captain',
           config: {
             ...assistant.config,
-            unanswered_action: action,
-            followup: { inactivity_enabled: followup },
+            followup: { inactivity_enabled: enabled },
           },
         },
       });
-      expect(
-        wrapper.find('[data-testid="unanswered-followup-notice"]').exists()
-      ).toBe(visible);
+      expect(wrapper.find('[data-testid="followup-notice"]').exists()).toBe(
+        enabled
+      );
     }
   );
+
+  it('hides the follow-up notice when no configuration is present', () => {
+    expect(
+      mountComponent().find('[data-testid="followup-notice"]').exists()
+    ).toBe(false);
+  });
 });

@@ -47,6 +47,31 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
     config.global.plugins = [i18n];
   });
 
+  it('renders the follow-up notice in the current locale with only one resolution control', () => {
+    const wrapper = shallowMount(AssistantSystemSettingsForm, {
+      props: {
+        assistant: {
+          ...assistant,
+          config: {
+            ...assistant.config,
+            followup: { inactivity_enabled: true },
+          },
+        },
+      },
+      global: { stubs: { SettingsToggleSection: false } },
+    });
+    const expectedNotice =
+      locale === 'es'
+        ? 'El seguimiento está activado: cuando es el cliente quien no responde, Sofia le avisa y cierra la conversación sin pasarla al equipo.'
+        : 'Follow-up is on: when the customer is the one who stops replying, Sofia nudges them and closes the conversation without passing it to the team.';
+
+    expect(wrapper.get('[data-testid="followup-notice"]').text()).toBe(
+      expectedNotice
+    );
+    expect(wrapper.findAll('[role="radiogroup"]')).toHaveLength(1);
+    wrapper.unmount();
+  });
+
   it.each(['name', 'description', 'productName'])(
     'requires the basic %s field and preserves the draft',
     async field => {
