@@ -1006,6 +1006,7 @@
           "PLACEHOLDER": "Escribe el mensaje de bienvenida"
         },
         "HANDOFF_MESSAGE": {
+          "OUTSIDE_HOURS_HELP": "Fuera del horario de atención se envía en su lugar el mensaje de fuera de oficina de la bandeja, si lo tiene.",
           "LABEL": "Mensaje de transferencia",
           "PLACEHOLDER": "Escribe el mensaje de transferencia"
         },

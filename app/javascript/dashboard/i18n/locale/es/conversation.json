@@ -1,5 +1,18 @@
 {
   "CONVERSATION": {
+    "CAPTAIN_HANDOFF": {
+      "TITLE": "{name} pasó esta conversación",
+      "REASON": {
+        "customer_request": "Pedido del cliente",
+        "missing_knowledge": "Falta de conocimiento",
+        "unsupported_request": "Pedido que no puede atender",
+        "policy_restriction": "Regla del negocio",
+        "tool_failure": "Fallo técnico",
+        "usage_limit": "Sin respuestas disponibles",
+        "pending_clarification": "Quedó algo sin resolver",
+        "unknown": "Sin clasificar"
+      }
+    },
     "WHATSAPP_FLOW_SENT": "Flow · {name}",
     "WHATSAPP_TEMPLATE_SENT": "Plantilla · {name}",
     "WHATSAPP_TEMPLATE_CATEGORIES": {

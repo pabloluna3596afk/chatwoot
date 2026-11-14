@@ -1006,6 +1006,7 @@
           "PLACEHOLDER": "Enter welcome message"
         },
         "HANDOFF_MESSAGE": {
+          "OUTSIDE_HOURS_HELP": "Outside business hours the inbox's out-of-office message is sent instead, when it has one.",
           "LABEL": "Handoff message",
           "PLACEHOLDER": "Enter handoff message"
         },
