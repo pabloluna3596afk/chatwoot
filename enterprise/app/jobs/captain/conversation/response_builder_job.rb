@@ -5,6 +5,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
   include Captain::Conversation::MessageBuilder
   include Captain::Conversation::ResponseLifecycleLogging
   include Captain::Conversation::ResponseBuilderMessageGuard
+  include Captain::Conversation::ReplyUsage
 
   MAX_MESSAGE_LENGTH = 10_000
   MAX_GENERATION_ATTEMPTS = 3
@@ -37,9 +38,13 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
     handle_error(e)
   ensure
     begin
-      trigger_typing_event(:off) if @typing_started
+      release_reply_usage!
     ensure
-      Current.executed_by = nil
+      begin
+        trigger_typing_event(:off) if @typing_started
+      ensure
+        Current.executed_by = nil
+      end
     end
   end
   # rubocop:enable Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
@@ -88,6 +93,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
     trigger_typing_event(:on)
     Current.executed_by = @assistant
     return process_reply_limit if @assistant.reply_limit_reached?(@conversation)
+    return process_usage_exhausted if Captain::Pilot.enabled?(account) && !reserve_reply_usage!
     return generate_and_process_response unless captain_v2_enabled?
 
     generate_response_with_v2
@@ -97,11 +103,11 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
 
   def generate_and_process_response
     message_history = collect_previous_messages
-    @response = Captain::Llm::AssistantChatService.new(
-      assistant: @assistant, conversation: @conversation, message_id: @responding_to_message_id
-    ).generate_response(
-      message_history: message_history
-    )
+    @response = with_reply_usage(feature: 'assistant') do
+      Captain::Llm::AssistantChatService.new(
+        assistant: @assistant, conversation: @conversation, message_id: @responding_to_message_id
+      ).generate_response(message_history: message_history)
+    end
     classify_v1_response_action(message_history) if conversation_pending?
     repair_v1_false_promise_response(message_history) if conversation_pending?
     process_response
@@ -114,6 +120,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
       account: account,
       bucket: :captain_responses,
       feature: 'captain_reply',
+      reservation_id: @reply_reservation_id,
       context: { conversation_id: @conversation.id, message_id: @responding_to_message_id },
       usage_group_id: (@ai_usage_group_id ||= SecureRandom.uuid)
     ) do
@@ -178,10 +185,11 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
 
       message = create_messages
       Rails.logger.info("[CAPTAIN][ResponseBuilderJob] Incrementing response usage for #{account.id}")
-      account.increment_response_usage
+      @reply_reservation_id ? finish_reply_usage! : account.increment_response_usage
     end
     return unless message
 
+    @reply_reservation_id = nil
     if executions > 1
       Rails.logger.info("[CAPTAIN][ResponseLifecycle] event=generation_retry_recovered attempts=#{executions} conversation_id=#{@conversation.id}")
     end
@@ -280,6 +288,9 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
     return unless conversation_pending?
     return if captain_v2_enabled? && newer_customer_message_arrived?
 
+    # A rolled-back new message remains in the association target and would be
+    # autosaved by the handoff's conversation update unless we discard it.
+    @conversation.messages.reset if @reply_reservation_id
     process_v1_handoff
     record_v2_failure_handoff(source: Captain::ConversationEvents::Sources::GENERATION_FAILURE) if captain_v2_enabled?
   end

@@ -421,6 +421,7 @@ _Última actualización: 2026-07-12_
 
 | Item | Repo | Acción |
 |------|------|--------|
+| **Captain PR 7 / B-NEW-266** (reserva de respuestas) | chatwoot | `fix/captain-reserva-respuestas`: sin migraciones; solo `captain_pilot`; reserva única por ejecución según resolución del PM; no piloto conserva el defecto de extras; recolector tras caída del worker fuera de alcance; sin push ni despliegue |
 | **Captain PR 2 / B-NEW-264** (conocimiento y datos del prompt) | chatwoot | `feat/captain-conocimiento`: sin migraciones; `captain_pilot` apagado por defecto, fuera de planes; calibrar umbral con registros antes de activar cuentas piloto; sin push ni despliegue |
 | **PR 4.1 / B-NEW-258** (cupos extra IA) | chatwoot | `feat/cupos-extra`: aplicar migraciones `20261109120000` y `20261109120100`; revisión visual de Super Admin pendiente en preview local; sin push ni PR; compra Payphone fuera de alcance |
 | **Payphone PR2 / B-NEW-245** (token y fechas de facturacion) | chatwoot | `feat/payphone-pr2-cobro`: cierres focales listos; pendiente PR/merge, migracion `20261027130000_create_payphone_payments.rb` antes de habilitar y verificacion del proveedor real en entorno de pruebas; sin push en esta sesion |

@@ -47,6 +47,332 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       expect(conversation.messages.outgoing).to be_empty
     end
 
+    context 'with pilot reply reservations' do
+      let(:usage) { account.current_usage_period }
+
+      before do
+        account.enable_features!(:captain_pilot, :captain_integration_v2)
+      end
+
+      it 'reserves before generating and finishes on delivery (pilot)' do
+        expect(account).not_to receive(:release_captain_ai_usage!)
+        allow(mock_agent_runner_service).to receive(:generate_response) do
+          expect(usage.reload.responses_consumed).to eq(1)
+          expect(usage.ai_usage_reservations.where(released_at: nil).count).to eq(1)
+          { 'response' => 'Delivered', 'response_parts' => [{ 'text' => 'Delivered', 'citation_indexes' => [] }] }
+        end
+
+        described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+        expect(conversation.messages.outgoing.where(private: false).pluck(:content)).to eq(['Delivered'])
+        expect(usage.reload.responses_consumed).to eq(1)
+        expect(usage.ai_usage_reservations).to be_empty
+      end
+
+      it 'counts exactly one unit per delivered reply with multiple parts' do
+        allow(mock_agent_runner_service).to receive(:generate_response).and_return(
+          { 'response_parts' => [{ 'text' => 'First', 'citation_indexes' => [] }, { 'text' => 'Second', 'citation_indexes' => [] }] }
+        )
+
+        described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+        expect(conversation.messages.outgoing.where(private: false).count).to eq(1)
+        expect(conversation.messages.outgoing.last.content).to include('First', 'Second')
+        expect(usage.reload.responses_consumed).to eq(1)
+        expect(usage.ai_usage_reservations).to be_empty
+      end
+
+      it 'reserves and delivers on Captain V1 too' do
+        account.disable_features!(:captain_integration_v2)
+        allow(mock_llm_chat_service).to receive(:generate_response) do
+          expect(usage.reload.responses_consumed).to eq(1)
+          { 'response' => 'Delivered V1' }
+        end
+
+        described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+        expect(conversation.messages.outgoing.where(private: false).pluck(:content)).to eq(['Delivered V1'])
+        expect(usage.reload.responses_consumed).to eq(1)
+        expect(usage.ai_usage_reservations).to be_empty
+      end
+
+      it 'does not reserve when the reply limit is reached' do
+        allow(assistant).to receive(:reply_limit_reached?).with(conversation).and_return(true)
+        expect(account).not_to receive(:reserve_captain_ai_usage!)
+        expect(mock_agent_runner_service).not_to receive(:generate_response)
+
+        described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+        expect(usage.reload.responses_consumed).to eq(0)
+        expect(usage.ai_usage_reservations).to be_empty
+        expect(conversation.reload).to be_open
+      end
+
+      it 'releases the reservation when the reply is discarded' do
+        allow(mock_agent_runner_service).to receive(:response_discarded?).and_return(true)
+
+        described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+        expect(usage.reload.responses_consumed).to eq(0)
+        expect(usage.ai_usage_reservations.where(released_at: nil)).to be_empty
+        expect(conversation.messages.outgoing).to be_empty
+      end
+
+      it 'leaves no open reservation when a newer customer message discards the reply' do
+        job = described_class.new(conversation, assistant, responding_to_message.id)
+        expect(account).not_to receive(:finish_captain_ai_usage!)
+        allow(job).to receive(:process_response).and_wrap_original do |original|
+          create(:message, conversation: conversation, message_type: :incoming, content: 'Another question')
+          original.call
+        end
+
+        job.perform_now
+
+        expect(usage.reload.responses_consumed).to eq(0)
+        expect(usage.ai_usage_reservations.where(released_at: nil)).to be_empty
+        expect(conversation.messages.outgoing).to be_empty
+      end
+
+      it 'releases it on handoff' do
+        allow(mock_agent_runner_service).to receive(:generate_response).and_return(
+          { 'response' => 'conversation_handoff', 'handoff_tool_called' => true }
+        )
+
+        described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+        expect(usage.reload.responses_consumed).to eq(0)
+        expect(usage.ai_usage_reservations.where(released_at: nil)).to be_empty
+        expect(conversation.reload).to be_open
+      end
+
+      it 'releases it on error' do
+        allow(mock_agent_runner_service).to receive(:generate_response).and_raise(StandardError, 'generation failed')
+
+        described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+        expect(usage.reload.responses_consumed).to eq(0)
+        expect(usage.ai_usage_reservations.where(released_at: nil)).to be_empty
+        expect(conversation.reload).to be_open
+      end
+
+      it 'uses a new reservation on retry after releasing the failed attempt' do
+        reservation_ids = []
+        allow(account).to receive(:reserve_captain_ai_usage!).and_wrap_original do |original, **arguments|
+          reservation_ids << arguments.fetch(:reservation_id)
+          original.call(**arguments)
+        end
+        allow(mock_agent_runner_service).to receive(:generate_response).and_return(
+          { 'error_transient' => true, 'error_reason' => 'ruby_llm_rate_limit_error' },
+          { 'response_parts' => v2_response_parts }
+        )
+        described_class.perform_now(conversation, assistant, responding_to_message.id)
+        expect(usage.reload.responses_consumed).to eq(0)
+        expect(usage.ai_usage_reservations.where(released_at: nil)).to be_empty
+        retry_job = described_class.new(conversation, assistant, responding_to_message.id)
+        retry_job.executions = 1
+
+        retry_job.perform_now
+
+        expect(reservation_ids.size).to eq(2)
+        expect(reservation_ids.uniq.size).to eq(2)
+        expect(reservation_ids).to all(match(/\Acaptain-reply-#{conversation.id}-[0-9a-f-]{36}\z/))
+        expect(usage.reload.responses_consumed).to eq(1)
+        expect(usage.ai_usage_reservations.where(released_at: nil)).to be_empty
+      end
+
+      it 'still turns typing off and clears Current.executed_by when releasing fails' do
+        allow(mock_agent_runner_service).to receive(:response_discarded?).and_return(true)
+        allow(account).to receive(:release_captain_ai_usage!).and_raise(StandardError, 'release failed')
+        allow(Rails.configuration.dispatcher).to receive(:dispatch).and_call_original
+
+        expect do
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+        end.to raise_error(StandardError, 'release failed')
+
+        expect(Rails.configuration.dispatcher).to have_received(:dispatch).with(
+          Events::Types::CONVERSATION_TYPING_OFF, kind_of(Time), conversation: conversation, user: assistant, is_private: false
+        )
+        expect(Current.executed_by).to be_nil
+      end
+
+      it 'clears Current.executed_by even if turning typing off fails' do
+        allow(mock_agent_runner_service).to receive(:response_discarded?).and_return(true)
+        allow(Rails.configuration.dispatcher).to receive(:dispatch).and_call_original
+        allow(Rails.configuration.dispatcher).to receive(:dispatch).with(
+          Events::Types::CONVERSATION_TYPING_OFF, kind_of(Time), anything
+        ).and_raise(StandardError, 'typing failed')
+
+        expect do
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+        end.to raise_error(StandardError, 'typing failed')
+
+        expect(Current.executed_by).to be_nil
+        expect(usage.reload.responses_consumed).to eq(0)
+        expect(usage.ai_usage_reservations.where(released_at: nil)).to be_empty
+      end
+
+      it 'does not meter a pilot account without a plan' do
+        account.update_columns(plan_id: nil, plan_started_at: nil) # rubocop:disable Rails/SkipsModelValidations
+        account.reload
+
+        expect do
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+        end.not_to change(AiUsageReservation, :count)
+
+        expect(conversation.messages.outgoing.where(private: false).count).to eq(1)
+        expect(account.current_usage_period).to be_nil
+      end
+
+      context 'with an exhausted plan pool' do
+        before { usage.update!(responses_consumed: 100) }
+
+        it 'hands off by quota when plan and extra are both empty (pilot)' do
+          create(:captain_inbox, captain_assistant: assistant, inbox: inbox)
+          inbox.reload
+          expect(mock_agent_runner_service).not_to receive(:generate_response)
+          expect(Captain::ConversationEvents).to receive(:handed_off).with(
+            conversation: conversation, assistant: assistant, source: 'usage_limit', reason_category: :usage_limit, at: kind_of(Time)
+          ).and_call_original
+
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+          expect(conversation.reload).to be_open
+          expect(conversation.messages.where(private: true).pluck(:content)).to eq(
+            [I18n.t('captain.notes.unavailable.quota_exhausted', assistant: assistant.name, locale: account.locale)]
+          )
+          expect(usage.reload.responses_consumed).to eq(100)
+          expect(usage.ai_usage_reservations).to be_empty
+        end
+      end
+
+      context 'with an exhausted plan pool and one extra unit' do
+        before { usage.update!(responses_consumed: 100) }
+
+        let!(:extra) do
+          account.grant_extra_balance!(bucket: :captain_responses, units: 1, source: :courtesy, expires_at: 1.day.from_now)
+        end
+
+        it 'consumes one extra unit when the plan pool is empty (pilot)' do
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+          expect(extra.reload.units_remaining).to eq(0)
+          expect(usage.reload.responses_consumed).to eq(100)
+          expect(conversation.messages.outgoing.where(private: false).count).to eq(1)
+          expect(usage.ai_usage_reservations).to be_empty
+        end
+
+        [false, true].each do |v2|
+          it "records the extra unit on the usage ledger for Captain V#{v2 ? 2 : 1}" do
+            account.disable_features!(:captain_integration_v2) unless v2
+            generation_service = v2 ? mock_agent_runner_service : mock_llm_chat_service
+            allow(generation_service).to receive(:generate_response) do
+              Llm::UsageContext.record_operation(model: 'gpt-4.1-mini', provider: 'openai', response: nil, status: 'ok')
+              { 'response' => 'Delivered', 'response_parts' => [{ 'text' => 'Delivered', 'citation_indexes' => [] }] }
+            end
+
+            described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+            expect(AiUsageEvent.find_by!(account: account, feature: v2 ? 'captain_reply' : 'assistant')).to have_attributes(extra_units: 1)
+            expect(extra.reload.units_remaining).to eq(0)
+          end
+        end
+
+        it 'refunds the extra unit when the reply is discarded (pilot)' do
+          allow(mock_agent_runner_service).to receive(:response_discarded?).and_return(true)
+
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+          expect(extra.reload.units_remaining).to eq(1)
+          expect(usage.reload.responses_consumed).to eq(100)
+          expect(usage.ai_usage_reservations.where(released_at: nil)).to be_empty
+        end
+
+        it 'keeps the legacy counter and extra balance on a non-pilot account' do
+          account.disable_features!(:captain_pilot)
+
+          expect do
+            described_class.perform_now(conversation, assistant, responding_to_message.id)
+          end.not_to change(AiUsageReservation, :count)
+
+          expect(extra.reload.units_remaining).to eq(1)
+          expect(usage.reload.responses_consumed).to eq(101)
+        end
+      end
+
+      [80, 100].each do |threshold|
+        it "keeps the #{threshold} percent plan usage warning on reservation" do
+          usage.update!(responses_consumed: threshold - 1)
+
+          expect do
+            described_class.perform_now(conversation, assistant, responding_to_message.id)
+          end.to have_enqueued_job(Captain::UsageLimitWarningJob).with(usage, :responses, threshold, threshold, 100)
+
+          expect(usage.reload.responses_consumed).to eq(threshold)
+          expect(usage.ai_usage_reservations).to be_empty
+        end
+      end
+
+      [true, false].each do |pilot_at_start|
+        it "keeps the billing path selected before generation when pilot starts #{pilot_at_start} and changes" do
+          account.disable_features!(:captain_pilot) unless pilot_at_start
+          allow(mock_agent_runner_service).to receive(:generate_response) do
+            pilot_at_start ? account.disable_features!(:captain_pilot) : account.enable_features!(:captain_pilot)
+            { 'response_parts' => v2_response_parts }
+          end
+
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+          expect(usage.reload.responses_consumed).to eq(1)
+          expect(usage.ai_usage_reservations).to be_empty
+        end
+      end
+
+      it 'can retry the same Sidekiq payload after a transient attempt was released' do
+        payload = described_class.new(conversation, assistant, responding_to_message.id).serialize
+        reservation_ids = []
+        allow(mock_agent_runner_service).to receive(:generate_response) do
+          reservation_ids << Llm::UsageContext.current.fetch(:reservation_id)
+          if reservation_ids.size == 1
+            { 'error_transient' => true, 'error_reason' => 'ruby_llm_rate_limit_error' }
+          else
+            { 'response_parts' => v2_response_parts }
+          end
+        end
+        allow(Rails.configuration.dispatcher).to receive(:dispatch).and_call_original
+        off_calls = 0
+        allow(Rails.configuration.dispatcher).to receive(:dispatch).with(
+          Events::Types::CONVERSATION_TYPING_OFF, kind_of(Time), anything
+        ).and_wrap_original do |original, *arguments|
+          off_calls += 1
+          raise StandardError, 'typing temporarily failed' if off_calls == 1
+
+          original.call(*arguments)
+        end
+
+        expect { described_class.execute(payload) }.to raise_error(StandardError, 'typing temporarily failed')
+        expect(usage.ai_usage_reservations.where(released_at: nil)).to be_empty
+
+        described_class.execute(payload)
+
+        expect(reservation_ids.uniq).to eq(reservation_ids).and have_attributes(size: 2)
+        expect(conversation.reload).to be_pending
+        expect(conversation.messages.outgoing.where(private: false).pluck(:content)).to eq(['Hey, welcome to Captain V2'])
+        expect(usage.reload.responses_consumed).to eq(1)
+        expect(usage.ai_usage_reservations.where(released_at: nil)).to be_empty
+      end
+
+      it 'creates no reservation on a non-pilot account' do
+        account.disable_features!(:captain_pilot)
+        expect(account).not_to receive(:reserve_captain_ai_usage!)
+
+        expect do
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+        end.not_to change(AiUsageReservation, :count)
+
+        expect(usage.reload.responses_consumed).to eq(1)
+      end
+    end
+
     context 'with transient generation failures' do
       let(:transient_response) do
         { 'response' => 'conversation_handoff', 'error' => true, 'error_transient' => true,

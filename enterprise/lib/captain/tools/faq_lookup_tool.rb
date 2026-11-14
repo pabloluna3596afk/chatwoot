@@ -6,7 +6,7 @@ class Captain::Tools::FaqLookupTool < Captain::Tools::BasePublicTool
     log_tool_usage('searching', { query: query })
 
     # Use existing vector search on approved responses
-    responses = @assistant.responses.approved.search(query).includes(:documentable).to_a
+    responses = @assistant.responses.approved.search(query, account_id: @assistant.account_id).includes(:documentable).to_a
     relevance = Captain::Knowledge::Relevance.apply(responses, filter: Captain::Pilot.enabled?(@assistant.account))
     log_relevance(tool_context, relevance, responses.size)
     responses = relevance.kept
