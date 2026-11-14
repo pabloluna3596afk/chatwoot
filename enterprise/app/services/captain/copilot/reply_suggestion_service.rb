@@ -46,7 +46,7 @@ class Captain::Copilot::ReplySuggestionService
   private
 
   def conversation_history(conversation)
-    history = Captain::Conversation::MessageHistoryBuilderService.new(conversation: conversation).perform
+    history = Captain::Conversation::MessageHistoryBuilderService.new(conversation: conversation, pilot_rules: false).perform
     history.pop while history.last&.dig(:content) == Captain::Conversation::MessageHistoryBuilderService::RESOLUTION_MARKER
     history
   end

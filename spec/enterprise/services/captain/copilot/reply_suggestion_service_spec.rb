@@ -89,6 +89,30 @@ RSpec.describe Captain::Copilot::ReplySuggestionService do
     )
   end
 
+  context 'with a long conversation' do
+    let(:long_reply_suggestion_history) do
+      [{ role: 'user', content: [{ type: 'text', text: 'Who is your mascot?' },
+                                 { type: 'image_url', image_url: { url: 'https://example.com/photo.jpg' } }] }] +
+        ([{ role: 'assistant', content: 'Human reply' }] * 45) + [{ role: 'user', content: 'Latest question' }]
+    end
+
+    [false, true].each do |pilot|
+      it "keeps long human history and images unchanged for reply suggestions (pilot=#{pilot})" do
+        account.enable_features!('captain_pilot') if pilot
+        attributes = { account_id: account.id, inbox_id: inbox.id, conversation_id: conversation.id,
+                       message_type: :outgoing, sender_type: 'User', sender_id: user.id, private: false,
+                       content: 'Human reply', created_at: Time.current, updated_at: Time.current }
+        Message.create!([attributes] * 45)
+        incoming_message.attachments.create!(account_id: account.id, file_type: :image, external_url: 'https://example.com/photo.jpg')
+        create(:message, conversation: conversation, account: account, inbox: inbox, content: 'Latest question')
+
+        service.generate_response
+
+        expect(runner).to have_received(:generate_response).with(message_history: long_reply_suggestion_history)
+      end
+    end
+  end
+
   it 'discards the action without charging when an outgoing reply already exists' do
     create(:message, conversation: conversation, account: account, inbox: inbox, message_type: :outgoing,
                      content: 'Chatwoot uses Bob the Builder as its mascot.')
