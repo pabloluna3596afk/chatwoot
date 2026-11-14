@@ -72,6 +72,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  faqsTruncated: {
+    type: Boolean,
+    default: false,
+  },
   syncInProgress: {
     type: Boolean,
     default: false,
@@ -272,6 +276,17 @@ const handleRetry = () => {
       </span>
       <span class="text-sm shrink-0 text-n-slate-11">
         {{ responsesCountLabel }}
+      </span>
+      <span
+        v-if="faqsTruncated && !quotaExceeded"
+        class="flex gap-1.5 items-center text-sm truncate text-n-amber-11"
+      >
+        <Icon icon="i-lucide-triangle-alert" class="shrink-0 size-3.5" />
+        <span class="truncate">{{
+          t('CAPTAIN.DOCUMENTS.TRUNCATED_NOTICE', {
+            assistantName: assistant?.name || '',
+          })
+        }}</span>
       </span>
       <span
         v-if="quotaExceeded"

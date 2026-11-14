@@ -34,7 +34,17 @@ class Captain::Documents::ResponseBuilderJob < ApplicationJob
     reset_previous_responses(document)
     capacity = [Llm::UnitCosts.fetch(:max_faqs_per_document) - document.responses.count, 0].max
     create_responses_from_faqs(faqs.first(capacity), document)
+    store_coverage_metadata(document, faqs.size > capacity)
     document.last_sync_error_code != 'usage_quota_exceeded'
+  end
+
+  # Informational only: tells the account owner when the assistant did not get the whole document.
+  def store_coverage_metadata(document, discarded)
+    generated = document.responses.count
+    cap_reached = generated >= Llm::UnitCosts.fetch(:max_faqs_per_document)
+    content_cut = document.content.to_s.length >= Captain::Documents::SinglePageFetcher::CONTENT_MAX_LENGTH
+    document.update!(metadata: document.metadata.to_h.merge('faqs_generated' => generated,
+                                                            'faqs_truncated' => discarded || cap_reached || content_cut))
   end
 
   def generate_faqs(document, options)

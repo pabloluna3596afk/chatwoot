@@ -42,6 +42,37 @@ RSpec.describe Captain::Documents::ResponseBuilderJob, type: :job do
       end
     end
 
+    context 'when recording how much of the document reached the assistant' do
+      it 'stores the generated count' do
+        described_class.new.perform(document)
+
+        expect(document.reload.metadata['faqs_generated']).to eq(2)
+      end
+
+      it 'flags a document that reached the FAQ cap' do
+        allow(Llm::UnitCosts).to receive(:fetch).and_call_original
+        allow(Llm::UnitCosts).to receive(:fetch).with(:max_faqs_per_document).and_return(2)
+
+        described_class.new.perform(document)
+
+        expect(document.reload.metadata['faqs_truncated']).to be(true)
+      end
+
+      it 'flags a document whose content hit the length limit' do
+        document.update_column(:content, 'a' * Captain::Documents::SinglePageFetcher::CONTENT_MAX_LENGTH) # rubocop:disable Rails/SkipsModelValidations
+
+        described_class.new.perform(document)
+
+        expect(document.reload.metadata['faqs_truncated']).to be(true)
+      end
+
+      it 'does not flag when everything fits' do
+        described_class.new.perform(document)
+
+        expect(document.reload.metadata['faqs_truncated']).to be(false)
+      end
+    end
+
     context 'with different locales' do
       let(:spanish_account) { create(:account, locale: 'pt') }
       let(:spanish_assistant) { create(:captain_assistant, account: spanish_account) }

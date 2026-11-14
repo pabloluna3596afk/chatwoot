@@ -1570,6 +1570,7 @@
       "HEADER": "Documents",
       "ADD_NEW": "Create a new document",
       "FAQ_COUNT": "{n} FAQ | {n} FAQs",
+      "TRUNCATED_NOTICE": "This document is long. Only part of it is available to {assistantName}.",
       "USED_IN_CONVERSATIONS": "Used in {n} conversation | Used in {n} conversations",
       "NO_USED_CONVERSATIONS": "No conversations found for this document.",
       "SELECTED": "{count} selected",
