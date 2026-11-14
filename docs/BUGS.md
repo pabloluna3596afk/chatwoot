@@ -1,3 +1,11 @@
+### B-NEW-268 - Captain: datos del negocio e idioma del prompt (2026-11-14)
+
+- **Archivos:** `Captain::Assistant`, `Captain::Scenario`, `Captain::BusinessFactsValidator`, controlador de asistentes, prompts Liquid y `AssistantBasicSettingsForm.vue` con traducciones en/es.
+- **Problema:** el prompt describía al asistente como soporte de un producto, no recibía los datos básicos del negocio y contenía etiquetas de citas fijas en español. Los mensajes sin idioma reconocible no tenían un idioma predeterminado.
+- **Arreglo:** cinco datos opcionales en Ajustes, máximo 300 caracteres por dato, saneados y compartidos con escenarios; identidad de negocio para todas las cuentas, idioma de la cuenta en los tres prompts y etiquetas de citas desde traducciones solo para bandejas con citas activas. Sin migraciones ni cambios en el registro.
+- **Cómo probar:** guardar los cinco datos, recargar y vaciar uno en Ajustes; comprobar su inclusión y exclusión en los prompts de asistente y escenario. Probar cuentas es/en con citas activas e inactivas. Specs: `business_facts_validator_spec.rb`, `assistant_business_prompt_spec.rb`, `assistants_controller_spec.rb`, `appointment_tools_spec.rb` y `AssistantBasicSettingsForm.spec.js`.
+- **Pendiente:** revisión visual y evaluación con IA por el PM; las descripciones de herramientas que dicen «Cambiar hora» permanecen fuera de este alcance.
+
 ### B-NEW-261 - La app instalada en Android mostraba el nombre e icono de Chatwoot (2026-11-10)
 
 - **Archivos:** `public/manifest.json`, `public/android-icon-512x512.png`, `public/android-icon-maskable-512x512.png`.
