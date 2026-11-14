@@ -191,11 +191,11 @@ RSpec.describe Captain::Copilot::ChatService, :copilot_certification, type: :int
   describe 'concurrent Copilot reservations' do
     self.use_transactional_tests = false
 
+    include_context 'with an empty database after the example'
+
     let!(:limited_account) do
       create(:account).tap { |record| put_account_on_plan(record, captain_copilot_responses: 1) }
     end
-
-    after { limited_account.destroy! }
 
     it 'admits only one reservation for the last Copilot credit' do
       ready = Queue.new
