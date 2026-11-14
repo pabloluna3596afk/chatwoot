@@ -64,6 +64,8 @@ class Captain::Scenario < ApplicationRecord
   def prompt_context
     {
       title: title,
+      business_facts: assistant.business_facts_prompt_context,
+      account_language: account.locale_english_name,
       instructions: resolved_instructions,
       tools: resolved_tools,
       assistant_name: assistant.name.downcase.gsub(/\s+/, '_'),
