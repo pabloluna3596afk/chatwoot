@@ -24,8 +24,8 @@ module Concerns::Agentable
       config = state[:assistant_config] || {}
       enhanced_context = enhanced_context.merge(
         current_time: format_current_time(state[:timezone]),
-        conversation: state[:conversation] || {},
-        contact: config['feature_contact_attributes'].present? ? state[:contact] : nil,
+        conversation: Captain::Assistant::PromptDataSanitizer.conversation(state[:conversation] || {}),
+        contact: config['feature_contact_attributes'].present? ? Captain::Assistant::PromptDataSanitizer.contact(state[:contact]) : nil,
         campaign: state[:campaign] || {},
         message_length_limit: state[:message_length_limit],
         can_verify_email: state[:can_verify_email],

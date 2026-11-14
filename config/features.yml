@@ -442,3 +442,8 @@
   enabled: false
   premium: true
   column: feature_flags_ext_1
+- name: captain_pilot
+  display_name: Captain Pilot
+  enabled: false
+  column: feature_flags_ext_1
+  description: Captain improvements under trial. Turn on only for pilot accounts.
