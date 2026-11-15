@@ -7,6 +7,33 @@ describe Conversations::AssignmentService do
   let(:conversation) { create(:conversation, account: account) }
 
   describe '#perform' do
+    it 'keeps a pending conversation pending in an inbox without a bot or Captain assistant' do
+      conversation.update!(status: :pending, assignee: nil, ai_assignee: nil)
+
+      described_class.new(conversation: conversation, assignee_id: agent.id, open_pending: true).perform
+
+      expect(conversation.reload).to have_attributes(status: 'pending', assignee: agent)
+    end
+
+    it 'opens an unowned pending conversation in an inbox with an assignable bot' do
+      create(:agent_bot_inbox, inbox: conversation.inbox, agent_bot: agent_bot)
+      conversation.update!(status: :pending, assignee: nil, ai_assignee: nil)
+
+      described_class.new(conversation: conversation, assignee_id: agent.id, open_pending: true).perform
+
+      expect(conversation.reload).to have_attributes(status: 'open', assignee: agent)
+    end
+
+    it 'rejects a user outside the account without clearing the current assignee' do
+      other_user = create(:user)
+      conversation.update!(assignee: agent)
+      service = described_class.new(conversation: conversation, assignee_id: other_user.id)
+
+      expect(service.perform).to be_nil
+      expect(service.failure_reason).to eq('assignee_not_found')
+      expect(conversation.reload.assignee).to eq(agent)
+    end
+
     context 'when assignee_id is blank and inbox has an active bot' do
       before do
         inbox = conversation.inbox

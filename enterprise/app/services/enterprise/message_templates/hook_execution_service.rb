@@ -9,6 +9,8 @@ module Enterprise::MessageTemplates::HookExecutionService
     # otherwise the coverage denominator only ever contains conversations
     # Captain was already about to answer.
     track_captain_eligibility
+    return if conversation.assignee_id.present?
+
     return captain_unavailable unless inbox.captain_active?
     return unless conversation.pending?
     return if message.id <= conversation.additional_attributes.fetch('captain_assignment_message_id', 0)
@@ -70,7 +72,7 @@ module Enterprise::MessageTemplates::HookExecutionService
   end
 
   def captain_handling_conversation?
-    conversation.pending? && captain_assistant_configured?
+    conversation.pending? && conversation.assignee_id.blank? && captain_assistant_configured?
   end
 
   def captain_assistant_configured?

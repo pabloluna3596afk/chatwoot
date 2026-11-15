@@ -54,6 +54,45 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         account.enable_features!(:captain_integration_v2)
       end
 
+      [false, true].each do |v2_enabled|
+        it "discards the reply when a person takes a still-pending conversation during generation (V2=#{v2_enabled})" do
+          account.disable_features!(:captain_integration_v2) unless v2_enabled
+          agent = create(:user, account: account)
+          generator = v2_enabled ? mock_agent_runner_service : mock_llm_chat_service
+          allow(generator).to receive(:generate_response) do
+            Conversation.find(conversation.id).update!(assignee: agent)
+            { 'response' => 'This reply must be discarded' }
+          end
+
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+          expect(conversation.reload).to have_attributes(status: 'pending', assignee: agent)
+          expect(conversation.messages.outgoing).to be_empty
+          expect(usage.reload.responses_consumed).to eq(0)
+          expect(usage.ai_usage_reservations.where(released_at: nil)).to be_empty
+        end
+      end
+
+      [:pending, :open].each do |status|
+        it "discards a scheduled reply when a person is assigned before it runs (#{status}) without reserving usage" do
+          agent = create(:user, account: account)
+          Conversation.find(conversation.id).update!(assignee: agent, status: status)
+          expect(account).not_to receive(:reserve_captain_ai_usage!)
+          expect(mock_agent_runner_service).not_to receive(:generate_response)
+          expect(mock_llm_chat_service).not_to receive(:generate_response)
+          allow(Rails.logger).to receive(:info)
+          expect(Rails.logger).to receive(:info).with(
+            "[CAPTAIN][ResponseLifecycle] event=skipped reason=human_assignee conversation_id=#{conversation.id}"
+          )
+
+          described_class.perform_now(conversation, assistant, responding_to_message.id)
+
+          expect(usage.reload.responses_consumed).to eq(0)
+          expect(usage.ai_usage_reservations).to be_empty
+          expect(conversation.messages.outgoing).to be_empty
+        end
+      end
+
       it 'reserves before generating and finishes on delivery' do
         expect(account).not_to receive(:release_captain_ai_usage!)
         allow(mock_agent_runner_service).to receive(:generate_response) do

@@ -14,6 +14,76 @@ RSpec.describe MessageTemplates::HookExecutionService do
   end
 
   context 'when captain assistant is configured' do
+    it 'does not hand off a human-owned pending conversation when Captain is paused and still counts eligibility' do
+      account.enable_features!('captain_integration_v2')
+      agent = create(:user, account: account)
+      conversation.update!(assignee: agent)
+      put_account_on_plan(account, monthly_messages: 100, used: 100)
+      expect(Captain::Conversation::UsageLimitHandoff).not_to receive(:new)
+      expect(Captain::Conversation::ResponseSchedulerService).not_to receive(:new)
+
+      expect do
+        create(:message, conversation: conversation, message_type: :incoming, account: account)
+      end.to change(ConversationOutcome, :count).by(1)
+
+      expect(conversation.reload).to have_attributes(status: 'pending', assignee: agent)
+      expect(conversation.messages.outgoing).to be_empty
+    end
+
+    it 'sends the normal greeting to a human-owned pending conversation' do
+      conversation.update!(assignee: create(:user, account: account))
+      inbox.update!(greeting_enabled: true, greeting_message: 'Welcome from the inbox')
+
+      create(:message, conversation: conversation, message_type: :incoming, account: account)
+
+      expect(conversation.messages.template.pluck(:content)).to include('Welcome from the inbox')
+      expect(conversation.messages.outgoing).to be_empty
+    end
+
+    it 'sends the normal out-of-office message to a human-owned pending conversation' do
+      conversation.update!(assignee: create(:user, account: account))
+      inbox.update!(working_hours_enabled: true, out_of_office_message: 'Our team is away')
+      inbox.working_hours.find_by(day_of_week: Time.current.in_time_zone(inbox.timezone).wday).update!(
+        closed_all_day: true, open_all_day: false
+      )
+
+      create(:message, conversation: conversation, message_type: :incoming, account: account)
+
+      expect(conversation.messages.template.pluck(:content)).to include('Our team is away')
+      expect(conversation.messages.outgoing).to be_empty
+    end
+
+    it 'does not answer a pending conversation that has a human assignee and keeps counting eligibility' do
+      account.enable_features!('captain_integration_v2')
+      agent = create(:user, account: account)
+      conversation.update!(assignee: agent)
+      expect(Captain::Conversation::ResponseSchedulerService).not_to receive(:new)
+
+      expect do
+        create(:message, conversation: conversation, message_type: :incoming, account: account)
+      end.to change(ConversationOutcome, :count).by(1)
+
+      expect(ConversationOutcome.last).to have_attributes(conversation: conversation, assistant: assistant)
+      expect(conversation.reload).to have_attributes(status: 'pending', assignee: agent)
+    end
+
+    it 'still answers a pending conversation without an owner' do
+      conversation.update!(assignee: nil, ai_assignee: nil)
+      expect(configured_job).to receive(:perform_later).with(conversation, assistant, kind_of(Integer))
+
+      create(:message, conversation: conversation, message_type: :incoming, account: account)
+    end
+
+    it 'answers a reopened conversation that Aurora now owns' do
+      agent = create(:user, account: account)
+      conversation.update!(status: :resolved, assignee: agent, ai_assignee: nil)
+      expect(configured_job).to receive(:perform_later).with(conversation, assistant, kind_of(Integer))
+
+      create(:message, conversation: conversation, message_type: :incoming, account: account)
+
+      expect(conversation.reload).to have_attributes(status: 'pending', assignee: nil, ai_assignee: assistant)
+    end
+
     context 'when within business hours' do
       before do
         inbox.update!(working_hours_enabled: true)

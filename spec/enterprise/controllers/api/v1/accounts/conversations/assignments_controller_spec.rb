@@ -14,6 +14,18 @@ RSpec.describe 'Captain assistant conversation assignment API', type: :request d
     create(:captain_inbox, captain_assistant: assistant, inbox: inbox)
   end
 
+  it 'opens an unowned pending conversation on manual assignment even when Captain is paused' do
+    conversation.update!(status: :pending, assignee: nil, ai_assignee: nil, waiting_since: nil)
+    account.update!(limits: { 'captain_responses' => 0 })
+
+    post api_v1_account_conversation_assignments_url(account_id: account.id, conversation_id: conversation.display_id),
+         params: { assignee_id: agent.id }, headers: agent.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:ok)
+    expect(conversation.reload).to have_attributes(status: 'open', assignee: agent)
+    expect(conversation.waiting_since).to be_present
+  end
+
   it 'assigns the connected Captain assistant and marks the conversation pending' do
     conversation.update!(assignee: agent, status: :open)
 
@@ -40,6 +52,7 @@ RSpec.describe 'Captain assistant conversation assignment API', type: :request d
   end
 
   it 'does not assign an unconnected Captain assistant' do
+    conversation.update!(assignee: agent, status: :open)
     unconnected_assistant = create(:captain_assistant, account: account)
 
     post api_v1_account_conversation_assignments_url(account_id: account.id, conversation_id: conversation.display_id),
@@ -47,9 +60,9 @@ RSpec.describe 'Captain assistant conversation assignment API', type: :request d
          headers: agent.create_new_auth_token,
          as: :json
 
-    expect(response).to have_http_status(:success)
-    expect(response.parsed_body).to be_nil
-    expect(conversation.reload.ai_assignee).to be_nil
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.parsed_body).to eq('error' => 'assignment_not_applied', 'reason' => 'ai_assignee_unavailable')
+    expect(conversation.reload).to have_attributes(ai_assignee: nil, assignee: agent, status: 'open')
   end
 
   it 'allows explicit assignment even when the custom inbox audience rejects the contact (matrix 18)' do
@@ -75,9 +88,37 @@ RSpec.describe 'Captain assistant conversation assignment API', type: :request d
          headers: agent.create_new_auth_token,
          as: :json
 
-    expect(response).to have_http_status(:success)
-    expect(response.parsed_body).to be_nil
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.parsed_body).to eq('error' => 'assignment_not_applied', 'reason' => 'ai_assignee_unavailable')
     expect(conversation.reload).to have_attributes(ai_assignee: nil, assignee: agent, status: 'open')
+  end
+
+  it 'rejects the internal assistant without changing the human assignment' do
+    conversation.update!(assignee: agent, status: :open)
+    assistant.update!(config: assistant.config.merge('internal' => true))
+
+    post api_v1_account_conversation_assignments_url(account_id: account.id, conversation_id: conversation.display_id),
+         params: { assignee_id: assistant.id, assignee_type: 'Captain::Assistant' },
+         headers: agent.create_new_auth_token,
+         as: :json
+
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.parsed_body).to eq('error' => 'assignment_not_applied', 'reason' => 'ai_assignee_unavailable')
+    expect(conversation.reload).to have_attributes(ai_assignee: nil, assignee: agent, status: 'open')
+  end
+
+  it 'returns the current Captain assistant when already pending with that assistant' do
+    conversation.update!(ai_assignee: assistant, status: :pending)
+    expect(Captain::Conversation::ResponseSchedulerService).not_to receive(:new)
+
+    post api_v1_account_conversation_assignments_url(account_id: account.id, conversation_id: conversation.display_id),
+         params: { assignee_id: assistant.id, assignee_type: 'Captain::Assistant' },
+         headers: agent.create_new_auth_token,
+         as: :json
+
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body).to include('id' => assistant.id)
+    expect(conversation.reload).to have_attributes(ai_assignee: assistant, assignee: nil, status: 'pending')
   end
 
   it 'opens the conversation when Captain assistant ownership is cleared without a replacement' do

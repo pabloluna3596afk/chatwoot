@@ -1,3 +1,19 @@
+### B-NEW-271 - Asignación: respetar a la persona responsable y comunicar rechazos (2026-11-15)
+
+- **Archivos:** `Conversations::AssignmentService` y su extensión Enterprise, `AssignmentsController`, hook de mensajes de Captain, `ResponseBuilderJob` y registro de ciclo de respuesta, `InboxPendingConversationsResolutionJob`, `captain_followup.rake`; contrato Swagger y specs asociados.
+- **Problema:** Captain respondía a pendientes con persona responsable; asignar una persona a una pendiente sin responsable no la abría en bandejas de bot/Captain; asignaciones rechazadas devolvían 200 y una persona inexistente podía borrar al responsable actual.
+- **Arreglo:** con persona no se programa respuesta ni se envía traspaso por Captain pausado; se conserva elegibilidad y se permiten saludo/fuera de oficina normales. El job revalida la persona antes y después de generar; un descarte libera el cupo. Una sola definición de apertura: la regla nueva abre pendientes sin IA previa solo desde el controlador (`open_pending: true`) en bandejas Captain/bot; Flows y ActionService conservan su política. Se verifica una actividad de estado y una de asignación, sin duplicados; la toma desde Captain conserva su actividad única. El servicio conserva al responsable ante rechazo y el endpoint devuelve 422 con motivo; reasignar al mismo asistente/bot sigue siendo éxito.
+- **Decisión del dueño, ronda 2:** las dos rutas de cierre por inactividad (tiempo/evaluación) y `captain:followup:close_stale` excluyen conversaciones con persona. La revalidación de inactividad también evita cerrarlas si se asigna una persona durante la evaluación. Cierra el riesgo **B-NEW-267** en lo referente a personas asignadas; no cambia `customer_owes_reply?` ni `handle_unanswered`.
+- **Cómo probar:** specs de asignación OSS/Enterprise y requests (422/200), Flows `pending` + persona y ActionService; actividades exactas; hook con Captain pausado, saludo/fuera de oficina y reapertura #361; descarte del job antes/durante generación V1/V2 sin consumo ni reserva abierta; inactividad en ambas rutas, sin persona y asignación durante evaluación; tarea de cierre. Informe y totales: `tmp/PR-ASIG-BACK.md`.
+- **Alcance:** sin frontend, migraciones, push, PR ni despliegue. El bulk opcional conserva su escritura combinada de campos.
+
+### B-NEW-272 - Asignación desde tarjeta y acciones masivas conserva el tipo de Captain (2026-11-15)
+
+- **Archivos:** `composables/chatlist/useBulkActions.js`, `components/widgets/conversation/contextMenu/Index.vue` y specs de asignación/helpers.
+- **Problema:** elegir un asistente enviaba `User` y podía asignar a una persona con el mismo id; las filas del menú también compartían clave.
+- **Arreglo:** resolver el tipo con `resolveAssigneeType` y usar `getAssigneeSelectionKey` en el menú. Se conservan las alertas existentes y la desasignación. Cabecera y panel derecho esperan la respuesta sin cambio optimista y liberan `isAssigning` en `finally`; un 422 conserva el responsable anterior.
+- **Cómo probar:** Vitest de `useBulkActions`, `useConversationAssignee` y `assigneeHelper` en UTC y America/Guayaquil: Captain, bot, persona, ninguna, varias conversaciones, ids compartidos y rechazo 422. Backend 422 y prueba integrada pendientes de la unión de ramas del PM; sin migraciones, push ni PR.
+
 ### B-NEW-270 - Captain: una conversación reabierta pasa al asistente aunque tuviera responsable (2026-11-15)
 
 - **Archivos:** `enterprise/app/models/enterprise/message.rb` (`own_reopened_conversation`) y `spec/enterprise/models/message_spec.rb`.

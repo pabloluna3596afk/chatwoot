@@ -22,7 +22,9 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
     @assistant = assistant
     @responding_to_message_id = responding_to_message_id
 
-    return log_non_pending unless conversation_pending?
+    pending = conversation_pending?
+    return log_human_assignee if @observed_assignee_id.present?
+    return log_non_pending unless pending
 
     return if assistant.internal? || !assignment_boundary_passes?
 
