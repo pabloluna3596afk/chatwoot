@@ -5,13 +5,11 @@ RSpec.describe Rake::Task do
 
   let(:account) { create(:account) }
   let(:inbox) { create(:inbox, account: account) }
-  let(:pilot) { true }
   let(:mode) { 'evaluated' }
   let(:assistant) { create(:captain_assistant, account: account, auto_resolve_mode: mode) }
   let(:conversation) { create(:conversation, account: account, inbox: inbox, status: :pending, ai_assignee: assistant) }
 
   before do
-    account.enable_features!('captain_pilot') if pilot
     create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
     create(:message, conversation: conversation, sender: assistant, message_type: :outgoing, created_at: 4.days.ago)
     conversation.update!(last_activity_at: 4.days.ago)
@@ -47,16 +45,6 @@ RSpec.describe Rake::Task do
     expect(conversation.messages.where(private: true).last.content).to eq(
       I18n.t('captain.notes.closed_unanswered', assistant: assistant.name, locale: account.locale)
     )
-  end
-
-  context 'without a pilot account' do
-    let(:pilot) { false }
-
-    it 'does not close or write a note' do
-      with_modified_env(DRY_RUN: 'false') { expect { task.invoke }.not_to output.to_stdout }
-      expect(conversation.reload).to be_pending
-      expect(conversation.messages.where(private: true)).to be_empty
-    end
   end
 
   %w[legacy disabled].each do |resolution_mode|

@@ -53,7 +53,7 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   end
 
   def customer_owes_reply?(conversation)
-    Captain::Pilot.enabled?(conversation.account) && captain_assistant.evaluate_inactive_conversations_before_resolving? &&
+    captain_assistant.evaluate_inactive_conversations_before_resolving? &&
       Captain::Conversation::Turn.awaiting_customer?(conversation, captain_assistant)
   end
 

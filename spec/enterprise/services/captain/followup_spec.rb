@@ -40,8 +40,7 @@ RSpec.describe Captain::Followup do
   describe Captain::Followup::Nudger do
     before { captain_says(now - 31.minutes) }
 
-    it 'closes with a closed window and no nudge on a pilot account after the close delay' do
-      account.enable_features!('captain_pilot')
+    it 'closes with a closed window and no nudge after the close delay' do
       allow(conversation).to receive(:can_reply?).and_return(false)
       expect(nudge(now + 2.hours)).to eq(:closed)
       expect(conversation.reload).to be_resolved
@@ -49,14 +48,7 @@ RSpec.describe Captain::Followup do
       expect(public_messages.count).to eq(1)
     end
 
-    it 'does not close with a closed window and no nudge on a non-pilot account' do
-      allow(conversation).to receive(:can_reply?).and_return(false)
-      expect(nudge(now + 2.hours)).to be_nil
-      expect(conversation.reload).to be_pending
-    end
-
-    it 'waits for the close delay even on a pilot account with a closed window' do
-      account.enable_features!('captain_pilot')
+    it 'waits for the close delay even with a closed window' do
       allow(conversation).to receive(:can_reply?).and_return(false)
       expect(nudge).to be_nil
       expect(conversation.reload).to be_pending
