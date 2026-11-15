@@ -14,6 +14,37 @@ RSpec.describe MessageTemplates::HookExecutionService do
   end
 
   context 'when captain assistant is configured' do
+    it 'does not answer a pending conversation that has a human assignee and keeps counting eligibility' do
+      account.enable_features!('captain_integration_v2')
+      agent = create(:user, account: account)
+      conversation.update!(assignee: agent)
+      expect(Captain::Conversation::ResponseSchedulerService).not_to receive(:new)
+
+      expect do
+        create(:message, conversation: conversation, message_type: :incoming, account: account)
+      end.to change(ConversationOutcome, :count).by(1)
+
+      expect(ConversationOutcome.last).to have_attributes(conversation: conversation, assistant: assistant)
+      expect(conversation.reload).to have_attributes(status: 'pending', assignee: agent)
+    end
+
+    it 'still answers a pending conversation without an owner' do
+      conversation.update!(assignee: nil, ai_assignee: nil)
+      expect(configured_job).to receive(:perform_later).with(conversation, assistant, kind_of(Integer))
+
+      create(:message, conversation: conversation, message_type: :incoming, account: account)
+    end
+
+    it 'answers a reopened conversation that Aurora now owns' do
+      agent = create(:user, account: account)
+      conversation.update!(status: :resolved, assignee: agent, ai_assignee: nil)
+      expect(configured_job).to receive(:perform_later).with(conversation, assistant, kind_of(Integer))
+
+      create(:message, conversation: conversation, message_type: :incoming, account: account)
+
+      expect(conversation.reload).to have_attributes(status: 'pending', assignee: nil, ai_assignee: assistant)
+    end
+
     context 'when within business hours' do
       before do
         inbox.update!(working_hours_enabled: true)
