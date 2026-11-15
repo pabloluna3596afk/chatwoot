@@ -32,6 +32,19 @@ RSpec.describe Rake::Task do
     expect(conversation.additional_attributes['captain_followup']).to include('assistant_id' => assistant.id)
   end
 
+  it 'does not close or preview a pending conversation with a human assignee' do
+    agent = create(:user, account: account)
+    conversation.update!(assignee: agent)
+    expect(Captain::Followup::Closer).not_to receive(:new)
+
+    with_modified_env(DRY_RUN: 'false') do
+      expect { task.invoke }.not_to output.to_stdout
+    end
+
+    expect(conversation.reload).to have_attributes(status: 'pending', assignee: agent)
+    expect(conversation.messages.where(private: true)).to be_empty
+  end
+
   it 'never sends a public message' do
     account.enable_features!('captain_integration_v2')
     assistant.update!(send_inactivity_resolution_message: true)

@@ -18,6 +18,37 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
       .to have_enqueued_job.on_queue('low')
   end
 
+  [false, true].each do |evaluation_enabled|
+    context "when evaluating completion is #{evaluation_enabled}" do
+      before do
+        allow(inbox.account).to receive(:feature_enabled?).and_call_original
+        allow(inbox.account).to receive(:feature_enabled?).with('captain_tasks').and_return(evaluation_enabled)
+      end
+
+      it 'does not close by inactivity a pending conversation that has a human assignee' do
+        agent = create(:user, account: inbox.account)
+        resolvable_pending_conversation.update!(assignee: agent)
+        expect(Captain::ConversationCompletionService).not_to receive(:new)
+
+        expect do
+          described_class.perform_now(inbox)
+        end.not_to(change { resolvable_pending_conversation.messages.count })
+
+        expect(resolvable_pending_conversation.reload).to have_attributes(status: 'pending', assignee: agent)
+      end
+
+      it 'still closes a pending conversation without an owner' do
+        resolvable_pending_conversation.update!(assignee: nil, ai_assignee: nil)
+        evaluation = instance_double(Captain::ConversationCompletionService, perform: { complete: true, reason: 'Done' })
+        allow(Captain::ConversationCompletionService).to receive(:new).and_return(evaluation)
+
+        described_class.perform_now(inbox)
+
+        expect(resolvable_pending_conversation.reload).to be_resolved
+      end
+    end
+  end
+
   context 'when the assistant is deleted before the queued job runs' do
     before do
       captain_assistant.destroy!
@@ -135,6 +166,21 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
       described_class.perform_now(inbox)
 
       expect(resolvable_pending_conversation.reload.status).to eq('pending')
+      expect(resolvable_pending_conversation.messages.outgoing).to be_empty
+    end
+
+    it 'does not close if a person is assigned during evaluation while the conversation stays pending' do
+      agent = create(:user, account: inbox.account)
+      evaluation = instance_double(Captain::ConversationCompletionService)
+      allow(evaluation).to receive(:perform) do
+        resolvable_pending_conversation.update!(assignee: agent)
+        { complete: true, reason: 'Done' }
+      end
+      allow(Captain::ConversationCompletionService).to receive(:new).and_return(evaluation)
+
+      described_class.perform_now(inbox)
+
+      expect(resolvable_pending_conversation.reload).to have_attributes(status: 'pending', assignee: agent)
       expect(resolvable_pending_conversation.messages.outgoing).to be_empty
     end
 

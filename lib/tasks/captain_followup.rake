@@ -9,11 +9,11 @@ namespace :captain do
         assistant = link.captain_assistant
         next unless assistant.evaluate_inactive_conversations_before_resolving?
 
-        link.inbox.conversations.attended_by_ai.where(assignee_agent_bot_id: assistant.id)
+        link.inbox.conversations.attended_by_ai.where(assignee_agent_bot_id: assistant.id, assignee_id: nil)
             .where('last_activity_at < ?', cutoff).find_each do |conversation|
           result = conversation.with_lock do
             conversation.reload
-            next unless conversation.captain_attended? && conversation.ai_assignee == assistant
+            next unless conversation.assignee_id.blank? && conversation.captain_attended? && conversation.ai_assignee == assistant
             next unless conversation.last_activity_at < cutoff && Captain::Conversation::Turn.awaiting_customer?(conversation, assistant)
             next :preview if dry_run
 

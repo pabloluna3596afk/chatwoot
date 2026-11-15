@@ -91,11 +91,14 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
 
   def resolvable_pending_conversations(inbox)
     inbox.conversations.pending
+         .where(assignee_id: nil)
          .where('last_activity_at < ?', inactivity_cutoff_time)
          .limit(Limits::BULK_ACTIONS_LIMIT)
   end
 
-  def inactive_for_initial_action?(conversation) = conversation.last_activity_at < inactivity_cutoff_time
+  def inactive_for_initial_action?(conversation)
+    conversation.assignee_id.blank? && conversation.last_activity_at < inactivity_cutoff_time
+  end
 
   def still_resolvable_after_evaluation?(conversation)
     conversation.reload
