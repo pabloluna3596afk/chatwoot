@@ -118,6 +118,12 @@ send_captain_followup_job:
   class: 'Conversations::CaptainFollowupJob'
   queue: scheduled_jobs
 
+# Hourly Captain failure spike alert (a no-op in the community edition).
+captain_failure_spike_job:
+  cron: '0 * * * *'
+  class: 'Captain::FailureSpikeJob'
+  queue: scheduled_jobs
+
 # executed daily at 0330 UTC
 # purges the stored copies of WhatsApp template header files that no message, campaign, automation or Captain setting uses
 whatsapp_header_media_cleanup_job:

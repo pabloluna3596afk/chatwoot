@@ -745,6 +745,10 @@ en:
     disabled: 'Captain AI is disabled for this account.'
     api_key_missing: 'Captain AI API key is not configured.'
     notes:
+      handoff_without_reason: "%{assistant} handed the conversation to a person."
+      handoff_reply_limit: "%{assistant} reached this conversation's reply limit."
+      handoff_generation_failure: "%{assistant} could not generate a reply."
+      handoff_usage_limit: "%{assistant} ran out of available responses."
       closed_unanswered: '%{assistant} closed the conversation: the customer did not reply.'
       unavailable:
         missing_key: '%{assistant} could not respond: the AI key is not configured.'

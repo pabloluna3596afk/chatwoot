@@ -265,6 +265,20 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
 
       private_note = resolvable_pending_conversation.messages.where(private: true).last
       expect(private_note.content).to eq("#{captain_assistant.name} passed the conversation to the team (#{handoff_reason}).")
+      expect(private_note.content_attributes['captain_handoff']).to eq(
+        'reason_category' => 'pending_clarification', 'source' => 'inference'
+      )
+    end
+
+    it 'sends only the out-of-office message outside hours' do
+      captain_assistant.update!(config: captain_assistant.config.merge('handoff_message' => 'Connecting you'))
+      inbox.update!(working_hours_enabled: true, out_of_office_message: 'We are closed.')
+      inbox.working_hours.each { |hours| hours.update!(closed_all_day: true, open_all_day: false) }
+
+      described_class.perform_now(inbox)
+
+      expect(resolvable_pending_conversation.messages.where(private: false).pluck(:content)).to eq(['We are closed.'])
+      expect(resolvable_pending_conversation.messages.where(private: true).count).to eq(1)
     end
 
     it 'creates handoff message with configured content' do

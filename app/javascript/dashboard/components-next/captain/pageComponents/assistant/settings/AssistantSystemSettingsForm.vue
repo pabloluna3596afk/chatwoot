@@ -386,6 +386,9 @@ watch(
           :message-type="formErrors.handoffMessage ? 'error' : 'info'"
           class="z-0 [&_.editor-wrapper]:!min-h-32 [&_.editor-wrapper]:!border-0 [&_.editor-wrapper]:!bg-transparent [&_.editor-wrapper]:!p-0"
         />
+        <p class="px-4 pb-3 text-xs text-n-slate-11">
+          {{ t('CAPTAIN.ASSISTANTS.FORM.HANDOFF_MESSAGE.OUTSIDE_HOURS_HELP') }}
+        </p>
       </template>
     </SettingsToggleSection>
 

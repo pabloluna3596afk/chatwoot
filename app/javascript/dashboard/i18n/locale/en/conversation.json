@@ -1,5 +1,18 @@
 {
   "CONVERSATION": {
+    "CAPTAIN_HANDOFF": {
+      "TITLE": "{name} handed off this conversation",
+      "REASON": {
+        "customer_request": "Customer request",
+        "missing_knowledge": "Missing knowledge",
+        "unsupported_request": "Unsupported request",
+        "policy_restriction": "Business rule",
+        "tool_failure": "Technical failure",
+        "usage_limit": "No responses left",
+        "pending_clarification": "Something was left unresolved",
+        "unknown": "Unclassified"
+      }
+    },
     "WHATSAPP_FLOW_SENT": "Flow \u00b7 {name}",
     "WHATSAPP_TEMPLATE_SENT": "Template \u00b7 {name}",
     "WHATSAPP_TEMPLATE_CATEGORIES": {

@@ -12,11 +12,10 @@ RSpec.describe Captain::Conversation::UsageLimitHandoff do
     create(:captain_inbox, captain_assistant: assistant, inbox: inbox)
   end
 
-  it 'sends the localized handoff, private reason note, usage event and out of office notice' do
+  it 'sends the localized handoff, private reason note and usage event' do
     expect(Captain::ConversationEvents).to receive(:handed_off).with(
       conversation: conversation, assistant: assistant, source: 'usage_limit', reason_category: :usage_limit, at: kind_of(Time)
     ).and_call_original
-    expect(MessageTemplates::Template::OutOfOffice).to receive(:perform_if_applicable).with(conversation)
 
     service.perform
 
@@ -24,6 +23,29 @@ RSpec.describe Captain::Conversation::UsageLimitHandoff do
     expect(conversation.messages.where(private: false).pluck(:content)).to eq([I18n.t('conversations.captain.handoff', locale: 'es')])
     expect(conversation.messages.where(private: true).last).to have_attributes(
       sender: assistant, content: I18n.t('captain.notes.unavailable.quota_exhausted', assistant: assistant.name, locale: 'es')
+    )
+  end
+
+  it 'sends only the out-of-office message outside hours and leaves one handoff note' do
+    inbox.update!(working_hours_enabled: true, out_of_office_message: 'Cerrado')
+    inbox.working_hours.each { |hours| hours.update!(closed_all_day: true, open_all_day: false) }
+
+    service.perform
+
+    expect(conversation.messages.where(private: false).pluck(:content)).to eq(['Cerrado'])
+    expect(conversation.messages.where(private: true).sole.content_attributes['captain_handoff']).to eq(
+      'reason_category' => 'usage_limit', 'source' => 'usage_limit'
+    )
+  end
+
+  it 'leaves a minimal handoff note when there is no paused reason' do
+    put_account_on_plan(account)
+
+    service.perform
+
+    expect(conversation.messages.where(private: true).sole).to have_attributes(
+      content: I18n.t('captain.notes.handoff_usage_limit', assistant: assistant.name, locale: 'es'),
+      content_attributes: { 'captain_handoff' => { 'reason_category' => 'usage_limit', 'source' => 'usage_limit' } }
     )
   end
 

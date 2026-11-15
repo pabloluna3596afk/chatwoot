@@ -25,6 +25,7 @@ import {
 import Avatar from 'next/avatar/Avatar.vue';
 
 import TextBubble from './bubbles/Text/Index.vue';
+import CaptainHandoffBubble from './bubbles/CaptainHandoff.vue';
 import ActivityBubble from './bubbles/Activity.vue';
 import ImageBubble from './bubbles/Image.vue';
 import FileBubble from './bubbles/File.vue';
@@ -381,6 +382,10 @@ const componentToRender = computed(() => {
     }
     // Attachment content is the name of the contact
     if (fileType === ATTACHMENT_TYPES.CONTACT) return ContactBubble;
+  }
+
+  if (props.private && props.contentAttributes.captainHandoff) {
+    return CaptainHandoffBubble;
   }
 
   return TextBubble;
