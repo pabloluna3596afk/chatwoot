@@ -667,6 +667,10 @@ es:
     disabled: 'Captain AI está deshabilitado para esta cuenta.'
     api_key_missing: 'La clave API de Captain AI no está configurada.'
     notes:
+      handoff_without_reason: "%{assistant} pasó la conversación a una persona."
+      handoff_reply_limit: "%{assistant} alcanzó el límite de respuestas de esta conversación."
+      handoff_generation_failure: "%{assistant} no pudo generar una respuesta."
+      handoff_usage_limit: "%{assistant} se quedó sin respuestas disponibles."
       closed_unanswered: '%{assistant} cerró la conversación: el cliente no respondió.'
       unavailable:
         missing_key: '%{assistant} no pudo responder: falta configurar la llave de IA.'

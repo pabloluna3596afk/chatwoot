@@ -39,6 +39,12 @@ const submitForm = async wrapper => {
 };
 
 describe('AssistantSystemSettingsForm', () => {
+  it('explains which message is sent outside business hours', () => {
+    expect(mountComponent().text()).toContain(
+      'CAPTAIN.ASSISTANTS.FORM.HANDOFF_MESSAGE.OUTSIDE_HOURS_HELP'
+    );
+  });
+
   it('shows the evaluated policy controls from the saved config', () => {
     const wrapper = mountComponent();
     const modeCards = wrapper.findAllComponents(RadioCard);

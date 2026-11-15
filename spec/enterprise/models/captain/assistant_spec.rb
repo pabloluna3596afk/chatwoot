@@ -7,6 +7,13 @@ RSpec.describe Captain::Assistant, type: :model do
   let(:conversation) { create(:conversation, account: account, contact: contact) }
 
   describe '#prompt_context' do
+    it 'requests the handoff reason in the account language' do
+      account.update!(locale: 'es')
+
+      expect(assistant.send(:prompt_context)[:account_language]).to eq(account.locale_english_name)
+      expect(assistant.agent_instructions).to include("Write the handoff reason in #{account.locale_english_name}.")
+    end
+
     [nil, '', '   '].each do |product_name|
       it "uses the account name when the product name is blank (#{product_name.inspect})" do
         assistant.update!(config: assistant.config.merge('product_name' => product_name))

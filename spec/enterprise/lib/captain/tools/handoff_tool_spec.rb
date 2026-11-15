@@ -44,17 +44,17 @@ RSpec.describe Captain::Tools::HandoffTool, type: :model do
         end
 
         blank_reasons.each do |reason|
-          it "creates no private note when the reason is #{reason.inspect}" do
+          it "creates a translated private note when the reason is #{reason.inspect}" do
             expect do
               tool.perform(tool_context, reason: reason)
-            end.not_to(change { conversation.messages.where(private: true).count })
+            end.to change { conversation.messages.where(private: true).count }.by(1)
           end
         end
 
         it 'still hands off without a reason' do
           expect(tool.perform(tool_context)).to include('Conversation handed off')
           expect(conversation.reload).to be_open
-          expect(tool_context.state.dig(:cw_metadata, :handoff_note_id)).to be_nil
+          expect(tool_context.state.dig(:cw_metadata, :handoff_note_id)).to eq(conversation.messages.where(private: true).last.id)
         end
       end
     end
@@ -270,12 +270,15 @@ RSpec.describe Captain::Tools::HandoffTool, type: :model do
       end
 
       context 'without reason provided' do
-        it 'hands off without creating a private note with nil content' do
+        it 'creates a note when no reason is given' do
           expect do
             result = tool.perform(tool_context)
             expect(result).to eq('Conversation handed off to human support team')
-          end.not_to change(Message, :count)
+          end.to change(Message, :count).by(1)
 
+          expect(conversation.messages.where(private: true).last.content).to eq(
+            I18n.t('captain.notes.handoff_without_reason', assistant: assistant.name, locale: account.locale)
+          )
           expect(conversation.reload).to be_open
         end
 
@@ -288,10 +291,10 @@ RSpec.describe Captain::Tools::HandoffTool, type: :model do
           tool.perform(tool_context)
         end
 
-        it 'does not record a handoff note id without a reason' do
+        it 'records the minimal handoff note id without a reason' do
           tool.perform(tool_context)
 
-          expect(tool_context.state[:cw_metadata]).to be_nil
+          expect(tool_context.state.dig(:cw_metadata, :handoff_note_id)).to eq(conversation.messages.where(private: true).last.id)
         end
       end
 
@@ -376,6 +379,22 @@ RSpec.describe Captain::Tools::HandoffTool, type: :model do
     end
   end
 
+  it 'stores the reason category on the note' do
+    tool.perform(tool_context, reason: 'Needs help', reason_category: 'customer_request')
+
+    expect(conversation.messages.where(private: true).sole.content_attributes['captain_handoff']).to eq(
+      'reason_category' => 'customer_request', 'source' => 'tool'
+    )
+  end
+
+  it 'stores unknown for an unsupported reason category' do
+    tool.perform(tool_context, reason_category: 'unrecognized')
+
+    expect(conversation.messages.where(private: true).sole.content_attributes['captain_handoff']).to eq(
+      'reason_category' => 'unknown', 'source' => 'tool'
+    )
+  end
+
   describe '#active?' do
     it 'returns true for public tools' do
       expect(tool.active?).to be true
@@ -395,13 +414,10 @@ RSpec.describe Captain::Tools::HandoffTool, type: :model do
         )
       end
 
-      it 'sends out of office message after handoff' do
+      it 'leaves customer delivery to the response job' do
         expect do
           tool.perform(tool_context, reason: 'Customer needs help')
-        end.to change { conversation.messages.template.count }.by(1)
-
-        ooo_message = conversation.messages.template.last
-        expect(ooo_message.content).to eq('We are currently closed. Please leave your email.')
+        end.not_to(change { conversation.messages.where(private: false).count })
       end
     end
 

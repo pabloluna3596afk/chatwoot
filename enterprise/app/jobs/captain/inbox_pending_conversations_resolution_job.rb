@@ -152,7 +152,8 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
     handed_off = with_inference_activity_context(conversation, activity_reason(conversation, 'pending_clarification')) do
       perform_locked_transition(conversation) do
         conversation.bot_handoff!(dispatch_event: false)
-        create_private_note(conversation, handoff_note(conversation, evaluation))
+        create_private_note(conversation, handoff_note(conversation, evaluation),
+                            captain_handoff: { reason_category: 'pending_clarification', source: 'inference' })
         create_handoff_message(conversation)
       end
     end
@@ -166,7 +167,6 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
       reason_category: :pending_clarification,
       at: Time.current
     )
-    send_out_of_office_message_if_applicable(conversation.reload)
   rescue ActiveRecord::RecordNotFound
     nil
   end
@@ -183,10 +183,6 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
 
   def with_inference_activity_context(conversation, reason, &)
     conversation.with_captain_activity_context(reason: reason, reason_type: :inference, &)
-  end
-
-  def send_out_of_office_message_if_applicable(conversation)
-    ::MessageTemplates::Template::OutOfOffice.perform_if_applicable(conversation) if conversation.campaign.blank?
   end
 
   def activity_reason(conversation, key)
@@ -210,14 +206,15 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
     I18n.t(key, assistant: captain_assistant.name, locale: conversation.account.locale, **)
   end
 
-  def create_private_note(conversation, content)
+  def create_private_note(conversation, content, content_attributes = {})
     conversation.messages.create!(
       message_type: :outgoing,
       private: true,
       sender: captain_assistant,
       account_id: conversation.account_id,
       inbox_id: conversation.inbox_id,
-      content: content
+      content: content,
+      content_attributes: content_attributes
     )
   end
 
@@ -229,17 +226,7 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   end
 
   def create_handoff_message(conversation)
-    handoff_message = captain_assistant.config['handoff_message']
-    return if handoff_message.blank?
-
-    conversation.messages.create!(
-      message_type: :outgoing,
-      sender: captain_assistant,
-      account_id: conversation.account_id,
-      inbox_id: conversation.inbox_id,
-      content: handoff_message,
-      preserve_waiting_since: true
-    )
+    Captain::Conversation::HandoffReply.new(conversation, captain_assistant).perform
   end
 end
 # rubocop:enable Metrics/ClassLength

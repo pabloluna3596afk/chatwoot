@@ -32,7 +32,7 @@ class Captain::Tools::HandoffTool < Captain::Tools::BasePublicTool
 
   private
 
-  def trigger_handoff(tool_context, conversation, reason, reason_category) # rubocop:disable Metrics/MethodLength
+  def trigger_handoff(tool_context, conversation, reason, reason_category)
     return trigger_legacy_handoff(tool_context, conversation, reason, reason_category) unless captain_v2_enabled?
 
     note = nil
@@ -40,13 +40,7 @@ class Captain::Tools::HandoffTool < Captain::Tools::BasePublicTool
       next :changed unless conversation.pending?
       next :stale if newer_customer_message_arrived?(tool_context.state)
 
-      # post the reason as a private note
-      if reason.present?
-        note = conversation.messages.create!(
-          message_type: :outgoing, private: true, sender: @assistant,
-          account: conversation.account, inbox: conversation.inbox, content: reason
-        )
-      end
+      note = create_handoff_note(conversation, reason, reason_category)
 
       conversation.bot_handoff!(dispatch_event: false)
       :completed
@@ -56,30 +50,21 @@ class Captain::Tools::HandoffTool < Captain::Tools::BasePublicTool
 
     # Session capture attributes the run to this note so agents can inspect the
     # generation path on the handoff reason instead of the canned follow-up message.
-    # Without a reason, capture falls back to the follow-up message.
-    record_handoff_note(tool_context, note) if reason.present?
+    record_handoff_note(tool_context, note)
 
     tool_context.state[:captain_v2_handoff_tool_completed] = true
     # Queue the event after the state change commits so notification jobs always see the open conversation.
     conversation.dispatch_bot_handoff_event
     emit_tool_handoff_event(conversation, reason_category)
 
-    # Send out of office message if applicable (since template messages were suppressed while Captain was handling)
-    send_out_of_office_message_if_applicable(conversation)
     :completed
   end
 
   def trigger_legacy_handoff(tool_context, conversation, reason, reason_category)
-    if reason.present?
-      note = conversation.messages.create!(
-        message_type: :outgoing, private: true, sender: @assistant,
-        account: conversation.account, inbox: conversation.inbox, content: reason
-      )
-    end
-    record_handoff_note(tool_context, note) if reason.present?
+    note = create_handoff_note(conversation, reason, reason_category)
+    record_handoff_note(tool_context, note)
     conversation.bot_handoff!
     emit_tool_handoff_event(conversation, reason_category)
-    send_out_of_office_message_if_applicable(conversation)
     :completed
   end
 
@@ -103,12 +88,13 @@ class Captain::Tools::HandoffTool < Captain::Tools::BasePublicTool
     metadata[:handoff_note_id] = note.id
   end
 
-  def send_out_of_office_message_if_applicable(conversation)
-    # Campaign conversations should never receive OOO templates — the campaign itself
-    # serves as the initial outreach, and OOO would be confusing in that context.
-    return if conversation.campaign.present?
-
-    ::MessageTemplates::Template::OutOfOffice.perform_if_applicable(conversation)
+  def create_handoff_note(conversation, reason, reason_category)
+    conversation.messages.create!(
+      message_type: :outgoing, private: true, sender: @assistant,
+      account: conversation.account, inbox: conversation.inbox,
+      content: reason.presence || I18n.t('captain.notes.handoff_without_reason', assistant: @assistant.name, locale: conversation.account.locale),
+      content_attributes: { captain_handoff: { reason_category: normalize_reason_category(reason_category) || 'unknown', source: 'tool' } }
+    )
   end
 
   # TODO: Future enhancement - Add team assignment capability

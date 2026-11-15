@@ -385,7 +385,9 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           expect(conversation.messages.where(sender: assistant, private: false).pluck(:content)).to eq(
             [I18n.t('conversations.captain.handoff', locale: account.locale)]
           )
-          expect(conversation.messages.where(private: true)).to be_empty
+          expect(conversation.messages.where(private: true).sole.content_attributes['captain_handoff']).to eq(
+            'reason_category' => 'tool_failure', 'source' => 'generation_failure'
+          )
           expect(conversation.reload).to be_open
           expect(Captain::ConversationEvents).to have_received(:response_failed)
             .with(conversation: conversation, assistant: assistant, reason: 'ruby_llm_rate_limit_error', at: kind_of(Time)).once
@@ -405,9 +407,11 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         job.executions = 2
         job.perform_now
 
-        expect(conversation.messages.where(sender: assistant, private: false).count).to eq(1)
+        expect(conversation.messages.where(sender: assistant, private: false).count).to eq(0)
         expect(conversation.messages.template.pluck(:content)).to eq(['We are currently closed.'])
-        expect(conversation.messages.where(private: true)).to be_empty
+        expect(conversation.messages.where(private: true).sole.content_attributes['captain_handoff']).to eq(
+          'reason_category' => 'tool_failure', 'source' => 'generation_failure'
+        )
       end
 
       it 'turns typing off between retry attempts and clears the execution context' do
@@ -834,7 +838,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           described_class.perform_now(conversation, assistant)
 
           expect(conversation.reload.status).to eq('open')
-          expect(conversation.messages.outgoing.last.content).to eq(I18n.t('conversations.captain.handoff'))
+          expect(conversation.messages.outgoing.where(private: false).last.content).to eq(I18n.t('conversations.captain.handoff'))
           expect(conversation.messages.outgoing.pluck(:content)).not_to include('Let me check and get back to you.')
           expect(account.reload.usage_limits[:captain][:responses][:consumed]).to eq(0)
         end
@@ -863,7 +867,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           described_class.perform_now(conversation, assistant)
 
           expect(conversation.reload.status).to eq('open')
-          expect(conversation.messages.outgoing.last.content).to eq(I18n.t('conversations.captain.handoff'))
+          expect(conversation.messages.outgoing.where(private: false).last.content).to eq(I18n.t('conversations.captain.handoff'))
           expect(conversation.messages.outgoing.pluck(:content)).not_to include('Could you share the exact error message you see?')
           expect(account.reload.usage_limits[:captain][:responses][:consumed]).to eq(0)
         end
@@ -883,7 +887,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           described_class.perform_now(conversation, assistant)
 
           expect(conversation.reload.status).to eq('open')
-          expect(conversation.messages.outgoing.last.content).to eq(I18n.t('conversations.captain.handoff'))
+          expect(conversation.messages.outgoing.where(private: false).last.content).to eq(I18n.t('conversations.captain.handoff'))
           expect(account.reload.usage_limits[:captain][:responses][:consumed]).to eq(0)
         end
 
@@ -902,7 +906,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           described_class.perform_now(conversation, assistant)
 
           expect(conversation.reload.status).to eq('open')
-          expect(conversation.messages.outgoing.last.content).to eq(I18n.t('conversations.captain.handoff'))
+          expect(conversation.messages.outgoing.where(private: false).last.content).to eq(I18n.t('conversations.captain.handoff'))
         end
       end
 
@@ -945,7 +949,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           described_class.perform_now(conversation, assistant)
 
           expect(conversation.reload.status).to eq('open')
-          expect(conversation.messages.outgoing.last.content).to eq(I18n.t('conversations.captain.handoff'))
+          expect(conversation.messages.outgoing.where(private: false).last.content).to eq(I18n.t('conversations.captain.handoff'))
           expect(account.reload.usage_limits[:captain][:responses][:consumed]).to eq(0)
         end
 
@@ -956,7 +960,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           described_class.perform_now(conversation, assistant)
 
           expect(conversation.reload.status).to eq('open')
-          expect(conversation.messages.outgoing.last.content).to eq(I18n.t('conversations.captain.handoff'))
+          expect(conversation.messages.outgoing.where(private: false).last.content).to eq(I18n.t('conversations.captain.handoff'))
         end
 
         it 'falls back to the assistant response when the classifier fails' do
@@ -1803,7 +1807,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         allow(mock_llm_chat_service).to receive(:generate_response).and_return({ 'response' => 'conversation_handoff' })
       end
 
-      it 'sends out of office message after handoff' do
+      it 'sends only the out-of-office message on an out-of-hours handoff' do
         expect do
           described_class.perform_now(conversation, assistant)
         end.to change { conversation.messages.template.count }.by(1)
@@ -1811,6 +1815,8 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         expect(conversation.reload.status).to eq('open')
         ooo_message = conversation.messages.template.last
         expect(ooo_message.content).to eq('We are currently closed. Please leave your email.')
+        expect(conversation.messages.where(private: false).where.not(message_type: :incoming).count).to eq(1)
+        expect(conversation.messages.where(private: true).sole.content_attributes['captain_handoff']['source']).to eq('tool')
       end
     end
 
@@ -1847,6 +1853,16 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           open_all_day: false
         )
         allow(mock_llm_chat_service).to receive(:generate_response).and_raise(StandardError, 'API error')
+      end
+
+      it 'leaves a handoff note on generation failure' do
+        described_class.perform_now(conversation, assistant)
+
+        expect(conversation.messages.where(private: true).sole).to have_attributes(
+          content: I18n.t('captain.notes.handoff_generation_failure', assistant: assistant.name),
+          content_attributes: { 'captain_handoff' => { 'reason_category' => 'tool_failure', 'source' => 'generation_failure' } }
+        )
+        expect(conversation.messages.where(private: false).where.not(message_type: :incoming).count).to eq(1)
       end
 
       it 'sends out of office message after error-triggered handoff' do
@@ -1893,10 +1909,30 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       allow(Captain::Assistant::AgentRunnerService).to receive(:new).and_raise('Captain must not generate past its limit')
     end
 
+    it 'sends only the out-of-office message on reply limit outside hours' do
+      inbox.update!(working_hours_enabled: true, out_of_office_message: 'We are closed.')
+      inbox.working_hours.each { |hours| hours.update!(closed_all_day: true, open_all_day: false) }
+
+      described_class.perform_now(conversation, assistant)
+
+      expect(conversation.messages.where(private: false).where.not(content: 'respuesta').where.not(message_type: :incoming).pluck(:content))
+        .to eq(['We are closed.'])
+      expect(conversation.messages.where(private: true).count).to eq(1)
+    end
+
+    it 'leaves a handoff note on reply limit' do
+      described_class.perform_now(conversation, assistant)
+
+      expect(conversation.messages.where(private: true).sole).to have_attributes(
+        content: I18n.t('captain.notes.handoff_reply_limit', assistant: assistant.name),
+        content_attributes: { 'captain_handoff' => { 'reason_category' => 'policy_restriction', 'source' => 'reply_limit' } }
+      )
+    end
+
     it 'says goodbye with the handoff message once and leaves the conversation to the team' do
       allow(Rails.configuration.dispatcher).to receive(:dispatch).and_call_original
 
-      expect { described_class.perform_now(conversation, assistant) }.to change { conversation.messages.outgoing.count }.by(1)
+      expect { described_class.perform_now(conversation, assistant) }.to change { conversation.messages.outgoing.where(private: false).count }.by(1)
       expect(Rails.configuration.dispatcher).to have_received(:dispatch).with(
         Events::Types::CONVERSATION_TYPING_ON, kind_of(Time),
         conversation: conversation, user: assistant, is_private: false
@@ -1906,7 +1942,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         conversation: conversation, user: assistant, is_private: false
       ).once
 
-      expect(conversation.messages.outgoing.last.content).to eq(I18n.t('conversations.captain.handoff'))
+      expect(conversation.messages.outgoing.where(private: false).last.content).to eq(I18n.t('conversations.captain.handoff'))
       expect(conversation.reload).to have_attributes(status: 'open', captain_state: 'escalated')
     end
   end
