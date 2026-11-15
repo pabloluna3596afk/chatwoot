@@ -5,7 +5,8 @@ module Captain::Conversation::ResponseLifecycleLogging
     @observed_conversation_status, @observed_assignee_id = Conversation.uncached do
       Conversation.where(id: @conversation.id).pick(:status, :assignee_id)
     end
-    @observed_conversation_status == 'pending' || @observed_conversation_status == Conversation.statuses[:pending]
+    @observed_assignee_id.blank? &&
+      (@observed_conversation_status == 'pending' || @observed_conversation_status == Conversation.statuses[:pending])
   end
 
   def log_non_pending
