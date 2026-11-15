@@ -65,6 +65,7 @@ class Captain::Scenario < ApplicationRecord
     {
       account_language: account.locale_english_name,
       title: title,
+      account_language: account.locale_english_name,
       instructions: resolved_instructions,
       tools: resolved_tools,
       assistant_name: assistant.name.downcase.gsub(/\s+/, '_'),

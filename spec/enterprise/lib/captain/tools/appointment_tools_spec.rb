@@ -1206,6 +1206,24 @@ RSpec.describe Captain::Assistant, 'appointment tools exposure' do
     captain_inbox.update!(appointments_enabled: false)
     expect(assistant.agent_instructions(instructions_context)).not_to include('# Appointments')
   end
+
+  %w[es en].each do |locale|
+    it "renders the appointment button labels from translations in #{locale}" do
+      account.update!(locale: locale)
+      prompt = assistant.agent_instructions(instructions_context)
+
+      I18n.t('captain.appointments.buttons', locale: locale).each_value do |label|
+        expect(prompt).to include(label)
+      end
+    end
+  end
+
+  it 'does not add appointment labels when appointments are inactive' do
+    captain_inbox.update!(appointments_enabled: false)
+
+    expect(assistant.send(:conversation_prompt_context, instructions_context.context[:state])).not_to have_key(:appointments)
+    expect(assistant.appointments.to_h).not_to have_key('buttons')
+  end
 end
 
 RSpec.describe Captain::Tools::CheckAvailabilityTool, '#perform with an exact time' do
