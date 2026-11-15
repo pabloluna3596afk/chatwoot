@@ -10,7 +10,7 @@ describe Conversations::AssignmentService do
     it 'keeps a pending conversation pending in an inbox without a bot or Captain assistant' do
       conversation.update!(status: :pending, assignee: nil, ai_assignee: nil)
 
-      described_class.new(conversation: conversation, assignee_id: agent.id).perform
+      described_class.new(conversation: conversation, assignee_id: agent.id, open_pending: true).perform
 
       expect(conversation.reload).to have_attributes(status: 'pending', assignee: agent)
     end
@@ -19,7 +19,7 @@ describe Conversations::AssignmentService do
       create(:agent_bot_inbox, inbox: conversation.inbox, agent_bot: agent_bot)
       conversation.update!(status: :pending, assignee: nil, ai_assignee: nil)
 
-      described_class.new(conversation: conversation, assignee_id: agent.id).perform
+      described_class.new(conversation: conversation, assignee_id: agent.id, open_pending: true).perform
 
       expect(conversation.reload).to have_attributes(status: 'open', assignee: agent)
     end

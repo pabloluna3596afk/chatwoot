@@ -14,6 +14,18 @@ RSpec.describe 'Captain assistant conversation assignment API', type: :request d
     create(:captain_inbox, captain_assistant: assistant, inbox: inbox)
   end
 
+  it 'opens an unowned pending conversation on manual assignment even when Captain is paused' do
+    conversation.update!(status: :pending, assignee: nil, ai_assignee: nil, waiting_since: nil)
+    account.update!(limits: { 'captain_responses' => 0 })
+
+    post api_v1_account_conversation_assignments_url(account_id: account.id, conversation_id: conversation.display_id),
+         params: { assignee_id: agent.id }, headers: agent.create_new_auth_token, as: :json
+
+    expect(response).to have_http_status(:ok)
+    expect(conversation.reload).to have_attributes(status: 'open', assignee: agent)
+    expect(conversation.waiting_since).to be_present
+  end
+
   it 'assigns the connected Captain assistant and marks the conversation pending' do
     conversation.update!(assignee: agent, status: :open)
 

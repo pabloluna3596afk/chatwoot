@@ -27,7 +27,7 @@ describe Conversations::AssignmentService do
     conversation.update!(status: :pending, assignee: nil, ai_assignee: nil, waiting_since: nil)
 
     freeze_time do
-      described_class.new(conversation: conversation, assignee_id: agent.id).perform
+      described_class.new(conversation: conversation, assignee_id: agent.id, open_pending: true).perform
 
       expect(conversation.reload).to have_attributes(status: 'open', assignee: agent, waiting_since: Time.current)
     end
@@ -37,9 +37,41 @@ describe Conversations::AssignmentService do
     waiting_since = 1.hour.ago.change(usec: 0)
     conversation.update!(status: :pending, assignee: nil, ai_assignee: nil, waiting_since: waiting_since)
 
-    described_class.new(conversation: conversation, assignee_id: agent.id).perform
+    described_class.new(conversation: conversation, assignee_id: agent.id, open_pending: true).perform
 
     expect(conversation.reload).to have_attributes(status: 'open', assignee: agent, waiting_since: waiting_since)
+  end
+
+  it 'keeps a pending conversation pending when ActionService assigns a person' do
+    create(:inbox_member, inbox: inbox, user: agent)
+    conversation.update!(status: :pending, assignee: nil, ai_assignee: nil)
+
+    ActionService.new(conversation).assign_agent([agent.id])
+
+    expect(conversation.reload).to have_attributes(status: 'pending', assignee: agent)
+  end
+
+  it 'does not opt other service callers into manual opening' do
+    conversation.update!(status: :pending, assignee: nil, ai_assignee: nil)
+
+    described_class.new(conversation: conversation, assignee_id: agent.id).perform
+
+    expect(conversation.reload).to have_attributes(status: 'pending', assignee: agent)
+  end
+
+  it 'records exactly one status activity and one assignment activity for a manual opening without an AI owner' do
+    conversation.update!(status: :pending, assignee: nil, ai_assignee: nil)
+    clear_enqueued_jobs
+    status_content = I18n.t('conversations.activity.status.open', user_name: actor.name)
+    assignment_content = I18n.t('conversations.activity.assignee.assigned', assignee_name: agent.name, user_name: actor.name)
+
+    described_class.new(conversation: conversation, assignee_id: agent.id, open_pending: true).perform
+
+    expect(activity_job_count).to eq(2)
+    expect(Conversations::ActivityMessageJob).to have_been_enqueued.with(conversation, hash_including(content: status_content)).exactly(:once)
+    expect(Conversations::ActivityMessageJob).to have_been_enqueued.with(conversation, hash_including(content: assignment_content)).exactly(:once)
+
+    expect(conversation.assignment_driven_status).to be(false)
   end
 
   it 'records only the Captain assignment when handing a person-owned conversation to Captain' do

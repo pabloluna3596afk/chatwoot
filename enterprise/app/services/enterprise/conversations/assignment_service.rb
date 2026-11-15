@@ -19,10 +19,6 @@ module Enterprise::Conversations::AssignmentService
 
   private
 
-  def open_on_assignment?
-    super || conversation.ai_assignee_type == 'Captain::Assistant' || (assignee.present? && conversation.inbox.captain_assistant.present?)
-  end
-
   def captain_assistant
     assistant = conversation.inbox.captain_assistant
     assistant if assistant&.id == assignee_id.to_i && !assistant.internal?
