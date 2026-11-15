@@ -1,11 +1,10 @@
 class Captain::Eval::Sandbox
   attr_reader :account, :inbox
 
-  def prepare(pilot:)
+  def prepare
     @account = Account.find_or_create_by!(name: 'Captain Eval') { |record| record.locale = 'es' }
     account.update!(plan: nil, plan_started_at: nil)
     account.enable_features!('captain_integration', 'captain_integration_v2')
-    pilot ? account.enable_features!('captain_pilot') : account.disable_features!('captain_pilot')
     account.conversations.find_each(&:destroy!)
     prepare_inbox
     self

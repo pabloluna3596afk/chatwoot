@@ -15,12 +15,11 @@ class Captain::Eval::Runner
     raise ArgumentError, 'REPEAT debe ser positivo' unless repeat.positive?
 
     with_distance do
-      sandbox = Captain::Eval::Sandbox.new.prepare(pilot: @env['PILOT'] == '1')
+      sandbox = Captain::Eval::Sandbox.new.prepare
       started_at = Time.current
       results = run_suite(suite, sandbox, repeat)
       Captain::Eval::Report.new(results: results, account: sandbox.account, started_at: started_at,
-                                settings: { pilot: Captain::Pilot.enabled?(sandbox.account), repeat: repeat,
-                                            max_distance: Captain::Knowledge::Relevance.max_distance }).write
+                                settings: { repeat: repeat, max_distance: Captain::Knowledge::Relevance.max_distance }).write
     end
   end
 
