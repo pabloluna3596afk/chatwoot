@@ -11,11 +11,11 @@ class Captain::Knowledge::Relevance
     (value || DEFAULT_MAX_DISTANCE).clamp(RANGE.min, RANGE.max)
   end
 
-  def self.apply(responses, filter:)
+  def self.apply(responses)
     threshold = max_distance
     distances = responses.filter_map { |response| response.try(:neighbor_distance) }
-    kept = filter ? responses.select { |response| within?(response, threshold) } : responses
-    Result.new(kept: kept, best_distance: distances.min, threshold: threshold, filtered: filter)
+    kept = responses.select { |response| within?(response, threshold) }
+    Result.new(kept: kept, best_distance: distances.min, threshold: threshold, filtered: true)
   end
 
   def self.within?(response, threshold)

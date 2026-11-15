@@ -4,7 +4,7 @@ RSpec.describe Captain::Conversation::MessageHistoryBuilderService do
   let(:account) { create(:account, locale: 'en') }
   let(:conversation) { create(:conversation, account: account) }
 
-  describe 'pilot context' do
+  describe 'bounded context' do
     subject(:history) { described_class.new(conversation: conversation).perform }
 
     let(:attributes) do
@@ -12,22 +12,14 @@ RSpec.describe Captain::Conversation::MessageHistoryBuilderService do
         message_type: :incoming, content: 'Customer message', created_at: 1.hour.ago, updated_at: 1.hour.ago }
     end
 
-    it 'builds the full history on a non-pilot account' do
-      Message.create!([attributes] * 300)
-
-      expect(history).to eq([{ role: 'user', content: 'Customer message' }] * 300)
-    end
-
-    context 'with a pilot account' do
-      before { account.enable_features!('captain_pilot') }
-
-      it 'builds the windowed history on a pilot account' do
+    context 'with bounded history' do
+      it 'builds the windowed history' do
         Message.create!([attributes] * 300)
 
         expect(history).to eq([{ role: 'user', content: 'Customer message' }] * 40)
       end
 
-      it 'replaces older images with the placeholder on a pilot account' do
+      it 'replaces older images with the placeholder' do
         Message.create!([attributes] * 6)
         conversation.messages.order(:id).each do |message|
           message.attachments.create!(account_id: account.id, file_type: :image, external_url: "https://example.com/#{message.id}.jpg")
@@ -39,7 +31,7 @@ RSpec.describe Captain::Conversation::MessageHistoryBuilderService do
         expect(history.last(3).map { |entry| entry[:content].last[:type] }).to eq(['image_url'] * 3)
       end
 
-      it 'prefixes human agent messages on a pilot account' do
+      it 'prefixes human agent messages' do
         message = create(:message, conversation: conversation, account: account, message_type: :outgoing,
                                    content: 'Confirmed', additional_attributes: { agent_name: 'Sales' })
 
@@ -88,7 +80,14 @@ RSpec.describe Captain::Conversation::MessageHistoryBuilderService do
         )
       end
 
-      it 'keeps the full unprefixed history for Copilot on a pilot account' do
+      it 'excludes private messages from the bounded history' do
+        create(:message, conversation: conversation, account: account, content: 'Question')
+        create(:message, conversation: conversation, account: account, private: true, content: 'Private')
+
+        expect(history).to eq([{ role: 'user', content: 'Question' }])
+      end
+
+      it 'keeps the full unprefixed history for Copilot' do
         Message.create!([attributes.merge(message_type: :outgoing, sender_type: 'User', sender_id: create(:user, account: account).id)] * 300)
         message = conversation.messages.order(:id).first
         message.attachments.create!(account_id: account.id, file_type: :image, external_url: 'https://example.com/photo.jpg')
@@ -96,29 +95,8 @@ RSpec.describe Captain::Conversation::MessageHistoryBuilderService do
                                                    { type: 'image_url', image_url: { url: 'https://example.com/photo.jpg' } }] }] +
                    ([{ role: 'assistant', content: 'Customer message' }] * 299)
 
-        expect(described_class.new(conversation: conversation, pilot_rules: false).perform).to eq(expected)
-        account.disable_features!('captain_pilot')
-        expect(described_class.new(conversation: conversation, pilot_rules: false).perform).to eq(expected)
+        expect(described_class.new(conversation: conversation, bound_history: false).perform).to eq(expected)
       end
-    end
-
-    it 'does not prefix on a non-pilot account' do
-      create(:message, conversation: conversation, account: account, message_type: :outgoing, content: 'Human reply')
-
-      expect(history).to eq([{ role: 'assistant', content: 'Human reply' }])
-    end
-
-    it 'keeps non-pilot history identical to V1 except resolution markers' do
-      create(:message, conversation: conversation, account: account, content: 'Question')
-      create(:message, conversation: conversation, account: account, message_type: :outgoing, content: 'Answer',
-                       additional_attributes: { agent_name: 'Support' })
-      message = create(:message, conversation: conversation, account: account, content: 'Photo')
-      message.attachments.create!(account_id: account.id, file_type: :image, external_url: 'https://example.com/photo.jpg')
-      create(:message, conversation: conversation, account: account, private: true, content: 'Private')
-      job = Captain::Conversation::ResponseBuilderJob.new
-      job.instance_variable_set(:@conversation, conversation)
-
-      expect(history.to_json).to eq(job.send(:collect_previous_messages).to_json)
     end
   end
 
@@ -142,7 +120,7 @@ RSpec.describe Captain::Conversation::MessageHistoryBuilderService do
         create(:message, conversation: conversation, account: account, content: 'Thank you')
 
         expect(history).to eq([
-                                { role: 'assistant', content: 'Choose a department' },
+                                { role: 'assistant', content: version == 'v2' ? '[Human agent]: Choose a department' : 'Choose a department' },
                                 { role: 'user', content: 'Support' },
                                 { role: 'user', content: "[The customer changed their choice from «Support» to «Sales»]\nSales" },
                                 { role: 'user', content: 'Thank you' }

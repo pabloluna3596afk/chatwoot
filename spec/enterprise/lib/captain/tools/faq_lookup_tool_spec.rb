@@ -73,7 +73,6 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
 
       it 'searches with account_id and records embeddings when the internal pool is zero' do
         put_account_on_plan(account, captain_internal_calls: 0)
-        account.enable_features!(:captain_pilot)
         allow(Captain::Llm::EmbeddingService).to receive(:new).and_call_original
         embedding_result = Struct.new(:vectors).new(Array.new(1536, 0.1))
         allow(RubyLLM).to receive(:embed).and_return(embedding_result)
@@ -93,7 +92,6 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
 
       it 'passes account_id from the FAQ tool with zero internal units and records the lookup' do
         put_account_on_plan(account, captain_internal_calls: 0)
-        account.enable_features!(:captain_pilot)
         allow(Captain::Llm::EmbeddingService).to receive(:new).and_call_original
         embedding_result = Struct.new(:vectors).new(Array.new(1536, 0.1))
         allow(RubyLLM).to receive(:embed).and_return(embedding_result)
@@ -127,8 +125,7 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
           )
         end
 
-        it 'returns the no-results message when every result is too far (pilot account)' do
-          account.enable_features!('captain_pilot')
+        it 'returns the no-results message when every result is too far' do
           allow(Captain::AssistantResponse).to receive(:nearest_neighbors).and_return(
             Captain::AssistantResponse.where(id: response2.id).select('captain_assistant_responses.*, 0.8 AS neighbor_distance')
           )
@@ -137,25 +134,17 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
           expect(tool_context.state[:cw_metadata]).to be_nil
         end
 
-        it 'returns only the close results (pilot account)' do
-          account.enable_features!('captain_pilot')
-
+        it 'returns only the close results' do
           result = tool.perform(tool_context, query: 'password')
 
           expect(result).to include(response1.answer)
           expect(result).not_to include(response2.answer)
         end
 
-        it 'returns all results on a non-pilot account' do
-          result = tool.perform(tool_context, query: 'password')
-
-          expect(result).to include(response1.answer, response2.answer)
-        end
-
         it 'logs found, kept, best distance and threshold without the query text' do
           tool_context.state[:conversation] = { id: 123 }
           expected = "[CAPTAIN][Knowledge] event=faq_search account_id=#{account.id} assistant_id=#{assistant.id} " \
-                     'conversation_id=123 found=2 kept=2 best_distance=0.2 threshold=0.55 filtered=false'
+                     'conversation_id=123 found=2 kept=1 best_distance=0.2 threshold=0.55 filtered=true'
           allow(Rails.logger).to receive(:info).and_call_original
           expect(Rails.logger).to receive(:info).with(expected)
 
@@ -163,7 +152,6 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
         end
 
         it 'records only kept sources in the run metadata' do
-          account.enable_features!('captain_pilot')
           user = create(:user, account: account)
           response2.update!(documentable: user)
           assistant.update!(config: assistant.config.merge('feature_citation' => true))
@@ -182,11 +170,10 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
 
           expect(result).to start_with(notice)
           expect(result.scan(notice).size).to eq(1)
-          expect(result.scan('FAQ result:').size).to eq(2)
+          expect(result.scan('FAQ result:').size).to eq(1)
         end
 
         it 'reads a changed threshold on the next search in the same process' do
-          account.enable_features!('captain_pilot')
           setting = create(:installation_config, name: 'CAPTAIN_FAQ_MAX_DISTANCE', value: '0.30')
 
           expect(tool.perform(tool_context, query: 'password')).not_to include(response2.answer)
@@ -195,8 +182,6 @@ RSpec.describe Captain::Tools::FaqLookupTool, type: :model do
         end
 
         it 'filters in the playground without a conversation' do
-          account.enable_features!('captain_pilot')
-
           result = tool.perform(tool_context, query: 'password')
 
           expect(result).to include(response1.answer)

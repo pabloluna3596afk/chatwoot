@@ -93,7 +93,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
     trigger_typing_event(:on)
     Current.executed_by = @assistant
     return process_reply_limit if @assistant.reply_limit_reached?(@conversation)
-    return process_usage_exhausted if Captain::Pilot.enabled?(account) && !reserve_reply_usage!
+    return process_usage_exhausted unless reserve_reply_usage!
     return generate_and_process_response unless captain_v2_enabled?
 
     generate_response_with_v2
@@ -189,7 +189,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob # rubocop:disab
 
       message = create_messages
       Rails.logger.info("[CAPTAIN][ResponseBuilderJob] Incrementing response usage for #{account.id}")
-      @reply_reservation_id ? finish_reply_usage! : account.increment_response_usage
+      finish_reply_usage!
     end
     return unless message
 

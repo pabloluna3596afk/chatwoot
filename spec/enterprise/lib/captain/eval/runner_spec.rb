@@ -17,6 +17,7 @@ RSpec.describe Captain::Eval::Runner do
   it 'builds the conversation and returns the response for all 30 cases' do
     result = runner.perform
     data = JSON.parse(File.read(result[:json]))
+    expect(data['settings']).to eq('repeat' => 1, 'max_distance' => 0.55)
     expect(data['cases'].size).to eq(30)
     expect(data['cases'].first['attempts'].first['response']).to eq('El horario es de 9:00 a 13:00.')
     expect(Conversation.where(account_id: data['account_id']).count).to eq(30)

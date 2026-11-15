@@ -442,6 +442,7 @@
   enabled: false
   premium: true
   column: feature_flags_ext_1
+# Deprecated: kept only so the bit positions of the following flags do not shift.
 - name: captain_pilot
   display_name: Captain Pilot
   enabled: false

@@ -3,7 +3,6 @@ require 'rails_helper'
 RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
   let(:account) { create(:account) }
   let(:inbox) { create(:inbox, account: account) }
-  let(:pilot) { true }
   let(:mode) { 'evaluated' }
   let(:send_goodbye) { true }
   let(:window_open) { true }
@@ -20,7 +19,6 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
 
   before do
     account.enable_features!('captain_integration_v2', 'captain_tasks')
-    account.enable_features!('captain_pilot') if pilot
     create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
     conversation.update!(status: :pending, ai_assignee: assistant)
     create(:message, account: account, conversation: conversation, sender: assistant, message_type: :outgoing, created_at: 2.hours.ago)
@@ -28,7 +26,7 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
     allow(Captain::ConversationCompletionService).to receive(:new).and_return(evaluation)
   end
 
-  it 'closes without evaluating or handing off when the pilot customer owes the reply' do
+  it 'closes without evaluating or handing off when the customer owes the reply' do
     expect(evaluation).not_to receive(:perform)
     job.perform(inbox)
     expect(conversation.reload).to be_resolved
@@ -92,74 +90,47 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
     end
   end
 
-  context 'without a pilot account' do
-    let(:pilot) { false }
-
-    it 'keeps the previous evaluation and handoff path' do
-      expect(evaluation).to receive(:perform).and_return(complete: false, reason: 'Needs reply')
-      job.perform(inbox)
-      expect(conversation.reload).to be_open
-      expect(conversation.additional_attributes).not_to have_key('captain_followup')
-    end
-
-    context 'with follow-up enabled' do
-      let(:followup) { { 'inactivity_enabled' => true, 'max_nudges' => 1 } }
-
-      it 'still evaluates and hands off' do
-        expect(evaluation).to receive(:perform).and_return(complete: false, reason: 'Needs reply')
-        job.perform(inbox)
-        expect(conversation.reload).to be_open
-      end
-    end
-  end
-
   resolution_modes = %w[evaluated legacy disabled]
   expected_statuses = { 'evaluated' => 'open', 'legacy' => 'resolved', 'disabled' => 'pending' }
 
-  [true, false].each do |pilot_enabled|
-    context "with pilot=#{pilot_enabled}" do
-      let(:pilot) { pilot_enabled }
+  context 'with legacy mode and follow-up enabled' do
+    let(:mode) { 'legacy' }
+    let(:followup) { { 'inactivity_enabled' => true, 'max_nudges' => 1 } }
 
-      context 'with legacy mode and follow-up enabled' do
-        let(:mode) { 'legacy' }
-        let(:followup) { { 'inactivity_enabled' => true, 'max_nudges' => 1 } }
+    it 'keeps the existing time-based close without a follow-up note or mark' do
+      expect(evaluation).not_to receive(:perform)
+      job.perform(inbox)
+      expect(conversation.reload).to be_resolved
+      expect(conversation.messages.where(private: true)).to be_empty
+      expect(conversation.additional_attributes).not_to have_key('captain_followup')
+    end
+  end
 
-        it 'keeps the existing time-based close without a follow-up note or mark' do
+  context 'with disabled mode' do
+    let(:mode) { 'disabled' }
+
+    it 'does not act' do
+      expect(evaluation).not_to receive(:perform)
+      expect { job.perform(inbox) }.not_to(change { conversation.messages.count })
+      expect(conversation.reload).to be_pending
+    end
+  end
+
+  resolution_modes.each do |resolution_mode|
+    context "when the customer spoke last and mode is #{resolution_mode}" do
+      let(:mode) { resolution_mode }
+
+      it 'keeps the existing behavior' do
+        create(:message, account: account, conversation: conversation, sender: conversation.contact,
+                         message_type: :incoming, created_at: 90.minutes.ago)
+        conversation.update_columns(last_activity_at: 90.minutes.ago) # rubocop:disable Rails/SkipsModelValidations
+        if mode == 'evaluated'
+          expect(evaluation).to receive(:perform).and_return(complete: false, reason: 'Needs answer')
+        else
           expect(evaluation).not_to receive(:perform)
-          job.perform(inbox)
-          expect(conversation.reload).to be_resolved
-          expect(conversation.messages.where(private: true)).to be_empty
-          expect(conversation.additional_attributes).not_to have_key('captain_followup')
         end
-      end
-
-      context 'with disabled mode' do
-        let(:mode) { 'disabled' }
-
-        it 'does not act' do
-          expect(evaluation).not_to receive(:perform)
-          expect { job.perform(inbox) }.not_to(change { conversation.messages.count })
-          expect(conversation.reload).to be_pending
-        end
-      end
-
-      resolution_modes.each do |resolution_mode|
-        context "when the customer spoke last and mode is #{resolution_mode}" do
-          let(:mode) { resolution_mode }
-
-          it 'keeps the existing behavior' do
-            create(:message, account: account, conversation: conversation, sender: conversation.contact,
-                             message_type: :incoming, created_at: 90.minutes.ago)
-            conversation.update_columns(last_activity_at: 90.minutes.ago) # rubocop:disable Rails/SkipsModelValidations
-            if mode == 'evaluated'
-              expect(evaluation).to receive(:perform).and_return(complete: false, reason: 'Needs answer')
-            else
-              expect(evaluation).not_to receive(:perform)
-            end
-            job.perform(inbox)
-            expect(conversation.reload.status).to eq(expected_statuses.fetch(mode))
-          end
-        end
+        job.perform(inbox)
+        expect(conversation.reload.status).to eq(expected_statuses.fetch(mode))
       end
     end
   end

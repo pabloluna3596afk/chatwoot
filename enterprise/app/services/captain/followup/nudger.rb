@@ -78,7 +78,7 @@ class Captain::Followup::Nudger
   def close_due?
     return false unless now - last_activity >= settings.close_after_minutes.minutes
 
-    (nudges.any? && nudges.size >= settings.max_nudges) || (Captain::Pilot.enabled?(account) && window_closed?)
+    (nudges.any? && nudges.size >= settings.max_nudges) || window_closed?
   end
 
   def window_closed? = !conversation.can_reply?

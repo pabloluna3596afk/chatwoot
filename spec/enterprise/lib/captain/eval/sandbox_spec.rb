@@ -1,29 +1,27 @@
 require 'rails_helper'
 
 RSpec.describe Captain::Eval::Sandbox do
-  subject(:sandbox) { described_class.new.prepare(pilot: false) }
+  subject(:sandbox) { described_class.new.prepare }
 
   let(:embedding) { [1.0] + Array.new(1535, 0.0) }
   let(:embedding_service) { instance_double(Captain::Llm::EmbeddingService, get_embedding: embedding) }
 
   before { allow(Captain::Llm::EmbeddingService).to receive(:new).and_return(embedding_service) }
 
-  it 'creates an API inbox, a planless account and explicitly disables pilot' do
+  it 'creates an API inbox, a planless account' do
     expect(sandbox.inbox.channel).to be_a(Channel::Api)
     expect(sandbox.inbox.channel.webhook_url).to be_nil
     expect(sandbox.account.plan).to be_nil
     expect(sandbox.account.feature_enabled?('captain_integration_v2')).to be true
-    expect(Captain::Pilot.enabled?(sandbox.account)).to be false
   end
 
-  it 'reuses the account, removes previous conversations and switches pilot on' do
+  it 'reuses the account, removes previous conversations' do
     previous = sandbox.conversation_for('citas-01')
     other_conversation = create(:conversation)
-    next_sandbox = described_class.new.prepare(pilot: true)
+    next_sandbox = described_class.new.prepare
     expect(next_sandbox.account.id).to eq(sandbox.account.id)
     expect(Conversation.exists?(previous.id)).to be false
     expect(Conversation.exists?(other_conversation.id)).to be true
-    expect(Captain::Pilot.enabled?(next_sandbox.account)).to be true
   end
 
   it 'creates approved knowledge with inline embeddings and no embedding job' do
