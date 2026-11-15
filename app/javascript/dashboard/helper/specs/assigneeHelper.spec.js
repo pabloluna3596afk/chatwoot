@@ -1,4 +1,5 @@
 import {
+  getAssigneeSelectionKey,
   getConversationAssigneeType,
   inferAssigneeType,
   isAIAssigneeType,
@@ -7,6 +8,18 @@ import {
 } from '../assigneeHelper';
 
 describe('assigneeHelper with Captain as an assignee', () => {
+  it('gives a person and an assistant with the same id distinct selection keys', () => {
+    const person = { id: 1, name: 'Person' };
+    const assistant = {
+      id: 1,
+      name: 'Aurora',
+      assignee_type: 'Captain::Assistant',
+    };
+
+    expect(getAssigneeSelectionKey(person)).toBe('User-1');
+    expect(getAssigneeSelectionKey(assistant)).toBe('Captain::Assistant-1');
+  });
+
   const captainMeta = {
     assignee: { id: 7, name: 'Captain' },
     assignee_type: 'Captain::Assistant',

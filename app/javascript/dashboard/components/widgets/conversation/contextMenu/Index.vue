@@ -3,7 +3,10 @@ import { withAIAssigneesFirst } from 'dashboard/helper/captainAssignmentOptions'
 import { mapGetters } from 'vuex';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import { useAlert } from 'dashboard/composables';
-import { isAIAssigneeType } from 'dashboard/helper/assigneeHelper';
+import {
+  getAssigneeSelectionKey,
+  isAIAssigneeType,
+} from 'dashboard/helper/assigneeHelper';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import {
   getSortedAgentsByAvailability,
@@ -87,6 +90,7 @@ export default {
     const { isAdmin } = useAdmin();
     return {
       isAdmin,
+      getAssigneeSelectionKey,
     };
   },
   data() {
@@ -403,7 +407,7 @@ export default {
         <template v-else>
           <MenuItem
             v-for="agent in assignableAgents"
-            :key="agent.id"
+            :key="getAssigneeSelectionKey(agent)"
             :option="generateMenuLabelConfig(agent, 'agent')"
             variant="agent"
             @click.stop="$emit('assignAgent', agent)"

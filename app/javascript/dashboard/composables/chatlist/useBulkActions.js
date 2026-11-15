@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store.js';
 import { useBusinessRulesStatusGuard } from 'dashboard/composables/useBusinessRulesStatusGuard';
 import wootConstants from 'dashboard/constants/globals';
+import { resolveAssigneeType } from 'dashboard/helper/assigneeHelper';
 
 export function useBulkActions() {
   const store = useStore();
@@ -75,23 +76,13 @@ export function useBulkActions() {
             })
           )
         );
-      } else if (agent.assignee_type === 'AgentBot') {
-        await Promise.all(
-          conversationIds.map(id =>
-            store.dispatch('assignAgent', {
-              conversationId: id,
-              agentId: agent.id,
-              assigneeType: 'AgentBot',
-            })
-          )
-        );
       } else {
         await Promise.all(
           conversationIds.map(id =>
             store.dispatch('assignAgent', {
               conversationId: id,
               agentId: agent.id,
-              assigneeType: 'User',
+              assigneeType: resolveAssigneeType(agent),
             })
           )
         );

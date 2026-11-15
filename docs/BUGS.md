@@ -1,3 +1,10 @@
+### B-NEW-271 - Asignación desde tarjeta y acciones masivas conserva el tipo de Captain (2026-11-15)
+
+- **Archivos:** `composables/chatlist/useBulkActions.js`, `components/widgets/conversation/contextMenu/Index.vue` y specs de asignación/helpers.
+- **Problema:** elegir un asistente enviaba `User` y podía asignar a una persona con el mismo id; las filas del menú también compartían clave.
+- **Arreglo:** resolver el tipo con `resolveAssigneeType` y usar `getAssigneeSelectionKey` en el menú. Se conservan las alertas existentes y la desasignación. Cabecera y panel derecho esperan la respuesta sin cambio optimista y liberan `isAssigning` en `finally`; un 422 conserva el responsable anterior.
+- **Cómo probar:** Vitest de `useBulkActions`, `useConversationAssignee` y `assigneeHelper` en UTC y America/Guayaquil: Captain, bot, persona, ninguna, varias conversaciones, ids compartidos y rechazo 422. Backend 422 y prueba integrada pendientes de la unión de ramas del PM; sin migraciones, push ni PR.
+
 ### B-NEW-270 - Captain: una conversación reabierta pasa al asistente aunque tuviera responsable (2026-11-15)
 
 - **Archivos:** `enterprise/app/models/enterprise/message.rb` (`own_reopened_conversation`) y `spec/enterprise/models/message_spec.rb`.
