@@ -168,7 +168,6 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
       :feature_contact_attributes, :welcome_message, :handoff_message,
       :resolution_message, :instructions, :temperature, :auto_resolve_mode,
       :response_window, :allow_paid_templates, :max_replies_per_conversation, :reply_delay_seconds,
-      { business_facts: %i[hours address payment_methods delivery booking] },
       { followup: [:inactivity_enabled, :inactivity_after_minutes, :max_nudges, :close_after_minutes, :reengagement_enabled,
                    { reengagement_template: [:name, :language, { processed_params: {} }] }] },
       { appointments: [:enabled, :calendar_connection_id, :calendar_id, :slot_duration_minutes,
@@ -193,7 +192,6 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
 
     permit_rule_lists(permitted)
 
-    permit_business_facts_config(permitted)
     permit_audience_config(permitted)
     permit_messaging_config(permitted)
 
@@ -202,15 +200,6 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
 
   def string_list?(value)
     value.is_a?(Array) && value.all?(String)
-  end
-
-  # Preserve unknown keys and invalid shapes so validation rejects them instead of silently dropping them.
-  def permit_business_facts_config(permitted)
-    config = params[:assistant][:config]
-    return unless config.try(:key?, :business_facts)
-
-    facts = config[:business_facts]
-    permitted[:config][:business_facts] = facts.respond_to?(:permit!) ? facts.permit!.to_h : facts
   end
 
   def render_invalid_rule_list(error)

@@ -5,44 +5,6 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
   let(:admin) { create(:user, account: account, role: :administrator) }
   let(:agent) { create(:user, account: account, role: :agent) }
 
-  describe 'business facts' do
-    let(:assistant) { create(:captain_assistant, account: account, config: { 'business_facts' => { 'hours' => 'Monday' } }) }
-    let(:url) { "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}" }
-
-    it 'permits business_facts' do
-      facts = Captain::BusinessFactsValidator::FIELDS.index_with { 'x' * 300 }
-      patch url, params: { assistant: { config: { business_facts: facts } } }, headers: admin.create_new_auth_token, as: :json
-
-      expect(response).to have_http_status(:ok)
-      expect(assistant.reload.config['business_facts']).to eq(facts)
-      expect(response.parsed_body['config']['business_facts']).to eq(facts)
-    end
-
-    it 'clears a fact sent empty' do
-      patch url, params: { assistant: { config: { business_facts: { hours: '' } } } }, headers: admin.create_new_auth_token, as: :json
-
-      expect(response).to have_http_status(:ok)
-      expect(assistant.reload.config['business_facts']['hours']).to eq('')
-      expect(assistant.agent_instructions).not_to include('# Business facts', 'Monday')
-    end
-
-    it 'rejects an unknown fact key' do
-      patch url, params: { assistant: { config: { business_facts: { unknown: 'text' } } } }, headers: admin.create_new_auth_token, as: :json
-
-      expect(response).to have_http_status(:unprocessable_entity)
-      expect(assistant.reload.config['business_facts']).to eq('hours' => 'Monday')
-    end
-
-    ['x' * 301, 12, nil, ['Monday']].each do |invalid|
-      it "rejects an invalid fact #{invalid.inspect}" do
-        patch url, params: { assistant: { config: { business_facts: { hours: invalid } } } }, headers: admin.create_new_auth_token, as: :json
-
-        expect(response).to have_http_status(:unprocessable_entity)
-        expect(assistant.reload.config['business_facts']).to eq('hours' => 'Monday')
-      end
-    end
-  end
-
   describe 'rule list contracts' do
     let(:assistant) { create(:captain_assistant, account: account, response_guidelines: ['Original'], guardrails: ['Safe']) }
 

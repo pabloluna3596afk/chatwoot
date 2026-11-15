@@ -82,7 +82,6 @@ class Captain::Assistant < ApplicationRecord
   validates_with Captain::AppointmentsValidator
   validates_with Captain::FollowupValidator
   validates_with Captain::MessagingValidator
-  validates_with Captain::BusinessFactsValidator
   validate :validate_response_window
   validate :validate_max_replies_per_conversation
   validate :validate_reply_delay_seconds
@@ -120,12 +119,6 @@ class Captain::Assistant < ApplicationRecord
 
   def messaging
     Captain::MessagingSettings.new(config['messaging'])
-  end
-
-  def business_facts_prompt_context
-    (config['business_facts'] || {}).transform_values do |value|
-      Captain::Assistant::PromptDataSanitizer.text(value, Captain::BusinessFactsValidator::MAX_LENGTH)
-    end.compact_blank
   end
 
   # One switch for every Captain message that, outside the 24 h window, has to be a paid WhatsApp template
@@ -400,7 +393,6 @@ class Captain::Assistant < ApplicationRecord
     {
       name: name,
       description: description,
-      business_facts: business_facts_prompt_context,
       account_language: account.locale_english_name,
       product_name: config['product_name'].presence || account.name,
       citation_enabled: citations_enabled?,

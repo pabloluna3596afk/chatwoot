@@ -953,31 +953,6 @@
       "EDIT": "Actualizar"
     },
     "ASSISTANTS": {
-      "BUSINESS_FACTS": {
-        "TITLE": "Datos del negocio",
-        "DESCRIPTION": "{assistantName} usa estos datos para responder sin buscarlos. Llena solo los que apliquen y mantenlos iguales a tus preguntas frecuentes.",
-        "HOURS": {
-          "LABEL": "Horario de atención",
-          "PLACEHOLDER": "Lunes a viernes de 9:00 a 18:00, sábados de 9:00 a 13:00"
-        },
-        "ADDRESS": {
-          "LABEL": "Dirección",
-          "PLACEHOLDER": "Av. Amazonas N34-120 y Atahualpa, Quito"
-        },
-        "PAYMENT": {
-          "LABEL": "Formas de pago",
-          "PLACEHOLDER": "Efectivo, transferencia y tarjeta"
-        },
-        "DELIVERY": {
-          "LABEL": "Envíos o cobertura",
-          "PLACEHOLDER": "Envíos a todo el país en 2 a 3 días"
-        },
-        "BOOKING": {
-          "LABEL": "Cómo agendar o pedir",
-          "PLACEHOLDER": "Escríbenos por aquí y te confirmamos la hora"
-        },
-        "TOO_LONG": "Máximo 300 caracteres."
-      },
       "HEADER": "Asistentes",
       "NO_ASSISTANTS_AVAILABLE": "No hay asistentes disponibles en tu cuenta.",
       "ADD_NEW": "Crear un nuevo asistente",

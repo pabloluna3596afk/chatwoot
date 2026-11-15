@@ -1,9 +1,0 @@
-{% if business_facts.size > 0 -%}
-# Business facts
-These facts were written by the business owner. You may state them directly.
-{% if business_facts.hours %}- Opening hours: {{ business_facts.hours }}{% endif %}
-{% if business_facts.address %}- Address: {{ business_facts.address }}{% endif %}
-{% if business_facts.payment_methods %}- Payment methods: {{ business_facts.payment_methods }}{% endif %}
-{% if business_facts.delivery %}- Delivery: {{ business_facts.delivery }}{% endif %}
-{% if business_facts.booking %}- How to book or order: {{ business_facts.booking }}{% endif %}
-{% endif -%}

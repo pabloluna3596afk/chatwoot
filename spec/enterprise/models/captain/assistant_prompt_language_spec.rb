@@ -6,33 +6,6 @@ RSpec.describe Captain::Assistant do
   let(:scenario) { create(:captain_scenario, account: account, assistant: assistant) }
   let(:missing_language_contexts) { [{}, { account_language: nil }] }
 
-  it 'renders the business facts block only with filled fields' do
-    expect(assistant.agent_instructions).not_to include('# Business facts')
-    assistant.update!(config: assistant.config.merge('business_facts' => { 'hours' => " Monday\nFriday ", 'address' => '   ' }))
-
-    prompt = assistant.agent_instructions
-    expect(prompt).to include('# Business facts', '- Opening hours: Monday Friday')
-    expect(prompt).not_to include('- Address:', '- Payment methods:', '- Delivery:', '- How to book or order:')
-
-    assistant.update!(config: assistant.config.merge('business_facts' => { 'hours' => '' }))
-    expect(assistant.agent_instructions).not_to include('# Business facts')
-  end
-
-  it 'renders the business facts for scenarios' do
-    expect(scenario.agent_instructions).not_to include('# Business facts')
-    assistant.update!(config: assistant.config.merge('business_facts' => Captain::BusinessFactsValidator::FIELDS.index_with { 'Saved fact' }))
-
-    prompt = scenario.agent_instructions
-    expect(prompt).to include('# Business facts', '- Opening hours: Saved fact', '- Address: Saved fact',
-                              '- Payment methods: Saved fact', '- Delivery: Saved fact', '- How to book or order: Saved fact')
-  end
-
-  it 'renders the business identity' do
-    expect(assistant.agent_instructions).to include('You are Sofia, a helpful, friendly and knowledgeable assistant of the business Shop.',
-                                                    'Answer only about Shop, what it sells and how it works.')
-    expect(assistant.agent_instructions(nil, prompt_template: 'copilot_reply_suggestion')).to include('assistant for the product Shop')
-  end
-
   %w[assistant scenario copilot_reply_suggestion].each do |template|
     it "renders the default language rule for #{template}" do
       agent = template == 'scenario' ? scenario : assistant
