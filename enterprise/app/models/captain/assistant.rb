@@ -394,7 +394,6 @@ class Captain::Assistant < ApplicationRecord
       account_language: account.locale_english_name,
       name: name,
       description: description,
-      account_language: account.locale_english_name,
       product_name: config['product_name'].presence || account.name,
       citation_enabled: citations_enabled?,
       scenarios: scenarios.enabled.map do |scenario|

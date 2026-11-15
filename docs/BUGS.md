@@ -1,4 +1,4 @@
-### B-NEW-268 — Captain: traspaso con contexto y una sola respuesta al cliente (2026-11-14)
+### B-NEW-269 — Captain: traspaso con contexto y una sola respuesta al cliente (2026-11-14)
 
 - **Archivos:** `HandoffTool`, `ResponseBuilderJob`, `UsageLimitHandoff`, job de inactividad, coordinador `HandoffReply`, prompts de asistente/escenario, burbuja `CaptainHandoff` y `FailureSpikeJob` con extensión Enterprise.
 - **Problema:** varios traspasos no dejaban motivo interno; fuera de horario podían salir dos mensajes. El envío OOO captura errores y devuelve `true` aunque no guarde ningún mensaje, por lo que omitir el mensaje de traspaso solo por horario podía dejar al cliente sin respuesta.
