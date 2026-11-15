@@ -1,3 +1,11 @@
+### B-NEW-268 - Captain: idioma predeterminado y textos del prompt (2026-11-14)
+
+- **Archivos:** `Captain::Assistant`, `Captain::Scenario`, prompts Liquid, `assistant_prompt_language_spec.rb` y `appointment_tools_spec.rb`.
+- **Problema:** los mensajes sin idioma reconocible no tenían un idioma predeterminado; el prompt de verificación de correo y las etiquetas de citas estaban fijos en español.
+- **Arreglo:** idioma de la cuenta en asistente, escenarios y Copilot; verificación de correo en inglés; etiquetas de citas desde traducciones solo para bandejas con citas activas. Se conserva la identidad original de producto. Sin cambios de pantalla, controlador, traducciones de la interfaz ni migraciones.
+- **Cómo probar:** verificar la regla de idioma es/en y su omisión cuando falta el idioma en los tres prompts; comprobar ambos estados de verificación de correo y las siete etiquetas de citas en cuentas es/en, con citas activas e inactivas. Specs: `assistant_prompt_language_spec.rb` y `appointment_tools_spec.rb`.
+- **Pendiente:** evaluación con IA por el PM; las descripciones de herramientas que dicen «Cambiar hora» permanecen fuera de este alcance.
+
 ### B-NEW-261 - La app instalada en Android mostraba el nombre e icono de Chatwoot (2026-11-10)
 
 - **Archivos:** `public/manifest.json`, `public/android-icon-512x512.png`, `public/android-icon-maskable-512x512.png`.

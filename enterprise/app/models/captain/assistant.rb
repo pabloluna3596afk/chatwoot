@@ -365,7 +365,9 @@ class Captain::Assistant < ApplicationRecord
     return {} unless inbox
 
     context = {}
-    context[:appointments] = appointments.to_h if appointments_active_in?(inbox)
+    if appointments_active_in?(inbox)
+      context[:appointments] = appointments.to_h.merge('buttons' => I18n.t('captain.appointments.buttons', locale: account.locale).stringify_keys)
+    end
     context[:messaging] = { 'paid_templates' => allow_paid_templates? } if messaging_active_in?(inbox)
     context[:followup] = followup_prompt_context if followup.inactivity_enabled? && followup.max_nudges.positive?
     context
@@ -391,6 +393,7 @@ class Captain::Assistant < ApplicationRecord
     {
       name: name,
       description: description,
+      account_language: account.locale_english_name,
       product_name: config['product_name'].presence || account.name,
       citation_enabled: citations_enabled?,
       scenarios: scenarios.enabled.map do |scenario|
