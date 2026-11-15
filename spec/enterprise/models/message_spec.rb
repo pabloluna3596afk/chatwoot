@@ -177,26 +177,86 @@ RSpec.describe Message do
     end
   end
 
-  describe 'reopening a resolved conversation that predates Captain ownership' do
+  describe 'reopening a resolved conversation' do
     let(:conversation) { create(:conversation, status: :resolved) }
     let(:captain_assistant) { create(:captain_assistant, account: conversation.account) }
+    let(:agent) { create(:user, account: conversation.account, role: :agent) }
 
     before do
       create(:captain_inbox, inbox: conversation.inbox, captain_assistant: captain_assistant)
       conversation.update_columns(status: Conversation.statuses[:resolved], ai_assignee_type: nil, assignee_agent_bot_id: nil) # rubocop:disable Rails/SkipsModelValidations
+      allow_any_instance_of(Captain::Assistant).to receive(:paused_reason).and_return(nil) # rubocop:disable RSpec/AnyInstance
     end
 
-    it 'gives the conversation back to Captain when the customer writes again' do
-      allow_any_instance_of(Captain::Assistant).to receive(:paused_reason).and_return(nil) # rubocop:disable RSpec/AnyInstance
+    # A fresh load, as in a request: the factory's inbox caches that it had no assistant when the conversation was created.
+    def customer_writes_again
+      create(:message, message_type: :incoming, conversation: Conversation.find(conversation.id))
+    end
 
-      # A fresh load, as in a request: the factory's inbox caches that it had no assistant when the conversation was created.
-      reloaded = Conversation.find(conversation.id)
-
-      create(:message, message_type: :incoming, conversation: reloaded)
+    it 'keeps working for a conversation without an owner' do
+      customer_writes_again
 
       expect(conversation.reload).to have_attributes(
-        status: 'pending', ai_assignee_type: 'Captain::Assistant', assignee_agent_bot_id: captain_assistant.id, captain_state: 'ai'
+        status: 'pending', ai_assignee_type: 'Captain::Assistant', assignee_agent_bot_id: captain_assistant.id, assignee_id: nil, captain_state: 'ai'
       )
+    end
+
+    it 'gives a reopened conversation to the assistant even when a person was assigned, keeping the team' do
+      team = create(:team, account: conversation.account)
+      conversation.update_columns(assignee_id: agent.id, team_id: team.id) # rubocop:disable Rails/SkipsModelValidations
+
+      customer_writes_again
+
+      expect(conversation.reload).to have_attributes(
+        status: 'pending', assignee_id: nil, ai_assignee_type: 'Captain::Assistant', assignee_agent_bot_id: captain_assistant.id, team_id: team.id
+      )
+    end
+
+    it 'leaves a single assignment activity naming the assistant when a person was assigned' do
+      conversation.update_columns(assignee_id: agent.id) # rubocop:disable Rails/SkipsModelValidations
+
+      perform_enqueued_jobs { customer_writes_again }
+
+      assigned = I18n.t('conversations.activity.ai_assignee.assigned', assistant: captain_assistant.name,
+                                                                       actor: I18n.t('automation.system_name'), locale: conversation.account.locale)
+      expect(conversation.messages.activity.where(content: assigned).count).to eq(1)
+    end
+
+    it 'keeps the human assignee when Captain does not engage' do
+      conversation.update_columns(assignee_id: agent.id) # rubocop:disable Rails/SkipsModelValidations
+      allow_any_instance_of(Captain::Assistant).to receive(:engagement_result) # rubocop:disable RSpec/AnyInstance
+        .and_return({ engages: false, reason: 'audience_no_match', condition: nil })
+
+      customer_writes_again
+
+      expect(conversation.reload).to have_attributes(status: 'open', assignee_id: agent.id, ai_assignee_type: nil)
+    end
+
+    it 'does nothing for inboxes without an assistant' do
+      conversation.inbox.captain_inbox.destroy!
+      conversation.update_columns(assignee_id: agent.id) # rubocop:disable Rails/SkipsModelValidations
+
+      customer_writes_again
+
+      expect(conversation.reload).to have_attributes(status: 'open', assignee_id: agent.id, ai_assignee_type: nil)
+    end
+
+    it 'does nothing when an external bot is active' do
+      conversation.update_columns(assignee_id: agent.id) # rubocop:disable Rails/SkipsModelValidations
+      allow_any_instance_of(Inbox).to receive(:external_bot_active?).and_return(true) # rubocop:disable RSpec/AnyInstance
+
+      customer_writes_again
+
+      expect(conversation.reload).to have_attributes(assignee_id: agent.id, ai_assignee_type: nil)
+    end
+
+    it 'lets a later reply from a person take the conversation back' do
+      customer_writes_again
+      expect(conversation.reload.ai_assignee).to eq(captain_assistant)
+
+      create(:message, message_type: :outgoing, conversation: Conversation.find(conversation.id), sender: agent)
+
+      expect(conversation.reload).to have_attributes(status: 'open', assignee_id: agent.id, ai_assignee_type: nil)
     end
   end
 end

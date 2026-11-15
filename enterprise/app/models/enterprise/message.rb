@@ -44,12 +44,15 @@ module Enterprise::Message
     own_reopened_conversation(assistant)
   end
 
-  # A conversation that predates Captain ownership is reopened as pending (Captain answers first) without an owner:
-  # give it one, so it shows as Captain's like any other.
+  # A resolved conversation that the customer reopens for Captain is handed to the assistant: any person who was
+  # assigned is cleared and the assistant becomes the owner, as in a brand new conversation. If a person replies
+  # afterwards they take it back (see #mark_pending_conversation_as_open_for_human_response). Nothing changes when
+  # the assistant already owns it. The team is left untouched.
   def own_reopened_conversation(assistant)
-    return unless conversation.pending? && conversation.assignee_id.blank? && conversation.ai_assignee_type.blank?
+    return unless conversation.pending?
+    return if conversation.ai_assignee == assistant && conversation.assignee_id.blank?
 
-    conversation.update!(ai_assignee: assistant)
+    conversation.update!(assignee_id: nil, ai_assignee: assistant)
   end
 
   def mark_pending_conversation_as_open_for_human_response
