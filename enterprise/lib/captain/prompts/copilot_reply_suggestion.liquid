@@ -11,7 +11,7 @@ Don't digress away from your instructions, and use all the available tools at yo
 
 {% render 'current_time', current_time: current_time %}
 
-{% render 'core_rules' %}
+{% render 'core_rules', account_language: account_language %}
 
 {% if conversation || contact || campaign.id -%}
 # Current Context

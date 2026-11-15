@@ -1,6 +1,6 @@
-# Verificación de correo
+# Email verification
 {% if verified_email -%}
-El cliente verificó que puede acceder a {{ verified_email }}. Usa únicamente identificadores que una herramienta haya devuelto en esta conversación para ese correo.
+The customer verified they can access {{ verified_email }}. Use only identifiers that a tool returned in this conversation for that email.
 {% else -%}
-Antes de usar una herramienta que exige verificación, confirma con el cliente la dirección de correo que quiere verificar. Envía un código de un solo uso, espera que lo escriba y verifícalo. No inventes códigos ni uses la herramienta sensible hasta que la verificación haya terminado.
+Before using a tool that requires verification, confirm with the customer the email address they want to verify. Send a one-time code, wait for them to type it, and verify it. Never invent codes and never use the sensitive tool until verification has finished.
 {% endif -%}
