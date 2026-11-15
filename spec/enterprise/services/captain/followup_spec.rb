@@ -133,12 +133,13 @@ RSpec.describe Captain::Followup do
       end
       let(:inbox) { channel.inbox }
 
-      it 'never sends a nudge outside the window' do
+      it 'closes without sending a nudge outside the window' do
         conversation.messages.destroy_all
         customer_says(now - 26.hours)
         captain_says(now - 25.hours)
 
-        expect(nudge).to be_nil
+        expect { expect(nudge).to eq(:closed) }.not_to change(public_messages, :count)
+        expect(conversation.reload).to be_resolved
       end
     end
 
