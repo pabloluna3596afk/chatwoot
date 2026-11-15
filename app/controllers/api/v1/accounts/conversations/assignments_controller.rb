@@ -13,11 +13,13 @@ class Api::V1::Accounts::Conversations::AssignmentsController < Api::V1::Account
   private
 
   def set_agent
-    resource = Conversations::AssignmentService.new(
+    service = Conversations::AssignmentService.new(
       conversation: @conversation,
       assignee_id: params[:assignee_id],
       assignee_type: params[:assignee_type]
-    ).perform
+    )
+    resource = service.perform
+    return render json: { error: 'assignment_not_applied', reason: service.failure_reason }, status: :unprocessable_entity if service.failure_reason
 
     render_agent(resource)
   end

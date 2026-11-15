@@ -1,7 +1,7 @@
 module Enterprise::Conversations::AssignmentService
   def perform
     return super unless assignee_type.to_s == 'Captain::Assistant'
-    return unless conversation.account.feature_enabled?('captain_integration')
+    return assignment_not_applied('ai_assignee_unavailable') unless conversation.account.feature_enabled?('captain_integration') && captain_assistant
 
     assign_ai_assignee(captain_assistant)
   end
@@ -20,7 +20,7 @@ module Enterprise::Conversations::AssignmentService
   private
 
   def open_on_assignment?
-    super || conversation.ai_assignee_type == 'Captain::Assistant'
+    super || conversation.ai_assignee_type == 'Captain::Assistant' || (assignee.present? && conversation.inbox.captain_assistant.present?)
   end
 
   def captain_assistant

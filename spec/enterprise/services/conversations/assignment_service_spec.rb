@@ -23,6 +23,25 @@ describe Conversations::AssignmentService do
 
   after { Current.reset }
 
+  it 'opens a pending conversation without an owner when a person is assigned in a Captain inbox and sets waiting_since' do
+    conversation.update!(status: :pending, assignee: nil, ai_assignee: nil, waiting_since: nil)
+
+    freeze_time do
+      described_class.new(conversation: conversation, assignee_id: agent.id).perform
+
+      expect(conversation.reload).to have_attributes(status: 'open', assignee: agent, waiting_since: Time.current)
+    end
+  end
+
+  it 'preserves an existing waiting_since when a person is assigned' do
+    waiting_since = 1.hour.ago.change(usec: 0)
+    conversation.update!(status: :pending, assignee: nil, ai_assignee: nil, waiting_since: waiting_since)
+
+    described_class.new(conversation: conversation, assignee_id: agent.id).perform
+
+    expect(conversation.reload).to have_attributes(status: 'open', assignee: agent, waiting_since: waiting_since)
+  end
+
   it 'records only the Captain assignment when handing a person-owned conversation to Captain' do
     content = I18n.t('conversations.activity.ai_assignee.assigned', assistant: assistant.name, actor: actor.name)
 

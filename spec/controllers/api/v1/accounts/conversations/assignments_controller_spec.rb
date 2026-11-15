@@ -55,6 +55,66 @@ RSpec.describe 'Conversation Assignment API', type: :request do
         expect(conversation.reload.assignee).to eq(agent)
       end
 
+      it 'rejects an assignee outside the account without changing anything' do
+        other_user = create(:user)
+        conversation.update!(assignee: agent, status: :pending)
+        attributes = conversation.reload.attributes
+
+        post api_v1_account_conversation_assignments_url(account_id: account.id, conversation_id: conversation.display_id),
+             params: { assignee_id: other_user.id }, headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body).to eq('error' => 'assignment_not_applied', 'reason' => 'assignee_not_found')
+        expect(conversation.reload.attributes).to eq(attributes)
+      end
+
+      it 'rejects a nonexistent assignee without clearing the current person' do
+        conversation.update!(assignee: agent, status: :open)
+
+        post api_v1_account_conversation_assignments_url(account_id: account.id, conversation_id: conversation.display_id),
+             params: { assignee_id: User.maximum(:id) + 1 }, headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body).to eq('error' => 'assignment_not_applied', 'reason' => 'assignee_not_found')
+        expect(conversation.reload).to have_attributes(assignee: agent, status: 'open')
+      end
+
+      it 'rejects an inactive bot without changing anything' do
+        create(:agent_bot_inbox, inbox: conversation.inbox, agent_bot: agent_bot, status: :inactive)
+        conversation.update!(assignee: agent, status: :open)
+        attributes = conversation.reload.attributes
+
+        post api_v1_account_conversation_assignments_url(account_id: account.id, conversation_id: conversation.display_id),
+             params: { assignee_id: agent_bot.id, assignee_type: 'AgentBot' }, headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body).to eq('error' => 'assignment_not_applied', 'reason' => 'bot_not_assignable')
+        expect(conversation.reload.attributes).to eq(attributes)
+      end
+
+      it 'rejects a bot that is not connected to the inbox without clearing the person' do
+        conversation.update!(assignee: agent, status: :open)
+
+        post api_v1_account_conversation_assignments_url(account_id: account.id, conversation_id: conversation.display_id),
+             params: { assignee_id: agent_bot.id, assignee_type: 'AgentBot' }, headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body).to eq('error' => 'assignment_not_applied', 'reason' => 'bot_not_assignable')
+        expect(conversation.reload).to have_attributes(assignee: agent, status: 'open')
+      end
+
+      it 'returns the bot when it already owns the pending conversation' do
+        create(:agent_bot_inbox, inbox: conversation.inbox, agent_bot: agent_bot)
+        conversation.update!(ai_assignee: agent_bot, assignee: nil, status: :pending)
+
+        post api_v1_account_conversation_assignments_url(account_id: account.id, conversation_id: conversation.display_id),
+             params: { assignee_id: agent_bot.id, assignee_type: 'AgentBot' }, headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body).to include('id' => agent_bot.id)
+        expect(conversation.reload).to have_attributes(ai_assignee: agent_bot, assignee: nil, status: 'pending')
+      end
+
       it 'assigns an agent bot to the conversation' do
         create(:agent_bot_inbox, inbox: conversation.inbox, agent_bot: agent_bot)
         params = { assignee_id: agent_bot.id, assignee_type: 'AgentBot' }
@@ -158,6 +218,26 @@ RSpec.describe 'Conversation Assignment API', type: :request do
           .to(have_been_enqueued.at_least(:once)
         .with(conversation, { account_id: conversation.account_id, inbox_id: conversation.inbox_id, message_type: :activity,
                               content: "Conversation unassigned by #{agent.name}" }))
+      end
+
+      it 'unassigns with zero and preserves the pending status' do
+        conversation.update!(status: :pending)
+
+        post api_v1_account_conversation_assignments_url(account_id: account.id, conversation_id: conversation.display_id),
+             params: { assignee_id: 0 }, headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body).to be_nil
+        expect(conversation.reload).to have_attributes(assignee: nil, status: 'pending')
+      end
+
+      it 'preserves the assignment when assignee_id is absent' do
+        post api_v1_account_conversation_assignments_url(account_id: account.id, conversation_id: conversation.display_id),
+             params: {}, headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body).to be_nil
+        expect(conversation.reload.assignee).to eq(agent)
       end
     end
 

@@ -1,4 +1,6 @@
 class Conversations::AssignmentService
+  attr_reader :failure_reason
+
   def initialize(conversation:, assignee_id:, assignee_type: nil)
     @conversation = conversation
     @assignee_id = assignee_id
@@ -16,6 +18,8 @@ class Conversations::AssignmentService
   attr_reader :conversation, :assignee_id, :assignee_type
 
   def assign_agent
+    return assignment_not_applied('assignee_not_found') unless cleared_assignee? || assignee
+
     conversation.with_lock do
       conversation.assignment_driven_status = conversation.captain_assigned?
       if cleared_assignee? && (bot = conversation.inbox.assignable_agent_bot)
@@ -50,7 +54,7 @@ class Conversations::AssignmentService
   end
 
   def cleared_assignee?
-    assignee_id.blank? || assignee_id.to_i.zero?
+    assignee_id.blank? || assignee_id.to_s == '0'
   end
 
   def assign_inbox_bot(bot)
@@ -61,13 +65,18 @@ class Conversations::AssignmentService
   end
 
   def assign_agent_bot
-    return unless bot_assignable_to_inbox?(agent_bot)
+    return assignment_not_applied('bot_not_assignable') unless bot_assignable_to_inbox?(agent_bot)
 
     assign_ai_assignee(agent_bot)
   end
 
   def open_on_assignment?
-    assignee.present? && conversation.ai_assignee_type.present?
+    assignee.present? && (conversation.ai_assignee_type.present? || conversation.inbox.assignable_agent_bot.present?)
+  end
+
+  def assignment_not_applied(reason)
+    @failure_reason = reason
+    nil
   end
 
   def assign_ai_assignee(ai_assignee)

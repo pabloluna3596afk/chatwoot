@@ -1,3 +1,11 @@
+### B-NEW-271 - Asignación: respetar a la persona responsable y comunicar rechazos (2026-11-15)
+
+- **Archivos:** `Conversations::AssignmentService` y su extensión Enterprise, `AssignmentsController`, hook de mensajes de Captain, `ResponseBuilderJob` y registro de ciclo de respuesta; contrato Swagger y specs asociados.
+- **Problema:** Captain respondía a pendientes con persona responsable; asignar una persona a una pendiente sin responsable no la abría en bandejas de bot/Captain; asignaciones rechazadas devolvían 200 y una persona inexistente podía borrar al responsable actual.
+- **Arreglo:** con persona no se programa respuesta y el job revalida el responsable vigente antes de reservar cupo o generar. Se conserva el seguimiento de elegibilidad. Asignar una persona abre pendientes en bandejas de Captain o bot asignable, manteniendo el comportamiento de las demás. El servicio conserva al responsable ante rechazo y el endpoint devuelve 422 con `assignment_not_applied` y motivo; reasignar al mismo asistente/bot sigue siendo éxito.
+- **Cómo probar:** specs de asignación OSS/Enterprise y requests; hook con persona, sin responsable y reapertura #361; job programado antes de asignar persona sin consumo ni reserva abierta. Informe y totales: `tmp/PR-ASIG-BACK.md`.
+- **Alcance:** sin frontend, migraciones, push, PR ni despliegue. El bulk opcional conserva su escritura combinada de campos.
+
 ### B-NEW-270 - Captain: una conversación reabierta pasa al asistente aunque tuviera responsable (2026-11-15)
 
 - **Archivos:** `enterprise/app/models/enterprise/message.rb` (`own_reopened_conversation`) y `spec/enterprise/models/message_spec.rb`.

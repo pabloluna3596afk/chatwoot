@@ -3893,8 +3893,17 @@
                 "properties": {
                   "assignee_id": {
                     "type": "number",
-                    "description": "Id of the assignee user",
+                    "description": "Id of the assignee. Null or 0 clears the assignment.",
                     "example": 1
+                  },
+                  "assignee_type": {
+                    "type": "string",
+                    "enum": [
+                      "User",
+                      "AgentBot",
+                      "Captain::Assistant"
+                    ],
+                    "description": "Assignee type. Defaults to User. Bots and assistants must be assignable to the inbox."
                   },
                   "team_id": {
                     "type": "number",
@@ -3933,6 +3942,36 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/bad_request_error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Assignment was not applied. The current assignment is preserved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "reason"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "assignment_not_applied"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "ai_assignee_unavailable",
+                        "assignee_not_found",
+                        "bot_not_assignable"
+                      ]
+                    }
+                  }
                 }
               }
             }
