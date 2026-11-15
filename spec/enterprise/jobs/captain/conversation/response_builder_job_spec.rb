@@ -47,14 +47,14 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       expect(conversation.messages.outgoing).to be_empty
     end
 
-    context 'with pilot reply reservations' do
+    context 'with reply reservations' do
       let(:usage) { account.current_usage_period }
 
       before do
-        account.enable_features!(:captain_pilot, :captain_integration_v2)
+        account.enable_features!(:captain_integration_v2)
       end
 
-      it 'reserves before generating and finishes on delivery (pilot)' do
+      it 'reserves before generating and finishes on delivery' do
         expect(account).not_to receive(:release_captain_ai_usage!)
         allow(mock_agent_runner_service).to receive(:generate_response) do
           expect(usage.reload.responses_consumed).to eq(1)
@@ -211,7 +211,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         expect(usage.ai_usage_reservations.where(released_at: nil)).to be_empty
       end
 
-      it 'does not meter a pilot account without a plan' do
+      it 'does not meter an account without a plan' do
         account.update_columns(plan_id: nil, plan_started_at: nil) # rubocop:disable Rails/SkipsModelValidations
         account.reload
 
@@ -226,7 +226,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       context 'with an exhausted plan pool' do
         before { usage.update!(responses_consumed: 100) }
 
-        it 'hands off by quota when plan and extra are both empty (pilot)' do
+        it 'hands off by quota when plan and extra are both empty' do
           create(:captain_inbox, captain_assistant: assistant, inbox: inbox)
           inbox.reload
           expect(mock_agent_runner_service).not_to receive(:generate_response)
@@ -252,7 +252,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           account.grant_extra_balance!(bucket: :captain_responses, units: 1, source: :courtesy, expires_at: 1.day.from_now)
         end
 
-        it 'consumes one extra unit when the plan pool is empty (pilot)' do
+        it 'consumes one extra unit when the plan pool is empty' do
           described_class.perform_now(conversation, assistant, responding_to_message.id)
 
           expect(extra.reload.units_remaining).to eq(0)
@@ -277,7 +277,7 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           end
         end
 
-        it 'refunds the extra unit when the reply is discarded (pilot)' do
+        it 'refunds the extra unit when the reply is discarded' do
           allow(mock_agent_runner_service).to receive(:response_discarded?).and_return(true)
 
           described_class.perform_now(conversation, assistant, responding_to_message.id)
@@ -285,17 +285,6 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           expect(extra.reload.units_remaining).to eq(1)
           expect(usage.reload.responses_consumed).to eq(100)
           expect(usage.ai_usage_reservations.where(released_at: nil)).to be_empty
-        end
-
-        it 'keeps the legacy counter and extra balance on a non-pilot account' do
-          account.disable_features!(:captain_pilot)
-
-          expect do
-            described_class.perform_now(conversation, assistant, responding_to_message.id)
-          end.not_to change(AiUsageReservation, :count)
-
-          expect(extra.reload.units_remaining).to eq(1)
-          expect(usage.reload.responses_consumed).to eq(101)
         end
       end
 
@@ -308,21 +297,6 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
           end.to have_enqueued_job(Captain::UsageLimitWarningJob).with(usage, :responses, threshold, threshold, 100)
 
           expect(usage.reload.responses_consumed).to eq(threshold)
-          expect(usage.ai_usage_reservations).to be_empty
-        end
-      end
-
-      [true, false].each do |pilot_at_start|
-        it "keeps the billing path selected before generation when pilot starts #{pilot_at_start} and changes" do
-          account.disable_features!(:captain_pilot) unless pilot_at_start
-          allow(mock_agent_runner_service).to receive(:generate_response) do
-            pilot_at_start ? account.disable_features!(:captain_pilot) : account.enable_features!(:captain_pilot)
-            { 'response_parts' => v2_response_parts }
-          end
-
-          described_class.perform_now(conversation, assistant, responding_to_message.id)
-
-          expect(usage.reload.responses_consumed).to eq(1)
           expect(usage.ai_usage_reservations).to be_empty
         end
       end
@@ -359,17 +333,6 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
         expect(conversation.messages.outgoing.where(private: false).pluck(:content)).to eq(['Hey, welcome to Captain V2'])
         expect(usage.reload.responses_consumed).to eq(1)
         expect(usage.ai_usage_reservations.where(released_at: nil)).to be_empty
-      end
-
-      it 'creates no reservation on a non-pilot account' do
-        account.disable_features!(:captain_pilot)
-        expect(account).not_to receive(:reserve_captain_ai_usage!)
-
-        expect do
-          described_class.perform_now(conversation, assistant, responding_to_message.id)
-        end.not_to change(AiUsageReservation, :count)
-
-        expect(usage.reload.responses_consumed).to eq(1)
       end
     end
 

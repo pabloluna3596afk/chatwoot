@@ -1,10 +1,10 @@
 class Captain::Conversation::MessageHistoryBuilderService
   RESOLUTION_MARKER = '<conversation_boundary status="resolved" />'.freeze
 
-  pattr_initialize [:conversation!, { pilot_rules: true }]
+  pattr_initialize [:conversation!, { bound_history: true }]
 
   def perform
-    return build(conversation_messages_for_context) unless pilot_history?
+    return build(conversation_messages_for_context) unless bound_history
 
     window = Captain::Conversation::HistoryWindow.new(conversation_messages_for_context).perform
     log_window(window)
@@ -21,10 +21,6 @@ class Captain::Conversation::MessageHistoryBuilderService
       message_hash[:agent_name] = message.additional_attributes['agent_name'] if message.additional_attributes&.dig('agent_name').present?
       message_hash
     end
-  end
-
-  def pilot_history?
-    pilot_rules && Captain::Pilot.enabled?(conversation.account)
   end
 
   def log_window(window)
@@ -46,7 +42,7 @@ class Captain::Conversation::MessageHistoryBuilderService
     content = prepare_multimodal_message_content(message, include_images: include_images)
     return if content.blank?
 
-    content = prefix_human_content(content) if pilot_history? && message.outgoing? && !message.private && message.sender_type == 'User'
+    content = prefix_human_content(content) if bound_history && message.outgoing? && !message.private && message.sender_type == 'User'
 
     {
       content: content,
