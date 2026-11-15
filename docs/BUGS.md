@@ -1,3 +1,11 @@
+### B-NEW-270 - Captain: una conversación reabierta pasa al asistente aunque tuviera responsable (2026-11-15)
+
+- **Archivos:** `enterprise/app/models/enterprise/message.rb` (`own_reopened_conversation`) y `spec/enterprise/models/message_spec.rb`.
+- **Problema:** si el cliente escribía a una conversación resuelta con un asistente de Captain conectado y esa conversación tenía una persona como responsable, Captain respondía pero el responsable seguía siendo la persona.
+- **Arreglo:** al reabrirse como pendiente para Captain se limpia el responsable humano y el asistente queda como responsable (`ai_assignee`), igual que en una conversación nueva. Es idempotente. Si luego una persona responde, la toma (sin cambios). No cambian la rama en que Captain no se involucra (se abre y conserva a la persona), las bandejas sin asistente ni las que tienen un bot externo activo. El equipo no se toca.
+- **Cómo probar:** `spec/enterprise/models/message_spec.rb` (bloque «reopening a resolved conversation»): con y sin responsable, equipo conservado, una sola actividad de asignación, no se involucra, sin asistente, bot externo y respuesta posterior de una persona.
+- **Despliegue:** sin migraciones ni frontend.
+
 ### B-NEW-269 — Captain: traspaso con contexto y una sola respuesta al cliente (2026-11-14)
 
 - **Archivos:** `HandoffTool`, `ResponseBuilderJob`, `UsageLimitHandoff`, job de inactividad, coordinador `HandoffReply`, prompts de asistente/escenario, burbuja `CaptainHandoff` y `FailureSpikeJob` con extensión Enterprise.
