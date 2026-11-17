@@ -207,6 +207,23 @@ RSpec.describe Captain::AppointmentReminders do
       expect(reminder('reminder_1')).to have_attributes(status: 'skipped', skipped_reason: 'event_gone')
     end
 
+    it 'waits until 08:00 before sending to the customer' do
+      schedule
+      result = at(starts_at - 11.hours - 30.minutes) { described_class.new(reminder('reminder_1')).perform }
+      expect(result).to eq(:waiting)
+      expect(reminder('reminder_1').reload.status).to eq('pending')
+      expect(conversation.messages.outgoing).to be_empty
+    end
+
+    it 'sends at 21:00 exactly' do
+      account.update!(reporting_timezone: 'America/Guayaquil')
+      schedule
+
+      result = at(starts_at - 13.hours) { described_class.new(reminder('reminder_1')).perform }
+
+      expect(result).to eq(:sent)
+    end
+
     context 'when the conversation can be answered freely' do
       it 'sends one free-form message from the assistant with the three buttons' do
         schedule
@@ -251,6 +268,38 @@ RSpec.describe Captain::AppointmentReminders do
         schedule
 
         at(starts_at - 3.hours + 30.seconds) { described_class.new(reminder('reminder_2')).perform }
+
+        expect(conversation.messages.outgoing.last.content).to include('es en unas 3 horas')
+      end
+
+      it 'sends a reminder when the contact-date rule cap is exhausted' do
+        account.update!(settings: account.settings.merge('proactive_daily_send_cap' => 0))
+        schedule
+
+        expect(Automations::ProactiveSendCap).not_to receive(:new)
+        expect(send_reminder).to eq(:sent)
+      end
+
+      it 'uses the far reminder wording when a free-form reminder is over 15 minutes late' do
+        assistant.update!(config: { 'appointments' => appointments_config.merge(
+          'reminder_2' => { 'enabled' => true, 'hours_before' => 3 }
+        ) })
+        schedule
+
+        at(starts_at - 3.hours + 30.minutes) { described_class.new(reminder('reminder_2')).perform }
+
+        expect(conversation.messages.outgoing.last.content).to include(
+          'te recordamos tu cita', 'para el martes 15 de enero, 10:00'
+        )
+      end
+
+      it 'keeps the near wording when the reminder is ten minutes late' do
+        assistant.update!(config: { 'appointments' => appointments_config.merge(
+          'reminder_2' => { 'enabled' => true, 'hours_before' => 3 }
+        ) })
+        schedule
+
+        at(starts_at - 3.hours + 10.minutes) { described_class.new(reminder('reminder_2')).perform }
 
         expect(conversation.messages.outgoing.last.content).to include('es en unas 3 horas')
       end
@@ -339,10 +388,25 @@ RSpec.describe Captain::AppointmentReminders do
           expect(messages.last.content).to include('Asistente de Ventas no envió el recordatorio', 'plantillas están desactivadas')
           expect(reminder('reminder_1')).to have_attributes(status: 'skipped', skipped_reason: 'not_sent_window')
         end
+
+        it 'does not delay the private omission note outside sending hours' do
+          result = at(starts_at - 11.hours - 30.minutes) { described_class.new(reminder('reminder_1')).perform }
+
+          expect(result).to eq(:skipped)
+          expect(conversation.messages.where(private: true)).to exist
+          expect(reminder('reminder_1').reload.status).to eq('skipped')
+        end
       end
 
       context 'with paid templates on and an approved template chosen' do
         let(:paid_config) { paid }
+
+        it 'waits before sending a template outside customer hours' do
+          result = at(starts_at - 11.hours - 30.minutes) { described_class.new(reminder('reminder_1')).perform }
+          expect(result).to eq(:waiting)
+          expect(conversation.messages.outgoing).to be_empty
+          expect(reminder('reminder_1').reload.status).to eq('pending')
+        end
 
         it 'MV-10: skips a missing value with a note and a settings diagnosis' do
           contact.update!(name: nil)
@@ -429,18 +493,6 @@ RSpec.describe Captain::AppointmentReminders do
         end
       end
 
-      context 'when the account reached its daily proactive cap' do
-        let(:paid_config) { paid }
-
-        before { account.update!(settings: account.settings.merge('proactive_daily_send_cap' => 0)) }
-
-        it 'waits without sending or marking the reminder' do
-          expect { send_reminder }.not_to(change { conversation.messages.count })
-
-          expect(send_reminder).to eq(:waiting)
-          expect(reminder('reminder_1')).to have_attributes(status: 'pending')
-        end
-      end
     end
 
     context 'when the appointment or the feature is gone' do

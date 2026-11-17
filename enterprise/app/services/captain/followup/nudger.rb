@@ -72,7 +72,7 @@ class Captain::Followup::Nudger
 
   def nudge_due?
     nudges.size < settings.max_nudges && now - last_activity >= settings.inactivity_after_minutes.minutes &&
-      conversation.can_reply? && cap.within_cap?
+      conversation.can_reply?
   end
 
   def close_due?
@@ -82,10 +82,6 @@ class Captain::Followup::Nudger
   end
 
   def window_closed? = !conversation.can_reply?
-
-  def cap
-    @cap ||= Automations::ProactiveSendCap.new(account)
-  end
 
   def translate(key, **)
     I18n.t("captain.followup.#{key}", locale: locale, assistant: assistant.name, **)
@@ -99,7 +95,6 @@ class Captain::Followup::Nudger
         content: content, preserve_waiting_since: true,
         content_attributes: { 'captain_followup' => NUDGE_MARK } }.merge(buttons ? button_attributes : {})
     )
-    cap.increment!
     :nudged
   end
 

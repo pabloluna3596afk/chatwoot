@@ -15,12 +15,11 @@ RSpec.describe Calendar::CustomerReminders::Dispatcher do
     create(:calendar_event, account: account, calendar_connection: create(:calendar_connection, account: account),
                             conversation: conversation, start_at: now + 24.hours, created_at: now - 2.days)
   end
-  let(:cap) { instance_double(Automations::ProactiveSendCap, reserve!: true, release!: nil) }
   let(:outgoing) { conversation.messages.outgoing.reorder(:id) }
 
   before do
     travel_to(now)
-    allow(Automations::ProactiveSendCap).to receive(:new).and_return(cap)
+    allow(Automations::ProactiveSendCap).to receive(:new).and_call_original
     event
   end
 
@@ -30,11 +29,11 @@ RSpec.describe Calendar::CustomerReminders::Dispatcher do
     expect(outgoing.count).to eq(1)
     expect(outgoing.last.additional_attributes).to include(
       'calendar_event_id' => event.id,
-      'customer_reminder' => { 'start_at' => event.start_at.iso8601(6), 'attempt' => 1, 'cap_date' => now.to_date.iso8601 }
+      'customer_reminder' => { 'start_at' => event.start_at.iso8601(6), 'attempt' => 1 }
     )
     expect(outgoing.last.additional_attributes.dig('template_params', 'name')).to eq('cita_recordatorio')
     expect(event.reload).to have_attributes(customer_reminder_status: 'queued_1', customer_reminder_sent_at: nil)
-    expect(cap).to have_received(:reserve!).once
+    expect(Automations::ProactiveSendCap).not_to have_received(:new)
   end
 
   it 'R2 leaves Captain bookings alone' do
@@ -42,6 +41,14 @@ RSpec.describe Calendar::CustomerReminders::Dispatcher do
     described_class.new.perform
     expect(outgoing).to be_empty
     expect(event.reload.customer_reminder_status).to be_nil
+  end
+
+  it 'does not enqueue reminders for appointments that opted out of customer notice' do
+    event.update!(customer_reminder_status: 'skipped_opt_out')
+
+    described_class.new.perform
+
+    expect(outgoing).to be_empty
   end
 
   it 'R3 leaves Panel AI follow-up alone' do
@@ -148,14 +155,11 @@ RSpec.describe Calendar::CustomerReminders::Dispatcher do
     expect(outgoing.map { |message| message.additional_attributes['calendar_event_id'] }).to contain_exactly(event.id, other.id)
   end
 
-  it 'R15 waits without claiming when the daily cap is exhausted' do
-    allow(cap).to receive(:reserve!).and_return(false)
-    described_class.new.perform
-    expect(event.reload.customer_reminder_status).to be_nil
-    expect(outgoing).to be_empty
-    allow(cap).to receive(:reserve!).and_return(true)
+  it 'R15 enqueues when the contact-date rule cap is exhausted' do
+    account.update!(settings: account.settings.merge('proactive_daily_send_cap' => 0))
     described_class.new.perform
     expect(outgoing.count).to eq(1)
+    expect(outgoing.last.additional_attributes['customer_reminder']).not_to have_key('cap_date')
   end
 
   it 'R16 defaults to off and neither sends nor marks anything' do
@@ -163,7 +167,7 @@ RSpec.describe Calendar::CustomerReminders::Dispatcher do
     described_class.new.perform
     expect(outgoing).to be_empty
     expect(event.reload.customer_reminder_status).to be_nil
-    expect(cap).not_to have_received(:reserve!)
+    expect(Automations::ProactiveSendCap).not_to have_received(:new)
   end
 
   it 'does not try to deliver appointments without a conversation' do
@@ -179,6 +183,6 @@ RSpec.describe Calendar::CustomerReminders::Dispatcher do
     4.times { described_class.new.perform }
     expect(event.reload.customer_reminder_status).to eq('skipped_error')
     expect(outgoing).to be_empty
-    expect(cap).to have_received(:release!).exactly(3).times
+    expect(Automations::ProactiveSendCap).not_to have_received(:new)
   end
 end

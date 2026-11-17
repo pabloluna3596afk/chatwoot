@@ -6,30 +6,6 @@ RSpec.describe Automations::ProactiveSendCap do
   let(:account) { create(:account) }
   let(:cap) { described_class.new(account) }
 
-  describe '#within_cap?' do
-    it 'is true below the default cap when nothing has been sent yet' do
-      expect(cap.within_cap?).to be(true)
-    end
-
-    it 'is false once the configured cap has been reached' do
-      account.update!(settings: (account.settings || {}).merge('proactive_daily_send_cap' => 2))
-
-      cap.increment!
-      cap.increment!
-
-      expect(cap.within_cap?).to be(false)
-    end
-
-    it 'does not count sends from a different account' do
-      other_account = create(:account)
-      account.update!(settings: (account.settings || {}).merge('proactive_daily_send_cap' => 1))
-
-      described_class.new(other_account).increment!
-
-      expect(cap.within_cap?).to be(true)
-    end
-  end
-
   describe '#reserve! and #release!' do
     before { account.update!(settings: (account.settings || {}).merge('proactive_daily_send_cap' => 2)) }
 
@@ -38,16 +14,15 @@ RSpec.describe Automations::ProactiveSendCap do
       expect(cap.reserve!).to be(true)
       expect(cap.reserve!).to be(false)
 
-      expect(cap.within_cap?).to be(false)
       cap.release!
-      expect(cap.within_cap?).to be(true)
+      expect(cap.reserve!).to be(true)
     end
 
-    it 'counts together with the sends of the other producers' do
-      cap.increment!
-      cap.increment!
-
-      expect(cap.reserve!).to be(false)
+    it 'isolates the reservation by account' do
+      other_account = create(:account)
+      account.update!(settings: { 'proactive_daily_send_cap' => 1 })
+      expect(described_class.new(other_account).reserve!).to be(true)
+      expect(cap.reserve!).to be(true)
     end
   end
 
@@ -61,8 +36,8 @@ RSpec.describe Automations::ProactiveSendCap do
     today.reserve!
     described_class.new(account, date: original_date).release!
     account.update!(settings: { 'proactive_daily_send_cap' => 1 })
-    expect(today.within_cap?).to be(false)
-    expect(old.within_cap?).to be(true)
+    expect(today.reserve!).to be(false)
+    expect(old.reserve!).to be(true)
   ensure
     travel_back
   end

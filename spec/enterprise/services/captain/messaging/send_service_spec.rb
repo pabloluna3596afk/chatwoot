@@ -271,24 +271,26 @@ RSpec.describe Captain::Messaging::SendService do
     end
   end
 
-  describe 'the daily cap of the account' do
-    it 'sends nothing when the cap is reached, and counts the sends it makes' do
-      account.update!(settings: (account.settings || {}).merge('proactive_daily_send_cap' => 1))
+  describe 'the contact-date rule cap' do
+    it 'does not block or count a template send' do
+      account.update!(settings: (account.settings || {}).merge('proactive_daily_send_cap' => 0))
 
-      expect(send_flow).to be_sent
-      travel_to(now + 11.minutes)
-      create(:message, account: account, inbox: inbox, conversation: conversation, message_type: :incoming, sender: contact,
-                       content_attributes: { 'whatsapp_flow_saved' => true })
-
-      expect(send_flow(at: Time.current).code).to eq('rate_limit')
-      expect(Automations::ProactiveSendCap.new(account).within_cap?).to be(false)
+      expect(Automations::ProactiveSendCap).not_to receive(:new)
+      expect(send_template).to be_sent
     end
 
-    it 'gives the place back when the message is not created' do
+    it 'does not block or count a Flow send' do
+      account.update!(settings: (account.settings || {}).merge('proactive_daily_send_cap' => 0))
+
+      expect(Automations::ProactiveSendCap).not_to receive(:new)
+      expect(send_flow).to be_sent
+    end
+
+    it 'does not reserve a cap place when creating a Flow fails' do
       allow_any_instance_of(Whatsapp::Flows::SendFlowService).to receive(:perform).and_raise(Whatsapp::Flows::SendFlowService::Error) # rubocop:disable RSpec/AnyInstance
 
+      expect(Automations::ProactiveSendCap).not_to receive(:new)
       expect(send_flow.code).to eq('unavailable')
-      expect(Automations::ProactiveSendCap.new(account).send(:current_count)).to eq(0)
     end
   end
 end

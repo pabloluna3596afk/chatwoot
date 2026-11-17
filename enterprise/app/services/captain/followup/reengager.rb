@@ -24,7 +24,7 @@ class Captain::Followup::Reengager
     @now = now
   end
 
-  # Returns :sent, :skipped or nil (not yet: the window is still open, or the daily cap is reached).
+  # Returns :sent, :skipped or nil (not yet: the window is still open or sending hours have not started).
   def perform
     conversation.with_lock do
       conversation.reload
@@ -64,13 +64,8 @@ class Captain::Followup::Reengager
 
     entry = Captain::TemplateMessage.approved(conversation.inbox, settings.reengagement_template)
     return skip_with_note('reengagement_template_unavailable', 'template_unavailable') if entry.blank?
-    return unless cap.within_cap?
 
     send_template(entry)
-  end
-
-  def cap
-    @cap ||= Automations::ProactiveSendCap.new(account)
   end
 
   def contacted_recently?
@@ -80,11 +75,12 @@ class Captain::Followup::Reengager
   end
 
   def send_template(entry)
+    return unless Calendar::CustomerReminders::Schedule.sending_hours?(account, now)
+
     drops = Captain::TemplateMessage.drops(conversation, assistant)
     payload, text = Captain::TemplateMessage.build(entry, settings.reengagement_template['processed_params'], drops,
                                                    fallback: LEGACY_TEMPLATE_PARAMS)
     create_message(text, additional_attributes: { template_params: payload })
-    cap.increment!
     record('at' => now.utc.iso8601, 'status' => 'sent')
     :sent
   rescue Variables::DeliveryRenderer::Error => e
