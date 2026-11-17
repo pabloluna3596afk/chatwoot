@@ -9,7 +9,6 @@ import {
 } from './useApprovedTemplates';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
-import CalendarAppointmentAttributes from 'dashboard/routes/dashboard/settings/integrations/CalendarAppointmentAttributes.vue';
 import AppointmentReminderReadiness from './AppointmentReminderReadiness.vue';
 
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -301,8 +300,6 @@ const handleSubmit = () => {
           state.templates.reminder,
           state.params.reminder
         ),
-        template_cancelled:
-          props.assistant.config?.appointments?.template_cancelled ?? null,
       },
     },
   });
@@ -616,7 +613,18 @@ onMounted(loadConnections);
           @click="handleSubmit"
         />
       </div>
-      <CalendarAppointmentAttributes />
+      <p
+        class="mb-0 text-xs text-n-slate-11"
+        data-testid="appointments-attributes-link"
+      >
+        {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.ATTRIBUTES_NOTE') }}
+        <router-link
+          :to="accountScopedRoute('settings_integrations_calendars')"
+          class="text-n-brand hover:underline"
+        >
+          {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.ATTRIBUTES_LINK') }}
+        </router-link>
+      </p>
     </template>
   </div>
 </template>

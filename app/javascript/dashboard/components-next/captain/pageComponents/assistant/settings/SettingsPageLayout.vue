@@ -88,19 +88,11 @@ const tabs = computed(() => {
     );
   }
 
-  // The two WhatsApp send settings close the list: what is paid, then what Captain may send.
-  items.push(
-    {
-      id: 'captain_assistants_settings_paid_messages_index',
-      icon: 'i-lucide-badge-dollar-sign',
-      label: t('CAPTAIN.ASSISTANTS.SETTINGS.PAID_MESSAGES.TITLE'),
-    },
-    {
-      id: 'captain_assistants_settings_messaging_index',
-      icon: 'i-lucide-send',
-      label: t('CAPTAIN.ASSISTANTS.SETTINGS.MESSAGING.TITLE'),
-    }
-  );
+  items.push({
+    id: 'captain_assistants_settings_messaging_index',
+    icon: 'i-lucide-send',
+    label: t('CAPTAIN.ASSISTANTS.SETTINGS.MESSAGING.TITLE'),
+  });
 
   return items;
 });

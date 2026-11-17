@@ -3,9 +3,11 @@ import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { useStore, useFunctionGetter } from 'dashboard/composables/store';
+import { permissionErrorMessage } from 'dashboard/helper/permissionErrorMessage';
 
 export function useAssistantSettings() {
   const { t } = useI18n();
+
   const route = useRoute();
   const store = useStore();
 
@@ -23,7 +25,13 @@ export function useAssistantSettings() {
       });
       useAlert(t('CAPTAIN.ASSISTANTS.EDIT.SUCCESS_MESSAGE'));
     } catch (error) {
-      useAlert(error?.message || t('CAPTAIN.ASSISTANTS.EDIT.ERROR_MESSAGE'));
+      useAlert(
+        permissionErrorMessage(
+          error,
+          t('CAPTAIN.ASSISTANTS.EDIT.NO_PERMISSION'),
+          t('CAPTAIN.ASSISTANTS.EDIT.ERROR_MESSAGE')
+        )
+      );
     }
   };
 
@@ -36,7 +44,11 @@ export function useAssistantSettings() {
       useAlert(t('CAPTAIN.ASSISTANTS.FORM.AVATAR.SUCCESS_UPLOAD'));
     } catch (error) {
       useAlert(
-        error?.message || t('CAPTAIN.ASSISTANTS.FORM.AVATAR.ERROR_UPLOAD')
+        permissionErrorMessage(
+          error,
+          t('CAPTAIN.ASSISTANTS.EDIT.NO_PERMISSION'),
+          t('CAPTAIN.ASSISTANTS.FORM.AVATAR.ERROR_UPLOAD')
+        )
       );
     }
   };
@@ -47,7 +59,11 @@ export function useAssistantSettings() {
       useAlert(t('CAPTAIN.ASSISTANTS.FORM.AVATAR.SUCCESS_DELETE'));
     } catch (error) {
       useAlert(
-        error?.message || t('CAPTAIN.ASSISTANTS.FORM.AVATAR.ERROR_DELETE')
+        permissionErrorMessage(
+          error,
+          t('CAPTAIN.ASSISTANTS.EDIT.NO_PERMISSION'),
+          t('CAPTAIN.ASSISTANTS.FORM.AVATAR.ERROR_DELETE')
+        )
       );
     }
   };

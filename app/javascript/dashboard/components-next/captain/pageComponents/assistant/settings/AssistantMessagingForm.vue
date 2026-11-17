@@ -92,8 +92,8 @@ const inboxEnabled = computed({
     ensureEntry(selectedInboxId.value).enabled = value;
   },
 });
-const paidEnabled = computed(
-  () => props.assistant?.config?.allow_paid_templates === true
+const allowPaidTemplates = ref(
+  props.assistant?.config?.allow_paid_templates === true
 );
 
 const hydrate = () => {
@@ -113,6 +113,13 @@ const hydrate = () => {
   });
 };
 watch(() => props.assistant, hydrate, { immediate: true });
+watch(
+  () => props.assistant?.config?.allow_paid_templates,
+  value => {
+    allowPaidTemplates.value = value === true;
+  },
+  { immediate: true }
+);
 watch(
   inboxOptions,
   options => {
@@ -267,15 +274,11 @@ const submit = () => {
   emit('submit', {
     config: {
       ...props.assistant.config,
+      allow_paid_templates: allowPaidTemplates.value,
       messaging: { inboxes: entries },
     },
   });
 };
-
-const paidRoute = computed(() => ({
-  name: 'captain_assistants_settings_paid_messages_index',
-  params: { ...route.params },
-}));
 
 onMounted(async () => {
   if (route.params.assistantId)
@@ -296,6 +299,15 @@ onMounted(async () => {
 
 <template>
   <div class="flex flex-col gap-5" data-testid="messaging-form">
+    <SettingsToggleSection
+      v-model="allowPaidTemplates"
+      :header="t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.TEMPLATES_TOGGLE')"
+      :description="
+        t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.TEMPLATES_TOGGLE_HELP')
+      "
+      data-testid="messaging-templates-toggle"
+    />
+
     <p v-if="!whatsappInboxes.length" class="mb-0 text-sm text-n-slate-11">
       {{ t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.NO_INBOXES') }}
     </p>
@@ -516,16 +528,6 @@ onMounted(async () => {
             />
           </li>
         </ul>
-        <p class="mb-0 text-sm text-n-slate-11" data-testid="messaging-paid">
-          {{
-            paidEnabled
-              ? t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.PAID_ON')
-              : t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.PAID_OFF')
-          }}
-          <router-link :to="paidRoute" class="text-n-brand">
-            {{ t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.PAID_LINK') }}
-          </router-link>
-        </p>
       </section>
 
       <section class="flex flex-col gap-2" data-testid="messaging-limits">

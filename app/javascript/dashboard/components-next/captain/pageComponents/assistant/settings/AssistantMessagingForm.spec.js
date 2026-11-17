@@ -5,6 +5,20 @@ import AssistantMessagingForm from './AssistantMessagingForm.vue';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 import { isSupportedForCaptain } from './captainTemplates';
 
+const { captainInboxRecords, inboxRecords } = vi.hoisted(() => ({
+  captainInboxRecords: { value: [{ id: 10 }] },
+  inboxRecords: {
+    value: [
+      {
+        id: 10,
+        name: 'Soporte',
+        channel_type: 'Channel::Whatsapp',
+        message_templates: [],
+      },
+    ],
+  },
+}));
+
 const approved = (name, extra = {}) => ({
   name,
   language: 'es',
@@ -45,8 +59,8 @@ vi.mock('dashboard/composables/store', () => ({
     ref(
       {
         'attributes/getAttributes': [],
-        'captainInboxes/getRecords': [{ id: 10 }],
-        'inboxes/getInboxes': [inbox],
+        'captainInboxes/getRecords': captainInboxRecords.value,
+        'inboxes/getInboxes': inboxRecords.value,
       }[name]
     ),
 }));
@@ -77,7 +91,12 @@ const mountForm = (assistant = { config: {} }) =>
       stubs: {
         Dialog: DialogStub,
         ComboBox: ComboStub,
-        SettingsToggleSection: true,
+        SettingsToggleSection: {
+          name: 'SettingsToggleSection',
+          props: ['modelValue'],
+          emits: ['update:modelValue'],
+          template: '<div><slot /></div>',
+        },
         WhatsAppTemplateParser: true,
         RouterLink: { template: '<a><slot /></a>' },
       },
@@ -86,6 +105,8 @@ const mountForm = (assistant = { config: {} }) =>
 
 describe('AssistantMessagingForm', () => {
   beforeEach(() => {
+    captainInboxRecords.value = [{ id: 10 }];
+    inboxRecords.value = [inbox];
     // mockReset is on for the whole project: the answer is set before every test.
     WhatsappFlowsAPI.list.mockResolvedValue({
       data: {
@@ -97,12 +118,28 @@ describe('AssistantMessagingForm', () => {
     });
   });
 
+  it('shows the template switch even without WhatsApp inboxes', async () => {
+    captainInboxRecords.value = [];
+    const wrapper = mountForm();
+    await flushPromises();
+    expect(
+      wrapper.get('[data-testid="messaging-templates-toggle"]').exists()
+    ).toBe(true);
+    expect(wrapper.text()).toContain(
+      'CAPTAIN.ASSISTANTS.FORM.MESSAGING.NO_INBOXES'
+    );
+    expect(
+      wrapper.find('[data-testid="messaging-inbox-toggle"]').exists()
+    ).toBe(false);
+    captainInboxRecords.value = [{ id: 10 }];
+  });
+
   it('starts off with nothing allowed and says Captain sends nothing', async () => {
     const wrapper = mountForm();
     await flushPromises();
     expect(
       wrapper
-        .findComponent({ name: 'SettingsToggleSection' })
+        .findComponent('[data-testid="messaging-inbox-toggle"]')
         .props('modelValue')
     ).toBe(false);
     expect(wrapper.find('[data-testid="messaging-flows-empty"]').exists()).toBe(
@@ -206,6 +243,56 @@ describe('AssistantMessagingForm', () => {
     });
   });
 
+  it.each([false, true])(
+    'preserves allow_paid_templates=%s when saving without touching the switch',
+    async allowPaidTemplates => {
+      const wrapper = mountForm({
+        config: { allow_paid_templates: allowPaidTemplates },
+      });
+      await flushPromises();
+      await wrapper.get('[data-testid="messaging-save"]').trigger('click');
+
+      expect(wrapper.emitted('submit')[0][0].config.allow_paid_templates).toBe(
+        allowPaidTemplates
+      );
+      expect(wrapper.find('[data-testid="messaging-paid"]').exists()).toBe(
+        false
+      );
+    }
+  );
+
+  it.each([false, true])(
+    'saves allow_paid_templates=%s only when the existing Save button is pressed',
+    async initialValue => {
+      const wrapper = mountForm({
+        config: { allow_paid_templates: initialValue },
+      });
+      await flushPromises();
+      wrapper
+        .findComponent('[data-testid="messaging-templates-toggle"]')
+        .vm.$emit('update:modelValue', !initialValue);
+
+      expect(wrapper.emitted('submit')).toBeUndefined();
+      await wrapper.get('[data-testid="messaging-save"]').trigger('click');
+      expect(wrapper.emitted('submit')[0][0].config.allow_paid_templates).toBe(
+        !initialValue
+      );
+    }
+  );
+
+  it('resynchronizes the template switch when the assistant prop changes', async () => {
+    const wrapper = mountForm({ config: { allow_paid_templates: false } });
+    await wrapper.setProps({
+      assistant: { config: { allow_paid_templates: true } },
+    });
+
+    expect(
+      wrapper
+        .findComponent('[data-testid="messaging-templates-toggle"]')
+        .props('modelValue')
+    ).toBe(true);
+  });
+
   it('offers only approved text templates Captain can fill', async () => {
     const wrapper = mountForm();
     await flushPromises();
@@ -258,7 +345,7 @@ describe('AssistantMessagingForm', () => {
     });
     await flushPromises();
     const toggle = () =>
-      wrapper.findComponent({ name: 'SettingsToggleSection' });
+      wrapper.findComponent('[data-testid="messaging-inbox-toggle"]');
     expect(toggle().props('modelValue')).toBe(true);
     toggle().vm.$emit('update:modelValue', false);
     await wrapper.get('[data-testid="messaging-save"]').trigger('click');

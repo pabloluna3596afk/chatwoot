@@ -1156,12 +1156,12 @@
             "SAVED_HELP": "Saved configuration. Save your changes to refresh these checks. This applies to appointments booked by Captain in its connected inboxes.",
             "NO_INBOXES": "Connect an inbox to Captain to check reminder preparation.",
             "MISSING": "Missing bindings: {variables}",
-            "DELIVERY_HELP": "Configuration does not guarantee delivery. The reply window, customer values, appointment status and daily limit are checked at send time. Missing values skip the template and leave a private note. Enabling reminders does not authorize paid messages.",
+            "DELIVERY_HELP": "Configuration does not guarantee delivery. The reply window, customer values, appointment status and daily limit are checked at send time. Missing values skip the template and leave a private note. Turning reminders on does not authorize sending templates.",
             "STATUS": {
               "ready": "Prepared for outside-window WhatsApp templates. Customer values are checked at send time.",
               "disabled": "Captain appointments or both reminders are disabled. Enable appointments for this assistant and inbox, and at least one reminder.",
               "not_sent_channel": "This channel cannot send reminders outside its reply window. Inside the window, a normal reply can be sent.",
-              "not_sent_window": "Outside the reply window, reminders are skipped because paid templates are off. Enable them under Paid messages if you authorize charges.",
+              "not_sent_window": "Outside the reply window, reminders are skipped because templates are off. Turn them on under Templates and WhatsApp Flows.",
               "no_template": "Outside the reply window, reminders are skipped: select a reminder template below and save.",
               "template_unavailable": "The selected template is missing or not approved in this inbox. Approve it in WhatsApp or choose an approved template below and save.",
               "template_changed": "The template has incomplete variable bindings or a missing header file. Complete the reminder template below and save."
@@ -1201,20 +1201,16 @@
             "HOURS_ERROR": "Use a whole number from 1 to 168.",
             "WINDOW_HINT": "It goes out free only if the customer wrote in the previous 24 h; otherwise it needs a template.",
             "TEMPLATE_REMINDER": "Reminder template",
-            "TEMPLATE_CANCELLED": "Cancellation template",
-            "PAID_HINT": "To send templates outside the 24 h window, turn on \"Paid messages (WhatsApp)\" for this assistant."
+            "PAID_HINT": "To send templates, turn on \"Allow Captain to send templates\" under Templates and WhatsApp Flows."
           },
           "ERRORS": {
             "CONNECTION": "Select a calendar account.",
             "CALENDAR": "Select a calendar."
-          }
+          },
+          "ATTRIBUTES_NOTE": "Appointment attributes are set up in",
+          "ATTRIBUTES_LINK": "Integrations → Calendars."
         },
         "TEMPLATE_PLACEHOLDER": "Select an approved template",
-        "PAID_MESSAGES": {
-          "TOGGLE": "Allow paid messages (WhatsApp)",
-          "TOGGLE_HELP": "When on, this assistant can send an approved template outside the 24 h window: appointment reminders and re-engagement. It is off by default.",
-          "NOTE": "Outside the 24 h window, WhatsApp requires a template approved by Meta and it has a cost. If this is off, those messages are not sent and, for reminders, a private note is left in the conversation."
-        },
         "FOLLOWUP": {
           "TOGGLE": "Ask \"Are you still there?\"",
           "TOGGLE_HELP": "When the customer stops answering, Captain sends one short message with buttons, inside the 24 h window and at no cost. With no answer, it closes the conversation for inactivity. It is on by default.",
@@ -1229,7 +1225,7 @@
           "HOURS": "{count} h",
           "REENGAGEMENT": "Re-engage with a template",
           "REENGAGEMENT_HELP": "When Captain closed for inactivity and the 24 h window has closed, it sends one approved template, once per conversation and at most one every 7 days per customer. It has a cost. It is off by default.",
-          "PAID_HINT": "To send templates, turn on \"Paid messages (WhatsApp)\" for this assistant.",
+          "PAID_HINT": "To send templates, turn on \"Allow Captain to send templates\" under Templates and WhatsApp Flows.",
           "TEMPLATE": "Re-engagement template"
         },
         "TEMPLATE_VARIABLES": {
@@ -1300,9 +1296,6 @@
           "REMOVE": "Remove",
           "ADD": "Add",
           "CANCEL": "Cancel",
-          "PAID_OFF": "Paid messages are off: Captain can send WhatsApp Flows but not templates.",
-          "PAID_ON": "Paid messages are on: Captain can send allowed templates.",
-          "PAID_LINK": "Go to Paid messages",
           "LIMITS": "Limits per conversation",
           "LIMIT_FLOW_GAP": "10 minutes between WhatsApp Flows",
           "LIMIT_FLOWS": "Up to 3 WhatsApp Flows every 24 h",
@@ -1315,14 +1308,17 @@
           "STATE_PUBLISHED": "Published",
           "SAVE": "Save",
           "UNAVAILABLE_TEMPLATE": "It is no longer approved, or has a header file or per-customer buttons: Captain does not send it.",
-          "UNAVAILABLE_FLOW": "It is no longer published: Captain does not send it."
+          "UNAVAILABLE_FLOW": "It is no longer published: Captain does not send it.",
+          "TEMPLATES_TOGGLE": "Allow Captain to send templates",
+          "TEMPLATES_TOGGLE_HELP": "Templates are messages approved by Meta and can be sent even if the customer has not written in 24 hours. Meta charges for each template. If this is off, Captain does not send any."
         }
       },
       "EDIT": {
         "TITLE": "Update the assistant",
         "SUCCESS_MESSAGE": "The assistant has been successfully updated",
         "ERROR_MESSAGE": "There was an error updating the assistant, please try again.",
-        "NOT_FOUND": "Could not find the assistant. Please try again."
+        "NOT_FOUND": "Could not find the assistant. Please try again.",
+        "NO_PERMISSION": "You do not have permission to change this setting. Ask an administrator."
       },
       "SETTINGS": {
         "HEADER": "Settings",
@@ -1369,10 +1365,6 @@
         "FOLLOWUP": {
           "TITLE": "Follow-up",
           "DESCRIPTION": "What Captain does when the customer stops answering: ask if they are still there, close for inactivity and, if you turn it on, re-engage with a template."
-        },
-        "PAID_MESSAGES": {
-          "TITLE": "Paid messages (WhatsApp)",
-          "DESCRIPTION": "One switch for everything Captain sends as a paid template."
         },
         "MESSAGING": {
           "TITLE": "Templates and WhatsApp Flows",

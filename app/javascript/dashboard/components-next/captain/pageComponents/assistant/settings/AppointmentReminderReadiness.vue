@@ -50,10 +50,10 @@ const { t } = useI18n();
       {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.READINESS.DELIVERY_HELP') }}
     </p>
     <router-link
-      :to="{ name: 'captain_assistants_settings_paid_messages_index' }"
+      :to="{ name: 'captain_assistants_settings_messaging_index' }"
       class="w-fit text-sm font-medium text-n-brand hover:underline"
     >
-      {{ t('CAPTAIN.ASSISTANTS.SETTINGS.PAID_MESSAGES.TITLE') }}
+      {{ t('CAPTAIN.ASSISTANTS.SETTINGS.MESSAGING.TITLE') }}
     </router-link>
   </section>
 </template>
