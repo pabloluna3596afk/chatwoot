@@ -70,7 +70,7 @@ RSpec.describe AdministratorNotifications::AccountNotificationMailer do
       Current.account = account
       allow(class_instance).to receive(:send_mail_with_liquid).and_return(:mail)
 
-      expect(mailer.automation_rule_paused_by_cap(rule, 200)).to eq(:mail)
+      expect(class_instance.automation_rule_paused_by_cap(rule, 200)).to eq(:mail)
       expect(class_instance).to have_received(:send_mail_with_liquid).with(
         to: [administrator.email], subject: 'La regla «Birthday reminder» se pausó por el límite diario de envíos'
       )
@@ -91,7 +91,7 @@ RSpec.describe AdministratorNotifications::AccountNotificationMailer do
       Current.account = account
       allow(class_instance).to receive(:send_mail_with_liquid).and_return(:mail)
 
-      mailer.automation_rule_paused_by_cap(rule, 200)
+      class_instance.automation_rule_paused_by_cap(rule, 200)
 
       expect(class_instance).to have_received(:send_mail_with_liquid).with(
         to: [administrator.email], subject: 'The rule "Birthday reminder" was paused by the daily send limit'
@@ -103,7 +103,7 @@ RSpec.describe AdministratorNotifications::AccountNotificationMailer do
       Current.account = account
 
       expect(class_instance).not_to receive(:send_notification)
-      expect { mailer.automation_rule_paused_by_cap(rule, 200) }.not_to raise_error
+      expect { class_instance.automation_rule_paused_by_cap(rule, 200) }.not_to raise_error
     end
   end
 end

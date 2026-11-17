@@ -10,7 +10,7 @@ RSpec.describe Captain::Followup do
   let(:conversation) do
     create(:conversation, account: account, inbox: inbox, contact: contact, status: :pending).tap { |c| c.update!(ai_assignee: assistant) }
   end
-  let(:now) { Time.zone.parse('2030-01-15T10:00:00-05:00') }
+  let(:now) { Integrations::GoogleCalendar::Timezone.for(account).parse('2030-01-15T10:00:00') }
 
   around { |example| travel_to(now) { example.run } }
 
