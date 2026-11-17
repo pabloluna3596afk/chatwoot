@@ -359,10 +359,11 @@ RSpec.describe Captain::Followup do
     end
 
     it 'waits until 08:00 and sends once the customer window is open' do
-      night = now.change(hour: 2)
+      zone = Integrations::GoogleCalendar::Timezone.for(account)
+      night = zone.parse('2030-01-15 02:00:00')
       expect(described_class.new(conversation.reload, assistant, now: night).perform).to be_nil
       expect(conversation.reload.additional_attributes['captain_followup']).not_to have_key('reengagement')
-      expect(described_class.new(conversation.reload, assistant, now: now.change(hour: 8)).perform).to eq(:sent)
+      expect(described_class.new(conversation.reload, assistant, now: zone.parse('2030-01-15 08:00:00')).perform).to eq(:sent)
     end
 
     it 'sends a re-engagement template when the account reached the contact-date rule cap' do
