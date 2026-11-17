@@ -763,6 +763,13 @@ es:
       not_sent_channel: '%{assistant} no envió el recordatorio (%{when}): este canal no puede enviar fuera de su ventana de mensajes.'
       no_template: '%{assistant} no envió el recordatorio (%{when}): fuera de la ventana de 24 h y no hay una plantilla elegida para recordatorios.'
       template_unavailable: '%{assistant} no envió el recordatorio (%{when}): la plantilla elegida no está aprobada en esta bandeja.'
+      agent_note: '%{mention} Recordatorio de cita%{today}: «%{title}» el %{when}. Captain no se lo envió al cliente porque estás conversando con él. Si quieres recordárselo, puedes copiar este texto:'
+      agent_note_unconfirmed: '%{mention} Recordatorio de cita%{today}: «%{title}» el %{when}. Aún no está confirmada. Captain no se lo envió al cliente porque estás conversando con él. Si quieres pedirle confirmación, puedes copiar este texto:'
+      agent_note_today: ' para hoy'
+      agent_copy_text: 'Hola %{name}, te recordamos tu cita «%{title}» para el %{when}.'
+      agent_copy_text_unconfirmed: 'Hola %{name}, te recordamos tu cita «%{title}» para el %{when}. ¿Nos confirmas tu asistencia?'
+      agent_copy_text_no_name: 'Hola, te recordamos tu cita «%{title}» para el %{when}.'
+      agent_copy_text_no_name_unconfirmed: 'Hola, te recordamos tu cita «%{title}» para el %{when}. ¿Nos confirmas tu asistencia?'
     appointments:
       disabled: 'Las citas no están disponibles en este canal. Ofrece comunicar al cliente con el equipo.'
       no_calendar: 'El calendario de citas no está disponible ahora. Ofrece comunicar al cliente con el equipo.'

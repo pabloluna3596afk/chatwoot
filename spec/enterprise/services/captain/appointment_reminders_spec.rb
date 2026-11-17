@@ -224,6 +224,149 @@ RSpec.describe Captain::AppointmentReminders do
       expect(result).to eq(:sent)
     end
 
+    context 'when an assignee is conversing' do
+      before do
+        assignee = create(:user, account: account, name: 'Ana María')
+        create(:inbox_member, user: assignee, inbox: inbox)
+        conversation.update!(assignee: assignee, status: 'open')
+        create(:message, account: account, inbox: inbox, conversation: conversation, message_type: :incoming, created_at: now)
+      end
+
+      it 'creates a private note mentioning the assignee instead of sending the reminder to the customer' do
+        schedule
+
+        expect(send_reminder).to eq(:skipped)
+
+        message = conversation.messages.outgoing.last
+        expect(message).to have_attributes(sender: assistant, private: true)
+        expect(message.content).to include(
+          '[@Ana María](mention://user/', 'Ana%20Mar%C3%ADa', 'Consulta', 'martes 15 de enero, 10:00',
+          'Hola Ana Pérez, te recordamos tu cita'
+        )
+        expect(conversation.messages.outgoing.where(private: false)).to be_empty
+        expect(reminder('reminder_1')).to have_attributes(status: 'skipped', skipped_reason: 'agent_note')
+      end
+
+      it 'asks for confirmation when the appointment is not confirmed' do
+        event.update!(appointment_status: 'pending_confirmation')
+        schedule
+
+        expect(send_reminder).to eq(:skipped)
+
+        expect(conversation.messages.outgoing.last.content).to include('Aún no está confirmada', '¿Nos confirmas tu asistencia?')
+      end
+
+      it 'does not delay a private note until customer sending hours' do
+        schedule
+
+        result = at(starts_at - 11.hours - 30.minutes) { described_class.new(reminder('reminder_1')).perform }
+
+        expect(result).to eq(:skipped)
+        expect(conversation.messages.outgoing.last).to have_attributes(private: true)
+        expect(reminder('reminder_1')).to have_attributes(status: 'skipped', skipped_reason: 'agent_note')
+      end
+
+      it 'uses the no-name copy when the contact has no name' do
+        contact.update!(name: nil)
+        schedule
+
+        expect(send_reminder).to eq(:skipped)
+
+        expect(conversation.messages.outgoing.last.content).to include('Hola, te recordamos tu cita «Consulta»')
+        expect(conversation.messages.outgoing.last.content).not_to include('Hola  ,')
+      end
+
+      it 'adds today only for an appointment on the account local date' do
+        account.update!(reporting_timezone: 'America/Guayaquil')
+        assistant.update!(config: { 'appointments' => appointments_config.merge(
+          'reminder_1' => { 'enabled' => true, 'hours_before' => 1 }, 'reminder_2' => { 'enabled' => false, 'hours_before' => 3 }
+        ) })
+        event.update!(start_at: now + 2.hours, end_at: now + 2.hours + 30.minutes)
+        schedule
+        at(now + 1.hour + 30.seconds) { described_class.new(reminder('reminder_1')).perform }
+        today_note = conversation.messages.outgoing.last.content
+
+        assistant.update!(config: { 'appointments' => appointments_config.merge(
+          'reminder_1' => { 'enabled' => true, 'hours_before' => 1 }, 'reminder_2' => { 'enabled' => false, 'hours_before' => 3 }
+        ) })
+        event.update!(start_at: now + 1.day + 2.hours, end_at: now + 1.day + 2.hours + 30.minutes)
+        schedule
+        at(now + 1.day + 1.hour + 30.seconds) { described_class.new(reminder('reminder_1')).perform }
+        tomorrow_note = conversation.messages.outgoing.last.content
+
+        expect(today_note).to include('para hoy')
+        expect(tomorrow_note).not_to include('para hoy')
+      end
+
+      it 'creates a note for each due reminder and does not repeat a completed reminder' do
+        event.update!(start_at: starts_at + 1.hour, end_at: starts_at + 1.hour + 30.minutes)
+        schedule
+
+        at(starts_at - 23.hours + 30.seconds) { described_class.new(reminder('reminder_1')).perform }
+        at(starts_at - 2.hours + 30.seconds) { described_class.new(reminder('reminder_2')).perform }
+        expect(conversation.messages.outgoing.where(private: true).count).to eq(2)
+
+        expect { send_reminder }.not_to change(Message, :count)
+      end
+
+      it 're-evaluates a reminder after the appointment moves' do
+        schedule
+        send_reminder
+
+        event.update!(start_at: starts_at + 1.day, end_at: starts_at + 1.day + 30.minutes)
+
+        expect(reminder('reminder_1')).to have_attributes(status: 'pending', skipped_reason: nil)
+      end
+    end
+
+    context 'when a human assignee is not conversing' do
+      context 'when the conversation is snoozed' do
+        it 'sends as usual' do
+          conversation.update!(assignee: create(:user, account: account), status: 'snoozed')
+          create(:message, account: account, inbox: inbox, conversation: conversation, message_type: :incoming, created_at: now)
+          schedule
+
+          expect(send_reminder).to eq(:sent)
+          expect(conversation.messages.outgoing.where(private: true)).to be_empty
+        end
+      end
+
+      it 'sends as usual when the conversation is resolved' do
+        conversation.update!(assignee: create(:user, account: account), status: 'resolved')
+        create(:message, account: account, inbox: inbox, conversation: conversation, message_type: :incoming, created_at: now)
+        schedule
+
+        expect(send_reminder).to eq(:sent)
+        expect(conversation.messages.outgoing.where(private: true)).to be_empty
+      end
+
+      it 'sends as usual when there is no assignee' do
+        conversation.update!(status: 'open', assignee: nil)
+        create(:message, account: account, inbox: inbox, conversation: conversation, message_type: :incoming, created_at: now)
+        schedule
+
+        expect(send_reminder).to eq(:sent)
+        expect(conversation.messages.outgoing.where(private: true)).to be_empty
+      end
+
+      context 'when the customer window is closed' do
+        let(:inbox) do
+          create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false,
+                                    validate_provider_config: false).inbox
+        end
+
+        it 'sends as usual' do
+          conversation.update!(assignee: create(:user, account: account), status: 'open')
+          create(:message, account: account, inbox: inbox, conversation: conversation, message_type: :incoming, created_at: now - 3.days)
+          schedule
+
+          expect(send_reminder).to eq(:skipped)
+          expect(conversation.messages.outgoing.where(private: true).last.content).to include('no envió el recordatorio')
+          expect(reminder('reminder_1')).to have_attributes(skipped_reason: 'not_sent_window')
+        end
+      end
+    end
+
     context 'when the conversation can be answered freely' do
       it 'sends one free-form message from the assistant with the three buttons' do
         schedule
