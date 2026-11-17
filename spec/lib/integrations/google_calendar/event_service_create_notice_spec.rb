@@ -68,7 +68,7 @@ RSpec.describe Integrations::GoogleCalendar::EventService, '#create' do
   it 'does not render what the contact typed as Liquid' do
     contact.update!(name: '{{ account.name }}')
 
-    service.create(params)
+    service.create(params.merge(send_to_contact: true))
 
     expect(sent_messages.last.content).to start_with('Hola {{ account.name }},')
   end
@@ -102,7 +102,7 @@ RSpec.describe Integrations::GoogleCalendar::EventService, '#create' do
     channel.inbox.update!(working_hours_enabled: true)
     channel.inbox.working_hours.each { |hours| hours.update!(closed_all_day: true) }
 
-    expect { service.create(params) }.to change(sent_messages, :count).by(1)
+    expect { service.create(params.merge(send_to_contact: true)) }.to change(sent_messages, :count).by(1)
   end
 
   it 'books without a notice when the appointment has no conversation' do
@@ -119,10 +119,12 @@ RSpec.describe Integrations::GoogleCalendar::EventService, '#create' do
   context 'when the template is not approved' do
     let(:templates) { [{ 'name' => 'cita_confirmacion', 'language' => 'es', 'status' => 'PENDING' }] }
 
-    it 'sends nothing, leaves a note in the conversation and still books the appointment' do
-      result = I18n.with_locale(:es) { service.create(params.merge(send_to_contact: false)) }
+    it 'does not send or leave a missing-template note when opted out and still books the appointment' do
+      expect(Conversations::ActivityMessageJob).to receive(:perform_later).once.with(
+        conversation, hash_including(content: a_string_including('creó la cita "Consulta"'))
+      )
 
-      expect(Conversations::ActivityMessageJob).not_to have_been_enqueued
+      result = I18n.with_locale(:es) { service.create(params.merge(send_to_contact: false)) }
       expect(sent_messages.count).to eq(0)
       expect(result[:id]).to eq('g-1')
     end
@@ -138,10 +140,13 @@ RSpec.describe Integrations::GoogleCalendar::EventService, '#create' do
   context 'when the template does not exist in the channel' do
     let(:templates) { [] }
 
-    it 'sends nothing and leaves the note' do
+    it 'does not send or leave a missing-template note when opted out' do
+      expect(Conversations::ActivityMessageJob).to receive(:perform_later).once.with(
+        conversation, hash_including(content: a_string_including('creó la cita "Consulta"'))
+      )
+
       I18n.with_locale(:es) { service.create(params.merge(send_to_contact: false)) }
 
-      expect(Conversations::ActivityMessageJob).not_to have_been_enqueued
       expect(sent_messages.count).to eq(0)
     end
   end
@@ -178,8 +183,14 @@ RSpec.describe Integrations::GoogleCalendar::EventService, '#create' do
   end
 
   it 'does not mark appointments without a conversation or created by Captain as opted out' do
+    connection.connection_calendars.create!(account: account, external_id: 'cal-2', summary: 'Other', is_enabled: true)
+    allow(client).to receive(:create_event) do |**kwargs|
+      google_event_for(kwargs[:calendar_id] == 'cal-1' ? 'g-1' : 'g-2', kwargs)
+    end
+
     service.create(params.except(:conversation_id))
-    described_class.new(account: account, user: create(:agent_bot, account: account), connection: connection).create(params)
+    described_class.new(account: account, user: create(:agent_bot, account: account), connection: connection)
+                   .create(params.merge(calendar_id: 'cal-2'))
     expect(connection.calendar_events.order(:id).pluck(:customer_reminder_status)).to eq([nil, nil])
   end
 
