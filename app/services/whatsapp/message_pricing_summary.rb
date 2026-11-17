@@ -20,7 +20,7 @@ class Whatsapp::MessagePricingSummary
     END
   SQL
 
-  APP_ECHO_SQL = "(messages.content_attributes #>> '{}')::jsonb ->> 'external_echo' = 'true'".freeze
+  APP_ECHO_SQL = "(messages.content_attributes #>> '{}')::jsonb ->> 'external_echo' = 'true'"
 
   def initialize(inbox)
     @inbox = inbox
@@ -33,17 +33,7 @@ class Whatsapp::MessagePricingSummary
     summaries = month_range(start_month, current_month).index_with { |month| empty_month(month) }
 
     grouped_messages(start_month, current_month.next_month).each do |row|
-      summary = summaries.fetch(row.month.to_date)
-      count = row.message_count.to_i
-      summary[:outgoing] += count
-
-      if row.pricing_category.present? && %w[true false].include?(row.pricing_billable)
-        category = summary[:categories][row.pricing_category] ||= { billable: 0, free: 0 }
-        category[row.pricing_billable == 'true' ? :billable : :free] += count
-        summary[:with_pricing] += count
-      elsif row.app_echo == true || row.app_echo == 't'
-        summary[:app_sent] += count
-      end
+      add_row_to_summary(summaries.fetch(row.month.to_date), row)
     end
 
     { months: summaries.values.map { |summary| serialize_month(summary) } }
@@ -57,13 +47,38 @@ class Whatsapp::MessagePricingSummary
   end
 
   def month_range(start_month, current_month)
-    (0..((current_month.year * 12 + current_month.month) - (start_month.year * 12 + start_month.month))).map do |offset|
+    (0..(((current_month.year * 12) + current_month.month) - ((start_month.year * 12) + start_month.month))).map do |offset|
       (start_month + offset.months).to_date
     end.reverse
   end
 
   def empty_month(month)
     { month: month.strftime('%Y-%m'), outgoing: 0, with_pricing: 0, app_sent: 0, categories: {} }
+  end
+
+  def add_row_to_summary(summary, row)
+    count = row.message_count.to_i
+    summary[:outgoing] += count
+
+    if priced_row?(row)
+      add_priced_row(summary, row, count)
+    elsif app_echo?(row.app_echo)
+      summary[:app_sent] += count
+    end
+  end
+
+  def priced_row?(row)
+    row.pricing_category.present? && %w[true false].include?(row.pricing_billable)
+  end
+
+  def add_priced_row(summary, row, count)
+    category = summary[:categories][row.pricing_category] ||= { billable: 0, free: 0 }
+    category[row.pricing_billable == 'true' ? :billable : :free] += count
+    summary[:with_pricing] += count
+  end
+
+  def app_echo?(value)
+    value == true || value == 't'
   end
 
   def serialize_month(summary)

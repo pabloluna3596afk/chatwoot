@@ -1713,7 +1713,7 @@ RSpec.describe 'Inboxes API', type: :request do
   describe 'GET /api/v1/accounts/{account.id}/inboxes/{inbox.id}/message_pricing' do
     let(:whatsapp_channel) do
       create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false,
-                               validate_provider_config: false)
+                                validate_provider_config: false)
     end
     let(:whatsapp_inbox) { create(:inbox, account: account, channel: whatsapp_channel) }
     let(:url) { "/api/v1/accounts/#{account.id}/inboxes/#{whatsapp_inbox.id}/message_pricing" }
@@ -1752,7 +1752,7 @@ RSpec.describe 'Inboxes API', type: :request do
 
     it 'rejects WhatsApp inboxes using another provider' do
       other_provider_channel = create(:channel_whatsapp, account: account, provider: 'default', sync_templates: false,
-                                                                   validate_provider_config: false)
+                                                         validate_provider_config: false)
       other_provider_inbox = create(:inbox, account: account, channel: other_provider_channel)
 
       get "/api/v1/accounts/#{account.id}/inboxes/#{other_provider_inbox.id}/message_pricing",
