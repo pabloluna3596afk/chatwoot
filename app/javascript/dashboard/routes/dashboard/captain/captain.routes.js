@@ -17,7 +17,6 @@ import AssistantAudienceSettingsIndex from './assistants/settings/Audience.vue';
 import AssistantScheduleSettingsIndex from './assistants/settings/Schedule.vue';
 import AssistantAppointmentsSettingsIndex from './assistants/settings/Appointments.vue';
 import AssistantFollowupSettingsIndex from './assistants/settings/Followup.vue';
-import AssistantPaidMessagesSettingsIndex from './assistants/settings/PaidMessages.vue';
 import AssistantMessagingSettingsIndex from './assistants/settings/Messaging.vue';
 import AssistantInboxesIndex from './assistants/inboxes/Index.vue';
 import AssistantPlaygroundIndex from './assistants/playground/Index.vue';
@@ -52,6 +51,9 @@ const metaV2 = {
   installationTypes: [INSTALLATION_TYPES.CLOUD, INSTALLATION_TYPES.ENTERPRISE],
 };
 
+const adminMeta = { ...meta, permissions: ['administrator'] };
+const adminMetaV2 = { ...metaV2, permissions: ['administrator'] };
+
 const assistantRoutes = [
   {
     path: frontendURL('accounts/:accountId/captain/:assistantId/overview'),
@@ -81,7 +83,7 @@ const assistantRoutes = [
     path: frontendURL('accounts/:accountId/captain/:assistantId/scenarios'),
     component: AssistantScenariosIndex,
     name: 'captain_assistants_scenarios_index',
-    meta: metaV2,
+    meta: adminMetaV2,
   },
   {
     path: frontendURL('accounts/:accountId/captain/:assistantId/playground'),
@@ -115,7 +117,7 @@ const assistantRoutes = [
     path: frontendURL('accounts/:accountId/captain/:assistantId/settings'),
     component: AssistantSettingsIndex,
     name: 'captain_assistants_settings_index',
-    meta,
+    meta: adminMeta,
   },
   // Settings sub-pages
   {
@@ -124,7 +126,7 @@ const assistantRoutes = [
     ),
     component: AssistantSystemSettingsIndex,
     name: 'captain_assistants_settings_system_index',
-    meta,
+    meta: adminMeta,
   },
   {
     path: frontendURL(
@@ -132,7 +134,7 @@ const assistantRoutes = [
     ),
     component: AssistantAudienceSettingsIndex,
     name: 'captain_assistants_settings_audience_index',
-    meta,
+    meta: adminMeta,
   },
   {
     path: frontendURL(
@@ -140,7 +142,7 @@ const assistantRoutes = [
     ),
     component: AssistantScheduleSettingsIndex,
     name: 'captain_assistants_settings_schedule_index',
-    meta,
+    meta: adminMeta,
   },
   {
     path: frontendURL(
@@ -148,7 +150,7 @@ const assistantRoutes = [
     ),
     component: AssistantAppointmentsSettingsIndex,
     name: 'captain_assistants_settings_appointments_index',
-    meta,
+    meta: adminMeta,
   },
   {
     path: frontendURL(
@@ -156,15 +158,17 @@ const assistantRoutes = [
     ),
     component: AssistantFollowupSettingsIndex,
     name: 'captain_assistants_settings_followup_index',
-    meta,
+    meta: adminMeta,
   },
   {
     path: frontendURL(
       'accounts/:accountId/captain/:assistantId/settings/paid-messages'
     ),
-    component: AssistantPaidMessagesSettingsIndex,
-    name: 'captain_assistants_settings_paid_messages_index',
-    meta,
+    redirect: to => ({
+      name: 'captain_assistants_settings_messaging_index',
+      params: to.params,
+      query: to.query,
+    }),
   },
   {
     path: frontendURL(
@@ -172,7 +176,7 @@ const assistantRoutes = [
     ),
     component: AssistantMessagingSettingsIndex,
     name: 'captain_assistants_settings_messaging_index',
-    meta,
+    meta: adminMeta,
   },
   {
     path: frontendURL(
@@ -180,7 +184,7 @@ const assistantRoutes = [
     ),
     component: AssistantGuardrailsIndex,
     name: 'captain_assistants_guardrails_index',
-    meta: metaV2,
+    meta: adminMetaV2,
   },
   {
     path: frontendURL(
@@ -188,7 +192,7 @@ const assistantRoutes = [
     ),
     component: AssistantGuidelinesIndex,
     name: 'captain_assistants_guidelines_index',
-    meta: metaV2,
+    meta: adminMetaV2,
   },
   {
     path: frontendURL('accounts/:accountId/captain/assistants'),

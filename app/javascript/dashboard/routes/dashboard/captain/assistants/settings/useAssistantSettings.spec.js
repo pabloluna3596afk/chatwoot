@@ -58,6 +58,35 @@ describe('useAssistantSettings', () => {
     expect(useAlert).toHaveBeenCalledWith('Audience is invalid');
   });
 
+  it.each([401, 403])(
+    'translates a %s permission error on update',
+    async status => {
+      mockStore.dispatch.mockRejectedValueOnce({
+        response: { status },
+        message: 'You are not authorized to do this action',
+      });
+      const { updateAssistant } = useAssistantSettings();
+
+      await updateAssistant({ name: 'New name' });
+
+      expect(useAlert).toHaveBeenCalledWith(
+        'CAPTAIN.ASSISTANTS.EDIT.NO_PERMISSION'
+      );
+    }
+  );
+
+  it('keeps the server message for a validation error', async () => {
+    mockStore.dispatch.mockRejectedValueOnce({
+      response: { status: 422 },
+      message: 'Audience is invalid',
+    });
+    const { updateAssistant } = useAssistantSettings();
+
+    await updateAssistant({ name: 'New name' });
+
+    expect(useAlert).toHaveBeenCalledWith('Audience is invalid');
+  });
+
   it('falls back to the generic error message when the error has none', async () => {
     mockStore.dispatch.mockRejectedValueOnce({});
     const { updateAssistant } = useAssistantSettings();
@@ -95,6 +124,17 @@ describe('useAssistantSettings', () => {
     );
   });
 
+  it('translates a permission error when uploading an avatar', async () => {
+    mockStore.dispatch.mockRejectedValueOnce({ response: { status: 401 } });
+    const { uploadAvatar } = useAssistantSettings();
+
+    await uploadAvatar({ file: new File(['x'], 'sofia.png') });
+
+    expect(useAlert).toHaveBeenCalledWith(
+      'CAPTAIN.ASSISTANTS.EDIT.NO_PERMISSION'
+    );
+  });
+
   it('removes the avatar of the current assistant', async () => {
     const { deleteAvatar } = useAssistantSettings();
 
@@ -106,6 +146,17 @@ describe('useAssistantSettings', () => {
     );
     expect(useAlert).toHaveBeenCalledWith(
       'CAPTAIN.ASSISTANTS.FORM.AVATAR.SUCCESS_DELETE'
+    );
+  });
+
+  it('translates a permission error when deleting an avatar', async () => {
+    mockStore.dispatch.mockRejectedValueOnce({ response: { status: 403 } });
+    const { deleteAvatar } = useAssistantSettings();
+
+    await deleteAvatar();
+
+    expect(useAlert).toHaveBeenCalledWith(
+      'CAPTAIN.ASSISTANTS.EDIT.NO_PERMISSION'
     );
   });
 });

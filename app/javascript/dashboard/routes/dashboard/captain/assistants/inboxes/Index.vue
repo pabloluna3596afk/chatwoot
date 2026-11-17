@@ -9,6 +9,7 @@ import {
 } from 'dashboard/composables/store';
 import { useRoute } from 'vue-router';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import { permissionErrorMessage } from 'dashboard/helper/permissionErrorMessage';
 
 import DeleteDialog from 'dashboard/components-next/captain/pageComponents/DeleteDialog.vue';
 import PageLayout from 'dashboard/components-next/captain/PageLayout.vue';
@@ -64,7 +65,13 @@ const handleToggleAppointments = async ({ id, value }) => {
     });
     useAlert(t('CAPTAIN.INBOXES.APPOINTMENTS.SAVED'));
   } catch (error) {
-    useAlert(error?.message || t('CAPTAIN.INBOXES.APPOINTMENTS.ERROR'));
+    useAlert(
+      permissionErrorMessage(
+        error,
+        t('CAPTAIN.ASSISTANTS.EDIT.NO_PERMISSION'),
+        t('CAPTAIN.INBOXES.APPOINTMENTS.ERROR')
+      )
+    );
   }
 };
 

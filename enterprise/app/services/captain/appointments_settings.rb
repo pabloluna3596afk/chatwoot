@@ -9,7 +9,7 @@ class Captain::AppointmentsSettings
   REMINDER_HOURS_RANGE = (1..168)
   INTEGER_KEYS = %w[calendar_connection_id slot_duration_minutes min_notice_minutes booking_window_days].freeze
   REMINDER_KEYS = %w[reminder_1 reminder_2].freeze
-  TEMPLATE_KEYS = %w[template_reminder template_cancelled].freeze
+  TEMPLATE_KEYS = %w[template_reminder].freeze
   # Settings (and reminder rows) saved before the reminders were editable: a switch each, 24 h and 2 h.
   LEGACY_REMINDERS = { 'reminder_1' => ['reminder_24h', 24], 'reminder_2' => ['reminder_2h', 2] }.freeze
   LEGACY_KINDS = { 'reminder_24h' => 'reminder_1', 'reminder_2h' => 'reminder_2' }.freeze
@@ -28,8 +28,7 @@ class Captain::AppointmentsSettings
     'booking_window_days' => 14,
     'reminder_1' => { 'enabled' => true, 'hours_before' => 24 },
     'reminder_2' => { 'enabled' => true, 'hours_before' => 3 },
-    'template_reminder' => nil,
-    'template_cancelled' => nil
+    'template_reminder' => nil
   }.freeze
 
   def self.normalize(raw)
@@ -122,10 +121,6 @@ class Captain::AppointmentsSettings
 
   def template_reminder
     values['template_reminder']
-  end
-
-  def template_cancelled
-    values['template_cancelled']
   end
 
   def calendar_connection_id

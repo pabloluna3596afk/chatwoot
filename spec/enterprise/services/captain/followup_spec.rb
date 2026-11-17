@@ -381,7 +381,7 @@ RSpec.describe Captain::Followup do
 
         expect(public_messages.where(sender: assistant).count).to eq(1) # only the earlier message
         note = conversation.messages.where(private: true).last
-        expect(note.content).to include('Asistente de Ventas no envió el reenganche', 'plantillas de pago están desactivadas')
+        expect(note.content).to include('Asistente de Ventas no envió el reenganche', 'plantillas están desactivadas')
         expect(described_class.candidates(inbox, now: now)).to be_empty
       end
     end

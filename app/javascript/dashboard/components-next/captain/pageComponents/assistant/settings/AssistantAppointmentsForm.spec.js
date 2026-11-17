@@ -5,17 +5,9 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import { nextTick } from 'vue';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
 
-const {
-  getConnections,
-  getCalendars,
-  getAppointmentAttributes,
-  updateAppointmentAttributes,
-  inboxes,
-} = vi.hoisted(() => ({
+const { getConnections, getCalendars, inboxes } = vi.hoisted(() => ({
   getConnections: vi.fn(),
   getCalendars: vi.fn(),
-  getAppointmentAttributes: vi.fn(),
-  updateAppointmentAttributes: vi.fn(),
   inboxes: { value: [] },
 }));
 
@@ -54,8 +46,6 @@ vi.mock('dashboard/api/integrations/calendar', () => ({
   default: {
     getConnections,
     getCalendars,
-    getAppointmentAttributes,
-    updateAppointmentAttributes,
   },
 }));
 
@@ -82,7 +72,7 @@ const mountForm = async (
         InsertVariableButton: true,
         RouterLink: {
           props: ['to'],
-          template: '<a data-testid="calendar-link"><slot /></a>',
+          template: '<a :data-route="to.name"><slot /></a>',
         },
       },
     },
@@ -101,16 +91,11 @@ const REMINDER_DEFAULTS = {
   reminder_1: { enabled: true, hours_before: 24 },
   reminder_2: { enabled: true, hours_before: 3 },
   template_reminder: null,
-  template_cancelled: null,
 };
 
 describe('AssistantAppointmentsForm', () => {
   beforeEach(() => {
     inboxes.value = [];
-    getAppointmentAttributes.mockReset().mockResolvedValue({
-      data: { keys: null, enabled_keys: [], results: {} },
-    });
-    updateAppointmentAttributes.mockReset();
     getConnections
       .mockReset()
       .mockResolvedValue({ data: { payload: CONNECTIONS } });
@@ -119,12 +104,11 @@ describe('AssistantAppointmentsForm', () => {
       .mockResolvedValue({ data: { payload: CALENDARS } });
   });
 
-  it('preserves an unavailable historical cancellation template without validating or editing it', async () => {
-    const historical = { name: 'old', language: 'es' };
+  it('omits the retired cancellation template when saving', async () => {
     const wrapper = await mountForm({
       config: {
         allow_paid_templates: true,
-        appointments: { template_cancelled: historical },
+        appointments: { template_cancelled: { name: 'old', language: 'es' } },
       },
     });
     expect(
@@ -132,8 +116,28 @@ describe('AssistantAppointmentsForm', () => {
     ).toBe(false);
     await wrapper.get('[data-testid="appointments-save"]').trigger('click');
     expect(
-      wrapper.emitted('submit')[0][0].config.appointments.template_cancelled
-    ).toEqual(historical);
+      wrapper.emitted('submit')[0][0].config.appointments
+    ).not.toHaveProperty('template_cancelled');
+  });
+
+  it('links appointment attributes to calendar integrations instead of rendering the attribute editor', async () => {
+    const wrapper = await mountForm({
+      config: {
+        appointments: { calendar_connection_id: 7, calendar_id: 'cal-1' },
+      },
+    });
+
+    expect(
+      wrapper.findComponent({ name: 'CalendarAppointmentAttributes' }).exists()
+    ).toBe(false);
+    expect(
+      wrapper.get('[data-testid="appointments-attributes-link"]').exists()
+    ).toBe(true);
+    expect(
+      wrapper
+        .get('[data-testid="appointments-attributes-link"] [data-route]')
+        .attributes('data-route')
+    ).toBe('settings_integrations_calendars');
   });
 
   it.each([
@@ -161,109 +165,6 @@ describe('AssistantAppointmentsForm', () => {
     }
   );
 
-  it('offers explicit provisioning of all four attributes from appointment setup', async () => {
-    const wrapper = await mountForm();
-    const inputs = wrapper.findAll(
-      '[data-testid^="appointment-attribute-"] input'
-    );
-    expect(inputs).toHaveLength(4);
-    inputs.forEach(input => expect(input.element.checked).toBe(true));
-    expect(updateAppointmentAttributes).not.toHaveBeenCalled();
-    updateAppointmentAttributes.mockResolvedValue({
-      data: {
-        keys: [
-          'ultima_cita',
-          'proxima_cita',
-          'proxima_cita_titulo',
-          'total_citas',
-        ],
-        enabled_keys: ['proxima_cita', 'proxima_cita_titulo', 'total_citas'],
-        results: {
-          ultima_cita: {
-            status: 'conflict',
-            expected_type: 'datetime',
-            actual_type: 'text',
-          },
-          proxima_cita: { status: 'created' },
-          total_citas: { status: 'reused' },
-        },
-      },
-    });
-    await wrapper
-      .get('[data-testid="appointment-attributes-save"]')
-      .trigger('click');
-    await flushPromises();
-    expect(updateAppointmentAttributes).toHaveBeenCalledWith([
-      'ultima_cita',
-      'proxima_cita',
-      'proxima_cita_titulo',
-      'total_citas',
-    ]);
-    [
-      ['ultima_cita', 'conflict'],
-      ['proxima_cita', 'created'],
-      ['total_citas', 'reused'],
-    ].forEach(([key, status]) => {
-      expect(
-        wrapper.get(`[data-testid="appointment-result-${key}"]`).text()
-      ).toContain(`RESULT.${status}`);
-    });
-  });
-
-  it('preserves a saved empty selection across Captain toggles and reloads', async () => {
-    getAppointmentAttributes.mockResolvedValue({
-      data: { keys: [], enabled_keys: [], results: {} },
-    });
-    const wrapper = await mountForm();
-    await toggle(wrapper);
-    await toggle(wrapper);
-    await toggle(wrapper);
-    const inputs = wrapper.findAll(
-      '[data-testid^="appointment-attribute-"] input'
-    );
-    expect(inputs).toHaveLength(4);
-    inputs.forEach(input => expect(input.element.checked).toBe(false));
-    expect(getAppointmentAttributes).toHaveBeenCalledTimes(1);
-    expect(updateAppointmentAttributes).not.toHaveBeenCalled();
-    wrapper.unmount();
-    const reloaded = await mountForm();
-    expect(
-      reloaded
-        .get('[data-testid="appointment-attributes-save"]')
-        .attributes('disabled')
-    ).toBeDefined();
-    reloaded
-      .findAll('[data-testid^="appointment-attribute-"] input')
-      .forEach(input => expect(input.element.checked).toBe(false));
-  });
-
-  it('retains the selected keys for an explicit retry after provisioning fails', async () => {
-    const wrapper = await mountForm();
-    await wrapper
-      .get('[data-testid="appointment-attribute-total_citas"] input')
-      .setValue(false);
-    updateAppointmentAttributes
-      .mockRejectedValueOnce(new Error('offline'))
-      .mockResolvedValueOnce({
-        data: {
-          keys: ['ultima_cita', 'proxima_cita', 'proxima_cita_titulo'],
-          enabled_keys: ['ultima_cita', 'proxima_cita', 'proxima_cita_titulo'],
-          results: {},
-        },
-      });
-    const button = wrapper.get('[data-testid="appointment-attributes-save"]');
-    await button.trigger('click');
-    await flushPromises();
-    expect(button.attributes('disabled')).toBeUndefined();
-    await button.trigger('click');
-    await flushPromises();
-    expect(updateAppointmentAttributes).toHaveBeenCalledTimes(2);
-    expect(updateAppointmentAttributes.mock.calls[0]).toEqual(
-      updateAppointmentAttributes.mock.calls[1]
-    );
-    expect(button.attributes('disabled')).toBeDefined();
-  });
-
   it('points to the calendars integration when the account has no calendar connected', async () => {
     getConnections.mockResolvedValue({ data: { payload: [] } });
     const wrapper = await mountForm();
@@ -271,7 +172,11 @@ describe('AssistantAppointmentsForm', () => {
     expect(
       wrapper.find('[data-testid="appointments-no-calendar"]').exists()
     ).toBe(true);
-    expect(wrapper.find('[data-testid="calendar-link"]').exists()).toBe(true);
+    expect(
+      wrapper
+        .get('[data-testid="appointments-no-calendar"] [data-route]')
+        .attributes('data-route')
+    ).toBe('settings_integrations_calendars');
     expect(wrapper.find('button[role="switch"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="appointments-save"]').exists()).toBe(
       false
@@ -667,8 +572,10 @@ describe('AssistantAppointmentsForm', () => {
             },
           },
         },
-        template_cancelled: null,
       });
+      expect(payload.config.appointments).not.toHaveProperty(
+        'template_cancelled'
+      );
       expect(payload.config.appointments).not.toHaveProperty(
         'allow_paid_templates'
       );

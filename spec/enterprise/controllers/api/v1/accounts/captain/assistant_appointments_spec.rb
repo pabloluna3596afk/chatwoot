@@ -4,7 +4,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants appointments settings', t
   let(:account) { create(:account) }
   let(:reminder_defaults) do
     { reminder_1: { enabled: true, hours_before: 24 }, reminder_2: { enabled: true, hours_before: 3 },
-      template_reminder: nil, template_cancelled: nil }
+      template_reminder: nil }
   end
   let(:admin) { create(:user, account: account, role: :administrator) }
   let(:assistant) { create(:captain_assistant, account: account) }
@@ -42,16 +42,13 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants appointments settings', t
     expect(json_response[:appointment_reminder_readiness].map { |row| row[:status] }).to eq(%w[ready template_unavailable])
   end
 
-  it 'preserves a historical cancellation template when saving other appointment fields after template drift' do
-    historical = { 'name' => 'cita', 'language' => 'es', 'processed_params' => { 'body' => { '1' => 'old' } } }
-    assistant.update!(config: { 'appointments' => { 'template_cancelled' => historical } })
-    create(:channel_whatsapp, account: account, sync_templates: false, validate_provider_config: false,
-                              message_templates: [{ 'name' => 'cita', 'language' => 'es', 'status' => 'approved',
-                                                    'components' => [{ 'type' => 'BODY', 'text' => '{{1}} {{2}}' }] }])
-    patch url, params: { assistant: { config: { appointments: { slot_duration_minutes: 45 } } } },
+  it 'discards a cancellation template while saving other appointment fields' do
+    patch url, params: { assistant: { config: { appointments: { slot_duration_minutes: 45,
+                                                                template_cancelled: { name: 'cita', language: 'es' } } } } },
                headers: admin.create_new_auth_token, as: :json
     expect(response).to have_http_status(:success)
-    expect(assistant.reload.config.dig('appointments', 'template_cancelled')).to eq(historical)
+    expect(assistant.reload.config.dig('appointments', 'slot_duration_minutes')).to eq(45)
+    expect(assistant.reload.config['appointments']).not_to have_key('template_cancelled')
   end
 
   it 'returns the defaults, disabled, for an assistant that never configured appointments' do

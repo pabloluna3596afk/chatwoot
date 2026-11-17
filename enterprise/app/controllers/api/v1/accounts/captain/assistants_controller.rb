@@ -24,11 +24,6 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
       permitted_params = assistant_params
       return unless check_rule_list_versions(permitted_params)
 
-      if permitted_params.dig(:config, :appointments)
-        permitted_params[:config][:appointments].reverse_merge!(
-          template_cancelled: @assistant.config.dig('appointments', 'template_cancelled')
-        )
-      end
       permitted_params[:config] = @assistant.config.merge(permitted_params[:config].to_h) if permitted_params[:config]
 
       @assistant.update!(permitted_params)
@@ -174,8 +169,7 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
                        :min_notice_minutes, :booking_window_days,
                        { reminder_1: [:enabled, :hours_before] }, { reminder_2: [:enabled, :hours_before] },
                        { required_contact_fields: [] },
-                       { template_reminder: [:name, :language, { processed_params: {} }] },
-                       { template_cancelled: [:name, :language, { processed_params: {} }] }] }
+                       { template_reminder: [:name, :language, { processed_params: {} }] }] }
     ]
     if Current.account.feature_enabled?('captain_integration_v2')
       assistant_config_attributes += [:auto_resolve_after, :send_inactivity_resolution_message]

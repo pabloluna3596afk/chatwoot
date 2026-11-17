@@ -27,7 +27,12 @@ describe('Appointment reminder preparation', () => {
     const wrapper = mount(AppointmentReminderReadiness, {
       props: { inboxes },
       global: {
-        stubs: { RouterLink: { template: '<a><slot /></a>' } },
+        stubs: {
+          RouterLink: {
+            props: ['to'],
+            template: '<a :data-route="to.name"><slot /></a>',
+          },
+        },
         plugins: [createI18n({ legacy: false, locale, messages: { en, es } })],
       },
     });
@@ -42,6 +47,14 @@ describe('Appointment reminder preparation', () => {
     expect(wrapper.text()).toContain(copy.SAVED_HELP);
     expect(wrapper.text()).toContain(copy.DELIVERY_HELP);
     expect(wrapper.text()).toContain('body.2, header.media');
+    expect(wrapper.get('a').attributes('data-route')).toBe(
+      'captain_assistants_settings_messaging_index'
+    );
+    expect(wrapper.get('a').text()).toBe(
+      locale === 'es'
+        ? es.CAPTAIN.ASSISTANTS.SETTINGS.MESSAGING.TITLE
+        : en.CAPTAIN.ASSISTANTS.SETTINGS.MESSAGING.TITLE
+    );
     expect(wrapper.text()).not.toContain('READINESS.');
   });
 });

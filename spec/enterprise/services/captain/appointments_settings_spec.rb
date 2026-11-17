@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe Captain::AppointmentsSettings do
   let(:reminder_defaults) do
     { 'reminder_1' => { 'enabled' => true, 'hours_before' => 24 }, 'reminder_2' => { 'enabled' => true, 'hours_before' => 3 },
-      'template_reminder' => nil, 'template_cancelled' => nil }
+      'template_reminder' => nil }
   end
 
   describe '.normalize' do
@@ -66,16 +66,15 @@ RSpec.describe Captain::AppointmentsSettings do
       result = described_class.normalize(
         'template_reminder' => { 'name' => 'recordatorio', 'language' => 'es', 'extra' => 'x',
                                  'processed_params' => { 'body' => { '1' => '{{ contact.name }}', 'nombre' => 'Consulta' },
-                                                         'header' => { 'titulo' => '{{ appointment.title }}' }, 'footer' => { 'x' => 'y' } } },
-        'template_cancelled' => nil
+                                                         'header' => { 'titulo' => '{{ appointment.title }}' }, 'footer' => { 'x' => 'y' } } }
       )
 
       expect(result).to include(
         'template_reminder' => { 'name' => 'recordatorio', 'language' => 'es',
                                  'processed_params' => { 'body' => { '1' => '{{ contact.name }}', 'nombre' => 'Consulta' },
-                                                         'header' => { 'titulo' => '{{ appointment.title }}' } } },
-        'template_cancelled' => nil
+                                                         'header' => { 'titulo' => '{{ appointment.title }}' } } }
       )
+      expect(result).not_to have_key('template_cancelled')
     end
 
     it 'accepts symbol keys and blank numbers fall back to the default' do
