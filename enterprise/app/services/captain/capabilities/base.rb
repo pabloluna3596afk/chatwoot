@@ -10,7 +10,7 @@ class Captain::Capabilities::Base
   end
 
   def self.whatsapp_inboxes_for(assistant)
-    inboxes_for(assistant).select { |inbox| inbox.channel_type == 'Channel::Whatsapp' }
+    Captain::Capabilities::Base.inboxes_for(assistant).select { |inbox| inbox.channel_type == 'Channel::Whatsapp' }
   end
 
   def initialize(assistant, inbox = nil)
