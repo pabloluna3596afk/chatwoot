@@ -32,4 +32,14 @@ RSpec.describe InboxPolicy, type: :policy do
       it { expect(inbox_policy).to permit(agent_context, inbox) }
     end
   end
+
+  permissions :message_pricing? do
+    context 'when administrator' do
+      it { expect(inbox_policy).to permit(administrator_context, inbox) }
+    end
+
+    context 'when agent' do
+      it { expect(inbox_policy).not_to permit(agent_context, inbox) }
+    end
+  end
 end

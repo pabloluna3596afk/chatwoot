@@ -10,6 +10,12 @@ class InboxHealthAPI extends ApiClient {
     return axios.get(`${this.url}/${inboxId}/health`);
   }
 
+  getMessagePricing(inboxId, { months } = {}) {
+    return axios.get(`${this.url}/${inboxId}/message_pricing`, {
+      params: { months },
+    });
+  }
+
   registerWebhook(inboxId) {
     return axios.post(`${this.url}/${inboxId}/register_webhook`);
   }

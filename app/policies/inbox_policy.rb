@@ -79,6 +79,10 @@ class InboxPolicy < ApplicationPolicy
     @account_user.administrator?
   end
 
+  def message_pricing?
+    @account_user.administrator?
+  end
+
   def reset_secret?
     @account_user.administrator?
   end

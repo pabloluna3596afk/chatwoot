@@ -5,6 +5,7 @@ module Api::V1::Accounts::Concerns::InboxHealthManagement
     skip_before_action :check_authorization, only: [:health, :register_webhook]
     before_action :check_admin_authorization?, only: [:register_webhook]
     before_action :validate_health_supported_channel, only: [:health, :register_webhook]
+    before_action :validate_message_pricing_channel, only: [:message_pricing]
   end
 
   def sync_templates
@@ -48,6 +49,10 @@ module Api::V1::Accounts::Concerns::InboxHealthManagement
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
+  def message_pricing
+    render json: Whatsapp::MessagePricingSummary.new(@inbox).perform(months: params[:months])
+  end
+
   def register_webhook
     register_channel_webhook
 
@@ -85,6 +90,12 @@ module Api::V1::Accounts::Concerns::InboxHealthManagement
     return if whatsapp_cloud_channel? || twilio_sms_channel?
 
     render json: { error: 'Health data only available for WhatsApp Cloud API and Twilio SMS channels' }, status: :bad_request
+  end
+
+  def validate_message_pricing_channel
+    return if whatsapp_cloud_channel?
+
+    render json: { error: 'Message pricing data is only available for WhatsApp Cloud API channels' }, status: :bad_request
   end
 
   def whatsapp_channel
