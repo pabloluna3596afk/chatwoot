@@ -817,6 +817,55 @@
       "DESCRIPTION": "Review your WhatsApp phone number health, messaging capacity, and linked Meta business details.",
       "GO_TO_SETTINGS": "Go to Meta Business Manager",
       "NO_DATA": "Health data is not available",
+      "MESSAGE_PRICING": {
+        "TITLE": "Messages according to Meta",
+        "DESCRIPTION": "Meta reports the cost of each message; this summary counts messages, not amounts.",
+        "MONTH_SELECTOR": "Month",
+        "BILLABLE": "Billable according to Meta",
+        "FREE": "Free according to Meta",
+        "APP_SENT": "Sent from the phone app",
+        "APP_SENT_HELP": "Meta does not report a price",
+        "NO_DATA": "No data from Meta",
+        "TABLE": {
+          "CATEGORY": "Category",
+          "BILLABLE": "Billable",
+          "FREE": "Free",
+          "TOTAL": "Total",
+          "WITH_DATA": "With data from Meta"
+        },
+        "CATEGORIES": {
+          "service": {
+            "NAME": "Service",
+            "HELP": "Replies within 24 hours"
+          },
+          "marketing": {
+            "NAME": "Marketing",
+            "HELP": "Marketing templates"
+          },
+          "utility": {
+            "NAME": "Utility",
+            "HELP": "Utility templates"
+          },
+          "authentication": {
+            "NAME": "Authentication",
+            "HELP": "Verification code templates"
+          },
+          "referral_conversion": {
+            "NAME": "Free entry point",
+            "HELP": "Conversation started from an ad or button"
+          }
+        },
+        "COVERAGE": {
+          "TITLE": "Of those sent from ChatHub, how many carry data from Meta",
+          "ROW": "{withData} of {total} · {percent}%"
+        },
+        "PARTIAL": "Only {withData} of {total} messages sent from ChatHub this month carry data from Meta. This summary is partial.",
+        "FOOTNOTE": "Meta has sent this data since October 2026. Messages sent from the WhatsApp Business app on the phone carry no price: Meta does not report it. Neither group is counted as billable or free.",
+        "EMPTY": "There are no outgoing messages this month.",
+        "LOADING": "Loading messages…",
+        "ERROR": "The message summary could not be loaded.",
+        "RETRY": "Retry"
+      },
       "ERRORS": {
         "AUTHORIZATION": {
           "EMBEDDED_TITLE": "WhatsApp connection needs to be refreshed",

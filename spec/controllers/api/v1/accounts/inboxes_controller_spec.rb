@@ -1710,6 +1710,67 @@ RSpec.describe 'Inboxes API', type: :request do
     end
   end
 
+  describe 'GET /api/v1/accounts/{account.id}/inboxes/{inbox.id}/message_pricing' do
+    let(:whatsapp_channel) do
+      create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false,
+                                validate_provider_config: false)
+    end
+    let(:whatsapp_inbox) { create(:inbox, account: account, channel: whatsapp_channel) }
+    let(:url) { "/api/v1/accounts/#{account.id}/inboxes/#{whatsapp_inbox.id}/message_pricing" }
+
+    it 'requires an authenticated user' do
+      get url, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'rejects an agent even when they can access the inbox' do
+      create(:inbox_member, user: agent, inbox: whatsapp_inbox)
+
+      get url, headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'returns the monthly summary to an administrator' do
+      get url, headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body.fetch('months')).to include(
+        a_hash_including('month', 'outgoing' => 0, 'with_pricing' => 0, 'app_sent' => 0, 'categories' => [])
+      )
+    end
+
+    it 'rejects inboxes outside WhatsApp Cloud' do
+      non_whatsapp_inbox = create(:inbox, account: account)
+
+      get "/api/v1/accounts/#{account.id}/inboxes/#{non_whatsapp_inbox.id}/message_pricing",
+          headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:bad_request)
+    end
+
+    it 'rejects WhatsApp inboxes using another provider' do
+      other_provider_channel = create(:channel_whatsapp, account: account, provider: 'default', sync_templates: false,
+                                                         validate_provider_config: false)
+      other_provider_inbox = create(:inbox, account: account, channel: other_provider_channel)
+
+      get "/api/v1/accounts/#{account.id}/inboxes/#{other_provider_inbox.id}/message_pricing",
+          headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:bad_request)
+    end
+
+    it 'does not expose inboxes from another account' do
+      other_inbox = create(:inbox)
+
+      get "/api/v1/accounts/#{account.id}/inboxes/#{other_inbox.id}/message_pricing",
+          headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
   describe 'Twilio inbox health' do
     let(:twilio_channel) { create(:channel_twilio_sms, :with_phone_number, account: account) }
     let(:twilio_inbox) { create(:inbox, account: account, channel: twilio_channel) }

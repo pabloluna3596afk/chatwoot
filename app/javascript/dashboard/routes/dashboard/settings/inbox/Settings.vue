@@ -29,6 +29,7 @@ import CustomerSatisfactionPage from './settingsPage/CustomerSatisfactionPage.vu
 import CollaboratorsPage from './settingsPage/CollaboratorsPage.vue';
 import BotConfiguration from './components/BotConfiguration.vue';
 import AccountHealth from './components/AccountHealth.vue';
+import WhatsappMessagePricing from './components/WhatsappMessagePricing.vue';
 import TwilioHealth from './components/TwilioHealth.vue';
 import WhatsappManualMigrationDialog from './components/WhatsappManualMigrationDialog.vue';
 import WhatsappManualMigrationBanner from './components/WhatsappManualMigrationBanner.vue';
@@ -84,6 +85,7 @@ export default {
     ColorPicker,
     SelectInput,
     AccountHealth,
+    WhatsappMessagePricing,
     TwilioHealth,
     WhatsappManualMigrationDialog,
     WhatsappManualMigrationBanner,
@@ -1447,6 +1449,7 @@ export default {
             @register-webhook="registerWebhook"
             @go-to-configuration="goToWhatsAppConfiguration"
           />
+          <WhatsappMessagePricing :inbox-id="inbox.id" class="mx-6 mt-6" />
         </div>
         <div v-if="selectedTabKey === 'twilio-health'">
           <TwilioHealth

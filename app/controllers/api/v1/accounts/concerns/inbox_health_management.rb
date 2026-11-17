@@ -48,6 +48,14 @@ module Api::V1::Accounts::Concerns::InboxHealthManagement
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
+  def message_pricing
+    unless whatsapp_cloud_channel?
+      return render json: { error: 'Message pricing data is only available for WhatsApp Cloud API channels' }, status: :bad_request
+    end
+
+    render json: Whatsapp::MessagePricingSummary.new(@inbox).perform(months: params[:months])
+  end
+
   def register_webhook
     register_channel_webhook
 

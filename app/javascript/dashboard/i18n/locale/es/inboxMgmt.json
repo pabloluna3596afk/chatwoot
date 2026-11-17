@@ -819,6 +819,55 @@
       "DESCRIPTION": "Revisa el estado de tu número de teléfono de WhatsApp, la capacidad de mensajería y los datos de la empresa de Meta vinculada.",
       "GO_TO_SETTINGS": "Ir al Meta Business Manager",
       "NO_DATA": "Los datos de salud no están disponibles",
+      "MESSAGE_PRICING": {
+        "TITLE": "Mensajes según Meta",
+        "DESCRIPTION": "El costo de cada mensaje lo informa Meta; este resumen cuenta mensajes, no importes.",
+        "MONTH_SELECTOR": "Mes",
+        "BILLABLE": "Cobrables según Meta",
+        "FREE": "Gratis según Meta",
+        "APP_SENT": "Enviados desde la app del teléfono",
+        "APP_SENT_HELP": "Meta no informa precio",
+        "NO_DATA": "Sin dato de Meta",
+        "TABLE": {
+          "CATEGORY": "Categoría",
+          "BILLABLE": "Cobrables",
+          "FREE": "Gratis",
+          "TOTAL": "Total",
+          "WITH_DATA": "Con dato de Meta"
+        },
+        "CATEGORIES": {
+          "service": {
+            "NAME": "Servicio",
+            "HELP": "Respuestas dentro de las 24 h"
+          },
+          "marketing": {
+            "NAME": "Marketing",
+            "HELP": "Plantillas de marketing"
+          },
+          "utility": {
+            "NAME": "Utilidad",
+            "HELP": "Plantillas de utilidad"
+          },
+          "authentication": {
+            "NAME": "Autenticación",
+            "HELP": "Plantillas de códigos de verificación"
+          },
+          "referral_conversion": {
+            "NAME": "Entrada gratuita",
+            "HELP": "Conversación iniciada desde un anuncio o botón"
+          }
+        },
+        "COVERAGE": {
+          "TITLE": "De los enviados desde ChatHub, cuántos traen dato de Meta",
+          "ROW": "{withData} de {total} · {percent} %"
+        },
+        "PARTIAL": "Solo {withData} de {total} mensajes enviados desde ChatHub este mes traen dato de Meta. Este resumen es parcial.",
+        "FOOTNOTE": "Meta envía este dato desde octubre de 2026. Los mensajes enviados desde la app de WhatsApp Business del teléfono no traen precio: Meta no lo informa. Ninguno de esos dos grupos se cuenta como cobrable ni como gratis.",
+        "EMPTY": "No hay mensajes salientes en este mes.",
+        "LOADING": "Cargando mensajes…",
+        "ERROR": "No se pudo cargar el resumen de mensajes.",
+        "RETRY": "Reintentar"
+      },
       "ERRORS": {
         "AUTHORIZATION": {
           "EMBEDDED_TITLE": "Es necesario actualizar la conexión de WhatsApp",

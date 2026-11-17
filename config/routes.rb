@@ -401,6 +401,7 @@ Rails.application.routes.draw do
             post :sync_templates, on: :member
             put :whatsapp_business_management_token, on: :member
             get :health, on: :member
+            get :message_pricing, on: :member
             post :register_webhook, on: :member
             post :reset_secret, on: :member
             post :rotate_hmac_token, on: :member
