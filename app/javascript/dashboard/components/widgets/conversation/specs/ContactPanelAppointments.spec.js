@@ -17,17 +17,21 @@ vi.mock(
 
 const visible = ref(['calendar_events']);
 
-const { getContactEvents, dispatch } = vi.hoisted(() => ({
-  getContactEvents: vi.fn(),
-  dispatch: vi.fn(),
-}));
+const { getContactEvents, dispatch, inboxData, isWhatsAppCloud } = vi.hoisted(
+  () => ({
+    getContactEvents: vi.fn(),
+    dispatch: vi.fn(),
+    inboxData: { value: { message_templates: [] } },
+    isWhatsAppCloud: { value: false },
+  })
+);
 vi.mock('dashboard/api/integrations/calendar', () => ({
   default: { getContactEvents },
 }));
 vi.mock('dashboard/composables/useAccount', () => ({
   useAccount: () => ({
     accountId: ref(1),
-    currentAccount: ref({}),
+    currentAccount: ref({ locale: 'es' }),
     isCloudFeatureEnabled: () => false,
   }),
 }));
@@ -56,16 +60,19 @@ vi.mock('dashboard/composables/store', () => ({
       {
         getCurrentAccountId: 1,
         'accounts/isFeatureEnabledonAccount': () => true,
-        getSelectedChat: { meta: { sender: { id: 7 } } },
+        getSelectedChat: { inbox_id: 3, meta: { sender: { id: 7 } } },
         'conversationMetadata/getConversationMetadata': () => ({}),
       }[key]
     ),
   useFunctionGetter: key =>
-    computed(() =>
-      key === 'contacts/getContactById'
-        ? { id: 7, name: 'Ana' }
-        : { enabled: true }
-    ),
+    computed(() => {
+      if (key === 'contacts/getContactById') return { id: 7, name: 'Ana' };
+      if (key === 'inboxes/getInbox') return inboxData.value;
+      return { enabled: true };
+    }),
+}));
+vi.mock('dashboard/composables/useInbox', () => ({
+  useInbox: () => ({ isAWhatsAppCloudChannel: isWhatsAppCloud }),
 }));
 
 it('refreshes the contact tool after local saves and remote appointment changes', async () => {
@@ -161,3 +168,48 @@ it('opens the calendar and its creation flow immediately while preferences are s
   expect(wrapper.findComponent(CalendarEventsList).exists()).toBe(false);
   wrapper.unmount();
 });
+
+it.each([
+  [
+    'WhatsApp Cloud with approved template',
+    true,
+    [{ name: 'cita_confirmacion', status: 'APPROVED', language: 'es' }],
+    true,
+  ],
+  ['WhatsApp Cloud without approved template', true, [], false],
+  [
+    'another WhatsApp provider',
+    false,
+    [{ name: 'cita_confirmacion', status: 'APPROVED', language: 'es' }],
+    false,
+  ],
+  ['another channel', false, [], false],
+])(
+  'passes the safe appointment default for %s',
+  async (_label, cloud, templates, expected) => {
+    visible.value = ['calendar_events'];
+    isWhatsAppCloud.value = cloud;
+    inboxData.value = { message_templates: templates };
+    getContactEvents.mockResolvedValue({ data: { payload: [] } });
+    const wrapper = shallowMount(ContactPanel, {
+      props: { conversationId: 9 },
+      global: {
+        mocks: { $t: key => key },
+        stubs: {
+          'woot-feature-toggle': true,
+          Draggable: {
+            props: ['list'],
+            template:
+              '<div><slot v-for="element in list" name="item" :element="element" /></div>',
+          },
+          AccordionItem: { template: '<div><slot /></div>' },
+        },
+      },
+    });
+    await flushPromises();
+    expect(
+      wrapper.findComponent(CalendarEventsList).props('notifyByDefault')
+    ).toBe(expected);
+    wrapper.unmount();
+  }
+);

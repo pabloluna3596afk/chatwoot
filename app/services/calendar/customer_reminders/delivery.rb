@@ -11,7 +11,6 @@ class Calendar::CustomerReminders::Delivery
       @message.reload
       next if @message.additional_attributes['customer_reminder_processed']
       next cancel unless current_claim? && eligible?
-      next cancel unless @metadata.fetch('cap_date') == Time.zone.today.iso8601
       next cancel unless Calendar::CustomerReminders::Schedule.sending_hours?(event.account, Time.current)
 
       deliver
@@ -38,10 +37,6 @@ class Calendar::CustomerReminders::Delivery
     @metadata.fetch('attempt')
   end
 
-  def cap
-    @cap ||= Automations::ProactiveSendCap.new(event.account, date: Date.iso8601(@metadata.fetch('cap_date')))
-  end
-
   def deliver
     return fail_attempt unless send_message
 
@@ -61,14 +56,12 @@ class Calendar::CustomerReminders::Delivery
 
   def fail_attempt
     Rails.logger.warn("Calendar customer reminder attempt #{attempt} failed for event #{event.id}")
-    cap.release!
     event.update!(customer_reminder_status: attempt >= 3 ? 'skipped_error' : "retry_#{attempt}")
     @message.update!(status: :failed)
     processed!
   end
 
   def cancel
-    cap.release!
     event.update!(customer_reminder_status: attempt == 1 ? nil : "retry_#{attempt - 1}") if current_claim?
     @message.update!(status: :failed)
     processed!

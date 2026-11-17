@@ -296,6 +296,10 @@ class Automations::ContactBasedRuleRunner
     return unless @rule.active?
 
     @rule.update!(active: false)
+    limit = @account.settings&.dig('proactive_daily_send_cap').presence || Automations::ProactiveSendCap::DEFAULT_DAILY_CAP
+    AdministratorNotifications::AccountNotificationMailer.with(account: @account)
+                                                         .automation_rule_paused_by_cap(@rule, limit.to_i)
+                                                         .deliver_later
     Rails.logger.error(
       "[ContactBasedRuleRunner] paused rule=#{@rule.id} account=#{@account.id}: " \
       'daily proactive send cap reached — review volume before reactivating'

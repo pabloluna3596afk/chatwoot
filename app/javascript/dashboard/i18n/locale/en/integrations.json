@@ -1156,7 +1156,7 @@
             "SAVED_HELP": "Saved configuration. Save your changes to refresh these checks. This applies to appointments booked by Captain in its connected inboxes.",
             "NO_INBOXES": "Connect an inbox to Captain to check reminder preparation.",
             "MISSING": "Missing bindings: {variables}",
-            "DELIVERY_HELP": "Configuration does not guarantee delivery. The reply window, customer values, appointment status and daily limit are checked at send time. Missing values skip the template and leave a private note. Turning reminders on does not authorize sending templates.",
+            "DELIVERY_HELP": "Configuration does not guarantee delivery. The reply window, customer values, appointment status and sending hours (08:00 to 21:00) are checked at send time. Missing values skip the template and leave a private note. Turning reminders on does not authorize sending templates.",
             "STATUS": {
               "ready": "Prepared for outside-window WhatsApp templates. Customer values are checked at send time.",
               "disabled": "Captain appointments or both reminders are disabled. Enable appointments for this assistant and inbox, and at least one reminder.",
@@ -1199,7 +1199,7 @@
             "REMINDER_LABEL": "Reminder {number}:",
             "HOURS_BEFORE": "hours before the appointment",
             "HOURS_ERROR": "Use a whole number from 1 to 168.",
-            "WINDOW_HINT": "It goes out free only if the customer wrote in the previous 24 h; otherwise it needs a template.",
+            "WINDOW_HINT": "It goes out as a regular message if the customer wrote in the previous 24 h; otherwise it needs a template.",
             "TEMPLATE_REMINDER": "Reminder template",
             "PAID_HINT": "To send templates, turn on \"Allow templates with a cost\" under Templates and WhatsApp Flows."
           },
@@ -1213,7 +1213,7 @@
         "TEMPLATE_PLACEHOLDER": "Select an approved template",
         "FOLLOWUP": {
           "TOGGLE": "Ask \"Are you still there?\"",
-          "TOGGLE_HELP": "When the customer stops answering, Captain sends one short message with buttons, inside the 24 h window and at no cost. With no answer, it closes the conversation for inactivity. It is on by default.",
+          "TOGGLE_HELP": "When the customer stops answering, Captain sends one short message with buttons, only inside the 24 h window. With no answer, it closes the conversation for inactivity. It is on by default.",
           "AFTER": "Ask after",
           "NUDGES": "Follow-up messages",
           "CLOSE": "Close if there is no answer after",
@@ -1224,7 +1224,7 @@
           "MINUTES": "{count} min",
           "HOURS": "{count} h",
           "REENGAGEMENT": "Re-engage with a template",
-          "REENGAGEMENT_HELP": "When Captain closed for inactivity and the 24 h window has closed, it sends one approved template, once per conversation and at most one every 7 days per customer. It has a cost. It is off by default.",
+          "REENGAGEMENT_HELP": "When Captain closed for inactivity and the 24 h window has closed, it sends one approved template, once per conversation and at most one every 7 days per customer. It is off by default. It goes out between 08:00 and 21:00.",
           "PAID_HINT": "To send templates, turn on \"Allow templates with a cost\" under Templates and WhatsApp Flows.",
           "TEMPLATE": "Re-engagement template"
         },
@@ -1283,7 +1283,7 @@
           "ADD_FLOW_PLACEHOLDER": "Choose a published WhatsApp Flow",
           "NO_FLOWS_LEFT": "There are no more published WhatsApp Flows to add.",
           "TEMPLATES": "Allowed templates",
-          "TEMPLATES_HELP": "Approved, text-only templates without buttons that change per customer. Every send is a paid message.",
+          "TEMPLATES_HELP": "Approved, text-only templates without buttons that change per customer. Meta charges for each send.",
           "TEMPLATES_EMPTY": "Captain will not send any template on this inbox.",
           "ADD_TEMPLATE": "Add template",
           "ADD_TEMPLATE_TITLE": "Add a template",

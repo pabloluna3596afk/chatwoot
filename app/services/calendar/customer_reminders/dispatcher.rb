@@ -68,13 +68,9 @@ class Calendar::CustomerReminders::Dispatcher
     customer_notice = notice(event)
     return no_template(event) unless customer_notice.template
 
-    cap = Automations::ProactiveSendCap.new(event.account)
-    return unless cap.reserve!
-
     begin
       create_message(event, customer_notice)
     rescue StandardError => e
-      cap.release!
       record_failure(event, e)
     end
   end
@@ -85,8 +81,7 @@ class Calendar::CustomerReminders::Dispatcher
     event.class.transaction(requires_new: true) do
       event.update!(customer_reminder_status: "queued_#{attempt}")
       customer_notice.deliver!(additional_attributes: {
-                                 'customer_reminder' => { 'start_at' => event.start_at.iso8601(6), 'attempt' => attempt,
-                                                          'cap_date' => Time.zone.today.iso8601 }
+                                 'customer_reminder' => { 'start_at' => event.start_at.iso8601(6), 'attempt' => attempt }
                                })
     end
   end

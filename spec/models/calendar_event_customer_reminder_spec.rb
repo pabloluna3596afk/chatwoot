@@ -20,6 +20,12 @@ RSpec.describe CalendarEvent, '#customer_reminder' do
     expect(event.reload).to have_attributes(customer_reminder_status: 'sent', customer_reminder_sent_at: now)
   end
 
+  it 'preserves an opt-out when the appointment moves' do
+    event.update!(customer_reminder_status: 'skipped_opt_out')
+    event.update!(start_at: now + 3.days)
+    expect(event.reload).to have_attributes(customer_reminder_status: 'skipped_opt_out', customer_reminder_sent_at: nil)
+  end
+
   it 'marks a new appointment with less than 24 hours of notice' do
     event = create(:calendar_event, calendar_connection: connection, start_at: now + 23.hours)
     expect(event.customer_reminder_status).to eq('skipped_too_close')

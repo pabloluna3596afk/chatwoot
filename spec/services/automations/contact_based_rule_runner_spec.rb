@@ -748,9 +748,15 @@ RSpec.describe Automations::ContactBasedRuleRunner do
 
     it 'records the cap omission and preserves the pause' do
       allow(send_cap).to receive(:reserve!).and_return(false)
+      mailer = instance_double(AdministratorNotifications::AccountNotificationMailer)
+      delivery = instance_double(ActionMailer::MessageDelivery, deliver_later: nil)
+      expect(AdministratorNotifications::AccountNotificationMailer).to receive(:with).with(account: account).once.and_return(mailer)
+      expect(mailer).to receive(:automation_rule_paused_by_cap).with(history_rule, 200).once.and_return(delivery)
+
+      runner.perform
       runner.perform
 
-      expect(history_rule.runs.sole).to have_attributes(outcome: 'skipped', reason: 'cap_reached')
+      expect(history_rule.runs.first).to have_attributes(outcome: 'skipped', reason: 'cap_reached')
       expect(history_rule.reload.active).to be(false)
     end
 

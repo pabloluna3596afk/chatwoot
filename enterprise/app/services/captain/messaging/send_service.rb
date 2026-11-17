@@ -1,8 +1,7 @@
 # The one place where Captain sends a Flow or a template to a customer. It checks everything again with the data of the
 # moment (what the owner allows, the Flow or template itself, the 24 h window, the paid-messages switch, the limits of
 # Captain::Messaging::Limits), so nothing the model says, or an old setting, can widen a permission. Nothing is sent
-# unless every check passes. A send takes one place of the account's daily cap (Automations::ProactiveSendCap)
-# atomically; it is given back when the message is not created.
+# unless every check passes.
 #
 # What was sent is the record: the message carries `additional_attributes.captain_messaging` (assistant, the customer
 # message it answers, kind, resource and a fingerprint), so the same customer message never sends the same thing twice.
@@ -148,22 +147,12 @@ class Captain::Messaging::SendService
 
   # --- sending
 
-  def cap
-    @cap ||= Automations::ProactiveSendCap.new(account)
-  end
-
   def deliver
-    return deny('rate_limit') unless cap.reserve!
-
     message = flow? ? send_flow : send_template
     note
     Result.new(status: :sent, message: message)
   rescue Whatsapp::Flows::SendFlowService::Error
-    cap.release!
     deny('unavailable')
-  rescue StandardError
-    cap.release!
-    raise
   end
 
   def audit

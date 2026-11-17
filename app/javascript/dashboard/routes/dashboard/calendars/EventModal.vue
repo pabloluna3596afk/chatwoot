@@ -459,7 +459,7 @@ const applyBotFollowupDefaults = (event, defaults) => {
     botFollowupReminder30m.value = true;
     return;
   }
-  if (defaults.sendToContact) {
+  if (!event && defaults.sendToContact) {
     botFollowupMode.value = 'notice_only';
     return;
   }

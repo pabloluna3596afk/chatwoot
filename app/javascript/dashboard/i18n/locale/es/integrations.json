@@ -1156,7 +1156,7 @@
             "SAVED_HELP": "Configuración guardada. Guarda los cambios para actualizar estas comprobaciones. Se aplica a citas reservadas por Captain en sus bandejas conectadas.",
             "NO_INBOXES": "Conecta una bandeja a Captain para comprobar la preparación de recordatorios.",
             "MISSING": "Asignaciones pendientes: {variables}",
-            "DELIVERY_HELP": "La configuración no garantiza la entrega. Al enviar se comprueban la ventana de respuesta, los valores del contacto, el estado de la cita y el límite diario. Si faltan valores, se omite la plantilla y se deja una nota privada. Activar recordatorios no autoriza el envío de plantillas.",
+            "DELIVERY_HELP": "La configuración no garantiza la entrega. Al enviar se comprueban la ventana de respuesta, los valores del contacto, el estado de la cita y el horario de envío (08:00 a 21:00). Si faltan valores, se omite la plantilla y se deja una nota privada. Activar recordatorios no autoriza el envío de plantillas.",
             "STATUS": {
               "ready": "Preparado para plantillas de WhatsApp fuera de la ventana. Los valores del contacto se comprueban al enviar.",
               "disabled": "Las citas de Captain o ambos recordatorios están desactivados. Activa las citas para este asistente y bandeja, y al menos un recordatorio.",
@@ -1199,7 +1199,7 @@
             "REMINDER_LABEL": "Recordatorio {number}:",
             "HOURS_BEFORE": "horas antes de la cita",
             "HOURS_ERROR": "Usa un número entero de 1 a 168.",
-            "WINDOW_HINT": "Saldrá gratis solo si el cliente escribió en las 24 h anteriores; si no, necesita plantilla.",
+            "WINDOW_HINT": "Sale como mensaje normal si el cliente escribió en las 24 h anteriores; si no, necesita plantilla.",
             "TEMPLATE_REMINDER": "Plantilla de recordatorio",
             "PAID_HINT": "Para enviar plantillas, activa «Permitir plantillas con costo» en Plantillas y Flows."
           },
@@ -1213,7 +1213,7 @@
         "TEMPLATE_PLACEHOLDER": "Selecciona una plantilla aprobada",
         "FOLLOWUP": {
           "TOGGLE": "Preguntar «¿Sigues ahí?»",
-          "TOGGLE_HELP": "Si el cliente deja de responder, Captain le escribe un solo mensaje corto con botones, dentro de las 24 h y sin coste. Si no hay respuesta, cierra la conversación por inactividad. Viene activado.",
+          "TOGGLE_HELP": "Si el cliente deja de responder, Captain le escribe un mensaje corto con botones, solo dentro de las 24 h. Si no hay respuesta, cierra la conversación por inactividad. Viene activado.",
           "AFTER": "Preguntar tras",
           "NUDGES": "Mensajes de seguimiento",
           "CLOSE": "Cerrar si no responde tras",
@@ -1224,7 +1224,7 @@
           "MINUTES": "{count} min",
           "HOURS": "{count} h",
           "REENGAGEMENT": "Reenganchar con una plantilla",
-          "REENGAGEMENT_HELP": "Cuando Captain cerró por inactividad y la ventana de 24 h ya cerró, envía una plantilla aprobada, una sola vez por conversación y como máximo una cada 7 días por cliente. Tiene coste. Viene desactivado.",
+          "REENGAGEMENT_HELP": "Cuando Captain cerró por inactividad y la ventana de 24 h ya cerró, envía una plantilla aprobada, una sola vez por conversación y como máximo una cada 7 días por cliente. Viene desactivado. Sale entre las 08:00 y las 21:00.",
           "PAID_HINT": "Para enviar plantillas, activa «Permitir plantillas con costo» en Plantillas y Flows.",
           "TEMPLATE": "Plantilla de reenganche"
         },
@@ -1283,7 +1283,7 @@
           "ADD_FLOW_PLACEHOLDER": "Elige un Flow publicado",
           "NO_FLOWS_LEFT": "No hay más Flows publicados para agregar.",
           "TEMPLATES": "Plantillas permitidas",
-          "TEMPLATES_HELP": "Solo plantillas aprobadas, de texto y sin botones que cambien por cliente. Cada envío es un mensaje de pago.",
+          "TEMPLATES_HELP": "Solo plantillas aprobadas, de texto y sin botones que cambien por cliente. Meta cobra cada envío.",
           "TEMPLATES_EMPTY": "Captain no enviará ninguna plantilla en esta bandeja.",
           "ADD_TEMPLATE": "Agregar plantilla",
           "ADD_TEMPLATE_TITLE": "Agregar una plantilla",
@@ -1345,7 +1345,7 @@
         },
         "CONTROL_ITEMS": {
           "TITLE": "Lo interesante",
-          "DESCRIPTION": "Sumale más control al asistente.",
+          "DESCRIPTION": "Súmale más control al asistente.",
           "OPTIONS": {
             "GUARDRAILS": {
               "TITLE": "Guardrails",

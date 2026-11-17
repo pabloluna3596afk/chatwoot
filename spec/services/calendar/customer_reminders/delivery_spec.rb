@@ -14,13 +14,12 @@ RSpec.describe Calendar::CustomerReminders::Delivery do
     create(:calendar_event, calendar_connection: create(:calendar_connection, account: account), conversation: conversation,
                             start_at: now + 24.hours, created_at: now - 2.days)
   end
-  let(:cap) { instance_double(Automations::ProactiveSendCap, reserve!: true, release!: nil) }
   let(:service) { instance_double(Whatsapp::SendOnWhatsappService) }
   let(:outgoing) { conversation.messages.outgoing.reorder(:id) }
 
   before do
     travel_to(now)
-    allow(Automations::ProactiveSendCap).to receive(:new).and_return(cap)
+    allow(Automations::ProactiveSendCap).to receive(:new).and_call_original
     allow(Whatsapp::SendOnWhatsappService).to receive(:new).and_return(service)
     allow(service).to receive(:perform)
     event
@@ -32,7 +31,7 @@ RSpec.describe Calendar::CustomerReminders::Delivery do
     2.times { SendReplyJob.perform_now(outgoing.last.id) }
     expect(event.reload).to have_attributes(customer_reminder_status: 'sent', customer_reminder_sent_at: now)
     expect(service).to have_received(:perform).once
-    expect(cap).not_to have_received(:release!)
+    expect(Automations::ProactiveSendCap).not_to have_received(:new)
   end
 
   it 'R14 releases the claim after provider rejection, stops at three and never raises into the scheduler' do
@@ -45,7 +44,7 @@ RSpec.describe Calendar::CustomerReminders::Delivery do
     end
     expect(outgoing.count).to eq(3)
     expect(event.reload.customer_reminder_sent_at).to be_nil
-    expect(cap).to have_received(:release!).exactly(3).times
+    expect(Automations::ProactiveSendCap).not_to have_received(:new)
   end
 
   it 'R14 catches network errors without logging their sensitive message' do
@@ -75,7 +74,7 @@ RSpec.describe Calendar::CustomerReminders::Delivery do
     SendReplyJob.perform_now(message.id)
     expect(event.reload.customer_reminder_status).to eq('skipped_too_close')
     expect(service).not_to have_received(:perform)
-    expect(cap).to have_received(:release!).once
+    expect(Automations::ProactiveSendCap).not_to have_received(:new)
   end
 
   it 'rechecks the switch when the queue was delayed' do
@@ -83,14 +82,14 @@ RSpec.describe Calendar::CustomerReminders::Delivery do
     SendReplyJob.perform_now(outgoing.last.id)
     expect(service).not_to have_received(:perform)
     expect(event.reload.customer_reminder_status).to be_nil
-    expect(cap).to have_received(:release!).once
+    expect(Automations::ProactiveSendCap).not_to have_received(:new)
   end
 
   it 'rechecks cancellation before delivery' do
     event.update!(appointment_status: 'cancelled')
     SendReplyJob.perform_now(outgoing.last.id)
     expect(service).not_to have_received(:perform)
-    expect(cap).to have_received(:release!).once
+    expect(Automations::ProactiveSendCap).not_to have_received(:new)
   end
 
   it 'rechecks confirmation before delivery' do
@@ -108,13 +107,23 @@ RSpec.describe Calendar::CustomerReminders::Delivery do
     expect(event.reload.customer_reminder_status).to be_nil
   end
 
-  it 'returns yesterday reservation and takes a new one if the queue crosses midnight' do
-    travel_to(now + 1.day - 1.hour)
-    SendReplyJob.perform_now(outgoing.last.id)
-    expect(service).not_to have_received(:perform)
-    expect(Automations::ProactiveSendCap).to have_received(:new).with(account, date: now.to_date)
-    expect(event.reload.customer_reminder_status).to be_nil
+  it 'delivers queued messages both with yesterday cap_date and without cap_date' do
+    previous_message = outgoing.last
+    previous_attributes = previous_message.additional_attributes
+    previous_attributes['customer_reminder']['cap_date'] = (now.to_date - 1).iso8601
+    previous_message.update!(additional_attributes: previous_attributes)
+    allow(service).to receive(:perform) { previous_message.update!(source_id: 'wamid-old') }
+    SendReplyJob.perform_now(previous_message.id)
+    expect(event.reload.customer_reminder_status).to eq('sent')
+
+    second_event = create(:calendar_event, calendar_connection: event.calendar_connection, conversation: conversation,
+                                           start_at: now + 24.hours, created_at: now - 2.days)
     Calendar::CustomerReminders::Dispatcher.new.perform
-    expect(outgoing.count).to eq(2)
+    second_message = outgoing.where.not(id: previous_message.id).last
+    allow(service).to receive(:perform) { second_message.update!(source_id: 'wamid-new') }
+    SendReplyJob.perform_now(second_message.id)
+    expect(second_event.reload.customer_reminder_status).to eq('sent')
+    expect(second_message.additional_attributes['customer_reminder']).not_to have_key('cap_date')
+    expect(Automations::ProactiveSendCap).not_to have_received(:new)
   end
 end

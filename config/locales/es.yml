@@ -943,6 +943,10 @@ es:
       wrong_inbox: 'Automatización «%{name}» no envió una plantilla de WhatsApp (el inbox de la conversación no coincide).'
       template_missing: 'Automatización «%{name}» no envió una plantilla de WhatsApp (plantilla ausente o no aprobada en este inbox).'
       blank_liquid: 'Automatización «%{name}» no envió una plantilla de WhatsApp (una variable de la plantilla quedó vacía).'
+    proactive_cap_paused:
+      subject: 'La regla «%{rule}» se pausó por el límite diario de envíos'
+      message: 'La regla «%{rule}» alcanzó hoy el límite de %{limit} envíos automáticos y se pausó para no seguir enviando. Revisa a cuántos contactos aplica y vuelve a activarla en Automatizaciones cuando estés seguro.'
+      action: 'Ir a Automatizaciones'
   business_rules:
     lint_failed: 'Las reglas de negocio no pasaron validación. Corrige o desactiva las reglas inválidas activas.'
     blocked_automation:

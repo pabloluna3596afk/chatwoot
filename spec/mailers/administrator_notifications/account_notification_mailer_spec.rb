@@ -59,4 +59,52 @@ RSpec.describe AdministratorNotifications::AccountNotificationMailer do
       )
     end
   end
+
+  describe '#automation_rule_paused_by_cap' do
+    let(:rule) { create(:automation_rule, account: account, name: 'Birthday reminder') }
+    let(:administrator) { create(:user, account: account, role: :administrator) }
+
+    it 'localizes the full email content and sends it to account administrators' do
+      administrator
+      account.update!(locale: 'es')
+      Current.account = account
+      allow(class_instance).to receive(:send_mail_with_liquid).and_return(:mail)
+
+      class_instance.automation_rule_paused_by_cap(rule, 200)
+
+      expect(class_instance).to have_received(:send_mail_with_liquid).with(
+        to: [administrator.email], subject: 'La regla «Birthday reminder» se pausó por el límite diario de envíos'
+      )
+      expected_message = 'La regla «Birthday reminder» alcanzó hoy el límite de 200 envíos automáticos y se pausó ' \
+                         'para no seguir enviando. Revisa a cuántos contactos aplica y vuelve a activarla en ' \
+                         'Automatizaciones cuando estés seguro.'
+      expect(class_instance.send(:liquid_locals)).to include(
+        meta: {
+          'message' => expected_message,
+          'action' => 'Ir a Automatizaciones'
+        }
+      )
+    end
+
+    it 'uses the English strings when the account language is English' do
+      administrator
+      account.update!(locale: 'en')
+      Current.account = account
+      allow(class_instance).to receive(:send_mail_with_liquid).and_return(:mail)
+
+      class_instance.automation_rule_paused_by_cap(rule, 200)
+
+      expect(class_instance).to have_received(:send_mail_with_liquid).with(
+        to: [administrator.email], subject: 'The rule "Birthday reminder" was paused by the daily send limit'
+      )
+      expect(class_instance.send(:liquid_locals).dig(:meta, 'message')).to include("reached today's limit of 200 automatic sends")
+    end
+
+    it 'does not attempt delivery when the account has no administrators' do
+      Current.account = account
+
+      expect(class_instance).not_to receive(:send_notification)
+      expect { class_instance.automation_rule_paused_by_cap(rule, 200) }.not_to raise_error
+    end
+  end
 end

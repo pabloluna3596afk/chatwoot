@@ -1032,6 +1032,10 @@ en:
       wrong_inbox: 'Automation "%{name}" did not send a WhatsApp template (conversation inbox does not match).'
       template_missing: 'Automation "%{name}" did not send a WhatsApp template (template missing or not approved on this inbox).'
       blank_liquid: 'Automation "%{name}" did not send a WhatsApp template (a template variable resolved to blank).'
+    proactive_cap_paused:
+      subject: 'The rule "%{rule}" was paused by the daily send limit'
+      message: "The rule \"%{rule}\" reached today's limit of %{limit} automatic sends and was paused to stop sending. Check how many contacts it applies to and turn it back on under Automations when you are sure."
+      action: 'Go to Automations'
   business_rules:
     lint_failed: 'Business rules failed validation. Fix or disable invalid enabled rules.'
     blocked_automation:

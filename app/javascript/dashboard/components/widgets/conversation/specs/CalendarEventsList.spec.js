@@ -115,39 +115,53 @@ describe('CalendarEventsList', () => {
   });
 });
 
-it('reports known counts and opens the existing creation modal from the toolbar entry point', async () => {
-  let resolveConnections;
-  getConnections.mockImplementation(
-    () =>
-      new Promise(resolve => {
-        resolveConnections = resolve;
-      })
-  );
-  getConversationEvents.mockResolvedValue({ data: { payload: [] } });
-  const open = vi.fn();
-  const wrapper = shallowMount(CalendarEventsList, {
-    props: { conversationId: 9, contactId: 7, contactName: 'Ana' },
-    global: {
-      mocks: { $t: key => key },
-      stubs: { EventModal: { template: '<div />', methods: { open } } },
-    },
-  });
-  await flushPromises();
-  expect(wrapper.emitted('countChange').at(-1)).toEqual([0]);
-  const opening = wrapper.vm.openCreate();
-  resolveConnections({ data: { payload: [{ id: 3, provider: 'google' }] } });
-  await opening;
-  expect(open).toHaveBeenCalledWith({
-    defaults: {
-      connectionId: '3',
-      conversationId: 9,
-      contactId: 7,
-      contactName: 'Ana',
-    },
-  });
-  getConversationEvents.mockResolvedValue({ data: { payload: events } });
-  await wrapper.vm.refresh();
-  await flushPromises();
-  expect(wrapper.emitted('countChange').at(-1)).toEqual([3]);
-  wrapper.unmount();
-});
+it.each([true, false])(
+  'passes notifyByDefault=%s only for creation defaults',
+  async notifyByDefault => {
+    let resolveConnections;
+    getConnections.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          resolveConnections = resolve;
+        })
+    );
+    getConversationEvents.mockResolvedValue({ data: { payload: [] } });
+    const open = vi.fn();
+    const wrapper = shallowMount(CalendarEventsList, {
+      props: {
+        conversationId: 9,
+        contactId: 7,
+        contactName: 'Ana',
+        notifyByDefault,
+      },
+      global: {
+        mocks: { $t: key => key },
+        stubs: { EventModal: { template: '<div />', methods: { open } } },
+      },
+    });
+    await flushPromises();
+    expect(wrapper.emitted('countChange').at(-1)).toEqual([0]);
+    const opening = wrapper.vm.openCreate();
+    resolveConnections({ data: { payload: [{ id: 3, provider: 'google' }] } });
+    await opening;
+    expect(open).toHaveBeenCalledWith({
+      defaults: {
+        connectionId: '3',
+        conversationId: 9,
+        contactId: 7,
+        contactName: 'Ana',
+        sendToContact: notifyByDefault,
+      },
+    });
+    await wrapper.vm.openEvent(events[0]);
+    expect(open).toHaveBeenLastCalledWith({
+      event: events[0],
+      defaults: { conversationId: 9, contactId: 7, contactName: 'Ana' },
+    });
+    getConversationEvents.mockResolvedValue({ data: { payload: events } });
+    await wrapper.vm.refresh();
+    await flushPromises();
+    expect(wrapper.emitted('countChange').at(-1)).toEqual([3]);
+    wrapper.unmount();
+  }
+);

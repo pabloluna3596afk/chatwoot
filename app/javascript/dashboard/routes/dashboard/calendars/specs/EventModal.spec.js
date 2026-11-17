@@ -97,6 +97,40 @@ describe('EventModal customer notification', () => {
     expect(without.find('input[value="none"]').element.checked).toBe(true);
   });
 
+  it('defaults an explicitly eligible new appointment to notice only', async () => {
+    const wrapper = mountModal({ panelAiActive: false });
+    await wrapper.vm.open({
+      defaults: {
+        connectionId: '1',
+        calendarId: 'cal-1',
+        conversationId: 9,
+        sendToContact: true,
+      },
+    });
+    await flushPromises();
+    expect(wrapper.find('input[value="notice_only"]').element.checked).toBe(
+      true
+    );
+  });
+
+  it('does not apply the notice default to an existing appointment', async () => {
+    const wrapper = mountModal({ panelAiActive: false });
+    await wrapper.vm.open({
+      event: {
+        id: 'e1',
+        summary: 'Cita',
+        start: '2030-01-15T10:00:00-05:00',
+        end: '2030-01-15T10:30:00-05:00',
+        connection_id: 1,
+        calendar_id: 'cal-1',
+        conversation: { id: 9 },
+      },
+      defaults: { sendToContact: true },
+    });
+    await flushPromises();
+    expect(wrapper.find('input[value="none"]').element.checked).toBe(true);
+  });
+
   it('keeps showing the follow-up of an appointment that already has it', async () => {
     const wrapper = mountModal({ panelAiActive: false });
     await wrapper.vm.open({
@@ -142,6 +176,8 @@ describe('EventModal appointment status', () => {
         connectionId: '1',
         calendarId: 'cal-1',
         start: '2030-01-15T10:00:00-05:00',
+        conversationId: 9,
+        sendToContact: true,
       },
     });
     const status = wrapper
@@ -163,7 +199,10 @@ describe('EventModal appointment status', () => {
     wrapper.findComponent({ name: 'Dialog' }).vm.$emit('confirm');
     await flushPromises();
     expect(CalendarAPI.createEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ appointment_status: 'pending_confirmation' })
+      expect.objectContaining({
+        appointment_status: 'pending_confirmation',
+        send_to_contact: true,
+      })
     );
     wrapper.unmount();
   });

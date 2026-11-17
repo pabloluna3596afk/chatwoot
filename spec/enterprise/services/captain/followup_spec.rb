@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe Captain::Followup do
-  let(:account) { create(:account, locale: 'es') }
+  let(:account) { create(:account, locale: 'es', reporting_timezone: 'America/Guayaquil') }
   let(:followup_config) { {} }
   let(:assistant_config) { { 'followup' => followup_config } }
   let(:assistant) { create(:captain_assistant, account: account, name: 'Asistente de Ventas', config: assistant_config) }
@@ -10,7 +10,7 @@ RSpec.describe Captain::Followup do
   let(:conversation) do
     create(:conversation, account: account, inbox: inbox, contact: contact, status: :pending).tap { |c| c.update!(ai_assignee: assistant) }
   end
-  let(:now) { Time.zone.parse('2030-01-15T10:00:00-05:00') }
+  let(:now) { Integrations::GoogleCalendar::Timezone.for(account).parse('2030-01-15T10:00:00') }
 
   around { |example| travel_to(now) { example.run } }
 
@@ -106,10 +106,10 @@ RSpec.describe Captain::Followup do
       expect(nudge).to eq(:nudged)
     end
 
-    it 'sends nothing when the account reached its daily proactive cap' do
+    it 'sends a nudge when the account reached the contact-date rule cap' do
       account.update!(settings: account.settings.merge('proactive_daily_send_cap' => 0))
 
-      expect(nudge).to be_nil
+      expect(nudge).to eq(:nudged)
     end
 
     it 'asks in words when the channel has no buttons' do
@@ -358,11 +358,19 @@ RSpec.describe Captain::Followup do
       expect(public_messages.where.not(sender: assistant)).to be_empty
     end
 
-    it 'waits when the account reached its daily proactive cap' do
+    it 'waits until 08:00 and sends once the customer window is open' do
+      zone = Integrations::GoogleCalendar::Timezone.for(account)
+      night = zone.parse('2030-01-15 02:00:00')
+      expect(described_class.new(conversation.reload, assistant, now: night).perform).to be_nil
+      expect(conversation.reload.additional_attributes['captain_followup']).not_to have_key('reengagement')
+      expect(described_class.new(conversation.reload, assistant, now: zone.parse('2030-01-15 08:00:00')).perform).to eq(:sent)
+    end
+
+    it 'sends a re-engagement template when the account reached the contact-date rule cap' do
       account.update!(settings: account.settings.merge('proactive_daily_send_cap' => 0))
 
-      expect(reengage).to be_nil
-      expect(conversation.reload.additional_attributes['captain_followup']).not_to have_key('reengagement')
+      expect(reengage).to eq(:sent)
+      expect(conversation.reload.additional_attributes['captain_followup']['reengagement']).to include('status' => 'sent')
     end
 
     it 'does not contact the same customer twice in 7 days' do
