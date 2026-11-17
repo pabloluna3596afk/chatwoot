@@ -125,7 +125,7 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
 
       entry = JSON.parse(described_class.new(assistant).perform(tool_context))['templates'].first
 
-      expect(entry).to include('can_send' => false, 'reason' => 'Los mensajes de pago están desactivados.')
+      expect(entry).to include('can_send' => false, 'reason' => 'Las plantillas están desactivadas para este asistente.')
     end
   end
 
@@ -144,7 +144,7 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
 
       result = described_class.new(assistant).perform(tool_context, template_name: 'cita_confirmada', language: 'es')
 
-      expect(result).to eq('Los mensajes de pago están desactivados.')
+      expect(result).to eq('Las plantillas están desactivadas para este asistente.')
       expect(prepared_request).to be_nil
     end
   end

@@ -336,7 +336,7 @@ RSpec.describe Captain::AppointmentReminders do
           messages = conversation.messages.outgoing.where.not(id: conversation.messages.incoming)
           expect(messages.count).to eq(1)
           expect(messages.last).to have_attributes(private: true, sender: assistant)
-          expect(messages.last.content).to include('Asistente de Ventas no envió el recordatorio', 'plantillas de pago están desactivadas')
+          expect(messages.last.content).to include('Asistente de Ventas no envió el recordatorio', 'plantillas están desactivadas')
           expect(reminder('reminder_1')).to have_attributes(status: 'skipped', skipped_reason: 'not_sent_window')
         end
       end
