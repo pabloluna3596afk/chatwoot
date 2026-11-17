@@ -82,6 +82,17 @@ class AdministratorNotifications::AccountNotificationMailer < AdministratorNotif
     send_notification(subject, action_url: action_url, meta: meta)
   end
 
+  def automation_rule_paused_by_cap(rule, limit)
+    I18n.with_locale(Current.account.locale) do
+      return if admin_emails.empty?
+
+      subject = I18n.t('automation.proactive_cap_paused.subject', rule: rule.name)
+      message = I18n.t('automation.proactive_cap_paused.message', rule: rule.name, limit: limit)
+      action = I18n.t('automation.proactive_cap_paused.action')
+      send_notification(subject, action_url: settings_url('automation/list'), meta: { 'message' => message, 'action' => action })
+    end
+  end
+
   private
 
   def format_deletion_date(deletion_date_str)
