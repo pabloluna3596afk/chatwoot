@@ -492,7 +492,6 @@ RSpec.describe Captain::AppointmentReminders do
           expect(conversation.messages.where(private: true)).to exist
         end
       end
-
     end
 
     context 'when the appointment or the feature is gone' do
