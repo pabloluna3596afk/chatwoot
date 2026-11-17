@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe Integrations::GoogleCalendar::EventService, '#create' do
-  let(:account) { create(:account, locale: 'es') }
+  let(:account) { create(:account, locale: 'es', customer_reminders_enabled: true) }
   let(:user) { create(:user, account: account, role: :administrator) }
   let(:contact) { create(:contact, account: account, name: 'Ana Pérez') }
   let(:connection) do
@@ -54,7 +54,7 @@ RSpec.describe Integrations::GoogleCalendar::EventService, '#create' do
   end
 
   it 'sends the approved confirmation template, with the appointment values, when a person books from the conversation' do
-    service.create(params)
+    service.create(params.merge(send_to_contact: true))
 
     message = sent_messages.last
     expect(message.additional_attributes['template_params']).to include(
@@ -73,14 +73,28 @@ RSpec.describe Integrations::GoogleCalendar::EventService, '#create' do
     expect(sent_messages.last.content).to start_with('Hola {{ account.name }},')
   end
 
-  it 'sends it without asking for the notice-only option' do
-    expect { service.create(params.merge(send_to_contact: false)) }.to change(sent_messages, :count).by(1)
+  it 'does not send a notice or reminder when the person opted out' do
+    record = nil
+    expect { record = service.create(params.merge(send_to_contact: false)) }.not_to change(sent_messages, :count)
+    expect(conversation.messages.activity).not_to exist
+    expect(connection.calendar_events.find_by!(google_event_id: record[:id]).customer_reminder_status).to eq('skipped_opt_out')
+  end
+
+  it 'treats a missing send_to_contact value as an opt-out' do
+    record = nil
+    expect { record = service.create(params.except(:send_to_contact)) }.not_to change(sent_messages, :count)
+    expect(conversation.messages.activity).not_to exist
+    expect(connection.calendar_events.find_by!(google_event_id: record[:id]).customer_reminder_status).to eq('skipped_opt_out')
+  end
+
+  it 'sends the approved template when the person selected notice only' do
+    expect { service.create(params.merge(send_to_contact: true)) }.to change(sent_messages, :count).by(1)
   end
 
   it 'sends it outside the 24-hour window, the only message Meta allows there' do
     create(:message, conversation: conversation, account: account, inbox: channel.inbox, message_type: :incoming, created_at: 3.days.ago)
 
-    expect { service.create(params) }.to change(sent_messages, :count).by(1)
+    expect { service.create(params.merge(send_to_contact: true)) }.to change(sent_messages, :count).by(1)
     expect(sent_messages.last.additional_attributes['template_params']['name']).to eq('cita_confirmacion')
   end
 
@@ -106,10 +120,9 @@ RSpec.describe Integrations::GoogleCalendar::EventService, '#create' do
     let(:templates) { [{ 'name' => 'cita_confirmacion', 'language' => 'es', 'status' => 'PENDING' }] }
 
     it 'sends nothing, leaves a note in the conversation and still books the appointment' do
-      result = I18n.with_locale(:es) { service.create(params) }
+      result = I18n.with_locale(:es) { service.create(params.merge(send_to_contact: false)) }
 
-      expect(Conversations::ActivityMessageJob).to have_been_enqueued
-        .with(conversation, hash_including(content: a_string_including('falta la plantilla')))
+      expect(Conversations::ActivityMessageJob).not_to have_been_enqueued
       expect(sent_messages.count).to eq(0)
       expect(result[:id]).to eq('g-1')
     end
@@ -126,10 +139,9 @@ RSpec.describe Integrations::GoogleCalendar::EventService, '#create' do
     let(:templates) { [] }
 
     it 'sends nothing and leaves the note' do
-      I18n.with_locale(:es) { service.create(params) }
+      I18n.with_locale(:es) { service.create(params.merge(send_to_contact: false)) }
 
-      expect(Conversations::ActivityMessageJob).to have_been_enqueued
-        .with(conversation, hash_including(content: a_string_including('falta la plantilla')))
+      expect(Conversations::ActivityMessageJob).not_to have_been_enqueued
       expect(sent_messages.count).to eq(0)
     end
   end
@@ -163,6 +175,12 @@ RSpec.describe Integrations::GoogleCalendar::EventService, '#create' do
     described_class.new(account: account, user: bot, connection: connection).create(params)
 
     expect(sent_messages.count).to eq(0)
+  end
+
+  it 'does not mark appointments without a conversation or created by Captain as opted out' do
+    service.create(params.except(:conversation_id))
+    described_class.new(account: account, user: create(:agent_bot, account: account), connection: connection).create(params)
+    expect(connection.calendar_events.order(:id).pluck(:customer_reminder_status)).to eq([nil, nil])
   end
 
   it 'never breaks the booking when the notice fails' do

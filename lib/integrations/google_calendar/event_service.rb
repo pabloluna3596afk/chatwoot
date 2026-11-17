@@ -684,6 +684,8 @@ class Integrations::GoogleCalendar::EventService
       conversation: conversation
     }
     attrs.merge!(followup_attrs_from(params, creating: creating || was_new, record: record))
+    attrs[:customer_reminder_status] = 'skipped_opt_out' if creating && actor_user && conversation.present? &&
+                                                            !send_to_contact?(params, conversation)
     if !was_new && slot_changed?(record, attrs[:start_at], attrs[:end_at]) &&
        attrs.fetch(:appointment_status, record.appointment_status) != 'confirmed'
       attrs[:appointment_status] = 'rescheduled'
@@ -954,7 +956,7 @@ class Integrations::GoogleCalendar::EventService
   def notify_contact_or_bot!(params, conversation, record, google_event, event_name)
     if record.bot_followup_enabled?
       Calendar::NotifyPanelAiFollowupJob.perform_later(record.id, event_name)
-    elsif whatsapp_notice?(conversation, record, event_name)
+    elsif whatsapp_notice?(params, conversation, record, event_name)
       send_whatsapp_notice!(params, conversation, record, google_event)
     elsif send_to_contact?(params, conversation)
       send_to_contact!(conversation, record, google_event)
@@ -963,8 +965,9 @@ class Integrations::GoogleCalendar::EventService
 
   # An appointment booked by a person from a WhatsApp Cloud conversation is confirmed to the customer once, when it is
   # created. What Captain books it confirms itself in the conversation.
-  def whatsapp_notice?(conversation, record, event_name)
-    event_name == 'created' && conversation.present? && record.booking_source != 'ai' && customer_notice(conversation, record).whatsapp_cloud?
+  def whatsapp_notice?(params, conversation, record, event_name)
+    event_name == 'created' && conversation.present? && send_to_contact?(params, conversation) &&
+      record.booking_source != 'ai' && customer_notice(conversation, record).whatsapp_cloud?
   end
 
   def customer_notice(conversation, record)

@@ -33,7 +33,9 @@ import { useContactTools } from 'dashboard/composables/useContactTools';
 import { useAppointmentEvents } from 'dashboard/composables/useAppointmentEvents';
 import { useAppointmentClock } from 'dashboard/composables/useAppointmentClock';
 import { useCalendarTime } from 'dashboard/composables/useCalendarTime';
+import { useInbox } from 'dashboard/composables/useInbox';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
+import { hasApprovedAppointmentConfirmation } from 'dashboard/helper/appointmentStatus';
 
 const props = defineProps({
   conversationId: {
@@ -101,7 +103,7 @@ const isShopifyFeatureEnabled = computed(
   () => shopifyIntegration.value.enabled
 );
 
-const { isCloudFeatureEnabled } = useAccount();
+const { isCloudFeatureEnabled, currentAccount } = useAccount();
 
 const accountId = useMapGetter('getCurrentAccountId');
 const isFeatureEnabledonAccount = useMapGetter(
@@ -205,6 +207,15 @@ const contactAttributesCount = computed(() => {
 const inbox = useFunctionGetter(
   'inboxes/getInbox',
   computed(() => props.inboxId || currentChat.value.inbox_id)
+);
+const { isAWhatsAppCloudChannel } = useInbox();
+const notifyAppointmentByDefault = computed(
+  () =>
+    isAWhatsAppCloudChannel.value &&
+    hasApprovedAppointmentConfirmation(
+      inbox.value,
+      currentAccount.value?.locale
+    )
 );
 const { timezone, isUpcomingEvent } = useCalendarTime();
 const {
@@ -522,6 +533,7 @@ onMounted(() => {
                   :conversation-id="conversationId"
                   :contact-id="contactId"
                   :contact-name="contact.name"
+                  :notify-by-default="notifyAppointmentByDefault"
                   @saved="refreshAppointments"
                   @count-change="value => (calendarEventsCount = value)"
                 />

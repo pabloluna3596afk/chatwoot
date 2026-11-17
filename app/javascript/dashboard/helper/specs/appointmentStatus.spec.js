@@ -5,7 +5,72 @@ import {
   isCancelledEvent,
   visibleCalendarEvents,
   invitationStatusKey,
+  hasApprovedAppointmentConfirmation,
 } from '../appointmentStatus';
+
+describe('hasApprovedAppointmentConfirmation', () => {
+  const appointmentTemplate = {
+    name: 'cita_confirmacion',
+    status: 'APPROVED',
+    language: 'es',
+  };
+
+  it('matches the approved appointment template in the Kit language', () => {
+    expect(
+      hasApprovedAppointmentConfirmation(
+        { message_templates: [appointmentTemplate] },
+        'es'
+      )
+    ).toBe(true);
+    expect(
+      hasApprovedAppointmentConfirmation(
+        { message_templates: [{ ...appointmentTemplate, status: 'approved' }] },
+        'es'
+      )
+    ).toBe(true);
+  });
+
+  it.each(['PENDING', 'REJECTED', 'PAUSED'])(
+    'rejects a %s template',
+    status => {
+      expect(
+        hasApprovedAppointmentConfirmation(
+          { message_templates: [{ ...appointmentTemplate, status }] },
+          'es'
+        )
+      ).toBe(false);
+    }
+  );
+
+  it('matches only the account language and falls back to Spanish for unsupported locales', () => {
+    expect(
+      hasApprovedAppointmentConfirmation(
+        { message_templates: [{ ...appointmentTemplate, language: 'en' }] },
+        'es'
+      )
+    ).toBe(false);
+    expect(
+      hasApprovedAppointmentConfirmation(
+        { message_templates: [appointmentTemplate] },
+        'pt_BR'
+      )
+    ).toBe(true);
+    expect(
+      hasApprovedAppointmentConfirmation(
+        { message_templates: [{ ...appointmentTemplate, name: 'other' }] },
+        'es'
+      )
+    ).toBe(false);
+  });
+
+  it('returns false when the inbox templates are not loaded', () => {
+    expect(hasApprovedAppointmentConfirmation(null, 'es')).toBe(false);
+    expect(hasApprovedAppointmentConfirmation({}, 'es')).toBe(false);
+    expect(
+      hasApprovedAppointmentConfirmation({ message_templates: [] }, 'es')
+    ).toBe(false);
+  });
+});
 
 describe('appointmentStatusKey', () => {
   it('reads "confirmed by chat" for what Captain booked and the customer confirmed', () => {

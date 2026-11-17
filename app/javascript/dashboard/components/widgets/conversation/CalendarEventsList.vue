@@ -25,6 +25,7 @@ import {
 
 const props = defineProps({
   errorShownElsewhere: { type: Boolean, default: false },
+  notifyByDefault: { type: Boolean, default: false },
   conversationId: {
     type: [Number, String],
     required: true,
@@ -112,6 +113,7 @@ const openCreate = async () => {
       conversationId: props.conversationId,
       contactId: props.contactId,
       contactName: props.contactName,
+      sendToContact: props.notifyByDefault,
     },
   });
 };

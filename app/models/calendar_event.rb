@@ -76,6 +76,8 @@ class CalendarEvent < ApplicationRecord
   private
 
   def reset_customer_reminder
+    return if customer_reminder_status == 'skipped_opt_out'
+
     self.customer_reminder_sent_at = nil
     self.customer_reminder_status = nil
     return unless account.customer_reminders_enabled == true && !ai_booked? && !bot_followup_enabled?

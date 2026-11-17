@@ -16,6 +16,24 @@ export const invitationStatusKey = event =>
     ? String(event.invitation_status).toUpperCase()
     : null;
 
+// Keep this in sync with Calendar::ActivationKit::TEMPLATE_NAME.
+const APPOINTMENT_CONFIRMATION_TEMPLATE = 'cita_confirmacion';
+
+export const hasApprovedAppointmentConfirmation = (inbox, accountLocale) => {
+  const accountLanguage = String(accountLocale || '')
+    .slice(0, 2)
+    .toLowerCase();
+  const locale = ['es', 'en'].includes(accountLanguage)
+    ? accountLanguage
+    : 'es';
+  return (inbox?.message_templates || inbox?.messageTemplates || []).some(
+    template =>
+      template.name === APPOINTMENT_CONFIRMATION_TEMPLATE &&
+      String(template.status || '').toUpperCase() === 'APPROVED' &&
+      template.language === locale
+  );
+};
+
 // Deletion takes precedence over confirmation, including legacy status-only cancellations.
 export const isCancelledEvent = event =>
   Boolean(event?.deleted || event?.appointment_status === 'cancelled');
