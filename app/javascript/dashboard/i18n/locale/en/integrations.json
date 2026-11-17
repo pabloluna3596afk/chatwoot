@@ -954,6 +954,88 @@
     },
     "ASSISTANTS": {
       "HEADER": "Assistants",
+      "CAPABILITIES": {
+        "TITLE": "What this assistant can send",
+        "COUNT": "{ready} of {total} ready",
+        "COUNT_SUFFIX": "({count})",
+        "SAVED_NOTE": "Shows what is saved. Save your changes to update it. Meta reports the cost of each message.",
+        "SECTION_BELOW": "WhatsApp Flows and templates per inbox",
+        "NOTHING_CONNECTED": {
+          "TITLE": "WhatsApp and a calendar are not connected yet.",
+          "BODY": "Without them, this assistant can only reply to messages.",
+          "ACTION": "Connect WhatsApp"
+        },
+        "GROUPS": {
+          "whatsapp": "WhatsApp (Meta)",
+          "calendar": "Calendar",
+          "none": "No integration"
+        },
+        "CONNECTION": {
+          "connected": "Connected",
+          "not_connected": "Not connected",
+          "needs_review": "Check connection",
+          "always": "Always available"
+        },
+        "STATUS": {
+          "ready": "Ready",
+          "needs_setup": "Needs setup",
+          "not_connected": "Not connected",
+          "off": "Off"
+        },
+        "ACTIONS": {
+          "configure": "Set up",
+          "connect": "Connect",
+          "turn_on": "Turn on"
+        },
+        "ACTION_LABEL": "{action}: {title}",
+        "KIND": {
+          "template": "Template",
+          "in_window": "Message within 24 h",
+          "in_window_or_template": "Message within 24 h or template"
+        },
+        "INBOXES": {
+          "SUMMARY": "Ready in {ready} of {total} inboxes.",
+          "SHOW": "Show inboxes",
+          "HIDE": "Hide inboxes"
+        },
+        "ITEMS": {
+          "allowed_templates": {
+            "TITLE": "Allowed templates",
+            "DESCRIPTION": "Captain chooses among the templates you allowed in each inbox."
+          },
+          "allowed_flows": {
+            "TITLE": "Allowed WhatsApp Flows",
+            "DESCRIPTION": "WhatsApp forms Captain can send inside the 24 h window."
+          },
+          "reengagement": {
+            "TITLE": "Re-engagement",
+            "DESCRIPTION": "A template when the customer did not answer and the conversation was closed."
+          },
+          "booking": {
+            "TITLE": "Book appointments",
+            "DESCRIPTION": "Captain offers times and books, moves and cancels appointments."
+          },
+          "appointment_reminders": {
+            "TITLE": "Appointment reminders",
+            "DESCRIPTION": "Up to two notices before the appointment."
+          },
+          "nudge": {
+            "TITLE": "\"Are you still there?\"",
+            "DESCRIPTION": "A short message when the customer stops answering."
+          }
+        },
+        "REASONS": {
+          "templates_off": "Off: turn on \"Allow templates with a cost\" above.",
+          "disabled": "Turned off in this assistant's settings.",
+          "no_template": "An approved template has not been chosen.",
+          "template_unavailable": "The chosen template is not approved in this inbox.",
+          "no_calendar_selected": "The calendar Captain will use has not been chosen.",
+          "no_items": "You have not allowed any in this inbox yet.",
+          "not_connected_whatsapp": "A WhatsApp inbox is not connected to this assistant.",
+          "not_connected_calendar": "A Google calendar is not connected.",
+          "window_only": "Only inside the 24 h window; outside it needs templates."
+        }
+      },
       "NO_ASSISTANTS_AVAILABLE": "There are no assistants available in your account.",
       "ADD_NEW": "Create a new assistant",
       "DELETE": {
@@ -1368,7 +1450,7 @@
         },
         "MESSAGING": {
           "TITLE": "Templates and WhatsApp Flows",
-          "DESCRIPTION": "Which WhatsApp Flows and templates Captain may send to a customer on WhatsApp. Everything starts off: it only sends what you allow here."
+          "DESCRIPTION": "Everything this assistant can send to a customer and what it depends on. It only sends what you allow."
         }
       },
       "OPTIONS": {

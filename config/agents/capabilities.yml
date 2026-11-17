@@ -1,0 +1,58 @@
+# Declarative registry of the messages Captain can send and their readiness checks.
+groups:
+  - id: whatsapp
+    position: 10
+    connect_route: captain_assistants_inboxes_index
+  - id: calendar
+    position: 20
+    connect_route: settings_integrations_calendars
+  - id: none
+    position: 30
+
+capabilities:
+  - id: allowed_templates
+    group: whatsapp
+    position: 10
+    kind: template
+    scope: inbox
+    count: true
+    configure_route: captain_assistants_settings_messaging_index
+    configure_anchor: messaging-templates
+    status: Captain::Capabilities::AllowedTemplates
+  - id: allowed_flows
+    group: whatsapp
+    position: 20
+    kind: in_window
+    scope: inbox
+    count: true
+    configure_route: captain_assistants_settings_messaging_index
+    configure_anchor: messaging-flows
+    status: Captain::Capabilities::AllowedFlows
+  - id: reengagement
+    group: whatsapp
+    position: 30
+    kind: template
+    scope: inbox
+    configure_route: captain_assistants_settings_followup_index
+    status: Captain::Capabilities::Reengagement
+  - id: booking
+    group: calendar
+    position: 10
+    kind: in_window
+    scope: inbox
+    configure_route: captain_assistants_settings_appointments_index
+    status: Captain::Capabilities::Booking
+  - id: appointment_reminders
+    group: calendar
+    position: 20
+    kind: in_window_or_template
+    scope: inbox
+    configure_route: captain_assistants_settings_appointments_index
+    status: Captain::Capabilities::AppointmentReminders
+  - id: nudge
+    group: none
+    position: 10
+    kind: in_window
+    scope: assistant
+    configure_route: captain_assistants_settings_followup_index
+    status: Captain::Capabilities::Nudge

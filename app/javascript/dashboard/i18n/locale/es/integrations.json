@@ -954,6 +954,88 @@
     },
     "ASSISTANTS": {
       "HEADER": "Asistentes",
+      "CAPABILITIES": {
+        "TITLE": "Lo que este asistente puede enviar",
+        "COUNT": "{ready} de {total} listas",
+        "COUNT_SUFFIX": "({count})",
+        "SAVED_NOTE": "Muestra lo guardado. Guarda los cambios para actualizarlo. El costo de cada mensaje lo informa Meta.",
+        "SECTION_BELOW": "Flows y plantillas por bandeja",
+        "NOTHING_CONNECTED": {
+          "TITLE": "Aún falta conectar WhatsApp y un calendario.",
+          "BODY": "Sin ellos, este asistente solo puede responder mensajes.",
+          "ACTION": "Conectar WhatsApp"
+        },
+        "GROUPS": {
+          "whatsapp": "WhatsApp (Meta)",
+          "calendar": "Calendario",
+          "none": "Sin integración"
+        },
+        "CONNECTION": {
+          "connected": "Conectado",
+          "not_connected": "Sin conectar",
+          "needs_review": "Revisar conexión",
+          "always": "Siempre disponible"
+        },
+        "STATUS": {
+          "ready": "Lista",
+          "needs_setup": "Falta configurar",
+          "not_connected": "Falta conectar",
+          "off": "Apagada"
+        },
+        "ACTIONS": {
+          "configure": "Configurar",
+          "connect": "Conectar",
+          "turn_on": "Activar"
+        },
+        "ACTION_LABEL": "{action}: {title}",
+        "KIND": {
+          "template": "Plantilla",
+          "in_window": "Mensaje en 24 h",
+          "in_window_or_template": "Mensaje en 24 h o plantilla"
+        },
+        "INBOXES": {
+          "SUMMARY": "Lista en {ready} de {total} bandejas.",
+          "SHOW": "Ver bandejas",
+          "HIDE": "Ocultar bandejas"
+        },
+        "ITEMS": {
+          "allowed_templates": {
+            "TITLE": "Plantillas permitidas",
+            "DESCRIPTION": "Captain elige entre las plantillas que autorizaste en cada bandeja."
+          },
+          "allowed_flows": {
+            "TITLE": "Flows permitidos",
+            "DESCRIPTION": "Formularios de WhatsApp que Captain puede enviar dentro de las 24 h."
+          },
+          "reengagement": {
+            "TITLE": "Reenganche",
+            "DESCRIPTION": "Una plantilla cuando el cliente no respondió y la conversación se cerró."
+          },
+          "booking": {
+            "TITLE": "Agendar citas",
+            "DESCRIPTION": "Captain ofrece horarios, agenda, mueve y cancela citas."
+          },
+          "appointment_reminders": {
+            "TITLE": "Recordatorios de cita",
+            "DESCRIPTION": "Hasta dos avisos antes de la cita."
+          },
+          "nudge": {
+            "TITLE": "«¿Sigues ahí?»",
+            "DESCRIPTION": "Un mensaje corto cuando el cliente deja de responder."
+          }
+        },
+        "REASONS": {
+          "templates_off": "Apagada: activa «Permitir plantillas con costo» arriba.",
+          "disabled": "Apagada en los ajustes de este asistente.",
+          "no_template": "Falta elegir una plantilla aprobada.",
+          "template_unavailable": "La plantilla elegida no está aprobada en esta bandeja.",
+          "no_calendar_selected": "Falta elegir el calendario que usará Captain.",
+          "no_items": "Aún no autorizaste ninguno en esta bandeja.",
+          "not_connected_whatsapp": "Falta conectar una bandeja de WhatsApp a este asistente.",
+          "not_connected_calendar": "Falta conectar un calendario de Google.",
+          "window_only": "Solo dentro de las 24 h; fuera necesita plantillas."
+        }
+      },
       "NO_ASSISTANTS_AVAILABLE": "No hay asistentes disponibles en tu cuenta.",
       "ADD_NEW": "Crear un nuevo asistente",
       "DELETE": {
@@ -1368,7 +1450,7 @@
         },
         "MESSAGING": {
           "TITLE": "Plantillas y Flows",
-          "DESCRIPTION": "Qué Flows y plantillas puede enviar Captain a un cliente por WhatsApp. Todo empieza apagado: solo envía lo que autorices aquí."
+          "DESCRIPTION": "Todo lo que este asistente puede enviar a un cliente y de qué depende. Solo envía lo que autorices."
         }
       },
       "OPTIONS": {

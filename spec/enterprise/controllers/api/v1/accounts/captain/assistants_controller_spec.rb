@@ -88,6 +88,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
         expect(json_response[:meta]).to eq(
           { total_count: 3, page: 1 }
         )
+        expect(json_response[:payload].all? { |item| item.key?(:capabilities) }).to be(false)
       end
 
       it 'does not include the internal Copilot assistant' do
@@ -140,6 +141,7 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
 
         expect(response).to have_http_status(:success)
         expect(json_response[:id]).to eq(assistant.id)
+        expect(json_response.dig(:capabilities, :groups).pluck(:id)).to eq(%w[whatsapp calendar none])
       end
     end
   end

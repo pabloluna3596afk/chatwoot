@@ -97,6 +97,10 @@ const mountForm = (assistant = { config: {} }) =>
           emits: ['update:modelValue'],
           template: '<div><slot /></div>',
         },
+        CapabilitySummary: {
+          name: 'CapabilitySummary',
+          template: '<div data-testid="capability-summary-stub" />',
+        },
         WhatsAppTemplateParser: true,
         RouterLink: { template: '<a><slot /></a>' },
       },
@@ -132,6 +136,30 @@ describe('AssistantMessagingForm', () => {
       wrapper.find('[data-testid="messaging-inbox-toggle"]').exists()
     ).toBe(false);
     captainInboxRecords.value = [{ id: 10 }];
+  });
+
+  it('places the saved capabilities summary after the switch and before inbox settings', async () => {
+    const wrapper = mountForm();
+    await flushPromises();
+    const children = wrapper.find('[data-testid="messaging-form"]').element
+      .children;
+    const switchIndex = [...children].findIndex(child =>
+      child.matches('[data-testid="messaging-templates-toggle"]')
+    );
+    const summaryIndex = [...children].findIndex(child =>
+      child.matches('[data-testid="capability-summary-stub"]')
+    );
+    const dividerIndex = [...children].findIndex(child =>
+      child.textContent.includes(
+        'CAPTAIN.ASSISTANTS.CAPABILITIES.SECTION_BELOW'
+      )
+    );
+    const contentIndex = [...children].findIndex(child =>
+      child.matches('[data-testid="messaging-flows"]')
+    );
+    expect(switchIndex).toBeLessThan(summaryIndex);
+    expect(summaryIndex).toBeLessThan(dividerIndex);
+    expect(dividerIndex).toBeLessThan(contentIndex);
   });
 
   it('starts off with nothing allowed and says Captain sends nothing', async () => {

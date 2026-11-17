@@ -11,6 +11,7 @@ import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
+import CapabilitySummary from './CapabilitySummary.vue';
 import {
   isSupportedForCaptain,
   templateKey,
@@ -260,6 +261,14 @@ const templateStatus = row => {
 const removeFlow = index => current.value.flows.splice(index, 1);
 const removeTemplate = index => current.value.templates.splice(index, 1);
 
+const focusTemplatesToggle = () => {
+  const toggle = document.querySelector(
+    '[data-testid="messaging-templates-toggle"] [role="switch"]'
+  );
+  toggle?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  toggle?.focus();
+};
+
 const submit = () => {
   const entries = Object.entries(permissions)
     .map(([inboxId, entry]) => ({
@@ -308,6 +317,17 @@ onMounted(async () => {
       data-testid="messaging-templates-toggle"
     />
 
+    <CapabilitySummary
+      :assistant="assistant"
+      @focus-templates-toggle="focusTemplatesToggle"
+    />
+
+    <div class="flex items-center gap-3 text-xs font-medium text-n-slate-11">
+      <span class="flex-1 border-t border-n-weak" />
+      <span>{{ t('CAPTAIN.ASSISTANTS.CAPABILITIES.SECTION_BELOW') }}</span>
+      <span class="flex-1 border-t border-n-weak" />
+    </div>
+
     <p v-if="!whatsappInboxes.length" class="mb-0 text-sm text-n-slate-11">
       {{ t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.NO_INBOXES') }}
     </p>
@@ -333,6 +353,7 @@ onMounted(async () => {
       <section
         class="flex flex-col gap-3 p-4 rounded-xl bg-n-alpha-1"
         data-testid="messaging-flows"
+        tabindex="-1"
       >
         <div class="flex flex-wrap items-start gap-3 md:flex-nowrap">
           <span
@@ -430,6 +451,7 @@ onMounted(async () => {
       <section
         class="flex flex-col gap-3 p-4 rounded-xl bg-n-alpha-1"
         data-testid="messaging-templates"
+        tabindex="-1"
       >
         <div class="flex flex-wrap items-start gap-3 md:flex-nowrap">
           <span
