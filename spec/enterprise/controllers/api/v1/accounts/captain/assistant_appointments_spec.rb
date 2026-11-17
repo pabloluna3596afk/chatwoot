@@ -44,11 +44,11 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants appointments settings', t
 
   it 'discards a cancellation template while saving other appointment fields' do
     patch url, params: { assistant: { config: { appointments: { slot_duration_minutes: 45,
-                                                               template_cancelled: { name: 'cita', language: 'es' } } } } },
+                                                                template_cancelled: { name: 'cita', language: 'es' } } } } },
                headers: admin.create_new_auth_token, as: :json
     expect(response).to have_http_status(:success)
     expect(assistant.reload.config.dig('appointments', 'slot_duration_minutes')).to eq(45)
-    expect(assistant.reload.config.dig('appointments')).not_to have_key('template_cancelled')
+    expect(assistant.reload.config['appointments']).not_to have_key('template_cancelled')
   end
 
   it 'returns the defaults, disabled, for an assistant that never configured appointments' do

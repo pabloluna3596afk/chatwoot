@@ -66,7 +66,7 @@ RSpec.describe Captain::AppointmentsSettings do
       result = described_class.normalize(
         'template_reminder' => { 'name' => 'recordatorio', 'language' => 'es', 'extra' => 'x',
                                  'processed_params' => { 'body' => { '1' => '{{ contact.name }}', 'nombre' => 'Consulta' },
-                                                         'header' => { 'titulo' => '{{ appointment.title }}' }, 'footer' => { 'x' => 'y' } } },
+                                                         'header' => { 'titulo' => '{{ appointment.title }}' }, 'footer' => { 'x' => 'y' } } }
       )
 
       expect(result).to include(
