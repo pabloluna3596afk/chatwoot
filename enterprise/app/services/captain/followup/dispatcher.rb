@@ -28,7 +28,7 @@ class Captain::Followup::Dispatcher
     settings = assistant.followup
     return unless settings.inactivity_enabled? && settings.max_nudges.positive?
 
-    cutoff = now - [settings.inactivity_after_minutes, settings.close_after_minutes].min.minutes
+    cutoff = now - [settings.inactivity_after_minutes, assistant.inactivity_threshold_minutes].min.minutes
     inbox.conversations.attended_by_ai.where(assignee_agent_bot_id: assistant.id).where(last_activity_at: (now - MAX_AGE)..cutoff)
          .order(:last_activity_at).limit(BATCH_SIZE).each do |conversation|
       run { Captain::Followup::Nudger.new(conversation, assistant, now: now).perform }

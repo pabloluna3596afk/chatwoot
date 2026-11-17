@@ -97,10 +97,10 @@ RSpec.describe Captain::InboxPendingConversationsResolutionJob, type: :job do
     let(:mode) { 'legacy' }
     let(:followup) { { 'inactivity_enabled' => true, 'max_nudges' => 1 } }
 
-    it 'keeps the existing time-based close without a follow-up note or mark' do
+    it 'leaves the close to the follow-up nudger' do
       expect(evaluation).not_to receive(:perform)
-      job.perform(inbox)
-      expect(conversation.reload).to be_resolved
+      expect { job.perform(inbox) }.not_to(change { conversation.messages.count })
+      expect(conversation.reload).to be_pending
       expect(conversation.messages.where(private: true)).to be_empty
       expect(conversation.additional_attributes).not_to have_key('captain_followup')
     end
