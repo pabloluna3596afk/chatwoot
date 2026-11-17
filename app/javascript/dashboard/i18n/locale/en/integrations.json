@@ -1201,7 +1201,7 @@
             "HOURS_ERROR": "Use a whole number from 1 to 168.",
             "WINDOW_HINT": "It goes out free only if the customer wrote in the previous 24 h; otherwise it needs a template.",
             "TEMPLATE_REMINDER": "Reminder template",
-            "PAID_HINT": "To send templates, turn on \"Allow Captain to send templates\" under Templates and WhatsApp Flows."
+            "PAID_HINT": "To send templates, turn on \"Allow templates with a cost\" under Templates and WhatsApp Flows."
           },
           "ERRORS": {
             "CONNECTION": "Select a calendar account.",
@@ -1225,7 +1225,7 @@
           "HOURS": "{count} h",
           "REENGAGEMENT": "Re-engage with a template",
           "REENGAGEMENT_HELP": "When Captain closed for inactivity and the 24 h window has closed, it sends one approved template, once per conversation and at most one every 7 days per customer. It has a cost. It is off by default.",
-          "PAID_HINT": "To send templates, turn on \"Allow Captain to send templates\" under Templates and WhatsApp Flows.",
+          "PAID_HINT": "To send templates, turn on \"Allow templates with a cost\" under Templates and WhatsApp Flows.",
           "TEMPLATE": "Re-engagement template"
         },
         "TEMPLATE_VARIABLES": {
@@ -1309,7 +1309,7 @@
           "SAVE": "Save",
           "UNAVAILABLE_TEMPLATE": "It is no longer approved, or has a header file or per-customer buttons: Captain does not send it.",
           "UNAVAILABLE_FLOW": "It is no longer published: Captain does not send it.",
-          "TEMPLATES_TOGGLE": "Allow Captain to send templates",
+          "TEMPLATES_TOGGLE": "Allow templates with a cost",
           "TEMPLATES_TOGGLE_HELP": "Templates are messages approved by Meta and can be sent even if the customer has not written in 24 hours. Meta charges for each template. If this is off, Captain does not send any."
         }
       },
