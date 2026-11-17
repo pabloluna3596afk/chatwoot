@@ -1015,21 +1015,21 @@
           "PLACEHOLDER": "Enter resolution message"
         },
         "INACTIVITY_RESOLUTION": {
-          "TITLE": "When customers stop replying",
-          "DESCRIPTION": "Choose how Captain handles the conversation.",
+          "TITLE": "What Captain does when the conversation goes unanswered",
+          "DESCRIPTION": "Applies after the time you choose, whether or not it asked \"Are you still there?\".",
           "MODE_LABEL": "Action when the customer stops replying",
-          "REVIEW_AFTER": "Review after",
-          "RESOLVE_AFTER": "Resolve after",
+          "REVIEW_AFTER": "Wait before acting",
+          "RESOLVE_AFTER": "Wait before acting",
           "ALWAYS_WARNING": "Captain will resolve every conversation after the selected time without reviewing it. Some conversations that still need help may be closed.",
           "PENDING_INFO": "The conversation remains pending until the customer replies.",
           "RESOLUTION_MESSAGE": {
-            "TITLE": "Send a message when resolving",
-            "DESCRIPTION": "Captain sends this closing message before it resolves the conversation."
+            "TITLE": "Send a goodbye message when closing",
+            "DESCRIPTION": "Captain sends this message before closing the conversation for inactivity."
           },
           "MODES": {
             "DISABLED": {
               "LABEL": "Wait for the customer",
-              "DESCRIPTION": "Captain does not resolve the conversation. Captain can still hand it off if the customer asks."
+              "DESCRIPTION": "Captain does not close the conversation; it stays pending until the customer replies. It can hand it off if the customer asks."
             },
             "LEGACY": {
               "LABEL": "Always resolve",
@@ -1213,12 +1213,10 @@
         "TEMPLATE_PLACEHOLDER": "Select an approved template",
         "FOLLOWUP": {
           "TOGGLE": "Ask \"Are you still there?\"",
-          "TOGGLE_HELP": "When the customer stops answering, Captain sends one short message with buttons, only inside the 24 h window. With no answer, it closes the conversation for inactivity. It is on by default.",
+          "TOGGLE_HELP": "When the customer stops answering, Captain sends one short message with buttons, only inside the 24 h window. It is on by default.",
           "AFTER": "Ask after",
           "NUDGES": "Follow-up messages",
-          "CLOSE": "Close if there is no answer after",
           "HINT": "Only in conversations Captain is handling, never once a person took it and never outside the 24 h window. If the customer answers, the count starts over.",
-          "NUDGES_NONE": "None",
           "NUDGES_ONE": "1 message",
           "NUDGES_TWO": "2 messages",
           "MINUTES": "{count} min",
@@ -1226,7 +1224,10 @@
           "REENGAGEMENT": "Re-engage with a template",
           "REENGAGEMENT_HELP": "When Captain closed for inactivity and the 24 h window has closed, it sends one approved template, once per conversation and at most one every 7 days per customer. It is off by default. It goes out between 08:00 and 21:00.",
           "PAID_HINT": "To send templates, turn on \"Allow templates with a cost\" under Templates and WhatsApp Flows.",
-          "TEMPLATE": "Re-engagement template"
+          "TEMPLATE": "Re-engagement template",
+          "GOODBYE_LINK": "System settings",
+          "AFTER_ERROR": "It must be shorter than the waiting time above.",
+          "GOODBYE_SENTENCE": "The goodbye message is edited in {link}."
         },
         "TEMPLATE_VARIABLES": {
           "ERROR": "Fill in every variable of the template before saving.",
@@ -1329,7 +1330,7 @@
         "SYSTEM_SETTINGS": {
           "TITLE": "System settings",
           "DESCRIPTION": "Customize what the assistant says when ending a conversation or transferring to a human.",
-          "DESCRIPTION_V2": "Manage what Captain does when customers stop replying and set the handoff message."
+          "DESCRIPTION_V2": "The messages Captain sends when handing off or closing a conversation, and its limits."
         },
         "AUDIENCE": {
           "TITLE": "Audience",
@@ -1557,12 +1558,6 @@
             "ERROR": "There was an error deleting scenarios, please try again."
           }
         }
-      },
-      "AUTO_RESOLVE": {
-        "FOLLOWUP_NOTICE": "Follow-up is on: when the customer is the one who stops replying, {assistantName} nudges them and closes the conversation without passing it to the team."
-      },
-      "FOLLOWUP": {
-        "WINDOW_CLOSED_NOTICE": "If the 24-hour window is already closed, {assistantName} closes the conversation without sending the nudge."
       }
     },
     "DOCUMENTS": {

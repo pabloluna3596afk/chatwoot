@@ -1,13 +1,18 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
+import { I18nT, useI18n } from 'vue-i18n';
 
 import Button from 'dashboard/components-next/button/Button.vue';
-import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
+import Banner from 'dashboard/components-next/banner/Banner.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
+import RadioCard from 'dashboard/components-next/radioCard/RadioCard.vue';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import { useAccount } from 'dashboard/composables/useAccount';
 import { isWhatsAppComplete } from '@chatwoot/utils';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
+import DurationSelect from './DurationSelect.vue';
 import { useTemplateVariables } from './useTemplateVariables';
 import {
   useApprovedTemplates,
@@ -25,6 +30,11 @@ const props = defineProps({
 const emit = defineEmits(['submit']);
 
 const { t } = useI18n();
+const route = useRoute();
+const { isCloudFeatureEnabled } = useAccount();
+const isCaptainV2Enabled = computed(() =>
+  isCloudFeatureEnabled(FEATURE_FLAGS.CAPTAIN_V2)
+);
 const { templateOptions, templateEntry, templateInboxId } =
   useApprovedTemplates();
 const { variableOptions, defaultValues, previewValues } = useTemplateVariables({
@@ -32,13 +42,12 @@ const { variableOptions, defaultValues, previewValues } = useTemplateVariables({
 });
 
 const AFTER_OPTIONS = [10, 15, 30, 45, 60, 120, 240];
-const CLOSE_OPTIONS = [30, 60, 120, 240, 480, 1440];
-
 const initialState = {
+  autoResolveMode: 'evaluated',
+  inactivityThresholdMinutes: 60,
   inactivityEnabled: true,
   afterMinutes: 30,
   maxNudges: 1,
-  closeAfter: 120,
   reengagementEnabled: false,
   template: '',
   params: {},
@@ -69,27 +78,55 @@ const afterOptions = computed(() =>
   }))
 );
 
-const closeOptions = computed(() =>
-  withCurrent(CLOSE_OPTIONS, state.closeAfter).map(value => ({
-    value,
-    label: minutesLabel(value),
-  }))
-);
+const autoResolveOptions = computed(() => [
+  {
+    value: 'evaluated',
+    label: t(
+      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.EVALUATED.LABEL'
+    ),
+    description: t(
+      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.EVALUATED.DESCRIPTION'
+    ),
+  },
+  {
+    value: 'legacy',
+    label: t(
+      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.LEGACY.LABEL'
+    ),
+    description: t(
+      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.LEGACY.DESCRIPTION'
+    ),
+  },
+  {
+    value: 'disabled',
+    label: t(
+      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.DISABLED.LABEL'
+    ),
+    description: t(
+      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODES.DISABLED.DESCRIPTION'
+    ),
+  },
+]);
 
 const nudgeOptions = computed(() => [
-  { value: 0, label: t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.NUDGES_NONE') },
   { value: 1, label: t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.NUDGES_ONE') },
   { value: 2, label: t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.NUDGES_TWO') },
 ]);
 
 const updateStateFromAssistant = assistant => {
   const settings = assistant?.config?.followup || {};
+  const savedMaxNudges = settings.max_nudges ?? initialState.maxNudges;
   Object.assign(state, {
-    inactivityEnabled: settings.inactivity_enabled !== false,
+    autoResolveMode: assistant?.config?.auto_resolve_mode ?? 'evaluated',
+    inactivityThresholdMinutes: isCaptainV2Enabled.value
+      ? (assistant?.config?.auto_resolve_after ??
+        initialState.inactivityThresholdMinutes)
+      : initialState.inactivityThresholdMinutes,
+    inactivityEnabled:
+      settings.inactivity_enabled !== false && savedMaxNudges > 0,
     afterMinutes:
       settings.inactivity_after_minutes ?? initialState.afterMinutes,
-    maxNudges: settings.max_nudges ?? initialState.maxNudges,
-    closeAfter: settings.close_after_minutes ?? initialState.closeAfter,
+    maxNudges: savedMaxNudges,
     reengagementEnabled: settings.reengagement_enabled === true,
     template: templateToValue(settings.reengagement_template),
     params: settings.reengagement_template?.processed_params || {},
@@ -110,18 +147,35 @@ const selectTemplate = value => {
   state.params = {};
 };
 
+const setInactivityEnabled = enabled => {
+  state.inactivityEnabled = enabled;
+  if (enabled && state.maxNudges === 0) state.maxNudges = 1;
+};
+
 const handleSubmit = () => {
   showErrors.value = true;
-  if (!templateComplete.value) return;
+  if (
+    !templateComplete.value ||
+    (state.autoResolveMode !== 'disabled' &&
+      Number(state.afterMinutes) >= Number(state.inactivityThresholdMinutes))
+  )
+    return;
 
   emit('submit', {
     config: {
       ...props.assistant.config,
+      ...(isCaptainV2Enabled.value
+        ? {
+            auto_resolve_mode: state.autoResolveMode,
+            auto_resolve_after: Number(state.inactivityThresholdMinutes),
+          }
+        : {}),
       followup: {
         inactivity_enabled: state.inactivityEnabled,
         inactivity_after_minutes: Number(state.afterMinutes),
         max_nudges: Number(state.maxNudges),
-        close_after_minutes: Number(state.closeAfter),
+        close_after_minutes:
+          props.assistant.config?.followup?.close_after_minutes ?? 120,
         reengagement_enabled: state.reengagementEnabled,
         reengagement_template: templateFromValue(state.template, state.params),
       },
@@ -139,34 +193,120 @@ watch(
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div class="flex flex-col gap-6">
     <SettingsToggleSection
-      v-model="state.inactivityEnabled"
+      v-if="isCaptainV2Enabled"
+      hide-toggle
+      data-testid="followup-inactivity-resolution"
+      :header="t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.TITLE')"
+      :description="
+        t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.DESCRIPTION')
+      "
+    >
+      <div class="flex w-full flex-col gap-4 pt-3">
+        <div
+          class="flex flex-col gap-3 px-4"
+          role="radiogroup"
+          :aria-label="
+            t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODE_LABEL')
+          "
+        >
+          <RadioCard
+            v-for="option in autoResolveOptions"
+            :id="`auto-resolve-${option.value}`"
+            :key="option.value"
+            :label="option.label"
+            :description="option.description"
+            name="auto-resolve-mode"
+            :is-active="state.autoResolveMode === option.value"
+            @select="state.autoResolveMode = option.value"
+          />
+        </div>
+        <div
+          v-if="state.autoResolveMode !== 'disabled'"
+          class="flex flex-col gap-3 border-t border-n-weak px-4 pt-4"
+        >
+          <div
+            class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+          >
+            <span class="text-body-main font-medium text-n-slate-12">{{
+              t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.REVIEW_AFTER')
+            }}</span>
+            <DurationSelect
+              v-model="state.inactivityThresholdMinutes"
+              :hours-aria-label="
+                t(
+                  'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.DURATION_HOURS_ARIA_LABEL'
+                )
+              "
+              :minutes-aria-label="
+                t(
+                  'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.DURATION_MINUTES_ARIA_LABEL'
+                )
+              "
+            />
+          </div>
+        </div>
+        <Banner
+          v-if="state.autoResolveMode === 'legacy'"
+          color="amber"
+          class="mx-4"
+        >
+          <div class="flex items-start gap-2">
+            <span class="i-lucide-triangle-alert mt-0.5 size-4 shrink-0" />{{
+              t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.ALWAYS_WARNING')
+            }}
+          </div>
+        </Banner>
+        <Banner
+          v-if="state.autoResolveMode === 'disabled'"
+          color="blue"
+          class="mx-4"
+        >
+          <div class="flex items-start gap-2">
+            <span class="i-lucide-info mt-0.5 size-4 shrink-0" />{{
+              t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.PENDING_INFO')
+            }}
+          </div>
+        </Banner>
+        <I18nT
+          keypath="CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.GOODBYE_SENTENCE"
+          tag="p"
+          class="mx-4 mb-0 text-body-main text-n-slate-11"
+        >
+          <template #link>
+            <RouterLink
+              :to="{
+                name: 'captain_assistants_settings_system_index',
+                params: {
+                  accountId: route.params.accountId,
+                  assistantId: route.params.assistantId,
+                },
+              }"
+              class="text-n-brand underline"
+            >
+              {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.GOODBYE_LINK') }}
+            </RouterLink>
+          </template>
+        </I18nT>
+      </div>
+    </SettingsToggleSection>
+
+    <SettingsToggleSection
+      :model-value="state.inactivityEnabled"
       :header="t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.TOGGLE')"
       :description="t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.TOGGLE_HELP')"
+      @update:model-value="setInactivityEnabled"
     >
-      <div v-if="state.inactivityEnabled" class="w-full px-4 pb-3 pt-3">
-        <div
-          data-testid="followup-window-notice"
-          class="flex items-start gap-2 rounded-xl border border-n-blue-7 bg-n-blue-2 px-3 py-2.5 text-xs text-n-slate-12"
-        >
-          <span class="i-lucide-info size-4 shrink-0 text-n-blue-11" />
-          {{
-            t('CAPTAIN.ASSISTANTS.FOLLOWUP.WINDOW_CLOSED_NOTICE', {
-              assistantName: assistant.name,
-            })
-          }}
-        </div>
-      </div>
       <div
         v-if="state.inactivityEnabled"
         data-testid="followup-fields"
-        class="grid w-full gap-4 border-t border-n-weak px-4 pb-2 pt-4 sm:grid-cols-3"
+        class="grid w-full gap-4 border-t border-n-weak px-4 pb-2 pt-4 sm:grid-cols-2"
       >
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium text-n-slate-12">
-            {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.AFTER') }}
-          </label>
+          <label class="text-sm font-medium text-n-slate-12">{{
+            t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.AFTER')
+          }}</label>
           <ComboBox
             v-model.number="state.afterMinutes"
             data-testid="followup-after"
@@ -177,9 +317,9 @@ watch(
           />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium text-n-slate-12">
-            {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.NUDGES') }}
-          </label>
+          <label class="text-sm font-medium text-n-slate-12">{{
+            t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.NUDGES')
+          }}</label>
           <ComboBox
             v-model.number="state.maxNudges"
             data-testid="followup-nudges"
@@ -189,43 +329,33 @@ watch(
             :aria-label="t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.NUDGES')"
           />
         </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium text-n-slate-12">
-            {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.CLOSE') }}
-          </label>
-          <ComboBox
-            v-model.number="state.closeAfter"
-            data-testid="followup-close"
-            teleport
-            :allow-deselect="false"
-            :options="closeOptions"
-            :aria-label="t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.CLOSE')"
-          />
-        </div>
-        <p class="mb-0 text-xs text-n-slate-11 sm:col-span-3">
+        <p class="mb-0 text-xs text-n-slate-11 sm:col-span-2">
           {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.HINT') }}
         </p>
       </div>
+      <p
+        v-if="
+          showErrors &&
+          state.autoResolveMode !== 'disabled' &&
+          Number(state.afterMinutes) >= Number(state.inactivityThresholdMinutes)
+        "
+        data-testid="followup-after-error"
+        class="px-4 pb-3 text-xs text-n-ruby-9"
+      >
+        {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.AFTER_ERROR') }}
+      </p>
     </SettingsToggleSection>
 
-    <div
+    <SettingsToggleSection
+      v-model="state.reengagementEnabled"
       data-testid="followup-reengagement"
-      class="flex flex-col gap-3 rounded-xl border border-n-weak p-4"
+      :header="t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.REENGAGEMENT')"
+      :description="t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.REENGAGEMENT_HELP')"
     >
-      <label
-        class="flex items-center gap-2 text-sm font-medium text-n-slate-12"
+      <div
+        v-if="state.reengagementEnabled"
+        class="flex w-full flex-col gap-3 px-4 pb-3 pt-3"
       >
-        <Checkbox
-          data-testid="followup-reengagement-enabled"
-          :model-value="state.reengagementEnabled"
-          @update:model-value="state.reengagementEnabled = $event"
-        />
-        {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.REENGAGEMENT') }}
-      </label>
-      <p class="mb-0 text-xs text-n-slate-11">
-        {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.REENGAGEMENT_HELP') }}
-      </p>
-      <template v-if="state.reengagementEnabled">
         <p
           v-if="!paidEnabled"
           data-testid="followup-paid-hint"
@@ -234,9 +364,9 @@ watch(
           {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.PAID_HINT') }}
         </p>
         <div v-else class="flex flex-col gap-1">
-          <label class="text-sm font-medium text-n-slate-12">
-            {{ t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.TEMPLATE') }}
-          </label>
+          <label class="text-sm font-medium text-n-slate-12">{{
+            t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.TEMPLATE')
+          }}</label>
           <ComboBox
             :model-value="state.template"
             data-testid="followup-template"
@@ -266,15 +396,13 @@ watch(
             {{ t('CAPTAIN.ASSISTANTS.FORM.TEMPLATE_VARIABLES.ERROR') }}
           </p>
         </div>
-      </template>
-    </div>
+      </div>
+    </SettingsToggleSection>
 
-    <div>
-      <Button
-        data-testid="followup-save"
-        :label="t('CAPTAIN.ASSISTANTS.FORM.UPDATE')"
-        @click="handleSubmit"
-      />
-    </div>
+    <Button
+      data-testid="followup-save"
+      :label="t('CAPTAIN.ASSISTANTS.FORM.UPDATE')"
+      @click="handleSubmit"
+    />
   </div>
 </template>
