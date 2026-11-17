@@ -184,7 +184,9 @@ watch(() => props.inboxId, loadSummary);
 </script>
 
 <template>
-  <section class="space-y-4 rounded-lg border border-n-weak bg-n-solid-1 p-4">
+  <section
+    class="px-5 py-5 space-y-4 rounded-xl outline outline-1 -outline-offset-1 outline-n-weak bg-n-solid-2"
+  >
     <div>
       <h3 class="mb-3 text-heading-4 text-n-slate-12">
         {{ t('INBOX_MGMT.ACCOUNT_HEALTH.MESSAGE_PRICING.TITLE') }}

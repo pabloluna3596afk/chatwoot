@@ -91,6 +91,7 @@ class Whatsapp::MessagePricingSummary
     Message.where(account_id: @inbox.account_id, inbox_id: @inbox.id, message_type: :outgoing, private: false)
            .where.not(status: :failed)
            .where(created_at: start_month...end_month)
+           .reorder(nil)
            .select(
              'date_trunc(\'month\', messages.created_at) AS month',
              "#{PRICING_CATEGORY_SQL} AS pricing_category",

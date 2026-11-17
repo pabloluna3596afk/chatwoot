@@ -1449,7 +1449,7 @@ export default {
             @register-webhook="registerWebhook"
             @go-to-configuration="goToWhatsAppConfiguration"
           />
-          <WhatsappMessagePricing :inbox-id="inbox.id" class="mt-6" />
+          <WhatsappMessagePricing :inbox-id="inbox.id" class="mx-6 mt-6" />
         </div>
         <div v-if="selectedTabKey === 'twilio-health'">
           <TwilioHealth
