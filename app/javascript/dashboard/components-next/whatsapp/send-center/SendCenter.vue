@@ -726,7 +726,7 @@ const overlayDescriptionId = useId();
         </section>
         <section
           v-if="selected"
-          class="min-h-0 min-w-0 overflow-y-auto overscroll-contain flex flex-col gap-3"
+          class="min-h-0 min-w-0 overflow-hidden flex flex-col gap-3"
           data-testid="center-detail"
           :aria-label="selected.name"
         >

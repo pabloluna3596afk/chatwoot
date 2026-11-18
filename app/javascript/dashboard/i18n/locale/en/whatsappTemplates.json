@@ -177,7 +177,6 @@
         "AUTHENTICATION": "Authentication message (codes)"
       },
       "USE_TEXT": "Use “{text}”",
-      "NO_DATA": "No data",
       "SEARCH_OR_TYPE": "Search or type…",
       "REMOVE_VALUE": "Remove"
     }
