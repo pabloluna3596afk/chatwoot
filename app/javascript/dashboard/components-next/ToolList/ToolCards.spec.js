@@ -1,5 +1,7 @@
 import { mount } from '@vue/test-utils';
+import { nextTick } from 'vue';
 import { describe, expect, it, vi } from 'vitest';
+import VueDOMPurifyHTML from 'vue-dompurify-html';
 import ToolCards from './ToolCards.vue';
 import en from 'dashboard/i18n/locale/en/cannedMgmt.json';
 import es from 'dashboard/i18n/locale/es/cannedMgmt.json';
@@ -18,11 +20,165 @@ const canned = {
 const mountCards = (props, options = {}) =>
   mount(ToolCards, {
     props: { items: [canned], titleKey: 'short_code', ...props },
-    global: { mocks: { $t: key => key } },
+    global: { mocks: { $t: key => key }, plugins: [VueDOMPurifyHTML] },
     ...options,
   });
 
 describe('ToolCards', () => {
+  it('renders the markdown of a response: bold, line breaks and lists', () => {
+    const wrapper = mountCards({
+      items: [
+        {
+          ...canned,
+          content:
+            '**5X MATRIX**\n\n- Fuerza\n- Recuperación\n\nHola {{contact.name}}',
+        },
+      ],
+      variableLabels: { 'contact.name': 'Nombre del contacto' },
+    });
+
+    expect(wrapper.find('strong').text()).toBe('5X MATRIX');
+    expect(wrapper.findAll('li').map(item => item.text())).toEqual([
+      'Fuerza',
+      'Recuperación',
+    ]);
+    expect(wrapper.text()).not.toContain('**');
+    expect(wrapper.find('.text-n-blue-12').text()).toBe('Nombre del contacto');
+  });
+
+  it('does not render scripts or event handlers typed in a response', () => {
+    const wrapper = mountCards({
+      items: [
+        {
+          ...canned,
+          content: '<img src=x onerror="alert(1)"><script>alert(2)</script>ok',
+        },
+      ],
+    });
+
+    expect(wrapper.find('img').exists()).toBe(false);
+    expect(wrapper.find('script').exists()).toBe(false);
+    expect(wrapper.text()).toContain('ok');
+  });
+
+  // jsdom has no layout: fake the measured heights (scrollHeight / clientHeight).
+  const stubHeights = (scroll, client) => {
+    vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(
+      scroll
+    );
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(
+      client
+    );
+  };
+  const mountMeasured = async (props, heights) => {
+    stubHeights(...heights);
+    const wrapper = mountCards(props);
+    await nextTick();
+    await nextTick();
+    return wrapper;
+  };
+
+  it('does not expand a short note whose text fits (160/160), even with many line breaks', async () => {
+    const wrapper = await mountMeasured(
+      {
+        items: [
+          { ...canned, content: 'hola\n\nfr\n\nfr\n\nfr\n\nfr\n\nfr\n\nfr' },
+        ],
+      },
+      [160, 160]
+    );
+    const textButton = wrapper.find('[data-card-content] button');
+
+    expect(textButton.classes().join(' ')).not.toContain(
+      'group-hover/content:invisible'
+    );
+    expect(wrapper.find('[data-card-content] .absolute').exists()).toBe(false);
+    expect(wrapper.find('[aria-expanded]').exists()).toBe(false);
+    vi.restoreAllMocks();
+  });
+
+  it('expands a card whose text is really cut (200/120): overlay on hover and a «show more» button', async () => {
+    const wrapper = await mountMeasured(
+      { items: [{ ...canned, content: 'Respuesta larga. '.repeat(40) }] },
+      [200, 120]
+    );
+    const textButton = wrapper.find('[data-card-content] button');
+
+    expect(textButton.classes().join(' ')).toContain(
+      'group-hover/content:invisible'
+    );
+    expect(wrapper.find('[data-card-content] .absolute').exists()).toBe(true);
+    expect(wrapper.find('[aria-expanded]').exists()).toBe(true);
+    vi.restoreAllMocks();
+  });
+
+  it('keeps the action menu above the hover overlay of the card', async () => {
+    const wrapper = await mountMeasured(
+      {
+        actions: [{ key: 'edit', label: 'Edit' }],
+        items: [{ ...canned, content: 'Respuesta larga. '.repeat(40) }],
+      },
+      [200, 120]
+    );
+
+    expect(wrapper.find('details').classes()).toContain('z-30');
+    expect(wrapper.find('[data-card-content] .absolute').classes()).toContain(
+      'z-20'
+    );
+    vi.restoreAllMocks();
+  });
+
+  it('keeps an expanded card expanded after it is measured again', async () => {
+    const wrapper = await mountMeasured(
+      { items: [{ ...canned, content: 'Respuesta larga. '.repeat(40) }] },
+      [200, 120]
+    );
+    const toggle = wrapper.find('[aria-expanded]');
+
+    await toggle.trigger('click');
+    stubHeights(200, 200);
+    wrapper.vm.$forceUpdate();
+    await nextTick();
+    await nextTick();
+
+    expect(wrapper.find('[aria-expanded]').exists()).toBe(true);
+    expect(wrapper.find('[aria-expanded]').attributes('aria-expanded')).toBe(
+      'true'
+    );
+    vi.restoreAllMocks();
+  });
+
+  it('renders no footer for a card without creator or approver', async () => {
+    const wrapper = await mountMeasured(
+      { items: [{ ...canned, created_by: null }] },
+      [100, 100]
+    );
+
+    expect(wrapper.find('footer').exists()).toBe(false);
+    vi.restoreAllMocks();
+  });
+
+  it('hangs the footer of a short card below it on hover devices, without taking space', async () => {
+    const wrapper = await mountMeasured({ items: [canned] }, [100, 100]);
+    const classes = wrapper.find('footer').classes().join(' ');
+
+    expect(classes).toContain('[@media(hover:hover)]:absolute');
+    expect(classes).toContain('[@media(hover:hover)]:top-full');
+    expect(classes).toContain('[@media(hover:hover)]:opacity-0');
+    vi.restoreAllMocks();
+  });
+
+  it('shows the trace once on a truncated card (overlay) and keeps the footer for screen readers', async () => {
+    const wrapper = await mountMeasured(
+      { items: [{ ...canned, content: 'Respuesta larga. '.repeat(40) }] },
+      [200, 120]
+    );
+
+    expect(wrapper.find('footer').classes().join(' ')).toContain(
+      '[@media(hover:hover)]:sr-only'
+    );
+    vi.restoreAllMocks();
+  });
   it('shows readable variable labels while preserving source text in the tooltip', () => {
     const wrapper = mountCards({
       variableLabels: { 'contact.name': 'Nombre del contacto' },
@@ -95,6 +251,30 @@ describe('ToolCards', () => {
     });
   });
 
+  it('closes the action menu when the user clicks outside of it', async () => {
+    const wrapper = mountCards(
+      { actions: [{ key: 'edit', label: 'Edit' }] },
+      { attachTo: document.body }
+    );
+    const menu = wrapper.find('details');
+    menu.element.open = true;
+    document.body.click();
+    await wrapper.vm.$nextTick();
+    expect(menu.element.open).toBe(false);
+    wrapper.unmount();
+  });
+  it('keeps the action menu open when clicking inside it', async () => {
+    const wrapper = mountCards(
+      { actions: [{ key: 'edit', label: 'Edit' }] },
+      { attachTo: document.body }
+    );
+    const menu = wrapper.find('details');
+    menu.element.open = true;
+    menu.find('summary').element.click();
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find('details').exists()).toBe(true);
+    wrapper.unmount();
+  });
   it('closes the action menu on Escape and returns focus to its trigger', async () => {
     const wrapper = mountCards(
       {
@@ -115,7 +295,7 @@ describe('ToolCards', () => {
 
   it('expands a long response in place for touch screens', async () => {
     const longResponse = { ...canned, content: 'Respuesta larga. '.repeat(40) };
-    const wrapper = mountCards({ items: [longResponse] });
+    const wrapper = await mountMeasured({ items: [longResponse] }, [200, 120]);
     const toggle = wrapper.find('[aria-expanded]');
 
     expect(toggle.attributes('aria-expanded')).toBe('false');
@@ -144,5 +324,20 @@ describe('ToolCards', () => {
     await wrapper.find('button[title="Copy"]').trigger('click');
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(canned.content);
     expect(wrapper.find('[aria-live="polite"]').text()).toBe('Copiado');
+  });
+
+  it('keeps a hovered card, and a card with its menu open, above the neighbor menus', async () => {
+    const wrapper = await mountMeasured(
+      { items: [canned], actions: [{ key: 'edit', label: 'Edit' }] },
+      [100, 100]
+    );
+    const classes = wrapper.find('article').classes().join(' ');
+
+    expect(classes).toContain('hover:z-40');
+    expect(classes).toContain('focus-within:z-40');
+    expect(classes).toContain('has-[details[open]]:z-50');
+    // neighbor action menus sit at z-30, below a hovered card (z-40)
+    expect(wrapper.find('details').classes()).toContain('z-30');
+    vi.restoreAllMocks();
   });
 });

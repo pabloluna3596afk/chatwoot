@@ -144,6 +144,13 @@
       "SUCCESS": "Respuesta aprobada.",
       "ERROR": "No se pudo aprobar la respuesta."
     },
+    "MOVE": {
+      "TO_ACCOUNT": "Pasar a la cuenta",
+      "TO_PERSONAL": "Pasar a personal",
+      "SUCCESS_ACCOUNT": "La respuesta ahora es de la cuenta.",
+      "SUCCESS_PERSONAL": "La respuesta ahora es personal.",
+      "ERROR": "No se pudo cambiar el alcance de la respuesta."
+    },
     "REJECT": {
       "TITLE": "Rechazar respuesta predefinida",
       "BUTTON": "Rechazar",

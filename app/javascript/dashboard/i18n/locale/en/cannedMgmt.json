@@ -144,6 +144,13 @@
       "SUCCESS": "Canned response approved.",
       "ERROR": "Could not approve canned response."
     },
+    "MOVE": {
+      "TO_ACCOUNT": "Move to account",
+      "TO_PERSONAL": "Move to personal",
+      "SUCCESS_ACCOUNT": "The response now belongs to the account.",
+      "SUCCESS_PERSONAL": "The response is now personal.",
+      "ERROR": "Could not change the scope of the response."
+    },
     "REJECT": {
       "TITLE": "Reject canned response",
       "BUTTON": "Reject",

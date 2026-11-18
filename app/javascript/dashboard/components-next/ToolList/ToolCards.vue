@@ -1,5 +1,13 @@
 <script setup>
-import { computed, ref } from 'vue';
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  onUpdated,
+  ref,
+} from 'vue';
+import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 
 const props = defineProps({
   items: { type: Array, default: () => [] },
@@ -30,16 +38,12 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['action', 'edit']);
+const { formatMessage } = useMessageFormatter();
 const expanded = ref(new Set());
 const copied = ref(new Set());
-const overlayAbove = ref(new Set());
 const timers = new Map();
 const visibleActions = item =>
   props.actions.filter(action => !action.visible || action.visible(item));
-const contentParts = content =>
-  String(content || '')
-    .split(/(\{\{[^{}]+\}\})/g)
-    .filter(Boolean);
 const variableName = part => {
   const path = part.replace(/[{}]/g, '').trim();
   if (props.variableLabels[path]) return props.variableLabels[path];
@@ -53,9 +57,34 @@ const variableName = part => {
   }
   return props.variableLabels[path] || path.replace(/[._]/g, ' ');
 };
-const needsExpansion = content =>
-  String(content || '').length > 300 ||
-  String(content || '').split('\n').length > 6;
+// A card expands only when its clamped text is really cut: measure the rendered height.
+const truncated = ref(new Set());
+const textElements = new Map();
+let resizeObserver = null;
+const measure = () => {
+  const next = new Set();
+  textElements.forEach((element, key) => {
+    // An expanded card is not clamped any more: keep what we knew before.
+    if (expanded.value.has(key)) {
+      if (truncated.value.has(key)) next.add(key);
+      return;
+    }
+    if (element.scrollHeight - element.clientHeight > 1) next.add(key);
+  });
+  const unchanged =
+    next.size === truncated.value.size &&
+    [...next].every(key => truncated.value.has(key));
+  if (!unchanged) truncated.value = next;
+};
+const setTextElement = (key, element) => {
+  if (element) {
+    textElements.set(key, element);
+    resizeObserver?.observe(element);
+  } else {
+    textElements.delete(key);
+  }
+};
+const isTruncated = item => truncated.value.has(props.getKey(item));
 const toggleExpanded = id => {
   const next = new Set(expanded.value);
   if (next.has(id)) next.delete(id);
@@ -83,19 +112,6 @@ const copyContent = async item => {
   );
 };
 const isCopied = item => copied.value.has(props.getKey(item));
-const setOverlayDirection = (item, event) => {
-  if (!needsExpansion(item[props.contentKey])) return;
-  const body = event.currentTarget.querySelector('[data-card-content]');
-  if (!body) return;
-  const { top, bottom } = body.getBoundingClientRect();
-  const next = new Set(overlayAbove.value);
-  if (window.innerHeight - bottom < 280 && top > 280) {
-    next.add(props.getKey(item));
-  } else {
-    next.delete(props.getKey(item));
-  }
-  overlayAbove.value = next;
-};
 const traceLabel = (label, person, date) =>
   person
     ? `${label} ${person.available_name || person.email || ''} · ${date}`
@@ -111,6 +127,32 @@ const visibilityIcon = item =>
     ? 'i-lucide-building-2 text-n-brand'
     : 'i-lucide-user-round text-n-slate-11';
 const visibleVariableText = part => variableName(part);
+// Paragraph spacing only in the expanded overlay: in the collapsed card every paragraph
+// is one clamped line, so the measured height matches the line count.
+const overlayClasses = '[&_p+p]:mt-2';
+const escapeHtml = value =>
+  String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+// Canned responses are markdown: render bold, line breaks, lists and links like the
+// chat does, keeping each {{ variable }} as a chip. The result is sanitized by the
+// v-dompurify-html directive where it is used.
+const renderContent = content => {
+  const variables = [];
+  const text = String(content || '').replace(/\{\{[^{}]+\}\}/g, match => {
+    variables.push(match);
+    return `CANNEDVAR${variables.length - 1}X`;
+  });
+  return formatMessage(text, false, false, false).replace(
+    /CANNEDVAR(\d+)X/g,
+    (_, index) =>
+      `<span class="inline break-words rounded bg-n-brand/10 px-1 text-n-blue-12" title="${escapeHtml(variables[index])}">${escapeHtml(visibleVariableText(variables[index]))}</span>`
+  );
+};
+const contentClasses =
+  '[&_p]:m-0 [&_ul]:m-0 [&_ul]:list-disc [&_ul]:ps-5 [&_ol]:m-0 [&_ol]:list-decimal [&_ol]:ps-5 [&_a]:underline [&_a]:text-n-brand [&_strong]:font-semibold';
 const cardTabIndex = item => (props.canEdit(item) ? 0 : -1);
 const onCardKeydown = (event, item) => {
   if (event.key === 'Enter' || event.key === ' ') {
@@ -126,6 +168,26 @@ const closeMenuOnEscape = event => {
   details.querySelector('summary')?.focus();
 };
 const cards = computed(() => props.items);
+// The action menu is a native <details>: close it when the user clicks anywhere else.
+const closeMenusOnOutsideClick = event => {
+  document.querySelectorAll('details[data-card-menu][open]').forEach(menu => {
+    if (!menu.contains(event.target)) menu.removeAttribute('open');
+  });
+};
+onMounted(() => {
+  document.addEventListener('click', closeMenusOnOutsideClick);
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(measure);
+    textElements.forEach(element => resizeObserver.observe(element));
+  }
+  nextTick(measure);
+  document.fonts?.ready?.then(measure);
+});
+onUpdated(measure);
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeMenusOnOutsideClick);
+  resizeObserver?.disconnect();
+});
 </script>
 
 <template>
@@ -137,9 +199,7 @@ const cards = computed(() => props.items);
       <article
         v-for="item in cards"
         :key="getKey(item)"
-        class="group relative mb-3 inline-block w-full break-inside-avoid rounded-xl border border-n-weak bg-n-surface-1 shadow-sm hover:z-30 hover:shadow-lg focus-within:z-30"
-        @mouseenter="setOverlayDirection(item, $event)"
-        @focusin="setOverlayDirection(item, $event)"
+        class="group relative mb-3 inline-block w-full break-inside-avoid rounded-xl border border-n-weak bg-n-surface-1 shadow-sm hover:z-40 hover:shadow-lg focus-within:z-40 has-[details[open]]:z-50"
       >
         <div class="flex items-start gap-2 p-4 pb-2">
           <button
@@ -175,7 +235,8 @@ const cards = computed(() => props.items);
           }}</span>
           <details
             v-if="visibleActions(item).length"
-            class="relative z-10 shrink-0"
+            data-card-menu
+            class="relative z-30 shrink-0"
             @keydown="closeMenuOnEscape"
           >
             <summary
@@ -210,43 +271,36 @@ const cards = computed(() => props.items);
             </div>
           </details>
         </div>
-        <div class="relative px-4 pb-3" data-card-content>
+        <div class="group/content relative px-4 pb-3" data-card-content>
           <button
             type="button"
-            class="block w-full text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand [@media(hover:hover)]:group-hover:invisible [@media(hover:hover)]:focus:invisible"
+            class="block w-full text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
+            :class="
+              isTruncated(item)
+                ? '[@media(hover:hover)]:group-hover/content:invisible [@media(hover:hover)]:focus:invisible'
+                : ''
+            "
             :aria-label="`${editLabel}: ${item[titleKey]}`"
             @click="editItem(item)"
           >
             <span
-              class="line-clamp-6 whitespace-pre-wrap text-sm leading-5 text-n-slate-11"
-              :class="
+              :ref="element => setTextElement(getKey(item), element)"
+              v-dompurify-html="renderContent(item[contentKey])"
+              class="line-clamp-6 break-words text-sm leading-5 text-n-slate-11"
+              :class="[
+                contentClasses,
                 expanded.has(getKey(item))
                   ? 'line-clamp-none overflow-visible'
-                  : ''
-              "
-            >
-              <template
-                v-for="(part, index) in contentParts(item[contentKey])"
-                :key="index"
-              >
-                <span
-                  v-if="part.startsWith('{{')"
-                  class="inline break-words rounded bg-n-brand/10 px-1 text-n-blue-12"
-                  :title="part"
-                  >{{ visibleVariableText(part) }}</span
-                ><span v-else>{{ part }}</span>
-              </template>
-            </span>
+                  : '',
+              ]"
+            />
           </button>
           <div
-            v-if="needsExpansion(item[contentKey])"
-            class="hidden [@media(hover:hover)]:group-hover:block [@media(hover:hover)]:group-focus-within:block"
+            v-if="isTruncated(item)"
+            class="hidden [@media(hover:hover)]:group-hover/content:block [@media(hover:hover)]:group-focus-within/content:block"
           >
             <div
-              class="absolute inset-x-0 z-20 max-h-[min(70vh,36rem)] overflow-y-auto rounded-xl border border-n-weak bg-n-surface-1 p-4 pt-2 shadow-xl"
-              :class="
-                overlayAbove.has(getKey(item)) ? 'bottom-0 top-auto' : 'top-0'
-              "
+              class="absolute inset-x-0 top-0 z-20 max-h-[min(70vh,36rem)] overflow-y-auto rounded-xl border border-n-weak bg-n-surface-1 p-4 pt-2 shadow-xl"
             >
               <button
                 type="button"
@@ -254,17 +308,11 @@ const cards = computed(() => props.items);
                 :aria-label="`${editLabel}: ${item[titleKey]}`"
                 @click="editItem(item)"
               >
-                <template
-                  v-for="(part, index) in contentParts(item[contentKey])"
-                  :key="index"
-                >
-                  <span
-                    v-if="part.startsWith('{{')"
-                    class="inline break-words rounded bg-n-brand/10 px-1 text-n-blue-12"
-                    :title="part"
-                    >{{ visibleVariableText(part) }}</span
-                  ><span v-else>{{ part }}</span>
-                </template>
+                <span
+                  v-dompurify-html="renderContent(item[contentKey])"
+                  class="block break-words"
+                  :class="[contentClasses, overlayClasses]"
+                />
               </button>
               <div
                 class="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-n-weak pt-2 text-xs text-n-slate-10"
@@ -279,7 +327,7 @@ const cards = computed(() => props.items);
             </div>
           </div>
           <button
-            v-if="needsExpansion(item[contentKey])"
+            v-if="isTruncated(item)"
             type="button"
             class="mt-1 text-xs font-medium text-n-brand [@media(hover:hover)]:hidden"
             :aria-expanded="expanded.has(getKey(item))"
@@ -316,7 +364,13 @@ const cards = computed(() => props.items);
           /></span>
         </div>
         <footer
-          class="flex flex-wrap gap-x-3 gap-y-1 border-t border-n-weak px-4 py-2 text-xs text-n-slate-11 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:transition-opacity [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-within:opacity-100 motion-reduce:transition-none"
+          v-if="createdBy(item) || reviewedBy(item)"
+          class="flex flex-wrap gap-x-3 gap-y-1 border-t border-n-weak px-4 py-2 text-xs text-n-slate-11 motion-reduce:transition-none"
+          :class="
+            isTruncated(item)
+              ? '[@media(hover:hover)]:sr-only'
+              : '[@media(hover:hover)]:absolute [@media(hover:hover)]:inset-x-0 [@media(hover:hover)]:top-full [@media(hover:hover)]:-mt-px [@media(hover:hover)]:z-20 [@media(hover:hover)]:rounded-b-xl [@media(hover:hover)]:border [@media(hover:hover)]:border-n-weak [@media(hover:hover)]:bg-n-surface-1 [@media(hover:hover)]:shadow-lg [@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:transition-opacity [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100'
+          "
         >
           <span
             v-if="createdBy(item)"
