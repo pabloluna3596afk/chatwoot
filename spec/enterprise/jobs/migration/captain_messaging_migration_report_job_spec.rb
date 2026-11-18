@@ -52,7 +52,7 @@ RSpec.describe Migration::CaptainMessagingMigrationReportJob do
       { 'name' => 'bienvenida (es)', 'category' => 'MARKETING', 'purpose_present' => true, 'params_present' => true }
     )
     expect(summary.dig('after_auto_would_allow', 'available')).to eq(['cita_confirmacion (es)'])
-    expect(summary.dig('after_auto_would_allow', 'new')).to eq(['bienvenida (es)'])
+    expect(summary.dig('after_auto_would_allow', 'marketing_off')).to eq(['bienvenida (es)'])
     expect(summary.dig('differences', 'lost')).to eq(['bienvenida (es)'])
   end
 
@@ -65,7 +65,7 @@ RSpec.describe Migration::CaptainMessagingMigrationReportJob do
       'Hoy puede enviar: cita_confirmacion (es), bienvenida (es)',
       'Con el modo automático podría enviar: cita_confirmacion (es)',
       'Ganaría: (ninguno)',
-      'Perdería: bienvenida (es)',
+      'Perdería / quedaría apagada: bienvenida (es)',
       'Necesita revisión: bienvenida (es)'
     ].join("\n")
     expect(Captain::Messaging::MigrationReportText.new(report).render).to eq(expected_text)

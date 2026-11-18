@@ -44,7 +44,8 @@ RSpec.describe Captain::Messaging::Migration do
     converted = assistant.reload.config.dig('messaging', 'inboxes', 0)
     expect(converted['mode']).to eq('auto')
     key = "#{channel.provider_config.fetch('business_account_id')}:promo|es"
-    expect(converted['included_marketing']).to eq([key])
+    expect(converted['included_marketing']).to eq([])
+    expect(converted.dig('notes', "template:#{key}")).to eq('Saludo')
     expect(converted.dig('params', key)).to eq('body' => { '1' => '{{ contact.name }}' })
     first_conversion = assistant.reload.config['messaging']
     described_class.convert!(assistant)
