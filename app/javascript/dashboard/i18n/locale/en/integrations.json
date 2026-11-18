@@ -1383,7 +1383,20 @@
         "PORTFOLIO": "Business portfolio \"{name}\"",
         "SHARES_WITH_MANY": "Shares templates and WhatsApp Flows with {count} other numbers",
         "PREVIEW": "Preview",
+        "PREVIEW_TEMPLATE": "Preview: {name}",
+        "PREVIEW_FLOW": "Preview WhatsApp Flow: {name}",
         "PREVIEW_FLOW_UNPUBLISHED": "This Flow is not published on this inbox's WhatsApp account.",
+        "PREVIEW_PANEL": {
+          "DESCRIPTION": "See how the message looks with Captain's data.",
+          "MISSING_VARIABLES": "A value is missing. Captain will not send this template until you complete it.",
+          "VARIABLES_TITLE": "What Captain fills in for each variable",
+          "UNASSIGNED": "Not assigned",
+          "BY_NAME": "By their name",
+          "ASSIGNED_HERE": "Assigned on this number",
+          "ASSIGNED_ASSISTANT": "From the assistant (legacy)",
+          "INBOX": "Inbox: {name}",
+          "TEMPLATE_UNAVAILABLE": "This template is no longer approved in this inbox and cannot be shown."
+        },
         "CONFLICT": "Reload the page: this configuration changed.",
         "CONNECTION": {
           "CONNECTED": "Connected",
@@ -1409,6 +1422,7 @@
           "TOGGLE": "Captain books appointments in this inbox",
           "OFF": "Appointments are off in this inbox.",
           "ASSISTANT_OFF": "Appointments are off for this assistant.",
+          "DISABLED": "Off",
           "LINK": "Appointments",
           "CALENDAR": "Calendar \"{name}\"",
           "CONNECTED": "Connected",
@@ -1479,6 +1493,7 @@
         "ROW_ALLOW": "Allow",
         "FOLLOWUP": {
           "TITLE": "Follow-up",
+          "NO_TEMPLATE": "No re-engagement template selected",
           "REENGAGEMENT": "Re-engagement with \"{name}\"",
           "NUDGE_ON": "\"Are you still there?\" on",
           "NUDGE_OFF": "\"Are you still there?\" off",

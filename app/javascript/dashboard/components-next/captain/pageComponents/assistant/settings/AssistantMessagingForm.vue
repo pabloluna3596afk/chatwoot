@@ -19,6 +19,8 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
 import FlowPreviewDrawer from 'dashboard/routes/dashboard/settings/templates/flows/FlowPreviewDrawer.vue';
+import CaptainTemplatePreview from './CaptainTemplatePreview.vue';
+import { useTemplateVariables } from './useTemplateVariables';
 
 const props = defineProps({ assistant: { type: Object, default: () => ({}) } });
 const emit = defineEmits(['submit']);
@@ -26,6 +28,16 @@ const { t } = useI18n();
 const route = useRoute();
 const store = useStore();
 const { accountScopedRoute } = useAccount();
+const { variableOptions, previewValues } = useTemplateVariables({
+  appointment: false,
+});
+const bindingOptions = computed(() =>
+  variableOptions.value.map(option => ({
+    value: option.key,
+    label: option.label,
+    description: option.description,
+  }))
+);
 const linkedInboxes = useMapGetter('captainInboxes/getRecords');
 const allInboxes = useMapGetter('inboxes/getInboxes');
 
@@ -38,7 +50,7 @@ const capValue = ref(50);
 const capUsed = ref(0);
 const expanded = reactive({});
 const noteDialog = ref(null);
-const previewDialog = ref(null);
+const templatePreview = ref(null);
 const assignDialog = ref(null);
 const previewDrawer = ref(null);
 const selectedRow = ref(null);
@@ -370,7 +382,7 @@ const openPreview = row => {
     return;
   }
   selectedRow.value = row;
-  previewDialog.value?.open();
+  templatePreview.value?.open();
 };
 const updateAppointment = async value => {
   await CaptainInboxesAPI.updateAppointments({
@@ -391,8 +403,14 @@ const calendarName = computed(() => {
   return connection?.name || connection?.email || '';
 });
 const calendarConnected = computed(() => Boolean(calendarName.value));
+const assistantAppointmentsEnabled = computed(
+  () => props.assistant?.config?.appointments?.enabled !== false
+);
 const followupName = computed(
   () => props.assistant?.config?.followup?.reengagement_template?.name || ''
+);
+const followupEnabled = computed(
+  () => props.assistant?.config?.followup?.reengagement_enabled === true
 );
 const followupExists = inbox => {
   const reminder = props.assistant?.config?.followup?.reengagement_template;
@@ -752,13 +770,31 @@ onMounted(async () => {
             {{ t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.TITLE') }}
           </h3>
           <SettingsToggleSection
+            v-if="assistantAppointmentsEnabled"
             :model-value="selectedInbox.appointments_enabled !== false"
             :header="t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.TOGGLE')"
             @update:model-value="updateAppointment"
           />
+          <SettingsToggleSection
+            v-else
+            :model-value="false"
+            :header="t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.TOGGLE')"
+            hide-toggle
+          >
+            <template #hiddenToggle>
+              <span
+                role="switch"
+                aria-checked="false"
+                aria-disabled="true"
+                class="pointer-events-none rounded-full bg-n-slate-6 px-2 py-1 text-xs text-n-slate-11 opacity-60"
+              >
+                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.DISABLED') }}
+              </span>
+            </template>
+          </SettingsToggleSection>
           <template v-if="selectedInbox.appointments_enabled !== false">
             <p
-              v-if="props.assistant?.config?.appointments?.enabled === false"
+              v-if="!assistantAppointmentsEnabled"
               class="mb-0 text-sm text-n-slate-11"
             >
               {{ t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.ASSISTANT_OFF') }}
@@ -794,7 +830,10 @@ onMounted(async () => {
                 </RouterLink>
               </template>
             </p>
-            <p class="mb-0 text-sm text-n-slate-11">
+            <p
+              v-if="assistantAppointmentsEnabled"
+              class="mb-0 text-sm text-n-slate-11"
+            >
               {{ t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.INSIDE') }}
               <template
                 v-if="selectedInbox.channel_type === 'Channel::Whatsapp'"
@@ -832,6 +871,7 @@ onMounted(async () => {
             @update:model-value="currentEntry.enabled = $event"
           />
           <button
+            v-if="currentEntry.enabled"
             type="button"
             class="flex w-full flex-wrap items-center justify-between gap-2 rounded-xl border border-n-weak px-3 py-3 text-start text-sm text-n-slate-12"
             :aria-expanded="expanded[selectedInboxId] === true"
@@ -848,7 +888,7 @@ onMounted(async () => {
               )
             }}</span>
           </button>
-          <template v-if="expanded[selectedInboxId]">
+          <template v-if="currentEntry.enabled && expanded[selectedInboxId]">
             <section class="flex flex-col gap-2">
               <h3
                 class="m-0 flex items-center justify-between text-sm font-medium text-n-slate-12"
@@ -889,7 +929,11 @@ onMounted(async () => {
                     outline
                     sm
                     icon="i-lucide-eye"
-                    :aria-label="t('CAPTAIN.ASSISTANTS.ENVIOS.PREVIEW')"
+                    :aria-label="
+                      t('CAPTAIN.ASSISTANTS.ENVIOS.PREVIEW_FLOW', {
+                        name: row.flow?.name || row.resource.id,
+                      })
+                    "
                     @click="openPreview(row)"
                   />
                   <Button
@@ -997,7 +1041,11 @@ onMounted(async () => {
                     outline
                     sm
                     icon="i-lucide-eye"
-                    :aria-label="t('CAPTAIN.ASSISTANTS.ENVIOS.PREVIEW')"
+                    :aria-label="
+                      t('CAPTAIN.ASSISTANTS.ENVIOS.PREVIEW_TEMPLATE', {
+                        name: row.resource.name,
+                      })
+                    "
                     @click="openPreview(row)"
                   />
                   <Button
@@ -1046,29 +1094,41 @@ onMounted(async () => {
             <div
               class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-n-weak p-3 text-sm text-n-slate-12"
             >
-              <span
-                >{{
+              <span>
+                {{
                   followupName
                     ? t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.REENGAGEMENT', {
                         name: followupName,
                       })
-                    : t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.NUDGE_OFF')
+                    : t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.NO_TEMPLATE')
                 }}
+                <template v-if="followupName">
+                  <span
+                    aria-hidden="true"
+                    class="mx-1 inline-block size-1 rounded-full bg-n-slate-7"
+                  />
+                  {{
+                    followupExists(selectedInbox)
+                      ? t(
+                          'CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.APPROVED_HERE',
+                          { name: followupName }
+                        )
+                      : t(
+                          'CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.MISSING_HERE',
+                          { name: followupName }
+                        )
+                  }}
+                </template>
                 <span
                   aria-hidden="true"
                   class="mx-1 inline-block size-1 rounded-full bg-n-slate-7"
                 />
                 {{
-                  followupExists(selectedInbox)
-                    ? t(
-                        'CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.APPROVED_HERE',
-                        { name: followupName }
-                      )
-                    : t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.MISSING_HERE', {
-                        name: followupName,
-                      })
-                }}</span
-              >
+                  followupEnabled
+                    ? t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.NUDGE_ON')
+                    : t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.NUDGE_OFF')
+                }}
+              </span>
               <RouterLink
                 :to="openSettings('captain_assistants_settings_followup_index')"
                 class="text-n-brand underline"
@@ -1086,11 +1146,15 @@ onMounted(async () => {
             <div
               class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-n-weak p-3 text-sm text-n-slate-12"
             >
-              <span>{{
-                selectedInbox.channel_type === 'Channel::Email'
-                  ? t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.NUDGE_EMAIL')
-                  : t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.NUDGE_ON')
-              }}</span>
+              <span v-if="selectedInbox.channel_type === 'Channel::Email'">
+                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.NUDGE_EMAIL') }}
+              </span>
+              <span v-else-if="followupEnabled">
+                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.NUDGE_ON') }}
+              </span>
+              <span v-else>
+                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.NUDGE_OFF') }}
+              </span>
               <RouterLink
                 :to="openSettings('captain_assistants_settings_followup_index')"
                 class="text-n-brand underline"
@@ -1144,34 +1208,27 @@ onMounted(async () => {
         <p class="mb-0 text-sm text-n-slate-11">
           {{ t('CAPTAIN.ASSISTANTS.ENVIOS.TEMPLATES.ASSIGN_HELP') }}
         </p>
-        <Input
+        <ComboBox
           v-for="variable in selectedRow?.missing || []"
           :key="variable"
-          v-model="bindingsDraft[variable]"
+          :model-value="bindingsDraft[variable]"
           :label="variable"
+          :options="bindingOptions"
+          @update:model-value="bindingsDraft[variable] = $event"
         />
       </div>
     </Dialog>
-    <Dialog
-      ref="previewDialog"
-      :title="selectedRow?.resource?.name || ''"
-      :show-confirm-button="false"
-      :cancel-button-label="t('DIALOG.BUTTONS.CLOSE')"
-    >
-      <div class="flex flex-col gap-3 rounded-xl bg-n-solid-2 p-4">
-        <p class="mb-0 whitespace-pre-wrap text-sm text-n-slate-12">
-          {{ templatePurpose(selectedRow || {}) }}
-        </p>
-        <p class="mb-0 text-xs text-n-slate-11">
-          {{ selectedRow?.resource?.category }}
-          <span
-            aria-hidden="true"
-            class="mx-1 inline-block size-1 rounded-full bg-n-slate-7"
-          />
-          {{ selectedRow?.resource?.language }}
-        </p>
-      </div>
-    </Dialog>
+    <CaptainTemplatePreview
+      ref="templatePreview"
+      :template="selectedRow?.template"
+      :params="selectedRow?.processed_params"
+      :sources="selectedRow?.sources"
+      :complete="selectedRow?.state !== 'needs_data'"
+      :available="selectedRow?.template?.status?.toUpperCase() === 'APPROVED'"
+      :inbox-name="selectedInbox?.name || ''"
+      :variable-options="variableOptions"
+      :preview-values="previewValues"
+    />
     <FlowPreviewDrawer ref="previewDrawer" />
   </div>
 </template>
