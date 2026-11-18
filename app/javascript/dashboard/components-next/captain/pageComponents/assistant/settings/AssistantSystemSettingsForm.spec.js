@@ -45,75 +45,26 @@ describe('AssistantSystemSettingsForm', () => {
     );
   });
 
-  it('shows the evaluated policy controls from the saved config', () => {
+  it('keeps only the goodbye message control in system settings', () => {
     const wrapper = mountComponent();
-    const modeCards = wrapper.findAllComponents(RadioCard);
-
-    expect(modeCards).toHaveLength(3);
-    expect(
-      modeCards.every(card => card.props('name') === 'auto-resolve-mode')
-    ).toBe(true);
-    expect(modeCards[0].props('isActive')).toBe(true);
-    expect(wrapper.findAllComponents(DurationSelect)).toHaveLength(1);
-    expect(wrapper.findAllComponents(Switch)).toHaveLength(1);
-    expect(wrapper.text()).toContain(
-      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.REVIEW_AFTER'
-    );
-  });
-
-  it('hides inactive actions and saves disabled mode without clearing settings', async () => {
-    const wrapper = mountComponent();
-
-    wrapper.findAllComponents(RadioCard)[2].vm.$emit('select');
-    await nextTick();
-
+    expect(wrapper.findAllComponents(RadioCard)).toHaveLength(0);
     expect(wrapper.findAllComponents(DurationSelect)).toHaveLength(0);
-    expect(wrapper.findAllComponents(Switch)).toHaveLength(0);
-    expect(wrapper.text()).toContain(
-      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.PENDING_INFO'
-    );
-
-    await submitForm(wrapper);
-
-    expect(wrapper.emitted('submit')[0][0]).toEqual({
-      config: {
-        ...assistant.config,
-        max_replies_per_conversation: 20,
-        auto_resolve_mode: 'disabled',
-      },
-    });
-  });
-
-  it('saves the evaluated policy timer', async () => {
-    const wrapper = mountComponent();
-
-    const durationSelects = wrapper.findAllComponents(DurationSelect);
-    expect(durationSelects).toHaveLength(1);
-
-    durationSelects[0].vm.$emit('update:modelValue', 130);
-    await nextTick();
-    await submitForm(wrapper);
-
-    expect(wrapper.emitted('submit')[0][0]).toEqual({
-      config: {
-        ...assistant.config,
-        max_replies_per_conversation: 20,
-        auto_resolve_after: 130,
-      },
-    });
-  });
-
-  it('shows the warning in always resolve mode', async () => {
-    const wrapper = mountComponent();
-
-    wrapper.findAllComponents(RadioCard)[1].vm.$emit('select');
-    await nextTick();
-
-    expect(wrapper.findAllComponents(DurationSelect)).toHaveLength(1);
     expect(wrapper.findAllComponents(Switch)).toHaveLength(1);
     expect(wrapper.text()).toContain(
-      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.ALWAYS_WARNING'
+      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.RESOLUTION_MESSAGE.TITLE'
     );
+  });
+
+  it('saves system messages without changing the mode or the inactivity timer', async () => {
+    const wrapper = mountComponent();
+    await submitForm(wrapper);
+
+    expect(wrapper.emitted('submit')[0][0]).toEqual({
+      config: {
+        ...assistant.config,
+        max_replies_per_conversation: 20,
+      },
+    });
   });
 
   it('saves the reply limit, 20 by default and 0 for no limit', async () => {
@@ -138,34 +89,8 @@ describe('AssistantSystemSettingsForm', () => {
 
     expect(wrapper.emitted('submit')).toBeUndefined();
   });
-  it('keeps only the existing resolution control', () => {
+  it('does not render inactivity mode controls', () => {
     const wrapper = mountComponent();
-    expect(wrapper.findAll('[role="radiogroup"]')).toHaveLength(1);
-    expect(wrapper.findAllComponents(RadioCard)).toHaveLength(3);
-  });
-
-  it.each([true, false])(
-    'shows the follow-up notice only when inactivity is enabled: %s',
-    async enabled => {
-      const wrapper = mountComponent();
-      await wrapper.setProps({
-        assistant: {
-          name: 'Captain',
-          config: {
-            ...assistant.config,
-            followup: { inactivity_enabled: enabled },
-          },
-        },
-      });
-      expect(wrapper.find('[data-testid="followup-notice"]').exists()).toBe(
-        enabled
-      );
-    }
-  );
-
-  it('hides the follow-up notice when no configuration is present', () => {
-    expect(
-      mountComponent().find('[data-testid="followup-notice"]').exists()
-    ).toBe(false);
+    expect(wrapper.find('[role="radiogroup"]').exists()).toBe(false);
   });
 });

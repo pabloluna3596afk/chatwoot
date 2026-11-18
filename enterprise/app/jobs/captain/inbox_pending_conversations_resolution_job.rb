@@ -53,8 +53,15 @@ class Captain::InboxPendingConversationsResolutionJob < ApplicationJob
   end
 
   def customer_owes_reply?(conversation)
-    captain_assistant.evaluate_inactive_conversations_before_resolving? &&
-      Captain::Conversation::Turn.awaiting_customer?(conversation, captain_assistant)
+    return false unless Captain::Conversation::Turn.awaiting_customer?(conversation, captain_assistant)
+    return true if captain_assistant.evaluate_inactive_conversations_before_resolving?
+
+    captain_assistant.auto_resolve_mode == 'legacy' && followup_sends_nudges?
+  end
+
+  def followup_sends_nudges?
+    followup = captain_assistant.followup
+    followup.inactivity_enabled? && followup.max_nudges.positive?
   end
 
   def handle_unanswered(conversation)

@@ -76,7 +76,8 @@ class Captain::Followup::Nudger
   end
 
   def close_due?
-    return false unless now - last_activity >= settings.close_after_minutes.minutes
+    return false if assistant.inactive_conversation_resolution_disabled?
+    return false unless now - last_activity >= assistant.inactivity_threshold_minutes.minutes
 
     (nudges.any? && nudges.size >= settings.max_nudges) || window_closed?
   end

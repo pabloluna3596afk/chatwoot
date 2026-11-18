@@ -33,6 +33,12 @@ class Captain::FollowupValidator < ActiveModel::Validator
 
       record.errors.add(:config, "followup #{key} must be between #{range.min} and #{range.max}")
     end
+
+    return if record.inactive_conversation_resolution_disabled? ||
+              !settings.inactivity_after_minutes.is_a?(Integer) ||
+              settings.inactivity_after_minutes < record.inactivity_threshold_minutes
+
+    record.errors.add(:config, 'followup inactivity_after_minutes must be shorter than auto_resolve_after')
   end
 
   def validate_template(record, settings)

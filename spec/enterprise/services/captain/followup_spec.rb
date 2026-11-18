@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe Captain::Followup do
   let(:account) { create(:account, locale: 'es', reporting_timezone: 'America/Guayaquil') }
   let(:followup_config) { {} }
-  let(:assistant_config) { { 'followup' => followup_config } }
+  let(:assistant_config) { { 'auto_resolve_after' => 120, 'followup' => followup_config } }
   let(:assistant) { create(:captain_assistant, account: account, name: 'Asistente de Ventas', config: assistant_config) }
   let(:inbox) { create(:inbox, account: account) }
   let(:contact) { create(:contact, account: account, name: 'Ana Pérez') }
@@ -14,7 +14,10 @@ RSpec.describe Captain::Followup do
 
   around { |example| travel_to(now) { example.run } }
 
-  before { create(:captain_inbox, captain_assistant: assistant, inbox: inbox) }
+  before do
+    account.enable_features!('captain_integration_v2')
+    create(:captain_inbox, captain_assistant: assistant, inbox: inbox)
+  end
 
   def say(sender, at, message_type: :outgoing, **attributes)
     create(:message, { account: account, inbox: inbox, conversation: conversation, message_type: message_type, sender: sender,
@@ -163,8 +166,27 @@ RSpec.describe Captain::Followup do
       end
     end
 
+    context 'when inactivity resolution is disabled' do
+      let(:assistant_config) { { 'auto_resolve_mode' => 'disabled', 'auto_resolve_after' => 120, 'followup' => followup_config } }
+
+      it 'sends the nudge but never closes the conversation' do
+        expect(nudge).to eq(:nudged)
+        expect(nudge(now + 1.day)).to be_nil
+        expect(conversation.reload).to be_pending
+      end
+    end
+
     describe 'closing for inactivity' do
       before { nudge }
+
+      context 'when the legacy follow-up close delay differs from the assistant timer' do
+        let(:followup_config) { { 'close_after_minutes' => 240 } }
+
+        it 'uses the assistant timer' do
+          expect(nudge(now + 121.minutes)).to eq(:closed)
+          expect(conversation.reload).to be_resolved
+        end
+      end
 
       it 'waits the configured time after the last nudge' do
         expect(nudge(now + 119.minutes)).to be_nil

@@ -2,6 +2,8 @@ import catalog from 'dashboard/components-next/variable-picker/specs/catalog.jso
 import { flushPromises, mount } from '@vue/test-utils';
 import AssistantFollowupForm from './AssistantFollowupForm.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import RadioCard from 'dashboard/components-next/radioCard/RadioCard.vue';
+import DurationSelect from './DurationSelect.vue';
 import { nextTick } from 'vue';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
 
@@ -19,10 +21,17 @@ vi.mock('dashboard/api/variables', () => ({
   },
 }));
 vi.mock('vue-i18n', () => ({
+  I18nT: { template: '<p><slot name="link" /></p>' },
   useI18n: () => ({
     te: () => false,
     t: (key, params) => (params ? `${key} ${JSON.stringify(params)}` : key),
   }),
+}));
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ params: { accountId: '1', assistantId: '2' } }),
+}));
+vi.mock('dashboard/composables/useAccount', () => ({
+  useAccount: () => ({ isCloudFeatureEnabled: () => true }),
 }));
 
 vi.mock('dashboard/composables/store', () => ({
@@ -36,7 +45,10 @@ const mountForm = (config = {}) =>
     props: { assistant: { config: { response_window: 'always', ...config } } },
     global: {
       mocks: { $t: key => key },
-      stubs: { InsertVariableButton: true },
+      stubs: {
+        InsertVariableButton: true,
+        RouterLink: { template: '<a><slot /></a>' },
+      },
     },
   });
 
@@ -53,7 +65,7 @@ describe('AssistantFollowupForm', () => {
     inboxes.value = [];
   });
 
-  it('is on by default: one nudge after 30 minutes, closing 2 hours later, no re-engagement', async () => {
+  it('is on by default with one unified timer and no re-engagement', async () => {
     const wrapper = mountForm();
     expect(wrapper.find('[data-testid="followup-fields"]').exists()).toBe(true);
 
@@ -61,6 +73,8 @@ describe('AssistantFollowupForm', () => {
 
     expect(submitted(wrapper)).toEqual({
       response_window: 'always',
+      auto_resolve_mode: 'evaluated',
+      auto_resolve_after: 60,
       followup: {
         inactivity_enabled: true,
         inactivity_after_minutes: 30,
@@ -72,8 +86,29 @@ describe('AssistantFollowupForm', () => {
     });
   });
 
-  it('shows the saved values', () => {
+  it('matches the approved block order and exposes only one timer and two message counts', () => {
+    const wrapper = mountForm();
+    const html = wrapper.html();
+
+    expect(html.indexOf('followup-inactivity-resolution')).toBeLessThan(
+      html.indexOf('followup-fields')
+    );
+    expect(html.indexOf('followup-fields')).toBeLessThan(
+      html.indexOf('followup-reengagement')
+    );
+    expect(wrapper.findAllComponents(RadioCard)).toHaveLength(3);
+    expect(wrapper.findAllComponents(DurationSelect)).toHaveLength(1);
+    expect(select(wrapper, 'followup-close')).toBeUndefined();
+    expect(select(wrapper, 'followup-nudges').props('options')).toHaveLength(2);
+    expect(wrapper.text()).toContain(
+      'CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.GOODBYE_LINK'
+    );
+  });
+
+  it('shows the saved mode, inactivity timer and follow-up values', () => {
     const wrapper = mountForm({
+      auto_resolve_mode: 'legacy',
+      auto_resolve_after: 90,
       followup: {
         inactivity_enabled: true,
         inactivity_after_minutes: 60,
@@ -84,7 +119,11 @@ describe('AssistantFollowupForm', () => {
 
     expect(select(wrapper, 'followup-after').props('modelValue')).toBe(60);
     expect(select(wrapper, 'followup-nudges').props('modelValue')).toBe(2);
-    expect(select(wrapper, 'followup-close').props('modelValue')).toBe(240);
+    expect(wrapper.findAllComponents(RadioCard)[1].props('isActive')).toBe(
+      true
+    );
+    expect(wrapper.findComponent(DurationSelect).props('modelValue')).toBe(90);
+    expect(select(wrapper, 'followup-close')).toBeUndefined();
   });
 
   it('keeps a saved value that is not one of the options', () => {
@@ -93,21 +132,18 @@ describe('AssistantFollowupForm', () => {
     expect(select(wrapper, 'followup-after').props('modelValue')).toBe(25);
   });
 
-  it('saves numeric values and 0 nudges', async () => {
+  it('saves numeric values and one or two messages', async () => {
     const wrapper = mountForm();
     select(wrapper, 'followup-after').vm.$emit('update:modelValue', 15);
     await nextTick();
-    select(wrapper, 'followup-nudges').vm.$emit('update:modelValue', 0);
+    select(wrapper, 'followup-nudges').vm.$emit('update:modelValue', 2);
     await nextTick();
-    select(wrapper, 'followup-close').vm.$emit('update:modelValue', 60);
-    await nextTick();
-
     await save(wrapper);
 
     expect(submitted(wrapper).followup).toMatchObject({
       inactivity_after_minutes: 15,
-      max_nudges: 0,
-      close_after_minutes: 60,
+      max_nudges: 2,
+      close_after_minutes: 120,
     });
   });
 
@@ -123,19 +159,35 @@ describe('AssistantFollowupForm', () => {
     expect(submitted(wrapper).followup.inactivity_enabled).toBe(false);
   });
 
+  it('does not validate the ask time when follow-up is off', async () => {
+    const wrapper = mountForm({
+      auto_resolve_after: 30,
+      followup: { inactivity_after_minutes: 30 },
+    });
+
+    await wrapper.get('button[role="switch"]').trigger('click');
+    await save(wrapper);
+
+    expect(wrapper.find('[data-testid="followup-after-error"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.emitted('submit')).toBeDefined();
+  });
+
   describe('re-engagement', () => {
     const enable = wrapper =>
       wrapper
-        .get('[data-testid="followup-reengagement-enabled"] input')
-        .setValue(true);
+        .get('[data-testid="followup-reengagement"] button[role="switch"]')
+        .trigger('click');
 
     it('is off by default', () => {
       const wrapper = mountForm();
 
       expect(
-        wrapper.get('[data-testid="followup-reengagement-enabled"] input')
-          .element.checked
-      ).toBe(false);
+        wrapper
+          .get('[data-testid="followup-reengagement"] button[role="switch"]')
+          .attributes('aria-checked')
+      ).toBe('false');
       expect(wrapper.find('[data-testid="followup-template"]').exists()).toBe(
         false
       );
@@ -286,20 +338,41 @@ describe('AssistantFollowupForm', () => {
       expect(submitted(wrapper).followup.reengagement_template).toEqual(saved);
     });
   });
-  it('shows the closed-window notice under the inactivity switch', () => {
-    const wrapper = mountForm({ followup: { inactivity_enabled: true } });
-    expect(
-      wrapper.get('[data-testid="followup-window-notice"]').text()
-    ).toContain('CAPTAIN.ASSISTANTS.FOLLOWUP.WINDOW_CLOSED_NOTICE');
-    expect(wrapper.html().indexOf('followup-window-notice')).toBeLessThan(
-      wrapper.html().indexOf('followup-fields')
+  it('rejects asking at or after the unified inactivity timer', async () => {
+    const wrapper = mountForm({ auto_resolve_after: 30 });
+    await save(wrapper);
+
+    expect(wrapper.emitted('submit')).toBeUndefined();
+    expect(wrapper.get('[data-testid="followup-after-error"]').text()).toBe(
+      'CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.AFTER_ERROR'
     );
   });
 
-  it('hides the closed-window notice when inactivity followup is off', () => {
-    const wrapper = mountForm({ followup: { inactivity_enabled: false } });
+  it('hides the timer in wait-for-customer mode and does not validate against it', async () => {
+    const wrapper = mountForm({
+      auto_resolve_mode: 'disabled',
+      auto_resolve_after: 30,
+    });
+    expect(wrapper.findComponent(DurationSelect).exists()).toBe(false);
+    await save(wrapper);
+    expect(wrapper.emitted('submit')).toBeDefined();
+  });
+
+  it('treats saved zero messages as off and preserves zero until the switch is enabled', async () => {
+    const wrapper = mountForm({
+      followup: { inactivity_enabled: true, max_nudges: 0 },
+    });
+    expect(wrapper.find('[data-testid="followup-fields"]').exists()).toBe(
+      false
+    );
     expect(
-      wrapper.find('[data-testid="followup-window-notice"]').exists()
-    ).toBe(false);
+      wrapper.get('button[role="switch"]').attributes('aria-checked')
+    ).toBe('false');
+
+    await save(wrapper);
+    expect(submitted(wrapper).followup.max_nudges).toBe(0);
+
+    await wrapper.get('button[role="switch"]').trigger('click');
+    expect(select(wrapper, 'followup-nudges').props('modelValue')).toBe(1);
   });
 });

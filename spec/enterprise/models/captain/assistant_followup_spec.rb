@@ -57,6 +57,33 @@ RSpec.describe Captain::Assistant, 'follow-up settings', type: :model do
     expect(assistant).to be_valid
   end
 
+  describe 'follow-up inactivity threshold validation' do
+    before { account.enable_features('captain_integration_v2') }
+
+    %w[legacy evaluated].each do |mode|
+      it "rejects asking at the inactivity threshold in #{mode} mode" do
+        assistant.config = assistant.config.merge(
+          'auto_resolve_mode' => mode,
+          'auto_resolve_after' => 30,
+          'followup' => { 'inactivity_after_minutes' => 30 }
+        )
+
+        expect(assistant).not_to be_valid
+        expect(assistant.errors[:config]).to include('followup inactivity_after_minutes must be shorter than auto_resolve_after')
+      end
+    end
+
+    it 'allows asking at the inactivity threshold when resolution is disabled' do
+      assistant.config = assistant.config.merge(
+        'auto_resolve_mode' => 'disabled',
+        'auto_resolve_after' => 30,
+        'followup' => { 'inactivity_after_minutes' => 30 }
+      )
+
+      expect(assistant).to be_valid
+    end
+  end
+
   it 'rejects numbers out of range' do
     { 'max_nudges' => 3, 'inactivity_after_minutes' => 4, 'close_after_minutes' => 1441 }.each do |key, value|
       assign(key => value)
