@@ -86,7 +86,8 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
 
     it 'lets administrators approve the current WABA scoped resource' do
       post "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}/allow_resource",
-           params: { revision: 0, inbox_id: inbox.id, kind: 'template', key: "#{channel.provider_config.fetch('business_account_id')}:appointment|es" },
+           params: { revision: 0, inbox_id: inbox.id, kind: 'template',
+                     key: "#{channel.provider_config.fetch('business_account_id')}:appointment|es" },
            headers: admin.create_new_auth_token, as: :json
 
       expect(response).to have_http_status(:ok)
@@ -97,17 +98,20 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
 
     it 'denies agents access to resource approval' do
       post "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}/allow_resource",
-           params: { revision: 0, inbox_id: inbox.id, kind: 'template', key: "#{channel.provider_config.fetch('business_account_id')}:appointment|es" },
+           params: { revision: 0, inbox_id: inbox.id, kind: 'template',
+                     key: "#{channel.provider_config.fetch('business_account_id')}:appointment|es" },
            headers: agent.create_new_auth_token, as: :json
 
       expect(response).to have_http_status(:unauthorized)
       expect(assistant.reload.messaging.revision).to eq(0)
     end
+
     it 'rejects a stale approval without overwriting exclusions or paid settings' do
       assistant.update!(config: assistant.config.deep_merge('allow_paid_templates' => false, 'messaging' => { 'revision' => 1 }))
       original = assistant.reload.config.deep_dup
       post "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}/allow_resource",
-           params: { revision: 0, inbox_id: inbox.id, kind: 'template', key: "#{channel.provider_config.fetch('business_account_id')}:appointment|es" },
+           params: { revision: 0, inbox_id: inbox.id, kind: 'template',
+                     key: "#{channel.provider_config.fetch('business_account_id')}:appointment|es" },
            headers: admin.create_new_auth_token, as: :json
 
       expect(response).to have_http_status(:conflict)
@@ -118,15 +122,15 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
       channel.update!(message_templates: channel.message_templates + [channel.message_templates.first.merge('name' => 'second')])
       %w[appointment second].each_with_index do |name, revision|
         post "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}/allow_resource",
-             params: { revision: revision, inbox_id: inbox.id, kind: 'template', key: "#{channel.provider_config.fetch('business_account_id')}:#{name}|es" },
+             params: { revision: revision, inbox_id: inbox.id, kind: 'template',
+                       key: "#{channel.provider_config.fetch('business_account_id')}:#{name}|es" },
              headers: admin.create_new_auth_token, as: :json
         expect(response).to have_http_status(:ok)
       end
       expect(assistant.reload.messaging.revision).to eq(2)
       expect(assistant.messaging.entry_for(inbox.id).dig('reviewed', 'templates').keys)
-        .to contain_exactly(*%w[appointment second].map { |name| "#{channel.provider_config.fetch('business_account_id')}:#{name}|es" })
+        .to match_array(%w[appointment second].map { |name| "#{channel.provider_config.fetch('business_account_id')}:#{name}|es" })
     end
-
   end
 
   describe 'versioned messaging writes' do

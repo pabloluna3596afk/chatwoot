@@ -229,6 +229,7 @@ RSpec.describe Captain::Messaging::Availability do
   it 'saves an auto snapshot without invalid keys for a non-Cloud inbox without WABA' do
     channel.update!(provider: 'default', provider_config: {})
     enable_auto
+    assistant.config.dig('messaging', 'inboxes').first.delete('reviewed')
     assistant.save!
     expect { Captain::Messaging::Snapshotter.perform!(assistant) }.not_to raise_error
     expect(assistant.reload).to be_valid

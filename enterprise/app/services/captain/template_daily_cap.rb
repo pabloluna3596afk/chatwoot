@@ -1,16 +1,6 @@
 # Account-wide daily limit for all Captain WhatsApp template sends.
 class Captain::TemplateDailyCap
   DEFAULT_DAILY_CAP = 50
-  # The first caller captures the account day boundary; timezone edits cannot rotate an active counter.
-  DAY_SCRIPT = <<~LUA.freeze
-    local stored = redis.call('GET', KEYS[1])
-    local period = stored and cjson.decode(stored)
-    if not period or tonumber(ARGV[1]) >= tonumber(period[2]) then
-      period = {ARGV[2], ARGV[3]}
-      redis.call('SET', KEYS[1], cjson.encode(period), 'EX', ARGV[4])
-    end
-    return period
-  LUA
 
   def initialize(account, now: Time.current)
     @account = account
@@ -61,11 +51,23 @@ class Captain::TemplateDailyCap
     format(Redis::RedisKeys::CAPTAIN_TEMPLATE_DAILY_NOTICE, account_id: @account.id, date: period.first)
   end
 
+  # Capture the boundary once per account day; timezone edits cannot rotate an active counter.
   def period
-    @period ||= Redis::Alfred.with do |connection|
-      reset_at = @now.in_time_zone(@zone).tomorrow.beginning_of_day
-      connection.eval(DAY_SCRIPT, keys: ["CAPTAIN_TEMPLATE_DAILY_PERIOD::#{@account.id}"],
-                                  argv: [@now.to_i, @now.in_time_zone(@zone).to_date.to_s, reset_at.to_i, (reset_at - @now).ceil])
+    @period ||= begin
+      key = format(Redis::RedisKeys::CAPTAIN_TEMPLATE_DAILY_PERIOD, account_id: @account.id)
+      loop do
+        stored = Redis::Alfred.get(key)
+        if stored
+          captured = JSON.parse(stored)
+          break captured if @now.to_i < captured.last
+
+          Redis::Alfred.delete_if_equals(key, stored)
+        else
+          reset_at = @now.in_time_zone(@zone).tomorrow.beginning_of_day
+          captured = [@now.in_time_zone(@zone).to_date.to_s, reset_at.to_i]
+          Redis::Alfred.set(key, captured.to_json, nx: true, ex: (reset_at - @now).ceil)
+        end
+      end
     end
   end
 

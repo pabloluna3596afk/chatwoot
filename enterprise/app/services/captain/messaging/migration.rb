@@ -18,13 +18,14 @@ class Captain::Messaging::Migration
     raise ArgumentError, 'Messaging backup report is missing' unless assistant.config_migration_report['backup'].is_a?(Hash)
     return if already_converted?(assistant.config['messaging'])
 
+    converted = converted_messaging(assistant)
     report = assistant.config_migration_report.deep_dup
     unless report['fingerprint'] == Captain::Messaging::MigrationFingerprint.for(assistant)
       raise StaleReport, 'el reporte está desactualizado: genera uno nuevo'
     end
 
     report['pre_conversion_config'] = assistant.config.deep_dup
-    assistant.update!(config: assistant.config.merge('messaging' => converted_messaging(assistant)), config_migration_report: report)
+    assistant.update!(config: assistant.config.merge('messaging' => converted), config_migration_report: report)
   end
 
   def self.converted_messaging(assistant)

@@ -69,6 +69,24 @@ RSpec.describe Captain::Messaging::Migration do
     end
   end
 
+  it 'prints the stale report instruction from the conversion rake task' do
+    channel.update!(message_templates: [template.merge('category' => 'UTILITY')])
+    task = Rake::Task['captain:messaging:convert']
+    task.reenable
+    expect do
+      expect { task.invoke(assistant.id.to_s) }.to raise_error(SystemExit)
+    end.to output("el reporte está desactualizado: genera uno nuevo\n").to_stderr
+  end
+
+  it 'preserves the conversion backup when reporting again after later edits' do
+    previous = assistant.config.deep_dup
+    described_class.convert!(assistant)
+    assistant.update!(config: assistant.config.merge('product_name' => 'Later'))
+    Migration::CaptainMessagingMigrationReportJob.perform_now(assistant.id)
+    described_class.restore!(assistant)
+    expect(assistant.reload.config).to eq(previous)
+  end
+
   it 'converts only on request and restores the exact saved messaging block' do
     described_class.convert!(assistant)
     converted = assistant.reload.config.dig('messaging', 'inboxes', 0)

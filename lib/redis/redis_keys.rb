@@ -60,6 +60,7 @@ module Redis::RedisKeys
 
   # Account-wide throttle for autonomous proactive sends (see Automations::ProactiveSendCap)
   PROACTIVE_SEND_DAILY_COUNT = 'PROACTIVE_SEND_DAILY_COUNT::%<account_id>d::%<date>s'.freeze
+  CAPTAIN_TEMPLATE_DAILY_PERIOD = 'CAPTAIN_TEMPLATE_DAILY_PERIOD::%<account_id>d'.freeze
   CAPTAIN_TEMPLATE_DAILY_COUNT = 'CAPTAIN_TEMPLATE_DAILY_COUNT::%<account_id>d::%<date>s'.freeze
   CAPTAIN_TEMPLATE_DAILY_NOTICE = 'CAPTAIN_TEMPLATE_DAILY_NOTICE::%<account_id>d::%<date>s'.freeze
 

@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe Captain::TemplateDailyCap do
+RSpec.describe Captain::TemplateDailyCap, :real_redis do
   let(:account) { create(:account, reporting_timezone: 'America/Guayaquil') }
   let(:now) do
     Time.use_zone(Integrations::GoogleCalendar::Timezone.for(account)) { Time.zone.parse('2030-01-15 23:59:30') }
