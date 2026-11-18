@@ -3617,3 +3617,9 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Archivos:** `Messaging::Availability`, `AppointmentReminders::Readiness`, `Followup::Reengager` y specs.
 - **Arreglo:** la plantilla elegida debe estar disponible en la bandeja y WABA actuales; exclusi?n, revisi?n, marketing y calidad Meta impiden enviar. Se conservan pago, ventana, horario y cupo; la omisi?n usa los motivos existentes.
 - **C?mo probar:** specs de recordatorios/readiness y seguimiento, incluidos exclusi?n, nuevo, cambiado, revisi?n, marketing apagado, calidad roja y otra WABA. Sin migraciones, textos visibles, push ni despliegue.
+
+### B-NEW-276 ? Captain: serializar la aprobaci?n de recursos (2026-11-18)
+
+- **Archivos:** `AssistantsController#allow_resource`, cliente API/formulario de Envios y specs.
+- **Arreglo:** recarga bajo `with_lock` y control de revisi?n compartido con update; un permiso obsoleto recibe 409. El cliente env?a la revisi?n vigente despu?s de cada escritura.
+- **C?mo probar:** revisi?n obsoleta conserva configuraci?n; dos aprobaciones sucesivas conservan ambos recursos. Variables de canal no escriben config.messaging. Sin cambios visuales ni migraciones.
