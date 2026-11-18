@@ -142,6 +142,29 @@ const templateComplete = computed(
     isWhatsAppComplete(templateEntry(state.template), state.params)
 );
 
+const inactivityThresholdError = computed(() => {
+  if (!showErrors.value || state.autoResolveMode === 'disabled') return '';
+  if (
+    state.inactivityThresholdMinutes === null ||
+    state.inactivityThresholdMinutes === undefined ||
+    state.inactivityThresholdMinutes === ''
+  )
+    return t('GENERAL.VALIDATION.REQUIRED');
+
+  const threshold = Number(state.inactivityThresholdMinutes);
+  if (!Number.isInteger(threshold)) return t('GENERAL.VALIDATION.INTEGER');
+  if (threshold < 5) return t('GENERAL.VALIDATION.MIN_VALUE', { min: 5 });
+  if (threshold > 1440) return t('GENERAL.VALIDATION.MAX_VALUE', { max: 1440 });
+  return '';
+});
+
+const afterError = computed(
+  () =>
+    state.inactivityEnabled &&
+    state.autoResolveMode !== 'disabled' &&
+    Number(state.afterMinutes) >= Number(state.inactivityThresholdMinutes)
+);
+
 const selectTemplate = value => {
   state.template = value;
   state.params = {};
@@ -156,8 +179,8 @@ const handleSubmit = () => {
   showErrors.value = true;
   if (
     !templateComplete.value ||
-    (state.autoResolveMode !== 'disabled' &&
-      Number(state.afterMinutes) >= Number(state.inactivityThresholdMinutes))
+    inactivityThresholdError.value ||
+    afterError.value
   )
     return;
 
@@ -234,6 +257,7 @@ watch(
             }}</span>
             <DurationSelect
               v-model="state.inactivityThresholdMinutes"
+              :error="inactivityThresholdError"
               :hours-aria-label="
                 t(
                   'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.DURATION_HOURS_ARIA_LABEL'
@@ -334,11 +358,7 @@ watch(
         </p>
       </div>
       <p
-        v-if="
-          showErrors &&
-          state.autoResolveMode !== 'disabled' &&
-          Number(state.afterMinutes) >= Number(state.inactivityThresholdMinutes)
-        "
+        v-if="showErrors && afterError"
         data-testid="followup-after-error"
         class="px-4 pb-3 text-xs text-n-ruby-9"
       >
