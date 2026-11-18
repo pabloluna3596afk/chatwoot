@@ -1,4 +1,5 @@
 <script setup>
+import { useAssistantName } from 'dashboard/composables/useAssistantName';
 import { computed, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useVuelidate } from '@vuelidate/core';
@@ -28,6 +29,8 @@ const props = defineProps({
 const emit = defineEmits(['submit']);
 
 const { t } = useI18n();
+const { nameRich, nameRichFrom } = useAssistantName(() => props.assistant);
+
 const { isCloudFeatureEnabled } = useAccount();
 
 const isCaptainV2Enabled = computed(() =>
@@ -161,8 +164,10 @@ watch(
         )
       "
       :description="
-        t(
-          'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.RESOLUTION_MESSAGE.DESCRIPTION'
+        nameRichFrom(
+          t(
+            'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.RESOLUTION_MESSAGE.DESCRIPTION'
+          )
         )
       "
     >
@@ -201,7 +206,7 @@ watch(
     <SettingsToggleSection
       hide-toggle
       :header="t('CAPTAIN.ASSISTANTS.FORM.MAX_REPLIES.TITLE')"
-      :description="t('CAPTAIN.ASSISTANTS.FORM.MAX_REPLIES.DESCRIPTION')"
+      :description="nameRich('CAPTAIN.ASSISTANTS.FORM.MAX_REPLIES.DESCRIPTION')"
     >
       <div class="flex w-full flex-col gap-2 px-4 pb-1 pt-3">
         <Input

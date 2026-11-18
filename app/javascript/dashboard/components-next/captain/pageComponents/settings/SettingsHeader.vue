@@ -1,4 +1,5 @@
 <script setup>
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
 defineProps({
   heading: {
     type: String,
@@ -14,6 +15,8 @@ defineProps({
 <template>
   <header class="flex flex-col items-start gap-2">
     <h2 class="text-n-slate-12 text-base font-medium">{{ heading }}</h2>
-    <p class="text-n-slate-11 text-sm">{{ description }}</p>
+    <p class="text-n-slate-11 text-sm">
+      <AssistantNameText :text="description" />
+    </p>
   </header>
 </template>

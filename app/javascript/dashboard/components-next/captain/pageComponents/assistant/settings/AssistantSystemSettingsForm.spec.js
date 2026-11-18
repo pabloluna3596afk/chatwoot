@@ -30,7 +30,13 @@ const assistant = {
 const mountComponent = () =>
   shallowMount(AssistantSystemSettingsForm, {
     props: { assistant },
-    global: { stubs: { Banner: false, SettingsToggleSection: false } },
+    global: {
+      stubs: {
+        Banner: false,
+        SettingsToggleSection: false,
+        AssistantNameText: false,
+      },
+    },
   });
 
 const submitForm = async wrapper => {
