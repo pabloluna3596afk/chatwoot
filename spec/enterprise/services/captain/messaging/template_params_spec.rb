@@ -58,4 +58,17 @@ RSpec.describe Captain::Messaging::TemplateParams do
     expect(spanish.dig('body', 'nombre')).to eq('{{ contact.name }}')
     expect(english.dig('body', 'correo')).to eq('{{ contact.email }}')
   end
+
+  it 'reports whether each resolved value comes from an override, inbox binding, or name alias' do
+    configure_params('123:order_ready|es' => { 'body' => { 'nombre' => '{{ contact.first_name }}' } })
+
+    _params, _missing, sources = described_class.new(assistant, inbox, templates.first).resolve
+
+    expect(sources).to eq('body' => { 'nombre' => 'assistant' }, 'header' => {})
+    configure_params({})
+    _params, _missing, sources = described_class.new(assistant, inbox, templates.first).resolve
+    expect(sources).to eq('body' => { 'nombre' => 'inbox' }, 'header' => {})
+    _params, _missing, sources = described_class.new(assistant, inbox, templates.last).resolve
+    expect(sources).to eq('body' => { 'fecha' => 'name' }, 'header' => {})
+  end
 end

@@ -8,22 +8,32 @@ class Captain::Messaging::TemplateParams
     @template = template
   end
 
-  # Returns [complete processed_params, missing variable names].
+  # Returns [complete processed_params, missing variable names, variable sources].
   def resolve
     overrides = override_params
     bindings = Whatsapp::TemplateVariableBindingsService.new(@inbox.channel).for_template(@template['name'])
     variables = Captain::TemplateMessage.variables(@template)
-    params = { 'body' => {}, 'header' => {} }
     bindings = {} if binding_mismatch?(bindings, variables)
+    params, sources = resolved_values(variables, overrides, bindings)
 
-    variables.each do |variable|
-      value = resolve_variable(variable, overrides, bindings)
-      params[variable.component][variable.name] = value if value
-    end
-    [params, variables.reject { |variable| params[variable.component].key?(variable.name) }.map(&:name).uniq]
+    [params, missing_variables(variables, params), sources]
   end
 
   private
+
+  def resolved_values(variables, overrides, bindings)
+    variables.each_with_object([{ 'body' => {}, 'header' => {} }, { 'body' => {}, 'header' => {} }]) do |variable, (params, sources)|
+      value, source = resolve_variable(variable, overrides, bindings)
+      next unless value
+
+      params[variable.component][variable.name] = value
+      sources[variable.component][variable.name] = source
+    end
+  end
+
+  def missing_variables(variables, params)
+    variables.reject { |variable| params[variable.component].key?(variable.name) }.map(&:name).uniq
+  end
 
   def override_params
     waba_id = @inbox.channel.provider_config.to_h['business_account_id'].to_s
@@ -37,10 +47,10 @@ class Captain::Messaging::TemplateParams
 
   def resolve_variable(variable, overrides, bindings)
     explicit, value = explicit_value(overrides, variable)
-    return valid_expression?(value) ? value : nil if explicit
-    return binding_expression(bindings[variable.name]) if bindings.key?(variable.name)
+    return [valid_expression?(value) ? value : nil, 'assistant'] if explicit
+    return [binding_expression(bindings[variable.name]), 'inbox'] if bindings.key?(variable.name)
 
-    alias_expression(variable.name)
+    [alias_expression(variable.name), 'name']
   end
 
   def binding_expression(path)

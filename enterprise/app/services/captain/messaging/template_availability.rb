@@ -20,9 +20,9 @@ class Captain::Messaging::TemplateAvailability
   def item(template)
     identity = "#{@waba_id}:#{template['name']}|#{template['language']}"
     state = state_for(template, identity)
-    params, missing = resolved_params(template, state)
+    params, missing, sources = resolved_params(template, state)
     state = 'needs_data' if state == 'available' && missing.any?
-    Item.new(resource: resource(template), state: state, missing: missing, processed_params: params,
+    Item.new(resource: resource(template), state: state, missing: missing, processed_params: params, sources: sources,
              note: note_for(template, identity))
   end
 
@@ -31,13 +31,21 @@ class Captain::Messaging::TemplateAvailability
   end
 
   def resolved_params(template, state)
-    return [nil, []] unless state == 'available'
+    return [nil, [], {}] unless state == 'available'
 
     if @settings.mode(@inbox.id) == 'list'
       params = @settings.template(@inbox.id, template['name'], template['language'])&.fetch('processed_params', nil)
-      [params, Captain::TemplateMessage.unmapped(template, params)]
+      [params, Captain::TemplateMessage.unmapped(template, params), legacy_sources(template, params)]
     else
       Captain::Messaging::TemplateParams.new(@assistant, @inbox, template).resolve
+    end
+  end
+
+  def legacy_sources(template, params)
+    Captain::TemplateMessage.variables(template).each_with_object({ 'body' => {}, 'header' => {} }) do |variable, sources|
+      next if params&.dig(variable.component, variable.name).blank?
+
+      sources[variable.component][variable.name] = 'legacy'
     end
   end
 

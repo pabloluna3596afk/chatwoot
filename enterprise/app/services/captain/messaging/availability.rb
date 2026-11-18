@@ -1,6 +1,6 @@
 # The sole current policy for which Captain messaging resources are usable in an inbox.
 class Captain::Messaging::Availability
-  Item = Struct.new(:resource, :state, :missing, :processed_params, :note, :reason, keyword_init: true) do
+  Item = Struct.new(:resource, :state, :missing, :processed_params, :sources, :note, :reason, keyword_init: true) do
     def available?
       state == 'available'
     end

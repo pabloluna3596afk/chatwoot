@@ -24,4 +24,59 @@ RSpec.describe Captain::Messaging::AssistantPayload do
   ensure
     ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
   end
+
+  it 'includes resolved template parameters for the inbox preview' do
+    processed_params = { 'body' => { 'nombre' => '{{ contact.name }}' } }
+    channel = create(
+      :channel_whatsapp,
+      account: account,
+      provider: 'whatsapp_cloud',
+      sync_templates: false,
+      validate_provider_config: false,
+      provider_config: { 'business_account_id' => '123' },
+      message_templates: [
+        {
+          'name' => 'pedido_listo',
+          'language' => 'es',
+          'category' => 'UTILITY',
+          'status' => 'APPROVED',
+          'components' => [{ 'type' => 'BODY', 'text' => 'Hola {{nombre}}' }]
+        }
+      ]
+    )
+    assistant.update!(
+      config: {
+        'messaging' => {
+          'version' => 2,
+          'revision' => 0,
+          'inboxes' => [
+            {
+              'inbox_id' => channel.inbox.id,
+              'enabled' => true,
+              'mode' => 'list',
+              'flows' => [],
+              'templates' => [
+                {
+                  'name' => 'pedido_listo',
+                  'language' => 'es',
+                  'purpose' => 'Avisar del pedido',
+                  'processed_params' => processed_params
+                }
+              ]
+            }
+          ]
+        }
+      }
+    )
+    create(:captain_inbox, captain_assistant: assistant, inbox: channel.inbox)
+
+    result = described_class.new(assistant).as_json
+    resource = result.dig(:inboxes, 0, :resources).find do |item|
+      item.dig(:resource, 'name') == 'pedido_listo'
+    end
+
+    expect(resource[:state]).to eq('available')
+    expect(resource[:processed_params]).to eq(processed_params)
+    expect(resource[:sources]).to eq('body' => { 'nombre' => 'legacy' }, 'header' => {})
+  end
 end

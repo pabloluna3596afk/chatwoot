@@ -43,6 +43,8 @@ class Captain::Messaging::AssistantPayload
       state: item.state,
       note: item.note,
       missing: item.missing,
+      processed_params: item.processed_params,
+      sources: item.sources,
       can_send: item.available?,
       reason: item.reason
     }.compact
