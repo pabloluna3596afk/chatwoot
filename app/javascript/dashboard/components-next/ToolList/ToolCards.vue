@@ -1,5 +1,12 @@
 <script setup>
-import { computed, ref } from 'vue';
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  onUpdated,
+  ref,
+} from 'vue';
 import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 
 const props = defineProps({
@@ -51,9 +58,34 @@ const variableName = part => {
   }
   return props.variableLabels[path] || path.replace(/[._]/g, ' ');
 };
-const needsExpansion = content =>
-  String(content || '').length > 300 ||
-  String(content || '').split('\n').length > 6;
+// A card expands only when its clamped text is really cut: measure the rendered height.
+const truncated = ref(new Set());
+const textElements = new Map();
+let resizeObserver = null;
+const measure = () => {
+  const next = new Set();
+  textElements.forEach((element, key) => {
+    // An expanded card is not clamped any more: keep what we knew before.
+    if (expanded.value.has(key)) {
+      if (truncated.value.has(key)) next.add(key);
+      return;
+    }
+    if (element.scrollHeight - element.clientHeight > 1) next.add(key);
+  });
+  const unchanged =
+    next.size === truncated.value.size &&
+    [...next].every(key => truncated.value.has(key));
+  if (!unchanged) truncated.value = next;
+};
+const setTextElement = (key, element) => {
+  if (element) {
+    textElements.set(key, element);
+    resizeObserver?.observe(element);
+  } else {
+    textElements.delete(key);
+  }
+};
+const isTruncated = item => truncated.value.has(props.getKey(item));
 const toggleExpanded = id => {
   const next = new Set(expanded.value);
   if (next.has(id)) next.delete(id);
@@ -82,7 +114,7 @@ const copyContent = async item => {
 };
 const isCopied = item => copied.value.has(props.getKey(item));
 const setOverlayDirection = (item, event) => {
-  if (!needsExpansion(item[props.contentKey])) return;
+  if (!isTruncated(item)) return;
   const body = event.currentTarget.querySelector('[data-card-content]');
   if (!body) return;
   const { top, bottom } = body.getBoundingClientRect();
@@ -147,6 +179,26 @@ const closeMenuOnEscape = event => {
   details.querySelector('summary')?.focus();
 };
 const cards = computed(() => props.items);
+// The action menu is a native <details>: close it when the user clicks anywhere else.
+const closeMenusOnOutsideClick = event => {
+  document.querySelectorAll('details[data-card-menu][open]').forEach(menu => {
+    if (!menu.contains(event.target)) menu.removeAttribute('open');
+  });
+};
+onMounted(() => {
+  document.addEventListener('click', closeMenusOnOutsideClick);
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(measure);
+    textElements.forEach(element => resizeObserver.observe(element));
+  }
+  nextTick(measure);
+  document.fonts?.ready?.then(measure);
+});
+onUpdated(measure);
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeMenusOnOutsideClick);
+  resizeObserver?.disconnect();
+});
 </script>
 
 <template>
@@ -196,6 +248,7 @@ const cards = computed(() => props.items);
           }}</span>
           <details
             v-if="visibleActions(item).length"
+            data-card-menu
             class="relative z-30 shrink-0"
             @keydown="closeMenuOnEscape"
           >
@@ -236,7 +289,7 @@ const cards = computed(() => props.items);
             type="button"
             class="block w-full text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
             :class="
-              needsExpansion(item[contentKey])
+              isTruncated(item)
                 ? '[@media(hover:hover)]:group-hover:invisible [@media(hover:hover)]:focus:invisible'
                 : ''
             "
@@ -244,6 +297,7 @@ const cards = computed(() => props.items);
             @click="editItem(item)"
           >
             <span
+              :ref="element => setTextElement(getKey(item), element)"
               v-dompurify-html="renderContent(item[contentKey])"
               class="line-clamp-6 block break-words text-sm leading-5 text-n-slate-11"
               :class="[
@@ -255,7 +309,7 @@ const cards = computed(() => props.items);
             />
           </button>
           <div
-            v-if="needsExpansion(item[contentKey])"
+            v-if="isTruncated(item)"
             class="hidden [@media(hover:hover)]:group-hover:block [@media(hover:hover)]:group-focus-within:block"
           >
             <div
@@ -289,7 +343,7 @@ const cards = computed(() => props.items);
             </div>
           </div>
           <button
-            v-if="needsExpansion(item[contentKey])"
+            v-if="isTruncated(item)"
             type="button"
             class="mt-1 text-xs font-medium text-n-brand [@media(hover:hover)]:hidden"
             :aria-expanded="expanded.has(getKey(item))"
@@ -326,7 +380,13 @@ const cards = computed(() => props.items);
           /></span>
         </div>
         <footer
-          class="flex flex-wrap gap-x-3 gap-y-1 border-t border-n-weak px-4 py-2 text-xs text-n-slate-11 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:transition-opacity [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-within:opacity-100 motion-reduce:transition-none"
+          v-if="createdBy(item) || reviewedBy(item)"
+          class="flex flex-wrap gap-x-3 gap-y-1 border-t border-n-weak px-4 py-2 text-xs text-n-slate-11 motion-reduce:transition-none"
+          :class="
+            isTruncated(item)
+              ? '[@media(hover:hover)]:sr-only'
+              : '[@media(hover:hover)]:absolute [@media(hover:hover)]:inset-x-0 [@media(hover:hover)]:top-full [@media(hover:hover)]:-mt-px [@media(hover:hover)]:z-20 [@media(hover:hover)]:rounded-b-xl [@media(hover:hover)]:border [@media(hover:hover)]:border-n-weak [@media(hover:hover)]:bg-n-surface-1 [@media(hover:hover)]:shadow-lg [@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:transition-opacity [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100'
+          "
         >
           <span
             v-if="createdBy(item)"
