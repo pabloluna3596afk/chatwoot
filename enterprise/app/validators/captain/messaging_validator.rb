@@ -6,8 +6,8 @@ class Captain::MessagingValidator < ActiveModel::Validator
   MAX_RESOURCES = 50
   MAX_PURPOSE_LENGTH = 300
   MAX_TEXT_LENGTH = 512
-  ROOT_KEYS = %w[inboxes].freeze
-  INBOX_KEYS = %w[inbox_id enabled flows templates].freeze
+  ROOT_KEYS = %w[version revision inboxes].freeze
+  INBOX_KEYS = %w[inbox_id enabled mode flows templates excluded included_marketing notes params reviewed].freeze
   FLOW_KEYS = %w[flow_id purpose].freeze
   TEMPLATE_KEYS = %w[name language purpose processed_params].freeze
 
@@ -17,7 +17,12 @@ class Captain::MessagingValidator < ActiveModel::Validator
     return error(record, 'must be an object') unless raw.is_a?(Hash)
 
     unknown_keys(record, 'messaging', raw, ROOT_KEYS)
+    error(record, 'version must be 2') if raw.key?('version') && raw['version'] != 2
+    error(record, 'revision must be a non-negative integer') if raw.key?('revision') && (!raw['revision'].is_a?(Integer) || raw['revision'].negative?)
     validate_inboxes(record, raw['inboxes'])
+    return unless Array(raw['inboxes']).any? { |entry| entry.is_a?(Hash) && entry.fetch('mode', 'list') == 'auto' }
+
+    error(record, 'auto mode requires version 2 and revision') unless raw['version'] == 2 && raw['revision'].is_a?(Integer)
   end
 
   private
@@ -46,8 +51,95 @@ class Captain::MessagingValidator < ActiveModel::Validator
     unknown_keys(record, 'an inbox entry', entry, INBOX_KEYS)
     validate_inbox(record, entry['inbox_id'])
     error(record, 'inbox enabled must be true or false') unless [true, false].include?(entry['enabled'])
-    validate_flows(record, entry['flows'] || [], record.account)
-    validate_templates(record, entry['templates'] || [])
+    mode = entry.fetch('mode', 'list')
+    error(record, 'inbox mode must be auto or list') unless %w[auto list].include?(mode)
+    if mode == 'auto'
+      %w[flows templates].each { |key| error(record, "#{key} are not allowed in auto mode") if entry.key?(key) }
+      validate_auto_entry(record, entry)
+    else
+      %w[excluded included_marketing notes params reviewed].each do |key|
+        error(record, "#{key} are not allowed in list mode") if entry.key?(key)
+      end
+      validate_flows(record, entry['flows'] || [], record.account)
+      validate_templates(record, entry['templates'] || [])
+    end
+  end
+
+  def validate_auto_entry(record, entry)
+    validate_scoped_keys(record, entry['excluded'], %w[templates flows], 'excluded') if entry.key?('excluded')
+    validate_scoped_keys(record, entry['included_marketing'], nil, 'included_marketing') if entry.key?('included_marketing')
+    validate_notes(record, entry['notes']) if entry.key?('notes')
+    validate_params(record, entry['params']) if entry.key?('params')
+    validate_reviewed(record, entry['reviewed']) if entry.key?('reviewed')
+  end
+
+  def validate_scoped_keys(record, value, kinds, label)
+    lists = if kinds
+              return error(record, "#{label} must be an object") unless value.is_a?(Hash)
+
+              unknown_keys(record, label, value, kinds)
+              kinds.index_with { |kind| value.fetch(kind, []) }
+            else
+              { label => value }
+            end
+    lists.each do |kind, list|
+      next error(record, "#{label} #{kind} must be a list") unless list.is_a?(Array)
+      next error(record, "#{label} #{kind} cannot have more than #{MAX_RESOURCES} entries") if list.size > MAX_RESOURCES
+
+      error(record, "#{label} #{kind} cannot repeat entries") unless list.uniq.size == list.size
+      list.each do |item|
+        pattern = kind == 'flows' ? /\A\d+:\d+\z/ : /\A\d+:[^|]+\|[^|]+\z/
+        valid = item.is_a?(String) && item.match?(pattern)
+        error(record, "#{label} #{kind} entries must include a WABA-scoped resource identity") unless valid
+      end
+    end
+  end
+
+  def validate_notes(record, notes)
+    return error(record, 'notes must be an object') unless notes.is_a?(Hash)
+
+    notes.each do |key, value|
+      valid_key = key.to_s.match?(/\A(?:template:\d+:[^|]+\|[^|]+|flow:\d+:\d+)\z/)
+      error(record, "note key #{key.inspect} is invalid") unless valid_key
+      unless value.is_a?(String) && value.length <= MAX_PURPOSE_LENGTH
+        error(record,
+              "note #{key.inspect} must be a text up to #{MAX_PURPOSE_LENGTH} characters")
+      end
+    end
+  end
+
+  def validate_params(record, params)
+    return error(record, 'params must be an object') unless params.is_a?(Hash)
+
+    params.each do |key, values|
+      match = /\A\d+:([^|]+)\|([^|]+)\z/.match(key.to_s)
+      unless match && values.is_a?(Hash)
+        error(record, "params key #{key.inspect} must include a WABA-scoped template identity")
+        next
+      end
+      reference = { 'name' => match[1], 'language' => match[2], 'processed_params' => values }
+      Captain::TemplateReference.errors(reference, record.account).each do |message|
+        error(record, "params #{key} #{message}")
+      end
+    end
+  end
+
+  def validate_reviewed(record, reviewed)
+    return error(record, 'reviewed must be an object') unless reviewed.is_a?(Hash)
+
+    unknown_keys(record, 'reviewed', reviewed, %w[templates flows])
+    %w[templates flows].each do |kind|
+      resources = reviewed.fetch(kind, {})
+      unless resources.is_a?(Hash)
+        error(record, "reviewed #{kind} must be an object")
+        next
+      end
+      resources.each do |key, value|
+        valid_key = kind == 'templates' ? key.to_s.match?(/\A\d+:[^|]+\|[^|]+\z/) : key.to_s.match?(/\A\d+:\d+\z/)
+        valid_value = kind == 'templates' ? value.is_a?(String) && value.match?(/\A[0-9a-f]{64}\z/) : value.is_a?(Integer) && value.positive?
+        error(record, "reviewed #{kind} entry #{key.inspect} is invalid") unless valid_key && valid_value
+      end
+    end
   end
 
   def validate_inbox(record, inbox_id)

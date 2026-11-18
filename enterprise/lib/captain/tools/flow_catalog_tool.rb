@@ -12,11 +12,12 @@ class Captain::Tools::FlowCatalogTool < Captain::Tools::BaseMessagingTool
   private
 
   def flows(conversation)
-    published = Whatsapp::Flows::SendFlowService.new(conversation: conversation, sender: @assistant).eligible_flows.index_by(&:id)
-    Array(@assistant.messaging.entry_for(conversation.inbox_id)&.dig('flows')).map do |entry|
-      flow = published[entry['flow_id']]
-      { flow_id: entry['flow_id'], name: flow&.name, purpose: purpose_of(entry), fields: flow ? fields(flow) : [],
-        can_send: flow.present? && conversation.can_reply?, reason: reason(flow, conversation) }.compact
+    availability = Captain::Messaging::Availability.new(@assistant, conversation.inbox)
+    flows = availability.eligible_flows.index_by(&:id)
+    availability.flows.select(&:available?).map do |item|
+      flow = flows[item.resource['id']]
+      { flow_id: flow.id, name: flow.name, purpose: item.note, fields: fields(flow),
+        can_send: conversation.can_reply?, reason: reason(flow, conversation) }.compact
     end
   rescue Whatsapp::Flows::SendFlowService::Error
     []

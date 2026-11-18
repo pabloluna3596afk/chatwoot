@@ -3,6 +3,16 @@ class Whatsapp::Flows::SendFlowService
 
   TEXT_LIMITS = { 'header' => 60, 'body' => 1024, 'cta' => 20 }.freeze
 
+  def self.eligible_for(inbox)
+    channel = inbox.channel
+    raise Error, 'WhatsApp Cloud required' unless channel.is_a?(Channel::Whatsapp) && channel.provider == 'whatsapp_cloud'
+
+    inbox.account.whatsapp_flows.joins(:whatsapp_flow_publications)
+         .where(whatsapp_flow_publications: { waba_id: channel.provider_config.fetch('business_account_id'), status: 'published' })
+         .where('whatsapp_flow_publications.published_at >= whatsapp_flows.updated_at')
+         .order(:name)
+  end
+
   def initialize(conversation:, sender:, params: {})
     @conversation = conversation
     @sender = sender
@@ -10,13 +20,7 @@ class Whatsapp::Flows::SendFlowService
   end
 
   def eligible_flows
-    channel = @conversation.inbox.channel
-    raise Error, 'WhatsApp Cloud required' unless channel.is_a?(Channel::Whatsapp) && channel.provider == 'whatsapp_cloud'
-
-    @conversation.account.whatsapp_flows.joins(:whatsapp_flow_publications)
-                 .where(whatsapp_flow_publications: { waba_id: channel.provider_config.fetch('business_account_id'), status: 'published' })
-                 .where('whatsapp_flow_publications.published_at >= whatsapp_flows.updated_at')
-                 .order(:name)
+    self.class.eligible_for(@conversation.inbox)
   end
 
   def perform

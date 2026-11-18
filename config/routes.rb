@@ -427,6 +427,7 @@ Rails.application.routes.draw do
                 get :library
                 post :library, action: :create_from_library
                 post :header_handle
+                patch :variable_bindings
               end
             end
           end

@@ -38,6 +38,20 @@ RSpec.describe Captain::MessagingValidator do
     expect(messaging_errors).to be_empty
   end
 
+  it 'accepts versioned auto mode without a per-resource allow list' do
+    assign('version' => 2, 'revision' => 0,
+           'inboxes' => [{ 'inbox_id' => inbox.id, 'enabled' => true, 'mode' => 'auto', 'reviewed' => { 'templates' => {}, 'flows' => {} } }])
+
+    expect(messaging_errors).to be_empty
+  end
+
+  it 'rejects an unknown mode and list resources mixed into auto mode' do
+    assign('version' => 2, 'revision' => 0,
+           'inboxes' => [{ 'inbox_id' => inbox.id, 'enabled' => true, 'mode' => 'everything', 'flows' => [], 'templates' => [] }])
+
+    expect(messaging_errors).to include('messaging inbox mode must be auto or list')
+  end
+
   it 'needs every inbox switch to be true or false' do
     assign('inboxes' => [{ 'inbox_id' => inbox.id, 'flows' => [], 'templates' => [] }])
 

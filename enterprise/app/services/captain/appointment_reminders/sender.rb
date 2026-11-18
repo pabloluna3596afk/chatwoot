@@ -154,16 +154,24 @@ class Captain::AppointmentReminders::Sender
   def deliver_template(entry)
     return :waiting unless Calendar::CustomerReminders::Schedule.sending_hours?(account, now)
 
+    cap = Captain::TemplateDailyCap.new(account, now: now)
+    return skip_with_note('captain_template_cap_reached') unless cap.reserve!
+
     drops = Captain::TemplateMessage.drops(conversation, assistant, appointment: appointment_drop)
     payload, text = Captain::TemplateMessage.build(entry, settings.template_reminder['processed_params'], drops,
                                                    fallback: LEGACY_TEMPLATE_PARAMS)
     create_message(text, additional_attributes: { template_params: payload })
     finish
   rescue Variables::DeliveryRenderer::Error => e
+    cap&.release! unless @template_message_created
     Captain::VariableDiagnostics.record(assistant, e, template: settings.template_reminder)
     skip_with_note('template_variables_missing')
   rescue Captain::TemplateMessage::MappingMismatch
+    cap&.release! unless @template_message_created
     skip_with_note('template_changed')
+  rescue StandardError
+    cap&.release! unless @template_message_created
+    raise
   end
 
   # {{ appointment.date }} "jueves 1 de octubre", {{ appointment.time }} "11:30", {{ appointment.datetime }}
@@ -184,6 +192,7 @@ class Captain::AppointmentReminders::Sender
     )
     message.variables_resolved! if attributes[:additional_attributes]&.with_indifferent_access&.key?(:template_params)
     message.save!
+    @template_message_created = true if attributes[:additional_attributes]&.with_indifferent_access&.key?(:template_params)
     message
   end
 

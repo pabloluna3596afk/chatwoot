@@ -731,7 +731,11 @@ es:
       not_sent: 'Captain no pudo enviar el Flow o la plantilla que preparó: %{reason}'
       note_flow: 'Captain envió el Flow %{name}'
       note_template: 'Captain envió la plantilla %{name}'
+      template_cap_mail_subject: 'Captain alcanzó su tope diario de plantillas'
+      template_cap_mail_message: 'Hoy Captain envió %{cap} plantillas, el máximo diario de la cuenta. Puedes cambiarlo en Envíos por bandeja.'
       errors:
+        conflict: 'Recarga la página: esta configuración cambió.'
+        daily_cap: 'Hoy ya se alcanzó el tope de plantillas de Captain. Responde con un mensaje normal.'
         disabled: 'El dueño no habilitó Flows y plantillas para este asistente y esta bandeja.'
         not_allowed: 'Este recurso no está autorizado.'
         unavailable: 'El Flow no está publicado o la plantilla no está aprobada para esta bandeja.'
@@ -752,6 +756,8 @@ es:
       reengagement_paid_off: '%{assistant} no envió el reenganche: la ventana de 24 h ya cerró y las plantillas están desactivadas.'
       reengagement_no_template: '%{assistant} no envió el reenganche: la ventana de 24 h ya cerró y no hay una plantilla elegida para el reenganche.'
       reengagement_template_unavailable: '%{assistant} no envió el reenganche: la plantilla elegida no está aprobada en esta bandeja.'
+      reengagement_template_cap_reached: 'No se envió: se alcanzó el tope diario de plantillas de Captain.'
+      captain_template_cap_reached: 'No se envió: se alcanzó el tope diario de plantillas de Captain.'
     appointment_reminders:
       template_variables_missing: "Recordatorio omitido porque falta un valor de la plantilla o es inválido. Revisa la configuración del asistente."
       reminder_far: 'Hola %{name}, te recordamos tu cita "%{title}" para el %{when}.'
@@ -763,6 +769,7 @@ es:
       not_sent_channel: '%{assistant} no envió el recordatorio (%{when}): este canal no puede enviar fuera de su ventana de mensajes.'
       no_template: '%{assistant} no envió el recordatorio (%{when}): fuera de la ventana de 24 h y no hay una plantilla elegida para recordatorios.'
       template_unavailable: '%{assistant} no envió el recordatorio (%{when}): la plantilla elegida no está aprobada en esta bandeja.'
+      captain_template_cap_reached: 'No se envió: se alcanzó el tope diario de plantillas de Captain.'
       agent_note: '%{mention} Recordatorio de cita%{today}: «%{title}» el %{when}. Captain no se lo envió al cliente porque estás conversando con él. Si quieres recordárselo, puedes copiar este texto:'
       agent_note_unconfirmed: '%{mention} Recordatorio de cita%{today}: «%{title}» el %{when}. **Aún no está confirmada.** Captain no se lo envió al cliente porque estás conversando con él. Si quieres pedirle confirmación, puedes copiar este texto:'
       agent_note_today: ' para hoy'

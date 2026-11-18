@@ -820,7 +820,11 @@ en:
       not_sent: 'Captain could not send the Flow or template it prepared: %{reason}'
       note_flow: 'Captain sent the Flow %{name}'
       note_template: 'Captain sent the template %{name}'
+      template_cap_mail_subject: 'Captain reached its daily template limit'
+      template_cap_mail_message: "Captain sent %{cap} templates today, the account's daily maximum. You can change it in Sending by inbox."
       errors:
+        conflict: 'Reload the page: this configuration changed.'
+        daily_cap: "Captain's daily template limit was reached. Reply with a normal message."
         disabled: 'The owner has not enabled Flows and templates for this assistant and inbox.'
         not_allowed: 'This resource is not allowed.'
         unavailable: 'The Flow is not published or the template is not approved for this inbox.'
@@ -841,6 +845,7 @@ en:
       reengagement_paid_off: '%{assistant} did not send the re-engagement: the 24 h window has closed and templates are turned off.'
       reengagement_no_template: '%{assistant} did not send the re-engagement: the 24 h window has closed and no re-engagement template is selected.'
       reengagement_template_unavailable: '%{assistant} did not send the re-engagement: the selected template is not approved in this inbox.'
+      captain_template_cap_reached: "Not sent: Captain's daily template limit was reached."
     appointment_reminders:
       template_variables_missing: "Reminder omitted because a template value is missing or invalid. Check the assistant settings."
       reminder_far: 'Hi %{name}, a reminder of your appointment "%{title}" on %{when}.'
@@ -852,6 +857,7 @@ en:
       not_sent_channel: '%{assistant} did not send the reminder (%{when}): this channel cannot send outside its messaging window.'
       no_template: '%{assistant} did not send the reminder (%{when}): it is outside the 24 h window and no template is selected for reminders.'
       template_unavailable: '%{assistant} did not send the reminder (%{when}): the selected template is not approved in this inbox.'
+      reengagement_template_cap_reached: "Not sent: Captain's daily template limit was reached."
       agent_note: '%{mention} Appointment reminder%{today}: "%{title}" on %{when}. Captain did not send it to the customer because you are talking with them. If you want to remind them, you can copy this text:'
       agent_note_unconfirmed: '%{mention} Appointment reminder%{today}: "%{title}" on %{when}. **It is not confirmed yet.** Captain did not send it to the customer because you are talking with them. If you want to ask them to confirm, you can copy this text:'
       agent_note_today: ' for today'

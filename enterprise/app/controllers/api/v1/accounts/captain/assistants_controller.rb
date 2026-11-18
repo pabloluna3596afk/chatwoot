@@ -23,6 +23,7 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
     @assistant.with_lock do
       permitted_params = assistant_params
       return unless check_rule_list_versions(permitted_params)
+      return unless check_messaging_version(permitted_params)
 
       permitted_params[:config] = @assistant.config.merge(permitted_params[:config].to_h) if permitted_params[:config]
 
@@ -227,6 +228,29 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
       return false
     end
     true
+  end
+
+  def check_messaging_version(permitted)
+    config = permitted[:config]
+    return true unless config&.key?(:messaging) || config&.key?('messaging')
+
+    incoming = config[:messaging] || config['messaging']
+    saved = @assistant.config['messaging']
+    return true unless saved.is_a?(Hash) && saved['version'] == 2
+
+    if incoming == saved
+      config.delete(:messaging)
+      config.delete('messaging')
+      return true
+    end
+
+    if incoming.is_a?(Hash) && incoming['version'] == 2 && incoming['revision'] == saved['revision']
+      incoming['revision'] = saved['revision'].to_i + 1
+      return true
+    end
+
+    render json: { error: I18n.t('captain.messaging.errors.conflict', locale: Current.account.locale) }, status: :conflict
+    false
   end
 
   # The audience is a recursive condition tree that strong params can't whitelist by shape;

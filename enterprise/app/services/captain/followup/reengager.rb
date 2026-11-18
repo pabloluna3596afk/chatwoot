@@ -77,6 +77,9 @@ class Captain::Followup::Reengager
   def send_template(entry)
     return unless Calendar::CustomerReminders::Schedule.sending_hours?(account, now)
 
+    cap = Captain::TemplateDailyCap.new(account, now: now)
+    return skip_with_note('reengagement_template_cap_reached', 'captain_template_cap_reached') unless cap.reserve!
+
     drops = Captain::TemplateMessage.drops(conversation, assistant)
     payload, text = Captain::TemplateMessage.build(entry, settings.reengagement_template['processed_params'], drops,
                                                    fallback: LEGACY_TEMPLATE_PARAMS)
@@ -84,10 +87,15 @@ class Captain::Followup::Reengager
     record('at' => now.utc.iso8601, 'status' => 'sent')
     :sent
   rescue Variables::DeliveryRenderer::Error => e
+    cap&.release! unless @template_message_created
     Captain::VariableDiagnostics.record(assistant, e, template: settings.reengagement_template)
     skip_with_note('reengagement_variables_missing', 'template_variables_missing')
   rescue Captain::TemplateMessage::MappingMismatch
+    cap&.release! unless @template_message_created
     skip_with_note('reengagement_template_changed', 'template_changed')
+  rescue StandardError
+    cap&.release! unless @template_message_created
+    raise
   end
 
   def skip(reason)
@@ -112,6 +120,7 @@ class Captain::Followup::Reengager
     )
     message.variables_resolved! if attributes[:additional_attributes]&.with_indifferent_access&.key?(:template_params)
     message.save!
+    @template_message_created = true if attributes[:additional_attributes]&.with_indifferent_access&.key?(:template_params)
     message
   end
 end

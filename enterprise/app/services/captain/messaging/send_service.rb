@@ -44,10 +44,11 @@ class Captain::Messaging::SendService
     return deny('invalid_params') unless request.valid?
 
     conversation.reload
+    reload_authority
     existing = sent_message
     return Result.new(status: :duplicate, message: existing) if existing
 
-    permission_denial || resource_denial || limit_denial
+    permission_denial || resource_denial || limit_denial || daily_cap_denial
   end
 
   private
@@ -58,10 +59,11 @@ class Captain::Messaging::SendService
   delegate :flow?, to: :request
 
   def run
+    reload_authority
     existing = sent_message
     return Result.new(status: :duplicate, message: existing) if existing
 
-    denied = permission_denial || resource_denial || limit_denial
+    denied = permission_denial || resource_denial || limit_denial || daily_cap_denial
     denied || deliver
   end
 
@@ -86,15 +88,44 @@ class Captain::Messaging::SendService
     deny('not_allowed') unless allowed_entry
   end
 
+  def reload_authority
+    assistant.reload
+    inbox.channel.reload
+    @settings = nil
+    @availability = nil
+    @allowed_entry = nil
+    @template_entry = nil
+    @built = nil
+  end
+
   def linked?
     assistant.captain_inboxes.exists?(inbox_id: inbox.id)
   end
 
   def allowed_entry
+    return @allowed_entry if defined?(@allowed_entry)
+
+    item = availability_item
+    @allowed_entry = if item&.available?
+                       if flow?
+                         settings.mode(inbox.id) == 'list' ? settings.flow(inbox.id, request.resource) : { 'flow_id' => request.resource }
+                       elsif settings.mode(inbox.id) == 'list'
+                         settings.template(inbox.id, request.resource[:name], request.resource[:language])
+                       else
+                         { 'name' => item.resource['name'], 'language' => item.resource['language'],
+                           'processed_params' => item.processed_params, 'category' => item.resource['category'] }
+                       end
+                     end
+  end
+
+  def availability_item
+    @availability ||= Captain::Messaging::Availability.new(assistant, inbox)
     if flow?
-      settings.flow(inbox.id, request.resource)
+      @availability.flows.find { |item| item.resource['id'] == request.resource }
     else
-      settings.template(inbox.id, request.resource[:name], request.resource[:language])
+      @availability.templates.find do |item|
+        item.resource['name'] == request.resource[:name] && item.resource['language'].to_s.casecmp?(request.resource[:language].to_s)
+      end
     end
   end
 
@@ -145,14 +176,38 @@ class Captain::Messaging::SendService
     deny(limit.code, retry_after: limit.retry_after) if limit
   end
 
+  def daily_cap_denial
+    return if flow?
+
+    cap = template_daily_cap
+    return unless cap.exhausted?
+
+    cap.notify_reached
+    deny('daily_cap')
+  end
+
+  def template_daily_cap
+    @template_daily_cap ||= Captain::TemplateDailyCap.new(account, now: now)
+  end
+
   # --- sending
 
   def deliver
+    unless flow?
+      return deny('daily_cap') unless template_daily_cap.reserve!
+
+      @daily_cap_reserved = true
+    end
+
     message = flow? ? send_flow : send_template
     note
     Result.new(status: :sent, message: message)
   rescue Whatsapp::Flows::SendFlowService::Error
+    template_daily_cap.release! if !flow? && @daily_cap_reserved
     deny('unavailable')
+  rescue StandardError
+    template_daily_cap.release! if !flow? && @daily_cap_reserved && !@template_message_created
+    raise
   end
 
   def audit
@@ -170,7 +225,9 @@ class Captain::Messaging::SendService
 
   def send_template
     payload, text = built
-    create_message(text, additional_attributes: { 'template_params' => payload, KEY => audit })
+    message = create_message(text, additional_attributes: { 'template_params' => payload, KEY => audit })
+    @template_message_created = true
+    message
   end
 
   # The private note that says what Captain sent, next to the message.
