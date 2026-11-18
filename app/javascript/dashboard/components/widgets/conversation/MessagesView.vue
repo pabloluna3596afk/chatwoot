@@ -51,6 +51,8 @@ import { SESSION_STORAGE_KEYS } from 'dashboard/constants/sessionStorage';
 import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/constants';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
 
+const BOTTOM_PIN_THRESHOLD = 80;
+
 export default {
   components: {
     MessageList,
@@ -348,16 +350,35 @@ export default {
 
   mounted() {
     this.addScrollListener();
+    this.observeMessageListHeight();
     this.fetchAllAttachmentsFromCurrentChat();
     this.fetchSuggestions();
   },
 
   unmounted() {
+    this.messageListResizeObserver.disconnect();
     this.removeBusListeners();
     this.removeScrollListener();
   },
 
   methods: {
+    observeMessageListHeight() {
+      const panel = this.conversationPanel;
+      let previousHeight = panel.clientHeight;
+      this.messageListResizeObserver = new ResizeObserver(() => {
+        const height = panel.clientHeight;
+        if (height === previousHeight) return;
+
+        // ResizeObserver runs after layout. Use the previous height so opening
+        // the keyboard does not turn a pinned list into a scrolled-up list.
+        const wasNearBottom =
+          panel.scrollHeight - panel.scrollTop - previousHeight <=
+          BOTTOM_PIN_THRESHOLD;
+        previousHeight = height;
+        if (wasNearBottom) this.scrollToBottom();
+      });
+      this.messageListResizeObserver.observe(panel);
+    },
     async fetchSuggestions() {
       // start empty, this ensures that the label suggestions are not shown
       this.labelSuggestions = [];
@@ -613,7 +634,9 @@ export default {
         />
       </template>
     </MessageList>
-    <div class="flex relative shrink-0 flex-col bg-n-surface-1 z-10">
+    <div
+      class="flex relative shrink-0 flex-col bg-n-surface-1 z-10 max-md:pb-[env(safe-area-inset-bottom)]"
+    >
       <div
         v-if="isAnyoneTyping"
         class="absolute flex items-center w-full h-0 -top-7"

@@ -1,3 +1,11 @@
+### B-NEW-280 - Composer: altura disponible al abrir el teclado del teléfono (2026-11-18)
+
+- **Archivos:** `app/views/layouts/vueapp.html.erb`, `dashboard/App.vue`, `dashboard/composables/useVisualViewportHeight.js`, `dashboard/components/widgets/conversation/MessagesView.vue` y specs asociados.
+- **Problema:** la raíz conservaba la altura de la pantalla al abrir el teclado; la cabecera podía salir de la vista y el composer quedaba cubierto. Un cambio de altura de la lista tampoco conservaba explícitamente la posición al final.
+- **Arreglo:** viewport con `interactive-widget=resizes-content`, altura dinámica en la raíz y fallback de `visualViewport` exclusivo de iPhone/iPad (incluido iPadOS con UA Macintosh y multitouch). La utilidad de altura usa `!` para superar el `#app { height: 100% }` existente. Se eliminan listeners y variable al desmontar. Un `ResizeObserver` reutiliza `scrollToBottom` solo si la distancia previa al final era de hasta 80 px; se añade padding de área segura solo bajo `md`.
+- **Cómo probar:** Vitest de fallback (resize/scroll, detección iOS, ausencia de API y limpieza) y `MessagesView` (0/80 px conserva el final; 81/500 px conserva la lectura; misma altura no desplaza; observer desconectado). Suites de composables/conversación y overlays en UTC y America/Guayaquil; resultados y auditoría de alturas en `tmp/PR-COMPOSER-1.md`. Teclado real, capturas antes/después y aprobación visual pendientes del PM en teléfono mediante remote-preview a :3110.
+- **Alcance:** PR 1 únicamente; sin textos nuevos ni cambios i18n, rediseño, backend o migraciones. Sin navegador, fetch, stash, push, PR ni despliegue.
+
 ### B-NEW-271 - Asignación: respetar a la persona responsable y comunicar rechazos (2026-11-15)
 
 - **Archivos:** `Conversations::AssignmentService` y su extensión Enterprise, `AssignmentsController`, hook de mensajes de Captain, `ResponseBuilderJob` y registro de ciclo de respuesta, `InboxPendingConversationsResolutionJob`, `captain_followup.rake`; contrato Swagger y specs asociados.
