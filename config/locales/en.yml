@@ -822,8 +822,10 @@ en:
       note_template: 'Captain sent the template %{name}'
       template_cap_mail_subject: 'Captain reached its daily template limit'
       template_cap_mail_message: "Captain sent %{cap} templates today, the account's daily maximum. You can change it in Sending by inbox."
+      activated: 'Captain can now use %{count} resources in %{inbox}. Review them.'
       errors:
         conflict: 'Reload the page: this configuration changed.'
+        review_ineligible: 'This resource is no longer eligible for review.'
         daily_cap: "Captain's daily template limit was reached. Reply with a normal message."
         disabled: 'The owner has not enabled Flows and templates for this assistant and inbox.'
         not_allowed: 'This resource is not allowed.'

@@ -733,8 +733,10 @@ es:
       note_template: 'Captain envió la plantilla %{name}'
       template_cap_mail_subject: 'Captain alcanzó su tope diario de plantillas'
       template_cap_mail_message: 'Hoy Captain envió %{cap} plantillas, el máximo diario de la cuenta. Puedes cambiarlo en Envíos por bandeja.'
+      activated: 'Captain ya puede usar %{count} recursos de %{inbox}. Revísalos.'
       errors:
         conflict: 'Recarga la página: esta configuración cambió.'
+        review_ineligible: 'Este recurso ya no está disponible para revisión.'
         daily_cap: 'Hoy ya se alcanzó el tope de plantillas de Captain. Responde con un mensaje normal.'
         disabled: 'El dueño no habilitó Flows y plantillas para este asistente y esta bandeja.'
         not_allowed: 'Este recurso no está autorizado.'

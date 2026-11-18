@@ -84,6 +84,7 @@ class Captain::Messaging::SendService
 
   def permission_denial
     return deny('disabled') unless inbox.channel_type == 'Channel::Whatsapp' && linked? && settings.entry_for(inbox.id)
+    return deny('missing_variables') if availability_item&.state == 'needs_data'
 
     deny('not_allowed') unless allowed_entry
   end
@@ -96,6 +97,7 @@ class Captain::Messaging::SendService
     @allowed_entry = nil
     @template_entry = nil
     @built = nil
+    @availability_item = nil
   end
 
   def linked?
@@ -106,27 +108,23 @@ class Captain::Messaging::SendService
     return @allowed_entry if defined?(@allowed_entry)
 
     item = availability_item
-    @allowed_entry = if item&.available?
-                       if flow?
-                         settings.mode(inbox.id) == 'list' ? settings.flow(inbox.id, request.resource) : { 'flow_id' => request.resource }
-                       elsif settings.mode(inbox.id) == 'list'
-                         settings.template(inbox.id, request.resource[:name], request.resource[:language])
-                       else
-                         { 'name' => item.resource['name'], 'language' => item.resource['language'],
-                           'processed_params' => item.processed_params, 'category' => item.resource['category'] }
-                       end
-                     end
+    @allowed_entry = entry_for(item) if item&.available?
+  end
+
+  def entry_for(item)
+    return flow_entry if flow?
+    return settings.template(inbox.id, request.resource[:name], request.resource[:language]) if settings.mode(inbox.id) == 'list'
+
+    { 'name' => item.resource['name'], 'language' => item.resource['language'],
+      'processed_params' => item.processed_params, 'category' => item.resource['category'] }
+  end
+
+  def flow_entry
+    settings.mode(inbox.id) == 'list' ? settings.flow(inbox.id, request.resource) : { 'flow_id' => request.resource }
   end
 
   def availability_item
-    @availability ||= Captain::Messaging::Availability.new(assistant, inbox)
-    if flow?
-      @availability.flows.find { |item| item.resource['id'] == request.resource }
-    else
-      @availability.templates.find do |item|
-        item.resource['name'] == request.resource[:name] && item.resource['language'].to_s.casecmp?(request.resource[:language].to_s)
-      end
-    end
+    @availability_item ||= Captain::Messaging::ResourceAvailability.new(assistant, inbox, request).item
   end
 
   # --- the Flow or the template itself, now
@@ -193,21 +191,27 @@ class Captain::Messaging::SendService
   # --- sending
 
   def deliver
-    unless flow?
-      return deny('daily_cap') unless template_daily_cap.reserve!
-
-      @daily_cap_reserved = true
-    end
+    return deny('daily_cap') unless reserve_daily_cap
 
     message = flow? ? send_flow : send_template
     note
     Result.new(status: :sent, message: message)
-  rescue Whatsapp::Flows::SendFlowService::Error
-    template_daily_cap.release! if !flow? && @daily_cap_reserved
-    deny('unavailable')
-  rescue StandardError
-    template_daily_cap.release! if !flow? && @daily_cap_reserved && !@template_message_created
-    raise
+  rescue StandardError => e
+    handle_delivery_error(e)
+  end
+
+  def reserve_daily_cap
+    return true if flow?
+    return false unless template_daily_cap.reserve!
+
+    @daily_cap_reserved = true
+  end
+
+  def handle_delivery_error(error)
+    template_daily_cap.release! if @daily_cap_reserved && !@template_message_created
+    return deny('unavailable') if error.is_a?(Whatsapp::Flows::SendFlowService::Error)
+
+    raise error
   end
 
   def audit
@@ -216,16 +220,12 @@ class Captain::Messaging::SendService
   end
 
   def send_flow
-    params = { 'whatsapp_flow_id' => request.resource }
-    params['body'] = request.intro_text if request.intro_text.present?
-    message = Whatsapp::Flows::SendFlowService.new(conversation: conversation, sender: assistant, params: params).perform
-    message.update!(additional_attributes: message.additional_attributes.merge(KEY => audit))
-    message
+    delivery.send_flow
   end
 
   def send_template
     payload, text = built
-    message = create_message(text, additional_attributes: { 'template_params' => payload, KEY => audit })
+    message = delivery.send_template(payload, text)
     @template_message_created = true
     message
   end
@@ -233,16 +233,11 @@ class Captain::Messaging::SendService
   # The private note that says what Captain sent, next to the message.
   def note
     name = flow? ? published_flow.name : request.resource[:name]
-    content = I18n.t("captain.messaging.note_#{request.kind}", locale: account.locale, name: name)
-    create_message(content, private: true, preserve_waiting_since: true)
+    delivery.note(name, request.kind)
   end
 
-  def create_message(content, **attributes)
-    message = conversation.messages.build(message_type: :outgoing, account_id: account.id, inbox_id: inbox.id, sender: assistant,
-                                          content: content, **attributes)
-    message.variables_resolved! if attributes[:additional_attributes]&.with_indifferent_access&.key?(:template_params)
-    message.save!
-    message
+  def delivery
+    Captain::Messaging::Delivery.new(conversation: conversation, assistant: assistant, request: request, audit: audit)
   end
 
   def deny(code, retry_after: nil, detail: nil)

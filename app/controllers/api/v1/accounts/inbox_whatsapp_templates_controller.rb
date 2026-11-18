@@ -2,8 +2,9 @@
 # Administrators only: agents use the templates, they do not manage them (see InboxPolicy#manage_whatsapp_templates?).
 class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::BaseController
   LANGUAGE_FORMAT = /\A[a-z]{2,3}(_[A-Z]{2})?\z/
-  VARIABLE_BINDING_COMPONENTS = %w[BODY HEADER].freeze
   META_ERROR_STATUS = { 'not_found' => :not_found, 'rate_limited' => :bad_gateway, 'meta_unreachable' => :bad_gateway }.freeze
+
+  include Api::V1::Accounts::InboxWhatsappTemplateVariableBindings
 
   before_action :fetch_inbox
   before_action :validate_whatsapp_cloud_channel
@@ -20,29 +21,6 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
   def capabilities
     available = header_handle_service.available?
     render json: { media_header: available, reason: available ? nil : header_handle_service.unavailable_reason }
-  end
-
-  # Captain variable assignments update only the local binding map; they never submit template components to Meta.
-  def variable_bindings
-    name = params.require(:name)
-    return render_error('invalid_variable_bindings') unless name.is_a?(String) && name.present?
-
-    template = approved_template(name)
-    return render_error('template_not_found', status: :not_found) unless template
-
-    bindings = params.require(:variable_bindings)
-    return render_error('invalid_variable_bindings') unless bindings.is_a?(ActionController::Parameters)
-
-    payload = bindings.to_unsafe_h
-    return render_error('invalid_variable_bindings') unless payload.is_a?(Hash) && payload.values.all?(String)
-
-    clean = variable_bindings_service.normalize(payload, template_binding_texts(template))
-    variable_bindings_service.store(name, clean)
-    render json: { name: name, variable_bindings: clean }
-  rescue ActionController::ParameterMissing => e
-    render json: { error: e.param, message: 'is required' }, status: :unprocessable_entity
-  rescue Whatsapp::TemplateVariableBindingsService::Invalid => e
-    render json: { error: 'invalid_variable_bindings', message: e.message }, status: :unprocessable_entity
   end
 
   # Meta's Template Library, searchable (search, language, topic, usecase, industry) and paginated (after).
@@ -126,19 +104,6 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
 
   private
 
-  def approved_template(name)
-    Array(@inbox.channel.message_templates).find do |entry|
-      entry['name'] == name && entry['status'].to_s.casecmp?('APPROVED')
-    end
-  end
-
-  def template_binding_texts(template)
-    Array(template['components']).filter_map do |component|
-      type = component['type'].to_s.upcase
-      component['text'] if VARIABLE_BINDING_COMPONENTS.include?(type) && (type != 'HEADER' || component['format'].to_s.upcase == 'TEXT')
-    end
-  end
-
   def fetch_inbox
     @inbox = Current.account.inboxes.find(params[:inbox_id])
     authorize @inbox, :manage_whatsapp_templates?
@@ -209,26 +174,6 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
 
   def render_error(code, status: :unprocessable_entity, **options)
     render json: { error: code, message: translate_error(code, options) }, status: status
-  end
-
-  def variable_bindings_service
-    @variable_bindings_service ||= Whatsapp::TemplateVariableBindingsService.new(@inbox.channel)
-  end
-
-  # The variables the administrator chose a value for, checked against the texts of the template before Meta is called.
-  # Sending `variable_bindings` replaces the choices of that template; leaving it out keeps them.
-  def prepare_variable_bindings
-    return unless template_params.key?(:variable_bindings)
-    raise Whatsapp::TemplateVariableBindingsService::Invalid, 'the template needs a name' if template_params[:name].blank?
-
-    texts = [template_params.dig(:header, :text), template_params.dig(:body, :text)]
-    @variable_bindings = variable_bindings_service.normalize(template_params[:variable_bindings].to_h, texts)
-  rescue Whatsapp::TemplateVariableBindingsService::Invalid => e
-    render_error('invalid_variable_bindings', message: e.message)
-  end
-
-  def store_variable_bindings(name)
-    variable_bindings_service.store(name, @variable_bindings) unless @variable_bindings.nil?
   end
 
   def translate_error(code, options = {})

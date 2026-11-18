@@ -89,6 +89,7 @@ Rails.application.routes.draw do
                 post :playground
                 get :playground_usage
                 delete :avatar
+                post :allow_resource
                 get :metrics
                 get :faq_stats
                 get :summary

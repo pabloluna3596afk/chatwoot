@@ -79,10 +79,6 @@ class Captain::AppointmentReminders::Sender
     @zone ||= Integrations::GoogleCalendar::Timezone.for(account)
   end
 
-  def contact
-    conversation.contact
-  end
-
   def translate(key, **options)
     I18n.t("captain.appointment_reminders.#{key}", locale: locale, assistant: assistant.name, **options)
   end
@@ -93,7 +89,7 @@ class Captain::AppointmentReminders::Sender
 
   # "jueves 1 de octubre, 11:30"
   def when_label
-    Captain::AppointmentFormat.long(event.start_at, locale: locale, zone: zone)
+    appointment_format.long
   end
 
   # Far ahead: "te recordamos tu cita ... para el jueves 1 de octubre, 11:30"; close: "tu cita es en unas 3 horas (...)".
@@ -103,7 +99,7 @@ class Captain::AppointmentReminders::Sender
           elsif hours == 1 then 'reminder_near_one'
           else 'reminder_near'
           end
-    translate(key, name: contact.name, title: event.summary, when: when_label, hours: hours)
+    translate(key, name: conversation.contact.name, title: event.summary, when: when_label, hours: hours)
   end
 
   def delayed?
@@ -135,12 +131,7 @@ class Captain::AppointmentReminders::Sender
 
   def button_choices
     names = event.appointment_status == CONFIRMED ? %w[change_time cancel] : %w[confirm change_time cancel]
-    names.index_with { |name| { title: button_label(name), value: "#{button_label(name)} · #{short_date_time}" } }
-  end
-
-  # "jue 1 oct · 11:30"
-  def short_date_time
-    Captain::AppointmentFormat.short(event.start_at, locale: locale, zone: zone)
+    names.index_with { |name| { title: button_label(name), value: "#{button_label(name)} · #{appointment_format.short}" } }
   end
 
   def send_template
@@ -157,7 +148,11 @@ class Captain::AppointmentReminders::Sender
     cap = Captain::TemplateDailyCap.new(account, now: now)
     return skip_with_note('captain_template_cap_reached') unless cap.reserve!
 
-    drops = Captain::TemplateMessage.drops(conversation, assistant, appointment: appointment_drop)
+    deliver_reserved_template(entry, cap)
+  end
+
+  def deliver_reserved_template(entry, cap)
+    drops = Captain::TemplateMessage.drops(conversation, assistant, appointment: appointment_format.drop)
     payload, text = Captain::TemplateMessage.build(entry, settings.template_reminder['processed_params'], drops,
                                                    fallback: LEGACY_TEMPLATE_PARAMS)
     create_message(text, additional_attributes: { template_params: payload })
@@ -176,15 +171,6 @@ class Captain::AppointmentReminders::Sender
 
   # {{ appointment.date }} "jueves 1 de octubre", {{ appointment.time }} "11:30", {{ appointment.datetime }}
   # "jueves 1 de octubre, 11:30" and {{ appointment.title }}, in the language and timezone of the account.
-  def appointment_drop
-    {
-      'date' => Captain::AppointmentFormat.day(event.start_at, locale: locale, zone: zone),
-      'time' => Captain::AppointmentFormat.clock(event.start_at, zone: zone),
-      'datetime' => when_label,
-      'title' => event.summary
-    }
-  end
-
   def create_message(content, **attributes)
     message = conversation.messages.build(
       message_type: :outgoing, account_id: account.id, inbox_id: conversation.inbox_id, sender: assistant,
@@ -199,6 +185,10 @@ class Captain::AppointmentReminders::Sender
   def finish
     reminder.update!(status: 'sent', sent_at: now, skipped_reason: nil)
     :sent
+  end
+
+  def appointment_format
+    @appointment_format ||= Captain::AppointmentReminders::Format.new(event, locale: locale, zone: zone)
   end
 
   def skip(reason)
@@ -238,11 +228,11 @@ class Captain::AppointmentReminders::Sender
   end
 
   def agent_copy_text
-    translate(agent_copy_key, name: contact.name, title: event.summary, when: when_label)
+    translate(agent_copy_key, name: conversation.contact.name, title: event.summary, when: when_label)
   end
 
   def agent_copy_key
-    name = contact.name.blank? ? '_no_name' : ''
+    name = conversation.contact.name.blank? ? '_no_name' : ''
     confirmation = event.appointment_status == CONFIRMED ? '' : '_unconfirmed'
     "agent_copy_text#{name}#{confirmation}"
   end

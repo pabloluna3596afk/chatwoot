@@ -10,35 +10,17 @@ class Captain::Messaging::TemplateParams
 
   # Returns [complete processed_params, missing variable names].
   def resolve
-    params = { 'body' => {}, 'header' => {} }
-    missing = []
     overrides = override_params
     bindings = Whatsapp::TemplateVariableBindingsService.new(@inbox.channel).for_template(@template['name'])
     variables = Captain::TemplateMessage.variables(@template)
-    return [params, variables.map(&:name).uniq] if bindings.any? && bindings.keys.sort != variables.map(&:name).uniq.sort
+    params = { 'body' => {}, 'header' => {} }
+    bindings = {} if binding_mismatch?(bindings, variables)
 
     variables.each do |variable|
-      source, value = explicit_value(overrides, variable)
-      if source
-        unless valid_expression?(value)
-          missing << variable.name
-          next
-        end
-      elsif bindings.key?(variable.name)
-        value = "{{ #{bindings[variable.name]} }}"
-        unless valid_expression?(value)
-          missing << variable.name
-          next
-        end
-      elsif !variable.name.match?(/\A\d+\z/) && (alias_path = alias_path_for(variable.name)) && catalog_paths.include?(alias_path)
-        value = "{{ #{alias_path} }}"
-      else
-        missing << variable.name
-        next
-      end
-      params[variable.component][variable.name] = value
+      value = resolve_variable(variable, overrides, bindings)
+      params[variable.component][variable.name] = value if value
     end
-    [params, missing]
+    [params, variables.reject { |variable| params[variable.component].key?(variable.name) }.map(&:name).uniq]
   end
 
   private
@@ -47,6 +29,30 @@ class Captain::Messaging::TemplateParams
     waba_id = @inbox.channel.provider_config.to_h['business_account_id'].to_s
     key = "#{waba_id}:#{@template['name']}|#{@template['language']}"
     @assistant.messaging.params_for(@inbox.id, key).to_h
+  end
+
+  def binding_mismatch?(bindings, variables)
+    bindings.any? && bindings.keys.sort != variables.map(&:name).uniq.sort
+  end
+
+  def resolve_variable(variable, overrides, bindings)
+    explicit, value = explicit_value(overrides, variable)
+    return valid_expression?(value) ? value : nil if explicit
+    return binding_expression(bindings[variable.name]) if bindings.key?(variable.name)
+
+    alias_expression(variable.name)
+  end
+
+  def binding_expression(path)
+    expression = "{{ #{path} }}"
+    valid_expression?(expression) ? expression : nil
+  end
+
+  def alias_expression(name)
+    return if name.match?(/\A\d+\z/)
+
+    path = alias_path_for(name)
+    "{{ #{path} }}" if path && catalog_paths.include?(path)
   end
 
   def explicit_value(params, variable)

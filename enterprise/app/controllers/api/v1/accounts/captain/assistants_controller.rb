@@ -5,7 +5,8 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
 
   before_action -> { check_authorization(Captain::Assistant) }
 
-  before_action :set_assistant, only: [:show, :update, :destroy, :avatar, :playground, :playground_usage, :metrics, :faq_stats, :summary, :drilldown]
+  before_action :set_assistant, only: [:show, :update, :destroy, :avatar, :allow_resource, :playground, :playground_usage, :metrics,
+                                       :faq_stats, :summary, :drilldown]
 
   def index
     @assistants = account_assistants.ordered.with_attached_avatar
@@ -15,6 +16,7 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
 
   def create
     @assistant = account_assistants.create!(assistant_params)
+    snapshot_new_auto_entries
   rescue Captain::Assistant::LimitExceededError => e
     render_could_not_create_error(e.message)
   end
@@ -28,7 +30,15 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
       permitted_params[:config] = @assistant.config.merge(permitted_params[:config].to_h) if permitted_params[:config]
 
       @assistant.update!(permitted_params)
+      snapshot_new_auto_entries
     end
+  end
+
+  def allow_resource
+    return render :update if update_allowed_resource
+
+    render json: { error: I18n.t('captain.messaging.errors.review_ineligible', locale: Current.account.locale) },
+           status: :unprocessable_entity
   end
 
   def destroy
@@ -96,6 +106,16 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
   end
 
   private
+
+  def update_allowed_resource
+    inbox_id = params.require(:inbox_id).to_i
+    review = Captain::Messaging::Review.new(@assistant, Current.account.inboxes.find(inbox_id))
+    return false unless review.allow!(kind: params.require(:kind), key: params.require(:key))
+
+    messaging = @assistant.config.fetch('messaging').deep_dup
+    messaging['revision'] = @assistant.messaging.revision + 1
+    @assistant.update!(config: @assistant.config.merge('messaging' => messaging))
+  end
 
   def generate_playground_response
     key = Current.account.own_ai_key
@@ -231,26 +251,14 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
   end
 
   def check_messaging_version(permitted)
-    config = permitted[:config]
-    return true unless config&.key?(:messaging) || config&.key?('messaging')
-
-    incoming = config[:messaging] || config['messaging']
-    saved = @assistant.config['messaging']
-    return true unless saved.is_a?(Hash) && saved['version'] == 2
-
-    if incoming == saved
-      config.delete(:messaging)
-      config.delete('messaging')
-      return true
-    end
-
-    if incoming.is_a?(Hash) && incoming['version'] == 2 && incoming['revision'] == saved['revision']
-      incoming['revision'] = saved['revision'].to_i + 1
-      return true
-    end
+    return true if Captain::Messaging::ConfigVersionGuard.new(@assistant).check(permitted[:config])
 
     render json: { error: I18n.t('captain.messaging.errors.conflict', locale: Current.account.locale) }, status: :conflict
     false
+  end
+
+  def snapshot_new_auto_entries
+    @activation_notices = Captain::Messaging::Snapshotter.perform!(@assistant)
   end
 
   # The audience is a recursive condition tree that strong params can't whitelist by shape;

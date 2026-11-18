@@ -57,6 +57,10 @@ class Captain::AssistantPolicy < ApplicationPolicy
     update?
   end
 
+  def allow_resource?
+    update?
+  end
+
   def sync?
     @account_user.administrator?
   end

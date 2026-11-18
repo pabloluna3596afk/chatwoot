@@ -10,7 +10,7 @@ class Whatsapp::Flows::SendFlowService
     inbox.account.whatsapp_flows.joins(:whatsapp_flow_publications)
          .where(whatsapp_flow_publications: { waba_id: channel.provider_config.fetch('business_account_id'), status: 'published' })
          .where('whatsapp_flow_publications.published_at >= whatsapp_flows.updated_at')
-         .order(:name)
+         .includes(:whatsapp_flow_publications).order(:name)
   end
 
   def initialize(conversation:, sender:, params: {})

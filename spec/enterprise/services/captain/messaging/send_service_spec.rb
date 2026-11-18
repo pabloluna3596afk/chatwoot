@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe Captain::Messaging::SendService do
-  let(:account) { create(:account, locale: 'es') }
+  let(:account) { create(:account, locale: 'es', reporting_timezone: 'America/Guayaquil') }
   let(:templates) do
     [{ 'name' => 'cita_confirmada', 'language' => 'es', 'status' => 'APPROVED', 'category' => 'UTILITY', 'namespace' => 'ns',
        'components' => [{ 'type' => 'BODY', 'text' => 'Hola {{nombre}}, soy {{asistente}}.' }] },
@@ -24,7 +24,9 @@ RSpec.describe Captain::Messaging::SendService do
   end
   let(:assistant_config) { { 'messaging' => messaging, 'allow_paid_templates' => true } }
   let(:assistant) { create(:captain_assistant, account: account, name: 'Aurora', config: assistant_config) }
-  let(:now) { Time.zone.parse('2030-01-15T10:00:00-05:00') }
+  let(:now) do
+    Time.use_zone(Integrations::GoogleCalendar::Timezone.for(account)) { Time.zone.parse('2030-01-15 10:00:00') }
+  end
 
   around { |example| travel_to(now) { example.run } }
 
@@ -269,6 +271,39 @@ RSpec.describe Captain::Messaging::SendService do
     it 'sends a template inside the 24 h window too (it is a paid message, the owner allowed it)' do
       expect(send_template).to be_sent
     end
+
+    it 'denies a template when the account daily cap is exhausted without creating a message' do
+      account.update!(captain_template_daily_cap: 0)
+
+      expect(send_template).to have_attributes(status: :denied, code: 'daily_cap')
+      expect(public_messages).to be_empty
+    end
+
+    it 'releases a reserved daily-cap place when the message cannot be created' do
+      account.update!(captain_template_daily_cap: 1)
+      factory = instance_double(Captain::Messaging::MessageFactory)
+      allow(Captain::Messaging::MessageFactory).to receive(:new).and_return(factory)
+      allow(factory).to receive(:create).and_raise(ActiveRecord::RecordNotSaved)
+
+      expect { send_template }.to raise_error(ActiveRecord::RecordNotSaved)
+      expect(Captain::TemplateDailyCap.new(account, now: now).used).to eq(0)
+    end
+  end
+
+  it 'revalidates a resource revoked after precheck and before run' do
+    customer = customer_says
+    request = Captain::Messaging::Request.new(kind: 'template', resource: { name: 'cita_confirmada', language: 'es' },
+                                              responding_to_message_id: customer.id)
+    service = described_class.new(conversation: conversation, assistant: assistant, request: request, now: now)
+    expect(service.precheck).to be_nil
+
+    assistant.update!(config: {
+                        'messaging' => { 'inboxes' => [{ 'inbox_id' => inbox.id, 'enabled' => true, 'templates' => [] }] },
+                        'allow_paid_templates' => true
+                      })
+
+    expect(service.perform).to have_attributes(status: :denied, code: 'not_allowed')
+    expect(public_messages).to be_empty
   end
 
   describe 'the contact-date rule cap' do

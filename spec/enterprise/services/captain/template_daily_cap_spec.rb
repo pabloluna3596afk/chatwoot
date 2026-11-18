@@ -1,7 +1,10 @@
 require 'rails_helper'
 
 RSpec.describe Captain::TemplateDailyCap do
-  let(:account) { create(:account) }
+  let(:account) { create(:account, reporting_timezone: 'America/Guayaquil') }
+  let(:now) do
+    Time.use_zone(Integrations::GoogleCalendar::Timezone.for(account)) { Time.zone.parse('2030-01-15 23:59:30') }
+  end
 
   it 'defaults to 50 template sends per account day' do
     cap = described_class.new(account)
@@ -20,5 +23,30 @@ RSpec.describe Captain::TemplateDailyCap do
     expect(cap.reserve!).to be(true)
     cap.release!
     expect(cap.used).to eq(0)
+  end
+
+  it 'resets at midnight in the account time zone' do
+    travel_to(now) do
+      expect(described_class.new(account).reserve!).to be(true)
+      expect(described_class.new(account).used).to eq(1)
+
+      travel_to(now + 1.minute) do
+        expect(described_class.new(account).used).to eq(0)
+      end
+    end
+  end
+
+  it 'emails administrators once when the daily limit is first exceeded' do
+    account.update!(captain_template_daily_cap: 0)
+    mail = instance_double(ActionMailer::MessageDelivery, deliver_later: true)
+    expect(mail).to receive(:deliver_later).once
+    expect(AdministratorNotifications::AccountNotificationMailer).to receive(:captain_template_cap_reached)
+      .once.with(account, 0).and_return(mail)
+
+    travel_to(now) do
+      cap = described_class.new(account)
+      expect(cap.reserve!).to be(false)
+      expect(cap.reserve!).to be(false)
+    end
   end
 end

@@ -71,7 +71,7 @@ class Captain::Followup::Reengager
   def contacted_recently?
     contact.conversations.where.not(id: conversation.id)
            .where("#{STATE_PATH} -> 'reengagement' ->> 'status' = 'sent'")
-           .where("#{STATE_PATH} -> 'reengagement' ->> 'at' >= ?", (now - COOLDOWN).utc.iso8601).exists?
+           .exists?(["#{STATE_PATH} -> 'reengagement' ->> 'at' >= ?", (now - COOLDOWN).utc.iso8601])
   end
 
   def send_template(entry)
@@ -80,6 +80,10 @@ class Captain::Followup::Reengager
     cap = Captain::TemplateDailyCap.new(account, now: now)
     return skip_with_note('reengagement_template_cap_reached', 'captain_template_cap_reached') unless cap.reserve!
 
+    send_reserved_template(entry, cap)
+  end
+
+  def send_reserved_template(entry, cap)
     drops = Captain::TemplateMessage.drops(conversation, assistant)
     payload, text = Captain::TemplateMessage.build(entry, settings.reengagement_template['processed_params'], drops,
                                                    fallback: LEGACY_TEMPLATE_PARAMS)
