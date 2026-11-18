@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
+import VueDOMPurifyHTML from 'vue-dompurify-html';
 import ToolCards from './ToolCards.vue';
 import en from 'dashboard/i18n/locale/en/cannedMgmt.json';
 import es from 'dashboard/i18n/locale/es/cannedMgmt.json';
@@ -18,11 +19,79 @@ const canned = {
 const mountCards = (props, options = {}) =>
   mount(ToolCards, {
     props: { items: [canned], titleKey: 'short_code', ...props },
-    global: { mocks: { $t: key => key } },
+    global: { mocks: { $t: key => key }, plugins: [VueDOMPurifyHTML] },
     ...options,
   });
 
 describe('ToolCards', () => {
+  it('renders the markdown of a response: bold, line breaks and lists', () => {
+    const wrapper = mountCards({
+      items: [
+        {
+          ...canned,
+          content:
+            '**5X MATRIX**\n\n- Fuerza\n- Recuperación\n\nHola {{contact.name}}',
+        },
+      ],
+      variableLabels: { 'contact.name': 'Nombre del contacto' },
+    });
+
+    expect(wrapper.find('strong').text()).toBe('5X MATRIX');
+    expect(wrapper.findAll('li').map(item => item.text())).toEqual([
+      'Fuerza',
+      'Recuperación',
+    ]);
+    expect(wrapper.text()).not.toContain('**');
+    expect(wrapper.find('.text-n-blue-12').text()).toBe('Nombre del contacto');
+  });
+
+  it('does not render scripts or event handlers typed in a response', () => {
+    const wrapper = mountCards({
+      items: [
+        {
+          ...canned,
+          content: '<img src=x onerror="alert(1)"><script>alert(2)</script>ok',
+        },
+      ],
+    });
+
+    expect(wrapper.find('img').exists()).toBe(false);
+    expect(wrapper.find('script').exists()).toBe(false);
+    expect(wrapper.text()).toContain('ok');
+  });
+
+  it('keeps a short response visible while hovering (no hover overlay exists)', () => {
+    const wrapper = mountCards({
+      items: [{ ...canned, content: 'Respuesta corta' }],
+    });
+    const textButton = wrapper.find('[data-card-content] button');
+
+    expect(textButton.classes().join(' ')).not.toContain(
+      'group-hover:invisible'
+    );
+  });
+
+  it('hides the collapsed text on hover only when the long-response overlay replaces it', () => {
+    const wrapper = mountCards({
+      items: [{ ...canned, content: 'Respuesta larga. '.repeat(40) }],
+    });
+    const textButton = wrapper.find('[data-card-content] button');
+
+    expect(textButton.classes().join(' ')).toContain('group-hover:invisible');
+  });
+
+  it('keeps the action menu above the hover overlay of the card', () => {
+    const wrapper = mountCards({
+      actions: [{ key: 'edit', label: 'Edit' }],
+      items: [{ ...canned, content: 'Respuesta larga. '.repeat(40) }],
+    });
+
+    expect(wrapper.find('details').classes()).toContain('z-30');
+    expect(wrapper.find('[data-card-content] .absolute').classes()).toContain(
+      'z-20'
+    );
+  });
+
   it('shows readable variable labels while preserving source text in the tooltip', () => {
     const wrapper = mountCards({
       variableLabels: { 'contact.name': 'Nombre del contacto' },

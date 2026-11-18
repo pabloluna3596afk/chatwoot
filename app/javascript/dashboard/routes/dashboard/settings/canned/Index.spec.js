@@ -1,5 +1,6 @@
 import { shallowMount } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
+import VueDOMPurifyHTML from 'vue-dompurify-html';
 import { describe, expect, it, vi } from 'vitest';
 import cannedMgmtEn from 'dashboard/i18n/locale/en/cannedMgmt.json';
 import cannedMgmtEs from 'dashboard/i18n/locale/es/cannedMgmt.json';
@@ -47,7 +48,7 @@ describe('canned response settings', () => {
     });
     const wrapper = shallowMount(Index, {
       global: {
-        plugins: [i18n],
+        plugins: [i18n, VueDOMPurifyHTML],
         stubs: {
           SettingsLayout: {
             template: '<div><slot name="header"/><slot name="body"/></div>',

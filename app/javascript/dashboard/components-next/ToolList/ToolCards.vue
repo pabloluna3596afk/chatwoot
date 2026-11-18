@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
+import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 
 const props = defineProps({
   items: { type: Array, default: () => [] },
@@ -30,16 +31,13 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['action', 'edit']);
+const { formatMessage } = useMessageFormatter();
 const expanded = ref(new Set());
 const copied = ref(new Set());
 const overlayAbove = ref(new Set());
 const timers = new Map();
 const visibleActions = item =>
   props.actions.filter(action => !action.visible || action.visible(item));
-const contentParts = content =>
-  String(content || '')
-    .split(/(\{\{[^{}]+\}\})/g)
-    .filter(Boolean);
 const variableName = part => {
   const path = part.replace(/[{}]/g, '').trim();
   if (props.variableLabels[path]) return props.variableLabels[path];
@@ -111,6 +109,29 @@ const visibilityIcon = item =>
     ? 'i-lucide-building-2 text-n-brand'
     : 'i-lucide-user-round text-n-slate-11';
 const visibleVariableText = part => variableName(part);
+const escapeHtml = value =>
+  String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+// Canned responses are markdown: render bold, line breaks, lists and links like the
+// chat does, keeping each {{ variable }} as a chip. The result is sanitized by the
+// v-dompurify-html directive where it is used.
+const renderContent = content => {
+  const variables = [];
+  const text = String(content || '').replace(/\{\{[^{}]+\}\}/g, match => {
+    variables.push(match);
+    return `CANNEDVAR${variables.length - 1}X`;
+  });
+  return formatMessage(text, false, false, false).replace(
+    /CANNEDVAR(\d+)X/g,
+    (_, index) =>
+      `<span class="inline break-words rounded bg-n-brand/10 px-1 text-n-blue-12" title="${escapeHtml(variables[index])}">${escapeHtml(visibleVariableText(variables[index]))}</span>`
+  );
+};
+const contentClasses =
+  '[&_p]:m-0 [&_p+p]:mt-2 [&_ul]:m-0 [&_ul]:list-disc [&_ul]:ps-5 [&_ol]:m-0 [&_ol]:list-decimal [&_ol]:ps-5 [&_a]:underline [&_a]:text-n-brand [&_strong]:font-semibold';
 const cardTabIndex = item => (props.canEdit(item) ? 0 : -1);
 const onCardKeydown = (event, item) => {
   if (event.key === 'Enter' || event.key === ' ') {
@@ -175,7 +196,7 @@ const cards = computed(() => props.items);
           }}</span>
           <details
             v-if="visibleActions(item).length"
-            class="relative z-10 shrink-0"
+            class="relative z-30 shrink-0"
             @keydown="closeMenuOnEscape"
           >
             <summary
@@ -213,30 +234,25 @@ const cards = computed(() => props.items);
         <div class="relative px-4 pb-3" data-card-content>
           <button
             type="button"
-            class="block w-full text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand [@media(hover:hover)]:group-hover:invisible [@media(hover:hover)]:focus:invisible"
+            class="block w-full text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
+            :class="
+              needsExpansion(item[contentKey])
+                ? '[@media(hover:hover)]:group-hover:invisible [@media(hover:hover)]:focus:invisible'
+                : ''
+            "
             :aria-label="`${editLabel}: ${item[titleKey]}`"
             @click="editItem(item)"
           >
             <span
-              class="line-clamp-6 whitespace-pre-wrap text-sm leading-5 text-n-slate-11"
-              :class="
+              v-dompurify-html="renderContent(item[contentKey])"
+              class="line-clamp-6 block break-words text-sm leading-5 text-n-slate-11"
+              :class="[
+                contentClasses,
                 expanded.has(getKey(item))
                   ? 'line-clamp-none overflow-visible'
-                  : ''
-              "
-            >
-              <template
-                v-for="(part, index) in contentParts(item[contentKey])"
-                :key="index"
-              >
-                <span
-                  v-if="part.startsWith('{{')"
-                  class="inline break-words rounded bg-n-brand/10 px-1 text-n-blue-12"
-                  :title="part"
-                  >{{ visibleVariableText(part) }}</span
-                ><span v-else>{{ part }}</span>
-              </template>
-            </span>
+                  : '',
+              ]"
+            />
           </button>
           <div
             v-if="needsExpansion(item[contentKey])"
@@ -254,17 +270,11 @@ const cards = computed(() => props.items);
                 :aria-label="`${editLabel}: ${item[titleKey]}`"
                 @click="editItem(item)"
               >
-                <template
-                  v-for="(part, index) in contentParts(item[contentKey])"
-                  :key="index"
-                >
-                  <span
-                    v-if="part.startsWith('{{')"
-                    class="inline break-words rounded bg-n-brand/10 px-1 text-n-blue-12"
-                    :title="part"
-                    >{{ visibleVariableText(part) }}</span
-                  ><span v-else>{{ part }}</span>
-                </template>
+                <span
+                  v-dompurify-html="renderContent(item[contentKey])"
+                  class="block break-words"
+                  :class="contentClasses"
+                />
               </button>
               <div
                 class="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-n-weak pt-2 text-xs text-n-slate-10"
