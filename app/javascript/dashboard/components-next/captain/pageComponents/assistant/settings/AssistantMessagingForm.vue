@@ -59,6 +59,20 @@ const bindingsDraft = reactive({});
 const paidTemplates = ref(false);
 const permissionEntries = reactive({});
 
+// The list endpoint omits the per-inbox state (`envios`): read it from the single-assistant endpoint.
+const serverEnvios = ref(null);
+const envios = computed(
+  () => serverEnvios.value || props.assistant?.envios || {}
+);
+const loadEnvios = async () => {
+  try {
+    const { data } = await AssistantAPI.show(route.params.assistantId);
+    serverEnvios.value = data?.envios || null;
+  } catch {
+    serverEnvios.value = null;
+  }
+};
+
 const connectedInboxes = computed(() => {
   const ids = (linkedInboxes.value || []).map(item => item.id);
   return ids
@@ -75,7 +89,7 @@ const selectedInbox = computed(() =>
   orderedInboxes.value.find(item => item.id === selectedInboxId.value)
 );
 const serverInbox = computed(() =>
-  (props.assistant?.envios?.inboxes || []).find(
+  (envios.value?.inboxes || []).find(
     item => item.inbox_id === selectedInboxId.value
   )
 );
@@ -158,7 +172,7 @@ function reminderStatus(inbox) {
   return exists ? 'APPROVED_HERE' : 'MISSING_HERE';
 }
 const pendingCount = inbox => {
-  const data = (props.assistant?.envios?.inboxes || []).find(
+  const data = (envios.value?.inboxes || []).find(
     item => item.inbox_id === inbox.id
   );
   const resourcePending = (data?.resources || []).filter(item =>
@@ -488,14 +502,15 @@ const save = async () => {
 };
 const hydrate = () => {
   paidTemplates.value = props.assistant?.config?.allow_paid_templates === true;
-  capValue.value = props.assistant?.envios?.template_cap?.cap ?? 50;
-  capUsed.value = props.assistant?.envios?.template_cap?.used ?? 0;
+  capValue.value = envios.value?.template_cap?.cap ?? 50;
+  capUsed.value = envios.value?.template_cap?.used ?? 0;
   Object.keys(permissionEntries).forEach(key => delete permissionEntries[key]);
   (savedMessaging.value.inboxes || []).forEach(entry => {
     permissionEntries[entry.inbox_id] = JSON.parse(JSON.stringify(entry));
   });
 };
 watch(() => props.assistant, hydrate, { immediate: true });
+watch(() => props.assistant?.updated_at, loadEnvios);
 watch(
   orderedInboxes,
   list => {
@@ -535,6 +550,7 @@ const flowEditRoute = row => ({
 });
 
 onMounted(async () => {
+  loadEnvios();
   try {
     await store.dispatch('captainInboxes/get', {
       assistantId: route.params.assistantId,
