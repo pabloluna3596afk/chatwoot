@@ -3635,3 +3635,9 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Archivos:** Review, LegacyEntryConverter, TemplateAvailability/Params, MessagingSettings y TemplateDailyCap; specs.
 - **Arreglo:** omite claves auto sin WABA; idioma normalizado al escribir y buscar, conservando claves antiguas; Redis captura atomicamente el dia y su frontera hasta el siguiente reset, aunque cambie la zona horaria.
 - **Como probar:** snapshot no Cloud valido, es_MX/es_mx conserva revision/exclusion, travel_to y cambio Guayaquil/Tokyo conserva contador y frontera inicial. Sin migraciones.
+
+### B-NEW-279 ? Captain: cooldown de reenganche por contacto (2026-11-18)
+
+- **Archivos:** `Followup::Reengager` y spec de concurrencia.
+- **Arreglo:** bloqueo asesor transaccional PostgreSQL por contacto, dentro del lock existente de conversacion, antes de leer elegibilidad/cooldown. Cubre conversaciones distintas y libera al confirmar o revertir la transaccion.
+- **Como probar:** dos conexiones reales, la segunda espera por lock asesor y omite con cooldown tras confirmar el primer envio; conserva regla de siete dias. Sin migraciones.

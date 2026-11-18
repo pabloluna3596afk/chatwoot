@@ -27,6 +27,9 @@ class Captain::Followup::Reengager
   # Returns :sent, :skipped or nil (not yet: the window is still open or sending hours have not started).
   def perform
     conversation.with_lock do
+      # A transaction-scoped contact lock also covers other conversations of this customer.
+      sql = ApplicationRecord.sanitize_sql_array(['SELECT pg_advisory_xact_lock(?)', -conversation.contact_id])
+      ApplicationRecord.connection.select_value(sql)
       conversation.reload
       next unless due?
 
