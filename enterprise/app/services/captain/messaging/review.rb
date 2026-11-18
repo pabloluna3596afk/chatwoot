@@ -6,11 +6,13 @@ class Captain::Messaging::Review
     @inbox = inbox
     @channel = inbox.channel
     @entry = assistant.messaging.entry_for(inbox.id)
-    @waba_id = @channel.provider_config.to_h['business_account_id'].to_s
+    @waba_id = @channel.provider_config.to_h['business_account_id'].to_s if whatsapp?
   end
 
   # Marketing, authentication, unsupported and link-bearing templates require a separate choice.
   def activation_snapshot
+    return { 'templates' => {}, 'flows' => {} } unless whatsapp?
+
     templates = @channel.message_templates.to_a.each_with_object({}) do |template, reviewed|
       reviewed[template_key(template)] = fingerprint(template) if activation_template?(template)
     end
@@ -22,7 +24,7 @@ class Captain::Messaging::Review
   end
 
   def allow!(kind:, key:)
-    return false unless @entry
+    return false unless whatsapp? && @entry
 
     reviewed = @entry.fetch('reviewed', { 'templates' => {}, 'flows' => {} })
     reviewed['templates'] ||= {}
@@ -83,9 +85,15 @@ class Captain::Messaging::Review
   end
 
   def eligible_flows
+    return [] unless whatsapp?
+
     Whatsapp::Flows::SendFlowService.eligible_for(@inbox).includes(:whatsapp_flow_publications).to_a
   rescue Whatsapp::Flows::SendFlowService::Error
     []
+  end
+
+  def whatsapp?
+    @channel.is_a?(Channel::Whatsapp)
   end
 
   def template_key(template)
