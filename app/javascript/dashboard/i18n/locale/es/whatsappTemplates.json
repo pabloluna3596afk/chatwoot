@@ -177,7 +177,6 @@
         "AUTHENTICATION": "Mensaje de autenticación (códigos)"
       },
       "USE_TEXT": "Usar «{text}»",
-      "NO_DATA": "Sin dato",
       "SEARCH_OR_TYPE": "Buscar o escribir…",
       "REMOVE_VALUE": "Quitar"
     }

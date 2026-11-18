@@ -12,13 +12,6 @@ const options = [
     disabled: false,
   },
   {
-    id: 'phone',
-    label: 'Phone',
-    value: '',
-    expression: '{{ contact.phone }}',
-    disabled: true,
-  },
-  {
     id: 'email',
     label: 'Email',
     value: 'alex@example.com',
@@ -39,10 +32,8 @@ describe('free text and system variable combobox', () => {
     expect(input.attributes('aria-expanded')).toBe('false');
     expect(wrapper.find('[role=listbox]').exists()).toBe(false);
     await input.trigger('click');
-    expect(wrapper.findAll('[role=option]')).toHaveLength(3);
-    expect(wrapper.get('[aria-disabled=true]').attributes('title')).toBe(
-      'No data'
-    );
+    expect(wrapper.findAll('[role=option]')).toHaveLength(2);
+    expect(wrapper.text()).not.toContain('No data');
     await input.setValue('*Alex*');
     expect(wrapper.get('[role=option]').text()).toBe('Use “*Alex*”');
     expect(document.activeElement).toBe(input.element);
@@ -68,8 +59,6 @@ describe('free text and system variable combobox', () => {
     const input = wrapper.get('textarea');
     await input.trigger('focus');
     await input.trigger('click');
-    await wrapper.get('[aria-disabled=true]').trigger('click');
-    expect(wrapper.emitted('select')).toBeUndefined();
     await input.trigger('keydown', { key: 'ArrowDown' });
     expect(input.attributes('aria-activedescendant')).toBe(
       wrapper.get('[aria-selected=true]').attributes('id')
@@ -105,7 +94,7 @@ describe('free text and system variable combobox', () => {
     await input.trigger('focus');
     expect(input.attributes('aria-expanded')).toBe('false');
     await input.trigger('click');
-    await wrapper.findAll('[role=option]')[2].trigger('click');
+    await wrapper.findAll('[role=option]')[1].trigger('click');
     expect(wrapper.emitted('select')).toEqual([['{{ contact.email }}']]);
     expect(input.attributes('aria-expanded')).toBe('false');
     await input.trigger('focus');
@@ -252,9 +241,8 @@ it('sizes to the actual value without reserving a remove button column', async (
   expect(wrapper.find('button').exists()).toBe(false);
   await wrapper.get('textarea').trigger('click');
   expect(wrapper.findAll('[role=option]').map(row => row.text())).toEqual([
-    'Alex',
-    'No data',
-    'alex@example.com',
+    'Alex·Contact name',
+    'alex@example.com·Email',
     'Remove',
   ]);
   await wrapper.findAll('[role=option]').at(-1).trigger('click');
@@ -262,7 +250,7 @@ it('sizes to the actual value without reserving a remove button column', async (
   wrapper.unmount();
 });
 
-it('shows actual values only, including long values, and accepts custom search text', async () => {
+it('shows the value and its variable name, including long values, and accepts custom search text', async () => {
   const value = 'A very long contact name that must remain completely readable';
   const wrapper = mount(TemplateDataField, {
     props: {
@@ -281,13 +269,10 @@ it('shows actual values only, including long values, and accepts custom search t
   await wrapper.get('textarea').trigger('click');
   const rows = wrapper.findAll('[role=option]');
   expect(rows.map(row => row.text())).toEqual([
-    'Alex',
-    'No data',
-    'alex@example.com',
-    value,
+    'Alex·Contact name',
+    'alex@example.com·Email',
+    `${value}·Technical label`,
   ]);
-  expect(wrapper.text()).not.toContain('Contact name');
-  expect(wrapper.text()).not.toContain('Technical label');
   expect(wrapper.text()).not.toContain('System variables');
   const search = wrapper.get('input[type=search]');
   await search.setValue('Custom text');
@@ -298,4 +283,51 @@ it('shows actual values only, including long values, and accepts custom search t
   expect(wrapper.emitted('change')).toEqual([['Custom text']]);
   expect(wrapper.emitted('select')).toBeUndefined();
   wrapper.unmount();
+});
+
+describe('variable picker look', () => {
+  it('uses the app typeface and shows value and variable name as separate spans', async () => {
+    const wrapper = mount(TemplateDataField, {
+      props: { label: 'Detail', options },
+    });
+    await wrapper.get('textarea').trigger('click');
+    const menu = wrapper.get('[role=listbox]').element.parentElement;
+    expect(menu.className).toContain('font-inter');
+    expect(menu.className).not.toContain('font-sans');
+    const row = wrapper.get('[role=option]');
+    const spans = row.get('span').findAll('span');
+    expect(spans.map(span => span.text())).toEqual([
+      'Alex',
+      '·',
+      'Contact name',
+    ]);
+    expect(spans[0].classes()).toContain('text-n-slate-12');
+    expect(spans[2].classes()).toContain('text-n-slate-10');
+    expect(spans[1].attributes('aria-hidden')).toBe('true');
+    wrapper.unmount();
+  });
+
+  it('searches the value and the variable name ignoring accents', async () => {
+    const wrapper = mount(TemplateDataField, {
+      props: {
+        label: 'Detail',
+        options: [
+          {
+            id: 'phone',
+            label: 'Teléfono',
+            name: 'telefono',
+            value: '+593999',
+            expression: '{{ contact.phone }}',
+          },
+          ...options,
+        ],
+      },
+    });
+    await wrapper.get('textarea').trigger('click');
+    await wrapper.get('input[type=search]').setValue('telefono');
+    const rows = wrapper.findAll('[role=option]').map(row => row.text());
+    expect(rows).toContain('+593999·Teléfono');
+    expect(rows).not.toContain('Alex·Contact name');
+    wrapper.unmount();
+  });
 });
