@@ -14,7 +14,14 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
   let(:inbox) { channel.inbox }
   let(:contact) { create(:contact, account: account, name: 'Ana Pérez') }
   let(:conversation) { create(:conversation, account: account, inbox: inbox, contact: contact, status: :pending) }
-  let(:flow) { create(:whatsapp_flow, account: account, name: 'Datos de reserva') }
+  let(:flow) do
+    create(:whatsapp_flow, account: account, name: 'Datos de reserva', definition: {
+             'schema_version' => 1, 'screens' => [{ 'title' => 'Tus datos', 'button' => 'Enviar', 'blocks' => [
+               { 'type' => 'heading', 'text' => 'Reserva una consulta' },
+               { 'type' => 'short_text', 'key' => 'nombre', 'label' => 'Nombre', 'required' => true }
+             ] }]
+           })
+  end
   let(:params) { { 'body' => { 'nombre' => '{{ contact.name }}', 'asistente' => '{{ assistant.name }}' } } }
   let(:messaging) do
     { 'inboxes' => [{ 'inbox_id' => inbox.id, 'enabled' => true,
@@ -50,7 +57,10 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
 
       expect(data['window_open']).to be(true)
       expect(data['flows']).to eq([{ 'flow_id' => flow.id, 'name' => 'Datos de reserva', 'purpose' => 'Pedir datos',
-                                     'fields' => [{ 'label' => 'Nombre', 'type' => 'short_text' }], 'can_send' => true }])
+                                     'fields' => [{ 'label' => 'Nombre', 'type' => 'short_text' }],
+                                     'first_screen' => { 'title' => 'Tus datos', 'text' => 'Reserva una consulta',
+                                                         'button' => 'Enviar', 'truncated' => false },
+                                     'can_send' => true }])
     end
 
     it 'omits unpublished Flows from the eligible catalog' do
@@ -71,6 +81,90 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
 
       assistant.captain_inboxes.destroy_all
       expect(described_class.new(assistant).perform(tool_context)).to include('no habilitó')
+    end
+  end
+
+  %w[list auto].each do |mode|
+    context "when catalogs use #{mode} mode" do
+      before do
+        config = assistant.config.deep_dup
+        entry = config.fetch('messaging').fetch('inboxes').first
+        if mode == 'auto'
+          Captain::Messaging::LegacyEntryConverter.new(assistant, entry).perform
+          config['messaging'].merge!('version' => 2, 'revision' => 1)
+        end
+        assistant.update!(config: config)
+      end
+
+      it 'includes template content, variables and the existing owner note' do
+        data = JSON.parse(Captain::Tools::TemplateCatalogTool.new(assistant).perform(tool_context))
+        expect(data['templates'].first).to include(
+          'text' => 'Hola {{nombre}}, soy {{asistente}}.', 'purpose' => 'Confirmar', 'can_send' => true,
+          'variables' => [{ 'component' => 'body', 'name' => 'nombre' }, { 'component' => 'body', 'name' => 'asistente' }]
+        )
+      end
+
+      it 'provides header, footer, buttons and numbered variables without requiring a note' do
+        components = [
+          { 'type' => 'HEADER', 'format' => 'TEXT', 'text' => 'Reserva {{1}}' },
+          { 'type' => 'BODY', 'text' => 'Tu cita' }, { 'type' => 'FOOTER', 'text' => 'Gracias' },
+          { 'type' => 'BUTTONS', 'buttons' => [{ 'type' => 'QUICK_REPLY', 'text' => 'Confirmar' }] }
+        ]
+        channel.update!(message_templates: [templates.first.merge('components' => components)])
+        config = assistant.config.deep_dup
+        entry = config.fetch('messaging').fetch('inboxes').first
+        if mode == 'auto'
+          entry['notes'] = {}
+          key = "#{channel.provider_config['business_account_id']}:cita_confirmada|es"
+          entry['params'] = { key => { 'header' => { '1' => '{{ contact.name }}' } } }
+          entry['reviewed'] = Captain::Messaging::Review.new(assistant, inbox.reload).activation_snapshot
+        else
+          entry['templates'].first.delete('purpose')
+          entry['templates'].first['processed_params'] = { 'header' => { '1' => '{{ contact.name }}' } }
+        end
+        assistant.update!(config: config)
+
+        data = JSON.parse(Captain::Tools::TemplateCatalogTool.new(assistant).perform(tool_context))['templates'].first
+        expect(data).to include('header' => 'Reserva {{1}}', 'text' => 'Tu cita', 'footer' => 'Gracias',
+                                'buttons' => ['Confirmar'], 'variables' => [{ 'component' => 'header', 'name' => '1' }],
+                                'category' => 'UTILITY', 'language' => 'es', 'truncated' => false, 'can_send' => true)
+        expect(data).not_to have_key('purpose')
+      end
+
+      it 'lists all enabled templates and marks a long body as truncated' do
+        channel.update!(message_templates: Array.new(21) do |index|
+          templates.first.merge('name' => "template_#{index}", 'components' => [{ 'type' => 'BODY', 'text' => 'a' * 1200 }])
+        end)
+        config = assistant.config.deep_dup
+        entry = config.fetch('messaging').fetch('inboxes').first
+        if mode == 'auto'
+          entry['reviewed'] = Captain::Messaging::Review.new(assistant, inbox.reload).activation_snapshot
+        else
+          entry['templates'] = channel.message_templates.map { |item| item.slice('name', 'language').merge('processed_params' => {}) }
+        end
+        assistant.update!(config: config)
+
+        items = JSON.parse(Captain::Tools::TemplateCatalogTool.new(assistant).perform(tool_context))['templates']
+        expect(items.size).to eq(21)
+        expect(items).to all(include('truncated' => true, 'can_send' => true))
+        expect(items.map { |item| item['text'].length }).to all(eq(1000))
+      end
+
+      it 'includes Flow content and fields with or without an owner note' do
+        tool = Captain::Tools::FlowCatalogTool.new(assistant)
+        item = JSON.parse(tool.perform(tool_context))['flows'].first
+        expect(item).to include('purpose' => 'Pedir datos', 'name' => 'Datos de reserva')
+
+        config = assistant.config.deep_dup
+        entry = config.fetch('messaging').fetch('inboxes').first
+        mode == 'auto' ? entry['notes'] = {} : entry['flows'].first.delete('purpose')
+        assistant.update!(config: config)
+        item = JSON.parse(tool.perform(tool_context))['flows'].first
+        expect(item).to include('first_screen' => { 'title' => 'Tus datos', 'text' => 'Reserva una consulta',
+                                                    'button' => 'Enviar', 'truncated' => false },
+                                'fields' => [{ 'label' => 'Nombre', 'type' => 'short_text' }], 'can_send' => true)
+        expect(item).not_to have_key('purpose')
+      end
     end
   end
 

@@ -1,5 +1,8 @@
 class Captain::Tools::TemplateCatalogTool < Captain::Tools::BaseMessagingTool
-  description 'List the message templates you may send in this conversation, with what each one is for. A template is a paid ' \
+  CONTENT_LIMIT = 1000
+
+  description 'List the message templates you may send in this conversation, with their content, variables and optional owner notes. ' \
+              'Infer the purpose from the content; an existing owner note takes priority. A template is a paid ' \
               'WhatsApp message: use it only when the customer needs exactly that and a normal reply or a form does not do. ' \
               'Call it before send_template; only these templates can be sent.'
 
@@ -15,7 +18,7 @@ class Captain::Tools::TemplateCatalogTool < Captain::Tools::BaseMessagingTool
   def templates(conversation)
     availability = Captain::Messaging::Availability.new(@assistant, conversation.inbox)
     eligible = availability.templates.select { |item| %w[available needs_data].include?(item.state) }
-    items = eligible.sort_by { |item| [item.note.present? ? 0 : 1, item.resource['name']] }.first(20)
+    items = eligible.sort_by { |item| [item.note.present? ? 0 : 1, item.resource['name']] }
     items.filter_map { |item| template_payload(conversation, item) }
   end
 
@@ -23,10 +26,12 @@ class Captain::Tools::TemplateCatalogTool < Captain::Tools::BaseMessagingTool
     entry = matching_template(conversation, item)
     return unless entry
 
-    entry = entry.merge('processed_params' => item.processed_params) if @assistant.messaging.mode(conversation.inbox_id) == 'auto'
+    entry = entry.merge('processed_params' => item.processed_params)
     reason = reason_for(conversation, entry)
     { name: item.resource['name'], language: item.resource['language'], category: item.resource['category'],
-      text: body_text(entry), buttons: button_labels(entry), purpose: item.note, can_send: reason.nil?, reason: reason }.compact
+      text: component_text(entry, 'BODY'), header: component_text(entry, 'HEADER'), footer: component_text(entry, 'FOOTER'),
+      buttons: button_labels(entry), variables: Captain::TemplateMessage.variables(entry).map(&:to_h),
+      truncated: truncated?(entry), purpose: item.note.presence, can_send: reason.nil?, reason: reason }.compact
   end
 
   def matching_template(conversation, item)
@@ -35,8 +40,13 @@ class Captain::Tools::TemplateCatalogTool < Captain::Tools::BaseMessagingTool
     end
   end
 
-  def body_text(entry)
-    Array(entry['components']).find { |component| component['type'].to_s.casecmp?('BODY') }&.dig('text').to_s
+  def component_text(entry, type)
+    text = Array(entry['components']).find { |component| component['type'].to_s.casecmp?(type) }&.dig('text').to_s
+    text.truncate(CONTENT_LIMIT)
+  end
+
+  def truncated?(entry)
+    Array(entry['components']).any? { |component| component['text'].to_s.length > CONTENT_LIMIT }
   end
 
   def button_labels(entry)
