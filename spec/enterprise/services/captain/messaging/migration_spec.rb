@@ -16,6 +16,7 @@ RSpec.describe Captain::Messaging::Migration do
   end
   let(:original) do
     {
+      'version' => 2, 'revision' => 0,
       'inboxes' => [
         {
           'inbox_id' => channel.inbox.id,
@@ -67,6 +68,15 @@ RSpec.describe Captain::Messaging::Migration do
     expect { described_class.convert!(assistant) }.to raise_error do |error|
       expect(error.class.name).to eq('Captain::Messaging::Migration::StaleReport')
     end
+  end
+
+  it 'regenerates a report after restoring a v2 list and editing its configuration' do
+    described_class.convert!(assistant)
+    described_class.restore!(assistant)
+    assistant.update!(config: assistant.config.merge('product_name' => 'Restored edit'))
+    Migration::CaptainMessagingMigrationReportJob.perform_now(assistant.id)
+    expect(assistant.reload.config_migration_report['fingerprint']).to eq(Captain::Messaging::MigrationFingerprint.for(assistant))
+    expect { described_class.convert!(assistant) }.not_to raise_error
   end
 
   it 'prints the stale report instruction from the conversion rake task' do

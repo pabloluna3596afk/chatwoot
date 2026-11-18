@@ -16,7 +16,7 @@ class Captain::Messaging::Migration
 
   def self.convert_locked!(assistant)
     raise ArgumentError, 'Messaging backup report is missing' unless assistant.config_migration_report['backup'].is_a?(Hash)
-    return if already_converted?(assistant.config['messaging'])
+    return if converted?(assistant)
 
     converted = converted_messaging(assistant)
     report = assistant.config_migration_report.deep_dup
@@ -38,8 +38,9 @@ class Captain::Messaging::Migration
     converted
   end
 
-  def self.already_converted?(messaging)
+  def self.converted?(assistant)
+    messaging = assistant.config['messaging']
     messaging.is_a?(Hash) && messaging['version'] == 2 && Array(messaging['inboxes']).all? { |entry| entry['mode'] == 'auto' }
   end
-  private_class_method :convert_locked!, :converted_messaging, :already_converted?
+  private_class_method :convert_locked!, :converted_messaging
 end

@@ -16,6 +16,7 @@ RSpec.describe Captain::Followup::Reengager do
       create(:conversation, account: account, contact: contact, status: :resolved,
                             additional_attributes: { 'captain_followup' => { 'closed_at' => (now - 2.days).utc.iso8601 } })
     end
+    conversations.each(&:reload)
     senders = conversations.map { |conversation| described_class.new(conversation, assistant, now: now) }
     entered = Queue.new
     release = Queue.new
@@ -31,7 +32,7 @@ RSpec.describe Captain::Followup::Reengager do
       :sent
     end
     first = Thread.new { ActiveRecord::Base.connection_pool.with_connection { senders.first.perform } }
-    entered.pop
+    Timeout.timeout(10) { entered.pop }
     second = Thread.new { ActiveRecord::Base.connection_pool.with_connection { senders.last.perform } }
     # Wait for PostgreSQL to confirm contention, rather than assuming thread scheduling.
     Timeout.timeout(10) do
