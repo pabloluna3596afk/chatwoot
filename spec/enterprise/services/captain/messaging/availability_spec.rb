@@ -92,7 +92,7 @@ RSpec.describe Captain::Messaging::Availability do
     channel.update!(provider_config: { 'api_key' => 'token' })
 
     expect(Captain::Messaging::Review.new(assistant, inbox).activation_snapshot)
-      .to include('templates' => include(':order_ready|es'))
+      .to eq('templates' => {}, 'flows' => {})
   end
 
   it 'keeps authentication unavailable even if a reviewed fingerprint exists' do
@@ -224,5 +224,26 @@ RSpec.describe Captain::Messaging::Availability do
     expect(notices.first[:message]).to be_present
     expect(assistant.reload.messaging.entry_for(inbox.id).dig('reviewed', 'templates')).to include("#{waba_id}:order_ready|es")
     expect(Captain::Messaging::Snapshotter.perform!(assistant)).to be_nil
+  end
+
+  it 'saves an auto snapshot without invalid keys for a non-Cloud inbox without WABA' do
+    channel.update!(provider: 'default', provider_config: {})
+    enable_auto
+    assistant.config.dig('messaging', 'inboxes').first.delete('reviewed')
+    assistant.save!
+    expect { Captain::Messaging::Snapshotter.perform!(assistant) }.not_to raise_error
+    expect(assistant.reload).to be_valid
+    expect(described_class.new(assistant, inbox).templates).to be_empty
+  end
+
+  it 'keeps reviewed templates and exclusions scoped when language casing changes' do
+    resource = template.merge('language' => 'es_MX', 'components' => [{ 'type' => 'BODY', 'text' => 'Hola' }])
+    channel.update!(message_templates: [resource])
+    fingerprint = Captain::Messaging::Review.new(assistant, inbox).fingerprint(resource)
+    enable_auto(reviewed: { 'templates' => { "#{waba_id}:order_ready|es_mx" => fingerprint }, 'flows' => {} })
+    expect(described_class.new(assistant, inbox).templates.first.state).to eq('available')
+    entry = assistant.config.dig('messaging', 'inboxes').first
+    entry['excluded'] = { 'templates' => ["#{waba_id}:order_ready|es_MX"] }
+    expect(described_class.new(assistant, inbox).templates.first.state).to eq('excluded')
   end
 end

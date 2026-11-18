@@ -35,7 +35,10 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
   end
 
   def allow_resource
-    return render :update if update_allowed_resource
+    @assistant.with_lock do
+      return unless check_messaging_version(config: { messaging: { 'version' => 2, 'revision' => params[:revision] } })
+      return render :update if update_allowed_resource
+    end
 
     render json: { error: I18n.t('captain.messaging.errors.review_ineligible', locale: Current.account.locale) },
            status: :unprocessable_entity

@@ -4,6 +4,8 @@ namespace :captain do
     task :convert, [:assistant_id] => :environment do |_task, args|
       assistant = Captain::Assistant.find(args.fetch(:assistant_id))
       Captain::Messaging::Migration.convert!(assistant)
+    rescue Captain::Messaging::Migration::StaleReport => e
+      abort e.message
     end
 
     desc 'Restore the exact messaging configuration saved by the migration report'
@@ -15,11 +17,8 @@ namespace :captain do
     desc 'Print the stored before/after messaging migration report for an assistant'
     task :report, [:assistant_id] => :environment do |_task, args|
       assistant = Captain::Assistant.find(args.fetch(:assistant_id))
-      stored_report = assistant.config_migration_report
-      if stored_report['backup'].blank? || Array(stored_report['inboxes']).any? { |inbox| !inbox.key?('summary') }
-        Migration::CaptainMessagingMigrationReportJob.perform_now(assistant.id)
-        assistant.reload
-      end
+      Migration::CaptainMessagingMigrationReportJob.perform_now(assistant.id)
+      assistant.reload
       puts Captain::Messaging::MigrationReportText.new(assistant.config_migration_report).render
     end
   end

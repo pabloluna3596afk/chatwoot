@@ -13,6 +13,9 @@ RSpec.describe Captain::AppointmentReminders::Readiness do
     allow(inbox).to receive(:channel_type).and_return('Channel::Whatsapp')
     allow(assistant).to receive(:appointments).and_return(Captain::AppointmentsSettings.new('template_reminder' => reference))
     allow(Captain::TemplateMessage).to receive(:approved).with(inbox, reference).and_return(entry)
+    availability = instance_double(Captain::Messaging::Availability)
+    allow(Captain::Messaging::Availability).to receive(:new).with(assistant, inbox).and_return(availability)
+    allow(availability).to receive(:available_template).with(reference) { Captain::TemplateMessage.approved(inbox, reference) }
   end
 
   it 'reports structural readiness without resolving customer values or sending' do

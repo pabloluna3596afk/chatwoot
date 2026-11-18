@@ -11,7 +11,7 @@ class Captain::Messaging::Review
 
   # Marketing, authentication, unsupported and link-bearing templates require a separate choice.
   def activation_snapshot
-    return { 'templates' => {}, 'flows' => {} } unless whatsapp?
+    return { 'templates' => {}, 'flows' => {} } unless whatsapp? && @waba_id.present?
 
     templates = @channel.message_templates.to_a.each_with_object({}) do |template, reviewed|
       reviewed[template_key(template)] = fingerprint(template) if activation_template?(template)
@@ -24,7 +24,7 @@ class Captain::Messaging::Review
   end
 
   def allow!(kind:, key:)
-    return false unless whatsapp? && @entry
+    return false unless whatsapp? && @waba_id.present? && @entry
 
     reviewed = @entry.fetch('reviewed', { 'templates' => {}, 'flows' => {} })
     reviewed['templates'] ||= {}
@@ -57,9 +57,10 @@ class Captain::Messaging::Review
   end
 
   def allow_template(reviewed, key)
-    template = @channel.message_templates.to_a.find { |item| template_key(item) == key }
+    template = @channel.message_templates.to_a.find { |item| template_key(item) == Captain::Messaging::TemplateKey.normalize(key) }
     return false unless template && allowable_template?(template)
 
+    key = template_key(template)
     reviewed['templates'][key] = fingerprint(template)
     @entry['included_marketing'] = Array(@entry['included_marketing']) | [key] if template['category'].to_s.upcase == 'MARKETING'
     true
@@ -100,7 +101,7 @@ class Captain::Messaging::Review
   end
 
   def template_key(template)
-    "#{@waba_id}:#{template['name']}|#{template['language']}"
+    Captain::Messaging::TemplateKey.for(@waba_id, template)
   end
 
   def quality_red?

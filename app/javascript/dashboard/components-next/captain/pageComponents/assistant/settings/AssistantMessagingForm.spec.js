@@ -552,6 +552,7 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
         inboxId: 10,
         kind: 'template',
         key: 'waba-10:pedido_listo|es',
+        revision: 4,
       });
     }
   );
@@ -1034,6 +1035,8 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
       captain_template_daily_cap: 73,
     });
     expect(AssistantAPI.allowResource).toHaveBeenCalledTimes(2);
+    expect(AssistantAPI.allowResource.mock.calls[0][0].revision).toBe(4);
+    expect(AssistantAPI.allowResource.mock.calls[1][0].revision).toBe(7);
     expect(AssistantAPI.update.mock.invocationCallOrder[0]).toBeLessThan(
       AssistantAPI.allowResource.mock.invocationCallOrder[0]
     );

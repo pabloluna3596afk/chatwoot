@@ -529,7 +529,8 @@ RSpec.describe Captain::AppointmentReminders do
       before do
         create(:message, account: account, inbox: inbox, conversation: conversation, message_type: :incoming, created_at: now - 3.days)
         assistant.update!(config: { 'appointments' => appointments_config.merge(paid_config.except('allow_paid_templates')),
-                                    'allow_paid_templates' => paid_config['allow_paid_templates'] == true })
+                                    'allow_paid_templates' => paid_config['allow_paid_templates'] == true,
+                                    'messaging' => { 'inboxes' => [{ 'inbox_id' => inbox.id, 'enabled' => true, 'templates' => [template] }] } })
         schedule
       end
 
@@ -571,6 +572,28 @@ RSpec.describe Captain::AppointmentReminders do
           expect(conversation.messages.outgoing.where(private: false)).to be_empty
           expect(reminder('reminder_1')).to have_attributes(skipped_reason: 'template_variables_missing')
           expect(assistant.reload.config.fetch('variable_delivery_error')).to include('path' => 'body.1', 'status' => 'missing')
+        end
+
+        %w[excluded marketing_off new changed needs_review red other_waba].each do |state|
+          it "does not send a #{state} template under the shared policy" do
+            resource = inbox.channel.message_templates.find { |item| item['name'] == 'recordatorio_cita' }.deep_dup
+            resource['category'] = state == 'marketing_off' ? 'MARKETING' : 'UTILITY'
+            if state == 'needs_review'
+              resource['components'] << { 'type' => 'BUTTONS', 'buttons' => [{ 'type' => 'URL', 'url' => 'https://example.com' }] }
+            end
+            inbox.channel.update!(message_templates: [resource], provider_config: { 'business_account_id' => '123' },
+                                  phone_number_health: state == 'red' ? { 'quality_rating' => 'RED' } : {})
+            key = "#{state == 'other_waba' ? '456' : '123'}:recordatorio_cita|es"
+            fingerprint = state == 'changed' ? 'a' * 64 : Captain::Messaging::Review.new(assistant, inbox).fingerprint(resource)
+            reviewed = %w[new needs_review].include?(state) ? {} : { key => fingerprint }
+            entry = { 'inbox_id' => inbox.id, 'enabled' => true, 'mode' => 'auto',
+                      'reviewed' => { 'templates' => reviewed, 'flows' => {} },
+                      'excluded' => { 'templates' => state == 'excluded' ? [key] : [] } }
+            assistant.update!(config: assistant.config.merge('messaging' => { 'version' => 2, 'revision' => 0, 'inboxes' => [entry] }))
+            expect(send_reminder).to eq(:skipped)
+            expect(reminder('reminder_1').reload.skipped_reason).to eq('template_unavailable')
+            expect(conversation.messages.outgoing.where(private: false)).to be_empty
+          end
         end
 
         it 'sends the template with the appointment data' do
@@ -615,7 +638,8 @@ RSpec.describe Captain::AppointmentReminders do
           before do
             broken = template.merge('processed_params' => mapped.merge('body' => mapped['body'].except('hora')))
             assistant.update_columns(config: { 'appointments' => appointments_config.merge('template_reminder' => broken), # rubocop:disable Rails/SkipsModelValidations
-                                               'allow_paid_templates' => true })
+                                               'allow_paid_templates' => true,
+                                               'messaging' => assistant.config['messaging'] })
           end
 
           it 'does not send it and leaves a private note' do

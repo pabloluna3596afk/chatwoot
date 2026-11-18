@@ -42,10 +42,12 @@ class Captain::MessagingSettings
   end
 
   def note_for(inbox_id, key)
-    entry_for(inbox_id)&.dig('notes', key)
+    values = entry_for(inbox_id)&.fetch('notes', {}).to_h
+    values.find { |saved_key, _value| Captain::Messaging::TemplateKey.normalize(saved_key) == Captain::Messaging::TemplateKey.normalize(key) }&.last
   end
 
   def params_for(inbox_id, key)
-    entry_for(inbox_id)&.dig('params', key)
+    values = entry_for(inbox_id)&.fetch('params', {}).to_h
+    values.find { |saved_key, _value| Captain::Messaging::TemplateKey.normalize(saved_key) == Captain::Messaging::TemplateKey.normalize(key) }&.last
   end
 end

@@ -421,6 +421,7 @@ _Última actualización: 2026-07-12_
 
 | Item | Repo | Acción |
 |------|------|--------|
+| **Captain mantenimiento / B-NEW-275..279** (permisos y conversion) | chatwoot | `feat/captain-mantenimiento`: Availability en recordatorios/reenganche, Permitir con lock/revision, reporte ligado al catalogo y backup exacto, claves/periodo diario estables y cooldown por contacto; regenerar reporte antes de convertir; sin migraciones, push, PR ni despliegue |
 | **Captain / B-NEW-268** (comportamientos generales) | chatwoot | `chore/captain-quitar-piloto`: reserva, historial, relevancia e inactividad para todas las cuentas; conserva bit obsoleto; sin migraciones, push ni despliegue |
 | **Captain PR 7 / B-NEW-266** (reserva de respuestas) | chatwoot | `fix/captain-reserva-respuestas`: sin migraciones; reserva para todas las cuentas (B-NEW-268); reserva única por ejecución según resolución del PM; recolector tras caída del worker fuera de alcance; sin push ni despliegue |
 | **Captain PR 2 / B-NEW-264** (conocimiento y datos del prompt) | chatwoot | `feat/captain-conocimiento`: sin migraciones; filtro activo para todas las cuentas (B-NEW-268); calibrar umbral con registros; sin push ni despliegue |

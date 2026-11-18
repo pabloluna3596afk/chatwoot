@@ -44,18 +44,34 @@ class Captain::TemplateDailyCap
   private
 
   def count_key
-    format(Redis::RedisKeys::CAPTAIN_TEMPLATE_DAILY_COUNT, account_id: @account.id, date: local_date)
+    format(Redis::RedisKeys::CAPTAIN_TEMPLATE_DAILY_COUNT, account_id: @account.id, date: period.first)
   end
 
   def notice_key
-    format(Redis::RedisKeys::CAPTAIN_TEMPLATE_DAILY_NOTICE, account_id: @account.id, date: local_date)
+    format(Redis::RedisKeys::CAPTAIN_TEMPLATE_DAILY_NOTICE, account_id: @account.id, date: period.first)
   end
 
-  def local_date
-    @local_date ||= @now.in_time_zone(@zone).to_date.to_s
+  # Capture the boundary once per account day; timezone edits cannot rotate an active counter.
+  def period
+    @period ||= begin
+      key = format(Redis::RedisKeys::CAPTAIN_TEMPLATE_DAILY_PERIOD, account_id: @account.id)
+      loop do
+        stored = Redis::Alfred.get(key)
+        if stored
+          captured = JSON.parse(stored)
+          break captured if @now.to_i < captured.last
+
+          Redis::Alfred.delete_if_equals(key, stored)
+        else
+          reset_at = @now.in_time_zone(@zone).tomorrow.beginning_of_day
+          captured = [@now.in_time_zone(@zone).to_date.to_s, reset_at.to_i]
+          Redis::Alfred.set(key, captured.to_json, nx: true, ex: (reset_at - @now).ceil)
+        end
+      end
+    end
   end
 
   def seconds_until_reset
-    @now.in_time_zone(@zone).end_of_day - @now
+    [period.last.to_i - @now.to_i, 1].max
   end
 end

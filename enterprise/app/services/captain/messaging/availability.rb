@@ -22,6 +22,18 @@ class Captain::Messaging::Availability
     Captain::Messaging::TemplateAvailability.new(@assistant, @inbox, @settings, @entry, @review).items
   end
 
+  def template(reference)
+    templates.find do |item|
+      item.resource['name'] == reference['name'] && item.resource['language'].to_s.casecmp?(reference['language'].to_s)
+    end
+  end
+
+  def available_template(reference)
+    return unless template(reference)&.available?
+
+    Captain::TemplateMessage.approved(@inbox, reference)
+  end
+
   def flows
     return [] unless cloud_whatsapp? && waba_id.present?
 

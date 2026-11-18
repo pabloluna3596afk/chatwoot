@@ -32,7 +32,7 @@ class Captain::AppointmentReminders::Readiness
   end
 
   def entry
-    @entry ||= Captain::TemplateMessage.approved(inbox, reference)
+    @entry ||= Captain::Messaging::Availability.new(assistant, inbox).available_template(reference)
   end
 
   private

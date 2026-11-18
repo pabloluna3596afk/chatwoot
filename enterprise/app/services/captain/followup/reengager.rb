@@ -27,6 +27,9 @@ class Captain::Followup::Reengager
   # Returns :sent, :skipped or nil (not yet: the window is still open or sending hours have not started).
   def perform
     conversation.with_lock do
+      # A transaction-scoped contact lock also covers other conversations of this customer.
+      sql = ApplicationRecord.sanitize_sql_array(['SELECT pg_advisory_xact_lock(?)', -conversation.contact_id])
+      ApplicationRecord.connection.select_value(sql)
       conversation.reload
       next unless due?
 
@@ -62,7 +65,7 @@ class Captain::Followup::Reengager
     return skip_with_note('reengagement_paid_off', 'paid_templates_off') unless assistant.allow_paid_templates?
     return skip_with_note('reengagement_no_template', 'no_template') if settings.reengagement_template.blank?
 
-    entry = Captain::TemplateMessage.approved(conversation.inbox, settings.reengagement_template)
+    entry = Captain::Messaging::Availability.new(assistant, conversation.inbox).available_template(settings.reengagement_template)
     return skip_with_note('reengagement_template_unavailable', 'template_unavailable') if entry.blank?
 
     send_template(entry)

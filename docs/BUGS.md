@@ -3611,3 +3611,33 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Problema:** el catálogo en modo lista descartaba los parámetros resueltos y declaraba imposibles envíos válidos. Permitir recursos o asignar datos podía perder el borrador; Citas guardaba permisos por bandeja al instante.
 - **Arreglo:** parámetros compartidos con SendService en ambos modos; resumen y variables etiquetadas, idiomas agrupados, similitudes, orden utilidad/marketing y límite 25 con `more`. Flows muestran títulos, introducción limitada y obligatoriedad de campos. Envíos conserva el borrador y encola permisos: PATCH de configuración, tope, permisos y una recarga al finalizar; 409 visible con Recargar. Solo WhatsApp, aviso de solo lectura, calidad roja bloqueada, conteos y punto ámbar. Citas guarda sus permisos con Actualizar mediante el endpoint existente.
 - **Cómo probar:** suites Captain Vitest en UTC/Guayaquil; RSpec de catálogos, conversión e informe en PostgreSQL/Redis aislados; ESLint y RuboCop Docker sobre los archivos/líneas frente a develop. Informe A0–A26 en `tmp/PR-REDISENO.md`; aprobación visual, tema oscuro, 390 px y evaluación T1–T11 pendientes del PM. Sin navegador, migraciones, conversión de Aurora, push ni PR. Recordatorios/reenganche que omiten el interruptor individual siguen fuera de alcance.
+
+### B-NEW-275 — Captain: política compartida para recordatorios y reenganche (2026-11-18)
+
+- **Archivos:** `Messaging::Availability`, `AppointmentReminders::Readiness`, `Followup::Reengager` y specs.
+- **Arreglo:** la plantilla elegida debe estar disponible en la bandeja y WABA actuales; exclusión, revisión, marketing y calidad Meta impiden enviar. Se conservan pago, ventana, horario y cupo; la omisión usa los motivos existentes.
+- **Cómo probar:** specs de recordatorios/readiness y seguimiento, incluidos exclusión, nuevo, cambiado, revisión, marketing apagado, calidad roja y otra WABA. Sin migraciones, textos visibles, push ni despliegue.
+
+### B-NEW-276 — Captain: serializar la aprobación de recursos (2026-11-18)
+
+- **Archivos:** `AssistantsController#allow_resource`, cliente API/formulario de Envios y specs.
+- **Arreglo:** recarga bajo `with_lock` y control de revisión compartido con update; un permiso obsoleto recibe 409. El cliente envía la revisión vigente después de cada escritura.
+- **Cómo probar:** revisión obsoleta conserva configuración; dos aprobaciones sucesivas conservan ambos recursos. Variables de canal no escriben config.messaging. Sin cambios visuales ni migraciones.
+
+### B-NEW-277 — Captain: conversión vinculada al reporte revisado (2026-11-18)
+
+- **Archivos:** `Messaging::MigrationFingerprint`, informe/job, conversión/restauración y rake.
+- **Arreglo:** huella de configuración y catálogo persistido (plantillas, bindings, salud, WABA, Flows/publicaciones); rechaza informes obsoletos con indicación de regenerarlos. Report vuelve a generar sobre entradas actuales. Conserva configuración completa inmediatamente anterior a convertir para restaurar exactamente.
+- **Cómo probar:** cambiar plantilla/configuración/Flow invalida reporte; regenerar permite convertir; restaurar devuelve la configuración exacta. Sin migraciones ni conversión de cuentas reales.
+
+### B-NEW-278 — Captain: identidades y contador diario estables (2026-11-18)
+
+- **Archivos:** Review, LegacyEntryConverter, TemplateAvailability/Params, MessagingSettings y TemplateDailyCap; specs.
+- **Arreglo:** omite claves auto sin WABA; idioma normalizado al escribir y buscar, conservando claves antiguas; Redis captura atomicamente el dia y su frontera hasta el siguiente reset, aunque cambie la zona horaria.
+- **Como probar:** snapshot no Cloud valido, es_MX/es_mx conserva revision/exclusion, travel_to y cambio Guayaquil/Tokyo conserva contador y frontera inicial. Sin migraciones.
+
+### B-NEW-279 — Captain: cooldown de reenganche por contacto (2026-11-18)
+
+- **Archivos:** `Followup::Reengager` y spec de concurrencia.
+- **Arreglo:** bloqueo asesor transaccional PostgreSQL por contacto, dentro del lock existente de conversacion, antes de leer elegibilidad/cooldown. Cubre conversaciones distintas y libera al confirmar o revertir la transaccion.
+- **Como probar:** dos conexiones reales, la segunda espera por lock asesor y omite con cooldown tras confirmar el primer envio; conserva regla de siete dias. Sin migraciones.

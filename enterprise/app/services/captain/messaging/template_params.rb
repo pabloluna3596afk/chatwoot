@@ -37,7 +37,7 @@ class Captain::Messaging::TemplateParams
 
   def override_params
     waba_id = @inbox.channel.provider_config.to_h['business_account_id'].to_s
-    key = "#{waba_id}:#{@template['name']}|#{@template['language']}"
+    key = Captain::Messaging::TemplateKey.for(waba_id, @template)
     @assistant.messaging.params_for(@inbox.id, key).to_h
   end
 

@@ -498,7 +498,10 @@ const save = async () => {
     // Reviews update the same revision: serialize them after the config PATCH.
     await Object.values(pendingAllows).reduce(async (previous, request) => {
       await previous;
-      const response = await AssistantAPI.allowResource(request);
+      const response = await AssistantAPI.allowResource({
+        ...request,
+        revision: messagingRevision.value,
+      });
       messagingRevision.value = response.data.config.messaging.revision;
     }, Promise.resolve());
     await reload();

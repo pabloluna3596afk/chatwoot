@@ -21,8 +21,15 @@ class Captain::Messaging::MigrationReport
   end
 
   def perform
-    { 'backup' => @assistant.config['messaging'].deep_dup, 'generated_at' => Time.current.utc.iso8601,
-      'inboxes' => inbox_reports }
+    fingerprint = Captain::Messaging::MigrationFingerprint.for(@assistant)
+    report = { 'fingerprint' => fingerprint,
+               'backup' => @assistant.config['messaging'].deep_dup, 'generated_at' => Time.current.utc.iso8601,
+               'inboxes' => inbox_reports }
+    unless fingerprint == Captain::Messaging::MigrationFingerprint.for(@assistant)
+      raise Captain::Messaging::Migration::StaleReport, 'el reporte está desactualizado: genera uno nuevo'
+    end
+
+    report
   end
 
   private
