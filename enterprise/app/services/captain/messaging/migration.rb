@@ -28,5 +28,5 @@ class Captain::Messaging::Migration
   def self.already_converted?(messaging)
     messaging.is_a?(Hash) && messaging['version'] == 2 && Array(messaging['inboxes']).all? { |entry| entry['mode'] == 'auto' }
   end
-  private_class_method :convert_locked!, :already_converted!
+  private_class_method :convert_locked!, :already_converted?
 end
