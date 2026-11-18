@@ -3611,3 +3611,9 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Problema:** el catálogo en modo lista descartaba los parámetros resueltos y declaraba imposibles envíos válidos. Permitir recursos o asignar datos podía perder el borrador; Citas guardaba permisos por bandeja al instante.
 - **Arreglo:** parámetros compartidos con SendService en ambos modos; resumen y variables etiquetadas, idiomas agrupados, similitudes, orden utilidad/marketing y límite 25 con `more`. Flows muestran títulos, introducción limitada y obligatoriedad de campos. Envíos conserva el borrador y encola permisos: PATCH de configuración, tope, permisos y una recarga al finalizar; 409 visible con Recargar. Solo WhatsApp, aviso de solo lectura, calidad roja bloqueada, conteos y punto ámbar. Citas guarda sus permisos con Actualizar mediante el endpoint existente.
 - **Cómo probar:** suites Captain Vitest en UTC/Guayaquil; RSpec de catálogos, conversión e informe en PostgreSQL/Redis aislados; ESLint y RuboCop Docker sobre los archivos/líneas frente a develop. Informe A0–A26 en `tmp/PR-REDISENO.md`; aprobación visual, tema oscuro, 390 px y evaluación T1–T11 pendientes del PM. Sin navegador, migraciones, conversión de Aurora, push ni PR. Recordatorios/reenganche que omiten el interruptor individual siguen fuera de alcance.
+
+### B-NEW-275 ? Captain: pol?tica compartida para recordatorios y reenganche (2026-11-18)
+
+- **Archivos:** `Messaging::Availability`, `AppointmentReminders::Readiness`, `Followup::Reengager` y specs.
+- **Arreglo:** la plantilla elegida debe estar disponible en la bandeja y WABA actuales; exclusi?n, revisi?n, marketing y calidad Meta impiden enviar. Se conservan pago, ventana, horario y cupo; la omisi?n usa los motivos existentes.
+- **C?mo probar:** specs de recordatorios/readiness y seguimiento, incluidos exclusi?n, nuevo, cambiado, revisi?n, marketing apagado, calidad roja y otra WABA. Sin migraciones, textos visibles, push ni despliegue.

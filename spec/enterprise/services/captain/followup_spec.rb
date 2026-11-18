@@ -295,7 +295,10 @@ RSpec.describe Captain::Followup do
     let(:mapping) { { 'body' => { '1' => '{{ contact.name }}', '2' => '{{ assistant.name }}' } } }
     let(:template) { { 'name' => 'volver_a_hablar', 'language' => 'es', 'processed_params' => mapping } }
     let(:followup_config) { { 'reengagement_enabled' => true, 'reengagement_template' => template } }
-    let(:assistant_config) { { 'followup' => followup_config, 'allow_paid_templates' => true } }
+    let(:assistant_config) do
+      { 'followup' => followup_config, 'allow_paid_templates' => true,
+        'messaging' => { 'inboxes' => [{ 'inbox_id' => inbox.id, 'enabled' => true, 'templates' => [template] }] } }
+    end
     let(:closed_at) { now - 2.days }
 
     before do
@@ -363,6 +366,28 @@ RSpec.describe Captain::Followup do
         expect(conversation.messages.where(private: true).last.content).to include('la plantilla cambió en Meta')
         expect(conversation.reload.additional_attributes['captain_followup']['reengagement']).to include('reason' => 'template_changed')
         expect(described_class.candidates(inbox, now: now)).to be_empty
+      end
+    end
+
+    %w[excluded marketing_off new changed needs_review red other_waba].each do |state|
+      it "does not send a #{state} template under the shared policy" do
+        resource = inbox.channel.message_templates.find { |item| item['name'] == 'volver_a_hablar' }.deep_dup
+        resource['category'] = state == 'marketing_off' ? 'MARKETING' : 'UTILITY'
+        if state == 'needs_review'
+          resource['components'] << { 'type' => 'BUTTONS', 'buttons' => [{ 'type' => 'URL', 'url' => 'https://example.com' }] }
+        end
+        inbox.channel.update!(message_templates: [resource], provider_config: { 'business_account_id' => '123' },
+                              phone_number_health: state == 'red' ? { 'quality_rating' => 'RED' } : {})
+        key = "#{state == 'other_waba' ? '456' : '123'}:volver_a_hablar|es"
+        fingerprint = state == 'changed' ? 'a' * 64 : Captain::Messaging::Review.new(assistant, inbox).fingerprint(resource)
+        reviewed = %w[new needs_review].include?(state) ? {} : { key => fingerprint }
+        entry = { 'inbox_id' => inbox.id, 'enabled' => true, 'mode' => 'auto',
+                  'reviewed' => { 'templates' => reviewed, 'flows' => {} },
+                  'excluded' => { 'templates' => state == 'excluded' ? [key] : [] } }
+        assistant.update!(config: assistant.config.merge('messaging' => { 'version' => 2, 'revision' => 0, 'inboxes' => [entry] }))
+        expect(reengage).to eq(:skipped)
+        expect(public_messages.where('created_at >= ?', now)).to be_empty
+        expect(conversation.reload.additional_attributes['captain_followup']['reengagement']).to include('reason' => 'template_unavailable')
       end
     end
 
