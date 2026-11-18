@@ -327,7 +327,10 @@ describe('ToolCards', () => {
   });
 
   it('keeps a hovered card, and a card with its menu open, above the neighbor menus', async () => {
-    const wrapper = await mountMeasured({ items: [canned] }, [100, 100]);
+    const wrapper = await mountMeasured(
+      { items: [canned], actions: [{ key: 'edit', label: 'Edit' }] },
+      [100, 100]
+    );
     const classes = wrapper.find('article').classes().join(' ');
 
     expect(classes).toContain('hover:z-40');
