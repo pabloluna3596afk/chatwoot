@@ -720,13 +720,17 @@ onMounted(async () => {
     </Banner>
 
     <template v-if="!inboxesLoading && !loadingFailed && selectedInbox">
-      <TabBar
+      <div
         v-if="orderedInboxes.length >= 2 && orderedInboxes.length <= 5"
-        :tabs="inboxTabs"
-        :initial-active-tab="activeTabIndex"
-        :tab-list-label="t('CAPTAIN.ASSISTANTS.ENVIOS.INBOX_LABEL')"
-        @tab-changed="selectTab"
-      />
+        class="max-w-full overflow-x-auto"
+      >
+        <TabBar
+          :tabs="inboxTabs"
+          :initial-active-tab="activeTabIndex"
+          :tab-list-label="t('CAPTAIN.ASSISTANTS.ENVIOS.INBOX_LABEL')"
+          @tab-changed="selectTab"
+        />
+      </div>
       <ComboBox
         v-else-if="orderedInboxes.length > 5"
         v-model="selectedInboxId"
