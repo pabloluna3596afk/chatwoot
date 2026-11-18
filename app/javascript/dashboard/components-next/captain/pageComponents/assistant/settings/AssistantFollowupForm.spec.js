@@ -7,7 +7,10 @@ import DurationSelect from './DurationSelect.vue';
 import { nextTick } from 'vue';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
 
-const { inboxes } = vi.hoisted(() => ({ inboxes: { value: [] } }));
+const { inboxes, getCaptainInboxes } = vi.hoisted(() => ({
+  inboxes: { value: [] },
+  getCaptainInboxes: vi.fn(async () => ({ data: { payload: inboxes.value } })),
+}));
 
 vi.mock('dashboard/api/variables', () => ({
   default: {
@@ -39,10 +42,15 @@ vi.mock('dashboard/composables/store', () => ({
   useMapGetter: name =>
     name === 'attributes/getAttributes' ? { value: [] } : inboxes,
 }));
+vi.mock('dashboard/api/captain/inboxes', () => ({
+  default: { get: getCaptainInboxes },
+}));
 
 const mountForm = (config = {}) =>
   mount(AssistantFollowupForm, {
-    props: { assistant: { config: { response_window: 'always', ...config } } },
+    props: {
+      assistant: { id: 2, config: { response_window: 'always', ...config } },
+    },
     global: {
       mocks: { $t: key => key },
       stubs: {

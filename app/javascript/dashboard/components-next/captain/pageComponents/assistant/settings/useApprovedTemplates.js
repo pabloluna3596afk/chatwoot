@@ -1,6 +1,7 @@
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store';
+import CaptainInboxesAPI from 'dashboard/api/captain/inboxes';
 
 const templateKey = template => `${template.name}|${template.language}`;
 
@@ -17,13 +18,27 @@ export const templateToValue = template =>
   template?.name && template?.language ? templateKey(template) : '';
 
 // Approved WhatsApp templates of the account's inboxes, for the template pickers of the Captain settings.
-export function useApprovedTemplates() {
+export function useApprovedTemplates(assistantId) {
   const { t } = useI18n();
   const inboxes = useMapGetter('inboxes/getInboxes');
+  const linkedInboxIds = ref([]);
+  onMounted(async () => {
+    if (!assistantId) return;
+    try {
+      const { data } = await CaptainInboxesAPI.get({
+        assistantId,
+      });
+      linkedInboxIds.value = (data.payload || []).map(inbox => inbox.id);
+    } catch {
+      linkedInboxIds.value = [];
+    }
+  });
 
   const approvedTemplates = computed(() => {
     const seen = new Map();
+    const linkedIds = new Set(linkedInboxIds.value);
     (inboxes.value || [])
+      .filter(inbox => linkedIds.has(inbox.id))
       .filter(inbox => inbox.channel_type === 'Channel::Whatsapp')
       .forEach(inbox => {
         (inbox.message_templates || [])
@@ -35,13 +50,23 @@ export function useApprovedTemplates() {
             if (!seen.has(key)) {
               seen.set(key, {
                 value: key,
-                label: `${template.name} (${template.language})`,
+                label: '',
                 template,
+                inboxId: inbox.id,
+                inboxNames: [inbox.name],
               });
+            } else if (!seen.get(key).inboxNames.includes(inbox.name)) {
+              seen.get(key).inboxNames.push(inbox.name);
             }
           });
       });
-    return [...seen.values()];
+    return [...seen.values()].map(item => ({
+      ...item,
+      label: `${item.template.name} (${item.template.language}) · ${t(
+        'CAPTAIN.ASSISTANTS.ENVIOS.APPROVED_IN',
+        { inboxes: item.inboxNames.join(', ') }
+      )}`,
+    }));
   });
 
   // The saved template stays in the list even when its inbox no longer reports it as approved.
@@ -70,8 +95,10 @@ export function useApprovedTemplates() {
   // The WhatsApp Cloud inbox that reports a "name|language" template as approved: the number that uploads the file of
   // its header (the sender uploads it again through the number it sends from).
   const templateInboxId = value => {
+    const linkedIds = new Set(linkedInboxIds.value);
     const inbox = (inboxes.value || []).find(
       item =>
+        linkedIds.has(item.id) &&
         item.channel_type === 'Channel::Whatsapp' &&
         item.provider === 'whatsapp_cloud' &&
         (item.message_templates || []).some(

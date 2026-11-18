@@ -24,6 +24,7 @@ export function useAssistantSettings() {
         ...updatedAssistant,
       });
       useAlert(t('CAPTAIN.ASSISTANTS.EDIT.SUCCESS_MESSAGE'));
+      return true;
     } catch (error) {
       useAlert(
         permissionErrorMessage(
@@ -32,6 +33,7 @@ export function useAssistantSettings() {
           t('CAPTAIN.ASSISTANTS.EDIT.ERROR_MESSAGE')
         )
       );
+      return false;
     }
   };
 

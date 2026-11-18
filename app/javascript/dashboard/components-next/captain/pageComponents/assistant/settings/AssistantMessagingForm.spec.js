@@ -1,484 +1,310 @@
-import catalog from 'dashboard/components-next/variable-picker/specs/catalog.json';
 import { flushPromises, mount } from '@vue/test-utils';
 import { ref } from 'vue';
 import AssistantMessagingForm from './AssistantMessagingForm.vue';
-import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
-import { isSupportedForCaptain } from './captainTemplates';
+import AssistantAPI from 'dashboard/api/captain/assistant';
+import CaptainInboxesAPI from 'dashboard/api/captain/inboxes';
+import InboxesAPI from 'dashboard/api/inboxes';
 
-const { captainInboxRecords, inboxRecords } = vi.hoisted(() => ({
-  captainInboxRecords: { value: [{ id: 10 }] },
-  inboxRecords: {
-    value: [
-      {
-        id: 10,
-        name: 'Soporte',
-        channel_type: 'Channel::Whatsapp',
-        message_templates: [],
-      },
-    ],
-  },
+const { linkedInboxes, inboxRecords, dispatch } = vi.hoisted(() => ({
+  linkedInboxes: { value: [] },
+  inboxRecords: { value: [] },
+  dispatch: vi.fn(async () => ({})),
 }));
 
-const approved = (name, extra = {}) => ({
-  name,
-  language: 'es',
-  status: 'APPROVED',
-  category: 'UTILITY',
-  components: [{ type: 'BODY', text: 'Hola {{nombre}}' }],
-  ...extra,
-});
-const inbox = {
-  id: 10,
-  name: 'Soporte',
-  channel_type: 'Channel::Whatsapp',
-  message_templates: [
-    approved('reserva'),
-    approved('con_imagen', {
-      components: [
-        { type: 'HEADER', format: 'IMAGE' },
-        { type: 'BODY', text: 'x' },
-      ],
-    }),
-    approved('pendiente', { status: 'PENDING' }),
-  ],
-};
-vi.mock('dashboard/api/variables', () => ({
-  default: {
-    catalog: vi.fn(async () => ({
-      data: {
-        variables: catalog.variables
-          .filter(item => item.reference.kind === 'system')
-          .map(item => ({ ...item, available: item.group !== 'company' })),
-      },
-    })),
-  },
-}));
 vi.mock('dashboard/composables/store', () => ({
-  useStore: () => ({ dispatch: vi.fn() }),
+  useStore: () => ({ dispatch }),
   useMapGetter: name =>
     ref(
-      {
-        'attributes/getAttributes': [],
-        'captainInboxes/getRecords': captainInboxRecords.value,
-        'inboxes/getInboxes': inboxRecords.value,
-      }[name]
+      name === 'captainInboxes/getRecords'
+        ? linkedInboxes.value
+        : inboxRecords.value
     ),
 }));
+vi.mock('dashboard/composables/useAccount', () => ({
+  useAccount: () => ({ accountScopedRoute: name => ({ name }) }),
+}));
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ params: { assistantId: 3 } }),
+  useRoute: () => ({ params: { accountId: 1, assistantId: 3 } }),
+}));
+vi.mock('dashboard/composables', () => ({ useAlert: vi.fn() }));
+vi.mock('dashboard/api/captain/assistant', () => ({
+  default: { allowResource: vi.fn() },
+}));
+vi.mock('dashboard/api/captain/inboxes', () => ({
+  default: {
+    get: vi.fn(async () => ({ data: { payload: [] } })),
+    updateAppointments: vi.fn(async () => ({})),
+  },
+}));
+vi.mock('dashboard/api/inboxes', () => ({
+  default: {
+    updateWhatsappTemplateVariableBindings: vi.fn(async () => ({})),
+  },
 }));
 vi.mock('dashboard/api/whatsappFlows', () => ({
-  default: { list: vi.fn() },
+  default: { list: vi.fn(async () => ({ data: { payload: [] } })) },
+}));
+vi.mock('dashboard/api/integrations/calendar', () => ({
+  default: { getConnections: vi.fn(async () => ({ data: { payload: [] } })) },
 }));
 
-const DialogStub = {
-  props: ['disableConfirmButton'],
-  template:
-    '<div><slot /><button data-testid="confirm" :disabled="disableConfirmButton" @click="$emit(\'confirm\')" /></div>',
-  methods: { open: vi.fn(), close: vi.fn() },
+const approvedTemplate = {
+  name: 'pedido_listo',
+  language: 'es',
+  category: 'UTILITY',
+  status: 'APPROVED',
+  components: [{ type: 'BODY', text: 'Hola {{nombre}}' }],
 };
-const ComboStub = {
-  props: ['modelValue', 'options'],
-  emits: ['update:modelValue'],
-  template: '<div class="combo" />',
-};
-
-const mountForm = (assistant = { config: {} }) =>
-  mount(AssistantMessagingForm, {
-    props: { assistant },
+const whatsappInbox = (id, extra = {}) => ({
+  id,
+  name: `Ventas ${id}`,
+  channel_type: 'Channel::Whatsapp',
+  provider: 'whatsapp_cloud',
+  phone_number: '+593 99 111 2233',
+  provider_config: { business_account_id: `waba-${id}` },
+  appointments_enabled: true,
+  message_templates: [approvedTemplate],
+  ...extra,
+});
+const mountForm = async ({
+  inboxes = [whatsappInbox(10)],
+  assistant = {},
+} = {}) => {
+  linkedInboxes.value = inboxes.map(inbox => ({ ...inbox }));
+  inboxRecords.value = inboxes.map(inbox => ({ ...inbox }));
+  const wrapper = mount(AssistantMessagingForm, {
+    props: {
+      assistant: {
+        id: 3,
+        config: {
+          messaging: {
+            version: 2,
+            revision: 4,
+            inboxes: inboxes
+              .filter(item => item.channel_type === 'Channel::Whatsapp')
+              .map(item => ({
+                inbox_id: item.id,
+                enabled: true,
+                mode: 'auto',
+                excluded: { templates: [], flows: [] },
+                included_marketing: [],
+                reviewed: { templates: {}, flows: {} },
+                notes: {},
+              })),
+          },
+        },
+        envios: {
+          template_cap: { cap: 50, used: 12 },
+          inboxes: inboxes
+            .filter(item => item.channel_type === 'Channel::Whatsapp')
+            .map(item => ({
+              inbox_id: item.id,
+              waba_id: `waba-${item.id}`,
+              counts: { available: 1 },
+              resources: [
+                {
+                  resource: {
+                    name: 'pedido_listo',
+                    language: 'es',
+                    category: 'UTILITY',
+                  },
+                  state: 'available',
+                  can_send: true,
+                  note: 'Confirmar el pedido',
+                  processed_params: { body: { nombre: '{{ contact.name }}' } },
+                },
+              ],
+            })),
+        },
+        ...assistant,
+      },
+    },
     global: {
       mocks: { $t: key => key },
       stubs: {
-        Dialog: DialogStub,
-        ComboBox: ComboStub,
         SettingsToggleSection: {
           name: 'SettingsToggleSection',
-          props: ['modelValue'],
+          props: ['modelValue', 'header', 'description'],
           emits: ['update:modelValue'],
-          template: '<div><slot /></div>',
+          template: '<div><span>{{ header }}</span><slot /></div>',
         },
-        WhatsAppTemplateParser: true,
+        Button: {
+          props: ['label', 'disabled', 'ariaLabel', 'to'],
+          template:
+            '<button :disabled="disabled" @click="$emit(\'click\')">{{ label }}</button>',
+        },
+        Banner: { template: '<div><slot /></div>' },
+        TabBar: {
+          props: ['tabs', 'initialActiveTab'],
+          emits: ['tabChanged'],
+          template:
+            '<div data-testid="inbox-tabs">{{ JSON.stringify(tabs) }}</div>',
+        },
+        ComboBox: {
+          props: ['options'],
+          template:
+            '<div data-testid="inbox-combo">{{ JSON.stringify(options) }}</div>',
+        },
+        Dialog: {
+          props: ['title'],
+          template: '<div><slot /></div>',
+          methods: { open: vi.fn(), close: vi.fn() },
+        },
+        Input: {
+          props: ['modelValue', 'label'],
+          template: '<label>{{ label }}<input /></label>',
+        },
+        TextArea: { template: '<textarea />' },
+        FlowPreviewDrawer: { template: '<div />', methods: { open: vi.fn() } },
         RouterLink: { template: '<a><slot /></a>' },
       },
     },
   });
+  await flushPromises();
+  return wrapper;
+};
 
-describe('AssistantMessagingForm', () => {
+describe('AssistantMessagingForm · Envíos por bandeja', () => {
   beforeEach(() => {
-    captainInboxRecords.value = [{ id: 10 }];
-    inboxRecords.value = [inbox];
-    // mockReset is on for the whole project: the answer is set before every test.
-    WhatsappFlowsAPI.list.mockResolvedValue({
-      data: {
-        payload: [
-          { id: 7, name: 'Datos de reserva' },
-          { id: 8, name: 'Encuesta' },
-        ],
-      },
-    });
+    vi.clearAllMocks();
+    linkedInboxes.value = [];
+    inboxRecords.value = [];
   });
 
-  it('shows the template switch even without WhatsApp inboxes', async () => {
-    captainInboxRecords.value = [];
-    const wrapper = mountForm();
-    await flushPromises();
-    expect(
-      wrapper.get('[data-testid="messaging-templates-toggle"]').exists()
-    ).toBe(true);
-    expect(wrapper.text()).toContain(
-      'CAPTAIN.ASSISTANTS.FORM.MESSAGING.NO_INBOXES'
-    );
-    expect(
-      wrapper.find('[data-testid="messaging-inbox-toggle"]').exists()
-    ).toBe(false);
-    captainInboxRecords.value = [{ id: 10 }];
-  });
+  it('does not render a selector for one WhatsApp inbox and shows the daily cap', async () => {
+    const wrapper = await mountForm();
 
-  it('starts off with nothing allowed and says Captain sends nothing', async () => {
-    const wrapper = mountForm();
-    await flushPromises();
-    expect(
-      wrapper
-        .findComponent('[data-testid="messaging-inbox-toggle"]')
-        .props('modelValue')
-    ).toBe(false);
-    expect(wrapper.find('[data-testid="messaging-flows-empty"]').exists()).toBe(
-      true
-    );
-    expect(
-      wrapper.find('[data-testid="messaging-templates-empty"]').exists()
-    ).toBe(true);
-    expect(wrapper.find('[data-testid="messaging-limits"]').exists()).toBe(
-      true
-    );
-  });
-
-  it('shows what was saved and flags a resource that is no longer available', async () => {
-    const wrapper = mountForm({
-      config: {
-        messaging: {
-          inboxes: [
-            {
-              inbox_id: 10,
-              enabled: true,
-              flows: [
-                { flow_id: 7, purpose: 'Pedir datos' },
-                { flow_id: 99, purpose: 'Borrado' },
-              ],
-              templates: [
-                { name: 'reserva', language: 'es', purpose: 'Confirmar' },
-              ],
-            },
-          ],
-        },
-      },
-    });
-    await flushPromises();
-    const rows = wrapper.findAll('[data-testid="messaging-flow-row"]');
-    expect(rows).toHaveLength(2);
-    expect(rows[0].text()).toContain('Datos de reserva');
-    expect(rows[1].text()).toContain(
-      'CAPTAIN.ASSISTANTS.FORM.MESSAGING.UNAVAILABLE'
-    );
+    expect(wrapper.find('[data-testid="inbox-tabs"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="inbox-combo"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain('Ventas 10');
+    expect(wrapper.vm.capUsed).toBe(12);
+    expect(wrapper.vm.capValue).toBe(50);
+    wrapper.vm.expanded[10] = true;
+    await wrapper.vm.$nextTick();
     expect(
       wrapper.findAll('[data-testid="messaging-template-row"]')
     ).toHaveLength(1);
   });
 
-  it('wraps long WhatsApp resource rows below md and keeps desktop rows single-line', async () => {
-    const wrapper = mountForm({
-      config: {
-        messaging: {
+  it('uses tabs for three mixed channels and only shows WhatsApp resources on WhatsApp', async () => {
+    const inboxes = [
+      whatsappInbox(10),
+      { id: 11, name: 'Chat web', channel_type: 'Channel::WebWidget' },
+      { id: 12, name: 'Correo', channel_type: 'Channel::Email' },
+    ];
+    const wrapper = await mountForm({ inboxes });
+    wrapper.vm.selectTab({ inboxId: 11 });
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find('[data-testid="inbox-tabs"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('CAPTAIN.ASSISTANTS.ENVIOS.ONLY_WHATSAPP');
+    expect(wrapper.text()).toContain('Chat web');
+  });
+
+  it('uses a searchable inbox selector for ten inboxes', async () => {
+    const inboxes = Array.from({ length: 10 }, (_, index) =>
+      whatsappInbox(index + 1)
+    );
+    const wrapper = await mountForm({ inboxes });
+
+    expect(wrapper.find('[data-testid="inbox-combo"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="inbox-tabs"]').exists()).toBe(false);
+  });
+
+  it('saves the versioned messaging payload through the existing save action', async () => {
+    const wrapper = await mountForm();
+    await wrapper.get('[data-testid="messaging-save"]').trigger('click');
+
+    const [payload] = wrapper.emitted('submit')[0];
+    expect(payload.assistantPayload.config.messaging).toMatchObject({
+      version: 2,
+      revision: 4,
+      inboxes: [expect.objectContaining({ inbox_id: 10, mode: 'auto' })],
+    });
+    expect(payload.dailyCap).toBe(50);
+  });
+
+  it('calls the server allow action for a newly approved resource', async () => {
+    AssistantAPI.allowResource.mockResolvedValue({ data: {} });
+    const wrapper = await mountForm({
+      assistant: {
+        envios: {
+          template_cap: { cap: 50, used: 12 },
           inboxes: [
             {
               inbox_id: 10,
-              enabled: true,
-              flows: [{ flow_id: 7, purpose: 'Reserva' }],
-              templates: [
-                { name: 'reserva', language: 'es', purpose: 'Confirmar' },
+              waba_id: 'waba-10',
+              resources: [
+                {
+                  resource: { name: 'pedido_listo', language: 'es' },
+                  state: 'new',
+                },
               ],
             },
           ],
         },
       },
     });
-    await flushPromises();
+    wrapper.vm.expanded[10] = true;
+    await wrapper.vm.$nextTick();
+    const allow = wrapper
+      .findAll('button')
+      .find(button => button.text() === 'CAPTAIN.ASSISTANTS.ENVIOS.ROW_ALLOW');
+    await allow.trigger('click');
 
-    expect(
-      wrapper.get('[data-testid="messaging-flow-row"]').classes()
-    ).toContain('flex-wrap');
-    expect(
-      wrapper.get('[data-testid="messaging-flow-row"]').classes()
-    ).toContain('md:flex-nowrap');
-    expect(
-      wrapper.get('[data-testid="messaging-template-row"]').classes()
-    ).toContain('flex-wrap');
-    expect(
-      wrapper.get('[data-testid="messaging-template-row"]').classes()
-    ).toContain('md:flex-nowrap');
-    const addTemplateButton = wrapper.get(
-      '[data-testid="messaging-add-template"]'
-    ).element;
-    expect(addTemplateButton.parentElement.classList).toContain('flex-wrap');
-  });
-
-  it('adds a Flow with its purpose and saves the whole messaging block, without empty inboxes', async () => {
-    const wrapper = mountForm({ config: { allow_paid_templates: true } });
-    await flushPromises();
-    wrapper.vm.draft.resource = 7;
-    wrapper.vm.draft.purpose = '  Pedir datos  ';
-    wrapper.vm.addFlow();
-    await wrapper.get('[data-testid="messaging-save"]').trigger('click');
-    const [payload] = wrapper.emitted('submit')[0];
-    expect(payload.config.allow_paid_templates).toBe(true);
-    expect(payload.config.messaging).toEqual({
-      inboxes: [
-        {
-          inbox_id: 10,
-          enabled: false,
-          flows: [{ flow_id: 7, purpose: 'Pedir datos' }],
-          templates: [],
-        },
-      ],
+    expect(AssistantAPI.allowResource).toHaveBeenCalledWith({
+      assistantId: 3,
+      inboxId: 10,
+      kind: 'template',
+      key: 'waba-10:pedido_listo|es',
     });
   });
 
-  it.each([false, true])(
-    'preserves allow_paid_templates=%s when saving without touching the switch',
-    async allowPaidTemplates => {
-      const wrapper = mountForm({
-        config: { allow_paid_templates: allowPaidTemplates },
-      });
-      await flushPromises();
-      await wrapper.get('[data-testid="messaging-save"]').trigger('click');
-
-      expect(wrapper.emitted('submit')[0][0].config.allow_paid_templates).toBe(
-        allowPaidTemplates
-      );
-      expect(wrapper.find('[data-testid="messaging-paid"]').exists()).toBe(
-        false
-      );
-    }
-  );
-
-  it.each([false, true])(
-    'saves allow_paid_templates=%s only when the existing Save button is pressed',
-    async initialValue => {
-      const wrapper = mountForm({
-        config: { allow_paid_templates: initialValue },
-      });
-      await flushPromises();
-      wrapper
-        .findComponent('[data-testid="messaging-templates-toggle"]')
-        .vm.$emit('update:modelValue', !initialValue);
-
-      expect(wrapper.emitted('submit')).toBeUndefined();
-      await wrapper.get('[data-testid="messaging-save"]').trigger('click');
-      expect(wrapper.emitted('submit')[0][0].config.allow_paid_templates).toBe(
-        !initialValue
-      );
-    }
-  );
-
-  it('resynchronizes the template switch when the assistant prop changes', async () => {
-    const wrapper = mountForm({ config: { allow_paid_templates: false } });
-    await wrapper.setProps({
-      assistant: { config: { allow_paid_templates: true } },
-    });
-
-    expect(
-      wrapper
-        .findComponent('[data-testid="messaging-templates-toggle"]')
-        .props('modelValue')
-    ).toBe(true);
-  });
-
-  it('offers only approved text templates Captain can fill', async () => {
-    const wrapper = mountForm();
+  it('persists appointment inbox toggle through the existing inbox API', async () => {
+    const wrapper = await mountForm();
+    await wrapper
+      .findAllComponents({ name: 'SettingsToggleSection' })[1]
+      .vm.$emit('update:modelValue', false);
     await flushPromises();
-    expect(wrapper.vm.templateChoices.map(option => option.value)).toEqual([
-      'reserva|es',
-    ]);
+
+    expect(CaptainInboxesAPI.updateAppointments).toHaveBeenCalledWith({
+      assistantId: 3,
+      inboxId: 10,
+      appointmentsEnabled: false,
+    });
   });
 
-  it('lets the owner change the purpose of what is already allowed', async () => {
-    const wrapper = mountForm({
-      config: {
-        messaging: {
+  it('writes variable bindings locally and refreshes the assistant payload', async () => {
+    const wrapper = await mountForm({
+      assistant: {
+        envios: {
+          template_cap: { cap: 50, used: 12 },
           inboxes: [
             {
               inbox_id: 10,
-              enabled: true,
-              flows: [{ flow_id: 7, purpose: 'Antes' }],
-              templates: [],
+              waba_id: 'waba-10',
+              resources: [
+                {
+                  resource: { name: 'pedido_listo', language: 'es' },
+                  state: 'needs_data',
+                  missing: ['nombre'],
+                },
+              ],
             },
           ],
         },
       },
     });
-    await flushPromises();
-    wrapper
-      .get('[data-testid="messaging-flow-row"]')
-      .findComponent({ name: 'Input' })
-      .vm.$emit('update:modelValue', 'Después');
-    await wrapper.get('[data-testid="messaging-save"]').trigger('click');
-    expect(
-      wrapper.emitted('submit')[0][0].config.messaging.inboxes[0].flows[0]
-        .purpose
-    ).toBe('Después');
-  });
+    wrapper.vm.bindingsDraft.nombre = 'contact.name';
+    wrapper.vm.selectedRow = { resource: { name: 'pedido_listo' } };
+    await wrapper.vm.saveAssignment();
 
-  it('keeps a separate switch for every inbox', async () => {
-    const wrapper = mountForm({
-      config: {
-        messaging: {
-          inboxes: [
-            {
-              inbox_id: 10,
-              enabled: true,
-              flows: [{ flow_id: 7, purpose: '' }],
-              templates: [],
-            },
-          ],
-        },
-      },
+    expect(
+      InboxesAPI.updateWhatsappTemplateVariableBindings
+    ).toHaveBeenCalledWith(10, {
+      name: 'pedido_listo',
+      variable_bindings: { nombre: 'contact.name' },
     });
-    await flushPromises();
-    const toggle = () =>
-      wrapper.findComponent('[data-testid="messaging-inbox-toggle"]');
-    expect(toggle().props('modelValue')).toBe(true);
-    toggle().vm.$emit('update:modelValue', false);
-    await wrapper.get('[data-testid="messaging-save"]').trigger('click');
-    expect(wrapper.emitted('submit')[0][0].config.messaging).toEqual({
-      inboxes: [
-        {
-          inbox_id: 10,
-          enabled: false,
-          flows: [{ flow_id: 7, purpose: '' }],
-          templates: [],
-        },
-      ],
-    });
-  });
-
-  it('does not add a template until every variable has its value', async () => {
-    const wrapper = mountForm();
-    await flushPromises();
-    wrapper.vm.draft.resource = 'reserva|es';
-    wrapper.vm.draft.purpose = 'Confirmar';
-    expect(wrapper.vm.draftComplete).toBe(false);
-    wrapper.vm.addTemplate();
-    expect(wrapper.vm.current.templates).toHaveLength(0);
-
-    wrapper.vm.draft.params = { body: { nombre: '{{ contact.first_name }}' } };
-    expect(wrapper.vm.draftComplete).toBe(true);
-    wrapper.vm.addTemplate();
-    await wrapper.get('[data-testid="messaging-save"]').trigger('click');
-    expect(
-      wrapper.emitted('submit')[0][0].config.messaging.inboxes[0].templates
-    ).toEqual([
-      {
-        name: 'reserva',
-        language: 'es',
-        purpose: 'Confirmar',
-        processed_params: { body: { nombre: '{{ contact.first_name }}' } },
-      },
-    ]);
-  });
-
-  it('flags a saved template whose variables are not filled and lets the owner fix them', async () => {
-    const wrapper = mountForm({
-      config: {
-        messaging: {
-          inboxes: [
-            {
-              inbox_id: 10,
-              enabled: true,
-              flows: [],
-              templates: [{ name: 'reserva', language: 'es', purpose: '' }],
-            },
-          ],
-        },
-      },
-    });
-    await flushPromises();
-    expect(wrapper.vm.templateRows[0].complete).toBe(false);
-    wrapper.vm.openVariablesDialog(0);
-    wrapper.vm.draft.params = { body: { nombre: '{{ contact.name }}' } };
-    wrapper.vm.addTemplate();
-    expect(wrapper.vm.templateRows[0].complete).toBe(true);
-  });
-
-  it('removes what was allowed', async () => {
-    const wrapper = mountForm({
-      config: {
-        messaging: {
-          inboxes: [
-            {
-              inbox_id: 10,
-              enabled: true,
-              flows: [{ flow_id: 7, purpose: '' }],
-              templates: [],
-            },
-          ],
-        },
-      },
-    });
-    await flushPromises();
-    wrapper.vm.removeFlow(0);
-    await wrapper.get('[data-testid="messaging-save"]').trigger('click');
-    expect(wrapper.emitted('submit')[0][0].config.messaging.inboxes).toEqual([
-      { inbox_id: 10, enabled: true, flows: [], templates: [] },
-    ]);
-  });
-});
-
-describe('isSupportedForCaptain', () => {
-  it('rejects media headers, dynamic links, copy codes and Flow buttons', () => {
-    const body = { type: 'BODY', text: 'x' };
-    expect(isSupportedForCaptain({ components: [body] })).toBe(true);
-    expect(
-      isSupportedForCaptain({
-        components: [{ type: 'HEADER', format: 'VIDEO' }, body],
-      })
-    ).toBe(false);
-    expect(
-      isSupportedForCaptain({
-        components: [
-          body,
-          {
-            type: 'BUTTONS',
-            buttons: [{ type: 'URL', url: 'https://x/{{1}}' }],
-          },
-        ],
-      })
-    ).toBe(false);
-    expect(
-      isSupportedForCaptain({
-        components: [
-          body,
-          { type: 'BUTTONS', buttons: [{ type: 'COPY_CODE' }] },
-        ],
-      })
-    ).toBe(false);
-    expect(
-      isSupportedForCaptain({
-        components: [body, { type: 'BUTTONS', buttons: [{ type: 'FLOW' }] }],
-      })
-    ).toBe(false);
-    expect(
-      isSupportedForCaptain({
-        components: [
-          body,
-          {
-            type: 'BUTTONS',
-            buttons: [
-              { type: 'URL', url: 'https://x.com' },
-              { type: 'QUICK_REPLY' },
-            ],
-          },
-        ],
-      })
-    ).toBe(true);
+    expect(dispatch).toHaveBeenCalledWith('captainAssistants/show', 3);
   });
 });

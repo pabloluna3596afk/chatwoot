@@ -10,6 +10,9 @@ vi.mock('vue-i18n', () => ({
 vi.mock('dashboard/composables/usePolicy', () => ({
   usePolicy: () => ({ checkPermissions: () => state.isAdmin }),
 }));
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ params: { accountId: 1, assistantId: 2 } }),
+}));
 
 const mountCard = (props = {}) =>
   mount(InboxCard, {
@@ -25,14 +28,15 @@ const mountCard = (props = {}) =>
         Policy: { template: '<div><slot /></div>' },
         DropdownMenu: true,
         Button: true,
+        RouterLink: {
+          props: ['to'],
+          template: '<a :href="to.name"><slot /></a>',
+        },
       },
     },
   });
 
-const switchButton = wrapper =>
-  wrapper.get('[data-testid="inbox-appointments-switch"]');
-
-describe('InboxCard appointments switch', () => {
+describe('InboxCard appointments status', () => {
   beforeEach(() => {
     state.isAdmin = true;
   });
@@ -45,36 +49,29 @@ describe('InboxCard appointments switch', () => {
     );
   });
 
-  it('shows the switch on by default when the assistant has appointments on', () => {
+  it('shows the saved status and links to assistant settings', () => {
     const wrapper = mountCard({ appointmentsAvailable: true });
 
     expect(wrapper.text()).toContain('CAPTAIN.INBOXES.APPOINTMENTS.LABEL');
-    expect(switchButton(wrapper).attributes('aria-checked')).toBe('true');
+    expect(wrapper.text()).toContain('CAPTAIN.INBOXES.APPOINTMENTS.ENABLED');
+    expect(wrapper.find('a').attributes('href')).toBe(
+      'captain_assistants_settings_appointments_index'
+    );
   });
 
-  it('shows the switch off for an inbox that turned it off', () => {
+  it('shows when appointments are off for this inbox', () => {
     const wrapper = mountCard({
       appointmentsAvailable: true,
       inbox: { id: 12, name: 'Web', appointments_enabled: false },
     });
 
-    expect(switchButton(wrapper).attributes('aria-checked')).toBe('false');
+    expect(wrapper.text()).toContain('CAPTAIN.INBOXES.APPOINTMENTS.DISABLED');
   });
 
-  it('asks to switch it off and on', async () => {
-    const wrapper = mountCard({ appointmentsAvailable: true });
-
-    await switchButton(wrapper).trigger('click');
-
-    expect(wrapper.emitted('toggleAppointments')).toEqual([
-      [{ id: 12, value: false }],
-    ]);
-  });
-
-  it('cannot be changed by someone who is not an administrator', () => {
+  it('hides the settings link from someone who is not an administrator', () => {
     state.isAdmin = false;
     const wrapper = mountCard({ appointmentsAvailable: true });
 
-    expect(switchButton(wrapper).attributes('disabled')).toBeDefined();
+    expect(wrapper.find('a').exists()).toBe(false);
   });
 });

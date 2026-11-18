@@ -31,7 +31,8 @@ class Captain::Messaging::AssistantPayload
         waba_id: inbox.channel.is_a?(Channel::Whatsapp) ? inbox.channel.provider_config.to_h['business_account_id'] : nil,
         resources: items.map { |item| item_payload(item) },
         counts: states,
-        scope: scope_note(inbox)
+        scope: scope_note(inbox),
+        channel: channel_payload(inbox)
       }
     end
   end
@@ -51,5 +52,20 @@ class Captain::Messaging::AssistantPayload
     return 'WhatsApp templates and Flows are unavailable for this channel.' unless inbox.channel_type == 'Channel::Whatsapp'
 
     'WhatsApp resources are scoped to this inbox and its connected WABA.'
+  end
+
+  def channel_payload(inbox)
+    return {} unless inbox.channel_type == 'Channel::Whatsapp'
+
+    channel = inbox.channel
+    health = channel.phone_number_health.to_h
+    {
+      business_account_name: health['business_account_name'],
+      business_portfolio_name: health['business_portfolio_name'],
+      quality_rating: health['quality_rating'],
+      templates_last_updated_at: channel.message_templates_last_updated&.iso8601,
+      templates_stale: channel.message_templates_last_updated.nil? || channel.message_templates_last_updated < 48.hours.ago,
+      needs_reauthorization: channel.reauthorization_required?
+    }.compact
   end
 end

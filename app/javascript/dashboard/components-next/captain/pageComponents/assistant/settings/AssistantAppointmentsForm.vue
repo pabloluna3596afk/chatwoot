@@ -9,7 +9,6 @@ import {
 } from './useApprovedTemplates';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
-import AppointmentReminderReadiness from './AppointmentReminderReadiness.vue';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
@@ -66,7 +65,7 @@ const state = reactive({
   params: { reminder: {} },
 });
 const { templateOptions, templateEntry, templateInboxId } =
-  useApprovedTemplates();
+  useApprovedTemplates(props.assistant?.id);
 const { variableOptions, defaultValues, previewValues } = useTemplateVariables({
   appointment: true,
 });
@@ -333,9 +332,6 @@ onMounted(loadConnections);
 
 <template>
   <div class="flex flex-col gap-4">
-    <AppointmentReminderReadiness
-      :inboxes="assistant.appointment_reminder_readiness || []"
-    />
     <p v-if="isLoading" class="mb-0 text-sm text-n-slate-11">
       {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.LOADING') }}
     </p>
