@@ -32,7 +32,7 @@ class Captain::Messaging::Availability
   end
 
   def eligible_flows
-    return WhatsappFlow.none unless cloud_whatsapp?
+    return WhatsappFlow.none unless cloud_whatsapp? && waba_id.present?
 
     @request_cache[[:eligible_flows, @inbox.account_id, waba_id]] ||= Whatsapp::Flows::SendFlowService.eligible_for(@inbox).to_a
   end

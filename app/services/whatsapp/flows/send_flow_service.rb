@@ -7,8 +7,11 @@ class Whatsapp::Flows::SendFlowService
     channel = inbox.channel
     raise Error, 'WhatsApp Cloud required' unless channel.is_a?(Channel::Whatsapp) && channel.provider == 'whatsapp_cloud'
 
+    waba_id = channel.provider_config.to_h['business_account_id']
+    raise Error, 'WhatsApp business account required' if waba_id.blank?
+
     inbox.account.whatsapp_flows.joins(:whatsapp_flow_publications)
-         .where(whatsapp_flow_publications: { waba_id: channel.provider_config.fetch('business_account_id'), status: 'published' })
+         .where(whatsapp_flow_publications: { waba_id: waba_id, status: 'published' })
          .where('whatsapp_flow_publications.published_at >= whatsapp_flows.updated_at')
          .includes(:whatsapp_flow_publications).order(:name)
   end
