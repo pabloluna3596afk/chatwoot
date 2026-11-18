@@ -41,7 +41,6 @@ const emit = defineEmits(['action', 'edit']);
 const { formatMessage } = useMessageFormatter();
 const expanded = ref(new Set());
 const copied = ref(new Set());
-const overlayAbove = ref(new Set());
 const timers = new Map();
 const visibleActions = item =>
   props.actions.filter(action => !action.visible || action.visible(item));
@@ -113,19 +112,6 @@ const copyContent = async item => {
   );
 };
 const isCopied = item => copied.value.has(props.getKey(item));
-const setOverlayDirection = (item, event) => {
-  if (!isTruncated(item)) return;
-  const body = event.currentTarget.querySelector('[data-card-content]');
-  if (!body) return;
-  const { top, bottom } = body.getBoundingClientRect();
-  const next = new Set(overlayAbove.value);
-  if (window.innerHeight - bottom < 280 && top > 280) {
-    next.add(props.getKey(item));
-  } else {
-    next.delete(props.getKey(item));
-  }
-  overlayAbove.value = next;
-};
 const traceLabel = (label, person, date) =>
   person
     ? `${label} ${person.available_name || person.email || ''} · ${date}`
@@ -214,8 +200,6 @@ onBeforeUnmount(() => {
         v-for="item in cards"
         :key="getKey(item)"
         class="group relative mb-3 inline-block w-full break-inside-avoid rounded-xl border border-n-weak bg-n-surface-1 shadow-sm hover:z-30 hover:shadow-lg focus-within:z-30"
-        @mouseenter="setOverlayDirection(item, $event)"
-        @focusin="setOverlayDirection(item, $event)"
       >
         <div class="flex items-start gap-2 p-4 pb-2">
           <button
@@ -287,13 +271,13 @@ onBeforeUnmount(() => {
             </div>
           </details>
         </div>
-        <div class="relative px-4 pb-3" data-card-content>
+        <div class="group/content relative px-4 pb-3" data-card-content>
           <button
             type="button"
             class="block w-full text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-n-brand"
             :class="
               isTruncated(item)
-                ? '[@media(hover:hover)]:group-hover:invisible [@media(hover:hover)]:focus:invisible'
+                ? '[@media(hover:hover)]:group-hover/content:invisible [@media(hover:hover)]:focus:invisible'
                 : ''
             "
             :aria-label="`${editLabel}: ${item[titleKey]}`"
@@ -313,13 +297,10 @@ onBeforeUnmount(() => {
           </button>
           <div
             v-if="isTruncated(item)"
-            class="hidden [@media(hover:hover)]:group-hover:block [@media(hover:hover)]:group-focus-within:block"
+            class="hidden [@media(hover:hover)]:group-hover/content:block [@media(hover:hover)]:group-focus-within/content:block"
           >
             <div
-              class="absolute inset-x-0 z-20 max-h-[min(70vh,36rem)] overflow-y-auto rounded-xl border border-n-weak bg-n-surface-1 p-4 pt-2 shadow-xl"
-              :class="
-                overlayAbove.has(getKey(item)) ? 'bottom-0 top-auto' : 'top-0'
-              "
+              class="absolute inset-x-0 top-0 z-20 max-h-[min(70vh,36rem)] overflow-y-auto rounded-xl border border-n-weak bg-n-surface-1 p-4 pt-2 shadow-xl"
             >
               <button
                 type="button"

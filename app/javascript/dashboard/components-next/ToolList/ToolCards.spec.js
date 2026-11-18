@@ -90,7 +90,7 @@ describe('ToolCards', () => {
     const textButton = wrapper.find('[data-card-content] button');
 
     expect(textButton.classes().join(' ')).not.toContain(
-      'group-hover:invisible'
+      'group-hover/content:invisible'
     );
     expect(wrapper.find('[data-card-content] .absolute').exists()).toBe(false);
     expect(wrapper.find('[aria-expanded]').exists()).toBe(false);
@@ -104,7 +104,9 @@ describe('ToolCards', () => {
     );
     const textButton = wrapper.find('[data-card-content] button');
 
-    expect(textButton.classes().join(' ')).toContain('group-hover:invisible');
+    expect(textButton.classes().join(' ')).toContain(
+      'group-hover/content:invisible'
+    );
     expect(wrapper.find('[data-card-content] .absolute').exists()).toBe(true);
     expect(wrapper.find('[aria-expanded]').exists()).toBe(true);
     vi.restoreAllMocks();
