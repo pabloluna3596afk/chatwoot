@@ -725,6 +725,16 @@ es:
     assistant:
       limit_exceeded: 'Puedes crear un máximo de %{limit} asistentes por cuenta'
     messaging:
+      catalog:
+        truncated: '…(recortado)'
+        data: 'dato %{name}'
+        variables:
+          contact_name: 'nombre del contacto'
+          contact_first_name: 'primer nombre del contacto'
+          assistant_name: 'nombre del asistente'
+          appointment_date: 'fecha de la cita'
+          appointment_time: 'hora de la cita'
+          appointment_title: 'título de la cita'
       prepared_flow: 'El formulario está preparado; se enviará al terminar esta respuesta. No lo escribas tú.'
       prepared_template: 'La plantilla está preparada; se enviará al terminar esta respuesta. No la escribas tú.'
       already_prepared: 'Ya hay un formulario o una plantilla preparados para esta respuesta; solo se puede enviar uno.'
