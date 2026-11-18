@@ -3623,3 +3623,9 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Archivos:** `AssistantsController#allow_resource`, cliente API/formulario de Envios y specs.
 - **Arreglo:** recarga bajo `with_lock` y control de revisi?n compartido con update; un permiso obsoleto recibe 409. El cliente env?a la revisi?n vigente despu?s de cada escritura.
 - **C?mo probar:** revisi?n obsoleta conserva configuraci?n; dos aprobaciones sucesivas conservan ambos recursos. Variables de canal no escriben config.messaging. Sin cambios visuales ni migraciones.
+
+### B-NEW-277 ? Captain: conversi?n vinculada al reporte revisado (2026-11-18)
+
+- **Archivos:** `Messaging::MigrationFingerprint`, informe/job, conversi?n/restauraci?n y rake.
+- **Arreglo:** huella de configuraci?n y cat?logo persistido (plantillas, bindings, salud, WABA, Flows/publicaciones); rechaza informes obsoletos con indicaci?n de regenerarlos. Report vuelve a generar sobre entradas actuales. Conserva configuraci?n completa inmediatamente anterior a convertir para restaurar exactamente.
+- **C?mo probar:** cambiar plantilla/configuraci?n/Flow invalida reporte; regenerar permite convertir; restaurar devuelve la configuraci?n exacta. Sin migraciones ni conversi?n de cuentas reales.

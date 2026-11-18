@@ -7,10 +7,10 @@ class Migration::CaptainMessagingMigrationReportJob < ApplicationJob
     assistants.find_each do |assistant|
       assistant.with_lock do
         stored_report = assistant.config_migration_report
-        next if stored_report['backup'].present? && Array(stored_report['inboxes']).all? { |inbox| inbox.key?('summary') }
+        next if stored_report['pre_conversion_config'].present? && assistant.config.dig('messaging', 'version') == 2
+        next if stored_report['fingerprint'] == Captain::Messaging::MigrationFingerprint.for(assistant)
 
         report = Captain::Messaging::MigrationReport.new(assistant).perform
-        report['backup'] = stored_report['backup'] if stored_report['backup'].present?
         assistant.update!(config_migration_report: report)
       end
     end

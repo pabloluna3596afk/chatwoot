@@ -21,7 +21,8 @@ class Captain::Messaging::MigrationReport
   end
 
   def perform
-    { 'backup' => @assistant.config['messaging'].deep_dup, 'generated_at' => Time.current.utc.iso8601,
+    { 'fingerprint' => Captain::Messaging::MigrationFingerprint.for(@assistant),
+      'backup' => @assistant.config['messaging'].deep_dup, 'generated_at' => Time.current.utc.iso8601,
       'inboxes' => inbox_reports }
   end
 
