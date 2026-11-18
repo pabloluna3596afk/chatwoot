@@ -22,19 +22,28 @@ class Captain::Messaging::AssistantPayload
     request_cache = {}
     @assistant.captain_inboxes.includes(inbox: :channel).map do |link|
       inbox = link.inbox
-      availability = Captain::Messaging::Availability.new(@assistant, inbox, request_cache: request_cache)
-      items = availability.templates + availability.flows
-      states = STATES.index_with { |state| items.count { |item| item.state == state } }
-      {
-        inbox_id: inbox.id,
-        mode: @assistant.messaging.mode(inbox.id),
-        waba_id: inbox.channel.is_a?(Channel::Whatsapp) ? inbox.channel.provider_config.to_h['business_account_id'] : nil,
-        resources: items.map { |item| item_payload(item) },
-        counts: states,
-        scope: scope_note(inbox),
-        channel: channel_payload(inbox)
-      }
+      inbox_payload(inbox, request_cache)
     end
+  end
+
+  def inbox_payload(inbox, request_cache)
+    items = available_items(inbox, request_cache)
+    { inbox_id: inbox.id, mode: @assistant.messaging.mode(inbox.id),
+      waba_id: waba_id(inbox), resources: items.map { |item| item_payload(item) },
+      counts: state_counts(items), scope: scope_note(inbox), channel: channel_payload(inbox) }
+  end
+
+  def available_items(inbox, request_cache)
+    availability = Captain::Messaging::Availability.new(@assistant, inbox, request_cache: request_cache)
+    availability.templates + availability.flows
+  end
+
+  def state_counts(items)
+    STATES.index_with { |state| items.count { |item| item.state == state } }
+  end
+
+  def waba_id(inbox)
+    inbox.channel.is_a?(Channel::Whatsapp) ? inbox.channel.provider_config.to_h['business_account_id'] : nil
   end
 
   def item_payload(item)

@@ -29,12 +29,7 @@ class Captain::Messaging::Review
     reviewed = @entry.fetch('reviewed', { 'templates' => {}, 'flows' => {} })
     reviewed['templates'] ||= {}
     reviewed['flows'] ||= {}
-    allowed = case kind
-              when 'template' then allow_template(reviewed, key)
-              when 'flow' then allow_flow(reviewed, key)
-              else false
-              end
-    return false unless allowed
+    return false unless allow_resource(reviewed, kind, key)
 
     @entry['reviewed'] = reviewed
     true
@@ -52,6 +47,14 @@ class Captain::Messaging::Review
   end
 
   private
+
+  def allow_resource(reviewed, kind, key)
+    case kind
+    when 'template' then allow_template(reviewed, key)
+    when 'flow' then allow_flow(reviewed, key)
+    else false
+    end
+  end
 
   def allow_template(reviewed, key)
     template = @channel.message_templates.to_a.find { |item| template_key(item) == key }
