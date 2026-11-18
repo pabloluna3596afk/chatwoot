@@ -7,11 +7,11 @@ class Captain::Messaging::LegacyEntryConverter
   end
 
   def perform
-    notes, params, marketing = template_settings
+    notes, params = template_settings
     @entry['mode'] = 'auto'
     @entry['notes'] = notes.merge(flow_notes)
     @entry['params'] = params
-    @entry['included_marketing'] = marketing
+    @entry['included_marketing'] = []
     @entry['reviewed'] = Captain::Messaging::Review.new(@assistant, @inbox).activation_snapshot
     @entry.delete('templates')
     @entry.delete('flows')
@@ -20,7 +20,7 @@ class Captain::Messaging::LegacyEntryConverter
   private
 
   def template_settings
-    result = [{}, {}, []]
+    result = [{}, {}]
     Array(@entry['templates']).each { |template| add_template_settings(result, template) }
     result
   end
@@ -29,14 +29,6 @@ class Captain::Messaging::LegacyEntryConverter
     key = "#{@waba_id}:#{template['name']}|#{template['language']}"
     result[0]["template:#{key}"] = template['purpose'] if template['purpose'].present?
     result[1][key] = template['processed_params'] if template['processed_params'].present?
-    result[2] << key if marketing_template?(template)
-  end
-
-  def marketing_template?(template)
-    current = Array(@inbox.channel.message_templates).find do |item|
-      item['name'] == template['name'] && item['language'].to_s.casecmp?(template['language'].to_s)
-    end
-    current && current['category'].to_s.upcase == 'MARKETING'
   end
 
   def flow_notes

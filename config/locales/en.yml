@@ -814,6 +814,16 @@ en:
     assistant:
       limit_exceeded: 'You can create a maximum of %{limit} assistants per account'
     messaging:
+      catalog:
+        truncated: '…(truncated)'
+        data: 'data %{name}'
+        variables:
+          contact_name: 'contact name'
+          contact_first_name: 'contact first name'
+          assistant_name: 'assistant name'
+          appointment_date: 'appointment date'
+          appointment_time: 'appointment time'
+          appointment_title: 'appointment title'
       prepared_flow: 'The form is prepared; it will be sent when you finish this reply. Do not write it yourself.'
       prepared_template: 'The template is prepared; it will be sent when you finish this reply. Do not write it yourself.'
       already_prepared: 'A form or template is already prepared for this reply; only one can be sent.'

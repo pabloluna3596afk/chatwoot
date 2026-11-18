@@ -1,6 +1,7 @@
 import catalog from 'dashboard/components-next/variable-picker/specs/catalog.json';
 import { flushPromises, mount } from '@vue/test-utils';
 import AssistantAppointmentsForm from './AssistantAppointmentsForm.vue';
+import CaptainInboxesAPI from 'dashboard/api/captain/inboxes';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import { nextTick } from 'vue';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
@@ -54,7 +55,10 @@ vi.mock('dashboard/api/integrations/calendar', () => ({
   },
 }));
 vi.mock('dashboard/api/captain/inboxes', () => ({
-  default: { get: getCaptainInboxes },
+  default: {
+    get: getCaptainInboxes,
+    updateAppointments: vi.fn(async () => ({})),
+  },
 }));
 
 const CONNECTIONS = [{ id: 7, email: 'agenda@example.com', name: 'Agenda' }];
@@ -110,6 +114,51 @@ describe('AssistantAppointmentsForm', () => {
     getCalendars
       .mockReset()
       .mockResolvedValue({ data: { payload: CALENDARS } });
+  });
+
+  it('queues per-inbox permissions and submits them with Update', async () => {
+    inboxes.value = [
+      {
+        id: 10,
+        name: 'Ventas',
+        channel_type: 'Channel::Whatsapp',
+        appointments_enabled: true,
+      },
+    ];
+    const wrapper = await mountForm({
+      config: {
+        appointments: {
+          enabled: true,
+          calendar_connection_id: 1,
+          calendar_id: 'calendar-1',
+        },
+      },
+    });
+    const section = wrapper.get('[data-testid="appointments-inboxes"]');
+    expect(section.text()).toContain('INBOXES.TITLE');
+    await section.get('button[role="switch"]').trigger('click');
+    await flushPromises();
+    expect(CaptainInboxesAPI.updateAppointments).not.toHaveBeenCalled();
+    expect(inboxes.value[0].appointments_enabled).toBe(true);
+    await wrapper.get('[data-testid="appointments-save"]').trigger('click');
+    expect(wrapper.emitted('submit')[0][0].inboxChanges).toEqual([
+      { inboxId: 10, appointmentsEnabled: false },
+    ]);
+    expect(
+      section.get('button[role="switch"]').attributes('aria-checked')
+    ).toBe('false');
+  });
+
+  it('disables per-inbox appointment controls when appointments are off', async () => {
+    inboxes.value = [{ id: 10, name: 'Ventas', appointments_enabled: true }];
+    const wrapper = await mountForm({
+      config: { appointments: { enabled: false } },
+    });
+    const toggleButton = wrapper.get(
+      '[data-testid="appointments-inboxes"] button[role="switch"]'
+    );
+    expect(toggleButton.attributes('disabled')).toBeDefined();
+    expect(toggleButton.attributes('aria-checked')).toBe('false');
   });
 
   it('omits the retired cancellation template when saving', async () => {
@@ -199,6 +248,8 @@ describe('AssistantAppointmentsForm', () => {
     await wrapper.get('[data-testid="appointments-save"]').trigger('click');
 
     expect(wrapper.emitted('submit')[0][0]).toEqual({
+      inboxChanges: [],
+      onSaved: expect.any(Function),
       config: {
         response_window: 'always',
         product_name: 'Acme',

@@ -5,25 +5,30 @@ import { useRoute } from 'vue-router';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import { useAccount } from 'dashboard/composables/useAccount';
+import { useAdmin } from 'dashboard/composables/useAdmin';
+import AccountAPI from 'dashboard/api/account';
+import Switch from 'dashboard/components-next/switch/Switch.vue';
 import AssistantAPI from 'dashboard/api/captain/assistant';
-import CaptainInboxesAPI from 'dashboard/api/captain/inboxes';
 import InboxesAPI from 'dashboard/api/inboxes';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
-import CalendarAPI from 'dashboard/api/integrations/calendar';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Banner from 'dashboard/components-next/banner/Banner.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
-import TextArea from 'dashboard/components-next/textarea/TextArea.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
 import FlowPreviewDrawer from 'dashboard/routes/dashboard/settings/templates/flows/FlowPreviewDrawer.vue';
 import CaptainTemplatePreview from './CaptainTemplatePreview.vue';
+import CaptainResourceRow from './CaptainResourceRow.vue';
 import { useTemplateVariables } from './useTemplateVariables';
 
 const props = defineProps({ assistant: { type: Object, default: () => ({}) } });
-const emit = defineEmits(['submit']);
+const { isAdmin } = useAdmin();
+const saving = ref(false);
+const conflict = ref(false);
+const pendingAllows = reactive({});
+const baseline = ref('');
 const { t } = useI18n();
 const route = useRoute();
 const store = useStore();
@@ -45,19 +50,33 @@ const inboxesLoading = ref(true);
 const loadingFailed = ref(false);
 const selectedInboxId = ref(null);
 const flows = ref([]);
-const calendarConnections = ref([]);
+const messagingRevision = ref(0);
+const resourceGroups = reactive({});
 const capValue = ref(50);
 const capUsed = ref(0);
 const expanded = reactive({});
-const noteDialog = ref(null);
 const templatePreview = ref(null);
 const assignDialog = ref(null);
 const previewDrawer = ref(null);
 const selectedRow = ref(null);
-const noteDraft = ref('');
 const bindingsDraft = reactive({});
 const paidTemplates = ref(false);
+const paidExplanation = computed(() =>
+  t(
+    paidTemplates.value
+      ? 'CAPTAIN.ASSISTANTS.ENVIOS.PAID.ON_LINE'
+      : 'CAPTAIN.ASSISTANTS.ENVIOS.PAID.OFF_LINE'
+  )
+);
 const permissionEntries = reactive({});
+const draftSnapshot = () =>
+  JSON.stringify([
+    paidTemplates.value,
+    Number(capValue.value),
+    permissionEntries,
+    pendingAllows,
+  ]);
+const dirty = computed(() => baseline.value !== draftSnapshot());
 
 // The list endpoint omits the per-inbox state (`envios`): read it from the single-assistant endpoint.
 const serverEnvios = ref(null);
@@ -67,9 +86,11 @@ const envios = computed(
 const loadEnvios = async () => {
   try {
     const { data } = await AssistantAPI.show(route.params.assistantId);
-    serverEnvios.value = data?.envios || null;
-  } catch {
-    serverEnvios.value = null;
+    serverEnvios.value = data.envios;
+    return data;
+  } catch (error) {
+    loadingFailed.value = true;
+    throw error;
   }
 };
 
@@ -79,12 +100,12 @@ const connectedInboxes = computed(() => {
     .map(id => (allInboxes.value || []).find(item => item.id === id))
     .filter(Boolean);
 });
-const orderedInboxes = computed(() => [...connectedInboxes.value]);
 const whatsappInboxes = computed(() =>
-  orderedInboxes.value.filter(
+  connectedInboxes.value.filter(
     inbox => inbox.channel_type === 'Channel::Whatsapp'
   )
 );
+const orderedInboxes = whatsappInboxes;
 const selectedInbox = computed(() =>
   orderedInboxes.value.find(item => item.id === selectedInboxId.value)
 );
@@ -108,7 +129,9 @@ const currentEntry = computed(
 );
 const resources = computed(() => serverInbox.value?.resources || []);
 const localState = (item, kind, key) => {
-  if (!['available', 'excluded'].includes(item.state)) return item.state;
+  if (pendingAllows[`${selectedInboxId.value}:${key}`]) return 'available';
+  if (!['available', 'excluded', 'unavailable'].includes(item.state))
+    return item.state;
   if (currentEntry.value.mode === 'list') {
     const listed =
       kind === 'templates'
@@ -160,17 +183,6 @@ const flowRows = computed(() =>
       ),
     }))
 );
-function reminderStatus(inbox) {
-  const reminder = props.assistant?.config?.appointments?.template_reminder;
-  if (!reminder?.name) return 'PICK';
-  const exists = (inbox.message_templates || []).some(
-    item =>
-      item.name === reminder.name &&
-      item.language === reminder.language &&
-      String(item.status).toUpperCase() === 'APPROVED'
-  );
-  return exists ? 'APPROVED_HERE' : 'MISSING_HERE';
-}
 const pendingCount = inbox => {
   const data = (envios.value?.inboxes || []).find(
     item => item.inbox_id === inbox.id
@@ -184,12 +196,7 @@ const pendingCount = inbox => {
       'not_published_here',
     ].includes(item.state)
   ).length;
-  const reminderPending =
-    inbox.channel_type === 'Channel::Whatsapp' &&
-    reminderStatus(inbox) === 'MISSING_HERE'
-      ? 1
-      : 0;
-  return resourcePending + reminderPending;
+  return resourcePending;
 };
 const inboxTabs = computed(() =>
   orderedInboxes.value.map(inbox => ({
@@ -225,57 +232,132 @@ const inboxOptions = computed(() =>
   }))
 );
 const stateLabels = {
-  available: 'AVAILABLE',
-  excluded: 'EXCLUDED',
-  marketing_off: 'MARKETING_OFF',
-  needs_data: 'NEEDS_DATA',
-  pending: 'PENDING',
-  rejected: 'REJECTED',
-  unsupported: 'UNSUPPORTED',
-  authentication: 'AUTHENTICATION',
-  not_published_here: 'NOT_PUBLISHED_HERE',
-  new: 'NEW',
-  changed: 'CHANGED',
-  needs_review: 'NEEDS_REVIEW',
-  disabled: 'DISABLED',
-  unavailable: 'UNAVAILABLE',
+  needs_data: 'CHIPS.NEEDS_DATA',
+  pending: 'STATES.PENDING',
+  rejected: 'STATES.REJECTED',
+  unsupported: 'CHIPS.UNSUPPORTED',
+  not_published_here: 'CHIPS.NOT_PUBLISHED',
+  new: 'CHIPS.NEW',
+  changed: 'CHIPS.CHANGED',
+  needs_review: 'CHIPS.LINK',
 };
-const stateClass = state => {
-  if (state === 'available') return 'bg-n-teal-3 text-n-teal-11';
+const stateLabel = row => {
   if (
-    [
-      'needs_data',
-      'pending',
-      'new',
-      'changed',
-      'needs_review',
-      'not_published_here',
-    ].includes(state)
+    row.kind === 'template' &&
+    serverInbox.value?.channel?.quality_rating === 'RED'
   )
-    return 'bg-n-amber-3 text-n-amber-11';
-  if (state === 'rejected') return 'bg-n-ruby-3 text-n-ruby-11';
-  return 'bg-n-alpha-2 text-n-slate-11';
+    return t('CAPTAIN.ASSISTANTS.ENVIOS.CHIPS.QUALITY');
+  return stateLabels[row.state]
+    ? t(`CAPTAIN.ASSISTANTS.ENVIOS.${stateLabels[row.state]}`)
+    : '';
 };
-const stateLabel = state =>
-  t(`CAPTAIN.ASSISTANTS.ENVIOS.STATES.${stateLabels[state] || 'UNAVAILABLE'}`);
-const rowReason = row => {
-  if (row.reason) return row.reason;
-  if (row.state === 'needs_data')
-    return t('CAPTAIN.ASSISTANTS.ENVIOS.REASONS.NEEDS_DATA', {
-      variables: (row.missing || []).join(', '),
+const GROUPS = ['READY', 'PERMISSION', 'BLOCKED'];
+const groupFor = state => {
+  if (['available', 'excluded', 'unavailable'].includes(state)) return 'READY';
+  if (
+    ['marketing_off', 'new', 'changed', 'needs_review', 'needs_data'].includes(
+      state
+    )
+  )
+    return 'PERMISSION';
+  return 'BLOCKED';
+};
+// Capture membership on load, independently of the editable switches and review responses.
+watch(
+  envios,
+  value => {
+    (value.inboxes || []).forEach(inbox => {
+      (inbox.resources || []).forEach(item => {
+        const resource = item.resource;
+        if (!resource) return;
+        const key = `${inbox.inbox_id}:${resource.language ? `${resource.name}|${resource.language}` : resource.id}`;
+        resourceGroups[key] = groupFor(item.state);
+      });
     });
-  if (row.state === 'unsupported')
-    return t('CAPTAIN.ASSISTANTS.ENVIOS.REASONS.UNSUPPORTED');
-  if (row.state === 'needs_review')
-    return t('CAPTAIN.ASSISTANTS.ENVIOS.REASONS.NEEDS_REVIEW');
-  if (row.state === 'not_published_here')
-    return t('CAPTAIN.ASSISTANTS.ENVIOS.REASONS.NOT_PUBLISHED_HERE');
-  return '';
+  },
+  { immediate: true }
+);
+const activeResourceIndex = ref(0);
+const resourceSections = computed(() =>
+  [
+    {
+      kind: 'flow',
+      title: 'FLOWS',
+      rows: flowRows.value,
+      createRoute: { name: 'settings_flow_new' },
+    },
+    {
+      kind: 'template',
+      title: 'TEMPLATES',
+      rows: templateRows.value,
+      createRoute: accountScopedRoute('settings_templates'),
+    },
+  ].map(section => ({
+    ...section,
+    groups: GROUPS.map(id => ({
+      id,
+      key: `${selectedInboxId.value}:${section.kind}:${id}`,
+      rows: section.rows.filter(row => {
+        if (
+          row.resource.category?.toUpperCase() === 'AUTHENTICATION' ||
+          row.state === 'authentication'
+        )
+          return false;
+        const identity =
+          row.kind === 'template'
+            ? `${row.resource.name}|${row.resource.language}`
+            : row.resource.id;
+        return resourceGroups[`${selectedInboxId.value}:${identity}`] === id;
+      }),
+    })),
+  }))
+);
+const resourceTabs = computed(() =>
+  resourceSections.value.map((section, index) => ({
+    label: t(`CAPTAIN.ASSISTANTS.ENVIOS.TABS.${section.title}`),
+    showZero: true,
+    attentionLabel: t('CAPTAIN.ASSISTANTS.ENVIOS.GROUPS.PERMISSION'),
+    count: section.groups.reduce(
+      (count, group) => count + group.rows.length,
+      0
+    ),
+    attention: section.groups.some(
+      group => group.id === 'PERMISSION' && group.rows.length > 0
+    ),
+    index,
+  }))
+);
+watch([selectedInboxId, serverEnvios], () => {
+  activeResourceIndex.value = resourceTabs.value[1]?.attention ? 1 : 0;
+});
+const visibleResourceSections = computed(() => [
+  resourceSections.value[activeResourceIndex.value],
+]);
+const rowUsages = row => {
+  if (row.kind !== 'template') return [];
+  const matches = template =>
+    template?.name === row.resource.name &&
+    template?.language === row.resource.language;
+  const usages = [];
+  if (matches(props.assistant?.config?.appointments?.template_reminder))
+    usages.push(t('CAPTAIN.ASSISTANTS.ENVIOS.CHIPS.USED_BY_APPOINTMENTS'));
+  if (matches(props.assistant?.config?.followup?.reengagement_template))
+    usages.push(t('CAPTAIN.ASSISTANTS.ENVIOS.CHIPS.USED_BY_FOLLOWUP'));
+  return usages;
 };
 const setResourceExcluded = row => {
   if (currentEntry.value.mode === 'list') {
     const field = row.kind === 'template' ? 'templates' : 'flows';
     const list = currentEntry.value[field] || [];
+    const savedEntry = (savedMessaging.value.inboxes || []).find(
+      entry => entry.inbox_id === selectedInboxId.value
+    );
+    const saved = savedEntry?.[field]?.find(entry =>
+      row.kind === 'template'
+        ? entry.name === row.resource.name &&
+          entry.language === row.resource.language
+        : entry.flow_id === row.resource.id
+    );
     currentEntry.value[field] =
       row.state === 'available'
         ? list.filter(entry =>
@@ -286,14 +368,14 @@ const setResourceExcluded = row => {
           )
         : [
             ...list,
-            row.kind === 'template'
-              ? {
-                  name: row.resource.name,
-                  language: row.resource.language,
-                  purpose: '',
-                  processed_params: {},
-                }
-              : { flow_id: row.resource.id, purpose: '' },
+            saved ||
+              (row.kind === 'template'
+                ? {
+                    name: row.resource.name,
+                    language: row.resource.language,
+                    processed_params: {},
+                  }
+                : { flow_id: row.resource.id }),
           ];
     return;
   }
@@ -304,61 +386,18 @@ const setResourceExcluded = row => {
     ? exclusions.filter(item => item !== row.key)
     : [...new Set([...exclusions, row.key])];
 };
-const isResourceToggle = row => ['available', 'excluded'].includes(row.state);
-const reviewResource = async row => {
-  try {
-    await AssistantAPI.allowResource({
+const toggleResource = row => {
+  const key = `${selectedInboxId.value}:${row.key}`;
+  if (pendingAllows[key]) delete pendingAllows[key];
+  else if (['available', 'excluded'].includes(row.state))
+    setResourceExcluded(row);
+  else
+    pendingAllows[key] = {
       assistantId: props.assistant.id,
       inboxId: selectedInboxId.value,
       kind: row.kind,
       key: row.key,
-    });
-    await store.dispatch('captainAssistants/show', props.assistant.id);
-  } catch (error) {
-    if (error.response?.status === 409) {
-      useAlert(t('CAPTAIN.ASSISTANTS.ENVIOS.CONFLICT'));
-      return;
-    }
-    useAlert(
-      error.response?.data?.error || t('CAPTAIN.ASSISTANTS.EDIT.ERROR_MESSAGE')
-    );
-  }
-};
-const getNote = row =>
-  currentEntry.value.notes?.[
-    row.kind === 'template' ? `template:${row.key}` : `flow:${row.key}`
-  ] ||
-  row.note ||
-  '';
-const openNote = row => {
-  selectedRow.value = row;
-  noteDraft.value = getNote(row);
-  noteDialog.value?.open();
-};
-const saveNote = () => {
-  if (currentEntry.value.mode === 'list') {
-    if (selectedRow.value.kind === 'template') {
-      const entry = currentEntry.value.templates.find(
-        template =>
-          template.name === selectedRow.value.resource.name &&
-          template.language === selectedRow.value.resource.language
-      );
-      if (entry) entry.purpose = noteDraft.value.trim();
-    } else {
-      const entry = currentEntry.value.flows.find(
-        flow => flow.flow_id === selectedRow.value.resource.id
-      );
-      if (entry) entry.purpose = noteDraft.value.trim();
-    }
-    noteDialog.value?.close();
-    return;
-  }
-  const key =
-    selectedRow.value.kind === 'template'
-      ? `template:${selectedRow.value.key}`
-      : `flow:${selectedRow.value.key}`;
-  currentEntry.value.notes[key] = noteDraft.value.trim();
-  noteDialog.value?.close();
+    };
 };
 const openAssignment = row => {
   selectedRow.value = row;
@@ -381,7 +420,7 @@ const saveAssignment = async () => {
     }
   );
   await store.dispatch('inboxes/get', { force: true });
-  await store.dispatch('captainAssistants/show', props.assistant.id);
+  await loadEnvios();
   assignDialog.value?.close();
 };
 const openPreview = row => {
@@ -398,83 +437,36 @@ const openPreview = row => {
   selectedRow.value = row;
   templatePreview.value?.open();
 };
-const updateAppointment = async value => {
-  await CaptainInboxesAPI.updateAppointments({
-    assistantId: props.assistant.id,
-    inboxId: selectedInboxId.value,
-    appointmentsEnabled: value,
-  });
-  const linked = (linkedInboxes.value || []).find(
-    item => item.id === selectedInboxId.value
-  );
-  if (linked) linked.appointments_enabled = value;
-};
-const calendarName = computed(() => {
-  const settings = props.assistant?.config?.appointments || {};
-  const connection = calendarConnections.value.find(
-    item => item.id === settings.calendar_connection_id
-  );
-  return connection?.name || connection?.email || '';
-});
-const calendarConnected = computed(() => Boolean(calendarName.value));
-const assistantAppointmentsEnabled = computed(
-  () => props.assistant?.config?.appointments?.enabled !== false
-);
-const followupName = computed(
-  () => props.assistant?.config?.followup?.reengagement_template?.name || ''
-);
-const followupEnabled = computed(
-  () => props.assistant?.config?.followup?.reengagement_enabled === true
-);
-const followupExists = inbox => {
-  const reminder = props.assistant?.config?.followup?.reengagement_template;
-  return (
-    reminder?.name &&
-    (inbox.message_templates || []).some(
-      item =>
-        item.name === reminder.name &&
-        item.language === reminder.language &&
-        String(item.status).toUpperCase() === 'APPROVED'
-    )
-  );
-};
-const flowFields = row => {
-  const fields =
-    row.flow?.definition?.screens?.flatMap(screen =>
-      (screen.layout?.children || [])
-        .filter(item => item.label)
-        .map(item => item.label)
-    ) || [];
-  return fields.length
-    ? t('CAPTAIN.ASSISTANTS.ENVIOS.FLOWS.FIELDS', { fields: fields.join(', ') })
-    : '';
-};
-const templatePurpose = row => {
-  if (row.note) return row.note;
-  const body =
-    row.template?.components?.find(item => item.type === 'BODY')?.text || '';
-  return body;
-};
 const capValid = computed(
   () =>
-    Number.isInteger(Number(capValue.value)) &&
+    Number.isInteger(capValue.value) &&
     Number(capValue.value) >= 0 &&
     Number(capValue.value) <= 10000
 );
-const messagingCounts = computed(() => {
-  const rows = [...templateRows.value, ...flowRows.value];
-  const available = rows.filter(row => row.state === 'available').length;
-  const excluded = rows.filter(row =>
-    ['excluded', 'marketing_off'].includes(row.state)
-  ).length;
-  return {
-    available,
-    excluded,
-    unavailable: rows.length - available - excluded,
-  };
-});
+const hydrate = (assistant = props.assistant) => {
+  const messaging = assistant.config?.messaging || {};
+  messagingRevision.value = messaging.revision || 0;
+  paidTemplates.value = assistant.config?.allow_paid_templates === true;
+  capValue.value = envios.value?.template_cap?.cap ?? 50;
+  capUsed.value = envios.value?.template_cap?.used ?? 0;
+  Object.keys(permissionEntries).forEach(key => delete permissionEntries[key]);
+  (messaging.inboxes || []).forEach(entry => {
+    permissionEntries[entry.inbox_id] = JSON.parse(JSON.stringify(entry));
+  });
+};
+const reload = async () => {
+  const data = await store.dispatch(
+    'captainAssistants/show',
+    props.assistant.id
+  );
+  serverEnvios.value = data.envios;
+  Object.keys(pendingAllows).forEach(key => delete pendingAllows[key]);
+  hydrate(data);
+  baseline.value = draftSnapshot();
+  conflict.value = false;
+};
 const save = async () => {
-  if (!capValid.value) return;
+  if (!capValid.value || !isAdmin.value || saving.value) return;
   const entries = Object.values(permissionEntries)
     .filter(entry =>
       whatsappInboxes.value.some(inbox => inbox.id === entry.inbox_id)
@@ -490,27 +482,55 @@ const save = async () => {
       messaging: {
         ...savedMessaging.value,
         version: 2,
-        revision: savedMessaging.value.revision || 0,
+        revision: messagingRevision.value,
         inboxes: entries,
       },
     },
   };
-  emit('submit', {
-    assistantPayload: payload,
-    dailyCap: Number(capValue.value),
-  });
+  saving.value = true;
+  conflict.value = false;
+  try {
+    const { data } = await AssistantAPI.update(props.assistant.id, payload);
+    messagingRevision.value = data.config.messaging.revision;
+    await AccountAPI.update('', {
+      captain_template_daily_cap: Number(capValue.value),
+    });
+    // Reviews update the same revision: serialize them after the config PATCH.
+    await Object.values(pendingAllows).reduce(async (previous, request) => {
+      await previous;
+      const response = await AssistantAPI.allowResource(request);
+      messagingRevision.value = response.data.config.messaging.revision;
+    }, Promise.resolve());
+    await reload();
+    useAlert(t('CAPTAIN.ASSISTANTS.EDIT.SUCCESS_MESSAGE'));
+  } catch (error) {
+    conflict.value = error.response?.status === 409;
+    if (!conflict.value)
+      useAlert(
+        error.response?.data?.error ||
+          t('CAPTAIN.ASSISTANTS.EDIT.ERROR_MESSAGE')
+      );
+  } finally {
+    saving.value = false;
+  }
 };
-const hydrate = () => {
-  paidTemplates.value = props.assistant?.config?.allow_paid_templates === true;
-  capValue.value = envios.value?.template_cap?.cap ?? 50;
-  capUsed.value = envios.value?.template_cap?.used ?? 0;
-  Object.keys(permissionEntries).forEach(key => delete permissionEntries[key]);
-  (savedMessaging.value.inboxes || []).forEach(entry => {
-    permissionEntries[entry.inbox_id] = JSON.parse(JSON.stringify(entry));
-  });
-};
-watch(() => props.assistant, hydrate, { immediate: true });
-watch(() => props.assistant?.updated_at, loadEnvios);
+watch(
+  () => props.assistant,
+  assistant => {
+    if (!baseline.value || (!dirty.value && !saving.value)) {
+      hydrate(assistant);
+      baseline.value = draftSnapshot();
+    }
+  },
+  { immediate: true }
+);
+watch(
+  () => envios.value.template_cap,
+  cap => {
+    if (!dirty.value || inboxesLoading.value) capValue.value = cap?.cap ?? 50;
+    capUsed.value = cap?.used ?? 0;
+  }
+);
 watch(
   orderedInboxes,
   list => {
@@ -534,37 +554,31 @@ watch(
     });
     if (!list.some(item => item.id === selectedInboxId.value))
       selectedInboxId.value = list[0]?.id ?? null;
+    if (inboxesLoading.value) baseline.value = draftSnapshot();
   },
   { immediate: true }
 );
 const selectTab = tab => {
   selectedInboxId.value = tab.inboxId ?? null;
 };
-const openSettings = name => ({
-  name,
-  params: { accountId: route.params.accountId },
-});
 const flowEditRoute = row => ({
   name: 'settings_flow_edit',
   params: { flowId: row.resource.id },
 });
 
 onMounted(async () => {
-  loadEnvios();
   try {
+    await loadEnvios();
     await store.dispatch('captainInboxes/get', {
       assistantId: route.params.assistantId,
     });
     await store.dispatch('inboxes/get');
-    const [flowResponse, calendarResponse] = await Promise.all([
-      WhatsappFlowsAPI.list({ per_page: 100 }),
-      CalendarAPI.getConnections(),
-    ]);
+    const flowResponse = await WhatsappFlowsAPI.list({ per_page: 100 });
     flows.value = flowResponse.data.payload || [];
-    calendarConnections.value = calendarResponse.data.payload || [];
   } catch {
     loadingFailed.value = true;
   } finally {
+    baseline.value = draftSnapshot();
     inboxesLoading.value = false;
   }
 });
@@ -573,17 +587,39 @@ onMounted(async () => {
 <template>
   <div class="flex flex-col gap-5" data-testid="messaging-form">
     <SettingsToggleSection
-      v-if="whatsappInboxes.length"
-      v-model="paidTemplates"
+      v-if="!inboxesLoading && !loadingFailed && whatsappInboxes.length"
+      :model-value="paidTemplates"
+      hide-toggle
       :header="t('CAPTAIN.ASSISTANTS.ENVIOS.PAID.TITLE')"
-      :description="t('CAPTAIN.ASSISTANTS.ENVIOS.PAID.HELP')"
+      :description="t('CAPTAIN.ASSISTANTS.ENVIOS.PAID.SCOPE')"
+      @update:model-value="paidTemplates = $event"
     >
-      <span class="px-4 text-xs text-n-slate-11">
-        {{ t('CAPTAIN.ASSISTANTS.ENVIOS.PAID.SCOPE') }}
-      </span>
+      <template #hiddenToggle>
+        <Switch
+          v-model="paidTemplates"
+          :disabled="!isAdmin || saving"
+          :aria-label="t('CAPTAIN.ASSISTANTS.ENVIOS.PAID.TITLE')"
+          class="disabled:cursor-not-allowed disabled:opacity-50"
+        />
+      </template>
+      <p
+        class="mb-0 mt-3 flex w-full items-start gap-2 border-t border-n-weak px-4 pt-3 text-body-main text-n-slate-11"
+        data-testid="paid-explanation"
+        aria-live="polite"
+      >
+        <span
+          aria-hidden="true"
+          class="mt-1.5 size-2 shrink-0 rounded-full"
+          :class="paidTemplates ? 'bg-n-teal-9' : 'bg-n-amber-9'"
+        />
+        <span>{{ paidExplanation }}</span>
+      </p>
     </SettingsToggleSection>
 
-    <div v-if="whatsappInboxes.length" class="flex flex-col gap-2">
+    <div
+      v-if="!inboxesLoading && !loadingFailed && whatsappInboxes.length"
+      class="flex flex-wrap items-center gap-3"
+    >
       <label
         class="text-sm font-medium text-n-slate-12"
         for="captain-daily-cap"
@@ -593,6 +629,8 @@ onMounted(async () => {
       <Input
         id="captain-daily-cap"
         v-model.number="capValue"
+        class="w-[4.5rem]"
+        :disabled="!isAdmin || saving"
         type="number"
         min="0"
         max="10000"
@@ -602,13 +640,19 @@ onMounted(async () => {
       </p>
       <p class="mb-0 text-xs text-n-slate-11">
         {{
-          t('CAPTAIN.ASSISTANTS.ENVIOS.CAP.HELP', {
+          t('CAPTAIN.ASSISTANTS.ENVIOS.CAP.TODAY', {
             used: capUsed,
             cap: capValue,
           })
         }}
       </p>
-      <p v-if="capUsed >= capValue" class="mb-0 text-xs text-n-amber-11">
+      <span
+        v-tooltip="t('CAPTAIN.ASSISTANTS.ENVIOS.CAP.SHARED')"
+        tabindex="0"
+        :aria-label="t('CAPTAIN.ASSISTANTS.ENVIOS.CAP.SHARED')"
+        class="i-lucide-info size-4 text-n-slate-11"
+      />
+      <p v-if="capUsed >= capValue" class="mb-0 w-full text-xs text-n-amber-11">
         {{
           t('CAPTAIN.ASSISTANTS.ENVIOS.CAP.REACHED', {
             used: capUsed,
@@ -627,11 +671,17 @@ onMounted(async () => {
     </Banner>
 
     <Banner
-      v-if="!inboxesLoading && !loadingFailed && !orderedInboxes.length"
+      v-if="!inboxesLoading && !loadingFailed && !whatsappInboxes.length"
       color="blue"
     >
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <span>{{ t('CAPTAIN.ASSISTANTS.ENVIOS.NO_INBOXES') }}</span>
+        <span>{{
+          t(
+            connectedInboxes.length
+              ? 'CAPTAIN.ASSISTANTS.ENVIOS.NO_WHATSAPP'
+              : 'CAPTAIN.ASSISTANTS.ENVIOS.NO_INBOXES'
+          )
+        }}</span>
         <RouterLink
           :to="accountScopedRoute('settings_inboxes')"
           class="text-n-brand underline"
@@ -640,29 +690,47 @@ onMounted(async () => {
         </RouterLink>
       </div>
     </Banner>
-    <p
+    <div
       v-else-if="inboxesLoading"
-      class="mb-0 text-sm text-n-slate-11"
+      class="flex flex-col gap-3"
       role="status"
+      :aria-label="t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.LOADING')"
     >
-      {{ t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.LOADING') }}
-    </p>
-    <p
-      v-else-if="loadingFailed"
-      class="mb-0 text-sm text-n-ruby-9"
-      role="alert"
-    >
-      {{ t('CAPTAIN.ASSISTANTS.ENVIOS.LOAD_ERROR') }}
-    </p>
-
-    <template v-if="!inboxesLoading && selectedInbox">
-      <TabBar
-        v-if="orderedInboxes.length >= 2 && orderedInboxes.length <= 5"
-        :tabs="inboxTabs"
-        :initial-active-tab="activeTabIndex"
-        :tab-list-label="t('CAPTAIN.ASSISTANTS.ENVIOS.INBOX_LABEL')"
-        @tab-changed="selectTab"
+      <div
+        v-for="bar in 3"
+        :key="bar"
+        class="h-3 animate-pulse rounded bg-n-alpha-2"
       />
+    </div>
+    <Banner v-else-if="loadingFailed" color="ruby" role="alert">
+      {{ t('CAPTAIN.ASSISTANTS.ENVIOS.LOAD_ERROR') }}
+    </Banner>
+    <Banner v-if="!isAdmin" color="blue">
+      {{ t('CAPTAIN.ASSISTANTS.ENVIOS.READ_ONLY') }}
+    </Banner>
+    <Banner v-if="conflict" color="amber" role="alert">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <span>{{ t('CAPTAIN.ASSISTANTS.ENVIOS.CONFLICT') }}</span>
+        <Button
+          intent="secondary"
+          :label="t('CAPTAIN.ASSISTANTS.ENVIOS.RELOAD')"
+          @click="reload"
+        />
+      </div>
+    </Banner>
+
+    <template v-if="!inboxesLoading && !loadingFailed && selectedInbox">
+      <div
+        v-if="orderedInboxes.length >= 2 && orderedInboxes.length <= 5"
+        class="max-w-full overflow-x-auto"
+      >
+        <TabBar
+          :tabs="inboxTabs"
+          :initial-active-tab="activeTabIndex"
+          :tab-list-label="t('CAPTAIN.ASSISTANTS.ENVIOS.INBOX_LABEL')"
+          @tab-changed="selectTab"
+        />
+      </div>
       <ComboBox
         v-else-if="orderedInboxes.length > 5"
         v-model="selectedInboxId"
@@ -781,440 +849,171 @@ onMounted(async () => {
           }}
         </p>
 
-        <section class="flex flex-col gap-2">
-          <h3 class="m-0 text-sm font-medium text-n-slate-12">
-            {{ t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.TITLE') }}
-          </h3>
-          <SettingsToggleSection
-            v-if="assistantAppointmentsEnabled"
-            :model-value="selectedInbox.appointments_enabled !== false"
-            :header="t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.TOGGLE')"
-            @update:model-value="updateAppointment"
-          />
-          <SettingsToggleSection
-            v-else
-            :model-value="false"
-            :header="t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.TOGGLE')"
-            hide-toggle
-          >
-            <template #hiddenToggle>
-              <span
-                role="switch"
-                aria-checked="false"
-                aria-disabled="true"
-                class="pointer-events-none rounded-full bg-n-slate-6 px-2 py-1 text-xs text-n-slate-11 opacity-60"
-              >
-                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.DISABLED') }}
-              </span>
-            </template>
-          </SettingsToggleSection>
-          <template v-if="selectedInbox.appointments_enabled !== false">
-            <p
-              v-if="!assistantAppointmentsEnabled"
-              class="mb-0 text-sm text-n-slate-11"
-            >
-              {{ t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.ASSISTANT_OFF') }}
-              <RouterLink
-                :to="
-                  openSettings('captain_assistants_settings_appointments_index')
-                "
-                class="text-n-brand underline"
-              >
-                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.LINK') }}
-              </RouterLink>
-            </p>
-            <p v-else class="mb-0 text-sm text-n-slate-11">
-              <template v-if="calendarConnected">
-                {{
-                  t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.CALENDAR', {
-                    name: calendarName,
-                  })
-                }}
-                <span
-                  aria-hidden="true"
-                  class="mx-1 inline-block size-1 rounded-full bg-n-slate-7"
-                />
-                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.CONNECTED') }}
-              </template>
-              <template v-else>
-                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.NO_CALENDAR') }}
-                <RouterLink
-                  :to="accountScopedRoute('settings_integrations_calendars')"
-                  class="text-n-brand underline"
-                >
-                  {{ t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.CONNECT') }}
-                </RouterLink>
-              </template>
-            </p>
-            <p
-              v-if="assistantAppointmentsEnabled"
-              class="mb-0 text-sm text-n-slate-11"
-            >
-              {{ t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.INSIDE') }}
-              <template
-                v-if="selectedInbox.channel_type === 'Channel::Whatsapp'"
-              >
-                <span
-                  aria-hidden="true"
-                  class="mx-1 inline-block size-1 rounded-full bg-n-slate-7"
-                />
-                {{
-                  t(
-                    `CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.${reminderStatus(selectedInbox)}`,
-                    {
-                      name:
-                        props.assistant?.config?.appointments?.template_reminder
-                          ?.name || '',
-                    }
-                  )
-                }}
-              </template>
-              <template v-else>
-                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.OUTSIDE_NONE') }}
-              </template>
-            </p>
-          </template>
-          <p v-else class="mb-0 text-sm text-n-slate-11">
-            {{ t('CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.OFF') }}
-          </p>
-        </section>
-
         <template v-if="selectedInbox.channel_type === 'Channel::Whatsapp'">
           <SettingsToggleSection
             :model-value="currentEntry.enabled === true"
             :header="t('CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.TOGGLE')"
-            :description="t('CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.HELP')"
-            @update:model-value="currentEntry.enabled = $event"
-          />
-          <button
-            v-if="currentEntry.enabled"
-            type="button"
-            class="flex w-full flex-wrap items-center justify-between gap-2 rounded-xl border border-n-weak px-3 py-3 text-start text-sm text-n-slate-12"
-            :aria-expanded="expanded[selectedInboxId] === true"
-            @click="expanded[selectedInboxId] = !expanded[selectedInboxId]"
-          >
-            <span>{{
-              t('CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.COUNTS', messagingCounts)
-            }}</span>
-            <span class="text-n-brand underline">{{
+            :description="
               t(
-                expanded[selectedInboxId]
-                  ? 'CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.HIDE'
-                  : 'CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.SHOW'
+                currentEntry.enabled
+                  ? 'CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.HELP'
+                  : 'CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.OFF'
               )
-            }}</span>
-          </button>
-          <template v-if="currentEntry.enabled && expanded[selectedInboxId]">
-            <section class="flex flex-col gap-2">
+            "
+            hide-toggle
+            @update:model-value="currentEntry.enabled = $event"
+          >
+            <template #hiddenToggle>
+              <Switch
+                v-model="currentEntry.enabled"
+                :disabled="!isAdmin || saving"
+                :aria-label="t('CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.TOGGLE')"
+                class="disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </template>
+          </SettingsToggleSection>
+          <template v-if="currentEntry.enabled">
+            <TabBar
+              :tabs="resourceTabs"
+              :initial-active-tab="activeResourceIndex"
+              :tab-list-label="t('CAPTAIN.ASSISTANTS.ENVIOS.RESOURCE_TABS')"
+              data-testid="resource-tabs"
+              @tab-changed="activeResourceIndex = $event.index"
+            />
+            <section
+              v-for="section in visibleResourceSections"
+              :key="section.kind"
+              class="flex flex-col gap-2"
+            >
               <h3
-                class="m-0 flex items-center justify-between text-sm font-medium text-n-slate-12"
+                class="m-0 flex items-center justify-end text-heading-3 text-n-slate-12"
               >
-                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.FLOWS.TITLE') }}
                 <RouterLink
-                  :to="{ name: 'settings_flow_new' }"
-                  class="text-n-brand underline"
+                  :to="section.createRoute"
+                  class="text-sm text-n-brand underline"
+                  :aria-disabled="!isAdmin"
+                  @click="!isAdmin && $event.preventDefault()"
                 >
-                  {{ t('CAPTAIN.ASSISTANTS.ENVIOS.FLOWS.CREATE') }}
+                  {{ t(`CAPTAIN.ASSISTANTS.ENVIOS.${section.title}.CREATE`) }}
                 </RouterLink>
               </h3>
-              <ul class="m-0 flex list-none flex-col gap-2 p-0">
-                <li
-                  v-for="row in flowRows"
-                  :key="row.key"
-                  class="flex flex-wrap items-center gap-2 rounded-lg bg-n-solid-2 p-3"
-                  data-testid="messaging-flow-row"
-                >
-                  <div class="min-w-0 grow">
-                    <strong class="text-sm text-n-slate-12">{{
-                      row.flow?.name || row.resource.id
-                    }}</strong>
-                    <p
-                      v-if="row.note || flowFields(row)"
-                      class="mb-0 text-xs text-n-slate-11"
-                    >
-                      {{ row.note || flowFields(row) }}
-                    </p>
-                  </div>
-                  <span
-                    class="rounded-md px-2 py-0.5 text-xs"
-                    :class="stateClass(row.state)"
-                    >{{ stateLabel(row.state) }}</span
-                  >
-                  <Button
-                    slate
-                    outline
-                    sm
-                    icon="i-lucide-eye"
-                    :aria-label="
-                      t('CAPTAIN.ASSISTANTS.ENVIOS.PREVIEW_FLOW', {
-                        name: row.flow?.name || row.resource.id,
-                      })
-                    "
-                    @click="openPreview(row)"
-                  />
-                  <Button
-                    v-if="row.state === 'not_published_here'"
-                    slate
-                    outline
-                    sm
-                    :label="t('CAPTAIN.ASSISTANTS.ENVIOS.FLOWS.PUBLISH')"
-                    :to="flowEditRoute(row)"
-                  />
-                  <button
-                    v-else-if="isResourceToggle(row)"
-                    type="button"
-                    role="switch"
-                    class="rounded-full px-2 py-1 text-xs"
-                    :aria-checked="row.state === 'available'"
-                    @click="setResourceExcluded(row)"
-                  >
-                    {{
-                      t('CAPTAIN.ASSISTANTS.ENVIOS.ROW_TOGGLE', {
-                        name: row.flow?.name || row.resource.id,
-                      })
-                    }}
-                  </button>
-                  <Button
-                    v-else-if="
-                      ['new', 'changed', 'needs_review'].includes(row.state)
-                    "
-                    slate
-                    outline
-                    sm
-                    :label="t('CAPTAIN.ASSISTANTS.ENVIOS.ROW_ALLOW')"
-                    @click="reviewResource(row)"
-                  />
-                </li>
-              </ul>
-            </section>
-            <section class="flex flex-col gap-2">
-              <h3
-                class="m-0 flex items-center justify-between text-sm font-medium text-n-slate-12"
+              <p
+                v-if="section.kind === 'template' && !paidTemplates"
+                class="mb-0 rounded-lg bg-n-amber-3 px-3 py-2 text-body-main text-n-amber-11"
+                data-testid="templates-paid-off"
               >
-                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.TEMPLATES.TITLE') }}
-                <RouterLink
-                  :to="accountScopedRoute('settings_templates')"
-                  class="text-n-brand underline"
-                >
-                  {{ t('CAPTAIN.ASSISTANTS.ENVIOS.TEMPLATES.CREATE') }}
-                </RouterLink>
-              </h3>
-              <ul class="m-0 flex list-none flex-col gap-2 p-0">
-                <li
-                  v-for="row in templateRows"
-                  :key="row.key"
-                  class="flex flex-wrap items-center gap-2 rounded-lg bg-n-solid-2 p-3"
-                  data-testid="messaging-template-row"
-                >
-                  <div class="min-w-0 grow">
-                    <strong class="text-sm text-n-slate-12"
-                      >{{ row.resource.name }} ({{
-                        row.resource.language
-                      }})</strong
-                    >
-                    <span
-                      class="ms-2 rounded-md bg-n-alpha-2 px-2 py-0.5 text-xs text-n-slate-11"
-                      >{{
-                        t(
-                          `CAPTAIN.ASSISTANTS.ENVIOS.CATEGORY.${row.resource.category?.toUpperCase() || 'UTILITY'}`
-                        )
-                      }}</span
-                    >
-                    <p
-                      v-if="rowReason(row)"
-                      class="mb-0 text-xs text-n-slate-11"
-                    >
-                      {{ rowReason(row) }}
-                    </p>
-                    <p v-else class="mb-0 text-xs text-n-slate-11">
-                      {{
-                        t('CAPTAIN.ASSISTANTS.ENVIOS.TEMPLATES.USED_FOR', {
-                          text: templatePurpose(row),
-                        })
-                      }}
-                      <button
-                        type="button"
-                        class="text-n-brand underline"
-                        @click="openNote(row)"
-                      >
-                        {{
-                          t(
-                            row.note
-                              ? 'CAPTAIN.ASSISTANTS.ENVIOS.TEMPLATES.EDIT_NOTE'
-                              : 'CAPTAIN.ASSISTANTS.ENVIOS.TEMPLATES.ADD_NOTE'
-                          )
-                        }}
-                      </button>
-                    </p>
-                  </div>
-                  <span
-                    class="rounded-md px-2 py-0.5 text-xs"
-                    :class="stateClass(row.state)"
-                    >{{ stateLabel(row.state) }}</span
-                  >
-                  <Button
-                    slate
-                    outline
-                    sm
-                    icon="i-lucide-eye"
-                    :aria-label="
-                      t('CAPTAIN.ASSISTANTS.ENVIOS.PREVIEW_TEMPLATE', {
-                        name: row.resource.name,
-                      })
-                    "
-                    @click="openPreview(row)"
-                  />
-                  <Button
-                    v-if="row.state === 'needs_data'"
-                    slate
-                    outline
-                    sm
-                    :label="t('CAPTAIN.ASSISTANTS.ENVIOS.TEMPLATES.ASSIGN')"
-                    @click="openAssignment(row)"
-                  />
-                  <Button
-                    v-if="
-                      ['new', 'changed', 'needs_review'].includes(row.state)
-                    "
-                    slate
-                    outline
-                    sm
-                    :label="t('CAPTAIN.ASSISTANTS.ENVIOS.ROW_ALLOW')"
-                    @click="reviewResource(row)"
-                  />
-                  <button
-                    v-if="isResourceToggle(row)"
-                    type="button"
-                    role="switch"
-                    class="rounded-full px-2 py-1 text-xs"
-                    :aria-checked="row.state === 'available'"
-                    @click="setResourceExcluded(row)"
-                  >
-                    {{
-                      t('CAPTAIN.ASSISTANTS.ENVIOS.ROW_TOGGLE', {
-                        name: row.resource.name,
-                      })
-                    }}
-                  </button>
-                </li>
-              </ul>
-              <p class="mb-0 text-xs text-n-slate-11">
-                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.TEMPLATES.FOOTER') }}
+                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.PAID.TEMPLATES_OFF') }}
               </p>
+              <p
+                v-if="!section.groups.some(group => group.rows.length)"
+                class="mb-0 rounded-lg border border-dashed border-n-weak p-3 text-center text-body-main text-n-slate-11"
+              >
+                {{ t(`CAPTAIN.ASSISTANTS.ENVIOS.EMPTY.${section.title}`) }}
+              </p>
+              <template v-for="group in section.groups" :key="group.id">
+                <template v-if="group.rows.length">
+                  <div
+                    class="mt-2 flex items-center justify-between text-label-small text-n-slate-11"
+                  >
+                    <span
+                      >{{ t(`CAPTAIN.ASSISTANTS.ENVIOS.GROUPS.${group.id}`) }} ·
+                      {{ group.rows.length }}</span
+                    >
+                    <Button
+                      v-if="group.id === 'BLOCKED'"
+                      intent="tertiary"
+                      sm
+                      :aria-expanded="expanded[group.key] === true"
+                      :label="
+                        t(
+                          expanded[group.key]
+                            ? 'CAPTAIN.ASSISTANTS.ENVIOS.GROUPS.HIDE'
+                            : 'CAPTAIN.ASSISTANTS.ENVIOS.GROUPS.SHOW'
+                        )
+                      "
+                      @click="expanded[group.key] = !expanded[group.key]"
+                    />
+                  </div>
+                  <ul
+                    v-if="group.id !== 'BLOCKED' || expanded[group.key]"
+                    class="m-0 list-none divide-y divide-n-weak overflow-hidden rounded-xl border border-n-weak p-0"
+                    :data-testid="`${section.kind}-${group.id}`"
+                  >
+                    <CaptainResourceRow
+                      v-for="row in group.rows"
+                      :key="row.key"
+                      :data-testid="`messaging-${row.kind}-row`"
+                      :name="
+                        row.kind === 'flow'
+                          ? row.flow?.name || String(row.resource.id)
+                          : row.resource.name
+                      "
+                      :language="row.resource.language || ''"
+                      :category="
+                        row.kind === 'template'
+                          ? t(
+                              `CAPTAIN.ASSISTANTS.ENVIOS.CHIPS.${row.resource.category?.toUpperCase() || 'UTILITY'}`
+                            )
+                          : ''
+                      "
+                      :state="row.state"
+                      :state-label="stateLabel(row)"
+                      :model-value="row.state === 'available'"
+                      :used-by="rowUsages(row)"
+                      :disabled="
+                        (row.kind === 'template' &&
+                          (!paidTemplates ||
+                            serverInbox?.channel?.quality_rating === 'RED')) ||
+                        !isAdmin ||
+                        saving
+                      "
+                      :dimmed="row.kind === 'template' && !paidTemplates"
+                      :blocked="group.id === 'BLOCKED'"
+                      :disabled-reason="
+                        !isAdmin
+                          ? t('CAPTAIN.ASSISTANTS.ENVIOS.READ_ONLY')
+                          : row.kind === 'template' && !paidTemplates
+                            ? t('CAPTAIN.ASSISTANTS.ENVIOS.PAID.TEMPLATES_OFF')
+                            : stateLabel(row)
+                      "
+                      @update:model-value="toggleResource(row)"
+                      @publish="$router.push(flowEditRoute(row))"
+                      @preview="openPreview(row)"
+                      @assign="openAssignment(row)"
+                    />
+                  </ul>
+                </template>
+              </template>
             </section>
           </template>
-          <section class="flex flex-col gap-2">
-            <h3 class="m-0 text-sm font-medium text-n-slate-12">
-              {{ t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.TITLE') }}
-            </h3>
-            <div
-              class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-n-weak p-3 text-sm text-n-slate-12"
-            >
-              <span>
-                {{
-                  followupName
-                    ? t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.REENGAGEMENT', {
-                        name: followupName,
-                      })
-                    : t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.NO_TEMPLATE')
-                }}
-                <template v-if="followupName">
-                  <span
-                    aria-hidden="true"
-                    class="mx-1 inline-block size-1 rounded-full bg-n-slate-7"
-                  />
-                  {{
-                    followupExists(selectedInbox)
-                      ? t(
-                          'CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.APPROVED_HERE',
-                          { name: followupName }
-                        )
-                      : t(
-                          'CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.MISSING_HERE',
-                          { name: followupName }
-                        )
-                  }}
-                </template>
-                <span
-                  aria-hidden="true"
-                  class="mx-1 inline-block size-1 rounded-full bg-n-slate-7"
-                />
-                {{
-                  followupEnabled
-                    ? t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.NUDGE_ON')
-                    : t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.NUDGE_OFF')
-                }}
-              </span>
-              <RouterLink
-                :to="openSettings('captain_assistants_settings_followup_index')"
-                class="text-n-brand underline"
-              >
-                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.LINK') }}
-              </RouterLink>
-            </div>
-          </section>
-        </template>
-        <template v-else>
-          <section class="flex flex-col gap-2">
-            <h3 class="m-0 text-sm font-medium text-n-slate-12">
-              {{ t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.TITLE') }}
-            </h3>
-            <div
-              class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-n-weak p-3 text-sm text-n-slate-12"
-            >
-              <span v-if="selectedInbox.channel_type === 'Channel::Email'">
-                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.NUDGE_EMAIL') }}
-              </span>
-              <span v-else-if="followupEnabled">
-                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.NUDGE_ON') }}
-              </span>
-              <span v-else>
-                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.NUDGE_OFF') }}
-              </span>
-              <RouterLink
-                :to="openSettings('captain_assistants_settings_followup_index')"
-                class="text-n-brand underline"
-              >
-                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.LINK') }}
-              </RouterLink>
-            </div>
-          </section>
-          <p class="mb-0 text-sm text-n-slate-11">
-            {{ t('CAPTAIN.ASSISTANTS.ENVIOS.ONLY_WHATSAPP') }}
-          </p>
         </template>
       </article>
     </template>
 
-    <Button
-      data-testid="messaging-save"
-      :disabled="!capValid"
-      :label="t('CAPTAIN.ASSISTANTS.FORM.UPDATE')"
-      @click="save"
-    />
-
-    <Dialog
-      ref="noteDialog"
-      :title="
-        t('CAPTAIN.ASSISTANTS.ENVIOS.TEMPLATES.NOTE_TITLE', {
-          name: selectedRow?.resource?.name || '',
-        })
-      "
-      :confirm-button-label="t('CAPTAIN.ASSISTANTS.ENVIOS.TEMPLATES.SAVE')"
-      @confirm="saveNote"
+    <div
+      v-if="!inboxesLoading && !loadingFailed && whatsappInboxes.length"
+      class="flex items-center gap-3"
     >
-      <TextArea
-        v-model="noteDraft"
-        maxlength="300"
-        :label="t('CAPTAIN.ASSISTANTS.ENVIOS.TEMPLATES.NOTE_LABEL')"
-        :help="t('CAPTAIN.ASSISTANTS.ENVIOS.TEMPLATES.NOTE_HELP')"
+      <Button
+        intent="primary"
+        data-testid="messaging-save"
+        :disabled="!capValid || !isAdmin || saving"
+        :label="t('CAPTAIN.ASSISTANTS.FORM.UPDATE')"
+        @click="save"
       />
-    </Dialog>
+      <span
+        v-if="dirty"
+        class="text-body-main text-n-amber-11"
+        data-testid="unsaved"
+        >{{ t('CAPTAIN.ASSISTANTS.ENVIOS.UNSAVED') }}</span
+      >
+    </div>
+
     <Dialog
       ref="assignDialog"
       :title="
         t('CAPTAIN.ASSISTANTS.ENVIOS.TEMPLATES.ASSIGN_TITLE', {
-          name: selectedRow?.resource?.name || '',
+          name: selectedRow?.flow?.name || selectedRow?.resource?.name || '',
         })
       "
       :confirm-button-label="t('CAPTAIN.ASSISTANTS.ENVIOS.TEMPLATES.SAVE')"

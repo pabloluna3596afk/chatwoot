@@ -19,7 +19,7 @@ class Captain::Messaging::MigrationReportText
      "Hoy puede enviar: #{list(summary.fetch('before').values.flatten.map { |item| item.fetch('name') })}",
      "Con el modo automático podría enviar: #{list(states.fetch('available', []))}",
      "Ganaría: #{list(differences.fetch('gained'))}",
-     "Perdería: #{list(differences.fetch('lost'))}",
+     "Perdería / quedaría apagada: #{list(differences.fetch('lost'))}",
      "Necesita revisión: #{list(REVIEW_STATES.flat_map { |state| states.fetch(state, []) }.uniq)}"].join("\n")
   end
 

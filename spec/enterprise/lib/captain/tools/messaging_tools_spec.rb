@@ -14,7 +14,14 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
   let(:inbox) { channel.inbox }
   let(:contact) { create(:contact, account: account, name: 'Ana Pérez') }
   let(:conversation) { create(:conversation, account: account, inbox: inbox, contact: contact, status: :pending) }
-  let(:flow) { create(:whatsapp_flow, account: account, name: 'Datos de reserva') }
+  let(:flow) do
+    create(:whatsapp_flow, account: account, name: 'Datos de reserva', definition: {
+             'schema_version' => 1, 'screens' => [{ 'title' => 'Tus datos', 'button' => 'Enviar', 'blocks' => [
+               { 'type' => 'heading', 'text' => 'Reserva una consulta' },
+               { 'type' => 'short_text', 'key' => 'nombre', 'label' => 'Nombre', 'required' => true }
+             ] }]
+           })
+  end
   let(:params) { { 'body' => { 'nombre' => '{{ contact.name }}', 'asistente' => '{{ assistant.name }}' } } }
   let(:messaging) do
     { 'inboxes' => [{ 'inbox_id' => inbox.id, 'enabled' => true,
@@ -50,7 +57,9 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
 
       expect(data['window_open']).to be(true)
       expect(data['flows']).to eq([{ 'flow_id' => flow.id, 'name' => 'Datos de reserva', 'purpose' => 'Pedir datos',
-                                     'fields' => [{ 'label' => 'Nombre', 'type' => 'short_text' }], 'can_send' => true }])
+                                     'note' => 'Pedir datos', 'screens' => ['Tus datos'], 'intro' => 'Reserva una consulta',
+                                     'fields' => [{ 'label' => 'Nombre', 'type' => 'short_text', 'required' => true }],
+                                     'can_send' => true }])
     end
 
     it 'omits unpublished Flows from the eligible catalog' do
@@ -71,6 +80,142 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
 
       assistant.captain_inboxes.destroy_all
       expect(described_class.new(assistant).perform(tool_context)).to include('no habilitó')
+    end
+  end
+
+  %w[list auto].each do |mode|
+    context "when catalogs use #{mode} mode" do
+      before do
+        config = assistant.config.deep_dup
+        entry = config.fetch('messaging').fetch('inboxes').first
+        if mode == 'auto'
+          Captain::Messaging::LegacyEntryConverter.new(assistant, entry).perform
+          config['messaging'].merge!('version' => 2, 'revision' => 1)
+        end
+        assistant.update!(config: config)
+      end
+
+      it 'includes template content, variables and the existing owner note' do
+        data = JSON.parse(Captain::Tools::TemplateCatalogTool.new(assistant).perform(tool_context))
+        expect(data['templates'].first).to include(
+          'text' => 'Hola [nombre del contacto], soy [nombre del asistente].', 'purpose' => 'Confirmar', 'can_send' => true,
+          'summary' => 'Confirmar',
+          'variables' => [{ 'slot' => 'body.nombre', 'filled_with' => 'nombre del contacto' },
+                          { 'slot' => 'body.asistente', 'filled_with' => 'nombre del asistente' }]
+        )
+      end
+
+      it 'provides header, footer, buttons and numbered variables without requiring a note' do
+        components = [
+          { 'type' => 'HEADER', 'format' => 'TEXT', 'text' => 'Reserva {{1}}' },
+          { 'type' => 'BODY', 'text' => 'Tu cita' }, { 'type' => 'FOOTER', 'text' => 'Gracias' },
+          { 'type' => 'BUTTONS', 'buttons' => [{ 'type' => 'QUICK_REPLY', 'text' => 'Confirmar' }] }
+        ]
+        channel.update!(message_templates: [templates.first.merge('components' => components)])
+        config = assistant.config.deep_dup
+        entry = config.fetch('messaging').fetch('inboxes').first
+        if mode == 'auto'
+          entry['notes'] = {}
+          key = "#{channel.provider_config['business_account_id']}:cita_confirmada|es"
+          entry['params'] = { key => { 'header' => { '1' => '{{ contact.name }}' } } }
+          entry['reviewed'] = Captain::Messaging::Review.new(assistant, inbox.reload).activation_snapshot
+        else
+          entry['templates'].first.delete('purpose')
+          entry['templates'].first['processed_params'] = { 'header' => { '1' => '{{ contact.name }}' } }
+        end
+        assistant.update!(config: config)
+
+        data = JSON.parse(Captain::Tools::TemplateCatalogTool.new(assistant).perform(tool_context))['templates'].first
+        expect(data).to include('header' => 'Reserva [nombre del contacto]', 'text' => 'Tu cita', 'footer' => 'Gracias',
+                                'buttons' => ['Confirmar'], 'variables' => [{ 'slot' => 'header.1', 'filled_with' => 'nombre del contacto' }],
+                                'category' => 'UTILITY', 'language' => 'es', 'summary' => 'Tu cita', 'truncated' => false, 'can_send' => true)
+        expect(data['purpose']).to be_nil
+      end
+
+      it 'orders utility before marketing, collapses languages, marks similar versions and reports the limit' do
+        entries = Array.new(27) do |index|
+          templates.first.merge('name' => "template_#{index.to_s.rjust(2, '0')}", 'category' => index.zero? ? 'MARKETING' : 'UTILITY',
+                                'components' => [{ 'type' => 'BODY', 'text' => 'a' * 1200 }])
+        end
+        entries += [entries[1].merge('language' => 'es_EC'), entries[2].merge('name' => 'template_02_v2')]
+        channel.update!(message_templates: entries)
+        config = assistant.config.deep_dup
+        entry = config.fetch('messaging').fetch('inboxes').first
+        if mode == 'auto'
+          entry['reviewed'] = Captain::Messaging::Review.new(assistant, inbox.reload).activation_snapshot
+          key = "#{channel.provider_config['business_account_id']}:template_00|es"
+          entry['included_marketing'] = [key]
+          entry['reviewed']['templates'][key] = Captain::Messaging::Review.new(assistant, inbox).fingerprint(channel.reload.message_templates.first)
+        else
+          entry['templates'] = entries.map { |item| item.slice('name', 'language').merge('processed_params' => {}) }
+        end
+        assistant.update!(config: config)
+
+        data = JSON.parse(Captain::Tools::TemplateCatalogTool.new(assistant).perform(tool_context))
+        expect(data['more']).to eq(3)
+        items = data['templates']
+        expect(items.size).to eq(25)
+        expect(items).to all(include('truncated' => true, 'can_send' => true, 'category' => 'UTILITY'))
+        expect(items.map { |item| item['text'].length }).to all(eq(600))
+        expect(items.map { |item| item['summary'].length }).to all(be <= 120)
+        expect(items.first).to include('name' => 'template_01', 'language' => 'es', 'other_languages' => ['es_EC'])
+        expect(items.find { |item| item['name'] == 'template_02' }['similar_to']).to eq(['template_02_v2'])
+      end
+
+      it 'prefers the contact language over the account language' do
+        channel.update!(message_templates: [templates.first, templates.first.merge('language' => 'es_EC')])
+        config = assistant.config.deep_dup
+        entry = config.fetch('messaging').fetch('inboxes').first
+        if mode == 'auto'
+          entry['reviewed'] = Captain::Messaging::Review.new(assistant, inbox.reload).activation_snapshot
+        else
+          entry['templates'] << entry['templates'].first.merge('language' => 'es_EC')
+        end
+        assistant.update!(config: config)
+        contact.update!(additional_attributes: { 'locale' => 'es_EC' })
+
+        item = JSON.parse(Captain::Tools::TemplateCatalogTool.new(assistant).perform(tool_context))['templates'].sole
+        expect(item).to include('language' => 'es_EC', 'other_languages' => ['es'])
+      end
+
+      it 'labels missing positional data instead of exposing raw variable syntax' do
+        channel.update!(message_templates: [templates.first.merge('components' => [{ 'type' => 'BODY', 'text' => 'Hola {{1}}.' }])])
+        config = assistant.config.deep_dup
+        entry = config.fetch('messaging').fetch('inboxes').first
+        if mode == 'auto'
+          entry['params'] = {}
+          entry['reviewed'] = Captain::Messaging::Review.new(assistant, inbox.reload).activation_snapshot
+        else
+          entry['templates'].first['processed_params'] = {}
+          entry['templates'].first.delete('purpose')
+        end
+        assistant.config = config
+
+        item = JSON.parse(Captain::Tools::TemplateCatalogTool.new(assistant).perform(tool_context))['templates'].first
+        expect(item).to include('text' => 'Hola [dato 1].', 'can_send' => false)
+        expect(item['reason']).to be_present
+      end
+
+      it 'includes Flow content and fields with or without an owner note' do
+        tool = Captain::Tools::FlowCatalogTool.new(assistant)
+        item = JSON.parse(tool.perform(tool_context))['flows'].first
+        expect(item).to include('purpose' => 'Pedir datos', 'name' => 'Datos de reserva')
+
+        config = assistant.config.deep_dup
+        entry = config.fetch('messaging').fetch('inboxes').first
+        mode == 'auto' ? entry['notes'] = {} : entry['flows'].first.delete('purpose')
+        assistant.update!(config: config)
+        item = JSON.parse(tool.perform(tool_context))['flows'].first
+        expect(item).to include('screens' => ['Tus datos'], 'intro' => 'Reserva una consulta',
+                                'fields' => [{ 'label' => 'Nombre', 'type' => 'short_text', 'required' => true }], 'can_send' => true)
+        expect(item['purpose']).to be_nil
+        definition = flow.definition.deep_dup
+        definition['screens'].first['blocks'].first['text'] = 'a' * 800
+        flow.update!(definition: definition)
+        flow.whatsapp_flow_publications.first.update!(published_at: flow.updated_at)
+        item = JSON.parse(tool.perform(tool_context))['flows'].first
+        expect(item['intro'].length).to eq(300)
+      end
     end
   end
 
@@ -119,6 +264,20 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
   end
 
   describe Captain::Tools::TemplateCatalogTool do
+    it 'G2: resolves list parameters exactly as SendService does' do
+      channel.update!(message_templates: templates.map { |template| template.except('processed_params') })
+      entry = JSON.parse(described_class.new(assistant).perform(tool_context))['templates'].first
+
+      expect(entry).to include('can_send' => true)
+      request = Captain::Messaging::Request.new(
+        kind: 'template', resource: { name: 'cita_confirmada', language: 'es' }, responding_to_message_id: customer_message.id
+      )
+      result = Captain::Messaging::SendService.new(conversation: conversation, assistant: assistant, request: request).perform
+
+      expect(result.status).to eq(:sent)
+      expect(result.message.content).to eq('Hola Ana Pérez, soy Aurora.')
+    end
+
     it 'lists the allowed templates and whether they can be sent' do
       entry = JSON.parse(described_class.new(assistant).perform(tool_context))['templates'].first
 
