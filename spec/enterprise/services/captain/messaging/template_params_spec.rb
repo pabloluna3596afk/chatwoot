@@ -60,7 +60,8 @@ RSpec.describe Captain::Messaging::TemplateParams do
   end
 
   it 'reports whether each resolved value comes from an override, inbox binding, or name alias' do
-    configure_params('123:order_ready|es' => { 'body' => { 'nombre' => '{{ contact.first_name }}' } })
+    key = "#{channel.provider_config.fetch('business_account_id')}:order_ready|es"
+    configure_params(key => { 'body' => { 'nombre' => '{{ contact.first_name }}' } })
 
     _params, _missing, sources = described_class.new(assistant, inbox, templates.first).resolve
 
@@ -68,7 +69,10 @@ RSpec.describe Captain::Messaging::TemplateParams do
     configure_params({})
     _params, _missing, sources = described_class.new(assistant, inbox, templates.first).resolve
     expect(sources).to eq('body' => { 'nombre' => 'inbox' }, 'header' => {})
-    _params, _missing, sources = described_class.new(assistant, inbox, templates.last).resolve
-    expect(sources).to eq('body' => { 'fecha' => 'name' }, 'header' => {})
+    name_alias_template = templates.last.merge(
+      'components' => [{ 'type' => 'BODY', 'text' => 'Hello {{correo}}' }]
+    )
+    _params, _missing, sources = described_class.new(assistant, inbox, name_alias_template).resolve
+    expect(sources).to eq('body' => { 'correo' => 'name' }, 'header' => {})
   end
 end
