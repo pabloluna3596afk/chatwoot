@@ -116,7 +116,7 @@ describe('AssistantAppointmentsForm', () => {
       .mockResolvedValue({ data: { payload: CALENDARS } });
   });
 
-  it('moves the inbox appointment permission here and saves through the existing API', async () => {
+  it('queues per-inbox permissions and submits them with Update', async () => {
     inboxes.value = [
       {
         id: 10,
@@ -126,17 +126,24 @@ describe('AssistantAppointmentsForm', () => {
       },
     ];
     const wrapper = await mountForm({
-      config: { appointments: { enabled: true } },
+      config: {
+        appointments: {
+          enabled: true,
+          calendar_connection_id: 1,
+          calendar_id: 'calendar-1',
+        },
+      },
     });
     const section = wrapper.get('[data-testid="appointments-inboxes"]');
     expect(section.text()).toContain('INBOXES.TITLE');
     await section.get('button[role="switch"]').trigger('click');
     await flushPromises();
-    expect(CaptainInboxesAPI.updateAppointments).toHaveBeenCalledWith({
-      assistantId: 2,
-      inboxId: 10,
-      appointmentsEnabled: false,
-    });
+    expect(CaptainInboxesAPI.updateAppointments).not.toHaveBeenCalled();
+    expect(inboxes.value[0].appointments_enabled).toBe(true);
+    await wrapper.get('[data-testid="appointments-save"]').trigger('click');
+    expect(wrapper.emitted('submit')[0][0].inboxChanges).toEqual([
+      { inboxId: 10, appointmentsEnabled: false },
+    ]);
     expect(
       section.get('button[role="switch"]').attributes('aria-checked')
     ).toBe('false');
@@ -241,6 +248,8 @@ describe('AssistantAppointmentsForm', () => {
     await wrapper.get('[data-testid="appointments-save"]').trigger('click');
 
     expect(wrapper.emitted('submit')[0][0]).toEqual({
+      inboxChanges: [],
+      onSaved: expect.any(Function),
       config: {
         response_window: 'always',
         product_name: 'Acme',

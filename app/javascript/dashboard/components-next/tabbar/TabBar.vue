@@ -119,7 +119,12 @@ const showDivider = index => {
         @click="selectTab(index)"
         @keydown="onKeydown($event, index)"
       >
-        {{ tab.label }} {{ tab.count ? `(${tab.count})` : '' }}
+        {{ tab.label }} {{ tab.count || tab.showZero ? `(${tab.count})` : '' }}
+        <span
+          v-if="tab.attention"
+          class="ms-1 inline-block size-1.5 rounded-full bg-n-amber-9"
+          :aria-label="tab.attentionLabel"
+        />
       </button>
       <div
         v-if="index < tabs.length - 1"

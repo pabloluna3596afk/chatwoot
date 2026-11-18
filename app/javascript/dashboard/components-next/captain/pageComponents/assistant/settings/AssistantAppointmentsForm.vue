@@ -7,9 +7,7 @@ import {
   templateFromValue,
   templateToValue,
 } from './useApprovedTemplates';
-import CaptainInboxesAPI from 'dashboard/api/captain/inboxes';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
-import { useAlert } from 'dashboard/composables';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 
@@ -76,22 +74,9 @@ const {
   inboxesLoading,
   inboxesFailed,
 } = useApprovedTemplates(props.assistant?.id);
-const updatingInboxes = reactive({});
-const updateAppointment = async (inboxId, value) => {
-  updatingInboxes[inboxId] = true;
-  try {
-    await CaptainInboxesAPI.updateAppointments({
-      assistantId: props.assistant.id,
-      inboxId,
-      appointmentsEnabled: value,
-    });
-    const linked = linkedInboxRecords.value.find(item => item.id === inboxId);
-    linked.appointments_enabled = value;
-  } catch {
-    useAlert(t('CAPTAIN.ASSISTANTS.EDIT.ERROR_MESSAGE'));
-  } finally {
-    updatingInboxes[inboxId] = false;
-  }
+const appointmentDraft = reactive({});
+const updateAppointment = (inboxId, value) => {
+  appointmentDraft[inboxId] = value;
 };
 const reminderStatus = inbox => {
   const reminder = props.assistant?.config?.appointments?.template_reminder;
@@ -321,6 +306,21 @@ const handleSubmit = () => {
   if (!TEMPLATE_KEYS.every(templateComplete)) return;
 
   emit('submit', {
+    inboxChanges: Object.entries(appointmentDraft).map(
+      ([inboxId, appointmentsEnabled]) => ({
+        inboxId: Number(inboxId),
+        appointmentsEnabled,
+      })
+    ),
+    onSaved: () => {
+      linkedInboxRecords.value.forEach(inbox => {
+        if (Object.hasOwn(appointmentDraft, inbox.id))
+          inbox.appointments_enabled = appointmentDraft[inbox.id];
+      });
+      Object.keys(appointmentDraft).forEach(
+        key => delete appointmentDraft[key]
+      );
+    },
     config: {
       ...props.assistant.config,
       appointments: {
@@ -678,7 +678,11 @@ onMounted(loadConnections);
                 inbox.name
               }}</span>
               <p
-                v-if="state.enabled && inbox.appointments_enabled !== false"
+                v-if="
+                  state.enabled &&
+                  (appointmentDraft[inbox.id] ?? inbox.appointments_enabled) !==
+                    false
+                "
                 class="mb-0 text-label-small text-n-slate-11"
               >
                 {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.INBOXES.INSIDE') }}
@@ -700,11 +704,14 @@ onMounted(loadConnections);
             </div>
             <Switch
               :model-value="
-                state.enabled && inbox.appointments_enabled !== false
+                state.enabled &&
+                (appointmentDraft[inbox.id] ?? inbox.appointments_enabled) !==
+                  false
               "
-              :disabled="!state.enabled || updatingInboxes[inbox.id] === true"
+              :disabled="!state.enabled"
+              class="disabled:cursor-not-allowed disabled:opacity-50"
               :aria-label="
-                t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.INBOXES.TOGGLE', {
+                t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.INBOXES.INBOX_SWITCH', {
                   name: inbox.name,
                 })
               "

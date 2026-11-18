@@ -10,12 +10,14 @@ const props = defineProps({
   category: { type: String, default: '' },
   state: { type: String, required: true },
   stateLabel: { type: String, default: '' },
-  usages: { type: Array, default: () => [] },
+  usedBy: { type: Array, default: () => [] },
   disabled: { type: Boolean, default: false },
   dimmed: { type: Boolean, default: false },
-  publishRoute: { type: Object, default: null },
+  modelValue: { type: Boolean, default: false },
+  disabledReason: { type: String, default: '' },
+  blocked: { type: Boolean, default: false },
 });
-defineEmits(['toggle', 'preview', 'assign']);
+defineEmits(['update:modelValue', 'preview', 'assign', 'publish']);
 const { t } = useI18n();
 const canToggle = computed(() =>
   [
@@ -25,7 +27,6 @@ const canToggle = computed(() =>
     'new',
     'changed',
     'needs_review',
-    'unavailable',
   ].includes(props.state)
 );
 const needsPermission = computed(() =>
@@ -37,34 +38,41 @@ const needsPermission = computed(() =>
 
 <template>
   <li
-    class="flex items-center gap-3 px-3 py-2"
-    :class="{ 'opacity-50': dimmed }"
+    class="flex min-h-[2.875rem] items-center justify-between gap-3 px-3 py-2.5"
+    :class="{ 'opacity-50': dimmed, 'opacity-60': blocked && !dimmed }"
   >
     <div class="min-w-0 grow">
       <div class="flex flex-wrap items-center gap-1.5">
-        <span class="break-all text-heading-3 text-n-slate-12">{{ name }}</span>
-        <span v-if="language" class="text-label-small text-n-slate-10">{{
+        <span class="break-all text-sm font-medium text-n-slate-12">{{
+          name
+        }}</span>
+        <span v-if="language" class="text-xs text-n-slate-10">{{
           language
         }}</span>
         <span
-          v-if="category && state !== 'marketing_off'"
-          class="rounded-md bg-n-alpha-2 px-2 py-0.5 text-label-small text-n-slate-11"
+          v-if="category"
+          class="rounded-md px-2 py-0.5 text-xs"
+          :class="
+            state === 'marketing_off'
+              ? 'bg-n-amber-3 text-n-amber-11'
+              : 'bg-n-alpha-2 text-n-slate-11'
+          "
           >{{ category }}</span
         >
         <span
           v-if="stateLabel"
-          class="rounded-md px-2 py-0.5 text-label-small"
+          class="rounded-md px-2 py-0.5 text-xs"
           :class="
-            needsPermission
+            needsPermission || (disabled && !blocked)
               ? 'bg-n-amber-3 text-n-amber-11'
               : 'bg-n-alpha-2 text-n-slate-11'
           "
           >{{ stateLabel }}</span
         >
         <span
-          v-for="usage in usages"
+          v-for="usage in usedBy"
           :key="usage"
-          class="rounded-md bg-n-blue-3 px-2 py-0.5 text-label-small text-n-blue-11"
+          class="rounded-md bg-n-blue-3 px-2 py-0.5 text-xs text-n-blue-11"
           >{{ usage }}</span
         >
       </div>
@@ -90,24 +98,27 @@ const needsPermission = computed(() =>
         intent="secondary"
         sm
         :disabled="disabled"
+        :title="disabledReason"
         :label="t('CAPTAIN.ASSISTANTS.ENVIOS.TEMPLATES.ASSIGN')"
         @click="$emit('assign')"
       />
       <Button
-        v-else-if="publishRoute"
+        v-else-if="state === 'not_published_here'"
         intent="secondary"
         sm
         :label="t('CAPTAIN.ASSISTANTS.ENVIOS.FLOWS.PUBLISH')"
-        :to="publishRoute"
+        :disabled="disabled"
+        :title="disabledReason"
+        @click="$emit('publish')"
       />
       <Switch
-        v-else-if="canToggle"
-        :model-value="state === 'available'"
-        :disabled="disabled || state === 'unavailable'"
-        :aria-label="
-          t('CAPTAIN.ASSISTANTS.ENVIOS.RESOURCE_PERMISSION', { name })
-        "
-        @update:model-value="$emit('toggle')"
+        v-else-if="canToggle && !blocked"
+        :model-value="modelValue"
+        :disabled="disabled"
+        :title="disabledReason"
+        class="disabled:cursor-not-allowed disabled:opacity-50"
+        :aria-label="t('CAPTAIN.ASSISTANTS.ENVIOS.ROW_SWITCH', { name })"
+        @update:model-value="$emit('update:modelValue', $event)"
       />
     </div>
   </li>

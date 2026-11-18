@@ -1211,7 +1211,6 @@
           "ATTRIBUTES_LINK": "Integraciones → Calendarios.",
           "INBOXES": {
             "TITLE": "Bandejas donde agenda",
-            "TOGGLE": "Captain agenda citas en {name}",
             "OFF": "Citas apagadas en esta bandeja.",
             "ASSISTANT_OFF": "Las citas están apagadas en este asistente.",
             "DISABLED": "Desactivadas",
@@ -1226,7 +1225,8 @@
             "MISSING_HERE": "Fuera de 24 h: plantilla «{name}» · No existe en este número",
             "PICK": "Fuera de 24 h: falta elegir una plantilla en Citas",
             "EMPTY": "Este asistente no tiene bandejas conectadas.",
-            "LOAD_ERROR": "No se pudieron cargar los ajustes de las bandejas. Actualiza la página e inténtalo de nuevo."
+            "LOAD_ERROR": "No se pudieron cargar los ajustes de las bandejas. Actualiza la página e inténtalo de nuevo.",
+            "INBOX_SWITCH": "Agenda citas en {name}"
           }
         },
         "TEMPLATE_PLACEHOLDER": "Selecciona una plantilla aprobada",
@@ -1416,7 +1416,7 @@
           "INBOX": "Bandeja: {name}",
           "TEMPLATE_UNAVAILABLE": "Esta plantilla ya no está aprobada en esta bandeja; no se puede mostrar."
         },
-        "CONFLICT": "Recarga la página: esta configuración cambió.",
+        "CONFLICT": "Otra persona cambió esta configuración. Recarga para ver la versión actual; tus cambios sin guardar se perderán.",
         "CONNECTION": {
           "CONNECTED": "Conectado",
           "NEEDS_REVIEW": "Revisar conexión"
@@ -1426,23 +1426,23 @@
         "TEMPLATES_STALE": "Las plantillas no se actualizan desde {date}.",
         "PAID": {
           "TITLE": "Permitir plantillas con costo",
-          "HELP": "Meta cobra cada plantilla. Si está apagado, Captain no envía plantillas.",
           "SCOPE": "Para todas las bandejas de WhatsApp de este asistente.",
-          "ON": "Encendido. Fuera de las 24 horas, Captain puede enviar plantillas aprobadas, recordatorios de cita y reenganche (Meta las cobra). Dentro de las 24 horas, responde y envía Flows como siempre.",
-          "OFF": "Apagado. Captain no envía ninguna plantilla, ni recordatorios ni reenganche fuera de las 24 horas. Sigue respondiendo y enviando Flows dentro de las 24 horas desde el último mensaje del cliente.",
-          "ROWS_OFF": "No se envían: «Permitir plantillas con costo» está apagado. Tus elecciones se guardan."
+          "ON_LINE": "Encendido. Fuera de las 24 horas, Captain puede enviar plantillas aprobadas, recordatorios de cita y reenganche (Meta las cobra). Dentro de las 24 horas, responde y envía Flows como siempre.",
+          "OFF_LINE": "Apagado. Captain no envía ninguna plantilla, ni recordatorios ni reenganche fuera de las 24 horas. Sigue respondiendo y enviando Flows dentro de las 24 horas desde el último mensaje del cliente.",
+          "TEMPLATES_OFF": "No se envían: «Permitir plantillas con costo» está apagado. Tus elecciones se guardan."
         },
         "CAP": {
           "LABEL": "Tope diario de plantillas",
-          "HELP": "Lo comparten todos los asistentes de la cuenta.",
           "REACHED": "Hoy se alcanzó el tope: {used} de {cap}. Captain responde con mensajes normales hasta mañana.",
           "SAVE_ERROR": "No se pudo guardar el tope diario. Inténtalo de nuevo.",
           "INVALID": "Escribe un número entero entre 0 y 10 000.",
-          "TODAY": "Hoy: {used} de {cap}"
+          "TODAY": "Hoy: {used} de {cap}",
+          "SHARED": "Lo comparten todos los asistentes de la cuenta."
         },
         "MESSAGING": {
           "TOGGLE": "Captain usa los Flows y plantillas de este número",
-          "HELP": "Captain solo envía lo que tiene el interruptor encendido. El marketing y lo nuevo de WhatsApp empiezan apagados."
+          "HELP": "Captain solo envía lo que tiene el interruptor encendido. El marketing y lo nuevo de WhatsApp empiezan apagados.",
+          "OFF": "Apagado: Captain no envía Flows ni plantillas en este número."
         },
         "FLOWS": {
           "TITLE": "Flows",
@@ -1459,25 +1459,8 @@
           "ASSIGN_HELP": "Se guarda en este número: también lo usarán los agentes al enviar la plantilla."
         },
         "STATES": {
-          "AVAILABLE": "Disponible",
-          "EXCLUDED": "Excluida",
-          "MARKETING_OFF": "Marketing",
-          "NEEDS_DATA": "Falta un dato",
           "PENDING": "Pendiente en Meta",
-          "REJECTED": "Rechazada por Meta",
-          "UNSUPPORTED": "No compatible: archivo o botón por cliente",
-          "AUTHENTICATION": "Autenticación: nunca",
-          "NOT_PUBLISHED_HERE": "No publicado aquí",
-          "NEW": "Nueva",
-          "CHANGED": "Cambió",
-          "NEEDS_REVIEW": "Tiene enlace",
-          "DISABLED": "Apagada en esta bandeja",
-          "UNAVAILABLE": "No disponible"
-        },
-        "CATEGORY": {
-          "UTILITY": "Utilidad",
-          "MARKETING": "Marketing",
-          "AUTHENTICATION": "Autenticación"
+          "REJECTED": "Rechazada por Meta"
         },
         "REASONS": {
           "NEEDS_DATA": "Falta asignar {variables}. Asígnalo una vez para que Captain pueda usar esta plantilla.",
@@ -1485,18 +1468,40 @@
           "NEEDS_REVIEW": "Tiene un enlace. Revísala antes de permitirla.",
           "NOT_PUBLISHED_HERE": "Este Flow no está publicado en la cuenta de WhatsApp de esta bandeja."
         },
-        "ONLY_WHATSAPP": "Plantillas y Flows solo existen en WhatsApp.",
         "GROUPS": {
           "READY": "Listas para usar",
           "PERMISSION": "Necesitan tu permiso",
-          "UNUSABLE": "No se pueden usar",
           "SHOW": "Mostrar",
-          "HIDE": "Ocultar"
+          "HIDE": "Ocultar",
+          "BLOCKED": "No se pueden usar"
         },
         "RESOURCE_TABS": "Flows y plantillas",
-        "RESOURCE_PERMISSION": "Permitir {name}",
-        "USED_BY_APPOINTMENTS": "La usa Citas",
-        "USED_BY_FOLLOWUP": "La usa Seguimiento"
+        "CHIPS": {
+          "NEEDS_DATA": "Falta un dato",
+          "UNSUPPORTED": "No compatible: archivo o botón por cliente",
+          "NOT_PUBLISHED": "No publicado aquí",
+          "QUALITY": "Calidad baja",
+          "UTILITY": "Utilidad",
+          "MARKETING": "Marketing",
+          "NEW": "Nueva",
+          "CHANGED": "Cambió",
+          "LINK": "Tiene enlace",
+          "USED_BY_APPOINTMENTS": "La usa Citas",
+          "USED_BY_FOLLOWUP": "La usa Seguimiento"
+        },
+        "EMPTY": {
+          "FLOWS": "Este número no tiene Flows.",
+          "TEMPLATES": "Este número no tiene plantillas."
+        },
+        "UNSAVED": "Cambios sin guardar",
+        "NO_WHATSAPP": "Plantillas y Flows solo existen en WhatsApp. Conecta un número de WhatsApp a este asistente para usarlos.",
+        "RELOAD": "Recargar",
+        "READ_ONLY": "Solo un administrador puede cambiar estos ajustes.",
+        "TABS": {
+          "FLOWS": "Flows",
+          "TEMPLATES": "Plantillas"
+        },
+        "ROW_SWITCH": "Captain puede usar {name}"
       },
       "OPTIONS": {
         "EDIT_ASSISTANT": "Editar asistente",

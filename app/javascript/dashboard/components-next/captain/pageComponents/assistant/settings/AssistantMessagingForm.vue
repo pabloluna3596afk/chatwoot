@@ -5,6 +5,9 @@ import { useRoute } from 'vue-router';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import { useAccount } from 'dashboard/composables/useAccount';
+import { useAdmin } from 'dashboard/composables/useAdmin';
+import AccountAPI from 'dashboard/api/account';
+import Switch from 'dashboard/components-next/switch/Switch.vue';
 import AssistantAPI from 'dashboard/api/captain/assistant';
 import InboxesAPI from 'dashboard/api/inboxes';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
@@ -21,7 +24,11 @@ import CaptainResourceRow from './CaptainResourceRow.vue';
 import { useTemplateVariables } from './useTemplateVariables';
 
 const props = defineProps({ assistant: { type: Object, default: () => ({}) } });
-const emit = defineEmits(['submit']);
+const { isAdmin } = useAdmin();
+const saving = ref(false);
+const conflict = ref(false);
+const pendingAllows = reactive({});
+const baseline = ref('');
 const { t } = useI18n();
 const route = useRoute();
 const store = useStore();
@@ -45,7 +52,6 @@ const selectedInboxId = ref(null);
 const flows = ref([]);
 const messagingRevision = ref(0);
 const resourceGroups = reactive({});
-const reviewing = reactive({});
 const capValue = ref(50);
 const capUsed = ref(0);
 const expanded = reactive({});
@@ -55,7 +61,22 @@ const previewDrawer = ref(null);
 const selectedRow = ref(null);
 const bindingsDraft = reactive({});
 const paidTemplates = ref(false);
+const paidExplanation = computed(() =>
+  t(
+    paidTemplates.value
+      ? 'CAPTAIN.ASSISTANTS.ENVIOS.PAID.ON_LINE'
+      : 'CAPTAIN.ASSISTANTS.ENVIOS.PAID.OFF_LINE'
+  )
+);
 const permissionEntries = reactive({});
+const draftSnapshot = () =>
+  JSON.stringify([
+    paidTemplates.value,
+    Number(capValue.value),
+    permissionEntries,
+    pendingAllows,
+  ]);
+const dirty = computed(() => baseline.value !== draftSnapshot());
 
 // The list endpoint omits the per-inbox state (`envios`): read it from the single-assistant endpoint.
 const serverEnvios = ref(null);
@@ -65,9 +86,11 @@ const envios = computed(
 const loadEnvios = async () => {
   try {
     const { data } = await AssistantAPI.show(route.params.assistantId);
-    serverEnvios.value = data?.envios || null;
-  } catch {
-    serverEnvios.value = null;
+    serverEnvios.value = data.envios;
+    return data;
+  } catch (error) {
+    loadingFailed.value = true;
+    throw error;
   }
 };
 
@@ -77,12 +100,12 @@ const connectedInboxes = computed(() => {
     .map(id => (allInboxes.value || []).find(item => item.id === id))
     .filter(Boolean);
 });
-const orderedInboxes = computed(() => [...connectedInboxes.value]);
 const whatsappInboxes = computed(() =>
-  orderedInboxes.value.filter(
+  connectedInboxes.value.filter(
     inbox => inbox.channel_type === 'Channel::Whatsapp'
   )
 );
+const orderedInboxes = whatsappInboxes;
 const selectedInbox = computed(() =>
   orderedInboxes.value.find(item => item.id === selectedInboxId.value)
 );
@@ -106,7 +129,9 @@ const currentEntry = computed(
 );
 const resources = computed(() => serverInbox.value?.resources || []);
 const localState = (item, kind, key) => {
-  if (!['available', 'excluded'].includes(item.state)) return item.state;
+  if (pendingAllows[`${selectedInboxId.value}:${key}`]) return 'available';
+  if (!['available', 'excluded', 'unavailable'].includes(item.state))
+    return item.state;
   if (currentEntry.value.mode === 'list') {
     const listed =
       kind === 'templates'
@@ -207,37 +232,35 @@ const inboxOptions = computed(() =>
   }))
 );
 const stateLabels = {
-  available: 'AVAILABLE',
-  excluded: 'EXCLUDED',
-  marketing_off: 'MARKETING_OFF',
-  needs_data: 'NEEDS_DATA',
-  pending: 'PENDING',
-  rejected: 'REJECTED',
-  unsupported: 'UNSUPPORTED',
-  authentication: 'AUTHENTICATION',
-  not_published_here: 'NOT_PUBLISHED_HERE',
-  new: 'NEW',
-  changed: 'CHANGED',
-  needs_review: 'NEEDS_REVIEW',
-  disabled: 'DISABLED',
-  unavailable: 'UNAVAILABLE',
+  needs_data: 'CHIPS.NEEDS_DATA',
+  pending: 'STATES.PENDING',
+  rejected: 'STATES.REJECTED',
+  unsupported: 'CHIPS.UNSUPPORTED',
+  not_published_here: 'CHIPS.NOT_PUBLISHED',
+  new: 'CHIPS.NEW',
+  changed: 'CHIPS.CHANGED',
+  needs_review: 'CHIPS.LINK',
 };
-const stateLabel = state =>
-  ['available', 'excluded', 'unavailable'].includes(state)
-    ? ''
-    : t(
-        `CAPTAIN.ASSISTANTS.ENVIOS.STATES.${stateLabels[state] || 'UNAVAILABLE'}`
-      );
-const GROUPS = ['READY', 'PERMISSION', 'UNUSABLE'];
+const stateLabel = row => {
+  if (
+    row.kind === 'template' &&
+    serverInbox.value?.channel?.quality_rating === 'RED'
+  )
+    return t('CAPTAIN.ASSISTANTS.ENVIOS.CHIPS.QUALITY');
+  return stateLabels[row.state]
+    ? t(`CAPTAIN.ASSISTANTS.ENVIOS.${stateLabels[row.state]}`)
+    : '';
+};
+const GROUPS = ['READY', 'PERMISSION', 'BLOCKED'];
 const groupFor = state => {
-  if (['available', 'excluded'].includes(state)) return 'READY';
+  if (['available', 'excluded', 'unavailable'].includes(state)) return 'READY';
   if (
     ['marketing_off', 'new', 'changed', 'needs_review', 'needs_data'].includes(
       state
     )
   )
     return 'PERMISSION';
-  return 'UNUSABLE';
+  return 'BLOCKED';
 };
 // Capture membership on load, independently of the editable switches and review responses.
 watch(
@@ -248,7 +271,7 @@ watch(
         const resource = item.resource;
         if (!resource) return;
         const key = `${inbox.inbox_id}:${resource.language ? `${resource.name}|${resource.language}` : resource.id}`;
-        resourceGroups[key] ??= groupFor(item.state);
+        resourceGroups[key] = groupFor(item.state);
       });
     });
   },
@@ -291,10 +314,22 @@ const resourceSections = computed(() =>
 );
 const resourceTabs = computed(() =>
   resourceSections.value.map((section, index) => ({
-    label: `${t(`CAPTAIN.ASSISTANTS.ENVIOS.${section.title}.TITLE`)} (${section.groups.reduce((count, group) => count + group.rows.length, 0)})`,
+    label: t(`CAPTAIN.ASSISTANTS.ENVIOS.TABS.${section.title}`),
+    showZero: true,
+    attentionLabel: t('CAPTAIN.ASSISTANTS.ENVIOS.GROUPS.PERMISSION'),
+    count: section.groups.reduce(
+      (count, group) => count + group.rows.length,
+      0
+    ),
+    attention: section.groups.some(
+      group => group.id === 'PERMISSION' && group.rows.length > 0
+    ),
     index,
   }))
 );
+watch([selectedInboxId, serverEnvios], () => {
+  activeResourceIndex.value = resourceTabs.value[1]?.attention ? 1 : 0;
+});
 const visibleResourceSections = computed(() => [
   resourceSections.value[activeResourceIndex.value],
 ]);
@@ -305,20 +340,24 @@ const rowUsages = row => {
     template?.language === row.resource.language;
   const usages = [];
   if (matches(props.assistant?.config?.appointments?.template_reminder))
-    usages.push(t('CAPTAIN.ASSISTANTS.ENVIOS.USED_BY_APPOINTMENTS'));
+    usages.push(t('CAPTAIN.ASSISTANTS.ENVIOS.CHIPS.USED_BY_APPOINTMENTS'));
   if (matches(props.assistant?.config?.followup?.reengagement_template))
-    usages.push(t('CAPTAIN.ASSISTANTS.ENVIOS.USED_BY_FOLLOWUP'));
+    usages.push(t('CAPTAIN.ASSISTANTS.ENVIOS.CHIPS.USED_BY_FOLLOWUP'));
   return usages;
 };
 const setResourceExcluded = row => {
   if (currentEntry.value.mode === 'list') {
     const field = row.kind === 'template' ? 'templates' : 'flows';
     const list = currentEntry.value[field] || [];
-    const saved = (savedMessaging.value.inboxes || [])
-      .find(entry => entry.inbox_id === selectedInboxId.value)
-      ?.[
-        field
-      ]?.find(entry => (row.kind === 'template' ? entry.name === row.resource.name && entry.language === row.resource.language : entry.flow_id === row.resource.id));
+    const savedEntry = (savedMessaging.value.inboxes || []).find(
+      entry => entry.inbox_id === selectedInboxId.value
+    );
+    const saved = savedEntry?.[field]?.find(entry =>
+      row.kind === 'template'
+        ? entry.name === row.resource.name &&
+          entry.language === row.resource.language
+        : entry.flow_id === row.resource.id
+    );
     currentEntry.value[field] =
       row.state === 'available'
         ? list.filter(entry =>
@@ -347,38 +386,18 @@ const setResourceExcluded = row => {
     ? exclusions.filter(item => item !== row.key)
     : [...new Set([...exclusions, row.key])];
 };
-const reviewResource = async row => {
-  try {
-    reviewing[row.key] = true;
-    const { data } = await AssistantAPI.allowResource({
+const toggleResource = row => {
+  const key = `${selectedInboxId.value}:${row.key}`;
+  if (pendingAllows[key]) delete pendingAllows[key];
+  else if (['available', 'excluded'].includes(row.state))
+    setResourceExcluded(row);
+  else
+    pendingAllows[key] = {
       assistantId: props.assistant.id,
       inboxId: selectedInboxId.value,
       kind: row.kind,
       key: row.key,
-    });
-    const messaging = data.config.messaging;
-    const entry = messaging.inboxes.find(
-      item => item.inbox_id === selectedInboxId.value
-    );
-    currentEntry.value.reviewed = entry.reviewed;
-    currentEntry.value.included_marketing = entry.included_marketing;
-    messagingRevision.value = messaging.revision;
-    serverEnvios.value = data.envios;
-  } catch (error) {
-    if (error.response?.status === 409) {
-      useAlert(t('CAPTAIN.ASSISTANTS.ENVIOS.CONFLICT'));
-      return;
-    }
-    useAlert(
-      error.response?.data?.error || t('CAPTAIN.ASSISTANTS.EDIT.ERROR_MESSAGE')
-    );
-  } finally {
-    reviewing[row.key] = false;
-  }
-};
-const toggleResource = row => {
-  if (['available', 'excluded'].includes(row.state)) setResourceExcluded(row);
-  else reviewResource(row);
+    };
 };
 const openAssignment = row => {
   selectedRow.value = row;
@@ -420,12 +439,34 @@ const openPreview = row => {
 };
 const capValid = computed(
   () =>
-    Number.isInteger(Number(capValue.value)) &&
+    Number.isInteger(capValue.value) &&
     Number(capValue.value) >= 0 &&
     Number(capValue.value) <= 10000
 );
+const hydrate = (assistant = props.assistant) => {
+  const messaging = assistant.config?.messaging || {};
+  messagingRevision.value = messaging.revision || 0;
+  paidTemplates.value = assistant.config?.allow_paid_templates === true;
+  capValue.value = envios.value?.template_cap?.cap ?? 50;
+  capUsed.value = envios.value?.template_cap?.used ?? 0;
+  Object.keys(permissionEntries).forEach(key => delete permissionEntries[key]);
+  (messaging.inboxes || []).forEach(entry => {
+    permissionEntries[entry.inbox_id] = JSON.parse(JSON.stringify(entry));
+  });
+};
+const reload = async () => {
+  const data = await store.dispatch(
+    'captainAssistants/show',
+    props.assistant.id
+  );
+  serverEnvios.value = data.envios;
+  Object.keys(pendingAllows).forEach(key => delete pendingAllows[key]);
+  hydrate(data);
+  baseline.value = draftSnapshot();
+  conflict.value = false;
+};
 const save = async () => {
-  if (!capValid.value) return;
+  if (!capValid.value || !isAdmin.value || saving.value) return;
   const entries = Object.values(permissionEntries)
     .filter(entry =>
       whatsappInboxes.value.some(inbox => inbox.id === entry.inbox_id)
@@ -446,27 +487,47 @@ const save = async () => {
       },
     },
   };
-  emit('submit', {
-    assistantPayload: payload,
-    dailyCap: Number(capValue.value),
-  });
+  saving.value = true;
+  conflict.value = false;
+  try {
+    const { data } = await AssistantAPI.update(props.assistant.id, payload);
+    messagingRevision.value = data.config.messaging.revision;
+    await AccountAPI.update('', {
+      captain_template_daily_cap: Number(capValue.value),
+    });
+    // Reviews update the same revision: serialize them after the config PATCH.
+    await Object.values(pendingAllows).reduce(async (previous, request) => {
+      await previous;
+      const response = await AssistantAPI.allowResource(request);
+      messagingRevision.value = response.data.config.messaging.revision;
+    }, Promise.resolve());
+    await reload();
+    useAlert(t('CAPTAIN.ASSISTANTS.EDIT.SUCCESS_MESSAGE'));
+  } catch (error) {
+    conflict.value = error.response?.status === 409;
+    if (!conflict.value)
+      useAlert(
+        error.response?.data?.error ||
+          t('CAPTAIN.ASSISTANTS.EDIT.ERROR_MESSAGE')
+      );
+  } finally {
+    saving.value = false;
+  }
 };
-const hydrate = () => {
-  messagingRevision.value = savedMessaging.value.revision || 0;
-  paidTemplates.value = props.assistant?.config?.allow_paid_templates === true;
-  capValue.value = envios.value?.template_cap?.cap ?? 50;
-  capUsed.value = envios.value?.template_cap?.used ?? 0;
-  Object.keys(permissionEntries).forEach(key => delete permissionEntries[key]);
-  (savedMessaging.value.inboxes || []).forEach(entry => {
-    permissionEntries[entry.inbox_id] = JSON.parse(JSON.stringify(entry));
-  });
-};
-watch(() => props.assistant, hydrate, { immediate: true });
-watch(() => props.assistant?.updated_at, loadEnvios);
+watch(
+  () => props.assistant,
+  assistant => {
+    if (!baseline.value || (!dirty.value && !saving.value)) {
+      hydrate(assistant);
+      baseline.value = draftSnapshot();
+    }
+  },
+  { immediate: true }
+);
 watch(
   () => envios.value.template_cap,
   cap => {
-    capValue.value = cap?.cap ?? 50;
+    if (!dirty.value || inboxesLoading.value) capValue.value = cap?.cap ?? 50;
     capUsed.value = cap?.used ?? 0;
   }
 );
@@ -493,6 +554,7 @@ watch(
     });
     if (!list.some(item => item.id === selectedInboxId.value))
       selectedInboxId.value = list[0]?.id ?? null;
+    if (inboxesLoading.value) baseline.value = draftSnapshot();
   },
   { immediate: true }
 );
@@ -516,6 +578,7 @@ onMounted(async () => {
   } catch {
     loadingFailed.value = true;
   } finally {
+    baseline.value = draftSnapshot();
     inboxesLoading.value = false;
   }
 });
@@ -524,27 +587,37 @@ onMounted(async () => {
 <template>
   <div class="flex flex-col gap-5" data-testid="messaging-form">
     <SettingsToggleSection
-      v-if="whatsappInboxes.length"
-      v-model="paidTemplates"
+      v-if="!inboxesLoading && !loadingFailed && whatsappInboxes.length"
+      :model-value="paidTemplates"
+      hide-toggle
       :header="t('CAPTAIN.ASSISTANTS.ENVIOS.PAID.TITLE')"
       :description="t('CAPTAIN.ASSISTANTS.ENVIOS.PAID.SCOPE')"
+      @update:model-value="paidTemplates = $event"
     >
+      <template #hiddenToggle>
+        <Switch
+          v-model="paidTemplates"
+          :disabled="!isAdmin || saving"
+          :aria-label="t('CAPTAIN.ASSISTANTS.ENVIOS.PAID.TITLE')"
+          class="disabled:cursor-not-allowed disabled:opacity-50"
+        />
+      </template>
       <p
-        class="mb-0 mt-3 w-full border-t border-n-weak px-4 pt-3 text-body-main text-n-slate-11"
+        class="mb-0 mt-3 flex w-full items-start gap-2 border-t border-n-weak px-4 pt-3 text-body-main text-n-slate-11"
         data-testid="paid-explanation"
+        aria-live="polite"
       >
-        {{
-          t(
-            paidTemplates
-              ? 'CAPTAIN.ASSISTANTS.ENVIOS.PAID.ON'
-              : 'CAPTAIN.ASSISTANTS.ENVIOS.PAID.OFF'
-          )
-        }}
+        <span
+          aria-hidden="true"
+          class="mt-1.5 size-2 shrink-0 rounded-full"
+          :class="paidTemplates ? 'bg-n-teal-9' : 'bg-n-amber-9'"
+        />
+        <span>{{ paidExplanation }}</span>
       </p>
     </SettingsToggleSection>
 
     <div
-      v-if="whatsappInboxes.length"
+      v-if="!inboxesLoading && !loadingFailed && whatsappInboxes.length"
       class="flex flex-wrap items-center gap-3"
     >
       <label
@@ -556,7 +629,8 @@ onMounted(async () => {
       <Input
         id="captain-daily-cap"
         v-model.number="capValue"
-        class="w-20"
+        class="w-[4.5rem]"
+        :disabled="!isAdmin || saving"
         type="number"
         min="0"
         max="10000"
@@ -573,12 +647,12 @@ onMounted(async () => {
         }}
       </p>
       <span
-        v-tooltip="t('CAPTAIN.ASSISTANTS.ENVIOS.CAP.HELP')"
+        v-tooltip="t('CAPTAIN.ASSISTANTS.ENVIOS.CAP.SHARED')"
         tabindex="0"
-        :aria-label="t('CAPTAIN.ASSISTANTS.ENVIOS.CAP.HELP')"
+        :aria-label="t('CAPTAIN.ASSISTANTS.ENVIOS.CAP.SHARED')"
         class="i-lucide-info size-4 text-n-slate-11"
       />
-      <p v-if="capUsed >= capValue" class="mb-0 text-xs text-n-amber-11">
+      <p v-if="capUsed >= capValue" class="mb-0 w-full text-xs text-n-amber-11">
         {{
           t('CAPTAIN.ASSISTANTS.ENVIOS.CAP.REACHED', {
             used: capUsed,
@@ -597,11 +671,17 @@ onMounted(async () => {
     </Banner>
 
     <Banner
-      v-if="!inboxesLoading && !loadingFailed && !orderedInboxes.length"
+      v-if="!inboxesLoading && !loadingFailed && !whatsappInboxes.length"
       color="blue"
     >
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <span>{{ t('CAPTAIN.ASSISTANTS.ENVIOS.NO_INBOXES') }}</span>
+        <span>{{
+          t(
+            connectedInboxes.length
+              ? 'CAPTAIN.ASSISTANTS.ENVIOS.NO_WHATSAPP'
+              : 'CAPTAIN.ASSISTANTS.ENVIOS.NO_INBOXES'
+          )
+        }}</span>
         <RouterLink
           :to="accountScopedRoute('settings_inboxes')"
           class="text-n-brand underline"
@@ -610,22 +690,36 @@ onMounted(async () => {
         </RouterLink>
       </div>
     </Banner>
-    <p
+    <div
       v-else-if="inboxesLoading"
-      class="mb-0 text-sm text-n-slate-11"
+      class="flex flex-col gap-3"
       role="status"
+      :aria-label="t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.LOADING')"
     >
-      {{ t('CAPTAIN.ASSISTANTS.FORM.MESSAGING.LOADING') }}
-    </p>
-    <p
-      v-else-if="loadingFailed"
-      class="mb-0 text-sm text-n-ruby-9"
-      role="alert"
-    >
+      <div
+        v-for="bar in 3"
+        :key="bar"
+        class="h-3 animate-pulse rounded bg-n-alpha-2"
+      />
+    </div>
+    <Banner v-else-if="loadingFailed" color="ruby" role="alert">
       {{ t('CAPTAIN.ASSISTANTS.ENVIOS.LOAD_ERROR') }}
-    </p>
+    </Banner>
+    <Banner v-if="!isAdmin" color="blue">
+      {{ t('CAPTAIN.ASSISTANTS.ENVIOS.READ_ONLY') }}
+    </Banner>
+    <Banner v-if="conflict" color="amber" role="alert">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <span>{{ t('CAPTAIN.ASSISTANTS.ENVIOS.CONFLICT') }}</span>
+        <Button
+          intent="secondary"
+          :label="t('CAPTAIN.ASSISTANTS.ENVIOS.RELOAD')"
+          @click="reload"
+        />
+      </div>
+    </Banner>
 
-    <template v-if="!inboxesLoading && selectedInbox">
+    <template v-if="!inboxesLoading && !loadingFailed && selectedInbox">
       <TabBar
         v-if="orderedInboxes.length >= 2 && orderedInboxes.length <= 5"
         :tabs="inboxTabs"
@@ -755,9 +849,25 @@ onMounted(async () => {
           <SettingsToggleSection
             :model-value="currentEntry.enabled === true"
             :header="t('CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.TOGGLE')"
-            :description="t('CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.HELP')"
+            :description="
+              t(
+                currentEntry.enabled
+                  ? 'CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.HELP'
+                  : 'CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.OFF'
+              )
+            "
+            hide-toggle
             @update:model-value="currentEntry.enabled = $event"
-          />
+          >
+            <template #hiddenToggle>
+              <Switch
+                v-model="currentEntry.enabled"
+                :disabled="!isAdmin || saving"
+                :aria-label="t('CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.TOGGLE')"
+                class="disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </template>
+          </SettingsToggleSection>
           <template v-if="currentEntry.enabled">
             <TabBar
               :tabs="resourceTabs"
@@ -772,12 +882,13 @@ onMounted(async () => {
               class="flex flex-col gap-2"
             >
               <h3
-                class="m-0 flex items-center justify-between text-heading-3 text-n-slate-12"
+                class="m-0 flex items-center justify-end text-heading-3 text-n-slate-12"
               >
-                {{ t(`CAPTAIN.ASSISTANTS.ENVIOS.${section.title}.TITLE`) }}
                 <RouterLink
                   :to="section.createRoute"
                   class="text-sm text-n-brand underline"
+                  :aria-disabled="!isAdmin"
+                  @click="!isAdmin && $event.preventDefault()"
                 >
                   {{ t(`CAPTAIN.ASSISTANTS.ENVIOS.${section.title}.CREATE`) }}
                 </RouterLink>
@@ -787,7 +898,13 @@ onMounted(async () => {
                 class="mb-0 rounded-lg bg-n-amber-3 px-3 py-2 text-body-main text-n-amber-11"
                 data-testid="templates-paid-off"
               >
-                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.PAID.ROWS_OFF') }}
+                {{ t('CAPTAIN.ASSISTANTS.ENVIOS.PAID.TEMPLATES_OFF') }}
+              </p>
+              <p
+                v-if="!section.groups.some(group => group.rows.length)"
+                class="mb-0 rounded-lg border border-dashed border-n-weak p-3 text-center text-body-main text-n-slate-11"
+              >
+                {{ t(`CAPTAIN.ASSISTANTS.ENVIOS.EMPTY.${section.title}`) }}
               </p>
               <template v-for="group in section.groups" :key="group.id">
                 <template v-if="group.rows.length">
@@ -799,7 +916,7 @@ onMounted(async () => {
                       {{ group.rows.length }}</span
                     >
                     <Button
-                      v-if="group.id === 'UNUSABLE'"
+                      v-if="group.id === 'BLOCKED'"
                       intent="tertiary"
                       sm
                       :aria-expanded="expanded[group.key] === true"
@@ -814,8 +931,8 @@ onMounted(async () => {
                     />
                   </div>
                   <ul
-                    v-if="group.id !== 'UNUSABLE' || expanded[group.key]"
-                    class="m-0 list-none divide-y divide-n-weak overflow-hidden rounded-lg border border-n-weak p-0"
+                    v-if="group.id !== 'BLOCKED' || expanded[group.key]"
+                    class="m-0 list-none divide-y divide-n-weak overflow-hidden rounded-xl border border-n-weak p-0"
                     :data-testid="`${section.kind}-${group.id}`"
                   >
                     <CaptainResourceRow
@@ -831,29 +948,32 @@ onMounted(async () => {
                       :category="
                         row.kind === 'template'
                           ? t(
-                              `CAPTAIN.ASSISTANTS.ENVIOS.CATEGORY.${row.resource.category?.toUpperCase() || 'UTILITY'}`
+                              `CAPTAIN.ASSISTANTS.ENVIOS.CHIPS.${row.resource.category?.toUpperCase() || 'UTILITY'}`
                             )
                           : ''
                       "
                       :state="row.state"
-                      :state-label="stateLabel(row.state)"
-                      :usages="rowUsages(row)"
+                      :state-label="stateLabel(row)"
+                      :model-value="row.state === 'available'"
+                      :used-by="rowUsages(row)"
                       :disabled="
                         (row.kind === 'template' &&
                           (!paidTemplates ||
                             serverInbox?.channel?.quality_rating === 'RED')) ||
-                        reviewing[row.key] === true
+                        !isAdmin ||
+                        saving
                       "
-                      :dimmed="
-                        (row.kind === 'template' && !paidTemplates) ||
-                        group.id === 'UNUSABLE'
+                      :dimmed="row.kind === 'template' && !paidTemplates"
+                      :blocked="group.id === 'BLOCKED'"
+                      :disabled-reason="
+                        !isAdmin
+                          ? t('CAPTAIN.ASSISTANTS.ENVIOS.READ_ONLY')
+                          : row.kind === 'template' && !paidTemplates
+                            ? t('CAPTAIN.ASSISTANTS.ENVIOS.PAID.TEMPLATES_OFF')
+                            : stateLabel(row)
                       "
-                      :publish-route="
-                        row.state === 'not_published_here'
-                          ? flowEditRoute(row)
-                          : null
-                      "
-                      @toggle="toggleResource(row)"
+                      @update:model-value="toggleResource(row)"
+                      @publish="$router.push(flowEditRoute(row))"
                       @preview="openPreview(row)"
                       @assign="openAssignment(row)"
                     />
@@ -863,20 +983,26 @@ onMounted(async () => {
             </section>
           </template>
         </template>
-        <p v-else class="mb-0 text-body-main text-n-slate-11">
-          {{ t('CAPTAIN.ASSISTANTS.ENVIOS.ONLY_WHATSAPP') }}
-        </p>
       </article>
     </template>
 
-    <div>
+    <div
+      v-if="!inboxesLoading && !loadingFailed && whatsappInboxes.length"
+      class="flex items-center gap-3"
+    >
       <Button
         intent="primary"
         data-testid="messaging-save"
-        :disabled="!capValid"
+        :disabled="!capValid || !isAdmin || saving"
         :label="t('CAPTAIN.ASSISTANTS.FORM.UPDATE')"
         @click="save"
       />
+      <span
+        v-if="dirty"
+        class="text-body-main text-n-amber-11"
+        data-testid="unsaved"
+        >{{ t('CAPTAIN.ASSISTANTS.ENVIOS.UNSAVED') }}</span
+      >
     </div>
 
     <Dialog
