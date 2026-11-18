@@ -22,15 +22,16 @@ RSpec.describe Captain::AppointmentReminders do
   end
   let(:now) { Integrations::GoogleCalendar::Timezone.for(account).parse('2030-01-10T09:00:00') }
 
-  before { travel_to(now) }
-  after { travel_back }
-
-  # Runs the block at another moment (travel_to with a block cannot be nested inside the one above).
-  def at(time)
-    travel_to(time)
-    yield
-  ensure
+  around do |example|
     travel_to(now)
+    example.run
+  ensure
+    travel_back
+  end
+
+  # travel_to restores the fixed account-local instant after each example time.
+  def at(time, &)
+    travel_to(time, &)
   end
 
   before do
