@@ -7,7 +7,7 @@ RSpec.describe Captain::TemplateDailyCap, :real_redis do
   end
 
   it 'defaults to 50 template sends per account day' do
-    cap = described_class.new(account)
+    cap = described_class.new(account, now: now)
 
     50.times { expect(cap.reserve!).to be(true) }
     expect(cap.reserve!).to be(false)
@@ -16,7 +16,7 @@ RSpec.describe Captain::TemplateDailyCap, :real_redis do
 
   it 'treats a configured zero as no template sends and releases failed sends' do
     account.update!(captain_template_daily_cap: 0)
-    cap = described_class.new(account)
+    cap = described_class.new(account, now: now)
 
     expect(cap.reserve!).to be(false)
     account.update!(captain_template_daily_cap: 1)
@@ -43,7 +43,7 @@ RSpec.describe Captain::TemplateDailyCap, :real_redis do
       .once.with(account, 0).and_return(mail)
 
     travel_to(now) do
-      cap = described_class.new(account)
+      cap = described_class.new(account, now: now)
       expect(cap.reserve!).to be(false)
       expect(cap.reserve!).to be(false)
     end
