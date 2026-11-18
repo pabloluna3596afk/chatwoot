@@ -419,10 +419,12 @@ watch(
       </div>
     </SettingsToggleSection>
 
-    <Button
-      data-testid="followup-save"
-      :label="t('CAPTAIN.ASSISTANTS.FORM.UPDATE')"
-      @click="handleSubmit"
-    />
+    <div>
+      <Button
+        data-testid="followup-save"
+        :label="t('CAPTAIN.ASSISTANTS.FORM.UPDATE')"
+        @click="handleSubmit"
+      />
+    </div>
   </div>
 </template>

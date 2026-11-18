@@ -2,7 +2,6 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { ref } from 'vue';
 import AssistantMessagingForm from './AssistantMessagingForm.vue';
 import AssistantAPI from 'dashboard/api/captain/assistant';
-import CaptainInboxesAPI from 'dashboard/api/captain/inboxes';
 import InboxesAPI from 'dashboard/api/inboxes';
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 import { useAlert } from 'dashboard/composables';
@@ -95,6 +94,7 @@ const mountForm = async ({
       assistant: {
         id: 3,
         config: {
+          allow_paid_templates: true,
           messaging: {
             version: 2,
             revision: 4,
@@ -212,12 +212,16 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
   it('does not render a selector for one WhatsApp inbox and shows the daily cap', async () => {
     const wrapper = await mountForm();
 
-    expect(wrapper.find('[data-testid="inbox-tabs"]').exists()).toBe(false);
+    expect(
+      wrapper
+        .find('[data-testid="inbox-tabs"]:not([data-testid="resource-tabs"])')
+        .exists()
+    ).toBe(false);
     expect(wrapper.find('[data-testid="inbox-combo"]').exists()).toBe(false);
     expect(wrapper.text()).toContain('Ventas 10');
     expect(wrapper.vm.capUsed).toBe(12);
     expect(wrapper.vm.capValue).toBe(50);
-    wrapper.vm.expanded[10] = true;
+    wrapper.vm.activeResourceIndex = 1;
     await wrapper.vm.$nextTick();
     expect(
       wrapper.findAll('[data-testid="messaging-template-row"]')
@@ -250,10 +254,16 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
       },
     });
 
-    expect(wrapper.find('[data-testid="inbox-tabs"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="inbox-tabs"]').text()).toContain(
-      'Ventas 10 1'
-    );
+    expect(
+      wrapper
+        .find('[data-testid="inbox-tabs"]:not([data-testid="resource-tabs"])')
+        .exists()
+    ).toBe(true);
+    expect(
+      wrapper
+        .find('[data-testid="inbox-tabs"]:not([data-testid="resource-tabs"])')
+        .text()
+    ).toContain('Ventas 10 1');
     await wrapper
       .find('[data-testid="inbox-tabs"] button:nth-child(2)')
       .trigger('click');
@@ -281,7 +291,7 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
       },
     });
 
-    wrapper.vm.expanded[10] = true;
+    wrapper.vm.activeResourceIndex = 1;
     await wrapper.vm.$nextTick();
     expect(wrapper.text()).toContain('Ventas');
     expect(
@@ -314,7 +324,11 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
     });
 
     expect(wrapper.find('[data-testid="inbox-combo"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="inbox-tabs"]').exists()).toBe(false);
+    expect(
+      wrapper
+        .find('[data-testid="inbox-tabs"]:not([data-testid="resource-tabs"])')
+        .exists()
+    ).toBe(false);
     expect(
       wrapper.find('[data-testid="inbox-combo"] option').attributes('value')
     ).toBe('1');
@@ -325,36 +339,130 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
     expect(wrapper.vm.selectedInboxId).toBe(2);
   });
 
-  it('shows the translated empty re-engagement state without an empty template interpolation', async () => {
+  it('shows one resource tab at a time, including zero counts', async () => {
     const wrapper = await mountForm();
-    const followup = wrapper
-      .text()
-      .slice(
-        wrapper.text().indexOf('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.TITLE')
-      );
-
-    expect(followup).toContain(
-      'CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP.NO_TEMPLATE'
+    expect(wrapper.get('[data-testid="resource-tabs"]').text()).toContain(
+      'FLOWS.TITLE (0)'
     );
-    expect(followup).not.toContain(
-      'CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.MISSING_HERE'
+    expect(wrapper.get('[data-testid="resource-tabs"]').text()).toContain(
+      'TEMPLATES.TITLE (1)'
     );
-    expect(followup).not.toContain('«»');
+    expect(
+      wrapper.find('[data-testid="messaging-template-row"]').exists()
+    ).toBe(false);
+    await wrapper
+      .get('[data-testid="resource-tabs"] button:nth-child(2)')
+      .trigger('click');
+    expect(
+      wrapper.find('[data-testid="messaging-template-row"]').exists()
+    ).toBe(true);
+    expect(wrapper.find('[data-testid="messaging-flow-row"]').exists()).toBe(
+      false
+    );
   });
 
-  it('disables the inbox appointments switch while assistant appointments are off', async () => {
-    const wrapper = await mountForm({
-      assistant: { config: { appointments: { enabled: false } } },
-    });
-    const disabledSwitch = wrapper.find('[aria-disabled="true"]');
-
-    expect(disabledSwitch.attributes('role')).toBe('switch');
-    expect(disabledSwitch.attributes('aria-checked')).toBe('false');
-    expect(wrapper.text()).toContain(
-      'CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.ASSISTANT_OFF'
+  it('disables paid template switches without losing choices or affecting Flows', async () => {
+    const wrapper = await mountForm();
+    const saved = JSON.stringify(wrapper.vm.permissionEntries);
+    wrapper.vm.activeResourceIndex = 1;
+    wrapper.vm.paidTemplates = false;
+    await wrapper.vm.$nextTick();
+    const row = wrapper.get('[data-testid="messaging-template-row"]');
+    expect(row.classes()).toContain('opacity-50');
+    expect(
+      row.get('button[role="switch"]').attributes('disabled')
+    ).toBeDefined();
+    expect(row.get('button[role="switch"]').attributes('aria-checked')).toBe(
+      'true'
     );
+    expect(wrapper.find('[data-testid="templates-paid-off"]').exists()).toBe(
+      true
+    );
+    expect(JSON.stringify(wrapper.vm.permissionEntries)).toBe(saved);
+    wrapper.vm.paidTemplates = true;
+    await wrapper.vm.$nextTick();
+    expect(
+      row.get('button[role="switch"]').attributes('disabled')
+    ).toBeUndefined();
+  });
+
+  it('keeps a toggled row in its load-time group and preserves stored notes on save', async () => {
+    const wrapper = await mountForm();
+    wrapper.vm.activeResourceIndex = 1;
+    wrapper.vm.permissionEntries[10].notes = {
+      'template:waba-10:pedido_listo|es': 'Existing owner note',
+    };
+    await wrapper.vm.$nextTick();
+    await wrapper
+      .get('[data-testid="template-READY"] button[role="switch"]')
+      .trigger('click');
+    expect(
+      wrapper
+        .get('[data-testid="template-READY"] button[role="switch"]')
+        .attributes('aria-checked')
+    ).toBe('false');
+    expect(wrapper.text()).not.toContain('Existing owner note');
+    await wrapper.get('[data-testid="messaging-save"]').trigger('click');
+    expect(
+      wrapper.emitted('submit')[0][0].assistantPayload.config.messaging
+        .inboxes[0].notes
+    ).toEqual({
+      'template:waba-10:pedido_listo|es': 'Existing owner note',
+    });
+  });
+
+  it('keeps list-mode owner notes and mappings when a row is switched off and back on', async () => {
+    const template = {
+      name: 'pedido_listo',
+      language: 'es',
+      purpose: 'Existing purpose',
+      processed_params: { body: { nombre: '{{ contact.name }}' } },
+    };
+    const wrapper = await mountForm({
+      assistant: {
+        config: {
+          allow_paid_templates: true,
+          messaging: {
+            version: 2,
+            revision: 4,
+            inboxes: [
+              {
+                inbox_id: 10,
+                enabled: true,
+                mode: 'list',
+                templates: [template],
+              },
+            ],
+          },
+        },
+      },
+    });
+    wrapper.vm.activeResourceIndex = 1;
+    await wrapper.vm.$nextTick();
+    await wrapper
+      .get('[data-testid="messaging-template-row"] button[role="switch"]')
+      .trigger('click');
+    await wrapper
+      .get('[data-testid="messaging-template-row"] button[role="switch"]')
+      .trigger('click');
+    expect(wrapper.vm.permissionEntries[10].templates).toEqual([template]);
+  });
+
+  it('shows only WhatsApp guidance for a web-only inbox and no paid controls', async () => {
+    const wrapper = await mountForm({
+      inboxes: [{ id: 11, name: 'Web', channel_type: 'Channel::WebWidget' }],
+    });
+    expect(wrapper.text()).toContain('CAPTAIN.ASSISTANTS.ENVIOS.ONLY_WHATSAPP');
+    expect(wrapper.find('input').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="resource-tabs"]').exists()).toBe(false);
+  });
+
+  it('removes notes and the moved Citas and Seguimiento summaries', async () => {
+    const wrapper = await mountForm();
+    expect(wrapper.find('textarea').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain('CAPTAIN.ASSISTANTS.ENVIOS.FOLLOWUP');
     expect(wrapper.text()).not.toContain(
-      'CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS.INSIDE'
+      'CAPTAIN.ASSISTANTS.ENVIOS.APPOINTMENTS'
     );
   });
 
@@ -389,7 +497,16 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
   it.each(['new', 'changed', 'needs_review'])(
     'calls the server allow action for a %s resource',
     async state => {
-      AssistantAPI.allowResource.mockResolvedValue({ data: {} });
+      AssistantAPI.allowResource.mockResolvedValue({
+        data: {
+          config: {
+            messaging: {
+              revision: 5,
+              inboxes: [{ inbox_id: 10, reviewed: {}, included_marketing: [] }],
+            },
+          },
+        },
+      });
       const wrapper = await mountForm({
         assistant: {
           envios: {
@@ -409,14 +526,11 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
           },
         },
       });
-      wrapper.vm.expanded[10] = true;
+      wrapper.vm.activeResourceIndex = 1;
       await wrapper.vm.$nextTick();
-      const allow = wrapper
-        .findAll('button')
-        .find(
-          button => button.text() === 'CAPTAIN.ASSISTANTS.ENVIOS.ROW_ALLOW'
-        );
-      await allow.trigger('click');
+      await wrapper
+        .get('[data-testid="messaging-template-row"] button[role="switch"]')
+        .trigger('click');
 
       expect(AssistantAPI.allowResource).toHaveBeenCalledWith({
         assistantId: 3,
@@ -487,21 +601,25 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
         },
       },
     });
-    await wrapper
-      .findAll('button')
-      .find(button =>
-        button.text().includes('CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.SHOW')
-      )
-      .trigger('click');
+    wrapper.vm.activeResourceIndex = 1;
+    wrapper.vm.expanded['10:template:UNUSABLE'] = true;
+    await wrapper.vm.$nextTick();
 
     expect(
       wrapper.findAll('[data-testid="messaging-template-row"]')
-    ).toHaveLength(states.length);
-    states.forEach(state => {
-      expect(wrapper.text()).toContain(
-        `CAPTAIN.ASSISTANTS.ENVIOS.STATES.${state.toUpperCase()}`
-      );
-    });
+    ).toHaveLength(states.length - 1);
+    states
+      .filter(
+        state => !['available', 'excluded', 'authentication'].includes(state)
+      )
+      .forEach(state => {
+        expect(wrapper.text()).toContain(
+          `CAPTAIN.ASSISTANTS.ENVIOS.STATES.${state.toUpperCase()}`
+        );
+      });
+    wrapper.vm.activeResourceIndex = 0;
+    wrapper.vm.expanded['10:flow:UNUSABLE'] = true;
+    await wrapper.vm.$nextTick();
     expect(wrapper.findAll('[data-testid="messaging-flow-row"]')).toHaveLength(
       1
     );
@@ -512,12 +630,9 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
 
   it('toggles a resource exclusion from its visible row switch', async () => {
     const wrapper = await mountForm();
-    await wrapper
-      .findAll('button')
-      .find(button =>
-        button.text().includes('CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.SHOW')
-      )
-      .trigger('click');
+    wrapper.vm.activeResourceIndex = 1;
+    wrapper.vm.expanded['10:template:UNUSABLE'] = true;
+    await wrapper.vm.$nextTick();
     const rowSwitch = wrapper.findAll(
       '[data-testid="messaging-template-row"] button[role="switch"]'
     )[0];
@@ -530,7 +645,7 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
 
   it('opens the template preview from its row eye button', async () => {
     const wrapper = await mountForm();
-    wrapper.vm.expanded[10] = true;
+    wrapper.vm.activeResourceIndex = 1;
     await wrapper.vm.$nextTick();
     await wrapper
       .get('[data-testid="messaging-template-row"] button')
@@ -545,20 +660,6 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
       complete: true,
       available: true,
       inboxName: 'Ventas 10',
-    });
-  });
-
-  it('persists appointment inbox toggle through the existing inbox API', async () => {
-    const wrapper = await mountForm();
-    await wrapper
-      .findAllComponents({ name: 'SettingsToggleSection' })[1]
-      .vm.$emit('update:modelValue', false);
-    await flushPromises();
-
-    expect(CaptainInboxesAPI.updateAppointments).toHaveBeenCalledWith({
-      assistantId: 3,
-      inboxId: 10,
-      appointmentsEnabled: false,
     });
   });
 
@@ -583,7 +684,7 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
         },
       },
     });
-    wrapper.vm.expanded[10] = true;
+    wrapper.vm.activeResourceIndex = 1;
     await wrapper.vm.$nextTick();
     await wrapper
       .findAll('button')
@@ -592,7 +693,7 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
       )
       .trigger('click');
     await wrapper.get('select').setValue('contact.name');
-    await wrapper.findAll('[data-testid="dialog-confirm"]')[1].trigger('click');
+    await wrapper.get('[data-testid="dialog-confirm"]').trigger('click');
 
     expect(
       InboxesAPI.updateWhatsappTemplateVariableBindings
@@ -600,7 +701,7 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
       name: 'pedido_listo',
       variable_bindings: { nombre: 'contact.name' },
     });
-    expect(dispatch).toHaveBeenCalledWith('captainAssistants/show', 3);
+    expect(dispatch).toHaveBeenCalledWith('inboxes/get', { force: true });
   });
 
   it('uses the local bindings API and includes the flow notice in its preview', async () => {
@@ -622,7 +723,7 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
         },
       },
     });
-    wrapper.vm.expanded[10] = true;
+    wrapper.vm.expanded['10:flow:UNUSABLE'] = true;
     await wrapper.vm.$nextTick();
     await wrapper
       .find('[data-testid="messaging-flow-row"] button')
@@ -657,11 +758,10 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
         },
       },
     });
-    wrapper.vm.expanded[10] = true;
+    wrapper.vm.activeResourceIndex = 1;
     await wrapper.vm.$nextTick();
     await wrapper
-      .findAll('button')
-      .find(button => button.text() === 'CAPTAIN.ASSISTANTS.ENVIOS.ROW_ALLOW')
+      .get('[data-testid="messaging-template-row"] button[role="switch"]')
       .trigger('click');
     await flushPromises();
 

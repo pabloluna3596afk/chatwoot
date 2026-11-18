@@ -21,16 +21,32 @@ export const templateToValue = template =>
 export function useApprovedTemplates(assistantId) {
   const { t } = useI18n();
   const inboxes = useMapGetter('inboxes/getInboxes');
-  const linkedInboxIds = ref([]);
+  const linkedInboxRecords = ref([]);
+  const linkedInboxIds = computed(() =>
+    linkedInboxRecords.value.map(inbox => inbox.id)
+  );
+  const inboxesLoading = ref(true);
+  const inboxesFailed = ref(false);
+  const linkedInboxes = computed(() =>
+    linkedInboxRecords.value.map(inbox => ({
+      ...(inboxes.value || []).find(item => item.id === inbox.id),
+      ...inbox,
+    }))
+  );
   onMounted(async () => {
-    if (!assistantId) return;
+    if (!assistantId) {
+      inboxesLoading.value = false;
+      return;
+    }
     try {
       const { data } = await CaptainInboxesAPI.get({
         assistantId,
       });
-      linkedInboxIds.value = (data.payload || []).map(inbox => inbox.id);
+      linkedInboxRecords.value = data.payload || [];
     } catch {
-      linkedInboxIds.value = [];
+      inboxesFailed.value = true;
+    } finally {
+      inboxesLoading.value = false;
     }
   });
 
@@ -110,5 +126,14 @@ export function useApprovedTemplates(assistantId) {
     return inbox?.id ?? null;
   };
 
-  return { approvedTemplates, templateOptions, templateEntry, templateInboxId };
+  return {
+    approvedTemplates,
+    templateOptions,
+    templateEntry,
+    templateInboxId,
+    linkedInboxes,
+    linkedInboxRecords,
+    inboxesLoading,
+    inboxesFailed,
+  };
 }

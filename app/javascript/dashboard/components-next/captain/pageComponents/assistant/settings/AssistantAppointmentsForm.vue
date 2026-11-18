@@ -7,6 +7,9 @@ import {
   templateFromValue,
   templateToValue,
 } from './useApprovedTemplates';
+import CaptainInboxesAPI from 'dashboard/api/captain/inboxes';
+import Switch from 'dashboard/components-next/switch/Switch.vue';
+import { useAlert } from 'dashboard/composables';
 import CalendarAPI from 'dashboard/api/integrations/calendar';
 import { useAbortableRequest } from 'dashboard/composables/useAbortableRequest';
 
@@ -64,8 +67,43 @@ const state = reactive({
   templates: { ...initialState.templates },
   params: { reminder: {} },
 });
-const { templateOptions, templateEntry, templateInboxId } =
-  useApprovedTemplates(props.assistant?.id);
+const {
+  templateOptions,
+  templateEntry,
+  templateInboxId,
+  linkedInboxes,
+  linkedInboxRecords,
+  inboxesLoading,
+  inboxesFailed,
+} = useApprovedTemplates(props.assistant?.id);
+const updatingInboxes = reactive({});
+const updateAppointment = async (inboxId, value) => {
+  updatingInboxes[inboxId] = true;
+  try {
+    await CaptainInboxesAPI.updateAppointments({
+      assistantId: props.assistant.id,
+      inboxId,
+      appointmentsEnabled: value,
+    });
+    const linked = linkedInboxRecords.value.find(item => item.id === inboxId);
+    linked.appointments_enabled = value;
+  } catch {
+    useAlert(t('CAPTAIN.ASSISTANTS.EDIT.ERROR_MESSAGE'));
+  } finally {
+    updatingInboxes[inboxId] = false;
+  }
+};
+const reminderStatus = inbox => {
+  const reminder = props.assistant?.config?.appointments?.template_reminder;
+  if (!reminder?.name) return 'PICK';
+  const exists = (inbox.message_templates || []).some(
+    item =>
+      item.name === reminder.name &&
+      item.language === reminder.language &&
+      String(item.status).toUpperCase() === 'APPROVED'
+  );
+  return exists ? 'APPROVED_HERE' : 'MISSING_HERE';
+};
 const { variableOptions, defaultValues, previewValues } = useTemplateVariables({
   appointment: true,
 });
@@ -602,6 +640,79 @@ onMounted(loadConnections);
           </div>
         </div>
       </SettingsToggleSection>
+      <section class="flex flex-col gap-3" data-testid="appointments-inboxes">
+        <h3 class="m-0 text-heading-3 text-n-slate-12">
+          {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.INBOXES.TITLE') }}
+        </h3>
+        <p
+          v-if="inboxesLoading"
+          role="status"
+          class="mb-0 text-body-main text-n-slate-11"
+        >
+          {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.LOADING') }}
+        </p>
+        <p
+          v-else-if="inboxesFailed"
+          role="alert"
+          class="mb-0 text-body-main text-n-ruby-11"
+        >
+          {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.INBOXES.LOAD_ERROR') }}
+        </p>
+        <p
+          v-else-if="!linkedInboxes.length"
+          class="mb-0 text-body-main text-n-slate-11"
+        >
+          {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.INBOXES.EMPTY') }}
+        </p>
+        <ul
+          v-else
+          class="m-0 list-none divide-y divide-n-weak rounded-lg border border-n-weak p-0"
+        >
+          <li
+            v-for="inbox in linkedInboxes"
+            :key="inbox.id"
+            class="flex items-center justify-between gap-3 px-3 py-2"
+          >
+            <div class="min-w-0">
+              <span class="text-heading-3 text-n-slate-12">{{
+                inbox.name
+              }}</span>
+              <p
+                v-if="state.enabled && inbox.appointments_enabled !== false"
+                class="mb-0 text-label-small text-n-slate-11"
+              >
+                {{ t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.INBOXES.INSIDE') }}
+                {{
+                  inbox.channel_type === 'Channel::Whatsapp'
+                    ? t(
+                        `CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.INBOXES.${reminderStatus(inbox)}`,
+                        {
+                          name:
+                            props.assistant?.config?.appointments
+                              ?.template_reminder?.name || '',
+                        }
+                      )
+                    : t(
+                        'CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.INBOXES.OUTSIDE_NONE'
+                      )
+                }}
+              </p>
+            </div>
+            <Switch
+              :model-value="
+                state.enabled && inbox.appointments_enabled !== false
+              "
+              :disabled="!state.enabled || updatingInboxes[inbox.id] === true"
+              :aria-label="
+                t('CAPTAIN.ASSISTANTS.FORM.APPOINTMENTS.INBOXES.TOGGLE', {
+                  name: inbox.name,
+                })
+              "
+              @update:model-value="updateAppointment(inbox.id, $event)"
+            />
+          </li>
+        </ul>
+      </section>
       <div>
         <Button
           data-testid="appointments-save"
