@@ -49,4 +49,22 @@ RSpec.describe Captain::TemplateDailyCap do
       expect(cap.reserve!).to be(false)
     end
   end
+
+  it 'allows only one reservation when callers race for the last daily slot' do
+    account.update!(captain_template_daily_cap: 1)
+    start = Queue.new
+    ready = Queue.new
+    results = Array.new(8) do
+      Thread.new do
+        ready << true
+        start.pop
+        described_class.new(account, now: now).reserve!
+      end
+    end
+    results.size.times { ready.pop }
+    results.size.times { start << true }
+
+    expect(results.map(&:value).count(true)).to eq(1)
+    expect(described_class.new(account, now: now).used).to eq(1)
+  end
 end

@@ -83,6 +83,15 @@ RSpec.describe Captain::Messaging::Availability do
     expect(described_class.new(assistant, inbox).templates.first.state).to eq('new')
   end
 
+  it 'marks a Flow published only to a different WABA as unavailable here' do
+    flow = create(:whatsapp_flow, account: account)
+    flow.whatsapp_flow_publications.create!(account: account, waba_id: '456', status: 'published', published_version: 1)
+    enable_auto(reviewed: { 'templates' => {}, 'flows' => { "123:#{flow.id}" => 1 } })
+
+    expect(described_class.new(assistant, inbox).flows.find { |item| item.resource['id'] == flow.id }.state)
+      .to eq('not_published_here')
+  end
+
   it 'marks an approved positional variable as missing data and returns explicit empty params' do
     positional = template.merge('components' => [{ 'type' => 'BODY', 'text' => 'Order {{1}}' }])
     channel.update!(message_templates: [positional])
@@ -103,6 +112,16 @@ RSpec.describe Captain::Messaging::Availability do
     enable_auto(reviewed: { 'templates' => { '123:order_ready|es' => fingerprint }, 'flows' => {} })
 
     expect(described_class.new(assistant, inbox).templates.first.state).to eq('unavailable')
+  end
+
+  it 'allows a reviewed template when Meta health data is absent' do
+    unparameterized = template.merge('components' => [{ 'type' => 'BODY', 'text' => 'Ready' }])
+    channel.update!(message_templates: [unparameterized], phone_number_health: nil)
+    fingerprint = Digest::SHA256.hexdigest({ category: unparameterized['category'],
+                                             components: unparameterized['components'], parameter_format: nil }.to_json)
+    enable_auto(reviewed: { 'templates' => { '123:order_ready|es' => fingerprint }, 'flows' => {} })
+
+    expect(described_class.new(assistant, inbox).templates.first.state).to eq('available')
   end
 
   it 'rejects a template paused in Meta after its review' do
