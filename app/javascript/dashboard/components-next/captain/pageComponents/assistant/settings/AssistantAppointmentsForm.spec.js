@@ -5,11 +5,16 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import { nextTick } from 'vue';
 import WhatsAppTemplateParser from 'dashboard/components-next/whatsapp/WhatsAppTemplateParser.vue';
 
-const { getConnections, getCalendars, inboxes } = vi.hoisted(() => ({
-  getConnections: vi.fn(),
-  getCalendars: vi.fn(),
-  inboxes: { value: [] },
-}));
+const { getConnections, getCalendars, getCaptainInboxes, inboxes } = vi.hoisted(
+  () => ({
+    getConnections: vi.fn(),
+    getCalendars: vi.fn(),
+    getCaptainInboxes: vi.fn(async () => ({
+      data: { payload: inboxes.value },
+    })),
+    inboxes: { value: [] },
+  })
+);
 
 vi.mock('dashboard/api/variables', () => ({
   default: {
@@ -48,6 +53,9 @@ vi.mock('dashboard/api/integrations/calendar', () => ({
     getCalendars,
   },
 }));
+vi.mock('dashboard/api/captain/inboxes', () => ({
+  default: { get: getCaptainInboxes },
+}));
 
 const CONNECTIONS = [{ id: 7, email: 'agenda@example.com', name: 'Agenda' }];
 const CALENDARS = [
@@ -65,7 +73,7 @@ const mountForm = async (
   assistant = { config: { response_window: 'always' } }
 ) => {
   const wrapper = mount(AssistantAppointmentsForm, {
-    props: { assistant },
+    props: { assistant: { id: 2, ...assistant } },
     global: {
       mocks: { $t: key => key },
       stubs: {
@@ -140,30 +148,17 @@ describe('AssistantAppointmentsForm', () => {
     ).toBe('settings_integrations_calendars');
   });
 
-  it.each([
-    'ready',
-    'disabled',
-    'not_sent_channel',
-    'not_sent_window',
-    'no_template',
-    'template_unavailable',
-    'template_changed',
-  ])(
-    'shows the saved per-inbox preparation reason %s and the delivery limits',
-    async status => {
-      const wrapper = await mountForm({
-        config: {},
-        appointment_reminder_readiness: [
-          { inbox_id: 10, inbox_name: 'Ventas', status, missing: ['body.1'] },
-        ],
-      });
-      expect(
-        wrapper.get('[data-testid="reminder-readiness-10"]').text()
-      ).toContain(status);
-      expect(wrapper.text()).toContain('READINESS.SAVED_HELP');
-      expect(wrapper.text()).toContain('body.1');
-    }
-  );
+  it('does not render the retired appointment reminder readiness summary', async () => {
+    const wrapper = await mountForm({
+      config: {},
+      appointment_reminder_readiness: [
+        { inbox_id: 10, inbox_name: 'Ventas', status: 'ready', missing: [] },
+      ],
+    });
+    expect(wrapper.find('[data-testid="reminder-readiness-10"]').exists()).toBe(
+      false
+    );
+  });
 
   it('points to the calendars integration when the account has no calendar connected', async () => {
     getConnections.mockResolvedValue({ data: { payload: [] } });

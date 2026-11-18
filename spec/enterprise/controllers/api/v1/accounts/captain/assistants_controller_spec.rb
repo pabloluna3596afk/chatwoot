@@ -63,6 +63,86 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
     end
   end
 
+  describe 'POST /allow_resource' do
+    let(:channel) do
+      create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false,
+                                validate_provider_config: false,
+                                provider_config: { 'business_account_id' => '123' },
+                                message_templates: [{ 'name' => 'appointment', 'language' => 'es', 'category' => 'UTILITY',
+                                                      'status' => 'APPROVED', 'components' => [{ 'type' => 'BODY', 'text' => 'Hola' }] }])
+    end
+    let(:inbox) { channel.inbox }
+    let(:assistant) do
+      create(
+        :captain_assistant,
+        account: account,
+        config: {
+          'messaging' => { 'version' => 2, 'revision' => 0,
+                           'inboxes' => [{ 'inbox_id' => inbox.id, 'enabled' => true, 'mode' => 'auto',
+                                           'reviewed' => { 'templates' => {}, 'flows' => {} } }] }
+        }
+      )
+    end
+
+    it 'lets administrators approve the current WABA scoped resource' do
+      post "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}/allow_resource",
+           params: { inbox_id: inbox.id, kind: 'template', key: "#{channel.provider_config.fetch('business_account_id')}:appointment|es" },
+           headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(assistant.reload.messaging.revision).to eq(1)
+      key = "#{channel.provider_config.fetch('business_account_id')}:appointment|es"
+      expect(assistant.messaging.entry_for(inbox.id).dig('reviewed', 'templates')).to include(key)
+    end
+
+    it 'denies agents access to resource approval' do
+      post "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}/allow_resource",
+           params: { inbox_id: inbox.id, kind: 'template', key: "#{channel.provider_config.fetch('business_account_id')}:appointment|es" },
+           headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+      expect(assistant.reload.messaging.revision).to eq(0)
+    end
+  end
+
+  describe 'versioned messaging writes' do
+    let(:assistant) do
+      create(
+        :captain_assistant,
+        account: account,
+        config: { 'messaging' => { 'version' => 2, 'revision' => 4, 'inboxes' => [] } }
+      )
+    end
+    let(:assistant_url) { "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}" }
+
+    it 'rejects an old client that replaces a version 2 config' do
+      patch assistant_url, params: { assistant: { config: { messaging: { inboxes: [] } } } },
+                           headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:conflict)
+      expect(assistant.reload.messaging.version).to eq(2)
+      expect(assistant.messaging.revision).to eq(4)
+    end
+
+    it 'rejects a stale revision and preserves unrelated settings' do
+      patch assistant_url,
+            params: { assistant: { config: { messaging: { version: 2, revision: 3, inboxes: [] }, product_name: 'New' } } },
+            headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:conflict)
+      expect(assistant.reload.config['product_name']).not_to eq('New')
+      expect(assistant.messaging.revision).to eq(4)
+    end
+
+    it 'preserves messaging when saving another assistant setting' do
+      patch assistant_url, params: { assistant: { config: { product_name: 'New' } } },
+                           headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(assistant.reload.messaging.revision).to eq(4)
+    end
+  end
+
   def json_response
     JSON.parse(response.body, symbolize_names: true)
   end

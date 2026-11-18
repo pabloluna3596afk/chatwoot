@@ -1368,9 +1368,139 @@
           "DESCRIPTION": "What Captain does when the customer stops answering: ask if they are still there, close for inactivity and, if you turn it on, re-engage with a template."
         },
         "MESSAGING": {
-          "TITLE": "Templates and WhatsApp Flows",
-          "DESCRIPTION": "Which WhatsApp Flows and templates Captain may send to a customer on WhatsApp. Everything starts off: it only sends what you allow here."
+          "TITLE": "Sending by inbox",
+          "DESCRIPTION": "Captain uses what exists in each inbox, as an agent would. Here you only exclude what you do not want; anything missing is created where it belongs."
         }
+      },
+      "ENVIOS": {
+        "NO_INBOXES": "This assistant has no connected inboxes.",
+        "CONNECT_INBOX": "Connect an inbox",
+        "LOAD_ERROR": "Could not load inbox settings. Refresh the page and try again.",
+        "INBOX_LABEL": "Inbox",
+        "PENDING_COUNT": "{count} pending | {count} pending",
+        "APPROVED_IN": "approved in {inboxes}",
+        "ACCOUNT": "WhatsApp account \"{name}\"",
+        "PORTFOLIO": "Business portfolio \"{name}\"",
+        "SHARES_WITH_MANY": "Shares templates and WhatsApp Flows with {count} other numbers",
+        "PREVIEW": "Preview",
+        "PREVIEW_TEMPLATE": "Preview: {name}",
+        "PREVIEW_FLOW": "Preview WhatsApp Flow: {name}",
+        "PREVIEW_FLOW_UNPUBLISHED": "This Flow is not published on this inbox's WhatsApp account.",
+        "PREVIEW_PANEL": {
+          "DESCRIPTION": "See how the message looks with Captain's data.",
+          "MISSING_VARIABLES": "A value is missing. Captain will not send this template until you complete it.",
+          "VARIABLES_TITLE": "What Captain fills in for each variable",
+          "UNASSIGNED": "Not assigned",
+          "BY_NAME": "By their name",
+          "ASSIGNED_HERE": "Assigned on this number",
+          "ASSIGNED_ASSISTANT": "From the assistant (legacy)",
+          "INBOX": "Inbox: {name}",
+          "TEMPLATE_UNAVAILABLE": "This template is no longer approved in this inbox and cannot be shown."
+        },
+        "CONFLICT": "Reload the page: this configuration changed.",
+        "CONNECTION": {
+          "CONNECTED": "Connected",
+          "NEEDS_REVIEW": "Check connection"
+        },
+        "QUALITY_RED": "Low quality in Meta: Captain does not send templates from this number.",
+        "QUALITY_YELLOW": "Meta reports medium quality for this number. Review its status.",
+        "TEMPLATES_STALE": "Templates have not been updated since {date}.",
+        "PAID": {
+          "TITLE": "Allow templates with a cost",
+          "HELP": "Meta charges for every template. When this is off, Captain does not send templates.",
+          "SCOPE": "All WhatsApp inboxes of this assistant"
+        },
+        "CAP": {
+          "LABEL": "Captain daily template limit",
+          "HELP": "Shared by all assistants in the account. Today: {used} of {cap}.",
+          "REACHED": "Today's limit was reached: {used} of {cap}. Captain replies with normal messages until tomorrow.",
+          "SAVE_ERROR": "The daily limit could not be saved. Try again.",
+          "INVALID": "Enter a whole number from 0 to 10,000."
+        },
+        "APPOINTMENTS": {
+          "TITLE": "Appointments",
+          "TOGGLE": "Captain books appointments in this inbox",
+          "OFF": "Appointments are off in this inbox.",
+          "ASSISTANT_OFF": "Appointments are off for this assistant.",
+          "DISABLED": "Off",
+          "LINK": "Appointments",
+          "CALENDAR": "Calendar \"{name}\"",
+          "CONNECTED": "Connected",
+          "NO_CALENDAR": "A calendar is not connected.",
+          "CONNECT": "Connect a calendar",
+          "INSIDE": "Reminders within 24 h: a normal message.",
+          "OUTSIDE_NONE": "Outside 24 h they are not sent.",
+          "APPROVED_HERE": "Outside 24 h: template \"{name}\" · Approved here",
+          "MISSING_HERE": "Outside 24 h: template \"{name}\" · Not in this number",
+          "PICK": "Outside 24 h: choose a template in Appointments"
+        },
+        "MESSAGING": {
+          "TOGGLE": "Captain uses this number's templates and WhatsApp Flows",
+          "HELP": "Like an agent: it can send published WhatsApp Flows and approved utility templates. Marketing templates only if you allow them.",
+          "COUNTS": "{available} available · {excluded} excluded · {unavailable} unavailable",
+          "SHOW": "Review and exclude",
+          "HIDE": "Hide"
+        },
+        "FLOWS": {
+          "TITLE": "WhatsApp Flows",
+          "CREATE": "+ Create WhatsApp Flow",
+          "FIELDS": "Asks for: {fields}",
+          "PUBLISH": "Publish"
+        },
+        "TEMPLATES": {
+          "TITLE": "This number's templates",
+          "CREATE": "+ Create template",
+          "USED_FOR": "Captain uses it for: {text}",
+          "ADD_NOTE": "Add a note",
+          "EDIT_NOTE": "Edit note",
+          "FOOTER": "New or edited items in your WhatsApp account show as \"New\" or \"Changed\": Captain does not use them until you allow them.",
+          "ASSIGN": "Assign",
+          "NOTE_TITLE": "Add a note for {name}",
+          "NOTE_LABEL": "Note",
+          "NOTE_HELP": "Optional. Captain reads it to decide when to use this template.",
+          "SAVE": "Save",
+          "ASSIGN_TITLE": "Assign data for {name}",
+          "ASSIGN_HELP": "Saved on this number: agents will also use this when sending the template."
+        },
+        "STATES": {
+          "AVAILABLE": "Available",
+          "EXCLUDED": "Excluded",
+          "MARKETING_OFF": "Marketing: excluded by default",
+          "NEEDS_DATA": "Missing data",
+          "PENDING": "Pending in Meta",
+          "REJECTED": "Rejected by Meta",
+          "UNSUPPORTED": "Not supported",
+          "AUTHENTICATION": "Authentication: never",
+          "NOT_PUBLISHED_HERE": "Not published here",
+          "NEW": "New",
+          "CHANGED": "Changed: review",
+          "NEEDS_REVIEW": "Review: has a link",
+          "DISABLED": "Off in this inbox",
+          "UNAVAILABLE": "Unavailable"
+        },
+        "CATEGORY": {
+          "UTILITY": "Utility",
+          "MARKETING": "Marketing",
+          "AUTHENTICATION": "Authentication"
+        },
+        "REASONS": {
+          "NEEDS_DATA": "Missing data for {variables}. Assign it once so Captain can use this template.",
+          "UNSUPPORTED": "It has a file header or a per-customer button, so Captain cannot send it.",
+          "NEEDS_REVIEW": "It has a link. Review it before allowing it.",
+          "NOT_PUBLISHED_HERE": "This Flow is not published on this inbox's WhatsApp account."
+        },
+        "ROW_TOGGLE": "Captain can use {name}",
+        "ROW_ALLOW": "Allow",
+        "FOLLOWUP": {
+          "TITLE": "Follow-up",
+          "NO_TEMPLATE": "No re-engagement template selected",
+          "REENGAGEMENT": "Re-engagement with \"{name}\"",
+          "NUDGE_ON": "\"Are you still there?\" on",
+          "NUDGE_OFF": "\"Are you still there?\" off",
+          "NUDGE_EMAIL": "\"Are you still there?\" is not sent by email",
+          "LINK": "Follow-up"
+        },
+        "ONLY_WHATSAPP": "Templates and WhatsApp Flows only exist on WhatsApp."
       },
       "OPTIONS": {
         "EDIT_ASSISTANT": "Edit Assistant",
@@ -1989,7 +2119,10 @@
       },
       "APPOINTMENTS": {
         "LABEL": "Appointments on this channel",
-        "HELP": "Captain offers and books appointments here. Turn it off to keep this channel without appointments.",
+        "HELP": "Captain offers and books appointments here.",
+        "ENABLED": "On",
+        "DISABLED": "Off",
+        "SETTINGS_LINK": "Manage in assistant settings",
         "SAVED": "Appointments setting updated",
         "ERROR": "The appointments setting could not be updated. Please try again."
       },

@@ -6,9 +6,11 @@ import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 import Button from 'dashboard/components-next/button/Button.vue';
 import SidePanel from 'dashboard/components-next/side-panel/SidePanel.vue';
 import FlowPhoneSimulator from './FlowPhoneSimulator.vue';
+import Banner from 'dashboard/components-next/banner/Banner.vue';
 
 // Clicking a Flow in the list shows it here, ready to try in the phone (the same simulator as the editor's
 // Probar). Editing is one button away; the row click no longer jumps straight into the editor.
+const props = defineProps({ notice: { type: String, default: '' } });
 const emit = defineEmits(['edit']);
 const { t } = useI18n();
 const attributes = useMapGetter('attributes/getAttributes');
@@ -17,6 +19,7 @@ const summary = ref(null);
 const flow = ref(null);
 const loading = ref(false);
 const failed = ref(false);
+const previewNotice = computed(() => summary.value?.notice || props.notice);
 let requestId = 0;
 
 const open = async row => {
@@ -53,6 +56,9 @@ defineExpose({ open, close });
     :title="summary?.name || ''"
     :description="t('WHATSAPP_FLOWS.LIST.PREVIEW_DESCRIPTION')"
   >
+    <Banner v-if="previewNotice" color="amber" class="mb-3">
+      {{ previewNotice }}
+    </Banner>
     <p v-if="loading" class="text-sm text-n-slate-11" role="status">
       {{ t('WHATSAPP_FLOWS.LIST.PREVIEW_LOADING') }}
     </p>

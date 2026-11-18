@@ -288,13 +288,20 @@ RSpec.describe Captain::AppointmentReminders do
         today_note = conversation.messages.outgoing.last.content
 
         # The appointment is tomorrow (Jan 11, 11:00) and the reminder goes out today (Jan 10, 10:00): 25 hours before.
+        # Both sends can share a created_at under travel_to, so identify the second message by ID.
+        previous_message_id = conversation.messages.outgoing.maximum(:id)
         assistant.update!(config: { 'appointments' => appointments_config.merge(
           'reminder_1' => { 'enabled' => true, 'hours_before' => 25 }, 'reminder_2' => { 'enabled' => false, 'hours_before' => 3 }
         ) })
         event.update!(start_at: zone.parse('2030-01-11T11:00:00'), end_at: zone.parse('2030-01-11T11:30:00'))
         schedule
-        at(zone.parse('2030-01-10T10:00:30')) { described_class.new(reminder('reminder_1')).perform }
-        tomorrow_note = conversation.messages.outgoing.last.content
+        expect(reminder('reminder_1').reload).to have_attributes(
+          scheduled_at: zone.parse('2030-01-10T10:00:00'), status: 'pending'
+        )
+        expect do
+          at(zone.parse('2030-01-10T10:00:30')) { described_class.new(reminder('reminder_1')).perform }
+        end.to change { conversation.messages.outgoing.count }.by(1)
+        tomorrow_note = conversation.messages.outgoing.where('id > ?', previous_message_id).first.content
 
         expect(today_note).to include('para hoy')
         expect(tomorrow_note).not_to include('para hoy')

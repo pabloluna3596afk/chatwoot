@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+import { useRoute } from 'vue-router';
 import { useToggle } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 
@@ -7,7 +8,6 @@ import CardLayout from 'dashboard/components-next/CardLayout.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Policy from 'dashboard/components/policy.vue';
-import Switch from 'dashboard/components-next/switch/Switch.vue';
 import { usePolicy } from 'dashboard/composables/usePolicy';
 import { INBOX_TYPES, getInboxIconByType } from 'dashboard/helper/inbox';
 
@@ -26,10 +26,11 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['action', 'toggleAppointments']);
+const emit = defineEmits(['action']);
 const { checkPermissions } = usePolicy();
 
 const { t } = useI18n();
+const route = useRoute();
 
 const [showActionsDropdown, toggleDropdown] = useToggle();
 
@@ -130,12 +131,30 @@ const handleAction = ({ action, value }) => {
           {{ t('CAPTAIN.INBOXES.APPOINTMENTS.HELP') }}
         </span>
       </div>
-      <Switch
-        data-testid="inbox-appointments-switch"
-        :model-value="appointmentsEnabled"
-        :disabled="!canChangeAppointments"
-        @update:model-value="emit('toggleAppointments', { id, value: $event })"
-      />
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-n-slate-11">
+          {{
+            t(
+              appointmentsEnabled
+                ? 'CAPTAIN.INBOXES.APPOINTMENTS.ENABLED'
+                : 'CAPTAIN.INBOXES.APPOINTMENTS.DISABLED'
+            )
+          }}
+        </span>
+        <RouterLink
+          v-if="canChangeAppointments"
+          :to="{
+            name: 'captain_assistants_settings_appointments_index',
+            params: {
+              accountId: route?.params?.accountId,
+              assistantId: route?.params?.assistantId,
+            },
+          }"
+          class="text-sm font-medium text-n-brand hover:underline"
+        >
+          {{ t('CAPTAIN.INBOXES.APPOINTMENTS.SETTINGS_LINK') }}
+        </RouterLink>
+      </div>
     </div>
   </CardLayout>
 </template>

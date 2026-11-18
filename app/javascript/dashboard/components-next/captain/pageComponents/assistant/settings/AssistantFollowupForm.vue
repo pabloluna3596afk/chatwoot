@@ -36,7 +36,7 @@ const isCaptainV2Enabled = computed(() =>
   isCloudFeatureEnabled(FEATURE_FLAGS.CAPTAIN_V2)
 );
 const { templateOptions, templateEntry, templateInboxId } =
-  useApprovedTemplates();
+  useApprovedTemplates(props.assistant?.id);
 const { variableOptions, defaultValues, previewValues } = useTemplateVariables({
   appointment: false,
 });

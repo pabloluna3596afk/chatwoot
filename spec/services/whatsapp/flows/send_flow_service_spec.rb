@@ -26,6 +26,12 @@ RSpec.describe Whatsapp::Flows::SendFlowService do
     expect(message.additional_attributes.dig('whatsapp_flow', 'fields', 0, 'save_to', 'target')).to eq('contact.name')
   end
 
+  it 'raises its domain error rather than KeyError when the Cloud inbox has no WABA id' do
+    channel.update!(provider_config: { 'api_key' => 'token' })
+
+    expect { described_class.eligible_for(inbox) }.to raise_error(described_class::Error, 'WhatsApp business account required')
+  end
+
   it 'snapshots every answer label and option without changing the save mapping' do
     flow.definition['screens'][0]['blocks'] << {
       'type' => 'checkbox', 'key' => 'interests', 'label' => 'Intereses',

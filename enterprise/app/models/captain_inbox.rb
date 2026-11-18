@@ -16,6 +16,8 @@
 #  index_captain_inboxes_on_inbox_id                           (inbox_id)
 #
 class CaptainInbox < ApplicationRecord
+  attr_reader :activation_notices
+
   belongs_to :captain_assistant, class_name: 'Captain::Assistant'
   belongs_to :inbox
 
@@ -23,6 +25,7 @@ class CaptainInbox < ApplicationRecord
   validates_with Captain::InboxAudienceValidator
   validate :captain_assistant_must_be_customer_visible
   after_commit -> { inbox.update_account_cache }, on: [:create, :destroy]
+  after_commit :snapshot_messaging_review, on: :create
 
   # Appointments run on this channel only when the assistant has them on and the channel's own
   # switch is on (the switch defaults to on, so channels inherit the assistant setting).
@@ -31,6 +34,10 @@ class CaptainInbox < ApplicationRecord
   end
 
   private
+
+  def snapshot_messaging_review
+    @activation_notices = Captain::Messaging::Snapshotter.perform!(captain_assistant, inbox: inbox)
+  end
 
   def captain_assistant_must_be_customer_visible
     errors.add(:captain_assistant, :invalid) if captain_assistant&.internal?

@@ -13,10 +13,35 @@ class Captain::Tools::TemplateCatalogTool < Captain::Tools::BaseMessagingTool
   private
 
   def templates(conversation)
-    Array(@assistant.messaging.entry_for(conversation.inbox_id)&.dig('templates')).map do |entry|
-      reason = reason_for(conversation, entry)
-      { name: entry['name'], language: entry['language'], purpose: purpose_of(entry), can_send: reason.nil?, reason: reason }.compact
+    availability = Captain::Messaging::Availability.new(@assistant, conversation.inbox)
+    eligible = availability.templates.select { |item| %w[available needs_data].include?(item.state) }
+    items = eligible.sort_by { |item| [item.note.present? ? 0 : 1, item.resource['name']] }.first(20)
+    items.filter_map { |item| template_payload(conversation, item) }
+  end
+
+  def template_payload(conversation, item)
+    entry = matching_template(conversation, item)
+    return unless entry
+
+    entry = entry.merge('processed_params' => item.processed_params) if @assistant.messaging.mode(conversation.inbox_id) == 'auto'
+    reason = reason_for(conversation, entry)
+    { name: item.resource['name'], language: item.resource['language'], category: item.resource['category'],
+      text: body_text(entry), buttons: button_labels(entry), purpose: item.note, can_send: reason.nil?, reason: reason }.compact
+  end
+
+  def matching_template(conversation, item)
+    Array(conversation.inbox.channel.message_templates).find do |candidate|
+      candidate['name'] == item.resource['name'] && candidate['language'].to_s.casecmp?(item.resource['language'])
     end
+  end
+
+  def body_text(entry)
+    Array(entry['components']).find { |component| component['type'].to_s.casecmp?('BODY') }&.dig('text').to_s
+  end
+
+  def button_labels(entry)
+    buttons = Array(entry['components']).select { |component| component['type'].to_s.casecmp?('BUTTONS') }
+    buttons.flat_map { |component| Array(component['buttons']).filter_map { |button| button['text'] } }
   end
 
   def reason_for(conversation, entry)
@@ -26,7 +51,7 @@ class Captain::Tools::TemplateCatalogTool < Captain::Tools::BaseMessagingTool
 
     Captain::TemplateMessage.build(approved, entry['processed_params'], Captain::TemplateMessage.drops(conversation, @assistant))
     nil
-  rescue Captain::TemplateMessage::MappingMismatch
+  rescue Captain::TemplateMessage::MappingMismatch, Variables::DeliveryRenderer::Error
     translate('errors.missing_variables')
   end
 end

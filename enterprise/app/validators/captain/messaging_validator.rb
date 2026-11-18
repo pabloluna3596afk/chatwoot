@@ -6,8 +6,8 @@ class Captain::MessagingValidator < ActiveModel::Validator
   MAX_RESOURCES = 50
   MAX_PURPOSE_LENGTH = 300
   MAX_TEXT_LENGTH = 512
-  ROOT_KEYS = %w[inboxes].freeze
-  INBOX_KEYS = %w[inbox_id enabled flows templates].freeze
+  ROOT_KEYS = %w[version revision inboxes].freeze
+  INBOX_KEYS = %w[inbox_id enabled mode flows templates excluded included_marketing notes params reviewed].freeze
   FLOW_KEYS = %w[flow_id purpose].freeze
   TEMPLATE_KEYS = %w[name language purpose processed_params].freeze
 
@@ -16,11 +16,24 @@ class Captain::MessagingValidator < ActiveModel::Validator
     return if raw.nil?
     return error(record, 'must be an object') unless raw.is_a?(Hash)
 
-    unknown_keys(record, 'messaging', raw, ROOT_KEYS)
+    validate_root(record, raw)
     validate_inboxes(record, raw['inboxes'])
+    validate_auto_version(record, raw)
   end
 
   private
+
+  def validate_root(record, raw)
+    unknown_keys(record, 'messaging', raw, ROOT_KEYS)
+    error(record, 'version must be 2') if raw.key?('version') && raw['version'] != 2
+    error(record, 'revision must be a non-negative integer') if raw.key?('revision') && (!raw['revision'].is_a?(Integer) || raw['revision'].negative?)
+  end
+
+  def validate_auto_version(record, raw)
+    return unless Array(raw['inboxes']).any? { |entry| entry.is_a?(Hash) && entry.fetch('mode', 'list') == 'auto' }
+
+    error(record, 'auto mode requires version 2 and revision') unless raw['version'] == 2 && raw['revision'].is_a?(Integer)
+  end
 
   def error(record, message)
     record.errors.add(:config, "messaging #{message}")
@@ -43,11 +56,41 @@ class Captain::MessagingValidator < ActiveModel::Validator
   def validate_inbox_entry(record, entry)
     return error(record, 'every inbox entry must be an object') unless entry.is_a?(Hash)
 
+    validate_entry_common(record, entry)
+    validate_entry_mode(record, entry)
+  end
+
+  def validate_entry_common(record, entry)
     unknown_keys(record, 'an inbox entry', entry, INBOX_KEYS)
     validate_inbox(record, entry['inbox_id'])
     error(record, 'inbox enabled must be true or false') unless [true, false].include?(entry['enabled'])
+  end
+
+  def validate_entry_mode(record, entry)
+    mode = entry.fetch('mode', 'list')
+    error(record, 'inbox mode must be auto or list') unless %w[auto list].include?(mode)
+    if mode == 'auto'
+      validate_auto_mode(record, entry)
+    else
+      validate_list_mode(record, entry)
+    end
+  end
+
+  def validate_auto_mode(record, entry)
+    %w[flows templates].each { |key| error(record, "#{key} are not allowed in auto mode") if entry.key?(key) }
+    validate_auto_entry(record, entry)
+  end
+
+  def validate_list_mode(record, entry)
+    %w[excluded included_marketing notes params reviewed].each do |key|
+      error(record, "#{key} are not allowed in list mode") if entry.key?(key)
+    end
     validate_flows(record, entry['flows'] || [], record.account)
     validate_templates(record, entry['templates'] || [])
+  end
+
+  def validate_auto_entry(record, entry)
+    Captain::AutoConfigValidator.new(record).validate(entry)
   end
 
   def validate_inbox(record, inbox_id)

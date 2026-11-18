@@ -25,6 +25,14 @@ class CaptainAssistant extends ApiClient {
     return axios.patch(`${this.url}/${assistantId}`, formData);
   }
 
+  allowResource({ assistantId, inboxId, kind, key }) {
+    return axios.post(`${this.url}/${assistantId}/allow_resource`, {
+      inbox_id: inboxId,
+      kind,
+      key,
+    });
+  }
+
   deleteAvatar(assistantId) {
     return axios.delete(`${this.url}/${assistantId}/avatar`);
   }

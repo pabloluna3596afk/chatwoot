@@ -69,6 +69,7 @@ class Account < ApplicationRecord # rubocop:disable Metrics/ClassLength
   store_accessor :settings, :resolved_label_key
   store_accessor :settings, :business_rules
   store_accessor :settings, :enforce_mfa
+  store_accessor :settings, :captain_template_daily_cap
 
   def enforce_mfa?
     ActiveModel::Type::Boolean.new.cast(enforce_mfa)

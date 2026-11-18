@@ -51,6 +51,16 @@ class Inboxes extends CacheEnabledApiClient {
     });
   }
 
+  updateWhatsappTemplateVariableBindings(inboxId, { name, variable_bindings }) {
+    return axios.patch(
+      `${this.url}/${inboxId}/whatsapp_templates/variable_bindings`,
+      {
+        name,
+        variable_bindings,
+      }
+    );
+  }
+
   updateWhatsappBusinessManagementToken(inboxId, businessManagementToken) {
     return axios.put(
       `${this.url}/${inboxId}/whatsapp_business_management_token`,

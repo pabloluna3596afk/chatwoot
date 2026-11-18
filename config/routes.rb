@@ -89,6 +89,7 @@ Rails.application.routes.draw do
                 post :playground
                 get :playground_usage
                 delete :avatar
+                post :allow_resource
                 get :metrics
                 get :faq_stats
                 get :summary
@@ -427,6 +428,7 @@ Rails.application.routes.draw do
                 get :library
                 post :library, action: :create_from_library
                 post :header_handle
+                patch :variable_bindings
               end
             end
           end

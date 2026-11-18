@@ -4,6 +4,8 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
   LANGUAGE_FORMAT = /\A[a-z]{2,3}(_[A-Z]{2})?\z/
   META_ERROR_STATUS = { 'not_found' => :not_found, 'rate_limited' => :bad_gateway, 'meta_unreachable' => :bad_gateway }.freeze
 
+  include Api::V1::Accounts::InboxWhatsappTemplateVariableBindings
+
   before_action :fetch_inbox
   before_action :validate_whatsapp_cloud_channel
   before_action :prepare_variable_bindings, only: %i[create update]
@@ -172,26 +174,6 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
 
   def render_error(code, status: :unprocessable_entity, **options)
     render json: { error: code, message: translate_error(code, options) }, status: status
-  end
-
-  def variable_bindings_service
-    @variable_bindings_service ||= Whatsapp::TemplateVariableBindingsService.new(@inbox.channel)
-  end
-
-  # The variables the administrator chose a value for, checked against the texts of the template before Meta is called.
-  # Sending `variable_bindings` replaces the choices of that template; leaving it out keeps them.
-  def prepare_variable_bindings
-    return unless template_params.key?(:variable_bindings)
-    raise Whatsapp::TemplateVariableBindingsService::Invalid, 'the template needs a name' if template_params[:name].blank?
-
-    texts = [template_params.dig(:header, :text), template_params.dig(:body, :text)]
-    @variable_bindings = variable_bindings_service.normalize(template_params[:variable_bindings].to_h, texts)
-  rescue Whatsapp::TemplateVariableBindingsService::Invalid => e
-    render_error('invalid_variable_bindings', message: e.message)
-  end
-
-  def store_variable_bindings(name)
-    variable_bindings_service.store(name, @variable_bindings) unless @variable_bindings.nil?
   end
 
   def translate_error(code, options = {})

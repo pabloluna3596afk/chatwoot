@@ -93,6 +93,17 @@ class AdministratorNotifications::AccountNotificationMailer < AdministratorNotif
     end
   end
 
+  def captain_template_cap_reached(account, cap)
+    Current.set(account: account) do
+      I18n.with_locale(account.locale) do
+        subject = I18n.t('captain.messaging.template_cap_mail_subject')
+        message = I18n.t('captain.messaging.template_cap_mail_message', cap: cap)
+        action_url = "#{ENV.fetch('FRONTEND_URL', nil)}/app/accounts/#{account.id}/captain"
+        send_notification(subject, action_url: action_url, meta: { 'message' => message })
+      end
+    end
+  end
+
   private
 
   def format_deletion_date(deletion_date_str)

@@ -6,6 +6,14 @@ class Captain::MessagingSettings
     @raw = raw.is_a?(Hash) ? raw : {}
   end
 
+  def version
+    @raw['version']
+  end
+
+  def revision
+    @raw['revision'].to_i
+  end
+
   # The entry of an inbox that is switched on, or nil.
   def entry_for(inbox_id)
     Array(@raw['inboxes']).find { |entry| entry.is_a?(Hash) && entry['inbox_id'] == inbox_id && entry['enabled'] == true }
@@ -19,5 +27,25 @@ class Captain::MessagingSettings
     Array(entry_for(inbox_id)&.dig('templates')).find do |template|
       template['name'] == name && template['language'].to_s.casecmp?(language.to_s)
     end
+  end
+
+  def mode(inbox_id)
+    entry_for(inbox_id)&.fetch('mode', 'list') || 'list'
+  end
+
+  def excluded?(inbox_id, kind, key)
+    Array(entry_for(inbox_id)&.dig('excluded', kind)).include?(key)
+  end
+
+  def marketing_included?(inbox_id, key)
+    Array(entry_for(inbox_id)&.dig('included_marketing')).include?(key)
+  end
+
+  def note_for(inbox_id, key)
+    entry_for(inbox_id)&.dig('notes', key)
+  end
+
+  def params_for(inbox_id, key)
+    entry_for(inbox_id)&.dig('params', key)
   end
 end
