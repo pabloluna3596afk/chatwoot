@@ -29,7 +29,8 @@ RSpec.describe Captain::Messaging::TemplateParams do
   end
 
   it 'does not fall through to a channel binding when an explicit override is invalid' do
-    configure_params('123:order_ready|es' => { 'body' => { 'nombre' => '{{ appointment.date }}' } })
+    key = "#{channel.provider_config.fetch('business_account_id')}:order_ready|es"
+    configure_params(key => { 'body' => { 'nombre' => '{{ appointment.date }}' } })
     template = templates.first
 
     _processed_params, missing = described_class.new(assistant, inbox, template).resolve
@@ -47,14 +48,14 @@ RSpec.describe Captain::Messaging::TemplateParams do
 
   it 'uses distinct WABA and language scoped overrides for language variants' do
     configure_params(
-      '123:order_ready|es' => { 'body' => { 'nombre' => '{{ contact.first_name }}' } },
-      '123:order_ready|en' => { 'body' => { 'correo' => '{{ contact.email }}' } }
+      "#{channel.provider_config.fetch('business_account_id')}:order_ready|es" => { 'body' => { 'nombre' => '{{ contact.name }}' } },
+      "#{channel.provider_config.fetch('business_account_id')}:order_ready|en" => { 'body' => { 'correo' => '{{ contact.email }}' } }
     )
 
     spanish = described_class.new(assistant, inbox, templates[0]).resolve.first
     english = described_class.new(assistant, inbox, templates[1]).resolve.first
 
-    expect(spanish.dig('body', 'nombre')).to eq('{{ contact.first_name }}')
+    expect(spanish.dig('body', 'nombre')).to eq('{{ contact.name }}')
     expect(english.dig('body', 'correo')).to eq('{{ contact.email }}')
   end
 end

@@ -86,20 +86,21 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
 
     it 'lets administrators approve the current WABA scoped resource' do
       post "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}/allow_resource",
-           params: { inbox_id: inbox.id, kind: 'template', key: '123:appointment|es' },
+           params: { inbox_id: inbox.id, kind: 'template', key: "#{channel.provider_config.fetch('business_account_id')}:appointment|es" },
            headers: admin.create_new_auth_token, as: :json
 
       expect(response).to have_http_status(:ok)
       expect(assistant.reload.messaging.revision).to eq(1)
-      expect(assistant.messaging.entry_for(inbox.id).dig('reviewed', 'templates')).to include('123:appointment|es')
+      key = "#{channel.provider_config.fetch('business_account_id')}:appointment|es"
+      expect(assistant.messaging.entry_for(inbox.id).dig('reviewed', 'templates')).to include(key)
     end
 
     it 'denies agents access to resource approval' do
       post "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}/allow_resource",
-           params: { inbox_id: inbox.id, kind: 'template', key: '123:appointment|es' },
+           params: { inbox_id: inbox.id, kind: 'template', key: "#{channel.provider_config.fetch('business_account_id')}:appointment|es" },
            headers: agent.create_new_auth_token, as: :json
 
-      expect(response).to have_http_status(:forbidden)
+      expect(response).to have_http_status(:unauthorized)
       expect(assistant.reload.messaging.revision).to eq(0)
     end
   end
