@@ -141,6 +141,9 @@ const visibilityIcon = item =>
     ? 'i-lucide-building-2 text-n-brand'
     : 'i-lucide-user-round text-n-slate-11';
 const visibleVariableText = part => variableName(part);
+// Paragraph spacing only in the expanded overlay: in the collapsed card every paragraph
+// is one clamped line, so the measured height matches the line count.
+const overlayClasses = '[&_p+p]:mt-2';
 const escapeHtml = value =>
   String(value)
     .replace(/&/g, '&amp;')
@@ -163,7 +166,7 @@ const renderContent = content => {
   );
 };
 const contentClasses =
-  '[&_p]:m-0 [&_p+p]:mt-2 [&_ul]:m-0 [&_ul]:list-disc [&_ul]:ps-5 [&_ol]:m-0 [&_ol]:list-decimal [&_ol]:ps-5 [&_a]:underline [&_a]:text-n-brand [&_strong]:font-semibold';
+  '[&_p]:m-0 [&_ul]:m-0 [&_ul]:list-disc [&_ul]:ps-5 [&_ol]:m-0 [&_ol]:list-decimal [&_ol]:ps-5 [&_a]:underline [&_a]:text-n-brand [&_strong]:font-semibold';
 const cardTabIndex = item => (props.canEdit(item) ? 0 : -1);
 const onCardKeydown = (event, item) => {
   if (event.key === 'Enter' || event.key === ' ') {
@@ -327,7 +330,7 @@ onBeforeUnmount(() => {
                 <span
                   v-dompurify-html="renderContent(item[contentKey])"
                   class="block break-words"
-                  :class="contentClasses"
+                  :class="[contentClasses, overlayClasses]"
                 />
               </button>
               <div
