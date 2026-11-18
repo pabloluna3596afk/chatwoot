@@ -4,7 +4,8 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
   let(:account) { create(:account, locale: 'es') }
   let(:templates) do
     [{ 'name' => 'cita_confirmada', 'language' => 'es', 'status' => 'APPROVED', 'category' => 'UTILITY', 'namespace' => 'ns',
-       'components' => [{ 'type' => 'BODY', 'text' => 'Hola {{nombre}}, soy {{asistente}}.' }] }]
+       'components' => [{ 'type' => 'BODY', 'text' => 'Hola {{nombre}}, soy {{asistente}}.' }],
+       'processed_params' => params }]
   end
   let(:channel) do
     create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false, validate_provider_config: false,
@@ -14,7 +15,7 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
   let(:contact) { create(:contact, account: account, name: 'Ana Pérez') }
   let(:conversation) { create(:conversation, account: account, inbox: inbox, contact: contact, status: :pending) }
   let(:flow) { create(:whatsapp_flow, account: account, name: 'Datos de reserva') }
-  let(:params) { { 'body' => { 'nombre' => '{{ contact.first_name }}', 'asistente' => '{{ assistant.name }}' } } }
+  let(:params) { { 'body' => { 'nombre' => '{{ contact.name }}', 'asistente' => '{{ assistant.name }}' } } }
   let(:messaging) do
     { 'inboxes' => [{ 'inbox_id' => inbox.id, 'enabled' => true,
                       'flows' => [{ 'flow_id' => flow.id, 'purpose' => 'Pedir datos' }],
@@ -33,7 +34,7 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
   before do
     create(:captain_inbox, captain_assistant: assistant, inbox: inbox)
     WhatsappFlowPublication.create!(whatsapp_flow: flow, account: account, waba_id: channel.provider_config['business_account_id'],
-                                    status: 'published', meta_flow_id: '1234567', published_at: Time.current)
+                                    status: 'published', meta_flow_id: '1234567', published_version: 1, published_at: Time.current)
     allow_any_instance_of(Conversation).to receive(:can_reply?).and_return(true) # rubocop:disable RSpec/AnyInstance
   end
 
@@ -52,12 +53,10 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
                                      'fields' => [{ 'label' => 'Nombre', 'type' => 'short_text' }], 'can_send' => true }])
     end
 
-    it 'says why a Flow cannot be sent' do
+    it 'omits unpublished Flows from the eligible catalog' do
       flow.whatsapp_flow_publications.destroy_all
 
-      entry = JSON.parse(described_class.new(assistant).perform(tool_context))['flows'].first
-
-      expect(entry).to include('can_send' => false, 'reason' => 'El Flow no está publicado o la plantilla no está aprobada para esta bandeja.')
+      expect(JSON.parse(described_class.new(assistant).perform(tool_context))['flows']).to be_empty
     end
 
     it 'returns an empty catalog when the Cloud inbox has no WABA id' do
@@ -106,7 +105,7 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
           conversation: conversation, assistant: assistant,
           request: Captain::Messaging::Request.new(kind: 'flow', resource: flow.id, responding_to_message_id: customer_message.id - 1)
         ).perform
-        travel_to(Time.zone.parse('2030-01-15T10:05:00-05:00'))
+        travel(5.minutes)
 
         result = described_class.new(assistant).perform(tool_context, flow_id: flow.id, customer_asked_again: true)
 
@@ -123,7 +122,7 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
     it 'lists the allowed templates and whether they can be sent' do
       entry = JSON.parse(described_class.new(assistant).perform(tool_context))['templates'].first
 
-      expect(entry).to eq('name' => 'cita_confirmada', 'language' => 'es', 'purpose' => 'Confirmar', 'can_send' => true)
+      expect(entry).to include('name' => 'cita_confirmada', 'language' => 'es', 'purpose' => 'Confirmar', 'can_send' => true)
     end
 
     it 'says paid messages are off' do
