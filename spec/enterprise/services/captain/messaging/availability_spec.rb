@@ -161,6 +161,18 @@ RSpec.describe Captain::Messaging::Availability do
       .to eq('not_published_here')
   end
 
+  it 'reads the purpose note of a Flow in auto mode with the key the screen and the converter write' do
+    flow = create(:whatsapp_flow, account: account)
+    flow.whatsapp_flow_publications.create!(account: account, waba_id: waba_id, status: 'published', published_version: 1,
+                                            published_at: 1.minute.from_now)
+    enable_auto(reviewed: { 'templates' => {}, 'flows' => { "#{waba_id}:#{flow.id}" => 1 } })
+    assistant.config['messaging']['inboxes'].first['notes'] = { "flow:#{waba_id}:#{flow.id}" => 'Reservar mesa' }
+
+    item = described_class.new(assistant, inbox).flows.find { |entry| entry.resource['id'] == flow.id }
+
+    expect(item.note).to eq('Reservar mesa')
+  end
+
   it 'marks an approved positional variable as missing data and returns explicit empty params' do
     positional = template.merge('components' => [{ 'type' => 'BODY', 'text' => 'Order {{1}}' }])
     channel.update!(message_templates: [positional])

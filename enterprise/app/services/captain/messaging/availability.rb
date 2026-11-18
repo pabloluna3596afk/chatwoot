@@ -59,7 +59,7 @@ class Captain::Messaging::Availability
   def flow_note(flow)
     return @settings.flow(@inbox.id, flow.id)&.fetch('purpose', nil) if @settings.mode(@inbox.id) == 'list'
 
-    @settings.note_for(@inbox.id, "#{waba_id}:flow:#{flow.id}")
+    @settings.note_for(@inbox.id, "flow:#{waba_id}:#{flow.id}")
   end
 
   def reviewed_flow_state(flow)
