@@ -1,3 +1,5 @@
+require 'uri'
+
 # Validates and sends one due reminder, locking the event before its reminder row.
 #
 # Inside the 24 h window it is a single free-form message with [Confirmo] [Cambiar hora] [Cancelar cita]
@@ -42,6 +44,8 @@ class Captain::AppointmentReminders::Sender
     return skip('event_gone') unless upcoming_event?
     return skip('disabled') unless active?
 
+    return send_agent_note if human_conversation?
+
     conversation.can_reply? ? send_free_form : send_template
   end
 
@@ -61,6 +65,10 @@ class Captain::AppointmentReminders::Sender
 
   def active?
     settings.reminder_enabled?(reminder.kind) && assistant.appointments_active_in?(conversation.inbox)
+  end
+
+  def human_conversation?
+    conversation.assignee_id.present? && conversation.open? && conversation.can_reply?
   end
 
   def locale
@@ -192,5 +200,41 @@ class Captain::AppointmentReminders::Sender
   def skip_with_note(reason_key)
     create_message(translate(reason_key, when: when_label), private: true)
     skip(reason_key)
+  end
+
+  def send_agent_note
+    create_message(agent_note_content, private: true)
+    skip('agent_note')
+  end
+
+  def agent_note_content
+    "#{agent_note_intro}\n\n#{agent_copy_text}"
+  end
+
+  def agent_note_intro
+    key = event.appointment_status == CONFIRMED ? 'agent_note' : 'agent_note_unconfirmed'
+    translate(key, mention: assignee_mention, today: agent_note_today, title: event.summary, when: when_label)
+  end
+
+  def assignee_mention
+    name = conversation.assignee.name
+    encoded_name = URI::DEFAULT_PARSER.escape(name, /[^A-Za-z0-9\-_.!~*'()]/)
+    "[@#{name}](mention://user/#{conversation.assignee_id}/#{encoded_name})"
+  end
+
+  def agent_note_today
+    return '' unless event.start_at.in_time_zone(zone).to_date == now.in_time_zone(zone).to_date
+
+    translate('agent_note_today')
+  end
+
+  def agent_copy_text
+    translate(agent_copy_key, name: contact.name, title: event.summary, when: when_label)
+  end
+
+  def agent_copy_key
+    name = contact.name.blank? ? '_no_name' : ''
+    confirmation = event.appointment_status == CONFIRMED ? '' : '_unconfirmed'
+    "agent_copy_text#{name}#{confirmation}"
   end
 end

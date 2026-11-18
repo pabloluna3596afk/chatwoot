@@ -852,6 +852,13 @@ en:
       not_sent_channel: '%{assistant} did not send the reminder (%{when}): this channel cannot send outside its messaging window.'
       no_template: '%{assistant} did not send the reminder (%{when}): it is outside the 24 h window and no template is selected for reminders.'
       template_unavailable: '%{assistant} did not send the reminder (%{when}): the selected template is not approved in this inbox.'
+      agent_note: '%{mention} Appointment reminder%{today}: "%{title}" on %{when}. Captain did not send it to the customer because you are talking with them. If you want to remind them, you can copy this text:'
+      agent_note_unconfirmed: '%{mention} Appointment reminder%{today}: "%{title}" on %{when}. **It is not confirmed yet.** Captain did not send it to the customer because you are talking with them. If you want to ask them to confirm, you can copy this text:'
+      agent_note_today: ' for today'
+      agent_copy_text: 'Hi %{name}, this is a reminder of your appointment "%{title}" on %{when}.'
+      agent_copy_text_unconfirmed: 'Hi %{name}, this is a reminder of your appointment "%{title}" on %{when}. Can you confirm you will attend?'
+      agent_copy_text_no_name: 'Hi, this is a reminder of your appointment "%{title}" on %{when}.'
+      agent_copy_text_no_name_unconfirmed: 'Hi, this is a reminder of your appointment "%{title}" on %{when}. Can you confirm you will attend?'
     appointments:
       disabled: 'Appointments are not available in this channel. Offer to connect the customer with the team instead.'
       no_calendar: 'The appointments calendar is not available right now. Offer to connect the customer with the team.'

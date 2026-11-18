@@ -104,6 +104,28 @@ describe Messages::MentionService do
         )
       end
 
+      it 'notifies the mentioned inbox member when an assistant authors the private note' do
+        assistant = create(:captain_assistant, account: account)
+        message = build(
+          :message,
+          conversation: conversation,
+          account: account,
+          content: "[@#{first_agent.name}](mention://user/#{first_agent.id}/#{first_agent.name.gsub(' ', '%20')})",
+          private: true,
+          sender: assistant
+        )
+
+        described_class.new(message: message).perform
+
+        expect(NotificationBuilder).to have_received(:new).with(
+          notification_type: 'conversation_mention',
+          user: first_agent,
+          account: account,
+          primary_actor: conversation,
+          secondary_actor: message
+        )
+      end
+
       it 'adds mentioned user as conversation participant' do
         message = build(
           :message,
@@ -224,7 +246,8 @@ describe Messages::MentionService do
           conversation: conversation,
           account: account,
           content: "hi (mention://user/#{non_member_user.id}/#{non_member_user.name})",
-          private: true
+          private: true,
+          sender: create(:captain_assistant, account: account)
         )
 
         described_class.new(message: message).perform
