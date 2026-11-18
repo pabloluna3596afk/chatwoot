@@ -109,7 +109,7 @@ describe Whatsapp::SendOnWhatsappService do
         described_class.new(message: message).perform
 
         expect(message.reload.status).to eq('failed')
-        expect(message.reload.external_error).to eq('Template not found or invalid template name')
+        expect(message.reload.external_error).to eq(I18n.t('errors.whatsapp.template_not_found'))
       end
 
       it 'calls channel.send_template when after 24 hour limit' do

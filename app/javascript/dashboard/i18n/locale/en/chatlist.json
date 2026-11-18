@@ -7,6 +7,65 @@
       "404": "There are no active conversations in this group."
     },
     "FAILED_TO_SEND": "Failed to send",
+    "SEND_ERRORS": {
+      "WHATSAPP": {
+        "0": "The WhatsApp connection expired: reconnect the channel",
+        "1": "Temporary Meta error: try again",
+        "2": "Temporary Meta error: try again",
+        "190": "The WhatsApp connection expired: reconnect the channel",
+        "368": "Meta restricted the WhatsApp Business account",
+        "130403": "Your business blocked this customer",
+        "130429": "The number's message throughput limit was reached",
+        "130472": "Meta did not send the message because the customer is in a Meta test",
+        "131000": "Temporary Meta error: try again",
+        "131016": "Temporary Meta error: try again",
+        "131026": "The number does not have WhatsApp or cannot receive messages",
+        "131031": "Meta restricted the WhatsApp Business account",
+        "131042": "There is a problem with the WhatsApp Business payment method",
+        "131047": "Outside the 24-hour window: send a template",
+        "131048": "Meta restricted this number's messaging due to possible spam or blocked messages",
+        "131049": "Meta did not deliver the message to avoid overloading the customer; wait 24 hours",
+        "131050": "The customer has opted out of marketing messages",
+        "131053": "The file could not be uploaded: unsupported format",
+        "131056": "Too many messages sent to this customer in a short time; wait a moment",
+        "131064": "The sending limit for misclassified templates was reached",
+        "132000": "Template data is missing or has an invalid format",
+        "132001": "The template does not exist in that language or is not approved",
+        "132012": "Template data is missing or has an invalid format",
+        "132015": "The template is paused or disabled due to low quality",
+        "132016": "The template is paused or disabled due to low quality",
+        "133004": "Temporary Meta error: try again"
+      },
+      "FACEBOOK": {
+        "10": "Outside the allowed reply window",
+        "190": "The connection expired: reconnect the channel",
+        "551": "This person is not available right now",
+        "2018278": "Outside the allowed reply window"
+      },
+      "INSTAGRAM": {
+        "10": "Outside the allowed reply window",
+        "190": "The connection expired: reconnect the channel",
+        "551": "This person is not available right now",
+        "2018278": "Outside the allowed reply window"
+      },
+      "TELEGRAM": {
+        "403": "The customer blocked the bot"
+      },
+      "TWILIO": {
+        "21610": "The customer opted out of SMS",
+        "30003": "The number cannot receive messages or the carrier filtered them",
+        "30005": "The number cannot receive messages or the carrier filtered them",
+        "30007": "The number cannot receive messages or the carrier filtered them",
+        "63016": "Outside the 24-hour window: send a template"
+      },
+      "SMS": {
+        "21610": "The customer opted out of SMS",
+        "30003": "The number cannot receive messages or the carrier filtered them",
+        "30005": "The number cannot receive messages or the carrier filtered them",
+        "30007": "The number cannot receive messages or the carrier filtered them",
+        "63016": "Outside the 24-hour window: send a template"
+      }
+    },
     "FETCH_ERROR": "Couldn't load conversations. Please try again.",
     "TAB_HEADING": "Conversations",
     "MENTION_HEADING": "Mentions",

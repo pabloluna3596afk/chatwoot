@@ -642,6 +642,7 @@ provideMessageContext({
         class="[grid-area:meta]"
         :class="flexOrientationClass"
         :error="contentAttributes.externalError"
+        :channel-type="inbox.channel_type"
         @retry="emit('retry')"
       />
     </div>

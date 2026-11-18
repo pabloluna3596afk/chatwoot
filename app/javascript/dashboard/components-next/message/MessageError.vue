@@ -5,9 +5,11 @@ import { useI18n } from 'vue-i18n';
 import { useMessageContext } from './provider.js';
 import { hasOneDayPassed } from 'shared/helpers/timeHelper';
 import { ORIENTATION, MESSAGE_STATUS } from './constants';
+import { parseExternalError } from './helpers/messageError';
 
-defineProps({
+const props = defineProps({
   error: { type: String, required: true },
+  channelType: { type: String, default: '' },
 });
 
 const emit = defineEmits(['retry']);
@@ -15,7 +17,17 @@ const emit = defineEmits(['retry']);
 const { orientation, status, createdAt, content, attachments } =
   useMessageContext();
 
-const { t } = useI18n();
+const { t, te } = useI18n();
+const tooltipError = computed(() => {
+  const { code, key } = parseExternalError(props.error, props.channelType);
+  // The provider code selects one of the channel-specific translation keys.
+  // eslint-disable-next-line @intlify/vue-i18n/no-dynamic-keys
+  const hasTranslation = code && te(key);
+  if (!hasTranslation) return props.error;
+
+  // eslint-disable-next-line @intlify/vue-i18n/no-dynamic-keys
+  return `${t(key)} (${code})`;
+});
 
 const canRetry = computed(() => {
   const hasContent = content.value !== null;
@@ -37,13 +49,13 @@ const canRetry = computed(() => {
         />
       </div>
       <div
-        class="absolute bg-n-alpha-3 px-4 py-3 border rounded-xl border-n-strong text-n-slate-12 bottom-6 w-52 text-xs backdrop-blur-[100px] shadow-[0px_0px_24px_0px_rgba(0,0,0,0.12)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all break-all"
+        class="absolute bg-n-alpha-3 px-4 py-3 border rounded-xl border-n-strong text-n-slate-12 bottom-6 w-64 max-w-xs text-xs backdrop-blur-[100px] shadow-[0px_0px_24px_0px_rgba(0,0,0,0.12)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all break-words"
         :class="{
           'ltr:left-0 rtl:right-0': orientation === ORIENTATION.LEFT,
           'ltr:right-0 rtl:left-0': orientation === ORIENTATION.RIGHT,
         }"
       >
-        {{ error }}
+        {{ tooltipError }}
       </div>
     </div>
     <button
