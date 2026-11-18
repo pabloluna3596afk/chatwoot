@@ -185,6 +185,24 @@ const listActions = computed(() => [
     visible: item => isAdmin.value && item.approval_status === 'pending',
   },
   {
+    key: 'move-to-account',
+    label: t('CANNED_MGMT.MOVE.TO_ACCOUNT'),
+    icon: 'i-lucide-building-2',
+    visible: item =>
+      isAdmin.value &&
+      item.approval_status === 'approved' &&
+      item.visibility !== 'global',
+  },
+  {
+    key: 'move-to-personal',
+    label: t('CANNED_MGMT.MOVE.TO_PERSONAL'),
+    icon: 'i-lucide-user-round',
+    visible: item =>
+      isAdmin.value &&
+      item.approval_status === 'approved' &&
+      item.visibility === 'global',
+  },
+  {
     key: 'reject',
     label: t('CANNED_MGMT.REJECT.BUTTON'),
     variant: 'danger',
@@ -299,6 +317,26 @@ const approveResponse = async (item, visibility) => {
     useAlert(t('CANNED_MGMT.APPROVE.SUCCESS'));
   } catch (error) {
     useAlert(error?.message || t('CANNED_MGMT.APPROVE.ERROR'));
+  } finally {
+    loading.value[item.id] = false;
+  }
+};
+
+// Only an administrator can change the scope of an approved response: the server's
+// approve endpoint re-approves it with the new visibility.
+const moveResponse = async (item, visibility) => {
+  loading.value[item.id] = true;
+  try {
+    await store.dispatch('approveCannedResponse', { id: item.id, visibility });
+    useAlert(
+      t(
+        visibility === 'global'
+          ? 'CANNED_MGMT.MOVE.SUCCESS_ACCOUNT'
+          : 'CANNED_MGMT.MOVE.SUCCESS_PERSONAL'
+      )
+    );
+  } catch (error) {
+    useAlert(error?.message || t('CANNED_MGMT.MOVE.ERROR'));
   } finally {
     loading.value[item.id] = false;
   }
@@ -448,6 +486,8 @@ const handleListAction = ({ action, item }) => {
   if (action === 'duplicate') duplicateCanned(item);
   if (action === 'approve-global') approveResponse(item, 'global');
   if (action === 'approve-personal') approveResponse(item, 'personal');
+  if (action === 'move-to-account') moveResponse(item, 'global');
+  if (action === 'move-to-personal') moveResponse(item, 'personal');
   if (action === 'reject') openRejectPopup(item);
   if (action === 'delete') openDeletePopup(item);
 };
