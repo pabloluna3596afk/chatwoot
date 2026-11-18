@@ -92,8 +92,5 @@ describe('AssistantSystemSettingsForm', () => {
   it('does not render inactivity mode controls', () => {
     const wrapper = mountComponent();
     expect(wrapper.find('[role="radiogroup"]').exists()).toBe(false);
-    expect(wrapper.find('[data-testid="followup-notice"]').exists()).toBe(
-      false
-    );
   });
 });

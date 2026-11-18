@@ -9,12 +9,25 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TeamForm from 'dashboard/routes/dashboard/settings/teams/TeamForm.vue';
 import AssistantBasicSettingsForm from './AssistantBasicSettingsForm.vue';
+import AssistantFollowupForm from './AssistantFollowupForm.vue';
 import AssistantSystemSettingsForm from './AssistantSystemSettingsForm.vue';
 import DurationSelect from './DurationSelect.vue';
 
 vi.mock('@amplitude/analytics-browser', () => ({
   init: vi.fn(),
   track: vi.fn(),
+}));
+
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ params: { accountId: '1', assistantId: '2' } }),
+}));
+
+vi.mock('dashboard/api/variables', () => ({
+  default: { catalog: vi.fn(async () => ({ data: { variables: [] } })) },
+}));
+
+vi.mock('dashboard/composables/store', () => ({
+  useMapGetter: name => ({ value: name === 'getCurrentAccountId' ? 1 : [] }),
 }));
 
 const features = vi.hoisted(() => ({ captainV2: true }));
@@ -47,28 +60,27 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
     config.global.plugins = [i18n];
   });
 
-  it('renders the follow-up notice in the current locale with only one resolution control', () => {
-    const wrapper = shallowMount(AssistantSystemSettingsForm, {
+  it('renders the goodbye link in the current locale with one inactivity timer', () => {
+    const wrapper = shallowMount(AssistantFollowupForm, {
       props: {
         assistant: {
           ...assistant,
-          config: {
-            ...assistant.config,
-            followup: { inactivity_enabled: true },
-          },
         },
       },
-      global: { stubs: { SettingsToggleSection: false } },
+      global: {
+        stubs: {
+          I18nT: { template: '<p><slot name="link" /></p>' },
+          SettingsToggleSection: false,
+          RouterLink: { template: '<a><slot /></a>' },
+        },
+        mocks: { $t: key => i18n.global.t(key) },
+      },
     });
-    const expectedNotice =
-      locale === 'es'
-        ? 'El seguimiento está activado: cuando es el cliente quien no responde, Sofia le avisa y cierra la conversación sin pasarla al equipo.'
-        : 'Follow-up is on: when the customer is the one who stops replying, Sofia nudges them and closes the conversation without passing it to the team.';
+    const expectedLink =
+      locale === 'es' ? 'Mensajes del sistema' : 'System settings';
 
-    expect(wrapper.get('[data-testid="followup-notice"]').text()).toBe(
-      expectedNotice
-    );
-    expect(wrapper.findAll('[role="radiogroup"]')).toHaveLength(1);
+    expect(wrapper.text()).toContain(expectedLink);
+    expect(wrapper.findAllComponents(DurationSelect)).toHaveLength(1);
     wrapper.unmount();
   });
 
@@ -143,15 +155,14 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
     [1441, 'MAX_VALUE', { max: 1440 }],
     [null, 'REQUIRED', {}],
   ])('shows the inactivity error for %j', async (value, key, params) => {
-    const wrapper = shallowMount(AssistantSystemSettingsForm, {
+    const wrapper = shallowMount(AssistantFollowupForm, {
       props: {
-        assistant: { config: { auto_resolve_after: value } },
+        assistant: { config: { auto_resolve_after: 60 } },
       },
       global: { stubs: { SettingsToggleSection: false } },
     });
-    // Null is initialized to 60 by the existing loader; exercise the rule directly.
     wrapper.vm.state.inactivityThresholdMinutes = value;
-    wrapper.findComponent(Button).vm.$emit('click');
+    await wrapper.get('[data-testid="followup-save"]').trigger('click');
     await flushPromises();
     expect(wrapper.findComponent(DurationSelect).props('error')).toBe(
       i18n.global.t(`GENERAL.VALIDATION.${key}`, params)
@@ -160,29 +171,56 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
     wrapper.unmount();
   });
 
-  it.each([
-    ['0', 5],
-    ['1000', 1440],
-    ['20', 60],
-  ])(
-    'preserves accepted reply %s and inactivity %s boundaries',
-    async (replies, minutes) => {
+  it('shows the localized follow-up timing error and blocks submission', async () => {
+    const wrapper = shallowMount(AssistantFollowupForm, {
+      props: { assistant: { config: { auto_resolve_after: 30 } } },
+      global: { stubs: { SettingsToggleSection: false } },
+    });
+    await wrapper.get('[data-testid="followup-save"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="followup-after-error"]').text()).toBe(
+      i18n.global.t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.AFTER_ERROR')
+    );
+    expect(wrapper.emitted('submit')).toBeUndefined();
+    wrapper.unmount();
+  });
+
+  it.each(['0', '1000', '20'])(
+    'preserves accepted reply limit %s',
+    async replies => {
       const wrapper = shallowMount(AssistantSystemSettingsForm, {
         props: {
-          assistant: {
-            config: {
-              max_replies_per_conversation: replies,
-              auto_resolve_after: minutes,
-            },
-          },
+          assistant: { config: { max_replies_per_conversation: replies } },
         },
       });
       wrapper.findComponent(Button).vm.$emit('click');
       await flushPromises();
       expect(wrapper.emitted('submit')[0][0].config).toMatchObject({
         max_replies_per_conversation: Number(replies),
-        auto_resolve_after: minutes,
       });
+      wrapper.unmount();
+    }
+  );
+
+  it.each([5, 1440, 60])(
+    'preserves accepted inactivity timer boundary %s',
+    async minutes => {
+      const wrapper = shallowMount(AssistantFollowupForm, {
+        props: {
+          assistant: {
+            config: {
+              auto_resolve_after: minutes,
+              followup: { inactivity_enabled: false },
+            },
+          },
+        },
+      });
+      await wrapper.get('[data-testid="followup-save"]').trigger('click');
+      await flushPromises();
+      expect(wrapper.emitted('submit')[0][0].config.auto_resolve_after).toBe(
+        minutes
+      );
       wrapper.unmount();
     }
   );
@@ -251,14 +289,14 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
   );
 
   it('does not validate the hidden inactivity timer when disabled', async () => {
-    const wrapper = shallowMount(AssistantSystemSettingsForm, {
+    const wrapper = shallowMount(AssistantFollowupForm, {
       props: {
         assistant: {
           config: { auto_resolve_mode: 'disabled', auto_resolve_after: 1441 },
         },
       },
     });
-    wrapper.findComponent(Button).vm.$emit('click');
+    await wrapper.get('[data-testid="followup-save"]').trigger('click');
     await flushPromises();
     expect(wrapper.emitted('submit')[0][0].config.auto_resolve_after).toBe(
       1441

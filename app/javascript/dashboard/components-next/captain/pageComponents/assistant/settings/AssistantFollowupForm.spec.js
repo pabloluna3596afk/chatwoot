@@ -159,6 +159,21 @@ describe('AssistantFollowupForm', () => {
     expect(submitted(wrapper).followup.inactivity_enabled).toBe(false);
   });
 
+  it('does not validate the ask time when follow-up is off', async () => {
+    const wrapper = mountForm({
+      auto_resolve_after: 30,
+      followup: { inactivity_after_minutes: 30 },
+    });
+
+    await wrapper.get('button[role="switch"]').trigger('click');
+    await save(wrapper);
+
+    expect(wrapper.find('[data-testid="followup-after-error"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.emitted('submit')).toBeDefined();
+  });
+
   describe('re-engagement', () => {
     const enable = wrapper =>
       wrapper
