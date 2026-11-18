@@ -302,7 +302,7 @@ onBeforeUnmount(() => {
             <span
               :ref="element => setTextElement(getKey(item), element)"
               v-dompurify-html="renderContent(item[contentKey])"
-              class="line-clamp-6 block break-words text-sm leading-5 text-n-slate-11"
+              class="line-clamp-6 break-words text-sm leading-5 text-n-slate-11"
               :class="[
                 contentClasses,
                 expanded.has(getKey(item))
