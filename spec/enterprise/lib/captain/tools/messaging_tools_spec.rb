@@ -60,6 +60,12 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
       expect(entry).to include('can_send' => false, 'reason' => 'El Flow no está publicado o la plantilla no está aprobada para esta bandeja.')
     end
 
+    it 'returns an empty catalog when the Cloud inbox has no WABA id' do
+      channel.update!(provider_config: { 'api_key' => 'token' })
+
+      expect(JSON.parse(described_class.new(assistant).perform(tool_context))['flows']).to be_empty
+    end
+
     it 'does not work outside a real conversation or where the owner did not allow it' do
       expect(described_class.new(assistant).perform(Struct.new(:state).new({ conversation: { id: conversation.id } })))
         .to eq('Los formularios y las plantillas solo se pueden enviar en una conversación real.')

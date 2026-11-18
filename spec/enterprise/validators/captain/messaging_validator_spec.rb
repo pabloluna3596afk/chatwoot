@@ -32,6 +32,22 @@ RSpec.describe Captain::MessagingValidator do
     expect(messaging_errors).to be_empty
   end
 
+  it 'accepts the current frontend list shape without mode or version and keeps it in list mode' do
+    original = {
+      'inboxes' => [{
+        'inbox_id' => inbox.id,
+        'enabled' => true,
+        'templates' => [{ 'name' => 'reserva', 'language' => 'es', 'purpose' => 'Confirmar',
+                          'processed_params' => { 'body' => { 'nombre' => '{{ contact.name }}' } } }]
+      }]
+    }
+    assign(original)
+
+    expect(messaging_errors).to be_empty
+    expect(assistant.messaging.mode(inbox.id)).to eq('list')
+    expect(assistant.config.dig('messaging', 'version')).to be_nil
+  end
+
   it 'accepts an empty inbox list' do
     assign('inboxes' => [])
 

@@ -76,15 +76,29 @@ class Whatsapp::Flows::SendFlowService
   end
 
   def snapshot(flow, texts)
-    publication = flow.whatsapp_flow_publications.find_by!(waba_id: @conversation.inbox.channel.provider_config.fetch('business_account_id'))
-    answer_fields = Whatsapp::Flows::Spec.fields(flow.definition).pluck(:definition)
-    fields = answer_fields.select { |field| field['save_to'] }
-    response_fields = answer_fields.reject { |field| field.fetch('key').match?(/flow_token|password|passcode|otp|secret/i) }.map do |field|
+    publication = publication(flow)
+    texts.merge('id' => flow.id, 'name' => flow.name, 'meta_flow_id' => publication.meta_flow_id,
+                'screen' => flow.flow_json.fetch('screens').first.fetch('id'), 'fields' => answer_fields(flow),
+                'response_fields' => response_fields(flow))
+  end
+
+  def publication(flow)
+    waba_id = @conversation.inbox.channel.provider_config.to_h['business_account_id']
+    raise Error, 'WhatsApp business account required' if waba_id.blank?
+
+    flow.whatsapp_flow_publications.find_by!(waba_id: waba_id)
+  end
+
+  def answer_fields(flow)
+    Whatsapp::Flows::Spec.fields(flow.definition).pluck(:definition).select { |field| field['save_to'] }
+  end
+
+  def response_fields(flow)
+    Whatsapp::Flows::Spec.fields(flow.definition).pluck(:definition)
+                         .reject { |field| field.fetch('key').match?(/flow_token|password|passcode|otp|secret/i) }.map do |field|
       metadata = field.slice('key', 'label', 'type')
       metadata['options'] = field['options'].map { |option| option.slice('id', 'title') } if field['options']
       metadata
     end
-    texts.merge('id' => flow.id, 'name' => flow.name, 'meta_flow_id' => publication.meta_flow_id,
-                'screen' => flow.flow_json.fetch('screens').first.fetch('id'), 'fields' => fields, 'response_fields' => response_fields)
   end
 end

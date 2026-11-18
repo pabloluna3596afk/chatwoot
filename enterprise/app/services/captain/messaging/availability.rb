@@ -23,7 +23,7 @@ class Captain::Messaging::Availability
   end
 
   def flows
-    return [] unless whatsapp?
+    return [] unless cloud_whatsapp? && waba_id.present?
 
     eligible = eligible_flows.map(&:id)
     all_flows.map { |flow| flow_item(flow, eligible) }

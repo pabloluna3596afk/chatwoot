@@ -84,7 +84,9 @@ class Captain::Messaging::SendService
 
   def permission_denial
     return deny('disabled') unless inbox.channel_type == 'Channel::Whatsapp' && linked? && settings.entry_for(inbox.id)
-    return deny('missing_variables') if availability_item&.state == 'needs_data'
+
+    code, detail = resource_availability.permission_denial
+    return deny(code, detail: detail) if code
 
     deny('not_allowed') unless allowed_entry
   end
@@ -93,11 +95,10 @@ class Captain::Messaging::SendService
     assistant.reload
     inbox.channel.reload
     @settings = nil
-    @availability = nil
     @allowed_entry = nil
     @template_entry = nil
     @built = nil
-    @availability_item = nil
+    @resource_availability = nil
   end
 
   def linked?
@@ -105,9 +106,9 @@ class Captain::Messaging::SendService
   end
 
   def allowed_entry
-    return @allowed_entry if defined?(@allowed_entry)
+    return @allowed_entry if @allowed_entry
 
-    item = availability_item
+    item = resource_availability.item
     @allowed_entry = entry_for(item) if item&.available?
   end
 
@@ -123,8 +124,8 @@ class Captain::Messaging::SendService
     settings.mode(inbox.id) == 'list' ? settings.flow(inbox.id, request.resource) : { 'flow_id' => request.resource }
   end
 
-  def availability_item
-    @availability_item ||= Captain::Messaging::ResourceAvailability.new(assistant, inbox, request).item
+  def resource_availability
+    @resource_availability ||= Captain::Messaging::ResourceAvailability.new(assistant, inbox, request)
   end
 
   # --- the Flow or the template itself, now

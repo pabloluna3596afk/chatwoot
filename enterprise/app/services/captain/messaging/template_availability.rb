@@ -98,7 +98,8 @@ class Captain::Messaging::TemplateAvailability
   end
 
   def marketing_off?(template, identity)
-    template['category'].to_s.upcase == 'MARKETING' && Array(@entry['included_marketing']).exclude?(identity)
+    @settings.mode(@inbox.id) == 'auto' && template['category'].to_s.upcase == 'MARKETING' &&
+      Array(@entry['included_marketing']).exclude?(identity)
   end
 
   def listed?(template)

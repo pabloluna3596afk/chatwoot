@@ -226,6 +226,13 @@ RSpec.describe Captain::Messaging::SendService do
   end
 
   describe 'sending a template' do
+    it 'sends a listed approved marketing template in list mode' do
+      channel.update!(message_templates: [templates.first.merge('category' => 'MARKETING'), templates.last])
+      expect(Captain::Messaging::Availability.new(assistant, inbox).templates.first.state).to eq('available')
+
+      expect(send_template).to be_sent
+    end
+
     it 'creates the template message from the texts the owner saved for each variable' do
       result = send_template
 
