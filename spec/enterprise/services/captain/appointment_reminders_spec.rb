@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe Captain::AppointmentReminders do
-  let(:account) { create(:account, locale: 'es') }
+  let(:account) { create(:account, locale: 'es', reporting_timezone: 'America/Guayaquil') }
   let(:connection) do
     CalendarConnection.create!(
       account: account, provider: 'google', email: 'agenda@example.com', refresh_token: 'refresh',
@@ -277,21 +277,21 @@ RSpec.describe Captain::AppointmentReminders do
       end
 
       it 'adds today only for an appointment on the account local date' do
-        account.update!(reporting_timezone: 'America/Guayaquil')
+        zone = Integrations::GoogleCalendar::Timezone.for(account)
         assistant.update!(config: { 'appointments' => appointments_config.merge(
           'reminder_1' => { 'enabled' => true, 'hours_before' => 1 }, 'reminder_2' => { 'enabled' => false, 'hours_before' => 3 }
         ) })
-        event.update!(start_at: now + 2.hours, end_at: now + 2.hours + 30.minutes)
+        event.update!(start_at: zone.parse('2030-01-10T11:00:00'), end_at: zone.parse('2030-01-10T11:30:00'))
         schedule
-        at(now + 1.hour + 30.seconds) { described_class.new(reminder('reminder_1')).perform }
+        at(zone.parse('2030-01-10T10:00:30')) { described_class.new(reminder('reminder_1')).perform }
         today_note = conversation.messages.outgoing.last.content
 
         assistant.update!(config: { 'appointments' => appointments_config.merge(
           'reminder_1' => { 'enabled' => true, 'hours_before' => 1 }, 'reminder_2' => { 'enabled' => false, 'hours_before' => 3 }
         ) })
-        event.update!(start_at: now + 1.day + 2.hours, end_at: now + 1.day + 2.hours + 30.minutes)
+        event.update!(start_at: zone.parse('2030-01-11T11:00:00'), end_at: zone.parse('2030-01-11T11:30:00'))
         schedule
-        at(now + 1.day + 1.hour + 30.seconds) { described_class.new(reminder('reminder_1')).perform }
+        at(zone.parse('2030-01-11T10:00:30')) { described_class.new(reminder('reminder_1')).perform }
         tomorrow_note = conversation.messages.outgoing.last.content
 
         expect(today_note).to include('para hoy')
@@ -323,7 +323,7 @@ RSpec.describe Captain::AppointmentReminders do
       context 'when the conversation is snoozed' do
         it 'sends as usual' do
           conversation.update!(assignee: create(:user, account: account), status: 'snoozed')
-          create(:message, account: account, inbox: inbox, conversation: conversation, message_type: :incoming, created_at: now)
+          create(:message, account: account, inbox: inbox, conversation: conversation, message_type: :incoming, created_at: due_at - 1.hour)
           schedule
 
           expect(send_reminder).to eq(:sent)
