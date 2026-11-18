@@ -3629,3 +3629,9 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Archivos:** `Messaging::MigrationFingerprint`, informe/job, conversi?n/restauraci?n y rake.
 - **Arreglo:** huella de configuraci?n y cat?logo persistido (plantillas, bindings, salud, WABA, Flows/publicaciones); rechaza informes obsoletos con indicaci?n de regenerarlos. Report vuelve a generar sobre entradas actuales. Conserva configuraci?n completa inmediatamente anterior a convertir para restaurar exactamente.
 - **C?mo probar:** cambiar plantilla/configuraci?n/Flow invalida reporte; regenerar permite convertir; restaurar devuelve la configuraci?n exacta. Sin migraciones ni conversi?n de cuentas reales.
+
+### B-NEW-278 ? Captain: identidades y contador diario estables (2026-11-18)
+
+- **Archivos:** Review, LegacyEntryConverter, TemplateAvailability/Params, MessagingSettings y TemplateDailyCap; specs.
+- **Arreglo:** omite claves auto sin WABA; idioma normalizado al escribir y buscar, conservando claves antiguas; Redis captura atomicamente el dia y su frontera hasta el siguiente reset, aunque cambie la zona horaria.
+- **Como probar:** snapshot no Cloud valido, es_MX/es_mx conserva revision/exclusion, travel_to y cambio Guayaquil/Tokyo conserva contador y frontera inicial. Sin migraciones.

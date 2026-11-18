@@ -66,4 +66,17 @@ RSpec.describe Captain::TemplateDailyCap do
     expect(results.map(&:value).count(true)).to eq(1)
     expect(described_class.new(account, now: now).used).to eq(1)
   end
+
+  it 'keeps the original counter and reset boundary after a timezone edit' do
+    account.update!(captain_template_daily_cap: 1)
+    travel_to(now) do
+      expect(described_class.new(account).reserve!).to be(true)
+      account.update!(reporting_timezone: 'Asia/Tokyo')
+      expect(described_class.new(account.reload).used).to eq(1)
+      expect(described_class.new(account).reserve!).to be(false)
+      travel(1.minute)
+      expect(described_class.new(account).used).to eq(0)
+      expect(described_class.new(account).reserve!).to be(true)
+    end
+  end
 end

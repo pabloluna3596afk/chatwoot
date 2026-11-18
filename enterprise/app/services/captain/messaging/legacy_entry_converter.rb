@@ -21,17 +21,21 @@ class Captain::Messaging::LegacyEntryConverter
 
   def template_settings
     result = [{}, {}]
+    return result if @waba_id.blank?
+
     Array(@entry['templates']).each { |template| add_template_settings(result, template) }
     result
   end
 
   def add_template_settings(result, template)
-    key = "#{@waba_id}:#{template['name']}|#{template['language']}"
+    key = Captain::Messaging::TemplateKey.for(@waba_id, template)
     result[0]["template:#{key}"] = template['purpose'] if template['purpose'].present?
     result[1][key] = template['processed_params'] if template['processed_params'].present?
   end
 
   def flow_notes
+    return {} if @waba_id.blank?
+
     Array(@entry['flows']).each_with_object({}) do |flow, notes|
       next if flow['purpose'].blank?
 

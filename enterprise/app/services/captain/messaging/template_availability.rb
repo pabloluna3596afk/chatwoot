@@ -12,13 +12,15 @@ class Captain::Messaging::TemplateAvailability
   end
 
   def items
+    return [] if @settings.mode(@inbox.id) == 'auto' && @waba_id.blank?
+
     @channel.message_templates.to_a.map { |template| item(template) }
   end
 
   private
 
   def item(template)
-    identity = "#{@waba_id}:#{template['name']}|#{template['language']}"
+    identity = Captain::Messaging::TemplateKey.for(@waba_id, template)
     state = state_for(template, identity)
     params, missing, sources = resolved_params(template, state)
     state = 'needs_data' if state == 'available' && missing.any?
@@ -93,7 +95,7 @@ class Captain::Messaging::TemplateAvailability
   end
 
   def excluded?(identity)
-    Array(@entry.dig('excluded', 'templates')).include?(identity)
+    Array(@entry.dig('excluded', 'templates')).map { |key| Captain::Messaging::TemplateKey.normalize(key) }.include?(identity)
   end
 
   def changed?(template, identity)
@@ -107,7 +109,7 @@ class Captain::Messaging::TemplateAvailability
 
   def marketing_off?(template, identity)
     @settings.mode(@inbox.id) == 'auto' && template['category'].to_s.upcase == 'MARKETING' &&
-      Array(@entry['included_marketing']).exclude?(identity)
+      Array(@entry['included_marketing']).none? { |key| Captain::Messaging::TemplateKey.normalize(key) == identity }
   end
 
   def listed?(template)
@@ -119,7 +121,7 @@ class Captain::Messaging::TemplateAvailability
   end
 
   def reviewed_templates
-    @entry.dig('reviewed', 'templates').to_h
+    @entry.dig('reviewed', 'templates').to_h.transform_keys { |key| Captain::Messaging::TemplateKey.normalize(key) }
   end
 
   def quality_red?
