@@ -30,9 +30,8 @@ RSpec.describe Captain::TemplateDailyCap do
       expect(described_class.new(account).reserve!).to be(true)
       expect(described_class.new(account).used).to eq(1)
 
-      travel_to(now + 1.minute) do
-        expect(described_class.new(account).used).to eq(0)
-      end
+      travel(1.minute)
+      expect(described_class.new(account).used).to eq(0)
     end
   end
 

@@ -6,7 +6,6 @@ RSpec.describe Captain::AppointmentReminders::Sender do
   let(:tool) { Captain::Tools::BookAppointmentTool.new(assistant) }
   let(:event) { build(:calendar_event, account: account, start_at: Time.utc(2031, 1, 1, 0, 30), summary: 'Consultation') }
   let(:reminder) { instance_double(Captain::AppointmentReminder, account: account, calendar_event: event) }
-  let(:sender) { described_class.new(reminder) }
 
   ['America/Guayaquil', 'America/New_York', 'Europe/Madrid'].each do |zone_name|
     context "with #{zone_name}" do
@@ -15,10 +14,11 @@ RSpec.describe Captain::AppointmentReminders::Sender do
       it 'uses one civil day and clock for Captain, invitation and reminder variables' do
         expected = event.start_at.in_time_zone(timezone)
         values = Integrations::GoogleCalendar::InvitationText.values_for(account: account, start_at: event.start_at, timezone: timezone)
-        expect(tool.send(:format_time, event.start_at)).to eq(sender.send(:appointment_drop).fetch('datetime'))
-        expect(values.fetch('hora')).to eq(sender.send(:appointment_drop).fetch('time'))
-        expect(sender.send(:appointment_drop).fetch('time')).to eq(expected.strftime('%H:%M'))
-        expect(sender.send(:appointment_drop).fetch('date')).to include(expected.day.to_s)
+        formatted = Captain::AppointmentReminders::Format.new(event, locale: account.locale, zone: timezone).drop
+        expect(tool.send(:format_time, event.start_at)).to eq(formatted.fetch('datetime'))
+        expect(values.fetch('hora')).to eq(formatted.fetch('time'))
+        expect(formatted.fetch('time')).to eq(expected.strftime('%H:%M'))
+        expect(formatted.fetch('date')).to include(expected.day.to_s)
       end
     end
   end
