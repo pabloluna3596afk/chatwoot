@@ -199,7 +199,7 @@ onBeforeUnmount(() => {
       <article
         v-for="item in cards"
         :key="getKey(item)"
-        class="group relative mb-3 inline-block w-full break-inside-avoid rounded-xl border border-n-weak bg-n-surface-1 shadow-sm hover:z-30 hover:shadow-lg focus-within:z-30"
+        class="group relative mb-3 inline-block w-full break-inside-avoid rounded-xl border border-n-weak bg-n-surface-1 shadow-sm hover:z-40 hover:shadow-lg focus-within:z-40 has-[details[open]]:z-50"
       >
         <div class="flex items-start gap-2 p-4 pb-2">
           <button

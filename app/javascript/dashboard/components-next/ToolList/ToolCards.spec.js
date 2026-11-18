@@ -325,4 +325,16 @@ describe('ToolCards', () => {
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(canned.content);
     expect(wrapper.find('[aria-live="polite"]').text()).toBe('Copiado');
   });
+
+  it('keeps a hovered card, and a card with its menu open, above the neighbor menus', async () => {
+    const wrapper = await mountMeasured({ items: [canned] }, [100, 100]);
+    const classes = wrapper.find('article').classes().join(' ');
+
+    expect(classes).toContain('hover:z-40');
+    expect(classes).toContain('focus-within:z-40');
+    expect(classes).toContain('has-[details[open]]:z-50');
+    // neighbor action menus sit at z-30, below a hovered card (z-40)
+    expect(wrapper.find('details').classes()).toContain('z-30');
+    vi.restoreAllMocks();
+  });
 });
