@@ -28,7 +28,7 @@ class Captain::Messaging::AssistantPayload
       {
         inbox_id: inbox.id,
         mode: @assistant.messaging.mode(inbox.id),
-        waba_id: inbox.channel.provider_config.to_h['business_account_id'],
+        waba_id: inbox.channel.is_a?(Channel::Whatsapp) ? inbox.channel.provider_config.to_h['business_account_id'] : nil,
         resources: items.map { |item| item_payload(item) },
         counts: states,
         scope: scope_note(inbox)
