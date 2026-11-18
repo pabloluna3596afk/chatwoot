@@ -62,6 +62,11 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
                                      'can_send' => true }])
     end
 
+    it 'ignores arguments the model passes to a tool that declares none' do
+      expect { described_class.new(assistant).execute(tool_context, query: 'reservas', anything: 1) }.not_to raise_error
+      expect(JSON.parse(described_class.new(assistant).execute(tool_context, query: 'reservas'))).to have_key('flows')
+    end
+
     it 'omits unpublished Flows from the eligible catalog' do
       flow.whatsapp_flow_publications.destroy_all
 
