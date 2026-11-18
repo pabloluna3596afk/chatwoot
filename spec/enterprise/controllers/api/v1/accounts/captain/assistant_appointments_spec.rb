@@ -38,6 +38,10 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants appointments settings', t
                                 message_templates: [{ 'name' => 'shared', 'language' => 'es', 'status' => status, 'components' => [] }])
     end
     channels.each { |channel| create(:captain_inbox, captain_assistant: assistant, inbox: channel.inbox) }
+    entries = channels.map do |channel|
+      { 'inbox_id' => channel.inbox.id, 'enabled' => true, 'templates' => [{ 'name' => 'shared', 'language' => 'es' }] }
+    end
+    assistant.update!(config: assistant.config.merge('messaging' => { 'inboxes' => entries }))
     get url, headers: admin.create_new_auth_token, as: :json
     expect(json_response[:appointment_reminder_readiness].map { |row| row[:status] }).to eq(%w[ready template_unavailable])
   end
