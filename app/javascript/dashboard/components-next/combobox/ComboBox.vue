@@ -228,81 +228,88 @@ onClickOutside(
     >
       {{ label }}
     </label>
-    <div ref="triggerRef" class="w-full">
-      <slot name="trigger" :toggle="toggleDropdown" :open="open">
-        <Button
-          :id="uniqueId"
-          :aria-invalid="hasError || undefined"
-          :aria-describedby="
-            [
-              $attrs['aria-describedby'],
-              help ? `${uniqueId}-help` : '',
-              message ? `${uniqueId}-message` : '',
-            ]
-              .filter(Boolean)
-              .join(' ') || undefined
-          "
-          variant="outline"
-          :color="hasError && !open ? 'ruby' : open ? 'blue' : 'slate'"
-          :label="selectedLabel"
-          trailing-icon
-          :disabled="disabled"
-          aria-haspopup="listbox"
-          :aria-label="ariaLabel || undefined"
-          :aria-expanded="open"
-          no-animation
-          class="justify-between w-full max-sm:!min-h-11"
-          :class="[
-            triggerClass ||
-              '!px-3 !py-2.5 text-n-slate-12 font-normal group-hover/combobox:border-n-slate-6 focus:outline-n-brand',
-            {
-              focused: open,
-              '[&:not(.focused)]:dark:outline-n-weak [&:not(.focused)]:hover:enabled:outline-n-slate-6 [&:not(.focused)]:dark:hover:enabled:outline-n-slate-6':
-                !triggerClass && !hasError,
-            },
-          ]"
-          :icon="open ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
-          @keydown.down.prevent="open ? dropdownRef?.focus() : toggleDropdown()"
-          @keydown.up.prevent="open ? dropdownRef?.focus() : toggleDropdown()"
-          @click="toggleDropdown"
-        />
-      </slot>
-    </div>
+    <!-- The menu anchors to the field itself, not to the help text under it. -->
+    <div class="relative w-full min-w-0">
+      <div ref="triggerRef" class="w-full">
+        <slot name="trigger" :toggle="toggleDropdown" :open="open">
+          <Button
+            :id="uniqueId"
+            :aria-invalid="hasError || undefined"
+            :aria-describedby="
+              [
+                $attrs['aria-describedby'],
+                help ? `${uniqueId}-help` : '',
+                message ? `${uniqueId}-message` : '',
+              ]
+                .filter(Boolean)
+                .join(' ') || undefined
+            "
+            variant="outline"
+            :color="hasError && !open ? 'ruby' : open ? 'blue' : 'slate'"
+            :label="selectedLabel"
+            trailing-icon
+            :disabled="disabled"
+            aria-haspopup="listbox"
+            :aria-label="ariaLabel || undefined"
+            :aria-expanded="open"
+            no-animation
+            class="justify-between w-full max-sm:!min-h-11"
+            :class="[
+              triggerClass ||
+                '!px-3 !py-2.5 text-n-slate-12 font-normal group-hover/combobox:border-n-slate-6 focus:outline-n-brand',
+              {
+                focused: open,
+                '[&:not(.focused)]:dark:outline-n-weak [&:not(.focused)]:hover:enabled:outline-n-slate-6 [&:not(.focused)]:dark:hover:enabled:outline-n-slate-6':
+                  !triggerClass && !hasError,
+              },
+            ]"
+            :icon="open ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+            @keydown.down.prevent="
+              open ? dropdownRef?.focus() : toggleDropdown()
+            "
+            @keydown.up.prevent="open ? dropdownRef?.focus() : toggleDropdown()"
+            @click="toggleDropdown"
+          />
+        </slot>
+      </div>
 
-    <Teleport :to="teleportTarget" :disabled="!teleport">
-      <ComboBoxDropdown
-        ref="dropdownRef"
-        v-model:search-value="search"
-        class="text-n-slate-12"
-        :open="open"
-        :loading="loading"
-        :search-error="searchError"
-        :options="filteredOptions"
-        :groups="groups"
-        :multiple="multiple"
-        :search-placeholder="searchPlaceholder"
-        :empty-state="emptyState"
-        :selected-values="selectedValue"
-        :portal="teleport"
-        :show-search="showSearchField"
-        :scroll-class="dropdownMaxHeight"
-        :placement="position.class"
-        :style="teleport ? dropdownStyle : position.style"
-        @retry="emit('search', search)"
-        @search="emit('search', $event)"
-        @select="selectOption"
-        @close="
-          open = false;
-          if ($event !== false)
-            triggerRef?.querySelector('button')?.focus({ preventScroll: true });
-          emit('close');
-        "
-      >
-        <template v-if="$slots.footer" #footer="{ close }">
-          <slot name="footer" :close="close" />
-        </template>
-      </ComboBoxDropdown>
-    </Teleport>
+      <Teleport :to="teleportTarget" :disabled="!teleport">
+        <ComboBoxDropdown
+          ref="dropdownRef"
+          v-model:search-value="search"
+          class="text-n-slate-12"
+          :open="open"
+          :loading="loading"
+          :search-error="searchError"
+          :options="filteredOptions"
+          :groups="groups"
+          :multiple="multiple"
+          :search-placeholder="searchPlaceholder"
+          :empty-state="emptyState"
+          :selected-values="selectedValue"
+          :portal="teleport"
+          :show-search="showSearchField"
+          :scroll-class="dropdownMaxHeight"
+          :placement="position.class"
+          :style="teleport ? dropdownStyle : position.style"
+          @retry="emit('search', search)"
+          @search="emit('search', $event)"
+          @select="selectOption"
+          @close="
+            open = false;
+            if ($event !== false)
+              triggerRef
+                ?.querySelector('button')
+                ?.focus({ preventScroll: true });
+            emit('close');
+          "
+        >
+          <template v-if="$slots.footer" #footer="{ close }">
+            <slot name="footer" :close="close" />
+          </template>
+        </ComboBoxDropdown>
+      </Teleport>
+    </div>
 
     <p
       v-if="help"
