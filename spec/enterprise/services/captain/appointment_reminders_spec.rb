@@ -287,12 +287,13 @@ RSpec.describe Captain::AppointmentReminders do
         at(zone.parse('2030-01-10T10:00:30')) { described_class.new(reminder('reminder_1')).perform }
         today_note = conversation.messages.outgoing.last.content
 
+        # The appointment is tomorrow (Jan 11, 11:00) and the reminder goes out today (Jan 10, 10:00): 25 hours before.
         assistant.update!(config: { 'appointments' => appointments_config.merge(
-          'reminder_1' => { 'enabled' => true, 'hours_before' => 1 }, 'reminder_2' => { 'enabled' => false, 'hours_before' => 3 }
+          'reminder_1' => { 'enabled' => true, 'hours_before' => 25 }, 'reminder_2' => { 'enabled' => false, 'hours_before' => 3 }
         ) })
         event.update!(start_at: zone.parse('2030-01-11T11:00:00'), end_at: zone.parse('2030-01-11T11:30:00'))
         schedule
-        at(zone.parse('2030-01-11T10:00:30')) { described_class.new(reminder('reminder_1')).perform }
+        at(zone.parse('2030-01-10T10:00:30')) { described_class.new(reminder('reminder_1')).perform }
         tomorrow_note = conversation.messages.outgoing.last.content
 
         expect(today_note).to include('para hoy')
@@ -323,8 +324,9 @@ RSpec.describe Captain::AppointmentReminders do
     context 'when a human assignee is not conversing' do
       context 'when the conversation is snoozed' do
         it 'sends as usual' do
+          # The incoming message goes first: a new customer message reopens a snoozed conversation.
+          create(:message, account: account, inbox: inbox, conversation: conversation, message_type: :incoming, created_at: now)
           conversation.update!(assignee: create(:user, account: account), status: 'snoozed')
-          create(:message, account: account, inbox: inbox, conversation: conversation, message_type: :incoming, created_at: due_at - 1.hour)
           schedule
 
           expect(send_reminder).to eq(:sent)
