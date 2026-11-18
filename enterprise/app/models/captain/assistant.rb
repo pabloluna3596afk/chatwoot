@@ -82,6 +82,7 @@ class Captain::Assistant < ApplicationRecord
   validates_with Captain::AppointmentsValidator
   validates_with Captain::FollowupValidator
   validates_with Captain::MessagingValidator
+  validates_with Captain::HandoffValidator
   validate :validate_response_window
   validate :validate_max_replies_per_conversation
   validate :validate_reply_delay_seconds
@@ -103,6 +104,16 @@ class Captain::Assistant < ApplicationRecord
 
   def internal?
     config['internal'] == true
+  end
+
+  def handoff_routing
+    %w[new reopened].index_with do |kind|
+      { 'mode' => 'inbox', 'team_id' => nil }.merge(config.fetch('handoff_routing', {}).fetch(kind, {}))
+    end
+  end
+
+  def handoff_priority
+    config.fetch('handoff_priority', 'off')
   end
 
   def available_name
@@ -384,7 +395,7 @@ class Captain::Assistant < ApplicationRecord
   def agent_tools
     [
       self.class.resolve_tool_class('faq_lookup').new(self),
-      self.class.resolve_tool_class('handoff').new(self),
+      Captain::Tools::HandoffTool.for_assistant(self),
       *(custom_tools.enabled.map { |custom_tool| custom_tool.tool(self) } if custom_tools_enabled?)
     ]
   end

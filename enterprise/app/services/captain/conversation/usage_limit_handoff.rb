@@ -6,8 +6,9 @@ class Captain::Conversation::UsageLimitHandoff
 
   def perform
     Rails.logger.info("Captain limit exceeded, performing handoff mid-conversation for conversation: #{@conversation.id}")
-    @conversation.bot_handoff!
-    create_unavailable_note(handoff: true)
+    routing = Captain::HandoffRouter.new(conversation: @conversation, assistant: @inbox.captain_assistant).plan
+    @conversation.bot_handoff!(routing: routing)
+    routing.append_to(create_unavailable_note(handoff: true))
     Captain::ConversationEvents.handed_off(
       conversation: @conversation,
       assistant: @inbox.captain_assistant,

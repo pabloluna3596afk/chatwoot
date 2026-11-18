@@ -11,6 +11,8 @@ class Flows::ExitPolicyService
   def perform
     return unless @run.active? || @event == 'on_human_break'
 
+    @captain_routing = Captain::HandoffRouter.new(conversation: @conversation, assistant: @conversation.ai_assignee).plan if captain_handoff?
+
     terminal_state = case @event
                      when 'on_complete' then :completed
                      when 'on_handoff', 'on_human_break' then :handed_off
@@ -32,22 +34,27 @@ class Flows::ExitPolicyService
       created_at: Time.current
     )
 
-    Flows::HandoffService.new(run: @run, policy: @policy).perform if ActiveModel::Type::Boolean.new.cast(@policy[:private_note]) != false &&
-                                                                     %w[on_handoff on_fail on_human_break].include?(@event)
+    note = Flows::HandoffService.new(run: @run, policy: @policy).perform if ActiveModel::Type::Boolean.new.cast(@policy[:private_note]) != false &&
+                                                                            %w[on_handoff on_fail on_human_break].include?(@event)
 
-    apply_status!
-    apply_assignee!
-    apply_label!
-    maybe_bot_handoff!
+    apply_conversation_policy(note)
     Flows::StateSyncService.new(run: @run).perform
   end
 
   private
 
+  def apply_conversation_policy(note)
+    apply_status!
+    apply_assignee! unless @captain_routing&.team || @captain_routing&.assignee
+    apply_label!
+    maybe_bot_handoff!&.append_to(note)
+  end
+
   def apply_status!
     status = @policy[:status].to_s
     case status
-    when 'open' then @conversation.open!
+    when 'open'
+      @captain_routing ? @conversation.bot_handoff!(routing: @captain_routing) : @conversation.open!
     when 'pending' then @conversation.pending!
     when 'resolved' then @conversation.resolved!
     end
@@ -91,9 +98,16 @@ class Flows::ExitPolicyService
   end
 
   def maybe_bot_handoff!
+    return @captain_routing if @captain_routing
     return unless @policy[:status].to_s == 'open'
     return unless %w[on_handoff on_fail].include?(@event)
 
-    @conversation.bot_handoff!
+    @conversation.bot_handoff!(routing: @captain_routing)
+    @captain_routing
+  end
+
+  def captain_handoff?
+    @policy[:status].to_s == 'open' && %w[on_handoff on_fail].include?(@event) &&
+      @conversation.pending? && @conversation.ai_assignee_type == 'Captain::Assistant'
   end
 end

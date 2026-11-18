@@ -3,6 +3,7 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
 
   rescue_from InvalidRuleList, with: :render_invalid_rule_list
 
+  before_action :authorize_handoff_settings, only: [:create, :update]
   before_action -> { check_authorization(Captain::Assistant) }
 
   before_action :set_assistant, only: [:show, :update, :destroy, :avatar, :allow_resource, :playground, :playground_usage, :metrics,
@@ -107,6 +108,14 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
 
   private
 
+  def authorize_handoff_settings
+    config = params[:assistant]&.[](:config)
+    return unless config.respond_to?(:key?) && %w[handoff_routing handoff_priority].any? { |key| config.key?(key) }
+    return if Current.account_user.administrator?
+
+    render json: { error: I18n.t('errors.account.not_authorized') }, status: :forbidden
+  end
+
   def update_allowed_resource
     inbox_id = params.require(:inbox_id).to_i
     review = Captain::Messaging::Review.new(@assistant, Current.account.inboxes.find(inbox_id))
@@ -209,6 +218,14 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
 
     permit_audience_config(permitted)
     permit_messaging_config(permitted)
+
+    # Preserve shapes and unknown keys for the handoff validator (422 instead of silent filtering).
+    %i[handoff_routing handoff_priority].each do |key|
+      config = params[:assistant][:config]
+      next unless config.try(:key?, key)
+
+      permitted[:config][key] = config.slice(key).permit!.to_h[key.to_s]
+    end
 
     permitted
   end

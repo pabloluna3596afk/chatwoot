@@ -670,6 +670,12 @@ es:
     disabled: 'Captain AI está deshabilitado para esta cuenta.'
     api_key_missing: 'La clave API de Captain AI no está configurada.'
     notes:
+      handoff_routing:
+        assigned: "Asignada a %{agent}."
+        previous_agent: "Asignada a %{agent}, que atendió a este cliente antes."
+        team_assigned: "Equipo %{team}: asignada a %{agent}."
+        team_unassigned: "Equipo %{team}: nadie está conectado; queda sin asignar."
+        priority_high: "Prioridad: alta."
       handoff_without_reason: "%{assistant} pasó la conversación a una persona."
       handoff_reply_limit: "%{assistant} alcanzó el límite de respuestas de esta conversación."
       handoff_generation_failure: "%{assistant} no pudo generar una respuesta."
@@ -723,6 +729,11 @@ es:
       slug_generation_failed: 'Unable to generate unique slug after 5 attempts'
       limit_exceeded: 'Puedes crear un máximo de %{limit} herramientas personalizadas por asistente'
     assistant:
+      errors:
+        handoff_routing: "El traspaso solo admite filas new/reopened con un modo y team_id válidos."
+        handoff_priority: "La prioridad del traspaso debe ser off, on_signal o always."
+        handoff_team: "Elige un equipo de esta cuenta con un team_id entero."
+        handoff_team_unused: "team_id debe estar vacío salvo en el modo team."
       limit_exceeded: 'Puedes crear un máximo de %{limit} asistentes por cuenta'
     messaging:
       catalog:
