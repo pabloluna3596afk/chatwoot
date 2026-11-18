@@ -178,6 +178,7 @@ es:
       phone_info_fetch_failed: 'Failed to fetch phone number information. Please try again.'
       phone_number_already_exists: 'Channel already exists for this phone number: %{phone_number}, please contact support if the error persists'
       message_outside_messaging_window: 'El mensaje no se envió porque la ventana de atención al cliente de WhatsApp de 24 horas está cerrada y no se proporcionaron parámetros de plantilla. Envía en su lugar un mensaje de plantilla aprobado.'
+      template_not_found: 'No se encontró la plantilla o el nombre no es válido'
       reauthorization:
         generic: 'Failed to reauthorize WhatsApp. Please try again.'
         not_supported: 'Reauthorization is not supported for this type of WhatsApp channel.'
@@ -191,6 +192,8 @@ es:
         sdp_offer_required: 'sdp_offer es requerido'
         contact_phone_required: 'Se requiere un número de teléfono de contacto'
         permission_request_failed: 'Error al enviar la solicitud de permiso de llamada'
+    twilio:
+      template_not_found: 'No se encontró la plantilla'
     openai:
       invalid_api_key: 'La clave API OpenAI no es válida o revocada. Por favor, compruebe su clave en su panel de control OpenAI.'
     inboxes:

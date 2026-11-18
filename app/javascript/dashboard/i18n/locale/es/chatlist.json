@@ -7,6 +7,65 @@
       "404": "No hay conversaciones activas en este grupo."
     },
     "FAILED_TO_SEND": "Error al enviar",
+    "SEND_ERRORS": {
+      "WHATSAPP": {
+        "0": "Se venció la conexión con WhatsApp: vuelve a conectar el canal",
+        "1": "Falla temporal de Meta: intenta de nuevo",
+        "2": "Falla temporal de Meta: intenta de nuevo",
+        "190": "Se venció la conexión con WhatsApp: vuelve a conectar el canal",
+        "368": "Meta restringió la cuenta de WhatsApp Business",
+        "130403": "Tu empresa bloqueó a este cliente",
+        "130429": "Se alcanzó el límite de mensajes por segundo del número",
+        "130472": "Meta no lo envió porque el cliente está en una prueba de Meta",
+        "131000": "Falla temporal de Meta: intenta de nuevo",
+        "131016": "Falla temporal de Meta: intenta de nuevo",
+        "131026": "El número no tiene WhatsApp o no puede recibir el mensaje",
+        "131031": "Meta restringió la cuenta de WhatsApp Business",
+        "131042": "Problema con el método de pago de WhatsApp Business",
+        "131047": "Fuera de la ventana de 24 horas: envía una plantilla",
+        "131048": "Meta restringió los envíos de este número por posible spam o mensajes bloqueados",
+        "131049": "Meta no lo entregó para no saturar al cliente; espera 24 horas",
+        "131050": "El cliente dejó de recibir mensajes de marketing",
+        "131053": "No se pudo subir el archivo: formato no admitido",
+        "131056": "Demasiados mensajes seguidos a este cliente; espera un momento",
+        "131064": "Se alcanzó el límite de envíos por plantillas mal clasificadas",
+        "132000": "Faltan datos o tienen un formato incorrecto en la plantilla",
+        "132001": "La plantilla no existe en ese idioma o no está aprobada",
+        "132012": "Faltan datos o tienen un formato incorrecto en la plantilla",
+        "132015": "La plantilla está pausada o desactivada por baja calidad",
+        "132016": "La plantilla está pausada o desactivada por baja calidad",
+        "133004": "Falla temporal de Meta: intenta de nuevo"
+      },
+      "FACEBOOK": {
+        "10": "Fuera de la ventana permitida para responder",
+        "190": "Se venció la conexión: vuelve a conectar el canal",
+        "551": "Esta persona no está disponible ahora",
+        "2018278": "Fuera de la ventana permitida para responder"
+      },
+      "INSTAGRAM": {
+        "10": "Fuera de la ventana permitida para responder",
+        "190": "Se venció la conexión: vuelve a conectar el canal",
+        "551": "Esta persona no está disponible ahora",
+        "2018278": "Fuera de la ventana permitida para responder"
+      },
+      "TELEGRAM": {
+        "403": "El cliente bloqueó al bot"
+      },
+      "TWILIO": {
+        "21610": "El cliente se dio de baja de los SMS",
+        "30003": "El número no puede recibir mensajes o el operador lo filtró",
+        "30005": "El número no puede recibir mensajes o el operador lo filtró",
+        "30007": "El número no puede recibir mensajes o el operador lo filtró",
+        "63016": "Fuera de la ventana de 24 horas: envía una plantilla"
+      },
+      "SMS": {
+        "21610": "El cliente se dio de baja de los SMS",
+        "30003": "El número no puede recibir mensajes o el operador lo filtró",
+        "30005": "El número no puede recibir mensajes o el operador lo filtró",
+        "30007": "El número no puede recibir mensajes o el operador lo filtró",
+        "63016": "Fuera de la ventana de 24 horas: envía una plantilla"
+      }
+    },
     "FETCH_ERROR": "No se pudieron cargar las conversaciones. Inténtalo de nuevo.",
     "TAB_HEADING": "Conversaciones",
     "MENTION_HEADING": "Menciones",

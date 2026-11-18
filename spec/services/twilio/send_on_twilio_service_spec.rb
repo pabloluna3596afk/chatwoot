@@ -53,6 +53,23 @@ describe Twilio::SendOnTwilioService do
     end
 
     context 'with reply' do
+      it 'localizes a missing template error' do
+        message = create(
+          :message,
+          message_type: :outgoing,
+          inbox: twilio_inbox,
+          account: account,
+          conversation: conversation,
+          additional_attributes: { template_params: { name: 'missing' } }
+        )
+        service = described_class.new(message: message)
+        allow(service).to receive(:process_template_params).and_return([nil, nil])
+
+        service.perform
+
+        expect(message.reload.external_error).to eq(I18n.t('errors.twilio.template_not_found'))
+      end
+
       it 'if message is sent from chatwoot and is outgoing' do
         allow(messages_double).to receive(:create).and_return(message_record_double)
         allow(message_record_double).to receive(:sid).and_return('1234')
