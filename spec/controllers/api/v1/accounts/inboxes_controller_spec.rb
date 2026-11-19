@@ -1413,7 +1413,8 @@ RSpec.describe 'Inboxes API', type: :request do
             as: :json
 
         expect(response).to have_http_status(:success)
-        expect(response.parsed_body['payload']).to eq(message_templates)
+        expected = Whatsapp::TemplateVariableBindingsService.new(whatsapp_channel).merge_into(message_templates).as_json
+        expect(response.parsed_body['payload']).to eq(expected)
         expect(Time.zone.parse(response.parsed_body.dig('meta', 'last_sync_attempt_at'))).to eq(last_sync_attempt_at)
       end
     end
@@ -1426,7 +1427,8 @@ RSpec.describe 'Inboxes API', type: :request do
             as: :json
 
         expect(response).to have_http_status(:success)
-        expect(response.parsed_body['payload']).to eq(message_templates.first(2))
+        expected = Whatsapp::TemplateVariableBindingsService.new(whatsapp_channel).merge_into(message_templates.first(2)).as_json
+        expect(response.parsed_body['payload']).to eq(expected)
       end
 
       it 'returns an empty payload when the template name does not match' do

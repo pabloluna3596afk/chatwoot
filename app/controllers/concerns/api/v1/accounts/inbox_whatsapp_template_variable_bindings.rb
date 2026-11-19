@@ -23,7 +23,7 @@ module Api::V1::Accounts::InboxWhatsappTemplateVariableBindings
 
   def approved_template(name)
     Array(@inbox.channel.message_templates).find do |entry|
-      entry['name'] == name && entry['status'].to_s.casecmp?('APPROVED')
+      entry['name'] == name && entry['status'].to_s.casecmp?('APPROVED') && entry['category'].to_s.upcase != 'AUTHENTICATION'
     end
   end
 

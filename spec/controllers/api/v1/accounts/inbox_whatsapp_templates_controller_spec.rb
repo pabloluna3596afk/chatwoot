@@ -451,4 +451,59 @@ RSpec.describe 'Inbox WhatsApp templates API', type: :request do
       expect(service).not_to have_received(:create_from_library)
     end
   end
+
+  describe 'PATCH variable_bindings' do
+    let(:synced) do
+      { 'name' => 'order', 'language' => 'es', 'status' => 'APPROVED', 'category' => 'UTILITY',
+        'components' => [{ 'type' => 'BODY', 'text' => '{{1}}' }] }
+    end
+
+    it 'saves on a non-Cloud WhatsApp provider without invoking Meta' do
+      channel.update!(provider: 'default', message_templates: [synced])
+      expect(Whatsapp::TemplateManagementService).not_to receive(:new)
+      patch "#{base_url}/variable_bindings", params: { name: 'order', variable_bindings: { '1' => 'contact.name' } },
+                                             headers: admin.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:ok)
+      expect(channel.reload.template_variable_bindings).to eq('order' => { '1' => 'contact.name' })
+      expect(channel.message_templates).to eq([synced])
+    end
+
+    it 'rejects non-WhatsApp channels' do
+      web = create(:inbox, account: account)
+      patch "/api/v1/accounts/#{account.id}/inboxes/#{web.id}/whatsapp_templates/variable_bindings",
+            params: { name: 'order', variable_bindings: { '1' => 'contact.name' } }, headers: admin.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    %w[PENDING REJECTED PAUSED DISABLED].each do |status|
+      it "refuses a #{status} template" do
+        channel.update!(message_templates: [synced.merge('status' => status)])
+        patch "#{base_url}/variable_bindings", params: { name: 'order', variable_bindings: { '1' => 'contact.name' } },
+                                               headers: admin.create_new_auth_token, as: :json
+        expect(response).to have_http_status(:not_found)
+        expect(channel.reload.template_variable_bindings).to be_empty
+      end
+    end
+
+    it 'refuses authentication templates' do
+      channel.update!(message_templates: [synced.merge('category' => 'AUTHENTICATION')])
+      patch "#{base_url}/variable_bindings", params: { name: 'order', variable_bindings: { '1' => 'contact.name' } },
+                                             headers: admin.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:not_found)
+      expect(channel.reload.template_variable_bindings).to be_empty
+    end
+
+    it 'enriches the list endpoint while retaining marketing for campaigns' do
+      resource = synced.merge('category' => 'MARKETING', 'components' => [{ 'type' => 'BODY', 'text' => '{{nombre}} {{1}} {{2}}' }])
+      channel.update!(message_templates: [resource], template_variable_bindings: { 'order' => { '1' => 'contact.email' } })
+      get "/api/v1/accounts/#{account.id}/inboxes/#{inbox.id}/message_templates", headers: admin.create_new_auth_token
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body['payload'].first).to include(
+        'category' => 'MARKETING', 'variable_bindings' => { '1' => 'contact.email' }, 'missing_variables' => ['2'],
+        'variable_sources' => { 'body' => { 'nombre' => { 'source' => 'alias', 'path' => 'contact.name' },
+                                            '1' => { 'source' => 'binding', 'path' => 'contact.email' },
+                                            '2' => { 'source' => 'missing', 'path' => nil } }, 'header' => {} }
+      )
+    end
+  end
 end
