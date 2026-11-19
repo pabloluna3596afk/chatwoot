@@ -63,12 +63,7 @@ export default {
       default: '',
     },
   },
-  emits: [
-    'setReplyMode',
-    'toggleEditorSize',
-    'executeCopilotAction',
-    'collapse',
-  ],
+  emits: ['setReplyMode', 'toggleEditorSize', 'executeCopilotAction'],
   setup(props, { emit }) {
     const setReplyMode = mode => {
       emit('setReplyMode', mode);
@@ -237,16 +232,6 @@ export default {
           @execute-copilot-action="handleCopilotAction"
         />
       </div>
-      <NextButton
-        v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.HIDE_COMPOSER')"
-        slate
-        faded
-        sm
-        icon="i-lucide-chevron-down"
-        class="max-md:hidden"
-        :aria-label="$t('CONVERSATION.REPLYBOX.HIDE_COMPOSER')"
-        @click="$emit('collapse')"
-      />
       <NextButton
         slate
         faded

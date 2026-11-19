@@ -14,7 +14,7 @@ vi.mock('dashboard/composables/useCaptain', () => ({
 }));
 
 describe('ReplyTopPanel collapse action', () => {
-  it('offers Hide and expand even without Copilot, with desktop-only Hide', async () => {
+  it('offers expand even without Copilot and no Hide button', async () => {
     const wrapper = mount(ReplyTopPanel, {
       global: {
         stubs: {
@@ -24,12 +24,11 @@ describe('ReplyTopPanel collapse action', () => {
         },
       },
     });
-    const hide = wrapper.get(
-      'button[aria-label="CONVERSATION.REPLYBOX.HIDE_COMPOSER"]'
-    );
-    expect(hide.classes()).toContain('max-md:hidden');
-    await hide.trigger('click');
-    expect(wrapper.emitted('collapse')).toEqual([[]]);
+    expect(
+      wrapper
+        .find('button[aria-label="CONVERSATION.REPLYBOX.HIDE_COMPOSER"]')
+        .exists()
+    ).toBe(false);
     const expand = wrapper.findAll('button').at(-1);
     expect(expand.classes()).not.toContain('max-md:hidden');
     await expand.trigger('click');
