@@ -16,6 +16,12 @@ import TabBar from 'dashboard/components-next/tabbar/TabBar.vue';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
 import SettingsLayout from '../SettingsLayout.vue';
+import TemplatePendingIndicator from './TemplatePendingIndicator.vue';
+import {
+  templateDataEligible,
+  templateVariables,
+  hasPendingVariables,
+} from './templateData';
 import TemplatesTable from './TemplatesTable.vue';
 import TemplatesToolbar from './TemplatesToolbar.vue';
 import { templateTableColumns } from './templateTableColumns';
@@ -64,10 +70,18 @@ const cloudInboxFor = template =>
     template.inboxes.some(owner => owner.id === inbox.id)
   );
 const canManage = template => isAdmin.value && Boolean(cloudInboxFor(template));
-const canEdit = template => canManage(template) && isEditable(template);
+const canEdit = template =>
+  isAdmin.value &&
+  ((canManage(template) && isEditable(template)) ||
+    (templateDataEligible(template) && templateVariables(template).length > 0));
 
 const templates = ref([]);
-const searchQuery = ref('');
+const searchQuery = ref(route.query.q || '');
+const missingOnly = ref(route.query.filter === 'missing');
+const missingCount = computed(
+  () => templates.value.filter(hasPendingVariables).length
+);
+const selectedTemplate = ref(null);
 const selectedInboxId = ref('all');
 const selectedLanguage = ref('all');
 const selectedType = ref('all');
@@ -94,7 +108,6 @@ const actionLabels = computed(() => ({
   duplicate: t('WHATSAPP_TEMPLATE_MGMT.DUPLICATE'),
   delete: t('WHATSAPP_TEMPLATE_MGMT.DELETE'),
 }));
-const selectedTemplate = ref(null);
 const previewPanelRef = ref(null);
 const flowsPanel = ref(null);
 const formDrawerRef = ref(null);
@@ -226,6 +239,21 @@ const duplicateTemplate = template => {
   formDrawerRef.value?.open(null, prefill);
 };
 const openEdit = template => formDrawerRef.value?.open(template);
+const openedLinkedTemplate = ref(false);
+watch(templates, records => {
+  if (
+    openedLinkedTemplate.value ||
+    route.query.filter !== 'missing' ||
+    !route.query.q
+  )
+    return;
+  const matches = records.filter(
+    template => template.name === route.query.q && canEdit(template)
+  );
+  if (matches.length !== 1) return;
+  openedLinkedTemplate.value = true;
+  openEdit(matches[0]);
+});
 const askDelete = template => {
   templateToDelete.value = template;
   deleteDialogRef.value?.open();
@@ -233,6 +261,13 @@ const askDelete = template => {
 
 const filteredTemplates = computed(() => {
   let records = templates.value;
+  if (missingOnly.value)
+    records = records
+      .filter(hasPendingVariables)
+      .sort(
+        (a, b) =>
+          Number(b.category === 'UTILITY') - Number(a.category === 'UTILITY')
+      );
 
   if (selectedInboxId.value !== 'all') {
     records = records.filter(template =>
@@ -279,6 +314,7 @@ const pagedTemplates = computed(() =>
 watch(
   [
     searchQuery,
+    missingOnly,
     selectedInboxId,
     selectedLanguage,
     selectedType,
@@ -302,7 +338,9 @@ watch(
 const fetchTemplates = async () => {
   try {
     await runTemplateRequest(async signal => {
-      const didFetchInboxes = await store.dispatch('inboxes/get');
+      const didFetchInboxes = await store.dispatch('inboxes/get', {
+        force: true,
+      });
       if (!didFetchInboxes) throw new Error();
       if (signal.aborted) return;
 
@@ -482,6 +520,23 @@ onDeactivated(abortTemplateRequest);
             v-if="hasTemplates && showTemplates"
             class="flex flex-wrap items-center gap-2"
           >
+            <button
+              type="button"
+              class="rounded-full border px-3 py-1 text-xs"
+              :class="
+                missingOnly
+                  ? 'border-n-amber-8 bg-n-amber-3 text-n-amber-11'
+                  : 'border-n-weak text-n-slate-11'
+              "
+              :aria-pressed="missingOnly"
+              @click="missingOnly = !missingOnly"
+            >
+              {{
+                t('WHATSAPP_TEMPLATE_MGMT.FILTER.MISSING', {
+                  count: missingCount,
+                })
+              }}
+            </button>
             <FilterDropdown
               v-model="selectedInboxId"
               :options="inboxOptions"
@@ -542,7 +597,10 @@ onDeactivated(abortTemplateRequest);
         @open="openPreview"
       >
         <template #NAME="{ item }">
-          <span class="text-heading-3 text-n-slate-12">{{ item.name }}</span>
+          <span class="inline-flex items-center gap-2">
+            <span class="text-heading-3 text-n-slate-12">{{ item.name }}</span>
+            <TemplatePendingIndicator :template="item" />
+          </span>
         </template>
         <template #CATEGORY="{ item }">
           <span
@@ -605,7 +663,7 @@ onDeactivated(abortTemplateRequest);
     <TemplateFormDrawer
       v-if="isAdmin"
       ref="formDrawerRef"
-      :inboxes="cloudInboxes"
+      :inboxes="whatsappInboxes"
       :templates="templates"
       @saved="fetchTemplates"
     />

@@ -22,6 +22,7 @@ module Api::V1::Accounts::Concerns::InboxHealthManagement
     end
 
     templates, last_sync_attempt_at, name_key = message_template_data
+    templates = Whatsapp::TemplateVariableBindingsService.new(@inbox.channel).merge_into(templates) if @inbox.whatsapp?
     templates = templates.select { |template| template[name_key] == params[:name] } if params[:name].present?
 
     render json: {

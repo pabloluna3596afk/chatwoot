@@ -68,11 +68,23 @@ RSpec.describe Captain::Messaging::TemplateParams do
     expect(sources).to eq('body' => { 'nombre' => 'assistant' }, 'header' => {})
     configure_params({})
     _params, _missing, sources = described_class.new(assistant, inbox, templates.first).resolve
-    expect(sources).to eq('body' => { 'nombre' => 'inbox' }, 'header' => {})
+    expect(sources).to eq('body' => { 'nombre' => 'binding' }, 'header' => {})
     name_alias_template = templates.last.merge(
       'components' => [{ 'type' => 'BODY', 'text' => 'Hello {{correo}}' }]
     )
     _params, _missing, sources = described_class.new(assistant, inbox, name_alias_template).resolve
-    expect(sources).to eq('body' => { 'correo' => 'name' }, 'header' => {})
+    expect(sources).to eq('body' => { 'correo' => 'alias' }, 'header' => {})
+  end
+
+  it 'resolves aliases alongside partial bindings and ignores stale binding keys' do
+    configure_params({})
+    channel.update!(template_variable_bindings: { 'order_ready' => { 'pedido' => 'conversation.id', 'old' => 'contact.email' } })
+    template = templates.first.merge('components' => [{ 'type' => 'BODY', 'text' => '{{nombre}} {{pedido}}' }])
+
+    params, missing, sources = described_class.new(assistant, inbox, template).resolve
+
+    expect(params['body']).to eq('nombre' => '{{ contact.name }}', 'pedido' => '{{ conversation.id }}')
+    expect(missing).to be_empty
+    expect(sources['body']).to eq('nombre' => 'alias', 'pedido' => 'binding')
   end
 end

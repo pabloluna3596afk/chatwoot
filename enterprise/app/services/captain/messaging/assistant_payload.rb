@@ -35,7 +35,7 @@ class Captain::Messaging::AssistantPayload
 
   def available_items(inbox, request_cache)
     availability = Captain::Messaging::Availability.new(@assistant, inbox, request_cache: request_cache)
-    availability.templates + availability.flows
+    availability.templates.select { |item| item.resource['category'].to_s.upcase == 'UTILITY' } + availability.flows
   end
 
   def state_counts(items)

@@ -116,8 +116,8 @@ describe.each(['es', 'en'])('useAssistantName (%s)', locale => {
     });
     expect(sentence.element.textContent).toBe(
       locale === 'es'
-        ? 'Aurora usa los Flows y plantillas de este número'
-        : 'Aurora uses the Flows and templates of this number'
+        ? 'Aurora usa los Flows y las plantillas de utilidad de este número'
+        : 'Aurora uses this number’s Flows and utility templates'
     );
     expect(sentence.html()).not.toContain(ASSISTANT_NAME_MARKER);
     expect(sentence.findAll('.assistant-name')).toHaveLength(1);

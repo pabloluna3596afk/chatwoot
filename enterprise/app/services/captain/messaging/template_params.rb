@@ -1,7 +1,5 @@
-# Resolves Captain auto-mode template variables without samples or legacy dash fallbacks.
+# Resolves Captain template variables, reading legacy values before the shared inbox sources.
 class Captain::Messaging::TemplateParams
-  VARIABLE = Captain::TemplateMessage::VARIABLE
-
   def initialize(assistant, inbox, template)
     @assistant = assistant
     @inbox = inbox
@@ -10,20 +8,25 @@ class Captain::Messaging::TemplateParams
 
   # Returns [complete processed_params, missing variable names, variable sources].
   def resolve
-    overrides = override_params
-    bindings = Whatsapp::TemplateVariableBindingsService.new(@inbox.channel).for_template(@template['name'])
+    legacy = @assistant.messaging.mode(@inbox.id) == 'list'
+    overrides = if legacy
+                  @assistant.messaging.template(@inbox.id, @template['name'], @template['language'])&.fetch('processed_params', nil).to_h
+                else
+                  override_params
+                end
+    bindings = Whatsapp::TemplateVariableSources.new(@inbox.channel).for(@template)
     variables = Captain::TemplateMessage.variables(@template)
-    bindings = {} if binding_mismatch?(bindings, variables)
-    params, sources = resolved_values(variables, overrides, bindings)
+    params, sources = resolved_values(variables, overrides, bindings, legacy)
 
-    [params, missing_variables(variables, params), sources]
+    missing = legacy ? Captain::TemplateMessage.unmapped(@template, params) : missing_variables(variables, params)
+    [params, missing, sources]
   end
 
   private
 
-  def resolved_values(variables, overrides, bindings)
+  def resolved_values(variables, overrides, bindings, legacy)
     variables.each_with_object([{ 'body' => {}, 'header' => {} }, { 'body' => {}, 'header' => {} }]) do |variable, (params, sources)|
-      value, source = resolve_variable(variable, overrides, bindings)
+      value, source = resolve_variable(variable, overrides, bindings, legacy)
       next unless value
 
       params[variable.component][variable.name] = value
@@ -41,28 +44,15 @@ class Captain::Messaging::TemplateParams
     @assistant.messaging.params_for(@inbox.id, key).to_h
   end
 
-  def binding_mismatch?(bindings, variables)
-    bindings.any? && bindings.keys.sort != variables.map(&:name).uniq.sort
-  end
-
-  def resolve_variable(variable, overrides, bindings)
+  def resolve_variable(variable, overrides, bindings, legacy)
     explicit, value = explicit_value(overrides, variable)
-    return [valid_expression?(value) ? value : nil, 'assistant'] if explicit
-    return [binding_expression(bindings[variable.name]), 'inbox'] if bindings.key?(variable.name)
+    if explicit
+      return [valid_expression?(value) ? value : nil, 'assistant'] unless legacy
+      return [value, 'legacy'] if value.present?
+    end
 
-    [alias_expression(variable.name), 'name']
-  end
-
-  def binding_expression(path)
-    expression = "{{ #{path} }}"
-    valid_expression?(expression) ? expression : nil
-  end
-
-  def alias_expression(name)
-    return if name.match?(/\A\d+\z/)
-
-    path = alias_path_for(name)
-    "{{ #{path} }}" if path && catalog_paths.include?(path)
+    source = bindings.fetch(variable.component).fetch(variable.name)
+    [source[:path] && "{{ #{source[:path]} }}", source[:source]]
   end
 
   def explicit_value(params, variable)
@@ -78,16 +68,6 @@ class Captain::Messaging::TemplateParams
     return false unless path
 
     catalog_paths.include?(path)
-  end
-
-  def alias_path_for(name)
-    return if name.match?(/\A\d+\z/)
-
-    Variables::Catalog::ALIASES.each do |path, names|
-      next if path.start_with?('appointment.')
-      return path if names.include?(name)
-    end
-    nil
   end
 
   def catalog_paths

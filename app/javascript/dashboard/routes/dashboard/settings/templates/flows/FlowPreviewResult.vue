@@ -8,6 +8,7 @@ import { saveTargets, saveTargetLabel } from './flowSaveTargets';
 import FlowPreviewMessage from './FlowPreviewMessage.vue';
 
 const props = defineProps({
+  readonly: { type: Boolean, default: false },
   flowName: { type: String, required: true },
   definition: { type: Object, required: true },
   answers: { type: Object, required: true },
@@ -90,6 +91,7 @@ const destinations = computed(() =>
         @click="$emit('reset')"
       />
       <Button
+        v-if="!readonly"
         variant="ghost"
         color="slate"
         size="sm"

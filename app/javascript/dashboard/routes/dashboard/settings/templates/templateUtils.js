@@ -64,6 +64,23 @@ export const groupTemplates = templateRecords => {
 
     if (existingTemplate) {
       const inboxes = [...existingTemplate.inboxes, inbox];
+      const missingVariables = [
+        ...new Set([
+          ...(existingTemplate.missing_variables || []),
+          ...(template.missing_variables || []),
+        ]),
+      ];
+      const variableSources = {};
+      ['header', 'body'].forEach(group => {
+        variableSources[group] = {
+          ...existingTemplate.variable_sources?.[group],
+          ...template.variable_sources?.[group],
+        };
+        Object.keys(variableSources[group]).forEach(token => {
+          if (missingVariables.includes(token))
+            variableSources[group][token] = { source: 'missing', path: null };
+        });
+      });
       const incomingIsNewer =
         lastUpdatedAt &&
         (!existingTemplate.lastUpdatedAt ||
@@ -71,6 +88,8 @@ export const groupTemplates = templateRecords => {
 
       groupedTemplates.set(key, {
         ...(incomingIsNewer ? normalizedTemplate : existingTemplate),
+        variable_sources: variableSources,
+        missing_variables: missingVariables,
         inboxes,
         inboxNames: inboxes.map(item => item.name).join(', '),
         lastUpdatedAt: incomingIsNewer

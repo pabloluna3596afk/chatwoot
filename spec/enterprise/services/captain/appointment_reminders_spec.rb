@@ -559,6 +559,13 @@ RSpec.describe Captain::AppointmentReminders do
       context 'with paid templates on and an approved template chosen' do
         let(:paid_config) { paid }
 
+        it 'refuses marketing selected in a legacy list even with paid permission' do
+          channel.update!(message_templates: templates.map { |item| item.merge('category' => 'MARKETING') })
+          expect(send_reminder).to eq(:skipped)
+          expect(conversation.messages.outgoing.where(private: false)).to be_empty
+          expect(reminder('reminder_1').reload.skipped_reason).to eq('template_unavailable')
+        end
+
         it 'waits before sending a template outside customer hours' do
           result = at(starts_at - 11.hours - 30.minutes) { described_class.new(reminder('reminder_1')).perform }
           expect(result).to eq(:waiting)

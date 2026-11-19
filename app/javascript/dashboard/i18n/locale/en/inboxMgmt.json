@@ -1026,7 +1026,8 @@
         "EXPECTED_URL": "Expected URL",
         "COPY_URL": "Copy webhook URL",
         "COPY_SUCCESS": "Webhook URL copied to clipboard"
-      }
+      },
+      "CAPTAIN_CAP": "AI templates today (whole account): {used} of {cap}"
     },
     "SETTINGS": "Settings",
     "FEATURES": {

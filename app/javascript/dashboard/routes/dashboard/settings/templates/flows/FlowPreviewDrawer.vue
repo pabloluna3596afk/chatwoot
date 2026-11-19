@@ -10,7 +10,10 @@ import Banner from 'dashboard/components-next/banner/Banner.vue';
 
 // Clicking a Flow in the list shows it here, ready to try in the phone (the same simulator as the editor's
 // Probar). Editing is one button away; the row click no longer jumps straight into the editor.
-const props = defineProps({ notice: { type: String, default: '' } });
+const props = defineProps({
+  notice: { type: String, default: '' },
+  readonly: { type: Boolean, default: false },
+});
 const emit = defineEmits(['edit']);
 const { t } = useI18n();
 const attributes = useMapGetter('attributes/getAttributes');
@@ -41,6 +44,7 @@ const open = async row => {
 };
 const close = () => panelRef.value?.close();
 const edit = () => {
+  if (props.readonly) return;
   emit('edit', summary.value);
   close();
 };
@@ -77,13 +81,14 @@ defineExpose({ open, close });
     >
       <FlowPhoneSimulator
         :key="simulatorKey"
+        :readonly="readonly"
         :definition="flow.definition"
         :flow-name="flow.name"
         :attributes="attributes"
-        @edit="edit"
+        v-on="readonly ? {} : { edit }"
       />
     </div>
-    <template #footer>
+    <template v-if="!readonly" #footer>
       <Button
         intent="secondary"
         class="w-full"

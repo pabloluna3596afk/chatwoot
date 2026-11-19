@@ -7,7 +7,7 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
   include Api::V1::Accounts::InboxWhatsappTemplateVariableBindings
 
   before_action :fetch_inbox
-  before_action :validate_whatsapp_cloud_channel
+  before_action :validate_template_channel
   before_action :prepare_variable_bindings, only: %i[create update]
 
   # The live state of one template (status, rejection reason, quality).
@@ -109,7 +109,12 @@ class Api::V1::Accounts::InboxWhatsappTemplatesController < Api::V1::Accounts::B
     authorize @inbox, :manage_whatsapp_templates?
   end
 
-  def validate_whatsapp_cloud_channel
+  def validate_template_channel
+    if action_name == 'variable_bindings'
+      return if @inbox.whatsapp?
+
+      return render_error('whatsapp_channel_required', status: :unprocessable_entity)
+    end
     return if @inbox.whatsapp? && @inbox.channel.try(:provider) == 'whatsapp_cloud'
 
     render_error('cloud_channel_required', status: :unprocessable_entity)

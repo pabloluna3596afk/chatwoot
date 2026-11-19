@@ -15,6 +15,8 @@ import { useAlert } from 'dashboard/composables';
 import { useStore } from 'dashboard/composables/store';
 import { useTemplateBindings } from 'dashboard/composables/useTemplateBindings';
 import { useAccount } from 'dashboard/composables/useAccount';
+import InboxesAPI from 'dashboard/api/inboxes';
+import { templateDataEligible, templateVariables } from './templateData';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 import Button from 'dashboard/components-next/button/Button.vue';
 import TemplateComboBox from './TemplateComboBox.vue';
@@ -38,6 +40,7 @@ import {
   suggestSystemMapping,
   systemMappingValid,
   editRules,
+  isEditable,
   emptyForm,
   formFromTemplate,
   hasNamedVariables,
@@ -55,7 +58,7 @@ import { formatTemplateLabel, templateStatusClasses } from './templateUtils';
 import { defaultLanguage, languageOptions } from './whatsappLanguages';
 
 const props = defineProps({
-  // The WhatsApp Cloud inboxes the template can be created in.
+  // WhatsApp inboxes for local bindings; creation is limited to Cloud inboxes.
   inboxes: { type: Array, default: () => [] },
   // The templates of the page: a new one starts in the language most of its channel's templates use.
   templates: { type: Array, default: () => [] },
@@ -115,6 +118,18 @@ const languageTouched = ref(false);
 const variableMode = ref('NAMED');
 const customVariable = ref('');
 
+const isEdit = computed(() => Boolean(editing.value));
+
+const rules = computed(() =>
+  editRules(liveState.value?.status || editing.value?.status)
+);
+
+const inboxOptions = computed(() =>
+  props.inboxes
+    .filter(inbox => isEdit.value || inbox.provider === 'whatsapp_cloud')
+    .map(inbox => ({ value: inbox.id, label: inbox.name }))
+);
+
 // The names a variable can have: the same catalog the VariablePicker offers (CRM, attributes and appointments).
 const knownVariableNames = computed(() =>
   bindings.value.map(binding => binding.name)
@@ -122,21 +137,25 @@ const knownVariableNames = computed(() =>
 
 // The variables of the message the shared table does not know ({{pedido}}): each one needs to say what fills it.
 const ownVariables = computed(() =>
-  [
-    ...variableTokens(form.header.format === 'TEXT' ? form.header.text : ''),
-    ...variableTokens(form.body.text),
-  ].filter(
-    (token, index, all) =>
-      all.indexOf(token) === index &&
-      !/^\d+$/.test(token) &&
-      (!knownVariableNames.value.includes(token) ||
-        (form.variableBindings[token] &&
-          !bindings.value.some(
-            binding =>
-              binding.key === form.variableBindings[token] ||
-              binding.legacyPaths.includes(form.variableBindings[token])
-          )))
-  )
+  isEdit.value
+    ? [...new Set(templateVariables(editing.value).map(item => item.token))]
+    : [
+        ...variableTokens(
+          form.header.format === 'TEXT' ? form.header.text : ''
+        ),
+        ...variableTokens(form.body.text),
+      ].filter(
+        (token, index, all) =>
+          all.indexOf(token) === index &&
+          !/^\d+$/.test(token) &&
+          (!knownVariableNames.value.includes(token) ||
+            (form.variableBindings[token] &&
+              !bindings.value.some(
+                binding =>
+                  binding.key === form.variableBindings[token] ||
+                  binding.legacyPaths.includes(form.variableBindings[token])
+              )))
+      )
 );
 const allBindings = bindings;
 const bindingNameFor = token =>
@@ -153,7 +172,27 @@ const setVariableBinding = (token, id) => {
   if (binding) form.variableBindings[token] = binding.key;
 };
 
-const isEdit = computed(() => Boolean(editing.value));
+const originalContent = ref('');
+const originalBindings = ref('');
+const contentSnapshot = () => {
+  const { variable_bindings, ...content } = buildPayload(form);
+  return JSON.stringify(content);
+};
+const contentChanged = computed(
+  () => contentSnapshot() !== originalContent.value
+);
+const canEditContent = computed(
+  () =>
+    !isEdit.value ||
+    (liveLoaded.value && rules.value.canEdit && isEditable(editing.value))
+);
+const canEditBindings = computed(
+  () => isEdit.value && templateDataEligible(editing.value)
+);
+const automaticVariable = token =>
+  templateVariables(editing.value).some(
+    item => item.token === token && item.source === 'alias'
+  ) && !form.variableBindings[token];
 const mappedForm = computed(() =>
   copySource.value
     ? {
@@ -190,9 +229,6 @@ const mappingTokens = computed(() =>
 const hasOriginalComponent = type =>
   editing.value?.components?.some(component => component.type === type);
 const visibleErrors = computed(() => (showErrors.value ? errors.value : {}));
-const rules = computed(() =>
-  editRules(liveState.value?.status || editing.value?.status)
-);
 const categoryLocked = computed(
   () => isEdit.value && rules.value.categoryLocked
 );
@@ -265,6 +301,7 @@ const resetForm = () => {
   copySource.value = null;
   Object.keys(systemMapping).forEach(key => delete systemMapping[key]);
   saveError.value = '';
+  originalContent.value = '';
   liveLoaded.value = false;
   headerPreviewUrl.value = '';
   headerFileSize.value = 0;
@@ -322,15 +359,25 @@ const open = async (template = null, prefill = null) => {
     languageTouched.value = Boolean(prefill.language);
     Object.assign(form, prefill);
     if (!form.inboxId)
-      form.inboxId = props.inboxes.length === 1 ? props.inboxes[0].id : null;
+      form.inboxId =
+        inboxOptions.value.length === 1 ? inboxOptions.value[0].value : null;
   } else if (template) {
     const inbox = props.inboxes.find(item =>
       template.inboxes?.some(owner => owner.id === item.id)
     );
     Object.assign(form, formFromTemplate(template, inbox?.id));
-    await loadLiveState(template);
+    if (inbox?.provider === 'whatsapp_cloud') await loadLiveState(template);
+    // Use the server's resolved sources, including missing values across grouped inboxes.
+    templateVariables(template).forEach(item => {
+      if (item.source === 'binding')
+        form.variableBindings[item.token] = item.path;
+      else delete form.variableBindings[item.token];
+    });
+    originalContent.value = contentSnapshot();
+    originalBindings.value = JSON.stringify(form.variableBindings);
   } else {
-    form.inboxId = props.inboxes.length === 1 ? props.inboxes[0].id : null;
+    form.inboxId =
+      inboxOptions.value.length === 1 ? inboxOptions.value[0].value : null;
   }
   if (!template && !languageTouched.value) setDefaultLanguage();
   variableMode.value =
@@ -475,34 +522,54 @@ const openPreview = () => previewDialogRef.value?.open();
 const save = async () => {
   if (
     isLoading.value ||
-    (isEdit.value && (!liveLoaded.value || !rules.value.canEdit))
+    (isEdit.value && !canEditContent.value && !canEditBindings.value)
   )
     return;
   saveError.value = '';
   if (!isEdit.value) form.name = generatedName.value;
   showErrors.value = true;
-  if (Object.keys(errors.value).length) return;
+  if (
+    (!isEdit.value || contentChanged.value) &&
+    Object.keys(errors.value).length
+  )
+    return;
 
   isSaving.value = true;
   try {
     const payload = buildPayload(mappedForm.value);
     let created = null;
     let updated = null;
-    if (isEdit.value) {
+    // Persist local choices while the synced template is still approved.
+    if (
+      canEditBindings.value &&
+      JSON.stringify(form.variableBindings) !== originalBindings.value
+    ) {
+      await editing.value.inboxes.reduce(async (previous, inbox) => {
+        await previous;
+        await InboxesAPI.updateWhatsappTemplateVariableBindings(inbox.id, {
+          name: editing.value.name,
+          variable_bindings: form.variableBindings,
+        });
+      }, Promise.resolve());
+      await store.dispatch('inboxes/get', { force: true });
+    }
+    if (isEdit.value && contentChanged.value) {
+      if (!canEditContent.value) return;
       ({ data: updated } = await WhatsappTemplatesAPI.updateTemplate(
         form.inboxId,
         editing.value.id,
         categoryLocked.value ? { ...payload, category: undefined } : payload
       ));
-    } else {
+    } else if (!isEdit.value) {
       ({ data: created } = await WhatsappTemplatesAPI.createTemplate(
         form.inboxId,
         payload
       ));
     }
-    const editMessage = updated?.meta_skipped
-      ? 'WHATSAPP_TEMPLATE_MGMT.FORM.SAVED_LOCALLY'
-      : 'WHATSAPP_TEMPLATE_MGMT.FORM.UPDATED';
+    const editMessage =
+      !contentChanged.value || updated?.meta_skipped
+        ? 'WHATSAPP_TEMPLATE_MGMT.FORM.SAVED_LOCALLY'
+        : 'WHATSAPP_TEMPLATE_MGMT.FORM.UPDATED';
     useAlert(
       t(isEdit.value ? editMessage : 'WHATSAPP_TEMPLATE_MGMT.FORM.CREATED')
     );
@@ -550,9 +617,6 @@ const openSystemCopy = async template => {
 defineExpose({ open, close, openSystemCopy });
 
 // The combobox clears its value when the chosen option is clicked again: these fields always keep one.
-const inboxOptions = computed(() =>
-  props.inboxes.map(inbox => ({ value: inbox.id, label: inbox.name }))
-);
 const headerOptions = computed(() =>
   HEADER_FORMATS.filter(
     format =>
@@ -729,491 +793,512 @@ const buttonChoices = computed(() =>
           data-testid="system-copy-open"
           @click="openSystemCopy(editing)"
         />
-        <p v-if="!rules.canEdit" class="text-sm text-n-amber-11">
+        <p v-if="!canEditContent" class="text-sm text-n-amber-11">
           {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.CANNOT_EDIT_NOW') }}
         </p>
       </div>
 
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div
-          v-if="inboxes.length > 1 || visibleErrors.inboxId"
-          class="grid gap-1 content-start sm:col-span-2"
-        >
-          <span class="text-sm font-medium text-n-slate-12">
-            {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL') }}
-          </span>
-          <TemplateComboBox
-            :model-value="form.inboxId ?? ''"
-            :options="inboxOptions"
-            :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL_PLACEHOLDER')"
-            :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL')"
-            :search-placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL')"
-            :disabled="isEdit"
-            :has-error="Boolean(fieldError('inboxId'))"
-            teleport
-            data-testid="template-inbox"
-            @update:model-value="chooseInbox"
-          />
-          <span v-if="fieldError('inboxId')" class="text-xs text-n-ruby-9">
-            {{ fieldError('inboxId') }}
-          </span>
-        </div>
-        <Input
-          v-model="form.name"
-          :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.NAME')"
-          :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.NAME_PLACEHOLDER')"
-          :disabled="isEdit"
-          :message="
-            fieldError('name') ||
-            (!isEdit && generatedName
-              ? $t('WHATSAPP_TEMPLATE_MGMT.FORM.NAME_SAVED_AS', {
-                  name: generatedName,
-                })
-              : '')
-          "
-          :message-type="fieldError('name') ? 'error' : 'info'"
-          @blur="form.name = generatedName"
-        />
-        <div class="grid gap-1 content-start">
-          <span class="text-sm font-medium text-n-slate-12">
-            {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE') }}
-          </span>
-          <TemplateComboBox
-            :model-value="form.language"
-            :options="LANGUAGE_OPTIONS"
-            :disabled="isEdit"
-            :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE')"
-            :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE')"
-            show-search
-            :search-placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE')"
-            teleport
-            data-testid="template-language"
-            @update:model-value="chooseLanguage"
-          />
-        </div>
-      </div>
-
-      <fieldset v-if="!categoryLocked" class="grid gap-2">
-        <legend class="text-sm font-medium text-n-slate-12">
-          {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORY') }}
-        </legend>
-        <div class="grid gap-2 sm:grid-cols-2">
-          <label
-            v-for="category in CATEGORIES"
-            :key="category"
-            class="flex items-start gap-2 p-3 rounded-lg outline outline-1 outline-n-weak"
-            :class="{ 'opacity-60': categoryLocked }"
-          >
-            <input
-              v-model="form.category"
-              type="radio"
-              :value="category"
-              :disabled="categoryLocked"
-              class="mt-1"
-            />
-            <span class="grid gap-0.5">
-              <span
-                class="flex items-center gap-1.5 text-sm font-medium text-n-slate-12"
-              >
-                {{
-                  $t(`WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.${category}.LABEL`)
-                }}
-                <span
-                  v-tooltip.top="
-                    $t(
-                      `WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.${category}.HELP`
-                    )
-                  "
-                  class="i-lucide-info size-3.5 shrink-0 text-n-slate-10"
-                  role="img"
-                  :aria-label="
-                    $t(
-                      `WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.${category}.HELP`
-                    )
-                  "
-                  :data-testid="`category-info-${category}`"
-                />
-              </span>
-            </span>
-          </label>
-        </div>
-        <p v-if="categoryLocked" class="text-xs text-n-amber-11">
-          {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORY_LOCKED') }}
-        </p>
-        <p
-          v-if="promoWords.length"
-          class="p-3 text-sm rounded-lg text-n-amber-12 bg-n-amber-3"
-          data-testid="promo-warning"
-        >
-          {{
-            $t('WHATSAPP_TEMPLATE_MGMT.FORM.PROMO_WARNING', {
-              words: promoWords.join(', '),
-            })
-          }}
-        </p>
-      </fieldset>
-
-      <div v-if="!isEdit && !copySource" class="grid gap-1">
-        <span
-          class="flex items-center gap-1.5 text-sm font-medium text-n-slate-12"
-        >
-          {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLES_AS') }}
-          <span
-            v-tooltip.top="variablesHelp"
-            class="i-lucide-info size-3.5 shrink-0 text-n-slate-10"
-            role="img"
-            :aria-label="variablesHelp"
-            data-testid="variables-info"
-          />
-        </span>
-        <div class="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            xs
-            :slate="variableMode !== 'NAMED'"
-            :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLES_NAMED')"
-            data-testid="mode-named"
-            @click="variableMode = 'NAMED'"
-          />
-          <Button
-            type="button"
-            xs
-            :slate="variableMode !== 'POSITIONAL'"
-            :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLES_POSITIONAL')"
-            data-testid="mode-positional"
-            @click="variableMode = 'POSITIONAL'"
-          />
-        </div>
-      </div>
-
-      <!-- The message as the customer will read it, edited in place -->
-      <div
-        class="p-4 rounded-xl bg-n-alpha-2 outline outline-1 outline-n-weak"
-        data-testid="message-editor"
+      <fieldset
+        :disabled="!canEditContent"
+        :inert="!canEditContent"
+        class="grid gap-4 min-w-0"
       >
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div
+            v-if="inboxes.length > 1 || visibleErrors.inboxId"
+            class="grid gap-1 content-start sm:col-span-2"
+          >
+            <span class="text-sm font-medium text-n-slate-12">
+              {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL') }}
+            </span>
+            <TemplateComboBox
+              :model-value="form.inboxId ?? ''"
+              :options="inboxOptions"
+              :placeholder="
+                $t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL_PLACEHOLDER')
+              "
+              :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL')"
+              :search-placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANNEL')"
+              :disabled="isEdit"
+              :has-error="Boolean(fieldError('inboxId'))"
+              teleport
+              data-testid="template-inbox"
+              @update:model-value="chooseInbox"
+            />
+            <span v-if="fieldError('inboxId')" class="text-xs text-n-ruby-9">
+              {{ fieldError('inboxId') }}
+            </span>
+          </div>
+          <Input
+            v-model="form.name"
+            :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.NAME')"
+            :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.NAME_PLACEHOLDER')"
+            :disabled="isEdit"
+            :message="
+              fieldError('name') ||
+              (!isEdit && generatedName
+                ? $t('WHATSAPP_TEMPLATE_MGMT.FORM.NAME_SAVED_AS', {
+                    name: generatedName,
+                  })
+                : '')
+            "
+            :message-type="fieldError('name') ? 'error' : 'info'"
+            @blur="form.name = generatedName"
+          />
+          <div class="grid gap-1 content-start">
+            <span class="text-sm font-medium text-n-slate-12">
+              {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE') }}
+            </span>
+            <TemplateComboBox
+              :model-value="form.language"
+              :options="LANGUAGE_OPTIONS"
+              :disabled="isEdit"
+              :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE')"
+              :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE')"
+              show-search
+              :search-placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.LANGUAGE')"
+              teleport
+              data-testid="template-language"
+              @update:model-value="chooseLanguage"
+            />
+          </div>
+        </div>
+
+        <fieldset v-if="!categoryLocked" class="grid gap-2">
+          <legend class="text-sm font-medium text-n-slate-12">
+            {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORY') }}
+          </legend>
+          <div class="grid gap-2 sm:grid-cols-2">
+            <label
+              v-for="category in CATEGORIES"
+              :key="category"
+              class="flex items-start gap-2 p-3 rounded-lg outline outline-1 outline-n-weak"
+              :class="{ 'opacity-60': categoryLocked }"
+            >
+              <input
+                v-model="form.category"
+                type="radio"
+                :value="category"
+                :disabled="categoryLocked"
+                class="mt-1"
+              />
+              <span class="grid gap-0.5">
+                <span
+                  class="flex items-center gap-1.5 text-sm font-medium text-n-slate-12"
+                >
+                  {{
+                    $t(
+                      `WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.${category}.LABEL`
+                    )
+                  }}
+                  <span
+                    v-tooltip.top="
+                      $t(
+                        `WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.${category}.HELP`
+                      )
+                    "
+                    class="i-lucide-info size-3.5 shrink-0 text-n-slate-10"
+                    role="img"
+                    :aria-label="
+                      $t(
+                        `WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORIES.${category}.HELP`
+                      )
+                    "
+                    :data-testid="`category-info-${category}`"
+                  />
+                </span>
+              </span>
+            </label>
+          </div>
+          <p v-if="categoryLocked" class="text-xs text-n-amber-11">
+            {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.CATEGORY_LOCKED') }}
+          </p>
+          <p
+            v-if="promoWords.length"
+            class="p-3 text-sm rounded-lg text-n-amber-12 bg-n-amber-3"
+            data-testid="promo-warning"
+          >
+            {{
+              $t('WHATSAPP_TEMPLATE_MGMT.FORM.PROMO_WARNING', {
+                words: promoWords.join(', '),
+              })
+            }}
+          </p>
+        </fieldset>
+
+        <div v-if="!isEdit && !copySource" class="grid gap-1">
+          <span
+            class="flex items-center gap-1.5 text-sm font-medium text-n-slate-12"
+          >
+            {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLES_AS') }}
+            <span
+              v-tooltip.top="variablesHelp"
+              class="i-lucide-info size-3.5 shrink-0 text-n-slate-10"
+              role="img"
+              :aria-label="variablesHelp"
+              data-testid="variables-info"
+            />
+          </span>
+          <div class="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              xs
+              :slate="variableMode !== 'NAMED'"
+              :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLES_NAMED')"
+              data-testid="mode-named"
+              @click="variableMode = 'NAMED'"
+            />
+            <Button
+              type="button"
+              xs
+              :slate="variableMode !== 'POSITIONAL'"
+              :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLES_POSITIONAL')"
+              data-testid="mode-positional"
+              @click="variableMode = 'POSITIONAL'"
+            />
+          </div>
+        </div>
+
+        <!-- The message as the customer will read it, edited in place -->
         <div
-          class="grid gap-3 p-3 rounded-lg shadow-sm bg-n-solid-1 outline outline-1 outline-n-weak"
+          class="p-4 rounded-xl bg-n-alpha-2 outline outline-1 outline-n-weak"
+          data-testid="message-editor"
         >
           <div
-            v-if="!isEdit || hasOriginalComponent('HEADER')"
-            class="grid gap-2"
+            class="grid gap-3 p-3 rounded-lg shadow-sm bg-n-solid-1 outline outline-1 outline-n-weak"
           >
-            <div class="flex items-center gap-2">
-              <TemplateComboBox
-                :disabled="isEdit"
-                :model-value="form.header.format"
-                :options="headerOptions"
-                :placeholder="
-                  $t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.NONE')
-                "
-                :aria-label="
-                  $t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.NONE')
-                "
-                teleport
-                data-testid="template-header-format"
-                @update:model-value="chooseHeaderFormat"
-              />
-              <span
-                v-if="!isEdit && !mediaHeaderAvailable"
-                v-tooltip.top="mediaUnavailableText"
-                class="i-lucide-info size-3.5 shrink-0 text-n-slate-10"
-                role="img"
-                :aria-label="mediaUnavailableText"
-                data-testid="media-header-unavailable"
-              />
-            </div>
-            <template v-if="form.header.format === 'TEXT'">
-              <Input
-                :model-value="mappedForm.header.text"
-                :disabled="Boolean(copySource)"
-                :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_TEXT')"
-                :message="fieldError('header.text')"
-                :message-type="fieldError('header.text') ? 'error' : 'info'"
-                @update:model-value="value => (form.header.text = value)"
-              />
-              <Input
-                v-if="variableTokens(form.header.text).length"
-                v-model="form.header.examples[0]"
-                :label="
-                  $t('WHATSAPP_TEMPLATE_MGMT.FORM.EXAMPLE_FOR', {
-                    n: variableTokens(form.header.text)[0],
-                  })
-                "
-                :message="fieldError('header.example')"
-                :message-type="fieldError('header.example') ? 'error' : 'info'"
-              />
-            </template>
-            <div v-if="isMediaHeader" class="grid gap-1">
-              <input
-                ref="fileInput"
-                type="file"
-                class="hidden"
-                :accept="MEDIA_ACCEPT[form.header.format]"
-                @change="onFileChosen"
-              />
-              <div
-                v-if="form.header.handle"
-                class="flex items-center gap-3 p-3 rounded-lg bg-n-alpha-2"
-                data-testid="file-chip"
-              >
+            <div
+              v-if="!isEdit || hasOriginalComponent('HEADER')"
+              class="grid gap-2"
+            >
+              <div class="flex items-center gap-2">
+                <TemplateComboBox
+                  :disabled="isEdit"
+                  :model-value="form.header.format"
+                  :options="headerOptions"
+                  :placeholder="
+                    $t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.NONE')
+                  "
+                  :aria-label="
+                    $t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_FORMATS.NONE')
+                  "
+                  teleport
+                  data-testid="template-header-format"
+                  @update:model-value="chooseHeaderFormat"
+                />
                 <span
-                  :class="fileIcon"
-                  class="size-5 shrink-0 text-n-slate-11"
+                  v-if="!isEdit && !mediaHeaderAvailable"
+                  v-tooltip.top="mediaUnavailableText"
+                  class="i-lucide-info size-3.5 shrink-0 text-n-slate-10"
+                  role="img"
+                  :aria-label="mediaUnavailableText"
+                  data-testid="media-header-unavailable"
                 />
-                <div class="grid min-w-0">
-                  <span class="text-sm truncate text-n-slate-12">
-                    {{ form.header.fileName }}
-                  </span>
-                  <span v-if="fileSizeLabel" class="text-xs text-n-slate-11">
-                    {{ fileSizeLabel }}
-                  </span>
-                </div>
-                <div class="flex items-center gap-1 ml-auto shrink-0">
-                  <Button
-                    type="button"
-                    ghost
-                    slate
-                    xs
-                    :is-loading="isUploading"
-                    :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANGE_FILE')"
-                    @click="chooseFile"
-                  />
-                  <Button
-                    type="button"
-                    ghost
-                    slate
-                    xs
-                    icon="i-lucide-x"
-                    :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.REMOVE_FILE')"
-                    data-testid="file-remove"
-                    @click="removeFile"
-                  />
-                </div>
               </div>
-              <Button
-                v-else
-                type="button"
-                slate
-                sm
-                icon="i-lucide-upload"
-                :is-loading="isUploading"
-                :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.UPLOAD_EXAMPLE')"
-                @click="chooseFile"
-              />
-              <span
-                v-if="fieldError('header.media')"
-                class="text-xs text-n-ruby-9"
-              >
-                {{ fieldError('header.media') }}
-              </span>
-            </div>
-          </div>
-
-          <div ref="bodyBox" class="grid gap-2">
-            <div class="relative">
-              <TextArea
-                :model-value="mappedForm.body.text"
-                :disabled="Boolean(copySource)"
-                resize
-                class="[&_textarea]:min-h-32"
-                :placeholder="
-                  $t('WHATSAPP_TEMPLATE_MGMT.FORM.BODY_PLACEHOLDER')
-                "
-                :max-length="LIMITS.body"
-                show-character-count
-                :message="fieldError('body.text')"
-                :message-type="fieldError('body.text') ? 'error' : 'info'"
-                @update:model-value="value => (form.body.text = value)"
-              />
-              <!-- Next to the character counter, inside the text box: a small button, not a full-width field. -->
-              <div
-                v-if="!isEdit && !copySource"
-                class="absolute bottom-2.5 end-24 w-40"
-                data-testid="variable-picker"
-              >
-                <VariablePicker
-                  v-if="variableMode === 'NAMED'"
-                  value-format="alias"
-                  :filter="isFreeVariable"
-                  :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
-                  :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
-                  class="[&_button]:!h-6 [&_button]:!py-0 [&_button]:!px-2 [&_button]:text-xs"
-                  data-testid="variable-menu-toggle"
-                  @update:model-value="insertVariable"
+              <template v-if="form.header.format === 'TEXT'">
+                <Input
+                  :model-value="mappedForm.header.text"
+                  :disabled="Boolean(copySource)"
+                  :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.HEADER_TEXT')"
+                  :message="fieldError('header.text')"
+                  :message-type="fieldError('header.text') ? 'error' : 'info'"
+                  @update:model-value="value => (form.header.text = value)"
                 />
+                <Input
+                  v-if="variableTokens(form.header.text).length"
+                  v-model="form.header.examples[0]"
+                  :label="
+                    $t('WHATSAPP_TEMPLATE_MGMT.FORM.EXAMPLE_FOR', {
+                      n: variableTokens(form.header.text)[0],
+                    })
+                  "
+                  :message="fieldError('header.example')"
+                  :message-type="
+                    fieldError('header.example') ? 'error' : 'info'
+                  "
+                />
+              </template>
+              <div v-if="isMediaHeader" class="grid gap-1">
+                <input
+                  ref="fileInput"
+                  type="file"
+                  class="hidden"
+                  :accept="MEDIA_ACCEPT[form.header.format]"
+                  @change="onFileChosen"
+                />
+                <div
+                  v-if="form.header.handle"
+                  class="flex items-center gap-3 p-3 rounded-lg bg-n-alpha-2"
+                  data-testid="file-chip"
+                >
+                  <span
+                    :class="fileIcon"
+                    class="size-5 shrink-0 text-n-slate-11"
+                  />
+                  <div class="grid min-w-0">
+                    <span class="text-sm truncate text-n-slate-12">
+                      {{ form.header.fileName }}
+                    </span>
+                    <span v-if="fileSizeLabel" class="text-xs text-n-slate-11">
+                      {{ fileSizeLabel }}
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-1 ml-auto shrink-0">
+                    <Button
+                      type="button"
+                      ghost
+                      slate
+                      xs
+                      :is-loading="isUploading"
+                      :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.CHANGE_FILE')"
+                      @click="chooseFile"
+                    />
+                    <Button
+                      type="button"
+                      ghost
+                      slate
+                      xs
+                      icon="i-lucide-x"
+                      :aria-label="
+                        $t('WHATSAPP_TEMPLATE_MGMT.FORM.REMOVE_FILE')
+                      "
+                      data-testid="file-remove"
+                      @click="removeFile"
+                    />
+                  </div>
+                </div>
                 <Button
                   v-else
                   type="button"
                   slate
-                  outline
-                  xs
-                  class="w-full"
-                  :label="`{{${nextNumber}}}`"
-                  :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
-                  data-testid="variable-menu-toggle"
-                  @click="insertVariable(String(nextNumber))"
+                  sm
+                  icon="i-lucide-upload"
+                  :is-loading="isUploading"
+                  :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.UPLOAD_EXAMPLE')"
+                  @click="chooseFile"
                 />
+                <span
+                  v-if="fieldError('header.media')"
+                  class="text-xs text-n-ruby-9"
+                >
+                  {{ fieldError('header.media') }}
+                </span>
               </div>
             </div>
-            <div
-              v-if="!isEdit && !copySource && variableMode === 'NAMED'"
-              class="flex flex-wrap items-start gap-2"
-            >
+
+            <div ref="bodyBox" class="grid gap-2">
+              <div class="relative">
+                <TextArea
+                  :model-value="mappedForm.body.text"
+                  :disabled="Boolean(copySource)"
+                  resize
+                  class="[&_textarea]:min-h-32"
+                  :placeholder="
+                    $t('WHATSAPP_TEMPLATE_MGMT.FORM.BODY_PLACEHOLDER')
+                  "
+                  :max-length="LIMITS.body"
+                  show-character-count
+                  :message="fieldError('body.text')"
+                  :message-type="fieldError('body.text') ? 'error' : 'info'"
+                  @update:model-value="value => (form.body.text = value)"
+                />
+                <!-- Next to the character counter, inside the text box: a small button, not a full-width field. -->
+                <div
+                  v-if="!isEdit && !copySource"
+                  class="absolute bottom-2.5 end-24 w-40"
+                  data-testid="variable-picker"
+                >
+                  <VariablePicker
+                    v-if="variableMode === 'NAMED'"
+                    value-format="alias"
+                    :filter="isFreeVariable"
+                    :placeholder="
+                      $t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')
+                    "
+                    :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
+                    class="[&_button]:!h-6 [&_button]:!py-0 [&_button]:!px-2 [&_button]:text-xs"
+                    data-testid="variable-menu-toggle"
+                    @update:model-value="insertVariable"
+                  />
+                  <Button
+                    v-else
+                    type="button"
+                    slate
+                    outline
+                    xs
+                    class="w-full"
+                    :label="`{{${nextNumber}}}`"
+                    :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD_VARIABLE')"
+                    data-testid="variable-menu-toggle"
+                    @click="insertVariable(String(nextNumber))"
+                  />
+                </div>
+              </div>
               <div
                 v-if="!isEdit && !copySource && variableMode === 'NAMED'"
-                class="flex items-start gap-2"
+                class="flex flex-wrap items-start gap-2"
               >
-                <Input
-                  v-model="customVariable"
-                  size="sm"
-                  :placeholder="
-                    $t('WHATSAPP_TEMPLATE_MGMT.FORM.CUSTOM_VARIABLE')
-                  "
-                  :message="
-                    customVariableInvalid
-                      ? $t(
-                          'WHATSAPP_TEMPLATE_MGMT.FORM.ERRORS.VARIABLE_NAME_INVALID'
-                        )
-                      : ''
-                  "
-                  :message-type="customVariableInvalid ? 'error' : 'info'"
-                  @enter="addCustomVariable"
-                />
-                <Button
-                  type="button"
-                  intent="secondary"
-                  sm
-                  :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD')"
-                  :disabled="!customVariable || customVariableInvalid"
-                  @click="addCustomVariable"
-                />
+                <div
+                  v-if="!isEdit && !copySource && variableMode === 'NAMED'"
+                  class="flex items-start gap-2"
+                >
+                  <Input
+                    v-model="customVariable"
+                    size="sm"
+                    :placeholder="
+                      $t('WHATSAPP_TEMPLATE_MGMT.FORM.CUSTOM_VARIABLE')
+                    "
+                    :message="
+                      customVariableInvalid
+                        ? $t(
+                            'WHATSAPP_TEMPLATE_MGMT.FORM.ERRORS.VARIABLE_NAME_INVALID'
+                          )
+                        : ''
+                    "
+                    :message-type="customVariableInvalid ? 'error' : 'info'"
+                    @enter="addCustomVariable"
+                  />
+                  <Button
+                    type="button"
+                    intent="secondary"
+                    sm
+                    :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.ADD')"
+                    :disabled="!customVariable || customVariableInvalid"
+                    @click="addCustomVariable"
+                  />
+                </div>
               </div>
             </div>
+
+            <Input
+              v-if="!isEdit || hasOriginalComponent('FOOTER')"
+              v-model="form.footer.text"
+              :placeholder="
+                $t('WHATSAPP_TEMPLATE_MGMT.FORM.FOOTER_PLACEHOLDER')
+              "
+              :message="fieldError('footer.text')"
+              :message-type="fieldError('footer.text') ? 'error' : 'info'"
+            />
           </div>
 
-          <Input
-            v-if="!isEdit || hasOriginalComponent('FOOTER')"
-            v-model="form.footer.text"
-            :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.FOOTER_PLACEHOLDER')"
-            :message="fieldError('footer.text')"
-            :message-type="fieldError('footer.text') ? 'error' : 'info'"
-          />
-        </div>
-
-        <div class="grid gap-2 mt-2">
-          <div
-            v-for="(button, index) in form.buttons"
-            :key="index"
-            class="grid gap-2 p-3 rounded-lg bg-n-solid-1 outline outline-1 outline-n-weak"
-          >
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-xs font-medium uppercase text-n-slate-11">
-                {{
-                  $t(`WHATSAPP_TEMPLATE_MGMT.FORM.BUTTON_TYPES.${button.type}`)
-                }}
-              </span>
-              <Button
-                type="button"
-                ghost
-                slate
-                xs
-                icon="i-lucide-trash-2"
-                :disabled="isEdit"
-                :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.REMOVE_BUTTON')"
-                @click="removeButton(index)"
+          <div class="grid gap-2 mt-2">
+            <div
+              v-for="(button, index) in form.buttons"
+              :key="index"
+              class="grid gap-2 p-3 rounded-lg bg-n-solid-1 outline outline-1 outline-n-weak"
+            >
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-medium uppercase text-n-slate-11">
+                  {{
+                    $t(
+                      `WHATSAPP_TEMPLATE_MGMT.FORM.BUTTON_TYPES.${button.type}`
+                    )
+                  }}
+                </span>
+                <Button
+                  type="button"
+                  ghost
+                  slate
+                  xs
+                  icon="i-lucide-trash-2"
+                  :disabled="isEdit"
+                  :aria-label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.REMOVE_BUTTON')"
+                  @click="removeButton(index)"
+                />
+              </div>
+              <Input
+                v-if="button.type === 'COPY_CODE'"
+                v-model="button.code"
+                size="sm"
+                :placeholder="
+                  $t('WHATSAPP_TEMPLATE_MGMT.FORM.COPY_CODE_PLACEHOLDER')
+                "
+                :message="
+                  fieldError(`buttons.${index}.code`) ||
+                  $t('WHATSAPP_TEMPLATE_MGMT.FORM.COPY_CODE_HELP')
+                "
+                :message-type="
+                  fieldError(`buttons.${index}.code`) ? 'error' : 'info'
+                "
+              />
+              <Input
+                v-else
+                v-model="button.text"
+                size="sm"
+                :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.BUTTON_TEXT')"
+                :message="fieldError(`buttons.${index}.text`)"
+                :message-type="
+                  fieldError(`buttons.${index}.text`) ? 'error' : 'info'
+                "
+              />
+              <template v-if="button.type === 'URL'">
+                <Input
+                  :model-value="mappedForm.buttons[index].url"
+                  :disabled="Boolean(copySource)"
+                  size="sm"
+                  placeholder="https://ejemplo.com/pedido/{{1}}"
+                  :message="fieldError(`buttons.${index}.url`)"
+                  :message-type="
+                    fieldError(`buttons.${index}.url`) ? 'error' : 'info'
+                  "
+                  @update:model-value="value => (button.url = value)"
+                />
+                <Input
+                  v-if="variableTokens(button.url).length"
+                  v-model="button.examples[0]"
+                  size="sm"
+                  :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.URL_EXAMPLE')"
+                  :message="fieldError(`buttons.${index}.example`)"
+                  :message-type="
+                    fieldError(`buttons.${index}.example`) ? 'error' : 'info'
+                  "
+                />
+              </template>
+              <Input
+                v-if="button.type === 'PHONE_NUMBER'"
+                v-model="button.phoneNumber"
+                size="sm"
+                placeholder="+593999999999"
+                :message="fieldError(`buttons.${index}.phone`)"
+                :message-type="
+                  fieldError(`buttons.${index}.phone`) ? 'error' : 'info'
+                "
               />
             </div>
-            <Input
-              v-if="button.type === 'COPY_CODE'"
-              v-model="button.code"
-              size="sm"
-              :placeholder="
-                $t('WHATSAPP_TEMPLATE_MGMT.FORM.COPY_CODE_PLACEHOLDER')
-              "
-              :message="
-                fieldError(`buttons.${index}.code`) ||
-                $t('WHATSAPP_TEMPLATE_MGMT.FORM.COPY_CODE_HELP')
-              "
-              :message-type="
-                fieldError(`buttons.${index}.code`) ? 'error' : 'info'
-              "
-            />
-            <Input
-              v-else
-              v-model="button.text"
-              size="sm"
-              :placeholder="$t('WHATSAPP_TEMPLATE_MGMT.FORM.BUTTON_TEXT')"
-              :message="fieldError(`buttons.${index}.text`)"
-              :message-type="
-                fieldError(`buttons.${index}.text`) ? 'error' : 'info'
-              "
-            />
-            <template v-if="button.type === 'URL'">
-              <Input
-                :model-value="mappedForm.buttons[index].url"
-                :disabled="Boolean(copySource)"
-                size="sm"
-                placeholder="https://ejemplo.com/pedido/{{1}}"
-                :message="fieldError(`buttons.${index}.url`)"
-                :message-type="
-                  fieldError(`buttons.${index}.url`) ? 'error' : 'info'
-                "
-                @update:model-value="value => (button.url = value)"
+            <p
+              v-if="preservedLabels.length"
+              class="text-xs text-n-slate-11"
+              data-testid="preserved-parts"
+            >
+              {{
+                $t('WHATSAPP_TEMPLATE_MGMT.FORM.PRESERVED', {
+                  parts: preservedLabels.join(', '),
+                })
+              }}
+            </p>
+            <div v-if="!isEdit" class="flex flex-wrap gap-2">
+              <Button
+                v-for="type in buttonChoices"
+                :key="type"
+                type="button"
+                slate
+                xs
+                icon="i-lucide-plus"
+                :label="$t(`WHATSAPP_TEMPLATE_MGMT.FORM.BUTTON_TYPES.${type}`)"
+                :disabled="form.buttons.length >= LIMITS.buttons"
+                @click="addButton(type)"
               />
-              <Input
-                v-if="variableTokens(button.url).length"
-                v-model="button.examples[0]"
-                size="sm"
-                :label="$t('WHATSAPP_TEMPLATE_MGMT.FORM.URL_EXAMPLE')"
-                :message="fieldError(`buttons.${index}.example`)"
-                :message-type="
-                  fieldError(`buttons.${index}.example`) ? 'error' : 'info'
-                "
-              />
-            </template>
-            <Input
-              v-if="button.type === 'PHONE_NUMBER'"
-              v-model="button.phoneNumber"
-              size="sm"
-              placeholder="+593999999999"
-              :message="fieldError(`buttons.${index}.phone`)"
-              :message-type="
-                fieldError(`buttons.${index}.phone`) ? 'error' : 'info'
-              "
-            />
+            </div>
+            <span v-if="fieldError('buttons')" class="text-xs text-n-ruby-9">
+              {{ fieldError('buttons') }}
+            </span>
           </div>
-          <p
-            v-if="preservedLabels.length"
-            class="text-xs text-n-slate-11"
-            data-testid="preserved-parts"
-          >
-            {{
-              $t('WHATSAPP_TEMPLATE_MGMT.FORM.PRESERVED', {
-                parts: preservedLabels.join(', '),
-              })
-            }}
-          </p>
-          <div v-if="!isEdit" class="flex flex-wrap gap-2">
-            <Button
-              v-for="type in buttonChoices"
-              :key="type"
-              type="button"
-              slate
-              xs
-              icon="i-lucide-plus"
-              :label="$t(`WHATSAPP_TEMPLATE_MGMT.FORM.BUTTON_TYPES.${type}`)"
-              :disabled="form.buttons.length >= LIMITS.buttons"
-              @click="addButton(type)"
-            />
-          </div>
-          <span v-if="fieldError('buttons')" class="text-xs text-n-ruby-9">
-            {{ fieldError('buttons') }}
-          </span>
         </div>
-      </div>
-
+      </fieldset>
       <div
-        v-if="ownVariables.length && !copySource"
+        v-if="
+          ownVariables.length && !copySource && (!isEdit || canEditBindings)
+        "
         class="grid gap-2"
         data-testid="variable-values"
       >
@@ -1233,16 +1318,30 @@ const buttonChoices = computed(() =>
             <span class="text-xs text-n-slate-11">{{
               variableLabel(token)
             }}</span>
+            <span
+              v-if="automaticVariable(token)"
+              class="text-xs text-n-slate-11"
+            >
+              {{ $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_AUTOMATIC') }}
+            </span>
             <VariablePicker
               value-format="id"
               mode="read"
               allow-none
               :allow-none-label="
-                $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_ONLY_HERE')
+                automaticVariable(token)
+                  ? $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_AUTOMATIC')
+                  : isEdit
+                    ? $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_PENDING')
+                    : $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_ONLY_HERE')
               "
               :model-value="bindingNameFor(token)"
               :placeholder="
-                $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_ONLY_HERE')
+                automaticVariable(token)
+                  ? $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_AUTOMATIC')
+                  : isEdit
+                    ? $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_PENDING')
+                    : $t('WHATSAPP_TEMPLATE_MGMT.FORM.VARIABLE_ONLY_HERE')
               "
               :aria-label="variableLabel(token)"
               :data-testid="`variable-value-${token}`"
@@ -1265,6 +1364,7 @@ const buttonChoices = computed(() =>
             v-for="(number, index) in bodyVariables"
             :key="number"
             v-model="form.body.examples[index]"
+            :disabled="!canEditContent"
             :label="`{{${copySource ? systemMapping[number] || number : number}}}`"
             size="sm"
           />
@@ -1336,7 +1436,9 @@ const buttonChoices = computed(() =>
           intent="primary"
           :is-loading="isSaving"
           :disabled="
-            isSaving || isLoading || (isEdit && (!liveLoaded || !rules.canEdit))
+            isSaving ||
+            isLoading ||
+            (isEdit && !canEditContent && !canEditBindings)
           "
           :label="
             isEdit

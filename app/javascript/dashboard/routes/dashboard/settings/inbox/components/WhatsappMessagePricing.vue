@@ -1,6 +1,10 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useAccount } from 'dashboard/composables/useAccount';
+import { useAdmin } from 'dashboard/composables/useAdmin';
+import { useStore } from 'dashboard/composables/store';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import InboxHealthAPI from 'dashboard/api/inboxHealth';
 import Banner from 'dashboard/components-next/banner/Banner.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -11,6 +15,18 @@ const props = defineProps({
   inboxId: { type: [Number, String], required: true },
 });
 
+const { currentAccount, accountId, accountScopedRoute, isCloudFeatureEnabled } =
+  useAccount();
+const { isAdmin } = useAdmin();
+const store = useStore();
+const captainEnabled = computed(() =>
+  isCloudFeatureEnabled(FEATURE_FLAGS.CAPTAIN)
+);
+const captainCap = computed(() => currentAccount.value?.captain_template_cap);
+onMounted(async () => {
+  if (captainEnabled.value && isAdmin.value)
+    await store.dispatch('accounts/get', { accountId: accountId.value });
+});
 const MONTH_COUNT = 3;
 const CATEGORY_ORDER = [
   'service',
@@ -187,6 +203,20 @@ watch(() => props.inboxId, loadSummary);
   <section
     class="px-5 py-5 space-y-4 rounded-xl outline outline-1 -outline-offset-1 outline-n-weak bg-n-solid-2"
   >
+    <p
+      v-if="captainEnabled && captainCap"
+      class="text-sm text-n-slate-11"
+      data-testid="captain-health-cap"
+    >
+      {{ t('INBOX_MGMT.ACCOUNT_HEALTH.CAPTAIN_CAP', captainCap) }}
+      <RouterLink
+        v-if="isAdmin"
+        :to="accountScopedRoute('ai_settings_index')"
+        class="text-n-brand underline"
+      >
+        · {{ t('CAPTAIN.ASSISTANTS.ENVIOS.CAP.CHANGE') }}
+      </RouterLink>
+    </p>
     <div>
       <h3 class="mb-3 text-heading-4 text-n-slate-12">
         {{ t('INBOX_MGMT.ACCOUNT_HEALTH.MESSAGE_PRICING.TITLE') }}

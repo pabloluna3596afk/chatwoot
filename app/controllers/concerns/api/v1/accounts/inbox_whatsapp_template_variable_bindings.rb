@@ -23,12 +23,12 @@ module Api::V1::Accounts::InboxWhatsappTemplateVariableBindings
 
   def approved_template(name)
     Array(@inbox.channel.message_templates).find do |entry|
-      entry['name'] == name && entry['status'].to_s.casecmp?('APPROVED')
+      entry['name'] == name && entry['status'].to_s.casecmp?('APPROVED') && entry['category'].to_s.upcase != 'AUTHENTICATION'
     end
   end
 
   def normalize_request_bindings(template)
-    bindings = params.require(:variable_bindings)
+    bindings = params.fetch(:variable_bindings)
     raise Whatsapp::TemplateVariableBindingsService::Invalid, 'bindings must be an object' unless bindings.is_a?(ActionController::Parameters)
 
     payload = bindings.to_unsafe_h

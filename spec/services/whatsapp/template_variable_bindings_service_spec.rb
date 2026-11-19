@@ -60,7 +60,8 @@ RSpec.describe Whatsapp::TemplateVariableBindingsService do
       merged = service.merge_into(templates)
 
       expect(merged[0]).to include('variable_bindings' => { 'pedido' => 'contact.custom_attribute.pedido' })
-      expect(merged[1]).to eq('name' => 'sin_variables', 'language' => 'es')
+      expect(merged[1]).to include('name' => 'sin_variables', 'language' => 'es',
+                                   'variable_sources' => { 'body' => {}, 'header' => {} }, 'missing_variables' => [])
       expect(merged[2]).to eq('raro')
       expect(merged[3]).to include('variable_bindings' => { 'pedido' => 'contact.custom_attribute.pedido' })
     end

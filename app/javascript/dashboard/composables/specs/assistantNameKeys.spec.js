@@ -48,7 +48,7 @@ describe('assistant name translation boundary', () => {
     });
   });
 
-  it('keeps parity for the 46 owned name placeholders without CJK', () => {
+  it('keeps parity for the 45 owned name placeholders without CJK', () => {
     const spanish = flatten(es);
     const english = flatten(en);
     const ownedKeys = Object.keys(spanish).filter(key =>
@@ -60,7 +60,7 @@ describe('assistant name translation boundary', () => {
       )
     );
     // Two existing keys already interpolated the assistant name before this change.
-    expect(ownedKeys).toHaveLength(46);
+    expect(ownedKeys).toHaveLength(45);
     ownedKeys.forEach(key => {
       expect(spanish[key] + english[key]).not.toMatch(
         /[\u3040-\u30ff\u3400-\u9fff]/
