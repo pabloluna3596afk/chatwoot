@@ -1,10 +1,12 @@
 <script setup>
+import { useAssistantName } from 'dashboard/composables/useAssistantName';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import MetricCard from 'dashboard/components-next/captain/pageComponents/overview/MetricCard.vue';
 import OverviewPanel from './OverviewPanel.vue';
 
 const props = defineProps({
+  assistant: { type: Object, default: () => ({}) },
   autonomous: { type: Object, default: null },
   assisted: { type: Object, default: null },
   humanOnly: { type: Object, default: null },
@@ -12,6 +14,7 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
+const { nameTextFrom, nameRichFrom } = useAssistantName(() => props.assistant);
 
 const formatScore = value =>
   value === null ? '—' : Number(value || 0).toFixed(1);
@@ -34,9 +37,10 @@ const comparison = score => {
   });
 };
 
-const metricFor = (key, label, hint, score) => ({
+const metricFor = (key, label, hint, score, accessibleLabel) => ({
   key,
   label,
+  accessibleLabel,
   hint,
   value: formatScore(score?.current),
   trend: formatTrend(score?.trend),
@@ -49,22 +53,24 @@ const metricFor = (key, label, hint, score) => ({
 const metrics = computed(() => [
   metricFor(
     'autonomous',
-    t('CAPTAIN.OVERVIEW.V2.CSAT.AUTONOMOUS'),
-    t('CAPTAIN.OVERVIEW.V2.CSAT.AUTONOMOUS_HINT'),
-    props.autonomous
+    nameRichFrom(t('CAPTAIN.OVERVIEW.V2.CSAT.AUTONOMOUS')),
+    nameTextFrom(t('CAPTAIN.OVERVIEW.V2.CSAT.AUTONOMOUS_HINT')),
+    props.autonomous,
+    nameTextFrom(t('CAPTAIN.OVERVIEW.V2.CSAT.AUTONOMOUS'))
   ),
   metricFor(
     'assisted',
-    t('CAPTAIN.OVERVIEW.V2.CSAT.ASSISTED'),
-    t('CAPTAIN.OVERVIEW.V2.CSAT.ASSISTED_HINT'),
-    props.assisted
+    nameRichFrom(t('CAPTAIN.OVERVIEW.V2.CSAT.ASSISTED')),
+    nameTextFrom(t('CAPTAIN.OVERVIEW.V2.CSAT.ASSISTED_HINT')),
+    props.assisted,
+    nameTextFrom(t('CAPTAIN.OVERVIEW.V2.CSAT.ASSISTED'))
   ),
 ]);
 </script>
 
 <template>
   <OverviewPanel
-    :title="$t('CAPTAIN.OVERVIEW.V2.CSAT.TITLE')"
+    :title="nameRichFrom(t('CAPTAIN.OVERVIEW.V2.CSAT.TITLE'))"
     border-class="border-n-weak"
     :shadow="false"
   >

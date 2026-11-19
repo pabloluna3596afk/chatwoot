@@ -47,6 +47,7 @@ const mountComponent = (props = {}) =>
         Banner: false,
         SettingsToggleSection: false,
         HandoffRoutingRow: false,
+        AssistantNameText: false,
       },
     },
   });

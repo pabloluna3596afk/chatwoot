@@ -1,10 +1,12 @@
 <script setup>
+import { useAssistantName } from 'dashboard/composables/useAssistantName';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 
 const props = defineProps({
+  assistant: { type: Object, default: () => ({}) },
   name: { type: String, required: true },
   language: { type: String, default: '' },
   category: { type: String, default: '' },
@@ -19,6 +21,8 @@ const props = defineProps({
 });
 defineEmits(['update:modelValue', 'preview', 'assign', 'publish']);
 const { t } = useI18n();
+const { nameText } = useAssistantName(() => props.assistant);
+
 const canToggle = computed(() =>
   [
     'available',
@@ -117,7 +121,7 @@ const needsPermission = computed(() =>
         :disabled="disabled"
         :title="disabledReason"
         class="disabled:cursor-not-allowed disabled:opacity-50"
-        :aria-label="t('CAPTAIN.ASSISTANTS.ENVIOS.ROW_SWITCH', { name })"
+        :aria-label="nameText('CAPTAIN.ASSISTANTS.ENVIOS.ROW_SWITCH', { name })"
         @update:model-value="$emit('update:modelValue', $event)"
       />
     </div>

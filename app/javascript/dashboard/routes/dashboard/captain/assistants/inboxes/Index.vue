@@ -113,6 +113,7 @@ watch(
           v-for="captainInbox in captainInboxes"
           :id="captainInbox.id"
           :key="captainInbox.id"
+          :assistant="assistant"
           :inbox="captainInbox"
           :appointments-available="appointmentsAvailable"
           @action="handleAction"

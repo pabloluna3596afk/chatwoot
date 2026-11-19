@@ -1,4 +1,5 @@
 <script setup>
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
 import { useI18n } from 'vue-i18n';
 import { ref, watch, nextTick } from 'vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
@@ -87,7 +88,11 @@ watch(() => props.messages.length, scrollToBottom);
           class="px-4 py-3 text-sm [overflow-wrap:break-word] max-md:min-w-0 max-md:[overflow-wrap:anywhere]"
           :class="messageStyle(message)"
         >
-          <div v-dompurify-html="formatMessage(message.content)" />
+          <AssistantNameText
+            v-if="message.nameRichText"
+            :text="message.content"
+          />
+          <div v-else v-dompurify-html="formatMessage(message.content)" />
           <PlaygroundRunDetails
             v-if="message.runDetails && message.setupSummary"
             :run-details="message.runDetails"

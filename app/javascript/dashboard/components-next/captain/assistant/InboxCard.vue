@@ -1,4 +1,6 @@
 <script setup>
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
+import { useAssistantName } from 'dashboard/composables/useAssistantName';
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useToggle } from '@vueuse/core';
@@ -12,6 +14,7 @@ import { usePolicy } from 'dashboard/composables/usePolicy';
 import { INBOX_TYPES, getInboxIconByType } from 'dashboard/helper/inbox';
 
 const props = defineProps({
+  assistant: { type: Object, default: () => ({}) },
   id: {
     type: Number,
     required: true,
@@ -85,6 +88,7 @@ const handleAction = ({ action, value }) => {
   toggleDropdown(false);
   emit('action', { action, value, id: props.id });
 };
+const { nameRich } = useAssistantName(() => props.assistant);
 </script>
 
 <template>
@@ -128,7 +132,9 @@ const handleAction = ({ action, value }) => {
           {{ t('CAPTAIN.INBOXES.APPOINTMENTS.LABEL') }}
         </span>
         <span class="text-xs text-n-slate-11">
-          {{ t('CAPTAIN.INBOXES.APPOINTMENTS.HELP') }}
+          <AssistantNameText
+            :text="nameRich('CAPTAIN.INBOXES.APPOINTMENTS.HELP')"
+          />
         </span>
       </div>
       <div class="flex items-center gap-3">

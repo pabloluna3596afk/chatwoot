@@ -1,4 +1,5 @@
 <script setup>
+import { useAssistantName } from 'dashboard/composables/useAssistantName';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
@@ -10,10 +11,13 @@ import AssistantSystemSettingsForm from 'dashboard/components-next/captain/pageC
 const { t } = useI18n();
 const { isCloudFeatureEnabled } = useAccount();
 const { assistant, updateAssistant } = useAssistantSettings();
+const { nameRichFrom } = useAssistantName(assistant);
 
 const systemSettingsDescription = computed(() =>
   isCloudFeatureEnabled(FEATURE_FLAGS.CAPTAIN_V2)
-    ? t('CAPTAIN.ASSISTANTS.SETTINGS.SYSTEM_SETTINGS.DESCRIPTION_V2')
+    ? nameRichFrom(
+        t('CAPTAIN.ASSISTANTS.SETTINGS.SYSTEM_SETTINGS.DESCRIPTION_V2')
+      )
     : t('CAPTAIN.ASSISTANTS.SETTINGS.SYSTEM_SETTINGS.DESCRIPTION')
 );
 </script>

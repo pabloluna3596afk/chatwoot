@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 ### B-NEW-280 - Composer: altura disponible al abrir el teclado del teléfono (2026-11-18)
 
 - **Archivos:** `app/views/layouts/vueapp.html.erb`, `dashboard/App.vue`, `dashboard/composables/useVisualViewportHeight.js`, `dashboard/components/widgets/conversation/MessagesView.vue` y specs asociados.
@@ -6,7 +5,7 @@
 - **Arreglo:** viewport con `interactive-widget=resizes-content`, altura dinámica en la raíz y fallback de `visualViewport` exclusivo de iPhone/iPad (incluido iPadOS con UA Macintosh y multitouch). La utilidad de altura usa `!` para superar el `#app { height: 100% }` existente. Se eliminan listeners y variable al desmontar. Un `ResizeObserver` reutiliza `scrollToBottom` solo si la distancia previa al final era de hasta 80 px; se añade padding de área segura solo bajo `md`.
 - **Cómo probar:** Vitest de fallback (resize/scroll, detección iOS, ausencia de API y limpieza) y `MessagesView` (0/80 px conserva el final; 81/500 px conserva la lectura; misma altura no desplaza; observer desconectado). Suites de composables/conversación y overlays en UTC y America/Guayaquil; resultados y auditoría de alturas en `tmp/PR-COMPOSER-1.md`. Teclado real, capturas antes/después y aprobación visual pendientes del PM en teléfono mediante remote-preview a :3110.
 - **Alcance:** PR 1 únicamente; sin textos nuevos ni cambios i18n, rediseño, backend o migraciones. Sin navegador, fetch, stash, push, PR ni despliegue.
-=======
+
 ### B-NEW-275 - Captain: destino y prioridad configurables al traspasar (2026-11-18)
 
 - **Archivos:** `Captain::HandoffRouter`, `Captain::HandoffValidator`, configuraci?n/serializer/controlador del asistente, `Conversation#bot_handoff!`, reapertura de mensajes, herramienta de traspaso e instrumentaci?n, jobs de respuestas/inactividad, l?mite de uso, salida de Flows y formulario `AssistantSystemSettingsForm`/`HandoffRoutingRow`.
@@ -15,7 +14,6 @@
 - **UI:** pesta?a ?Traspaso y cierre?, componentes/tokens existentes, estados de carga/error/equipo eliminado y advertencias, es/en. Guardar valida el equipo y conserva el borrador si la API rechaza la actualizaci?n.
 - **C?mo probar:** specs de router, validaci?n, controlador, herramienta, instrumentaci?n, reapertura, conversaci?n y rutas P1?P7; Vitest de Captain en UTC y America/Guayaquil. Informe con resultados y limitaciones: `tmp/PR-TRASPASO.md`.
 - **Pendiente:** capturas reales desktop/390 px y aprobaci?n visual por el PM; bater?a R1?R9 con IA real. Sin push, PR, despliegue ni migraciones. No incorpora etiquetas, oportunidades ni cambios de m?vil.
->>>>>>> feat/captain-traspaso
 
 ### B-NEW-271 - Asignación: respetar a la persona responsable y comunicar rechazos (2026-11-15)
 
