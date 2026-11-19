@@ -14,6 +14,7 @@ import { useContactConversationNavigation } from 'dashboard/composables/useConta
 // components
 import ReplyBox from './ReplyBox.vue';
 import MessageList from 'next/message/MessageList.vue';
+import NextButton from 'dashboard/components-next/button/Button.vue';
 import ConversationLabelSuggestion from './conversation/LabelSuggestion.vue';
 import ContactConversationLink from './ContactConversationLink.vue';
 import Banner from 'dashboard/components/ui/Banner.vue';
@@ -68,6 +69,7 @@ const FOLD_TRANSITION = {
 export default {
   components: {
     MessageList,
+    NextButton,
     ReplyBox,
     Banner,
     ConversationLabelSuggestion,
@@ -186,6 +188,7 @@ export default {
       heightBeforeLoad: null,
       conversationPanel: null,
       hasUserScrolled: false,
+      showScrollToLatest: false,
       isProgrammaticScroll: false,
       messageSentSinceOpened: false,
       labelSuggestions: [],
@@ -566,7 +569,15 @@ export default {
         this.hasUserScrolled = true;
       }
       emitter.emit(BUS_EVENTS.ON_MESSAGE_LIST_SCROLL);
-      this.fetchPreviousMessages(e.target.scrollTop);
+      const { scrollHeight, scrollTop, clientHeight } = e.target;
+      this.showScrollToLatest = scrollHeight - scrollTop - clientHeight > 240;
+      this.fetchPreviousMessages(scrollTop);
+    },
+    scrollToLatest() {
+      const panel = this.conversationPanel;
+      if (!panel) return;
+      this.isProgrammaticScroll = true;
+      panel.scrollTo({ top: panel.scrollHeight, behavior: 'smooth' });
     },
 
     makeMessagesRead() {
@@ -676,6 +687,32 @@ export default {
     <div
       class="flex relative shrink-0 flex-col bg-n-surface-1 z-10 border-t border-n-weak max-md:pb-[env(safe-area-inset-bottom)]"
     >
+      <Transition
+        enter-active-class="transition duration-150 motion-reduce:transition-none"
+        leave-active-class="transition duration-150 motion-reduce:transition-none"
+        enter-from-class="opacity-0 translate-y-2"
+        leave-to-class="opacity-0 translate-y-2"
+      >
+        <div
+          v-if="showScrollToLatest"
+          class="absolute -top-14 end-4 z-10 max-md:-top-12"
+        >
+          <NextButton
+            slate
+            sm
+            icon="i-lucide-chevron-down"
+            class="!rounded-full !size-9 shadow-md ring-1 ring-n-weak"
+            :aria-label="$t('CONVERSATION.SCROLL_TO_LATEST')"
+            @click="scrollToLatest"
+          />
+          <span
+            v-if="unreadMessageCount > 0"
+            class="absolute -top-1.5 -end-1.5 grid min-w-5 h-5 place-items-center rounded-full bg-n-brand px-1 text-xs font-medium text-white pointer-events-none"
+            aria-hidden="true"
+            >{{ unreadMessageCount > 99 ? '99+' : unreadMessageCount }}</span
+          >
+        </div>
+      </Transition>
       <div
         v-if="isAnyoneTyping"
         class="absolute flex items-center w-full h-0 -top-7"

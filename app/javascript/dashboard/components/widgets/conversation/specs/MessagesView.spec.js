@@ -195,6 +195,23 @@ describe('MessagesView list resizing', () => {
     expect(switchMode).not.toHaveBeenCalled();
   });
 
+  it('offers a smooth jump to the latest message only when scrolled away from the bottom', async () => {
+    const scrollTo = vi.fn();
+    panel.scrollTo = scrollTo;
+    wrapper.vm.handleScroll({
+      target: { scrollHeight: 2000, scrollTop: 500, clientHeight: 600 },
+    });
+    await nextTick();
+    expect(wrapper.vm.showScrollToLatest).toBe(true);
+    wrapper.vm.scrollToLatest();
+    expect(scrollTo).toHaveBeenCalledWith({ top: 2000, behavior: 'smooth' });
+    wrapper.vm.handleScroll({
+      target: { scrollHeight: 2000, scrollTop: 1380, clientHeight: 600 },
+    });
+    await nextTick();
+    expect(wrapper.vm.showScrollToLatest).toBe(false);
+  });
+
   it('keeps the full-bleed top border', () => {
     expect(wrapper.get('.border-t').classes()).toContain('border-n-weak');
   });
