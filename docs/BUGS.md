@@ -1,14 +1,26 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-### B-NEW-280 - Adjuntos legibles y previsualización en la conversación (2026-11-18)
+### B-NEW-282 - Adjuntos legibles y previsualización en la conversación (2026-11-18)
 
 - **Archivos:** `components-next/message/media/{MediaGrid,MediaTile,FileCard}.vue`, `ReplyPreview.vue`, burbujas y chips existentes, `provider.js`, `GalleryView.vue`, historias y locales en/es. Seed de desarrollo integrado desde `feat/adjuntos-seed`.
 - **Problema:** las imágenes con texto quedaban recortadas en chips de 72 px; los documentos ocultaban nombre, tipo y tamaño; no había visor PDF ni miniaturas en las respuestas. La galería identificaba la posición por mensaje, confundiendo adjuntos de un mismo mensaje.
 - **Arreglo:** cuadrícula encima del texto, lista de documentos debajo, descarga con apertura alternativa, PDF de hasta 25 MB solo con MIME `application/pdf`, contador y enlace original, respuestas con miniatura/icono y estados compartidos. Se conservan los componentes y contratos existentes; el cuerpo de correo sigue intacto. La selección de galería usa el ID del adjunto.
 - **Cómo probar:** `dev:attachments_demo` en desarrollo; revisar los quince escenarios de la guía. Vitest cubre ocho canales por cinco contextos, correo inline con tres documentos, MIME/tamaño del PDF, selección, respuestas y fallos. El seed tiene RSpec aislado y RuboCop Docker. Evidencias y pendientes visuales en `tmp/PR-ADJUNTOS.md`; no se declara aprobación visual sin capturas del PM.
 - **Despliegue:** sin migraciones nuevas; sin push, PR ni despliegue en esta entrega.
-=======
-=======
+
+
+## B-NEW-283 - Composer full-bleed chrome (PR 2)
+
+ReplyBox, MessagesView, ResizableEditorWrapper and WootWriter panels: replace nested box chrome with a full-width top border, soft growing mobile field, compact mode switch and hover-only desktop grip. Touch placeholders have es/en parity and Send has a separate keyboard hint. Attachment components unchanged. Verify public reply, amber note, chips above the field, desktop resize and touch placeholders. Automated: ReplyBox/MessagesView/ResizableEditorWrapper Vitest in UTC and America/Guayaquil. Visual review and real phone checks remain with the PM; no browser used.
+
+
+## B-NEW-284 - Composer toolbar overflow and recording (PR 3)
+
+ReplyBottomPanel now measures eligible buttons with useToolbarOverflow, hides by rank and reuses mounted controls through an accessible popover / phone bottom sheet. FileUpload stays mounted, including drag-and-drop. RecordingBar isolates cancel/time/play/send; phone swaps empty-field Send for mic; closed WhatsApp windows offer Send template. es/en copy added. Verify overflow, signature and quoted state, file input persistence, recording cancellation and template handlers. Automated: toolbar/composable/menu specs pass UTC and America/Guayaquil. Guide width examples conflict with its ten-button arithmetic; exact measured results documented in the PM report. Visual review pending PM.
+
+
+## B-NEW-285 - Composer history folding and explicit Hide (PR 4)
+
+MessagesView, CollapsedReplyBar, ReplyTopPanel, ReplyBox and useContactConversationNavigation: adopt upstream 8b33b543fc reading mode, fold transitions, latest-conversation link and explicit reveal. Add desktop Hide next to expand, independently of Copilot eligibility; keep the editor mounted, preserve drafts/attachments when reopening the same mode, and never auto-fold an active draft or fold on phone. The collapsed bar is solid and the new copy has es/en parity. Verify an older contact conversation, latest navigation, Hide, Alt+L/Alt+P, text/attachment drafts and a desktop-to-phone resize. Automated coverage in the related component/composable specs; real screenshots, keyboard and phone review remain with the PM. No migrations.
+
 ### B-NEW-281 — Envíos v3-B/C: variables en Ajustes y tope diario de cuenta en IA (2026-11-18)
 
 - **Archivos:** Plantillas y Flows (`Index`, `TemplateDataPill`, `TemplateVariablesDrawer`, tabla/acciones); Captain (`AssistantMessagingForm`, previews, `useApprovedTemplates`); Centro de envíos; Ajustes IA (`CaptainTemplateCap`); Salud WhatsApp y JSON Enterprise de cuenta.
@@ -25,7 +37,6 @@
 - **Como probar:** specs del helper, bindings y endpoints; mezcla alias + binding, claves obsoletas, lista sin escritura, previews y needs_data; catalogo, SendService, recordatorios, reenganche, payload, 422 de allow_resource y conversion/restauracion. Evidencias y gates: `tmp/PR-ENVIOS-V3A.md`.
 - **Alcance:** solo PR-A backend; sin migraciones, frontend, fetch, push, navegador, PR ni despliegue. La retirada visual de Asignar y los textos corresponden a PR-B.
 
->>>>>>> origin/develop
 ### B-NEW-280 - Composer: altura disponible al abrir el teclado del teléfono (2026-11-18)
 
 - **Archivos:** `app/views/layouts/vueapp.html.erb`, `dashboard/App.vue`, `dashboard/composables/useVisualViewportHeight.js`, `dashboard/components/widgets/conversation/MessagesView.vue` y specs asociados.
@@ -42,7 +53,6 @@
 - **UI:** pesta?a ?Traspaso y cierre?, componentes/tokens existentes, estados de carga/error/equipo eliminado y advertencias, es/en. Guardar valida el equipo y conserva el borrador si la API rechaza la actualizaci?n.
 - **C?mo probar:** specs de router, validaci?n, controlador, herramienta, instrumentaci?n, reapertura, conversaci?n y rutas P1?P7; Vitest de Captain en UTC y America/Guayaquil. Informe con resultados y limitaciones: `tmp/PR-TRASPASO.md`.
 - **Pendiente:** capturas reales desktop/390 px y aprobaci?n visual por el PM; bater?a R1?R9 con IA real. Sin push, PR, despliegue ni migraciones. No incorpora etiquetas, oportunidades ni cambios de m?vil.
->>>>>>> origin/develop
 
 ### B-NEW-271 - Asignación: respetar a la persona responsable y comunicar rechazos (2026-11-15)
 
@@ -3689,22 +3699,6 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Como probar:** dos conexiones reales, la segunda espera por lock asesor y omite con cooldown tras confirmar el primer envio; conserva regla de siete dias. Sin migraciones.
 
 
-<<<<<<< HEAD
-## B-NEW-280 - Composer full-bleed chrome (PR 2)
-
-ReplyBox, MessagesView, ResizableEditorWrapper and WootWriter panels: replace nested box chrome with a full-width top border, soft growing mobile field, compact mode switch and hover-only desktop grip. Touch placeholders have es/en parity and Send has a separate keyboard hint. Attachment components unchanged. Verify public reply, amber note, chips above the field, desktop resize and touch placeholders. Automated: ReplyBox/MessagesView/ResizableEditorWrapper Vitest in UTC and America/Guayaquil. Visual review and real phone checks remain with the PM; no browser used.
-
-
-## B-NEW-281 - Composer toolbar overflow and recording (PR 3)
-
-ReplyBottomPanel now measures eligible buttons with useToolbarOverflow, hides by rank and reuses mounted controls through an accessible popover / phone bottom sheet. FileUpload stays mounted, including drag-and-drop. RecordingBar isolates cancel/time/play/send; phone swaps empty-field Send for mic; closed WhatsApp windows offer Send template. es/en copy added. Verify overflow, signature and quoted state, file input persistence, recording cancellation and template handlers. Automated: toolbar/composable/menu specs pass UTC and America/Guayaquil. Guide width examples conflict with its ten-button arithmetic; exact measured results documented in the PM report. Visual review pending PM.
-
-Completion: the phone template action takes the space left by its tools; recording starts at 00:00 and uses a 32px round phone Send control. ReplyBox regression coverage verifies cancel removes the voice attachment, preserves other files and never invokes Send; toolbar coverage checks stop/play/pause, disabled Send and Cloud/Twilio template dispatch.
-
-## B-NEW-282 - Composer history folding and explicit Hide (PR 4)
-
-MessagesView, CollapsedReplyBar, ReplyTopPanel, ReplyBox and useContactConversationNavigation: adopt upstream 8b33b543fc reading mode, fold transitions, latest-conversation link and explicit reveal. Add desktop Hide next to expand, independently of Copilot eligibility; keep the editor mounted, preserve drafts/attachments when reopening the same mode, and never auto-fold an active draft or fold on phone. The collapsed bar is solid and the new copy has es/en parity. Verify an older contact conversation, latest navigation, Hide, Alt+L/Alt+P, text/attachment drafts and a desktop-to-phone resize. Automated coverage in the related component/composable specs; real screenshots, keyboard and phone review remain with the PM. No migrations.
-=======
 ### B-NEW-280 - Envios: revision antigua pese a cargar el detalle (2026-11-19)
 
 - **Archivos:** `AssistantMessagingForm.vue` y su spec.
@@ -3721,4 +3715,3 @@ MessagesView, CollapsedReplyBar, ReplyTopPanel, ReplyBox and useContactConversat
 - **Causa adicional:** `params.require(:variable_bindings)` rechazaba `{}` al quitar la ultima asignacion. `fetch` permite ese objeto vacio conservando presencia y validacion de tipo en el limite HTTP.
 - **Prueba:** asignacion local sin ejemplos ni updateTemplate, contenido bloqueado/proveedor no Cloud, enlace de pendientes a Editar, errores de guardado y orden bindings/Meta. RSpec cubre quitar la ultima asignacion y rechazar tipos invalidos.
 - **Entrega:** sin migraciones. Revision visual del PM pendiente; no se uso navegador ni se creo PR.
->>>>>>> origin/develop
