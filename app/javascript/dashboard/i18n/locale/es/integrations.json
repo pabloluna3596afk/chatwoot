@@ -1379,6 +1379,9 @@
           "HELP": "{assistantName} nunca baja una prioridad que ya está puesta."
         },
         "CLOSURE": {
+          "DETECT": "Detectar cuándo terminó la conversación",
+          "DETECT_HELP": "Si el cliente confirma o se despide y no queda nada pendiente, {assistantName} comprobará si puede cerrar. Si el cliente vuelve a escribir, se cancela.",
+          "GRACE": "Esperar antes de comprobar",
           "TITLE": "Cuándo cerrar",
           "HELP": "Solo se aplica mientras Captain atiende la conversación. Una persona asignada conserva el control.",
           "INACTIVITY": "Tiempo sin actividad",

@@ -24,6 +24,16 @@ RSpec.describe Captain::ReportingEventListener do
     end
   end
 
+  %w[customer_confirmation evaluated_completion no_response].each do |reason|
+    it "records #{reason} separately from the operational resolved state" do
+      source = reason == 'no_response' ? 'time_based' : 'inference'
+      event = Events::Base.new(Events::Types::CAPTAIN_CONVERSATION_RESOLVED, Time.current,
+                               conversation: conversation, assistant: assistant, source: source, reason: reason)
+      listener.captain_conversation_resolved(event)
+      expect(account.reporting_events.where(name: "conversation_captain_closed_#{reason}")).to exist
+    end
+  end
+
   describe '#captain_conversation_handed_off' do
     it 'creates a captain inference handoff reporting event for inference handoffs' do
       decision_time = conversation.created_at + 90.seconds

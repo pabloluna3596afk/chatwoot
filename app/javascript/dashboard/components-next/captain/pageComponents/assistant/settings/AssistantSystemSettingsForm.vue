@@ -65,6 +65,8 @@ const DEFAULT_MAX_REPLIES = 20;
 const MAX_REPLIES_LIMIT = 1000;
 
 const initialState = {
+  completionSignalEnabled: false,
+  completionGraceMinutes: 5,
   autoResolveMode: 'evaluated',
   inactivityThresholdMinutes: 60,
   handoffMessage: '',
@@ -141,6 +143,13 @@ const autoResolveOptions = computed(() => [
   },
 ]);
 
+const graceOptions = computed(() =>
+  [5, 10, 15].map(value => ({
+    value,
+    label: t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.MINUTES', { count: value }),
+  }))
+);
+
 const closureConfig = computed(() => ({
   ...props.assistant.config,
   auto_resolve_mode: state.autoResolveMode,
@@ -170,6 +179,8 @@ const followupTimingError = computed(() => {
 
 const updateStateFromAssistant = assistant => {
   const { config = {} } = assistant;
+  state.completionSignalEnabled = config.completion_signal_enabled ?? false;
+  state.completionGraceMinutes = config.completion_grace_minutes ?? 5;
   state.autoResolveMode = config.auto_resolve_mode ?? 'evaluated';
   state.inactivityThresholdMinutes = config.auto_resolve_after ?? 60;
   state.handoffMessage = config.handoff_message;
@@ -240,6 +251,8 @@ const handleSystemMessagesUpdate = async () => {
 
   if (isCaptainV2Enabled.value) {
     Object.assign(payload.config, {
+      completion_signal_enabled: state.completionSignalEnabled,
+      completion_grace_minutes: state.completionGraceMinutes,
       auto_resolve_mode: state.autoResolveMode,
       auto_resolve_after: Number(state.inactivityThresholdMinutes),
       send_inactivity_resolution_message: state.sendInactivityResolutionMessage,
@@ -280,6 +293,29 @@ watch(
             t('CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.MODE_LABEL')
           "
         />
+        <SettingsToggleSection
+          v-if="state.autoResolveMode === 'evaluated'"
+          v-model="state.completionSignalEnabled"
+          data-testid="completion-signal"
+          :header="t('CAPTAIN.ASSISTANTS.FORM.CLOSURE.DETECT')"
+          :description="nameRich('CAPTAIN.ASSISTANTS.FORM.CLOSURE.DETECT_HELP')"
+        >
+          <div
+            v-if="state.completionSignalEnabled"
+            class="flex w-full flex-col gap-2 px-4 pt-3"
+          >
+            <span class="text-body-main font-medium text-n-slate-12">{{
+              t('CAPTAIN.ASSISTANTS.FORM.CLOSURE.GRACE')
+            }}</span>
+            <ComboBox
+              v-model="state.completionGraceMinutes"
+              data-testid="completion-grace"
+              :options="graceOptions"
+              :allow-deselect="false"
+              :aria-label="t('CAPTAIN.ASSISTANTS.FORM.CLOSURE.GRACE')"
+            />
+          </div>
+        </SettingsToggleSection>
         <div
           v-if="state.autoResolveMode !== 'disabled'"
           class="flex flex-col gap-2"

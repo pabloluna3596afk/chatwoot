@@ -12,6 +12,7 @@ import AssistantBasicSettingsForm from './AssistantBasicSettingsForm.vue';
 import AssistantFollowupForm from './AssistantFollowupForm.vue';
 import AssistantSystemSettingsForm from './AssistantSystemSettingsForm.vue';
 import DurationSelect from './DurationSelect.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 
 vi.mock('@amplitude/analytics-browser', () => ({
   init: vi.fn(),
@@ -83,6 +84,40 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
 
     expect(wrapper.text()).toContain(expectedLink);
     expect(wrapper.findAllComponents(DurationSelect)).toHaveLength(0);
+    wrapper.unmount();
+  });
+
+  it('uses the current assistant name in completion controls and reacts to renaming', async () => {
+    const wrapper = shallowMount(AssistantSystemSettingsForm, {
+      props: {
+        assistant: {
+          ...assistant,
+          name: 'Howly',
+          config: { ...assistant.config, completion_signal_enabled: true },
+        },
+      },
+      global: {
+        stubs: {
+          SettingsToggleSection: false,
+          AssistantNameText: false,
+        },
+      },
+    });
+    const mode = () =>
+      wrapper
+        .findAllComponents(ComboBox)
+        .find(item => item.attributes('data-testid') === 'closure-mode');
+    const detection = () => wrapper.get('[data-testid="completion-signal"]');
+    expect(mode().props('options')[0].label).toContain('Howly');
+    expect(detection().text()).toContain('Howly');
+    expect(detection().text()).not.toContain('Captain');
+
+    await wrapper.setProps({
+      assistant: { ...wrapper.props('assistant'), name: 'Aurora' },
+    });
+    expect(mode().props('options')[0].label).toContain('Aurora');
+    expect(detection().text()).toContain('Aurora');
+    expect(detection().text()).not.toContain('Howly');
     wrapper.unmount();
   });
 

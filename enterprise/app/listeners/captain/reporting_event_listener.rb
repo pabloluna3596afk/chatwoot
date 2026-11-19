@@ -5,6 +5,10 @@ class Captain::ReportingEventListener < BaseListener
 
   def captain_conversation_resolved(event)
     create_captain_inference_event(event, 'conversation_captain_inference_resolved') if event.data[:source] == 'inference'
+    reason = event.data[:reason]
+    return unless %w[customer_confirmation evaluated_completion no_response].include?(reason)
+
+    create_captain_inference_event(event, "conversation_captain_closed_#{reason}")
   end
 
   private

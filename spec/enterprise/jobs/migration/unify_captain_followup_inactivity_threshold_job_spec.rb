@@ -26,10 +26,13 @@ RSpec.describe Migration::UnifyCaptainFollowupInactivityThresholdJob, type: :job
       'auto_resolve_after' => 60,
       'followup' => { 'inactivity_enabled' => true, 'max_nudges' => 0, 'close_after_minutes' => 120 }
     }
+    unconfigured = create(:captain_assistant, account: account)
+    # The migration operates on historical rows, before creation persisted follow-up defaults.
+    unconfigured.update_column(:config, { 'auto_resolve_after' => 60 }) # rubocop:disable Rails/SkipsModelValidations
     assistants = [
       create(:captain_assistant, account: account, config: disabled_config),
       create(:captain_assistant, account: account, config: zero_nudges_config),
-      create(:captain_assistant, account: account, config: { 'auto_resolve_after' => 60 })
+      unconfigured
     ]
 
     described_class.perform_now

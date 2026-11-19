@@ -1379,6 +1379,9 @@
           "HELP": "{assistantName} never lowers a priority that is already set."
         },
         "CLOSURE": {
+          "DETECT": "Detect when the conversation has ended",
+          "DETECT_HELP": "If the customer confirms or says goodbye and nothing is pending, {assistantName} will check whether it can close. If the customer writes again, the check is cancelled.",
+          "GRACE": "Wait before checking",
           "TITLE": "When to close",
           "HELP": "Only applies while Captain handles the conversation. An assigned person stays in control.",
           "INACTIVITY": "Time without activity",

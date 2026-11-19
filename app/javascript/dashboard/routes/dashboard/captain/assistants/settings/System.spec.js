@@ -21,7 +21,11 @@ vi.mock('dashboard/composables/useAccount', () => ({
 vi.mock('dashboard/composables/store', () => ({
   useStore: () => ({ dispatch: mocks.dispatch }),
   useMapGetter: () => computed(() => []),
-  useFunctionGetter: () => computed(() => ({ id: 7, config: {} })),
+  useFunctionGetter: () =>
+    computed(() => ({
+      id: 7,
+      config: { messaging: { version: 2, revision: 4 } },
+    })),
 }));
 
 describe('Handoff settings persistence', () => {
@@ -54,6 +58,10 @@ describe('Handoff settings persistence', () => {
       expect(mocks.dispatch).toHaveBeenCalledWith('captainAssistants/update', {
         id: 7,
         config: {
+          auto_resolve_mode: 'evaluated',
+          auto_resolve_after: 60,
+          completion_signal_enabled: false,
+          completion_grace_minutes: 5,
           handoff_message: undefined,
           resolution_message: undefined,
           send_inactivity_resolution_message: true,

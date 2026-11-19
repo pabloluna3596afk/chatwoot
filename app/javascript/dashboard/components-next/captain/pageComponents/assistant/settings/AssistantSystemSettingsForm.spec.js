@@ -85,7 +85,7 @@ describe('AssistantSystemSettingsForm', () => {
     const wrapper = mountComponent();
     expect(wrapper.findAllComponents(RadioCard)).toHaveLength(0);
     expect(wrapper.findAllComponents(DurationSelect)).toHaveLength(1);
-    expect(wrapper.findAllComponents(Switch)).toHaveLength(1);
+    expect(wrapper.findAllComponents(Switch)).toHaveLength(2);
     expect(wrapper.text()).toContain(
       'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.RESOLUTION_MESSAGE.TITLE'
     );
@@ -97,6 +97,8 @@ describe('AssistantSystemSettingsForm', () => {
 
     expect(wrapper.emitted('submit')[0][0]).toEqual({
       config: {
+        completion_signal_enabled: false,
+        completion_grace_minutes: 5,
         auto_resolve_mode: 'evaluated',
         auto_resolve_after: 75,
         handoff_message: assistant.config.handoff_message,
@@ -142,6 +144,40 @@ describe('AssistantSystemSettingsForm', () => {
     });
     await submitForm(wrapper);
     expect(wrapper.emitted('submit')[0][0].config.auto_resolve_after).toBe(30);
+  });
+
+  it('shows detection only in evaluated mode and saves an explicit activation', async () => {
+    const wrapper = mountComponent();
+    const section = () => wrapper.find('[data-testid="completion-signal"]');
+    expect(section().exists()).toBe(true);
+    expect(wrapper.find('[data-testid="completion-grace"]').exists()).toBe(
+      false
+    );
+    section().findComponent(Switch).vm.$emit('update:modelValue', true);
+    await nextTick();
+    const grace = wrapper
+      .findAllComponents(ComboBox)
+      .find(item => item.attributes('data-testid') === 'completion-grace');
+    expect(grace.props('options').map(option => option.value)).toEqual([
+      5, 10, 15,
+    ]);
+    grace.vm.$emit('update:modelValue', 10);
+    await nextTick();
+    await submitForm(wrapper);
+    expect(wrapper.emitted('submit')[0][0].config).toMatchObject({
+      completion_signal_enabled: true,
+      completion_grace_minutes: 10,
+    });
+    wrapper
+      .findAllComponents(ComboBox)[0]
+      .vm.$emit('update:modelValue', 'legacy');
+    await nextTick();
+    expect(section().exists()).toBe(false);
+    wrapper
+      .findAllComponents(ComboBox)[0]
+      .vm.$emit('update:modelValue', 'disabled');
+    await nextTick();
+    expect(section().exists()).toBe(false);
   });
 
   it('saves the reply limit, 20 by default and 0 for no limit', async () => {
