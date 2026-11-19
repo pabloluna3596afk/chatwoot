@@ -22,27 +22,38 @@ const { t } = useI18n();
 const { nameRich } = useAssistantName(() => props.assistant);
 
 const panelRef = ref(null);
-const preview = computed(() =>
-  props.template
+const preview = computed(() => {
+  const result = props.template
     ? bubbleForCaptain(props.template, props.params, props.previewValues)
-    : { bubble: {}, variables: { body: {}, header: {} } }
-);
+    : { bubble: {}, variables: { body: {}, header: {} } };
+  ['header', 'body'].forEach(group => {
+    Object.entries(result.variables[group]).forEach(([name, value]) => {
+      if (!value)
+        result.bubble[group] = result.bubble[group].replaceAll(
+          `[${name}]`,
+          `{{${name}}}`
+        );
+    });
+  });
+  return result;
+});
+const parts = text => (text || '').split(/(\{\{[^}]+\}\})/g);
 const variables = computed(() =>
   ['header', 'body'].flatMap(group =>
     Object.entries(preview.value.variables[group]).map(([name, value]) => {
       const source = props.sources[group]?.[name];
       const sourceLabels = {
-        name: 'BY_NAME',
-        inbox: 'ASSIGNED_HERE',
-        assistant: 'ASSIGNED_ASSISTANT',
-        legacy: 'ASSIGNED_ASSISTANT',
+        alias: 'SOURCE_ALIAS',
+        binding: 'SOURCE_BINDING',
+        assistant: 'SOURCE_ASSISTANT',
+        legacy: 'SOURCE_LEGACY',
       };
       return {
         name,
         value,
         group,
         source: t(
-          `CAPTAIN.ASSISTANTS.ENVIOS.PREVIEW_PANEL.${sourceLabels[source] || 'UNASSIGNED'}`
+          `CAPTAIN.ASSISTANTS.ENVIOS.PREVIEW_PANEL.${sourceLabels[source] || 'MISSING'}`
         ),
       };
     })
@@ -78,7 +89,25 @@ defineExpose({ open, close });
           "
         />
       </p>
-      <WhatsAppBubble v-bind="preview.bubble" class="mx-auto w-full max-w-sm" />
+      <WhatsAppBubble v-bind="preview.bubble" class="mx-auto w-full max-w-sm">
+        <template v-for="group in ['header', 'body']" :key="group" #[group]>
+          <p
+            class="whitespace-pre-wrap"
+            :class="{ 'font-semibold': group === 'header' }"
+          >
+            <span
+              v-for="(part, index) in parts(preview.bubble[group])"
+              :key="index"
+              :class="
+                part.startsWith('{{')
+                  ? 'rounded bg-n-amber-3 px-1 text-n-amber-11'
+                  : ''
+              "
+              >{{ part }}</span
+            >
+          </p>
+        </template>
+      </WhatsAppBubble>
       <section v-if="variables.length">
         <h3 class="m-0 text-sm font-medium text-n-slate-12">
           <AssistantNameText
@@ -98,7 +127,7 @@ defineExpose({ open, close });
             <dd class="m-0 text-n-slate-12">
               {{
                 item.value ||
-                t('CAPTAIN.ASSISTANTS.ENVIOS.PREVIEW_PANEL.UNASSIGNED')
+                t('CAPTAIN.ASSISTANTS.ENVIOS.PREVIEW_PANEL.MISSING')
               }}
               <span class="block text-xs text-n-slate-10">{{
                 item.source

@@ -226,11 +226,12 @@ RSpec.describe Captain::Messaging::SendService do
   end
 
   describe 'sending a template' do
-    it 'sends a listed approved marketing template in list mode' do
+    it 'denies a listed approved marketing template in list mode' do
       channel.update!(message_templates: [templates.first.merge('category' => 'MARKETING'), templates.last])
-      expect(Captain::Messaging::Availability.new(assistant, inbox).templates.first.state).to eq('available')
+      expect(Captain::Messaging::Availability.new(assistant, inbox).templates.first.state).to eq('marketing_off')
 
-      expect(send_template).to be_sent
+      expect(send_template).to have_attributes(status: :denied, code: 'unavailable')
+      expect(public_messages).to be_empty
     end
 
     it 'creates the template message from the texts the owner saved for each variable' do
@@ -262,11 +263,13 @@ RSpec.describe Captain::Messaging::SendService do
     end
 
     it 'refuses a template with a variable that has no value (the template changed in Meta after the settings were saved)' do
+      channel.update!(message_templates: [templates.first.merge('components' => [{ 'type' => 'BODY', 'text' => '{{nombre}} {{unknown}}' }])])
       incomplete = assistant_config.deep_dup
       incomplete['messaging']['inboxes'][0]['templates'][0]['processed_params'] = { 'body' => { 'nombre' => '{{ contact.first_name }}' } }
       assistant.update_column(:config, incomplete) # rubocop:disable Rails/SkipsModelValidations
 
-      expect(send_template).to have_attributes(code: 'missing_variables', detail: 'body.asistente')
+      expect(Captain::Messaging::Availability.new(assistant, inbox).templates.first.state).to eq('needs_data')
+      expect(send_template).to have_attributes(code: 'missing_variables', detail: 'body.unknown')
     end
 
     it 'sends at most one template in 24 hours' do
@@ -298,6 +301,7 @@ RSpec.describe Captain::Messaging::SendService do
   end
 
   it 'revalidates a resource revoked after precheck and before run' do
+    channel.update!(message_templates: [templates.first.merge('components' => [{ 'type' => 'BODY', 'text' => 'Hola {{nombre}}' }])])
     customer = customer_says
     request = Captain::Messaging::Request.new(kind: 'template', resource: { name: 'cita_confirmada', language: 'es' },
                                               responding_to_message_id: customer.id)
@@ -334,5 +338,16 @@ RSpec.describe Captain::Messaging::SendService do
       expect(Automations::ProactiveSendCap).not_to receive(:new)
       expect(send_flow.code).to eq('unavailable')
     end
+  end
+
+  it 'sends the resolved inbox binding in list mode when legacy params lack a variable' do
+    params['body'].delete('nombre')
+    channel.update!(template_variable_bindings: { 'cita_confirmada' => { 'nombre' => 'contact.first_name' } })
+    assistant.update_column(:config, assistant_config) # rubocop:disable Rails/SkipsModelValidations
+
+    result = send_template
+    expect(result).to be_sent
+    expect(result.message.content).to eq('Hola Ana, soy Aurora.')
+    expect(assistant.reload.messaging.template(inbox.id, 'cita_confirmada', 'es')['processed_params']['body']).not_to have_key('nombre')
   end
 end

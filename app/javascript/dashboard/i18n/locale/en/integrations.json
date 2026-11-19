@@ -1455,12 +1455,13 @@
           "DESCRIPTION": "See how the message looks with {assistantName}'s data.",
           "MISSING_VARIABLES": "A value is missing. {assistantName} will not send this template until you complete it.",
           "VARIABLES_TITLE": "What {assistantName} fills in for each variable",
-          "UNASSIGNED": "Not assigned",
-          "BY_NAME": "By their name",
-          "ASSIGNED_HERE": "Assigned on this number",
-          "ASSIGNED_ASSISTANT": "From the assistant (legacy)",
           "INBOX": "Inbox: {name}",
-          "TEMPLATE_UNAVAILABLE": "This template is no longer approved in this inbox and cannot be shown."
+          "TEMPLATE_UNAVAILABLE": "This template is no longer approved in this inbox and cannot be shown.",
+          "SOURCE_ALIAS": "Automatic (by name)",
+          "SOURCE_BINDING": "Assigned in Templates and Flows",
+          "SOURCE_ASSISTANT": "From the assistant (legacy)",
+          "SOURCE_LEGACY": "From the previous list",
+          "MISSING": "Not available: missing data"
         },
         "CONFLICT": "Someone else changed this setup. Reload to see the current version; your unsaved changes will be lost.",
         "CONNECTION": {
@@ -1473,22 +1474,19 @@
         "PAID": {
           "TITLE": "Allow paid templates",
           "SCOPE": "For all WhatsApp inboxes of this assistant.",
-          "ON_LINE": "On. After 24 hours, {assistantName} can send approved templates, appointment reminders and re-engagement (Meta charges for them). Within 24 hours, it replies and sends Flows as usual.",
-          "OFF_LINE": "Off. {assistantName} sends no templates, and no reminders or re-engagement after 24 hours. It keeps replying and sending Flows within 24 hours of the customer's last message.",
+          "ON_LINE": "On. After 24 hours, {assistantName} can send approved utility templates, appointment reminders and re-engagement (Meta charges for them). Within 24 hours it replies and sends Flows as usual.",
+          "OFF_LINE": "Off. {assistantName} sends no utility templates, reminders or re-engagement after 24 hours. It keeps replying and sending Flows within 24 hours of the customer's last message.",
           "TEMPLATES_OFF": "Not sent: \"Allow paid templates\" is off. Your choices are kept."
         },
         "CAP": {
-          "LABEL": "Daily template limit",
           "REACHED": "Today's limit was reached: {used} of {cap}. {assistantName} replies with normal messages until tomorrow.",
-          "SAVE_ERROR": "The daily limit could not be saved. Try again.",
-          "INVALID": "Enter a whole number from 0 to 10,000.",
-          "TODAY": "Today: {used} of {cap}",
-          "SHARED": "Shared by all assistants in the account."
+          "READONLY": "Account daily limit: today {used} of {cap}",
+          "CHANGE": "Change"
         },
         "MESSAGING": {
-          "TOGGLE": "{assistantName} uses the Flows and templates of this number",
-          "HELP": "{assistantName} only sends what has its switch on. Marketing and anything new from WhatsApp start off.",
-          "OFF": "Off: {assistantName} sends no Flows or templates from this number."
+          "TOGGLE": "{assistantName} uses this number’s Flows and utility templates",
+          "HELP": "{assistantName} only sends the utility templates and Flows that are switched on.",
+          "OFF": "Off: {assistantName} sends no Flows or utility templates from this number."
         },
         "FLOWS": {
           "TITLE": "WhatsApp Flows",
@@ -1498,18 +1496,14 @@
         },
         "TEMPLATES": {
           "TITLE": "Templates",
-          "CREATE": "+ Create template",
-          "ASSIGN": "Assign",
-          "SAVE": "Save",
-          "ASSIGN_TITLE": "Assign data for {name}",
-          "ASSIGN_HELP": "Saved on this number: agents will also use this when sending the template."
+          "CREATE": "+ Create template"
         },
         "STATES": {
           "PENDING": "Pending in Meta",
           "REJECTED": "Rejected by Meta"
         },
         "REASONS": {
-          "NEEDS_DATA": "Missing data for {variables}. Assign it once so {assistantName} can use this template.",
+          "NEEDS_DATA": "Not available: variable {variables} still needs to be set up.",
           "UNSUPPORTED": "It has a file header or a per-customer button, so {assistantName} cannot send it.",
           "NEEDS_REVIEW": "It has a link. Review it before allowing it.",
           "NOT_PUBLISHED_HERE": "This Flow is not published on this inbox's WhatsApp account."
@@ -1519,7 +1513,8 @@
           "PERMISSION": "Need your permission",
           "SHOW": "Show",
           "HIDE": "Hide",
-          "BLOCKED": "Can't be used"
+          "BLOCKED": "Can't be used",
+          "READY_COUNTS": "{on} on · {off} off"
         },
         "RESOURCE_TABS": "Flows and templates",
         "CHIPS": {
@@ -1527,8 +1522,6 @@
           "UNSUPPORTED": "Not supported: file or per-customer button",
           "NOT_PUBLISHED": "Not published here",
           "QUALITY": "Low quality",
-          "UTILITY": "Utility",
-          "MARKETING": "Marketing",
           "NEW": "New",
           "CHANGED": "Changed",
           "LINK": "Has a link",
@@ -1547,7 +1540,8 @@
           "FLOWS": "Flows",
           "TEMPLATES": "Templates"
         },
-        "ROW_SWITCH": "{assistantName} can use {name}"
+        "ROW_SWITCH": "{assistantName} can use {name}",
+        "CONFIGURE_IN_TEMPLATES": "Set up in Templates and Flows"
       },
       "OPTIONS": {
         "EDIT_ASSISTANT": "Edit Assistant",
@@ -1735,6 +1729,12 @@
             "ERROR": "There was an error deleting scenarios, please try again."
           }
         }
+      },
+      "FOLLOWUP": {
+        "MARKETING_NOT_ALLOWED": "This is a marketing template and Captain does not use it. Choose a utility template."
+      },
+      "APPOINTMENTS": {
+        "MARKETING_NOT_ALLOWED": "This is a marketing template and Captain does not use it. Choose a utility template."
       }
     },
     "DOCUMENTS": {

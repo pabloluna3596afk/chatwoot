@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import CaptainTemplateCap from '../account/components/CaptainTemplateCap.vue';
 import AudioTranscription from '../account/components/AudioTranscription.vue';
 
 const { t } = useI18n();
@@ -23,6 +24,7 @@ const canManageAudioTranscription = computed(() =>
     </h1>
     <div class="flex-grow flex-shrink min-w-0 mt-3">
       <AudioTranscription v-if="canManageAudioTranscription" />
+      <CaptainTemplateCap v-if="canManageAudioTranscription" />
     </div>
   </div>
 </template>

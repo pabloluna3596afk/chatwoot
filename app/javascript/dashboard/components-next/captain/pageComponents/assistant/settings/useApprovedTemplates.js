@@ -59,7 +59,9 @@ export function useApprovedTemplates(assistantId) {
       .forEach(inbox => {
         (inbox.message_templates || [])
           .filter(
-            template => String(template.status).toLowerCase() === 'approved'
+            template =>
+              String(template.status).toLowerCase() === 'approved' &&
+              template.category === 'UTILITY'
           )
           .forEach(template => {
             const key = templateKey(template);
@@ -86,10 +88,17 @@ export function useApprovedTemplates(assistantId) {
   });
 
   // The saved template stays in the list even when its inbox no longer reports it as approved.
+  const disallowedTemplate = value =>
+    linkedInboxes.value.some(inbox =>
+      (inbox.message_templates || []).some(
+        template =>
+          templateKey(template) === value && template.category !== 'UTILITY'
+      )
+    );
   const templateOptions = current => {
     const known = approvedTemplates.value.some(item => item.value === current);
     const options =
-      current && !known
+      current && !known && !disallowedTemplate(current)
         ? [
             ...approvedTemplates.value,
             { value: current, label: current.replace('|', ' (') + ')' },
@@ -120,13 +129,15 @@ export function useApprovedTemplates(assistantId) {
         (item.message_templates || []).some(
           template =>
             templateKey(template) === value &&
-            String(template.status).toLowerCase() === 'approved'
+            String(template.status).toLowerCase() === 'approved' &&
+            template.category === 'UTILITY'
         )
     );
     return inbox?.id ?? null;
   };
 
   return {
+    disallowedTemplate,
     approvedTemplates,
     templateOptions,
     templateEntry,

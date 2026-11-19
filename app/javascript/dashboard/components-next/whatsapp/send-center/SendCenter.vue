@@ -1,4 +1,5 @@
 <script setup>
+import { variableTokens } from 'dashboard/routes/dashboard/settings/templates/templateData';
 import { computed, nextTick, ref, watch, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
@@ -678,6 +679,19 @@ const overlayDescriptionId = useId();
                   compact
                 />
                 <template v-else>{{ snippet(row) }}</template>
+              </p>
+              <p
+                v-if="
+                  row.type === 'template' && row.data.missing_variables?.length
+                "
+                class="mt-1 text-xs text-n-amber-11"
+                data-testid="missing-data-hint"
+              >
+                {{
+                  $t('WHATSAPP_TEMPLATES.SEND_CENTER.MISSING_DATA_HINT', {
+                    variables: variableTokens(row.data.missing_variables),
+                  })
+                }}
               </p>
               <span
                 v-if="row.reason"

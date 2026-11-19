@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 ### B-NEW-280 - Adjuntos legibles y previsualización en la conversación (2026-11-18)
 
 - **Archivos:** `components-next/message/media/{MediaGrid,MediaTile,FileCard}.vue`, `ReplyPreview.vue`, burbujas y chips existentes, `provider.js`, `GalleryView.vue`, historias y locales en/es. Seed de desarrollo integrado desde `feat/adjuntos-seed`.
@@ -7,6 +8,24 @@
 - **Cómo probar:** `dev:attachments_demo` en desarrollo; revisar los quince escenarios de la guía. Vitest cubre ocho canales por cinco contextos, correo inline con tres documentos, MIME/tamaño del PDF, selección, respuestas y fallos. El seed tiene RSpec aislado y RuboCop Docker. Evidencias y pendientes visuales en `tmp/PR-ADJUNTOS.md`; no se declara aprobación visual sin capturas del PM.
 - **Despliegue:** sin migraciones nuevas; sin push, PR ni despliegue en esta entrega.
 =======
+=======
+### B-NEW-281 — Envíos v3-B/C: variables en Ajustes y tope diario de cuenta en IA (2026-11-18)
+
+- **Archivos:** Plantillas y Flows (`Index`, `TemplateDataPill`, `TemplateVariablesDrawer`, tabla/acciones); Captain (`AssistantMessagingForm`, previews, `useApprovedTemplates`); Centro de envíos; Ajustes IA (`CaptainTemplateCap`); Salud WhatsApp y JSON Enterprise de cuenta.
+- **Problema:** Captain permitía asignar variables en una pantalla de permisos; las plantillas sincronizadas no tenían una acción independiente de Editar/Meta. El tope de toda la cuenta se editaba desde un asistente y los selectores incluían categorías que Captain no admite.
+- **Arreglo:** asignación exclusiva desde Ajustes con PATCH local secuencial por bandeja, alias automáticos y sugerencias sin guardado implícito; Datos y filtro de pendientes. Captain solo muestra UTILITY/Flows, sin escritura de bindings; needs_data en bloqueados abierto con enlace, Plantillas primero y previews readonly. El tope se configura en IA y se consulta en Envíos/Salud; el JSON añade cap/used solo a administradores con Captain habilitado. La carga del tope informa también el fallo retornado como null por el store. El Centro de envíos mantiene el envío humano con aviso.
+- **Cómo probar:** Vitest de estados, drawer, filtros/acciones, previews, Citas/Seguimiento, tope y Salud en UTC/Guayaquil; requests de cuenta y consumidores RSpec sobre DB/Redis aislados; ESLint y RuboCop. Evidencias y limitaciones: `tmp/PR-ENVIOS-V3BC.md`.
+- **Alcance:** sin migraciones, fetch, push, PR, navegador ni despliegue. A0 y aprobación visual pendientes del PM; se aplican los textos de Deltas sobre la maqueta.
+
+### B-NEW-280 - Envios v3-A: fuentes de variables por variable y solo utilidad en Captain (2026-11-18)
+
+- **Archivos:** `Whatsapp::TemplateVariableSources`, `TemplateVariableBindingsService`, controladores de plantillas/bandejas y `Captain::Messaging::{TemplateParams,TemplateAvailability,SendService,AssistantPayload,Review,LegacyEntryConverter}`; catalogo de herramientas y specs asociados.
+- **Problema:** un binding parcial descartaba todos los bindings; el modo lista no leia asignaciones de la bandeja y los previews excluidos no resolvian datos. El listado de Plantillas y Flows devolvia plantillas sin fuentes; bindings estaba limitado a Cloud. Marketing podia usarse por listas antiguas o permisos previos.
+- **Arreglo:** una regla compartida binding > alias del catalogo message > missing; parametros legacy/override conservan precedencia. Variables pendientes bloquean los estados utilizables o revisables. Ambos payloads de bandeja incluyen fuentes y variables pendientes; bindings para cualquier Channel::Whatsapp aprobado, sin AUTHENTICATION ni llamadas a Meta. Captain solo admite UTILITY y Flows: omite marketing/authentication del payload y contadores, rechaza permisos/envios/recordatorios/reenganche y descarta marketing al convertir. Campanas y Plantillas y Flows conservan marketing.
+- **Como probar:** specs del helper, bindings y endpoints; mezcla alias + binding, claves obsoletas, lista sin escritura, previews y needs_data; catalogo, SendService, recordatorios, reenganche, payload, 422 de allow_resource y conversion/restauracion. Evidencias y gates: `tmp/PR-ENVIOS-V3A.md`.
+- **Alcance:** solo PR-A backend; sin migraciones, frontend, fetch, push, navegador, PR ni despliegue. La retirada visual de Asignar y los textos corresponden a PR-B.
+
+>>>>>>> origin/develop
 ### B-NEW-280 - Composer: altura disponible al abrir el teclado del teléfono (2026-11-18)
 
 - **Archivos:** `app/views/layouts/vueapp.html.erb`, `dashboard/App.vue`, `dashboard/composables/useVisualViewportHeight.js`, `dashboard/components/widgets/conversation/MessagesView.vue` y specs asociados.
@@ -3670,6 +3689,7 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Como probar:** dos conexiones reales, la segunda espera por lock asesor y omite con cooldown tras confirmar el primer envio; conserva regla de siete dias. Sin migraciones.
 
 
+<<<<<<< HEAD
 ## B-NEW-280 - Composer full-bleed chrome (PR 2)
 
 ReplyBox, MessagesView, ResizableEditorWrapper and WootWriter panels: replace nested box chrome with a full-width top border, soft growing mobile field, compact mode switch and hover-only desktop grip. Touch placeholders have es/en parity and Send has a separate keyboard hint. Attachment components unchanged. Verify public reply, amber note, chips above the field, desktop resize and touch placeholders. Automated: ReplyBox/MessagesView/ResizableEditorWrapper Vitest in UTC and America/Guayaquil. Visual review and real phone checks remain with the PM; no browser used.
@@ -3684,3 +3704,21 @@ Completion: the phone template action takes the space left by its tools; recordi
 ## B-NEW-282 - Composer history folding and explicit Hide (PR 4)
 
 MessagesView, CollapsedReplyBar, ReplyTopPanel, ReplyBox and useContactConversationNavigation: adopt upstream 8b33b543fc reading mode, fold transitions, latest-conversation link and explicit reveal. Add desktop Hide next to expand, independently of Copilot eligibility; keep the editor mounted, preserve drafts/attachments when reopening the same mode, and never auto-fold an active draft or fold on phone. The collapsed bar is solid and the new copy has es/en parity. Verify an older contact conversation, latest navigation, Hide, Alt+L/Alt+P, text/attachment drafts and a desktop-to-phone resize. Automated coverage in the related component/composable specs; real screenshots, keyboard and phone review remain with the PM. No migrations.
+=======
+### B-NEW-280 - Envios: revision antigua pese a cargar el detalle (2026-11-19)
+
+- **Archivos:** `AssistantMessagingForm.vue` y su spec.
+- **Causa:** GET show actualizaba los recursos, mientras el payload usaba config/revision del registro Vuex anterior. El watcher de props tambien podia restaurar esa revision al actualizar datos ajenos al borrador.
+- **Fix:** hidratar permisos y revision juntos desde show; conservar el borrador local hasta recarga explicita; enviar solo messaging y allow_paid_templates. Mantener 409 y aprobaciones serializadas con la revision devuelta.
+- **Prueba:** show con revision 12 frente a props con 4; guardar usa 12 y conserva notas/permisos. Renombrar el registro cacheado no devuelve el formulario a 4. Prueba de regresion roja antes del ajuste del watcher, verde despues. Conflictos reales siguen mostrando Recargar.
+- **Entrega:** sin migraciones, push ni despliegue. No se atribuye el incremento historico del incidente a un writer sin sus registros HTTP.
+- **Guardado parcial:** si un `allow_resource` confirma y el siguiente falla, conservar solo la revision nueva permitia reenviar `reviewed` antiguo al reintentar. Cada respuesta confirmada ahora hidrata configuracion y revision juntas, y sale de la cola. Regresion roja/verde: reintentar conserva la primera aprobacion y solo solicita la pendiente; mantiene el 409 si otra persona cambia la configuracion.
+
+### B-NEW-281 - Plantillas: editar y quitar asignaciones locales sin reenviar a Meta (2026-11-19)
+
+- **Archivos:** `TemplateFormDrawer.vue`, `Index.vue`, `TemplateRowActions.vue`, `TemplatePendingIndicator.vue`, `inbox_whatsapp_template_variable_bindings.rb`, sus specs e i18n es/en.
+- **Fix:** sustituir Datos/drawer Variables por indicador discreto y la misma seccion de variables de Crear dentro de Editar. Separar cambios de contenido y bindings; persistir bindings antes de un cambio de estado de Meta. Mantener contenido bloqueado cuando no sea editable, sin bloquear asignaciones locales elegibles.
+- **Causa adicional:** `params.require(:variable_bindings)` rechazaba `{}` al quitar la ultima asignacion. `fetch` permite ese objeto vacio conservando presencia y validacion de tipo en el limite HTTP.
+- **Prueba:** asignacion local sin ejemplos ni updateTemplate, contenido bloqueado/proveedor no Cloud, enlace de pendientes a Editar, errores de guardado y orden bindings/Meta. RSpec cubre quitar la ultima asignacion y rechazar tipos invalidos.
+- **Entrega:** sin migraciones. Revision visual del PM pendiente; no se uso navegador ni se creo PR.
+>>>>>>> origin/develop

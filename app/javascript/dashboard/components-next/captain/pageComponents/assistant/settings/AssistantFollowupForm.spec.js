@@ -73,6 +73,38 @@ describe('AssistantFollowupForm', () => {
     inboxes.value = [];
   });
 
+  it('warns about a saved non-utility template without offering it', async () => {
+    inboxes.value = [
+      {
+        id: 1,
+        name: 'Ventas',
+        channel_type: 'Channel::Whatsapp',
+        message_templates: [
+          {
+            name: 'promo',
+            language: 'es',
+            status: 'APPROVED',
+            category: 'MARKETING',
+          },
+        ],
+      },
+    ];
+    const wrapper = mountForm({
+      allow_paid_templates: true,
+      followup: {
+        reengagement_enabled: true,
+        reengagement_template: { name: 'promo', language: 'es' },
+      },
+    });
+    await flushPromises();
+    expect(wrapper.text()).toContain('MARKETING_NOT_ALLOWED');
+    expect(
+      select(wrapper, 'followup-template')
+        .props('options')
+        .map(option => option.value)
+    ).toEqual(['']);
+  });
+
   it('is on by default with one unified timer and no re-engagement', async () => {
     const wrapper = mountForm();
     expect(wrapper.find('[data-testid="followup-fields"]').exists()).toBe(true);
@@ -217,6 +249,7 @@ describe('AssistantFollowupForm', () => {
       name: 'volver',
       language: 'es',
       status: 'approved',
+      category: 'UTILITY',
       components: [{ type: 'BODY', text: 'Hola {{1}}, soy {{2}}.' }],
     };
     const parser = wrapper => wrapper.findComponent(WhatsAppTemplateParser);

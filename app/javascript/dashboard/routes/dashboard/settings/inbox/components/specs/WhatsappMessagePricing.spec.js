@@ -1,3 +1,4 @@
+import { ref } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import WhatsappMessagePricing from '../WhatsappMessagePricing.vue';
 import InboxHealthAPI from 'dashboard/api/inboxHealth';
@@ -64,7 +65,45 @@ const mountComponent = async months => {
   return wrapper;
 };
 
+const { captainEnabled, captainAdmin } = vi.hoisted(() => ({
+  captainEnabled: { value: true },
+  captainAdmin: { value: true },
+}));
+vi.mock('dashboard/composables/useAccount', () => ({
+  useAccount: () => ({
+    currentAccount: ref({ captain_template_cap: { cap: 50, used: 3 } }),
+    accountId: ref(1),
+    accountScopedRoute: name => ({ name }),
+    isCloudFeatureEnabled: () => captainEnabled.value,
+  }),
+}));
+vi.mock('dashboard/composables/useAdmin', () => ({
+  useAdmin: () => ({ isAdmin: ref(captainAdmin.value) }),
+}));
+vi.mock('dashboard/composables/store', () => ({
+  useStore: () => ({ dispatch: vi.fn() }),
+}));
 describe('WhatsappMessagePricing', () => {
+  it('shows the account usage and change link only when Captain is enabled', async () => {
+    const wrapper = mount(WhatsappMessagePricing, {
+      props: { inboxId: 1 },
+      global: { stubs: { RouterLink: { template: '<a><slot/></a>' } } },
+    });
+    expect(wrapper.get('[data-testid="captain-health-cap"]').text()).toContain(
+      '3 of 50'
+    );
+    expect(wrapper.get('[data-testid="captain-health-cap"] a').exists()).toBe(
+      true
+    );
+    wrapper.unmount();
+    captainEnabled.value = false;
+    const disabled = mount(WhatsappMessagePricing, { props: { inboxId: 1 } });
+    expect(disabled.find('[data-testid="captain-health-cap"]').exists()).toBe(
+      false
+    );
+    disabled.unmount();
+    captainEnabled.value = true;
+  });
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-11-17T12:00:00Z'));

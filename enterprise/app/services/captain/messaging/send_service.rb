@@ -114,7 +114,6 @@ class Captain::Messaging::SendService
 
   def entry_for(item)
     return flow_entry if flow?
-    return settings.template(inbox.id, request.resource[:name], request.resource[:language]) if settings.mode(inbox.id) == 'list'
 
     { 'name' => item.resource['name'], 'language' => item.resource['language'],
       'processed_params' => item.processed_params, 'category' => item.resource['category'] }

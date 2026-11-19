@@ -21,13 +21,16 @@ class Whatsapp::TemplateVariableBindingsService
     stored[name.to_s].to_h
   end
 
-  # The templates of the inbox with their `variable_bindings` (only the ones that have any).
+  # Enrich every inbox template with stored bindings, resolved sources and missing variable names.
   def merge_into(templates)
+    source_service = Whatsapp::TemplateVariableSources.new(@channel)
     Array(templates).map do |template|
       next template unless template.is_a?(Hash)
 
       bindings = for_template(template['name'])
-      bindings.empty? ? template : template.merge('variable_bindings' => bindings)
+      sources = source_service.for(template)
+      missing = sources.values.flat_map { |variables| variables.select { |_, value| value[:source] == 'missing' }.keys }.uniq
+      template.merge('variable_bindings' => bindings, 'variable_sources' => sources, 'missing_variables' => missing)
     end
   end
 

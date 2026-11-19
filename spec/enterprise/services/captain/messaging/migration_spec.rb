@@ -103,8 +103,8 @@ RSpec.describe Captain::Messaging::Migration do
     expect(converted['mode']).to eq('auto')
     key = "#{channel.provider_config.fetch('business_account_id')}:promo|es"
     expect(converted['included_marketing']).to eq([])
-    expect(converted.dig('notes', "template:#{key}")).to eq('Saludo')
-    expect(converted.dig('params', key)).to eq('body' => { '1' => '{{ contact.name }}' })
+    expect(converted.dig('notes', "template:#{key}")).to be_nil
+    expect(converted.dig('params', key)).to be_nil
     first_conversion = assistant.reload.config['messaging']
     described_class.convert!(assistant)
     expect(assistant.reload.config['messaging']).to eq(first_conversion)
@@ -113,5 +113,30 @@ RSpec.describe Captain::Messaging::Migration do
     described_class.restore!(assistant)
 
     expect(assistant.reload.config['messaging']).to eq(original)
+  end
+
+  context 'with a pending utility template' do
+    let(:template) { super().merge('category' => 'UTILITY', 'status' => 'PENDING') }
+
+    it 'retains utility settings while waiting for Meta approval' do
+      described_class.convert!(assistant)
+      key = "#{channel.provider_config.fetch('business_account_id')}:promo|es"
+      converted = assistant.reload.config.dig('messaging', 'inboxes', 0)
+      expect(converted.dig('notes', "template:#{key}")).to eq('Saludo')
+      expect(converted.dig('params', key)).to eq('body' => { '1' => '{{ contact.name }}' })
+      expect(converted.dig('reviewed', 'templates')).not_to have_key(key)
+    end
+  end
+
+  context 'with a utility template' do
+    let(:template) { super().merge('category' => 'UTILITY') }
+
+    it 'preserves utility notes and parameters during conversion' do
+      described_class.convert!(assistant)
+      converted = assistant.reload.config.dig('messaging', 'inboxes', 0)
+      key = "#{channel.provider_config.fetch('business_account_id')}:promo|es"
+      expect(converted.dig('notes', "template:#{key}")).to eq('Saludo')
+      expect(converted.dig('params', key)).to eq('body' => { '1' => '{{ contact.name }}' })
+    end
   end
 end

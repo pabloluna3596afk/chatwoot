@@ -7,13 +7,14 @@ import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDrop
 import InboxesAPI from 'dashboard/api/inboxes';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 
-const { openForm, openPreview, openSystemCopy } = vi.hoisted(() => ({
+const { openForm, openPreview, openSystemCopy, query } = vi.hoisted(() => ({
+  query: {},
   openForm: vi.fn(),
   openPreview: vi.fn(),
   openSystemCopy: vi.fn(),
 }));
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ query: {} }),
+  useRoute: () => ({ query }),
   useRouter: () => ({ push: vi.fn() }),
 }));
 vi.mock('vue-i18n', () => ({
@@ -72,17 +73,19 @@ vi.mock('../../components/BaseSettingsHeader.vue', () => ({
 }));
 
 describe('Templates page', () => {
-  const render = async () => {
+  const render = async (records = null) => {
     InboxesAPI.getMessageTemplates.mockResolvedValue({
       data: {
-        payload: Array.from({ length: 1000 }, (_, i) => ({
-          id: String(i),
-          name: `template_${i}`,
-          language: 'en',
-          category: i % 2 ? 'MARKETING' : 'UTILITY',
-          status: 'APPROVED',
-          components: [{ type: 'BODY', text: 'Hello' }],
-        })),
+        payload:
+          records ||
+          Array.from({ length: 1000 }, (_, i) => ({
+            id: String(i),
+            name: `template_${i}`,
+            language: 'en',
+            category: i % 2 ? 'MARKETING' : 'UTILITY',
+            status: 'APPROVED',
+            components: [{ type: 'BODY', text: 'Hello' }],
+          })),
       },
     });
     const wrapper = mount(
@@ -92,6 +95,58 @@ describe('Templates page', () => {
     await flushPromises();
     return wrapper;
   };
+
+  it('filters pending variables, sorts utility first and offers Edit and a quiet pending indicator', async () => {
+    const pending = {
+      language: 'es',
+      category: 'MARKETING',
+      status: 'APPROVED',
+      variable_sources: { body: { 1: { source: 'missing' } } },
+      missing_variables: ['1'],
+      components: [{ type: 'BODY', text: 'Hola {{1}}' }],
+    };
+    const wrapper = await render([
+      { ...pending, id: '1', name: 'a_promo' },
+      { ...pending, id: '2', name: 'z_utilidad', category: 'UTILITY' },
+      { ...pending, id: '3', name: 'code', category: 'AUTHENTICATION' },
+      { ...pending, id: '4', name: 'waiting', status: 'PENDING' },
+    ]);
+    const actions = wrapper.findAllComponents(TemplateRowActions);
+    expect(actions[0].props('canEdit')).toBe(true);
+    expect(wrapper.findAll('[data-testid="template-pending"]')).toHaveLength(2);
+    await wrapper.get('button[aria-pressed]').trigger('click');
+    const table = wrapper.findComponent(TemplatesTable);
+    expect(table.props('items').map(item => item.name)).toEqual([
+      'z_utilidad',
+      'a_promo',
+    ]);
+    expect(table.props('columns').map(column => column.key)).not.toContain(
+      'DATA'
+    );
+    wrapper.unmount();
+  });
+
+  it('opens the edit form from the pending-variable link', async () => {
+    Object.assign(query, { q: 'pedido_listo', filter: 'missing' });
+    const wrapper = await render([
+      {
+        id: '55',
+        name: 'pedido_listo',
+        language: 'es',
+        status: 'APPROVED',
+        category: 'UTILITY',
+        components: [{ type: 'BODY', text: 'Hola {{1}}' }],
+        variable_sources: { body: { 1: { source: 'missing' } } },
+        missing_variables: ['1'],
+      },
+    ]);
+    expect(openForm).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'pedido_listo' })
+    );
+    delete query.q;
+    delete query.filter;
+    wrapper.unmount();
+  });
 
   it('renders only a client page and resets pagination for combinable filters', async () => {
     const wrapper = await render();

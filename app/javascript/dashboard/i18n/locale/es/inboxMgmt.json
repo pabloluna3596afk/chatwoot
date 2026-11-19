@@ -1028,7 +1028,8 @@
         "EXPECTED_URL": "URL esperada",
         "COPY_URL": "Copiar URL del webhook",
         "COPY_SUCCESS": "La URL del webhook se copió al portapapeles"
-      }
+      },
+      "CAPTAIN_CAP": "Plantillas de la IA hoy (toda la cuenta): {used} de {cap}"
     },
     "SETTINGS": "Ajustes",
     "FEATURES": {

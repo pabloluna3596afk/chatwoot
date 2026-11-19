@@ -100,6 +100,24 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
         assistant.update!(config: config)
       end
 
+      it 'omits marketing and authentication even when old settings include them' do
+        categories = %w[MARKETING AUTHENTICATION]
+        channel.update!(message_templates: templates + categories.map do |category|
+          templates.first.merge('name' => category.downcase, 'category' => category)
+        end)
+        config = assistant.config.deep_dup
+        entry = config.fetch('messaging').fetch('inboxes').first
+        entry['included_marketing'] = ["#{channel.provider_config['business_account_id']}:marketing|es"] if mode == 'auto'
+        if mode == 'list'
+          entry['templates'] = channel.message_templates.map do |item|
+            item.slice('name', 'language').merge('processed_params' => params)
+          end
+        end
+        assistant.update!(config: config)
+        data = JSON.parse(Captain::Tools::TemplateCatalogTool.new(assistant).perform(tool_context))
+        expect(data['templates'].map { |item| item['category'] }).not_to include('MARKETING', 'AUTHENTICATION')
+      end
+
       it 'includes template content, variables and the existing owner note' do
         data = JSON.parse(Captain::Tools::TemplateCatalogTool.new(assistant).perform(tool_context))
         expect(data['templates'].first).to include(
@@ -157,7 +175,7 @@ RSpec.describe 'Captain messaging tools' do # rubocop:disable RSpec/DescribeClas
         assistant.update!(config: config)
 
         data = JSON.parse(Captain::Tools::TemplateCatalogTool.new(assistant).perform(tool_context))
-        expect(data['more']).to eq(3)
+        expect(data['more']).to eq(2)
         items = data['templates']
         expect(items.size).to eq(25)
         expect(items).to all(include('truncated' => true, 'can_send' => true, 'category' => 'UTILITY'))

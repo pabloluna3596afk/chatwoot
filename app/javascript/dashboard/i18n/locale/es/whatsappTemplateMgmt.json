@@ -76,7 +76,7 @@
       "DESCRIPTION": "Meta revisa cada plantilla antes de que se pueda usar. La vista previa se actualiza mientras escribes.",
       "STATUS": "Estado en Meta:",
       "REJECTED_REASON": "Motivo del rechazo: {reason}",
-      "CANNOT_EDIT_NOW": "Meta solo permite editar plantillas aprobadas, rechazadas o pausadas. Espera a que termine la revisión.",
+      "CANNOT_EDIT_NOW": "La edición de contenido no está disponible para esta plantilla. Puedes configurar los datos de las variables si aparecen debajo.",
       "CHANNEL": "Bandeja de WhatsApp",
       "CHANNEL_PLACEHOLDER": "Elige una bandeja",
       "NAME": "Nombre",
@@ -187,7 +187,7 @@
       "COPY_CODE_HELP": "Meta escribe el texto del botón (\"Copiar código de oferta\"). Hasta 15 caracteres.",
       "PRESERVED": "Se conservará tal como está en Meta: {parts}. No se puede editar desde aquí.",
       "VARIABLE_VALUES": "¿Con qué se llena cada variable?",
-      "VARIABLE_VALUES_HELP": "Las variables que ChatHub ya conoce (nombre, correo, ciudad…) se llenan solas. Estas no están en la tabla: elige el dato que las llena, o déjalas en «Solo en esta plantilla» y se elegirá al enviar.",
+      "VARIABLE_VALUES_HELP": "Elige el dato con el que se llena cada variable. Las variables del sistema se completan por su nombre. Cambiar estas opciones no vuelve a enviar la plantilla a Meta.",
       "VARIABLE_ONLY_HERE": "Solo en esta plantilla",
       "EXAMPLES": "Ejemplo de cada variable (Meta lo pide para revisar la plantilla)",
       "PREVIEW": "Vista previa",
@@ -208,10 +208,12 @@
       "SYSTEM_COPY_HELP": "Elige una variable para cada número; la plantilla anterior sigue funcionando hasta que Meta apruebe la copia.",
       "MAP_VARIABLE": "Elige una variable",
       "CREATE_ATTRIBUTE": "Crear atributo nuevo",
-      "APPROVED_WARNING": "Meta permite 1 edición cada 24 h y 10 en 30 días. El nombre y el idioma no pueden cambiar; al guardar, la plantilla vuelve a revisión y puede quedar pendiente o pausada.",
+      "APPROVED_WARNING": "Meta permite 1 edición de contenido cada 24 h y 10 en 30 días. El nombre y el idioma no pueden cambiar. Editar el contenido vuelve a enviar la plantilla a revisión; cambiar los datos de las variables no.",
       "LAST_EDIT": "Última edición: {time}",
       "EDIT_STRUCTURE_HELP": "Puedes editar los textos conservando los componentes y las variables en el mismo orden.",
-      "META_ERROR": "Meta rechazó la solicitud: {message}"
+      "META_ERROR": "Meta rechazó la solicitud: {message}",
+      "VARIABLE_AUTOMATIC": "Automático",
+      "VARIABLE_PENDING": "Elegir dato"
     },
     "DELETE_DIALOG": {
       "TITLE": "Borrar plantilla",
@@ -318,6 +320,10 @@
       "COUNT": "{startItem}–{endItem} de {totalItems}",
       "UPDATED": "Actualizado",
       "SCREENS": "Pantallas"
-    }
+    },
+    "FILTER": {
+      "MISSING": "Variables pendientes ({count})"
+    },
+    "MISSING_VARIABLES": "Falta el dato de {variables}"
   }
 }

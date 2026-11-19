@@ -556,6 +556,7 @@ it('keeps Spanish notices correctly accented', () => {
   const messages = spanishMessages.WHATSAPP_TEMPLATE_MGMT.FORM;
   expect(messages.APPROVED_WARNING).toContain('edici\u00f3n');
   expect(messages.APPROVED_WARNING).toContain('revisi\u00f3n');
+  expect(messages.VARIABLE_AUTOMATIC).toBe('Autom\u00e1tico');
   expect(messages.LAST_EDIT).toBe('\u00daltima edici\u00f3n: {time}');
   expect(messages.META_ERROR).toContain('rechaz\u00f3');
   expect(messages.ERRORS.SYSTEM_MAPPING_REQUIRED).toContain('n\u00famero');

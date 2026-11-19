@@ -12,7 +12,10 @@ const sampleValue = (value, previewValues) => {
   if (typeof value !== 'string') return '';
   return value.replace(
     /\{\{\s*[^}]+\s*\}\}/g,
-    expression => previewValues[expression] || expression
+    expression =>
+      previewValues[expression] ||
+      previewValues[expression.slice(2, -2).trim()] ||
+      expression
   );
 };
 

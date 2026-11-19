@@ -51,8 +51,8 @@ RSpec.describe Captain::Messaging::Availability do
     assistant.config.dig('messaging', 'inboxes').first['included_marketing'] = [key] if included_marketing
   end
 
-  it 'keeps a listed approved marketing template available in list mode' do
-    expect(template_item(category: 'MARKETING', mode: 'list').state).to eq('available')
+  it 'rejects a listed approved marketing template in list mode' do
+    expect(template_item(category: 'MARKETING', mode: 'list').state).to eq('marketing_off')
   end
 
   it 'keeps a listed approved utility template available in list mode' do
@@ -67,8 +67,8 @@ RSpec.describe Captain::Messaging::Availability do
     expect(template_item(category: 'MARKETING', mode: 'auto').state).to eq('marketing_off')
   end
 
-  it 'makes included and reviewed marketing available in auto mode' do
-    expect(template_item(category: 'MARKETING', mode: 'auto', included_marketing: true).state).to eq('available')
+  it 'rejects included and reviewed marketing in auto mode' do
+    expect(template_item(category: 'MARKETING', mode: 'auto', included_marketing: true).state).to eq('marketing_off')
   end
 
   it 'makes a reviewed utility available in auto mode' do
@@ -114,7 +114,7 @@ RSpec.describe Captain::Messaging::Availability do
     expect(described_class.new(assistant, inbox).templates.first.state).to eq('needs_review')
   end
 
-  it 'gives exclusion precedence over marketing inclusion' do
+  it 'rejects marketing regardless of exclusions or inclusion' do
     marketing = template.merge('category' => 'MARKETING')
     channel.update!(message_templates: [marketing])
     fingerprint = Digest::SHA256.hexdigest({ category: marketing['category'], components: marketing['components'],
@@ -124,7 +124,7 @@ RSpec.describe Captain::Messaging::Availability do
     entry['included_marketing'] = ["#{waba_id}:order_ready|es"]
     entry['excluded'] = { 'templates' => ["#{waba_id}:order_ready|es"], 'flows' => [] }
 
-    expect(described_class.new(assistant, inbox).templates.first.state).to eq('excluded')
+    expect(described_class.new(assistant, inbox).templates.first.state).to eq('marketing_off')
   end
 
   it 'keeps a reviewed authentication template unavailable even when explicitly allowed' do
@@ -141,7 +141,7 @@ RSpec.describe Captain::Messaging::Availability do
     enable_auto(reviewed: { 'templates' => { "#{waba_id}:order_ready|es" => old_fingerprint }, 'flows' => {} })
     channel.update!(message_templates: [template.merge('category' => 'MARKETING')])
 
-    expect(described_class.new(assistant, inbox).templates.first.state).to eq('changed')
+    expect(described_class.new(assistant, inbox).templates.first.state).to eq('marketing_off')
   end
 
   it 'does not reuse a reviewed template from another WABA' do
@@ -245,5 +245,52 @@ RSpec.describe Captain::Messaging::Availability do
     entry = assistant.config.dig('messaging', 'inboxes').first
     entry['excluded'] = { 'templates' => ["#{waba_id}:order_ready|es_MX"] }
     expect(described_class.new(assistant, inbox).templates.first.state).to eq('excluded')
+  end
+
+  %w[excluded new changed needs_review].each do |state|
+    it "gives missing data precedence over #{state}" do
+      resource = template.merge('components' => [{ 'type' => 'BODY', 'text' => '{{1}}' }])
+      resource['components'] << { 'type' => 'BUTTONS', 'buttons' => [{ 'type' => 'URL', 'url' => 'https://example.com' }] } if state == 'needs_review'
+      channel.update!(message_templates: [resource])
+      enable_auto(reviewed: { 'templates' => state == 'changed' ? { "#{waba_id}:order_ready|es" => 'old' } : {} })
+      assistant.config.dig('messaging', 'inboxes').first['excluded'] = { 'templates' => ["#{waba_id}:order_ready|es"] } if state == 'excluded'
+
+      item = described_class.new(assistant, inbox).templates.first
+      expect(item.state).to eq('needs_data')
+      expect(item.missing).to eq(['1'])
+    end
+  end
+
+  it 'returns alias data and sources for excluded templates without allowing them' do
+    enable_list(templates: [])
+    item = described_class.new(assistant, inbox).templates.first
+    expect(item.state).to eq('excluded')
+    expect(item.processed_params.dig('body', 'nombre')).to eq('{{ contact.name }}')
+    expect(item.sources.dig('body', 'nombre')).to eq('alias')
+  end
+
+  it 'reads inbox bindings after legacy params without writing either store' do
+    channel.update!(template_variable_bindings: { 'order_ready' => { 'nombre' => 'contact.first_name' } })
+    enable_list(templates: [{ 'name' => 'order_ready', 'language' => 'es', 'processed_params' => {} }])
+    original = assistant.config.deep_dup
+    item = described_class.new(assistant, inbox).templates.first
+    expect(item.state).to eq('available')
+    expect(item.processed_params.dig('body', 'nombre')).to eq('{{ contact.first_name }}')
+    expect(item.sources.dig('body', 'nombre')).to eq('binding')
+    expect(assistant.config).to eq(original)
+  end
+
+  %w[new changed needs_review].each do |state|
+    it "resolves preview data for #{state} without making it available" do
+      resource = template.deep_dup
+      resource['components'] << { 'type' => 'BUTTONS', 'buttons' => [{ 'type' => 'URL', 'url' => 'https://example.com' }] } if state == 'needs_review'
+      channel.update!(message_templates: [resource])
+      reviewed = state == 'changed' ? { "#{waba_id}:order_ready|es" => 'old' } : {}
+      enable_auto(reviewed: { 'templates' => reviewed })
+      item = described_class.new(assistant, inbox).templates.first
+      expect(item.state).to eq(state)
+      expect(item.processed_params.dig('body', 'nombre')).to eq('{{ contact.name }}')
+      expect(item.sources.dig('body', 'nombre')).to eq('alias')
+    end
   end
 end
