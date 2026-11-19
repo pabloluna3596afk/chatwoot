@@ -36,7 +36,6 @@ const handleSubmit = () => {
       link
       class="!px-1 hover:!no-underline"
       sm
-      :disabled="isGeneratingContent"
       @click="handleCancel"
     />
     <NextButton
