@@ -94,6 +94,7 @@
     "REPLYING_TO": "Esta respondiendo a:",
     "REMOVE_SELECTION": "Eliminar selección",
     "DOWNLOAD": "Descargar",
+    "SCROLL_TO_LATEST": "Ir al último mensaje",
     "UNKNOWN_FILE_TYPE": "Archivo desconocido",
     "SAVE_CONTACT": "Guardar Contacto",
     "NO_CONTENT": "No hay contenido que mostrar",
@@ -286,8 +287,8 @@
       "MESSAGE_SIGN_TOOLTIP": "Firma del mensaje",
       "ENABLE_SIGN_TOOLTIP": "Activar firma",
       "DISABLE_SIGN_TOOLTIP": "Desactivar firma",
-      "MSG_INPUT": "Shift + enter for new line. Comience con '/' para seleccionar una respuesta predefinida.",
-      "PRIVATE_MSG_INPUT": "Mayús + entrar para una nueva línea. Esto será visible sólo para los agentes",
+      "MSG_INPUT": "Mayús + Intro para una línea nueva. Empieza con / para elegir una respuesta predefinida.",
+      "PRIVATE_MSG_INPUT": "Mayús + Intro para una línea nueva. Solo lo verán los agentes.",
       "MESSAGING_RESTRICTED": "No puedes responder a esta conversación",
       "MESSAGING_RESTRICTED_WHATSAPP": "Solo puedes responder con una plantilla debido a la restricción de ventana de mensajes de 24 horas",
       "MESSAGING_RESTRICTED_API": "Solo puedes responder con una plantilla debido a la restricción de ventana de mensajes",
@@ -295,7 +296,9 @@
       "COPILOT_MSG_INPUT": "Dale instrucciones adicionales a Copilot o pregúntale cualquier otra cosa... Pulsa Enter para enviar el seguimiento",
       "CLICK_HERE": "Haga clic aquí para actualizar",
       "WHATSAPP_TEMPLATES": "Plantillas de Whatsapp",
-      "CANNED_RESPONSES": "Respuestas predefinidas"
+      "CANNED_RESPONSES": "Respuestas predefinidas",
+      "MSG_INPUT_TOUCH": "Escribe un mensaje · / para respuestas",
+      "PRIVATE_MSG_INPUT_TOUCH": "Nota privada · solo la ven los agentes"
     },
     "REPLYBOX": {
       "REPLY": "Responder",
@@ -351,7 +354,14 @@
         "REMOVE_PREVIEW": "Quitar el hilo de correo citado",
         "COLLAPSE": "Contraer vista previa",
         "EXPAND": "Expandir vista previa"
-      }
+      },
+      "MORE_OPTIONS": "Más opciones",
+      "SEND_TEMPLATE": "Enviar plantilla",
+      "CANCEL_RECORDING": "Cancelar grabación",
+      "RECORDING": "Grabando…",
+      "SIGNATURE_ON": "Activada",
+      "SIGNATURE_OFF": "Desactivada",
+      "HIDE_COMPOSER": "Ocultar el cuadro de respuesta"
     },
     "VISIBLE_TO_AGENTS": "Nota privada: solo visible para ti y tu equipo",
     "CHANGE_STATUS": "Estado de la conversación cambiado",
@@ -495,7 +505,9 @@
     },
     "CONTACT_HISTORY": {
       "OLDER": "Conversación anterior con este cliente",
-      "NEWER": "Siguiente conversación con este cliente"
+      "NEWER": "Siguiente conversación con este cliente",
+      "REPLY_TO_OLDER": "Responder en esta conversación anterior",
+      "GO_TO_LATEST": "Ir a la más reciente"
     },
     "REQUEST_CONTACT_INFO": {
       "ACTION": "Pedir al cliente que comparta su número de WhatsApp",
@@ -505,6 +517,16 @@
         "SHARED": "Número de teléfono compartido",
         "IDENTITY_CONFLICT": "El número de teléfono necesita revisión"
       }
+    },
+    "REPLY_PREVIEW": {
+      "PHOTO": "Foto",
+      "VIDEO": "Video",
+      "PDF": "PDF",
+      "FILE": "Archivo",
+      "AUDIO": "Audio",
+      "LOCATION": "Ubicación",
+      "CONTACT": "Contacto",
+      "UNAVAILABLE": "{type} no disponible"
     }
   },
   "EMAIL_TRANSCRIPT": {
@@ -723,7 +745,15 @@
     "TRY_THESE_PROMPTS": "Prueba estas sugerencias"
   },
   "GALLERY_VIEW": {
-    "ERROR_DOWNLOADING": "No se pudo descargar el archivo adjunto. Por favor, inténtelo de nuevo"
+    "ZOOM_IN": "Acercar",
+    "ZOOM_OUT": "Alejar",
+    "ROTATE_LEFT": "Girar a la izquierda",
+    "ROTATE_RIGHT": "Girar a la derecha",
+    "CLOSE": "Cerrar vista previa",
+    "ERROR_DOWNLOADING": "No se pudo descargar el archivo adjunto. Por favor, inténtelo de nuevo",
+    "COUNTER": "{index} de {total}",
+    "OPEN_ORIGINAL": "Abrir original",
+    "PDF_TOO_LARGE": "Este PDF es grande. Descárgalo para verlo."
   },
   "AUDIO_TRANSCRIPTION": {
     "BUTTON": "Transcribir audio",

@@ -288,10 +288,13 @@ const downloadAudio = async () => {
   </audio>
   <div
     v-bind="$attrs"
-    class="rounded-xl w-full gap-2 p-1.5 bg-n-alpha-white flex flex-col items-center border border-n-container shadow-[0px_2px_8px_0px_rgba(94,94,94,0.06)]"
+    class="rounded-xl w-full gap-2 p-2 bg-n-alpha-1 flex flex-col items-center border border-n-weak"
   >
     <div class="flex gap-1 w-full flex-1 items-center justify-start">
-      <button class="p-0 border-0 size-8" @click="playOrPause">
+      <button
+        class="p-0 border-0 size-8 shrink-0 rounded-full bg-n-solid-1 text-n-slate-12 ring-1 ring-n-weak focus-visible:ring-2 focus-visible:ring-n-brand"
+        @click="playOrPause"
+      >
         <Icon
           v-if="isPlaying"
           class="size-8"

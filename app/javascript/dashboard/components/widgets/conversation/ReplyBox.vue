@@ -1,5 +1,6 @@
 <script>
 import { defineAsyncComponent, getCurrentInstance, useTemplateRef } from 'vue';
+import { useMediaQuery } from '@vueuse/core';
 import { mapGetters } from 'vuex';
 import { useAlert } from 'dashboard/composables';
 import { useUISettings } from 'dashboard/composables/useUISettings';
@@ -100,6 +101,7 @@ export default {
       fetchQuotedReplyFlagFromUISettings,
     } = useUISettings();
 
+    const isTouchScreen = useMediaQuery('(hover: none)');
     const messageEditor = useTemplateRef('messageEditor');
     const copilot = useCopilotReply();
     const macroExecution = useMacroExecution();
@@ -150,6 +152,7 @@ export default {
       messageEditor,
       copilot,
       shortcutKey,
+      isTouchScreen,
       macroExecution,
     };
   },
@@ -317,9 +320,10 @@ export default {
         }
         return this.$t('CONVERSATION.FOOTER.MESSAGING_RESTRICTED');
       }
-      return this.isPrivate
-        ? this.$t('CONVERSATION.FOOTER.PRIVATE_MSG_INPUT')
-        : this.$t('CONVERSATION.FOOTER.MSG_INPUT');
+      const key = this.isPrivate ? 'PRIVATE_MSG_INPUT' : 'MSG_INPUT';
+      return this.$t(
+        `CONVERSATION.FOOTER.${key}${this.isTouchScreen ? '_TOUCH' : ''}`
+      );
     },
     isMessageLengthReachingThreshold() {
       return this.message.length > this.maxLength - 50;
@@ -415,7 +419,7 @@ export default {
     },
     replyBoxClass() {
       return {
-        'is-private': this.isPrivate,
+        'is-private bg-n-solid-amber': this.isPrivate,
         'is-focused': this.isFocused || this.hasAttachments,
       };
     },
@@ -1438,7 +1442,7 @@ export default {
 
 <template>
   <ReplyBoxBanner :message="message" :is-on-private-note="isOnPrivateNote" />
-  <div class="reply-box" :class="replyBoxClass">
+  <div class="reply-box relative bg-n-surface-1" :class="replyBoxClass">
     <ReplyTopPanel
       :mode="replyType"
       :conversation-id="conversationId"
@@ -1495,6 +1499,17 @@ export default {
           v-model:bcc-emails="bccEmails"
           v-model:to-emails="toEmails"
         />
+        <div
+          v-if="hasAttachments && isDefaultEditorMode"
+          class="bg-transparent py-0 mb-2"
+          @paste="onPaste"
+        >
+          <AttachmentPreview
+            class="mt-2"
+            :attachments="attachedFiles"
+            @remove-attachment="removeAttachment"
+          />
+        </div>
         <AudioRecorder
           v-if="showAudioRecorderEditor"
           ref="audioRecorderInput"
@@ -1524,7 +1539,11 @@ export default {
           v-model="message"
           :conversation-id="conversationId"
           :editor-id="editorStateId"
-          class="input popover-prosemirror-menu"
+          class="reply-box__editor input popover-prosemirror-menu rounded-2xl bg-n-alpha-1 px-3 py-2 max-md:[&_.resizable-editor-body]:!h-auto max-md:[&_.resizable-editor-body]:!min-h-[max(1.5rem,calc(var(--editor-height)-4rem))] max-md:[&_.resizable-editor-body]:!max-h-[max(7.5rem,var(--editor-height))] max-md:[&_.resizable-editor-body]:overflow-y-auto"
+          :class="{
+            '!bg-n-amber-12/5': isPrivate,
+            'text-n-slate-11': isEditorDisabled,
+          }"
           :is-private="isOnPrivateNote"
           :placeholder="messagePlaceHolder"
           :update-selection-with="updateEditorSelectionWith"
@@ -1559,17 +1578,6 @@ export default {
           @toggle="toggleQuotedReply"
         />
 
-        <div
-          v-if="hasAttachments && isDefaultEditorMode"
-          class="bg-transparent py-0 mb-2"
-          @paste="onPaste"
-        >
-          <AttachmentPreview
-            class="mt-2"
-            :attachments="attachedFiles"
-            @remove-attachment="removeAttachment"
-          />
-        </div>
         <MessageSignatureMissingAlert
           v-if="
             isSignatureEnabledForInbox &&
@@ -1624,7 +1632,6 @@ export default {
         :toggle-audio-recorder-play-pause="toggleAudioRecorderPlayPause"
         :toggle-audio-recorder="toggleAudioRecorder"
         :toggle-emoji-picker="toggleEmojiPicker"
-        :message="message"
         :portal-slug="connectedPortalSlug"
         :new-conversation-modal-active="newConversationModalActive"
         @select-whatsapp-template="openWhatsappTemplateModal"
@@ -1687,18 +1694,6 @@ export default {
 </template>
 
 <style lang="scss" scoped>
-.send-button {
-  @apply mb-0;
-}
-
-.reply-box {
-  @apply relative mb-2 mx-2 border border-n-weak rounded-xl bg-n-solid-1;
-
-  &.is-private {
-    @apply bg-n-solid-amber dark:border-n-amber-3/10 border-n-amber-12/5;
-  }
-}
-
 .send-button {
   @apply mb-0;
 }

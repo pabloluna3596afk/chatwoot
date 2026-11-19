@@ -6,16 +6,19 @@ import Icon from 'next/icon/Icon.vue';
 import BaseBubble from 'next/message/bubbles/Base.vue';
 
 import MessageFormatter from 'shared/helpers/MessageFormatter.js';
+import { useMediaState } from '../media/useMediaState';
 import { MESSAGE_VARIANTS, ATTACHMENT_TYPES } from '../constants';
 
 const emit = defineEmits(['error']);
 const { t } = useI18n();
-const { variant, content, contentAttributes, attachments } =
+const { variant, content, contentAttributes, attachments, channelType } =
   useMessageContext();
 
 const attachment = computed(() => {
   return attachments.value[0];
 });
+
+const { errorText, onError } = useMediaState(attachment, channelType);
 
 const isStoryReply = computed(() => {
   return contentAttributes.value?.imageType === ATTACHMENT_TYPES.IG_STORY_REPLY;
@@ -39,6 +42,7 @@ const onImageLoadError = () => {
 
 const onVideoLoadError = () => {
   hasVideoStoryError.value = true;
+  onError();
   emit('error');
 };
 </script>
@@ -53,6 +57,7 @@ const onVideoLoadError = () => {
       v-if="!hasImgStoryError"
       class="rounded-lg max-w-80 skip-context-menu"
       :src="attachment.dataUrl"
+      :alt="content || t('CONVERSATION.REPLY_PREVIEW.PHOTO')"
       @error="onImageLoadError"
     />
     <video
@@ -68,7 +73,7 @@ const onVideoLoadError = () => {
     >
       <Icon icon="i-lucide-circle-off" class="text-n-slate-11" />
       <p class="mb-0 text-n-slate-11">
-        {{ $t('COMPONENTS.FILE_BUBBLE.INSTAGRAM_STORY_UNAVAILABLE') }}
+        {{ errorText }}
       </p>
     </div>
   </BaseBubble>

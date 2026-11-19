@@ -184,7 +184,7 @@ export default {
 
 <template>
   <div
-    class="flex justify-between gap-2 h-[3.25rem] items-center ltr:pl-3 ltr:pr-2 rtl:pr-3 rtl:pl-2"
+    class="flex justify-between gap-2 h-[3.25rem] max-md:h-10 items-center ps-3 pe-2"
   >
     <EditorModeToggle
       :mode="mode"
@@ -199,14 +199,15 @@ export default {
         </span>
       </div>
     </div>
-    <div v-if="showCopilotMenuButton" class="flex items-center gap-2">
-      <div class="relative">
+    <div class="flex items-center gap-2">
+      <div v-if="showCopilotMenuButton" class="relative">
         <NextButton
           ref="copilotToggleRef"
           ghost
           :disabled="disabled || isEditorDisabled"
           :class="{
-            'text-n-violet-9 hover:enabled:!bg-n-violet-3': !showCopilotMenu,
+            'text-n-violet-9 hover:enabled:!bg-n-violet-3 max-md:bg-n-violet-3':
+              !showCopilotMenu,
             'text-n-violet-9 bg-n-violet-3': showCopilotMenu,
           }"
           sm
@@ -232,8 +233,8 @@ export default {
         />
       </div>
       <NextButton
-        ghost
-        class="text-n-slate-11"
+        slate
+        faded
         sm
         icon="i-lucide-maximize-2"
         @click="$emit('toggleEditorSize')"

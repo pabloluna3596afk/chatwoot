@@ -1,3 +1,26 @@
+### B-NEW-282 - Adjuntos legibles y previsualización en la conversación (2026-11-18)
+
+- **Archivos:** `components-next/message/media/{MediaGrid,MediaTile,FileCard}.vue`, `ReplyPreview.vue`, burbujas y chips existentes, `provider.js`, `GalleryView.vue`, historias y locales en/es. Seed de desarrollo integrado desde `feat/adjuntos-seed`.
+- **Problema:** las imágenes con texto quedaban recortadas en chips de 72 px; los documentos ocultaban nombre, tipo y tamaño; no había visor PDF ni miniaturas en las respuestas. La galería identificaba la posición por mensaje, confundiendo adjuntos de un mismo mensaje.
+- **Arreglo:** cuadrícula encima del texto, lista de documentos debajo, descarga con apertura alternativa, PDF de hasta 25 MB solo con MIME `application/pdf`, contador y enlace original, respuestas con miniatura/icono y estados compartidos. Se conservan los componentes y contratos existentes; el cuerpo de correo sigue intacto. La selección de galería usa el ID del adjunto.
+- **Cómo probar:** `dev:attachments_demo` en desarrollo; revisar los quince escenarios de la guía. Vitest cubre ocho canales por cinco contextos, correo inline con tres documentos, MIME/tamaño del PDF, selección, respuestas y fallos. El seed tiene RSpec aislado y RuboCop Docker. Evidencias y pendientes visuales en `tmp/PR-ADJUNTOS.md`; no se declara aprobación visual sin capturas del PM.
+- **Despliegue:** sin migraciones nuevas; sin push, PR ni despliegue en esta entrega.
+
+
+## B-NEW-283 - Composer full-bleed chrome (PR 2)
+
+ReplyBox, MessagesView, ResizableEditorWrapper and WootWriter panels: replace nested box chrome with a full-width top border, soft growing mobile field, compact mode switch and hover-only desktop grip. Touch placeholders have es/en parity and Send has a separate keyboard hint. Attachment components unchanged. Verify public reply, amber note, chips above the field, desktop resize and touch placeholders. Automated: ReplyBox/MessagesView/ResizableEditorWrapper Vitest in UTC and America/Guayaquil. Visual review and real phone checks remain with the PM; no browser used.
+
+
+## B-NEW-284 - Composer toolbar overflow and recording (PR 3)
+
+ReplyBottomPanel now measures eligible buttons with useToolbarOverflow, hides by rank and reuses mounted controls through an accessible popover / phone bottom sheet. FileUpload stays mounted, including drag-and-drop. RecordingBar isolates cancel/time/play/send; phone swaps empty-field Send for mic; closed WhatsApp windows offer Send template. es/en copy added. Verify overflow, signature and quoted state, file input persistence, recording cancellation and template handlers. Automated: toolbar/composable/menu specs pass UTC and America/Guayaquil. Guide width examples conflict with its ten-button arithmetic; exact measured results documented in the PM report. Visual review pending PM.
+
+
+## B-NEW-285 - Composer history folding and explicit Hide (PR 4)
+
+MessagesView, CollapsedReplyBar, ReplyTopPanel, ReplyBox and useContactConversationNavigation: adopt upstream 8b33b543fc reading mode, fold transitions, latest-conversation link and explicit reveal. Add desktop Hide next to expand, independently of Copilot eligibility; keep the editor mounted, preserve drafts/attachments when reopening the same mode, and never auto-fold an active draft or fold on phone. The collapsed bar is solid and the new copy has es/en parity. Verify an older contact conversation, latest navigation, Hide, Alt+L/Alt+P, text/attachment drafts and a desktop-to-phone resize. Automated coverage in the related component/composable specs; real screenshots, keyboard and phone review remain with the PM. No migrations.
+
 ### B-NEW-281 — Envíos v3-B/C: variables en Ajustes y tope diario de cuenta en IA (2026-11-18)
 
 - **Archivos:** Plantillas y Flows (`Index`, `TemplateDataPill`, `TemplateVariablesDrawer`, tabla/acciones); Captain (`AssistantMessagingForm`, previews, `useApprovedTemplates`); Centro de envíos; Ajustes IA (`CaptainTemplateCap`); Salud WhatsApp y JSON Enterprise de cuenta.

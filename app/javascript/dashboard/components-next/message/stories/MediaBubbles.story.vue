@@ -1,6 +1,8 @@
 <script setup>
 import { ref, reactive, computed } from 'vue';
 import Message from '../Message.vue';
+import receipt from '../../../../../../spec/assets/attachments_demo/receipt.png';
+import samplePdf from '../../../../../../spec/assets/sample.pdf';
 
 const currentUserId = ref(1);
 
@@ -201,6 +203,77 @@ const dyte = computed(() => {
     },
   });
 });
+const receiptAttachment = getAttachment('image', receipt, {
+  width: 600,
+  height: 800,
+  thumbUrl: receipt,
+});
+const pdfAttachment = getAttachment('file', samplePdf, {
+  extension: 'pdf',
+  contentType: 'application/pdf',
+  fileSize: 1258291,
+  fileName: 'Quotation_March_final_version.pdf',
+});
+const attachmentExamples = [
+  [
+    'Receipt with caption',
+    getMessage({
+      content: 'Payment receipt for March',
+      attachments: [receiptAttachment],
+    }),
+  ],
+  [
+    'Seven photos',
+    getMessage({
+      content: 'The finished shop',
+      attachments: Array.from({ length: 7 }, (_, index) => ({
+        ...receiptAttachment,
+        id: index + 1,
+      })),
+    }),
+  ],
+  [
+    'Tall screenshot',
+    getMessage({
+      content: null,
+      attachments: [{ ...receiptAttachment, width: 1000, height: 4000 }],
+    }),
+  ],
+  [
+    'Tiny image',
+    getMessage({
+      content: null,
+      attachments: [{ ...receiptAttachment, width: 40, height: 40 }],
+    }),
+  ],
+  ['PDF', getMessage({ content: null, attachments: [pdfAttachment] })],
+  [
+    'Large PDF',
+    getMessage({
+      content: null,
+      attachments: [{ ...pdfAttachment, fileSize: 30 * 1024 * 1024 }],
+    }),
+  ],
+  [
+    'Reply to receipt',
+    getMessage({
+      content: 'Received, thank you.',
+      inReplyTo: {
+        id: 5,
+        content: 'March receipt',
+        attachments: [receiptAttachment],
+      },
+    }),
+  ],
+  [
+    'Private note',
+    getMessage({
+      content: 'Signed contract, archived.',
+      private: true,
+      attachments: [receiptAttachment, pdfAttachment],
+    }),
+  ],
+];
 </script>
 
 <template>
@@ -208,6 +281,15 @@ const dyte = computed(() => {
     title="Components/Message Bubbles/Media"
     :layout="{ type: 'grid', width: '800px' }"
   >
+    <Variant
+      v-for="[title, message] in attachmentExamples"
+      :key="title"
+      :title="title"
+    >
+      <div class="p-4 bg-n-background rounded-lg w-full min-w-0">
+        <Message :current-user-id="1" v-bind="message" />
+      </div>
+    </Variant>
     <!-- Media Types -->
     <Variant title="Audio">
       <div class="p-4 bg-n-background rounded-lg w-full min-w-5xl grid">

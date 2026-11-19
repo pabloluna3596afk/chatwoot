@@ -125,6 +125,71 @@ const editor = wrapper =>
   wrapper.findComponent({ name: 'WootMessageEditor' }).props();
 
 describe('ReplyBox', () => {
+  it('discards recorded audio without sending and keeps other attachments', async () => {
+    const { wrapper } = mountWith({
+      inbox: { channel_type: 'Channel::WebWidget' },
+    });
+    const send = vi.spyOn(wrapper.vm, 'onSendReply');
+    const attachment = { id: 'document', isVoiceMessage: false };
+    await wrapper.setData({
+      isRecordingAudio: true,
+      hasRecordedAudio: true,
+      recordingAudioState: 'stopped',
+      recordingAudioDurationText: '00:12',
+      attachedFiles: [attachment, { id: 'audio', isVoiceMessage: true }],
+    });
+    bottomPanel(wrapper).toggleAudioRecorder();
+    await nextTick();
+    expect(wrapper.vm.isRecordingAudio).toBe(false);
+    expect(wrapper.vm.hasRecordedAudio).toBe(false);
+    expect(wrapper.vm.recordingAudioDurationText).toBe('00:00');
+    expect(wrapper.vm.recordingAudioState).toBe('');
+    expect(wrapper.vm.attachedFiles).toEqual([attachment]);
+    expect(send).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('uses full-bleed chrome and keeps note amber', async () => {
+    const { wrapper } = mountWith({
+      inbox: { channel_type: 'Channel::WebWidget' },
+    });
+    const bar = wrapper.get('.reply-box');
+    expect(bar.classes()).toContain('bg-n-surface-1');
+    expect(bar.classes()).not.toEqual(
+      expect.arrayContaining(['mx-2', 'rounded-xl'])
+    );
+    expect(bottomPanel(wrapper).sendButtonText).toContain(
+      'CONVERSATION.REPLYBOX.SEND'
+    );
+    await wrapper.vm.setReplyMode(REPLY_EDITOR_MODES.NOTE);
+    expect(bar.classes()).toContain('bg-n-solid-amber');
+    wrapper.unmount();
+  });
+
+  it('uses touch placeholders in both modes', async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(query => ({
+        matches: query === '(hover: none)',
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }))
+    );
+    const { wrapper } = mountWith({
+      inbox: { channel_type: 'Channel::WebWidget' },
+    });
+    expect(editor(wrapper).placeholder).toBe(
+      'CONVERSATION.FOOTER.MSG_INPUT_TOUCH'
+    );
+    await wrapper.vm.setReplyMode(REPLY_EDITOR_MODES.NOTE);
+    expect(editor(wrapper).placeholder).toBe(
+      'CONVERSATION.FOOTER.PRIVATE_MSG_INPUT_TOUCH'
+    );
+    wrapper.unmount();
+    vi.unstubAllGlobals();
+  });
+
   it('opens the shared center on Cloud with no templates and removes the loose Flow entry', async () => {
     const { wrapper } = mountWith({
       inbox: { channel_type: 'Channel::Whatsapp', provider: 'whatsapp_cloud' },

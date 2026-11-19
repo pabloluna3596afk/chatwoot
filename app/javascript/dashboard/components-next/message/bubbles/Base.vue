@@ -2,23 +2,20 @@
 import { computed } from 'vue';
 
 import MessageMeta from '../MessageMeta.vue';
+import ReplyPreview from '../ReplyPreview.vue';
 
-import { emitter } from 'shared/helpers/mitt';
 import { useMessageContext } from '../provider.js';
-import { useI18n } from 'vue-i18n';
 
-import MessageFormatter from 'shared/helpers/MessageFormatter.js';
-import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { MESSAGE_VARIANTS, ORIENTATION } from '../constants';
 import { CHAT_SKIN } from 'dashboard/helper/chatSkin';
 
 const props = defineProps({
   hideMeta: { type: Boolean, default: false },
+  overlayMeta: { type: Boolean, default: false },
 });
 
 const { variant, orientation, inReplyTo, shouldGroupWithNext } =
   useMessageContext();
-const { t } = useI18n();
 
 const varaintBaseMap = {
   [MESSAGE_VARIANTS.AGENT]: CHAT_SKIN.bubble.outgoing,
@@ -55,34 +52,12 @@ const messageClass = computed(() => {
   return classToApply;
 });
 
-const scrollToMessage = () => {
-  emitter.emit(BUS_EVENTS.SCROLL_TO_MESSAGE, {
-    messageId: inReplyTo.value.id,
-  });
-};
-
 const shouldShowMeta = computed(
   () =>
     !props.hideMeta &&
     !shouldGroupWithNext.value &&
     variant.value !== MESSAGE_VARIANTS.ACTIVITY
 );
-
-const replyToPreview = computed(() => {
-  if (!inReplyTo) return '';
-
-  const { content, attachments } = inReplyTo.value;
-
-  if (content) return new MessageFormatter(content).formattedMessage;
-  if (attachments?.length) {
-    const firstAttachment = attachments[0];
-    const fileType = firstAttachment.fileType ?? firstAttachment.file_type;
-
-    return t(`CHAT_LIST.ATTACHMENTS.${fileType}.CONTENT`);
-  }
-
-  return t('CONVERSATION.REPLY_MESSAGE_NOT_FOUND');
-});
 </script>
 
 <template>
@@ -91,28 +66,23 @@ const replyToPreview = computed(() => {
     :class="[
       messageClass,
       {
+        'relative [&:has([role=status])_.media-meta]:static [&:has([role=status])_.media-meta]:w-fit [&:has([role=status])_.media-meta]:ms-auto':
+          overlayMeta,
         'max-w-lg': variant !== MESSAGE_VARIANTS.EMAIL,
       },
     ]"
   >
-    <div
-      v-if="inReplyTo"
-      class="p-2 -mx-1 mb-2 rounded-lg cursor-pointer bg-n-alpha-black1"
-      @click="scrollToMessage"
-    >
-      <div
-        v-dompurify-html="replyToPreview"
-        class="prose prose-bubble line-clamp-2"
-      />
-    </div>
+    <ReplyPreview v-if="inReplyTo" />
     <slot />
     <MessageMeta
       v-if="shouldShowMeta"
       :class="[
         variant === MESSAGE_VARIANTS.EMAIL ? 'px-3 pb-3' : '',
-        variant === MESSAGE_VARIANTS.PRIVATE
-          ? 'text-n-amber-12/50'
-          : 'text-n-slate-11',
+        overlayMeta
+          ? 'media-meta absolute bottom-2 end-2 rounded-full bg-black/60 px-2 py-0.5 text-white backdrop-blur-sm'
+          : variant === MESSAGE_VARIANTS.PRIVATE
+            ? 'text-n-amber-12/50'
+            : 'text-n-slate-11',
       ]"
       class="mt-1 justify-end"
     />

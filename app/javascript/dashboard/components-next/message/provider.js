@@ -2,6 +2,8 @@ import { inject, provide, computed } from 'vue';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useSnakeCase } from 'dashboard/composables/useTransformKeys';
 import { ATTACHMENT_TYPES } from './constants';
+import { isPdfAttachment } from './media/attachment';
+import { useCamelCase } from 'dashboard/composables/useTransformKeys';
 
 const MessageControl = Symbol('MessageControl');
 
@@ -133,19 +135,27 @@ export function useMessageContext() {
 
   const currentChatAttachments = useMapGetter('getSelectedChatAttachments');
   const filteredCurrentChatAttachments = computed(() => {
-    const attachments = currentChatAttachments.value.filter(attachment =>
-      [
-        ATTACHMENT_TYPES.IMAGE,
-        ATTACHMENT_TYPES.VIDEO,
-        ATTACHMENT_TYPES.IG_REEL,
-        ATTACHMENT_TYPES.AUDIO,
-      ].includes(attachment.file_type)
+    const attachments = currentChatAttachments.value.filter(
+      attachment =>
+        [
+          ATTACHMENT_TYPES.IMAGE,
+          ATTACHMENT_TYPES.VIDEO,
+          ATTACHMENT_TYPES.IG_REEL,
+          ATTACHMENT_TYPES.AUDIO,
+        ].includes(attachment.file_type) ||
+        isPdfAttachment(useCamelCase(attachment))
     );
 
     return useSnakeCase(attachments);
   });
 
-  return { ...context, filteredCurrentChatAttachments };
+  const inboxGetter = useMapGetter('inboxes/getInbox');
+  const channelType = computed(() =>
+    context.inboxId?.value
+      ? inboxGetter.value(context.inboxId.value)?.channel_type || ''
+      : ''
+  );
+  return { ...context, filteredCurrentChatAttachments, channelType };
 }
 
 export function provideMessageContext(context) {

@@ -13,8 +13,8 @@
         "unknown": "Unclassified"
       }
     },
-    "WHATSAPP_FLOW_SENT": "Flow \u00b7 {name}",
-    "WHATSAPP_TEMPLATE_SENT": "Template \u00b7 {name}",
+    "WHATSAPP_FLOW_SENT": "Flow · {name}",
+    "WHATSAPP_TEMPLATE_SENT": "Template · {name}",
     "WHATSAPP_TEMPLATE_CATEGORIES": {
       "UTILITY": "UTILITY",
       "MARKETING": "MARKETING",
@@ -67,7 +67,9 @@
     "UNREAD_MESSAGE": "Unread Message",
     "CONTACT_HISTORY": {
       "OLDER": "Previous chat with this customer",
-      "NEWER": "Next chat with this customer"
+      "NEWER": "Next chat with this customer",
+      "REPLY_TO_OLDER": "Reply to this older conversation",
+      "GO_TO_LATEST": "Go to latest conversation"
     },
     "CLICK_HERE": "Click here",
     "LOADING_INBOXES": "Loading inboxes",
@@ -105,6 +107,7 @@
     "REPLYING_TO": "You are replying to:",
     "REMOVE_SELECTION": "Remove Selection",
     "DOWNLOAD": "Download",
+    "SCROLL_TO_LATEST": "Go to the latest message",
     "UNKNOWN_FILE_TYPE": "Unknown File",
     "SAVE_CONTACT": "Save Contact",
     "NO_CONTENT": "No content to display",
@@ -346,7 +349,9 @@
       "COPILOT_MSG_INPUT": "Give copilot additional prompts, or ask anything else... Press enter to send follow-up",
       "CLICK_HERE": "Click here to update",
       "WHATSAPP_TEMPLATES": "Whatsapp Templates",
-      "CANNED_RESPONSES": "Canned responses"
+      "CANNED_RESPONSES": "Canned responses",
+      "MSG_INPUT_TOUCH": "Type a message · / for canned replies",
+      "PRIVATE_MSG_INPUT_TOUCH": "Private note · only agents see it"
     },
     "REPLYBOX": {
       "REPLY": "Reply",
@@ -402,7 +407,14 @@
         "REMOVE_PREVIEW": "Remove quoted email thread",
         "COLLAPSE": "Collapse preview",
         "EXPAND": "Expand preview"
-      }
+      },
+      "MORE_OPTIONS": "More options",
+      "SEND_TEMPLATE": "Send template",
+      "CANCEL_RECORDING": "Cancel recording",
+      "RECORDING": "Recording…",
+      "SIGNATURE_ON": "On",
+      "SIGNATURE_OFF": "Off",
+      "HIDE_COMPOSER": "Hide the reply box"
     },
     "VISIBLE_TO_AGENTS": "Private Note: Only visible to you and your team",
     "CHANGE_STATUS": "Conversation status changed",
@@ -505,6 +517,16 @@
       "UNMUTE": "Unmute mic",
       "VIEW_CHAT_HISTORY": "View chat history",
       "GO_TO_CONVERSATION": "Go to conversation thread"
+    },
+    "REPLY_PREVIEW": {
+      "PHOTO": "Photo",
+      "VIDEO": "Video",
+      "PDF": "PDF",
+      "FILE": "File",
+      "AUDIO": "Audio",
+      "LOCATION": "Location",
+      "CONTACT": "Contact",
+      "UNAVAILABLE": "{type} unavailable"
     }
   },
   "EMAIL_TRANSCRIPT": {
@@ -723,7 +745,15 @@
     "TRY_THESE_PROMPTS": "Try these prompts"
   },
   "GALLERY_VIEW": {
-    "ERROR_DOWNLOADING": "Unable to download attachment. Please try again"
+    "ZOOM_IN": "Zoom in",
+    "ZOOM_OUT": "Zoom out",
+    "ROTATE_LEFT": "Rotate left",
+    "ROTATE_RIGHT": "Rotate right",
+    "CLOSE": "Close preview",
+    "ERROR_DOWNLOADING": "Unable to download attachment. Please try again",
+    "COUNTER": "{index} of {total}",
+    "OPEN_ORIGINAL": "Open original",
+    "PDF_TOO_LARGE": "This PDF is large. Download it to view it."
   },
   "AUDIO_TRANSCRIPTION": {
     "BUTTON": "Transcribe audio",

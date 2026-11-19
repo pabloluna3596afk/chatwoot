@@ -330,8 +330,28 @@
       "SUBMIT": "Enviar"
     },
     "MEDIA": {
-      "IMAGE_UNAVAILABLE": "Esta imagen ya no está disponible.",
-      "LOADING_FAILED": "Error al cargar"
+      "VIEW_FULL": "Ver completa",
+      "VIDEO_N_OF": "Vídeo {index} de {total}",
+      "PHOTO_N_OF": "Foto {index} de {total}",
+      "MORE": "+{count}",
+      "RETRY": "Reintentar",
+      "OPEN_LINK": "Abrir original",
+      "LOAD_FAILED": "No se pudo cargar",
+      "EXPIRED": "Este archivo ya no está disponible en {channel}.",
+      "EXPIRED_GENERIC": "Este archivo ya no está disponible en el canal.",
+      "EXPAND": "Ampliar"
+    },
+    "FILE": {
+      "VIEW": "Ver",
+      "TYPE": {
+        "PDF": "PDF",
+        "WORD": "Word",
+        "EXCEL": "Excel",
+        "POWERPOINT": "PowerPoint",
+        "ZIP": "ZIP",
+        "TEXT": "Texto",
+        "FILE": "Archivo"
+      }
     }
   },
   "CONFIRM_EMAIL": "Verificando...",
@@ -722,13 +742,25 @@
     }
   },
   "PAYPHONE": {
-    "HISTORY_TABLE": { "DATE": "Fecha", "PLAN": "Plan", "STATUS": "Estado", "AMOUNT": "Importe" },
+    "HISTORY_TABLE": {
+      "DATE": "Fecha",
+      "PLAN": "Plan",
+      "STATUS": "Estado",
+      "AMOUNT": "Importe"
+    },
     "CHOOSE": "Elegir",
     "CONFIRM_TITLE": "Confirma tu plan",
     "DURATION": "El pago cubre 30 días desde su aprobación.",
     "CLOSE": "Cerrar",
     "NEEDS_INVOICE": "Necesito factura",
-    "INVOICE": { "billing_tax_id_type": "Tipo de identificación", "billing_tax_id": "Identificación tributaria", "billing_name": "Nombre o empresa", "billing_email": "Correo de facturación", "billing_phone": "Teléfono", "billing_address": "Dirección" },
+    "INVOICE": {
+      "billing_tax_id_type": "Tipo de identificación",
+      "billing_tax_id": "Identificación tributaria",
+      "billing_name": "Nombre o empresa",
+      "billing_email": "Correo de facturación",
+      "billing_phone": "Teléfono",
+      "billing_address": "Dirección"
+    },
     "SUBTOTAL": "Subtotal",
     "TAX": "IVA",
     "COMMISSION": "Comisión de tarjeta",
@@ -753,7 +785,13 @@
       "expired": "Plan gratuito."
     },
     "ERROR": "No pudimos preparar el pago. Inténtalo de nuevo.",
-    "STATES": { "pending": "Verificando", "approved": "Aprobado", "cancelled": "Cancelado", "failed": "Fallido", "expired": "Vencido" }
+    "STATES": {
+      "pending": "Verificando",
+      "approved": "Aprobado",
+      "cancelled": "Cancelado",
+      "failed": "Fallido",
+      "expired": "Vencido"
+    }
   },
   "BILLING_SETTINGS": {
     "EXTRAS": {
@@ -796,11 +834,23 @@
     },
     "TITLE": "Facturación",
     "DESCRIPTION": "Gestiona tu suscripción aquí, mejora tu plan y consigue más para tu equipo.",
-    "TABS": { "LABEL": "Secciones de facturación", "USO": "Uso", "FACTURACION": "Facturación" },
+    "TABS": {
+      "LABEL": "Secciones de facturación",
+      "USO": "Uso",
+      "FACTURACION": "Facturación"
+    },
     "USAGE": {
       "CURRENT_PLAN": "Plan actual",
-      "STATUS": { "ACTIVE": "Activo", "GRACE": "En período de gracia", "FREE": "Gratuito" },
-      "BAGS": { "ASSISTANT": "Respuestas de IA del asistente", "COPILOT": "Copilot", "INTERNAL": "Acciones internas de IA" },
+      "STATUS": {
+        "ACTIVE": "Activo",
+        "GRACE": "En período de gracia",
+        "FREE": "Gratuito"
+      },
+      "BAGS": {
+        "ASSISTANT": "Respuestas de IA del asistente",
+        "COPILOT": "Copilot",
+        "INTERNAL": "Acciones internas de IA"
+      },
       "FREE_PLAN": "Plan gratuito",
       "EXPIRED_ON": "Venció el {date}",
       "EXPIRED_BANNER": "Tu plan venció el {date}. Elige un plan para recuperar el acceso de pago.",
@@ -821,7 +871,11 @@
       "TOP_SOURCES": "Qué consume más",
       "EMPTY": "Todavía no hay uso de IA registrado en este período.",
       "ERROR": "No se pudo cargar el uso. Inténtalo más tarde.",
-      "SOURCES": { "ASSISTANT": "Asistente de clientes", "COPILOT": "Copilot", "INTERNAL": "Procesos internos" }
+      "SOURCES": {
+        "ASSISTANT": "Asistente de clientes",
+        "COPILOT": "Copilot",
+        "INTERNAL": "Procesos internos"
+      }
     },
     "CURRENT_PLAN": {
       "TITLE": "Plan actual",

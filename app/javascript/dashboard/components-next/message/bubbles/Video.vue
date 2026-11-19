@@ -45,7 +45,7 @@ const isReel = computed(() => {
         :src="attachment.dataUrl"
         :class="{
           'max-w-48': isReel,
-          'max-w-full': !isReel,
+          'max-w-[20rem] max-h-[22rem]': !isReel,
         }"
         @click.stop
         @error="handleError"
@@ -57,7 +57,7 @@ const isReel = computed(() => {
     v-model:show="showGallery"
     :attachment="useSnakeCase(attachment)"
     :all-attachments="filteredCurrentChatAttachments"
-    @error="onError"
+    @error="handleError"
     @close="() => (showGallery = false)"
   />
 </template>
