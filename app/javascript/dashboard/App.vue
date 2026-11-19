@@ -21,6 +21,7 @@ import {
 } from './helper/pushHelper';
 import ReconnectService from 'dashboard/helper/ReconnectService';
 import { useUISettings } from 'dashboard/composables/useUISettings';
+import { useVisualViewportHeight } from 'dashboard/composables/useVisualViewportHeight';
 
 export default {
   name: 'App',
@@ -36,6 +37,7 @@ export default {
     LowBackupCodesBanner,
   },
   setup() {
+    useVisualViewportHeight();
     const router = useRouter();
     const store = useStore();
     const { accountId } = useAccount();
@@ -137,7 +139,7 @@ export default {
   <div
     v-if="!authUIFlags.isFetching"
     id="app"
-    class="flex flex-col w-full h-screen min-h-0 bg-n-background"
+    class="flex flex-col w-full !h-[var(--app-height,100dvh)] min-h-0 bg-n-background"
     :dir="isRTL ? 'rtl' : 'ltr'"
   >
     <UpdateBanner :latest-chatwoot-version="latestChatwootVersion" />
