@@ -1,3 +1,11 @@
+### B-NEW-281 — Envíos v3-B/C: variables en Ajustes y tope diario de cuenta en IA (2026-11-18)
+
+- **Archivos:** Plantillas y Flows (`Index`, `TemplateDataPill`, `TemplateVariablesDrawer`, tabla/acciones); Captain (`AssistantMessagingForm`, previews, `useApprovedTemplates`); Centro de envíos; Ajustes IA (`CaptainTemplateCap`); Salud WhatsApp y JSON Enterprise de cuenta.
+- **Problema:** Captain permitía asignar variables en una pantalla de permisos; las plantillas sincronizadas no tenían una acción independiente de Editar/Meta. El tope de toda la cuenta se editaba desde un asistente y los selectores incluían categorías que Captain no admite.
+- **Arreglo:** asignación exclusiva desde Ajustes con PATCH local secuencial por bandeja, alias automáticos y sugerencias sin guardado implícito; Datos y filtro de pendientes. Captain solo muestra UTILITY/Flows, sin escritura de bindings; needs_data en bloqueados abierto con enlace, Plantillas primero y previews readonly. El tope se configura en IA y se consulta en Envíos/Salud; el JSON añade cap/used solo a administradores con Captain habilitado. La carga del tope informa también el fallo retornado como null por el store. El Centro de envíos mantiene el envío humano con aviso.
+- **Cómo probar:** Vitest de estados, drawer, filtros/acciones, previews, Citas/Seguimiento, tope y Salud en UTC/Guayaquil; requests de cuenta y consumidores RSpec sobre DB/Redis aislados; ESLint y RuboCop. Evidencias y limitaciones: `tmp/PR-ENVIOS-V3BC.md`.
+- **Alcance:** sin migraciones, fetch, push, PR, navegador ni despliegue. A0 y aprobación visual pendientes del PM; se aplican los textos de Deltas sobre la maqueta.
+
 ### B-NEW-280 - Envios v3-A: fuentes de variables por variable y solo utilidad en Captain (2026-11-18)
 
 - **Archivos:** `Whatsapp::TemplateVariableSources`, `TemplateVariableBindingsService`, controladores de plantillas/bandejas y `Captain::Messaging::{TemplateParams,TemplateAvailability,SendService,AssistantPayload,Review,LegacyEntryConverter}`; catalogo de herramientas y specs asociados.
