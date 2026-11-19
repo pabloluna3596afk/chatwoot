@@ -67,6 +67,7 @@ const state = reactive({
 });
 const {
   templateOptions,
+  disallowedTemplate,
   templateEntry,
   templateInboxId,
   linkedInboxes,
@@ -614,6 +615,15 @@ onMounted(loadConnections);
                   :options="templateOptions(state.templates[key])"
                   @update:model-value="selectTemplate(key, $event)"
                 />
+                <p
+                  v-if="disallowedTemplate(state.templates[key])"
+                  role="alert"
+                  class="text-sm text-n-amber-11"
+                >
+                  {{
+                    t('CAPTAIN.ASSISTANTS.APPOINTMENTS.MARKETING_NOT_ALLOWED')
+                  }}
+                </p>
                 <WhatsAppTemplateParser
                   v-if="
                     state.templates[key] && templateEntry(state.templates[key])

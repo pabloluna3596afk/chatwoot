@@ -1409,12 +1409,13 @@
           "DESCRIPTION": "Así quedará el mensaje con los datos de Captain.",
           "MISSING_VARIABLES": "Falta un dato. Captain no enviará esta plantilla hasta que lo completes.",
           "VARIABLES_TITLE": "Qué pone Captain en cada variable",
-          "UNASSIGNED": "Sin asignar",
-          "BY_NAME": "Por su nombre",
-          "ASSIGNED_HERE": "Asignado en este número",
-          "ASSIGNED_ASSISTANT": "Del asistente (antiguo)",
           "INBOX": "Bandeja: {name}",
-          "TEMPLATE_UNAVAILABLE": "Esta plantilla ya no está aprobada en esta bandeja; no se puede mostrar."
+          "TEMPLATE_UNAVAILABLE": "Esta plantilla ya no está aprobada en esta bandeja; no se puede mostrar.",
+          "SOURCE_ALIAS": "Automático (por su nombre)",
+          "SOURCE_BINDING": "Asignado en Plantillas y Flows",
+          "SOURCE_ASSISTANT": "Del asistente (antiguo)",
+          "SOURCE_LEGACY": "De la lista anterior",
+          "MISSING": "No disponible: falta el dato"
         },
         "CONFLICT": "Otra persona cambió esta configuración. Recarga para ver la versión actual; tus cambios sin guardar se perderán.",
         "CONNECTION": {
@@ -1427,22 +1428,19 @@
         "PAID": {
           "TITLE": "Permitir plantillas con costo",
           "SCOPE": "Para todas las bandejas de WhatsApp de este asistente.",
-          "ON_LINE": "Encendido. Fuera de las 24 horas, Captain puede enviar plantillas aprobadas, recordatorios de cita y reenganche (Meta las cobra). Dentro de las 24 horas, responde y envía Flows como siempre.",
-          "OFF_LINE": "Apagado. Captain no envía ninguna plantilla, ni recordatorios ni reenganche fuera de las 24 horas. Sigue respondiendo y enviando Flows dentro de las 24 horas desde el último mensaje del cliente.",
+          "ON_LINE": "Encendido. Fuera de las 24 horas, Captain puede enviar plantillas de utilidad aprobadas, recordatorios de cita y reenganche (Meta las cobra). Dentro de las 24 horas, responde y envía Flows como siempre.",
+          "OFF_LINE": "Apagado. Captain no envía plantillas de utilidad, ni recordatorios ni reenganche fuera de las 24 horas. Sigue respondiendo y enviando Flows dentro de las 24 horas desde el último mensaje del cliente.",
           "TEMPLATES_OFF": "No se envían: «Permitir plantillas con costo» está apagado. Tus elecciones se guardan."
         },
         "CAP": {
-          "LABEL": "Tope diario de plantillas",
           "REACHED": "Hoy se alcanzó el tope: {used} de {cap}. Captain responde con mensajes normales hasta mañana.",
-          "SAVE_ERROR": "No se pudo guardar el tope diario. Inténtalo de nuevo.",
-          "INVALID": "Escribe un número entero entre 0 y 10 000.",
-          "TODAY": "Hoy: {used} de {cap}",
-          "SHARED": "Lo comparten todos los asistentes de la cuenta."
+          "READONLY": "Tope diario de la cuenta: hoy {used} de {cap}",
+          "CHANGE": "Cambiar"
         },
         "MESSAGING": {
-          "TOGGLE": "Captain usa los Flows y plantillas de este número",
-          "HELP": "Captain solo envía lo que tiene el interruptor encendido. El marketing y lo nuevo de WhatsApp empiezan apagados.",
-          "OFF": "Apagado: Captain no envía Flows ni plantillas en este número."
+          "TOGGLE": "Captain usa los Flows y las plantillas de utilidad de este número",
+          "HELP": "Captain solo envía las plantillas de utilidad y los Flows que tengan el interruptor encendido.",
+          "OFF": "Apagado: Captain no envía Flows ni plantillas de utilidad en este número."
         },
         "FLOWS": {
           "TITLE": "Flows",
@@ -1452,18 +1450,14 @@
         },
         "TEMPLATES": {
           "TITLE": "Plantillas",
-          "CREATE": "+ Crear plantilla",
-          "ASSIGN": "Asignar",
-          "SAVE": "Guardar",
-          "ASSIGN_TITLE": "Asignar datos de {name}",
-          "ASSIGN_HELP": "Se guarda en este número: también lo usarán los agentes al enviar la plantilla."
+          "CREATE": "+ Crear plantilla"
         },
         "STATES": {
           "PENDING": "Pendiente en Meta",
           "REJECTED": "Rechazada por Meta"
         },
         "REASONS": {
-          "NEEDS_DATA": "Falta asignar {variables}. Asígnalo una vez para que Captain pueda usar esta plantilla.",
+          "NEEDS_DATA": "No disponible: la variable {variables} está pendiente de configurar.",
           "UNSUPPORTED": "Tiene un archivo en el encabezado o un botón que cambia por cliente: Captain no puede enviarla.",
           "NEEDS_REVIEW": "Tiene un enlace. Revísala antes de permitirla.",
           "NOT_PUBLISHED_HERE": "Este Flow no está publicado en la cuenta de WhatsApp de esta bandeja."
@@ -1473,7 +1467,8 @@
           "PERMISSION": "Necesitan tu permiso",
           "SHOW": "Mostrar",
           "HIDE": "Ocultar",
-          "BLOCKED": "No se pueden usar"
+          "BLOCKED": "No se pueden usar",
+          "READY_COUNTS": "{on} encendidas · {off} apagadas"
         },
         "RESOURCE_TABS": "Flows y plantillas",
         "CHIPS": {
@@ -1481,8 +1476,6 @@
           "UNSUPPORTED": "No compatible: archivo o botón por cliente",
           "NOT_PUBLISHED": "No publicado aquí",
           "QUALITY": "Calidad baja",
-          "UTILITY": "Utilidad",
-          "MARKETING": "Marketing",
           "NEW": "Nueva",
           "CHANGED": "Cambió",
           "LINK": "Tiene enlace",
@@ -1501,7 +1494,8 @@
           "FLOWS": "Flows",
           "TEMPLATES": "Plantillas"
         },
-        "ROW_SWITCH": "Captain puede usar {name}"
+        "ROW_SWITCH": "Captain puede usar {name}",
+        "CONFIGURE_IN_TEMPLATES": "Configurar en Plantillas y Flows"
       },
       "OPTIONS": {
         "EDIT_ASSISTANT": "Editar asistente",
@@ -1689,6 +1683,12 @@
             "ERROR": "Hubo un error al eliminar los escenarios, inténtalo de nuevo."
           }
         }
+      },
+      "FOLLOWUP": {
+        "MARKETING_NOT_ALLOWED": "Esta plantilla es de marketing y Captain no la usa. Elige una de utilidad."
+      },
+      "APPOINTMENTS": {
+        "MARKETING_NOT_ALLOWED": "Esta plantilla es de marketing y Captain no la usa. Elige una de utilidad."
       }
     },
     "DOCUMENTS": {

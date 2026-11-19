@@ -35,7 +35,7 @@ const { isCloudFeatureEnabled } = useAccount();
 const isCaptainV2Enabled = computed(() =>
   isCloudFeatureEnabled(FEATURE_FLAGS.CAPTAIN_V2)
 );
-const { templateOptions, templateEntry, templateInboxId } =
+const { templateOptions, templateEntry, templateInboxId, disallowedTemplate } =
   useApprovedTemplates(props.assistant?.id);
 const { variableOptions, defaultValues, previewValues } = useTemplateVariables({
   appointment: false,
@@ -396,6 +396,13 @@ watch(
             :aria-label="t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.TEMPLATE')"
             @update:model-value="selectTemplate"
           />
+          <p
+            v-if="disallowedTemplate(state.template)"
+            role="alert"
+            class="text-sm text-n-amber-11"
+          >
+            {{ t('CAPTAIN.ASSISTANTS.FOLLOWUP.MARKETING_NOT_ALLOWED') }}
+          </p>
           <WhatsAppTemplateParser
             v-if="state.template && templateEntry(state.template)"
             :key="state.template"

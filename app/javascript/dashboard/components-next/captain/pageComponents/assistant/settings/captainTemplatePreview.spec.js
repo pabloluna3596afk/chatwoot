@@ -14,7 +14,7 @@ describe('CaptainTemplatePreview', () => {
       props: {
         template,
         params: { body: { nombre: '{{ contact.name }}' } },
-        sources: { body: { nombre: 'inbox' } },
+        sources: { body: { nombre: 'binding' } },
         previewValues: { '{{ contact.name }}': 'Ana Pérez' },
         inboxName: 'Ventas',
         ...props,
@@ -42,7 +42,7 @@ describe('CaptainTemplatePreview', () => {
       'CAPTAIN.ASSISTANTS.ENVIOS.PREVIEW_PANEL.VARIABLES_TITLE'
     );
     expect(wrapper.text()).toContain(
-      'CAPTAIN.ASSISTANTS.ENVIOS.PREVIEW_PANEL.ASSIGNED_HERE'
+      'CAPTAIN.ASSISTANTS.ENVIOS.PREVIEW_PANEL.SOURCE_BINDING'
     );
     expect(wrapper.text()).toContain(
       'CAPTAIN.ASSISTANTS.ENVIOS.PREVIEW_PANEL.INBOX'
@@ -52,7 +52,7 @@ describe('CaptainTemplatePreview', () => {
   it('shows missing-variable placeholders and hides the bubble for an unavailable template', () => {
     const incomplete = mountPreview({ params: { body: {} }, complete: false });
     expect(incomplete.get('[data-testid="bubble"]').text()).toBe(
-      'Hola [nombre]'
+      'Hola {{nombre}}'
     );
     expect(incomplete.text()).toContain(
       'CAPTAIN.ASSISTANTS.ENVIOS.PREVIEW_PANEL.MISSING_VARIABLES'

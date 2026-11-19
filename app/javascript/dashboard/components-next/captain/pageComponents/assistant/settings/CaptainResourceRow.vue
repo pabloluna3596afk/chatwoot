@@ -1,13 +1,16 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { variableTokens } from 'dashboard/routes/dashboard/settings/templates/templateData';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
 
 const props = defineProps({
   name: { type: String, required: true },
   language: { type: String, default: '' },
-  category: { type: String, default: '' },
+  reason: { type: String, default: '' },
+  missing: { type: Array, default: () => [] },
+  configureRoute: { type: Object, default: () => ({}) },
   state: { type: String, required: true },
   stateLabel: { type: String, default: '' },
   usedBy: { type: Array, default: () => [] },
@@ -17,22 +20,20 @@ const props = defineProps({
   disabledReason: { type: String, default: '' },
   blocked: { type: Boolean, default: false },
 });
-defineEmits(['update:modelValue', 'preview', 'assign', 'publish']);
+defineEmits(['update:modelValue', 'preview', 'publish']);
 const { t } = useI18n();
 const canToggle = computed(() =>
   [
     'available',
     'excluded',
-    'marketing_off',
+    'unavailable',
     'new',
     'changed',
     'needs_review',
   ].includes(props.state)
 );
 const needsPermission = computed(() =>
-  ['marketing_off', 'new', 'changed', 'needs_review', 'needs_data'].includes(
-    props.state
-  )
+  ['new', 'changed', 'needs_review'].includes(props.state)
 );
 </script>
 
@@ -50,16 +51,6 @@ const needsPermission = computed(() =>
           language
         }}</span>
         <span
-          v-if="category"
-          class="rounded-md px-2 py-0.5 text-xs"
-          :class="
-            state === 'marketing_off'
-              ? 'bg-n-amber-3 text-n-amber-11'
-              : 'bg-n-alpha-2 text-n-slate-11'
-          "
-          >{{ category }}</span
-        >
-        <span
           v-if="stateLabel"
           class="rounded-md px-2 py-0.5 text-xs"
           :class="
@@ -76,6 +67,22 @@ const needsPermission = computed(() =>
           >{{ usage }}</span
         >
       </div>
+      <p v-if="reason" class="mb-0 mt-1 text-xs text-n-slate-11">
+        {{ reason }}
+      </p>
+      <p
+        v-if="state === 'needs_data'"
+        class="mb-0 mt-1 text-xs text-n-amber-11"
+      >
+        {{
+          t('CAPTAIN.ASSISTANTS.ENVIOS.REASONS.NEEDS_DATA', {
+            variables: variableTokens(missing),
+          })
+        }}
+        <RouterLink :to="configureRoute" class="text-n-brand underline">
+          {{ t('CAPTAIN.ASSISTANTS.ENVIOS.CONFIGURE_IN_TEMPLATES') }}
+        </RouterLink>
+      </p>
     </div>
     <div class="flex shrink-0 items-center gap-2">
       <Button
@@ -94,16 +101,7 @@ const needsPermission = computed(() =>
         @click="$emit('preview')"
       />
       <Button
-        v-if="state === 'needs_data'"
-        intent="secondary"
-        sm
-        :disabled="disabled"
-        :title="disabledReason"
-        :label="t('CAPTAIN.ASSISTANTS.ENVIOS.TEMPLATES.ASSIGN')"
-        @click="$emit('assign')"
-      />
-      <Button
-        v-else-if="state === 'not_published_here'"
+        v-if="state === 'not_published_here'"
         intent="secondary"
         sm
         :label="t('CAPTAIN.ASSISTANTS.ENVIOS.FLOWS.PUBLISH')"

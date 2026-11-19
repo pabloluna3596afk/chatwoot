@@ -226,7 +226,7 @@ export const responsesList = [
       config: { product_name: 'Chatwoot' },
       created_at: 1736033285,
       description:
-        'Specialized in marketing, campaign management, and messaging strategies.',
+        'Specialized in campaign management and messaging strategies.',
       id: 6,
       name: 'Assistant 7',
     },

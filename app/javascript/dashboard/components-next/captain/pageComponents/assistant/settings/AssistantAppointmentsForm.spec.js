@@ -523,13 +523,23 @@ describe('AssistantAppointmentsForm', () => {
     it('lists only approved WhatsApp templates once the assistant allows paid templates', async () => {
       inboxes.value = [
         whatsappInbox([
-          { name: 'recordatorio', language: 'es', status: 'APPROVED' },
+          {
+            name: 'recordatorio',
+            language: 'es',
+            status: 'APPROVED',
+            category: 'UTILITY',
+          },
           { name: 'borrador', language: 'es', status: 'PENDING' },
         ]),
         {
           channel_type: 'Channel::WebWidget',
           message_templates: [
-            { name: 'otro', language: 'es', status: 'APPROVED' },
+            {
+              name: 'otro',
+              language: 'es',
+              status: 'APPROVED',
+              category: 'UTILITY',
+            },
           ],
         },
       ];
@@ -543,6 +553,31 @@ describe('AssistantAppointmentsForm', () => {
         .map(option => option.value);
       expect(options).toEqual(['', 'recordatorio|es']);
     });
+
+    it.each(['MARKETING', 'AUTHENTICATION'])(
+      'excludes saved %s templates and explains why another template is needed',
+      async category => {
+        inboxes.value = [
+          whatsappInbox([
+            { name: 'antigua', language: 'es', status: 'APPROVED', category },
+          ]),
+        ];
+        const wrapper = await openFields({
+          allow_paid_templates: true,
+          appointments: {
+            ...REMINDER_DEFAULTS,
+            enabled: true,
+            template_reminder: { name: 'antigua', language: 'es' },
+          },
+        });
+        expect(
+          select(wrapper, 'appointments-template-reminder')
+            .props('options')
+            .map(option => option.value)
+        ).toEqual(['']);
+        expect(wrapper.text()).toContain('APPOINTMENTS.MARKETING_NOT_ALLOWED');
+      }
+    );
 
     it('has no confirmation template picker: the confirmation is free and never a template', async () => {
       const wrapper = await openFields({ allow_paid_templates: true });
@@ -564,6 +599,7 @@ describe('AssistantAppointmentsForm', () => {
       name: 'recordatorio',
       language: 'es',
       status: 'approved',
+      category: 'UTILITY',
       components: [
         { type: 'HEADER', format: 'TEXT', text: 'Cita {{titulo}}' },
         { type: 'BODY', text: 'Hola {{nombre}}, es el {{fecha}}.' },
