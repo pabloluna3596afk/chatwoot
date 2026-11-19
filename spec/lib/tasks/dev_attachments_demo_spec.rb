@@ -5,6 +5,8 @@ RSpec.describe 'dev:attachments_demo' do # rubocop:disable RSpec/DescribeClass -
   let(:task) { Rake::Task['dev:attachments_demo'] }
   let(:account) { create(:account) }
 
+  before { skip 'requires ImageMagick (convert), a development-only tool' unless system('which convert > /dev/null 2>&1') }
+
   it 'creates every channel and scenario without delivery jobs and is idempotent', :aggregate_failures do
     create(:user, account: account, role: :administrator)
     clear_enqueued_jobs
