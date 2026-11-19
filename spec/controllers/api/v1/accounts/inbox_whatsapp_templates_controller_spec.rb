@@ -468,6 +468,26 @@ RSpec.describe 'Inbox WhatsApp templates API', type: :request do
       expect(channel.message_templates).to eq([synced])
     end
 
+    it 'clears the last binding without sending the template to Meta' do
+      channel.update!(message_templates: [synced], template_variable_bindings: { 'order' => { '1' => 'contact.name' } })
+      expect(Whatsapp::TemplateManagementService).not_to receive(:new)
+      patch "#{base_url}/variable_bindings", params: { name: 'order', variable_bindings: {} },
+                                             headers: admin.create_new_auth_token, as: :json
+      expect(response).to have_http_status(:ok)
+      expect(channel.reload.template_variable_bindings).to be_empty
+      expect(channel.message_templates).to eq([synced])
+    end
+
+    [nil, [], 'contact.name'].each do |invalid|
+      it "rejects a non-object binding payload: #{invalid.inspect}" do
+        channel.update!(message_templates: [synced])
+        patch "#{base_url}/variable_bindings", params: { name: 'order', variable_bindings: invalid },
+                                               headers: admin.create_new_auth_token, as: :json
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(channel.reload.template_variable_bindings).to be_empty
+      end
+    end
+
     it 'rejects non-WhatsApp channels' do
       web = create(:inbox, account: account)
       patch "/api/v1/accounts/#{account.id}/inboxes/#{web.id}/whatsapp_templates/variable_bindings",
