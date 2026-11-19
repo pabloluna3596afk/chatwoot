@@ -1,10 +1,13 @@
-import { shallowMount } from '@vue/test-utils';
+import { shallowMount, flushPromises } from '@vue/test-utils';
+import { useCaptain } from 'dashboard/composables/useCaptain';
 import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/constants';
 import { nextTick } from 'vue';
 import { createStore } from 'vuex';
 import ReplyBox from '../ReplyBox.vue';
 import WhatsappTemplates from '../WhatsappTemplates/Modal.vue';
 import SendCenter from 'dashboard/components-next/whatsapp/send-center/SendCenter.vue';
+
+vi.mock('dashboard/composables/useCaptain');
 
 const CHANNELS = [
   { name: 'WhatsApp Cloud', inbox: { channel_type: 'Channel::Whatsapp' } },
@@ -109,8 +112,7 @@ const mountWith = ({
     global: {
       plugins: [store],
       mocks: { $t: key => key },
-      // The bottom panel sits inside a <Transition>, which shallowMount stubs
-      // without rendering its children.
+      // Exercise real transitions in the editor instead of stubbing their lifecycle.
       stubs: { transition: false },
     },
   });
@@ -125,6 +127,169 @@ const editor = wrapper =>
   wrapper.findComponent({ name: 'WootMessageEditor' }).props();
 
 describe('ReplyBox', () => {
+  beforeEach(() => {
+    useCaptain.mockReturnValue({
+      processEvent: vi.fn().mockResolvedValue({ message: 'Suggested reply' }),
+      followUp: vi.fn(),
+      currentChat: { value: { id: 1 } },
+    });
+  });
+
+  it.each([REPLY_EDITOR_MODES.NOTE, REPLY_EDITOR_MODES.REPLY])(
+    'exits Copilot when switching to %s and preserves the draft',
+    async mode => {
+      const { wrapper } = mountWith({
+        inbox: { channel_type: 'Channel::WebWidget' },
+      });
+      await wrapper.vm.setReplyMode(
+        mode === REPLY_EDITOR_MODES.NOTE
+          ? REPLY_EDITOR_MODES.REPLY
+          : REPLY_EDITOR_MODES.NOTE
+      );
+      await wrapper.setData({ message: 'Original draft' });
+      const draftKey = wrapper.vm.editorStateId;
+      await wrapper.vm.copilot.execute('reply_suggestion', '');
+      await nextTick();
+      expect(
+        wrapper.findComponent({ name: 'CopilotReplyBottomPanel' }).exists()
+      ).toBe(true);
+      wrapper
+        .findComponent({ name: 'ReplyTopPanel' })
+        .vm.$emit('setReplyMode', mode);
+      await nextTick();
+      expect(
+        wrapper.findComponent({ name: 'CopilotReplyBottomPanel' }).exists()
+      ).toBe(false);
+      expect(wrapper.findComponent({ name: 'ReplyBottomPanel' }).exists()).toBe(
+        true
+      );
+      expect(wrapper.vm.copilot.generatedContent.value).toBe('');
+      expect(wrapper.vm.$store.state.drafts[draftKey]).toBe('Original draft');
+      wrapper.unmount();
+    }
+  );
+
+  it('restores the bottom bar on Escape while an input is focused', async () => {
+    const { wrapper } = mountWith({
+      inbox: { channel_type: 'Channel::WebWidget' },
+    });
+    await flushPromises();
+    await wrapper.vm.copilot.execute('reply_suggestion', '');
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.focus();
+    input.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Escape',
+        code: 'Escape',
+        bubbles: true,
+      })
+    );
+    await nextTick();
+    expect(wrapper.vm.copilot.isActive.value).toBe(false);
+    expect(wrapper.findComponent({ name: 'ReplyBottomPanel' }).exists()).toBe(
+      true
+    );
+    input.remove();
+    wrapper.unmount();
+  });
+
+  it('aborts generation on A → B → A and ignores a late result', async () => {
+    let resolveRequest;
+    useCaptain().processEvent.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          resolveRequest = resolve;
+        })
+    );
+    const { wrapper, store } = mountWith({
+      inbox: { channel_type: 'Channel::WebWidget' },
+    });
+    const pending = wrapper.vm.copilot.execute('reply_suggestion', '');
+    const signal = useCaptain().processEvent.mock.calls[0][2].signal;
+    await nextTick();
+    expect(
+      wrapper.findComponent({ name: 'CopilotReplyBottomPanel' }).exists()
+    ).toBe(true);
+    store.commit('selectChat', { ...REPLIABLE, id: 2 });
+    await nextTick();
+    expect(signal.aborted).toBe(true);
+    expect(wrapper.findComponent({ name: 'ReplyBottomPanel' }).exists()).toBe(
+      true
+    );
+    store.commit('selectChat', { ...REPLIABLE });
+    await nextTick();
+    resolveRequest({ message: 'Old conversation reply' });
+    await pending;
+    await nextTick();
+    expect(wrapper.vm.copilot.isActive.value).toBe(false);
+    expect(wrapper.vm.copilot.generatedContent.value).toBe('');
+    expect(wrapper.findComponent({ name: 'ReplyBottomPanel' }).exists()).toBe(
+      true
+    );
+    wrapper.unmount();
+  });
+
+  it('keeps Copilot on same-conversation updates and clears it on navigation', async () => {
+    const { wrapper, store } = mountWith({
+      inbox: { channel_type: 'Channel::WebWidget' },
+    });
+    await wrapper.vm.copilot.execute('reply_suggestion', '');
+    store.commit('selectChat', { ...REPLIABLE, messages: [{ id: 5 }] });
+    await nextTick();
+    expect(wrapper.vm.copilot.isActive.value).toBe(true);
+    store.commit('selectChat', { ...REPLIABLE, id: 2 });
+    await nextTick();
+    expect(wrapper.vm.copilot.isActive.value).toBe(false);
+    expect(wrapper.findComponent({ name: 'ReplyBottomPanel' }).exists()).toBe(
+      true
+    );
+    wrapper.unmount();
+  });
+
+  it.each(['mode', 'cancel', 'unmount'])(
+    'aborts generation on %s and ignores the late result',
+    async exit => {
+      let resolveRequest;
+      useCaptain().processEvent.mockImplementation(
+        () =>
+          new Promise(resolve => {
+            resolveRequest = resolve;
+          })
+      );
+      const { wrapper } = mountWith({
+        inbox: { channel_type: 'Channel::WebWidget' },
+      });
+      const copilot = wrapper.vm.copilot;
+      const pending = copilot.execute('reply_suggestion', '');
+      const signal = useCaptain().processEvent.mock.calls[0][2].signal;
+      await nextTick();
+      if (exit === 'mode') {
+        wrapper
+          .findComponent({ name: 'ReplyTopPanel' })
+          .vm.$emit('setReplyMode', REPLY_EDITOR_MODES.NOTE);
+      } else if (exit === 'cancel') {
+        wrapper
+          .findComponent({ name: 'CopilotReplyBottomPanel' })
+          .vm.$emit('cancel');
+      } else {
+        wrapper.unmount();
+      }
+      await nextTick();
+      expect(signal.aborted).toBe(true);
+      resolveRequest({ message: 'Late reply' });
+      await pending;
+      expect(copilot.isActive.value).toBe(false);
+      expect(copilot.generatedContent.value).toBe('');
+      if (exit !== 'unmount') {
+        expect(
+          wrapper.findComponent({ name: 'ReplyBottomPanel' }).exists()
+        ).toBe(true);
+        wrapper.unmount();
+      }
+    }
+  );
+
   it('discards recorded audio without sending and keeps other attachments', async () => {
     const { wrapper } = mountWith({
       inbox: { channel_type: 'Channel::WebWidget' },
@@ -163,6 +328,7 @@ describe('ReplyBox', () => {
     );
     await wrapper.vm.setReplyMode(REPLY_EDITOR_MODES.NOTE);
     expect(bar.classes()).toContain('bg-n-solid-amber');
+    expect(bar.classes()).not.toContain('bg-n-surface-1');
     wrapper.unmount();
   });
 

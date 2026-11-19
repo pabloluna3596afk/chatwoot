@@ -3715,3 +3715,12 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Causa adicional:** `params.require(:variable_bindings)` rechazaba `{}` al quitar la ultima asignacion. `fetch` permite ese objeto vacio conservando presencia y validacion de tipo en el limite HTTP.
 - **Prueba:** asignacion local sin ejemplos ni updateTemplate, contenido bloqueado/proveedor no Cloud, enlace de pendientes a Editar, errores de guardado y orden bindings/Meta. RSpec cubre quitar la ultima asignacion y rechazar tipos invalidos.
 - **Entrega:** sin migraciones. Revision visual del PM pendiente; no se uso navegador ni se creo PR.
+
+### B-NEW-286 - Copilot: altura del editor y salida de sugerencias (2026-11-19)
+
+- Archivos: `WootWriter/CopilotEditor.vue`, `WootWriter/CopilotReplyBottomPanel.vue`, `conversation/CopilotEditorSection.vue`, `conversation/ReplyBox.vue` y sus specs.
+- Copilot conserva la altura elegida en el wrapper y usa scroll interno, en vez de solicitar crecimiento al mostrar la sugerencia. Se elimina la medicion diferida que podia leer un nodo desmontado y se destruye EditorView al salir.
+- Descartar permanece disponible durante generacion; Escape, cambio de modo, cambio de ID de conversacion y desmontaje cancelan la solicitud y reinician Copilot. Las actualizaciones de la misma conversacion conservan la sugerencia.
+- La barra inferior cambia sin Transition out-in, evitando intervalos sin acciones. Los botones de enviar/plantillas y los adjuntos conservan sus componentes, props y handlers.
+- Origen: los mecanismos ya existen en upstream/develop `8b33b543fc` y en `dbfed3e8ea`, anterior a #379. No se atribuye a #379 una regresion visual reproducida: no se uso navegador por instruccion del brief.
+- Prueba: Vitest de conversation/specs, CopilotReplyBottomPanel y useCopilotReply en UTC y America/Guayaquil; contenido largo, limites con paneles, Escape en input, modo, descartar, desmontaje y A-B-A con resultado tardio. Ver informe externo `docs-crm/codex/copilot-editor.md`. Falta smoke visual con dimensiones reales; sin migraciones, push, PR ni despliegue.

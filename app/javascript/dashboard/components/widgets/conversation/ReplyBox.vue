@@ -111,7 +111,10 @@ export default {
     const { proxy } = getCurrentInstance();
     useKeyboardEvents({
       Escape: {
-        action: () => proxy.hideEmojiPicker(),
+        action: () => {
+          proxy.hideEmojiPicker();
+          if (copilot.isActive.value) copilot.reset();
+        },
         allowOnFocusedInput: true,
       },
       '$mod+KeyK': {
@@ -570,8 +573,6 @@ export default {
         // This prevents overwriting user input (e.g., CC/BCC fields) when performing actions
         // like self-assign or other updates that do not actually change the conversation context
         this.setCCAndToEmailsFromLastChat();
-        // Reset Copilot editor state (includes cancelling ongoing generation)
-        this.copilot.reset();
       }
 
       if (this.isInstagramReplyRestricted) {
@@ -603,6 +604,7 @@ export default {
     },
     conversationIdByRoute(conversationId, oldConversationId) {
       if (conversationId !== oldConversationId) {
+        this.copilot.reset();
         this.switchDraftContext(conversationId, this.effectiveReplyMode);
         this.resetRecorderAndClearAttachments();
       }
@@ -618,6 +620,7 @@ export default {
       if (!isAvailable) this.hideContentTemplatesModal();
     },
     effectiveReplyMode(updatedReplyType) {
+      this.copilot.reset();
       this.$store.dispatch('draftMessages/setReplyEditorMode', {
         mode: updatedReplyType,
       });
@@ -666,6 +669,7 @@ export default {
     emitter.on(CMD_AI_ASSIST, this.executeCopilotAction);
   },
   unmounted() {
+    this.copilot.reset();
     document.removeEventListener('paste', this.onPaste);
     emitter.off(BUS_EVENTS.TOGGLE_REPLY_TO_MESSAGE, this.onReplyToMessage);
     emitter.off(
@@ -1442,7 +1446,10 @@ export default {
 
 <template>
   <ReplyBoxBanner :message="message" :is-on-private-note="isOnPrivateNote" />
-  <div class="reply-box relative bg-n-surface-1" :class="replyBoxClass">
+  <div
+    class="reply-box relative"
+    :class="[isPrivate ? '' : 'bg-n-surface-1', replyBoxClass]"
+  >
     <ReplyTopPanel
       :mode="replyType"
       :conversation-id="conversationId"
@@ -1589,59 +1596,49 @@ export default {
       </div>
     </Transition>
 
-    <Transition
-      mode="out-in"
-      enter-active-class="transition-all duration-300 ease-out"
-      enter-from-class="opacity-0 translate-y-2 scale-[0.98]"
-      enter-to-class="opacity-100 translate-y-0 scale-100"
-      leave-active-class="transition-all duration-200 ease-in"
-      leave-from-class="opacity-100 translate-y-0 scale-100"
-      leave-to-class="opacity-0 translate-y-2 scale-[0.98]"
-    >
-      <CopilotReplyBottomPanel
-        v-if="copilot.isActive.value"
-        key="copilot-bottom-panel"
-        :is-generating-content="copilot.isButtonDisabled.value"
-        @submit="onSubmitCopilotReply"
-        @cancel="copilot.reset"
-      />
-      <ReplyBottomPanel
-        v-else
-        key="reply-bottom-panel"
-        :conversation-id="conversationId"
-        :enable-multiple-file-upload="enableMultipleFileUpload"
-        :enable-whats-app-templates="showWhatsappTemplates"
-        :enable-content-templates="showContentTemplates"
-        :inbox="inbox"
-        :is-on-private-note="isOnPrivateNote"
-        :is-recording-audio="isRecordingAudio"
-        :is-send-disabled="isReplyButtonDisabled"
-        :is-note="isPrivate"
-        :is-editor-disabled="isEditorDisabled"
-        :on-file-upload="onFileUpload"
-        :on-send="onSendReply"
-        :conversation-type="conversationType"
-        :recording-audio-duration-text="recordingAudioDurationText"
-        :recording-audio-state="recordingAudioState"
-        :send-button-text="replyButtonLabel"
-        :show-audio-recorder="showAudioRecorder"
-        :show-emoji-picker="showEmojiPicker"
-        :show-file-upload="showFileUpload"
-        :show-quoted-reply-toggle="shouldShowQuotedReplyToggle"
-        :quoted-reply-enabled="quotedReplyPreference"
-        :toggle-audio-recorder-play-pause="toggleAudioRecorderPlayPause"
-        :toggle-audio-recorder="toggleAudioRecorder"
-        :toggle-emoji-picker="toggleEmojiPicker"
-        :portal-slug="connectedPortalSlug"
-        :new-conversation-modal-active="newConversationModalActive"
-        @select-whatsapp-template="openWhatsappTemplateModal"
-        @select-canned-response="openCannedResponsesModal"
-        @select-content-template="openContentTemplateModal"
-        @toggle-insert-article="toggleInsertArticle"
-        @toggle-quoted-reply="toggleQuotedReply"
-        @request-contact-info-template="openContactInfoTemplateModal"
-      />
-    </Transition>
+    <CopilotReplyBottomPanel
+      v-if="copilot.isActive.value"
+      key="copilot-bottom-panel"
+      :is-generating-content="copilot.isButtonDisabled.value"
+      @submit="onSubmitCopilotReply"
+      @cancel="copilot.reset"
+    />
+    <ReplyBottomPanel
+      v-else
+      key="reply-bottom-panel"
+      :conversation-id="conversationId"
+      :enable-multiple-file-upload="enableMultipleFileUpload"
+      :enable-whats-app-templates="showWhatsappTemplates"
+      :enable-content-templates="showContentTemplates"
+      :inbox="inbox"
+      :is-on-private-note="isOnPrivateNote"
+      :is-recording-audio="isRecordingAudio"
+      :is-send-disabled="isReplyButtonDisabled"
+      :is-note="isPrivate"
+      :is-editor-disabled="isEditorDisabled"
+      :on-file-upload="onFileUpload"
+      :on-send="onSendReply"
+      :conversation-type="conversationType"
+      :recording-audio-duration-text="recordingAudioDurationText"
+      :recording-audio-state="recordingAudioState"
+      :send-button-text="replyButtonLabel"
+      :show-audio-recorder="showAudioRecorder"
+      :show-emoji-picker="showEmojiPicker"
+      :show-file-upload="showFileUpload"
+      :show-quoted-reply-toggle="shouldShowQuotedReplyToggle"
+      :quoted-reply-enabled="quotedReplyPreference"
+      :toggle-audio-recorder-play-pause="toggleAudioRecorderPlayPause"
+      :toggle-audio-recorder="toggleAudioRecorder"
+      :toggle-emoji-picker="toggleEmojiPicker"
+      :portal-slug="connectedPortalSlug"
+      :new-conversation-modal-active="newConversationModalActive"
+      @select-whatsapp-template="openWhatsappTemplateModal"
+      @select-canned-response="openCannedResponsesModal"
+      @select-content-template="openContentTemplateModal"
+      @toggle-insert-article="toggleInsertArticle"
+      @toggle-quoted-reply="toggleQuotedReply"
+      @request-contact-info-template="openContactInfoTemplateModal"
+    />
 
     <WhatsappTemplates
       :inbox-id="inbox.id"

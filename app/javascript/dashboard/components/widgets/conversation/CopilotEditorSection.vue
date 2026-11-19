@@ -1,9 +1,9 @@
 <script setup>
-import { ref, inject } from 'vue';
+import { ref } from 'vue';
 import CopilotEditor from 'dashboard/components/widgets/WootWriter/CopilotEditor.vue';
 import CaptainLoader from 'dashboard/components/widgets/conversation/copilot/CaptainLoader.vue';
 
-const props = defineProps({
+defineProps({
   showCopilotEditor: {
     type: Boolean,
     default: false,
@@ -30,14 +30,7 @@ const emit = defineEmits([
   'send',
 ]);
 
-const requestEditorHeight = inject('requestEditorHeight', () => {});
-
 const copilotEditorContent = ref('');
-
-// The loader needs no room of its own, the suggestion asks for its own
-const onStateEnter = () => {
-  if (props.isGeneratingContent) requestEditorHeight(0);
-};
 
 const onFocus = () => {
   emit('focus');
@@ -66,7 +59,6 @@ const onSend = () => {
       leave-active-class="absolute inset-x-0 top-0 pointer-events-none transition-opacity duration-200 ease-in"
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
-      @enter="onStateEnter"
       @after-enter="emit('contentReady')"
     >
       <CopilotEditor
