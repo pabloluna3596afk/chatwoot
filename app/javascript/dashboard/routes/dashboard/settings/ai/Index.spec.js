@@ -26,6 +26,7 @@ describe('AI settings page', () => {
       global: {
         mocks: { $t: key => key },
         stubs: {
+          CaptainTemplateCap: true,
           BaseSettingsHeader: true,
           AudioTranscription: {
             template: '<section data-testid="transcription" />',
@@ -43,7 +44,11 @@ describe('AI settings page', () => {
     const wrapper = mount(Index, {
       global: {
         mocks: { $t: key => key },
-        stubs: { BaseSettingsHeader: true, AudioTranscription: true },
+        stubs: {
+          BaseSettingsHeader: true,
+          AudioTranscription: true,
+          CaptainTemplateCap: true,
+        },
       },
     });
 

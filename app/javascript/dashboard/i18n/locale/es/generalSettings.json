@@ -136,6 +136,16 @@
       "FEATURES": {
         "INBOUND_EMAIL_ENABLED": "Continuidad de la conversación con emails está habilitada para su cuenta.",
         "CUSTOM_EMAIL_DOMAIN_ENABLED": "Ahora puede recibir emails en su dominio personalizado."
+      },
+      "CAPTAIN_TEMPLATE_CAP": {
+        "TITLE": "Plantillas de utilidad que la IA puede enviar por día",
+        "NOTE": "Límite para toda la cuenta: lo comparten todos los asistentes y todos los números. Al llegarlo, la IA sigue respondiendo con mensajes normales hasta mañana y avisamos a los administradores.",
+        "LABEL": "Plantillas por día",
+        "TODAY": "Hoy: {used} de {cap}",
+        "INVALID": "Introduce un número entero de 0 a 10 000.",
+        "SUCCESS": "Tope diario guardado.",
+        "ERROR": "No se pudo guardar o cargar el tope diario. Inténtalo de nuevo.",
+        "SAVE": "Guardar"
       }
     },
     "UPDATE_CHATWOOT": "Hay una actualización {latestChatwootVersion} para Chatwoot disponible. Por favor, actualiza tu instancia.",

@@ -136,6 +136,16 @@
       "FEATURES": {
         "INBOUND_EMAIL_ENABLED": "Conversation continuity with emails is enabled for your account.",
         "CUSTOM_EMAIL_DOMAIN_ENABLED": "You can receive emails in your custom domain now."
+      },
+      "CAPTAIN_TEMPLATE_CAP": {
+        "TITLE": "Utility templates the AI can send per day",
+        "NOTE": "Account-wide limit shared by all assistants and numbers. When reached, the AI keeps replying with normal messages until tomorrow and we notify administrators.",
+        "LABEL": "Templates per day",
+        "TODAY": "Today: {used} of {cap}",
+        "INVALID": "Enter a whole number from 0 to 10,000.",
+        "SUCCESS": "Daily limit saved.",
+        "ERROR": "Could not save or load the daily limit. Try again.",
+        "SAVE": "Save"
       }
     },
     "UPDATE_CHATWOOT": "An update {latestChatwootVersion} for Chatwoot is available. Please update your instance.",
