@@ -100,7 +100,10 @@ describe('attachment file card', () => {
       ...options('en'),
       props: { attachment: pdf },
     });
-    await wrapper.get('button[aria-label="Download"]').trigger('click');
+    await wrapper
+      .findAll('button')
+      .find(b => b.text() === 'Download')
+      .trigger('click');
     await flushPromises();
     expect(downloadFile).toHaveBeenCalledWith({
       url: pdf.dataUrl,

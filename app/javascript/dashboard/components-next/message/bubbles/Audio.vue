@@ -12,11 +12,7 @@ const attachment = computed(() => {
 </script>
 
 <template>
-  <!--
-    ponytail: force transparent outer bubble so MessageMeta doesn't sit on a
-    second white strip under the audio chip (incoming looked like a white bar).
-  -->
-  <BaseBubble class="!bg-transparent !shadow-none" data-bubble-name="audio">
+  <BaseBubble class="p-2" data-bubble-name="audio">
     <AudioChip
       :attachment="attachment"
       class="text-n-slate-12 skip-context-menu"

@@ -390,7 +390,8 @@ onMounted(() => ActiveStorage.start());
           >
             <NextButton
               v-tooltip.top-end="item.label"
-              intent="tertiary"
+              slate
+              faded
               sm
               :icon="item.icon"
               :aria-label="item.label"
@@ -407,7 +408,8 @@ onMounted(() => ActiveStorage.start());
           <NextButton
             v-else
             v-tooltip.top-end="item.label"
-            intent="tertiary"
+            slate
+            faded
             sm
             :icon="item.icon"
             :aria-label="item.label"

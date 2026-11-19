@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BaseBubble from './Base.vue';
 import Icon from 'next/icon/Icon.vue';
+import Button from 'next/button/Button.vue';
 import { useMessageContext } from '../provider.js';
 
 defineProps({
@@ -19,6 +20,14 @@ defineProps({
     },
   },
 });
+
+const activate = action => {
+  if (action.href) {
+    window.open(action.href, '_blank', 'noopener,noreferrer');
+  } else {
+    action.onClick();
+  }
+};
 
 const { sender } = useMessageContext();
 const { t } = useI18n();
@@ -59,22 +68,13 @@ const senderName = computed(() => {
         </div>
       </div>
       <div v-if="action" class="mb-2">
-        <a
-          v-if="action.href"
-          :href="action.href"
-          rel="noreferrer noopener nofollow"
-          target="_blank"
-          class="w-full block bg-n-solid-3 px-4 py-2 rounded-lg text-sm text-center border border-n-container"
-        >
-          {{ action.label }}
-        </a>
-        <button
-          v-else
-          class="w-full bg-n-solid-3 px-4 py-2 rounded-lg text-sm text-center border border-n-container"
-          @click="action.onClick"
-        >
-          {{ action.label }}
-        </button>
+        <Button
+          size="sm"
+          intent="secondary"
+          class="w-full justify-center"
+          :label="action.label"
+          @click="activate(action)"
+        />
       </div>
     </div>
   </BaseBubble>

@@ -61,7 +61,8 @@ watch(
     <NextButton
       v-if="isPhone"
       ref="trigger"
-      intent="tertiary"
+      slate
+      faded
       sm
       icon="i-lucide-ellipsis"
       :aria-label="$t('CONVERSATION.REPLYBOX.MORE_OPTIONS')"
@@ -79,7 +80,8 @@ watch(
     >
       <NextButton
         ref="trigger"
-        intent="tertiary"
+        slate
+        faded
         sm
         icon="i-lucide-ellipsis"
         :aria-label="$t('CONVERSATION.REPLYBOX.MORE_OPTIONS')"

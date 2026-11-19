@@ -112,18 +112,17 @@ const download = async () => {
     <div class="col-start-2 flex items-center gap-1.5">
       <Button
         v-if="canPreview"
-        size="xs"
+        size="sm"
         intent="secondary"
         icon="i-lucide-eye"
         :label="t('COMPONENTS.FILE.VIEW')"
         @click.prevent="showGallery = true"
       />
       <Button
-        size="xs"
-        intent="tertiary"
+        size="sm"
+        intent="secondary"
         icon="i-lucide-download"
-        :aria-label="t('CONVERSATION.DOWNLOAD')"
-        :label="canPreview ? undefined : t('CONVERSATION.DOWNLOAD')"
+        :label="t('CONVERSATION.DOWNLOAD')"
         :is-loading="isDownloading"
         :disabled="isDownloading"
         @click.prevent="download"

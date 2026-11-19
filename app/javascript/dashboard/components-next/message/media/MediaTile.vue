@@ -89,7 +89,9 @@ const download = async () => {
       single
         ? tall
           ? 'rounded-lg w-[20rem] max-w-full h-[22rem]'
-          : 'rounded-lg w-fit max-w-[20rem] max-h-[22rem]'
+          : dimensions.width
+            ? 'rounded-lg w-fit max-w-[20rem] max-h-[22rem]'
+            : 'rounded-lg w-[20rem] max-w-full'
         : 'h-full',
       {
         'row-span-2': total === 3 && index === 0,
@@ -105,7 +107,9 @@ const download = async () => {
         single
           ? tall
             ? 'w-full h-full'
-            : 'w-auto max-h-[22rem]'
+            : dimensions.width
+              ? 'w-auto max-h-[22rem]'
+              : 'w-full'
           : 'w-full h-full',
         {
           'aspect-[4/3] w-[20rem]': single && !dimensions.width,
