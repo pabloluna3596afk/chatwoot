@@ -2,38 +2,58 @@ import { mount } from '@vue/test-utils';
 import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/constants';
 import CollapsedReplyBar from '../CollapsedReplyBar.vue';
 
-const mountComponent = props =>
+const GO_TO_LATEST =
+  'button[label="CONVERSATION.CONTACT_HISTORY.GO_TO_LATEST"]';
+
+const mountComponent = (props = {}) =>
   mount(CollapsedReplyBar, {
     props: { replyLabel: 'Reply', ...props },
     global: { stubs: { Icon: true } },
   });
 
-describe('CollapsedReplyBar', () => {
-  it('offers reply and private note actions', () => {
-    const wrapper = mountComponent();
+const findButton = (wrapper, text) =>
+  wrapper.findAll('button').find(button => button.text().includes(text));
 
-    expect(wrapper.text()).toContain('Reply');
+describe('CollapsedReplyBar', () => {
+  beforeEach(() => {
+    window.cw_keyboard_layout = 'QWERTY';
+  });
+
+  it('renders the reply and private note actions', () => {
+    const wrapper = mountComponent({
+      replyLabel: 'Reply to this older conversation',
+    });
+
+    expect(wrapper.text()).toContain('Reply to this older conversation');
     expect(wrapper.text()).toContain('CONVERSATION.REPLYBOX.PRIVATE_NOTE');
   });
 
-  it('opens the editor in the selected mode', async () => {
+  it('opens the editor in reply mode', async () => {
     const wrapper = mountComponent();
-    const reply = wrapper
-      .findAll('button')
-      .find(button => button.text().includes('Reply'));
-    const note = wrapper
-      .findAll('button')
-      .find(button =>
-        button.text().includes('CONVERSATION.REPLYBOX.PRIVATE_NOTE')
-      );
 
-    await reply.trigger('click');
-    await note.trigger('click');
+    await findButton(wrapper, 'Reply').trigger('click');
 
-    expect(wrapper.emitted('open')).toEqual([
-      [REPLY_EDITOR_MODES.REPLY],
-      [REPLY_EDITOR_MODES.NOTE],
+    expect(wrapper.emitted('open')).toEqual([[REPLY_EDITOR_MODES.REPLY]]);
+  });
+
+  it('opens the editor in private note mode', async () => {
+    const wrapper = mountComponent();
+
+    await findButton(wrapper, 'CONVERSATION.REPLYBOX.PRIVATE_NOTE').trigger(
+      'click'
+    );
+
+    expect(wrapper.emitted('open')).toEqual([[REPLY_EDITOR_MODES.NOTE]]);
+  });
+
+  it('keeps the existing Alt+L and Alt+P shortcut labels', () => {
+    const wrapper = mountComponent();
+    expect(wrapper.findAll('kbd').map(kbd => kbd.text())).toEqual([
+      'Alt+L',
+      'Alt+P',
     ]);
+    expect(wrapper.classes()).toContain('bg-n-surface-1');
+    expect(wrapper.classes().join(' ')).not.toContain('backdrop-blur');
   });
 
   it('offers only a private note when public replies are restricted', () => {
@@ -41,5 +61,27 @@ describe('CollapsedReplyBar', () => {
 
     expect(wrapper.text()).not.toContain('Reply');
     expect(wrapper.text()).toContain('CONVERSATION.REPLYBOX.PRIVATE_NOTE');
+  });
+
+  it('keeps the latest conversation link when replies are restricted', () => {
+    const wrapper = mountComponent({ canReply: false, hasLatest: true });
+
+    expect(wrapper.findAll('kbd')).toHaveLength(1);
+    expect(wrapper.find(GO_TO_LATEST).exists()).toBe(true);
+  });
+
+  it('hides the link to the latest conversation by default', () => {
+    const wrapper = mountComponent();
+
+    expect(wrapper.find(GO_TO_LATEST).exists()).toBe(false);
+  });
+
+  it('goes to the latest conversation', async () => {
+    const wrapper = mountComponent({ hasLatest: true });
+
+    await wrapper.find(GO_TO_LATEST).trigger('click');
+
+    expect(wrapper.emitted('goToLatest')).toHaveLength(1);
+    expect(wrapper.emitted('open')).toBeUndefined();
   });
 });

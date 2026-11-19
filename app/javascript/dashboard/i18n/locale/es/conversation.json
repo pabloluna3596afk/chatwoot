@@ -359,7 +359,8 @@
       "CANCEL_RECORDING": "Cancelar grabación",
       "RECORDING": "Grabando…",
       "SIGNATURE_ON": "Activada",
-      "SIGNATURE_OFF": "Desactivada"
+      "SIGNATURE_OFF": "Desactivada",
+      "HIDE_COMPOSER": "Ocultar el cuadro de respuesta"
     },
     "VISIBLE_TO_AGENTS": "Nota privada: solo visible para ti y tu equipo",
     "CHANGE_STATUS": "Estado de la conversación cambiado",
@@ -503,7 +504,9 @@
     },
     "CONTACT_HISTORY": {
       "OLDER": "Conversación anterior con este cliente",
-      "NEWER": "Siguiente conversación con este cliente"
+      "NEWER": "Siguiente conversación con este cliente",
+      "REPLY_TO_OLDER": "Responder en esta conversación anterior",
+      "GO_TO_LATEST": "Ir a la más reciente"
     },
     "REQUEST_CONTACT_INFO": {
       "ACTION": "Pedir al cliente que comparta su número de WhatsApp",

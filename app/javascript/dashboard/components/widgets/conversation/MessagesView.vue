@@ -1,6 +1,7 @@
 <script>
 import { ref, computed, provide, nextTick, useTemplateRef } from 'vue';
 import {
+  useMediaQuery,
   useElementSize,
   useEventListener,
   useSessionStorage,
@@ -53,6 +54,17 @@ import { INBOX_TYPES } from 'dashboard/helper/inbox';
 
 const BOTTOM_PIN_THRESHOLD = 80;
 
+const FOLD_MOTION =
+  'duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:duration-0';
+const FOLD_ACTIVE_CLASS = `transition-[grid-template-rows,opacity] [&>div]:overflow-hidden ${FOLD_MOTION}`;
+const FOLD_HIDDEN_CLASS = '[--fold-rows:0fr] opacity-0';
+const FOLD_TRANSITION = {
+  enterActiveClass: FOLD_ACTIVE_CLASS,
+  leaveActiveClass: FOLD_ACTIVE_CLASS,
+  enterFromClass: FOLD_HIDDEN_CLASS,
+  leaveToClass: FOLD_HIDDEN_CLASS,
+};
+
 export default {
   components: {
     MessageList,
@@ -82,8 +94,14 @@ export default {
       getLabelSuggestions,
     } = useLabelSuggestions();
 
-    const { olderConversation, newerConversation, buildConversationPath } =
-      useContactConversationNavigation();
+    const {
+      olderConversation,
+      newerConversation,
+      buildConversationPath,
+      isReadingHistory,
+      latestConversation,
+      leaveReadingMode,
+    } = useContactConversationNavigation();
 
     provide('contextMenuElementTarget', conversationPanelRef);
 
@@ -91,14 +109,30 @@ export default {
       SESSION_STORAGE_KEYS.REPLY_BOX_COLLAPSED,
       false
     );
+    const isPhone = useMediaQuery('(max-width: 767px)');
+    const hasReplyDraft = computed(() =>
+      Boolean(
+        replyBoxRef.value?.message?.trim() || replyBoxRef.value?.hasAttachments
+      )
+    );
+    const isReplyFolded = computed(
+      () =>
+        !isPhone.value &&
+        ((isReadingHistory.value && !hasReplyDraft.value) ||
+          isReplyBoxCollapsed.value)
+    );
     const canSendPublicReply = computed(
       () => replyBoxRef.value?.canSendPublicReply ?? true
     );
+    const collapseReplyBox = () => {
+      isReplyBoxCollapsed.value = true;
+    };
     const showReplyBox = () => {
       isReplyBoxCollapsed.value = false;
+      leaveReadingMode();
     };
     const revealReplyBox = mode => {
-      if (!isReplyBoxCollapsed.value) return;
+      if (!isReplyFolded.value) return;
       showReplyBox();
       nextTick(() => {
         const replyBox = replyBoxRef.value;
@@ -108,11 +142,11 @@ export default {
     };
     useKeyboardEvents({
       'Alt+KeyL': {
-        action: () => revealReplyBox(REPLY_EDITOR_MODES.REPLY),
+        action: () => revealReplyBox(),
         allowOnFocusedInput: false,
       },
       'Alt+KeyP': {
-        action: () => revealReplyBox(REPLY_EDITOR_MODES.NOTE),
+        action: () => revealReplyBox(),
         allowOnFocusedInput: false,
       },
     });
@@ -128,6 +162,11 @@ export default {
       newerConversation,
       buildConversationPath,
       isReplyBoxCollapsed,
+      isReplyFolded,
+      isReadingHistory,
+      latestConversation,
+      collapseReplyBox,
+      foldTransition: FOLD_TRANSITION,
       canSendPublicReply,
       replyBoxRef,
       showReplyBox,
@@ -648,42 +687,55 @@ export default {
           <TypingDots class="ltr:ml-2 rtl:mr-2" />
         </div>
       </div>
-      <ResizableEditorWrapper
-        ref="resizableEditorWrapperRef"
-        :container-height="Math.max(0, containerHeight - topBannerHeight)"
-        @collapse="isReplyBoxCollapsed = true"
-      >
+      <Transition v-bind="foldTransition">
         <div
-          class="grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:duration-0"
-          :class="
-            isReplyBoxCollapsed
-              ? '[grid-template-rows:0fr] opacity-0'
-              : '[grid-template-rows:1fr] opacity-100'
-          "
-          :aria-hidden="isReplyBoxCollapsed"
-          :inert="isReplyBoxCollapsed"
+          v-if="isReplyFolded"
+          class="absolute inset-x-0 bottom-0 z-10 grid grid-rows-[var(--fold-rows,1fr)]"
         >
-          <div
-            class="min-h-0"
-            :class="
-              isReplyBoxCollapsed ? 'overflow-hidden' : 'overflow-visible'
-            "
-          >
-            <ReplyBox
-              ref="replyBoxRef"
-              @toggle-editor-size="toggleReplyEditorSize"
+          <div class="min-h-0 min-w-0">
+            <CollapsedReplyBar
+              class="m-2"
+              :reply-label="
+                isReadingHistory
+                  ? $t('CONVERSATION.CONTACT_HISTORY.REPLY_TO_OLDER')
+                  : $t('CONVERSATION.REPLYBOX.REPLY')
+              "
+              :has-latest="isReadingHistory && Boolean(latestConversation)"
+              :can-reply="canSendPublicReply"
+              @open="revealReplyBox"
+              @go-to-latest="
+                $router.push(
+                  buildConversationPath(latestConversation.id, {
+                    keepFolderScope: false,
+                  })
+                )
+              "
             />
           </div>
         </div>
-      </ResizableEditorWrapper>
-      <div v-if="isReplyBoxCollapsed" class="absolute inset-x-0 bottom-0 z-10">
-        <CollapsedReplyBar
-          class="m-2"
-          :reply-label="$t('CONVERSATION.REPLYBOX.REPLY')"
-          :can-reply="canSendPublicReply"
-          @open="revealReplyBox"
-        />
-      </div>
+      </Transition>
+      <Transition v-bind="foldTransition">
+        <div
+          v-show="!isReplyFolded"
+          class="grid grid-rows-[var(--fold-rows,1fr)]"
+          :aria-hidden="isReplyFolded"
+          :inert="isReplyFolded"
+        >
+          <div class="min-h-0 min-w-0">
+            <ResizableEditorWrapper
+              ref="resizableEditorWrapperRef"
+              :container-height="Math.max(0, containerHeight - topBannerHeight)"
+              @collapse="collapseReplyBox"
+            >
+              <ReplyBox
+                ref="replyBoxRef"
+                @toggle-editor-size="toggleReplyEditorSize"
+                @collapse="collapseReplyBox"
+              />
+            </ResizableEditorWrapper>
+          </div>
+        </div>
+      </Transition>
     </div>
   </div>
 </template>

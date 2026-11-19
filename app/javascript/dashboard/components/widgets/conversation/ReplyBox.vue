@@ -91,7 +91,7 @@ export default {
     ConversationResolveAttributesModal,
   },
   mixins: [inboxMixin, fileUploadMixin],
-  emits: ['toggleEditorSize'],
+  emits: ['toggleEditorSize', 'collapse'],
   setup() {
     const {
       uiSettings,
@@ -1461,6 +1461,7 @@ export default {
       :copilot-task-error-message="copilot.errorMessage.value"
       @set-reply-mode="setReplyMode"
       @toggle-editor-size="toggleEditorSize"
+      @collapse="$emit('collapse')"
       @toggle-copilot="copilot.toggleEditor"
       @execute-copilot-action="executeCopilotAction"
     />

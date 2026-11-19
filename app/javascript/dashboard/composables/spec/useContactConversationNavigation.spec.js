@@ -5,10 +5,14 @@ const mockDispatch = vi.fn();
 const currentChat = ref({});
 const neighbourRecords = ref({});
 const appliedContactFilter = ref(null);
+const filteredConversations = ref([]);
+const route = { name: 'dashboard' };
+vi.mock('vue-router', () => ({ useRoute: () => route }));
 
 vi.mock('dashboard/composables/store', () => ({
   useStore: () => ({ dispatch: mockDispatch }),
   useMapGetter: getter => {
+    if (getter === 'getFilteredConversations') return filteredConversations;
     if (getter === 'getSelectedChat') return currentChat;
     if (getter === 'getAppliedContactFilter') return appliedContactFilter;
     return ref(id => neighbourRecords.value[id] || []);
@@ -27,6 +31,8 @@ describe('useContactConversationNavigation', () => {
     currentChat.value = {};
     neighbourRecords.value = {};
     appliedContactFilter.value = null;
+    filteredConversations.value = [];
+    route.name = 'dashboard';
   });
 
   const setNeighbours = (conversationId, conversations) => {
@@ -40,6 +46,34 @@ describe('useContactConversationNavigation', () => {
       meta: { sender: { id: contactId } },
     };
   };
+
+  it('adopts upstream reading mode, latest conversation and explicit reply reveal', async () => {
+    openConversation(7, 13);
+    appliedContactFilter.value = { id: 7 };
+    filteredConversations.value = [{ id: 14 }, { id: 13 }];
+    setNeighbours(13, [
+      { id: 13, created_at: 1 },
+      { id: 14, created_at: 2 },
+    ]);
+    const navigation = useContactConversationNavigation();
+    expect(navigation.isReadingHistory.value).toBe(true);
+    expect(navigation.latestConversation.value.id).toBe(14);
+    navigation.leaveReadingMode();
+    expect(navigation.isReadingHistory.value).toBe(false);
+    openConversation(7, 12);
+    await nextTick();
+    expect(navigation.isReadingHistory.value).toBe(true);
+  });
+
+  it('ignores a stale contact filter on inbox view, as upstream does', () => {
+    openConversation(7, 13);
+    appliedContactFilter.value = { id: 7 };
+    filteredConversations.value = [{ id: 14 }];
+    route.name = 'inbox_view_conversation';
+    expect(useContactConversationNavigation().isReadingHistory.value).toBe(
+      false
+    );
+  });
 
   it('orders the window returned for the open conversation', () => {
     setNeighbours(13, [

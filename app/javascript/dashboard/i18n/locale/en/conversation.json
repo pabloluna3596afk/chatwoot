@@ -67,7 +67,9 @@
     "UNREAD_MESSAGE": "Unread Message",
     "CONTACT_HISTORY": {
       "OLDER": "Previous chat with this customer",
-      "NEWER": "Next chat with this customer"
+      "NEWER": "Next chat with this customer",
+      "REPLY_TO_OLDER": "Reply to this older conversation",
+      "GO_TO_LATEST": "Go to latest conversation"
     },
     "CLICK_HERE": "Click here",
     "LOADING_INBOXES": "Loading inboxes",
@@ -410,7 +412,8 @@
       "CANCEL_RECORDING": "Cancel recording",
       "RECORDING": "Recording…",
       "SIGNATURE_ON": "On",
-      "SIGNATURE_OFF": "Off"
+      "SIGNATURE_OFF": "Off",
+      "HIDE_COMPOSER": "Hide the reply box"
     },
     "VISIBLE_TO_AGENTS": "Private Note: Only visible to you and your team",
     "CHANGE_STATUS": "Conversation status changed",

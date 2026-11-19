@@ -1,5 +1,5 @@
-import { shallowMount } from '@vue/test-utils';
-import { nextTick } from 'vue';
+import { shallowMount, flushPromises } from '@vue/test-utils';
+import { nextTick, ref } from 'vue';
 import { createStore } from 'vuex';
 import MessagesView from '../MessagesView.vue';
 
@@ -9,8 +9,17 @@ vi.mock('dashboard/composables/useLabelSuggestions', () => ({
     isLabelSuggestionFeatureEnabled: false,
   }),
 }));
+const isReadingHistory = ref(false);
+const latestConversation = ref(null);
+const leaveReadingMode = vi.fn();
+const navigate = vi.fn();
 vi.mock('dashboard/composables/useContactConversationNavigation', () => ({
-  useContactConversationNavigation: () => ({}),
+  useContactConversationNavigation: () => ({
+    isReadingHistory,
+    latestConversation,
+    leaveReadingMode,
+    buildConversationPath: id => `/conversations/${id}`,
+  }),
 }));
 
 describe('MessagesView list resizing', () => {
@@ -19,9 +28,29 @@ describe('MessagesView list resizing', () => {
   let panel;
   let height;
   let scrollToBottom;
+  let phoneMedia;
+  let mediaListeners;
 
   beforeEach(async () => {
     observers = [];
+    isReadingHistory.value = false;
+    latestConversation.value = null;
+    leaveReadingMode.mockImplementation(() => {
+      isReadingHistory.value = false;
+    });
+    sessionStorage.clear();
+    window.cw_keyboard_layout = 'QWERTY';
+    mediaListeners = [];
+    phoneMedia = {
+      matches: false,
+      media: '(max-width: 767px)',
+      addEventListener: (_event, callback) => mediaListeners.push(callback),
+      removeEventListener: vi.fn(),
+    };
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => phoneMedia)
+    );
     vi.stubGlobal(
       'ResizeObserver',
       class {
@@ -57,7 +86,30 @@ describe('MessagesView list resizing', () => {
       },
     });
     wrapper = shallowMount(MessagesView, {
-      global: { plugins: [store], mocks: { $route: { query: {} } } },
+      global: {
+        plugins: [store],
+        mocks: { $route: { query: {} }, $router: { push: navigate } },
+        stubs: {
+          transition: false,
+          ResizableEditorWrapper: { template: '<div><slot/></div>' },
+          ReplyBox: {
+            name: 'ReplyBox',
+            emits: ['collapse'],
+            data: () => ({
+              message: '',
+              hasAttachments: 0,
+              replyType: 'REPLY',
+              canSendPublicReply: true,
+            }),
+            methods: {
+              setReplyMode(mode) {
+                this.replyType = mode;
+              },
+            },
+            template: '<div class="test-editor" />',
+          },
+        },
+      },
     });
     await nextTick();
     panel = wrapper.get('.conversation-panel').element;
@@ -77,6 +129,103 @@ describe('MessagesView list resizing', () => {
     wrapper?.unmount();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it('folds an empty history editor and offers the upstream latest action', async () => {
+    isReadingHistory.value = true;
+    latestConversation.value = { id: 7 };
+    await nextTick();
+    const bar = wrapper.getComponent({ name: 'CollapsedReplyBar' });
+    expect(bar.props('replyLabel')).toBe(
+      'CONVERSATION.CONTACT_HISTORY.REPLY_TO_OLDER'
+    );
+    expect(bar.props('hasLatest')).toBe(true);
+    bar.vm.$emit('goToLatest');
+    expect(navigate).toHaveBeenCalledWith('/conversations/7');
+    expect(wrapper.vm.isReplyFolded).toBe(true);
+  });
+
+  it.each([{ message: 'Draft' }, { hasAttachments: 1 }])(
+    'does not auto-fold with a draft %s',
+    async draft => {
+      Object.assign(wrapper.getComponent({ name: 'ReplyBox' }).vm, draft);
+      isReadingHistory.value = true;
+      await nextTick();
+      expect(wrapper.vm.isReplyFolded).toBe(false);
+      expect(
+        wrapper.findComponent({ name: 'CollapsedReplyBar' }).exists()
+      ).toBe(false);
+    }
+  );
+
+  it.each(['L', 'P'])(
+    'collapses explicitly and Alt+%s reveals the editor',
+    async key => {
+      await flushPromises();
+      wrapper.getComponent({ name: 'ReplyBox' }).vm.$emit('collapse');
+      await nextTick();
+      expect(wrapper.vm.isReplyFolded).toBe(true);
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: key.toLowerCase(),
+          code: `Key${key}`,
+          altKey: true,
+          bubbles: true,
+        })
+      );
+      await flushPromises();
+      expect(wrapper.vm.isReplyFolded).toBe(false);
+      expect(leaveReadingMode).toHaveBeenCalled();
+    }
+  );
+
+  it('reopens a manually hidden draft in the same mode without resetting its attachments', async () => {
+    const editor = wrapper.getComponent({ name: 'ReplyBox' });
+    editor.vm.message = 'Keep this draft';
+    editor.vm.hasAttachments = 1;
+    const switchMode = vi.spyOn(editor.vm, 'setReplyMode');
+    editor.vm.$emit('collapse');
+    await nextTick();
+    wrapper
+      .getComponent({ name: 'CollapsedReplyBar' })
+      .vm.$emit('open', 'REPLY');
+    await flushPromises();
+    expect(editor.vm.message).toBe('Keep this draft');
+    expect(editor.vm.hasAttachments).toBe(1);
+    expect(switchMode).not.toHaveBeenCalled();
+  });
+
+  it('keeps the full-bleed top border', () => {
+    expect(wrapper.get('.border-t').classes()).toContain('border-n-weak');
+  });
+
+  it('never folds on phone, including a persisted manual collapse or reading history', async () => {
+    wrapper.vm.collapseReplyBox();
+    isReadingHistory.value = true;
+    latestConversation.value = { id: 7 };
+    await nextTick();
+    expect(wrapper.vm.isReplyFolded).toBe(true);
+    phoneMedia.matches = true;
+    mediaListeners.forEach(callback => callback(phoneMedia));
+    await nextTick();
+    expect(wrapper.vm.isReplyFolded).toBe(false);
+    expect(wrapper.findComponent({ name: 'CollapsedReplyBar' }).exists()).toBe(
+      false
+    );
+    expect(wrapper.get('.test-editor').isVisible()).toBe(true);
+  });
+
+  it('explicitly opens the older conversation without losing its mounted draft', async () => {
+    isReadingHistory.value = true;
+    await nextTick();
+    const editor = wrapper.getComponent({ name: 'ReplyBox' });
+    wrapper
+      .getComponent({ name: 'CollapsedReplyBar' })
+      .vm.$emit('open', 'REPLY');
+    await flushPromises();
+    expect(wrapper.vm.isReplyFolded).toBe(false);
+    expect(leaveReadingMode).toHaveBeenCalled();
+    expect(wrapper.getComponent({ name: 'ReplyBox' }).vm).toBe(editor.vm);
   });
 
   it.each([0, 80])('pins when previously %s px from the end', distance => {

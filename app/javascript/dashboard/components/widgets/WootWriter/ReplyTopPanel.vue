@@ -63,7 +63,12 @@ export default {
       default: '',
     },
   },
-  emits: ['setReplyMode', 'toggleEditorSize', 'executeCopilotAction'],
+  emits: [
+    'setReplyMode',
+    'toggleEditorSize',
+    'executeCopilotAction',
+    'collapse',
+  ],
   setup(props, { emit }) {
     const setReplyMode = mode => {
       emit('setReplyMode', mode);
@@ -199,8 +204,8 @@ export default {
         </span>
       </div>
     </div>
-    <div v-if="showCopilotMenuButton" class="flex items-center gap-2">
-      <div class="relative">
+    <div class="flex items-center gap-2">
+      <div v-if="showCopilotMenuButton" class="relative">
         <NextButton
           ref="copilotToggleRef"
           ghost
@@ -231,6 +236,15 @@ export default {
           @execute-copilot-action="handleCopilotAction"
         />
       </div>
+      <NextButton
+        v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.HIDE_COMPOSER')"
+        intent="tertiary"
+        sm
+        icon="i-lucide-chevron-down"
+        class="max-md:hidden"
+        :aria-label="$t('CONVERSATION.REPLYBOX.HIDE_COMPOSER')"
+        @click="$emit('collapse')"
+      />
       <NextButton
         ghost
         class="text-n-slate-11 max-md:hidden"
