@@ -64,6 +64,14 @@ describe('composer overflow menu', () => {
       expect(document.activeElement).toBe(trigger.element);
       await trigger.trigger('click');
       await flushPromises();
+      const dialog = document.querySelector('dialog');
+      if (dialog) {
+        dialog.click();
+        await flushPromises();
+        expect(trigger.attributes('aria-expanded')).toBe('false');
+        await trigger.trigger('click');
+        await flushPromises();
+      }
       document.querySelector('[role="menuitem"]').click();
       await flushPromises();
       expect(wrapper.emitted('select')).toEqual([['signature']]);

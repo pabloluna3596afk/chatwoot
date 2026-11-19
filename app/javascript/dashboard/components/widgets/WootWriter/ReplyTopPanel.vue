@@ -211,7 +211,8 @@ export default {
           ghost
           :disabled="disabled || isEditorDisabled"
           :class="{
-            'text-n-violet-9 hover:enabled:!bg-n-violet-3': !showCopilotMenu,
+            'text-n-violet-9 hover:enabled:!bg-n-violet-3 max-md:bg-n-violet-3':
+              !showCopilotMenu,
             'text-n-violet-9 bg-n-violet-3': showCopilotMenu,
           }"
           sm
@@ -247,7 +248,7 @@ export default {
       />
       <NextButton
         ghost
-        class="text-n-slate-11 max-md:hidden"
+        class="text-n-slate-11"
         sm
         icon="i-lucide-maximize-2"
         @click="$emit('toggleEditorSize')"

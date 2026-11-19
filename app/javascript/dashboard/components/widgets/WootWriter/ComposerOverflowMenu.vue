@@ -120,6 +120,7 @@ watch(
         :aria-label="$t('CONVERSATION.REPLYBOX.MORE_OPTIONS')"
         class="fixed inset-x-0 bottom-0 top-auto m-0 w-full max-w-none max-h-[80dvh] rounded-t-2xl border-0 bg-n-surface-1 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-n-slate-12 shadow-xl backdrop:bg-n-alpha-black1"
         @cancel.prevent="close"
+        @click.self="close"
         @close="isOpen = false"
         @keydown.esc.stop.prevent="close"
       >

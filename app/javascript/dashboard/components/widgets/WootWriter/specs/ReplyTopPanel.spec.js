@@ -14,7 +14,7 @@ vi.mock('dashboard/composables/useCaptain', () => ({
 }));
 
 describe('ReplyTopPanel collapse action', () => {
-  it('offers Hide and expand even without Copilot, with desktop-only controls', async () => {
+  it('offers Hide and expand even without Copilot, with desktop-only Hide', async () => {
     const wrapper = mount(ReplyTopPanel, {
       global: {
         stubs: {
@@ -31,7 +31,7 @@ describe('ReplyTopPanel collapse action', () => {
     await hide.trigger('click');
     expect(wrapper.emitted('collapse')).toEqual([[]]);
     const expand = wrapper.findAll('button').at(-1);
-    expect(expand.classes()).toContain('max-md:hidden');
+    expect(expand.classes()).not.toContain('max-md:hidden');
     await expand.trigger('click');
     expect(wrapper.emitted('toggleEditorSize')).toEqual([[]]);
     wrapper.unmount();
