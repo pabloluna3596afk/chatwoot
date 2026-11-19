@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
+import { useAssistantName } from 'dashboard/composables/useAssistantName';
 
 const props = defineProps({
   kind: { type: String, required: true },
@@ -10,9 +11,11 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
   loadError: { type: Boolean, default: false },
   submitted: { type: Boolean, default: false },
+  assistant: { type: Object, default: null },
 });
 const row = defineModel({ type: Object, required: true });
 const { t } = useI18n();
+const { nameRich } = useAssistantName(() => props.assistant);
 const key = 'CAPTAIN.ASSISTANTS.FORM.HANDOFF_ROUTING';
 const modes = ['inbox', 'last_agent', 'team', 'ai_team'];
 const labelKey = mode =>
@@ -25,7 +28,7 @@ const noTeams = computed(
 const options = computed(() =>
   modes.map(mode => ({
     value: mode,
-    label: t(`${key}.MODES.${labelKey(mode)}.LABEL`),
+    label: nameRich(`${key}.MODES.${labelKey(mode)}.LABEL`),
     disabled: noTeams.value && ['team', 'ai_team'].includes(mode),
   }))
 );
@@ -86,7 +89,7 @@ const updateMode = mode => {
         :model-value="row.mode"
         :options="options"
         :allow-deselect="false"
-        :help="t(`${key}.MODES.${row.mode.toUpperCase()}.HELP`)"
+        :help="nameRich(`${key}.MODES.${row.mode.toUpperCase()}.HELP`)"
         @update:model-value="updateMode"
       />
       <p v-if="noTeams" class="m-0 text-xs text-n-slate-11">

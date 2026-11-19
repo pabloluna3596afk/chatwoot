@@ -1334,7 +1334,7 @@
         },
         "HANDOFF_ROUTING": {
           "TITLE": "Who gets the handoff",
-          "DESCRIPTION": "Captain never assigns someone who is offline or not in the inbox. If nobody is available, the conversation stays unassigned and the customer gets the handoff message.",
+          "DESCRIPTION": "{assistantName} never assigns someone who is offline or not in the inbox. If nobody is available, the conversation stays unassigned and the customer gets the handoff message.",
           "NEW": "New conversation",
           "REOPENED": "Reopened conversation",
           "REOPENED_HELP": "The customer writes again after it was resolved.",
@@ -1357,8 +1357,8 @@
               "HELP": "Assigned among the team's online members. If nobody is online, it stays in the team unassigned."
             },
             "AI_TEAM": {
-              "LABEL": "Captain chooses the team",
-              "HELP": "Captain reads each team's description (Settings → Teams) and picks the one that fits. If none fits, it is assigned like the inbox."
+              "LABEL": "{assistantName} chooses the team",
+              "HELP": "{assistantName} reads each team's description (Settings → Teams) and picks the one that fits. If none fits, it is assigned like the inbox."
             }
           },
           "TEAM_PLACEHOLDER": "Choose a team",
@@ -1376,7 +1376,7 @@
           "OFF": "Do not change the priority",
           "ON_SIGNAL": "High if the customer is upset or in a hurry",
           "ALWAYS": "Always high",
-          "HELP": "Captain never lowers a priority that is already set."
+          "HELP": "{assistantName} never lowers a priority that is already set."
         }
       },
       "EDIT": {

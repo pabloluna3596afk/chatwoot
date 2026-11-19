@@ -20,6 +20,7 @@ import Input from 'dashboard/components-next/input/Input.vue';
 import SettingsToggleSection from 'dashboard/components-next/Settings/SettingsToggleSection.vue';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import HandoffRoutingRow from './HandoffRoutingRow.vue';
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
 
 const props = defineProps({
   assistant: {
@@ -250,7 +251,9 @@ watch(
     <SettingsToggleSection
       hide-toggle
       :header="t('CAPTAIN.ASSISTANTS.FORM.HANDOFF_ROUTING.TITLE')"
-      :description="t('CAPTAIN.ASSISTANTS.FORM.HANDOFF_ROUTING.DESCRIPTION')"
+      :description="
+        nameRich('CAPTAIN.ASSISTANTS.FORM.HANDOFF_ROUTING.DESCRIPTION')
+      "
     >
       <template #editor>
         <div class="flex flex-col gap-4">
@@ -259,6 +262,7 @@ watch(
             :key="kind"
             v-model="state.handoffRouting[kind]"
             :kind="kind"
+            :assistant="assistant"
             :teams="teams"
             :eligible-team-ids="assistant.eligible_team_ids ?? []"
             :loading="teamsLoading"
@@ -298,7 +302,9 @@ watch(
             }}
           </label>
           <p class="m-0 text-xs text-n-slate-11">
-            {{ t('CAPTAIN.ASSISTANTS.FORM.HANDOFF_PRIORITY.HELP') }}
+            <AssistantNameText
+              :text="nameRich('CAPTAIN.ASSISTANTS.FORM.HANDOFF_PRIORITY.HELP')"
+            />
           </p>
         </div>
       </template>

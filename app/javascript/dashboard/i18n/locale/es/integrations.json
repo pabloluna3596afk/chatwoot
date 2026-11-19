@@ -1334,7 +1334,7 @@
         },
         "HANDOFF_ROUTING": {
           "TITLE": "A quién va el traspaso",
-          "DESCRIPTION": "Captain nunca asigna a alguien desconectado ni a quien no está en la bandeja. Si nadie está disponible, la conversación queda sin asignar y el cliente recibe el mensaje de traspaso.",
+          "DESCRIPTION": "{assistantName} nunca asigna a alguien desconectado ni a quien no está en la bandeja. Si nadie está disponible, la conversación queda sin asignar y el cliente recibe el mensaje de traspaso.",
           "NEW": "Conversación nueva",
           "REOPENED": "Conversación reabierta",
           "REOPENED_HELP": "El cliente vuelve a escribir después de que se resolvió.",
@@ -1357,8 +1357,8 @@
               "HELP": "Se reparte entre las personas conectadas del equipo. Si nadie está conectado, queda en el equipo sin asignar."
             },
             "AI_TEAM": {
-              "LABEL": "Captain elige el equipo",
-              "HELP": "Captain lee la descripción de cada equipo (Ajustes → Equipos) y elige el que encaja. Si ninguno encaja, se reparte como la bandeja."
+              "LABEL": "{assistantName} elige el equipo",
+              "HELP": "{assistantName} lee la descripción de cada equipo (Ajustes → Equipos) y elige el que encaja. Si ninguno encaja, se reparte como la bandeja."
             }
           },
           "TEAM_PLACEHOLDER": "Elige un equipo",
@@ -1376,7 +1376,7 @@
           "OFF": "No cambiar la prioridad",
           "ON_SIGNAL": "Alta si el cliente está molesto o tiene prisa",
           "ALWAYS": "Alta siempre",
-          "HELP": "Captain nunca baja una prioridad que ya está puesta."
+          "HELP": "{assistantName} nunca baja una prioridad que ya está puesta."
         }
       },
       "EDIT": {

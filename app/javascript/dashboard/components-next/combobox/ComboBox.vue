@@ -1,4 +1,6 @@
 <script setup>
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
+import { ASSISTANT_NAME_MARKER } from 'dashboard/composables/useAssistantName';
 import {
   ref,
   computed,
@@ -119,6 +121,8 @@ const showSearchField = computed(() => {
   return props.useApiResults || props.options.length > SEARCH_OPTION_THRESHOLD;
 });
 
+// Labels may carry the assistant-name marker (styled in the list); trigger and search use plain text.
+const plain = text => String(text ?? '').replaceAll(ASSISTANT_NAME_MARKER, '');
 const filteredOptions = computed(() => {
   if (props.useApiResults && search.value) {
     return props.options;
@@ -127,7 +131,7 @@ const filteredOptions = computed(() => {
   const searchTerm = search.value.toLowerCase();
   return props.options.filter(option =>
     [option.label, ...(option.searchTerms || [])].some(term =>
-      term.toLowerCase().includes(searchTerm)
+      plain(term).toLowerCase().includes(searchTerm)
     )
   );
 });
@@ -138,7 +142,7 @@ const selectedLabel = computed(() => {
   if (props.multiple) {
     const labels = props.options
       .filter(option => selectedValue.value.includes(option.value))
-      .map(option => option.label);
+      .map(option => plain(option.label));
     return labels.length
       ? `${labels[0]}${labels.length > 1 ? ` +${labels.length - 1}` : ''}`
       : selectPlaceholder.value;
@@ -146,7 +150,9 @@ const selectedLabel = computed(() => {
   const selected = props.options.find(
     option => option.value === selectedValue.value
   );
-  return selected?.label ?? (props.displayLabel || selectPlaceholder.value);
+  return (
+    plain(selected?.label) || props.displayLabel || selectPlaceholder.value
+  );
 });
 
 const selectOption = option => {
@@ -316,7 +322,7 @@ onClickOutside(
       :id="`${uniqueId}-help`"
       class="mt-2 mb-0 text-xs text-n-slate-11 whitespace-pre-line break-words"
     >
-      {{ help }}
+      <AssistantNameText :text="help" />
     </p>
     <p
       v-if="message"
