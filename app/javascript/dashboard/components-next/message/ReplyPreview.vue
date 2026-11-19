@@ -8,7 +8,11 @@ import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import FileIcon from 'next/icon/FileIcon.vue';
 import Icon from 'next/icon/Icon.vue';
-import { attachmentName, attachmentExtension } from './media/attachment';
+import {
+  attachmentName,
+  attachmentExtension,
+  middleEllipsis,
+} from './media/attachment';
 import { useMediaState } from './media/useMediaState';
 
 const { inReplyTo, channelType } = useMessageContext();
@@ -54,7 +58,7 @@ const text = computed(() => {
   if (message.value?.content)
     return new MessageFormatter(message.value.content).formattedMessage;
   return (
-    attachmentName(attachment.value) ||
+    middleEllipsis(attachmentName(attachment.value)) ||
     t('CONVERSATION.REPLY_MESSAGE_NOT_FOUND')
   );
 });
@@ -66,6 +70,11 @@ const scrollToMessage = () =>
   <button
     type="button"
     class="flex items-center gap-2 p-1.5 -mx-1 mb-2 rounded-lg bg-n-alpha-black1 border-s-[3px] border-n-brand cursor-pointer text-start w-full min-w-0"
+    :class="
+      attachment.fileType
+        ? '!mx-0 !p-2 !gap-2.5 !bg-n-alpha-1 ring-1 ring-n-weak hover:!bg-n-alpha-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-n-brand'
+        : ''
+    "
     @click="scrollToMessage"
   >
     <span
@@ -96,11 +105,21 @@ const scrollToMessage = () =>
       icon="i-lucide-mic"
       class="size-8 shrink-0 text-n-slate-12"
     />
-    <span class="min-w-0 flex flex-col">
+    <span
+      class="min-w-0 flex flex-col"
+      :class="attachment.fileType ? 'gap-0.5' : ''"
+    >
       <span v-if="heading" class="text-xs font-semibold text-n-brand">{{
         heading
       }}</span>
-      <span v-dompurify-html="text" class="text-xs text-n-slate-11 truncate" />
+      <span
+        v-dompurify-html="text"
+        :class="
+          attachment.fileType
+            ? 'text-xs leading-4 text-n-slate-12 line-clamp-2 break-all'
+            : 'text-xs text-n-slate-11 truncate'
+        "
+      />
     </span>
   </button>
 </template>

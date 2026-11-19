@@ -87,40 +87,48 @@ const download = async () => {
 
 <template>
   <div
-    class="flex items-center gap-2.5 p-2 rounded-xl border border-n-weak bg-n-surface-1 min-w-0 w-[min(20rem,100%)]"
+    class="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2 p-3 rounded-xl border border-n-weak bg-n-alpha-1 min-w-0 w-[20rem] max-w-full"
     @click.stop
   >
-    <FileIcon :file-type="extension" class="size-9 shrink-0 text-n-slate-12" />
+    <div
+      class="grid place-items-center size-11 rounded-lg bg-n-solid-1 ring-1 ring-n-weak"
+    >
+      <FileIcon :file-type="extension" class="size-8 text-n-slate-12" />
+    </div>
     <div class="min-w-0 flex-1">
       <div
-        class="line-clamp-2 break-words text-sm font-medium text-n-slate-12"
+        class="line-clamp-2 break-all text-sm leading-5 font-medium text-n-slate-12"
         :title="name"
       >
         {{ middleEllipsis(name) }}
       </div>
-      <div class="text-xs text-n-slate-11">
+      <div class="mt-1 text-xs text-n-slate-11">
         {{ size ? `${type} \u00b7 ${size}` : type }}
       </div>
       <div v-if="isExpired" role="status" class="text-xs text-n-slate-11">
         {{ errorText }}
       </div>
     </div>
-    <Button
-      v-if="canPreview"
-      size="xs"
-      intent="primary"
-      :label="t('COMPONENTS.FILE.VIEW')"
-      @click.prevent="showGallery = true"
-    />
-    <Button
-      size="xs"
-      intent="tertiary"
-      icon="i-lucide-download"
-      :aria-label="t('CONVERSATION.DOWNLOAD')"
-      :is-loading="isDownloading"
-      :disabled="isDownloading"
-      @click.prevent="download"
-    />
+    <div class="col-start-2 flex items-center gap-1.5">
+      <Button
+        v-if="canPreview"
+        size="xs"
+        intent="secondary"
+        icon="i-lucide-eye"
+        :label="t('COMPONENTS.FILE.VIEW')"
+        @click.prevent="showGallery = true"
+      />
+      <Button
+        size="xs"
+        intent="tertiary"
+        icon="i-lucide-download"
+        :aria-label="t('CONVERSATION.DOWNLOAD')"
+        :label="canPreview ? undefined : t('CONVERSATION.DOWNLOAD')"
+        :is-loading="isDownloading"
+        :disabled="isDownloading"
+        @click.prevent="download"
+      />
+    </div>
   </div>
   <GalleryView
     v-if="showGallery"
