@@ -2,12 +2,11 @@
 import Button from 'dashboard/components-next/button/Button.vue';
 
 defineProps({
-  canAssignVariables: { type: Boolean, default: false },
   canManage: { type: Boolean, default: false },
   canEdit: { type: Boolean, default: false },
   labels: { type: Object, required: true },
 });
-const emit = defineEmits(['edit', 'duplicate', 'delete', 'variables']);
+const emit = defineEmits(['edit', 'duplicate', 'delete']);
 const buttonProps = Object.freeze({
   variant: 'outline',
   color: 'slate',
@@ -23,14 +22,6 @@ const actions = [
 
 <template>
   <div class="flex gap-1">
-    <Button
-      v-if="canAssignVariables"
-      intent="secondary"
-      sm
-      :label="labels.variables"
-      data-action="variables"
-      @click.stop="emit('variables')"
-    />
     <Button
       v-for="action in actions"
       :key="action.key"

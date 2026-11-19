@@ -7,6 +7,11 @@ import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 import ComboBoxDropdown from 'dashboard/components-next/combobox/ComboBoxDropdown.vue';
 import { useAlert } from 'dashboard/composables';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
+import InboxesAPI from 'dashboard/api/inboxes';
+import VariablePicker from 'dashboard/components-next/variable-picker/VariablePicker.vue';
+vi.mock('dashboard/api/inboxes', () => ({
+  default: { updateWhatsappTemplateVariableBindings: vi.fn(async () => ({})) },
+}));
 import VariablesAPI from 'dashboard/api/variables';
 import catalog from 'dashboard/components-next/variable-picker/specs/catalog.json';
 vi.mock('dashboard/api/variables', () => ({ default: { catalog: vi.fn() } }));
@@ -69,7 +74,7 @@ vi.mock('dashboard/api/whatsappTemplates', () => ({
   },
 }));
 
-const inboxes = [{ id: 7, name: 'Soporte' }];
+const inboxes = [{ id: 7, name: 'Soporte', provider: 'whatsapp_cloud' }];
 
 const SidePanelStub = {
   template: '<div><slot name="header" /><slot /><slot name="footer" /></div>',
@@ -395,12 +400,155 @@ describe('TemplateFormDrawer', () => {
     ],
   };
 
+  it('edits synced positional bindings locally even without Meta examples', async () => {
+    const template = {
+      ...positional,
+      components: [{ type: 'BODY', text: 'Hola {{1}} {{nombre}} {{pedido}}' }],
+      variable_sources: {
+        body: {
+          1: { source: 'missing', path: null },
+          nombre: { source: 'alias', path: 'contact.name' },
+          pedido: { source: 'binding', path: 'contact.email' },
+        },
+      },
+    };
+    WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: template });
+    const wrapper = await mountDrawer();
+    await wrapper.vm.open(template);
+    const section = wrapper.get('[data-testid="variable-values"]');
+    expect(section.text()).toContain('VARIABLE_AUTOMATIC');
+    const pickers = section.findAllComponents(VariablePicker);
+    expect(pickers[0].props('modelValue')).toBe('');
+    pickers[0].vm.$emit('update:modelValue', 'contact.name');
+    await flushPromises();
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+    expect(WhatsappTemplatesAPI.updateTemplate).not.toHaveBeenCalled();
+    expect(
+      InboxesAPI.updateWhatsappTemplateVariableBindings
+    ).toHaveBeenCalledWith(7, {
+      name: template.name,
+      variable_bindings: { 1: 'contact.name', pedido: 'contact.email' },
+    });
+    expect(wrapper.emitted('saved')).toHaveLength(1);
+    wrapper.unmount();
+  });
+
+  it.each(['unsupported content', 'Meta unavailable', '360dialog'])(
+    'keeps local bindings editable with %s',
+    async reason => {
+      const template = {
+        ...positional,
+        components: [
+          { type: 'BODY', text: 'Hola {{1}}' },
+          ...(reason === 'unsupported content'
+            ? [{ type: 'CAROUSEL', cards: [] }]
+            : []),
+        ],
+        variable_sources: { body: { 1: { source: 'missing' } } },
+      };
+      if (reason === 'Meta unavailable')
+        WhatsappTemplatesAPI.getTemplate.mockRejectedValue(
+          new Error('offline')
+        );
+      else
+        WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: template });
+      const wrapper = await mountDrawer({
+        inboxes:
+          reason === '360dialog'
+            ? [{ ...inboxes[0], provider: 'default' }]
+            : inboxes,
+      });
+      await wrapper.vm.open(template);
+      expect(wrapper.get('fieldset').attributes('disabled')).toBeDefined();
+      const picker = wrapper
+        .get('[data-testid="variable-values"]')
+        .findComponent(VariablePicker);
+      picker.vm.$emit('update:modelValue', 'contact.name');
+      await flushPromises();
+      await wrapper.get('form').trigger('submit');
+      await flushPromises();
+      expect(WhatsappTemplatesAPI.updateTemplate).not.toHaveBeenCalled();
+      expect(
+        InboxesAPI.updateWhatsappTemplateVariableBindings
+      ).toHaveBeenCalledWith(7, {
+        name: template.name,
+        variable_bindings: { 1: 'contact.name' },
+      });
+      expect(wrapper.emitted('saved')).toHaveLength(1);
+      wrapper.unmount();
+    }
+  );
+
+  it('saves bindings before a content edit can make the template pending at Meta', async () => {
+    const template = {
+      ...positional,
+      variable_sources: { body: { 1: { source: 'missing' } } },
+    };
+    WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: template });
+    WhatsappTemplatesAPI.updateTemplate.mockResolvedValue({
+      data: { status: 'PENDING' },
+    });
+    InboxesAPI.updateWhatsappTemplateVariableBindings.mockImplementationOnce(
+      async () => {
+        if (WhatsappTemplatesAPI.updateTemplate.mock.calls.length)
+          throw new Error('template_not_approved');
+        return {};
+      }
+    );
+    const wrapper = await mountDrawer();
+    await wrapper.vm.open(template);
+    wrapper
+      .get('[data-testid="variable-values"]')
+      .findComponent(VariablePicker)
+      .vm.$emit('update:modelValue', 'contact.name');
+    await wrapper
+      .get('textarea')
+      .setValue(`${positional.components[0].text} Gracias.`);
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+    expect(WhatsappTemplatesAPI.updateTemplate).toHaveBeenCalledTimes(1);
+    expect(wrapper.emitted('saved')).toHaveLength(1);
+    wrapper.unmount();
+  });
+
+  it('keeps the editor open when saving local variables fails', async () => {
+    const template = {
+      ...positional,
+      variable_sources: { body: { 1: { source: 'missing' } } },
+    };
+    WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: template });
+    InboxesAPI.updateWhatsappTemplateVariableBindings.mockRejectedValueOnce(
+      new Error('offline')
+    );
+    const wrapper = await mountDrawer();
+    await wrapper.vm.open(template);
+    wrapper
+      .get('[data-testid="variable-values"]')
+      .findComponent(VariablePicker)
+      .vm.$emit('update:modelValue', 'contact.name');
+    await flushPromises();
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+    expect(wrapper.get('[data-testid="meta-error"]').text()).toContain(
+      'SAVE_ERROR'
+    );
+    expect(wrapper.emitted('saved')).toBeUndefined();
+    expect(WhatsappTemplatesAPI.updateTemplate).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
   it.each(['new', 'edit', 'copy'])(
     'keeps every %s picker fixed outside the drawer scroll container',
     async mode => {
       WhatsappTemplatesAPI.getTemplate.mockResolvedValue({ data: positional });
       const wrapper = await mountDrawer(
-        { inboxes: [...inboxes, { id: 8, name: 'Ventas' }] },
+        {
+          inboxes: [
+            ...inboxes,
+            { id: 8, name: 'Ventas', provider: 'whatsapp_cloud' },
+          ],
+        },
         true
       );
       if (mode !== 'new') await wrapper.vm.open(positional);
@@ -503,6 +651,9 @@ describe('TemplateFormDrawer', () => {
       });
       const wrapper = await mountDrawer();
       await wrapper.vm.open(positional);
+      await wrapper
+        .get('textarea')
+        .setValue(`${positional.components[0].text} Gracias.`);
       await wrapper.get('form').trigger('submit');
       await flushPromises();
 
@@ -527,6 +678,9 @@ describe('TemplateFormDrawer', () => {
     });
     const wrapper = await mountDrawer();
     await wrapper.vm.open(positional);
+    await wrapper
+      .get('textarea')
+      .setValue(`${positional.components[0].text} Gracias.`);
     await wrapper.get('form').trigger('submit');
     await flushPromises();
 
@@ -564,6 +718,9 @@ describe('TemplateFormDrawer', () => {
       true
     );
     expect(wrapper.find('[data-testid="meta-rules"]').exists()).toBe(false);
+    await wrapper
+      .get('textarea')
+      .setValue(`${positional.components[0].text} Gracias.`);
     await wrapper.get('form').trigger('submit');
     await flushPromises();
     expect(WhatsappTemplatesAPI.updateTemplate).toHaveBeenCalledWith(
@@ -573,7 +730,7 @@ describe('TemplateFormDrawer', () => {
         parameter_format: 'POSITIONAL',
         header: expect.objectContaining({ format: 'NONE' }),
         body: {
-          text: positional.components[0].text,
+          text: `${positional.components[0].text} Gracias.`,
           examples: ['Ana', '123', 'lunes', 'Luis'],
         },
         buttons: [
@@ -630,6 +787,9 @@ describe('TemplateFormDrawer', () => {
       expect.objectContaining({ value: 'IMAGE' })
     );
     expect(header.props('disabled')).toBe(true);
+    await wrapper
+      .get('textarea')
+      .setValue(`${positional.components[0].text} Gracias.`);
     await wrapper.get('form').trigger('submit');
     await flushPromises();
     expect(WhatsappTemplatesAPI.updateTemplate).toHaveBeenCalledWith(
@@ -865,6 +1025,9 @@ describe('TemplateFormDrawer', () => {
     });
     const wrapper = await mountDrawer();
     await wrapper.vm.open(positional);
+    await wrapper
+      .get('textarea')
+      .setValue(`${positional.components[0].text} Gracias.`);
     await wrapper.get('form').trigger('submit');
     await flushPromises();
     // The translated framing receives the original text as interpolation.

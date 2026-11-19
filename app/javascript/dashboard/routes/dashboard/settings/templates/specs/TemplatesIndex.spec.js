@@ -7,13 +7,14 @@ import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDrop
 import InboxesAPI from 'dashboard/api/inboxes';
 import WhatsappTemplatesAPI from 'dashboard/api/whatsappTemplates';
 
-const { openForm, openPreview, openSystemCopy } = vi.hoisted(() => ({
+const { openForm, openPreview, openSystemCopy, query } = vi.hoisted(() => ({
+  query: {},
   openForm: vi.fn(),
   openPreview: vi.fn(),
   openSystemCopy: vi.fn(),
 }));
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ query: {} }),
+  useRoute: () => ({ query }),
   useRouter: () => ({ push: vi.fn() }),
 }));
 vi.mock('vue-i18n', () => ({
@@ -49,9 +50,6 @@ vi.mock('dashboard/api/inboxes', () => ({
 }));
 vi.mock('dashboard/api/whatsappTemplates', () => ({
   default: { createTemplate: vi.fn() },
-}));
-vi.mock('../TemplateVariablesDrawer.vue', () => ({
-  default: { template: '<div/>', methods: { open() {} } },
 }));
 vi.mock('../TemplateFormDrawer.vue', () => ({
   default: { template: '<div/>', methods: { open: openForm, openSystemCopy } },
@@ -98,7 +96,7 @@ describe('Templates page', () => {
     return wrapper;
   };
 
-  it('filters pending variables, sorts utility first and exposes Variables independently of Edit', async () => {
+  it('filters pending variables, sorts utility first and offers Edit and a quiet pending indicator', async () => {
     const pending = {
       language: 'es',
       category: 'MARKETING',
@@ -114,19 +112,39 @@ describe('Templates page', () => {
       { ...pending, id: '4', name: 'waiting', status: 'PENDING' },
     ]);
     const actions = wrapper.findAllComponents(TemplateRowActions);
-    expect(actions.map(action => action.props('canAssignVariables'))).toEqual([
-      true,
-      false,
-      false,
-      true,
-    ]);
+    expect(actions[0].props('canEdit')).toBe(true);
+    expect(wrapper.findAll('[data-testid="template-pending"]')).toHaveLength(2);
     await wrapper.get('button[aria-pressed]').trigger('click');
     const table = wrapper.findComponent(TemplatesTable);
     expect(table.props('items').map(item => item.name)).toEqual([
       'z_utilidad',
       'a_promo',
     ]);
-    expect(table.props('columns').map(column => column.key)).toContain('DATA');
+    expect(table.props('columns').map(column => column.key)).not.toContain(
+      'DATA'
+    );
+    wrapper.unmount();
+  });
+
+  it('opens the edit form from the pending-variable link', async () => {
+    Object.assign(query, { q: 'pedido_listo', filter: 'missing' });
+    const wrapper = await render([
+      {
+        id: '55',
+        name: 'pedido_listo',
+        language: 'es',
+        status: 'APPROVED',
+        category: 'UTILITY',
+        components: [{ type: 'BODY', text: 'Hola {{1}}' }],
+        variable_sources: { body: { 1: { source: 'missing' } } },
+        missing_variables: ['1'],
+      },
+    ]);
+    expect(openForm).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'pedido_listo' })
+    );
+    delete query.q;
+    delete query.filter;
     wrapper.unmount();
   });
 

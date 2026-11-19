@@ -8,21 +8,15 @@ import en from 'dashboard/i18n/locale/en/whatsappTemplateMgmt.json';
 import es from 'dashboard/i18n/locale/es/whatsappTemplateMgmt.json';
 
 describe('shared templates table', () => {
-  it('shows Variables independently of provider management and hides it for ineligible rows', async () => {
+  it('offers Edit independently of content management', async () => {
     const wrapper = mount(TemplateRowActions, {
-      props: {
-        canAssignVariables: true,
-        canManage: false,
-        canEdit: false,
-        labels: { variables: 'Variables' },
-      },
+      props: { canManage: false, canEdit: true, labels: { edit: 'Editar' } },
     });
-    await wrapper.get('[data-action="variables"]').trigger('click');
-    expect(wrapper.emitted('variables')).toHaveLength(1);
+    await wrapper.get('[data-action="edit"]').trigger('click');
+    expect(wrapper.emitted('edit')).toHaveLength(1);
     expect(
-      wrapper.get('[data-action="variables"]').attributes('disabled')
-    ).toBeUndefined();
-    await wrapper.setProps({ canAssignVariables: false });
+      wrapper.get('[data-action="duplicate"]').attributes('disabled')
+    ).toBeDefined();
     expect(wrapper.find('[data-action="variables"]').exists()).toBe(false);
   });
 

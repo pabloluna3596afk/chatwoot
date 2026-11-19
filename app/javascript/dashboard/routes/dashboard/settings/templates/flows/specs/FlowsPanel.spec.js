@@ -6,9 +6,6 @@ const PreviewStub = {
   methods: { open: openDetail },
 };
 import FlowsPanel from '../FlowsPanel.vue';
-vi.mock('../../TemplateVariablesDrawer.vue', () => ({
-  default: { template: '<div />' },
-}));
 import WhatsappFlowsAPI from 'dashboard/api/whatsappFlows';
 import FilterDropdown from 'dashboard/components-next/filter-dropdown/FilterDropdown.vue';
 import PaginationFooter from 'dashboard/components-next/pagination/PaginationFooter.vue';

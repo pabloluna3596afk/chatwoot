@@ -76,7 +76,7 @@
       "DESCRIPTION": "Meta reviews every template before it can be used. The preview updates as you type.",
       "STATUS": "Status in Meta:",
       "REJECTED_REASON": "Rejection reason: {reason}",
-      "CANNOT_EDIT_NOW": "Meta only allows editing approved, rejected or paused templates. Wait for the review to finish.",
+      "CANNOT_EDIT_NOW": "Content editing is unavailable for this template. Variable values can still be configured when shown below.",
       "CHANNEL": "WhatsApp inbox",
       "CHANNEL_PLACEHOLDER": "Choose an inbox",
       "NAME": "Name",
@@ -187,7 +187,7 @@
       "COPY_CODE_HELP": "Meta writes the button label (\"Copy offer code\"). Up to 15 characters.",
       "PRESERVED": "Kept exactly as it is in Meta: {parts}. It cannot be edited from here.",
       "VARIABLE_VALUES": "What fills each variable?",
-      "VARIABLE_VALUES_HELP": "Variables ChatHub already knows (nombre, correo, ciudad…) fill themselves. These are not in the table: choose the value that fills them, or leave them on \"Only in this template\" and it is chosen when sending.",
+      "VARIABLE_VALUES_HELP": "Choose the data used to fill each variable. Named system variables fill automatically. Changing these choices does not resubmit the template to Meta.",
       "VARIABLE_ONLY_HERE": "Only in this template",
       "EXAMPLES": "Example of each variable (Meta asks for it to review the template)",
       "PREVIEW": "Preview",
@@ -208,10 +208,12 @@
       "SYSTEM_COPY_HELP": "Choose a variable for each number; the old template keeps working until Meta approves the copy.",
       "MAP_VARIABLE": "Choose a variable",
       "CREATE_ATTRIBUTE": "Create new attribute",
-      "APPROVED_WARNING": "Meta allows 1 edit per 24 hours and 10 in 30 days. Name and language cannot change; saving sends the template back to review and it may become pending or paused.",
+      "APPROVED_WARNING": "Meta allows 1 content edit per 24 hours and 10 in 30 days. Name and language cannot change. Editing content sends the template back to review; changing variable values does not.",
       "LAST_EDIT": "Last edit: {time}",
       "EDIT_STRUCTURE_HELP": "You can edit text while keeping the components and variables in the same order.",
-      "META_ERROR": "Meta rejected the request: {message}"
+      "META_ERROR": "Meta rejected the request: {message}",
+      "VARIABLE_AUTOMATIC": "Automatic",
+      "VARIABLE_PENDING": "Choose a value"
     },
     "DELETE_DIALOG": {
       "TITLE": "Delete template",
@@ -317,35 +319,11 @@
       "VIEW": "View",
       "COUNT": "{startItem}–{endItem} of {totalItems}",
       "UPDATED": "Updated",
-      "SCREENS": "Screens",
-      "DATA": "Data"
-    },
-    "DATA_STATE": {
-      "NONE": "No variables",
-      "AUTO": "Variables ready",
-      "MISSING": "Pending variable: {variables}",
-      "MISSING_TOOLTIP": "No system variable is assigned to {variables}. The AI will not use this template until you set it up in «Variables»."
+      "SCREENS": "Screens"
     },
     "FILTER": {
       "MISSING": "Pending variables ({count})"
     },
-    "ACTIONS": {
-      "VARIABLES": "Variables"
-    },
-    "VARIABLES_DRAWER": {
-      "TITLE": "Variables · {name}",
-      "AUTO": "Automatic: {label}",
-      "CHANGE": "Change",
-      "MISSING_HINT": "Pending: choose a system variable. Until then, the AI will not send this template.",
-      "SUGGESTED_EMAIL": "Suggested because the Meta example is an email. Saved only when you click Save.",
-      "SUGGESTED_PHONE": "Suggested because the Meta example is a phone number. Saved only when you click Save.",
-      "APPLIES_TO": "Applies to:",
-      "WARNING": "Also changes what is filled in the Send Center and campaigns. It is not resubmitted to Meta.",
-      "SAVE": "Save",
-      "CANCEL": "Cancel",
-      "SAVE_ERROR": "Could not save variables in {inbox}. Try again.",
-      "NOT_APPROVED": "This template is no longer approved",
-      "AUTO_HINT": "Filled automatically because the variable is named ?{token}?."
-    }
+    "MISSING_VARIABLES": "Missing value for {variables}"
   }
 }

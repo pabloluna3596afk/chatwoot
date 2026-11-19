@@ -3674,3 +3674,21 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 - **Archivos:** `Followup::Reengager` y spec de concurrencia.
 - **Arreglo:** bloqueo asesor transaccional PostgreSQL por contacto, dentro del lock existente de conversacion, antes de leer elegibilidad/cooldown. Cubre conversaciones distintas y libera al confirmar o revertir la transaccion.
 - **Como probar:** dos conexiones reales, la segunda espera por lock asesor y omite con cooldown tras confirmar el primer envio; conserva regla de siete dias. Sin migraciones.
+
+
+### B-NEW-280 - Envios: revision antigua pese a cargar el detalle (2026-11-19)
+
+- **Archivos:** `AssistantMessagingForm.vue` y su spec.
+- **Causa:** GET show actualizaba los recursos, mientras el payload usaba config/revision del registro Vuex anterior. El watcher de props tambien podia restaurar esa revision al actualizar datos ajenos al borrador.
+- **Fix:** hidratar permisos y revision juntos desde show; conservar el borrador local hasta recarga explicita; enviar solo messaging y allow_paid_templates. Mantener 409 y aprobaciones serializadas con la revision devuelta.
+- **Prueba:** show con revision 12 frente a props con 4; guardar usa 12 y conserva notas/permisos. Renombrar el registro cacheado no devuelve el formulario a 4. Prueba de regresion roja antes del ajuste del watcher, verde despues. Conflictos reales siguen mostrando Recargar.
+- **Entrega:** sin migraciones, push ni despliegue. No se atribuye el incremento historico del incidente a un writer sin sus registros HTTP.
+- **Guardado parcial:** si un `allow_resource` confirma y el siguiente falla, conservar solo la revision nueva permitia reenviar `reviewed` antiguo al reintentar. Cada respuesta confirmada ahora hidrata configuracion y revision juntas, y sale de la cola. Regresion roja/verde: reintentar conserva la primera aprobacion y solo solicita la pendiente; mantiene el 409 si otra persona cambia la configuracion.
+
+### B-NEW-281 - Plantillas: editar y quitar asignaciones locales sin reenviar a Meta (2026-11-19)
+
+- **Archivos:** `TemplateFormDrawer.vue`, `Index.vue`, `TemplateRowActions.vue`, `TemplatePendingIndicator.vue`, `inbox_whatsapp_template_variable_bindings.rb`, sus specs e i18n es/en.
+- **Fix:** sustituir Datos/drawer Variables por indicador discreto y la misma seccion de variables de Crear dentro de Editar. Separar cambios de contenido y bindings; persistir bindings antes de un cambio de estado de Meta. Mantener contenido bloqueado cuando no sea editable, sin bloquear asignaciones locales elegibles.
+- **Causa adicional:** `params.require(:variable_bindings)` rechazaba `{}` al quitar la ultima asignacion. `fetch` permite ese objeto vacio conservando presencia y validacion de tipo en el limite HTTP.
+- **Prueba:** asignacion local sin ejemplos ni updateTemplate, contenido bloqueado/proveedor no Cloud, enlace de pendientes a Editar, errores de guardado y orden bindings/Meta. RSpec cubre quitar la ultima asignacion y rechazar tipos invalidos.
+- **Entrega:** sin migraciones. Revision visual del PM pendiente; no se uso navegador ni se creo PR.
