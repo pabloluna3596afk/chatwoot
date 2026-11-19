@@ -3673,3 +3673,10 @@ primarias azules. Evidencia y límites: `tmp/REVISION-PASO4.md`.
 ## B-NEW-280 - Composer full-bleed chrome (PR 2)
 
 ReplyBox, MessagesView, ResizableEditorWrapper and WootWriter panels: replace nested box chrome with a full-width top border, soft growing mobile field, compact mode switch and hover-only desktop grip. Touch placeholders have es/en parity and Send has a separate keyboard hint. Attachment components unchanged. Verify public reply, amber note, chips above the field, desktop resize and touch placeholders. Automated: ReplyBox/MessagesView/ResizableEditorWrapper Vitest in UTC and America/Guayaquil. Visual review and real phone checks remain with the PM; no browser used.
+
+
+## B-NEW-281 - Composer toolbar overflow and recording (PR 3)
+
+ReplyBottomPanel now measures eligible buttons with useToolbarOverflow, hides by rank and reuses mounted controls through an accessible popover / phone bottom sheet. FileUpload stays mounted, including drag-and-drop. RecordingBar isolates cancel/time/play/send; phone swaps empty-field Send for mic; closed WhatsApp windows offer Send template. es/en copy added. Verify overflow, signature and quoted state, file input persistence, recording cancellation and template handlers. Automated: toolbar/composable/menu specs pass UTC and America/Guayaquil. Guide width examples conflict with its ten-button arithmetic; exact measured results documented in the PM report. Visual review pending PM.
+
+Completion: the phone template action takes the space left by its tools; recording starts at 00:00 and uses a 32px round phone Send control. ReplyBox regression coverage verifies cancel removes the voice attachment, preserves other files and never invokes Send; toolbar coverage checks stop/play/pause, disabled Send and Cloud/Twilio template dispatch.

@@ -353,7 +353,13 @@
         "REMOVE_PREVIEW": "Quitar el hilo de correo citado",
         "COLLAPSE": "Contraer vista previa",
         "EXPAND": "Expandir vista previa"
-      }
+      },
+      "MORE_OPTIONS": "Más opciones",
+      "SEND_TEMPLATE": "Enviar plantilla",
+      "CANCEL_RECORDING": "Cancelar grabación",
+      "RECORDING": "Grabando…",
+      "SIGNATURE_ON": "Activada",
+      "SIGNATURE_OFF": "Desactivada"
     },
     "VISIBLE_TO_AGENTS": "Nota privada: solo visible para ti y tu equipo",
     "CHANGE_STATUS": "Estado de la conversación cambiado",

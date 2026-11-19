@@ -125,6 +125,30 @@ const editor = wrapper =>
   wrapper.findComponent({ name: 'WootMessageEditor' }).props();
 
 describe('ReplyBox', () => {
+  it('discards recorded audio without sending and keeps other attachments', async () => {
+    const { wrapper } = mountWith({
+      inbox: { channel_type: 'Channel::WebWidget' },
+    });
+    const send = vi.spyOn(wrapper.vm, 'onSendReply');
+    const attachment = { id: 'document', isVoiceMessage: false };
+    await wrapper.setData({
+      isRecordingAudio: true,
+      hasRecordedAudio: true,
+      recordingAudioState: 'stopped',
+      recordingAudioDurationText: '00:12',
+      attachedFiles: [attachment, { id: 'audio', isVoiceMessage: true }],
+    });
+    bottomPanel(wrapper).toggleAudioRecorder();
+    await nextTick();
+    expect(wrapper.vm.isRecordingAudio).toBe(false);
+    expect(wrapper.vm.hasRecordedAudio).toBe(false);
+    expect(wrapper.vm.recordingAudioDurationText).toBe('00:00');
+    expect(wrapper.vm.recordingAudioState).toBe('');
+    expect(wrapper.vm.attachedFiles).toEqual([attachment]);
+    expect(send).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
   it('uses full-bleed chrome, keeps note amber and separates the send hint', async () => {
     const { wrapper } = mountWith({
       inbox: { channel_type: 'Channel::WebWidget' },

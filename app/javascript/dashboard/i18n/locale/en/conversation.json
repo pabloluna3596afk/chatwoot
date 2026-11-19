@@ -404,7 +404,13 @@
         "REMOVE_PREVIEW": "Remove quoted email thread",
         "COLLAPSE": "Collapse preview",
         "EXPAND": "Expand preview"
-      }
+      },
+      "MORE_OPTIONS": "More options",
+      "SEND_TEMPLATE": "Send template",
+      "CANCEL_RECORDING": "Cancel recording",
+      "RECORDING": "Recording…",
+      "SIGNATURE_ON": "On",
+      "SIGNATURE_OFF": "Off"
     },
     "VISIBLE_TO_AGENTS": "Private Note: Only visible to you and your team",
     "CHANGE_STATUS": "Conversation status changed",
