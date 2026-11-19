@@ -1,6 +1,5 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { useMediaQuery } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useUISettings } from 'dashboard/composables/useUISettings';
@@ -31,7 +30,6 @@ const props = defineProps({
     type: String,
     default: '',
   },
-  sendButtonShortcut: { type: String, default: '' },
   recordingAudioDurationText: {
     type: String,
     default: '00:00',
@@ -100,10 +98,6 @@ const props = defineProps({
     type: Number,
     required: true,
   },
-  message: {
-    type: String,
-    default: '',
-  },
   newConversationModalActive: {
     type: Boolean,
     default: false,
@@ -128,7 +122,6 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  hasAttachments: { type: Boolean, default: false },
 });
 const emit = defineEmits([
   'toggleInsertArticle',
@@ -147,14 +140,7 @@ const isFeatureEnabledonAccount = useMapGetter(
 );
 const uploadRef = ref(null);
 const toolbarRef = ref(null);
-const isPhone = useMediaQuery('(max-width: 767px)');
 const channelType = computed(() => props.inbox.channel_type);
-const isAWhatsAppChannel = computed(
-  () =>
-    channelType.value === INBOX_TYPES.WHATSAPP ||
-    (channelType.value === INBOX_TYPES.TWILIO &&
-      props.inbox.medium === 'whatsapp')
-);
 const templateButtonIcon = computed(() => sendCenterIcon(props.inbox));
 const showAttachButton = computed(
   () => !props.isEditorDisabled && (props.showFileUpload || props.isNote)
@@ -168,19 +154,6 @@ const showAudioRecorderButton = computed(
       FEATURE_FLAGS.VOICE_RECORDER
     ) &&
     props.showAudioRecorder
-);
-const showMicInSendSlot = computed(
-  () =>
-    isPhone.value &&
-    showAudioRecorderButton.value &&
-    !props.message.trim() &&
-    !props.hasAttachments
-);
-const showTemplateInSendSlot = computed(
-  () =>
-    props.isEditorDisabled &&
-    isAWhatsAppChannel.value &&
-    (props.enableWhatsAppTemplates || props.enableContentTemplates)
 );
 const allowedFileTypes = computed(() => {
   if (props.isOnPrivateNote) return getAllowedFileTypesByChannel();
@@ -246,16 +219,14 @@ const toolbarItems = computed(() =>
     {
       key: 'template',
       hideRank: 9,
-      visible:
-        (props.enableWhatsAppTemplates || props.enableContentTemplates) &&
-        !showTemplateInSendSlot.value,
+      visible: props.enableWhatsAppTemplates || props.enableContentTemplates,
       icon: templateButtonIcon.value,
       label: t('WHATSAPP_TEMPLATES.SEND_CENTER.TITLE'),
     },
     {
       key: 'audio',
       hideRank: 8,
-      visible: showAudioRecorderButton.value && !showMicInSendSlot.value,
+      visible: showAudioRecorderButton.value,
       icon: 'i-ph-microphone',
       label: t('CONVERSATION.REPLYBOX.TIP_AUDIORECORDER_ICON'),
     },
@@ -362,10 +333,7 @@ onMounted(() => ActiveStorage.start());
     <div
       ref="toolbarRef"
       class="left-wrap flex min-w-0 flex-1 items-center gap-2"
-      :class="{
-        invisible: !isMeasured,
-        'max-md:grow-0 max-md:basis-auto': showTemplateInSendSlot,
-      }"
+      :class="{ invisible: !isMeasured }"
     >
       <template v-for="item in toolbarItems" :key="item.key">
         <span
@@ -429,53 +397,16 @@ onMounted(() => ActiveStorage.start());
         @select="activateHiddenItem"
       />
     </div>
-    <div
-      class="right-wrap flex shrink-0"
-      :class="{ 'max-md:flex-1': showTemplateInSendSlot }"
-    >
+    <div class="right-wrap">
       <NextButton
-        v-if="showTemplateInSendSlot"
-        intent="primary"
-        sm
-        :label="$t('CONVERSATION.REPLYBOX.SEND_TEMPLATE')"
-        class="max-md:w-full"
-        @click="selectTemplate"
-      />
-      <NextButton
-        v-else-if="showMicInSendSlot"
-        intent="primary"
-        sm
-        icon="i-ph-microphone"
-        class="!rounded-full"
-        :aria-label="$t('CONVERSATION.REPLYBOX.TIP_AUDIORECORDER_ICON')"
-        @click="toggleAudioRecorder"
-      />
-      <NextButton
-        v-else-if="isPhone"
-        intent="primary"
-        :color="isNote ? 'amber' : undefined"
-        sm
-        icon="i-lucide-send-horizontal"
-        class="!rounded-full"
-        :aria-label="sendButtonText"
-        :disabled="isSendDisabled"
-        @click="onSend"
-      />
-      <NextButton
-        v-else
-        intent="primary"
-        :color="isNote ? 'amber' : undefined"
+        :label="sendButtonText"
         type="submit"
         sm
-        :aria-label="sendButtonText"
+        :color="isNote ? 'amber' : 'blue'"
         :disabled="isSendDisabled"
+        class="flex-shrink-0"
         @click="onSend"
-      >
-        <span>{{ sendButtonText }}</span>
-        <kbd class="max-md:hidden [@media(hover:none)]:hidden">{{
-          sendButtonShortcut
-        }}</kbd>
-      </NextButton>
+      />
     </div>
   </div>
   <transition name="modal-fade">

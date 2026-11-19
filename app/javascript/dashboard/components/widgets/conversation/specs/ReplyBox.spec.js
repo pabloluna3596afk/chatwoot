@@ -149,7 +149,7 @@ describe('ReplyBox', () => {
     wrapper.unmount();
   });
 
-  it('uses full-bleed chrome, keeps note amber and separates the send hint', async () => {
+  it('uses full-bleed chrome and keeps note amber', async () => {
     const { wrapper } = mountWith({
       inbox: { channel_type: 'Channel::WebWidget' },
     });
@@ -158,10 +158,9 @@ describe('ReplyBox', () => {
     expect(bar.classes()).not.toEqual(
       expect.arrayContaining(['mx-2', 'rounded-xl'])
     );
-    expect(bottomPanel(wrapper).sendButtonText).toBe(
+    expect(bottomPanel(wrapper).sendButtonText).toContain(
       'CONVERSATION.REPLYBOX.SEND'
     );
-    expect(bottomPanel(wrapper).sendButtonShortcut).toBeTruthy();
     await wrapper.vm.setReplyMode(REPLY_EDITOR_MODES.NOTE);
     expect(bar.classes()).toContain('bg-n-solid-amber');
     wrapper.unmount();

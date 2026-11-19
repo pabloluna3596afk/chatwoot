@@ -408,16 +408,14 @@ export default {
       );
     },
     replyButtonLabel() {
-      return this.$t(
-        this.isPrivate
-          ? 'CONVERSATION.REPLYBOX.CREATE'
-          : 'CONVERSATION.REPLYBOX.SEND'
-      );
-    },
-    replyButtonShortcut() {
-      return this.isEditorHotKeyEnabled('cmd_enter')
+      let sendMessageText = this.$t('CONVERSATION.REPLYBOX.SEND');
+      if (this.isPrivate) {
+        sendMessageText = this.$t('CONVERSATION.REPLYBOX.CREATE');
+      }
+      const keyLabel = this.isEditorHotKeyEnabled('cmd_enter')
         ? `(${this.shortcutKey})`
         : '(↵)';
+      return `${sendMessageText} ${keyLabel}`;
     },
     replyBoxClass() {
       return {
@@ -1627,7 +1625,6 @@ export default {
         :recording-audio-duration-text="recordingAudioDurationText"
         :recording-audio-state="recordingAudioState"
         :send-button-text="replyButtonLabel"
-        :send-button-shortcut="replyButtonShortcut"
         :show-audio-recorder="showAudioRecorder"
         :show-emoji-picker="showEmojiPicker"
         :show-file-upload="showFileUpload"
@@ -1636,8 +1633,6 @@ export default {
         :toggle-audio-recorder-play-pause="toggleAudioRecorderPlayPause"
         :toggle-audio-recorder="toggleAudioRecorder"
         :toggle-emoji-picker="toggleEmojiPicker"
-        :message="isMessageEmpty ? '' : message"
-        :has-attachments="Boolean(hasAttachments)"
         :portal-slug="connectedPortalSlug"
         :new-conversation-modal-active="newConversationModalActive"
         @select-whatsapp-template="openWhatsappTemplateModal"

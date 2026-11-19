@@ -128,66 +128,6 @@ describe('composer toolbar', () => {
     expect(wrapper.emitted('selectCannedResponse')).toHaveLength(1);
   });
 
-  it('swaps mic for Send only on phone with text or attachments', async () => {
-    phone = true;
-    const toggleAudioRecorder = vi.fn();
-    wrapper = render({ toggleAudioRecorder });
-    await flushPromises();
-    expect(wrapper.find('[data-toolbar-item="audio"]').exists()).toBe(false);
-    await wrapper.get('.right-wrap button').trigger('click');
-    expect(toggleAudioRecorder).toHaveBeenCalledOnce();
-    await wrapper.setProps({ message: 'Hello' });
-    expect(wrapper.get('.right-wrap button').attributes('aria-label')).toBe(
-      'Send'
-    );
-    await wrapper.setProps({ message: '', hasAttachments: true });
-    expect(wrapper.get('.right-wrap button').attributes('aria-label')).toBe(
-      'Send'
-    );
-  });
-
-  it('keeps labelled Send and toolbar mic on desktop', async () => {
-    wrapper = render();
-    await flushPromises();
-    expect(wrapper.find('[data-toolbar-item="audio"]').exists()).toBe(true);
-    expect(wrapper.get('.right-wrap').text()).toContain('Send');
-    expect(wrapper.find('kbd').exists()).toBe(true);
-  });
-
-  it.each([
-    [false, 'Channel::Whatsapp'],
-    [true, 'Channel::TwilioSms'],
-  ])(
-    'makes the template the main phone action with content templates %s',
-    async (content, channelType) => {
-      phone = true;
-      wrapper = render({
-        inbox: { channel_type: channelType, medium: 'whatsapp' },
-        isEditorDisabled: true,
-        isSendDisabled: true,
-        enableContentTemplates: content,
-      });
-      await wrapper.get('.right-wrap button').trigger('click');
-      expect(
-        wrapper.emitted(
-          content ? 'selectContentTemplate' : 'selectWhatsappTemplate'
-        )
-      ).toHaveLength(1);
-      expect(wrapper.find('[data-toolbar-item="template"]').exists()).toBe(
-        false
-      );
-      expect(wrapper.get('.right-wrap button').text()).toBe(
-        'CONVERSATION.REPLYBOX.SEND_TEMPLATE'
-      );
-      expect(wrapper.find('[data-toolbar-item="contact"]').exists()).toBe(true);
-      expect(wrapper.get('.left-wrap').classes()).toContain('max-md:grow-0');
-      expect(wrapper.get('.right-wrap').classes()).toContain('max-md:flex-1');
-      expect(wrapper.get('.right-wrap button').classes()).toContain(
-        'max-md:w-full'
-      );
-    }
-  );
-
   it('keeps API Send disabled without a template action', () => {
     wrapper = render({
       inbox: { channel_type: 'Channel::Api' },
