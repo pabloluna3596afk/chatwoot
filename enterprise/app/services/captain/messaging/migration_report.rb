@@ -66,7 +66,7 @@ class Captain::Messaging::MigrationReport
   end
 
   def summary(entry, inbox, before, after_auto)
-    today = usable_names(before)
+    today = legacy_usable_names(entry, inbox, before)
     auto = usable_names(after_auto)
     {
       'inbox_name' => inbox.name,
@@ -127,6 +127,19 @@ class Captain::Messaging::MigrationReport
       names[bucket] << resource_name(item)
     end
     names.transform_values(&:uniq)
+  end
+
+  # What the legacy list could send before the update: marketing templates a client had listed count as
+  # "today" even though Captain no longer sends them, so the report shows what would be switched off.
+  def legacy_usable_names(entry, inbox, availability)
+    flows = availability.flows.select(&:available?).map { |item| resource_name(item) }
+    templates = Array(entry['templates']).filter_map do |listed|
+      current = current_template(inbox, listed)
+      next unless current && current['status'].to_s.upcase == 'APPROVED' && @assistant.allow_paid_templates?
+
+      template_name(listed)
+    end
+    (flows + templates).uniq
   end
 
   def usable_names(availability)
