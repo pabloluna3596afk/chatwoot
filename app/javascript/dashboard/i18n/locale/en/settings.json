@@ -331,7 +331,28 @@
     },
     "MEDIA": {
       "IMAGE_UNAVAILABLE": "This image is no longer available.",
-      "LOADING_FAILED": "Loading failed"
+      "LOADING_FAILED": "Loading failed",
+      "VIEW_FULL": "View full",
+      "PHOTO_N_OF": "Photo {index} of {total}",
+      "MORE": "+{count}",
+      "RETRY": "Retry",
+      "OPEN_LINK": "Open link",
+      "LOAD_FAILED": "Could not load",
+      "EXPIRED": "This file is no longer available on {channel}.",
+      "EXPIRED_GENERIC": "This file is no longer available on the channel.",
+      "EXPAND": "Expand"
+    },
+    "FILE": {
+      "VIEW": "View",
+      "TYPE": {
+        "PDF": "PDF",
+        "WORD": "Word",
+        "EXCEL": "Excel",
+        "POWERPOINT": "PowerPoint",
+        "ZIP": "ZIP",
+        "TEXT": "Text",
+        "FILE": "File"
+      }
     }
   },
   "CONFIRM_EMAIL": "Verifying...",
@@ -722,13 +743,25 @@
     }
   },
   "PAYPHONE": {
-    "HISTORY_TABLE": { "DATE": "Date", "PLAN": "Plan", "STATUS": "Status", "AMOUNT": "Amount" },
+    "HISTORY_TABLE": {
+      "DATE": "Date",
+      "PLAN": "Plan",
+      "STATUS": "Status",
+      "AMOUNT": "Amount"
+    },
     "CHOOSE": "Choose",
     "CONFIRM_TITLE": "Confirm your plan",
     "DURATION": "Your payment covers 30 days from approval.",
     "CLOSE": "Close",
     "NEEDS_INVOICE": "I need an invoice",
-    "INVOICE": { "billing_tax_id_type": "ID type", "billing_tax_id": "Tax ID", "billing_name": "Name or company", "billing_email": "Billing email", "billing_phone": "Phone", "billing_address": "Address" },
+    "INVOICE": {
+      "billing_tax_id_type": "ID type",
+      "billing_tax_id": "Tax ID",
+      "billing_name": "Name or company",
+      "billing_email": "Billing email",
+      "billing_phone": "Phone",
+      "billing_address": "Address"
+    },
     "SUBTOTAL": "Subtotal",
     "TAX": "Tax",
     "COMMISSION": "Card fee",
@@ -755,7 +788,13 @@
       "expired": "Free plan."
     },
     "ERROR": "We could not prepare the payment. Try again.",
-    "STATES": { "pending": "Verifying", "approved": "Approved", "cancelled": "Cancelled", "failed": "Failed", "expired": "Expired" }
+    "STATES": {
+      "pending": "Verifying",
+      "approved": "Approved",
+      "cancelled": "Cancelled",
+      "failed": "Failed",
+      "expired": "Expired"
+    }
   },
   "BILLING_SETTINGS": {
     "EXTRAS": {
@@ -798,11 +837,23 @@
     },
     "TITLE": "Billing",
     "DESCRIPTION": "Manage your subscription here, upgrade your plan and get more for your team.",
-    "TABS": { "LABEL": "Billing sections", "USO": "Usage", "FACTURACION": "Billing" },
+    "TABS": {
+      "LABEL": "Billing sections",
+      "USO": "Usage",
+      "FACTURACION": "Billing"
+    },
     "USAGE": {
       "CURRENT_PLAN": "Current plan",
-      "STATUS": { "ACTIVE": "Active", "GRACE": "In grace period", "FREE": "Free" },
-      "BAGS": { "ASSISTANT": "Assistant AI responses", "COPILOT": "Copilot", "INTERNAL": "Internal AI actions" },
+      "STATUS": {
+        "ACTIVE": "Active",
+        "GRACE": "In grace period",
+        "FREE": "Free"
+      },
+      "BAGS": {
+        "ASSISTANT": "Assistant AI responses",
+        "COPILOT": "Copilot",
+        "INTERNAL": "Internal AI actions"
+      },
       "FREE_PLAN": "Free plan",
       "EXPIRED_ON": "Expired on {date}",
       "EXPIRED_BANNER": "Your plan expired on {date}. Choose a plan to restore paid access.",
@@ -823,7 +874,11 @@
       "TOP_SOURCES": "What uses the most",
       "EMPTY": "No AI usage recorded in this period yet.",
       "ERROR": "Usage could not be loaded. Try again later.",
-      "SOURCES": { "ASSISTANT": "Customer assistant", "COPILOT": "Copilot", "INTERNAL": "Internal processes" }
+      "SOURCES": {
+        "ASSISTANT": "Customer assistant",
+        "COPILOT": "Copilot",
+        "INTERNAL": "Internal processes"
+      }
     },
     "SELF_HOSTED": {
       "DESCRIPTION": "Review your plan and payment status. Open Usage to view your allowances.",
