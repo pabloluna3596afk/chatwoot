@@ -1,3 +1,11 @@
+### B-NEW-280 - Adjuntos legibles y previsualización en la conversación (2026-11-18)
+
+- **Archivos:** `components-next/message/media/{MediaGrid,MediaTile,FileCard}.vue`, `ReplyPreview.vue`, burbujas y chips existentes, `provider.js`, `GalleryView.vue`, historias y locales en/es. Seed de desarrollo integrado desde `feat/adjuntos-seed`.
+- **Problema:** las imágenes con texto quedaban recortadas en chips de 72 px; los documentos ocultaban nombre, tipo y tamaño; no había visor PDF ni miniaturas en las respuestas. La galería identificaba la posición por mensaje, confundiendo adjuntos de un mismo mensaje.
+- **Arreglo:** cuadrícula encima del texto, lista de documentos debajo, descarga con apertura alternativa, PDF de hasta 25 MB solo con MIME `application/pdf`, contador y enlace original, respuestas con miniatura/icono y estados compartidos. Se conservan los componentes y contratos existentes; el cuerpo de correo sigue intacto. La selección de galería usa el ID del adjunto.
+- **Cómo probar:** `dev:attachments_demo` en desarrollo; revisar los quince escenarios de la guía. Vitest cubre ocho canales por cinco contextos, correo inline con tres documentos, MIME/tamaño del PDF, selección, respuestas y fallos. El seed tiene RSpec aislado y RuboCop Docker. Evidencias y pendientes visuales en `tmp/PR-ADJUNTOS.md`; no se declara aprobación visual sin capturas del PM.
+- **Despliegue:** sin migraciones nuevas; sin push, PR ni despliegue en esta entrega.
+
 ### B-NEW-271 - Asignación: respetar a la persona responsable y comunicar rechazos (2026-11-15)
 
 - **Archivos:** `Conversations::AssignmentService` y su extensión Enterprise, `AssignmentsController`, hook de mensajes de Captain, `ResponseBuilderJob` y registro de ciclo de respuesta, `InboxPendingConversationsResolutionJob`, `captain_followup.rake`; contrato Swagger y specs asociados.
