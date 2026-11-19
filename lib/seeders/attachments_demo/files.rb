@@ -7,7 +7,7 @@ class Seeders::AttachmentsDemo::Files
   IMAGES = {
     'normal.png' => ['photo.jpg', '-resize', '640x480!'],
     'photo.jpg' => ['photo.jpg'], 'animated.gif' => ['photo.jpg', 'receipt.png', '-resize', '240x240!', '-set', 'delay', '60', '-loop', '0'],
-    'image.webp' => ['photo.jpg'], 'tall.png' => ['receipt.png', '-resize', '2000x6000!'],
+    'image.webp' => ['photo.jpg'], 'tall.png' => ['receipt.png', '-resize', '1000x4000!'],
     'wide.png' => ['photo.jpg', '-resize', '3000x600!'], 'tiny.png' => ['photo.jpg', '-resize', '40x40!'],
     'receipt.png' => ['receipt.png'],
     'sticker.webp' => ['-size', '160x160', 'xc:none', '-fill', '#2781f6', '-draw', 'circle 80,80 80,20']

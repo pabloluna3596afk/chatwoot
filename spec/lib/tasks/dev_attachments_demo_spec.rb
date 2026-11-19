@@ -30,6 +30,8 @@ RSpec.describe 'dev:attachments_demo' do # rubocop:disable RSpec/DescribeClass -
         expect(conversation.messages.find_by!('source_id LIKE ?', "%:grid:#{count}").attachments.count).to eq(count)
       end
       expect(conversation.messages.where(private: true).sole.attachments.count).to eq(2)
+      tall = conversation.attachments.joins(file_attachment: :blob).find_by!(active_storage_blobs: { filename: 'tall.png' })
+      expect(tall.file.metadata.slice('width', 'height')).to eq('width' => 1000, 'height' => 4000)
       expect(conversation.messages.failed.sole.external_error).to include('simulated')
       replies = conversation.messages.where("source_id LIKE '%:reply:%'")
       expect(replies.count).to eq(3)
