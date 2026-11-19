@@ -37,6 +37,27 @@ RSpec.describe Captain::Conversation::ResponseBuilderJob, type: :job do
       allow(mock_false_promise_service).to receive(:detect).and_return({ 'decision' => 'safe', 'reason' => 'safe_response' })
     end
 
+    it 'routes the v1 token handoff and appends routing to its existing note' do
+      account.disable_features!(:captain_integration_v2)
+      assistant.update!(config: assistant.config.merge('handoff_priority' => 'always'))
+      allow(mock_llm_chat_service).to receive(:generate_response).and_return({ 'response' => 'conversation_handoff' })
+      expect(Captain::HandoffRouter).to receive(:new).with(conversation: conversation, assistant: assistant).and_call_original
+      described_class.perform_now(conversation, assistant, responding_to_message.id)
+      expect(conversation.reload).to be_high
+      expect(conversation.messages.where(private: true).last.content).to end_with(I18n.t('captain.notes.handoff_routing.priority_high'))
+    end
+
+    it 'routes the reply-limit handoff without running the model' do
+      assistant.update!(config: assistant.config.merge('handoff_priority' => 'always'))
+      allow(assistant).to receive(:reply_limit_reached?).with(conversation).and_return(true)
+      expect(mock_llm_chat_service).not_to receive(:generate_response)
+      expect(mock_agent_runner_service).not_to receive(:generate_response)
+      expect(Captain::HandoffRouter).to receive(:new).with(conversation: conversation, assistant: assistant).and_call_original
+      described_class.perform_now(conversation, assistant, responding_to_message.id)
+      expect(conversation.reload).to be_high
+      expect(conversation.messages.where(private: true).last.content).to end_with(I18n.t('captain.notes.handoff_routing.priority_high'))
+    end
+
     it 'never runs the internal Copilot assistant against a customer conversation' do
       internal_assistant = Captain::Copilot::AssistantResolver.new(account: account).perform
       expect(mock_llm_chat_service).not_to receive(:generate_response)

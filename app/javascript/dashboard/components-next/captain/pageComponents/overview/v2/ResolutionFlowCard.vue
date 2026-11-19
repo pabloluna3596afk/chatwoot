@@ -1,15 +1,18 @@
 <script setup>
+import { useAssistantName } from 'dashboard/composables/useAssistantName';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { SankeyChart } from '@chatwoot/viz';
 import OverviewPanel from './OverviewPanel.vue';
 
 const props = defineProps({
+  assistant: { type: Object, default: () => ({}) },
   flow: { type: Object, default: null },
   loading: { type: Boolean, default: false },
 });
 
 const { t } = useI18n();
+const { nameTextFrom, nameRichFrom } = useAssistantName(() => props.assistant);
 
 const FLOW_NODE_LABELS = {
   conversations_handled: 'HANDLED',
@@ -49,6 +52,11 @@ const reasonLabel = category =>
 const nodeLabel = id => {
   if (id.startsWith('handoff_reason_')) {
     return reasonLabel(id.replace('handoff_reason_', ''));
+  }
+  if (id === 'resolved_by_captain') {
+    return nameRichFrom(
+      t('CAPTAIN.OVERVIEW.V2.RESOLUTION_FLOW.NODES.RESOLVED_BY_CAPTAIN')
+    );
   }
   return t(
     `CAPTAIN.OVERVIEW.V2.RESOLUTION_FLOW.NODES.${FLOW_NODE_LABELS[id] || 'OTHER_REASONS'}`
@@ -99,7 +107,9 @@ const formatCount = value => Number(value).toLocaleString();
           :height="260"
           :node-padding="24"
           show-label-background
-          :aria-label="$t('CAPTAIN.OVERVIEW.V2.RESOLUTION_FLOW.ARIA_LABEL')"
+          :aria-label="
+            nameTextFrom(t('CAPTAIN.OVERVIEW.V2.RESOLUTION_FLOW.ARIA_LABEL'))
+          "
           class="[--cw-viz-sankey-label-color:rgb(var(--slate-11))] [--cw-viz-sankey-label-value-color:rgb(var(--slate-12))] [--cw-viz-sankey-label-background:rgb(var(--slate-1))] [--cw-viz-sankey-label-border-color:rgb(var(--slate-4))] [--cw-viz-sankey-label-font-size:0.75rem] [&_.cw-viz-sankey__label-background--terminal]:fill-[rgb(var(--card-color))] [&_.cw-viz-sankey__label-text]:font-[440] [&_.cw-viz-sankey__label-text]:tracking-[-0.015rem] [&_.cw-viz-sankey__label-value]:font-[440] [&_.cw-viz-sankey__label-value]:tracking-[-0.015rem]"
         />
         <div

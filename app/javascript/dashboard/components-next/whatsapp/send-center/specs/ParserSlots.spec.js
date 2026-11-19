@@ -9,6 +9,11 @@ import TemplateDataField from '../TemplateDataField.vue';
 import EditableBody from '../EditableBody.vue';
 import ChatPreview from '../ChatPreview.vue';
 import es from 'dashboard/i18n/locale/es/whatsappTemplates.json';
+
+// jsdom has no media queries: fake a desktop (hover + fine pointer) or a touch screen.
+const stubPointer = desktop => {
+  window.matchMedia = vi.fn().mockReturnValue({ matches: desktop });
+};
 import esFilters from 'dashboard/i18n/locale/es/advancedFilters.json';
 
 vi.mock('dashboard/components-next/variable-picker/VariablePicker.vue', () => ({
@@ -251,6 +256,7 @@ describe('inline parser contract', () => {
   });
 
   it('supports IME without committing partial composition and retains reading order', async () => {
+    stubPointer(true);
     const wrapper = mount(EditableBody, {
       global: {
         plugins: [

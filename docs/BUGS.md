@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ### B-NEW-280 - Adjuntos legibles y previsualización en la conversación (2026-11-18)
 
 - **Archivos:** `components-next/message/media/{MediaGrid,MediaTile,FileCard}.vue`, `ReplyPreview.vue`, burbujas y chips existentes, `provider.js`, `GalleryView.vue`, historias y locales en/es. Seed de desarrollo integrado desde `feat/adjuntos-seed`.
@@ -5,6 +6,24 @@
 - **Arreglo:** cuadrícula encima del texto, lista de documentos debajo, descarga con apertura alternativa, PDF de hasta 25 MB solo con MIME `application/pdf`, contador y enlace original, respuestas con miniatura/icono y estados compartidos. Se conservan los componentes y contratos existentes; el cuerpo de correo sigue intacto. La selección de galería usa el ID del adjunto.
 - **Cómo probar:** `dev:attachments_demo` en desarrollo; revisar los quince escenarios de la guía. Vitest cubre ocho canales por cinco contextos, correo inline con tres documentos, MIME/tamaño del PDF, selección, respuestas y fallos. El seed tiene RSpec aislado y RuboCop Docker. Evidencias y pendientes visuales en `tmp/PR-ADJUNTOS.md`; no se declara aprobación visual sin capturas del PM.
 - **Despliegue:** sin migraciones nuevas; sin push, PR ni despliegue en esta entrega.
+=======
+### B-NEW-280 - Composer: altura disponible al abrir el teclado del teléfono (2026-11-18)
+
+- **Archivos:** `app/views/layouts/vueapp.html.erb`, `dashboard/App.vue`, `dashboard/composables/useVisualViewportHeight.js`, `dashboard/components/widgets/conversation/MessagesView.vue` y specs asociados.
+- **Problema:** la raíz conservaba la altura de la pantalla al abrir el teclado; la cabecera podía salir de la vista y el composer quedaba cubierto. Un cambio de altura de la lista tampoco conservaba explícitamente la posición al final.
+- **Arreglo:** viewport con `interactive-widget=resizes-content`, altura dinámica en la raíz y fallback de `visualViewport` exclusivo de iPhone/iPad (incluido iPadOS con UA Macintosh y multitouch). La utilidad de altura usa `!` para superar el `#app { height: 100% }` existente. Se eliminan listeners y variable al desmontar. Un `ResizeObserver` reutiliza `scrollToBottom` solo si la distancia previa al final era de hasta 80 px; se añade padding de área segura solo bajo `md`.
+- **Cómo probar:** Vitest de fallback (resize/scroll, detección iOS, ausencia de API y limpieza) y `MessagesView` (0/80 px conserva el final; 81/500 px conserva la lectura; misma altura no desplaza; observer desconectado). Suites de composables/conversación y overlays en UTC y America/Guayaquil; resultados y auditoría de alturas en `tmp/PR-COMPOSER-1.md`. Teclado real, capturas antes/después y aprobación visual pendientes del PM en teléfono mediante remote-preview a :3110.
+- **Alcance:** PR 1 únicamente; sin textos nuevos ni cambios i18n, rediseño, backend o migraciones. Sin navegador, fetch, stash, push, PR ni despliegue.
+
+### B-NEW-275 - Captain: destino y prioridad configurables al traspasar (2026-11-18)
+
+- **Archivos:** `Captain::HandoffRouter`, `Captain::HandoffValidator`, configuraci?n/serializer/controlador del asistente, `Conversation#bot_handoff!`, reapertura de mensajes, herramienta de traspaso e instrumentaci?n, jobs de respuestas/inactividad, l?mite de uso, salida de Flows y formulario `AssistantSystemSettingsForm`/`HandoffRoutingRow`.
+- **Problema:** el administrador no pod?a elegir el destino seg?n conversaci?n nueva/reabierta ni elevar la prioridad; las distintas rutas de traspaso no compart?an un plan de asignaci?n.
+- **Arreglo:** configuraci?n jsonb sin migraci?n (`inbox`/`inbox`/`off` por defecto), ?ltimo agente conectado y con capacidad, equipo fijo o equipo elegido por Captain entre los elegibles. Prioridad alta por se?al expl?cita o siempre, sin bajar urgente. El plan no escribe; el traspaso aplica destino/prioridad antes de abrir y a?ade el resultado a la nota privada existente. Se conserva el esquema y nombre real de la herramienta con defaults; variantes con par?metros condicionales y seguimiento del nombre configurado. Flows conserva un destino expl?cito de Captain ante su pol?tica de desasignaci?n.
+- **UI:** pesta?a ?Traspaso y cierre?, componentes/tokens existentes, estados de carga/error/equipo eliminado y advertencias, es/en. Guardar valida el equipo y conserva el borrador si la API rechaza la actualizaci?n.
+- **C?mo probar:** specs de router, validaci?n, controlador, herramienta, instrumentaci?n, reapertura, conversaci?n y rutas P1?P7; Vitest de Captain en UTC y America/Guayaquil. Informe con resultados y limitaciones: `tmp/PR-TRASPASO.md`.
+- **Pendiente:** capturas reales desktop/390 px y aprobaci?n visual por el PM; bater?a R1?R9 con IA real. Sin push, PR, despliegue ni migraciones. No incorpora etiquetas, oportunidades ni cambios de m?vil.
+>>>>>>> origin/develop
 
 ### B-NEW-271 - Asignación: respetar a la persona responsable y comunicar rechazos (2026-11-15)
 

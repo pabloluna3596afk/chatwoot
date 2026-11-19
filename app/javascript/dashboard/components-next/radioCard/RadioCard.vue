@@ -1,4 +1,5 @@
 <script setup>
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
 import { useI18n } from 'vue-i18n';
 import Label from 'dashboard/components-next/label/Label.vue';
 
@@ -66,7 +67,7 @@ const handleChange = () => {
       <div class="flex items-center justify-between w-full gap-3">
         <div class="flex items-center gap-2">
           <h3 class="text-heading-3 text-n-slate-12">
-            {{ label }}
+            <AssistantNameText :text="label" />
           </h3>
           <Label v-if="disabled" :label="disabledLabel" color="amber" compact />
           <Label v-if="beta" :label="t('GENERAL.BETA')" color="blue" compact />
@@ -83,7 +84,9 @@ const handleChange = () => {
         />
       </div>
       <p class="text-body-main text-n-slate-11">
-        {{ disabled && disabledMessage ? disabledMessage : description }}
+        <AssistantNameText
+          :text="disabled && disabledMessage ? disabledMessage : description"
+        />
       </p>
       <slot />
     </div>

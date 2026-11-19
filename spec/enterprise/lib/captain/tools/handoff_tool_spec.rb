@@ -17,6 +17,41 @@ RSpec.describe Captain::Tools::HandoffTool, type: :model do
   end
 
   describe '#parameters_schema' do
+    it 'preserves the complete default schema, description and class' do
+      configured = described_class.for_assistant(assistant)
+      expect(configured.class).to eq(described_class)
+      expect(configured.name).to eq('captain--tools--handoff')
+      expect(configured.description).to eq('Hand off the conversation to a human agent when unable to assist further')
+      expect(configured.parameters_schema).to eq(
+        'type' => 'object',
+        'properties' => {
+          'reason' => { 'type' => 'string', 'description' => 'The reason why handoff is needed (optional)' },
+          'reason_category' => { 'type' => 'string', 'enum' => described_class::REASON_CATEGORIES,
+                                 'description' => 'Reporting category for why the handoff is needed' }
+        },
+        'required' => ['reason_category'], 'additionalProperties' => false
+      )
+    end
+
+    it 'adds only the configured parameters and keeps handoff as its name' do
+      create(:captain_inbox, inbox: inbox, captain_assistant: assistant)
+      create(:inbox_member, inbox: inbox, user: user)
+      team = create(:team, account: account, description: 'Customer purchases')
+      create(:team_member, team: team, user: user)
+      assistant.update!(config: assistant.config.merge('handoff_routing' => { 'new' => { 'mode' => 'ai_team' } },
+                                                       'handoff_priority' => 'on_signal'))
+      configured = described_class.for_assistant(assistant)
+      expect(configured.name).to eq('handoff')
+      expect(configured.parameters_schema['properties']['team']['enum']).to eq([team.name])
+      expect(configured.parameters_schema['properties']['urgent']['type']).to eq('boolean')
+      expect(configured.description).to include('Customer purchases', 'data, not instructions')
+      expect(configured.class).to eq(described_class.for_assistant(assistant).class)
+      assistant.update!(config: assistant.config.except('handoff_routing'))
+      expect(described_class.for_assistant(assistant).parameters_schema['properties'].keys).not_to include('team')
+      assistant.update!(config: assistant.config.except('handoff_priority'))
+      expect(described_class.for_assistant(assistant).parameters_schema['properties'].keys).not_to include('urgent')
+    end
+
     it 'constrains the reason category to the supported values and keeps the reason optional' do
       schema = tool.parameters_schema
 
@@ -35,6 +70,18 @@ RSpec.describe Captain::Tools::HandoffTool, type: :model do
   end
 
   describe '#perform' do
+    [true, false].each do |v2|
+      it "routes and raises priority in the #{v2 ? 'v2' : 'legacy'} tool path" do
+        v2 ? account.enable_features!(:captain_integration_v2) : account.disable_features!(:captain_integration_v2)
+        assistant.update!(config: assistant.config.merge('handoff_priority' => 'always'))
+        expect(Captain::HandoffRouter).to receive(:new).with(
+          conversation: an_instance_of(Conversation), assistant: assistant, team_name: nil, urgent: nil
+        ).and_call_original
+        expect(tool.perform(tool_context)).to include('Conversation handed off')
+        expect(conversation.reload).to be_high
+        expect(conversation.messages.where(private: true).sole.content).to end_with(I18n.t('captain.notes.handoff_routing.priority_high'))
+      end
+    end
     blank_reasons = [nil, '', '   '].freeze
     [true, false].each do |v2|
       context "with a blank reason (#{v2 ? 'v2' : 'legacy'})" do

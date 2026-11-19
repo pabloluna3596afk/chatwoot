@@ -1,4 +1,8 @@
 <script setup>
+import {
+  ASSISTANT_NAME_MARKER,
+  useAssistantName,
+} from 'dashboard/composables/useAssistantName';
 import PlanCompareButton from 'next/plans/PlanCompareButton.vue';
 import BagIcon from 'next/plans/BagIcon.vue';
 import { computed, reactive, ref, toRef, watch } from 'vue';
@@ -39,6 +43,7 @@ const assistants = useMapGetter('captainAssistants/getRecords');
 const assistant = computed(() =>
   assistants.value?.find(({ id }) => id === props.assistantId)
 );
+const { nameRichFrom } = useAssistantName(assistant);
 const { isFeatureFlagEnabled } = usePolicy();
 const isV2 = computed(() => isFeatureFlagEnabled(FEATURE_FLAGS.CAPTAIN_V2));
 const isBelowXL = useBreakpoints(breakpointsTailwind).smaller('xl');
@@ -87,6 +92,7 @@ const pushAssistantError = content => {
     sender: 'assistant',
     isError: true,
     timestamp: new Date().toISOString(),
+    nameRichText: content.includes(ASSISTANT_NAME_MARKER),
   });
 };
 
@@ -132,7 +138,8 @@ watch(
       if (id === props.assistantId) updateUsage(data);
     } catch (error) {
       pushAssistantError(
-        usageError(error) || t('CAPTAIN.PLAYGROUND.RESPONSE_ERROR')
+        usageError(error) ||
+          nameRichFrom(t('CAPTAIN.PLAYGROUND.RESPONSE_ERROR'))
       );
     }
   },
@@ -188,9 +195,10 @@ const sendMessage = async () => {
 
     messages.value.push({
       content: data.error
-        ? t('CAPTAIN.PLAYGROUND.RESPONSE_ERROR')
+        ? nameRichFrom(t('CAPTAIN.PLAYGROUND.RESPONSE_ERROR'))
         : data.response,
       sender: 'assistant',
+      nameRichText: Boolean(data.error),
       agentName: data.agent_name,
       runDetails: data.run_details,
       setupSummary,
@@ -204,7 +212,7 @@ const sendMessage = async () => {
       usageError(error) ||
         error?.response?.data?.error ||
         error?.response?.data?.message ||
-        t('CAPTAIN.PLAYGROUND.RESPONSE_ERROR')
+        nameRichFrom(t('CAPTAIN.PLAYGROUND.RESPONSE_ERROR'))
     );
   } finally {
     isLoading.value = false;
@@ -335,6 +343,7 @@ const usesProviderBilling = computed(
       </div>
       <PlaygroundTestSetup
         :key="setupInstanceKey"
+        :assistant="assistant"
         :session="session"
         class="min-h-0 flex-1"
       />
@@ -359,7 +368,11 @@ const usesProviderBilling = computed(
       :title="t('CAPTAIN.PLAYGROUND.SETUP.TITLE')"
       :description="t('CAPTAIN.PLAYGROUND.SETUP.DESCRIPTION')"
     >
-      <PlaygroundTestSetup :key="setupInstanceKey" :session="session" />
+      <PlaygroundTestSetup
+        :key="setupInstanceKey"
+        :assistant="assistant"
+        :session="session"
+      />
       <template #footer>
         <NextButton
           ghost

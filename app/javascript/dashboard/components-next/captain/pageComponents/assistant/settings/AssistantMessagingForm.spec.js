@@ -1,4 +1,8 @@
-import { flushPromises, mount } from '@vue/test-utils';
+import AssistantNameText from 'dashboard/components-next/AssistantNameText.vue';
+import { config, flushPromises, mount } from '@vue/test-utils';
+import { createI18n } from 'vue-i18n';
+import en from 'dashboard/i18n/locale/en/integrations.json';
+import es from 'dashboard/i18n/locale/es/integrations.json';
 import { ref } from 'vue';
 import AssistantMessagingForm from './AssistantMessagingForm.vue';
 import AssistantAPI from 'dashboard/api/captain/assistant';
@@ -154,10 +158,11 @@ const mountForm = async ({
       stubs: {
         SettingsToggleSection: {
           name: 'SettingsToggleSection',
+          components: { AssistantNameText },
           props: ['modelValue', 'header', 'description', 'hideToggle'],
           emits: ['update:modelValue'],
           template:
-            '<div><span>{{ header }}</span><span>{{ description }}</span><button v-if="!hideToggle" role="switch" :aria-checked="modelValue" @click="$emit(\'update:modelValue\', !modelValue)"></button><slot /><slot name="hiddenToggle" /></div>',
+            '<div><AssistantNameText :text="header" /><AssistantNameText :text="description" /><button v-if="!hideToggle" role="switch" :aria-checked="modelValue" @click="$emit(\'update:modelValue\', !modelValue)"></button><slot /><slot name="hiddenToggle" /></div>',
         },
         Button: {
           props: ['label', 'disabled', 'ariaLabel', 'to'],
@@ -1079,5 +1084,41 @@ describe('AssistantMessagingForm · Envíos por bandeja', () => {
     expect(
       dispatch.mock.calls.filter(([name]) => name === 'captainAssistants/show')
     ).toHaveLength(0);
+  });
+});
+
+describe.each(['es', 'en'])('assistant name in Envíos (%s)', locale => {
+  it('shows Aurora and reacts to renaming without changing resource names', async () => {
+    const originalPlugins = config.global.plugins;
+    config.global.plugins = [
+      createI18n({ legacy: false, locale, messages: { en, es } }),
+    ];
+    let wrapper;
+    try {
+      wrapper = await mountForm({ assistant: { name: 'Aurora' } });
+      expect(wrapper.text()).toContain(
+        locale === 'es'
+          ? 'Aurora usa los Flows y plantillas de este número'
+          : en.CAPTAIN.ASSISTANTS.ENVIOS.MESSAGING.TOGGLE.replace(
+              '{assistantName}',
+              'Aurora'
+            )
+      );
+      expect(wrapper.get('.assistant-name').attributes('title')).toBe('Aurora');
+      expect(wrapper.element.textContent).not.toContain('\u2063');
+      expect(
+        wrapper.get('[role="switch"][aria-label]').attributes('aria-label')
+      ).not.toContain('\u2063');
+      await wrapper.setProps({
+        assistant: { ...wrapper.props('assistant'), name: 'Luna'.repeat(8) },
+      });
+      expect(wrapper.text()).toContain(`${'Luna'.repeat(6)}…`);
+      expect(wrapper.get('.assistant-name').attributes('title')).toBe(
+        'Luna'.repeat(8)
+      );
+    } finally {
+      wrapper?.unmount();
+      config.global.plugins = originalPlugins;
+    }
   });
 });

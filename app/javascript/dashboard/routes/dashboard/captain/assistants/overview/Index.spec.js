@@ -1,4 +1,6 @@
 import { shallowMount } from '@vue/test-utils';
+import { ref } from 'vue';
+import en from 'dashboard/i18n/locale/en/integrations.json';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Index from './Index.vue';
 
@@ -9,8 +11,17 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('vue-i18n', async importOriginal => ({
   ...(await importOriginal()),
-  useI18n: () => ({ t: key => key }),
+  useI18n: () => ({
+    t: key => key.split('.').reduce((value, part) => value?.[part], en) || key,
+  }),
 }));
+
+vi.mock(
+  'dashboard/routes/dashboard/captain/assistants/settings/useAssistantSettings',
+  () => ({
+    useAssistantSettings: () => ({ assistant: ref({ name: 'Aurora' }) }),
+  })
+);
 
 vi.mock('vue-router', async importOriginal => ({
   ...(await importOriginal()),
@@ -46,6 +57,20 @@ describe('Captain overview', () => {
   beforeEach(() => {
     mocks.isAdmin = true;
     mocks.overviewV2 = false;
+  });
+
+  it('uses the selected assistant name in metric hints and passes it to the summary', () => {
+    const wrapper = mountOverview();
+    const cards = wrapper.findAllComponents({ name: 'MetricCard' });
+    expect(cards).toHaveLength(6);
+    cards.forEach(card => {
+      expect(card.props('hint')).toContain('Aurora');
+      expect(card.props('hint')).not.toContain('Captain');
+    });
+    expect(
+      wrapper.findComponent({ name: 'WelcomeCard' }).props('assistant').name
+    ).toBe('Aurora');
+    wrapper.unmount();
   });
 
   it('shows the usage breakdown on the default overview for admins', () => {

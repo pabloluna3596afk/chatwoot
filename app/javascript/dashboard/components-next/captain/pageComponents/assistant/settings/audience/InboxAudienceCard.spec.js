@@ -36,7 +36,7 @@ const mountCard = (overrides = {}, canEdit = true, locale = 'en') => {
       filterTypes: [],
     },
     global: {
-      stubs: { Banner: false },
+      stubs: { AssistantNameText: false, Banner: false },
     },
   });
 };

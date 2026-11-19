@@ -40,7 +40,9 @@ const phoneCondition = {
 const mountComponent = (audience = null) =>
   shallowMount(AssistantAudienceForm, {
     props: { assistant: { id: 7, config: { audience } } },
-    global: { stubs: { RadioCard: false, Banner: false } },
+    global: {
+      stubs: { RadioCard: false, Banner: false, AssistantNameText: false },
+    },
   });
 
 beforeEach(() => {
