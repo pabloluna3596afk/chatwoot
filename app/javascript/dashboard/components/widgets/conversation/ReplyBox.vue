@@ -1446,7 +1446,10 @@ export default {
 
 <template>
   <ReplyBoxBanner :message="message" :is-on-private-note="isOnPrivateNote" />
-  <div class="reply-box relative bg-n-surface-1" :class="replyBoxClass">
+  <div
+    class="reply-box relative"
+    :class="[isPrivate ? '' : 'bg-n-surface-1', replyBoxClass]"
+  >
     <ReplyTopPanel
       :mode="replyType"
       :conversation-id="conversationId"

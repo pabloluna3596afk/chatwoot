@@ -328,6 +328,7 @@ describe('ReplyBox', () => {
     );
     await wrapper.vm.setReplyMode(REPLY_EDITOR_MODES.NOTE);
     expect(bar.classes()).toContain('bg-n-solid-amber');
+    expect(bar.classes()).not.toContain('bg-n-surface-1');
     wrapper.unmount();
   });
 
