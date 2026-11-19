@@ -208,3 +208,31 @@ it('keeps repeated values and counts unique missing data across twelve variables
   expect(wrapper.html()).not.toContain('{{');
   wrapper.unmount();
 });
+
+describe('first field focus', () => {
+  const mountBody = () =>
+    mount(EditableBody, {
+      attachTo: document.body,
+      props: {
+        text: 'Hello {{name}}',
+        labelFor: key => ({ name: 'Customer name' })[key],
+        invalidKeys: [],
+      },
+    });
+
+  it('focuses the first field on a desktop with a mouse and keyboard', async () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true });
+    const wrapper = mountBody();
+    await flushPromises();
+    expect(document.activeElement).toBe(wrapper.get('textarea').element);
+    wrapper.unmount();
+  });
+
+  it('does not focus any field on a touch screen, so the on-screen keyboard stays closed', async () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: false });
+    const wrapper = mountBody();
+    await flushPromises();
+    expect(document.activeElement).not.toBe(wrapper.get('textarea').element);
+    wrapper.unmount();
+  });
+});

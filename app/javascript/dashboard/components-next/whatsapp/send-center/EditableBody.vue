@@ -57,6 +57,10 @@ watch(
   () => props.text,
   async () => {
     await nextTick();
+    // Focus the first field only where there is a physical keyboard: on touch screens it
+    // would open the on-screen keyboard every time a template is selected.
+    if (!window.matchMedia?.('(hover: hover) and (pointer: fine)')?.matches)
+      return;
     root.value?.querySelector('textarea')?.focus({ preventScroll: true });
   },
   { immediate: true }
