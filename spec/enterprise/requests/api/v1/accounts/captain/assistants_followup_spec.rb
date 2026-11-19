@@ -71,4 +71,39 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants follow-up settings', type
       end
     end
   end
+
+  describe 'combined closing and reminder settings' do
+    before { account.enable_features!('captain_integration_v2') }
+
+    it 'saves both timers in one patch while preserving the supplied followup and unrelated config' do
+      followup = {
+        inactivity_enabled: true, inactivity_after_minutes: 30, max_nudges: 2, close_after_minutes: 240,
+        reengagement_enabled: true,
+        reengagement_template: { name: 'volver', language: 'es', processed_params: { body: { '1' => '{{ contact.name }}' } } }
+      }
+      messaging = { 'version' => 2, 'revision' => 4, 'inboxes' => [] }
+      assistant.update!(config: assistant.config.merge(
+        'auto_resolve_after' => 120, 'followup' => followup.deep_stringify_keys,
+        'messaging' => messaging, 'handoff_priority' => 'always', 'handoff_message' => 'Transfer'
+      ))
+      followup[:inactivity_after_minutes] = 5
+
+      patch url, params: { assistant: { config: { auto_resolve_after: 10, followup: followup } } },
+                 headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(assistant.reload.config).to include(
+        'auto_resolve_after' => 10, 'followup' => followup.deep_stringify_keys,
+        'messaging' => messaging, 'handoff_priority' => 'always', 'handoff_message' => 'Transfer'
+      )
+    end
+
+    it 'returns 422 for an interval equal to the new inactivity time' do
+      patch url, params: { assistant: { config: {
+        auto_resolve_after: 5, followup: { inactivity_enabled: true, max_nudges: 1, inactivity_after_minutes: 5 }
+      } } }, headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+  end
 end

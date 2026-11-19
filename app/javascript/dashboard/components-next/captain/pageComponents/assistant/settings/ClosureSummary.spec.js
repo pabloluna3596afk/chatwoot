@@ -16,7 +16,6 @@ describe.each(['en', 'es'])('closure summary (%s)', locale => {
           auto_resolve_after: 120,
           followup: { inactivity_after_minutes: 30, max_nudges: 2 },
         },
-        linkToFollowup: true,
       },
       global: {
         plugins: [createI18n({ legacy: false, locale, messages: { en, es } })],

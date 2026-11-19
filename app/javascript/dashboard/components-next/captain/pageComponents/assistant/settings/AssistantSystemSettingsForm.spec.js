@@ -3,19 +3,19 @@ import { flushPromises, shallowMount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
-import RadioCard from 'dashboard/components-next/radioCard/RadioCard.vue';
-import Switch from 'dashboard/components-next/switch/Switch.vue';
 import AssistantSystemSettingsForm from './AssistantSystemSettingsForm.vue';
 import DurationSelect from './DurationSelect.vue';
 import HandoffRoutingRow from './HandoffRoutingRow.vue';
 import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 
 const teamsState = vi.hoisted(() => ({ teams: [], dispatch: vi.fn() }));
+const features = vi.hoisted(() => ({ v2: true }));
 vi.mock('dashboard/composables/store', () => ({
   useStore: () => ({ dispatch: teamsState.dispatch }),
   useMapGetter: () => computed(() => teamsState.teams),
 }));
 beforeEach(() => {
+  features.v2 = true;
   teamsState.teams = [{ id: 7, name: 'Support' }];
   teamsState.dispatch.mockReset().mockResolvedValue();
 });
@@ -29,7 +29,7 @@ vi.mock('vue-i18n', () => ({
 }));
 
 vi.mock('dashboard/composables/useAccount', () => ({
-  useAccount: () => ({ isCloudFeatureEnabled: () => true }),
+  useAccount: () => ({ isCloudFeatureEnabled: () => features.v2 }),
 }));
 
 const assistant = {
@@ -62,6 +62,22 @@ const submitForm = async wrapper => {
 };
 
 describe('AssistantSystemSettingsForm', () => {
+  it('keeps the legacy instructions editor and saves it without closing fields', async () => {
+    features.v2 = false;
+    const wrapper = mountComponent({
+      assistant: { config: { instructions: 'Support instructions' } },
+    });
+    expect(
+      wrapper.find('editor-stub[modelvalue="Support instructions"]').exists()
+    ).toBe(true);
+    await submitForm(wrapper);
+    expect(wrapper.emitted('submit')[0][0].config).toMatchObject({
+      instructions: 'Support instructions',
+    });
+    expect(wrapper.emitted('submit')[0][0].config).not.toHaveProperty(
+      'resolution_message'
+    );
+  });
   it('omits messaging from the patch even when the assistant includes it', async () => {
     const wrapper = mountComponent({
       assistant: {
@@ -81,103 +97,19 @@ describe('AssistantSystemSettingsForm', () => {
     );
   });
 
-  it('edits the only inactivity timer alongside the goodbye control', () => {
+  it('saves only handoff settings and leaves closing in its own form', async () => {
     const wrapper = mountComponent();
-    expect(wrapper.findAllComponents(RadioCard)).toHaveLength(0);
-    expect(wrapper.findAllComponents(DurationSelect)).toHaveLength(1);
-    expect(wrapper.findAllComponents(Switch)).toHaveLength(2);
-    expect(wrapper.text()).toContain(
-      'CAPTAIN.ASSISTANTS.FORM.INACTIVITY_RESOLUTION.RESOLUTION_MESSAGE.TITLE'
-    );
-  });
-
-  it('saves the mode and timer together with system messages', async () => {
-    const wrapper = mountComponent();
-    await submitForm(wrapper);
-
-    expect(wrapper.emitted('submit')[0][0]).toEqual({
-      config: {
-        completion_signal_enabled: false,
-        completion_grace_minutes: 5,
-        auto_resolve_mode: 'evaluated',
-        auto_resolve_after: 75,
-        handoff_message: assistant.config.handoff_message,
-        resolution_message: assistant.config.resolution_message,
-        send_inactivity_resolution_message: true,
-        handoff_routing: {
-          new: { mode: 'inbox', team_id: null },
-          reopened: { mode: 'inbox', team_id: null },
-        },
-        handoff_priority: 'off',
-        max_replies_per_conversation: 20,
-      },
-    });
-  });
-
-  it('hides the inactivity timer when automatic closing is disabled', async () => {
-    const wrapper = mountComponent();
-    wrapper
-      .findAllComponents(ComboBox)[0]
-      .vm.$emit('update:modelValue', 'disabled');
-    await nextTick();
     expect(wrapper.findComponent(DurationSelect).exists()).toBe(false);
     await submitForm(wrapper);
-    expect(wrapper.emitted('submit')[0][0].config.auto_resolve_mode).toBe(
-      'disabled'
-    );
-  });
-
-  it('blocks an incompatible reduction and accepts it with reminders disabled', async () => {
-    const wrapper = mountComponent();
-    wrapper.findComponent(DurationSelect).vm.$emit('update:modelValue', 30);
-    await nextTick();
-    await submitForm(wrapper);
-    expect(wrapper.emitted('submit')).toBeUndefined();
-    expect(wrapper.find('[role="alert"]').text()).toContain('AFTER_ERROR');
-    await wrapper.setProps({
-      assistant: {
-        config: {
-          auto_resolve_after: 30,
-          followup: { inactivity_enabled: false, inactivity_after_minutes: 30 },
-        },
+    expect(wrapper.emitted('submit')[0][0].config).toEqual({
+      handoff_message: assistant.config.handoff_message,
+      max_replies_per_conversation: 20,
+      handoff_routing: {
+        new: { mode: 'inbox', team_id: null },
+        reopened: { mode: 'inbox', team_id: null },
       },
+      handoff_priority: 'off',
     });
-    await submitForm(wrapper);
-    expect(wrapper.emitted('submit')[0][0].config.auto_resolve_after).toBe(30);
-  });
-
-  it('shows detection only in evaluated mode and saves an explicit activation', async () => {
-    const wrapper = mountComponent();
-    const section = () => wrapper.find('[data-testid="completion-signal"]');
-    expect(section().exists()).toBe(true);
-    expect(wrapper.find('[data-testid="completion-grace"]').exists()).toBe(
-      false
-    );
-    section().findComponent(Switch).vm.$emit('update:modelValue', true);
-    await nextTick();
-    const grace = wrapper
-      .findAllComponents(ComboBox)
-      .find(item => item.attributes('data-testid') === 'completion-grace');
-    expect(grace.props('options').map(option => option.value)).toEqual([
-      5, 10, 15,
-    ]);
-    grace.vm.$emit('update:modelValue', 10);
-    await nextTick();
-    await submitForm(wrapper);
-    expect(wrapper.emitted('submit')[0][0].config).toMatchObject({
-      completion_signal_enabled: true,
-      completion_grace_minutes: 10,
-    });
-    wrapper
-      .findAllComponents(ComboBox)[0]
-      .vm.$emit('update:modelValue', 'legacy');
-    await nextTick();
-    expect(section().exists()).toBe(false);
-    wrapper
-      .findAllComponents(ComboBox)[0]
-      .vm.$emit('update:modelValue', 'disabled');
-    await nextTick();
-    expect(section().exists()).toBe(false);
   });
 
   it('saves the reply limit, 20 by default and 0 for no limit', async () => {

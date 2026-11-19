@@ -58,13 +58,7 @@ describe('Handoff settings persistence', () => {
       expect(mocks.dispatch).toHaveBeenCalledWith('captainAssistants/update', {
         id: 7,
         config: {
-          auto_resolve_mode: 'evaluated',
-          auto_resolve_after: 60,
-          completion_signal_enabled: false,
-          completion_grace_minutes: 5,
           handoff_message: undefined,
-          resolution_message: undefined,
-          send_inactivity_resolution_message: true,
           max_replies_per_conversation: 20,
           handoff_routing: {
             new: { mode: 'inbox', team_id: null },

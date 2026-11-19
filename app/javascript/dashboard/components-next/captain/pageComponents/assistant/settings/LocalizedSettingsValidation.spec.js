@@ -63,32 +63,24 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
     config.global.plugins = [i18n];
   });
 
-  it('renders the goodbye link in the current locale with one inactivity timer', () => {
+  it('renders the combined intention sections without cross-tab links', () => {
     const wrapper = shallowMount(AssistantFollowupForm, {
-      props: {
-        assistant: {
-          ...assistant,
-        },
-      },
-      global: {
-        stubs: {
-          I18nT: { template: '<p><slot name="link" /></p>' },
-          SettingsToggleSection: false,
-          RouterLink: { template: '<a><slot /></a>' },
-        },
-        mocks: { $t: key => i18n.global.t(key) },
-      },
+      props: { assistant },
+      global: { stubs: { SettingsToggleSection: false } },
     });
-    const expectedLink =
-      locale === 'es' ? 'Traspaso y cierre' : 'Handoff and closing';
-
-    expect(wrapper.text()).toContain(expectedLink);
-    expect(wrapper.findAllComponents(DurationSelect)).toHaveLength(0);
+    expect(wrapper.text()).toContain(
+      i18n.global.t('CAPTAIN.ASSISTANTS.FORM.CLOSURE.NO_REPLY')
+    );
+    expect(wrapper.text()).toContain(
+      i18n.global.t('CAPTAIN.ASSISTANTS.FORM.CLOSURE.CONVERSATION_ENDS')
+    );
+    expect(wrapper.findAllComponents(DurationSelect)).toHaveLength(1);
+    expect(wrapper.find('a').exists()).toBe(false);
     wrapper.unmount();
   });
 
   it('uses the current assistant name in completion controls and reacts to renaming', async () => {
-    const wrapper = shallowMount(AssistantSystemSettingsForm, {
+    const wrapper = shallowMount(AssistantFollowupForm, {
       props: {
         assistant: {
           ...assistant,
@@ -192,14 +184,14 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
     [1441, 'MAX_VALUE', { max: 1440 }],
     [null, 'REQUIRED', {}],
   ])('shows the inactivity error for %j', async (value, key, params) => {
-    const wrapper = shallowMount(AssistantSystemSettingsForm, {
+    const wrapper = shallowMount(AssistantFollowupForm, {
       props: {
         assistant: { config: { auto_resolve_after: 60 } },
       },
       global: { stubs: { SettingsToggleSection: false } },
     });
     wrapper.findComponent(DurationSelect).vm.$emit('update:modelValue', value);
-    wrapper.findComponent(Button).vm.$emit('click');
+    await wrapper.get('[data-testid="followup-save"]').trigger('click');
     await flushPromises();
     expect(wrapper.findComponent(DurationSelect).props('error')).toBe(
       i18n.global.t(`GENERAL.VALIDATION.${key}`, params)
@@ -217,7 +209,10 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
     await flushPromises();
 
     expect(wrapper.get('[data-testid="followup-after-error"]').text()).toBe(
-      i18n.global.t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.AFTER_ERROR')
+      i18n.global.t('CAPTAIN.ASSISTANTS.FORM.FOLLOWUP.AFTER_ERROR', {
+        interval: 30,
+        minutes: 30,
+      })
     );
     expect(wrapper.emitted('submit')).toBeUndefined();
     wrapper.unmount();
@@ -243,7 +238,7 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
   it.each([5, 1440, 60])(
     'preserves accepted inactivity timer boundary %s',
     async minutes => {
-      const wrapper = shallowMount(AssistantSystemSettingsForm, {
+      const wrapper = shallowMount(AssistantFollowupForm, {
         props: {
           assistant: {
             config: {
@@ -253,7 +248,7 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
           },
         },
       });
-      wrapper.findComponent(Button).vm.$emit('click');
+      await wrapper.get('[data-testid="followup-save"]').trigger('click');
       await flushPromises();
       expect(wrapper.emitted('submit')[0][0].config.auto_resolve_after).toBe(
         minutes
@@ -315,7 +310,7 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
       wrapper.findComponent(Button).vm.$emit('click');
       await flushPromises();
       expect(wrapper.emitted('submit')).toHaveLength(1);
-      ['handoffMessage', 'resolutionMessage', 'instructions'].forEach(field => {
+      ['handoffMessage', 'instructions'].forEach(field => {
         expect(wrapper.vm.v$[field].minLength.$params.min).toBe(1);
         expect(wrapper.vm.v$[field].minLength.$message).toBe(
           i18n.global.t('GENERAL.VALIDATION.MIN_LENGTH', { min: 1 })
@@ -329,16 +324,14 @@ describe.each(['en', 'es'])('localized validation (%s)', locale => {
     const wrapper = shallowMount(AssistantFollowupForm, {
       props: {
         assistant: {
-          config: { auto_resolve_mode: 'disabled', auto_resolve_after: 1441 },
+          config: { auto_resolve_mode: 'disabled', auto_resolve_after: 5 },
         },
       },
     });
     await wrapper.get('[data-testid="followup-save"]').trigger('click');
     await flushPromises();
     expect(wrapper.emitted('submit')).toHaveLength(1);
-    expect(wrapper.emitted('submit')[0][0].config).not.toHaveProperty(
-      'auto_resolve_after'
-    );
+    expect(wrapper.emitted('submit')[0][0].config.auto_resolve_after).toBe(5);
     wrapper.unmount();
   });
 

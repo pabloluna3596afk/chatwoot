@@ -27,6 +27,8 @@ RSpec.describe Captain::Assistant, type: :model do
   end
 
   describe 'follow-up inactivity threshold validation' do
+    let(:inactive_followup) { { 'inactivity_after_minutes' => 30 } }
+
     before { account.enable_features('captain_integration_v2') }
 
     %w[legacy evaluated].each do |mode|
@@ -50,6 +52,17 @@ RSpec.describe Captain::Assistant, type: :model do
       )
 
       expect(assistant).to be_valid
+    end
+
+    [{ 'inactivity_enabled' => false }, { 'max_nudges' => 0 }].each do |settings|
+      it "accepts a five minute closure without active reminders: #{settings.inspect}" do
+        assistant.config = assistant.config.merge(
+          'auto_resolve_mode' => 'legacy', 'auto_resolve_after' => 5,
+          'followup' => inactive_followup.merge(settings)
+        )
+
+        expect(assistant).to be_valid
+      end
     end
   end
 
